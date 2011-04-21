@@ -3,20 +3,20 @@ from pylab import *
 import time
 
 
-N0=15
-N1=15
-N2=15
+N0=11
+N1=11
+N2=11
 K=1.0
 gamma0=0.0
 gamma1=0.0
 gamma2=0.5
-alpha=sqrt(5)
+alpha=sqrt(3)
 epsilon=0.5j #sqeezing parameter
 tfinal=4.0
 dt=0.05
 tlist=arange(0.0,tfinal+dt,dt)
 taulist=K*tlist #non-dimensional times
-ntraj=50
+ntraj=200
 
 #define operators
 a0=tensor(destroy(N0),qeye(N1),qeye(N2))

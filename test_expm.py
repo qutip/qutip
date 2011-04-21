@@ -27,7 +27,7 @@ def test_expm(A):
             A6=dot(A2,A4)
             U = dot(A,(dot(A6,(c[13]*A6+c[11]*A4+c[9]*A2))+c[7]*A6+c[5]*A4+c[3]*A2+c[1]*eye(n,n)))
             V = dot(A6,(c[12]*A6 + c[10]*A4 + c[8]*A2))+ c[6]*A6 + c[4]*A4 + c[2]*A2 + c[0]*eye(n,n)
-            F=solve((-U+V),(U+V)) 
+            F=solve((-U+V),(U+V))
             return F
     #################################
     m_vals=array([3,5,7,9,13])
