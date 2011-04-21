@@ -26,7 +26,10 @@ def coherent(N, alpha):
     N the number of states
     alpha the coherent state amplitude (complex)
     """
-    data = zeros([N,N],dtype=complex)
+    if isinstance(alpha,complex):
+        data = zeros([N,N],dtype=complex) #prevents loosing imaginary parts
+    else:
+        data = zeros([N,N])
     m=range(N)
     for n in xrange(N):
         data[:,n] = exp(-abs(alpha) ** 2) * ((alpha ** n) / sqrt(factorial(n))) * ((conjugate(alpha)**m) / sqrt(factorial(m)))
