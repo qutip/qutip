@@ -20,20 +20,19 @@ from scipy import *
 from Qobj import Qobj
 from basis import basis
 
-def coherent_state(N, alpha):
+def coherent(N, alpha):
     """
     Generate the matrix representation of a coherent state
     N the number of states
     alpha the coherent state amplitude (complex)
     """
-    data = zeros([N,N])
-    for m in range(N):
-        for n in range(N):
-            data[m,n] = exp(-abs(alpha) ** 2) * ((alpha ** n) / sqrt(factorial(n))) * ((conjugate(alpha) ** m) / sqrt(factorial(m)))
-
+    data = zeros([N,N],dtype=complex)
+    m=range(N)
+    for n in xrange(N):
+        data[:,n] = exp(-abs(alpha) ** 2) * ((alpha ** n) / sqrt(factorial(n))) * ((conjugate(alpha)**m) / sqrt(factorial(m)))
     return Qobj(data);
 
-def dm_fock_state(N, m):
+def fock_dm(N, m):
     """
     Generate the density matrix for a fock state
 
@@ -42,4 +41,9 @@ def dm_fock_state(N, m):
     """
     psi = basis(N, m)
     return psi * psi.dag()
+
+
+if __name__ == "__main__":
+    print coherent(4,1j)
+
 
