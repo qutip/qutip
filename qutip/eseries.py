@@ -12,9 +12,6 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
-#
 ###########################################################################
 from scipy import *
 from qobj import *
@@ -180,6 +177,26 @@ def esval(es, tlist):
 
     return val_list
 
+def esval_op(es, tlist):
+    '''
+    Evaluate an exponential series at the times listed in tlist. 
+    '''
+    val_list = []
+
+    for j in range(len(tlist)):
+        exp_factors = exp(array(es.rates) * tlist[j])
+
+        val = 0
+        for i in range(len(es.ampl)):
+            val += es.ampl[i] * exp_factors[i]
+  
+        val_list.append(val)
+
+    if len(tlist) == 1:
+        return val_list[0]
+    else:
+        return val_list
+
 
 def esspec(es, wlist):
     '''
@@ -194,6 +211,8 @@ def esspec(es, wlist):
         #print "demon =", 1/(1j*wlist[i] - es.rates)
 
         val_list[i] = 2 * real( dot(es.ampl, 1/(1j*wlist[i] - es.rates)) )
+
+
 
     return val_list
 
@@ -230,24 +249,25 @@ def estidy(es,*args):
     #
     # find unique rates (todo: allow deviations within tolerance)
     #
-    rates_unique = sort(list(set(rates)))
+#    rates_unique = sort(list(set(rates)))
 
     #
     # collect terms that have the same rates (within the tolerance)
     #
-    for r in rates_unique:
+#    for r in rates_unique:
     
-        terms = qobj() 
+#        terms = qobj() 
 
-        for idx,rate in enumerate(rates):
-            if abs(rate - r) < tol:
-                terms += es.ampl[idx]
+#        for idx,rate in enumerate(rates):
+#            if abs(rate - r) < tol:
+#                terms += es.ampl[idx]
 
-    	if terms.norm() > tol:
-            out.rates.append(r)
-    	    out.ampl.append(terms)
+#    	if terms.norm() > tol:
+#            out.rates.append(r)
+#    	    out.ampl.append(terms)
  
-    return out
+#    return out
+    return es
 
 
 ###########---Find Groups---####################
