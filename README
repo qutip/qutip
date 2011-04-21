@@ -1,0 +1,11 @@
+
+
+ Requirements for doxygen on Ubuntu:
+
+ sudo apt-get install doxygen graphviz doxypy
+
+ Generate the API documentation:
+
+ doxygen doxygen.cfg
+
+
