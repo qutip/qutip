@@ -33,30 +33,6 @@ def scalar_expect(oper,state):
     
     '''
 
-    if (not isinstance(oper,qobj)) or (not isinstance(state,qobj)):
-        raise TypeError('Arguments must be quantum objects')
-    if isoper(oper):
-        if isoper(state):
-            #calculates expectation value via TR(op*rho)
-            prod = (oper.data*state.data).tocsr()
-            num=prod.shape[0]
-            tr=0.0j
-            for j in range(num):
-                tr+=prod[j,j]
-            if isherm(oper):
-                return real(tr)
-            else:
-                return tr
-        elif isket(state):
-            #calculates expectation value via <psi|op|psi>
-            if isherm(oper):
-                return real((state.data.conj().T*oper.data*state.data).tocsr()[0,0])
-            else:
-                return (state.data.conj().T*oper.data*state.data).tocsr()[0,0]
-    else:
-        raise TypeError('Invalid operand types')
-
-
     if isinstance(oper,qobj) and isinstance(state,qobj):
         if isoper(oper):
             if isoper(state):
@@ -68,10 +44,16 @@ def scalar_expect(oper,state):
                 tr=0.0j
                 for j in range(num):
                     tr+=prod[j,j]
-                return tr
+                if isherm(oper):
+                    return real(tr)
+                else:
+                    return tr
             elif isket(state):
                 #calculates expectation value via <psi|op|psi>
-                return (state.data.conj().T*oper.data*state.data)[0,0]
+                if isherm(oper):
+                    return real((state.data.conj().T*oper.data*state.data).tocsr()[0,0])
+                else:
+                    return (state.data.conj().T*oper.data*state.data).tocsr()[0,0]
         else:
             raise TypeError('Invalid operand types')
 
