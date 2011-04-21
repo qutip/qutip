@@ -7,7 +7,7 @@ import scipy.sparse as sp
 import scipy.linalg as la
 
 from qutip.operators import destroy
-from qutip.qobj import qobj
+from qutip.Qobj import Qobj
 from qutip.expm import expm
 from qutip.basis import basis
 from qutip.wigner import wigner
@@ -21,13 +21,13 @@ A_sp[0,0] = 1.0
 A_sp[1,0] = 2.0
 A_sp[0,1] = 3.0
 A_sp[1,1] = 4.0
-A = qobj(A_sp.tocsr())
+A = Qobj(A_sp.tocsr())
 
 #B_sp = sp.lil_matrix((2,2), dtype='complex128')
 B_sp = sp.lil_matrix((2,2), dtype='float32')
 B_sp[0,0] = 1.0
 B_sp[1,1] = 4.0
-B = qobj(B_sp.tocsr())
+B = Qobj(B_sp.tocsr())
 
 print "======================================"
 print "A = \n", A

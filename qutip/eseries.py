@@ -14,7 +14,7 @@
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
 from scipy import *
-from qobj import *
+from Qobj import *
 
 class eseries:
     __array_priority__=101
@@ -33,17 +33,17 @@ class eseries:
             elif isinstance(q,(ndarray,list)):
                 ind=shape(q)
                 num=ind[0] #number of elements in q
-                #sh=array([qobj(x).shape for x in range(0,num)])
-                sh=array([qobj(x).shape for x in q])
+                #sh=array([Qobj(x).shape for x in range(0,num)])
+                sh=array([Qobj(x).shape for x in q])
                 if any(sh!=sh[0]):
                     raise TypeError('All amplitudes must have same dimension.')
-                #self.ampl=array([qobj(x) for x in q])
+                #self.ampl=array([Qobj(x) for x in q])
                 self.ampl=array([x for x in q])
                 self.rates=zeros(ind)
                 self.dims=self.ampl[0].dims
                 self.shape=self.ampl[0].shape
-            elif isinstance(q,qobj):
-                qo=qobj(q)
+            elif isinstance(q,Qobj):
+                qo=Qobj(q)
                 self.ampl=array([qo])
                 self.rates=array([0])
                 self.dims=qo.dims
@@ -58,15 +58,15 @@ class eseries:
             if isinstance(q,(ndarray,list)):
                 ind=shape(q)
                 num=ind[0]
-                sh=array([qobj(q[x]).shape for x in range(0,num)])
+                sh=array([Qobj(q[x]).shape for x in range(0,num)])
                 if any(sh!=sh[0]):
                     raise TypeError('All amplitudes must have same dimension.')
-                self.ampl=array([qobj(q[x]) for x in range(0,num)])
+                self.ampl=array([Qobj(q[x]) for x in range(0,num)])
                 self.dims=self.ampl[0].dims
                 self.shape=self.ampl[0].shape
             else:
                 num=1
-                self.ampl=array([qobj(q)])
+                self.ampl=array([Qobj(q)])
                 self.dims=self.ampl[0].dims
                 self.shape=self.ampl[0].shape
             if isinstance(s,(int,complex,float)):
@@ -256,7 +256,7 @@ def estidy(es,*args):
     #
 #    for r in rates_unique:
     
-#        terms = qobj() 
+#        terms = Qobj() 
 
 #        for idx,rate in enumerate(rates):
 #            if abs(rate - r) < tol:

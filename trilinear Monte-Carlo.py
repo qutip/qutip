@@ -16,7 +16,7 @@ tfinal=4.0
 dt=0.05
 tlist=arange(0.0,tfinal+dt,dt)
 taulist=K*tlist #non-dimensional times
-ntraj=200
+ntraj=10
 
 #define operators
 a0=tensor(destroy(N0),qeye(N1),qeye(N2))

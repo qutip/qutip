@@ -14,7 +14,7 @@
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
 from scipy import *
-from qobj import *
+from Qobj import *
 from eseries import *
 
 #
@@ -37,7 +37,7 @@ def ode2es(L, rho0):
 
     out = None
     for i in range(rlen):
-        qo = qobj(reshape(vv[:,i], rho0.shape), dims=rho0.dims, shape=rho0.shape)
+        qo = Qobj(reshape(vv[:,i], rho0.shape), dims=rho0.dims, shape=rho0.shape)
         if out:
             out += eseries(qo, w[i])
         else:

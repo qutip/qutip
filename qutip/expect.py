@@ -18,7 +18,7 @@
 ###########################################################################
 
 from eseries import *
-from qobj import *
+from Qobj import *
 from istests import *
 import numpy as np
 import scipy.sparse as sp
@@ -33,7 +33,7 @@ def scalar_expect(oper,state):
     
     '''
 
-    if isinstance(oper,qobj) and isinstance(state,qobj):
+    if isinstance(oper,Qobj) and isinstance(state,Qobj):
         if isoper(oper):
             if isoper(state):
                 #calculates expectation value via TR(op*rho)

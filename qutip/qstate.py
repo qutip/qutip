@@ -17,7 +17,7 @@
 #
 ###########################################################################
 from scipy import *
-from qobj import *
+from Qobj import *
 from basis import *
 from tensor import *
 import time

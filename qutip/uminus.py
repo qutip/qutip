@@ -17,10 +17,10 @@
 #
 ###########################################################################
 from scipy import *
-from qobj import qobj
+from Qobj import Qobj
 
 def uminus(A):
-	return qobj(-A.data)
+	return Qobj(-A.data)
 
 
 	

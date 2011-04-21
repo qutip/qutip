@@ -17,7 +17,7 @@
 from scipy import array
 import scipy.linalg as la
 import scipy.sparse as sp
-from qobj import *
+from Qobj import *
 
 class fseries:
 	"""
@@ -27,7 +27,7 @@ class fseries:
     ################## Define fseries class #################
 	def __init__(self,q=array([0]),ftype=[[]],fparam=[[]]):
 		if (not any(q)) & (not any(ftype)) & (not any(fparam)):#no input params
-			qo=qobj() #create blank qobj
+			qo=Qobj() #create blank Qobj
 			self.series=array([qo])
 			self.dims=qo.dims
 			self.shape=qo.shape
@@ -41,7 +41,7 @@ class fseries:
 				self.ftype=q.ftype
 				self.fparam=q.fparam 
 			elif (not isinstance(q,fseries)) & (not any(ftype)) & (not any(fparam)):
-				qo=qobj(q)
+				qo=Qobj(q)
 				self.series=array([qo])
 				self.dims=qo.dims
 				self.shape=qo.shape
@@ -50,14 +50,14 @@ class fseries:
 			if (not isinstance(q,fseries)) & any(ftype) & (not any(fparam)):
 				if len(ftype)!=1:
 					raise TypeError('Invalid function type')
-				qo=qobj(q)
+				qo=Qobj(q)
 				self.series=array([qo])
 				self.dims=qo.dims
 				self.shape=qo.shape
 				self.ftype=ftype
 				self.fparam=[[]]
 			elif (not isinstance(q,fseries)) & any(ftype) & (any(fparam)):
-				qo=qobj(q)
+				qo=Qobj(q)
 				self.series=array([qo])
 				self.dims=qo.dims
 				self.shape=qo.shape
@@ -106,9 +106,9 @@ class fseries:
 		return other+(-self)
 		
 	def __mul__(self,other):
-		#defines multiplication with qobj on left (ex. qobj*5)
-		if isinstance(other,qobj) or isinstance(other,(int,float,complex)):
-			qother=qobj(other)
+		#defines multiplication with Qobj on left (ex. Qobj*5)
+		if isinstance(other,Qobj) or isinstance(other,(int,float,complex)):
+			qother=Qobj(other)
 			d=dimprod(qother.dims,self.dims)
 			fsshape=dims2shape(d)
 			ftype=self.ftype

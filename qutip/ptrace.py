@@ -19,10 +19,10 @@
 from scipy import *
 import scipy.sparse as sp
 from scipy.linalg import *
-from qobj import *
+from Qobj import *
 from list2ind import *
 from selct import *
-from qobj import dag
+from Qobj import dag
 
 import numpy
 
@@ -70,7 +70,7 @@ def ptrace(rho,sel):
     #print "rho  =", rho.data.shape
     #print "rws  =", rws
 
-    rho1=qobj()
+    rho1=Qobj()
 
     if sp.issparse(rho.data):
         rhdata=dot(perm,rho.data.tolil().reshape((rws,1)))

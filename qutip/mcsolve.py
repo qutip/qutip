@@ -20,7 +20,7 @@ from multiprocessing import Pool,cpu_count
 from scipy import *
 from scipy.integrate import *
 import scipy.linalg as la
-from qobj import *
+from Qobj import *
 from expect import *
 import sys,os,time
 from Counter import *
@@ -55,7 +55,7 @@ class MC_class():
         self.psi_dims=psi0.dims
         self.psi_shape=psi0.shape
         if self.num_collapse==0 and self.num_expect==0:
-            self.psi_out=array([qobj() for k in xrange(self.num_times)])#preallocate array of qobjs
+            self.psi_out=array([Qobj() for k in xrange(self.num_times)])#preallocate array of Qobjs
         elif self.num_collapse==0 and self.num_expect!=0:#no collpase expectation values
             self.expect_out=[]
             self.isher=isherm(self.expect_ops)#checks if expectation operators are hermitian
@@ -81,7 +81,7 @@ class MC_class():
     def callback(self,results):
         r=results[0]
         if self.num_expect==0:#output state-vector
-            self.psi_out[r]=array([qobj(psi,dims=self.psi_dims,shape=self.psi_shape) for psi in results[1]])
+            self.psi_out[r]=array([Qobj(psi,dims=self.psi_dims,shape=self.psi_shape) for psi in results[1]])
         else:#output expectation values
             self.expect_out[r]=results[1]
         self.collapse_times_out[r]=results[2]
@@ -92,7 +92,7 @@ class MC_class():
         if self.num_collapse==0:
             if self.ntraj!=1:#check if ntraj!=1 which is pointless for no collapse operators
                 print 'No collapse operators specified.\nRunning a single trajectory only.\n'
-            if self.num_expect==0:# return psi QOBJ at each requested time 
+            if self.num_expect==0:# return psi Qobj at each requested time 
                 self.psi_out=no_collapse_psi_out(self.Hdata,self.psi_in,self.times,self.num_times,self.psi_dims,self.psi_shape,self.psi_out)
             else:# return expectation values of requested operators
                 self.expect_out=no_collapse_expect_out(self.Hdata,self.psi_in,self.times,self.expect_ops,self.num_expect,self.num_times,self.psi_dims,self.psi_shape,self.expect_out,self.isher)
@@ -114,11 +114,11 @@ def no_collapse_psi_out(Hdata,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out)
     ODE=ode(RHS)
     ODE.set_integrator('zvode',method='adams',nsteps=500,atol=1e-6) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
-    psi_out[0]=qobj(psi_in,dims=psi_dims,shape=psi_shape)
+    psi_out[0]=Qobj(psi_in,dims=psi_dims,shape=psi_shape)
     for k in xrange(1,num_times):
         ODE.integrate(tlist[k],step=0) #integrate up to tlist[k]
         if ODE.successful():
-            psi_out[k]=qobj(ODE.y/la.norm(ODE.y),dims=psi_dims,shape=psi_shape)
+            psi_out[k]=Qobj(ODE.y/la.norm(ODE.y),dims=psi_dims,shape=psi_shape)
         else:
             raise ValueError('Error in ODE solver')
     return psi_out
@@ -157,7 +157,7 @@ def mc_alg_evolve(nt,args):
     def RHS(t,psi):
             return Hdata*psi #cannot use dot(a,b) since mat is matrix and not array.
     if num_expect==0:
-        psi_out=array([zeros((len(psi_in),1),dtype=complex) for k in xrange(num_times)])#preallocate real array of qobjs
+        psi_out=array([zeros((len(psi_in),1),dtype=complex) for k in xrange(num_times)])#preallocate real array of Qobjs
         psi_out[0]=psi_in
     else:
         expect_out=[]

@@ -17,7 +17,7 @@
 #
 ###########################################################################
 from scipy import *
-from qobj import qobj
+from Qobj import Qobj
 import scipy.sparse as sp
 from scipy.special import lpmv
 from istests import isket

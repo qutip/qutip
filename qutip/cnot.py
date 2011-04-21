@@ -18,7 +18,7 @@
 ###########################################################################
 
 from qstate import qstate
-from qobj import dag
+from Qobj import dag
 
 def cnot():
 	uu=qstate('uu')

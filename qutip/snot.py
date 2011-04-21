@@ -17,7 +17,7 @@
 #
 ###########################################################################
 from qstate import qstate
-from qobj import dag
+from Qobj import dag
 def snot():
 	u=qstate('u')
 	d=qstate('d')

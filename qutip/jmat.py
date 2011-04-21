@@ -18,15 +18,15 @@
 ###########################################################################
 from scipy import logical_or,any, fix,arange,sqrt
 import scipy.sparse as sp
-from qobj import *
+from Qobj import *
 
 def jmat(j,*args):
 	if (fix(2*j)!=2*j) or (j<0):
 		raise TypeError('j must be a non-negative integer or half-integer')
 	if not args:
-		a1=qobj(0.5*(jplus(j)+jplus(j).conj().T))
-		a2=qobj(0.5*1j*(jplus(j)-jplus(j).conj().T))
-		a3=qobj(jz(j))
+		a1=Qobj(0.5*(jplus(j)+jplus(j).conj().T))
+		a2=Qobj(0.5*1j*(jplus(j)-jplus(j).conj().T))
+		a3=Qobj(jz(j))
 		return [a1,a2,a3]
 	if args[0]=='+':
 		A=jplus(j)
@@ -40,7 +40,7 @@ def jmat(j,*args):
 		A=jz(j)
 	else:
 		raise TypeError('Invlaid type')
-	return qobj(A.tocsr())
+	return Qobj(A.tocsr())
 
 
 

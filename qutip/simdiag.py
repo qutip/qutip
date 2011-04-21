@@ -16,7 +16,7 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from qobj import *
+from Qobj import *
 import scipy.linalg as la
 
 def simdiag(ops):
@@ -96,7 +96,7 @@ def degen(tol,vlist,ops):
 
 
 if __name__ == "__main__":
-	from qobj import *
+	from Qobj import *
 	from tensor import *
 	from operators import *
 	sx1=tensor(sigmax(),qeye(2),qeye(2))

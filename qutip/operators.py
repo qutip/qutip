@@ -23,7 +23,7 @@ from scipy.linalg import *
 import scipy.sparse as sp
 
 from jmat import jmat
-from qobj import qobj
+from Qobj import Qobj
 
 #
 # operators:
@@ -55,11 +55,11 @@ def destroy(N):
 	'''
 	Destruction (lowering) operator for Hilbert space of dimension N
 	input: N = size of hilbert space
-	output: qobj
+	output: Qobj
 	'''
 	if not isinstance(N,int):#raise error if N not integer
 		raise ValueError("Hilbert space dimension must be integer value")
-	return qobj(sp.spdiags(sqrt(range(0,N)),1,N,N,format='csr'))
+	return Qobj(sp.spdiags(sqrt(range(0,N)),1,N,N,format='csr'))
 
 #
 #CREATE returns creation operator for N dimensional Hilbert space
@@ -69,12 +69,12 @@ def create(N):
 	'''
 	Creation (raising) operator for Hilbert space of dimension N
 	input: N = size of hilbert space
-	output: qobj
+	output: Qobj
 	'''
 	if not isinstance(N,int):#raise error if N not integer
 		raise ValueError("Hilbert space dimension must be integer value")
 	qo=destroy(N) #create operator using destroy function
-	qo.data=qo.data.T #transpsoe data in qobj
+	qo.data=qo.data.T #transpsoe data in Qobj
 	return qo
 
 
@@ -85,5 +85,5 @@ def create(N):
 def qeye(N):
 	if logical_or(not isinstance(N,int),N<0):#check if N is int and N>0
 		raise ValueError("N must be integer N>=0")
-	return qobj(eye(N))
+	return Qobj(eye(N))
 	

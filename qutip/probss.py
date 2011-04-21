@@ -16,7 +16,7 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from qobj import *
+from Qobj import *
 from tensor import *
 from spre import *
 from spost import *

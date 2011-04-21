@@ -21,7 +21,7 @@ import scipy.sparse as sp
 import scipy.linalg as la
 import time
 from tensor import tensor
-from qobj import *
+from Qobj import *
 from ptrace import ptrace
 from basis import basis
 from istests import *

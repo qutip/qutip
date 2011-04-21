@@ -45,7 +45,7 @@ def wf_ode_solve(tlist, H, psi0, expt_op_list):
     while r.successful() and r.t < tlist[-1]:
         t_idx += 1
 
-        psi = qobj(r.y)
+        psi = Qobj(r.y)
         psi.dims = psi0.dims
 
         # calculate all the expectation values: contribution from single trajectory
@@ -77,7 +77,7 @@ def me_ode_solve(tlist, H, rho0, c_op_list, expt_op_list):
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
-        result_list = [qobj() for k in xrange(n_tsteps)]
+        result_list = [Qobj() for k in xrange(n_tsteps)]
     else:
         result_list = zeros([n_expt_op, n_tsteps], dtype=complex)
 
@@ -104,7 +104,7 @@ def me_ode_solve(tlist, H, rho0, c_op_list, expt_op_list):
     #
     # start evolution
     #
-    rho = qobj(rho0)
+    rho = Qobj(rho0)
 
     t_idx = 0
     # while t_idx <= n_tsteps:
@@ -116,7 +116,7 @@ def me_ode_solve(tlist, H, rho0, c_op_list, expt_op_list):
 
         # calculate all the expectation values, or output rho if no operators
         if n_expt_op == 0:
-            result_list[t_idx] = qobj(rho) # copy rho
+            result_list[t_idx] = Qobj(rho) # copy rho
         else:
             for m in range(0, n_expt_op):
                 result_list[m,t_idx] = expect(expt_op_list[m], rho)

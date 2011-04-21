@@ -19,7 +19,7 @@
 from scipy import prod, finfo
 import scipy.sparse as sp
 import scipy.linalg as la
-from qobj import *
+from Qobj import *
 from istests import *
 from scipy.sparse.linalg import spsolve
 def steady(L):
@@ -28,7 +28,7 @@ def steady(L):
 	eps=finfo(float).eps
 	if (not isoper(L)) & (not issuper(L)):
 		raise TypeError('Steady states can only be found for oeprators or superoperators.')
-	rhoss=qobj()
+	rhoss=Qobj()
 	sflag=issuper(L)
 	if sflag:
 		rhoss.dims=L.dims[0]
@@ -55,7 +55,7 @@ def steady(L):
 	else:
 		rhoss.data=rhoss.data/la.norm(rhoss.data)
 	rhoss.data=reshape(rhoss.data,(rhoss.shape[0],rhoss.shape[1])).T
-	out=qobj(rhoss.data)
+	out=Qobj(rhoss.data)
 	out.dims=rhoss.dims
 	out.shape=rhoss.shape
 	return out

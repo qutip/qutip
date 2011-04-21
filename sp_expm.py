@@ -2,7 +2,7 @@ from scipy import *
 from scipy.linalg import norm,solve
 import scipy.sparse as sp
 
-def sp_expm(qobj):
+def sp_expm(Qobj):
     #############################
     def pade(m):
         n=shape(A)[0]
@@ -30,7 +30,7 @@ def sp_expm(qobj):
             F=solve((-U+V).todense(),(U+V).todense()) 
             return sp.lil_matrix(F).tocsr()
     #################################
-    A=qobj.data #extract Qobj data (sparse matrix)
+    A=Qobj.data #extract Qobj data (sparse matrix)
     m_vals=array([3,5,7,9,13])
     theta=array([0.01495585217958292,0.2539398330063230,0.9504178996162932,2.097847961257068,5.371920351148152],dtype=float)
     normA=norm(A.todense(),1)

@@ -17,7 +17,7 @@
 #
 ###########################################################################
 from qstate import qstate
-from qobj import dag
+from Qobj import dag
 
 # FREDKIN computes the operator for a Fredkin gate
 # The last two inputs are swapped if the first input is u

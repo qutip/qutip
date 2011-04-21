@@ -17,7 +17,7 @@
 #
 ###########################################################################
 from scipy import *
-from qobj import qobj
+from Qobj import Qobj
 
 ##
 # @package basis
@@ -47,5 +47,5 @@ def basis(N,*args):
         raise ValueError("basis vector index need to be in 0=<indx<=N-1")
     bas=zeros([N,1]) #column vector of zeros
     bas[args]=1 # 1 located at position args
-    return qobj(bas) #return qobj
+    return Qobj(bas) #return Qobj
 

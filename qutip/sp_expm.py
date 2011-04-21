@@ -19,7 +19,7 @@
 from scipy import *
 from scipy.linalg import norm,solve
 import scipy.sparse as sp
-from qobj import *
+from Qobj import *
 
 def sp_expm(qo):
     #############################
@@ -65,7 +65,7 @@ def sp_expm(qo):
         F=pade(m_vals[-1])
         for i in xrange(s):
             F=F*F
-    return qobj(F,dims=qo.dims,shape=qo.shape)
+    return Qobj(F,dims=qo.dims,shape=qo.shape)
         
 
 def padecoeff(m):

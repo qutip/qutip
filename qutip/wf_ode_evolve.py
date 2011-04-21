@@ -17,7 +17,7 @@
 #
 ###########################################################################
 
-from qobj import *
+from Qobj import *
 from scipy.integrate import *
 
 import random
@@ -48,7 +48,7 @@ def wf_ode_evolve(tlist, H, psi0, expt_op_list):
     while r.successful() and r.t < tlist[-1]:
         t_idx += 1
 
-        psi = qobj(r.y)
+        psi = Qobj(r.y)
         psi.dims = psi0.dims
 
         # calculate all the expectation values: contribution from single trajectory
@@ -103,7 +103,7 @@ def me_ode_evolve(tlist, H, rho0, c_op_list, expt_op_list):
     #
     # start evolution
     #
-    rho = qobj(rho0)
+    rho = Qobj(rho0)
 
     t_idx = 0
     # while t_idx <= n_tsteps:

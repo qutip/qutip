@@ -4,20 +4,12 @@
 #
 import os
 from scipy import *
-from scipy.linalg import *
 import scipy.sparse as sp
 import scipy.linalg as la
-import qutip
-from qutip.operators import destroy
-from qutip.qobj import qobj
-from qutip.expm import expm
-from qutip.trans import trans
-from qutip.basis import basis
-from qutip.wigner import wigner
-from qutip.istests import *
+from qutip import *
 
 print "======================================"
-A = qobj([0.8, 0.1, 0.1, 0.2])
+A = Qobj([0.8, 0.1, 0.1, 0.2])
 print "A = \n", A
 print "A isket  = \n", isket(A)
 print "A isoper = \n", isoper(A)
@@ -25,7 +17,7 @@ print "A len    = \n", prod(A.shape)
 print "iter     = \n", arange(0, prod(A.shape))
 
 print "======================================"
-A = qobj([[0.8, 0.1], [0.1, 0.2]])
+A = Qobj([[0.8, 0.1], [0.1, 0.2]])
 print "A = \n", A
 print "A isket  = \n", isket(A)
 print "A isoper = \n", isoper(A)
@@ -37,7 +29,7 @@ print "A isoper = \n", isoper(A)
 print
 
 print "======================================"
-A = qobj([0.0])
+A = Qobj([0])
 print "A = \n", A
 print
 

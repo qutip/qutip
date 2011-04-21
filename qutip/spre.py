@@ -20,7 +20,7 @@ import scipy
 import scipy.linalg as la
 import scipy.sparse as sp
 from scipy import prod, transpose, reshape
-from qobj import *
+from Qobj import *
 from istests import *
 from operators import destroy, create
 from basis import basis
@@ -29,7 +29,7 @@ def spre(A):
 	if not isoper(A):
 		raise TypeError('Input is not a quantum object')
 	d=A.dims[1]
-	S=qobj()
+	S=Qobj()
 	S.dims=[[A.dims[0][:],d[:]],[A.dims[1][:],d[:]]]
 	S.shape=[prod(S.dims[0][0])*prod(S.dims[0][1]),prod(S.dims[1][0])*prod(S.dims[1][1])]
 	S.data=sp.kron(sp.identity(prod(d)),A.data)

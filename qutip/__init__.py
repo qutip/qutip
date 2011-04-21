@@ -46,7 +46,7 @@ if sys.platform=='linux2':
 from scipy import *
 import scipy.linalg as la
 import scipy.sparse as sp
-from qobj import qobj,shape,dims,dag,trans,isherm,sp_expm
+from Qobj import Qobj,shape,dims,dag,trans,isherm,sp_expm
 from about import *
 from basis import *
 from cnot import *
