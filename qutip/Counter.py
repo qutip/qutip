@@ -37,14 +37,14 @@ elif sys.platform=='linux2' and os.environ['QUTIP_GRAPHICS'] == "YES":
 #---------------------------------
 
 class Counter():
-    def __init__(self,max,step_size=1):
+    def __init__(self,max,title="Monte-Carlo Trajectories", step_size=1):
         self.max=max
         self.count=0
         self.step=step_size
         self.percent=0.0
         if sys.platform=='darwin' or sys.platform=='linux2' and os.environ['QUTIP_GRAPHICS'] == "YES":
-            self.bar = ProgressBar(title="Running Monte-Carlo Trajectories:")
-            self.bar.update(self.percent*100.0, "Trajectories completed: "+str(self.count)+"/"+str(self.max))
+            self.bar = ProgressBar(title="Running "+title)
+            self.bar.update(self.percent*100.0, "Completed steps: "+str(self.count)+"/"+str(self.max))
         else:
 			self.level=0.1
 			print 'Starting Monte-Carlo:'
@@ -52,7 +52,7 @@ class Counter():
         self.count+=self.step
         self.percent=self.count/(1.0*self.max)
         if sys.platform=='darwin' or sys.platform=='linux2' and os.environ['QUTIP_GRAPHICS'] == "YES":
-            self.bar.update(self.percent*100.0, "Trajectories completed: "+str(self.count)+"/"+str(self.max))
+            self.bar.update(self.percent*100.0, "Completed steps: "+str(self.count)+"/"+str(self.max))
         else:
             if self.count/float(self.max)>=self.level:
 				print str(floor(self.count/float(self.max)*100))+'%  ('+str(self.count)+'/'+str(self.max)+')'
@@ -63,7 +63,7 @@ class Counter():
         if sys.platform=='darwin' or sys.platform=='linux2' and os.environ['QUTIP_GRAPHICS'] == "YES":
             self.bar.finish()
         else:
-            print 'Trajectories completed.'
+            print 'All steps completed.'
 
 
 ######---Demo---######
