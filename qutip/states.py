@@ -20,7 +20,7 @@ from scipy import *
 from Qobj import Qobj
 from basis import basis
 
-def coherent(N, alpha):
+def coherent_dm(N, alpha):
     """
     Generate the matrix representation of a coherent state
     N the number of states
@@ -46,7 +46,20 @@ def fock_dm(N, m):
     return psi * psi.dag()
 
 
+def thermal_dm(N, n):
+    """
+    Generates the density matrix for a thermal state of n particles
+
+    @param N: the number of states
+    @param n: expectational value for number of particles in thermal state
+    """
+    rm=zeros([N,N])
+    for i in xrange(N):
+        rm[i,i]=(1.0+n)**(-1.0)*(n/(1.0+n))**(i) #populates diagonal terms (the only nonzero terms in matrix)
+    return Qobj(rm)
+
+
 if __name__ == "__main__":
-    print coherent(4,1j)
+    print (thermal_dm(5,0)*thermal_dm(5,0)).tr()
 
 
