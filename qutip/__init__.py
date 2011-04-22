@@ -79,6 +79,7 @@ from eseries import *
 from mcsolve import *
 from ode2es import *
 from states import *
+from correlation import *
 
 if os.environ['QUTIP_GRAPHICS'] == "YES":
     from sphereplot import *
