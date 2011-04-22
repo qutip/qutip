@@ -20,9 +20,24 @@ from scipy import *
 from Qobj import Qobj
 from basis import basis
 
+
+def coherent(N,alpha):
+    """
+    Generate a coherent state
+    @param N the number of states
+    @param alpha the coherent state amplitude (complex)
+    """
+    psi=zeros([N,1])
+    n=arange(N)
+    psi[:,0]=exp(-(abs(alpha)**2)/2.0)*(alpha**(n))/sqrt(factorial(n))
+    return Qobj(psi)
+
+
+
+
 def coherent_dm(N, alpha):
     """
-    Generate the matrix representation of a coherent state
+    Generate the density matrix representation of a coherent state
     @param N the number of states
     @param alpha the coherent state amplitude (complex)
     """
@@ -62,6 +77,6 @@ def thermal_dm(N, n):
 
 
 if __name__ == "__main__":
-    print (thermal_dm(5,0)*thermal_dm(5,0)).tr()
-
+    print (coherent(5,.1)*coherent(5,.1).dag())-coherent_dm(5,.1)
+    
 
