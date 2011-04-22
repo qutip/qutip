@@ -325,6 +325,33 @@ def shape(inpt):
     else:
         return shp(inpt)
 
+
+##############################################################################
+#      
+# functions for storing and loading Qobj instances to files 
+#
+import pickle
+
+def qobj_save(qobj, filename):
+
+    f = open(filename, 'wb')
+
+    pickle.dump(qobj, f)
+
+    f.close()
+
+
+def qobj_load(filename):
+
+    f = open(filename, 'rb')
+
+    qobj = pickle.load(f)
+
+    f.close()
+
+    return qobj
+
+
 ##############################################################################
 #
 #
