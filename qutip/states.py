@@ -23,16 +23,17 @@ from basis import basis
 def coherent_dm(N, alpha):
     """
     Generate the matrix representation of a coherent state
-    N the number of states
-    alpha the coherent state amplitude (complex)
+    @param N the number of states
+    @param alpha the coherent state amplitude (complex)
     """
     if isinstance(alpha,complex):
         data = zeros([N,N],dtype=complex) #prevents loosing imaginary parts
     else:
         data = zeros([N,N])
-    m=range(N)
-    for n in xrange(N):
-        data[:,n] = exp(-abs(alpha) ** 2) * ((alpha ** n) / sqrt(factorial(n))) * ((conjugate(alpha)**m) / sqrt(factorial(m)))
+
+    m=arange(N)
+    data = exp(-abs(alpha) ** 2) * outer((alpha**m)/sqrt(factorial(m)) , (conjugate(alpha)**m)/sqrt(factorial(m)))
+
     return Qobj(data);
 
 def fock_dm(N, m):
