@@ -80,6 +80,7 @@ from mcsolve import *
 from ode2es import *
 from states import *
 from correlation import *
+from metrics import *
 
 if os.environ['QUTIP_GRAPHICS'] == "YES":
     from sphereplot import *
