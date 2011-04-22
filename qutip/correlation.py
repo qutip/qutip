@@ -18,7 +18,7 @@
 ###########################################################################
 
 from scipy import *
-from qutip import *
+from Qobj import *
 
 def correlation_es(H, c_op_list, rho0, a_op, b_op, tlist, taulist):
     """
