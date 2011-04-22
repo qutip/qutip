@@ -14,7 +14,7 @@
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
 
-from qutip import *
+from Qobj import *
 from scipy.integrate import *
 
 import random
