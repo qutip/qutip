@@ -16,7 +16,7 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from scipy import any, prod
+from scipy import any, prod,allclose,shape
 
 def isket(L):
     result = isinstance(L.dims[0],list)
