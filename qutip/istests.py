@@ -53,3 +53,22 @@ def issuper(L,*args):
 	elif args[0]!='rect':
 		raise TypeError('Unknown option. Only valid option is rect')
 	return result
+
+
+#**************************
+def isequal(A,B,rtol=1e-8,atol=1e-12):
+    if shape(A)!=shape(B):
+        raise TypeError('Inputs do not have same shape.')
+    else:
+        x=allclose(A,B,rtol,atol)
+        y=allclose(B,A,rtol,atol)
+        if x and y:
+            return True
+        elif x or y:
+            print 'isequal result is not symmetric with respect to inputs.\n See numpy.allclose documentation'
+            return True
+        else:
+            return False
+
+
+
