@@ -121,12 +121,14 @@ def qfunc(state, xvec, yvec, *args):
     if isket(state):
         qmat = qfunc1(state, amat)
     elif isoper(state):
-        v,d = eig(state.full())
-        qmat = 0
-        kmax = state.shape[0]
-        for k in arange(0, kmax):
-            qmat1 = qfunc1(d[:,k], amat)
-            qmat  = qmat + real(d[k] * qmat1)
+        d,v = la.eig(state.full())
+        # d[i]   = eigenvalue i
+        # v[:,i] = eigenvector i
+
+        qmat = zeros(shape(amat))
+        for k in arange(0, len(d)):
+            qmat1 = qfunc1(v[:,k], amat)
+            qmat += real(d[k] * qmat1)
 
     qmat = 0.25 * qmat * g**2;
     return qmat
@@ -140,7 +142,10 @@ def qfunc(state, xvec, yvec, *args):
 def qfunc1(psi, alpha_mat):
 
     n = prod(psi.shape)
-    psi = array(trans(psi).full())[0,:]
+    if isinstance(psi, Qobj):
+        psi = array(trans(psi).full())[0,:]
+    else:
+        psi = psi.T
 
     #print "psi       = ", psi
     #print "factorial = ", factorial(arange(0, n))
@@ -150,5 +155,8 @@ def qfunc1(psi, alpha_mat):
     qmat1 = real(qmat1) * exp(-abs(alpha_mat)**2) / pi;
 
     return qmat1
+
+
+
 
 
