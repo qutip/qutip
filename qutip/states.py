@@ -19,7 +19,7 @@
 from scipy import *
 from Qobj import Qobj
 from basis import basis
-
+from operators import destroy
 
 def coherent(N,alpha):
     """
@@ -27,10 +27,10 @@ def coherent(N,alpha):
     @param N the number of states
     @param alpha the coherent state amplitude (complex)
     """
-    psi=zeros([N,1])
-    n=arange(N)
-    psi[:,0]=exp(-(abs(alpha)**2)/2.0)*(alpha**(n))/sqrt(factorial(n))
-    return Qobj(psi)
+    x=basis(N,0)
+    a=destroy(N)
+    D=(alpha*a-conj(alpha)*a.dag()).expm()
+    return D*x
 
 
 
@@ -41,15 +41,7 @@ def coherent_dm(N, alpha):
     @param N the number of states
     @param alpha the coherent state amplitude (complex)
     """
-    if isinstance(alpha,complex):
-        data = zeros([N,N],dtype=complex) #prevents loosing imaginary parts
-    else:
-        data = zeros([N,N])
-
-    m=arange(N)
-    data = exp(-abs(alpha) ** 2) * outer((alpha**m)/sqrt(factorial(m)) , (conjugate(alpha)**m)/sqrt(factorial(m)))
-
-    return Qobj(data);
+    return coherent(N,alpha)*coherent(N,alpha).dag()
 
 def fock_dm(N, m):
     """
@@ -77,6 +69,6 @@ def thermal_dm(N, n):
 
 
 if __name__ == "__main__":
-    print (coherent(5,.1)*coherent(5,.1).dag())-coherent_dm(5,.1)
+    print (coherent(5,.1)*coherent(5,.1).dag()).tr()
     
 
