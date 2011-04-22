@@ -54,9 +54,10 @@ def thermal_dm(N, n):
     @param N: the number of states
     @param n: expectational value for number of particles in thermal state
     """
-    rm=zeros([N,N])
-    for i in xrange(N):
-        rm[i,i]=(1.0+n)**(-1.0)*(n/(1.0+n))**(i) #populates diagonal terms (the only nonzero terms in matrix)
+
+    i=arange(N)  
+    rm = diag((1.0+n)**(-1.0)*(n/(1.0+n))**(i)) #populates diagonal terms (the only nonzero terms in matrix)
+
     return Qobj(rm)
 
 
