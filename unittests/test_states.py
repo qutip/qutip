@@ -43,14 +43,23 @@ class TestStates(unittest.TestCase):
         # make sure rho has trace close to 1.0
         self.assertEqual(abs(rho.tr() - 1.0) < 1e-12, True)
 
+    def testThermalDensityMatrix(self):
+        
+        N = 40
+
+        rho = thermal_dm(N, 1)
+
+        # make sure rho has trace close to 1.0
+        self.assertEqual(abs(rho.tr() - 1.0) < 1e-12, True)
+
 
     def testFockDensityMatrix(self):
         N = 10
         for i in range(N):
             rho = fock_dm(N, i)
-            self.assertEqual(rho.data[i,i], 1.0)
-
-        
+            # make sure rho has trace close to 1.0
+            self.assertEqual(abs(rho.tr() - 1.0) < 1e-12, True)
+            self.assertEqual(rho.data[i,i], 1.0)        
 
 if __name__ == '__main__':
 
