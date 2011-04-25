@@ -237,6 +237,13 @@ class Qobj():
     def __getitem__(self,ind):
         return self.data[ind]
 
+    def __eq__(self, other):
+        if isinstance(other,Qobj) and self.dims == other.dims and \
+           self.shape == other.shape and abs(la.norm((self.data-other.data).todense())) < 1e-12:
+            return True
+        else:
+            return False
+
     def __str__(self):
         #return "Quantum object: ", dimensions = " + str(self.shape) + "\n" + str(self.data)
         print "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)
