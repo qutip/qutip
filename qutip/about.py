@@ -130,6 +130,5 @@ def tk_conify_center():
 
 
 if __name__ == "__main__":
-    os.environ['FRANCO']='TRUE'
     os.environ['QUTIP_GRAPHICS']='YES'
     about()
