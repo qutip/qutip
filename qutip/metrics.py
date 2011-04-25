@@ -45,10 +45,13 @@ def scalar_trace_dist(A,B):
     
     See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
     """
-    diff=A-B
-    diff=diff.dag()*diff
-    out=diff.sqrtm().full()
-    return real(0.5*trace(out))
+    if A.dims!=B.dims:
+        raise TypeError('Density matricies do not have same dimensions.')
+    else:
+        diff=A-B
+        diff=diff.dag()*diff
+        out=diff.sqrtm().full()
+        return real(0.5*trace(out))
 
 trace_dist=vectorize(scalar_trace_dist)
 
