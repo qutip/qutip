@@ -1,7 +1,0 @@
-\contentsline {section}{\numberline {1}Getting Started}{1}{section.1}
-\contentsline {subsection}{\numberline {1.1}Introduction}{1}{subsection.1.1}
-\contentsline {subsection}{\numberline {1.2}Installation}{2}{subsection.1.2}
-\contentsline {subsubsection}{\numberline {1.2.1}Linux}{2}{subsubsection.1.2.1}
-\contentsline {subsubsection}{\numberline {1.2.2}Macintosh}{2}{subsubsection.1.2.2}
-\contentsline {subsubsection}{\numberline {1.2.3}Windows}{3}{subsubsection.1.2.3}
-\contentsline {section}{\numberline {2}Your First Calculation}{3}{section.2}
