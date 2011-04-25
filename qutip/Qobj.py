@@ -266,8 +266,13 @@ class Qobj():
         if self.dims[0][0]==self.dims[1][0]:
             return sp_expm(self)
         else:
-            raise TypeError('Invalid operand for matrix exponential');
-	
+            raise TypeError('Invalid operand for matrix exponential')
+    def sqrtm(self):
+        if self.dims[0][0]==self.dims[1][0]:
+            evals,evecs=la.eig(self.full())
+            return Qobj(dot(evecs,dot(diag(sqrt(evals)),la.inv(evecs))),dims=self.dims,shape=self.shape)
+        else:
+	        raise TypeError('Invalid operand for matrix square root')
 
 ##############################################################################
 #
