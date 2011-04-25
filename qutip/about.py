@@ -109,13 +109,13 @@ def tk_conify_center():
         def stop(me):
             stop_flag=1
             me.destroy()
-            os.remove(os.getcwd()+'/.egg.gif')
+            os.remove(os.path.dirname(__file__)+'/.egg.gif')
             os.environ['FRANCO']='FALSE'
         root=Tkinter.Tk() 
         root.title('The Franco Easter Egg')
         root.wm_attributes("-topmost", 1)
-        zf=zipfile.ZipFile(".Tk.egg.zip", "r")
-        data=zf.extract('.egg.gif',os.getcwd(),pwd='lowfruit')
+        zf=zipfile.ZipFile(os.path.dirname(__file__)+"/.Tk.egg.zip", 'r')
+        data=zf.extract('.egg.gif',os.path.dirname(__file__),pwd='lowfruit')
         c=Tkinter.Canvas(root,width=290, height=300) 
         p=Tkinter.PhotoImage(file=data) 
         i=c.create_image(0,0,anchor=Tkinter.NW,image=p) 
@@ -123,11 +123,12 @@ def tk_conify_center():
         root.after(0,center,root)
         root.after(5000,stop,root)    
         root.mainloop()
-        try:os.remove(os.getcwd()+'/.egg.gif')
+        try:os.remove(os.path.dirname(__file__)+'/.egg.gif')
         except:os.environ['FRANCO']='FALSE'
         else:os.environ['FRANCO']='FALSE'
 
 
 if __name__ == "__main__":
+    os.environ['FRANCO']='TRUE'
     os.environ['QUTIP_GRAPHICS']='YES'
     about()
