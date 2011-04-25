@@ -234,8 +234,9 @@ class Qobj():
         out.dims=self.dims
         out.shape=self.shape
         return Qobj(out)
+    def __getitem__(self,ind):
+        return self.data[ind]
 
-            
     def __str__(self):
         #return "Quantum object: ", dimensions = " + str(self.shape) + "\n" + str(self.data)
         print "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)
