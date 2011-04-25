@@ -16,4 +16,17 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-__version__="0.1"
+import os,re
+
+PATH=os.path.dirname(__file__)
+entries_path = PATH+'/.svn/entries'
+entries = open(entries_path, 'r').read()
+if re.match('(\d+)', entries):
+    rev_match = re.search('\d+\s+dir\s+(\d+)', entries)
+    if rev_match:
+        rev = rev_match.groups()[0]
+        __version__="0.1"+" ("+str(rev)+")"
+    else:
+        __version__="0.1"
+else:
+    __version__="0.1"
