@@ -1,11 +1,25 @@
+QuTiP : Quantum Toolbox in Python
 
+Installation on Ubuntu Linux:
+-----------------------------
+ 
+  * Requirements:
 
- Requirements for doxygen on Ubuntu:
+        sudo apt-get install python-scipy
+        sudo apt-get install python-tk
+        sudo apt-get install python-gtk2
+        sudo apt-get install python-matplotlib
 
- sudo apt-get install doxygen graphviz doxypy
+  * Install qutip:
 
- Generate the API documentation:
+        python setup.py install
 
- doxygen doxygen.cfg
+  * Requirements for generating the doxygen API documentation
+
+        sudo apt-get install doxygen graphviz doxypy
+
+  * Generate the API documentation:
+
+        doxygen doxygen.cfg
 
 
