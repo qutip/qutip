@@ -23,6 +23,7 @@ import scipy
 CD_BASE = os.path.dirname(__file__) # get directory of about.py file
 execfile(os.path.join(CD_BASE, "_version.py")) #execute _version.py file in CD_BASE directory
 def about():
+    tk_conify_center()
     if sys.platform=='darwin':
         from mac import MsgBox
         import matplotlib
@@ -89,6 +90,43 @@ def about():
             print "Matplotlib Version: None"
         else:
             print "Matplotlib Version:  "+matplotlib.__version__
+
+def tk_conify_center():
+    import os
+    try: os.environ['FRANCO']=='TRUE'
+    except: return
+    else:
+        import Tkinter,zipfile,time
+        def center(window):
+          sw = window.winfo_screenwidth()
+          sh = window.winfo_screenheight()
+          rw = window.winfo_reqwidth()
+          rh = window.winfo_reqheight()
+          xc = (sw - rw) / 2
+          yc = (sh -rh) / 2
+          window.geometry("+%d+%d" % (xc-75, yc-75))
+          window.deiconify()
+        def stop(me):
+            stop_flag=1
+            me.destroy()
+            os.remove(os.getcwd()+'/.egg.gif')
+            os.environ['FRANCO']='FALSE'
+        root=Tkinter.Tk() 
+        root.title('The Franco Easter Egg')
+        root.wm_attributes("-topmost", 1)
+        zf=zipfile.ZipFile(".Tk.egg.zip", "r")
+        data=zf.extract('.egg.gif',os.getcwd(),pwd='lowfruit')
+        c=Tkinter.Canvas(root,width=290, height=300) 
+        p=Tkinter.PhotoImage(file=data) 
+        i=c.create_image(0,0,anchor=Tkinter.NW,image=p) 
+        c.pack() 
+        root.after(0,center,root)
+        root.after(5000,stop,root)    
+        root.mainloop()
+        try:os.remove(os.getcwd()+'/.egg.gif')
+        except:os.environ['FRANCO']='FALSE'
+        else:os.environ['FRANCO']='FALSE'
+
 
 if __name__ == "__main__":
     os.environ['QUTIP_GRAPHICS']='YES'
