@@ -14,10 +14,14 @@
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
 
-from Qobj import *
+import random
+
 from scipy.integrate import *
 
-import random
+from Qobj import *
+from spre import *
+from spost import *
+from expect import *
 
 # ------------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution)
