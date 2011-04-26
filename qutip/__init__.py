@@ -74,13 +74,14 @@ from probss import *
 from parfor import *
 from orbital import *
 from mcsolve import *
+from mcoptions import Mcoptions
 from ode_solve import *
 from eseries import *
 from mcsolve import *
 from ode2es import *
 from states import *
 from correlation import *
-from metrics import *
+from metrics import fidelity,trace_dist
 
 if os.environ['QUTIP_GRAPHICS'] == "YES":
     from sphereplot import *
