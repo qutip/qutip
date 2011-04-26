@@ -244,6 +244,9 @@ class Qobj():
         else:
             return False
 
+    def __ne__(self, other):
+        return not (self == other)
+
     def __str__(self):
         #return "Quantum object: ", dimensions = " + str(self.shape) + "\n" + str(self.data)
         print "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)
