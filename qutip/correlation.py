@@ -23,6 +23,8 @@ from spre import *
 from spost import *
 from Counter import *
 from ode_solve import *
+from ode2es import *
+from mcsolve import *
 
 def correlation_es(H, c_op_list, rho0, a_op, b_op, tlist, taulist):
     """
@@ -93,6 +95,47 @@ def correlation_ode(H, c_op_list, rho0, a_op, b_op, tlist, taulist):
 
     return C_mat
 
+
+
+def correlation_mc(H, c_op_list, psi0, a_op, b_op, tlist, taulist):
+    """
+    Calculate a two-time correlation function <A(t+tau)B(t)> using the
+    Monte-Carle solver, and the quantum regression theorem.
+    """
+
+    # contruct the Liouvillian
+    n_op      = len(c_op_list)
+    L = -1.0j * (spre(H) - spost(H))
+    for m in range(0, n_op):
+        cdc = c_op_list[m].dag() * c_op_list[m]
+        L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
+
+    #if rho0 == None:
+    #    rho0 = steady(L)
+
+    C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
+
+    pgb = Counter(len(tlist), "Correlation function")
+
+    ntraj = 100
+
+    t_collapse, psi_t = mcsolve(H, psi0, tlist, ntraj, c_op_list, [])
+    #rho_t = me_ode_solve(tlist, H, rho0, c_op_list, [])
+
+    print "t_collapse =", t_collapse
+
+    for t_idx in range(len(tlist)):
+
+        psi0_t = psi_t[0][t_idx]
+        ops = mcsolve(H, b_op * psi0_t, tlist, ntraj, c_op_list, [a_op])
+        avg = sum(ops, axis=0) / ntraj
+        C_mat[t_idx, :] = avg
+  
+        pgb.update()
+
+    pgb.finish()
+
+    return C_mat
 
 
 
