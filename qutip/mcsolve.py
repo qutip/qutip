@@ -35,7 +35,7 @@ def mcsolve(Heff,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
     elif mc.num_collapse==0 and mc.num_expect!=0:
         return mc.expect_out
     elif mc.num_collapse!=0 and mc.num_expect==0:
-        return mc.collapse_times_out,mc.which_op_out
+        return mc.collapse_times_out,mc.psi_out
     elif mc.num_collapse!=0 and mc.num_expect!=0:
         return mc.expect_out
        
@@ -75,6 +75,7 @@ class MC_class():
             self.collapse_times_out=zeros((self.ntraj),dtype=ndarray)
             self.which_op_out=zeros((self.ntraj),dtype=ndarray)
             if self.num_expect==0:# if no expectation operators, preallocate #ntraj arrays for state vectors
+                self.isher = None
                 self.psi_out=zeros((self.ntraj),dtype=ndarray)
             else: #preallocate array of lists for expectation values
                 self.isher=isherm(self.expect_ops)
