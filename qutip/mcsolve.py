@@ -25,9 +25,10 @@ from expect import *
 import sys,os,time
 from Counter import *
 from istests import *
+from mcoptions import Mcoptions
 
-def mcsolve(Heff,psi0,tlist,ntraj,collapse_ops,expect_ops):
-    mc=MC_class(Heff,psi0,tlist,ntraj,collapse_ops,expect_ops)
+def mcsolve(Heff,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
+    mc=MC_class(Heff,psi0,tlist,ntraj,collapse_ops,expect_ops,options)
     mc.run()
     if mc.num_collapse==0 and mc.num_expect==0:
         return mc.psi_out
@@ -42,7 +43,8 @@ def mcsolve(Heff,psi0,tlist,ntraj,collapse_ops,expect_ops):
 
 ######---Monte-Carlo class---######
 class MC_class():
-    def __init__(self,Heff,psi0,tlist,ntraj,collapse_ops,expect_ops):
+    def __init__(self,Heff,psi0,tlist,ntraj,collapse_ops,expect_ops,options):
+        self.options=options
         self.times=tlist
         self.ntraj=ntraj
         self.num_times=len(tlist)
@@ -93,11 +95,11 @@ class MC_class():
             if self.ntraj!=1:#check if ntraj!=1 which is pointless for no collapse operators
                 print 'No collapse operators specified.\nRunning a single trajectory only.\n'
             if self.num_expect==0:# return psi Qobj at each requested time 
-                self.psi_out=no_collapse_psi_out(self.Hdata,self.psi_in,self.times,self.num_times,self.psi_dims,self.psi_shape,self.psi_out)
+                self.psi_out=no_collapse_psi_out(self.options,self.Hdata,self.psi_in,self.times,self.num_times,self.psi_dims,self.psi_shape,self.psi_out)
             else:# return expectation values of requested operators
-                self.expect_out=no_collapse_expect_out(self.Hdata,self.psi_in,self.times,self.expect_ops,self.num_expect,self.num_times,self.psi_dims,self.psi_shape,self.expect_out,self.isher)
+                self.expect_out=no_collapse_expect_out(self.options,self.Hdata,self.psi_in,self.times,self.expect_ops,self.num_expect,self.num_times,self.psi_dims,self.psi_shape,self.expect_out,self.isher)
         elif self.num_collapse!=0:
-            args=(self.Hdata,self.psi_in,self.times,self.num_times,self.num_collapse,self.collapse_ops_data,self.norm_collapse_data,self.num_expect,self.expect_ops,self.isher)
+            args=(self.options,self.Hdata,self.psi_in,self.times,self.num_times,self.num_collapse,self.collapse_ops_data,self.norm_collapse_data,self.num_expect,self.expect_ops,self.isher)
             pool=Pool(processes=cpu_count())
             for nt in xrange(0,self.ntraj):
                 pool.apply_async(mc_alg_evolve,args=(nt,args),callback=self.callback)
@@ -108,11 +110,11 @@ class MC_class():
 
 
 ######---return psi at requested times for no collapse operators---######
-def no_collapse_psi_out(Hdata,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
+def no_collapse_psi_out(opt,Hdata,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
     def RHS(t,psi):#define RHS of ODE
             return Hdata*psi #cannot use dot(a,b) since mat is matrix and not array.
     ODE=ode(RHS)
-    ODE.set_integrator('zvode',method='adams',nsteps=500,atol=1e-6) #initialize ODE solver for RHS
+    ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
     psi_out[0]=Qobj(psi_in,dims=psi_dims,shape=psi_shape)
     for k in xrange(1,num_times):
@@ -126,13 +128,13 @@ def no_collapse_psi_out(Hdata,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out)
 
 
 ######---return expectation values at requested times for no collapse operators---######
-def no_collapse_expect_out(Hdata,psi_in,tlist,expect_ops,num_expect,num_times,psi_dims,psi_shape,expect_out,isher):
+def no_collapse_expect_out(opt,Hdata,psi_in,tlist,expect_ops,num_expect,num_times,psi_dims,psi_shape,expect_out,isher):
     ######---Define RHS of ODE---##############
     def RHS(t,psi):
             return Hdata*psi #cannot use dot(a,b) since mat is matrix and not array.
     ######-------------------------------------
     ODE=ode(RHS)
-    ODE.set_integrator('zvode',method='adams',nsteps=500,atol=1e-6) #initialize ODE solver for RHS
+    ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
     for jj in xrange(num_expect):
         expect_out[jj][0]=mc_expect(expect_ops[jj],psi_in,isher[jj])
@@ -153,7 +155,7 @@ def mc_alg_evolve(nt,args):
     """
     Monte-Carlo algorithm returning state-vector at times tlist[k] for a single trajectory
     """
-    Hdata,psi_in,tlist,num_times,num_collapse,collapse_ops_data,norm_collapse_data,num_expect,expect_ops,isher=args
+    opt,Hdata,psi_in,tlist,num_times,num_collapse,collapse_ops_data,norm_collapse_data,num_expect,expect_ops,isher=args
     def RHS(t,psi):
             return Hdata*psi #cannot use dot(a,b) since mat is matrix and not array.
     if num_expect==0:
@@ -173,7 +175,7 @@ def mc_alg_evolve(nt,args):
     random.seed()
     rand_vals=random.random(2)#first rand is collapse norm, second is which operator
     ODE=ode(RHS)
-    ODE.set_integrator('zvode',method='adams',nsteps=500,atol=1e-6) #initialize ODE solver for RHS
+    ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
     for k in xrange(1,num_times):
         last_t=ODE.t;last_y=ODE.y
@@ -181,7 +183,7 @@ def mc_alg_evolve(nt,args):
         while ODE.successful() and ODE.t<tlist[k]:
             ODE.integrate(tlist[k],step=step_flag) #integrate up to tlist[k], one step at a time.
             if ODE.t>tlist[k]:
-                ODE.set_integrator('zvode',method='adams',nsteps=500,atol=1e-6,first_step=(tlist[k]-last_t))
+                ODE.set_integrator('zvode',first_step=(tlist[k]-last_t),method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,min_step=opt.min_step,max_step=opt.max_step)
                 ODE.set_initial_value(last_y,last_t)
                 step_flag=0
             else:
