@@ -20,18 +20,6 @@ import os,re
 
 #set main version here
 VERISON=str(0.1)
-
-PATH=os.path.dirname(__file__)
-entries_path = PATH+'/.svn/entries'
-entries = open(entries_path, 'r').read()
-if re.match('(\d+)', entries):
-    rev_match = re.search('\d+\s+dir\s+(\d+)', entries)
-    if rev_match:
-        rev = rev_match.groups()[0]
-        __version__=VERISON+" ("+str(rev)+")"
-    else:
-        __version__=VERISON
-else:
-    __version__=VERISON
+__version__=VERISON
 
 

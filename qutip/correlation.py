@@ -120,9 +120,6 @@ def correlation_mc(H, c_op_list, psi0, a_op, b_op, tlist, taulist):
     ntraj = 100
 
     t_collapse, psi_t = mcsolve(H, psi0, tlist, ntraj, c_op_list, [])
-    #rho_t = me_ode_solve(tlist, H, rho0, c_op_list, [])
-
-    print "t_collapse =", t_collapse
 
     for t_idx in range(len(tlist)):
 

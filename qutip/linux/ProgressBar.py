@@ -85,7 +85,8 @@ class ProgressBar:
 
         self.window.show()
         
-            
+        while gtk.events_pending():
+            gtk.main_iteration(False)            
 
 
 
