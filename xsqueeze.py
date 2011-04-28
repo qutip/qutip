@@ -14,11 +14,11 @@
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 ###########################################################################
 
-
+#
 # XSQUEEZE illustrates the operator exponential and its use in making a squeezed state
 #
 # Derived from xsqueeze.m from the Quantum Optics toolbox by Sze M. Tan
-
+#
 
 from qutip import *
 from mpl_toolkits.mplot3d import Axes3D
@@ -26,7 +26,7 @@ from matplotlib import cm
 from pylab import *
 
 #-----------------------------------------------------------------------------
-# XSQUEEZE illustrates the operator exponential and its use in making a squeezed state
+# Illustrates the operator exponential and its use in making a squeezed state
 #-----------------------------------------------------------------------------
 N = 20;
 alpha = -1.0; 	  # Coherent amplitude of field
@@ -42,14 +42,12 @@ g = 2;
 print "psi = ", psi
 
 #-----------------------------------------------------------------------------
-#pause # Press [Enter] to calculate Wigner function
+# Calculate Wigner function
 #-----------------------------------------------------------------------------
 xvec = arange(-40.,40.)*5./40
 X,Y = meshgrid(xvec, xvec)
 
 W=wigner(psi,xvec,xvec)
-
-print "W = ", W
 
 fig1 = plt.figure()
 ax = Axes3D(fig1)
@@ -60,16 +58,12 @@ ax.contour(X, Y, W, 15,zdir='z', offset=-0.3)
 ax.set_xlim3d(-6,6)
 ax.set_xlim3d(-6,6)
 ax.set_zlim3d(-0.3,0.4)
-#plt.show()
+title('Wigner function of squeezed state');
 
-#shading interp; 
-#title('Wigner function of squeezed state');
 #-----------------------------------------------------------------------------
-#pause # Press [Enter] to calculate Q function
+# Calculate Q function
 #-----------------------------------------------------------------------------
 Q = qfunc(psi,xvec,xvec,g);
-
-print "Q = ", Q
 
 fig2 = plt.figure()
 ax = Axes3D(fig2)
@@ -81,15 +75,7 @@ ax.set_xlim3d(-6,6)
 ax.set_xlim3d(-6,6)
 ax.set_zlim3d(-0.3,0.4)
 
+title('Q function of squeezed state');
 
-
-#f2 = figure(2); pcolor(xvec,yvec,real(Q));
-#shading interp;
-#title('Q function of squeezed state');
-#-----------------------------------------------------------------------------
-#pause # Press [Enter] to end demonstration
-#-----------------------------------------------------------------------------
-#delete(f1); delete(f2);
 plt.show()
-print "done..."
 
