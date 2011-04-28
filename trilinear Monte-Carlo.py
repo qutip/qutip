@@ -39,11 +39,9 @@ D=(alpha*a0.dag()-conj(alpha)*a0).expm()
 psi0=D*vacuum
 
 H=1j*K*(a0*a1.dag()*a2.dag()-a0.dag()*a1*a2)
-Heff=H-0.5*1j*(C0.dag()*C0+C1.dag()*C1+C2.dag()*C2)
-
 
 start_time=time.time()
-ops=mcsolve(Heff,psi0,taulist,ntraj,[C0,C1,C2],[num0,num1,num2])
+ops=mcsolve(H,psi0,taulist,ntraj,[C0,C1,C2],[num0,num1,num2])
 finish_time=time.time()
 print 'time elapsed = ',finish_time-start_time
 

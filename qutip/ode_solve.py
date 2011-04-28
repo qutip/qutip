@@ -26,58 +26,13 @@ from expect import *
 # ------------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution)
 # 
-def wf_ode_solve(tlist, H, psi0, expt_op_list):
+def wf_ode_solve(H, psi0, tlist, expt_op_list):
     """!
     @brief Evolve the wave function using an ODE solver
     """
-    n_tsteps  = len(tlist)
+
     n_expt_op = len(expt_op_list)
-    expt_list = zeros([n_expt_op, n_tsteps])
-    dt        = tlist[1]-tlist[0]
-
-    r = scipy.integrate.ode(mcwf_ode_func)
-
-    initial_vector = psi0.full() 
-    #print "initial vector = ", initial_vector
-
-    r.set_integrator('zvode').set_initial_value(initial_vector, 0.0).set_f_params(H)
-
-    t_idx = 0
-    for m in range(0, n_expt_op):
-        expt_list[m,t_idx] += expect(expt_op_list[m], psi0)
-    
-    while r.successful() and r.t < tlist[-1]:
-        t_idx += 1
-
-        psi = Qobj(r.y)
-        psi.dims = psi0.dims
-
-        # calculate all the expectation values: contribution from single trajectory
-        for m in range(0, n_expt_op):
-            expt_list[m,t_idx] += expect(expt_op_list[m], psi)
-
-        r.integrate(r.t + dt)
-           
-    return expt_list
-
-#
-# evaluate dpsi(t)/dt
-#
-def mcwf_ode_func(t, psi, H):
-    dpsi = -1j * (H.data * psi)
-    return dpsi
-
-
-# ------------------------------------------------------------------------------
-# Master equation solver
-# 
-def me_ode_solve(tlist, H, rho0, c_op_list, expt_op_list):
-    """!
-    @brief Evolve the density matrix using an ODE solver
-    """
     n_tsteps  = len(tlist)
-    n_expt_op = len(expt_op_list)
-    n_op      = len(c_op_list)
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
@@ -85,9 +40,78 @@ def me_ode_solve(tlist, H, rho0, c_op_list, expt_op_list):
     else:
         result_list = zeros([n_expt_op, n_tsteps], dtype=complex)
 
+    if not isket(psi0):
+        raise TypeError("psi0 must be a ket")
+
+    #
+    # setup integrator
+    #
+    initial_vector = psi0.full()
+    r = scipy.integrate.ode(psi_ode_func).set_integrator('zvode').set_initial_value(initial_vector, tlist[0]).set_f_params(H.data)
+
+    #
+    # start evolution
+    #
+    psi = Qobj(psi0)
+
+    t_idx = 0
+    for t in tlist:
+        if not r.successful():
+            break;
+
+        psi.data = r.y
+
+        # calculate all the expectation values, or output psi if no operators where given
+        if n_expt_op == 0:
+            result_list[t_idx] = Qobj(psi) # copy rho
+        else:
+            for m in range(0, n_expt_op):
+                result_list[m,t_idx] = expect(expt_op_list[m], psi)
+
+        r.integrate(r.t + dt)
+        t_idx += 1
+          
+    return result_list
+
+#
+# evaluate dpsi(t)/dt
+#
+def psi_ode_func(t, psi, H):
+    return -1j * (H * psi)
+
+
+# ------------------------------------------------------------------------------
+# Master equation solver
+# 
+def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list):
+    """!
+    @brief Evolve the density matrix using an ODE solver
+    """
+    n_op      = len(c_op_list)
+
+    #
+    # check initial state
+    #
     if isket(rho0):
+        # if initial state is a ket and no collapse operator where given,
+        # fallback on the unitary schrodinger equation solver
+        if n_op == 0:
+            return wf_ode_solve(H, rho0, tlist, expt_op_list)
+
         # Got a wave function as initial state: convert to density matrix.
-        rho0 = rho0 * trans(rho0)
+        rho0 = rho0 * rho0.dag()
+
+    #
+    # prepare output array
+    # 
+    n_expt_op = len(expt_op_list)
+    n_tsteps  = len(tlist)
+    dt        = tlist[1]-tlist[0]
+
+    if n_expt_op == 0:
+        result_list = [Qobj() for k in xrange(n_tsteps)]
+    else:
+        result_list = zeros([n_expt_op, n_tsteps], dtype=complex)
 
     #
     # construct liouvillian
@@ -101,9 +125,7 @@ def me_ode_solve(tlist, H, rho0, c_op_list, expt_op_list):
     # setup integrator
     #
     initial_vector = rho0.full().reshape(prod(rho0.shape),1)
-    r = scipy.integrate.ode(me_ode_func).set_integrator('zvode').set_initial_value(initial_vector, tlist[0]).set_f_params(L.data)
-
-    #r.set_integrator('zvode').set_initial_value(initial_vector, 0.0).set_f_params(L)
+    r = scipy.integrate.ode(rho_ode_func).set_integrator('zvode').set_initial_value(initial_vector, tlist[0]).set_f_params(L.data)
 
     #
     # start evolution
@@ -111,7 +133,6 @@ def me_ode_solve(tlist, H, rho0, c_op_list, expt_op_list):
     rho = Qobj(rho0)
 
     t_idx = 0
-    # while t_idx <= n_tsteps:
     for t in tlist:
         if not r.successful():
             break;
@@ -134,10 +155,8 @@ def me_ode_solve(tlist, H, rho0, c_op_list, expt_op_list):
 #
 # evaluate drho(t)/dt according to the master eqaution
 #
-def me_ode_func(t, rho, L):
-    drho = (L * rho)
-    return drho
-
+def rho_ode_func(t, rho, L):
+    return L * rho
 
 
 

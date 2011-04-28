@@ -30,12 +30,10 @@ C2dC2=C2.dag()*C2
 #intial state
 psi0=tensor(basis(N,0),basis(2,1))
 
-Heff=H-0.5j*(C1dC1+C2dC2)
-
 ntraj=100
 
 start_time=time.time()
-ops=mcsolve(Heff,psi0,tlist,ntraj,[C1,C2],[C1dC1,C2dC2])
+ops=mcsolve(H,psi0,tlist,ntraj,[C1,C2],[C1dC1,C2dC2])
 finish_time=time.time()
 print 'time elapsed = ',finish_time-start_time
 

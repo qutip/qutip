@@ -27,7 +27,12 @@ from Counter import *
 from istests import *
 from mcoptions import Mcoptions
 
-def mcsolve(Heff,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
+def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
+
+    Heff = H
+    for c_op in collapse_ops:
+        Heff += - 0.5 * 1j * c_op.dag() * c_op 
+
     mc=MC_class(Heff,psi0,tlist,ntraj,collapse_ops,expect_ops,options)
     mc.run()
     if mc.num_collapse==0 and mc.num_expect==0:
@@ -88,7 +93,9 @@ class MC_class():
         else:#output expectation values
             self.expect_out[r]=results[1]
         self.collapse_times_out[r]=results[2]
-        self.which_op_out[r]=results[3]
+        self.which_op_out[r]=results[3]    #Heff = H
+    #for c_op in c_op_list:
+    #    Heff += - 0.5 * 1j * c_op.dag() * c_op 
         self.bar.update()
     #########################
     def run(self):

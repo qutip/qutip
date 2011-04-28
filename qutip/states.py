@@ -33,15 +33,15 @@ def coherent(N,alpha):
     return D*x
 
 
-
-
 def coherent_dm(N, alpha):
     """
     Generate the density matrix representation of a coherent state
     @param N the number of states
     @param alpha the coherent state amplitude (complex)
     """
-    return coherent(N,alpha)*coherent(N,alpha).dag()
+    psi = coherent(N,alpha)
+    return psi * psi.dag()
+
 
 def fock_dm(N, m):
     """
