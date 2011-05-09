@@ -69,7 +69,7 @@ def integrate(N, h, Jx, Jy, Jz, psi0, tlist):
     #expt_list = me_ode_solve(H, psi0, tlist, c_op_list, sz_list)
 
     # or use the MC solver
-    ntraj = 100 
+    ntraj = 500 
     ops = mcsolve(H, psi0, tlist, ntraj, c_op_list, sz_list)
     expt_list = sum(ops,axis=0)/ntraj
 
@@ -79,7 +79,7 @@ def integrate(N, h, Jx, Jy, Jz, psi0, tlist):
 # set up the calculation
 #
 
-N = 6 # number of spins
+N = 4 # number of spins
 
 # array of spin energy splittings and coupling strengths. here we use
 # uniform parameters, but in general we don't have too
