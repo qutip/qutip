@@ -60,20 +60,18 @@ def integrate(N, h, Jx, Jy, Jz, psi0, tlist):
     #if rate > 0.0:
     #    c_op_list.append(sqrt(rate) * a.dag())
     #rate = gamma
-    #if rate > 0.0:
-    #    c_op_list.append(sqrt(rate) * sm)
-
+    rate = 0.1
+    if rate > 0.0:
+        for n in range(N):
+            c_op_list.append(sqrt(rate) * sz_list[n])
 
     # evolve and calculate expectation values
-    expt_list = me_ode_solve(H, psi0, tlist, c_op_list, sz_list)
+    #expt_list = me_ode_solve(H, psi0, tlist, c_op_list, sz_list)
 
     # or use the MC solver
-    #ntraj = 100
-    #Heff = H
-    #for c_op in c_op_list:
-    #    Heff += - 0.5 * 1j * c_op.dag() * c_op  
-    #ops = mcsolve(Heff, psi0, tlist, ntraj, c_op_list, [a.dag() * a, sm.dag() * sm])
-    #expt_list = sum(ops,axis=0)/ntraj
+    ntraj = 100 
+    ops = mcsolve(H, psi0, tlist, ntraj, c_op_list, sz_list)
+    expt_list = sum(ops,axis=0)/ntraj
 
     return expt_list
     
@@ -111,10 +109,10 @@ rc('text', usetex=True)
 rc('font', family='serif')
 
 for n in range(N):
-    plot(tlist, sz_expt[n,:], label=r'$\langle\sigma_z($'+str(n)+r'$)\rangle$')
+    plot(tlist, sz_expt[n,:], label=r'$\langle\sigma_z^{($'+str(n)+r'$)\rangle}$')
 
 xlabel(r'Time [ns]')
-ylabel(r'$\langle<\sigma_z\rangle>')
+ylabel(r'$\langle\sigma_z\rangle')
 title(r'Dynamics of a Heisenberg spin chain')
 legend(loc = "lower right")
 show()

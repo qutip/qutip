@@ -38,7 +38,7 @@ def jc_integrate(N, wc, wa, g, kappa, gamma, psi0, use_rwa, tlist):
         c_op_list.append(sqrt(rate) * sm)
 
     # evolve and calculate expectation values
-    expt_list = me_ode_solve(tlist, H, psi0, c_op_list, [a.dag() * a, sm.dag() * sm])  
+    expt_list = me_ode_solve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
 
     # or use the MC solver
     #ntraj = 100
@@ -80,6 +80,7 @@ legend(("Cavity", "Atom excited state"))
 xlabel('Time')
 ylabel('Occupation probability')
 title('Vacuum Rabi oscillations')
+savefig("jc_model_rabi_oscillations.png")
 show()
 
 
