@@ -4,10 +4,10 @@ class AboutBox(gtk.Window):
     def __init__(self,version):
         super(AboutBox, self).__init__()
         about = gtk.AboutDialog()
-        about.set_size_request(450, 320)
+        about.set_size_request(500, 400)
         about.set_position(gtk.WIN_POS_CENTER)
         about.set_program_name("QuTiP")
-        about.set_version(str(version))
+        about.set_version(version)
         about.set_license("QuTiP is licensed under the GPL3.\nSee the enclosed 'COPYING.txt' for more information.")
         about.set_copyright("Copyright (c) 2011")
         about.set_authors(['Paul D. Nation','Robert J. Johansson'])
@@ -18,4 +18,4 @@ class AboutBox(gtk.Window):
         about.destroy()
 
 if __name__ == "__main__":
-	AboutBox(0.1)
+	AboutBox('0.1')
