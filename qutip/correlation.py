@@ -107,7 +107,7 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
 
     pgb = Counter(len(tlist), "Correlation function")
 
-    ntraj = 20
+    ntraj = 100
 
     mc_opt = Mcoptions()
     mc_opt.progressbar = False
