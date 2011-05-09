@@ -12,6 +12,7 @@ class Mcoptions():
         self.min_step=0
         self.max_step=0
         self.order=12
+        self.progressbar=True
     def __str__(self):
         print "OPTIONS FOR MONTE-CARLO ODE SOLVER:"
         print "------------------------------------"

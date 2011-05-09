@@ -31,7 +31,7 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
 
     Heff = H
     for c_op in collapse_ops:
-        Heff += - 0.5 * 1j * c_op.dag() * c_op 
+        Heff -= 0.5j * c_op.dag() * c_op 
 
     mc=MC_class(Heff,psi0,tlist,ntraj,collapse_ops,expect_ops,options)
     mc.run()
@@ -40,7 +40,7 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
     elif mc.num_collapse==0 and mc.num_expect!=0:
         return mc.expect_out
     elif mc.num_collapse!=0 and mc.num_expect==0:
-        return mc.collapse_times_out,mc.psi_out
+        return mc.psi_out, mc.collapse_times_out
     elif mc.num_collapse!=0 and mc.num_expect!=0:
         return mc.expect_out
        
@@ -61,18 +61,21 @@ class MC_class():
         self.psi_in=psi0.full() #need dense matrix as input to ODE solver.
         self.psi_dims=psi0.dims
         self.psi_shape=psi0.shape
-        if self.num_collapse==0 and self.num_expect==0:
-            self.psi_out=array([Qobj() for k in xrange(self.num_times)])#preallocate array of Qobjs
-        elif self.num_collapse==0 and self.num_expect!=0:#no collpase expectation values
-            self.expect_out=[]
-            self.isher=isherm(self.expect_ops)#checks if expectation operators are hermitian
-            for jj in xrange(self.num_expect):#expectation operators evaluated at initial conditions
-                if self.isher[jj]==1:
-                    self.expect_out.append(zeros(self.num_times))
-                else:
-                    self.expect_out.append(zeros(self.num_times,dtype=complex))
+
+        if self.num_collapse==0:
+            if self.num_expect==0:
+                self.psi_out=array([Qobj() for k in xrange(self.num_times)])#preallocate array of Qobjs
+            elif self.num_expect!=0:#no collpase expectation values
+                self.expect_out=[]
+                self.isher=isherm(self.expect_ops)#checks if expectation operators are hermitian
+                for jj in xrange(self.num_expect):#expectation operators evaluated at initial conditions
+                    if self.isher[jj]==1:
+                        self.expect_out.append(zeros(self.num_times))
+                    else:
+                        self.expect_out.append(zeros(self.num_times,dtype=complex))
         elif self.num_collapse!=0:
-            self.bar=Counter(self.ntraj)#create GUI element if avaliable
+            if self.options.progressbar:
+                self.bar=Counter(self.ntraj)#create GUI element if avaliable
             #extract matricies from collapse operators
             self.norm_collapse_data=array([(op.dag()*op).data for op in self.collapse_ops])
             self.collapse_ops_data=array([op.data for op in self.collapse_ops])
@@ -81,7 +84,7 @@ class MC_class():
             self.which_op_out=zeros((self.ntraj),dtype=ndarray)
             if self.num_expect==0:# if no expectation operators, preallocate #ntraj arrays for state vectors
                 self.isher = None
-                self.psi_out=zeros((self.ntraj),dtype=ndarray)
+                self.psi_out=array([Qobj() for k in xrange(self.num_times)])#preallocate array of Qobjs
             else: #preallocate array of lists for expectation values
                 self.isher=isherm(self.expect_ops)
                 self.expect_out=[[] for x in xrange(self.ntraj)]
@@ -94,9 +97,8 @@ class MC_class():
             self.expect_out[r]=results[1]
         self.collapse_times_out[r]=results[2]
         self.which_op_out[r]=results[3]    #Heff = H
-    #for c_op in c_op_list:
-    #    Heff += - 0.5 * 1j * c_op.dag() * c_op 
-        self.bar.update()
+        if self.options.progressbar:
+            self.bar.update()
     #########################
     def run(self):
         if self.num_collapse==0:
@@ -113,7 +115,8 @@ class MC_class():
                 pool.apply_async(mc_alg_evolve,args=(nt,args),callback=self.callback)
             pool.close()
             pool.join()
-            self.bar.finish() #stop GUI if running
+            if self.options.progressbar:
+                self.bar.finish() #stop GUI if running
 
 
 
@@ -219,7 +222,7 @@ def mc_alg_evolve(nt,args):
         ###--after while loop--####
         psi_nrm=la.norm(ODE.y)
         if num_expect==0:
-            psi_out[k]=ODE.y/psi_nrm
+            psi_out[k] = ODE.y/psi_nrm
         else:
             state=ODE.y/psi_nrm
             for jj in xrange(num_expect):

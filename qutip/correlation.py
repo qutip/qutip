@@ -97,34 +97,28 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
 
 
-def correlation_mc(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
+def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
     """
     Calculate a two-time correlation function <A(t+tau)B(t)> using the
     Monte-Carle solver, and the quantum regression theorem.
     """
 
-    # contruct the Liouvillian
-    #n_op      = len(c_op_list)
-    #L = -1.0j * (spre(H) - spost(H))
-    #for m in range(0, n_op):
-    #    cdc = c_op_list[m].dag() * c_op_list[m]
-    #    L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
-
-    #if rho0 == None:
-    #    rho0 = steady(L)
-
     C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
 
     pgb = Counter(len(tlist), "Correlation function")
 
-    ntraj = 100
+    ntraj = 20
 
-    t_collapse, psi_t = mcsolve(H, psi0, tlist, ntraj, c_op_list, [])
+    mc_opt = Mcoptions()
+    mc_opt.progressbar = False
+
+    psi_t, t_collapse = mcsolve(H, psi0, tlist, ntraj, c_op_list, [], mc_opt)
 
     for t_idx in range(len(tlist)):
 
         psi0_t = psi_t[0][t_idx]
-        ops = mcsolve(H, b_op * psi0_t, tlist, ntraj, c_op_list, [a_op])
+
+        ops = mcsolve(H, b_op * psi0_t, tlist, ntraj, c_op_list, [a_op], mc_opt)
         avg = sum(ops, axis=0) / ntraj
         C_mat[t_idx, :] = avg
   
