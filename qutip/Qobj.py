@@ -264,7 +264,7 @@ class Qobj():
         return Qobj(out)
     def norm(self):
         #returns norm of quantum object
-        return la.norm(self.full())
+            return la.norm(self.full())
     def tr(self):
         #returns trace of quantum object
         return sum(diag(self.full()))   
@@ -306,7 +306,6 @@ def trans(A):
     out.dims=[A.dims[1],A.dims[0]]
     out.shape=[A.shape[1],A.shape[0]]
     return Qobj(out)
-
 
 def isherm(ops):
     if isinstance(ops,Qobj):

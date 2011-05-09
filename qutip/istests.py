@@ -18,6 +18,7 @@
 ###########################################################################
 from scipy import any,prod,allclose,shape
 
+
 def isket(L):
     result = isinstance(L.dims[0],list)
     if result:
@@ -71,17 +72,7 @@ def isequal(A,B,rtol=1e-8,atol=1e-12):
             return False
 
 #******************************
-def isherm(ops):
-    if isinstance(ops,Qobj):
-        ops=array([ops])
-    ops=array(ops)
-    out=zeros(len(ops))
-    for k in range(len(ops)):
-        if (ops[k].dag()-ops[k]).norm()/ops[k].norm()>1e-12:#any non-zero elements
-            out[k]=0
-        else:
-            out[k]=1
-    return out
+
 
 
 
