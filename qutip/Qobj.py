@@ -307,7 +307,7 @@ def trans(A):
     out.shape=[A.shape[1],A.shape[0]]
     return Qobj(out)
 
-def isherm(ops):
+def isherm(ops):#DO NOT move to istests module (get circular import problem)
     if isinstance(ops,Qobj):
         ops=array([ops])
     ops=array(ops)
@@ -351,7 +351,7 @@ def qobj_save(qobj, filename):
 
     f = open(filename, 'wb')
 
-    pickle.dump(qobj, f)
+    pickle.dump(qobj, f,protocol=2)
 
     f.close()
 
@@ -376,7 +376,7 @@ def qobj_load(filename):
 #
 def classcheck(inpt):
     '''
-    Checks for ESERIES and FSERIES class types
+    Checks for ESERIES class types
     '''
     from eseries import eseries
     if isinstance(inpt,eseries):
