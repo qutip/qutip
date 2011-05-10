@@ -6,7 +6,7 @@ from pylab import *
 N = 20;
 g = 2;
 psi = basis(N,10) + basis(N,5)
-xvec = arange(-40.,40.)*5./40
+xvec = arange(-5.,5.,.1)
 yvec = xvec
 X,Y = meshgrid(xvec, yvec)
 Q = qfunc(psi,xvec,xvec,g);

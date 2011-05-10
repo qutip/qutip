@@ -39,12 +39,11 @@ D = (alpha*trans(a)-conj(alpha)*a).expm();                    # Displacement
 S = (0.5*conj(epsilon)*a*a-0.5*epsilon*trans(a)*trans(a)).expm();  # Squeezing
 psi = D*S*basis(N,0); # Apply to vacuum state
 g = 2;
-print "psi = ", psi
 
 #-----------------------------------------------------------------------------
 # Calculate Wigner function
 #-----------------------------------------------------------------------------
-xvec = arange(-40.,40.)*5./40
+xvec = arange(-5.,5.,0.1)
 X,Y = meshgrid(xvec, xvec)
 
 W=wigner(psi,xvec,xvec)

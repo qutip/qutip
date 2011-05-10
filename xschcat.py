@@ -19,7 +19,7 @@ D2=(alpha2*dag(a)-conj(alpha2)*a).expm()
 psi = sqrt(2)**-1*(D1+D2)*basis(N,0); # Apply to vacuum state
 g=2.
 #calculate Wigner function
-xvec = arange(-100.,100.)*5./100
+xvec = arange(-5.,5.,0.05)
 yvec=xvec
 W=wigner(psi,xvec,yvec)
 pcolor(xvec,yvec,real(W))
