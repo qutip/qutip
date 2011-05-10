@@ -24,29 +24,17 @@ from list2ind import *
 from selct import *
 from Qobj import dag
 
-import numpy
+import numpy as np
 
-def ptrace(rho,sel):
+def scalar_ptrace(rho,sel):
     if isinstance(sel,int):
         sel=array([sel])
     sel=asarray(sel)
     drho=rho.dims[0]
     N=prod(drho)
     M=prod(asarray(drho).take(sel))
-
-    #
-    # wave function:
-    # 
     if prod(rho.dims[1]) == 1:
-        #print "ptrace for ket"
-        # XXX: temporary solution
         rho = rho * dag(rho)
-
-    #
-    # density matrix (operator)
-    #
-    #print "ptrace for operator"
-
     perm = sp.lil_matrix(zeros((M*M,N*N)))
     rest=setdiff1d(arange(len(drho)),asarray(sel)) #all elements in range(len(drho)) not in sel set
     ilistsel=selct(sel,drho)
@@ -64,12 +52,6 @@ def ptrace(rho,sel):
                 perm[m-1,int(col[i][0])-1]=1
     perm.tocsr()
     rws=prod(shape(rho.data))
-    
-    #print
-    #print "perm =", perm.shape
-    #print "rho  =", rho.data.shape
-    #print "rws  =", rws
-
     rho1=Qobj()
 
     if sp.issparse(rho.data):
@@ -87,6 +69,5 @@ def ptrace(rho,sel):
     rho1.shape=[prod(dims_kept0),prod(dims_kept1)]
     rho1.size=[1,1]
     return rho1
-    
-    
-    
+      
+ptrace=np.vectorize(scalar_ptrace)   
