@@ -35,7 +35,7 @@ v = linspace(0, pi, 100)
 x = outer(cos(u), sin(v))
 y = outer(sin(u), sin(v))
 z = outer(ones(size(u)), cos(v))
-ax.plot_surface(x, y, z,  rstride=2, cstride=2,color='#FFDDDD',linewidth=0,alpha=0.1)
+ax.plot_surface(x, y, z,  rstride=2, cstride=2,color='#FFDDDD',linewidth=0,alpha=0.3)
 #wireframe
 ax.plot_wireframe(x,y,z,rstride=5, cstride=5,color='gray',alpha=0.1)
 #equator
@@ -64,5 +64,5 @@ for a in ax.w_zaxis.get_ticklines()+ax.w_zaxis.get_ticklabels():
 ax.scatter([0.5], [-.5], [1-sqrt(2*.5**2)], s=15,alpha=1,edgecolor='none',zdir='z',color='r', marker='o')
 length=linspace(0,1,10)
 ax.plot(0.707*length,0.0*length,(0.707)*length, zs=0, zdir='z', label='Z',lw=3,color='b')
-plt.savefig('bloch.pdf',format='pdf')
+#plt.savefig('bloch.pdf',format='pdf')
 plt.show()
