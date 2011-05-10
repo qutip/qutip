@@ -14,6 +14,7 @@ class AboutBox(gtk.Window):
         about.set_comments("The Quantum Toolbox in Python\nNumpy Version:      "+str(numpy.__version__)+"\nScipy Version:         "+str(scipy.__version__)+"\nMatplotlib Version:  "+str(matplotlib.__version__))
         about.set_website("http://code.google.com/p/qutip/")
         about.set_logo(gtk.gdk.pixbuf_new_from_file(str(CD_BASE)+'/logo.png'))
+        about.set_icon_from_file(str(CD_BASE)+'/logo.png')
         about.run()
         about.destroy()
 

@@ -22,8 +22,9 @@ pygtk.require('2.0')
 import gtk
 import gobject
 import time
+import os
 
-
+CD_BASE = os.path.dirname(__file__)
 class ProgressBar:
 
     def update(self, percent, message=False):
@@ -53,6 +54,7 @@ class ProgressBar:
         self.window.connect("destroy", self.destroy)
         self.window.set_title("QuTiP: " + title)
         self.window.set_border_width(0)
+        self.window.set_icon_from_file(str(CD_BASE)+'/logo.png')
 
         vbox = gtk.VBox(False, 5)
         vbox.set_border_width(10)
