@@ -87,7 +87,7 @@ class MC_class():
                 self.isher = None
                 self.psi_out=array([Qobj() for k in xrange(self.num_times)])#preallocate array of Qobjs
             else: #preallocate array of lists for expectation values
-                self.isher=isherm(self.expect_ops)
+                self.isher=[ops.isherm for ops in self.expect_ops]
                 self.expect_out=[[] for x in xrange(self.ntraj)]
     #------------------------------------------------------------------------------------
     def callback(self,results):
