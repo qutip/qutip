@@ -23,7 +23,7 @@ from istests import *
 import numpy as np
 import scipy.sparse as sp
 
-def scalar_expect(oper,state):
+def expect(oper,state):
     ''' Calculates expectation value of an operator for a given state-vector or density matrix.  
     USAGE:
         - expect(oper,state) returns expactation value corresponding to operator 'oper' and state 'state'
@@ -32,7 +32,6 @@ def scalar_expect(oper,state):
         returns Float (real number) if operator is Hermitian; otherwise returns Complex number
     
     '''
-
     if isinstance(oper,Qobj) and isinstance(state,Qobj):
         if isoper(oper):
             if isoper(state):
@@ -42,9 +41,9 @@ def scalar_expect(oper,state):
                     prod = prod.tocsr()
                 num=prod.shape[0]
                 tr=0.0j
-                for j in range(num):
+                for j in xrange(num):
                     tr+=prod[j,j]
-                if isherm(oper):
+                if oper.isherm:
                     return real(tr)
                 else:
                     return tr
@@ -56,7 +55,7 @@ def scalar_expect(oper,state):
                 if isinstance(prod, sp.spmatrix):
                     prod = prod.tocsr()
 
-                if isherm(oper):
+                if oper.isherm:
                     return real(prod[0,0])
                 else:
                     return prod[0,0]
@@ -66,18 +65,16 @@ def scalar_expect(oper,state):
     #
     # eseries
     # 
-    if isinstance(state, eseries):
+    elif isinstance(state, eseries):
 
         out = eseries()
         out.rates = state.rates
         out.ampl  = expect(oper, state.ampl)
 
         return out
+    else:# unsupported types
+        raise TypeError('Arguments must be quantum objects')
 
-    # unsupported types
-    raise TypeError('Arguments must be quantum objects')
 
 
-        
-   
-expect=np.vectorize(scalar_expect)
+
