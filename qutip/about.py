@@ -30,11 +30,11 @@ def about():
         Mversion = "Matplotlib Ver: "+matplotlib.__version__
         title='About'
         message='QuTIP: The Quantum Optics Toolbox in Python'
-        info='Copyright (c) 2011\nPaul D. Nation & Robert J. Johansson \n\n'+'QuTIP Ver:        '+__version__+"\nNumpy Ver:      "+numpy.__version__+'\n'+"Scipy Ver:         "+scipy.__version__+'\n'+Mversion+"\n\nQuTiP is released under the GPL3.\nSee the enclosed COPYING.txt\nfile for more information."
+        info='Copyright (c) 2011\nPaul D. Nation & Robert J. Johansson \n\n'+'QuTIP Ver:        '+version+"\nNumpy Ver:      "+numpy.__version__+'\n'+"Scipy Ver:         "+scipy.__version__+'\n'+Mversion+"\n\nQuTiP is released under the GPL3.\nSee the enclosed COPYING.txt\nfile for more information."
         MsgBox(title,message,info)
     elif sys.platform=='linux2' and os.environ['QUTIP_GRAPHICS']=='YES':
         from linux import AboutBox
-        AboutBox(__version__)
+        AboutBox(version)
     elif os.environ['QUTIP_GRAPHICS']=='YES':
         root = Tk()
         root.title('      About')
@@ -56,7 +56,7 @@ def about():
         auth2 = Label(content,text="Robert J. Johansson")
         by = Label(content,text="By: ")
         spacer1 = Label(content,text="")
-        Qversion = Label(content,text="QuTIP Version:  "+__version__)
+        Qversion = Label(content,text="QuTIP Version:  "+version)
         Nversion = Label(content, text="Numpy Version:  "+numpy.__version__)
         Sversion = Label(content, text="Scipy Version:  "+scipy.__version__)
         try:
