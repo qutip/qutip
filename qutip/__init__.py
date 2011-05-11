@@ -81,6 +81,7 @@ from mcsolve import *
 from ode2es import *
 from states import *
 from correlation import *
+from propagator import *
 from metrics import fidelity,trace_dist
 
 if os.environ['QUTIP_GRAPHICS'] == "YES":
