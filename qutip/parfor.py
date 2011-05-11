@@ -30,9 +30,9 @@ def parfor(func,frange):
 	pool=Pool(processes=cpu_count())
 	par_return=list(pool.map(func,frange))
 	if size(par_return[0])==1:
-	    return array(par_return)
+	    return list(par_return)
 	else:
-	    par_return=[list(elem) for elem in par_return]
+	    par_return=[elem for elem in par_return]
 	    num_elems=len(par_return[0])
 	    return [array([elem[ii] for elem in par_return]) for ii in xrange(num_elems)]
 
