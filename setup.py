@@ -36,10 +36,9 @@ VERSION             = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 import os
 import sys
-import warnings
-import subprocess
 import shutil
 import re
+import subprocess
 from setuptools import setup, find_packages
 
 def svn_version():
