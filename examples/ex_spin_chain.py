@@ -69,7 +69,7 @@ def integrate(N, h, Jx, Jy, Jz, psi0, tlist):
     #expt_list = me_ode_solve(H, psi0, tlist, c_op_list, sz_list)
 
     # or use the MC solver
-    ntraj = 500 
+    ntraj = 10 
     ops = mcsolve(H, psi0, tlist, ntraj, c_op_list, sz_list)
     expt_list = sum(ops,axis=0)/ntraj
 
@@ -112,7 +112,7 @@ for n in range(N):
     plot(tlist, sz_expt[n,:], label=r'$\langle\sigma_z^{($'+str(n)+r'$)\rangle}$')
 
 xlabel(r'Time [ns]')
-ylabel(r'$\langle\sigma_z\rangle')
+ylabel(r'\langle\sigma_z\rangle')
 title(r'Dynamics of a Heisenberg spin chain')
 legend(loc = "lower right")
 show()

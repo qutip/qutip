@@ -25,7 +25,7 @@ class MsgBox:
     CD_BASE = os.path.dirname(__file__)
     CD_PATH = os.path.join(CD_BASE, "CocoaDialog.app/Contents/MacOS/CocoaDialog")
     
-    def __init__(self, title="Dialog", message="", info="", button1='close', icon=str(CD_BASE)+'/logo.icns'):
+    def __init__(self, title="Dialog", message="", info="", button1='close', icon='None'):
         """Create message box dialog"""
         template = "%s msgbox --title '%s' --text '%s' --informative-text '%s' --button1 '%s' --icon-file '%s' --float"
         self.pipe = os.popen(template % (MsgBox.CD_PATH, title, message, info, button1, icon), "w")
@@ -36,4 +36,4 @@ class MsgBox:
 if __name__ == "__main__":
     # Sample usage
     import time
-    box = MsgBox(title="About",message="QuTIP: The Quantum Optics Toolbox in Python",info="informative-text goes here",button1="close",icon=str(CD_BASE)+'/logo.icns')
+    box = MsgBox(title="About",message="QuTIP: The Quantum Optics Toolbox in Python",info="informative-text goes here",button1="close")

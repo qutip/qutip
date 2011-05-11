@@ -16,7 +16,7 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from scipy import logical_or,any, fix,arange,sqrt
+from scipy import any,fix,arange,sqrt
 import scipy.sparse as sp
 from Qobj import *
 
@@ -43,7 +43,6 @@ def jmat(j,*args):
 	return Qobj(A.tocsr())
 
 
-
 def jplus(j):
 	m=arange(j,-j-1,-1)
 	N=len(m)
@@ -54,8 +53,3 @@ def jz(j):
 	m=arange(j,-j-1,-1)
 	N=len(m)
 	return sp.spdiags(m,0,N,N)
-
-
-
-
-

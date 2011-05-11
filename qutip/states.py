@@ -64,7 +64,6 @@ def thermal_dm(N, n):
 
     i=arange(N)  
     rm = diag((1.0+n)**(-1.0)*(n/(1.0+n))**(i)) #populates diagonal terms (the only nonzero terms in matrix)
-
     return Qobj(rm)
 
 

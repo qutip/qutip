@@ -33,7 +33,7 @@ psi0=tensor(basis(N,0),basis(2,1))
 Heff=H-0.5j*(C1dC1+C2dC2)
 #run monte-carlo solver
 
-ntraj=100
+ntraj=500
 
 start_time=time.time()
 

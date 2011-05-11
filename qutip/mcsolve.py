@@ -25,7 +25,7 @@ from expect import *
 import sys,os,time
 from Counter import *
 from istests import *
-from mcoptions import Mcoptions
+from Mcoptions import Mcoptions
 
 def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
 
@@ -40,7 +40,8 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
     elif mc.num_collapse==0 and mc.num_expect!=0:
         return mc.expect_out
     elif mc.num_collapse!=0 and mc.num_expect==0:
-        return mc.psi_out, mc.collapse_times_out
+        return mc.psi_out
+        #return mc.psi_out, mc.collapse_times_out
     elif mc.num_collapse!=0 and mc.num_expect!=0:
         return mc.expect_out
        

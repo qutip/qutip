@@ -74,15 +74,17 @@ class Qobj():
                     inpt=array([inpt])
                 else:#if list has two dimensions (i.e [[5,4]])
                     inpt=array(inpt)
-                    self.data=sp.csr_matrix(inpt)
-                    if not any(dims):
-                        self.dims=[[inpt.shape[0]],[inpt.shape[1]]]
-                    else:
-                        self.dims=dims
-                    if not any(shape):
-                        self.shape=[inpt.shape[0],inpt.shape[1]]
-                    else:
-                        self.shape=shape
+                self.data=sp.csr_matrix(inpt)
+                if not any(dims):
+                    self.dims=[[inpt.shape[0]],[inpt.shape[1]]]
+                else:
+                    self.dims=dims
+                if not any(shape):
+                    self.shape=[inpt.shape[0],inpt.shape[1]]
+                else:
+                    self.shape=shape
+        #check for Hermicity of operator
+        self.isherm=isherm(self)
     
     ##### Definition of PLUS with Qobj on LEFT (ex. Qobj+4) #########                
     def __add__(self, other): #defines left addition for Qobj class
@@ -285,6 +287,7 @@ class Qobj():
         else:
 	        raise TypeError('Invalid operand for matrix square root')
 
+        
 ##############################################################################
 #
 #
@@ -307,17 +310,6 @@ def trans(A):
     out.shape=[A.shape[1],A.shape[0]]
     return Qobj(out)
 
-def isherm(ops):#DO NOT move to istests module (get circular import problem)
-    if isinstance(ops,Qobj):
-        ops=array([ops])
-    ops=array(ops)
-    out=zeros(len(ops))
-    for k in range(len(ops)):
-        if (ops[k].dag()-ops[k]).norm()/ops[k].norm()>1e-12:#any non-zero elements
-            out[k]=0
-        else:
-            out[k]=1
-    return out
 
 ##############################################################################
 #      
@@ -348,24 +340,15 @@ def shape(inpt):
 import pickle
 
 def qobj_save(qobj, filename):
-
     f = open(filename, 'wb')
-
     pickle.dump(qobj, f,protocol=2)
-
     f.close()
-
 
 def qobj_load(filename):
-
     f = open(filename, 'rb')
-
     qobj = pickle.load(f)
-
     f.close()
-
     return qobj
-
 
 ##############################################################################
 #
@@ -446,8 +429,19 @@ def padecoeff(m):
         return array([64764752532480000, 32382376266240000, 7771770303897600,1187353796428800, 129060195264000, 10559470521600,670442572800, 33522128640, 1323241920,40840800, 960960, 16380, 182, 1])
 
 
-
-
+def isherm(oper):
+    if oper.dims[0]!=oper.dims[1]:
+        return False
+    else:
+        data=oper.data.todense()
+        if la.norm(data)==0:
+            if any(data>1e-14):
+                raise ValueError('Norm=0 but nonzero data in array')
+            else:
+                return la.norm(data.T.conj()-data)<=1e-14
+        else: 
+            return la.norm(data.T.conj()-data)/la.norm(data)<=1e-14
+        
 
 
 

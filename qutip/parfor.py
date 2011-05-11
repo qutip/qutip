@@ -34,6 +34,6 @@ def parfor(func,frange):
 	else:
 	    par_return=[list(elem) for elem in par_return]
 	    num_elems=len(par_return[0])
-	    return [array([elem[ii] for elem in par_return]) for ii in range(num_elems)]
+	    return [array([elem[ii] for elem in par_return]) for ii in xrange(num_elems)]
 
 

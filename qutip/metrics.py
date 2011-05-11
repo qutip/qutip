@@ -12,11 +12,15 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+#
 ###########################################################################
 from Qobj import *
 import scipy.linalg as la
 from scipy import real,trace
 from numpy import vectorize
+
 def scalar_fidelity(A,B):
     """
     Calculates the fidelity (pseudo-metric) between two density matricies.

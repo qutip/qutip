@@ -46,7 +46,7 @@ if sys.platform=='linux2':
 from scipy import *
 import scipy.linalg as la
 import scipy.sparse as sp
-from Qobj import Qobj,shape,dims,dag,trans,isherm,sp_expm
+from Qobj import Qobj,shape,dims,dag,trans,sp_expm
 from about import *
 from basis import *
 from cnot import *
@@ -84,5 +84,6 @@ from correlation import *
 from metrics import fidelity,trace_dist
 
 if os.environ['QUTIP_GRAPHICS'] == "YES":
-    from sphereplot import *
+    pass
+    #from sphereplot import *
 

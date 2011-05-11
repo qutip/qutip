@@ -16,7 +16,7 @@ tfinal=4.0
 dt=0.05
 tlist=arange(0.0,tfinal+dt,dt)
 taulist=K*tlist #non-dimensional times
-ntraj=200#number of trajectories
+ntraj=100#number of trajectories
 #define operators
 a0=tensor(destroy(N0),qeye(N1),qeye(N2))
 a1=tensor(qeye(N0),destroy(N1),qeye(N2))

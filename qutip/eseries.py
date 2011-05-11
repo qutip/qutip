@@ -162,7 +162,7 @@ def esval(es, tlist):
     Evaluate an exponential series at the times listed in tlist. 
     '''
     #val_list = [] #zeros(size(tlist))
-    val_list = zeros(size(tlist))
+    val_list = zeros(size(tlist),dtype=complex)
 
     for j in range(len(tlist)):
         exp_factors = exp(array(es.rates) * tlist[j])
@@ -210,7 +210,7 @@ def esspec(es, wlist):
         #print "data =", es.ampl
         #print "demon =", 1/(1j*wlist[i] - es.rates)
 
-        val_list[i] = 2 * real( dot(es.ampl, 1/(1j*wlist[i] - es.rates)) )
+        val_list[i] = 2 * real( dot(es.ampl, 1./(1.0j*wlist[i] - es.rates)) )
 
 
 
