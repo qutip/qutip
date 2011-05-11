@@ -29,7 +29,7 @@ def coherent(N,alpha):
     """
     x=basis(N,0)
     a=destroy(N)
-    D=(alpha*a-conj(alpha)*a.dag()).expm()
+    D=(alpha*a.dag()-conj(alpha)*a).expm()
     return D*x
 
 
