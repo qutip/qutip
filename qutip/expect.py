@@ -65,16 +65,14 @@ def expect(oper,state):
     #
     # eseries
     # 
-    elif isinstance(state, eseries):
+    elif isinstance(oper,Qobj) and isinstance(state, eseries):
 
         out = eseries()
         out.rates = state.rates
-        out.ampl  = expect(oper, state.ampl)
+        out.ampl = array([expect(oper, a) for a in state.ampl])
 
         return out
     else:# unsupported types
-        raise TypeError('Arguments must be quantum objects')
-
-
+        raise TypeError('Arguments must be quantum objects or eseries')
 
 
