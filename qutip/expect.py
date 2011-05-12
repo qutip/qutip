@@ -49,28 +49,24 @@ def expect(oper,state):
                     return tr
             elif isket(state):
                 #calculates expectation value via <psi|op|psi>
-
                 #prod = state.data.conj().T * (oper.data * state.data)
                 prod = dot(state.data.conj().T, oper.data * state.data)
                 if isinstance(prod, sp.spmatrix):
                     prod = prod.tocsr()
 
                 if oper.isherm:
-                    return real(prod[0,0])
+                    return np.float64(prod[0,0])
                 else:
                     return prod[0,0]
+                    
         else:
             raise TypeError('Invalid operand types')
-
-    #
     # eseries
     # 
     elif isinstance(oper,Qobj) and isinstance(state, eseries):
-
         out = eseries()
         out.rates = state.rates
         out.ampl = array([expect(oper, a) for a in state.ampl])
-
         return out
     else:# unsupported types
         raise TypeError('Arguments must be quantum objects or eseries')
