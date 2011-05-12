@@ -39,6 +39,7 @@ import sys
 import shutil
 import re
 import subprocess
+import warnings
 from setuptools import setup, find_packages
 
 def svn_version():
