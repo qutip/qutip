@@ -33,10 +33,12 @@ class Bloch():
     sphere_color: color of Bloch sphere, default = #FFDDDD
     sphere_alpha: transparency of sphere, default = 0.2
     frame_color: color of wireframe, default = gray
+    frame_width: Width of wireframe, default = 1
     frame_alpha: transparency of wireframe, default = 0.2
     font_color: color of fonts, default = black
     font_size: size of fonts, default = 18
     vector_color: list of vector colors, default = ['b','g','r','y']
+    vector_wdith: Width of vectors, default = 3
     point_size: size of point markers, default = 20
     point_marker: shape of point markers, default = ['o','^','d','s']
     point_color: list of vector colors, default =  ['b','g','r','y']
@@ -48,6 +50,7 @@ class Bloch():
         self.sphere_alpha=0.2
         #frame options
         self.frame_color='gray'
+        self.frame_width=1
         self.frame_alpha=0.2
         #axes label options
         self.xlabel=['$x$','']
@@ -58,6 +61,7 @@ class Bloch():
         self.font_size=18
         #vector options
         self.vector_color=['b','g','r','y']
+        self.vector_width=3
         #point options
         self.point_color=['b','g','r','y']
         self.point_size=20
@@ -138,8 +142,8 @@ class Bloch():
         #wireframe
         self.ax.plot_wireframe(x,y,z,rstride=5, cstride=5,color=self.frame_color,alpha=self.frame_alpha)
         #equator
-        self.ax.plot(1.0*cos(u),1.0*sin(u),zs=0, zdir='z',lw=1.0,color=self.frame_color)
-        self.ax.plot(1.0*cos(u),1.0*sin(u),zs=0, zdir='x',lw=1.0,color=self.frame_color)
+        self.ax.plot(1.0*cos(u),1.0*sin(u),zs=0, zdir='z',lw=self.frame_width,color=self.frame_color)
+        self.ax.plot(1.0*cos(u),1.0*sin(u),zs=0, zdir='x',lw=self.frame_width,color=self.frame_color)
     
     def plot_axes(self):
         #axes labels
@@ -155,9 +159,9 @@ class Bloch():
             a.set_visible(False)
         #axes
         span=linspace(-1.0,1.0,2)
-        self.ax.plot(span,0*span, zs=0, zdir='z', label='X',lw=1.0,color=self.frame_color)
-        self.ax.plot(0*span,span, zs=0, zdir='z', label='Y',lw=1.0,color=self.frame_color)
-        self.ax.plot(0*span,span, zs=0, zdir='y', label='Z',lw=1.0,color=self.frame_color)
+        self.ax.plot(span,0*span, zs=0, zdir='z', label='X',lw=self.frame_width,color=self.frame_color)
+        self.ax.plot(0*span,span, zs=0, zdir='z', label='Y',lw=self.frame_width,color=self.frame_color)
+        self.ax.plot(0*span,span, zs=0, zdir='y', label='Z',lw=self.frame_width,color=self.frame_color)
         self.ax.set_xlim3d(-1.2,1.2)
         self.ax.set_ylim3d(-1.3,1.2)
         self.ax.set_zlim3d(-1.2,1.2)
@@ -166,7 +170,7 @@ class Bloch():
         if len(self.vectors)>0:
             for k in xrange(len(self.vectors)):
                 length=sqrt(self.vectors[k][0]**2+self.vectors[k][1]**2+self.vectors[k][2]**2)
-                self.ax.plot(self.vectors[k][1]*linspace(0,length,2),-self.vectors[k][0]*linspace(0,length,2),self.vectors[k][2]*linspace(0,length,2),zs=0, zdir='z', label='Z',lw=3,color=self.vector_color[k])
+                self.ax.plot(self.vectors[k][1]*linspace(0,length,2),-self.vectors[k][0]*linspace(0,length,2),self.vectors[k][2]*linspace(0,length,2),zs=0, zdir='z', label='Z',lw=self.vector_width,color=self.vector_color[k])
     
     def plot_points(self):
         for k in xrange(self.num_points):
