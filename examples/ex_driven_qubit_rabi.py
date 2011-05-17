@@ -4,6 +4,7 @@
 # Hamiltonian. 
 #
 from qutip import *
+from pylab import *
 import time
 
 def hamiltonian_t(t, args):
@@ -63,7 +64,7 @@ eps0  = 1.0  * 2 * pi   # qubit sigma_z coefficient
 A     = 0.05 * 2 * pi   # driving amplitude (sigma_x coupled)
 w     = 1.0  * 2 * pi   # driving frequency
 
-gamma1 = 0.025          # relaxation rate
+gamma1 = 0.02           # relaxation rate
 gamma2 = 0.0            # dephasing  rate
 
 # intial state

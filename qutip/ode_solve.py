@@ -271,12 +271,20 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args):
         cdc = c_op_list[m].dag() * c_op_list[m]
         L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
 
+
+    #H_func_and_args = (H_func, H_args, L)
+    L_func_and_args = [H_func, L]
+    for arg in H_args:
+        if isinstance(arg,Qobj):
+            L_func_and_args.append(-1j*(spre(arg) - spost(arg))) # hack: assume all Qobj to be hamiltonian components....
+        else:
+            L_func_and_args.append(arg)
+
     #
     # setup integrator
     #
-    H_func_and_args = (H_func, H_args, L)
     initial_vector = rho0.full().reshape(prod(rho0.shape),1)
-    r = scipy.integrate.ode(rho_ode_func_td).set_integrator('zvode').set_initial_value(initial_vector, tlist[0]).set_f_params(H_func_and_args)
+    r = scipy.integrate.ode(rho_ode_func_td).set_integrator('zvode').set_initial_value(initial_vector, tlist[0]).set_f_params(L_func_and_args)
 
     #
     # start evolution
@@ -306,15 +314,13 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args):
 #
 # evaluate drho(t)/dt according to the master eqaution
 #
-def rho_ode_func_td(t, rho, H_func_and_args):
+def rho_ode_func_td(t, rho, L_func_and_args):
 
-    H_func = H_func_and_args[0]
-    H_args = H_func_and_args[1]
-    L0     = H_func_and_args[2]
+    L_func = L_func_and_args[0]
+    L0     = L_func_and_args[1]
+    L_args = L_func_and_args[2:]
 
-    H = H_func(t, H_args)
-
-    L = L0 - 1j*(spre(H) - spost(H))
+    L = L0 + L_func(t, L_args)
 
     return L.data * rho
 
