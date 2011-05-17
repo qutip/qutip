@@ -18,22 +18,41 @@
 ###########################################################################
 import os
 from scipy import *
-from matplotlib import pyplot as plt
 from pylab import *
 from mpl_toolkits.mplot3d import Axes3D
-import matplotlib as mpl
-import matplotlib.ticker as ticker
-from matplotlib.pyplot import draw, ion
-mpl.rcParams['text.usetex'] = True
-
+from matplotlib.pyplot import draw, ion,rc
+rc('text', usetex=True)
 class Bloch():
+    """
+    OPTIONS AVAILABLE TO USER:
+    --------------------------
+    view: Azimuthal and Elvation viewing angles, default = [-60,30] 
+    xlabel: Labels for x-axis (in LaTex), default = ['$x$','']
+    ylabel: Labels for y-axis (in LaTex), default = ['$y$','']
+    zlabel: Labels for z-axis (in LaTex), default = ['$\left|0\\right>$','$\left|1\\right>$']
+    sphere_color: color of Bloch sphere, default = #FFDDDD
+    sphere_alpha: transparency of sphere, default = 0.2
+    frame_color: color of wireframe, default = gray
+    frame_alpha: transparency of wireframe, default = 0.2
+    font_color: color of fonts, default = black
+    font_size: size of fonts, default = 18
+    vector_color: list of vector colors, default = ['b','g','r','y']
+    point_size: size of point markers, default = 20
+    point_marker: shape of point markers, default = ['o','^','d','s']
+    point_color: list of vector colors, default =  ['b','g','r','y']
+    """
     def __init__(self):
         #sphere options
+        self.view=[-60,30]
         self.sphere_color='#FFDDDD'
         self.sphere_alpha=0.2
         #frame options
         self.frame_color='gray'
         self.frame_alpha=0.2
+        #axes label options
+        self.xlabel=['$x$','']
+        self.ylabel=['$y$','']
+        self.zlabel=['$\left|0\\right>$','$\left|1\\right>$']
         #font options
         self.font_color='black'
         self.font_size=18
@@ -49,24 +68,10 @@ class Bloch():
         self.vectors=[]
         self.num_vectors=0
         self.sphere=0
-    def options(self):
-        print 'OPTIONS AVAILABLE TO USER:'
-        print '--------------------------'
-        print 'sphere_color: color of Bloch sphere  '+'(currently '+self.sphere_color+')'
-        print 'sphere_alpha: transparency of sphere  '+'(currently '+str(self.sphere_alpha)+')'
-        print '-----------------'
-        print 'frame_color: color of wireframe  '+'(currently '+self.frame_color+')'
-        print 'frame_alpha: transparency of wireframe  '+'(currently '+str(self.frame_alpha)+')'
-        print '-----------------'
-        print 'font_color: color of fonts  '+'(currently '+self.font_color+')'
-        print 'font_size: size of fonts  '+'(currently '+str(self.font_size)+')'
-        print '-----------------'
-        print 'vector_color: list of vector colors  '+'(currently '+str(self.vector_color)+')'
-        print 'point_color: list of vector colors  '+'(currently '+str(self.point_color)+')'
     def __str__(self):
         print 'Bloch sphere containing:'
-        print str(len(self.vectors))+ ' vectors'
-        print str(len(self.points))+ ' data points'
+        print str(self.num_vectors)+ ' vectors'
+        print str(self.num_points)+ ' data points'
         return ''
     def clear(self):
         """Resets Bloch sphere"""
@@ -100,7 +105,7 @@ class Bloch():
             pass
         #setup plot
         self.fig = figure()
-        self.ax = Axes3D(self.fig)
+        self.ax = Axes3D(self.fig,azim=self.view[0],elev=self.view[1])
         self.ax.grid(on=False)
         self.plot_back()
         self.plot_vectors()
@@ -138,10 +143,10 @@ class Bloch():
     
     def plot_axes(self):
         #axes labels
-        self.ax.text(0, -1.2, 0, r"$x$", color=self.font_color,fontsize=self.font_size)
-        self.ax.text(1.1, 0, 0, r"$y$", color=self.font_color,fontsize=self.font_size)
-        self.ax.text(0, 0, 1.2, r"$\left|0\right>$", color=self.font_color,fontsize=self.font_size)
-        self.ax.text(0, 0, -1.2, r"$\left|1\right>$", color=self.font_color,fontsize=self.font_size)
+        self.ax.text(0, -1.2, 0, self.xlabel[0], color=self.font_color,fontsize=self.font_size)
+        self.ax.text(1.1, 0, 0, self.ylabel[0], color=self.font_color,fontsize=self.font_size)
+        self.ax.text(0, 0, 1.2, self.zlabel[0], color=self.font_color,fontsize=self.font_size)
+        self.ax.text(0, 0, -1.2, self.zlabel[1], color=self.font_color,fontsize=self.font_size)
         for a in self.ax.w_xaxis.get_ticklines()+self.ax.w_xaxis.get_ticklabels():
             a.set_visible(False)
         for a in self.ax.w_yaxis.get_ticklines()+self.ax.w_yaxis.get_ticklabels():
