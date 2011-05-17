@@ -83,8 +83,8 @@ from states import *
 from correlation import *
 from propagator import *
 from metrics import fidelity,trace_dist
+from Bloch import Bloch
 
 if os.environ['QUTIP_GRAPHICS'] == "YES":
-    pass
-    #from sphereplot import *
+    from sphereplot import *
 
