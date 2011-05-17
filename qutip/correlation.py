@@ -54,7 +54,7 @@ def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
         solES_tau = ode2es(L, b_op * rho_t)
 
-        C_mat[t_idx, :] = esval(scalar_expect(a_op, solES_tau), taulist)
+        C_mat[t_idx, :] = esval(expect(a_op, solES_tau), taulist)
    
         pgb.update()
 
