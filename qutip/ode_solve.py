@@ -106,11 +106,17 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list, H_args):
     #
     # setup integrator
     #
-    H_func_and_args = (H_func, H_args)
+    H_func_and_args = [H_func]
+    for arg in H_args:
+        if isinstance(arg,Qobj):
+            H_func_and_args.append(arg.data)
+        else:
+            H_func_and_args.append(arg)
+    #H_func_and_args = (H_func, H_args)
+
     initial_vector = psi0.full()
     r = scipy.integrate.ode(psi_ode_func_td).set_integrator('zvode').set_initial_value(initial_vector, tlist[0]).set_f_params(H_func_and_args)
 
-    #
     # start evolution
     #
     psi = Qobj(psi0)
@@ -139,11 +145,12 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list, H_args):
 #
 def psi_ode_func_td(t, psi, H_func_and_args):
     H_func = H_func_and_args[0]
-    H_args = H_func_and_args[1]
+    H_args = H_func_and_args[1:]
 
     H = H_func(t, H_args)
 
-    return -1j * (H.data * psi)
+    return -1j * (H * psi)
+    #return -1j * (H.data * psi)
 
 
 # ------------------------------------------------------------------------------
@@ -273,10 +280,10 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args):
 
 
     #H_func_and_args = (H_func, H_args, L)
-    L_func_and_args = [H_func, L]
+    L_func_and_args = [H_func, L.data]
     for arg in H_args:
         if isinstance(arg,Qobj):
-            L_func_and_args.append(-1j*(spre(arg) - spost(arg))) # hack: assume all Qobj to be hamiltonian components....
+            L_func_and_args.append((-1j*(spre(arg) - spost(arg))).data) # hack: assume all Qobj to be hamiltonian components....
         else:
             L_func_and_args.append(arg)
 
@@ -322,7 +329,9 @@ def rho_ode_func_td(t, rho, L_func_and_args):
 
     L = L0 + L_func(t, L_args)
 
-    return L.data * rho
+#    return L.data * rho
+    return L * rho
+
 
 
 
