@@ -48,8 +48,6 @@ def propagator(H, t, c_op_list, H_args=None):
             N = H0.shape[0]
         else:
             N = H.shape[0]
-    
-        print "N =", N
 
         u = zeros([N, N], dtype=complex)
         
@@ -58,10 +56,7 @@ def propagator(H, t, c_op_list, H_args=None):
             psi0 = basis(N, n)
             psi_t = me_ode_solve(H, psi0, [0, t], c_op_list, [], H_args)
 
-            #print "psi(t) =", psi_t[1].full().T
-
             u[:,n] = psi_t[1].full().T
-
 
     else:
         # calculate the propagator for the vector representation of the 
@@ -72,8 +67,6 @@ def propagator(H, t, c_op_list, H_args=None):
             N = H0.shape[0]
         else:
             N = H.shape[0]
-    
-        print "N =", N
 
         u = zeros([N*N, N*N], dtype=complex)
         
@@ -83,13 +76,10 @@ def propagator(H, t, c_op_list, H_args=None):
             rho0  = Qobj(psi0.full().reshape([N,N]))
             rho_t = me_ode_solve(H, rho0, [0, t], c_op_list, [], H_args)
 
-            #print "rho(t) =", rho_t[1].full().reshape([1, N*N])
-
             u[:,n] = rho_t[1].full().reshape([1, N*N])
 
 
     return Qobj(u)
-
 
 def get_min_and_index(lst): 
     minval,minidx = lst[0],0 
@@ -109,17 +99,57 @@ def propagator_steadystate(U):
 
     N = int(sqrt(len(evals)))
 
-    rho = Qobj((evecs.T)[ev_idx].reshape(N, N))
+    evecs = evecs.T
+    rho = Qobj(evecs[ev_idx].reshape(N, N))
 
-    rho = rho * (1 / real(rho.tr()))
-
-    return rho
-
+    return rho * (1 / real(rho.tr()))
 
 
+def floquet_states(H, t, c_op_list, H_args=None):
+    """
+    Calculate the floquet states for a driven system med period t.
+    """
+
+    # get the unitary propagator
+    U = propagator(H, t, [], H_args)
+
+    # find the eigenstates for the propagator
+    evals,evecs = la.eig(U.full())
+
+    eargs = angle(evals, False)
+
+#    print "eargs =", eargs
+    #if (p2 > M_PI/2) p2 -= 2*M_PI;        
+    #if (p2 < M_PI/2) p2 += 2*M_PI;        
+#    for i in [list(array(eargs) < pi/2).index(True)]:
+#        print "shift up:   ", i
+#        eargs[i] += 2 * pi
+#    print "eargs =", eargs
+#    for i in [list(array(eargs) > pi/2).index(True)]:
+#        print "shift down: ", i
+#        eargs[i] -= 2 * pi    
+#    print "eargs =", eargs
+
+    # sort by the angle (might need shifts)
+    order = argsort(eargs)
+
+    evals_order = evals[order]
+    evecs_order = evecs[order]
+
+    e_quasi = - angle(evals_order, False) / t
+
+    return evecs_order, e_quasi
 
 
+def floquet_states_t(fval, fvec, H, t, c_op_list, H_args=None):
+    """
+    Calculate the floquet states for a driven system with period t.
+    """
 
+    # get the unitary propagator
+    U = propagator(H, t, [], H_args)
 
+    fvec_t = (U.data * fvec) * diag(exp( - fval * t))
 
+    return fvec_t
 
