@@ -32,7 +32,6 @@ def coherent(N,alpha):
     D=(alpha*a.dag()-conj(alpha)*a).expm()
     return D*x
 
-
 def coherent_dm(N, alpha):
     """
     Generate the density matrix representation of a coherent state
@@ -42,6 +41,25 @@ def coherent_dm(N, alpha):
     psi = coherent(N,alpha)
     return psi * psi.dag()
 
+def coherent_fast(N,alpha):
+    """
+    Generate a coherent state	
+    @param N the number of states
+    @param alpha the coherent state amplitude (complex)
+    """
+    data = zeros([N,1])
+    n = arange(N)
+    data[:,0] = exp(-(abs(alpha)**2)/2.0)*(alpha**(n))/sqrt(factorial(n))
+    return Qobj(data)
+
+def coherent_dm_fast(N,alpha):
+    """
+    Generate a coherent state	
+    @param N the number of states
+    @param alpha the coherent state amplitude (complex)
+    """
+    psi = coherent_fast(N, alpha)
+    return psi * psi.dag()
 
 def fock_dm(N, m):
     """
@@ -53,6 +71,14 @@ def fock_dm(N, m):
     psi = basis(N, m)
     return psi * psi.dag()
 
+def fock(N, m):
+    """
+    Generate a state vector for a fock state
+
+    @param N the number of states
+    @param m the fock state number
+    """
+    return basis(N, m)
 
 def thermal_dm(N, n):
     """
