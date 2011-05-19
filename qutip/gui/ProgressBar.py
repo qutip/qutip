@@ -1,6 +1,13 @@
 import sys,time
-from PySide.QtCore import *
-from PySide.QtGui import *
+try:
+    from PySide.QtCore import *
+    from PySide.QtGui import *
+except:
+    try:
+        from PyQt4.QtCore import *
+        from PyQt4.QtGui import *
+    except:
+        gui=False
 
 
 class ProgressBar(QWidget):
@@ -43,7 +50,7 @@ class Worker(QThread):
        # thread environment has been set up.
        for n in range(1,101):
            self.emit(SIGNAL("completed"))
-           time.sleep(.02)
+           time.sleep(.05)
        return self.emit(SIGNAL("done"))
        
            
