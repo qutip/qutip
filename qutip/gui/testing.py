@@ -16,7 +16,9 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-import sys,time
+import sys,time,threading
+from multiprocessing import Pool
+
 try:
     from PySide.QtCore import *
     from PySide.QtGui import *
@@ -27,19 +29,22 @@ except:
     except:
         raise RuntimeError('PyQt4 or PySide GUI module is not installed.')
 
+if sys.platform.startswith("darwin"):#needed for PyQt on mac (because of pyobc) 
+    import Foundation
 
 class ProgressBar(QWidget):
+
     def __init__(self, parent = None):
         QWidget.__init__(self, parent)
-        self.thread = Worker()
-        self.percent = 0
+        self.setWindowFlags(Qt.Window|Qt.CustomizeWindowHint|Qt.WindowTitleHint|Qt.WindowMinimizeButtonHint)
+        self.num = 0
         self.pbar = QProgressBar(self)
         self.pbar.setStyleSheet("QProgressBar {width: 25px;border: 3px solid black; border-radius: 5px; background: white;text-align: center;padding: 0px;}" 
                                +"QProgressBar::chunk:horizontal {background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6699FF, stop: 0.5 #66AAFF, stop: 0.6 #66CCFF, stop:1 #FFFFFF);}")
         self.pbar.setGeometry(25, 40, 300,40)
         self.label = QLabel(self)
         self.label.setStyleSheet("QLabel {font-size: 12px;}")
-        self.label.setText("Trajectories completed:                                       a")
+        self.label.setText("Trajectories completed:                                       ")
         self.label.move(25, 20)
         self.setWindowTitle('Monte-Carlo Trajectories')
         self.setGeometry(300, 300, 350, 120)
@@ -48,33 +53,61 @@ class ProgressBar(QWidget):
         size =  self.geometry()
         self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
         self.setFixedSize(self.size());
-        self.connect(self.thread, SIGNAL("completed"), self.updateUi)  
+        
+        self.thread=Thread(top=self,target=func,parent=None)
+        self.connect(self.thread, SIGNAL("completed"), self.update)
         self.connect(self.thread, SIGNAL("done"), self.end)
-        self.thread.start()
-    def updateUi(self):
-        self.percent+=1
-        self.pbar.setValue(self.percent)
-        self.label.setText('Trajectories completed: '+str(self.percent)+ '/100')
-    def end(self):
-        time.sleep(0.5)
-        return self.close()
-            
-class Worker(QThread):
-    def __init__(self, parent = None):
-        QThread.__init__(self, parent)
-        self.exiting = False
+    def update(self,*args):
+        # Old style: emits the signal using the SIGNAL function.
+        self.pbar.setValue(self.num)
+        self.label.setText("Trajectories completed: "+ str(self.num)+"/100")
+        self.num+=1
     def run(self):
-       # Note: This is never called directly. It is called by Qt once the
-       # thread environment has been set up.
-       for n in range(1,101):
-           self.emit(SIGNAL("completed"))
-           time.sleep(.05)
-       return self.emit(SIGNAL("done"))
-       
-           
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    pbar = ProgressBar()
-    pbar.show()
-    pbar.raise_()
-    app.exec_()
+        self.thread.start()
+    def end(self):
+        time.sleep(1)
+        return self.close()
+
+class Thread(QThread):
+    def __init__(self, top=None,target=None,parent=None):
+        QThread.__init__(self,parent)
+        self.target = target
+    def run(self):
+        if sys.platform.startswith("darwin"):#needed for PyQt on mac (because of pyobc) 
+            pool = Foundation.NSAutoreleasePool.alloc().init()
+        self.target(self)
+        return
+    def done(self,*args):
+        self.emit(SIGNAL("completed"))
+
+def func(top):
+    from multiprocessing import Pool
+    p=Pool(processes=2)
+    for nt in xrange(101):
+        p.apply_async(f,args=(nt,),callback=top.done)
+    p.close()
+    p.join()
+    top.emit(SIGNAL("done"))
+
+
+def f(x):
+    #import time,scipy
+    time.sleep(.05)
+    #print time.time()
+    return 
+
+
+    
+    
+
+
+app = QApplication(sys.argv)
+abox = ProgressBar()
+QTimer.singleShot(0,abox.run)
+abox.show()
+abox.raise_()
+app.exec_()
+
+
+
+ 

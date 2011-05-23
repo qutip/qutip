@@ -1,3 +1,22 @@
+#This file is part of QuTIP.
+#
+#    QuTIP is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#    QuTIP is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+#
+###########################################################################
+
 import sys,os,time
 try:
     from PySide import QtGui, QtCore
@@ -13,7 +32,7 @@ import numpy,scipy,matplotlib
 
 CD_BASE = os.path.dirname(__file__)
 class AboutBox(QtGui.QWidget):
-    def __init__(self, parent=None):
+    def __init__(self, Qversion, parent=None):
         QtGui.QWidget.__init__(self, parent)
         #WINDOW PROPERTIES
         self.setWindowTitle('About QuTiP')
@@ -38,7 +57,7 @@ class AboutBox(QtGui.QWidget):
         #
         label = QtGui.QLabel(self)
         label.setStyleSheet("QLabel {font-weight: bold;font-size: 12px;}")
-        label.setText("QuTip Version:          "+str(matplotlib.__version__)+"\n"
+        label.setText("QuTip Version:          "+Qversion+"\n"
                             +"NumPy Version:         "+str(numpy.__version__)+"\n"
                             +"SciPy Version:            "+str(scipy.__version__)+"\n"
                             +"MatPlotLib Version:   "+str(matplotlib.__version__))
@@ -65,10 +84,10 @@ class AboutBox(QtGui.QWidget):
         size =  self.geometry()
         self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
 
-app = QtGui.QApplication(sys.argv)
-abox = AboutBox()
-abox.show()
-#QTimer.singleShot(2000,app.quit)
-abox.raise_()
-app.exec_()
-print 'done'
+if __name__=="__main__":
+    app = QtGui.QApplication(sys.argv)
+    abox = AboutBox('0.1')
+    abox.show()
+    #QTimer.singleShot(2000,app.quit)
+    abox.raise_()
+    app.exec_()
