@@ -29,7 +29,7 @@ except:
         raise TypeError('no graphics installed')
     
 import numpy,scipy,matplotlib
-
+#app = QtGui.QApplication(sys.argv)
 CD_BASE = os.path.dirname(__file__)
 class AboutBox(QtGui.QWidget):
     def __init__(self, Qversion, parent=None):
