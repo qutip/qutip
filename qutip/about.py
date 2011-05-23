@@ -17,79 +17,36 @@
 #
 ###########################################################################
 import sys,os
-from Tkinter import *
 import numpy
 import scipy
 CD_BASE = os.path.dirname(__file__) # get directory of about.py file
 execfile(os.path.join(CD_BASE, "_version.py")) #execute _version.py file in CD_BASE directory
 def about():
     tk_conify_center()
-    if sys.platform=='darwin':
-        from mac import MsgBox
+    if os.environ['QUTIP_GRAPHICS']=='YES':
+        from gui import AboutBox
         import matplotlib
-        Mversion = "Matplotlib Ver: "+matplotlib.__version__
-        title='About'
-        message='QuTIP: The Quantum Optics Toolbox in Python'
-        info='Copyright (c) 2011\nPaul D. Nation & Robert J. Johansson \n\n'+'QuTIP Ver:        '+version+"\nNumpy Ver:      "+numpy.__version__+'\n'+"Scipy Ver:         "+scipy.__version__+'\n'+Mversion+"\n\nQuTiP is released under the GPL3.\nSee the enclosed COPYING.txt\nfile for more information."
-        MsgBox(title,message,info)
-    elif sys.platform=='linux2' and os.environ['QUTIP_GRAPHICS']=='YES':
-        from linux import AboutBox
-        AboutBox(version)
-    elif os.environ['QUTIP_GRAPHICS']=='YES':
-        root = Tk()
-        root.title('      About')
-        root.wm_attributes("-topmost", 1)
-        root.focus()
-        def center(window):
-            sw = window.winfo_screenwidth()
-            sh = window.winfo_screenheight()
-            rw = window.winfo_reqwidth()
-            rh = window.winfo_reqheight()
-            xc = (sw - rw) / 2
-            yc = (sh -rh) / 2
-            window.geometry("+%d+%d" % (xc, yc))
-            window.deiconify()         # Harmless if window is already visible
-            
-        content = Frame(root)
-        namelbl = Label(content, text="QuTIP: The Quantum Optics Toolbox in Python")
-        auth1 = Label(content,text="Paul D. Nation")
-        auth2 = Label(content,text="Robert J. Johansson")
-        by = Label(content,text="By: ")
-        spacer1 = Label(content,text="")
-        Qversion = Label(content,text="QuTIP Version:  "+version)
-        Nversion = Label(content, text="Numpy Version:  "+numpy.__version__)
-        Sversion = Label(content, text="Scipy Version:  "+scipy.__version__)
         try:
-            import matplotlib
+            from PySide import QtGui, QtCore
         except:
-            Mversion = Label(content, text="Matplotlib Version: None")
-        else:
-            Mversion = Label(content, text="Matplotlib Version:  "+matplotlib.__version__)
-        content.grid(column=0, row=0)
-        namelbl.grid(column=6, row=0, columnspan=2)
-        by.grid(column=6,row=1,columnspan=3)
-        auth1.grid(column=6, row=4, columnspan=2)
-        auth2.grid(column=6, row=5, columnspan=2)
-        spacer1.grid(column=6,row=6,columnspan=2)
-        Qversion.grid(column=6,row=7,columnspan=2)
-        Nversion.grid(column=6,row=8,columnspan=2)
-        Sversion.grid(column=6,row=9,columnspan=2)
-        Mversion.grid(column=6,row=10,columnspan=2)
-
-        root.after(0,center,root)    # Zero delay doesn't seem to bother it
-        root.mainloop()
+            try:
+                from PyQt4 import QtGui, QtCore
+            except:
+                raise TypeError('no graphics installed')
+        
+        app = QtGui.QApplication(sys.argv)
+        box=AboutBox(version)
+        box.show()
+        box.raise_()
+        app.exec_()
     else:
         print "QuTIP: The Quantum Optics Toolbox in Python"
         print "Copyright (c) 2011"
         print "Paul D. Nation & Robert J. Johansson"
         print "QuTIP Version:  "+__version__
         print "Numpy Version:  "+numpy.__version__
-        try:
-            import matplotlib
-        except:
-            print "Matplotlib Version: None"
-        else:
-            print "Matplotlib Version:  "+matplotlib.__version__
+        print "Scipy Version:  "+scipy.__version__
+        #print "Matplotlib Version:  "+matplotlib.__version__
 
 def tk_conify_center():
     import os
