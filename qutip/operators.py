@@ -75,7 +75,7 @@ def create(N):
 		raise ValueError("Hilbert space dimension must be integer value")
 	qo=destroy(N) #create operator using destroy function
 	qo.data=qo.data.T #transpsoe data in Qobj
-	return qo
+	return Qobj(qo)
 
 
 #
