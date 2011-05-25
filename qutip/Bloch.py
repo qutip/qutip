@@ -112,10 +112,11 @@ class Bloch():
         self.ax = Axes3D(self.fig,azim=self.view[0],elev=self.view[1])
         self.ax.grid(on=False)
         self.plot_back()
+        self.plot_axes()
         self.plot_vectors()
         self.plot_points()
         self.plot_front()
-        self.plot_axes()
+        self.plot_axes_labels()
     
     def plot_back(self):    
         #----back half of sphere------------------
@@ -146,6 +147,15 @@ class Bloch():
         self.ax.plot(1.0*cos(u),1.0*sin(u),zs=0, zdir='x',lw=self.frame_width,color=self.frame_color)
     
     def plot_axes(self):
+        #axes
+        span=linspace(-1.0,1.0,2)
+        self.ax.plot(span,0*span, zs=0, zdir='z', label='X',lw=self.frame_width,color=self.frame_color)
+        self.ax.plot(0*span,span, zs=0, zdir='z', label='Y',lw=self.frame_width,color=self.frame_color)
+        self.ax.plot(0*span,span, zs=0, zdir='y', label='Z',lw=self.frame_width,color=self.frame_color)
+        self.ax.set_xlim3d(-1.2,1.2)
+        self.ax.set_ylim3d(-1.3,1.2)
+        self.ax.set_zlim3d(-1.2,1.2)
+    def plot_axes_labels(self):  
         #axes labels
         self.ax.text(0, -1.2, 0, self.xlabel[0], color=self.font_color,fontsize=self.font_size)
         self.ax.text(1.1, 0, 0, self.ylabel[0], color=self.font_color,fontsize=self.font_size)
@@ -157,14 +167,6 @@ class Bloch():
             a.set_visible(False)
         for a in self.ax.w_zaxis.get_ticklines()+self.ax.w_zaxis.get_ticklabels():
             a.set_visible(False)
-        #axes
-        span=linspace(-1.0,1.0,2)
-        self.ax.plot(span,0*span, zs=0, zdir='z', label='X',lw=self.frame_width,color=self.frame_color)
-        self.ax.plot(0*span,span, zs=0, zdir='z', label='Y',lw=self.frame_width,color=self.frame_color)
-        self.ax.plot(0*span,span, zs=0, zdir='y', label='Z',lw=self.frame_width,color=self.frame_color)
-        self.ax.set_xlim3d(-1.2,1.2)
-        self.ax.set_ylim3d(-1.3,1.2)
-        self.ax.set_zlim3d(-1.2,1.2)
     
     def plot_vectors(self):
         if len(self.vectors)>0:
@@ -205,4 +207,6 @@ if __name__=="__main__":
     x.add_vectors(yvec)
     zvec=[0,0,1]
     x.add_vectors(zvec)
+    svec=[1,1,0]/sqrt(2)
+    x.add_vectors(svec)
     x.show()
