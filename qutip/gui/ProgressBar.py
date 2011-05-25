@@ -1,6 +1,7 @@
 import sys,time,threading
+from scipy import array
 from multiprocessing import Pool
-
+from datetime import *
 try:
     from PySide import QtCore
     from PySide import QtGui
@@ -20,7 +21,7 @@ class ProgressBar(QtGui.QWidget):
         self.setWindowFlags(QtCore.Qt.Window|QtCore.Qt.CustomizeWindowHint|QtCore.Qt.WindowTitleHint|QtCore.Qt.WindowMinimizeButtonHint)
         self.top=top
         self.max=mx
-        self.time=time.time()
+        self.st=datetime.now()
         self.num = 0
         self.pbar = QtGui.QProgressBar(self)
         self.pbar.setStyleSheet("QProgressBar {width: 25px;border: 3px solid black; border-radius: 5px; background: white;text-align: center;padding: 0px;}" 
@@ -30,6 +31,10 @@ class ProgressBar(QtGui.QWidget):
         self.label.setStyleSheet("QLabel {font-size: 12px;}")
         self.label.setText("Trajectories completed:                                       ")
         self.label.move(25, 20)
+        self.estlabel = QtGui.QLabel(self)
+        self.estlabel.setStyleSheet("QLabel {font-size: 12px;}")
+        self.estlabel.setText("Est. time remaining:                                       ")
+        self.estlabel.move(25, 82)
         self.setWindowTitle('Monte-Carlo Trajectories')
         self.setGeometry(300, 300, 350, 120)
         #self.setWindowOpacity(0.9) #make transparent
@@ -45,6 +50,10 @@ class ProgressBar(QtGui.QWidget):
         self.num+=1
         self.pbar.setValue((100.0*self.num)/self.max)
         self.label.setText("Trajectories completed: "+ str(self.num)+"/"+str(self.max))
+        nwt=datetime.now()
+        timediff=array([nwt.day-self.st.day,nwt.hour-self.st.hour,nwt.minute-self.st.minute,nwt.second-self.st.second])*(self.max-self.num)/(1.0*self.num)
+        timediff=["%0*d" % (2, int(timediff[0])),"%0*d" % (2,int(timediff[1])),"%0*d" % (2, int(timediff[2])),"%0*d" % (2, int(timediff[3]))]
+        self.estlabel.setText("Est. time remaining: "+timediff[0]+":"+timediff[1]+":"+timediff[2]+":"+timediff[3])
     def run(self):
         self.thread.start()
     def end(self):
