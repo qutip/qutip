@@ -55,7 +55,7 @@ def expect(oper,state):
                     prod = prod.tocsr()
 
                 if oper.isherm:
-                    return np.float64(prod[0,0])
+                    return float(prod[0,0])
                 else:
                     return prod[0,0]
                     
