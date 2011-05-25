@@ -16,16 +16,16 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from multiprocessing import Pool,cpu_count
 from scipy import *
 from scipy.integrate import *
 import scipy.linalg as la
 from Qobj import *
 from expect import *
 import sys,os,time
-from Counter import *
+#from Counter import *
 from istests import *
 from Mcoptions import Mcoptions
+from gui import ProgressBar,Thread
 
 def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
 
@@ -50,6 +50,24 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
 ######---Monte-Carlo class---######
 class MC_class():
     def __init__(self,Heff,psi0,tlist,ntraj,collapse_ops,expect_ops,options):
+        try:
+            import PySide
+            self.gui='PySide'
+            self.bar=None
+            self.thread=None
+        except:
+            try:
+                import PyQt4
+                self.gui='PyQt4'
+                self.bar=None
+                self.thread=None
+            except:
+                self.gui=False
+        self.max=ntraj
+        self.count=0
+        self.step=1
+        self.percent=0.0
+        self.level=0.1
         self.options=options
         self.times=tlist
         self.ntraj=ntraj
@@ -75,8 +93,6 @@ class MC_class():
                     else:
                         self.expect_out.append(zeros(self.num_times,dtype=complex))
         elif self.num_collapse!=0:
-            if self.options.progressbar:
-                self.bar=Counter(self.ntraj)#create GUI element if avaliable
             #extract matricies from collapse operators
             self.norm_collapse_data=array([(op.dag()*op).data for op in self.collapse_ops])
             self.collapse_ops_data=array([op.data for op in self.collapse_ops])
@@ -97,10 +113,23 @@ class MC_class():
         else:#output expectation values
             self.expect_out[r]=results[1]
         self.collapse_times_out[r]=results[2]
-        self.which_op_out[r]=results[3]    #Heff = H
-        if self.options.progressbar:
-            self.bar.update()
+        self.which_op_out[r]=results[3]
+        self.count+=self.step
+        if self.gui==False:
+            self.count+=self.step
+            self.percent=self.count/(1.0*self.max)
+            if self.count/float(self.max)>=self.level:
+                print str(floor(self.count/float(self.max)*100))+'%  ('+str(self.count)+'/'+str(self.max)+')'
+                self.level+=0.1
     #########################
+    def parallel(self,args,top=None):
+        from multiprocessing import Pool,cpu_count
+        pl=Pool(processes=cpu_count())
+        for nt in xrange(0,self.ntraj):
+            pl.apply_async(mc_alg_evolve,args=(nt,args),callback=top.callback)
+        pl.close()
+        pl.join()
+        return
     def run(self):
         if self.num_collapse==0:
             if self.ntraj!=1:#check if ntraj!=1 which is pointless for no collapse operators
@@ -111,13 +140,26 @@ class MC_class():
                 self.expect_out=no_collapse_expect_out(self.options,self.Hdata,self.psi_in,self.times,self.expect_ops,self.num_expect,self.num_times,self.psi_dims,self.psi_shape,self.expect_out,self.isher)
         elif self.num_collapse!=0:
             args=(self.options,self.Hdata,self.psi_in,self.times,self.num_times,self.num_collapse,self.collapse_ops_data,self.norm_collapse_data,self.num_expect,self.expect_ops,self.isher)
-            pool=Pool(processes=cpu_count())
-            for nt in xrange(0,self.ntraj):
-                pool.apply_async(mc_alg_evolve,args=(nt,args),callback=self.callback)
-            pool.close()
-            pool.join()
-            if self.options.progressbar:
-                self.bar.finish() #stop GUI if running
+            if self.gui==False:
+                print 'Starting Monte-Carlo:'
+                self.parallel(args,self)
+            else:
+                if self.gui=='PySide':
+                    from PySide import QtGui,QtCore
+                elif self.gui=='PyQt4':
+                    from PyQt4 import QtGui,QtCore
+                app=QtGui.QApplication.instance()#checks if QApplication already exists (needed for iPython)
+                if not app:#create QApplication if it doesnt exist
+                    app = QtGui.QApplication(sys.argv)
+                thread=Thread(target=self.parallel,args=args,top=self)
+                bar=ProgressBar(self,thread,self.max)
+                QtCore.QTimer.singleShot(0,bar.run)
+                bar.show()
+                bar.raise_()
+                app.exec_()
+                return
+                
+            
 
 
 
@@ -258,3 +300,14 @@ def mc_expect(oper,state,isherm):
         return real(dot(conj(state).T,oper.data*state))
     else:
         return complex(dot(conj(state).T,oper.data*state))
+
+
+
+
+
+
+
+
+
+
+
