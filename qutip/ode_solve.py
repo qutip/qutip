@@ -23,6 +23,19 @@ from spre import *
 from spost import *
 from expect import *
 
+
+# ------------------------------------------------------------------------------
+# pass on to wavefunction solver or master equation solver depending on whether
+# any collapse operators were given.
+# 
+def ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
+
+    if c_op_list and len(c_op_list) > 0:
+        return me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args)
+    else:
+        return wf_ode_solve(H, rho0, tlist, expt_op_list, H_args)
+
+
 # ------------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution)
 # 
