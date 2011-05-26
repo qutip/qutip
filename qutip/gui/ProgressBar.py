@@ -17,7 +17,7 @@
 #
 ###########################################################################
 import sys,time,threading
-from scipy import array,ceil
+from scipy import array,ceil,remainder
 from multiprocessing import Pool
 import datetime
 
@@ -70,7 +70,7 @@ class ProgressBar(QtGui.QWidget):
         self.num+=1
         self.pbar.setValue((100.0*self.num)/self.max)
         self.label.setText("Trajectories completed: "+ str(self.num)+"/"+str(self.max))
-        if self.num>10:
+        if self.num>=10 and remainder(self.num,4.0)==0:
             nwt=datetime.datetime.now()
             diff=((nwt.day-self.st.day)*86400+(nwt.hour-self.st.hour)*(60**2)+(nwt.minute-self.st.minute)*60+(nwt.second-self.st.second))*(self.max-self.num)/(1.0*self.num)
             secs=datetime.timedelta(seconds=ceil(diff))
