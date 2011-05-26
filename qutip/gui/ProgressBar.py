@@ -16,29 +16,28 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-import sys,time,threading
+import os,sys,threading
 from scipy import array,ceil,remainder
 from multiprocessing import Pool
 import datetime
 
 
-try:
-    from PySide import QtCore
-    from PySide import QtGui
-except:
-    try:
-        from PyQt4 import QtCore
-        from PyQt4 import QtGui
-    except:
-        raise TypeError('no graphics installed')
+if os.environ['QUTIP_GRAPHICS']=="NO":
+    raise RuntimeError('No graphics installed or available.')
         
 if sys.platform.startswith("darwin"):#needed for PyQt on mac (because of pyobc) 
     import Foundation
+
+if os.environ['QUTIP_GUI']=="PYSIDE":
+    from PySide import QtCore,QtGui
+elif os.environ['QUTIP_GUI']=="PYQT4":
+    from PyQt4 import QtCore,QtGui
 
 class ProgressBar(QtGui.QWidget):
     def __init__(self,top,thread,mx,parent = None):
         QtGui.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window|QtCore.Qt.CustomizeWindowHint|QtCore.Qt.WindowTitleHint|QtCore.Qt.WindowMinimizeButtonHint)
+        self.cpus=int(os.environ['MKL_NUM_THREADS'])
         self.top=top
         self.max=mx
         self.st=datetime.datetime.now()
@@ -70,7 +69,7 @@ class ProgressBar(QtGui.QWidget):
         self.num+=1
         self.pbar.setValue((100.0*self.num)/self.max)
         self.label.setText("Trajectories completed: "+ str(self.num)+"/"+str(self.max))
-        if self.num>=10 and remainder(self.num,4.0)==0:
+        if self.num>=10 and remainder(self.num,self.cpus)==0:
             nwt=datetime.datetime.now()
             diff=((nwt.day-self.st.day)*86400+(nwt.hour-self.st.hour)*(60**2)+(nwt.minute-self.st.minute)*60+(nwt.second-self.st.second))*(self.max-self.num)/(1.0*self.num)
             secs=datetime.timedelta(seconds=ceil(diff))
