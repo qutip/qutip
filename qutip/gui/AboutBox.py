@@ -18,18 +18,15 @@
 ###########################################################################
 
 import sys,os,time
-try:
+
+if os.environ['QUTIP_GUI']=="PYSIDE":
     from PySide import QtGui, QtCore
-    from PySide.QtCore import *
-except:
-    try:
-        from PyQt4 import QtGui, QtCore
-        from PyQt4.QtCore import *
-    except:
-        raise TypeError('no graphics installed')
-    
+
+elif os.environ['QUTIP_GUI']=="PYQT4":
+    from PyQt4 import QtGui, QtCore
+   
 import numpy,scipy,matplotlib
-#app = QtGui.QApplication(sys.argv)
+
 CD_BASE = os.path.dirname(__file__)
 class AboutBox(QtGui.QWidget):
     def __init__(self, Qversion, parent=None):
@@ -42,9 +39,6 @@ class AboutBox(QtGui.QWidget):
         #self.setAttribute(Qt.WA_TranslucentBackground)#transparent
         #self.setWindowOpacity(0.95)
         #self.setWindowFlags(Qt.Popup)#no titlebar
-        #self.pic=QtGui.QLabel(self)
-        #self.pic.setGeometry(0, 0, 450, 500)
-        #self.pic.setPixmap(QtGui.QPixmap(CD_BASE + "/about.png"))
         #IMAGES--------------------
         logo=QtGui.QLabel(self)
         logo.setGeometry(100, 0, 200, 163)
