@@ -1,2 +1,2 @@
-from ProgressBar import ProgressBar
+from ProgressBar import *
 from AboutBox import AboutBox
