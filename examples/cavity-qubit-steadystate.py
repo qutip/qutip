@@ -18,8 +18,7 @@
 ###########################################################################
 from Qobj import *
 from tensor import *
-from spre import *
-from spost import *
+from superoperator import *
 from steady import *
 from operators import *
 from expect import *
