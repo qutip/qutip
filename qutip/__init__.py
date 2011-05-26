@@ -65,7 +65,6 @@ from cnot import *
 from expect import *
 from fredkin import *
 from istests import *
-from jmat import *
 from list2ind import *
 from m2trace import *
 from operators import *
