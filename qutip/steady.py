@@ -19,15 +19,40 @@
 from scipy import prod, finfo
 import scipy.sparse as sp
 import scipy.linalg as la
+from scipy.sparse.linalg import spsolve
+
 from Qobj import *
 from istests import *
-from scipy.sparse.linalg import spsolve
+from superoperator import *
+
+
+# ------------------------------------------------------------------------------
+# 
+def steadystate(H, c_op_list):
+    """!
+    Calculate the steady state for the evolution subject to the supplied
+    Hamiltonian and collapse operators.
+    """
+
+    n_op = len(c_op_list)
+
+    if n_op == 0:
+        raise ValueError('Cannot calculate the steady state for a nondissipative system (no collapse operators given)')
+
+    #
+    # construct liouvillian
+    #
+    L = liouvillian(H, c_op_list)
+
+    return steady(L)
+
+
 def steady(L):
 	tol=1e-6
 	maxiter=20
 	eps=finfo(float).eps
 	if (not isoper(L)) & (not issuper(L)):
-		raise TypeError('Steady states can only be found for oeprators or superoperators.')
+		raise TypeError('Steady states can only be found for operators or superoperators.')
 	rhoss=Qobj()
 	sflag=issuper(L)
 	if sflag:
@@ -40,7 +65,7 @@ def steady(L):
 	L1=L.data+eps*la.norm(L.data.todense(),inf)*sp.eye(n,n)
 	v=randn(n,1)
 	it=0
-	while (la.norm(L.data*v,inf)>tol) & (it<maxiter):
+	while (la.norm(L.data*v,inf)>tol) and (it<maxiter):
 		v=spsolve(L1,v)
 		v=v/la.norm(v,inf)
 		it=it+1

@@ -69,11 +69,10 @@ from jmat import *
 from list2ind import *
 from m2trace import *
 from operators import *
+from superoperator import *
 from qstate import *
 from selct import *
 from snot import *
-from spost import *
-from spre import *
 from tensor import *
 from toffoli import *
 from uminus import *
@@ -82,14 +81,12 @@ from wigner import *
 from fseries import *
 from fstidy import *
 from steady import *
-from probss import *
 from parfor import *
 from orbital import *
 from mcsolve import *
 from Mcoptions import Mcoptions
 from ode_solve import *
 from eseries import *
-from mcsolve import *
 from ode2es import *
 from states import *
 from correlation import *
