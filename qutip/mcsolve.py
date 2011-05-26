@@ -22,7 +22,6 @@ import scipy.linalg as la
 from Qobj import *
 from expect import *
 import sys,os,time
-#from Counter import *
 from istests import *
 from Mcoptions import Mcoptions
 from gui import ProgressBar,Pthread
@@ -50,19 +49,8 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
 ######---Monte-Carlo class---######
 class MC_class():
     def __init__(self,Heff,psi0,tlist,ntraj,collapse_ops,expect_ops,options):
-        try:
-            import PySide
-            self.gui='PySide'
-            self.bar=None
-            self.thread=None
-        except:
-            try:
-                import PyQt4
-                self.gui='PyQt4'
-                self.bar=None
-                self.thread=None
-            except:
-                self.gui=False
+        self.bar=None
+        self.thread=None
         self.max=ntraj
         self.count=0
         self.step=1
@@ -115,7 +103,7 @@ class MC_class():
         self.collapse_times_out[r]=results[2]
         self.which_op_out[r]=results[3]
         self.count+=self.step
-        if self.gui==False:
+        if os.environ['QUTIP_GUI']=="NONE":
             self.count+=self.step
             self.percent=self.count/(1.0*self.max)
             if self.count/float(self.max)>=self.level:
@@ -140,13 +128,13 @@ class MC_class():
                 self.expect_out=no_collapse_expect_out(self.options,self.Hdata,self.psi_in,self.times,self.expect_ops,self.num_expect,self.num_times,self.psi_dims,self.psi_shape,self.expect_out,self.isher)
         elif self.num_collapse!=0:
             args=(self.options,self.Hdata,self.psi_in,self.times,self.num_times,self.num_collapse,self.collapse_ops_data,self.norm_collapse_data,self.num_expect,self.expect_ops,self.isher)
-            if self.gui==False:
+            if os.environ['QUTIP_GUI']=="NONE":
                 print 'Starting Monte-Carlo:'
                 self.parallel(args,self)
             else:
-                if self.gui=='PySide':
+                if os.environ['QUTIP_GUI']=="PYSIDE":
                     from PySide import QtGui,QtCore
-                elif self.gui=='PyQt4':
+                elif os.environ['QUTIP_GUI']=="PYQT4":
                     from PyQt4 import QtGui,QtCore
                 app=QtGui.QApplication.instance()#checks if QApplication already exists (needed for iPython)
                 if not app:#create QApplication if it doesnt exist
