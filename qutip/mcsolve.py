@@ -25,7 +25,7 @@ import sys,os,time
 #from Counter import *
 from istests import *
 from Mcoptions import Mcoptions
-from gui import ProgressBar,Thread
+from gui import ProgressBar,Pthread
 
 def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
 
@@ -151,7 +151,7 @@ class MC_class():
                 app=QtGui.QApplication.instance()#checks if QApplication already exists (needed for iPython)
                 if not app:#create QApplication if it doesnt exist
                     app = QtGui.QApplication(sys.argv)
-                thread=Thread(target=self.parallel,args=args,top=self)
+                thread=Pthread(target=self.parallel,args=args,top=self)
                 bar=ProgressBar(self,thread,self.max)
                 QtCore.QTimer.singleShot(0,bar.run)
                 bar.show()
