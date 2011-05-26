@@ -17,8 +17,7 @@
 #
 ###########################################################################
 import sys,os
-import numpy
-import scipy
+import numpy,scipy
 CD_BASE = os.path.dirname(__file__) # get directory of about.py file
 execfile(os.path.join(CD_BASE, "_version.py")) #execute _version.py file in CD_BASE directory
 def about():
@@ -26,19 +25,21 @@ def about():
     if os.environ['QUTIP_GRAPHICS']=='YES':
         from gui import AboutBox
         import matplotlib
-        try:
+        if os.environ['QUTIP_GUI']=="PYSIDE":
             from PySide import QtGui, QtCore
-        except:
-            try:
-                from PyQt4 import QtGui, QtCore
-            except:
-                raise TypeError('no graphics installed')
+        elif os.environ['QUTIP_GUI']=="PYQT4":
+            from PyQt4 import QtGui, QtCore
         
-        app = QtGui.QApplication(sys.argv)
+        app=QtGui.QApplication.instance()#checks if QApplication already exists (needed for iPython)
+        if not app:#create QApplication if it doesnt exist
+            app = QtGui.QApplication(sys.argv)
         box=AboutBox(version)
         box.show()
         box.raise_()
         app.exec_()
+        app.quit()
+        
+        
     else:
         print "QuTIP: The Quantum Optics Toolbox in Python"
         print "Copyright (c) 2011"
@@ -88,4 +89,5 @@ def tk_conify_center():
 
 if __name__ == "__main__":
     os.environ['QUTIP_GRAPHICS']='YES'
+    os.environ['QUTIP_GUI']='PYSIDE'
     about()
