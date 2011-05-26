@@ -5,7 +5,7 @@
 from qutip import *
 from pylab import *
 
-def probevolve(E,kappa,gamma,g,wc,w0,wl,N,tlist):
+def ode_prob(E,kappa,gamma,g,wc,w0,wl,N,tlist):
 
     ida    = qeye(N)
     idatom = qeye(2)
@@ -27,27 +27,13 @@ def probevolve(E,kappa,gamma,g,wc,w0,wl,N,tlist):
     psi0 = tensor(basis(N,0),basis(2,1))
     rho0 = psi0 * trans(psi0);
 
-    # Calculate the Liouvillian
-    c_op_list = [C1, C2]
-    L = liouvillian(H, c_op_list)
+    # evolve and calculate expectation values
+    expt_list = ode_solve(H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a])  
 
-    # Calculate solution as an exponential series
-    start_time=time.time()
-    rhoES = ode2es(L,rho0);
-    print 'time elapsed (ode2es) = ' +str(time.time()-start_time) 
+    return expt_list[0], expt_list[1], expt_list[2]
     
-    # Calculate expectation values
-    start_time=time.time()
-    count1  = esval(expect(C1dC1,rhoES),tlist);
-    count2  = esval(expect(C2dC2,rhoES),tlist);
-    infield = esval(expect(a,rhoES),tlist);
-    print 'time elapsed (esval) = ' +str(time.time()-start_time) 
-
-    return count1, count2, infield
-
-
 #-----------------------------------------------------------------------------
-# 
+# set up the calculation
 #--------------------------------------------------------------------------
 kappa = 2; 
 gamma = 0.2;
@@ -61,7 +47,7 @@ E  = 0.5;
 tlist = linspace(0,10,200);
 
 start_time=time.time()
-[count1,count2,infield] = probevolve(E,kappa,gamma,g,wc,w0,wl,N,tlist);
+count1, count2, infield = ode_prob(E,kappa,gamma,g,wc,w0,wl,N,tlist)
 print 'time elapsed = ' +str(time.time()-start_time) 
 
 plot(tlist,real(count1))
@@ -69,4 +55,5 @@ plot(tlist,real(count2))
 xlabel('Time')
 ylabel('Transmitted Intensity and Spontaneous Emission')
 show()
+
 
