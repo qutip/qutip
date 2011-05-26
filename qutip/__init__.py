@@ -16,9 +16,6 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-import os
-import multiprocessing
-import sys
 ##
 # @mainpage QuTiP: Quantum Toolbox in Python
 #
@@ -28,7 +25,7 @@ import sys
 #
 # These pages contains automatically generated API documentation.
 #
-
+import os,sys,multiprocessing
 #automatically set number of threads used by MKL
 os.environ['MKL_NUM_THREADS']=str(multiprocessing.cpu_count())
 
@@ -38,11 +35,26 @@ os.environ['MKL_NUM_THREADS']=str(multiprocessing.cpu_count())
 if not os.environ.has_key('QUTIP_GRAPHICS'):
     os.environ['QUTIP_GRAPHICS']="YES"
 
-if sys.platform=='linux2':
-    if not os.environ.has_key('DISPLAY'):
-        # in X, no graphics if DISPLAY isn't set
-        os.environ['QUTIP_GRAPHICS']="NO"
+#check if being run remotely
+if not os.environ.has_key('DISPLAY'):
+    #no graphics if DISPLAY isn't set
+    os.environ['QUTIP_GRAPHICS']="NO"
+    os.environ['QUTIP_GUI']="NONE"
 
+
+#if being run locally, check for installed gui modules
+if os.environ['QUTIP_GRAPHICS']=="YES":
+    try:
+        import PySide
+        os.environ['QUTIP_GUI']="PYSIDE"
+    except:
+        try:
+            import PyQt4
+            os.environ['QUTIP_GUI']="PYQT4"
+        except:
+            os.environ['QUTIP_GRAPHICS']="NO"
+            os.environ['QUTIP_GUI']="NONE"
+#----------------------------------------------------
 from scipy import *
 import scipy.linalg as la
 import scipy.sparse as sp
