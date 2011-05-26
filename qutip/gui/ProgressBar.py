@@ -86,7 +86,7 @@ class ProgressBar(QtGui.QWidget):
 
 
 
-class Thread(QtCore.QThread):
+class Pthread(QtCore.QThread):
     def __init__(self,target=None,args=None,top=None,parent=None):
         QtCore.QThread.__init__(self,parent)
         self.target = target
