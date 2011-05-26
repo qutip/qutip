@@ -31,6 +31,7 @@ def liouvillian(H, c_op_list):
     of collapse operators
     """
     L = -1j*(spre(H) - spost(H))
+    n_op = len(c_op_list)
     for m in range(0, n_op):
         cdc = c_op_list[m].dag() * c_op_list[m]
         L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
