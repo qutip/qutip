@@ -23,6 +23,7 @@ from superoperator import *
 #from Counter import *
 from ode_solve import *
 from ode2es import *
+from basis import *
 from mcsolve import *
 
 def propagator(H, t, c_op_list, H_args=None):

@@ -22,28 +22,79 @@ from scipy import *
 from scipy.linalg import *
 import scipy.sparse as sp
 
-from jmat import jmat
 from Qobj import Qobj
 
 #
-# operators:
+# Spin opeators
 #
+
+def jmat(j,*args):
+    if (fix(2*j)!=2*j) or (j<0):
+        raise TypeError('j must be a non-negative integer or half-integer')
+    if not args:
+        a1=Qobj(0.5*(jplus(j)+jplus(j).conj().T))
+        a2=Qobj(0.5*1j*(jplus(j)-jplus(j).conj().T))
+        a3=Qobj(jz(j))
+        return [a1,a2,a3]
+    if args[0]=='+':
+        A=jplus(j)
+    elif args[0]=='-':
+        A=jplus(j).conj().T
+    elif args[0]=='x':
+        A=0.5*(jplus(j)+jplus(j).conj().T)
+    elif args[0]=='y':
+        A=-0.5*1j*(jplus(j)-jplus(j).conj().T)
+    elif args[0]=='z':
+        A=jz(j)
+    else:
+        raise TypeError('Invlaid type')
+    return Qobj(A.tocsr())
+
+
+def jplus(j):
+    m=arange(j,-j-1,-1)
+    N=len(m)
+    return sp.spdiags(sqrt(j*(j+1.0)-(m+1.0)*m),1,N,N)
+
+
+def jz(j):
+    m=arange(j,-j-1,-1)
+    N=len(m)
+    return sp.spdiags(m,0,N,N)
+
+#
+# Pauli spin 1/2 operators:
 #
 
 def sigmap():
-	return jmat(1/2.,'+')
-
-def sigmax():
-	return 2.0*jmat(1.0/2,'x')
-
-def sigmay():
-	return 2.0*jmat(1.0/2,'y')
-
-def sigmaz():
-	return 2.0*jmat(1.0/2,'z')
+    """
+    The creation operator for Pauli spins.
+    """
+    return jmat(1/2.,'+')
 
 def sigmam():
+    """
+    The annihilation operator for Pauli spins.
+    """
     return jmat(1/2.,'-')
+
+def sigmax():
+    """
+    The Paul spin 1/2 sigma x operator
+    """
+    return 2.0*jmat(1.0/2,'x')
+
+def sigmay():
+    """
+    The Paul spin 1/2 sigma y operator
+    """
+    return 2.0*jmat(1.0/2,'y')
+
+def sigmaz():
+    """
+    The Paul spin 1/2 sigma z operator
+    """
+    return 2.0*jmat(1.0/2,'z')
 
 
 
@@ -52,30 +103,30 @@ def sigmam():
 # out = destroy(N), N is integer value &  N>0
 #
 def destroy(N):
-	'''
-	Destruction (lowering) operator for Hilbert space of dimension N
-	input: N = size of hilbert space
-	output: Qobj
-	'''
-	if not isinstance(N,int):#raise error if N not integer
-		raise ValueError("Hilbert space dimension must be integer value")
-	return Qobj(sp.spdiags(sqrt(range(0,N)),1,N,N,format='csr'))
+    '''
+    Destruction (lowering) operator for Hilbert space of dimension N
+    input: N = size of hilbert space
+    output: Qobj
+    '''
+    if not isinstance(N,int):#raise error if N not integer
+        raise ValueError("Hilbert space dimension must be integer value")
+    return Qobj(sp.spdiags(sqrt(range(0,N)),1,N,N,format='csr'))
 
 #
 #CREATE returns creation operator for N dimensional Hilbert space
 # out = create(N), N is integer value &  N>0
 #
 def create(N):
-	'''
-	Creation (raising) operator for Hilbert space of dimension N
-	input: N = size of hilbert space
-	output: Qobj
-	'''
-	if not isinstance(N,int):#raise error if N not integer
-		raise ValueError("Hilbert space dimension must be integer value")
-	qo=destroy(N) #create operator using destroy function
-	qo.data=qo.data.T #transpsoe data in Qobj
-	return Qobj(qo)
+    '''
+    Creation (raising) operator for Hilbert space of dimension N
+    input: N = size of hilbert space
+    output: Qobj
+    '''
+    if not isinstance(N,int):#raise error if N not integer
+        raise ValueError("Hilbert space dimension must be integer value")
+    qo=destroy(N) #create operator using destroy function
+    qo.data=qo.data.T #transpsoe data in Qobj
+    return Qobj(qo)
 
 
 #
@@ -83,7 +134,7 @@ def create(N):
 # a = qeye(N), N is integer & N>0
 #
 def qeye(N):
-	if logical_or(not isinstance(N,int),N<0):#check if N is int and N>0
-		raise ValueError("N must be integer N>=0")
-	return Qobj(eye(N))
-	
+    if logical_or(not isinstance(N,int),N<0):#check if N is int and N>0
+        raise ValueError("N must be integer N>=0")
+    return Qobj(eye(N))
+    
