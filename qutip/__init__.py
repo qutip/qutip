@@ -75,8 +75,6 @@ from selct import *
 from snot import *
 from tensor import *
 from toffoli import *
-from uminus import *
-from uplus import *
 from wigner import *
 from fseries import *
 from steady import *
