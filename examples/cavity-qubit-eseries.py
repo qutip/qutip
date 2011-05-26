@@ -25,13 +25,8 @@ def probevolve(E,kappa,gamma,g,wc,w0,wl,N,tlist):
 
     # Calculate the Liouvillian
     c_op_list = [C1, C2]
-    n_op      = len(c_op_list)
-    L = -1j * (spre(H) - spost(H))
-    for m in range(0, n_op):
-        cdc = c_op_list[m].dag() * c_op_list[m]
-        L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
+    L = liuovillian(H, c_op_list)
 
-       
     # Calculate solution as an exponential series
     start_time=time.time()
     rhoES = ode2es(L,rho0);
@@ -39,9 +34,9 @@ def probevolve(E,kappa,gamma,g,wc,w0,wl,N,tlist):
     
     # Calculate expectation values
     start_time=time.time()
-    count1  = esval(scalar_expect(C1dC1,rhoES),tlist);
-    count2  = esval(scalar_expect(C2dC2,rhoES),tlist);
-    infield = esval(scalar_expect(a,rhoES),tlist);
+    count1  = esval(expect(C1dC1,rhoES),tlist);
+    count2  = esval(expect(C2dC2,rhoES),tlist);
+    infield = esval(expect(a,rhoES),tlist);
     print 'time elapsed (esval) = ' +str(time.time()-start_time) 
 
     return count1, count2, infield
