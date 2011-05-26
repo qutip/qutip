@@ -79,7 +79,6 @@ from uminus import *
 from uplus import *
 from wigner import *
 from fseries import *
-from fstidy import *
 from steady import *
 from parfor import *
 from orbital import *
