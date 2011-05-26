@@ -20,16 +20,15 @@ def probevolve(E,kappa,gamma,g,wc,w0,wl,N,tlist):
     #collapse operators
     C1=sqrt(2*kappa)*a
     C2=sqrt(gamma)*sm
-    C1dC1=C1.dag()*C1
-    C2dC2=C2.dag()*C2
+    C1dC1=C1.dag() * C1
+    C2dC2=C2.dag() * C2
 
     #intial state
     psi0 = tensor(basis(N,0),basis(2,1))
     rho0 = psi0 * trans(psi0);
 
     # Calculate the Liouvillian
-    c_op_list = [C1, C2]
-    L = liouvillian(H, c_op_list)
+    L = liouvillian(H, [C1, C2])
 
     # Calculate solution as an exponential series
     start_time=time.time()
@@ -46,9 +45,9 @@ def probevolve(E,kappa,gamma,g,wc,w0,wl,N,tlist):
     return count1, count2, infield
 
 
-#-----------------------------------------------------------------------------
-# 
-#--------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
+# setup the calculation
+#-------------------------------------------------------------------------------
 kappa = 2; 
 gamma = 0.2;
 g  = 1; 
