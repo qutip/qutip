@@ -20,8 +20,6 @@ import os
 from scipy import *
 from pylab import *
 from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.pyplot import draw, ion,rc
-rc('text', usetex=True)
 class Bloch():
     """
     OPTIONS AVAILABLE TO USER:
@@ -103,6 +101,8 @@ class Bloch():
             print 'num. of vectors > num. of vector colors'
     
     def make_sphere(self):
+        from matplotlib.pyplot import rc
+        rc('text', usetex=True)
         try:#close figure if self.show() has already been run
             close(self.fig)
         except:
@@ -181,20 +181,14 @@ class Bloch():
     def show(self):
         self.make_sphere()
         show()
-    
-    def animate(self):
-        bloch_animate(self)
         
+    def bloch_clear(self):
+        self.points=[]
+        self.num_points=0
+        self.vectors=[]
+        self.num_vectors=0
 
-def bloch_clear(self):
-    self.points=[]
-    self.num_points=0
-    self.vectors=[]
-    self.num_vectors=0
 
-def bloch_animate(sphere):
-    num_plots=len(sphere.points[0][0])
-    print num_plots
         
 
 if __name__=="__main__":
