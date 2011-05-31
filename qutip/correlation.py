@@ -43,7 +43,7 @@ def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
     C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
 
-    pgb = Counter(len(tlist), "Correlation function")
+    #pgb = Counter(len(tlist), "Correlation function")
 
     solES_t = ode2es(L, rho0)
 
@@ -55,9 +55,9 @@ def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
         C_mat[t_idx, :] = esval(expect(a_op, solES_tau), taulist)
    
-        pgb.update()
+        #pgb.update()
 
-    pgb.finish()
+    #pgb.finish()
 
     return C_mat
 
@@ -80,7 +80,7 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
     C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
 
-    pgb = Counter(len(tlist), "Correlation function")
+    #pgb = Counter(len(tlist), "Correlation function")
 
     rho_t = me_ode_solve(H, rho0, tlist, c_op_list, [])
 
@@ -88,9 +88,9 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
         C_mat[t_idx, :] = me_ode_solve(H, b_op * rho_t[t_idx], taulist, c_op_list, [a_op])  
   
-        pgb.update()
+        #pgb.update()
 
-    pgb.finish()
+    #pgb.finish()
 
     return C_mat
 
@@ -104,7 +104,7 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
 
     C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
 
-    pgb = Counter(len(tlist), "Correlation function")
+    #pgb = Counter(len(tlist), "Correlation function")
 
     ntraj = 100
 
@@ -121,9 +121,9 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
         avg = sum(ops, axis=0) / ntraj
         C_mat[t_idx, :] = avg
   
-        pgb.update()
+        #pgb.update()
 
-    pgb.finish()
+    #pgb.finish()
 
     return C_mat
 
