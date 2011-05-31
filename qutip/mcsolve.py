@@ -24,7 +24,7 @@ from expect import *
 import sys,os,time
 from istests import *
 from Mcoptions import Mcoptions
-from gui import ProgressBar,Pthread
+
 
 def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
 
@@ -132,6 +132,7 @@ class MC_class():
                 print 'Starting Monte-Carlo:'
                 self.parallel(args,self)
             else:
+                from gui import ProgressBar,Pthread
                 if os.environ['QUTIP_GUI']=="PYSIDE":
                     from PySide import QtGui,QtCore
                 elif os.environ['QUTIP_GUI']=="PYQT4":
