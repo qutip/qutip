@@ -248,7 +248,13 @@ class Qobj():
 
     def __ne__(self, other):
         return not (self == other)
-
+    
+    def __pow__(self,n):#calculates powers of Qobj
+        try:
+            data=self.data**n
+            return Qobj(data,dims=self.dims,shape=self.shape)
+        except:
+            raise ValueError('Invalid choice of exponent.')
     def __str__(self):
         #return "Quantum object: ", dimensions = " + str(self.shape) + "\n" + str(self.data)
         print "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)
