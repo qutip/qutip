@@ -26,7 +26,7 @@ from Qobj import dag
 
 import numpy as np
 
-def scalar_ptrace(rho,sel):
+def ptrace(rho,sel):
     if isinstance(sel,int):
         sel=array([sel])
     sel=asarray(sel)
@@ -68,6 +68,4 @@ def scalar_ptrace(rho,sel):
     rho1.dims=[dims_kept0.tolist(),dims_kept1.tolist()]
     rho1.shape=[prod(dims_kept0),prod(dims_kept1)]
     rho1.size=[1,1]
-    return rho1
-      
-ptrace=np.vectorize(scalar_ptrace)   
+    return Qobj(rho1)
