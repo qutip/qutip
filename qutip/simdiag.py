@@ -18,12 +18,13 @@
 ###########################################################################
 from Qobj import *
 import scipy.linalg as la
-import numpy as np
-np.set_printoptions(precision=4)
+from varargout import varargout
+
 def simdiag(ops):
     """
     Simultaneous diagonalization of Commuting, Hermitian matricies
     """
+    outputs=varargout()
     tol=1e-14
     start_flag=0
     if not any(ops):
@@ -48,7 +49,7 @@ def simdiag(ops):
                 raise TypeError('Matricies must commute.')
     #-----------------------------------------------------------------
     A=ops[0]
-    eigvals,eigvecs=la.eigh(A.full())
+    eigvals,eigvecs=la.eig(A.full())
     zipped=zip(-eigvals,xrange(len(eigvals)))
     zipped.sort()
     ds,perm=zip(*zipped)
@@ -56,49 +57,58 @@ def simdiag(ops):
     eigvecs_array=array([zeros((A.shape[0],1),dtype=complex) for k in xrange(A.shape[0])])
     
     for kk in xrange(len(perm)):#matrix with sorted eigvecs in columns
-		eigvecs_array[kk][:,0]=eigvecs[:,perm[kk]]
-    
+        eigvecs_array[kk][:,0]=eigvecs[:,perm[kk]]
     k=0
+    rng=arange(len(eigvals))
     while k<len(ds):#find degenerate eigenvalues
-        inds=abs(ds-ds[k])<max(tol,tol*abs(ds[k]))#get indicies of degenerate eigvals
-        
-        if sum(inds)>1:#if at least 2 eigvals are degenerate
+        inds=array(abs(ds-ds[k])<max(tol,tol*abs(ds[k])))#get indicies of degenerate eigvals 
+        inds=rng[inds]
+        if len(inds)>1:#if at least 2 eigvals are degenerate
             eigvecs_array[inds]=degen(tol,eigvecs_array[inds],array([ops[kk] for kk in xrange(1,num_ops)]))
-        k=max(array(range(len(inds)))[inds])+1
-    
+        k=max(inds)+1
     eigvals_out=zeros((num_ops,len(ds)),dtype=float)
-    kets_out=array([Qobj(eigvecs_array[j],dims=[ops[0].dims[0],[1]],shape=[ops[0].shape[0],1]) for j in xrange(len(ds))])
+    kets_out=array([Qobj(eigvecs_array[j]/la.norm(eigvecs_array[j]),dims=[ops[0].dims[0],[1]],shape=[ops[0].shape[0],1]) for j in xrange(len(ds))])
+    if outputs==1:
+        return kets_out
+    else:
+        for kk in xrange(num_ops):
+            for j in xrange(len(ds)):
+			    eigvals_out[kk,j]=real(dot(eigvecs_array[j].conj().T,ops[kk].data*eigvecs_array[j]))
+        return kets_out,eigvals_out
     
-    for kk in xrange(num_ops):
-        for j in xrange(len(ds)):
-            eigvals_out[kk,j]=real(dot(eigvecs_array[j].conj().T,ops[kk].data*eigvecs_array[j]))
-    return eigvals_out,kets_out
-    
 
 
 
-def degen(tol,vlist,ops):
-	if len(ops)==0:
-		return vlist
-	else:
-		num_ops=len(ops)
-		A=ops[0]
-		evals,evecs=la.eigh(dot(vlist.conj().T,A.data*vlist))
-		zipped=zip(-evals,xrange(len(evals)))
-		zipped.sort()
-		ds,perm=zip(*zipped)
-		ds=-real(array(ds));perm=array(perm)
-		for kk in xrange(len(perm)):#matrix with sorted eigvecs in columns
-			evecs=evecs[:,perm]
-		vnew=dot(vlist,evecs)
-		k=0
-		while k<len(ds):
-			inds=abs(ds-ds[k])<max(tol,tol*abs(ds[k]))#get indicies of degenerate eigvals
-			if sum(inds)>1:#if at least 2 eigvals are degenerate
-				vnew=vnew[:,inds]
-				vnew[:,inds]=degen(tol,vnew,array([ops[kk] for kk in xrange(2,num_ops)]))
-			k=max(array(range(len(inds)))[inds])+1
-		return vnew
+def degen(tol,in_vecs,ops):
+    n=len(ops)
+    if n==0:
+        return in_vecs
+    A=ops[0]
+    vecs=column_stack(in_vecs)
+    eigvals,eigvecs=la.eig(dot(vecs.conj().T,dot(A.full(),vecs)))
+    zipped=zip(-eigvals,xrange(len(eigvals)))
+    zipped.sort()
+    ds,perm=zip(*zipped)
+    ds=-real(array(ds));perm=array(perm)
+    vecsperm=zeros(eigvecs.shape,dtype=complex)
+    for kk in xrange(len(perm)):#matrix with sorted eigvecs in columns
+        vecsperm[:,kk]=eigvecs[:,perm[kk]]
+    vecs_new=dot(vecs,vecsperm)
+    vecs_out=array([zeros((A.shape[0],1),dtype=complex) for k in xrange(len(ds))])
+    for kk in xrange(len(perm)):#matrix with sorted eigvecs in columns
+		vecs_out[kk][:,0]=vecs_new[:,kk]
+    k=0
+    rng=arange(len(ds))
+    while k<len(ds):
+        inds=array(abs(ds-ds[k])<max(tol,tol*abs(ds[k])))#get indicies of degenerate eigvals 
+        inds=rng[inds]
+        if len(inds)>1:#if at least 2 eigvals are degenerate
+            vecs_out[inds]=degen(tol,vecs_out[inds],array([ops[jj] for jj in xrange(1,n)]))
+        k=max(inds)+1
+    return vecs_out
+
+
+
 
 
 
@@ -120,9 +130,11 @@ if __name__ == "__main__":
 	op3=sy1*sy2*sx3
 	op4=sx1*sx2*sx3
 	
-	x,y=simdiag([sx1*sx2*sx3])
-	print x
+	x,y=simdiag([op1,op2,op3,op4])
 	print y
+	print ''
+	print x[0]
+	
 	    
 	
 	
