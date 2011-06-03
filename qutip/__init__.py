@@ -41,6 +41,13 @@ if not os.environ.has_key('DISPLAY'):
     os.environ['QUTIP_GRAPHICS']="NO"
     os.environ['QUTIP_GUI']="NONE"
 
+#-Check for PyObjC on Mac platforms
+if sys.platform=='darwin':
+    try:
+        import Foundation
+    except:
+        os.environ['QUTIP_GRAPHICS']="NO"
+        os.environ['QUTIP_GUI']="NONE"
 
 #if being run locally, check for installed gui modules
 if os.environ['QUTIP_GRAPHICS']=="YES":
