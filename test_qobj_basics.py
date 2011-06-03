@@ -1,7 +1,4 @@
-#
-#
-#
-#
+
 import os
 from scipy import *
 import scipy.sparse as sp
