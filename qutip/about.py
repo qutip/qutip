@@ -37,7 +37,7 @@ def about():
         box.show()
         box.raise_()
         app.exec_()
-        app.quit()
+        
         
         
     else:
@@ -90,4 +90,5 @@ def tk_conify_center():
 if __name__ == "__main__":
     os.environ['QUTIP_GRAPHICS']='YES'
     os.environ['QUTIP_GUI']='PYSIDE'
+    about()
     about()
