@@ -1,0 +1,14 @@
+QuTiP Requirements:
+
+General:
+--------
+2.6 <= Python != 3.x
+Numpy >= 1.4
+Scipy >= 0.8
+MatPlotlib >= 1.0.1
+
+GUI:
+--------
+Qt4 >= 4.7
+PyQt4 >= 4.8.3 or PySide >= 1.0
+PyObjC >= 2.2 (Mac only)
