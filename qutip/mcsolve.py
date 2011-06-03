@@ -110,7 +110,6 @@ class MC_class():
         self.which_op_out[r]=results[3]
         self.count+=self.step
         if os.environ['QUTIP_GUI']=="NONE":
-            self.count+=self.step
             self.percent=self.count/(1.0*self.max)
             if self.count/float(self.max)>=self.level:
                 print str(floor(self.count/float(self.max)*100))+'%  ('+str(self.count)+'/'+str(self.max)+')'
