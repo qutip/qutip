@@ -21,6 +21,12 @@ import numpy,scipy
 CD_BASE = os.path.dirname(__file__) # get directory of about.py file
 execfile(os.path.join(CD_BASE, "_version.py")) #execute _version.py file in CD_BASE directory
 def about():
+    """
+    About box for QuTiP.  Gives version numbers for 
+    QuTiP, NumPy, SciPy, and MatPlotLib.
+    
+    GUI version requires PySide or PyQt4.
+    """
     tk_conify_center()
     if os.environ['QUTIP_GRAPHICS']=='YES':
         from gui import AboutBox
@@ -41,13 +47,15 @@ def about():
         
         
     else:
+        import matplotlib
         print "QuTIP: The Quantum Optics Toolbox in Python"
         print "Copyright (c) 2011"
         print "Paul D. Nation & Robert J. Johansson"
-        print "QuTIP Version:  "+__version__
+        print "QuTIP Version:  "+version
         print "Numpy Version:  "+numpy.__version__
         print "Scipy Version:  "+scipy.__version__
-        #print "Matplotlib Version:  "+matplotlib.__version__
+        print "Matplotlib Version:  "+matplotlib.__version__
+        print ''
 
 def tk_conify_center():
     import os
@@ -88,7 +96,7 @@ def tk_conify_center():
 
 
 if __name__ == "__main__":
-    os.environ['QUTIP_GRAPHICS']='YES'
-    os.environ['QUTIP_GUI']='PYSIDE'
+    os.environ['QUTIP_GRAPHICS']='NO'
+    #os.environ['QUTIP_GUI']='PYSIDE'
     about()
     about()
