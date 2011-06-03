@@ -111,15 +111,13 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
     mc_opt = Mcoptions()
     mc_opt.progressbar = False
 
-    psi_t, t_collapse = mcsolve(H, psi0, tlist, ntraj, c_op_list, [], mc_opt)
+    psi_t = mcsolve(H, psi0, tlist, ntraj, c_op_list, [], mc_opt)
 
     for t_idx in range(len(tlist)):
 
         psi0_t = psi_t[0][t_idx]
 
-        ops = mcsolve(H, b_op * psi0_t, tlist, ntraj, c_op_list, [a_op], mc_opt)
-        avg = sum(ops, axis=0) / ntraj
-        C_mat[t_idx, :] = avg
+        C_mat[t_idx, :] = mcsolve(H, b_op * psi0_t, tlist, ntraj, c_op_list, [a_op], mc_opt)
   
         #pgb.update()
 

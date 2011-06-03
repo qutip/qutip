@@ -37,11 +37,9 @@ psi0=D*vacuum
 H=1j*K*(a0*a1.dag()*a2.dag()-a0.dag()*a1*a2)
 #run Monte-Carlo
 start_time=time.time()
-ops=mcsolve(H,psi0,taulist,ntraj,[C0,C1,C2],[num0,num1,num2])
+avg=mcsolve(H,psi0,taulist,ntraj,[C0,C1,C2],[num0,num1,num2])
 finish_time=time.time()
 print 'time elapsed = ',finish_time-start_time
-#average over all trajectories
-avg=sum(ops,axis=0)/ntraj
 #plot expectation value for photon number in each mode
 plot(taulist,avg[0],taulist,avg[1],taulist,avg[2])
 xlabel("Time")

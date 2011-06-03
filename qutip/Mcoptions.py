@@ -13,6 +13,7 @@ class Mcoptions():
         self.max_step=0
         self.order=12
         self.progressbar=True
+        self.output_trajectories=False
     def __str__(self):
         print "OPTIONS FOR MONTE-CARLO ODE SOLVER:"
         print "------------------------------------"
@@ -24,6 +25,7 @@ class Mcoptions():
         print 'min_step =',self.min_step,': Minimal step size (default=0, determined by solver)\n'
         print 'max_step =',self.max_step,': Max step size (default=0, determined by solver)\n'
         print 'order =',self.order,': Maximum order used by integrator (<=12 for "adams", <=5 for "bdf")'
+        print 'output_trajectories=',self.output_trajectories,': Return the operator trajectories for each iteration. Else return the average (i.e., expectation values)'
         return ''
 
 

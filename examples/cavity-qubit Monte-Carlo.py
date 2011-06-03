@@ -37,9 +37,7 @@ ntraj=500
 
 start_time=time.time()
 
-ops=mcsolve(H,psi0,tlist,ntraj,[C1,C2],[C1dC1,C2dC2])
-#calculate average of expectation values over all trajectories
-avg=sum(ops,axis=0)/ntraj
+avg=mcsolve(H,psi0,tlist,ntraj,[C1,C2],[C1dC1,C2dC2])
 #plot results
 plot(tlist,avg[0],tlist,avg[1],'--')
 xlabel('Time')

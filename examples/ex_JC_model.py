@@ -38,15 +38,11 @@ def jc_integrate(N, wc, wa, g, kappa, gamma, psi0, use_rwa, tlist):
         c_op_list.append(sqrt(rate) * sm)
 
     # evolve and calculate expectation values
-    expt_list = me_ode_solve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
+    expt_list = ode_solve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
 
     # or use the MC solver
     #ntraj = 100
-    #Heff = H
-    #for c_op in c_op_list:
-    #    Heff += - 0.5 * 1j * c_op.dag() * c_op  
-    #ops = mcsolve(Heff, psi0, tlist, ntraj, c_op_list, [a.dag() * a, sm.dag() * sm])
-    #expt_list = sum(ops,axis=0)/ntraj
+    #expt_list = mcsolve(H, psi0, tlist, ntraj, c_op_list, [a.dag() * a, sm.dag() * sm])
 
     return expt_list[0], expt_list[1]
     

@@ -5,7 +5,7 @@
 from qutip import *
 import time
 
-def integrate(N, h, Jx, Jy, Jz, psi0, tlist):
+def integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver):
 
     # Hamiltonian
     #
@@ -51,27 +51,18 @@ def integrate(N, h, Jx, Jy, Jz, psi0, tlist):
        
     # collapse operators
     c_op_list = []
-    #n_th_a = 0.0 # zero temperature
-    #
-    #rate = kappa * (1 + n_th_a)
-    #if rate > 0.0:
-    #    c_op_list.append(sqrt(rate) * a)
-    #rate = kappa * n_th_a
-    #if rate > 0.0:
-    #    c_op_list.append(sqrt(rate) * a.dag())
-    #rate = gamma
-    rate = 0.1
-    if rate > 0.0:
-        for n in range(N):
-            c_op_list.append(sqrt(rate) * sz_list[n])
+
+    # spin dephasing
+    for n in range(N):
+        if gamma[n] > 0.0:
+            c_op_list.append(sqrt(gamma[n]) * sz_list[n])
 
     # evolve and calculate expectation values
-    #expt_list = me_ode_solve(H, psi0, tlist, c_op_list, sz_list)
-
-    # or use the MC solver
-    ntraj = 10 
-    ops = mcsolve(H, psi0, tlist, ntraj, c_op_list, sz_list)
-    expt_list = sum(ops,axis=0)/ntraj
+    if solver == "ode":
+        expt_list = me_ode_solve(H, psi0, tlist, c_op_list, sz_list)
+    elif solver == "mc":
+        ntraj = 250 
+        expt_list = mcsolve(H, psi0, tlist, ntraj, c_op_list, sz_list)
 
     return expt_list
     
@@ -79,7 +70,10 @@ def integrate(N, h, Jx, Jy, Jz, psi0, tlist):
 # set up the calculation
 #
 
-N = 4 # number of spins
+solver = "ode"   # use the ode solver
+#solver = "mc"   # use the monte-carlo solver
+
+N = 8 # number of spins
 
 # array of spin energy splittings and coupling strengths. here we use
 # uniform parameters, but in general we don't have too
@@ -87,6 +81,8 @@ h  = 1.0 * 2 * pi * ones(N)
 Jz = 0.1 * 2 * pi * ones(N)
 Jx = 0.1 * 2 * pi * ones(N)
 Jy = 0.1 * 2 * pi * ones(N)
+# dephasing rate
+gamma = 0.01 * ones(N)
 
 # intial state, first spin in state |1>, the rest in state |0>
 psi_list = []
@@ -98,7 +94,7 @@ psi0 = tensor(psi_list)
 tlist = linspace(0, 50, 200)
 
 start_time = time.time()
-sz_expt = integrate(N, h, Jx, Jy, Jz, psi0, tlist)
+sz_expt = integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver)
 print 'time elapsed = ' +str(time.time() - start_time) 
 
 
@@ -109,7 +105,7 @@ rc('text', usetex=True)
 rc('font', family='serif')
 
 for n in range(N):
-    plot(tlist, sz_expt[n,:], label=r'$\langle\sigma_z^{($'+str(n)+r'$)\rangle}$')
+    plot(tlist, real(sz_expt[n,:]), label=r'$\langle\sigma_z($'+str(n)+r'$)\rangle$')
 
 xlabel(r'Time [ns]')
 ylabel(r'\langle\sigma_z\rangle')

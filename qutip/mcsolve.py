@@ -37,12 +37,18 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
     if mc.num_collapse==0 and mc.num_expect==0:
         return mc.psi_out
     elif mc.num_collapse==0 and mc.num_expect!=0:
-        return mc.expect_out
+        if options.output_trajectories:
+            return mc.expect_out
+        else:
+            return sum(mc.expect_out,axis=0)/ntraj
     elif mc.num_collapse!=0 and mc.num_expect==0:
         return mc.psi_out
         #return mc.psi_out, mc.collapse_times_out
     elif mc.num_collapse!=0 and mc.num_expect!=0:
-        return mc.expect_out
+        if options.output_trajectories:
+            return mc.expect_out
+        else:
+            return sum(mc.expect_out,axis=0)/ntraj
        
 
 
