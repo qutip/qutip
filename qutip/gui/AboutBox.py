@@ -33,7 +33,7 @@ class AboutBox(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         #WINDOW PROPERTIES
         self.setWindowTitle('About QuTiP')
-        self.resize(420, 450)
+        self.resize(430, 450)
         self.center()
         self.setFocus()
         #self.setAttribute(Qt.WA_TranslucentBackground)#transparent
@@ -69,7 +69,7 @@ class AboutBox(QtGui.QWidget):
         clabel.move(25, 330)
         #BUTTONS-----------------
         quit = QtGui.QPushButton('Close', self)
-        quit.setGeometry(320, 400, 80, 40)
+        quit.setGeometry(340, 400, 80, 40)
         quit.setFocusPolicy(QtCore.Qt.NoFocus)
         #quit.setStyleSheet("QPushButton {border: 1.5px solid black;border-radius: 10px;background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,stop: 0 #CCCCCC, stop: 1 #999999)}")
         self.connect(quit, QtCore.SIGNAL('clicked()'),QtGui.qApp, QtCore.SLOT('quit()'))
