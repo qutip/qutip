@@ -8,7 +8,7 @@ graphical output is provided by Matplotlib.  QuTiP aims
 to provide user-friendly and efficient numerical simulations
 of a wide vairety of Hamiltonian's, including those with 
 arbitrary time-dependent, commonly found in a wide range of 
-physics applications. QuTip is freely avaliable for use and/or 
+physics applications. QuTiP is freely avaliable for use and/or 
 modification on all major platforms. Being free of any licensing 
 fees, QuTiP is ideal for exploring quantum mechanics and 
 dynamics in the classroom.
@@ -105,5 +105,6 @@ setup(
     url = "http://code.google.com/p/qutip/",
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
     platforms = ["Linux", "Mac OS-X", "Unix", "Windows"],
+    install_requires=['numpy','scipy','matplotlib'],
     include_package_data=True 
     )
