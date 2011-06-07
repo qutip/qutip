@@ -18,8 +18,12 @@
 ###########################################################################
 from scipy import any,prod,allclose,shape
 
-
 def isket(L):
+    """
+	Determines if given quantum object is a ket-vector
+	@param Qobj quantum object
+	@return bool True or False
+	"""
     result = isinstance(L.dims[0],list)
     if result:
         result = result and (prod(L.dims[0])==1 or prod(L.dims[1])==1)
@@ -27,6 +31,11 @@ def isket(L):
 
 #***************************
 def isbra(L):
+	"""
+	Determines if given quantum object is a bra-vector
+	@param Qobj quantum object
+	@return bool True or False
+	"""
 	result = isinstance(L.dims[0],list)
 	if result:
 		result = result and (prod(L.dims[0])==1)
@@ -35,6 +44,11 @@ def isbra(L):
 
 #***************************
 def isoper(*args):
+	"""
+	Determines if given quantum object is a operator
+	@param Qobj quantum object
+	@return bool True or False
+	"""
 	if len(args)==1:
 		L=args[0]
 		return isinstance(L.dims[0],list) & (L.dims[0]==L.dims[1])
@@ -47,6 +61,11 @@ def isoper(*args):
 
 #***************************
 def issuper(L,*args):
+	"""
+	Determines if given quantum object is a super-operator
+	@param Qobj quantum object
+	@return bool True or False
+	"""
 	result = isinstance(L.dims[0],list) & (len(L.dims[0])>1)
 	if not any(args):
 		if result:
@@ -58,6 +77,10 @@ def issuper(L,*args):
 
 #**************************
 def isequal(A,B,rtol=1e-8,atol=1e-12):
+    """
+    Determines if two array objects are equal to within tolerances
+    @return bool True or False
+    """
     if shape(A)!=shape(B):
         raise TypeError('Inputs do not have same shape.')
     else:
