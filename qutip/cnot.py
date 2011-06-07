@@ -16,11 +16,15 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-
 from qstate import qstate
 from Qobj import dag
 
 def cnot():
+	"""
+	Returns quantum object representing the CNOT gate.
+	
+	@return Qobj Returns quantum object representation of CNOT
+	"""
 	uu=qstate('uu')
 	ud=qstate('ud')
 	du=qstate('du')
