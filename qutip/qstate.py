@@ -20,20 +20,28 @@ from scipy import *
 from Qobj import *
 from basis import *
 from tensor import *
-import time
+
 
 def qstate(string):
+	"""
+	Creates a tensor product for a set of qubits in either the 'up' |0> or 'down' |1> states.
+	
+	@param str String containing 'u' or 'd' for each qubit (ex. 'ududd')
+	@return Qobj Returns the tensor product corresponding to input string
+	"""
 	n=len(string)
 	if n!=(string.count('u')+string.count('d')):
 		raise TypeError('String input to QSTATE must consist of "u" and "d" elements only')
 	else:
 		up=basis(2,1)
 		dn=basis(2,0)
-	lst=range(0,n)
-	for k in range(n):
+	lst=[]
+	for k in xrange(n):
 		if string[k]=='u':
-			lst[k]=up
+			lst.append(up)
 		else:
-			lst[k]=dn
+			lst.append(dn)
 	return tensor(lst)
 
+if __name__=='__main__':
+    print qstate('uud')
