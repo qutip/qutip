@@ -16,15 +16,27 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
+
 ##
 # @mainpage QuTiP: Quantum Toolbox in Python
 #
-# Software package for simulation of quantum
-# systems using python, scipy and numpy (derived from the Quantum Optics toolbox
-# for MATLAB). 
+#QuTiP is open-source software for simulating the dynamcis of 
+#open quantum systems.  The QuTiP library depends on the 
+#excellent Numpy and Scipy numerical packages. In addition, 
+#graphical output is provided by Matplotlib.  QuTiP aims
+#to provide user-friendly and efficient numerical simulations
+#of a wide variety of Hamiltonian's, including those with 
+#arbitrary time-dependent, commonly found in a wide range of 
+#physics applications. QuTiP is freely avaliable for use and/or 
+#modification on all major platforms. Being free of any licensing 
+#fees, QuTiP is ideal for exploring quantum mechanics and 
+#dynamics in the classroom.
+#
+#
 #
 # These pages contains automatically generated API documentation.
 #
+
 import os,sys,multiprocessing
 #automatically set number of threads used by MKL
 os.environ['MKL_NUM_THREADS']=str(multiprocessing.cpu_count())
@@ -68,19 +80,14 @@ import scipy.sparse as sp
 from Qobj import Qobj,shape,dims,dag,trans,sp_expm
 from about import *
 from basis import *
-from cnot import *
+from gates import *
 from expect import *
-from fredkin import *
 from istests import *
-from list2ind import *
-from m2trace import *
 from operators import *
 from superoperator import *
 from qstate import *
 from selct import *
-from snot import *
 from tensor import *
-from toffoli import *
 from wigner import *
 from fseries import *
 from steady import *
