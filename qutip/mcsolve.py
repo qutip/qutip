@@ -27,7 +27,13 @@ from Mcoptions import Mcoptions
 
 
 def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
-
+    """
+    Monte-Carlo evolution of a given state vector |psi> for a given
+    Hamiltonian and collapse operators.
+    
+    Options for solver are given by the Mcoptions class.
+    
+    """
     Heff = H
     for c_op in collapse_ops:
         Heff -= 0.5j * c_op.dag() * c_op 
@@ -37,7 +43,7 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
     if mc.num_collapse==0 and mc.num_expect==0:
         return mc.psi_out
     elif mc.num_collapse==0 and mc.num_expect!=0:
-        if options.output_trajectories:
+        if options.states_out:
             return mc.expect_out
         else:
             return sum(mc.expect_out,axis=0)/ntraj
@@ -45,7 +51,7 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
         return mc.psi_out
         #return mc.psi_out, mc.collapse_times_out
     elif mc.num_collapse!=0 and mc.num_expect!=0:
-        if options.output_trajectories:
+        if options.states_out:
             return mc.expect_out
         else:
             return sum(mc.expect_out,axis=0)/ntraj
