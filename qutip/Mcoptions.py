@@ -1,31 +1,27 @@
-
+##
+#Class of options for Monte-Carlo ODE solver mcsolve.
+#
 class Mcoptions():
     def __init__(self):
-        """
-        Class of options for Monte-Carlo ODE solver mcsolve.
-        
-        Class attributes:
-        -----------------
-        atol:       Absolute tolerance (default = 1e-12)
-        rtol:       Relative tolerance (default = 1e-8)
-        method:     Integration method (default = 'adams')
-        steps:      Max. number of internal steps/call
-        first_step: Size of initial step (determined by solver)
-        min_step:   Minimal step size (determined by solver)
-        max_step:   Max step size (determined by solver)
-        order:      Maximum order used by integrator (12)
-        states_out: Return kets instead of expect. values (False).
-        
-        """
+        ##Absolute tolerance (default = 1e-12)
         self.atol=1e-12
+        ##Relative tolerance (default = 1e-8)
         self.rtol=1e-8
+        ##Integration method (default = 'adams', for stiff 'bdf')
         self.method='adams'
+        ##Max. number of internal steps/call
         self.nsteps=1000
+        ##Size of initial step (0 = determined by solver)
         self.first_step=0
+        ##Minimal step size (0 = determined by solver)
         self.min_step=0
+        ##Max step size (0 = determined by solver)
         self.max_step=0
+        ##Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
         self.order=12
+        ##Use GUI ProgressBar
         self.progressbar=True
+        ##Request state vectors as output
         self.states_out=False
     def __str__(self):
         print "OPTIONS FOR MONTE-CARLO ODE SOLVER:"

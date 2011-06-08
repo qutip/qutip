@@ -17,12 +17,12 @@
 #
 ###########################################################################
 from scipy import any,prod,allclose,shape
-"""@package istests istests
-Set of tests used to determine type of quantum objects
-"""
+##@package istests
+#Set of tests used to determine type of quantum objects
+#
 
 def isket(Q):
-    """Determines if given quantum object is a ket-vector
+    """
     @brief Determines if given quantum object is a ket-vector
 	@param Q quantum object
 	@return bool True or False
@@ -34,7 +34,7 @@ def isket(Q):
 
 #***************************
 def isbra(Q):
-	"""Determines if given quantum object is a bra-vector
+	"""
 	@brief Determines if given quantum object is a bra-vector
 	@param Qobj quantum object
 	@return bool True or False
@@ -47,7 +47,7 @@ def isbra(Q):
 
 #***************************
 def isoper(*args):
-	"""Determines if given quantum object is a operator
+	"""
 	@brief Determines if given quantum object is a operator
 	@param Qobj quantum object
 	@return bool True or False
@@ -64,7 +64,8 @@ def isoper(*args):
 
 #***************************
 def issuper(L,*args):
-	"""Determines if given quantum object is a super-operator
+	"""
+	@brief Determines if given quantum object is a super-operator
 	@param Qobj quantum object
 	@return bool True or False
 	"""
@@ -96,7 +97,6 @@ def isequal(A,B,rtol=1e-8,atol=1e-12):
         else:
             return False
 
-#******************************
 
 
 
