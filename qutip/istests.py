@@ -17,35 +17,38 @@
 #
 ###########################################################################
 from scipy import any,prod,allclose,shape
+"""@package istests istests
+Set of tests used to determine type of quantum objects
+"""
 
-def isket(L):
-    """
-	Determines if given quantum object is a ket-vector
-	@param Qobj quantum object
+def isket(Q):
+    """Determines if given quantum object is a ket-vector
+    @brief Determines if given quantum object is a ket-vector
+	@param Q quantum object
 	@return bool True or False
 	"""
-    result = isinstance(L.dims[0],list)
+    result = isinstance(Q.dims[0],list)
     if result:
-        result = result and (prod(L.dims[0])==1 or prod(L.dims[1])==1)
+        result = result and (prod(Q.dims[0])==1 or prod(Q.dims[1])==1)
     return result
 
 #***************************
-def isbra(L):
-	"""
-	Determines if given quantum object is a bra-vector
+def isbra(Q):
+	"""Determines if given quantum object is a bra-vector
+	@brief Determines if given quantum object is a bra-vector
 	@param Qobj quantum object
 	@return bool True or False
 	"""
-	result = isinstance(L.dims[0],list)
+	result = isinstance(Q.dims[0],list)
 	if result:
-		result = result and (prod(L.dims[0])==1)
+		result = result and (prod(Q.dims[0])==1)
 	return result
 
 
 #***************************
 def isoper(*args):
-	"""
-	Determines if given quantum object is a operator
+	"""Determines if given quantum object is a operator
+	@brief Determines if given quantum object is a operator
 	@param Qobj quantum object
 	@return bool True or False
 	"""
@@ -61,8 +64,7 @@ def isoper(*args):
 
 #***************************
 def issuper(L,*args):
-	"""
-	Determines if given quantum object is a super-operator
+	"""Determines if given quantum object is a super-operator
 	@param Qobj quantum object
 	@return bool True or False
 	"""
@@ -77,8 +79,8 @@ def issuper(L,*args):
 
 #**************************
 def isequal(A,B,rtol=1e-8,atol=1e-12):
-    """
-    Determines if two array objects are equal to within tolerances
+    """Determines if two array objects are equal to within tolerances
+    @brief Determines if two array objects are equal to within tolerances
     @return bool True or False
     """
     if shape(A)!=shape(B):
