@@ -35,7 +35,7 @@ def jmat(j,*args):
         a1=Qobj(0.5*(jplus(j)+jplus(j).conj().T))
         a2=Qobj(0.5*1j*(jplus(j)-jplus(j).conj().T))
         a3=Qobj(jz(j))
-        return [a1,a2,a3]
+        return array([a1,a2,a3])
     if args[0]=='+':
         A=jplus(j)
     elif args[0]=='-':
@@ -54,13 +54,13 @@ def jmat(j,*args):
 def jplus(j):
     m=arange(j,-j-1,-1)
     N=len(m)
-    return sp.spdiags(sqrt(j*(j+1.0)-(m+1.0)*m),1,N,N)
+    return sp.spdiags(sqrt(j*(j+1.0)-(m+1.0)*m),1,N,N,format='csr')
 
 
 def jz(j):
     m=arange(j,-j-1,-1)
     N=len(m)
-    return sp.spdiags(m,0,N,N)
+    return sp.spdiags(m,0,N,N,format='csr')
 
 #
 # Pauli spin 1/2 operators:
@@ -134,6 +134,7 @@ def create(N):
 # a = qeye(N), N is integer & N>0
 #
 def qeye(N):
+    N=int(N)
     if logical_or(not isinstance(N,int),N<0):#check if N is int and N>0
         raise ValueError("N must be integer N>=0")
     return Qobj(eye(N))
