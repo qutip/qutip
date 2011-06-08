@@ -16,37 +16,31 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
+from scipy import sqrt
 from qstate import qstate
 from Qobj import *
 
 def cnot():
-	"""
-	Returns quantum object representing the CNOT gate.
-	@brief CNOT gate
-	@return Qobj quantum object representation of CNOT gate
-	"""
+	##
+	#Returns quantum object representing the CNOT gate.
+	#@brief CNOT gate
+	#@return Qobj quantum object representation of CNOT gate
+	#
 	uu=qstate('uu')
 	ud=qstate('ud')
 	du=qstate('du')
 	dd=qstate('dd')
-	Q=dd*dag(dd)+du*dag(du)+uu*dag(ud)+ud*dag(uu)
-	return Qobj(Q)
-
-#------------------   
-def snot():
-	u=qstate('u')
-	d=qstate('d')
-	Q=((u+d)*dag(d)+(d-u)*dag(u))/sqrt(2)
+	Q=dd*dd.dag()+du*du.dag()+uu*ud.dag()+ud*uu.dag()
 	return Qobj(Q)
 
 
 #------------------
 def fredkin():
-	"""
-	Returns quantum object representing the Fredkin gate.
-	@brief Freidkin gate
-	@return Qobj quantum object representation of Fredkin gate
-	"""
+	##
+	#Returns quantum object representing the Fredkin gate.
+	#@brief Freidkin gate
+	#@return Qobj quantum object representation of Fredkin gate
+	#
 	uuu = qstate('uuu')
 	uud = qstate('uud') 
 	udu = qstate('udu')
@@ -61,11 +55,11 @@ def fredkin():
 
 #------------------
 def toffoli():
-	"""
-	Returns quantum object representing the Toffoli gate.
-	@brief Toffoli gate
-	@return Qobj quantum object representation of Toffoli gate
-	"""
+	##
+	#Returns quantum object representing the Toffoli gate.
+	#@brief Toffoli gate
+	#@return Qobj quantum object representation of Toffoli gate
+	#
 	uuu = qstate('uuu') 
 	uud = qstate('uud') 
 	udu = qstate('udu') 
@@ -77,7 +71,51 @@ def toffoli():
 	Q = ddd*dag(ddd) + ddu*dag(ddu) + dud*dag(dud) + duu*dag(duu) + udd*dag(udd) + udu*dag(udu) + uuu*dag(uud) + uud*dag(uuu)
 	return Qobj(Q)
 
-	
-	
-	
+#------------------
+def swap():
+    ##
+    #Returns quantum object representing the SWAP gate.
+    #@brief SWAP gate
+    #@return Qobj quantum object representation of SWAP gate
+    #
+    uu=qstate('uu')
+    ud=qstate('ud')
+    du=qstate('du')
+    dd=qstate('dd')
+    Q=uu*uu.dag()+ud*du.dag()+ du*ud.dag()+dd*dd.dag()
+    return Qobj(Q)
+
+
+def hadmrd():
+    ##
+    #Returns quantum object representing the Hadamard gate.
+    #@brief Hadamard gate
+    #@return Qobj quantum object representation of Hadamard gate
+    #
+    u=qstate('u')
+    d=qstate('d')
+    Q=1.0/sqrt(2.0)*(d*d.dag()+u*d.dag()+d*u.dag()-u*u.dag())
+    return Qobj(Q)
+
+def snot():
+    ##
+    #Returns quantum object representing the SNOT (Hadamard) gate.
+    #@brief SNOT (Hadamard) gate
+    #@return Qobj quantum object representation of SNOT (Hadamard) gate
+    #
+    return hadmrd()	
+
+
+def phase(theta):
+    ##
+    #Returns quantum object representing the phase shift gate.
+    #@brief phase shift gate
+    #@return Qobj quantum object representation of phase shift gate
+    #
+    u=qstate('u')
+    d=qstate('d')
+    Q=d*d.dag()+(exp(1.0j*theta)*u*u.dag())
+    return Qobj(Q)
+
+
 	
