@@ -22,6 +22,8 @@ from pylab import *
 from mpl_toolkits.mplot3d import Axes3D
 class Bloch():
     """
+    Bloch sphere class used for plotting qubit vectors or data points.
+    
     OPTIONS AVAILABLE TO USER:
     --------------------------
     view: Azimuthal and Elvation viewing angles, default = [-60,30] 
@@ -192,7 +194,6 @@ class Bloch():
         
 
 if __name__=="__main__":
-    pass
     #vector,x and y axes are switched so the shading function works properly.
     x=Bloch()
     xvec=[1,0,0]
