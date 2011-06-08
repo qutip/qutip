@@ -16,19 +16,21 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-
-from scipy import *
+from scipy import min,max
 from math import factorial
-#  C=clebsch(j1,j2,j3,m1,m2,m3) calculates the Clebsch-Gordon coefficient
-#for coupling (j1,m1) and (j2,m2) to give (j3,m3).
+
 def clebsch(j1,j2,j3,m1,m2,m3):
+    """
+    C=clebsch(j1,j2,j3,m1,m2,m3) calculates the Clebsch-Gordon coefficient
+    for coupling (j1,m1) and (j2,m2) to give (j3,m3).
+    """
     if m3!=m1+m2:
         return 0
     vmin=max([-j1+j2+m3,-j1+m1,0])
     vmax=min([j2+j3+m1,j3-j1+j2,j3+m3])
     C=sqrt(2.0*j3+1.0)*factorial(j3+j1-j2)*factorial(j3-j1+j2)*factorial(j1+j2-j3)*factorial(j3+m3)*factorial(j3-m3)/factorial(j1+j2+j3+1)/factorial(j1-m1)/factorial(j1+m1)/factorial(j2-m2)/factorial(j2+m2)
     S=0
-    for v in range(vmin,vmax+1):
+    for v in xrange(vmin,vmax+1):
         S=S+(-1.0)**(v+j2+m2)/factorial(v)*factorial(j2+j3+m1-v)*factorial(j1-m1+v)/factorial(j3-j1+j2-v)/factorial(j3+m3-v)/factorial(v+j1-j2-m3)
     C=C*S
     return C
