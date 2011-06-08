@@ -18,18 +18,21 @@
 ###########################################################################
 import sys,os
 import numpy,scipy
+##@package about
+#Module for aboutbox or command line ouput 
+#of information on QuTiP and dependencies.
+#@version 0.1
+#@date 2011
+#
+
 CD_BASE = os.path.dirname(__file__) # get directory of about.py file
 execfile(os.path.join(CD_BASE, "_version.py")) #execute _version.py file in CD_BASE directory
 def about():
-    """
-    About box for QuTiP.  Gives version numbers for 
-    QuTiP, NumPy, SciPy, and MatPlotLib.
-    
-    GUI version requires PySide or PyQt4.
-    @brief About box for qutip
-    @author Paul D. Nation and Robert J. Johansson
-    @version 0.1
-    """
+    ##
+    #About box for QuTiP.  Gives version numbers for 
+    #QuTiP, NumPy, SciPy, and MatPlotLib.
+    #GUI version requires PySide or PyQt4.
+    #@brief About box for qutip
     tk_conify_center()
     if os.environ['QUTIP_GRAPHICS']=='YES':
         from gui import AboutBox
@@ -61,6 +64,7 @@ def about():
         print ''
 
 def tk_conify_center():
+    ##@private
     import os
     try: os.environ['FRANCO']
     except: pass
@@ -97,8 +101,3 @@ def tk_conify_center():
             except:os.environ['FRANCO']='FALSE'
             else:os.environ['FRANCO']='FALSE'
 
-
-if __name__ == "__main__":
-    os.environ['QUTIP_GRAPHICS']='NO'
-    #os.environ['QUTIP_GUI']='PYSIDE'
-    about()
