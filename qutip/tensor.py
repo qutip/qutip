@@ -22,25 +22,49 @@ from scipy.linalg import *
 from Qobj import Qobj
 
 def tensor(*args):
-    if not any(args): #error: needs at least one input
-        raise TypeError("Requires at least one input arguement")
-    if isinstance(args[0],list):#checks if input is list of Qobjs
-        args=args[0]
-
-    items=len(args) #number of inputs
-    num_Qobjs=sum([isinstance(args[k],Qobj) for k in xrange(items)])#check to see if inputs are Qobj's
-    if num_Qobjs!=items: #raise error if one of the inputs is not a quantum object
-        raise TypeError("One of inputs is not a quantum object")
-    if items==1:# if only one Qobj, do nothing
-        return args[0]
-    #set initial Qobj values to those of arg[0]
-    dat=args[0].data
-    dim=args[0].dims
-    shp=args[0].shape
-    for k in xrange(items-1): #cycle over all items
-        dat=sp.kron(dat,args[k+1].data) #sparse Kronecker product
-        dim=[dim[0]+args[k+1].dims[0],dim[1]+args[k+1].dims[1]] #append dimensions of Qobjs
-        shp=[dat.shape[0],dat.shape[1]] #new shape of matrix
+    if not args:
+        raise TypeError("Requires at least one input argument")
+    num_args=len(args)
+    step=0
+    for n in xrange(num_args):
+        if isinstance(args[n],Qobj):
+            qos=args[n]
+            if step==0:
+                dat=qos.data
+                dim=qos.dims
+                shp=qos.shape
+                step=1
+            else:
+                dat=sp.kron(dat,qos.data) #sparse Kronecker product
+                dim=[dim[0]+qos.dims[0],dim[1]+qos.dims[1]] #append dimensions of Qobjs
+                shp=[dat.shape[0],dat.shape[1]] #new shape of matrix
+                
+        elif isinstance(args[n],(list,ndarray)):#checks if input is list/array of Qobjs
+            qos=args[n]
+            items=len(qos) #number of inputs
+            num_Qobjs=sum([isinstance(qos[k],Qobj) for k in xrange(items)])#check to see if inputs are Qobj's
+            if num_Qobjs!=items: #raise error if one of the inputs is not a quantum object
+                raise TypeError("One of inputs is not a quantum object")
+            if items==1:# if only one Qobj, do nothing
+                if step==0: 
+                    dat=qos[0].data
+                    dim=qos[0].dims
+                    shp=qos[0].shape
+                    step=1
+                else:
+                    dat=sp.kron(dat,qos[0].data) #sparse Kronecker product
+                    dim=[dim[0]+qos[0].dims[0],dim[1]+qos[0].dims[1]] #append dimensions of Qobjs
+                    shp=[dat.shape[0],dat.shape[1]] #new shape of matrix
+            elif items!=1:
+                if step==0:
+                    dat=qos[0].data
+                    dim=qos[0].dims
+                    shp=qos[0].shape
+                    step=1
+                for k in xrange(items-1): #cycle over all items
+                    dat=sp.kron(dat,qos[k+1].data) #sparse Kronecker product
+                    dim=[dim[0]+qos[k+1].dims[0],dim[1]+qos[k+1].dims[1]] #append dimensions of Qobjs
+                    shp=[dat.shape[0],dat.shape[1]] #new shape of matrix
     out=Qobj()
     out.data=dat
     out.dims=dim
