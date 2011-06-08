@@ -26,6 +26,9 @@ def about():
     QuTiP, NumPy, SciPy, and MatPlotLib.
     
     GUI version requires PySide or PyQt4.
+    @brief About box for qutip
+    @author Paul D. Nation and Robert J. Johansson
+    @version 0.1
     """
     tk_conify_center()
     if os.environ['QUTIP_GRAPHICS']=='YES':
@@ -98,5 +101,4 @@ def tk_conify_center():
 if __name__ == "__main__":
     os.environ['QUTIP_GRAPHICS']='NO'
     #os.environ['QUTIP_GUI']='PYSIDE'
-    about()
     about()
