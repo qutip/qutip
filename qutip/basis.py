@@ -19,22 +19,23 @@
 from scipy import *
 from Qobj import Qobj
 
-##
-# @package basis
-# Generate the vector representation of a number state.
-#
+##@package basis
+# Generates the vector representation of a number state basis vector.
+#@version 0.1
+#@date 2011
 
 def basis(N,*args):
-    """
-    @brief Generate the vector representation of a number state.
-
-    a subtle incompability with the quantum optics toolbox: here
-        basis(N, 0) = ground state
-    but in QO toolbox:
-        basis(N, 1) = ground state
-
-    @param N the number of states
-    """
+    ##
+    #@brief Generate the vector representation of a number state.
+	#
+    #a subtle incompability with the quantum optics toolbox: here
+    #    basis(N, 0) = ground state
+    #but in QO toolbox:
+    #    basis(N, 1) = ground state
+	#
+    #@param N the number of states
+    #@param args integer corresponding to desired number state
+    #@returns quantum object representing the requested number state |args>
     if logical_or(not isinstance(N,int),N<0):#check if N is int and N>0
         raise ValueError("N must be integer N>=0")
     if not any(args):#if no args then assume vacuum state 
