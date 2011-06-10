@@ -20,11 +20,20 @@ from scipy import *
 import scipy.sparse as sp
 from scipy.linalg import *
 from Qobj import *
-from list2ind import *
 from selct import *
 from Qobj import dag
 
 import numpy as np
+
+
+def list2ind(ilist,dims):
+    ilist=asarray(ilist)
+    dims=asarray(dims)
+    irev=fliplr(ilist)-1
+    fact=append(array([1]),(cumprod(flipud(dims)[:-1])))
+    fact=fact.reshape(len(fact),1)
+    return sort(dot(irev,fact)+1,0)
+
 
 def ptrace(rho,sel):
     if isinstance(sel,int):
