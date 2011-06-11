@@ -20,8 +20,11 @@ from scipy import *
 import scipy.sparse as sp
 from scipy.linalg import *
 from Qobj import *
+<<<<<<< .mine
+=======
 from selct import *
 from Qobj import dag
+>>>>>>> .r268
 
 import numpy as np
 
@@ -78,3 +81,24 @@ def ptrace(rho,sel):
     rho1.shape=[prod(dims_kept0),prod(dims_kept1)]
     rho1.size=[1,1]
     return Qobj(rho1)
+
+
+
+def list2ind(ilist,dims):
+	ilist=asarray(ilist)
+	dims=asarray(dims)
+	irev=fliplr(ilist)-1
+	fact=append(array([1]),(cumprod(flipud(dims)[:-1])))
+	fact=fact.reshape(len(fact),1)
+	return sort(dot(irev,fact)+1,0)
+
+def selct(sel,dims):
+	sel=asarray(sel)#make sure sel is array
+	dims=asarray(dims)#make sure dims is array
+	rlst=dims.take(sel)
+	rprod=prod(rlst)
+	ilist=ones((rprod,len(dims)));
+	counter=arange(rprod)
+	for k in range(len(sel)):
+		ilist[:,sel[k]]=remainder(fix(counter/prod(dims[sel[k+1:]])),dims[sel[k]])+1
+	return ilist
