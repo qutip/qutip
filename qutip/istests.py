@@ -17,6 +17,7 @@
 #
 ###########################################################################
 from scipy import any,prod,allclose,shape
+import scipy.linalg as la
 ##@package istests
 #Set of tests used to determine type of quantum objects
 #
@@ -29,7 +30,7 @@ def isket(Q):
 	"""
     result = isinstance(Q.dims[0],list)
     if result:
-        result = result and (prod(Q.dims[0])==1 or prod(Q.dims[1])==1)
+        result = result and prod(Q.dims[1])==1
     return result
 
 #***************************
@@ -39,47 +40,38 @@ def isbra(Q):
 	@param Qobj quantum object
 	@return bool True or False
 	"""
-	result = isinstance(Q.dims[0],list)
+	result = isinstance(Q.dims[1],list)
 	if result:
 		result = result and (prod(Q.dims[0])==1)
 	return result
 
 
 #***************************
-def isoper(*args):
+def isoper(Q):
 	"""
 	@brief Determines if given quantum object is a operator
 	@param Qobj quantum object
 	@return bool True or False
 	"""
-	if len(args)==1:
-		L=args[0]
-		return isinstance(L.dims[0],list) & (L.dims[0]==L.dims[1])
-	elif args[1]=='rect':
-		return isinstance(L.dims[0],list)
-	else:
-		raise TypeError('Unknown option. Only "rect" option is valid')
+	return isinstance(Q.dims[0],list) & (Q.dims[0]==Q.dims[1])
 	
 
 
 #***************************
-def issuper(L,*args):
+def issuper(Q):
 	"""
 	@brief Determines if given quantum object is a super-operator
 	@param Qobj quantum object
 	@return bool True or False
 	"""
-	result = isinstance(L.dims[0],list) & (len(L.dims[0])>1)
-	if not any(args):
-		if result:
-			result = (L.dims[0]==L.dims[1]) & (L.dims[0][0]==L.dims[1][0])
-	elif args[0]!='rect':
-		raise TypeError('Unknown option. Only valid option is rect')
+	result = isinstance(Q.dims[0],list) & (len(Q.dims[0])>1)
+	if result:
+	    result = (Q.dims[0]==Q.dims[1]) & (Q.dims[0][0]==Q.dims[1][0])
 	return result
 
 
 #**************************
-def isequal(A,B,rtol=1e-8,atol=1e-12):
+def isequal(A,B,rtol=1e-10,atol=1e-14):
     """Determines if two array objects are equal to within tolerances
     @brief Determines if two array objects are equal to within tolerances
     @return bool True or False
@@ -97,7 +89,32 @@ def isequal(A,B,rtol=1e-8,atol=1e-12):
         else:
             return False
 
+#**************************
+def ischeck(Q):
+    if isket(Q):
+        return 'ket'
+    elif isbra(Q):
+        return 'bra'
+    elif isoper(Q):
+        return 'oper'
+    elif issuper(Q):
+        return 'super'
+    else:
+        raise TypeError('Quantum object has undetermined type.')
 
 
-
-
+#**************************
+def isherm(oper):
+    """
+    Determines whether a given operator is Hermitian
+    @param qobj input quantum object
+    @return bool returns True if operator is Hermitian, False otherwise
+    """
+    if oper.dims[0]!=oper.dims[1]:
+        return False
+    else:
+        data=oper.data.todense()
+        if la.norm(data)==0:
+            if any(data>1e-14):
+                raise ValueError('Norm=0 but nonzero data in array') 
+        return isequal(data.T.conj(),data)
