@@ -22,7 +22,9 @@ from varargout import varargout
 
 def simdiag(ops):
     """
-    Simultaneous diagonalization of Commuting, Hermitian matricies
+    Simultaneous diagonalization of Commuting, Hermitian matricies.
+    
+    @param ops single or list/array of quantum objects
     """
     outputs=varargout()
     tol=1e-14
@@ -133,7 +135,7 @@ if __name__ == "__main__":
 	x,y=simdiag([op1,op2,op3,op4])
 	print y
 	print ''
-	print x[0]
+	print x
 	
 	    
 	
