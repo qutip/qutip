@@ -44,7 +44,7 @@ class ProgressBar(QtGui.QWidget):
         self.num = 0
         self.pbar = QtGui.QProgressBar(self)
         self.pbar.setStyleSheet("QProgressBar {width: 25px;border: 3px solid black; border-radius: 5px; background: white;text-align: center;padding: 0px;}" 
-                               +"QProgressBar::chunk:horizontal {background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #6699FF, stop: 0.5 #66AAFF, stop: 0.6 #66CCFF, stop:1 #FFFFFF);}")
+                               +"QProgressBar::chunk:horizontal {background-color: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #FFCC00, stop: 0.5 #FFD700, stop: 0.6 #FFDF00, stop:1 #FFF8DC);}")
         self.pbar.setGeometry(25, 40, 300,40)
         self.label = QtGui.QLabel(self)
         self.label.setStyleSheet("QLabel {font-size: 12px;}")
