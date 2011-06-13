@@ -49,12 +49,15 @@ class Qobj():
         @param shape    Shape of underlying data structure (matrix shape)
         """
         if isinstance(inpt,Qobj):#if input is already Qobj then return identical copy
+            ##Quantum object data
             self.data=sp.csr_matrix(inpt.data) #make sure matrix is sparse (safety check)
             if not any(dims):
+                ## Dimensions of quantum object used for keeping track of tensor components
                 self.dims=inpt.dims
             else:
                 self.dims=dims
             if not any(shape):
+                ##Shape of undelying quantum obejct data matrix
                 self.shape=inpt.shape
             else:
                 self.shape=shape
@@ -87,8 +90,10 @@ class Qobj():
                     self.shape=[inpt.shape[0],inpt.shape[1]]
                 else:
                     self.shape=shape
-        #check for Hermicity of operator
+        ##Signifies if quantum object corresponds to Hermitian operator
         self.isherm=isherm(self)
+        ##Signifies if quantum object corresponds to a ket, bra, operator, or super-operator
+        self.type=ischeck(self)
     
     ##### Definition of PLUS with Qobj on LEFT (ex. Qobj+4) #########                
     def __add__(self, other): #defines left addition for Qobj class
@@ -120,19 +125,19 @@ class Qobj():
             out.shape=self.shape
             return Qobj(out)
 
-    ##### Definition of PLUS with Qobj on RIGHT (ex. 4+Qobj) ###############
+    #- Definition of PLUS with Qobj on RIGHT (ex. 4+Qobj) ###############
     def __radd__(self,other): #defines left addition for Qobj class
         return self+other
 
-    ##### Definition of SUBTRACTION with Qobj on LEFT (ex. Qobj-4) #########
+    #- Definition of SUBTRACTION with Qobj on LEFT (ex. Qobj-4) #########
     def __sub__(self,other):
         return self+(-other)
 
-    ##### Definition of SUBTRACTION with Qobj on RIGHT (ex. 4-Qobj) #########
+    #- Definition of SUBTRACTION with Qobj on RIGHT (ex. 4-Qobj) #########
     def __rsub__(self,other):
         return (-self)+other
     
-    ##### Definition of Multiplication with Qobj on left (ex. Qobj*5) #########
+    #-Definition of Multiplication with Qobj on left (ex. Qobj*5) #########
     def __mul__(self,other):
         if isinstance(other,Qobj): #if both are quantum objects
             if prod(other.shape)==1 and prod(self.shape)!=1:#case for scalar quantum object
@@ -176,7 +181,7 @@ class Qobj():
         else:
             raise TypeError("Incompatible object for multiplication")
     
-    ##### Definition of Multiplication with Qobj on right (ex. 5*Qobj) #########
+    #- Definition of Multiplication with Qobj on right (ex. 5*Qobj) #########
     def __rmul__(self,other):
         if isinstance(other,Qobj): #if both are quantum objects
             if prod(other.shape)==1 and prod(self.shape)!=1:#case for scalar quantum object
@@ -220,7 +225,7 @@ class Qobj():
         else:
             raise TypeError("Incompatible object for multiplication")
 
-    ##### Definition of Division with Qobj on left (ex. Qobj / sqrt(2)) #########
+    #- Definition of Division with Qobj on left (ex. Qobj / sqrt(2)) #########
     def __div__(self,other):
         if isinstance(other,Qobj): #if both are quantum objects
             raise TypeError("Incompatible Qobj shapes [division with Qobj not implemented]")
@@ -266,7 +271,7 @@ class Qobj():
         print self.full()
         return ""
     
-    #####---functions acting on quantum objects---######################
+    #---functions acting on quantum objects---######################
     def dag(self):
         """
         Returns the adjont operator (dagger) of a given quantum object.
@@ -317,7 +322,7 @@ class Qobj():
 	        raise TypeError('Invalid operand for matrix square root')
 
         
-##############################################################################
+#-############################################################################
 #
 #
 # functions acting on Qobj class
@@ -351,7 +356,7 @@ def trans(A):
     return Qobj(out)
 
 
-##############################################################################
+#-############################################################################
 #      
 #
 # some functions for increased compatibility with quantum optics toolbox:
@@ -385,7 +390,7 @@ def shape(inpt):
         return shp(inpt)
 
 
-##############################################################################
+#-############################################################################
 #      
 # functions for storing and loading Qobj instances to files 
 #
@@ -413,7 +418,7 @@ def qobj_load(filename):
     f.close()
     return qobj
 
-##############################################################################
+#-############################################################################
 #
 #
 # check for class type (ESERIES,FSERIES)
@@ -431,9 +436,9 @@ def classcheck(inpt):
         pass
 
 
-########################################################################
+#-######################################################################
 def sp_expm(qo):
-    #############################
+    #-###########################
     def pade(m):
         n=shape(A)[0]
         c=padecoeff(m)
@@ -459,7 +464,7 @@ def sp_expm(qo):
             V = A6*(c[12]*A6 + c[10]*A4 + c[8]*A2)+ c[6]*A6 + c[4]*A4 + c[2]*A2 + c[0]*sp.eye(n,n).tocsr()
             F=la.solve((-U+V).todense(),(U+V).todense()) 
             return sp.lil_matrix(F).tocsr()
-    #################################
+    #-###############################
     A=qo.data #extract Qobj data (sparse matrix)
     m_vals=array([3,5,7,9,13])
     theta=array([0.01495585217958292,0.2539398330063230,0.9504178996162932,2.097847961257068,5.371920351148152],dtype=float)
@@ -492,23 +497,7 @@ def padecoeff(m):
         return array([64764752532480000, 32382376266240000, 7771770303897600,1187353796428800, 129060195264000, 10559470521600,670442572800, 33522128640, 1323241920,40840800, 960960, 16380, 182, 1])
 
 
-def isherm(oper):
-    """
-    Determines whether a given operator is Hermitian
-    @param qobj input quantum object
-    @return bool returns True if operator is Hermitian, False otherwise
-    """
-    if oper.dims[0]!=oper.dims[1]:
-        return False
-    else:
-        data=oper.data.todense()
-        if la.norm(data)==0:
-            if any(data>1e-14):
-                raise ValueError('Norm=0 but nonzero data in array')
-            else:
-                return la.norm(data.T.conj()-data)<=1e-14
-        else: 
-            return la.norm(data.T.conj()-data)/la.norm(data)<=1e-14
+
         
 
 
