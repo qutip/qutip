@@ -20,15 +20,18 @@ from Qobj import *
 import scipy.linalg as la
 from scipy import real,trace
 from numpy import vectorize
+##@package metrics
+#Collection of metrics (distance measures) between density matricies
+#@version 0.1
+#@date 2011
 
 def scalar_fidelity(A,B):
     """
-    Calculates the fidelity (pseudo-metric) between two density matricies.
-    
+    @brief Calculates the fidelity (pseudo-metric) between two density matricies.
+    See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
     @param A: density matrix
     @param B: density matrix with same dimensions as A
-    
-    See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
+    @return float fidelity
     """
     if A.dims!=B.dims:
         raise TypeError('Density matricies do not have same dimensions.')
@@ -42,12 +45,11 @@ fidelity=vectorize(scalar_fidelity)
 
 def scalar_trace_dist(A,B):
     """
-    Calculates the trace distance between two density matricies.
-    
+    @brief Calculates the trace distance between two density matricies.
+    See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
     @param A: density matrix
     @param B: density matrix with same dimensions as A
-    
-    See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
+    @return float returns trace distance
     """
     if A.dims!=B.dims:
         raise TypeError('Density matricies do not have same dimensions.')
