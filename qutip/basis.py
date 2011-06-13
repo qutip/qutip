@@ -16,7 +16,7 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from scipy import *
+from scipy import zeros
 from Qobj import Qobj
 
 ##@package basis
@@ -25,18 +25,19 @@ from Qobj import Qobj
 #@date 2011
 
 def basis(N,*args):
-    ##
-    #@brief Generate the vector representation of a number state.
-	#
-    #a subtle incompability with the quantum optics toolbox: here
-    #    basis(N, 0) = ground state
-    #but in QO toolbox:
-    #    basis(N, 1) = ground state
-	#
-    #@param N the number of states
-    #@param args integer corresponding to desired number state
-    #@returns quantum object representing the requested number state |args>
-    if logical_or(not isinstance(N,int),N<0):#check if N is int and N>0
+    """
+    @brief Generate the vector representation of a number state.
+	
+    a subtle incompability with the quantum optics toolbox: here
+        basis(N, 0) = ground state
+    but in QO toolbox:
+        basis(N, 1) = ground state
+	
+    @param N the number of states
+    @param args integer corresponding to desired number state
+    @returns quantum object representing the requested number state |args>
+    """
+    if (not isinstance(N,int)) or N<0:#check if N is int and N>0
         raise ValueError("N must be integer N>=0")
     if not any(args):#if no args then assume vacuum state 
         args=0
@@ -44,7 +45,7 @@ def basis(N,*args):
         if not isinstance(args[0],int):#check if args is not int
             raise ValueError("need integer for basis vector index")
         args=args[0]
-    if logical_or(args<0,args>N-1): #check if args is within bounds
+    if args<0 or args>(N-1): #check if args is within bounds
         raise ValueError("basis vector index need to be in 0=<indx<=N-1")
     bas=zeros([N,1]) #column vector of zeros
     bas[args]=1 # 1 located at position args
