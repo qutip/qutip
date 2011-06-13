@@ -93,7 +93,35 @@ def thermal_dm(N, n):
     return Qobj(rm)
 
 
+def ket2dm(Q):
+    """
+    Takes input ket or bra vector and returns density matrix formed by outer product.
+    @param Q: Ket or bra vector
+    @return dm: Density matrix formed by outer product
+    """
+    if Q.type=='ket':
+        out=Q*Q.dag()
+    elif Q.type=='bra':
+        out=Q.dag()*Q
+    else:
+        raise TypeError("Input is not a ket or bra vector.")
+    return Qobj(out)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 if __name__ == "__main__":
     print (coherent(5,.1)*coherent(5,.1).dag()).tr()
-    
+    print ket2dm(coherent(3,.1).dag())
 
