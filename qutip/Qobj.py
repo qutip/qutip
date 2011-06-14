@@ -266,11 +266,21 @@ class Qobj():
             raise ValueError('Invalid choice of exponent.')
     def __str__(self):
         #return "Quantum object: ", dimensions = " + str(self.shape) + "\n" + str(self.data)
-        print "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)
+        if self.type=='oper' or self.type=='super':
+            print "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isHerm = "+str(self.isherm)
+        else:
+            print "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type
         print "Qobj data = "
         print self.full()
         return ""
-    
+    def __repr__(self):
+        if self.type=='oper' or self.type=='super':
+            print "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isHerm = "+str(self.isherm)
+        else:
+            print "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type
+        print "Qobj data = "
+        print self.full()
+        return ""
     #---functions acting on quantum objects---######################
     def dag(self):
         """
