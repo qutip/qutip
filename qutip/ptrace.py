@@ -44,20 +44,15 @@ def ptrace(rho,sel):
         for l in indsel:
             m=m+1
             col=irest+temp+l-1
-            for i in arange(len(col)):
+            for i in xrange(len(col)):
                 perm[m-1,int(col[i][0])-1]=1
     perm.tocsr()
     rws=prod(shape(rho.data))
     rho1=Qobj()
 
-    if sp.issparse(rho.data):
-        rhdata=dot(perm,rho.data.tolil().reshape((rws,1)))
-        rhdata=rhdata.tolil().reshape((M,M))
-        rho1.data=rhdata.tocsr()
-    else:
-        rhdata = perm * rho.data.reshape((rws,1))
-        rhdata=rhdata.reshape((M,M))
-        rho1.data=rhdata
+    rhdata=dot(perm,rho.data.tolil().reshape((rws,1)))
+    rhdata=rhdata.tolil().reshape((M,M))
+    rho1.data=rhdata.tocsr()
 
     dims_kept0=asarray(rho.dims[0]).take(sel)
     dims_kept1=asarray(rho.dims[0]).take(sel)
@@ -83,6 +78,6 @@ def selct(sel,dims):
 	rprod=prod(rlst)
 	ilist=ones((rprod,len(dims)));
 	counter=arange(rprod)
-	for k in range(len(sel)):
+	for k in xrange(len(sel)):
 		ilist[:,sel[k]]=remainder(fix(counter/prod(dims[sel[k+1:]])),dims[sel[k]])+1
 	return ilist
