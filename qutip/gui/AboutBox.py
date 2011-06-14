@@ -26,8 +26,8 @@ elif os.environ['QUTIP_GUI']=="PYQT4":
     from PyQt4 import QtGui, QtCore
    
 import numpy,scipy,matplotlib
-
 CD_BASE = os.path.dirname(__file__)
+
 class AboutBox(QtGui.QWidget):
     def __init__(self, Qversion, parent=None):
         QtGui.QWidget.__init__(self, parent)
@@ -51,7 +51,7 @@ class AboutBox(QtGui.QWidget):
         #
         label = QtGui.QLabel(self)
         label.setStyleSheet("QLabel {font-weight: bold;font-size: 12px;}")
-        label.setText("QuTip Version:          "+Qversion+"\n"
+        label.setText("QuTiP Version:          "+Qversion+"\n"
                             +"NumPy Version:         "+str(numpy.__version__)+"\n"
                             +"SciPy Version:            "+str(scipy.__version__)+"\n"
                             +"MatPlotLib Version:   "+str(matplotlib.__version__))
