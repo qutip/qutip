@@ -300,6 +300,11 @@ class Qobj():
         if isinstance(self.data, ndarray):
             return self.data
         return array(self.data.todense())
+    def diag(self):
+        """
+        Returns diagonal elements of object
+        """
+        return self.data.todia().diagonal()
     def expm(self):
         """
         Returns a quantum object corresponding
@@ -319,14 +324,7 @@ class Qobj():
             evals,evecs=la.eig(self.full())
             return Qobj(dot(evecs,dot(diag(sqrt(evals)),la.inv(evecs))),dims=self.dims,shape=self.shape)
         else:
-	        raise TypeError('Invalid operand for matrix square root')
-	
-	def diag(self):
-	    """
-        Returns the diagonal elements of the underlying matrix.
-        """
-        return self.todia().diagonal()
-    
+            raise TypeError('Invalid operand for matrix square root')
     def unit(self):
         """
         Returns the operator normalized to unity.
@@ -339,18 +337,18 @@ class Qobj():
 #
 #
 def dag(inQobj):
-	"""
+    """
     Returns the adjont operator (dagger) of a given quantum object.
     @param Qobj input quantum object
     @return Qobj adjoint of input operator
     """
-	if not isinstance(inQobj,Qobj): #checks for Qobj
-		raise TypeError("Input is not a quantum object")
-	outQobj=Qobj()
-	outQobj.data=inQobj.data.T.conj()
-	outQobj.dims=[inQobj.dims[1],inQobj.dims[0]]
-	outQobj.shape=[inQobj.shape[1],inQobj.shape[0]]
-	return Qobj(outQobj)
+    if not isinstance(inQobj,Qobj): #checks for Qobj
+        raise TypeError("Input is not a quantum object")
+    outQobj=Qobj()
+    outQobj.data=inQobj.data.T.conj()
+    outQobj.dims=[inQobj.dims[1],inQobj.dims[0]]
+    outQobj.shape=[inQobj.shape[1],inQobj.shape[0]]
+    return Qobj(outQobj)
 
 def trans(A):
     """
