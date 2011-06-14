@@ -17,7 +17,6 @@
 #
 ###########################################################################
 import os
-import multiprocessing
 from scipy import *
 from scipy.linalg import *
 import scipy.sparse as sp
@@ -135,7 +134,16 @@ def create(N):
 #
 def qeye(N):
     N=int(N)
-    if logical_or(not isinstance(N,int),N<0):#check if N is int and N>0
+    if (not isinstance(N,int)) or N<0:#check if N is int and N>0
         raise ValueError("N must be integer N>=0")
     return Qobj(eye(N))
     
+
+def num(N):
+    '''
+    Number operator for Hilbert space of dimension N
+    input: N = size of hilbert space
+    output: Qobj
+    '''
+    data=sp.spdiags(arange(N),0,N,N,format='csr')
+    return Qobj(data)
