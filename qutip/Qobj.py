@@ -320,8 +320,18 @@ class Qobj():
             return Qobj(dot(evecs,dot(diag(sqrt(evals)),la.inv(evecs))),dims=self.dims,shape=self.shape)
         else:
 	        raise TypeError('Invalid operand for matrix square root')
-
-        
+	
+	def diag(self):
+	    """
+        Returns the diagonal elements of the underlying matrix.
+        """
+        return self.todia().diagonal()
+    
+    def unit(self):
+        """
+        Returns the operator normalized to unity.
+        """
+        return self/self.norm()
 #-############################################################################
 #
 #
