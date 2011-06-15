@@ -18,7 +18,7 @@
 ###########################################################################
 from scipy import *
 def sphereplot(theta,phi,values):
-	from matplotlib import pyplot, mpl
+	from matplotlib import pyplot, mpl,cm
 	from pylab import plot,show,meshgrid,figure
 	from mpl_toolkits.mplot3d import Axes3D
 	thetam,phim = meshgrid(theta, phi)
