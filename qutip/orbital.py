@@ -28,7 +28,7 @@ def orbital(theta,phi,*args):
 		# use the list in args[0] 
 		args = args[0]
 
-	for k in xrange(0,len(args)):
+	for k in xrange(len(args)):
 		ket=args[k]
 		if not ket.type=='ket':
 			raise TypeError('Invalid input ket in orbital')
@@ -37,15 +37,16 @@ def orbital(theta,phi,*args):
 		if l!=floor(l):
 			raise ValueError('Kets must have odd number of components in orbital')
 		if l==0:
-			SPlm=sqrt(2)*ones([1,size(phi)])
+			SPlm=sqrt(2)*ones((size(theta),1),dtype=complex)
 		else:
-			SPlm=sch_lpmv(l,cos(phi))
+			SPlm=sch_lpmv(l,cos(theta))
 		fac = sqrt((2.0*l+1)/(8*pi))
-		psi = psi + (sqrt(2)*fac*ket[l]).T * SPlm[0,:]
+		kf=ket.full()
+		psi += sqrt(2)*fac*kf[l,0]*ones((size(phi),size(theta)),dtype=complex)*SPlm[0]
 		for m in xrange(1,l+1):
-			psi=psi+((-1.0)**m*fac*ket.data[l-m]*exp(1j*m*phi)).T*SPlm[m,:]
+			psi+= ((-1.0)**m*fac*kf[l-m,0])*array([exp(1.0j*1*phi)]).T*ones((size(phi),size(theta)),dtype=complex)*SPlm[1]
 		for m in xrange(-l,0):
-			psi=psi+(fac*ket[l-m]*exp(1j*m*phi)).T*SPlm[abs(m),:]
+			psi=psi+(fac*kf[l-m,0])*array([exp(1.0j*1*phi)]).T*ones((size(phi),size(theta)),dtype=complex)*SPlm[abs(m)]
 	return psi
 		
 
@@ -73,8 +74,3 @@ def sch_lpmv(n,x):
 			else:
 				out=append(out,array([sch*leg]).T,axis=1)
 	return out
-
-
-if __name__=="__main__":
-    angle=cos(linspace(0,pi,45))
-    print sch_lpmv(2,angle)
