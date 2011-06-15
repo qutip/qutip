@@ -17,16 +17,17 @@
 #
 ###########################################################################
 from scipy import *
-def sphereplot(theta,phi,values):
+def sphereplot(theta,phi,values,save=False):
 	"""
 	@brief Plots a matrix of values on a sphere
 	@param theta Angle with respect to z-axis
 	@param phi Angle in x-y plane 
 	@param values data set to be plotted
+	@param save Whether to save the figure or not
 	@return None Plots figure, but returns nothing
 	"""
 	from matplotlib import pyplot, mpl,cm
-	from pylab import plot,show,meshgrid,figure
+	from pylab import plot,show,meshgrid,figure,savefig
 	from mpl_toolkits.mplot3d import Axes3D
 	thetam,phim = meshgrid(theta, phi)
 	xx=sin(thetam)*cos(phim)
@@ -47,6 +48,8 @@ def sphereplot(theta,phi,values):
 	cb1=mpl.colorbar.ColorbarBase(cax,cmap=cm.jet,norm=nrm)
 	#add our colorbar label
 	cb1.set_label('Angle')
+	if save==True:
+	    savefig("sphereplot.pdf")
 	show()
 	return 
 
