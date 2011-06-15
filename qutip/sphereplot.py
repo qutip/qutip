@@ -16,12 +16,11 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from matplotlib import pyplot, mpl
-from pylab import *
-from mpl_toolkits.mplot3d import Axes3D
-
-
+from scipy import *
 def sphereplot(theta,phi,values):
+	from matplotlib import pyplot, mpl
+	from pylab import plot,show,meshgrid,figure
+	from mpl_toolkits.mplot3d import Axes3D
 	thetam,phim = meshgrid(theta, phi)
 	xx=sin(thetam)*cos(phim)
 	yy=sin(thetam)*sin(phim)
