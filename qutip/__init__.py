@@ -53,6 +53,13 @@ if not os.environ.has_key('DISPLAY'):
     os.environ['QUTIP_GRAPHICS']="NO"
     os.environ['QUTIP_GUI']="NONE"
 
+#-Check for Matplotlib
+try:
+    import matplotlib
+except:
+    os.environ['QUTIP_GRAPHICS']="NO"
+    os.environ['QUTIP_GUI']="NONE"
+
 #-Check for PyObjC on Mac platforms
 if sys.platform=='darwin':
     try:
@@ -79,33 +86,32 @@ import scipy.linalg as la
 import scipy.sparse as sp
 from Qobj import Qobj,shape,dims,dag,trans,sp_expm
 from about import *
-from basis import *
-from gates import *
+#from basis import *
+from Bloch import Bloch
+from correlation import *
+from eseries import *
 from expect import *
+from gates import *
 from istests import *
+from Mcoptions import Mcoptions
+from mcsolve import mcsolve
+from metrics import fidelity,trace_dist
+from ode_solve import ode_solve
+from ode2es import *
 from operators import *
-from superoperator import *
+from orbital import *
+from parfor import *
+from ptrace import ptrace
+from propagator import *
 from qstate import *
-from selct import *
+from sphereplot import *
+from states import *
+from steady import *
+from superoperator import *
+#from selct import *
 from tensor import *
 from wigner import *
-from fseries import *
-from steady import *
-from parfor import *
-from orbital import *
-from mcsolve import *
-from Mcoptions import Mcoptions
-from ode_solve import *
-from eseries import *
-from ode2es import *
-from states import *
-from correlation import *
-from propagator import *
-from metrics import fidelity,trace_dist
-from Bloch import Bloch
-
-
-if os.environ['QUTIP_GRAPHICS'] == "YES":
-    from sphereplot import *
-    from gui import *
+#from fseries import *
+#if os.environ['QUTIP_GRAPHICS'] == "YES":
+    #from gui import *
 
