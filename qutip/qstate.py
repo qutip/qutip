@@ -18,7 +18,7 @@
 ###########################################################################
 from scipy import *
 from Qobj import *
-from basis import *
+from states import basis
 from tensor import *
 
 
