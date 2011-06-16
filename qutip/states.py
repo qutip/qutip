@@ -18,8 +18,35 @@
 ###########################################################################
 from scipy import *
 from Qobj import Qobj
-from basis import basis
 from operators import destroy
+
+def basis(N,*args):
+    """
+    @brief Generate the vector representation of a number state.
+	
+    a subtle incompability with the quantum optics toolbox: here
+        basis(N, 0) = ground state
+    but in QO toolbox:
+        basis(N, 1) = ground state
+	
+    @param N the number of states
+    @param args integer corresponding to desired number state
+    @returns quantum object representing the requested number state |args>
+    """
+    if (not isinstance(N,int)) or N<0:#check if N is int and N>0
+        raise ValueError("N must be integer N>=0")
+    if not any(args):#if no args then assume vacuum state 
+        args=0
+    if not isinstance(args,int):#if input arg!=0
+        if not isinstance(args[0],int):#check if args is not int
+            raise ValueError("need integer for basis vector index")
+        args=args[0]
+    if args<0 or args>(N-1): #check if args is within bounds
+        raise ValueError("basis vector index need to be in 0=<indx<=N-1")
+    bas=zeros([N,1]) #column vector of zeros
+    bas[args]=1 # 1 located at position args
+    return Qobj(bas) #return Qobj
+
 
 def coherent(N,alpha):
     """
@@ -47,7 +74,7 @@ def coherent_fast(N,alpha):
     @param N the number of states
     @param alpha the coherent state amplitude (complex)
     """
-    data = zeros([N,1])
+    data = zeros([N,1],dtype=complex)
     n = arange(N)
     data[:,0] = exp(-(abs(alpha)**2)/2.0)*(alpha**(n))/sqrt(factorial(n))
     return Qobj(data)
@@ -61,24 +88,30 @@ def coherent_dm_fast(N,alpha):
     psi = coherent_fast(N, alpha)
     return psi * psi.dag()
 
-def fock_dm(N, m):
+def fock_dm(N, *args):
     """
     Generate the density matrix for a fock state
 
     @param N the number of states
     @param m the fock state number
     """
-    psi = basis(N, m)
+    if not args:
+        psi=basis(N)
+    else:
+        psi=basis(N, args[0])
     return psi * psi.dag()
 
-def fock(N, m):
+def fock(N, *args):
     """
     Generate a state vector for a fock state
 
     @param N the number of states
     @param m the fock state number
     """
-    return basis(N, m)
+    if not args:
+        return basis(N)
+    else:
+        return basis(N, args[0])
 
 def thermal_dm(N, n):
     """
@@ -122,6 +155,7 @@ def ket2dm(Q):
 
 
 if __name__ == "__main__":
+    print fock(5,1)
     print (coherent(5,.1)*coherent(5,.1).dag()).tr()
     print ket2dm(coherent(3,.1).dag())
 
