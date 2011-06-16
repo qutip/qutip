@@ -44,7 +44,7 @@ def expect(oper,state):
                 for j in xrange(num):
                     tr+=prod[j,j]
                 if oper.isherm:
-                    return real(tr)
+                    return float(real(tr))
                 else:
                     return tr
             elif isket(state):
@@ -55,7 +55,7 @@ def expect(oper,state):
                     prod = prod.tocsr()
 
                 if oper.isherm:
-                    return real(prod[0,0])
+                    return float(real(prod[0,0]))
                 else:
                     return prod[0,0]
                     
