@@ -91,7 +91,7 @@ def swap():
     return Qobj(Q)
 
 
-def hadmrd():
+def hadamard():
     """
     Returns quantum object representing the Hadamard gate.
     @brief Hadamard gate
@@ -111,7 +111,7 @@ def snot():
     return hadmrd()	
 
 
-def phase(theta):
+def phasegate(theta):
     """
     Returns quantum object representing the phase shift gate.
     @brief phase shift gate
