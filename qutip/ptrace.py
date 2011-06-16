@@ -19,10 +19,17 @@
 from scipy import *
 import scipy.sparse as sp
 from scipy.linalg import *
-from Qobj import *
+from Qobj import Qobj
 
 
 def ptrace(rho,sel):
+    """
+    @brief Compute partial trace of composite quantum object
+    
+    @param   rho  Input composite quantum object
+    @param   sel  Integer or list of integers for components to keep.
+    @return  rho  Density matrix of components from sel
+    """
     if isinstance(sel,int):
         sel=array([sel])
     sel=asarray(sel)
