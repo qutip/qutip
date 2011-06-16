@@ -29,23 +29,17 @@ from superoperator import *
 # ------------------------------------------------------------------------------
 # 
 def steadystate(H, c_op_list):
-    """!
+    """
     Calculate the steady state for the evolution subject to the supplied
     Hamiltonian and collapse operators.
     """
-
     n_op = len(c_op_list)
 
     if n_op == 0:
         raise ValueError('Cannot calculate the steady state for a nondissipative system (no collapse operators given)')
 
-    #
-    # construct liouvillian
-    #
     L = liouvillian(H, c_op_list)
-
     return steady(L)
-
 
 def steady(L):
 	tol=1e-6
@@ -83,7 +77,7 @@ def steady(L):
 	out=Qobj(rhoss.data)
 	out.dims=rhoss.dims
 	out.shape=rhoss.shape
-	return out
+	return Qobj(out)
 	
 	
 		
