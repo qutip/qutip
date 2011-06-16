@@ -23,6 +23,13 @@ from istests import isket
 
 
 def orbital(theta,phi,*args):
+	"""
+	Calculates an angular wave function on a sphere
+	psi = orbital(theta,phi,ket1,ket2,...) calculates the angular wave function on a sphere at the mesh of points defined by theta and phi which is 
+    SUM_{lm} C_{lm} Y_{lm}(theta,phi)
+    where c_{lm} are the coefficients specified by the list of kets. Each ket has 2l+1 
+    components for some integer l.                
+	"""
 	psi=0.0
 	if isinstance(args[0],list):
 		# use the list in args[0] 
@@ -33,9 +40,10 @@ def orbital(theta,phi,*args):
 		if not ket.type=='ket':
 			raise TypeError('Invalid input ket in orbital')
 		sk=ket.shape
-		l=(sk[0]-1)/2
-		if l!=floor(l):
+		nchk=(sk[0]-1)/2.0
+		if nchk != floor(nchk):
 			raise ValueError('Kets must have odd number of components in orbital')
+		l=(sk[0]-1)/2
 		if l==0:
 			SPlm=sqrt(2)*ones((size(theta),1),dtype=complex)
 		else:
