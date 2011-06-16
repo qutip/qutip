@@ -30,12 +30,11 @@ def liouvillian(H, c_op_list):
     Assemble the Liouvillian superoperator from a Hamiltonian and a list
     of collapse operators
     """
-    L = -1j*(spre(H) - spost(H))
+    L = -1.0j*(spre(H) - spost(H))
     n_op = len(c_op_list)
-    for m in range(0, n_op):
+    for m in xrange(0, n_op):
         cdc = c_op_list[m].dag() * c_op_list[m]
         L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
-
     return L
 
 def spost(A,*args):
@@ -47,7 +46,7 @@ def spost(A,*args):
 	S.dims=[[d[:],A.dims[1][:]],[d[:],A.dims[0][:]]]
 	S.shape=[prod(S.dims[0][0])*prod(S.dims[0][1]),prod(S.dims[1][0])*prod(S.dims[1][1])]
 	S.data=sp.kron(A.data.T,sp.identity(prod(d)))
-	return S
+	return Qobj(S)
 	
 
 def spre(A):
@@ -58,6 +57,6 @@ def spre(A):
 	S.dims=[[A.dims[0][:],d[:]],[A.dims[1][:],d[:]]]
 	S.shape=[prod(S.dims[0][0])*prod(S.dims[0][1]),prod(S.dims[1][0])*prod(S.dims[1][1])]
 	S.data=sp.kron(sp.identity(prod(d)),A.data)
-	return S
+	return Qobj(S)
 	
 
