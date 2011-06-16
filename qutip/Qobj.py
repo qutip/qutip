@@ -44,9 +44,11 @@ class Qobj():
         Qobj constructor. Optionally takes the dimension array and/or
         shape array as arguments.
 
-        @param array    Data for vector/matrix representation of the quantum object
-        @param dims     Dimensions of object used for tensor products
-        @param shape    Shape of underlying data structure (matrix shape)
+        @param  array    Data for vector/matrix representation of the quantum object
+        @param  dims     Dimensions of object used for tensor products
+        @param  shape    Shape of underlying data structure (matrix shape)
+        @param  type     Type of quantum object: 'ket', 'bra', 'oper', or 'super'
+        @param  isherm   Does quantum object correspond to Hermitian operator
         """
         if isinstance(inpt,Qobj):#if input is already Qobj then return identical copy
             ##Quantum object data
@@ -273,7 +275,7 @@ class Qobj():
         print "Qobj data = "
         print self.full()
         return ""
-    def __repr__(self):
+    def __repr__(self):#give complete information on Qobj without print statement in commandline
         if self.type=='oper' or self.type=='super':
             print "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isHerm = "+str(self.isherm)
         else:
