@@ -19,7 +19,7 @@
 from scipy import *
 import scipy.sparse as sp
 from scipy.linalg import *
-from Qobj import Qobj
+from Qobj import *
 
 
 def ptrace(rho,sel):
@@ -37,7 +37,7 @@ def ptrace(rho,sel):
     N=prod(drho)
     M=prod(asarray(drho).take(sel))
     if prod(rho.dims[1]) == 1:
-        rho = rho * dag(rho)
+        rho = rho * rho.dag()
     perm = sp.lil_matrix(zeros((M*M,N*N)))
     rest=setdiff1d(arange(len(drho)),asarray(sel)) #all elements in range(len(drho)) not in sel set
     ilistsel=selct(sel,drho)
