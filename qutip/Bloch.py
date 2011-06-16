@@ -191,6 +191,7 @@ class Bloch():
     
     def plot_vectors(self):
         """Plots Bloch vectors on sphere"""
+        # -X and Y data are switched for plotting purposes
         if len(self.vectors)>0:
             for k in xrange(len(self.vectors)):
                 length=sqrt(self.vectors[k][0]**2+self.vectors[k][1]**2+self.vectors[k][2]**2)
@@ -198,6 +199,7 @@ class Bloch():
     
     def plot_points(self):
         """Plots point markers on Bloch sphere"""
+        # -X and Y data are switched for plotting purposes
         for k in xrange(self.num_points):
             self.axes.scatter(real(self.points[k][1]),-real(self.points[k][0]),real(self.points[k][2]),s=self.point_size,alpha=1,edgecolor='none',zdir='z',color=self.point_color[k], marker=self.point_marker[k])
     
@@ -212,7 +214,6 @@ class Bloch():
         
 
 if __name__=="__main__":
-    #vector,x and y axes are switched so the shading function works properly.
     x=Bloch()
     xvec=[1,0,0]
     x.add_vectors(xvec)

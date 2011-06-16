@@ -20,10 +20,10 @@ from scipy import min,max
 from math import factorial
 
 def clebsch(j1,j2,j3,m1,m2,m3):
-    """
-    C=clebsch(j1,j2,j3,m1,m2,m3) calculates the Clebsch-Gordon coefficient
-    for coupling (j1,m1) and (j2,m2) to give (j3,m3).
-    """
+    ##
+    #C=clebsch(j1,j2,j3,m1,m2,m3) calculates the Clebsch-Gordon coefficient
+    #for coupling (j1,m1) and (j2,m2) to give (j3,m3).
+    #@brief Calcualtes Clebsch-Gordon coefficients
     if m3!=m1+m2:
         return 0
     vmin=max([-j1+j2+m3,-j1+m1,0])
