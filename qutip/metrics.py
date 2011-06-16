@@ -29,9 +29,10 @@ def scalar_fidelity(A,B):
     """
     @brief Calculates the fidelity (pseudo-metric) between two density matricies.
     See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
-    @param A: density matrix
-    @param B: density matrix with same dimensions as A
-    @return float fidelity
+    
+    @param   A      density matrix
+    @param   B      density matrix with same dimensions as A
+    @return  float  fidelity
     """
     if A.dims!=B.dims:
         raise TypeError('Density matricies do not have same dimensions.')
@@ -42,14 +43,14 @@ def scalar_fidelity(A,B):
 
 fidelity=vectorize(scalar_fidelity)
 
-
 def scalar_trace_dist(A,B):
     """
     @brief Calculates the trace distance between two density matricies.
     See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
-    @param A: density matrix
-    @param B: density matrix with same dimensions as A
-    @return float returns trace distance
+    
+    @param   A      density matrix
+    @param   B      density matrix with same dimensions as A
+    @return  float  trace distance
     """
     if A.dims!=B.dims:
         raise TypeError('Density matricies do not have same dimensions.')
@@ -60,14 +61,3 @@ def scalar_trace_dist(A,B):
         return real(0.5*trace(out))
 
 trace_dist=vectorize(scalar_trace_dist)
-
-
-
-if __name__ == "__main__":
-    from states import *
-    x=coherent(10,3j)
-    y=coherent(10,1+1.5j)
-    r1=x*x.dag()
-    r2=y*y.dag()
-    print fidelity([r1,r2],r2)
-    print trace_dist([r1,r2],r2)
