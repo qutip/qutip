@@ -39,11 +39,11 @@ def scalar_fidelity(A,B):
     else:
         A=A.sqrtm()
         A*(B*A)
-        return real(trace((A*(B*A)).sqrtm().full()))
+        return float(real(trace((A*(B*A)).sqrtm().full())))
 
 fidelity=vectorize(scalar_fidelity)
 
-def scalar_trace_dist(A,B):
+def scalar_tracedist(A,B):
     """
     @brief Calculates the trace distance between two density matricies.
     See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
@@ -58,6 +58,6 @@ def scalar_trace_dist(A,B):
         diff=A-B
         diff=diff.dag()*diff
         out=diff.sqrtm().full()
-        return real(0.5*trace(out))
+        return float(real(0.5*trace(out)))
 
-trace_dist=vectorize(scalar_trace_dist)
+trace_dist=vectorize(scalar_tracedist)
