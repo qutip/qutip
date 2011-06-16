@@ -24,15 +24,17 @@ from expect import *
 import sys,os,time
 from istests import *
 from Mcoptions import Mcoptions
+##@package mcsolve
+#Collection of routines for calculating dynamics via the Monte-Carlo method.
 
 
 def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
     """
-    Monte-Carlo evolution of a given state vector |psi> for a given
-    Hamiltonian and collapse operators.
+    Monte-Carlo evolution of a state vector |psi> for a given
+    Hamiltonian and sets of collapse operators and operators
+    for calculating expectation values.
     
     Options for solver are given by the Mcoptions class.
-    
     """
     Heff = H
     for c_op in collapse_ops:
@@ -58,34 +60,54 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
        
 
 
-######---Monte-Carlo class---######
+#--Monte-Carlo class---
 class MC_class():
     def __init__(self,Heff,psi0,tlist,ntraj,collapse_ops,expect_ops,options):
+        ##holds instance of the ProgressBar class
         self.bar=None
+        ##holds instance of the Pthread class
         self.thread=None
-        self.max=ntraj
-        self.count=0
-        self.step=1
-        self.percent=0.0
-        self.level=0.1
-        self.options=options
-        self.times=tlist
+        ##number of Monte-Carlo trajectories
         self.ntraj=ntraj
+        #Number of completed trajectories
+        self.count=0
+        ##step-size for count attribute
+        self.step=1
+        ##Percent of trajectories completed
+        self.percent=0.0
+        ##used in implimenting the command line progress ouput
+        self.level=0.1
+        ##collection of ODE options from Mcoptions class
+        self.options=options
+        ##times at which to output state vectors or expectation values
+        self.times=tlist
+        ##number of time steps in tlist
         self.num_times=len(tlist)
+        ##Collapse operators
         self.collapse_ops=collapse_ops
+        ##Number of collapse operators
         self.num_collapse=len(collapse_ops)
+        ##Operators for calculating expectation values
         self.expect_ops=expect_ops
+        ##Number of expectation value operators
         self.num_expect=len(expect_ops)
+        ##Matrix representing effective Hamiltonian Heff*1j
         self.Hdata=-1.0j*Heff.data# extract matrix and multiply Heff by -1j so user doesn't have to.
+        ##Matrix representing initial state vector
         self.psi_in=psi0.full() #need dense matrix as input to ODE solver.
+        ##Dimensions of initial state vector
         self.psi_dims=psi0.dims
+        ##Shape of initial state vector
         self.psi_shape=psi0.shape
 
         if self.num_collapse==0:
             if self.num_expect==0:
+                ##Output array of state vectors calculated at times in tlist
                 self.psi_out=array([Qobj() for k in xrange(self.num_times)])#preallocate array of Qobjs
             elif self.num_expect!=0:#no collpase expectation values
+                ##List of output expectation values calculated at times in tlist
                 self.expect_out=[]
+                ##Array indicating whether expectation operators are Hermitian
                 self.isher=isherm(self.expect_ops)#checks if expectation operators are hermitian
                 for jj in xrange(self.num_expect):#expectation operators evaluated at initial conditions
                     if self.isher[jj]==1:
@@ -93,8 +115,9 @@ class MC_class():
                     else:
                         self.expect_out.append(zeros(self.num_times,dtype=complex))
         elif self.num_collapse!=0:
-            #extract matricies from collapse operators
+            ##Array of collapse operators A.dag()*A
             self.norm_collapse_data=array([(op.dag()*op).data for op in self.collapse_ops])
+            ##Array of matricies from norm_collpase_data
             self.collapse_ops_data=array([op.data for op in self.collapse_ops])
             #preallocate #ntraj arrays for state vectors, collapse times, and which operator
             self.collapse_times_out=zeros((self.ntraj),dtype=ndarray)
@@ -116,9 +139,9 @@ class MC_class():
         self.which_op_out[r]=results[3]
         self.count+=self.step
         if os.environ['QUTIP_GUI']=="NONE":
-            self.percent=self.count/(1.0*self.max)
-            if self.count/float(self.max)>=self.level:
-                print str(floor(self.count/float(self.max)*100))+'%  ('+str(self.count)+'/'+str(self.max)+')'
+            self.percent=self.count/(1.0*self.ntraj)
+            if self.count/float(self.ntraj)>=self.level:
+                print str(floor(self.count/float(self.ntraj)*100))+'%  ('+str(self.count)+'/'+str(self.ntraj)+')'
                 self.level+=0.1
     #########################
     def parallel(self,args,top=None):
@@ -152,7 +175,7 @@ class MC_class():
                 if not app:#create QApplication if it doesnt exist
                     app = QtGui.QApplication(sys.argv)
                 thread=Pthread(target=self.parallel,args=args,top=self)
-                bar=ProgressBar(self,thread,self.max)
+                bar=ProgressBar(self,thread,self.ntraj)
                 QtCore.QTimer.singleShot(0,bar.run)
                 bar.show()
                 bar.raise_()
@@ -165,6 +188,8 @@ class MC_class():
 
 ######---return psi at requested times for no collapse operators---######
 def no_collapse_psi_out(opt,Hdata,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
+    ##Calculates state vectors at times tlist if no collapse AND no expectation values are given.
+    #
     def RHS(t,psi):#define RHS of ODE
             return Hdata*psi #cannot use dot(a,b) since mat is matrix and not array.
     ODE=ode(RHS)
@@ -183,10 +208,13 @@ def no_collapse_psi_out(opt,Hdata,psi_in,tlist,num_times,psi_dims,psi_shape,psi_
 
 ######---return expectation values at requested times for no collapse operators---######
 def no_collapse_expect_out(opt,Hdata,psi_in,tlist,expect_ops,num_expect,num_times,psi_dims,psi_shape,expect_out,isher):
-    ######---Define RHS of ODE---##############
+    ##Calculates xpect.values at times tlist if no collapse ops. given
+    #
+    
+    #---Define RHS of ODE----------------
     def RHS(t,psi):
             return Hdata*psi #cannot use dot(a,b) since mat is matrix and not array.
-    ######-------------------------------------
+    #------------------------------------
     ODE=ode(RHS)
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
@@ -204,10 +232,10 @@ def no_collapse_expect_out(opt,Hdata,psi_in,tlist,expect_ops,num_expect,num_time
 #------------------------------------------------------------------------
 
 
-######---single-trajectory for monte-carlo---###########           
+#---single-trajectory for monte-carlo---          
 def mc_alg_evolve(nt,args):
     """
-    Monte-Carlo algorithm returning state-vector at times tlist[k] for a single trajectory
+    Monte-Carlo algorithm returning state-vector or expect. values at times tlist for a single trajectory
     """
     opt,Hdata,psi_in,tlist,num_times,num_collapse,collapse_ops_data,norm_collapse_data,num_expect,expect_ops,isher=args
     def RHS(t,psi):
