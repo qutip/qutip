@@ -46,6 +46,11 @@ class Examples(QtGui.QWidget):
         tlabel.setText("QuTiP Example Scripts:")
         tlabel.move(280, 20)
         #
+        utext = QtGui.QLabel(self)
+        utext.setStyleSheet("QLabel {font-weight: bold;font-size: 14px;}")
+        utext.setText("Click on the links to view the webpage assopciated with each script.")
+        utext.move(150, 50)
+        #
         alabel = QtGui.QLabel(self)
         alabel.setStyleSheet("QLabel {font-weight: bold;font-size: 10px;}")
         alabel.setText("Copyright (c) 2011, Paul D. Nation & Robert J. Johansson")
@@ -57,6 +62,13 @@ class Examples(QtGui.QWidget):
         testqobj .setGeometry(20, 100, 150, 80)
         testqobj .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('hello()'))
+        r1c1label = QtGui.QLabel(self)
+        r1c1label.setOpenExternalLinks(True)
+        r1c1label.setText("<a href=http://code.google.com/p/qutip>TestQobj</a>")
+        r1c1label.move(65, 175)
+        
+        
+        
         
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
         montetri .setGeometry(170, 100, 150, 80)
