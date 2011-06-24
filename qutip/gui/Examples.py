@@ -48,7 +48,7 @@ class Examples(QtGui.QWidget):
         #
         utext = QtGui.QLabel(self)
         utext.setStyleSheet("QLabel {font-weight: bold;font-size: 14px;}")
-        utext.setText("Click on the links to view the webpage assopciated with each script.")
+        utext.setText("Click on the links to view the webpage associated with each script.")
         utext.move(150, 50)
         #
         alabel = QtGui.QLabel(self)
