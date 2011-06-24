@@ -90,6 +90,7 @@ from about import *
 from Bloch import Bloch
 from correlation import *
 from eseries import *
+from examples import examples
 from expect import *
 from gates import *
 from istests import *
