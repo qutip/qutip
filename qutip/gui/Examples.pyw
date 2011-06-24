@@ -18,6 +18,7 @@
 ###########################################################################
 
 import sys,os,time
+from numpy import arange
 
 from PySide import QtGui, QtCore
 #if os.environ['QUTIP_GUI']=="PYSIDE":
@@ -31,7 +32,7 @@ class Examples(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         #WINDOW PROPERTIES
         self.setWindowTitle('QuTiP Examples')
-        self.resize(800, 600)
+        self.resize(790, 600)
         self.center()
         self.setFocus()
         #self.setAttribute(QtCore.Qt.WA_TranslucentBackground)#transparent
@@ -51,16 +52,113 @@ class Examples(QtGui.QWidget):
         alabel.setText("Copyright (c) 2011, Paul D. Nation & Robert J. Johansson")
         alabel.move(5, 580)
         #EXAMPLE BUTTONS-----------------
+        
+        #top row------------
         testqobj = QtGui.QPushButton('Test Qobj\n Algebra', self)
-        testqobj .setGeometry(300, 200, 100, 70)
+        testqobj .setGeometry(20, 100, 150, 80)
         testqobj .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('hello()'))
         
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
-        montetri .setGeometry(400, 200, 100, 70)
+        montetri .setGeometry(170, 100, 150, 80)
         montetri .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
         
+        montetri = QtGui.QPushButton('MC:\n trilinear', self)
+        montetri .setGeometry(320, 100, 150, 80)
+        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        
+        montetri = QtGui.QPushButton('MC:\n trilinear', self)
+        montetri .setGeometry(470, 100, 150, 80)
+        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        
+        montetri = QtGui.QPushButton('MC:\n trilinear', self)
+        montetri .setGeometry(620, 100, 150, 80)
+        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        
+        
+        #second row------------
+        testqobj = QtGui.QPushButton('Test Qobj\n Algebra', self)
+        testqobj .setGeometry(20, 200, 150, 80)
+        testqobj .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('hello()'))
+        
+        montetri = QtGui.QPushButton('MC:\n trilinear', self)
+        montetri .setGeometry(170, 200, 150, 80)
+        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        
+        montetri = QtGui.QPushButton('MC:\n trilinear', self)
+        montetri .setGeometry(320, 200, 150, 80)
+        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        
+        montetri = QtGui.QPushButton('MC:\n trilinear', self)
+        montetri .setGeometry(470, 200, 150, 80)
+        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        
+        montetri = QtGui.QPushButton('MC:\n trilinear', self)
+        montetri .setGeometry(620, 200, 150, 80)
+        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        
+        
+        #third row-------------
+        testqobj = QtGui.QPushButton('Test Qobj\n Algebra', self)
+        testqobj .setGeometry(20, 300, 150, 80)
+        testqobj .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('hello()'))
+        
+        montetri = QtGui.QPushButton('MC:\n trilinear', self)
+        montetri .setGeometry(170, 300, 150, 80)
+        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        
+        montetri = QtGui.QPushButton('MC:\n trilinear', self)
+        montetri .setGeometry(320, 300, 150, 80)
+        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        
+        montetri = QtGui.QPushButton('MC:\n trilinear', self)
+        montetri .setGeometry(470, 300, 150, 80)
+        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        
+        montetri = QtGui.QPushButton('MC:\n trilinear', self)
+        montetri .setGeometry(620, 300, 150, 80)
+        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        
+        
+        #forth row-------
+        testqobj = QtGui.QPushButton('Test Qobj\n Algebra', self)
+        testqobj .setGeometry(20, 400, 150, 80)
+        testqobj .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('hello()'))
+        
+        montetri = QtGui.QPushButton('Monte-Carlo:\n trilinear Hamilt.', self)
+        montetri .setGeometry(170, 400, 150, 80)
+        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        
+        montetri = QtGui.QPushButton('MC:\n trilinear', self)
+        montetri .setGeometry(320, 400, 150, 80)
+        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        
+        montetri = QtGui.QPushButton('MC:\n trilinear', self)
+        montetri .setGeometry(470, 400, 150, 80)
+        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        
+        montetri = QtGui.QPushButton('MC:\n trilinear', self)
+        montetri .setGeometry(620, 400, 150, 80)
+        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
         
         
         #QUIT BUTTON-----------------
@@ -68,17 +166,32 @@ class Examples(QtGui.QWidget):
         quit.setGeometry(670, 520, 100, 60)
         quit.setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(quit, QtCore.SIGNAL('clicked()'),QtGui.qApp, QtCore.SLOT('quit()'))
+    
     def center(self):
         screen = QtGui.QDesktopWidget().screenGeometry()
         size =  self.geometry()
         self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
-    def montetri(self):
+    def moveout(self):
+        for op in arange(0.9,-0.1,-0.1):
+            time.sleep(.02)
+            self.setWindowOpacity(op)
         self.setVisible(False)
+    def movein(self):
+        self.setVisible(True)
+        for op in arange(0.1,1.1,0.1):
+            time.sleep(.02)
+            self.setWindowOpacity(op)
+    def montetri(self):
+        self.moveout()
         print 'monte'
         time.sleep(1)
-        self.setVisible(True)
+        self.movein()
     def hello(self):
+        self.moveout()
         print 'hello'
+        self.movein()
+
+
 
 if __name__=="__main__":
     app = QtGui.QApplication(sys.argv)
