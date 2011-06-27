@@ -147,3 +147,26 @@ def num(N):
     '''
     data=sp.spdiags(arange(N),0,N,N,format='csr')
     return Qobj(data)
+
+
+def squeez(N,sp):
+    '''
+    Squeezing operator for Hilbert space of dimension N and sqeezing param. sp
+    input: N = size of hilbert space
+    input: sp squeezing parameter
+    output: Qobj
+    '''
+    a=destroy(N)
+    op=(1/2.0)*conj(sp)*(a**2)-(1/2.0)*sp*(a.dag())**2
+    return op.expm()
+
+
+
+
+
+
+
+
+
+
+
