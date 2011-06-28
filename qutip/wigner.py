@@ -23,89 +23,58 @@ import time
 from tensor import tensor
 from Qobj import *
 from ptrace import ptrace
-from basis import basis
+from states import *
 from istests import *
 
-
-
-def wigner(state,xvec,yvec,*args):
-    N=len(xvec)
-    dx=xvec[1]-xvec[0]
-    if la.norm(xvec-arange(-N/2.0,N/2.0)*dx)/la.norm(xvec)>1e-6:
-        raise TypeError('xvec should be of the form array(-N/2,N/2)')
-    if not any(args):
-        g=sqrt(2)
-    else:
-        g=args[0]
-
-    if isket(state):
-        wmat = wfunc1(state, xvec, yvec, g)
-    elif isoper(state):
-        v,d=eig(state.full())
-        #v=diag(v)
-        #d=diag(d)
-        wmat=0
-        kmax=state.shape[0]
-        for k in arange(1,kmax+1):
-            wmat1 = wfunc1(d[:,k], xvec, yvec, g)
-            wmat  = wmat+real(v[k]*wmat1)
-    else:
-        raise TypeError('Invalid operand for wigner')
-    return wmat
-
-
-def wfunc1(psi, xvec, yvec, *args):
-    if not any(args):
-        g=sqrt(2)
-    else:
-        g=args[0]
-    n=psi.shape[0]
-    psi=trans(psi)
-    S=oscfunc(n,xvec*g/sqrt(2))
-    xpsi=dot(psi.full(),S)
-    wigmat,p = wigner1(xpsi, xvec * g / sqrt(2), yvec * g / sqrt(2))
-    #yval=yval*sqrt(2)/g
-    wigmat=0.5*g**2*real(wigmat.T)
-    return wigmat
-
     
-def wigner1(psi,x,y):
-    n=2*psi.shape[1]
-    z1=hstack([array([[0]]),fliplr(psi.conj()),zeros([1,n/2-1])])
-    z2=hstack([array([[0]]),psi,zeros([1,n/2-1])])
-    w=la.toeplitz(zeros([n/2,1]),z1)*flipud(la.toeplitz(zeros([n/2,1]),z2))
-    w=hstack([w[:,n/2:n],w[:,0:n/2]])
-    w=fft(w)
-    w=real(hstack([w[:,3*n/4:n],w[:,0:n/4]]))
-    p=arange(-n/4,n/4)*pi/(n*(x[1]-x[0]))
-    w=w/(p[1]-p[0])/n
-    return w,p
-    
-    
-
-def oscfunc(N,x):
-    lx=len(x)
-    S=zeros([N,lx])
-    S[0,:]=exp(-x[:]**2/2.0)/pi**0.25
-    if N==1:
-        return S
-    else:            
-        S[1,:]=sqrt(2)*x[:]*S[0,:]
-        for k in arange(1,N-1):
-            S[k+1,:]=sqrt(2.0/(k+1))*x[:]*S[k,:]-sqrt(((k+1)-1.0)/(k+1))*S[k-1,:]
-        return S
-
+def wigner(psi,xvec,yvec,g=sqrt(2)):
+    """
+    Calculates the Wigner function for a given state vector
+    or density matrix.
+    """
+    if psi.type=='ket' or psi.type=='oper':
+        M=prod(psi.shape[0])
+    elif psi.type=='bra':
+        M=prod(psi.shape[1])
+    else:
+        raise TypeError('Input state is not a valid operator.')
+    X,Y = meshgrid(xvec, xvec)
+    amat = 0.5*g*(X + 1.0j*Y)
+    wmat=zeros(shape(amat))
+    Wlist=array([zeros(shape(amat),dtype=complex) for k in xrange(M)])
+    Wlist[0]=exp(-2.0*abs(amat)**2)/pi
+    if psi.type=='ket' or psi.type=='bra':
+        psi=ket2dm(psi)
+    wmat=real(psi[0,0])*real(Wlist[0])
+    for n in xrange(1,M):
+        Wlist[n]=(2.0*amat*Wlist[n-1])/sqrt(n)
+        wmat+= 2.0*real(psi[0,n]*Wlist[n])
+    for m in xrange(M-1):
+        temp=copy(Wlist[m+1])
+        Wlist[m+1]=(2.0*conj(amat)*temp-sqrt(m+1)*Wlist[m])/sqrt(m+1)
+        for n in xrange(m+1,M-1):
+            temp2=(2.0*amat*Wlist[n]-sqrt(m+1)*temp)/sqrt(n+1)
+            temp=copy(Wlist[n+1])
+            Wlist[n+1]=temp2
+        wmat+=real(psi[m+1,m+1]*Wlist[m+1])
+        for k in xrange(m+2,M):
+            wmat+=2.0*real(psi[m+1,k]*Wlist[k])
+    return 0.25*wmat*g**2
             
 #-------------------------------------------------------------------------------
 # Q FUNCTION
 #
 def qfunc(state, xvec, yvec, *args):
+    """
+    Calculates the Q-function for a given state vector
+    or density matrix
+    """
     if not any(args):
         g=sqrt(2)
     else:
         g=args[0]
 
-    X,Y = meshgrid(xvec, xvec)
+    X,Y = meshgrid(xvec, yvec)
     amat = 0.5*g*(X + Y * 1j);
 
     if isoper(state):
@@ -146,10 +115,6 @@ def qfunc1(psi, alpha_mat):
         psi = array(trans(psi).full())[0,:]
     else:
         psi = psi.T
-
-    #print "psi       = ", psi
-    #print "factorial = ", factorial(arange(0, n))
-    #print "coeff = ", fliplr([psi/sqrt(factorial(arange(0, n)))])[0]
 
     qmat1 = abs(polyval(fliplr([psi/sqrt(factorial(arange(0, n)))])[0], conjugate(alpha_mat))) ** 2;
     qmat1 = real(qmat1) * exp(-abs(alpha_mat)**2) / pi;
