@@ -38,6 +38,7 @@
 #
 
 import os,sys,multiprocessing
+
 #automatically set number of threads used by MKL
 os.environ['MKL_NUM_THREADS']=str(multiprocessing.cpu_count())
 
@@ -90,7 +91,8 @@ from about import *
 from Bloch import Bloch
 from correlation import *
 from eseries import *
-from examples import examples
+from demos import *
+import examples
 from expect import *
 from gates import *
 from istests import *
