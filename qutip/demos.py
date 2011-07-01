@@ -18,9 +18,11 @@
 ###########################################################################
 import sys,os
 import examples
+from examples import exconfig
+from scipy import arange,array,any
 def demos():
     if os.environ['QUTIP_GRAPHICS']=='YES':
-        from gui import Examples,exconfig
+        from gui import Examples
         if os.environ['QUTIP_GUI']=="PYSIDE":
             from PySide import QtGui, QtCore
         elif os.environ['QUTIP_GUI']=="PYQT4":
@@ -33,15 +35,65 @@ def demos():
             gui.show()
             gui.raise_()
             app.exec_()
-        while exconfig.option<123456:
-            exconfig.option=123456
+    else:
+        opts=array([123456,11,12,13,14,15,21,22,23,24,25,31,32,33,34,35,41,42,43,44,45])
+        lopts=arange(len(opts))
+    while exconfig.option<123456:
+        exconfig.option=123456
+        if os.environ['QUTIP_GRAPHICS']=='YES':
             start_gui()
-            if exconfig.option==1:
-                examples.qobjbasics()
-            elif exconfig.option==2:
-                examples.wignercat()
-            elif exconfig.option==5:
-                examples.trilinearmc()
+        else:
+            if sys.stdout.isatty():
+                print '\nQuTiP Example Scripts:'
+                print '-----------------------'
+                print '[1]  Basic Obj operations'
+                print '[2]  Operator usage examples'
+                print '[3]  Tensor / partial trace usage'
+                print '[4]  Wigner distribution of Schrodinger cat-state'
+                print '[5]  Squeezed state'
+                print '[6]  None'
+                print '[7]  None'
+                print '[8]  None'
+                print '[9]  None'
+                print '[10] None'
+                print '[11] None'
+                print '[12] None'
+                print '[13] None'
+                print '[14] None'
+                print '[15] None'
+                print '[16] None'
+                print '[17] None'
+                print '[18] None'
+                print '[19] None'
+                print '[20] None'
+                print '[0]  Exit...'
+                wflag=0
+                while wflag<3:
+                    userinpt=raw_input("\nPick an example to run:")
+                    try:
+                        userinpt=int(userinpt)
+                    except:
+                        print 'Invalid choice.  Please pick again.'
+                        wflag+=1
+                    else:
+                        if any(userinpt==lopts):
+                            exconfig.option=opts[userinpt]
+                            break
+                        else:
+                            print 'Invalid choice.  Please pick again.'
+                            wflag+=1
+                if wflag==3:
+                    print ('\nThird time was not a charm in your case.')
+                    print('It seems you cannot pick a valid option...\n')
+                    return
+            else:
+                raise TypeError('Demos must be run from the terminal if no GUI is avaliable.')
+        if exconfig.option==11:
+            examples.qobjbasics()
+        elif exconfig.option==14:
+            examples.wignercat()
+        elif exconfig.option==42:
+            examples.trilinearmc()
             
             
             
