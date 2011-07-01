@@ -17,9 +17,9 @@
 #
 ###########################################################################
 from .. import examples
-import sys,os,time,subprocess,exconfig
+import sys,os,time
 from numpy import arange
-
+from ..examples import exconfig
 if os.environ['QUTIP_GUI']=="PYSIDE":
     from PySide import QtGui, QtCore
 
@@ -44,17 +44,30 @@ class Examples(QtGui.QWidget):
         tlabel = QtGui.QLabel(self)
         tlabel.setStyleSheet("QLabel {font-weight: bold;font-size: 20px;}")
         tlabel.setText("QuTiP Example Scripts:")
-        tlabel.move(280, 20)
+        tlabel.move(280, 10)
         #
         utext = QtGui.QLabel(self)
         utext.setStyleSheet("QLabel {font-weight: bold;font-size: 14px;}")
         utext.setText("Click on the link to view the webpage associated with each script.")
-        utext.move(150, 50)
+        utext.move(150, 40)
+        #
+        u2text = QtGui.QLabel(self)
+        u2text.setStyleSheet("QLabel {font-weight: bold;font-size: 12px;}")
+        u2text.setOpenExternalLinks(True)
+        u2text.setText("A growing list of examples may be found at the QuTip homepage: "+"<a href=http://code.google.com/p/qutip/wiki/Examples>QuTip Examples</a>")
+        u2text.move(130, 65)
         #
         alabel = QtGui.QLabel(self)
         alabel.setStyleSheet("QLabel {font-weight: bold;font-size: 10px;}")
         alabel.setText("Copyright (c) 2011, Paul D. Nation & Robert J. Johansson")
         alabel.move(5, 630)
+        
+        #QUIT BUTTON-----------------
+        quit = QtGui.QPushButton('Close', self)
+        quit.setGeometry(670, 570, 100, 60)
+        quit.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(quit, QtCore.SIGNAL('clicked()'),QtGui.qApp, QtCore.SLOT('quit()'))
+        
         #-----EXAMPLE BUTTONS-----------------
         
         #ROW 1 ################################
@@ -64,7 +77,7 @@ class Examples(QtGui.QWidget):
         testqobj = QtGui.QPushButton('Test Qobj\n operations', self)
         testqobj .setGeometry(x, y, 150, 80)
         testqobj .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('qobjbasics()'))
+        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button11()'))
         testqobjlabel = QtGui.QLabel(self)
         testqobjlabel.setOpenExternalLinks(True)
         testqobjlabel.setText("<a href=http://code.google.com/p/qutip>TestQobj</a>")
@@ -74,7 +87,7 @@ class Examples(QtGui.QWidget):
         wigcat = QtGui.QPushButton('Wigner function:\nSchr. cat state', self)
         wigcat.setGeometry(x, y, 150, 80)
         wigcat.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(wigcat, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('wignercat()'))
+        self.connect(wigcat, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button12()'))
         wigcatlabel = QtGui.QLabel(self)
         wigcatlabel.setOpenExternalLinks(True)
         wigcatlabel.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesSchCatDist>SchCatDist</a>")
@@ -84,19 +97,19 @@ class Examples(QtGui.QWidget):
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
         montetri.setGeometry(x, y, 150, 80)
         montetri.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button13()'))
         #column 4
         x=470
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
         montetri.setGeometry(x, y, 150, 80)
         montetri.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button14()'))
         #column 5
         x=620
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
         montetri.setGeometry(x, y, 150, 80)
         montetri.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button15()'))
         ###################################
         
         #ROW 2 ############################
@@ -106,31 +119,31 @@ class Examples(QtGui.QWidget):
         testqobj = QtGui.QPushButton('Test Qobj\n Algebra', self)
         testqobj.setGeometry(x,y, 150, 80)
         testqobj.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('hello()'))
+        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button21()'))
         #COLUMN 2
         x=170
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
         montetri .setGeometry(x,y, 150, 80)
         montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button22()'))
         #COLUMN 3
         x=320
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
         montetri .setGeometry(x,y, 150, 80)
         montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button23()'))
         #column 4
         x=470
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
         montetri .setGeometry(x,y, 150, 80)
         montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button24()'))
         #column 5
         x=620
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
         montetri .setGeometry(x,y, 150, 80)
         montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button25()'))
         ######################################
         
         
@@ -141,31 +154,31 @@ class Examples(QtGui.QWidget):
         testqobj = QtGui.QPushButton('Test Qobj\n Algebra', self)
         testqobj .setGeometry(x,y, 150, 80)
         testqobj .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('hello()'))
+        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button31()'))
         #COLUMN 2
         x=170
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
         montetri .setGeometry(x,y, 150, 80)
         montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button32()'))
         #COLUMN 3
         x=320
-        montetri = QtGui.QPushButton('MC:\n trilinear', self)
+        montetri = QtGui.QPushButton('Heisenberg\n spin chain (N=4)', self)
         montetri .setGeometry(x,y, 150, 80)
         montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button33()'))
         #column 4
         x=470
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
         montetri .setGeometry(x,y, 150, 80)
         montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button34()'))
         #column 5
         x=620
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
         montetri .setGeometry(x,y, 150, 80)
         montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button35()'))
         ####################################
         
         
@@ -176,39 +189,32 @@ class Examples(QtGui.QWidget):
         testqobj = QtGui.QPushButton('Test Qobj\n Algebra', self)
         testqobj .setGeometry(x,y, 150, 80)
         testqobj .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('hello()'))
+        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button41()'))
         #COLUMN 2
         x=170
         montetri = QtGui.QPushButton('Monte-Carlo:\n trilinear Hamilt.', self)
         montetri .setGeometry(x,y, 150, 80)
         montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('trilinearmc()'))
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button42()'))
         #COLUMN 3
         x=320
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
         montetri .setGeometry(x,y, 150, 80)
         montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button43()'))
         #column 4
         x=470
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
         montetri .setGeometry(x,y, 150, 80)
         montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button44()'))
         #column 5
         x=620
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
         montetri .setGeometry(x,y, 150, 80)
         montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('montetri()'))
+        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button45()'))
         ###############################
-        
-        #QUIT BUTTON-----------------
-        quit = QtGui.QPushButton('Close', self)
-        quit.setGeometry(670, 570, 100, 60)
-        quit.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(quit, QtCore.SIGNAL('clicked()'),QtGui.qApp, QtCore.SLOT('quit()'))
-    
     def center(self):
         screen = QtGui.QDesktopWidget().screenGeometry()
         size =  self.geometry()
@@ -224,19 +230,92 @@ class Examples(QtGui.QWidget):
         self.setVisible(True)
         for op in arange(0.1,1.1,0.1):
             time.sleep(.02)
-            self.setWindowOpacity(op)
-    def trilinearmc(self):
+            self.setWindowOpacity(op)    
+    #first row button pressed
+    def button11(self):
         self.moveout()
-        exconfig.option=5
+        exconfig.option=11
         self.close()
-    def qobjbasics(self):
+    def button12(self):
         self.moveout()
-        exconfig.option=1
+        exconfig.option=12
         self.close()
-    def wignercat(self):
+    def button13(self):
         self.moveout()
-        exconfig.option=2
+        exconfig.option=13
         self.close()
+    def button14(self):
+        self.moveout()
+        exconfig.option=14
+        self.close()
+    def button15(self):
+        self.moveout()
+        exconfig.option=15
+        self.close()
+    #second row button pressed
+    def button21(self):
+        self.moveout()
+        exconfig.option=21
+        self.close()
+    def button22(self):
+        self.moveout()
+        exconfig.option=22
+        self.close()
+    def button23(self):
+        self.moveout()
+        exconfig.option=23
+        self.close()
+    def button24(self):
+        self.moveout()
+        exconfig.option=24
+        self.close()
+    def button25(self):
+        self.moveout()
+        exconfig.option=25
+        self.close()
+    #third row button pressed
+    def button31(self):
+        self.moveout()
+        exconfig.option=31
+        self.close()
+    def button32(self):
+        self.moveout()
+        exconfig.option=32
+        self.close()
+    def button33(self):
+        self.moveout()
+        exconfig.option=33
+        self.close()
+    def button34(self):
+        self.moveout()
+        exconfig.option=34
+        self.close()
+    def button35(self):
+        self.moveout()
+        exconfig.option=35
+        self.close()
+    #forth row button pressed
+    def button41(self):
+        self.moveout()
+        exconfig.option=41
+        self.close()
+    def button42(self):
+        self.moveout()
+        exconfig.option=42
+        self.close()
+    def button43(self):
+        self.moveout()
+        exconfig.option=43
+        self.close()
+    def button44(self):
+        self.moveout()
+        exconfig.option=44
+        self.close()
+    def button45(self):
+        self.moveout()
+        exconfig.option=45
+        self.close()
+    
 
 
 
