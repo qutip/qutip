@@ -31,7 +31,7 @@ class Examples(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         #WINDOW PROPERTIES
         self.setWindowTitle('QuTiP Examples')
-        self.resize(790, 600)
+        self.resize(790, 650)
         self.center()
         self.setFocus()
         #self.setAttribute(QtCore.Qt.WA_TranslucentBackground)#transparent
@@ -48,13 +48,13 @@ class Examples(QtGui.QWidget):
         #
         utext = QtGui.QLabel(self)
         utext.setStyleSheet("QLabel {font-weight: bold;font-size: 14px;}")
-        utext.setText("Click on the links to view the webpage associated with each script.")
+        utext.setText("Click on the link to view the webpage associated with each script.")
         utext.move(150, 50)
         #
         alabel = QtGui.QLabel(self)
         alabel.setStyleSheet("QLabel {font-weight: bold;font-size: 10px;}")
         alabel.setText("Copyright (c) 2011, Paul D. Nation & Robert J. Johansson")
-        alabel.move(5, 580)
+        alabel.move(5, 630)
         #-----EXAMPLE BUTTONS-----------------
         
         #ROW 1 ################################
@@ -68,7 +68,7 @@ class Examples(QtGui.QWidget):
         testqobjlabel = QtGui.QLabel(self)
         testqobjlabel.setOpenExternalLinks(True)
         testqobjlabel.setText("<a href=http://code.google.com/p/qutip>TestQobj</a>")
-        testqobjlabel.move(65, 175)
+        testqobjlabel.move(65, 190)
         #COLUMN 2
         x=170
         wigcat = QtGui.QPushButton('Wigner function:\nSchr. cat state', self)
@@ -78,7 +78,7 @@ class Examples(QtGui.QWidget):
         wigcatlabel = QtGui.QLabel(self)
         wigcatlabel.setOpenExternalLinks(True)
         wigcatlabel.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesSchCatDist>SchCatDist</a>")
-        wigcatlabel.move(215, 175)
+        wigcatlabel.move(215, 190)
         #COLUMN 3
         x=320
         montetri = QtGui.QPushButton('MC:\n trilinear', self)
@@ -100,7 +100,7 @@ class Examples(QtGui.QWidget):
         ###################################
         
         #ROW 2 ############################
-        y=200
+        y=220
         #COLUMN 1
         x=20
         testqobj = QtGui.QPushButton('Test Qobj\n Algebra', self)
@@ -135,7 +135,7 @@ class Examples(QtGui.QWidget):
         
         
         #ROW 3 ###############################
-        y=300
+        y=340
         #COLUMN 1
         x=20
         testqobj = QtGui.QPushButton('Test Qobj\n Algebra', self)
@@ -170,7 +170,7 @@ class Examples(QtGui.QWidget):
         
         
         #ROW 4 #########################
-        y=400
+        y=460
         #COLUMN 1
         x=20
         testqobj = QtGui.QPushButton('Test Qobj\n Algebra', self)
@@ -205,7 +205,7 @@ class Examples(QtGui.QWidget):
         
         #QUIT BUTTON-----------------
         quit = QtGui.QPushButton('Close', self)
-        quit.setGeometry(670, 520, 100, 60)
+        quit.setGeometry(670, 570, 100, 60)
         quit.setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(quit, QtCore.SIGNAL('clicked()'),QtGui.qApp, QtCore.SLOT('quit()'))
     
