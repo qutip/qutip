@@ -138,7 +138,7 @@ class MC_class():
         self.collapse_times_out[r]=results[2]
         self.which_op_out[r]=results[3]
         self.count+=self.step
-        if os.environ['QUTIP_GUI']=="NONE":
+        if os.environ['QUTIP_GRAPHICS']=="NO" or os.environ['QUTIP_GUI']=="NONE":
             self.percent=self.count/(1.0*self.ntraj)
             if self.count/float(self.ntraj)>=self.level:
                 print str(floor(self.count/float(self.ntraj)*100))+'%  ('+str(self.count)+'/'+str(self.ntraj)+')'
@@ -162,7 +162,7 @@ class MC_class():
                 self.expect_out=no_collapse_expect_out(self.options,self.Hdata,self.psi_in,self.times,self.expect_ops,self.num_expect,self.num_times,self.psi_dims,self.psi_shape,self.expect_out,self.isher)
         elif self.num_collapse!=0:
             args=(self.options,self.Hdata,self.psi_in,self.times,self.num_times,self.num_collapse,self.collapse_ops_data,self.norm_collapse_data,self.num_expect,self.expect_ops,self.isher)
-            if os.environ['QUTIP_GUI']=="NONE":
+            if os.environ['QUTIP_GRAPHICS']=="NO" or os.environ['QUTIP_GUI']=="NONE":
                 print 'Starting Monte-Carlo:'
                 self.parallel(args,self)
             else:
