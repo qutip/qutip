@@ -1,4 +1,6 @@
 from ..Qobj import *
+from ..istests import *
+from ..states import *
 from scipy import arange,prod,factorial,zeros,meshgrid
 
 def qobjbasics():
@@ -55,7 +57,7 @@ def qobjbasics():
 
 
 if __name__=='main()':
-    wignercat()
+    qobjbasics()
 
 
 

@@ -61,10 +61,10 @@ class Examples(QtGui.QWidget):
         y=100
         #COLUMN 1
         x=20
-        testqobj = QtGui.QPushButton('Test Qobj\n Algebra', self)
+        testqobj = QtGui.QPushButton('Test Qobj\n operations', self)
         testqobj .setGeometry(x, y, 150, 80)
         testqobj .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('hello()'))
+        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('qobjbasics()'))
         testqobjlabel = QtGui.QLabel(self)
         testqobjlabel.setOpenExternalLinks(True)
         testqobjlabel.setText("<a href=http://code.google.com/p/qutip>TestQobj</a>")
@@ -229,11 +229,10 @@ class Examples(QtGui.QWidget):
         self.moveout()
         exconfig.option=5
         self.close()
-    def hello(self):
+    def qobjbasics(self):
         self.moveout()
-        print 'monte'
-        time.sleep(1)
-        self.movein()
+        exconfig.option=1
+        self.close()
     def wignercat(self):
         self.moveout()
         exconfig.option=2
