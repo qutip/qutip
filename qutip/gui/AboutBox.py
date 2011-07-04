@@ -41,13 +41,13 @@ class AboutBox(QtGui.QWidget):
         #self.setWindowFlags(Qt.Popup)#no titlebar
         #IMAGES--------------------
         logo=QtGui.QLabel(self)
-        logo.setGeometry(100, 0, 200, 163)
+        logo.setGeometry(110, 00, 200, 163)
         logo.setPixmap(QtGui.QPixmap(CD_BASE + "/logo.png"))
         #TEXT--------------------
         tlabel = QtGui.QLabel(self)
         tlabel.setStyleSheet("QLabel {font-weight: bold;font-size: 18px;}")
         tlabel.setText("QuTiP: The Quantum Toolbox in Python")
-        tlabel.move(15, 170)
+        tlabel.move(30, 170)
         #
         label = QtGui.QLabel(self)
         label.setStyleSheet("QLabel {font-weight: bold;font-size: 12px;}")
@@ -60,13 +60,13 @@ class AboutBox(QtGui.QWidget):
         alabel = QtGui.QLabel(self)
         alabel.setStyleSheet("QLabel {font-weight: bold;font-size: 12px;}")
         alabel.setText("Copyright (c) 2011, Paul D. Nation & Robert J. Johansson")
-        alabel.move(25, 300)
+        alabel.move(30, 300)
         #
         clabel = QtGui.QLabel(self)
         clabel.setStyleSheet("QLabel {font-weight: bold;font-size: 12px;}")
         clabel.setText("QuTiP is released under the GPL3.\n"
                         +"See the enclosed COPYING.txt\nfile for more information.")
-        clabel.move(25, 330)
+        clabel.move(30, 330)
         #BUTTONS-----------------
         quit = QtGui.QPushButton('Close', self)
         quit.setGeometry(340, 400, 80, 40)
