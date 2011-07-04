@@ -104,7 +104,7 @@ setup(
     keywords = "quantum physics dynamics",
     url = "http://code.google.com/p/qutip/",
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
-    platforms = ["Linux", "Mac OS-X", "Unix", "Windows"],
+    platforms = ["Linux", "Mac OSX", "Unix", "Windows"],
     install_requires=['numpy','scipy','matplotlib'],
     include_package_data=True 
     )
