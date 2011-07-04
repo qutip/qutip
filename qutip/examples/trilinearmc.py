@@ -1,16 +1,36 @@
+#This file is part of QuTiP.
+#
+#    QuTIP is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#    QuTIP is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+#
+###########################################################################
 from ..states import *
 from ..operators import *
 from ..mcsolve import *
 from ..tensor import *
 from scipy import *
 from pylab import *
+from termpause import termpause
 import time
-
 def trilinearmc():
+    print 'Calculates the excitation number expectation values'
+    print 'for the three-modes of the trilinear Hamiltonian'
+    print 'subject to damping, using the Monte-Carlo method'
+    termpause()
     #number of states for each mode
-    N0=9
-    N1=9
-    N2=9
+    N0=N1=N2=9
     K=1.0
     #damping rates
     gamma0=0.1

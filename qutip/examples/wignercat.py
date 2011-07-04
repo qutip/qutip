@@ -1,9 +1,27 @@
+#This file is part of QuTiP.
+#
+#    QuTIP is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#   (at your option) any later version.
+#
+#    QuTIP is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+#
+###########################################################################
 from ..states import *
 from ..wigner import *
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from pylab import *
-import sys
+from termpause import termpause
 
 def wignercat():
     print ''
@@ -12,9 +30,7 @@ def wignercat():
     print 'superposition of coherent states'
     print '|psi> = (|alpha> + |beta>)/sqrt(2) '
     print 'where alpha = -2-2j and beta = 2+2j.'
-    if sys.stdout.isatty():
-        uinpt=raw_input("\nPress any key to continue...\n")
-    else: print ''
+    termpause()
     print 'N = 20\npsi=(coherent(N,-2-2j)+coherent(N,2+2j)).unit()\nxvec = linspace(-5.,5.,100)'
     print 'yvec = xvec\nX,Y = meshgrid(xvec, yvec)\nW = wigner(psi,xvec,xvec)'
     N = 20;
@@ -24,9 +40,7 @@ def wignercat():
     yvec = xvec
     X,Y = meshgrid(xvec, yvec)
     W = wigner(psi,xvec,xvec);
-    if sys.stdout.isatty():
-        uinpt=raw_input("\nPress any key to continue...\n")
-    else: print ''
+    termpause()
     print 'fig = plt.figure(figsize=(9, 6))\nax = Axes3D(fig,azim=-107,elev=49)'
     print 'surf=ax.plot_surface(X, Y, W, rstride=1, cstride=1, cmap=cm.jet, alpha=1.0,linewidth=0.05)'
     print 'fig.colorbar(surf, shrink=0.65, aspect=20)\nshow()'
