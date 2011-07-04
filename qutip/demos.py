@@ -1,4 +1,4 @@
-#This file is part of QuTIP.
+#This file is part of QuTiP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -58,7 +58,7 @@ def demos():
                 print '[10] None'
                 print '[11] None'
                 print '[12] None'
-                print '[13] None'
+                print '[13] Heisenberg spin-chain (N=4)'
                 print '[14] None'
                 print '[15] None'
                 print '[16] None'
@@ -90,10 +90,44 @@ def demos():
                 raise TypeError('Demos must be run from the terminal if no GUI is avaliable.')
         if exconfig.option==11:
             examples.qobjbasics()
+        elif exconfig.option==12:
+            pass
+        elif exconfig.option==13:
+            pass
         elif exconfig.option==14:
             examples.wignercat()
+        elif exconfig.option==15:
+            pass
+        elif exconfig.option==21:
+            pass
+        elif exconfig.option==22:
+            pass
+        elif exconfig.option==23:
+            pass
+        elif exconfig.option==24:
+            pass
+        elif exconfig.option==25:
+            pass
+        elif exconfig.option==31:
+            pass
+        elif exconfig.option==32:
+            pass
+        elif exconfig.option==33:
+            examples.spinchain()
+        elif exconfig.option==34:
+            pass
+        elif exconfig.option==35:
+            pass
+        elif exconfig.option==41:
+            pass
         elif exconfig.option==42:
-            examples.trilinearmc()
+            examples.trilinearmc()   
+        elif exconfig.option==43:
+            pass
+        elif exconfig.option==44:
+            pass
+        elif exconfig.option==45:
+            pass
             
             
             
