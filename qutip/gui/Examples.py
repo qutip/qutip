@@ -54,7 +54,7 @@ class Examples(QtGui.QWidget):
         u2text = QtGui.QLabel(self)
         u2text.setStyleSheet("QLabel {font-weight: bold;font-size: 12px;}")
         u2text.setOpenExternalLinks(True)
-        u2text.setText("A growing list of examples may be found at the QuTip homepage: "+"<a href=http://code.google.com/p/qutip/wiki/Examples>QuTip Examples</a>")
+        u2text.setText("A growing list of examples may be found at the QuTiP homepage: "+"<a href=http://code.google.com/p/qutip/wiki/Examples>QuTip Examples</a>")
         u2text.move(130, 65)
         #
         alabel = QtGui.QLabel(self)
@@ -74,76 +74,76 @@ class Examples(QtGui.QWidget):
         y=100
         #COLUMN 1
         x=20
-        testqobj = QtGui.QPushButton('Test Qobj\n operations', self)
-        testqobj .setGeometry(x, y, 150, 80)
-        testqobj .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button11()'))
-        testqobjlabel = QtGui.QLabel(self)
-        testqobjlabel.setOpenExternalLinks(True)
-        testqobjlabel.setText("<a href=http://code.google.com/p/qutip>TestQobj</a>")
-        testqobjlabel.move(65, 190)
+        b11=QtGui.QPushButton('Test Qobj\n operations', self)
+        b11.setGeometry(x, y, 150, 80)
+        b11.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b11, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button11()'))
+        b11label = QtGui.QLabel(self)
+        b11label.setOpenExternalLinks(True)
+        b11label.setText("<a href=http://code.google.com/p/qutip>TestQobj</a>")
+        b11label.move(65, 190)
         #COLUMN 2
         x=170
-        wigcat = QtGui.QPushButton('Wigner function:\nSchr. cat state', self)
-        wigcat.setGeometry(x, y, 150, 80)
-        wigcat.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(wigcat, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button12()'))
-        wigcatlabel = QtGui.QLabel(self)
-        wigcatlabel.setOpenExternalLinks(True)
-        wigcatlabel.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesSchCatDist>SchCatDist</a>")
-        wigcatlabel.move(215, 190)
+        b12 = QtGui.QPushButton('Wigner function:\nSchr. cat state', self)
+        b12.setGeometry(x, y, 150, 80)
+        b12.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b12, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button12()'))
+        b12label = QtGui.QLabel(self)
+        b12label.setOpenExternalLinks(True)
+        b12label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesSchCatDist>SchCatDist</a>")
+        b12label.move(215, 190)
         #COLUMN 3
         x=320
-        montetri = QtGui.QPushButton('MC:\n trilinear', self)
-        montetri.setGeometry(x, y, 150, 80)
-        montetri.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button13()'))
+        b13 = QtGui.QPushButton('', self)
+        b13.setGeometry(x, y, 150, 80)
+        b13.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b13, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button13()'))
         #column 4
         x=470
-        montetri = QtGui.QPushButton('MC:\n trilinear', self)
-        montetri.setGeometry(x, y, 150, 80)
-        montetri.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button14()'))
+        b14 = QtGui.QPushButton('', self)
+        b14.setGeometry(x, y, 150, 80)
+        b14.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b14, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button14()'))
         #column 5
         x=620
-        montetri = QtGui.QPushButton('MC:\n trilinear', self)
-        montetri.setGeometry(x, y, 150, 80)
-        montetri.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button15()'))
+        b15 = QtGui.QPushButton('', self)
+        b15.setGeometry(x, y, 150, 80)
+        b15.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b15, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button15()'))
         ###################################
         
         #ROW 2 ############################
         y=220
         #COLUMN 1
         x=20
-        testqobj = QtGui.QPushButton('Test Qobj\n Algebra', self)
-        testqobj.setGeometry(x,y, 150, 80)
-        testqobj.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button21()'))
+        b21 = QtGui.QPushButton('', self)
+        b21.setGeometry(x,y, 150, 80)
+        b21.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b21, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button21()'))
         #COLUMN 2
         x=170
-        montetri = QtGui.QPushButton('MC:\n trilinear', self)
-        montetri .setGeometry(x,y, 150, 80)
-        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button22()'))
+        b22 = QtGui.QPushButton('', self)
+        b22 .setGeometry(x,y, 150, 80)
+        b22 .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b22, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button22()'))
         #COLUMN 3
         x=320
-        montetri = QtGui.QPushButton('MC:\n trilinear', self)
-        montetri .setGeometry(x,y, 150, 80)
-        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button23()'))
+        b23 = QtGui.QPushButton('', self)
+        b23 .setGeometry(x,y, 150, 80)
+        b23 .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b23, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button23()'))
         #column 4
         x=470
-        montetri = QtGui.QPushButton('MC:\n trilinear', self)
-        montetri .setGeometry(x,y, 150, 80)
-        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button24()'))
+        b24 = QtGui.QPushButton('', self)
+        b24 .setGeometry(x,y, 150, 80)
+        b24 .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b24, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button24()'))
         #column 5
         x=620
-        montetri = QtGui.QPushButton('MC:\n trilinear', self)
-        montetri .setGeometry(x,y, 150, 80)
-        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button25()'))
+        b25 = QtGui.QPushButton('', self)
+        b25 .setGeometry(x,y, 150, 80)
+        b25 .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b25, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button25()'))
         ######################################
         
         
@@ -151,34 +151,34 @@ class Examples(QtGui.QWidget):
         y=340
         #COLUMN 1
         x=20
-        testqobj = QtGui.QPushButton('Test Qobj\n Algebra', self)
-        testqobj .setGeometry(x,y, 150, 80)
-        testqobj .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button31()'))
+        b31 = QtGui.QPushButton('', self)
+        b31 .setGeometry(x,y, 150, 80)
+        b31 .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b31, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button31()'))
         #COLUMN 2
         x=170
-        montetri = QtGui.QPushButton('MC:\n trilinear', self)
-        montetri .setGeometry(x,y, 150, 80)
-        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button32()'))
+        b32 = QtGui.QPushButton('', self)
+        b32 .setGeometry(x,y, 150, 80)
+        b32 .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b32, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button32()'))
         #COLUMN 3
         x=320
-        montetri = QtGui.QPushButton('Heisenberg\n spin chain (N=4)', self)
-        montetri .setGeometry(x,y, 150, 80)
-        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button33()'))
+        b33 = QtGui.QPushButton('Heisenberg\n spin chain (N=4)', self)
+        b33 .setGeometry(x,y, 150, 80)
+        b33 .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b33, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button33()'))
         #column 4
         x=470
-        montetri = QtGui.QPushButton('MC:\n trilinear', self)
-        montetri .setGeometry(x,y, 150, 80)
-        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button34()'))
+        b34 = QtGui.QPushButton('', self)
+        b34 .setGeometry(x,y, 150, 80)
+        b34 .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b34, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button34()'))
         #column 5
         x=620
-        montetri = QtGui.QPushButton('MC:\n trilinear', self)
-        montetri .setGeometry(x,y, 150, 80)
-        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button35()'))
+        b35 = QtGui.QPushButton('', self)
+        b35 .setGeometry(x,y, 150, 80)
+        b35 .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b35, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button35()'))
         ####################################
         
         
@@ -186,34 +186,34 @@ class Examples(QtGui.QWidget):
         y=460
         #COLUMN 1
         x=20
-        testqobj = QtGui.QPushButton('Test Qobj\n Algebra', self)
-        testqobj .setGeometry(x,y, 150, 80)
-        testqobj .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(testqobj, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button41()'))
+        b41 = QtGui.QPushButton('', self)
+        b41 .setGeometry(x,y, 150, 80)
+        b41 .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b41, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button41()'))
         #COLUMN 2
         x=170
-        montetri = QtGui.QPushButton('Monte-Carlo:\n trilinear Hamilt.', self)
-        montetri .setGeometry(x,y, 150, 80)
-        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button42()'))
+        b42 = QtGui.QPushButton('Monte-Carlo:\n trilinear Hamilt.', self)
+        b42 .setGeometry(x,y, 150, 80)
+        b42 .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b42, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button42()'))
         #COLUMN 3
         x=320
-        montetri = QtGui.QPushButton('MC:\n trilinear', self)
-        montetri .setGeometry(x,y, 150, 80)
-        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button43()'))
+        b43 = QtGui.QPushButton('', self)
+        b43 .setGeometry(x,y, 150, 80)
+        b43 .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b43, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button43()'))
         #column 4
         x=470
-        montetri = QtGui.QPushButton('MC:\n trilinear', self)
-        montetri .setGeometry(x,y, 150, 80)
-        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button44()'))
+        b44 = QtGui.QPushButton('', self)
+        b44 .setGeometry(x,y, 150, 80)
+        b44 .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b44, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button44()'))
         #column 5
         x=620
-        montetri = QtGui.QPushButton('MC:\n trilinear', self)
-        montetri .setGeometry(x,y, 150, 80)
-        montetri .setFocusPolicy(QtCore.Qt.NoFocus)
-        self.connect(montetri, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button45()'))
+        b45 = QtGui.QPushButton('', self)
+        b45 .setGeometry(x,y, 150, 80)
+        b45 .setFocusPolicy(QtCore.Qt.NoFocus)
+        self.connect(b45, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button45()'))
         ###############################
     def center(self):
         screen = QtGui.QDesktopWidget().screenGeometry()
