@@ -34,7 +34,7 @@ def about():
     #GUI version requires PySide or PyQt4.
     #@brief About box for qutip
     tk_conify_center()
-    if os.environ['QUTIP_GRAPHICS']=='YES':
+    if os.environ['QUTIP_GRAPHICS']=='YES' and os.environ['QUTIP_GUI']!="NONE":
         from gui import AboutBox
         import matplotlib
         if os.environ['QUTIP_GUI']=="PYSIDE":
@@ -54,10 +54,10 @@ def about():
         
     else:
         import matplotlib
-        print "QuTIP: The Quantum Optics Toolbox in Python"
+        print "QuTiP: The Quantum Toolbox in Python"
         print "Copyright (c) 2011"
         print "Paul D. Nation & Robert J. Johansson"
-        print "QuTIP Version:  "+version
+        print "QuTiP Version:  "+version
         print "Numpy Version:  "+numpy.__version__
         print "Scipy Version:  "+scipy.__version__
         print "Matplotlib Version:  "+matplotlib.__version__
