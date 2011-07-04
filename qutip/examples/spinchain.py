@@ -133,7 +133,7 @@ def spinchain():
 
     print '\nPlot the results....'
     termpause()
-    print "rc('font', family='arial')"
+    print "rc('font', family='Bitstream Vera Sans')"
     print "for n in xrange(N):"
     print "  plot(tlist, real(sz_expt[n,:]), label=r'$\langle\sigma_z($'+str(n)+r'$)\rangle$')"
     print "xlabel(r'Time [ns]',fontsize=14)"
@@ -142,7 +142,7 @@ def spinchain():
     print "legend(loc = 'lower right')"
     print "show()"
     
-    rc('font', family='arial')
+    rc('font', family='Bitstream Vera Sans')
     for n in xrange(N):
         plot(tlist, real(sz_expt[n,:]), label=r'$\langle\sigma_z($'+str(n)+r'$)\rangle$',lw=2)
     xlabel(r'Time [ns]',fontsize=14)
