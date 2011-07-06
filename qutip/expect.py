@@ -43,7 +43,7 @@ def expect(oper,state):
                 tr=0.0j
                 for j in xrange(num):
                     tr+=prod[j,j]
-                if oper.isherm:
+                if oper.isherm and state.isherm:
                     return float(real(tr))
                 else:
                     return tr
