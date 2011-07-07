@@ -170,7 +170,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
     """!
     @brief Evolve the density matrix using an ODE solver
     """
-    n_op      = len(c_op_list)
+    n_op= len(c_op_list)
 
     if isinstance(H, FunctionType):
         return me_ode_solve_td(H, rho0, tlist, c_op_list, expt_op_list, H_args)
@@ -197,7 +197,12 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
     if n_expt_op == 0:
         result_list = [Qobj() for k in xrange(n_tsteps)]
     else:
-        result_list = zeros([n_expt_op, n_tsteps], dtype=complex)
+        result_list=[]
+        for op in expt_op_list:
+            if op.isherm:
+                result_list.append(zeros(n_tsteps))
+            else:
+                result_list.append(zeros(n_tsteps),dtype=complex)
 
     #
     # construct liouvillian
@@ -230,7 +235,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
             result_list[t_idx] = Qobj(rho) # copy rho
         else:
             for m in xrange(0, n_expt_op):
-                result_list[m,t_idx] = expect(expt_op_list[m], rho)
+                result_list[m][t_idx] = expect(expt_op_list[m], rho)
 
         r.integrate(r.t + dt)
         t_idx += 1
@@ -254,7 +259,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args):
     @brief Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
     """
-    n_op      = len(c_op_list)
+    n_op= len(c_op_list)
 
     #
     # check initial state
@@ -278,7 +283,12 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args):
     if n_expt_op == 0:
         result_list = [Qobj() for k in xrange(n_tsteps)]
     else:
-        result_list = zeros([n_expt_op, n_tsteps], dtype=complex)
+        result_list=[]
+        for op in expt_op_list:
+            if op.isherm:
+                result_list.append(zeros(n_tsteps))
+            else:
+                result_list.append(zeros(n_tsteps),dtype=complex)
 
     #
     # construct liouvillian
@@ -318,7 +328,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args):
             result_list[t_idx] = Qobj(rho) # copy rho
         else:
             for m in xrange(0, n_expt_op):
-                result_list[m,t_idx] = expect(expt_op_list[m], rho)
+                result_list[m][t_idx] = expect(expt_op_list[m], rho)
 
         r.integrate(r.t + dt)
         t_idx += 1
