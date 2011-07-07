@@ -64,16 +64,11 @@ def wigner(psi,xvec,yvec,g=sqrt(2)):
 #-------------------------------------------------------------------------------
 # Q FUNCTION
 #
-def qfunc(state, xvec, yvec, *args):
+def qfunc(state, xvec, yvec, g=sqrt(2)):
     """
     Calculates the Q-function for a given state vector
     or density matrix
     """
-    if not any(args):
-        g=sqrt(2)
-    else:
-        g=args[0]
-
     X,Y = meshgrid(xvec, yvec)
     amat = 0.5*g*(X + Y * 1j);
 
