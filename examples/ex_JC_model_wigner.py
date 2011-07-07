@@ -2,6 +2,8 @@
 # Textbook example: Rabi oscillation in the dissipative Jaynes-Cummings model.
 # 
 #
+import matplotlib
+matplotlib.use('AGG')
 from qutip import *
 #import time
 from mpl_toolkits.mplot3d import Axes3D
@@ -50,8 +52,8 @@ def jc_integrate(N, wc, wa, g, kappa, gamma, psi0, use_rwa, tlist):
 
     i = 0
 
-    if not os.path.exists("jc_annimation"):
-        os.mkdir("jc_annimation")
+    if not os.path.exists("jc_animation"):
+        os.mkdir("jc_animation")
 
     for wf in wf_list:
 
@@ -67,8 +69,9 @@ def jc_integrate(N, wc, wa, g, kappa, gamma, psi0, use_rwa, tlist):
         ax.set_ylim3d(-5, 5)
         ax.set_zlim3d(-0.25, 0.25)
         fig.colorbar(surf, shrink=0.65, aspect=20)
-        savefig("jc_annimation/jc_model_wigner_"+str(i)+".jpg")       
-
+        savefig("jc_animation/jc_model_wigner_"+str(i)+".png")       
+        close(fig)
+        print i
         i = i + 1
 
 
