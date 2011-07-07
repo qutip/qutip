@@ -69,11 +69,10 @@ def jc_integrate(N, wc, wa, g, kappa, gamma, psi0, use_rwa, tlist):
         ax.set_ylim3d(-5, 5)
         ax.set_zlim3d(-0.25, 0.25)
         fig.colorbar(surf, shrink=0.65, aspect=20)
-        savefig("jc_animation/jc_model_wigner_"+str(i)+".png")       
+        savefig("jc_animation/jc_model_wigner_%.3d.png" % i)       
         close(fig)
         print i
         i = i + 1
-
 
     return 0
     
@@ -92,10 +91,11 @@ N = 10               # number of cavity fock states
 use_rwa = True
 
 # intial state
-#psi0 = tensor(basis(N,0),    basis(2,1))    # start with an excited atom 
-psi0 = tensor(coherent(N,1.5), basis(2,0))   # or a coherent state the in cavity
+psi0 = tensor(basis(N,0),    basis(2,1))    # start with an excited atom 
+#psi0 = tensor(coherent(N,1.5), basis(2,0))   # or a coherent state the in cavity
+#psi0 = tensor((coherent(N,2.0)+coherent(N,-2.0)).unit(), basis(2,0))   # or a superposition of coherent states the in cavity
 
-tlist = linspace(0,25,200)
+tlist = linspace(0,40,500)
 
 start_time = time.time()
 jc_integrate(N, wc, wa, g, kappa, gamma, psi0, use_rwa, tlist)
