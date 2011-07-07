@@ -59,7 +59,7 @@ def wigner(psi,xvec,yvec,g=sqrt(2)):
         wmat+=real(psi[m+1,m+1]*Wlist[m+1])
         for k in xrange(m+2,M):
             wmat+=2.0*real(psi[m+1,k]*Wlist[k])
-    return 0.25*wmat*g**2
+    return 0.5*wmat*g**2
             
 #-------------------------------------------------------------------------------
 # Q FUNCTION
