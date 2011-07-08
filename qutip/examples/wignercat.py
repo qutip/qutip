@@ -50,7 +50,7 @@ def wignercat():
     fig.colorbar(surf, shrink=0.65, aspect=20)
     #savefig("test.png")
     show()
-    close(fig)
+    
 
 if __name__=='main()':
     wignercat()

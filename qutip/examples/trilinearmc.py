@@ -74,7 +74,7 @@ def trilinearmc():
     ylabel("Average number of particles")
     legend(('Mode 0', 'Mode 1','Mode 2') )
     show()
-    close(fig)
+    
 
 if __name__=='main()':
     trilinearmc()
