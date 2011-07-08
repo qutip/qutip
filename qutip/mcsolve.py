@@ -59,6 +59,13 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
 #--Monte-Carlo class---
 class MC_class():
     def __init__(self,Heff,psi0,tlist,ntraj,collapse_ops,expect_ops,options):
+        #-Check for PyObjC on Mac platforms
+        self.gui=True
+        if sys.platform=='darwin':
+            try:
+                import Foundation
+            except:
+                self.gui=False
         ##holds instance of the ProgressBar class
         self.bar=None
         ##holds instance of the Pthread class
@@ -133,7 +140,7 @@ class MC_class():
         self.collapse_times_out[r]=results[2]
         self.which_op_out[r]=results[3]
         self.count+=self.step
-        if os.environ['QUTIP_GRAPHICS']=="NO" or os.environ['QUTIP_GUI']=="NONE":
+        if os.environ['QUTIP_GRAPHICS']=="NO" or os.environ['QUTIP_GUI']=="NONE" or self.gui==False:
             self.percent=self.count/(1.0*self.ntraj)
             if self.count/float(self.ntraj)>=self.level:
                 print str(floor(self.count/float(self.ntraj)*100))+'%  ('+str(self.count)+'/'+str(self.ntraj)+')'
@@ -158,7 +165,7 @@ class MC_class():
         elif self.num_collapse!=0:
             self.seed=array([int(ceil(random.rand()*1e4)) for ll in xrange(self.ntraj)])
             args=(self.options,self.Hdata,self.psi_in,self.times,self.num_times,self.num_collapse,self.collapse_ops_data,self.norm_collapse_data,self.num_expect,self.expect_ops,self.seed)
-            if os.environ['QUTIP_GRAPHICS']=="NO" or os.environ['QUTIP_GUI']=="NONE":
+            if os.environ['QUTIP_GRAPHICS']=="NO" or os.environ['QUTIP_GUI']=="NONE" or self.gui==False:
                 print 'Starting Monte-Carlo:'
                 self.parallel(args,self)
             else:

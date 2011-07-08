@@ -61,13 +61,6 @@ except:
     os.environ['QUTIP_GRAPHICS']="NO"
     os.environ['QUTIP_GUI']="NONE"
 
-#-Check for PyObjC on Mac platforms
-if sys.platform=='darwin':
-    try:
-        import Foundation
-    except:
-        os.environ['QUTIP_GRAPHICS']="NO"
-        os.environ['QUTIP_GUI']="NONE"
 
 #if being run locally, check for installed gui modules
 if os.environ['QUTIP_GRAPHICS']=="YES":
@@ -104,6 +97,7 @@ from ode2es import *
 from operators import *
 from orbital import *
 from parfor import *
+from probss import *
 from ptrace import ptrace
 from propagator import *
 from qstate import *
