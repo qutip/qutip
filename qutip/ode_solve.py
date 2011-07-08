@@ -28,6 +28,18 @@ from expect import *
 # any collapse operators were given.
 # 
 def ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
+    """
+    Evolution of a state vector or density matrix (rho0) for a given
+    Hamiltonian (H) and set of collapse operators (c_op_list), by integrating
+    the set of ordinary differential equations that define the system. The
+    output is either the state vector at arbitrary points in time (tlist), or
+    the expectation values of the supplied operators (expt_op_list). 
+
+    For problems with time-dependent Hamiltonians, H can be a callback function
+    that takes two arguments, time and H_args, and returns the Hamiltonian
+    at that point in time. H_args is a list of parameters that is
+    passed to the callback function H (only used for time-dependent Hamiltonians).
+    """
 
     if c_op_list and len(c_op_list) > 0:
         return me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args)
@@ -100,7 +112,8 @@ def psi_ode_func(t, psi, H):
 # 
 def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list, H_args):
     """!
-    @brief Evolve the wave function using an ODE solver
+    @brief Evolve the wave function using an ODE solver with time-dependent
+    Hamiltonian.
     """
 
     n_expt_op = len(expt_op_list)
