@@ -34,7 +34,7 @@ def about():
     #GUI version requires PySide or PyQt4.
     #@brief About box for qutip
     tk_conify_center()
-    if os.environ['QUTIP_GRAPHICS']=='YES' and os.environ['QUTIP_GUI']!="NONE":
+    if os.environ['QUTIP_GRAPHICS']=='YES':
         from gui import AboutBox
         import matplotlib
         if os.environ['QUTIP_GUI']=="PYSIDE":
