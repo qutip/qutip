@@ -131,6 +131,7 @@ def spinchain():
     sz_expt = integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver)
     print 'time elapsed = ' +str(time.time() - start_time) 
 
+    
     print '\nPlot the results....'
     termpause()
     print "rc('font', family='Bitstream Vera Sans')"
@@ -144,7 +145,7 @@ def spinchain():
     
     rc('font', family='Bitstream Vera Sans')
     for n in xrange(N):
-        plot(tlist, real(sz_expt[n,:]), label=r'$\langle\sigma_z($'+str(n)+r'$)\rangle$',lw=2)
+        plot(tlist, real(sz_expt[n]), label=r'$\langle\sigma_z($'+str(n)+r'$)\rangle$',lw=2)
     xlabel(r'Time [ns]',fontsize=14)
     ylabel(r'$\langle\sigma_{z}\rangle$',fontsize=14)
     title(r'Dynamics of a Heisenberg spin chain')
