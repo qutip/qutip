@@ -161,6 +161,16 @@ def squeez(N,sp):
     return op.expm()
 
 
+def displace(N,alpha):
+    '''
+    Single mode displacement operator for Hilbert space of dimension N and amplitude alpha
+    input: N = size of hilbert space
+    input: alpha displacment amplitude
+    output: Qobj
+    '''
+    a=destroy(N)
+    D=(alpha*a.dag()-conj(alpha)*a).expm()
+    return D
 
 
 
