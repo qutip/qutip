@@ -21,7 +21,6 @@ from scipy import array,ceil,remainder
 from multiprocessing import Pool
 import datetime
 
-
 if os.environ['QUTIP_GRAPHICS']=="NO":
     raise RuntimeError('No graphics installed or available.')
         

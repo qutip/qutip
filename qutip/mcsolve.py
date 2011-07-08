@@ -169,7 +169,7 @@ class MC_class():
                 print 'Starting Monte-Carlo:'
                 self.parallel(args,self)
             else:
-                from gui import ProgressBar,Pthread
+                from gui.ProgressBar import ProgressBar,Pthread
                 if os.environ['QUTIP_GUI']=="PYSIDE":
                     from PySide import QtGui,QtCore
                 elif os.environ['QUTIP_GUI']=="PYQT4":
