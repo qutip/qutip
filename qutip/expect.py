@@ -32,6 +32,16 @@ def expect(oper,state):
         returns Float (real number) if operator is Hermitian; otherwise returns Complex number
     
     '''
+    if isinstance(state,Qobj) or isinstance(state, eseries):
+        return single_expect(oper,state)
+    elif isinstance(state,ndarray) or isinstance(state,list):
+        if oper.isherm:
+            return array([single_expect(oper,x) for x in state])
+        else:
+            return array([single_expect(oper,x) for x in state],dtype=complex)
+
+
+def single_expect(oper,state):
     if isinstance(oper,Qobj) and isinstance(state,Qobj):
         if isoper(oper):
             if isoper(state):
@@ -53,12 +63,10 @@ def expect(oper,state):
                 prod = dot(state.data.conj().T, oper.data * state.data)
                 if isinstance(prod, sp.spmatrix):
                     prod = prod.tocsr()
-
                 if oper.isherm:
                     return float(real(prod[0,0]))
                 else:
                     return prod[0,0]
-                    
         else:
             raise TypeError('Invalid operand types')
     # eseries
@@ -70,5 +78,3 @@ def expect(oper,state):
         return out
     else:# unsupported types
         raise TypeError('Arguments must be quantum objects or eseries')
-
-
