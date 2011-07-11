@@ -24,6 +24,7 @@ from expect import *
 import sys,os,time
 from istests import *
 from Odeoptions import Odeoptions
+import mcdata
 ##@package mcsolve
 #Collection of routines for calculating dynamics via the Monte-Carlo method.
 
@@ -36,19 +37,27 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Odeoptions()):
     
     Options for solver are given by the Mcoptions class.
     """
-    Heff = H
-    for c_op in collapse_ops:
-        Heff -= 0.5j * (c_op.dag()*c_op) 
+    if isinstance(H,(list,ndarray)):
+        mcdata.tflag=1
+        mcdata.Hfunc=H[0]
+        mcdata.Hargs=-1.0j*array([op.data for op in H[1]])
+        if len(collapse_ops)>0:
+            Hq=0
+            for c_op in collapse_ops:
+                Hq -= 0.5j * (c_op.dag()*c_op)
+            mcdata.Hcoll=-1.0j*Hq.data
+    else:
+        Heff = H
+        for c_op in collapse_ops:
+            Heff -= 0.5j * (c_op.dag()*c_op)
+        mcdata.H=-1.0j*Heff.data 
 
-    mc=MC_class(Heff,psi0,tlist,ntraj,collapse_ops,expect_ops,options)
+    mc=MC_class(psi0,tlist,ntraj,collapse_ops,expect_ops,options)
     mc.run()
     if mc.num_collapse==0 and mc.num_expect==0:
         return mc.psi_out
     elif mc.num_collapse==0 and mc.num_expect!=0:
-        if options.states_out:
-            return mc.expect_out
-        else:
-            return sum(mc.expect_out,axis=0)/float(ntraj)
+        return mc.expect_out
     elif mc.num_collapse!=0 and mc.num_expect==0:
         return mc.psi_out
         #return mc.psi_out, mc.collapse_times_out
@@ -58,7 +67,7 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Odeoptions()):
 
 #--Monte-Carlo class---
 class MC_class():
-    def __init__(self,Heff,psi0,tlist,ntraj,collapse_ops,expect_ops,options):
+    def __init__(self,psi0,tlist,ntraj,collapse_ops,expect_ops,options):
         #-Check for PyObjC on Mac platforms
         self.gui=True
         if sys.platform=='darwin':
@@ -95,7 +104,6 @@ class MC_class():
         ##Number of expectation value operators
         self.num_expect=len(expect_ops)
         ##Matrix representing effective Hamiltonian Heff*1j
-        self.Hdata=-1.0j*Heff.data# extract matrix and multiply Heff by -1j so user doesn't have to.
         ##Matrix representing initial state vector
         self.psi_in=psi0.full() #need dense matrix as input to ODE solver.
         ##Dimensions of initial state vector
@@ -159,12 +167,12 @@ class MC_class():
             if self.ntraj!=1:#check if ntraj!=1 which is pointless for no collapse operators
                 print 'No collapse operators specified.\nRunning a single trajectory only.\n'
             if self.num_expect==0:# return psi Qobj at each requested time 
-                self.psi_out=no_collapse_psi_out(self.options,self.Hdata,self.psi_in,self.times,self.num_times,self.psi_dims,self.psi_shape,self.psi_out)
+                self.psi_out=no_collapse_psi_out(self.options,self.psi_in,self.times,self.num_times,self.psi_dims,self.psi_shape,self.psi_out)
             else:# return expectation values of requested operators
-                self.expect_out=no_collapse_expect_out(self.options,self.Hdata,self.psi_in,self.times,self.expect_ops,self.num_expect,self.num_times,self.psi_dims,self.psi_shape,self.expect_out)
+                self.expect_out=no_collapse_expect_out(self.options,self.psi_in,self.times,self.expect_ops,self.num_expect,self.num_times,self.psi_dims,self.psi_shape,self.expect_out)
         elif self.num_collapse!=0:
             self.seed=array([int(ceil(random.rand()*1e4)) for ll in xrange(self.ntraj)])
-            args=(self.options,self.Hdata,self.psi_in,self.times,self.num_times,self.num_collapse,self.collapse_ops_data,self.norm_collapse_data,self.num_expect,self.expect_ops,self.seed)
+            args=(self.options,self.psi_in,self.times,self.num_times,self.num_collapse,self.collapse_ops_data,self.norm_collapse_data,self.num_expect,self.expect_ops,self.seed)
             if os.environ['QUTIP_GRAPHICS']=="NO" or os.environ['QUTIP_GUI']=="NONE" or self.gui==False:
                 print 'Starting Monte-Carlo:'
                 self.parallel(args,self)
@@ -187,15 +195,27 @@ class MC_class():
                 
             
 
+#RHS of ODE for time-independent systems
+def RHS(t,psi):
+    return mcdata.H*psi
+
+#RHS of ODE for time-dependent systems with no collapse operators
+def RHStd(t,psi):
+    return mcdata.Hfunc(t,mcdata.Hargs)*psi
+
+#RHS of ODE for time-dependent systems with collapse operators
+def cRHStd(t,psi):
+    return (mcdata.Hfunc(t,mcdata.Hargs)+mcdata.Hcoll)*psi
 
 
 ######---return psi at requested times for no collapse operators---######
-def no_collapse_psi_out(opt,Hdata,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
+def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
     ##Calculates state vectors at times tlist if no collapse AND no expectation values are given.
     #
-    def RHS(t,psi):#define RHS of ODE
-            return Hdata*psi #cannot use dot(a,b) since mat is matrix and not array.
-    ODE=ode(RHS)
+    if mcdata.tflag==1:
+        ODE=ode(RHStd)
+    else:
+        ODE=ode(RHS)
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
     psi_out[0]=Qobj(psi_in,dims=psi_dims,shape=psi_shape)
@@ -210,15 +230,14 @@ def no_collapse_psi_out(opt,Hdata,psi_in,tlist,num_times,psi_dims,psi_shape,psi_
 
 
 ######---return expectation values at requested times for no collapse operators---######
-def no_collapse_expect_out(opt,Hdata,psi_in,tlist,expect_ops,num_expect,num_times,psi_dims,psi_shape,expect_out):
+def no_collapse_expect_out(opt,psi_in,tlist,expect_ops,num_expect,num_times,psi_dims,psi_shape,expect_out):
     ##Calculates xpect.values at times tlist if no collapse ops. given
-    #
-    
-    #---Define RHS of ODE----------------
-    def RHS(t,psi):
-            return Hdata*psi #cannot use dot(a,b) since mat is matrix and not array.
+    #  
     #------------------------------------
-    ODE=ode(RHS)
+    if mcdata.tflag==1:
+        ODE=ode(RHStd)
+    else:
+        ODE=ode(RHS)
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
     for jj in xrange(num_expect):
@@ -240,11 +259,7 @@ def mc_alg_evolve(nt,args):
     """
     Monte-Carlo algorithm returning state-vector or expect. values at times tlist for a single trajectory
     """
-    opt,Hdata,psi_in,tlist,num_times,num_collapse,collapse_ops_data,norm_collapse_data,num_expect,expect_ops,seeds=args
-    #DEFINE RHS OF ODE
-    def RHS(t,psi):
-            return Hdata*psi #cannot use dot(a,b) since mat is matrix and not array.
-    #_________________
+    opt,psi_in,tlist,num_times,num_collapse,collapse_ops_data,norm_collapse_data,num_expect,expect_ops,seeds=args
     if num_expect==0:
         psi_out=array([zeros((len(psi_in),1),dtype=complex) for k in xrange(num_times)])#preallocate real array of Qobjs
         psi_out[0]=psi_in
@@ -265,7 +280,10 @@ def mc_alg_evolve(nt,args):
     random.seed(seeds[nt])
     rand_vals=random.rand(2)#first rand is collapse norm, second is which operator
     #CREATE ODE OBJECT CORRESPONDING TO RHS
-    ODE=ode(RHS)
+    if mcdata.tflag==1:
+        ODE=ode(cRHStd)
+    else:
+        ODE=ode(RHS)
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
     #RUN ODE UNTIL EACH TIME IN TLIST
