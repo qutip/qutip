@@ -23,12 +23,12 @@ from Qobj import *
 from expect import *
 import sys,os,time
 from istests import *
-from Mcoptions import Mcoptions
+from Odeoptions import Odeoptions
 ##@package mcsolve
 #Collection of routines for calculating dynamics via the Monte-Carlo method.
 
 
-def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Mcoptions()):
+def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Odeoptions()):
     """
     Monte-Carlo evolution of a state vector |psi> for a given
     Hamiltonian and sets of collapse operators and operators
@@ -127,7 +127,7 @@ class MC_class():
             self.collapse_times_out=zeros((self.ntraj),dtype=ndarray)
             self.which_op_out=zeros((self.ntraj),dtype=ndarray)
             if self.num_expect==0:# if no expectation operators, preallocate #ntraj arrays for state vectors
-                self.psi_out=array([Qobj() for k in xrange(self.num_times)])#preallocate array of Qobjs
+                self.psi_out=array([[Qobj() for k in xrange(self.num_times)] for q in xrange(self.ntraj)])#preallocate array of Qobjs
             else: #preallocate array of lists for expectation values
                 self.expect_out=[[] for x in xrange(self.ntraj)]
     #------------------------------------------------------------------------------------

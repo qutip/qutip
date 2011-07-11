@@ -89,7 +89,7 @@ import examples
 from expect import *
 from gates import *
 from istests import *
-from Mcoptions import Mcoptions
+from Odeoptions import Odeoptions
 from mcsolve import mcsolve
 from metrics import fidelity,trace_dist
 from ode_solve import ode_solve
