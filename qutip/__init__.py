@@ -97,7 +97,6 @@ from ode2es import *
 from operators import *
 from orbital import *
 from parfor import *
-from probss import *
 from ptrace import ptrace
 from propagator import *
 from qstate import *
