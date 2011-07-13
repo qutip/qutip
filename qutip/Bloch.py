@@ -48,8 +48,8 @@ class Bloch():
         #---font options---
         ##Color of fonts, default = black
         self.font_color='black'
-        ##Size of fonts, default = 18
-        self.font_size=18
+        ##Size of fonts, default = 20
+        self.font_size=20
         
         #---vector options---
         ##List of colors for Bloch vectors, default = ['b','g','r','y']
@@ -75,7 +75,7 @@ class Bloch():
         ##Number of Bloch vectors to plot
         self.num_vectors=0
         ##
-        
+        self.savenum=0
     def __str__(self):
         """Returns string indicating number of 
 			vectors and data points in current 
@@ -91,6 +91,7 @@ class Bloch():
         self.num_points=0
         self.vectors=[]
         self.num_vectors=0
+        self.numsave=0
     
     def add_points(self,points):
         """Add a list of data points to bloch sphere"""
@@ -209,6 +210,11 @@ class Bloch():
         self.make_sphere()
         show()
         
+    def save(self,format='png',dirc=os.getcwd()):
+        from pylab import figure,plot,show,savefig
+        self.make_sphere()
+        savefig(str(dirc)+'/bloch'+str(self.savenum)+'.'+format)
+        self.savenum+=1
 
 
         
@@ -223,4 +229,4 @@ if __name__=="__main__":
     x.add_vectors(zvec)
     svec=[1,1,0]/sqrt(2)
     x.add_vectors(svec)
-    x.show()
+    x.save()
