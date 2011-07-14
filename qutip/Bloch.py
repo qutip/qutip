@@ -212,10 +212,11 @@ class Bloch():
         show()
         
     def save(self,format='png',dirc=os.getcwd()):
-        from pylab import figure,plot,show,savefig
+        from pylab import figure,plot,show,savefig,close
         self.make_sphere()
         savefig(str(dirc)+'/bloch_'+str(self.savenum)+'.'+format)
         self.savenum+=1
+        close(self.fig)
 
 
         
@@ -230,4 +231,4 @@ if __name__=="__main__":
     x.add_vectors(zvec)
     svec=[1,1,0]/sqrt(2)
     x.add_vectors(svec)
-    x.show()
+    x.save()
