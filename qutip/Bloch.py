@@ -95,6 +95,8 @@ class Bloch():
     
     def add_points(self,points):
         """Add a list of data points to bloch sphere"""
+        if not isinstance(points[0],(list,ndarray)):
+            points=[[k] for k in points]
         points=array(points)
         self.points.append(points)
         self.num_points=len(self.points)
@@ -224,11 +226,5 @@ class Bloch():
 if __name__=="__main__":
     x=Bloch()
     xvec=[1,0,0]
-    x.add_vectors(xvec)
-    yvec=[0,1,0]
-    x.add_vectors(yvec)
-    zvec=[0,0,1]
-    x.add_vectors(zvec)
-    svec=[1,1,0]/sqrt(2)
-    x.add_vectors(svec)
-    x.save()
+    x.add_points(xvec)
+    x.show()
