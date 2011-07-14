@@ -18,6 +18,9 @@
 ###########################################################################
 import os
 from scipy import *
+from expect import expect
+from operators import *
+
 ##Class for graphing a Bloch sphere and qubit vectors or data points
 class Bloch():
     def __init__(self):
@@ -53,17 +56,17 @@ class Bloch():
         
         #---vector options---
         ##List of colors for Bloch vectors, default = ['b','g','r','y']
-        self.vector_color=['b','g','r','y']
+        self.vector_color=['g','#CC6600','b','r']
         ##Width of Bloch vectors, default = 3
         self.vector_width=3
         
         #---point options---
         ##List of colors for Bloch point markers, default = ['b','g','r','y']
-        self.point_color=['b','g','r','y']
-        ##Size of point markers, default = 20
-        self.point_size=20
+        self.point_color=['b','r','g','#CC6600']
+        ##Size of point markers, default = 25
+        self.point_size=25
         ##Shape of point markers, default = ['o','^','d','s']
-        self.point_marker=['o','^','d','s']
+        self.point_marker=['o','s','d','^']
         
         #---data lists---
         ##Data for point markers
@@ -100,23 +103,28 @@ class Bloch():
         points=array(points)
         self.points.append(points)
         self.num_points=len(self.points)
-        if self.num_points>len(self.point_color):
-            str1='num. of points > num. of point colors'
-        else:
-            str1=''
-        if self.num_points>len(self.point_marker):
-            str2='num. of points > num. of point markers'
-        else:
-            str2=''
-        if self.num_points>len(self.point_color) or self.num_points>len(self.point_marker):
-            print str1+'\n'+str2
             
+    def add_states(self,state,kind='vector'):
+        "Add a state vector to plot"
+        if isinstance(state,Qobj):
+            state=[state]
+        for st in state:
+            if kind=='vector':
+                vec=[expect(sigmax(),st),expect(sigmay(),st),expect(sigmaz(),st)]
+                self.add_vectors(vec)
+            elif kind=='point':
+                pnt=[expect(sigmax(),st),expect(sigmay(),st),expect(sigmaz(),st)]
+                self.add_points(pnt)
+    
     def add_vectors(self,vectors): 
         """Add a list of vectors to Bloch sphere"""
-        self.vectors.append(vectors)
-        self.num_vectors=len(self.vectors)
-        if self.num_vectors>len(self.vector_color):
-            print 'num. of vectors > num. of vector colors'
+        if isinstance(vectors[0],(list,ndarray)):
+            for vec in vectors:
+                self.vectors.append(vec)
+                self.num_vectors=len(self.vectors)
+        else:
+            self.vectors.append(vectors)
+            self.num_vectors=len(self.vectors)
     
     def make_sphere(self):
         """Plots Bloch sphere and data sets"""
@@ -198,14 +206,14 @@ class Bloch():
         if len(self.vectors)>0:
             for k in xrange(len(self.vectors)):
                 length=sqrt(self.vectors[k][0]**2+self.vectors[k][1]**2+self.vectors[k][2]**2)
-                self.axes.plot(self.vectors[k][1]*linspace(0,length,2),-self.vectors[k][0]*linspace(0,length,2),self.vectors[k][2]*linspace(0,length,2),zs=0, zdir='z', label='Z',lw=self.vector_width,color=self.vector_color[k])
+                self.axes.plot(self.vectors[k][1]*linspace(0,length,2),-self.vectors[k][0]*linspace(0,length,2),self.vectors[k][2]*linspace(0,length,2),zs=0, zdir='z', label='Z',lw=self.vector_width,color=self.vector_color[mod(k,4)])
     
     def plot_points(self):
         """Plots point markers on Bloch sphere"""
         # -X and Y data are switched for plotting purposes
         if self.num_points>0:
             for k in xrange(self.num_points):
-                self.axes.scatter(real(self.points[k][1]),-real(self.points[k][0]),real(self.points[k][2]),s=self.point_size,alpha=1,edgecolor='none',zdir='z',color=self.point_color[k], marker=self.point_marker[k])
+                self.axes.scatter(real(self.points[k][1]),-real(self.points[k][0]),real(self.points[k][2]),s=self.point_size,alpha=1,edgecolor='none',zdir='z',color=self.point_color[mod(k,4)], marker=self.point_marker[mod(k,4)])
     
     def show(self):
         """Display Bloch sphere and corresponding data sets"""
@@ -225,6 +233,6 @@ class Bloch():
 
 if __name__=="__main__":
     x=Bloch()
-    xvec=[1,0,0]
+    xvec=1/sqrt(1**2+1**2+0.5**2)*array([1,1,0.5])
     x.add_points(xvec)
     x.show()
