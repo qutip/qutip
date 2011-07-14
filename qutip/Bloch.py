@@ -213,7 +213,7 @@ class Bloch():
     def save(self,format='png',dirc=os.getcwd()):
         from pylab import figure,plot,show,savefig
         self.make_sphere()
-        savefig(str(dirc)+'/bloch'+str(self.savenum)+'.'+format)
+        savefig(str(dirc)+'/bloch_'+str(self.savenum)+'.'+format)
         self.savenum+=1
 
 
