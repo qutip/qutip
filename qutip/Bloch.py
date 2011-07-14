@@ -201,8 +201,9 @@ class Bloch():
     def plot_points(self):
         """Plots point markers on Bloch sphere"""
         # -X and Y data are switched for plotting purposes
-        for k in xrange(self.num_points):
-            self.axes.scatter(real(self.points[k][1]),-real(self.points[k][0]),real(self.points[k][2]),s=self.point_size,alpha=1,edgecolor='none',zdir='z',color=self.point_color[k], marker=self.point_marker[k])
+        if self.num_points>0:
+            for k in xrange(self.num_points):
+                self.axes.scatter(real(self.points[k][1]),-real(self.points[k][0]),real(self.points[k][2]),s=self.point_size,alpha=1,edgecolor='none',zdir='z',color=self.point_color[k], marker=self.point_marker[k])
     
     def show(self):
         """Display Bloch sphere and corresponding data sets"""
@@ -229,4 +230,4 @@ if __name__=="__main__":
     x.add_vectors(zvec)
     svec=[1,1,0]/sqrt(2)
     x.add_vectors(svec)
-    x.save()
+    x.show()
