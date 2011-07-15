@@ -54,7 +54,7 @@ def probcorr(E,kappa,gamma,g,wc,w0,wl,N):
     solES = ode2es(L,arho);
    
     # Find trace(a' * solution)
-    corrES = scalar_expect(a.dag(),solES);
+    corrES = expect(a.dag(),solES);
 
     # Calculate the covariance by subtracting product of means
     covES = corrES - real(conjugate(ass)*ass)
