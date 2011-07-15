@@ -54,7 +54,6 @@ def wf_ode_solve(H, psi0, tlist, expt_op_list, H_args=None):
     """!
     @brief Evolve the wave function using an ODE solver
     """
-
     if isinstance(H, FunctionType):
         return wf_ode_solve_td(H, psi0, tlist, expt_op_list, H_args)
 
@@ -215,7 +214,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
             if op.isherm:
                 result_list.append(zeros(n_tsteps))
             else:
-                result_list.append(zeros(n_tsteps),dtype=complex)
+                result_list.append(zeros(n_tsteps,dtype=complex))
 
     #
     # construct liouvillian

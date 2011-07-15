@@ -23,6 +23,27 @@ from superoperator import *
 from ode_solve import *
 from ode2es import *
 from mcsolve import *
+from steady import *
+
+def correlation_ss_es(H, tlist, c_op_list, a_op, b_op):
+    """
+    Calculate a two-time correlation function <A(0)B(tau)> using the quantum
+    regression theorem, and exponential series.
+    """
+
+    # contruct the Liouvillian
+    n_op      = len(c_op_list)
+    L = -1.0j * (spre(H) - spost(H))
+    for m in range(0, n_op):
+        cdc = c_op_list[m].dag() * c_op_list[m]
+        L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
+
+    rho0 = steady(L)
+
+    solC_tau = ode2es(L, b_op * rho0)
+
+    return esval(expect(a_op, solC_tau), tlist)
+
 
 def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     """
@@ -42,8 +63,6 @@ def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
     C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
 
-    #pgb = Counter(len(tlist), "Correlation function")
-
     solES_t = ode2es(L, rho0)
 
     for t_idx in range(len(tlist)):
@@ -54,12 +73,25 @@ def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
         C_mat[t_idx, :] = esval(expect(a_op, solES_tau), taulist)
    
-        #pgb.update()
-
-    #pgb.finish()
-
     return C_mat
 
+
+def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op):
+    """
+    Calculate a two-time correlation function <A(0)B(tau)> using the quantum
+    regression theorem, and the ode solver.
+    """
+
+    # contruct the Liouvillian
+    n_op      = len(c_op_list)
+    L = -1.0j * (spre(H) - spost(H))
+    for m in range(0, n_op):
+        cdc = c_op_list[m].dag() * c_op_list[m]
+        L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
+
+    rho0 = steady(L)
+
+    return ode_solve(H, b_op * rho0, tlist, c_op_list, [a_op])[0]
 
 def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     """
@@ -79,21 +111,30 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
     C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
 
-    #pgb = Counter(len(tlist), "Correlation function")
-
     rho_t = me_ode_solve(H, rho0, tlist, c_op_list, [])
 
     for t_idx in range(len(tlist)):
-
-        C_mat[t_idx, :] = me_ode_solve(H, b_op * rho_t[t_idx], taulist, c_op_list, [a_op])  
-  
-        #pgb.update()
-
-    #pgb.finish()
+        
+        C_mat[t_idx,:] = me_ode_solve(H, b_op * rho_t[t_idx], taulist, c_op_list, [a_op])[0]
 
     return C_mat
 
+def correlation_ss_mc(H, tlist, c_op_list, a_op, b_op):
+    """
+    Calculate a two-time correlation function <A(0)B(tau)> using the quantum
+    regression theorem, and the ode solver.
+    """
 
+    # contruct the Liouvillian
+    n_op      = len(c_op_list)
+    L = -1.0j * (spre(H) - spost(H))
+    for m in range(0, n_op):
+        cdc = c_op_list[m].dag() * c_op_list[m]
+        L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
+
+    rho0 = steady(L)
+    ntraj = 100
+    return mcsolve(H, b_op * rho0, tlist, ntraj, c_op_list, [a_op])[0]
 
 def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
     """
