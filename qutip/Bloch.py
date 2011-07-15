@@ -25,6 +25,8 @@ from operators import *
 class Bloch():
     def __init__(self):
         #---sphere options---
+        ##set the size of the figure
+        self.size=[7,7]
         ##Set Azimuthal and Elvation viewing angles, default = [-60,30]
         self.view=[-60,30]
         ##Sphere_color: color of Bloch sphere, default = #FFDDDD
@@ -43,11 +45,13 @@ class Bloch():
         #---axes label options---
         ##Labels for x-axis (in LaTex), default = ['$x$','']
         self.xlabel=['$x$','']
+        self.xlpos=[1.2,-1.2]
         ##Labels for y-axis (in LaTex), default = ['$y$','']
         self.ylabel=['$y$','']
+        self.ylpos=[1.1,-1.1]
         ##Labels for z-axis (in LaTex), default = ['$\left|0\\right>$','$\left|1\\right>$']
         self.zlabel=['$\left|0\\right>$','$\left|1\\right>$']
-        
+        self.zlpos=[1.2,-1.2]
         #---font options---
         ##Color of fonts, default = black
         self.font_color='black'
@@ -64,7 +68,7 @@ class Bloch():
         ##List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_color=['b','r','g','#CC6600']
         ##Size of point markers, default = 25
-        self.point_size=25
+        self.point_size=[25,32,35,45]
         ##Shape of point markers, default = ['o','^','d','s']
         self.point_marker=['o','s','d','^']
         
@@ -96,13 +100,19 @@ class Bloch():
         self.num_vectors=0
         self.numsave=0
     
-    def add_points(self,points):
+    def add_points(self,points,meth=None):
         """Add a list of data points to bloch sphere"""
         if not isinstance(points[0],(list,ndarray)):
             points=[[k] for k in points]
         points=array(points)
-        self.points.append(points)
-        self.num_points=len(self.points)
+        if meth=='s':
+            for k in xrange(len(points[0])):
+                pnt=array([[points[0][k]],[points[1][k]],[points[2][k]]])
+                self.points.append(pnt)
+            self.num_points=len(self.points)
+        else:
+            self.points.append(points)
+            self.num_points=len(self.points)
             
     def add_states(self,state,kind='vector'):
         "Add a state vector to plot"
@@ -139,7 +149,7 @@ class Bloch():
             pass
         #setup plot
         ##Figure instance for Bloch sphere plot
-        self.fig = figure()
+        self.fig = figure(figsize=self.size)
         ##Axes3D instance for Bloch sphere
         self.axes = Axes3D(self.fig,azim=self.view[0],elev=self.view[1])
         self.axes.grid(on=False)
@@ -184,15 +194,19 @@ class Bloch():
         self.axes.plot(span,0*span, zs=0, zdir='z', label='X',lw=self.frame_width,color=self.frame_color)
         self.axes.plot(0*span,span, zs=0, zdir='z', label='Y',lw=self.frame_width,color=self.frame_color)
         self.axes.plot(0*span,span, zs=0, zdir='y', label='Z',lw=self.frame_width,color=self.frame_color)
-        self.axes.set_xlim3d(-1.2,1.2)
-        self.axes.set_ylim3d(-1.3,1.2)
-        self.axes.set_zlim3d(-1.2,1.2)
+        self.axes.set_xlim3d(-1.3,1.3)
+        self.axes.set_ylim3d(-1.3,1.3)
+        self.axes.set_zlim3d(-1.3,1.3)
     def plot_axes_labels(self):  
         #axes labels
-        self.axes.text(0, -1.2, 0, self.xlabel[0], color=self.font_color,fontsize=self.font_size)
-        self.axes.text(1.1, 0, 0, self.ylabel[0], color=self.font_color,fontsize=self.font_size)
-        self.axes.text(0, 0, 1.2, self.zlabel[0], color=self.font_color,fontsize=self.font_size)
-        self.axes.text(0, 0, -1.2, self.zlabel[1], color=self.font_color,fontsize=self.font_size)
+        self.axes.text(0, -self.xlpos[0], 0, self.xlabel[0], color=self.font_color,fontsize=self.font_size)
+        self.axes.text(0, -self.xlpos[1], 0, self.xlabel[1], color=self.font_color,fontsize=self.font_size)
+        
+        self.axes.text(self.ylpos[0], 0, 0, self.ylabel[0], color=self.font_color,fontsize=self.font_size)
+        self.axes.text(self.ylpos[1], 0, 0, self.ylabel[1], color=self.font_color,fontsize=self.font_size)
+        
+        self.axes.text(0, 0, self.zlpos[0], self.zlabel[0], color=self.font_color,fontsize=self.font_size)
+        self.axes.text(0, 0, self.zlpos[1], self.zlabel[1], color=self.font_color,fontsize=self.font_size)
         for a in self.axes.w_xaxis.get_ticklines()+self.axes.w_xaxis.get_ticklabels():
             a.set_visible(False)
         for a in self.axes.w_yaxis.get_ticklines()+self.axes.w_yaxis.get_ticklabels():
@@ -206,14 +220,14 @@ class Bloch():
         if len(self.vectors)>0:
             for k in xrange(len(self.vectors)):
                 length=sqrt(self.vectors[k][0]**2+self.vectors[k][1]**2+self.vectors[k][2]**2)
-                self.axes.plot(self.vectors[k][1]*linspace(0,length,2),-self.vectors[k][0]*linspace(0,length,2),self.vectors[k][2]*linspace(0,length,2),zs=0, zdir='z', label='Z',lw=self.vector_width,color=self.vector_color[mod(k,4)])
+                self.axes.plot(self.vectors[k][1]*linspace(0,length,2),-self.vectors[k][0]*linspace(0,length,2),self.vectors[k][2]*linspace(0,length,2),zs=0, zdir='z', label='Z',lw=self.vector_width,color=self.vector_color[mod(k,len(self.vector_color))])
     
     def plot_points(self):
         """Plots point markers on Bloch sphere"""
         # -X and Y data are switched for plotting purposes
         if self.num_points>0:
             for k in xrange(self.num_points):
-                self.axes.scatter(real(self.points[k][1]),-real(self.points[k][0]),real(self.points[k][2]),s=self.point_size,alpha=1,edgecolor='none',zdir='z',color=self.point_color[mod(k,4)], marker=self.point_marker[mod(k,4)])
+                self.axes.scatter(real(self.points[k][1]),-real(self.points[k][0]),real(self.points[k][2]),s=self.point_size[mod(k,len(self.point_size))],alpha=1,edgecolor='none',zdir='z',color=self.point_color[mod(k,len(self.point_color))], marker=self.point_marker[mod(k,len(self.point_marker))])
     
     def show(self):
         """Display Bloch sphere and corresponding data sets"""
