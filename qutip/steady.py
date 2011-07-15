@@ -28,7 +28,7 @@ from superoperator import *
 
 # ------------------------------------------------------------------------------
 # 
-def steadystate(H, c_op_list):
+def steadystate(H, c_op_list,maxiter=100,tol=1e-6):
     """
     Calculate the steady state for the evolution subject to the supplied
     Hamiltonian and collapse operators.
@@ -39,11 +39,9 @@ def steadystate(H, c_op_list):
         raise ValueError('Cannot calculate the steady state for a nondissipative system (no collapse operators given)')
 
     L = liouvillian(H, c_op_list)
-    return steady(L)
+    return steady(L,maxiter,tol)
 
-def steady(L):
-	tol=1e-6
-	maxiter=20
+def steady(L,maxiter=100,tol=1e-6):
 	eps=finfo(float).eps
 	if (not isoper(L)) & (not issuper(L)):
 		raise TypeError('Steady states can only be found for operators or superoperators.')
