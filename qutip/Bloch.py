@@ -98,7 +98,7 @@ class Bloch():
         self.num_points=0
         self.vectors=[]
         self.num_vectors=0
-        self.numsave=0
+        
     
     def add_points(self,points,meth=None):
         """Add a list of data points to bloch sphere"""
