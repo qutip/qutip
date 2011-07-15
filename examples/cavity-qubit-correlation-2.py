@@ -54,20 +54,20 @@ def probcorr(E,kappa,gamma,g,wc,w0,wl,N):
     solES = ode2es(L, arhoad);
 
     # Find trace(a' * a * solution)
-    corrES = scalar_expect((a.dag() * a), solES);
+    corrES = expect((a.dag()*a), solES);
 
     return corrES
 
 #
 #
 #
-kappa = 2; 
-gamma = 0.2; 
+kappa = 2;
+gamma = 0.2;
 g = 5;
-wc = 0; 
-w0 = 0; 
+wc = 0;
+w0 = 0;
 wl = 0;
-N = 5; 
+N = 5;
 E = 0.5;
 
 start_time=time.time()
