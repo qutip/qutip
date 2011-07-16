@@ -38,7 +38,7 @@ def jc_integrate(N, wc, wa, g, kappa, gamma, psi0, use_rwa, tlist):
         c_op_list.append(sqrt(rate) * sm)
 
     # evolve and calculate expectation values
-    expt_list = ode_solve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
+    expt_list = odesolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
 
     # or use the MC solver
     #ntraj = 100

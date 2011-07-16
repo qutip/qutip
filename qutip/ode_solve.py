@@ -27,7 +27,7 @@ from expect import *
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 # 
-def ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
+def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
     """
     Evolution of a state vector or density matrix (rho0) for a given
     Hamiltonian (H) and set of collapse operators (c_op_list), by integrating

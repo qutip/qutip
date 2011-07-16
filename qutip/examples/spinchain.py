@@ -24,7 +24,7 @@ from scipy import *
 from ..Qobj import *
 from ..states import *
 from ..operators import *
-from ..ode_solve import *
+from ..odesolve import *
 from ..mcsolve import *
 from ..tensor import *
 from ..ptrace import *
@@ -79,7 +79,7 @@ def spinchain():
                 c_op_list.append(sqrt(gamma[n]) * sz_list[n])
         # evolve and calculate expectation values
         if solver == "ode":
-            expt_list = me_ode_solve(H, psi0, tlist, c_op_list, sz_list)
+            expt_list = odesolve(H, psi0, tlist, c_op_list, sz_list)
         elif solver == "mc":
             ntraj = 250 
             expt_list = mcsolve(H, psi0, tlist, ntraj, c_op_list, sz_list)

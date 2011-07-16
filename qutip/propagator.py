@@ -21,7 +21,7 @@ from scipy import *
 from Qobj import *
 from superoperator import *
 #from Counter import *
-from ode_solve import *
+from odesolve import *
 from ode2es import *
 from basis import *
 
@@ -53,7 +53,7 @@ def propagator(H, t, c_op_list, H_args=None):
         for n in range(0, N):
 
             psi0 = basis(N, n)
-            psi_t = me_ode_solve(H, psi0, [0, t], c_op_list, [], H_args)
+            psi_t = odesolve(H, psi0, [0, t], c_op_list, [], H_args)
 
             u[:,n] = psi_t[1].full().T
 
@@ -73,7 +73,7 @@ def propagator(H, t, c_op_list, H_args=None):
 
             psi0  = basis(N*N, n)
             rho0  = Qobj(psi0.full().reshape([N,N]))
-            rho_t = me_ode_solve(H, rho0, [0, t], c_op_list, [], H_args)
+            rho_t = odesolve(H, rho0, [0, t], c_op_list, [], H_args)
 
             u[:,n] = rho_t[1].full().reshape([1, N*N])
 

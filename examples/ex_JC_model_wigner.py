@@ -44,7 +44,7 @@ def jc_integrate(N, wc, wa, g, kappa, gamma, psi0, use_rwa, tlist):
         c_op_list.append(sqrt(rate) * sm)
 
     # evolve and calculate expectation values
-    wf_list = ode_solve(H, psi0, tlist, c_op_list, [])  
+    wf_list = odesolve(H, psi0, tlist, c_op_list, [])  
 
 
     xvec = linspace(-5.,5.,100)

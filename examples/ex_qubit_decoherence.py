@@ -28,7 +28,7 @@ def qubit_integrate(w, theta, gamma1, gamma2, psi0, tlist):
     if rate > 0.0:
         c_op_list.append(sqrt(rate) * sz)
     # evolve and calculate expectation values
-    expt_list = me_ode_solve(H, psi0, tlist, c_op_list, [sx, sy, sz])  
+    expt_list = odesolve(H, psi0, tlist, c_op_list, [sx, sy, sz])  
     return expt_list[0], expt_list[1], expt_list[2]
     
 #

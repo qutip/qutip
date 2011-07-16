@@ -51,8 +51,7 @@ def sd_qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
 
 
     # evolve and calculate expectation values
-    expt_list = me_ode_solve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
-    #expt_list = wf_ode_solve(hamiltonian_t, psi0, tlist, [sm.dag() * sm], H_args)  
+    expt_list = odesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
 
     T = 2 * pi / w
 

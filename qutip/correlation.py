@@ -20,7 +20,7 @@
 from scipy import *
 from Qobj import *
 from superoperator import *
-from ode_solve import *
+from odesolve import *
 from ode2es import *
 from mcsolve import *
 from steady import *
@@ -91,7 +91,7 @@ def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op):
 
     rho0 = steady(L)
 
-    return ode_solve(H, b_op * rho0, tlist, c_op_list, [a_op])[0]
+    return odesolve(H, b_op * rho0, tlist, c_op_list, [a_op])[0]
 
 def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     """
@@ -111,18 +111,18 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
     C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
 
-    rho_t = me_ode_solve(H, rho0, tlist, c_op_list, [])
+    rho_t = odesolve(H, rho0, tlist, c_op_list, [])
 
     for t_idx in range(len(tlist)):
         
-        C_mat[t_idx,:] = me_ode_solve(H, b_op * rho_t[t_idx], taulist, c_op_list, [a_op])[0]
+        C_mat[t_idx,:] = odesolve(H, b_op * rho_t[t_idx], taulist, c_op_list, [a_op])[0]
 
     return C_mat
 
 def correlation_ss_mc(H, tlist, c_op_list, a_op, b_op):
     """
     Calculate a two-time correlation function <A(0)B(tau)> using the quantum
-    regression theorem, and the ode solver.
+    regression theorem, and the monte-carlo solver.
     """
 
     # contruct the Liouvillian

@@ -92,7 +92,7 @@ from istests import *
 from Odeoptions import Odeoptions
 from mcsolve import mcsolve
 from metrics import fidelity,trace_dist
-from ode_solve import ode_solve
+from odesolve import odesolve
 from ode2es import *
 from operators import *
 from orbital import *
