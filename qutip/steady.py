@@ -72,10 +72,7 @@ def steady(L,maxiter=100,tol=1e-6):
 	else:
 		rhoss.data=rhoss.data/la.norm(rhoss.data)
 	rhoss.data=reshape(rhoss.data,(rhoss.shape[0],rhoss.shape[1])).T
-	out=Qobj(rhoss.data)
-	out.dims=rhoss.dims
-	out.shape=rhoss.shape
-	return Qobj(out)
+	return Qobj(rhoss.data,dims=rhoss.dims,shape=rhoss.shape)
 	
 	
 		

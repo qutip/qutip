@@ -114,7 +114,7 @@ def isherm(oper):
         return False
     else:
         data=oper.data.todense()
-        if la.norm(data)==0:
+        if la.norm(data,2)==0:
             if any(data>1e-14):
                 raise ValueError('Norm=0 but nonzero data in array') 
-        return isequal(data.T.conj(),data)
+        return allclose(data.T.conj(),data,rtol=1e-8, atol=1e-10)
