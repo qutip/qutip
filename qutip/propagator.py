@@ -22,7 +22,7 @@ from Qobj import *
 from superoperator import *
 #from Counter import *
 from odesolve import *
-from ode2es import *
+from essolve import *
 from basis import *
 
 def propagator(H, t, c_op_list, H_args=None):

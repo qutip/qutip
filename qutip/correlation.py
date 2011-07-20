@@ -21,7 +21,7 @@ from scipy import *
 from Qobj import *
 from superoperator import *
 from odesolve import *
-from ode2es import *
+from essolve import *
 from mcsolve import *
 from steady import *
 
