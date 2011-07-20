@@ -45,12 +45,13 @@ def demos():
             start_gui()
         else:
             if sys.stdout.isatty():
+                print '-'*80
                 print '\nQuTiP Example Scripts:'
                 print '-----------------------'
                 print '[1]  Basic Obj operations'
                 print '[2]  Operator usage examples'
                 print '[3]  Tensor / partial trace usage'
-                print '[4]  Wigner distribution of Schrodinger cat-state'
+                print '[4]  Wigner & Q dist. of Schrodinger cat-state'
                 print '[5]  Squeezed state'
                 print '[6]  None'
                 print '[7]  None'
@@ -96,9 +97,9 @@ def demos():
         elif exconfig.option==13:
             pass
         elif exconfig.option==14:
-            examples.wignercat()
+            examples.schrodingercat()
         elif exconfig.option==15:
-            pass
+            examples.squeezed()
         elif exconfig.option==21:
             pass
         elif exconfig.option==22:
@@ -120,11 +121,11 @@ def demos():
         elif exconfig.option==35:
             pass
         elif exconfig.option==41:
-            pass
+            examples.cavityqubitmc()
         elif exconfig.option==42:
             examples.trilinearmc()   
         elif exconfig.option==43:
-            pass
+            examples.mcthermal()
         elif exconfig.option==44:
             pass
         elif exconfig.option==45:
