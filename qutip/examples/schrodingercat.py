@@ -24,12 +24,13 @@ from pylab import *
 from termpause import termpause
 
 def schrodingercat():
-    print ''
+    print '-'*80
     print 'Wigner Cat State:\n'
     print 'Calculates the Wigner function for the'
     print 'superposition of coherent states'
     print '|psi> = (|alpha> + |beta>)/sqrt(2) '
     print 'where alpha = -2-2j and beta = 2+2j.'
+    print '-'*80
     termpause()
     print 'N = 20\npsi=(coherent(N,-2-2j)+coherent(N,2+2j)).unit()\nxvec = linspace(-5.,5.,100)'
     print 'yvec = xvec\nX,Y = meshgrid(xvec, yvec)\nW = wigner(psi,xvec,xvec)'
@@ -50,6 +51,7 @@ def schrodingercat():
     show()
     print ''
     print 'Now plot Q-function:'
+    print '--------------------'
     termpause()
     print 'Q = qfunc(psi,xvec,xvec)'
     print 'fig2 = plt.figure(figsize=(9, 6))'

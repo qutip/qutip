@@ -24,9 +24,12 @@ from scipy import *
 from termpause import termpause
 
 def qobjbasics():
+    print '-'*80
     print 'Details basic usage of the Qobj class...'
+    print '-'*80
     termpause()
-    print "The basics of Qobj:\n"
+    print "The basics of Qobj:"
+    print '-------------------\n'
     print 'Qobj()'
     print Qobj()
     
@@ -48,6 +51,7 @@ def qobjbasics():
     
     print ''
     print 'States and operators:'
+    print '---------------------'
     termpause()
     print 'basis(5,3)'
     print basis(5,3)
@@ -70,6 +74,7 @@ def qobjbasics():
     
     print ''
     print 'Qobj properties:'
+    print '----------------'
     termpause() 
     print 'q=destroy(4)'
     q=destroy(4)
@@ -95,6 +100,7 @@ def qobjbasics():
     
     print ''
     print 'Qobj math:'
+    print '----------'
     termpause()
     print 'q=destroy(4)'
     q=destroy(4)
@@ -119,6 +125,7 @@ def qobjbasics():
     
     print ''
     print 'Functions operating on Qobj class:'
+    print '----------------------------------'
     termpause()
     print 'basis(5,3)'
     print basis(5,3)
