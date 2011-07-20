@@ -74,73 +74,81 @@ class Examples(QtGui.QWidget):
         y=100
         #COLUMN 1
         x=20
-        b11=QtGui.QPushButton('Test Qobj\n operations', self)
+        b11=QtGui.QPushButton('Qobj Basics', self)
         b11.setGeometry(x, y, 150, 80)
         b11.setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b11, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button11()'))
         b11label = QtGui.QLabel(self)
         b11label.setOpenExternalLinks(True)
-        b11label.setText("<a href=http://code.google.com/p/qutip>TestQobj</a>")
-        b11label.move(65, 190)
+        b11label.setText("<a href=http://code.google.com/p/qutip/wiki/GuideBasics>BasicsGuide</a>")
+        b11label.move(58, 190)
         #COLUMN 2
         x=170
-        b12 = QtGui.QPushButton('Wigner function:\nSchr. cat state', self)
+        b12 = QtGui.QPushButton('Manipulating\nStates/Operators', self)
         b12.setGeometry(x, y, 150, 80)
         b12.setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b12, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button12()'))
-        b12label = QtGui.QLabel(self)
-        b12label.setOpenExternalLinks(True)
-        b12label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesSchCatDist>SchCatDist</a>")
-        b12label.move(215, 190)
+        #b12label = QtGui.QLabel(self)
+        #b12label.setOpenExternalLinks(True)
+        #b12label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesSchCatDist>SchCatDist</a>")
+        #b12label.move(215, 190)
         #COLUMN 3
         x=320
-        b13 = QtGui.QPushButton('', self)
+        b13 = QtGui.QPushButton('trace and ptrace\nFunctions', self)
         b13.setGeometry(x, y, 150, 80)
         b13.setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b13, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button13()'))
         #column 4
         x=470
-        b14 = QtGui.QPushButton('', self)
+        b14 = QtGui.QPushButton('Schrodinger Cat\n Wigner and Q-func.', self)
         b14.setGeometry(x, y, 150, 80)
         b14.setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b14, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button14()'))
+        b14label = QtGui.QLabel(self)
+        b14label.setOpenExternalLinks(True)
+        b14label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesSchCatDist>SchCatDist</a>")
+        b14label.move(510, 190)
         #column 5
         x=620
-        b15 = QtGui.QPushButton('', self)
+        b15 = QtGui.QPushButton('Constructing a\nSqueezed State', self)
         b15.setGeometry(x, y, 150, 80)
         b15.setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b15, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button15()'))
+        b15label = QtGui.QLabel(self)
+        b15label.setOpenExternalLinks(True)
+        b15label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesSqueezed>SqueezedExample</a>")
+        b15label.move(640, 190)
         ###################################
         
         #ROW 2 ############################
         y=220
         #COLUMN 1
         x=20
-        b21 = QtGui.QPushButton('', self)
+        b21 = QtGui.QPushButton('Steady State:\nCavity+Qubit', self)
         b21.setGeometry(x,y, 150, 80)
         b21.setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b21, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button21()'))
         #COLUMN 2
         x=170
-        b22 = QtGui.QPushButton('', self)
+        b22 = QtGui.QPushButton('Steady State:\nThermal Envir.', self)
         b22 .setGeometry(x,y, 150, 80)
         b22 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b22, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button22()'))
         #COLUMN 3
         x=320
-        b23 = QtGui.QPushButton('', self)
+        b23 = QtGui.QPushButton('Eseries', self)
         b23 .setGeometry(x,y, 150, 80)
         b23 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b23, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button23()'))
         #column 4
         x=470
-        b24 = QtGui.QPushButton('', self)
+        b24 = QtGui.QPushButton('Master-Equation:\nRabi Oscillations', self)
         b24 .setGeometry(x,y, 150, 80)
         b24 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b24, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button24()'))
         #column 5
         x=620
-        b25 = QtGui.QPushButton('', self)
+        b25 = QtGui.QPushButton('ME', self)
         b25 .setGeometry(x,y, 150, 80)
         b25 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b25, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button25()'))
@@ -151,13 +159,13 @@ class Examples(QtGui.QWidget):
         y=340
         #COLUMN 1
         x=20
-        b31 = QtGui.QPushButton('', self)
+        b31 = QtGui.QPushButton('ME', self)
         b31 .setGeometry(x,y, 150, 80)
         b31 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b31, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button31()'))
         #COLUMN 2
         x=170
-        b32 = QtGui.QPushButton('', self)
+        b32 = QtGui.QPushButton('ME', self)
         b32 .setGeometry(x,y, 150, 80)
         b32 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b32, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button32()'))
@@ -167,15 +175,19 @@ class Examples(QtGui.QWidget):
         b33 .setGeometry(x,y, 150, 80)
         b33 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b33, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button33()'))
+        b33label = QtGui.QLabel(self)
+        b33label.setOpenExternalLinks(True)
+        b33label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesHeisenbergSpinChain>SpinChain</a>")
+        b33label.move(365, 430)
         #column 4
         x=470
-        b34 = QtGui.QPushButton('', self)
+        b34 = QtGui.QPushButton('Correlations', self)
         b34 .setGeometry(x,y, 150, 80)
         b34 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b34, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button34()'))
         #column 5
         x=620
-        b35 = QtGui.QPushButton('', self)
+        b35 = QtGui.QPushButton('Bloch', self)
         b35 .setGeometry(x,y, 150, 80)
         b35 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b35, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button35()'))
@@ -186,22 +198,30 @@ class Examples(QtGui.QWidget):
         y=460
         #COLUMN 1
         x=20
-        b41 = QtGui.QPushButton('', self)
+        b41 = QtGui.QPushButton('Monte-Carlo:\nCavity+Qubit', self)
         b41 .setGeometry(x,y, 150, 80)
         b41 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b41, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button41()'))
         #COLUMN 2
         x=170
-        b42 = QtGui.QPushButton('Monte-Carlo:\n trilinear Hamilt.', self)
+        b42 = QtGui.QPushButton('Monte-Carlo:\ntrilinear Hamilt.', self)
         b42 .setGeometry(x,y, 150, 80)
         b42 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b42, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button42()'))
+        b42label = QtGui.QLabel(self)
+        b42label.setOpenExternalLinks(True)
+        b42label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesTrilinearMonteCarlo>TrilinearMonteCarlo</a>")
+        b42label.move(182, 550)
         #COLUMN 3
         x=320
-        b43 = QtGui.QPushButton('', self)
+        b43 = QtGui.QPushButton('Monte-Carlo:\nThermal Deviations', self)
         b43 .setGeometry(x,y, 150, 80)
         b43 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b43, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button43()'))
+        b43label = QtGui.QLabel(self)
+        b43label.setOpenExternalLinks(True)
+        b43label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesThermalTrilinear>TrilinearThermal</a>")
+        b43label.move(345, 550)
         #column 4
         x=470
         b44 = QtGui.QPushButton('', self)
@@ -210,7 +230,7 @@ class Examples(QtGui.QWidget):
         self.connect(b44, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button44()'))
         #column 5
         x=620
-        b45 = QtGui.QPushButton('', self)
+        b45 = QtGui.QPushButton('Time-Dependent\nHamiltonians', self)
         b45 .setGeometry(x,y, 150, 80)
         b45 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b45, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button45()'))
