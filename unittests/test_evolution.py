@@ -62,7 +62,8 @@ class TestEvolution(unittest.TestCase):
 
 
     def testODESolverCase1(self):
-        
+        # with dissipation
+
         epsilon = 0.0 * 2 * pi   # cavity frequency
         delta   = 1.0 * 2 * pi   # atom frequency
         g2 = 0.1                 # 
@@ -73,7 +74,27 @@ class TestEvolution(unittest.TestCase):
         sx, sy, sz = self.qubit_integrate(tlist, psi0, epsilon, delta, g1, g2, "ode")
 
         sx_analytic = zeros(shape(tlist))
-        sy_analytic = sin(2*pi*tlist) * exp(-tlist * g2)
+        sy_analytic = -sin(2*pi*tlist) * exp(-tlist * g2)
+        sz_analytic = cos(2*pi*tlist) * exp(-tlist * g2)
+
+        self.assertEqual(max(abs(sx - sx_analytic)) < 0.05, True)
+        self.assertEqual(max(abs(sy - sy_analytic)) < 0.05, True)
+        self.assertEqual(max(abs(sz - sz_analytic)) < 0.05, True)  
+
+    def testODESolverCase2(self):
+        # without dissipation
+
+        epsilon = 0.0 * 2 * pi   # cavity frequency
+        delta   = 1.0 * 2 * pi   # atom frequency
+        g2 = 0.0                 # 
+        g1 = 0.0                 # 
+        psi0 = basis(2,0)        # initial state
+        tlist = linspace(0,5,200)
+
+        sx, sy, sz = self.qubit_integrate(tlist, psi0, epsilon, delta, g1, g2, "ode")
+
+        sx_analytic = zeros(shape(tlist))
+        sy_analytic = -sin(2*pi*tlist) * exp(-tlist * g2)
         sz_analytic = cos(2*pi*tlist) * exp(-tlist * g2)
 
         self.assertEqual(max(abs(sx - sx_analytic)) < 0.05, True)
@@ -92,7 +113,7 @@ class TestEvolution(unittest.TestCase):
         sx, sy, sz = self.qubit_integrate(tlist, psi0, epsilon, delta, g1, g2, "es")
 
         sx_analytic = zeros(shape(tlist))
-        sy_analytic = sin(2*pi*tlist) * exp(-tlist * g2)
+        sy_analytic = -sin(2*pi*tlist) * exp(-tlist * g2)
         sz_analytic = cos(2*pi*tlist) * exp(-tlist * g2)
 
         self.assertEqual(max(abs(sx - sx_analytic)) < 0.05, True)
@@ -100,6 +121,7 @@ class TestEvolution(unittest.TestCase):
         self.assertEqual(max(abs(sz - sz_analytic)) < 0.05, True)  
 
     def testMCSolverCase1(self):
+        # with dissipation
         
         epsilon = 0.0 * 2 * pi   # cavity frequency
         delta   = 1.0 * 2 * pi   # atom frequency
@@ -111,7 +133,27 @@ class TestEvolution(unittest.TestCase):
         sx, sy, sz = self.qubit_integrate(tlist, psi0, epsilon, delta, g1, g2, "mc")
 
         sx_analytic = zeros(shape(tlist))
-        sy_analytic = sin(2*pi*tlist) * exp(-tlist * g2)
+        sy_analytic = -sin(2*pi*tlist) * exp(-tlist * g2)
+        sz_analytic = cos(2*pi*tlist) * exp(-tlist * g2)
+
+        self.assertEqual(max(abs(sx - sx_analytic)) < 0.05, True)
+        self.assertEqual(max(abs(sy - sy_analytic)) < 0.05, True)
+        self.assertEqual(max(abs(sz - sz_analytic)) < 0.05, True)  
+
+    def testMCSolverCase2(self):
+        # without dissipation
+
+        epsilon = 0.0 * 2 * pi   # cavity frequency
+        delta   = 1.0 * 2 * pi   # atom frequency
+        g2 = 0.0                 # 
+        g1 = 0.0                 # 
+        psi0 = basis(2,0)        # initial state
+        tlist = linspace(0,5,200)
+
+        sx, sy, sz = self.qubit_integrate(tlist, psi0, epsilon, delta, g1, g2, "mc")
+
+        sx_analytic = zeros(shape(tlist))
+        sy_analytic = -sin(2*pi*tlist) * exp(-tlist * g2)
         sz_analytic = cos(2*pi*tlist) * exp(-tlist * g2)
 
         self.assertEqual(max(abs(sx - sx_analytic)) < 0.05, True)
