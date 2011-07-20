@@ -219,10 +219,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
     #
     # construct liouvillian
     #
-    L = -1j*(spre(H) - spost(H))
-    for m in xrange(0, n_op):
-        cdc = c_op_list[m].dag() * c_op_list[m]
-        L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
+    L = liouvillian(H, c_op_list)
 
     #
     # setup integrator
