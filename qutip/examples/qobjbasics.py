@@ -19,63 +19,146 @@
 from ..Qobj import *
 from ..istests import *
 from ..states import *
-from scipy import arange,prod,factorial,zeros,meshgrid
+from ..operators import *
+from scipy import *
 from termpause import termpause
 
 def qobjbasics():
-    print 'Basic Qobj usage and examples.'
+    print 'Details basic usage of the Qobj class...'
     termpause()
-    print "======================================"
-    A = Qobj([0.8, 0.1, 0.1, 0.2])
-    print "A = \n", A
-    print "A isbra  = ", isbra(A)
-    print "A isket  = ", isket(A)
-    print "A isoper = ", isoper(A)
-    print "A isherm = ", A.isherm
-    print "A len    = ", prod(A.shape)
-    print "iter     = ", arange(0, prod(A.shape))
-
-    print "======================================"
-    A = Qobj([[0.8, 0.1], [0.1, 0.2]])
-    print "A = \n", A
-    print "A isket  = ", isket(A)
-    print "A isoper = ", isoper(A)
-    print "A isherm = ", A.isherm
-    print "A len    = ", prod(A.shape)
-    print "iter     = ", arange(0, prod(A.shape))
-
-
-    print ""
-
-    print "======================================"
-    A = Qobj([0])
-    print "A = \n", A
-    print "A isket  = ", isket(A)
-    print "A isoper = ", isoper(A)
-    print "A isherm = ", A.isherm
-    print "A len    = ", prod(A.shape)
-    print "iter     = ", arange(0, prod(A.shape))
-    print 'type     = ', A.type
-    print "======================================"
-    X,Y = meshgrid(array([0,1,2]), array([0,1,2]))
-    Z   = zeros(size(X))
-    print "X = \n", X
-    print "X size = \n", size(X)
-    print "Z = \n", Z
-    print "Z size = \n", size(Z)
-    print
-
-    print "======================================"
-    psi = basis(4, 2)
-    print "basis(4,2) = \n", psi
-    print " isket     =  ",isket(psi)
-    print "psi isherm = ", psi.isherm
-
-    print "======================================"
-    psi = arange(0, 30)
-    print "psi = \n", factorial(psi)
-
-
+    print "The basics of Qobj:\n"
+    print 'Qobj()'
+    print Qobj()
+    
+    print ''
+    print 'Qobj([1,2,3,4,5])'
+    print Qobj([1,2,3,4,5])
+    
+    print ''
+    print 'x=array([[1],[2],[3],[4],[5]])'
+    print 'Qobj(x)'
+    x=array([[1],[2],[3],[4],[5]])
+    print Qobj(x)
+    
+    print ''
+    print 'r=random.random((4,4))'
+    print 'Qobj(r)'
+    r=random.random((4,4))
+    print Qobj(r)
+    
+    print ''
+    print 'States and operators:'
+    termpause()
+    print 'basis(5,3)'
+    print basis(5,3)
+    
+    print ''
+    print 'coherent(5,0.5-0.5j)'
+    print coherent(5,0.5-0.5j)
+    
+    print ''
+    print 'destroy(4)'
+    print destroy(4)
+    
+    print ''
+    print 'sigmaz()'
+    print sigmaz()
+    
+    print ''
+    print 'jmat(5/2.0,'+')' 
+    print jmat(5/2.0,'+')
+    
+    print ''
+    print 'Qobj properties:'
+    termpause() 
+    print 'q=destroy(4)'
+    q=destroy(4)
+    print ''
+    print 'q.dims'
+    print q.dims
+    
+    print ''
+    print 'q.shape'
+    print q.shape
+    
+    print ''
+    print 'q.type'
+    print q.type
+    
+    print ''
+    print 'q.isherm'
+    print q.isherm
+    
+    print ''
+    print 'q.data'
+    print q.data
+    
+    print ''
+    print 'Qobj math:'
+    termpause()
+    print 'q=destroy(4)'
+    q=destroy(4)
+    print 'x=sigmax()'
+    x=sigmax()
+    
+    print ''
+    print 'q+5'
+    print q+5
+    
+    print ''
+    print 'x*x'
+    print x*x
+    
+    print ''
+    print 'q**3'
+    print q**3
+    
+    print ''
+    print 'x/sqrt(2)'
+    print x/sqrt(2)
+    
+    print ''
+    print 'Functions operating on Qobj class:'
+    termpause()
+    print 'basis(5,3)'
+    print basis(5,3)
+    
+    print ''
+    print 'basis(5,3).dag()'
+    print basis(5,3).dag()
+    
+    print ''
+    print 'coherent_dm(5,1)'
+    print coherent_dm(5,1)
+    
+    print ''
+    print 'coherent_dm(5,1).diag()'
+    print coherent_dm(5,1).diag()
+    
+    print ''
+    print 'coherent_dm(5,1).full()'
+    print coherent_dm(5,1).full()
+    
+    print ''
+    print 'coherent_dm(5,1).norm()'
+    print coherent_dm(5,1).norm()
+    
+    print ''
+    print 'coherent_dm(5,1).sqrtm()'
+    print coherent_dm(5,1).sqrtm()
+    
+    print ''
+    print 'coherent_dm(5,1).tr()'
+    print coherent_dm(5,1).tr()
+    
+    print ''
+    print '(basis(4,2)+basis(4,1)).unit()'
+    print (basis(4,2)+basis(4,1)).unit()
+    
+    print ''
+    print 'DEMO FINISHED...'
+    termpause()
+#--------------------------------------------
 
 if __name__=='main()':
     qobjbasics()
