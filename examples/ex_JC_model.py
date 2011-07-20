@@ -3,6 +3,7 @@
 # 
 #
 from qutip import *
+from pylab import *
 import time
 
 def jc_integrate(N, wc, wa, g, kappa, gamma, psi0, use_rwa, tlist):

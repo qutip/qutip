@@ -31,7 +31,7 @@ def ode2es(L, rho0):
     # v[:,i] = eigenvector i
 
     rlen = prod(rho0.shape)
-    r0 = reshape(rho0.full(),    [rlen, 1])
+    r0 = reshape(rho0.full(), [rlen, 1])
     v0 = la.solve(v,r0)
     vv = v * sp.spdiags(v0.T, 0, rlen, rlen)
 
