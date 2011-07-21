@@ -39,6 +39,7 @@ def demos():
         opts=array([123456,11,12,13,14,15,21,22,23,24,25,31,32,33,34,35,41,42,43,44,45])
         lopts=arange(len(opts))
     exconfig.option=0
+
     while exconfig.option<123456:
         exconfig.option=123456
         if os.environ['QUTIP_GRAPHICS']=='YES':
@@ -117,7 +118,7 @@ def demos():
         elif exconfig.option==33:
             examples.spinchain()
         elif exconfig.option==34:
-            pass
+            examples.correlation()
         elif exconfig.option==35:
             pass
         elif exconfig.option==41:

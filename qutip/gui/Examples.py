@@ -197,6 +197,10 @@ class Examples(QtGui.QWidget):
         b34 .setGeometry(x,y, 150, 80)
         b34 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b34, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button34()'))
+        b34label = QtGui.QLabel(self)
+        b34label.setOpenExternalLinks(True)
+        b34label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesCorrFunc>Correlations</a>")
+        b34label.move(495, 430)
         #column 5
         x=620
         b35 = QtGui.QPushButton('Bloch', self)

@@ -9,3 +9,4 @@ from tensorptrace import tensorptrace
 from termpause import termpause
 from thermalss import thermalss
 from trilinearmc import trilinearmc
+from correlation import correlation
