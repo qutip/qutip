@@ -18,7 +18,7 @@
 ###########################################################################
 import os,sys,threading
 from scipy import array,ceil,remainder
-from multiprocessing import Pool
+from multiprocessing import Pool,cpu_count
 import datetime
 
 if os.environ['QUTIP_GRAPHICS']=="NO":
@@ -36,7 +36,7 @@ class ProgressBar(QtGui.QWidget):
     def __init__(self,top,thread,mx,parent = None):
         QtGui.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window|QtCore.Qt.CustomizeWindowHint|QtCore.Qt.WindowTitleHint|QtCore.Qt.WindowMinimizeButtonHint)
-        self.wait=2*int(os.environ['MKL_NUM_THREADS'])
+        self.wait=int(cpu_count())
         self.top=top
         self.max=mx
         self.st=datetime.datetime.now()
@@ -68,7 +68,7 @@ class ProgressBar(QtGui.QWidget):
         self.num+=1
         self.pbar.setValue((100.0*self.num)/self.max)
         self.label.setText("Trajectories completed: "+ str(self.num)+"/"+str(self.max))
-        if self.num>=10 and remainder(self.num,self.wait)==0:
+        if self.num>=self.wait and remainder(self.num,self.wait)==0:
             nwt=datetime.datetime.now()
             diff=((nwt.day-self.st.day)*86400+(nwt.hour-self.st.hour)*(60**2)+(nwt.minute-self.st.minute)*60+(nwt.second-self.st.second))*(self.max-self.num)/(1.0*self.num)
             secs=datetime.timedelta(seconds=ceil(diff))
