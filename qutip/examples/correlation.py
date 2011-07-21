@@ -75,18 +75,45 @@ def correlation():
     termpause()
     print("""
     # Plot the result
-    figure(1)
+    figure()
     plot(tlist,real(corr))
     xlabel('Time')
     ylabel('Correlation <a^\dag(t)a(0)>')        
     show()
     """)
     # Plot the result
-    figure(1)
+    figure()
     plot(tlist,real(corr))
     xlabel('Time')
     ylabel('Correlation $<a^\dag(t)a(0)>$')        
     show()
+
+    termpause()
+    print("""
+    # calculate the power spectrum
+    wlist = linspace(-10, 10, 300)
+    spec = spectrum_ss(H, wlist, [C1, C2], a.dag(), a)
+    """)
+    # calculate the power spectrum
+    wlist = linspace(-10, 10, 300)
+    spec = spectrum_ss(H, wlist, [C1, C2], a.dag(), a)
+
+    termpause()
+    print("""
+    figure()
+    plot(wlist,real(spec))
+    xlabel('Frequency')
+    ylabel('Power spectrum')
+    show()
+    """)
+    figure()
+    plot(wlist,real(spec))
+    xlabel('Frequency')
+    ylabel('Power spectrum')
+    show()
+
+
+
 
 if __name__=='main()':
     correlation()

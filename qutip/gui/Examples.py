@@ -193,14 +193,14 @@ class Examples(QtGui.QWidget):
         b33label.move(365, 430)
         #column 4
         x=470
-        b34 = QtGui.QPushButton('Correlations', self)
+        b34 = QtGui.QPushButton('Correlations\n and spectrum', self)
         b34 .setGeometry(x,y, 150, 80)
         b34 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b34, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button34()'))
         b34label = QtGui.QLabel(self)
         b34label.setOpenExternalLinks(True)
-        b34label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesCorrFunc>Correlations</a>")
-        b34label.move(505, 430)
+        b34label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesCorrFunc>Correlations</a>, <a href=http://code.google.com/p/qutip/wiki/ExamplesSpectrum>Spectrum</a>")
+        b34label.move(475, 430)
         #column 5
         x=620
         b35 = QtGui.QPushButton('Bloch', self)
