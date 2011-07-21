@@ -166,4 +166,38 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
     return C_mat
 
 
+# ------------------------------------------------------------------------------
+# SPECTRUM
+# ------------------------------------------------------------------------------
+
+def spectrum_ss(H, wlist, c_op_list, a_op, b_op):
+    """
+    Calculate the spectrum corresponding to a correlation function <a(0)b(t)>,
+    i.e., the Fourier transform of the correlation funciton,
+
+    S(w) = \int_{-\infty}^{\infty} <a(0)b(t)> \exp{-i\omega t} dt
+    """
+
+    # contruct the Liouvillian
+    L = liouvillian(H, c_op_list)
+
+    # find the steady state density matrix and a_op and b_op expecation values
+    rho0 = steady(L)
+
+    a_op_ss = expect(a_op, rho0)
+    b_op_ss = expect(b_op, rho0)
+
+    # eseries solution for (b * rho0)(t)
+    es = ode2es(L, b_op * rho0)
+   
+    # correlation
+    corr_es = expect(a_op, es)
+
+    # covarience
+    cov_es = corr_es - real(a_op_ss * b_op_ss)
+
+    # spectrum
+    spectrum = esspec(cov_es, wlist)
+
+    return spectrum
 
