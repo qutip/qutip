@@ -25,6 +25,8 @@ import sys,os,time
 from istests import *
 from Odeoptions import Odeoptions
 import mcdata
+import datetime
+from multiprocessing import Pool,cpu_count
 ##@package mcsolve
 #Collection of routines for calculating dynamics via the Monte-Carlo method.
 
@@ -112,6 +114,8 @@ class MC_class():
         ##Shape of initial state vector
         self.psi_shape=psi0.shape
         self.seed=None
+        self.st=None #for expected time to completion
+        self.cpus=cpu_count()
         #FOR EVOLUTION FOR NO COLLAPSE OPERATORS---------------------------------------------
         if self.num_collapse==0:
             if self.num_expect==0:
@@ -152,12 +156,17 @@ class MC_class():
         if os.environ['QUTIP_GRAPHICS']=="NO" or os.environ['QUTIP_GUI']=="NONE" or self.gui==False:
             self.percent=self.count/(1.0*self.ntraj)
             if self.count/float(self.ntraj)>=self.level:
-                print str(floor(self.count/float(self.ntraj)*100))+'%  ('+str(self.count)+'/'+str(self.ntraj)+')'
+                nwt=datetime.datetime.now()
+                diff=((nwt.day-self.st.day)*86400+(nwt.hour-self.st.hour)*(60**2)+(nwt.minute-self.st.minute)*60+(nwt.second-self.st.second))*(self.ntraj-self.count)/(1.0*self.count)
+                secs=datetime.timedelta(seconds=ceil(diff))
+                dd = datetime.datetime(1,1,1) + secs
+                time_string="%02d:%02d:%02d:%02d" % (dd.day-1,dd.hour,dd.minute,dd.second)
+                print str(floor(self.count/float(self.ntraj)*100))+'%  ('+str(self.count)+'/'+str(self.ntraj)+')'+'  Est. time remaining: '+time_string
                 self.level+=0.1
     #########################
     def parallel(self,args,top=None):
-        from multiprocessing import Pool,cpu_count
-        pl=Pool(processes=cpu_count())
+        pl=Pool(processes=self.cpus)
+        self.st=datetime.datetime.now()
         for nt in xrange(0,self.ntraj):
             pl.apply_async(mc_alg_evolve,args=(nt,args),callback=top.callback)
         pl.close()
