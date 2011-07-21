@@ -20,7 +20,7 @@ import sys
 
 def termpause():
     """
-    Pause's script running in a terminal window until the user presses a key,
+    Pause's script running in a terminal window until the user presses enter key,
         else does nothing.
     """
     if sys.stdout.isatty():
