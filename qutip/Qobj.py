@@ -299,7 +299,10 @@ class Qobj():
         Norm is L2-norm for kets and 
         trace-norm for operators.
         """
-        return la.norm(self.full())
+        if self.type=='oper' or self.type=='super':
+            return float(real((self*self.dag()).sqrtm().tr()))
+        else:
+            return la.norm(self.full(),2)
     def tr(self):
         """
         Returns the trace of a quantum object
