@@ -85,6 +85,7 @@ from Bloch import Bloch
 from correlation import *
 from eseries import *
 from demos import *
+from entropy import *
 import examples
 from expect import *
 from gates import *
