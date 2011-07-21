@@ -20,7 +20,7 @@ from scipy import *
 from Qobj import *
 import scipy.linalg as la
 
-def entropy(rho,base='2'):
+def entropy_vn(rho,base='2'):
     vals,vecs=la.eigh(rho.full())
     nzvals=vals[vals!=0]
     if base=='2':
