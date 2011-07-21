@@ -85,7 +85,7 @@ def correlation():
     figure(1)
     plot(tlist,real(corr))
     xlabel('Time')
-    ylabel('Correlation <a^\dag(t)a(0)>')        
+    ylabel('Correlation $<a^\dag(t)a(0)>$')        
     show()
 
 if __name__=='main()':
