@@ -66,7 +66,8 @@ def schrodingercat():
     surf=ax.plot_surface(X, Y, Q, rstride=1, cstride=1, cmap=cm.jet, alpha=1.0,linewidth=0.05)
     fig2.colorbar(surf, shrink=0.65, aspect=20)
     show()
-    
+    print ''
+    print 'DEMO FINISHED...'
 
 if __name__=='main()':
     schrodingercat()

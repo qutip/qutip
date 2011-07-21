@@ -107,7 +107,8 @@ def squeezed():
     ax2.set_zlim3d(-0.3,0.4)
     title('Q function of squeezed state')
     show()
-    
+    print ''
+    print 'DEMO FINISHED...'
 
 if __name__=='main()':
     squeezed()

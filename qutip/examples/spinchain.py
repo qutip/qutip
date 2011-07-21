@@ -151,6 +151,8 @@ def spinchain():
     title(r'Dynamics of a Heisenberg spin chain')
     legend(loc = "lower right")
     show()
+    print ''
+    print 'DEMO FINISHED...'
 
 
 if __name__=="main()":

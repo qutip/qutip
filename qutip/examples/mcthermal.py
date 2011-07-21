@@ -116,6 +116,8 @@ def mcthermal():
     ax.set_ylabel(r'Time')
     ax.set_zlim3d(0,1)
     show()
+    print ''
+    print 'DEMO FINISHED...'
 
 if __name__=='main()':
     mcthermal()
