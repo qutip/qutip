@@ -120,8 +120,8 @@ class Examples(QtGui.QWidget):
         self.connect(b15, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button15()'))
         b15label = QtGui.QLabel(self)
         b15label.setOpenExternalLinks(True)
-        b15label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesSqueezed>SqueezedExample</a>")
-        b15label.move(640, 190)
+        b15label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesSqueezed>SqueezedEx</a>")
+        b15label.move(660, 190)
         ###################################
         
         #ROW 2 ############################
@@ -132,12 +132,20 @@ class Examples(QtGui.QWidget):
         b21.setGeometry(x,y, 150, 80)
         b21.setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b21, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button21()'))
+        b21label = QtGui.QLabel(self)
+        b21label.setOpenExternalLinks(True)
+        b21label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesDrivenCavitySS>DrivenCavitySS</a>")
+        b21label.move(48, 310)
         #COLUMN 2
         x=170
         b22 = QtGui.QPushButton('Steady State:\nThermal Envir.', self)
         b22 .setGeometry(x,y, 150, 80)
         b22 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b22, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button22()'))
+        b22label = QtGui.QLabel(self)
+        b22label.setOpenExternalLinks(True)
+        b22label.setText("<a href=http://code.google.com/p/qutip/wiki/GuideSteadyState>GuideSS</a>")
+        b22label.move(220, 310)
         #COLUMN 3
         x=320
         b23 = QtGui.QPushButton('Eseries', self)

@@ -7,4 +7,5 @@ from spinchain import spinchain
 from squeezed import squeezed
 from tensorptrace import tensorptrace
 from termpause import termpause
+from thermalss import thermalss
 from trilinearmc import trilinearmc

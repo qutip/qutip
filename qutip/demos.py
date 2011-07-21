@@ -53,8 +53,8 @@ def demos():
                 print '[3]  Tensor / partial trace usage'
                 print '[4]  Wigner & Q dist. of Schrodinger cat-state'
                 print '[5]  Squeezed state'
-                print '[6]  None'
-                print '[7]  None'
+                print '[6]  Steady-state cavity+qubit'
+                print '[7]  Steady-state oscillator in thermal bath'
                 print '[8]  None'
                 print '[9]  None'
                 print '[10] None'
@@ -103,7 +103,7 @@ def demos():
         elif exconfig.option==21:
             examples.cqsteady()
         elif exconfig.option==22:
-            pass
+            examples.thermalss()
         elif exconfig.option==23:
             pass
         elif exconfig.option==24:
