@@ -94,10 +94,14 @@ class Examples(QtGui.QWidget):
         #b12label.move(215, 190)
         #COLUMN 3
         x=320
-        b13 = QtGui.QPushButton('trace and ptrace\nFunctions', self)
+        b13 = QtGui.QPushButton('tensor and ptrace\nFunctions', self)
         b13.setGeometry(x, y, 150, 80)
         b13.setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b13, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button13()'))
+        b13label = QtGui.QLabel(self)
+        b13label.setOpenExternalLinks(True)
+        b13label.setText("<a href=http://code.google.com/p/qutip/wiki/GuideComposite>GuideComposite</a>")
+        b13label.move(345, 190)
         #column 4
         x=470
         b14 = QtGui.QPushButton('Schrodinger Cat\n Wigner and Q-func.', self)
@@ -202,6 +206,10 @@ class Examples(QtGui.QWidget):
         b41 .setGeometry(x,y, 150, 80)
         b41 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b41, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button41()'))
+        b41label = QtGui.QLabel(self)
+        b41label.setOpenExternalLinks(True)
+        b41label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesMonteCarloExpectation>MCCavityQubit</a>")
+        b41label.move(48, 550)
         #COLUMN 2
         x=170
         b42 = QtGui.QPushButton('Monte-Carlo:\ntrilinear Hamilt.', self)

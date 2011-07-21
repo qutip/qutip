@@ -95,13 +95,13 @@ def demos():
         elif exconfig.option==12:
             pass
         elif exconfig.option==13:
-            pass
+            examples.tensorptrace()
         elif exconfig.option==14:
             examples.schrodingercat()
         elif exconfig.option==15:
             examples.squeezed()
         elif exconfig.option==21:
-            pass
+            examples.cqsteady()
         elif exconfig.option==22:
             pass
         elif exconfig.option==23:
