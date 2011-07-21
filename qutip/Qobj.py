@@ -300,7 +300,7 @@ class Qobj():
         trace-norm for operators.
         """
         if self.type=='oper' or self.type=='super':
-            return float(real((self*self.dag()).sqrtm().tr()))
+            return float(real((self.dag()*self).sqrtm().tr()))
         else:
             return la.norm(self.full(),2)
     def tr(self):
