@@ -199,8 +199,8 @@ class Examples(QtGui.QWidget):
         self.connect(b34, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button34()'))
         b34label = QtGui.QLabel(self)
         b34label.setOpenExternalLinks(True)
-        b34label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesCorrFunc>Correlations</a>, <a href=http://code.google.com/p/qutip/wiki/ExamplesSpectrum>Spectrum</a>")
-        b34label.move(475, 430)
+        b34label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesCorrFunc>Correl.</a> / <a href=http://code.google.com/p/qutip/wiki/ExamplesSpectrum>Spectrum</a>")
+        b34label.move(488, 430)
         #column 5
         x=620
         b35 = QtGui.QPushButton('Bloch', self)
