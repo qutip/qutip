@@ -24,7 +24,7 @@ def termpause():
         else does nothing.
     """
     if sys.stdout.isatty():
-        uinpt=raw_input("\nPress any key to continue...\n")
+        uinpt=raw_input("\nPress enter key to continue...\n")
         return
     else:
         print ''
