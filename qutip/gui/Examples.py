@@ -164,7 +164,7 @@ class Examples(QtGui.QWidget):
         b24label.move(510, 310)
         #column 5
         x=620
-        b25 = QtGui.QPushButton('Master Equation:\nSingle-Atom Lasing', self)
+        b25 = QtGui.QPushButton('Master Equation:\nSingle-Atom Laser', self)
         b25.setGeometry(x,y, 150, 80)
         b25.setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b25, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button25()'))
