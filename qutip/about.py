@@ -34,7 +34,7 @@ def about():
     #GUI version requires PySide or PyQt4.
     #@brief About box for qutip
     tk_conify_center()
-    if os.environ['QUTIP_GRAPHICS']=='YES':
+    if os.environ['QUTIP_GRAPHICS']=='YES' and os.environ['QUTIP_GUI']!="NONE":
         from gui import AboutBox
         import matplotlib
         if os.environ['QUTIP_GUI']=="PYSIDE":
@@ -62,6 +62,26 @@ def about():
         print "Scipy Version:  "+scipy.__version__
         print "Matplotlib Version:  "+matplotlib.__version__
         print ''
+        try:
+            import PySide
+            pyside_ver=PySide.__version__
+        except:
+            pyside_ver='None'
+        try:
+            import PyQt4
+            pyqt4_ver=PyQt4.__version__
+        except:
+            pyqt4_ver='None'
+        if sys.platform=='darwin':
+            try:
+                import Foundation
+                pyobjc='Yes'
+            except:
+                pyobjc='No'
+        print "PySide Version:    "+pyside_ver
+        print "PyQt4 Version:     "+pyqt4_ver
+        if sys.platform=='darwin':
+            print "PyObjc Installed:  "+pyobjc
 
 def tk_conify_center():
     ##@private
