@@ -1,49 +1,10 @@
 #
-# Test of QuTiP dynamics for cases with exact analytical solution
+# Simple model for single-atom lasing
 #
 from qutip import *
 from pylab import *
 import time
 import math
-
-def jc_steadystate(N, wc, wa, g, kappa, gamma, pump, psi0, use_rwa, tlist):
-
-    # Hamiltonian
-    a  = tensor(destroy(N), qeye(2))
-    sm = tensor(qeye(N), destroy(2))
-
-    if use_rwa: 
-        # use the rotating wave approxiation
-        H = wc * a.dag() * a + wa * sm.dag() * sm + g * (a.dag() * sm + a * sm.dag())
-    else:
-        H = wc * a.dag() * a + wa * sm.dag() * sm + g * (a.dag() + a) * (sm + sm.dag())
-           
-    # collapse operators
-    c_op_list = []
-
-    n_th_a = 0.0 # zero temperature
-
-    rate = kappa * (1 + n_th_a)
-    #if rate > 0.0:
-    c_op_list.append(sqrt(rate) * a)
-
-    rate = kappa * n_th_a
-    if rate > 0.0:
-        c_op_list.append(sqrt(rate) * a.dag())
-
-    rate = gamma
-    if rate > 0.0:
-        c_op_list.append(sqrt(rate) * sm)
-
-    rate = pump
-    if rate > 0.0:
-        c_op_list.append(sqrt(rate) * sm.dag())
-
-
-    # find the steady state
-    rho_ss = steadystate(H, c_op_list)
-
-    return expect(a.dag() * a, rho_ss), expect(sm.dag() * sm, rho_ss)
 
 def jc_integrate(N, wc, wa, g, kappa, gamma, pump, psi0, use_rwa, tlist):
 
@@ -86,7 +47,7 @@ def jc_integrate(N, wc, wa, g, kappa, gamma, pump, psi0, use_rwa, tlist):
     nc_list = expect(a.dag()  *  a, rho_list) 
     na_list = expect(sm.dag() * sm, rho_list)
 
-    return na_list, nc_list, rho_list
+    return nc_list, na_list, rho_list
     
 #
 # 
@@ -146,17 +107,4 @@ fig=figure(3)
 contourf(X, Y, W, 100)
 colorbar()
 show()
-
-#from mpl_toolkits.mplot3d import Axes3D
-#from matplotlib import cm
-#fig =figure(figsize=(9, 6))
-#ax = Axes3D(fig,azim=-30,elev=73)
-#surf=ax.plot_surface(X, Y, W, rstride=1, cstride=1, cmap=cm.copper, alpha=1,linewidth=0.1)
-#ax.set_zlim3d(-0.2,0.2)
-##remove z-axis tick labels
-#for a in ax.w_zaxis.get_ticklines()+ax.w_zaxis.get_ticklabels():
-#    a.set_visible(False)
-#fig.colorbar(surf,shrink=0.65,aspect=20)
-#show()
-
 
