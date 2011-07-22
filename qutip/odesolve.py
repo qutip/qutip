@@ -21,7 +21,7 @@ from scipy.integrate import *
 from Qobj import *
 from superoperator import *
 from expect import *
-
+from Odeoptions import Odeoptions
 
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
@@ -73,7 +73,11 @@ def wf_ode_solve(H, psi0, tlist, expt_op_list, H_args=None):
     # setup integrator
     #
     initial_vector = psi0.full()
-    r = scipy.integrate.ode(psi_ode_func).set_integrator('zvode').set_initial_value(initial_vector, tlist[0]).set_f_params(H.data)
+    r = scipy.integrate.ode(psi_ode_func)
+    opt = Odeoptions()
+    r.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step)
+    #r.set_integrator('zvode')
+    r.set_initial_value(initial_vector, tlist[0]).set_f_params(-1.0j * H.data)
 
     #
     # start evolution
@@ -103,7 +107,7 @@ def wf_ode_solve(H, psi0, tlist, expt_op_list, H_args=None):
 # evaluate dpsi(t)/dt
 #
 def psi_ode_func(t, psi, H):
-    return -1j * (H * psi)
+    return H * psi
 
 # ------------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
