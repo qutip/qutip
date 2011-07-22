@@ -91,7 +91,8 @@ rho_final  = rho_list[-1]
 rho_cavity = ptrace(rho_final, 0)
 
 figure(2)
-bar(range(0, N), real(rho_cavity.diag()))
+bar(arange(N), (rho_cavity.diag()), width=0.8)
+xticks(arange(N)+0.4, arange(N))
 xlabel("Photon number")
 ylabel("Occupation probability")
 title("Photon distribution in the cavity")
