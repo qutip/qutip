@@ -10,3 +10,5 @@ from termpause import termpause
 from thermalss import thermalss
 from trilinearmc import trilinearmc
 from correlation import correlation
+from jc_vacuum_rabi import jc_vacuum_rabi
+from jc_lasing import jc_lasing

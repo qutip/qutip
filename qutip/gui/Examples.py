@@ -154,16 +154,24 @@ class Examples(QtGui.QWidget):
         self.connect(b23, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button23()'))
         #column 4
         x=470
-        b24 = QtGui.QPushButton('Master-Equation:\nRabi Oscillations', self)
-        b24 .setGeometry(x,y, 150, 80)
-        b24 .setFocusPolicy(QtCore.Qt.NoFocus)
+        b24 = QtGui.QPushButton('Master Equation:\nRabi Oscillations', self)
+        b24.setGeometry(x,y, 150, 80)
+        b24.setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b24, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button24()'))
+        b24label = QtGui.QLabel(self)
+        b24label.setOpenExternalLinks(True)
+        b24label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesJaynesCummingsModel>Vacuum Rabi</a>")
+        b24label.move(510, 310)
         #column 5
         x=620
-        b25 = QtGui.QPushButton('ME', self)
-        b25 .setGeometry(x,y, 150, 80)
-        b25 .setFocusPolicy(QtCore.Qt.NoFocus)
+        b25 = QtGui.QPushButton('Master Equation:\nSingle-Atom Lasing', self)
+        b25.setGeometry(x,y, 150, 80)
+        b25.setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b25, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button25()'))
+        b25label = QtGui.QLabel(self)
+        b25label.setOpenExternalLinks(True)
+        b25label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesSingleAtomLasing>Lasing</a>")
+        b25label.move(680, 310)
         ######################################
         
         

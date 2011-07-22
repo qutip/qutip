@@ -108,8 +108,10 @@ def demos():
         elif exconfig.option==23:
             pass
         elif exconfig.option==24:
+            examples.jc_vacuum_rabi()
             pass
         elif exconfig.option==25:
+            examples.jc_lasing()
             pass
         elif exconfig.option==31:
             pass
