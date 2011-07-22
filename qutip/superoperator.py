@@ -30,7 +30,7 @@ def liouvillian(H, c_op_list):
     Assemble the Liouvillian superoperator from a Hamiltonian and a list
     of collapse operators
     """
-    L = 1.0j*(spre(H) - spost(H))
+    L = -1.0j*(spre(H) - spost(H))
     n_op = len(c_op_list)
     for m in xrange(0, n_op):
         cdc = c_op_list[m].dag() * c_op_list[m]
