@@ -215,7 +215,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
     else:
         result_list=[]
         for op in expt_op_list:
-            if op.isherm:
+            if op.isherm and rho0.isherm:
                 result_list.append(zeros(n_tsteps))
             else:
                 result_list.append(zeros(n_tsteps,dtype=complex))
@@ -247,7 +247,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
         if not r.successful():
             break;
 
-        rho.data = r.y.reshape(rho0.shape)
+        rho.data = r.y.reshape(rho0.shape).T
 
         # calculate all the expectation values, or output rho if no operators
         if n_expt_op == 0:
