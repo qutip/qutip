@@ -146,8 +146,8 @@ class Bloch():
         """Plots Bloch sphere and data sets"""
         from pylab import figure,plot,show
         from mpl_toolkits.mplot3d import Axes3D
-        from matplotlib.pyplot import rc
-        rc('text', usetex=True)
+        #from matplotlib.pyplot import rc
+        #rc('text', usetex=True)
         
         try:#close figure if self.show() has already been run
             close(self.fig)
