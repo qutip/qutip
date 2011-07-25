@@ -1,3 +1,4 @@
+from blochdemo import blochdemo
 from cavityqubitmc import cavityqubitmc
 from cqsteady import cqsteady
 from mcthermal import mcthermal

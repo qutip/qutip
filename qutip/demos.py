@@ -63,7 +63,7 @@ def demos():
                 print '[12] None'
                 print '[13] Heisenberg spin-chain (N=4)'
                 print '[14] None'
-                print '[15] None'
+                print '[15] Qubit decay on the Bloch sphere'
                 print '[16] None'
                 print '[17] None'
                 print '[18] None'
@@ -122,7 +122,7 @@ def demos():
         elif exconfig.option==34:
             examples.correlation()
         elif exconfig.option==35:
-            pass
+            examples.blochdemo()
         elif exconfig.option==41:
             examples.cavityqubitmc()
         elif exconfig.option==42:
