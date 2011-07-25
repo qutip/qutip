@@ -83,10 +83,11 @@ class Bloch():
         self.num_vectors=0
         ##
         self.savenum=0
+        self.point_style=[] #whether to plto points in single 's' or multiple 'm' colors
     def __str__(self):
         """Returns string indicating number of 
-			vectors and data points in current 
-			Bloch sphere.
+           vectors and data points in current 
+           Bloch sphere.
         """
         print 'Bloch sphere containing:'
         print str(self.num_vectors)+ ' vectors'
@@ -98,21 +99,26 @@ class Bloch():
         self.num_points=0
         self.vectors=[]
         self.num_vectors=0
-        
+        self.point_style=[]
     
-    def add_points(self,points,meth=None):
+    def add_points(self,points,meth='s'):
         """Add a list of data points to bloch sphere"""
         if not isinstance(points[0],(list,ndarray)):
-            points=[[k] for k in points]
+            points=[[points[0]],[points[1]],[points[2]]]
         points=array(points)
         if meth=='s':
-            for k in xrange(len(points[0])):
-                pnt=array([[points[0][k]],[points[1][k]],[points[2][k]]])
-                self.points.append(pnt)
+            if len(points[0])==1:
+                pnts=array([[points[0][0]],[points[1][0]],[points[2][0]]])
+                pnts=append(pnts,points,axis=1)
+            else:
+                pnts=points
+            self.points.append(pnts)
             self.num_points=len(self.points)
+            self.point_style.append('s')
         else:
             self.points.append(points)
             self.num_points=len(self.points)
+            self.point_style.append('m')
             
     def add_states(self,state,kind='vector'):
         "Add a state vector to plot"
@@ -155,8 +161,8 @@ class Bloch():
         self.axes.grid(on=False)
         self.plot_back()
         self.plot_axes()
-        self.plot_vectors()
         self.plot_points()
+        self.plot_vectors()
         self.plot_front()
         self.plot_axes_labels()
     
@@ -171,8 +177,8 @@ class Bloch():
         #wireframe
         self.axes.plot_wireframe(x,y,z,rstride=5, cstride=5,color=self.frame_color,alpha=self.frame_alpha)
         #equator
-        self.axes.plot(1.0*cos(u),1.0*sin(u),zs=0, zdir='z',lw=1.0,color=self.frame_color)
-        self.axes.plot(1.0*cos(u),1.0*sin(u),zs=0, zdir='x',lw=1.0,color=self.frame_color)
+        self.axes.plot(1.0*cos(u),1.0*sin(u),zs=0, zdir='z',lw=self.frame_width,color=self.frame_color)
+        self.axes.plot(1.0*cos(u),1.0*sin(u),zs=0, zdir='x',lw=self.frame_width,color=self.frame_color)
     
     def plot_front(self):    
         #front half of sphere-----------------------
@@ -227,8 +233,22 @@ class Bloch():
         # -X and Y data are switched for plotting purposes
         if self.num_points>0:
             for k in xrange(self.num_points):
-                self.axes.scatter(real(self.points[k][1]),-real(self.points[k][0]),real(self.points[k][2]),s=self.point_size[mod(k,len(self.point_size))],alpha=1,edgecolor='none',zdir='z',color=self.point_color[mod(k,len(self.point_color))], marker=self.point_marker[mod(k,len(self.point_marker))])
-    
+                num=len(self.points[k][0])
+                dist=[sqrt(self.points[k][0][j]**2+self.points[k][1][j]**2+self.points[k][2][j]**2) for j in xrange(num)]
+                if any(abs(dist-dist[0])/dist[0]>1e-12):
+                    zipped=zip(dist,range(num))#combine arrays so that they can be sorted together
+                    zipped.sort() #sort rates from lowest to highest
+                    dist,indperm=zip(*zipped)
+                    indperm=array(indperm)
+                else:
+                    indperm=range(num)
+                if self.point_style[k]=='s':
+                    self.axes.scatter(real(self.points[k][1][indperm]),-real(self.points[k][0][indperm]),real(self.points[k][2][indperm]),s=self.point_size[mod(k,len(self.point_size))],alpha=1,edgecolor='none',zdir='z',color=self.point_color[mod(k,len(self.point_color))], marker=self.point_marker[mod(k,len(self.point_marker))])
+                elif self.point_style[k]=='m':
+                    pnt_colors=array(self.point_color*ceil(num/float(len(self.point_color))))
+                    pnt_colors=pnt_colors[0:num]
+                    pnt_colors=list(pnt_colors[indperm])
+                    self.axes.scatter(real(self.points[k][1][indperm]),-real(self.points[k][0][indperm]),real(self.points[k][2][indperm]),s=self.point_size[mod(k,len(self.point_size))],alpha=1,edgecolor='none',zdir='z',color=pnt_colors, marker=self.point_marker[mod(k,len(self.point_marker))])
     def show(self):
         """Display Bloch sphere and corresponding data sets"""
         from pylab import figure,plot,show
@@ -243,10 +263,4 @@ class Bloch():
         close(self.fig)
 
 
-        
 
-if __name__=="__main__":
-    x=Bloch()
-    xvec=1/sqrt(1**2+1**2+0.5**2)*array([1,1,0.5])
-    x.add_points(xvec)
-    x.show()
