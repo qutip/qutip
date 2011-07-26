@@ -35,6 +35,7 @@ def qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
     # relaxation
     rate = gamma1 * (1 + n_th)
     if rate > 0.0:
+
         c_op_list.append(sqrt(rate) * sm)
 
     # excitation
