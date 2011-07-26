@@ -230,9 +230,9 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
     #
     initial_vector = rho0.full().reshape(prod(rho0.shape),1)
     r = scipy.integrate.ode(rho_ode_func)
+    r.set_integrator('zvode')
     r.set_initial_value(initial_vector, tlist[0]).set_f_params(L.data)
 
-    r.set_integrator('zvode')
     #opt = Odeoptions()
     #r.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step)
 
