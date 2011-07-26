@@ -32,18 +32,15 @@ def correlation_ss_es(H, tlist, c_op_list, a_op, b_op):
     """
 
     # contruct the Liouvillian
-    n_op      = len(c_op_list)
-    L = -1.0j * (spre(H) - spost(H))
-    for m in range(0, n_op):
-        cdc = c_op_list[m].dag() * c_op_list[m]
-        L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
+    L = liouvillian(H, c_op_list)
 
+    # find the steady state
     rho0 = steady(L)
 
+    # evaluate the correlation function
     solC_tau = ode2es(L, b_op * rho0)
 
     return esval(expect(a_op, solC_tau), tlist)
-
 
 def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     """
@@ -52,11 +49,7 @@ def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     """
 
     # contruct the Liouvillian
-    n_op      = len(c_op_list)
-    L = -1.0j * (spre(H) - spost(H))
-    for m in range(0, n_op):
-        cdc = c_op_list[m].dag() * c_op_list[m]
-        L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
+    L = liouvillian(H, c_op_list)
 
     if rho0 == None:
         rho0 = steady(L)
@@ -83,13 +76,7 @@ def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op):
     """
 
     # contruct the Liouvillian
-    n_op      = len(c_op_list)
-    L = -1.0j * (spre(H) - spost(H))
-    for m in range(0, n_op):
-        cdc = c_op_list[m].dag() * c_op_list[m]
-        L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
-
-    rho0 = steady(L)
+    rho0 = steadystate(H, c_op_list)
 
     return odesolve(H, b_op * rho0, tlist, c_op_list, [a_op])[0]
 
@@ -101,13 +88,7 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
     if rho0 == None:
         # contruct the Liouvillian
-        n_op      = len(c_op_list)
-        L = -1.0j * (spre(H) - spost(H))
-        for m in range(0, n_op):
-            cdc = c_op_list[m].dag() * c_op_list[m]
-            L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
-
-        rho0 = steady(L)
+        rho0 = steadystate(H, co_op_list)
 
     C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
 
@@ -126,13 +107,8 @@ def correlation_ss_mc(H, tlist, c_op_list, a_op, b_op):
     """
 
     # contruct the Liouvillian
-    n_op      = len(c_op_list)
-    L = -1.0j * (spre(H) - spost(H))
-    for m in range(0, n_op):
-        cdc = c_op_list[m].dag() * c_op_list[m]
-        L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
+    rho0 = steadystate(L, co_op_list)
 
-    rho0 = steady(L)
     ntraj = 100
     return mcsolve(H, b_op * rho0, tlist, ntraj, c_op_list, [a_op])[0]
 
@@ -143,8 +119,6 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
     """
 
     C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
-
-    #pgb = Counter(len(tlist), "Correlation function")
 
     ntraj = 100
 
@@ -158,10 +132,6 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
         psi0_t = psi_t[0][t_idx]
 
         C_mat[t_idx, :] = mcsolve(H, b_op * psi0_t, tlist, ntraj, c_op_list, [a_op], mc_opt)
-  
-        #pgb.update()
-
-    #pgb.finish()
 
     return C_mat
 
@@ -194,7 +164,7 @@ def spectrum_ss(H, wlist, c_op_list, a_op, b_op):
     corr_es = expect(a_op, es)
 
     # covarience
-    cov_es = corr_es - real(a_op_ss * b_op_ss)
+    cov_es = corr_es - real(conjugate(b_op_ss) * b_op_ss)
 
     # spectrum
     spectrum = esspec(cov_es, wlist)
