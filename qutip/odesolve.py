@@ -247,7 +247,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
         if not r.successful():
             break;
 
-        rho.data = r.y.reshape(rho0.shape).T
+        rho.data = r.y.reshape(rho0.shape) #.T
 
         # calculate all the expectation values, or output rho if no operators
         if n_expt_op == 0:

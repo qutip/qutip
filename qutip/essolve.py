@@ -83,7 +83,8 @@ def ode2es(L, rho0):
 
     out = None
     for i in range(rlen):
-        qo = Qobj(reshape(vv[:,i], rho0.shape).T, dims=rho0.dims, shape=rho0.shape)
+        #qo = Qobj(reshape(vv[:,i], rho0.shape).T, dims=rho0.dims, shape=rho0.shape)
+        qo = Qobj(reshape(vv[:,i], rho0.shape), dims=rho0.dims, shape=rho0.shape)
         if out:
             out += eseries(qo, w[i])
         else:
