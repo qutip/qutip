@@ -37,6 +37,14 @@ def liouvillian(H, c_op_list):
         L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
     return L
 
+
+def mat2vec(mat):
+    return mat.T.reshape(prod(shape(mat)),1)
+
+def vec2mat(vec):
+    n = int(sqrt(len(vec)))
+    return vec.reshape((n,n)).T
+
 def spost(A,*args):
 	if not isoper(A):
 		raise TypeError('Input is not a quantum object')

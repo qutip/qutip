@@ -228,7 +228,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
     #
     # setup integrator
     #
-    initial_vector = rho0.full().reshape(prod(rho0.shape),1)
+    initial_vector = mat2vec(rho0.full())
     r = scipy.integrate.ode(rho_ode_func)
     r.set_integrator('zvode')
     r.set_initial_value(initial_vector, tlist[0]).set_f_params(L.data)
@@ -247,8 +247,8 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
         if not r.successful():
             break;
 
-        rho.data = r.y.reshape(rho0.shape) #.T
-
+        rho.data = vec2mat(r.y)
+        
         # calculate all the expectation values, or output rho if no operators
         if n_expt_op == 0:
             result_list[t_idx] = Qobj(rho) # copy rho
@@ -327,7 +327,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args):
     #
     # setup integrator
     #
-    initial_vector = rho0.full().reshape(prod(rho0.shape),1)
+    initial_vector = mat2vec(rho0.full())
     r = scipy.integrate.ode(rho_ode_func_td).set_integrator('zvode').set_initial_value(initial_vector, tlist[0]).set_f_params(L_func_and_args)
 
     #
@@ -340,7 +340,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args):
         if not r.successful():
             break;
 
-        rho.data = r.y.reshape(rho0.shape)
+        rho.data = vec2mat(r.y)
 
         # calculate all the expectation values, or output rho if no operators
         if n_expt_op == 0:

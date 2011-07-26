@@ -72,10 +72,10 @@ def propagator(H, t, c_op_list, H_args=None):
         for n in range(0, N*N):
 
             psi0  = basis(N*N, n)
-            rho0  = Qobj(psi0.full().reshape([N,N]))
+            rho0  = Qobj(vec2mat(psi0.full()))
             rho_t = odesolve(H, rho0, [0, t], c_op_list, [], H_args)
 
-            u[:,n] = rho_t[1].full().reshape([1, N*N])
+            u[:,n] = mat2vec(rho_t[1].full())
 
 
     return Qobj(u)
@@ -99,7 +99,7 @@ def propagator_steadystate(U):
     N = int(sqrt(len(evals)))
 
     evecs = evecs.T
-    rho = Qobj(evecs[ev_idx].reshape(N, N))
+    rho = Qobj(vec2mat(evecs[ev_idx]))
 
     return rho * (1 / real(rho.tr()))
 

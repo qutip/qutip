@@ -76,7 +76,12 @@ def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op):
     """
 
     # contruct the Liouvillian
-    rho0 = steadystate(H, c_op_list)
+    #rho0 = steadystate(H, c_op_list)
+    L = liouvillian(H, c_op_list)
+    rho0 = steady(L)
+
+    print "corr at 0:", (a_op*b_op*rho0).tr()
+
 
     return odesolve(H, b_op * rho0, tlist, c_op_list, [a_op])[0]
 
@@ -156,6 +161,9 @@ def spectrum_ss(H, wlist, c_op_list, a_op, b_op):
 
     a_op_ss = expect(a_op, rho0)
     b_op_ss = expect(b_op, rho0)
+
+    print "a_op_ss =", a_op_ss
+    print "b_op_ss =", b_op_ss
 
     # eseries solution for (b * rho0)(t)
     es = ode2es(L, b_op * rho0)
