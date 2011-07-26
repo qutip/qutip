@@ -256,13 +256,17 @@ class Examples(QtGui.QWidget):
         b43label.move(345, 550)
         #column 4
         x=470
-        b44 = QtGui.QPushButton('', self)
+        b44 = QtGui.QPushButton('Time-dependent\nHamiltonians:\nRabi oscillations', self)
         b44 .setGeometry(x,y, 150, 80)
         b44 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b44, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button44()'))
+        b43label = QtGui.QLabel(self)
+        b43label.setOpenExternalLinks(True)
+        b43label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesTimeDependence>Rabi osc.</a>")
+        b43label.move(x+45, 550)
         #column 5
         x=620
-        b45 = QtGui.QPushButton('Time-dependent\nHamiltonians', self)
+        b45 = QtGui.QPushButton('Time-dependent\nHamiltonians:\n', self)
         b45 .setGeometry(x,y, 150, 80)
         b45 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b45, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button45()'))

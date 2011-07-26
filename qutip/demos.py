@@ -109,7 +109,6 @@ def demos():
             pass
         elif exconfig.option==24:
             examples.jc_vacuum_rabi()
-            pass
         elif exconfig.option==25:
             examples.jc_lasing()
             pass
@@ -130,7 +129,7 @@ def demos():
         elif exconfig.option==43:
             examples.mcthermal()
         elif exconfig.option==44:
-            pass
+            examples.td_rabi()
         elif exconfig.option==45:
             pass
             
