@@ -27,7 +27,7 @@ from steady import *
 
 def correlation_ss_es(H, tlist, c_op_list, a_op, b_op):
     """
-    Calculate a two-time correlation function <A(0)B(tau)> using the quantum
+    Calculate a two-time correlation function <A(tau)B(0)> using the quantum
     regression theorem, and exponential series.
     """
 
@@ -71,17 +71,12 @@ def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
 def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op):
     """
-    Calculate a two-time correlation function <A(0)B(tau)> using the quantum
+    Calculate a two-time correlation function <A(tau)B(0)> using the quantum
     regression theorem, and the ode solver.
     """
 
-    # contruct the Liouvillian
-    #rho0 = steadystate(H, c_op_list)
     L = liouvillian(H, c_op_list)
     rho0 = steady(L)
-
-    print "corr at 0:", (a_op*b_op*rho0).tr()
-
 
     return odesolve(H, b_op * rho0, tlist, c_op_list, [a_op])[0]
 
@@ -92,7 +87,6 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     """
 
     if rho0 == None:
-        # contruct the Liouvillian
         rho0 = steadystate(H, co_op_list)
 
     C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
@@ -107,11 +101,10 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
 def correlation_ss_mc(H, tlist, c_op_list, a_op, b_op):
     """
-    Calculate a two-time correlation function <A(0)B(tau)> using the quantum
+    Calculate a two-time correlation function <A(tau)B(0)> using the quantum
     regression theorem, and the monte-carlo solver.
     """
 
-    # contruct the Liouvillian
     rho0 = steadystate(L, co_op_list)
 
     ntraj = 100
@@ -147,10 +140,10 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
 
 def spectrum_ss(H, wlist, c_op_list, a_op, b_op):
     """
-    Calculate the spectrum corresponding to a correlation function <a(0)b(t)>,
+    Calculate the spectrum corresponding to a correlation function <a(t)b(0)>,
     i.e., the Fourier transform of the correlation funciton,
 
-    S(w) = \int_{-\infty}^{\infty} <a(0)b(t)> \exp{-i\omega t} dt
+    S(w) = \int_{-\infty}^{\infty} <a(t)b(0)> \exp{-i\omega t} dt
     """
 
     # contruct the Liouvillian
@@ -162,9 +155,6 @@ def spectrum_ss(H, wlist, c_op_list, a_op, b_op):
     a_op_ss = expect(a_op, rho0)
     b_op_ss = expect(b_op, rho0)
 
-    print "a_op_ss =", a_op_ss
-    print "b_op_ss =", b_op_ss
-
     # eseries solution for (b * rho0)(t)
     es = ode2es(L, b_op * rho0)
    
@@ -172,7 +162,7 @@ def spectrum_ss(H, wlist, c_op_list, a_op, b_op):
     corr_es = expect(a_op, es)
 
     # covarience
-    cov_es = corr_es - real(conjugate(b_op_ss) * b_op_ss)
+    cov_es = corr_es - real(conjugate(a_op_ss) * b_op_ss)
 
     # spectrum
     spectrum = esspec(cov_es, wlist)
