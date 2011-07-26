@@ -8,16 +8,14 @@ from pylab import *
 import time
 
 def hamiltonian_t(t, args):
-    #
-    # evaluate the hamiltonian at time t. 
-    #
+    """ evaluate the hamiltonian at time t. """
     H0 = args[0]
     H1 = args[1]
     w  = args[2]
 
     return H0 + H1 * sin(w * t)
 
-def sd_qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
+def qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
 
     # Hamiltonian
     sx = sigmax()
@@ -49,37 +47,39 @@ def sd_qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
     if rate > 0.0:
         c_op_list.append(sqrt(rate) * sz)
 
-
     # evolve and calculate expectation values
-    expt_list = odesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
+    expt_list1 = odesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
 
-    return expt_list[0]
+    # Alternative: write the hamiltonian in a rotating frame, and neglect the
+    # the high frequency component (rotating wave approximation), so that the
+    # resulting Hamiltonian is time-independent.
+    H_rwa = - delta/2.0 * sx - A * sx / 2
+    expt_list2 = odesolve(H_rwa, psi0, tlist, c_op_list, [sm.dag() * sm])  
+
+    return expt_list1[0], expt_list2[0]
     
 #
 # set up the calculation
 #
-delta = 0.0  * 2 * pi   # qubit sigma_x coefficient
-eps0  = 1.0  * 2 * pi   # qubit sigma_z coefficient
-A     = 0.05 * 2 * pi   # driving amplitude (sigma_x coupled)
-w     = 1.0  * 2 * pi   # driving frequency
+delta = 0.0 * 2 * pi   # qubit sigma_x coefficient
+eps0  = 1.0 * 2 * pi   # qubit sigma_z coefficient
+A     = 0.25 * 2 * pi  # driving amplitude (reduce to make the RWA more accurate)
+w     = 1.0 * 2 * pi   # driving frequency
+gamma1 = 0.0           # relaxation rate
+gamma2 = 0.0           # dephasing  rate
+psi0 = basis(2,1)      # initial state
 
-gamma1 = 0.025          # relaxation rate
-gamma2 = 0.0            # dephasing  rate
-
-# intial state
-psi0 = basis(2,0)
-
-tlist = linspace(0,50,500)
+tlist = linspace(0, 5.0 * 2 * pi / A, 500)
 
 start_time = time.time()
-p_ex = sd_qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist)
+p_ex1, p_ex2 = qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist)
 print 'time elapsed = ' + str(time.time() - start_time) 
 
-plot(tlist, real(p_ex))
+plot(tlist, real(p_ex1), 'b', tlist, real(p_ex2), 'r.')
 xlabel('Time')
-ylabel('P_ex')
+ylabel('Occupation probability')
 title('Excitation probabilty of qubit')
-#savefig("qubit_rabi.png")
+legend(("Time-dependent Hamiltonian", "Corresponding RWA"))
 show()
 
 
