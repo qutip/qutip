@@ -19,13 +19,12 @@
 from Qobj import *
 import scipy.linalg as la
 from scipy import real,trace
-from numpy import vectorize
 ##@package metrics
 #Collection of metrics (distance measures) between density matricies
 #@version 0.1
 #@date 2011
 
-def scalar_fidelity(A,B):
+def fidelity(A,B):
     """
     @brief Calculates the fidelity (pseudo-metric) between two density matricies.
     See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
@@ -41,9 +40,8 @@ def scalar_fidelity(A,B):
         A*(B*A)
         return float(real(trace((A*(B*A)).sqrtm().full())))
 
-fidelity=vectorize(scalar_fidelity)
 
-def scalar_tracedist(A,B):
+def tracedist(A,B):
     """
     @brief Calculates the trace distance between two density matricies.
     See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
@@ -59,5 +57,3 @@ def scalar_tracedist(A,B):
         diff=diff.dag()*diff
         out=diff.sqrtm().full()
         return float(real(0.5*trace(out)))
-
-trace_dist=vectorize(scalar_tracedist)

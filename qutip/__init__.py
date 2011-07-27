@@ -92,7 +92,7 @@ from gates import *
 from istests import *
 from Odeoptions import Odeoptions
 from mcsolve import mcsolve
-from metrics import fidelity,trace_dist
+from metrics import fidelity,tracedist
 from odesolve import odesolve
 from essolve import *
 from operators import *
