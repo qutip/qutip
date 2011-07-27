@@ -88,6 +88,7 @@ class eseries:
 
     ##########################################            
     def __str__(self):#string of ESERIES information
+        self.tidy()
         print "ESERIES object: "+str(len(self.ampl))+" terms"
         print "Hilbert space dimensions: "+str(self.dims)
         for k in range(0,len(self.ampl)):
@@ -209,6 +210,49 @@ class eseries:
 
         return val_list
 
+
+    def tidy(self,*args):
+        """ return a tidier version of self """
+
+        #
+        # combine duplicate entries (same rate)
+        #
+        rate_tol = 1e-10
+        ampl_tol = 1e-10
+ 
+        ampl_dict = {}
+        unique_rates = {}
+        ur_len = 0
+    
+        for r_idx in range(len(self.rates)):
+
+            # look for a matching rate in the list of unique rates
+            idx = -1
+            for ur_key in unique_rates.keys():
+                if abs(self.rates[r_idx] - unique_rates[ur_key]) < rate_tol:
+                    idx = ur_key
+                    break
+
+            if idx == -1:
+                # no matching rate, add it
+                unique_rates[ur_len] = self.rates[r_idx]                
+                ampl_dict[ur_len]    = [self.ampl[r_idx]]
+                ur_len = len(unique_rates)
+            else:
+                # found matching rate, append amplitude to its list
+                ampl_dict[idx].append(self.ampl[r_idx])
+
+        # create new amplitude and rate list with only unique rates, and
+        # nonzero amplitudes
+        self.rates = array([])
+        self.ampl  = array([])
+        for ur_key in unique_rates.keys():
+            total_ampl = sum(ampl_dict[ur_key])
+            self.rates = append(self.rates, unique_rates[ur_key])
+            self.ampl  = append(self.ampl, total_ampl)
+
+        return self
+
 #-------------------------------------------------------------------------------
 #
 # wrapper functions for accessing the class methods (for compatibility with
@@ -220,76 +264,7 @@ def esval(es, tlist):
 def esspec(es, wlist):
     return es.spec(tlist)
 
-
-#-------------------------------------------------------------------------------
-#
-# ESERIES TIDY: needs to be reimplemented
-#
-
 def estidy(es,*args):
-    
-    print "estidy: es =\n", es
-
-    out=eseries()
-    #zipped=zip(es.rates,es.ampl)#combine arrays so that they can be sorted together
-    #zipped.sort() #sort rates from lowest to highest
-    out.rates = [] 
-    out.ampl  = []
-    out.dims  = es.ampl[0].dims
-    out.shape = es.ampl[0].shape
-
-    #
-    # determine the tolerance
-    # 
-    if not any(args):
-        tol1=array([1e-6,1e-6])
-        tol2=array([1e-6,1e-6])
-    elif len(args)==1:
-        if len(args[0])==1:
-            tol1[1]=0
-        tol2=array([1e-6,1e-6])
-    elif len(args)==2:
-        if len(args[1])==1:
-            tol2[1]=0
-    rates=es.rates
-    rmax=max(abs(array(rates)))
-    rlen=len(es.rates)
-    data=es.ampl
-    tol=max(tol1[0]*rmax,tol1[1])
-
-    #
-    # find unique rates (todo: allow deviations within tolerance)
-    #
-#    rates_unique = sort(list(set(rates)))
-
-    #
-    # collect terms that have the same rates (within the tolerance)
-    #
-#    for r in rates_unique:
-    
-#        terms = Qobj() 
-
-#        for idx,rate in enumerate(rates):
-#            if abs(rate - r) < tol:
-#                terms += es.ampl[idx]
-
-#    	if terms.norm() > tol:
-#            out.rates.append(r)
-#    	    out.ampl.append(terms)
- 
-#    return out
-    return es
-
-
-###########---Find Groups---####################
-def findgroups(values,index,tol):
-    zipped=zip(values,index)#combine arrays so that they can be sorted together
-    zipped.sort() #sort rates from lowest to highest
-    vs,vperm=zip(*zipped) 
-    big=where(diff(vs)>tol,1,0)
-    sgroup=append(array([1]),big)
-    sindex=array(vperm)
-    return sindex,sgroup
-
+    return es.tidy()
 
 
