@@ -34,10 +34,7 @@ class Examples(QtGui.QWidget):
         self.resize(790, 650)
         self.center()
         self.setFocus()
-        #self.setAttribute(QtCore.Qt.WA_TranslucentBackground)#transparent
-        #self.setWindowOpacity(.9)
-        #self.setWindowFlags(Qt.Popup)#no titlebar
-        
+        #self.setWindowFlags(QtCore.Qt.Popup)#no titlebar 
         #IMAGES--------------------
         
         #TEXT--------------------
@@ -64,7 +61,7 @@ class Examples(QtGui.QWidget):
         
         #QUIT BUTTON-----------------
         quit = QtGui.QPushButton('Close', self)
-        quit.setGeometry(670, 570, 100, 60)
+        quit.setGeometry(670, 578, 100, 60)
         quit.setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(quit, QtCore.SIGNAL('clicked()'),QtGui.qApp, QtCore.SLOT('quit()'))
         
@@ -81,7 +78,7 @@ class Examples(QtGui.QWidget):
         b11label = QtGui.QLabel(self)
         b11label.setOpenExternalLinks(True)
         b11label.setText("<a href=http://code.google.com/p/qutip/wiki/GuideBasics>BasicsGuide</a>")
-        b11label.move(58, 190)
+        b11label.move(58, 185)
         #COLUMN 2
         x=170
         b12 = QtGui.QPushButton('Manipulating\nstates/operators', self)
@@ -101,7 +98,7 @@ class Examples(QtGui.QWidget):
         b13label = QtGui.QLabel(self)
         b13label.setOpenExternalLinks(True)
         b13label.setText("<a href=http://code.google.com/p/qutip/wiki/GuideComposite>GuideComposite</a>")
-        b13label.move(345, 190)
+        b13label.move(345, 185)
         #column 4
         x=470
         b14 = QtGui.QPushButton('Schrodinger cat\n Wigner and Q-func.', self)
@@ -111,7 +108,7 @@ class Examples(QtGui.QWidget):
         b14label = QtGui.QLabel(self)
         b14label.setOpenExternalLinks(True)
         b14label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesSchCatDist>SchCatDist</a>")
-        b14label.move(510, 190)
+        b14label.move(510, 185)
         #column 5
         x=620
         b15 = QtGui.QPushButton('Constructing a\nsqueezed state', self)
@@ -121,7 +118,7 @@ class Examples(QtGui.QWidget):
         b15label = QtGui.QLabel(self)
         b15label.setOpenExternalLinks(True)
         b15label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesSqueezed>SqueezedEx</a>")
-        b15label.move(660, 190)
+        b15label.move(660, 185)
         ###################################
         
         #ROW 2 ############################
@@ -135,7 +132,7 @@ class Examples(QtGui.QWidget):
         b21label = QtGui.QLabel(self)
         b21label.setOpenExternalLinks(True)
         b21label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesDrivenCavitySS>DrivenCavitySS</a>")
-        b21label.move(48, 310)
+        b21label.move(48, 305)
         #COLUMN 2
         x=170
         b22 = QtGui.QPushButton('Steady state:\nthermal envir.', self)
@@ -145,7 +142,7 @@ class Examples(QtGui.QWidget):
         b22label = QtGui.QLabel(self)
         b22label.setOpenExternalLinks(True)
         b22label.setText("<a href=http://code.google.com/p/qutip/wiki/GuideSteadyState>GuideSS</a>")
-        b22label.move(220, 310)
+        b22label.move(220, 305)
         #COLUMN 3
         x=320
         b23 = QtGui.QPushButton('Eseries', self)
@@ -161,7 +158,7 @@ class Examples(QtGui.QWidget):
         b24label = QtGui.QLabel(self)
         b24label.setOpenExternalLinks(True)
         b24label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesJaynesCummingsModel>Vacuum Rabi</a>")
-        b24label.move(510, 310)
+        b24label.move(510, 305)
         #column 5
         x=620
         b25 = QtGui.QPushButton('Master equation:\nSingle-atom laser', self)
@@ -171,7 +168,7 @@ class Examples(QtGui.QWidget):
         b25label = QtGui.QLabel(self)
         b25label.setOpenExternalLinks(True)
         b25label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesSingleAtomLasing>Lasing</a>")
-        b25label.move(680, 310)
+        b25label.move(680, 305)
         ######################################
         
         
@@ -198,7 +195,7 @@ class Examples(QtGui.QWidget):
         b33label = QtGui.QLabel(self)
         b33label.setOpenExternalLinks(True)
         b33label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesHeisenbergSpinChain>SpinChain</a>")
-        b33label.move(365, 430)
+        b33label.move(365, 425)
         #column 4
         x=470
         b34 = QtGui.QPushButton('Correlations\n and spectrum', self)
@@ -208,7 +205,7 @@ class Examples(QtGui.QWidget):
         b34label = QtGui.QLabel(self)
         b34label.setOpenExternalLinks(True)
         b34label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesCorrFunc>Correl.</a> / <a href=http://code.google.com/p/qutip/wiki/ExamplesSpectrum>Spectrum</a>")
-        b34label.move(488, 430)
+        b34label.move(488, 425)
         #column 5
         x=620
         b35 = QtGui.QPushButton('Qubit decay on\nBloch sphere', self)
@@ -218,7 +215,7 @@ class Examples(QtGui.QWidget):
         b34label = QtGui.QLabel(self)
         b34label.setOpenExternalLinks(True)
         b34label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesBlochQubitDecay>BlochDecay</a>")
-        b34label.move(660, 430)
+        b34label.move(660, 425)
         ####################################
         
         
@@ -233,7 +230,7 @@ class Examples(QtGui.QWidget):
         b41label = QtGui.QLabel(self)
         b41label.setOpenExternalLinks(True)
         b41label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesMonteCarloExpectation>MCCavityQubit</a>")
-        b41label.move(48, 550)
+        b41label.move(48, 545)
         #COLUMN 2
         x=170
         b42 = QtGui.QPushButton('Monte-Carlo:\ntrilinear Hamilt.', self)
@@ -243,7 +240,7 @@ class Examples(QtGui.QWidget):
         b42label = QtGui.QLabel(self)
         b42label.setOpenExternalLinks(True)
         b42label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesTrilinearMonteCarlo>TrilinearMonteCarlo</a>")
-        b42label.move(182, 550)
+        b42label.move(182, 545)
         #COLUMN 3
         x=320
         b43 = QtGui.QPushButton('Monte-Carlo:\nthermal deviations', self)
@@ -253,7 +250,7 @@ class Examples(QtGui.QWidget):
         b43label = QtGui.QLabel(self)
         b43label.setOpenExternalLinks(True)
         b43label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesThermalTrilinear>TrilinearThermal</a>")
-        b43label.move(345, 550)
+        b43label.move(345, 545)
         #column 4
         x=470
         b44 = QtGui.QPushButton('Time-dependent\nHamiltonians:\nRabi oscillations', self)
@@ -263,7 +260,7 @@ class Examples(QtGui.QWidget):
         b44label = QtGui.QLabel(self)
         b44label.setOpenExternalLinks(True)
         b44label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesTimeDependence>Rabi osc.</a>")
-        b44label.move(x+45, 550)
+        b44label.move(x+45, 545)
         #column 5
         x=620
         b45 = QtGui.QPushButton('Time-dependent\nHamiltonians:\nLZ transitions', self)
@@ -273,7 +270,7 @@ class Examples(QtGui.QWidget):
         b45label = QtGui.QLabel(self)
         b45label.setOpenExternalLinks(True)
         b45label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesLandauZener>Landau-Zener</a>")
-        b45label.move(x+35, 550)
+        b45label.move(x+35, 545)
         ###############################
     def center(self):
         screen = QtGui.QDesktopWidget().screenGeometry()
