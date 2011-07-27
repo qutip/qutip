@@ -14,3 +14,4 @@ from correlation import correlation
 from jc_vacuum_rabi import jc_vacuum_rabi
 from jc_lasing import jc_lasing
 from td_rabi import td_rabi
+from td_landauzener import td_landauzener

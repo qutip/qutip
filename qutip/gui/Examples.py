@@ -260,16 +260,20 @@ class Examples(QtGui.QWidget):
         b44 .setGeometry(x,y, 150, 80)
         b44 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b44, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button44()'))
-        b43label = QtGui.QLabel(self)
-        b43label.setOpenExternalLinks(True)
-        b43label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesTimeDependence>Rabi osc.</a>")
-        b43label.move(x+45, 550)
+        b44label = QtGui.QLabel(self)
+        b44label.setOpenExternalLinks(True)
+        b44label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesTimeDependence>Rabi osc.</a>")
+        b44label.move(x+45, 550)
         #column 5
         x=620
-        b45 = QtGui.QPushButton('Time-dependent\nHamiltonians:\n', self)
+        b45 = QtGui.QPushButton('Time-dependent\nHamiltonians:\nLZ transitions', self)
         b45 .setGeometry(x,y, 150, 80)
         b45 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b45, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button45()'))
+        b45label = QtGui.QLabel(self)
+        b45label.setOpenExternalLinks(True)
+        b45label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesLandauZener>Landau-Zener</a>")
+        b45label.move(x+35, 550)
         ###############################
     def center(self):
         screen = QtGui.QDesktopWidget().screenGeometry()

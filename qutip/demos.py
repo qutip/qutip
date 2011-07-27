@@ -111,7 +111,6 @@ def demos():
             examples.jc_vacuum_rabi()
         elif exconfig.option==25:
             examples.jc_lasing()
-            pass
         elif exconfig.option==31:
             pass
         elif exconfig.option==32:
@@ -131,7 +130,7 @@ def demos():
         elif exconfig.option==44:
             examples.td_rabi()
         elif exconfig.option==45:
-            pass
+            examples.td_landauzener()
             
             
             
