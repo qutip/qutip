@@ -46,7 +46,7 @@ def demos():
             start_gui()
         else:
             if sys.stdout.isatty():
-                print '-'*80
+                print ''
                 print '\nQuTiP Example Scripts:'
                 print '-----------------------'
                 print '[1]  Basic Obj operations'
@@ -112,7 +112,7 @@ def demos():
         elif exconfig.option==25:
             examples.jc_lasing()
         elif exconfig.option==31:
-            pass
+            examples.fidelity_example()
         elif exconfig.option==32:
             pass
         elif exconfig.option==33:
