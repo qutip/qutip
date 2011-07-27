@@ -49,7 +49,7 @@ def sphereplot(theta,phi,values,save=False):
 	#add our colorbar label
 	cb1.set_label('Angle')
 	if save==True:
-	    savefig("sphereplot.pdf")
+	    savefig("sphereplot.png")
 	show()
 	return 
 
