@@ -54,9 +54,11 @@ def about():
         
     else:
         import matplotlib
+        print ''
         print "QuTiP: The Quantum Toolbox in Python"
         print "Copyright (c) 2011"
         print "Paul D. Nation & Robert J. Johansson"
+        print ''
         print "QuTiP Version:  "+version
         print "Numpy Version:  "+numpy.__version__
         print "Scipy Version:  "+scipy.__version__
