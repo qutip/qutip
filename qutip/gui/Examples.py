@@ -85,10 +85,10 @@ class Examples(QtGui.QWidget):
         b12.setGeometry(x, y, 150, 80)
         b12.setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b12, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button12()'))
-        #b12label = QtGui.QLabel(self)
-        #b12label.setOpenExternalLinks(True)
-        #b12label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesSchCatDist>SchCatDist</a>")
-        #b12label.move(215, 190)
+        b12label = QtGui.QLabel(self)
+        b12label.setOpenExternalLinks(True)
+        b12label.setText("<a href=http://code.google.com/p/qutip/wiki/GuideOperStates>GuideOperStates</a>")
+        b12label.move(190, 185)
         #COLUMN 3
         x=320
         b13 = QtGui.QPushButton('tensor and ptrace\nfunctions', self)
@@ -158,7 +158,7 @@ class Examples(QtGui.QWidget):
         b24label = QtGui.QLabel(self)
         b24label.setOpenExternalLinks(True)
         b24label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesJaynesCummingsModel>Vacuum Rabi</a>")
-        b24label.move(510, 305)
+        b24label.move(505, 305)
         #column 5
         x=620
         b25 = QtGui.QPushButton('Master equation:\nSingle-atom laser', self)
@@ -176,10 +176,14 @@ class Examples(QtGui.QWidget):
         y=340
         #COLUMN 1
         x=20
-        b31 = QtGui.QPushButton('ME', self)
+        b31 = QtGui.QPushButton('Density matrix\n metrics: Fidelity', self)
         b31 .setGeometry(x,y, 150, 80)
         b31 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b31, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button31()'))
+        b31label = QtGui.QLabel(self)
+        b31label.setOpenExternalLinks(True)
+        b31label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesFidelity>Fidelity</a>")
+        b31label.move(72, 425)
         #COLUMN 2
         x=170
         b32 = QtGui.QPushButton('ME', self)
