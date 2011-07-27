@@ -113,7 +113,7 @@ def blochdemo():
     print 'nrm=mpl.colors.Normalize(0,3)#normalize colors to tlist range'
     print 'colors=cm.jet(nrm(tlist)) #make list of colors, one for each time in tlist'
     print 'sphere.point_color=list(colors) #define sphere point colors'
-    print "sphere.add_points([sx,sy,sz],'m')#add points as 'single' points"
+    print "sphere.add_points([sx,sy,sz],'m')#add points as 'multi' colored points"
     print "sphere.point_marker=['o'] #make all markers same 'circle' shape"
     print 'sphere.point_size=[25] #same point sizes'
     print 'sphere.view=[-7,7] #change viewing angle to see all the colors'
@@ -123,7 +123,7 @@ def blochdemo():
     nrm=mpl.colors.Normalize(0,3)#normalize colors to tlist range
     colors=cm.jet(nrm(tlist)) #make list of colors, one for each time in tlist
     sphere.point_color=list(colors) #define sphere point colors
-    sphere.add_points([sx,sy,sz],'m')#add points as 'single' points
+    sphere.add_points([sx,sy,sz],'m')#add points as 'multi' colored points
     sphere.point_marker=['o'] #make all markers same 'circle' shape
     sphere.point_size=[25] #same point sizes
     sphere.view=[-7,7] #change viewing angle to see all the colors
