@@ -149,6 +149,10 @@ class Examples(QtGui.QWidget):
         b23 .setGeometry(x,y, 150, 80)
         b23 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b23, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button23()'))
+        b23label = QtGui.QLabel(self)
+        b23label.setOpenExternalLinks(True)
+        b23label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesESeries>E-series</a>")
+        b23label.move(x+45, 310)
         #column 4
         x=470
         b24 = QtGui.QPushButton('Master equation:\nRabi oscillations', self)

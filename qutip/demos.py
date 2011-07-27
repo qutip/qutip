@@ -106,7 +106,7 @@ def demos():
         elif exconfig.option==22:
             examples.thermalss()
         elif exconfig.option==23:
-            pass
+            examples.esdemo()
         elif exconfig.option==24:
             examples.jc_vacuum_rabi()
         elif exconfig.option==25:

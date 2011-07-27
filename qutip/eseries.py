@@ -156,69 +156,80 @@ class eseries:
     # functions with descriptive names for this.
     # 
 
+    #   
+    # evaluate the eseries for a list of times
+    #
+    def value(self, tlist):
+        '''
+        Evaluate an exponential series at the times listed in tlist. 
+        '''
 
-def esval(es, tlist):
-    '''
-    Evaluate an exponential series at the times listed in tlist. 
-    '''
-    #val_list = [] #zeros(size(tlist))
-    val_list = zeros(size(tlist),dtype=complex)
+        #print "type tlist =", type(tlist)
+        #print "len  ampl =", len(self.ampl)
+        #print "type ampl =", type(self.ampl[0])
 
-    for j in range(len(tlist)):
-        exp_factors = exp(array(es.rates) * tlist[j])
+        if isinstance(tlist, float) or isinstance(tlist, int):
+            tlist = [tlist]
+    
+        if isinstance(self.ampl[0], Qobj):
+            # amplitude vector contains quantum objects
+            val_list = []
+        
+            for j in range(len(tlist)):
+                exp_factors = exp(array(self.rates) * tlist[j])
+    
+                val = 0
+                for i in range(len(self.ampl)):
+                    val += self.ampl[i] * exp_factors[i]
+      
+                val_list.append(val)
+    
+        else:
+            # the amplitude vector contains c numbers
+            val_list = zeros(size(tlist),dtype=complex)
+    
+            for j in range(len(tlist)):
+                exp_factors = exp(array(self.rates) * tlist[j])
+                val_list[j] = sum(dot(self.ampl, exp_factors))
+    
+    
+        if len(tlist) == 1:
+            return val_list[0]
+        else:
+            return val_list
 
-        #val = 0
-        #for i in range(len(es.ampl)):
-        #    val += es.ampl[i] * exp_factors[i]
-        val_list[j] = sum(dot(es.ampl, exp_factors))
-  
-        #val_list[j] = val
-        #val_list.append(val)
+    def spec(es, wlist):
+        '''
+        Evaluate the spectrum of an exponential series at frequencies in wlist. 
+        '''
+        val_list = zeros(size(wlist))
 
-    return val_list
+        for i in range(len(wlist)):
+            val_list[i] = 2 * real( dot(es.ampl, 1./(1.0j*wlist[i] - es.rates)) )
 
-def esval_op(es, tlist):
-    '''
-    Evaluate an exponential series at the times listed in tlist. 
-    '''
-    val_list = []
-
-    for j in range(len(tlist)):
-        exp_factors = exp(array(es.rates) * tlist[j])
-
-        val = 0
-        for i in range(len(es.ampl)):
-            val += es.ampl[i] * exp_factors[i]
-  
-        val_list.append(val)
-
-    if len(tlist) == 1:
-        return val_list[0]
-    else:
         return val_list
 
+#-------------------------------------------------------------------------------
+#
+# wrapper functions for accessing the class methods (for compatibility with
+# quantum optics toolbox)
+#
+def esval(es, tlist):
+    return es.value(tlist)
 
 def esspec(es, wlist):
-    '''
-    Evaluate the spectrum of an exponential series at frequencies in wlist. 
-    '''
-
-    val_list = zeros(size(wlist))
-
-    for i in range(len(wlist)):
-        
-        #print "data =", es.ampl
-        #print "demon =", 1/(1j*wlist[i] - es.rates)
-
-        val_list[i] = 2 * real( dot(es.ampl, 1./(1.0j*wlist[i] - es.rates)) )
+    return es.spec(tlist)
 
 
+#-------------------------------------------------------------------------------
+#
+# ESERIES TIDY: needs to be reimplemented
+#
 
-    return val_list
-
-
-##########---ESERIES TIDY---#############################
 def estidy(es,*args):
+    
+    print "estidy: es =\n", es
+
     out=eseries()
     #zipped=zip(es.rates,es.ampl)#combine arrays so that they can be sorted together
     #zipped.sort() #sort rates from lowest to highest
