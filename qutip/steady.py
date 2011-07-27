@@ -60,7 +60,7 @@ def steady(L,maxiter=100,tol=1e-6):
 	while (la.norm(L.data*v,inf)>tol) and (it<maxiter):
 		v=spsolve(L1,v)
 		v=v/la.norm(v,inf)
-		it=it+1
+		it+=1
 	if it>=maxiter:
 		raise ValueError('Failed to find steady state after ' + str(maxiter) +' iterations')
 	rhoss.data=v
