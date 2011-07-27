@@ -262,7 +262,7 @@ def esval(es, tlist):
     return es.value(tlist)
 
 def esspec(es, wlist):
-    return es.spec(tlist)
+    return es.spec(wlist)
 
 def estidy(es,*args):
     return es.tidy()
