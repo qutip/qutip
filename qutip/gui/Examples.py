@@ -151,8 +151,8 @@ class Examples(QtGui.QWidget):
         self.connect(b23, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button23()'))
         b23label = QtGui.QLabel(self)
         b23label.setOpenExternalLinks(True)
-        b23label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesESeries>E-series</a>")
-        b23label.move(x+45, 310)
+        b23label.setText("<a href=http://code.google.com/p/qutip/wiki/GuideESeries>E-series</a>")
+        b23label.move(x+52, 305)
         #column 4
         x=470
         b24 = QtGui.QPushButton('Master equation:\nRabi oscillations', self)
