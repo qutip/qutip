@@ -44,9 +44,9 @@ def expect(oper,state):
 def single_expect(oper,state):
     if isinstance(oper,Qobj) and isinstance(state,Qobj):
         if isoper(oper):
-            if isoper(state):
+            if state.type=='oper':
                 #calculates expectation value via TR(op*rho)
-                prod = (oper.data*state.data)
+                prod = oper.data*state.data
                 if isinstance(prod, sp.spmatrix):
                     prod = prod.tocsr()
                 num=prod.shape[0]
@@ -57,7 +57,7 @@ def single_expect(oper,state):
                     return float(real(tr))
                 else:
                     return tr
-            elif isket(state):
+            elif state.type=='ket':
                 #calculates expectation value via <psi|op|psi>
                 #prod = state.data.conj().T * (oper.data * state.data)
                 prod = dot(state.data.conj().T, oper.data * state.data)
