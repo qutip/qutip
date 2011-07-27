@@ -248,8 +248,15 @@ class eseries:
         self.ampl  = array([])
         for ur_key in unique_rates.keys():
             total_ampl = sum(ampl_dict[ur_key])
-            self.rates = append(self.rates, unique_rates[ur_key])
-            self.ampl  = append(self.ampl, total_ampl)
+
+            if isinstance(total_ampl, float) or isinstance(total_ampl, complex):
+                if abs(total_ampl) > ampl_tol:
+                    self.rates = append(self.rates, unique_rates[ur_key])
+                    self.ampl  = append(self.ampl, total_ampl)
+            else:
+                if abs(total_ampl.full()).max() > ampl_tol:
+                    self.rates = append(self.rates, unique_rates[ur_key])
+                    self.ampl  = append(self.ampl, total_ampl)
 
         return self
 
