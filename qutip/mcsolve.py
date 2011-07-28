@@ -18,7 +18,7 @@
 ###########################################################################
 from scipy import *
 from scipy.integrate import *
-import scipy.linalg as la
+from scipy.linalg import norm
 from Qobj import *
 from expect import *
 import sys,os,time
@@ -27,11 +27,14 @@ from Odeoptions import Odeoptions
 import mcdata
 import datetime
 from multiprocessing import Pool,cpu_count
+from varargout import varargout
+from types import FunctionType
 ##@package mcsolve
 #Collection of routines for calculating dynamics via the Monte-Carlo method.
 
 
-def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Odeoptions()):
+def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeoptions()):
+    vout=varargout()
     """
     Monte-Carlo evolution of a state vector |psi> for a given
     Hamiltonian and sets of collapse operators and operators
@@ -39,7 +42,7 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Odeoptions()):
     
     Options for solver are given by the Mcoptions class.
     """
-    #if Hamiltonian is time-dependent
+    #if Hamiltonian is time-dependent (list style)
     if isinstance(H,(list,ndarray)):
         mcdata.tflag=1
         mcdata.Hfunc=H[0]
@@ -49,7 +52,17 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Odeoptions()):
             for c_op in collapse_ops:
                 Hq -= 0.5j * (c_op.dag()*c_op)
             mcdata.Hcoll=-1.0j*Hq.data
-    #if Hamiltonian is time-indepdent
+    #if Hamiltonian is time-dependent (H_args style)
+    elif isinstance(H,FunctionType):
+        mcdata.tflag=1
+        mcdata.Hfunc=H
+        mcdata.Hargs=-1.0j*array([op.data for op in H_args])
+        if len(collapse_ops)>0:
+            Hq=0
+            for c_op in collapse_ops:
+                Hq -= 0.5j * (c_op.dag()*c_op)
+            mcdata.Hcoll=-1.0j*Hq.data
+    #if Hamiltonian is time-independent
     else:
         for c_op in collapse_ops:
             H -= 0.5j * (c_op.dag()*c_op)
@@ -62,10 +75,19 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,options=Odeoptions()):
     elif mc.num_collapse==0 and mc.num_expect!=0:
         return mc.expect_out
     elif mc.num_collapse!=0 and mc.num_expect==0:
-        return mc.psi_out
-        #return mc.psi_out, mc.collapse_times_out
+        if vout==2:
+            return mc.psi_out,mc.collapse_times_out
+        elif vout==3:
+            return mc.psi_out,mc.collapse_times_out,mc.which_op_out
+        else:
+            return mc.psi_out
     elif mc.num_collapse!=0 and mc.num_expect!=0:
-        return sum(mc.expect_out,axis=0)/float(ntraj)
+        if vout==2:
+            return sum(mc.expect_out,axis=0)/float(ntraj),mc.collapse_times_out
+        elif vout==3:
+            return sum(mc.expect_out,axis=0)/float(ntraj),mc.collapse_times_out,mc.which_op_out
+        else:
+            return sum(mc.expect_out,axis=0)/float(ntraj)
 
 
 #--Monte-Carlo class---
@@ -232,7 +254,7 @@ def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
     for k in xrange(1,num_times):
         ODE.integrate(tlist[k],step=0) #integrate up to tlist[k]
         if ODE.successful():
-            psi_out[k]=Qobj(ODE.y/la.norm(ODE.y,2),dims=psi_dims,shape=psi_shape)
+            psi_out[k]=Qobj(ODE.y/norm(ODE.y,2),dims=psi_dims,shape=psi_shape)
         else:
             raise ValueError('Error in ODE solver')
     return psi_out
@@ -255,7 +277,7 @@ def no_collapse_expect_out(opt,psi_in,tlist,expect_ops,num_expect,num_times,psi_
     for k in xrange(1,num_times):
         ODE.integrate(tlist[k],step=0) #integrate up to tlist[k]
         if ODE.successful():
-            state=ODE.y/la.norm(ODE.y)
+            state=ODE.y/norm(ODE.y)
             for jj in xrange(num_expect):
                 expect_out[jj][k]=mc_expect(expect_ops[jj],state)
         else:
@@ -309,7 +331,7 @@ def mc_alg_evolve(nt,args):
                 ODE.set_initial_value(last_y,last_t)
                 step_flag=0
             else:
-                psi_nrm2=la.norm(ODE.y,2)**2
+                psi_nrm2=norm(ODE.y,2)**2
                 if psi_nrm2<=rand_vals[0]:#collpase has occured
                     collapse_times.append(ODE.t)
                     n_dp=array([float(real(dot(ODE.y.conj().T,op*ODE.y))) for op in norm_collapse_data])
@@ -317,13 +339,13 @@ def mc_alg_evolve(nt,args):
                     j=cinds[kk>=rand_vals[1]][0]
                     which_oper.append(j) #record which operator did collapse
                     state=collapse_ops_data[j]*ODE.y
-                    state_nrm=la.norm(state,2)
+                    state_nrm=norm(state,2)
                     ODE.set_initial_value(state/state_nrm,ODE.t)
                     rand_vals=random.rand(2)
             last_t=ODE.t;last_y=ODE.y
         #-------------------------------------------------------
         ###--after while loop--####
-        psi_nrm=la.norm(ODE.y,2)
+        psi_nrm=norm(ODE.y,2)
         if num_expect==0:
             psi_out[k] = ODE.y/psi_nrm
         else:
