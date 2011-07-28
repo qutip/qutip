@@ -34,4 +34,4 @@ from jc_lasing import jc_lasing
 from td_rabi import td_rabi
 from td_landauzener import td_landauzener
 from fidelity_example import fidelity_example
-#from esdemo import esdemo
+from esdemo import esdemo
