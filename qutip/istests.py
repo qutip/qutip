@@ -53,9 +53,8 @@ def isoper(Q):
 	@param Qobj quantum object
 	@return bool True or False
 	"""
-	return isinstance(Q.dims[0],list) & (Q.dims[0]==Q.dims[1])
+	return isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0], int) and (Q.dims[0]==Q.dims[1])
 	
-
 
 #***************************
 def issuper(Q):
@@ -64,7 +63,7 @@ def issuper(Q):
 	@param Qobj quantum object
 	@return bool True or False
 	"""
-	result = isinstance(Q.dims[0],list) & (len(Q.dims[0])>1)
+	result = isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0],list)
 	if result:
 	    result = (Q.dims[0]==Q.dims[1]) & (Q.dims[0][0]==Q.dims[1][0])
 	return result
