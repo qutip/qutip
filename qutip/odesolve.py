@@ -62,7 +62,7 @@ def wf_ode_solve(H, psi0, tlist, expt_op_list, H_args, opt):
     @brief Evolve the wave function using an ODE solver
     """
     if isinstance(H, FunctionType):
-        return wf_ode_solve_td(H, psi0, tlist, expt_op_list, H_args)
+        return wf_ode_solve_td(H, psi0, tlist, expt_op_list, H_args, opt)
 
     n_expt_op = len(expt_op_list)
     n_tsteps  = len(tlist)
@@ -204,7 +204,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     n_op= len(c_op_list)
 
     if isinstance(H, FunctionType):
-        return me_ode_solve_td(H, rho0, tlist, c_op_list, expt_op_list, H_args)
+        return me_ode_solve_td(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt)
 
     #
     # check initial state
@@ -303,7 +303,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
         # if initial state is a ket and no collapse operator where given,
         # fallback on the unitary schrodinger equation solver
         if n_op == 0:
-            return wf_ode_solve_td(H_func, rho0, tlist, expt_op_list, H_args)
+            return wf_ode_solve_td(H_func, rho0, tlist, expt_op_list, H_args, opt)
 
         # Got a wave function as initial state: convert to density matrix.
         rho0 = rho0 * rho0.dag()
