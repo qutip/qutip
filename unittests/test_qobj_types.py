@@ -43,11 +43,25 @@ class TestQobjTypes(unittest.TestCase):
         self.assertEqual(isoper(psi),  False)
         self.assertEqual(issuper(psi), False)
 
+        psi = tensor(basis(2,1), basis(2,0))
+
+        self.assertEqual(isket(psi),   True)
+        self.assertEqual(isbra(psi),   False)
+        self.assertEqual(isoper(psi),  False)
+        self.assertEqual(issuper(psi), False)
+
 
     def testBraType(self):
     
         psi = basis(2,1).dag()
         
+        self.assertEqual(isket(psi),   False)
+        self.assertEqual(isbra(psi),   True)
+        self.assertEqual(isoper(psi),  False)
+        self.assertEqual(issuper(psi), False)
+
+        psi = tensor(basis(2,1).dag(), basis(2,0).dag())
+
         self.assertEqual(isket(psi),   False)
         self.assertEqual(isbra(psi),   True)
         self.assertEqual(isoper(psi),  False)
