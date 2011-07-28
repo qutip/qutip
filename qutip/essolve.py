@@ -38,15 +38,12 @@ def essolve(H, rho0, tlist, c_op_list, expt_op_list):
     n_expt_op = len(expt_op_list)
     n_tsteps  = len(tlist)
 
-    # check initial state
-    if isket(rho0):
-        # Got a wave function as initial state: convert to density matrix.
-        rho0 = rho0 * rho0.dag()
-
     # Calculate the Liouvillian
-    L = liouvillian(H, c_op_list)
+    if c_op_list == None or len(c_op_list) == 0:
+        L = H
+    else:
+        L = liouvillian(H, c_op_list)
 
-    # calculate the exponential series
     es = ode2es(L, rho0)
 
     # evaluate the expectation values      
@@ -66,31 +63,59 @@ def essolve(H, rho0, tlist, c_op_list, expt_op_list):
 def ode2es(L, rho0):
     """
     Create an exponential series that describes the time evolution for the
-    initial state rho0, given the Liouvillian L.
+    initial density matrix (or state vector) rho0, given the Liouvillian 
+    (or Hamiltonian) L.
     """
 
-    # todo: some sanity test... check that L issuper and rho isoper or isket
+    if issuper(L):
  
-    # check initial state
-    if isket(rho0):
-        # Got a wave function as initial state: convert to density matrix.
-        rho0 = rho0 * rho0.dag()
+        # check initial state
+        if isket(rho0):
+            # Got a wave function as initial state: convert to density matrix.
+            rho0 = rho0 * rho0.dag()
+    
+        w, v = la.eig(L.full())
+        # w[i]   = eigenvalue i
+        # v[:,i] = eigenvector i
+    
+        rlen = prod(rho0.shape)
+        r0 = mat2vec(rho0.full())
+        v0 = la.solve(v,r0)
+        vv = v * sp.spdiags(v0.T, 0, rlen, rlen)
+    
+        out = None
+        for i in range(rlen):
+            qo = Qobj(vec2mat(vv[:,i]), dims=rho0.dims, shape=rho0.shape)
+            if out:
+                out += eseries(qo, w[i])
+            else:
+                out  = eseries(qo, w[i])
 
-    w, v = la.eig(L.full())
-    # w[i]   = eigenvalue i
-    # v[:,i] = eigenvector i
+    elif isoper(L):
 
-    rlen = prod(rho0.shape)
-    r0 = mat2vec(rho0.full())
-    v0 = la.solve(v,r0)
-    vv = v * sp.spdiags(v0.T, 0, rlen, rlen)
+        if not isket(rho0):
+            raise TypeError('Second argument must be a ket if first is a Hamiltonian.')
 
-    out = None
-    for i in range(rlen):
-        qo = Qobj(vec2mat(vv[:,i]), dims=rho0.dims, shape=rho0.shape)
-        if out:
-            out += eseries(qo, w[i])
-        else:
-            out  = eseries(qo, w[i])
+        w, v = la.eig((- 1.0j * L).full())
+        # w[i]   = eigenvalue i
+        # v[:,i] = eigenvector i
 
+        rlen = prod(rho0.shape)
+        r0 = rho0.full()
+        v0 = la.solve(v,r0)
+        vv = v * sp.spdiags(v0.T, 0, rlen, rlen)
+
+        out = None
+        for i in range(rlen):
+            qo = Qobj(matrix(vv[:,i]).T, dims=rho0.dims, shape=rho0.shape)
+            if out:
+                out += eseries(qo, w[i])
+            else:
+                out  = eseries(qo, w[i])
+
+    else:
+        raise TypeError('First argument must be a Hamiltonian or Liouvillian.')
+        
     return estidy(out)
+
+
