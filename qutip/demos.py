@@ -98,7 +98,7 @@ def demos():
         if exconfig.option==11:
             examples.qobjbasics()
         elif exconfig.option==12:
-            pass
+            examples.states_opers()
         elif exconfig.option==13:
             examples.tensorptrace()
         elif exconfig.option==14:

@@ -36,3 +36,4 @@ from td_landauzener import td_landauzener
 from fidelity_example import fidelity_example
 from esdemo import esdemo
 from propagatordemo import propagatordemo
+from states_opers import states_opers
