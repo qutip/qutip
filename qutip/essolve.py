@@ -69,9 +69,13 @@ def ode2es(L, rho0):
     initial state rho0, given the Liouvillian L.
     """
 
-    # todo: some sanity test... check that L issuper and rho isoper, convert
-    # rho0 to operator if it isket
+    # todo: some sanity test... check that L issuper and rho isoper or isket
  
+    # check initial state
+    if isket(rho0):
+        # Got a wave function as initial state: convert to density matrix.
+        rho0 = rho0 * rho0.dag()
+
     w, v = la.eig(L.full())
     # w[i]   = eigenvalue i
     # v[:,i] = eigenvector i
