@@ -31,8 +31,10 @@ def qubit_integrate(epsilon, delta, g1, g2, solver):
         expt_list = odesolve(H, psi0, tlist, [], [sigmax(), sigmay(), sigmaz()])  
     elif solver == "es":
         expt_list = essolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])  
-    elif solver == "mc":
+    elif solver == "mc1":
         expt_list = mcsolve(H, psi0, tlist, 1, [], [sigmax(), sigmay(), sigmaz()])  
+    elif solver == "mc250":
+        expt_list = mcsolve(H, psi0, tlist, 250, c_op_list, [sigmax(), sigmay(), sigmaz()])  
     else:
         raise ValueError("unknown solver")
         
@@ -43,15 +45,15 @@ def qubit_integrate(epsilon, delta, g1, g2, solver):
 #
 epsilon = 0.0 * 2 * pi   # cavity frequency
 delta   = 1.0 * 2 * pi   # atom frequency
-g2 = 0.0001
-g1 = 0.000
+g2 = 0.0
+g1 = 0.1
 
 # intial state
 psi0 = basis(2,0)
 
 tlist = linspace(0,5,200)
 
-for solver in ("me", "mc", "wf", "es"):
+for solver in ("me", "es", "mc1", "mc250"):
 
     start_time = time.time()
     sx1, sy1, sz1 = qubit_integrate(epsilon, delta, g1, g2, solver)
