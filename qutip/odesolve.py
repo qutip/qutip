@@ -30,7 +30,7 @@ from Odeoptions import Odeoptions
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 # 
-def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
+def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None, options=None):
     """
     Evolution of a state vector or density matrix (rho0) for a given
     Hamiltonian (H) and set of collapse operators (c_op_list), by integrating
@@ -44,16 +44,20 @@ def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
     passed to the callback function H (only used for time-dependent Hamiltonians).
     """
 
+    if options == None:
+        options = Odeoptions()
+        options.nsteps = 25000  # 
+
     if c_op_list and len(c_op_list) > 0:
-        return me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args)
+        return me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, options)
     else:
-        return wf_ode_solve(H, rho0, tlist, expt_op_list, H_args)
+        return wf_ode_solve(H, rho0, tlist, expt_op_list, H_args, options)
 
 
 # ------------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution)
 # 
-def wf_ode_solve(H, psi0, tlist, expt_op_list, H_args=None):
+def wf_ode_solve(H, psi0, tlist, expt_op_list, H_args, opt):
     """!
     @brief Evolve the wave function using an ODE solver
     """
@@ -77,10 +81,10 @@ def wf_ode_solve(H, psi0, tlist, expt_op_list, H_args=None):
     #
     initial_vector = psi0.full()
     r = scipy.integrate.ode(psi_ode_func)
-    opt = Odeoptions()
-    #opt.nsteps = 25000  
-    r.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step)
-    #r.set_integrator('zvode')
+    r.set_integrator('zvode', method=opt.method, order=opt.order,
+                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                              first_step=opt.first_step, min_step=opt.min_step,
+                              max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
     r.set_f_params(-1.0j * H.data)
 
@@ -118,7 +122,7 @@ def psi_ode_func(t, psi, H):
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
 # time dependent hamiltonians
 # 
-def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list, H_args):
+def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list, H_args, opt):
     """!
     @brief Evolve the wave function using an ODE solver with time-dependent
     Hamiltonian.
@@ -148,7 +152,10 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list, H_args):
 
     initial_vector = psi0.full()
     r = scipy.integrate.ode(psi_ode_func_td)
-    r.set_integrator('zvode', nsteps=25000)  # need to allow many internal steps when calculating propagators
+    r.set_integrator('zvode', method=opt.method, order=opt.order,
+                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                              first_step=opt.first_step, min_step=opt.min_step,
+                              max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
     r.set_f_params(H_func_and_args)
 
@@ -190,7 +197,7 @@ def psi_ode_func_td(t, psi, H_func_and_args):
 # ------------------------------------------------------------------------------
 # Master equation solver
 # 
-def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
+def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     """!
     @brief Evolve the density matrix using an ODE solver
     """
@@ -238,11 +245,12 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None):
     #
     initial_vector = mat2vec(rho0.full())
     r = scipy.integrate.ode(rho_ode_func)
-    r.set_integrator('zvode')
-    r.set_initial_value(initial_vector, tlist[0]).set_f_params(L.data)
-
-    #opt = Odeoptions()
-    #r.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step)
+    r.set_integrator('zvode', method=opt.method, order=opt.order,
+                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                              first_step=opt.first_step, min_step=opt.min_step,
+                              max_step=opt.max_step)
+    r.set_initial_value(initial_vector, tlist[0])
+    r.set_f_params(L.data)
 
 
     #
@@ -281,7 +289,7 @@ def rho_ode_func(t, rho, L):
 # ------------------------------------------------------------------------------
 # Master equation solver
 # 
-def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args):
+def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     """!
     @brief Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
@@ -337,7 +345,10 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args):
     #
     initial_vector = mat2vec(rho0.full())
     r = scipy.integrate.ode(rho_ode_func_td)
-    r.set_integrator('zvode', nsteps=25000)  # need to allow many internal steps when calculating propagators
+    r.set_integrator('zvode', method=opt.method, order=opt.order,
+                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                              first_step=opt.first_step, min_step=opt.min_step,
+                              max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
     r.set_f_params(L_func_and_args)
 
@@ -378,16 +389,5 @@ def rho_ode_func_td(t, rho, L_func_and_args):
     L = L0 + L_func(t, L_args)
 
     return L * rho
-
-
-
-
-
-
-
-
-
-
-
 
 
