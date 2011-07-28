@@ -1,0 +1,8 @@
+###############################
+# QuTiP RELEASE NOTES
+# P.D. Nation and J.R. Johansson
+###############################
+
+Version 1.0 (July 29, 2011):
+----------------------------
+Initial release.
