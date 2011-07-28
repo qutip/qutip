@@ -48,7 +48,7 @@ def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None, options=None)
         options = Odeoptions()
         options.nsteps = 25000  # 
 
-    if c_op_list and len(c_op_list) > 0:
+    if (c_op_list and len(c_op_list) > 0) or not isket(rho0):
         return me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, options)
     else:
         return wf_ode_solve(H, rho0, tlist, expt_op_list, H_args, options)
