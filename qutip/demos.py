@@ -114,7 +114,7 @@ def demos():
         elif exconfig.option==31:
             examples.fidelity_example()
         elif exconfig.option==32:
-            pass
+            examples.propagatordemo()
         elif exconfig.option==33:
             examples.spinchain()
         elif exconfig.option==34:

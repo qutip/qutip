@@ -190,10 +190,14 @@ class Examples(QtGui.QWidget):
         b31label.move(72, 425)
         #COLUMN 2
         x=170
-        b32 = QtGui.QPushButton('ME', self)
+        b32 = QtGui.QPushButton('Propagator:\nSteady state of\na driven system', self)
         b32 .setGeometry(x,y, 150, 80)
         b32 .setFocusPolicy(QtCore.Qt.NoFocus)
         self.connect(b32, QtCore.SIGNAL('clicked()'),self, QtCore.SLOT('button32()'))
+        b32label = QtGui.QLabel(self)
+        b32label.setOpenExternalLinks(True)
+        b32label.setText("<a href=http://code.google.com/p/qutip/wiki/ExamplesPropagator>Propagator</a>")
+        b32label.move(x+40, 425)
         #COLUMN 3
         x=320
         b33 = QtGui.QPushButton('Heisenberg\n spin chain (N=4)', self)
