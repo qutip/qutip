@@ -75,7 +75,7 @@ def propagator(H, t, c_op_list, H_args=None):
             rho0  = Qobj(vec2mat(psi0.full()))
             rho_t = odesolve(H, rho0, [0, t], c_op_list, [], H_args)
 
-            u[:,n] = mat2vec(rho_t[1].full())
+            u[:,n] = mat2vec(rho_t[1].full()).T
 
 
     return Qobj(u)
@@ -106,7 +106,7 @@ def propagator_steadystate(U):
 
 def floquet_states(H, t, c_op_list, H_args=None):
     """
-    Calculate the floquet states for a driven system med period t.
+    Calculate the floquet states for a driven system with period t.
     """
 
     # get the unitary propagator

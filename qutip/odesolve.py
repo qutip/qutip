@@ -78,9 +78,11 @@ def wf_ode_solve(H, psi0, tlist, expt_op_list, H_args=None):
     initial_vector = psi0.full()
     r = scipy.integrate.ode(psi_ode_func)
     opt = Odeoptions()
+    #opt.nsteps = 25000  
     r.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step)
     #r.set_integrator('zvode')
-    r.set_initial_value(initial_vector, tlist[0]).set_f_params(-1.0j * H.data)
+    r.set_initial_value(initial_vector, tlist[0])
+    r.set_f_params(-1.0j * H.data)
 
     #
     # start evolution
@@ -145,7 +147,10 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list, H_args):
             H_func_and_args.append(arg)
 
     initial_vector = psi0.full()
-    r = scipy.integrate.ode(psi_ode_func_td).set_integrator('zvode').set_initial_value(initial_vector, tlist[0]).set_f_params(H_func_and_args)
+    r = scipy.integrate.ode(psi_ode_func_td)
+    r.set_integrator('zvode', nsteps=25000)  # need to allow many internal steps when calculating propagators
+    r.set_initial_value(initial_vector, tlist[0])
+    r.set_f_params(H_func_and_args)
 
     # start evolution
     #
@@ -323,7 +328,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args):
     L_func_and_args = [H_func, L.data]
     for arg in H_args:
         if isinstance(arg,Qobj):
-            L_func_and_args.append((-1j*(spre(arg) - spost(arg))).data) # hack: assume all Qobj to be hamiltonian components....
+            L_func_and_args.append((-1j*(spre(arg) - spost(arg))).data)
         else:
             L_func_and_args.append(arg)
 
@@ -331,7 +336,10 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args):
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full())
-    r = scipy.integrate.ode(rho_ode_func_td).set_integrator('zvode').set_initial_value(initial_vector, tlist[0]).set_f_params(L_func_and_args)
+    r = scipy.integrate.ode(rho_ode_func_td)
+    r.set_integrator('zvode', nsteps=25000)  # need to allow many internal steps when calculating propagators
+    r.set_initial_value(initial_vector, tlist[0])
+    r.set_f_params(L_func_and_args)
 
     #
     # start evolution
