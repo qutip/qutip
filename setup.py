@@ -17,7 +17,7 @@ dynamics in the classroom.
 DOCLINES = __doc__.split('\n')
 
 CLASSIFIERS = """\
-Development Status :: 3 - Alpha
+Development Status :: 4 - Beta
 Intended Audience :: Science/Research
 License :: GNU GPL3
 Programming Language :: Python
@@ -43,25 +43,18 @@ import warnings
 from setuptools import setup, find_packages
 
 def svn_version():
-    from numpy.compat import asstr
-    env = os.environ.copy()
-    env['LC_ALL'] = 'C'
-    try:
-        out = subprocess.Popen(['svn', 'info'], stdout=subprocess.PIPE,
-                env=env).communicate()[0]
-    except OSError:
-        warnings.warn(" --- Could not run svn info --- ")
+    entries_path = 'qutip/.svn/entries'
+    try: 
+        entries = open(entries_path, 'r').read()
+        if re.match('(\d+)', entries):
+            rev_match = re.search('\d+\s+dir\s+(\d+)', entries)
+            if rev_match:
+                rev = rev_match.groups()[0]
+            return str(rev)
+        else:
+            return ""
+    except:
         return ""
-    r = re.compile('Revision: ([0-9]+)')
-    svnver = None
-    for line in asstr(out).split('\n'):
-        m = r.match(line)
-        if m:
-            svnver = m.group(1)
-    if not svnver:
-        raise ValueError("Error while parsing svn version ?")
-    return svnver
-
 
 FULLVERSION = VERSION
 if not ISRELEASED:
