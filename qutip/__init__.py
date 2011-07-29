@@ -80,9 +80,9 @@ import scipy.linalg as la
 import scipy.sparse as sp
 from Qobj import Qobj,shape,dims,dag,trans,sp_expm
 from about import *
-#from basis import *
 from Bloch import Bloch
 from correlation import *
+from clebsch import clebsch
 from eseries import *
 from demos import *
 from entropy import *
@@ -105,10 +105,7 @@ from sphereplot import *
 from states import *
 from steady import *
 from superoperator import *
-#from selct import *
 from tensor import *
 from wigner import *
-#from fseries import *
-#if os.environ['QUTIP_GRAPHICS'] == "YES":
-    #from gui import *
+
 
