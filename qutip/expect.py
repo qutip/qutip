@@ -72,9 +72,38 @@ def single_expect(oper,state):
     # eseries
     # 
     elif isinstance(oper,Qobj) and isinstance(state, eseries):
+
         out = eseries()
-        out.rates = state.rates
-        out.ampl = array([expect(oper, a) for a in state.ampl])
+
+        if isoper(state.ampl[0]):
+
+            print "expect eseries of density matrix"
+
+            out.rates = state.rates
+            out.ampl = array([expect(oper, a) for a in state.ampl])
+
+        else:
+
+            print "expect eseries of ket or bra"
+
+            out.rates = array([])
+            out.ampl  = array([])
+
+            for m in range(len(state.rates)):
+
+                op_m = state.ampl[m].data.conj().T * oper.data
+
+                for n in range(len(state.rates)):
+
+                    a = op_m * state.ampl[n].data
+
+                    if isinstance(a, sp.spmatrix):
+                        a = a.todense()
+
+                    out.rates = append(out.rates, state.rates[n] - state.rates[m])
+                    out.ampl  = append(out.ampl, a)
+
         return out
     else:# unsupported types
         raise TypeError('Arguments must be quantum objects or eseries')
+
