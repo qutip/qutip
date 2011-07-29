@@ -19,7 +19,7 @@ DOCLINES = __doc__.split('\n')
 CLASSIFIERS = """\
 Development Status :: 4 - Beta
 Intended Audience :: Science/Research
-License :: GNU GPL3
+License :: OSI Approved :: GNU General Public License (GPL)
 Programming Language :: Python
 Topic :: Scientific/Engineering
 Operating System :: Microsoft :: Windows
