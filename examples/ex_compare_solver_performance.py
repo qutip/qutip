@@ -34,7 +34,7 @@ def system_integrate(Na, Nb, wa, wb, wab, ga, gb, solver):
         c_op_list.append(sqrt(rate) * b)
 
     if solver == "me":
-        expt_list = odesolve(H, psi0 * psi.dag(), tlist, c_op_list, [na, nb])
+        expt_list = odesolve(H, psi0 * psi0.dag(), tlist, c_op_list, [na, nb])
     elif solver == "wf":
         expt_list = odesolve(H, psi0, tlist, [], [na, nb])
     elif solver == "es":
@@ -63,11 +63,13 @@ Nb = 2               # number of states in system b
 
 tlist = linspace(0, 10, 200)
 
+show_dynamics = False
+style_map = {"es": "r.", "ode": "b", "mc1": "g", "wf": "m*"}
 #
 # First test unitary solvers
 #
-solvers = ("me", "wf", "mc1", "es")
-Na_vec = arange(2, 35, 1)
+solvers = ("wf", "es", "mc1")
+Na_vec = arange(2, 60, 1)
 
 times = zeros((len(Na_vec), len(solvers)))
 
@@ -80,11 +82,18 @@ for n_run in range(n_runs):
         print "using %d states" % (Na * Nb)
         s_idx = 0
         for solver in solvers:
-        
+            print "solver " + solver
             start_time = time.time()
             na, nb = system_integrate(Na, Nb, wa, wb, wab, ga, gb, solver)
             times[n_idx, s_idx] += time.time() - start_time
             s_idx += 1
+
+            if show_dynamics:
+                figure(3)
+                plot(tlist, real(na), style_map[solver], tlist, real(nb), style_map[solver])    
+
+        if show_dynamics:
+            show()
 
         n_idx += 1
 
@@ -108,7 +117,9 @@ ylabel('Time to evolve system (seconds)')
 title('Comparison of solver performance for unitary evolution')
 legend(solvers)
 savefig("solver-performance-unitary.png")
+
 show()
+
 
 #
 # Second, test nonunitary solvers solvers
@@ -118,6 +129,8 @@ gb = 0.0             # dissipation rate of system b
 
 solvers = ("me", "mc250", "mc500", "es")
 Na_vec = arange(2, 35, 1)
+
+show_dynamics = True
 
 times = zeros((len(Na_vec), len(solvers)))
 
@@ -136,9 +149,17 @@ for n_run in range(n_runs):
             times[n_idx, s_idx] += time.time() - start_time
             s_idx += 1
 
+            if show_dynamics:
+                figure(3)
+                plot(tlist, real(na), 'r', tlist, real(nb), 'b')    
+
+        if show_dynamics:
+            show()
+
         n_idx += 1
 
 times = times / n_runs
+
 
 #
 # plot benchmark data
@@ -158,8 +179,4 @@ ylabel('Time to evolve system (seconds)')
 title('Comparison of solver performance for nonunitary evolution')
 legend(solvers)
 savefig("solver-performance-nonunitary.png")
-
-show()
-
-
 
