@@ -45,15 +45,15 @@ def qubit_integrate(epsilon, delta, g1, g2, solver):
 #
 epsilon = 0.0 * 2 * pi   # cavity frequency
 delta   = 1.0 * 2 * pi   # atom frequency
-g2 = 0.0
-g1 = 0.1
+g2 = 0.01
+g1 = 0.01
 
 # intial state
 psi0 = basis(2,0)
 
 tlist = linspace(0,5,200)
 
-for solver in ("me", "es", "mc1", "mc250"):
+for solver in ("me", "wf", "es", "mc1", "mc250"):
 
     start_time = time.time()
     sx1, sy1, sz1 = qubit_integrate(epsilon, delta, g1, g2, solver)
@@ -64,10 +64,6 @@ for solver in ("me", "es", "mc1", "mc250"):
     plot(tlist, real(sy1), 'b')
     plot(tlist, real(sz1), 'g')
     
-    #legend_vec += ("sx
-
-
-#legend(("sx", "sy", "sz"))
 xlabel('Time')
 ylabel('Expectation value')
 
