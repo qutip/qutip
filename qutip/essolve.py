@@ -96,7 +96,7 @@ def ode2es(L, rho0):
         if not isket(rho0):
             raise TypeError('Second argument must be a ket if first is a Hamiltonian.')
 
-        w, v = la.eig((- 1.0j * L).full())
+        w, v = la.eig(L.full())
         # w[i]   = eigenvalue i
         # v[:,i] = eigenvector i
 
@@ -109,9 +109,9 @@ def ode2es(L, rho0):
         for i in range(rlen):
             qo = Qobj(matrix(vv[:,i]).T, dims=rho0.dims, shape=rho0.shape)
             if out:
-                out += eseries(qo, w[i])
+                out += eseries(qo, -1.0j * w[i])
             else:
-                out  = eseries(qo, w[i])
+                out  = eseries(qo, -1.0j * w[i])
 
     else:
         raise TypeError('First argument must be a Hamiltonian or Liouvillian.')
