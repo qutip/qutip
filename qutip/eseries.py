@@ -165,9 +165,9 @@ class eseries:
         Evaluate an exponential series at the times listed in tlist. 
         '''
 
-        #print "type tlist =", type(tlist)
-        #print "len  ampl =", len(self.ampl)
-        #print "type ampl =", type(self.ampl[0])
+        if self.ampl == None or len(self.ampl) == 0:
+            # no terms, evalue to zero
+            return zeros(shape(tlist))
 
         if isinstance(tlist, float) or isinstance(tlist, int):
             tlist = [tlist]
@@ -178,7 +178,7 @@ class eseries:
         
             for j in range(len(tlist)):
                 exp_factors = exp(array(self.rates) * tlist[j])
-    
+
                 val = 0
                 for i in range(len(self.ampl)):
                     val += self.ampl[i] * exp_factors[i]
