@@ -69,7 +69,7 @@ plot(tlist, real(p_ex), 'b', tlist, real(1-p_ex), 'r')
 plot(tlist, 1 - exp( - pi * delta **2 / (2 * A)) * ones(shape(tlist)), 'k')
 xlabel('Time')
 ylabel('Occupation probability')
-title('Excitation probabilty of qubit')
+title('Landau-Zener transition')
 legend(("Excited state", "Ground state", "Landau-Zener formula"), loc=0)
 show()
 
