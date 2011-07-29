@@ -77,14 +77,10 @@ def single_expect(oper,state):
 
         if isoper(state.ampl[0]):
 
-            print "expect eseries of density matrix"
-
             out.rates = state.rates
             out.ampl = array([expect(oper, a) for a in state.ampl])
 
         else:
-
-            print "expect eseries of ket or bra"
 
             out.rates = array([])
             out.ampl  = array([])
