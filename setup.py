@@ -98,6 +98,6 @@ setup(
     url = "http://code.google.com/p/qutip/",
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
     platforms = ["Linux", "Mac OSX", "Unix", "Windows"],
-    install_requires=['numpy','scipy','matplotlib'],
+    install_requires=['scipy','matplotlib'],
     include_package_data=True 
     )
