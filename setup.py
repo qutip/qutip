@@ -99,5 +99,8 @@ setup(
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
     platforms = ["Linux", "Mac OSX", "Unix", "Windows"],
     install_requires=['scipy','matplotlib'],
+    package_data = {
+                # If any package contains *.png, files include them:
+                '': ['*.png']},
     include_package_data=True 
     )
