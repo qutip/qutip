@@ -81,6 +81,7 @@ import scipy.sparse as sp
 from Qobj import Qobj,shape,dims,dag,trans,sp_expm
 from about import *
 from Bloch import Bloch
+from graph import hinton
 from correlation import *
 from clebsch import clebsch
 from eseries import *
