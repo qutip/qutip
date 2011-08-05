@@ -59,7 +59,7 @@ plot(glist/(2*pi), na)
 legend(("Cavity", "Atom excited state"))
 xlabel('g - coupling strength')
 ylabel('Occupation probability')
-title('# photons in the ground state')
+title('# photons in the groundstate')
 savefig("ultra-strong-coupling-occupation-numbers.png")
 
 #
@@ -75,7 +75,7 @@ surf=ax.plot_surface(X, Y, W, rstride=1, cstride=1, cmap=cm.jet, alpha=1.0, line
 ax.set_xlim3d(-7.5, 7.5)
 ax.set_ylim3d(-7.5, 7.5)
 fig.colorbar(surf, shrink=0.65, aspect=20)
-title("Wigner function for the cavity groundstate\n(ultra strong coupling to a qubit)")
+title("Wigner function for the cavity groundstate\n(ultra-strong coupling to a qubit)")
 savefig("ultra-strong-coupling-wigner.png")
 show()
 

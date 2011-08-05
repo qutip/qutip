@@ -71,7 +71,7 @@ class TestEigenstates(unittest.TestCase):
         N2 = 2
         
         a1 = tensor(destroy(N1), qeye(N2))
-        a2 = tensor(destroy(N1), qeye(N2))
+        a2 = tensor(qeye(N1), destroy(N2))
     
         H = rand() * a1.dag() * a1 + rand() * a2.dag() * a2 + rand() * (a1 + a1.dag()) * (a2 + a2.dag())
 
