@@ -102,6 +102,7 @@ from parfor import *
 from ptrace import ptrace
 from propagator import *
 from qstate import *
+from simdiag import *
 from sphereplot import *
 from states import *
 from steady import *
