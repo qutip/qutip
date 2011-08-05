@@ -1,5 +1,5 @@
 #
-# Textbook example: Rabi oscillation in the dissipative Jaynes-Cummings model.
+# Textbook example: groundstate properties of an ultra-strongly coupled atom-cavity system.
 # 
 #
 from qutip import *
