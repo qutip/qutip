@@ -345,6 +345,42 @@ class Qobj():
         Returns the operator normalized to unity.
         """
         return self/self.norm()
+
+
+    #
+    # Find the eigenstates and eigenenergies (defined for operators and
+    # superoperators)
+    # 
+    def eigenstates(self):
+
+        if isket(self) or isbra(self):
+            raise TypeError("Can only diagonalize operators and superoperators")
+
+        evals, evecs = la.eig(self.full())
+    
+        zipped = zip(evals, range(len(evals)))
+        zipped.sort()
+        vals, perm = zip(*zipped)
+
+        evals_sorted = array([evals[perm[i]] for i in range(len(perm))])
+        new_dims  = [self.dims[0], [1] * len(self.dims[0])]
+        new_shape = [self.shape[0], 1]
+        ekets_sorted = [Qobj(matrix(evecs[:,perm[i]]/la.norm(evecs[perm[i]])).T, dims=new_dims, shape=new_shape) for i in range(len(perm))]
+
+        return ekets_sorted, evals_sorted
+
+    #
+    # Find only the eigenenergies (defined for operators and superoperators)
+    # 
+    def eigenenergies(self):
+
+        if isket(self) or isbra(self):
+            raise TypeError("Can only diagonalize operators and superoperators")
+
+        evals, evecs = la.eig(self.full())
+
+        return evals
+
 #-############################################################################
 #
 #
