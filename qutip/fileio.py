@@ -93,7 +93,7 @@ def file_data_store(datafile, data, sep=",", numtype="complex", numformat="decim
 # ------------------------------------------------------------------------------
 # Read matrix data from a file
 #
-def file_data_read(datafile, sep=","):
+def file_data_read(datafile, sep=None):
 
     if datafile == None:
         raise ValueError("datafile is unspecified")
@@ -105,6 +105,21 @@ def file_data_read(datafile, sep=","):
     #
     M = N = 0
     for line in f:
+        # find delim
+        if N == 0 and sep == None:
+            if len(line.rstrip().split(",")) > 1:
+                sep = ","
+            elif len(line.rstrip().split(";")) > 1:
+                sep = ";"
+            elif len(line.rstrip().split(":")) > 1:
+                sep = ":"
+            elif len(line.rstrip().split("|")) > 1:
+                sep = "|"
+            elif len(line.rstrip().split()) > 1:
+                sep = None # sepical case for a mix of white space deliminators
+            else:
+                raise ValueError("Unrecognized column deliminator")
+        # split the line
         line_vec = line.split(sep)
         n = len(line_vec)
         if N == 0 and n > 0:

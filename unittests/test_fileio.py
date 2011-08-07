@@ -106,6 +106,37 @@ class TestFileIO(unittest.TestCase):
         # make sure the deviation is small:
         self.assertTrue(amax(abs((data-data2))) < 1e-8) 
 
+
+    def testRWSeparatorDetection(self):
+
+        # create some random data
+        N = 10
+        data = (1-2*rand(N,N)) + 1j*(1-2*rand(N,N))
+
+        # comma separated values
+        file_data_store("test.dat", data, ",", "complex", "exp")
+        data2 = file_data_read("test.dat")
+        self.assertTrue(amax(abs((data-data2))) < 1e-8) 
+
+        # semicolon separated values
+        file_data_store("test.dat", data, ";", "complex", "exp")
+        data2 = file_data_read("test.dat")
+        self.assertTrue(amax(abs((data-data2))) < 1e-8) 
+
+        # tab separated values
+        file_data_store("test.dat", data, "\t", "complex", "exp")
+        data2 = file_data_read("test.dat")
+        self.assertTrue(amax(abs((data-data2))) < 1e-8) 
+
+        # space separated values
+        file_data_store("test.dat", data, " ", "complex", "exp")
+        data2 = file_data_read("test.dat")
+        self.assertTrue(amax(abs((data-data2))) < 1e-8) 
+
+        # mixed-whitespace separated values
+        file_data_store("test.dat", data, " \t ", "complex", "exp")
+        data2 = file_data_read("test.dat")
+        self.assertTrue(amax(abs((data-data2))) < 1e-8) 
         
 
 
