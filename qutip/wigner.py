@@ -38,7 +38,7 @@ def wigner(psi,xvec,yvec,g=sqrt(2)):
         M=prod(psi.shape[1])
     else:
         raise TypeError('Input state is not a valid operator.')
-    X,Y = meshgrid(xvec, xvec)
+    X,Y = meshgrid(xvec, yvec)
     amat = 0.5*g*(X + 1.0j*Y)
     wmat=zeros(shape(amat))
     Wlist=array([zeros(shape(amat),dtype=complex) for k in xrange(M)])
