@@ -2,12 +2,14 @@
 # Benchmark for solvers.
 # 
 #
+
+# disable the MC progress bar
+import os
+os.environ['QUTIP_GRAPHICS']="NO"
+
 from qutip import *
 from pylab import *
 import time
-
-import warnings
-warnings.simplefilter("error", np.ComplexWarning)
 
 def system_integrate(Na, Nb, wa, wb, wab, ga, gb, solver, ntraj):
 
@@ -58,19 +60,12 @@ Nb = 2               # number of states in system b
 
 tlist = linspace(0, 15, 100)
 
-show_dynamics = True
-
-style_map = {"es": "r.", "ode": "b", "mc1": "g", "wf": "m*"}
-solvers = ("me", "mc250", "mc500", "es")
-
-ntraj_vec = array([50, 100, 150, 200, 250]) #, 300, 350, 400, 450, 500])
-
-times = zeros((len(ntraj_vec), len(solvers)))
+ntraj_vec = array([50, 100, 150, 200, 250, 300, 350, 400, 450, 500])
 
 na_sse = zeros(len(ntraj_vec))
 nb_sse = zeros(len(ntraj_vec))
 
-n_runs = 5
+n_runs = 10
 
 for n_run in range(n_runs):
     print "run number %d" % n_run
@@ -101,9 +96,9 @@ for n_run in range(n_runs):
 na_sse = na_sse / n_runs
 nb_sse = nb_sse / n_runs
 
-sse_mat = array([na_sse, nb_sse]).T
+sse_mat = array([ntraj_vec, na_sse, nb_sse]).T
 
-file_data_store("mc_errors_Na_%d_Nb_%d.dat" % (Na, Nb), sse_mat, "real")
+file_data_store("benchmark-mc-errors-vs-ntraj-Na-%d-Nb-%d.dat" % (Na, Nb), sse_mat, "real")
 
 #
 # plot benchmark data
