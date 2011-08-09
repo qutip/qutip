@@ -52,7 +52,7 @@ class TestFileIO(unittest.TestCase):
         N = 10
         data = (1-2*rand(N,N))
 
-        file_data_store("test.dat", data, ",", "real", "decimal")
+        file_data_store("test.dat", data, "real", "decimal")
         data2 = file_data_read("test.dat", ",")
 
         # make sure the deviation is small:
@@ -64,7 +64,7 @@ class TestFileIO(unittest.TestCase):
         N = 10
         data = (1-2*rand(N,N))
 
-        file_data_store("test.dat", data, ",", "real", "exp")
+        file_data_store("test.dat", data, "real", "exp")
         data2 = file_data_read("test.dat", ",")
 
         # make sure the deviation is small:
@@ -88,7 +88,7 @@ class TestFileIO(unittest.TestCase):
         N = 10
         data = (1-2*rand(N,N)) + 1j*(1-2*rand(N,N))
 
-        file_data_store("test.dat", data, ",", "complex", "decimal")
+        file_data_store("test.dat", data, "complex", "decimal")
         data2 = file_data_read("test.dat", ",")
 
         # make sure the deviation is small:
@@ -100,7 +100,7 @@ class TestFileIO(unittest.TestCase):
         N = 10
         data = (1-2*rand(N,N)) + 1j*(1-2*rand(N,N))
 
-        file_data_store("test.dat", data, ",", "complex", "exp")
+        file_data_store("test.dat", data, "complex", "exp")
         data2 = file_data_read("test.dat", ",")
 
         # make sure the deviation is small:
@@ -114,27 +114,27 @@ class TestFileIO(unittest.TestCase):
         data = (1-2*rand(N,N)) + 1j*(1-2*rand(N,N))
 
         # comma separated values
-        file_data_store("test.dat", data, ",", "complex", "exp")
+        file_data_store("test.dat", data, "complex", "exp", ",")
         data2 = file_data_read("test.dat")
         self.assertTrue(amax(abs((data-data2))) < 1e-8) 
 
         # semicolon separated values
-        file_data_store("test.dat", data, ";", "complex", "exp")
+        file_data_store("test.dat", data, "complex", "exp", ";")
         data2 = file_data_read("test.dat")
         self.assertTrue(amax(abs((data-data2))) < 1e-8) 
 
         # tab separated values
-        file_data_store("test.dat", data, "\t", "complex", "exp")
+        file_data_store("test.dat", data, "complex", "exp", "\t")
         data2 = file_data_read("test.dat")
         self.assertTrue(amax(abs((data-data2))) < 1e-8) 
 
         # space separated values
-        file_data_store("test.dat", data, " ", "complex", "exp")
+        file_data_store("test.dat", data, "complex", "exp", " ")
         data2 = file_data_read("test.dat")
         self.assertTrue(amax(abs((data-data2))) < 1e-8) 
 
         # mixed-whitespace separated values
-        file_data_store("test.dat", data, " \t ", "complex", "exp")
+        file_data_store("test.dat", data, "complex", "exp", " \t ")
         data2 = file_data_read("test.dat")
         self.assertTrue(amax(abs((data-data2))) < 1e-8) 
         

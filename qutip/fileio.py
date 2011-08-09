@@ -22,7 +22,7 @@ from scipy import *
 # ------------------------------------------------------------------------------
 # Write matrix data to a file
 #
-def file_data_store(datafile, data, sep=",", numtype="complex", numformat="decimal"):
+def file_data_store(datafile, data, numtype="complex", numformat="decimal", sep=","):
 
     if datafile == None or data == None:
         raise ValueError("Datafile or data is unspecified")
