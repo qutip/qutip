@@ -1,6 +1,7 @@
 #
-# Benchmark for solvers.
-# 
+# MC solver error estimates: solve a system with increasingly number of MC 
+# trajectories and record the errors (compared to the "exact" results from the
+# ODE solver). 
 #
 
 # disable the MC progress bar
@@ -53,17 +54,20 @@ def system_integrate(Na, Nb, wa, wb, wab, ga, gb, solver, ntraj):
 wa  = 1.0 * 2 * pi   # frequency of system a
 wb  = 1.0 * 2 * pi   # frequency of system a
 wab = 0.1 * 2 * pi   # coupling frequency
-ga = 0.25            # dissipation rate of system a
-gb = 0.1             # dissipation rate of system b
+ga = 0.50            # dissipation rate of system a
+gb = 0.25            # dissipation rate of system b
 Na = 2               # number of states in system a
 Nb = 2               # number of states in system b
 
-tlist = linspace(0, 15, 100)
+tlist = linspace(0, 10, 100)
 
-ntraj_vec = array([50, 100, 150, 200, 250, 300, 350, 400, 450, 500])
+ntraj_vec = array([50, 75, 100, 125, 150, 175, 200, 225, 250, 275, 300, 325, 350, 375, 400, 425, 450, 475, 500])
 
 na_sse = zeros(len(ntraj_vec))
 nb_sse = zeros(len(ntraj_vec))
+
+na_se = zeros((len(ntraj_vec), len(tlist)))
+nb_se = zeros((len(ntraj_vec), len(tlist)))
 
 n_runs = 10
 
@@ -85,20 +89,33 @@ for n_run in range(n_runs):
         #plot(tlist, real(na_mc),  'r.', tlist, real(nb_mc), 'b.')    
         #show()
 
-        na_sse[n_idx] += sum(abs(na_ode-na_mc))
-        nb_sse[n_idx] += sum(abs(na_ode-na_mc))
+        na_sse[n_idx] += sum(abs(na_ode-na_mc)) / len(tlist)
+        nb_sse[n_idx] += sum(abs(nb_ode-nb_mc)) / len(tlist)
+
+        na_se[n_idx, :] += abs(na_ode-na_mc)
+        nb_se[n_idx, :] += abs(nb_ode-nb_mc)
 
         n_idx += 1
 
 #
 # calculate the averages and save the data
 #
-na_sse = na_sse / n_runs
+na_sse = na_sse / n_runs 
 nb_sse = nb_sse / n_runs
 
-sse_mat = array([ntraj_vec, na_sse, nb_sse]).T
+na_se = na_se / n_runs 
+nb_se = nb_se / n_runs
 
-file_data_store("benchmark-mc-errors-vs-ntraj-Na-%d-Nb-%d.dat" % (Na, Nb), sse_mat, "real")
+sse_mat = array([ntraj_vec, na_sse, nb_sse]).T
+file_data_store("benchmark-mc-errors-vs-ntraj-Na-%d-Nb-%d-runs-%d.dat" % (Na, Nb, n_runs), sse_mat, "real")
+
+na_se_mat = append(matrix(tlist).T, na_se.T, axis=1)
+file_data_store("benchmark-mc-na-errors-time-Na-%d-Nb-%d-runs-%d.dat" % (Na, Nb, n_runs), na_se_mat, "real")
+
+nb_se_mat = append(matrix(tlist).T, nb_se.T, axis=1)
+file_data_store("benchmark-mc-na-errors-time-Na-%d-Nb-%d-runs-%d.dat" % (Na, Nb, n_runs), nb_se_mat, "real")
+
+
 
 #
 # plot benchmark data
@@ -110,5 +127,26 @@ plot(ntraj_vec, nb_sse, 'b')
 xlabel('ntraj')
 ylabel('SSE')
 title('MC errors vs ntraj')
-savefig("benchmark-mc-errors-vs-ntraj.png")
+savefig("benchmark-mc-errors-vs-ntraj.pdf")
+
+
+#
+# plot errors as a function of time
+#
+
+figure(3)
+for idx in range(len(ntraj_vec)):
+    plot(tlist, na_se[idx, :], 'r')  
+    plot(tlist, nb_se[idx, :], 'b')  
+
+xlabel('time')
+ylabel('average squared errors')
+title('MC errors vs time')
+#savefig("benchmark-mc-errors-vs-ntraj.pdf")
+
+
+
 show()
+
+
+
