@@ -56,7 +56,7 @@ class AboutBox(QtGui.QWidget):
             pyside_ver='None'
         try:
             import PyQt4
-            pyqt4_ver=PyQt4.__version__
+            pyqt4_ver=PyQt4.QtCore.PYQT_VERSION_STR
         except:
             pyqt4_ver='None'
         if sys.platform=='darwin':
