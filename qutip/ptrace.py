@@ -38,7 +38,7 @@ def ptrace(rho,sel):
     M=prod(asarray(drho).take(sel))
     if prod(rho.dims[1]) == 1:
         rho = rho * rho.dag()
-    perm = sp.lil_matrix(zeros((M*M,N*N)))
+    perm = sp.lil_matrix((M*M,N*N))
     rest=setdiff1d(arange(len(drho)),asarray(sel)) #all elements in range(len(drho)) not in sel set
     ilistsel=selct(sel,drho)
     indsel=list2ind(ilistsel,drho)
