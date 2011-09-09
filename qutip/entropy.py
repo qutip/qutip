@@ -31,3 +31,21 @@ def entropy_vn(rho,base='2'):
         raise ValueError("Base must be '2' or 'e'.")
     return real(-sum(nzvals*logvals))
 
+
+def concurrence(rho):
+    """
+    Calculate the concurrence entanglement measure for 
+    a two-qubit state.
+    """
+    sysy = tensor(sigmay(), sigmay())
+
+    rho_tilde = (rho * sysy) * (rho.dag() * sysy)
+
+    evals = rho_tilde.eigenenergies()
+
+    evals = abs(sort(real(evals))) # abs to avoid problems with sqrt for very small negative numbers
+
+    lsum = sqrt(evals[3]) - sqrt(evals[2]) - sqrt(evals[1]) - sqrt(evals[0])
+
+    return max(0, lsum)
+
