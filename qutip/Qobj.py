@@ -293,6 +293,15 @@ class Qobj():
         out.dims=[self.dims[1],self.dims[0]]
         out.shape=[self.shape[1],self.shape[0]]
         return Qobj(out)
+    def conj(self):
+        """
+        Returns the conjugate operator of a given quantum object.
+        """
+        out=Qobj()
+        out.data=self.data.conj()
+        out.dims=[self.dims[1],self.dims[0]]
+        out.shape=[self.shape[1],self.shape[0]]
+        return Qobj(out)
     def norm(self):
         """
         Returns norm of a quantum object.

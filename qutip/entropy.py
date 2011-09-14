@@ -39,7 +39,7 @@ def concurrence(rho):
     """
     sysy = tensor(sigmay(), sigmay())
 
-    rho_tilde = (rho * sysy) * (rho.dag() * sysy)
+    rho_tilde = (rho * sysy) * (rho.conj() * sysy)
 
     evals = rho_tilde.eigenenergies()
 
