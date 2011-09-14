@@ -21,10 +21,10 @@
 #
 class Odeoptions():
     def __init__(self):
-        ##Absolute tolerance (default = 1e-12)
-        self.atol=1e-10
-        ##Relative tolerance (default = 1e-8)
-        self.rtol=1e-8
+        ##Absolute tolerance (default = 1e-8)
+        self.atol=1e-8
+        ##Relative tolerance (default = 1e-6)
+        self.rtol=1e-6
         ##Integration method (default = 'adams', for stiff 'bdf')
         self.method='adams'
         ##Max. number of internal steps/call
