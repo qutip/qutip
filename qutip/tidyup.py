@@ -21,6 +21,9 @@ import scipy.sparse as sp
 from Qobj import *
 
 def tidyup(op,Atol=1e-8):
+    """
+    Removes small elements from a Qobj
+    """
     mx=max(abs(op.data.data))
     data=abs(op.data.data)
     outdata=op.data.copy()
