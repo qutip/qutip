@@ -20,7 +20,7 @@
 import random
 from types import *
 from scipy.integrate import *
-
+from tidyup import tidyup
 from Qobj import *
 from superoperator import *
 from expect import *
@@ -206,6 +206,8 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     if isinstance(H, FunctionType):
         return me_ode_solve_td(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt)
 
+    if opt.tidy:
+        H=tidyup(H,opt.atol)
     #
     # check initial state
     #
