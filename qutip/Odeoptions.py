@@ -37,6 +37,8 @@ class Odeoptions():
         self.max_step=0
         ##Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
         self.order=12
+        ## tidyup Hamiltonian before calculation (default = True)
+        self.tidy=True
     def __str__(self):
         print "Odeoptions properties:"
         print "----------------------"

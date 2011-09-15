@@ -29,6 +29,7 @@ import datetime
 from multiprocessing import Pool,cpu_count
 from varargout import varargout
 from types import FunctionType
+from tidyup import tidyup
 ##@package mcsolve
 #Collection of routines for calculating dynamics via the Monte-Carlo method.
 
@@ -42,6 +43,8 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
     
     Options for solver are given by the Mcoptions class.
     """
+    if options.tidy:
+        H=tidyup(H,options.atol)
     #if Hamiltonian is time-dependent (list style)
     if isinstance(H,(list,ndarray)):
         mcdata.tflag=1
