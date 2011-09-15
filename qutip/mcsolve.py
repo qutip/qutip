@@ -43,8 +43,6 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
     
     Options for solver are given by the Mcoptions class.
     """
-    if options.tidy:
-        H=tidyup(H,options.atol)
     #if Hamiltonian is time-dependent (list style)
     if isinstance(H,(list,ndarray)):
         mcdata.tflag=1
@@ -69,6 +67,8 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
     else:
         for c_op in collapse_ops:
             H -= 0.5j * (c_op.dag()*c_op)
+        if options.tidy:
+            H=tidyup(H,options.atol)
         mcdata.H=-1.0j*H.data 
 
     mc=MC_class(psi0,tlist,ntraj,collapse_ops,expect_ops,options)
