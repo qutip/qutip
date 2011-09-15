@@ -26,7 +26,7 @@ ctypedef np.float64_t DTYPE_t
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def spmv_csr_serial(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[DTYPE_t, ndim=2] vec):
+def spmv_csr_serial(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=2] vec):
     cdef Py_ssize_t row
     cdef int jj,row_start,row_end
     cdef int num_rows=len(vec)
