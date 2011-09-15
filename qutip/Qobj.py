@@ -52,7 +52,7 @@ class Qobj():
         """
         if isinstance(inpt,Qobj):#if input is already Qobj then return identical copy
             ##Quantum object data
-            self.data=sp.csr_matrix(inpt.data) #make sure matrix is sparse (safety check)
+            self.data=sp.csr_matrix(inpt.data,dtype=complex) #make sure matrix is sparse (safety check)
             if not any(dims):
                 ## Dimensions of quantum object used for keeping track of tensor components
                 self.dims=inpt.dims
@@ -69,7 +69,7 @@ class Qobj():
                 inpt=array([[inpt]])
             #case where input is array or sparse
             if (isinstance(inpt,ndarray)) or (isinstance(inpt,sp.csr_matrix)):
-                self.data=sp.csr_matrix(inpt) #data stored as space array
+                self.data=sp.csr_matrix(inpt,dtype=complex) #data stored as space array
                 if not any(dims):
                     self.dims=[[inpt.shape[0]],[inpt.shape[1]]] #list of object dimensions
                 else:
@@ -83,7 +83,7 @@ class Qobj():
                     inpt=array([inpt])
                 else:#if list has two dimensions (i.e [[5,4]])
                     inpt=array(inpt)
-                self.data=sp.csr_matrix(inpt)
+                self.data=sp.csr_matrix(inpt,dtype=complex)
                 if not any(dims):
                     self.dims=[[inpt.shape[0]],[inpt.shape[1]]]
                 else:
