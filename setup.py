@@ -40,7 +40,8 @@ import shutil
 import re
 import subprocess
 import warnings
-from setuptools import setup, find_packages
+from distutils.core import setup,Extension
+import numpy as np 
 
 def svn_version():
     entries_path = 'qutip/.svn/entries'
@@ -88,7 +89,9 @@ write_version_py()
 setup(
     name = "QuTiP",
     version =FULLVERSION,
-    packages = find_packages(),
+    packages = ['qutip','qutip/gui','qutip/examples','qutip/cyQ'],
+    include_dirs = [np.get_include()],
+    ext_modules=[Extension('qutip.cyQ.matrix', ['qutip/cyQ/matrix.c'])],
     author = "Paul D. Nation, Robert J. Johansson",
     author_email = "pnation@riken.jp, robert@riken.jp",
     license = "GPL3",
@@ -98,9 +101,7 @@ setup(
     url = "http://code.google.com/p/qutip/",
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
     platforms = ["Linux", "Mac OSX", "Unix", "Windows"],
-    install_requires=['scipy','matplotlib'],
-    package_data = {
-                # If any package contains *.png, files include them:
-                '': ['*.png']},
+    depends=['scipy','matplotlib'],
+    package_data = {'qutip/gui': ['*.png']},
     include_package_data=True 
     )

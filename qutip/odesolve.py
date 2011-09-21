@@ -241,7 +241,12 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     # construct liouvillian
     #
     L = liouvillian(H, c_op_list)
-
+    Lmat=L.data
+    #
+    # evaluate drho(t)/dt according to the master eqaution
+    #
+    def rho_ode_func(t, rho):
+        return Lmat * rho
     #
     # setup integrator
     #
@@ -252,7 +257,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
                               first_step=opt.first_step, min_step=opt.min_step,
                               max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
-    r.set_f_params(L.data)
+    #r.set_f_params(L.data)
 
 
     #
@@ -279,12 +284,6 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
           
     return result_list
 
-
-#
-# evaluate drho(t)/dt according to the master eqaution
-#
-def rho_ode_func(t, rho, L):
-    return L * rho
 
 
 
