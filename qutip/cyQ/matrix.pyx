@@ -33,6 +33,7 @@ def spmv(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] p
     cdef complex dot
     cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)
     for row in range(num_rows):
+        dot=0.0
         row_start = ptr[row]
         row_end = ptr[row+1]
         for jj in range(row_start,row_end):
