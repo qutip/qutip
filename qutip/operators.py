@@ -136,7 +136,7 @@ def qeye(N):
     N=int(N)
     if (not isinstance(N,int)) or N<0:#check if N is int and N>0
         raise ValueError("N must be integer N>=0")
-    return Qobj(eye(N))
+    return Qobj(sp.eye(N,N,dtype=complex,format='csr'))
     
 
 def num(N):
