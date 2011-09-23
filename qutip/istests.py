@@ -18,6 +18,7 @@
 ###########################################################################
 from scipy import any,prod,allclose,shape
 import scipy.linalg as la
+from numpy import where
 ##@package istests
 #Set of tests used to determine type of quantum objects
 #
@@ -70,7 +71,7 @@ def issuper(Q):
 
 
 #**************************
-def isequal(A,B,rtol=1e-10,atol=1e-14):
+def isequal(A,B,rtol=1e-10,atol=1e-12):
     """Determines if two array objects are equal to within tolerances
     @brief Determines if two array objects are equal to within tolerances
     @return bool True or False
@@ -112,8 +113,9 @@ def isherm(oper):
     if oper.dims[0]!=oper.dims[1]:
         return False
     else:
-        data=oper.data.todense()
-        if la.norm(data,2)==0:
-            if any(data>1e-14):
-                raise ValueError('Norm=0 but nonzero data in array') 
-        return allclose(data.T.conj(),data,rtol=1e-8, atol=1e-10)
+        dat=oper.data
+        elems=(dat.transpose().conj()-dat).data
+        if any(abs(elems)>1e-12):
+            return False
+        else:
+            return True
