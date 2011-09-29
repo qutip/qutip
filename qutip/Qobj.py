@@ -21,20 +21,12 @@ import scipy.sparse as sp
 import scipy.linalg as la
 from istests import *
 
-##
-# @package Qobj
-# Quantum Object class. Describes the composition of a quantum system and
-# implements common operations.
-#
-
 
 class Qobj():
     """
-    @class A constructor class for the quantum object (Qobj) base object.
-    Defines quantum operators and states.  
-    Includes class dependent math operations.
-    
-    @brief Quantum object class.
+    @brief A constructor class for the quantum object (Qobj) base object.
+        Defines quantum operators and states.  
+        Includes class dependent math operations.
     """
     ################## Define Qobj class #################
     __array_priority__=100 #sets Qobj priority above numpy arrays
@@ -43,13 +35,11 @@ class Qobj():
         @brief Qobj constructor. Optionally takes the dimension array and/or
             shape array as arguments.
 
-        @param  array    Data for vector/matrix representation of the quantum object
-        @param  dims     Dimensions of object used for tensor products
-        @param  shape    Shape of underlying data structure (matrix shape)
-        @param  type     Type of quantum object: 'ket', 'bra', 'oper', or 'super'
-        @param  isherm   Does quantum object correspond to Hermitian operator
+        @param  array *array* Data for vector/matrix representation of the quantum object
+        @param  dims  *list*  Dimensions of object used for tensor products
+        @param  shape *list*  Shape of underlying data structure (matrix shape)
         
-        @returns Qobj   quantum object instance for given input data
+        @returns *Qobj*   quantum object instance for given input data
         """
         if isinstance(inpt,Qobj):#if input is already Qobj then return identical copy
             ##Quantum object data
@@ -287,7 +277,7 @@ class Qobj():
     #---functions acting on quantum objects---######################
     def dag(self):
         """
-        Returns the adjont operator (dagger) of a given quantum object.
+        @brief Returns the adjont operator (dagger) of a given quantum object.
         """
         out=Qobj()
         out.data=self.data.T.conj()
@@ -296,7 +286,7 @@ class Qobj():
         return Qobj(out)
     def conj(self):
         """
-        Returns the conjugate operator of a given quantum object.
+        @brief Returns the conjugate operator of a given quantum object.
         """
         out=Qobj()
         out.data=self.data.conj()
@@ -305,9 +295,8 @@ class Qobj():
         return Qobj(out)
     def norm(self):
         """
-        Returns norm of a quantum object.
-        Norm is L2-norm for kets and 
-        trace-norm for operators.
+        @brief Returns norm of a quantum object. Norm is L2-norm for kets and 
+            trace-norm for operators.
         """
         if self.type=='oper' or self.type=='super':
             return float(real((self.dag()*self).sqrtm().tr()))
@@ -315,7 +304,7 @@ class Qobj():
             return la.norm(self.full(),2)
     def tr(self):
         """
-        Returns the trace of a quantum object
+        @brief Returns the trace of a quantum object
         """
         return sum(diag(self.full()))   
     def full(self):
@@ -327,14 +316,13 @@ class Qobj():
         return array(self.data.todense())
     def diag(self):
         """
-        Returns diagonal elements of object
+        @brief Returns diagonal elements of object
         """
         return self.data.todia().diagonal()
     def expm(self):
         """
-        Returns a quantum object corresponding
-        to the matrix exponential of 
-        a given square operator.
+        @brief Returns a quantum object corresponding to the matrix exponential of 
+            a given square operator.
         """
         if self.dims[0][0]==self.dims[1][0]:
             return sp_expm(self)
@@ -342,8 +330,8 @@ class Qobj():
             raise TypeError('Invalid operand for matrix exponential')
     def sqrtm(self):
         """
-        Returns the operator corresponding
-        to the sqrt of a given square operator.
+        @brief Returns the operator corresponding
+            to the sqrt of a given square operator.
         """
         if self.dims[0][0]==self.dims[1][0]:
             evals,evecs=la.eig(self.full())
@@ -352,7 +340,7 @@ class Qobj():
             raise TypeError('Invalid operand for matrix square root')
     def unit(self):
         """
-        Returns the operator normalized to unity.
+        @brief Returns the operator normalized to unity.
         """
         return self/self.norm()
 
@@ -362,7 +350,9 @@ class Qobj():
     # superoperators)
     # 
     def eigenstates(self):
-
+        """
+        @brief Find the eigenstates and eigenenergies (defined for operators and superoperators)
+        """
         if isket(self) or isbra(self):
             raise TypeError("Can only diagonalize operators and superoperators")
 
@@ -399,9 +389,11 @@ class Qobj():
 #
 def dag(inQobj):
     """
-    Returns the adjont operator (dagger) of a given quantum object.
-    @param Qobj input quantum object
-    @return Qobj adjoint of input operator
+    @brief Returns the adjont operator (dagger) of a given quantum object.
+    
+    @param inQobj *Qobj* input quantum object
+    
+    @return *Qobj* adjoint of input operator
     """
     if not isinstance(inQobj,Qobj): #checks for Qobj
         raise TypeError("Input is not a quantum object")
@@ -413,10 +405,11 @@ def dag(inQobj):
 
 def trans(A):
     """
-    Returns the transposed operator of the given input quantum object.
-    @param Qobj input quantum object
-    @return Qobj transpose of input operator
-    @note for conjugate transpose, use 'dag()' or 'Qobj.dag()'
+    @brief Returns the transposed operator of the given input quantum object.
+    
+    @param A *Qobj* input quantum object
+    
+    @return *Qobj* transpose of input operator
     """
     out=Qobj()
     out.data=A.data.T

@@ -32,12 +32,12 @@ def propagator(H, t, c_op_list, H_args=None):
         such that psi(t) = U(t) psi(0) or rho_vec(t) = U(t) rho_vec(0) 
         where rho_vec is the vector representation of the density matrix.
     
-    @param H Qobj input Hamiltonian
-    @param t float time
-    @param c_op_list list of Qobj's representing collapse operators
-    @param H_args (optional) list of functions for time-dependent Hamiltonians
+    @param H *Qobj* input Hamiltonian
+    @param t *float* time
+    @param c_op_list *list/array* of Qobj's representing collapse operators
+    @param H_args (optional) *list/array* of functions for time-dependent Hamiltonians
     
-    @returns Qobj reprsenting propagator U(t)
+    @returns *Qobj* reprsenting propagator U(t)
     """
 
     if len(c_op_list) == 0:
@@ -93,9 +93,9 @@ def propagator_steadystate(U):
     """
     @brief Find the steady state for successive applications of the propagator U.
     
-    @param U Qobj representing propagator
+    @param U *Qobj* representing propagator
     
-    @returns Qobj for steady-state state vector
+    @returns *Qobj* for steady-state state vector
     """
 
     evals,evecs = la.eig(U.full())

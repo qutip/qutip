@@ -27,9 +27,9 @@ def qstate(string):
 	@brief Creates a tensor product for a set of qubits in either 
 	    the 'up' |0> or 'down' |1> state.
     
-    @param str String containing 'u' or 'd' for each qubit (ex. 'ududd')
+    @param str *str* containing 'u' or 'd' for each qubit (ex. 'ududd')
     
-    @returns Qobj Tensor product corresponding to input string.
+    @returns *Qobj* Tensor product corresponding to input string.
 	"""
 	n=len(string)
 	if n!=(string.count('u')+string.count('d')):

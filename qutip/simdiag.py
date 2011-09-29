@@ -24,10 +24,10 @@ def simdiag(ops):
     """
     @brief Simulateous diagonalization of communting Hermitian matricies
     
-    @param ops list of commuting, Hermitian operators
+    @param ops *list/aray* of commuting, Hermitian operators
     
-    @returns eigvecs,eigvals array of quantum objects corresponding to simultaneous eigenvectors; 
-        array of eigenvalues for each operator along rows.
+    @returns eigvecs,eigvals *array* of quantum objects corresponding to simultaneous eigenvectors 
+        and *array* of eigenvalues for each operator along rows.
     """
     outputs=varargout()
     tol=1e-14

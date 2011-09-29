@@ -26,9 +26,10 @@ def ptrace(rho,sel):
     """
     @brief Compute partial trace of composite quantum object
     
-    @param   rho  Input composite quantum object
-    @param   sel  Integer or list of integers for components to keep.
-    @return  rho  Density matrix of components from sel
+    @param   rho *Qobj* Input composite quantum object
+    @param   sel  *int* or *list/array* of integers for components to keep.
+    
+    @returns  rho *Qobj* Density matrix of components from sel
     """
     if isinstance(sel,int):
         sel=array([sel])
@@ -71,6 +72,9 @@ def ptrace(rho,sel):
 
 
 def list2ind(ilist,dims):
+	"""
+	Private function returning indicies
+	"""
 	ilist=asarray(ilist)
 	dims=asarray(dims)
 	irev=fliplr(ilist)-1
@@ -79,6 +83,9 @@ def list2ind(ilist,dims):
 	return sort(dot(irev,fact)+1,0)
 
 def selct(sel,dims):
+	"""
+	Private function finding selected components
+	"""
 	sel=asarray(sel)#make sure sel is array
 	dims=asarray(dims)#make sure dims is array
 	rlst=dims.take(sel)
