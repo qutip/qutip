@@ -22,6 +22,14 @@ from scipy.linalg import *
 from Qobj import Qobj
 
 def tensor(*args):
+    """
+    @brief calculates tensor product from input operators
+    
+    @param args a comma seperated list of quantum objects 
+        or lists of quantum objects, i.e args=q1,[q2,q3,q4]
+    
+    @returns Qobj compoposite quantum object
+    """
     if not args:
         raise TypeError("Requires at least one input argument")
     num_args=len(args)

@@ -31,6 +31,7 @@ def basis(N,*args):
 	
     @param N the number of states
     @param args integer corresponding to desired number state
+    
     @returns quantum object representing the requested number state |args>
     """
     if (not isinstance(N,int)) or N<0:#check if N is int and N>0
@@ -50,9 +51,14 @@ def basis(N,*args):
 
 def coherent(N,alpha):
     """
-    Generate a coherent state
-    @param N the number of states
-    @param alpha the coherent state amplitude (complex)
+    @brief Generates a coherent state with eigenvalue alpha in a 
+        N-dimensional Hilbert space via displacement 
+        operator on vacuum state
+    
+    @param N number of levels in truncated Hilbert space
+    @param alpha eigenvalue for coherent state
+    
+    @returns Qobj quantum object for coherent state
     """
     x=basis(N,0)
     a=destroy(N)
@@ -61,9 +67,13 @@ def coherent(N,alpha):
 
 def coherent_dm(N, alpha):
     """
-    Generate the density matrix representation of a coherent state
-    @param N the number of states
-    @param alpha the coherent state amplitude (complex)
+    @brief Generate the density matrix representation of a coherent 
+        state via outer product
+    
+    @param N number of levels in truncated Hilbert space
+    @param alpha eigenvalue for coherent state
+    
+    @returns Qobj density matrix representation of coherent state
     """
     psi = coherent(N,alpha)
     return psi * psi.dag()
@@ -90,10 +100,12 @@ def coherent_dm_fast(N,alpha):
 
 def fock_dm(N, *args):
     """
-    Generate the density matrix for a fock state
-
-    @param N the number of states
-    @param m the fock state number
+    @brief Generate the density matrix representation of a Fock state via outer product.
+    
+    @param N number of levels in truncated Hilbert space
+    @param m int corresponding to desired number state, defaults to 0 if omitted
+    
+    @returns Qobj density matrix representation of Fock state
     """
     if not args:
         psi=basis(N)
@@ -103,10 +115,13 @@ def fock_dm(N, *args):
 
 def fock(N, *args):
     """
-    Generate a state vector for a fock state
-
-    @param N the number of states
-    @param m the fock state number
+    @brief Generates the vector representation of a bosonic Fock (number) state. 
+        Same as `basis' function.
+    
+    @param N the number of states in the Hilbert space
+    @param m int corresponding to desired number state, defaults to 0 if omitted
+    
+    @returns Qobj quantum object representing the requested number state |args>
     """
     if not args:
         return basis(N)
@@ -128,9 +143,12 @@ def thermal_dm(N, n):
 
 def ket2dm(Q):
     """
-    Takes input ket or bra vector and returns density matrix formed by outer product.
-    @param Q: Ket or bra vector
-    @return dm: Density matrix formed by outer product
+    @brief Takes input ket or bra vector and returns density matrix 
+        formed by outer product.
+    
+    @param Q Ket or bra vector
+    
+    @returns Qobj Density matrix formed by outer product
     """
     if Q.type=='ket':
         out=Q*Q.dag()

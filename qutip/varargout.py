@@ -21,7 +21,8 @@ import sys,dis
 def varargout():
     """
     @brief Returns the number of outputs requested by the user.
-    Acts like Matlab varargout function. 
+        Acts like Matlab varargout function. 
+    
     @return int Number of outputs requested by user
     """
     f = sys._getframe().f_back.f_back

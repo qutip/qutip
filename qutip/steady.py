@@ -30,8 +30,16 @@ from superoperator import *
 # 
 def steadystate(H, c_op_list,maxiter=100,tol=1e-6):
     """
-    Calculate the steady state for the evolution subject to the supplied
-    Hamiltonian and collapse operators.
+    @brief Calculate the steady state for the evolution subject to the 
+        supplied Hamiltonian and lsit of collapse operators. 
+        Does nothing more than form the Louvillian for you and call steady.
+    
+    @param H Hamiltonian operator
+    @param c_op_list List of collapse operators
+    @param maxiter Max number of iterations to perform, default = 100
+    @param tol Tolerance, default = 1e-6
+    
+    @returns Qobj State vector corresponding to steady state of system.
     """
     n_op = len(c_op_list)
 
@@ -42,6 +50,17 @@ def steadystate(H, c_op_list,maxiter=100,tol=1e-6):
     return steady(L,maxiter,tol)
 
 def steady(L,maxiter=100,tol=1e-6):
+	"""
+	@brief Calculate the steady state for the evolution subject to the 
+	    supplied Louvillian using the inverse power method. 
+	    See any Linear Algebra book with a iterative methods.
+    
+    @param L Louvillian superoperator
+    @param maxiter Max number of iterations to perform, default = 100
+    @param tol Tolerance, default = 1e-6
+    
+    @returns Qobj State vector corresponding to steady state of system.
+    """
 	eps=finfo(float).eps
 	if (not isoper(L)) & (not issuper(L)):
 		raise TypeError('Steady states can only be found for operators or superoperators.')
