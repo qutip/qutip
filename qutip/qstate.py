@@ -24,10 +24,12 @@ from tensor import *
 
 def qstate(string):
 	"""
-	Creates a tensor product for a set of qubits in either the 'up' |0> or 'down' |1> states.
-	@brief tensor product of 'up' and 'down' qubits
-	@param str String containing 'u' or 'd' for each qubit (ex. 'ududd')
-	@return Qobj Returns the tensor product corresponding to input string
+	@brief Creates a tensor product for a set of qubits in either 
+	    the 'up' |0> or 'down' |1> state.
+    
+    @param str String containing 'u' or 'd' for each qubit (ex. 'ududd')
+    
+    @returns Qobj Tensor product corresponding to input string.
 	"""
 	n=len(string)
 	if n!=(string.count('u')+string.count('d')):
@@ -42,6 +44,3 @@ def qstate(string):
 		else:
 			lst.append(dn)
 	return tensor(lst)
-
-if __name__=='__main__':
-    print qstate('uud')

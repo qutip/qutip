@@ -22,9 +22,12 @@ from varargout import varargout
 
 def simdiag(ops):
     """
-    Simultaneous diagonalization of Commuting, Hermitian matricies.
+    @brief Simulateous diagonalization of communting Hermitian matricies
     
-    @param ops single or list/array of quantum objects
+    @param ops list of commuting, Hermitian operators
+    
+    @returns eigvecs,eigvals array of quantum objects corresponding to simultaneous eigenvectors; 
+        array of eigenvalues for each operator along rows.
     """
     outputs=varargout()
     tol=1e-14
@@ -82,6 +85,9 @@ def simdiag(ops):
 
 
 def degen(tol,in_vecs,ops):
+    """
+    Private function that finds eigen vals and vecs for degenerate matricies.
+    """
     n=len(ops)
     if n==0:
         return in_vecs
@@ -113,29 +119,6 @@ def degen(tol,in_vecs,ops):
 
 
 
-
-if __name__ == "__main__":
-	from Qobj import *
-	from tensor import *
-	from operators import *
-	sx1=tensor(sigmax(),qeye(2),qeye(2))
-	sy1=tensor(sigmay(),qeye(2),qeye(2))
-
-	sx2=tensor(qeye(2),sigmax(),qeye(2))
-	sy2=tensor(qeye(2),sigmay(),qeye(2))
-
-	sx3=tensor(qeye(2),qeye(2),sigmax())
-	sy3=tensor(qeye(2),qeye(2),sigmay())
-
-	op1=sx1*sy2*sy3
-	op2=sy1*sx2*sy3
-	op3=sy1*sy2*sx3
-	op4=sx1*sx2*sx3
-	
-	x,y=simdiag([op1,op2,op3,op4])
-	print y
-	print ''
-	print x
 	
 	    
 	
