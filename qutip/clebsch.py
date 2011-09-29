@@ -20,10 +20,19 @@ from numpy import min,max,sqrt,arange
 from scipy import factorial
 
 def clebsch(j1,j2,j3,m1,m2,m3):
-    ##
-    #C=clebsch(j1,j2,j3,m1,m2,m3) calculates the Clebsch-Gordon coefficient
-    #for coupling (j1,m1) and (j2,m2) to give (j3,m3).
-    #@brief Calcualtes Clebsch-Gordon coefficients
+    """
+    @brief calculates the Clebsch-Gordon coefficient
+        for coupling (j1,m1) and (j2,m2) to give (j3,m3).
+    
+    @param j1 float total angular momentum 1
+    @param j2 float total angular momentum 2
+    @param j3 float total angular momentum 3
+    @param m1 float z-component of angular momentum 1
+    @param m2 float z-component of angular momentum 2
+    @param m3 float z-component of angular momentum 3
+    
+    @returns float requested Clebsch-Gordan coefficient
+    """
     if m3!=m1+m2:
         return 0
     vmin=int(max([-j1+j2+m3,-j1+m1,0]))
