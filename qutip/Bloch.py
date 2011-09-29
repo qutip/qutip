@@ -21,8 +21,11 @@ from scipy import *
 from expect import expect
 from operators import *
 
-##Class for graphing a Bloch sphere and qubit vectors or data points
+
 class Bloch():
+    """
+    @brief Class for plotting data on the Bloch sphere.
+    """
     def __init__(self):
         #---sphere options---
         ##set the size of the figure
@@ -123,7 +126,9 @@ class Bloch():
         self.point_style=[]
     
     def add_points(self,points,meth='s'):
-        """Add a list of data points to bloch sphere"""
+        """
+        Add a list of data points to bloch sphere
+        """
         if not isinstance(points[0],(list,ndarray)):
             points=[[points[0]],[points[1]],[points[2]]]
         points=array(points)
@@ -142,7 +147,9 @@ class Bloch():
             self.point_style.append('m')
             
     def add_states(self,state,kind='vector'):
-        "Add a state vector to plot"
+        """
+        Add a state vector to plot
+        """
         if isinstance(state,Qobj):
             state=[state]
         for st in state:
@@ -154,7 +161,9 @@ class Bloch():
                 self.add_points(pnt)
     
     def add_vectors(self,vectors): 
-        """Add a list of vectors to Bloch sphere"""
+        """
+        Add a list of vectors to Bloch sphere
+        """
         if isinstance(vectors[0],(list,ndarray)):
             for vec in vectors:
                 self.vectors.append(vec)
@@ -164,7 +173,9 @@ class Bloch():
             self.num_vectors=len(self.vectors)
     
     def make_sphere(self):
-        """Plots Bloch sphere and data sets"""
+        """
+        Plots Bloch sphere and data sets
+        """
         from pylab import figure,plot,show
         from mpl_toolkits.mplot3d import Axes3D
         #from matplotlib.pyplot import rc
@@ -242,7 +253,9 @@ class Bloch():
             a.set_visible(False)
     
     def plot_vectors(self):
-        """Plots Bloch vectors on sphere"""
+        """
+        Plots Bloch vectors on sphere
+        """
         # -X and Y data are switched for plotting purposes
         if len(self.vectors)>0:
             for k in xrange(len(self.vectors)):
@@ -250,7 +263,9 @@ class Bloch():
                 self.axes.plot(self.vectors[k][1]*linspace(0,length,2),-self.vectors[k][0]*linspace(0,length,2),self.vectors[k][2]*linspace(0,length,2),zs=0, zdir='z', label='Z',lw=self.vector_width,color=self.vector_color[mod(k,len(self.vector_color))])
     
     def plot_points(self):
-        """Plots point markers on Bloch sphere"""
+        """
+        Plots point markers on Bloch sphere
+        """
         # -X and Y data are switched for plotting purposes
         if self.num_points>0:
             for k in xrange(self.num_points):
@@ -271,12 +286,22 @@ class Bloch():
                     pnt_colors=list(pnt_colors[indperm])
                     self.axes.scatter(real(self.points[k][1][indperm]),-real(self.points[k][0][indperm]),real(self.points[k][2][indperm]),s=self.point_size[mod(k,len(self.point_size))],alpha=1,edgecolor='none',zdir='z',color=pnt_colors, marker=self.point_marker[mod(k,len(self.point_marker))])
     def show(self):
-        """Display Bloch sphere and corresponding data sets"""
+        """
+        Display Bloch sphere and corresponding data sets
+        """
         from pylab import figure,plot,show
         self.make_sphere()
         show()
         
     def save(self,format='png',dirc=os.getcwd()):
+        """
+        @brief Saves Bloch sphere to file of type `format`
+        
+        @param format string giving format of output image
+        @param dirc string representing directory of output
+        
+        @returns plot of Bloch sphere
+        """
         from pylab import figure,plot,show,savefig,close
         self.make_sphere()
         savefig(str(dirc)+'/bloch_'+str(self.savenum)+'.'+format)
