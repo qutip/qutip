@@ -20,6 +20,9 @@
 #Class of options for ODE solvers.
 #
 class Odeoptions():
+    """
+    @brief Class of options for ODE solver used by 'odesolve' and 'mcsolve'
+    """
     def __init__(self):
         ##Absolute tolerance (default = 1e-8)
         self.atol=1e-8

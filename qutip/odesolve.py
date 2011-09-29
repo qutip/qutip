@@ -25,6 +25,7 @@ from Qobj import *
 from superoperator import *
 from expect import *
 from Odeoptions import Odeoptions
+from cyQ.matrix import spmv
 
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
@@ -42,6 +43,17 @@ def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None, options=None)
     that takes two arguments, time and H_args, and returns the Hamiltonian
     at that point in time. H_args is a list of parameters that is
     passed to the callback function H (only used for time-dependent Hamiltonians).
+    
+    @brief Master equation evolution of a density matrix for a given Hamiltonian.
+    
+    @param H *Qobj* Hamiltonian
+    @param psi0 *Qobj* initial state vector
+    @param tlist *list/array* of times
+    @param collapse_ops *list/array* or collapse operators
+    @param expect_ops *list/array* of expectation operators
+    @param H_args *list/array* of arguments for time-dependent Hamiltonians
+    @param options *Odeoptions* instance of ODE solver options
+    
     """
 
     if options == None:
@@ -246,7 +258,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     # evaluate drho(t)/dt according to the master eqaution
     #
     def rho_ode_func(t, rho):
-        return Lmat * rho
+        return Lmat*rho
     #
     # setup integrator
     #

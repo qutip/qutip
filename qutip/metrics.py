@@ -27,11 +27,12 @@ from scipy import real,trace
 def fidelity(A,B):
     """
     @brief Calculates the fidelity (pseudo-metric) between two density matricies.
-    See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
+        See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
     
-    @param   A      density matrix
-    @param   B      density matrix with same dimensions as A
-    @return  float  fidelity
+    @param  A *Qobj* density matrix
+    @param  B *Qobj* density matrix with same dimensions as A
+    
+    @return  *float*  fidelity
     """
     if A.dims!=B.dims:
         raise TypeError('Density matricies do not have same dimensions.')
@@ -44,11 +45,12 @@ def fidelity(A,B):
 def tracedist(A,B):
     """
     @brief Calculates the trace distance between two density matricies.
-    See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
+        See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
     
-    @param   A      density matrix
-    @param   B      density matrix with same dimensions as A
-    @return  float  trace distance
+    @param   A  *Qobj* density matrix
+    @param   B  *Qobj* density matrix with same dimensions as A
+    
+    @return  *float*  trace distance
     """
     if A.dims!=B.dims:
         raise TypeError('Density matricies do not have same dimensions.')

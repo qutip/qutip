@@ -30,18 +30,28 @@ from multiprocessing import Pool,cpu_count
 from varargout import varargout
 from types import FunctionType
 from tidyup import tidyup
-##@package mcsolve
-#Collection of routines for calculating dynamics via the Monte-Carlo method.
+from cyQ.matrix import spmv
+
 
 
 def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeoptions()):
     vout=varargout()
     """
-    Monte-Carlo evolution of a state vector |psi> for a given
-    Hamiltonian and sets of collapse operators and operators
-    for calculating expectation values.
+    @brief Monte-Carlo evolution of a state vector |psi> for a given
+        Hamiltonian and sets of collapse operators and operators
+        for calculating expectation values.
     
-    Options for solver are given by the Mcoptions class.
+        Options for solver are given by the Odeoptions class.
+    
+    @param H *Qobj* Hamiltonian
+    @param psi0 *Qobj* initial state vector
+    @param tlist *list/array* of times
+    @param ntraj *int* number of trajectories to run
+    @param collapse_ops *list/array* or collapse operators
+    @param expect_ops *list/array* of expectation operators
+    @param H_args *list/array* of arguments for time-dependent Hamiltonians
+    @param options *Odeoptions* instance of ODE solver options
+    
     """
     #if Hamiltonian is time-dependent (list style)
     if isinstance(H,(list,ndarray)):
@@ -95,6 +105,9 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
 
 #--Monte-Carlo class---
 class MC_class():
+    """
+    Private class for solving Monte-Carlo evolution from mcsolve
+    """
     def __init__(self,psi0,tlist,ntraj,collapse_ops,expect_ops,options):
         #-Check for PyObjC on Mac platforms
         self.gui=True

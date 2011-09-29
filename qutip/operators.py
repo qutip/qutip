@@ -28,6 +28,14 @@ from Qobj import Qobj
 #
 
 def jmat(j,*args):
+    """
+    @brief Higher-order spin operators
+    
+    @param j *float* spin
+    @param args *str* which operator to return 'x','y','z','+','-'
+    
+    @returns *Qobj* spin operator
+    """
     if (fix(2*j)!=2*j) or (j<0):
         raise TypeError('j must be a non-negative integer or half-integer')
     if not args:
@@ -67,31 +75,31 @@ def jz(j):
 
 def sigmap():
     """
-    The creation operator for Pauli spins.
+    @brief creation operator for Pauli spins.
     """
     return jmat(1/2.,'+')
 
 def sigmam():
     """
-    The annihilation operator for Pauli spins.
+    @brief annihilation operator for Pauli spins.
     """
     return jmat(1/2.,'-')
 
 def sigmax():
     """
-    The Paul spin 1/2 sigma x operator
+    @brief Pauli spin 1/2 sigma x operator
     """
     return 2.0*jmat(1.0/2,'x')
 
 def sigmay():
     """
-    The Paul spin 1/2 sigma y operator
+    @brief Pauli spin 1/2 sigma y operator
     """
     return 2.0*jmat(1.0/2,'y')
 
 def sigmaz():
     """
-    The Paul spin 1/2 sigma z operator
+    @brief Pauli spin 1/2 sigma z operator
     """
     return 2.0*jmat(1.0/2,'z')
 
@@ -103,9 +111,11 @@ def sigmaz():
 #
 def destroy(N):
     '''
-    Destruction (lowering) operator for Hilbert space of dimension N
-    input: N = size of hilbert space
-    output: Qobj
+    @brief Destruction (lowering) operator
+    
+    @param N *int* dimension of hilbert space
+    
+    @returns *Qobj*
     '''
     if not isinstance(N,int):#raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
@@ -117,9 +127,11 @@ def destroy(N):
 #
 def create(N):
     '''
-    Creation (raising) operator for Hilbert space of dimension N
-    input: N = size of hilbert space
-    output: Qobj
+    @brief Creation (raising) operator
+    
+    @param N *int* dimension of hilbert space
+    
+    @returns *Qobj*
     '''
     if not isinstance(N,int):#raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
@@ -133,6 +145,13 @@ def create(N):
 # a = qeye(N), N is integer & N>0
 #
 def qeye(N):
+    """
+    @brief Identity operator
+    
+    @param N *int* dimension of hilbert space
+    
+    @returns *Qobj*
+    """
     N=int(N)
     if (not isinstance(N,int)) or N<0:#check if N is int and N>0
         raise ValueError("N must be integer N>=0")
@@ -141,9 +160,11 @@ def qeye(N):
 
 def num(N):
     '''
-    Number operator for Hilbert space of dimension N
-    input: N = size of hilbert space
-    output: Qobj
+    @brief Number operator
+    
+    @param N *int* dimension of hilbert space
+    
+    @returns *Qobj*
     '''
     data=sp.spdiags(arange(N),0,N,N,format='csr')
     return Qobj(data)
@@ -151,10 +172,12 @@ def num(N):
 
 def squeez(N,sp):
     '''
-    Squeezing operator for Hilbert space of dimension N and sqeezing param. sp
-    input: N = size of hilbert space
-    input: sp squeezing parameter
-    output: Qobj
+    @brief single-mode Squeezing operator
+    
+    @param N *int* dimension of hilbert space
+    @param sp *real* or *complex* squeezing parameter
+    
+    @returns *Qobj*
     '''
     a=destroy(N)
     op=(1/2.0)*conj(sp)*(a**2)-(1/2.0)*sp*(a.dag())**2
@@ -163,10 +186,12 @@ def squeez(N,sp):
 
 def displace(N,alpha):
     '''
-    Single mode displacement operator for Hilbert space of dimension N and amplitude alpha
-    input: N = size of hilbert space
-    input: alpha displacment amplitude
-    output: Qobj
+    @brief Single-mode displacement operator
+    
+    @param N *int* dimension of hilbert space
+    @param alpha *real* or *complex* displacment amplitude
+    
+    @returns *Qobj*
     '''
     a=destroy(N)
     D=(alpha*a.dag()-conj(alpha)*a).expm()
