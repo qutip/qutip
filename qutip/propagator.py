@@ -19,24 +19,25 @@
 
 from scipy import *
 from Qobj import *
+
 from superoperator import *
-#from Counter import *
+
 from odesolve import *
 from essolve import *
-from basis import *
+from states import basis
 
 def propagator(H, t, c_op_list, H_args=None):
     """
-    Calculate the propagator U(t) for the density matrix or wave function
-    such that 
-
-        psi(t) = U(t) psi(0)
-
-    or 
-
-        rho_vec(t) = U(t) rho_vec(0)
-
-    where rho_vec is the vector representation of the density matrix.
+    @brief Calculate the propagator U(t) for the density matrix or wave function
+        such that psi(t) = U(t) psi(0) or rho_vec(t) = U(t) rho_vec(0) 
+        where rho_vec is the vector representation of the density matrix.
+    
+    @param H Qobj input Hamiltonian
+    @param t float time
+    @param c_op_list list of Qobj's representing collapse operators
+    @param H_args (optional) list of functions for time-dependent Hamiltonians
+    
+    @returns Qobj reprsenting propagator U(t)
     """
 
     if len(c_op_list) == 0:
@@ -69,18 +70,19 @@ def propagator(H, t, c_op_list, H_args=None):
 
         u = zeros([N*N, N*N], dtype=complex)
         
-        for n in range(0, N*N):
-
+        for n in xrange(0, N*N):
             psi0  = basis(N*N, n)
             rho0  = Qobj(vec2mat(psi0.full()))
             rho_t = odesolve(H, rho0, [0, t], c_op_list, [], H_args)
-
             u[:,n] = mat2vec(rho_t[1].full()).T
 
 
     return Qobj(u)
 
 def get_min_and_index(lst): 
+    """
+    Private function for obtaining min and max indicies.
+    """
     minval,minidx = lst[0],0 
     for i,v in enumerate(lst[1:]): 
         if v < minval: 
@@ -89,7 +91,11 @@ def get_min_and_index(lst):
 
 def propagator_steadystate(U):
     """
-    Find the steady state for successive applications of the propagator U.
+    @brief Find the steady state for successive applications of the propagator U.
+    
+    @param U Qobj representing propagator
+    
+    @returns Qobj for steady-state state vector
     """
 
     evals,evecs = la.eig(U.full())

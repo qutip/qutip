@@ -22,10 +22,12 @@ from multiprocessing import Pool,cpu_count
 
 def parfor(func,frange):
 	"""
-	Parallel execution of a for-loop over function 'func()' for a single variable 'frange'.
+	@brief Parallel execution of a for-loop over function 'func()' 
+	    for a single variable 'frange'.
 	
-	returns an array with length equal to number of input parameters with elements
-	consisting of arrays containing return values evaluated for elements in 'frange'.
+	@returns array with length equal to number of input parameters with elements
+	    consisting of arrays containing return values evaluated 
+	    for elements in 'frange'.
 	"""
 	pool=Pool(processes=cpu_count())
 	par_return=list(pool.map(func,frange))
