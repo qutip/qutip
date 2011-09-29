@@ -35,20 +35,21 @@ class Qobj():
     Includes class dependent math operations.
     
     @brief Quantum object class.
-    requires: scipy, scipy.sparse.csr_matrix, scipy.linalg
     """
     ################## Define Qobj class #################
     __array_priority__=100 #sets Qobj priority above numpy arrays
     def __init__(self,inpt=array([[0]]),dims=[[],[]],shape=[]):
         """
-        Qobj constructor. Optionally takes the dimension array and/or
-        shape array as arguments.
+        @brief Qobj constructor. Optionally takes the dimension array and/or
+            shape array as arguments.
 
         @param  array    Data for vector/matrix representation of the quantum object
         @param  dims     Dimensions of object used for tensor products
         @param  shape    Shape of underlying data structure (matrix shape)
         @param  type     Type of quantum object: 'ket', 'bra', 'oper', or 'super'
         @param  isherm   Does quantum object correspond to Hermitian operator
+        
+        @returns Qobj   quantum object instance for given input data
         """
         if isinstance(inpt,Qobj):#if input is already Qobj then return identical copy
             ##Quantum object data
@@ -506,6 +507,9 @@ def classcheck(inpt):
 
 #-######################################################################
 def sp_expm(qo):
+    """
+    Sparse matrix exponential of a Qobj instance
+    """
     #-###########################
     def pade(m):
         n=shape(A)[0]
@@ -516,7 +520,7 @@ def sp_expm(qo):
             apows[1]=A*A
             for jj in xrange(2,int(ceil((m+1)/2))):
                 apows[jj]=apows[jj-1]*apows[1]
-            U=sp.lil_matrix(zeros((n,n))).tocsr(); V=sp.lil_matrix(zeros((n,n))).tocsr()
+            U=sp.lil_matrix((n,n)).tocsr(); V=sp.lil_matrix((n,n)).tocsr()
             for jj in xrange(m,0,-2):
                 U=U+c[jj]*apows[jj/2]
             U=A*U
@@ -553,6 +557,9 @@ def sp_expm(qo):
 
 
 def padecoeff(m):
+    """
+    Private function returning coefficients for Pade apprximaion
+    """
     if m==3:
         return array([120, 60, 12, 1])
     elif m==5:
