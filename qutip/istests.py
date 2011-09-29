@@ -26,8 +26,10 @@ from numpy import where
 def isket(Q):
     """
     @brief Determines if given quantum object is a ket-vector
-	@param Q quantum object
-	@return bool True or False
+	
+	@param Q *Qobj* quantum object
+	
+	@return *bool* True or False
 	"""
     result = isinstance(Q.dims[0],list)
     if result:
@@ -38,8 +40,10 @@ def isket(Q):
 def isbra(Q):
 	"""
 	@brief Determines if given quantum object is a bra-vector
-	@param Qobj quantum object
-	@return bool True or False
+	
+	@param Q *Qobj* quantum object
+	
+	@returns *bool* True or False
 	"""
 	result = isinstance(Q.dims[1],list)
 	if result:
@@ -51,8 +55,10 @@ def isbra(Q):
 def isoper(Q):
 	"""
 	@brief Determines if given quantum object is a operator
-	@param Qobj quantum object
-	@return bool True or False
+	
+	@param Q *Qobj* quantum object
+	
+	@returns *bool* True or False
 	"""
 	return isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0], int) and (Q.dims[0]==Q.dims[1])
 	
@@ -61,8 +67,10 @@ def isoper(Q):
 def issuper(Q):
 	"""
 	@brief Determines if given quantum object is a super-operator
-	@param Qobj quantum object
-	@return bool True or False
+	
+	@param Q *Qobj* quantum object
+	
+	@returns *bool* True or False
 	"""
 	result = isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0],list)
 	if result:
@@ -72,9 +80,15 @@ def issuper(Q):
 
 #**************************
 def isequal(A,B,rtol=1e-10,atol=1e-12):
-    """Determines if two array objects are equal to within tolerances
+    """
     @brief Determines if two array objects are equal to within tolerances
-    @return bool True or False
+    
+    @param A *array* array one
+    @param B *array* array two
+    @param rtol *float* relative tolerence
+    @param atol *float* absolute tolerence
+    
+    @returns *bool* True or False
     """
     if shape(A)!=shape(B):
         raise TypeError('Inputs do not have same shape.')
@@ -106,9 +120,11 @@ def ischeck(Q):
 #**************************
 def isherm(oper):
     """
-    Determines whether a given operator is Hermitian
-    @param qobj input quantum object
-    @return bool returns True if operator is Hermitian, False otherwise
+    @brief Determines whether a given operator is Hermitian
+    
+    @param oper *Qobj* input quantum object
+    
+    @returns *bool* True if operator is Hermitian, False otherwise
     """
     if oper.dims[0]!=oper.dims[1]:
         return False

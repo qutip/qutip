@@ -12,11 +12,17 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+#
 ###########################################################################
 from scipy import *
 from Qobj import *
 
 class eseries:
+    """
+    @brief Class representation of an exponential-series expansion of time-dependent quantum objects.
+    """
     __array_priority__=101
     def __init__(self,q=array([]),s=array([])):
         if (not any(q)) and (not any(s)):

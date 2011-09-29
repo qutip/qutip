@@ -24,13 +24,13 @@ import numpy as np
 import scipy.sparse as sp
 
 def expect(oper,state):
-    ''' Calculates expectation value of an operator for a given state-vector or density matrix.  
-    USAGE:
-        - expect(oper,state) returns expactation value corresponding to operator 'oper' and state 'state'
-        - expect(oper,rho) returns expactation value corresponding to operator 'oper' and density matrix 'rho'
-    OUTPUT:
-        returns Float (real number) if operator is Hermitian; otherwise returns Complex number
+    '''
+    @brief calculates the expectation value for operator oper in state state
     
+    @param oper *Qobj* representing an operator
+    @param state quantum object representing a quantum state or density matrix
+    
+    @returns *float* if operator is Hermitian; *complex* if operator is not Hermitian
     '''
     if isinstance(state,Qobj) or isinstance(state, eseries):
         return single_expect(oper,state)
@@ -42,6 +42,9 @@ def expect(oper,state):
 
 
 def single_expect(oper,state):
+    """
+    Private function used by expect
+    """
     if isinstance(oper,Qobj) and isinstance(state,Qobj):
         if isoper(oper):
             if state.type=='oper':
