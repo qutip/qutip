@@ -21,6 +21,13 @@ from Qobj import *
 import scipy.linalg as la
 
 def entropy_vn(rho,base='2'):
+    """
+    @brief Von-Neumann entropy of density matrix
+    
+    @param rho *Qobj* density matrix
+    
+    @returns *float* entropy
+    """
     vals,vecs=la.eigh(rho.full())
     nzvals=vals[vals!=0]
     if base=='2':
@@ -34,8 +41,12 @@ def entropy_vn(rho,base='2'):
 
 def concurrence(rho):
     """
-    Calculate the concurrence entanglement measure for 
-    a two-qubit state.
+    @brief Calculate the concurrence entanglement measure for 
+        a two-qubit state.
+    
+    @param rho *Qobj* density matrix
+    
+    @returns *float* concurrence
     """
     sysy = tensor(sigmay(), sigmay())
 
