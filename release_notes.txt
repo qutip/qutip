@@ -3,6 +3,34 @@
 # P.D. Nation and J.R. Johansson
 ################################
 
+
+********************************************
+Version 1.1.0 [svn-XXXX] (October XX, 2011):
+********************************************
+
+** THIS RELEASE NOW REQUIRES THE GCC COMPILER TO BE INSTALLED **
+
+New functions:
+--------------
+[1054] tidyup function to remove small elements for a Qobj.
+[1051] Added concurrence function.
+[1036] Added simdiag for simultaneous diagonalization of operators.
+[1032] Added eigenstates method returning eigenstates and eigenvalues to Qobj class.
+[1030] Added fileio for saving and loading data sets and/or Qobj's.
+[1029] Added hinton function for visualizing density matrices.
+
+Bug Fixes:
+----------
+[1075] Fixed memory issue in expm functions.
+[1069] Fixed memory bug in isherm.
+[1059] Made all Qobj data complex by default.
+[1053] Reduced ODE tolerance levels in Odeoptions.
+[1050] Fixed bug in ptrace where dense matrix was used instead of sparse.
+[1047] Fixed issue where PyQt4 version would not be displayed in about box.
+[1041] Fixed issue in Wigner where xvec was used twice (in place of yvec).
+
+
+******************************************
 Version 1.0.0 [svn-1021] (July 29, 2011):
------------------------------------------
+******************************************
 Initial release.
