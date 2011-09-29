@@ -25,10 +25,9 @@ def tensor(*args):
     """
     @brief calculates tensor product from input operators
     
-    @param args a comma seperated list of quantum objects 
-        or lists of quantum objects, i.e args=q1,[q2,q3,q4]
+    @param args *list/array* of quantum objects 
     
-    @returns Qobj compoposite quantum object
+    @returns *Qobj* composite quantum object
     """
     if not args:
         raise TypeError("Requires at least one input argument")

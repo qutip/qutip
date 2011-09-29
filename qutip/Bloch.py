@@ -297,8 +297,8 @@ class Bloch():
         """
         @brief Saves Bloch sphere to file of type `format`
         
-        @param format string giving format of output image
-        @param dirc string representing directory of output
+        @param format *str* giving format of output image
+        @param dirc *str* representing directory of output
         
         @returns plot of Bloch sphere
         """

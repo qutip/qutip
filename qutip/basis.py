@@ -33,10 +33,10 @@ def basis(N,*args):
     but in QO toolbox:
         basis(N, 1) = ground state
 	
-    @param N the number of states
-    @param args integer corresponding to desired number state
+    @param N *int* the number of states
+    @param args *int* corresponding to desired number state
     
-    @returns Qobj instance representing the requested number state |args>
+    @returns *Qobj* instance representing the requested number state |args>
     """
     if (not isinstance(N,int)) or N<0:#check if N is int and N>0
         raise ValueError("N must be integer N>=0")

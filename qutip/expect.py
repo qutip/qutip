@@ -28,7 +28,7 @@ def expect(oper,state):
     @brief calculates the expectation value for operator oper in state state
     
     @param oper *Qobj* representing an operator
-    @param state quantum object representing a quantum state or density matrix
+    @param state *Qobj* representing a quantum state or density matrix
     
     @returns *float* if operator is Hermitian; *complex* if operator is not Hermitian
     '''

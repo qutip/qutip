@@ -24,10 +24,10 @@ def tidyup(op,Atol=1e-8):
     """
     @brief Removes small elements from a Qobj
     
-    @param op Qobj input quantum object
-    @param Atol float absolute tolerance
+    @param op *Qobj* input quantum object
+    @param Atol *float* absolute tolerance
     
-    @returns Qobj returns Qobj with small elements removed
+    @returns *Qobj* with small elements removed
     """
     mx=max(abs(op.data.data))
     data=abs(op.data.data)

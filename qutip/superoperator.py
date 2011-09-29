@@ -30,10 +30,10 @@ def liouvillian(H, c_op_list):
     @brief Assembles the Liouvillian superoperator from a Hamiltonian 
         and a list of collapse operators.
     
-    @param H Hamiltonian
-    @param c_op_list list of collpase operators
+    @param H *Qobj* Hamiltonian
+    @param c_op_list *list/array* of collpase operators
     
-    @returns Qobj quantum object for Louvillian superoperator
+    @returns *Qobj* quantum object for Louvillian superoperator
     """
     L = -1.0j*(spre(H) - spost(H))
     n_op = len(c_op_list)
@@ -60,9 +60,9 @@ def spost(A,*args):
 	"""
 	@brief Super operator formed from post-multiplication by operator A
 
-    @param A quantum operator for post multiplication
+    @param A *Qobj* quantum operator for post multiplication
     
-    @returns Qobj superoperator formed from input qauntum object
+    @returns *Qobj* superoperator formed from input qauntum object
 	"""
 	if not isoper(A):
 		raise TypeError('Input is not a quantum object')
@@ -79,9 +79,9 @@ def spre(A):
 	"""
 	@brief Super operator formed from pre-multiplication by operator A
     
-    @param A quantum operator for pre-multiplication
+    @param A *Qobj* quantum operator for pre-multiplication
     
-    @returns Qobj superoperator formed from input qauntum object
+    @returns *Qobj* superoperator formed from input qauntum object
     """
 	if not isoper(A):
 		raise TypeError('Input is not a quantum object')
