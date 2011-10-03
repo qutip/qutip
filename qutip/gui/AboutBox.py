@@ -55,8 +55,8 @@ class AboutBox(QtGui.QWidget):
         except:
             pyside_ver='None'
         try:
-            import PyQt4
-            pyqt4_ver=PyQt4.QtCore.PYQT_VERSION_STR
+            import PyQt4.QtCore as qt4Core
+            pyqt4_ver=qt4Core.PYQT_VERSION_STR
         except:
             pyqt4_ver='None'
         if sys.platform=='darwin':
@@ -99,7 +99,7 @@ class AboutBox(QtGui.QWidget):
         quit.setGeometry(340, 400, 80, 40)
         quit.setFocusPolicy(QtCore.Qt.NoFocus)
         #quit.setStyleSheet("QPushButton {border: 1.5px solid black;border-radius: 10px;background-color: qlineargradient(x1: 0, y1: 0, x2: 0, y2: 1,stop: 0 #CCCCCC, stop: 1 #999999)}")
-        self.connect(quit, QtCore.SIGNAL('clicked()'),QtGui.qApp, QtCore.SLOT('quit()'))
+        quit.clicked.connect(QtGui.qApp.quit)
     def center(self):
         screen = QtGui.QDesktopWidget().screenGeometry()
         size =  self.geometry()
