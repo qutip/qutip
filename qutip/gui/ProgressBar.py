@@ -29,8 +29,14 @@ if sys.platform.startswith("darwin"):#needed for PyQt on mac (because of pyobc)
 
 if os.environ['QUTIP_GUI']=="PYSIDE":
     from PySide import QtCore,QtGui
+    Signal=QtCore.Signal
 elif os.environ['QUTIP_GUI']=="PYQT4":
     from PyQt4 import QtCore,QtGui
+    Signal=QtCore.pyqtSignal
+
+class Sig(QtCore.QObject):
+    finish = Signal()
+    trajdone = Signal()
 
 class ProgressBar(QtGui.QWidget):
     def __init__(self,top,thread,mx,parent = None):
@@ -61,10 +67,10 @@ class ProgressBar(QtGui.QWidget):
         self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
         self.setFixedSize(self.size());   
         self.thread=thread
-        self.connect(self.thread,QtCore.SIGNAL("completed"), self.update)
-        self.connect(self.thread,QtCore.SIGNAL("done"), self.end)
-    def update(self,*args):
-        # Old style: emits the signal using the SIGNAL function.
+        self.sig=Sig()
+        self.sig.trajdone.connect(self.updates)
+        self.sig.finish.connect(self.end)
+    def updates(self):
         self.num+=1
         self.pbar.setValue((100.0*self.num)/self.max)
         self.label.setText("Trajectories completed: "+ str(self.num)+"/"+str(self.max))
@@ -95,10 +101,10 @@ class Pthread(QtCore.QThread):
         if sys.platform.startswith("darwin"):#needed for PyQt on mac (because of pyobc) 
             pool = Foundation.NSAutoreleasePool.alloc().init()
         self.target(self.args,self)
-        return self.emit(QtCore.SIGNAL("done"))
+        return self.top.bar.sig.finish.emit()
     def callback(self,args):
-        self.emit(QtCore.SIGNAL("completed"))
         self.top.callback(args)
+        self.top.bar.sig.trajdone.emit()
 
 
 
