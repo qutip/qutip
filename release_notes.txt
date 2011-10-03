@@ -1,3 +1,4 @@
+
 ################################
 # QuTiP RELEASE NOTES
 # P.D. Nation and J.R. Johansson
@@ -12,7 +13,7 @@ Version 1.1.0 [svn-XXXX] (October XX, 2011):
 
 New functions:
 --------------
-[1054] tidyup function to remove small elements for a Qobj.
+[1054] tidyup function to remove small elements from a Qobj.
 [1051] Added concurrence function.
 [1036] Added simdiag for simultaneous diagonalization of operators.
 [1032] Added eigenstates method returning eigenstates and eigenvalues to Qobj class.
@@ -21,6 +22,8 @@ New functions:
 
 Bug Fixes:
 ----------
+[1091] Switched Examples to new Signals method used in PySide 1.0.6+.
+[1090] Switched ProgressBar to new Signals method.
 [1075] Fixed memory issue in expm functions.
 [1069] Fixed memory bug in isherm.
 [1059] Made all Qobj data complex by default.
