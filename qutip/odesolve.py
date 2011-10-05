@@ -53,7 +53,18 @@ def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None, options=None)
     @param expect_ops *list/array* of expectation operators
     @param H_args *list/array* of arguments for time-dependent Hamiltonians
     @param options *Odeoptions* instance of ODE solver options
-    
+
+    Notes on using callback function:
+
+    odesolve transforms all Qobj objects to sparse matrices before
+    handing the problem to the integrator function. In order for
+    your callback function to work correctly, pass all Qobj objects
+    that are used in constructing the Hamiltonian via H_args. odesolve
+    will check for Qobj in H_args and handle the conversion to sparse
+    matrices. All other Qobj objects that are not passed via H_args
+    will be passed on to the integrator to scipy who will raise an
+    NotImplemented exception.
+
     """
 
     if options == None:
