@@ -6,7 +6,7 @@
 
 
 ********************************************
-Version 1.1.0 [svn-XXXX] (October XX, 2011):
+Version 1.1.0 [svn-1097] (October 04, 2011):
 ********************************************
 
 ** THIS RELEASE NOW REQUIRES THE GCC COMPILER TO BE INSTALLED **
