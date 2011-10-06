@@ -111,6 +111,6 @@ from tensor import *
 from tidyup import tidyup
 from wigner import *
 from fileio import *
-from qutip.cyQ import *
+#from qutip.cyQ import *
 
 

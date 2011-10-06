@@ -25,7 +25,7 @@ from Qobj import *
 from superoperator import *
 from expect import *
 from Odeoptions import Odeoptions
-from cyQ.matrix import spmv
+#from cyQ.matrix import spmv
 
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether

@@ -30,7 +30,7 @@ from multiprocessing import Pool,cpu_count
 from varargout import varargout
 from types import FunctionType
 from tidyup import tidyup
-from cyQ.matrix import spmv
+#from cyQ.matrix import spmv
 
 
 
