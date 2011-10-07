@@ -2,7 +2,7 @@ Source: qutip
 Section: science
 Priority: optional
 Maintainer: Robert Johansson <jrjohansson@gmail.com>
-Build-Depends: debhelper (>=7.0.50~), python-support (>= 0.6), cdbs (>= 0.4.49), python-all-dev, cython, gcc
+Build-Depends: debhelper (>=7.0.50~), python-support (>= 0.6), python-all-dev, gcc
 XS-Python-Version: all
 Standards-Version: 3.9.1
 
@@ -10,7 +10,7 @@ Package: qutip
 Architecture: any
 XB-Python-Version: all
 Homepage: http://code.google.com/p/qutip
-Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}, python-scipy, python-qt4, python-matplotlib, cython
+Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}, python-scipy, python-qt4, python-matplotlib
 Description: Python framework for solving the dynamics of quantum systems.
  QuTiP is an open-source framework for solving the dynamics of open and
  closed quantum systems written in python. The focus of QuTiP is on
