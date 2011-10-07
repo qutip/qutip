@@ -1,0 +1,38 @@
+# $Id$
+
+PortSystem          1.0
+PortGroup           python27 1.0
+name                py27-qutip
+version             1.1.0
+revision            1
+maintainers         nonhermitian \
+                    gmail.com:nonhermitian
+
+categories-append   science
+description         QuTiP: Quantum Toolbox in Python
+
+long_description    QuTiP is open-source software for simulating the dynamics of \
+                    open quantum systems.  The QuTiP library depends on the \
+                    excellent Numpy and Scipy numerical packages. In addition, \
+                    graphical output is provided by Matplotlib.  QuTiP aims \
+                    to provide user-friendly and efficient numerical simulations \
+                    of a wide variety of Hamiltonian's, including those with \
+                    arbitrary time-dependent, commonly found in a wide range of \
+                    physics applications. QuTiP is freely available for use and/or \
+                    modification on all major platforms. Being free of any licensing \
+                    fees, QuTiP is ideal for exploring quantum mechanics and \
+                    dynamics in the classroom.
+
+platforms           darwin
+license             GPL-3
+homepage            http://code.google.com/p/qutip/
+master_sites        http://qutip.googlecode.com/files/
+distname            QuTiP-${version}
+checksums           md5   801f20c1d0867261977269b5e4431c64 \
+                    sha1  9326847ee08348ea00ad64ee86ff07c83e3b2d53 \
+                    rmd160   9e9d7b3a1c4803d91218d81353852b620be5a23d
+
+python.versions     26 27 
+
+depends_lib-append  port:py27-scipy \
+	                port:py27-matplotlib
