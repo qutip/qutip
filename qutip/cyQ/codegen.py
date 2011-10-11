@@ -59,11 +59,23 @@ def cython_preamble():
     line6="ctypedef np.float64_t DTYPE_t"
     return [line0,line1,line2,line3,line4,line5,line6]
 
-
+def cython_checks():
+    """
+    List of strings that turn off Cython checks.
+    """
+    line0="@cython.boundscheck(False)"
+    line1="@cython.wraparound(False)"
+    return [line0,line1]
 
 if __name__=="__main__":
+    import numpy
+    import pyximport;pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
     cgen=Codegen()
     cgen.file()
     for line in cython_preamble():
         cgen.write(line)
     cgen.generate()
+    #import rhs
+    code = compile('import rhs', '<string>', 'exec')
+    exec code
+    
