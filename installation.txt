@@ -1,0 +1,72 @@
+################################
+# QuTiP INSTALLATION GUIDE
+# Version: 1.1.0
+# P.D. Nation and J.R. Johansson
+################################
+
+** A complete guide may be found at http://code.google.com/p/qutip/wiki/Installation **
+
+**********************
+* GENERAL REQUIREMENTS
+**********************
+Package        Version        Details
+-------        -------        --------
+Python	      2.6+ (not 3)	  Requires multiprocessing (v2.6 and higher only). At present, Matplotlib does not work for Python 3
+Numpy	      1.5.1+	      Not tested on lower versions.
+Scipy	      0.8+	          Not tested on lower versions (use 0.9+ if possible).
+Matplotlib	  1.0.1+	      Some plotting routines do not work on lower versions.
+Qt libraries  4.7.3+	      Optional. For GUI elements only. Not tested on lower versions.
+PyQt4	      4.8+	          Optional, required only for GUI elements. Can be substituted with PySide (recommended).
+PySide?	      1.0.2+	      Optional, required only for GUI elements. PyQt4 may be used instead.
+PyObjC	      2.2+	          MAC ONLY. Very optional. Needed only for a GUI Monte-Carlo progress bar on the mac. Other GUI elements will work without this package.
+GCC Compiler  4.2+	          Needed for compiling Cython files.
+
+
+UBUNTU LINUX (RECOMMENDED)
+--------------------------
+
+From the terminal:
+
+sudo apt-get install python-scipy
+sudo apt-get install python-pyside or sudo apt-get install python-qt4
+sudo apt-get install python-setuptools
+
+At present, Ubuntu 11.04 and lower do not have Matplotlib>=1.0 therefore we need to add the unofficial repository:
+
+sudo add-apt-repository ppa:bgamari/matplotlib-unofficial
+sudo apt-get update
+sudo apt-get install python-matplotlib
+
+QuTiP installation:
+
+sudo python setup.py install
+
+
+APPLE MAC OSX (10.6+)
+---------------------
+If you have not done so already, install the Apple XCode developer tools from the Apple App Store. 
+On the Mac, it is recommended that you install the required libraries via MacPorts. 
+Otherwise, one can use the Enthought Python Distribution version 7.1 or higher to satisfy the QuTiP dependencies.
+A further possibility is to use the Scipy Superpack installer script.
+
+Installing QuTiP is the same as on linux.  From the terminal:
+
+sudo python setup.py install
+
+
+MICROSOFT WINDOWS
+-----------------
+We recommend the Enthought Python Distribution version 7.1 or higher to satisfy the QuTiP dependencies. 
+QuTiP has also been reported to work out-of-the-box with Python(x,y).
+
+
+
+
+
+
+
+
+
+
+
+
