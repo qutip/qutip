@@ -52,6 +52,30 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
     @param H_args *list/array* of arguments for time-dependent Hamiltonians
     @param options *Odeoptions* instance of ODE solver options
     
+    @returns
+        Collapse ops  Expectation ops  Num. of outputs  Return value(s)
+        ------------  ---------------  ---------------  ---------------
+            NO	            NO	              1	         List of state vectors
+            
+            NO	            YES	              1	         List of expectation values
+            
+            YES	            NO	              1          List of state vectors for each trajectory
+            
+            YES	            NO	              2	         List of state vectors for each trajectory 
+                                                         + List of collapse times for each trajectory
+                                                         
+            YES	            NO	              3	         List of state vectors for each trajectory 
+                                                         + List of collapse times for each trajectory 
+                                                         + List of which operator did collapse for each trajectory
+                                                         
+            YES	            YES	              1	         List of expectation values for each trajectory
+            
+            YES	            YES	              2	         List of expectation values for each trajectory 
+                                                         + List of collapse times for each trajectory
+                                                         
+            YES	            YES	              3	         List of expectation values for each trajectory 
+                                                         + List of collapse times for each trajectory 
+                                                         + List of which operator did collapse for each trajectory
     """
     #if Hamiltonian is time-dependent (list style)
     if isinstance(H,(list,ndarray)):
