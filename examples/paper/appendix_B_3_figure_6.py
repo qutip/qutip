@@ -3,7 +3,7 @@
 # 
 # QuTiP: An open-source Python framework for the dynamics of open quantum systems
 #
-# Appendix C: Dissipative $i$-SWAP gate}\label{sec:iswap_code}
+# Appendix B.3: Dissipative $i$-SWAP gate
 
 from qutip import *
 g  = 1.0 * 2 * pi   # coupling strength
@@ -38,18 +38,20 @@ n2 = expect(sm2.dag() * sm2, rho_list)
 U = (-1j * H * pi / (4*g)).expm()
 psi_ideal = U * psi0
 rho_ideal = psi_ideal * psi_ideal.dag()
-f = fidelity(rho_ideal, rho_final) 
+F = fidelity(rho_ideal, rho_final) 
 
 
 # ------------------------------------------------------------------------------
 # Plot the results (omitted from the code listing in the appendix in the paper)
 #
+from matplotlib import rcParams
+rcParams['font.family'] = 'serif'
+rcParams['font.serif'] = 'Times New Roman'
 from pylab import *
+
 plot(tlist / T, n1, 'r')
 plot(tlist / T, n2, 'b')
 xlabel('t/T', fontsize=18)
 ylabel('Occupation probability', fontsize=18)
-#title('Two-qubit i-SWAP gate', fontsize=18)
-#figtext(0.65, 0.6, "Fidelity = %.3f" % (f,), fontsize=18)
-#savefig("jc_model_rabi_oscillations.png")
+figtext(0.65, 0.6, "Fidelity = %.3f" % F, fontsize=18)
 show()

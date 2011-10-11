@@ -29,71 +29,72 @@ The parameters chosen here correspond to those from
 S. Gleyzes, et al., Nature 446, 297 (2007). 
 
 """
+
 import os
 os.environ['QUTIP_GRAPHICS']="NO"
+
+from qutip import *
+N=5             # number of basis states to consider
+a=destroy(N)    # cavity destruction operator
+H=a.dag()*a     # harmonic oscillator Hamiltonian
+psi0=basis(N,1) # initial Fock state with one photon
+kappa=1.0/0.129 # coupling to heat bath
+nth= 0.063      # temperature with <n>=0.063
+## collapse operators ## 
+c_op_list = []
+## decay operator ## 
+c_op_list.append(sqrt(kappa * (1 + nth)) * a)
+## excitation operator ## 
+c_op_list.append(sqrt(kappa * nth) * a.dag())
+## run simulation ## 
+ntraj=904 # number of MC trajectories
+tlist=linspace(0,0.6,100)
+mc = mcsolve(H,psi0,tlist,ntraj,c_op_list, [])
+me = odesolve(H,psi0,tlist,c_op_list, [a.dag()*a])
+## expectation values ## 
+ex1=expect(num(N),mc[0])
+ex5=sum([expect(num(N),mc[k]) for k in range(5)],0)/5
+ex15=sum([expect(num(N),mc[k]) for k in range(15)],0)/15
+ex904=sum([expect(num(N),mc[k]) for k in range(904)],0)/904
+
+final_state=steadystate(H,c_op_list) # find steady-state
+fexpt=expect(a.dag()*a,final_state)  # find expectation value for particle number
+
+# ------------------------------------------------------------------------------
+# Plot the results (omitted from the code listing in the appendix in the paper)
+#
 from matplotlib import rcParams
 rcParams['font.family'] = 'serif'
 rcParams['font.serif'] = 'Times New Roman'
-from qutip import *
 from pylab import *
 
-N=5             #number of basis states to consider
-a=destroy(N)    #cavity destruction operator
-H=a.dag()*a     #harmonic oscillator Hamiltonian
-psi0=basis(N,1) #initial Fock state with one photon
-kappa=1.0/0.129 #coupling to heat bath
-
-
-# collapse operators
-c_op_list = []
-n_th_a = 0.063 # temperature with average of 0.063 excitations
-rate = kappa * (1 + n_th_a)
-if rate > 0.0:
-    c_op_list.append(sqrt(rate) * a) #excitation operators
-rate = kappa * n_th_a
-if rate > 0.0:
-    c_op_list.append(sqrt(rate) * a.dag()) #decay operators
-
-
-final_state=steadystate(H,c_op_list) #find steady-state
-fexpt=expect(a.dag()*a,final_state) #find expectation value for particle number
-
-ntraj=904
-tlist=linspace(0,0.6,100)
-mcstates = mcsolve(H,psi0,tlist,ntraj,c_op_list, []) #monte-carlo
-meexpt = odesolve(H,psi0,tlist,c_op_list, [a.dag()*a])#master eq.
-
-expt1=expect(a.dag()*a,mcstates[0])
-expt5=sum([expect(a.dag()*a,mcstates[k]) for k in xrange(5)],axis=0)/5
-expt15=sum([expect(a.dag()*a,mcstates[k]) for k in xrange(15)],axis=0)/15
-expt904=sum([expect(a.dag()*a,mcstates[k]) for k in xrange(904)],axis=0)/904
 f = figure(figsize=(4.5,7))
 subplots_adjust(hspace=0.001)
 ax1 = subplot(411)
-ax1.plot(tlist,expt1,'b',lw=1.5)
+ax1.plot(tlist,ex1,'b',lw=1.5)
 ax1.axhline(y=fexpt,color='k',lw=1.0)
 yticks(linspace(0,1,3))
 ylim([-0.1,1.1])
 ylabel('$\left< N \\right>$',fontsize=12)
 
 ax2=subplot(412,sharex=ax1)
-ax2.plot(tlist,expt5,'b',lw=1.5)
+ax2.plot(tlist,ex5,'b',lw=1.5)
 ax2.axhline(y=fexpt,color='k',lw=1.0)
 yticks(linspace(0,1,3))
 ylim([-0.1,1.1])
 ylabel('$\left< N \\right>$',fontsize=12)
 
 ax3=subplot(413,sharex=ax1)
-ax3.plot(tlist,expt15,'b',lw=1.5)
-ax3.plot(tlist,meexpt[0],'r--',lw=1.5)
+ax3.plot(tlist,ex15,'b',lw=1.5)
+ax3.plot(tlist,me[0],'r--',lw=1.5)
 ax3.axhline(y=fexpt,color='k',lw=1.0)
 yticks(linspace(0,1,3))
 ylim([-0.1,1.1])
 ylabel('$\left< N \\right>$',fontsize=12)
 
 ax4=subplot(414,sharex=ax1)
-ax4.plot(tlist,expt904,'b',lw=1.5)
-ax4.plot(tlist,meexpt[0],'r--',lw=1.5)
+ax4.plot(tlist,ex904,'b',lw=1.5)
+ax4.plot(tlist,me[0],'r--',lw=1.5)
 ax4.axhline(y=fexpt,color='k',lw=1.0)
 yticks(linspace(0,1,3))
 ylim([-0.1,1.1])
