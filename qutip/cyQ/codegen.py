@@ -16,7 +16,6 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-import sys, string
 
 
 class Codegen():
@@ -49,7 +48,7 @@ class Codegen():
         
 def cython_preamble():
     """
-    Returns list for standard Cython file preamble.
+    Returns list of strings for standard Cython file preamble.
     """
     line0="# This file is generated automatically by QuTiP. (c)2011 Paul D. Nation & J. R. Johansson"
     line1="import numpy as np"
