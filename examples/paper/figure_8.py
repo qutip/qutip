@@ -26,6 +26,9 @@ signal and idler modes start in vacuum states.  Here, the coupling rates
 to the environment for the pump, signal, and idler modes are g0=0.1, g1=0.4, g2=0.1,
 respectively.  Also presented is the closed-system evolution, g0=g1=g2=0.
 
+IT IS RECOMMENDED TO RUN THIS SCRIPT ON A COMPUTER WITH AT LEAST
+8GB OF MEMORY.
+
 """
 
 from matplotlib import rcParams
