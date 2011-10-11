@@ -5,7 +5,7 @@
 from qutip import *
 from pylab import *
 import time
-from mpl_toolkits.mplot3d import Axes3D
+#from mpl_toolkits.mplot3d import Axes3D
 
 def compute(w1list, w2, w3, g12, g13):
 
