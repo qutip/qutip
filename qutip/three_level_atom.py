@@ -47,7 +47,7 @@ Contributed by Markus Baden, Oct. 07, 2011
 from basis import qutrit_basis
 from scipy import array
 
-def three_lvl_basis():
+def three_level_basis():
     ''' 
     @brief Return the basis states for a three level atom
     
@@ -59,7 +59,7 @@ def three_lvl_basis():
     # three states
     return qutrit_basis()
 
-def three_lvl_ops():
+def three_level_ops():
     ''' 
     @brief Return the operators for a three level system (qutrit)
     
