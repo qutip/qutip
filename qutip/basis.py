@@ -16,6 +16,7 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
+from numpy import array
 from scipy import zeros
 from Qobj import Qobj
 
@@ -51,4 +52,17 @@ def basis(N,*args):
     bas=zeros([N,1]) #column vector of zeros
     bas[args]=1 # 1 located at position args
     return Qobj(bas) #return Qobj
+
+#
+# Function for specific basis
+#
+def qutrit_basis():
+    ''' 
+    @brief Return the basis states for a three level system (qutrit)
+    
+    @params None
+    
+    @returns *array* of qutrit basis vectors
+    '''
+    return array([basis(3,0), basis(3,1), basis(3,2)])
 

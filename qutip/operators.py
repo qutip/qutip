@@ -17,11 +17,13 @@
 #
 ###########################################################################
 import os
+from numpy import array
 from scipy import *
 from scipy.linalg import *
 import scipy.sparse as sp
 
 from Qobj import Qobj
+from basis import qutrit_basis
 
 #
 # Spin opeators
@@ -197,11 +199,22 @@ def displace(N,alpha):
     D=(alpha*a.dag()-conj(alpha)*a).expm()
     return D
 
-
-
-
-
-
-
-
-
+#
+# Three-level operators (qutrits)
+#
+def qutrit_ops():
+    ''' 
+    @brief Return the operators for a three level system (qutrit)
+    
+    @params None
+    
+    @returns *array* of qutrit operators
+    '''
+    one, two, three = qutrit_basis()
+    sig11 = one * one.dag()
+    sig22 = two * two.dag()
+    sig33 = three * three.dag()
+    sig12 = one * two.dag()
+    sig23 = two * three.dag()
+    sig31 = three * one.dag()
+    return array([sig11, sig22, sig33, sig12, sig23, sig31])

@@ -40,31 +40,38 @@ Ladder:          Lambda:                 Vee:
 The naming of qutip operators follows the convention in the book "The
 Theory of Coherent Atomic excitation" by B. W. Shore.
 
-Contributed by Markus Biden, Oct. 07, 2011
+Contributed by Markus Baden, Oct. 07, 2011
 
 '''
 
-from basis import *
+from basis import qutrit_basis
 from scipy import array
 
-def qutrit_basis():
+def three_lvl_basis():
     ''' 
-    @brief Return the basis states for a three level system (qutrit)
+    @brief Return the basis states for a three level atom
     
     @params None
     
-    @returns *array* of qutrit basis vectors
+    @returns *array* of three level atom basis vectors
     '''
-    return array([basis(3,0), basis(3,1), basis(3,2)])
-def qutrit_ops():
+    # A three level atom has the same representation as a qutrit, i.e.
+    # three states
+    return qutrit_basis()
+
+def three_lvl_ops():
     ''' 
     @brief Return the operators for a three level system (qutrit)
     
     @params None
     
-    @returns *array* of qutrit operators
+    @returns *array* of three level operators
     '''
     one, two, three = qutrit_basis()
+    # Note that the three level operators are different
+    # from the qutrit operators. A three level atom only
+    # has transitions 1 <-> 2 <-> 3, so we define the
+    # operators seperately from the qutrit code
     sig11 = one * one.dag()
     sig22 = two * two.dag()
     sig33 = three * three.dag()
