@@ -48,6 +48,7 @@ def about():
             app = QtGui.QApplication(sys.argv)
         box=AboutBox(version)
         box.show()
+        box.activateWindow()
         box.raise_()
         app.exec_()
         

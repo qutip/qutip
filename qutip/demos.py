@@ -36,6 +36,7 @@ def demos():
                 app = QtGui.QApplication(sys.argv)
             gui=Examples()
             gui.show()
+            gui.activateWindow()
             gui.raise_()
             app.exec_()
     else:

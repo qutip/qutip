@@ -261,6 +261,7 @@ class MC_class():
                 self.bar=ProgressBar(self,thread,self.ntraj)
                 QtCore.QTimer.singleShot(0,self.bar.run)
                 self.bar.show()
+                self.bar.activateWindow()
                 self.bar.raise_()
                 app.exec_()
                 return
