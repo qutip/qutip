@@ -17,23 +17,37 @@
 #
 ###########################################################################
 
-#import numpy as np
+import numpy as np
 cimport numpy as np
 cimport cython
 #from cython.parallel cimport prange
 
+#from scipy import *
+
+# to be replaced by cython implementation
+#def cyq_ode_rhs_rho(t, rho, L):
+#    return L*rho
+
 ctypedef np.complex128_t CTYPE_t
 ctypedef np.float64_t DTYPE_t
 
-from scipy import *
-
-# to be replaced by cython implementation
-def cyq_ode_rhs_rho(t, rho, L):
-    return L*rho
-
-#def cyq_ode_rhs_rho(float t, np.ndarray[CTYPE_t, ndim=2] rho, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr):
-#    ...
-
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def cyq_ode_rhs_rho(float t, np.ndarray[CTYPE_t, ndim=1] rho, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr):
+#def spmv(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=2] vec):
+    cdef Py_ssize_t row
+    cdef int jj,row_start,row_end
+    cdef int num_rows=len(rho)
+    cdef CTYPE_t dot
+    cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)
+    for row in range(num_rows):
+        dot=0.0
+        row_start = ptr[row]
+        row_end = ptr[row+1]
+        for jj in range(row_start,row_end):
+            dot = dot + data[jj]*rho[idx[jj]]
+        out[row,0]=dot
+    return out
 
 
 
