@@ -26,6 +26,7 @@ from superoperator import *
 from expect import *
 from Odeoptions import Odeoptions
 #from cyQ.matrix import spmv
+#from cyQ.ode_rhs import cyq_ode_rhs_rho
 
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
@@ -264,23 +265,24 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     # construct liouvillian
     #
     L = liouvillian(H, c_op_list)
-    Lmat=L.data
+
     #
     # evaluate drho(t)/dt according to the master eqaution
     #
-    def rho_ode_func(t, rho):
-        return Lmat*rho
+    def rho_ode_func(t, rho, L):
+        return L*rho
     #
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full())
     r = scipy.integrate.ode(rho_ode_func)
+    #r = scipy.integrate.ode(cyq_ode_rhs_rho)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                               atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                               first_step=opt.first_step, min_step=opt.min_step,
                               max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
-    #r.set_f_params(L.data)
+    r.set_f_params(L.data)
 
 
     #
