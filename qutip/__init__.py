@@ -41,6 +41,7 @@ import os,sys,multiprocessing
 
 #automatically set number of threads used by MKL
 os.environ['MKL_NUM_THREADS']=str(multiprocessing.cpu_count())
+os.environ['NUM_THREADS']=str(multiprocessing.cpu_count())
 
 #
 # default, use graphics (unless QUTIP_GRPAHICS is already set)

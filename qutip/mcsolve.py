@@ -177,7 +177,7 @@ class MC_class():
         self.psi_shape=psi0.shape
         self.seed=None
         self.st=None #for expected time to completion
-        self.cpus=cpu_count()
+        self.cpus=int(os.environ['NUM_THREADS'])
         #FOR EVOLUTION FOR NO COLLAPSE OPERATORS---------------------------------------------
         if self.num_collapse==0:
             if self.num_expect==0:
