@@ -17,7 +17,7 @@
 #
 ###########################################################################
 from scipy import *
-from multiprocessing import Pool,cpu_count
+from multiprocessing import Pool
 
 
 def parfor(func,frange):
@@ -27,7 +27,7 @@ def parfor(func,frange):
 	
 	@returns *array* with length equal to number of input parameters 
 	"""
-	pool=Pool(processes=cpu_count())
+	pool=Pool(processes=int(os.environ['NUM_THREADS']))
 	par_return=list(pool.map(func,frange))
 	if isinstance(par_return[0],tuple):
 	    par_return=[elem for elem in par_return]
