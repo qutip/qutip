@@ -54,6 +54,7 @@ def entropy_linear(rho):
     return 1.0-(rho**2).tr()
 
 
+
 def concurrence(rho):
     """
     @brief Calculate the concurrence entanglement measure for 

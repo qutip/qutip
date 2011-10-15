@@ -18,7 +18,7 @@
 ###########################################################################
 from Qobj import *
 import scipy.linalg as la
-from scipy import real,trace
+from scipy import real
 ##@package metrics
 #Collection of metrics (distance measures) between density matricies
 #@version 0.1
@@ -38,8 +38,7 @@ def fidelity(A,B):
         raise TypeError('Density matricies do not have same dimensions.')
     else:
         A=A.sqrtm()
-        A*(B*A)
-        return float(real(trace((A*(B*A)).sqrtm().full())))
+        return real((A*(B*A)).sqrtm().tr())
 
 
 def tracedist(A,B):
@@ -57,5 +56,5 @@ def tracedist(A,B):
     else:
         diff=A-B
         diff=diff.dag()*diff
-        out=diff.sqrtm().full()
-        return float(real(0.5*trace(out)))
+        out=diff.sqrtm()
+        return real(0.5*out.tr())
