@@ -18,7 +18,7 @@
 ###########################################################################
 from scipy import *
 from multiprocessing import Pool
-
+import os
 
 def parfor(func,frange):
 	"""

@@ -306,13 +306,14 @@ class Qobj():
         """
         @brief Returns the trace of a quantum object
         """
-        return sum(diag(self.full()))   
+        if self.isherm==True:
+            return real(sum(self.data.diagonal()))
+        else:
+            return sum(self.data.diagonal())
     def full(self):
         """
         Returns a dense array from quantum object data
         """
-        if isinstance(self.data, ndarray):
-            return self.data
         return array(self.data.todense())
     def diag(self):
         """

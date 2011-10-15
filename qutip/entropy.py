@@ -19,6 +19,7 @@
 from scipy import *
 from Qobj import *
 import scipy.linalg as la
+from states import ket2dm
 
 def entropy_vn(rho,base='2'):
     """
@@ -37,6 +38,20 @@ def entropy_vn(rho,base='2'):
     else:
         raise ValueError("Base must be '2' or 'e'.")
     return real(-sum(nzvals*logvals))
+
+
+def entropy_linear(rho):
+    """
+    @brief Linear entropy of density matrix
+    
+    @param rho *Qobj* density matrix or ket/bra
+    
+    @returns *float* if rho is Hermitian, *complex* otherwise
+    
+    """
+    if rho.type=='ket' or rho.type=='bra':
+        rho=ket2dm(rho)
+    return 1.0-(rho**2).tr()
 
 
 def concurrence(rho):
