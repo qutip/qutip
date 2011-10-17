@@ -190,7 +190,7 @@ class Bloch():
         self.fig = figure(figsize=self.size)
         ##Axes3D instance for Bloch sphere
         self.axes = Axes3D(self.fig,azim=self.view[0],elev=self.view[1])
-        self.axes.grid(on=False)
+        self.axes.grid(False)
         self.plot_back()
         self.plot_axes()
         self.plot_points()
