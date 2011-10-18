@@ -16,7 +16,7 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-
+import pickle
 from scipy import *
 
 # ------------------------------------------------------------------------------
@@ -179,3 +179,44 @@ def file_data_read(datafile, sep=None):
     f.close()
 
     return data
+
+def qsave(data=None,filename='qdata'):
+    """
+    @brief Saves given data to file named 'filename.qu'
+    
+    @param data input data to be stored
+    @param filename *str* name of datafile
+    
+    """
+    fileObject = open(filename+'.qu','w') # open the file for writing
+    pickle.dump(data,fileObject)   # this writes the object a to the file named 'filename.qu'
+    fileObject.close()
+
+
+def qload(filename):
+    """
+    @brief Loads data file from file named 'filename.qu'
+    
+    @param filename *str* name of datafile
+    
+    @returns object stored in file
+    """
+    fileObject = open(filename+'.qu','r')  #open the file for reading
+    out=pickle.load(fileObject)  #return the object from the file 
+    if isinstance(out,Qobj): #for quantum objects
+        print 'Loaded Qobj class object...'
+        return out
+    elif isinstance(out,Mcdata): #for mcdata objects
+        print 'Loaded Mcdata class object...'
+        return out
+    elif isinstance(out,Odedata): #for odedata objects
+        print 'Loaded Odedata class object...'
+        return out
+    else: #for any other data
+        print 'Loaded generic object...'
+        return out
+
+
+
+
+
