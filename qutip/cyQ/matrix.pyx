@@ -42,6 +42,7 @@ def spmv(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] p
     return out
 
 
+
 #@cython.boundscheck(False)
 #@cython.wraparound(False)
 #def spmv_csr_parallel(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[DTYPE_t, ndim=2] vec):
