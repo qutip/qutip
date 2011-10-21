@@ -26,7 +26,7 @@ from superoperator import *
 from expect import *
 from Odeoptions import Odeoptions
 #from cyQ.matrix import spmv
-#from cyQ.ode_rhs import cyq_ode_rhs_rho
+from cyQ.ode_rhs import cyq_ode_rhs
 
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
@@ -104,13 +104,16 @@ def wf_ode_solve(H, psi0, tlist, expt_op_list, H_args, opt):
     # setup integrator
     #
     initial_vector = psi0.full()
-    r = scipy.integrate.ode(psi_ode_func)
+    #r = scipy.integrate.ode(psi_ode_func)
+    #r.set_f_params(-1.0j * H.data) # for python RHS
+    r = scipy.integrate.ode(cyq_ode_rhs)
+    L = -1.0j * H
+    r.set_f_params(L.data.data, L.data.indices, L.data.indptr) # for cython RHS
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                              first_step=opt.first_step, min_step=opt.min_step,
+                              atol=opt.atol, rtol=opt.rtol, #nsteps=opt.nsteps,
+                              #first_step=opt.first_step, min_step=opt.min_step,
                               max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
-    r.set_f_params(-1.0j * H.data)
 
     #
     # start evolution
@@ -177,9 +180,9 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list, H_args, opt):
     initial_vector = psi0.full()
     r = scipy.integrate.ode(psi_ode_func_td)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                              first_step=opt.first_step, min_step=opt.min_step,
-                              max_step=opt.max_step)
+                              atol=opt.atol, rtol=opt.rtol, #nsteps=opt.nsteps,
+                              #first_step=opt.first_step, min_step=opt.min_step,
+                              max_step=opt.max_step)                              
     r.set_initial_value(initial_vector, tlist[0])
     r.set_f_params(H_func_and_args)
 
@@ -267,23 +270,18 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     L = liouvillian(H, c_op_list)
 
     #
-    # evaluate drho(t)/dt according to the master eqaution
-    #
-    def rho_ode_func(t, rho, L):
-        return L*rho
-    #
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full())
-    r = scipy.integrate.ode(rho_ode_func)
-    #r = scipy.integrate.ode(cyq_ode_rhs_rho)
+    #r = scipy.integrate.ode(rho_ode_func)
+    #r.set_f_params(L.data)
+    r = scipy.integrate.ode(cyq_ode_rhs)
+    r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                              first_step=opt.first_step, min_step=opt.min_step,
+                              atol=opt.atol, rtol=opt.rtol, #nsteps=opt.nsteps,
+                              #first_step=opt.first_step, min_step=opt.min_step,
                               max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
-    r.set_f_params(L.data)
-
 
     #
     # start evolution
@@ -309,8 +307,11 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
           
     return result_list
 
-
-
+#
+# evaluate drho(t)/dt according to the master eqaution
+#
+def rho_ode_func(t, rho, L):
+    return L*rho
 
 # ------------------------------------------------------------------------------
 # Master equation solver

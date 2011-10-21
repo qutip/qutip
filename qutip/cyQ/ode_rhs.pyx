@@ -21,16 +21,13 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-# to be replaced by cython implementation
-#def cyq_ode_rhs_rho(t, rho, L):
-#    return L*rho
-
 ctypedef np.complex128_t CTYPE_t
 ctypedef np.float64_t DTYPE_t
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cyq_ode_rhs_rho(float t, np.ndarray[CTYPE_t, ndim=1] rho, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr):
+
+def cyq_ode_rhs(float t, np.ndarray[CTYPE_t, ndim=1] rho, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr):
     cdef int row, jj, row_start, row_end
     cdef int num_rows=len(rho)
     cdef CTYPE_t dot
@@ -43,6 +40,4 @@ def cyq_ode_rhs_rho(float t, np.ndarray[CTYPE_t, ndim=1] rho, np.ndarray[CTYPE_t
             dot = dot + data[jj] * rho[idx[jj]]
         out[row] = dot
     return out
-
-
 
