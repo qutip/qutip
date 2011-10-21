@@ -31,7 +31,7 @@ from varargout import varargout
 from types import FunctionType
 from tidyup import tidyup
 #from cyQ.matrix import spmv
-
+from cyQ.ode_rhs import cyq_ode_rhs
 
 
 def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeoptions()):
@@ -226,13 +226,18 @@ class MC_class():
                 print str(floor(self.count/float(self.ntraj)*100))+'%  ('+str(self.count)+'/'+str(self.ntraj)+')'+'  Est. time remaining: '+time_string
                 self.level+=0.1
     #########################
-    def parallel(self,args,top=None):
+    def parallel(self,args,top=None):  
         pl=Pool(processes=self.cpus)
         self.st=datetime.datetime.now()
         for nt in xrange(0,self.ntraj):
             pl.apply_async(mc_alg_evolve,args=(nt,args),callback=top.callback)
         pl.close()
-        pl.join()
+        try:
+            pl.join()
+        except KeyboardInterrupt:
+            print "Cancel all MC threads on keyboard interrupt"
+            pl.terminate()
+            pl.join()
         return
     def run(self):
         if self.num_collapse==0:
@@ -288,7 +293,10 @@ def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
     if mcdata.tflag==1:
         ODE=ode(RHStd)
     else:
-        ODE=ode(RHS)
+        #ODE=ode(RHS)
+        ODE = ode(cyq_ode_rhs)
+        ODE.set_f_params(mcdata.H.data, mcdata.H.indices, mcdata.H.indptr)
+        
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
     psi_out[0]=Qobj(psi_in,dims=psi_dims,shape=psi_shape)
@@ -310,7 +318,10 @@ def no_collapse_expect_out(opt,psi_in,tlist,expect_ops,num_expect,num_times,psi_
     if mcdata.tflag==1:
         ODE=ode(RHStd)
     else:
-        ODE=ode(RHS)
+        #ODE=ode(RHS)
+        ODE = ode(cyq_ode_rhs)
+        ODE.set_f_params(mcdata.H.data, mcdata.H.indices, mcdata.H.indptr)
+
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
     for jj in xrange(num_expect):
@@ -356,7 +367,10 @@ def mc_alg_evolve(nt,args):
     if mcdata.tflag==1:
         ODE=ode(cRHStd)
     else:
-        ODE=ode(RHS)
+        #ODE=ode(RHS)
+        ODE = ode(cyq_ode_rhs)
+        ODE.set_f_params(mcdata.H.data, mcdata.H.indices, mcdata.H.indptr)
+
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
     #RUN ODE UNTIL EACH TIME IN TLIST
