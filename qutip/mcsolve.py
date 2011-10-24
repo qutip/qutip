@@ -375,12 +375,11 @@ def mc_alg_evolve(nt,args):
     #RUN ODE UNTIL EACH TIME IN TLIST
     cinds=arange(num_collapse)
     for k in xrange(1,num_times):
-        last_t=ODE.t;last_y=ODE.y
-        step_flag=1
+        #last_t=ODE.t;last_y=ODE.y
         #ODE WHILE LOOP FOR INTEGRATE UP TO TIME TLIST[k]
         while ODE.successful() and ODE.t<tlist[k]:
             last_t=ODE.t;last_y=ODE.y
-            ODE.integrate(tlist[k],step=step_flag) #integrate up to tlist[k], one step at a time.
+            ODE.integrate(tlist[k],step=1) #integrate up to tlist[k], one step at a time.
             psi_nrm2=norm(ODE.y,2)**2
             if psi_nrm2<=rand_vals[0]:#collpase has occured
                 collapse_times.append(ODE.t)
