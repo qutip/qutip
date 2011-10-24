@@ -33,7 +33,6 @@ from tidyup import tidyup
 #from cyQ.matrix import spmv
 from cyQ.ode_rhs import cyq_ode_rhs
 
-
 def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeoptions()):
     vout=varargout()
     """
@@ -380,31 +379,31 @@ def mc_alg_evolve(nt,args):
         step_flag=1
         #ODE WHILE LOOP FOR INTEGRATE UP TO TIME TLIST[k]
         while ODE.successful() and ODE.t<tlist[k]:
-            ODE.integrate(tlist[k],step=step_flag) #integrate up to tlist[k], one step at a time.
-            if ODE.t>tlist[k]:
-                ODE.set_integrator('zvode',first_step=(tlist[k]-last_t),method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,min_step=opt.min_step,max_step=opt.max_step)
-                ODE.set_initial_value(last_y,last_t)
-                step_flag=0
-            else:
-                psi_nrm2=norm(ODE.y,2)**2
-                if psi_nrm2<=rand_vals[0]:#collpase has occured
-                    collapse_times.append(ODE.t)
-                    n_dp=array([float(real(dot(ODE.y.conj().T,op*ODE.y))) for op in norm_collapse_data])
-                    kk=cumsum(n_dp/sum(n_dp))
-                    j=cinds[kk>=rand_vals[1]][0]
-                    which_oper.append(j) #record which operator did collapse
-                    state=collapse_ops_data[j]*ODE.y
-                    state_nrm=norm(state,2)
-                    ODE.set_initial_value(state/state_nrm,ODE.t)
-                    rand_vals=random.rand(2)
             last_t=ODE.t;last_y=ODE.y
+            ODE.integrate(tlist[k],step=step_flag) #integrate up to tlist[k], one step at a time.
+            psi_nrm2=norm(ODE.y,2)**2
+            if psi_nrm2<=rand_vals[0]:#collpase has occured
+                collapse_times.append(ODE.t)
+                n_dp=array([float(real(dot(ODE.y.conj().T,op*ODE.y))) for op in norm_collapse_data])
+                kk=cumsum(n_dp/sum(n_dp))
+                j=cinds[kk>=rand_vals[1]][0]
+                which_oper.append(j) #record which operator did collapse
+                state=collapse_ops_data[j]*ODE.y
+                state_nrm=norm(state,2)
+                ODE.set_initial_value(state/state_nrm,ODE.t)
+                rand_vals=random.rand(2)
+            #last_t=ODE.t;last_y=ODE.y
         #-------------------------------------------------------
         ###--after while loop--####
-        psi_nrm=norm(ODE.y,2)
+        psi_out=copy(ODE.y)
+        if ODE.t>last_t:
+            efftime=(tlist[k]-last_t)/(ODE.t-last_t)
+            psi_out=last_y*efftime
+        psi_nrm=norm(psi_out,2)
         if num_expect==0:
-            psi_out[k] = ODE.y/psi_nrm
+            psi_out[k] = psi_out/psi_nrm
         else:
-            epsi=ODE.y/psi_nrm
+            epsi=psi_out/psi_nrm
             for jj in xrange(num_expect):
                 expect_out[jj][k]=mc_expect(expect_ops[jj],epsi)
     #RETURN VALUES
