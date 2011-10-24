@@ -397,7 +397,7 @@ def mc_alg_evolve(nt,args):
         ###--after while loop--####
         psi_out=copy(ODE.y)
         if ODE.t>last_t:
-            psi_out=(ODE.y-last_y)/(ODE.t-last_t)*(tlist[k]-last_t)+last_y
+            psi_out=(psi_out-last_y)/(ODE.t-last_t)*(tlist[k]-last_t)+last_y
         psi_nrm=norm(psi_out,2)
         if num_expect==0:
             psi_out[k] = psi_out/psi_nrm
