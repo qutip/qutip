@@ -30,7 +30,7 @@ from multiprocessing import Pool,cpu_count
 from varargout import varargout
 from types import FunctionType
 from tidyup import tidyup
-#from cyQ.matrix import spmv
+from cyQ.cy_mc_funcs import mc_expect
 from cyQ.ode_rhs import cyq_ode_rhs
 
 def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeoptions()):
@@ -411,12 +411,6 @@ def mc_alg_evolve(nt,args):
         return nt,expect_out,array(collapse_times),array(which_oper)
 #------------------------------------------------------------------------------------------
 
-
-def mc_expect(oper,state):
-    if oper.isherm:
-        return float(real(dot(conj(state).T,oper.data*state)))
-    else:
-        return dot(conj(state).T,oper.data*state)[0][0]
 
 
 
