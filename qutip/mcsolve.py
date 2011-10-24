@@ -30,7 +30,7 @@ from multiprocessing import Pool,cpu_count
 from varargout import varargout
 from types import FunctionType
 from tidyup import tidyup
-from cyQ.cy_mc_funcs import mc_expect
+from cyQ.cy_mc_funcs import mc_expect,spmv
 from cyQ.ode_rhs import cyq_ode_rhs
 
 def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeoptions()):
@@ -194,7 +194,7 @@ class MC_class():
         #FOR EVOLUTION WITH COLLAPSE OPERATORS---------------------------------------------
         elif self.num_collapse!=0:
             ##Array of collapse operators A.dag()*A
-            self.norm_collapse_data=array([(op.dag()*op).data for op in self.collapse_ops])
+            self.norm_collapse=array([op.dag()*op for op in self.collapse_ops])
             ##Array of matricies from norm_collpase_data
             self.collapse_ops_data=array([op.data for op in self.collapse_ops])
             #preallocate #ntraj arrays for state vectors, collapse times, and which operator
@@ -248,7 +248,7 @@ class MC_class():
                 self.expect_out=no_collapse_expect_out(self.options,self.psi_in,self.times,self.expect_ops,self.num_expect,self.num_times,self.psi_dims,self.psi_shape,self.expect_out)
         elif self.num_collapse!=0:
             self.seed=array([int(ceil(random.rand()*1e4)) for ll in xrange(self.ntraj)])
-            args=(self.options,self.psi_in,self.times,self.num_times,self.num_collapse,self.collapse_ops_data,self.norm_collapse_data,self.num_expect,self.expect_ops,self.seed)
+            args=(self.options,self.psi_in,self.times,self.num_times,self.num_collapse,self.collapse_ops_data,self.norm_collapse,self.num_expect,self.expect_ops,self.seed)
             if os.environ['QUTIP_GRAPHICS']=="NO" or os.environ['QUTIP_GUI']=="NONE" or self.gui==False:
                 print 'Starting Monte-Carlo:'
                 self.parallel(args,self)
@@ -342,7 +342,7 @@ def mc_alg_evolve(nt,args):
     """
     Monte-Carlo algorithm returning state-vector or expect. values at times tlist for a single trajectory
     """
-    opt,psi_in,tlist,num_times,num_collapse,collapse_ops_data,norm_collapse_data,num_expect,expect_ops,seeds=args
+    opt,psi_in,tlist,num_times,num_collapse,collapse_ops_data,norm_collapse,num_expect,expect_ops,seeds=args
     if num_expect==0:
         psi_out=array([zeros((len(psi_in),1),dtype=complex) for k in xrange(num_times)])#preallocate real array of Qobjs
         psi_out[0]=psi_in
@@ -383,11 +383,11 @@ def mc_alg_evolve(nt,args):
             psi_nrm2=norm(ODE.y,2)**2
             if psi_nrm2<=rand_vals[0]:#collpase has occured
                 collapse_times.append(ODE.t)
-                n_dp=array([float(real(dot(ODE.y.conj().T,op*ODE.y))) for op in norm_collapse_data])
+                n_dp=array([mc_expect(op,ODE.y) for op in norm_collapse])
                 kk=cumsum(n_dp/sum(n_dp))
                 j=cinds[kk>=rand_vals[1]][0]
                 which_oper.append(j) #record which operator did collapse
-                state=collapse_ops_data[j]*ODE.y
+                state=spmv(collapse_ops_data[j].data,collapse_ops_data[j].indices,collapse_ops_data[j].indptr,ODE.y)
                 state_nrm=norm(state,2)
                 ODE.set_initial_value(state/state_nrm,ODE.t)
                 rand_vals=random.rand(2)
