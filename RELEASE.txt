@@ -6,6 +6,25 @@
 
 
 ********************************************
+Version 1.1.1 [svn-1210] (October 25, 2011):
+********************************************
+
+** THIS POINT-RELEASE INCLUDES VASTLY IMPROVED MCSOLVE AND ODESOLVE PERFORMANCE **
+
+New functions:
+--------------
+[1183] Added linear entropy function.
+[1179] Number of CPU's can now be changed.
+
+Bug Fixes:
+----------
+[1184] Metrics no longer use dense matrices.
+[1184] Fixed Bloch sphere grid issue with matplotlib 1.1.
+[1183] Qobj trace operation uses only sparse matrices.
+[1168] Fixed issue where GUI windows do not raise to front.
+
+
+********************************************
 Version 1.1.0 [svn-1097] (October 04, 2011):
 ********************************************
 
