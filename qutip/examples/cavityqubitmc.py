@@ -27,6 +27,7 @@ from ..tensor import *
 from ..mcsolve import *
 from termpause import termpause
 from pylab import *
+import time
 def cavityqubitmc():
     print '-'*80
     print 'Solves for the dynamics of a driven-cavity'
@@ -43,8 +44,8 @@ def cavityqubitmc():
     print 'wl=0 #driving frequency'
     print 'E=0.5 #driving amplitude'
     print 'N=4 #number of cavity energy levels (0->3 Fock states)'
-    print 'tlist=linspace(0,10,101) #times at which expectation values are needed'
-    print 'ntraj=200 #number of Monte-Carlo trajectories'
+    print 'tlist=linspace(0,10,201) #times at which expectation values are needed'
+    print 'ntraj=500 #number of Monte-Carlo trajectories'
     #inital settings
     kappa=2.0 #mirror coupling
     gamma=0.2 #spontaneous emission rate
@@ -54,8 +55,8 @@ def cavityqubitmc():
     wl=0 #driving frequency
     E=0.5 #driving amplitude
     N=4 #number of cavity energy levels (0->3 Fock states)
-    tlist=linspace(0,10,101) #times at which expectation values are needed
-    ntraj=200 #number of Monte-Carlo trajectories
+    tlist=linspace(0,10,201) #times at which expectation values are needed
+    ntraj=500 #number of Monte-Carlo trajectories
     
     print '#Hamiltonian'
     print '------------'
@@ -90,8 +91,9 @@ def cavityqubitmc():
     print '#run monte-carlo solver'
     print 'avg=mcsolve(H,psi0,tlist,ntraj,[C1,C2],[C1dC1,C2dC2])'
     #run monte-carlo solver
+    stime=time.time()
     avg=mcsolve(H,psi0,tlist,ntraj,[C1,C2],[C1dC1,C2dC2])
-    
+    print 'Elapsed time: ',time.time()-stime
     print ''
     print 'Plot results...'
     termpause()
