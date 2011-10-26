@@ -7,7 +7,24 @@ QuTiP functions
 .. toctree::
    :maxdepth: 2
 
+States and operators
+--------------------
+
 .. automodule:: qutip
-    :members: about, basis, Bloch, clebsch, correlation, demos, entropy, eseries, essolve, expect, fileio, gates, graph, istests, mcdata, mcsolve, metrics, Odeoptions, odesolve, operators, options, orbital, parfor, propagator, ptrace, Qobj, qstate, rotation, simdiag, sphereplot, states, steady, superoperator, tensor, three_level_atom, wigner
+    :members: basis, istests, operators, ptrace, qstate, states, superoperator, tensor, three_level_atom, expect
+    :undoc-members:
+
+Dynamics and time-evolution
+---------------------------
+
+.. automodule:: qutip
+    :members: correlation, essolve, mcdata, mcsolve, odesolve, propagator, steady
+    :undoc-members:
+
+Other
+-----
+
+.. automodule:: qutip
+    :members: about, clebsch, demos, entropy, fileio, gates, graph, metrics, orbital, parfor, rotation, simdiag, sphereplot, wigner
     :undoc-members:
 

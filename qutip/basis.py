@@ -20,24 +20,22 @@ from numpy import array
 from scipy import zeros
 from Qobj import Qobj
 
-##@package basis
-# Generates the vector representation of a number state basis vector.
-#@version 0.1
-#@date 2011
-
 def basis(N,*args):
     """
-    @brief Generate the vector representation of a number state.
+    Generate the vector representation of a number state.
 	
-    a subtle incompability with the quantum optics toolbox: here
+    a subtle incompability with the quantum optics toolbox: here::
+
         basis(N, 0) = ground state
-    but in QO toolbox:
+
+    but in QO toolbox::
+
         basis(N, 1) = ground state
 	
-    @param N *int* the number of states
-    @param args *int* corresponding to desired number state
+    N *int* the number of states
+    args *int* corresponding to desired number state
     
-    @returns *Qobj* instance representing the requested number state |args>
+    Returns *Qobj* instance representing the requested number state |args>
     """
     if (not isinstance(N,int)) or N<0:#check if N is int and N>0
         raise ValueError("N must be integer N>=0")
@@ -57,12 +55,12 @@ def basis(N,*args):
 # Function for specific basis
 #
 def qutrit_basis():
-    ''' 
-    @brief Return the basis states for a three level system (qutrit)
+    """
+    Return the basis states for a three level system (qutrit)
     
-    @params None
+    Parameters None
     
-    @returns *array* of qutrit basis vectors
-    '''
+    Returns *array* of qutrit basis vectors
+    """
     return array([basis(3,0), basis(3,1), basis(3,2)])
 
