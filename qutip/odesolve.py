@@ -17,7 +17,6 @@
 #
 ###########################################################################
 
-import random
 from types import *
 from scipy.integrate import *
 from tidyup import tidyup
