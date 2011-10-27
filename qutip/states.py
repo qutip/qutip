@@ -35,7 +35,7 @@ def basis(N,*args):
     N the number of states
     args integer corresponding to desired number state
     
-    Returns quantum object representing the requested number state |args>
+    Returns quantum object representing the requested number state ``|args>``
     """
     if (not isinstance(N,int)) or N<0:
         raise ValueError("N must be integer N>=0")
@@ -136,7 +136,7 @@ def fock(N, *args):
     N the number of states in the Hilbert space
     m int corresponding to desired number state, defaults to 0 if omitted
     
-    Returns Qobj quantum object representing the requested number state |args>
+    Returns Qobj quantum object representing the requested number state ``|args>``
     """
     if not args:
         return basis(N)
@@ -172,18 +172,6 @@ def ket2dm(Q):
     else:
         raise TypeError("Input is not a ket or bra vector.")
     return Qobj(out)
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

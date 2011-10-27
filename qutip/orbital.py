@@ -25,17 +25,19 @@ from istests import isket
 def orbital(theta,phi,*args):
 	"""
 	Calculates an angular wave function on a sphere
-	    psi = orbital(theta,phi,ket1,ket2,...) calculates the angular wave function 
-	    on a sphere at the mesh of points defined by theta and phi which is 
+        ``psi = orbital(theta,phi,ket1,ket2,...)`` calculates the angular wave function 
+	on a sphere at the mesh of points defined by theta and phi which is 
         SUM_{lm} C_{lm} Y_{lm}(theta,phi)
         where c_{lm} are the coefficients specified by the list of kets. Each ket has 2l+1 
         components for some integer l.
     
-    Parameter theta *list/array* of polar angles
-    Parameter phi *list/array* of azimuthal angles
-    Parameter args *list/array* of key vectors
+        Parameter theta (*list/array*) of polar angles.
+
+        Parameter phi (*list/array*) of azimuthal angles.
+
+        Parameter args (*list/array*) of key vectors.
     
-    Returns *array* angular wave function                 
+        Returns *array* angular wave function                 
 	"""
 	psi=0.0
 	if isinstance(args[0],list):

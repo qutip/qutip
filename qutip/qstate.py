@@ -25,7 +25,7 @@ from tensor import *
 def qstate(string):
 	"""
 	Creates a tensor product for a set of qubits in either 
-	the 'up' |0> or 'down' |1> state.
+	the 'up' ``|0>`` or 'down' ``|1>`` state.
     
         Parameter *string* containing 'u' or 'd' for each qubit (ex. 'ududd')
 

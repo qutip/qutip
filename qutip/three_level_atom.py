@@ -22,21 +22,21 @@ three level atom with QuTiP.  A three level atom (qutrit) has three states,
 which are linked by dipole transitions so that 1 <-> 2 <-> 3.
 Depending on there relative energies they are in the ladder, lambda or
 vee configuration. The structure of the relevant operators is the same
-for any of the three configurations.
+for any of the three configurations::
 
-Ladder:          Lambda:                 Vee:
-                            |two>                       |three>
-  -------|three>           -------                      -------
-     |                       / \             |one>         /
-     |                      /   \           -------       /
-     |                     /     \             \         /
-  -------|two>            /       \             \       /
-     |                   /         \             \     /
-     |                  /           \             \   /
-     |                 /        --------           \ /
-  -------|one>      -------      |three>         -------
-                     |one>                       |two>
-
+    Ladder:          Lambda:                 Vee:
+                                |two>                       |three>
+      -------|three>           -------                      -------
+         |                       / \             |one>         /
+         |                      /   \           -------       /
+         |                     /     \             \         /
+      -------|two>            /       \             \       /
+         |                   /         \             \     /
+         |                  /           \             \   /
+         |                 /        --------           \ /
+      -------|one>      -------      |three>         -------
+                         |one>                       |two>
+   
 The naming of qutip operators follows the convention in the book "The
 Theory of Coherent Atomic excitation" by B. W. Shore.
 
