@@ -21,7 +21,7 @@ from Qobj import *
 
 class eseries:
     """
-    @brief Class representation of an exponential-series expansion of time-dependent quantum objects.
+    Class representation of an exponential-series expansion of time-dependent quantum objects.
     """
     __array_priority__=101
     def __init__(self,q=array([]),s=array([])):
@@ -167,9 +167,9 @@ class eseries:
     # evaluate the eseries for a list of times
     #
     def value(self, tlist):
-        '''
+        """
         Evaluate an exponential series at the times listed in tlist. 
-        '''
+        """
 
         if self.ampl == None or len(self.ampl) == 0:
             # no terms, evalue to zero
@@ -206,9 +206,9 @@ class eseries:
             return val_list
 
     def spec(es, wlist):
-        '''
+        """
         Evaluate the spectrum of an exponential series at frequencies in wlist. 
-        '''
+        """
         val_list = zeros(size(wlist))
 
         for i in range(len(wlist)):
