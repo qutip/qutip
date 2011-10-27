@@ -1,5 +1,6 @@
 .. QuTiP 
    Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+
 Installation
 *************
 
@@ -38,7 +39,7 @@ QuTiP requires the following packages to run:
 | Headers    |              |                                                     |
 +------------+--------------+-----------------------------------------------------+
 
-On all platforms (Linux, Mac, Windows), QuTiP works "out-of-the-box" using the http://www.enthought.com/products/epd.php Enthought Python Distribution version 7.1 or higher.  This distribution is created by the developers of Numpy and Scipy, and is free for academic use.
+On all platforms (Linux, Mac, Windows), QuTiP works "out-of-the-box" using the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher.  This distribution is created by the developers of Numpy and Scipy, and is free for academic use.
 
 Installation on Ubuntu Linux
 ++++++++++++++++++++++++++++
@@ -68,16 +69,16 @@ Installation on Mac OS X (10.6+)
 
 If you have not done so already, install the Apple XCode developer tools from the Apple App Store.
 
-On the Mac, it is recommended that you install the required libraries via *[http://www.macports.org/ MacPorts]*.  After installing with MacPorts, you may need to change your matplotlib backend
+On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installing with MacPorts, you may need to change your matplotlib backend
 
 >>> sudo open -a TextEdit /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/matplotlib/mpl-data/matplotlibrc
 
-on line #31 to read 
+on line #31 to read:
 
 >>> backend      : MacOSX
 
 
-One can also use the *[http://www.enthought.com/products/epd.php Enthought Python Distribution]* version 7.1 or higher to satisfy the QuTiP dependencies.  
+One can also use the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher to satisfy the QuTiP dependencies.  
 
 A further possibility is to use the *[http://stronginference.com/scipy-superpack/ Scipy Superpack installer script]*.  In order to have GUI elements using this method, you need to further install the Qt4 and PySide packages at:
 
@@ -93,7 +94,7 @@ Installing QuTiP is the same as on linux.  From the QuTiP directory:
 Installation on Microsoft Windows
 +++++++++++++++++++++++++++++++++
 
-The developers of QuTiP have not touched Windows in several years, and will be continuing this trend for the foreseeable future.  Therefore we recommend the *[http://www.enthought.com/products/epd.php Enthought Python Distribution]* version 7.1 or higher to satisfy the QuTiP dependencies. QuTiP has also been reported to work out-of-the-box with http://www.pythonxy.com Python(x,y).
+The developers of QuTiP have not touched Windows in several years, and will be continuing this trend for the foreseeable future.  Therefore we recommend the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher to satisfy the QuTiP dependencies. QuTiP has also been reported to work out-of-the-box with `Python(x,y) <http://www.pythonxy.com>`_.
 
 Does it work?
 =============
