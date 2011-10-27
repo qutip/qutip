@@ -23,11 +23,11 @@ from states import ket2dm
 
 def entropy_vn(rho,base='2'):
     """
-    @brief Von-Neumann entropy of density matrix
+    Von-Neumann entropy of density matrix
     
-    @param rho *Qobj* density matrix
+    Parameter rho *Qobj* density matrix
     
-    @returns *float* entropy
+    Returns *float* entropy
     """
     vals,vecs=la.eigh(rho.full())
     nzvals=vals[vals!=0]
@@ -42,11 +42,11 @@ def entropy_vn(rho,base='2'):
 
 def entropy_linear(rho):
     """
-    @brief Linear entropy of density matrix
+    Linear entropy of density matrix
     
-    @param rho *Qobj* density matrix or ket/bra
+    Parameter rho *Qobj* density matrix or ket/bra
     
-    @returns *float* if rho is Hermitian, *complex* otherwise
+    Returns *float* if rho is Hermitian, *complex* otherwise
     
     """
     if rho.type=='ket' or rho.type=='bra':
@@ -57,12 +57,12 @@ def entropy_linear(rho):
 
 def concurrence(rho):
     """
-    @brief Calculate the concurrence entanglement measure for 
+    Calculate the concurrence entanglement measure for 
         a two-qubit state.
     
-    @param rho *Qobj* density matrix
+    Parameter rho *Qobj* density matrix
     
-    @returns *float* concurrence
+    Returns *float* concurrence
     """
     sysy = tensor(sigmay(), sigmay())
 

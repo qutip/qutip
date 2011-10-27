@@ -19,17 +19,18 @@
 from scipy import any,prod,allclose,shape
 import scipy.linalg as la
 from numpy import where
-##@package istests
-#Set of tests used to determine type of quantum objects
-#
+
+"""
+Set of tests used to determine type of quantum objects
+"""
 
 def isket(Q):
     """
-    @brief Determines if given quantum object is a ket-vector
+    Determines if given quantum object is a ket-vector
 	
-	@param Q *Qobj* quantum object
+	Parameter Q *Qobj* quantum object
 	
-	@return *bool* True or False
+	Return *bool* True or False
 	"""
     result = isinstance(Q.dims[0],list)
     if result:
@@ -39,11 +40,11 @@ def isket(Q):
 #***************************
 def isbra(Q):
 	"""
-	@brief Determines if given quantum object is a bra-vector
+	Determines if given quantum object is a bra-vector
 	
-	@param Q *Qobj* quantum object
+	Parameter Q *Qobj* quantum object
 	
-	@returns *bool* True or False
+	Returns *bool* True or False
 	"""
 	result = isinstance(Q.dims[1],list)
 	if result:
@@ -54,11 +55,11 @@ def isbra(Q):
 #***************************
 def isoper(Q):
 	"""
-	@brief Determines if given quantum object is a operator
+	Determines if given quantum object is a operator
 	
-	@param Q *Qobj* quantum object
+	Parameter Q *Qobj* quantum object
 	
-	@returns *bool* True or False
+	Returns *bool* True or False
 	"""
 	return isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0], int) and (Q.dims[0]==Q.dims[1])
 	
@@ -66,11 +67,11 @@ def isoper(Q):
 #***************************
 def issuper(Q):
 	"""
-	@brief Determines if given quantum object is a super-operator
+	Determines if given quantum object is a super-operator
 	
-	@param Q *Qobj* quantum object
+	Parameter Q *Qobj* quantum object
 	
-	@returns *bool* True or False
+	Returns *bool* True or False
 	"""
 	result = isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0],list)
 	if result:
@@ -81,14 +82,14 @@ def issuper(Q):
 #**************************
 def isequal(A,B,rtol=1e-10,atol=1e-12):
     """
-    @brief Determines if two array objects are equal to within tolerances
+    Determines if two array objects are equal to within tolerances
     
-    @param A *array* array one
-    @param B *array* array two
-    @param rtol *float* relative tolerence
-    @param atol *float* absolute tolerence
+    Parameter A *array* array one
+    Parameter B *array* array two
+    Parameter rtol *float* relative tolerence
+    Parameter atol *float* absolute tolerence
     
-    @returns *bool* True or False
+    Returns *bool* True or False
     """
     if shape(A)!=shape(B):
         raise TypeError('Inputs do not have same shape.')
@@ -120,11 +121,11 @@ def ischeck(Q):
 #**************************
 def isherm(oper):
     """
-    @brief Determines whether a given operator is Hermitian
+    Determines whether a given operator is Hermitian
     
-    @param oper *Qobj* input quantum object
+    Parameter oper *Qobj* input quantum object
     
-    @returns *bool* True if operator is Hermitian, False otherwise
+    Returns *bool* True if operator is Hermitian, False otherwise
     """
     if oper.dims[0]!=oper.dims[1]:
         return False

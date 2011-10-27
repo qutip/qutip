@@ -16,20 +16,19 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
+
+"""
+Module for aboutbox or command line ouput of information on QuTiP and dependencies.
+"""
+
 import sys,os
 import numpy,scipy
-##@package about
-#Module for aboutbox or command line ouput 
-#of information on QuTiP and dependencies.
-#@version 0.1
-#@date 2011
-#
 
 CD_BASE = os.path.dirname(__file__) # get directory of about.py file
 execfile(os.path.join(CD_BASE, "_version.py")) #execute _version.py file in CD_BASE directory
 def about():
     """
-    @brief About box for qutip.
+    About box for qutip.
         Gives version numbers for 
         QuTiP, NumPy, SciPy, and MatPlotLib.
         GUI version requires PySide or PyQt4.

@@ -42,9 +42,9 @@ def _blob(x, y, w, w_max, area):
 # Adopted from the SciPy Cookbook.
 def hinton(rho):
     """
-    @brief Draws a Hinton diagram for visualizing a density matrix. 
+    Draws a Hinton diagram for visualizing a density matrix. 
     
-    @param rho *Qobj* Input density matrix
+    Parameter rho *Qobj* Input density matrix
     """
     if not isoper(rho):
         raise ValueError("argument must be a quantum operator")

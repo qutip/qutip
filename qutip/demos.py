@@ -22,7 +22,7 @@ from examples import exconfig
 from scipy import arange,array,any
 def demos():
     """
-    @brief Function that calls the demos scripts.
+    Function that calls the demos scripts.
     """
     if os.environ['QUTIP_GRAPHICS']=='YES':
         from gui import Examples

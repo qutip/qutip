@@ -27,7 +27,7 @@ def parallel():
 
 def graphics(flag=None,value=None):
     """
-    @brief Allows user to view and change the QuTiP flags for graphics.
+    Allows user to view and change the QuTiP flags for graphics.
     """
     
     if flag==None and value==None:

@@ -23,11 +23,11 @@ from Qobj import Qobj
 
 def tensor(*args):
     """
-    @brief calculates tensor product from input operators
+    calculates tensor product from input operators
     
-    @param args *list/array* of quantum objects 
+    Parameter args *list/array* of quantum objects 
     
-    @returns *Qobj* composite quantum object
+    Returns *Qobj* composite quantum object
     """
     if not args:
         raise TypeError("Requires at least one input argument")

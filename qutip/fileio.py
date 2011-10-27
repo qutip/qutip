@@ -182,10 +182,10 @@ def file_data_read(datafile, sep=None):
 
 def qsave(data=None,filename='qdata'):
     """
-    @brief Saves given data to file named 'filename.qu'
+    Saves given data to file named 'filename.qu'
     
-    @param data input data to be stored
-    @param filename *str* name of datafile
+    Parameter data input data to be stored
+    Parameter filename *str* name of datafile
     
     """
     fileObject = open(filename+'.qu','w') # open the file for writing
@@ -195,11 +195,11 @@ def qsave(data=None,filename='qdata'):
 
 def qload(filename):
     """
-    @brief Loads data file from file named 'filename.qu'
+    Loads data file from file named 'filename.qu'
     
-    @param filename *str* name of datafile
+    Parameter filename *str* name of datafile
     
-    @returns object stored in file
+    Returns object stored in file
     """
     fileObject = open(filename+'.qu','r')  #open the file for reading
     out=pickle.load(fileObject)  #return the object from the file 

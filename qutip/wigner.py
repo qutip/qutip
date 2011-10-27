@@ -29,14 +29,14 @@ from istests import *
     
 def wigner(psi,xvec,yvec,g=sqrt(2)):
     """
-    @brief Calculates the Wigner function of a given state vector or density matrix at points xvec+i*yvec
+    Calculates the Wigner function of a given state vector or density matrix at points xvec+i*yvec
     
-    @param state *Qobj* representing a state vector or density matrix
-    @param xvec *list/array* of x-coordinates at which to calculate the Wigner function
-    @param yvec *list/array* of y-coordinates at which to calculate the Wigner function
-    @param g (optional) *float* scaling factor for a = 0.5*g*(x+iy), default g=sqrt(2)
+    Parameter state *Qobj* representing a state vector or density matrix
+    Parameter xvec *list/array* of x-coordinates at which to calculate the Wigner function
+    Parameter yvec *list/array* of y-coordinates at which to calculate the Wigner function
+    Parameter g (optional) *float* scaling factor for a = 0.5*g*(x+iy), default g=sqrt(2)
     
-    @returns *array* of values representing the Wigner function calculated over the specified range
+    Returns *array* of values representing the Wigner function calculated over the specified range
     """
     if psi.type=='ket' or psi.type=='oper':
         M=prod(psi.shape[0])
@@ -72,14 +72,14 @@ def wigner(psi,xvec,yvec,g=sqrt(2)):
 #
 def qfunc(state, xvec, yvec, g=sqrt(2)):
     """
-    @brief Calculates the Q function of a given state vector or density matrix at points xvec+i*yvec
+    Calculates the Q function of a given state vector or density matrix at points xvec+i*yvec
     
-    @param state *Qobj* representing a state vector or density matrix
-    @param xvec *list/array* of x-coordinates at which to calculate the Q function
-    @param yvec *list/array* of y-coordinates at which to calculate the Q function
-    @param g (optional) *float* scaling factor for a = 0.5*g*(x+iy), default g=sqrt(2)
+    Parameter state *Qobj* representing a state vector or density matrix
+    Parameter xvec *list/array* of x-coordinates at which to calculate the Q function
+    Parameter yvec *list/array* of y-coordinates at which to calculate the Q function
+    Parameter g (optional) *float* scaling factor for a = 0.5*g*(x+iy), default g=sqrt(2)
     
-    @returns array returns array of values representing the Q function calculated over the specified range
+    Returns array returns array of values representing the Q function calculated over the specified range
     """
     X,Y = meshgrid(xvec, yvec)
     amat = 0.5*g*(X + Y * 1j);

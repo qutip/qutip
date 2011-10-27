@@ -43,15 +43,15 @@ def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None, options=None)
     at that point in time. H_args is a list of parameters that is
     passed to the callback function H (only used for time-dependent Hamiltonians).
     
-    @brief Master equation evolution of a density matrix for a given Hamiltonian.
+    Master equation evolution of a density matrix for a given Hamiltonian.
     
-    @param H *Qobj* Hamiltonian
-    @param psi0 *Qobj* initial state vector
-    @param tlist *list/array* of times
-    @param collapse_ops *list/array* or collapse operators
-    @param expect_ops *list/array* of expectation operators
-    @param H_args *list/array* of arguments for time-dependent Hamiltonians
-    @param options *Odeoptions* instance of ODE solver options
+    Parameter H *Qobj* Hamiltonian
+    Parameter psi0 *Qobj* initial state vector
+    Parameter tlist *list/array* of times
+    Parameter collapse_ops *list/array* or collapse operators
+    Parameter expect_ops *list/array* of expectation operators
+    Parameter H_args *list/array* of arguments for time-dependent Hamiltonians
+    Parameter options *Odeoptions* instance of ODE solver options
 
     Notes on using callback function:
 
@@ -81,7 +81,7 @@ def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None, options=None)
 # 
 def wf_ode_solve(H, psi0, tlist, expt_op_list, H_args, opt):
     """!
-    @brief Evolve the wave function using an ODE solver
+    Evolve the wave function using an ODE solver
     """
     if isinstance(H, FunctionType):
         return wf_ode_solve_td(H, psi0, tlist, expt_op_list, H_args, opt)
@@ -149,7 +149,7 @@ def psi_ode_func(t, psi, H):
 # 
 def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list, H_args, opt):
     """!
-    @brief Evolve the wave function using an ODE solver with time-dependent
+    Evolve the wave function using an ODE solver with time-dependent
     Hamiltonian.
     """
 
@@ -224,7 +224,7 @@ def psi_ode_func_td(t, psi, H_func_and_args):
 # 
 def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     """!
-    @brief Evolve the density matrix using an ODE solver
+    Evolve the density matrix using an ODE solver
     """
     n_op= len(c_op_list)
 
@@ -316,7 +316,7 @@ def rho_ode_func(t, rho, L):
 # 
 def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     """!
-    @brief Evolve the density matrix using an ODE solver with time dependent
+    Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
     """
     n_op= len(c_op_list)

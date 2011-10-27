@@ -24,9 +24,9 @@ from Qobj import *
 def cnot():
 	"""
 	Returns quantum object representing the CNOT gate.
-	@brief CNOT gate
+	CNOT gate
 	
-	@return *Qobj* quantum object representation of CNOT gate
+	Return *Qobj* quantum object representation of CNOT gate
 	"""
 	uu=qstate('uu')
 	ud=qstate('ud')
@@ -40,9 +40,9 @@ def cnot():
 def fredkin():
 	"""
 	Returns quantum object representing the Fredkin gate.
-	@brief Freidkin gate
+	Freidkin gate
 	
-	@return *Qobj* quantum object representation of Fredkin gate
+	Return *Qobj* quantum object representation of Fredkin gate
 	"""
 	uuu = qstate('uuu')
 	uud = qstate('uud') 
@@ -60,9 +60,9 @@ def fredkin():
 def toffoli():
 	"""
 	Returns quantum object representing the Toffoli gate.
-	@brief Toffoli gate
+	Toffoli gate
 	
-	@return *Qobj* quantum object representation of Toffoli gate
+	Return *Qobj* quantum object representation of Toffoli gate
 	"""
 	uuu = qstate('uuu') 
 	uud = qstate('uud') 
@@ -79,9 +79,9 @@ def toffoli():
 def swap():
     """
     Returns quantum object representing the SWAP gate.
-    @brief SWAP gate
+    SWAP gate
     
-    @return *Qobj* quantum object representation of SWAP gate
+    Return *Qobj* quantum object representation of SWAP gate
     """
     uu=qstate('uu')
     ud=qstate('ud')
@@ -94,9 +94,9 @@ def swap():
 def hadamard():
     """
     Returns quantum object representing the Hadamard gate.
-    @brief Hadamard gate
+    Hadamard gate
     
-    @return *Qobj* quantum object representation of Hadamard gate
+    Return *Qobj* quantum object representation of Hadamard gate
     """
     u=qstate('u')
     d=qstate('d')
@@ -106,9 +106,9 @@ def hadamard():
 def snot():
     """
     Returns quantum object representing the SNOT (Hadamard) gate.
-    @brief SNOT (Hadamard) gate
+    SNOT (Hadamard) gate
     
-    @return *Qobj* quantum object representation of SNOT (Hadamard) gate
+    Return *Qobj* quantum object representation of SNOT (Hadamard) gate
     """
     return hadmrd()	
 
@@ -116,10 +116,10 @@ def snot():
 def phasegate(theta):
     """
     Returns quantum object representing the phase shift gate.
-    @brief phase shift gate
+    phase shift gate
         param theta Phase rotation angle
     
-    @return *Qobj* quantum object representation of phase shift gate
+    Return *Qobj* quantum object representation of phase shift gate
     """
     u=qstate('u')
     d=qstate('d')

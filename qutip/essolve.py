@@ -38,17 +38,17 @@ def essolve(H, rho0, tlist, c_op_list, expt_op_list):
 
     This solver does not support time-dependent Hamiltonians.
     
-    @brief Evolution of a state vector or density matrix (rho0) for a given
+    Evolution of a state vector or density matrix (rho0) for a given
         Hamiltonian (H) and set of collapse operators (c_op_list), by expressing
         the ODE as an exponential series.
     
-    @param H *Qobj* Hamiltonian
-    @param rho0 *Qobj* state vector or density matrix
-    @param tlist *list/array* of times
-    @param c_op_list *list/array* of collapse operators
-    @param expt_op_list *list/array* of expectation operators
+    Parameter H *Qobj* Hamiltonian
+    Parameter rho0 *Qobj* state vector or density matrix
+    Parameter tlist *list/array* of times
+    Parameter c_op_list *list/array* of collapse operators
+    Parameter expt_op_list *list/array* of expectation operators
     
-    @returns *array* of expectation values for expt_ops
+    Returns *array* of expectation values for expt_ops
     """
     n_expt_op = len(expt_op_list)
     n_tsteps  = len(tlist)
@@ -77,14 +77,14 @@ def essolve(H, rho0, tlist, c_op_list, expt_op_list):
 #
 def ode2es(L, rho0):
     """
-    @brief Create an exponential series that describes the time evolution for the
+    Create an exponential series that describes the time evolution for the
         initial density matrix (or state vector) rho0, given the Liouvillian 
         (or Hamiltonian) L.
     
-    @param L *Qobj* Liouvillian 
-    @param rho0 *Qobj* state vector or density matrix
+    Parameter L *Qobj* Liouvillian 
+    Parameter rho0 *Qobj* state vector or density matrix
     
-    @returns *eseries*
+    Returns *eseries*
     """
 
     if issuper(L):

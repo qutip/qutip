@@ -19,14 +19,14 @@
 from scipy import *
 def sphereplot(theta,phi,values,save=False):
 	"""
-	@brief Plots a matrix of values on a sphere
+	Plots a matrix of values on a sphere
 	
-	@param theta Angle with respect to z-axis
-	@param phi Angle in x-y plane 
-	@param values data set to be plotted
-	@param save Whether to save the figure or not
+	Parameter theta Angle with respect to z-axis
+	Parameter phi Angle in x-y plane 
+	Parameter values data set to be plotted
+	Parameter save Whether to save the figure or not
 	
-	@return None Plots figure, but returns nothing
+	Return None Plots figure, but returns nothing
 	"""
 	from matplotlib import pyplot, mpl,cm
 	from pylab import plot,show,meshgrid,figure,savefig

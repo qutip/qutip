@@ -16,23 +16,25 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
+
+"""
+Collection of metrics (distance measures) between density matricies
+"""
+
 from Qobj import *
 import scipy.linalg as la
 from scipy import real
-##@package metrics
-#Collection of metrics (distance measures) between density matricies
-#@version 0.1
-#@date 2011
+
 
 def fidelity(A,B):
     """
-    @brief Calculates the fidelity (pseudo-metric) between two density matricies.
+    Calculates the fidelity (pseudo-metric) between two density matricies.
         See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
     
-    @param  A *Qobj* density matrix
-    @param  B *Qobj* density matrix with same dimensions as A
+    Parameter  A *Qobj* density matrix
+    Parameter  B *Qobj* density matrix with same dimensions as A
     
-    @return  *float*  fidelity
+    Return  *float*  fidelity
     """
     if A.dims!=B.dims:
         raise TypeError('Density matricies do not have same dimensions.')
@@ -43,13 +45,13 @@ def fidelity(A,B):
 
 def tracedist(A,B):
     """
-    @brief Calculates the trace distance between two density matricies.
+    Calculates the trace distance between two density matricies.
         See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
     
-    @param   A  *Qobj* density matrix
-    @param   B  *Qobj* density matrix with same dimensions as A
+    Parameter   A  *Qobj* density matrix
+    Parameter   B  *Qobj* density matrix with same dimensions as A
     
-    @return  *float*  trace distance
+    Return  *float*  trace distance
     """
     if A.dims!=B.dims:
         raise TypeError('Density matricies do not have same dimensions.')

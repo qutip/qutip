@@ -22,12 +22,12 @@ from Qobj import *
 
 def tidyup(op,Atol=1e-8):
     """
-    @brief Removes small elements from a Qobj
+    Removes small elements from a Qobj
     
-    @param op *Qobj* input quantum object
-    @param Atol *float* absolute tolerance
+    Parameter op *Qobj* input quantum object
+    Parameter Atol *float* absolute tolerance
     
-    @returns *Qobj* with small elements removed
+    Returns *Qobj* with small elements removed
     """
     mx=max(abs(op.data.data))
     data=abs(op.data.data)

@@ -31,12 +31,12 @@ from basis import qutrit_basis
 
 def jmat(j,*args):
     """
-    @brief Higher-order spin operators
+    Higher-order spin operators
     
-    @param j *float* spin
-    @param args *str* which operator to return 'x','y','z','+','-'
+    Parameter j *float* spin
+    Parameter args *str* which operator to return 'x','y','z','+','-'
     
-    @returns *Qobj* spin operator
+    Returns *Qobj* spin operator
     """
     if (fix(2*j)!=2*j) or (j<0):
         raise TypeError('j must be a non-negative integer or half-integer')
@@ -77,31 +77,31 @@ def jz(j):
 
 def sigmap():
     """
-    @brief creation operator for Pauli spins.
+    creation operator for Pauli spins.
     """
     return jmat(1/2.,'+')
 
 def sigmam():
     """
-    @brief annihilation operator for Pauli spins.
+    annihilation operator for Pauli spins.
     """
     return jmat(1/2.,'-')
 
 def sigmax():
     """
-    @brief Pauli spin 1/2 sigma x operator
+    Pauli spin 1/2 sigma x operator
     """
     return 2.0*jmat(1.0/2,'x')
 
 def sigmay():
     """
-    @brief Pauli spin 1/2 sigma y operator
+    Pauli spin 1/2 sigma y operator
     """
     return 2.0*jmat(1.0/2,'y')
 
 def sigmaz():
     """
-    @brief Pauli spin 1/2 sigma z operator
+    Pauli spin 1/2 sigma z operator
     """
     return 2.0*jmat(1.0/2,'z')
 
@@ -113,11 +113,11 @@ def sigmaz():
 #
 def destroy(N):
     '''
-    @brief Destruction (lowering) operator
+    Destruction (lowering) operator
     
-    @param N *int* dimension of hilbert space
+    Parameter N *int* dimension of hilbert space
     
-    @returns *Qobj*
+    Returns *Qobj*
     '''
     if not isinstance(N,int):#raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
@@ -129,11 +129,11 @@ def destroy(N):
 #
 def create(N):
     '''
-    @brief Creation (raising) operator
+    Creation (raising) operator
     
-    @param N *int* dimension of hilbert space
+    Parameter N *int* dimension of hilbert space
     
-    @returns *Qobj*
+    Returns *Qobj*
     '''
     if not isinstance(N,int):#raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
@@ -148,11 +148,11 @@ def create(N):
 #
 def qeye(N):
     """
-    @brief Identity operator
+    Identity operator
     
-    @param N *int* dimension of hilbert space
+    Parameter N *int* dimension of hilbert space
     
-    @returns *Qobj*
+    Returns *Qobj*
     """
     N=int(N)
     if (not isinstance(N,int)) or N<0:#check if N is int and N>0
@@ -162,11 +162,11 @@ def qeye(N):
 
 def num(N):
     '''
-    @brief Number operator
+    Number operator
     
-    @param N *int* dimension of hilbert space
+    Parameter N *int* dimension of hilbert space
     
-    @returns *Qobj*
+    Returns *Qobj*
     '''
     data=sp.spdiags(arange(N),0,N,N,format='csr')
     return Qobj(data)
@@ -174,12 +174,12 @@ def num(N):
 
 def squeez(N,sp):
     '''
-    @brief single-mode Squeezing operator
+    single-mode Squeezing operator
     
-    @param N *int* dimension of hilbert space
-    @param sp *real* or *complex* squeezing parameter
+    Parameter N *int* dimension of hilbert space
+    Parameter sp *real* or *complex* squeezing parameter
     
-    @returns *Qobj*
+    Returns *Qobj*
     '''
     a=destroy(N)
     op=(1/2.0)*conj(sp)*(a**2)-(1/2.0)*sp*(a.dag())**2
@@ -188,12 +188,12 @@ def squeez(N,sp):
 
 def displace(N,alpha):
     '''
-    @brief Single-mode displacement operator
+    Single-mode displacement operator
     
-    @param N *int* dimension of hilbert space
-    @param alpha *real* or *complex* displacment amplitude
+    Parameter N *int* dimension of hilbert space
+    Parameter alpha *real* or *complex* displacment amplitude
     
-    @returns *Qobj*
+    Returns *Qobj*
     '''
     a=destroy(N)
     D=(alpha*a.dag()-conj(alpha)*a).expm()
@@ -204,11 +204,11 @@ def displace(N,alpha):
 #
 def qutrit_ops():
     ''' 
-    @brief Return the operators for a three level system (qutrit)
+    Return the operators for a three level system (qutrit)
     
-    @params None
+    Parameters None
     
-    @returns *array* of qutrit operators
+    Returns *array* of qutrit operators
     '''
     one, two, three = qutrit_basis()
     sig11 = one * one.dag()

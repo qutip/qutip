@@ -36,22 +36,22 @@ from cyQ.ode_rhs import cyq_ode_rhs
 def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeoptions()):
     vout=varargout()
     """
-    @brief Monte-Carlo evolution of a state vector |psi> for a given
+    Monte-Carlo evolution of a state vector |psi> for a given
         Hamiltonian and sets of collapse operators and operators
         for calculating expectation values.
     
         Options for solver are given by the Odeoptions class.
     
-    @param H *Qobj* Hamiltonian
-    @param psi0 *Qobj* initial state vector
-    @param tlist *list/array* of times
-    @param ntraj *int* number of trajectories to run
-    @param collapse_ops *list/array* or collapse operators
-    @param expect_ops *list/array* of expectation operators
-    @param H_args *list/array* of arguments for time-dependent Hamiltonians
-    @param options *Odeoptions* instance of ODE solver options
+    Parameter H *Qobj* Hamiltonian
+    Parameter psi0 *Qobj* initial state vector
+    Parameter tlist *list/array* of times
+    Parameter ntraj *int* number of trajectories to run
+    Parameter collapse_ops *list/array* or collapse operators
+    Parameter expect_ops *list/array* of expectation operators
+    Parameter H_args *list/array* of arguments for time-dependent Hamiltonians
+    Parameter options *Odeoptions* instance of ODE solver options
     
-    @returns
+    Returns
         Collapse ops  Expectation ops  Num. of outputs  Return value(s)
         ------------  ---------------  ---------------  ---------------
             NO	            NO	              1	         List of state vectors

@@ -22,11 +22,11 @@ from varargout import varargout
 
 def simdiag(ops):
     """
-    @brief Simulateous diagonalization of communting Hermitian matricies
+    Simulateous diagonalization of communting Hermitian matricies
     
-    @param ops *list/aray* of commuting, Hermitian operators
+    Parameter ops *list/aray* of commuting, Hermitian operators
     
-    @returns eigvecs,eigvals *array* of quantum objects corresponding to simultaneous eigenvectors 
+    Returns eigvecs,eigvals *array* of quantum objects corresponding to simultaneous eigenvectors 
         and *array* of eigenvalues for each operator along rows.
     """
     outputs=varargout()
