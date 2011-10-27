@@ -24,12 +24,15 @@ from Qobj import *
 
 def ptrace(rho,sel):
     """
-    Compute partial trace of composite quantum object
+    Compute partial trace of composite quantum object formed by :func:`qutip.tensor`
     
-    rho *Qobj* Input composite quantum object
-    sel  *int* or *list/array* of integers for components to keep.
+    Arguments:
     
-    Returns  rho *Qobj* Density matrix of components from sel
+        rho (*Qobj*): Input composite quantum object
+    
+        sel (*int* or *list/array*): index or indices for components to keep.
+    
+    Returns the density matrix of components from sel as a *Qobj* 
     """
     if isinstance(sel,int):
         sel=array([sel])
@@ -72,7 +75,7 @@ def ptrace(rho,sel):
 
 
 def list2ind(ilist,dims):
-	"""
+	"""!
 	Private function returning indicies
 	"""
 	ilist=asarray(ilist)

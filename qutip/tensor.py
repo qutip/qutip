@@ -23,11 +23,24 @@ from Qobj import Qobj
 
 def tensor(*args):
     """
-    calculates tensor product from input operators
+    Calculate the tensor product of input operators. 
     
-    Parameter args *list/array* of quantum objects 
+    Arguments:
     
-    Returns *Qobj* composite quantum object
+        args (*list/array*): list or array of quantum objects.
+        
+    Returns a composite quantum object *Qobj*.
+    
+    Example::
+    
+        >>> tensor([sigmax(), sigmax()])
+        Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
+        Qobj data = 
+        [[ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]
+         [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]
+         [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
+         [ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]]
+    
     """
     if not args:
         raise TypeError("Requires at least one input argument")
