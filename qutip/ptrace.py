@@ -24,12 +24,12 @@ from Qobj import *
 
 def ptrace(rho,sel):
     """
-    @brief Compute partial trace of composite quantum object
+    Compute partial trace of composite quantum object
     
-    @param   rho *Qobj* Input composite quantum object
-    @param   sel  *int* or *list/array* of integers for components to keep.
+    rho *Qobj* Input composite quantum object
+    sel  *int* or *list/array* of integers for components to keep.
     
-    @returns  rho *Qobj* Density matrix of components from sel
+    Returns  rho *Qobj* Density matrix of components from sel
     """
     if isinstance(sel,int):
         sel=array([sel])

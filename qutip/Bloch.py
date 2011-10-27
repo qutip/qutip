@@ -24,25 +24,25 @@ from operators import *
 
 class Bloch():
     """
-    @brief Class for plotting data on the Bloch sphere.
+    Class for plotting data on the Bloch sphere.
     """
     def __init__(self):
         #---sphere options---
-        ##set the size of the figure
+        #: The size of the figure
         self.size=[7,7]
-        ##Set Azimuthal and Elvation viewing angles, default = [-60,30]
+        #: Azimuthal and Elvation viewing angles, default = [-60,30]
         self.view=[-60,30]
-        ##Sphere_color: color of Bloch sphere, default = #FFDDDD
+        #: Sphere_color: color of Bloch sphere, default = #FFDDDD
         self.sphere_color='#FFDDDD'
-        ##Transparency of sphere, default = 0.2
+        #: Transparency of sphere, default = 0.2
         self.sphere_alpha=0.2
         
         #---frame options---
-        ##Color of wireframe, default = gray
+        #: Color of wireframe, default = gray
         self.frame_color='gray'
-        ##Width of wireframe, default = 1
+        #: Width of wireframe, default = 1
         self.frame_width=1
-        ##Transparency of wireframe, default = 0.2
+        #: Transparency of wireframe, default = 0.2
         self.frame_alpha=0.2
         
         #---axes label options---
@@ -56,23 +56,23 @@ class Bloch():
         self.zlabel=['$\left|0\\right>$','$\left|1\\right>$']
         self.zlpos=[1.2,-1.2]
         #---font options---
-        ##Color of fonts, default = black
+        #: Color of fonts, default = black
         self.font_color='black'
-        ##Size of fonts, default = 20
+        #: Size of fonts, default = 20
         self.font_size=20
         
         #---vector options---
-        ##List of colors for Bloch vectors, default = ['b','g','r','y']
+        #: List of colors for Bloch vectors, default = ['b','g','r','y']
         self.vector_color=['g','#CC6600','b','r']
-        ##Width of Bloch vectors, default = 3
+        #: Width of Bloch vectors, default = 3
         self.vector_width=3
         
         #---point options---
-        ##List of colors for Bloch point markers, default = ['b','g','r','y']
+        #: List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_color=['b','r','g','#CC6600']
-        ##Size of point markers, default = 25
+        #: Size of point markers, default = 25
         self.point_size=[25,32,35,45]
-        ##Shape of point markers, default = ['o','^','d','s']
+        #: Shape of point markers, default = ['o','^','d','s']
         self.point_marker=['o','s','d','^']
         
         #---data lists---
@@ -295,12 +295,12 @@ class Bloch():
         
     def save(self,format='png',dirc=os.getcwd()):
         """
-        @brief Saves Bloch sphere to file of type `format`
+        Saves Bloch sphere to file of type `format`
         
-        @param format *str* giving format of output image
-        @param dirc *str* representing directory of output
+        format *str* giving format of output image
+        dirc *str* representing directory of output
         
-        @returns plot of Bloch sphere
+        Returns plot of Bloch sphere
         """
         from pylab import figure,plot,show,savefig,close
         self.make_sphere()

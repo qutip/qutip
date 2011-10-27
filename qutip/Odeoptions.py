@@ -21,26 +21,26 @@
 #
 class Odeoptions():
     """
-    @brief Class of options for ODE solver used by 'odesolve' and 'mcsolve'
+    Class of options for ODE solver used by 'odesolve' and 'mcsolve'
     """
     def __init__(self):
-        ##Absolute tolerance (default = 1e-8)
+        #: Absolute tolerance (default = 1e-8)
         self.atol=1e-8
-        ##Relative tolerance (default = 1e-6)
+        #: Relative tolerance (default = 1e-6)
         self.rtol=1e-6
-        ##Integration method (default = 'adams', for stiff 'bdf')
+        #: Integration method (default = 'adams', for stiff 'bdf')
         self.method='adams'
-        ##Max. number of internal steps/call
+        #: Max. number of internal steps/call
         self.nsteps=1000
-        ##Size of initial step (0 = determined by solver)
+        #: Size of initial step (0 = determined by solver)
         self.first_step=0
-        ##Minimal step size (0 = determined by solver)
+        #: Minimal step size (0 = determined by solver)
         self.min_step=0
-        ##Max step size (0 = determined by solver)
+        #: Max step size (0 = determined by solver)
         self.max_step=0
-        ##Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
+        #: Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
         self.order=12
-        ## tidyup Hamiltonian before calculation (default = True)
+        #: tidyup Hamiltonian before calculation (default = True)
         self.tidy=True
     def __str__(self):
         print "Odeoptions properties:"

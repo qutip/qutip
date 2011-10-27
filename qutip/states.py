@@ -24,11 +24,11 @@ def basis(N,*args):
     """
     Generate the vector representation of a number state.
 	
-    a subtle incompability with the quantum optics toolbox: In QuTiP:
+    a subtle incompability with the quantum optics toolbox: In QuTiP::
  
         basis(N, 0) = ground state
 
-    but in QO toolbox:
+    but in QO toolbox::
 
         basis(N, 1) = ground state
 	
