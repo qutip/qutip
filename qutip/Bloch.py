@@ -118,7 +118,9 @@ class Bloch():
         print "zlpos:        ",self.zlpos
         return ''
     def clear(self):
-        """Resets Bloch sphere data sets to empty"""
+        """
+        Resets Bloch sphere data sets to empty.
+        """
         self.points=[]
         self.num_points=0
         self.vectors=[]
@@ -127,7 +129,9 @@ class Bloch():
     
     def add_points(self,points,meth='s'):
         """
-        Add a list of data points to bloch sphere
+        Add a list of data points to bloch sphere.
+        
+        points *array* of data points
         """
         if not isinstance(points[0],(list,ndarray)):
             points=[[points[0]],[points[1]],[points[2]]]
@@ -148,7 +152,9 @@ class Bloch():
             
     def add_states(self,state,kind='vector'):
         """
-        Add a state vector to plot
+        Add a state vector to plot.
+        
+        state *Qobj* state vector
         """
         if isinstance(state,Qobj):
             state=[state]
@@ -162,7 +168,9 @@ class Bloch():
     
     def add_vectors(self,vectors): 
         """
-        Add a list of vectors to Bloch sphere
+        Add a list of vectors to Bloch sphere.
+        
+        vectors *array* of 3D vectors of unit length or smaller.
         """
         if isinstance(vectors[0],(list,ndarray)):
             for vec in vectors:
@@ -174,7 +182,7 @@ class Bloch():
     
     def make_sphere(self):
         """
-        Plots Bloch sphere and data sets
+        Plots Bloch sphere and data sets.
         """
         from pylab import figure,plot,show
         from mpl_toolkits.mplot3d import Axes3D
@@ -253,9 +261,6 @@ class Bloch():
             a.set_visible(False)
     
     def plot_vectors(self):
-        """
-        Plots Bloch vectors on sphere
-        """
         # -X and Y data are switched for plotting purposes
         if len(self.vectors)>0:
             for k in xrange(len(self.vectors)):
@@ -263,9 +268,6 @@ class Bloch():
                 self.axes.plot(self.vectors[k][1]*linspace(0,length,2),-self.vectors[k][0]*linspace(0,length,2),self.vectors[k][2]*linspace(0,length,2),zs=0, zdir='z', label='Z',lw=self.vector_width,color=self.vector_color[mod(k,len(self.vector_color))])
     
     def plot_points(self):
-        """
-        Plots point markers on Bloch sphere
-        """
         # -X and Y data are switched for plotting purposes
         if self.num_points>0:
             for k in xrange(self.num_points):
@@ -287,7 +289,7 @@ class Bloch():
                     self.axes.scatter(real(self.points[k][1][indperm]),-real(self.points[k][0][indperm]),real(self.points[k][2][indperm]),s=self.point_size[mod(k,len(self.point_size))],alpha=1,edgecolor='none',zdir='z',color=pnt_colors, marker=self.point_marker[mod(k,len(self.point_marker))])
     def show(self):
         """
-        Display Bloch sphere and corresponding data sets
+        Display Bloch sphere and corresponding data sets.
         """
         from pylab import figure,plot,show
         self.make_sphere()
@@ -298,9 +300,9 @@ class Bloch():
         Saves Bloch sphere to file of type `format`
         
         format *str* giving format of output image
-        dirc *str* representing directory of output
+        dirc *str* representing directory of output. Defaults to current working directory.
         
-        Returns plot of Bloch sphere
+        Returns file containing plot of Bloch sphere.
         """
         from pylab import figure,plot,show,savefig,close
         self.make_sphere()
