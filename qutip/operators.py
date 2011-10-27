@@ -16,7 +16,7 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-import os
+
 from numpy import array
 from scipy import *
 from scipy.linalg import *
@@ -77,31 +77,76 @@ def jz(j):
 
 def sigmap():
     """
-    creation operator for Pauli spins.
+    Creation operator for Pauli spins.
+    
+    Example::
+    
+        >>> sigmam()
+        Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
+        Qobj data = 
+        [[ 0.  1.]
+         [ 0.  0.]]
+             
     """
     return jmat(1/2.,'+')
 
 def sigmam():
     """
-    annihilation operator for Pauli spins.
+    Annihilation operator for Pauli spins.
+    
+    Example::
+    
+        >>> sigmam()
+        Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
+        Qobj data = 
+        [[ 0.  0.]
+         [ 1.  0.]]    
+         
     """
     return jmat(1/2.,'-')
 
 def sigmax():
     """
     Pauli spin 1/2 sigma x operator
+
+    Example::
+    
+        >>> sigmax()
+        Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
+        Qobj data = 
+        [[ 0.  1.]
+         [ 1.  0.]]
+ 
     """
     return 2.0*jmat(1.0/2,'x')
 
 def sigmay():
     """
     Pauli spin 1/2 sigma y operator
+    
+    Example::
+    
+        >>> sigmay()
+        Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = True
+        Qobj data = 
+        [[ 0.+0.j  0.-1.j]
+         [ 0.+1.j  0.+0.j]]
+    
     """
     return 2.0*jmat(1.0/2,'y')
 
 def sigmaz():
     """
     Pauli spin 1/2 sigma z operator
+    
+    Example::
+    
+        >>> sigmaz()
+        Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = True
+        Qobj data = 
+        [[ 1.  0.]
+         [ 0. -1.]]
+                 
     """
     return 2.0*jmat(1.0/2,'z')
 
@@ -153,6 +198,16 @@ def qeye(N):
     Parameter N *int* dimension of hilbert space
     
     Returns *Qobj*
+    
+    Example::
+    
+        >>> qeye(3)
+        Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+        Qobj data = 
+        [[ 1.  0.  0.]
+         [ 0.  1.  0.]
+         [ 0.  0.  1.]]  
+    
     """
     N=int(N)
     if (not isinstance(N,int)) or N<0:#check if N is int and N>0
@@ -161,40 +216,53 @@ def qeye(N):
     
 
 def num(N):
-    '''
-    Number operator
+    """
+    Return a quantum object instance representing the number operator.
     
-    Parameter N *int* dimension of hilbert space
+    Argument:
     
-    Returns *Qobj*
-    '''
+        N (*int*): The dimension of Hilbert space.
+    
+    Returns a quantum objecty *Qobj*
+    
+    Example::
+    
+        >>> num(4)
+        Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = True
+        Qobj data = 
+        [[0 0 0 0]
+         [0 1 0 0]
+         [0 0 2 0]
+         [0 0 0 3]]
+    
+    """
     data=sp.spdiags(arange(N),0,N,N,format='csr')
     return Qobj(data)
 
 
 def squeez(N,sp):
-    '''
+    """
     single-mode Squeezing operator
     
     Parameter N *int* dimension of hilbert space
     Parameter sp *real* or *complex* squeezing parameter
     
     Returns *Qobj*
-    '''
+    """
     a=destroy(N)
     op=(1/2.0)*conj(sp)*(a**2)-(1/2.0)*sp*(a.dag())**2
     return op.expm()
 
 
 def displace(N,alpha):
-    '''
+    """
     Single-mode displacement operator
     
     Parameter N *int* dimension of hilbert space
     Parameter alpha *real* or *complex* displacment amplitude
     
     Returns *Qobj*
-    '''
+    """
     a=destroy(N)
     D=(alpha*a.dag()-conj(alpha)*a).expm()
     return D
