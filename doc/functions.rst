@@ -11,7 +11,14 @@ States and operators
 --------------------
 
 .. automodule:: qutip
-    :members: basis, istests, operators, ptrace, qstate, states, superoperator, tensor, three_level_atom, expect
+    :members: basis, istests, operators, ptrace, qstate, states, superoperator, tensor, expect
+    :undoc-members:
+
+Three-level atoms
++++++++++++++++++
+
+.. automodule:: qutip.three_level_atom
+    :members: 
     :undoc-members:
 
 Dynamics and time-evolution
