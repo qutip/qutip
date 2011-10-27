@@ -24,20 +24,22 @@ from istests import *
 
 class Qobj():
     """
-    A constructor class for the quantum object (Qobj) base object.
-    Defines quantum operators and states.  
-    Includes class dependent math operations.
+    A class for representing quantum objects (**Qobj**), such as quantum operators
+    and states. The **Qobj** class implements math operations +,-,* between **Qobj**
+    isntances (and / by a C-number).
 
     The Qobj constructor optionally takes the dimension array and/or
     shape array as arguments.
 
-    Argument inpt (*array*) Data for vector/matrix representation of the quantum object.
+    Arguments:
+        
+        inpt (*array*): Data for vector/matrix representation of the quantum object.
     
-    Argument dims (*list*)  Dimensions of object used for tensor products.
-    
-    Argument shape (*list*) Shape of underlying data structure (matrix shape).
+        dims (*list*):  Dimensions of object used for tensor products.
+   
+        shape (*list*): Shape of underlying data structure (matrix shape).
        
-    Returns *Qobj* quantum object instance for given input data
+    Returns a quantum object **Qobj** instance for the given input data.
     """
     ################## Define Qobj class #################
     __array_priority__=100 #sets Qobj priority above numpy arrays
