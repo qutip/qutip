@@ -10,9 +10,30 @@ QuTiP functions
 States and operators
 --------------------
 
-.. automodule:: qutip
-    :members: basis, istests, operators, ptrace, qstate, states, superoperator, tensor, expect
-    :undoc-members:
+.. automodule:: qutip.states
+    :members: 
+
+.. automodule:: qutip.qstate
+    :members: 
+
+.. automodule:: qutip.operators
+    :members: 
+
+.. automodule:: qutip.istests
+    :members: 
+
+.. automodule:: qutip.superoperator
+    :members: 
+
+.. automodule:: qutip.tensor
+    :members: 
+
+.. automodule:: qutip.ptrace
+    :members: 
+
+.. automodule:: qutip.expect
+    :members: 
+
 
 Three-level atoms
 +++++++++++++++++
