@@ -24,6 +24,7 @@ For more information see the `QuTiP project web page`_.
 .. toctree::
    :maxdepth: 2
    
+   installation.rst
    classes 
    functions
 
