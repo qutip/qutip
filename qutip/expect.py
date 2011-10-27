@@ -41,6 +41,8 @@ def expect(oper,state):
         >>> expect(num(4),basis(4,3))
         3
         
+    See :func:`qutip.num` and :func:`qutip.basis`.
+        
     '''
     if isinstance(state,Qobj) or isinstance(state, eseries):
         return single_expect(oper,state)
