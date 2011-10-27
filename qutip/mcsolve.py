@@ -394,14 +394,14 @@ def mc_alg_evolve(nt,args):
             #last_t=ODE.t;last_y=ODE.y
         #-------------------------------------------------------
         ###--after while loop--####
-        psi_out=copy(ODE.y)
+        psi=copy(ODE.y)
         if ODE.t>last_t:
-            psi_out=(psi_out-last_y)/(ODE.t-last_t)*(tlist[k]-last_t)+last_y
-        psi_nrm=norm(psi_out,2)
+            psi=(psi-last_y)/(ODE.t-last_t)*(tlist[k]-last_t)+last_y
+        psi_nrm=norm(psi,2)
         if num_expect==0:
-            psi_out[k] = psi_out/psi_nrm
+            psi_out[k] = psi/psi_nrm
         else:
-            epsi=psi_out/psi_nrm
+            epsi=psi/psi_nrm
             for jj in xrange(num_expect):
                 expect_out[jj][k]=mc_expect(expect_ops[jj],epsi)
     #RETURN VALUES
