@@ -327,28 +327,38 @@ the properties and default values of this class can be view via the `print` comm
 
     print opts
 
-Odeoptions properties:
-----------------------
-atol:        1e-10
-rtol:        1e-08
-method:      adams
-order:       12
-nsteps:      1000
-first_step:  0
-min_step:    0
-max_step:    0
-}}}
+    Odeoptions properties:
+    ----------------------
+    atol:        1e-10
+    rtol:        1e-08
+    method:      adams
+    order:       12
+    nsteps:      1000
+    first_step:  0
+    min_step:    0
+    max_step:    0
+
 These properties are detailed in the following table.  Assuming `opts=Odeoptions()':
 
-||property|| Default setting|| Description||
-||opts.atol|| 1e-10|| Absolute tolerance||
-||opts.rtol|| 1e-08|| Relative tolerance||
-||opts.method|| 'adams'|| Solver method.  Can be 'adams' (non-stiff) or 'bdf' (stiff)||
-||opts.order||12|| Order of solver.  Must be <=12 for 'adams' and <=5 for 'bdf'||
-||opts.nsteps|| 1000|| Max. number of steps to take for each interval||
-||opts.first_step||0|| Size of initial step.  0 = determined automatically by solver.||
-||opts.min_step||0|| Minimum step size.  0 = determined automatically by solver.||
-||opts.max_step||0|| Maximum step size.  0 = determined automatically by solver.||
++-----------------+-----------------+----------------------------------------------------------------+
+| Property        | Default setting | Description                                                    |
++=================+=================+================================================================+
+| opts.atol       | 1e-10           | Absolute tolerance                                             |
++-----------------+-----------------+----------------------------------------------------------------+
+| opts.rtol       | 1e-08           | Relative tolerance                                             |
++-----------------+-----------------+----------------------------------------------------------------+
+| opts.method     | 'adams'         | Solver method.  Can be 'adams' (non-stiff) or 'bdf' (stiff)    |
++-----------------+-----------------+----------------------------------------------------------------+
+| opts.order      | 12              | Order of solver.  Must be <=12 for 'adams' and <=5 for 'bdf'   |
++-----------------+-----------------+----------------------------------------------------------------+
+| opts.nsteps     | 1000            | Max. number of steps to take for each interval                 |
++-----------------+-----------------+----------------------------------------------------------------+
+| opts.first_step | 0               | Size of initial step.  0 = determined automatically by solver. |
++-----------------+-----------------+----------------------------------------------------------------+
+| opts.min_step   | 0               | Minimum step size.  0 = determined automatically by solver.    |
++-----------------+-----------------+----------------------------------------------------------------+
+| opts.max_step   | 0               | Maximum step size.  0 = determined automatically by solver.    |
++-----------------+-----------------+----------------------------------------------------------------+
 
 As an example, let us consider relaxing the conditions on the ODE solver::
 
@@ -357,17 +367,16 @@ As an example, let us consider relaxing the conditions on the ODE solver::
     opts.nsteps=500
     print opts
 
-Odeoptions properties:
-----------------------
-atol:        1e-08
-rtol:        1e-06
-method:      adams
-order:       12
-nsteps:      500
-first_step:  0
-min_step:    0
-max_step:    0
-}}}
+    Odeoptions properties:
+    ----------------------
+    atol:        1e-08
+    rtol:        1e-06
+    method:      adams
+    order:       12
+    nsteps:      500
+    first_step:  0
+    min_step:    0
+    max_step:    0
 
 To use these new settings we can use the keyword argument `options` in either the `odesolve` or `mcsolve` function.  We can modify the last example as::
 
