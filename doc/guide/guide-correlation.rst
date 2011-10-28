@@ -3,8 +3,7 @@
 
 .. _guide-correlation:
 
-Basic Operations
-******************************
+Solving Two-Time Correlation Functions
+**************************************
 
-Hello
 

@@ -3,8 +3,6 @@
 
 .. _guide-bloch:
 
-Bloch
+Plotting on the Bloch Sphere
 ******************************
-
-Hello
 

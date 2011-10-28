@@ -3,8 +3,7 @@
 
 .. _guide-eseries:
 
-Basic Operations
-******************************
+An Overview of the Eseries Class
+********************************
 
-Hello
 

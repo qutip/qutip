@@ -3,11 +3,9 @@
 
 .. _guide-dynamics:
 
-Time-evolution of quantum systems
-=================================
 
-In this section we describe how to set up time-evolution simulations of closed and open quantum systems.
-
+An Overview of the Quantum Dynamics Solvers in QuTiP
+****************************************************
 
 Unitary evolution
 -----------------

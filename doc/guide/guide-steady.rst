@@ -3,8 +3,7 @@
 
 .. _guide-steady:
 
-Basic Operations
-******************************
+Solving for Steady-State Solutions
+**********************************
 
-Hello
 

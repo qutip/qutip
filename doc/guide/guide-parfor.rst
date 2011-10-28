@@ -3,8 +3,7 @@
 
 .. _guide-parfor:
 
-Basic Operations
-******************************
+Using QuTiP's Built-in Parallel for-loop
+****************************************
 
-Hello
 

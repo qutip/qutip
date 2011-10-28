@@ -3,8 +3,7 @@
 
 .. _guide-states:
 
-Basic Operations
-******************************
+Manipulating States and Operators
+*********************************
 
-Hello
 

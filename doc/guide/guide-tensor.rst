@@ -3,8 +3,8 @@
 
 .. _guide-tensor:
 
-Tensor and Partial Trace Operations
-***********************************
+Creating and Decomposing Composite Systems Using Tensor Products and Partial Traces
+***********************************************************************************
 
 
 
