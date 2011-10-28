@@ -25,6 +25,7 @@ For more information see the `QuTiP project web page`_.
    :maxdepth: 2
    
    installation.rst
+   guide.rst
    classes 
    functions
 
