@@ -10,14 +10,14 @@ An Overview of the Quantum Dynamics Solvers in QuTiP
 Unitary evolution
 -----------------
 
-The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, [GuideComposite Creating and manipulating composite objects with tensor and ptrace], we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector *psi0* using the QuTiP function :func:`qutip.odesolve`(H,rho0,tlist,c_op_list,expt_op_list,&H_args,&opt). It evolves the state vector and evaluates the expectation values for a set of operators *expt_op_list* at the points in time in the list *tlist*, using an ordinary differential equation solver. Alternatively, we can use the function :func:`essolve`(H,rho0,tlist,c_op_list,expt_op_list), which uses the exponential-series technique to calculate the time evolution of a system. The *odesolve* and *essolve* functions take the same arguments and it is therefore easy switch between the two solvers. 
+The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, [GuideComposite Creating and manipulating composite objects with tensor and ptrace], we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector *psi0* using the QuTiP function :func:`qutip.odesolve`. It evolves the state vector and evaluates the expectation values for a set of operators *expt_op_list* at the points in time in the list *tlist*, using an ordinary differential equation solver. Alternatively, we can use the function :func:`qutip.essolve`, which uses the exponential-series technique to calculate the time evolution of a system. The *odesolve* and *essolve* functions take the same arguments and it is therefore easy switch between the two solvers. 
 
 For example, the time evolution of a quantum spin-1/2 system with tunneling rate 0.1 that initially is in the up state is calculated, and the  expectation values of the sigma-Z operator evaluated, with the following code::
 
-    >> H = 2 * pi * 0.1 * sigmax()
-    >> psi0 = basis(2, 0)
-    >> tlist = linspace(0.0, 10.0, 20.0)
-    >> odesolve(H, psi0, tlist, [], [sigmaz()])
+    >>> H = 2 * pi * 0.1 * sigmax()
+    >>> psi0 = basis(2, 0)
+    >>> tlist = linspace(0.0, 10.0, 20.0)
+    >>> odesolve(H, psi0, tlist, [], [sigmaz()])
     array([[ 1.00000000+0.j,  0.78914229+0.j,  0.24548596+0.j, -0.40169696+0.j,
             -0.87947669+0.j, -0.98636356+0.j, -0.67728166+0.j, -0.08257676+0.j,
              0.54695235+0.j,  0.94582040+0.j,  0.94581706+0.j,  0.54694422+0.j,
