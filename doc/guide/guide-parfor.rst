@@ -6,7 +6,7 @@
 Using QuTiP's Built-in Parallel for-loop
 ****************************************
 
-Often one is interested in the output of a given function as a single-parameter is varied.  For instance, in the *[ExamplesDrivenCavitySS Driven steady-state cavity]* example, we calculate the steady-state response as the driving frequency is varied.  In cases such as this, where each iteration is independent of the others, we may speedup the calculations by performing the iterations in parallel.  In QuTiP, parallel computations may be performed using the parfor (parallel-for-loop) function.
+Often one is interested in the output of a given function as a single-parameter is varied.  For instance, in the Driven steady-state cavity example, we calculate the steady-state response as the driving frequency is varied.  In cases such as this, where each iteration is independent of the others, we may speedup the calculations by performing the iterations in parallel.  In QuTiP, parallel computations may be performed using the parfor (parallel-for-loop) function.
 
 To use the parfor function we need to define a function of a single-variable, and the range over which this variable is to be iterated.  For example:
 

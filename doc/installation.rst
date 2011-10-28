@@ -26,7 +26,7 @@ QuTiP requires the following packages to run:
 | PySide     | 1.0.2+       | Optional, required only for GUI elements.           |
 |            |              | PyQt4 may be used instead.                          |
 +------------+--------------+-----------------------------------------------------+
-| PyQt4      | 1.0.2+       | Optional, required only for GUI elements.           |
+| PyQt4      | 4.8+         | Optional, required only for GUI elements.           |
 |            |              | PySide may be used instead (recommended).           |
 +------------+--------------+-----------------------------------------------------+                      
 | PyObjC     | 2.2+         | Mac only.  Very optional.  Needed only for a        |
@@ -101,7 +101,8 @@ The developers of QuTiP have not touched Windows in several years, and will be c
 Does it work?
 =============
 
-DO NOT RUN QUTIP FROM THE INSTALLATION DIRECTORY
+.. warning::
+   Do not run QuTiP from the installation directory.
 
 
 To verify that everything is installed properly, from the python command line call:

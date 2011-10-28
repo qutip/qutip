@@ -8,7 +8,9 @@ Performing Basic operations on Quantum Objects
 
 First things first
 ==================
-**DO NOT RUN QUTIP FROM THE INSTALLATION DIRECTORY**
+
+.. warning::
+   Do not run QuTiP from the installation directory.
 
 To load the qutip modules, we must first call the import statement:
 
