@@ -80,7 +80,7 @@ on line #31 to read:
 
 One can also use the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher to satisfy the QuTiP dependencies.  
 
-A further possibility is to use the *[http://stronginference.com/scipy-superpack/ Scipy Superpack installer script]*.  In order to have GUI elements using this method, you need to further install the Qt4 and PySide packages at:
+A further possibility is to use the `Scipy Superpack installer script <http://stronginference.com/scipy-superpack/>`_.  In order to have GUI elements using this method, you need to further install the Qt4 and PySide packages at:
 
 http://qt.nokia.com/downloads/qt-for-open-source-cpp-development-on-mac-os-x
 
@@ -94,7 +94,9 @@ Installing QuTiP is the same as on linux.  From the QuTiP directory:
 Installation on Microsoft Windows
 +++++++++++++++++++++++++++++++++
 
-The developers of QuTiP have not touched Windows in several years, and will be continuing this trend for the foreseeable future.  Therefore we recommend the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher to satisfy the QuTiP dependencies. QuTiP has also been reported to work out-of-the-box with `Python(x,y) <http://www.pythonxy.com>`_.
+The developers of QuTiP have not touched Windows in several years, and will be continuing this trend for the foreseeable future.  Therefore we recommend the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher to satisfy the QuTiP dependencies. QuTiP has also been reported to work out-of-the-box with `Python(x,y) <http://www.pythonxy.com>`_.  In Python(x,y), QuTiP may be installed using:
+
+>>> python setup.py install build --compiler=mingw32
 
 Does it work?
 =============

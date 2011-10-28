@@ -28,6 +28,11 @@ For more information see the `QuTiP project web page`_.
    classes 
    functions
 
+.. toctree::
+   :maxdepth: 1  
+
+   changelog.rst
+
 Indices and tables
 ==================
 
