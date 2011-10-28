@@ -24,7 +24,7 @@ os.environ['MKL_NUM_THREADS']=str(multiprocessing.cpu_count())
 os.environ['NUM_THREADS']=str(multiprocessing.cpu_count())
 
 #
-# default, use graphics (unless QUTIP_GRPAHICS is already set)
+# default, use graphics (unless QUTIP_GRAPHICS is already set)
 #
 if not os.environ.has_key('QUTIP_GRAPHICS'):
     os.environ['QUTIP_GRAPHICS']="YES"
@@ -34,6 +34,11 @@ if not os.environ.has_key('DISPLAY'):
     #no graphics if DISPLAY isn't set
     os.environ['QUTIP_GRAPHICS']="NO"
     os.environ['QUTIP_GUI']="NONE"
+
+# check for windows platform
+if os.uname()[0] == "Windows":
+    # graphics always available on windows
+    os.environ['QUTIP_GRAPHICS']="YES"
 
 #-Check for Matplotlib
 try:
