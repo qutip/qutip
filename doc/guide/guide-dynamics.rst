@@ -239,15 +239,39 @@ where we have requested a second output `times`.  Again the first operator corre
 
 If no expectation values are specified then the first output will be a list of state vectors.  A example demonstrating the use of multiple return values may be found at *[ExamplesMCTimesWhich]*.  To summarize, the table below gives the output of the monte-carlo solver for a given set of inout and output conditions:
 
-||Collapse operators||Expectation operators|| Number of requested outputs|| Return value(s)||
-|| NO|| NO|| 1 || List of state vectors ||
-|| NO ||YES||1||List of expectation values||
-|| YES||NO|| 1||List of state vectors for each trajectory||
-|| YES||NO|| 2||List of state vectors for each trajectory + List of collapse times for each trajectory||
-|| YES||NO|| 3||List of state vectors for each trajectory + List of collapse times for each trajectory + List of which operator did collapse for each trajectory||
-|| YES||YES|| 1||List of expectation values for each trajectory||
-|| YES||YES|| 2||List of expectation values for each trajectory + List of collapse times for each trajectory||
-|| YES||YES|| 3||List of expectation values for each trajectory + List of collapse times for each trajectory + List of which operator did collapse for each trajectory||
++--------------------+-----------------------+-----------------------------+------------------------------------+
+| Collapse operators | Expectation operators | Number of requested outputs | Return value(s)                    |
++====================+=======================+=============================+====================================+
+| NO                 | NO                    | 1                           | List of state vectors              |
++--------------------+-----------------------+-----------------------------+------------------------------------+
+| NO                 | YES                   | 1                           | List of expectation values         |
++--------------------+-----------------------+-----------------------------+------------------------------------+
+| YES                | NO                    | 1                           | List of state vectors for each     |
+|                    |                       |                             | trajectory.                        |
++--------------------+-----------------------+-----------------------------+------------------------------------+
+| YES                | NO                    | 2                           | List of state vectors for each     |
+|                    |                       |                             | trajectory + List of collapse times|
+|                    |                       |                             | for each trajectory.               |
++--------------------+-----------------------+-----------------------------+------------------------------------+
+| YES                | NO                    | 3                           | List of state vectors for each     |
+|                    |                       |                             | trajectory + List of collapse times|
+|                    |                       |                             | for each trajectory + List of which|
+|                    |                       |                             | operator did collapse for each     |
+|                    |                       |                             | trajectory.                        |
++--------------------+-----------------------+-----------------------------+------------------------------------+
+| YES                | YES                   | 1                           | List of expectation values for each|
+|                    |                       |                             | trajectory.                        |
++--------------------+-----------------------+-----------------------------+------------------------------------+
+| YES                | YES                   | 2                           | List of expectation values for each|
+|                    |                       |                             | trajectory + List of collapse times|
+|                    |                       |                             | for each trajectory.               |
++--------------------+-----------------------+-----------------------------+------------------------------------+
+| YES                | YES                   | 3                           | List of expectation values for each|
+|                    |                       |                             | trajectory + List of collapse times|
+|                    |                       |                             | for each trajectory + List of which|
+|                    |                       |                             | operator did collapse for each     |
+|                    |                       |                             | trajectory.                        |
++--------------------+-----------------------+-----------------------------+------------------------------------+
 
 
 Which solver should I use?
@@ -360,10 +384,10 @@ These properties are detailed in the following table.  Assuming `opts=Odeoptions
 
 As an example, let us consider relaxing the conditions on the ODE solver::
 
-    opts.atol=1e-8
-    opts.rtol=1e-6
-    opts.nsteps=500
-    print opts
+    >>> opts.atol=1e-8
+    >>> opts.rtol=1e-6
+    >>> opts.nsteps=500
+    >>> print opts
 
     Odeoptions properties:
     ----------------------
@@ -378,13 +402,13 @@ As an example, let us consider relaxing the conditions on the ODE solver::
 
 To use these new settings we can use the keyword argument `options` in either the `odesolve` or `mcsolve` function.  We can modify the last example as::
 
-    odesolve(H0, psi0, tlist, c_op_list, [sigmaz()],options=opts)
-    odesolve(hamiltonian_t, psi0, tlist, c_op_list, [sigmaz()], H_args,options=opts)
+    >>> odesolve(H0, psi0, tlist, c_op_list, [sigmaz()],options=opts)
+    >>> odesolve(hamiltonian_t, psi0, tlist, c_op_list, [sigmaz()], H_args,options=opts)
 
-or
+or::
     
-    mcsolve(H0, psi0, tlist, ntraj,c_op_list, [sigmaz()],options=opts)
-    mcsolve(hamiltonian_t, psi0, tlist, ntraj, c_op_list, [sigmaz()], H_args,options=opts)
+    >>> mcsolve(H0, psi0, tlist, ntraj,c_op_list, [sigmaz()],options=opts)
+    >>> mcsolve(hamiltonian_t, psi0, tlist, ntraj, c_op_list, [sigmaz()], H_args,options=opts)
 
 
 Performance (version 1.1.1)
