@@ -6,7 +6,7 @@
 Using QuTiP's Built-in Parallel for-loop
 ****************************************
 
-Often one is interested in the output of a given function as a single-parameter is varied.  For instance, in the Driven steady-state cavity example, we calculate the steady-state response as the driving frequency is varied.  In cases such as this, where each iteration is independent of the others, we may speedup the calculations by performing the iterations in parallel.  In QuTiP, parallel computations may be performed using the parfor (parallel-for-loop) function.
+Often one is interested in the output of a given function as a single-parameter is varied.  For instance, in the Driven steady-state cavity example, we calculate the steady-state response as the driving frequency is varied.  In cases such as this, where each iteration is independent of the others, we may speedup the calculations by performing the iterations in parallel.  In QuTiP, parallel computations may be performed using the :func:`qutip.parfor` (parallel-for-loop) function.
 
 To use the parfor function we need to define a function of a single-variable, and the range over which this variable is to be iterated.  For example:
 
@@ -33,7 +33,7 @@ One can also use a single output variable as:
 [  0   1   8  27  64 125 216 343 512 729]
 
 
-The parfor function is not limited to just numbers, but also works for a variety of outputs:
+The :func:`qutip.parfor` function is not limited to just numbers, but also works for a variety of outputs:
 
 
 >>> def func2(x):
@@ -63,7 +63,7 @@ Qobj data =
 
 
 
-Although parfor allows functions with only one input, we can in fact pass more an a single variable by using a list of lists. Sounds confusing, but it is quite easy.
+Although :func:`qutip.parfor` allows functions with only one input, we can in fact pass more an a single variable by using a list of lists. Sounds confusing, but it is quite easy.
 
 
 >>> def func1(args):

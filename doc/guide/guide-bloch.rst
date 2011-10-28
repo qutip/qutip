@@ -262,16 +262,16 @@ zlpos:         [1.2, -1.2]
 Animating with the Bloch sphere
 ===============================
 
-The Bloch class was designed from the outset to generate animations.  To animate a set of vectors or data points the basic idea is: plot the data at time t1, save the sphere, clear the sphere, plot data at t2,... The Bloch sphere will automatically number the output file based on how many times the object has been saved (this is stored in b.savenum).  An example of generating images for animation is given below:
+The Bloch class was designed from the outset to generate animations.  To animate a set of vectors or data points the basic idea is: plot the data at time t1, save the sphere, clear the sphere, plot data at t2,... The Bloch sphere will automatically number the output file based on how many times the object has been saved (this is stored in b.savenum).  An example of generating images for animation is given below::
 
->>> from qutip import *
->>> b=Bloch()
->>> vec=array([[cos(th),sin(th),0.5*sin(4*th)] for th in linspace(0,2*pi,120)])
->>> vec=array([k/norm(k) for k in vec]) #normalize
->>>for k in range(120):
-...    b.add_vectors(vec[k])
-...    b.save(dirc=os.getcwd()+'/temp') #saving images to temp directory in current working directory
-...    b.clear()
+    from qutip import *
+    b=Bloch()
+    vec=array([[cos(th),sin(th),0.5*sin(4*th)] for th in linspace(0,2*pi,120)])
+    vec=array([k/norm(k) for k in vec]) #normalize
+    for k in range(120):
+        b.add_vectors(vec[k])
+        b.save(dirc=os.getcwd()+'/temp') #saving images to temp directory in current working directory
+        b.clear()
 
 .. figure:: http://qutip.googlecode.com/svn/wiki/images/bloch_movie.gif
    :align: center
