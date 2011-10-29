@@ -6,19 +6,18 @@
 Manipulating States and Operators
 *********************************
 
-= Introduction =
+Introduction
+============
+
 In the previous guide section *[GuideBasics]* we saw how to create operators and states, using the functions built into QuTiP.  In this portion of the guide, we will look at performing basic operations with states and operators.  For more detailed demonstrations on how to use and manipulate these objects, see the *[Examples Examples]* section of the WIKI.
 
-= Combining states and operators = 
+State vectors
+============
 
-== Harmonic oscillator states ==
-
-=== State vectors ===
 Here we begin by creating a Fock (*[Functions#basis(N,&m) basis]*) vacuum state vector with 5 number states, 0 -> 4:
-{{{
-vec=basis(5,0)
-print vec
 
+>>> vec=basis(5,0)
+>>> print vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 1.]  #<-- |0>
@@ -26,12 +25,11 @@ Qobj data =
  [ 0.]  #<-- |2>
  [ 0.]  #<-- |3>
  [ 0.]] #<-- |4>
-}}}
-and then create a lowering operator corresponding to 5 number states using the *[Functions#destroy(N) destroy]* function:
-{{{
-a=destroy(5)
-print a
 
+and then create a lowering operator corresponding to 5 number states using the :func:`qutip.destroy` function:
+
+>>> a=destroy(5)
+>>> print a
 Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = False
 Qobj data = 
 [[ 0.          1.          0.          0.          0.        ]
@@ -40,11 +38,10 @@ Qobj data =
  [ 0.          0.          0.          0.          2.        ]
  [ 0.          0.          0.          0.          0.        ]]
 
-}}}
-Now lets apply the destruction operator to our vacuum state `vec':
-{{{
-a*vec
 
+Now lets apply the destruction operator to our vacuum state `vec':
+
+>>> a*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 0.]
@@ -52,12 +49,11 @@ Qobj data =
  [ 0.]
  [ 0.]
  [ 0.]]
-}}}
+
 
 We see that, as expected, the vacuum is transformed to the zero vector.  A more interesting example comes from using the adjoint of the lowering operator, the raising operator:
-{{{
-a.dag()*vec
 
+>>>a.dag()*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 0.]
@@ -65,13 +61,11 @@ Qobj data =
  [ 0.]
  [ 0.]
  [ 0.]]
-}}}
 
-The raising operator has in indeed raised the state `vec` from the vacuum to the |1> state.  Instead of using the dagger (`dag()) command to raise the state, we could have also used the built in *[Functions#create(N) create]* function to make a raising operator:
+The raising operator has in indeed raised the state `vec` from the vacuum to the |1> state.  Instead of using the dagger (`dag()) command to raise the state, we could have also used the built in :func:`qutip.create` function to make a raising operator:
 
-{{{
-c=create(5)
-c*vec()
+>>> c=create(5)
+>>> c*vec()
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 0.]
@@ -79,11 +73,10 @@ Qobj data =
  [ 0.]
  [ 0.]
  [ 0.]]
-}}}
-which obviously does the same thing.  We can of course raise the vacuum state more than once:
-{{{
-c*c*vec
 
+which obviously does the same thing.  We can of course raise the vacuum state more than once:
+
+>>> c*c*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 0.        ]
@@ -91,11 +84,10 @@ Qobj data =
  [ 1.41421356] #<-- |2>
  [ 0.        ]
  [ 0.        ]]
-}}}
-or just taking the square of the raising operator:
-{{{
-c**2*vec
 
+or just taking the square of the raising operator:
+
+>>> c**2*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 0.        ]
@@ -103,11 +95,10 @@ Qobj data =
  [ 1.41421356]
  [ 0.        ]
  [ 0.        ]]
-}}}
-Applying the raising operator twice gives the expected sqrt(n+1) dependence.  We can use the product of `c*a` to also apply the number operator to the state vector `vec`:
-{{{
-c*a*vec
 
+Applying the raising operator twice gives the expected sqrt(n+1) dependence.  We can use the product of `c*a` to also apply the number operator to the state vector `vec`:
+
+>>> c*a*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 0.]
@@ -115,11 +106,10 @@ Qobj data =
  [ 0.]
  [ 0.]
  [ 0.]]
-}}}
-or on the |1> state:
-{{{
-c*a*(c*vec)
 
+or on the |1> state:
+
+>>> c*a*(c*vec)
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 0.]
@@ -127,11 +117,10 @@ Qobj data =
  [ 0.]
  [ 0.]
  [ 0.]]
-}}}
-or the |2> state:
-{{{
-c*a*(c**2*vec)
 
+or the |2> state:
+
+>>> c*a*(c**2*vec)
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 0.        ]
@@ -140,11 +129,9 @@ Qobj data =
  [ 0.        ]
  [ 0.        ]]
 
-}}}
 Notice how in this last example, application of the number operator does not give the expected value n=2, but rather `sqrt(2)*2`.  This is because this last state is not normalized to unity as `c*|n>=sqrt(n+1)*|n+1>`.  Therefore, we should normalize our vector first:
-{{{
-c*a*(c**2*vec).unit()
 
+>>> c*a*(c**2*vec).unit()
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 0.]
@@ -152,12 +139,11 @@ Qobj data =
  [ 2.]
  [ 0.]
  [ 0.]]
-}}}
-Since we are giving a demonstration of using states and operators, we have done a lot more work than we should have.  For example, we do not need to operate on the vacuum state to generate a higher number fock state.  Instead we can use the *[Functions#basis(N,&m) basis]* (or *[Functions#fock(N,&m) fock]*) function to directly obtain the required state:
-{{{
-vec=basis(5,2)
-print vec
 
+Since we are giving a demonstration of using states and operators, we have done a lot more work than we should have.  For example, we do not need to operate on the vacuum state to generate a higher number fock state.  Instead we can use the :func:`qutip.basis` (or :func:`qutip.fock`) function to directly obtain the required state:
+
+>>> vec=basis(5,2)
+>>> print vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 0.]
@@ -165,12 +151,11 @@ Qobj data =
  [ 1.]
  [ 0.]
  [ 0.]]
-}}}
-Notice how it is automatically normalized.  We can also use the built in *[Functions#num(N) number]* operator:
-{{{
-n=num(5)
-print n
 
+Notice how it is automatically normalized.  We can also use the built in :func:`qutip.num` operator:
+
+>>> n=num(5)
+>>> print n
 Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = True
 Qobj data = 
 [[0 0 0 0 0]
@@ -178,11 +163,10 @@ Qobj data =
  [0 0 2 0 0]
  [0 0 0 3 0]
  [0 0 0 0 4]]
-}}}
-Therefore, instead of `c*a*(c**2*vec).unit()` we have:
-{{{
-n*vec
 
+Therefore, instead of `c*a*(c**2*vec).unit()` we have:
+
+>>> n*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 0.]
@@ -190,13 +174,11 @@ Qobj data =
  [ 2.]
  [ 0.]
  [ 0.]]
-}}}
 
 We can also create superpositions of states:
-{{{
-vec=(basis(5,0)+basis(5,1)).unit()
-print vec
 
+>>> vec=(basis(5,0)+basis(5,1)).unit()
+>>> print vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 0.70710678]
@@ -204,11 +186,10 @@ Qobj data =
  [ 0.        ]
  [ 0.        ]
  [ 0.        ]]
-}}}
-where we have used the `unit()` function to again normalize the state.  Operating with the number function again:
-{{{
-n*vec
 
+where we have used the :func:`qutip.Qobj.unit` function to again normalize the state.  Operating with the number function again:
+
+>>> n*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 0.        ]
@@ -216,17 +197,13 @@ Qobj data =
  [ 0.        ]
  [ 0.        ]
  [ 0.        ]]
-}}}
 
-We can also create coherent states and squeezed states by applying the *[Functions#displace(N,alpha) displace]* and *[Functions#squeez(N,sp) squeez]* functions to the vacuum state:
+We can also create coherent states and squeezed states by applying the :func:`qutip.displace` and :func:`qutip.squeez` functions to the vacuum state:
 
-{{{
-vec=basis(5,0)
-d=displace(5,1j)
-s=squeez(5,0.25+0.25j)
-
-d*vec
-
+>>> vec=basis(5,0)
+>>> d=displace(5,1j)
+>>> s=squeez(5,0.25+0.25j)
+>>> d*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 0.60655682+0.j        ]
@@ -235,8 +212,7 @@ Qobj data =
  [ 0.00000000-0.24104351j]
  [ 0.14552147+0.j        ]]
 
-d*s*vec
-
+>>> d*s*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
 Qobj data = 
 [[ 0.65893786+0.08139381j]
@@ -244,31 +220,18 @@ Qobj data =
  [-0.37567217-0.01326853j]
  [-0.02688063-0.23828775j]
  [ 0.26352814+0.11512178j]]
-}}}
 
-Of course, displacing the vacuum gives a coherent state, which can also be generated using the built in *[Functions#coherent(N,alpha) coherent]* function.
+Of course, displacing the vacuum gives a coherent state, which can also be generated using the built in :func:`qutip.coherent` function.
 
-=== Density matrices ===
-The main purpose of QuTiP is to explore the dynamics of *open* quantum systems, where the most general state of a system is not longer a state vector, but rather a density matrix.  Since operations on density matrices operate identically to those of vectors, we will just briefly highlight creating and using these structures.
+Density matrices
+=================
+
+The main purpose of QuTiP is to explore the dynamics of **open** quantum systems, where the most general state of a system is not longer a state vector, but rather a density matrix.  Since operations on density matrices operate identically to those of vectors, we will just briefly highlight creating and using these structures.
 
 The simplest density matrix is created by forming the outer-product of a ket vector:
-{{{
-vec=basis(5,2)
-vec*vec.dag()
 
-Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = True
-Qobj data = 
-[[ 0.  0.  0.  0.  0.]
- [ 0.  0.  0.  0.  0.]
- [ 0.  0.  1.  0.  0.]
- [ 0.  0.  0.  0.  0.]
- [ 0.  0.  0.  0.  0.]]
-}}} 
-
-a similar task can also be accomplished via the *[Functions#fock_dm(N,m) fock_dm]* or *[Functions#ket2dm(Q) ket2dm]* functions:
-{{{
-fock_dm(5,2)
-
+>>> vec=basis(5,2)
+>>> vec*vec.dag()
 Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = True
 Qobj data = 
 [[ 0.  0.  0.  0.  0.]
@@ -277,8 +240,9 @@ Qobj data =
  [ 0.  0.  0.  0.  0.]
  [ 0.  0.  0.  0.  0.]]
 
-ket2dm(vec)
+A similar task can also be accomplished via the :func:`qutip.fock_dm` or :func:`qutip.ket2dm` functions:
 
+>>> fock_dm(5,2)
 Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = True
 Qobj data = 
 [[ 0.  0.  0.  0.  0.]
@@ -286,11 +250,19 @@ Qobj data =
  [ 0.  0.  1.  0.  0.]
  [ 0.  0.  0.  0.  0.]
  [ 0.  0.  0.  0.  0.]]
-}}}
+
+>>>ket2dm(vec)
+Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = True
+Qobj data = 
+[[ 0.  0.  0.  0.  0.]
+ [ 0.  0.  0.  0.  0.]
+ [ 0.  0.  1.  0.  0.]
+ [ 0.  0.  0.  0.  0.]
+ [ 0.  0.  0.  0.  0.]]
 
 If we want to create a density matrix with equal classical probability of being found in the |2> or |4> number states we can do the following:
-{{{
-0.5*ket2dm(basis(5,4))+0.5*ket2dm(basis(5,2))
+
+>>> 0.5*ket2dm(basis(5,4))+0.5*ket2dm(basis(5,2))
 Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = True
 Qobj data = 
 [[ 0.   0.   0.   0.   0. ]
@@ -298,11 +270,10 @@ Qobj data =
  [ 0.   0.   0.5  0.   0. ]
  [ 0.   0.   0.   0.   0. ]
  [ 0.   0.   0.   0.   0.5]]
-}}}
-or use `0.5*fock_dm(5,2)+0.5*fock_dm(5,4)`.  There are also several other built in functions for creating predefined density matrices, for example *[Functions#coherent_dm(N,_alpha) coherent_dm]* and *[Functions#thermal_dm(N,_n) thermal_dm]* which create coherent state and thermal state density matrices, respectively.
-{{{
-coherent_dm(5,1.25)
 
+or use `0.5*fock_dm(5,2)+0.5*fock_dm(5,4)`.  There are also several other built in functions for creating predefined density matrices, for example *[Functions#coherent_dm(N,_alpha) coherent_dm]* and *[Functions#thermal_dm(N,_n) thermal_dm]* which create coherent state and thermal state density matrices, respectively.
+
+>>> coherent_dm(5,1.25)
 Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = True
 Qobj data = 
 [[ 0.20980701  0.26141096  0.23509686  0.15572585  0.13390765]
@@ -311,8 +282,7 @@ Qobj data =
  [ 0.15572585  0.19402805  0.17449684  0.11558499  0.09939079]
  [ 0.13390765  0.16684347  0.1500487   0.09939079  0.0854655 ]]
 
-thermal_dm(5,1.25)
-
+>>> thermal_dm(5,1.25)
 Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = True
 Qobj data = 
 [[ 0.44444444  0.          0.          0.          0.        ]

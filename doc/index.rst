@@ -33,6 +33,7 @@ For more information see the `QuTiP project web page`_.
    :maxdepth: 1  
 
    changelog.rst
+   contributors.rst
 
 
 Indices and tables

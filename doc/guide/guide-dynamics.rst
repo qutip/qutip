@@ -28,7 +28,7 @@ The brackets in the fourth argument is an empty list of collapse operators,  sin
 
 The function returns an array of expectation values for the operators that are included in the list in the fifth argument. Adding operators to this list results in a larger output array returned by the function (one list of numbers, corresponding to the times in tlist, for each operator)::
 
-    >> odesolve(H, psi0, tlist, [], [sigmaz(), sigmay()])
+    >>> odesolve(H, psi0, tlist, [], [sigmaz(), sigmay()])
     array([[  1.00000000e+00+0.j,   7.89142292e-01+0.j,   2.45485961e-01+0.j,
              -4.01696962e-01+0.j,  -8.79476686e-01+0.j,  -9.86363558e-01+0.j,
              -6.77281655e-01+0.j,  -8.25767574e-02+0.j,   5.46952346e-01+0.j,
