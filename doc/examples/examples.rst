@@ -48,10 +48,9 @@ Master equation
    examples-jc-model-wigner.rst
    examples-lasing.rst
    examples-single-photon-source.rst
-
-*[ExamplesHeisenbergSpinChain Heisenberg spin-chain example]*
-
-*[ExamplesBlochQubitDecay Decay of a qubit state coupled to a zero-temp. bath shown on a Bloch sphere.]*
+   examples-spinchain.rst
+   examples-bloch-qubit-decay.rst
+   
 
 *[ExamplesTimeDependence Rabi oscillation in a two-level system subject to a time-dependent classical driving field.]*
 
