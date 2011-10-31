@@ -4,7 +4,7 @@
 Energy spectrum of a coupled three qubit system
 ===============================================
   
-Groundstate properties of an coupled three qubit system.
+Ground state properties of an coupled three qubit system.
     
 .. include:: examples-energy-spectrum.py
     :literal:    
