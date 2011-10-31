@@ -33,16 +33,10 @@ Basics
   
    examples-wigner.rst
    examples-squeezed.rst
-
+   examples-schcatdist.rst
 
 Basics
 ------
-
-*[ExamplesWigner Simple Wigner distribution of a linear combination of Fock states.]*
-
-*[ExamplesSqueezed Wigner and Q-functions of a squeezed state]*
-
-*[ExamplesSchCatDist Calculate the Wigner and Q-funtion distributions for a Schrodinger-Cat state.]*
 
 *[ExamplesEnergySpectrum Energy spectrum of a coupled three qubit system.]*
 
