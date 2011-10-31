@@ -11,10 +11,10 @@ Wigner distribution of linear combination of Fock states
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-wigner.py>`_
       
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/wigner2D.png
+.. figure:: figures/example-wigner-2D.png
     :align: center
     
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/wigner3D.png
+.. figure:: figures/example-wigner-3D.png
     :align: center
 
 
