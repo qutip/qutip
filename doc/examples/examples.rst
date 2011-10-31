@@ -31,11 +31,12 @@ Basic examples
    examples-wigner.rst
    examples-squeezed.rst
    examples-schcatdist.rst
+   examples-energy-spectrum.rst
    examples-ultrastrong.rst
    examples-entropy.rst
-
-*[ExamplesBar3D Visualizing a density matrix as a 3D histogram]*
-
+   examples-3d-histogram.rst
+   examples-angular.rst
+      
 *[ExamplesAngular Plotting an angular wave function and direction eigen-ket]*
 
 *[ExamplesGHZ Simultaneous diagonalization of operators using simdiag to generate GHZ states]*
