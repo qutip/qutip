@@ -28,7 +28,7 @@ Q = qfunc(psi,xvec,xvec)
 #
 # Plot results
 #
-fig = plt.figure(figsize=(14, 6))
+fig = plt.figure(figsize=(10, 5))
 ax = fig.add_subplot(1, 2, 1, projection='3d',azim=-43,elev=52)
 ax.plot_surface(X, Y, W, rstride=2, cstride=2, cmap=cm.jet, alpha=0.8,lw=.1)
 ax.set_xlim3d(-6,6)
@@ -41,5 +41,5 @@ ax2.set_xlim3d(-6,6)
 ax2.set_xlim3d(-6,6)
 ax2.set_zlim3d(-0.3,0.4)
 title('Q function of squeezed state')
+savefig('figures/example-squeezed.png')
 show()
-
