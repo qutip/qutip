@@ -39,20 +39,44 @@ Three-level atoms
 +++++++++++++++++
 
 .. automodule:: qutip.three_level_atom
-    :members: 
+    :members: three_level_basis, three_level_ops
     :undoc-members:
 
 Dynamics and time-evolution
 ---------------------------
-
 .. automodule:: qutip
-    :members: correlation, essolve, mcsolve, odesolve, propagator, steady
+    :members: mcsolve, odesolve
+    
+.. automodule:: qutip.correlation
+    :members: correlation_es, correlation_ode, correlation_mc, correlation_ss_es, correlation_ss_ode, correlation_ss_mc, spectrum_ss
+
+.. automodule:: qutip.essolve
+    :members: essolve, ode2es
+
+.. automodule:: qutip.propagator
+    :members: propagator, propagator_steadystate
+
+.. automodule:: qutip.steady
+    :members: steady, steadystate
     :undoc-members:
 
 Other
 -----
 
+.. automodule:: qutip.entropy
+    :members: entropy_linear, entropy_vn
+
+.. automodule:: qutip.gates
+    :members: cnot, fredkin, hadamard, phasegate, snot, swap, toffoli 
+
+.. automodule:: qutip.metrics
+    :members: fidelity, trace_dist
+
+.. automodule:: qutip.wigner
+    :members: qfunc, wigner
+
+
 .. automodule:: qutip
-    :members: about, clebsch, demos, entropy, fileio, gates, graph, metrics, orbital, parfor, rotation, simdiag, sphereplot, wigner
+    :members: about, clebsch, demos, hinton, orbital, parfor, qfunc, simdiag, sphereplot
     :undoc-members:
 
