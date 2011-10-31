@@ -92,19 +92,17 @@ Basics
 
 *[ExamplesMCTimesWhich Monte-carlo collapse times and corresponding operators]*
 
-== Steady state calculations ==
+Steady state calculations
+=========================
 
 .. toctree::
    :maxdepth: 2
   
    examples-corrfunc.rst
-   
+   examples-drivencavitysteady.rst
+   examples-spectrumsteady.rst
 
-*[ExamplesDrivenCavitySS Steady-state solution for a driven-cavity coupled to a qubit]*
+QuTiP Manuscript Figure Scripts
+===============================
 
-*[ExamplesCorrFunc  Two-time correlation functions]*
-
-*[ExamplesSpectrum Spectrum of a cavity coupled to a two-level atom]*
-
-=QuTiP Manuscript Figure Scripts=
 Additional examples corresponding to figures 2, 4, 6, 7, 8, 10, and 11 from the [http://arxiv.org/abs/1110.0573 QuTiP paper] may be found in the [http://code.google.com/p/qutip/downloads/list downloads section].
