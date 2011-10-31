@@ -4,7 +4,7 @@
 Example on how to calculate two-time correlation functions in QuTiP.
 --------------------------------------------------------------------
   
-In the following example we calculate the <x(t)x(0)> correlation function for a cavity, with and without coupling to a two-level atom.::
+In the following example we calculate the :math:`\left<x(t)x(0)\right>` correlation function for a cavity, with and without coupling to a two-level atom.::
 
     
     #

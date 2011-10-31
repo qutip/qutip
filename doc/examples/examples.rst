@@ -69,22 +69,18 @@ Basics
 
 *[ExamplesFidelity  Measuring the distance between density matrices via the fidelity]*
 
-== Monte-Carlo ==
+Monte-Carlo
+===========
 
 .. toctree::
    :maxdepth: 2
-  
+   
+   examples-expectmonte.rst
+   examples-trilinearmonte.rst
+   examples-thermalmonte.rst
+   examples-parampmonte.rst
+   examples-collapsetimesmonte.rst
 
-
-*[ExamplesMonteCarloExpectation Calculate the expectation values for an atom+cavity system using the Monte-Carlo trajectory method.]*
-
-*[ExamplesTrilinearMonteCarlo Evolution of the harmonic mode particle numbers for the trilinear Hamiltonian subject to damping.]*
-
-*[ExamplesThermalTrilinear  Trilinear Hamiltonian: deviation from a thermal spectrum]*
-
-*[ExamplesDampedParAmp  Master equation vs. Monte-Carlo evolution for a damped parametric amplifier]*
-
-*[ExamplesMCTimesWhich Monte-carlo collapse times and corresponding operators]*
 
 Steady state calculations
 =========================
