@@ -12,12 +12,12 @@ Calculates the Wigner for a Schrodinger Cat-state composed of two coherent state
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-schcatdist.py>`_
       
-.. figure:: figures/example-schcatdist-w.png
+.. figure:: examples-schcatdist-w.png
     :align: center
     
     The Wigner function of the Schrödinger cat state.
     
-.. figure:: figures/example-schcatdist-q.png 
+.. figure:: examples-schcatdist-q.png 
     :align: center
 
     The Q-function of the Schrödinger cat state.

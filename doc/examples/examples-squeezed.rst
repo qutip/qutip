@@ -11,7 +11,7 @@ Demos the use of the displacement and squeezing operator in constructing a squee
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-squeezed.py>`_
 
-.. figure:: figures/example-squeezed.png
+.. figure:: examples-squeezed.png
     :align: center
 
 
