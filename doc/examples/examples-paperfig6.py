@@ -44,14 +44,14 @@ F = fidelity(rho_ideal, rho_final)
 # ------------------------------------------------------------------------------
 # Plot the results (omitted from the code listing in the appendix in the paper)
 #
-from matplotlib import rcParams
-rcParams['font.family'] = 'serif'
-rcParams['font.serif'] = 'Times New Roman'
+
 from pylab import *
 
+figure(figsize=[6,4])
 plot(tlist / T, n1, 'r')
 plot(tlist / T, n2, 'b')
-xlabel('t/T', fontsize=18)
-ylabel('Occupation probability', fontsize=18)
-figtext(0.65, 0.6, "Fidelity = %.3f" % F, fontsize=18)
+xlabel('t/T', fontsize=12)
+ylabel('Occupation probability', fontsize=12)
+figtext(0.65, 0.6, "Fidelity = %.3f" % F, fontsize=12)
+savefig('examples-paperfig6.png')
 show()

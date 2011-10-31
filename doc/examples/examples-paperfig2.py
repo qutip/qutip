@@ -62,10 +62,6 @@ W = wigner(rho_cavity, xvec, xvec)
 # ------------------------------------------------------------------------------
 # Plot the results (omitted from the code listing in the appendix in the paper)
 #
-from matplotlib import rcParams
-rcParams['font.family'] = 'serif'
-rcParams['font.serif'] = 'Times New Roman'
-rcParams['legend.fontsize'] = 16
 from qutip import *
 from pylab import *
 from mpl_toolkits.mplot3d import Axes3D

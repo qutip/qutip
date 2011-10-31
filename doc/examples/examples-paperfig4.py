@@ -63,9 +63,7 @@ fexpt=expect(a.dag()*a,final_state)  # find expectation value for particle numbe
 # ------------------------------------------------------------------------------
 # Plot the results (omitted from the code listing in the appendix in the paper)
 #
-from matplotlib import rcParams
-rcParams['font.family'] = 'serif'
-rcParams['font.serif'] = 'Times New Roman'
+
 from pylab import *
 
 f = figure(figsize=(4.5,7))
@@ -105,5 +103,6 @@ setp(xticklabels, visible=False)
 
 ax1.xaxis.set_major_locator(MaxNLocator(4))
 xlabel('Time (sec)',fontsize=14)
+savefig('examples-paperfig4.png')
 show()
 

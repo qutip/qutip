@@ -57,20 +57,18 @@ reals=mcsolve(H,psi0,tlist,1,[],[n0,n1,n2])
 # ------------------------------------------------------------------------------
 # Plot the results (omitted from the code listing in the appendix in the paper)
 #
-from matplotlib import rcParams
-rcParams['font.family'] = 'serif'
-rcParams['font.serif'] = 'Times New Roman'
 from pylab import *
 
 fig=figure()
 ax = fig.add_subplot(111)
 ax.plot(tlist,avgs[0],tlist,avgs[1],tlist,avgs[2],lw=2)
 ax.plot(tlist,reals[0],'b--',tlist,reals[1],'g--',lw=1.5)
-xlabel(r'Time',fontsize=18)
-ylabel(r'Occupation probability',fontsize=18)
+xlabel(r'Time',fontsize=12)
+ylabel(r'Occupation probability',fontsize=12)
 ax.xaxis.set_major_locator(MaxNLocator(5))
 ax.xaxis.set_major_locator(MaxNLocator(5))
 for tick in ax.yaxis.get_ticklabels()+ax.xaxis.get_ticklabels():
-    tick.set_fontsize(16)
+    tick.set_fontsize(12)
 legend(("Pump ($a$)", "Signal ($b$)","Idler   ($c$)"))
+savefig('examples-paperfig8.png')
 show()

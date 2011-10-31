@@ -56,21 +56,18 @@ expt_data = odesolve(H, psi0, tlist, c_ops, expt_ops)
 # ------------------------------------------------------------------------------
 # Plot the results (omitted from the code listing in the appendix in the paper)
 #
-from matplotlib import rcParams
-rcParams['font.family'] = 'serif'
-rcParams['font.serif'] = 'Times New Roman'
-rcParams['legend.fontsize'] = 16
 from pylab import *
 
-fig=figure()
+fig=figure(figsize=[6,4])
 ax=fig.add_subplot(111)
 ax.plot(tlist, expt_data[0], lw=2)
 ax.plot(tlist, expt_data[1], 'r', lw=2)
 ax.legend(("Cavity", "Atom"))
-xlabel(r'Time',fontsize=18)
-ylabel(r'Occupation probability',fontsize=18)
+xlabel(r'Time',fontsize=12)
+ylabel(r'Occupation probability',fontsize=12)
 ax.xaxis.set_major_locator(MaxNLocator(4))
 ax.yaxis.set_major_locator(MaxNLocator(4))
 for tick in ax.yaxis.get_ticklabels()+ax.xaxis.get_ticklabels():
-    tick.set_fontsize(16)
+    tick.set_fontsize(12)
+savefig('examples-paperfig7.png')
 show()

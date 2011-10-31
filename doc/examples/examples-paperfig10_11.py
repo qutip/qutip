@@ -58,10 +58,6 @@ expt_list = odesolve(hamiltonian_t, psi0, tlist,
 # ------------------------------------------------------------------------------
 # Plot the results (omitted from the code listing in the appendix in the paper)
 #
-from matplotlib import rcParams
-rcParams['font.family'] = 'serif'
-rcParams['font.serif'] = 'Times New Roman'
-rcParams['legend.fontsize'] = 12
 from pylab import *
 
 fig=figure(figsize=[6,4])

@@ -20,17 +20,7 @@ states,evalues=simdiag([op1,op2,op3,opghz])
 
 # eigenvalues show contradiction with classical prediction
 print evalues[:,0]
-[ 1.  1.  1. -1.]
 
 # Eigenstate is entangled superposition of up-up-up and dn-dn-dn
 print states[0]
-Quantum object: dims = [[2, 2, 2], [1]], shape = [8, 1], type = ket
-Qobj data = 
-[[-0.70710678+0.j]
- [ 0.00000000+0.j]
- [ 0.00000000+0.j]
- [ 0.00000000+0.j]
- [ 0.00000000+0.j]
- [ 0.00000000+0.j]
- [ 0.00000000+0.j]
- [ 0.70710678+0.j]]
+
