@@ -134,7 +134,7 @@ Qobj data =
  [ 1.]
  [ 0.]]
 
->>>print coherent(5,0.5-0.5j)
+>>> print coherent(5,0.5-0.5j)
 Quantum object: dims = [[5], [1]], shape = [5, 1]
 Qobj data = 
 [[  7.78801702e-01 -5.63234865e-20j]
