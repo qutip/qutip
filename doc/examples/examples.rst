@@ -89,4 +89,8 @@ QuTiP Manuscript Figure Scripts
    :maxdepth: 2
    
    examples-paperfig2.rst
-
+   examples-paperfig4.rst
+   examples-paperfig6.rst
+   examples-paperfig7.rst
+   examples-paperfig8.rst
+   examples-paperfig10_11.rst
