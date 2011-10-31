@@ -45,12 +45,9 @@ Master equation
    :maxdepth: 2
   
    examples-jc-model.rst
-
-*[ExamplesJCWignerEvolve Wigner distributions from the master equation evolution of the Jaynes-Cummings model]*
-
-*[ExamplesSingleAtomLasing Single-atom lasing in a Jaynes-Cumming-like system, with an additional incoherent pump]*
-
-*[ExamplesSinglePhotonSource Single photon source based on a three level atom strongly coupled to a cavity]*
+   examples-jc-model-wigner.rst
+   examples-lasing.rst
+   examples-single-photon-source.rst
 
 *[ExamplesHeisenbergSpinChain Heisenberg spin-chain example]*
 
