@@ -48,7 +48,6 @@ Master equation
    examples-jc-model-wigner.rst
    examples-lasing.rst
    examples-single-photon-source.rst
-   examples-fidelity.rst
    examples-spinchain.rst
    examples-bloch-qubit-decay.rst
    examples-time-dependence.rst
