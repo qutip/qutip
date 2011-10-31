@@ -11,6 +11,5 @@ Monte-Carlo evolution of the trilinear Hamiltonian subject to damping.
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-trilinearmonte.py>`_
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/trilinearMC.png
+.. figure:: figure/examples-trilinearmonte.png
     :align: center
-    :target: http://qutip.googlecode.com/svn/wiki/images/trilinearMC.png

@@ -13,6 +13,6 @@ The parametric amplifier is a common example of a linear amplifier.  It is well-
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-thermalmonte.py>`_
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/trilinear_deviations.png
+.. figure:: figures/examples-thermalmonte.png
     :align: center
-    :target: http://qutip.googlecode.com/svn/wiki/images/trilinear_deviations.png
+    

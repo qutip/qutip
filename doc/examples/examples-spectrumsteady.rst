@@ -10,6 +10,5 @@ Calculate the power spectrum of a cavity, with and without coupling to a two-lev
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-spectrumsteady.py>`_
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/examples-spectrum.png
+.. figure:: figures/examples-spectrum.png
     :align: center
-    :target: http://qutip.googlecode.com/svn/wiki/images/examples-spectrum.png
