@@ -11,28 +11,28 @@ States and operators
 --------------------
 
 .. automodule:: qutip.states
-    :members: 
+    :members: basis, qutrit_basis, coherent, coherent_dm, fock, fock_dm, thermal_dm, ket2dm
 
 .. automodule:: qutip.qstate
-    :members: 
+    :members: qstate 
 
 .. automodule:: qutip.operators
-    :members: 
+    :members: jmat, sigmap, sigmam, sigmax, sigmay, sigmaz, destroy, create, qeye, num, squeez, displace, qutrit_ops
 
 .. automodule:: qutip.istests
-    :members: 
+    :members: isket, isbra, isoper, issuper, isequal, isherm
 
 .. automodule:: qutip.superoperator
-    :members: 
+    :members: liouvillian, spost, spre
 
 .. automodule:: qutip.tensor
-    :members: 
+    :members: tensor
 
 .. automodule:: qutip.ptrace
-    :members: 
+    :members: ptrace
 
 .. automodule:: qutip.expect
-    :members: 
+    :members: expect
 
 
 Three-level atoms
@@ -46,7 +46,7 @@ Dynamics and time-evolution
 ---------------------------
 
 .. automodule:: qutip
-    :members: correlation, essolve, mcdata, mcsolve, odesolve, propagator, steady
+    :members: correlation, essolve, mcsolve, odesolve, propagator, steady
     :undoc-members:
 
 Other

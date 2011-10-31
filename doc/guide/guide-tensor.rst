@@ -11,7 +11,7 @@ Tensor products
 
 To describe the states of coupled quantum systems, such as two coupled qubits, a qubit coupled to an oscillator, etc., we need to expand the Hilbert space by taking the tensor product of the state vectors of the component systems. Similarly, the operators acting on the state vectors in the combined Hilbert space (describing the coupled system) are formed by taking the tensor product of the component operators.
 
-In QuTiP the function the function :func:`qutip.tensor()` is used for this. The *tensor* function takes as argument a list of state vectors *or* operators and returns the corresponding quantity for the combined Hilbert space.
+In QuTiP the function the function :func:`qutip.tensor.tensor` is used for this. The *tensor* function takes as argument a list of state vectors *or* operators and returns the corresponding quantity for the combined Hilbert space.
 
 For example, the state vector describing two qubits in their ground states is formed by taking the tensor product of the two single-qubit groundstate vectors::
     
@@ -23,7 +23,7 @@ For example, the state vector describing two qubits in their ground states is fo
      [ 0.]
      [ 0.]]
 
-This is straight forward to generalize to more qubits by adding more component state vectors in the argument list to the *tensor* function, as illustrated in the following example::
+This is straight forward to generalize to more qubits by adding more component state vectors in the argument list to the :func:`qutip.tensor.tensor` function, as illustrated in the following example::
 
     >>> tensor((basis(2,0)+basis(2,1)).unit(), (basis(2,0)+basis(2,1)).unit(), basis(2,0))
     Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = [8, 1], type = ket
@@ -62,7 +62,7 @@ To form operators in a combined Hilbert space that only act only on a single com
 Example: Constructing composite Hamiltonians
 ============================================
 
-The :func:`qutip.tensor` function is extensively used when constructing Hamiltonians for composite systems. Here we'll look at some simple examples.
+The :func:`qutip.tensor.tensor` function is extensively used when constructing Hamiltonians for composite systems. Here we'll look at some simple examples.
 
 Two coupled qubits
 ------------------
@@ -116,7 +116,7 @@ Here N is the number of Fock states included in the cavity mode.
 Partial trace
 =============
 
-The partial trace is an operation that reduces the dimension of a Hilbert space by eliminating some degrees of freedom by averaging (tracing). In this sense it is therefore the converse of the tensor product. It is useful when only interested in the state of a part of a coupled quantum system. In QuTiP the function :func:`qutip.ptrace` is used to take partial traces. It takes two arguments: *rho* is the density matrix (or state vector) of the composite system, and *sel* is a list of integers that mark the component systems that should be kept (all other components are traced out).
+The partial trace is an operation that reduces the dimension of a Hilbert space by eliminating some degrees of freedom by averaging (tracing). In this sense it is therefore the converse of the tensor product. It is useful when only interested in the state of a part of a coupled quantum system. In QuTiP the function :func:`qutip.ptrace.ptrace` is used to take partial traces. It takes two arguments: *rho* is the density matrix (or state vector) of the composite system, and *sel* is a list of integers that mark the component systems that should be kept (all other components are traced out).
 
 For example, the density matrix describing a single qubit from a coupled two-qubit system is formed as::
 
