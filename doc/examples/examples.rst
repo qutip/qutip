@@ -4,17 +4,6 @@
 QuTiP Examples
 **************
 
-  
-Basics
-======
-
-.. toctree::
-   :maxdepth: 2
-  
-   examples-wigner.rst
-   examples-squeezed.rst
-   
-   
 Running QuTiP demos
 ===================
 
@@ -35,6 +24,16 @@ If you do not have any graphics libraries installed, or they are disabled, then 
 
 Examples
 ========
+
+Basics
+======
+
+.. toctree::
+   :maxdepth: 2
+  
+   examples-wigner.rst
+   examples-squeezed.rst
+
 
 Basics
 ------
@@ -77,6 +76,12 @@ Basics
 *[ExamplesFidelity  Measuring the distance between density matrices via the fidelity]*
 
 == Monte-Carlo ==
+
+.. toctree::
+   :maxdepth: 2
+  
+
+
 *[ExamplesMonteCarloExpectation Calculate the expectation values for an atom+cavity system using the Monte-Carlo trajectory method.]*
 
 *[ExamplesTrilinearMonteCarlo Evolution of the harmonic mode particle numbers for the trilinear Hamiltonian subject to damping.]*
@@ -88,6 +93,12 @@ Basics
 *[ExamplesMCTimesWhich Monte-carlo collapse times and corresponding operators]*
 
 == Steady state calculations ==
+
+.. toctree::
+   :maxdepth: 2
+  
+   examples-corrfunc.rst
+   
 
 *[ExamplesDrivenCavitySS Steady-state solution for a driven-cavity coupled to a qubit]*
 
