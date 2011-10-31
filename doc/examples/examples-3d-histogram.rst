@@ -11,7 +11,7 @@ Many people like to plot the density matrix as a 3D histogram.  In this example,
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-3d-histogram.py>`_
       
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/bar3d.png
+.. figure:: examples-3d-histogram.png
     :align: center
 
 

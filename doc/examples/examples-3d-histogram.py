@@ -1,5 +1,6 @@
 from qutip import *
 from pylab import *
+from scipy import random
 from matplotlib import pyplot, mpl,cm
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
@@ -20,7 +21,7 @@ nrm=mpl.colors.Normalize(0,1) #<-- normalize colors to 1
 colors=cm.jet(nrm(dz)) #list of colors for each bar
 
 #plot figure
-fig = plt.figure()
+fig = plt.figure(figsize=(6,4))
 ax = Axes3D(fig,azim=-40,elev=70)
 ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 ax.axes.w_xaxis.set_major_locator(IndexLocator(1,-0.5)) #set x-ticks to integers
@@ -31,4 +32,5 @@ ax.set_zlim3d([0,1.1])
 cax,kw=mpl.colorbar.make_axes(ax,shrink=.75,pad=.02) #add colorbar with normalized range
 cb1=mpl.colorbar.ColorbarBase(cax,cmap=cm.jet,norm=nrm)
 
-plt.show()
+savefig('examples-3d-histogram.png')
+
