@@ -39,10 +39,12 @@ for j in range(3):
     fids[j,:]=[fidelity(mode1[k],thermal[k]) for k in range(len(tlist))] #calc. fidelity
 
 #plot the results
+figure(figsize=[6,4])
 plot(tlist,fids[0],'b',tlist,fids[1],'r',tlist,fids[2],'g',lw=1.5)
 ylim([.86,1.02])
-xlabel('Time',fontsize=14)
-ylabel('Fidelity',fontsize=14)
-title('Distance from thermal density matrix')
-legend(('$\langle n\\rangle_{0}$=1','$\langle n\\rangle_{0}$=2','$\langle n\\rangle_{0}$=3'),loc=4)
+xlabel('Time',fontsize=11)
+ylabel('Fidelity',fontsize=11)
+title('Distance from thermal density matrix',fontsize=11)
+legend(('$\langle n\\rangle_{0}$=1','$\langle n\\rangle_{0}$=2','$\langle n\\rangle_{0}$=3'),loc=3)
+savefig('examples-fidelity.png')
 show()
