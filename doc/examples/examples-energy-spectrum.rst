@@ -11,7 +11,7 @@ Ground state properties of an coupled three qubit system.
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-energy-spectrum.py>`_
       
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/examples-energy-spectrum.png
+.. figure:: examples-energy-spectrum.png
     :align: center
 
 
