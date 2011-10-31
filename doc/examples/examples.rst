@@ -51,11 +51,10 @@ Master equation
    examples-fidelity.rst
    examples-spinchain.rst
    examples-bloch-qubit-decay.rst
-  
-
-*[ExamplesTimeDependence Rabi oscillation in a two-level system subject to a time-dependent classical driving field.]*
-
-*[ExamplesLandauZener Landau-Zener transitions in a quantum two-level system]* *(QuTiP paper figures #10 & 11)*
+   examples-time-dependence.rst
+   examples-landau-zener.rst
+   examples-propagator.rst
+   examples-fidelity.rst
 
 
 Monte-Carlo
