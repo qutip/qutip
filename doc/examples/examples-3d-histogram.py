@@ -31,6 +31,5 @@ ax.set_zlim3d([0,1.1])
 
 cax,kw=mpl.colorbar.make_axes(ax,shrink=.75,pad=.02) #add colorbar with normalized range
 cb1=mpl.colorbar.ColorbarBase(cax,cmap=cm.jet,norm=nrm)
-
 savefig('examples-3d-histogram.png')
 

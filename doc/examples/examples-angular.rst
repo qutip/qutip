@@ -13,10 +13,10 @@ Shows a plot of an angular wave function corresponding to specified state of a l
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-angular.py>`_
       
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/sphereplot.png
+.. figure:: examples-angular-sphereplot.png
     :align: center
     
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/direction.png
+.. figure:: examples-angular-direction.png
     :align: center
 
 
