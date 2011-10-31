@@ -41,7 +41,10 @@ Basic examples
 Master equation
 ===============
 
-*[ExamplesJaynesCummingsModel Vacuum Rabi oscillations in the Jaynes-Cummings model with dissipation.]*
+.. toctree::
+   :maxdepth: 2
+  
+   examples-jc-model.rst
 
 *[ExamplesJCWignerEvolve Wigner distributions from the master equation evolution of the Jaynes-Cummings model]*
 
