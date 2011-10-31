@@ -11,17 +11,17 @@ This example illustrates a simple model for single-atom lasing in a Jaynes-Cummi
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-lasing.py>`_
       
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/examples-lasing_1.png
+.. figure:: examples-lasing_1.png
     :align: center
     
     Cavity and atom occupation probabilities.
     
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/examples-lasing_2.png
+.. figure:: examples-lasing_2.png
     :align: center
 
     Cavity photon distribution (final state).
     
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/examples-lasing_3.png
+.. figure:: examples-lasing_3.png
     :align: center
 
     Cavity Winger function (final state).
