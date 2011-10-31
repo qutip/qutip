@@ -36,12 +36,11 @@ Basic examples
    examples-entropy.rst
    examples-3d-histogram.rst
    examples-angular.rst
-      
-*[ExamplesAngular Plotting an angular wave function and direction eigen-ket]*
+   examples-GHZ.rst      
 
-*[ExamplesGHZ Simultaneous diagonalization of operators using simdiag to generate GHZ states]*
+Master equation
+===============
 
-== Master equation ==
 *[ExamplesJaynesCummingsModel Vacuum Rabi oscillations in the Jaynes-Cummings model with dissipation.]*
 
 *[ExamplesJCWignerEvolve Wigner distributions from the master equation evolution of the Jaynes-Cummings model]*
