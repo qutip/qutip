@@ -49,7 +49,7 @@ Installation on Ubuntu Linux
 >>> sudo apt-get install python-setuptools
 >>> sudo apt-get install python-dev
 
-At present, Ubuntu 11.04 and lower do not have Matplotlib>=1.0 therefore we need to add the unofficial repository (in Ubuntu 11.10, skip this step)
+Ubuntu 11.04 and lower do not have Matplotlib>=1.0, and we therefore need to add the unofficial repository (in Ubuntu 11.10, skip this step)
 
 >>> sudo add-apt-repository ppa:bgamari/matplotlib-unofficial
 >>> sudo apt-get update
@@ -58,11 +58,13 @@ before running
 
 >>> sudo apt-get install python-matplotlib
 
-
 QuTiP installation:
 
 >>> sudo python setup.py install
 
+.. note:: 
+
+    On some versions of Ubuntu you might have to configure Matplotlib to use the GTKAgg or Qt4Agg backends instead of the default TkAgg backend. To do this, edit /etc/matplotlibrc, and change ``backend: TkAgg`` to ``backend: GTKAgg`` or ``backend: Qt4Agg``.
 
 Installation on Mac OS X (10.6+)
 ++++++++++++++++++++++++++++++++
