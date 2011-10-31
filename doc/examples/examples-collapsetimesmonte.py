@@ -31,7 +31,7 @@ H=1j*(a0*a1.dag()*a2.dag()-a0.dag()*a1*a2)
 #run Monte-Carlo with three return values
 avg,times,which=mcsolve(H,psi0,tlist,ntraj,[C1,C2],[num1,num2]) #<--- important line!
 
-fig = plt.figure()
+fig = plt.figure(figsize=[6,4])
 ax = fig.add_subplot(111)
 cs=['b','r']
 
@@ -46,4 +46,5 @@ ax.set_ylim([0,tlist[-1]])
 ax.set_xlabel('Trajectory')
 ax.set_ylabel('Collpase Time')
 ax.set_title('Blue = C1, Red = C2')
-plt.show()
+plt.savefig('examples-collapsetimesmonte.png')
+close(fig)

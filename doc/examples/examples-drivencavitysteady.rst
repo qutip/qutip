@@ -11,12 +11,10 @@ Here we will find the steady-state solution to the problem of a driven-cavity co
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-drivencavitysteady.py>`_
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/ss-countrates.png
+.. figure:: examples-drivencavitysteady_1.png
     :align: center
-    :target: http://qutip.googlecode.com/svn/wiki/images/ss-countrates.png
-    
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/ss-phaseshift.png
+
+.. figure:: examples-drivencavitysteady_2.png
     :align: center
-    :target: http://qutip.googlecode.com/svn/wiki/images/ss-phaseshift.png
 
 

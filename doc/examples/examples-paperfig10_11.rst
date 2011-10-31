@@ -13,10 +13,12 @@ The Bloch sphere representation is also given, where the data point color indica
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-paperfig2.py>`_
 
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/paper_fig10.png 
+.. figure:: examples-paperfig10_11_1.png 
     :align: center
-    :target: http://qutip.googlecode.com/svn/wiki/images/paper_fig10.png 
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/paper_fig11.png 
+.. figure:: examples-paperfig10_11_2.png 
     :align: center
-    :target: http://qutip.googlecode.com/svn/wiki/images/paper_fig11.png
+    
+.. figure:: examples-paperfig10_11_3.png 
+    :align: center
+

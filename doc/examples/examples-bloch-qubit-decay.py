@@ -48,5 +48,7 @@ sphere=Bloch()
 sphere.add_points([sx,sy,sz])
 sphere.point_color=['r']
 sphere.vector_color = ['b']
+sphere.size=[4,4]
+sphere.font_size=14
 sphere.add_vectors([sin(theta),0,cos(theta)])
-sphere.show()
+sphere.save('examples-bloch-qubit-decay.png')

@@ -10,10 +10,10 @@ for k in range(len(a)):
     rho=Qobj(z)
     out[k]=entropy_vn(rho)
 
-figure(figsize=(6,4))
+fig=figure(figsize=(6,4))
 plot(a,out,lw=1.5)
 xlabel('Percentage of excited state')
 ylabel('Entropy')
 savefig('examples-entropy.png')
-show()
+close(fig)
 

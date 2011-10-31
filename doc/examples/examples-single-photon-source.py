@@ -85,7 +85,7 @@ exp_ada, exp_uu, exp_gg = odesolve(Hfunc, psi0, t, c_op_list,
 # For plotting t has to match the shape of the result vecs,
 # so transpose it
 t = t.transpose()
-
+fig=figure()
 subplot(211)
 plot(t, wp(t), 'k')
 ylabel('Control Field, $\Omega_\mathrm{p}$ [MHz]')
@@ -94,7 +94,7 @@ plot(t, kappa*exp_ada, 'b')
 ylabel('Cavity emission rate, $1/\mu s$')
 for tl in ax.get_yticklabels():
     tl.set_color('b')
-axis('tight')
+#axis('tight')
 
 subplot(212)
 plot(t, exp_uu, 'k-', label='$P{\mathrm{uu}}$')
@@ -102,5 +102,5 @@ plot(t, exp_gg, 'k:',  label='$P{\mathrm{gg}}$')
 ylabel('Population')
 xlabel('Time [$\mu s$]')
 legend()
-show()
-
+savefig('examples-single-photon-source.png')
+close(fig)

@@ -70,4 +70,4 @@ ax.yaxis.set_major_locator(MaxNLocator(4))
 for tick in ax.yaxis.get_ticklabels()+ax.xaxis.get_ticklabels():
     tick.set_fontsize(12)
 savefig('examples-paperfig7.png')
-show()
+close(fig)

@@ -30,9 +30,6 @@ S. Gleyzes, et al., Nature 446, 297 (2007).
 
 """
 
-import os
-os.environ['QUTIP_GRAPHICS']="NO"
-
 from qutip import *
 N=5             # number of basis states to consider
 a=destroy(N)    # cavity destruction operator
@@ -104,5 +101,5 @@ setp(xticklabels, visible=False)
 ax1.xaxis.set_major_locator(MaxNLocator(4))
 xlabel('Time (sec)',fontsize=14)
 savefig('examples-paperfig4.png')
-show()
+close(f)
 

@@ -42,5 +42,5 @@ xlabel("Time")
 ylabel("Average number of particles")
 legend(('Mode 0', 'Mode 1','Mode 2'))
 savefig('examples-trilinearmonte.png')
-show()
+close(fig)
 

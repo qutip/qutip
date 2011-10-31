@@ -1,5 +1,4 @@
 import matplotlib
-matplotlib.use('agg') #<--- prevents a lot of figure windows from popping up when saving images
 from qutip import *
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm

@@ -2,8 +2,8 @@
 # Heisenberg spin 1/2 chain
 #
 from qutip import *
+from pylab import *
 import time
-
 def integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver):
     # Hamiltonian
     #
@@ -79,11 +79,12 @@ print 'time elapsed = ' +str(time.time() - start_time)
 #
 # plot
 #
-rc('font', family='serif')
-for n in range(N):
-    plot(tlist, real(sz_expt[n,:]), label=r'$\langle\sigma_z($'+str(n)+r'$)\rangle$')
-xlabel(r'Time [ns]')
-ylabel(r'\langle\sigma_z\rangle')
+fig=figure(figsize=[6,4])
+for n in xrange(N):
+    plot(tlist, real(sz_expt[n]), label=r'$\langle\sigma_z($'+str(n)+r'$)\rangle$',lw=2)
+xlabel(r'Time [ns]',fontsize=14)
+ylabel(r'$\langle\sigma_{z}\rangle$',fontsize=14)
 title(r'Dynamics of a Heisenberg spin chain')
 legend(loc = "lower right")
-show()
+savefig('examples-spinchain.png')
+close(fig)

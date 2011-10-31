@@ -71,4 +71,4 @@ for tick in ax.yaxis.get_ticklabels()+ax.xaxis.get_ticklabels():
     tick.set_fontsize(12)
 legend(("Pump ($a$)", "Signal ($b$)","Idler   ($c$)"))
 savefig('examples-paperfig8.png')
-show()
+close(fig)

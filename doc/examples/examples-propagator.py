@@ -81,7 +81,7 @@ print 'time elapsed = ' + str(time.time() - start_time)
 #
 # plot the results
 #
-figure(1)
+fig=figure(figsize=[6,4])
 subplot(211)
 plot(tlist, real(p_ex), 'b', tlist, real(1-p_ex), 'r', tlist, ones(shape(tlist)) * p_ex_ss, 'k')
 xlabel('Time')
@@ -94,26 +94,5 @@ plot(tlist, -(eps0/2.0 + A/2.0 * cos(omega * tlist)), 'b')
 legend(("sx coeff", "sz coeff"))
 xlabel('Time')
 ylabel('Coefficients in the Hamiltonian')
-show()
-
-#
-# find the steady state as a function of driving amplitude
-#
-A_vec = 2 * pi * arange(0.0, 2.5, 0.005)
-
-p_ex_ss_vec = zeros(len(A_vec))
-idx = 0
-start_time = time.time()
-for A in A_vec:
-    
-    p_ex_ss_vec[idx] = qubit_integrate(delta, eps0, A, omega, gamma1, gamma2, psi0, tlist, "steadystate")
-    idx += 1
-
-print 'time elapsed = ' + str(time.time() - start_time) 
-
-figure(2)
-plot(A_vec/(2*pi), p_ex_ss_vec, 'b.-')
-title("Steady state of repeated LZ transitions")
-xlabel("driving amplitude")
-ylabel("Occupation probability")
-show()
+savefig('examples-propagator.png')
+close(fig)

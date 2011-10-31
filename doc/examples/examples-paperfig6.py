@@ -47,11 +47,11 @@ F = fidelity(rho_ideal, rho_final)
 
 from pylab import *
 
-figure(figsize=[6,4])
+fig=figure(figsize=[6,4])
 plot(tlist / T, n1, 'r')
 plot(tlist / T, n2, 'b')
 xlabel('t/T', fontsize=12)
 ylabel('Occupation probability', fontsize=12)
 figtext(0.65, 0.6, "Fidelity = %.3f" % F, fontsize=12)
 savefig('examples-paperfig6.png')
-show()
+close(fig)

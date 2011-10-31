@@ -31,8 +31,10 @@ psi0=tensor(basis(N,0),basis(2,1))
 avg=mcsolve(H,psi0,tlist,ntraj,[C1,C2],[C1dC1,C2dC2])
 
 #plot results
+fig=figure(figsize=[6,4])
 plot(tlist,avg[0],'r',tlist,avg[1],'b--',lw=1.5)
 xlabel('Time')
 ylabel('Photocount rates')
 legend(('Cavity ouput', 'Spontaneous emission') )
-show()
+savefig('examples-expectmonte.png')
+close(fig)

@@ -73,7 +73,7 @@ ax.legend((r"Ground state $\left|1\right>$", r"Excited state $\left|0\right>$", 
 for tick in ax.yaxis.get_ticklabels()+ax.xaxis.get_ticklabels():
     tick.set_fontsize(12)
 savefig('examples-paperfig10_11_1.png')
-show()
+close(fig)
 
 # ------------------------------------------------------------------------------
 # Appendix B.7
@@ -95,7 +95,7 @@ b.zlabel=['$\left|0\\right>_{f}$','$\left|1\\right>_{f}$']
 b.font_size=16
 ## plot sphere ## 
 b.save('examples-paperfig10_11_2.png')
-b.show()
+
 
 fig = figure(figsize=[4,2])
 ax1 = fig.add_axes([0.05, 0.5, 0.7, 0.05])
@@ -104,4 +104,4 @@ cb1.set_label('Time',fontsize=12)
 for t in cb1.ax.get_yticklabels():
      t.set_fontsize(12)
 savefig('examples-paperfig10_11_3.png')
-show()
+close(fig)

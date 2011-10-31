@@ -51,7 +51,7 @@ ax.set_xlabel(r'Number State')
 ax.set_ylabel(r'Time')
 ax.set_zlim3d(0,1)
 savefig('examples-thermalmonte.png')
-show()
+close(fig)
 
 
 

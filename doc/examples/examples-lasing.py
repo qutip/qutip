@@ -78,35 +78,36 @@ print 'time elapsed = ' +str(time.time() - start_time)
 #
 # plot the time-evolution of the cavity and atom occupation
 #
-figure(1)
+fig=figure(figsize=[6,4])
 plot(tlist, real(nc), 'r.-',   tlist, real(na), 'b.-')
 xlabel('Time');
 ylabel('Occupation probability');
 legend(("Cavity occupation", "Atom occupation"))
-show()
-
+savefig('examples-lasing_1.png')
+close(fig)
 #
 # plot the final photon distribution in the cavity
 #
 rho_final  = rho_list[-1]
 rho_cavity = ptrace(rho_final, 0)
 
-figure(2)
+fig=figure(figsize=[6,4])
 bar(range(0, N), real(rho_cavity.diag()), width=0.8)
 xticks(arange(N)+0.4, arange(N))
 xlabel("Photon number")
 ylabel("Occupation probability")
 title("Photon distribution in the cavity")
-show()
-
+savefig('examples-lasing_2.png')
+close(fig)
 #
 # plot the wigner function
 #
+fig=figure(figsize=[6,4])
 xvec = linspace(-5, 5, 100)
 W = wigner(rho_cavity, xvec, xvec)
 X,Y = meshgrid(xvec, xvec)
 fig=figure(3)
 contourf(X, Y, W, 100)
 colorbar()
-show()
-
+savefig('examples-lasing_3.png')
+close(fig)

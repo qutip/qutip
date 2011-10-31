@@ -86,7 +86,7 @@ for tick in ax2.yaxis.get_ticklabels():
     tick.set_fontsize(11)
 
 savefig('examples-paperfig2_1.png')
-show()
+close(fig1)
 
 #
 # calculate wigner function of cavity mode at final coupling strength g=2.5.
@@ -120,5 +120,5 @@ cb1.set_ticks(linspace(round(W.min(),1),round(W.max(),1),6))
 for t in cb1.ax.get_yticklabels():
      t.set_fontsize(12)
 savefig('examples-paperfig2_2.png')
-show()
+close(fig2)
 

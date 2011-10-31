@@ -44,7 +44,7 @@ evals_mat = compute(w1list, w2, w3, g12, g13)
 #
 # plot the energy eigenvalues
 #
-figure(figsize=(6,4))
+fig=figure(figsize=[6,4])
 for n in [1,2,3]:# range(len(evals_mat[0,:])):
     plot(w1list / (2*pi), (evals_mat[:,n]-evals_mat[:,0]) / (2*pi), 'b',lw=2)
 
@@ -52,5 +52,5 @@ xlabel('Energy splitting of atom 1')
 ylabel('Eigenenergies')
 title('Energy spectrum of three coupled qubits')
 savefig('examples-energy-spectrum.png')
-show()
+close(fig)
 
