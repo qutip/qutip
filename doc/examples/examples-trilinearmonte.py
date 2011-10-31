@@ -36,9 +36,11 @@ avg=mcsolve(H,psi0,tlist,ntraj,[C0,C1,C2],[num0,num1,num2])
 finish_time=time.time()
 print 'time elapsed = ',finish_time-start_time
 #plot expectation value for photon number in each mode
+fig = figure(figsize=(6, 4))
 plot(tlist,avg[0],tlist,avg[1],tlist,avg[2])
 xlabel("Time")
 ylabel("Average number of particles")
-legend(('Mode 0', 'Mode 1','Mode 2') )
+legend(('Mode 0', 'Mode 1','Mode 2'))
+savefig('examples-trilinearmonte.png')
 show()
 

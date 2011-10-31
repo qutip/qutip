@@ -1,7 +1,7 @@
 .. QuTiP 
    Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 
-Monte-Carlo evolution of the trilinear Hamiltonian subject to damping.
+Monte-Carlo evolution of the trilinear Hamiltonian subject to damping
 ---------------------------------------------------------------------
 
 Monte-Carlo evolution of the trilinear Hamiltonian subject to damping.
@@ -11,5 +11,5 @@ Monte-Carlo evolution of the trilinear Hamiltonian subject to damping.
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-trilinearmonte.py>`_
 
-.. figure:: figure/examples-trilinearmonte.png
+.. figure:: examples-trilinearmonte.png
     :align: center
