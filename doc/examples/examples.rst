@@ -34,10 +34,7 @@ Basics
    examples-wigner.rst
    examples-squeezed.rst
    examples-schcatdist.rst
-
-*[ExamplesEnergySpectrum Energy spectrum of a coupled three qubit system.]*
-
-*[ExamplesUltrastrong Cavity occupation number and Wigner function in the ultrastrong coupling regime.]* *(QuTiP paper figure #2)*
+   examples-ultrastrong.rst
 
 *[ExamplesEntropy Von-Neumann entropy of a binary mixture of |up> and |down> states]*
 
