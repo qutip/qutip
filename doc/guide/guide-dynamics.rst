@@ -10,7 +10,7 @@ An Overview of the Quantum Dynamics Solvers in QuTiP
 Unitary evolution
 -----------------
 
-The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, [GuideComposite Creating and manipulating composite objects with tensor and ptrace], we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector *psi0* using the QuTiP function :func:`qutip.odesolve`. It evolves the state vector and evaluates the expectation values for a set of operators *expt_op_list* at the points in time in the list *tlist*, using an ordinary differential equation solver. Alternatively, we can use the function :func:`qutip.essolve`, which uses the exponential-series technique to calculate the time evolution of a system. The *odesolve* and *essolve* functions take the same arguments and it is therefore easy switch between the two solvers. 
+The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, [GuideComposite Creating and manipulating composite objects with tensor and ptrace], we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector *psi0* using the QuTiP function :func:`qutip.odesolve`. It evolves the state vector and evaluates the expectation values for a set of operators *expt_op_list* at the points in time in the list *tlist*, using an ordinary differential equation solver. Alternatively, we can use the function :func:`qutip.essolve`, which uses the exponential-series technique to calculate the time evolution of a system. The :func:`qutip.odesolve` and :func:`qutip.essolve` functions take the same arguments and it is therefore easy switch between the two solvers. 
 
 For example, the time evolution of a quantum spin-1/2 system with tunneling rate 0.1 that initially is in the up state is calculated, and the  expectation values of the :math:`\sigma_z` operator evaluated, with the following code::
 
@@ -60,7 +60,7 @@ The resulting list of expectation values can easily be visualized using matplotl
 .. figure:: http://qutip.googlecode.com/svn/wiki/images/guide-qubit-dynamics.png
     :align: center
 
-If an empty list of operators is passed as fifth parameter, the *odesolve* function returns a list of state vectors for the times specified in *tlist*::
+If an empty list of operators is passed as fifth parameter, the :func:`qutip.odesolve` function returns a list of state vectors for the times specified in *tlist*::
 
     >>> tlist = [0.0, 1.0]
     >>> odesolve(H, psi0, tlist, [], [])
@@ -91,7 +91,7 @@ Master equation
 
 For non-unitary evolution of a quantum systems, i.e., evolution that includes
 incoherent processes such as relaxation and dephasing, it is common to use
-master equations. In QuTiP, the same function (*odesolve*) is used for 
+master equations. In QuTiP, the same function (:func:`qutip.odesolve`) is used for 
 evolution both according to the Schrödinger equation and to the master equation,
 even though these two equations of motion are very different. The *odesolve*
 function automatically determines if it is sufficient to use the Schrödinger 
@@ -231,9 +231,9 @@ In addition, when collapse operators are specified, the monte-carlo solver will 
     
 where we have requested a second output `times`.  Again the first operator corresponds to the expectation values.  To get the information on which operator did the collapse we add a third return value::
 
-    expt,times,which=mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
+    >>> expt,times,which=mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
 
-If no expectation values are specified then the first output will be a list of state vectors.  A example demonstrating the use of multiple return values may be found at *[ExamplesMCTimesWhich]*.  To summarize, the table below gives the output of the monte-carlo solver for a given set of inout and output conditions:
+If no expectation values are specified then the first output will be a list of state vectors.  A example demonstrating the use of multiple return values may be found at *[ExamplesMCTimesWhich]*.  To summarize, the table below gives the output of the monte-carlo solver for a given set of input and output conditions:
 
 +--------------------+-----------------------+-----------------------------+------------------------------------+
 | Collapse operators | Expectation operators | Number of requested outputs | Return value(s)                    |
