@@ -3,6 +3,10 @@
 
 QuTiP: Quantum Toolbox in Python
 ================================
+
+.. figure:: figures/wide_logo.png
+   :align: center
+
 QuTiP is open-source software for simulating the dynamics of 
 open quantum systems.  The QuTiP library depends on the 
 excellent Numpy and Scipy numerical packages. In addition, 

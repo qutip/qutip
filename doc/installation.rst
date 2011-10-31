@@ -117,6 +117,5 @@ If nothing but another command prompt appears then you are ready to go.  To see 
 
 which will pop-up the about box for QuTiP which gives you information on the installed version of QuTiP and its dependencies.  If instead you get command-line output, then your graphics is not installed properly or unavailable.
 
-.. _about: 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/about.png
+.. figure:: figures/about.png
    :align: center
