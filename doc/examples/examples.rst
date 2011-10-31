@@ -22,11 +22,8 @@ This will generate the examples GUI, or a command line list of demos, depending 
 
 If you do not have any graphics libraries installed, or they are disabled, then the demos function *must* be run from the terminal.
 
-Examples
-========
-
-Basics
-======
+Basic examples
+==============
 
 .. toctree::
    :maxdepth: 2
@@ -35,8 +32,7 @@ Basics
    examples-squeezed.rst
    examples-schcatdist.rst
    examples-ultrastrong.rst
-
-*[ExamplesEntropy Von-Neumann entropy of a binary mixture of |up> and |down> states]*
+   examples-entropy.rst
 
 *[ExamplesBar3D Visualizing a density matrix as a 3D histogram]*
 
