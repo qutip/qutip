@@ -49,7 +49,7 @@ sm = destroy(2)
 sx=sigmax();sy=sigmay();sz=sigmaz()
 expt_op_list = [sm.dag() * sm, sx, sy, sz]
 ## evolve the system ## 
-tlist = linspace(-10.0, 10.0, 1500)
+tlist = linspace(-10.0, 10.0, 5000)
 expt_list = odesolve(hamiltonian_t, psi0, tlist, 
                      [], expt_op_list, H_args)  
 
@@ -61,21 +61,23 @@ expt_list = odesolve(hamiltonian_t, psi0, tlist,
 from matplotlib import rcParams
 rcParams['font.family'] = 'serif'
 rcParams['font.serif'] = 'Times New Roman'
-rcParams['legend.fontsize'] = 16
+rcParams['legend.fontsize'] = 12
 from pylab import *
 
-fig=figure()
+fig=figure(figsize=[6,4])
 ax=subplot(111)
 ax.plot(tlist, expt_list[0], 'r', tlist, 1-expt_list[0], 'b',lw=2)
 ax.plot(tlist, 1 - exp( - pi * delta **2 / (2 * v)) * ones(shape(tlist)), 'k',lw=1.5)
-xlabel(r'Time',fontsize=18)
-ylabel(r'Occupation probability',fontsize=18)
+xlabel(r'Time',fontsize=12)
+ylabel(r'Occupation probability',fontsize=12)
 ylim([-0.1,1.1])
 #title(r'Landau-Zener transition')
 ax.legend((r"Ground state $\left|1\right>$", r"Excited state $\left|0\right>$", r"Landau-Zener"), loc=0)
 
 for tick in ax.yaxis.get_ticklabels()+ax.xaxis.get_ticklabels():
-    tick.set_fontsize(16)
+    tick.set_fontsize(12)
+savefig('examples-paperfig10_11_1.png')
+show()
 
 # ------------------------------------------------------------------------------
 # Appendix B.7
@@ -92,14 +94,18 @@ b.point_marker=['o']
 b.point_size=[8]
 b.view=[-9,11]
 b.zlpos=[1.1,-1.2]
+b.size=[4,4]
 b.zlabel=['$\left|0\\right>_{f}$','$\left|1\\right>_{f}$']
+b.font_size=16
 ## plot sphere ## 
+b.save('examples-paperfig10_11_2.png')
 b.show()
 
-fig = figure(figsize=(7,3))
+fig = figure(figsize=[4,2])
 ax1 = fig.add_axes([0.05, 0.5, 0.7, 0.05])
 cb1 = mpl.colorbar.ColorbarBase(ax1, cmap=cm.jet,norm=nrm,orientation='horizontal')
-cb1.set_label('Time',fontsize=16)
+cb1.set_label('Time',fontsize=12)
 for t in cb1.ax.get_yticklabels():
-     t.set_fontsize(16)
+     t.set_fontsize(12)
+savefig('examples-paperfig10_11_3.png')
 show()
