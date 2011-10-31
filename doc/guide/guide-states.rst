@@ -39,7 +39,7 @@ Qobj data =
  [ 0.          0.          0.          0.          0.        ]]
 
 
-Now lets apply the destruction operator to our vacuum state `vec':
+Now lets apply the destruction operator to our vacuum state ``vec``,
 
 >>> a*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
