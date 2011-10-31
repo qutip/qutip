@@ -22,9 +22,11 @@ This will generate the examples GUI, or a command line list of demos, depending 
 
 If you do not have any graphics libraries installed, or they are disabled, then the demos function *must* be run from the terminal.
 
+Examples
+========
 
-Basic examples
-==============
+Basics
+======
 
 .. toctree::
    :maxdepth: 2
@@ -32,10 +34,6 @@ Basic examples
    examples-wigner.rst
    examples-squeezed.rst
    examples-schcatdist.rst
-   examples-energy-spectrum.rst
-
-Basics
-------
 
 *[ExamplesEnergySpectrum Energy spectrum of a coupled three qubit system.]*
 
@@ -94,4 +92,8 @@ Steady state calculations
 QuTiP Manuscript Figure Scripts
 ===============================
 
-Additional examples corresponding to figures 2, 4, 6, 7, 8, 10, and 11 from the [http://arxiv.org/abs/1110.0573 QuTiP paper] may be found in the [http://code.google.com/p/qutip/downloads/list downloads section].
+.. toctree::
+   :maxdepth: 2
+   
+   examples-paperfig2.rst
+
