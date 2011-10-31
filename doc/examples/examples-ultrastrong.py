@@ -1,7 +1,7 @@
 from matplotlib import rcParams
 rcParams['font.family'] = 'serif'
 rcParams['font.serif'] = 'Times New Roman'
-rcParams['legend.fontsize'] = 16
+rcParams['legend.fontsize'] = 10
 from qutip import *
 from pylab import *
 import time
@@ -50,20 +50,21 @@ print 'time elapsed = ' +str(time.time() - start_time)
 #
 # plot the cavity and atom occupation numbers as a function of 
 #
-fig=figure()
+fig=figure(figsize=(6,4))
 ax = fig.add_subplot(111)
 ax2=ax.twinx()
 ax2.plot(glist/(2*pi), nc,lw=2)
 ax2.plot(glist/(2*pi), na,'r--',lw=2)
 legend(("Cavity", "Atom excited state"),loc=0)
-ax.set_xlabel(r'Coupling strength $g/\omega_{0}$',fontsize=18)
-ax2.set_ylabel(r'Occupation number',fontsize=18)
+ax.set_xlabel(r'Coupling strength $g/\omega_{0}$',fontsize=12)
+ax2.set_ylabel(r'Occupation number',fontsize=12)
 for a in ax.yaxis.get_ticklines()+ax.yaxis.get_ticklabels():
     a.set_visible(False)
 for tick in ax.xaxis.get_major_ticks():
-    tick.label1.set_fontsize(16)
+    tick.label1.set_fontsize(10)
 for tick in ax2.yaxis.get_ticklabels():
-    tick.set_fontsize(16)
+    tick.set_fontsize(10)
+savefig('examples-ultrastrong-1.png')
 show()
 close(fig)
 #
@@ -80,24 +81,25 @@ fig = plt.figure(figsize=(7,5))
 ax = Axes3D(fig, azim=-61, elev=43)
 surf=ax.plot_surface(X, Y, W, rstride=1, cstride=1, cmap=cm.jet, alpha=1.0, linewidth=0.0, vmax=0.15, vmin=-0.05)
 ax.set_xlim3d(-7.5, 7.5)
-ax.set_xlabel(r'position',fontsize=16)
+ax.set_xlabel(r'position',fontsize=12)
 ax.set_ylim3d(-7.5, 7.5)
-ax.set_ylabel(r'momentum',fontsize=16)
+ax.set_ylabel(r'momentum',fontsize=12)
 ax.w_xaxis.set_major_locator(MaxNLocator(5))
 ax.w_yaxis.set_major_locator(MaxNLocator(5))
 ax.w_zaxis.set_major_locator(MaxNLocator(5))
 for tick in ax.w_xaxis.get_major_ticks():
-    tick.label.set_fontsize(16)
+    tick.label.set_fontsize(10)
 for tick in ax.w_yaxis.get_major_ticks():
-    tick.label.set_fontsize(16)
+    tick.label.set_fontsize(10)
 for a in ax.axes.w_zaxis.get_ticklines()+ax.axes.w_zaxis.get_ticklabels():
     a.set_visible(False)
 cax,kw=mpl.colorbar.make_axes(ax,shrink=.66,pad=-.075)
 nrm=mpl.colors.Normalize(W.min(),W.max())
 cb1=mpl.colorbar.ColorbarBase(cax,cmap=cm.jet,norm=nrm)
-cb1.set_label('Probability',fontsize=18)
+cb1.set_label('Probability',fontsize=12)
 cb1.set_ticks(linspace(round(W.min(),1),round(W.max(),1),6))
 for t in cb1.ax.get_yticklabels():
-     t.set_fontsize(16)
+     t.set_fontsize(10)
+savefig('examples-ultrastrong-2.png')
 show()
 

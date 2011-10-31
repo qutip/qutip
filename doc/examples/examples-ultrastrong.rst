@@ -11,10 +11,10 @@ Groundstate properties of an ultra-strongly coupled atom-cavity system (QuTiP pa
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-ultrastrong.py>`_
       
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/examples-ultrastrong1.png
+.. figure:: examples-ultrastrong-1.png
     :align: center
     
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/examples-ultrastrong2.png
+.. figure:: examples-ultrastrong-2.png
     :align: center
 
 
