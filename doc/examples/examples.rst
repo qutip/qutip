@@ -22,11 +22,9 @@ This will generate the examples GUI, or a command line list of demos, depending 
 
 If you do not have any graphics libraries installed, or they are disabled, then the demos function *must* be run from the terminal.
 
-Examples
-========
 
-Basics
-======
+Basic examples
+==============
 
 .. toctree::
    :maxdepth: 2
@@ -34,6 +32,7 @@ Basics
    examples-wigner.rst
    examples-squeezed.rst
    examples-schcatdist.rst
+   examples-energy-spectrum.rst
 
 Basics
 ------
