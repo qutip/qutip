@@ -46,24 +46,24 @@ The function returns an array of expectation values for the operators that are i
   
 The resulting list of expectation values can easily be visualized using matplotlib's plotting functions::
 
-    >> tlist = linspace(0.0, 10.0, 100)
-    >> expt_list = odesolve(H, psi0, tlist, [], [sigmaz(), sigmay()])
-    >> 
-    >> from pylab import *
-    >> plot(tlist, real(expt_list[0]))
-    >> plot(tlist, real(expt_list[1]))
-    >> xlabel('Time')
-    >> ylabel('Expectation values')
-    >> legend(("Simga-Z", "Sigma-Y"))
-    >> show()
+    >>> tlist = linspace(0.0, 10.0, 100)
+    >>> expt_list = odesolve(H, psi0, tlist, [], [sigmaz(), sigmay()])
+    >>> 
+    >>> from pylab import *
+    >>> plot(tlist, real(expt_list[0]))
+    >>> plot(tlist, real(expt_list[1]))
+    >>> xlabel('Time')
+    >>> ylabel('Expectation values')
+    >>> legend(("Simga-Z", "Sigma-Y"))
+    >>> show()
 
 .. figure:: http://qutip.googlecode.com/svn/wiki/images/guide-qubit-dynamics.png
     :align: center
 
 If an empty list of operators is passed as fifth parameter, the *odesolve* function returns a list of state vectors for the times specified in *tlist*::
 
-    >> tlist = [0.0, 1.0]
-    >> odesolve(H, psi0, tlist, [], [])
+    >>> tlist = [0.0, 1.0]
+    >>> odesolve(H, psi0, tlist, [], [])
     [
     Quantum object: dims = [[2], [1]], shape = [2, 1], type = ket
     Qobj data = 
@@ -119,18 +119,18 @@ easily add a relaxation process (describing the dissipation of energy from the
 spin to its environment), by adding `sqrt(0.05) * sigmax()` to
 the previously empty list in the fourth parameter to the *odesolve* function::
 
-    >> tlist = linspace(0.0, 10.0, 100)
-    >> expt_list = odesolve(H, psi0, tlist, [sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
-    >> 
-    >> from pylab import *
-    >> plot(tlist, real(expt_list[0]))
-    >> plot(tlist, real(expt_list[1]))
-    >> xlabel('Time')
-    >> ylabel('Expectation values')
-    >> legend(("Sigma-Z", "Sigma-Y"))
-    >> show()
+    >>> tlist = linspace(0.0, 10.0, 100)
+    >>> expt_list = odesolve(H, psi0, tlist, [sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
+    >>> 
+    >>> from pylab import *
+    >>> plot(tlist, real(expt_list[0]))
+    >>> plot(tlist, real(expt_list[1]))
+    >>> xlabel('Time')
+    >>> ylabel('Expectation values')
+    >>> legend(("Sigma-Z", "Sigma-Y"))
+    >>> show()
 
-Here, `0.05` is the rate and the operator `sigmax()` describes the dissipation 
+Here, `0.05` is the rate and the operator :math:`\sigma_x` (:func:`qutip.sigmax`) describes the dissipation 
 process.
 
 .. figure:: http://qutip.googlecode.com/svn/wiki/images/guide-qubit-dynamics-dissip.png
@@ -138,20 +138,20 @@ process.
 
 Now a slightly more complex example: Consider a two-level atom coupled to a leaky single-mode cavity through a dipole-type interaction, which supports a coherent exchange of quanta between the two systems. If the atom initially is in its groundstate and the cavity in a 5-photon fock state, the dynamics is calculated with the lines following code::
 
-    >> tlist = linspace(0.0, 10.0, 200)
-    >> psi0 = tensor(fock(2,0), fock(10, 5))
-    >> a  = tensor(qeye(2), destroy(10))
-    >> sm = tensor(destroy(2), qeye(10))
-    >> H = 2*pi * a.dag() * a + 2 * pi * sm.dag() * sm + 2*pi * 0.25 * (sm*a.dag() + sm.dag() * a)
-    >> expt_list = odesolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
-    >> 
-    >> from pylab import *
-    >> plot(tlist, real(expt_list[0]))
-    >> plot(tlist, real(expt_list[1]))
-    >> xlabel('Time')
-    >> ylabel('Expectation values')
-    >> legend(("cavity photon number", "atom excitation probability"))
-    >> show()
+    >>> tlist = linspace(0.0, 10.0, 200)
+    >>> psi0 = tensor(fock(2,0), fock(10, 5))
+    >>> a  = tensor(qeye(2), destroy(10))
+    >>> sm = tensor(destroy(2), qeye(10))
+    >>> H = 2*pi * a.dag() * a + 2 * pi * sm.dag() * sm + 2*pi * 0.25 * (sm*a.dag() + sm.dag() * a)
+    >>> expt_list = odesolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
+    >>> 
+    >>> from pylab import *
+    >>> plot(tlist, real(expt_list[0]))
+    >>> plot(tlist, real(expt_list[1]))
+    >>> xlabel('Time')
+    >>> ylabel('Expectation values')
+    >>> legend(("cavity photon number", "atom excitation probability"))
+    >>> show()
 
 .. figure:: http://qutip.googlecode.com/svn/wiki/images/guide-jc-dynamics.png
     :align: center
@@ -171,7 +171,7 @@ dynamics of the system, and has been shown to give identical results as the
 master equation. 
 
 In QuTiP, Monto-Carlo evolution is implemented with the
-*[Functions#mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,&H_args,&options=Odeoptions()) mcsolve]* function. It takes nearly the same arguments as the *odesolve*
+:func:`qutip.mcsolve` function. It takes nearly the same arguments as the *odesolve*
 function for master-equation evolution, expect for one additional parameter
 `ntraj` (fourth parameter), which define the number of stochastic trajectories
 that should be averaged. This number should usually be in the range 100 - 500 to
@@ -181,57 +181,53 @@ case to case).
 To illustrate the use of the Monte-Carlo evolution of quantum systems in QuTiP,
 let's again consider the case of a two-level atom coupled to a leaky cavity. The 
 only differences to the master-equation treatment is that in this case we 
-invoke the *[Functions#mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,&H_args,&options=Odeoptions()) mcsolve]* function instead of *odesolve*, and a new parameter 
+invoke the :func:`qutip.mcsolve` function instead of :func:`qutip.odesolve`, and a new parameter 
 `ntraj = 250` has been defined::
 
-    >> tlist = linspace(0.0, 10.0, 200)
-    >> psi0 = tensor(fock(2,0), fock(10, 5))
-    >> a  = tensor(qeye(2), destroy(10))
-    >> sm = tensor(destroy(2), qeye(10))
-    >> H = 2*pi * a.dag() * a + 2 * pi * sm.dag() * sm + 2*pi * 0.25 * (sm*a.dag() + sm.dag() * a)
-    >> ntraj = 250
-    >> expt_list = mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
-    >> 
-    >> from pylab import *
-    >> plot(tlist, real(expt_list[0]))
-    >> plot(tlist, real(expt_list[1]))
-    >> title('Monte-Carlo time evolution')
-    >> xlabel('Time')
-    >> ylabel('Expectation values')
-    >> legend(("cavity photon number", "atom excitation probability"))
-    >> show()
+    >>> tlist = linspace(0.0, 10.0, 200)
+    >>> psi0 = tensor(fock(2,0), fock(10, 5))
+    >>> a  = tensor(qeye(2), destroy(10))
+    >>> sm = tensor(destroy(2), qeye(10))
+    >>> H = 2*pi * a.dag() * a + 2 * pi * sm.dag() * sm + 2*pi * 0.25 * (sm*a.dag() + sm.dag() * a)
+    >>> ntraj = 250
+    >>> expt_list = mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
+    >>> 
+    >>> from pylab import *
+    >>> plot(tlist, real(expt_list[0]))
+    >>> plot(tlist, real(expt_list[1]))
+    >>> title('Monte-Carlo time evolution')
+    >>> xlabel('Time')
+    >>> ylabel('Expectation values')
+    >>> legend(("cavity photon number", "atom excitation probability"))
+    >>> show()
 
 .. figure:: http://qutip.googlecode.com/svn/wiki/images/guide-mc-dynamics.png
     :align: center
 
-The advantage of the Monte-Carlo method over the master equation approach is that
-only the state vector is required to be kept in the computer memory (as opposed to
-the entire density matrix). For large quantum system this becomes a significant
-advantage and the Monte-Carlo is therefore generally recommended for such systems.
-But for small systems, on the other hand, the added overhead of averaging a large number of stochastic trajectories to obtain the open system dynamics outweigh the benefits of the (small) memory saving, 
+The advantage of the Monte-Carlo method over the master equation approach is that only the state vector is required to be kept in the computer memory (as opposed to the entire density matrix). For large quantum system this becomes a significant advantage and the Monte-Carlo is therefore generally recommended for such systems. But for small systems, on the other hand, the added overhead of averaging a large number of stochastic trajectories to obtain the open system dynamics outweigh the benefits of the (small) memory saving, 
 and master equations are therefore generally more efficient.
 
 The return value(s) from the Monte-Carlo solver depend on the presence of collapse and expectation operators in the `mcsolve` function, as well as how many outputs are requested by the user.  The last example had both collapse and expectation value operators::
 
-    out=mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
+    >>> out=mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
 
 and the user requested a single output `out`.  In this case, the monte-carlo solver returns the average over all trajectories for the expectation values generated by the requested operators.  If we remove the collapse operators::
 
-    out=mcsolve(H, psi0, tlist, ntraj, [], [a.dag()*a, sm.dag()*sm])
+    >>> out=mcsolve(H, psi0, tlist, ntraj, [], [a.dag()*a, sm.dag()*sm])
 
 then we will also get expectation values for the output.  Now, if we add back in the collapse operators, but remove the expectation value operators::
 
-    out=mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [])
+    >>> out=mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [])
 
-then the output of `mcsolve` *is not* a list of expectation values but rather a list of state vector Qobjs calculated for each time, and trajectory.  This a huge output and should be avoided unless you want to see the jumps associated with the collapse operators for individual trajectories.  For example,::
+then the output of :func:`qutip.mcsolve` *is not* a list of expectation values but rather a list of state vector Qobjs calculated for each time, and trajectory.  This a huge output and should be avoided unless you want to see the jumps associated with the collapse operators for individual trajectories.  For example,::
     
-    out[0]
+    >>> out[0]
     
 will be a list of state vector Qobjs evaluated at the times in `tlist`.
 
 In addition, when collapse operators are specified, the monte-carlo solver will also keep track of when a collapse occurs, and which operator did the collapse.  To obtain this information, the user must specify multiple return values from the `mcsolve` function.  For example, to get the times at which collapses occurred for the trajectories we can do::
 
-    expt,times=mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
+    >>> expt,times=mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
     
 where we have requested a second output `times`.  Again the first operator corresponds to the expectation values.  To get the information on which operator did the collapse we add a third return value::
 
@@ -301,38 +297,33 @@ takes two arguments: the time `t` and list additional Hamiltonian arguments
 as the sixth parameter to the solver function (only used for time-dependent
 Hamiltonians).
 
-For example, let's consider a two-level system with energy splitting 1.0, and
-subject to a time-dependent field that couples to the Sigma-X operator with 
-amplitude 0.1. Furthermore, to make the example a little bit more interesting,
-let's also assume that the two-level system is subject to relaxation, with 
-relaxation rate 0.01. The following code calculates the dynamics of the system
-in the absence and in the presence of the time-dependent driving signal::
+For example, let's consider a two-level system with energy splitting 1.0, and subject to a time-dependent field that couples to the :math:`\sigma_x` operator with amplitude 0.1. Furthermore, to make the example a little bit more interesting, let's also assume that the two-level system is subject to relaxation, with relaxation rate 0.01. The following code calculates the dynamics of the system in the absence and in the presence of the time-dependent driving signal::
 
-    >> def hamiltonian_t(t, args):
-    >>     H0 = args[0]
-    >>     H1 = args[1]
-    >>     w  = args[2]
-    >>     return H0 + H1 * sin(w * t)
-    >> 
-    >> H0 = - 2*pi * 0.5  * sigmaz()
-    >> H1 = - 2*pi * 0.05 * sigmax() 
-    >> H_args = (H0, H1, 2*pi*1.0)
-    >> psi0 = fock(2, 0)                   # intial state |0>
-    >> c_op_list = [sqrt(0.01) * sigmam()] # relaxation
-    >> tlist = arange(0.0, 50.0, 0.01)
-    >>
-    >> expt_sz    = odesolve(H0, psi0, tlist, c_op_list, [sigmaz()])
-    >> expt_sz_td = odesolve(hamiltonian_t, psi0, tlist, c_op_list, [sigmaz()], H_args)
-    >>
-    >> #expt_sz_td = mcsolve(hamiltonian_t, psi0, tlist,250, c_op_list, [sigmaz()], H_args) #monte-carlo
-    >>
-    >> from pylab import *
-    >> plot(tlist, expt_sz[0],    'r')
-    >> plot(tlist, expt_sz_td[0], 'b')
-    >> ylabel("Expectation value of Sigma-Z")
-    >> xlabel("time")
-    >> legend(("H = H0", "H = H0 + H1 * sin(w*t)"), loc=4)
-    >> show()
+    >>> def hamiltonian_t(t, args):
+    >>>     H0 = args[0]
+    >>>     H1 = args[1]
+    >>>     w  = args[2]
+    >>>     return H0 + H1 * sin(w * t)
+    >>> 
+    >>> H0 = - 2*pi * 0.5  * sigmaz()
+    >>> H1 = - 2*pi * 0.05 * sigmax() 
+    >>> H_args = (H0, H1, 2*pi*1.0)
+    >>> psi0 = fock(2, 0)                   # intial state |0>
+    >>> c_op_list = [sqrt(0.01) * sigmam()] # relaxation
+    >>> tlist = arange(0.0, 50.0, 0.01)
+    >>>
+    >>> expt_sz    = odesolve(H0, psi0, tlist, c_op_list, [sigmaz()])
+    >>> expt_sz_td = odesolve(hamiltonian_t, psi0, tlist, c_op_list, [sigmaz()], H_args)
+    >>>
+    >>> #expt_sz_td = mcsolve(hamiltonian_t, psi0, tlist,250, c_op_list, [sigmaz()], H_args) #monte-carlo
+    >>>
+    >>> from pylab import *
+    >>> plot(tlist, expt_sz[0],    'r')
+    >>> plot(tlist, expt_sz_td[0], 'b')
+    >>> ylabel("Expectation value of Sigma-Z")
+    >>> xlabel("time")
+    >>> legend(("H = H0", "H = H0 + H1 * sin(w*t)"), loc=4)
+    >>> show()
 
 .. figure:: http://qutip.googlecode.com/svn/wiki/images/guide-td-dynamics.png
     :align: center
