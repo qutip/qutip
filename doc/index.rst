@@ -26,6 +26,7 @@ For more information see the `QuTiP project web page`_.
    
    installation.rst
    guide/guide.rst
+   examples/examples.rst
    classes 
    functions
 
