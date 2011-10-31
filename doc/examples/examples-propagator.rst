@@ -15,10 +15,8 @@ Next, we use the :func:`qutip.propagator` function to find the propagator for th
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-propagator.py>`_
       
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/examples-propagator-dynamics.png
+.. figure:: examples-propagator.png
     :align: center
     
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/examples-propagator-steadystate.png
-    :align: center
 
 
