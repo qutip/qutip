@@ -2,7 +2,7 @@
    Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 
 Trilinear Hamiltonian: Deviation from a thermal spectrum
----------------------------------------------------------
+--------------------------------------------------------
 
 Adapted from: P. D. Nation and M. P. Blencowe, "The Trilinear Hamiltonian: a zero-dimensional model of Hawking radiation from a quantized source", NJP *12* 095013 (2010)
 
@@ -13,6 +13,6 @@ The parametric amplifier is a common example of a linear amplifier.  It is well-
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-thermalmonte.py>`_
 
-.. figure:: figures/examples-thermalmonte.png
+.. figure:: examples-thermalmonte.png
     :align: center
     

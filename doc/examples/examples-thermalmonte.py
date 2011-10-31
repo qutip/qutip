@@ -41,7 +41,7 @@ x=range(N1)
 #set plotting parameters
 params = {'axes.labelsize': 14,'text.fontsize': 14,'legend.fontsize': 12,'xtick.labelsize': 14,'ytick.labelsize': 14}
 rcParams.update(params)
-fig = plt.figure()
+fig = plt.figure(figsize=(6, 4))
 ax = Axes3D(fig)
 for j in range(5):
     ax.bar(x, diags1[10*j], zs=tlist[10*j], zdir='y',color=colors[j],linewidth=1.0,alpha=0.6,align='center')
@@ -50,6 +50,7 @@ ax.set_zlabel(r'Probability')
 ax.set_xlabel(r'Number State')
 ax.set_ylabel(r'Time')
 ax.set_zlim3d(0,1)
+savefig('examples-thermalmonte.png')
 show()
 
 
