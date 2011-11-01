@@ -81,13 +81,13 @@ More generally, we can also calculate correlation functions of the kind :math:`\
     >>> title('Correlation <x(t1)x(t1+t2)>')
     >>> show()
 
-+---------------------------------------------------------------------------------+---------------------------------------------------------------------------------+
-| .. figure:: http://qutip.googlecode.com/svn/wiki/images/guide-correlation-2.png | .. figure:: http://qutip.googlecode.com/svn/wiki/images/guide-correlation-3.png |
-|    :align:  center                                                              |    :align:  center                                                              |
-|                                                                                 |                                                                                 |
-|    :math:`\alpha = 2.5`                                                         |    :math:`\alpha = 0.0`                                                         |
-|                                                                                 |                                                                                 |
-+---------------------------------------------------------------------------------+---------------------------------------------------------------------------------+
++-------------------------------------+-------------------------------------+
+| .. figure:: guide-correlation-2.png | .. figure:: guide-correlation-3.png |
+|    :align:  center                  |    :align:  center                  |
+|                                     |                                     |
+|    :math:`\alpha = 2.5`             |    :math:`\alpha = 0.0`             |
+|                                     |                                     |
++-------------------------------------+-------------------------------------+
 
 
 Notice that in the figure above to the right, where :math:`\alpha = 0.0` and the system therefore initially is in its steadystate, that the correlations does not depend on the :math:`t_1` coordinate, and we could in this case have used the steadystate solver to only calculate the :math:`t_2` dependence. 

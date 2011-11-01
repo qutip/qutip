@@ -6,9 +6,9 @@
 Solving for Steady-State Solutions
 **********************************
 
-For open quantum systems with decay rates larger than the corresponding excitation rate, the system will tend toward a steady-state as t->infinity.  For many these systems, solving for the asymptotic state vector can be achieved using an iterative method faster than master equation or monte-carlo methods.  In QuTiP, the steady-state solution for a given Hamiltonian or Louivillian is given by :func:`qutip.steadystate` or :func:`qutip.steady`, respectively.  Both of these functions use an inverse power method with a random initial state.  (Details of these methods may be found in any iterative linear algebra text.)  In general, it is best to use the :func:`qutip.steadystate` function with a given Hamiltonian and list of collapse operators.  This function will automatically build the Louivillian for you and then call the :func:`qutip.steady` function. 
+For open quantum systems with decay rates larger than the corresponding excitation rate, the system will tend toward a steady-state as :math:`t\rightarrow\infty`.  For many these systems, solving for the asymptotic state vector can be achieved using an iterative method faster than master equation or monte-carlo methods.  In QuTiP, the steady-state solution for a given Hamiltonian or Louivillian is given by :func:`qutip.steady.steadystate` or :func:`qutip.steady.steady`, respectively.  Both of these functions use an inverse power method with a random initial state.  (Details of these methods may be found in any iterative linear algebra text.)  In general, it is best to use the :func:`qutip.steady.steadystate` function with a given Hamiltonian and list of collapse operators.  This function will automatically build the Louivillian for you and then call the :func:`qutip.steady.steady` function. 
 
-A simple example of a system that reaches a steady-state is a harmonic oscillator coupled to a thermal environment.  Below is an example of a harmonic oscillator, initially in a ``|10>`` number state, and weakly coupled to a thermal environment characterized by an average particle expectation value of n=2.  We also calculate the evolution via master equation and monte-carlo methods, and see that they converge to the steady-state solution::
+A simple example of a system that reaches a steady-state is a harmonic oscillator coupled to a thermal environment.  Below is an example of a harmonic oscillator, initially in a :math:`\left|10\right>` number state, and weakly coupled to a thermal environment characterized by an average particle expectation value of :math:`n=2`.  We also calculate the evolution via master equation and monte-carlo methods, and see that they converge to the steady-state solution::
     
     from qutip import *
     from pylab import *
@@ -45,7 +45,7 @@ A simple example of a system that reaches a steady-state is a harmonic oscillato
     show()
 
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/guide_steady.png
+.. figure:: guide-steady.png
     :align: center
 
 
