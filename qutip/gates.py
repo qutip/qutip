@@ -22,42 +22,42 @@ from Qobj import *
 
 
 def cnot():
-	"""
-	Returns quantum object representing the CNOT gate.
-	CNOT gate
-	
-	Return *Qobj* quantum object representation of CNOT gate
-	
-	Example::
-	     
-	     >>> cnot()
-	     Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
-	     Qobj data = 
+    """
+    Returns quantum object representing the CNOT gate.
+    CNOT gate
+    
+    Return *Qobj* quantum object representation of CNOT gate
+    
+    Example::
+         
+         >>> cnot()
+         Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
+         Qobj data = 
              [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
               [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
               [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]
               [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]]
     
-	"""
-	uu=qstate('uu')
-	ud=qstate('ud')
-	du=qstate('du')
-	dd=qstate('dd')
-	Q=dd*dd.dag()+du*du.dag()+uu*ud.dag()+ud*uu.dag()
-	return Qobj(Q)
+    """
+    uu=qstate('uu')
+    ud=qstate('ud')
+    du=qstate('du')
+    dd=qstate('dd')
+    Q=dd*dd.dag()+du*du.dag()+uu*ud.dag()+ud*uu.dag()
+    return Qobj(Q)
 
 
 #------------------
 def fredkin():
-	"""
-	Returns quantum object representing the Fredkin gate.
-	Freidkin gate
-	
-	Return *Qobj* quantum object representation of Fredkin gate
-	
-	Example::
-	    >>> fredkin()
-	    Quantum object: dims = [[2, 2, 2], [2, 2, 2]], shape = [8, 8], type = oper, isHerm = True
+    """
+    Returns quantum object representing the Fredkin gate.
+    Freidkin gate
+    
+    Return *Qobj* quantum object representation of Fredkin gate
+    
+    Example::
+        >>> fredkin()
+        Quantum object: dims = [[2, 2, 2], [2, 2, 2]], shape = [8, 8], type = oper, isHerm = True
             Qobj data = 
             [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
              [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
@@ -69,31 +69,32 @@ def fredkin():
              [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
          
          
-	"""
-	uuu = qstate('uuu')
-	uud = qstate('uud') 
-	udu = qstate('udu')
-	udd = qstate('udd')
-	duu = qstate('duu') 
-	dud = qstate('dud')
-	ddu = qstate('ddu')
-	ddd = qstate('ddd')
-	Q = ddd*dag(ddd) + ddu*dag(ddu) + dud*dag(dud) + duu*dag(duu) + udd*dag(udd) + uud*dag(udu) + udu*dag(uud) + uuu*dag(uuu)
-	return Qobj(Q)
+
+    """
+    uuu = qstate('uuu')
+    uud = qstate('uud') 
+    udu = qstate('udu')
+    udd = qstate('udd')
+    duu = qstate('duu') 
+    dud = qstate('dud')
+    ddu = qstate('ddu')
+    ddd = qstate('ddd')
+    Q = ddd*dag(ddd) + ddu*dag(ddu) + dud*dag(dud) + duu*dag(duu) + udd*dag(udd) + uud*dag(udu) + udu*dag(uud) + uuu*dag(uuu)
+    return Qobj(Q)
 
 
 #------------------
 def toffoli():
-	"""
-	Quantum object representing the Toffoli gate.
-	
-	Return *Qobj* quantum object representation of Toffoli gate
-	
-	Example::
-	    
-	    >>> toffoli()
-	    Quantum object: dims = [[2, 2, 2], [2, 2, 2]], shape = [8, 8], type = oper, isHerm = True
-	    Qobj data = 
+    """
+    Quantum object representing the Toffoli gate.
+    
+    Return *Qobj* quantum object representation of Toffoli gate
+    
+    Example::
+        
+        >>> toffoli()
+        Quantum object: dims = [[2, 2, 2], [2, 2, 2]], shape = [8, 8], type = oper, isHerm = True
+        Qobj data = 
             [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
              [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
              [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
@@ -104,17 +105,17 @@ def toffoli():
              [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j]]
          
          
-	"""
-	uuu = qstate('uuu') 
-	uud = qstate('uud') 
-	udu = qstate('udu') 
-	udd = qstate('udd')
-	duu = qstate('duu') 
-	dud = qstate('dud') 
-	ddu = qstate('ddu') 
-	ddd = qstate('ddd')
-	Q = ddd*dag(ddd) + ddu*dag(ddu) + dud*dag(dud) + duu*dag(duu) + udd*dag(udd) + udu*dag(udu) + uuu*dag(uud) + uud*dag(uuu)
-	return Qobj(Q)
+    """
+    uuu = qstate('uuu') 
+    uud = qstate('uud') 
+    udu = qstate('udu') 
+    udd = qstate('udd')
+    duu = qstate('duu') 
+    dud = qstate('dud') 
+    ddu = qstate('ddu') 
+    ddd = qstate('ddd')
+    Q = ddd*dag(ddd) + ddu*dag(ddu) + dud*dag(dud) + duu*dag(duu) + udd*dag(udd) + udu*dag(udu) + uuu*dag(uud) + uud*dag(uuu)
+    return Qobj(Q)
 
 #------------------
 def swap():
@@ -163,7 +164,7 @@ def snot():
     u=qstate('u')
     d=qstate('d')
     Q=1.0/sqrt(2.0)*(d*d.dag()+u*d.dag()+d*u.dag()-u*u.dag())
-    return Qobj(Q)	
+    return Qobj(Q)    
 
 
 def phasegate(theta):
@@ -190,4 +191,4 @@ def phasegate(theta):
     return Qobj(Q)
 
 
-	
+    
