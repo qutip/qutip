@@ -11,6 +11,6 @@ Here we show how to get the collapse times and which operator values from the :f
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-collapsetimesmonte.py>`_
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/mc_collapses.png 
+.. figure:: examples-collapsetimesmonte.png 
     :align: center
     :target: http://qutip.googlecode.com/svn/wiki/images/mc_collapses.png 

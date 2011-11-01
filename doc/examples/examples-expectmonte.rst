@@ -11,6 +11,6 @@ Monte-Carlo time evolution of an atom+cavity system.  Adapted from a qotoolbox e
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-expectmonte.py>`_
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/mc_expect.png
+.. figure:: examples-expectmonte.png
     :align: center
     :target: http://qutip.googlecode.com/svn/wiki/images/mc_expect.png
