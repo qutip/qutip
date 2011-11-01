@@ -67,7 +67,7 @@ Other
     :members: entropy_linear, entropy_vn
 
 .. automodule:: qutip.gates
-    :members: cnot, fredkin, hadamard, phasegate, snot, swap, toffoli 
+    :members: cnot, fredkin, phasegate, snot, swap, toffoli 
 
 .. automodule:: qutip.metrics
     :members: fidelity, trace_dist
