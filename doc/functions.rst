@@ -70,7 +70,7 @@ Other
     :members: cnot, fredkin, phasegate, snot, swap, toffoli 
 
 .. automodule:: qutip.metrics
-    :members: fidelity, trace_dist
+    :members: fidelity, tracedist
 
 .. automodule:: qutip.wigner
     :members: qfunc, wigner
