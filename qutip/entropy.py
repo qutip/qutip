@@ -28,6 +28,12 @@ def entropy_vn(rho,base='2'):
     Parameter rho *Qobj* density matrix
     
     Returns *float* entropy
+    
+    Example::
+    
+        >>> rho=0.5*fock_dm(2,0)+0.5*fock_dm(2,1)
+        >>> entropy_vn(rho)
+        1.0
     """
     vals,vecs=la.eigh(rho.full())
     nzvals=vals[vals!=0]
@@ -37,7 +43,7 @@ def entropy_vn(rho,base='2'):
         logvals=log(nzvals)
     else:
         raise ValueError("Base must be '2' or 'e'.")
-    return real(-sum(nzvals*logvals))
+    return float(real(-sum(nzvals*logvals)))
 
 
 def entropy_linear(rho):
@@ -51,7 +57,7 @@ def entropy_linear(rho):
     """
     if rho.type=='ket' or rho.type=='bra':
         rho=ket2dm(rho)
-    return 1.0-(rho**2).tr()
+    return float(real(1.0-(rho**2).tr()))
 
 
 
