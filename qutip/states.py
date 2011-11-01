@@ -182,7 +182,7 @@ def fock(N, *args):
         
         `m` (*int*): corresponding to desired number state, defaults to 0 if omitted.
     
-    Returns Qobj quantum object representing the requested number state :math:`\left|{\mathrm args}\\right>`.
+    Returns Qobj quantum object representing the requested number state :math:`\left|\mathrm{args}\\right>`.
     
     Example::
     
