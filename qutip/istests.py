@@ -31,6 +31,12 @@ def isket(Q):
 	Parameter Q *Qobj* quantum object
 	
 	Return *bool* True or False
+	
+	Example::
+	    >>> psi=basis(5,2)
+	    >>> print isket(psi)
+	    True
+	    
 	"""
     result = isinstance(Q.dims[0],list)
     if result:
@@ -45,6 +51,14 @@ def isbra(Q):
 	Parameter Q *Qobj* quantum object
 	
 	Returns *bool* True or False
+	
+	Example::
+	    
+	    >>> psi=basis(5,2)
+	    >>> print isket(psi)
+	    False
+	
+
 	"""
 	result = isinstance(Q.dims[1],list)
 	if result:
@@ -60,6 +74,13 @@ def isoper(Q):
 	Parameter Q *Qobj* quantum object
 	
 	Returns *bool* True or False
+	
+	Example::
+	    
+	    >>> a=destroy(4)
+	    >>> isoper(a)
+	    True
+	
 	"""
 	return isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0], int) and (Q.dims[0]==Q.dims[1])
 	
@@ -126,6 +147,13 @@ def isherm(oper):
     Parameter oper *Qobj* input quantum object
     
     Returns *bool* True if operator is Hermitian, False otherwise
+    
+    Example::
+        
+        >>> a=destroy(4)
+        >>> isherm(a)
+        False
+    
     """
     if oper.dims[0]!=oper.dims[1]:
         return False

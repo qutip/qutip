@@ -36,6 +36,18 @@ def basis(N,*args):
     args integer corresponding to desired number state
     
     Returns quantum object representing the requested number state ``|args>``
+    
+    Example::
+        
+        >>> basis(5,2)
+        Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
+        Qobj data = 
+        [[ 0.+0.j]
+         [ 0.+0.j]
+         [ 1.+0.j]
+         [ 0.+0.j]
+         [ 0.+0.j]]
+         
     """
     if (not isinstance(N,int)) or N<0:
         raise ValueError("N must be integer N>=0")
@@ -72,6 +84,18 @@ def coherent(N,alpha):
     alpha eigenvalue for coherent state
     
     Returns Qobj quantum object for coherent state
+    
+    Example::
+        
+        >>> coherent(5,0.25j)
+        Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
+        Qobj data = 
+        [[  9.69233235e-01+0.j        ]
+         [  0.00000000e+00+0.24230831j]
+         [ -4.28344935e-02+0.j        ]
+         [  0.00000000e+00-0.00618204j]
+         [  7.80904967e-04+0.j        ]]
+         
     """
     x=basis(N,0)
     a=destroy(N)
@@ -87,6 +111,16 @@ def coherent_dm(N, alpha):
     alpha eigenvalue for coherent state
     
     Returns Qobj density matrix representation of coherent state
+    
+    Example::
+    
+        >>> coherent_dm(3,0.25j)
+        Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+        Qobj data = 
+        [[ 0.93941695+0.j          0.00000000-0.23480733j -0.04216943+0.j        ]
+         [ 0.00000000+0.23480733j  0.05869011+0.j          0.00000000-0.01054025j]
+         [-0.04216943+0.j          0.00000000+0.01054025j  0.00189294+0.j        ]]
+         
     """
     psi = coherent(N,alpha)
     return psi * psi.dag()
@@ -121,6 +155,15 @@ def fock_dm(N, *args):
     m int corresponding to desired number state, defaults to 0 if omitted
     
     Returns Qobj density matrix representation of Fock state
+    
+    Example::
+    
+         >>> fock_dm(3,1)
+         Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+         Qobj data = 
+         [[ 0.+0.j  0.+0.j  0.+0.j]
+          [ 0.+0.j  1.+0.j  0.+0.j]
+          [ 0.+0.j  0.+0.j  0.+0.j]]
     """
     if not args:
         psi=basis(N)
@@ -136,7 +179,17 @@ def fock(N, *args):
     N the number of states in the Hilbert space
     m int corresponding to desired number state, defaults to 0 if omitted
     
-    Returns Qobj quantum object representing the requested number state ``|args>``
+    Returns Qobj quantum object representing the requested number state |args>
+    
+    Example::
+    
+        >>> fock(4,3)
+        Quantum object: dims = [[4], [1]], shape = [4, 1], type = ket
+        Qobj data = 
+        [[ 0.+0.j]
+         [ 0.+0.j]
+         [ 0.+0.j]
+         [ 1.+0.j]]
     """
     if not args:
         return basis(N)
@@ -149,6 +202,19 @@ def thermal_dm(N, n):
 
     N: the number of states
     n: expectational value for number of particles in thermal state
+    
+    Returns *Qobj* for thermal state
+    
+    Example::
+        >>> thermal_dm(5,1)
+        Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = True
+        Qobj data = 
+        [[ 0.50000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j]
+         [ 0.00000+0.j  0.25000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j]
+         [ 0.00000+0.j  0.00000+0.j  0.12500+0.j  0.00000+0.j  0.00000+0.j]
+         [ 0.00000+0.j  0.00000+0.j  0.00000+0.j  0.06250+0.j  0.00000+0.j]
+         [ 0.00000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j  0.03125+0.j]]
+    
     """
 
     i=arange(N)  
@@ -164,6 +230,17 @@ def ket2dm(Q):
     Q Ket or bra vector
     
     Returns Qobj Density matrix formed by outer product
+    
+    Example::
+    
+        >>> x=basis(3,2)
+        >>> ket2dm(x)
+        Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+        Qobj data = 
+        [[ 0.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  1.+0.j]]
+         
     """
     if Q.type=='ket':
         out=Q*Q.dag()
@@ -175,8 +252,4 @@ def ket2dm(Q):
 
 
 
-if __name__ == "__main__":
-    print fock(5,1)
-    print (coherent(5,.1)*coherent(5,.1).dag()).tr()
-    print ket2dm(coherent(3,.1).dag())
 
