@@ -11,7 +11,7 @@ Here we measure the distance of a single mode (mode #1) of a trilinear Hamiltoni
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-fidelity.py>`_
       
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/fidelity_plot.png
+.. figure:: examples-fidelity.png
     :align: center
 
 
