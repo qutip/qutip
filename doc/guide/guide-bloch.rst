@@ -205,7 +205,7 @@ A more slick way of using this 'multi' color feature is also given in the *[Exam
 Configuring the Bloch sphere
 ===============================
 
-At the end of the last section we saw that the colors and marker shapes of the data plotted on the Bloch sphere are automatically varied according to the number of points and vectors added.  But what if you want a different choice of color, or you want your sphere to be purple with different axes labels? Well then you are in luck as the Bloch class has 20 attributes which one can control.  Assuming `b=Bloch()':   
+At the end of the last section we saw that the colors and marker shapes of the data plotted on the Bloch sphere are automatically varied according to the number of points and vectors added.  But what if you want a different choice of color, or you want your sphere to be purple with different axes labels? Well then you are in luck as the Bloch class has 20 attributes which one can control.  Assuming ``b=Bloch()``:   
 
 +---------------+---------------------------------------------------------+---------------------------------------------+
 | Attribute     | Function                                                | Default Setting                             | 

@@ -6,7 +6,7 @@
 Solving Two-Time Correlation Functions
 **************************************
 
-Here we demonstrate how to calculate two-time correlation functions in QuTiP. Using the quantum regression theorem, we can apply the equation of motion for the system itself also to calculate two-time correlation functions. In QuTiP, there are family functions that assists in this process: :func:`qutip.correlation_ode`, :func:`qutip.correlation_es`, :func:`qutip.correlation_mc`, and :func:`qutip.correlation_ss_ode`, :func:`qutip.correlation_ss_es`, :func:`qutip.correlation_ss_mc`. As the names suggest, these functions use the ODE, the exponential series, and the Monte-Carlo solvers, respectively, to evolve the correlation functions in time. The following table describes in detail the usage of each function:
+Here we demonstrate how to calculate two-time correlation functions in QuTiP. Using the quantum regression theorem, we can apply the equation of motion for the system itself also to calculate two-time correlation functions. In QuTiP, there are family functions that assists in this process: :func:`qutip.correlation.correlation_ode`, :func:`qutip.correlation.correlation_es`, :func:`qutip.correlation.correlation_mc`, and :func:`qutip.correlation.correlation_ss_ode`, :func:`qutip.correlation.correlation_ss_es`, :func:`qutip.correlation.correlation_ss_mc`. As the names suggest, these functions use the ODE, the exponential series, and the Monte-Carlo solvers, respectively, to evolve the correlation functions in time. The following table describes in detail the usage of each function:
 
 +----------------------------------+---------------------------------------------+-----------------------------------------+
 | Function                         | Input parameters                            | Usage                                   |
@@ -26,22 +26,23 @@ Here we demonstrate how to calculate two-time correlation functions in QuTiP. Us
 |                                  |                                             | using the Monte-Carlo evolution.        |
 +----------------------------------+---------------------------------------------+-----------------------------------------+
 | :func:`qutip.correlation_es`     | `H` - the Hamiltonian, `rho0` - initial     | Calculates the correlation              |
-|                                  | state of the system, `t1list` and `t2list`- | <a(t1)b(t1+t2)>, using the Exponential  |
-|                                  | list of times to evaluate the correlation   | series solver.                          |
+|                                  | state of the system, `t1list` and `t2list`- | :math:`\left<a(t_1)b(t_1+t_2)\right>`,  |
+|                                  | list of times to evaluate the correlation   | using the Exponential series solver.    |
 |                                  | function (t1 for operator `a` and t1+t2 for |                                         |
 |                                  | operator `b`), `c_op_list`- list of collapse|                                         |
 |                                  | operators, `a_op` and `b_op` - the operators|                                         |
 |                                  | for which to calculate correlations.        |                                         |
 +----------------------------------+---------------------------------------------+-----------------------------------------+
 | :func:`qutip.correlation_ode`    | Same as above.                              | Calculates the  correlation             |
-|                                  |                                             | <a(t1)b(t1+t2)>, using the ODE solver.  |
+|                                  |                                             | :math:`\left<a(t_1)b(t_1+t_2)\right>`,  |
+|                                  |                                             | using the ODE solver.                   |
 +----------------------------------+---------------------------------------------+-----------------------------------------+
 | :func:`qutip.correlation_mc`     | Same as above.                              | Calculates the correlation              |
-|                                  |                                             | <a(t1)b(t1+t2)>, using the Monte-Carlo  |
-|                                  |                                             | evolution.                              |
+|                                  |                                             | :math:`\left<a(t_1)b(t_1+t_2)\right>`,  |
+|                                  |                                             | using the Monte-Carlo evolution.        |
 +----------------------------------+---------------------------------------------+-----------------------------------------+
 
-The most common use-case is to calculate correlation functions of the kind :math:`\left<a(0)b(t)\right>`, in which case we use the correlation function solvers that start from the steady state, e.g., the :func:`qutip.correlation_ss_ode` function. These functions return a vector (in general complex) with the correlations between the operators as a function of the difference time. 
+The most common use-case is to calculate correlation functions of the kind :math:`\left<a(0)b(t)\right>`, in which case we use the correlation function solvers that start from the steady state, e.g., the :func:`qutip.correlation.correlation_ss_ode` function. These functions return a vector (in general complex) with the correlations between the operators as a function of the difference time. 
 
 Steadystate correlation function
 ================================
@@ -52,11 +53,11 @@ The following code demonstrates how to calculate the :math:`\left<x(0)x(t)\right
     >>> a  = destroy(10)
     >>> x  = a.dag() + a
     >>> H  = a.dag()*a
-    >>> 
+    >>>  
     >>> corr1 = correlation_ss_ode(H, tlist, [sqrt(0.5)*a], x, x)
     >>> corr2 = correlation_ss_ode(H, tlist, [sqrt(1.0)*a], x, x)
     >>> corr3 = correlation_ss_ode(H, tlist, [sqrt(2.0)*a], x, x)
-    >>> 
+    >>>  
     >>> from pylab import *
     >>> plot(tlist, real(corr1), tlist, real(corr2), tlist, real(corr3))
     >>> xlabel('Time')
@@ -68,7 +69,7 @@ The following code demonstrates how to calculate the :math:`\left<x(0)x(t)\right
 Non-steadystate correlation function
 ====================================
     
-More generally, we can also calculate correlation functions of the kind :math:`\left<a(t_1)b(t_1+t_2)\right>`, i.e., the correlation function of a system that is not in its steadystate. In QuTiP, we can evoluate such correlation functions using, e.g., the function :func:`qutip.correlation_ode`. This function returns a matrix with the correlations as a function of the two time coordinates::
+More generally, we can also calculate correlation functions of the kind :math:`\left<a(t_1)b(t_1+t_2)\right>`, i.e., the correlation function of a system that is not in its steadystate. In QuTiP, we can evoluate such correlation functions using, e.g., the function :func:`qutip.correlation.correlation_ode`. This function returns a matrix with the correlations as a function of the two time coordinates::
 
     >>> tlist = linspace(0,10.0,200);
     >>> a  = destroy(10)
