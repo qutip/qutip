@@ -24,7 +24,7 @@ which will load an instance of the Bloch class.  Before getting into the details
 
 >>> b.show()
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/bloch_empty.png
+.. figure:: guide-bloch-empty.png
    :align: center
 
 In addition to the show() command, the Bloch class has the following functions:
@@ -65,7 +65,7 @@ As an example, we can add a single data point:
 >>> b.add_points(pnt)
 >>> b.show()
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/bloch_1pnt.png
+.. figure:: guide-bloch-1pnt.png
    :align: center
 
 and then a single vector:
@@ -75,7 +75,7 @@ and then a single vector:
 >>> b.show()
 
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/bloch_pnt+vec.png
+.. figure:: guide-bloch-pnt+vec.rst
    :align: center
 
 
@@ -86,7 +86,7 @@ and then add another vector corresponding to the |up> state:
 >>> b.show()
 
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/bloch_pnt+vec+state.png
+.. figure:: guide-bloch-pnt+vec+state.png
    :align: center
    
 
@@ -108,7 +108,7 @@ where we have commented out the extra `show()` commands.  We can also plot multi
 >>> b.clear()
 >>> b.show()
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/bloch_empty.png
+.. figure:: guide-bloch-empty.png
    :align: center
    
 
@@ -120,7 +120,7 @@ Now on the same Bloch sphere, we can plot the three states associated with the x
 >>> b.add_states([x,y,z])
 >>> b.show()
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/bloch_xyz_states.png
+.. figure:: guide-bloch-xyz-states.png
    :align: center
    
 
@@ -139,7 +139,7 @@ Adding multiple points to the Bloch sphere works slightly differently than addin
 >>> b.add_points(pnts)
 >>> b.show()
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/bloch_equ_pnts.png
+.. figure:: guide-bloch-equ-pnts.png
    :align: center
    
 
@@ -151,10 +151,9 @@ Notice that, in contrast to states or vectors, each point remains the same color
 >>> b.add_points([xz,yz,zz])
 >>> b.show()
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/bloch_2pnts.png
+.. figure:: guide-bloch-2pnts.png
    :align: center
    
-
 
 Notice how the color and point markers change for each set of data.
 
@@ -182,7 +181,7 @@ What if we want to vary the color of our points.  We can tell the `Bloch class` 
 >>> b.add_points(pnts,'m') # <-- add a 'm' string to signify 'multi' colored points
 >>> b.show()
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/bloch_multi_pnts.png
+.. figure:: guide-bloch-multi-pnts.png
    :align: center
    
 
@@ -195,7 +194,7 @@ Now, the data points cycle through a variety of predefined colors.  Now lets add
 >>> b.show()
 
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/bloch_pnts+pnts.png
+.. figure:: guide-bloch-pnts+pnts.png
    :align: center
    
 
@@ -295,5 +294,6 @@ The Bloch class was designed from the outset to generate animations.  To animate
         b.save(dirc=os.getcwd()+'/temp') #saving images to temp directory in current working directory
         b.clear()
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/bloch_movie.gif
+.. figure:: guide-bloch-movie.gif
    :align: center
+
