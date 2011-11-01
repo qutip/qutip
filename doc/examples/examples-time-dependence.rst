@@ -11,7 +11,7 @@ This example illustrates how to evolve the master equation with time-dependent H
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-time-dependence.py>`_
       
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/examples-time-dependence.png
+.. figure:: examples-time-dependence.png
     :align: center
 
 
