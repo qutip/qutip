@@ -53,6 +53,7 @@ class Odeoptions():
         print 'first_step: ',self.first_step
         print 'min_step:   ',self.min_step
         print 'max_step:   ',self.max_step
+        print 'tidy:       ',self.tidy
         return ''
 
 
