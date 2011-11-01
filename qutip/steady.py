@@ -31,15 +31,20 @@ from superoperator import *
 def steadystate(H, c_op_list,maxiter=100,tol=1e-6):
     """
     Calculate the steady state for the evolution subject to the 
-        supplied Hamiltonian and lsit of collapse operators. 
-        Does nothing more than form the Louvillian for you and call steady.
+    supplied Hamiltonian and lsit of collapse operators. 
+    Does nothing more than form the Louvillian for you and call steady.
     
-    Parameter H Hamiltonian operator
-    Parameter c_op_list List of collapse operators
-    Parameter maxiter Max number of iterations to perform, default = 100
-    Parameter tol Tolerance, default = 1e-6
+    Arguments:
     
-    Returns Qobj State vector corresponding to steady state of system.
+        `H` (:class:`qutip.Qobj`) Hamiltonian operator.
+        
+        `c_op_list` (list of :class:`qutip.Qobj`) List of collapse operators.
+        
+        `maxiter` (*int*) Max number of iterations to perform, default = 100.
+        
+        `tol` (*float*) Tolerance, default = 1e-6
+    
+    Returns a :class:`qutip.Qobj` instance representing the steady state of system.
     """
     n_op = len(c_op_list)
 
@@ -52,14 +57,18 @@ def steadystate(H, c_op_list,maxiter=100,tol=1e-6):
 def steady(L,maxiter=100,tol=1e-6):
 	"""
 	Calculate the steady state for the evolution subject to the 
-	    supplied Louvillian using the inverse power method. 
-	    See any Linear Algebra book with a iterative methods.
+	supplied Louvillian using the inverse power method. 
+	See any Linear Algebra book with a iterative methods.
     
-    Parameter L Louvillian superoperator
-    Parameter maxiter Max number of iterations to perform, default = 100
-    Parameter tol Tolerance, default = 1e-6
+    Arguments:
     
-    Returns Qobj State vector corresponding to steady state of system.
+        `L` (:class:`qutip.Qobj`) Liouvillian superoperator.
+              
+        `maxiter` (*int*) Max number of iterations to perform, default = 100.
+        
+        `tol` (*float*) Tolerance, default = 1e-6
+    
+    Returns a :class:`qutip.Qobj` instance representing the steady state of system.
     """
 	eps=finfo(float).eps
 	if (not isoper(L)) & (not issuper(L)):

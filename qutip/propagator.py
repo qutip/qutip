@@ -28,16 +28,21 @@ from states import basis
 
 def propagator(H, t, c_op_list, H_args=None):
     """
-    Calculate the propagator U(t) for the density matrix or wave function
-        such that psi(t) = U(t) psi(0) or rho_vec(t) = U(t) rho_vec(0) 
-        where rho_vec is the vector representation of the density matrix.
+    Calculate the propagator U(t) for the density matrix or wave function such that
+    :math:`\psi(t) = U(t)\psi(0)` or :math:`\\rho_{\mathrm vec}(t) = U(t) \\rho_{\mathrm vec}(0)`
+    where :math:`\\rho_{\mathrm vec}` is the vector representation of the density matrix.
     
-    Parameter H *Qobj* input Hamiltonian
-    Parameter t *float* time
-    Parameter c_op_list *list/array* of Qobj's representing collapse operators
-    Parameter H_args (optional) *list/array* of functions for time-dependent Hamiltonians
+    Arguments:
     
-    Returns *Qobj* reprsenting propagator U(t)
+        `H` (:class:`qutip.Qobj`) Hamiltonian.
+        
+        `t` (*float*) time.
+        
+        `c_op_list` (list of :class:`qutip.Qobj`) collapse operators.
+        
+        `H_args` (*list/array*) [optional] parameters to callback functions for time-dependent Hamiltonians.
+    
+    Returns a :class:`qutip.Qobj` instance representing the propagator :math:`U(t)`.
     """
 
     if len(c_op_list) == 0:
@@ -91,11 +96,13 @@ def get_min_and_index(lst):
 
 def propagator_steadystate(U):
     """
-    Find the steady state for successive applications of the propagator U.
+    Find the steady state for successive applications of the propagator :math:`U`.
     
-    Parameter U *Qobj* representing propagator
+    Arguments:
     
-    Returns *Qobj* for steady-state state vector
+        `U` (:class:`qutip.Qobj`) Operator representing the propagator.
+    
+    Returns a :class:`qutip.Qobj` instance representing the steady-state vector.
     """
 
     evals,evecs = la.eig(U.full())
@@ -111,8 +118,10 @@ def propagator_steadystate(U):
 
 
 def floquet_states(H, t, c_op_list, H_args=None):
-    """
+    """!
     Calculate the floquet states for a driven system with period t.
+
+    Incomplete.
     """
 
     # get the unitary propagator
@@ -147,8 +156,10 @@ def floquet_states(H, t, c_op_list, H_args=None):
 
 
 def floquet_states_t(fval, fvec, H, t, c_op_list, H_args=None):
-    """
+    """!
     Calculate the floquet states for a driven system with period t.
+    
+    Incomplete.
     """
 
     # get the unitary propagator

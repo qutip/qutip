@@ -59,7 +59,7 @@ def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None, options=None)
         
         `H_args` (*list*) of parameters to time-dependent Hamiltonians.
         
-        `options` (:class:`qutip.Qdeopions`) with options for the ODE solver.
+        `options` (:class:`qutip.Qdeoptions`) with options for the ODE solver.
 
 
     Returns an *array* of expectation values of wavefunctions/density matrices
