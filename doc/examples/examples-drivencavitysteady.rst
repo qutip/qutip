@@ -1,8 +1,10 @@
 .. QuTiP 
    Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 
+.. _examples_drivencavitysteady:
+
 Finds steady-state solution to driven system of cavity + qubit
----------------------------------------------------------------
+--------------------------------------------------------------
   
 Here we will find the steady-state solution to the problem of a driven-cavity coupled to a two-level (qubit) system for various driving frequencies.  This example also demonstrates the use of the :func:`qutip.parfor` function.  Adapted from the qotoolbox example 'probss' by Sze. M. Tan.
     

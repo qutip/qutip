@@ -9,7 +9,7 @@ Manipulating States and Operators
 Introduction
 ============
 
-In the previous guide section :ref:`guide-basics`, we saw how to create operators and states, using the functions built into QuTiP.  In this portion of the guide, we will look at performing basic operations with states and operators.  For more detailed demonstrations on how to use and manipulate these objects, see the *[Examples Examples]* section of the WIKI.
+In the previous guide section :ref:`guide-basics`, we saw how to create operators and states, using the functions built into QuTiP.  In this portion of the guide, we will look at performing basic operations with states and operators.  For more detailed demonstrations on how to use and manipulate these objects, see the :ref:`examples` chapter.
 
 State vectors
 ============
@@ -51,7 +51,7 @@ Qobj data =
  [ 0.]]
 
 
-We see that, as expected, the vacuum is transformed to the zero vector.  A more interesting example comes from using the adjoint of the lowering operator, the raising operator :math:`\left(\hat{a}^{+}\right)`:
+We see that, as expected, the vacuum is transformed to the zero vector.  A more interesting example comes from using the adjoint of the lowering operator, the raising operator :math:`\hat{a}^\dagger`:
 
 >>> a.dag()*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
@@ -85,7 +85,7 @@ Qobj data =
  [ 0.        ]
  [ 0.        ]]
 
-or just taking the square of the raising operator :math:`\left(\hat{a}^{+}\right)^{2}`:
+or just taking the square of the raising operator :math:`\left(\hat{a}^\dagger\right)^{2}`:
 
 >>> c**2*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
@@ -402,7 +402,7 @@ If one wants to create spin operators for higher spin systems, then the :func:`q
 Expectation values
 ===================
 
-Some of the most important information about quantum systems comes from calculating the expectation value of operators, both Hermitian and non-Hermitian, as the state or density matrix of the system varies in time.  Therefore, in this section we demonstrate the use of the :func:`qutip.expect` function.  Further examples of using the `expect` function may be found at *[ExamplesDrivenCavitySS]* and *[ExamplesThermalTrilinear]*.  To begin:
+Some of the most important information about quantum systems comes from calculating the expectation value of operators, both Hermitian and non-Hermitian, as the state or density matrix of the system varies in time.  Therefore, in this section we demonstrate the use of the :func:`qutip.expect` function.  Further examples of using the :func:`qutip.expect` function may be found at :ref:`examples_drivencavitysteady` and :ref:`examples_thermalmonte`.  To begin:
 
 >>> vac=basis(5,0)
 >>> one=basis(5,1)
@@ -448,7 +448,7 @@ Of course, the expect function works for spin states and operators:
 >>>expect(sigmaz(),down)
 -1.0
 
-as well as the composite objects discussed in the next section *[GuideComposite]*:
+as well as the composite objects discussed in the next section :ref:`guide_tensor`:
 
 >>> spin1=basis(2,0)
 >>> spin2=basis(2,1)

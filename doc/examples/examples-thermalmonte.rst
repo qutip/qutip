@@ -1,6 +1,8 @@
 .. QuTiP 
    Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 
+.. _examples_thermalmonte:
+
 Trilinear Hamiltonian: Deviation from a thermal spectrum
 --------------------------------------------------------
 
