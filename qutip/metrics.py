@@ -35,12 +35,20 @@ def fidelity(A,B):
     Parameter  B *Qobj* density matrix with same dimensions as A
     
     Return  *float*  fidelity
+    
+    Example::
+    
+        >>> x=fock_dm(5,3)
+        >>> y=coherent_dm(5,1)
+        >>> fidelity(x,y)
+        0.24104350624628332
+        
     """
     if A.dims!=B.dims:
         raise TypeError('Density matricies do not have same dimensions.')
     else:
         A=A.sqrtm()
-        return real((A*(B*A)).sqrtm().tr())
+        return float(real((A*(B*A)).sqrtm().tr()))
 
 
 def tracedist(A,B):
@@ -52,6 +60,14 @@ def tracedist(A,B):
     Parameter   B  *Qobj* density matrix with same dimensions as A
     
     Return  *float*  trace distance
+    
+    Example::
+    
+        >>> x=fock_dm(5,3)
+        >>> y=coherent_dm(5,1)
+        >>> tracedist(x,y)
+        0.9705143161472971
+    
     """
     if A.dims!=B.dims:
         raise TypeError('Density matricies do not have same dimensions.')
@@ -59,4 +75,4 @@ def tracedist(A,B):
         diff=A-B
         diff=diff.dag()*diff
         out=diff.sqrtm()
-        return real(0.5*out.tr())
+        return float(real(0.5*out.tr()))
