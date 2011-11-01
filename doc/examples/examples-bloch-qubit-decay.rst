@@ -14,7 +14,7 @@ Basic example
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-bloch-qubit-decay.py>`_
       
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/example_bloch_decay.png
+.. figure:: examples-bloch-qubit-decay.png
     :align: center
 
 
@@ -35,7 +35,7 @@ Suppose we want to vary the color of our points as a function of time.  Here we 
     sphere.show()
    
         
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/bloch_color.png 
+.. figure:: examples-bloch-qubit-decay-color.png 
     :align: center
 
 
