@@ -163,6 +163,17 @@ def destroy(N):
     Parameter N *int* dimension of hilbert space
     
     Returns *Qobj*
+    
+    Example::
+    
+        >>> destroy(4)
+        Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
+        Qobj data = 
+        [[ 0.00000000+0.j  1.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
+         [ 0.00000000+0.j  0.00000000+0.j  1.41421356+0.j  0.00000000+0.j]
+         [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  1.73205081+0.j]
+         [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]]
+         
     '''
     if not isinstance(N,int):#raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
@@ -179,6 +190,17 @@ def create(N):
     Parameter N *int* dimension of hilbert space
     
     Returns *Qobj*
+    
+    Example::
+    
+        >>> create(4)
+        Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
+        Qobj data = 
+        [[ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
+         [ 1.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
+         [ 0.00000000+0.j  1.41421356+0.j  0.00000000+0.j  0.00000000+0.j]
+         [ 0.00000000+0.j  0.00000000+0.j  1.73205081+0.j  0.00000000+0.j]]
+    
     '''
     if not isinstance(N,int):#raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
@@ -248,6 +270,17 @@ def squeez(N,sp):
     Parameter sp *real* or *complex* squeezing parameter
     
     Returns *Qobj*
+    
+    Example::
+    
+        >>> squeez(4,0.25)
+        Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
+        Qobj data = 
+        [[ 0.98441565+0.j  0.00000000+0.j  0.17585742+0.j  0.00000000+0.j]
+         [ 0.00000000+0.j  0.95349007+0.j  0.00000000+0.j  0.30142443+0.j]
+         [-0.17585742+0.j  0.00000000+0.j  0.98441565+0.j  0.00000000+0.j]
+         [ 0.00000000+0.j -0.30142443+0.j  0.00000000+0.j  0.95349007+0.j]]
+         
     """
     a=destroy(N)
     op=(1/2.0)*conj(sp)*(a**2)-(1/2.0)*sp*(a.dag())**2
@@ -262,6 +295,17 @@ def displace(N,alpha):
     Parameter alpha *real* or *complex* displacment amplitude
     
     Returns *Qobj*
+    
+    Example::
+    
+        >>> displace(4,0.25)
+        Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
+        Qobj data = 
+        [[ 0.96923323+0.j -0.24230859+0.j  0.04282883+0.j -0.00626025+0.j]
+         [ 0.24230859+0.j  0.90866411+0.j -0.33183303+0.j  0.07418172+0.j]
+         [ 0.04282883+0.j  0.33183303+0.j  0.84809499+0.j -0.41083747+0.j]
+         [ 0.00626025+0.j  0.07418172+0.j  0.41083747+0.j  0.90866411+0.j]]
+         
     """
     a=destroy(N)
     D=(alpha*a.dag()-conj(alpha)*a).expm()
