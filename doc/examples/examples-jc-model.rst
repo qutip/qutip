@@ -11,7 +11,7 @@ This example illustrates the vacuum Rabi oscillations in the Jaynes-Cummings mod
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-jc-model.py>`_
       
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/rabi.png
+.. figure:: examples-jc-model.png
     :align: center
 
 
