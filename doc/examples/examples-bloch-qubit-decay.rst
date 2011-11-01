@@ -1,6 +1,8 @@
 .. QuTiP 
    Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 
+.. _examples_bloch_qubit_decay:
+
 Decay of a qubit state coupled to a zero-temp. bath shown on a Bloch sphere
 ===========================================================================
 

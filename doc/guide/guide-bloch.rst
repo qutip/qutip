@@ -143,7 +143,7 @@ Adding multiple points to the Bloch sphere works slightly differently than addin
    :align: center
    
 
-Notice that, in contrast to states or vectors, each point remains the same color as the initial point.  This is because adding multiple data points using the add_points function is interpreted, by default, to correspond to a single data point (single qubit state) plotted at different times.  This is very useful when visualizing the dynamics of a qubit.  An example of this is given in the *[ExamplesBlochQubitDecay Qubit Decay on the Bloch Sphere]* example.  If we want to plot additional qubit states we can call additional `add_points` functions:
+Notice that, in contrast to states or vectors, each point remains the same color as the initial point.  This is because adding multiple data points using the add_points function is interpreted, by default, to correspond to a single data point (single qubit state) plotted at different times.  This is very useful when visualizing the dynamics of a qubit.  An example of this is given in the example :ref:`examples_bloch_qubit_decay`.  If we want to plot additional qubit states we can call additional `add_points` functions:
 
 >>> xz=zeros(20)
 >>> yz=[sin(th) for th in linspace(0,pi,20)]
@@ -170,9 +170,9 @@ The entire code for this final sphere is thus:
 >>> b.add_points([xz,yz,zz])
 >>> b.show()
 
-Again, we have had to call `add_points` twice because adding more than one set of multiple data points is *not* supported by the `add_points` function.
+Again, we have had to call ``add_points`` twice because adding more than one set of multiple data points is *not* supported by the ``add_points`` function.
 
-What if we want to vary the color of our points.  We can tell the `Bloch class` to vary the color of each point according to the colors listed in the b.point_color list (see *[GuideBloch#Configuring_the_Bloch_sphere Configuring the Bloch sphere]* below).  Again after `clear()`:
+What if we want to vary the color of our points.  We can tell the :class:`qutip.Bloch` class to vary the color of each point according to the colors listed in the ``b.point_color`` list (see :ref:`guide_configuring_the_bloch_sphere` below).  Again after ``clear()``:
 
 >>> xp=[cos(th) for th in linspace(0,2*pi,20)]
 >>> yp=[sin(th) for th in linspace(0,2*pi,20)]
@@ -198,11 +198,13 @@ Now, the data points cycle through a variety of predefined colors.  Now lets add
    :align: center
    
 
-A more slick way of using this 'multi' color feature is also given in the *[ExamplesBlochQubitDecay Qubit Decay on the Bloch Sphere]* example, where we set the color of the markers as a function of time.
+A more slick way of using this 'multi' color feature is also given in the :ref:`examples_bloch_qubit_decay` example, where we set the color of the markers as a function of time.
 
+
+.. _guide_configuring_the_bloch_sphere:
 
 Configuring the Bloch sphere
-===============================
+============================
 
 At the end of the last section we saw that the colors and marker shapes of the data plotted on the Bloch sphere are automatically varied according to the number of points and vectors added.  But what if you want a different choice of color, or you want your sphere to be purple with different axes labels? Well then you are in luck as the Bloch class has 20 attributes which one can control.  Assuming ``b=Bloch()``:   
 
