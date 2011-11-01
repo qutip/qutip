@@ -27,17 +27,24 @@ from steady import *
 
 def correlation_ss_es(H, tlist, c_op_list, a_op, b_op):
     """
-    Calculate a two-time correlation function :math:`\left<A(\tau)B(0)\right>`
-    using the quantum regression theorem, and exponential series/
+    Calculate a two-time correlation function :math:`\left<A(\\tau)B(0)\\right>`
+    using the quantum regression theorem, and exponential series.
+ 
+    Arguments:
     
-    Parameter H *Qobj* system Hamiltonian
-    Parameter rho0 *Qobj* initial density matrix
-    Parameter tlist *list/array* of times
-    Parameter c_op_list *list* of collapse operators
-    Parameter a_op *Qobj* of A operator
-    Parameter b_op *Qobj* of B operator
+        `H` (:class:`qutip.Qobj`) system Hamiltonian.
+        
+        `rho0` (:class:`qutip.Qobj`) initial density matrix.
+        
+        `tlist` (*list/array*) list of times for :math:`t`.
+        
+        `c_op_list` (list of :class:`qutip.Qobj`) list of collapse operators.
+        
+        `a_op` (:class:`qutip.Qobj`) for A operator.
+        
+        `b_op` (:class:`qutip.Qobj`) for B operator.
     
-    Returns *array* of expectation values
+    Returns *array* of expectation values.
     """
 
     # contruct the Liouvillian
@@ -53,18 +60,26 @@ def correlation_ss_es(H, tlist, c_op_list, a_op, b_op):
 
 def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     """
-    Calculate a two-time correlation function :math:`\left<A(\tau)B(0)\right>`
+    Calculate a two-time correlation function :math:`\left<A(t+\\tau)B(t)\\right>`
     using exponential series and the quantum regression theorem.
     
-    Parameter H *Qobj* system Hamiltonian
-    Parameter rho0 *Qobj* initial density matrix
-    Parameter taulist *list/array* of times
-    Parameter taulist *list/array* of tau times
-    Parameter c_op_list *list* of collapse operators
-    Parameter a_op *Qobj* of A operator
-    Parameter b_op *Qobj* of B operator
+    Arguments:
     
-    Returns *array* of expectation values
+        `H` (:class:`qutip.Qobj`) system Hamiltonian.
+        
+        `rho0` (:class:`qutip.Qobj`) initial density matrix.
+        
+        `tlist` (*list/array*) list of times for :math:`t`.
+
+        `taulist` (*list/array*) list of times for :math:`\\tau`.
+        
+        `c_op_list` (list of :class:`qutip.Qobj`) list of collapse operators.
+        
+        `a_op` (:class:`qutip.Qobj`) for A operator.
+        
+        `b_op` (:class:`qutip.Qobj`) for B operator.
+                
+    Returns *array* of expectation values.
     """
 
     # contruct the Liouvillian
@@ -90,14 +105,24 @@ def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
 def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op):
     """
-    Calculate a two-time correlation function :math:`\left<A(\tau)B(0)\right>`
+    Calculate a two-time correlation function :math:`\left<A(\\tau)B(0)\\right>`
     using the quantum regression theorem, and and the ode solver.
     
-    Parameter H *Qobj* system Hamiltonian
-    Parameter tlist *list/array* of times
-    Parameter c_op_list *list* of collapse operators
-    Parameter a_op *Qobj* of A operator
-    Parameter b_op *Qobj* of B operator
+    Arguments:
+    
+        `H` (:class:`qutip.Qobj`) system Hamiltonian.
+        
+        `rho0` (:class:`qutip.Qobj`) initial density matrix.
+        
+        `tlist` (*list/array*) list of times for :math:`t`.
+        
+        `c_op_list` (list of :class:`qutip.Qobj`) list of collapse operators.
+        
+        `a_op` (:class:`qutip.Qobj`) for A operator.
+        
+        `b_op` (:class:`qutip.Qobj`) for B operator.
+    
+    Returns *array* of expectation values.
     
     Returns *array* of expectation values
     """
@@ -109,16 +134,26 @@ def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op):
 
 def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     """
-    Calculate a two-time correlation function :math:`\left<A(t+\tau)B(t)\right>`
+    Calculate a two-time correlation function :math:`\left<A(t+\\tau)B(t)\\right>`
     using the ode solver, and the quantum regression theorem.
     
-    Parameter H *Qobj* system Hamiltonian
-    Parameter taulist *list/array* of times
-    Parameter c_op_list *list* of collapse operators
-    Parameter a_op *Qobj* of A operator
-    Parameter b_op *Qobj* of B operator
+    Arguments:
     
-    Returns *array* of expectation values
+        `H` (:class:`qutip.Qobj`) system Hamiltonian.
+        
+        `rho0` (:class:`qutip.Qobj`) initial density matrix.
+        
+        `tlist` (*list/array*) list of times for :math:`t`.
+
+        `taulist` (*list/array*) list of times for :math:`\\tau`.
+        
+        `c_op_list` (list of :class:`qutip.Qobj`) list of collapse operators.
+        
+        `a_op` (:class:`qutip.Qobj`) for A operator.
+        
+        `b_op` (:class:`qutip.Qobj`) for B operator.
+                
+    Returns *array* of expectation values.
     """
 
     if rho0 == None:
@@ -136,16 +171,24 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
 def correlation_ss_mc(H, tlist, c_op_list, a_op, b_op):
     """
-    Calculate a two-time correlation function :math:`\left<A(t+\tau)B(t)\right>`
+    Calculate a two-time correlation function :math:`\left<A(t+\\tau)B(t)\\right>`
     using the quantum regression theorem, and the monte-carlo solver
     
-    Parameter H *Qobj* system Hamiltonian
-    Parameter tlist *list/array* of times
-    Parameter c_op_list *list* of collapse operators
-    Parameter a_op *Qobj* of A operator
-    Parameter b_op *Qobj* of B operator
+    Arguments:
     
-    Returns *array* of expectation values
+        `H` (:class:`qutip.Qobj`) system Hamiltonian.
+        
+        `rho0` (:class:`qutip.Qobj`) initial density matrix.
+        
+        `tlist` (*list/array*) list of times for :math:`t`.
+        
+        `c_op_list` (list of :class:`qutip.Qobj`) list of collapse operators.
+        
+        `a_op` (:class:`qutip.Qobj`) for A operator.
+        
+        `b_op` (:class:`qutip.Qobj`) for B operator.
+    
+    Returns *array* of expectation values.
     """
 
     rho0 = steadystate(L, co_op_list)
@@ -155,16 +198,26 @@ def correlation_ss_mc(H, tlist, c_op_list, a_op, b_op):
 
 def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
     """
-    Calculate a two-time correlation function :math:`\left<A(t+\tau)B(t)\right>`
+    Calculate a two-time correlation function :math:`\left<A(t+\\tau)B(t)\\right>`
     using the Monte-Carle solver, and the quantum regression theorem.
     
-    Parameter H *Qobj* system Hamiltonian
-    Parameter taulist *list/array* of times
-    Parameter c_op_list *list* of collapse operators
-    Parameter a_op *Qobj* of A operator
-    Parameter b_op *Qobj* of B operator
+    Arguments:
     
-    Returns *array* of expectation values
+        `H` (:class:`qutip.Qobj`) system Hamiltonian.
+        
+        `rho0` (:class:`qutip.Qobj`) initial density matrix.
+        
+        `tlist` (*list/array*) list of times for :math:`t`.
+
+        `taulist` (*list/array*) list of times for :math:`\\tau`.
+        
+        `c_op_list` (list of :class:`qutip.Qobj`) list of collapse operators.
+        
+        `a_op` (:class:`qutip.Qobj`) for A operator.
+        
+        `b_op` (:class:`qutip.Qobj`) for B operator.
+                
+    Returns *array* of expectation values.
     """
 
     C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
@@ -192,17 +245,26 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
 def spectrum_ss(H, wlist, c_op_list, a_op, b_op):
     """
     Calculate the spectrum corresponding to a correlation function
-    :math:`\left<A(\tau)B(t)\right>`, i.e., the Fourier transform of the
-    correlation funciton,
-    :math:`S(\omega) = \int{-\infty}^{\infty} \left<a(t)b(0)\right> \exp{-i\omega t} dt`.
+    :math:`\left<A(\\tau)B(t)\\right>`, i.e., the Fourier transform of the
+    correlation funciton:
     
-    Parameter H *Qobj* Hamiltonian
-    Parameter wlist *list/array* or frequencies
-    Parameter c_op_list *list* of collapse operators
-    Parameter a_op *Qobj* for 'A' operator
-    Parameter b_op *Qobj* for 'B' operator
+    .. math::
     
-    Returns *array* spectrum array
+        S(\omega) = \int_{-\infty}^{\infty} \left<A(t)B(0)\\right> e^{-i\omega t} dt.
+    
+    Arguments:
+    
+        `H` (:class:`qutip.Qobj`) system Hamiltonian.
+        
+        `wlist` (*list/array*) list of times for :math:`\omega`.
+
+        `c_op_list` (list of :class:`qutip.Qobj`) list of collapse operators.
+        
+        `a_op` (:class:`qutip.Qobj`) for A operator.
+        
+        `b_op` (:class:`qutip.Qobj`) for B operator.
+                
+    Returns *array* with spectrum :math:`S(\omega)` for the frequencies specified in `wlist`.
     """
 
     # contruct the Liouvillian
