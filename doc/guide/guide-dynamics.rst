@@ -57,7 +57,7 @@ The resulting list of expectation values can easily be visualized using matplotl
     >>> legend(("Simga-Z", "Sigma-Y"))
     >>> show()
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/guide-qubit-dynamics.png
+.. figure:: guide-dynamics-qubit.png
     :align: center
 
 If an empty list of operators is passed as fifth parameter, the :func:`qutip.odesolve` function returns a list of state vectors for the times specified in *tlist*::
@@ -153,7 +153,7 @@ Now a slightly more complex example: Consider a two-level atom coupled to a leak
     >>> legend(("cavity photon number", "atom excitation probability"))
     >>> show()
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/guide-jc-dynamics.png
+.. figure:: guide-dynamics-jc.png
     :align: center
 
 Monte-Carlo evolution
@@ -201,7 +201,7 @@ invoke the :func:`qutip.mcsolve` function instead of :func:`qutip.odesolve`, and
     >>> legend(("cavity photon number", "atom excitation probability"))
     >>> show()
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/guide-mc-dynamics.png
+.. figure:: guide-dynamics-mc.png
     :align: center
 
 The advantage of the Monte-Carlo method over the master equation approach is that only the state vector is required to be kept in the computer memory (as opposed to the entire density matrix). For large quantum system this becomes a significant advantage and the Monte-Carlo is therefore generally recommended for such systems. But for small systems, on the other hand, the added overhead of averaging a large number of stochastic trajectories to obtain the open system dynamics outweigh the benefits of the (small) memory saving, 
@@ -277,7 +277,7 @@ In general, the choice of solver is determined by the size of your system, as we
 
 If your system is intermediate in size (you are not bound by memory) then it is interesting to calculate the crossover point where the monte-carlo solver begins to perform better than the master equation method.  The exact point at which one solver is better than the other will depend on the system of interest and number of processors. However as a guideline, below we have plotted the time required to solve for the evolution of coupled dissipative harmonic oscillators as a function of Hilbert space size.
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/solver-performance.png
+.. figure:: guide-dynamics-solver-performance.png
     :align: center
 
 Here, the number of trajectories used in `mcsolve` is `250` and the number of processors (which determines the slope of the monte-carlo line) is `4`.  Here we see that the monte-carlo solver begins to be more efficient than the corresponding master-equation method at a Hilbert space size of `N~40`.  Therefore, if your system size is greater than `N~40` and you do not need the full density matrix, then it is recommended to try the `mcsolve` function. 
@@ -325,7 +325,7 @@ For example, let's consider a two-level system with energy splitting 1.0, and su
     >>> legend(("H = H0", "H = H0 + H1 * sin(w*t)"), loc=4)
     >>> show()
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/guide-td-dynamics.png
+.. figure:: guide-dynamics-td.png
     :align: center
     
    
@@ -409,12 +409,12 @@ Here we compare the performance of the master-equation and monte-Carlo solvers t
 
 In this example, we calculate the time-evolution of the density matrix for a coupled oscillator system using the odesolve function, and compare it to the quantum optics toolbox (qotoolbox).  Here, we see that the QuTiP solver out performs it's qotoolbox counterpart by a substantial margin as the system size increases.
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/odesolve_performance.png 
+.. figure:: guide-dynamics-odesolve-performance.png
     :align: center
 
 To test the monte-carlo solvers, here we simulate a trilinear Hamiltonian over a range of Hilbert space sizes.  Since QuTiP uses multiprocessing, we can measure the performance gain when using several CPU's.  In contrast, the qotoolbox is limited to a single-processor only.  In the legend, we show the speed-up factor in the parenthesis, which should ideally be equal to the number of processors.  Finally, we have included the results using hyperthreading, written here as 4+(x) where x is the number of hyperthreads, found in some newer Intel processors.  We see however that the performance benefit is marginal at best.
 
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/mcsolve_performance.png 
+.. figure:: guide-dynamics-mcsolve-performance.png
     :align: center
 

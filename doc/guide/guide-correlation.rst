@@ -59,7 +59,7 @@ The following code demonstrates how to calculate the :math:`\left<x(0)x(t)\right
     >>> xlabel('Time')
     >>> ylabel('Correlation <x(0)x(t)>')
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/guide-correlation-1.png
+.. figure:: guide-correlation-1.png
     :align: center
     
 Non-steadystate correlation function

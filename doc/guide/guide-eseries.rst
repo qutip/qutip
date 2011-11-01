@@ -103,7 +103,7 @@ As an example, consider a spin-1/2 with a Hamiltonian pointing in the :math:`\si
     >>> L = liouvillian(H, [sqrt(1.0) * destroy(2)])
     >>> es = ode2es(L, psi0)
 
-The :func:`qutip.es2ode` function diagonalizes the Liouvillian :math:`L` and creates an exponential series with the correct eigenfrequencies and amplitudes for the initial state :math:`\psi_0` (`psi0`).
+The :func:`qutip.eseries.ode2es` function diagonalizes the Liouvillian :math:`L` and creates an exponential series with the correct eigenfrequencies and amplitudes for the initial state :math:`\psi_0` (`psi0`).
 
 We can examine the resulting :class:`qutip.eseries` object by printing a text representation::
 
