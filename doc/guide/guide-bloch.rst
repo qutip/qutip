@@ -75,7 +75,7 @@ and then a single vector:
 >>> b.show()
 
 
-.. figure:: guide-bloch-pnt+vec.rst
+.. figure:: guide-bloch-pnt+vec.png
    :align: center
 
 
