@@ -10,7 +10,7 @@ An Overview of the Quantum Dynamics Solvers in QuTiP
 Unitary evolution
 -----------------
 
-The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, [GuideComposite Creating and manipulating composite objects with tensor and ptrace], we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector *psi0* using the QuTiP function :func:`qutip.odesolve`. It evolves the state vector and evaluates the expectation values for a set of operators *expt_op_list* at the points in time in the list *tlist*, using an ordinary differential equation solver. Alternatively, we can use the function :func:`qutip.essolve`, which uses the exponential-series technique to calculate the time evolution of a system. The :func:`qutip.odesolve` and :func:`qutip.essolve` functions take the same arguments and it is therefore easy switch between the two solvers. 
+The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, [GuideComposite Creating and manipulating composite objects with tensor and ptrace], we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector :math:`\psi_0` (``psi0``) using the QuTiP function :func:`qutip.odesolve`. It evolves the state vector and evaluates the expectation values for a set of operators ``expt_op_list`` at the points in time in the list ``tlist``, using an ordinary differential equation solver. Alternatively, we can use the function :func:`qutip.essolve`, which uses the exponential-series technique to calculate the time evolution of a system. The :func:`qutip.odesolve` and :func:`qutip.essolve` functions take the same arguments and it is therefore easy switch between the two solvers. 
 
 For example, the time evolution of a quantum spin-1/2 system with tunneling rate 0.1 that initially is in the up state is calculated, and the  expectation values of the :math:`\sigma_z` operator evaluated, with the following code::
 
@@ -60,7 +60,7 @@ The resulting list of expectation values can easily be visualized using matplotl
 .. figure:: guide-dynamics-qubit.png
     :align: center
 
-If an empty list of operators is passed as fifth parameter, the :func:`qutip.odesolve` function returns a list of state vectors for the times specified in *tlist*::
+If an empty list of operators is passed as fifth parameter, the :func:`qutip.odesolve` function returns a list of state vectors for the times specified in ``tlist``::
 
     >>> tlist = [0.0, 1.0]
     >>> odesolve(H, psi0, tlist, [], [])
@@ -93,7 +93,7 @@ For non-unitary evolution of a quantum systems, i.e., evolution that includes
 incoherent processes such as relaxation and dephasing, it is common to use
 master equations. In QuTiP, the same function (:func:`qutip.odesolve`) is used for 
 evolution both according to the Schrödinger equation and to the master equation,
-even though these two equations of motion are very different. The *odesolve*
+even though these two equations of motion are very different. The :func:`qutip.odesolve`
 function automatically determines if it is sufficient to use the Schrödinger 
 equation (if no collapse operators were given) or if it has to use the
 master equation (if collapse operators were given). Note that to calculate
@@ -109,15 +109,15 @@ describe the strength of the processes.
 
 In QuTiP, the product of the square root of the rate and the operator that 
 describe the dissipation process is called a collapse operator. A list of 
-collapse operators (*c_op_list*) is passed as the fourth argument to the 
-*odesolve* function in order to define the dissipation processes in the master
-eqaution. When the *c_op_list* isn't empty, the *odesolve* function will use
+collapse operators (``c_op_list``) is passed as the fourth argument to the 
+:func:`qutip.odesolve` function in order to define the dissipation processes in the master
+eqaution. When the ``c_op_list`` isn't empty, the :func:`qutip.odesolve` function will use
 the master equation instead of the unitary Schröderinger equation.
 
 Using the example with the spin dynamics from the previous section, we can
 easily add a relaxation process (describing the dissipation of energy from the
-spin to its environment), by adding `sqrt(0.05) * sigmax()` to
-the previously empty list in the fourth parameter to the *odesolve* function::
+spin to its environment), by adding ``sqrt(0.05) * sigmax()`` to
+the previously empty list in the fourth parameter to the :func:`qutip.odesolve` function::
 
     >>> tlist = linspace(0.0, 10.0, 100)
     >>> expt_list = odesolve(H, psi0, tlist, [sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
@@ -130,10 +130,10 @@ the previously empty list in the fourth parameter to the *odesolve* function::
     >>> legend(("Sigma-Z", "Sigma-Y"))
     >>> show()
 
-Here, `0.05` is the rate and the operator :math:`\sigma_x` (:func:`qutip.sigmax`) describes the dissipation 
+Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.sigmax`) describes the dissipation 
 process.
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/guide-qubit-dynamics-dissip.png
+.. figure:: guide-qubit-dynamics-dissip.png
     :align: center
 
 Now a slightly more complex example: Consider a two-level atom coupled to a leaky single-mode cavity through a dipole-type interaction, which supports a coherent exchange of quanta between the two systems. If the atom initially is in its groundstate and the cavity in a 5-photon fock state, the dynamics is calculated with the lines following code::
@@ -171,18 +171,18 @@ dynamics of the system, and has been shown to give identical results as the
 master equation. 
 
 In QuTiP, Monto-Carlo evolution is implemented with the
-:func:`qutip.mcsolve` function. It takes nearly the same arguments as the *odesolve*
+:func:`qutip.mcsolve` function. It takes nearly the same arguments as the :func:`qutip.odesolve`
 function for master-equation evolution, expect for one additional parameter
-`ntraj` (fourth parameter), which define the number of stochastic trajectories
+``ntraj`` (fourth parameter), which define the number of stochastic trajectories
 that should be averaged. This number should usually be in the range 100 - 500 to
-give a smooth results (although the optimal number for `ntraj` can vary from
+give a smooth results (although the optimal number for ``ntraj`` can vary from
 case to case).
 
 To illustrate the use of the Monte-Carlo evolution of quantum systems in QuTiP,
 let's again consider the case of a two-level atom coupled to a leaky cavity. The 
 only differences to the master-equation treatment is that in this case we 
 invoke the :func:`qutip.mcsolve` function instead of :func:`qutip.odesolve`, and a new parameter 
-`ntraj = 250` has been defined::
+``ntraj = 250`` has been defined::
 
     >>> tlist = linspace(0.0, 10.0, 200)
     >>> psi0 = tensor(fock(2,0), fock(10, 5))
@@ -204,14 +204,13 @@ invoke the :func:`qutip.mcsolve` function instead of :func:`qutip.odesolve`, and
 .. figure:: guide-dynamics-mc.png
     :align: center
 
-The advantage of the Monte-Carlo method over the master equation approach is that only the state vector is required to be kept in the computer memory (as opposed to the entire density matrix). For large quantum system this becomes a significant advantage and the Monte-Carlo is therefore generally recommended for such systems. But for small systems, on the other hand, the added overhead of averaging a large number of stochastic trajectories to obtain the open system dynamics outweigh the benefits of the (small) memory saving, 
-and master equations are therefore generally more efficient.
+The advantage of the Monte-Carlo method over the master equation approach is that only the state vector is required to be kept in the computer memory (as opposed to the entire density matrix). For large quantum system this becomes a significant advantage and the Monte-Carlo is therefore generally recommended for such systems. But for small systems, on the other hand, the added overhead of averaging a large number of stochastic trajectories to obtain the open system dynamics outweigh the benefits of the (small) memory saving, and master equations are therefore generally more efficient.
 
-The return value(s) from the Monte-Carlo solver depend on the presence of collapse and expectation operators in the `mcsolve` function, as well as how many outputs are requested by the user.  The last example had both collapse and expectation value operators::
+The return value(s) from the Monte-Carlo solver depend on the presence of collapse and expectation operators in the :func:`qutip.mcsolve` function, as well as how many outputs are requested by the user.  The last example had both collapse and expectation value operators::
 
     >>> out=mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
 
-and the user requested a single output `out`.  In this case, the monte-carlo solver returns the average over all trajectories for the expectation values generated by the requested operators.  If we remove the collapse operators::
+and the user requested a single output ``out``.  In this case, the monte-carlo solver returns the average over all trajectories for the expectation values generated by the requested operators.  If we remove the collapse operators::
 
     >>> out=mcsolve(H, psi0, tlist, ntraj, [], [a.dag()*a, sm.dag()*sm])
 
@@ -219,13 +218,13 @@ then we will also get expectation values for the output.  Now, if we add back in
 
     >>> out=mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [])
 
-then the output of :func:`qutip.mcsolve` *is not* a list of expectation values but rather a list of state vector Qobjs calculated for each time, and trajectory.  This a huge output and should be avoided unless you want to see the jumps associated with the collapse operators for individual trajectories.  For example,::
+then the output of :func:`qutip.mcsolve` *is not* a list of expectation values but rather a list of state vector Qobjs calculated for each time, and trajectory.  This a huge output and should be avoided unless you want to see the jumps associated with the collapse operators for individual trajectories.  For example::
     
     >>> out[0]
     
-will be a list of state vector Qobjs evaluated at the times in `tlist`.
+will be a list of state vector Qobjs evaluated at the times in ``tlist``.
 
-In addition, when collapse operators are specified, the monte-carlo solver will also keep track of when a collapse occurs, and which operator did the collapse.  To obtain this information, the user must specify multiple return values from the `mcsolve` function.  For example, to get the times at which collapses occurred for the trajectories we can do::
+In addition, when collapse operators are specified, the monte-carlo solver will also keep track of when a collapse occurs, and which operator did the collapse.  To obtain this information, the user must specify multiple return values from the :func:`qutip.mcsolve` function.  For example, to get the times at which collapses occurred for the trajectories we can do::
 
     >>> expt,times=mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
     
@@ -233,7 +232,7 @@ where we have requested a second output `times`.  Again the first operator corre
 
     >>> expt,times,which=mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
 
-If no expectation values are specified then the first output will be a list of state vectors.  A example demonstrating the use of multiple return values may be found at *[ExamplesMCTimesWhich]*.  To summarize, the table below gives the output of the monte-carlo solver for a given set of input and output conditions:
+If no expectation values are specified then the first output will be a list of state vectors.  A example demonstrating the use of multiple return values may be found at :ref:`ExamplesMCTimesWhich`.  To summarize, the table below gives the output of the monte-carlo solver for a given set of input and output conditions:
 
 +--------------------+-----------------------+-----------------------------+------------------------------------+
 | Collapse operators | Expectation operators | Number of requested outputs | Return value(s)                    |
@@ -273,29 +272,19 @@ If no expectation values are specified then the first output will be a list of s
 Which solver should I use?
 --------------------------
 
-In general, the choice of solver is determined by the size of your system, as well as your desired output.  The computational resources required by the master equation solver scales as `N**2`, where N is the dimensionality of the Hilbert space.  For small systems, the master equation method is very efficient. In contrast, the monte-carlo solver scales as `N`, but requires running multiple trajectories to average over to get the desired expectation values.  Therefore, if your system is too large, and you run out of memory using `odesolve`, then the only option available will be `mcsolve`.  On the other hand, the monte-carlo method cannot return the full density matrix as a function of time and you need to use `odesolve` if this is required.
+In general, the choice of solver is determined by the size of your system, as well as your desired output.  The computational resources required by the master equation solver scales as :math:`N^2`, where :math:`N` is the dimensionality of the Hilbert space.  For small systems, the master equation method is very efficient. In contrast, the monte-carlo solver scales as :math:`N`, but requires running multiple trajectories to average over to get the desired expectation values.  Therefore, if your system is too large, and you run out of memory using :func:`qutip.odesolve`, then the only option available will be :func:`qutip.mcsolve`.  On the other hand, the monte-carlo method cannot return the full density matrix as a function of time and you need to use :func:`qutip.odesolve` if this is required.
 
 If your system is intermediate in size (you are not bound by memory) then it is interesting to calculate the crossover point where the monte-carlo solver begins to perform better than the master equation method.  The exact point at which one solver is better than the other will depend on the system of interest and number of processors. However as a guideline, below we have plotted the time required to solve for the evolution of coupled dissipative harmonic oscillators as a function of Hilbert space size.
 
 .. figure:: guide-dynamics-solver-performance.png
     :align: center
 
-Here, the number of trajectories used in `mcsolve` is `250` and the number of processors (which determines the slope of the monte-carlo line) is `4`.  Here we see that the monte-carlo solver begins to be more efficient than the corresponding master-equation method at a Hilbert space size of `N~40`.  Therefore, if your system size is greater than `N~40` and you do not need the full density matrix, then it is recommended to try the `mcsolve` function. 
+Here, the number of trajectories used in :func:`qutip.mcsolve` is ``250`` and the number of processors (which determines the slope of the monte-carlo line) is ``4``.  Here we see that the monte-carlo solver begins to be more efficient than the corresponding master-equation method at a Hilbert space size of :math:`N\sim40`.  Therefore, if your system size is greater than :math:`N\sim40` and you do not need the full density matrix, then it is recommended to try the :func:`qutip.mcsolve` function. 
 
 Time-dependent Hamiltonians (unitary and non-unitary)
 -----------------------------------------------------
 
-In the previous examples of quantum system evolution, we assumed that
-the systems under consideration were described by a time-independent
-Hamiltonian. The two main evolution solvers in QuTiP, *odesolve* and
-*mcsolve*, can also handle time-dependent Hamiltonians. If a callback function
-is passed as first parameter to the solver function (instead of *Qobj*
-Hamiltonian), then this function is called at each time step and is expected
-to return the *Qobj* Hamiltonian for that point in time. The callback function
-takes two arguments: the time `t` and list additional Hamiltonian arguments
-`H_args`. This list of additional arguments is the same object as is passed
-as the sixth parameter to the solver function (only used for time-dependent
-Hamiltonians).
+In the previous examples of quantum system evolution, we assumed that the systems under consideration were described by a time-independent Hamiltonian. The two main evolution solvers in QuTiP, :func:`qutip.odesolve` and :func:`qutip.mcsolve`, can also handle time-dependent Hamiltonians. If a callback function is passed as first parameter to the solver function (instead of :class:`qutip.Qobj` Hamiltonian), then this function is called at each time step and is expected to return the :class:`qutip.Qobj` Hamiltonian for that point in time. The callback function takes two arguments: the time `t` and list additional Hamiltonian arguments ``H_args``. This list of additional arguments is the same object as is passed as the sixth parameter to the solver function (only used for time-dependent Hamiltonians).
 
 For example, let's consider a two-level system with energy splitting 1.0, and subject to a time-dependent field that couples to the :math:`\sigma_x` operator with amplitude 0.1. Furthermore, to make the example a little bit more interesting, let's also assume that the two-level system is subject to relaxation, with relaxation rate 0.01. The following code calculates the dynamics of the system in the absence and in the presence of the time-dependent driving signal::
 
