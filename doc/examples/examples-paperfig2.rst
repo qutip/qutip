@@ -12,8 +12,8 @@ Here we calculate the ground state occupation probability for a coupled cavity-q
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-paperfig2.py>`_
 
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/paper_fig2_1.png 
+.. figure:: examples-paperfig2_1.png 
     :align: center
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/paper_fig2_2.png 
+.. figure:: examples-paperfig2_2.png 
     :align: center

@@ -12,6 +12,6 @@ Master equation evolution of the Jaynes-Cummings Hamiltonian in a thermal enviro
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-paperfig7.py>`_
 
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/paper_fig7.png 
+.. figure:: examples-paperfig7.png
     :align: center
     :target: http://qutip.googlecode.com/svn/wiki/images/paper_fig7.png 

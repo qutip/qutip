@@ -13,7 +13,7 @@ signal and idler modes start in vacuum states.  Here, the coupling rates to the 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-paperfig8.py>`_
 
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/paper_fig8.png 
+.. figure:: examples-paperfig8.png
     :align: center
     :target: http://qutip.googlecode.com/svn/wiki/images/paper_fig8.png 
 

@@ -12,7 +12,7 @@ Dissipative :math:`i`-SWAP gate.
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-paperfig6.py>`_
 
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/paper_fig6.png 
+.. figure:: examples-paperfig6.png
     :align: center
     :target: http://qutip.googlecode.com/svn/wiki/images/paper_fig6.png 
 
