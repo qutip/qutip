@@ -385,7 +385,7 @@ Qobj data =
 [[ 0.]
  [-1.]]
 
-The answer is now apparent.  Since the QuTiP :func:`qutip.sigmaz` function uses the standard z-basis representation of the sigma-z spin operator, the ``spin`` state corresponds to the :math:`\left|\mathrm{up}\right>` state of a two-level spin system while ``spin2`` gives the `:math:`\left|\mathrm{down}\right>` state.  Therefore, in our previous example ``sigmap()*spin``, we raised the qubit state out of the truncated two-level Hilbert space resulting in the zero state.  
+The answer is now apparent.  Since the QuTiP :func:`qutip.sigmaz` function uses the standard z-basis representation of the sigma-z spin operator, the ``spin`` state corresponds to the :math:`\left|\mathrm{up}\right>` state of a two-level spin system while ``spin2`` gives the :math:`\left|\mathrm{down}\right>` state.  Therefore, in our previous example ``sigmap()*spin``, we raised the qubit state out of the truncated two-level Hilbert space resulting in the zero state.  
 
 While at first glance this convention might seem somewhat odd, it is in fact quite handy.  For one, the spin operators remain in the conventional form.  Second, when the spin system is in the :math:`\left|\mathrm{up}\right>` state:
 
@@ -395,9 +395,9 @@ Qobj data =
 [[ 1.] #<--- zeroth element of matrix
  [ 0.]]
 
-the non-zero component is the zeroth-element of the underlying matrix (remember that python uses c-indexing, and matrices start with the zeroth element).  The `|down>` state therefore has a non-zero entry in the first index position.  This corresponds nicely with the quantum information definitions of qubit states, where the excited :math:`\left|\mathrm{up}\right>` state is label as :math:`\left|0\right>`, and the :math:`\left|\mathrm{up}\right>` state by :math:`\left|1\right>`.
+the non-zero component is the zeroth-element of the underlying matrix (remember that python uses c-indexing, and matrices start with the zeroth element).  The :math:`\left|\mathrm{down}\right>` state therefore has a non-zero entry in the first index position.  This corresponds nicely with the quantum information definitions of qubit states, where the excited :math:`\left|\mathrm{up}\right>` state is label as :math:`\left|0\right>`, and the :math:`\left|\mathrm{up}\right>` state by :math:`\left|1\right>`.
 
-If one wants to create spin operators for higher spin systems, then the :func:`qutip.jmat` function comes in handy. 
+If one wants to create spin operators for higher spin systems, then the :func:`qutip.operators.jmat` function comes in handy. 
 
 Expectation values
 ===================
@@ -448,7 +448,7 @@ Of course, the expect function works for spin states and operators:
 >>>expect(sigmaz(),down)
 -1.0
 
-as well as the composite objects discussed in the next section :ref:`guide_tensor`:
+as well as the composite objects discussed in the next section :ref:`guide-tensor`:
 
 >>> spin1=basis(2,0)
 >>> spin2=basis(2,1)
