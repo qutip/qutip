@@ -11,7 +11,7 @@ This example highlights a single photon source based on a three level atom stron
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-single-photon-source.py>`_
       
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/examples-single-photon.png
+.. figure:: examples-single-photon-source.png
     :align: center
     
     State Population and Emission from Cavity
