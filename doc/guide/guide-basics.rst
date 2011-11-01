@@ -201,7 +201,7 @@ In general, the properties of a Qobj object (or any Python class) can be retriev
 +---------------+---------------+----------------------------------------+
 
 .. _about: 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/qobj_box.png
+.. figure:: quide-basics-qobj-box.png
    :align: center
 
 

@@ -153,7 +153,7 @@ The result `es_expect` is now an exponential series with C-numbers as amplitudes
     >>> show()
 
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/guide-eseries-1.png
+.. figure:: guide-eseries-1.png
     :align: center
     
     The expectation value of the :math:`\sigma_z` operator, calculated using the exponential-series expansion of the Liouvillian.
