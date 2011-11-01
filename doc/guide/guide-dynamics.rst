@@ -327,27 +327,27 @@ Occasionally it is necessary to change the built in parameters of the ODE solver
 
 the properties and default values of this class can be view via the `print` command::
 
-    print opts
-
+    >>> print opts
     Odeoptions properties:
     ----------------------
-    atol:        1e-10
-    rtol:        1e-08
+    atol:        1e-08
+    rtol:        1e-06
     method:      adams
     order:       12
     nsteps:      1000
     first_step:  0
     min_step:    0
     max_step:    0
+    tidy:        True
 
 These properties are detailed in the following table.  Assuming ``opts=Odeoptions()``:
 
 +-----------------+-----------------+----------------------------------------------------------------+
 | Property        | Default setting | Description                                                    |
 +=================+=================+================================================================+
-| opts.atol       | 1e-10           | Absolute tolerance                                             |
+| opts.atol       | 1e-8            | Absolute tolerance                                             |
 +-----------------+-----------------+----------------------------------------------------------------+
-| opts.rtol       | 1e-08           | Relative tolerance                                             |
+| opts.rtol       | 1e-6            | Relative tolerance                                             |
 +-----------------+-----------------+----------------------------------------------------------------+
 | opts.method     | 'adams'         | Solver method.  Can be 'adams' (non-stiff) or 'bdf' (stiff)    |
 +-----------------+-----------------+----------------------------------------------------------------+
@@ -361,24 +361,26 @@ These properties are detailed in the following table.  Assuming ``opts=Odeoption
 +-----------------+-----------------+----------------------------------------------------------------+
 | opts.max_step   | 0               | Maximum step size.  0 = determined automatically by solver.    |
 +-----------------+-----------------+----------------------------------------------------------------+
-
+| opts.tidy       | True            | Whether to run tidyup function on time-independent Hamiltonian.| 
++-----------------+-----------------+----------------------------------------------------------------+
 As an example, let us consider relaxing the conditions on the ODE solver::
 
-    >>> opts.atol=1e-8
-    >>> opts.rtol=1e-6
+    >>> opts.atol=1e-10
+    >>> opts.rtol=1e-8
     >>> opts.nsteps=500
     >>> print opts
 
     Odeoptions properties:
     ----------------------
-    atol:        1e-08
-    rtol:        1e-06
+    atol:        1e-10
+    rtol:        1e-08
     method:      adams
     order:       12
     nsteps:      500
     first_step:  0
     min_step:    0
     max_step:    0
+    tidy:        True
 
 To use these new settings we can use the keyword argument `options` in either the `odesolve` or `mcsolve` function.  We can modify the last example as::
 
@@ -401,7 +403,7 @@ In this example, we calculate the time-evolution of the density matrix for a cou
 .. figure:: guide-dynamics-odesolve-performance.png
     :align: center
 
-To test the monte-carlo solvers, here we simulate a trilinear Hamiltonian over a range of Hilbert space sizes.  Since QuTiP uses multiprocessing, we can measure the performance gain when using several CPU's.  In contrast, the qotoolbox is limited to a single-processor only.  In the legend, we show the speed-up factor in the parenthesis, which should ideally be equal to the number of processors.  Finally, we have included the results using hyperthreading, written here as 4+(x) where x is the number of hyperthreads, found in some newer Intel processors.  We see however that the performance benefit is marginal at best.
+To test the Monte-Carlo solvers, here we simulate a trilinear Hamiltonian over a range of Hilbert space sizes.  Since QuTiP uses multiprocessing, we can measure the performance gain when using several CPU's.  In contrast, the qotoolbox is limited to a single-processor only.  In the legend, we show the speed-up factor in the parenthesis, which should ideally be equal to the number of processors.  Finally, we have included the results using hyperthreading, written here as 4+(x) where x is the number of hyperthreads, found in some newer Intel processors.  We see however that the performance benefit is marginal at best.
 
 
 .. figure:: guide-dynamics-mcsolve-performance.png
