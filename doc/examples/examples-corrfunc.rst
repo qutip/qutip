@@ -12,9 +12,8 @@ In the following example we calculate the :math:`\left<x(t)x(0)\right>` correlat
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-corrfunc.py>`_
 
 
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/examples-correlation-function.png
+.. figure:: examples-corrfunc.png
     :align: center
-    :target: http://qutip.googlecode.com/svn/wiki/images/examples-correlation-function.png
     
 
 

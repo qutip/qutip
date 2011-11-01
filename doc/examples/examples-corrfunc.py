@@ -55,4 +55,4 @@ xlabel('Time')
 ylabel('Correlation <x(t)x(0)>')
 legend(("g = 0.5", "g = 0.0"))
 savefig('examples-corrfunc.png')
-close(fig)
+
