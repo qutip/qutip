@@ -52,8 +52,13 @@ def entropy_linear(rho):
     
     Parameter rho *Qobj* density matrix or ket/bra
     
-    Returns *float* if rho is Hermitian, *complex* otherwise
+    Returns *float*
     
+    Example:: 
+        
+        >>> rho=0.5*fock_dm(2,0)+0.5*fock_dm(2,1)
+        >>> entropy_linear(rho)
+        0.5
     """
     if rho.type=='ket' or rho.type=='bra':
         rho=ket2dm(rho)
