@@ -25,17 +25,17 @@ Here we demonstrate how to calculate two-time correlation functions in QuTiP. Us
 |                                              | :math:`\left<a(0)b(\tau)\right>`,       |
 |                                              | using the Monte-Carlo evolution.        |
 +----------------------------------------------+-----------------------------------------+
-| :func:`qutip.correlation.correlation_es`     | Calculates the correlation              |
+| :func:`qutip.correlation.correlation_es`     | Calculates the correlation function     |
 |                                              | :math:`\left<a(t_1)b(t_1+t_2)\right>`,  |
 |                                              | using the Exponential series solver.    |
 +----------------------------------------------+-----------------------------------------+
-| :func:`qutip.correlation.correlation_ode`    | Calculates the  correlation             |
+| :func:`qutip.correlation.correlation_ode`    | Calculates the correlation function     |
 |                                              | :math:`\left<a(t_1)b(t_1+t_2)\right>`,  |
 |                                              | using the ODE solver.                   |
 +----------------------------------------------+-----------------------------------------+
-| :func:`qutip.correlation.correlation_mc`     | Calculates the correlation              |
+| :func:`qutip.correlation.correlation_mc`     | Calculates the correlation function     |
 |                                              | :math:`\left<a(t_1)b(t_1+t_2)\right>`,  |
-|                                              |  using the Monte-Carlo evolution.       |
+|                                              | using Monte-Carlo evolution.            |
 +----------------------------------------------+-----------------------------------------+
 
 The most common use-case is to calculate correlation functions of the kind :math:`\left<a(0)b(t)\right>`, in which case we use the correlation function solvers that start from the steady state, e.g., the :func:`qutip.correlation.correlation_ss_ode` function. These functions return a vector (in general complex) with the correlations between the operators as a function of the difference time. 
