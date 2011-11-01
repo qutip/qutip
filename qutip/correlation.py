@@ -27,7 +27,7 @@ from steady import *
 
 def correlation_ss_es(H, tlist, c_op_list, a_op, b_op):
     """
-    Calculate a two-time correlation function :math:`\left<A(\tau)B(0)\right>'
+    Calculate a two-time correlation function :math:`\left<A(\tau)B(0)\right>`
     using the quantum regression theorem, and exponential series/
     
     Parameter H *Qobj* system Hamiltonian
@@ -53,7 +53,7 @@ def correlation_ss_es(H, tlist, c_op_list, a_op, b_op):
 
 def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     """
-    Calculate a two-time correlation function :math:`\left<A(\tau)B(0)\right>' 
+    Calculate a two-time correlation function :math:`\left<A(\tau)B(0)\right>`
     using exponential series and the quantum regression theorem.
     
     Parameter H *Qobj* system Hamiltonian
@@ -90,7 +90,7 @@ def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
 def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op):
     """
-    Calculate a two-time correlation function :math:`\left<A(\tau)B(0)\right>'
+    Calculate a two-time correlation function :math:`\left<A(\tau)B(0)\right>`
     using the quantum regression theorem, and and the ode solver.
     
     Parameter H *Qobj* system Hamiltonian
@@ -109,7 +109,7 @@ def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op):
 
 def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     """
-    Calculate a two-time correlation function :math:`\left<A(t+\tau)B(t)\right>'
+    Calculate a two-time correlation function :math:`\left<A(t+\tau)B(t)\right>`
     using the ode solver, and the quantum regression theorem.
     
     Parameter H *Qobj* system Hamiltonian
@@ -136,7 +136,7 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
 def correlation_ss_mc(H, tlist, c_op_list, a_op, b_op):
     """
-    Calculate a two-time correlation function :math:`\left<A(t+\tau)B(t)\right>'
+    Calculate a two-time correlation function :math:`\left<A(t+\tau)B(t)\right>`
     using the quantum regression theorem, and the monte-carlo solver
     
     Parameter H *Qobj* system Hamiltonian
@@ -155,7 +155,7 @@ def correlation_ss_mc(H, tlist, c_op_list, a_op, b_op):
 
 def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
     """
-    Calculate a two-time correlation function :math:`\left<A(t+\tau)B(t)\right>'
+    Calculate a two-time correlation function :math:`\left<A(t+\tau)B(t)\right>`
     using the Monte-Carle solver, and the quantum regression theorem.
     
     Parameter H *Qobj* system Hamiltonian
@@ -192,7 +192,7 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
 def spectrum_ss(H, wlist, c_op_list, a_op, b_op):
     """
     Calculate the spectrum corresponding to a correlation function
-    :math:`\left<A(\tau)B(t)\right>', i.e., the Fourier transform of the
+    :math:`\left<A(\tau)B(t)\right>`, i.e., the Fourier transform of the
     correlation funciton,
     :math:`S(\omega) = \int{-\infty}^{\infty} \left<a(t)b(0)\right> \exp{-i\omega t} dt`.
     
