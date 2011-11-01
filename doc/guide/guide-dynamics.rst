@@ -232,7 +232,7 @@ where we have requested a second output `times`.  Again the first operator corre
 
     >>> expt,times,which=mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
 
-If no expectation values are specified then the first output will be a list of state vectors.  A example demonstrating the use of multiple return values may be found at :ref:`ExamplesMCTimesWhich`.  To summarize, the table below gives the output of the monte-carlo solver for a given set of input and output conditions:
+If no expectation values are specified then the first output will be a list of state vectors.  A example demonstrating the use of multiple return values may be found at :ref:`examples-collapsetimesmonte`.  To summarize, the table below gives the output of the monte-carlo solver for a given set of input and output conditions:
 
 +--------------------+-----------------------+-----------------------------+------------------------------------+
 | Collapse operators | Expectation operators | Number of requested outputs | Return value(s)                    |
@@ -340,7 +340,7 @@ the properties and default values of this class can be view via the `print` comm
     min_step:    0
     max_step:    0
 
-These properties are detailed in the following table.  Assuming `opts=Odeoptions()':
+These properties are detailed in the following table.  Assuming ``opts=Odeoptions()``:
 
 +-----------------+-----------------+----------------------------------------------------------------+
 | Property        | Default setting | Description                                                    |
