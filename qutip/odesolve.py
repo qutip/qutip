@@ -32,37 +32,50 @@ from cyQ.ode_rhs import cyq_ode_rhs
 # 
 def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None, options=None):
     """
-    Evolution of a state vector or density matrix (rho0) for a given
-    Hamiltonian (H) and set of collapse operators (c_op_list), by integrating
+    Evolution of a state vector or density matrix (`rho0`) for a given
+    Hamiltonian (`H`) and set of collapse operators (`c_op_list`), by integrating
     the set of ordinary differential equations that define the system. The
-    output is either the state vector at arbitrary points in time (tlist), or
-    the expectation values of the supplied operators (expt_op_list). 
+    output is either the state vector at arbitrary points in time (`tlist`), or
+    the expectation values of the supplied operators (`expt_op_list`). 
 
-    For problems with time-dependent Hamiltonians, H can be a callback function
-    that takes two arguments, time and H_args, and returns the Hamiltonian
-    at that point in time. H_args is a list of parameters that is
-    passed to the callback function H (only used for time-dependent Hamiltonians).
+    For problems with time-dependent Hamiltonians, `H` can be a callback function
+    that takes two arguments, time and `H_args`, and returns the Hamiltonian
+    at that point in time. `H_args` is a list of parameters that is
+    passed to the callback function `H` (only used for time-dependent Hamiltonians).
     
     Master equation evolution of a density matrix for a given Hamiltonian.
     
-    Parameter H *Qobj* Hamiltonian
-    Parameter psi0 *Qobj* initial state vector
-    Parameter tlist *list/array* of times
-    Parameter collapse_ops *list/array* or collapse operators
-    Parameter expect_ops *list/array* of expectation operators
-    Parameter H_args *list/array* of arguments for time-dependent Hamiltonians
-    Parameter options *Odeoptions* instance of ODE solver options
+    Arguments:
+    
+        `H` (:class:`qutip.Qobj`) system Hamiltonian, or a callback function for time-dependent Hamiltonians.
+        
+        `rho0` (:class:`qutip.Qobj`) initial density matrix.
+        
+        `tlist` (*list/array*) list of times for :math:`t`.
+        
+        `c_op_list` (list of :class:`qutip.Qobj`) list of collapse operators.
+        
+        `expt_op_list` (list of :class:`qutip.Qobj`) list of operators for which to evaluate expectation values.
+        
+        `H_args` (*list*) of parameters to time-dependent Hamiltonians.
+        
+        `options` (:class:`qutip.Qdeopions`) with options for the ODE solver.
 
-    Notes on using callback function:
 
-    odesolve transforms all Qobj objects to sparse matrices before
-    handing the problem to the integrator function. In order for
-    your callback function to work correctly, pass all Qobj objects
-    that are used in constructing the Hamiltonian via H_args. odesolve
-    will check for Qobj in H_args and handle the conversion to sparse
-    matrices. All other Qobj objects that are not passed via H_args
-    will be passed on to the integrator to scipy who will raise an
-    NotImplemented exception.
+    Returns an *array* of expectation values of wavefunctions/density matrices
+    for the times specified by `tlist`.
+
+    .. note:: 
+    
+        On using callback function: odesolve transforms all :class:`qutip.Qobj`
+        objects to sparse matrices before handing the problem to the integrator
+        function. In order for your callback function to work correctly, pass
+        all :class:`qutip.Qobj` objects that are used in constructing the
+        Hamiltonian via H_args. odesolve will check for :class:`qutip.Qobj` in
+        `H_args` and handle the conversion to sparse matrices. All other
+        :class:`qutip.Qobj` objects that are not passed via `H_args` will be
+        passed on to the integrator to scipy who will raise an NotImplemented
+        exception.
 
     """
 
