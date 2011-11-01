@@ -11,6 +11,6 @@ Example that calculates the dynamics of a Heisenberg spin chain.
 
 `Download example <http://qutip.googlecode.com/svn/doc/examples/examples-spinchain.py>`_
       
-.. figure:: http://qutip.googlecode.com/svn/wiki/images/spinchain.png
+.. figure:: examples-spinchain.png
     :align: center
 
