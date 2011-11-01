@@ -174,12 +174,15 @@ def fock_dm(N, *args):
 def fock(N, *args):
     """
     Generates the vector representation of a bosonic Fock (number) state. 
-    Same as `basis' function.
+    Same as :func:`qutip.states.basis` function.
     
-    N the number of states in the Hilbert space
-    m int corresponding to desired number state, defaults to 0 if omitted
+    Arguments:
+
+        `N` (*int*): the number of states in the Hilbert space.
+        
+        `m` (*int*): corresponding to desired number state, defaults to 0 if omitted.
     
-    Returns Qobj quantum object representing the requested number state |args>
+    Returns Qobj quantum object representing the requested number state :math:`\left|{\mathrm args}\\right>`.
     
     Example::
     
