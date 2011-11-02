@@ -28,9 +28,11 @@ def isket(Q):
     """
     Determines if given quantum object is a ket-vector
 	
-	Parameter Q *Qobj* quantum object
+	Args:
+	    Q: Qobj quantum object
 	
-	Return *bool* True or False
+	Returns: 
+	    True is Qobj is ket-vector, False otherwise.
 	
 	Example::
 	    >>> psi=basis(5,2)
@@ -48,9 +50,11 @@ def isbra(Q):
 	"""
 	Determines if given quantum object is a bra-vector
 	
-	Parameter Q *Qobj* quantum object
+	Args:
+	    Q: Qobj quantum object
 	
-	Returns *bool* True or False
+	Returns:
+	    True is Qobj is bra-vector, False otherwise.
 	
 	Example::
 	    
@@ -71,9 +75,11 @@ def isoper(Q):
 	"""
 	Determines if given quantum object is a operator
 	
-	Parameter Q *Qobj* quantum object
+	Args:
+	    Q: Qobj quantum object
 	
-	Returns *bool* True or False
+	Returns:
+	    True is Qobj is operator, False otherwise.
 	
 	Example::
 	    
@@ -90,9 +96,11 @@ def issuper(Q):
 	"""
 	Determines if given quantum object is a super-operator
 	
-	Parameter Q *Qobj* quantum object
+	Args:
+	    Q: Qobj quantum object
 	
-	Returns *bool* True or False
+	Returns: 
+	    True is Qobj is superoperator, False otherwise.
 	"""
 	result = isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0],list)
 	if result:
@@ -105,12 +113,14 @@ def isequal(A,B,rtol=1e-10,atol=1e-12):
     """
     Determines if two array objects are equal to within tolerances
     
-    Parameter A *array* array one
-    Parameter B *array* array two
-    Parameter rtol *float* relative tolerence
-    Parameter atol *float* absolute tolerence
+    Args:
+        A: array one
+        B: array two
+        rtol: float for relative tolerence
+        atol: float for absolute tolerence
     
-    Returns *bool* True or False
+    Returns: 
+        True if arrays are equal.  False otherwise.
     """
     if shape(A)!=shape(B):
         raise TypeError('Inputs do not have same shape.')
@@ -142,11 +152,13 @@ def ischeck(Q):
 #**************************
 def isherm(oper):
     """
-    Determines whether a given operator is Hermitian
+    Determines whether a given operator is Hermitian.
     
-    Parameter oper *Qobj* input quantum object
+    Args:
+        oper: Qobj for input quantum object.
     
-    Returns *bool* True if operator is Hermitian, False otherwise
+    Returns: 
+        True if operator is Hermitian, False otherwise.
     
     Example::
         

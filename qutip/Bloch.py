@@ -25,6 +25,28 @@ from operators import *
 class Bloch():
     """
     Class for plotting data on the Bloch sphere.
+    
+    Default Properties:
+        font_color:    black
+        font_size:     20
+        frame_alpha:   0.2
+        frame_color:   gray
+        frame_width:   1
+        point_color:   ['b', 'r', 'g', '#CC6600']
+        point_marker:  ['o', 's', 'd', '^']
+        point_size:    [25, 32, 35, 45]
+        sphere_alpha:  0.2
+        sphere_color:  #FFDDDD
+        size:          [7, 7]
+        vector_color:  ['g', '#CC6600', 'b', 'r']
+        vector_width:  3
+        view:          [-60, 30]
+        xlabel:        ['$x$', '']
+        xlpos:         [1.2, -1.2]
+        ylabel:        ['$y$', '']
+        ylpos:         [1.1, -1.1]
+        zlabel:        ['$\\left|0\\right>$', '$\\left|1\\right>$']
+        zlpos:         [1.2, -1.2]
     """
     def __init__(self):
         #---sphere options---

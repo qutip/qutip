@@ -25,9 +25,12 @@ def entropy_vn(rho,base='2'):
     """
     Von-Neumann entropy of density matrix
     
-    Parameter rho *Qobj* density matrix
+    Args:
+        rho: Qobj density matrix.
+        base: base of logarithm (defult='2')
     
-    Returns *float* entropy
+    Returns: 
+        float for entropy value
     
     Example::
     
@@ -50,9 +53,11 @@ def entropy_linear(rho):
     """
     Linear entropy of density matrix
     
-    Parameter rho *Qobj* density matrix or ket/bra
+    Args:
+        rho: Qobj density matrix or ket/bra vector.
     
-    Returns *float*
+    Returns:
+        float for entropy value.
     
     Example:: 
         
@@ -71,9 +76,11 @@ def concurrence(rho):
     Calculate the concurrence entanglement measure for 
         a two-qubit state.
     
-    Parameter rho *Qobj* density matrix
+    Args:
+        rho: Qobj density matrix.
     
-    Returns *float* concurrence
+    Returns:
+        float for concurrence
     """
     sysy = tensor(sigmay(), sigmay())
 

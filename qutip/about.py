@@ -28,10 +28,9 @@ CD_BASE = os.path.dirname(__file__) # get directory of about.py file
 execfile(os.path.join(CD_BASE, "_version.py")) #execute _version.py file in CD_BASE directory
 def about():
     """
-    About box for qutip.
-        Gives version numbers for 
-        QuTiP, NumPy, SciPy, and MatPlotLib.
-        GUI version requires PySide or PyQt4.
+    About box for qutip. Gives version numbers for 
+    QuTiP, NumPy, SciPy, and MatPlotLib.
+    GUI version requires PySide or PyQt4.
     """
     tk_conify_center()
     if os.environ['QUTIP_GRAPHICS']=='YES' and os.environ['QUTIP_GUI']!="NONE":
