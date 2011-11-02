@@ -1,11 +1,22 @@
 .. QuTiP 
    Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 
+Developers
+============
+
+
+
+Lead Developers
+****************
+
+`Robert Johansson <http://dml.riken.jp/~rob/>`_ (RIKEN)
+
+`Paul Nation <http://dml.riken.jp/~paul/>`_ (RIKEN / University of Michigan)
+
+
+
 Contributors
-************
-
-Below is a list of people who have in one way or another contributed to the development of QuTiP.
-
+*************
 
 **Markus Baden** (Centre for Quantum Technologies, Singapore) - **QuTiP member**. Examples and documentation
 
