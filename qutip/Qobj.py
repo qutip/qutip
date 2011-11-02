@@ -325,7 +325,11 @@ class Qobj():
         """
         Returns diagonal elements of object
         """
-        return self.data.todia().diagonal()
+        out=self.data.todia().diagonal()
+        if any(imag(out)!=0):
+            return out
+        else:
+            return real(out)
     def expm(self):
         """
         Returns a quantum object corresponding to the matrix exponential of 
