@@ -35,7 +35,17 @@ The focus of QuTiP is on systems where the Hamiltonian is composed of harmonic o
 
 * Includes the ability to create high-quality plots, and animations, using the excellent `Matplotlib <http://matplotlib.sourceforge.net/>`_ package.
 
+Citing This Project
+======================
+    
+If you find this project useful then please cite:
 
+.. centered:: J. R. Johansson, P.D. Nation, and F. Nori, "QuTiP: An open-source Python framework for the dynamics of open quantum systems", arXiv:1110.0573 (2011)
+
+which may also be download from http://arxiv.org/abs/1110.0573
+
+Table of Contents
+====================
 
 These pages contains automatically generated API documentation for QuTiP. 
 
