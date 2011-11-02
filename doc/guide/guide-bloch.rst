@@ -29,22 +29,24 @@ which will load an instance of the Bloch class.  Before getting into the details
 
 In addition to the show() command, the Bloch class has the following functions:
 
+.. tabularcolumns:: | p{4cm} | p{6cm} | L |
+
 +--------------------------+--------------------------------------+------------------------------------------+
 | Name                     | Input Parameters (#=optional)        | Description                              |
 +==========================+======================================+==========================================+
-| add_points(puts,#meth)   | *pnts* list/array of (x,y,z) points, | Adds a single or set of data points      |  
-|                          | *meth*='m' (default meth='s') will   | to be plotted on the sphere.             |
+| add_points(pnts,#meth)   | pnts list/array of (x,y,z) points,   | Adds a single or set of data points      |  
+|                          | meth='m' (default meth='s') will     | to be plotted on the sphere.             |
 |                          | plot a collection of points as       |                                          |
 |                          | multi-colored data points.           |                                          |
 +--------------------------+--------------------------------------+------------------------------------------+
-|add_states(state,#kind)   | *state* Qobj or list/array of Qobj's | Input multiple states as a list or array |
+|add_states(state,#kind)   | `state` Qobj or list/array of Qobj's | Input multiple states as a list or array |
 |                          | representing state or density matrix |                                          |
 |                          | of a two-level system,               |                                          |
-|                          | *kind* (optional) string specifying  |                                          |
+|                          | `kind` (optional) string specifying  |                                          |
 |                          | if state should be plotted as point  |                                          |
-|                          | (`'point'`) or vector (default).     |                                          |
+|                          | ('point') or vector (default).       |                                          |
 +--------------------------+--------------------------------------+------------------------------------------+
-| add_vectors(vec)         | *vec* list/array of (x,y,z) points   | adds single or multiple vectors to plot. |
+| add_vectors(vec)         | `vec` list/array of (x,y,z) points   | adds single or multiple vectors to plot. |
 |                          | giving direction and length of       |                                          |
 |                          | state vectors.                       |                                          | 
 +--------------------------+--------------------------------------+------------------------------------------+
@@ -79,7 +81,7 @@ and then a single vector:
    :align: center
 
 
-and then add another vector corresponding to the |up> state:
+and then add another vector corresponding to the :math:`\left|\rm up \right>` state:
 
 >>> up=basis(2,0)
 >>> b.add_states(up)
@@ -185,7 +187,7 @@ What if we want to vary the color of our points.  We can tell the :class:`qutip.
    :align: center
    
 
-Now, the data points cycle through a variety of predefined colors.  Now lets add another set of points, but this time we want the set to be a single color, representing say a qubit going from the |up> state to the |down> state in the y-z plane:
+Now, the data points cycle through a variety of predefined colors.  Now lets add another set of points, but this time we want the set to be a single color, representing say a qubit going from the :math:`\left|\rm up\right>` state to the :math:`\left|\rm down\right>` state in the y-z plane:
 
 >>> xz=zeros(20)
 >>> yz=[sin(th) for th in linspace(0,pi,20)]
@@ -206,7 +208,9 @@ A more slick way of using this 'multi' color feature is also given in the :ref:`
 Configuring the Bloch sphere
 ============================
 
-At the end of the last section we saw that the colors and marker shapes of the data plotted on the Bloch sphere are automatically varied according to the number of points and vectors added.  But what if you want a different choice of color, or you want your sphere to be purple with different axes labels? Well then you are in luck as the Bloch class has 20 attributes which one can control.  Assuming ``b=Bloch()``:   
+At the end of the last section we saw that the colors and marker shapes of the data plotted on the Bloch sphere are automatically varied according to the number of points and vectors added.  But what if you want a different choice of color, or you want your sphere to be purple with different axes labels? Well then you are in luck as the Bloch class has 20 attributes which one can control.  Assuming ``b=Bloch()``:
+   
+.. tabularcolumns:: | p{4cm} | p{6cm} | L |
 
 +---------------+---------------------------------------------------------+---------------------------------------------+
 | Attribute     | Function                                                | Default Setting                             | 

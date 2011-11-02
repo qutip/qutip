@@ -182,6 +182,8 @@ We have seen that a quantum object has three internal attributes, the data, dims
 
 In general, the properties of a Qobj object (or any Python class) can be retrieved using the `Q.property` notation.  In addition to the properties shown with the `print` function, the Qobj class also has the following:
 
+.. tabularcolumns:: | p{4cm} | L | L |
+
 +---------------+---------------+----------------------------------------+
 | Property      | Command       | Description                            |
 +===============+===============+========================================+

@@ -8,6 +8,8 @@ Solving Two-Time Correlation Functions
 
 Here we demonstrate how to calculate two-time correlation functions in QuTiP. Using the quantum regression theorem, we can apply the equation of motion for the system itself also to calculate two-time correlation functions. In QuTiP, there are family functions that assists in this process: :func:`qutip.correlation.correlation_ode`, :func:`qutip.correlation.correlation_es`, :func:`qutip.correlation.correlation_mc`, and :func:`qutip.correlation.correlation_ss_ode`, :func:`qutip.correlation.correlation_ss_es`, :func:`qutip.correlation.correlation_ss_mc`. As the names suggest, these functions use the ODE, the exponential series, and the Monte-Carlo solvers, respectively, to evolve the correlation functions in time. The following table describes in detail the usage of each function:
 
+.. tabularcolumns:: | p{8cm} | L |
+
 +----------------------------------------------+-----------------------------------------+
 | Function                                     | Usage                                   |
 +==============================================+=========================================+
@@ -81,14 +83,17 @@ More generally, we can also calculate correlation functions of the kind :math:`\
     >>> title('Correlation <x(t1)x(t1+t2)>')
     >>> show()
 
-+-------------------------------------+-------------------------------------+
-| .. figure:: guide-correlation-2.png | .. figure:: guide-correlation-3.png |
-|    :align:  center                  |    :align:  center                  |
-|                                     |                                     |
-|    :math:`\alpha = 2.5`             |    :math:`\alpha = 0.0`             |
-|                                     |                                     |
-+-------------------------------------+-------------------------------------+
 
+.. figure:: guide-correlation-2.png
+   :align:  center
+   
+   :math:`\alpha = 2.5`
+
+
+.. figure:: guide-correlation-3.png
+   :align:  center
+   
+   :math:`\alpha = 0`
 
 Notice that in the figure above to the right, where :math:`\alpha = 0.0` and the system therefore initially is in its steadystate, that the correlations does not depend on the :math:`t_1` coordinate, and we could in this case have used the steadystate solver to only calculate the :math:`t_2` dependence. 
 

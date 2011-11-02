@@ -9,6 +9,8 @@ General Installation Requirements
 
 QuTiP requires the following packages to run:
 
+.. tabularcolumns:: | p{3cm} | p{2.5cm} | L |
+
 +------------+--------------+-----------------------------------------------------+
 | Package    | Version      | Details                                             |
 +============+==============+=====================================================+
