@@ -23,7 +23,7 @@ from scipy.linalg import *
 import scipy.sparse as sp
 
 from Qobj import Qobj
-from basis import qutrit_basis
+
 
 #
 # Spin opeators

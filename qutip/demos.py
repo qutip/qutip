@@ -32,11 +32,11 @@ def demos():
             from PySide import QtGui, QtCore
         elif os.environ['QUTIP_GUI']=="PYQT4":
             from PyQt4 import QtGui, QtCore
-        def start_gui():
+        def start_gui(ver):
             app=QtGui.QApplication.instance()#checks if QApplication already exists (needed for iPython)
             if not app:#create QApplication if it doesnt exist
                 app = QtGui.QApplication(sys.argv)
-            gui=Examples()
+            gui=Examples(ver)
             gui.show()
             gui.activateWindow()
             gui.raise_()
@@ -49,7 +49,12 @@ def demos():
     while exconfig.option<123456:
         exconfig.option=123456
         if os.environ['QUTIP_GRAPHICS']=='YES':
-            start_gui()
+            import _version
+            if _version.release:
+                ver=_version.short_version
+            else:
+                ver='HEAD'
+            start_gui(ver)
         else:
             if sys.stdout.isatty():
                 print ''

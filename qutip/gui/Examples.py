@@ -20,6 +20,7 @@ from .. import examples
 import sys,os,time
 from numpy import arange
 from ..examples import exconfig
+
 if os.environ['QUTIP_GUI']=="PYSIDE":
     from PySide import QtGui, QtCore
 
@@ -27,7 +28,7 @@ elif os.environ['QUTIP_GUI']=="PYQT4":
     from PyQt4 import QtGui, QtCore
 
 class Examples(QtGui.QWidget):
-    def __init__(self, parent=None):
+    def __init__(self,version,parent=None):
         QtGui.QWidget.__init__(self, parent)
         #WINDOW PROPERTIES
         self.setWindowTitle('QuTiP Examples')
