@@ -2,7 +2,7 @@
    Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 
 QuTiP functions
-===============
+==================
 
 .. toctree::
    :maxdepth: 2
