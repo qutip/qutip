@@ -75,7 +75,8 @@ If you have not done so already, install the Apple XCode developer tools from th
 
 On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installing with MacPorts, you may need to change your matplotlib backend
 
->>> sudo open -a TextEdit /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/python2.7/site-packages/matplotlib/mpl-data/matplotlibrc
+>>> sudo open -a TextEdit /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/\
+python2.7/site-packages/matplotlib/mpl-data/matplotlibrc
 
 on line #31 to read:
 
