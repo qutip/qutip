@@ -27,17 +27,21 @@ def orbital(theta,phi,*args):
 	Calculates an angular wave function on a sphere
         ``psi = orbital(theta,phi,ket1,ket2,...)`` calculates the angular wave function 
 	on a sphere at the mesh of points defined by theta and phi which is 
-        SUM_{lm} C_{lm} Y_{lm}(theta,phi)
-        where c_{lm} are the coefficients specified by the list of kets. Each ket has 2l+1 
+        :math:`\sum_{lm} c_{lm} Y_{lm}(theta,phi)`
+        where :math:`C_{lm}` are the coefficients specified by the list of kets. Each ket has 2l+1 
         components for some integer l.
     
-        Parameter theta (*list/array*) of polar angles.
-
-        Parameter phi (*list/array*) of azimuthal angles.
-
-        Parameter args (*list/array*) of key vectors.
+    Args:
     
-        Returns *array* angular wave function                 
+        theta (list/array): Polar angles.
+
+        phi (list/array): Azimuthal angles.
+
+        args (list/array): list of ket vectors.
+    
+    Returns: 
+    
+        array for angular wave function                 
 	"""
 	psi=0.0
 	if isinstance(args[0],list):
@@ -75,10 +79,15 @@ def sch_lpmv(n,x):
 	Outputs array of Schmidt Seminormalized Associated Legendre Functions S_{n}^{m}
 	    for m<=n.
 	
-	Parameter n *float* degree of polynomial
-	Parameter x *float* point at which to evaluate
+	Args:
 	
-	Returns *array* of values for Legendre functions 
+	    n (float): Degree of polynomial.
+	
+	    x (float): Point at which to evaluate
+	
+	Returns:
+	
+	    array of values for Legendre functions. 
 	'''
 	from scipy.special import lpmv
 	sch=array([1.0])

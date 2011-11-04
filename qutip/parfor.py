@@ -22,10 +22,12 @@ import os
 
 def parfor(func,frange):
 	"""
-	Parallel execution of a for-loop over function 'func()' 
-	    for a single variable 'frange'.
+	Parallel execution of a for-loop over function ``func()`` 
+	    for a single variable ``frange``.
 	
-	Returns *list* with length equal to number of input parameters 
+	Returns: 
+	
+	    list with length equal to number of input parameters. 
 	"""
 	pool=Pool(processes=int(os.environ['NUM_THREADS']))
 	par_return=list(pool.map(func,frange))

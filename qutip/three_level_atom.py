@@ -51,9 +51,9 @@ def three_level_basis():
     ''' 
     Return the basis states for a three level atom
     
-    Parameters None
+    Returns:
     
-    Returns *array* of three level atom basis vectors
+        array of three level atom basis vectors
     '''
     # A three level atom has the same representation as a qutrit, i.e.
     # three states
@@ -63,9 +63,9 @@ def three_level_ops():
     ''' 
     Return the operators for a three level system (qutrit)
     
-    Parameters None
+    Returns:
     
-    Returns *array* of three level operators
+        array of three level operators
     '''
     one, two, three = qutrit_basis()
     # Note that the three level operators are different

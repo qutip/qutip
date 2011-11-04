@@ -25,11 +25,13 @@ def tensor(*args):
     """
     Calculate the tensor product of input operators. 
     
-    Arguments:
+    Args:
     
-        args (*list/array*): list or array of quantum objects.
+        args (list/array of Qobj's): list or array of quantum objects for tensor product.
         
-    Returns a composite quantum object *Qobj*.
+    Returns:
+    
+        a composite Qobj quantum object.
     
     Example::
     

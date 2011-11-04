@@ -25,15 +25,16 @@ import scipy.sparse as sp
 
 def expect(oper,state):
     '''
-    Calculate the expectation value for operator *oper* in state *state*.
+    Calculate the expectation value for operator and state(s).
     
     Arguments:
     
-        oper (*Qobj*): representing an operator.
+        oper (Qobj): representing an operator.
         
-        state (*Qobj*): representing a quantum state or density matrix.
+        state (Qobj/ list of Qobj's): Quantum state(s) or density matrix(matricies).
     
-    Returns *float* if operator is Hermitian; *complex* if operator is not Hermitian
+    Returns:
+        float if operator is Hermitian; complex if operator is not Hermitian.
     
     
     Example::

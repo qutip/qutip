@@ -23,10 +23,11 @@ from Qobj import *
 
 def cnot():
     """
-    Returns quantum object representing the CNOT gate.
-    CNOT gate
+    Quantum object representing the CNOT gate.
     
-    Return *Qobj* quantum object representation of CNOT gate
+    Returns:
+        
+        Qobj for quantum object representation of CNOT gate
     
     Example::
          
@@ -50,12 +51,14 @@ def cnot():
 #------------------
 def fredkin():
     """
-    Returns quantum object representing the Fredkin gate.
-    Freidkin gate
+    Quantum object representing the Fredkin gate.
     
-    Return *Qobj* quantum object representation of Fredkin gate
+    Returns:
+    
+        Qobj for quantum object representation of Fredkin gate.
     
     Example::
+        
         >>> fredkin()
         Quantum object: dims = [[2, 2, 2], [2, 2, 2]], shape = [8, 8], type = oper, isHerm = True
             Qobj data = 
@@ -88,7 +91,9 @@ def toffoli():
     """
     Quantum object representing the Toffoli gate.
     
-    Return *Qobj* quantum object representation of Toffoli gate
+    Returns:
+    
+        Qobj quantum object representation of Toffoli gate.
     
     Example::
         
@@ -120,10 +125,11 @@ def toffoli():
 #------------------
 def swap():
     """
-    Returns quantum object representing the SWAP gate.
-    SWAP gate
+    Quantum object representing the SWAP gate.
     
-    Return *Qobj* quantum object representation of SWAP gate
+    Returns:
+    
+        Qobj quantum object representation of SWAP gate
     
     Example::
     
@@ -147,10 +153,11 @@ def swap():
 
 def snot():
     """
-    Returns quantum object representing the SNOT (Hadamard) gate.
-    SNOT (Hadamard) gate
+    Quantum object representing the SNOT (Hadamard) gate.
     
-    Return *Qobj* quantum object representation of SNOT (Hadamard) gate
+    Returns:
+    
+        Qobj quantum object representation of SNOT (Hadamard) gate.
     
     Example::
     
@@ -170,11 +177,14 @@ def snot():
 def phasegate(theta):
     """
     Returns quantum object representing the phase shift gate.
-    phase shift gate.
-        
-    Parameter *theta* Phase rotation angle
     
-    Return *Qobj* quantum object representation of phase shift gate
+    Args:
+        
+        theta (float): Phase rotation angle.
+    
+    Returns:
+    
+        Qobj for quantum object representation of phase shift gate.
     
     Example::
         

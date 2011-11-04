@@ -34,7 +34,7 @@ def steadystate(H, c_op_list,maxiter=100,tol=1e-6):
     supplied Hamiltonian and lsit of collapse operators. 
     Does nothing more than form the Louvillian for you and call steady.
     
-    Arguments:
+    Args:
     
         `H` (:class:`qutip.Qobj`) Hamiltonian operator.
         
@@ -44,7 +44,9 @@ def steadystate(H, c_op_list,maxiter=100,tol=1e-6):
         
         `tol` (*float*) Tolerance, default = 1e-6
     
-    Returns a :class:`qutip.Qobj` instance representing the steady state of system.
+    Returns:
+    
+        a :class:`qutip.Qobj` instance representing the steady state of system.
     """
     n_op = len(c_op_list)
 

@@ -23,8 +23,8 @@ from scipy import arange,array,any
 def demos():
     """
     Calls the demos scripts via a GUI window if PySide
-        or PyQt4 are avaliable.  Otherwise, a commandline 
-        interface is given in the terminal.
+    or PyQt4 are avaliable.  Otherwise, a commandline 
+    interface is given in the terminal.
     """
     if os.environ['QUTIP_GRAPHICS']=='YES':
         from gui import Examples

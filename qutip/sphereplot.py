@@ -21,12 +21,19 @@ def sphereplot(theta,phi,values,save=False):
 	"""
 	Plots a matrix of values on a sphere
 	
-	Parameter theta Angle with respect to z-axis
-	Parameter phi Angle in x-y plane 
-	Parameter values data set to be plotted
-	Parameter save Whether to save the figure or not
+	Args:
 	
-	Return None Plots figure, but returns nothing
+	    theta (float): Angle with respect to z-axis
+	
+	    phi (float): Angle in x-y plane 
+	
+	    values (array): data set to be plotted
+	
+	    save (bool): Whether to save the figure or not
+	
+	Returns:
+	
+	    Plots figure, returns nonthing.
 	"""
 	from matplotlib import pyplot, mpl,cm
 	from pylab import plot,show,meshgrid,figure,savefig

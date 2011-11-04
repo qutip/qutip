@@ -45,10 +45,13 @@ def hinton(rho):
     Draws a Hinton diagram for visualizing a density matrix. 
     
     Args:
-        rho: Qobj for input density matrix.
+        
+        rho (Qobj) for input density matrix.
     
     Raises:
+        
         ValueError if input argument is not a quantum object.
+        
     """
     if not isoper(rho):
         raise ValueError("argument must be a quantum operator")

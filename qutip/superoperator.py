@@ -30,13 +30,15 @@ def liouvillian(H, c_op_list):
     Assembles the Liouvillian superoperator from a Hamiltonian 
     and a list of collapse operators.
     
-    Arguments:
+    Args:
     
-        `H` (:class:`qutip.Qobj`): Hamiltonian.
+        H (:class:`qutip.Qobj`): Hamiltonian.
         
-        `c_op_list` (*list/array* of :class:`qutip.Qobj`): collpase operators.
+        c_op_list (*list/array* of :class:`qutip.Qobj`): collpase operators.
     
-    Returns a :class:`qutip.Qobj` instance for Louvillian superoperator.
+    Returns:
+    
+        a :class:`qutip.Qobj` instance for Louvillian superoperator.
     """
     L = -1.0j*(spre(H) - spost(H))
     n_op = len(c_op_list)
@@ -63,11 +65,13 @@ def spost(A,*args):
 	"""
 	Super operator formed from post-multiplication by operator A
 
-    Argument:
+    Args:
     
-        `A` (:class:`qutip.Qobj`): quantum operator for post multiplication.
+        A (:class:`qutip.Qobj`): quantum operator for post multiplication.
     
-    Returns :class:`qutip.Qobj` superoperator formed from input qauntum object.
+    Returns:
+    
+        :class:`qutip.Qobj` superoperator formed from input qauntum object.
 	"""
 	if not isoper(A):
 		raise TypeError('Input is not a quantum object')
@@ -84,11 +88,13 @@ def spre(A):
 	"""
 	Super operator formed from pre-multiplication by operator A.
     
-    Argument:
+    Args:
         
-        `A` (:class:`qutip.Qobj`): Quantum operator for pre-multiplication.
+        A (:class:`qutip.Qobj`): Quantum operator for pre-multiplication.
     
-    Returns :class:`qutip.Qobj` superoperator formed from input qauntum object.
+    Returns:
+    
+        :class:`qutip.Qobj` superoperator formed from input qauntum object.
     """
 	if not isoper(A):
 		raise TypeError('Input is not a quantum object')

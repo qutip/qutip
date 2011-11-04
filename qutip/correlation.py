@@ -30,21 +30,23 @@ def correlation_ss_es(H, tlist, c_op_list, a_op, b_op):
     Calculate a two-time correlation function :math:`\left<A(\\tau)B(0)\\right>`
     using the quantum regression theorem, and exponential series.
  
-    Arguments:
+    Args:
     
-        `H` (:class:`qutip.Qobj`) system Hamiltonian.
+        H (Qobj): system Hamiltonian.
         
-        `rho0` (:class:`qutip.Qobj`) initial density matrix.
+        rho0 (Qobj): initial density matrix.
         
-        `tlist` (*list/array*) list of times for :math:`t`.
+        tlist (*list/array*): list of times for :math:`t`.
         
-        `c_op_list` (list of :class:`qutip.Qobj`) list of collapse operators.
+        c_op_list (list of Qobj's): list of collapse operators.
         
-        `a_op` (:class:`qutip.Qobj`) for A operator.
+        a_op (Qobj): for A operator.
         
-        `b_op` (:class:`qutip.Qobj`) for B operator.
+        b_op (Qobj): for B operator.
     
-    Returns *array* of expectation values.
+    Returns: 
+        
+        array of expectation values.
     """
 
     # contruct the Liouvillian

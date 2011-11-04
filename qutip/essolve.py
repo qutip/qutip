@@ -37,19 +37,21 @@ def essolve(H, rho0, tlist, c_op_list, expt_op_list):
    
     Arguments:
     
-        `H` (:class:`qutip.Qobj`): system Hamiltonian, or a callback function for time-dependent Hamiltonians.
+        H (Qobj): system Hamiltonian, or a callback function for time-dependent Hamiltonians.
         
-        `rho0` (:class:`qutip.Qobj`): initial density matrix.
+        rho0 (Qobj): initial density matrix.
         
-        `tlist` (*list/array*): list of times for :math:`t`.
+        tlist (list/array): list of times for :math:`t`.
         
-        `c_op_list` (list of :class:`qutip.Qobj`): list of collapse operators.
+        c_op_list (list of Qobj's): list of collapse operators.
         
-        `expt_op_list` (list of :class:`qutip.Qobj`): list of operators for which to evaluate expectation values.
+        expt_op_list (list of Qobj's): list of operators for which to evaluate expectation values.
 
 
-    Returns an *array* of expectation values of wavefunctions/density matrices
-    for the times specified by `tlist`.        
+    Returns:
+     
+     An (array) of expectation values of wavefunctions/density matrices
+     for the times specified by 'tlist'.        
 
     .. note::
     
@@ -88,12 +90,14 @@ def ode2es(L, rho0):
     (or Hamiltonian) `L`.
     
     Arguments:
-    
-        `L` (:class:`qutip.Oobj`): Liouvillian of the system.
         
-        `rho0` (:class:`qutip.Oobj`): Initial state vector or density matrix.
+        L (Qobj): Liouvillian of the system.
+        
+        rho0 (Qobj): Initial state vector or density matrix.
     
-    Returns :class:`qutip.eseries` representing the system dynamics.
+    Returns 
+    
+        eseries representing the system dynamics.
     """
 
     if issuper(L):

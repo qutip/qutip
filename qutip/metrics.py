@@ -29,12 +29,16 @@ from scipy import real
 def fidelity(A,B):
     """
     Calculates the fidelity (pseudo-metric) between two density matricies.
-        See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
+    See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
     
-    Parameter  A *Qobj* density matrix
-    Parameter  B *Qobj* density matrix with same dimensions as A
+    Args:
     
-    Return  *float*  fidelity
+        A (Qobj): Density matrix.
+        
+        B (Qobj): Density matrix with same dimensions as A.
+    
+    Returns:
+        float for fidelity.
     
     Example::
     
@@ -54,12 +58,16 @@ def fidelity(A,B):
 def tracedist(A,B):
     """
     Calculates the trace distance between two density matricies.
-        See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
+    See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
     
-    Parameter   A  *Qobj* density matrix
-    Parameter   B  *Qobj* density matrix with same dimensions as A
+    Args:
     
-    Return  *float*  trace distance
+        A (Qobj): Density matrix.
+        
+        B (Qobj): Sensity matrix with same dimensions as A.
+    
+    Returns:
+        float for trace distance
     
     Example::
     

@@ -32,10 +32,15 @@ def basis(N,*args):
 
         basis(N, 1) = ground state
 	
-    N the number of states
-    args integer corresponding to desired number state
+    Args:
     
-    Returns quantum object representing the requested number state ``|args>``
+        N (integer): Number of states
+    
+        args (integer): corresponding to desired number state
+    
+    Returns:
+        
+        Qobj representing the requested number state ``|args>``
     
     Example::
         
@@ -68,9 +73,9 @@ def qutrit_basis():
     """
     Return the basis states for a three level system (qutrit)
     
-    Parameters None
+    Returns:
     
-    Returns *array* of qutrit basis vectors
+        array of qutrit basis vectors
     """
     return array([basis(3,0), basis(3,1), basis(3,2)])
 
@@ -80,10 +85,15 @@ def coherent(N,alpha):
     Generates a coherent state with eigenvalue alpha in a 
     N-dimensional Hilbert space via displacement operator on vacuum state
     
-    N number of levels in truncated Hilbert space
-    alpha eigenvalue for coherent state
+    Args:
     
-    Returns Qobj quantum object for coherent state
+        N (integer): number of levels in truncated Hilbert space
+        
+        alpha (float/complex): eigenvalue for coherent state
+    
+    Returns:
+    
+        Qobj quantum object for coherent state
     
     Example::
         
@@ -107,10 +117,15 @@ def coherent_dm(N, alpha):
     Generate the density matrix representation of a coherent 
     state via outer product
     
-    N number of levels in truncated Hilbert space
-    alpha eigenvalue for coherent state
+    Args:
     
-    Returns Qobj density matrix representation of coherent state
+        N (integer): number of levels in truncated Hilbert space
+    
+        alpha (float/complex): eigenvalue for coherent state
+    
+    Returns:
+    
+        Qobj density matrix representation of coherent state
     
     Example::
     
@@ -141,7 +156,10 @@ def coherent_dm_fast(N,alpha):
     """
     Generate a coherent state	
 
+    Args:
+    
     N the number of states
+    
     alpha the coherent state amplitude (complex)
     """
     psi = coherent_fast(N, alpha)
@@ -151,10 +169,15 @@ def fock_dm(N, *args):
     """
     Generate the density matrix representation of a Fock state via outer product.
     
-    N number of levels in truncated Hilbert space
-    m int corresponding to desired number state, defaults to 0 if omitted
+    Args:
     
-    Returns Qobj density matrix representation of Fock state
+        N (integer): number of levels in truncated Hilbert space
+    
+        m (integer): corresponding to desired number state, defaults to 0 if omitted
+    
+    Returns: 
+    
+        Qobj density matrix representation of Fock state
     
     Example::
     
@@ -176,13 +199,15 @@ def fock(N, *args):
     Generates the vector representation of a bosonic Fock (number) state. 
     Same as :func:`qutip.states.basis` function.
     
-    Arguments:
+    Args:
 
-        `N` (*int*): the number of states in the Hilbert space.
+        N (int): the number of states in the Hilbert space.
         
-        `m` (*int*): corresponding to desired number state, defaults to 0 if omitted.
+        m (int): corresponding to desired number state, defaults to 0 if omitted.
     
-    Returns Qobj quantum object representing the requested number state :math:`\left|\mathrm{args}\\right>`.
+    Returns:
+    
+        Qobj quantum object representing the requested number state :math:`\left|\mathrm{args}\\right>`.
     
     Example::
     
@@ -203,10 +228,15 @@ def thermal_dm(N, n):
     """
     Generates the density matrix for a thermal state of n particles
 
-    N: the number of states
-    n: expectational value for number of particles in thermal state
+    Args:
     
-    Returns *Qobj* for thermal state
+        N (integer): the number of states
+    
+        n (float): expectational value for number of particles in thermal state
+    
+    Returns:
+        
+        Qobj for thermal state
     
     Example::
         >>> thermal_dm(5,1)
@@ -230,9 +260,13 @@ def ket2dm(Q):
     Takes input ket or bra vector and returns density matrix 
     formed by outer product.
     
-    Q Ket or bra vector
+    Args:
     
-    Returns Qobj Density matrix formed by outer product
+        Q (Qobj): Ket or bra vector
+    
+    Returns:
+    
+        Qobj Density matrix formed by outer product
     
     Example::
     

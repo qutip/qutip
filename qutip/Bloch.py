@@ -25,62 +25,39 @@ from operators import *
 class Bloch():
     """
     Class for plotting data on the Bloch sphere.
-    
-    Default Properties:
-        font_color:    black
-        font_size:     20
-        frame_alpha:   0.2
-        frame_color:   gray
-        frame_width:   1
-        point_color:   ['b', 'r', 'g', '#CC6600']
-        point_marker:  ['o', 's', 'd', '^']
-        point_size:    [25, 32, 35, 45]
-        sphere_alpha:  0.2
-        sphere_color:  #FFDDDD
-        size:          [7, 7]
-        vector_color:  ['g', '#CC6600', 'b', 'r']
-        vector_width:  3
-        view:          [-60, 30]
-        xlabel:        ['$x$', '']
-        xlpos:         [1.2, -1.2]
-        ylabel:        ['$y$', '']
-        ylpos:         [1.1, -1.1]
-        zlabel:        ['$\\left|0\\right>$', '$\\left|1\\right>$']
-        zlpos:         [1.2, -1.2]
     """
     def __init__(self):
         #---sphere options---
-        #: The size of the figure
+        #: The size of the figure in inches, default = [7,7].
         self.size=[7,7]
-        #: Azimuthal and Elvation viewing angles, default = [-60,30]
+        #: Azimuthal and Elvation viewing angles, default = [-60,30].
         self.view=[-60,30]
-        #: Sphere_color: color of Bloch sphere, default = #FFDDDD
+        #: Color of Bloch sphere, default = #FFDDDD
         self.sphere_color='#FFDDDD'
-        #: Transparency of sphere, default = 0.2
+        #: Transparency of Bloch sphere, default = 0.2
         self.sphere_alpha=0.2
-        
-        #---frame options---
-        #: Color of wireframe, default = gray
+        #: Color of wireframe, default = 'gray'
         self.frame_color='gray'
         #: Width of wireframe, default = 1
         self.frame_width=1
         #: Transparency of wireframe, default = 0.2
         self.frame_alpha=0.2
-        
-        #---axes label options---
-        ##Labels for x-axis (in LaTex), default = ['$x$','']
+        #: Labels for x-axis (in LaTex), default = ['$x$','']
         self.xlabel=['$x$','']
+        #: Position of x-axis labels, default = [1.2,-1.2]
         self.xlpos=[1.2,-1.2]
-        ##Labels for y-axis (in LaTex), default = ['$y$','']
+        #: Labels for y-axis (in LaTex), default = ['$y$','']
         self.ylabel=['$y$','']
+        #: Position of y-axis labels, default = [1.1,-1.1]
         self.ylpos=[1.1,-1.1]
-        ##Labels for z-axis (in LaTex), default = ['$\left|0\\right>$','$\left|1\\right>$']
+        #: Labels for z-axis (in LaTex), default = ['$\left|0\\right>$','$\left|1\\right>$']
         self.zlabel=['$\left|0\\right>$','$\left|1\\right>$']
+        #: Position of z-axis labels, default = [1.2,-1.2]
         self.zlpos=[1.2,-1.2]
         #---font options---
-        #: Color of fonts, default = black
+        #: Color of fonts, default = 'black'
         self.font_color='black'
-        #: Size of fonts, default = 20
+        #; Size of fonts, default = 20
         self.font_size=20
         
         #---vector options---
@@ -92,23 +69,24 @@ class Bloch():
         #---point options---
         #: List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_color=['b','r','g','#CC6600']
-        #: Size of point markers, default = 25
+        #; Size of point markers, default = 25
         self.point_size=[25,32,35,45]
         #: Shape of point markers, default = ['o','^','d','s']
         self.point_marker=['o','s','d','^']
         
         #---data lists---
-        ##Data for point markers
+        #: Data for point markers
         self.points=[]
-        ##Number of point markers to plot
+        #: Number of point markers to plot
         self.num_points=0
-        ##Data for Bloch vectors
+        #: Data for Bloch vectors
         self.vectors=[]
-        ##Number of Bloch vectors to plot
+        #: Number of Bloch vectors to plot
         self.num_vectors=0
-        ##
+        #: Number of times sphere has been saved
         self.savenum=0
-        self.point_style=[] #whether to plto points in single 's' or multiple 'm' colors
+        #: Style of points, 'm' for multiple colors, 's' for single color
+        self.point_style=[]
     def __str__(self):
         print ''
         print "Bloch data:"
@@ -153,7 +131,10 @@ class Bloch():
         """
         Add a list of data points to bloch sphere.
         
-        points *array* of data points
+        Args:
+            points (array): data points
+            
+            meth (string): type of points to plot, use 'm' for multicolored.
         """
         if not isinstance(points[0],(list,ndarray)):
             points=[[points[0]],[points[1]],[points[2]]]
@@ -174,9 +155,12 @@ class Bloch():
             
     def add_states(self,state,kind='vector'):
         """
-        Add a state vector to plot.
+        Add a state vector Qobj to plot.
         
-        state *Qobj* state vector
+        Args:
+            state (Qobj): Input state vector.
+            
+            kind (string): Type of object to plot, 'vector' or 'point'.
         """
         if isinstance(state,Qobj):
             state=[state]
@@ -192,7 +176,8 @@ class Bloch():
         """
         Add a list of vectors to Bloch sphere.
         
-        vectors *array* of 3D vectors of unit length or smaller.
+        Args:
+            vectors (array): Array of vectors of unit length or smaller.
         """
         if isinstance(vectors[0],(list,ndarray)):
             for vec in vectors:
@@ -321,10 +306,18 @@ class Bloch():
         """
         Saves Bloch sphere to file of type `format`
         
-        format *str* giving format of output image
-        dirc *str* representing directory of output. Defaults to current working directory.
+        Args:
+            name (string): String for saving image. Must include path and format as well.
+                i.e. '/Users/Paul/Desktop/bloch.png'
+            
+                .. note:: This overrides the 'format' and 'dirc' arguments.
+            
+            format (string): Format of output image.
+            
+            dirc (string): Directory of output. Defaults to current working directory.
         
-        Returns file containing plot of Bloch sphere.
+        Returns: 
+            File containing plot of Bloch sphere.
         """
         from pylab import figure,plot,show,savefig,close
         self.make_sphere()

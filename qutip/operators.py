@@ -31,12 +31,21 @@ from Qobj import Qobj
 
 def jmat(j,*args):
     """
-    Higher-order spin operators
+    Higher-order spin operators:
     
-    Parameter j *float* spin
-    Parameter args *str* which operator to return 'x','y','z','+','-'
+    Args:
     
-    Returns *Qobj* spin operator
+        j (float): Spin
+        
+        args (string): Which operator to return 'x','y','z','+','-'
+                       If no args given, then output is ['x','y','z']
+    
+    Returns: 
+    
+        Qobj for requested spin operator.
+        
+        ..note:: If no 'args' input, then returns array of ['x','y','z'] operators.
+        
     """
     if (fix(2*j)!=2*j) or (j<0):
         raise TypeError('j must be a non-negative integer or half-integer')
@@ -160,9 +169,13 @@ def destroy(N):
     '''
     Destruction (lowering) operator
     
-    Parameter N *int* dimension of hilbert space
+    Args:
     
-    Returns *Qobj*
+        N (int): dimension of hilbert space.
+    
+    Returns:
+        
+        Qobj for lowering operator.
     
     Example::
     
@@ -187,9 +200,13 @@ def create(N):
     '''
     Creation (raising) operator
     
-    Parameter N *int* dimension of hilbert space
+    Args:
     
-    Returns *Qobj*
+        N (int): Dimension of hilbert space
+    
+    Returns:
+    
+        Qobj for raising operator.
     
     Example::
     
@@ -217,9 +234,13 @@ def qeye(N):
     """
     Identity operator
     
-    Parameter N *int* dimension of hilbert space
+    Args:
     
-    Returns *Qobj*
+        N (int): Dimension of hilbert space.
+    
+    Returns: 
+        
+        Identity operator Qobj.
     
     Example::
     
@@ -241,11 +262,13 @@ def num(N):
     """
     Return a quantum object instance representing the number operator.
     
-    Argument:
+    Args:
     
-        N (*int*): The dimension of Hilbert space.
+        N (int): The dimension of Hilbert space.
     
-    Returns a quantum objecty *Qobj*
+    Returns:
+    
+        Qobj for number operator.
     
     Example::
     
@@ -264,12 +287,19 @@ def num(N):
 
 def squeez(N,sp):
     """
-    single-mode Squeezing operator
+    Single-mode Squeezing operator.
     
-    Parameter N *int* dimension of hilbert space
-    Parameter sp *real* or *complex* squeezing parameter
+    .. note:: There is no ending 'e' for the squeezing operator!
     
-    Returns *Qobj*
+    Args:
+    
+        N (int): Dimension of hilbert space.
+        
+        sp (float/complex): Squeezing parameter.
+    
+    Returns:
+    
+        Qobj for squeezing operator.
     
     Example::
     
@@ -289,12 +319,17 @@ def squeez(N,sp):
 
 def displace(N,alpha):
     """
-    Single-mode displacement operator
+    Single-mode displacement operator.
     
-    Parameter N *int* dimension of hilbert space
-    Parameter alpha *real* or *complex* displacment amplitude
+    Args:
     
-    Returns *Qobj*
+        N (int): Dimension of hilbert space.
+    
+        alpha (float/complex): Displacment amplitude.
+    
+    Returns:
+    
+        Qobj for dispacement operator.
     
     Example::
     
@@ -316,11 +351,11 @@ def displace(N,alpha):
 #
 def qutrit_ops():
     ''' 
-    Return the operators for a three level system (qutrit)
+    Return the operators for a three level system (qutrit).
     
-    Parameters None
+    Returns:
     
-    Returns *array* of qutrit operators
+        array of qutrit operators.
     '''
     one, two, three = qutrit_basis()
     sig11 = one * one.dag()

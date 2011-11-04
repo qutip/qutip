@@ -25,12 +25,17 @@ def clebsch(j1,j2,j3,m1,m2,m3):
         for coupling (j1,m1) and (j2,m2) to give (j3,m3).
     
     Args:
-        j1: float for total angular momentum 1.
-        j2: float for total angular momentum 2.
-        j3: float for total angular momentum 3.
-        m1: float for z-component of angular momentum 1.
-        m2: float for z-component of angular momentum 2.
-        m3: float for z-component of angular momentum 3.
+        j1 (float): for total angular momentum 1.
+        
+        j2 (float): for total angular momentum 2.
+        
+        j3 (float): for total angular momentum 3.
+        
+        m1 (float): for z-component of angular momentum 1.
+        
+        m2 (float): for z-component of angular momentum 2.
+        
+        m3 (float): for z-component of angular momentum 3.
     
     Returns:
         float for requested Clebsch-Gordan coefficient.

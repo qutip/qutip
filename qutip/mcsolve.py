@@ -38,21 +38,31 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
     """
     Monte-Carlo evolution of a state vector |psi> for a given
     Hamiltonian and sets of collapse operators and operators
-    for calculating expectation values.
+    for calculating expectation values. Options for solver are 
+    given by the Odeoptions class.
     
-    Options for solver are given by the Odeoptions class.
+    .. note:: The number of outputs varies.  See below for details!
     
     Args:
-        H: Qobj Hamiltonian.
-        psi0: Qobj initial state vector.
-        tlist: list/array of times to record result.
-        ntraj: integer number of trajectories to run.
-        collapse_ops: list/array of collapse operators.
-        expect_ops: list/array of expectation operators
-        H_args: list/array of arguments for time-dependent Hamiltonians.
-        options: Odeoptions instance of ODE solver options.
+        
+        H (Qobj): Hamiltonian.
+        
+        psi0 (Qobj): Initial state vector.
+        
+        tlist (list/array): Times at which results are recorded.
+        
+        ntraj (integer): Number of trajectories to run.
+        
+        collapse_ops (list/array of Qobj's): Collapse operators.
+        
+        expect_ops (list/array of Qobj's) Operators for calculating expectation values.
+        
+        H_args (list/array of Qobj's): Arguments for time-dependent Hamiltonians.
+        
+        options (Odeoptions): Instance of ODE solver options.
     
     Returns:
+        
         Collapse ops  Expectation ops  Num. of outputs  Return value(s)
         ------------  ---------------  ---------------  ---------------
             NO	            NO	              1	         List of state vectors
@@ -76,6 +86,7 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
             YES	            YES	              3	         List of expectation values for each trajectory 
                                                          + List of collapse times for each trajectory 
                                                          + List of which operator did collapse for each trajectory
+    
     """
     #if Hamiltonian is time-dependent (list style)
     if isinstance(H,(list,ndarray)):

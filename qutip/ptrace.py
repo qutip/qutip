@@ -26,13 +26,15 @@ def ptrace(rho,sel):
     """
     Compute partial trace of composite quantum object formed by :func:`qutip.tensor`
     
-    Arguments:
+    Args:
     
-        rho (*Qobj*): Input composite quantum object
+        rho (Qobj): Input composite quantum object.
     
-        sel (*int* or *list/array*): index or indices for components to keep.
+        sel (int or list/array): index or indices for components to keep.
     
-    Returns the density matrix of components from sel as a *Qobj* 
+    Returns: 
+    
+        The density matrix of components from sel as a Qobj. 
     """
     if isinstance(sel,int):
         sel=array([sel])

@@ -29,9 +29,11 @@ def isket(Q):
     Determines if given quantum object is a ket-vector
 	
 	Args:
-	    Q: Qobj quantum object
+	    
+	    Q (Qobj) quantum object
 	
 	Returns: 
+	    
 	    True is Qobj is ket-vector, False otherwise.
 	
 	Example::
@@ -51,9 +53,11 @@ def isbra(Q):
 	Determines if given quantum object is a bra-vector
 	
 	Args:
-	    Q: Qobj quantum object
+	    
+	    Q (Qobj) quantum object
 	
 	Returns:
+	    
 	    True is Qobj is bra-vector, False otherwise.
 	
 	Example::
@@ -76,9 +80,11 @@ def isoper(Q):
 	Determines if given quantum object is a operator
 	
 	Args:
-	    Q: Qobj quantum object
+	    
+	    Q (Qobj): quantum object
 	
 	Returns:
+	    
 	    True is Qobj is operator, False otherwise.
 	
 	Example::
@@ -97,9 +103,11 @@ def issuper(Q):
 	Determines if given quantum object is a super-operator
 	
 	Args:
-	    Q: Qobj quantum object
+	    
+	    Q (Qobj): quantum object
 	
 	Returns: 
+	    
 	    True is Qobj is superoperator, False otherwise.
 	"""
 	result = isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0],list)
@@ -114,12 +122,17 @@ def isequal(A,B,rtol=1e-10,atol=1e-12):
     Determines if two array objects are equal to within tolerances
     
     Args:
-        A: array one
-        B: array two
-        rtol: float for relative tolerence
-        atol: float for absolute tolerence
+        
+        A (array): array one
+        
+        B (array): array two
+        
+        rtol (float): for relative tolerence
+        
+        atol (float): for absolute tolerence
     
     Returns: 
+        
         True if arrays are equal.  False otherwise.
     """
     if shape(A)!=shape(B):
@@ -150,14 +163,16 @@ def ischeck(Q):
 
 
 #**************************
-def isherm(oper):
+def isherm(Q):
     """
     Determines whether a given operator is Hermitian.
     
     Args:
-        oper: Qobj for input quantum object.
+        
+        Q (Qobj): Input quantum object.
     
     Returns: 
+        
         True if operator is Hermitian, False otherwise.
     
     Example::
@@ -167,10 +182,10 @@ def isherm(oper):
         False
     
     """
-    if oper.dims[0]!=oper.dims[1]:
+    if Q.dims[0]!=Q.dims[1]:
         return False
     else:
-        dat=oper.data
+        dat=Q.data
         elems=(dat.transpose().conj()-dat).data
         if any(abs(elems)>1e-12):
             return False
