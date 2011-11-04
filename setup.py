@@ -91,7 +91,7 @@ setup(
     version =FULLVERSION,
     packages = ['qutip','qutip/gui','qutip/examples','qutip/cyQ'],
     include_dirs = [np.get_include()],
-    ext_modules=[Extension("qutip.cyQ.ode_rhs", ["qutip/cyQ/ode_rhs.c"],extra_compile_args=['-ffast-math','-fopenmp'],extra_link_args=['-fopenmp']), 
+    ext_modules=[Extension("qutip.cyQ.ode_rhs", ["qutip/cyQ/ode_rhs.c"],extra_compile_args=['-ffast-math'],extra_link_args=[]), 
                     Extension('qutip.cyQ.cy_mc_funcs', ['qutip/cyQ/cy_mc_funcs.c'],extra_compile_args=['-ffast-math'])],
     author = "Paul D. Nation, Robert J. Johansson",
     author_email = "pnation@riken.jp, robert@riken.jp",
