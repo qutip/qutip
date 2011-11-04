@@ -47,9 +47,9 @@ which may also be download from http://arxiv.org/abs/1110.0573
 Table of Contents
 ====================
 
-These pages contains automatically generated API documentation for QuTiP. 
+These pages contains automatically generated API documentation for QuTiP. A PDF version of this text may be found on the `downloads page <http://code.google.com/p/qutip/downloads/list>`_. 
 
-For more information see the `QuTiP project web page`_.
+**For more information see the** `QuTiP project web page`_.
 
 .. _QuTiP project web page: http://code.google.com/p/qutip
 
