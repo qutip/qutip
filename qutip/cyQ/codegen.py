@@ -42,8 +42,9 @@ class Codegen():
         self.indent()
         for line in self.func_vars():
             self.write(line)
-        for line in self.func_terms():
+        for line in self.func_for():
             self.write(line)
+        self.write(self.func_end())
         self.dedent()
         for line in cython_checks()+cython_spmv():
             self.write(line)
@@ -73,21 +74,34 @@ class Codegen():
         return [func_name+input_vars+func_end]
     def func_vars(self):
         """
-        Writes the variables and their types
+        Writes the variables and their types & spmv parts
         """
-        func_vars=['cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)']
+        func_vars=['cdef Py_ssize_t row','cdef int num_rows=len(vec)','cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)']
         if self.hconst:
             td_consts=self.hconst.items()
             for elem in td_consts:
                 kind=type(elem[1]).__name__
                 func_vars.append("cdef "+kind+" "+elem[0]+" = "+str(elem[1]))
+        for ht in range(len(self.hterms)):
+            hstr=str(ht)
+            str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data"+hstr+","+"idx"+hstr+","+"ptr"+hstr+","+"vec"+")"
+            if ht!=0:
+                str_out+="*"+self.tdterms[ht-1]
+            func_vars.append(str_out)
         return func_vars
-    def func_terms(self):
+    def func_for(self):
         """
-        Writes each term of the Hamiltonian and it's time-dependent coefficient.
+        Writes function for-loop
         """
-        func_terms=['out=out+spmv(data0,idx0,ptr0,vec)']
+        func_terms=["for row in range(num_rows):"]
+        sum_string="\tout[row,0] = Hvec0[row,0]"
+        for ht in range(1,len(self.hterms)):
+            sum_string+=" + Hvec"+str(ht)+"[row,0]"
+        func_terms.append(sum_string)
         return func_terms
+    def func_end(self):
+        return "return out"
+        
         
 def cython_preamble():
     """
@@ -107,9 +121,10 @@ def cython_checks():
     List of strings that turn off Cython checks.
     """
     line0=""
-    line1="@cython.boundscheck(False)"
-    line2="@cython.wraparound(False)"
-    return [line0,line1,line2]
+    line1=""
+    line2="@cython.boundscheck(False)"
+    line3="@cython.wraparound(False)"
+    return [line0,line1,line2,line3]
 
 
 def cython_spmv():
