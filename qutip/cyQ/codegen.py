@@ -16,16 +16,16 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-
-
+import numpy as np
 class Codegen():
     """
     Class for generating cython code files at runtime.
     """
-    def __init__(self,tab="\t"):
+    def __init__(self,hterms,tdterms,hconsts=None,tab="\t"):
         self.code=[]
         self.tab=tab
         self.level=0
+        self.func_list=dir(np.math)[4:-1]
     #write lines of code to self.code
     def write(self,string):
         self.code.append(self.tab*self.level+string+"\n")
@@ -34,6 +34,14 @@ class Codegen():
         self.file=open(filename,"w")
     #generate the file    
     def generate(self):
+        for line in cython_preamble()+cython_checks()+self.func_header(2):
+            self.write(line)
+        self.indent()
+        self.write('return 0')
+        self.dedent()
+        for line in cython_checks()+cython_spmv():
+            self.write(line)
+        self.file()
         self.file.writelines(self.code)
         self.file.close()
     #increase indention level by one
@@ -44,7 +52,19 @@ class Codegen():
         if self.level==0:
             raise SyntaxError("Error in code generator")
         self.level-=1
-    
+    def func_header(self,len_hterms):
+        func_name="def cyq_td_ode_rhs("
+        input_vars="float t, np.ndarray[CTYPE_t, ndim=1] vec, "
+        for h in range(len_hterms):
+            if h==0:
+                input_vars+="np.ndarray[CTYPE_t, ndim=1] data"+str(h)+", np.ndarray[int] idx"+str(h)+", np.ndarray[int] ptr"+str(h)
+            else:
+                input_vars+=", np.ndarray[CTYPE_t, ndim=1] data"+str(h)+", np.ndarray[int] idx"+str(h)+", np.ndarray[int] ptr"+str(h)
+        func_end="):"
+        return [func_name+input_vars+func_end]
+    def func_vars(self,hconst):
+        func_vars=['cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)']
+        
         
 def cython_preamble():
     """
@@ -63,19 +83,39 @@ def cython_checks():
     """
     List of strings that turn off Cython checks.
     """
-    line0="@cython.boundscheck(False)"
-    line1="@cython.wraparound(False)"
-    return [line0,line1]
+    line0=""
+    line1="@cython.boundscheck(False)"
+    line2="@cython.wraparound(False)"
+    return [line0,line1,line2]
+
+
+def cython_spmv():
+    """
+    Writes SPMV function.
+    """
+    line0="def spmv(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=1] vec):"
+    line1="\tcdef Py_ssize_t row"
+    line2="\tcdef int jj,row_start,row_end"
+    line3="\tcdef int num_rows=len(vec)"
+    line4="\tcdef complex dot"
+    line5="\tcdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)"
+    line6="\tfor row in range(num_rows):"
+    line7="\t\tdot=0.0"
+    line8="\t\trow_start = ptr[row]"
+    line9="\t\trow_end = ptr[row+1]"
+    lineA="\t\tfor jj in range(row_start,row_end):"
+    lineB="\t\t\tdot+=data[jj]*vec[idx[jj],0]"
+    lineC="\t\tout[row,0]=dot"
+    lineD="\treturn out"
+    return [line0,line1,line2,line3,line4,line5,line6,line7,line8,line9,lineA,lineB,lineC,lineD]
+
 
 if __name__=="__main__":
     import numpy
     import pyximport;pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-    cgen=Codegen()
-    cgen.file()
-    for line in cython_preamble():
-        cgen.write(line)
+    cgen=Codegen([1,2],['t'])
     cgen.generate()
-    #import rhs
-    code = compile('import rhs', '<string>', 'exec')
-    exec code
+    import rhs
+    #code = compile('import rhs', '<string>', 'exec')
+    #exec code
     
