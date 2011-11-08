@@ -21,7 +21,10 @@ class Codegen():
     """
     Class for generating cython code files at runtime.
     """
-    def __init__(self,hterms,tdterms,hconsts=None,tab="\t"):
+    def __init__(self,hterms,tdterms,hconst=None,tab="\t"):
+        self.hterms=hterms
+        self.tdterms=tdterms
+        self.hconst=hconst
         self.code=[]
         self.tab=tab
         self.level=0
@@ -34,10 +37,13 @@ class Codegen():
         self.file=open(filename,"w")
     #generate the file    
     def generate(self):
-        for line in cython_preamble()+cython_checks()+self.func_header(2):
+        for line in cython_preamble()+cython_checks()+self.func_header():
             self.write(line)
         self.indent()
-        self.write('return 0')
+        for line in self.func_vars():
+            self.write(line)
+        for line in self.func_terms():
+            self.write(line)
         self.dedent()
         for line in cython_checks()+cython_spmv():
             self.write(line)
@@ -52,19 +58,36 @@ class Codegen():
         if self.level==0:
             raise SyntaxError("Error in code generator")
         self.level-=1
-    def func_header(self,len_hterms):
+    def func_header(self):
+        """
+        Creates function header for time-dependent ODE RHS.
+        """
         func_name="def cyq_td_ode_rhs("
-        input_vars="float t, np.ndarray[CTYPE_t, ndim=1] vec, "
-        for h in range(len_hterms):
+        input_vars="float t, np.ndarray[CTYPE_t, ndim=1] vec, " #strings for time and vector variables
+        for h in range(len(self.hterms)):
             if h==0:
                 input_vars+="np.ndarray[CTYPE_t, ndim=1] data"+str(h)+", np.ndarray[int] idx"+str(h)+", np.ndarray[int] ptr"+str(h)
             else:
                 input_vars+=", np.ndarray[CTYPE_t, ndim=1] data"+str(h)+", np.ndarray[int] idx"+str(h)+", np.ndarray[int] ptr"+str(h)
         func_end="):"
         return [func_name+input_vars+func_end]
-    def func_vars(self,hconst):
+    def func_vars(self):
+        """
+        Writes the variables and their types
+        """
         func_vars=['cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)']
-        
+        if self.hconst:
+            td_consts=self.hconst.items()
+            for elem in td_consts:
+                kind=type(elem[1]).__name__
+                func_vars.append("cdef "+kind+" "+elem[0]+" = "+str(elem[1]))
+        return func_vars
+    def func_terms(self):
+        """
+        Writes each term of the Hamiltonian and it's time-dependent coefficient.
+        """
+        func_terms=['out=out+spmv(data0,idx0,ptr0,vec)']
+        return func_terms
         
 def cython_preamble():
     """
@@ -115,7 +138,6 @@ if __name__=="__main__":
     import pyximport;pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
     cgen=Codegen([1,2],['t'])
     cgen.generate()
-    import rhs
-    #code = compile('import rhs', '<string>', 'exec')
-    #exec code
+    code = compile('from rhs import cyq_td_ode_rhs', '<string>', 'exec')
+    exec code
     
