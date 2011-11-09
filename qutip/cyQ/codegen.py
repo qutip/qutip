@@ -37,6 +37,7 @@ class Codegen():
         self.file=open(filename,"w")
     #generate the file    
     def generate(self):
+        self.time_vars()
         for line in cython_preamble()+cython_checks()+self.func_header():
             self.write(line)
         self.indent()
@@ -64,27 +65,38 @@ class Codegen():
         Creates function header for time-dependent ODE RHS.
         """
         func_name="def cyq_td_ode_rhs("
-        input_vars="float t, np.ndarray[CTYPE_t, ndim=1] vec, " #strings for time and vector variables
-        for h in range(len(self.hterms)):
-            if h==0:
-                input_vars+="np.ndarray[CTYPE_t, ndim=1] data"+str(h)+", np.ndarray[int] idx"+str(h)+", np.ndarray[int] ptr"+str(h)
-            else:
-                input_vars+=", np.ndarray[CTYPE_t, ndim=1] data"+str(h)+", np.ndarray[int] idx"+str(h)+", np.ndarray[int] ptr"+str(h)
+        input_vars="float t, np.ndarray[CTYPE_t, ndim=2] vec, " #strings for time and vector variables
+        input_vars+="np.ndarray[CTYPE_t, ndim=2] data"+", np.ndarray[int, ndim=2] idx"+", np.ndarray[int, ndim=2] ptr"
         func_end="):"
         return [func_name+input_vars+func_end]
+    def time_vars(self):
+        """
+        Rewrites time-dependent parts to include np.
+        """
+        out_td=[]
+        for jj in range(len(self.tdterms)):
+            text=self.tdterms[jj]
+            any_np=np.array([text.find(x) for x in self.func_list])
+            ind=np.nonzero(any_np>-1)[0]
+            for kk in ind:
+                new_text='np.'+self.func_list[kk]
+                text=text.replace(self.func_list[kk],new_text)
+            self.tdterms[jj]=text
+            
     def func_vars(self):
         """
         Writes the variables and their types & spmv parts
         """
-        func_vars=['cdef Py_ssize_t row','cdef int num_rows=len(vec)','cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)']
+        func_vars=["",'cdef Py_ssize_t row','cdef int num_rows = len(vec)','cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)']
         if self.hconst:
             td_consts=self.hconst.items()
             for elem in td_consts:
                 kind=type(elem[1]).__name__
                 func_vars.append("cdef "+kind+" "+elem[0]+" = "+str(elem[1]))
+        func_vars.append(" ") #add a spacer line between variables and Hamiltonian components.
         for ht in range(len(self.hterms)):
             hstr=str(ht)
-            str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data"+hstr+","+"idx"+hstr+","+"ptr"+hstr+","+"vec"+")"
+            str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data["+hstr+"],"+"idx["+hstr+"],"+"ptr["+hstr+"],"+"vec"+")"
             if ht!=0:
                 str_out+="*"+self.tdterms[ht-1]
             func_vars.append(str_out)
@@ -93,7 +105,7 @@ class Codegen():
         """
         Writes function for-loop
         """
-        func_terms=["for row in range(num_rows):"]
+        func_terms=["","for row in range(num_rows):"]
         sum_string="\tout[row,0] = Hvec0[row,0]"
         for ht in range(1,len(self.hterms)):
             sum_string+=" + Hvec"+str(ht)+"[row,0]"
@@ -131,7 +143,7 @@ def cython_spmv():
     """
     Writes SPMV function.
     """
-    line0="def spmv(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=1] vec):"
+    line0="def spmv(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=2] vec):"
     line1="\tcdef Py_ssize_t row"
     line2="\tcdef int jj,row_start,row_end"
     line3="\tcdef int num_rows=len(vec)"
@@ -153,6 +165,8 @@ if __name__=="__main__":
     import pyximport;pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
     cgen=Codegen([1,2],['t'])
     cgen.generate()
+    #from rhs import cyq_td_ode_rhs
     code = compile('from rhs import cyq_td_ode_rhs', '<string>', 'exec')
     exec code
+
     
