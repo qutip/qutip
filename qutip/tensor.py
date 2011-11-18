@@ -20,7 +20,7 @@ from scipy import *
 import scipy.sparse as sp
 from scipy.linalg import *
 from Qobj import Qobj
-
+from tidyup import tidyup
 def tensor(*args):
     """
     Calculate the tensor product of input operators. 
@@ -91,4 +91,4 @@ def tensor(*args):
     out.data=dat
     out.dims=dim
     out.shape=shp
-    return Qobj(out) #returns output Qobj
+    return tidyup(Qobj(out)) #returns output Qobj
