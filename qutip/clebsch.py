@@ -17,7 +17,10 @@
 #
 ###########################################################################
 from numpy import min,max,sqrt,arange
-from scipy import factorial
+try:#for scipy v <= 0.90
+    from scipy import factorial
+except:#for scipy v >= 0.10
+    from scipy.misc import factorial
 
 def clebsch(j1,j2,j3,m1,m2,m3):
     """
