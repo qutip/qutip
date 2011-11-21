@@ -1,6 +1,6 @@
 ################################
 # QuTiP README FILE FOR CPC
-# Version: 1.1.0
+# Version: 1.1.3
 # P.D. Nation and J.R. Johansson
 ################################
 
@@ -51,9 +51,12 @@ setup.py                            # QuTiP installation script.
         wigner.py                   # Generates the Wigner function and Q function for a given state vector or density matrix.
         cyQ/
             __init__.py             # Initialize cyQ modules.
-            matrix.c                # Cython generated c-file for spmv.
-            matrix.pyx              # Cython file for spmv.
-            setup.py                # Setup file for generating matrix.c from matrix.pyx.
+            codegen.py		    # Class for automatically generating Cython files for time-dependent problems (currently disabled).
+	    cy_mc_funcs.c           # Cython generated C-code for Monte-Carlo solver.
+            cy_mc_funcs.pyx         # Cython source code for cy_mc_funcs.c.
+	    ode.rhs.c		    # Cython generated C-code for ODE RHS multiplication.
+            ode.rhs.pyx		    # Cython source code for ode_rhs.c.
+	    setup.py                # Setup file for generating *.c files from *.pyx.
         examples/
             __init__.py             # Initialize examples modules.
             blochdemo.py            # Demo for Bloch sphere plotting.
