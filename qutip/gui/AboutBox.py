@@ -45,11 +45,11 @@ class AboutBox(QtGui.QWidget):
         logo.setPixmap(QtGui.QPixmap(CD_BASE + "/logo.png"))
         #TEXT--------------------
         tlabel = QtGui.QLabel(self)
-        font = QtGui.QFont("Helvetica", 18,QtGui.QFont.Bold)
+        font = QtGui.QFont("Sans Serif", 20,QtGui.QFont.Bold)
         tstring="QuTiP: The Quantum Toolbox in Python"
         fm = QtGui.QFontMetrics(font)
         pixelswide = fm.width(tstring)
-        tlabel.setStyleSheet("QLabel {font: Helvetica; font-weight: bold;font-size: 18px}")
+        tlabel.setStyleSheet("QLabel { font-family:Sans Serif; font-weight: bold;font-size: 20px}")
         tlabel.setText(tstring)
         tlabel.move((self.width()-pixelswide)/2, 170)
         #
@@ -70,49 +70,47 @@ class AboutBox(QtGui.QWidget):
             except:
                 pyobjc='No'
         label = QtGui.QLabel(self)
-        label.setStyleSheet("QLabel {font-weight: bold;font-size: 12px;}")
-        font = QtGui.QFont("Helvetica", 12,QtGui.QFont.Bold)
+        label.setStyleSheet("QLabel { font-family:Sans Serif; font-weight: bold;font-size: 14px;}")
+        font = QtGui.QFont("Sans Serif",14,QtGui.QFont.Bold)
         fm = QtGui.QFontMetrics(font)
         if sys.platform!='darwin':
-            label = QtGui.QLabel(self)
-            if sys.platform!='darwin':
-                lstring="QuTiP Version:          "+Qversion+"\n"
-                pixelswide = fm.width(lstring)
-                lstring+="NumPy Version:         "+str(numpy.__version__)+"\n"
-                lstring+="SciPy Version:            "+str(scipy.__version__)+"\n"
-                lstring+="MatPlotLib Version:   "+str(matplotlib.__version__)+"\n\n"
-                lstring+="PySide Version:         "+str(pyside_ver)+"\n"
-                lstring+="PyQt4 Version:          "+str(pyqt4_ver)
-                pixelswide = fm.width(lstring)
-                label.setText(lstring)
-                label.move((self.width()-pixelswide)/2,210)
+            lstring="QuTiP Version:           "+Qversion+"\n"
+            pixelswide = fm.width(lstring)
+            lstring+="NumPy Version:         "+str(numpy.__version__)+"\n"
+            lstring+="SciPy Version:            "+str(scipy.__version__)+"\n"
+            lstring+="MatPlotLib Version:   "+str(matplotlib.__version__)+"\n\n"
+            lstring+="PySide Version:         "+str(pyside_ver)+"\n"
+            lstring+="PyQt4 Version:           "+str(pyqt4_ver)
+            label.setText(lstring)
+            label.move((self.width()-pixelswide)/2,210)
         else:
             lstring="QuTiP Version:           "+Qversion+"\n"
             pixelswide = fm.width(lstring)
-            lstring+="NumPy Version:          "+str(numpy.__version__)+"\n"
-            lstring+="SciPy Version:             "+str(scipy.__version__)+"\n"
-            lstring+="MatPlotLib Version:     "+str(matplotlib.__version__)+"\n\n"
+            lstring+="NumPy Version:         "+str(numpy.__version__)+"\n"
+            lstring+="SciPy Version:            "+str(scipy.__version__)+"\n"
+            lstring+="MatPlotLib Version:   "+str(matplotlib.__version__)+"\n\n"
             lstring+="PySide Version:         "+str(pyside_ver)+"\n"
-            lstring+="PyQt4 Version:          "+str(pyqt4_ver)+"\n"
+            lstring+="PyQt4 Version:           "+str(pyqt4_ver)+"\n"
             lstring+="PyObjc Installed:       "+str(pyobjc)
             label.setText(lstring)
             label.move((self.width()-pixelswide)/2,210)
         #
         alabel = QtGui.QLabel(self)
         astring="Copyright (c) 2011, Paul D. Nation & Robert J. Johansson"
-        alabel.setStyleSheet("QLabel {font: Helvetica; font-weight: bold;font-size: 12px;}")
+        alabel.setStyleSheet("QLabel { font-family:Sans Serif; font-weight: bold;font-size: 14px;}")
         pixelswide = fm.width(astring)
         alabel.setText(astring)
         alabel.move((self.width()-pixelswide)/2, 350)
         #
         clabel = QtGui.QLabel(self)
-        clabel.setStyleSheet("QLabel {font-weight: bold;font-size: 12px;}")
+        clabel.setStyleSheet("QLabel { font-family:Sans Serif;font-weight: bold;font-size: 14px;}")
         clabel.setText("QuTiP is released under the GPL3.\n"
                         +"See the enclosed COPYING.txt\nfile for more information.")
         clabel.move((self.width()-pixelswide)/2, 380)
         #BUTTONS-----------------
         quit = QtGui.QPushButton('Close', self)
-        quit.setGeometry((self.width()-80-20), 400, 80, 40)
+        quit.setStyleSheet("QPushButton {font-family:Sans Serif;font-weight: bold;font-size: 14px;}")
+        quit.setGeometry((self.width()-80-10), 395, 80, 40)
         #quit.setFocusPolicy(QtCore.Qt.NoFocus)
         quit.clicked.connect(QtGui.qApp.quit)
     def center(self):
