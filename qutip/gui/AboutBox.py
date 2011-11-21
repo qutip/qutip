@@ -91,7 +91,7 @@ class AboutBox(QtGui.QWidget):
             lstring+="MatPlotLib Version:    "+str(matplotlib.__version__)+"\n\n"
             lstring+="PySide Version:         "+str(pyside_ver)+"\n"
             lstring+="PyQt4 Version:           "+str(pyqt4_ver)+"\n"
-            lstring+="PyObjc Installed:       "+str(pyobjc)
+            lstring+="PyObjc Installed:        "+str(pyobjc)
             label.setText(lstring)
             label.move((self.width()-pixelswide)/2,210)
         #
