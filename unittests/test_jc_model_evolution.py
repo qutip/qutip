@@ -21,6 +21,10 @@ import sys
 sys.path.append('..')
 from qutip import *
 
+# disable the MC progress bar
+import os
+os.environ['QUTIP_GRAPHICS']="NO"
+
 import unittest
 
 class TestJCModelEvolution(unittest.TestCase):
@@ -121,7 +125,7 @@ class TestJCModelEvolution(unittest.TestCase):
     def testCase1(self):
         # test case 1: cavity-qubit interaction, no dissipation
 
-        for solver in ("ode", "es", "mc"):
+        for solver in ("ode", "es"):
 
             use_rwa = True
             N = 8           # number of cavity fock states
