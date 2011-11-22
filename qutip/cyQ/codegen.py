@@ -167,6 +167,6 @@ if __name__=="__main__":
     cgen.generate()
     #from rhs import cyq_td_ode_rhs
     code = compile('from rhs import cyq_td_ode_rhs', '<string>', 'exec')
-    exec code
+    exec(code)
 
     

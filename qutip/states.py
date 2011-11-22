@@ -17,8 +17,8 @@
 #
 ###########################################################################
 from scipy import *
-from Qobj import Qobj
-from operators import destroy
+from qutip.Qobj import Qobj
+from qutip.operators import destroy
 
 def basis(N,*args):
     """

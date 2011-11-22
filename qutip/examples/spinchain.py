@@ -29,11 +29,11 @@ from ..mcsolve import *
 from ..tensor import *
 from ..ptrace import *
 from pylab import *
-from termpause import termpause
+from .termpause import termpause
 import time
 def spinchain():
-    print 'Calculates the sigma-z expectation values for a'
-    print 'Heisenberg spin-chain with four qubits.'
+    print('Calculates the sigma-z expectation values for a')
+    print('Heisenberg spin-chain with four qubits.')
     termpause()
     def integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver):
 
@@ -87,27 +87,27 @@ def spinchain():
     
     #--------------------------------------
     # set up the calculation
-    print "set up the calculation"
-    print "solver = 'ode'   # use the ode solver"
-    print "N = 4 # number of spins"
-    print "# array of spin energy splittings and coupling strengths. here we use"
-    print "# uniform parameters, but in general we don't have too"
-    print "h  = 1.0 * 2 * pi * ones(N) "
-    print "Jz = 0.1 * 2 * pi * ones(N)"
-    print "Jx = 0.1 * 2 * pi * ones(N)"
-    print "Jy = 0.1 * 2 * pi * ones(N)"
-    print "# dephasing rate"
-    print "gamma = 0.01 * ones(N)"
-    print "# intial state, first spin in state |1>, the rest in state |0>"
-    print "psi_list = []"
-    print "psi_list.append(basis(2,1))"
-    print "for n in xrange(N-1):"
-    print "    psi_list.append(basis(2,0))"
-    print "psi0 = tensor(psi_list)"
-    print "tlist = linspace(0, 50, 300)"
-    print "start_time = time.time()"
-    print "sz_expt = integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver)"
-    print "print 'time elapsed = ' +str(time.time() - start_time)"
+    print("set up the calculation")
+    print("solver = 'ode'   # use the ode solver")
+    print("N = 4 # number of spins")
+    print("# array of spin energy splittings and coupling strengths. here we use")
+    print("# uniform parameters, but in general we don't have too")
+    print("h  = 1.0 * 2 * pi * ones(N)")
+    print("Jz = 0.1 * 2 * pi * ones(N)")
+    print("Jx = 0.1 * 2 * pi * ones(N)")
+    print("Jy = 0.1 * 2 * pi * ones(N)")
+    print("# dephasing rate")
+    print("gamma = 0.01 * ones(N)")
+    print("# intial state, first spin in state |1>, the rest in state |0>")
+    print("psi_list = []")
+    print("psi_list.append(basis(2,1))")
+    print("for n in xrange(N-1):")
+    print("    psi_list.append(basis(2,0))")
+    print("psi0 = tensor(psi_list)")
+    print("tlist = linspace(0, 50, 300)")
+    print("start_time = time.time()")
+    print("sz_expt = integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver)")
+    print("print('time elapsed = ' +str(time.time() - start_time)")
     
     solver = "ode"   # use the ode solver
     #solver = "mc"   # use the monte-carlo solver
@@ -129,19 +129,19 @@ def spinchain():
     tlist = linspace(0, 50, 300)
     start_time = time.time()
     sz_expt = integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver)
-    print 'time elapsed = ' +str(time.time() - start_time) 
+    print('time elapsed = ' +str(time.time() - start_time))
 
     
-    print '\nPlot the results....'
+    print('\nPlot the results....')
     termpause()
-    print "rc('font', family='Bitstream Vera Sans')"
-    print "for n in xrange(N):"
-    print "  plot(tlist, real(sz_expt[n,:]), label=r'$\langle\sigma_z($'+str(n)+r'$)\rangle$')"
-    print "xlabel(r'Time [ns]',fontsize=14)"
-    print "ylabel(r'$\langle\sigma_{z}\rangle$',fontsize=14)"
-    print "title(r'Dynamics of a Heisenberg spin chain')"
-    print "legend(loc = 'lower right')"
-    print "show()"
+    print("rc('font', family='Bitstream Vera Sans')")
+    print("for n in xrange(N):")
+    print("  plot(tlist, real(sz_expt[n,:]), label=r'$\langle\sigma_z($'+str(n)+r'$)\rangle$')")
+    print("xlabel(r'Time [ns]',fontsize=14)")
+    print("ylabel(r'$\langle\sigma_{z}\rangle$',fontsize=14)")
+    print("title(r'Dynamics of a Heisenberg spin chain')")
+    print("legend(loc = 'lower right')")
+    print("show()")
     
     rc('font', family='Bitstream Vera Sans')
     for n in xrange(N):
@@ -151,8 +151,8 @@ def spinchain():
     title(r'Dynamics of a Heisenberg spin chain')
     legend(loc = "lower right")
     show()
-    print ''
-    print 'DEMO FINISHED...'
+    print('')
+    print('DEMO FINISHED...')
 
 
 if __name__=="main()":

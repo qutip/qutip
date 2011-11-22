@@ -25,7 +25,8 @@ import sys,os
 import numpy,scipy
 
 CD_BASE = os.path.dirname(__file__) # get directory of about.py file
-execfile(os.path.join(CD_BASE, "_version.py")) #execute _version.py file in CD_BASE directory
+#execfile(os.path.join(CD_BASE, "_version.py")) #execute _version.py file in CD_BASE directory
+exec(compile(open(os.path.join(CD_BASE, "_version.py")).read(), os.path.join(CD_BASE, "_version.py"), 'exec'))
 def about():
     """
     About box for qutip. Gives version numbers for 
@@ -54,16 +55,16 @@ def about():
         
     else:
         import matplotlib
-        print ''
-        print "QuTiP: The Quantum Toolbox in Python"
-        print "Copyright (c) 2011"
-        print "Paul D. Nation & Robert J. Johansson"
-        print ''
-        print "QuTiP Version:  "+version
-        print "Numpy Version:  "+numpy.__version__
-        print "Scipy Version:  "+scipy.__version__
-        print "Matplotlib Version:  "+matplotlib.__version__
-        print ''
+        print('')
+        print("QuTiP: The Quantum Toolbox in Python")
+        print("Copyright (c) 2011")
+        print("Paul D. Nation & Robert J. Johansson")
+        print('')
+        print("QuTiP Version:  "+version)
+        print("Numpy Version:  "+numpy.__version__)
+        print("Scipy Version:  "+scipy.__version__)
+        print("Matplotlib Version:  "+matplotlib.__version__)
+        print('')
         try:
             import PySide
             pyside_ver=PySide.__version__
@@ -80,10 +81,10 @@ def about():
                 pyobjc='Yes'
             except:
                 pyobjc='No'
-        print "PySide Version:    "+pyside_ver
-        print "PyQt4 Version:     "+pyqt4_ver
+        print("PySide Version:    "+pyside_ver)
+        print("PyQt4 Version:     "+pyqt4_ver)
         if sys.platform=='darwin':
-            print "PyObjc Installed:  "+pyobjc
+            print("PyObjc Installed:  "+pyobjc)
 
 def tk_conify_center():
     """

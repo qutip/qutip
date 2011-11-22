@@ -18,13 +18,13 @@
 ###########################################################################
 
 from scipy import *
-from Qobj import *
+from qutip.Qobj import *
 
-from superoperator import *
+from qutip.superoperator import *
 
-from odesolve import *
-from essolve import *
-from states import basis
+from qutip.odesolve import *
+from qutip.essolve import *
+from qutip.states import basis
 
 def propagator(H, t, c_op_list, H_args=None):
     """

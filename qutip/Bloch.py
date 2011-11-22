@@ -18,8 +18,8 @@
 ###########################################################################
 import os
 from scipy import *
-from expect import expect
-from operators import *
+from qutip.expect import expect
+from qutip.operators import *
 
 
 class Bloch():
@@ -88,34 +88,34 @@ class Bloch():
         #: Style of points, 'm' for multiple colors, 's' for single color
         self.point_style=[]
     def __str__(self):
-        print ''
-        print "Bloch data:"
-        print '-----------'
-        print "Number of points:  ",self.num_points
-        print "Number of vectors: ",self.num_vectors
-        print ''
-        print 'Bloch sphere properties:'
-        print '------------------------'
-        print "font_color:   ",self.font_color
-        print "font_size:    ",self.font_size
-        print "frame_alpha:  ",self.frame_alpha
-        print "frame_color:  ",self.frame_color
-        print "frame_width:  ",self.frame_width
-        print "point_color:  ",self.point_color
-        print "point_marker: ",self.point_marker
-        print "point_size:   ",self.point_size
-        print "sphere_alpha: ",self.sphere_alpha
-        print "sphere_color: ",self.sphere_color
-        print "size:         ",self.size
-        print "vector_color: ",self.vector_color
-        print "vector_width: ",self.vector_width
-        print "view:         ",self.view
-        print "xlabel:       ",self.xlabel
-        print "xlpos:        ",self.xlpos
-        print "ylabel:       ",self.ylabel
-        print "ylpos:        ",self.ylpos
-        print "zlabel:       ",self.zlabel
-        print "zlpos:        ",self.zlpos
+        print('')
+        print("Bloch data:")
+        print('-----------')
+        print("Number of points:  ",self.num_points)
+        print("Number of vectors: ",self.num_vectors)
+        print('')
+        print('Bloch sphere properties:')
+        print('------------------------')
+        print("font_color:   ",self.font_color)
+        print("font_size:    ",self.font_size)
+        print("frame_alpha:  ",self.frame_alpha)
+        print("frame_color:  ",self.frame_color)
+        print("frame_width:  ",self.frame_width)
+        print("point_color:  ",self.point_color)
+        print("point_marker: ",self.point_marker)
+        print("point_size:   ",self.point_size)
+        print("sphere_alpha: ",self.sphere_alpha)
+        print("sphere_color: ",self.sphere_color)
+        print("size:         ",self.size)
+        print("vector_color: ",self.vector_color)
+        print("vector_width: ",self.vector_width)
+        print("view:         ",self.view)
+        print("xlabel:       ",self.xlabel)
+        print("xlpos:        ",self.xlpos)
+        print("ylabel:       ",self.ylabel)
+        print("ylpos:        ",self.ylpos)
+        print("zlabel:       ",self.zlabel)
+        print("zlpos:        ",self.zlpos)
         return ''
     def clear(self):
         """

@@ -17,8 +17,8 @@
 #
 ###########################################################################
 from scipy import sqrt
-from qstate import qstate
-from Qobj import *
+from qutip.qstate import qstate
+from qutip.Qobj import *
 
 
 def cnot():

@@ -16,9 +16,9 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from Qobj import *
+from qutip.Qobj import *
 import scipy.linalg as la
-from varargout import varargout
+from qutip.varargout import varargout
 
 def simdiag(ops):
     """
@@ -82,7 +82,7 @@ def simdiag(ops):
     else:
         for kk in xrange(num_ops):
             for j in xrange(len(ds)):
-			    eigvals_out[kk,j]=real(dot(eigvecs_array[j].conj().T,ops[kk].data*eigvecs_array[j]))
+                eigvals_out[kk,j]=real(dot(eigvecs_array[j].conj().T,ops[kk].data*eigvecs_array[j]))
         return kets_out,eigvals_out
     
 
@@ -108,7 +108,7 @@ def degen(tol,in_vecs,ops):
     vecs_new=dot(vecs,vecsperm)
     vecs_out=array([zeros((A.shape[0],1),dtype=complex) for k in xrange(len(ds))])
     for kk in xrange(len(perm)):#matrix with sorted eigvecs in columns
-		vecs_out[kk][:,0]=vecs_new[:,kk]
+        vecs_out[kk][:,0]=vecs_new[:,kk]
     k=0
     rng=arange(len(ds))
     while k<len(ds):

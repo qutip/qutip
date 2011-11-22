@@ -17,9 +17,9 @@
 #
 ###########################################################################
 from scipy import *
-from Qobj import Qobj
+from qutip.Qobj import Qobj
 import scipy.sparse as sp
-from istests import isket
+from qutip.istests import isket
 
 
 def orbital(theta,phi,*args):

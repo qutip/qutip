@@ -19,12 +19,12 @@
 
 from types import *
 from scipy.integrate import *
-from tidyup import tidyup
-from Qobj import *
-from superoperator import *
-from expect import *
-from Odeoptions import Odeoptions
-from cyQ.ode_rhs import cyq_ode_rhs
+from qutip.tidyup import tidyup
+from qutip.Qobj import *
+from qutip.superoperator import *
+from qutip.expect import *
+from qutip.Odeoptions import Odeoptions
+from qutip.cyQ.ode_rhs import cyq_ode_rhs
 
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
@@ -106,7 +106,7 @@ def wf_ode_solve(H, psi0, tlist, expt_op_list, H_args, opt):
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
-        result_list = [Qobj() for k in xrange(n_tsteps)]
+        result_list = [Qobj() for k in range(n_tsteps)]
     else:
         result_list = zeros([n_expt_op, n_tsteps], dtype=complex)
 
@@ -173,7 +173,7 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list, H_args, opt):
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
-        result_list = [Qobj() for k in xrange(n_tsteps)]
+        result_list = [Qobj() for k in range(n_tsteps)]
     else:
         result_list = zeros([n_expt_op, n_tsteps], dtype=complex)
 
@@ -214,7 +214,7 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list, H_args, opt):
         if n_expt_op == 0:
             result_list[t_idx] = Qobj(psi) # copy rho
         else:
-            for m in xrange(0, n_expt_op):
+            for m in range(0, n_expt_op):
                 result_list[m,t_idx] = expect(expt_op_list[m], psi)
 
         r.integrate(r.t + dt)
@@ -268,7 +268,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
-        result_list = [Qobj() for k in xrange(n_tsteps)]
+        result_list = [Qobj() for k in range(n_tsteps)]
     else:
         result_list=[]
         for op in expt_op_list:
@@ -312,7 +312,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
         if n_expt_op == 0:
             result_list[t_idx] = Qobj(rho) # copy rho
         else:
-            for m in xrange(0, n_expt_op):
+            for m in range(0, n_expt_op):
                 result_list[m][t_idx] = expect(expt_op_list[m], rho)
 
         r.integrate(r.t + dt)
@@ -356,7 +356,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
-        result_list = [Qobj() for k in xrange(n_tsteps)]
+        result_list = [Qobj() for k in range(n_tsteps)]
     else:
         result_list=[]
         for op in expt_op_list:
@@ -369,7 +369,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     # construct liouvillian
     #
     L = 0
-    for m in xrange(0, n_op):
+    for m in range(0, n_op):
         cdc = c_op_list[m].dag() * c_op_list[m]
         L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
 
@@ -408,7 +408,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
         if n_expt_op == 0:
             result_list[t_idx] = Qobj(rho) # copy rho
         else:
-            for m in xrange(0, n_expt_op):
+            for m in range(0, n_expt_op):
                 result_list[m][t_idx] = expect(expt_op_list[m], rho)
 
         r.integrate(r.t + dt)

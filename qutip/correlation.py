@@ -18,12 +18,12 @@
 ###########################################################################
 
 from scipy import *
-from Qobj import *
-from superoperator import *
-from odesolve import *
-from essolve import *
-from mcsolve import *
-from steady import *
+from qutip.Qobj import *
+from qutip.superoperator import *
+from qutip.odesolve import *
+from qutip.essolve import *
+from qutip.mcsolve import *
+from qutip.steady import *
 
 def correlation_ss_es(H, tlist, c_op_list, a_op, b_op):
     """

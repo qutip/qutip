@@ -204,16 +204,16 @@ def qload(filename):
     fileObject = open(filename+'.qu','r')  #open the file for reading
     out=pickle.load(fileObject)  #return the object from the file 
     if isinstance(out,Qobj): #for quantum objects
-        print 'Loaded Qobj class object...'
+        print('Loaded Qobj class object...')
         return out
     elif isinstance(out,Mcdata): #for mcdata objects
-        print 'Loaded Mcdata class object...'
+        print('Loaded Mcdata class object...')
         return out
     elif isinstance(out,Odedata): #for odedata objects
-        print 'Loaded Odedata class object...'
+        print('Loaded Odedata class object...')
         return out
     else: #for any other data
-        print 'Loaded generic object...'
+        print('Loaded generic object...')
         return out
 
 

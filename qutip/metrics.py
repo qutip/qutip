@@ -21,7 +21,7 @@
 Collection of metrics (distance measures) between density matricies
 """
 
-from Qobj import *
+from qutip.Qobj import *
 import scipy.linalg as la
 from scipy import real
 

@@ -22,27 +22,27 @@ from ..mcsolve import *
 from ..tensor import *
 from scipy import *
 from pylab import *
-from termpause import termpause
+from .termpause import termpause
 
 def trilinearmc():
-    print '-'*80
-    print 'Calculates the excitation number expectation values'
-    print 'for the three-modes of the trilinear Hamiltonian'
-    print 'subject to damping, using the Monte-Carlo method'
-    print '-'*80
+    print('-'*80)
+    print('Calculates the excitation number expectation values')
+    print('for the three-modes of the trilinear Hamiltonian')
+    print('subject to damping, using the Monte-Carlo method')
+    print('-'*80)
     termpause()
     
-    print 'N0=N1=N2=9#number of states for each mode'
-    print 'alpha=sqrt(3)#initial coherent state param for mode 0'
-    print 'epsilon=0.5j #sqeezing parameter'
-    print 'tfinal=4.0'
-    print 'dt=0.05'
-    print 'tlist=arange(0.0,tfinal+dt,dt)'
-    print 'ntraj=200#number of trajectories'
-    print '#damping rates'
-    print 'gamma0=0.1'
-    print 'gamma1=0.4'
-    print 'gamma2=0.2'
+    print('N0=N1=N2=9#number of states for each mode')
+    print('alpha=sqrt(3)#initial coherent state param for mode 0')
+    print('epsilon=0.5j #sqeezing parameter')
+    print('tfinal=4.0')
+    print('dt=0.05')
+    print('tlist=arange(0.0,tfinal+dt,dt)')
+    print('ntraj=200#number of trajectories')
+    print('#damping rates')
+    print('gamma0=0.1')
+    print('gamma1=0.4')
+    print('gamma2=0.2')
     N0=N1=N2=9#number of states for each mode
     alpha=sqrt(3)#initial coherent state param for mode 0
     epsilon=0.5j #sqeezing parameter
@@ -55,19 +55,19 @@ def trilinearmc():
     gamma1=0.4
     gamma2=0.2
     
-    print ''
-    print 'Operators:'
-    print '-----------'
-    print 'a0=tensor(destroy(N0),qeye(N1),qeye(N2))'
-    print 'a1=tensor(qeye(N0),destroy(N1),qeye(N2))'
-    print 'a2=tensor(qeye(N0),qeye(N1),destroy(N2))'
-    print 'num0=a0.dag()*a0'
-    print 'num1=a1.dag()*a1'
-    print 'num2=a2.dag()*a2'
-    print '#dissipative operators for zero-temp. baths'
-    print 'C0=sqrt(2.0*gamma0)*a0'
-    print 'C1=sqrt(2.0*gamma1)*a1'
-    print 'C2=sqrt(2.0*gamma2)*a2'    
+    print('')
+    print('Operators:')
+    print('-----------')
+    print('a0=tensor(destroy(N0),qeye(N1),qeye(N2))')
+    print('a1=tensor(qeye(N0),destroy(N1),qeye(N2))')
+    print('a2=tensor(qeye(N0),qeye(N1),destroy(N2))')
+    print('num0=a0.dag()*a0')
+    print('num1=a1.dag()*a1')
+    print('num2=a2.dag()*a2')
+    print('#dissipative operators for zero-temp. baths')
+    print('C0=sqrt(2.0*gamma0)*a0')
+    print('C1=sqrt(2.0*gamma1)*a1')
+    print('C2=sqrt(2.0*gamma2)*a2')
     #define operators
     a0=tensor(destroy(N0),qeye(N1),qeye(N2))
     a1=tensor(qeye(N0),destroy(N1),qeye(N2))
@@ -81,37 +81,37 @@ def trilinearmc():
     C1=sqrt(2.0*gamma1)*a1
     C2=sqrt(2.0*gamma2)*a2
     
-    print ''
-    print '#initial state: coherent mode 0 & vacuum for modes #1 & #2'
-    print 'psi0=tensor(displace(N0,alpha)*basis(N0,0),basis(N1,0),basis(N2,0))'
+    print('')
+    print('#initial state: coherent mode 0 & vacuum for modes #1 & #2')
+    print('psi0=tensor(displace(N0,alpha)*basis(N0,0),basis(N1,0),basis(N2,0))')
     #initial state: coherent mode 0 & vacuum for modes #1 & #2
     psi0=tensor(displace(N0,alpha)*basis(N0,0),basis(N1,0),basis(N2,0))
-    print '#trilinear Hamiltonian'
-    print 'H=1j*(a0*a1.dag()*a2.dag()-a0.dag()*a1*a2)'
+    print('#trilinear Hamiltonian')
+    print('H=1j*(a0*a1.dag()*a2.dag()-a0.dag()*a1*a2)')
     #trilinear Hamiltonian
     H=1j*(a0*a1.dag()*a2.dag()-a0.dag()*a1*a2)
-    print '#run Monte-Carlo'
-    print 'expt=mcsolve(H,psi0,tlist,ntraj,[C0,C1,C2],[num0,num1,num2])'
+    print('#run Monte-Carlo')
+    print('expt=mcsolve(H,psi0,tlist,ntraj,[C0,C1,C2],[num0,num1,num2])')
     #run Monte-Carlo
     expt=mcsolve(H,psi0,tlist,ntraj,[C0,C1,C2],[num0,num1,num2])
     
-    print ''
-    print 'Plot results...'
+    print('')
+    print('Plot results...')
     termpause()
-    print 'fig=figure()'
-    print 'plot(tlist,expt[0],tlist,expt[1],tlist,expt[2])'
-    print 'xlabel("Time")'
-    print 'ylabel("Average number of particles")'
-    print "legend(('Mode 0', 'Mode 1','Mode 2') )"
-    print 'show()'
+    print('fig=figure()')
+    print('plot(tlist,expt[0],tlist,expt[1],tlist,expt[2])')
+    print('xlabel("Time")')
+    print('ylabel("Average number of particles")')
+    print("legend(('Mode 0', 'Mode 1','Mode 2') )")
+    print('show()')
     fig=figure()
     plot(tlist,expt[0],tlist,expt[1],tlist,expt[2])
     xlabel("Time")
     ylabel("Average number of particles")
     legend(('Mode 0', 'Mode 1','Mode 2') )
     show()
-    print ''
-    print 'DEMO FINISHED...'
+    print('')
+    print('DEMO FINISHED...')
     
 
 if __name__=='main()':

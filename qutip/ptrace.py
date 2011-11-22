@@ -19,7 +19,7 @@
 from scipy import *
 import scipy.sparse as sp
 from scipy.linalg import *
-from Qobj import *
+from qutip.Qobj import *
 
 
 def ptrace(rho,sel):

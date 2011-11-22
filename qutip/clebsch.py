@@ -56,6 +56,6 @@ def clebsch(j1,j2,j3,m1,m2,m3):
 
 
 if __name__=='main()':
-    print clebsch(0.5,0.5,1,1,0,1)
+    print(clebsch(0.5,0.5,1,1,0,1))
 
 

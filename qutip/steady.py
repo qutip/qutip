@@ -21,9 +21,9 @@ import scipy.sparse as sp
 import scipy.linalg as la
 from scipy.sparse.linalg import spsolve
 
-from Qobj import *
-from istests import *
-from superoperator import *
+from qutip.Qobj import *
+from qutip.istests import *
+from qutip.superoperator import *
 
 
 # ------------------------------------------------------------------------------

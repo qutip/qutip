@@ -26,11 +26,11 @@ os.environ['NUM_THREADS']=str(multiprocessing.cpu_count())
 #
 # default, use graphics (unless QUTIP_GRAPHICS is already set)
 #
-if not os.environ.has_key('QUTIP_GRAPHICS'):
+if not ('QUTIP_GRAPHICS' in os.environ):
     os.environ['QUTIP_GRAPHICS']="YES"
 
 #check if being run remotely
-if not os.environ.has_key('DISPLAY'):
+if not ('DISPLAY' in os.environ):
     #no graphics if DISPLAY isn't set
     os.environ['QUTIP_GRAPHICS']="NO"
     os.environ['QUTIP_GUI']="NONE"
@@ -64,39 +64,38 @@ if os.environ['QUTIP_GRAPHICS']=="YES":
 from scipy import *
 import scipy.linalg as la
 import scipy.sparse as sp
-from Qobj import Qobj,shape,dims,dag,trans,sp_expm
-from about import *
-from Bloch import Bloch
-from graph import hinton
-from correlation import *
-from clebsch import clebsch
-from eseries import *
-from demos import *
-from entropy import *
-import examples
-from expect import *
-from gates import *
-from istests import *
-from Odeoptions import Odeoptions
-from mcsolve import mcsolve
-from metrics import fidelity,tracedist
-from odesolve import odesolve
-from essolve import *
-from operators import *
-from orbital import *
-from parfor import *
-from ptrace import ptrace
-from propagator import *
-from qstate import *
-from simdiag import *
-from sphereplot import *
-from states import *
-from steady import *
-from superoperator import *
-from tensor import *
-from tidyup import tidyup
-from wigner import *
-from fileio import *
-#from qutip.cyQ import *
+from qutip.Qobj import Qobj,shape,dims,dag,trans,sp_expm
+from qutip.about import *
+from qutip.Bloch import Bloch
+from qutip.graph import hinton
+from qutip.correlation import *
+from qutip.clebsch import clebsch
+from qutip.eseries import *
+from qutip.demos import *
+from qutip.entropy import *
+import qutip.examples
+from qutip.expect import *
+from qutip.gates import *
+from qutip.istests import *
+from qutip.Odeoptions import Odeoptions
+from qutip.mcsolve import mcsolve
+from qutip.metrics import fidelity,tracedist
+from qutip.odesolve import odesolve
+from qutip.essolve import *
+from qutip.operators import *
+from qutip.orbital import *
+from qutip.parfor import *
+from qutip.ptrace import ptrace
+from qutip.propagator import *
+from qutip.qstate import *
+from qutip.simdiag import *
+from qutip.sphereplot import *
+from qutip.states import *
+from qutip.steady import *
+from qutip.superoperator import *
+from qutip.tensor import *
+from qutip.tidyup import tidyup
+from qutip.wigner import *
+from qutip.fileio import *
 
 

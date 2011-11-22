@@ -19,19 +19,19 @@
 from scipy import *
 from scipy.integrate import *
 from scipy.linalg import norm
-from Qobj import *
-from expect import *
+from qutip.Qobj import *
+from qutip.expect import *
 import sys,os,time
-from istests import *
-from Odeoptions import Odeoptions
-import mcdata
+from qutip.istests import *
+from qutip.Odeoptions import Odeoptions
+import qutip.mcdata
 import datetime
 from multiprocessing import Pool,cpu_count
-from varargout import varargout
+from qutip.varargout import varargout
 from types import FunctionType
-from tidyup import tidyup
-from cyQ.cy_mc_funcs import mc_expect,spmv
-from cyQ.ode_rhs import cyq_ode_rhs
+from qutip.tidyup import tidyup
+from qutip.cyQ.cy_mc_funcs import mc_expect,spmv
+from qutip.cyQ.ode_rhs import cyq_ode_rhs
 
 def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeoptions()):
     vout=varargout()
@@ -234,7 +234,7 @@ class MC_class():
                 secs=datetime.timedelta(seconds=ceil(diff))
                 dd = datetime.datetime(1,1,1) + secs
                 time_string="%02d:%02d:%02d:%02d" % (dd.day-1,dd.hour,dd.minute,dd.second)
-                print str(floor(self.count/float(self.ntraj)*100))+'%  ('+str(self.count)+'/'+str(self.ntraj)+')'+'  Est. time remaining: '+time_string
+                print(str(floor(self.count/float(self.ntraj)*100))+'%  ('+str(self.count)+'/'+str(self.ntraj)+')'+'  Est. time remaining: '+time_string)
                 self.level+=0.1
     #########################
     def parallel(self,args,top=None):  
@@ -246,14 +246,14 @@ class MC_class():
         try:
             pl.join()
         except KeyboardInterrupt:
-            print "Cancel all MC threads on keyboard interrupt"
+            print("Cancel all MC threads on keyboard interrupt")
             pl.terminate()
             pl.join()
         return
     def run(self):
         if self.num_collapse==0:
             if self.ntraj!=1:#check if ntraj!=1 which is pointless for no collapse operators
-                print 'No collapse operators specified.\nRunning a single trajectory only.\n'
+                print('No collapse operators specified.\nRunning a single trajectory only.\n')
             if self.num_expect==0:# return psi Qobj at each requested time 
                 self.psi_out=no_collapse_psi_out(self.options,self.psi_in,self.times,self.num_times,self.psi_dims,self.psi_shape,self.psi_out)
             else:# return expectation values of requested operators
@@ -262,7 +262,7 @@ class MC_class():
             self.seed=array([int(ceil(random.rand()*1e4)) for ll in xrange(self.ntraj)])
             args=(self.options,self.psi_in,self.times,self.num_times,self.num_collapse,self.collapse_ops_data,self.norm_collapse,self.num_expect,self.expect_ops,self.seed)
             if os.environ['QUTIP_GRAPHICS']=="NO" or os.environ['QUTIP_GUI']=="NONE" or self.gui==False:
-                print 'Starting Monte-Carlo:'
+                print('Starting Monte-Carlo:')
                 self.parallel(args,self)
             else:
                 from gui.ProgressBar import ProgressBar,Pthread

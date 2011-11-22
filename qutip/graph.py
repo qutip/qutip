@@ -19,7 +19,7 @@
 
 from pylab import *
 from matplotlib import cm
-from istests import *
+from qutip.istests import *
 
 
 #

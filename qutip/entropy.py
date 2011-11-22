@@ -17,9 +17,9 @@
 #
 ###########################################################################
 from scipy import *
-from Qobj import *
+from qutip.Qobj import *
 import scipy.linalg as la
-from states import ket2dm
+from qutip.states import ket2dm
 
 def entropy_vn(rho,base='2'):
     """

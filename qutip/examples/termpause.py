@@ -27,7 +27,7 @@ def termpause():
         uinpt=raw_input("\nPress enter key to continue...\n")
         return
     else:
-        print ''
+        print('')
         pass
 
 

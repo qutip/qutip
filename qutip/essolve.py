@@ -17,10 +17,10 @@
 #
 ###########################################################################
 from scipy import *
-from Qobj import *
-from eseries import *
-from expect import *
-from superoperator import *
+from qutip.Qobj import *
+from qutip.eseries import *
+from qutip.expect import *
+from qutip.superoperator import *
 
 
 # ------------------------------------------------------------------------------

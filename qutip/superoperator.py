@@ -20,9 +20,9 @@ import scipy
 import scipy.linalg as la
 import scipy.sparse as sp
 from scipy import prod, transpose, reshape
-from Qobj import *
-from istests import *
-from operators import destroy
+from qutip.Qobj import *
+from qutip.istests import *
+from qutip.operators import destroy
 
 
 def liouvillian(H, c_op_list):
@@ -42,7 +42,7 @@ def liouvillian(H, c_op_list):
     """
     L = -1.0j*(spre(H) - spost(H))
     n_op = len(c_op_list)
-    for m in xrange(0, n_op):
+    for m in range(0, n_op):
         cdc = c_op_list[m].dag() * c_op_list[m]
         L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
     return L

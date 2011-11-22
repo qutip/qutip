@@ -20,11 +20,11 @@ from scipy import *
 import scipy.sparse as sp
 import scipy.linalg as la
 import time
-from tensor import tensor
-from Qobj import *
-from ptrace import ptrace
-from states import *
-from istests import *
+from qutip.tensor import tensor
+from qutip.Qobj import *
+from qutip.ptrace import ptrace
+from qutip.states import *
+from qutip.istests import *
 
     
 def wigner(psi,xvec,yvec,g=sqrt(2)):

@@ -22,7 +22,7 @@ from scipy import *
 from scipy.linalg import *
 import scipy.sparse as sp
 
-from Qobj import Qobj
+from qutip.Qobj import Qobj
 
 
 #

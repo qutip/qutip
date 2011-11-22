@@ -18,7 +18,7 @@
 ###########################################################################
 from scipy import finfo
 import scipy.sparse as sp
-from Qobj import *
+from qutip.Qobj import *
 
 def tidyup(op,Atol=1e-8):
     """

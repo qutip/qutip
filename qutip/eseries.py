@@ -17,7 +17,7 @@
 #
 ###########################################################################
 from scipy import *
-from Qobj import *
+from qutip.Qobj import *
 
 class eseries:
     """
@@ -95,14 +95,14 @@ class eseries:
     ##########################################            
     def __str__(self):#string of ESERIES information
         self.tidy()
-        print "ESERIES object: "+str(len(self.ampl))+" terms"
-        print "Hilbert space dimensions: "+str(self.dims)
+        print("ESERIES object: "+str(len(self.ampl))+" terms")
+        print("Hilbert space dimensions: "+str(self.dims))
         for k in range(0,len(self.ampl)):
-            print "Exponent #"+str(k)+" = "+str(self.rates[k])
+            print("Exponent #"+str(k)+" = "+str(self.rates[k]))
             if isinstance(self.ampl[k], sp.spmatrix):
-                print self.ampl[k].full()
+                print(self.ampl[k].full())
             else:
-                print self.ampl[k]
+                print(self.ampl[k])
         return ""
     def __add__(self,other):#Addition with ESERIES on left (ex. ESERIES+5)
         right=eseries(other)

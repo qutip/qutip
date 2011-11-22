@@ -17,9 +17,9 @@
 #
 ###########################################################################
 from scipy import *
-from Qobj import *
-from states import basis
-from tensor import *
+from qutip.Qobj import *
+from qutip.states import basis
+from qutip.tensor import *
 
 
 def qstate(string):

@@ -44,7 +44,7 @@ Contributed by Markus Baden, Oct. 07, 2011
 
 '''
 
-from states import qutrit_basis
+from qutip.states import qutrit_basis
 from scipy import array
 
 def three_level_basis():

@@ -26,7 +26,7 @@ from ..correlation import *
 from pylab import *
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
-from termpause import termpause
+from .termpause import termpause
 
 
 #
@@ -34,7 +34,7 @@ from termpause import termpause
 #
 def correlation():
 
-    print "== Calculate a two-time correlation function for a cavity-qubit system =="
+    print("== Calculate a two-time correlation function for a cavity-qubit system ==")
 
     termpause()
     print("""

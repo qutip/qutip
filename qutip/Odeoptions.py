@@ -43,19 +43,19 @@ class Odeoptions():
         #: tidyup Hamiltonian before calculation (default = True)
         self.tidy=True
     def __str__(self):
-        print "Odeoptions properties:"
-        print "----------------------"
-        print 'atol:       ',self.atol
-        print 'rtol:       ',self.rtol
-        print 'method:     ',self.method
-        print 'order:      ',self.order
-        print 'nsteps:     ',self.nsteps
-        print 'first_step: ',self.first_step
-        print 'min_step:   ',self.min_step
-        print 'max_step:   ',self.max_step
-        print 'tidy:       ',self.tidy
+        print("Odeoptions properties:")
+        print("----------------------")
+        print('atol:       ',self.atol)
+        print('rtol:       ',self.rtol)
+        print('method:     ',self.method)
+        print('order:      ',self.order)
+        print('nsteps:     ',self.nsteps)
+        print('first_step: ',self.first_step)
+        print('min_step:   ',self.min_step)
+        print('max_step:   ',self.max_step)
+        print('tidy:       ',self.tidy)
         return ''
 
 
 if __name__ == "__main__":
-    print Odeoptions()
+    print(Odeoptions())

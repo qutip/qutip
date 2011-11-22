@@ -143,7 +143,7 @@ def isequal(A,B,rtol=1e-10,atol=1e-12):
         if x and y:
             return True
         elif x or y:
-            print 'isequal result is not symmetric with respect to inputs.\n See numpy.allclose documentation'
+            print('isequal result is not symmetric with respect to inputs.\n See numpy.allclose documentation')
             return True
         else:
             return False

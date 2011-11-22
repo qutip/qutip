@@ -27,7 +27,7 @@ from ..odesolve import odesolve
 from pylab import *
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
-from termpause import termpause
+from .termpause import termpause
 
 
 #
@@ -35,7 +35,7 @@ from termpause import termpause
 #
 def jc_lasing():
 
-    print "== Illustrates single-atom lasing in the Jaynes-Cumming model with a incorently pumped atom =="
+    print("== Illustrates single-atom lasing in the Jaynes-Cumming model with a incorently pumped atom ==")
 
     # --------------------------------------------------------------------------
     termpause()

@@ -17,9 +17,9 @@
 #
 ###########################################################################
 
-from eseries import *
-from Qobj import *
-from istests import *
+from qutip.eseries import *
+from qutip.Qobj import *
+from qutip.istests import *
 import numpy as np
 import scipy.sparse as sp
 
@@ -67,7 +67,7 @@ def single_expect(oper,state):
                     prod = prod.tocsr()
                 num=prod.shape[0]
                 tr=0.0j
-                for j in xrange(num):
+                for j in range(num):
                     tr+=prod[j,j]
                 if oper.isherm and state.isherm:
                     return float(real(tr))

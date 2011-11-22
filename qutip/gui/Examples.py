@@ -16,10 +16,10 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from .. import examples
+import qutip.examples
 import sys,os,time
 from numpy import arange
-from ..examples import exconfig
+from qutip.examples import exconfig
 
 if os.environ['QUTIP_GUI']=="PYSIDE":
     from PySide import QtGui, QtCore

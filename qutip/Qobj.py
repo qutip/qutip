@@ -19,7 +19,7 @@
 from scipy import *
 import scipy.sparse as sp
 import scipy.linalg as la
-from istests import *
+from qutip.istests import *
 
 
 class Qobj():
@@ -266,19 +266,19 @@ class Qobj():
     def __str__(self):
         #return "Quantum object: ", dimensions = " + str(self.shape) + "\n" + str(self.data)
         if self.type=='oper' or self.type=='super':
-            print "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isHerm = "+str(self.isherm)
+            print("Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isHerm = "+str(self.isherm))
         else:
-            print "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type
-        print "Qobj data = "
-        print self.full()
+            print("Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type)
+        print("Qobj data = ")
+        print(self.full())
         return ""
     def __repr__(self):#give complete information on Qobj without print statement in commandline
         if self.type=='oper' or self.type=='super':
-            print "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isHerm = "+str(self.isherm)
+            print("Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isHerm = "+str(self.isherm))
         else:
-            print "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type
-        print "Qobj data = "
-        print self.full()
+            print("Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type)
+        print("Qobj data = ")
+        print(self.full())
         return ""
     #---functions acting on quantum objects---######################
     def dag(self):
@@ -509,7 +509,7 @@ def classcheck(inpt):
     """
     Checks for ESERIES class types
     """
-    from eseries import eseries
+    from qutip.eseries import eseries
     if isinstance(inpt,eseries):
         return 'eseries'
     else:

@@ -26,7 +26,7 @@ from ..propagator import *
 from pylab import *
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
-from termpause import termpause
+from .termpause import termpause
 
 
 #
@@ -34,23 +34,23 @@ from termpause import termpause
 #
 def propagatordemo():
 
-    print "== Demonstration of using a propagator to find the steady state of a driven system === "
+    print("== Demonstration of using a propagator to find the steady state of a driven system === ")
    
     # --------------------------------------------------------------------------
     termpause()
-    print """
+    print("""
     #
     # Define a hamiltonian: a strongly driven two-level system
     # (repeated LZ transitions)
     #
     def hamiltonian_t(t, args):
-        " evaluate the hamiltonian at time t"
+        " evaluate the hamiltonian at time t")
         H0 = args[0]
         H1 = args[1]
         w  = args[2]
     
         return H0 + cos(w * t) * H1
-    """
+    """)
     def hamiltonian_t(t, args):
         " evaluate the hamiltonian at time t"
         H0 = args[0]
@@ -61,7 +61,7 @@ def propagatordemo():
 
     # --------------------------------------------------------------------------
     termpause()
-    print """   
+    print("""   
     #
     # configure the parameters 
     #
@@ -73,7 +73,7 @@ def propagatordemo():
     psi0   = basis(2,0)    # initial state
     omega  = 0.05 * 2 * pi # driving frequency
     T      = (2*pi)/omega  # driving period
-    """
+    """)
 
     delta = 0.05 * 2 * pi  # qubit sigma_x coefficient
     eps0  = 0.0  * 2 * pi  # qubit sigma_z coefficient
@@ -86,7 +86,7 @@ def propagatordemo():
 
     # --------------------------------------------------------------------------
     termpause()
-    print """   
+    print("""   
     #
     # Hamiltonian
     #
@@ -98,7 +98,7 @@ def propagatordemo():
     H1 = - A/2.0 * sz
         
     H_args = (H0, H1, omega)
-    """
+    """)
 
     sx = sigmax()
     sz = sigmaz()
@@ -109,7 +109,7 @@ def propagatordemo():
 
     # --------------------------------------------------------------------------
     termpause()
-    print """   
+    print("""   
     #
     # collapse operators
     #
@@ -128,7 +128,7 @@ def propagatordemo():
     rate = gamma2
     if rate > 0.0:
         c_op_list.append(sqrt(rate) * sz)       # dephasing 
-    """
+    """)
 
     c_op_list = []
 
@@ -149,20 +149,20 @@ def propagatordemo():
 
     # --------------------------------------------------------------------------
     termpause()
-    print """   
+    print("""   
     #
     # evolve for five driving periods
     #
     tlist = linspace(0.0, 5 * T, 1500)
     p_ex = odesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
-    """
+    """)
 
     tlist = linspace(0.0, 5 * T, 1500)
     p_ex = odesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
 
     # --------------------------------------------------------------------------
     termpause()
-    print """   
+    print("""   
     #
     # find the propagator for one driving period
     #
@@ -176,7 +176,7 @@ def propagatordemo():
     rho_ss = propagator_steadystate(U)
 
     p_ex_ss = real(expect(sm.dag() * sm, rho_ss))
-    """
+    """)
 
     T = 2*pi / omega
     U = propagator(hamiltonian_t, T, c_op_list, H_args)
@@ -186,7 +186,7 @@ def propagatordemo():
 
     # --------------------------------------------------------------------------
     termpause()
-    print """   
+    print("""   
     #
     # plot the results
     #
@@ -209,7 +209,7 @@ def propagatordemo():
     ylabel('Coefficients in the Hamiltonian')
 
     show()
-    """
+    """)
     figure(1)
 
     subplot(211)

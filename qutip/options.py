@@ -31,7 +31,7 @@ def graphics(flag=None,value=None):
     """
     
     if flag==None and value==None:
-        print 'QUTIP_GRAPHICS: '+os.environ['QUTIP_GRAPHICS']+' (Use QuTiP GUI?)'
+        print('QUTIP_GRAPHICS: '+os.environ['QUTIP_GRAPHICS']+' (Use QuTiP GUI?)')
         if os.environ['QUTIP_GRAPHICS']=='YES':
-            print 'QUTIP_GUI: '+os.environ['QUTIP_GUI']+' (Current GUI backend.)'
+            print('QUTIP_GUI: '+os.environ['QUTIP_GUI']+' (Current GUI backend.)')
 

@@ -1,2 +1,2 @@
-from cy_mc_funcs import *
-from ode_rhs import *
+from qutip.cyQ.cy_mc_funcs import *
+from qutip.cyQ.ode_rhs import *
