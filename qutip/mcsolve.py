@@ -24,7 +24,7 @@ from qutip.expect import *
 import sys,os,time
 from qutip.istests import *
 from qutip.Odeoptions import Odeoptions
-import qutip.mcdata
+import qutip.mcdata as mcdata
 import datetime
 from multiprocessing import Pool,cpu_count
 from qutip.varargout import varargout
