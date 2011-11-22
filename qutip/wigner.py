@@ -25,7 +25,10 @@ from qutip.Qobj import *
 from qutip.ptrace import ptrace
 from qutip.states import *
 from qutip.istests import *
-
+try:#for scipy v <= 0.90
+    from scipy import factorial
+except:#for scipy v >= 0.10
+    from scipy.misc import factorial
     
 def wigner(psi,xvec,yvec,g=sqrt(2)):
     """
