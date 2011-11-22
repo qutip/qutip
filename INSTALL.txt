@@ -1,10 +1,10 @@
 ################################
 # QuTiP INSTALLATION GUIDE
-# Version: 1.1.0
+# Version: 1.1.3
 # P.D. Nation and J.R. Johansson
 ################################
 
-** A complete guide may be found at http://code.google.com/p/qutip/wiki/Installation **
+** A complete guide may be found at http://qutip.googlecode.com/svn/doc/1.1.3/html/installation.html **
 
 **********************
 * GENERAL REQUIREMENTS
@@ -25,39 +25,59 @@ GCC Compiler  4.2+	          Needed for compiling Cython files.
 UBUNTU LINUX (RECOMMENDED)
 --------------------------
 
-From the terminal:
+>>> sudo apt-get install python-scipy
+>>> sudo apt-get install python-pyside
+>>> sudo apt-get install python-setuptools
+>>> sudo apt-get install python-dev
 
-sudo apt-get install python-scipy
-sudo apt-get install python-pyside or sudo apt-get install python-qt4
-sudo apt-get install python-setuptools
+Ubuntu 11.04 and lower do not have Matplotlib>=1.0, and we therefore need to add the unofficial repository (in Ubuntu 11.10, skip this step)
 
-At present, Ubuntu 11.04 and lower do not have Matplotlib>=1.0 therefore we need to add the unofficial repository:
+>>> sudo add-apt-repository ppa:bgamari/matplotlib-unofficial
+>>> sudo apt-get update
 
-sudo add-apt-repository ppa:bgamari/matplotlib-unofficial
-sudo apt-get update
-sudo apt-get install python-matplotlib
+before running
+
+>>> sudo apt-get install python-matplotlib
 
 QuTiP installation:
 
-sudo python setup.py install
-
+>>> sudo python setup.py install
 
 APPLE MAC OSX (10.6+)
 ---------------------
-If you have not done so already, install the Apple XCode developer tools from the Apple App Store. 
+If you have not done so already, install the Apple XCode developer tools from the Apple App Store.
+
 On the Mac, it is recommended that you install the required libraries via MacPorts. 
-Otherwise, one can use the Enthought Python Distribution version 7.1 or higher to satisfy the QuTiP dependencies.
-A further possibility is to use the Scipy Superpack installer script.
+After installing with MacPorts, you may need to change your matplotlib backend
 
-Installing QuTiP is the same as on linux.  From the terminal:
+>>> sudo open -a TextEdit /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/\
+python2.7/site-packages/matplotlib/mpl-data/matplotlibrc
 
-sudo python setup.py install
+on line #31 to read:
 
+>>> backend      : MacOSX
+
+One can also use the Enthought Python Distribution version 7.1 or higher to satisfy the QuTiP dependencies.
+
+A further possibility is to use the Scipy Superpack installer script. 
+In order to have GUI elements using this method, you need to further install the Qt4 and PySide packages at:
+
+http://qt.nokia.com/downloads/qt-for-open-source-cpp-development-on-mac-os-x
+
+http://developer.qt.nokia.com/wiki/PySide_Binaries_MacOSX
+
+Installing QuTiP is the same as on linux. From the QuTiP directory:
+
+>>> sudo python setup.py install
 
 MICROSOFT WINDOWS
 -----------------
-We recommend the Enthought Python Distribution version 7.1 or higher to satisfy the QuTiP dependencies. 
-QuTiP has also been reported to work out-of-the-box with Python(x,y).
+The developers of QuTiP have not touched Windows in several years, and will be continuing this trend for the foreseeable future. 
+Therefore we recommend the Enthought Python Distribution version 7.1 or higher to satisfy the QuTiP dependencies. 
+QuTiP has also been reported to work out-of-the-box with Python(x,y). 
+In Python(x,y), QuTiP may be installed using:
+
+>>> python setup.py install build --compiler=mingw32
 
 
 

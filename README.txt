@@ -95,7 +95,7 @@ USER GUIDE
 
 An in-depth user guide may be found at the QuTiP homepage:
 
-http://code.google.com/p/qutip/wiki/Guide        
+http://qutip.googlecode.com/svn/doc/1.1.3/html/index.html       
         
         
 DEMO SCRIPTS
