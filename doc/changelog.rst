@@ -4,6 +4,31 @@
 Change Log
 **********
 
+Version 1.1.3 [svn-1450] (November 21, 2011):
++++++++++++++++++++++++++++++++++++++++++++++
+
+New Functions:
+--------------
+
+SVN-1347: Allow custom naming of Bloch sphere.
+
+Bug Fixes:
+----------
+SVN-1450: Fixed text alignment issues in AboutBox.
+
+SVN-1448: Added fix for SciPy V>0.10 where factorial was moved to scipy.misc module.
+
+SVN-1447: Added tidyup function to tensor function output.
+
+SVN-1442: Removed openmp flags from setup.py as new Mac Xcode compiler does not recognize them.
+
+SVN-1435: Qobj diag method now returns real array if all imaginary parts are zero.
+
+SVN-1434: Examples GUI now links to new documentation.
+
+SVN-1415: Fixed zero-dimensional array output from metrics module.
+
+
 Version 1.1.2 [svn-1218] (October 27, 2011)
 +++++++++++++++++++++++++++++++++++++++++++
 
