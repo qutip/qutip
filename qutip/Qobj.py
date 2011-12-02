@@ -263,23 +263,22 @@ class Qobj():
             return Qobj(data,dims=self.dims,shape=self.shape)
         except:
             raise ValueError('Invalid choice of exponent.')
+            
     def __str__(self):
-        #return "Quantum object: ", dimensions = " + str(self.shape) + "\n" + str(self.data)
+        s = ""
         if self.type=='oper' or self.type=='super':
-            print("Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isHerm = "+str(self.isherm))
+            s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isHerm = "+str(self.isherm)
         else:
-            print("Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type)
-        print("Qobj data = ")
-        print(self.full())
-        return ""
+            s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type
+        s += "Qobj data = "
+        s += str(self.full())
+        return s
+        
     def __repr__(self):#give complete information on Qobj without print statement in commandline
-        if self.type=='oper' or self.type=='super':
-            print("Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isHerm = "+str(self.isherm))
-        else:
-            print("Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type)
-        print("Qobj data = ")
-        print(self.full())
-        return ""
+        # we cant realistically serialize a Qobj into a string, so we simply
+        # return the informal __str__ representation instead.
+        return self.__str__()
+
     #---functions acting on quantum objects---######################
     def dag(self):
         """
