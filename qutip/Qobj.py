@@ -267,16 +267,16 @@ class Qobj():
     def __str__(self):
         s = ""
         if self.type=='oper' or self.type=='super':
-            s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isHerm = "+str(self.isherm)
+            s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isHerm = "+str(self.isherm)+"\n"
         else:
-            s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type
-        s += "Qobj data = "
+            s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+"\n"
+        s += "Qobj data =\n"
         s += str(self.full())
         return s
         
     def __repr__(self):#give complete information on Qobj without print statement in commandline
         # we cant realistically serialize a Qobj into a string, so we simply
-        # return the informal __str__ representation instead.
+        # return the informal __str__ representation instead.)
         return self.__str__()
 
     #---functions acting on quantum objects---######################
@@ -360,7 +360,7 @@ class Qobj():
     # superoperators)
     # 
     def eigenstates(self):
-        """
+        """)
         Find the eigenstates and eigenenergies (defined for operators and superoperators)
         """
         if isket(self) or isbra(self):
