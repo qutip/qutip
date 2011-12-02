@@ -24,7 +24,7 @@ from qutip.Qobj import *
 from qutip.superoperator import *
 from qutip.expect import *
 from qutip.Odeoptions import Odeoptions
-from qutip.cyQ.ode_rhs import cyq_ode_rhs
+from qutip.cyQ.ode_rhs import cyq_ode_rhs, parallel_cyq_ode_rhs
 
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
