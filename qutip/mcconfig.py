@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+# Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
 Hdata=None  # List of sparse matrix data
@@ -22,4 +22,4 @@ Hptrs=None  # List of sparse matrix ptrs
 cflag=0     # Flag signaling collapse operators
 tflag=0     # Flag signaling time-dependent problem
 cgen_num=0  # Number of times codegen function has been called in current Python session.
-tdfunc=None
+tdfunc=None # Placeholder for time-dependent RHS function.

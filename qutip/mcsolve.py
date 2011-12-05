@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+# Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
 from scipy import *
@@ -26,16 +26,15 @@ from qutip.istests import *
 from qutip.Odeoptions import Odeoptions
 import qutip.mcconfig as mcconfig
 from multiprocessing import Pool,cpu_count
-from qutip.varargout import varargout
 from types import FunctionType
 from qutip.tidyup import tidyup
 from qutip.cyQ.cy_mc_funcs import mc_expect,spmv
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
 import os,numpy,datetime
+from Mcdata import Mcdata
 
 def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeoptions()):
-    vout=varargout()
     """
     Monte-Carlo evolution of a state vector |psi> for a given
     Hamiltonian and sets of collapse operators and operators
@@ -64,30 +63,8 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
     
     Returns:
         
-        Collapse ops  Expectation ops  Num. of outputs  Return value(s)
-        ------------  ---------------  ---------------  ---------------
-            NO	            NO	              1	         List of state vectors
-            
-            NO	            YES	              1	         List of expectation values
-            
-            YES	            NO	              1          List of state vectors for each trajectory
-            
-            YES	            NO	              2	         List of state vectors for each trajectory 
-                                                         + List of collapse times for each trajectory
-                                                         
-            YES	            NO	              3	         List of state vectors for each trajectory 
-                                                         + List of collapse times for each trajectory 
-                                                         + List of which operator did collapse for each trajectory
-                                                         
-            YES	            YES	              1	         List of expectation values for each trajectory
-            
-            YES	            YES	              2	         List of expectation values for each trajectory 
-                                                         + List of collapse times for each trajectory
-                                                         
-            YES	            YES	              3	         List of expectation values for each trajectory 
-                                                         + List of collapse times for each trajectory 
-                                                         + List of which operator did collapse for each trajectory
-    
+        Mcdata object storing all results from simulation.
+        
     """
     #if Hamiltonian is time-dependent (list style)
     if isinstance(H,list):
@@ -131,24 +108,16 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
     if mcconfig.tflag==1:
         os.remove("rhs"+str(mcconfig.cgen_num)+".pyx")
         mcconfig.cgen_num+=1
-    if mc.num_collapse==0 and mc.num_expect==0:
-        return mc.psi_out
-    elif mc.num_collapse==0 and mc.num_expect!=0:
-        return mc.expect_out
-    elif mc.num_collapse!=0 and mc.num_expect==0:
-        if vout==2:
-            return mc.psi_out,mc.collapse_times_out
-        elif vout==3:
-            return mc.psi_out,mc.collapse_times_out,mc.which_op_out
-        else:
-            return mc.psi_out
-    elif mc.num_collapse!=0 and mc.num_expect!=0:
-        if vout==2:
-            return sum(mc.expect_out,axis=0)/float(ntraj),mc.collapse_times_out
-        elif vout==3:
-            return sum(mc.expect_out,axis=0)/float(ntraj),mc.collapse_times_out,mc.which_op_out
-        else:
-            return sum(mc.expect_out,axis=0)/float(ntraj)
+    output=Mcdata()
+    output.times=mc.times
+    output.state=mc.psi_out
+    output.expect=sum(mc.expect_out,axis=0)/float(ntraj)
+    output.num_expect=mc.num_expect
+    output.num_collapse=mc.num_collapse
+    output.ntraj=mc.ntraj
+    output.collapse_times=mc.collapse_times_out
+    output.collapse_which=mc.which_op_out
+    return output
 
 
 #--Monte-Carlo class---
@@ -202,6 +171,11 @@ class MC_class():
         self.seed=None
         self.st=None #for expected time to completion
         self.cpus=int(os.environ['NUM_THREADS'])
+        #set output variables, even if they are not used to simplify output code.
+        self.psi_out=None
+        self.expect_out=None
+        self.collapse_times_out=None
+        self.which_op_out=None
         #FOR EVOLUTION FOR NO COLLAPSE OPERATORS---------------------------------------------
         if self.num_collapse==0:
             if self.num_expect==0:
