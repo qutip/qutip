@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+# Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
 
@@ -61,6 +61,7 @@ if os.environ['QUTIP_GRAPHICS']=="YES":
             os.environ['QUTIP_GRAPHICS']="NO"
             os.environ['QUTIP_GUI']="NONE"
 #----------------------------------------------------
+import __future__
 from scipy import *
 import scipy.linalg as la
 import scipy.sparse as sp
@@ -78,6 +79,7 @@ from qutip.expect import *
 from qutip.gates import *
 from qutip.istests import *
 from qutip.Odeoptions import Odeoptions
+from qutip.Mcdata import Mcdata
 from qutip.mcsolve import mcsolve
 from qutip.metrics import fidelity,tracedist
 from qutip.odesolve import odesolve
