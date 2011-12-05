@@ -125,7 +125,8 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
 
     mc=MC_class(psi0,tlist,ntraj,collapse_ops,expect_ops,options)
     mc.run()
-    os.remove("rhs"+str(mcdata.cgen_num)+".pyx")
+    if mcdata.tflag==1:
+        os.remove("rhs"+str(mcdata.cgen_num)+".pyx")
     mcdata.cgen_num+=1
     if mc.num_collapse==0 and mc.num_expect==0:
         return mc.psi_out
