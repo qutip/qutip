@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+# Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
 from ..states import *
@@ -82,21 +82,21 @@ def mcthermal():
     print('')
     print('#run Monte-Carlo to get state vectors')
     print('tlist=linspace(0,2.5,50)')
-    print('states=mcsolve(H,psi0,tlist,1,[],[])')
+    print('mcdata=mcsolve(H,psi0,tlist,1,[],[])')
     #run Monte-Carlo
     tlist=linspace(0,2.5,50)
-    states=mcsolve(H,psi0,tlist,1,[],[])
+    mcdata=mcsolve(H,psi0,tlist,1,[],[])
 
     print('')
     print('extract mode 1 only')
-    print('mode1=[ptrace(k,1) for k in states]')
-    mode1=[ptrace(k,1) for k in states]
+    print('mode1=[ptrace(k,1) for k in mcdata.states]')
+    mode1=[ptrace(k,1) for k in mcdata.states]
     print('get diagonal elements from density matricies')
     print('diags1=[real(k.diag()) for k in mode1]')
     diags1=[real(k.diag()) for k in mode1]
     print('calculate expectation values for mode 1 particles')
     print('num1=[expect(num1,k) for k in states]')
-    num1=[expect(num1,k) for k in states]
+    num1=[expect(num1,k) for k in mcdata.states]
     print('calculate thermal number state probabilites from num1')
     print('thermal=[thermal_dm(N1,k).diag() for k in num1]')
     thermal=[thermal_dm(N1,k).diag() for k in num1]

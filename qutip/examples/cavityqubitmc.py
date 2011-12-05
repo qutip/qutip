@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+# Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
 
@@ -89,20 +89,20 @@ def cavityqubitmc():
     #intial state
     psi0=tensor(basis(N,0),basis(2,1))
     print('#run monte-carlo solver')
-    print('avg=mcsolve(H,psi0,tlist,ntraj,[C1,C2],[C1dC1,C2dC2])')
+    print('data=mcsolve(H,psi0,tlist,ntraj,[C1,C2],[C1dC1,C2dC2])')
     #run monte-carlo solver
     stime=time.time()
-    avg=mcsolve(H,psi0,tlist,ntraj,[C1,C2],[C1dC1,C2dC2])
+    data=mcsolve(H,psi0,tlist,ntraj,[C1,C2],[C1dC1,C2dC2])
     print('Elapsed time: ',time.time()-stime)
     print('')
     print('Plot results...')
     termpause()
-    print("plot(tlist,avg[0],tlist,avg[1],'--',lw=1.5)")
+    print("plot(tlist,data.expect[0],tlist,data.expect[1],'--',lw=1.5)")
     print("xlabel('Time')")
     print("ylabel('Photocount rates')")
     print("legend(('Cavity output', 'Spontaneous emission'))")
     print('show()')
-    plot(tlist,avg[0],tlist,avg[1],'--',lw=1.5)
+    plot(tlist,data.expect[0],tlist,data.expect[1],'--',lw=1.5)
     xlabel('Time')
     ylabel('Photocount rates')
     legend(('Cavity output', 'Spontaneous emission') )

@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+# Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
 from ..states import *
@@ -74,25 +74,25 @@ def thermalss():
     print('')
     print('ntraj=100')
     print('tlist=linspace(0,50,100)')
-    print('mcexpt = mcsolve(H,psi0,tlist,ntraj,c_op_list, [a.dag()*a]) #monte-carlo')
+    print('mcdata = mcsolve(H,psi0,tlist,ntraj,c_op_list, [a.dag()*a]) #monte-carlo')
     print('meexpt = odesolve(H,psi0,tlist,c_op_list, [a.dag()*a])      #master eq.')
     ntraj=100
     tlist=linspace(0,50,100)
-    mcexpt = mcsolve(H,psi0,tlist,ntraj,c_op_list, [a.dag()*a]) #monte-carlo
+    mcdata = mcsolve(H,psi0,tlist,ntraj,c_op_list, [a.dag()*a]) #monte-carlo
     meexpt = odesolve(H,psi0,tlist,c_op_list, [a.dag()*a])      #master eq.
 
     print('')
     print('Plot results...')
     termpause()
     
-    print('plot(tlist,mcexpt[0],tlist,meexpt[0],lw=1.5)')
+    print('plot(tlist,mcdata.expect[0],tlist,meexpt[0],lw=1.5)')
     print("axhline(y=fexpt,color='r',lw=1.5) #plot steady-state expt. value as horizontal line (should be 2)")
     print('ylim([0,10])')
     print("xlabel('Time')")
     print("ylabel('Number of excitations')")
     print('show()')
     
-    plot(tlist,mcexpt[0],tlist,meexpt[0],lw=1.5)
+    plot(tlist,mcdata.expect[0],tlist,meexpt[0],lw=1.5)
     axhline(y=fexpt,color='r',lw=1.5) #plot steady-state expt. value as horizontal line (should be 2)
     ylim([0,10])
     xlabel('Time')

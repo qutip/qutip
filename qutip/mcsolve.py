@@ -110,8 +110,9 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
         mcconfig.cgen_num+=1
     output=Mcdata()
     output.times=mc.times
-    output.state=mc.psi_out
-    output.expect=sum(mc.expect_out,axis=0)/float(ntraj)
+    output.states=mc.psi_out
+    if mc.expect_out:
+        output.expect=sum(mc.expect_out,axis=0)/float(ntraj)
     output.num_expect=mc.num_expect
     output.num_collapse=mc.num_collapse
     output.ntraj=mc.ntraj

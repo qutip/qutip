@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+# Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
 from ..states import *
@@ -91,21 +91,21 @@ def trilinearmc():
     #trilinear Hamiltonian
     H=1j*(a0*a1.dag()*a2.dag()-a0.dag()*a1*a2)
     print('#run Monte-Carlo')
-    print('expt=mcsolve(H,psi0,tlist,ntraj,[C0,C1,C2],[num0,num1,num2])')
+    print('mcdata=mcsolve(H,psi0,tlist,ntraj,[C0,C1,C2],[num0,num1,num2])')
     #run Monte-Carlo
-    expt=mcsolve(H,psi0,tlist,ntraj,[C0,C1,C2],[num0,num1,num2])
+    mcdata=mcsolve(H,psi0,tlist,ntraj,[C0,C1,C2],[num0,num1,num2])
     
     print('')
     print('Plot results...')
     termpause()
     print('fig=figure()')
-    print('plot(tlist,expt[0],tlist,expt[1],tlist,expt[2])')
+    print('plot(tlist,mcdata.expect[0],tlist,mcdata.expect[1],tlist,mcdata.expect[2])')
     print('xlabel("Time")')
     print('ylabel("Average number of particles")')
     print("legend(('Mode 0', 'Mode 1','Mode 2') )")
     print('show()')
     fig=figure()
-    plot(tlist,expt[0],tlist,expt[1],tlist,expt[2])
+    plot(tlist,mcdata.expect[0],tlist,mcdata.expect[1],tlist,mcdata.expect[2])
     xlabel("Time")
     ylabel("Average number of particles")
     legend(('Mode 0', 'Mode 1','Mode 2') )

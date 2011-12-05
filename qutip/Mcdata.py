@@ -27,7 +27,7 @@ class Mcdata():
         #: Array of times at which state vector was evaluated.
         self.times=None
         #: Array of state vectors if mcsolve was run without expectation operators.
-        self.state=None
+        self.states=None
         #: Array of expectation values if mcsolve was called with expectation operators.
         self.expect=None
         #: Number of expectation operators (if any).
