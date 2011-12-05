@@ -180,14 +180,19 @@ def file_data_read(datafile, sep=None):
 
     return data
 
-def qsave(data=None,filename='qdata'):
+def qsave(data,filename='qutip_data'):
     """
-    Saves given data to file named 'filename.qu'
+    Saves given data to file named 'filename.qu' in current directory.
     
     Parameter data input data to be stored
     Parameter filename *str* name of datafile
     
     """
+    num=0
+    import os.path
+    while os.path.isfile(filename+'.qu'):
+        filename=filename+'-'+str(num)
+        num+=1
     fileObject = open(filename+'.qu','w') # open the file for writing
     pickle.dump(data,fileObject)   # this writes the object a to the file named 'filename.qu'
     fileObject.close()
@@ -195,7 +200,7 @@ def qsave(data=None,filename='qdata'):
 
 def qload(filename):
     """
-    Loads data file from file named 'filename.qu'
+    Loads data file from file named 'filename.qu' in current directory.
     
     Parameter filename *str* name of datafile
     
