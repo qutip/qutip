@@ -19,6 +19,7 @@
 ##
 #Class of options for ODE solvers.
 #
+import os
 class Odeoptions():
     """
     Class of options for ODE solver used by 'odesolve' and 'mcsolve'
@@ -42,10 +43,14 @@ class Odeoptions():
         self.order=12
         #: tidyup Hamiltonian before calculation (default = True)
         self.tidy=True
+        #: Number of processors to use (mcsolve only)
+        self.num_cpus=int(os.environ['NUM_THREADS'])
+        #: Use parallel spmv (odesolver & mcsolver with no collapse operators only)
+        self.parallel=False
     def __str__(self):
         print("Odeoptions properties:")
         print("----------------------")
-        print('atol:       ',self.atol)
+        print("atol:       ",self.atol)
         print('rtol:       ',self.rtol)
         print('method:     ',self.method)
         print('order:      ',self.order)
@@ -54,8 +59,7 @@ class Odeoptions():
         print('min_step:   ',self.min_step)
         print('max_step:   ',self.max_step)
         print('tidy:       ',self.tidy)
+        print('num_cpus:   ',self.num_cpus)
+        print('parallel:   ',self.parallel)
         return ''
 
-
-if __name__ == "__main__":
-    print(Odeoptions())
