@@ -24,7 +24,7 @@ from qutip.expect import *
 import sys,os,time
 from qutip.istests import *
 from qutip.Odeoptions import Odeoptions
-import qutip.mcdata as mcdata
+import qutip.mcconfig as mcconfig
 from multiprocessing import Pool,cpu_count
 from qutip.varargout import varargout
 from types import FunctionType
@@ -97,37 +97,40 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
             raise TypeError('Time-dependent Hamiltonians must be list with two or more terms')
         if (not isinstance(H[1],(list,ndarray))) or (len(H[1])!=(len(H[0])-1)):
             raise TypeError('Time-dependent coefficients must be list with length N-1 where N is the number of Hamiltonian terms.')
-        mcdata.tflag=1
+        mcconfig.tflag=1
         lenh=len(H[0])
-        mcdata.Hdata=array([H[0][k].data.data for k in range(lenh)])
-        mcdata.Hinds=array([H[0][k].data.indices for k in range(lenh)])
-        mcdata.Hptrs=array([H[0][0].data.indptr for k in range(lenh)])
+        if options.tidy:
+            H[0]=[tidyup(H[0][k]) for k in range(lenh)]
+        #create data arrays for time-dependent RHS function
+        mcconfig.Hdata=array([H[0][k].data.data for k in range(lenh)])
+        mcconfig.Hinds=array([H[0][k].data.indices for k in range(lenh)])
+        mcconfig.Hptrs=array([H[0][0].data.indptr for k in range(lenh)])
         if len(collapse_ops)>0:
-            mcdata.cflag=1
+            mcconfig.cflag=1
             Hc=0
             for c_op in collapse_ops:
                 Hc -= 0.5j * (c_op.dag()*c_op)
-            mcdata.Hdata[0]=mcdata.Hdata[0]+Hc.data.data
-        mcdata.Hdata=-1.0j*mcdata.Hdata
-        #run codegenerator
+            mcconfig.Hdata[0]=mcconfig.Hdata[0]+Hc.data.data
+        mcconfig.Hdata=-1.0j*mcconfig.Hdata
+        #run code generator
         cgen=Codegen(lenh,H[1],H_args)
-        cgen.generate("rhs"+str(mcdata.cgen_num)+".pyx")
+        cgen.generate("rhs"+str(mcconfig.cgen_num)+".pyx")
     #if Hamiltonian is time-independent
     else:
         for c_op in collapse_ops:
             H -= 0.5j * (c_op.dag()*c_op)
         if options.tidy:
             H=tidyup(H,options.atol)
-        mcdata.Hdata=-1.0j*H.data.data
-        mcdata.Hinds=H.data.indices
-        mcdata.Hptrs=H.data.indptr
+        mcconfig.Hdata=-1.0j*H.data.data
+        mcconfig.Hinds=H.data.indices
+        mcconfig.Hptrs=H.data.indptr
 
 
     mc=MC_class(psi0,tlist,ntraj,collapse_ops,expect_ops,options)
     mc.run()
-    if mcdata.tflag==1:
-        os.remove("rhs"+str(mcdata.cgen_num)+".pyx")
-        mcdata.cgen_num+=1
+    if mcconfig.tflag==1:
+        os.remove("rhs"+str(mcconfig.cgen_num)+".pyx")
+        mcconfig.cgen_num+=1
     if mc.num_collapse==0 and mc.num_expect==0:
         return mc.psi_out
     elif mc.num_collapse==0 and mc.num_expect!=0:
@@ -261,15 +264,15 @@ class MC_class():
             pl.join()
         return
     def run(self):
-        if mcdata.tflag==1: #compile time-depdendent RHS code
+        if mcconfig.tflag==1: #compile time-depdendent RHS code
             print 'Compiling...'
             os.environ['CFLAGS'] = '-w'
             import pyximport
             pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-            code = compile('from rhs'+str(mcdata.cgen_num)+' import cyq_td_ode_rhs', '<string>', 'exec')
+            code = compile('from rhs'+str(mcconfig.cgen_num)+' import cyq_td_ode_rhs', '<string>', 'exec')
             exec(code)
             print 'Done.'
-            mcdata.tdfunc=cyq_td_ode_rhs
+            mcconfig.tdfunc=cyq_td_ode_rhs
         if self.num_collapse==0:
             if self.ntraj!=1:#check if ntraj!=1 which is pointless for no collapse operators
                 print('No collapse operators specified.\nRunning a single trajectory only.\n')
@@ -307,13 +310,13 @@ class MC_class():
 def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
     ##Calculates state vectors at times tlist if no collapse AND no expectation values are given.
     #
-    if mcdata.tflag==1:
-        ODE=ode(mcdata.tdfunc)
-        ODE.set_f_params(mcdata.Hdata, mcdata.Hinds, mcdata.Hptrs)
+    if mcconfig.tflag==1:
+        ODE=ode(mcconfig.tdfunc)
+        ODE.set_f_params(mcconfig.Hdata, mcconfig.Hinds, mcconfig.Hptrs)
     else:
         #ODE=ode(RHS)
         ODE = ode(cyq_ode_rhs)
-        ODE.set_f_params(mcdata.Hdata, mcdata.Hinds, mcdata.Hptrs)
+        ODE.set_f_params(mcconfig.Hdata, mcconfig.Hinds, mcconfig.Hptrs)
         
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
@@ -333,12 +336,12 @@ def no_collapse_expect_out(opt,psi_in,tlist,expect_ops,num_expect,num_times,psi_
     ##Calculates xpect.values at times tlist if no collapse ops. given
     #  
     #------------------------------------
-    if mcdata.tflag==1:
-        ODE=ode(mcdata.tdfunc)
-        ODE.set_f_params(mcdata.Hdata, mcdata.Hinds, mcdata.Hptrs)
+    if mcconfig.tflag==1:
+        ODE=ode(mcconfig.tdfunc)
+        ODE.set_f_params(mcconfig.Hdata, mcconfig.Hinds, mcconfig.Hptrs)
     else:
         ODE = ode(cyq_ode_rhs)
-        ODE.set_f_params(mcdata.Hdata, mcdata.Hinds, mcdata.Hptrs)
+        ODE.set_f_params(mcconfig.Hdata, mcconfig.Hinds, mcconfig.Hptrs)
 
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
@@ -382,12 +385,12 @@ def mc_alg_evolve(nt,args):
     random.seed(seeds[nt])
     rand_vals=random.rand(2)#first rand is collapse norm, second is which operator
     #CREATE ODE OBJECT CORRESPONDING TO RHS
-    if mcdata.tflag==1:
-        ODE=ode(mcdata.tdfunc)
-        ODE.set_f_params(mcdata.Hdata, mcdata.Hinds, mcdata.Hptrs)
+    if mcconfig.tflag==1:
+        ODE=ode(mcconfig.tdfunc)
+        ODE.set_f_params(mcconfig.Hdata, mcconfig.Hinds, mcconfig.Hptrs)
     else:
         ODE = ode(cyq_ode_rhs)
-        ODE.set_f_params(mcdata.Hdata, mcdata.Hinds, mcdata.Hptrs)
+        ODE.set_f_params(mcconfig.Hdata, mcconfig.Hinds, mcconfig.Hptrs)
 
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
