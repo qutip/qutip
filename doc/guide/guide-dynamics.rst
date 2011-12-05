@@ -339,6 +339,8 @@ the properties and default values of this class can be view via the `print` comm
     min_step:    0
     max_step:    0
     tidy:        True
+    num_cpus:    8
+    parallel:    False
 
 These properties are detailed in the following table.  Assuming ``opts=Odeoptions()``:
 
@@ -363,6 +365,11 @@ These properties are detailed in the following table.  Assuming ``opts=Odeoption
 +-----------------+-----------------+----------------------------------------------------------------+
 | opts.tidy       | True            | Whether to run tidyup function on time-independent Hamiltonian.| 
 +-----------------+-----------------+----------------------------------------------------------------+
+| opts.num_cpus   | # of processors | Number of cpu's used by mcsolve.                               | 
++-----------------+-----------------+----------------------------------------------------------------+
+| opts.parallel   | False           | Whether to use parallel sparse matrix-vector multiplication.   | 
++-----------------+-----------------+----------------------------------------------------------------+
+
 As an example, let us consider relaxing the conditions on the ODE solver::
 
     >>> opts.atol=1e-10
@@ -381,6 +388,8 @@ As an example, let us consider relaxing the conditions on the ODE solver::
     min_step:    0
     max_step:    0
     tidy:        True
+    num_cpus:    8
+    parallel:    False
 
 To use these new settings we can use the keyword argument `options` in either the `odesolve` or `mcsolve` function.  We can modify the last example as::
 
