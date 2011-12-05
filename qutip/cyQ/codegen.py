@@ -33,10 +33,10 @@ class Codegen():
     def write(self,string):
         self.code.append(self.tab*self.level+string+"\n")
     #open file called filename for writing    
-    def file(self,filename="rhs.pyx"):
+    def file(self,filename):
         self.file=open(filename,"w")
     #generate the file    
-    def generate(self):
+    def generate(self,filename="rhs.pyx"):
         self.time_vars()
         for line in cython_preamble()+cython_checks()+self.func_header():
             self.write(line)
@@ -47,9 +47,9 @@ class Codegen():
             self.write(line)
         self.write(self.func_end())
         self.dedent()
-        for line in cython_checks()+cython_spmv():
+        for line in cython_checks()+cython_spmv()+cython_checks()+parallel_cython_spmv():
             self.write(line)
-        self.file()
+        self.file(filename)
         self.file.writelines(self.code)
         self.file.close()
     #increase indention level by one
@@ -65,7 +65,7 @@ class Codegen():
         Creates function header for time-dependent ODE RHS.
         """
         func_name="def cyq_td_ode_rhs("
-        input_vars="float t, np.ndarray[CTYPE_t, ndim=2] vec, " #strings for time and vector variables
+        input_vars="float t, np.ndarray[CTYPE_t, ndim=1] vec, " #strings for time and vector variables
         input_vars+="np.ndarray[CTYPE_t, ndim=2] data"+", np.ndarray[int, ndim=2] idx"+", np.ndarray[int, ndim=2] ptr"
         func_end="):"
         return [func_name+input_vars+func_end]
@@ -94,7 +94,7 @@ class Codegen():
                 kind=type(elem[1]).__name__
                 func_vars.append("cdef "+kind+" "+elem[0]+" = "+str(elem[1]))
         func_vars.append(" ") #add a spacer line between variables and Hamiltonian components.
-        for ht in range(len(self.hterms)):
+        for ht in range(self.hterms):
             hstr=str(ht)
             str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data["+hstr+"],"+"idx["+hstr+"],"+"ptr["+hstr+"],"+"vec"+")"
             if ht!=0:
@@ -107,7 +107,7 @@ class Codegen():
         """
         func_terms=["","for row in range(num_rows):"]
         sum_string="\tout[row,0] = Hvec0[row,0]"
-        for ht in range(1,len(self.hterms)):
+        for ht in range(1,self.hterms):
             sum_string+=" + Hvec"+str(ht)+"[row,0]"
         func_terms.append(sum_string)
         return func_terms
@@ -123,10 +123,11 @@ def cython_preamble():
     line1="import numpy as np"
     line2="cimport numpy as np"
     line3="cimport cython"
-    line4=""
-    line5="ctypedef np.complex128_t CTYPE_t"
-    line6="ctypedef np.float64_t DTYPE_t"
-    return [line0,line1,line2,line3,line4,line5,line6]
+    line4="from cython.parallel cimport prange"
+    line5=""
+    line6="ctypedef np.complex128_t CTYPE_t"
+    line7="ctypedef np.float64_t DTYPE_t"
+    return [line0,line1,line2,line3,line4,line5,line6,line7]
 
 def cython_checks():
     """
@@ -143,7 +144,7 @@ def cython_spmv():
     """
     Writes SPMV function.
     """
-    line0="def spmv(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=2] vec):"
+    line0="def spmv(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=1] vec):"
     line1="\tcdef Py_ssize_t row"
     line2="\tcdef int jj,row_start,row_end"
     line3="\tcdef int num_rows=len(vec)"
@@ -154,7 +155,27 @@ def cython_spmv():
     line8="\t\trow_start = ptr[row]"
     line9="\t\trow_end = ptr[row+1]"
     lineA="\t\tfor jj in range(row_start,row_end):"
-    lineB="\t\t\tdot+=data[jj]*vec[idx[jj],0]"
+    lineB="\t\t\tdot=dot+data[jj]*vec[idx[jj]]"
+    lineC="\t\tout[row,0]=dot"
+    lineD="\treturn out"
+    return [line0,line1,line2,line3,line4,line5,line6,line7,line8,line9,lineA,lineB,lineC,lineD]
+
+def parallel_cython_spmv():
+    """
+    Writes parallel SPMV function.
+    """
+    line0="def parallel_spmv(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=1] vec):"
+    line1="\tcdef Py_ssize_t row"
+    line2="\tcdef int jj,row_start,row_end"
+    line3="\tcdef int num_rows=len(vec)"
+    line4="\tcdef complex dot"
+    line5="\tcdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)"
+    line6="\tfor row in prange(num_rows,nogil=True):"
+    line7="\t\tdot=0.0"
+    line8="\t\trow_start = ptr[row]"
+    line9="\t\trow_end = ptr[row+1]"
+    lineA="\t\tfor jj in range(row_start,row_end):"
+    lineB="\t\t\tdot=dot+data[jj]*vec[idx[jj]]"
     lineC="\t\tout[row,0]=dot"
     lineD="\treturn out"
     return [line0,line1,line2,line3,line4,line5,line6,line7,line8,line9,lineA,lineB,lineC,lineD]

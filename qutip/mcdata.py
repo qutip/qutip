@@ -16,9 +16,10 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-H=0
-Hfunc=None
-Hargs=None
-Hcoll=0
-cflag=0
-tflag=0
+Hdata=None  # List of sparse matrix data
+Hinds=None  # List of sparse matrix indices
+Hptrs=None  # List of sparse matrix ptrs
+cflag=0     # Flag signaling collapse operators
+tflag=0     # Flag signaling time-dependent problem
+cgen_num=0  # Number of times codegen function has been called in current Python session.
+tdfunc=None
