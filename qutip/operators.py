@@ -281,7 +281,7 @@ def num(N):
          [0 0 0 3]]
     
     """
-    data=sp.spdiags(arange(N),0,N,N,dtype=complex,format='csr')
+    data=sp.spdiags(arange(N),0,N,N,format='csr')
     return Qobj(data)
 
 
