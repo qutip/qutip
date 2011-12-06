@@ -66,7 +66,10 @@ class Codegen():
         """
         func_name="def cyq_td_ode_rhs("
         input_vars="float t, np.ndarray[CTYPE_t, ndim=1] vec, " #strings for time and vector variables
-        input_vars+="np.ndarray[CTYPE_t, ndim=2] data"+", np.ndarray[int, ndim=2] idx"+", np.ndarray[int, ndim=2] ptr"
+        for k in range(self.hterms):
+            input_vars+="np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k)
+            if k!=self.hterms-1:
+                input_vars+=","
         func_end="):"
         return [func_name+input_vars+func_end]
     def time_vars(self):
@@ -96,7 +99,7 @@ class Codegen():
         func_vars.append(" ") #add a spacer line between variables and Hamiltonian components.
         for ht in range(self.hterms):
             hstr=str(ht)
-            str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data["+hstr+"],"+"idx["+hstr+"],"+"ptr["+hstr+"],"+"vec"+")"
+            str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data"+hstr+","+"idx"+hstr+","+"ptr"+hstr+","+"vec"+")"
             if ht!=0:
                 str_out+="*"+self.tdterms[ht-1]
             func_vars.append(str_out)

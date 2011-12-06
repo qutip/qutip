@@ -23,3 +23,4 @@ cflag=0     # Flag signaling collapse operators
 tflag=0     # Flag signaling time-dependent problem
 cgen_num=0  # Number of times codegen function has been called in current Python session.
 tdfunc=None # Placeholder for time-dependent RHS function.
+string=None

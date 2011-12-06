@@ -77,18 +77,21 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
         mcconfig.tflag=1
         lenh=len(H[0])
         if options.tidy:
-            H[0]=[tidyup(H[0][k]) for k in range(lenh)]
-        #create data arrays for time-dependent RHS function
-        mcconfig.Hdata=array([H[0][k].data.data for k in range(lenh)])
-        mcconfig.Hinds=array([H[0][k].data.indices for k in range(lenh)])
-        mcconfig.Hptrs=array([H[0][0].data.indptr for k in range(lenh)])
+            Hlts=[tidyup(H[0][k]) for k in range(lenh)]
         if len(collapse_ops)>0:
             mcconfig.cflag=1
-            Hc=0
             for c_op in collapse_ops:
-                Hc -= 0.5j * (c_op.dag()*c_op)
-            mcconfig.Hdata[0]=mcconfig.Hdata[0]+Hc.data.data
-        mcconfig.Hdata=-1.0j*mcconfig.Hdata
+                Hlts[0]=Hlts[0]-0.5j*(c_op.dag()*c_op)
+        #create data arrays for time-dependent RHS function
+        mcconfig.Hdata=array([-1.0j*Hlts[k].data.data for k in range(lenh)])
+        mcconfig.Hinds=array([Hlts[k].data.indices for k in range(lenh)])
+        mcconfig.Hptrs=array([Hlts[k].data.indptr for k in range(lenh)])
+        #setup ode args string
+        mcconfig.string=""
+        for k in range(lenh):
+            mcconfig.string+="mcconfig.Hdata["+str(k)+"],mcconfig.Hinds["+str(k)+"],mcconfig.Hptrs["+str(k)+"]"
+            if k!=lenh-1:
+                mcconfig.string+=","
         #run code generator
         cgen=Codegen(lenh,H[1],H_args)
         cgen.generate("rhs"+str(mcconfig.cgen_num)+".pyx")
@@ -287,7 +290,8 @@ def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
     #
     if mcconfig.tflag==1:
         ODE=ode(mcconfig.tdfunc)
-        ODE.set_f_params(mcconfig.Hdata, mcconfig.Hinds, mcconfig.Hptrs)
+        code = compile('ODE.set_f_params('+mcconfig.string+')', '<string>', 'exec')
+        exec(code)
     else:
         #ODE=ode(RHS)
         ODE = ode(cyq_ode_rhs)
@@ -313,7 +317,8 @@ def no_collapse_expect_out(opt,psi_in,tlist,expect_ops,num_expect,num_times,psi_
     #------------------------------------
     if mcconfig.tflag==1:
         ODE=ode(mcconfig.tdfunc)
-        ODE.set_f_params(mcconfig.Hdata, mcconfig.Hinds, mcconfig.Hptrs)
+        code = compile('ODE.set_f_params('+mcconfig.string+')', '<string>', 'exec')
+        exec(code)
     else:
         ODE = ode(cyq_ode_rhs)
         ODE.set_f_params(mcconfig.Hdata, mcconfig.Hinds, mcconfig.Hptrs)
@@ -362,7 +367,8 @@ def mc_alg_evolve(nt,args):
     #CREATE ODE OBJECT CORRESPONDING TO RHS
     if mcconfig.tflag==1:
         ODE=ode(mcconfig.tdfunc)
-        ODE.set_f_params(mcconfig.Hdata, mcconfig.Hinds, mcconfig.Hptrs)
+        code = compile('ODE.set_f_params('+mcconfig.string+')', '<string>', 'exec')
+        exec(code)
     else:
         ODE = ode(cyq_ode_rhs)
         ODE.set_f_params(mcconfig.Hdata, mcconfig.Hinds, mcconfig.Hptrs)
