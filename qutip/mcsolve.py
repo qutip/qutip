@@ -69,9 +69,9 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
     #if Hamiltonian is time-dependent (list style)
     if isinstance(H,list):
         if len(H)!=2:
-            raise TypeError('Time-dependent Hamiltonian must be list with two terms.')
+            raise TypeError('Time-dependent Hamiltonian list must have two terms.')
         if (not isinstance(H[0],(list,ndarray))) or (len(H[0])<=1):
-            raise TypeError('Time-dependent Hamiltonians must be list with two or more terms')
+            raise TypeError('Time-dependent Hamiltonians must be a list with two or more terms')
         if (not isinstance(H[1],(list,ndarray))) or (len(H[1])!=(len(H[0])-1)):
             raise TypeError('Time-dependent coefficients must be list with length N-1 where N is the number of Hamiltonian terms.')
         mcconfig.tflag=1
@@ -115,7 +115,7 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
     output.times=mc.times
     output.states=mc.psi_out
     if mc.expect_out:
-        output.expect=sum(mc.expect_out,axis=0)/float(ntraj)
+        output.expect=array(sum(mc.expect_out,axis=0)/float(mc.ntraj))
     output.num_expect=mc.num_expect
     output.num_collapse=mc.num_collapse
     output.ntraj=mc.ntraj
@@ -253,6 +253,7 @@ class MC_class():
             mcconfig.tdfunc=cyq_td_ode_rhs
         if self.num_collapse==0:
             if self.ntraj!=1:#check if ntraj!=1 which is pointless for no collapse operators
+                self.ntraj=1
                 print('No collapse operators specified.\nRunning a single trajectory only.\n')
             if self.num_expect==0:# return psi Qobj at each requested time 
                 self.psi_out=no_collapse_psi_out(self.options,self.psi_in,self.times,self.num_times,self.psi_dims,self.psi_shape,self.psi_out)
