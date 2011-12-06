@@ -1,5 +1,5 @@
 .. QuTiP 
-   Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 Developers
 ============
@@ -20,7 +20,9 @@ Contributors
 
 **Markus Baden** (Centre for Quantum Technologies, Singapore) - **QuTiP member**. Examples and documentation
 
-**James Clemens** (Miami University Ohio) - Bug hunter
+**James Clemens** (Miami University - Ohio) - Bug hunter
+
+**Myung-Joong Hwang** (Pohang University of Science and Technology) - Bug hunter
 
 **Hwajung Kang** (Systems Biology Institute, Tokyo)  - Suggestions for improving Bloch class
 

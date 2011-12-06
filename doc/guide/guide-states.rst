@@ -1,5 +1,5 @@
 .. QuTiP 
-   Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 .. _guide-states:
 
@@ -12,7 +12,7 @@ Introduction
 In the previous guide section :ref:`guide-basics`, we saw how to create operators and states, using the functions built into QuTiP.  In this portion of the guide, we will look at performing basic operations with states and operators.  For more detailed demonstrations on how to use and manipulate these objects, see the :ref:`examples` chapter.
 
 State vectors
-============
+==============
 
 Here we begin by creating a Fock :func:`qutip.basis` vacuum state vector :math:`\left|0\right>` with in a Hilbert space with 5 number states, 0 -> 4:
 
