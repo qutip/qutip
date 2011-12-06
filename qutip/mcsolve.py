@@ -114,8 +114,10 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
     output=Mcdata()
     output.times=mc.times
     output.states=mc.psi_out
-    if mc.expect_out:
-        output.expect=array(sum(mc.expect_out,axis=0)/float(mc.ntraj))
+    if mc.expect_out and mcconfig.cflag==1:#averaging if multiple trajectories
+        output.expect=sum(mc.expect_out,axis=0)/float(mc.ntraj)
+    elif mc.expect_out:#no averaging for single trajectory
+        output.expect=mc.expect_out
     output.num_expect=mc.num_expect
     output.num_collapse=mc.num_collapse
     output.ntraj=mc.ntraj
@@ -165,7 +167,6 @@ class MC_class():
         self.expect_ops=expect_ops
         ##Number of expectation value operators
         self.num_expect=len(expect_ops)
-        ##Matrix representing effective Hamiltonian Heff*1j
         ##Matrix representing initial state vector
         self.psi_in=psi0.full() #need dense matrix as input to ODE solver.
         ##Dimensions of initial state vector
@@ -188,12 +189,13 @@ class MC_class():
             elif self.num_expect!=0:#no collpase expectation values
                 ##List of output expectation values calculated at times in tlist
                 self.expect_out=[]
-                ##Array indicating whether expectation operators are Hermitian
-                for jj in xrange(self.num_expect):#expectation operators evaluated at initial conditions
-                    if self.expect_ops[jj].isherm:
+                for i in xrange(self.num_expect):
+                    if self.expect_ops[i].isherm:#preallocate real array of zeros
                         self.expect_out.append(zeros(self.num_times))
-                    else:
+                        self.expect_out[i][0]=mc_expect(self.expect_ops[i],self.psi_in)
+                    else:#preallocate complex array of zeros
                         self.expect_out.append(zeros(self.num_times,dtype=complex))
+                        self.expect_out[i][0]=mc_expect(self.expect_ops[i],self.psi_in)
         #FOR EVOLUTION WITH COLLAPSE OPERATORS---------------------------------------------
         elif self.num_collapse!=0:
             ##Array of collapse operators A.dag()*A
@@ -323,7 +325,6 @@ def no_collapse_expect_out(opt,psi_in,tlist,expect_ops,num_expect,num_times,psi_
     else:
         ODE = ode(cyq_ode_rhs)
         ODE.set_f_params(mcconfig.Hdata, mcconfig.Hinds, mcconfig.Hptrs)
-
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
     for jj in xrange(num_expect):
