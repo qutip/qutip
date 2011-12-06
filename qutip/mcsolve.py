@@ -175,7 +175,7 @@ class MC_class():
         self.psi_shape=psi0.shape
         self.seed=None
         self.st=None #for expected time to completion
-        self.cpus=int(os.environ['NUM_THREADS'])
+        self.cpus=options.num_cpus
         #set output variables, even if they are not used to simplify output code.
         self.psi_out=None
         self.expect_out=None
