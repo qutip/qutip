@@ -28,7 +28,7 @@ class Codegen():
         self.code=[]
         self.tab=tab
         self.level=0
-        self.func_list=dir(np.math)[4:-1]
+        self.func_list=[func+'(' for func in dir(np.math)[4:-1]] #add a '(' on the end to guarentee function is selected 
     #write lines of code to self.code
     def write(self,string):
         self.code.append(self.tab*self.level+string+"\n")
@@ -47,7 +47,7 @@ class Codegen():
             self.write(line)
         self.write(self.func_end())
         self.dedent()
-        for line in cython_checks()+cython_spmv()+cython_checks()+parallel_cython_spmv():
+        for line in cython_checks()+cython_spmv():
             self.write(line)
         self.file(filename)
         self.file.writelines(self.code)
@@ -122,7 +122,7 @@ def cython_preamble():
     """
     Returns list of strings for standard Cython file preamble.
     """
-    line0="# This file is generated automatically by QuTiP. (c)2011 Paul D. Nation & J. R. Johansson"
+    line0="# This file is generated automatically by QuTiP. (C) 2011-2012 Paul D. Nation & J. R. Johansson"
     line1="import numpy as np"
     line2="cimport numpy as np"
     line3="cimport cython"
