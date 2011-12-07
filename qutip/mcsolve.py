@@ -77,15 +77,15 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
         mcconfig.tflag=1
         lenh=len(H[0])
         if options.tidy:
-            Hlts=[tidyup(H[0][k]) for k in range(lenh)]
+            H[0]=[tidyup(H[0][k]) for k in range(lenh)]
         if len(collapse_ops)>0:
             mcconfig.cflag=1
             for c_op in collapse_ops:
-                Hlts[0]=Hlts[0]-0.5j*(c_op.dag()*c_op)
+                H[0][0]-=0.5j*(c_op.dag()*c_op)
         #create data arrays for time-dependent RHS function
-        mcconfig.Hdata=array([-1.0j*Hlts[k].data.data for k in range(lenh)])
-        mcconfig.Hinds=array([Hlts[k].data.indices for k in range(lenh)])
-        mcconfig.Hptrs=array([Hlts[k].data.indptr for k in range(lenh)])
+        mcconfig.Hdata=array([-1.0j*H[0][k].data.data for k in range(lenh)])
+        mcconfig.Hinds=array([H[0][k].data.indices for k in range(lenh)])
+        mcconfig.Hptrs=array([H[0][k].data.indptr for k in range(lenh)])
         #setup ode args string
         mcconfig.string=""
         for k in range(lenh):
