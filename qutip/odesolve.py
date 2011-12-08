@@ -458,7 +458,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
 
         r.integrate(r.t + dt)
         t_idx += 1
-          
+    os.remove("rhs.pyx")      
     return result_list
 
 
