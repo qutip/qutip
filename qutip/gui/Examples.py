@@ -64,7 +64,7 @@ class Examples(QtGui.QWidget):
         quit = QtGui.QPushButton('Close', self)
         quit.setGeometry(670, 578, 100, 60)
         quit.setFocusPolicy(QtCore.Qt.NoFocus)
-        quit.clicked.connect(QtGui.qApp.quit)
+        quit.clicked.connect(self.close)
         
         #-----EXAMPLE BUTTONS-----------------
         

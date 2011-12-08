@@ -112,7 +112,7 @@ class AboutBox(QtGui.QWidget):
         quit.setStyleSheet("QPushButton {font-family:Sans Serif;font-size: 14px;}")
         quit.setGeometry((self.width()-80-10), 395, 80, 40)
         #quit.setFocusPolicy(QtCore.Qt.NoFocus)
-        quit.clicked.connect(QtGui.qApp.quit)
+        quit.clicked.connect(self.close)
     def center(self):
         screen = QtGui.QDesktopWidget().screenGeometry()
         size =  self.geometry()
