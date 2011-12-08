@@ -25,6 +25,8 @@ from qutip.superoperator import *
 from qutip.expect import *
 from qutip.Odeoptions import Odeoptions
 from qutip.cyQ.ode_rhs import cyq_ode_rhs, parallel_cyq_ode_rhs
+from qutip.cyQ.codegen import Codegen
+import os,numpy
 
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
@@ -98,7 +100,7 @@ def wf_ode_solve(H, psi0, tlist, expt_op_list, H_args, opt):
     """!
     Evolve the wave function using an ODE solver
     """
-    if isinstance(H, FunctionType):
+    if isinstance(H, list):
         return wf_ode_solve_td(H, psi0, tlist, expt_op_list, H_args, opt)
 
     n_expt_op = len(expt_op_list)
@@ -162,7 +164,7 @@ def psi_ode_func(t, psi, H):
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
 # time dependent hamiltonians
 # 
-def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list, H_args, opt):
+def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list,H_args, opt):
     """!
     Evolve the wave function using an ODE solver with time-dependent
     Hamiltonian.
@@ -175,29 +177,59 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list, H_args, opt):
     if n_expt_op == 0:
         result_list = [Qobj() for k in range(n_tsteps)]
     else:
-        result_list = zeros([n_expt_op, n_tsteps], dtype=complex)
+        result_list=[]
+        for i in xrange(n_expt_op):
+            if expt_op_list[i].isherm:#preallocate real array of zeros
+                result_list.append(zeros(n_tsteps))
+            else:#preallocate complex array of zeros
+                result_list.append(zeros(n_tsteps,dtype=complex))
 
     if not isket(psi0):
         raise TypeError("psi0 must be a ket")
-
+    #configure time-dependent terms
+    if len(H_func)!=2:
+        raise TypeError('Time-dependent Hamiltonian list must have two terms.')
+    if (not isinstance(H_func[0],(list,ndarray))) or (len(H_func[0])<=1):
+        raise TypeError('Time-dependent Hamiltonians must be a list with two or more terms')
+    if (not isinstance(H_func[1],(list,ndarray))) or (len(H_func[1])!=(len(H_func[0])-1)):
+        raise TypeError('Time-dependent coefficients must be list with length N-1 where N is the number of Hamiltonian terms.')
+    tflag=1
+    lenh=len(H_func[0])
+    if opt.tidy:
+        H_func[0]=[tidyup(H_func[0][k]) for k in range(lenh)]
+    #create data arrays for time-dependent RHS function
+    Hdata=array([-1.0j*H_func[0][k].data.data for k in range(lenh)])
+    Hinds=array([H_func[0][k].data.indices for k in range(lenh)])
+    Hptrs=array([H_func[0][k].data.indptr for k in range(lenh)])
+    #setup ode args string
+    string=""
+    for k in range(lenh):
+        string+="Hdata["+str(k)+"],Hinds["+str(k)+"],Hptrs["+str(k)+"]"
+        if k!=lenh-1:
+            string+=","
+    #run code generator
+    cgen=Codegen(lenh,H_func[1],H_args)
+    cgen.generate("rhs.pyx")
+    print 'Compiling...'
+    os.environ['CFLAGS'] = '-w'
+    import pyximport
+    pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
+    code = compile('from rhs import cyq_td_ode_rhs', '<string>', 'exec')
+    exec(code)
+    print 'Done.'
     #
     # setup integrator
     #
-    H_func_and_args = [H_func]
-    for arg in H_args:
-        if isinstance(arg,Qobj):
-            H_func_and_args.append(arg.data)
-        else:
-            H_func_and_args.append(arg)
 
     initial_vector = psi0.full()
-    r = scipy.integrate.ode(psi_ode_func_td)
+    r = scipy.integrate.ode(cyq_td_ode_rhs)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                               atol=opt.atol, rtol=opt.rtol, #nsteps=opt.nsteps,
                               #first_step=opt.first_step, min_step=opt.min_step,
                               max_step=opt.max_step)                              
     r.set_initial_value(initial_vector, tlist[0])
-    r.set_f_params(H_func_and_args)
+    code = compile('r.set_f_params('+string+')', '<string>', 'exec')
+    exec(code)
 
     # start evolution
     #
@@ -215,23 +247,13 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list, H_args, opt):
             result_list[t_idx] = Qobj(psi) # copy rho
         else:
             for m in range(0, n_expt_op):
-                result_list[m,t_idx] = expect(expt_op_list[m], psi)
+                result_list[m][t_idx] = expect(expt_op_list[m], psi)
 
         r.integrate(r.t + dt)
         t_idx += 1
-          
+    os.remove("rhs.pyx")      
     return result_list
 
-#
-# evaluate dpsi(t)/dt for time-dependent hamiltonian
-#
-def psi_ode_func_td(t, psi, H_func_and_args):
-    H_func = H_func_and_args[0]
-    H_args = H_func_and_args[1:]
-
-    H = H_func(t, H_args)
-
-    return -1j * (H * psi)
 
 
 # ------------------------------------------------------------------------------
@@ -243,7 +265,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     """
     n_op= len(c_op_list)
 
-    if isinstance(H, FunctionType):
+    if isinstance(H, list):
         return me_ode_solve_td(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt)
 
     if opt.tidy:
@@ -368,29 +390,52 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     #
     # construct liouvillian
     #
-    L = 0
-    for m in range(0, n_op):
-        cdc = c_op_list[m].dag() * c_op_list[m]
-        L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
+    if len(H_func)!=2:
+        raise TypeError('Time-dependent Hamiltonian list must have two terms.')
+    if (not isinstance(H_func[0],(list,ndarray))) or (len(H_func[0])<=1):
+        raise TypeError('Time-dependent Hamiltonians must be a list with two or more terms')
+    if (not isinstance(H_func[1],(list,ndarray))) or (len(H_func[1])!=(len(H_func[0])-1)):
+        raise TypeError('Time-dependent coefficients must be list with length N-1 where N is the number of Hamiltonian terms.')
+    
+    lenh=len(H_func[0])
+    if opt.tidy:
+        H_func[0]=[tidyup(H_func[0][k]) for k in range(lenh)]
+    L_func=[[liouvillian(H_func[0][0], c_op_list)],H_func[1]]
+    for m in range(1, lenh):
+        L_func[0].append(liouvillian(H_func[0][m],[]))
 
-    L_func_and_args = [H_func, L.data]
-    for arg in H_args:
-        if isinstance(arg,Qobj):
-            L_func_and_args.append((-1j*(spre(arg) - spost(arg))).data)
-        else:
-            L_func_and_args.append(arg)
-
+    #create data arrays for time-dependent RHS function
+    Ldata=array([L_func[0][k].data.data for k in range(lenh)])
+    Linds=array([L_func[0][k].data.indices for k in range(lenh)])
+    Lptrs=array([L_func[0][k].data.indptr for k in range(lenh)])
+    #setup ode args string
+    string=""
+    for k in range(lenh):
+        string+="Ldata["+str(k)+"],Linds["+str(k)+"],Lptrs["+str(k)+"]"
+        if k!=lenh-1:
+            string+=","
+    #run code generator
+    cgen=Codegen(lenh,L_func[1],H_args)
+    cgen.generate("rhs.pyx")
+    print 'Compiling...'
+    os.environ['CFLAGS'] = '-w'
+    import pyximport
+    pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
+    code = compile('from rhs import cyq_td_ode_rhs', '<string>', 'exec')
+    exec(code)
+    print 'Done.'
     #
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full())
-    r = scipy.integrate.ode(rho_ode_func_td)
+    r = scipy.integrate.ode(cyq_td_ode_rhs)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                               atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                               first_step=opt.first_step, min_step=opt.min_step,
                               max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
-    r.set_f_params(L_func_and_args)
+    code = compile('r.set_f_params('+string+')', '<string>', 'exec')
+    exec(code)
 
     #
     # start evolution
@@ -417,17 +462,6 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     return result_list
 
 
-#
-# evaluate drho(t)/dt according to the master eqaution
-#
-def rho_ode_func_td(t, rho, L_func_and_args):
 
-    L_func = L_func_and_args[0]
-    L0     = L_func_and_args[1]
-    L_args = L_func_and_args[2:]
-
-    L = L0 + L_func(t, L_args)
-
-    return L * rho
 
 
