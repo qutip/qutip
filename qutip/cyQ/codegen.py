@@ -22,6 +22,8 @@ class Codegen():
     Class for generating cython code files at runtime.
     """
     def __init__(self,hterms,tdterms,hconst=None,tab="\t"):
+        import sys,os
+        sys.path.append(os.getcwd())
         self.hterms=hterms
         self.tdterms=tdterms
         self.hconst=hconst
