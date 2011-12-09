@@ -45,8 +45,10 @@ class Odeoptions():
         self.tidy=True
         #: Number of processors to use (mcsolve only)
         self.num_cpus=int(os.environ['NUM_THREADS'])
-        #: Use parallel spmv (odesolver & mcsolver with no collapse operators only)
-        self.parallel=False
+        #: Use preexisting RHS function for time-dependent solvers
+        self.rhs_reuse=False
+        #: Use filename for preexisting RHS function (will default to last compiled function if None & rhs_exists=True)
+        self.rhs_filename=None
     def __str__(self):
         print("Odeoptions properties:")
         print("----------------------")
@@ -60,6 +62,7 @@ class Odeoptions():
         print('max_step:   ',self.max_step)
         print('tidy:       ',self.tidy)
         print('num_cpus:   ',self.num_cpus)
-        print('parallel:   ',self.parallel)
+        print('rhs_reuse:   ',self.rhs_reuse)
+        print('rhs_filename:   ',self.rhs_filename)
         return ''
 
