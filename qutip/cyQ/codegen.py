@@ -128,7 +128,7 @@ def cython_preamble():
     line1="import numpy as np"
     line2="cimport numpy as np"
     line3="cimport cython"
-    line4="from cython.parallel cimport prange"
+    line4="#from cython.parallel cimport prange"
     line5=""
     line6="ctypedef np.complex128_t CTYPE_t"
     line7="ctypedef np.float64_t DTYPE_t"
