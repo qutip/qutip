@@ -24,8 +24,9 @@ from qutip.Qobj import *
 from qutip.superoperator import *
 from qutip.expect import *
 from qutip.Odeoptions import Odeoptions
-from qutip.cyQ.ode_rhs import cyq_ode_rhs, parallel_cyq_ode_rhs
+from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
+from qutip.Odedata import Odedata
 import os,numpy
 
 # ------------------------------------------------------------------------------
@@ -198,9 +199,9 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list,H_args, opt):
     if opt.tidy:
         H_func[0]=[tidyup(H_func[0][k]) for k in range(lenh)]
     #create data arrays for time-dependent RHS function
-    Hdata=array([-1.0j*H_func[0][k].data.data for k in range(lenh)])
-    Hinds=array([H_func[0][k].data.indices for k in range(lenh)])
-    Hptrs=array([H_func[0][k].data.indptr for k in range(lenh)])
+    Hdata=[-1.0j*H_func[0][k].data.data for k in range(lenh)]
+    Hinds=[H_func[0][k].data.indices for k in range(lenh)]
+    Hptrs=[H_func[0][k].data.indptr for k in range(lenh)]
     #setup ode args string
     string=""
     for k in range(lenh):
@@ -405,9 +406,9 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
         L_func[0].append(liouvillian(H_func[0][m],[]))
 
     #create data arrays for time-dependent RHS function
-    Ldata=array([L_func[0][k].data.data for k in range(lenh)])
-    Linds=array([L_func[0][k].data.indices for k in range(lenh)])
-    Lptrs=array([L_func[0][k].data.indptr for k in range(lenh)])
+    Ldata=[L_func[0][k].data.data for k in range(lenh)]
+    Linds=[L_func[0][k].data.indices for k in range(lenh)]
+    Lptrs=[L_func[0][k].data.indptr for k in range(lenh)]
     #setup ode args string
     string=""
     for k in range(lenh):
