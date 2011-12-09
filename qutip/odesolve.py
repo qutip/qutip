@@ -27,7 +27,7 @@ from qutip.Odeoptions import Odeoptions
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
 from qutip.Odedata import Odedata
-import os,numpy
+import os,numpy,mcconfig
 
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
@@ -214,21 +214,25 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list,H_args, opt):
             if elem!=td_consts[-1]:
                 string+=(",")
     #run code generator
-    cgen=Codegen(lenh,H_func[1],H_args)
-    cgen.generate("rhs.pyx")
-    print 'Compiling...'
-    os.environ['CFLAGS'] = '-w'
-    import pyximport
-    pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-    code = compile('from rhs import cyq_td_ode_rhs', '<string>', 'exec')
-    exec(code)
-    print 'Done.'
+    if not opt.rhs_reuse:
+        name="rhs"+str(mcconfig.cgen_num)
+        mcconfig.tdname=name
+        cgen=Codegen(lenh,H_func[1],H_args)
+        cgen.generate(name+".pyx")
+        print "Compiling '"+name+".pyx' ..."
+        os.environ['CFLAGS'] = '-w'
+        import pyximport
+        pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
+        code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
+        exec(code)
+        print 'Done.'
+        mcconfig.tdfunc=cyq_td_ode_rhs
     #
     # setup integrator
     #
 
     initial_vector = psi0.full()
-    r = scipy.integrate.ode(cyq_td_ode_rhs)
+    r = scipy.integrate.ode(mcconfig.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                               atol=opt.atol, rtol=opt.rtol, #nsteps=opt.nsteps,
                               #first_step=opt.first_step, min_step=opt.min_step,
@@ -257,7 +261,8 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list,H_args, opt):
 
         r.integrate(r.t + dt)
         t_idx += 1
-    os.remove("rhs.pyx")      
+    if not opt.rhs_reuse:
+        os.remove(name+".pyx")      
     return result_list
 
 
@@ -426,20 +431,22 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
                 string+=(",")
     
     #run code generator
-    cgen=Codegen(lenh,L_func[1],H_args)
-    cgen.generate("rhs.pyx")
-    print 'Compiling...'
-    os.environ['CFLAGS'] = '-w'
-    import pyximport
-    pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-    code = compile('from rhs import cyq_td_ode_rhs', '<string>', 'exec')
-    exec(code)
-    print 'Done.'
-    #
+    if not opt.rhs_reuse:
+        name="rhs"+str(mcconfig.cgen_num)
+        cgen=Codegen(lenh,L_func[1],H_args)
+        cgen.generate(name+".pyx")
+        print "Compiling '"+name+".pyx' ..."
+        os.environ['CFLAGS'] = '-w'
+        import pyximport
+        pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
+        code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
+        exec(code)
+        print 'Done.'
+        mcconfig.tdfunc=cyq_td_ode_rhs
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full())
-    r = scipy.integrate.ode(cyq_td_ode_rhs)
+    r = scipy.integrate.ode(mcconfig.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                               atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                               first_step=opt.first_step, min_step=opt.min_step,
@@ -469,7 +476,8 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
 
         r.integrate(r.t + dt)
         t_idx += 1
-    os.remove("rhs.pyx")      
+    if not opt.rhs_reuse:
+        os.remove(name+".pyx")      
     return result_list
 
 

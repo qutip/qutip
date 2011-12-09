@@ -24,3 +24,4 @@ tflag=0     # Flag signaling time-dependent problem
 cgen_num=0  # Number of times codegen function has been called in current Python session.
 tdfunc=None # Placeholder for time-dependent RHS function.
 string=None # Holds string of variables to be passed onto time-depdendent ODE solver.
+tdname=None # Name of td .pyx file (used in parallel mc code)

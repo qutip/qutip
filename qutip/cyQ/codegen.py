@@ -17,6 +17,7 @@
 #
 ###########################################################################
 import numpy as np
+from qutip import mcconfig
 class Codegen():
     """
     Class for generating cython code files at runtime.
@@ -54,6 +55,7 @@ class Codegen():
         self.file(filename)
         self.file.writelines(self.code)
         self.file.close()
+        mcconfig.cgen_num+=1
     #increase indention level by one
     def indent(self):
         self.level+=1

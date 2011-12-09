@@ -15,7 +15,7 @@ def qubit_integrate(delta, eps0, A, gamma1, gamma2, psi0, tlist):
     H0 = - delta/2.0 * sx - eps0/2.0 * sz
     H1 = - A/2.0 * sz
         
-    H = [[H0, H1],['t']]
+    H = [[H0, H1],['w*t']]
 
     # collapse operators
     c_op_list = []
@@ -36,20 +36,23 @@ def qubit_integrate(delta, eps0, A, gamma1, gamma2, psi0, tlist):
     rate = gamma2
     if rate > 0.0:
         c_op_list.append(sqrt(rate) * sz)
-
+    rhs_generate(H,H_args={'w':1.0})
     # evolve and calculate expectation values
-    data = odesolve(H, psi0,tlist,c_op_list,[sm.dag() * sm])  
-
-    return data[0]
+    opts=Odeoptions()
+    opts.rhs_reuse=True
+    data=[]
+    for w in linspace(0,1,10):
+        data.append(odesolve(H, psi0,tlist,c_op_list,[sm.dag() * sm],H_args={'w':w},options=opts))
+    return data[-2][0]
     
 #
 # set up the calculation
 #
 delta = 0.5 * 2 * pi   # qubit sigma_x coefficient
-eps0  = 0.0 * 2 * pi   # qubit sigma_z coefficient
+eps0  = 0.1 * 2 * pi   # qubit sigma_z coefficient
 A     = 2.0 * 2 * pi   # sweep rate
-gamma1 = 0.01           # relaxation rate
-gamma2 = 0.01          # dephasing  rate
+gamma1 = 0.0           # relaxation rate
+gamma2 = 0.0        # dephasing  rate
 psi0 = basis(2,0)      # initial state
 
 tlist = linspace(-10.0, 10.0, 1500)

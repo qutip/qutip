@@ -97,8 +97,11 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
                 if elem!=td_consts[-1]:
                     mcconfig.string+=(",")
         #run code generator
-        cgen=Codegen(lenh,H[1],H_args)
-        cgen.generate("rhs"+str(mcconfig.cgen_num)+".pyx")
+        if not options.rhs_reuse:
+            name="rhs"+str(mcconfig.cgen_num)
+            mcconfig.tdname=name
+            cgen=Codegen(lenh,H[1],H_args)
+            cgen.generate(name+".pyx")
     #if Hamiltonian is time-independent
     else:
         for c_op in collapse_ops:
@@ -112,9 +115,8 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
 
     mc=MC_class(psi0,tlist,ntraj,collapse_ops,expect_ops,options)
     mc.run()
-    if mcconfig.tflag==1:
-        os.remove("rhs"+str(mcconfig.cgen_num)+".pyx")
-        mcconfig.cgen_num+=1
+    if mcconfig.tflag==1 and (not options.rhs_reuse):
+        os.remove(mcconfig.tdname+".pyx")
     output=Mcdata()
     output.times=mc.times
     output.states=mc.psi_out
@@ -249,14 +251,15 @@ class MC_class():
         return
     def run(self):
         if mcconfig.tflag==1: #compile time-depdendent RHS code
-            print 'Compiling...'
-            os.environ['CFLAGS'] = '-w'
-            import pyximport
-            pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-            code = compile('from rhs'+str(mcconfig.cgen_num)+' import cyq_td_ode_rhs', '<string>', 'exec')
-            exec(code)
-            print 'Done.'
-            mcconfig.tdfunc=cyq_td_ode_rhs
+            if not self.options.rhs_reuse:
+                print "Compiling '"+mcconfig.tdname+".pyx' ..."
+                os.environ['CFLAGS'] = '-w'
+                import pyximport
+                pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
+                code = compile('from '+mcconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
+                exec(code)
+                print 'Done.'
+                mcconfig.tdfunc=cyq_td_ode_rhs
         if self.num_collapse==0:
             if self.ntraj!=1:#check if ntraj!=1 which is pointless for no collapse operators
                 self.ntraj=1
