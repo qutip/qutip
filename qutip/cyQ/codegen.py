@@ -74,7 +74,7 @@ class Codegen():
             td_consts=self.hconst.items()
             for elem in td_consts:
                 kind=type(elem[1]).__name__
-                input_vars+=kind+" "+elem[0]
+                input_vars+="np."+kind+"_t"+" "+elem[0]
                 if elem!=td_consts[-1]:
                     input_vars+=","
         func_end="):"
