@@ -89,9 +89,13 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
         #setup ode args string
         mcconfig.string=""
         for k in range(lenh):
-            mcconfig.string+="mcconfig.Hdata["+str(k)+"],mcconfig.Hinds["+str(k)+"],mcconfig.Hptrs["+str(k)+"]"
-            if k!=lenh-1:
-                mcconfig.string+=","
+            mcconfig.string+="mcconfig.Hdata["+str(k)+"],mcconfig.Hinds["+str(k)+"],mcconfig.Hptrs["+str(k)+"],"
+        if H_args:
+            td_consts=H_args.items()
+            for elem in td_consts:
+                mcconfig.string+=str(elem[1])
+                if elem!=td_consts[-1]:
+                    mcconfig.string+=(",")
         #run code generator
         cgen=Codegen(lenh,H[1],H_args)
         cgen.generate("rhs"+str(mcconfig.cgen_num)+".pyx")

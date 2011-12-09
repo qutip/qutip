@@ -205,9 +205,14 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list,H_args, opt):
     #setup ode args string
     string=""
     for k in range(lenh):
-        string+="Hdata["+str(k)+"],Hinds["+str(k)+"],Hptrs["+str(k)+"]"
-        if k!=lenh-1:
-            string+=","
+        string+="Hdata["+str(k)+"],Hinds["+str(k)+"],Hptrs["+str(k)+"],"
+
+    if H_args:
+        td_consts=H_args.items()
+        for elem in td_consts:
+            string+=str(elem[1])
+            if elem!=td_consts[-1]:
+                string+=(",")
     #run code generator
     cgen=Codegen(lenh,H_func[1],H_args)
     cgen.generate("rhs.pyx")
@@ -412,9 +417,14 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     #setup ode args string
     string=""
     for k in range(lenh):
-        string+="Ldata["+str(k)+"],Linds["+str(k)+"],Lptrs["+str(k)+"]"
-        if k!=lenh-1:
-            string+=","
+        string+="Ldata["+str(k)+"],Linds["+str(k)+"],Lptrs["+str(k)+"],"
+    if H_args:
+        td_consts=H_args.items()
+        for elem in td_consts:
+            string+=str(elem[1])
+            if elem!=td_consts[-1]:
+                string+=(",")
+    
     #run code generator
     cgen=Codegen(lenh,L_func[1],H_args)
     cgen.generate("rhs.pyx")

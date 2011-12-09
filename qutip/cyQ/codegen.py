@@ -69,9 +69,14 @@ class Codegen():
         func_name="def cyq_td_ode_rhs("
         input_vars="float t, np.ndarray[CTYPE_t, ndim=1] vec, " #strings for time and vector variables
         for k in range(self.hterms):
-            input_vars+="np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k)
-            if k!=self.hterms-1:
-                input_vars+=","
+            input_vars+="np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k)+","
+        if self.hconst:
+            td_consts=self.hconst.items()
+            for elem in td_consts:
+                kind=type(elem[1]).__name__
+                input_vars+=kind+" "+elem[0]
+                if elem!=td_consts[-1]:
+                    input_vars+=","
         func_end="):"
         return [func_name+input_vars+func_end]
     def time_vars(self):
@@ -93,11 +98,6 @@ class Codegen():
         Writes the variables and their types & spmv parts
         """
         func_vars=["",'cdef Py_ssize_t row','cdef int num_rows = len(vec)','cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)']
-        if self.hconst:
-            td_consts=self.hconst.items()
-            for elem in td_consts:
-                kind=type(elem[1]).__name__
-                func_vars.append("cdef "+kind+" "+elem[0]+" = "+str(elem[1]))
         func_vars.append(" ") #add a spacer line between variables and Hamiltonian components.
         for ht in range(self.hterms):
             hstr=str(ht)
@@ -185,14 +185,3 @@ def parallel_cython_spmv():
     lineD="\treturn out"
     return [line0,line1,line2,line3,line4,line5,line6,line7,line8,line9,lineA,lineB,lineC,lineD]
 
-
-if __name__=="__main__":
-    import numpy
-    import pyximport;pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-    cgen=Codegen([1,2],['t'])
-    cgen.generate()
-    #from rhs import cyq_td_ode_rhs
-    code = compile('from rhs import cyq_td_ode_rhs', '<string>', 'exec')
-    exec(code)
-
-    
