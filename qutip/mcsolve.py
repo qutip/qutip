@@ -31,6 +31,7 @@ from qutip.tidyup import tidyup
 from qutip.cyQ.cy_mc_funcs import mc_expect,spmv
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
+from qutip.rhs_generate import rhs_generate
 import os,numpy,datetime
 from Mcdata import Mcdata
 
@@ -75,6 +76,10 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
         if (not isinstance(H[1],(list,ndarray))) or (len(H[1])!=(len(H[0])-1)):
             raise TypeError('Time-dependent coefficients must be list with length N-1 where N is the number of Hamiltonian terms.')
         mcconfig.tflag=1
+        if options.rhs_reuse==True and mcconfig.tdfunc==None:
+            print "No previous time-dependent RHS found."
+            print "Generating one for you..."
+            rhs_generate(H,H_args)
         lenh=len(H[0])
         if options.tidy:
             H[0]=[tidyup(H[0][k]) for k in range(lenh)]

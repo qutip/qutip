@@ -36,7 +36,7 @@ def qubit_integrate(delta, eps0, A, gamma1, gamma2, psi0, tlist):
     rate = gamma2
     if rate > 0.0:
         c_op_list.append(sqrt(rate) * sz)
-    rhs_generate(H,H_args={'w':1.0})
+    #rhs_generate(H,H_args={'w':1.0})
     # evolve and calculate expectation values
     opts=Odeoptions()
     opts.rhs_reuse=True
@@ -49,7 +49,7 @@ def qubit_integrate(delta, eps0, A, gamma1, gamma2, psi0, tlist):
 # set up the calculation
 #
 delta = 0.5 * 2 * pi   # qubit sigma_x coefficient
-eps0  = 0.1 * 2 * pi   # qubit sigma_z coefficient
+eps0  = 0.01 * 2 * pi   # qubit sigma_z coefficient
 A     = 2.0 * 2 * pi   # sweep rate
 gamma1 = 0.0           # relaxation rate
 gamma2 = 0.0        # dephasing  rate

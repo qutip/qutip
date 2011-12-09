@@ -26,6 +26,7 @@ from qutip.expect import *
 from qutip.Odeoptions import Odeoptions
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
+from qutip.rhs_generate import rhs_generate
 from qutip.Odedata import Odedata
 import os,numpy,mcconfig
 
@@ -87,7 +88,7 @@ def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None, options=None)
     if options == None:
         options = Odeoptions()
         options.nsteps = 2500  # 
-
+        
     if (c_op_list and len(c_op_list) > 0) or not isket(rho0):
         return me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, options)
     else:
@@ -195,6 +196,10 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list,H_args, opt):
     if (not isinstance(H_func[1],(list,ndarray))) or (len(H_func[1])!=(len(H_func[0])-1)):
         raise TypeError('Time-dependent coefficients must be list with length N-1 where N is the number of Hamiltonian terms.')
     tflag=1
+    if opt.rhs_reuse==True and mcconfig.tdfunc==None:
+        print "No previous time-dependent RHS found."
+        print "Generating one for you..."
+        rhs_generate(H_func,H_args)
     lenh=len(H_func[0])
     if opt.tidy:
         H_func[0]=[tidyup(H_func[0][k]) for k in range(lenh)]
@@ -407,7 +412,10 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
         raise TypeError('Time-dependent Hamiltonians must be a list with two or more terms')
     if (not isinstance(H_func[1],(list,ndarray))) or (len(H_func[1])!=(len(H_func[0])-1)):
         raise TypeError('Time-dependent coefficients must be list with length N-1 where N is the number of Hamiltonian terms.')
-    
+    if opt.rhs_reuse==True and mcconfig.tdfunc==None:
+        print "No previous time-dependent RHS found."
+        print "Generating one for you..."
+        rhs_generate(H_func,H_args)
     lenh=len(H_func[0])
     if opt.tidy:
         H_func[0]=[tidyup(H_func[0][k]) for k in range(lenh)]
