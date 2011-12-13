@@ -133,29 +133,23 @@ def floquet_states(H, T, H_args=None):
     # find the eigenstates for the propagator
     evals,evecs = la.eig(U.full())
 
-    #if (p2 > M_PI/2) p2 -= 2*M_PI;        
-    #if (p2 < M_PI/2) p2 += 2*M_PI;        
-    for i in [list(array(eargs) < pi/2).index(True)]:
-        print "shift up:   ", i
-        eargs[i] += 2 * pi
-#    print "eargs =", eargs
-    for i in [list(array(eargs) > pi/2).index(True)]:
-        print "shift down: ", i
-        eargs[i] -= 2 * pi    
-#    print "eargs =", eargs
+    eargs = angle(evals)
+    
+    # make sure that the phase is in the interval [-2*pi, 0], so that the
+    # quasi energy is in the interval [0, 2*pi/T] where T is the period of the
+    # driving.
+    eargs  += (eargs <= -2*pi) * (2*pi) + (eargs > 0) * (-2*pi)
+    e_quasi = -eargs/T
 
-    # sort by the angle (might need shifts)
-    eargs = angle(evals, False)
-    order = argsort(eargs)
+    # sort by the quasi energy
+    order = argsort(e_quasi)
 
-    evals_order = evals[order]
-    e_quasi     = - angle(evals_order, False) / T
-
+    # prepare a list of kets for the floquet states
     new_dims  = [U.dims[0], [1] * len(U.dims[0])]
     new_shape = [U.shape[0], 1]
-    ekets_order = [Qobj(matrix(evecs[:,o]).T, dims=new_dims, shape=new_shape) for o in order]
+    kets_order = [Qobj(matrix(evecs[:,o]).T, dims=new_dims, shape=new_shape) for o in order]
 
-    return ekets_order, e_quasi
+    return kets_order, e_quasi[order]
 
 def floquet_states_t(f_states_0, f_energies, H, t, H_args=None):
     """
