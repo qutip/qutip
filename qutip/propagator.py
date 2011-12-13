@@ -119,9 +119,11 @@ def propagator_steadystate(U):
 
 def floquet_states(H, T, H_args=None):
     """
-    Calculate the initial Floquet initial Floquet states Phi_alpha(0) for a
-    driven system with period T.
+    Calculate the initial Floquet Phi_alpha(0) for a driven system with period T.
     
+    Returns a list of :class:`qutip.Qobj` instances representing the Floquet
+    states and a list of quasienergies.
+         
     .. note:: Experimental
     """
 
@@ -133,13 +135,13 @@ def floquet_states(H, T, H_args=None):
 
     #if (p2 > M_PI/2) p2 -= 2*M_PI;        
     #if (p2 < M_PI/2) p2 += 2*M_PI;        
-#    for i in [list(array(eargs) < pi/2).index(True)]:
-#        print "shift up:   ", i
-#        eargs[i] += 2 * pi
+    for i in [list(array(eargs) < pi/2).index(True)]:
+        print "shift up:   ", i
+        eargs[i] += 2 * pi
 #    print "eargs =", eargs
-#    for i in [list(array(eargs) > pi/2).index(True)]:
-#        print "shift down: ", i
-#        eargs[i] -= 2 * pi    
+    for i in [list(array(eargs) > pi/2).index(True)]:
+        print "shift down: ", i
+        eargs[i] -= 2 * pi    
 #    print "eargs =", eargs
 
     # sort by the angle (might need shifts)
@@ -182,12 +184,14 @@ def floquet_states_t(f_states_0, f_energies, H, t, H_args=None):
     
 def floquet_wave_function_t(f_states_0, f_energies, t):
     """
-    Evaluate the floquet wave functions at time t.
+    Evaluate the floquet wavefunctions at time t.
+    
+    Returns a list of the wavefunctions.
         
     .. note:: Experimental    
     """
 
-    return f_states_0 * diag(exp(-1j * f_energies * t))
+    return [f_states_0[i] * diag(exp(-1j * f_energies[i] * t)) for f in len(f_energies)]
 
 
 def floquet_states_old_t(fval, fvec, H, t, c_op_list, H_args=None):
