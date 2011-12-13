@@ -40,6 +40,21 @@ class Mcdata():
         self.collapse_times=None
         #: Collpase operator corresponding to collpase times.
         self.collapse_which=None
+    def __str__(self):
+        s="Mcdata object: "
+        if (not self.expect) and (not self.states):
+            s+="Empty Mcdata object."
+            return s
+        if self.states and (not self.expect):
+            s+= "states = True, "
+        elif self.expect and (not self.states):
+            s+="expect = True, num_expect = "+str(self.num_expect)+", "
+        else:
+            s+= "states = True, expect = True, "+"num_expect = "+str(self.num_expect)+", "
+        s+="ntraj = "+str(self.ntraj)+", num_collapse = "+str(self.num_collapse)
+        return s
+    def __repr__(self):
+        return self.__str__()
         
 
 

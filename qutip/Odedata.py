@@ -30,6 +30,25 @@ class Odedata():
         self.states=None
         #: Array of expectation values if odesolve was called with expectation operators.
         self.expect=None
+        #: Number of expectation operators (if any).
+        self.num_expect=None
+        #: Number of collapse operators (if any).
+        self.num_collapse=None
+    def __str__(self):
+        s="Odedata object: "
+        if (not self.expect) and (not self.states):
+            s+="Empty Odedata object."
+            return s
+        if self.states and (not self.expect):
+            s+= "states = True"
+        elif self.expect and (not self.states):
+            s+="expect = True, num_expect = "+str(self.num_expect)+", "
+        else:
+            s+= "states = True, expect = True, "+"num_expect = "+str(self.num_expect)+", "
+        s+="num_collapse = "+str(self.num_collapse)
+        return s
+    def __repr__(self):
+        return self.__str__()
         
 
 

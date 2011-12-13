@@ -18,6 +18,9 @@
 ###########################################################################
 import pickle
 from scipy import *
+from Qobj import *
+from Mcdata import Mcdata
+from Odedata import Odedata
 
 # ------------------------------------------------------------------------------
 # Write matrix data to a file
@@ -180,7 +183,7 @@ def file_data_read(datafile, sep=None):
 
     return data
 
-def qsave(data,filename='qutip_data'):
+def qsave(data,name='qutip_data'):
     """
     Saves given data to file named 'filename.qu' in current directory.
     
@@ -188,17 +191,12 @@ def qsave(data,filename='qutip_data'):
     Parameter filename *str* name of datafile
     
     """
-    num=0
-    import os.path
-    while os.path.isfile(filename+'.qu'):
-        filename=filename+'-'+str(num)
-        num+=1
-    fileObject = open(filename+'.qu','w') # open the file for writing
+    fileObject = open(name+'.qu','w') # open the file for writing
     pickle.dump(data,fileObject)   # this writes the object a to the file named 'filename.qu'
     fileObject.close()
 
 
-def qload(filename):
+def qload(name):
     """
     Loads data file from file named 'filename.qu' in current directory.
     
@@ -206,20 +204,27 @@ def qload(filename):
     
     Returns object stored in file
     """
-    fileObject = open(filename+'.qu','r')  #open the file for reading
+    fileObject = open(name+'.qu','r')  #open the file for reading
     out=pickle.load(fileObject)  #return the object from the file 
     if isinstance(out,Qobj): #for quantum objects
-        print('Loaded Qobj class object...')
-        return out
-    elif isinstance(out,Mcdata): #for mcdata objects
-        print('Loaded Mcdata class object...')
-        return out
-    elif isinstance(out,Odedata): #for odedata objects
-        print('Loaded Odedata class object...')
-        return out
-    else: #for any other data
-        print('Loaded generic object...')
-        return out
+        print 'Loaded Qobj object:'
+        str1 = "Quantum object: " + "dims = " + str(out.dims) + ", shape = " + str(out.shape)+", type = "+out.type
+        if out.type=='oper' or out.type=='super':
+            str1 += ", isHerm = "+str(out.isherm)+"\n"
+        else:
+            str1 +="\n"
+        print str1
+    elif isinstance(out,Mcdata):
+        print 'Loaded Mcdata object:'
+        print out
+    elif isinstance(out,Odedata):
+        print 'Loaded Odedata object:'
+        print out
+    else:
+        print "Loaded "+str(type(out).__name__)+" object."
+    return out
+        
+        
 
 
 
