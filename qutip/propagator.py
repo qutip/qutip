@@ -135,10 +135,11 @@ def floquet_states(H, T, H_args=None):
 
     eargs = angle(evals)
     
-    # make sure that the phase is in the interval [-2*pi, 0], so that the
-    # quasi energy is in the interval [0, 2*pi/T] where T is the period of the
+    # make sure that the phase is in the interval [-pi, pi], so that the
+    # quasi energy is in the interval [-pi/T, pi/T] where T is the period of the
     # driving.
-    eargs  += (eargs <= -2*pi) * (2*pi) + (eargs > 0) * (-2*pi)
+    #eargs  += (eargs <= -2*pi) * (2*pi) + (eargs > 0) * (-2*pi)
+    eargs  += (eargs <= -pi) * (2*pi) + (eargs > pi) * (-2*pi)
     e_quasi = -eargs/T
 
     # sort by the quasi energy
@@ -185,7 +186,7 @@ def floquet_wave_function_t(f_states_0, f_energies, t):
     .. note:: Experimental    
     """
 
-    return [f_states_0[i] * diag(exp(-1j * f_energies[i] * t)) for f in len(f_energies)]
+    return [(f_states_0[i] * exp(-1j * f_energies[i]*t)) for i in arange(len(f_energies))]
 
 
 def floquet_states_old_t(fval, fvec, H, t, c_op_list, H_args=None):
