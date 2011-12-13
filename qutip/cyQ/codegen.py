@@ -17,7 +17,7 @@
 #
 ###########################################################################
 import numpy as np
-from qutip import mcconfig
+from qutip import odeconfig
 class Codegen():
     """
     Class for generating cython code files at runtime.
@@ -55,7 +55,7 @@ class Codegen():
         self.file(filename)
         self.file.writelines(self.code)
         self.file.close()
-        mcconfig.cgen_num+=1
+        odeconfig.cgen_num+=1
     #increase indention level by one
     def indent(self):
         self.level+=1
@@ -91,8 +91,9 @@ class Codegen():
             any_np=np.array([text.find(x) for x in self.func_list])
             ind=np.nonzero(any_np>-1)[0]
             for kk in ind:
-                new_text='np.'+self.func_list[kk]
-                text=text.replace(self.func_list[kk],new_text)
+                if self.func_list[kk]!='exp':
+                    new_text='np.'+self.func_list[kk]
+                    text=text.replace(self.func_list[kk],new_text)
             self.tdterms[jj]=text
             
     def func_vars(self):

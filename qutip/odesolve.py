@@ -28,7 +28,7 @@ from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
 from qutip.Odedata import Odedata
-import os,numpy,mcconfig
+import os,numpy,odeconfig
 
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
@@ -198,7 +198,7 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list,H_args, opt):
     if (not isinstance(H_func[1],(list,ndarray))) or (len(H_func[1])!=(len(H_func[0])-1)):
         raise TypeError('Time-dependent coefficients must be list with length N-1 where N is the number of Hamiltonian terms.')
     tflag=1
-    if opt.rhs_reuse==True and mcconfig.tdfunc==None:
+    if opt.rhs_reuse==True and odeconfig.tdfunc==None:
         print "No previous time-dependent RHS found."
         print "Generating one for you..."
         rhs_generate(H_func,H_args)
@@ -222,8 +222,8 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list,H_args, opt):
                 string+=(",")
     #run code generator
     if not opt.rhs_reuse:
-        name="rhs"+str(mcconfig.cgen_num)
-        mcconfig.tdname=name
+        name="rhs"+str(odeconfig.cgen_num)
+        odeconfig.tdname=name
         cgen=Codegen(lenh,H_func[1],H_args)
         cgen.generate(name+".pyx")
         print "Compiling '"+name+".pyx' ..."
@@ -233,13 +233,13 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list,H_args, opt):
         code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
         exec(code)
         print 'Done.'
-        mcconfig.tdfunc=cyq_td_ode_rhs
+        odeconfig.tdfunc=cyq_td_ode_rhs
     #
     # setup integrator
     #
 
     initial_vector = psi0.full()
-    r = scipy.integrate.ode(mcconfig.tdfunc)
+    r = scipy.integrate.ode(odeconfig.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                               atol=opt.atol, rtol=opt.rtol, #nsteps=opt.nsteps,
                               #first_step=opt.first_step, min_step=opt.min_step,
@@ -491,7 +491,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
         raise TypeError('Time-dependent Hamiltonians must be a list with two or more terms')
     if (not isinstance(H_func[1],(list,ndarray))) or (len(H_func[1])!=(len(H_func[0])-1)):
         raise TypeError('Time-dependent coefficients must be list with length N-1 where N is the number of Hamiltonian terms.')
-    if opt.rhs_reuse==True and mcconfig.tdfunc==None:
+    if opt.rhs_reuse==True and odeconfig.tdfunc==None:
         print "No previous time-dependent RHS found."
         print "Generating one for you..."
         rhs_generate(H_func,H_args)
@@ -519,7 +519,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     
     #run code generator
     if not opt.rhs_reuse:
-        name="rhs"+str(mcconfig.cgen_num)
+        name="rhs"+str(odeconfig.cgen_num)
         cgen=Codegen(lenh,L_func[1],H_args)
         cgen.generate(name+".pyx")
         print "Compiling '"+name+".pyx' ..."
@@ -529,11 +529,11 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
         code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
         exec(code)
         print 'Done.'
-        mcconfig.tdfunc=cyq_td_ode_rhs
+        odeconfig.tdfunc=cyq_td_ode_rhs
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full())
-    r = scipy.integrate.ode(mcconfig.tdfunc)
+    r = scipy.integrate.ode(odeconfig.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                               atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                               first_step=opt.first_step, min_step=opt.min_step,

@@ -24,7 +24,7 @@ from qutip.expect import *
 import sys,os,time
 from qutip.istests import *
 from qutip.Odeoptions import Odeoptions
-import qutip.mcconfig as mcconfig
+import qutip.odeconfig as odeconfig
 from multiprocessing import Pool,cpu_count
 from types import FunctionType
 from qutip.tidyup import tidyup
@@ -75,8 +75,8 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
             raise TypeError('Time-dependent Hamiltonians must be a list with two or more terms')
         if (not isinstance(H[1],(list,ndarray))) or (len(H[1])!=(len(H[0])-1)):
             raise TypeError('Time-dependent coefficients must be list with length N-1 where N is the number of Hamiltonian terms.')
-        mcconfig.tflag=1
-        if options.rhs_reuse==True and mcconfig.tdfunc==None:
+        odeconfig.tflag=1
+        if options.rhs_reuse==True and odeconfig.tdfunc==None:
             print "No previous time-dependent RHS found."
             print "Generating one for you..."
             rhs_generate(H,H_args)
@@ -84,27 +84,27 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
         if options.tidy:
             H[0]=[tidyup(H[0][k]) for k in range(lenh)]
         if len(collapse_ops)>0:
-            mcconfig.cflag=1
+            odeconfig.cflag=1
             for c_op in collapse_ops:
                 H[0][0]-=0.5j*(c_op.dag()*c_op)
         #create data arrays for time-dependent RHS function
-        mcconfig.Hdata=[-1.0j*H[0][k].data.data for k in range(lenh)]
-        mcconfig.Hinds=[H[0][k].data.indices for k in range(lenh)]
-        mcconfig.Hptrs=[H[0][k].data.indptr for k in range(lenh)]
+        odeconfig.Hdata=[-1.0j*H[0][k].data.data for k in range(lenh)]
+        odeconfig.Hinds=[H[0][k].data.indices for k in range(lenh)]
+        odeconfig.Hptrs=[H[0][k].data.indptr for k in range(lenh)]
         #setup ode args string
-        mcconfig.string=""
+        odeconfig.string=""
         for k in range(lenh):
-            mcconfig.string+="mcconfig.Hdata["+str(k)+"],mcconfig.Hinds["+str(k)+"],mcconfig.Hptrs["+str(k)+"],"
+            odeconfig.string+="odeconfig.Hdata["+str(k)+"],odeconfig.Hinds["+str(k)+"],odeconfig.Hptrs["+str(k)+"],"
         if H_args:
             td_consts=H_args.items()
             for elem in td_consts:
-                mcconfig.string+=str(elem[1])
+                odeconfig.string+=str(elem[1])
                 if elem!=td_consts[-1]:
-                    mcconfig.string+=(",")
+                    odeconfig.string+=(",")
         #run code generator
         if not options.rhs_reuse:
-            name="rhs"+str(mcconfig.cgen_num)
-            mcconfig.tdname=name
+            name="rhs"+str(odeconfig.cgen_num)
+            odeconfig.tdname=name
             cgen=Codegen(lenh,H[1],H_args)
             cgen.generate(name+".pyx")
     #if Hamiltonian is time-independent
@@ -113,19 +113,19 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
             H -= 0.5j * (c_op.dag()*c_op)
         if options.tidy:
             H=tidyup(H,options.atol)
-        mcconfig.Hdata=-1.0j*H.data.data
-        mcconfig.Hinds=H.data.indices
-        mcconfig.Hptrs=H.data.indptr
+        odeconfig.Hdata=-1.0j*H.data.data
+        odeconfig.Hinds=H.data.indices
+        odeconfig.Hptrs=H.data.indptr
 
 
     mc=MC_class(psi0,tlist,ntraj,collapse_ops,expect_ops,options)
     mc.run()
-    if mcconfig.tflag==1 and (not options.rhs_reuse):
-        os.remove(mcconfig.tdname+".pyx")
+    if odeconfig.tflag==1 and (not options.rhs_reuse):
+        os.remove(odeconfig.tdname+".pyx")
     output=Mcdata()
     output.times=mc.times
     output.states=mc.psi_out
-    if mc.expect_out and mcconfig.cflag==1:#averaging if multiple trajectories
+    if mc.expect_out and odeconfig.cflag==1:#averaging if multiple trajectories
         output.expect=sum(mc.expect_out,axis=0)/float(mc.ntraj)
     elif mc.expect_out:#no averaging for single trajectory
         output.expect=mc.expect_out
@@ -255,16 +255,16 @@ class MC_class():
             pl.join()
         return
     def run(self):
-        if mcconfig.tflag==1: #compile time-depdendent RHS code
+        if odeconfig.tflag==1: #compile time-depdendent RHS code
             if not self.options.rhs_reuse:
-                print "Compiling '"+mcconfig.tdname+".pyx' ..."
+                print "Compiling '"+odeconfig.tdname+".pyx' ..."
                 os.environ['CFLAGS'] = '-w'
                 import pyximport
                 pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-                code = compile('from '+mcconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
+                code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
                 exec(code)
                 print 'Done.'
-                mcconfig.tdfunc=cyq_td_ode_rhs
+                odeconfig.tdfunc=cyq_td_ode_rhs
         if self.num_collapse==0:
             if self.ntraj!=1:#check if ntraj!=1 which is pointless for no collapse operators
                 self.ntraj=1
@@ -303,14 +303,14 @@ class MC_class():
 def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
     ##Calculates state vectors at times tlist if no collapse AND no expectation values are given.
     #
-    if mcconfig.tflag==1:
-        ODE=ode(mcconfig.tdfunc)
-        code = compile('ODE.set_f_params('+mcconfig.string+')', '<string>', 'exec')
+    if odeconfig.tflag==1:
+        ODE=ode(odeconfig.tdfunc)
+        code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
         exec(code)
     else:
         #ODE=ode(RHS)
         ODE = ode(cyq_ode_rhs)
-        ODE.set_f_params(mcconfig.Hdata, mcconfig.Hinds, mcconfig.Hptrs)
+        ODE.set_f_params(odeconfig.Hdata, odeconfig.Hinds, odeconfig.Hptrs)
         
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
@@ -330,13 +330,13 @@ def no_collapse_expect_out(opt,psi_in,tlist,expect_ops,num_expect,num_times,psi_
     ##Calculates xpect.values at times tlist if no collapse ops. given
     #  
     #------------------------------------
-    if mcconfig.tflag==1:
-        ODE=ode(mcconfig.tdfunc)
-        code = compile('ODE.set_f_params('+mcconfig.string+')', '<string>', 'exec')
+    if odeconfig.tflag==1:
+        ODE=ode(odeconfig.tdfunc)
+        code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
         exec(code)
     else:
         ODE = ode(cyq_ode_rhs)
-        ODE.set_f_params(mcconfig.Hdata, mcconfig.Hinds, mcconfig.Hptrs)
+        ODE.set_f_params(odeconfig.Hdata, odeconfig.Hinds, odeconfig.Hptrs)
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
     for jj in xrange(num_expect):
@@ -379,13 +379,13 @@ def mc_alg_evolve(nt,args):
     random.seed(seeds[nt])
     rand_vals=random.rand(2)#first rand is collapse norm, second is which operator
     #CREATE ODE OBJECT CORRESPONDING TO RHS
-    if mcconfig.tflag==1:
-        ODE=ode(mcconfig.tdfunc)
-        code = compile('ODE.set_f_params('+mcconfig.string+')', '<string>', 'exec')
+    if odeconfig.tflag==1:
+        ODE=ode(odeconfig.tdfunc)
+        code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
         exec(code)
     else:
         ODE = ode(cyq_ode_rhs)
-        ODE.set_f_params(mcconfig.Hdata, mcconfig.Hinds, mcconfig.Hptrs)
+        ODE.set_f_params(odeconfig.Hdata, odeconfig.Hinds, odeconfig.Hptrs)
 
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions

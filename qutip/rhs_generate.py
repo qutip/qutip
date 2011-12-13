@@ -1,9 +1,9 @@
 from cyQ.codegen import Codegen
-import mcconfig,os
+import odeconfig,os
 
 def rhs_generate(H,H_args,name=None):
     if not name:
-        name='rhs'+str(mcconfig.cgen_num)
+        name='rhs'+str(odeconfig.cgen_num)
     try:
         import pyximport
     except:
@@ -16,6 +16,6 @@ def rhs_generate(H,H_args,name=None):
     pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
     code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
     exec(code)
-    mcconfig.tdfunc=cyq_td_ode_rhs
+    odeconfig.tdfunc=cyq_td_ode_rhs
     os.remove(name+".pyx")
     print 'Done.'
