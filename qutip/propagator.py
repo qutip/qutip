@@ -117,22 +117,20 @@ def propagator_steadystate(U):
     return rho * (1 / real(rho.tr()))
 
 
-def floquet_states(H, t, c_op_list, H_args=None):
-    """!
-    Calculate the floquet states for a driven system with period t.
-
-    Incomplete.
+def floquet_states(H, T, H_args=None):
+    """
+    Calculate the initial Floquet initial Floquet states Phi_alpha(0) for a
+    driven system with period T.
+    
+    .. note:: Experimental
     """
 
     # get the unitary propagator
-    U = propagator(H, t, [], H_args)
+    U = propagator(H, T, [], H_args)
 
     # find the eigenstates for the propagator
     evals,evecs = la.eig(U.full())
 
-    eargs = angle(evals, False)
-
-#    print "eargs =", eargs
     #if (p2 > M_PI/2) p2 -= 2*M_PI;        
     #if (p2 < M_PI/2) p2 += 2*M_PI;        
 #    for i in [list(array(eargs) < pi/2).index(True)]:
@@ -145,21 +143,58 @@ def floquet_states(H, t, c_op_list, H_args=None):
 #    print "eargs =", eargs
 
     # sort by the angle (might need shifts)
+    eargs = angle(evals, False)
     order = argsort(eargs)
 
     evals_order = evals[order]
-    evecs_order = evecs[order]
+    e_quasi     = - angle(evals_order, False) / T
 
-    e_quasi = - angle(evals_order, False) / t
+    new_dims  = [U.dims[0], [1] * len(U.dims[0])]
+    new_shape = [U.shape[0], 1]
+    ekets_order = [Qobj(matrix(evecs[:,o]).T, dims=new_dims, shape=new_shape) for o in order]
 
-    return evecs_order, e_quasi
+    return ekets_order, e_quasi
+
+def floquet_states_t(f_states_0, f_energies, H, t, H_args=None):
+    """
+    Calculate the Floquet states at times tlist Phi_alpha(tlist) propagting the
+    initial Floquet states Phi_alpha(0)
+    
+    .. note:: Experimental    
+    """
+
+    f_states_list = []
+        
+    # get the unitary propagator from 0 to t
+    if t > 0.0:
+        U = propagator(H, t, [], H_args)
+
+        for n in arange(len(f_states_0)):
+            f_states_list.append(U * f_states_0[n])
+
+    else:
+
+        for n in arange(len(f_states_0)):
+            f_states_list.append(f_states_0[n])
 
 
-def floquet_states_t(fval, fvec, H, t, c_op_list, H_args=None):
+    return f_states_list
+    
+def floquet_wave_function_t(f_states_0, f_energies, t):
+    """
+    Evaluate the floquet wave functions at time t.
+        
+    .. note:: Experimental    
+    """
+
+    return f_states_0 * diag(exp(-1j * f_energies * t))
+
+
+def floquet_states_old_t(fval, fvec, H, t, c_op_list, H_args=None):
     """!
     Calculate the floquet states for a driven system with period t.
     
-    Incomplete.
+    .. note:: Experimental
     """
 
     # get the unitary propagator
