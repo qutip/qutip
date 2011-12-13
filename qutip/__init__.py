@@ -17,7 +17,7 @@
 #
 ###########################################################################
 
-import os,sys,multiprocessing
+import os,sys,platform,multiprocessing
 
 #automatically set number of threads used by MKL
 os.environ['MKL_NUM_THREADS']=str(multiprocessing.cpu_count())
@@ -36,7 +36,7 @@ if not ('DISPLAY' in os.environ):
     os.environ['QUTIP_GUI']="NONE"
 
 # check for windows platform
-if os.uname()[0] == "Windows":
+if platform.uname()[0] == "Windows":
     # graphics always available on windows
     os.environ['QUTIP_GRAPHICS']="YES"
 
@@ -61,7 +61,6 @@ if os.environ['QUTIP_GRAPHICS']=="YES":
             os.environ['QUTIP_GRAPHICS']="NO"
             os.environ['QUTIP_GUI']="NONE"
 #----------------------------------------------------
-import __future__
 from scipy import *
 import scipy.linalg as la
 import scipy.sparse as sp
@@ -82,6 +81,7 @@ from qutip.Odeoptions import Odeoptions
 from qutip.Mcdata import Mcdata
 from qutip.mcsolve import mcsolve
 from qutip.metrics import fidelity,tracedist
+from qutip.Odedata import Odedata
 from qutip.odesolve import odesolve
 from qutip.essolve import *
 from qutip.operators import *
@@ -90,6 +90,7 @@ from qutip.parfor import *
 from qutip.ptrace import ptrace
 from qutip.propagator import *
 from qutip.qstate import *
+from qutip.rhs_generate import rhs_generate
 from qutip.simdiag import *
 from qutip.sphereplot import *
 from qutip.states import *
