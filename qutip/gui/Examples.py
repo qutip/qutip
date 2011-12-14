@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+# Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
 import qutip.examples
@@ -57,7 +57,7 @@ class Examples(QtGui.QWidget):
         #
         alabel = QtGui.QLabel(self)
         alabel.setStyleSheet("QLabel {font-weight: bold;font-size: 10px;}")
-        alabel.setText("Copyright (c) 2011, Paul D. Nation & Robert J. Johansson")
+        alabel.setText("Copyright (c) 2011-2012, Paul D. Nation & Robert J. Johansson")
         alabel.move(5, 630)
         
         #QUIT BUTTON-----------------
