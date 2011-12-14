@@ -18,3 +18,4 @@ The goal of this guide is to introduce you to the basic structures and functions
    guide-bloch.rst
    guide-parfor.rst
    guide-eseries.rst
+   guide-saving.rst
