@@ -48,7 +48,10 @@ class AboutBox(QtGui.QWidget):
         font = QtGui.QFont()
         font.setFamily("Arial")
         font.setBold(True)
-        font.setPointSize(20)
+        if sys.platform=='darwin':
+            font.setPointSize(20)
+        else:
+            font.setPointSize(15)
         fm = QtGui.QFontMetrics(font)
         tstring="QuTiP: The Quantum Toolbox in Python"
         pixelswide = fm.width(tstring)
@@ -75,7 +78,10 @@ class AboutBox(QtGui.QWidget):
         label = QtGui.QLabel(self)
         font.setFamily("Arial")
         font.setBold(False)
-        font.setPointSize(14)
+        if sys.platform=='darwin':
+            font.setPointSize(14)
+        else:
+            font.setPointSize(11)
         label.setFont(font)
         fm = QtGui.QFontMetrics(font)
         if sys.platform!='darwin':
@@ -101,21 +107,21 @@ class AboutBox(QtGui.QWidget):
             label.move((self.width()-pixelswide)/2,210)
         #
         alabel = QtGui.QLabel(self)
-        astring="Copyright (c) 2011-2012, Paul D. Nation & Robert J. Johansson"
+        astring="Copyright (c) 2011-2012, P. D. Nation & R. J. Johansson"
         pixelswide = fm.width(astring)
         alabel.setFont(font)
         alabel.setText(astring)
         alabel.move((self.width()-pixelswide)/2, 350)
         #
         clabel = QtGui.QLabel(self)
-        alabel.setFont(font)
+        clabel.setFont(font)
         clabel.setText("QuTiP is released under the GPL3.\n"
                         +"See the enclosed COPYING.txt\nfile for more information.")
         clabel.move((self.width()-pixelswide)/2, 380)
         #BUTTONS-----------------
         quit = QtGui.QPushButton('Close', self)
-        quit.setStyleSheet("QPushButton {font-family:Arial;font-size: 14px;}")
-        quit.setGeometry((self.width()-80-10), 395, 80, 40)
+        quit.setFont(font)
+        quit.setGeometry((self.width()-90), 395, 80, 40)
         #quit.setFocusPolicy(QtCore.Qt.NoFocus)
         quit.clicked.connect(self.close)
     def center(self):
