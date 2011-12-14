@@ -117,12 +117,14 @@ def propagator_steadystate(U):
     return rho * (1 / real(rho.tr()))
 
 
-def floquet_states(H, T, H_args=None):
+def floquet_modes(H, T, H_args=None):
     """
-    Calculate the initial Floquet Phi_alpha(0) for a driven system with period T.
+    Calculate the initial Floquet modes Phi_alpha(0) for a driven system with
+    period T.
     
     Returns a list of :class:`qutip.Qobj` instances representing the Floquet
-    states and a list of quasienergies.
+    modes and a list of corresponding quasienergies, sorted by increasing
+    quasienergy in the interval [-pi/T, pi/T]
          
     .. note:: Experimental
     """
@@ -152,54 +154,65 @@ def floquet_states(H, T, H_args=None):
 
     return kets_order, e_quasi[order]
 
-def floquet_states_t(f_states_0, f_energies, H, t, H_args=None):
+def floquet_modes_t(f_modes_0, f_energies, t, H, T, H_args=None):
     """
-    Calculate the Floquet states at times tlist Phi_alpha(tlist) propagting the
-    initial Floquet states Phi_alpha(0)
+    Calculate the Floquet modes at times tlist Phi_alpha(tlist) propagting the
+    initial Floquet modes Phi_alpha(0)
     
     .. note:: Experimental    
     """
 
-    f_states_list = []
+    # find t in [0,T] such that t_orig = t + n * T for integer n
+    t = t - int(t/T) * T
+    
+    f_modes_t = []
         
     # get the unitary propagator from 0 to t
     if t > 0.0:
         U = propagator(H, t, [], H_args)
 
-        for n in arange(len(f_states_0)):
-            f_states_list.append(U * f_states_0[n])
+        for n in arange(len(f_modes_0)):
+            f_modes_t.append(U * f_modes_0[n])
 
     else:
 
-        for n in arange(len(f_states_0)):
-            f_states_list.append(f_states_0[n])
+        f_modes_t = f_modes_0
+        #for n in arange(len(f_states_0)):
+        #    f_modes_t.append(f_states_0[n])
 
 
-    return f_states_list
+    return f_modes_t
     
-def floquet_wave_function_t(f_states_0, f_energies, t):
+def floquet_states_t(f_modes_0, f_energies, t, H, T, H_args=None):
     """
-    Evaluate the floquet wavefunctions at time t.
+    Evaluate the floquet states at time t.
     
     Returns a list of the wavefunctions.
         
     .. note:: Experimental    
     """
-
-    return [(f_states_0[i] * exp(-1j * f_energies[i]*t)) for i in arange(len(f_energies))]
-
-
-def floquet_states_old_t(fval, fvec, H, t, c_op_list, H_args=None):
-    """!
-    Calculate the floquet states for a driven system with period t.
     
-    .. note:: Experimental
+    f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, H_args)
+    return [(f_modes_t[i] * exp(-1j * f_energies[i]*t)) for i in arange(len(f_energies))]    
+    
+    
+def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, H_args=None):
     """
+    Evaluate the wavefunction for a time t using the Floquet states decompositon.
+    
+    Returns the wavefunction.
+        
+    .. note:: Experimental    
+    """
+    
+    f_states_t = floquet_states_t(f_modes_0, f_energies, t, H, T, H_args)
+    return sum([f_states_t[i] * f_coeff[i] for i in arange(len(f_energies))])
 
-    # get the unitary propagator
-    U = propagator(H, t, [], H_args)
-
-    fvec_t = (U.data * fvec) * diag(exp( - fval * t))
-
-    return fvec_t
+def floquet_state_decomposition(f_modes_0, f_energies, psi0):
+    """
+    Decompose the wavefunction psi in the Floquet states, return the coefficients
+    in the decomposition as an array of complex amplitudes.
+    """
+    return [(f_modes_0[i].dag() * psi0).data[0,0] for i in arange(len(f_energies))]
+    
 
