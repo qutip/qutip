@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+# Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
 
@@ -45,13 +45,16 @@ class AboutBox(QtGui.QWidget):
         logo.setPixmap(QtGui.QPixmap(CD_BASE + "/logo.png"))
         #TEXT--------------------
         tlabel = QtGui.QLabel(self)
-        font = QtGui.QFont("Sans Serif", 20,QtGui.QFont.Bold)
-        tstring="QuTiP: The Quantum Toolbox in Python"
+        font = QtGui.QFont()
+        font.setFamily("Arial")
+        font.setBold(True)
+        font.setPointSize(20)
         fm = QtGui.QFontMetrics(font)
+        tstring="QuTiP: The Quantum Toolbox in Python"
         pixelswide = fm.width(tstring)
-        tlabel.setStyleSheet("QLabel { font-family:Sans Serif; font-weight: bold;font-size: 20px}")
+        tlabel.setFont(font)
         tlabel.setText(tstring)
-        tlabel.move((self.width()-pixelswide)/2, 170)
+        tlabel.move((self.width()-pixelswide)/2.0, 170)
         #
         try:
             import PySide
@@ -70,8 +73,10 @@ class AboutBox(QtGui.QWidget):
             except:
                 pyobjc='No'
         label = QtGui.QLabel(self)
-        label.setStyleSheet("QLabel { font-family:Sans Serif;font-size: 14px;}")
-        font = QtGui.QFont("Sans Serif",14)
+        font.setFamily("Arial")
+        font.setBold(False)
+        font.setPointSize(14)
+        label.setFont(font)
         fm = QtGui.QFontMetrics(font)
         if sys.platform!='darwin':
             lstring="QuTiP Version:           "+Qversion+"\n"
@@ -96,20 +101,20 @@ class AboutBox(QtGui.QWidget):
             label.move((self.width()-pixelswide)/2,210)
         #
         alabel = QtGui.QLabel(self)
-        astring="Copyright (c) 2011, Paul D. Nation & Robert J. Johansson"
-        alabel.setStyleSheet("QLabel { font-family:Sans Serif;font-size: 14px;}")
+        astring="Copyright (c) 2011-2012, Paul D. Nation & Robert J. Johansson"
         pixelswide = fm.width(astring)
+        alabel.setFont(font)
         alabel.setText(astring)
         alabel.move((self.width()-pixelswide)/2, 350)
         #
         clabel = QtGui.QLabel(self)
-        clabel.setStyleSheet("QLabel { font-family:Sans Serif;font-size: 14px;}")
+        alabel.setFont(font)
         clabel.setText("QuTiP is released under the GPL3.\n"
                         +"See the enclosed COPYING.txt\nfile for more information.")
         clabel.move((self.width()-pixelswide)/2, 380)
         #BUTTONS-----------------
         quit = QtGui.QPushButton('Close', self)
-        quit.setStyleSheet("QPushButton {font-family:Sans Serif;font-size: 14px;}")
+        quit.setStyleSheet("QPushButton {font-family:Arial;font-size: 14px;}")
         quit.setGeometry((self.width()-80-10), 395, 80, 40)
         #quit.setFocusPolicy(QtCore.Qt.NoFocus)
         quit.clicked.connect(self.close)
