@@ -57,7 +57,7 @@ def about():
         import matplotlib
         print('')
         print("QuTiP: The Quantum Toolbox in Python")
-        print("Copyright (c) 2011")
+        print("Copyright (c) 2011-2012")
         print("Paul D. Nation & Robert J. Johansson")
         print('')
         print("QuTiP Version:  "+version)
