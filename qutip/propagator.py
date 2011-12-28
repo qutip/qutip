@@ -215,4 +215,52 @@ def floquet_state_decomposition(f_modes_0, f_energies, psi0):
     """
     return [(f_modes_0[i].dag() * psi0).data[0,0] for i in arange(len(f_energies))]
     
+    
+    
+    
+def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, H_args, kmax=5):
+    """
+    Calculate the rates and matrix elements for the Floquet-Markov master
+    equation.
+    """
+    
+    N = len(f_energies)
+    M = 2*kmax + 1
+    
+    omega = (2*pi)/T
+    
+    Delta = zeros((N, N, M))
+    Xlist = zeros((N, N, M), dtype=complex)
+    
+    nT = 100
+    tlist = linspace(0, T, nT)
+    dT = T/nT
+
+    for a in range(N):
+        for b in range(N):
+            k_idx = 0
+            for k in range(-kmax,kmax+1, 1):
+                Delta[a,b,k_idx] = f_energies[a] - f_energies[b] + k * omega
+                k_idx += 1
+
+    for t in tlist:
+        # TODO: repeated invocations of floquet_modes_t is inefficient...
+        # make a and b outer loops and use the odesolve instead of the propagator.
+        f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, H_args)   
+        for a in range(N):
+            for b in range(N):
+                k_idx = 0
+                for k in range(-kmax,kmax+1, 1):
+                    Xlist[a,b,k_idx] += (dT/T) * exp(-1j * k * omega * t) * (f_modes_t[a].dag() * c_op * f_modes_t[b]).full()[0,0]
+                    k_idx += 1
+    
+    return Delta, Xlist
+        
+    
+    
+    
+    
+    
+    
+    
 
