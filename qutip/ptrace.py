@@ -62,8 +62,7 @@ def ptrace(rho,sel):
     perm.tocsr()
     rws=prod(shape(rho.data))
     rho1=Qobj()
-
-    rhdata=dot(perm,rho.data.tolil().reshape((rws,1)))
+    rhdata=perm.dot(csr_to_col(rho.data))
     rhdata=rhdata.tolil().reshape((M,M))
     rho1.data=rhdata.tocsr()
 
@@ -100,3 +99,15 @@ def selct(sel,dims):
 	for k in xrange(len(sel)):
 		ilist[:,sel[k]]=remainder(fix(counter/prod(dims[sel[k+1:]])),dims[sel[k]])+1
 	return ilist
+
+
+
+def csr_to_col(mat):
+    mat.sort_indices()
+    rows=array([len(range(mat.indptr[i],mat.indptr[i+1])) for i in xrange(mat.shape[1])])
+    rows=[[k for j in xrange(rows[k])] for k in xrange(len(rows))] 
+    rows=array([item for sublist in rows for item in sublist])
+    inds=mat.shape[1]*rows+mat.indices
+    ptrs=array([0,len(mat.data)])
+    out=sp.csr_matrix((mat.data,inds,ptrs),shape=(1, prod(mat.shape)),dtype=complex)
+    return out.transpose()
