@@ -288,5 +288,21 @@ def ket2dm(Q):
     return Qobj(out)
 
 
+#
+# projection operator
+#
+def projection(N, n, m):
+    ''' 
+    Return the projection operator that projects state |m> on state |n>,
+    i.e., |n><m|.
+    
+    Returns:
+    
+        a projection operator.
+    '''
+    ket1 = basis(N, n)
+    ket2 = basis(N, m)
+    
+    return ket1 * ket2.dag()
 
 
