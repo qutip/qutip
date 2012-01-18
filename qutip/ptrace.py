@@ -20,7 +20,7 @@ from scipy import *
 import scipy.sparse as sp
 from scipy.linalg import *
 from qutip.Qobj import *
-
+import time
 
 def ptrace(rho,sel):
     """
@@ -45,20 +45,19 @@ def ptrace(rho,sel):
     if prod(rho.dims[1]) == 1:
         rho = rho * rho.dag()
     perm = sp.lil_matrix((M*M,N*N))
-    rest=setdiff1d(arange(len(drho)),asarray(sel)) #all elements in range(len(drho)) not in sel set
+    rest=setdiff1d(arange(len(drho)),sel) #all elements in range(len(drho)) not in sel set
     ilistsel=selct(sel,drho)
     indsel=list2ind(ilistsel,drho)
     ilistrest=selct(rest,drho)
     indrest=list2ind(ilistrest,drho)
-    irest=(indrest-1)*N+indrest
-    m=0
+    irest=(indrest-1)*N+indrest-2
+    m=-1
     for k in indsel:
         temp=(k-1)*N
         for l in indsel:
-            m=m+1
-            col=irest+temp+l-1
-            for i in xrange(len(col)):
-                perm[m-1,int(col[i][0])-1]=1
+            m+=1
+            col=irest+temp+l
+            perm[m,col.T[0]]=1
     perm.tocsr()
     rws=prod(shape(rho.data))
     rho1=Qobj()
@@ -70,7 +69,6 @@ def ptrace(rho,sel):
     dims_kept1=asarray(rho.dims[0]).take(sel)
     rho1.dims=[dims_kept0.tolist(),dims_kept1.tolist()]
     rho1.shape=[prod(dims_kept0),prod(dims_kept1)]
-    rho1.size=[1,1]
     return Qobj(rho1)
 
 
@@ -84,7 +82,7 @@ def list2ind(ilist,dims):
 	irev=fliplr(ilist)-1
 	fact=append(array([1]),(cumprod(flipud(dims)[:-1])))
 	fact=fact.reshape(len(fact),1)
-	return sort(dot(irev,fact)+1,0)
+	return array(sort(dot(irev,fact)+1,0),dtype=int)
 
 def selct(sel,dims):
 	"""
@@ -94,7 +92,7 @@ def selct(sel,dims):
 	dims=asarray(dims)#make sure dims is array
 	rlst=dims.take(sel)
 	rprod=prod(rlst)
-	ilist=ones((rprod,len(dims)));
+	ilist=ones((rprod,len(dims)),dtype=int);
 	counter=arange(rprod)
 	for k in xrange(len(sel)):
 		ilist[:,sel[k]]=remainder(fix(counter/prod(dims[sel[k+1:]])),dims[sel[k]])+1
