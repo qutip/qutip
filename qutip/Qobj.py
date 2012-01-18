@@ -68,11 +68,11 @@ class Qobj():
             if (isinstance(inpt,ndarray)) or (isinstance(inpt,sp.csr_matrix)):
                 self.data=sp.csr_matrix(inpt,dtype=complex) #data stored as space array
                 if not any(dims):
-                    self.dims=[[inpt.shape[0]],[inpt.shape[1]]] #list of object dimensions
+                    self.dims=[[int(inpt.shape[0])],[int(inpt.shape[1])]] #list of object dimensions
                 else:
                     self.dims=dims
                 if not any(shape):
-                    self.shape=[inpt.shape[0],inpt.shape[1]] # list of matrix dimensions
+                    self.shape=[int(inpt.shape[0]),int(inpt.shape[1])] # list of matrix dimensions
                 else:
                     self.shape=shape
             elif isinstance(inpt,list):# case where input is not array or sparse, i.e. a list
@@ -82,11 +82,11 @@ class Qobj():
                     inpt=array(inpt)
                 self.data=sp.csr_matrix(inpt,dtype=complex)
                 if not any(dims):
-                    self.dims=[[inpt.shape[0]],[inpt.shape[1]]]
+                    self.dims=[[int(inpt.shape[0])],[int(inpt.shape[1])]]
                 else:
                     self.dims=dims
                 if not any(shape):
-                    self.shape=[inpt.shape[0],inpt.shape[1]]
+                    self.shape=[int(inpt.shape[0]),int(inpt.shape[1])]
                 else:
                     self.shape=shape
         ##Signifies if quantum object corresponds to Hermitian operator
