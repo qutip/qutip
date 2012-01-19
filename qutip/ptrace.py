@@ -51,12 +51,9 @@ def ptrace(rho,sel):
     ilistrest=selct(rest,drho)
     indrest=list2ind(ilistrest,drho)
     irest=(indrest-1)*N+indrest-2
-    # Essentially all time spent in this loop
-    for m in xrange(M**2):
-        temp=(indsel[int(floor(m/M))]-1)*N
-        col=irest+temp+indsel[int(mod(m,M))]
-        perm[m,col.T[0]]=1
-    #----------------------------------------
+    # Possibly use parfor here if M > some value ?
+    perm.rows=array([(irest+(indsel[int(floor(m/M))]-1)*N+indsel[int(mod(m,M))]).T[0] for  m in xrange(M**2)])
+    perm.data=ones_like(perm.rows,dtype=int)
     perm.tocsr()
     rws=prod(shape(rho.data))
     rho1=Qobj()
