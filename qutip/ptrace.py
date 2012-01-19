@@ -95,15 +95,22 @@ def selct(sel,dims):
 
 
 def csr_to_col(mat):
+    """
+    Private function for reshape density matrix csr_matrix to a column csr_matrix
+        without using lil (reshape) or csc (transpose) matrices which fail for large
+        matricies.
+    """
     mat.sort_indices()
     rows=array([len(range(mat.indptr[i],mat.indptr[i+1])) for i in xrange(mat.shape[1])])
     rows=[[k for j in xrange(rows[k])] for k in xrange(len(rows))] 
     rows=array([item for sublist in rows for item in sublist])
-    temp_ptrs=(mat.shape[1]*rows+mat.indices)+1
-    temp_ptrs=append(temp_ptrs,array([prod(mat.shape)]))
-    values=arange(len(mat.data)+1)
-    counts=diff(append(array([0]),temp_ptrs))
-    ptrs=append(repeat(values,counts),array([len(mat.data)]))
-    inds=zeros(len(mat.data),dtype=int)
+    datlen=len(mat.data)
+    ptrs=zeros((datlen+2),dtype=int)
+    ptrs[1:-1]=(mat.shape[1]*rows+mat.indices)+1
+    ptrs[-1]=prod(mat.shape)
+    values=arange(datlen+1)#values to use in ptrs
+    counts=diff(ptrs) #number of times values should be repeated
+    ptrs=append(repeat(values,counts),array([datlen])) #append the number of data elems (per csr format)
+    inds=zeros(datlen,dtype=int) #since this is col vec, all inds = 0 
     out=sp.csr_matrix((mat.data,inds,ptrs),shape=(prod(mat.shape),1),dtype=complex)
     return out
