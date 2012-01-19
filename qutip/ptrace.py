@@ -20,7 +20,6 @@ from scipy import *
 import scipy.sparse as sp
 from scipy.linalg import *
 from qutip.Qobj import *
-import time
 
 def ptrace(rho,sel):
     """
