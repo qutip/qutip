@@ -56,7 +56,7 @@ def ptrace(rho,sel):
     perm.tocsr()
     rws=prod(shape(rho.data))
     rho1=Qobj()
-    rhdata=perm.dot(csr_to_col(rho.data))
+    rhdata=perm*csr_to_col(rho.data)
     rhdata=rhdata.tolil().reshape((M,M))
     rho1.data=rhdata.tocsr()
     dims_kept0=asarray(rho.dims[0]).take(sel)
@@ -99,7 +99,11 @@ def csr_to_col(mat):
     rows=array([len(range(mat.indptr[i],mat.indptr[i+1])) for i in xrange(mat.shape[1])])
     rows=[[k for j in xrange(rows[k])] for k in xrange(len(rows))] 
     rows=array([item for sublist in rows for item in sublist])
-    inds=mat.shape[1]*rows+mat.indices
-    ptrs=array([0,len(mat.data)])
-    out=sp.csr_matrix((mat.data,inds,ptrs),shape=(1, prod(mat.shape)),dtype=complex)
-    return out.transpose()
+    temp_ptrs=(mat.shape[1]*rows+mat.indices)+1
+    temp_ptrs=append(temp_ptrs,array([prod(mat.shape)]))
+    values=arange(len(mat.data)+1)
+    counts=diff(append(array([0]),temp_ptrs))
+    ptrs=append(repeat(values,counts),array([len(mat.data)]))
+    inds=zeros(len(mat.data),dtype=int)
+    out=sp.csr_matrix((mat.data,inds,ptrs),shape=(prod(mat.shape),1),dtype=complex)
+    return out
