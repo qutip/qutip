@@ -51,20 +51,18 @@ def ptrace(rho,sel):
     ilistrest=selct(rest,drho)
     indrest=list2ind(ilistrest,drho)
     irest=(indrest-1)*N+indrest-2
-    m=-1
-    for k in indsel:
-        temp=(k-1)*N
-        for l in indsel:
-            m+=1
-            col=irest+temp+l
-            perm[m,col.T[0]]=1
+    # Essentially all time spent in this loop
+    for m in xrange(M**2):
+        temp=(indsel[int(floor(m/M))]-1)*N
+        col=irest+temp+indsel[int(mod(m,M))]
+        perm[m,col.T[0]]=1
+    #----------------------------------------
     perm.tocsr()
     rws=prod(shape(rho.data))
     rho1=Qobj()
     rhdata=perm.dot(csr_to_col(rho.data))
     rhdata=rhdata.tolil().reshape((M,M))
     rho1.data=rhdata.tocsr()
-
     dims_kept0=asarray(rho.dims[0]).take(sel)
     dims_kept1=asarray(rho.dims[0]).take(sel)
     rho1.dims=[dims_kept0.tolist(),dims_kept1.tolist()]
