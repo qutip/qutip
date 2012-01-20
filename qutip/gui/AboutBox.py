@@ -17,8 +17,8 @@
 #
 ###########################################################################
 
-import sys,os,time
-
+import sys,os
+from urllib2 import urlopen
 if os.environ['QUTIP_GUI']=="PYSIDE":
     from PySide import QtGui, QtCore
 
@@ -84,27 +84,57 @@ class AboutBox(QtGui.QWidget):
             font.setPointSize(11)
         label.setFont(font)
         fm = QtGui.QFontMetrics(font)
+        #check for updated version
+        try:
+            current = urlopen("http://qutip.googlecode.com/svn/doc/current_version.txt").read()
+            current=current.replace('.','')[0:3]
+        except:
+            current=None
         if sys.platform!='darwin':
-            lstring="QuTiP Version:           "+Qversion+"\n"
+            lstring="QuTiP Version:           "+Qversion
             pixelswide = fm.width(lstring)
-            lstring+="NumPy Version:         "+str(numpy.__version__)+"\n"
-            lstring+="SciPy Version:            "+str(scipy.__version__)+"\n"
-            lstring+="MatPlotLib Version:    "+str(matplotlib.__version__)+"\n\n"
-            lstring+="PySide Version:         "+str(pyside_ver)+"\n"
-            lstring+="PyQt4 Version:           "+str(pyqt4_ver)
             label.setText(lstring)
             label.move((self.width()-pixelswide)/2,210)
+            if current and int(current)>int(Qversion.replace('.','')[0:3]):
+                label2= QtGui.QLabel(self)
+                label2.setFont(font)
+                label2.setOpenExternalLinks(True)
+                lstring2=" (<a href=http://code.google.com/p/qutip/downloads/list>Get New</a>)"+"\n"
+                label2.setText(lstring2)
+                label2.move((2*self.width()-pixelswide)/2,210)
+            label3= QtGui.QLabel(self)
+            label3.setFont(font)
+            lstring3="\n"
+            lstring3+="NumPy Version:         "+str(numpy.__version__)+"\n"
+            lstring3+="SciPy Version:            "+str(scipy.__version__)+"\n"
+            lstring3+="MatPlotLib Version:    "+str(matplotlib.__version__)+"\n\n"
+            lstring3+="PySide Version:         "+str(pyside_ver)+"\n"
+            lstring3+="PyQt4 Version:           "+str(pyqt4_ver)
+            label3.setText(lstring3)
+            label3.move((self.width()-pixelswide)/2,210)
         else:
-            lstring="QuTiP Version:           "+Qversion+"\n"
+            lstring="QuTiP Version:           "+Qversion
             pixelswide = fm.width(lstring)
-            lstring+="NumPy Version:         "+str(numpy.__version__)+"\n"
-            lstring+="SciPy Version:            "+str(scipy.__version__)+"\n"
-            lstring+="MatPlotLib Version:    "+str(matplotlib.__version__)+"\n\n"
-            lstring+="PySide Version:         "+str(pyside_ver)+"\n"
-            lstring+="PyQt4 Version:           "+str(pyqt4_ver)+"\n"
-            lstring+="PyObjc Installed:        "+str(pyobjc)
             label.setText(lstring)
             label.move((self.width()-pixelswide)/2,210)
+            if current and int(current)>int(Qversion.replace('.','')[0:3]):
+                label2= QtGui.QLabel(self)
+                label2.setFont(font)
+                label2.setOpenExternalLinks(True)
+                lstring2=" (<a href=http://code.google.com/p/qutip/downloads/list>Get New</a>)"+"\n"
+                label2.setText(lstring2)
+                label2.move((2*self.width()-pixelswide)/2,210)
+            label3= QtGui.QLabel(self)
+            label3.setFont(font)
+            lstring3="\n"
+            lstring3+="NumPy Version:         "+str(numpy.__version__)+"\n"
+            lstring3+="SciPy Version:            "+str(scipy.__version__)+"\n"
+            lstring3+="MatPlotLib Version:    "+str(matplotlib.__version__)+"\n\n"
+            lstring3+="PySide Version:         "+str(pyside_ver)+"\n"
+            lstring3+="PyQt4 Version:           "+str(pyqt4_ver)+"\n"
+            lstring3+="PyObjc Installed:        "+str(pyobjc)
+            label3.setText(lstring3)
+            label3.move((self.width()-pixelswide)/2,210)
         #
         alabel = QtGui.QLabel(self)
         astring="Copyright (c) 2011-2012, P. D. Nation & R. J. Johansson"
@@ -129,10 +159,5 @@ class AboutBox(QtGui.QWidget):
         size =  self.geometry()
         self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
 
-if __name__=="__main__":
-    app = QtGui.QApplication(sys.argv)
-    abox = AboutBox('0.1')
-    abox.show()
-    abox.raise_()
-    app.exec_()
+
     
