@@ -87,7 +87,6 @@ class AboutBox(QtGui.QWidget):
         #check for updated version
         try:
             current = urlopen("http://qutip.googlecode.com/svn/doc/current_version.txt").read()
-            current=current.replace('.','')[0:3]
         except:
             current=None
         if sys.platform!='darwin':
@@ -95,7 +94,7 @@ class AboutBox(QtGui.QWidget):
             pixelswide = fm.width(lstring)
             label.setText(lstring)
             label.move((self.width()-pixelswide)/2,210)
-            if current and int(current)>int(Qversion.replace('.','')[0:3]):
+            if current and int(current.replace('.','')[0:3])>int(Qversion.replace('.','')[0:3]):
                 label2= QtGui.QLabel(self)
                 label2.setFont(font)
                 label2.setOpenExternalLinks(True)
@@ -117,7 +116,7 @@ class AboutBox(QtGui.QWidget):
             pixelswide = fm.width(lstring)
             label.setText(lstring)
             label.move((self.width()-pixelswide)/2,210)
-            if current and int(current)>int(Qversion.replace('.','')[0:3]):
+            if current and int(current.replace('.','')[0:3])>int(Qversion.replace('.','')[0:3]):
                 label2= QtGui.QLabel(self)
                 label2.setFont(font)
                 label2.setOpenExternalLinks(True)
