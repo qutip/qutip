@@ -98,7 +98,7 @@ class AboutBox(QtGui.QWidget):
                 label2= QtGui.QLabel(self)
                 label2.setFont(font)
                 label2.setOpenExternalLinks(True)
-                lstring2=" (<a href=http://code.google.com/p/qutip/downloads/list>Get New</a>)"+"\n"
+                lstring2=" (<a href=http://code.google.com/p/qutip/downloads/list>Update</a>)"+"\n"
                 label2.setText(lstring2)
                 label2.move((2*self.width()-pixelswide)/2,210)
             label3= QtGui.QLabel(self)
@@ -120,7 +120,7 @@ class AboutBox(QtGui.QWidget):
                 label2= QtGui.QLabel(self)
                 label2.setFont(font)
                 label2.setOpenExternalLinks(True)
-                lstring2=" (<a href=http://code.google.com/p/qutip/downloads/list>Get New</a>)"+"\n"
+                lstring2=" (<a href=http://code.google.com/p/qutip/downloads/list>Update</a>)"+"\n"
                 label2.setText(lstring2)
                 label2.move((2*self.width()-pixelswide)/2,210)
             label3= QtGui.QLabel(self)
