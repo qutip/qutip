@@ -110,7 +110,9 @@ def csr_to_col(mat):
     ptrs[-1]=prod(mat.shape)
     values=arange(datlen+1)#values to use in ptrs
     counts=diff(ptrs) #number of times values should be repeated
-    ptrs=append(repeat(values,counts),array([datlen])) #append the number of data elems (per csr format)
+    ptrs=zeros(sum(counts)+1,dtype=int)
+    ptrs[-1]=datlen
+    ptrs[:-1]=repeat(values,counts) #append the number of data elems (per csr format)
     inds=zeros(datlen,dtype=int) #since this is col vec, all inds = 0 
     out=sp.csr_matrix((mat.data,inds,ptrs),shape=(prod(mat.shape),1),dtype=complex)
     return out
