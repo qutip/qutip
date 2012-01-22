@@ -496,8 +496,8 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
         print "Generating one for you..."
         rhs_generate(H_func,H_args)
     lenh=len(H_func[0])
-    #if opt.tidy:
-    #    H_func[0]=[tidyup(H_func[0][k]) for k in range(lenh)]
+    if opt.tidy:
+        H_func[0]=[tidyup(H_func[0][k]) for k in range(lenh)]
     L_func=[[liouvillian(H_func[0][0], c_op_list)],H_func[1]]
     for m in range(1, lenh):
         L_func[0].append(liouvillian(H_func[0][m],[]))
