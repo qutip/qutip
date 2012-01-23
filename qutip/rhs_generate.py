@@ -1,5 +1,5 @@
 from cyQ.codegen import Codegen
-import odeconfig,os
+import odeconfig,os,platform
 
 def rhs_generate(H,H_args,name=None):
     if not name:
@@ -13,7 +13,10 @@ def rhs_generate(H,H_args,name=None):
     import numpy
     cgen=Codegen(len(H[0]),H[1],H_args)
     cgen.generate(name+".pyx")
-    pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
+    if platform.uname()[0] == 'Windows':
+        pyximport.install(setup_args={'include_dirs':[numpy.get_include()],'options': { 'build_ext': { 'compiler': 'mingw32' } }})
+    else:
+        pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
     code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
     exec(code)
     odeconfig.tdfunc=cyq_td_ode_rhs
