@@ -109,6 +109,7 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
             cgen.generate(name+".pyx")
     #if Hamiltonian is time-independent
     else:
+        if len(collapse_ops)>0: odeconfig.cflag=1 #collapse operator flag
         for c_op in collapse_ops:
             H -= 0.5j * (c_op.dag()*c_op)
         if options.tidy:
@@ -126,7 +127,7 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
     output.times=mc.times
     output.states=mc.psi_out
     if mc.expect_out and odeconfig.cflag==1:#averaging if multiple trajectories
-        output.expect=sum(mc.expect_out,axis=0)/float(mc.ntraj)
+        output.expect=mean(mc.expect_out,axis=0)
     elif mc.expect_out:#no averaging for single trajectory
         output.expect=mc.expect_out
     output.num_expect=mc.num_expect
