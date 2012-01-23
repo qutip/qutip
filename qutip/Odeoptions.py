@@ -41,6 +41,8 @@ class Odeoptions():
         self.max_step=0
         #: Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
         self.order=12
+        #: Average expectation values over trajectories (default = True) 
+        self.expect_avg=True
         #: tidyup Hamiltonian before calculation (default = True)
         self.tidy=True
         #: Number of processors to use (mcsolve only)
@@ -52,17 +54,18 @@ class Odeoptions():
     def __str__(self):
         print("Odeoptions properties:")
         print("----------------------")
-        print("atol:       ",self.atol)
-        print('rtol:       ',self.rtol)
-        print('method:     ',self.method)
-        print('order:      ',self.order)
-        print('nsteps:     ',self.nsteps)
-        print('first_step: ',self.first_step)
-        print('min_step:   ',self.min_step)
-        print('max_step:   ',self.max_step)
-        print('tidy:       ',self.tidy)
-        print('num_cpus:   ',self.num_cpus)
-        print('rhs_reuse:   ',self.rhs_reuse)
-        print('rhs_filename:   ',self.rhs_filename)
+        print("atol:         ",self.atol)
+        print('rtol:         ',self.rtol)
+        print('method:       ',self.method)
+        print('order:        ',self.order)
+        print('nsteps:       ',self.nsteps)
+        print('first_step:   ',self.first_step)
+        print('min_step:     ',self.min_step)
+        print('max_step:     ',self.max_step)
+        print('tidy:         ',self.tidy)
+        print('expect_avg:   ',self.expect_avg)
+        print('num_cpus:     ',self.num_cpus)
+        print('rhs_reuse:    ',self.rhs_reuse)
+        print('rhs_filename: ',self.rhs_filename)
         return ''
 
