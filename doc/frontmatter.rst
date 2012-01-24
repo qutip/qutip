@@ -15,7 +15,7 @@ These pages contains automatically generated API documentation for QuTiP. A PDF 
 Citing This Project
 ********************
     
-If you find this project useful then please cite:
+If you find this project useful, then please cite:
 
 .. centered:: J. R. Johansson, P.D. Nation, and F. Nori, "QuTiP: An open-source Python framework for the dynamics of open quantum systems", arXiv:1110.0573 (2011)
 
@@ -29,3 +29,6 @@ The development of QuTiP has been partially supported by the Japanese Society fo
 
 .. figure:: figures/jsps.jpg
    :align: center
+   :width: 5in
+   
+   

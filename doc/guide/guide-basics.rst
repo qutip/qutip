@@ -16,23 +16,28 @@ To load the qutip modules, we must first call the import statement:
 
 >>> from qutip import *
 
+that will load all of the user available functions.  Note that, in the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`.  However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the command line or a Python script.
 
 The quantum object class
 ========================
 
 Intro
-+++++
++++++++
 
 The key difference between classical and quantum mechanics lies in the use of operators instead of numbers as variables.  Moreover, we need to specify state vectors and their properties. Therefore, in computing the dynamics of quantum systems we need a data structure that is capable of encapsulating the properties of a quantum operator and ket/bra vectors.  The quantum object class, :func:`qutip.Qobj`, accomplishes this using matrix representation.
 
-To begin, let us create a blank Qobj (in Python, Class objects differ from functions in the use of a beginning capital letter)
+To begin, let us create a blank Qobj:
 
 >>> Qobj() 
 Quantum object: dims = [[1], [1]], shape = [1, 1]
 Qobj data = 
 [[0]]
 
-where we see the blank Qobj object with dimensions, shape, and data.  Here the data corresponds to a 1x1-dimensional matrix consisting of a single zero entry.  We can create a Qobj with a user defined data set by passing a list or array of data into the Qobj:
+where we see the blank Qobj object with dimensions, shape, and data.  Here the data corresponds to a 1x1-dimensional matrix consisting of a single zero entry.  
+
+.. note:: By convention, Class objects in Python such as `Qobj()` differ from functions in the use of a beginning capital letter.
+
+We can create a Qobj with a user defined data set by passing a list or array of data into the Qobj:
 
 >>> Qobj([1,2,3,4,5])
 Quantum object: dims = [[1], [5]], shape = [1, 5]
@@ -58,7 +63,9 @@ Qobj data =
  [ 0.69515726  0.13609801  0.52707457  0.6484309 ]
  [ 0.78328543  0.87295996  0.58964046  0.3998962 ]]
 
-Notice how both the dims and shape change according to the input data.  Although dims and shape appear to have the same function, the difference will become quite clear in the section on tensor products and partial traces.  (If you are running QuTiP from a python script you must use the :func:`print` function to view the Qobj properties.)
+Notice how both the dims and shape change according to the input data.  Although dims and shape appear to have the same function, the difference will become quite clear in the section on tensor products and partial traces.
+
+.. note:: If you are running QuTiP from a python script you must use the :func:`print` function to view the Qobj properties.
 
 
 States and operators
@@ -205,6 +212,9 @@ In general, the properties of a Qobj object (or any Python class) can be retriev
 .. _about: 
 .. figure:: quide-basics-qobj-box.png
    :align: center
+   :width: 4in
+   
+   The `Qobj` Class viewed as a container for the properties need to characterize a quantum operator or state vector.
 
 
 For the destruction operator above:
@@ -266,7 +276,7 @@ In addition, the logic operators is equal `==` and is not equal `!=` are also su
 Functions operating on Qobj class
 ==================================
 
-Like properties, the quantum object class has defined functions which operate only on members of the Qobj class.  For a general quantum object `Q`:
+Like properties, the quantum object class has defined functions (methods) that operate only on members of the Qobj class.  For a general quantum object `Q`:
 
 +-----------------+-----------------+----------------------------------------+
 | Function        | Command         | Description                            |
