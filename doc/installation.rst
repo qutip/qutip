@@ -44,7 +44,7 @@ QuTiP requires the following packages to run:
 On all platforms (Linux, Mac, Windows), QuTiP works "out-of-the-box" using the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher.  This distribution is created by the developers of Numpy and Scipy, and is free for academic use.
 
 Installation on Ubuntu Linux
-++++++++++++++++++++++++++++
+=================================
 
 >>> sudo apt-get install python-scipy
 >>> sudo apt-get install python-pyside or sudo apt-get install python-qt4
@@ -69,27 +69,40 @@ QuTiP installation:
     On some versions of Ubuntu you might have to configure Matplotlib to use the GTKAgg or Qt4Agg backends instead of the default TkAgg backend. To do this, edit /etc/matplotlibrc, and change ``backend: TkAgg`` to ``backend: GTKAgg`` or ``backend: Qt4Agg``.
 
 Installation on Mac OS X (10.6+)
-++++++++++++++++++++++++++++++++
+=================================
 
 If you have not done so already, install the Apple XCode developer tools from the Apple App Store.
 
-On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installing with MacPorts, you may need to change your matplotlib backend
+Macports
+^^^^^^^^^^^
 
->>> sudo open -a TextEdit /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/\
+On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via:  
+
+>>> sudo port install py27-scipy
+>>> sudo port install py27-matplotlib
+>>> sudo port install py27-cython
+
+additional, but optional, ports include:
+
+>>> sudo port install py27-pyside
+>>> sudo port install py27-ipython
+
+After installing the required ports, you may (probably) need to change your matplotlib backend
+
+>>> /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/\
 python2.7/site-packages/matplotlib/mpl-data/matplotlibrc
 
 on line #31 to read:
 
 >>> backend      : MacOSX
 
+Enthought Python
+^^^^^^^^^^^^^^^^^
 
 One can also use the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher to satisfy the QuTiP dependencies.  
 
-A further possibility is to use the `Scipy Superpack installer script <http://stronginference.com/scipy-superpack/>`_.  In order to have GUI elements using this method, you need to further install the Qt4 and PySide packages at:
-
-http://qt.nokia.com/downloads/qt-for-open-source-cpp-development-on-mac-os-x
-
-http://developer.qt.nokia.com/wiki/PySide_Binaries_MacOSX
+Installing
+^^^^^^^^^^^^^^^^^
 
 Installing QuTiP is the same as on linux.  From the QuTiP directory:
 
@@ -97,29 +110,40 @@ Installing QuTiP is the same as on linux.  From the QuTiP directory:
 
 
 Installation on Microsoft Windows
-+++++++++++++++++++++++++++++++++
+=================================
+
+.. note:: We would like to thank Per Kaer Nielsen for help with installation on Windows.
 
 The developers of QuTiP have not touched Windows in several years, and will be continuing this trend for the foreseeable future.  Therefore we recommend the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher to satisfy the QuTiP dependencies. QuTiP has also been reported to work out-of-the-box with `Python(x,y) <http://www.pythonxy.com>`_.  In Python(x,y), QuTiP may be installed using:
 
 >>> python setup.py install build --compiler=mingw32
 
-Does it work?
-=============
+Keep in mind, compiling QuTiP using the mingw32 compiler will limit the amount of memory that you can use for any given calculation to around 4Gb.  Unfortunately, setting up a 64-bit compiler on Windows is a non-trivial task.
+
+Verifying the Installation
+============================
 
 .. warning::
    Do not run QuTiP from the installation directory.
 
 
-To verify that everything is installed properly, from the python command line call:
+To verify that everything is installed properly, from the python command line, or iPython, call:
 
 >>> from qutip import *
 
-If nothing but another command prompt appears then you are ready to go.  To see if the GUI components are working, after the import statement type:
+which will attempt to load the QuTiP modules.  If nothing but another command prompt appears, then your system can find all of the necessary QuTiP files.  To further verify that all of the QuTiP components are working, you can try running the examples built into QuTiP as dicussed in the guide section: :ref:`examples` 
+
+Checking Version Information via the About Box
+===============================================
+
+QuTiP includes a graphical "about" box for viewing information about the important dependencies installed on your system.  To view the about box, type:
 
 >>> about()
 
-which will pop-up the about box for QuTiP which gives you information on the installed version of QuTiP and its dependencies.  If instead you get command-line output, then your graphics is not installed properly or unavailable.
+which will pop-up a window similar to the one shown below.  If instead you get command-line output, then your PyQt or PySide graphics are not installed properly or unavailable.  When running the about box, QuTiP will automatically check for a newer version of itself from the QuTiP website.  As shown below, the about box will have an "update" link next to the QuTiP version number if your are not running the latest version of QuTiP.
 
 .. figure:: figures/about.png
    :align: center
    :width: 3in
+   
+   QuTiP about box window with link to updated version on the QuTiP website.
