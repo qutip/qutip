@@ -122,3 +122,4 @@ which will pop-up the about box for QuTiP which gives you information on the ins
 
 .. figure:: figures/about.png
    :align: center
+   :width: 3in
