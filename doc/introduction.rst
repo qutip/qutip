@@ -36,7 +36,7 @@ The focus of QuTiP is on systems where the Hamiltonian is composed of harmonic o
 * Includes the ability to create high-quality plots, and animations, using the excellent `Matplotlib <http://matplotlib.sourceforge.net/>`_ package.
 
 Organization
-**************
+=============
 
 .. figure:: figures/qutip_org.png
    :align: center

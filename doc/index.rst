@@ -10,7 +10,7 @@ If you find this project useful then please cite:
 
 which may also be download from http://arxiv.org/abs/1110.0573
 
-Table of Contents
+Sections
 ====================
 
 These pages contains automatically generated API documentation for QuTiP. A PDF version of this text may be found on the `downloads page <http://code.google.com/p/qutip/downloads/list>`_. 
