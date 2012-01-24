@@ -36,7 +36,7 @@ if not ('DISPLAY' in os.environ):
     os.environ['QUTIP_GUI']="NONE"
 
 # check for windows platform
-if platform.uname()[0] == "Windows":
+if platform.uname()[0] == 'Windows':
     # graphics always available on windows
     os.environ['QUTIP_GRAPHICS']="YES"
 
@@ -81,6 +81,7 @@ from qutip.Odeoptions import Odeoptions
 from qutip.Mcdata import Mcdata
 from qutip.mcsolve import mcsolve
 from qutip.metrics import fidelity,tracedist
+import qutip.odeconfig
 from qutip.Odedata import Odedata
 from qutip.odesolve import odesolve
 from qutip.essolve import *
