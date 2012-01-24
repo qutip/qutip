@@ -56,6 +56,7 @@ These pages contains automatically generated API documentation for QuTiP. A PDF 
 .. toctree::
    :maxdepth: 2
    
+   introduction.rst
    installation.rst
    guide/guide.rst
    examples/examples.rst
