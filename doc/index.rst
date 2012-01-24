@@ -24,8 +24,7 @@ Introduction
    installation.rst
 
 Guide
-*******************
-
+******************
 
 .. toctree::
    :maxdepth: 2
@@ -38,7 +37,7 @@ Examples
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    
    examples/examples.rst
 
