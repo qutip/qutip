@@ -41,7 +41,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'QuTiP'
+project = u'QuTiP: The Quantum Toolbox in Python'
 copyright = u'2011-2012, P.D. Nation, J.R. Johansson'
 
 # The version info for the project you're documenting, acts as replacement for
@@ -175,7 +175,7 @@ latex_elements = {
 #'papersize': 'letterpaper',
 
 # The font size ('10pt', '11pt' or '12pt').
-#'pointsize': '10pt',
+'pointsize': '10pt',
 
 # Additional stuff for the LaTeX preamble.
 #'preamble': '',
@@ -184,8 +184,8 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'QuTiP.tex', u'QuTiP Documentation',
-   u'P.D. Nation, J.R. Johansson', 'manual'),
+  ('index', 'QuTiP.tex', u'QuTiP: The Quantum Toolbox in Python',
+   u'P.D. Nation and J.R. Johansson', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -214,8 +214,8 @@ latex_logo = 'figures/qutip_logo.png'
 # One entry per manual page. List of tuples
 # (source start file, name, description, authors, manual section).
 man_pages = [
-    ('index', 'qutip', u'QuTiP Documentation',
-     [u'P.D. Nation, J.R. Johansson'], 1)
+    ('index', 'qutip', u'QuTiP: The Quantum Toolbox in Python',
+     [u'P.D. Nation and J.R. Johansson'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -228,8 +228,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'QuTiP', u'QuTiP Documentation', u'P.D. Nation, J.R. Johansson',
-   'QuTiP', 'One line description of project.', 'Miscellaneous'),
+  ('index', 'QuTiP', u'QuTiP: The Quantum Toolbox in Python', u'P.D. Nation and J.R. Johansson',
+   'QuTiP', 'The Quantum Toolbox in Python', 'Miscellaneous'),
 ]
 
 # Documents to append as an appendix to all manuals.
