@@ -1,5 +1,5 @@
 .. QuTiP 
-   Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 Rabi oscillations of an atom subject to a time-dependent classical driving field
 ================================================================================

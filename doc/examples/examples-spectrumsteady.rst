@@ -1,5 +1,5 @@
 .. QuTiP 
-   Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 The spectrum of a cavity coupled to a two-level atom
 ----------------------------------------------------

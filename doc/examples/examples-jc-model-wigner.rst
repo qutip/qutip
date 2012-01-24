@@ -1,5 +1,5 @@
 .. QuTiP 
-   Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 Wigner distributions from the evolution of the Jaynes-Cummings model
 ====================================================================

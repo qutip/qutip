@@ -1,5 +1,5 @@
 .. QuTiP 
-   Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 Von-Neumann entropy of a binary mixture of :math:`\left|\uparrow\right>` and :math:`\left|\downarrow\right>` states
 ===================================================================================================================

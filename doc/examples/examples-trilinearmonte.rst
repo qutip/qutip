@@ -1,5 +1,5 @@
 .. QuTiP 
-   Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
 Monte-Carlo evolution of the trilinear Hamiltonian subject to damping
 ---------------------------------------------------------------------
