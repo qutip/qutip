@@ -101,5 +101,6 @@ from qutip.tensor import *
 from qutip.tidyup import tidyup
 from qutip.wigner import *
 from qutip.fileio import *
+from qutip.bloch_redfield import *
 
 
