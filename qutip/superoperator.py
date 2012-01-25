@@ -66,8 +66,8 @@ def vec2mat_index(N, I):
     Convert a vector index to a matrix index pair that is compatible with the
     vector to matrix rearrangement done by the vec2mat function.
     """
-    i = int(I/N) 
-    j = I - N * i
+    j = int(I/N) 
+    i = I - N * j
     return i,j
 
 def mat2vec_index(N, i, j):
@@ -75,7 +75,7 @@ def mat2vec_index(N, i, j):
     Convert a matrix index pair to a vector index that is compatible with the
     matrix to vector rearrangement done by the mat2vec function.
     """
-    return N * i + j
+    return i + N * j
 
 def spost(A,*args):
 	"""
