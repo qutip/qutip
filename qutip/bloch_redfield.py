@@ -24,23 +24,98 @@ from qutip.Qobj import *
 from qutip.superoperator import *
 from qutip.expect import *
 from qutip.states import *
+from qutip.Odeoptions import Odeoptions
+from qutip.cyQ.ode_rhs import cyq_ode_rhs
+from qutip.cyQ.codegen import Codegen
+from qutip.rhs_generate import rhs_generate
+from qutip.Odedata import Odedata
+import os,numpy,odeconfig
 
 # ------------------------------------------------------------------------------
 # 
 # 
 # 
-def brmesolve(R, rho0, tlist):
+#def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
+def brmesolve(R, rho0, tlist, e_ops, opt=None):
     """
     Solve the dynamics for the system using the Bloch-Redfeild master equation.
     
     ..note:: Experimental
     
     """
-    
-    # not yet implemented
-    
-    return rho0
-    
+
+    if opt == None:
+        opt = Odeoptions()
+        opt.nsteps = 2500  # 
+
+    if opt.tidy:
+        R = tidyup(R, opt.atol)
+
+    #
+    # check initial state
+    #
+    if isket(rho0):
+        # Got a wave function as initial state: convert to density matrix.
+        rho0 = rho0 * rho0.dag()
+
+    #
+    # prepare output array
+    # 
+    n_e_ops  = len(e_ops)
+    n_tsteps = len(tlist)
+    dt       = tlist[1]-tlist[0]
+
+    if n_e_ops == 0:
+        result_list = []
+    else:
+        result_list = []
+        for op in e_ops:
+            if op.isherm and rho0.isherm:
+                result_list.append(zeros(n_tsteps))
+            else:
+                result_list.append(zeros(n_tsteps,dtype=complex))
+
+    #
+    # setup integrator
+    #
+    initial_vector = mat2vec(rho0.full())
+    r = scipy.integrate.ode(cyq_ode_rhs)
+    r.set_f_params(R.data.data, R.data.indices, R.data.indptr)
+    r.set_integrator('zvode', method=opt.method, order=opt.order,
+                              atol=opt.atol, rtol=opt.rtol, #nsteps=opt.nsteps,
+                              #first_step=opt.first_step, min_step=opt.min_step,
+                              max_step=opt.max_step)
+    r.set_initial_value(initial_vector, tlist[0])
+
+    #
+    # start evolution
+    #
+    rho = Qobj(rho0)
+
+    t_idx = 0
+    for t in tlist:
+        if not r.successful():
+            break;
+
+        rho.data = vec2mat(r.y)
+        
+        # calculate all the expectation values, or output rho if no operators
+        if n_e_ops == 0:
+            result_list.append(Qobj(rho)) # copy rho
+        else:
+            for m in range(0, n_e_ops):
+                result_list[m][t_idx] = expect(e_ops[m], rho)
+
+        r.integrate(r.t + dt)
+        t_idx += 1
+          
+    return result_list
+
+# ------------------------------------------------------------------------------
+# evaluate drho(t)/dt according to the Bloch-Redfield master eqaution
+#
+def rho_ode_func(t, rho, R):
+    return R*rho    
 
 # ------------------------------------------------------------------------------
 # 
