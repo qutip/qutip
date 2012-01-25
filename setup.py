@@ -22,14 +22,14 @@ Intended Audience :: Science/Research
 License :: OSI Approved :: GNU General Public License (GPL)
 Programming Language :: Python
 Topic :: Scientific/Engineering
-Operating System :: Microsoft :: Windows
 Operating System :: POSIX
 Operating System :: Unix
 Operating System :: MacOS
+Operating System :: Microsoft :: Windows
 """
 
-MAJOR               = 1
-MINOR               = 2
+MAJOR               = 2
+MINOR               = 0
 MICRO               = 0
 ISRELEASED          = False
 VERSION             = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
