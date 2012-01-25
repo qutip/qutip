@@ -300,6 +300,4 @@ The Bloch class was designed from the outset to generate animations.  To animate
         b.save(dirc=os.getcwd()+'/temp') #saving images to temp directory in current working directory
         b.clear()
 
-.. figure:: guide-bloch-movie.gif
-   :align: center
 
