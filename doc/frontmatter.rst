@@ -25,11 +25,15 @@ which may also be download from http://arxiv.org/abs/1110.0573
 Funding
 ********************
 
-The development of QuTiP has been partially supported by the Japanese Society for the Promotion of Science Foreign Postdoctoral Fellowship Program under grants P11202 (PDN) and P11501 (JRJ).  Additional funding comes from Kakenhi grant
+The development of QuTiP has been partially supported by the Japanese Society for the Promotion of Science Foreign Postdoctoral Fellowship Program under grants P11202 (PDN) and P11501 (JRJ).  Additional funding comes from RIKEN and Kakenhi grant
 Nos. 
 
 .. figure:: figures/jsps.jpg
    :align: center
    :width: 5in
+
+.. figure:: figures/riken-logo.png
+   :align: center
+   :width: 2in
    
    
