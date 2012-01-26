@@ -112,17 +112,11 @@ def brmesolve(R, rho0, tlist, e_ops, opt=None):
     return result_list
 
 # ------------------------------------------------------------------------------
-# evaluate drho(t)/dt according to the Bloch-Redfield master eqaution
-#
-def rho_ode_func(t, rho, R):
-    return R*rho    
-
-# ------------------------------------------------------------------------------
+# Functions for calculting the Bloch-Redfield tensor for a time-independent 
+# system.
 # 
-# 
-# 
-#def helper_matrix_element(bra, op, ket):
-#    return (kets[0].data.T * H.data * kets[0].data)[0,0]
+def __matrix_element(bra, op, ket):
+    return (bra.data.T * op.data * ket.data)[0,0]
 
 def bloch_redfield_tensor(H, c_ops, spectra_cb):
     """
@@ -135,24 +129,28 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb):
     """
     
     # TODO: optimize by using data directly instead of Qobjs
-    
+        
     # TODO: check that H is a Qobj
 
     # use the eigenbasis         
-    # kets, evals = H.eigenstates()
-    #W    = zeros((N,N))
-    #for n in range(N):
-    #    for m in range(N):
-    #        W[n,m] = evals[n] - evals[m]
-    #N = len(evals)  
-    #R = zeros((N*N,N*N), dtype=complex)
+    ekets, evals = H.eigenstates()
+
+    N = len(evals)  
+    K = len(c_ops)
+    A = zeros((K, N, N), dtype=complex)
+    W = zeros((N,N))
     
-    # use computational basis
-    N = H.shape[0]
-    kets = [basis(N,i) for i in range(N)]
-    W = H.data
+    # pre-calculate matrix elements
+    for n in range(N):
+        for m in range(N):
+            W[n,m] = evals[n] - evals[m]        
+            for k in range(K):
+                A[k,n,m] = __matrix_element(ekets[n], c_ops[k], ekets[m])
     
     
+    print "A.re =\n", real(A)
+    print "A.im =\n", imag(A)
+                
     # unitary part
     R = -1.0j*(spre(H) - spost(H))
     
@@ -164,22 +162,19 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb):
             # unitary part: use spre and spost above, same as this:
             # R[I,J] = -1j * (H[a,c] * (b == d) - H[d,b] * (a == c))   
    
-            # dissipative part
-            
-            # for each operator coupling the system to the environment
-            for k in range(len(c_ops)):
+            # dissipative part:
+            for k in range(K):
+                # for each operator coupling the system to the environment
 
-                R.data[I,J] += c_ops[k][a,c] * c_ops[k][d,b] * 2 * pi * (spectra_cb[k](W[c,a]) + spectra_cb[k](W[d,b]))
+                R.data[I,J] += A[k,a,c] * A[k,d,b] * 2 * pi * (spectra_cb[k](W[c,a]) + spectra_cb[k](W[d,b]))
                        
                 s1 = s2 = 0
                 for n in range(N):                         
-                    s1 += c_ops[k][a,n] * c_ops[k][n,c] * 2 * pi * spectra_cb[k](W[n,c])
-                    s2 += c_ops[k][d,n] * c_ops[k][n,b] * 2 * pi * spectra_cb[k](W[n,d])
+                    s1 += A[k,a,n] * A[k,n,c] * spectra_cb[k](W[n,c])
+                    s2 += A[k,d,n] * A[k,n,b] * spectra_cb[k](W[n,d])
        
-                R.data[I,J] += - (b == d) * s1 - (a == c) * s2
+                R.data[I,J] += - pi * (b == d) * s1 - pi * (a == c) * s2
            
     return R
-    
-    
     
     
