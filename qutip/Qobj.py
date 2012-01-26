@@ -101,11 +101,14 @@ class Qobj():
         other=Qobj(other)
         if prod(other.shape)==1 and prod(self.shape)!=1: #case for scalar quantum object
             dat=array(other.full())[0][0]
-            out=Qobj()
-            out.data=self.data+dat*sp.csr_matrix(ones(self.shape))
-            out.dims=self.dims
-            out.shape=self.shape
-            return Qobj(out)
+            if dat!=0:
+                out=Qobj()
+                out.data=self.data+dat*sp.csr_matrix(ones(self.shape))
+                out.dims=self.dims
+                out.shape=self.shape
+                return Qobj(out)
+            else: #if other qobj is zero object
+                return self
         elif prod(self.shape)==1 and prod(other.shape)!=1:#case for scalar quantum object
             dat=array(self.full())[0][0]
             out=Qobj()
