@@ -30,7 +30,7 @@ from qutip.cyQ.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
 from qutip.Odedata import Odedata
 import os,numpy,odeconfig
-
+import scipy.sparse as sp
 # ------------------------------------------------------------------------------
 # 
 # 
@@ -138,11 +138,11 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb):
     N = len(evals)  
     K = len(c_ops)
     A = zeros((K, N, N), dtype=complex)
-    W = zeros((N,N))
+    W = zeros((N,N),dtype=complex)
     
     # pre-calculate matrix elements
-    for n in range(N):
-        for m in range(N):
+    for n in xrange(N):
+        for m in xrange(N):
             W[n,m] = evals[n] - evals[m]        
             for k in range(K):
                 A[k,n,m] = __matrix_element(ekets[n], c_ops[k], ekets[m])
@@ -153,28 +153,28 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb):
                 
     # unitary part
     R = -1.0j*(spre(H) - spost(H))
-    
-    for I in range(N*N):
+    R.data=R.data.tolil()
+    for I in xrange(N*N):
         a,b = vec2mat_index(N, I)
-        for J in range(N*N):
+        for J in xrange(N*N):
             c,d = vec2mat_index(N, J)
    
             # unitary part: use spre and spost above, same as this:
             # R[I,J] = -1j * (H[a,c] * (b == d) - H[d,b] * (a == c))   
    
             # dissipative part:
-            for k in range(K):
+            for k in xrange(K):
                 # for each operator coupling the system to the environment
 
                 R.data[I,J] += A[k,a,c] * A[k,d,b] * 2 * pi * (spectra_cb[k](W[c,a]) + spectra_cb[k](W[d,b]))
                        
                 s1 = s2 = 0
-                for n in range(N):                         
+                for n in xrange(N):                         
                     s1 += A[k,a,n] * A[k,n,c] * spectra_cb[k](W[n,c])
                     s2 += A[k,d,n] * A[k,n,b] * spectra_cb[k](W[n,d])
        
-                R.data[I,J] += - pi * (b == d) * s1 - pi * (a == c) * s2
-           
+                R.data[I,J] += - pi * (b == d) * s1 - pi * (a == c) * s2       
+    R.data=R.data.tocsr()
     return R
     
     
