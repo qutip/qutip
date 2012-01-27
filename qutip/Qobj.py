@@ -327,7 +327,7 @@ class Qobj():
         """
         Returns diagonal elements of object
         """
-        out=self.data.todia().diagonal()
+        out=self.data.diagonal()
         if any(imag(out)!=0):
             return out
         else:
@@ -375,10 +375,10 @@ class Qobj():
         zipped.sort()
         vals, perm = zip(*zipped)
 
-        evals_sorted = array([evals[perm[i]] for i in range(len(perm))])
+        evals_sorted = array([evals[perm[i]] for i in xrange(len(perm))])
         new_dims  = [self.dims[0], [1] * len(self.dims[0])]
         new_shape = [self.shape[0], 1]
-        ekets_sorted = [Qobj(matrix(evecs[:,perm[i]]/la.norm(evecs[perm[i]])).T, dims=new_dims, shape=new_shape) for i in range(len(perm))]
+        ekets_sorted = [Qobj(matrix(evecs[:,perm[i]]/la.norm(evecs[perm[i]])).T, dims=new_dims, shape=new_shape) for i in xrange(len(perm))]
 
         return ekets_sorted, evals_sorted
 
