@@ -51,6 +51,11 @@ class Odeoptions():
         self.rhs_reuse=False
         #: Use filename for preexisting RHS function (will default to last compiled function if None & rhs_exists=True)
         self.rhs_filename=None
+        #: Use Progressbar (mcsolve only)
+        if os.environ["QUTIP_GUI"]=="NONE" or os.environ["QUTIP_GRAPHICS"]=="NO":
+            self.gui=False
+        else:
+            self.gui=True
     def __str__(self):
         print("Odeoptions properties:")
         print("----------------------")

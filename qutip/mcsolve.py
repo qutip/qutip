@@ -67,8 +67,9 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
         Mcdata object storing all results from simulation.
         
     """
-    #if Hamiltonian is time-dependent (list style)
+    #if Hamiltonian is time-dependent (list form) & cythonize RHS
     if isinstance(H,list):
+        odeconfig.is_compiled=True
         if len(H)!=2:
             raise TypeError('Time-dependent Hamiltonian list must have two terms.')
         if (not isinstance(H[0],(list,ndarray))) or (len(H[0])<=1):
@@ -145,12 +146,18 @@ class MC_class():
     """
     def __init__(self,psi0,tlist,ntraj,collapse_ops,expect_ops,options):
         #-Check for PyObjC on Mac platforms
-        self.gui=True
         if sys.platform=='darwin':
             try:
                 import Foundation
             except:
-                self.gui=False
+                options.gui=False
+        if options.gui and odeconfig.is_compiled:
+            try:
+                __IPYTHON__
+            except:
+                pass
+            else:
+                options.gui=False    
         ##holds instance of the ProgressBar class
         self.bar=None
         ##holds instance of the Pthread class
@@ -231,7 +238,7 @@ class MC_class():
         self.collapse_times_out[r]=results[2]
         self.which_op_out[r]=results[3]
         self.count+=self.step
-        if os.environ['QUTIP_GRAPHICS']=="NO" or os.environ['QUTIP_GUI']=="NONE" or self.gui==False:
+        if self.options.gui==False: #do not use GUI
             self.percent=self.count/(1.0*self.ntraj)
             if self.count/float(self.ntraj)>=self.level:
                 nwt=datetime.datetime.now()
@@ -277,7 +284,7 @@ class MC_class():
         elif self.num_collapse!=0:
             self.seed=array([int(ceil(random.rand()*1e4)) for ll in xrange(self.ntraj)])
             args=(self.options,self.psi_in,self.times,self.num_times,self.num_collapse,self.collapse_ops_data,self.norm_collapse,self.num_expect,self.expect_ops,self.seed)
-            if os.environ['QUTIP_GRAPHICS']=="NO" or os.environ['QUTIP_GUI']=="NONE" or self.gui==False:
+            if not self.options.gui:
                 print('Starting Monte-Carlo:')
                 self.parallel(args,self)
             else:
