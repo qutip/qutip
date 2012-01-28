@@ -25,4 +25,3 @@ cgen_num=0  # Number of times codegen function has been called in current Python
 tdfunc=None # Placeholder for time-dependent RHS function.
 string=None # Holds string of variables to be passed onto time-depdendent ODE solver.
 tdname=None # Name of td .pyx file (used in parallel mc code)
-is_compiled=False #Use cython compilations for RHS

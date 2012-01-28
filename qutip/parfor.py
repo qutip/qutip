@@ -18,7 +18,7 @@
 ###########################################################################
 from scipy import *
 from multiprocessing import Pool
-import os
+import os,sys
 
 def parfor(func,frange):
 	"""
@@ -29,6 +29,8 @@ def parfor(func,frange):
 	
 	    list with length equal to number of input parameters. 
 	"""
+	if sys.platform[0:3]=="win":
+	    raise TypeError("Multiprocessing not available on Windows. Use a Unix based OS.")
 	pool=Pool(processes=int(os.environ['NUM_THREADS']))
 	par_return=list(pool.map(func,frange))
 	if isinstance(par_return[0],tuple):

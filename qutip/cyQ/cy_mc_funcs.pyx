@@ -47,7 +47,7 @@ def spmv(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] p
 @cython.wraparound(False)
 def mc_expect(oper,np.ndarray[CTYPE_t, ndim=2] state):
     if oper.isherm:
-        return float(np.real(np.dot(np.conj(np.transpose(state)),spmv(oper.data.data,oper.data.indices,oper.data.indptr,state))))
+        return np.real(np.dot(np.conj(np.transpose(state)),spmv(oper.data.data,oper.data.indices,oper.data.indptr,state)))[0][0]
     else:
-        return complex(np.dot(np.conj(np.transpose(state)),spmv(oper.data.data,oper.data.indices,oper.data.indptr,state)))
+        return np.dot(np.conj(np.transpose(state)),spmv(oper.data.data,oper.data.indices,oper.data.indptr,state))[0][0]
 

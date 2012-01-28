@@ -69,7 +69,6 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
     """
     #if Hamiltonian is time-dependent (list form) & cythonize RHS
     if isinstance(H,list):
-        odeconfig.is_compiled=True
         if len(H)!=2:
             raise TypeError('Time-dependent Hamiltonian list must have two terms.')
         if (not isinstance(H[0],(list,ndarray))) or (len(H[0])<=1):
@@ -108,6 +107,18 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
             odeconfig.tdname=name
             cgen=Codegen(lenh,H[1],H_args)
             cgen.generate(name+".pyx")
+    # NON-CYTHON TIME-DEPENDENT CODE
+    elif isinstance(H,FunctionType):
+        odeconfig.tflag=2
+        odeconfig.Hfunc=H
+        odeconfig.Hargs=-1.0j*array([op.data for op in H_args])
+        if len(collapse_ops)>0:
+            odeconfig.cflag=1
+            Hq=0
+            for c_op in collapse_ops:
+                Hq -= 0.5j * (c_op.dag()*c_op)
+            Hq=tidyup(Hq,options.atol)
+            odeconfig.Hcoll=-1.0j*Hq.data
     #if Hamiltonian is time-independent
     else:
         if len(collapse_ops)>0: odeconfig.cflag=1 #collapse operator flag
@@ -122,6 +133,7 @@ def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeop
 
     mc=MC_class(psi0,tlist,ntraj,collapse_ops,expect_ops,options)
     mc.run()
+    #AFTER MCSOLVER IS DONE --------------------------------------
     if odeconfig.tflag==1 and (not options.rhs_reuse):
         os.remove(odeconfig.tdname+".pyx")
     output=Mcdata()
@@ -151,7 +163,7 @@ class MC_class():
                 import Foundation
             except:
                 options.gui=False
-        if options.gui and odeconfig.is_compiled:
+        if options.gui and odeconfig.tflag==1:
             try:
                 __IPYTHON__
             except:
@@ -238,7 +250,7 @@ class MC_class():
         self.collapse_times_out[r]=results[2]
         self.which_op_out[r]=results[3]
         self.count+=self.step
-        if self.options.gui==False: #do not use GUI
+        if not self.options.gui: #do not use GUI
             self.percent=self.count/(1.0*self.ntraj)
             if self.count/float(self.ntraj)>=self.level:
                 nwt=datetime.datetime.now()
@@ -246,22 +258,46 @@ class MC_class():
                 secs=datetime.timedelta(seconds=ceil(diff))
                 dd = datetime.datetime(1,1,1) + secs
                 time_string="%02d:%02d:%02d:%02d" % (dd.day-1,dd.hour,dd.minute,dd.second)
-                print(str(floor(self.count/float(self.ntraj)*100))+'%  ('+str(self.count)+'/'+str(self.ntraj)+')'+'  Est. time remaining: '+time_string)
+                print(str(floor(self.count/float(self.ntraj)*100))+'%  ('+str(self.count)+'/'+str(self.ntraj)+')'+'  Est. time remaining: '+time_string+'/r'),
+                sys.stdout.flush()
                 self.level+=0.1
     #########################
     def parallel(self,args,top=None):  
-        pl=Pool(processes=self.cpus)
-        self.st=datetime.datetime.now()
-        for nt in xrange(0,self.ntraj):
-            pl.apply_async(mc_alg_evolve,args=(nt,args),callback=top.callback)
-        pl.close()
-        try:
-            pl.join()
-        except KeyboardInterrupt:
-            print("Cancel all MC threads on keyboard interrupt")
-            pl.terminate()
-            pl.join()
-        return
+        if sys.platform[0:3]!="win":
+            pl=Pool(processes=self.cpus)
+            self.st=datetime.datetime.now()
+            for nt in xrange(0,self.ntraj):
+                pl.apply_async(mc_alg_evolve,args=(nt,args),callback=top.callback)
+            pl.close()
+            try:
+                pl.join()
+            except KeyboardInterrupt:
+                print "Cancel all MC threads on keyboard interrupt"
+                pl.terminate()
+                pl.join()
+            return
+        else: # Code for running on Windows (single-cpu only)
+            print "Using Windows: Multiprocessing NOT available."
+            self.st=datetime.datetime.now()
+            for nt in xrange(self.ntraj):
+                par_return=mc_alg_evolve(nt,args)
+                if self.num_expect==0:
+                    self.psi_out[nt]=array([Qobj(psi,dims=self.psi_dims,shape=self.psi_shape) for psi in par_return[k][0]])
+                else:
+                    self.expect_out[nt]=par_return[1]
+                    self.collapse_times_out[nt]=par_return[2]
+                    self.which_op_out[nt]=par_return[3]
+                self.count+=self.step
+                self.percent=self.count/(1.0*self.ntraj)
+                if self.count/float(self.ntraj)>=self.level:
+                    nwt=datetime.datetime.now()
+                    diff=((nwt.day-self.st.day)*86400+(nwt.hour-self.st.hour)*(60**2)+(nwt.minute-self.st.minute)*60+(nwt.second-self.st.second))*(self.ntraj-self.count)/(1.0*self.count)
+                    secs=datetime.timedelta(seconds=ceil(diff))
+                    dd = datetime.datetime(1,1,1) + secs
+                    time_string="%02d:%02d:%02d:%02d" % (dd.day-1,dd.hour,dd.minute,dd.second)
+                    print str(floor(self.count/float(self.ntraj)*100))+'%  ('+str(self.count)+'/'+str(self.ntraj)+')'+'  Est. time remaining: '+time_string
+                    self.level+=0.1
+            return
     def run(self):
         if odeconfig.tflag==1: #compile time-depdendent RHS code
             if not self.options.rhs_reuse:
@@ -284,7 +320,7 @@ class MC_class():
         elif self.num_collapse!=0:
             self.seed=array([int(ceil(random.rand()*1e4)) for ll in xrange(self.ntraj)])
             args=(self.options,self.psi_in,self.times,self.num_times,self.num_collapse,self.collapse_ops_data,self.norm_collapse,self.num_expect,self.expect_ops,self.seed)
-            if not self.options.gui:
+            if not self.options.gui or sys.platform[0:3]=="win":
                 print('Starting Monte-Carlo:')
                 self.parallel(args,self)
             else:
@@ -307,6 +343,24 @@ class MC_class():
                 
 
 
+#----------------------------------------------------
+#
+# CODES FOR PYTHON BASES TIME-DEPENDENT HAMILTONIANS
+#
+#----------------------------------------------------
+
+#RHS of ODE for time-dependent systems with no collapse operators
+def RHStd(t,psi):
+    return odeconfig.Hfunc(t,odeconfig.Hargs)*psi
+
+#RHS of ODE for time-dependent systems with collapse operators
+def cRHStd(t,psi):
+    return (odeconfig.Hfunc(t,odeconfig.Hargs)+odeconfig.Hcoll)*psi
+
+
+
+
+
 ######---return psi at requested times for no collapse operators---######
 def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
     ##Calculates state vectors at times tlist if no collapse AND no expectation values are given.
@@ -315,6 +369,8 @@ def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
         ODE=ode(odeconfig.tdfunc)
         code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
         exec(code)
+    elif mcdata.tflag==2:
+        ODE=ode(RHStd)
     else:
         #ODE=ode(RHS)
         ODE = ode(cyq_ode_rhs)
@@ -342,6 +398,8 @@ def no_collapse_expect_out(opt,psi_in,tlist,expect_ops,num_expect,num_times,psi_
         ODE=ode(odeconfig.tdfunc)
         code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
         exec(code)
+    elif mcdata.tflag==2:
+        ODE=ode(RHStd)
     else:
         ODE = ode(cyq_ode_rhs)
         ODE.set_f_params(odeconfig.Hdata, odeconfig.Hinds, odeconfig.Hptrs)
@@ -391,6 +449,8 @@ def mc_alg_evolve(nt,args):
         ODE=ode(odeconfig.tdfunc)
         code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
         exec(code)
+    elif odeconfig.tflag==2:
+        ODE=ode(RHStd)
     else:
         ODE = ode(cyq_ode_rhs)
         ODE.set_f_params(odeconfig.Hdata, odeconfig.Hinds, odeconfig.Hptrs)
@@ -435,10 +495,6 @@ def mc_alg_evolve(nt,args):
     else:
         return nt,expect_out,array(collapse_times),array(which_oper)
 #------------------------------------------------------------------------------------------
-
-
-
-
 
 
 
