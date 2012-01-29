@@ -359,11 +359,63 @@ class Qobj():
 
 
     #
+    # basis transformation
+    #
+    def transform(self, inpt):
+        """
+        Perform a basis transformation. inpt can be a matrix defining the
+        transformation or a list of kets that defines the new basis.
+
+        .. note:: work in progress
+        """
+    
+        if isinstance(inpt, list):
+            if len(inpt) != self.shape[0] and len(inpt) != self.shape[1]:
+                raise TypeError('Invalid size of ket list for basis transformation')
+            S = matrix([inpt[n].full()[:,0] for n in xrange(len(inpt))])
+        elif isinstance(inpt,ndarray):
+            S = matrix(inpt)
+        else:
+            raise TypeError('Invalid operand for basis transformation')
+
+        out=Qobj()
+        out.dims=[self.dims[1],self.dims[0]]
+        out.shape=[self.shape[1],self.shape[0]]
+ 
+        # transform data
+        if isket(self):
+           out.data = S * self.data
+        elif isbra(self):
+           out.data = self.data * S.T
+        else:
+           out.data = S.T * self.data * S
+
+        # force sparse
+        out.data = sp.csr_matrix(out.data,dtype=complex)
+
+        return out
+
+    #
+    # calculate the matrix element between self and a bra and a ket
+    #
+    def matrix_element(self, bra, ket):
+
+        if isoper(self):
+            if isbra(bra) and isket(ket):
+                return (bra.data * self.data * ket.data)[0,0]
+
+            if isket(bra) and isket(ket):
+                return (bra.data.T * self.data * ket.data)[0,0]
+
+        raise TypeError("Can only calculate matrix elements for operators and between ket and bra Qobj")
+           
+
+    #
     # Find the eigenstates and eigenenergies (defined for operators and
     # superoperators)
     # 
     def eigenstates(self):
-        """)
+        """
         Find the eigenstates and eigenenergies (defined for operators and superoperators)
         """
         if isket(self) or isbra(self):
