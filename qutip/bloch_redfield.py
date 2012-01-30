@@ -36,7 +36,7 @@ import scipy.sparse as sp
 # 
 # 
 #def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
-def brmesolve(R, rho0, tlist, e_ops, opt=None):
+def brmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
     """
     Solve the dynamics for the system using the Bloch-Redfeild master equation.
     
@@ -57,7 +57,9 @@ def brmesolve(R, rho0, tlist, e_ops, opt=None):
     if isket(rho0):
         # Got a wave function as initial state: convert to density matrix.
         rho0 = rho0 * rho0.dag()
-
+    
+    rho0 = rho0.transform(ekets)
+    
     #
     # prepare output array
     # 
@@ -74,6 +76,13 @@ def brmesolve(R, rho0, tlist, e_ops, opt=None):
                 result_list.append(zeros(n_tsteps))
             else:
                 result_list.append(zeros(n_tsteps,dtype=complex))
+
+
+    #
+    # transform the e_ops to the eigenbasis
+    #
+    for n in arange(len(e_ops)):
+        e_ops[n] = e_ops[n].transform(ekets)
 
     #
     # setup integrator
@@ -127,8 +136,6 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb):
     ..note:: Experimental
     
     """
-    
-    # TODO: optimize by using data directly instead of Qobjs
         
     # TODO: check that H is a Qobj
 
@@ -152,7 +159,9 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb):
     print "A.im =\n", imag(A)
                 
     # unitary part
-    R = -1.0j*(spre(H) - spost(H))
+    Heb = H.transform(ekets)
+    print "Heb =\n", Heb
+    R = -1.0j*(spre(Heb) - spost(Heb))
     R.data=R.data.tolil()
     for I in xrange(N*N):
         a,b = vec2mat_index(N, I)
@@ -161,20 +170,22 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb):
    
             # unitary part: use spre and spost above, same as this:
             # R[I,J] = -1j * (H[a,c] * (b == d) - H[d,b] * (a == c))   
+            # in eb
+            # R[I,J] = -1j * W[a,b] * (a == c) * (b == d)
    
             # dissipative part:
             for k in xrange(K):
                 # for each operator coupling the system to the environment
 
-                R.data[I,J] += A[k,a,c] * A[k,d,b] * 2 * pi * (spectra_cb[k](W[c,a]) + spectra_cb[k](W[d,b]))
+                R.data[I,J] += A[k,a,c] * A[k,d,b] * pi * (spectra_cb[k](W[c,a]) + spectra_cb[k](W[d,b])) / (2*pi)
                        
                 s1 = s2 = 0
                 for n in xrange(N):                         
                     s1 += A[k,a,n] * A[k,n,c] * spectra_cb[k](W[n,c])
                     s2 += A[k,d,n] * A[k,n,b] * spectra_cb[k](W[n,d])
        
-                R.data[I,J] += - pi * (b == d) * s1 - pi * (a == c) * s2       
+                R.data[I,J] += - pi * (b == d) * s1 / (2*pi) - pi * (a == c) * s2 / (2*pi)
     R.data=R.data.tocsr()
-    return R
+    return R, ekets
     
     

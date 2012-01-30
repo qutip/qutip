@@ -15,6 +15,7 @@ def qubit_integrate(w, theta, gamma1, gamma2, psi0, tlist):
     sm = sigmam()
     H = w * (cos(theta) * sz + sin(theta) * sx)
     #H = w * sz
+    print "H =\n", H
 
     #
     # Lindblad master equation
@@ -29,12 +30,22 @@ def qubit_integrate(w, theta, gamma1, gamma2, psi0, tlist):
         c_op_list.append(sqrt(rate) * sm.dag())
     lme_results = odesolve(H, psi0, tlist, c_op_list, [sx, sy, sz])  
 
+    L = liouvillian(H, c_op_list)
+    print "L.re =\n", real(L.full())
+    print "L.im =\n", imag(L.full())
+
+
     #
     # Bloch-Redfield tensor
     #
-    ohmic_spectrum = lambda w: 0.1*gamma1 * w / (2*pi) * (w > 0.0)    
-    R = bloch_redfield_tensor(H, [sx], [ohmic_spectrum])
-    brme_results = brmesolve(R, psi0, tlist, [sx, sy, sz])   
+    #ohmic_spectrum = lambda w: gamma1 * w / (2*pi)**2 * (w > 0.0)    
+    ohmic_spectrum = lambda w: gamma1 * w / (2*pi)  
+    R, ekets = bloch_redfield_tensor(H, [sx], [ohmic_spectrum])
+    
+    print "R.re =\n", real(R.full())
+    print "R.im =\n", imag(R.full())
+        
+    brme_results = brmesolve(R, ekets, psi0, tlist, [sx, sy, sz])   
 
     return lme_results, brme_results
     
@@ -42,8 +53,8 @@ def qubit_integrate(w, theta, gamma1, gamma2, psi0, tlist):
 # set up the calculation
 #
 w     = 1.0 * 2 * pi  # qubit angular frequency
-theta = 0.5 * pi      # qubit angle from sigma_z axis (toward sigma_x axis)
-gamma1 = 0.5          # qubit relaxation rate
+theta = 0.0 * pi      # qubit angle from sigma_z axis (toward sigma_x axis)
+gamma1 = 0.2          # qubit relaxation rate
 gamma2 = 0.2          # qubit dephasing rate
 # initial state
 a = 1.0
