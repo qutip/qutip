@@ -369,7 +369,7 @@ def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
         ODE=ode(odeconfig.tdfunc)
         code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
         exec(code)
-    elif mcdata.tflag==2:
+    elif odeconfig.tflag==2:
         ODE=ode(RHStd)
     else:
         #ODE=ode(RHS)
@@ -398,7 +398,7 @@ def no_collapse_expect_out(opt,psi_in,tlist,expect_ops,num_expect,num_times,psi_
         ODE=ode(odeconfig.tdfunc)
         code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
         exec(code)
-    elif mcdata.tflag==2:
+    elif odeconfig.tflag==2:
         ODE=ode(RHStd)
     else:
         ODE = ode(cyq_ode_rhs)
