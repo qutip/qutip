@@ -76,7 +76,7 @@ Installation on Mac OS X (10.6+)
 
 If you have not done so already, install the Apple XCode developer tools from the Apple App Store.
 
-Macports [1]_
+Macports [*]_
 ^^^^^^^^^^^^^^
 
 On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via:  
@@ -112,7 +112,7 @@ No matter which installation path you choose, installing QuTiP is the same as on
 >>> sudo python setup.py install
 
 
-Installation on Microsoft Windows [2]_
+Installation on Microsoft Windows [*]_
 =======================================
 
 .. note:: We would like to thank Per Kaer Nielsen for help with installation on Windows.
@@ -121,7 +121,56 @@ The developers of QuTiP have not touched Windows in several years, and will be c
 
 >>> python setup.py install build --compiler=mingw32
 
-Keep in mind, compiling QuTiP using the mingw32 compiler will limit the amount of memory that you can use for any given calculation to around 4Gb.  Unfortunately, setting up a 64-bit compiler on Windows is a non-trivial task.
+Keep in mind, compiling QuTiP using the mingw32 compiler will limit the amount of memory that you can use for any given calculation to around 4Gb.  
+
+Installing QuTiP on 64-bit Windows
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Unfortunately, setting up a 64-bit compiler on Windows is a non-trivial task.  Therefore we recommend having at least one bottle of wine within arms reach before proceeding with the setup instructions.  The following instructions may also be used for installing a 32-bit Python installation as well by replacing AMD64 and x64 by win32 and x86, respectively:
+
+1. Grab the latest Python 2.7 AMD64 version from the `Python website <http://www.python.org/download/>`_ 
+
+2. Windows binary executables for both AMD64 and win32, curiosity of Christoph Gohike, may be found at http://www.lfd.uci.edu/~gohlke/pythonlibs.  Note that you need the Python 2.7 versions of the executables.  It is recommended that you install the latest version of the following (required modules are denoted with a "*"):
+
+	 - NumPy-MKL *
+	 - SciPy *
+	 - matplotlib *
+	 - Distribute *
+	 - Cython *
+	 - PyQt
+	 - PySide
+	 - PyReadline
+	 - iPython (Install in Administrator mode to get start menu links.)
+
+3. You now need to grab the Microsoft Windows SDK for Windows 7 and .NET Framework 3.5 SP1 found at http://www.microsoft.com/download/en/details.aspx?displaylang=en&id=18950.  You want the file named "GRMSDKX_EN_DVD.iso".  This download will need to be burned to a dvd, or extracted, before installation.
+ 
+4. Next, run the "CMD Shell" executable located in the "Microsoft Windows SDK v7.0" directory of the start menu:
+
+	.. figure:: figures/windows_install.png
+   		:align: center
+   	 	:width: 3in
+   
+   	 	Figure showing the correct command line executable (CMD Shell) for setting the MS compiler environment flags.
+
+The text in this shell will initially be yellow (see Fig. :ref:`winfig`).  Now we need to set the compiler flags (replace x64 with x86 if using 32-bit Windows):
+
+>>> set DISTUTILS_USE_SDK=1
+>>> setenv /x64 /release
+
+The shell text should now turn green.
+
+	.. _winfig:
+
+	.. figure:: figures/windows_install_2.png
+   		:align: center
+   	 	:width: 4in
+		
+		CMD shell before and after inputing compiler flags.
+
+5. In this **same** CMD shell, change directories to the downloaded QuTiP directory	at run the install command:
+
+>>> python setup.py install
+
 
 Verifying the Installation
 ============================
@@ -154,7 +203,7 @@ which will pop-up a window similar to the one shown below.  If instead you get c
 |
 
 
-.. [1] Installing QuTiP via Macports will take a long time as each of the QuTiP dependencies is build from source code.  The advantage is that everything is more or less guarenteed to work.  However, if you have a hot date waiting for you, then we do not recommend this path.  Or course, if you are reading this guide, this may not be the case. 
+.. [*] Installing QuTiP via Macports will take a long time as each of the QuTiP dependencies is build from source code.  The advantage is that everything is more or less guarenteed to work.  However, if you have a hot date waiting for you, then we do not recommend this path.  Or course, if you are reading this guide, this may not be the case. 
 
-.. [2] QuTiP is developed on Unix based systems such as Linux and OSX.  As such, we do not directly support the Windows operating system.  That being said, we do strive to maintain compatibility with the Windows platform.  Unfortunately, the multiprocessing routines used by Windows differ from those in Unix systems. Therefore we only support multiprocessing on Unix architectures. 
+.. [*] QuTiP is developed on Unix based systems such as Linux and OSX.  As such, we do not directly support the Windows operating system.  That being said, we do strive to maintain compatibility with the Windows platform.  Unfortunately, the multiprocessing routines used by Windows differ from those in Unix systems. Therefore we only support multiprocessing on Unix architectures. 
 
