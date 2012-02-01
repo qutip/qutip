@@ -18,7 +18,7 @@ Lead Developers
 Contributors
 *************
 
-**Markus Baden** (Centre for Quantum Technologies, Singapore) - **QuTiP member**. Examples and documentation
+**Markus Baden** (Centre for Quantum Technologies, Singapore) - Examples and documentation, **QuTiP member**
 
 **James Clemens** (Miami University - Ohio) - Bug hunter
 
@@ -29,3 +29,7 @@ Contributors
 **Jonas Neergaard-Nielsen** (Technical University of Denmark) - Bug hunter
 
 **Per Kaer Nielsen** (Technical University of Denmark) - Testing the ODE solver
+
+**Florian Ong** (Institute for Quantum Computation) - Bug hunter
+
+**Dong Zhou** (Yale) - Bug hunter

@@ -1,11 +1,13 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-About QuTiP
-*************
-
 .. figure:: figures/wide_logo.png
    :align: center
+
+
+
+About QuTiP
+*************
 
 Every quantum system encountered in the real world is an open quantum system. For although much care is taken experimentally to eliminate the unwanted influence of external interactions, there remains, if ever so slight, a coupling between the system of interest and the external world. In addition, any measurement performed on the system necessarily involves coupling to the measuring device, therefore introducing an additional source of external influence. Consequently, developing the necessary tools, both theoretical and numerical, to account for the interactions between a system and its environment is an essential step in understanding the dynamics of quantum systems.
 
@@ -21,7 +23,7 @@ The Quantum Toolbox in Python, or QuTiP, is a fully open-source implementation o
 
 * QuTiP allows for solving the dynamics of Hamiltonians with arbitrary time-dependence (does not yet include time-dependent collapse operators).
 
-* Takes advantage of the multiple processing cores found in essentially all modern computers.
+* Takes advantage of the multiple processing cores found in essentially all modern computers [1]_.
 
 * QuTiP was designed from the start to require a minimal learning curve for those users who have experience using the popular quantum optics toolbox by Sze M. Tan. 
 
@@ -43,5 +45,6 @@ Whats New in QuTiP Version 2.0
 ================================
 
 The second version of QuTiP has seen many improvements in the performance of the original code base, as well as the addition of several new routines supporting a wide range of functionality.  Some of the highlights of this release include:
+|
 
-
+.. [1] Due to differences in multiprocessing routines, QuTiP does not currently support multiprocessing under the Windows operating system.  If you require this functionality, then please consider running QuTiP in a Unix based environment such as Linux or the Mac OSX.

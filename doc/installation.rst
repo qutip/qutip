@@ -19,7 +19,7 @@ QuTiP requires the following packages to run:
 +------------+--------------+-----------------------------------------------------+
 | Numpy      | 1.5.1+       | Not tested on lower versions.                       |
 +------------+--------------+-----------------------------------------------------+
-| Scipy      | 0.8+         | Not tested on lower versions. Use 0.9+ is possible. |
+| Scipy      | 0.8+         | Not tested on lower versions. Use 0.9+ if possible. |
 +------------+--------------+-----------------------------------------------------+
 | Matplotlib | 1.0.1+       | Some plotting does not work on lower versions.      |
 +------------+--------------+-----------------------------------------------------+
@@ -33,6 +33,9 @@ QuTiP requires the following packages to run:
 +------------+--------------+-----------------------------------------------------+                      
 | PyObjC     | 2.2+         | Mac only.  Very optional.  Needed only for a        |
 |            |              | GUI Monte-Carlo progress bar.                       |
++------------+--------------+-----------------------------------------------------+
+| Cython     | 0.15+        | Optional.  Needed for compiling time-dependent      |
+|            |              | Hamiltonians.                                       |
 +------------+--------------+-----------------------------------------------------+
 | GCC        | 4.2+         | Needed for compiling Cython files.                  |
 | Compiler   |              |                                                     |
@@ -73,8 +76,8 @@ Installation on Mac OS X (10.6+)
 
 If you have not done so already, install the Apple XCode developer tools from the Apple App Store.
 
-Macports
-^^^^^^^^^^^
+Macports [1]_
+^^^^^^^^^^^^^^
 
 On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via:  
 
@@ -104,13 +107,13 @@ One can also use the `Enthought Python Distribution <http://www.enthought.com/pr
 Installing
 ^^^^^^^^^^^^^^^^^
 
-Installing QuTiP is the same as on linux.  From the QuTiP directory:
+No matter which installation path you choose, installing QuTiP is the same as on linux.  From the QuTiP directory:
 
 >>> sudo python setup.py install
 
 
-Installation on Microsoft Windows
-=================================
+Installation on Microsoft Windows [2]_
+=======================================
 
 .. note:: We would like to thank Per Kaer Nielsen for help with installation on Windows.
 
@@ -147,3 +150,11 @@ which will pop-up a window similar to the one shown below.  If instead you get c
    :width: 3in
    
    QuTiP about box window with link to updated version on the QuTiP website.
+
+|
+
+
+.. [1] Installing QuTiP via Macports will take a long time as each of the QuTiP dependencies is build from source code.  The advantage is that everything is more or less guarenteed to work.  However, if you have a hot date waiting for you, then we do not recommend this path.  Or course, if you are reading this guide, this may not be the case. 
+
+.. [2] QuTiP is developed on Unix based systems such as Linux and OSX.  As such, we do not directly support the Windows operating system.  That being said, we do strive to maintain compatibility with the Windows platform.  Unfortunately, the multiprocessing routines used by Windows differ from those in Unix systems. Therefore we only support multiprocessing on Unix architectures. 
+
