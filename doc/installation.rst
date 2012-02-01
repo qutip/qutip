@@ -167,7 +167,7 @@ The shell text should now turn green.
 		
 		CMD shell before and after inputing compiler flags.
 
-5. In this **same** CMD shell, change directories to the downloaded QuTiP directory	at run the install command:
+5. In this **same** CMD shell, change directories to the downloaded QuTiP directory	and run the install command:
 
 >>> python setup.py install
 
