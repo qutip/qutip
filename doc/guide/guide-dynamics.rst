@@ -9,6 +9,20 @@ An Overview of the Quantum Dynamics Solvers in QuTiP
 
 Unitary evolution
 -----------------
+The dynamics of a closed (pure) quantum system is governed by the Schrödinger equation
+
+.. math::
+   :label: schrodinger
+
+	i\hbar\frac{\partial}{\partial t}\Psi = \hat H \Psi,
+
+where :math:`\Psi` is the wave function, :math:`\hat H` the Hamiltonian, and :math:`hbar` is Planck's constant. In general, the Schrödinger equation is a partial differential equation (PDE) where both :math`\Psi` and :math:`\hat H` are functions of space and time. For computational purposes it is useful to expand the PDE in a set of basis functions that span the Hilbert space of the Hamiltonian, and to write the equation in matrix and vector form
+
+.. math::
+   
+   i\hbar\frac{d}{dt}\left|\psi\right> = H \left|\psi\right>
+
+where :math:`\left|\psi\right>` is the state vector and :math:`H` is the matrix representation of the Hamiltonian. This matrix equation can, in principle, be solved by diagonalizing the Hamiltonian matrix :math:`H`. In practice, however, it is difficult to perform this diagonalization unless the size of the Hilbert space (dimension of the matrix :math:`H`) is small. Analytically, it is a formidable task to calculate the dynamics for systems with more than two states. If, in addition, we consider dissipation due to the inevitable interaction with a surrounding environment, the computational complexity grows even larger, and we have to resort to numerical calculations in all realistic situations. This illustrates the importance of numerical calculations in describing the dynamics of open quantum systems, and the need for efficient and accessible tools for this task.
 
 The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, [GuideComposite Creating and manipulating composite objects with tensor and ptrace], we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector :math:`\psi_0` (``psi0``) using the QuTiP function :func:`qutip.odesolve`. It evolves the state vector and evaluates the expectation values for a set of operators ``expt_op_list`` at the points in time in the list ``tlist``, using an ordinary differential equation solver. Alternatively, we can use the function :func:`qutip.essolve`, which uses the exponential-series technique to calculate the time evolution of a system. The :func:`qutip.odesolve` and :func:`qutip.essolve` functions take the same arguments and it is therefore easy switch between the two solvers. 
 
@@ -57,8 +71,11 @@ The resulting list of expectation values can easily be visualized using matplotl
     >>> legend(("Simga-Z", "Sigma-Y"))
     >>> show()
 
+
 .. figure:: guide-dynamics-qubit.png
-    :align: center
+   :align: center
+   :width: 4in
+
 
 If an empty list of operators is passed as fifth parameter, the :func:`qutip.odesolve` function returns a list of state vectors for the times specified in ``tlist``::
 
@@ -86,8 +103,46 @@ If an empty list of operators is passed as fifth parameter, the :func:`qutip.ode
 Non-unitary evolution
 ---------------------
 
+While the evolution of the state vector in a closed quantum system is deterministic, open quantum systems are stochastic in nature. The effect of an environment on the system of interest is to induce stochastic transitions between energy levels, and to introduce uncertainty in the phase difference between states of the system. The state of an open quantum system is therefore described in terms of ensemble averaged states using the density matrix formalism. A density matrix :math:`\rho` describes a probability distribution of quantum states :math:`\left|\psi_n\right>`, in a matrix representation :math:`\rho = \sum_n p_n \left|\psi_n\right>\left<\psi_n\right|`, where :math:`p_n` is the classical probability that the system is in the quantum state :math:`\left|\psi_n\right>`. The time evolution of a density matrix :math:`\rho` is the topic of the remaining portions of this section.
+
 Master equation
 +++++++++++++++
+
+The standard approach for deriving the equations of motion for a system interacting with its environment is to expand the scope of the system to include the environment. The combined quantum system is then closed, and its evolution is governed by the von Neumann equation
+
+.. math::
+   :label: neumann_total
+   
+   \dot \rho_{\rm tot}(t) = -\frac{i}{\hbar}[H_{\rm tot}, \rho_{\rm tot}(t)],
+
+the equivalent of the Schrödinger equation (:eq:`schrodinger`) in the density matrix formalism. Here, the total Hamiltonian 
+
+.. math::
+
+ 	H_{\rm tot} = H_{\rm sys} + H_{\rm env} + H_{\rm int},
+
+includes the original system Hamiltonian :math:`H_{\rm sys}`, the Hamiltonian for the environment :math:`H_{\rm env}`, and a term representing the interaction between the system and its environment :math:`H_{\rm int}`. Since we are only interested in the dynamics of the system, we can at this point perform a partial trace over the environmental degrees of freedom in Eq.~(:eq:`neumann_total`), and thereby obtain a master equation for the motion of the original system density matrix. The most general trace-preserving and completely positive form of this evolution is the Lindblad master equation for the reduced density matrix :math:`\rho = {\rm Tr}_{\rm env}[\rho_{\rm tot}]` 
+
+.. math::
+	:label: master_equation
+
+	\!\!\dot \rho(t) \!\!\!\!&=&\!\!\! -\frac{i}{\hbar}[H(t), \rho(t)]  \nonumber\\
+	&+&\!\!\!\!\!
+	\sum_n \frac{1}{2} \left[2 C_n \rho(t) C_n^{+} - \rho(t) C_n^{+} C_n - C_n^{+} C_n \rho(t)\right]\!,\,\,
+
+where the :math:`C_n = \sqrt{\gamma_n} A_n` are collapse operators, and :math:`A_n` are the operators through which the environment couples to the system in :math:`H_{\rm int}`, and :math:`\gamma_n` are the corresponding rates.  The derivation of Eq.~(:eq:`master_equation`) may be found in several sources, and will not be reproduced here.  Instead, we emphasize the approximations that are required to arrive at the master equation in the form of Eq.~(:eq:`master_equation`), and hence perform a calculation in QuTiP:
+
+- **Separability:** At :math:`t=0` there are no correlations between the system and its environment such that the total density matrix can be written as a tensor product :math:`\rho^I_{\rm tot}(0) = \rho^I(0) \otimes \rho^I_{\rm env}(0)`.
+
+- **Born approximation:** Requires: (1) that the state of the environment does not significantly change as a result of the interaction with the system;  (2) The system and the environment remain separable throughout the evolution. These assumptions are justified if the interaction is weak, and if the environment is much larger than the system. In summary, :math:`\rho_{\rm tot}(t) \approx \rho(t)\otimes\rho_{\rm env}`.
+
+- **Markov approximation** The time-scale of decay for the environment :math:`\tau_{\rm env}` is much shorter than the smallest time-scale of the system dynamics :math:`\tau_{\rm sys} \gg \tau_{\rm env}`. This approximation is often deemed a "short-memory environment" as it requires that environmental correlation functions decay on a time-scale fast compared to those of the system.
+
+- **Secular approximation** Stipulates that elements in the master equation corresponding to transition frequencies satisfy :math:`|\omega_{ab}-\omega_{cd}| \ll 1/\tau_{\rm sys}`, i.e., all fast rotating terms in the interaction picture can be neglected. It also ignores terms that lead to a small renormalization of the system energy levels. This approximation is not strictly necessary for all master-equation formalisms (e.g., the Block-Redfield master equation), but it is required for arriving at the Lindblad form (:eq:`master_equation`) which is used in QuTiP.
+
+
+For systems with environments satisfying the conditions outlined above, the Lindblad master equation (:eq:`master_equation`) governs the time-evolution of the system density matrix, giving an ensemble average of the system dynamics. In order to ensure that these approximations are not violated, it is important that the decay rates :math:`\gamma_n` be smaller than the minimum energy splitting in the system Hamiltonian. Situations that demand special attention therefore include, for example, systems strongly coupled to their environment, and systems with degenerate or nearly degenerate energy levels. 
+
 
 For non-unitary evolution of a quantum systems, i.e., evolution that includes
 incoherent processes such as relaxation and dephasing, it is common to use
@@ -130,11 +185,13 @@ the previously empty list in the fourth parameter to the :func:`qutip.odesolve` 
     >>> legend(("Sigma-Z", "Sigma-Y"))
     >>> show()
 
-Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.sigmax`) describes the dissipation 
+Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.operators.sigmax`) describes the dissipation 
 process.
 
 .. figure:: guide-qubit-dynamics-dissip.png
-    :align: center
+   :align: center
+   :width: 4in
+
 
 Now a slightly more complex example: Consider a two-level atom coupled to a leaky single-mode cavity through a dipole-type interaction, which supports a coherent exchange of quanta between the two systems. If the atom initially is in its groundstate and the cavity in a 5-photon fock state, the dynamics is calculated with the lines following code::
 
@@ -153,22 +210,59 @@ Now a slightly more complex example: Consider a two-level atom coupled to a leak
     >>> legend(("cavity photon number", "atom excitation probability"))
     >>> show()
 
+
 .. figure:: guide-dynamics-jc.png
-    :align: center
+   :align: center
+   :width: 4in
 
 Monte-Carlo evolution
 +++++++++++++++++++++
 
-Quantum trajectory Monte-Carlo is an alternative approach for calculating the
-time-evolution of dissipative quantum systems. Unlike the master equation, 
-the Monte-Carlo method is based on the unitary evolution and uses the state
-vector instead of density matrix to describe the state of the system.
-Dissipation is introduced into the dynamics by stochastic quantum jumps,
-whose rate and effect on the state of the system is described by the same
-collapse operators that are used to define the master equation. The average of
-a large number of such stochastic trajectories describes the dissipative 
-dynamics of the system, and has been shown to give identical results as the
-master equation. 
+Where as the density matrix formalism describes the ensemble average over many identical realizations of a quantum system, the Monte-Carlo (MC), or quantum-jump approach to wave function evolution, allows for simulating an individual realization of the system dynamics.  Here, the environment is continuously monitored, resulting in a series of quantum jumps in the system wave function, conditioned on the increase in information gained about the state of the system via the environmental measurements.  In general, this evolution is governed by the Schrödinger equation (:eq:`schrodinger`) with a **non-Hermitian** effective Hamiltonian  
+
+.. math::
+	:label: heff
+	
+	H_{\rm eff}=H_{\rm sys}-\frac{i\hbar}{2}\sum_{i}C^{+}_{n}C_{n},
+
+where again, the :math:`C_{n}` are collapse operators, each corresponding to a separate irreversible process with rate :math:`\gamma_{n}`.  Here, the strictly negative non-Hermitian portion of Eq.~(:eq:`heff`) gives rise to a reduction in the norm of the wave function, that to first-order in a small time :math:`\delta t`, is given by :math:`\left<\psi(t+\delta t)|\psi(t+\delta t)\right>=1-\delta p` where
+
+.. math::
+	:label: jump
+
+	\delta p =\delta t \sum_{n}\left<\psi(t)|C^{+}_{n}C_{n}|\psi(t)\right>,
+
+and :math:`\delta t` is such that :math:`\delta p \ll 1`.  With a probability of remaining in the state :math:`\left|\psi(t+\delta t)\right>` given by :math:`1-\delta p`, the corresponding quantum jump probability is thus Eq.~(:eq:`jump`).  If the environmental measurements register a quantum jump, say via the emission of a photon into the environment, or a change in the spin of a quantum dot, the wave function undergoes a jump into a state defined by projecting :math:`\left|\psi(t)\right>` using the collapse operator :math:`C_{n}` corresponding to the measurement
+
+.. math::
+	:label: project
+
+	\left|\psi(t+\delta t)\right>=C_{n}\left|\psi(t)\right>/\left<\psi(t)|C_{n}^{\dag}C_{n}|\psi(t)\right>^{1/2}.
+
+If more than a single collapse operator is present in Eq~(:eq:`heff`), the probability of collapse due to the :math:`i\mathrm{th}$-operator $C_{i}` is given by 
+
+.. math::
+	:label: pcn
+
+	P_{i}(t)=\left<\psi(t)|C_{i}^{+}C_{i}|\psi(t)\right>/\delta p.
+
+Evaluating the MC evolution to first-order in time is quite tedious.  Instead, QuTiP uses the following algorithm to simulate a single realization of a quantum system.  Starting from a pure state :math:`\left|\psi(0)\right>`:
+
+- **I:** Choose a random number :math:`r` between zero and one, representing the probability that a quantum jump occurs.  
+
+- **II:** Integrate the Schrödinger equation (:eq:`schrodinger`), using the effective Hamiltonian (:eq:`heff`) until a time :math:`\tau` such that the norm of the wave function satisfies :math:`\left<\psi(\tau)\right.\left|\psi(\tau)\right>=r`, at which point a jump occurs.
+
+- **III:** The resultant jump projects the system at time :math:`\tau` into one of the renormalized states given by Eq.~(:eq:`project`).  The corresponding collapse operator :math:`C_{n}` is chosen such that :math:`n` is the smallest integer satisfying:
+
+.. math::
+	:label: mc3
+
+	\sum_{i=1}^{n} P_{n}(\tau) \ge r
+
+where the individual :math:`P_{n}` are given by Eq.~(:eq:`pcn`).  Note that the left hand side of Eq.~(:eq:`mc3`) is, by definition, normalized to unity.
+
+- **IV:** Using the renormalized state from step III as the new initial condition at time :math:`\tau`, draw a new random number, and repeat the above procedure until the final simulation time is reached.
+
 
 In QuTiP, Monto-Carlo evolution is implemented with the
 :func:`qutip.mcsolve` function. It takes nearly the same arguments as the :func:`qutip.odesolve`
@@ -201,8 +295,11 @@ invoke the :func:`qutip.mcsolve` function instead of :func:`qutip.odesolve`, and
     >>> legend(("cavity photon number", "atom excitation probability"))
     >>> show()
 
+
 .. figure:: guide-dynamics-mc.png
-    :align: center
+   :align: center
+   :width: 4in
+
 
 The advantage of the Monte-Carlo method over the master equation approach is that only the state vector is required to be kept in the computer memory (as opposed to the entire density matrix). For large quantum system this becomes a significant advantage and the Monte-Carlo is therefore generally recommended for such systems. But for small systems, on the other hand, the added overhead of averaging a large number of stochastic trajectories to obtain the open system dynamics outweigh the benefits of the (small) memory saving, and master equations are therefore generally more efficient.
 
@@ -277,7 +374,9 @@ In general, the choice of solver is determined by the size of your system, as we
 If your system is intermediate in size (you are not bound by memory) then it is interesting to calculate the crossover point where the monte-carlo solver begins to perform better than the master equation method.  The exact point at which one solver is better than the other will depend on the system of interest and number of processors. However as a guideline, below we have plotted the time required to solve for the evolution of coupled dissipative harmonic oscillators as a function of Hilbert space size.
 
 .. figure:: guide-dynamics-solver-performance.png
-    :align: center
+   :align: center
+   :width: 4in
+
 
 Here, the number of trajectories used in :func:`qutip.mcsolve` is ``250`` and the number of processors (which determines the slope of the monte-carlo line) is ``4``.  Here we see that the monte-carlo solver begins to be more efficient than the corresponding master-equation method at a Hilbert space size of :math:`N\sim40`.  Therefore, if your system size is greater than :math:`N\sim40` and you do not need the full density matrix, then it is recommended to try the :func:`qutip.mcsolve` function. 
 
@@ -315,9 +414,11 @@ For example, let's consider a two-level system with energy splitting 1.0, and su
     >>> show()
 
 .. figure:: guide-dynamics-td.png
-    :align: center
-    
-   
+   :align: center
+   :width: 4in
+
+
+
 Setting ODE solver options
 --------------------------
 
@@ -402,19 +503,21 @@ or::
     >>> mcsolve(hamiltonian_t, psi0, tlist, ntraj, c_op_list, [sigmaz()], H_args,options=opts)
 
 
-Performance (version 1.1.1)
----------------------------
+Performance (QuTiP vs. qotoolbox)
+-----------------------------------
 
 Here we compare the performance of the master-equation and monte-Carlo solvers to their quantum optics toolbox counterparts.
 
 In this example, we calculate the time-evolution of the density matrix for a coupled oscillator system using the odesolve function, and compare it to the quantum optics toolbox (qotoolbox).  Here, we see that the QuTiP solver out performs it's qotoolbox counterpart by a substantial margin as the system size increases.
 
 .. figure:: guide-dynamics-odesolve-performance.png
-    :align: center
+   :align: center
+   :width: 4in
 
-To test the Monte-Carlo solvers, here we simulate a trilinear Hamiltonian over a range of Hilbert space sizes.  Since QuTiP uses multiprocessing, we can measure the performance gain when using several CPU's.  In contrast, the qotoolbox is limited to a single-processor only.  In the legend, we show the speed-up factor in the parenthesis, which should ideally be equal to the number of processors.  Finally, we have included the results using hyperthreading, written here as 4+(x) where x is the number of hyperthreads, found in some newer Intel processors.  We see however that the performance benefit is marginal at best.
-
+To test the Monte-Carlo solvers, here we simulate a trilinear Hamiltonian over a range of Hilbert space sizes.  Since QuTiP uses multiprocessing, we can measure the performance gain when using several CPU's.  In contrast, the qotoolbox is limited to a single-processor only.  In the legend, we show the speed-up factor in the parenthesis, which should ideally be equal to the number of processors.  Finally, we have included the results using hyperthreading, written here as 4+(x) where x is the number of hyperthreads, found in some newer Intel processors.  We see however that the performance benefits from hyperthreading are marginal at best.
 
 .. figure:: guide-dynamics-mcsolve-performance.png
-    :align: center
+   :align: center
+   :width: 4in
+
 
