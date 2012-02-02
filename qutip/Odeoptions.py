@@ -1,3 +1,4 @@
+from __future__ import print_function
 #This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
@@ -16,13 +17,25 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-##
-#Class of options for ODE solvers.
-#
 import os
 class Odeoptions():
     """
-    Class of options for ODE solver used by 'odesolve' and 'mcsolve'
+    .. note::
+    
+        Updated in version 2.0
+        
+    Class of options for ODE solver used by :func:`qutip.odesolve` and :func:`qutip.mcsolve`.
+    Options can be changed either inline:
+    
+        opts=Odeoptions(gui=False,order=10,.....)
+    
+    or by changing the class properties after creation:
+    
+        opts=Odeoptions()
+        opts.gui=False
+        opts.order=10
+        
+    Returns options class to be used as options in :func:`qutip.odesolve` and :func:`qutip.mcsolve`.
     """
     def __init__(self,atol=1e-8,rtol=1e-6,method='adams',order=12,nsteps=1000,first_step=0,max_step=0,min_step=0,
                 expect_avg=True,tidy=True,num_cpus=None,rhs_reuse=False,rhs_filename=None,gui=True):
@@ -74,9 +87,10 @@ class Odeoptions():
         print('min_step:     ',self.min_step)
         print('max_step:     ',self.max_step)
         print('tidy:         ',self.tidy)
-        print('expect_avg:   ',self.expect_avg)
         print('num_cpus:     ',self.num_cpus)
-        print('rhs_reuse:    ',self.rhs_reuse)
         print('rhs_filename: ',self.rhs_filename)
+        print('rhs_reuse:    ',self.rhs_reuse)
+        print('gui:          ',self.gui)
+        print('expect_avg:   ',self.expect_avg)
         return ''
 
