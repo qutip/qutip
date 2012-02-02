@@ -24,38 +24,44 @@ class Odeoptions():
     """
     Class of options for ODE solver used by 'odesolve' and 'mcsolve'
     """
-    def __init__(self):
+    def __init__(self,atol=1e-8,rtol=1e-6,method='adams',order=12,nsteps=1000,first_step=0,max_step=0,min_step=0,
+                expect_avg=True,tidy=True,num_cpus=None,rhs_reuse=False,rhs_filename=None,gui=True):
         #: Absolute tolerance (default = 1e-8)
-        self.atol=1e-8
+        self.atol=atol
         #: Relative tolerance (default = 1e-6)
-        self.rtol=1e-6
+        self.rtol=rtol
         #: Integration method (default = 'adams', for stiff 'bdf')
-        self.method='adams'
+        self.method=method
         #: Max. number of internal steps/call
-        self.nsteps=1000
+        self.nsteps=nsteps
         #: Size of initial step (0 = determined by solver)
-        self.first_step=0
+        self.first_step=first_step
         #: Minimal step size (0 = determined by solver)
-        self.min_step=0
+        self.min_step=min_step
         #: Max step size (0 = determined by solver)
-        self.max_step=0
+        self.max_step=max_step
         #: Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
-        self.order=12
+        self.order=order
         #: Average expectation values over trajectories (default = True) 
-        self.expect_avg=True
+        self.expect_avg=expect_avg
         #: tidyup Hamiltonian before calculation (default = True)
-        self.tidy=True
-        #: Number of processors to use (mcsolve only)
-        self.num_cpus=int(os.environ['NUM_THREADS'])
+        self.tidy=tidy
         #: Use preexisting RHS function for time-dependent solvers
-        self.rhs_reuse=False
+        self.rhs_reuse=rhs_reuse
         #: Use filename for preexisting RHS function (will default to last compiled function if None & rhs_exists=True)
-        self.rhs_filename=None
+        self.rhs_filename=rhs_filename
+        #: Number of processors to use (mcsolve only)
+        if num_cpus==None:
+            self.num_cpus=int(os.environ['NUM_THREADS'])
+        else:
+            self.num_cpus=num_cpus
+        if self.num_cpus>int(os.environ['NUM_THREADS']):
+            raise Exception("Requested number of CPU's too large. Max = "+str(int(os.environ['NUM_THREADS'])))
         #: Use Progressbar (mcsolve only)
         if os.environ["QUTIP_GUI"]=="NONE" or os.environ["QUTIP_GRAPHICS"]=="NO":
             self.gui=False
         else:
-            self.gui=True
+            self.gui=gui
     def __str__(self):
         print("Odeoptions properties:")
         print("----------------------")
