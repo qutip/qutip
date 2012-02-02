@@ -29,6 +29,10 @@ os.environ['NUM_THREADS']=str(multiprocessing.cpu_count())
 if not ('QUTIP_GRAPHICS' in os.environ):
     os.environ['QUTIP_GRAPHICS']="YES"
 
+# default to no gui until run local is checked
+if not ('QUTIP_GUI' in os.environ):
+    os.environ['QUTIP_GUI']="NONE"
+
 #check if being run remotely
 if not ('DISPLAY' in os.environ):
     #no graphics if DISPLAY isn't set
@@ -36,7 +40,7 @@ if not ('DISPLAY' in os.environ):
     os.environ['QUTIP_GUI']="NONE"
 
 # check for windows platform
-if platform.uname()[0] == 'Windows':
+if sys.platform[0:3] == 'win':
     # graphics always available on windows
     os.environ['QUTIP_GRAPHICS']="YES"
 
@@ -45,7 +49,6 @@ try:
     import matplotlib
 except:
     os.environ['QUTIP_GRAPHICS']="NO"
-    os.environ['QUTIP_GUI']="NONE"
 
 
 #if being run locally, check for installed gui modules
@@ -58,8 +61,7 @@ if os.environ['QUTIP_GRAPHICS']=="YES":
             import PyQt4
             os.environ['QUTIP_GUI']="PYQT4"
         except:
-            os.environ['QUTIP_GRAPHICS']="NO"
-            os.environ['QUTIP_GUI']="NONE"
+            pass
 #----------------------------------------------------
 from scipy import *
 import scipy.linalg as la

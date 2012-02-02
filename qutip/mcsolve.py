@@ -16,12 +16,12 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
+import sys,os,time,numpy,datetime
 from scipy import *
 from scipy.integrate import *
 from scipy.linalg import norm
 from qutip.Qobj import *
 from qutip.expect import *
-import sys,os,time
 from qutip.istests import *
 from qutip.Odeoptions import Odeoptions
 import qutip.odeconfig as odeconfig
@@ -32,7 +32,6 @@ from qutip.cyQ.cy_mc_funcs import mc_expect,spmv
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
-import os,numpy,datetime
 from Mcdata import Mcdata
 
 def mcsolve(H,psi0,tlist,ntraj,collapse_ops,expect_ops,H_args=None,options=Odeoptions()):
@@ -157,19 +156,22 @@ class MC_class():
     Private class for solving Monte-Carlo evolution from mcsolve
     """
     def __init__(self,psi0,tlist,ntraj,collapse_ops,expect_ops,options):
+        ##collection of ODE options from Mcoptions class
+        self.options=options
         #-Check for PyObjC on Mac platforms
         if sys.platform=='darwin':
             try:
                 import Foundation
             except:
-                options.gui=False
-        if options.gui and odeconfig.tflag==1:
+                self.options.gui=False
+        #check if running in iPython and using Cython compiling (then no GUI to work around error)
+        if self.options.gui and odeconfig.tflag==1:
             try:
                 __IPYTHON__
             except:
                 pass
             else:
-                options.gui=False    
+                self.options.gui=False    
         ##holds instance of the ProgressBar class
         self.bar=None
         ##holds instance of the Pthread class
@@ -184,8 +186,6 @@ class MC_class():
         self.percent=0.0
         ##used in implimenting the command line progress ouput
         self.level=0.1
-        ##collection of ODE options from Mcoptions class
-        self.options=options
         ##times at which to output state vectors or expectation values
         self.times=tlist
         ##number of time steps in tlist
@@ -253,19 +253,13 @@ class MC_class():
         if not self.options.gui: #do not use GUI
             self.percent=self.count/(1.0*self.ntraj)
             if self.count/float(self.ntraj)>=self.level:
-                nwt=datetime.datetime.now()
-                diff=((nwt.day-self.st.day)*86400+(nwt.hour-self.st.hour)*(60**2)+(nwt.minute-self.st.minute)*60+(nwt.second-self.st.second))*(self.ntraj-self.count)/(1.0*self.count)
-                secs=datetime.timedelta(seconds=ceil(diff))
-                dd = datetime.datetime(1,1,1) + secs
-                time_string="%02d:%02d:%02d:%02d" % (dd.day-1,dd.hour,dd.minute,dd.second)
-                print(str(floor(self.count/float(self.ntraj)*100))+'%  ('+str(self.count)+'/'+str(self.ntraj)+')'+'  Est. time remaining: '+time_string+'/r'),
-                sys.stdout.flush()
-                self.level+=0.1
+                #calls function to determine simulation time remaining
+                self.level=_time_remaining(self.st,self.ntraj,self.count,self.level)
     #########################
     def parallel(self,args,top=None):  
+        self.st=datetime.datetime.now() #set simulation starting time
         if sys.platform[0:3]!="win":
             pl=Pool(processes=self.cpus)
-            self.st=datetime.datetime.now()
             for nt in xrange(0,self.ntraj):
                 pl.apply_async(mc_alg_evolve,args=(nt,args),callback=top.callback)
             pl.close()
@@ -278,7 +272,6 @@ class MC_class():
             return
         else: # Code for running on Windows (single-cpu only)
             print "Using Windows: Multiprocessing NOT available."
-            self.st=datetime.datetime.now()
             for nt in xrange(self.ntraj):
                 par_return=mc_alg_evolve(nt,args)
                 if self.num_expect==0:
@@ -290,13 +283,8 @@ class MC_class():
                 self.count+=self.step
                 self.percent=self.count/(1.0*self.ntraj)
                 if self.count/float(self.ntraj)>=self.level:
-                    nwt=datetime.datetime.now()
-                    diff=((nwt.day-self.st.day)*86400+(nwt.hour-self.st.hour)*(60**2)+(nwt.minute-self.st.minute)*60+(nwt.second-self.st.second))*(self.ntraj-self.count)/(1.0*self.count)
-                    secs=datetime.timedelta(seconds=ceil(diff))
-                    dd = datetime.datetime(1,1,1) + secs
-                    time_string="%02d:%02d:%02d:%02d" % (dd.day-1,dd.hour,dd.minute,dd.second)
-                    print str(floor(self.count/float(self.ntraj)*100))+'%  ('+str(self.count)+'/'+str(self.ntraj)+')'+'  Est. time remaining: '+time_string
-                    self.level+=0.1
+                    #calls function to determine simulation time remaining
+                    self.level=_time_remaining(self.st,self.ntraj,self.count,self.level)
             return
     def run(self):
         if odeconfig.tflag==1: #compile time-depdendent RHS code
@@ -320,7 +308,7 @@ class MC_class():
         elif self.num_collapse!=0:
             self.seed=array([int(ceil(random.rand()*1e4)) for ll in xrange(self.ntraj)])
             args=(self.options,self.psi_in,self.times,self.num_times,self.num_collapse,self.collapse_ops_data,self.norm_collapse,self.num_expect,self.expect_ops,self.seed)
-            if not self.options.gui or sys.platform[0:3]=="win":
+            if (not self.options.gui) or sys.platform[0:3]=="win":
                 print('Starting Monte-Carlo:')
                 self.parallel(args,self)
             else:
@@ -345,7 +333,7 @@ class MC_class():
 
 #----------------------------------------------------
 #
-# CODES FOR PYTHON BASES TIME-DEPENDENT HAMILTONIANS
+# CODES FOR PYTHON BASED TIME-DEPENDENT HAMILTONIANS
 #
 #----------------------------------------------------
 
@@ -499,7 +487,18 @@ def mc_alg_evolve(nt,args):
 
 
 
-
+def _time_remaining(st,ntraj,count,level):
+    """
+    Private function that determines, and prints, how much simulation time is remaining.
+    """
+    nwt=datetime.datetime.now()
+    diff=((nwt.day-st.day)*86400+(nwt.hour-st.hour)*(60**2)+(nwt.minute-st.minute)*60+(nwt.second-st.second))*(ntraj-count)/(1.0*count)
+    secs=datetime.timedelta(seconds=ceil(diff))
+    dd = datetime.datetime(1,1,1) + secs
+    time_string="%02d:%02d:%02d:%02d" % (dd.day-1,dd.hour,dd.minute,dd.second)
+    print str(floor(count/float(ntraj)*100))+'%  ('+str(count)+'/'+str(ntraj)+')'+'  Est. time remaining: '+time_string
+    level+=0.1
+    return level
 
 
 
