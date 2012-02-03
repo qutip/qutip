@@ -13,6 +13,6 @@ This example illustrates how to evolve the master equation with time-dependent H
       
 .. figure:: examples-time-dependence.png
     :align: center
-
+    :width: 4in
 
 

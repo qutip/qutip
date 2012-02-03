@@ -15,8 +15,9 @@ Here we will find the steady-state solution to the problem of a driven-cavity co
 
 .. figure:: examples-drivencavitysteady_1.png
     :align: center
+    :width: 4in
 
 .. figure:: examples-drivencavitysteady_2.png
     :align: center
-
+    :width: 4in
 

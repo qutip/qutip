@@ -63,7 +63,8 @@ The following code demonstrates how to calculate the :math:`\left<x(0)x(t)\right
 
 .. figure:: guide-correlation-1.png
     :align: center
-    
+    :width: 4in
+	
 Non-steadystate correlation function
 ====================================
     
@@ -86,12 +87,14 @@ More generally, we can also calculate correlation functions of the kind :math:`\
 
 .. figure:: guide-correlation-2.png
    :align:  center
+   :width: 4in
    
    :math:`\alpha = 2.5`
 
 
 .. figure:: guide-correlation-3.png
    :align:  center
+   :width: 4in
    
    :math:`\alpha = 0`
 

@@ -15,4 +15,4 @@ Dissipative :math:`i`-SWAP gate.
 .. figure:: examples-paperfig6.png
     :align: center
     :target: http://qutip.googlecode.com/svn/wiki/images/paper_fig6.png 
-
+    :width: 4in

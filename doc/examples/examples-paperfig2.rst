@@ -14,6 +14,9 @@ Here we calculate the ground state occupation probability for a coupled cavity-q
 
 .. figure:: examples-paperfig2_1.png 
     :align: center
+    :width: 4in
+
 
 .. figure:: examples-paperfig2_2.png 
     :align: center
+    :width: 4in

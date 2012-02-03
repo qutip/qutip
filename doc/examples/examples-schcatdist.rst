@@ -14,11 +14,13 @@ Calculates the Wigner for a Schrodinger Cat-state composed of two coherent state
       
 .. figure:: examples-schcatdist-w.png
     :align: center
+    :width: 4in
     
     The Wigner function of the Schrödinger cat state.
     
 .. figure:: examples-schcatdist-q.png 
     :align: center
+    :width: 4in
 
     The Q-function of the Schrödinger cat state.
 

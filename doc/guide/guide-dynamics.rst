@@ -126,9 +126,7 @@ includes the original system Hamiltonian :math:`H_{\rm sys}`, the Hamiltonian fo
 .. math::
 	:label: master_equation
 
-	\!\!\dot \rho(t) \!\!\!\!&=&\!\!\! -\frac{i}{\hbar}[H(t), \rho(t)]  \nonumber\\
-	&+&\!\!\!\!\!
-	\sum_n \frac{1}{2} \left[2 C_n \rho(t) C_n^{+} - \rho(t) C_n^{+} C_n - C_n^{+} C_n \rho(t)\right]\!,\,\,
+	\dot\rho(t)=-\frac{i}{\hbar}[H(t),\rho(t)]+\sum_n \frac{1}{2} \left[2 C_n \rho(t) C_n^{+} - \rho(t) C_n^{+} C_n - C_n^{+} C_n \rho(t)\right]
 
 where the :math:`C_n = \sqrt{\gamma_n} A_n` are collapse operators, and :math:`A_n` are the operators through which the environment couples to the system in :math:`H_{\rm int}`, and :math:`\gamma_n` are the corresponding rates.  The derivation of Eq.~(:eq:`master_equation`) may be found in several sources, and will not be reproduced here.  Instead, we emphasize the approximations that are required to arrive at the master equation in the form of Eq.~(:eq:`master_equation`), and hence perform a calculation in QuTiP:
 

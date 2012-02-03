@@ -13,7 +13,5 @@ Demonstrates the generation of Wigner distributions from the master equation evo
 
 The saved images may be used to generate a animation of the Wigner function dynamics.
       
-.. figure:: examples-jc-model-wigner.gif
-    :align: center
-    
+
 

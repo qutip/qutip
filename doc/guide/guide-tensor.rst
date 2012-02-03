@@ -3,13 +3,13 @@
 
 .. _guide-tensor:
 
-Creating and Decomposing Composite Systems Using Tensor Products and Partial Traces
-***********************************************************************************
+Using Tensor Products and Partial Traces
+******************************************
 
 Tensor products
 ===============
 
-To describe the states of coupled quantum systems, such as two coupled qubits, a qubit coupled to an oscillator, etc., we need to expand the Hilbert space by taking the tensor product of the state vectors of the component systems. Similarly, the operators acting on the state vectors in the combined Hilbert space (describing the coupled system) are formed by taking the tensor product of the component operators.
+To describe the states of multipartite quantum systems, such as two coupled qubits, a qubit coupled to an oscillator, etc., we need to expand the Hilbert space by taking the tensor product of the state vectors of the component systems. Similarly, the operators acting on the state vectors in the combined Hilbert space (describing the coupled system) are formed by taking the tensor product of the component operators.
 
 In QuTiP the function the function :func:`qutip.tensor.tensor` is used for this. The *tensor* function takes as argument a list of state vectors *or* operators and returns the corresponding quantity for the combined Hilbert space.
 

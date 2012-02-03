@@ -13,5 +13,6 @@ Many people like to plot the density matrix as a 3D histogram.  In this example,
       
 .. figure:: examples-3d-histogram.png
     :align: center
+    :width: 4in
 
 

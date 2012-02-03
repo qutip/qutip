@@ -40,7 +40,7 @@ avg=odesolve(H,psi0,taulist,[C1,C2],[num1,num2])
 
 #plot expectation value for photon number in each mode
 fig=figure(figsize=[6,4])
-plot(taulist,avg[0],'k',taulist,avg[1],'k--',taulist,avgmc[0],'r',taulist,avgmc[1],'r--',lw=1.5)
+plot(taulist,avg[0],'k',taulist,avg[1],'k--',taulist,avgmc.expect[0],'r',taulist,avgmc.expect[1],'r--',lw=1.5)
 xlabel("Time",fontsize=14)
 ylabel("Average number of particles",fontsize=14)
 legend(('Mode 1 (ME)','Mode 2 (ME)','Mode 1 (MC)','Mode 2 (MC)'),loc=2 )

@@ -13,4 +13,4 @@ Example that calculates the dynamics of a Heisenberg spin chain.
       
 .. figure:: examples-spinchain.png
     :align: center
-
+    :width: 4in

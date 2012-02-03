@@ -13,8 +13,9 @@ Groundstate properties of an ultra-strongly coupled atom-cavity system (QuTiP pa
       
 .. figure:: examples-ultrastrong-1.png
     :align: center
-    
+    :width: 4in
+
 .. figure:: examples-ultrastrong-2.png
     :align: center
-
+    :width: 4in
 

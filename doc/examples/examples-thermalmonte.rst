@@ -17,4 +17,4 @@ The parametric amplifier is a common example of a linear amplifier.  It is well-
 
 .. figure:: examples-thermalmonte.png
     :align: center
-    
+    :width: 4in    

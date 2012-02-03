@@ -18,7 +18,7 @@ Basic example
       
 .. figure:: examples-bloch-qubit-decay.png
     :align: center
-
+    :width: 4in
 
 Slightly More Advanced
 ----------------------
@@ -39,5 +39,5 @@ Suppose we want to vary the color of our points as a function of time.  Here we 
         
 .. figure:: examples-bloch-qubit-decay-color.png 
     :align: center
-
+    :width: 4in
 

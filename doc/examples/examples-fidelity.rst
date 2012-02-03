@@ -13,6 +13,6 @@ Here we measure the distance of a single mode (mode #1) of a trilinear Hamiltoni
       
 .. figure:: examples-fidelity.png
     :align: center
-
+    :width: 4in
 
 

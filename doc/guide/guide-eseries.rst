@@ -155,5 +155,6 @@ The result `es_expect` is now an exponential series with C-numbers as amplitudes
 
 .. figure:: guide-eseries-1.png
     :align: center
+    :width: 4in
     
     The expectation value of the :math:`\sigma_z` operator, calculated using the exponential-series expansion of the Liouvillian.

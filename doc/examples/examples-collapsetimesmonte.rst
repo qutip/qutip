@@ -15,4 +15,4 @@ Here we show how to get the collapse times and which operator values from the :f
 
 .. figure:: examples-collapsetimesmonte.png 
     :align: center
-    :target: http://qutip.googlecode.com/svn/wiki/images/mc_collapses.png 
+    :width: 4in

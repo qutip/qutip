@@ -7,6 +7,7 @@ Frontmatter
 ************
 
 .. toctree::
+   :titlesonly:
    :maxdepth: 2
    
    frontmatter.rst
@@ -23,7 +24,7 @@ Introduction
    introduction.rst
    installation.rst
 
-Guide
+QuTiP Users Guide
 ******************
 
 .. toctree::
@@ -37,7 +38,7 @@ Examples
 
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
    
    examples/examples.rst
 

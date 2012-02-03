@@ -15,8 +15,9 @@ Shows a plot of an angular wave function corresponding to specified state of a l
       
 .. figure:: examples-angular_1.png
     :align: center
+    :width: 4in
     
 .. figure:: examples-angular_2.png
     :align: center
-
+    :width: 4in
 

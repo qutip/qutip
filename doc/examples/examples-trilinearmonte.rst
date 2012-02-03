@@ -13,3 +13,4 @@ Monte-Carlo evolution of the trilinear Hamiltonian subject to damping.
 
 .. figure:: examples-trilinearmonte.png
     :align: center
+    :width: 4in

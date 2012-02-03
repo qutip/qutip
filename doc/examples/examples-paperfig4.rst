@@ -17,4 +17,4 @@ The parameters chosen here correspond to those from S. Gleyzes, et al., Nature 4
 .. figure:: examples-paperfig4.png
     :align: center
     :target: http://qutip.googlecode.com/svn/wiki/images/paper_fig4.png 
-
+    :width: 4in

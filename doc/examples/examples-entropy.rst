@@ -13,4 +13,4 @@ Calculates the entropy of a mixture of :math:`a\left|\uparrow\right>\left<\uparr
       
 .. figure:: examples-entropy.png
     :align: center
-    
+    :width: 4in

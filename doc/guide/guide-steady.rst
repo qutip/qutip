@@ -44,8 +44,8 @@ A simple example of a system that reaches a steady-state is a harmonic oscillato
     ylabel('Number of excitations')
     show()
 
-
+.. _steady: 
 .. figure:: guide-steady.png
-    :align: center
-
+   :align: center
+   :width: 4in
 

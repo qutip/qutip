@@ -14,6 +14,6 @@ In the following example we calculate the :math:`\left<x(t)x(0)\right>` correlat
 
 .. figure:: examples-corrfunc.png
     :align: center
-    
+    :width: 4in
 
 

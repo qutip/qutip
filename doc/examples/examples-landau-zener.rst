@@ -13,13 +13,15 @@ Master equation with time-dependent Hamiltonian: Landau-Zener transitions. (QuTi
       
 .. figure:: examples-landau-zener.png
     :align: center
-    
+    :width: 4in
+
 .. figure:: examples-paperfig10_11_2.png
     :align: center
+    :width: 4in
 
 .. figure:: examples-paperfig10_11_3.png
     :align: center
-
+    :width: 4in
 
 
 

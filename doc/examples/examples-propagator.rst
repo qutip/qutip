@@ -17,6 +17,6 @@ Next, we use the :func:`qutip.propagator` function to find the propagator for th
       
 .. figure:: examples-propagator.png
     :align: center
-    
+    :width: 4in
 
 

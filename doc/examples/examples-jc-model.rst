@@ -13,5 +13,5 @@ This example illustrates the vacuum Rabi oscillations in the Jaynes-Cummings mod
       
 .. figure:: examples-jc-model.png
     :align: center
-
+    :width: 4in
 

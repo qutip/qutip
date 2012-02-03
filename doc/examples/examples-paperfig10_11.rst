@@ -15,10 +15,12 @@ The Bloch sphere representation is also given, where the data point color indica
 
 .. figure:: examples-paperfig10_11_1.png 
     :align: center
+    :width: 4in
 
 .. figure:: examples-paperfig10_11_2.png 
     :align: center
-    
+    :width: 4in
+
 .. figure:: examples-paperfig10_11_3.png 
     :align: center
-
+    :width: 4in

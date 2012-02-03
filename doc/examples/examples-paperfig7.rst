@@ -15,3 +15,4 @@ Master equation evolution of the Jaynes-Cummings Hamiltonian in a thermal enviro
 .. figure:: examples-paperfig7.png
     :align: center
     :target: http://qutip.googlecode.com/svn/wiki/images/paper_fig7.png 
+    :width: 4in

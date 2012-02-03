@@ -13,8 +13,10 @@ Wigner distribution of linear combination of Fock states
       
 .. figure:: examples-wigner-2D.png
     :align: center
-    
+    :width: 4in
+
+
 .. figure:: examples-wigner-3D.png
     :align: center
-
+    :width: 4in
 

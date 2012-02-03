@@ -12,3 +12,4 @@ Calculate the power spectrum of a cavity, with and without coupling to a two-lev
 
 .. figure:: examples-spectrumsteady.png
     :align: center
+    :width: 4in

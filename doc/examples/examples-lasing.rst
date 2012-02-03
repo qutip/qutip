@@ -13,15 +13,18 @@ This example illustrates a simple model for single-atom lasing in a Jaynes-Cummi
       
 .. figure:: examples-lasing_1.png
     :align: center
+    :width: 4in
     
     Cavity and atom occupation probabilities.
     
 .. figure:: examples-lasing_2.png
     :align: center
-
+    :width: 4in
+	
     Cavity photon distribution (final state).
     
 .. figure:: examples-lasing_3.png
     :align: center
-
+    :width: 4in
+	
     Cavity Winger function (final state).

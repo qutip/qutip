@@ -13,5 +13,5 @@ Ground state properties of an coupled three qubit system.
       
 .. figure:: examples-energy-spectrum.png
     :align: center
-
+    :width: 4in
 

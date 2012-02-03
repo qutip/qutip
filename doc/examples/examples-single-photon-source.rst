@@ -13,8 +13,7 @@ This example highlights a single photon source based on a three level atom stron
       
 .. figure:: examples-single-photon-source.png
     :align: center
-    
-    State Population and Emission from Cavity
-    
+    :width: 4in
+
 
 

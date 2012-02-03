@@ -13,5 +13,5 @@ Demos the use of the displacement and squeezing operator in constructing a squee
 
 .. figure:: examples-squeezed.png
     :align: center
-
+    :width: 4in
 

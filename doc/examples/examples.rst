@@ -3,11 +3,8 @@
 
 .. _examples:
 
-QuTiP Examples
-**************
-
 Running QuTiP demos
-===================
+-----------------------
 
 QuTip includes 20 built in demos from the examples below that demonstrate the usage of the built in functions for solving a variety of problems.  To run the demos, load the QuTiP package::
 
@@ -25,7 +22,7 @@ This will generate the examples GUI, or a command line list of demos, depending 
 If you do not have any graphics libraries installed, or they are disabled, then the demos function *must* be run from the terminal.
 
 Basic examples
-==============
+-------------------------
 
 .. toctree::
    :maxdepth: 2
@@ -41,7 +38,7 @@ Basic examples
    examples-GHZ.rst      
 
 Master equation
-===============
+--------------------------------
 
 .. toctree::
    :maxdepth: 2
@@ -59,7 +56,7 @@ Master equation
 
 
 Monte-Carlo
-===========
+--------------------------------
 
 .. toctree::
    :maxdepth: 2
@@ -72,7 +69,7 @@ Monte-Carlo
 
 
 Steady state calculations
-=========================
+--------------------------------
 
 .. toctree::
    :maxdepth: 2
@@ -82,7 +79,7 @@ Steady state calculations
    examples-spectrumsteady.rst
 
 QuTiP Manuscript Figure Scripts
-===============================
+--------------------------------
 
 .. toctree::
    :maxdepth: 2
