@@ -26,7 +26,7 @@ class Bloch():
     """
     Class for plotting data on the Bloch sphere.
     """
-    def __init__(self):
+    def __init__(self, axes=None):
         #---sphere options---
         #: The size of the figure in inches, default = [7,7].
         self.size=[7,7]
@@ -87,6 +87,10 @@ class Bloch():
         self.savenum=0
         #: Style of points, 'm' for multiple colors, 's' for single color
         self.point_style=[]
+        
+        # use user-supplied figure object if present
+        self.axes = axes
+        
     def __str__(self):
         print('')
         print("Bloch data:")
@@ -202,9 +206,10 @@ class Bloch():
             pass
         #setup plot
         ##Figure instance for Bloch sphere plot
-        self.fig = figure(figsize=self.size)
-        ##Axes3D instance for Bloch sphere
-        self.axes = Axes3D(self.fig,azim=self.view[0],elev=self.view[1])
+        if self.axes == None:
+            self.fig = figure(figsize=self.size)
+            ##Axes3D instance for Bloch sphere
+            self.axes = Axes3D(self.fig,azim=self.view[0],elev=self.view[1])
         self.axes.grid(False)
         self.plot_back()
         self.plot_axes()
