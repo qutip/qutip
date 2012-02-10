@@ -54,7 +54,6 @@ def about():
         
         
     else:
-        import matplotlib
         print('')
         print("QuTiP: The Quantum Toolbox in Python")
         print("Copyright (c) 2011-2012")
@@ -63,8 +62,14 @@ def about():
         print("QuTiP Version:  "+version)
         print("Numpy Version:  "+numpy.__version__)
         print("Scipy Version:  "+scipy.__version__)
-        print("Matplotlib Version:  "+matplotlib.__version__)
+        try:
+            import matplotlib
+            matplotlib_ver = matplotlib.__version__
+        except:
+            matplotlib_ver = 'None' 
+        print("Matplotlib Version:  " + matplotlib_ver)
         print('')
+
         try:
             import PySide
             pyside_ver=PySide.__version__

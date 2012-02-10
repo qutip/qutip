@@ -68,14 +68,19 @@ import scipy.linalg as la
 import scipy.sparse as sp
 from qutip.Qobj import Qobj,shape,dims,dag,trans,sp_expm
 from qutip.about import *
-from qutip.Bloch import Bloch
-from qutip.graph import hinton
+
+if os.environ['QUTIP_GRAPHICS']=="YES":
+    from qutip.Bloch import Bloch
+    from qutip.graph import hinton
+
 from qutip.correlation import *
 from qutip.clebsch import clebsch
 from qutip.eseries import *
+
 from qutip.demos import *
-from qutip.entropy import *
 import qutip.examples
+
+from qutip.entropy import *
 from qutip.expect import *
 from qutip.gates import *
 from qutip.istests import *
