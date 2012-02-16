@@ -30,6 +30,201 @@ from qutip.rhs_generate import rhs_generate
 from qutip.Odedata import Odedata
 import os,numpy,odeconfig
 
+
+#class QobjTD:
+#    """
+#    Internal class for management of time-dependent quantum objects:
+#    
+#    Is it useful with a class for this? too large overhead?
+#   """
+#    
+#    def __init__(self, qobj_spec, args):
+#       #
+#        # qobj_spec can be in one of the following formats:
+#        #
+#        #   * Qobj : time-independent
+#        #   * f(t) : Qobj(t) = f(t, args) # here args contains Qobjs
+#        #   * [Qobj, f(t)]  : Qobj(t) = Qobj * f(t, args)
+#        #   * [Qobj, 'str'] : Qobj(t) = Qobj * eval(str @ t using args)
+#        #
+
+# ------------------------------------------------------------------------------
+# pass on to wavefunction solver or master equation solver depending on whether
+# any collapse operators were given.
+# 
+def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
+    """
+    New master equation API: still a moving target...
+    
+    """
+
+    if options == None:
+        options = Odeoptions()
+        options.nsteps = 2500  # 
+        
+    if (c_ops and len(c_ops) > 0) or not isket(rho0):
+        #
+        # we have collapse operators
+        #
+        
+        #
+        # find out if we are dealing with all-constant hamiltonian and 
+        # collapse operators or if we have at least one time-dependent
+        # operator. Then delegate to appropriate solver...
+        #
+                
+        if isinstance(H, Qobj):
+            # constant hamiltonian
+            raise TypeError("Not Implemented: use old API for now")           
+        
+        if isinstance(H, FunctionType):
+            # old style time-dependence
+            raise TypeError("Not Implemented: use old API for now")
+        
+        if isinstance(H, list):
+            # determine if we are dealing with list of [Qobj, string] or [Qobj, function]
+            # style time-dependences (for pure python and cython, respectively)
+            return mesolve_list_td(H, rho0, tlist, c_ops, expt_ops, args, options)
+                       
+        raise TypeError("Unknown parameter types")
+
+    else:
+        #
+        # no collapse operators: unitary dynamics
+        #
+        raise TypeError("Not Implemented: use old API for now")
+
+
+# ------------------------------------------------------------------------------
+# A time-dependent disipative master equation on the list form
+# 
+def mesolve_list_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
+    """
+    New master equation APIs: still a moving target...    
+    """
+    n_op= len(c_list)
+
+    #
+    # check initial state
+    #
+    if isket(rho0):
+        rho0 = rho0 * rho0.dag()
+
+    #
+    # prepare output array
+    # 
+    n_expt_op = len(expt_ops)
+    n_tsteps  = len(tlist)
+    dt        = tlist[1]-tlist[0]
+
+    if n_expt_op == 0:
+        result_list = [Qobj() for k in range(n_tsteps)]
+    else:
+        result_list=[]
+        for op in expt_ops:
+            if op.isherm:
+                result_list.append(zeros(n_tsteps))
+            else:
+                result_list.append(zeros(n_tsteps),dtype=complex)
+
+    #
+    # construct liouvillian in list-function format
+    #
+    L_list = []
+    constant_func = lambda x,y: 1.0;
+    
+    # add all hamitonian terms to the lagrangian list
+    for h_spec in H_list:
+    
+        if isinstance(h_spec, Qobj):
+            h = h_spec
+            h_coeff = constant_func
+   
+        elif isinstance(h_spec, list): 
+            h = h_spec[0]
+            h_coeff = h_spec[1]
+            
+        else:
+            raise TypeError("Incorrect specification of time-dependent Hamiltonian")
+                
+        L_list.append([(-1j*(spre(h) - spost(h))).data, h_coeff])
+        
+        
+    # add all collapse operators to the lagrangian list    
+    for c_spec in c_list:
+
+        if isinstance(c_spec, Qobj):
+            c = c_spec
+            c_coeff = constant_func
+   
+        elif isinstance(c_spec, list): 
+            c = c_spec[0]
+            c_coeff = c_spec[1]
+            
+        else:
+            raise TypeError("Incorrect specification of time-dependent collapse operators")
+                
+        cdc = c.dag() * c
+        L_list.append([(spre(c)*spost(c.dag())-0.5*spre(cdc)-0.5*spost(cdc)).data, c_coeff])    
+        
+    L_list_and_args = [L_list, args]
+
+    #
+    # setup integrator
+    #
+    initial_vector = mat2vec(rho0.full())
+    r = scipy.integrate.ode(rho_list_td)
+    r.set_integrator('zvode', method=opt.method, order=opt.order,
+                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                              first_step=opt.first_step, min_step=opt.min_step,
+                              max_step=opt.max_step)
+    r.set_initial_value(initial_vector, tlist[0])
+    r.set_f_params(L_list_and_args)
+
+    #
+    # start evolution
+    #
+    rho = Qobj(rho0)
+
+    t_idx = 0
+    for t in tlist:
+        if not r.successful():
+            break;
+
+        rho.data = vec2mat(r.y)
+
+        # calculate all the expectation values, or output rho if no operators
+        if n_expt_op == 0:
+            result_list[t_idx] = Qobj(rho) # copy rho
+        else:
+            for m in range(0, n_expt_op):
+                result_list[m][t_idx] = expect(expt_ops[m], rho)
+
+        r.integrate(r.t + dt)
+        t_idx += 1
+          
+    return result_list
+
+
+#
+# evaluate drho(t)/dt according to the master equation using the [Qobj, function]
+# style time dependence API
+#
+def rho_list_td(t, rho, L_list_and_args):
+
+    L_list = L_list_and_args[0]
+    args   = L_list_and_args[1]
+
+    L = L_list[0][0] * L_list[0][1](t, args)
+    for n in range(1,len(L_list)):
+        #
+        # L_args[n][0] = the sparse data for a Qobj in super-operator form
+        # L_args[n][1] = function callback giving the coefficient
+        #
+        L = L + L_list[n][0] * L_list[n][1](t, args)
+    
+    return L * rho
+
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
@@ -57,9 +252,9 @@ def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None, options=None)
         
         `tlist` (*list/array*): list of times for :math:`t`.
         
-        `c_op_list` (list of :class:`qutip.Qobj`): list of collapse operators.
+        `c_ops` (list of :class:`qutip.Qobj`): list of collapse operators.
         
-        `expt_op_list` (list of :class:`qutip.Qobj`): list of operators for which to evaluate expectation values.
+        `expt_ops` (list of :class:`qutip.Qobj`): list of operators for which to evaluate expectation values.
         
         `H_args` (*list*): of parameters to time-dependent Hamiltonians.
         
@@ -82,7 +277,6 @@ def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None, options=None)
         :class:`qutip.Qobj` objects that are not passed via `H_args` will be
         passed on to the integrator to scipy who will raise an NotImplemented
         exception.
-
     """
 
     if options == None:
