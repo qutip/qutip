@@ -123,9 +123,9 @@ class Codegen():
         return "return out"
         
 #
-# Alternative implementation of the Cython code generator. Try include the
-# coefficient functions directly in the generated code file instead of passing
-# them as parameters to the ODE solver callback function
+# Alternative implementation of the Cython code generator. Include the
+# parameters directly in the generated code file instead of passing
+# them as arguments through the ODE solver callback function
 #       
 class Codegen2():
     """
@@ -173,8 +173,7 @@ class Codegen2():
         self.file(filename)
         self.file.writelines(self.code)
         self.file.close()
-        odeconfig.cgen_num+=1
-        
+        odeconfig.cgen_num += 1        
         
     #increase indention level by one
     def indent(self):
@@ -185,8 +184,7 @@ class Codegen2():
         if self.level==0:
             raise SyntaxError("Error in code generator")
         self.level-=1
-        
-        
+                
     def func_header(self):
         """
         Creates function header for time-dependent ODE RHS.
@@ -205,15 +203,12 @@ class Codegen2():
         """
         Rewrites time-dependent parts to include np.
         """
-        out_td=[]
         for n in range(len(self.L_coeffs)):
-            text=self.L_coeffs[n]
-            any_np=np.array([text.find(x) for x in self.func_list])
-            ind=np.nonzero(any_np>-1)[0]
-            for kk in ind:
-                if self.func_list[kk]!='exp':
-                    new_text='np.'+self.func_list[kk]
-                    text=text.replace(self.func_list[kk],new_text)
+            text = self.L_coeffs[n]
+            any_np = np.array([text.find(x) for x in self.func_list])
+            ind = np.nonzero(any_np>-1)[0]
+            for m in ind:
+                text = text.replace(self.func_list[m], 'np.'+self.func_list[m])
             self.L_coeffs[n]=text
 
             
@@ -223,7 +218,6 @@ class Codegen2():
         """
         decl_list = ["",'cdef Py_ssize_t row','cdef int num_rows = len(vec)','cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)', ""]
 
-        # here do the args
         if self.args:
             for name, value in self.args.iteritems():
                 kind = type(value).__name__
@@ -234,6 +228,7 @@ class Codegen2():
             nstr=str(n)
             str_out="cdef np.ndarray[CTYPE_t, ndim=2] Lvec"+nstr+" = "+"spmv(data"+nstr+","+"idx"+nstr+","+"ptr"+nstr+","+"vec"+") * ("+self.L_coeffs[n]+")"
             decl_list.append(str_out)
+            
         return decl_list
 
     def func_for(self):

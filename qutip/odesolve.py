@@ -397,13 +397,11 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
         name="rhs"+str(odeconfig.cgen_num)
         cgen=Codegen2(n_L_terms, Lcoeff, args)
         cgen.generate(name+".pyx")
-        print "Compiling '"+name+".pyx' ..."
         os.environ['CFLAGS'] = '-w'
         import pyximport
         pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
         code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
         exec(code)
-        print 'Done.'
         odeconfig.tdfunc=cyq_td_ode_rhs
         
     #
