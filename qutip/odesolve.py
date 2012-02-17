@@ -30,24 +30,6 @@ from qutip.rhs_generate import rhs_generate
 from qutip.Odedata import Odedata
 import os,numpy,odeconfig
 
-
-#class QobjTD:
-#    """
-#    Internal class for management of time-dependent quantum objects:
-#    
-#    Is it useful with a class for this? too large overhead?
-#   """
-#    
-#    def __init__(self, qobj_spec, args):
-#       #
-#        # qobj_spec can be in one of the following formats:
-#        #
-#        #   * Qobj : time-independent
-#        #   * f(t) : Qobj(t) = f(t, args) # here args contains Qobjs
-#        #   * [Qobj, f(t)]  : Qobj(t) = Qobj * f(t, args)
-#        #   * [Qobj, 'str'] : Qobj(t) = Qobj * eval(str @ t using args)
-#        #
-
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
@@ -117,10 +99,9 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
 
 
     #
-    #
+    # dispatch the the appropriate solver
     #         
-        
-    if (c_ops and len(c_ops) > 0) or not isket(rho0):
+    if (c_ops and len(c_ops) > 0):
         #
         # we have collapse operators
         #
@@ -160,7 +141,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
 
 
 # ------------------------------------------------------------------------------
-# A time-dependent disipative master equation on the list function form
+# A time-dependent disipative master equation on the list-function format
 # 
 def mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     """
@@ -209,7 +190,7 @@ def mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             h_coeff = h_spec[1]
             
         else:
-            raise TypeError("Incorrect specification of time-dependent Hamiltonian")
+            raise TypeError("Incorrect specification of time-dependent Hamiltonian (expected callback function)")
                 
         L_list.append([(-1j*(spre(h) - spost(h))).data, h_coeff])
         
@@ -226,7 +207,7 @@ def mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             c_coeff = c_spec[1]
             
         else:
-            raise TypeError("Incorrect specification of time-dependent collapse operators")
+            raise TypeError("Incorrect specification of time-dependent collapse operators (expected callback function)")
                 
         cdc = c.dag() * c
         L_list.append([(spre(c)*spost(c.dag())-0.5*spre(cdc)-0.5*spost(cdc)).data, c_coeff])    
@@ -291,7 +272,7 @@ def rho_list_td(t, rho, L_list_and_args):
 
 
 # ------------------------------------------------------------------------------
-# A time-dependent disipative master equation on the list string form for 
+# A time-dependent disipative master equation on the list-string format for 
 # cython compilation
 # 
 def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
@@ -384,7 +365,6 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     # setup ode args string: we expand the list Ldata, Linds and Lptrs into
     # and explicit list of parameters
     # 
-
     string_list = []
     for k in range(n_L_terms):
         string_list.append("Ldata["+str(k)+"],Linds["+str(k)+"],Lptrs["+str(k)+"]")
@@ -440,7 +420,7 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
         t_idx += 1
         
     #if not opt.rhs_reuse:
-    #    os.remove(name+".pyx")    # XXX: keep it for inspection. fix before release
+    #    os.remove(name+".pyx") # XXX: keep it for inspection. fix before release
     
     return result_list
 
