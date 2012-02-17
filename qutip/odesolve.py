@@ -25,7 +25,7 @@ from qutip.superoperator import *
 from qutip.expect import *
 from qutip.Odeoptions import Odeoptions
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
-from qutip.cyQ.codegen import Codegen
+from qutip.cyQ.codegen import Codegen, Codegen2
 from qutip.rhs_generate import rhs_generate
 from qutip.Odedata import Odedata
 import os,numpy,odeconfig
@@ -83,7 +83,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
                 else:
                     if isinstance(h[1], FunctionType):
                         n_func += 1
-                    else isinstance(h[1], str):
+                    elif isinstance(h[1], str):
                         n_str += 1
                     else:
                         raise TypeError("Incorrect hamiltonian specification")
@@ -101,7 +101,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
                 else:
                     if isinstance(c[1], FunctionType):
                         n_func += 1
-                    else isinstance(c[1], str):
+                    elif isinstance(c[1], str):
                         n_str += 1
                     else:
                         raise TypeError("Incorrect collapse operator specification")
@@ -133,30 +133,36 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
                 
         if isinstance(H, Qobj):
             # constant hamiltonian
-            raise TypeError("Not Implemented: use old API for now")           
+            raise NotImplementedError("Not Implemented: use old API for now")           
         
         if isinstance(H, FunctionType):
             # old style time-dependence
-            raise TypeError("Not Implemented: use old API for now")
+            raise NotImplementedError("Not Implemented: use old API for now")
         
         if isinstance(H, list):
             # determine if we are dealing with list of [Qobj, string] or [Qobj, function]
             # style time-dependences (for pure python and cython, respectively)
-            return mesolve_list_td(H, rho0, tlist, c_ops, expt_ops, args, options)
-                       
+            if n_func > 0:
+                return mesolve_list_func_td(H, rho0, tlist, c_ops, expt_ops, args, options)
+            elif n_str > 0:
+                return mesolve_list_str_td(H, rho0, tlist, c_ops, expt_ops, args, options)
+            else:
+                # all constant Qobjs ?
+                raise NotImplementedError("Not Implemented: use old API for now")    
+                                   
         raise TypeError("Unknown parameter types")
 
     else:
         #
         # no collapse operators: unitary dynamics
         #
-        raise TypeError("Not Implemented: use old API for now")
+        raise NotImplementedError("Not Implemented: use old API for now")
 
 
 # ------------------------------------------------------------------------------
-# A time-dependent disipative master equation on the list form
+# A time-dependent disipative master equation on the list function form
 # 
-def mesolve_list_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
+def mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     """
     New master equation APIs: still a moving target...    
     """
@@ -282,6 +288,165 @@ def rho_list_td(t, rho, L_list_and_args):
         L = L + L_list[n][0] * L_list[n][1](t, args)
     
     return L * rho
+
+
+# ------------------------------------------------------------------------------
+# A time-dependent disipative master equation on the list string form for 
+# cython compilation
+# 
+def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
+    """
+    New master equation APIs: still a moving target...    
+    """
+    
+    n_op = len(c_list)
+
+    #
+    # check initial state: must be a density matrix
+    #
+    if isket(rho0):
+        rho0 = rho0 * rho0.dag()
+
+    #
+    # prepare output array
+    # 
+    n_expt_op = len(expt_ops)
+    n_tsteps  = len(tlist)
+    dt        = tlist[1]-tlist[0]
+
+    if n_expt_op == 0:
+        result_list = [Qobj() for k in range(n_tsteps)]
+    else:
+        result_list=[]
+        for op in expt_ops:
+            if op.isherm:
+                result_list.append(zeros(n_tsteps))
+            else:
+                result_list.append(zeros(n_tsteps),dtype=complex)
+
+    #
+    # construct liouvillian
+    #       
+    Ldata = []
+    Linds = []
+    Lptrs = []
+    Lcoeff = []
+    
+    # loop over all hamiltonian terms, convert to superoperator form and 
+    # add the data of sparse matrix represenation to 
+    for h_spec in H_list:
+    
+        if isinstance(h_spec, Qobj):
+            h = h_spec
+            h_coeff = "1.0"
+   
+        elif isinstance(h_spec, list): 
+            h = h_spec[0]
+            h_coeff = h_spec[1]
+            
+        else:
+            raise TypeError("Incorrect specification of time-dependent Hamiltonian (expected string format)")
+                
+        L = -1j*(spre(h) - spost(h)) # apply tidyup ?
+        
+        Ldata.append(L.data.data)
+        Linds.append(L.data.indices)
+        Lptrs.append(L.data.indptr)
+        Lcoeff.append(h_coeff)       
+        
+        
+    # loop over all collapse operators        
+    for c_spec in c_list:
+
+        if isinstance(c_spec, Qobj):
+            c = c_spec
+            c_coeff = "1.0"
+   
+        elif isinstance(c_spec, list): 
+            c = c_spec[0]
+            c_coeff = c_spec[1]
+            
+        else:
+            raise TypeError("Incorrect specification of time-dependent collapse operators (expected string format)")
+                
+        cdc = c.dag() * c
+        L = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc) # apply tidyup?
+
+        Ldata.append(L.data.data)
+        Linds.append(L.data.indices)
+        Lptrs.append(L.data.indptr)
+        Lcoeff.append(c_coeff)       
+
+    # the total number of liouvillian terms (hamiltonian terms + collapse operators)      
+    n_L_terms = len(Ldata)      
+ 
+    #
+    # setup ode args string: we expand the list Ldata, Linds and Lptrs into
+    # and explicit list of parameters
+    # 
+
+    string_list = []
+    for k in range(n_L_terms):
+        string_list.append("Ldata["+str(k)+"],Linds["+str(k)+"],Lptrs["+str(k)+"]")
+    parameter_string = ",".join(string_list)
+   
+    #
+    # generate and compile new cython code if necessary
+    #
+    if not opt.rhs_reuse or odeconfig.tdfunc == None:
+        name="rhs"+str(odeconfig.cgen_num)
+        cgen=Codegen2(n_L_terms, Lcoeff, args)
+        cgen.generate(name+".pyx")
+        print "Compiling '"+name+".pyx' ..."
+        os.environ['CFLAGS'] = '-w'
+        import pyximport
+        pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
+        code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
+        exec(code)
+        print 'Done.'
+        odeconfig.tdfunc=cyq_td_ode_rhs
+        
+    #
+    # setup integrator
+    #
+    initial_vector = mat2vec(rho0.full())
+    r = scipy.integrate.ode(odeconfig.tdfunc)
+    r.set_integrator('zvode', method=opt.method, order=opt.order,
+                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                              first_step=opt.first_step, min_step=opt.min_step,
+                              max_step=opt.max_step)
+    r.set_initial_value(initial_vector, tlist[0])
+    code = compile('r.set_f_params('+parameter_string+')', '<string>', 'exec')
+    exec(code)
+
+    #
+    # start evolution
+    #
+    rho = Qobj(rho0)
+
+    t_idx = 0
+    for t in tlist:
+        if not r.successful():
+            break;
+
+        rho.data = vec2mat(r.y)
+
+        # calculate all the expectation values, or output rho if no operators
+        if n_expt_op == 0:
+            result_list[t_idx] = Qobj(rho) # copy rho
+        else:
+            for m in range(0, n_expt_op):
+                result_list[m][t_idx] = expect(expt_ops[m], rho)
+
+        r.integrate(r.t + dt)
+        t_idx += 1
+        
+    #if not opt.rhs_reuse:
+    #    os.remove(name+".pyx")    # XXX: keep it for inspection. fix before release
+    
+    return result_list
+
+
 
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether

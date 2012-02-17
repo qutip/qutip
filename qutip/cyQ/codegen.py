@@ -122,6 +122,135 @@ class Codegen():
     def func_end(self):
         return "return out"
         
+#
+# Alternative implementation of the Cython code generator. Try include the
+# coefficient functions directly in the generated code file instead of passing
+# them as parameters to the ODE solver callback function
+#       
+class Codegen2():
+    """
+    Class for generating cython code files at runtime.
+    """
+    def __init__(self, n_L_terms, L_coeffs, args, tab="\t"):
+        import sys,os
+        sys.path.append(os.getcwd())
+        self.n_L_terms = n_L_terms
+        self.L_coeffs  = L_coeffs
+        self.args      = args
+        self.code=[]
+        self.tab=tab
+        self.level=0
+        self.func_list=[func+'(' for func in dir(np.math)[4:-1]] #add a '(' on the end to guarentee function is selected 
+        
+    #
+    # write lines of code to self.code
+    #
+    def write(self,string):
+        self.code.append(self.tab*self.level+string+"\n")
+    
+    #
+    # open file called filename for writing    
+    #
+    def file(self,filename):
+        self.file=open(filename,"w")
+   
+    #
+    # generate the file 
+    #
+    def generate(self,filename="rhs.pyx"):
+        self.time_vars()
+        for line in cython_preamble()+cython_checks()+self.func_header():
+            self.write(line)
+        self.indent()
+        for line in self.func_vars():
+            self.write(line)
+        for line in self.func_for():
+            self.write(line)
+        self.write(self.func_end())
+        self.dedent()
+        for line in cython_checks()+cython_spmv():
+            self.write(line)
+        self.file(filename)
+        self.file.writelines(self.code)
+        self.file.close()
+        odeconfig.cgen_num+=1
+        
+        
+    #increase indention level by one
+    def indent(self):
+        self.level+=1
+        
+    #decrease indention level by one
+    def dedent(self):
+        if self.level==0:
+            raise SyntaxError("Error in code generator")
+        self.level-=1
+        
+        
+    def func_header(self):
+        """
+        Creates function header for time-dependent ODE RHS.
+        """
+        func_name  = "def cyq_td_ode_rhs("
+        input_vars = "float t, np.ndarray[CTYPE_t, ndim=1] vec, " #strings for time and vector variables
+        arg_L_list = []
+        for k in range(self.n_L_terms):
+            arg_L_list.append("np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k))
+        input_vars += ", ".join(arg_L_list)
+        func_end="):"
+        return [func_name+input_vars+func_end]
+        
+        
+    def time_vars(self):
+        """
+        Rewrites time-dependent parts to include np.
+        """
+        out_td=[]
+        for n in range(len(self.L_coeffs)):
+            text=self.L_coeffs[n]
+            any_np=np.array([text.find(x) for x in self.func_list])
+            ind=np.nonzero(any_np>-1)[0]
+            for kk in ind:
+                if self.func_list[kk]!='exp':
+                    new_text='np.'+self.func_list[kk]
+                    text=text.replace(self.func_list[kk],new_text)
+            self.L_coeffs[n]=text
+
+            
+    def func_vars(self):
+        """
+        Writes the variables and their types & spmv parts
+        """
+        decl_list = ["",'cdef Py_ssize_t row','cdef int num_rows = len(vec)','cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)', ""]
+
+        # here do the args
+        if self.args:
+            for name, value in self.args.iteritems():
+                kind = type(value).__name__
+                decl_list.append("cdef np."+kind+"_t"+" "+name+" = "+str(value))
+            decl_list.append("")
+
+        for n in range(self.n_L_terms):
+            nstr=str(n)
+            str_out="cdef np.ndarray[CTYPE_t, ndim=2] Lvec"+nstr+" = "+"spmv(data"+nstr+","+"idx"+nstr+","+"ptr"+nstr+","+"vec"+") * ("+self.L_coeffs[n]+")"
+            decl_list.append(str_out)
+        return decl_list
+
+    def func_for(self):
+        """
+        Writes function for-loop
+        """
+        func_terms=["", "for row in range(num_rows):"]
+        sum_str_list = []
+        for n in range(self.n_L_terms):
+            sum_str_list.append("Lvec"+str(n)+"[row,0]")
+        func_terms.append("\tout[row,0] = " + " + ".join(sum_str_list))
+        func_terms.append("")
+        return func_terms
+        
+    def func_end(self):
+        return "return out"        
+        
         
 def cython_preamble():
     """
