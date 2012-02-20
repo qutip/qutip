@@ -26,6 +26,7 @@ from qutip.essolve import *
 from qutip.steady import steadystate
 from qutip.states import basis
 from qutip.states import projection
+from qutip.Odeoptions import Odeoptions
 
 def propagator(H, t, c_op_list, H_args=None):
     """
@@ -52,15 +53,21 @@ def propagator(H, t, c_op_list, H_args=None):
         if isinstance(H, FunctionType):
             H0 = H(0.0, H_args)
             N = H0.shape[0]
+        if isinstance(H, list):
+            H0 = H[0]
+            N = H0.shape[0]
         else:
             N = H.shape[0]
 
         u = zeros([N, N], dtype=complex)
         
+        opt = Odeoptions()
+        opt.rhs_reuse = True
+        
         for n in range(0, N):
 
             psi0 = basis(N, n)
-            psi_t = odesolve(H, psi0, [0, t], c_op_list, [], H_args)
+            psi_t = mesolve(H, psi0, [0, t], [], [], H_args, opt)
 
             u[:,n] = psi_t[1].full().T
 
@@ -71,6 +78,9 @@ def propagator(H, t, c_op_list, H_args=None):
         if isinstance(H, FunctionType):
             H0 = H(0.0, H_args)
             N = H0.shape[0]
+        if isinstance(H, list):
+            H0 = H[0]
+            N = H0.shape[0]            
         else:
             N = H.shape[0]
 

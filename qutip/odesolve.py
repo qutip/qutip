@@ -142,7 +142,12 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
         #
         # no collapse operators: unitary dynamics
         #
-        return wf_ode_solve(H, rho0, tlist, expt_ops, args, options)
+        if n_func > 0:
+            return wfsolve_list_func_td(H, rho0, tlist, expt_ops, args, options)
+        elif n_str > 0:
+            return wfsolve_list_str_td(H, rho0, tlist, expt_ops, args, options)
+        else:
+            return wf_ode_solve(H, rho0, tlist, expt_ops, args, options)
 
 # ------------------------------------------------------------------------------
 # A time-dependent disipative master equation on the list-function format
@@ -151,7 +156,8 @@ def mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     """
     New master equation APIs: still a moving target...    
     """
-    n_op= len(c_list)
+    
+    n_op = len(c_list)
 
     #
     # check initial state
@@ -273,6 +279,117 @@ def rho_list_td(t, rho, L_list_and_args):
         L = L + L_list[n][0] * L_list[n][1](t, args)
     
     return L * rho
+
+# ------------------------------------------------------------------------------
+# A time-dependent unitary wavefunction equation on the list-function format
+# 
+def wfsolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt):
+    """
+    New master equation APIs: still a moving target...    
+    """
+
+    #
+    # check initial state
+    #
+    if not isket(psi0):
+        raise TypeError("The unitary solver requires a ket as initial state")
+        
+    #
+    # prepare output array
+    # 
+    n_expt_op = len(expt_ops)
+    n_tsteps  = len(tlist)
+    dt        = tlist[1]-tlist[0]
+
+    if n_expt_op == 0:
+        result_list = [Qobj() for k in range(n_tsteps)]
+    else:
+        result_list=[]
+        for op in expt_ops:
+            if op.isherm:
+                result_list.append(zeros(n_tsteps))
+            else:
+                result_list.append(zeros(n_tsteps),dtype=complex)
+
+    #
+    # construct liouvillian in list-function format
+    #
+    L_list = []
+    constant_func = lambda x,y: 1.0;
+    
+    # add all hamitonian terms to the lagrangian list
+    for h_spec in H_list:
+    
+        if isinstance(h_spec, Qobj):
+            h = h_spec
+            h_coeff = constant_func
+   
+        elif isinstance(h_spec, list): 
+            h = h_spec[0]
+            h_coeff = h_spec[1]
+            
+        else:
+            raise TypeError("Incorrect specification of time-dependent Hamiltonian (expected callback function)")
+                
+        L_list.append([-1j*h.data, h_coeff])
+                
+    L_list_and_args = [L_list, args]
+
+    #
+    # setup integrator
+    #
+    initial_vector = psi0.full()
+    r = scipy.integrate.ode(psi_list_td)
+    r.set_integrator('zvode', method=opt.method, order=opt.order,
+                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                              first_step=opt.first_step, min_step=opt.min_step,
+                              max_step=opt.max_step)
+    r.set_initial_value(initial_vector, tlist[0])
+    r.set_f_params(L_list_and_args)
+
+    #
+    # start evolution
+    #
+    psi = Qobj(psi0)
+
+    t_idx = 0
+    for t in tlist:
+        if not r.successful():
+            break;
+
+        psi.data = r.y
+
+        # calculate all the expectation values, or output rho if no operators
+        if n_expt_op == 0:
+            result_list[t_idx] = Qobj(psi) # copy psi
+        else:
+            for m in range(0, n_expt_op):
+                result_list[m][t_idx] = expect(expt_ops[m], psi)
+
+        r.integrate(r.t + dt)
+        t_idx += 1
+          
+    return result_list
+
+
+#
+# evaluate dpsi(t)/dt according to the master equation using the [Qobj, function]
+# style time dependence API
+#
+def psi_list_td(t, psi, H_list_and_args):
+
+    H_list = H_list_and_args[0]
+    args   = H_list_and_args[1]
+
+    H = H_list[0][0] * H_list[0][1](t, args)
+    for n in range(1,len(H_list)):
+        #
+        # H_args[n][0] = the sparse data for a Qobj in operator form
+        # H_args[n][1] = function callback giving the coefficient
+        #
+        H = H + H_list[n][0] * H_list[n][1](t, args)
+    
+    return H * psi
 
 
 # ------------------------------------------------------------------------------
@@ -419,6 +536,134 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
         else:
             for m in range(0, n_expt_op):
                 result_list[m][t_idx] = expect(expt_ops[m], rho)
+
+        r.integrate(r.t + dt)
+        t_idx += 1
+        
+    #if not opt.rhs_reuse:
+    #    os.remove(name+".pyx") # XXX: keep it for inspection. fix before release
+    
+    return result_list
+
+
+# ------------------------------------------------------------------------------
+# A time-dependent disipative master equation on the list-string format for 
+# cython compilation
+# 
+def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
+    """
+    New master equation APIs: still a moving target...    
+    """
+    #
+    # check initial state: must be a density matrix
+    #
+    if not isket(psi0):
+        raise TypeError("The unitary solver requires a ket as initial state")
+
+    #
+    # prepare output array
+    # 
+    n_expt_op = len(expt_ops)
+    n_tsteps  = len(tlist)
+    dt        = tlist[1]-tlist[0]
+
+    if n_expt_op == 0:
+        result_list = [Qobj() for k in range(n_tsteps)]
+    else:
+        result_list=[]
+        for op in expt_ops:
+            if op.isherm:
+                result_list.append(zeros(n_tsteps))
+            else:
+                result_list.append(zeros(n_tsteps),dtype=complex)
+
+    #
+    # construct liouvillian
+    #       
+    Ldata = []
+    Linds = []
+    Lptrs = []
+    Lcoeff = []
+    
+    # loop over all hamiltonian terms, convert to superoperator form and 
+    # add the data of sparse matrix represenation to 
+    for h_spec in H_list:
+    
+        if isinstance(h_spec, Qobj):
+            h = h_spec
+            h_coeff = "1.0"
+   
+        elif isinstance(h_spec, list): 
+            h = h_spec[0]
+            h_coeff = h_spec[1]
+            
+        else:
+            raise TypeError("Incorrect specification of time-dependent Hamiltonian (expected string format)")
+                
+        L = -1j*(spre(h) - spost(h)) # apply tidyup ?
+        
+        Ldata.append(L.data.data)
+        Linds.append(L.data.indices)
+        Lptrs.append(L.data.indptr)
+        Lcoeff.append(h_coeff)       
+
+    # the total number of liouvillian terms (hamiltonian terms + collapse operators)      
+    n_L_terms = len(Ldata)      
+ 
+    #
+    # setup ode args string: we expand the list Ldata, Linds and Lptrs into
+    # and explicit list of parameters
+    # 
+    string_list = []
+    for k in range(n_L_terms):
+        string_list.append("Ldata["+str(k)+"],Linds["+str(k)+"],Lptrs["+str(k)+"]")
+    parameter_string = ",".join(string_list)
+   
+    #
+    # generate and compile new cython code if necessary
+    #
+    if not opt.rhs_reuse or odeconfig.tdfunc == None:
+        name="rhs"+str(odeconfig.cgen_num)
+        cgen=Codegen2(n_L_terms, Lcoeff, args)
+        cgen.generate(name+".pyx")
+        os.environ['CFLAGS'] = '-w'
+        import pyximport
+        pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
+        code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
+        exec(code)
+        odeconfig.tdfunc=cyq_td_ode_rhs
+        
+    #
+    # setup integrator
+    #
+    initial_vector = psi0.full()
+    r = scipy.integrate.ode(odeconfig.tdfunc)
+    r.set_integrator('zvode', method=opt.method, order=opt.order,
+                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                              first_step=opt.first_step, min_step=opt.min_step,
+                              max_step=opt.max_step)
+    r.set_initial_value(initial_vector, tlist[0])
+    code = compile('r.set_f_params('+parameter_string+')', '<string>', 'exec')
+    exec(code)
+
+    #
+    # start evolution
+    #
+    psi = Qobj(psi0)
+
+    t_idx = 0
+    for t in tlist:
+        if not r.successful():
+            break;
+
+        psi.data = r.y
+
+        # calculate all the expectation values, or output rho if no operators
+        if n_expt_op == 0:
+            result_list[t_idx] = Qobj(psi) # copy rho
+        else:
+            for m in range(0, n_expt_op):
+                result_list[m][t_idx] = expect(expt_ops[m], psi)
 
         r.integrate(r.t + dt)
         t_idx += 1
