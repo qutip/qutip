@@ -49,8 +49,6 @@ def qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
     c_op_list = []
     c_op_list.append([sm, gamma1_t]) # relaxation
     c_op_list.append([sz, gamma2_t]) # dephasing
-    #c_op_list.append(sqrt(gamma1) * sm) # relaxation
-    #c_op_list.append(sqrt(gamma2) * sz) # dephasing
 
     # evolve and calculate expectation values
     start_time = time.time()
@@ -73,7 +71,7 @@ def qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
     # evolve and calculate expectation values
     start_time = time.time()
     expt_list2 = mesolve(H, psi0, tlist, c_op_list, [sm.dag() * sm], args=args)      
-    print 'Method 2: time elapsed = ' + str(time.time() - start_time) 
+    print 'Method 2: time elapsed = ' + str(time.time() - start_time)     
 
     # --------------------------------------------------------------------------
     # 3) Constant hamiltonian and collapse operators
@@ -87,10 +85,21 @@ def qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
     c_op_list.append(sqrt(gamma2) * sz) # dephasing
     
     start_time = time.time()
-    expt_list3 = odesolve(H_rwa, psi0, tlist, c_op_list, [sm.dag() * sm])  
-    print 'Method 3: time elapsed = ' + str(time.time() - start_time) 
+    expt_list3 = mesolve(H_rwa, psi0, tlist, c_op_list, [sm.dag() * sm])  
+    print 'Method 3: time elapsed = ' + str(time.time() - start_time)     
+    
+    # --------------------------------------------------------------------------
+    # 4) Unitary evolution, constant hamiltonian
+    #
 
-    return expt_list1[0], expt_list2[0], expt_list3[0]
+    # no collapse operators
+    c_op_list = []
+    
+    start_time = time.time()
+    expt_list4 = mesolve(H_rwa, psi0, tlist, c_op_list, [sm.dag() * sm])  
+    print 'Method 4: time elapsed = ' + str(time.time() - start_time)         
+
+    return expt_list1[0], expt_list2[0], expt_list3[0], expt_list4[0]
     
 #
 # set up the calculation
@@ -103,15 +112,15 @@ gamma1 = 0.2           # relaxation rate
 gamma2 = 0.1           # dephasing  rate
 psi0 = basis(2,1)      # initial state
 
-tlist = linspace(0, 5.0 * 2 * pi / A, 500)
+tlist = linspace(0, 5.0 * 2 * pi / A, 250)
 
-p_ex1, p_ex2, p_ex3 = qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist)
+p_ex1, p_ex2, p_ex3, p_ex4 = qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist)
 
-plot(tlist, real(p_ex1), 'b', tlist, real(p_ex2), 'g.', tlist, real(p_ex3), 'r.')
+plot(tlist, real(p_ex1), 'b', tlist, real(p_ex2), 'g.', tlist, real(p_ex3), 'r.-', tlist, real(p_ex4), 'm')
 xlabel('Time')
 ylabel('Occupation probability')
 title('Excitation probabilty of qubit')
-legend(("Time-dependent Hamiltonian", "Corresponding RWA"))
+legend(("Time-dependent function format", "Time-dependent string format", "Const. collapse operators", "Unitary evolution"))
 show()
 
 

@@ -101,7 +101,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     #
     # dispatch the the appropriate solver
     #         
-    if (c_ops and len(c_ops) > 0):
+    if (c_ops and len(c_ops) > 0) or not isket(rho0):
         #
         # we have collapse operators
         #
@@ -114,31 +114,35 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
                 
         if isinstance(H, Qobj):
             # constant hamiltonian
-            raise NotImplementedError("Not Implemented: use old API for now")           
+            if n_func == 0 and n_str == 0:
+                # constant collapse operators
+                return me_ode_solve(H, rho0, tlist, c_ops, expt_ops, args, options)
+            else: # n_str > 0
+                # constant hamiltonian but time-dependent collapse operators
+                return mesolve_list_str_td([H], rho0, tlist, c_ops, expt_ops, args, options)     
         
         if isinstance(H, FunctionType):
-            # old style time-dependence
-            raise NotImplementedError("Not Implemented: use old API for now")
+            # old style time-dependence: must have constant collapse operators
+            if n_str > 0 or n_func > 0:
+                raise TypeError("Incorrect format: function-format Hamiltonian cannot be mixed with time-dependent collapse operators.")
+            else:
+                return me_ode_solve(H, rho0, tlist, c_ops, expt_ops, args, options)
         
         if isinstance(H, list):
             # determine if we are dealing with list of [Qobj, string] or [Qobj, function]
             # style time-dependences (for pure python and cython, respectively)
             if n_func > 0:
                 return mesolve_list_func_td(H, rho0, tlist, c_ops, expt_ops, args, options)
-            elif n_str > 0:
-                return mesolve_list_str_td(H, rho0, tlist, c_ops, expt_ops, args, options)
             else:
-                # all constant Qobjs ?
-                raise NotImplementedError("Not Implemented: use old API for now")    
+                return mesolve_list_str_td(H, rho0, tlist, c_ops, expt_ops, args, options)
                                    
-        raise TypeError("Unknown parameter types")
+        raise TypeError("Incorrect specification of Hamiltonian or collapse operators.")
 
     else:
         #
         # no collapse operators: unitary dynamics
         #
-        raise NotImplementedError("Not Implemented: use old API for now")
-
+        return wf_ode_solve(H, rho0, tlist, expt_ops, args, options)
 
 # ------------------------------------------------------------------------------
 # A time-dependent disipative master equation on the list-function format
