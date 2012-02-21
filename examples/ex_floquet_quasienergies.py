@@ -79,7 +79,6 @@ def qubit_integrate(delta, eps0_vec, A, omega, gamma1, gamma2, psi0, T, option):
         f_gnd_prob[idx, 1] = expect(sm.dag() * sm, f_modes[1])
 
         f_states = floquet_states_t(f_modes, f_energies, 0, H, T, Hargs)
-        #f_states = floquet_states_t(f_modes, f_energies, 0, hamiltonian_t, T, Hargs)
 
         wf_gnd_prob[idx, 0] = expect(sm.dag() * sm, f_states[0])
         wf_gnd_prob[idx, 1] = expect(sm.dag() * sm, f_states[1])

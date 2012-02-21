@@ -15,6 +15,10 @@ def hamiltonian_t(t, args):
     H1 = args[1]
     w  = args[2]
     return H0 + sin(w * t) * H1
+    
+def H1coeff_t(t, args):
+    w  = args['w']
+    return sin(w * t)
 
 def qubit_integrate(delta, eps0, A, omega, psi0, tlist, T, option):
 
@@ -25,13 +29,16 @@ def qubit_integrate(delta, eps0, A, omega, psi0, tlist, T, option):
 
     H0 = - delta/2.0 * sx - eps0/2.0 * sz
     H1 =   A/2.0 * sz        
-    H_args = (H0, H1, omega)
-
+    #H_args = (H0, H1, omega)
+    H_args = {'w': omega}
+    H = [H0, [H1, 'sin(w * t)']]
+    #H = [H0, [H1, H1coeff_t]]  
+    
 
     if option == "floquet":
 
         # find the floquet modes for the time-dependent hamiltonian        
-        f_modes_0,f_energies = floquet_modes(hamiltonian_t, T, H_args)
+        f_modes_0,f_energies = floquet_modes(H, T, H_args)
 
         # decompose the inital state in the floquet modes (=floquet states at t=0)
         f_coeff = floquet_state_decomposition(f_modes_0, f_energies, psi0)
@@ -46,14 +53,16 @@ def qubit_integrate(delta, eps0, A, omega, psi0, tlist, T, option):
         # calculate the wavefunctions at times t=nT, for integer n, by using 
         # the floquet modes and quasienergies
         for n in arange(N):            
-            psi_t = floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, n*T, hamiltonian_t, T, H_args)            
+            psi_t = floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, n*T, H, T, H_args)            
             p_ex[n] = expect(sm.dag() * sm, psi_t)
             tlist.append(n*T)   
     
     else:
     
         # for reference: evolve and calculate expectation using the full ode solver
-        expt_list = odesolve(hamiltonian_t, psi0, tlist, [], [sm.dag() * sm], H_args)  
+        #H_args = (H0, H1, omega)
+        #expt_list = mesolve(hamiltonian_t, psi0, tlist, [], [sm.dag() * sm], H_args)
+        expt_list = mesolve(H, psi0, tlist, [], [sm.dag() * sm], H_args)
         p_ex = expt_list[0]
         
     return tlist, p_ex
@@ -90,7 +99,7 @@ plot(tlist2, real(1-f_ex), 'ro', linewidth=2.0)
 
 xlabel('Time')
 ylabel('Probability')
-title('Stroboscopic time-evolution with')
+title('Stroboscopic time-evolution with Floquet states')
 legend(("ode $P_1$", "ode $P_0$", "Floquet $P_1$", "Floquet $P_0$"))
 savefig('examples-floquet-evolution.png')
 show()
