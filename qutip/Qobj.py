@@ -20,7 +20,7 @@ from scipy import *
 import scipy.sparse as sp
 import scipy.linalg as la
 from qutip.istests import *
-
+import types
 
 class Qobj():
     """
@@ -399,7 +399,10 @@ class Qobj():
     # calculate the matrix element between self and a bra and a ket
     #
     def matrix_element(self, bra, ket):
-
+        """
+        Calculate the matrix element for the Qobj sandwiched between bra and ket.
+        """
+        
         if isoper(self):
             if isbra(bra) and isket(ket):
                 return (bra.data * self.data * ket.data)[0,0]
@@ -445,6 +448,58 @@ class Qobj():
         evals, evecs = la.eig(self.full())
 
         return evals
+
+
+#-------------------------------------------------------------------------------
+# This functions evaluates a time-dependent quantum object on the list-string
+# and list-function formats that are used by the time-dependent solvers.
+# Although not used directly in by those solvers, it can for test purposes be
+# conventient to be able to evaluate the expressions passed to the solver for
+# arbitrary value of time. This function provides this functionality.
+#
+#
+def qobj_list_evaluate(qobj_list, t, args):
+    """
+    Evaluate a time-dependent qobj in list format. For example,
+    
+        qobj_list = [H0, [H1, func_t]]
+        
+    is evaluated to 
+    
+        Qobj(t) = H0 + H1 * func_t(t, args)
+        
+    and
+
+        qobj_list = [H0, [H1, sin(w * t)]]
+        
+    is evaluated to 
+    
+        Qobj(t) = H0 + H1 * sin(args['w'] * t)  
+    
+    Returns:    The Qobj that represents the value of qobj_list at time t.    
+    
+    """
+    q_sum = 0
+    if isinstance(qobj_list, Qobj):
+        q_sum = qobj_list
+    elif isinstance(qobj_list, list):
+        for q in qobj_list:
+            if isinstance(q, Qobj):
+                q_sum += q
+            elif isinstance(q, list) and len(q) == 2 and isinstance(q[0], Qobj):
+                if isinstance(q[1], types.FunctionType):
+                    q_sum += q[0] * q[1](t, args)
+                elif isinstance(q[1], str):
+                    args['t'] = t
+                    q_sum += q[0] * float(eval(q[1], globals(), args))
+                else:
+                    raise TypeError('Unrecongized format for specification of time-dependent Qobj')
+            else:
+                raise TypeError('Unrecongized format for specification of time-dependent Qobj')
+    else:
+        raise TypeError('Unrecongized format for specification of time-dependent Qobj')
+        
+    return q_sum
 
 #-############################################################################
 #

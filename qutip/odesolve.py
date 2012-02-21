@@ -54,7 +54,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     if isinstance(H, Qobj):    
         n_const += 1
     elif isinstance(H, FunctionType):
-        n_func += 1
+        pass #n_func += 1
     elif isinstance(H, list):
         for h in H:
             if isinstance(h, Qobj):
@@ -123,7 +123,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
         
         if isinstance(H, FunctionType):
             # old style time-dependence: must have constant collapse operators
-            if n_str > 0 or n_func > 0:
+            if n_str > 0: # or n_func > 0:
                 raise TypeError("Incorrect format: function-format Hamiltonian cannot be mixed with time-dependent collapse operators.")
             else:
                 return me_ode_solve(H, rho0, tlist, c_ops, expt_ops, args, options)
@@ -498,7 +498,7 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
         name="rhs"+str(odeconfig.cgen_num)
         cgen=Codegen2(n_L_terms, Lcoeff, args)
         cgen.generate(name+".pyx")
-        os.environ['CFLAGS'] = '-w'
+        os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
         pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
         code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
@@ -580,6 +580,8 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     #
     # construct liouvillian
     #       
+    L_list = []    
+    
     Ldata = []
     Linds = []
     Lptrs = []
@@ -600,7 +602,7 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
         else:
             raise TypeError("Incorrect specification of time-dependent Hamiltonian (expected string format)")
                 
-        L = -1j*(spre(h) - spost(h)) # apply tidyup ?
+        L = -1j*h
         
         Ldata.append(L.data.data)
         Linds.append(L.data.indices)
@@ -626,7 +628,7 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
         name="rhs"+str(odeconfig.cgen_num)
         cgen=Codegen2(n_L_terms, Lcoeff, args)
         cgen.generate(name+".pyx")
-        os.environ['CFLAGS'] = '-w'
+        os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
         pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
         code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
@@ -871,7 +873,7 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list,H_args, opt):
         cgen=Codegen(lenh,H_func[1],H_args)
         cgen.generate(name+".pyx")
         print "Compiling '"+name+".pyx' ..."
-        os.environ['CFLAGS'] = '-w'
+        os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
         pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
         code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
@@ -1167,7 +1169,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
         cgen=Codegen(lenh,L_func[1],H_args)
         cgen.generate(name+".pyx")
         print "Compiling '"+name+".pyx' ..."
-        os.environ['CFLAGS'] = '-w'
+        os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
         pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
         code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')

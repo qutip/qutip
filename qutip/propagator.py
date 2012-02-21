@@ -68,7 +68,6 @@ def propagator(H, t, c_op_list, H_args=None):
 
             psi0 = basis(N, n)
             psi_t = mesolve(H, psi0, [0, t], [], [], H_args, opt)
-
             u[:,n] = psi_t[1].full().T
 
     else:
