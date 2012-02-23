@@ -43,7 +43,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     if options == None:
         options = Odeoptions()
         options.nsteps = 2500  #
-        
+                
     # do some basic sanity checks on the format of H and c_ops: this should
     # be moved to a function that can be reused.
     n_const = 0
@@ -579,9 +579,7 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
 
     #
     # construct liouvillian
-    #       
-    L_list = []    
-    
+    #          
     Ldata = []
     Linds = []
     Lptrs = []

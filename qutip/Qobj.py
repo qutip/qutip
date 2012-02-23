@@ -361,7 +361,7 @@ class Qobj():
     #
     # basis transformation
     #
-    def transform(self, inpt):
+    def transform(self, inpt, inverse=False):
         """
         Perform a basis transformation. inpt can be a matrix defining the
         transformation or a list of kets that defines the new basis.
@@ -372,27 +372,40 @@ class Qobj():
         if isinstance(inpt, list):
             if len(inpt) != self.shape[0] and len(inpt) != self.shape[1]:
                 raise TypeError('Invalid size of ket list for basis transformation')
-            S = matrix([inpt[n].full()[:,0] for n in xrange(len(inpt))])
+            S = matrix([inpt[n].full()[:,0] for n in xrange(len(inpt))]).H
         elif isinstance(inpt,ndarray):
             S = matrix(inpt)
         else:
             raise TypeError('Invalid operand for basis transformation')
 
+        # normalize S just in case the supplied basis states aren't normalized
+        #S = S/la.norm(S)
+
         out=Qobj()
         out.dims=[self.dims[1],self.dims[0]]
         out.shape=[self.shape[1],self.shape[0]]
- 
+        out.isherm=self.isherm
+        out.type=self.type
+
         # transform data
-        if isket(self):
-           out.data = S * self.data
-        elif isbra(self):
-           out.data = self.data * S.T
+        if inverse:
+            if isket(self):
+                out.data = S.H * self.data
+            elif isbra(self):
+                out.data = self.data * S
+            else:
+                out.data = S * self.data * S.H
         else:
-           out.data = S.T * self.data * S
+            if isket(self):
+                out.data = S * self.data
+            elif isbra(self):
+                out.data = self.data * S.H
+            else:
+                out.data = S.H * self.data * S
 
         # force sparse
         out.data = sp.csr_matrix(out.data,dtype=complex)
-
+        
         return out
 
     #
