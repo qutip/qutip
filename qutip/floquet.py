@@ -239,7 +239,47 @@ def floquet_collapse_operators(A):
     
     return c_ops
     
+    
+def floquet_master_equation_tensor(Alist):
+    """
+    Construct a tensor that represents the master equation in the floquet
+    basis (with constant Hamiltonian and collapse operators).
+    
+    Simplest RWA appriximation [Grifoni et al, Phys.Rep. 304 229 (1998)]
+    """
+
+    if isinstance(Alist, list):
+        # Alist can be a list of rate matrices corresponding
+        # to different operators that couple to the environment
+        N, M = shape(Alist[0])
+    else:
+        # or a simple rate matrix, in which case we put it in a list
+        Alist = [Alist]
+        N, M = shape(Alist[0])
+      
+    R = Qobj(scipy.sparse.csr_matrix((N*N,N*N)), [[N,N], [N,N]], [N*N,N*N])
+
+    R.data=R.data.tolil()      
+    for I in range(N*N):
+        a,b = vec2mat_index(N, I)
+        for J in range(N*N):
+            c,d = vec2mat_index(N, J)
         
+            for A in Alist:               
+                s1 = s2 = 0
+                for n in range(N):
+                    s1 += A[a,n] * (n == c) * (n == d) - A[n,a] * (a == c) * (a == d)
+                    s2 += (A[n,a] + A[n,b]) * (a == c) * (b == d)
+                       
+                dR = (a == b) * s1 - 0.5 * (1 - (a == b)) * s2
+                            
+                if dR != 0.0:
+                    R.data[I,J] += dR
+
+    R.data=R.data.tocsr()
+    return R                   
+
+    
 def floquet_master_equation_steadystate(H, A):
     """
     Returns the steadystate density matrix (in the floquet basis!) for the
@@ -260,3 +300,95 @@ def floquet_basis_transform(f_modes, f_energies, rho0):
     """
 
     return rho0
+    
+
+#-------------------------------------------------------------------------------
+# Floquet-Markov master equation
+# 
+# 
+def fmmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
+    """
+    Solve the dynamics for the system using the Floquet-Markov master equation.
+    
+    ..note:: Experimental
+    
+    """
+
+    if opt == None:
+        opt = Odeoptions()
+        opt.nsteps = 2500  # 
+
+    if opt.tidy:
+        R = tidyup(R, opt.atol)
+
+    #
+    # check initial state
+    #
+    if isket(rho0):
+        # Got a wave function as initial state: convert to density matrix.
+        rho0 = rho0 * rho0.dag()
+       
+    #
+    # prepare output array
+    # 
+    n_e_ops  = len(e_ops)
+    n_tsteps = len(tlist)
+    dt       = tlist[1]-tlist[0]
+
+    if n_e_ops == 0:
+        result_list = []
+    else:
+        result_list = []
+        for op in e_ops:
+            if op.isherm and rho0.isherm:
+                result_list.append(zeros(n_tsteps))
+            else:
+                result_list.append(zeros(n_tsteps,dtype=complex))
+
+
+    #
+    # transform the initial density matrix and the e_ops opterators to the
+    # eigenbasis
+    #
+    if ekets != None:
+        rho0 = rho0.transform(ekets)
+        for n in arange(len(e_ops)):
+            e_ops[n] = e_ops[n].transform(ekets)
+
+    #
+    # setup integrator
+    #
+    initial_vector = mat2vec(rho0.full())
+    r = scipy.integrate.ode(cyq_ode_rhs)
+    r.set_f_params(R.data.data, R.data.indices, R.data.indptr)
+    r.set_integrator('zvode', method=opt.method, order=opt.order,
+                              atol=opt.atol, rtol=opt.rtol, #nsteps=opt.nsteps,
+                              #first_step=opt.first_step, min_step=opt.min_step,
+                              max_step=opt.max_step)
+    r.set_initial_value(initial_vector, tlist[0])
+
+    #
+    # start evolution
+    #
+    rho = Qobj(rho0)
+
+    t_idx = 0
+    for t in tlist:
+        if not r.successful():
+            break;
+
+        rho.data = vec2mat(r.y)
+        
+        # calculate all the expectation values, or output rho if no operators
+        if n_e_ops == 0:
+            result_list.append(Qobj(rho))
+        else:
+            for m in range(0, n_e_ops):
+                result_list[m][t_idx] = expect(e_ops[m], rho)
+
+        r.integrate(r.t + dt)
+        t_idx += 1
+          
+    return result_list
+
+    

@@ -63,7 +63,7 @@ def propagator(H, t, c_op_list, H_args=None):
         
         opt = Odeoptions()
         opt.rhs_reuse = True
-        
+                
         for n in range(0, N):
 
             psi0 = basis(N, n)
