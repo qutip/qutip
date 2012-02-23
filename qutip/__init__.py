@@ -96,7 +96,10 @@ from qutip.operators import *
 from qutip.orbital import *
 from qutip.parfor import *
 from qutip.ptrace import ptrace
+
 from qutip.propagator import *
+from qutip.floquet import *
+
 from qutip.qstate import *
 from qutip.rhs_generate import rhs_generate
 from qutip.simdiag import *
