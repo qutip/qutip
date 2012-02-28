@@ -286,21 +286,16 @@ def floquet_master_equation_steadystate(H, A):
     Floquet-Markov master equation.
     """
     c_ops = floquet_collapse_operators(A)
-    
-    print "floquet c_ops =", c_ops
-    
-    rho_ss = steadystate(H, c_ops)
-    
+    rho_ss = steadystate(H, c_ops)   
     return rho_ss
+    
     
 def floquet_basis_transform(f_modes, f_energies, rho0):
     """
     Make a basis transform that takes rho0 from the floquet basis to the 
     computational basis.
     """
-
-    return rho0
-    
+    return rho0.transform(f_modes, True)
 
 #-------------------------------------------------------------------------------
 # Floquet-Markov master equation
