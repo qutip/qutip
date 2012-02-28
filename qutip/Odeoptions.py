@@ -35,7 +35,26 @@ class Odeoptions():
         opts.gui=False
         opts.order=10
         
-    Returns options class to be used as options in :func:`qutip.odesolve` and :func:`qutip.mcsolve`.
+    Returns options class to be used as options in :func:`qutip.mesolve` and :func:`qutip.mcsolve`.
+    
+    List of properties:
+        
+        atol (float): Absolute tolerance (default = 1e-8)
+        rtol (float): Relative tolerance (default = 1e-6)
+        method (str): Integration method (default = 'adams', use 'bdf' for stiff)
+        order (int):  Order of Integrator (default = 12, <=12 'adams', <=5 'bdf')
+        nsteps (int): Max. number of internal steps/call (default = 2500)
+        first_step (float): Size of initial step (default = 0, automatic)
+        min_step (float): Minimum step size (default = 0, automatic)
+        max_step (float): Maximum step size (default = 0, automatic)
+        tidy (bool): Tidyup Hamiltonian by removing small terms (default = True)
+        num_cpus (int): Number of cpus used by mcsolver (default = # of cpus)
+        gui (bool): Use progress bar GUI for mcsolver (default = True)
+        expect_avg (bool): Avg. expectation values in mcsolver (default = True)
+        rhs_filename (str): Name for compiled Cython file (default = None)
+        rhs_reuse (bool): Reuse compiled Cython file (default = False)
+        
+    
     """
     def __init__(self,atol=1e-8,rtol=1e-6,method='adams',order=12,nsteps=2500,first_step=0,max_step=0,min_step=0,
                 expect_avg=True,tidy=True,num_cpus=None,rhs_reuse=False,rhs_filename=None,gui=True):
