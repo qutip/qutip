@@ -37,7 +37,7 @@ class Odeoptions():
         
     Returns options class to be used as options in :func:`qutip.odesolve` and :func:`qutip.mcsolve`.
     """
-    def __init__(self,atol=1e-8,rtol=1e-6,method='adams',order=12,nsteps=1000,first_step=0,max_step=0,min_step=0,
+    def __init__(self,atol=1e-8,rtol=1e-6,method='adams',order=12,nsteps=2500,first_step=0,max_step=0,min_step=0,
                 expect_avg=True,tidy=True,num_cpus=None,rhs_reuse=False,rhs_filename=None,gui=True):
         #: Absolute tolerance (default = 1e-8)
         self.atol=atol
