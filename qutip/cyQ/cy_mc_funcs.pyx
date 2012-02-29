@@ -45,9 +45,53 @@ def spmv(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] p
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def mc_expect(oper,np.ndarray[CTYPE_t, ndim=2] state):
-    if oper.isherm:
-        return np.real(np.dot(np.conj(np.transpose(state)),spmv(oper.data.data,oper.data.indices,oper.data.indptr,state)))[0][0]
+def mc_expect(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,int isherm, np.ndarray[CTYPE_t, ndim=2] state):
+    cdef np.ndarray[CTYPE_t, ndim=2] y = spmv(data,idx,ptr,state)
+    cdef np.ndarray[CTYPE_t, ndim=2] x = state.conj().transpose()
+    cdef int num_rows = len(state)
+    cdef complex dot = 0.0j
+    for row in range(num_rows):
+        dot+=x[0,row]*y[row,0]
+    if isherm:
+        return np.real(dot)
     else:
-        return np.dot(np.conj(np.transpose(state)),spmv(oper.data.data,oper.data.indices,oper.data.indptr,state))[0][0]
+        return dot
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def cy_mc_no_time(float t, np.ndarray[CTYPE_t, ndim=1] psi, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr):
+    cdef int row, jj, row_start, row_end
+    cdef int num_rows=len(psi)
+    cdef complex dot
+    cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)
+    for row from 0 <= row < num_rows:
+        dot = 0.0
+        row_start = ptr[row]
+        row_end = ptr[row+1]
+        for jj from row_start <= jj < row_end:
+            dot += data[jj] * psi[idx[jj]]
+        out[row,0] = dot
+    return out
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
