@@ -50,14 +50,14 @@ class Odeoptions():
         tidy (bool): Tidyup Hamiltonian by removing small terms (default = True)
         num_cpus (int): Number of cpus used by mcsolver (default = # of cpus)
         gui (bool): Use progress bar GUI for mcsolver (default = True)
-        expect_avg (bool): Avg. expectation values in mcsolver (default = True)
+        mc_avg (bool): Avg. expect. values or states in mcsolver (default = True)
         rhs_filename (str): Name for compiled Cython file (default = None)
         rhs_reuse (bool): Reuse compiled Cython file (default = False)
         
     
     """
     def __init__(self,atol=1e-8,rtol=1e-6,method='adams',order=12,nsteps=2500,first_step=0,max_step=0,min_step=0,
-                expect_avg=True,tidy=True,num_cpus=None,rhs_reuse=False,rhs_filename=None,gui=True):
+                mc_avg=True,tidy=True,num_cpus=None,rhs_reuse=False,rhs_filename=None,gui=True):
         #: Absolute tolerance (default = 1e-8)
         self.atol=atol
         #: Relative tolerance (default = 1e-6)
@@ -75,7 +75,7 @@ class Odeoptions():
         #: Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
         self.order=order
         #: Average expectation values over trajectories (default = True) 
-        self.expect_avg=expect_avg
+        self.mc_avg=mc_avg
         #: tidyup Hamiltonian before calculation (default = True)
         self.tidy=tidy
         #: Use preexisting RHS function for time-dependent solvers
@@ -110,6 +110,6 @@ class Odeoptions():
         print('rhs_filename: ',self.rhs_filename)
         print('rhs_reuse:    ',self.rhs_reuse)
         print('gui:          ',self.gui)
-        print('expect_avg:   ',self.expect_avg)
+        print('mc_avg:       ',self.expect_avg)
         return ''
 
