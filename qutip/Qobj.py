@@ -43,11 +43,18 @@ class Qobj():
     """
     ################## Define Qobj class #################
     __array_priority__=100 #sets Qobj priority above numpy arrays
-    def __init__(self,inpt=array([[0]]),dims=[[],[]],shape=[]):
+    def __init__(self,inpt=array([[0]]),dims=[[],[]],shape=[],fast=False):
         """
         Qobj constructor.
         """
-        if isinstance(inpt,Qobj):#if input is already Qobj then return identical copy
+        if fast=='ket':#fast Qobj construction for use in mcsolve
+            self.data=sp.csr_matrix(inpt,dtype=complex)
+            self.dims=dims
+            self.shape=shape
+            self.isherm=False
+            self.type='ket'
+            pass
+        elif isinstance(inpt,Qobj):#if input is already Qobj then return identical copy
             ##Quantum object data
             self.data=sp.csr_matrix(inpt.data,dtype=complex) #make sure matrix is sparse (safety check)
             if not any(dims):
