@@ -199,13 +199,21 @@ class MC_class():
         ##number of time steps in tlist
         self.num_times=len(tlist)
         ##Collapse operators
-        self.c_ops=c_ops
-        ##Number of collapse operators
         self.num_collapse=len(c_ops)
+        self.c_ops_data=array([op.data.data for op in c_ops])
+        self.c_ops_ind=array([op.data.indices for op in c_ops])
+        self.c_ops_ptr=array([op.data.indptr for op in c_ops])
+        ##Norm Collapse operators [A.dag()*A]
+        norm_ops=array([(op.dag()*op).data for op in c_ops])
+        self.norm_c_data=array([op.data for op in norm_ops])
+        self.norm_c_ind=array([op.indices for op in norm_ops])
+        self.norm_c_ptr=array([op.indptr for op in norm_ops])
         ##Operators for calculating expectation values
-        self.e_ops=e_ops
-        ##Number of expectation value operators
         self.num_expect=len(e_ops)
+        self.e_ops_data=array([op.data.data for op in e_ops])
+        self.e_ops_ind=array([op.data.indices for op in e_ops])
+        self.e_ops_ptr=array([op.data.indptr for op in e_ops])
+        self.e_ops_isherm=array([op.isherm for op in e_ops])
         ##Matrix representing initial state vector
         self.psi_in=psi0.full() #need dense matrix as input to ODE solver.
         ##Dimensions of initial state vector
@@ -231,16 +239,11 @@ class MC_class():
                 for i in xrange(self.num_expect):
                     if self.e_ops[i].isherm:#preallocate real array of zeros
                         self.expect_out.append(zeros(self.num_times))
-                        self.expect_out[i][0]=mc_expect(self.e_ops[i].data.data,self.e_ops[i].data.indices,self.e_ops[i].data.indptr,self.e_ops[i].isherm,self.psi_in)
                     else:#preallocate complex array of zeros
                         self.expect_out.append(zeros(self.num_times,dtype=complex))
-                        self.expect_out[i][0]=mc_expect(self.e_ops[i].data.data,self.e_ops[i].data.indices,self.e_ops[i].data.indptr,self.e_ops[i].isherm,self.psi_in)
+                    self.expect_out[i][0]=mc_expect(self.e_ops_data[i],self.e_ops_ind[i],self.e_ops_ptr[i],self.e_ops_isherm[i],self.psi_in)
         #FOR EVOLUTION WITH COLLAPSE OPERATORS---------------------------------------------
         elif self.num_collapse!=0:
-            ##Array of collapse operators A.dag()*A
-            self.norm_collapse=array([(op.dag()*op).data for op in self.c_ops])
-            ##Array of matricies from norm_collpase_data
-            self.c_ops_data=array([op.data for op in self.c_ops])
             #preallocate #ntraj arrays for state vectors, collapse times, and which operator
             self.collapse_times_out=zeros((self.ntraj),dtype=ndarray)
             self.which_op_out=zeros((self.ntraj),dtype=ndarray)
@@ -311,7 +314,7 @@ class MC_class():
             if self.num_expect==0:# return psi Qobj at each requested time 
                 self.psi_out=no_collapse_psi_out(self.options,self.psi_in,self.times,self.num_times,self.psi_dims,self.psi_shape,self.psi_out)
             else:# return expectation values of requested operators
-                self.expect_out=no_collapse_expect_out(self.options,self.psi_in,self.times,self.e_ops,self.num_expect,self.num_times,self.psi_dims,self.psi_shape,self.expect_out)
+                self.expect_out=no_collapse_expect_out(self.options,self.psi_in,self.times,self.e_ops_data,self.e_ops_ind,self.e_ops_ptr,self.num_times,self.psi_dims,self.psi_shape,self.expect_out)
         elif self.num_collapse!=0:
             self.seed=array([int(ceil(random.rand()*1e4)) for ll in xrange(self.ntraj)])
             if self.num_expect==0:
@@ -321,15 +324,17 @@ class MC_class():
                 #PRE-GENERATE LIST OF EXPECTATION VALUES
                 mc_alg_out=[]
                 for i in xrange(self.num_expect):
-                    if self.e_ops[i].isherm:#preallocate real array of zeros
+                    if self.e_ops_isherm[i]:#preallocate real array of zeros
                         mc_alg_out.append(zeros(self.num_times))
-                        mc_alg_out[i][0]=mc_expect(self.e_ops[i].data.data,self.e_ops[i].data.indices,self.e_ops[i].data.indptr,self.e_ops[i].isherm,self.psi_in)
                     else:#preallocate complex array of zeros
                         mc_alg_out.append(zeros(self.num_times,dtype=complex))
-                        mc_alg_out[i][0]=mc_expect(self.e_ops[i].data.data,self.e_ops[i].data.indices,self.e_ops[i].data.indptr,self.e_ops[i].isherm,self.psi_in)
+                    mc_expect(self.e_ops_data[i],self.e_ops_ind[i],self.e_ops_ptr[i],self.e_ops_isherm[i],self.psi_in)
             
             #set arguments for input to monte-carlo
-            args=(self.options,self.psi_in,self.psi_dims,self.psi_shape,mc_alg_out,self.times,self.num_times,self.c_ops_data,self.norm_collapse,self.e_ops,self.seed)
+            args=(mc_alg_out,self.options,self.psi_in,self.psi_dims,self.psi_shape,self.times,self.num_times,self.seed,
+                    self.c_ops_data,self.c_ops_ind,self.c_ops_ptr,
+                    self.norm_c_data,self.norm_c_ind,self.norm_c_ptr,
+                    self.e_ops_data,self.e_ops_ind,self.e_ops_ptr,self.e_ops_isherm)
             if (not self.options.gui) or sys.platform[0:3]=="win":
                 print('Starting Monte-Carlo:')
                 self.parallel(args,self)
@@ -400,10 +405,11 @@ def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
 
 
 ######---return expectation values at requested times for no collapse operators---######
-def no_collapse_expect_out(opt,psi_in,tlist,e_ops,num_expect,num_times,psi_dims,psi_shape,expect_out):
+def no_collapse_expect_out(opt,psi_in,tlist,e_ops_data,e_ops_ind,e_ops_ptr,num_times,psi_dims,psi_shape,expect_out):
     ##Calculates xpect.values at times tlist if no collapse ops. given
     #  
     #------------------------------------
+    num_expect=len(e_ops_data)
     if odeconfig.tflag==1:
         ODE=ode(odeconfig.tdfunc)
         code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
@@ -416,13 +422,13 @@ def no_collapse_expect_out(opt,psi_in,tlist,e_ops,num_expect,num_times,psi_dims,
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
     for jj in xrange(num_expect):
-        expect_out[jj][0]=mc_expect(e_ops[jj],psi_in)
+        expect_out[jj][0]=mc_expect(e_ops_data[jj],e_ops_ind[jj],e_ops_ptr[jj],e_ops_isherm[jj],psi_in)
     for k in xrange(1,num_times):
         ODE.integrate(tlist[k],step=0) #integrate up to tlist[k]
         if ODE.successful():
             state=ODE.y/norm(ODE.y)
             for jj in xrange(num_expect):
-                expect_out[jj][k]=mc_expect(e_ops[jj],state)
+                expect_out[jj][k]=mc_expect(e_ops_data[jj],e_ops_ind[jj],e_ops_ptr[jj],e_ops_isherm[jj],state)
         else:
             raise ValueError('Error in ODE solver')
     return expect_out #return times and expectiation values
@@ -434,9 +440,19 @@ def mc_alg_evolve(nt,args):
     """
     Monte-Carlo algorithm returning state-vector or expect. values at times tlist for a single trajectory
     """
-    opt,psi_in,psi_dims,psi_shape,mc_alg_out,tlist,num_times,c_ops_data,norm_collapse_data,e_ops,seeds=args
-    num_expect=len(e_ops)
+    #get input data
+    mc_alg_out,opt,psi_in,psi_dims,psi_shape,tlist,num_times,seeds=args[0:8]
+    #get collapse data
+    c_ops_data,c_ops_ind,c_ops_ptr=args[8:11]
+    #get norm collapse data
+    norm_c_data,norm_c_ind,norm_c_ptr=args[11:14]
+    #get expect data
+    e_ops_data,e_ops_ind,e_ops_ptr,e_ops_isherm=args[14:]
+    
+    #number of operators of each type
+    num_expect=len(e_ops_data)
     num_collapse=len(c_ops_data)
+    
     collapse_times=[] #times at which collapse occurs
     which_oper=[] # which operator did the collapse
     
@@ -452,9 +468,10 @@ def mc_alg_evolve(nt,args):
     elif odeconfig.tflag==2:
         ODE=ode(RHStd)
     else:
-        ODE = ode(cy_mc_no_time)
+        ODE = ode(cyq_ode_rhs)
         ODE.set_f_params(odeconfig.Hdata, odeconfig.Hinds, odeconfig.Hptrs)
-    ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
+    ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,
+                        first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
     
     #RUN ODE UNTIL EACH TIME IN TLIST
@@ -467,11 +484,11 @@ def mc_alg_evolve(nt,args):
             psi_nrm2=norm(ODE.y,2)**2
             if psi_nrm2<=rand_vals[0]:#collpase has occured
                 collapse_times.append(ODE.t)
-                n_dp=array([mc_expect(op.data,op.indices,op.indptr,1,ODE.y) for op in norm_collapse_data])
+                n_dp=array([mc_expect(norm_c_data[i],norm_c_ind[i],norm_c_ptr[i],1,ODE.y) for i in xrange(num_collapse)])
                 kk=cumsum(n_dp/sum(n_dp))
                 j=cinds[kk>=rand_vals[1]][0]
                 which_oper.append(j) #record which operator did collapse
-                state=spmv(c_ops_data[j].data,c_ops_data[j].indices,c_ops_data[j].indptr,ODE.y)
+                state=spmv(c_ops_data[j],c_ops_ind[j],c_ops_ptr[j],ODE.y)
                 state_nrm=norm(state,2)
                 ODE.set_initial_value(state/state_nrm,ODE.t)
                 rand_vals=random.rand(2)
@@ -480,13 +497,12 @@ def mc_alg_evolve(nt,args):
         psi=copy(ODE.y)
         if ODE.t>last_t:
             psi=(psi-last_y)/(ODE.t-last_t)*(tlist[k]-last_t)+last_y
-        psi_nrm=norm(psi,2)
+        epsi=psi/norm(psi,2)
         if num_expect==0:
-            mc_alg_out[k]=psi/psi_nrm
+            mc_alg_out[k]=epsi
         else:
-            epsi=psi/psi_nrm
             for jj in xrange(num_expect):
-                mc_alg_out[jj][k]=mc_expect(e_ops[jj].data.data,e_ops[jj].data.indices,e_ops[jj].data.indptr,e_ops[jj].isherm,epsi)
+                mc_alg_out[jj][k]=mc_expect(e_ops_data[jj],e_ops_ind[jj],e_ops_ptr[jj],e_ops_isherm[jj],epsi)
     #RETURN VALUES
     if num_expect==0:
         mc_alg_out=array([Qobj(k,psi_dims,psi_shape,'ket') for k in mc_alg_out])
