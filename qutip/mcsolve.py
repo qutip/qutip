@@ -34,7 +34,7 @@ from qutip.cyQ.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
 from Mcdata import Mcdata
 
-def mcsolve(H,psi0,tlist,ntraj,c_ops,e_ops,args={},options=Odeoptions()):
+def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     """
     Monte-Carlo evolution of a state vector |psi> for a given
     Hamiltonian and sets of collapse operators and operators
