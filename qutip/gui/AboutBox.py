@@ -16,7 +16,6 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-
 import sys,os
 from urllib2 import urlopen
 if os.environ['QUTIP_GUI']=="PYSIDE":
@@ -24,32 +23,32 @@ if os.environ['QUTIP_GUI']=="PYSIDE":
 
 elif os.environ['QUTIP_GUI']=="PYQT4":
     from PyQt4 import QtGui, QtCore
-   
+
 import numpy,scipy,matplotlib
 CD_BASE = os.path.dirname(__file__)
 
-class AboutBox(QtGui.QWidget):
-    def __init__(self, Qversion, parent=None):
-        QtGui.QWidget.__init__(self, parent)
-        #WINDOW PROPERTIES
-        self.setWindowTitle('About QuTiP')
-        self.resize(430, 450)
-        self.center()
+class AboutBox(QtGui.QWidget): 
+    def __init__(self,Qversion): 
+        QtGui.QWidget.__init__(self) 
+         
+        self.setGeometry(0,0, 360,480) 
+        self.setWindowTitle("About QuTiP") 
+        self.setWindowIcon(QtGui.QIcon(CD_BASE + "/logo.png")) 
+        self.resize(360,480) 
+        self.setMinimumSize(360,480) 
+        self.center() 
         self.setFocus()
-        #self.setAttribute(Qt.WA_TranslucentBackground)#transparent
-        #self.setWindowOpacity(0.95)
-        #self.setWindowFlags(Qt.Popup)#no titlebar
-        #IMAGES--------------------
+        
         logo=QtGui.QLabel(self)
         logo.setGeometry((self.width()-200)/2, 0, 200, 163)
         logo.setPixmap(QtGui.QPixmap(CD_BASE + "/logo.png"))
-        #TEXT--------------------
+        
         tlabel = QtGui.QLabel(self)
         font = QtGui.QFont()
         font.setFamily("Arial")
         font.setBold(True)
         if sys.platform=='darwin':
-            font.setPointSize(20)
+            font.setPointSize(17)
         else:
             font.setPointSize(15)
         fm = QtGui.QFontMetrics(font)
@@ -57,8 +56,24 @@ class AboutBox(QtGui.QWidget):
         pixelswide = fm.width(tstring)
         tlabel.setFont(font)
         tlabel.setText(tstring)
-        tlabel.move((self.width()-pixelswide)/2.0, 170)
-        #
+        tlabel.move((self.width()-pixelswide)/2.0, 165)
+        
+        #first tab text
+        tab_widget = QtGui.QTabWidget(self) 
+        tab_widget.move(10,200)
+        tab_widget.resize(340,220)
+        tab1 = QtGui.QWidget(self) 
+        tab1_vert = QtGui.QVBoxLayout(tab1) 
+        tab_widget.addTab(tab1, "Version Info")
+        label = QtGui.QLabel(self)
+        font.setFamily("Arial")
+        font.setBold(False)
+        if sys.platform=='darwin':
+            font.setPointSize(15)
+        else:
+            font.setPointSize(13)
+        label.setFont(font)
+        fm = QtGui.QFontMetrics(font)
         try:
             import PySide
             pyside_ver=PySide.__version__
@@ -75,15 +90,7 @@ class AboutBox(QtGui.QWidget):
                 pyobjc='Yes'
             except:
                 pyobjc='No'
-        label = QtGui.QLabel(self)
-        font.setFamily("Arial")
-        font.setBold(False)
-        if sys.platform=='darwin':
-            font.setPointSize(14)
-        else:
-            font.setPointSize(11)
-        label.setFont(font)
-        fm = QtGui.QFontMetrics(font)
+        
         #check for updated version
         try:
             current = urlopen("http://qutip.googlecode.com/svn/doc/current_version.txt").read()
@@ -93,7 +100,6 @@ class AboutBox(QtGui.QWidget):
             lstring="QuTiP Version:           "+Qversion
             pixelswide = fm.width(lstring)
             label.setText(lstring)
-            label.move((self.width()-pixelswide)/2,210)
             if current and int(current.replace('.','')[0:3])>int(Qversion.replace('.','')[0:3]):
                 label2= QtGui.QLabel(self)
                 label2.setFont(font)
@@ -115,6 +121,29 @@ class AboutBox(QtGui.QWidget):
             lstring="QuTiP Version:           "+Qversion
             pixelswide = fm.width(lstring)
             label.setText(lstring)
+<<<<<<< .mine
+        tab1_vert.addWidget(label)
+        
+        dev_text=QtGui.QLabel()
+        dev_string="Lead Developers:Paul D. Nation, Robert J. Johansson\n\n"
+        pixelswide = fm.width(dev_string)
+        
+        
+        
+        #tab2 text
+        #dev_text.setFont(p1_font)
+        dev_text.setText(dev_string)
+        tab2 = QtGui.QWidget()
+        tab_widget.addTab(tab2, "Developers")
+        t2_ver = QtGui.QVBoxLayout(tab2)
+        t2_ver.addWidget(dev_text)
+        
+        #Copyright-----------------
+        p1_font = QtGui.QFont()
+        p1_font.setFamily("Arial")
+        p1_font.setBold(False)
+        p1_font.setPointSize(14)
+=======
             label.move((self.width()-pixelswide)/2,210)
             if current and int(current.replace('.','')[0:3])>int(Qversion.replace('.','')[0:3]):
                 label2= QtGui.QLabel(self)
@@ -135,28 +164,36 @@ class AboutBox(QtGui.QWidget):
             label3.setText(lstring3)
             label3.move((self.width()-pixelswide)/2,210)
         #
+>>>>>>> .r1622
         alabel = QtGui.QLabel(self)
-        astring="Copyright (c) 2011-2012, P. D. Nation & R. J. Johansson"
+        astring="Copyright (c) 2011-2012,\nP. D. Nation & J. R. Johansson"
         pixelswide = fm.width(astring)
-        alabel.setFont(font)
+        alabel.setFont(p1_font)
         alabel.setText(astring)
-        alabel.move((self.width()-pixelswide)/2, 350)
-        #
-        clabel = QtGui.QLabel(self)
-        clabel.setFont(font)
-        clabel.setText("QuTiP is released under the GPL3.\n"
-                        +"See the enclosed COPYING.txt\nfile for more information.")
-        clabel.move((self.width()-pixelswide)/2, 380)
-        #BUTTONS-----------------
+        alabel.move(10,430)
+        
+        
+        #QUIT BUTTON-----------------
         quit = QtGui.QPushButton('Close', self)
+        font.setBold(False)
         quit.setFont(font)
-        quit.setGeometry((self.width()-90), 395, 80, 40)
-        #quit.setFocusPolicy(QtCore.Qt.NoFocus)
+        quit.setGeometry((self.width()-85), 430, 80, 40)
         quit.clicked.connect(self.close)
-    def center(self):
-        screen = QtGui.QDesktopWidget().screenGeometry()
-        size =  self.geometry()
-        self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
+       
+     
+     
+    def center(self): 
+        screen = QtGui.QDesktopWidget().screenGeometry() 
+        size = self.frameSize()
+        self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2) 
 
+<<<<<<< .mine
+if __name__=="__main__":
+    app = QtGui.QApplication(sys.argv) 
+    frame = AboutBox('2.0') 
+    frame.show()
+    frame.raise_()  
+    app.exec_()=======
 
     
+>>>>>>> .r1622
