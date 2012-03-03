@@ -65,15 +65,6 @@ class AboutBox(QtGui.QWidget):
         tab1 = QtGui.QWidget(self) 
         tab1_vert = QtGui.QVBoxLayout(tab1) 
         tab_widget.addTab(tab1, "Version Info")
-        label = QtGui.QLabel(self)
-        font.setFamily("Arial")
-        font.setBold(False)
-        if sys.platform=='darwin':
-            font.setPointSize(15)
-        else:
-            font.setPointSize(13)
-        label.setFont(font)
-        fm = QtGui.QFontMetrics(font)
         try:
             import PySide
             pyside_ver=PySide.__version__
@@ -96,19 +87,28 @@ class AboutBox(QtGui.QWidget):
             current = urlopen("http://qutip.googlecode.com/svn/doc/current_version.txt").read()
         except:
             current=None
+        tab1_font = QtGui.QFont()
+        tab1_font.setFamily("Arial")
+        tab1_font.setBold(False)
+        if sys.platform=='darwin':
+            tab1_font.setPointSize(15)
+        else:
+            tab1_font.setPointSize(13)
+        fm = QtGui.QFontMetrics(tab1_font)
+        label = QtGui.QLabel(self)
+        label.setFont(tab1_font)
         if sys.platform!='darwin':
             lstring="QuTiP Version:           "+Qversion
             pixelswide = fm.width(lstring)
             label.setText(lstring)
-            if current and int(current.replace('.','')[0:3])>int(Qversion.replace('.','')[0:3]):
-                label2= QtGui.QLabel(self)
-                label2.setFont(font)
-                label2.setOpenExternalLinks(True)
-                lstring2=" (<a href=http://code.google.com/p/qutip/downloads/list>Update</a>)"+"\n"
-                label2.setText(lstring2)
-                label2.move((2*self.width()-pixelswide)/2,210)
-            label3= QtGui.QLabel(self)
-            label3.setFont(font)
+            tab1_vert.addWidget(label)
+            if current or int(current.replace('.','')[0:3])>int(Qversion.replace('.','')[0:3]):
+                label.setOpenExternalLinks(True)
+                lstring+=" (<a href=http://code.google.com/p/qutip/downloads/list>Update</a>)"+"\n"
+            label.setText(lstring)
+            tab1_vert.addWidget(label)
+            label3= QtGui.QLabel(tab1)
+            label3.setFont(tab1_font)
             lstring3="\n"
             lstring3+="NumPy Version:         "+str(numpy.__version__)+"\n"
             lstring3+="SciPy Version:            "+str(scipy.__version__)+"\n"
@@ -116,44 +116,18 @@ class AboutBox(QtGui.QWidget):
             lstring3+="PySide Version:         "+str(pyside_ver)+"\n"
             lstring3+="PyQt4 Version:           "+str(pyqt4_ver)
             label3.setText(lstring3)
-            label3.move((self.width()-pixelswide)/2,210)
         else:
             lstring="QuTiP Version:           "+Qversion
             pixelswide = fm.width(lstring)
             label.setText(lstring)
-<<<<<<< .mine
-        tab1_vert.addWidget(label)
-        
-        dev_text=QtGui.QLabel()
-        dev_string="Lead Developers:Paul D. Nation, Robert J. Johansson\n\n"
-        pixelswide = fm.width(dev_string)
-        
-        
-        
-        #tab2 text
-        #dev_text.setFont(p1_font)
-        dev_text.setText(dev_string)
-        tab2 = QtGui.QWidget()
-        tab_widget.addTab(tab2, "Developers")
-        t2_ver = QtGui.QVBoxLayout(tab2)
-        t2_ver.addWidget(dev_text)
-        
-        #Copyright-----------------
-        p1_font = QtGui.QFont()
-        p1_font.setFamily("Arial")
-        p1_font.setBold(False)
-        p1_font.setPointSize(14)
-=======
-            label.move((self.width()-pixelswide)/2,210)
+            tab1_vert.addWidget(label)
             if current and int(current.replace('.','')[0:3])>int(Qversion.replace('.','')[0:3]):
-                label2= QtGui.QLabel(self)
-                label2.setFont(font)
-                label2.setOpenExternalLinks(True)
-                lstring2=" (<a href=http://code.google.com/p/qutip/downloads/list>Update</a>)"+"\n"
-                label2.setText(lstring2)
-                label2.move((2*self.width()-pixelswide)/2,210)
-            label3= QtGui.QLabel(self)
-            label3.setFont(font)
+                label.setOpenExternalLinks(True)
+                lstring+=" (<a href=http://code.google.com/p/qutip/downloads/list>Update</a>)"+"\n"
+            label.setText(lstring)
+            tab1_vert.addWidget(label)
+            label3= QtGui.QLabel(tab1)
+            label3.setFont(tab1_font)
             lstring3="\n"
             lstring3+="NumPy Version:         "+str(numpy.__version__)+"\n"
             lstring3+="SciPy Version:            "+str(scipy.__version__)+"\n"
@@ -162,9 +136,25 @@ class AboutBox(QtGui.QWidget):
             lstring3+="PyQt4 Version:           "+str(pyqt4_ver)+"\n"
             lstring3+="PyObjc Installed:        "+str(pyobjc)
             label3.setText(lstring3)
-            label3.move((self.width()-pixelswide)/2,210)
-        #
->>>>>>> .r1622
+        
+        
+        tab1_vert.addWidget(label3)
+        dev_text=QtGui.QLabel()
+        dev_string="Lead Developers:Paul D. Nation, Robert J. Johansson\n\n"
+        pixelswide = fm.width(dev_string)
+
+        #tab2 text
+        #dev_text.setFont(p1_font)
+        dev_text.setText(dev_string)
+        tab2 = QtGui.QWidget()
+        tab_widget.addTab(tab2, "Developers")
+        t2_ver = QtGui.QVBoxLayout(tab2)
+        t2_ver.addWidget(dev_text)
+        
+        p1_font = QtGui.QFont()
+        p1_font.setFamily("Arial")
+        p1_font.setBold(False)
+        p1_font.setPointSize(14)
         alabel = QtGui.QLabel(self)
         astring="Copyright (c) 2011-2012,\nP. D. Nation & J. R. Johansson"
         pixelswide = fm.width(astring)
@@ -187,13 +177,11 @@ class AboutBox(QtGui.QWidget):
         size = self.frameSize()
         self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2) 
 
-<<<<<<< .mine
 if __name__=="__main__":
     app = QtGui.QApplication(sys.argv) 
     frame = AboutBox('2.0') 
     frame.show()
     frame.raise_()  
-    app.exec_()=======
+    app.exec_()
 
-    
->>>>>>> .r1622
+
