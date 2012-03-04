@@ -29,6 +29,11 @@ CD_BASE = os.path.dirname(__file__)
 
 class AboutBox(QtGui.QWidget): 
     def __init__(self,Qversion): 
+        from qutip import _version
+        if _version.release:
+            version=_version.short_version
+        else:
+            version='HEAD'
         QtGui.QWidget.__init__(self) 
          
         self.setGeometry(0,0, 360,480) 
@@ -58,99 +63,77 @@ class AboutBox(QtGui.QWidget):
         tlabel.setText(tstring)
         tlabel.move((self.width()-pixelswide)/2.0, 165)
         
-        #first tab text
+        #set tab widget and tabs
         tab_widget = QtGui.QTabWidget(self) 
         tab_widget.move(10,200)
         tab_widget.resize(340,220)
         tab1 = QtGui.QWidget(self) 
-        tab1_vert = QtGui.QVBoxLayout(tab1) 
         tab_widget.addTab(tab1, "Version Info")
-        try:
-            import PySide
-            pyside_ver=PySide.__version__
-        except:
-            pyside_ver='None'
-        try:
-            import PyQt4.QtCore as qt4Core
-            pyqt4_ver=qt4Core.PYQT_VERSION_STR
-        except:
-            pyqt4_ver='None'
-        if sys.platform=='darwin':
-            try:
-                import Foundation
-                pyobjc='Yes'
-            except:
-                pyobjc='No'
-        
-        #check for updated version
-        try:
-            current = urlopen("http://qutip.googlecode.com/svn/doc/current_version.txt").read()
-        except:
-            current=None
-        tab1_font = QtGui.QFont()
-        tab1_font.setFamily("Arial")
-        tab1_font.setBold(False)
-        if sys.platform=='darwin':
-            tab1_font.setPointSize(15)
-        else:
-            tab1_font.setPointSize(13)
-        fm = QtGui.QFontMetrics(tab1_font)
-        label = QtGui.QLabel(self)
-        label.setFont(tab1_font)
-        if sys.platform!='darwin':
-            lstring="QuTiP Version:           "+Qversion
-            pixelswide = fm.width(lstring)
-            label.setText(lstring)
-            tab1_vert.addWidget(label)
-            if current or int(current.replace('.','')[0:3])>int(Qversion.replace('.','')[0:3]):
-                label.setOpenExternalLinks(True)
-                lstring+=" (<a href=http://code.google.com/p/qutip/downloads/list>Update</a>)"+"\n"
-            label.setText(lstring)
-            tab1_vert.addWidget(label)
-            label3= QtGui.QLabel(tab1)
-            label3.setFont(tab1_font)
-            lstring3="\n"
-            lstring3+="NumPy Version:         "+str(numpy.__version__)+"\n"
-            lstring3+="SciPy Version:            "+str(scipy.__version__)+"\n"
-            lstring3+="MatPlotLib Version:    "+str(matplotlib.__version__)+"\n\n"
-            lstring3+="PySide Version:         "+str(pyside_ver)+"\n"
-            lstring3+="PyQt4 Version:           "+str(pyqt4_ver)
-            label3.setText(lstring3)
-        else:
-            lstring="QuTiP Version:           "+Qversion
-            pixelswide = fm.width(lstring)
-            label.setText(lstring)
-            tab1_vert.addWidget(label)
-            if current and int(current.replace('.','')[0:3])>int(Qversion.replace('.','')[0:3]):
-                label.setOpenExternalLinks(True)
-                lstring+=" (<a href=http://code.google.com/p/qutip/downloads/list>Update</a>)"+"\n"
-            label.setText(lstring)
-            tab1_vert.addWidget(label)
-            label3= QtGui.QLabel(tab1)
-            label3.setFont(tab1_font)
-            lstring3="\n"
-            lstring3+="NumPy Version:         "+str(numpy.__version__)+"\n"
-            lstring3+="SciPy Version:            "+str(scipy.__version__)+"\n"
-            lstring3+="MatPlotLib Version:    "+str(matplotlib.__version__)+"\n\n"
-            lstring3+="PySide Version:         "+str(pyside_ver)+"\n"
-            lstring3+="PyQt4 Version:           "+str(pyqt4_ver)+"\n"
-            lstring3+="PyObjc Installed:        "+str(pyobjc)
-            label3.setText(lstring3)
-        
-        
-        tab1_vert.addWidget(label3)
-        dev_text=QtGui.QLabel()
-        dev_string="Lead Developers:Paul D. Nation, Robert J. Johansson\n\n"
-        pixelswide = fm.width(dev_string)
-
-        #tab2 text
-        #dev_text.setFont(p1_font)
-        dev_text.setText(dev_string)
+        tab1_vert = QtGui.QVBoxLayout(tab1) 
         tab2 = QtGui.QWidget()
         tab_widget.addTab(tab2, "Developers")
-        t2_ver = QtGui.QVBoxLayout(tab2)
-        t2_ver.addWidget(dev_text)
+        t2_vert = QtGui.QVBoxLayout(tab2)
         
+        
+        #first tab text
+        #call _set_strings function to get label and label2 widgets
+        label,label2=_set_strings(Qversion)
+        tab1_vert.addWidget(label)
+        tab1_vert.addWidget(label2)
+        
+        #tab2 text
+        t2_font = QtGui.QFont()
+        t2_font.setFamily("Arial")
+        t2_font.setBold(True)
+        t2_font.setUnderline(True)
+        t2_font.setPointSize(15)
+        
+        t2_font2 = QtGui.QFont()
+        t2_font2.setFamily("Arial")
+        t2_font2.setBold(False)
+        t2_font2.setUnderline(False)
+        t2_font2.setPointSize(15)
+        
+        tab2_text_1=QtGui.QLabel()
+        dev_string="Lead Developers:"
+        tab2_text_1.setFont(t2_font)
+        tab2_text_1.setText(dev_string)
+        t2_vert.addWidget(tab2_text_1)
+        
+        tab2_text_2=QtGui.QLabel()
+        dev_string2="<a href=http://dml.riken.jp/~rob>Robert Johansson</a> & <a href=http://dml.riken.jp/~paul>Paul Nation</a>"
+        tab2_text_2.setOpenExternalLinks(True)
+        tab2_text_2.setFont(t2_font2)
+        tab2_text_2.setText(dev_string2)
+        t2_vert.addWidget(tab2_text_2)
+        
+        tab2_text_3=QtGui.QLabel()
+        contrib_string="Contributors"
+        tab2_text_3.setFont(t2_font)
+        tab2_text_3.setText(contrib_string)
+        t2_vert.addWidget(tab2_text_3)
+        
+        tab2_text_4=QtGui.QLabel()
+        contrib_string2="Markus Baden"
+        tab2_text_4.setFont(t2_font2)
+        tab2_text_4.setText(contrib_string2)
+        t2_vert.addWidget(tab2_text_4)
+        
+        tab2_text_5=QtGui.QLabel()
+        bug_string="For a list of bug hunters and other"
+        tab2_text_5.setFont(t2_font2)
+        tab2_text_5.setText(bug_string)
+        t2_vert.addWidget(tab2_text_5)
+        
+        tab2_text_6=QtGui.QLabel()
+        bug_string2="contributors see the <a href=http://qutip.googlecode.com/svn/doc/"+version+"/html/contributors.html>QuTiP documentation</a>."
+        tab2_text_6.setOpenExternalLinks(True)
+        tab2_text_6.setFont(t2_font2)
+        tab2_text_6.setText(bug_string2)
+        t2_vert.addWidget(tab2_text_6)
+        
+        
+        #copyright text
         p1_font = QtGui.QFont()
         p1_font.setFamily("Arial")
         p1_font.setBold(False)
@@ -177,11 +160,59 @@ class AboutBox(QtGui.QWidget):
         size = self.frameSize()
         self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2) 
 
-if __name__=="__main__":
-    app = QtGui.QApplication(sys.argv) 
-    frame = AboutBox('2.0') 
-    frame.show()
-    frame.raise_()  
-    app.exec_()
+
+
+
+
+def _set_strings(Qversion):
+    t1_font = QtGui.QFont()
+    t1_font.setFamily("Arial")
+    t1_font.setBold(False)
+    t1_font.setPointSize(15)
+    #qutip text
+    lstring="QuTiP Version:           "+Qversion
+    label= QtGui.QLabel()
+    label.setText(lstring)
+    try:
+        current = urlopen("http://qutip.googlecode.com/svn/doc/current_version.txt").read()
+    except:
+        current=None
+    if current and int(current.replace('.','')[0:3])>int(Qversion.replace('.','')[0:3]):
+        label.setOpenExternalLinks(True)
+        lstring+=" (<a href=http://code.google.com/p/qutip/downloads/list>Update</a>)"
+    t1_font.setBold(True)
+    label.setFont(t1_font)
+    label.setText(lstring)
+    #dependencies text
+    label2= QtGui.QLabel()
+    t1_font.setBold(False)
+    label2.setFont(t1_font)
+    try:
+        import PySide
+        pyside_ver=PySide.__version__
+    except:
+        pyside_ver='None'
+    try:
+        import PyQt4.QtCore as qt4Core
+        pyqt4_ver=qt4Core.PYQT_VERSION_STR
+    except:
+        pyqt4_ver='None'
+    if sys.platform=='darwin':
+        try:
+            import Foundation
+            pyobjc='Yes'
+        except:
+            pyobjc='No'
+    lstring2="NumPy Version:           "+str(numpy.__version__)+"\n"
+    lstring2+="SciPy Version:              "+str(scipy.__version__)+"\n"
+    lstring2+="MatPlotLib Version:      "+str(matplotlib.__version__)+"\n\n"
+    lstring2+="PySide Version:           "+str(pyside_ver)+"\n"
+    lstring2+="PyQt4 Version:             "+str(pyqt4_ver)+"\n"
+    if sys.platform=='darwin':
+        lstring2+="PyObjc Installed:          "+str(pyobjc)
+    label2.setText(lstring2)
+    return label,label2
+
+
 
 
