@@ -114,7 +114,7 @@ class AboutBox(QtGui.QWidget):
         t2_vert.addWidget(tab2_text_3)
         
         tab2_text_4=QtGui.QLabel()
-        contrib_string2="Markus Baden"
+        contrib_string2="Markus Baden\n"
         tab2_text_4.setFont(t2_font2)
         tab2_text_4.setText(contrib_string2)
         t2_vert.addWidget(tab2_text_4)
