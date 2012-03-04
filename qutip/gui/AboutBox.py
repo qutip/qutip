@@ -108,7 +108,7 @@ class AboutBox(QtGui.QWidget):
         t2_vert.addWidget(tab2_text_2)
         
         tab2_text_3=QtGui.QLabel()
-        contrib_string="Contributors"
+        contrib_string="Contributors:"
         tab2_text_3.setFont(t2_font)
         tab2_text_3.setText(contrib_string)
         t2_vert.addWidget(tab2_text_3)
@@ -126,7 +126,7 @@ class AboutBox(QtGui.QWidget):
         t2_vert.addWidget(tab2_text_5)
         
         tab2_text_6=QtGui.QLabel()
-        bug_string2="contributors see the <a href=http://qutip.googlecode.com/svn/doc/"+version+"/html/contributors.html>QuTiP documentation</a>."
+        bug_string2="supporters, see the <a href=http://qutip.googlecode.com/svn/doc/"+version+"/html/contributors.html>QuTiP documentation</a>."
         tab2_text_6.setOpenExternalLinks(True)
         tab2_text_6.setFont(t2_font2)
         tab2_text_6.setText(bug_string2)
