@@ -45,7 +45,7 @@ class AboutBox(QtGui.QWidget):
         self.setFocus()
         
         logo=QtGui.QLabel(self)
-        logo.setGeometry((self.width()-200)/2, 0, 200, 163)
+        logo.setGeometry((self.width()-250)/2, 0, 250, 163)
         logo.setPixmap(QtGui.QPixmap(CD_BASE + "/logo.png"))
         
         tlabel = QtGui.QLabel(self)
