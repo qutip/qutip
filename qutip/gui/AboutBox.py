@@ -159,7 +159,7 @@ class AboutBox(QtGui.QWidget):
         quit = QtGui.QPushButton('Close', self)
         font.setBold(False)
         quit.setFont(font)
-        quit.setGeometry((self.width()-80), 430, 80, 40)
+        quit.setGeometry((self.width()-84), 430, 80, 40)
         quit.clicked.connect(self.close)
        
      
