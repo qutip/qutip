@@ -88,7 +88,7 @@ def steady(L,maxiter=100,tol=1e-6):
 	v=randn(n,1)
 	it=0
 	while (la.norm(L.data*v,inf)>tol) and (it<maxiter):
-		v=spsolve(L1,v)
+		v=spsolve(L1,v, use_umfpack=False)
 		v=v/la.norm(v,inf)
 		it+=1
 	if it>=maxiter:
