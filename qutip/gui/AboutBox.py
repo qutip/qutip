@@ -55,7 +55,7 @@ class AboutBox(QtGui.QWidget):
         if sys.platform=='darwin':
             font.setPointSize(17)
         else:
-            font.setPointSize(15)
+            font.setPointSize(13)
         fm = QtGui.QFontMetrics(font)
         tstring="QuTiP: The Quantum Toolbox in Python"
         pixelswide = fm.width(tstring)
@@ -86,13 +86,19 @@ class AboutBox(QtGui.QWidget):
         t2_font.setFamily("Arial")
         t2_font.setBold(True)
         t2_font.setUnderline(True)
-        t2_font.setPointSize(15)
+        if sys.platform=='darwin':
+            t2_font.setPointSize(15)
+        else:
+            t2_font.setPointSize(12)
         
         t2_font2 = QtGui.QFont()
         t2_font2.setFamily("Arial")
         t2_font2.setBold(False)
         t2_font2.setUnderline(False)
-        t2_font2.setPointSize(15)
+        if sys.platform=='darwin':
+            t2_font2.setPointSize(15)
+        else:
+            t2_font2.setPointSize(12)
         
         tab2_text_1=QtGui.QLabel()
         dev_string="Lead Developers:"
@@ -137,7 +143,10 @@ class AboutBox(QtGui.QWidget):
         p1_font = QtGui.QFont()
         p1_font.setFamily("Arial")
         p1_font.setBold(False)
-        p1_font.setPointSize(14)
+        if sys.platform=='darwin':
+            p1_font.setPointSize(14)
+        else:
+            p1_font.setPointSize(11)
         alabel = QtGui.QLabel(self)
         astring="Copyright (c) 2011-2012,\nP. D. Nation & J. R. Johansson"
         pixelswide = fm.width(astring)
@@ -150,7 +159,7 @@ class AboutBox(QtGui.QWidget):
         quit = QtGui.QPushButton('Close', self)
         font.setBold(False)
         quit.setFont(font)
-        quit.setGeometry((self.width()-85), 430, 80, 40)
+        quit.setGeometry((self.width()-80), 430, 80, 40)
         quit.clicked.connect(self.close)
        
      
@@ -168,7 +177,10 @@ def _set_strings(Qversion):
     t1_font = QtGui.QFont()
     t1_font.setFamily("Arial")
     t1_font.setBold(False)
-    t1_font.setPointSize(15)
+    if sys.platform=='darwin':
+        t1_font.setPointSize(15)
+    else:
+        t1_font.setPointSize(12)
     #qutip text
     lstring="QuTiP Version:           "+Qversion
     label= QtGui.QLabel()
