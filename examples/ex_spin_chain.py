@@ -3,6 +3,7 @@
 # 
 #
 from qutip import *
+from pylab import *
 import time
 
 def integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver):
@@ -48,7 +49,6 @@ def integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver):
         H += - 0.5 * Jy[n] * sy_list[n] * sy_list[n+1]
         H += - 0.5 * Jz[n] * sz_list[n] * sz_list[n+1]
 
-       
     # collapse operators
     c_op_list = []
 
@@ -62,7 +62,8 @@ def integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver):
         expt_list = odesolve(H, psi0, tlist, c_op_list, sz_list)
     elif solver == "mc":
         ntraj = 250 
-        expt_list = mcsolve(H, psi0, tlist, ntraj, c_op_list, sz_list)
+        mc_out = mcsolve(H, psi0, tlist, c_op_list, sz_list, ntraj)
+        expt_list = mc_out.expect
 
     return expt_list
     
@@ -71,9 +72,9 @@ def integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver):
 #
 
 solver = "ode"   # use the ode solver
-#solver = "mc"   # use the monte-carlo solver
+solver = "mc"   # use the monte-carlo solver
 
-N = 8 # number of spins
+N = 6            # number of spins
 
 # array of spin energy splittings and coupling strengths. here we use
 # uniform parameters, but in general we don't have too
@@ -97,7 +98,6 @@ start_time = time.time()
 sz_expt = integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver)
 print 'time elapsed = ' +str(time.time() - start_time) 
 
-
 #
 # plot
 #
@@ -105,12 +105,12 @@ rc('text', usetex=True)
 rc('font', family='serif')
 
 for n in range(N):
-    plot(tlist, real(sz_expt[n,:]), label=r'$\langle\sigma_z($'+str(n)+r'$)\rangle$')
+    plot(tlist, real(sz_expt[n]))#, label=r'$\langle\sigma_z($'+str(n)+r'$)\rangle$')
 
 xlabel(r'Time [ns]')
 ylabel(r'\langle\sigma_z\rangle')
 title(r'Dynamics of a Heisenberg spin chain')
-legend(loc = "lower right")
+#legend(loc = "lower right")
 show()
 
 
