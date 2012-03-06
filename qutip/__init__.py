@@ -101,6 +101,7 @@ from qutip.propagator import *
 from qutip.floquet import *
 
 from qutip.qstate import *
+from qutip.rand import *
 from qutip.rhs_generate import rhs_generate
 from qutip.simdiag import *
 from qutip.sphereplot import *
