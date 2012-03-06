@@ -20,6 +20,8 @@ from scipy import *
 from qutip.Qobj import *
 import scipy.linalg as la
 from qutip.states import ket2dm
+from qutip.tensor import tensor
+from qutip.operators import sigmay
 
 def entropy_vn(rho,base='2'):
     """
