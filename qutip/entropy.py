@@ -23,7 +23,7 @@ from qutip.states import ket2dm
 from qutip.tensor import tensor
 from qutip.operators import sigmay
 
-def entropy_vn(rho,base='2'):
+def entropy_vn(rho,base='e'):
     """
     Von-Neumann entropy of density matrix
     
@@ -43,6 +43,8 @@ def entropy_vn(rho,base='2'):
         >>> entropy_vn(rho)
         1.0
     """
+    if rho.type=='ket' or rho.type=='bra':
+        rho=ket2dm(rho)
     vals,vecs=la.eigh(rho.full())
     nzvals=vals[vals!=0]
     if base=='2':
@@ -101,4 +103,93 @@ def concurrence(rho):
     lsum = sqrt(evals[3]) - sqrt(evals[2]) - sqrt(evals[1]) - sqrt(evals[0])
 
     return max(0, lsum)
+
+
+def entropy_mutual(rho,base='e'):
+    """
+    Calculates the mutual information S(A:B) of a bipartite system density matrix.
+    
+    Args:
+    
+        rho (Qobj): density matrix.
+        
+        base (str): base of logarithm, 'e' (default) or '2'
+    
+    Returns:
+    
+        float value of mutual information
+    """
+    if rho.type!='oper':
+        raise TypeError("Input must be a density matrix.")
+    if len(rho.dims[0])!=2:
+        raise TypeError("Input must be bipartite system.")
+    
+    rhoA=ptrace(rho,0)
+    rhoB=ptrace(rho,1)
+    out=entropy_vn(rhoA,base)+entropy_vn(rhoB,base)-entropy_vn(rho,base)
+    return out
+
+
+def entropy_relative(rho,sigma,base='e'):
+    """
+    Calculates the relative entropy S(rho||sigma) between two density matricies.
+    Relative entropy of rho to sigma
+    
+    Args:
+    
+        rho (Qobj): density matrix.
+        
+        sigma (Qobj): density matrix.
+        
+        base (str): base of logarithm, 'e' (default) or '2'
+    
+    Returns:
+    
+        float value of relative entropy
+    """ 
+    if rho.type!='oper' or sigma.type!='oper':
+        raise TypeError("Inputs must be density matricies.")
+    vals,vecs=la.eigh(rho.full())
+    nzvals=vals[vals!=0]
+    if base=='2':
+        logvals=log2(nzvals)
+    elif base=='e':
+        logvals=log(nzvals)
+    else:
+        raise ValueError("Base must be '2' or 'e'.")
+    vals2,vecs2=la.eigh(rho.full())
+    nzvals2=vals2[vals2!=0]
+    rel_ent=float(real(-sum(nzvals2*logvals)))
+    return -1.0*entropy_vn(rho,base)-rel_ent
+
+
+def entropy_conditional(rho,sel,base='e'):
+    """
+    Calculates the conditional entropy S(A|B) of a bipartite system density matrix.
+
+    Args:
+
+        rho (Qobj): density matrix.
+
+        sel (int): Which component is "A" component (0 or 1) 
+
+        base (str): base of logarithm, 'e' (default) or '2'
+
+    Returns:
+
+        float value of conditional entropy
+    """
+    if rho.type!='oper':
+        raise TypeError("Input must be density matrix.")
+    if len(rho.dims[0])!=2:
+        raise TypeError("Input must be bipartite system.")
+    if sel!=0 or sel!=1:
+        raise ValueError("Choice of density matrix 'A' component must be 0 or 1.")
+    if sel==0:
+        rhoB=ptrace(rho,1)
+    else:
+        rhoB=ptrace(rho,0)
+    out=entropy_vn(rho,base)-entropy_vn(rhoB,base)
+    return out
+    
 
