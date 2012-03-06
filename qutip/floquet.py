@@ -240,7 +240,7 @@ def floquet_collapse_operators(A):
     return c_ops
     
     
-def floquet_master_equation_tensor(Alist):
+def floquet_master_equation_tensor(Alist, f_energies):
     """
     Construct a tensor that represents the master equation in the floquet
     basis (with constant Hamiltonian and collapse operators).
@@ -264,7 +264,9 @@ def floquet_master_equation_tensor(Alist):
         a,b = vec2mat_index(N, I)
         for J in range(N*N):
             c,d = vec2mat_index(N, J)
-        
+
+            R.data[I,J] = - 1.0j * (f_energies[a]-f_energies[b]) * (a == c) * (b == d)
+                    
             for A in Alist:               
                 s1 = s2 = 0
                 for n in range(N):
@@ -343,10 +345,10 @@ def fmmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
 
     #
     # transform the initial density matrix and the e_ops opterators to the
-    # eigenbasis
+    # eigenbasis: from computational basis to the floquet basis
     #
     if ekets != None:
-        rho0 = rho0.transform(ekets)
+        rho0 = rho0.transform(ekets, True)
         for n in arange(len(e_ops)):
             e_ops[n] = e_ops[n].transform(ekets)
 
