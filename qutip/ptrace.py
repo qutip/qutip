@@ -52,7 +52,8 @@ def ptrace(rho,sel):
     irest=(indrest-1)*N+indrest-2
     # Possibly use parfor here if M > some value ?
     perm.rows=array([(irest+(indsel[int(floor(m/M))]-1)*N+indsel[int(mod(m,M))]).T[0] for  m in xrange(M**2)])
-    perm.data=ones_like(perm.rows,dtype=int)
+    #perm.data=ones_like(perm.rows,dtype=int)
+    perm.data=ones_like(perm.rows)
     perm.tocsr()
     rws=prod(shape(rho.data))
     rho1=Qobj()
