@@ -348,7 +348,7 @@ class MC_class():
                 if not app:#create QApplication if it doesnt exist
                     app = QtGui.QApplication(sys.argv)
                 thread=Pthread(target=self.parallel,args=args,top=self)
-                self.bar=ProgressBar(self,thread,self.ntraj)
+                self.bar=ProgressBar(self,thread,self.ntraj,self.cpus)
                 QtCore.QTimer.singleShot(0,self.bar.run)
                 self.bar.show()
                 self.bar.activateWindow()

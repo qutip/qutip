@@ -39,10 +39,10 @@ class Sig(QtCore.QObject):
     trajdone = Signal()
 
 class ProgressBar(QtGui.QWidget):
-    def __init__(self,top,thread,mx,parent = None):
+    def __init__(self,top,thread,mx,ncpus,parent = None):
         QtGui.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window|QtCore.Qt.CustomizeWindowHint|QtCore.Qt.WindowTitleHint|QtCore.Qt.WindowMinimizeButtonHint)
-        self.wait=int(cpu_count())
+        self.wait=ncpus
         self.top=top
         self.max=mx
         self.st=datetime.datetime.now()
@@ -59,7 +59,7 @@ class ProgressBar(QtGui.QWidget):
         self.estlabel.setStyleSheet("QLabel {font-size: 12px;}")
         self.estlabel.setText("                                                           ")
         self.estlabel.move(25, 82)
-        self.setWindowTitle('Monte-Carlo Trajectories')
+        self.setWindowTitle('Monte-Carlo Trajectories on '+str(self.wait)+" CPUs")
         self.setGeometry(300, 300, 350, 120)
         #self.setWindowOpacity(0.9) #make transparent
         screen = QtGui.QDesktopWidget().screenGeometry()
