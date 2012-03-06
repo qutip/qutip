@@ -191,5 +191,4 @@ def entropy_conditional(rho,sel,base='e'):
         rhoB=ptrace(rho,0)
     out=entropy_vn(rho,base)-entropy_vn(rhoB,base)
     return out
-    
 
