@@ -67,7 +67,7 @@ def qubit_integrate(delta, eps0, A, omega, psi0, tlist):
     rho_ss = floquet_master_equation_steadystate(H0, A)
     
     
-    R = floquet_master_equation_tensor(A)
+    R = floquet_master_equation_tensor(A, f_energies)
     
     print "Floquet-Markov master equation tensor"
     
