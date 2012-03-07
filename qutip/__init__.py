@@ -18,48 +18,51 @@
 ###########################################################################
 
 import os,sys,platform,multiprocessing
-
+import qutip.settings
 #automatically set number of threads used by MKL
 os.environ['MKL_NUM_THREADS']=str(multiprocessing.cpu_count())
 os.environ['NUM_THREADS']=str(multiprocessing.cpu_count())
-
+qutip.settings.num_cpus=multiprocessing.cpu_count()
 #
 # default, use graphics (unless QUTIP_GRAPHICS is already set)
 #
 if not ('QUTIP_GRAPHICS' in os.environ):
     os.environ['QUTIP_GRAPHICS']="YES"
-
+    qutip.settings.qutip_graphics='YES'
 # default to no gui until run local is checked
 if not ('QUTIP_GUI' in os.environ):
     os.environ['QUTIP_GUI']="NONE"
-
+    qutip.settings.qutip_gui="NONE"
 #check if being run remotely
 if not ('DISPLAY' in os.environ):
     #no graphics if DISPLAY isn't set
     os.environ['QUTIP_GRAPHICS']="NO"
+    qutip.settings.qutip_graphics='NO'
     os.environ['QUTIP_GUI']="NONE"
-
+    qutip.settings.qutip_gui="NONE"
 # check for windows platform
 if sys.platform[0:3] == 'win':
     # graphics always available on windows
     os.environ['QUTIP_GRAPHICS']="YES"
-
+    qutip.settings.qutip_graphics='YES'
 #-Check for Matplotlib
 try:
     import matplotlib
 except:
     os.environ['QUTIP_GRAPHICS']="NO"
-
+    qutip.settings.qutip_graphics='NO'
 
 #if being run locally, check for installed gui modules
-if os.environ['QUTIP_GRAPHICS']=="YES":
+if qutip.settings.qutip_graphics=='YES':
     try:
         import PySide
         os.environ['QUTIP_GUI']="PYSIDE"
+        qutip.settings.qutip_gui="PYSIDE"
     except:
         try:
             import PyQt4
             os.environ['QUTIP_GUI']="PYQT4"
+            qutip.settings.qutip_gui="PYQT4"
         except:
             pass
 #----------------------------------------------------
@@ -69,7 +72,7 @@ import scipy.sparse as sp
 from qutip.Qobj import Qobj,shape,dims,dag,trans,sp_expm
 from qutip.about import *
 
-if os.environ['QUTIP_GRAPHICS']=="YES":
+if qutip.settings.qutip_graphics=='YES':
     from qutip.Bloch import Bloch
     from qutip.graph import hinton
 
@@ -112,5 +115,5 @@ from qutip.tensor import *
 from qutip.wigner import *
 from qutip.fileio import *
 from qutip.bloch_redfield import *
-
+import qutip.settings
 
