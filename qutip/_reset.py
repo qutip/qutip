@@ -26,5 +26,6 @@ def _reset():
     qutip.settings.qutip_graphics=os.environ['QUTIP_GRAPHICS']
     qutip.settings.qutip_gui=os.environ['QUTIP_GUI']
     qutip.settings.auto_tidyup=True
+    qutip.settings.auto_tidyup_Atol=1e-15
     qutip.settings.franco=False
     qutip.settings.num_cpus=int(os.environ['NUM_THREADS'])

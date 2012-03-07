@@ -27,6 +27,8 @@ qutip_graphics=None
 qutip_gui=None
 #use auto tidyup
 auto_tidyup=True
+#use auto tidyup absolute tolerance 
+auto_tidyup_Atol=1e-15
 #the Franco flag
 franco=False
 #number of cpus (set at qutip import)
