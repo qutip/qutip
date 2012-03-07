@@ -148,15 +148,27 @@ class Qobj():
 
     #- Definition of PLUS with Qobj on RIGHT (ex. 4+Qobj) ###############
     def __radd__(self,other): #defines left addition for Qobj class
-        return self+other
+        out=self+other
+        if qset.auto_tidyup:
+            return out.tidyup()
+        else:
+            return out
 
     #- Definition of SUBTRACTION with Qobj on LEFT (ex. Qobj-4) #########
     def __sub__(self,other):
-        return self+(-other)
+        out=self+(-other)
+        if qset.auto_tidyup:
+            return out.tidyup()
+        else:
+            return out
 
     #- Definition of SUBTRACTION with Qobj on RIGHT (ex. 4-Qobj) #########
     def __rsub__(self,other):
-        return (-self)+other
+        out=(-self)+other
+        if qset.auto_tidyup:
+            return out.tidyup()
+        else:
+            return out
     
     #-Definition of Multiplication with Qobj on left (ex. Qobj*5) #########
     def __mul__(self,other):
@@ -433,10 +445,17 @@ class Qobj():
 
             Qobj with small elements removed
         """
-        mx=max(abs(self.data.data))
-        data=abs(self.data.data)
-        outdata=self.data.copy()
-        outdata.data[data<(Atol*mx+finfo(float).eps)]=0
+        abs_data=abs(self.data.data)
+        if any(abs_data):
+            mx=max(abs(self.data.data))
+            if mx>9e-16:
+                data=abs(self.data.data)
+                outdata=self.data.copy()
+                outdata.data[data<(Atol*mx+finfo(float).eps)]=0
+            else:
+                outdata=sp.csr_matrix((self.shape[0],self.shape[1]),dtype=complex)
+        else:
+            outdata=sp.csr_matrix((self.shape[0],self.shape[1]),dtype=complex)
         outdata.eliminate_zeros()
         return Qobj(outdata,dims=self.dims,shape=self.shape)
 
