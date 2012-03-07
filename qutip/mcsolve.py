@@ -83,7 +83,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
             rhs_generate(H,args)
         lenh=len(H[0])
         if options.tidy:
-            H[0]=[(H[0][k]).tidyup() for k in range(lenh)]
+            H[0]=[(H[0][k]).tidyup(options.atol) for k in range(lenh)]
         if len(c_ops)>0:
             odeconfig.cflag=1
             for c_op in c_ops:
@@ -132,7 +132,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
         odeconfig.Hptrs=H.data.indptr
 
 
-    mc=MC_class(psi0,tlist,ntraj,c_ops,e_ops,options)
+    mc=MC_class(psi0.tidyup(options.atol),tlist,ntraj,c_ops,e_ops,options)
     mc.run()
     #AFTER MCSOLVER IS DONE --------------------------------------
     if odeconfig.tflag==1 and (not options.rhs_reuse):
