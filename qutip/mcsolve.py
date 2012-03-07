@@ -32,6 +32,7 @@ from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
 from Mcdata import Mcdata
+import qutip.settings
 
 def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     """
@@ -131,7 +132,6 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
         odeconfig.Hinds=H.data.indices
         odeconfig.Hptrs=H.data.indptr
 
-
     mc=MC_class(psi0.tidyup(options.atol),tlist,ntraj,c_ops,e_ops,options)
     mc.run()
     #AFTER MCSOLVER IS DONE --------------------------------------
@@ -179,6 +179,7 @@ class MC_class():
                 pass
             else:
                 self.options.gui=False    
+        if qutip.settings.qutip_gui=="NONE":self.options.gui=False
         ##holds instance of the ProgressBar class
         self.bar=None
         ##holds instance of the Pthread class
@@ -260,7 +261,7 @@ class MC_class():
         self.collapse_times_out[r]=results[2]
         self.which_op_out[r]=results[3]
         self.count+=self.step
-        if not self.options.gui: #do not use GUI
+        if (not self.options.gui): #do not use GUI
             self.percent=self.count/(1.0*self.ntraj)
             if self.count/float(self.ntraj)>=self.level:
                 #calls function to determine simulation time remaining
@@ -335,14 +336,14 @@ class MC_class():
                     self.norm_c_data,self.norm_c_ind,self.norm_c_ptr,
                     self.e_ops_data,self.e_ops_ind,self.e_ops_ptr,self.e_ops_isherm)
             if (not self.options.gui) or sys.platform[0:3]=="win":
-                print('Starting Monte-Carlo:')
+                print('Starting Monte-Carlo on '+str(self.cpus)+' CPUs:')
                 self.parallel(args,self)
             else:
-                from gui.ProgressBar import ProgressBar,Pthread
-                if os.environ['QUTIP_GUI']=="PYSIDE":
+                if qutip.settings.qutip_gui=="PYSIDE":
                     from PySide import QtGui,QtCore
-                elif os.environ['QUTIP_GUI']=="PYQT4":
+                elif qutip.settings.qutip_gui=="PYQT4":
                     from PyQt4 import QtGui,QtCore
+                from gui.ProgressBar import ProgressBar,Pthread
                 app=QtGui.QApplication.instance()#checks if QApplication already exists (needed for iPython)
                 if not app:#create QApplication if it doesnt exist
                     app = QtGui.QApplication(sys.argv)

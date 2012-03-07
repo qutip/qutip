@@ -19,7 +19,6 @@ from __future__ import print_function
 ###########################################################################
 import os
 import qutip.settings
-
 class Odeoptions():
     """
     .. note::
@@ -86,13 +85,11 @@ class Odeoptions():
         self.rhs_filename=rhs_filename
         #: Number of processors to use (mcsolve only)
         self.num_cpus=num_cpus
+        self.gui=gui
         if self.num_cpus>int(os.environ['NUM_THREADS']):
             raise Exception("Requested number of CPU's too large. Max = "+str(int(os.environ['NUM_THREADS'])))
         #: Use Progressbar (mcsolve only)
-        if qutip.settings.qutip_gui=="NONE" or qutip.settings.qutip_graphics=='NO':
-            self.gui=False
-        else:
-            self.gui=gui
+        self.gui=gui
     def __str__(self):
         print("Odeoptions properties:")
         print("----------------------")
