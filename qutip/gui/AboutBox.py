@@ -40,7 +40,8 @@ class AboutBox(QtGui.QWidget):
         self.setWindowTitle("About QuTiP") 
         self.setWindowIcon(QtGui.QIcon(CD_BASE + "/logo.png")) 
         self.resize(360,480) 
-        self.setMinimumSize(360,480) 
+        self.setMinimumSize(360,480)
+        self.setMaximumSize(360,480) 
         self.center() 
         self.setFocus()
         
@@ -67,6 +68,7 @@ class AboutBox(QtGui.QWidget):
         tab_widget = QtGui.QTabWidget(self) 
         tab_widget.move(10,200)
         tab_widget.resize(340,220)
+        
         tab1 = QtGui.QWidget(self) 
         tab_widget.addTab(tab1, "Version Info")
         tab1_vert = QtGui.QVBoxLayout(tab1) 
@@ -159,7 +161,7 @@ class AboutBox(QtGui.QWidget):
         quit = QtGui.QPushButton('Close', self)
         font.setBold(False)
         quit.setFont(font)
-        quit.setGeometry((self.width()-84), 430, 80, 40)
+        quit.setGeometry((self.width()-89), 430, 80, 40)
         quit.clicked.connect(self.close)
        
      

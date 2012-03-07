@@ -33,6 +33,8 @@ class Examples(QtGui.QWidget):
         #WINDOW PROPERTIES
         self.setWindowTitle('QuTiP Examples')
         self.resize(790, 650)
+        self.setMinimumSize(790, 650)
+        self.setMaximumSize(790, 650)
         self.center()
         self.setFocus()
         #self.setWindowFlags(QtCore.Qt.Popup)#no titlebar 
@@ -287,7 +289,7 @@ class Examples(QtGui.QWidget):
         ###############################
     def center(self):
         screen = QtGui.QDesktopWidget().screenGeometry()
-        size =  self.geometry()
+        size =  self.frameSize()
         self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
     def moveout(self):
         #self.clearFocus()
@@ -385,9 +387,10 @@ class Examples(QtGui.QWidget):
         self.moveout()
         exconfig.option=45
         self.close()
-    
 
 
-
-    
-    
+class HoverButton(QtGui.QPushButton): 
+    def enterEvent(self,event):  
+        self.setStyleSheet('QPushButton {border-width: 2px;border-color:#222222;border-style: solid;border-radius: 7}')
+    def leaveEvent(self,event):  
+        self.setStyleSheet('QPushButton {border-width: 2px;border-color:#888888;border-style: solid;border-radius: 7}')  

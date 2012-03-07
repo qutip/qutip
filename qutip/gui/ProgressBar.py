@@ -63,7 +63,7 @@ class ProgressBar(QtGui.QWidget):
         self.setGeometry(300, 300, 350, 120)
         #self.setWindowOpacity(0.9) #make transparent
         screen = QtGui.QDesktopWidget().screenGeometry()
-        size =  self.geometry()
+        size =  self.frameSize()
         self.move((screen.width()-size.width())/2, (screen.height()-size.height())/2)
         self.setFixedSize(self.size());   
         self.thread=thread
