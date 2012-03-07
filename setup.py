@@ -25,7 +25,6 @@ Topic :: Scientific/Engineering
 Operating System :: POSIX
 Operating System :: Unix
 Operating System :: MacOS
-Operating System :: Microsoft :: Windows
 """
 
 MAJOR               = 2
@@ -101,7 +100,7 @@ setup(
     keywords = "quantum physics dynamics",
     url = "http://code.google.com/p/qutip/",
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
-    platforms = ["Linux", "Mac OSX", "Unix", "Windows"],
+    platforms = ["Linux", "Mac OSX", "Unix"],
     depends=['scipy','matplotlib'],
     package_data = {'qutip/gui': ['*.png']},
     include_package_data=True 
