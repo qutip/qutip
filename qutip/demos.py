@@ -20,17 +20,18 @@ import sys,os
 import qutip.examples as examples
 from .examples import exconfig
 from scipy import arange,array,any
+import qutip.settings
 def demos():
     """
     Calls the demos scripts via a GUI window if PySide
     or PyQt4 are avaliable.  Otherwise, a commandline 
     interface is given in the terminal.
     """
-    if os.environ['QUTIP_GRAPHICS']=='YES':
+    if qutip.settings.qutip_graphics=='YES':
         from gui import Examples
-        if os.environ['QUTIP_GUI']=="PYSIDE":
+        if qutip.settings.qutip_gui=="PYSIDE":
             from PySide import QtGui, QtCore
-        elif os.environ['QUTIP_GUI']=="PYQT4":
+        elif qutip.settings.qutip_gui=="PYQT4":
             from PyQt4 import QtGui, QtCore
         def start_gui(ver):
             app=QtGui.QApplication.instance()#checks if QApplication already exists (needed for iPython)
@@ -48,7 +49,7 @@ def demos():
 
     while exconfig.option<123456:
         exconfig.option=123456
-        if os.environ['QUTIP_GRAPHICS']=='YES':
+        if qutip.settings.qutip_graphics=='YES':
             import _version
             if _version.release:
                 ver=_version.short_version

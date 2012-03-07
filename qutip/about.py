@@ -23,6 +23,7 @@ Module for aboutbox or command line ouput of information on QuTiP and dependenci
 
 import sys,os
 import numpy,scipy
+import qutip.settings
 
 CD_BASE = os.path.dirname(__file__) # get directory of about.py file
 #execfile(os.path.join(CD_BASE, "_version.py")) #execute _version.py file in CD_BASE directory
@@ -34,12 +35,12 @@ def about():
     GUI version requires PySide or PyQt4.
     """
     tk_conify_center()
-    if os.environ['QUTIP_GRAPHICS']=='YES' and os.environ['QUTIP_GUI']!="NONE":
+    if qutip.settings.qutip_graphics=='YES' and qutip.settings.qutip_gui!="NONE":
         from gui import AboutBox
         import matplotlib
-        if os.environ['QUTIP_GUI']=="PYSIDE":
+        if qutip.settings.qutip_gui=="PYSIDE":
             from PySide import QtGui, QtCore
-        elif os.environ['QUTIP_GUI']=="PYQT4":
+        elif qutip.settings.qutip_gui=="PYQT4":
             from PyQt4 import QtGui, QtCore
         
         app=QtGui.QApplication.instance()#checks if QApplication already exists (needed for iPython)
@@ -95,39 +96,35 @@ def tk_conify_center():
     """
     Private function used by GUI about box
     """
-    import os
-    try: os.environ['FRANCO']
-    except: pass
-    else:
-        if os.environ['FRANCO']=='TRUE':
-            import Tkinter,zipfile,time
-            def center(window):
-              sw = window.winfo_screenwidth()
-              sh = window.winfo_screenheight()
-              rw = window.winfo_reqwidth()
-              rh = window.winfo_reqheight()
-              xc = (sw - rw) / 2
-              yc = (sh -rh) / 2
-              window.geometry("+%d+%d" % (xc-75, yc-75))
-              window.deiconify()
-            def stop(me):
-                stop_flag=1
-                me.destroy()
-                os.remove(os.path.dirname(__file__)+'/.egg.gif')
-                os.environ['FRANCO']='FALSE'
-            root=Tkinter.Tk() 
-            root.title('The Franco Easter Egg')
-            root.wm_attributes("-topmost", 1)
-            zf=zipfile.ZipFile(os.path.dirname(__file__)+"/.Tk.egg.zip", 'r')
-            data=zf.extract('.egg.gif',os.path.dirname(__file__),pwd='lowfruit')
-            c=Tkinter.Canvas(root,width=290, height=300) 
-            p=Tkinter.PhotoImage(file=data) 
-            i=c.create_image(0,0,anchor=Tkinter.NW,image=p) 
-            c.pack() 
-            root.after(0,center,root)
-            root.after(5000,stop,root)    
-            root.mainloop()
-            try:os.remove(os.path.dirname(__file__)+'/.egg.gif')
-            except:os.environ['FRANCO']='FALSE'
-            else:os.environ['FRANCO']='FALSE'
+    if qutip.settings.franco==True:
+        import Tkinter,zipfile,time
+        def center(window):
+          sw = window.winfo_screenwidth()
+          sh = window.winfo_screenheight()
+          rw = window.winfo_reqwidth()
+          rh = window.winfo_reqheight()
+          xc = (sw - rw) / 2
+          yc = (sh -rh) / 2
+          window.geometry("+%d+%d" % (xc-75, yc-75))
+          window.deiconify()
+        def stop(me):
+            stop_flag=1
+            me.destroy()
+            os.remove(os.path.dirname(__file__)+'/.egg.gif')
+            qutip.settings.franco=False
+        root=Tkinter.Tk() 
+        root.title('The Franco Easter Egg')
+        root.wm_attributes("-topmost", 1)
+        zf=zipfile.ZipFile(os.path.dirname(__file__)+"/.Tk.egg.zip", 'r')
+        data=zf.extract('.egg.gif',os.path.dirname(__file__),pwd='lowfruit')
+        c=Tkinter.Canvas(root,width=290, height=300) 
+        p=Tkinter.PhotoImage(file=data) 
+        i=c.create_image(0,0,anchor=Tkinter.NW,image=p) 
+        c.pack() 
+        root.after(0,center,root)
+        root.after(5000,stop,root)    
+        root.mainloop()
+        try:os.remove(os.path.dirname(__file__)+'/.egg.gif')
+        except:qutip.settings.franco=False
+        else:qutip.settings.franco=False
 

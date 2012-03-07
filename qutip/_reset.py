@@ -17,21 +17,14 @@
 #
 ###########################################################################
 """
-This module contains settings for the QuTiP GUI,multiprocessing,
-and tidyup functionality.
+This module resets the global properties in qutip.settings
 """
 
-#QuTiP Graphics (set at qutip import)
-qutip_graphics=None
-#QuTiP GUI selection (set at qutip import)
-qutip_gui=None
-#use auto tidyup
-auto_tidyup=True
-#the Franco flag
-franco=False
-#number of cpus (set at qutip import)
-num_cpus=1
-
-def reset():
-    from qutip._reset import _reset
-    _reset()
+def _reset():
+    import os
+    import qutip.settings
+    qutip.settings.qutip_graphics=os.environ['QUTIP_GRAPHICS']
+    qutip.settings.qutip_gui=os.environ['QUTIP_GUI']
+    qutip.settings.auto_tidyup=True
+    qutip.settings.franco=False
+    qutip.settings.num_cpus=int(os.environ['NUM_THREADS'])
