@@ -27,7 +27,6 @@ from qutip.Odeoptions import Odeoptions
 import qutip.odeconfig as odeconfig
 from multiprocessing import Pool,cpu_count
 from types import FunctionType
-from qutip.tidyup import tidyup
 from qutip.cyQ.cy_mc_funcs import mc_expect,spmv,cy_mc_no_time
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
@@ -84,7 +83,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
             rhs_generate(H,args)
         lenh=len(H[0])
         if options.tidy:
-            H[0]=[tidyup(H[0][k]) for k in range(lenh)]
+            H[0]=[(H[0][k]).tidyup() for k in range(lenh)]
         if len(c_ops)>0:
             odeconfig.cflag=1
             for c_op in c_ops:
@@ -119,7 +118,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
             Hq=0
             for c_op in c_ops:
                 Hq -= 0.5j * (c_op.dag()*c_op)
-            Hq=tidyup(Hq,options.atol)
+            Hq=Hq.tidyup(options.atol)
             odeconfig.Hcoll=-1.0j*Hq.data
     #if Hamiltonian is time-independent
     else:
@@ -127,7 +126,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
         for c_op in c_ops:
             H -= 0.5j * (c_op.dag()*c_op)
         if options.tidy:
-            H=tidyup(H,options.atol)
+            H=H.tidyup(options.atol)
         odeconfig.Hdata=-1.0j*H.data.data
         odeconfig.Hinds=H.data.indices
         odeconfig.Hptrs=H.data.indptr

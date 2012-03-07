@@ -19,7 +19,6 @@
 
 from types import *
 from scipy.integrate import *
-from qutip.tidyup import tidyup
 from qutip.Qobj import *
 from qutip.superoperator import *
 from qutip.expect import *
@@ -35,15 +34,12 @@ import os,numpy,odeconfig
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 # 
-def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
+def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=Odeoptions()):
     """
     New master equation API: still a moving target...
     
     """
-
-    if options == None:
-        options = Odeoptions()
-                
+    #check for type (if any) of time-dpendent inputs            
     n_const,n_func,n_str=_ode_checks(H,c_ops)
 
 
@@ -797,7 +793,7 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list,H_args, opt):
         rhs_generate(H_func,H_args)
     lenh=len(H_func[0])
     if opt.tidy:
-        H_func[0]=[tidyup(H_func[0][k]) for k in range(lenh)]
+        H_func[0]=[(H_func[0][k]).tidyup() for k in range(lenh)]
     #create data arrays for time-dependent RHS function
     Hdata=[-1.0j*H_func[0][k].data.data for k in range(lenh)]
     Hinds=[H_func[0][k].data.indices for k in range(lenh)]
@@ -957,7 +953,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
 
 
     if opt.tidy:
-        H=tidyup(H,opt.atol)
+        H=H.tidyup(opt.atol)
     #
     # check initial state
     #
@@ -1090,7 +1086,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
         rhs_generate(H_func,H_args)
     lenh=len(H_func[0])
     if opt.tidy:
-        H_func[0]=[tidyup(H_func[0][k]) for k in range(lenh)]
+        H_func[0]=[(H_func[0][k]).tidyup() for k in range(lenh)]
     L_func=[[liouvillian(H_func[0][0], c_op_list)],H_func[1]]
     for m in range(1, lenh):
         L_func[0].append(liouvillian(H_func[0][m],[]))

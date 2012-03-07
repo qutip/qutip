@@ -109,7 +109,6 @@ from qutip.states import *
 from qutip.steady import *
 from qutip.superoperator import *
 from qutip.tensor import *
-from qutip.tidyup import tidyup
 from qutip.wigner import *
 from qutip.fileio import *
 from qutip.bloch_redfield import *

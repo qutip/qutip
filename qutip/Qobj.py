@@ -21,6 +21,7 @@ import scipy.sparse as sp
 import scipy.linalg as la
 from qutip.istests import *
 import types
+from scipy import finfo
 
 class Qobj():
     """
@@ -363,6 +364,25 @@ class Qobj():
         Returns the operator normalized to unity.
         """
         return self/self.norm()
+    def tidyup(self,Atol=1e-12):
+        """
+        Removes small elements from a Qobj
+
+        Args:
+
+            op (Qobj): input quantum object
+            Atol (float): absolute tolerance
+
+        Returns:
+
+            Qobj with small elements removed
+        """
+        mx=max(abs(self.data.data))
+        data=abs(self.data.data)
+        outdata=self.data.copy()
+        outdata.data[data<(Atol*mx+finfo(float).eps)]=0
+        outdata.eliminate_zeros()
+        return Qobj(outdata,dims=self.dims,shape=self.shape)
 
 
     #
