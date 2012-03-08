@@ -309,7 +309,7 @@ class Qobj():
         else:
             return Qobj(out)
     def __getitem__(self,ind):
-        return self.data[ind]
+        return self.data[ind].todense()
 
     def __eq__(self, other):
         if isinstance(other,Qobj) and self.dims == other.dims and \
