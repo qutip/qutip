@@ -20,12 +20,10 @@ from scipy import prod, finfo
 import scipy.sparse as sp
 import scipy.linalg as la
 from scipy.sparse.linalg import spsolve
-
 from qutip.Qobj import *
 from qutip.istests import *
 from qutip.superoperator import *
-
-
+from qutip.operators import qeye
 # ------------------------------------------------------------------------------
 # 
 def steadystate(H, c_op_list,maxiter=100,tol=1e-6):
@@ -83,26 +81,28 @@ def steady(L,maxiter=100,tol=1e-6):
 	else:
 		rhoss.dims=[l.dims[0],1]
 		rhoss.shape=[prod(rhoss.dims[0]),1]
-	n=len(L.data.todense())
-	L1=L.data+eps*la.norm(L.data.todense(),inf)*sp.eye(n,n)
-	v=randn(n,1)
+	n=prod(rhoss.shape)
+	L1=L.data+eps*_sp_inf_norm(L)*sp.eye(n,n,format='csr')
+	v=2.0*(random.random((n,1))+1.0j*random.random((n,1)))-(1.0+1.0j)
 	it=0
 	while (la.norm(L.data*v,inf)>tol) and (it<maxiter):
-		v=spsolve(L1,v, use_umfpack=False)
+		v=spsolve(L1,v,use_umfpack=False)
 		v=v/la.norm(v,inf)
 		it+=1
 	if it>=maxiter:
 		raise ValueError('Failed to find steady state after ' + str(maxiter) +' iterations')
-	rhoss.data=v
 	#normalise according to type of problem
 	if sflag:
-		trow=eye(rhoss.shape[0],rhoss.shape[0])
-		trow=reshape(trow,(1,n))
-		rhoss.data=rhoss.data/sum(dot(trow,rhoss.data))
+		trow=sp.eye(rhoss.shape[0],rhoss.shape[0],format='lil')
+		trow=trow.reshape((1,n)).tocsr()
+		data=v/sum(trow.dot(v))
 	else:
-		rhoss.data=rhoss.data/la.norm(rhoss.data)
-	rhoss.data=reshape(rhoss.data,(rhoss.shape[0],rhoss.shape[1])).T
-	return Qobj(rhoss.data,dims=rhoss.dims,shape=rhoss.shape)
+		data=data/la.norm(data)
+	data=reshape(data,(rhoss.shape[0],rhoss.shape[1])).T
+	rhoss.data=sp.csr_matrix(data)
+	return Qobj(rhoss)
 	
 	
-		
+def _sp_inf_norm(op):
+    return max([sum(abs(op[:,k])) for k in xrange(op.shape[1])])
+    		
