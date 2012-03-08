@@ -22,7 +22,7 @@ import scipy.linalg as la
 import time
 from qutip.tensor import tensor
 from qutip.Qobj import *
-from qutip.ptrace import ptrace
+#from qutip.ptrace import ptrace
 from qutip.states import *
 from qutip.istests import *
 try:#for scipy v <= 0.90

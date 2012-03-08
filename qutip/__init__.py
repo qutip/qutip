@@ -69,7 +69,7 @@ if qutip.settings.qutip_graphics=='YES':
 from scipy import *
 import scipy.linalg as la
 import scipy.sparse as sp
-from qutip.Qobj import Qobj,shape,dims,dag,trans,sp_expm
+from qutip.Qobj import *
 from qutip.about import *
 
 if qutip.settings.qutip_graphics=='YES':
@@ -98,7 +98,7 @@ from qutip.essolve import *
 from qutip.operators import *
 from qutip.orbital import *
 from qutip.parfor import *
-from qutip.ptrace import ptrace
+#from qutip.ptrace import ptrace
 
 from qutip.propagator import *
 from qutip.floquet import *

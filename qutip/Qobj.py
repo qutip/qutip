@@ -23,7 +23,7 @@ from qutip.istests import *
 import types
 from scipy import finfo
 import qutip.settings as qset
-
+from ptrace import _ptrace
 class Qobj():
     """
     A class for representing quantum objects (**Qobj**), such as quantum operators
@@ -432,14 +432,21 @@ class Qobj():
             return out.tidyup()
         else:
             return out
-    def tidyup(self,Atol=qset.auto_tidyup_Atol):
+    def ptrace(self,sel):
+            qdata,qdims,qshape=_ptrace(self,sel)
+            if qset.auto_tidyup:
+                return Qobj(qdata,qdims,qshape).tidyup()
+            else:
+                return Qobj(qdata,qdims,qshape)
+    
+    def tidyup(self,atol=qset.auto_tidyup_atol):
         """
         Removes small elements from a Qobj
 
         Args:
 
             op (Qobj): input quantum object
-            Atol (float): absolute tolerance
+            atol (float): absolute tolerance
 
         Returns:
 
@@ -448,10 +455,10 @@ class Qobj():
         abs_data=abs(self.data.data)
         if any(abs_data):
             mx=max(abs(self.data.data))
-            if mx>9e-16:
+            if mx>=1e-15:
                 data=abs(self.data.data)
                 outdata=self.data.copy()
-                outdata.data[data<(Atol*mx+finfo(float).eps)]=0
+                outdata.data[data<(atol*mx+finfo(float).eps)]=0
             else:
                 outdata=sp.csr_matrix((self.shape[0],self.shape[1]),dtype=complex)
         else:
@@ -653,6 +660,8 @@ def trans(A):
     return Qobj(out)
 
 
+def ptrace(Q,sel):
+        return Q.ptrace(sel)
 #-############################################################################
 #      
 #

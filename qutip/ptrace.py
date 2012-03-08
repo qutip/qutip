@@ -19,9 +19,8 @@
 from scipy import *
 import scipy.sparse as sp
 from scipy.linalg import *
-from qutip.Qobj import *
 
-def ptrace(rho,sel):
+def _ptrace(rho,sel):
     """
     Compute partial trace of composite quantum object formed by :func:`qutip.tensor`
     
@@ -56,15 +55,14 @@ def ptrace(rho,sel):
     perm.data=ones_like(perm.rows)
     perm.tocsr()
     rws=prod(shape(rho.data))
-    rho1=Qobj()
     rhdata=perm*csr_to_col(rho.data)
     rhdata=rhdata.tolil().reshape((M,M))
-    rho1.data=rhdata.tocsr()
+    rho1_data=rhdata.tocsr()
     dims_kept0=asarray(rho.dims[0]).take(sel)
     dims_kept1=asarray(rho.dims[0]).take(sel)
-    rho1.dims=[dims_kept0.tolist(),dims_kept1.tolist()]
-    rho1.shape=[prod(dims_kept0),prod(dims_kept1)]
-    return Qobj(rho1)
+    rho1_dims=[dims_kept0.tolist(),dims_kept1.tolist()]
+    rho1_shape=[prod(dims_kept0),prod(dims_kept1)]
+    return rho1_data,rho1_dims,rho1_shape
 
 
 
