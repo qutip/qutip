@@ -74,10 +74,11 @@ class Codegen():
             input_vars+="np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k)+","
         if self.hconst:
             td_consts=self.hconst.items()
-            for elem in td_consts:
-                kind=type(elem[1]).__name__
-                input_vars+="np."+kind+"_t"+" "+elem[0]
-                if elem!=td_consts[-1]:
+            td_len=len(td_consts)
+            for jj in range(td_len):
+                kind=type(td_consts[jj][1]).__name__
+                input_vars+="np."+kind+"_t"+" "+td_consts[jj][0]
+                if jj!=td_len-1:
                     input_vars+=","
         func_end="):"
         return [func_name+input_vars+func_end]
@@ -91,9 +92,8 @@ class Codegen():
             any_np=np.array([text.find(x) for x in self.func_list])
             ind=np.nonzero(any_np>-1)[0]
             for kk in ind:
-                if self.func_list[kk]!='exp':
-                    new_text='np.'+self.func_list[kk]
-                    text=text.replace(self.func_list[kk],new_text)
+                new_text='np.'+self.func_list[kk]
+                text=text.replace(self.func_list[kk],new_text)
             self.tdterms[jj]=text
             
     def func_vars(self):
@@ -106,7 +106,7 @@ class Codegen():
             hstr=str(ht)
             str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data"+hstr+","+"idx"+hstr+","+"ptr"+hstr+","+"vec"+")"
             if ht!=0:
-                str_out+="*"+self.tdterms[ht-1]
+                str_out+=" * "+self.tdterms[ht-1]
             func_vars.append(str_out)
         return func_vars
     def func_for(self):
@@ -255,11 +255,10 @@ def cython_preamble():
     line1="import numpy as np"
     line2="cimport numpy as np"
     line3="cimport cython"
-    line4="#from cython.parallel cimport prange"
-    line5=""
-    line6="ctypedef np.complex128_t CTYPE_t"
-    line7="ctypedef np.float64_t DTYPE_t"
-    return [line0,line1,line2,line3,line4,line5,line6,line7]
+    line4=""
+    line5="ctypedef np.complex128_t CTYPE_t"
+    line6="ctypedef np.float64_t DTYPE_t"
+    return [line0,line1,line2,line3,line4,line5,line6]
 
 def cython_checks():
     """
