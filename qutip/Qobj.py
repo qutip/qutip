@@ -311,7 +311,7 @@ class Qobj():
     def __getitem__(self,ind):
         out=self.data[ind]
         if sp.issparse(out):
-            return out.todense()
+            return asarray(out.todense())
         else:
             return out
 
@@ -764,7 +764,7 @@ def sp_expm(qo):
         c=padecoeff(m)
         if m!=13:
             apows= [[] for jj in xrange(int(ceil((m+1)/2)))]
-            apows[0]=sp.eye(n,n).tocsr()
+            apows[0]=sp.eye(n,n,format='csr')
             apows[1]=A*A
             for jj in xrange(2,int(ceil((m+1)/2))):
                 apows[jj]=apows[jj-1]*apows[1]
@@ -788,7 +788,7 @@ def sp_expm(qo):
     A=qo.data #extract Qobj data (sparse matrix)
     m_vals=array([3,5,7,9,13])
     theta=array([0.01495585217958292,0.2539398330063230,0.9504178996162932,2.097847961257068,5.371920351148152],dtype=float)
-    normA=la.norm(A.todense(),1)
+    normA=_sp_one_norm(qo)
     if normA<=theta[-1]:
         for ii in xrange(len(m_vals)):
             if normA<=theta[ii]:
@@ -801,7 +801,11 @@ def sp_expm(qo):
         F=pade(m_vals[-1])
         for i in xrange(s):
             F=F*F
-    return Qobj(F,dims=qo.dims,shape=qo.shape)
+    out=Qobj(F,dims=qo.dims,shape=qo.shape)
+    if qset.auto_tidyup:
+        return out.tidyup()
+    else:
+        return out
 
 
 def padecoeff(m):
@@ -819,11 +823,8 @@ def padecoeff(m):
     elif m==13:
         return array([64764752532480000, 32382376266240000, 7771770303897600,1187353796428800, 129060195264000, 10559470521600,670442572800, 33522128640, 1323241920,40840800, 960960, 16380, 182, 1])
 
-
-
-        
-
-
-
+       
+def _sp_one_norm(op):
+    return max(array([sum(abs(op[:,k])) for k in xrange(op.shape[1])]))
 
 
