@@ -118,9 +118,9 @@ def mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
-        result_list = [Qobj() for k in range(n_tsteps)]
+        result_list = []
     else:
-        result_list=[]
+        result_list = []
         for op in expt_ops:
             if op.isherm:
                 result_list.append(zeros(n_tsteps))
@@ -195,7 +195,7 @@ def mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
 
         # calculate all the expectation values, or output rho if no operators
         if n_expt_op == 0:
-            result_list[t_idx] = Qobj(rho) # copy rho
+            result_list.append(Qobj(rho)) # copy rho
         else:
             for m in range(0, n_expt_op):
                 result_list[m][t_idx] = expect(expt_ops[m], rho)
@@ -247,9 +247,9 @@ def wfsolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt):
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
-        result_list = [Qobj() for k in range(n_tsteps)]
+        result_list = []
     else:
-        result_list=[]
+        result_list = []
         for op in expt_ops:
             if op.isherm:
                 result_list.append(zeros(n_tsteps))
@@ -306,7 +306,7 @@ def wfsolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt):
 
         # calculate all the expectation values, or output rho if no operators
         if n_expt_op == 0:
-            result_list[t_idx] = Qobj(psi) # copy psi
+            result_list.append(Qobj(psi)) # copy psi
         else:
             for m in range(0, n_expt_op):
                 result_list[m][t_idx] = expect(expt_ops[m], psi)
@@ -362,9 +362,9 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
-        result_list = [Qobj() for k in range(n_tsteps)]
+        result_list = []
     else:
-        result_list=[]
+        result_list = []
         for op in expt_ops:
             if op.isherm:
                 result_list.append(zeros(n_tsteps))
@@ -477,7 +477,7 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
 
         # calculate all the expectation values, or output rho if no operators
         if n_expt_op == 0:
-            result_list[t_idx] = Qobj(rho) # copy rho
+            result_list.append(Qobj(rho)) # copy rho
         else:
             for m in range(0, n_expt_op):
                 result_list[m][t_idx] = expect(expt_ops[m], rho)
@@ -513,9 +513,9 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
-        result_list = [Qobj() for k in range(n_tsteps)]
+        result_list = []
     else:
-        result_list=[]
+        result_list = []
         for op in expt_ops:
             if op.isherm:
                 result_list.append(zeros(n_tsteps))
@@ -605,7 +605,7 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
 
         # calculate all the expectation values, or output rho if no operators
         if n_expt_op == 0:
-            result_list[t_idx] = Qobj(psi) # copy rho
+            result_list.append(Qobj(psi)) # copy rho
         else:
             for m in range(0, n_expt_op):
                 result_list[m][t_idx] = expect(expt_ops[m], psi)
@@ -701,7 +701,7 @@ def wf_ode_solve(H, psi0, tlist, expt_op_list, H_args, opt):
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
-        result_list = [Qobj() for k in range(n_tsteps)]
+        result_list = []
     else:
         result_list = zeros([n_expt_op, n_tsteps], dtype=complex)
 
@@ -737,7 +737,7 @@ def wf_ode_solve(H, psi0, tlist, expt_op_list, H_args, opt):
 
         # calculate all the expectation values, or output psi if no operators where given
         if n_expt_op == 0:
-            result_list[t_idx] = Qobj(psi) # copy rho
+            result_list.append(Qobj(psi)) # copy rho
         else:
             for m in range(0, n_expt_op):
                 result_list[m,t_idx] = expect(expt_op_list[m], psi)
@@ -768,9 +768,9 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list,H_args, opt):
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
-        result_list = [Qobj() for k in range(n_tsteps)]
+        result_list = []
     else:
-        result_list=[]
+        result_list = []
         for i in xrange(n_expt_op):
             if expt_op_list[i].isherm:#preallocate real array of zeros
                 result_list.append(zeros(n_tsteps))
@@ -850,7 +850,7 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_op_list,H_args, opt):
 
         # calculate all the expectation values, or output psi if no operators where given
         if n_expt_op == 0:
-            result_list[t_idx] = Qobj(psi) # copy rho
+            result_list.append(Qobj(psi)) # copy rho
         else:
             for m in range(0, n_expt_op):
                 result_list[m][t_idx] = expect(expt_op_list[m], psi)
@@ -876,7 +876,7 @@ def wf_ode_solve_func_td(H_func, psi0, tlist, expt_op_list, H_args, opt):
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
-        result_list = [Qobj() for k in range(n_tsteps)]
+        result_list = []
     else:
         result_list = zeros([n_expt_op, n_tsteps], dtype=complex)
 
@@ -915,7 +915,7 @@ def wf_ode_solve_func_td(H_func, psi0, tlist, expt_op_list, H_args, opt):
 
         # calculate all the expectation values, or output psi if no operators where given
         if n_expt_op == 0:
-            result_list[t_idx] = Qobj(psi) # copy rho
+            result_list.append(Qobj(psi)) # copy rho
         else:
             for m in range(0, n_expt_op):
                 result_list[m,t_idx] = expect(expt_op_list[m], psi)
@@ -974,9 +974,9 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
-        result_list = [Qobj() for k in range(n_tsteps)]
+        result_list = []
     else:
-        result_list=[]
+        result_list = []
         for op in expt_op_list:
             if op.isherm and rho0.isherm:
                 result_list.append(zeros(n_tsteps))
@@ -1016,7 +1016,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
         
         # calculate all the expectation values, or output rho if no operators
         if n_expt_op == 0:
-            result_list[t_idx] = Qobj(rho) # copy rho
+            result_list.append(Qobj(rho)) # copy rho
         else:
             for m in range(0, n_expt_op):
                 result_list[m][t_idx] = expect(expt_op_list[m], rho)
@@ -1062,9 +1062,9 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
-        result_list = [Qobj() for k in range(n_tsteps)]
+        result_list = []
     else:
-        result_list=[]
+        result_list = []
         for op in expt_op_list:
             if op.isherm:
                 result_list.append(zeros(n_tsteps))
@@ -1145,7 +1145,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
 
         # calculate all the expectation values, or output rho if no operators
         if n_expt_op == 0:
-            result_list[t_idx] = Qobj(rho) # copy rho
+            result_list.append(Qobj(rho)) # copy rho
         else:
             for m in range(0, n_expt_op):
                 result_list[m][t_idx] = expect(expt_op_list[m], rho)
@@ -1187,9 +1187,9 @@ def me_ode_solve_func_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, o
     dt        = tlist[1]-tlist[0]
 
     if n_expt_op == 0:
-        result_list = [Qobj() for k in range(n_tsteps)]
+        result_list = []
     else:
-        result_list=[]
+        result_list = []
         for op in expt_op_list:
             if op.isherm:
                 result_list.append(zeros(n_tsteps))
@@ -1240,7 +1240,7 @@ def me_ode_solve_func_td(H_func, rho0, tlist, c_op_list, expt_op_list, H_args, o
 
         # calculate all the expectation values, or output rho if no operators
         if n_expt_op == 0:
-            result_list[t_idx] = Qobj(rho) # copy rho
+            result_list.append(Qobj(rho)) # copy rho
         else:
             for m in range(0, n_expt_op):
                 result_list[m][t_idx] = expect(expt_op_list[m], rho)
