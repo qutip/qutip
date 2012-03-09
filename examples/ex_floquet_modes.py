@@ -48,10 +48,12 @@ def qubit_integrate(delta, eps0, A, omega, psi0, tlist):
     
     e_0 = zeros(shape(tlist))
     e_1 = zeros(shape(tlist))
-        
-    idx = 0
-    for t in tlist:
-        f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, H_args) 
+         
+    f_modes_table_t = floquet_modes_period_t(f_modes_0, f_energies, tlist, H, T, H_args) 
+
+    for idx, t in enumerate(tlist):
+        #f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, H_args) 
+        f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T) 
 
         p_ex_0[idx] = expect(sm.dag() * sm, f_modes_t[0])
         p_ex_1[idx] = expect(sm.dag() * sm, f_modes_t[1])
@@ -65,8 +67,6 @@ def qubit_integrate(delta, eps0, A, omega, psi0, tlist):
         evals = qobj_list_evaluate(H, t, H_args).eigenenergies()
         e_0[idx] = min(real(evals))
         e_1[idx] = max(real(evals))
-
-        idx += 1
         
     return p_ex_0, p_ex_1, e_0, e_1, f_energies, p_00, p_01, p_10, p_11
     
@@ -81,7 +81,7 @@ psi0   = basis(2,0)   # initial state
 omega  = 1.0 * 2 * pi # driving frequency
 T      = (2*pi)/omega # driving period
 
-tlist = linspace(0.0, 1 * T, 100)
+tlist = linspace(0.0, T, 101)
 
 start_time = time.time()
 p_ex_0, p_ex_1, e_0, e_1, f_e, p_00, p_01, p_10, p_11 = qubit_integrate(delta, eps0, A, omega, psi0, tlist)

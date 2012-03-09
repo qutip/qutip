@@ -120,14 +120,53 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, H_args=None):
             f_modes_t.append(U * f_modes_0[n] * exp(1j * f_energies[n]*t))
 
     else:
-
         f_modes_t = f_modes_0
-        #for n in arange(len(f_states_0)):
-        #    f_modes_t.append(f_states_0[n])
-
 
     return f_modes_t
     
+def floquet_modes_period_t(f_modes_0, f_energies, tlist, H, T, H_args=None):
+    """
+    Pre-calculate the Floquet modes for a range of times spanning the floquet
+    period. Can later be used as a table to look up the floquet modes for
+    any time.
+    
+    .. note:: Experimental    
+    """
+
+    # truncate tlist to the driving period
+    tlist_period = tlist[where(tlist <= T)]
+
+    f_modes_table_t = [[] for t in tlist_period]
+
+    opt = Odeoptions()
+    opt.rhs_reuse = True
+
+    for n, f_mode in enumerate(f_modes_0):
+        f_state_tlist = mesolve(H, f_mode, tlist_period, [], [], H_args, opt)
+        for t_idx, f_state_t in enumerate(f_state_tlist):
+            f_modes_table_t[t_idx].append(f_state_t * exp(1j * f_energies[n]*tlist_period[t_idx]))
+        
+    return f_modes_table_t    
+    
+def floquet_modes_t_lookup(f_modes_table_t, t, T):
+    """
+    Lookup the floquet mode at time t in the pre-calculated table of floquet
+    modes in the first period of the time-dependence.
+    """
+
+    # find t_wrap in [0,T] such that t = t_wrap + n * T for integer n
+    t_wrap = t - int(t/T) * T
+
+    # find the index in the table that corresponds to t_wrap (= tlist[t_idx])
+    t_idx = int(t_wrap/T * len(f_modes_table_t))
+    
+    # XXX: might want to give a warning if the cast of t_idx to int discard
+    # a significant fraction in t_idx, which would happen if the list of time
+    # values isn't perfect matching the driving period
+    #if debug: print "t = %f -> t_wrap = %f @ %d of %d" % (t, t_wrap, t_idx, N)
+
+    return f_modes_table_t[t_idx]
+        
 def floquet_states_t(f_modes_0, f_energies, t, H, T, H_args=None):
     """
     Evaluate the floquet states at time t.
@@ -245,7 +284,7 @@ def floquet_master_equation_tensor(Alist, f_energies):
     Construct a tensor that represents the master equation in the floquet
     basis (with constant Hamiltonian and collapse operators).
     
-    Simplest RWA appriximation [Grifoni et al, Phys.Rep. 304 229 (1998)]
+    Simplest RWA approximation [Grifoni et al, Phys.Rep. 304 229 (1998)]
     """
 
     if isinstance(Alist, list):
@@ -349,8 +388,8 @@ def fmmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
     #
     if ekets != None:
         rho0 = rho0.transform(ekets, True)
-        for n in arange(len(e_ops)):
-            e_ops[n] = e_ops[n].transform(ekets)
+        for n in arange(len(e_ops)):             # not working
+            e_ops[n] = e_ops[n].transform(ekets) #
 
     #
     # setup integrator
@@ -359,8 +398,7 @@ def fmmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
     r = scipy.integrate.ode(cyq_ode_rhs)
     r.set_f_params(R.data.data, R.data.indices, R.data.indptr)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, #nsteps=opt.nsteps,
-                              #first_step=opt.first_step, min_step=opt.min_step,
+                              atol=opt.atol, rtol=opt.rtol,
                               max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
 
@@ -381,7 +419,7 @@ def fmmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
             result_list.append(Qobj(rho))
         else:
             for m in range(0, n_e_ops):
-                result_list[m][t_idx] = expect(e_ops[m], rho)
+                result_list[m][t_idx] = expect(e_ops[m], rho) # not working
 
         r.integrate(r.t + dt)
         t_idx += 1
