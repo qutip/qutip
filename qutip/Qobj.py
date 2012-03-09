@@ -378,7 +378,7 @@ class Qobj():
         if self.type=='oper' or self.type=='super':
             return float(real((self.dag()*self).sqrtm().tr()))
         else:
-            return la.norm(self.full(),2)
+            return la.norm(self.data.data,2)
     def tr(self):
         """
         Returns the trace of a quantum object
