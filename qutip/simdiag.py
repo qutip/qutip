@@ -97,7 +97,7 @@ def degen(tol,in_vecs,ops):
         return in_vecs
     A=ops[0]
     vecs=column_stack(in_vecs)
-    eigvals,eigvecs=la.eig(dot(vecs.conj().T,dot(A.full(),vecs)))
+    eigvals,eigvecs=la.eig(dot(vecs.conj().T,A.data.dot(vecs)))
     zipped=zip(-eigvals,xrange(len(eigvals)))
     zipped.sort()
     ds,perm=zip(*zipped)
