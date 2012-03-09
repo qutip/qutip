@@ -187,7 +187,7 @@ def isherm(Q):
     else:
         dat=Q.data
         elems=(dat.transpose().conj()-dat).data
-        if any(abs(elems)>1e-12):
+        if any(abs(elems)>1e-15):
             return False
         else:
             return True
