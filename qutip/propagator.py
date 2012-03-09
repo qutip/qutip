@@ -53,7 +53,7 @@ def propagator(H, t, c_op_list, H_args=None):
         if isinstance(H, FunctionType):
             H0 = H(0.0, H_args)
             N = H0.shape[0]
-        if isinstance(H, list):
+        elif isinstance(H, list):
             H0 = H[0]
             N = H0.shape[0]
         else:
@@ -77,7 +77,7 @@ def propagator(H, t, c_op_list, H_args=None):
         if isinstance(H, FunctionType):
             H0 = H(0.0, H_args)
             N = H0.shape[0]
-        if isinstance(H, list):
+        elif isinstance(H, list):
             H0 = H[0]
             N = H0.shape[0]            
         else:
