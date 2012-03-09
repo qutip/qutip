@@ -124,7 +124,7 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, H_args=None):
 
     return f_modes_t
     
-def floquet_modes_period_t(f_modes_0, f_energies, tlist, H, T, H_args=None):
+def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, H_args=None):
     """
     Pre-calculate the Floquet modes for a range of times spanning the floquet
     period. Can later be used as a table to look up the floquet modes for
@@ -206,7 +206,7 @@ def n_thermal(w, w_th):
     else: 
         return 0.0
     
-def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, H_args, J_cb, w_th, kmax=5):
+def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, H_args, J_cb, w_th, kmax=5,f_modes_table_t=None):
     """
     Calculate the rates and matrix elements for the Floquet-Markov master
     equation.
@@ -226,10 +226,14 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, H_args, J_c
     dT = T/nT
     tlist = arange(dT, T+dT/2, dT)
 
+    if f_modes_table_t == None:
+        f_modes_table_t = floquet_modes_table(f_modes_0, f_energies, linspace(0, T, nT+1), H, T, H_args) 
+
     for t in tlist:
         # TODO: repeated invocations of floquet_modes_t is inefficient...
         # make a and b outer loops and use the odesolve instead of the propagator.
-        f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, H_args)   
+        #f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, H_args)
+        f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)   
         for a in range(N):
             for b in range(N):
                 k_idx = 0
