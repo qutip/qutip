@@ -376,7 +376,16 @@ class Qobj():
         trace-norm for operators.
         """
         if self.type=='oper' or self.type=='super':
-            return float(real((self.dag()*self).sqrtm().tr()))
+            N=self.shape[0]
+            if N>=6:
+                D=int(floor(N/2))
+                if mod(N,2):D+=1 #if odd dimensions
+                big_vals=sp.linalg.eigs(self.data,k=N-D,which='LM',return_eigenvectors=False)
+                small_vals=sp.linalg.eigs(self.data,k=N-(N-D),which='SM',return_eigenvectors=False)
+                vals=union1d(big_vals,small_vals)
+                return sum(sqrt(abs(vals)**2))
+            else:   
+                return float(real((self.dag()*self).sqrtm().tr()))
         else:
             return la.norm(self.data.data,2)
     def tr(self):
@@ -825,6 +834,6 @@ def padecoeff(m):
 
        
 def _sp_one_norm(op):
-    return max(array([sum(abs(op[:,k])) for k in xrange(op.shape[1])]))
+    return max(array([sum(abs((op.data[:,k]).data)) for k in xrange(op.shape[1])]))
 
 
