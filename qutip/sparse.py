@@ -74,12 +74,12 @@ def sp_eigs(op,vecs=True):
             big_vecs=sp.csr_matrix(big_vecs,dtype=complex)
             small_vals,small_vecs=sp.linalg.eigs(op.data,k=N-(N-D),which='SM')
             small_vecs=sp.csr_matrix(small_vecs,dtype=complex)
-            evecs=sp.hstack([big_vecs,small_vecs],format='csr')
+            evecs=sp.hstack([big_vecs,small_vecs],format='csr') #combine eigenvector sets
         else:
             big_vals=sp.linalg.eigs(op.data,k=N-D,which='LM',return_eigenvectors=False)
             small_vals=sp.linalg.eigs(op.data,k=N-(N-D),which='SM',return_eigenvectors=False)
-        evals=union1d(big_vals,small_vals)
-    else:#for dims <10
+        evals=union1d(big_vals,small_vals)#combine eigenvalue sets
+    else:#for dims <10 use faster dense routine
         if vecs:
             evals,evecs=la.eig(op.full())
             evecs=sp.csr_matrix(evecs,dtype=complex)

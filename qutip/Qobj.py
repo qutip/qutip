@@ -24,7 +24,7 @@ import types
 from scipy import finfo
 import qutip.settings as qset
 from ptrace import _ptrace
-from qutip.sparse import sp_eigs,sp_one_norm
+from qutip.sparse import sp_eigs,sp_one_norm,sp_L2_norm
 class Qobj():
     """
     A class for representing quantum objects (**Qobj**), such as quantum operators

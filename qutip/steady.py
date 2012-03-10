@@ -26,6 +26,7 @@ from qutip.superoperator import *
 from qutip.operators import qeye
 from qutip.rand import rand_ket
 from qutip.sparse import sp_inf_norm
+import qutip.settings as qset
 # ------------------------------------------------------------------------------
 # 
 def steadystate(H, c_op_list,maxiter=100,tol=1e-6):
@@ -98,13 +99,18 @@ def steady(L,maxiter=100,tol=1e-6,method='solve'):
 		raise ValueError('Failed to find steady state after ' + str(maxiter) +' iterations')
 	#normalise according to type of problem
 	if sflag:
-		trow=sp.eye(rhoss.shape[0],rhoss.shape[0],dtype=complex,format='lil')
+		trow=sp.eye(rhoss.shape[0],rhoss.shape[0],format='lil')
 		trow=trow.reshape((1,n)).tocsr()
 		data=v/sum(trow.dot(v))
 	else:
 		data=data/la.norm(data)
 	data=reshape(data,(rhoss.shape[0],rhoss.shape[1])).T
-	rhoss.data=sp.csr_matrix(data)
-	return Qobj(rhoss)
+	data=sp.csr_matrix(data)
+	data=sp.triu(data,format='csr')#take only upper triangle
+	rhoss.data=data+data.conj().T #output should be hermitian, but not guarenteed using iterative meth
+	if qset.auto_tidyup:
+	    return Qobj(rhoss).tidyup()
+	else:
+	    return Qobj(rhoss)
 
     		
