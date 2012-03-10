@@ -24,6 +24,7 @@ import types
 from scipy import finfo
 import qutip.settings as qset
 from ptrace import _ptrace
+from qutip.sparse import sp_eigs,sp_one_norm
 class Qobj():
     """
     A class for representing quantum objects (**Qobj**), such as quantum operators
@@ -377,17 +378,13 @@ class Qobj():
         """
         if self.type=='oper' or self.type=='super':
             N=self.shape[0]
-            if N>=6:
-                D=int(floor(N/2))
-                if mod(N,2):D+=1 #if odd dimensions
-                big_vals=sp.linalg.eigs(self.data,k=N-D,which='LM',return_eigenvectors=False)
-                small_vals=sp.linalg.eigs(self.data,k=N-(N-D),which='SM',return_eigenvectors=False)
-                vals=union1d(big_vals,small_vals)
+            if N>=10:
+                vals=sp_eigs(self,vecs=False)
                 return sum(sqrt(abs(vals)**2))
             else:   
                 return float(real((self.dag()*self).sqrtm().tr()))
         else:
-            return la.norm(self.data.data,2)
+            return sp_L2_norm(self)
     def tr(self):
         """
         Returns the trace of a quantum object
@@ -552,7 +549,7 @@ class Qobj():
     # Find the eigenstates and eigenenergies (defined for operators and
     # superoperators)
     # 
-    def eigenstates(self):
+    def eigenstates(self,vals=True):
         """
         Find the eigenstates and eigenenergies (defined for operators and superoperators)
         """
@@ -576,13 +573,7 @@ class Qobj():
     # Find only the eigenenergies (defined for operators and superoperators)
     # 
     def eigenenergies(self):
-
-        if isket(self) or isbra(self):
-            raise TypeError("Can only diagonalize operators and superoperators")
-
-        evals, evecs = la.eig(self.full())
-
-        return evals
+        return sp_eigs(self,vecs=False)
 
 
 #-------------------------------------------------------------------------------
@@ -797,7 +788,7 @@ def sp_expm(qo):
     A=qo.data #extract Qobj data (sparse matrix)
     m_vals=array([3,5,7,9,13])
     theta=array([0.01495585217958292,0.2539398330063230,0.9504178996162932,2.097847961257068,5.371920351148152],dtype=float)
-    normA=_sp_one_norm(qo)
+    normA=sp_one_norm(qo)
     if normA<=theta[-1]:
         for ii in xrange(len(m_vals)):
             if normA<=theta[ii]:
@@ -832,8 +823,5 @@ def padecoeff(m):
     elif m==13:
         return array([64764752532480000, 32382376266240000, 7771770303897600,1187353796428800, 129060195264000, 10559470521600,670442572800, 33522128640, 1323241920,40840800, 960960, 16380, 182, 1])
 
-       
-def _sp_one_norm(op):
-    return max(array([sum(abs((op.data[:,k]).data)) for k in xrange(op.shape[1])]))
 
 

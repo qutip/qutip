@@ -19,11 +19,13 @@
 from scipy import prod, finfo
 import scipy.sparse as sp
 import scipy.linalg as la
-from scipy.sparse.linalg import spsolve
+from scipy.sparse.linalg import spsolve,bicg
 from qutip.Qobj import *
 from qutip.istests import *
 from qutip.superoperator import *
 from qutip.operators import qeye
+from qutip.rand import rand_ket
+from qutip.sparse import sp_inf_norm
 # ------------------------------------------------------------------------------
 # 
 def steadystate(H, c_op_list,maxiter=100,tol=1e-6):
@@ -54,7 +56,7 @@ def steadystate(H, c_op_list,maxiter=100,tol=1e-6):
     L = liouvillian(H, c_op_list)
     return steady(L,maxiter,tol)
 
-def steady(L,maxiter=100,tol=1e-6):
+def steady(L,maxiter=100,tol=1e-6,method='solve'):
 	"""
 	Calculate the steady state for the evolution subject to the 
 	supplied Louvillian using the inverse power method. 
@@ -79,21 +81,24 @@ def steady(L,maxiter=100,tol=1e-6):
 		rhoss.dims=L.dims[0]
 		rhoss.shape=[prod(rhoss.dims[0]),prod(rhoss.dims[1])]
 	else:
-		rhoss.dims=[l.dims[0],1]
+		rhoss.dims=[L.dims[0],1]
 		rhoss.shape=[prod(rhoss.dims[0]),1]
 	n=prod(rhoss.shape)
-	L1=L.data+eps*_sp_inf_norm(L)*sp.eye(n,n,format='csr')
+	L1=L.data+eps*sp_inf_norm(L)*sp.eye(n,n,format='csr')
 	v=2.0*(random.random((n,1))+1.0j*random.random((n,1)))-(1.0+1.0j)
 	it=0
 	while (la.norm(L.data*v,inf)>tol) and (it<maxiter):
-		v=spsolve(L1,v,use_umfpack=False)
+		if method=='bicg':
+		    v,check=bicg(L1,v,tol=tol)
+		else:
+		    v=spsolve(L1,v,use_umfpack=False)
 		v=v/la.norm(v,inf)
 		it+=1
 	if it>=maxiter:
 		raise ValueError('Failed to find steady state after ' + str(maxiter) +' iterations')
 	#normalise according to type of problem
 	if sflag:
-		trow=sp.eye(rhoss.shape[0],rhoss.shape[0],format='lil')
+		trow=sp.eye(rhoss.shape[0],rhoss.shape[0],dtype=complex,format='lil')
 		trow=trow.reshape((1,n)).tocsr()
 		data=v/sum(trow.dot(v))
 	else:
@@ -101,8 +106,5 @@ def steady(L,maxiter=100,tol=1e-6):
 	data=reshape(data,(rhoss.shape[0],rhoss.shape[1])).T
 	rhoss.data=sp.csr_matrix(data)
 	return Qobj(rhoss)
-	
-	
-def _sp_inf_norm(op):
-    return max([sum(abs(op[:,k])) for k in xrange(op.shape[1])])
+
     		
