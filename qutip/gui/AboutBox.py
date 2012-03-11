@@ -158,10 +158,9 @@ class AboutBox(QtGui.QWidget):
         
         
         #QUIT BUTTON-----------------
-        quit = QtGui.QPushButton('Close', self)
-        font.setBold(False)
-        quit.setFont(font)
-        quit.setGeometry((self.width()-89), 430, 80, 40)
+        quit = HoverExit('Close', self)
+        quit.setStyleSheet('QPushButton {font-family: Arial;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;font-size: 16px;background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #FFAAAA, stop: 0.1 #FF9999, stop: 0.49 #FF8888, stop: 0.5 #FF7777, stop: 1 #FF6666)}')
+        quit.setGeometry((self.width()-80), 430, 70, 35)
         quit.clicked.connect(self.close)
        
      
@@ -228,5 +227,9 @@ def _set_strings(Qversion):
     return label,label2
 
 
-
+class HoverExit(QtGui.QPushButton): 
+    def enterEvent(self,event):  
+        self.setStyleSheet('QPushButton {font-family: Arial;border-width: 3px;border-color:#111111;border-style: solid;border-radius: 7;font-size: 16px;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #FFAAAA, stop: 0.1 #FF9999, stop: 0.49 #FF8888, stop: 0.5 #FF7777, stop: 1 #FF6666)}')
+    def leaveEvent(self,event):  
+        self.setStyleSheet('QPushButton {font-family: Arial;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;font-size: 16px;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #FFAAAA, stop: 0.1 #FF9999, stop: 0.49 #FF8888, stop: 0.5 #FF7777, stop: 1 #FF6666)}')
 
