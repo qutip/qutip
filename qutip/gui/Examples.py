@@ -143,10 +143,9 @@ class Examples(QtGui.QWidget):
         """
         Receives integers from button click to use for calling example script
         """
-        print num
-        #self.moveout()
-        #exconfig.option=num
-        #self.close()
+        self.moveout()
+        exconfig.option=num
+        self.close()
 
 
 class HoverButton(QtGui.QPushButton):
