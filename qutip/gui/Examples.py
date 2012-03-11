@@ -11,32 +11,6 @@ elif os.environ['QUTIP_GUI']=="PYQT4":
 
 
 
-#basic demos
-_basic_demos_labels=["Schrodingers Cat","Q-function","Qobj Eigenvalues/Eigenvectors","blank","blank","blank","blank"]
-
-_basic_demos_descriptions=["Schrodingers Cat state from \nsuperposition of two coherent states.",
-                            "Q-function from superposition \nof two coherent states.",
-                            "Eigenvalues/Eigenvectors of cavity-qubit system \nin strong-coupling regime.",
-                            "Bloch Sphere","blank","blank","blank"]
-
-_basic_output_nums=arange(1,len(_basic_demos_labels)+1) #does not start at zero so commandline output numbers match (0=quit in commandline)
-
-#master equation demos
-_master_demos_labels=["blank","blank","blank","blank","blank","blank","blank"]
-_master_demos_descriptions=["blank","blank","blank","blank","blank","blank","blank"]
-_master_output_nums=10+arange(len(_master_demos_labels))
-
-
-
-_monte_demos_labels=["blank","blank","blank","blank","blank","blank","blank"]
-_monte_demos_descriptions=["blank","blank","blank","blank","blank","blank","blank"]
-_monte_output_nums=20+arange(len(_monte_demos_labels))
-
-
-_td_demos_labels=["blank","blank","blank","blank","blank","blank","blank"]
-_td_demos_descriptions=["blank","blank","blank","blank","blank","blank","blank"]
-_td_output_nums=30+arange(len(_td_demos_labels))
-
 class Examples(QtGui.QWidget):
     def center(self):
         screen = QtGui.QDesktopWidget().screenGeometry()
@@ -57,6 +31,7 @@ class Examples(QtGui.QWidget):
     
     def __init__(self,version,parent=None):
         QtGui.QWidget.__init__(self, parent)
+        from demos_text import tab_labels,button_labels,button_desc,button_nums
         #WINDOW PROPERTIES
         self.setWindowTitle('QuTiP Examples')
         self.resize(790, 650)
@@ -113,116 +88,58 @@ class Examples(QtGui.QWidget):
         quit.setFocusPolicy(QtCore.Qt.NoFocus)
         quit.clicked.connect(self.close)
         
-        #tab widgets
+        #tab widget
         tab_widget = QtGui.QTabWidget(self) 
         tab_widget.move(10,100)
         tab_widget.resize(770,500)
-        tab1 = QtGui.QWidget(self)
-        tab_widget.addTab(tab1, "Basic Operations")
-        tab2 = QtGui.QWidget(self)
-        tab_widget.addTab(tab2, "Master Equation")
-        tab3 = QtGui.QWidget(self)
-        tab_widget.addTab(tab3, "Monte Carlo")
-        tab4 = QtGui.QWidget(self)
-        tab_widget.addTab(tab4, "Time-Dependent")
+        #tabs for tab widget
+        num_tabs=len(tab_labels)
+        tabs=[QtGui.QWidget(self) for k in range(num_tabs)]
+        for k in range(num_tabs):
+            tab_widget.addTab(tabs[k],tab_labels[k])
         
+        #set tab button style
         tab_button_style='QPushButton {font-family: Arial;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #00DDDD, stop: 0.1 #00CCDD, stop: 0.49 #00BBDD, stop: 0.5 #00AADD, stop: 1 #0099DD)}'
         
         
-        #tab 1 buttons
-        tab1_vert = QtGui.QVBoxLayout(tab1)
-        num_elem1=len(_basic_demos_labels)
-        tab1_button_descs = [QtGui.QLabel(_basic_demos_descriptions[k]) for k in range(num_elem1)]
-        tab1_buttons = [HoverButton() for k in range(num_elem1)]
-        for k in range(num_elem1):
-            tab1_buttons[k].setFont(font)
-            tab1_buttons[k].setText(_basic_demos_labels[k])
-            tab1_buttons[k].setStyleSheet(tab_button_style)
-            tab1_buttons[k].setFixedSize(335, 40)
-            self.connect(tab1_buttons[k], QtCore.SIGNAL("clicked()"), mapper, QtCore.SLOT("map()"))
-            mapper.setMapping(tab1_buttons[k], _basic_output_nums[k])
-        tab1_example_widgets=[QtGui.QWidget() for k in range(num_elem1)]
-        tab1_hori_layouts=[QtGui.QHBoxLayout(tab1_example_widgets[k]) for k in range(num_elem1)]
-        for k in range(num_elem1):
-            tab1_hori_layouts[k].addWidget(tab1_buttons[k])
-            tab1_hori_layouts[k].addSpacing(20)
-            tab1_hori_layouts[k].addWidget(tab1_button_descs[k])
-        for k in range(num_elem1):
-            tab1_vert.addWidget(tab1_example_widgets[k])
-        tab1_vert.addStretch()
+        #tab buttons
+        tab_verts =[QtGui.QVBoxLayout(tabs[k]) for k in xrange(num_tabs)]
+        num_elems=[len(button_labels[k]) for k in xrange(num_tabs)]
+        tab_buttons=[[] for j in range(num_tabs)]
+        for j in range(num_tabs):
+            for k in range(num_elems[j]):
+                button=HoverButton()
+                button.setFont(font)
+                button.setText(button_labels[j][k])
+                button.setStyleSheet(tab_button_style)
+                button.setFixedSize(335, 40)
+                self.connect(button, QtCore.SIGNAL("clicked()"), mapper, QtCore.SLOT("map()"))
+                mapper.setMapping(button,button_nums[j][k])
+                tab_buttons[j].append(button)
         
-        #tab 2 buttons
-        tab2_vert = QtGui.QVBoxLayout(tab2)
-        num_elem2=len(_master_demos_labels)
-        tab2_button_descs = [QtGui.QLabel(_master_demos_descriptions[k]) for k in range(num_elem2)]
-        tab2_buttons = [HoverButton() for k in range(num_elem2)]
-        for k in range(num_elem2):
-            tab2_buttons[k].setFont(font)
-            tab2_buttons[k].setText(_master_demos_labels[k])
-            tab2_buttons[k].setStyleSheet(tab_button_style)
-            tab2_buttons[k].setFixedSize(335, 40)
-            self.connect(tab2_buttons[k], QtCore.SIGNAL("clicked()"), mapper, QtCore.SLOT("map()"))
-            mapper.setMapping(tab2_buttons[k], _master_output_nums[k])
-        tab2_example_widgets=[QtGui.QWidget() for k in range(num_elem2)]
-        tab2_hori_layouts=[QtGui.QHBoxLayout(tab2_example_widgets[k]) for k in range(num_elem2)]
-        for k in range(num_elem2):
-            tab2_hori_layouts[k].addWidget(tab2_buttons[k])
-            tab2_hori_layouts[k].addSpacing(20)
-            tab2_hori_layouts[k].addWidget(tab2_button_descs[k])
-        for k in range(num_elem2):
-            tab2_vert.addWidget(tab2_example_widgets[k])
-        tab2_vert.addStretch()
+        tab_button_desc = [[] for j in range(num_tabs)]
+        for j in range(num_tabs):
+            for k in range(num_elems[j]):
+                tab_button_desc[j].append(QtGui.QLabel(button_desc[j][k]))
         
-        #tab 3 buttons
-        tab3_vert = QtGui.QVBoxLayout(tab3)
-        num_elem3=len(_monte_demos_labels)
-        tab3_button_descs = [QtGui.QLabel(_monte_demos_descriptions[k]) for k in range(num_elem3)]
-        tab3_buttons = [HoverButton() for k in range(num_elem3)]
-        for k in range(num_elem3):
-            tab3_buttons[k].setFont(font)
-            tab3_buttons[k].setText(_monte_demos_labels[k])
-            tab3_buttons[k].setStyleSheet(tab_button_style)
-            tab3_buttons[k].setFixedSize(335, 40)
-            self.connect(tab3_buttons[k], QtCore.SIGNAL("clicked()"), mapper, QtCore.SLOT("map()"))
-            mapper.setMapping(tab3_buttons[k], _monte_output_nums[k])
-        tab3_example_widgets=[QtGui.QWidget() for k in range(num_elem3)]
-        tab3_hori_layouts=[QtGui.QHBoxLayout(tab3_example_widgets[k]) for k in range(num_elem3)]
-        for k in range(num_elem3):
-            tab3_hori_layouts[k].addWidget(tab3_buttons[k])
-            tab3_hori_layouts[k].addSpacing(20)
-            tab3_hori_layouts[k].addWidget(tab3_button_descs[k])
-        for k in range(num_elem3):
-            tab3_vert.addWidget(tab3_example_widgets[k])
-        tab3_vert.addStretch()
+        tab_widgets=[[QtGui.QWidget() for k in range(num_elems[j])] for j in range(num_tabs)]
+        tab_horiz_layouts=[[QtGui.QHBoxLayout(tab_widgets[j][k]) for k in range(num_elems[j])] for j in range(num_tabs)]
+        for j in range(num_tabs):
+            for k in range(num_elems[j]):
+                tab_horiz_layouts[j][k].addWidget(tab_buttons[j][k])
+                tab_horiz_layouts[j][k].addSpacing(20)
+                tab_horiz_layouts[j][k].addWidget(tab_button_desc[j][k])
+        for j in range(num_tabs):
+            for k in range(num_elems[j]):
+                tab_verts[j].addWidget(tab_widgets[j][k])
+            tab_verts[j].addStretch()
         
-        #tab 4 buttons
-        tab4_vert = QtGui.QVBoxLayout(tab4)
-        num_elem4=len(_td_demos_labels)
-        tab4_button_descs = [QtGui.QLabel(_td_demos_descriptions[k]) for k in range(num_elem4)]
-        tab4_buttons = [HoverButton() for k in range(num_elem4)]
-        for k in range(num_elem4):
-            tab4_buttons[k].setFont(font)
-            tab4_buttons[k].setText(_td_demos_labels[k])
-            tab4_buttons[k].setStyleSheet(tab_button_style)
-            tab4_buttons[k].setFixedSize(335, 40)
-            self.connect(tab4_buttons[k], QtCore.SIGNAL("clicked()"), mapper, QtCore.SLOT("map()"))
-            mapper.setMapping(tab4_buttons[k],_td_output_nums[k])
-        tab4_example_widgets=[QtGui.QWidget() for k in range(num_elem4)]
-        tab4_hori_layouts=[QtGui.QHBoxLayout(tab4_example_widgets[k]) for k in range(num_elem4)]
-        for k in range(num_elem4):
-            tab4_hori_layouts[k].addWidget(tab4_buttons[k])
-            tab4_hori_layouts[k].addSpacing(20)
-            tab4_hori_layouts[k].addWidget(tab4_button_descs[k])
-        for k in range(num_elem4):
-            tab4_vert.addWidget(tab4_example_widgets[k])
-        tab4_vert.addStretch()
-        
-        
-        self.connect(mapper, QtCore.SIGNAL("mapped(int)"), self.on_button)
+        #set mapper to on_button_clicked funtions
+        self.connect(mapper, QtCore.SIGNAL("mapped(int)"), self.on_button_clicked)
         
         
     
-    def on_button(self,num):
+    def on_button_clicked(self,num):
         """
         Receives integers from button click to use for calling example script
         """

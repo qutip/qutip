@@ -21,6 +21,8 @@ import qutip.examples as examples
 from .examples import exconfig
 from scipy import arange,array,any
 import qutip.settings
+
+
 def demos():
     """
     Calls the demos scripts via a GUI window if PySide
