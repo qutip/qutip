@@ -473,6 +473,10 @@ class Qobj():
                 outdata=sp.csr_matrix((self.shape[0],self.shape[1]),dtype=complex)
         else:
             outdata=sp.csr_matrix((self.shape[0],self.shape[1]),dtype=complex)
+        real_inds=where(abs(imag(outdata.data))<1e-15)
+        imag_inds=where(abs(real(outdata.data))<1e-15)
+        outdata.data[real_inds]=real(outdata.data[real_inds])
+        outdata.data[imag_inds]=imag(outdata.data[imag_inds])
         outdata.eliminate_zeros()
         return Qobj(outdata,dims=self.dims,shape=self.shape)
 

@@ -110,46 +110,11 @@ def demos():
                     return
             else:
                 raise TypeError('Demos must be run from the terminal if no GUI is avaliable.')
-        if exconfig.option==11:
-            examples.qobjbasics()
-        elif exconfig.option==12:
-            examples.states_opers()
-        elif exconfig.option==13:
-            examples.tensorptrace()
-        elif exconfig.option==14:
-            examples.schrodingercat()
-        elif exconfig.option==15:
-            examples.squeezed()
-        elif exconfig.option==21:
-            examples.cqsteady()
-        elif exconfig.option==22:
-            examples.thermalss()
-        elif exconfig.option==23:
-            examples.esdemo()
-        elif exconfig.option==24:
-            examples.jc_vacuum_rabi()
-        elif exconfig.option==25:
-            examples.jc_lasing()
-        elif exconfig.option==31:
-            examples.fidelity_example()
-        elif exconfig.option==32:
-            examples.propagatordemo()
-        elif exconfig.option==33:
-            examples.spinchain()
-        elif exconfig.option==34:
-            examples.correlation()
-        elif exconfig.option==35:
-            examples.blochdemo()
-        elif exconfig.option==41:
-            examples.cavityqubitmc()
-        elif exconfig.option==42:
-            examples.trilinearmc()   
-        elif exconfig.option==43:
-            examples.mcthermal()
-        elif exconfig.option==44:
-            examples.td_rabi()
-        elif exconfig.option==45:
-            examples.td_landauzener()
+        #run selected example
+        if not exconfig.option==123456:
+            example_code = compile('examples.ex_'+str(exconfig.option)+'.run()', '<string>', 'exec')
+            eval(example_code)
+        
             
             
             

@@ -25,7 +25,7 @@ basic_desc=['Schrodinger Cat state formed from a superposition of \ntwo coherent
                             "Eigenvalues/Eigenvectors of cavity-qubit system \nin strong-coupling regime.",
                             "Bloch Sphere","blank","blank","blank"]
 
-basic_nums=10*arange(len(basic_labels)) #does not start at zero so commandline output numbers match (0=quit in commandline)
+basic_nums=10+arange(len(basic_labels)) #does not start at zero so commandline output numbers match (0=quit in commandline)
 
 #master equation demos
 master_labels=["blank","blank","blank","blank","blank","blank","blank"]
@@ -36,8 +36,8 @@ monte_labels=["blank","blank","blank","blank","blank","blank","blank"]
 monte_desc=["blank","blank","blank","blank","blank","blank","blank"]
 monte_nums=30+arange(len(monte_labels))
 
-redfield_labels=["blank","blank","blank","blank","blank","blank","blank"]
-redfield_desc=["blank","blank","blank","blank","blank","blank","blank"]
+redfield_labels=["blank","blank","blank","blank","blank","blank"]
+redfield_desc=["blank","blank","blank","blank","blank","blank"]
 redfield_nums=40+arange(len(redfield_labels))
 
 td_labels=["blank","blank","blank","blank","blank","blank","blank"]
