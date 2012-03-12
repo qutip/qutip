@@ -390,9 +390,9 @@ class Qobj():
         Returns the trace of a quantum object
         """
         if self.isherm==True:
-            return real(sum(self.data.diagonal()))
+            return float(real(sum(self.data.diagonal())))
         else:
-            return sum(self.data.diagonal())
+            return complex(sum(self.data.diagonal()))
     def full(self):
         """
         Returns a dense array from quantum object data
