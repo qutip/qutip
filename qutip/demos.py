@@ -29,6 +29,7 @@ def demos():
     or PyQt4 are avaliable.  Otherwise, a commandline 
     interface is given in the terminal.
     """
+    exconfig.tab=0
     if qutip.settings.qutip_graphics=='YES':
         from gui import Examples
         if qutip.settings.qutip_gui=="PYSIDE":

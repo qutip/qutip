@@ -25,24 +25,24 @@ basic_desc=['Schrodinger Cat state formed from a superposition of \ntwo coherent
                             "Eigenvalues/Eigenvectors of cavity-qubit system \nin strong-coupling regime.",
                             "Bloch Sphere","blank","blank","blank"]
 
-basic_nums=arange(1,len(basic_labels)+1) #does not start at zero so commandline output numbers match (0=quit in commandline)
+basic_nums=10*arange(len(basic_labels)) #does not start at zero so commandline output numbers match (0=quit in commandline)
 
 #master equation demos
 master_labels=["blank","blank","blank","blank","blank","blank","blank"]
 master_desc=["blank","blank","blank","blank","blank","blank","blank"]
-master_nums=10+arange(len(master_labels))
+master_nums=20+arange(len(master_labels))
 
 monte_labels=["blank","blank","blank","blank","blank","blank","blank"]
 monte_desc=["blank","blank","blank","blank","blank","blank","blank"]
-monte_nums=20+arange(len(monte_labels))
+monte_nums=30+arange(len(monte_labels))
 
 redfield_labels=["blank","blank","blank","blank","blank","blank","blank"]
 redfield_desc=["blank","blank","blank","blank","blank","blank","blank"]
-redfield_nums=30+arange(len(redfield_labels))
+redfield_nums=40+arange(len(redfield_labels))
 
 td_labels=["blank","blank","blank","blank","blank","blank","blank"]
 td_desc=["blank","blank","blank","blank","blank","blank","blank"]
-td_nums=40+arange(len(td_labels))
+td_nums=50+arange(len(td_labels))
 
 
 #variables to be sent to Examples GUI

@@ -1,6 +1,6 @@
 import qutip.examples
 import sys,os,time
-from numpy import arange
+from numpy import arange,floor
 from qutip.examples import exconfig
 
 if os.environ['QUTIP_GUI']=="PYSIDE":
@@ -103,7 +103,7 @@ class Examples(QtGui.QWidget):
         for k in range(num_tabs):
             tab_widget.addTab(tabs[k],tab_labels[k])
         
-        
+        tab_widget.setCurrentIndex(exconfig.tab)
         
         
         #tab buttons
@@ -148,6 +148,7 @@ class Examples(QtGui.QWidget):
         Receives integers from button click to use for calling example script
         """
         self.moveout()
+        exconfig.tab=int(floor(num/10))-1
         exconfig.option=num
         self.close()
 
