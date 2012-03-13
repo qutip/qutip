@@ -117,12 +117,21 @@ class Examples(QtGui.QWidget):
         #set mapper to on_button_clicked funtions
         self.connect(mapper, QtCore.SIGNAL("mapped(int)"), self.on_button_clicked)
         self.layout = QtGui.QGridLayout(self)
+        #create text editor widget
         self.editor = QtGui.QPlainTextEdit()
         self.editor.setReadOnly(True)
         self.editor.resize(550,550)
         self.editor.setFixedSize(550,550)
+        #add tabwidget and textwidget to main window
         self.layout.addWidget(tab_widget, 0, 0, 5, 1)
         self.layout.addWidget(self.editor, 0, 3, 5, 1)
+        #set text of editor if demos previsouly ran.
+        if exconfig.is_green!=0:
+            syntax.PythonHighlighter(self.editor.document())
+            self.editor.show()
+            infile = open('ex_12.py', 'r')
+            self.editor.setPlainText(infile.read())
+            
         
     
     def on_button_clicked(self,num):
@@ -140,7 +149,7 @@ class Examples(QtGui.QWidget):
             self.tab_buttons[old_tab_num][old_row_num].setStyleSheet('QPushButton {font-family: Arial;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #B8E2EF, stop: 0.1 #A5DBEB, stop: 0.49 #8CD1E6, stop: 0.5 #7BCAE1, stop: 1 #57BCD9)}')
             self.tab_buttons[old_tab_num][old_row_num].setText(self.tab_buttons[old_tab_num][old_row_num].label)
             exconfig.is_green=num
-            highlight = syntax.PythonHighlighter(self.editor.document())
+            syntax.PythonHighlighter(self.editor.document())
             self.editor.show()
             infile = open('ex_12.py', 'r')
             self.editor.setPlainText(infile.read())
