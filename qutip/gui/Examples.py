@@ -1,5 +1,5 @@
 import qutip.examples
-import sys,os,time
+import sys,os,time,syntax
 from numpy import arange,floor
 from qutip.examples import exconfig
 
@@ -39,9 +39,9 @@ class Examples(QtGui.QWidget):
         
         #WINDOW PROPERTIES
         self.setWindowTitle('QuTiP Examples')
-        self.resize(1000, 650)
-        self.setMinimumSize(1000, 650)
-        self.setMaximumSize(1000, 650)
+        self.resize(1200, 650)
+        self.setMinimumSize(1200, 650)
+        self.setMaximumSize(1200, 650)
         self.center()
         self.setFocus()
         mapper = QtCore.QSignalMapper(self)
@@ -59,7 +59,7 @@ class Examples(QtGui.QWidget):
         
         #QUIT BUTTON-----------------
         quit = HoverExit('Close',self)
-        quit.setGeometry(920, 610, 70, 30)
+        quit.setGeometry(1120, 610, 70, 30)
         quit.setStyleSheet(quit_style)
         quit.setFocusPolicy(QtCore.Qt.NoFocus)
         quit.clicked.connect(self.close)
@@ -67,8 +67,8 @@ class Examples(QtGui.QWidget):
         #tab widget
         tab_widget = QtGui.QTabWidget() 
         tab_widget.move(10,10)
-        tab_widget.resize(450,550)
-        tab_widget.setFixedSize(450,550)
+        tab_widget.resize(550,550)
+        tab_widget.setFixedSize(550,550)
         #tabs for tab widget
         num_tabs=len(tab_labels)
         tabs=[QtGui.QWidget() for k in range(num_tabs)]
@@ -119,11 +119,11 @@ class Examples(QtGui.QWidget):
         self.layout = QtGui.QGridLayout(self)
         self.editor = QtGui.QPlainTextEdit()
         self.editor.setReadOnly(True)
-        self.editor.resize(450,550)
-        self.editor.setFixedSize(450,550)
+        self.editor.resize(550,550)
+        self.editor.setFixedSize(550,550)
         self.layout.addWidget(tab_widget, 0, 0, 5, 1)
         self.layout.addWidget(self.editor, 0, 3, 5, 1)
-        #layout.addWidget(quit, 7,0, 1, 1)
+        
     
     def on_button_clicked(self,num):
         """
@@ -140,6 +140,10 @@ class Examples(QtGui.QWidget):
             self.tab_buttons[old_tab_num][old_row_num].setStyleSheet('QPushButton {font-family: Arial;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #B8E2EF, stop: 0.1 #A5DBEB, stop: 0.49 #8CD1E6, stop: 0.5 #7BCAE1, stop: 1 #57BCD9)}')
             self.tab_buttons[old_tab_num][old_row_num].setText(self.tab_buttons[old_tab_num][old_row_num].label)
             exconfig.is_green=num
+            highlight = syntax.PythonHighlighter(self.editor.document())
+            self.editor.show()
+            infile = open('ex_12.py', 'r')
+            self.editor.setPlainText(infile.read())
         else:
             self.moveout()
             exconfig.tab=int(floor(num/10))-1
