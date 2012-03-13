@@ -1,3 +1,4 @@
+################################################################################
 #This file is part of QuTiP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
@@ -15,15 +16,15 @@
 #
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
-###########################################################################
+################################################################################
 from scipy import arange
 #basic demos
-basic_labels=["Schrodingers Cat","Q-function","Qobj Eigenvalues/Eigenvectors","blank","blank","blank","blank"]
+basic_labels=["Schrodingers Cat","Q-function","Eigenvals/Eigenvecs","blank","blank","blank","blank",'blank']
 
-basic_desc=['Schrodinger Cat state formed from a superposition of \ntwo coherent states.',
-                            "Q-function from superposition of two coherent states.",
-                            "Eigenvalues/Eigenvectors of cavity-qubit system \nin strong-coupling regime.",
-                            "Bloch Sphere","blank","blank","blank"]
+basic_desc=['Schrodinger Cat state formed from a \nsuperposition of two coherent states.',
+                            "Q-function from superposition of two \ncoherent states.",
+                            "Eigenvalues/Eigenvectors of cavity-qubit \nsystem in strong-coupling regime.",
+                            "Bloch Sphere","blank","blank","blank",'blank']
 
 basic_nums=10+arange(len(basic_labels)) #does not start at zero so commandline output numbers match (0=quit in commandline)
 
@@ -32,21 +33,33 @@ master_labels=["blank","blank","blank","blank","blank","blank","blank"]
 master_desc=["blank","blank","blank","blank","blank","blank","blank"]
 master_nums=20+arange(len(master_labels))
 
+
+#monte carlo equation demos
 monte_labels=["blank","blank","blank","blank","blank","blank","blank"]
 monte_desc=["blank","blank","blank","blank","blank","blank","blank"]
 monte_nums=30+arange(len(monte_labels))
 
+#bloch-redfield equation demos
 redfield_labels=["blank","blank","blank","blank","blank","blank"]
 redfield_desc=["blank","blank","blank","blank","blank","blank"]
 redfield_nums=40+arange(len(redfield_labels))
 
+#time-dependence examples
 td_labels=["blank","blank","blank","blank","blank","blank","blank"]
 td_desc=["blank","blank","blank","blank","blank","blank","blank"]
 td_nums=50+arange(len(td_labels))
 
-
 #variables to be sent to Examples GUI
-tab_labels=['Basic Operations','Master Equation','Monte Carlo','Bloch-Redfield','Time-Dependent']
+tab_labels=['Basics','Master Eq.','Monte Carlo','Bloch-Redfield','Time-Dependent']
 button_labels=[basic_labels,master_labels,monte_labels,redfield_labels,td_labels]
 button_desc=[basic_desc,master_desc,monte_desc,redfield_desc,td_desc]
 button_nums=[basic_nums,master_nums,monte_nums,redfield_nums,td_nums]
+
+
+qutip_keywords=['Bloch','brmesolve','concurrence','entropy_linear','entropy_mutual','entropy_vn',
+    'parfor']
+
+
+
+
+

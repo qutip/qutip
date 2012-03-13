@@ -64,6 +64,14 @@ class Examples(QtGui.QWidget):
         quit.setFocusPolicy(QtCore.Qt.NoFocus)
         quit.clicked.connect(self.close)
         
+        #copyright text
+        copyright = QtGui.QLabel(self)
+        copy_text="Copyright (c) 2011-2012, P. D. Nation & J. R. Johansson"
+        copyright.setText(copy_text)
+        font.setBold(False)
+        copyright.setFont(font)
+        copyright.setGeometry(10, 620, 400, 30)
+        font.setBold(True)
         #tab widget
         tab_widget = QtGui.QTabWidget() 
         tab_widget.move(10,10)
@@ -74,7 +82,7 @@ class Examples(QtGui.QWidget):
         tabs=[QtGui.QWidget() for k in range(num_tabs)]
         for k in range(num_tabs):
             tab_widget.addTab(tabs[k],tab_labels[k])
-        
+        tab_widget.setTabShape(QtGui.QTabWidget.Triangular)
         tab_widget.setCurrentIndex(exconfig.tab)
         
         
@@ -129,7 +137,9 @@ class Examples(QtGui.QWidget):
         if exconfig.is_green!=0:
             syntax.PythonHighlighter(self.editor.document())
             self.editor.show()
-            infile = open('ex_12.py', 'r')
+            print exconfig.is_green
+            _text_file=compile("infile = open('ex_"+str(exconfig.is_green)+".py', 'r')",'<string>', 'exec')
+            exec(_text_file)
             self.editor.setPlainText(infile.read())
             
         
@@ -151,7 +161,8 @@ class Examples(QtGui.QWidget):
             exconfig.is_green=num
             syntax.PythonHighlighter(self.editor.document())
             self.editor.show()
-            infile = open('ex_12.py', 'r')
+            _text_file=compile("infile = open('ex_"+str(exconfig.is_green)+".py', 'r')",'<string>', 'exec')
+            exec(_text_file)
             self.editor.setPlainText(infile.read())
         else:
             self.moveout()
