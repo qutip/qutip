@@ -20,3 +20,5 @@
 #variable for use by Examples GUI 
 option=0
 tab=0
+button_num=0
+is_green=0

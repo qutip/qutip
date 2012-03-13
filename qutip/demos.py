@@ -30,6 +30,8 @@ def demos():
     interface is given in the terminal.
     """
     exconfig.tab=0
+    exconfig.button_num=0
+    exconfig.is_green=0
     if qutip.settings.qutip_graphics=='YES':
         from gui import Examples
         if qutip.settings.qutip_gui=="PYSIDE":
@@ -49,7 +51,7 @@ def demos():
         opts=array([123456,11,12,13,14,15,21,22,23,24,25,31,32,33,34,35,41,42,43,44,45])
         lopts=arange(len(opts))
     exconfig.option=0
-
+    
     while exconfig.option<123456:
         exconfig.option=123456
         if qutip.settings.qutip_graphics=='YES':
