@@ -16,6 +16,9 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
+
+import qutip.examples.ex_12
+
 from qutip.examples.blochdemo import blochdemo
 from qutip.examples.cavityqubitmc import cavityqubitmc
 from qutip.examples.cqsteady import cqsteady
