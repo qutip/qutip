@@ -19,7 +19,7 @@
 ################################################################################
 
 
-from demos_text import qutip_keywords
+from qutip.examples.examples_text import qutip_keywords
 import sys,os
 if os.environ['QUTIP_GUI']=="PYSIDE":
     from PySide import QtGui, QtCore

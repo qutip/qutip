@@ -30,7 +30,7 @@ class Examples(QtGui.QWidget):
     
     def __init__(self,version,direc,parent=None):
         QtGui.QWidget.__init__(self, parent)
-        from demos_text import tab_labels,button_labels,button_desc,button_nums
+        from qutip.examples.examples_text import tab_labels,button_labels,button_desc,button_nums
         #set tab button style
         tab_button_style='QPushButton {font-family: Arial;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #B8E2EF, stop: 0.1 #A5DBEB, stop: 0.49 #8CD1E6, stop: 0.5 #7BCAE1, stop: 1 #57BCD9)}'
         #set quit button style
