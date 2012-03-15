@@ -181,7 +181,8 @@ def sp_eigs(op,vecs=True,sparse=None,sort='low',eigvals=0,tol=0,maxiter=10000):
     if vecs:
         evecs=array([evecs[:,k] for k in perm])
     if sort=='high':#flip arrays to largest values first
-        evecs=flipud(evecs)
+        if vecs:
+            evecs=flipud(evecs)
         evals=flipud(evals)
     if vecs:    
         return evals,evecs
