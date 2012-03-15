@@ -3,11 +3,11 @@
 # ultra-strongly coupled atom-cavity system.
 # 
 #
-from ..expect import *
-from ..Qobj import *
-from ..operators import *
-from ..states import *
-from ..tensor import *
+from qutip.expect import *
+from qutip.Qobj import *
+from qutip.operators import *
+from qutip.states import *
+from qutip.tensor import *
 import time
 from pylab import *
 from mpl_toolkits.mplot3d import Axes3D
@@ -70,5 +70,6 @@ def run():
     title('# of Photons in the Groundstate')
     show()
 
-
+if __name__ == "__main__":
+    run()
 

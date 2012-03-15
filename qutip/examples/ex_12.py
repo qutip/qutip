@@ -2,10 +2,10 @@
 # 3D Wigner and Q-functions for 
 # a squeezed coherent state.
 #
-from ..states import *
-from ..Qobj import *
-from ..operators import *
-from ..wigner import *
+from qutip.states import *
+from qutip.Qobj import *
+from qutip.operators import *
+from qutip.wigner import *
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from pylab import *
@@ -43,5 +43,7 @@ def run():
     ax2.set_zlim3d(0,0.2)
     title('Q-function of squeezed coherent state')
     show()
-
+    
+if __name__ == "__main__":
+    run()
 

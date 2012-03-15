@@ -3,9 +3,9 @@
 # where F and T are the fidelity and trace distance metrics,
 # respectively using randomly generated ket vectors.
 #
-from ..metrics import *
-from ..rand import *
-from.. states import *
+from qutip.metrics import *
+from qutip.rand import *
+from qutip.states import *
 from pylab import *
 
 def run():
@@ -24,4 +24,6 @@ def run():
     title("Verification of 1-F**2<=T for random pure states.")
     legend(("trace distance","1-fidelity**2"),loc=0)
     show()
-
+    
+if __name__ == "__main__":
+    run()

@@ -2,9 +2,9 @@
 #Calculates the Schrodinger cat state for
 #a superposition of two coherent states.
 #
-from ..operators import *
-from ..states import *
-from ..wigner import *
+from qutip.operators import *
+from qutip.states import *
+from qutip.wigner import *
 from pylab import * #loads matplotlib
 
 def run():
@@ -40,3 +40,6 @@ def run():
     cbar.ax.set_ylabel('Pseudoprobability')
     #show plot
     show()
+    
+if __name__ == "__main__":
+    run()
