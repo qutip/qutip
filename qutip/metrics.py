@@ -86,4 +86,4 @@ def tracedist(A,B,tol=0):
         diff=A-B
         diff=diff.dag()*diff
         vals=sp_eigs(diff,vecs=False,tol=0)
-        return float(0.5*sum(sqrt(vals)))
+        return float(real(0.5*sum(sqrt(vals))))

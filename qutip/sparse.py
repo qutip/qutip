@@ -74,6 +74,7 @@ def sp_eigs(op,vecs=True,sparse=None,sort='low',eigvals=0,tol=0,maxiter=100000):
     
         Array of eigenvalues and (by default) array of corresponding Eigenvectors.
     """
+    use_sparse=1000 # of dims at which to use sparse solver
     if op.type=='ket' or op.type=='bra':
         raise TypeError("Can only diagonalize operators and superoperators")
     N=op.shape[0]
@@ -81,9 +82,9 @@ def sp_eigs(op,vecs=True,sparse=None,sort='low',eigvals=0,tol=0,maxiter=100000):
     if eigvals>N:raise ValueError("Number of requested eigen vals/vecs must be <= N.")
     if eigvals>0 and not op.isherm:sparse=True #only saprse routine can get slected eigs for nonherm matricies
     #set sparse=True for dims >= 10 if not already set
-    if N>=10 and sparse==None:
+    if N>=use_sparse and sparse==None:
         sparse=True
-    if N<10 and sparse==None:
+    if N<use_sparse and sparse==None:
         sparse==False
     #set number of large and small eigenvals/vecs
     if eigvals==0:#user wants all eigs (default)
