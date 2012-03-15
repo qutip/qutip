@@ -51,7 +51,7 @@ class Examples(QtGui.QWidget):
         title_font = QtGui.QFont()
         title_font.setFamily("Arial")
         title_font.setBold(True)
-        title_font.setPointSize(14)
+        title_font.setPointSize(16)
         title_fm = QtGui.QFontMetrics(title_font)
         #text across top of demos window
         title = QtGui.QLabel(self)
