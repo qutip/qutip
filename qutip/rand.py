@@ -73,7 +73,8 @@ def rand_ket(N):
     """
     U=rand_unitary(N)
     psi=Qobj(ones((N,1)))
-    return U*psi
+    out=U*psi
+    return out/out.norm()
 
 
 def rand_dm(N):
