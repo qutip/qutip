@@ -371,18 +371,14 @@ class Qobj():
         out.dims=[self.dims[1],self.dims[0]]
         out.shape=[self.shape[1],self.shape[0]]
         return Qobj(out)
-    def norm(self):
+    def norm(self,tol=0):
         """
         Returns norm of a quantum object. Norm is L2-norm for kets and 
         trace-norm for operators.
         """
         if self.type=='oper' or self.type=='super':
-            N=self.shape[0]
-            if N>=10:
-                vals=sp_eigs(self,vecs=False)
-                return sum(sqrt(abs(vals)**2))
-            else:   
-                return float(real((self.dag()*self).sqrtm().tr()))
+            vals=sp_eigs(self,vecs=False,tol=tol)
+            return sum(sqrt(abs(vals)**2))
         else:
             return sp_L2_norm(self)
     def tr(self):
@@ -555,33 +551,33 @@ class Qobj():
     # Find the eigenstates and eigenenergies (defined for operators and
     # superoperators)
     # 
-    def eigenstates(self,vals=True):
+    def eigenstates(self,sparse=None,sort='low',eigvals=0,tol=0,maxiter=100000):
         """
         Find the eigenstates and eigenenergies (defined for operators and superoperators)
         """
-        if isket(self) or isbra(self):
-            raise TypeError("Can only diagonalize operators and superoperators")
-
-        evals, evecs = la.eig(self.full())
-    
-        zipped = zip(evals, range(len(evals)))
-        zipped.sort()
-        vals, perm = zip(*zipped)
-
-        evals_sorted = array([evals[perm[i]] for i in xrange(len(perm))])
+        evals,evecs = sp_eigs(self,sparse=sparse,sort=sort,eigvals=eigvals,tol=tol,maxiter=maxiter)
         new_dims  = [self.dims[0], [1] * len(self.dims[0])]
         new_shape = [self.shape[0], 1]
-        ekets_sorted = [Qobj(matrix(evecs[:,perm[i]]/la.norm(evecs[perm[i]])).T, dims=new_dims, shape=new_shape) for i in xrange(len(perm))]
-
-        return ekets_sorted, evals_sorted
+        ekets = array([Qobj(vec, dims=new_dims, shape=new_shape) for vec in evecs])
+        norms=array([ket.norm() for ket in ekets])
+        return evals, ekets/norms
 
     #
     # Find only the eigenenergies (defined for operators and superoperators)
     # 
-    def eigenenergies(self):
-        return sp_eigs(self,vecs=False)
+    def eigenenergies(self,sparse=None,sort='low',eigvals=0,tol=0,maxiter=100000):
+        return sp_eigs(self,vecs=False,sparse=sparse,sort=sort,eigvals=eigvals,tol=tol,maxiter=maxiter)
 
-
+    #
+    #Find ground state (eigenvector for lowest eigenvalue) for operator
+    #
+    def groundstate(self,sparse=None,tol=0,maxiter=100000):
+        grndval,grndvec=sp_eigs(self,sparse=sparse,eigvals=1,tol=tol,maxiter=maxiter)
+        new_dims  = [self.dims[0], [1] * len(self.dims[0])]
+        new_shape = [self.shape[0], 1]
+        grndvec=Qobj(grndvec[0],dims=new_dims,shape=new_shape)
+        grndvec=grndvec/grndvec.norm()
+        return grndval[0],grndvec
 #-------------------------------------------------------------------------------
 # This functions evaluates a time-dependent quantum object on the list-string
 # and list-function formats that are used by the time-dependent solvers.
