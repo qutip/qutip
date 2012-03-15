@@ -50,7 +50,7 @@ def sp_one_norm(op):
     return max(array([sum(abs((op.data[:,k]).data)) for k in xrange(op.shape[1])]))
 
 
-def sp_eigs(op,vecs=True,sparse=None,sort='low',eigvals=0,tol=0,maxiter=10000):
+def sp_eigs(op,vecs=True,sparse=None,sort='low',eigvals=0,tol=0,maxiter=100000):
     """
     Returns Eigenvalues and Eigenvectors for Qobj.  Uses sparse eigen-solver if dims >=10 and sparse!=False.
     

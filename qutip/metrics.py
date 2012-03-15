@@ -24,6 +24,7 @@ Collection of metrics (distance measures) between density matricies
 from qutip.Qobj import *
 import scipy.linalg as la
 from scipy import real
+from qutip.sparse import sp_eigs
 
 
 def fidelity(A,B):
@@ -55,7 +56,7 @@ def fidelity(A,B):
         return float(real((A*(B*A)).sqrtm().tr()))
 
 
-def tracedist(A,B):
+def tracedist(A,B,tol=0):
     """
     Calculates the trace distance between two density matricies.
     See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
@@ -65,6 +66,8 @@ def tracedist(A,B):
         A (Qobj): Density matrix.
         
         B (Qobj): Sensity matrix with same dimensions as A.
+        
+        tol (float): Tolerance used by sparse eigensolver. (0=Machine precision)
     
     Returns:
         float for trace distance
@@ -82,5 +85,5 @@ def tracedist(A,B):
     else:
         diff=A-B
         diff=diff.dag()*diff
-        out=diff.sqrtm()
-        return float(real(0.5*out.tr()))
+        vals=sp_eigs(diff,vecs=False,tol=0)
+        return float(0.5*sum(sqrt(vals)))
