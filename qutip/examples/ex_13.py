@@ -1,5 +1,6 @@
 #
-# Textbook example: groundstate properties of an ultra-strongly coupled atom-cavity system.
+# Textbook example: Groundstate properties of an 
+# ultra-strongly coupled atom-cavity system.
 # 
 #
 from ..expect import *

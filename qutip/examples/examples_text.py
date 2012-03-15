@@ -19,13 +19,13 @@
 ################################################################################
 from scipy import arange
 #basic demos
-basic_labels=["Schrodingers Cat","Q-function","Squeezed State","Eigenvals/Eigenvecs","blank","blank","blank","blank"]
+basic_labels=["Schrodingers Cat","Q-function","Squeezed State","Ground State","Density Matrix Metrics","blank","blank","blank"]
 
 basic_desc=['Schrodinger Cat state formed from a \nsuperposition of two coherent states.',
                             "Calculates the Q-function of Schrodinger cat\nstate formed from two coherent states.",
-                            "Squeezed state",
-                            "Eigenvalues/Eigenvectors of cavity-qubit \nsystem in strong-coupling regime.",
-                            "Bloch Sphere","blank","blank","blank"]
+                            "3D Wigner and Q-functions for a squeezed \ncoherent state.",
+                            "Groundstate properties of an ultra-strongly\ncoupled atom-cavity system.",
+                            "Show relationship between fidelity and trace\ndistance for pure state denisty matrices.","blank","blank","blank"]
 
 basic_nums=10+arange(len(basic_labels)) #does not start at zero so commandline output numbers match (0=quit in commandline)
 
@@ -58,8 +58,9 @@ button_nums=[basic_nums,master_nums,monte_nums,redfield_nums,td_nums]
 
 
 qutip_keywords=['basis','Bloch','brmesolve','concurrence','create','destroy','displace',
-                'entropy_linear','entropy_mutual','entropy_vn','expect',
-                'parfor','qeye','qfunc','Qobj','squeez','tensor','wigner']
+                'entropy_linear','entropy_mutual','entropy_vn','expect','fidelity',
+                'parfor','qeye','qfunc','Qobj','rand_dm','rand_herm','rand_ket','rand_unitary',
+                'squeez','tensor','tracedist','wigner']
 
 
 
