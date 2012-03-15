@@ -103,7 +103,7 @@ def sp_eigs(op,vecs=True,sparse=None,sort='low',eigvals=0,tol=0,maxiter=10000):
             raise ValueError("Invalid option for 'sort'.")
     
     #Sparse routine
-    if sparse:        
+    if sparse:       
         if vecs:
             #big values
             if num_large>0:
@@ -131,6 +131,7 @@ def sp_eigs(op,vecs=True,sparse=None,sort='low',eigvals=0,tol=0,maxiter=10000):
                     big_vals=sp.linalg.eigsh(op.data,k=num_large,which='LR',return_eigenvectors=False,tol=tol,maxiter=maxiter)
                 if num_small>0:
                     small_vals=sp.linalg.eigsh(op.data,k=num_small,which='SR',return_eigenvectors=False,tol=tol,maxiter=maxiter)
+                    small_vals=flipud(small_vals)
             else:
                 if num_large>0:
                     big_vals=sp.linalg.eigs(op.data,k=num_large,which='LR',return_eigenvectors=False,tol=tol,maxiter=maxiter)
@@ -139,7 +140,7 @@ def sp_eigs(op,vecs=True,sparse=None,sort='low',eigvals=0,tol=0,maxiter=10000):
         if num_large!=0 and num_small!=0:
             evals=union1d(small_vals,big_vals)
         elif num_large!=0 and num_small==0:
-            evals=large_vals
+            evals=big_vals
         elif num_large==0 and num_small!=0:
             evals=small_vals
         if op.isherm:evals=real(evals)
