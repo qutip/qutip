@@ -29,6 +29,7 @@ def demos():
     or PyQt4 are avaliable.  Otherwise, a commandline 
     interface is given in the terminal.
     """
+    direc=os.path.dirname(__file__)
     exconfig.tab=0
     exconfig.button_num=0
     exconfig.is_green=0
@@ -38,11 +39,11 @@ def demos():
             from PySide import QtGui, QtCore
         elif qutip.settings.qutip_gui=="PYQT4":
             from PyQt4 import QtGui, QtCore
-        def start_gui(ver):
+        def start_gui(ver,direc):
             app=QtGui.QApplication.instance()#checks if QApplication already exists (needed for iPython)
             if not app:#create QApplication if it doesnt exist
                 app = QtGui.QApplication(sys.argv)
-            gui=Examples(ver)
+            gui=Examples(ver,direc)
             gui.show()
             gui.activateWindow()
             gui.raise_()
@@ -60,7 +61,7 @@ def demos():
                 ver=_version.short_version
             else:
                 ver='HEAD'
-            start_gui(ver)
+            start_gui(ver,direc)
         else:
             if sys.stdout.isatty():
                 print('')

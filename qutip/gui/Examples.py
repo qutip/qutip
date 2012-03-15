@@ -2,13 +2,12 @@ import qutip.examples
 import sys,os,time,syntax
 from numpy import arange,floor
 from qutip.examples import exconfig
-
+from qutip.examples import *
 if os.environ['QUTIP_GUI']=="PYSIDE":
     from PySide import QtGui, QtCore
 
 elif os.environ['QUTIP_GUI']=="PYQT4":
     from PyQt4 import QtGui, QtCore
-
 
 
 class Examples(QtGui.QWidget):
@@ -29,7 +28,7 @@ class Examples(QtGui.QWidget):
             time.sleep(.02)
             self.setWindowOpacity(op)
     
-    def __init__(self,version,parent=None):
+    def __init__(self,version,direc,parent=None):
         QtGui.QWidget.__init__(self, parent)
         from demos_text import tab_labels,button_labels,button_desc,button_nums
         #set tab button style
@@ -44,8 +43,23 @@ class Examples(QtGui.QWidget):
         self.setMaximumSize(1200, 650)
         self.center()
         self.setFocus()
+        self.dir=direc+'/examples/'
         mapper = QtCore.QSignalMapper(self)
         
+        
+        
+        title_font = QtGui.QFont()
+        title_font.setFamily("Arial")
+        title_font.setBold(True)
+        title_font.setPointSize(14)
+        title_fm = QtGui.QFontMetrics(title_font)
+        #text across top of demos window
+        title = QtGui.QLabel(self)
+        title.setFont(title_font)
+        title_text="Click button once for code preview.  Click again to run example."
+        pixelswide = title_fm.width(title_text)
+        title.setText(title_text)
+        title.setGeometry((self.width()-pixelswide)/2.0, 10, 800, 30)
         
         
         font = QtGui.QFont()
@@ -53,8 +67,6 @@ class Examples(QtGui.QWidget):
         font.setBold(True)
         font.setPointSize(12)
         fm = QtGui.QFontMetrics(font)
-        
-        
 
         
         #QUIT BUTTON-----------------
@@ -137,8 +149,7 @@ class Examples(QtGui.QWidget):
         if exconfig.is_green!=0:
             syntax.PythonHighlighter(self.editor.document())
             self.editor.show()
-            print exconfig.is_green
-            _text_file=compile("infile = open('ex_"+str(exconfig.is_green)+".py', 'r')",'<string>', 'exec')
+            _text_file=compile("infile = open(self.dir+'ex_"+str(exconfig.is_green)+".py', 'r')",'<string>', 'exec')
             exec(_text_file)
             self.editor.setPlainText(infile.read())
             
@@ -161,7 +172,7 @@ class Examples(QtGui.QWidget):
             exconfig.is_green=num
             syntax.PythonHighlighter(self.editor.document())
             self.editor.show()
-            _text_file=compile("infile = open('ex_"+str(exconfig.is_green)+".py', 'r')",'<string>', 'exec')
+            _text_file=compile("infile = open(self.dir+'ex_"+str(exconfig.is_green)+".py', 'r')",'<string>', 'exec')
             exec(_text_file)
             self.editor.setPlainText(infile.read())
         else:
