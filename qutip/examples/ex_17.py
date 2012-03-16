@@ -5,25 +5,33 @@
 #
 # Adapted from 'probss' example in the qotoolbox by Sze M. Tan.
 #
-from qutip import *
+from qutip.expect import *
+from qutip.operators import *
+from qutip.parfor import *
+from qutip.states import *
+from qutip.steady import *
+from qutip.tensor import *
 from pylab import *
+import time
 
 def probss(E,kappa,gamma,g,wc,w0,wl,N):
+    #construct composite operators
     ida=qeye(N)
     idatom=qeye(2)
     a=tensor(destroy(N),idatom)
     sm=tensor(ida,sigmam())
     #Hamiltonian
     H=(w0-wl)*sm.dag()*sm+(wc-wl)*a.dag()*a+1j*g*(a.dag()*sm-sm.dag()*a)+E*(a.dag()+a)
+    
     #Collapse operators
     C1=sqrt(2*kappa)*a
     C2=sqrt(gamma)*sm
     C1dC1=C1.dag() * C1
     C2dC2=C2.dag() * C2
-    #Liouvillian
-    L = liouvillian(H, [C1, C2])
+    
     #find steady state
-    rhoss=steady(L)
+    rhoss=steadystate(H, [C1, C2])
+    
     #calculate expectation values
     count1=expect(C1dC1,rhoss)
     count2=expect(C2dC2,rhoss)
