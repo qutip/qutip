@@ -27,7 +27,7 @@ def compute(w1list, w2, w3, g12, g13):
         H = w1 * sz1 + w2 * sz2 + w3 * sz3 + g12 * sx1 * sx2 + g13 * sx1 * sx3
 
         # find the energy eigenvalues of the composite system
-        ekets, evals = H.eigenstates()
+        evals, ekets = H.eigenstates()
 
         evals_mat[idx,:] = real(evals)
 
