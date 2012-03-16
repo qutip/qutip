@@ -60,14 +60,14 @@ STYLES = {
 class PythonHighlighter (QtGui.QSyntaxHighlighter):
     """Syntax highlighter for the Python language.
     """
-    # Python + qutip keywords
+    # Python + numpy keywords
     python_keywords = [
         'and', 'assert', 'break', 'class', 'continue', 'def',
         'del', 'elif', 'else', 'except', 'exec', 'finally',
         'for', 'from', 'global', 'if', 'import', 'in',
         'is', 'lambda', 'not', 'or', 'pass', 'print',
         'raise', 'return', 'try', 'while', 'yield',
-        'None', 'True', 'False']
+        'None', 'True', 'False','linspace','array','arange','zeros']
     
     
     keywords=python_keywords+qutip_keywords
