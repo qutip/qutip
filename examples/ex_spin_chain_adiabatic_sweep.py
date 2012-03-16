@@ -87,7 +87,7 @@ def run(N, M, h, Jx, Jy, Jz, taulist):
 #
 # set up the calculation
 #
-N = 5            # number of spins
+N = 6            # number of spins
 M = 20           # number of eigenenergies to solve for
 
 # array of spin energy splittings and coupling strengths (random values). 
@@ -156,9 +156,11 @@ figure(2)
 for n in range(len(evals_mat[0,:])):
     if n == 0:
         ls = 'b'
+        lw = 1        
     else:
         ls = 'k'        
-    plot(taulist/max(taulist), evals_mat[:,n] / (2*pi), ls, linewidth=0.25)
+        lw = 0.25        
+    plot(taulist/max(taulist), evals_mat[:,n] / (2*pi), ls, linewidth=lw)
 
 # second, draw line that encode the occupation probability of each corresponding
 # state in the linewidth. thicker line => high occupation probability.
@@ -170,7 +172,7 @@ for idx in range(len(taulist)-1):
     
 xlabel(r'$\tau$')
 ylabel('Eigenenergies')
-title("Energyspectrum (%d lowest values) of a chain of %d spins.\nThe occupation probabilities are encoded in the line widths." % (M, N))
-
+title("Energyspectrum (%d lowest values) of a chain of %d spins.\nThe occupation probabilities are encoded in the red line widths." % (M, N))
+legend(("Ground state",))
 show()
 
