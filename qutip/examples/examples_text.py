@@ -22,13 +22,13 @@ from scipy import arange
 basic_labels=["Schrodinger Cat","Q-function","Squeezed State","Ground State","Density Matrix Metrics","Coupled Qubit Energies","blank","Cavity-Qubit Steadystate"]
 
 basic_desc=['Schrodinger Cat state formed from a \nsuperposition of two coherent states.',
-                            "Calculates the Q-function of Schrodinger cat\nstate formed from two coherent states.",
-                            "3D Wigner and Q-functions for a squeezed \ncoherent state.",
-                            "Groundstate properties of an ultra-strongly\ncoupled atom-cavity system.",
-                            "Show relationship between fidelity and trace\ndistance for pure state denisty matrices.",
-                            "Calculate Eigenenergies of a coupled three qubit\nsystem.",
-                            "blank",
-                            "Steady state of cavity-qubit system using parfor\nfunction to run in parallel."]
+            "Calculates the Q-function of Schrodinger cat\nstate formed from two coherent states.",
+            "3D Wigner and Q-functions for a squeezed \ncoherent state.",
+            "Groundstate properties of an ultra-strongly\ncoupled atom-cavity system.",
+            "Show relationship between fidelity and trace\ndistance for pure state denisty matrices.",
+            "Calculate Eigenenergies of a coupled three qubit\nsystem.",
+            "blank",
+            "Steady state of cavity-qubit system using parfor\nfunction to run in parallel."]
 
 basic_nums=10+arange(len(basic_labels)) #does not start at zero so commandline output numbers match (0=quit in commandline)
 
@@ -39,8 +39,14 @@ master_nums=20+arange(len(master_labels))
 
 
 #monte carlo equation demos
-monte_labels=["blank","blank","blank","blank","blank","blank","blank"]
-monte_desc=["blank","blank","blank","blank","blank","blank","blank"]
+monte_labels=["blank","blank","MC Ensemble Avg.","blank","blank","blank","blank"]
+monte_desc=["blank",
+            "blank",
+            "Ensemble averaging of MC trajectories to master\nequation for Fock state decay.",
+            "blank",
+            "blank",
+            "blank",
+            "blank"]
 monte_nums=30+arange(len(monte_labels))
 
 #bloch-redfield equation demos
