@@ -70,6 +70,7 @@ def run(N, M, h, Jx, Jy, Jz, taulist):
         # evaluate the Hamiltonian with gradually switched on interaction
         # XXX: use h_t to evaluate H ?
         H = (max(taulist) - tau)/max(taulist) * H0 + tau/max(taulist) * H1
+        #H = qobj_list_evaluate(h_t, tau, {})
 
         # find the M lowest eigenvalues of the system
         evals, ekets = H.eigenstates(eigvals=M)
@@ -78,8 +79,8 @@ def run(N, M, h, Jx, Jy, Jz, taulist):
     
         # find the overlap between the eigenstates and psi 
         for n, eket in enumerate(ekets):
-            #occupation_mat[idx,n] = (eket.dag() *  psi_list[idx]).full()[0,0]
-            occupation_mat[idx,n] = expect(ket2dm(eket), psi_list[idx])
+            #occupation_mat[idx,n] = abs((eket.dag() *  psi_list[idx]).full()[0,0])**2
+            occupation_mat[idx,n] = abs(dot(eket.dag().data, psi_list[idx].data)[0,0])**2
         
     return evals_mat, occupation_mat
     
@@ -96,7 +97,7 @@ Jx = 1.0 * 2 * pi * (1 - 2 * rand(N))
 Jy = 1.0 * 2 * pi * (1 - 2 * rand(N))
 
 # increase taumax to get make the sweep more adiabatic
-taumax = 10.0
+taumax = 5.0
 taulist = linspace(0, taumax, 100)
 
 start_time = time.time()
@@ -143,5 +144,33 @@ xlabel(r'$\tau$')
 ylabel('Occupation probability')
 title("Occupation probability of the %d lowest eigenstates for a chain of %d spins" % (M, N))
 legend(("Ground state",))
+
+
+#
+# fancier way of plotting the same thing... also illustrates which eigenstates
+# are occupied as a function of time
+#
+figure(2)
+
+# first draw thin lines outlining the energy spectrum
+for n in range(len(evals_mat[0,:])):
+    if n == 0:
+        ls = 'b'
+    else:
+        ls = 'k'        
+    plot(taulist/max(taulist), evals_mat[:,n] / (2*pi), ls, linewidth=0.25)
+
+# second, draw line that encode the occupation probability of each corresponding
+# state in the linewidth. thicker line => high occupation probability.
+for idx in range(len(taulist)-1):
+    for n in range(len(occ_mat[0,:])):
+        lw = 0.5 + 4*occ_mat[idx,n]    
+        if lw > 0.55:
+            plot(array([taulist[idx], taulist[idx+1]])/taumax, array([evals_mat[idx,n], evals_mat[idx+1,n]])/(2*pi), 'r', linewidth=lw)    
+    
+xlabel(r'$\tau$')
+ylabel('Eigenenergies')
+title("Energyspectrum (%d lowest values) of a chain of %d spins.\nThe occupation probabilities are encoded in the line widths." % (M, N))
+
 show()
 
