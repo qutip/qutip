@@ -23,7 +23,7 @@ having to use dense matrices.
 """
 
 import scipy.sparse as sp
-from scipy import ceil,floor,mod,union1d,real,array,sort,flipud,arange
+from scipy import ceil,floor,mod,union1d,real,array,sort,flipud,arange,fliplr,hstack,delete
 import scipy.linalg as la
 
 def sp_L2_norm(op):
@@ -86,6 +86,10 @@ def sp_eigs(op,vecs=True,sparse=None,sort='low',eigvals=0,tol=0,maxiter=100000):
         sparse=True
     if N<use_sparse and sparse==None:
         sparse==False
+    remove_one=False
+    if eigvals==(N-1) and sparse:#calculate all eigenvalues and remove one at output if using sparse
+        eigvals=0
+        remove_one=True
     #set number of large and small eigenvals/vecs
     if eigvals==0:#user wants all eigs (default)
         D=int(ceil(N/2.0))
@@ -104,19 +108,22 @@ def sp_eigs(op,vecs=True,sparse=None,sort='low',eigvals=0,tol=0,maxiter=100000):
             raise ValueError("Invalid option for 'sort'.")
     
     #Sparse routine
+    big_vals=array([])
+    small_vals=array([])
     if sparse:       
         if vecs:
             #big values
             if num_large>0:
                 if op.isherm:
-                    big_vals,big_vecs=sp.linalg.eigsh(op.data,k=num_large,which='LR',tol=tol,maxiter=maxiter)
+                    big_vals,big_vecs=sp.linalg.eigsh(op.data,k=num_large,which='LM',tol=tol,maxiter=maxiter)
                 else:
                     big_vals,big_vecs=sp.linalg.eigs(op.data,k=num_large,which='LR',tol=tol,maxiter=maxiter)
                 big_vecs=sp.csr_matrix(big_vecs,dtype=complex)
+                big_vals=big_vals
             #small values
             if num_small>0:
                 if op.isherm:
-                    small_vals,small_vecs=sp.linalg.eigsh(op.data,k=num_small,which='SR',tol=tol,maxiter=maxiter)
+                    small_vals,small_vecs=sp.linalg.eigsh(op.data,k=num_small,which='SM',tol=tol,maxiter=maxiter)
                 else:
                     small_vals,small_vecs=sp.linalg.eigs(op.data,k=num_small,which='SR',tol=tol,maxiter=maxiter)
                 small_vecs=sp.csr_matrix(small_vecs,dtype=complex)
@@ -132,20 +139,18 @@ def sp_eigs(op,vecs=True,sparse=None,sort='low',eigvals=0,tol=0,maxiter=100000):
                     big_vals=sp.linalg.eigsh(op.data,k=num_large,which='LR',return_eigenvectors=False,tol=tol,maxiter=maxiter)
                 if num_small>0:
                     small_vals=sp.linalg.eigsh(op.data,k=num_small,which='SR',return_eigenvectors=False,tol=tol,maxiter=maxiter)
-                    small_vals=flipud(small_vals)
+                    small_vals=small_vals
             else:
                 if num_large>0:
                     big_vals=sp.linalg.eigs(op.data,k=num_large,which='LR',return_eigenvectors=False,tol=tol,maxiter=maxiter)
                 if num_small>0:
                     small_vals=sp.linalg.eigs(op.data,k=num_small,which='SR',return_eigenvectors=False,tol=tol,maxiter=maxiter)
-        if num_large!=0 and num_small!=0:
-            evals=union1d(small_vals,big_vals)
-        elif num_large!=0 and num_small==0:
-            evals=big_vals
-        elif num_large==0 and num_small!=0:
-            evals=small_vals
+        evals=hstack((small_vals,big_vals))
+        _zipped = zip(evals,range(len(evals)))
+        _zipped.sort()
+        evals,perm = zip(*_zipped)
         if op.isherm:evals=real(evals)
-        perm=arange(len(evals))#return values aleady sorted
+        perm=array(perm)
     
     #Dense routine for dims <10 use faster dense routine (or use if user set sparse==False)
     else:
@@ -173,12 +178,12 @@ def sp_eigs(op,vecs=True,sparse=None,sort='low',eigvals=0,tol=0,maxiter=100000):
             else:
                 evals=la.eigvals(op.full())
         #sort return values
-        _zipped = zip(evals, range(len(evals)))
+        _zipped = zip(evals,range(len(evals)))
         _zipped.sort()
         evals,perm = zip(*_zipped)
         if op.isherm:evals=real(evals)
         perm=array(perm)
-    
+        
     #return eigenvectors
     if vecs:
         evecs=array([evecs[:,k] for k in perm])
@@ -186,6 +191,11 @@ def sp_eigs(op,vecs=True,sparse=None,sort='low',eigvals=0,tol=0,maxiter=100000):
         if vecs:
             evecs=flipud(evecs)
         evals=flipud(evals)
+    #remove last element if requesting N-1 eigs and using sparse
+    if remove_one and sparse:
+            evals=delete(evals,-1)
+            if vecs:
+                evecs=delete(evecs,-1)
     if vecs:    
         return evals,evecs
     else:
