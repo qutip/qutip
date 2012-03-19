@@ -38,9 +38,9 @@ class Examples(QtGui.QWidget):
         
         #WINDOW PROPERTIES
         self.setWindowTitle('QuTiP Examples')
-        self.resize(1200, 775)
-        self.setMinimumSize(1200, 775)
-        self.setMaximumSize(1200, 775)
+        self.resize(1200, 720)
+        self.setMinimumSize(1200, 720)
+        self.setMaximumSize(1200, 720)
         self.center()
         self.setFocus()
         self.dir=direc+'/examples/'
@@ -59,7 +59,7 @@ class Examples(QtGui.QWidget):
         title_text="Click button once for code preview.  Click again to run example."
         pixelswide = title_fm.width(title_text)
         title.setText(title_text)
-        title.setGeometry((self.width()-pixelswide)/2.0, 10, 800, 30)
+        title.setGeometry((self.width()-pixelswide)/2.0, 0, 800, 30)
         
         
         font = QtGui.QFont()
@@ -70,11 +70,11 @@ class Examples(QtGui.QWidget):
 
         
         #QUIT BUTTON-----------------
-        quit = HoverExit('Close',self)
-        quit.setGeometry(1120, 730, 70, 40)
-        quit.setStyleSheet(quit_style)
-        quit.setFocusPolicy(QtCore.Qt.NoFocus)
-        quit.clicked.connect(self.close)
+        #quit = HoverExit('Close',self)
+        #quit.setGeometry(1120, 710, 70, 40)
+        #quit.setStyleSheet(quit_style)
+        #quit.setFocusPolicy(QtCore.Qt.NoFocus)
+        #quit.clicked.connect(self.close)
         
         #copyright text
         copyright = QtGui.QLabel(self)
@@ -82,13 +82,13 @@ class Examples(QtGui.QWidget):
         copyright.setText(copy_text)
         font.setBold(False)
         copyright.setFont(font)
-        copyright.setGeometry(10, 745, 400, 30)
+        copyright.setGeometry(10, 695, 400, 30)
         font.setBold(True)
         #tab widget
         tab_widget = QtGui.QTabWidget() 
         tab_widget.move(10,10)
-        tab_widget.resize(550,675)
-        tab_widget.setFixedSize(550,675)
+        tab_widget.resize(550,665)
+        tab_widget.setFixedSize(550,665)
         #tabs for tab widget
         num_tabs=len(tab_labels)
         tabs=[QtGui.QWidget() for k in range(num_tabs)]
@@ -140,8 +140,8 @@ class Examples(QtGui.QWidget):
         #create text editor widget
         self.editor = QtGui.QPlainTextEdit()
         self.editor.setReadOnly(True)
-        self.editor.resize(550,675)
-        self.editor.setFixedSize(550,675)
+        self.editor.resize(550,665)
+        self.editor.setFixedSize(550,666)
         #add tabwidget and textwidget to main window
         self.layout.addWidget(tab_widget, 0, 0, 5, 1)
         self.layout.addWidget(self.editor, 0, 3, 5, 1)

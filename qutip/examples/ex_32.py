@@ -11,7 +11,12 @@
 # S. Gleyzes, et al., Nature 446, 297 (2007). 
 #
 
-from qutip import *
+from qutip.expect import *
+from qutip.mcsolve import *
+from qutip.odesolve import *
+from qutip.operators import *
+from qutip.states import *
+from qutip.steady import *
 from pylab import *
 
 def run():
@@ -32,13 +37,16 @@ def run():
     # excitation operator
     c_op_list.append(sqrt(kappa * nth) * a.dag())
 
-    #run monte carlo simulation
+    # run monte carlo simulation
     ntraj=904 # number of MC trajectories
     tlist=linspace(0,0.6,100)
+    # here we return state vectors to show that this is possible
     mc = mcsolve(H,psi0,tlist,c_op_list,[],ntraj)
 
-    ## calulate expectation values for different # of trajectories
+    # calculate expectation values for different # of trajectories
     ex1=expect(num(N),mc.states[0])
+    # here the '0' is needed as 2nd arg to mean so it knows to avererage over
+    # different trajectories and not different times.
     ex5=mean([expect(num(N),mc.states[k]) for k in range(5)],0)
     ex15=mean([expect(num(N),mc.states[k]) for k in range(15)],0)
     ex904=mean([expect(num(N),mc.states[k]) for k in range(904)],0)
