@@ -18,6 +18,7 @@
 #
 ################################################################################
 from scipy import arange
+
 #basic demos
 basic_labels=["Schrodinger Cat","Q-function","Squeezed State","Ground State","Density Matrix Metrics",
             "Coupled Qubit Energies","Bell State","Cavity-Qubit Steadystate","blank","blank"]
@@ -36,8 +37,9 @@ basic_desc=['Schrodinger Cat state formed from a \nsuperposition of two coherent
 basic_nums=10+arange(len(basic_labels)) #does not start at zero so commandline output numbers match (0=quit in commandline)
 
 #master equation demos
-master_labels=["blank","blank","blank","blank","blank","blank","blank"]
-master_desc=["blank","blank","blank","blank","blank","blank","blank"]
+master_labels=["i-Swap Gate","blank","blank","blank","blank","blank","blank"]
+master_desc=["Dissipative i-Swap Gate vs. ideal gate.  Accuracy\nof dissipative gate given by fidelity.",
+            "blank","blank","blank","blank","blank","blank"]
 master_nums=20+arange(len(master_labels))
 
 
@@ -70,7 +72,7 @@ button_nums=[basic_nums,master_nums,monte_nums,redfield_nums,td_nums]
 
 
 qutip_keywords=['basis','Bloch','brmesolve','concurrence','create','destroy','displace',
-                'entropy_linear','entropy_mutual','entropy_vn','expect','fidelity',
+                'entropy_linear','entropy_mutual','entropy_vn','expect','fidelity','ket2dm',
                 'parfor','qeye','qfunc','Qobj','rand_dm','rand_herm','rand_ket','rand_unitary',
                 'squeez','tensor','tracedist','wigner']
 
