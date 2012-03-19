@@ -19,7 +19,8 @@
 ################################################################################
 from scipy import arange
 #basic demos
-basic_labels=["Schrodinger Cat","Q-function","Squeezed State","Ground State","Density Matrix Metrics","Coupled Qubit Energies","blank","Cavity-Qubit Steadystate","blank","blank"]
+basic_labels=["Schrodinger Cat","Q-function","Squeezed State","Ground State","Density Matrix Metrics",
+            "Coupled Qubit Energies","Bell State","Cavity-Qubit Steadystate","blank","blank"]
 
 basic_desc=['Schrodinger Cat state formed from a \nsuperposition of two coherent states.',
             "Calculates the Q-function of Schrodinger cat\nstate formed from two coherent states.",
@@ -27,7 +28,7 @@ basic_desc=['Schrodinger Cat state formed from a \nsuperposition of two coherent
             "Groundstate properties of an ultra-strongly\ncoupled atom-cavity system.",
             "Show relationship between fidelity and trace\ndistance for pure state denisty matrices.",
             "Calculate Eigenenergies of a coupled three qubit\nsystem.",
-            "blank",
+            "Creation and manipulation of a Bell state density\nmatrix.",
             "Steady state of cavity-qubit system using parfor\nfunction to run in parallel.",
             "blank",
             "blank"]

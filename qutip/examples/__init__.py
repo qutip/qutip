@@ -16,6 +16,6 @@
 # Copyright (C) 2011, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-import ex_10,ex_11,ex_12,ex_13,ex_14,ex_15,ex_17
+import ex_10,ex_11,ex_12,ex_13,ex_14,ex_15,ex_16,ex_17
 
 import ex_30,ex_32
