@@ -421,8 +421,12 @@ class Qobj():
         to the sqrt of a given square operator.
         """
         if self.dims[0][0]==self.dims[1][0]:
-            evals,evecs=la.eig(self.full())
-            out=Qobj(dot(evecs,dot(diag(sqrt(evals)),la.inv(evecs))),dims=self.dims,shape=self.shape)
+            evals,evecs=sp_eigs(self)
+            numevals=len(evals)
+            dV=sp.spdiags(sqrt(evals),0,numevals,numevals,format='csr')
+            evecs=sp.hstack(evecs,format='csr')
+            spDv=dV.dot(evecs.conj().T)
+            out=Qobj(evecs.dot(spDv),dims=self.dims,shape=self.shape)
             if qset.auto_tidyup:
                 return out.tidyup()
             else:
