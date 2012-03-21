@@ -17,80 +17,107 @@
 #
 ###########################################################################
 from Qobj import *
-from tidyup import tidyup
 import scipy.linalg as la
 import numpy as np
 from numpy.random import random
+import scipy.sparse as sp
 
-def rand_herm(N):
+def rand_herm(N,density=0.75):
     """
     Creates a random NxN Hermitian Qobj.
     
     Args:
     
         N (int): Dimension of matrix
+        
+        density (float): Sparsity of output Hermitian matrix.
     
     Returns:
     
         NxN Hermitian Qobj
     """
-    X = 2.0*(random((N,N)) + 1.0j*random((N,N)))-(1.0+1.0j) #makes random from [-1,1]
+    # to get appropriate density of output
+    # Hermitian operator must convert via:
+    herm_density=2.0*arcsin(density)/pi
+    
+    X = sp.rand(N,N,herm_density,format='csr')
+    X.data=X.data-0.5
+    Y=X.copy()
+    Y.data=1.0j*random(len(X.data))-(0.5+0.5j)
+    X=X+Y
     X=Qobj(X)
-    return X+X.dag() 
+    return Qobj((X+X.dag())/2.0)
 
 
-def rand_unitary(N):
+def rand_unitary(N,density=0.75):
     """
     Creates a random NxN unitary Qobj.
     
     Args:
     
         N (int): Dimension of matrix
+        
+        density (float): Sparsity of Hermitian operator used to construct Unitary Operator.
     
     Returns:
     
         NxN unitary Qobj
     """
-    vec=(random((N,N)) + 1.0j*random((N,N)))/sqrt(2.0)
-    Q,R = la.qr(vec)
-    diags=np.diag(R)
-    R = np.diag(diags/abs(diags))
-    U = np.dot(Q,R)
+    U=(-1.0j*rand_herm(N,density)).expm()
     return Qobj(U)
 
 
-def rand_ket(N):
+def rand_ket(N,density=0.75):
     """
     Creates a random Nx1 ket vector Qobj.
     
     Args:
     
         N (int): Dimension of matrix
+        
+        density (float): Sparsity of output ket vector.
     
     Returns:
     
         Nx1 ket vector Qobj
     """
-    U=rand_unitary(N)
-    psi=Qobj(ones((N,1)))
-    out=U*psi
-    return out/out.norm()
+    X = sp.rand(N,1,density,format='csr')
+    X.data=X.data-0.5
+    Y=X.copy()
+    Y.data=1.0j*random(len(X.data))-(0.5+0.5j)
+    X=X+Y
+    X=Qobj(X)
+    return Qobj(X/X.norm())
 
 
-def rand_dm(N):
+def rand_dm(N,density=0.75,pure=False):
     """
     Creates a random NxN density matrix Qobj.
     
     Args:
     
         N (int): Dimension of matrix
+        
+        density (float): Sparsity of output density matrix.
     
     Returns:
     
         NxN density matrix Qobj
     """
-    H = rand_herm(N)
-    rho = H*H.dag()
-    return rho/sum(rho.tr())
+    if pure:
+        dm_density=sqrt(density)
+        psi=rand_ket(N,dm_density)
+        rho=psi*psi.dag()
+    else:
+        non_zero=0
+        tries=0
+        while non_zero==0 and tries<10: 
+            H = rand_herm(N,density)
+            non_zero=sum(H.tr())
+            tries+=1
+        if tries>=10:
+            raise ValueError("Requested density is too low to generate density matrix.")
+        rho = H/sum(H.tr())
+    return Qobj(rho)
 
 
