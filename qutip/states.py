@@ -19,6 +19,7 @@
 from scipy import *
 from qutip.Qobj import Qobj
 from qutip.operators import destroy
+import scipy.sparse as sp
 
 def basis(N,*args):
     """
@@ -64,8 +65,9 @@ def basis(N,*args):
         args=args[0]
     if args<0 or args>(N-1): #check if args is within bounds
         raise ValueError("basis vector index need to be in 0=<indx<=N-1")
-    bas=zeros([N,1]) #column vector of zeros
-    bas[args]=1 # 1 located at position args
+    bas=sp.lil_matrix((N,1)) #column vector of zeros
+    bas[args,0]=1 # 1 located at position args
+    bas=bas.tocsr()
     return Qobj(bas)
 
 
@@ -251,7 +253,7 @@ def thermal_dm(N, n):
     """
 
     i=arange(N)  
-    rm = diag((1.0+n)**(-1.0)*(n/(1.0+n))**(i)) #populates diagonal terms (the only nonzero terms in matrix)
+    rm = sp.spdiags((1.0+n)**(-1.0)*(n/(1.0+n))**(i),0,N,N,format='csr') #populates diagonal terms (the only nonzero terms in matrix)
     return Qobj(rm)
 
 
