@@ -415,13 +415,13 @@ class Qobj():
                 return sp_expm(self)
         else:
             raise TypeError('Invalid operand for matrix exponential')
-    def sqrtm(self):
+    def sqrtm(self,sparse=None,tol=0,maxiter=100000):
         """
         Returns the operator corresponding
         to the sqrt of a given square operator.
         """
         if self.dims[0][0]==self.dims[1][0]:
-            evals,evecs=sp_eigs(self)
+            evals,evecs=sp_eigs(self,sparse=sparse,tol=tol,maxiter=maxiter)
             numevals=len(evals)
             dV=sp.spdiags(sqrt(evals),0,numevals,numevals,format='csr')
             evecs=sp.hstack(evecs,format='csr')
