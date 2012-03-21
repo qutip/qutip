@@ -21,7 +21,7 @@ from scipy import arange
 
 #basic demos
 basic_labels=["Schrodinger Cat","Q-function","Squeezed State","Ground State","Density Matrix Metrics",
-            "Coupled Qubit Energies","Bell State","Cavity-Qubit Steadystate","blank","blank"]
+            "Coupled Qubit Energies","Bell State","Cavity-Qubit Steadystate","Binary Entropy","blank"]
 
 basic_desc=['Schrodinger Cat state formed from a \nsuperposition of two coherent states.',
             "Calculates the Q-function of Schrodinger cat\nstate formed from two coherent states.",
@@ -31,7 +31,7 @@ basic_desc=['Schrodinger Cat state formed from a \nsuperposition of two coherent
             "Calculate Eigenenergies of a coupled three qubit\nsystem.",
             "Creation and manipulation of a Bell state density\nmatrix.",
             "Steady state of cavity-qubit system using parfor\nfunction to run in parallel.",
-            "blank",
+            "Entropy of binary system as probability of being\nin the excited state is varied.",
             "blank"]
 
 basic_nums=10+arange(len(basic_labels)) #does not start at zero so commandline output numbers match (0=quit in commandline)
