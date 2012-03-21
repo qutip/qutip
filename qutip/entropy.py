@@ -23,7 +23,7 @@ from qutip.states import ket2dm
 from qutip.tensor import tensor
 from qutip.operators import sigmay
 
-def entropy_vn(rho,base='e'):
+def entropy_vn(rho,base=e):
     """
     Von-Neumann entropy of density matrix
     
@@ -31,7 +31,7 @@ def entropy_vn(rho,base='e'):
         
         rho (Qobj): density matrix.
         
-        base (string): base of logarithm (defult='2')
+        base (float): base of logarithm 2 or e (defult=e)
     
     Returns: 
         
@@ -40,19 +40,19 @@ def entropy_vn(rho,base='e'):
     Example::
     
         >>> rho=0.5*fock_dm(2,0)+0.5*fock_dm(2,1)
-        >>> entropy_vn(rho)
+        >>> entropy_vn(rho,2)
         1.0
     """
     if rho.type=='ket' or rho.type=='bra':
         rho=ket2dm(rho)
     vals,vecs=la.eigh(rho.full())
     nzvals=vals[vals!=0]
-    if base=='2':
+    if base==2:
         logvals=log2(nzvals)
-    elif base=='e':
+    elif base==e:
         logvals=log(nzvals)
     else:
-        raise ValueError("Base must be '2' or 'e'.")
+        raise ValueError("Base must be 2 or e.")
     return float(real(-sum(nzvals*logvals)))
 
 
@@ -105,7 +105,7 @@ def concurrence(rho):
     return max(0, lsum)
 
 
-def entropy_mutual(rho,base='e'):
+def entropy_mutual(rho,base=e):
     """
     Calculates the mutual information S(A:B) of a bipartite system density matrix.
     
@@ -113,7 +113,7 @@ def entropy_mutual(rho,base='e'):
     
         rho (Qobj): density matrix.
         
-        base (str): base of logarithm, 'e' (default) or '2'
+        base (float): base of logarithm, e (default) or 2
     
     Returns:
     
@@ -130,7 +130,7 @@ def entropy_mutual(rho,base='e'):
     return out
 
 
-def entropy_relative(rho,sigma,base='e'):
+def entropy_relative(rho,sigma,base=e):
     """
     Calculates the relative entropy S(rho||sigma) between two density matricies.
     Relative entropy of rho to sigma
@@ -141,7 +141,7 @@ def entropy_relative(rho,sigma,base='e'):
         
         sigma (Qobj): density matrix.
         
-        base (str): base of logarithm, 'e' (default) or '2'
+        base (float): base of logarithm, e (default) or 2
     
     Returns:
     
@@ -151,19 +151,19 @@ def entropy_relative(rho,sigma,base='e'):
         raise TypeError("Inputs must be density matricies.")
     vals,vecs=la.eigh(rho.full())
     nzvals=vals[vals!=0]
-    if base=='2':
+    if base==2:
         logvals=log2(nzvals)
-    elif base=='e':
+    elif base==e:
         logvals=log(nzvals)
     else:
-        raise ValueError("Base must be '2' or 'e'.")
+        raise ValueError("Base must be 2 or e.")
     vals2,vecs2=la.eigh(rho.full())
     nzvals2=vals2[vals2!=0]
     rel_ent=float(real(-sum(nzvals2*logvals)))
     return -1.0*entropy_vn(rho,base)-rel_ent
 
 
-def entropy_conditional(rho,sel,base='e'):
+def entropy_conditional(rho,sel,base=e):
     """
     Calculates the conditional entropy S(A|B) of a bipartite system density matrix.
 
@@ -173,7 +173,7 @@ def entropy_conditional(rho,sel,base='e'):
 
         sel (int): Which component is "A" component (0 or 1) 
 
-        base (str): base of logarithm, 'e' (default) or '2'
+        base (float): base of logarithm, e (default) or 2
 
     Returns:
 
