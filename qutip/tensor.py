@@ -83,7 +83,7 @@ def tensor(*args):
                     shp=qos[0].shape
                     step=1
                 for k in xrange(items-1): #cycle over all items
-                    dat=sp.kron(dat,qos[k+1].data) #sparse Kronecker product
+                    dat=sp.kron(dat,qos[k+1].data, format='csr') #sparse Kronecker product
                     dim=[dim[0]+qos[k+1].dims[0],dim[1]+qos[k+1].dims[1]] #append dimensions of Qobjs
                     shp=[dat.shape[0],dat.shape[1]] #new shape of matrix
     out=Qobj()
