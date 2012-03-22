@@ -40,6 +40,8 @@ def rand_herm(N,density=0.75,dims=None):
         N (int): Dimension of matrix
         
         density (float): Density of output Hermitian matrix between [0,1].
+        
+        dims (list): Dimensions of Qobj, default is dims=[[N],[N]]
     
     Returns:
     
@@ -73,6 +75,8 @@ def rand_unitary(N,density=0.75,dims=None):
         N (int): Dimension of matrix
         
         density (float): Density of Hermitian operator between [0,1] used to construct Unitary operator.
+        
+        dims (list): Dimensions of Qobj, default is dims=[[N],[N]]
     
     Returns:
     
@@ -82,6 +86,7 @@ def rand_unitary(N,density=0.75,dims=None):
     
         The density of the output Unitary Qobj will, in general, not be equal to the
         density used in creating the Hermitian operator. 
+    
     """
     if dims:
         _check_dims(dims,N,N)
@@ -101,10 +106,13 @@ def rand_ket(N,density=0.75,dims=None):
         N (int): Dimension of matrix
         
         density (float): Density of output ket vector.
+        
+        dims (list): Dimensions of Qobj, default is dims=[[N],[1]]
     
     Returns:
     
         Nx1 ket vector Qobj
+    
     """
     if dims:
         _check_dims(dims,N,1)
@@ -129,15 +137,20 @@ def rand_dm(N,density=0.75,pure=False,dims=None):
         N (int): Dimension of matrix
         
         density (float): Density of output density matrix between [0,1].
+        
+        pure (bool): Is output density matrix a pure state.
+        
+        dims (list): Dimensions of Qobj, default is dims=[[N],[N]]
     
     Returns:
     
         NxN density matrix Qobj
     
-    note::
+    .. note::
     
         For small density matricies, choosing a low density will result in an error
-        as no diagonal elements will be generated such that :math:`Tr(\rho)=1`.
+        as no diagonal elements will be generated such that :math:`tr(rho)=1`.
+    
     """
     if dims:
         _check_dims(dims,N,N)
