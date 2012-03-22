@@ -23,8 +23,26 @@ having to use dense matrices.
 """
 
 import scipy.sparse as sp
-from scipy import ceil,floor,mod,union1d,real,array,sort,flipud,arange,fliplr,hstack,delete
+from scipy import sqrt,ceil,floor,mod,union1d,real,array,sort,flipud,arange,fliplr,hstack,delete
 import scipy.linalg as la
+
+
+def sp_fro_norm(op):
+    """
+    Frobius norm for Qobj
+    """
+    op=op*op.dag()
+    return sqrt(op.tr())
+
+
+
+def sp_inf_norm(op):
+    """
+    Infinity norm for Qobj
+    """
+    return max([sum(abs((op.data[k,:]).data)) for k in xrange(op.shape[0])])
+
+
 
 def sp_L2_norm(op):
     """
@@ -35,12 +53,16 @@ def sp_L2_norm(op):
     return la.norm(op.data.data,2)
 
 
-def sp_inf_norm(op):
-    """
-    Infinity norm for Qobj
-    """
-    return max([sum(abs((op.data[k,:]).data)) for k in xrange(op.shape[0])])
 
+def sp_max_norm(op):
+    """
+    Max norm for Qobj
+    """
+    if any(op.data.data):
+        max_nrm=max(abs(op.data.data))
+    else:
+        max_nrm=0
+    return max_nrm
 
 
 def sp_one_norm(op):

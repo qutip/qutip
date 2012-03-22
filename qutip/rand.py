@@ -82,7 +82,7 @@ def rand_unitary(N,density=0.75,dims=None):
     
         NxN unitary Qobj
     
-    Note::
+    .. note::
     
         The density of the output Unitary Qobj will, in general, not be equal to the
         density used in creating the Hermitian operator. 
