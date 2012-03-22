@@ -136,7 +136,9 @@ def rand_dm(N,density=0.75,pure=False):
             tries+=1
         if tries>=10:
             raise ValueError("Requested density is too low to generate density matrix.")
-        rho = H/sum(H.tr())
-    return Qobj(rho)
+        H=sp.triu(H.data,format='csr')#take only upper triangle
+        rho = 0.5*sp.eye(N,N,format='csr')*(H+H.conj().T)
+        rho=Qobj(rho)
+    return rho/rho.tr()
 
 
