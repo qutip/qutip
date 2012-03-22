@@ -22,15 +22,23 @@ import numpy as np
 from numpy.random import random
 import scipy.sparse as sp
 
+"""
+This module is a collection of random state and operator generators.
+The sparsity of the ouput Qobj's is controlled by varing the  
+'density' parameter.
+"""
+
+
 def rand_herm(N,density=0.75):
     """
-    Creates a random NxN Hermitian Qobj.
+    Creates a random NxN sparse Hermitian Qobj using :math:`H=X+X^{+}` where :math:`X` is
+    a randomly generated matrix.
     
     Args:
     
         N (int): Dimension of matrix
         
-        density (float): Sparsity of output Hermitian matrix.
+        density (float): Density of output Hermitian matrix between [0,1].
     
     Returns:
     
@@ -51,17 +59,23 @@ def rand_herm(N,density=0.75):
 
 def rand_unitary(N,density=0.75):
     """
-    Creates a random NxN unitary Qobj.
+    Creates a random NxN sparse unitary Qobj via :math:`\exp(-iH)` where H is a randomly
+    generated Hermitian operator.
     
     Args:
     
         N (int): Dimension of matrix
         
-        density (float): Sparsity of Hermitian operator used to construct Unitary Operator.
+        density (float): Density of Hermitian operator between [0,1] used to construct Unitary operator.
     
     Returns:
     
         NxN unitary Qobj
+    
+    Note::
+    
+        The density of the output Unitary Qobj will, in general, not be equal to the
+        density used in creating the Hermitian operator. 
     """
     U=(-1.0j*rand_herm(N,density)).expm()
     return Qobj(U)
@@ -69,13 +83,13 @@ def rand_unitary(N,density=0.75):
 
 def rand_ket(N,density=0.75):
     """
-    Creates a random Nx1 ket vector Qobj.
+    Creates a random Nx1 sparse ket vector Qobj.
     
     Args:
     
         N (int): Dimension of matrix
         
-        density (float): Sparsity of output ket vector.
+        density (float): Density of output ket vector.
     
     Returns:
     
@@ -98,11 +112,16 @@ def rand_dm(N,density=0.75,pure=False):
     
         N (int): Dimension of matrix
         
-        density (float): Sparsity of output density matrix.
+        density (float): Density of output density matrix between [0,1].
     
     Returns:
     
         NxN density matrix Qobj
+    
+    note::
+    
+        For small density matricies, choosing a low density will result in an error
+        as no diagonal elements will be generated such that :math:`Tr(\rho)=1`.
     """
     if pure:
         dm_density=sqrt(density)
