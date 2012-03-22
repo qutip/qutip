@@ -24,7 +24,7 @@ import types
 from scipy import finfo
 import qutip.settings as qset
 from ptrace import _ptrace
-from qutip.sparse import sp_eigs,sp_one_norm,sp_L2_norm
+from qutip.sparse import *
 class Qobj():
     """
     A class for representing quantum objects (**Qobj**), such as quantum operators
@@ -320,13 +320,19 @@ class Qobj():
             return out
 
     def __eq__(self, other):
+        """
+        Defines equality operator.
+        """
         if isinstance(other,Qobj) and self.dims == other.dims and \
-           self.shape == other.shape and abs(la.norm((self.data-other.data).todense())) < 1e-12:
+           self.shape == other.shape and abs(sp_max_norm(self-other))<1e-14:
             return True
         else:
             return False
 
     def __ne__(self, other):
+        """
+        Defines inequality operator.
+        """
         return not (self == other)
     
     def __pow__(self,n):#calculates powers of Qobj
@@ -374,16 +380,20 @@ class Qobj():
         out.dims=[self.dims[1],self.dims[0]]
         out.shape=[self.shape[1],self.shape[0]]
         return Qobj(out)
-    def norm(self,sparse=None,tol=0,maxiter=100000):
+    def norm(self,oper_norm='tr',sparse=None,tol=0,maxiter=100000):
         """
         Returns norm of a quantum object. Norm is L2-norm for kets and 
-        trace-norm for operators.
+        trace-norm (by default) for operators.  Other operator norms may be 
+        specified using the 'oper_norm' argument.
         
         Args:
             
+            oper_norm (str): Which norm to use for operators: trace 'tr', Frobius 'fro',
+                            one 'one', or max 'max'. Does not affect state norm. 
+            
             sparse (bool): Use sparse eigenvalue solver.
             
-            tol (float): Tolerance for sparse sovler (if used).
+            tol (float): Tolerance for sparse solver (if used) for trace norm.
             
             maxiter (int): Max. iterations performed by sparse sovler (if used).
         
@@ -399,8 +409,17 @@ class Qobj():
         
         """
         if self.type=='oper' or self.type=='super':
-            vals=sp_eigs(self,vecs=False,sparse=sparse,tol=tol,maxiter=maxiter)
-            return sum(sqrt(abs(vals)**2))
+            if oper_norm=='tr':
+                vals=sp_eigs(self,vecs=False,sparse=sparse,tol=tol,maxiter=maxiter)
+                return sum(sqrt(abs(vals)**2))
+            elif oper_norm=='fro':
+                return sp_fro_norm(self)
+            elif oper_norm=='one':
+                return sp_one_norm(self)
+            elif oper_norm=='max':
+                return sp_max_norm(self)
+            else:
+                raise ValueError("Operator norm must be 'tr', 'fro', 'one', or 'max'.")
         else:
             return sp_L2_norm(self)
     def tr(self):
