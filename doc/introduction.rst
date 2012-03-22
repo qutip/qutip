@@ -21,9 +21,11 @@ The Quantum Toolbox in Python, or QuTiP, is a fully open-source implementation o
 
 * The numerics underlying QuTiP are time-tested algorithms that run at C-code speeds, thanks to the `Numpy <http://numpy.scipy.org/>`_ and `Scipy <http://www.scipy.org/ scipy>`_ libraries, and are based on many of the same algorithms used in propriety software.
 
-* QuTiP allows for solving the dynamics of Hamiltonians with arbitrary time-dependence (does not yet include time-dependent collapse operators).
+* QuTiP allows for solving the dynamics of Hamiltonians with arbitrary time-dependence, including collapse operators.
 
-* Takes advantage of the multiple processing cores found in essentially all modern computers [*]_.
+* Time-dependent problems can be automatically compiled into C-code at run-time for increased performance.
+
+* Takes advantage of the multiple processing cores found in essentially all modern computers.
 
 * QuTiP was designed from the start to require a minimal learning curve for those users who have experience using the popular quantum optics toolbox by Sze M. Tan. 
 
@@ -45,6 +47,3 @@ Whats New in QuTiP Version 2.0
 ================================
 
 The second version of QuTiP has seen many improvements in the performance of the original code base, as well as the addition of several new routines supporting a wide range of functionality.  Some of the highlights of this release include:
-
-
-.. [*] Due to differences in multiprocessing routines, QuTiP does not currently support multiprocessing under the Windows operating system.  If you require this functionality, then please consider running QuTiP in a Unix based environment such as Linux or the Mac OSX.

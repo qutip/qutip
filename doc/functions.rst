@@ -3,11 +3,11 @@
 
 .. _functions:
 
-QuTiP functions
-==================
+QuTiP Functions
+================
 
 .. toctree::
-   :maxdepth: 3
+   :maxdepth: 2
 
 Manipulation and Creation of States and Operators
 ----------------------------------------------------
@@ -70,17 +70,33 @@ Three-level atoms
 
 Dynamics and time-evolution
 ----------------------------
+
+Master Equation
+******************
+
 .. automodule:: qutip
-    :members: mcsolve, odesolve
-    
+    :members: odesolve
+
+Monte Carlo Evolution
+************************
+
+.. automodule:: qutip
+    :members: odesolve
+
+Correlation Functions
+************************
+
 .. automodule:: qutip.correlation
     :members: correlation_es, correlation_ode, correlation_mc, correlation_ss_es, correlation_ss_ode, correlation_ss_mc, spectrum_ss
+
+Exponential Series
+*********************
 
 .. automodule:: qutip.essolve
     :members: essolve, ode2es
 
-.. automodule:: qutip.propagator
-    :members: propagator, propagator_steadystate
+Steady-state Solvers
+**********************
 
 .. automodule:: qutip.steady
     :members: steady, steadystate

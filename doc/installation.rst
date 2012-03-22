@@ -87,10 +87,10 @@ On the Mac, it is recommended that you install the required libraries via `MacPo
 
 additional, but optional, ports include:
 
->>> sudo port install py27-pyside
+>>> sudo port install py27-pyside or sudo port install py27-pyqt4
 >>> sudo port install py27-ipython
 
-After installing the required ports, you may (probably) need to change your matplotlib backend
+After installing the required ports, you may need to change your matplotlib backend
 
 >>> /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/\
 python2.7/site-packages/matplotlib/mpl-data/matplotlibrc
@@ -99,10 +99,19 @@ on line #31 to read:
 
 >>> backend      : MacOSX
 
+although this appears to have been corrected in the current version.
+
+
+SciPy Superpack
+^^^^^^^^^^^^^^^^^
+
+A second option is to install the required Python packages using the `SciPy Superpack <http://fonnesbeck.github.com/ScipySuperpack/>`_.  Further information on installing the superpack can be found on the `SciPy Downloads page <http://www.scipy.org/Download>`_.  Note that, if you choose this option, the GUI elements of QuTiP will not be available without futher installing either the PyQt4 or PySide packages separately.
+
+
 Enthought Python
 ^^^^^^^^^^^^^^^^^
 
-One can also use the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher to satisfy the QuTiP dependencies.  
+Finally, one can also use the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher to satisfy the QuTiP dependencies.  
 
 Installing
 ^^^^^^^^^^^^^^^^^

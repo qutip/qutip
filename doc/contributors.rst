@@ -32,6 +32,6 @@ Contributors
 
 **Florian Ong** (Institute for Quantum Computation) - Bug hunter
 
-**Denis Vasilyev** (St. Petersburg State University) -Bug hunter
+**Denis Vasilyev** (St. Petersburg State University) - Bug hunter
 
 **Dong Zhou** (Yale) - Bug hunter
