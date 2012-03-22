@@ -17,15 +17,15 @@ QuTiP requires the following packages to run:
 | Python     | 2.6+ (not 3) | Requires multiprocessing (v2.6 and higher only).    |
 |            |              | At present, Matplotlib does not work for Python 3.  |
 +------------+--------------+-----------------------------------------------------+
-| Numpy      | 1.5.1+       | Not tested on lower versions.                       |
+| Numpy      | 1.6+         | Not tested on lower versions.                       |
 +------------+--------------+-----------------------------------------------------+
-| Scipy      | 0.8+         | Not tested on lower versions. Use 0.9+ if possible. |
+| Scipy      | 0.9+         | Not tested on lower versions. Use 0.9+ if possible. |
 +------------+--------------+-----------------------------------------------------+
-| Matplotlib | 1.0.1+       | Some plotting does not work on lower versions.      |
+| Matplotlib | 1.1.0+       | Some plotting does not work on lower versions.      |
 +------------+--------------+-----------------------------------------------------+
 | Qt         |  4.7.3+      | Optional.  For GUI elements only.                   |
 +------------+--------------+-----------------------------------------------------+
-| PySide     | 1.0.2+       | Optional, required only for GUI elements.           |
+| PySide     | 1.0.6+       | Optional, required only for GUI elements.           |
 |            |              | PyQt4 may be used instead.                          |
 +------------+--------------+-----------------------------------------------------+
 | PyQt4      | 4.8+         | Optional, required only for GUI elements.           |
@@ -44,7 +44,7 @@ QuTiP requires the following packages to run:
 | Headers    |              |                                                     |
 +------------+--------------+-----------------------------------------------------+
 
-On all platforms (Linux, Mac, Windows), QuTiP works "out-of-the-box" using the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher.  This distribution is created by the developers of Numpy and Scipy, and is free for academic use.
+On all platforms (Linux, Mac), QuTiP works "out-of-the-box" using the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher.  This distribution is created by the developers of Numpy and Scipy, and is free for academic use.
 
 Installation on Ubuntu Linux
 =================================
@@ -112,66 +112,6 @@ No matter which installation path you choose, installing QuTiP is the same as on
 >>> sudo python setup.py install
 
 
-Installation on Microsoft Windows [*]_
-=======================================
-
-.. note:: We would like to thank Per Kaer Nielsen for help with installation on Windows.
-
-The developers of QuTiP have not touched Windows in several years, and will be continuing this trend for the foreseeable future.  Therefore we recommend the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher to satisfy the QuTiP dependencies. QuTiP has also been reported to work out-of-the-box with `Python(x,y) <http://www.pythonxy.com>`_.  In Python(x,y), QuTiP may be installed using:
-
->>> python setup.py install build --compiler=mingw32
-
-Keep in mind, compiling QuTiP using the mingw32 compiler will limit the amount of memory that you can use for any given calculation to around 4Gb.  
-
-Installing QuTiP on 64-bit Windows
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-Unfortunately, setting up a 64-bit compiler on Windows is a non-trivial task.  Therefore we recommend having at least one bottle of wine within arms reach before proceeding with the setup instructions.  The following instructions may also be used for installing a 32-bit Python installation as well by replacing AMD64 and x64 by win32 and x86, respectively:
-
-1. Grab the latest Python 2.7 AMD64 version from the `Python website <http://www.python.org/download/>`_ 
-
-2. Windows binary executables for both AMD64 and win32, curiosity of Christoph Gohike, may be found at http://www.lfd.uci.edu/~gohlke/pythonlibs.  Note that you need the Python 2.7 versions of the executables.  It is recommended that you install the latest version of the following (required modules are denoted with a "*"):
-
-	 - NumPy-MKL *
-	 - SciPy *
-	 - matplotlib *
-	 - Distribute *
-	 - Cython *
-	 - PyQt
-	 - PySide
-	 - PyReadline
-	 - iPython (Install in Administrator mode to get start menu links.)
-
-3. You now need to grab the Microsoft Windows SDK for Windows 7 and .NET Framework 3.5 SP1 found at http://www.microsoft.com/download/en/details.aspx?displaylang=en&id=18950.  You want the file named "GRMSDKX_EN_DVD.iso".  This download will need to be burned to a dvd, or extracted, before installation.
- 
-4. Next, run the "CMD Shell" executable located in the "Microsoft Windows SDK v7.0" directory of the start menu:
-
-	.. figure:: figures/windows_install.png
-   		:align: center
-   	 	:width: 3in
-   
-   	 	Figure showing the correct command line executable (CMD Shell) for setting the MS compiler environment flags.
-
-The text in this shell will initially be yellow (see Fig. :ref:`winfig`).  Now we need to set the compiler flags (replace x64 with x86 if using 32-bit Windows):
-
->>> set DISTUTILS_USE_SDK=1
->>> setenv /x64 /release
-
-The shell text should now turn green.
-
-	.. _winfig:
-
-	.. figure:: figures/windows_install_2.png
-   		:align: center
-   	 	:width: 4in
-		
-		CMD shell before and after inputing compiler flags.
-
-5. In this **same** CMD shell, change directories to the downloaded QuTiP directory	and run the install command:
-
->>> python setup.py install
-
-
 Verifying the Installation
 ============================
 
@@ -200,10 +140,6 @@ which will pop-up a window similar to the one shown below.  If instead you get c
    
    QuTiP about box window with link to updated version on the QuTiP website.
 
-|
 
 
 .. [*] Installing QuTiP via Macports will take a long time as each of the QuTiP dependencies is build from source code.  The advantage is that everything is more or less guarenteed to work.  However, if you have a hot date waiting for you, then we do not recommend this path.  Or course, if you are reading this guide, this may not be the case. 
-
-.. [*] QuTiP is developed on Unix based systems such as Linux and OSX.  As such, we do not directly support the Windows operating system.  That being said, we do strive to maintain compatibility with the Windows platform.  Unfortunately, the multiprocessing routines used by Windows differ from those in Unix systems. Therefore we only support multiprocessing on Unix architectures. 
-
