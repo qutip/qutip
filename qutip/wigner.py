@@ -137,7 +137,7 @@ def qfunc1(psi, alpha_mat):
 
     n = prod(psi.shape)
     if isinstance(psi, Qobj):
-        psi = array(trans(psi).full())[0,:]
+        psi = array(psi.trans().full())[0,:]
     else:
         psi = psi.T
 
