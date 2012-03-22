@@ -26,10 +26,11 @@ import scipy.sparse as sp
 This module is a collection of random state and operator generators.
 The sparsity of the ouput Qobj's is controlled by varing the  
 'density' parameter.
+
 """
 
 
-def rand_herm(N,density=0.75):
+def rand_herm(N,density=0.75,dims=None):
     """
     Creates a random NxN sparse Hermitian Qobj using :math:`H=X+X^{+}` where :math:`X` is
     a randomly generated matrix.
@@ -44,6 +45,8 @@ def rand_herm(N,density=0.75):
     
         NxN Hermitian Qobj
     """
+    if dims:
+        _check_dims(dims,N,N)
     # to get appropriate density of output
     # Hermitian operator must convert via:
     herm_density=2.0*arcsin(density)/pi
@@ -54,10 +57,13 @@ def rand_herm(N,density=0.75):
     Y.data=1.0j*random(len(X.data))-(0.5+0.5j)
     X=X+Y
     X=Qobj(X)
-    return Qobj((X+X.dag())/2.0)
+    if dims:
+        return Qobj((X+X.dag())/2.0,dims=dims,shape=[N,N])
+    else:
+        return Qobj((X+X.dag())/2.0)
 
 
-def rand_unitary(N,density=0.75):
+def rand_unitary(N,density=0.75,dims=None):
     """
     Creates a random NxN sparse unitary Qobj via :math:`\exp(-iH)` where H is a randomly
     generated Hermitian operator.
@@ -77,11 +83,16 @@ def rand_unitary(N,density=0.75):
         The density of the output Unitary Qobj will, in general, not be equal to the
         density used in creating the Hermitian operator. 
     """
+    if dims:
+        _check_dims(dims,N,N)
     U=(-1.0j*rand_herm(N,density)).expm()
-    return Qobj(U)
+    if dims:
+        return Qobj(U,dims=dims,shape=[N,N])
+    else:
+        return Qobj(U)
 
 
-def rand_ket(N,density=0.75):
+def rand_ket(N,density=0.75,dims=None):
     """
     Creates a random Nx1 sparse ket vector Qobj.
     
@@ -95,16 +106,21 @@ def rand_ket(N,density=0.75):
     
         Nx1 ket vector Qobj
     """
+    if dims:
+        _check_dims(dims,N,1)
     X = sp.rand(N,1,density,format='csr')
     X.data=X.data-0.5
     Y=X.copy()
     Y.data=1.0j*random(len(X.data))-(0.5+0.5j)
     X=X+Y
     X=Qobj(X)
-    return Qobj(X/X.norm())
+    if dims:
+        return Qobj(X/X.norm(),dims=dims,shape=[N,1])
+    else:
+        return Qobj(X/X.norm())
 
 
-def rand_dm(N,density=0.75,pure=False):
+def rand_dm(N,density=0.75,pure=False,dims=None):
     """
     Creates a random NxN density matrix Qobj.
     
@@ -123,6 +139,8 @@ def rand_dm(N,density=0.75,pure=False):
         For small density matricies, choosing a low density will result in an error
         as no diagonal elements will be generated such that :math:`Tr(\rho)=1`.
     """
+    if dims:
+        _check_dims(dims,N,N)
     if pure:
         dm_density=sqrt(density)
         psi=rand_ket(N,dm_density)
@@ -139,6 +157,19 @@ def rand_dm(N,density=0.75,pure=False):
         H=sp.triu(H.data,format='csr')#take only upper triangle
         rho = 0.5*sp.eye(N,N,format='csr')*(H+H.conj().T)
         rho=Qobj(rho)
-    return rho/rho.tr()
+    if dims:
+        return Qobj(rho/rho.tr(),dims=dims,shape=[N,N])
+    else:
+        return Qobj(rho/rho.tr())
 
 
+
+def _check_dims(dims,N1,N2):
+    if len(dims)!=2:
+        raise Exception("Qobj dimensions must be list of length 2.")
+    if (not isinstance(dims[0],list)) or (not isinstance(dims[1],list)):
+        raise TypeError("Qobj dimension components must be lists. i.e. dims=[[N],[N]]")
+    if prod(dims[0])!=N1 or prod(dims[1])!=N2:
+        raise ValueError("Qobj dimensions must match matrix shape.")
+    if len(dims[0])!=len(dims[1]):
+        raise TypeError("Qobj dimension components must have same length.")
