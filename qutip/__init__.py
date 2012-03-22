@@ -80,7 +80,7 @@ from qutip.correlation import *
 from qutip.clebsch import clebsch
 from qutip.eseries import *
 
-from qutip.demos import *
+from qutip.demos import demos
 import qutip.examples
 
 from qutip.entropy import *
