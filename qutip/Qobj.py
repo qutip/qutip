@@ -380,7 +380,7 @@ class Qobj():
         out.dims=[self.dims[1],self.dims[0]]
         out.shape=[self.shape[1],self.shape[0]]
         return Qobj(out)
-    def norm(self,oper_norm='tr',sparse=None,tol=0,maxiter=100000):
+    def norm(self,oper_norm='tr',sparse=False,tol=0,maxiter=100000):
         """
         Returns norm of a quantum object. Norm is L2-norm for kets and 
         trace-norm (by default) for operators.  Other operator norms may be 
@@ -403,9 +403,8 @@ class Qobj():
         
         .. note::
 
-            The sparse eigensolver will automatically turn on for operators when the 
-            number of elements N^2 is greater than the number specified in the qutip 
-            settings unless sparse==False.
+            The sparse eigensolver is much slower than the dense version.  Use sparse 
+            only if memory requirements demand it.
         
         """
         if self.type=='oper' or self.type=='super':
@@ -467,7 +466,7 @@ class Qobj():
                 return sp_expm(self)
         else:
             raise TypeError('Invalid operand for matrix exponential')
-    def sqrtm(self,sparse=None,tol=0,maxiter=100000):
+    def sqrtm(self,sparse=False,tol=0,maxiter=100000):
         """
         Returns the operator corresponding to the sqrt of a given square operator.
         
@@ -485,8 +484,8 @@ class Qobj():
             
         .. note::
         
-            The sparse eigensolver will automatically turn on when the number of elements
-            N^2 is greater than the number specified in the qutip settings unless sparse==False.
+            The sparse eigensolver is much slower than the dense version.  Use sparse 
+            only if memory requirements demand it.
         
         """
         if self.dims[0][0]==self.dims[1][0]:
@@ -657,7 +656,7 @@ class Qobj():
     # Find the eigenstates and eigenenergies (defined for operators and
     # superoperators)
     # 
-    def eigenstates(self,sparse=None,sort='low',eigvals=0,tol=0,maxiter=100000):
+    def eigenstates(self,sparse=False,sort='low',eigvals=0,tol=0,maxiter=100000):
         """
         Find the eigenstates and eigenenergies, defined for operators and superoperators.
         
@@ -679,8 +678,8 @@ class Qobj():
         
         .. note::
 
-            The sparse eigensolver will automatically turn on when the number of elements
-            N^2 is greater than the number specified in the qutip settings unless sparse==False.
+            The sparse eigensolver is much slower than the dense version.  Use sparse 
+            only if memory requirements demand it.
         
         """
         evals,evecs = sp_eigs(self,sparse=sparse,sort=sort,eigvals=eigvals,tol=tol,maxiter=maxiter)
@@ -693,7 +692,7 @@ class Qobj():
     #
     # Find only the eigenenergies (defined for operators and superoperators)
     # 
-    def eigenenergies(self,sparse=None,sort='low',eigvals=0,tol=0,maxiter=100000):
+    def eigenenergies(self,sparse=False,sort='low',eigvals=0,tol=0,maxiter=100000):
         """
         Finds the Eigenenergies (Eigenvalues) of a Obj operator or superoperator.
         
@@ -715,8 +714,8 @@ class Qobj():
         
         .. note::
 
-            The sparse eigensolver will automatically turn on when the number of elements
-            N^2 is greater than the number specified in the qutip settings unless sparse==False.
+            The sparse eigensolver is much slower than the dense version.  Use sparse 
+            only if memory requirements demand it.
         
         """
         return sp_eigs(self,vecs=False,sparse=sparse,sort=sort,eigvals=eigvals,tol=tol,maxiter=maxiter)
@@ -724,7 +723,7 @@ class Qobj():
     #
     #Find ground state (eigenvector for lowest eigenvalue) for operator
     #
-    def groundstate(self,sparse=None,tol=0,maxiter=100000):
+    def groundstate(self,sparse=False,tol=0,maxiter=100000):
         """
         Finds the groundstate Eigenvalue and Eigenvector of Qobj.
         
@@ -742,8 +741,8 @@ class Qobj():
         
         .. note::
 
-            The sparse eigensolver will automatically turn on when the number of elements
-            N^2 is greater than the number specified in the qutip settings unless sparse==False.
+            The sparse eigensolver is much slower than the dense version.  Use sparse 
+            only if memory requirements demand it.
         
         """
         grndval,grndvec=sp_eigs(self,sparse=sparse,eigvals=1,tol=tol,maxiter=maxiter)
@@ -965,7 +964,7 @@ def sp_expm(qo):
             U = A*(A6*(c[13]*A6+c[11]*A4+c[9]*A2)+c[7]*A6+c[5]*A4+c[3]*A2+c[1]*sp.eye(n,n).tocsr())
             V = A6*(c[12]*A6 + c[10]*A4 + c[8]*A2)+ c[6]*A6 + c[4]*A4 + c[2]*A2 + c[0]*sp.eye(n,n).tocsr()
             F=la.solve((-U+V).todense(),(U+V).todense()) 
-            return sp.lil_matrix(F).tocsr()
+            return sp.csr_matrix(F)
     #-###############################
     A=qo.data #extract Qobj data (sparse matrix)
     m_vals=array([3,5,7,9,13])

@@ -26,7 +26,6 @@ import scipy.sparse as sp
 from scipy import sqrt,ceil,floor,mod,union1d,real,array,sort,flipud,arange,fliplr,hstack,delete
 import scipy.linalg as la
 
-
 def sp_fro_norm(op):
     """
     Frobius norm for Qobj
@@ -72,7 +71,7 @@ def sp_one_norm(op):
     return max(array([sum(abs((op.data[:,k]).data)) for k in xrange(op.shape[1])]))
 
 
-def sp_eigs(op,vecs=True,sparse=None,sort='low',eigvals=0,tol=0,maxiter=100000):
+def sp_eigs(op,vecs=True,sparse=False,sort='low',eigvals=0,tol=0,maxiter=100000):
     """
     Returns Eigenvalues and Eigenvectors for Qobj.  Uses sparse eigen-solver if dims >=10 and sparse!=False.
     
@@ -96,18 +95,12 @@ def sp_eigs(op,vecs=True,sparse=None,sort='low',eigvals=0,tol=0,maxiter=100000):
     
         Array of eigenvalues and (by default) array of corresponding Eigenvectors.
     """
-    use_sparse=1000 # of dims at which to use sparse solver
     if op.type=='ket' or op.type=='bra':
         raise TypeError("Can only diagonalize operators and superoperators")
     N=op.shape[0]
     if eigvals==N:eigvals=0
     if eigvals>N:raise ValueError("Number of requested eigen vals/vecs must be <= N.")
-    if eigvals>0 and not op.isherm:sparse=True #only saprse routine can get slected eigs for nonherm matricies
-    #set sparse=True for dims >= 10 if not already set
-    if N>=use_sparse and sparse==None:
-        sparse=True
-    if N<use_sparse and sparse==None:
-        sparse==False
+    if eigvals>0 and not op.isherm:sparse=True #only sparse routine can get selected eigs for nonherm matricies
     remove_one=False
     if eigvals==(N-1) and sparse:#calculate all eigenvalues and remove one at output if using sparse
         eigvals=0
