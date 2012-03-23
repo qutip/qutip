@@ -34,7 +34,7 @@ import os,numpy,odeconfig
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 # 
-def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=Odeoptions()):
+def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     """
     New master equation API: still a moving target...
     
@@ -42,7 +42,9 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=Odeoptions()):
     #check for type (if any) of time-dpendent inputs            
     n_const,n_func,n_str=_ode_checks(H,c_ops)
 
-
+    if options == None:
+        options = Odeoptions()
+        options.max_step = max(tlist)/10.0 # take at least 10 steps.
     #
     # dispatch the the appropriate solver
     #         
@@ -676,7 +678,8 @@ def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None, options=None)
 
     if options == None:
         options = Odeoptions()
-        options.nsteps = 2500  # 
+        options.nsteps = 2500  #
+        options.max_step = max(tlist)/10.0 # take at least 10 steps.. 
         
     if (c_op_list and len(c_op_list) > 0) or not isket(rho0):
         return me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, options)
