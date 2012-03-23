@@ -18,7 +18,7 @@ The dynamics of a closed (pure) quantum system is governed by the Schrödinger e
 
 	i\hbar\frac{\partial}{\partial t}\Psi = \hat H \Psi,
 
-where :math:`\Psi` is the wave function, :math:`\hat H` the Hamiltonian, and :math:`hbar` is Planck's constant. In general, the Schrödinger equation is a partial differential equation (PDE) where both :math`\Psi` and :math:`\hat H` are functions of space and time. For computational purposes it is useful to expand the PDE in a set of basis functions that span the Hilbert space of the Hamiltonian, and to write the equation in matrix and vector form
+where :math:`\Psi` is the wave function, :math:`\hat H` the Hamiltonian, and :math:`\hbar` is Planck's constant. In general, the Schrödinger equation is a partial differential equation (PDE) where both :math:`\Psi` and :math:`\hat H` are functions of space and time. For computational purposes it is useful to expand the PDE in a set of basis functions that span the Hilbert space of the Hamiltonian, and to write the equation in matrix and vector form
 
 .. math::
    
@@ -26,14 +26,14 @@ where :math:`\Psi` is the wave function, :math:`\hat H` the Hamiltonian, and :ma
 
 where :math:`\left|\psi\right>` is the state vector and :math:`H` is the matrix representation of the Hamiltonian. This matrix equation can, in principle, be solved by diagonalizing the Hamiltonian matrix :math:`H`. In practice, however, it is difficult to perform this diagonalization unless the size of the Hilbert space (dimension of the matrix :math:`H`) is small. Analytically, it is a formidable task to calculate the dynamics for systems with more than two states. If, in addition, we consider dissipation due to the inevitable interaction with a surrounding environment, the computational complexity grows even larger, and we have to resort to numerical calculations in all realistic situations. This illustrates the importance of numerical calculations in describing the dynamics of open quantum systems, and the need for efficient and accessible tools for this task.
 
-The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, [GuideComposite Creating and manipulating composite objects with tensor and ptrace], we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector :math:`\psi_0` (``psi0``) using the QuTiP function :func:`qutip.odesolve`. It evolves the state vector and evaluates the expectation values for a set of operators ``expt_op_list`` at the points in time in the list ``tlist``, using an ordinary differential equation solver. Alternatively, we can use the function :func:`qutip.essolve`, which uses the exponential-series technique to calculate the time evolution of a system. The :func:`qutip.odesolve` and :func:`qutip.essolve` functions take the same arguments and it is therefore easy switch between the two solvers. 
+The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, [GuideComposite Creating and manipulating composite objects with tensor and ptrace], we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector :math:`\psi_0` (``psi0``) using the QuTiP function :func:`qutip.mesolve`. It evolves the state vector and evaluates the expectation values for a set of operators ``expt_op_list`` at the points in time in the list ``tlist``, using an ordinary differential equation solver. Alternatively, we can use the function :func:`qutip.essolve`, which uses the exponential-series technique to calculate the time evolution of a system. The :func:`qutip.mesolve` and :func:`qutip.essolve` functions take the same arguments and it is therefore easy switch between the two solvers. 
 
 For example, the time evolution of a quantum spin-1/2 system with tunneling rate 0.1 that initially is in the up state is calculated, and the  expectation values of the :math:`\sigma_z` operator evaluated, with the following code::
 
     >>> H = 2 * pi * 0.1 * sigmax()
     >>> psi0 = basis(2, 0)
     >>> tlist = linspace(0.0, 10.0, 20.0)
-    >>> odesolve(H, psi0, tlist, [], [sigmaz()])
+    >>> mesolve(H, psi0, tlist, [], [sigmaz()])
     array([[ 1.00000000+0.j,  0.78914229+0.j,  0.24548596+0.j, -0.40169696+0.j,
             -0.87947669+0.j, -0.98636356+0.j, -0.67728166+0.j, -0.08257676+0.j,
              0.54695235+0.j,  0.94582040+0.j,  0.94581706+0.j,  0.54694422+0.j,
@@ -44,7 +44,7 @@ The brackets in the fourth argument is an empty list of collapse operators,  sin
 
 The function returns an array of expectation values for the operators that are included in the list in the fifth argument. Adding operators to this list results in a larger output array returned by the function (one list of numbers, corresponding to the times in tlist, for each operator)::
 
-    >>> odesolve(H, psi0, tlist, [], [sigmaz(), sigmay()])
+    >>> mesolve(H, psi0, tlist, [], [sigmaz(), sigmay()])
     array([[  1.00000000e+00+0.j,   7.89142292e-01+0.j,   2.45485961e-01+0.j,
              -4.01696962e-01+0.j,  -8.79476686e-01+0.j,  -9.86363558e-01+0.j,
              -6.77281655e-01+0.j,  -8.25767574e-02+0.j,   5.46952346e-01+0.j,
@@ -63,7 +63,7 @@ The function returns an array of expectation values for the operators that are i
 The resulting list of expectation values can easily be visualized using matplotlib's plotting functions::
 
     >>> tlist = linspace(0.0, 10.0, 100)
-    >>> expt_list = odesolve(H, psi0, tlist, [], [sigmaz(), sigmay()])
+    >>> expt_list = mesolve(H, psi0, tlist, [], [sigmaz(), sigmay()])
     >>> 
     >>> from pylab import *
     >>> plot(tlist, real(expt_list[0]))
@@ -79,10 +79,10 @@ The resulting list of expectation values can easily be visualized using matplotl
    :width: 4in
 
 
-If an empty list of operators is passed as fifth parameter, the :func:`qutip.odesolve` function returns a list of state vectors for the times specified in ``tlist``::
+If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a list of state vectors for the times specified in ``tlist``::
 
     >>> tlist = [0.0, 1.0]
-    >>> odesolve(H, psi0, tlist, [], [])
+    >>> mesolve(H, psi0, tlist, [], [])
     [
     Quantum object: dims = [[2], [1]], shape = [2, 1], type = ket
     Qobj data = 
@@ -150,9 +150,9 @@ For systems with environments satisfying the conditions outlined above, the Lind
 
 For non-unitary evolution of a quantum systems, i.e., evolution that includes
 incoherent processes such as relaxation and dephasing, it is common to use
-master equations. In QuTiP, the same function (:func:`qutip.odesolve`) is used for 
+master equations. In QuTiP, the same function (:func:`qutip.mesolve`) is used for 
 evolution both according to the Schrödinger equation and to the master equation,
-even though these two equations of motion are very different. The :func:`qutip.odesolve`
+even though these two equations of motion are very different. The :func:`qutip.mesolve`
 function automatically determines if it is sufficient to use the Schrödinger 
 equation (if no collapse operators were given) or if it has to use the
 master equation (if collapse operators were given). Note that to calculate
@@ -169,17 +169,17 @@ describe the strength of the processes.
 In QuTiP, the product of the square root of the rate and the operator that 
 describe the dissipation process is called a collapse operator. A list of 
 collapse operators (``c_op_list``) is passed as the fourth argument to the 
-:func:`qutip.odesolve` function in order to define the dissipation processes in the master
-eqaution. When the ``c_op_list`` isn't empty, the :func:`qutip.odesolve` function will use
+:func:`qutip.mesolve` function in order to define the dissipation processes in the master
+eqaution. When the ``c_op_list`` isn't empty, the :func:`qutip.mesolve` function will use
 the master equation instead of the unitary Schröderinger equation.
 
 Using the example with the spin dynamics from the previous section, we can
 easily add a relaxation process (describing the dissipation of energy from the
 spin to its environment), by adding ``sqrt(0.05) * sigmax()`` to
-the previously empty list in the fourth parameter to the :func:`qutip.odesolve` function::
+the previously empty list in the fourth parameter to the :func:`qutip.mesolve` function::
 
     >>> tlist = linspace(0.0, 10.0, 100)
-    >>> expt_list = odesolve(H, psi0, tlist, [sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
+    >>> expt_list = mesolve(H, psi0, tlist, [sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
     >>> 
     >>> from pylab import *
     >>> plot(tlist, real(expt_list[0]))
@@ -204,7 +204,7 @@ Now a slightly more complex example: Consider a two-level atom coupled to a leak
     >>> a  = tensor(qeye(2), destroy(10))
     >>> sm = tensor(destroy(2), qeye(10))
     >>> H = 2*pi * a.dag() * a + 2 * pi * sm.dag() * sm + 2*pi * 0.25 * (sm*a.dag() + sm.dag() * a)
-    >>> expt_list = odesolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
+    >>> expt_list = mesolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
     >>> 
     >>> from pylab import *
     >>> plot(tlist, real(expt_list[0]))
@@ -272,7 +272,7 @@ where the individual :math:`P_{n}` are given by Eq.~(:eq:`pcn`).  Note that the 
 
 
 In QuTiP, Monto-Carlo evolution is implemented with the
-:func:`qutip.mcsolve` function. It takes nearly the same arguments as the :func:`qutip.odesolve`
+:func:`qutip.mcsolve` function. It takes nearly the same arguments as the :func:`qutip.mesolve`
 function for master-equation evolution, expect for one additional parameter
 ``ntraj`` (fourth parameter), which define the number of stochastic trajectories
 that should be averaged. This number should usually be in the range 100 - 500 to
@@ -282,7 +282,7 @@ case to case).
 To illustrate the use of the Monte-Carlo evolution of quantum systems in QuTiP,
 let's again consider the case of a two-level atom coupled to a leaky cavity. The 
 only differences to the master-equation treatment is that in this case we 
-invoke the :func:`qutip.mcsolve` function instead of :func:`qutip.odesolve`, and a new parameter 
+invoke the :func:`qutip.mcsolve` function instead of :func:`qutip.mesolve`, and a new parameter 
 ``ntraj = 250`` has been defined::
 
     >>> tlist = linspace(0.0, 10.0, 200)
@@ -405,7 +405,7 @@ Here, the number of trajectories used in :func:`qutip.mcsolve` is ``250`` and th
 Time-dependent Hamiltonians (unitary and non-unitary)
 ========================================================
 
-In the previous examples of quantum system evolution, we assumed that the systems under consideration were described by a time-independent Hamiltonian. The two main evolution solvers in QuTiP, :func:`qutip.odesolve` and :func:`qutip.mcsolve`, can also handle time-dependent Hamiltonians. If a callback function is passed as first parameter to the solver function (instead of :class:`qutip.Qobj` Hamiltonian), then this function is called at each time step and is expected to return the :class:`qutip.Qobj` Hamiltonian for that point in time. The callback function takes two arguments: the time `t` and list additional Hamiltonian arguments ``H_args``. This list of additional arguments is the same object as is passed as the sixth parameter to the solver function (only used for time-dependent Hamiltonians).
+In the previous examples of quantum system evolution, we assumed that the systems under consideration were described by a time-independent Hamiltonian. The two main evolution solvers in QuTiP, :func:`qutip.mesolve` and :func:`qutip.mcsolve`, can also handle time-dependent Hamiltonians. If a callback function is passed as first parameter to the solver function (instead of :class:`qutip.Qobj` Hamiltonian), then this function is called at each time step and is expected to return the :class:`qutip.Qobj` Hamiltonian for that point in time. The callback function takes two arguments: the time `t` and list additional Hamiltonian arguments ``H_args``. This list of additional arguments is the same object as is passed as the sixth parameter to the solver function (only used for time-dependent Hamiltonians).
 
 For example, let's consider a two-level system with energy splitting 1.0, and subject to a time-dependent field that couples to the :math:`\sigma_x` operator with amplitude 0.1. Furthermore, to make the example a little bit more interesting, let's also assume that the two-level system is subject to relaxation, with relaxation rate 0.01. The following code calculates the dynamics of the system in the absence and in the presence of the time-dependent driving signal::
 
@@ -444,7 +444,7 @@ For example, let's consider a two-level system with energy splitting 1.0, and su
 Setting ODE solver options
 ============================
 
-Occasionally it is necessary to change the built in parameters of the ODE solvers used by both the odesolve and mcsolve functions.  The ODE options for either of these functions may be changed by calling the Odeoptions class :class:`qutip.Odeoptions`
+Occasionally it is necessary to change the built in parameters of the ODE solvers used by both the mesolve and mcsolve functions.  The ODE options for either of these functions may be changed by calling the Odeoptions class :class:`qutip.Odeoptions`
 
 >>> opts=Odeoptions()
 
@@ -535,10 +535,10 @@ Note that the order in which you input the options does not matter.  Using eithe
 	gui:           False
 	expect_avg:    True
 
-To use these new settings we can use the keyword argument `options` in either the `odesolve` or `mcsolve` function.  We can modify the last example as::
+To use these new settings we can use the keyword argument `options` in either the `mesolve` or `mcsolve` function.  We can modify the last example as::
 
-    >>> odesolve(H0, psi0, tlist, c_op_list, [sigmaz()],options=opts)
-    >>> odesolve(hamiltonian_t, psi0, tlist, c_op_list, [sigmaz()], H_args,options=opts)
+    >>> mesolve(H0, psi0, tlist, c_op_list, [sigmaz()],options=opts)
+    >>> mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sigmaz()], H_args,options=opts)
 
 or::
     
@@ -553,7 +553,7 @@ Performance (QuTiP vs. qotoolbox)
 
 Here we compare the performance of the master-equation and monte-Carlo solvers to their quantum optics toolbox counterparts.
 
-In this example, we calculate the time-evolution of the density matrix for a coupled oscillator system using the odesolve function, and compare it to the quantum optics toolbox (qotoolbox).  Here, we see that the QuTiP solver out performs it's qotoolbox counterpart by a substantial margin as the system size increases.
+In this example, we calculate the time-evolution of the density matrix for a coupled oscillator system using the `mesolve` function, and compare it to the quantum optics toolbox (qotoolbox).  Here, we see that the QuTiP solver out performs it's qotoolbox counterpart by a substantial margin as the system size increases.
 
 .. figure:: guide-dynamics-odesolve-performance.png
    :align: center
