@@ -27,7 +27,7 @@ Here we demonstrate how to calculate two-time correlation functions in QuTiP. Us
 |                                              | Monte Carlo solver.                     |
 +----------------------------------------------+-----------------------------------------+
 
-The most common use-case is to calculate correlation functions of the kind :math:`\left<a(0)b(t)\right>`, in which case we use the correlation function solvers that start from the steady state, e.g., the :func:`qutip.correlation.correlation_ss_ode` function. These functions return a vector (in general complex) with the correlations between the operators as a function of the difference time. 
+The most common use-case is to calculate correlation functions of the kind :math:`\left<a(0)b(t)\right>`, in which case we use the correlation function solvers that start from the steady state, e.g., the :func:`qutip.correlation.correlation_ss` function. These functions return a vector (in general complex) with the correlations between the operators as a function of the difference time. 
 
 .. _correlation-steady:
 
@@ -60,7 +60,7 @@ The following code demonstrates how to calculate the :math:`\left<x(0)x(t)\right
 Non-steadystate correlation function
 ====================================
     
-More generally, we can also calculate correlation functions of the kind :math:`\left<a(t_1)b(t_1+t_2)\right>`, i.e., the correlation function of a system that is not in its steadystate. In QuTiP, we can evoluate such correlation functions using, e.g., the function :func:`qutip.correlation.correlation_ode`. This function returns a matrix with the correlations as a function of the two time coordinates::
+More generally, we can also calculate correlation functions of the kind :math:`\left<a(t_1)b(t_1+t_2)\right>`, i.e., the correlation function of a system that is not in its steadystate. In QuTiP, we can evoluate such correlation functions using, e.g., the function :func:`qutip.correlation.correlation`. This function returns a matrix with the correlations as a function of the two time coordinates::
 
     >>> tlist = linspace(0,10.0,200);
     >>> a  = destroy(10)
