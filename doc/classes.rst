@@ -1,11 +1,13 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-QuTiP classes
-=============
+.. _classes:
 
-.. toctree::
-   :maxdepth: 2
+***************
+QuTiP classes
+***************
+
+.. _classes-qobj:
 
 The Qobj class
 --------------
@@ -13,17 +15,23 @@ The Qobj class
 .. autoclass:: qutip.Qobj
     :members:
 
+.. _classes-eseries:
+
 The eseries class
 -----------------
 
 .. autoclass:: qutip.eseries
     :members:
 
+.. _classes-bloch:
+
 The Bloch class
 ---------------
 
 .. autoclass:: qutip.Bloch
     :members:
+
+.. _classes-odeoptions:
 
 The Odeoptions class
 --------------------

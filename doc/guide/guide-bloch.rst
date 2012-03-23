@@ -1,20 +1,23 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-.. _guide-bloch:
+.. _bloch:
 
+******************************
 Plotting on the Bloch Sphere
 ******************************
-.. toctree::
-   :maxdepth: 2
+
+.. _bloch-intro:
 
 Introduction
 ============
 
 When studying the dynamics of a two-level system, it is often convent to visualize the state of the system by plotting the state-vector or density matrix on the Bloch sphere.  In QuTiP, we have created the Bloch class to allow for easy creation and manipulation of data sets, both vectors and data points, on the Bloch sphere.
 
+.. _bloch-class:
+
 The Bloch class
-+++++++++++++++
+================
 
 In QuTiP, creating a Bloch sphere is accomplished by calling:
 
@@ -225,7 +228,7 @@ Now, the data points cycle through a variety of predefined colors.  Now lets add
 A more slick way of using this 'multi' color feature is also given in the :ref:`examples_bloch_qubit_decay` example, where we set the color of the markers as a function of time.
 
 
-.. _guide_configuring_the_bloch_sphere:
+.. _bloch-config:
 
 Configuring the Bloch sphere
 ============================
@@ -307,6 +310,7 @@ ylpos:         [1.1, -1.1]
 zlabel:        ['$\\left|0\\right>$', '$\\left|1\\right>$']
 zlpos:         [1.2, -1.2]
 
+.. _bloch-animate:
 
 Animating with the Bloch sphere
 ===============================

@@ -1,10 +1,13 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-.. _guide-tensor:
+.. _tensor:
 
+******************************************
 Using Tensor Products and Partial Traces
 ******************************************
+
+.. _tensor-products:
 
 Tensor products
 ===============
@@ -59,10 +62,15 @@ To form operators in a combined Hilbert space that only act only on a single com
      [ 0.  0. -1.  0.]
      [ 0.  0.  0. -1.]]
     
+
+.. _tensor-product-example:
+
 Example: Constructing composite Hamiltonians
 ============================================
 
 The :func:`qutip.tensor.tensor` function is extensively used when constructing Hamiltonians for composite systems. Here we'll look at some simple examples.
+
+.. _tensor-product-example-2qubits:
 
 Two coupled qubits
 ------------------
@@ -77,6 +85,8 @@ First, let's consider a system of two coupled qubits. Assume that both qubit has
      [ 0.   0.   0.05 0. ]
      [ 0.   0.05 0.   0. ]
      [ 0.05 0.   0.  -2. ]]
+
+.. _tensor-product-example-3qubits:
 
 Three coupled qubits
 --------------------
@@ -97,8 +107,11 @@ The two-qubit example is easily generalized to three coupled qubits::
      [ 0.5   0.    0.    0.    0.    0.25 -1.    0.  ]
      [ 0.    0.5   0.    0.    0.25  0.    0.   -3.  ]]
     
+
+.. _tensor-product-example-jcmodel:
+
 A two-level system coupled to a cavity: The Jaynes-Cummings model
-=================================================================
+-------------------------------------------------------------------
 
 The simplest possible quantum mechanical description for light-matter interaction is encapsulated in the Jaynes-Cummings model, which describes the coupling between a two-level atom and a single-mode electomagnetic field (a cavity mode). Denoting the energy splitting of the atom and cavity omega_a and omega_c, respectively, and the atom-cavity interaction strength g, the Jaynes-Cumming Hamiltonian can be constructed as::
 
@@ -112,6 +125,8 @@ The simplest possible quantum mechanical description for light-matter interactio
     >>> H = 0.5 * omega_a * sz + omega_c * a.dag() * a + g * (a.dag() * sm + a * sm.dag())
 
 Here N is the number of Fock states included in the cavity mode. 
+
+.. _tensor-ptrace:
 
 Partial trace
 =============

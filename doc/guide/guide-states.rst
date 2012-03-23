@@ -1,18 +1,24 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-.. _guide-states:
+.. _states:
 
+*************************************
 Manipulating States and Operators
-*********************************
+*************************************
+
+.. _states-intro:
 
 Introduction
-============
+=================
 
-In the previous guide section :ref:`guide-basics`, we saw how to create operators and states, using the functions built into QuTiP.  In this portion of the guide, we will look at performing basic operations with states and operators.  For more detailed demonstrations on how to use and manipulate these objects, see the :ref:`examples` chapter.
+In the previous guide section :ref:`basics`, we saw how to create operators and states, using the functions built into QuTiP.  In this portion of the guide, we will look at performing basic operations with states and operators.  For more detailed demonstrations on how to use and manipulate these objects, see the :ref:`examples` section.
 
-State vectors
-==============
+
+.. _states-vectors:
+
+State Vectors (kets or bras)
+==============================
 
 Here we begin by creating a Fock :func:`qutip.basis` vacuum state vector :math:`\left|0\right>` with in a Hilbert space with 5 number states, 0 -> 4:
 
@@ -223,6 +229,9 @@ Qobj data =
 
 Of course, displacing the vacuum gives a coherent state, which can also be generated using the built in :func:`qutip.coherent` function.
 
+
+.. _states-dm:
+
 Density matrices
 =================
 
@@ -318,6 +327,8 @@ For a pure state and a mixed state, :math:`1-F^{2}\le T` which can also be verif
 >>> tracedist(x,z)
 0.8563182215236257
 
+.. _states-qubit:
+
 Qubit (two-level) systems
 =========================
 
@@ -398,6 +409,8 @@ Qobj data =
 the non-zero component is the zeroth-element of the underlying matrix (remember that python uses c-indexing, and matrices start with the zeroth element).  The :math:`\left|\mathrm{down}\right>` state therefore has a non-zero entry in the first index position.  This corresponds nicely with the quantum information definitions of qubit states, where the excited :math:`\left|\mathrm{up}\right>` state is label as :math:`\left|0\right>`, and the :math:`\left|\mathrm{up}\right>` state by :math:`\left|1\right>`.
 
 If one wants to create spin operators for higher spin systems, then the :func:`qutip.operators.jmat` function comes in handy. 
+
+.. _states-expect:
 
 Expectation values
 ===================

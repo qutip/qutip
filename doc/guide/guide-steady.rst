@@ -1,10 +1,11 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-.. _guide-steady:
+.. _steady:
 
+*************************************
 Solving for Steady-State Solutions
-**********************************
+*************************************
 
 For open quantum systems with decay rates larger than the corresponding excitation rate, the system will tend toward a steady-state as :math:`t\rightarrow\infty`.  For many these systems, solving for the asymptotic state vector can be achieved using an iterative method faster than master equation or monte-carlo methods.  In QuTiP, the steady-state solution for a given Hamiltonian or Louivillian is given by :func:`qutip.steady.steadystate` or :func:`qutip.steady.steady`, respectively.  Both of these functions use an inverse power method with a random initial state.  (Details of these methods may be found in any iterative linear algebra text.)  In general, it is best to use the :func:`qutip.steady.steadystate` function with a given Hamiltonian and list of collapse operators.  This function will automatically build the Louivillian for you and then call the :func:`qutip.steady.steady` function. 
 
@@ -44,7 +45,7 @@ A simple example of a system that reaches a steady-state is a harmonic oscillato
     ylabel('Number of excitations')
     show()
 
-.. _steady: 
+.. _steady-figure: 
 .. figure:: guide-steady.png
    :align: center
    :width: 4in

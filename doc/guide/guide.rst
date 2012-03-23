@@ -3,6 +3,10 @@
 
 .. _guide:
 
+*******************
+QuTiP Users Guide
+*******************
+
 .. toctree::
    :maxdepth: 2
   

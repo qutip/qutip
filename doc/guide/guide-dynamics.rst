@@ -1,14 +1,16 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-.. _guide-dynamics:
+.. _dynamics:
 
-
+*******************************************************
 An Overview of the Quantum Dynamics Solvers in QuTiP
-****************************************************
+*******************************************************
+
+.. _dynamics-unitary:
 
 Unitary evolution
------------------
+====================
 The dynamics of a closed (pure) quantum system is governed by the Schrödinger equation
 
 .. math::
@@ -100,13 +102,17 @@ If an empty list of operators is passed as fifth parameter, the :func:`qutip.ode
      [ 0.00000000-0.95105684j]]
     ]
 
+.. _dynamics-nonunitary:
+
 Non-unitary evolution
----------------------
+=======================
 
 While the evolution of the state vector in a closed quantum system is deterministic, open quantum systems are stochastic in nature. The effect of an environment on the system of interest is to induce stochastic transitions between energy levels, and to introduce uncertainty in the phase difference between states of the system. The state of an open quantum system is therefore described in terms of ensemble averaged states using the density matrix formalism. A density matrix :math:`\rho` describes a probability distribution of quantum states :math:`\left|\psi_n\right>`, in a matrix representation :math:`\rho = \sum_n p_n \left|\psi_n\right>\left<\psi_n\right|`, where :math:`p_n` is the classical probability that the system is in the quantum state :math:`\left|\psi_n\right>`. The time evolution of a density matrix :math:`\rho` is the topic of the remaining portions of this section.
 
+.. _dynamics-nonunitary-master:
+
 Master equation
-+++++++++++++++
+------------------
 
 The standard approach for deriving the equations of motion for a system interacting with its environment is to expand the scope of the system to include the environment. The combined quantum system is then closed, and its evolution is governed by the von Neumann equation
 
@@ -213,8 +219,11 @@ Now a slightly more complex example: Consider a two-level atom coupled to a leak
    :align: center
    :width: 4in
 
+
+.. _dynamics-nonunitary-monte:
+
 Monte-Carlo evolution
-+++++++++++++++++++++
+------------------------
 
 Where as the density matrix formalism describes the ensemble average over many identical realizations of a quantum system, the Monte-Carlo (MC), or quantum-jump approach to wave function evolution, allows for simulating an individual realization of the system dynamics.  Here, the environment is continuously monitored, resulting in a series of quantum jumps in the system wave function, conditioned on the increase in information gained about the state of the system via the environmental measurements.  In general, this evolution is governed by the Schrödinger equation (:eq:`schrodinger`) with a **non-Hermitian** effective Hamiltonian  
 
@@ -364,8 +373,20 @@ If no expectation values are specified then the first output will be a list of s
 +--------------------+-----------------------+-----------------------------+------------------------------------+
 
 
+.. _dynamics-redfield:
+
+Bloch-Redfield
+================
+
+.. note:: 
+
+	Bloch-Redfield stuff goes here.
+
+
+.. _dynamics-which:
+
 Which solver should I use?
---------------------------
+=============================
 
 In general, the choice of solver is determined by the size of your system, as well as your desired output.  The computational resources required by the master equation solver scales as :math:`N^2`, where :math:`N` is the dimensionality of the Hilbert space.  For small systems, the master equation method is very efficient. In contrast, the monte-carlo solver scales as :math:`N`, but requires running multiple trajectories to average over to get the desired expectation values.  Therefore, if your system is too large, and you run out of memory using :func:`qutip.odesolve`, then the only option available will be :func:`qutip.mcsolve`.  On the other hand, the monte-carlo method cannot return the full density matrix as a function of time and you need to use :func:`qutip.odesolve` if this is required.
 
@@ -378,8 +399,11 @@ If your system is intermediate in size (you are not bound by memory) then it is 
 
 Here, the number of trajectories used in :func:`qutip.mcsolve` is ``250`` and the number of processors (which determines the slope of the monte-carlo line) is ``4``.  Here we see that the monte-carlo solver begins to be more efficient than the corresponding master-equation method at a Hilbert space size of :math:`N\sim40`.  Therefore, if your system size is greater than :math:`N\sim40` and you do not need the full density matrix, then it is recommended to try the :func:`qutip.mcsolve` function. 
 
+
+.. _dynamics-time:
+
 Time-dependent Hamiltonians (unitary and non-unitary)
------------------------------------------------------
+========================================================
 
 In the previous examples of quantum system evolution, we assumed that the systems under consideration were described by a time-independent Hamiltonian. The two main evolution solvers in QuTiP, :func:`qutip.odesolve` and :func:`qutip.mcsolve`, can also handle time-dependent Hamiltonians. If a callback function is passed as first parameter to the solver function (instead of :class:`qutip.Qobj` Hamiltonian), then this function is called at each time step and is expected to return the :class:`qutip.Qobj` Hamiltonian for that point in time. The callback function takes two arguments: the time `t` and list additional Hamiltonian arguments ``H_args``. This list of additional arguments is the same object as is passed as the sixth parameter to the solver function (only used for time-dependent Hamiltonians).
 
@@ -415,10 +439,10 @@ For example, let's consider a two-level system with energy splitting 1.0, and su
    :align: center
    :width: 4in
 
-
+.. _dynamics-options:
 
 Setting ODE solver options
---------------------------
+============================
 
 Occasionally it is necessary to change the built in parameters of the ODE solvers used by both the odesolve and mcsolve functions.  The ODE options for either of these functions may be changed by calling the Odeoptions class :class:`qutip.Odeoptions`
 
@@ -522,8 +546,10 @@ or::
     >>> mcsolve(hamiltonian_t, psi0, tlist, ntraj, c_op_list, [sigmaz()], H_args,options=opts)
 
 
+.. _dynamics-performance:
+
 Performance (QuTiP vs. qotoolbox)
------------------------------------
+=====================================
 
 Here we compare the performance of the master-equation and monte-Carlo solvers to their quantum optics toolbox counterparts.
 

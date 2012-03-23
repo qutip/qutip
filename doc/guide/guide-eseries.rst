@@ -1,10 +1,13 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-.. _guide-eseries:
+.. _eseries:
 
+**********************************
 An Overview of the Eseries Class
-********************************
+**********************************
+
+.. _eseries-rep:
 
 Exponential-series representation of time-dependent quantum objects
 ===================================================================
@@ -88,6 +91,8 @@ To calculate the expectation value of an time-dependent operator represented by 
     [ -1.00000000e+00+0.j  -6.12303177e-17+0.j]
     
 Note the expectation value of the :class:`qutip.eseries` object, ``expect(rho, es3)``, itself is an :class:`qutip.eseries`, but with amplitude coefficients that are C-numbers instead of quantum operators. To evaluate the C-number :class:`qutip.eseries` at the times `tlist` we use ``esval(es3_expect, tlist)``, or, equivalently, ``es3_expect.value(tlist)``.
+
+.. _eseries-applications:
 
 Applications of exponential series
 ==================================

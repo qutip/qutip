@@ -1,10 +1,11 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-.. _guide-parfor:
+.. _parfor:
 
+******************************************
 Using QuTiP's Built-in Parallel for-loop
-****************************************
+******************************************
 
 Often one is interested in the output of a given function as a single-parameter is varied.  For instance, in the Driven steady-state cavity example, we calculate the steady-state response as the driving frequency is varied.  In cases such as this, where each iteration is independent of the others, we may speedup the calculations by performing the iterations in parallel.  In QuTiP, parallel computations may be performed using the :func:`qutip.parfor` (parallel-for-loop) function.
 
@@ -89,5 +90,5 @@ Although :func:`qutip.parfor` allows functions with only one input, we can in fa
 [ 0  2  4  6  8 10 12 14 16 18]
 
 
-This example also highlights the fact that the parfor function does not evaluate the sequence of elements sequentially.  Therefore, passing an index variable, as done in the previous example, is useful if one needs to keep track of individual function evaluations.  Parfor is also useful for repeated tasks such as generating plots corresponding to the dynamical evolution of your system.
+This example also highlights the fact that the parfor function does not evaluate the sequence of elements in order.  Therefore, passing an index variable, as done in the previous example, is useful if one needs to keep track of individual function evaluations, for example when plotting.  Parfor is also useful for repeated tasks such as generating plots corresponding to the dynamical evolution of your system, or simultaneously simulating different parameter configurations.
 

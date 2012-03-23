@@ -1,15 +1,18 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-.. _guide-basics:
+.. _basics:
 
-Performing Basic operations on Quantum Objects
-**********************************************
+***********************************************
+Performing Basic Operations on Quantum Objects
+***********************************************
+
+.. _basics-first:
 
 First things first
 ==================
 
-.. warning::
+.. important::
    Do not run QuTiP from the installation directory.
 
 To load the qutip modules, we must first call the import statement:
@@ -18,11 +21,15 @@ To load the qutip modules, we must first call the import statement:
 
 that will load all of the user available functions.  Note that, in the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`.  However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the command line or a Python script.
 
+.. _basics-qobj:
+
 The quantum object class
 ========================
 
-Intro
-+++++++
+.. _basics-qobj-intro:
+
+Introduction
+---------------
 
 The key difference between classical and quantum mechanics lies in the use of operators instead of numbers as variables.  Moreover, we need to specify state vectors and their properties. Therefore, in computing the dynamics of quantum systems we need a data structure that is capable of encapsulating the properties of a quantum operator and ket/bra vectors.  The quantum object class, :func:`qutip.Qobj`, accomplishes this using matrix representation.
 
@@ -67,9 +74,10 @@ Notice how both the dims and shape change according to the input data.  Although
 
 .. note:: If you are running QuTiP from a python script you must use the :func:`print` function to view the Qobj properties.
 
+.. _basics-qobj-states:
 
 States and operators
-++++++++++++++++++++
+---------------------
 
 Now, unless you have lots of free time, specifying the data for each object is inefficient.  Even more so when most objects correspond to commonly used types such as the ladder operators of a harmonic oscillator,the Pauli spin operators for a two-level system, or state vectors such as Fock states.  Therefore, QuTiP includes predefined objects for a variety of states:
 
@@ -174,9 +182,10 @@ Qobj data =
  [ 0.          0.          0.          0.          0.          2.23606798]
  [ 0.          0.          0.          0.          0.          0.        ]]
 
+.. _basics-qobj-props:
 
 Qobj properties
-+++++++++++++++
+----------------
 
 We have seen that a quantum object has three internal attributes, the data, dims, and shape properties.  These can be accessed in the following way:
 
@@ -231,8 +240,10 @@ False
 
 The data property returns a message stating that the data is a sparse matrix.  All Qobj's store their data as a sparse matrix to save memory.  To access the underlying matrix one needs to use the :func:`qutip.Qobj.full` function as described in the functions section.
 
+.. _basics-qobj-math:
+
 Qobj Math
-+++++++++++
+----------
 
 The rules for mathematical operations on Qobj's are similar to standard matrix arithmetic:
 
@@ -273,35 +284,55 @@ TypeError: Incompatible Qobj shapes
 
 In addition, the logic operators is equal `==` and is not equal `!=` are also supported.
 
+.. _basics-functions:
+
 Functions operating on Qobj class
 ==================================
 
 Like properties, the quantum object class has defined functions (methods) that operate only on members of the Qobj class.  For a general quantum object `Q`:
 
-+-----------------+-----------------+----------------------------------------+
-| Function        | Command         | Description                            |
-+=================+=================+========================================+
-| Dagger (adjoint)| Q.dag()         | Returns adjoint (dagger) of object.    |
-+-----------------+-----------------+----------------------------------------+
-| Diagonal        | Q.diag()        | Returns the diagonal elements.         |
-+-----------------+-----------------+----------------------------------------+
-| Eigenstates     | Q.eigenstates() | Returns eigenstates and eigenvectors.  |
-+-----------------+-----------------+----------------------------------------+
-| Exponential     | Q.expm()        | Matrix exponential of operator.        |
-+-----------------+-----------------+----------------------------------------+
-| Full            | Q.full()        | Returns full (not sparse) array of     |
-|                 |                 | Q's data property.                     |
-+-----------------+-----------------+----------------------------------------+
-| Norm            | Q.norm()        | Returns L2 norm for states,            |
-|                 |                 | trace norm for operators.              |
-+-----------------+-----------------+----------------------------------------+
-| Sqrt            | Q.sqrtm()       | Matrix sqrt of operator.               |
-+-----------------+-----------------+----------------------------------------+
-| Trace           | Q.tr()          | Returns trace of quantum object.       |
-+-----------------+-----------------+----------------------------------------+
-| Unit            | Q.unit()        | Returns normalized (unit)              |
-|                 |                 | vector Q/Q.norm().                     |  
-+-----------------+-----------------+----------------------------------------+
++-----------------+--------------------------+----------------------------------------+
+| Function        | Command                  | Description                            |
++=================+==========================+========================================+
+| Conjugate       | Q.conj()                 | Conjugate of quantum object.           |
++-----------------+--------------------------+----------------------------------------+
+| Dagger (adjoint)| Q.dag()                  | Returns adjoint (dagger) of object.    |
++-----------------+--------------------------+----------------------------------------+
+| Diagonal        | Q.diag()                 | Returns the diagonal elements.         |
++-----------------+--------------------------+----------------------------------------+
+| Eigenenergies   | Q.eigenenergies()        | Eigenenergies (values) of operator.    |
++-----------------+--------------------------+----------------------------------------+
+| Eigenstates     | Q.eigenstates()          | Returns eigenvalues and eigenvectors.  |
++-----------------+--------------------------+----------------------------------------+
+| Exponential     | Q.expm()                 | Matrix exponential of operator.        |
++-----------------+--------------------------+----------------------------------------+
+| Full            | Q.full()                 | Returns full (not sparse) array of     |
+|                 |                          | Q's data property.                     |
++-----------------+--------------------------+----------------------------------------+
+| Groundstate     | Q.groundstate()          | Eigenval & eigket of Qobj groundstate. |
++-----------------+--------------------------+----------------------------------------+
+| Matrix Element  | Q.matrix_element(bra,ket)| Matrix element <bra|Q|ket>             |
++-----------------+--------------------------+----------------------------------------+
+| Norm            | Q.norm()                 | Returns L2 norm for states,            |
+|                 |                          | trace norm for operators.              |
++-----------------+--------------------------+----------------------------------------+
+| Partial Trace   | Q.ptrace(sel)            | Partial trace returning components     |
+|                 |                          | selected using 'sel' parameter.        |
++-----------------+--------------------------+----------------------------------------+
+| Sqrt            | Q.sqrtm()                | Matrix sqrt of operator.               |
++-----------------+--------------------------+----------------------------------------+
+| Tidyup          | Q.tidyup()               | Removes small elements from Qobj.      |
++-----------------+--------------------------+----------------------------------------+
+| Trace           | Q.tr()                   | Returns trace of quantum object.       |
++-----------------+--------------------------+----------------------------------------+
+| Transform       | Q.transform(inpt)        | A basis transformation defined by      |
+|                 |                          | matrix or list of kets 'inpt' .        |
++-----------------+--------------------------+----------------------------------------+
+| Transpose       | Q.trans()                | Transpose of quantum object.           |
++-----------------+--------------------------+----------------------------------------+
+| Unit            | Q.unit()                 | Returns normalized (unit)              |
+|                 |                          | vector Q/Q.norm().                     |  
++-----------------+--------------------------+----------------------------------------+
 
 
 >>> basis(5,3)

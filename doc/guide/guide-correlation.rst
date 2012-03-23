@@ -1,10 +1,11 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-.. _guide-correlation:
+.. _correlation:
 
+****************************************
 Solving Two-Time Correlation Functions
-**************************************
+****************************************
 
 Here we demonstrate how to calculate two-time correlation functions in QuTiP. Using the quantum regression theorem, we can apply the equation of motion for the system itself also to calculate two-time correlation functions. In QuTiP, there are family functions that assists in this process: :func:`qutip.correlation.correlation_ode`, :func:`qutip.correlation.correlation_es`, :func:`qutip.correlation.correlation_mc`, and :func:`qutip.correlation.correlation_ss_ode`, :func:`qutip.correlation.correlation_ss_es`, :func:`qutip.correlation.correlation_ss_mc`. As the names suggest, these functions use the ODE, the exponential series, and the Monte-Carlo solvers, respectively, to evolve the correlation functions in time. The following table describes in detail the usage of each function:
 
@@ -42,6 +43,8 @@ Here we demonstrate how to calculate two-time correlation functions in QuTiP. Us
 
 The most common use-case is to calculate correlation functions of the kind :math:`\left<a(0)b(t)\right>`, in which case we use the correlation function solvers that start from the steady state, e.g., the :func:`qutip.correlation.correlation_ss_ode` function. These functions return a vector (in general complex) with the correlations between the operators as a function of the difference time. 
 
+.. _correlation-steady:
+
 Steadystate correlation function
 ================================
 
@@ -65,6 +68,9 @@ The following code demonstrates how to calculate the :math:`\left<x(0)x(t)\right
     :align: center
     :width: 4in
 	
+
+.. _correlation-nosteady:
+
 Non-steadystate correlation function
 ====================================
     
