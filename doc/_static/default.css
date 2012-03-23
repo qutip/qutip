@@ -9,7 +9,7 @@ body {
     letter-spacing: -0.01em;
     line-height: 150%;
     text-align: center;
-    background-color: #DCDCDC;
+    background-color: #C0C0C0;/* Background for webpage */
     color: black;
     padding: 0;
     border: 1px solid #aaa;
@@ -19,12 +19,12 @@ body {
 }
 
 a {
-    color: #990000;
+    color: #990000; /* Color of links */
     text-decoration: none;
 }
 
 a:hover {
-    color: #009999;
+    color: #009999; /* Color of links on mouseover */
 }
 
 pre {
@@ -86,15 +86,15 @@ tt.xref {
     border: 0;
 }
 
-a tt {
+a tt {  /*Changes the color of the function and module links*/
     background-color: transparent;
     font-weight: bold;
     border: 0;
-    color: #CA7900;
+    color: #007e4b;
 }
 
-a tt:hover {
-    color: #2491CF;
+a tt:hover { /*Changes the color of the function and module links on mouseover*/
+    color: #7e4b00;
 }
 
 dl {
@@ -307,8 +307,8 @@ table td, table th {
 }
 
 div.footer {
-    background-color: #E3EFF1;
-    color: #86989B;
+    background-color: #C0C0C0;
+    color: #745151;
     padding: 3px 8px 3px 0;
     clear: both;
     font-size: 0.8em;
@@ -316,7 +316,7 @@ div.footer {
 }
 
 div.footer a {
-    color: #86989B;
+    color: #745151;  /* Color of footer*/
     text-decoration: underline;
 }
 
