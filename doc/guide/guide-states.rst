@@ -461,7 +461,7 @@ Of course, the expect function works for spin states and operators:
 >>>expect(sigmaz(),down)
 -1.0
 
-as well as the composite objects discussed in the next section :ref:`guide-tensor`:
+as well as the composite objects discussed in the next section :ref:`tensor`:
 
 >>> spin1=basis(2,0)
 >>> spin2=basis(2,1)
