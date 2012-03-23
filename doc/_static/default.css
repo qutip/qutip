@@ -12,10 +12,17 @@ body {
     background-color: #C0C0C0;/* Background for webpage */
     color: black;
     padding: 0;
-    border: 1px solid #aaa;
-
-    margin: 0px 80px 0px 80px;
-    min-width: 740px;
+    /*border: 1px solid #aaa;*/
+	max-width:1000px;
+    margin: 10px 80px 0px 80px;
+    min-width: 860px;
+	-moz-box-shadow:0px 0px 12px #666;
+    -webkit-box-shadow:0px 0px 12px #666;
+	box-shadow:0px 0px 12px #666;
+	border:9px solid white;
+	-moz-border-radius:14px;
+	-webkit-border-radius:14px;
+	border-radius:14px
 }
 
 a {
