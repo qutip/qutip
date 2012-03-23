@@ -75,19 +75,19 @@ Master Equation
 ******************
 
 .. automodule:: qutip
-    :members: odesolve
+    :members: mesolve
 
 Monte Carlo Evolution
 ************************
 
 .. automodule:: qutip
-    :members: odesolve
+    :members: mcsolve
 
 Correlation Functions
 ************************
 
 .. automodule:: qutip.correlation
-    :members: correlation_es, correlation_ode, correlation_mc, correlation_ss_es, correlation_ss_ode, correlation_ss_mc, spectrum_ss
+    :members: correlation, correlation_ss
 
 Exponential Series
 *********************
