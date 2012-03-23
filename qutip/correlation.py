@@ -25,6 +25,90 @@ from qutip.essolve import *
 from qutip.mcsolve import *
 from qutip.steady import *
 
+#-------------------------------------------------------------------------------
+# solver wrapers:
+#
+
+def correlation_ss(H, tlist, c_op_list, a_op, b_op, solver="me"):
+    """
+    Calculate a two-time correlation function :math:`\left<A(\\tau)B(0)\\right>`
+    using the quantum regression theorem, using the solver indicated by the
+    *solver* parameter.
+ 
+    Args:
+    
+        H (Qobj): system Hamiltonian.
+        
+        rho0 (Qobj): initial density matrix.
+        
+        tlist (*list/array*): list of times for :math:`t`.
+        
+        c_op_list (list of Qobj's): list of collapse operators.
+        
+        a_op (Qobj): for A operator.
+        
+        b_op (Qobj): for B operator.
+    
+        solver (str): choice of solver (me for master-equation, es for exponential series and mc for Monte-carlo)
+
+    Returns: 
+        
+        array of expectation values.
+    """
+
+    if solver == "me":
+        return correlation_ss_ode(H, tlist, c_op_list, a_op, b_op)
+    elif solver == "es":
+        return correlation_ss_es(H, tlist, c_op_list, a_op, b_op)
+    elif solver == "es":
+        return correlation_ss_mc(H, tlist, c_op_list, a_op, b_op)
+    else:
+        raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
+
+
+def correlation(H, rho0, tlist, taulist, c_op_list, a_op, b_op, solver="me"):
+    """
+    Calculate a two-time correlation function :math:`\left<A(t+\\tau)B(t)\\right>`
+    using exponential series and the quantum regression theorem.
+    
+    Arguments:
+    
+        `H` (:class:`qutip.Qobj`) system Hamiltonian.
+        
+        `rho0` (:class:`qutip.Qobj`) initial density matrix.
+        
+        `tlist` (*list/array*) list of times for :math:`t`.
+
+        `taulist` (*list/array*) list of times for :math:`\\tau`.
+        
+        `c_op_list` (list of :class:`qutip.Qobj`) list of collapse operators.
+        
+        `a_op` (:class:`qutip.Qobj`) for A operator.
+        
+        `b_op` (:class:`qutip.Qobj`) for B operator.
+
+        solver (str): choice of solver (me for master-equation, es for exponential series and mc for Monte-carlo)
+                
+    Returns:
+
+        two-dimensional array of expectation values.
+    """
+
+    if solver == "me":
+        return correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op)
+    elif solver == "es":
+        return correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op)
+    elif solver == "es":
+        return correlation_mc(H, rho0, tlist, taulist, c_op_list, a_op, b_op)
+    else:
+        raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
+
+
+
+#-------------------------------------------------------------------------------
+# actual solver:
+#
+
 def correlation_ss_es(H, tlist, c_op_list, a_op, b_op):
     """
     Calculate a two-time correlation function :math:`\left<A(\\tau)B(0)\\right>`
@@ -195,8 +279,7 @@ def correlation_ss_mc(H, tlist, c_op_list, a_op, b_op):
 
     rho0 = steadystate(L, co_op_list)
 
-    ntraj = 100
-    return mcsolve(H, b_op * rho0, tlist, ntraj, c_op_list, [a_op])[0]
+    return mcsolve(H, b_op * rho0, tlist, c_op_list, [a_op])[0]
 
 def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
     """

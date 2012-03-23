@@ -33,8 +33,8 @@ def calc_correlation(E, kappa, gamma, g, wc, w0, wl, N, tlist):
 
     A = a 
 
-    corr_ode = correlation_ss_ode(H, tlist, [C1, C2], A.dag(), A)
-    corr_es  = correlation_ss_es(H, tlist, [C1, C2], A.dag(), A)
+    corr_ode = correlation_ss(H, tlist, [C1, C2], A.dag(), A, solver="me")
+    corr_es  = correlation_ss(H, tlist, [C1, C2], A.dag(), A, solver="es")
 
     print "real corr at 0 [ode]:", corr_ode[0]
     print "real corr at 0 [es] :", corr_es[0]
