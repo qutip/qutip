@@ -16,35 +16,93 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from scipy import *
+"""Main module for QuTiP, consisting of the Quantum Object (Qobj) class and
+it's methods.
+
+"""
+
+import types
+from scipy import array,ndarray,zeros,column_stack,dot,frexp,randn,inf,finfo
 import scipy.sparse as sp
 import scipy.linalg as la
-from qutip.istests import *
-import types
-from scipy import finfo
 import qutip.settings as qset
-from ptrace import _ptrace
+from qutip.ptrace import _ptrace
+from qutip.istests import *
 from qutip.sparse import *
+
+
 class Qobj():
-    """
-    A class for representing quantum objects (**Qobj**), such as quantum operators
-    and states. The **Qobj** class implements math operations +,-,* between **Qobj**
-    isntances (and / by a C-number).
-
-    The Qobj constructor optionally takes the dimension list and/or
-    shape list as arguments.
-
-    Args:
-        
-        inpt (array): Data for vector/matrix representation of the quantum object.
+    """A class for representing quantum objects, such as quantum operators
+    and states. 
     
-        dims (list):  Dimensions of object used for tensor products.
-   
-        shape (list): Shape of underlying data structure (matrix shape).
+    The Qobj class is the QuTiP representation of quantum operators and state vectors.
+    This class also implements math operations +,-,* between Qobj instances 
+    (and / by a C-number), as well as a collection of common operator/state
+    operations.  The Qobj constructor optionally takes a dimension ``list`` and/or 
+    shape ``list`` as arguments.
+
+    Parameters
+    ----------
+    inpt : array_like 
+        Data for vector/matrix representation of the quantum object.
+    dims : list  
+        Dimensions of object used for tensor products.
+    shape : list 
+        Shape of underlying data structure (matrix shape).
+    fast : bool
+        Flag for fast qobj creation when running ode solvers.
+        This parameter is used internally only.
        
-    Returns:
     
-        Quantum object **Qobj** instance for the given input data.
+    Attributes
+    ----------
+    data : array_like
+        Sparse matrix characterizing the quantum object.
+    dims : list
+        List of dimensions keeping track of the tensor structure.
+    shape : list
+        Shape of the underlying `data` array.
+    isherm : bool
+        Indicates if quantum object represents Hermitian operator.
+    type : str
+        Type of quantum object: 'bra', 'ket', 'oper', or 'super'.
+    
+    
+    Methods
+    -------
+    conj()
+        Conjugate of quantum object.
+    dag()
+        Adjoint (dagger) of quantum object.
+    eigenenergies(sparse=False, sort='low', eigvals=0, tol=0, maxiter=100000)
+        Returns eigenenergies (eigenvalues) of a quantum object.
+    eigenstates(sparse=False, sort='low', eigvals=0, tol=0, maxiter=100000)
+        Returns eigenenergies and eigenstates of quantum object.
+    expm()
+        Matrix exponential of quantum object.
+    full()
+        Returns dense array of quantum object `data` attribute.
+    groundstate(sparse=False,tol=0,maxiter=100000)
+        Returns eigenvalue and eigenket for the groundstate of a quantum object.
+    matrix_element(bra,ket)
+        Returns the matrix element of operator between `bra` and `ket` vectors.
+    norm(oper_norm='tr',sparse=False,tol=0,maxiter=100000)
+        Returns norm of operator.
+    ptrace(sel)
+        Returns quantum object for selected dimensions after performing partial trace.
+    sqrtm()
+        Matrix square root of quantum object.
+    tidyup(atol=1e-15)
+        Removes small elements from quantum object.
+    tr()
+        Trace of quantum object.
+    trans()
+        Transpose of quantum object.
+    transform(inpt,inverse=False)
+        Performs a basis transformation defined by `inpt` matrix.
+    unit(oper_norm='tr',sparse=False,tol=0,maxiter=100000)
+        Returns normalized quantum object.
+        
     
     """
     ################## Define Qobj class #################
@@ -363,8 +421,7 @@ class Qobj():
 
     #---functions acting on quantum objects---######################
     def dag(self):
-        """
-        Returns the adjont operator (dagger) of a given quantum object.
+        """Returns the adjont operator of quantum object.
         """
         out=Qobj()
         out.data=self.data.T.conj()
@@ -372,8 +429,7 @@ class Qobj():
         out.shape=[self.shape[1],self.shape[0]]
         return Qobj(out)
     def conj(self):
-        """
-        Returns the conjugate operator of a given quantum object.
+        """Returns the conjugate operator of quantum object.
         """
         out=Qobj()
         out.data=self.data.conj()
@@ -381,25 +437,32 @@ class Qobj():
         out.shape=[self.shape[1],self.shape[0]]
         return Qobj(out)
     def norm(self,oper_norm='tr',sparse=False,tol=0,maxiter=100000):
-        """
-        Returns norm of a quantum object. Norm is L2-norm for kets and 
-        trace-norm (by default) for operators.  Other operator norms may be 
-        specified using the 'oper_norm' argument.
+        """Returns the norm of a quantum object. 
         
-        Args:
-            
-            oper_norm (str): Which norm to use for operators: trace 'tr', Frobius 'fro',
-                            one 'one', or max 'max'. Does not affect state norm. 
-            
-            sparse (bool): Use sparse eigenvalue solver.
-            
-            tol (float): Tolerance for sparse solver (if used) for trace norm.
-            
-            maxiter (int): Max. iterations performed by sparse sovler (if used).
+        Norm is L2-norm for kets and trace-norm (by default) for operators.  
+        Other operator norms may be specified using the `oper_norm` argument.
         
-        Returns:
+        Parameters
+        ----------
+        oper_norm : str 
+            Which norm to use for operators: trace 'tr', Frobius 'fro',one 'one', 
+            or max 'max'. This parameter does not affect the norm of a state vector. 
+            
+        sparse : bool 
+            Use sparse eigenvalue solver for trace norm.  Other norms are not
+            affected by this parameter.
+            
+        tol : float 
+            Tolerance for sparse solver (if used) for trace norm.
+            
+        maxiter : int 
+            Maximum number of iterations performed by sparse solver (if used) for
+            trace norm.
         
-            Float representing the norm of the given operator or state Qobj.
+        Returns
+        -------
+        norm : float
+            The requested norm of the operator or state quantum object.
         
         .. note::
 
@@ -422,12 +485,12 @@ class Qobj():
         else:
             return sp_L2_norm(self)
     def tr(self):
-        """
-        The trace of a quantum object.
+        """The trace of a quantum object.
         
-        Returns:
-        
-            Float if Qobj.isherm==True, complex otherwise.
+        Returns
+        -------
+        trace: float
+            Returns ``real`` if operator is Hermitian, returns ``complex`` otherwise.
         
         """
         if self.isherm==True:
@@ -435,17 +498,23 @@ class Qobj():
         else:
             return complex(sum(self.data.diagonal()))
     def full(self):
-        """
-        Returns a dense array from quantum object data.
+        """Returns a dense array from quantum object.
+        
+        Returns
+        -------
+        data : array
+            Array of complex data from quantum objects `data` attribute.
+        
         """
         return array(self.data.todense())
     def diag(self):
-        """
-        Diagonal elements of Qobj.
+        """Diagonal elements of Qobj.
         
-        Returns:
-        
-            Array of real values if Qobj.isherm==True, complex array otherwise.
+        Returns
+        -------
+        diags: array
+            Returns array of ``real`` values if operators is Hermitian, 
+            otherwise ``complex`` values are returned.
         
         """
         out=self.data.diagonal()
@@ -454,9 +523,19 @@ class Qobj():
         else:
             return real(out)
     def expm(self):
-        """
-        Returns a quantum object corresponding to the matrix exponential of 
-        given square operator.
+        """Matrix exponential of quantum operator.
+        
+        Input operator must be square.
+            
+        Returns
+        -------
+        oper : qobj
+            Exponentiated quantum operator.
+        
+        Raises
+        ------
+        TypeError
+            Quantum operator is not square.
         
         """
         if self.dims[0][0]==self.dims[1][0]:
@@ -467,20 +546,30 @@ class Qobj():
         else:
             raise TypeError('Invalid operand for matrix exponential')
     def sqrtm(self,sparse=False,tol=0,maxiter=100000):
-        """
-        Returns the operator corresponding to the sqrt of a given square operator.
+        """The sqrt of a quantum operator.
+           
+        Operator must be square.
         
-        Args:
-        
-            sparse (bool): Use sparse eigenvalue/vector solver.
+        Parameters
+        ----------
+        sparse : bool 
+            Use sparse eigenvalue/vector solver.
             
-            tol (float): Tolerance used by sparse solver (0=machine precision)
+        tol : float 
+            Tolerance used by sparse solver (0 = machine precision).
             
-            maxiter (int): Max. number of iterations used by sparse solver.
+        maxiter : int 
+            Maximum number of iterations used by sparse solver.
             
-        Returns:
-        
-            Qobj for matrix square root of oeprator.
+        Returns
+        -------
+        oper: qobj
+            Matrix square root of operator.
+            
+        Raises
+        ------
+        TypeError
+            Quantum object is not square.
             
         .. note::
         
@@ -502,54 +591,72 @@ class Qobj():
         else:
             raise TypeError('Invalid operand for matrix square root')
     
-    def unit(self):
-        """
-        Returns the operator or state normalized to unity.
-        Uses norm from Qobj.norm(). 
+    def unit(self,oper_norm='tr',sparse=False,tol=0,maxiter=100000):
+        """Returns the operator or state normalized to unity.
+        
+        Uses norm from Qobj.norm().
+        
+        Parameters
+        ----------
+        oper_norm : str
+            Requested norm for operator. Norm is always L2 for states.
+        sparse : bool
+            Use sparse eigensolver for trace norm. Does not affect other norms.
+        tol : float
+            Tolerance used by sparse eigensolver.
+        maxiter: int
+            Number of maximum iterations performed by sparse eigensolver.
+        
+        Returns
+        -------
+        oper : qobj
+            Normalized quantum object.
         
         """
-        out=self/self.norm()
+        out=self/self.norm(oper_norm=oper_norm,sparse=sparse,tol=tol,maxiter=maxiter)
         if qset.auto_tidyup:
             return out.tidyup()
         else:
             return out
     
     def ptrace(self,sel):
-            """
-            Returns the partial trace of the Qobj with selected components
-            remaining.
+        """Partial trace of the Qobj with selected components remaining.
             
-            Args:
-            
-                sel (int/list): Integer or list of components to keep after partial trace.
-            
-            Returns:
-            
-                Qobj of partial trace with selected components remaining.
-            
-            .. note::
-            
-                This function is identical to the :func:`qutip.Qobj.ptrace` function.
-            
-            """
-            qdata,qdims,qshape=_ptrace(self,sel)
-            if qset.auto_tidyup:
-                return Qobj(qdata,qdims,qshape).tidyup()
-            else:
-                return Qobj(qdata,qdims,qshape)
+        Parameters
+        ----------
+        sel : int/list 
+            An ``int`` or ``list`` of components to keep after partial trace.
+        
+        Returns
+        -------
+        oper: qobj
+           Quantum object representing partial trace with selected components remaining.
+        
+        .. note::
+        
+            This function is identical to the :func:`qutip.Qobj.ptrace` function that has been
+            depreciated.
+        
+        """
+        qdata,qdims,qshape=_ptrace(self,sel)
+        if qset.auto_tidyup:
+            return Qobj(qdata,qdims,qshape).tidyup()
+        else:
+            return Qobj(qdata,qdims,qshape)
     
     def tidyup(self,atol=qset.auto_tidyup_atol):
-        """
-        Removes small elements from a Qobj
+        """Removes small elements from a quantum object.
 
-        Args:
+        Parameters
+        ----------
+        atol : float 
+            Absolute tolerance used by tidyup.  Default is set 
+            via qutip global settings parameters.
 
-            op (Qobj): input quantum object
-            atol (float): absolute tolerance
-
-        Returns:
-
-            Qobj with small elements removed.
+        Returns
+        -------
+        oper: qobj
+            Quantum object with small elements removed.
         
         """
         abs_data=abs(self.data.data)
@@ -577,13 +684,30 @@ class Qobj():
     # basis transformation
     #
     def transform(self, inpt, inverse=False):
-        """
-        Perform a basis transformation. inpt can be a matrix defining the
-        transformation or a list of kets that defines the new basis.
+        """Performs a basis transformation defined by an input array. 
+        
+        Input array can be a ``matrix`` defining the transformation,
+        or a ``list`` of kets that defines the new basis.
 
+        
+        Parameters
+        ----------
+        inpt : array_like
+            A ``matrix`` or ``list`` of kets defining the transformation.
+        inverse : bool
+            Whether to return inverse transformation.
+        
+        
+        Returns
+        -------
+        oper : qobj
+            Operator in new basis.
+        
+        
         .. note:: work in progress
+        
+        
         """
-    
         if isinstance(inpt, list):
             if len(inpt) != self.shape[0] and len(inpt) != self.shape[1]:
                 raise TypeError('Invalid size of ket list for basis transformation')
@@ -621,24 +745,34 @@ class Qobj():
         # force sparse
         out.data = sp.csr_matrix(out.data,dtype=complex)
         
-        return out
+        return Qobj(out)
 
     #
     # calculate the matrix element between self and a bra and a ket
     #
     def matrix_element(self, bra, ket):
-        """
-        Calculate the matrix element for the Qobj sandwiched between bra and ket.
+        """Calculates a matrix element.
         
-        Args:
+        Gives matrix for the Qobj sandwiched between a `bra` and `ket`
+        vector.
         
-            bra (Qobj): Qobj of type 'bra'.
-            
-            ket (Qobj): Qobj of type 'ket'.
+        Parameters
+        -----------
+        bra : qobj 
+            Quantum object of type 'bra'.
         
-        Returns:
+        ket : qobj 
+            Quantum object of type 'ket'.
         
+        Returns
+        -------
+        elem : complex
             Complex valued matrix element.
+        
+        Raises
+        ------
+        TypeError
+            Can only calculate matrix elements between a bra and ket quantum object.
         
         """
         
@@ -657,24 +791,36 @@ class Qobj():
     # superoperators)
     # 
     def eigenstates(self,sparse=False,sort='low',eigvals=0,tol=0,maxiter=100000):
-        """
-        Find the eigenstates and eigenenergies, defined for operators and superoperators.
+        """Find the eigenstates and eigenenergies. 
+           
+        Eigenstates and Eigenvalues are defined for operators and 
+        superoperators only.
         
-        Args:
+        Parameters
+        ----------
+        sparse : bool 
+            Use sparse Eigensolver
+            
+        sort : str 
+            Sort eigenvalues (and vectors) 'low' to high, or 'high' to low.
+            
+        eigvals : int 
+            Number of requested eigenvalues. Default is all eigenvalues.
+            
+        tol : float 
+            Tolerance used by sparse Eigensolver (0 = machine precision).
+            
+        maxiter : int 
+            Maximum number of iterations performed by sparse solver (if used).
         
-            sparse (bool): Use sparse Eigensolver
-            
-            sort (str): Sort eigenvalues (and vectors) 'low' to high, or 'high' to low.
-            
-            eigvals (int): Number of requested eigenvalues. Default is all eigenvalues.
-            
-            tol (float): Tolerance used by sparse Eigensolver (0=machine precision).
-            
-            maxiter (int): Max. number of iterations performed by sparse solver (if used).
+        Returns
+        -------
+        eigvals : array
+            Array of eigenvalues for operator.
         
-        Returns:
-        
-            Array of eigenvalues and array of eigenkets for operator.
+        eigvecs : array
+            Array of quantum operators representing the oprator eigenkets.
+            Order of eigenkets is determined by order of eigenvalues.
         
         .. note::
 
@@ -693,24 +839,31 @@ class Qobj():
     # Find only the eigenenergies (defined for operators and superoperators)
     # 
     def eigenenergies(self,sparse=False,sort='low',eigvals=0,tol=0,maxiter=100000):
-        """
-        Finds the Eigenenergies (Eigenvalues) of a Obj operator or superoperator.
+        """Finds the Eigenenergies (Eigenvalues) of a quantum object.
+           
+        Eigenenergies are defined for operators or superoperators only.
         
-        Args:
+        Parameters
+        ----------
+        sparse : bool 
+            Use sparse Eigensolver
+            
+        sort : str 
+            Sort eigenvalues 'low' to high, or 'high' to low.
+            
+        eigvals : int 
+            Number of requested eigenvalues. Default is all eigenvalues.
+            
+        tol : float 
+            Tolerance used by sparse Eigensolver (0=machine precision).
+            
+        maxiter : int 
+            Maximum number of iterations performed by sparse solver (if used).
         
-            sparse (bool): Use sparse Eigensolver
-            
-            sort (str): Sort eigenvalues 'low' to high, or 'high' to low.
-            
-            eigvals (int): Number of requested eigenvalues. Default is all eigenvalues.
-            
-            tol (float): Tolerance used by sparse Eigensolver (0=machine precision).
-            
-            maxiter (int): Max. number of iterations performed by sparse solver (if used).
-        
-        Returns:
-        
-            Array of eigenvalues of operator.
+        Returns
+        -------
+        eigvals: array
+            Array of eigenvalues for operator.
         
         .. note::
 
@@ -724,20 +877,28 @@ class Qobj():
     #Find ground state (eigenvector for lowest eigenvalue) for operator
     #
     def groundstate(self,sparse=False,tol=0,maxiter=100000):
-        """
-        Finds the groundstate Eigenvalue and Eigenvector of Qobj.
+        """Finds the ground state Eigenvalue and Eigenvector.
         
-        Args:
+        Defined for quantum operators or superoperators only.
         
-            sparse (bool): Use sparse Eigensolver
+        Parameters
+        ----------
+        sparse : bool 
+            Use sparse Eigensolver
             
-            tol (float): Tolerance used by sparse Eigensolver (0=machine precision).
+        tol : float
+            Tolerance used by sparse Eigensolver (0 = machine precision).
             
-            maxiter (int): Max. number of iterations performed by sparse solver (if used).
+        maxiter : int 
+            Maximum number of iterations performed by sparse solver (if used).
         
-        Returns:
+        Returns
+        -------
+        eigval : float
+            Eigenvalue for the ground state of quantum operator.
         
-            Eigenvalue and Eigenket (Qobj) of operator.
+        eigvec : qobj
+            Eigenket for the ground state of quantum operator.
         
         .. note::
 
@@ -753,12 +914,12 @@ class Qobj():
         return grndval[0],grndvec
     
     def trans(self):
-        """
-        The transposed operator of the given input quantum object.
+        """Transposed operator.
 
-        Returns: 
-        
-            Qobj transpose of input operator.
+        Returns
+        -------
+        oper: qobj 
+            Transpose of input operator.
         
         """
         out=Qobj()
