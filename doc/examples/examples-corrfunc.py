@@ -32,7 +32,7 @@ def calc_correlation(N, wc, wa, g, kappa, gamma, tlist):
     x = a + a.dag()
 
     # calculate the correlation function
-    return correlation_ss_ode(H, tlist, c_op_list, x, x)
+    return correlation_ss(H, tlist, c_op_list, x, x)
 
 #
 # setup the calcualtion
