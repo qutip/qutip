@@ -57,7 +57,7 @@ Qobj data =
  [ 0.]]
 
 
-We see that, as expected, the vacuum is transformed to the zero vector.  A more interesting example comes from using the adjoint of the lowering operator, the raising operator :math:`\hat{a}^\dagger`:
+We see that, as expected, the vacuum is transformed to the zero vector.  A more interesting example comes from using the adjoint of the lowering operator, the raising operator :math:`\hat{a}^\dag`:
 
 >>> a.dag()*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
@@ -91,7 +91,7 @@ Qobj data =
  [ 0.        ]
  [ 0.        ]]
 
-or just taking the square of the raising operator :math:`\left(\hat{a}^\dagger\right)^{2}`:
+or just taking the square of the raising operator :math:`\left(\hat{a}^\dag\right)^{2}`:
 
 >>> c**2*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
