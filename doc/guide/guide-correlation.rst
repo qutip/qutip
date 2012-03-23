@@ -41,9 +41,9 @@ The following code demonstrates how to calculate the :math:`\left<x(0)x(t)\right
     >>> x  = a.dag() + a
     >>> H  = a.dag()*a
     >>>  
-    >>> corr1 = correlation_ss_ode(H, tlist, [sqrt(0.5)*a], x, x)
-    >>> corr2 = correlation_ss_ode(H, tlist, [sqrt(1.0)*a], x, x)
-    >>> corr3 = correlation_ss_ode(H, tlist, [sqrt(2.0)*a], x, x)
+    >>> corr1 = correlation_ss(H, tlist, [sqrt(0.5)*a], x, x)
+    >>> corr2 = correlation_ss(H, tlist, [sqrt(1.0)*a], x, x)
+    >>> corr3 = correlation_ss(H, tlist, [sqrt(2.0)*a], x, x)
     >>>  
     >>> from pylab import *
     >>> plot(tlist, real(corr1), tlist, real(corr2), tlist, real(corr3))
@@ -67,7 +67,7 @@ More generally, we can also calculate correlation functions of the kind :math:`\
     >>> x  = a.dag() + a
     >>> H  = a.dag()*a
     >>> alpha = 2.5
-    >>> corr = correlation_ode(H, coherent_dm(10, alpha), tlist, tlist, [sqrt(0.25)*a], x, x)
+    >>> corr = correlation(H, coherent_dm(10, alpha), tlist, tlist, [sqrt(0.25)*a], x, x)
     >>> 
     >>> from pylab import *
     >>> pcolor(corr)
