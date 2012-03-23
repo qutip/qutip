@@ -172,7 +172,7 @@ div.related h3 {
 }
 
 div.related ul {
-    background-image: url(navigation.png);
+    background-image: none;
     height: 2em;
     list-style: none;
     border-top: 1px solid #ddd;
@@ -194,14 +194,16 @@ div.related ul li.right {
 }
 
 div.related ul li a {
-    margin: 0;
+    font-family: 'Verdana', 'Lucida Sans Unicode', 'Geneva', 'Lucida Grande', sans-serif;
+    font-size: 16px;
+	margin: 0;
     padding: 0 5px 0 5px;
     line-height: 1.75em;
-    color: #EE9816;
+    color: #560319; /* Color of links under header */
 }
 
 div.related ul li a:hover {
-    color: #3CA8E7;
+    color: #177C61;  /* Color of links under header on mouseover */
 }
 
 div.body {

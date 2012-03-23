@@ -1,14 +1,19 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
+.. _about-qutip:
+
+**************
+About QuTiP
+**************
+
 .. figure:: figures/wide_logo.png
    :align: center
 
+.. _about-brief:
 
-
-About QuTiP
-*************
-
+Brief Description
+==================
 Every quantum system encountered in the real world is an open quantum system. For although much care is taken experimentally to eliminate the unwanted influence of external interactions, there remains, if ever so slight, a coupling between the system of interest and the external world. In addition, any measurement performed on the system necessarily involves coupling to the measuring device, therefore introducing an additional source of external influence. Consequently, developing the necessary tools, both theoretical and numerical, to account for the interactions between a system and its environment is an essential step in understanding the dynamics of quantum systems.
 
 In general, for all but the most basic of Hamiltonians, an analytical description of the system dynamics is not possible, and one must resort to numerical simulations of the equations of motion. In absence of a quantum computer, these simulations must be carried out using classical computing techniques, where the exponentially increasing dimensionality of the underlying Hilbert space severely limits the size of system that can be efficiently simulated. However, in many fields such as quantum optics, trapped ions, superconducting circuit devices, and most recently nanomechanical systems, it is possible to design systems using a small number of effective oscillator and spin components, excited by a small number of quanta, that are amenable to classical simulation in a truncated Hilbert space.
@@ -31,6 +36,8 @@ The Quantum Toolbox in Python, or QuTiP, is a fully open-source implementation o
 
 * Includes the ability to create high-quality plots, and animations, using the excellent `Matplotlib <http://matplotlib.sourceforge.net/>`_ package.
 
+.. _about-org:
+
 Organization
 =============
 
@@ -42,6 +49,7 @@ QuTiP is designed to be a general toolbox for solving quantum optics like proble
    QuTiP tree-diagram of user accessible functions and classes.
 
 
+.. _about-whatsnew:
 
 Whats New in QuTiP Version 2.0
 ================================

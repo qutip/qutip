@@ -1,8 +1,13 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
+.. _install:
+
+**************
 Installation
-*************
+**************
+
+.. _install-requires:
 
 General Installation Requirements
 =================================
@@ -46,6 +51,8 @@ QuTiP requires the following packages to run:
 
 On all platforms (Linux, Mac), QuTiP works "out-of-the-box" using the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher.  This distribution is created by the developers of Numpy and Scipy, and is free for academic use.
 
+.. _install-linux:
+
 Installation on Ubuntu Linux
 =================================
 
@@ -71,13 +78,15 @@ QuTiP installation:
 
     On some versions of Ubuntu you might have to configure Matplotlib to use the GTKAgg or Qt4Agg backends instead of the default TkAgg backend. To do this, edit /etc/matplotlibrc, and change ``backend: TkAgg`` to ``backend: GTKAgg`` or ``backend: Qt4Agg``.
 
+.. _install-mac:
+
 Installation on Mac OS X (10.6+)
 =================================
 
 If you have not done so already, install the Apple XCode developer tools from the Apple App Store.
 
 Macports [*]_
-^^^^^^^^^^^^^^
+----------------
 
 On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via:  
 
@@ -103,28 +112,29 @@ although this appears to have been corrected in the current version.
 
 
 SciPy Superpack
-^^^^^^^^^^^^^^^^^
+-----------------
 
 A second option is to install the required Python packages using the `SciPy Superpack <http://fonnesbeck.github.com/ScipySuperpack/>`_.  Further information on installing the superpack can be found on the `SciPy Downloads page <http://www.scipy.org/Download>`_.  Note that, if you choose this option, the GUI elements of QuTiP will not be available without futher installing either the PyQt4 or PySide packages separately.
 
 
 Enthought Python
-^^^^^^^^^^^^^^^^^
+-------------------
 
 Finally, one can also use the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher to satisfy the QuTiP dependencies.  
 
 Installing
-^^^^^^^^^^^^^^^^^
+-----------------
 
 No matter which installation path you choose, installing QuTiP is the same as on linux.  From the QuTiP directory:
 
 >>> sudo python setup.py install
 
+.. _install-verify:
 
 Verifying the Installation
 ============================
 
-.. warning::
+.. important::
    Do not run QuTiP from the installation directory.
 
 
@@ -134,6 +144,8 @@ To verify that everything is installed properly, from the python command line, o
 
 which will attempt to load the QuTiP modules.  If nothing but another command prompt appears, then your system can find all of the necessary QuTiP files.  To further verify that all of the QuTiP components are working, you can try running the examples built into QuTiP as dicussed in the guide section: :ref:`examples` 
 
+.. _install-aboutbox:
+
 Checking Version Information via the About Box
 ===============================================
 
@@ -141,7 +153,7 @@ QuTiP includes a graphical "about" box for viewing information about the importa
 
 >>> about()
 
-which will pop-up a window similar to the one shown below.  If instead you get command-line output, then your PyQt or PySide graphics are not installed properly or unavailable.  When running the about box, QuTiP will automatically check for a newer version of itself from the QuTiP website.  As shown below, the about box will have an "update" link next to the QuTiP version number if your are not running the latest version of QuTiP.
+which will pop-up a window similar to the one shown below.  If instead you get command-line output, then your PyQt or PySide graphics are not installed properly or unavailable.  When running the about box, QuTiP will automatically check for a newer version of itself from the QuTiP website.  As shown below, the about box will have an "update" link next to the QuTiP version number if your are not running the latest version of QuTiP
 
 .. figure:: figures/about.png
    :align: center
