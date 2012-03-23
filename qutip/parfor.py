@@ -19,19 +19,31 @@
 from scipy import *
 from multiprocessing import Pool
 import os,sys
+import qutip.settings as qset
 
 def parfor(func,frange):
-	"""
-	Parallel execution of a for-loop over function ``func()`` 
-	    for a single variable ``frange``.
+	"""Executes a single-variable function in parallel.
 	
-	Returns: 
+	Parallel execution of a for-loop over function `func` 
+	for a single variable `frange`.
 	
-	    list with length equal to number of input parameters. 
+	Parameters
+	----------
+	func: function_type
+	    A single-variable function.
+	frange: array_type
+	    An ``array`` of values to be passed on to `func`.
+	
+	Returns
+	------- 
+	ans : list
+	    A ``list`` with length equal to number of input parameters
+	    containting the output from `func`.  In general, the ordering
+	    of the output variables will not be in the same order as `frange`.
+	     
 	"""
-	if sys.platform[0:3]=="win":
-	    raise TypeError("Multiprocessing not available on Windows. Use a Unix based OS.")
-	pool=Pool(processes=int(os.environ['NUM_THREADS']))
+	
+	pool=Pool(processes=qset.num_cpus)
 	par_return=list(pool.map(func,frange))
 	if isinstance(par_return[0],tuple):
 	    par_return=[elem for elem in par_return]

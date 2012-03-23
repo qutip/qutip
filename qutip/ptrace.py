@@ -22,17 +22,7 @@ from scipy.linalg import *
 
 def _ptrace(rho,sel):
     """
-    Compute partial trace of composite quantum object formed by :func:`qutip.tensor`
-    
-    Args:
-    
-        rho (Qobj): Input composite quantum object.
-    
-        sel (int or list/array): index or indices for components to keep.
-    
-    Returns: 
-    
-        The density matrix of components from sel as a Qobj. 
+    Private function calculating the partial trace.
     """
     if isinstance(sel,int):
         sel=array([sel])

@@ -16,36 +16,45 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from Qobj import *
-import scipy.linalg as la
-import numpy as np
-from numpy.random import random
-import scipy.sparse as sp
-
 """
 This module is a collection of random state and operator generators.
 The sparsity of the ouput Qobj's is controlled by varing the  
-'density' parameter.
+`density` parameter.
 
 """
+import numpy as np
+from numpy.random import random
+import scipy.linalg as la
+import scipy.sparse as sp
+from Qobj import *
+
 
 
 def rand_herm(N,density=0.75,dims=None):
-    """
-    Creates a random NxN sparse Hermitian Qobj using :math:`H=X+X^{+}` where :math:`X` is
-    a randomly generated matrix.
+    """Creates a random NxN sparse Hermitian quantum object.
     
-    Args:
+    Uses :math:`H=X+X^{+}` where :math:`X` is
+    a randomly generated quantum operator with a given `density`.
     
-        N (int): Dimension of matrix
+    Parameters
+    ----------
+    N : int
+        Shape of output quantum operator.
+    density : float
+        Density etween [0,1] of output Hermitian operator.
+    
+    Returns
+    -------
+    oper : qobj
+        NxN Hermitian quantum operator.
         
-        density (float): Density of output Hermitian matrix between [0,1].
-        
-        dims (list): Dimensions of Qobj, default is dims=[[N],[N]]
+    Other Parameters
+    ----------------
+    dims : list 
+        Dimensions of quantum object.  Used for specifying
+        tensor structure. Default is dims=[[N],[N]].
     
-    Returns:
     
-        NxN Hermitian Qobj
     """
     if dims:
         _check_dims(dims,N,N)
@@ -66,26 +75,29 @@ def rand_herm(N,density=0.75,dims=None):
 
 
 def rand_unitary(N,density=0.75,dims=None):
-    """
-    Creates a random NxN sparse unitary Qobj via :math:`\exp(-iH)` where H is a randomly
-    generated Hermitian operator.
+    """Creates a random NxN sparse unitary quantum object.
     
-    Args:
+    Uses :math:`\exp(-iH)` where H is a randomly generated 
+    Hermitian operator.
     
-        N (int): Dimension of matrix
+    Parameters
+    ----------
+    N : int
+        Shape of output quantum operator.
+    density : float
+        Density between [0,1] of output Unitary operator.
+    
+    Returns
+    -------
+    oper : qobj
+        NxN Unitary quantum operator.
         
-        density (float): Density of Hermitian operator between [0,1] used to construct Unitary operator.
-        
-        dims (list): Dimensions of Qobj, default is dims=[[N],[N]]
+    Other Parameters
+    ----------------
+    dims : list 
+        Dimensions of quantum object.  Used for specifying
+        tensor structure. Default is dims=[[N],[N]].
     
-    Returns:
-    
-        NxN unitary Qobj
-    
-    .. note::
-    
-        The density of the output Unitary Qobj will, in general, not be equal to the
-        density used in creating the Hermitian operator. 
     
     """
     if dims:
@@ -98,20 +110,26 @@ def rand_unitary(N,density=0.75,dims=None):
 
 
 def rand_ket(N,density=0.75,dims=None):
-    """
-    Creates a random Nx1 sparse ket vector Qobj.
+    """Creates a random Nx1 sparse ket vector.
     
-    Args:
+    Parameters
+    ----------
+    N : int
+        Number of rows for output quantum operator.
+    density : float
+        Density between [0,1] of output ket state.
     
-        N (int): Dimension of matrix
+    Returns
+    -------
+    oper : qobj
+        Nx1 ket state quantum operator.
         
-        density (float): Density of output ket vector.
-        
-        dims (list): Dimensions of Qobj, default is dims=[[N],[1]]
+    Other Parameters
+    ----------------
+    dims : list 
+        Dimensions of quantum object.  Used for specifying
+        tensor structure. Default is dims=[[N],[1]].
     
-    Returns:
-    
-        Nx1 ket vector Qobj
     
     """
     if dims:
@@ -129,27 +147,33 @@ def rand_ket(N,density=0.75,dims=None):
 
 
 def rand_dm(N,density=0.75,pure=False,dims=None):
-    """
-    Creates a random NxN density matrix Qobj.
+    """Creates a random NxN density matrix.
     
-    Args:
+    Parameters
+    ----------
+    N : int
+        Shape of output density matrix.
+    density : float
+        Density etween [0,1] of output density matrix.
     
-        N (int): Dimension of matrix
+    
+    Returns
+    -------
+    oper : qobj
+        NxN density matrix quantum operator.
+    
         
-        density (float): Density of output density matrix between [0,1].
-        
-        pure (bool): Is output density matrix a pure state.
-        
-        dims (list): Dimensions of Qobj, default is dims=[[N],[N]]
-    
-    Returns:
-    
-        NxN density matrix Qobj
+    Other Parameters
+    ----------------
+    dims : list 
+        Dimensions of quantum object.  Used for specifying
+        tensor structure. Default is dims=[[N],[N]].
     
     .. note::
     
-        For small density matricies, choosing a low density will result in an error
-        as no diagonal elements will be generated such that :math:`tr(rho)=1`.
+        For small density matricies, choosing a low `density` will result in an error
+        as no diagonal elements will be generated such that :math:`Tr(\rho)=1`.
+    
     
     """
     if dims:

@@ -1007,7 +1007,26 @@ def dag(inQobj):
 
 
 def ptrace(Q,sel):
-        return Q.ptrace(sel)
+    """Partial trace of the Qobj with selected components remaining.
+        
+    Parameters
+    ----------
+    Q : qobj
+        Composite quantum object.
+    sel : int/list 
+        An ``int`` or ``list`` of components to keep after partial trace.
+    
+    Returns
+    -------
+    oper: qobj
+       Quantum object representing partial trace with selected components remaining.
+    
+    .. note:: 
+    
+        Depreciated in QuTiP 2.0.
+    
+    """
+    return Q.ptrace(sel)
 #-############################################################################
 #      
 #
@@ -1015,30 +1034,50 @@ def ptrace(Q,sel):
 #
 #
 
-def dims(obj):
+def dims(inpt):
+    """Returns the dims attribute of a quantum object.
+    
+    Parameters
+    ----------
+    inpt : qobj 
+        Input quantum object.
+    
+    Returns
+    ------- 
+    dims : list 
+        A ``list`` of the quantum objects dimensions.
+    
+    .. note::
+        
+        This function is for compatibility with the qotoolbox only.
+        Using the `Qobj.dims` attribute is recommended.
+    
+    
     """
-    Returns the dims attribute of a quantum object
-    
-    Argument qobj input quantum object
-    
-    Return list list of object dims
-    
-    Note: using 'Qobj.dims' is recommended
-    """
-    if isinstance(obj,Qobj):
-        return Qobj.dims
+    if isinstance(inpt,Qobj):
+        return inpt.dims
     else:
         raise TypeError("Incompatible object for dims (not a Qobj)")
 
 
 def shape(inpt):
-    """
-    Returns the shape attribute of a quantum object
-    Argument qobj input quantum object
+    """Returns the shape attribute of a quantum object.
     
-    Returns list list of object shape
+    Parameters
+    ---------- 
+    inpt : qobj 
+        Input quantum object.
     
-    Note: using 'Qobj.shape' is recommended
+    Returns
+    ------- 
+    shape : list 
+        A ``list`` of the quantum objects shape.
+    
+    .. note::
+
+        This function is for compatibility with the qotoolbox only.
+        Using the `Qobj.dims` attribute is recommended.
+    
     """
     from scipy import shape as shp
     if isinstance(inpt,Qobj):
@@ -1098,12 +1137,13 @@ def classcheck(inpt):
 #-######################################################################
 def sp_expm(qo):
     """
-    Sparse matrix exponential of a Qobj instance
+    Sparse matrix exponential of a quantum operator.
+    Called by the Qobj expm method.
     """
     #-###########################
     def pade(m):
         n=shape(A)[0]
-        c=padecoeff(m)
+        c=_padecoeff(m)
         if m!=13:
             apows= [[] for jj in xrange(int(ceil((m+1)/2)))]
             apows[0]=sp.eye(n,n,format='csr')
@@ -1150,9 +1190,9 @@ def sp_expm(qo):
         return out
 
 
-def padecoeff(m):
+def _padecoeff(m):
     """
-    Private function returning coefficients for Pade apprximaion
+    Private function returning coefficients for Pade approximation.
     """
     if m==3:
         return array([120, 60, 12, 1])
