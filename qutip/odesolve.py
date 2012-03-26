@@ -50,29 +50,28 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     with time and the state as arguments, and the function does not use any
     return values.
 
-    Time-dependent operators
-    ------------------------
+    **Time-dependent operators**
 
     For problems with time-dependent problems `H` and `c_ops` can be callback
     functions that takes two arguments, time and `args`, and returns the 
     Hamiltonian or Liuovillian for the system at that point in time
-    [*function callback format*]. 
+    (*callback format*). 
     
     Alternatively, `H` and `c_ops` can be a specified in a nested-list format
     where each element in the list is a list of length 2, containing an
-    operator (type :class:`qutip.Qobj`) at the first element and where the 
-    second element is either a string [*list string format*] or a callback
-    function [*list callback format*] that evaluates to the time-dependent
+    operator (:class:`qutip.Qobj`) at the first element and where the 
+    second element is either a string (*list string format*) or a callback
+    function (*list callback format*) that evaluates to the time-dependent
     coefficient for the corresponding operator.
     
-    Example
-    -------
     
-    H = [[H0, 'sin(w*t)'], [H1, 'sin(2*w*t)']]
+    *Examples*
+    
+        H = [[H0, 'sin(w*t)'], [H1, 'sin(2*w*t)']]
         
-    H = [[H0, f0_t], [H1, f1_t]]
-        
-    where f0_t and f1_t are python functions with signature f_t(t, args).
+        H = [[H0, f0_t], [H1, f1_t]]
+         
+        where f0_t and f1_t are python functions with signature f_t(t, args).
     
     In the *list string format* and *list callback format*, the string
     expression and the callback function must evaluate to a real or complex
@@ -82,39 +81,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     parameters that is used when evaluating operators. It is passed to the
     callback functions as second argument
    
-    Arguments
-    ---------
-    
-    `H` : :class:`qutip.Qobj`
-        system Hamiltonian, or a callback function for time-dependent Hamiltonians.      \
-        
-    `rho0` : :class:`qutip.Qobj`
-        initial density matrix or state vector (ket).
-     
-    `tlist` : *list* / *array*    
-        list of times for :math:`t`.
-        
-    `c_ops` : list of :class:`qutip.Qobj`
-        list of collapse operators.
-    
-    `expt_ops` : list of :class:`qutip.Qobj`
-        list of operators for which to evaluate expectation values.
-     
-    `args` : *dictionary*
-        dictionary of parameters for time-dependent Hamiltonians and collapse operators.
-     
-    `options` : :class:`qutip.Qdeoptions`
-        with options for the ODE solver.
-
-    Returns
-    -------
    
-    (1) An *array* of expectation values for the times specified by `tlist`, or
-    (2) an *array* or state vectors or density matrices corresponding to the
-    times in `tlist` [if `expt_ops` is an empty list], or (3) nothing if a
-    callback function was given inplace of operators for which to calculate the
-    expectation values.
-
     .. note:: 
     
         On using callback function: mesolve transforms all :class:`qutip.Qobj`
@@ -125,7 +92,45 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
         `args` and handle the conversion to sparse matrices. All other
         :class:`qutip.Qobj` objects that are not passed via `args` will be
         passed on to the integrator to scipy who will raise an NotImplemented
-        exception.
+        exception.   
+   
+    Parameters
+    ----------
+    
+    H : :class:`qutip.Qobj`
+        system Hamiltonian, or a callback function for time-dependent Hamiltonians.
+        
+    rho0 : :class:`qutip.Qobj`
+        initial density matrix or state vector (ket).
+     
+    tlist : *list* / *array*    
+        list of times for :math:`t`.
+        
+    c_ops : list of :class:`qutip.Qobj`
+        list of collapse operators.
+    
+    expt_ops : list of qobj
+        list of operators for which to evaluate expectation values.
+     
+    args : *dictionary*
+        dictionary of parameters for time-dependent Hamiltonians and collapse operators.
+     
+    options : :class:`qutip.Qdeoptions`
+        with options for the ODE solver.
+
+    Returns
+    -------
+
+    expt_list: *array*   
+        (1) An *array* of expectation values for the times specified by `tlist`
+        
+    state_vectors : *array* of :class:`qutip.Qobj`
+        (2) an *array* or state vectors or density matrices corresponding to the
+        times in `tlist` [if `expt_ops` is an empty list]
+    
+    none:
+        (3) nothing if a callback function was given inplace of operators for
+        which to calculate the expectation values.
     
     """
     #check for type (if any) of time-dpendent inputs            
