@@ -2,7 +2,7 @@
  * Alternate Sphinx design
  * Originally created by Armin Ronacher for Werkzeug, adapted by Georg Brandl, modified by Paul Nation.
  */
-
+@import url("basic.css");
 body {
     font-family: 'Verdana', 'Lucida Sans Unicode', 'Geneva', 'Lucida Grande', sans-serif;
     font-size: 14px;
