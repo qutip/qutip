@@ -109,7 +109,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     c_ops : list of :class:`qutip.Qobj`
         list of collapse operators.
     
-    expt_ops : list of qobj
+    expt_ops : list of :class:`qutip.Qobj` / callback function
         list of operators for which to evaluate expectation values.
      
     args : *dictionary*
@@ -122,14 +122,14 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     -------
 
     expt_list: *array*   
-        (1) An *array* of expectation values for the times specified by `tlist`
+        An *array* of expectation values for the times specified by `tlist`
         
     state_vectors : *array* of :class:`qutip.Qobj`
-        (2) an *array* or state vectors or density matrices corresponding to the
+        Or, an *array* or state vectors or density matrices corresponding to the
         times in `tlist` [if `expt_ops` is an empty list]
     
     none:
-        (3) nothing if a callback function was given inplace of operators for
+        Or, nothing if a callback function was given inplace of operators for
         which to calculate the expectation values.
     
     """
@@ -591,6 +591,7 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
 # A time-dependent disipative master equation on the list-string format for 
 # cython compilation
 # 
+    
 def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     """
     Internal function for solving the master equation. See mesolve for usage.   
@@ -601,24 +602,7 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     #
     if not isket(psi0):
         raise TypeError("The unitary solver requires a ket as initial state")
-
-    #
-    # prepare output array
-    # 
-    n_expt_op = len(expt_ops)
-    n_tsteps  = len(tlist)
-    dt        = tlist[1]-tlist[0]
-
-    if n_expt_op == 0:
-        result_list = []
-    else:
-        result_list = []
-        for op in expt_ops:
-            if op.isherm:
-                result_list.append(zeros(n_tsteps))
-            else:
-                result_list.append(zeros(n_tsteps),dtype=complex)
-
+  
     #
     # construct liouvillian
     #          
@@ -689,6 +673,53 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     exec(code)
 
     #
+    # call generic ODE code
+    #
+    return generic_ode_solve(r, psi0, tlist, expt_ops, lambda x: x)
+
+
+# ------------------------------------------------------------------------------
+# Generic ODE solver: shared code amoung the various ODE solver
+# ------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------
+# 
+# 
+def generic_ode_solve(r, psi0, tlist, expt_ops, state_vectorize):
+    """
+    Internal function for solving ODEs.
+    """
+    
+    print "Enter generic ODE solver"
+    
+    #
+    # prepare output array
+    # 
+    n_tsteps  = len(tlist)
+    dt        = tlist[1]-tlist[0]
+    
+    if isinstance(expt_ops, list):
+        n_expt_op = len(expt_ops)
+        expt_callback = False
+    elif isinstance(expt_ops, FunctionType):
+        n_expt_op = 0
+        expt_callback = True
+    else:
+        raise TypeError("Expection parameter must be a list or a function")
+    
+    if not expt_callback:
+        if n_expt_op == 0:
+            result_list = []
+        else:
+            result_list = []
+            for op in expt_ops:
+                if op.isherm:
+                    result_list.append(zeros(n_tsteps))
+                else:
+                    result_list.append(zeros(n_tsteps),dtype=complex)
+
+    #
     # start evolution
     #
     psi = Qobj(psi0)
@@ -698,14 +729,18 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
         if not r.successful():
             break;
 
-        psi.data = r.y
+        psi.data = state_vectorize(r.y)
 
-        # calculate all the expectation values, or output rho if no operators
-        if n_expt_op == 0:
-            result_list.append(Qobj(psi)) # copy rho
+        if expt_callback:
+            # use callback method
+            expt_ops(t, Qobj(psi))
         else:
-            for m in range(0, n_expt_op):
-                result_list[m][t_idx] = expect(expt_ops[m], psi)
+            # calculate all the expectation values, or output rho if no operators
+            if n_expt_op == 0:
+                result_list.append(Qobj(psi)) # copy rho
+            else:
+                for m in range(0, n_expt_op):
+                    result_list[m][t_idx] = expect(expt_ops[m], psi)
 
         r.integrate(r.t + dt)
         t_idx += 1
@@ -713,6 +748,10 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     #if not opt.rhs_reuse:
     #    os.remove(name+".pyx") # XXX: keep it for inspection. fix before release
     
+    if expt_callback:    
+        # no return values if callback function is used
+        return
+
     return result_list
 
 
