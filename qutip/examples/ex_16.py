@@ -28,7 +28,9 @@ def qubit_hist(Q,xlabels,ylabels,title):
     dz = real(Q.full().flatten()) #height of bars from density matrix elements.
     
     #generate list of colors for probability data
-    colors=cm.jet(dz)
+    nrm=mpl.colors.Normalize(min(dz)-0.1,max(dz)+0.1) # add +-0.1 in case all elements
+                                                      # are the same (colorbar will fail).
+    colors=cm.jet(nrm(dz))
 
     #plot figure
     fig = plt.figure()
@@ -52,10 +54,10 @@ def qubit_hist(Q,xlabels,ylabels,title):
     plt.title(title)
     #add colorbar with color range normalized to data
     cax,kw=mpl.colorbar.make_axes(ax,shrink=.75,pad=.02)
-    cb1=mpl.colorbar.ColorbarBase(cax,cmap=cm.jet)
+    cb1=mpl.colorbar.ColorbarBase(cax,cmap=cm.jet,norm=nrm)
     cb1.set_label("Probability",fontsize=14)
     show()
-    close(fig)
+    
 
 
 
