@@ -21,7 +21,6 @@ from numpy import array
 from scipy import *
 from scipy.linalg import *
 import scipy.sparse as sp
-
 from qutip.Qobj import Qobj
 
 
@@ -85,76 +84,71 @@ def jz(j):
 #
 
 def sigmap():
-    """
-    Creation operator for Pauli spins.
+    """Creation operator for Pauli spins.
     
-    Example::
-    
-        >>> sigmam()
-        Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
-        Qobj data = 
-        [[ 0.  1.]
-         [ 0.  0.]]
+    Examples
+    --------    
+    >>> sigmam()
+    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
+    Qobj data = 
+    [[ 0.  1.]
+     [ 0.  0.]]
              
     """
     return jmat(1/2.,'+')
 
 def sigmam():
-    """
-    Annihilation operator for Pauli spins.
+    """Annihilation operator for Pauli spins.
     
-    Example::
-    
-        >>> sigmam()
-        Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
-        Qobj data = 
-        [[ 0.  0.]
-         [ 1.  0.]]    
+    Examples
+    --------    
+    >>> sigmam()
+    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
+    Qobj data = 
+    [[ 0.  0.]
+     [ 1.  0.]]    
          
     """
     return jmat(1/2.,'-')
 
 def sigmax():
-    """
-    Pauli spin 1/2 sigma x operator
+    """Pauli spin 1/2 sigma-x operator
 
-    Example::
-    
-        >>> sigmax()
-        Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
-        Qobj data = 
-        [[ 0.  1.]
-         [ 1.  0.]]
+    Examples
+    --------    
+    >>> sigmax()
+    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
+    Qobj data = 
+    [[ 0.  1.]
+     [ 1.  0.]]
  
     """
     return 2.0*jmat(1.0/2,'x')
 
 def sigmay():
-    """
-    Pauli spin 1/2 sigma y operator
+    """Pauli spin 1/2 sigma-y operator.
     
-    Example::
-    
-        >>> sigmay()
-        Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = True
-        Qobj data = 
-        [[ 0.+0.j  0.-1.j]
-         [ 0.+1.j  0.+0.j]]
+    Examples
+    --------
+    >>> sigmay()
+    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = True
+    Qobj data = 
+    [[ 0.+0.j  0.-1.j]
+     [ 0.+1.j  0.+0.j]]
     
     """
     return 2.0*jmat(1.0/2,'y')
 
 def sigmaz():
-    """
-    Pauli spin 1/2 sigma z operator
+    """Pauli spin 1/2 sigma-z operator.
     
-    Example::
-    
-        >>> sigmaz()
-        Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = True
-        Qobj data = 
-        [[ 1.  0.]
-         [ 0. -1.]]
+    Examples
+    --------    
+    >>> sigmaz()
+    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = True
+    Qobj data = 
+    [[ 1.  0.]
+     [ 0. -1.]]
                  
     """
     return 2.0*jmat(1.0/2,'z')
@@ -166,26 +160,27 @@ def sigmaz():
 # out = destroy(N), N is integer value &  N>0
 #
 def destroy(N):
-    '''
-    Destruction (lowering) operator
+    '''Destruction (lowering) operator.
     
-    Args:
+    Parameters
+    ----------
+    N : int
+        Dimension of Hilbert space.
     
-        N (int): dimension of hilbert space.
-    
-    Returns:
-        
+    Returns
+    -------
+    oper : qobj    
         Qobj for lowering operator.
     
-    Example::
-    
-        >>> destroy(4)
-        Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
-        Qobj data = 
-        [[ 0.00000000+0.j  1.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
-         [ 0.00000000+0.j  0.00000000+0.j  1.41421356+0.j  0.00000000+0.j]
-         [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  1.73205081+0.j]
-         [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]]
+    Examples
+    --------    
+    >>> destroy(4)
+    Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
+    Qobj data = 
+    [[ 0.00000000+0.j  1.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
+     [ 0.00000000+0.j  0.00000000+0.j  1.41421356+0.j  0.00000000+0.j]
+     [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  1.73205081+0.j]
+     [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]]
          
     '''
     if not isinstance(N,int):#raise error if N not integer
@@ -197,26 +192,27 @@ def destroy(N):
 # out = create(N), N is integer value &  N>0
 #
 def create(N):
-    '''
-    Creation (raising) operator
+    '''Creation (raising) operator.
     
-    Args:
+    Parameters
+    ----------
+    N : int 
+        Dimension of Hilbert space.
     
-        N (int): Dimension of hilbert space
-    
-    Returns:
-    
+    Returns
+    -------
+    oper : qobj
         Qobj for raising operator.
     
-    Example::
-    
-        >>> create(4)
-        Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
-        Qobj data = 
-        [[ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
-         [ 1.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
-         [ 0.00000000+0.j  1.41421356+0.j  0.00000000+0.j  0.00000000+0.j]
-         [ 0.00000000+0.j  0.00000000+0.j  1.73205081+0.j  0.00000000+0.j]]
+    Examples
+    --------    
+    >>> create(4)
+    Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
+    Qobj data = 
+    [[ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
+     [ 1.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
+     [ 0.00000000+0.j  1.41421356+0.j  0.00000000+0.j  0.00000000+0.j]
+     [ 0.00000000+0.j  0.00000000+0.j  1.73205081+0.j  0.00000000+0.j]]
     
     '''
     if not isinstance(N,int):#raise error if N not integer
@@ -231,25 +227,26 @@ def create(N):
 # a = qeye(N), N is integer & N>0
 #
 def qeye(N):
-    """
-    Identity operator
+    """Identity operator
     
-    Args:
+    Parameters
+    ----------
+    N : int 
+        Dimension of Hilbert space.
     
-        N (int): Dimension of hilbert space.
-    
-    Returns: 
-        
+    Returns
+    ------- 
+    oper : qobj    
         Identity operator Qobj.
     
-    Example::
-    
-        >>> qeye(3)
-        Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
-        Qobj data = 
-        [[ 1.  0.  0.]
-         [ 0.  1.  0.]
-         [ 0.  0.  1.]]  
+    Examples
+    --------    
+    >>> qeye(3)
+    Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+    Qobj data = 
+    [[ 1.  0.  0.]
+     [ 0.  1.  0.]
+     [ 0.  0.  1.]]  
     
     """
     N=int(N)
@@ -259,26 +256,27 @@ def qeye(N):
     
 
 def num(N):
-    """
-    Return a quantum object instance representing the number operator.
+    """Quantum object for number operator.
     
-    Args:
+    Parameters
+    ----------
+    N : int 
+        The dimension of the Hilbert space.
     
-        N (int): The dimension of Hilbert space.
-    
-    Returns:
-    
+    Returns
+    -------
+    oper: qobj
         Qobj for number operator.
     
-    Example::
-    
-        >>> num(4)
-        Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = True
-        Qobj data = 
-        [[0 0 0 0]
-         [0 1 0 0]
-         [0 0 2 0]
-         [0 0 0 3]]
+    Examples
+    --------
+    >>> num(4)
+    Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = True
+    Qobj data = 
+    [[0 0 0 0]
+     [0 1 0 0]
+     [0 0 2 0]
+     [0 0 0 3]]
     
     """
     data=sp.spdiags(arange(N),0,N,N,format='csr')
@@ -286,31 +284,38 @@ def num(N):
 
 
 def squeez(N,sp):
-    """
-    Single-mode Squeezing operator.
+    """Single-mode Squeezing operator.
     
-    .. note:: There is no ending 'e' for the squeezing operator!
     
-    Args:
-    
-        N (int): Dimension of hilbert space.
+    Parameters
+    ----------
+    N : int 
+        Dimension of hilbert space.
         
-        sp (float/complex): Squeezing parameter.
+    sp : float/complex 
+        Squeezing parameter.
     
-    Returns:
+    Returns
+    -------
+    oper : qobj 
+        Squeezing operator.
     
-        Qobj for squeezing operator.
     
-    Example::
+    Examples
+    --------
+    >>> squeez(4,0.25)
+    Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
+    Qobj data = 
+    [[ 0.98441565+0.j  0.00000000+0.j  0.17585742+0.j  0.00000000+0.j]
+     [ 0.00000000+0.j  0.95349007+0.j  0.00000000+0.j  0.30142443+0.j]
+     [-0.17585742+0.j  0.00000000+0.j  0.98441565+0.j  0.00000000+0.j]
+     [ 0.00000000+0.j -0.30142443+0.j  0.00000000+0.j  0.95349007+0.j]]
     
-        >>> squeez(4,0.25)
-        Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
-        Qobj data = 
-        [[ 0.98441565+0.j  0.00000000+0.j  0.17585742+0.j  0.00000000+0.j]
-         [ 0.00000000+0.j  0.95349007+0.j  0.00000000+0.j  0.30142443+0.j]
-         [-0.17585742+0.j  0.00000000+0.j  0.98441565+0.j  0.00000000+0.j]
-         [ 0.00000000+0.j -0.30142443+0.j  0.00000000+0.j  0.95349007+0.j]]
-         
+    
+    .. important:: 
+        
+        There is no ending 'e' for the squeezing operator!     
+    
     """
     a=destroy(N)
     op=(1/2.0)*conj(sp)*(a**2)-(1/2.0)*sp*(a.dag())**2
@@ -318,28 +323,30 @@ def squeez(N,sp):
 
 
 def displace(N,alpha):
-    """
-    Single-mode displacement operator.
+    """Single-mode displacement operator.
     
-    Args:
+    Parameters
+    ----------
+    N : int
+        Dimension of Hilbert space.
     
-        N (int): Dimension of hilbert space.
+    alpha : float/complex 
+        Displacement amplitude.
     
-        alpha (float/complex): Displacment amplitude.
+    Returns
+    -------
+    oper : qobj
+        Displacement operator.
     
-    Returns:
-    
-        Qobj for dispacement operator.
-    
-    Example::
-    
-        >>> displace(4,0.25)
-        Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
-        Qobj data = 
-        [[ 0.96923323+0.j -0.24230859+0.j  0.04282883+0.j -0.00626025+0.j]
-         [ 0.24230859+0.j  0.90866411+0.j -0.33183303+0.j  0.07418172+0.j]
-         [ 0.04282883+0.j  0.33183303+0.j  0.84809499+0.j -0.41083747+0.j]
-         [ 0.00626025+0.j  0.07418172+0.j  0.41083747+0.j  0.90866411+0.j]]
+    Examples
+    ---------
+    >>> displace(4,0.25)
+    Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
+    Qobj data = 
+    [[ 0.96923323+0.j -0.24230859+0.j  0.04282883+0.j -0.00626025+0.j]
+     [ 0.24230859+0.j  0.90866411+0.j -0.33183303+0.j  0.07418172+0.j]
+     [ 0.04282883+0.j  0.33183303+0.j  0.84809499+0.j -0.41083747+0.j]
+     [ 0.00626025+0.j  0.07418172+0.j  0.41083747+0.j  0.90866411+0.j]]
          
     """
     a=destroy(N)
@@ -350,12 +357,13 @@ def displace(N,alpha):
 # Three-level operators (qutrits)
 #
 def qutrit_ops():
-    ''' 
-    Return the operators for a three level system (qutrit).
+    ''' Operators for a three level system (qutrit).
     
-    Returns:
+    Returns
+    -------
+    opers: array
+        `array` of qutrit operators.
     
-        array of qutrit operators.
     '''
     one, two, three = qutrit_basis()
     sig11 = one * one.dag()

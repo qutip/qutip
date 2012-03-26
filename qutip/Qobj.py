@@ -430,6 +430,7 @@ class Qobj():
         return Qobj(out)
     def conj(self):
         """Returns the conjugate operator of quantum object.
+        
         """
         out=Qobj()
         out.data=self.data.conj()
@@ -453,7 +454,8 @@ class Qobj():
             affected by this parameter.
             
         tol : float 
-            Tolerance for sparse solver (if used) for trace norm.
+            Tolerance for sparse solver (if used) for trace norm.  The sparse solver
+            may not converge if the tolerance is set too low.
             
         maxiter : int 
             Maximum number of iterations performed by sparse solver (if used) for
@@ -464,8 +466,9 @@ class Qobj():
         norm : float
             The requested norm of the operator or state quantum object.
         
+        
         .. note::
-
+        
             The sparse eigensolver is much slower than the dense version.  Use sparse 
             only if memory requirements demand it.
         
@@ -808,7 +811,8 @@ class Qobj():
             Number of requested eigenvalues. Default is all eigenvalues.
             
         tol : float 
-            Tolerance used by sparse Eigensolver (0 = machine precision).
+            Tolerance used by sparse Eigensolver (0 = machine precision).The sparse solver
+            may not converge if the tolerance is set too low.
             
         maxiter : int 
             Maximum number of iterations performed by sparse solver (if used).
@@ -855,7 +859,8 @@ class Qobj():
             Number of requested eigenvalues. Default is all eigenvalues.
             
         tol : float 
-            Tolerance used by sparse Eigensolver (0=machine precision).
+            Tolerance used by sparse Eigensolver (0=machine precision). The sparse solver
+            may not converge if the tolerance is set too low.
             
         maxiter : int 
             Maximum number of iterations performed by sparse solver (if used).
@@ -887,7 +892,8 @@ class Qobj():
             Use sparse Eigensolver
             
         tol : float
-            Tolerance used by sparse Eigensolver (0 = machine precision).
+            Tolerance used by sparse Eigensolver (0 = machine precision). The sparse solver
+            may not converge if the tolerance is set too low.
             
         maxiter : int 
             Maximum number of iterations performed by sparse solver (if used).

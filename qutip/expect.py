@@ -24,25 +24,26 @@ import numpy as np
 import scipy.sparse as sp
 
 def expect(oper,state):
-    '''
-    Calculate the expectation value for operator and state(s).
+    '''Calculates the expectation value for operator and state(s).
     
-    Arguments:
-    
-        oper (Qobj): representing an operator.
+    Parameters
+    ----------
+    oper : qobj 
+        Operator for expectation value.
         
-        state (Qobj/ list of Qobj's): Quantum state(s) or density matrix(matricies).
+    state : qobj/list
+        A single or `list` of quantum states or density matricies.
     
-    Returns:
-        float if operator is Hermitian; complex if operator is not Hermitian.
+    Returns
+    -------
+    expt : float
+        Expectation value.  ``real`` if `oper` is Hermitian, ``complex``
+        otherwise.
     
-    
-    Example::
-    
-        >>> expect(num(4),basis(4,3))
-        3
-        
-    See :func:`qutip.num` and :func:`qutip.basis`.
+    Examples
+    --------    
+    >>> expect(num(4),basis(4,3))
+    3
         
     '''
     if isinstance(state,Qobj) or isinstance(state, eseries):

@@ -22,37 +22,43 @@ from qutip.operators import destroy
 import scipy.sparse as sp
 
 def basis(N,*args):
-    """
-    Generate the vector representation of a number state.
+    """Generates the vector representation of a Fock state.
 	
-    a subtle incompability with the quantum optics toolbox: In QuTiP::
+    Parameters
+    ----------
+    N : int 
+        Number of Fock states in Hilbert space.
+    
+    args : int 
+        ``int`` corresponding to desired number state, defaults
+        to 0 if omitted.
+    
+    Returns
+    -------
+    state : qobj
+      Qobj representing the requested number state ``|args>``.
+    
+    Examples
+    --------        
+    >>> basis(5,2)
+    Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
+    Qobj data = 
+    [[ 0.+0.j]
+     [ 0.+0.j]
+     [ 1.+0.j]
+     [ 0.+0.j]
+     [ 0.+0.j]]
+         
+    Notes
+    -----
+    
+    A subtle incompability with the quantum optics toolbox: In QuTiP::
  
         basis(N, 0) = ground state
 
-    but in QO toolbox::
+    but in qotoolbox::
 
         basis(N, 1) = ground state
-	
-    Args:
-    
-        N (integer): Number of states
-    
-        args (integer): corresponding to desired number state
-    
-    Returns:
-        
-        Qobj representing the requested number state ``|args>``
-    
-    Example::
-        
-        >>> basis(5,2)
-        Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-        Qobj data = 
-        [[ 0.+0.j]
-         [ 0.+0.j]
-         [ 1.+0.j]
-         [ 0.+0.j]
-         [ 0.+0.j]]
          
     """
     if (not isinstance(N,int)) or N<0:
@@ -72,41 +78,45 @@ def basis(N,*args):
 
 
 def qutrit_basis():
-    """
-    Return the basis states for a three level system (qutrit)
+    """Basis states for a three level system (qutrit)
     
-    Returns:
+    Returns
+    -------
+    qstates : array
+        Array of qutrit basis vectors
     
-        array of qutrit basis vectors
     """
     return array([basis(3,0), basis(3,1), basis(3,2)])
 
 
 def coherent(N,alpha):
-    """
-    Generates a coherent state with eigenvalue alpha in a 
-    N-dimensional Hilbert space via displacement operator on vacuum state
+    """Generates a coherent state with eigenvalue alpha. 
     
-    Args:
+    Constructed using displacement operator on vacuum state.
     
-        N (integer): number of levels in truncated Hilbert space
+    Parameters
+    ----------
+    N : int 
+        Number of Fock states in Hilbert space.
         
-        alpha (float/complex): eigenvalue for coherent state
+    alpha : float/complex 
+        Eigenvalue of coherent state.
     
-    Returns:
-    
+    Returns
+    -------
+    state : qobj
         Qobj quantum object for coherent state
     
-    Example::
-        
-        >>> coherent(5,0.25j)
-        Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-        Qobj data = 
-        [[  9.69233235e-01+0.j        ]
-         [  0.00000000e+00+0.24230831j]
-         [ -4.28344935e-02+0.j        ]
-         [  0.00000000e+00-0.00618204j]
-         [  7.80904967e-04+0.j        ]]
+    Examples
+    --------        
+    >>> coherent(5,0.25j)
+    Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
+    Qobj data = 
+    [[  9.69233235e-01+0.j        ]
+     [  0.00000000e+00+0.24230831j]
+     [ -4.28344935e-02+0.j        ]
+     [  0.00000000e+00-0.00618204j]
+     [  7.80904967e-04+0.j        ]]
          
     """
     x=basis(N,0)
@@ -115,80 +125,64 @@ def coherent(N,alpha):
     return D*x
 
 def coherent_dm(N, alpha):
-    """
-    Generate the density matrix representation of a coherent 
-    state via outer product
+    """Density matrix representation of a coherent state.
     
-    Args:
+    Constructed via outer product of :func:`qutip.states.coherent`
     
-        N (integer): number of levels in truncated Hilbert space
+    Parameters
+    ----------
+    N : int 
+        Number of Fock states in Hilbert space.
     
-        alpha (float/complex): eigenvalue for coherent state
+    alpha : float/complex
+        Eigenvalue for coherent state.
     
-    Returns:
+    Returns
+    -------
+    dm : qobj
+        Density matrix representation of coherent state.
     
-        Qobj density matrix representation of coherent state
-    
-    Example::
-    
-        >>> coherent_dm(3,0.25j)
-        Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
-        Qobj data = 
-        [[ 0.93941695+0.j          0.00000000-0.23480733j -0.04216943+0.j        ]
-         [ 0.00000000+0.23480733j  0.05869011+0.j          0.00000000-0.01054025j]
-         [-0.04216943+0.j          0.00000000+0.01054025j  0.00189294+0.j        ]]
+    Examples
+    --------    
+    >>> coherent_dm(3,0.25j)
+    Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+    Qobj data = 
+    [[ 0.93941695+0.j          0.00000000-0.23480733j -0.04216943+0.j        ]
+     [ 0.00000000+0.23480733j  0.05869011+0.j          0.00000000-0.01054025j]
+     [-0.04216943+0.j          0.00000000+0.01054025j  0.00189294+0.j        ]]
          
     """
     psi = coherent(N,alpha)
     return psi * psi.dag()
 
-def coherent_fast(N,alpha):
-    """
-    Generate a coherent state	
-
-    N the number of states
-    alpha the coherent state amplitude (complex)
-    """
-    data = zeros([N,1],dtype=complex)
-    n = arange(N)
-    data[:,0] = exp(-(abs(alpha)**2)/2.0)*(alpha**(n))/sqrt(factorial(n))
-    return Qobj(data)
-
-def coherent_dm_fast(N,alpha):
-    """
-    Generate a coherent state	
-
-    Args:
-    
-    N the number of states
-    
-    alpha the coherent state amplitude (complex)
-    """
-    psi = coherent_fast(N, alpha)
-    return psi * psi.dag()
 
 def fock_dm(N, *args):
-    """
-    Generate the density matrix representation of a Fock state via outer product.
+    """Density matrix representation of a Fock state 
     
-    Args:
+    Constructed via outer product of :func:`qutip.states.fock`.
     
-        N (integer): number of levels in truncated Hilbert space
+    Parameters
+    ----------
+    N : int 
+        Number of Fock states in Hilbert space.
     
-        m (integer): corresponding to desired number state, defaults to 0 if omitted
+    m : int 
+        ``int`` for desired number state, defaults to 0 if omitted.
     
-    Returns: 
+    Returns
+    -------
+    dm : qobj
+        Density matrix representation of Fock state.
     
-        Qobj density matrix representation of Fock state
+    Examples
+    --------    
+     >>> fock_dm(3,1)
+     Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+     Qobj data = 
+     [[ 0.+0.j  0.+0.j  0.+0.j]
+      [ 0.+0.j  1.+0.j  0.+0.j]
+      [ 0.+0.j  0.+0.j  0.+0.j]]
     
-    Example::
-    
-         >>> fock_dm(3,1)
-         Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
-         Qobj data = 
-         [[ 0.+0.j  0.+0.j  0.+0.j]
-          [ 0.+0.j  1.+0.j  0.+0.j]
-          [ 0.+0.j  0.+0.j  0.+0.j]]
     """
     if not args:
         psi=basis(N)
@@ -197,29 +191,32 @@ def fock_dm(N, *args):
     return psi * psi.dag()
 
 def fock(N, *args):
-    """
-    Generates the vector representation of a bosonic Fock (number) state. 
-    Same as :func:`qutip.states.basis` function.
+    """Bosonic Fock (number) state. 
     
-    Args:
-
-        N (int): the number of states in the Hilbert space.
+    Same as :func:`qutip.states.basis`.
+    
+    Parameters
+    ----------
+    N : int 
+        Number of states in the Hilbert space.
         
-        m (int): corresponding to desired number state, defaults to 0 if omitted.
+    m : int
+        ``int`` for desired number state, defaults to 0 if omitted.
     
-    Returns:
+    Returns
+    -------
+        Requested number state :math:`\left|\mathrm{args}\\right>`.
     
-        Qobj quantum object representing the requested number state :math:`\left|\mathrm{args}\\right>`.
+    Examples
+    --------    
+    >>> fock(4,3)
+    Quantum object: dims = [[4], [1]], shape = [4, 1], type = ket
+    Qobj data = 
+    [[ 0.+0.j]
+     [ 0.+0.j]
+     [ 0.+0.j]
+     [ 1.+0.j]]
     
-    Example::
-    
-        >>> fock(4,3)
-        Quantum object: dims = [[4], [1]], shape = [4, 1], type = ket
-        Qobj data = 
-        [[ 0.+0.j]
-         [ 0.+0.j]
-         [ 0.+0.j]
-         [ 1.+0.j]]
     """
     if not args:
         return basis(N)
@@ -227,28 +224,31 @@ def fock(N, *args):
         return basis(N, args[0])
 
 def thermal_dm(N, n):
-    """
-    Generates the density matrix for a thermal state of n particles
+    """Density matrix for a thermal state of n particles
 
-    Args:
+    Parameters
+    ----------
+    N : int 
+        Number of basis states in Hilbert space.
     
-        N (integer): the number of states
+    n : float 
+        Expectation value for number of particles in thermal state.
     
-        n (float): expectational value for number of particles in thermal state
+    Returns
+    -------
+    dm : qobj
+        Thermal state density matrix.
     
-    Returns:
-        
-        Qobj for thermal state
-    
-    Example::
-        >>> thermal_dm(5,1)
-        Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = True
-        Qobj data = 
-        [[ 0.50000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j]
-         [ 0.00000+0.j  0.25000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j]
-         [ 0.00000+0.j  0.00000+0.j  0.12500+0.j  0.00000+0.j  0.00000+0.j]
-         [ 0.00000+0.j  0.00000+0.j  0.00000+0.j  0.06250+0.j  0.00000+0.j]
-         [ 0.00000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j  0.03125+0.j]]
+    Examples
+    --------
+    >>> thermal_dm(5,1)
+    Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = True
+    Qobj data = 
+    [[ 0.50000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j]
+     [ 0.00000+0.j  0.25000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j]
+     [ 0.00000+0.j  0.00000+0.j  0.12500+0.j  0.00000+0.j  0.00000+0.j]
+     [ 0.00000+0.j  0.00000+0.j  0.00000+0.j  0.06250+0.j  0.00000+0.j]
+     [ 0.00000+0.j  0.00000+0.j  0.00000+0.j  0.00000+0.j  0.03125+0.j]]
     
     """
 
@@ -258,27 +258,28 @@ def thermal_dm(N, n):
 
 
 def ket2dm(Q):
-    """
-    Takes input ket or bra vector and returns density matrix 
+    """Takes input ket or bra vector and returns density matrix 
     formed by outer product.
     
-    Args:
+    Parameters
+    ----------
+    Q : qobj    
+        Ket or bra type quantum object.
     
-        Q (Qobj): Ket or bra vector
+    Returns
+    -------
+    dm : qobj    
+        Density matrix formed by outer product of `Q`.
     
-    Returns:
-    
-        Qobj Density matrix formed by outer product
-    
-    Example::
-    
-        >>> x=basis(3,2)
-        >>> ket2dm(x)
-        Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
-        Qobj data = 
-        [[ 0.+0.j  0.+0.j  0.+0.j]
-         [ 0.+0.j  0.+0.j  0.+0.j]
-         [ 0.+0.j  0.+0.j  1.+0.j]]
+    Examples
+    --------    
+    >>> x=basis(3,2)
+    >>> ket2dm(x)
+    Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+    Qobj data = 
+    [[ 0.+0.j  0.+0.j  0.+0.j]
+     [ 0.+0.j  0.+0.j  0.+0.j]
+     [ 0.+0.j  0.+0.j  1.+0.j]]
          
     """
     if Q.type=='ket':
@@ -294,13 +295,14 @@ def ket2dm(Q):
 # projection operator
 #
 def projection(N, n, m):
-    ''' 
-    Return the projection operator that projects state |m> on state |n>,
+    ''' The projection operator that projects state |m> on state |n>.
+    
     i.e., |n><m|.
     
-    Returns:
-    
-        a projection operator.
+    Returns
+    -------
+    oper : qobj
+         Requested projection operator.
     '''
     ket1 = basis(N, n)
     ket2 = basis(N, m)
