@@ -1,9 +1,13 @@
 """
+
+THIS FILE HAS BEEN CUSTOMIZED FOR USE BY QUTIP.
+
+
 A directive for including a matplotlib plot in a Sphinx document.
 
 By default, in HTML output, `plot` will include a .png file with a
 link to a high-res .png and .pdf.  In LaTeX output, it will include a
-.pdf.
+.png (normally LaTex output does pdf).
 
 The source code for the plot may be included in one of three ways:
 
@@ -279,7 +283,7 @@ def setup(app):
     app.add_directive('plot', plot_directive, True, (0, 2, False), **options)
     app.add_config_value('plot_pre_code', None, True)
     app.add_config_value('plot_include_source', False, True)
-    app.add_config_value('plot_formats', ['png', 'hires.png','pdf'], True)
+    app.add_config_value('plot_formats', ['png', 'hires.png'], True)
     app.add_config_value('plot_basedir', None, True)
     app.add_config_value('plot_html_show_formats', True, True)
     app.add_config_value('plot_rcparams', {}, True)
