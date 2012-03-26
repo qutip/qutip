@@ -36,7 +36,76 @@ import os,numpy,odeconfig
 # 
 def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     """
-    New master equation API: still a moving target...
+    Master equation evolution of a density matrix for a given Hamiltonian.
+
+    Evolve the state vector or density matrix (`rho0`) using a given Hamiltonian
+    (`H`) and an [optional] set of collapse operators (`c_op_list`),
+    by integrating the set of ordinary differential equations that define the
+    system. In the absense of collase operators the system is evolved according
+    to the unitary evolution of the Hamiltonian.
+    
+    The output is either the state vector at arbitrary points in time (`tlist`),
+    or the expectation values of the supplied operators (`expt_ops`). If 
+    expt_ops is a callback function, it is invoked for each time in `tlist` 
+    with time and the state as arguments, and the function does not use any
+    return values.
+
+    For problems with time-dependent problems `H` and `c_ops` can be callback
+    functions that takes two arguments, time and `args`, and returns the 
+    Hamiltonian or Liuovillian for the system at that point in time
+    [function callback format]. 
+    Alternatively, `H` and `c_ops` can be a specified in a nested-list format
+    where each element in the list is a list of length 2, containing an
+    operator (type :class:`qutip.Qobj`) at the first element and where the 
+    second element is either a string [list string format] or a callback
+    function [list callback format] that evaluates to the time-dependent
+    coefficient for the corresponding operator.
+    
+    Example:
+    
+        H = [[H0, 'sin(w*t)'], [H1, 'sin(2*w*t)']]
+        H = [[H0, f0_t], [H1, f1_t]]
+        
+    
+    In all cases of time-dependent operators, `args` is a dictionary of
+    parameters that is used when evaluating operators.
+   
+    Args:
+    
+        `H` (:class:`qutip.Qobj`): system Hamiltonian, or a callback function for time-dependent Hamiltonians.
+        
+        `rho0` (:class:`qutip.Qobj`): initial density matrix or state vector (ket).
+        
+        `tlist` (*list/array*): list of times for :math:`t`.
+        
+        `c_ops` (list of :class:`qutip.Qobj`): list of collapse operators.
+        
+        `expt_ops` (list of :class:`qutip.Qobj`): list of operators for which to evaluate expectation values.
+        
+        `args` (*dictionary*): of parameters for time-dependent Hamiltonians and collapse operators.
+        
+        `options` (:class:`qutip.Qdeoptions`): with options for the ODE solver.
+
+
+    Returns:
+    
+        (1) An *array* of expectation values for the times specified by `tlist`,
+        or (2) an *array* or state vectors or density matrices corresponding to
+        the times in `tlist` [if `expt_ops` is an empty list], or (3) nothing if
+        a callback function was given inplace of operators for which to
+        calculate the expectation values.
+
+    .. note:: 
+    
+        On using callback function: mesolve transforms all :class:`qutip.Qobj`
+        objects to sparse matrices before handing the problem to the integrator
+        function. In order for your callback function to work correctly, pass
+        all :class:`qutip.Qobj` objects that are used in constructing the
+        Hamiltonian via args. odesolve will check for :class:`qutip.Qobj` in
+        `args` and handle the conversion to sparse matrices. All other
+        :class:`qutip.Qobj` objects that are not passed via `args` will be
+        passed on to the integrator to scipy who will raise an NotImplemented
+        exception.
     
     """
     #check for type (if any) of time-dpendent inputs            
@@ -101,7 +170,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
 # 
 def mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     """
-    New master equation APIs: still a moving target...    
+    Internal function for solving the master equation. See mesolve for usage.   
     """
     
     n_op = len(c_list)
@@ -232,7 +301,7 @@ def rho_list_td(t, rho, L_list_and_args):
 # 
 def wfsolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt):
     """
-    New master equation APIs: still a moving target...    
+    Internal function for solving the master equation. See mesolve for usage.   
     """
 
     #
@@ -345,7 +414,7 @@ def psi_list_td(t, psi, H_list_and_args):
 # 
 def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     """
-    New master equation APIs: still a moving target...    
+    Internal function for solving the master equation. See mesolve for usage.   
     """
     
     n_op = len(c_list)
@@ -499,8 +568,9 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
 # 
 def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     """
-    New master equation APIs: still a moving target...    
+    Internal function for solving the master equation. See mesolve for usage.   
     """
+    
     #
     # check initial state: must be a density matrix
     #
@@ -621,6 +691,9 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     return result_list
 
 
+# ------------------------------------------------------------------------------
+# Old style API below. 
+# ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
@@ -674,6 +747,11 @@ def odesolve(H, rho0, tlist, c_op_list, expt_op_list, H_args=None, options=None)
         :class:`qutip.Qobj` objects that are not passed via `H_args` will be
         passed on to the integrator to scipy who will raise an NotImplemented
         exception.
+        
+    .. deprecated:: 2.0.0
+    
+        Use :func:`mesolve` instead.
+        
     """
 
     if options == None:
