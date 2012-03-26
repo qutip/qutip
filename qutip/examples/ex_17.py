@@ -3,6 +3,9 @@
 # cavity for various driving frequencies calculated using 
 # iterative 'steady' solver.
 #
+# A faster version, using the parallel 'parfor' function is 
+# given in the Users Guide.  
+#
 # Adapted from 'probss' example in the qotoolbox by Sze M. Tan.
 #
 from qutip.expect import *
@@ -13,6 +16,8 @@ from qutip.steady import *
 from qutip.tensor import *
 from pylab import *
 import time
+
+
 
 def probss(E,kappa,gamma,g,wc,w0,wl,N):
     #construct composite operators
@@ -39,37 +44,31 @@ def probss(E,kappa,gamma,g,wc,w0,wl,N):
     return count1,count2,infield
 
 
-# setup the calculation
-#-----------------------
-# must be done before parfunc unless we
-# want to pass all variables as one using
-# zip function (see documentation for an example)
-kappa=2
-gamma=0.2
-g=1
-wc=0
-w0=0
-N=5
-E=0.5
-nloop=101
-wlist=linspace(-5,5,nloop)
-
-
-# define single-variable function for use in parfor
-# cannot be defined inside run() since it needs to
-# be passed into seperate threads.
-def parfunc(wl):#function of wl only
-    count1,count2,infield=probss(E,kappa,gamma,g,wc,w0,wl,N)
-    return count1,count2,infield
-
-
 def run():
+    # setup the calculation
+    #-----------------------
+    kappa=2
+    gamma=0.2
+    g=1
+    wc=0
+    w0=0
+    N=5
+    E=0.5
+    nloop=101
+    wlist=linspace(-5,5,nloop)
+    #going to use lists instead of arrays here as an example.
+    count1=[]
+    count2=[]
+    infield=[]
     
-    #run parallel for-loop over wlist
-    start_time=time.time()
-    count1,count2,infield = parfor(parfunc,wlist)
-    print 'time elapsed = ' +str(time.time()-start_time) 
-
+    #run loop over wlist
+    for wl in wlist:
+        c1,c2,infld = probss(E,kappa,gamma,g,wc,w0,wl,N)
+        #append results to lists (append to array is costly)
+        count1.append(c1)
+        count2.append(c2)
+        infield.append(infld)
+    
     #plot cavity emission and qubit spontaneous emssion
     plot(wlist,count1,wlist,count2,lw=2)
     xlabel('Drive Frequency Detuning')

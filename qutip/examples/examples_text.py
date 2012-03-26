@@ -30,9 +30,9 @@ basic_desc=['Schrodinger Cat state formed from a \nsuperposition of two coherent
             "Show relationship between fidelity and trace\ndistance for pure state denisty matrices.",
             "Calculate Eigenenergies of a coupled three qubit\nsystem.",
             "Creation and manipulation of a Bell state density\nmatrix.",
-            "Steady state of cavity-qubit system using parfor\nfunction to run in parallel.",
+            "Steady state of cavity-qubit system as cavity\ndriving frequency is varied.",
             "Entropy of binary system as probability of being\nin the excited state is varied.",
-            "Plot the density matrix of the 3-qubit GHZ state."]
+            "Plot the density matrix for the 3-qubit GHZ state."]
 
 basic_nums=10+arange(len(basic_labels)) #does not start at zero so commandline output numbers match (0=quit in commandline)
 
