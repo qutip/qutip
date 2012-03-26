@@ -1,0 +1,12 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exbasic13:
+
+Ground State of Cavity + Qubit
+===============================
+
+Groundstate properties of an ultra-strongly coupled atom-cavity system as the coupling strength is varied.
+
+.. plot:: ../qutip/qutip/examples/ex_13.py
+    :include-source:

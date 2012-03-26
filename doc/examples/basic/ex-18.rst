@@ -1,0 +1,12 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exbasic18:
+
+Binary Entropy
+===============
+
+Entropy of a binary system :math:`a|0\rangle\langle0|+(1-a)|1\rangle\langle1|` as probability of being in the excited state :math:`a` is varied.
+
+.. plot:: ../qutip/qutip/examples/ex_18.py
+    :include-source:

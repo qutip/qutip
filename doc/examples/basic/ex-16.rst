@@ -1,0 +1,12 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exbasic16:
+
+Bell State
+===========
+
+Creation and manipulation of a Bell state density matrix.  The Bell state is given as :math:`|\psi\rangle=\frac{1}{\sqrt{2}}\left(\left|00\rangle\right.+\left|11\rangle\right.\right)`
+
+.. plot:: ../qutip/qutip/examples/ex_16.py
+    :include-source:

@@ -1,0 +1,12 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exbasic10:
+
+Wigner Function for Schrodinger Cat State
+=========================================
+
+Calculates the Wigner distribution for a Schrodinger Cat-state composed of two coherent states :math:`\alpha_1=-2-2j`, and :math:`\alpha_2=2+2j`.
+
+.. plot:: ../qutip/qutip/examples/ex_10.py
+	:include-source:

@@ -1,0 +1,12 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exbasic15:
+
+Coupled Qubit Energies
+=======================
+
+Calculate Eigenenergies of a coupled three qubit system.
+
+.. plot:: ../qutip/qutip/examples/ex_15.py
+    :include-source:

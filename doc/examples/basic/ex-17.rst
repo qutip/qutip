@@ -1,0 +1,10 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exbasic17:
+
+Cavity-Qubit Steadystate
+=========================
+
+Find the steady state of a cavity-qubit system as a function of the cavity driving frequency.
+

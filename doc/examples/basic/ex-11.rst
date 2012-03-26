@@ -1,0 +1,12 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exbasic11:
+
+Q Function for Schrodinger Cat State
+=====================================
+
+Calculates the Q distribution for a Schrodinger Cat-state composed of two coherent states :math:`\alpha_1=-2-2j`, and :math:`\alpha_2=2+2j`.
+
+.. plot:: ../qutip/qutip/examples/ex_11.py
+    :include-source:

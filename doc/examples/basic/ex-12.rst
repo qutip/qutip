@@ -1,0 +1,13 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exbasic12:
+
+Squeezed State
+===============
+
+3D Wigner and Q-functions for a squeezed coherent state where :math:`\alpha=-1.0` is the coherent state amplitude
+and :math:`\epsilon=0.5j` is the squeezing parameter.
+
+.. plot:: ../qutip/qutip/examples/ex_12.py
+    :include-source:

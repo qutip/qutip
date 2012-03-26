@@ -1,0 +1,12 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exbasic19:
+
+3-Qubit GHZ State
+==================
+
+Plot the density matrix for the 3-qubit GHZ state :math:`\frac{1}{\sqrt{2}}\left(|\uparrow,\uparrow,\uparrow\rangle+|\downarrow,\downarrow,\downarrow\rangle\right)` found by simultaneous diagonalization.
+
+.. plot:: ../qutip/qutip/examples/ex_19.py
+    :include-source:

@@ -1,0 +1,12 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exbasic14:
+
+Density Matrix Metrics
+=======================
+
+Shows the relationship :math:`1-F^{2}\le T` between fidelity :math:`F` and trace distance :math:`T` for pure state density matrices .
+
+.. plot:: ../qutip/qutip/examples/ex_14.py
+    :include-source:
