@@ -83,7 +83,7 @@ def simdiag(ops):
         for kk in xrange(num_ops):
             for j in xrange(len(ds)):
                 eigvals_out[kk,j]=real(dot(eigvecs_array[j].conj().T,ops[kk].data*eigvecs_array[j]))
-        return kets_out,eigvals_out
+        return eigvals_out,kets_out
     
 
 
