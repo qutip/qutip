@@ -1,6 +1,7 @@
 /**
  * Alternate Sphinx design
- * Originally created by Armin Ronacher for Werkzeug, adapted by Georg Brandl, modified by Paul Nation.
+ * Originally created by Armin Ronacher for Werkzeug, adapted by Georg Brandl,
+ * and hacked to death by Paul Nation.
  */
 @import url("basic.css");
 body {
@@ -15,7 +16,7 @@ body {
     /*border: 1px solid #aaa;*/
 	max-width:1000px;
     margin: 10px 80px 0px 80px;
-    min-width: 860px;
+    min-width: 850px;
 	-moz-box-shadow:0px 0px 12px #666;
     -webkit-box-shadow:0px 0px 12px #666;
 	box-shadow:0px 0px 12px #666;
@@ -369,46 +370,48 @@ div.sphinxsidebar ul.toc ul li {
     padding: 0;
 }
 
-div.admonition, div.warning {
-    font-size: 0.9em;
-    margin: 1em 0 0 0;
-    border: 1px solid #86989B;
-    background-color: #f7f7f7;
+/* -- Admonition configure -------------------------------------------- */
+
+div.admonition {
+    background: #eaedf7;
+    -webkit-border-radius: 10px;
+    -khtml-border-radius: 10px;
+    -moz-border-radius: 10px;
+    border-radius: 10px;
+    border-style: solid;
+    border-width: thin;
+    border-color: #dcdcdc;
+    padding: 10px 15px 10px 15px;
+    margin-bottom: 15px;
+    margin-top: 15px;
 }
 
-div.admonition p, div.warning p {
-    margin: 0.5em 1em 0.5em 1em;
-    padding: 0;
+div.danger, div.error {
+    background: #fc22f0;
+    min-height: 42px;
 }
 
-div.admonition pre, div.warning pre {
-    margin: 0.4em 1em 0.4em 1em;
+div.warning, div.caution, div.attention {
+    background: #d52334;
+    min-height: 42px;
 }
 
-div.admonition p.admonition-title,
-div.warning p.admonition-title {
-    margin: 0;
-    padding: 0.1em 0 0.1em 0.5em;
-    color: white;
-    border-bottom: 1px solid #86989B;
-    font-weight: bold;
-    background-color: #AFC1C4;
+div.note, div.important {
+    background: #e3ef5b;
+    min-height: 42px;
 }
 
-div.warning {
-    border: 1px solid #940000;
+div.hint, div.tip {
+    background: #a1e147;
+    min-height: 42px;
 }
 
-div.warning p.admonition-title {
-    background-color: #CF0000;
-    border-bottom-color: #940000;
+div.seealso {
+    background: #c4d09c;
+    min-height: 42px;
 }
 
-div.admonition ul, div.admonition ol,
-div.warning ul, div.warning ol {
-    margin: 0.1em 0.5em 0.5em 3em;
-    padding: 0;
-}
+/* ---------------------------------------------- */
 
 div.versioninfo {
     margin: 1em 0 0 0;

@@ -42,7 +42,7 @@ Qobj data =
 
 where we see the blank Qobj object with dimensions, shape, and data.  Here the data corresponds to a 1x1-dimensional matrix consisting of a single zero entry.  
 
-.. note:: By convention, Class objects in Python such as `Qobj()` differ from functions in the use of a beginning capital letter.
+.. Hint:: By convention, Class objects in Python such as `Qobj()` differ from functions in the use of a beginning capital letter.
 
 We can create a Qobj with a user defined data set by passing a list or array of data into the Qobj:
 
