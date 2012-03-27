@@ -41,7 +41,7 @@ class TestEigenstates(unittest.TestCase):
 
         H = rand() * sigmax() + rand() * sigmay() + rand() * sigmaz()
 
-        ekets, evals = H.eigenstates()
+        evals, ekets = H.eigenstates()
 
         for n in range(len(evals)):
             # assert that max(H * ket - e * ket) is small
@@ -57,7 +57,7 @@ class TestEigenstates(unittest.TestCase):
 
         H = tensor(H1, H2)
 
-        ekets, evals = H.eigenstates()
+        evals, ekets = H.eigenstates()
 
         for n in range(len(evals)):
             # assert that max(H * ket - e * ket) is small
@@ -75,7 +75,7 @@ class TestEigenstates(unittest.TestCase):
     
         H = rand() * a1.dag() * a1 + rand() * a2.dag() * a2 + rand() * (a1 + a1.dag()) * (a2 + a2.dag())
 
-        ekets, evals = H.eigenstates()
+        evals, ekets = H.eigenstates()
 
         for n in range(len(evals)):
             # assert that max(H * ket - e * ket) is small
