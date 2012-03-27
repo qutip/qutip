@@ -16,7 +16,7 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from scipy import *
+from scipy import array
 from multiprocessing import Pool
 import os,sys
 import qutip.settings as qset
@@ -40,6 +40,11 @@ def parfor(func,frange):
 	    A ``list`` with length equal to number of input parameters
 	    containting the output from `func`.  In general, the ordering
 	    of the output variables will not be in the same order as `frange`.
+	
+	.. note::
+	
+	    Multiple values can be passed into the parfor function using Pythons
+	    builtin 'zip' command, or using multidimensional `lists` or `arrays`.
 	     
 	"""
 	
