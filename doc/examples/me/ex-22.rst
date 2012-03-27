@@ -1,0 +1,15 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exme22:
+
+Single-atom lasing in a Jaynes-Cumming-like system
+==================================================
+
+This example implements a simple model for single-atom lasing in a
+Jaynes-Cumming-like system. In addition to the standard Jaynes-Cumming model,
+there is an incoherent pumping that strive to create a population inversion
+in the atom.
+
+.. plot:: ../qutip/qutip/examples/ex_22.py
+	:include-source:
