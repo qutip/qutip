@@ -636,8 +636,8 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_ops,H_args, opt):
         raise TypeError('Time-dependent coefficients must be list with length N-1 where N is the number of Hamiltonian terms.')
     tflag=1
     if opt.rhs_reuse==True and odeconfig.tdfunc==None:
-        print "No previous time-dependent RHS found."
-        print "Generating one for you..."
+        print("No previous time-dependent RHS found.")
+        print("Generating one for you...")
         rhs_generate(H_func,H_args)
     lenh=len(H_func[0])
     if opt.tidy:
@@ -663,13 +663,13 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_ops,H_args, opt):
         odeconfig.tdname=name
         cgen=Codegen(lenh,H_func[1],H_args)
         cgen.generate(name+".pyx")
-        print "Compiling '"+name+".pyx' ..."
+        print("Compiling '"+name+".pyx' ...")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
         pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
         code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
         exec(code)
-        print 'Done.'
+        print("Done.")
         odeconfig.tdfunc=cyq_td_ode_rhs
     #
     # setup integrator
@@ -834,8 +834,8 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     if (not isinstance(H_func[1],(list,ndarray))) or (len(H_func[1])!=(len(H_func[0])-1)):
         raise TypeError('Time-dependent coefficients must be list with length N-1 where N is the number of Hamiltonian terms.')
     if opt.rhs_reuse==True and odeconfig.tdfunc==None:
-        print "No previous time-dependent RHS found."
-        print "Generating one for you..."
+        print("No previous time-dependent RHS found.")
+        print("Generating one for you...")
         rhs_generate(H_func,H_args)
     lenh=len(H_func[0])
     if opt.tidy:
@@ -864,13 +864,13 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
         name="rhs"+str(odeconfig.cgen_num)
         cgen=Codegen(lenh,L_func[1],H_args)
         cgen.generate(name+".pyx")
-        print "Compiling '"+name+".pyx' ..."
+        print("Compiling '"+name+".pyx' ...")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
         pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
         code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
         exec(code)
-        print 'Done.'
+        print("Done.")
         odeconfig.tdfunc=cyq_td_ode_rhs
         
     #
