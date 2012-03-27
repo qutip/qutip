@@ -16,13 +16,11 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from scipy import *
+from scipy import zeros,array,arange,exp,real,imag,conj,copy,sqrt,meshgrid
 import scipy.sparse as sp
 import scipy.linalg as la
-import time
 from qutip.tensor import tensor
 from qutip.Qobj import *
-#from qutip.ptrace import ptrace
 from qutip.states import *
 from qutip.istests import *
 try:#for scipy v <= 0.90
@@ -31,22 +29,29 @@ except:#for scipy v >= 0.10
     from scipy.misc import factorial
     
 def wigner(psi,xvec,yvec,g=sqrt(2)):
-    """
-    Calculates the Wigner function of a given state vector or density matrix at points xvec+i*yvec
+    """Wigner function for a state vector or density matrix 
+    at points xvec+i*yvec.
     
-    Args:
+    Parameters
+    ----------
+    state : qobj 
+        A state vector or density matrix.
     
-        state (Qobj): representing a state vector or density matrix
+    xvec : array_like
+        x-coordinates at which to calculate the Wigner function.
     
-        xvec (list/array): of x-coordinates at which to calculate the Wigner function
-    
-        yvec (list/array) of y-coordinates at which to calculate the Wigner function
+    yvec : array_like
+        y-coordinates at which to calculate the Wigner function.
         
-        g (float): scaling factor for a = 0.5*g*(x+iy), default g=sqrt(2)
+    g : float
+        Scaling factor for a = 0.5*g*(x+iy), default g=sqrt(2).
     
-    Returns:
+    Returns
+    --------
+    W : array
+        Values representing the Wigner function calculated over the specified range [xvec,yvec].
     
-        array of values representing the Wigner function calculated over the specified range [xvec,yvec]
+    
     """
     if psi.type=='ket' or psi.type=='oper':
         M=prod(psi.shape[0])
@@ -81,23 +86,28 @@ def wigner(psi,xvec,yvec,g=sqrt(2)):
 # Q FUNCTION
 #
 def qfunc(state, xvec, yvec, g=sqrt(2)):
-    """
-    Calculates the Q function of a given state vector or density matrix at points xvec+i*yvec
+    """Q-function of a given state vector or density matrix 
+    at points xvec+i*yvec.
     
-    Args:
+    Parameters
+    ----------
+    state : qobj 
+        A state vector or density matrix.
     
-        state (Qobj): representing a state vector or density matrix
+    xvec : array_like
+        x-coordinates at which to calculate the Wigner function.
     
-        xvec (list/array): of x-coordinates at which to calculate the Q function
+    yvec : array_like
+        y-coordinates at which to calculate the Wigner function.
+        
+    g : float
+        Scaling factor for a = 0.5*g*(x+iy), default g=sqrt(2).
     
-        yvec (list/array): of y-coordinates at which to calculate the Q function
+    Returns
+    --------
+    Q : array
+        Values representing the Q-function calculated over the specified range [xvec,yvec].
     
-        g (float): scaling factor for a = 0.5*g*(x+iy), default g=sqrt(2)
-    
-    Returns:
-    
-        array returns array of values representing the Q function calculated 
-        over the specified range [xvec,yvec].
     """
     X,Y = meshgrid(xvec, yvec)
     amat = 0.5*g*(X + Y * 1j);
@@ -134,7 +144,9 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
 # |alpha> = the coherent state with amplitude alpha
 #
 def qfunc1(psi, alpha_mat):
-
+    """
+    private function used by qfunc
+    """
     n = prod(psi.shape)
     if isinstance(psi, Qobj):
         psi = array(psi.trans().full())[0,:]
