@@ -713,7 +713,7 @@ class Qobj():
         
         
         """
-        if isinstance(inpt, list):
+        if isinstance(inpt, list) or isinstance(inpt, ndarray):       
             if len(inpt) != self.shape[0] and len(inpt) != self.shape[1]:
                 raise TypeError('Invalid size of ket list for basis transformation')
             S = matrix([inpt[n].full()[:,0] for n in xrange(len(inpt))]).H
@@ -730,7 +730,7 @@ class Qobj():
         out.shape=[self.shape[1],self.shape[0]]
         out.isherm=self.isherm
         out.type=self.type
-
+        
         # transform data
         if inverse:
             if isket(self):

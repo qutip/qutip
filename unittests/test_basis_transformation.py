@@ -40,13 +40,9 @@ class TestBasisTransformations(unittest.TestCase):
         """
 
         H1 = rand() * sigmax() + rand() * sigmay() + rand() * sigmaz()
-        ekets, evals = H1.eigenstates()
+        evals, ekets = H1.eigenstates()
         Heb = H1.transform(ekets)       # eigenbasis (should be diagonal)
         H2 = Heb.transform(ekets, True) # back to original basis
-        
-        #print "H1 =\n", H1
-        #print "H2 =\n", H2        
-        
         self.assertTrue((H1 - H2).norm() < 1e-6)
 
 
@@ -57,7 +53,7 @@ class TestBasisTransformations(unittest.TestCase):
         N = 10
         H1 = Qobj((0.5-rand(N,N)))
         H1 = H1 + H1.dag()
-        ekets, evals = H1.eigenstates()
+        evals, ekets = H1.eigenstates()
         Heb = H1.transform(ekets)       # eigenbasis (should be diagonal)
         H2 = Heb.transform(ekets, True) # back to original basis
         self.assertTrue((H1 - H2).norm() < 1e-6)
@@ -70,7 +66,7 @@ class TestBasisTransformations(unittest.TestCase):
         N = 10
         H1 = Qobj((0.5-rand(N,N)) + 1j*(0.5-rand(N,N)))
         H1 = H1 + H1.dag()
-        ekets, evals = H1.eigenstates()
+        evals, ekets = H1.eigenstates()
         Heb = H1.transform(ekets)       # eigenbasis (should be diagonal)
         H2 = Heb.transform(ekets, True) # back to original basis
         self.assertTrue((H1 - H2).norm() < 1e-6)    
@@ -83,7 +79,7 @@ class TestBasisTransformations(unittest.TestCase):
         N = 10
         H1 = Qobj(1j*(0.5-rand(N,N)))
         H1 = H1 + H1.dag()
-        ekets, evals = H1.eigenstates()
+        evals, ekets = H1.eigenstates()
         Heb = H1.transform(ekets)       # eigenbasis (should be diagonal)
         H2 = Heb.transform(ekets, True) # back to original basis
         self.assertTrue((H1 - H2).norm() < 1e-6)    
