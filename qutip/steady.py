@@ -16,6 +16,12 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
+"""
+Module contains functions for iteratively solving for the steady state density matrix
+of an open qunatum system defind by a Louvillian.
+
+"""
+
 from scipy import prod, finfo
 import scipy.sparse as sp
 import scipy.linalg as la
@@ -27,27 +33,42 @@ from qutip.operators import qeye
 from qutip.rand import rand_ket
 from qutip.sparse import sp_inf_norm
 import qutip.settings as qset
-# ------------------------------------------------------------------------------
-# 
-def steadystate(H, c_op_list,maxiter=100,tol=1e-6):
-    """
-    Calculate the steady state for the evolution subject to the 
-    supplied Hamiltonian and lsit of collapse operators. 
-    Does nothing more than form the Louvillian for you and call steady.
+
+def steadystate(H, c_op_list,maxiter=100,tol=1e-6,method='solve'):
+    """Calculates the steady state for the evolution subject to the 
+    supplied Hamiltonian and list of collapse operators. 
     
-    Args:
+    This function builds the Louvillian from the Hamiltonaian and
+    calls the :func:`qutip.steady.steady` function.
     
-        `H` (:class:`qutip.Qobj`) Hamiltonian operator.
+    Parameters
+    ----------
+    H : qobj 
+        Hamiltonian operator.
         
-        `c_op_list` (list of :class:`qutip.Qobj`) List of collapse operators.
+    c_op_list : list 
+        A ``list`` of collapse operators.
         
-        `maxiter` (*int*) Max number of iterations to perform, default = 100.
+    maxiter : int 
+        Maximum number of iterations to perform, default = 100.
         
-        `tol` (*float*) Tolerance, default = 1e-6
+    tol : float 
+        Tolerance used by iterative solver, default = 1e-6.
+        
+    method : str
+        Method for solving linear equations. Direct solver 'solve' (default) or 
+        iterative biconjugate gradient method 'bicg'.
     
-    Returns:
+    Returns
+    -------
+    dm : qobj 
+        Density matrix for steady state.
     
-        a :class:`qutip.Qobj` instance representing the steady state of system.
+    Notes
+    -----
+    Uses the inverse power method.
+    See any Linear Algebra book with an iterative methods section.
+    
     """
     n_op = len(c_op_list)
 
@@ -55,23 +76,37 @@ def steadystate(H, c_op_list,maxiter=100,tol=1e-6):
         raise ValueError('Cannot calculate the steady state for a nondissipative system (no collapse operators given)')
 
     L = liouvillian(H, c_op_list)
-    return steady(L,maxiter,tol)
+    return steady(L,maxiter,tol,method)
 
 def steady(L,maxiter=100,tol=1e-6,method='solve'):
-	"""
-	Calculate the steady state for the evolution subject to the 
-	supplied Louvillian using the inverse power method. 
-	See any Linear Algebra book with a iterative methods.
+	"""Steady state for the evolution subject to the 
+	supplied Louvillian.
     
-    Arguments:
-    
-        `L` (:class:`qutip.Qobj`) Liouvillian superoperator.
+    Parameters
+    ----------
+    L : qobj
+        Liouvillian superoperator.
               
-        `maxiter` (*int*) Max number of iterations to perform, default = 100.
-        
-        `tol` (*float*) Tolerance, default = 1e-6
+    maxiter : int 
+        Maximum number of iterations to perform, default = 100.
+
+    tol : float 
+        Tolerance used by iterative solver, default = 1e-6.
     
-    Returns a :class:`qutip.Qobj` instance representing the steady state of system.
+    method : str
+        Method for solving linear equations. Direct solver 'solve' (default) or 
+        iterative biconjugate gradient method 'bicg'.
+    
+    Returns
+    --------
+    dm : qobj
+        Density matrix for steady state.
+    
+    Notes
+    -----
+    Uses the inverse power method. 
+    See any Linear Algebra book with an iterative methods section.
+    
     """
 	eps=finfo(float).eps
 	if (not isoper(L)) & (not issuper(L)):
