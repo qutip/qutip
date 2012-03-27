@@ -16,33 +16,41 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
+"""
+Module for the creation of composite quantum
+objects via the tensor product.
+
+"""
 from scipy import *
 import scipy.sparse as sp
 from scipy.linalg import *
 from qutip.Qobj import Qobj
 from qutip.tidyup import tidyup
+import qutip.settings
+
 def tensor(*args):
-    """
-    Calculate the tensor product of input operators. 
+    """Calculates the tensor product of input operators. 
     
-    Args:
-    
-        args (list/array of Qobj's): list or array of quantum objects for tensor product.
+    Parameters
+    ----------
+    args : array_like 
+        ``list`` or ``array`` of quantum objects for tensor product.
         
-    Returns:
+    Returns
+    --------
+    obj : qobj
+        A composite quantum object.
     
-        a composite Qobj quantum object.
-    
-    Example::
-    
-        >>> tensor([sigmax(), sigmax()])
-        Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
-        Qobj data = 
-        [[ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]
-         [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]
-         [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
-         [ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]]
-    
+    Examples
+    --------    
+    >>> tensor([sigmax(), sigmax()])
+    Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
+    Qobj data = 
+    [[ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]
+     [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]
+     [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
+     [ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]]
+
     """
     if not args:
         raise TypeError("Requires at least one input argument")
@@ -57,7 +65,7 @@ def tensor(*args):
                 shp=qos.shape
                 step=1
             else:
-                dat=sp.kron(dat,qos.data) #sparse Kronecker product
+                dat=sp.kron(dat,qos.data, format='csr') #sparse Kronecker product
                 dim=[dim[0]+qos.dims[0],dim[1]+qos.dims[1]] #append dimensions of Qobjs
                 shp=[dat.shape[0],dat.shape[1]] #new shape of matrix
                 
@@ -73,7 +81,7 @@ def tensor(*args):
                     shp=qos[0].shape
                     step=1
                 else:
-                    dat=sp.kron(dat,qos[0].data) #sparse Kronecker product
+                    dat=sp.kron(dat,qos[0].data, format='csr') #sparse Kronecker product
                     dim=[dim[0]+qos[0].dims[0],dim[1]+qos[0].dims[1]] #append dimensions of Qobjs
                     shp=[dat.shape[0],dat.shape[1]] #new shape of matrix
             elif items!=1:
@@ -90,4 +98,7 @@ def tensor(*args):
     out.data=dat
     out.dims=dim
     out.shape=shp
-    return tidyup(Qobj(out)) #returns output Qobj
+    if qutip.settings.auto_tidyup:
+        return Qobj(out).tidyup() #returns tidy Qobj
+    else:
+        return Qobj(out)
