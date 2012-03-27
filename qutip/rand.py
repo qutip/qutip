@@ -22,6 +22,7 @@ The sparsity of the ouput Qobj's is controlled by varing the
 `density` parameter.
 
 """
+from scipy import arcsin,sqrt,pi
 import numpy as np
 from numpy.random import random
 import scipy.linalg as la
