@@ -41,8 +41,6 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     for calculating expectation values. Options for solver are 
     given by the Odeoptions class.
     
-    .. note:: The number of outputs varies.  See below for details!
-    
     Args:
         
         H (Qobj): Hamiltonian.
@@ -161,6 +159,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
 class MC_class():
     """
     Private class for solving Monte-Carlo evolution from mcsolve
+    
     """
     def __init__(self,psi0,tlist,ntraj,c_ops,e_ops,options):
         ##collection of ODE options from Mcoptions class
@@ -328,7 +327,7 @@ class MC_class():
                         mc_alg_out.append(zeros(self.num_times))
                     else:#preallocate complex array of zeros
                         mc_alg_out.append(zeros(self.num_times,dtype=complex))
-                    mc_expect(self.e_ops_data[i],self.e_ops_ind[i],self.e_ops_ptr[i],self.e_ops_isherm[i],self.psi_in)
+                    mc_alg_out[i][0]=mc_expect(self.e_ops_data[i],self.e_ops_ind[i],self.e_ops_ptr[i],self.e_ops_isherm[i],self.psi_in)
             
             #set arguments for input to monte-carlo
             args=(mc_alg_out,self.options,self.psi_in,self.psi_dims,self.psi_shape,self.times,self.num_times,self.seed,
