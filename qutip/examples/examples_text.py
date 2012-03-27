@@ -37,9 +37,10 @@ basic_desc=['Schrodinger Cat state formed from a \nsuperposition of two coherent
 basic_nums=10+arange(len(basic_labels)) #does not start at zero so commandline output numbers match (0=quit in commandline)
 
 #master equation demos
-master_labels=["i-Swap Gate","blank","blank","blank","blank","blank","blank"]
+master_labels=["i-Swap Gate","Vacuum Rabi oscillations","blank","blank","blank","blank","blank"]
 master_desc=["Dissipative i-Swap Gate vs. ideal gate.  Accuracy\nof dissipative gate given by fidelity.",
-            "blank","blank","blank","blank","blank","blank"]
+            "Vacuum Rabi oscillations in the Jaynes-Cummings model with dissipation",
+            "blank","blank","blank","blank","blank"]
 master_nums=20+arange(len(master_labels))
 
 
