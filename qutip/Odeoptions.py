@@ -18,7 +18,7 @@ from __future__ import print_function
 #
 ###########################################################################
 import os
-import qutip.settings
+
 class Odeoptions():
     """
     .. note::
@@ -58,7 +58,7 @@ class Odeoptions():
     
     """
     def __init__(self,atol=1e-8,rtol=1e-6,method='adams',order=12,nsteps=2500,first_step=0,max_step=0,min_step=0,
-                mc_avg=True,tidy=True,num_cpus=qutip.settings.num_cpus,rhs_reuse=False,rhs_filename=None,gui=True):
+                mc_avg=True,tidy=True,num_cpus=0,rhs_reuse=False,rhs_filename=None,gui=True):
         #: Absolute tolerance (default = 1e-8)
         self.atol=atol
         #: Relative tolerance (default = 1e-6)
@@ -84,10 +84,12 @@ class Odeoptions():
         #: Use filename for preexisting RHS function (will default to last compiled function if None & rhs_exists=True)
         self.rhs_filename=rhs_filename
         #: Number of processors to use (mcsolve only)
-        self.num_cpus=num_cpus
-        self.gui=gui
-        if self.num_cpus>int(os.environ['NUM_THREADS']):
-            raise Exception("Requested number of CPU's too large. Max = "+str(int(os.environ['NUM_THREADS'])))
+        if num_cpus:
+            self.num_cpus=num_cpus
+            if self.num_cpus>int(os.environ['NUM_THREADS']):
+                raise Exception("Requested number of CPU's too large. Max = "+str(int(os.environ['NUM_THREADS'])))
+        else:
+            self.num_cpus=0
         #: Use Progressbar (mcsolve only)
         self.gui=gui
     def __str__(self):

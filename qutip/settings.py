@@ -34,7 +34,6 @@ franco=False
 #number of cpus (set at qutip import)
 num_cpus=1
 
-
 def reset():
     from qutip._reset import _reset
     _reset()

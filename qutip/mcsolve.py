@@ -33,7 +33,6 @@ from qutip.cyQ.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
 from Mcdata import Mcdata
 import qutip.settings
-
 def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     """
     Monte-Carlo evolution of a state vector |psi> for a given
@@ -179,6 +178,11 @@ class MC_class():
             else:
                 self.options.gui=False    
         if qutip.settings.qutip_gui=="NONE":self.options.gui=False
+        
+        #set num_cpus to the value given in qutip.settings if none in Odeoptions
+        if not self.options.num_cpus:
+            self.options.num_cpus=qutip.settings.num_cpus
+        
         ##holds instance of the ProgressBar class
         self.bar=None
         ##holds instance of the Pthread class
@@ -268,33 +272,16 @@ class MC_class():
     #########################
     def parallel(self,args,top=None):  
         self.st=datetime.datetime.now() #set simulation starting time
-        if sys.platform[0:3]!="win":
-            pl=Pool(processes=self.cpus)
-            [pl.apply_async(mc_alg_evolve,args=(nt,args),callback=top.callback) for nt in xrange(0,self.ntraj)]
-            pl.close()
-            try:
-                pl.join()
-            except KeyboardInterrupt:
-                print "Cancel all MC threads on keyboard interrupt"
-                pl.terminate()
-                pl.join()
-            return
-        else: # Code for running on Windows (single-cpu only)
-            print "Using Windows: Multiprocessing NOT available."
-            for nt in xrange(self.ntraj):
-                par_return=mc_alg_evolve(nt,args)
-                if self.num_expect==0:
-                    self.psi_out[nt]=array([Qobj(psi,dims=self.psi_dims,shape=self.psi_shape) for psi in par_return[k][0]])
-                else:
-                    self.expect_out[nt]=par_return[1]
-                    self.collapse_times_out[nt]=par_return[2]
-                    self.which_op_out[nt]=par_return[3]
-                self.count+=self.step
-                self.percent=self.count/(1.0*self.ntraj)
-                if self.count/float(self.ntraj)>=self.level:
-                    #calls function to determine simulation time remaining
-                    self.level=_time_remaining(self.st,self.ntraj,self.count,self.level)
-            return
+        pl=Pool(processes=self.cpus)
+        [pl.apply_async(mc_alg_evolve,args=(nt,args),callback=top.callback) for nt in xrange(0,self.ntraj)]
+        pl.close()
+        try:
+            pl.join()
+        except KeyboardInterrupt:
+            print "Cancel all MC threads on keyboard interrupt"
+            pl.terminate()
+            pl.join()
+        return
     def run(self):
         if odeconfig.tflag==1: #compile time-depdendent RHS code
             if not self.options.rhs_reuse:
@@ -334,8 +321,7 @@ class MC_class():
                     self.c_ops_data,self.c_ops_ind,self.c_ops_ptr,
                     self.norm_c_data,self.norm_c_ind,self.norm_c_ptr,
                     self.e_ops_data,self.e_ops_ind,self.e_ops_ptr,self.e_ops_isherm)
-            if (not self.options.gui) or sys.platform[0:3]=="win":
-                print('Starting Monte-Carlo on '+str(self.cpus)+' CPUs:')
+            if not self.options.gui:
                 self.parallel(args,self)
             else:
                 if qutip.settings.qutip_gui=="PYSIDE":
