@@ -71,7 +71,7 @@ Master Equation
 -----------------
 
 .. automodule:: qutip.odesolve
-    :members: mesolve
+    :members: mesolve, odesolve
 
 Monte Carlo Evolution
 -----------------------
@@ -83,7 +83,7 @@ Correlation Functions
 -----------------------
 
 .. automodule:: qutip.correlation
-    :members: correlation, correlation_ss
+    :members: correlation, correlation_ss, spectrum_ss
 
 Exponential Series
 ------------------

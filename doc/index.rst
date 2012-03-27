@@ -18,8 +18,7 @@ QuTiP: The Quantum Toolbox in Python
    examples/examples.rst
    contributors.rst
    changelog.rst
-   classes.rst 
-   functions.rst
+   apidoc/apidoc.rst
 
 
 Indices and tables
