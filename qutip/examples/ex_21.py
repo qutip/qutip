@@ -1,21 +1,6 @@
-#This file is part of QuTIP.
 #
-#    QuTIP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+# Vacuum Rabi oscillations in the Jaynes-Cummings model with dissipation
 #
-#    QuTIP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU General Public License
-#    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
-#
-# Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
-#
-###########################################################################
 from qutip.states import *
 from qutip.Qobj import *
 from qutip.tensor import *
@@ -24,17 +9,10 @@ from qutip.operators import *
 from qutip.expect import *
 from qutip.correlation import *
 from pylab import *
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
 
-#
-# run the example
-#
 def run():
 
-    #
     # Configure parameters
-    #
     wc = 1.0  * 2 * pi  # cavity frequency
     wa = 1.0  * 2 * pi  # atom frequency
     g  = 0.05 * 2 * pi  # coupling strength
