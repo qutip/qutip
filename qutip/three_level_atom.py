@@ -36,10 +36,15 @@ for any of the three configurations::
          |                 /        --------           \ /
       -------|one>      -------      |three>         -------
                          |one>                       |two>
-   
-The naming of qutip operators follows the convention in the book "The
-Theory of Coherent Atomic excitation" by B. W. Shore.
+References
+----------
+The naming of qutip operators follows the convention in [1]_ .
 
+.. [1] Shore, B. W., "The Theory of Coherent Atomic Excitation",
+   Wiley, 1990.
+
+Notes
+-----
 Contributed by Markus Baden, Oct. 07, 2011
 
 '''
@@ -48,24 +53,26 @@ from qutip.states import qutrit_basis
 from scipy import array
 
 def three_level_basis():
-    ''' 
-    Return the basis states for a three level atom
+    ''' Basis states for a three level atom.
     
-    Returns:
+    Returns
+    -------
+    states : array
+        ``array`` of three level atom basis vectors.
     
-        array of three level atom basis vectors
     '''
     # A three level atom has the same representation as a qutrit, i.e.
     # three states
     return qutrit_basis()
 
 def three_level_ops():
-    ''' 
-    Return the operators for a three level system (qutrit)
+    ''' Operators for a three level system (qutrit)
     
-    Returns:
+    Returns
+    --------
+    ops : array
+        ``array`` of three level operators.
     
-        array of three level operators
     '''
     one, two, three = qutrit_basis()
     # Note that the three level operators are different
