@@ -467,10 +467,10 @@ class Qobj():
             The requested norm of the operator or state quantum object.
         
         
-        .. note::
-        
-            The sparse eigensolver is much slower than the dense version.  Use sparse 
-            only if memory requirements demand it.
+        Notes
+        ----- 
+        The sparse eigensolver is much slower than the dense version.  
+        Use sparse only if memory requirements demand it.
         
         """
         if self.type=='oper' or self.type=='super':
@@ -574,10 +574,10 @@ class Qobj():
         TypeError
             Quantum object is not square.
             
-        .. note::
-        
-            The sparse eigensolver is much slower than the dense version.  Use sparse 
-            only if memory requirements demand it.
+        Notes
+        -----
+        The sparse eigensolver is much slower than the dense version.  
+        Use sparse only if memory requirements demand it.
         
         """
         if self.dims[0][0]==self.dims[1][0]:
@@ -635,10 +635,10 @@ class Qobj():
         oper: qobj
            Quantum object representing partial trace with selected components remaining.
         
-        .. note::
-        
-            This function is identical to the :func:`qutip.Qobj.ptrace` function that has been
-            depreciated.
+        Notes
+        -----
+        This function is identical to the :func:`qutip.Qobj.ptrace` function that has been
+        depreciated.
         
         """
         qdata,qdims,qshape=_ptrace(self,sel)
@@ -707,7 +707,9 @@ class Qobj():
             Operator in new basis.
         
         
-        .. note:: work in progress
+        Notes
+        -----
+        This function is still in development.
         
         
         """
@@ -826,10 +828,10 @@ class Qobj():
             Array of quantum operators representing the oprator eigenkets.
             Order of eigenkets is determined by order of eigenvalues.
         
-        .. note::
-
-            The sparse eigensolver is much slower than the dense version.  Use sparse 
-            only if memory requirements demand it.
+        Notes
+        -----
+        The sparse eigensolver is much slower than the dense version.  
+        Use sparse only if memory requirements demand it.
         
         """
         evals,evecs = sp_eigs(self,sparse=sparse,sort=sort,eigvals=eigvals,tol=tol,maxiter=maxiter)
@@ -870,10 +872,10 @@ class Qobj():
         eigvals: array
             Array of eigenvalues for operator.
         
-        .. note::
-
-            The sparse eigensolver is much slower than the dense version.  Use sparse 
-            only if memory requirements demand it.
+        Notes
+        -----
+        The sparse eigensolver is much slower than the dense version.  
+        Use sparse only if memory requirements demand it.
         
         """
         return sp_eigs(self,vecs=False,sparse=sparse,sort=sort,eigvals=eigvals,tol=tol,maxiter=maxiter)
@@ -906,10 +908,10 @@ class Qobj():
         eigvec : qobj
             Eigenket for the ground state of quantum operator.
         
-        .. note::
-
-            The sparse eigensolver is much slower than the dense version.  Use sparse 
-            only if memory requirements demand it.
+        Notes
+        -----
+        The sparse eigensolver is much slower than the dense version.  
+        Use sparse only if memory requirements demand it.
         
         """
         grndval,grndvec=sp_eigs(self,sparse=sparse,eigvals=1,tol=tol,maxiter=maxiter)
@@ -991,16 +993,22 @@ def qobj_list_evaluate(qobj_list, t, args):
 #
 #
 def dag(inQobj):
-    """
-    Returns the adjont operator (dagger) of a given quantum object.
+    """Adjont operator (dagger) of a quantum object.
     
-    Args:
+    Parameters
+    ----------
+    inQobj : qobj 
+        Input quantum object.
     
-        inQobj(Qobj): input quantum object
+    Returns
+    ------- 
+    oper : qobj
+        Adjoint of input operator
     
-    Returns: 
-    
-        Qobj adjoint of input operator
+    Notes
+    -----
+    This function is for compatibility with the qotoolbox only.
+    It is recommended to use the ``dag()`` Qobj method.
     
     """
     if not isinstance(inQobj,Qobj): #checks for Qobj
@@ -1027,9 +1035,9 @@ def ptrace(Q,sel):
     oper: qobj
        Quantum object representing partial trace with selected components remaining.
     
-    .. note:: 
-    
-        Depreciated in QuTiP 2.0.
+    Notes
+    ----- 
+    Depreciated in QuTiP v. 2.0.
     
     """
     return Q.ptrace(sel)
@@ -1053,10 +1061,10 @@ def dims(inpt):
     dims : list 
         A ``list`` of the quantum objects dimensions.
     
-    .. note::
-        
-        This function is for compatibility with the qotoolbox only.
-        Using the `Qobj.dims` attribute is recommended.
+    Notes
+    -----
+    This function is for compatibility with the qotoolbox only.
+    Using the `Qobj.dims` attribute is recommended.
     
     
     """
@@ -1079,10 +1087,10 @@ def shape(inpt):
     shape : list 
         A ``list`` of the quantum objects shape.
     
-    .. note::
-
-        This function is for compatibility with the qotoolbox only.
-        Using the `Qobj.dims` attribute is recommended.
+    Notes
+    -----
+    This function is for compatibility with the qotoolbox only.
+    Using the `Qobj.dims` attribute is recommended.
     
     """
     from scipy import shape as shp
