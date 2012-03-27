@@ -7,7 +7,7 @@ from qutip import *
 from pylab import *
 import time
 
-gamma1 = 0.15          # relaxation rate
+gamma1 = 0.0015          # relaxation rate
 gamma2 = 0.0           # dephasing  rate
 
 
@@ -76,8 +76,10 @@ def qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
     temp = 25e-3
     w_th = temp * (1.38e-23 / 6.626e-34) * 2 * pi * 1e-9   
     
+    f_modes_table_t = floquet_modes_table(f_modes_0, f_energies, linspace(0, T, 500+1), H, T, args) 
+    
     # calculate the rate-matrices for the floquet-markov master equation
-    Delta, X, Gamma, Amat = floquet_master_equation_rates(f_modes_0, f_energies, sx, H, T, args, J_cb, w_th, kmax)
+    Delta, X, Gamma, Amat = floquet_master_equation_rates(f_modes_0, f_energies, sx, H, T, args, J_cb, w_th, kmax, f_modes_table_t)
    
     # the floquet-markov master equation tensor
     R = floquet_master_equation_tensor(Amat, f_energies)
@@ -91,12 +93,13 @@ def qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
     
         # unitary floquet evolution
         psi_t = floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args)            
-        expt_list3[0][idx] = expect(sm.dag() * sm, psi_t)
+        expt_list3[0][idx] = expect(sm.dag() * sm, psi_t) 
         
         # the rho_list returned by the floquet master equation is defined in the
         # floquet basis, so to transform it back to the computational basis
         # before we calculate expectation values.
-        f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, args)
+        #f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, args)
+        f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T) 
         expt_list4[0][idx] = expect((sm.dag() * sm), rho_list[idx].transform(f_modes_t, False)) 
     
     print 'Method 3+4: time elapsed = ' + str(time.time() - start_time)      
@@ -114,9 +117,9 @@ def qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
 #
 delta = 0.0 * 2 * pi   # qubit sigma_x coefficient
 eps0  = 1.0 * 2 * pi   # qubit sigma_z coefficient
-A     = 0.1 * 2 * pi   # driving amplitude (reduce to make the RWA more accurate)
+A     = 0.05 * 2 * pi   # driving amplitude (reduce to make the RWA more accurate)
 w     = 1.0 * 2 * pi   # driving frequency
-psi0 = basis(2,1)      # initial state
+psi0 = (0.3*basis(2,0)+0.7*basis(2,1)).unit()      # initial state
 
 tlist = linspace(0, 30.0, 500)
 

@@ -51,7 +51,7 @@ def sd_qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
 
 
     # evolve and calculate expectation values
-    expt_list = odesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
+    expt_list = mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
 
     T = 2 * pi / w
 
@@ -71,8 +71,8 @@ eps0  = 1.0  * 2 * pi   # qubit sigma_z coefficient
 A     = 0.05 * 2 * pi   # driving amplitude (sigma_x coupled)
 w     = 1.0  * 2 * pi   # driving frequency
 
-gamma1 = 0.05          # relaxation rate
-gamma2 = 0.0           # dephasing  rate
+gamma1 = 0.15          # relaxation rate
+gamma2 = 0.05           # dephasing  rate
 
 # intial state
 psi0 = basis(2,0)

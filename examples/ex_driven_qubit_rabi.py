@@ -49,13 +49,13 @@ def qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
         c_op_list.append(sqrt(rate) * sz)
 
     # evolve and calculate expectation values
-    expt_list1 = odesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
+    expt_list1 = mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
 
     # Alternative: write the hamiltonian in a rotating frame, and neglect the
     # the high frequency component (rotating wave approximation), so that the
     # resulting Hamiltonian is time-independent.
     H_rwa = - delta/2.0 * sx - A * sx / 2
-    expt_list2 = odesolve(H_rwa, psi0, tlist, c_op_list, [sm.dag() * sm])  
+    expt_list2 = mesolve(H_rwa, psi0, tlist, c_op_list, [sm.dag() * sm])  
 
     return expt_list1[0], expt_list2[0]
     
@@ -68,7 +68,7 @@ A     = 0.25 * 2 * pi  # driving amplitude (reduce to make the RWA more accurate
 w     = 1.0 * 2 * pi   # driving frequency
 gamma1 = 0.0           # relaxation rate
 gamma2 = 0.0           # dephasing  rate
-psi0 = basis(2,1)      # initial state
+psi0 = (0.3*basis(2,0)+0.7*basis(2,1)).unit()      # initial state
 
 tlist = linspace(0, 5.0 * 2 * pi / A, 500)
 

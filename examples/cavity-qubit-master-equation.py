@@ -25,10 +25,10 @@ def ode_prob(E,kappa,gamma,g,wc,w0,wl,N,tlist):
 
     #intial state
     psi0 = tensor(basis(N,0),basis(2,1))
-    rho0 = psi0 * trans(psi0);
+    rho0 = psi0.dag() * psi0;
 
     # evolve and calculate expectation values
-    expt_list = odesolve(H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a])  
+    expt_list = mesolve(H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a])  
 
     return expt_list[0], expt_list[1], expt_list[2]
     

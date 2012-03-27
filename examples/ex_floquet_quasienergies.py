@@ -51,29 +51,21 @@ def qubit_integrate(delta, eps0_vec, A, omega, gamma1, gamma2, psi0, T, option):
     f_gnd_prob     = zeros((len(eps0_vec), 2))
     wf_gnd_prob    = zeros((len(eps0_vec), 2))
 
-    idx = 0
-    #for A in A_vec:
-    for eps0 in eps0_vec:
+    for idx, eps0 in enumerate(eps0_vec):
 
         H0 = - delta/2.0 * sx - eps0/2.0 * sz
         H1 = A/2.0 * sz
        
         # H = H0 + H1 * sin(w * t) in the 'list-string' format
         H = [H0, [H1, 'sin(w * t)']]
-        #Hargs = {'H0': H0, 'H1': H1, 'w': omega}
-        #H = [H0, [H1, H1_coeff_t]]
         Hargs = {'w': omega}
             
-        # find the propagator for one driving period
+        # find the floquet modes
         f_modes,f_energies = floquet_modes(H, T, Hargs)
-        #f_modes,f_energies = floquet_modes(hamiltonian_t, T, Hargs)
 
         print "Floquet quasienergies[",idx,"] =", f_energies
 
         quasi_energies[idx,:] = f_energies
-
-        #print "Floquet state 0 =", f_states_0[0]
-        #print "Floquet state 1 =", f_states_0[1]        
 
         f_gnd_prob[idx, 0] = expect(sm.dag() * sm, f_modes[0])
         f_gnd_prob[idx, 1] = expect(sm.dag() * sm, f_modes[1])
@@ -82,10 +74,6 @@ def qubit_integrate(delta, eps0_vec, A, omega, gamma1, gamma2, psi0, T, option):
 
         wf_gnd_prob[idx, 0] = expect(sm.dag() * sm, f_states[0])
         wf_gnd_prob[idx, 1] = expect(sm.dag() * sm, f_states[1])
-
-        #print "Floquet initial states =", f_states_0
-
-        idx += 1
         
     return quasi_energies, f_gnd_prob, wf_gnd_prob
     

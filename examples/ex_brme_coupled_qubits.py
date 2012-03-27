@@ -37,7 +37,7 @@ def qubit_integrate(w, theta, g, gamma1, gamma2, psi0, tlist):
     #rate = gamma1[1] * n_th
     #if rate > 0.0: c_op_list.append(sqrt(rate) * sm2.dag())
         
-    lme_results = odesolve(H, psi0, tlist, c_op_list, [sx1, sy1, sz1])  
+    lme_results = mesolve(H, psi0, tlist, c_op_list, [sx1, sy1, sz1])  
 
     L = liouvillian(H, c_op_list)
     #print "L.re =\n", real(L.full())

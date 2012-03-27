@@ -59,7 +59,7 @@ def integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver):
 
     # evolve and calculate expectation values
     if solver == "ode":
-        expt_list = odesolve(H, psi0, tlist, c_op_list, sz_list)
+        expt_list = mesolve(H, psi0, tlist, c_op_list, sz_list)
     elif solver == "mc":
         ntraj = 250 
         mc_out = mcsolve(H, psi0, tlist, c_op_list, sz_list, ntraj)

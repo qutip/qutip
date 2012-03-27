@@ -2,9 +2,9 @@ from qutip import *
 from pylab import *
 import time
 #number of states for each mode
-N0=11
-N1=11
-N2=11
+N0=8
+N1=8
+N2=8
 K=1.0
 #damping rates
 gamma0=0.1
@@ -37,7 +37,8 @@ psi0=D*vacuum
 H=1j*K*(a0*a1.dag()*a2.dag()-a0.dag()*a1*a2)
 #run Monte-Carlo
 start_time=time.time()
-avg=mcsolve(H,psi0,taulist,ntraj,[C0,C1,C2],[num0,num1,num2])
+#avg=mcsolve(H,psi0,taulist,ntraj,[C0,C1,C2],[num0,num1,num2])
+avg=mesolve(H,psi0,taulist,[C0,C1,C2],[num0,num1,num2])
 finish_time=time.time()
 print 'time elapsed = ',finish_time-start_time
 #plot expectation value for photon number in each mode

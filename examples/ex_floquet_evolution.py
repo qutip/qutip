@@ -101,6 +101,6 @@ xlabel('Time')
 ylabel('Probability')
 title('Stroboscopic time-evolution with Floquet states')
 legend(("ode $P_1$", "ode $P_0$", "Floquet $P_1$", "Floquet $P_0$"))
-savefig('examples-floquet-evolution.png')
+#savefig('examples-floquet-evolution.png')
 show()
 

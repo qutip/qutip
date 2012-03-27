@@ -49,7 +49,7 @@ def qubit_integrate(delta, eps0, A, omega, psi0, tlist):
     e_0 = zeros(shape(tlist))
     e_1 = zeros(shape(tlist))
          
-    f_modes_table_t = floquet_modes_period_t(f_modes_0, f_energies, tlist, H, T, H_args) 
+    f_modes_table_t = floquet_modes_table(f_modes_0, f_energies, tlist, H, T, H_args) 
 
     for idx, t in enumerate(tlist):
         #f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, H_args) 

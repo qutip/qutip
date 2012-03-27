@@ -28,7 +28,7 @@ def qubit_integrate(w, theta, gamma1, gamma2, psi0, tlist):
     if rate > 0.0:
         c_op_list.append(sqrt(rate) * sz)
     # evolve and calculate expectation values
-    expt_list = odesolve(H, psi0, tlist, c_op_list, [sx, sy, sz])  
+    expt_list = mesolve(H, psi0, tlist, c_op_list, [sx, sy, sz])  
     return expt_list[0], expt_list[1], expt_list[2]
     
 #
@@ -36,12 +36,12 @@ def qubit_integrate(w, theta, gamma1, gamma2, psi0, tlist):
 #
 w     = 1.0 * 2 * pi   # qubit angular frequency
 theta = 0.2 * pi       # qubit angle from sigma_z axis (toward sigma_x axis)
-gamma1 = 0.1      # qubit relaxation rate
+gamma1 = 0.5      # qubit relaxation rate
 gamma2 = 0.2      # qubit dephasing rate
 # initial state
 a = 1.0
 psi0 = (a* basis(2,0) + (1-a)*basis(2,1))/(sqrt(a**2 + (1-a)**2))
-tlist = linspace(0,15,1000)
+tlist = linspace(0,150,1000)
 start_time = time.time()
 sx, sy, sz = qubit_integrate(w, theta, gamma1, gamma2, psi0, tlist)
 stop_time = time.time()

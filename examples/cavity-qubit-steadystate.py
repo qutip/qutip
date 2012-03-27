@@ -17,6 +17,7 @@
 #
 ###########################################################################
 from qutip import *
+from pylab import *
 
 def probss(E,kappa,gamma,g,wc,w0,wl,N):
     ida=qeye(N)

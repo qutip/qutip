@@ -46,7 +46,7 @@ def qubit_integrate(delta, eps0, A, gamma1, gamma2, psi0, tlist):
 
     # method 1: function callback which returns the time-depdent qobj
     #H_args = (H0, H1)
-    #expt_list = odesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
+    #expt_list = mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
 
     # method 2: a function callback that returns the coefficient for a qobj
     #H = [H0, [H1, lambda x,y: x]]

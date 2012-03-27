@@ -28,44 +28,21 @@ def qubit_integrate(delta, eps0_vec, A, omega, gamma1, gamma2, psi0, T, option):
     sz = sigmaz()
     sm = destroy(2)
 
-    # collapse operators
-    c_op_list = []
-
-    n_th = 0.0 # zero temperature
-
-    # relaxation
-    rate = gamma1 * (1 + n_th)
-    if rate > 0.0:
-        c_op_list.append(sqrt(rate) * sm)
-
-    # excitation
-    rate = gamma1 * n_th
-    if rate > 0.0:
-        c_op_list.append(sqrt(rate) * sm.dag())
-
-    # dephasing 
-    rate = gamma2
-    if rate > 0.0:
-        c_op_list.append(sqrt(rate) * sz)
-
     quasi_energies = zeros((len(eps0_vec), 2))
     f_gnd_prob     = zeros((len(eps0_vec), 2))
     wf_gnd_prob    = zeros((len(eps0_vec), 2))
-    ss_prob        = zeros(len(eps0_vec))
+    ss_prob1        = zeros(len(eps0_vec))
+    ss_prob2        = zeros(len(eps0_vec))
 
     Hargs = {'w': omega}
 
-    idx = 0
-    #for A in A_vec:
-    for eps0 in eps0_vec:
+    for idx, eps0 in enumerate(eps0_vec):
 
         H0 = - delta/2.0 * sx - eps0/2.0 * sz
         H1 = A/2.0 * sz
         H = [H0, [H1, 'sin(w * t)']]
             
         f_modes,f_energies = floquet_modes(H, T, Hargs)
-
-        print "Floquet quasienergies[",idx,"] =", f_energies
 
         quasi_energies[idx,:] = f_energies
 
@@ -78,39 +55,44 @@ def qubit_integrate(delta, eps0_vec, A, omega, gamma1, gamma2, psi0, T, option):
         wf_gnd_prob[idx, 1] = expect(sm.dag() * sm, f_states[1])
 
         c_op = sigmax()
-        kmax = 1
-        temp = 25e-3
+        kmax = 5
+        temp = 0e-3
         w_th = temp * (1.38e-23 / 6.626e-34) * 2 * pi * 1e-9    
         Delta, X, Gamma, Amat = floquet_master_equation_rates(f_modes, f_energies, c_op, H, T, Hargs, J_cb, w_th, kmax)
 
-        rho_ss = floquet_master_equation_steadystate(H0, Amat)
-
-        ss_prob[idx] = expect(sm.dag() * sm, rho_ss.transform(f_modes, True))
-
-        idx += 1
+        rho_ss_fb = floquet_master_equation_steadystate(H0, Amat) # floquet basis
+        rho_ss_cb = rho_ss_fb.transform(f_modes, True) #False           # computational basis
         
-    return quasi_energies, f_gnd_prob, wf_gnd_prob, ss_prob
+        print "="*80
+        print "rho_ss_fb =\n", rho_ss_fb
+        print "rho_ss_cb =\n", rho_ss_cb
+
+        ss_prob1[idx] = expect(sm.dag() * sm, rho_ss_fb)
+        ss_prob2[idx] = expect(sm.dag() * sm, rho_ss_cb)
+
+        
+    return quasi_energies, f_gnd_prob, wf_gnd_prob, ss_prob1, ss_prob2
     
 #
 # set up the calculation: a strongly driven two-level system
 # (repeated LZ transitions)
 #
-delta = 0.2 * 2 * pi  # qubit sigma_x coefficient
-eps0  = 0.5 * 2 * pi  # qubit sigma_z coefficient
+delta = 0.1 * 2 * pi  # qubit sigma_x coefficient
+eps0  = 1.0 * 2 * pi  # qubit sigma_z coefficient
 gamma1 = 0.0        # relaxation rate
 gamma2 = 0.0         # dephasing  rate
 A      = 2.0 * 2 * pi 
 psi0   = basis(2,0)    # initial state
-omega  = 1.0 * 2 * pi # driving frequency
+omega  = sqrt(delta**2 + eps0**2) # driving frequency
 T      = (2*pi)/omega  # driving period
 
-param  = linspace(-5.0, 5.0, 200) * 2 * pi 
+param  = linspace(-2.0, 2.0, 100) * 2 * pi 
 
 eps0 = param
 
 
 start_time = time.time()
-q_energies, f_gnd_prob, wf_gnd_prob, ss_prob = qubit_integrate(delta, eps0, A, omega, gamma1, gamma2, psi0, T, "dynamics")
+q_energies, f_gnd_prob, wf_gnd_prob, ss_prob1, ss_prob2 = qubit_integrate(delta, eps0, A, omega, gamma1, gamma2, psi0, T, "dynamics")
 print 'dynamics: time elapsed = ' + str(time.time() - start_time) 
 
 
@@ -136,7 +118,8 @@ ylabel('Occ. prob.')
 title('Floquet states excitation probability')
 
 figure(4)
-plot(param, real(ss_prob), 'b')
+plot(param, real(ss_prob1), 'r')
+plot(param, real(ss_prob2), 'b')
 xlabel('A or e')
 ylabel('Occ. prob. in steady state')
 title('Steady state excitation probability')

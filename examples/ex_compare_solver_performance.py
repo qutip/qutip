@@ -34,9 +34,9 @@ def system_integrate(Na, Nb, wa, wb, wab, ga, gb, solver):
         c_op_list.append(sqrt(rate) * b)
 
     if solver == "me":
-        expt_list = odesolve(H, psi0 * psi0.dag(), tlist, c_op_list, [na, nb])
+        expt_list = mesolve(H, psi0 * psi0.dag(), tlist, c_op_list, [na, nb])
     elif solver == "wf":
-        expt_list = odesolve(H, psi0, tlist, [], [na, nb])
+        expt_list = mesolve(H, psi0, tlist, [], [na, nb])
     elif solver == "es":
         expt_list = essolve(H, psi0, tlist, c_op_list, [na, nb])
     elif solver == "mc1":

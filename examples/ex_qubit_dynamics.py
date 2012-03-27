@@ -26,7 +26,7 @@ def qubit_integrate(epsilon, delta, g1, g2, solver):
         c_op_list.append(sqrt(rate) * sigmaz())
 
     if solver == "ode":
-        expt_list = odesolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])  
+        expt_list = mesolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])  
     elif solver == "es":
         expt_list = essolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])  
     elif solver == "mc":

@@ -39,7 +39,7 @@ def jc_integrate(N, wc, wa, g, kappa, gamma, psi0, use_rwa, tlist):
         c_op_list.append(sqrt(rate) * sm)
 
     # evolve and calculate expectation values
-    expt_list = odesolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
+    expt_list = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
 
     # or use the MC solver
     #ntraj = 100
@@ -54,22 +54,23 @@ wc = 1.0 * 2 * pi   # cavity frequency
 wa = 1.0 * 2 * pi   # atom frequency
 g  = 0.05 * 2 * pi  # coupling strength
 
-kappa = 0.005       # cavity dissipation rate
-gamma = 0.05        # atom dissipation rate
+kappa = 0.05       # cavity dissipation rate
+gamma = 0.25        # atom dissipation rate
 
-N = 5               # number of cavity fock states
+N = 20               # number of cavity fock states
 
 use_rwa = True
 
 # intial state
-psi0 = tensor(basis(N,0),    basis(2,1))    # start with an excited atom 
+psi0 = tensor(basis(N,N-1),    basis(2,0))    # start with an excited atom 
 #psi0 = tensor(coherent(N,1), basis(2,0))   # or a coherent state the in cavity
 
 tlist = linspace(0,25,100)
 
 start_time = time.time()
-nc, na = jc_integrate(N, wc, wa, g, kappa, gamma, psi0, use_rwa, tlist)
-print 'time elapsed = ' +str(time.time() - start_time) 
+for n in range(20):
+    nc, na = jc_integrate(N, wc, wa, g, kappa, gamma, psi0, use_rwa, tlist)
+print('time elapsed = ' +str(time.time() - start_time))
 
 plot(tlist, nc)
 plot(tlist, na)
@@ -77,7 +78,7 @@ legend(("Cavity", "Atom excited state"))
 xlabel('Time')
 ylabel('Occupation probability')
 title('Vacuum Rabi oscillations')
-savefig("jc_model_rabi_oscillations.png")
+#savefig("jc_model_rabi_oscillations.png")
 show()
 
 

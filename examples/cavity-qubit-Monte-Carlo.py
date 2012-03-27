@@ -4,6 +4,11 @@
 #########
 from qutip import *
 from pylab import *
+
+
+#import os
+#os.environ['QUTIP_GRAPHICS']="NO"
+
 #inital settings
 kappa=2.0 #mirror coupling
 gamma=0.2 #spontaneous emission rate
@@ -36,10 +41,11 @@ Heff=H-0.5j*(C1dC1+C2dC2)
 ntraj=500
 
 start_time=time.time()
-
-avg=mcsolve(H,psi0,tlist,ntraj,[C1,C2],[C1dC1,C2dC2])
+avg=mcsolve(H,psi0,tlist,[C1,C2],[C1dC1,C2dC2],ntraj)
+elapsed_time=time.time() - start_time
+print("elapsed time =", elapsed_time)
 #plot results
-plot(tlist,avg[0],tlist,avg[1],'--')
+plot(tlist,avg.expect[0],tlist,avg.expect[1],'--')
 xlabel('Time')
 ylabel('Photocount rates')
 legend(('Cavity ouput', 'Spontaneous emission') )

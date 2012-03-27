@@ -47,7 +47,7 @@ def qubit_integrate(delta, eps0, A, omega, gamma1, gamma2, psi0, tlist, option):
 
     if option == "dynamics":
         # evolve and calculate expectation values
-        expt_list = odesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
+        expt_list = mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
 
         return expt_list[0]
 
