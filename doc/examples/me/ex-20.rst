@@ -1,0 +1,12 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exme20:
+
+Two-qubit i-SWAP Gate
+=====================
+
+Dissipative i-Swap Gate vs. ideal gate. The accuracy of dissipative gate given by the fidelity.
+
+.. plot:: ../qutip/qutip/examples/ex_20.py
+	:include-source:

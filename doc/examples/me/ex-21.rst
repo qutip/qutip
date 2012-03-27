@@ -1,0 +1,13 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exme21:
+
+Vacuum Rabi oscillations in the Jaynes-Cummings model
+=====================================================
+
+Illustrates the vacuum Rabi oscillations in the Jaynes-Cummings model with
+dissipation.
+
+.. plot:: ../qutip/qutip/examples/ex_21.py
+	:include-source:

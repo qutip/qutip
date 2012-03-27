@@ -27,4 +27,5 @@ If you do not have any graphics libraries installed, or they are disabled, then 
    :maxdepth: 2
    
    ex-basic.rst
+   ex-master-equation.rst
 
