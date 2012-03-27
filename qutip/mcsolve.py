@@ -237,7 +237,7 @@ class MC_class():
                 ##List of output expectation values calculated at times in tlist
                 self.expect_out=[]
                 for i in xrange(self.num_expect):
-                    if self.e_ops[i].isherm:#preallocate real array of zeros
+                    if self.e_ops_isherm[i]:#preallocate real array of zeros
                         self.expect_out.append(zeros(self.num_times))
                     else:#preallocate complex array of zeros
                         self.expect_out.append(zeros(self.num_times,dtype=complex))
@@ -314,7 +314,7 @@ class MC_class():
             if self.num_expect==0:# return psi Qobj at each requested time 
                 self.psi_out=no_collapse_psi_out(self.options,self.psi_in,self.times,self.num_times,self.psi_dims,self.psi_shape,self.psi_out)
             else:# return expectation values of requested operators
-                self.expect_out=no_collapse_expect_out(self.options,self.psi_in,self.times,self.e_ops_data,self.e_ops_ind,self.e_ops_ptr,self.num_times,self.psi_dims,self.psi_shape,self.expect_out)
+                self.expect_out=no_collapse_expect_out(self.options,self.psi_in,self.times,self.e_ops_data,self.e_ops_ind,self.e_ops_ptr,self.e_ops_isherm,self.num_times,self.psi_dims,self.psi_shape,self.expect_out)
         elif self.num_collapse!=0:
             self.seed=array([int(ceil(random.rand()*1e4)) for ll in xrange(self.ntraj)])
             if self.num_expect==0:
@@ -405,7 +405,7 @@ def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
 
 
 ######---return expectation values at requested times for no collapse operators---######
-def no_collapse_expect_out(opt,psi_in,tlist,e_ops_data,e_ops_ind,e_ops_ptr,num_times,psi_dims,psi_shape,expect_out):
+def no_collapse_expect_out(opt,psi_in,tlist,e_ops_data,e_ops_ind,e_ops_ptr,e_ops_isherm,num_times,psi_dims,psi_shape,expect_out):
     ##Calculates xpect.values at times tlist if no collapse ops. given
     #  
     #------------------------------------
