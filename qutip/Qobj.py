@@ -22,7 +22,7 @@ it's methods.
 """
 
 import types
-from scipy import array,ndarray,zeros,column_stack,dot,frexp,randn,inf,finfo
+from scipy import array,ndarray,zeros,column_stack,dot,frexp,randn,inf,finfo,real,imag
 import scipy.sparse as sp
 import scipy.linalg as la
 import qutip.settings as qset
