@@ -26,19 +26,21 @@ from qutip.operators import destroy
 
 
 def liouvillian(H, c_op_list):
-    """
-    Assembles the Liouvillian superoperator from a Hamiltonian 
-    and a list of collapse operators.
+    """Assembles the Liouvillian superoperator from a Hamiltonian 
+    and a ``list`` of collapse operators.
     
-    Args:
-    
-        H (:class:`qutip.Qobj`): Hamiltonian.
+    Parameters
+    H : qobj
+        System Hamiltonian.
         
-        c_op_list (*list/array* of :class:`qutip.Qobj`): collpase operators.
+    c_op_list : array_like 
+        A ``list`` or ``array`` of collpase operators.
     
-    Returns:
+    Returns
+    -------
+    L : qobj
+        Louvillian superoperator.
     
-        a :class:`qutip.Qobj` instance for Louvillian superoperator.
     """
     L = -1.0j*(spre(H) - spost(H))
     n_op = len(c_op_list)
@@ -77,17 +79,18 @@ def mat2vec_index(N, i, j):
     """
     return i + N * j
 
-def spost(A,*args):
-	"""
-	Super operator formed from post-multiplication by operator A
+def spost(A):
+	"""Superoperator formed from post-multiplication by operator A
 
-    Args:
+    Parameters
+    ----------
+    A : qobj
+        Quantum operator for post multiplication.
     
-        A (:class:`qutip.Qobj`): quantum operator for post multiplication.
-    
-    Returns:
-    
-        :class:`qutip.Qobj` superoperator formed from input qauntum object.
+    Returns
+    -------
+    super : qobj
+       Superoperator formed from input qauntum object.
 	"""
 	if not isoper(A):
 		raise TypeError('Input is not a quantum object')
@@ -101,16 +104,18 @@ def spost(A,*args):
 	
 
 def spre(A):
-	"""
-	Super operator formed from pre-multiplication by operator A.
+	"""Superoperator formed from pre-multiplication by operator A.
     
-    Args:
-        
-        A (:class:`qutip.Qobj`): Quantum operator for pre-multiplication.
+    Parameters
+    ----------
+    A : qobj
+        Quantum operator for pre-multiplication.
     
-    Returns:
+    Returns
+    --------
+    super :qobj
+        Superoperator formed from input quantum object.
     
-        :class:`qutip.Qobj` superoperator formed from input qauntum object.
     """
 	if not isoper(A):
 		raise TypeError('Input is not a quantum object')
