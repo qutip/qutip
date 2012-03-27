@@ -943,6 +943,12 @@ class Qobj():
 # arbitrary value of time. This function provides this functionality.
 #
 #
+
+# we need numpy symbols because the string expressions evaluated by
+# qobj_list_evaluate might call basic functions like sin, cos, exp, etc, which
+# seems to have to be in the global name space
+from numpy import * 
+
 def qobj_list_evaluate(qobj_list, t, args):
     """
     Evaluate a time-dependent qobj in list format. For example,
@@ -964,6 +970,7 @@ def qobj_list_evaluate(qobj_list, t, args):
     Returns:    The Qobj that represents the value of qobj_list at time t.    
     
     """
+       
     q_sum = 0
     if isinstance(qobj_list, Qobj):
         q_sum = qobj_list
