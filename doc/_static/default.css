@@ -387,27 +387,32 @@ div.admonition {
 }
 
 div.danger, div.error {
-    background: #fc22f0;
+    background: #FF0000;/* RGB red */
     min-height: 42px;
 }
 
 div.warning, div.caution, div.attention {
-    background: #d52334;
+    background: #F7977A;/* Pastel red */
     min-height: 42px;
 }
 
-div.note, div.important {
-    background: #e3ef5b;
+div.note {
+    background: #6ECFF6; /* Pastel cyan, blue is too dark */
+    min-height: 42px;
+}
+
+div.important {
+    background: #FFF79A;/* Pastel yellow */
     min-height: 42px;
 }
 
 div.hint, div.tip {
-    background: #a1e147;
+    background: #82CA9D; /* Pastel green */
     min-height: 42px;
 }
 
 div.seealso {
-    background: #c4d09c;
+    background: #A187BE;/* Pastel violet */
     min-height: 42px;
 }
 
