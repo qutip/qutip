@@ -25,7 +25,6 @@ These pages contains automatically generated API documentation for QuTiP. A PDF 
 		  Wako-shi Saitama, 351-0198 Japan
 :version: 2.0
 :status: In Development
-:date: 2012-04-01
 :copyright: This documentation is in the public domain.
 			You may do with it as your heart desires.
 
@@ -43,16 +42,18 @@ which may also be download from http://arxiv.org/abs/1110.0573.
 .. _funding-qutip:
 
 Funding
-==========================
+=======
 
 The development of QuTiP has been partially supported by the Japanese Society for the Promotion of Science Foreign Postdoctoral Fellowship Program under grants P11202 (PDN) and P11501 (JRJ).  Additional funding comes from RIKEN and Kakenhi grant Nos. 2301202 (PDN) and 2302501 (JRJ). 
 
+.. _image-jsps:
+
 .. figure:: figures/jsps.jpg
-   :align: center
    :width: 4in
+   :figclass: align-center
+
+.. _image-riken:
 
 .. figure:: figures/riken-logo.png
-   :align: center
-   :width: 1.5in
-   
-   
+	:width: 1.5in
+	:figclass: align-center
