@@ -22,7 +22,7 @@ it's methods.
 """
 
 import types
-from scipy import array,ndarray,zeros,column_stack,dot,frexp,randn,inf,finfo,real,imag,matrix
+from scipy import *
 import scipy.sparse as sp
 import scipy.linalg as la
 import qutip.settings as qset
@@ -944,10 +944,6 @@ class Qobj():
 #
 #
 
-# we need numpy symbols because the string expressions evaluated by
-# qobj_list_evaluate might call basic functions like sin, cos, exp, etc, which
-# seems to have to be in the global name space
-from numpy import * 
 
 def qobj_list_evaluate(qobj_list, t, args):
     """
