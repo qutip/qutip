@@ -9,5 +9,8 @@ Vacuum Rabi oscillations in the Jaynes-Cummings model
 Illustrates the vacuum Rabi oscillations in the Jaynes-Cummings model with
 dissipation.
 
+This examples introduces the use of bosonic operators (:func:`destroy`, for the 
+annihilation operator) and how to setup the Jaynes-Cummings model.
+
 .. plot:: ../qutip/qutip/examples/ex_21.py
 	:include-source:

@@ -7,7 +7,11 @@ Dynamics of the Wigner distributions for the Jaynes-Cummings model
 ==================================================================
 
 This example demonstrates the generation of Wigner distributions from the
-master equation evolution of the Jaynes-Cummings model.
+master equation evolution of the Jaynes-Cummings model. In particular, it
+introduce the use of the :func:`wigner` to calculate the Wigner distribution
+from a density matrix for a bosonic mode, and the use of :func:`ptrace` to 
+trace out the qubit from the total density matrix (to obtain the density matrix
+for the cavity alone). 
 
 .. plot:: ../qutip/qutip/examples/ex_23.py
 	:include-source:

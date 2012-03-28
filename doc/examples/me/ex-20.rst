@@ -8,5 +8,10 @@ Two-qubit i-SWAP Gate
 
 Dissipative i-Swap Gate vs. ideal gate. The accuracy of dissipative gate given by the fidelity.
 
+This example demonstrates how to create a composite system of two-qubits, define
+dissipation processor for each qubit, and solve for the dynamics of the system
+using the standard Lindblad master equation. It also shows how to obtain expectation
+values of select operators from the dynamics solver.
+
 .. plot:: ../qutip/qutip/examples/ex_20.py
 	:include-source:

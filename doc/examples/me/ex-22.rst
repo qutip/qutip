@@ -11,5 +11,9 @@ Jaynes-Cumming-like system. In addition to the standard Jaynes-Cumming model,
 there is an incoherent pumping that strive to create a population inversion
 in the atom.
 
+This examples demonstrates how reversed relaxation processes (note the
+atomic collapse operators) can be used to introduce incoherent pump processes a
+system.
+
 .. plot:: ../qutip/qutip/examples/ex_22.py
 	:include-source:
