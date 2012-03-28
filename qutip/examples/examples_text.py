@@ -64,9 +64,10 @@ td_desc=["Rabi oscillations of an atom subject to a time-dependent classical dri
          "blank","blank","blank","blank","blank"]
 td_nums=40+arange(len(td_labels))
 
-#bloch-advanced equation demos
-advanced_labels=["blank","blank","blank","blank","blank","blank"]
-advanced_desc=["blank","blank","blank","blank","blank","blank"]
+# advanced equation demos
+advanced_labels=["Nonadiabtic evolution","blank","blank","blank","blank","blank"]
+advanced_desc=["Nonadiabatic transformation from a decoupled to a coupled spin chain.",
+               "blank","blank","blank","blank","blank"]
 advanced_nums=50+arange(len(advanced_labels))
 
 #variables to be sent to Examples GUI
