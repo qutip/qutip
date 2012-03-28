@@ -13,4 +13,6 @@ Master Equation Examples
    me/ex-20.rst
    me/ex-21.rst
    me/ex-22.rst
+   me/ex-23.rst
+   me/ex-24.rst
 

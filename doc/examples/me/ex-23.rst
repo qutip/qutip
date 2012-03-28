@@ -1,0 +1,19 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exme23:
+
+Dynamics of the Wigner distributions for the Jaynes-Cummings model
+==================================================================
+
+This example demonstrates the generation of Wigner distributions from the
+master equation evolution of the Jaynes-Cummings model.
+
+.. plot:: ../qutip/qutip/examples/ex_23.py
+	:include-source:
+	
+The saved images may be used to generate a animation of the dynamics of the 
+Wigner distribution.
+
+.. figure:: examples-jc-model-wigner.gif
+    :align: center
