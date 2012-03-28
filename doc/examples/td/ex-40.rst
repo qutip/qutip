@@ -1,0 +1,21 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exme40:
+
+Rabi oscillations of an atom subject to a time-dependent classical driving field
+================================================================================
+
+The state of an atom subject to a classical driving field oscillates between its
+ground and excited states, a phenomena known as Rabi oscillations. This example
+gives a numerical demonstration of this effect by solving for the dynamics of
+the time-dependent two-level Hamiltonian. This example also demonstrates how the
+*list-string format* is used to define a time-dependent Hamiltonian.
+
+The time-depdendent hamiltonian of the atom with a classical coherent driving
+becomes time-independent in the rotating-frame approximation (RWA). The results
+from evolving the system using the RWA Hamiltonian is also plotted.  
+
+
+.. plot:: ../qutip/qutip/examples/ex_40.py
+	:include-source:

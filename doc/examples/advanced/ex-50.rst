@@ -1,0 +1,10 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exme22:
+
+Nonadiabatic transformation of a spin-chain Hamiltonian
+=======================================================
+
+.. plot:: ../qutip/qutip/examples/ex_50.py
+	:include-source:
