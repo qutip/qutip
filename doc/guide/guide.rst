@@ -21,3 +21,4 @@ QuTiP Users Guide
    guide-parfor.rst
    guide-eseries.rst
    guide-saving.rst
+   guide-floquet.rst
