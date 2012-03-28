@@ -1,7 +1,7 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-.. _exme23:
+.. _exme41:
 
 Single photon source based on a three level atom strongly coupled to a cavity
 =============================================================================
@@ -9,5 +9,5 @@ Single photon source based on a three level atom strongly coupled to a cavity
 This example demonstrates a single photon source based on a three level atom
 strongly coupled to a cavity. Contributed by Markus Baden.
 
-.. plot:: ../qutip/qutip/examples/ex_24.py
+.. plot:: ../qutip/qutip/examples/ex_41.py
 	:include-source:

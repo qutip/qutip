@@ -28,4 +28,5 @@ If you do not have any graphics libraries installed, or they are disabled, then 
    
    ex-basic.rst
    ex-master-equation.rst
+   ex-time-dependence.rst   
 
