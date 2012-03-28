@@ -1,22 +1,32 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
+.. _developers:
+
+************
 Developers
-============
+************
 
 
+.. _developers-lead:
 
 Lead Developers
-****************
+===============
 
 `Robert Johansson <http://dml.riken.jp/~rob/>`_ (RIKEN)
 
 `Paul Nation <http://dml.riken.jp/~paul/>`_ (RIKEN / University of Michigan)
 
 
+.. _developers-contributors:
 
 Contributors
-*************
+============
+
+.. note::
+	
+	Anyone is free to contribute to QuTiP.  If you are interested in helping, please let us know!
+
 
 **Markus Baden** (Centre for Quantum Technologies, Singapore) - Examples and documentation, **QuTiP member**
 
