@@ -101,7 +101,6 @@ setup(
     url = "http://code.google.com/p/qutip/",
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
     platforms = ["Linux", "Mac OSX", "Unix"],
-    depends=['scipy','matplotlib'],
-    package_data = {'qutip/gui': ['*.png']},
-    include_package_data=True 
+    requires=['numpy (>=1.6)','scipy (>=0.9)','matplotlib (>=1.1)'],
+    package_data={'qutip/gui': ['logo.png']}
     )
