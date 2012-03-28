@@ -24,7 +24,6 @@ The sparsity of the ouput Qobj's is controlled by varing the
 """
 from scipy import arcsin,sqrt,pi
 import numpy as np
-from numpy.random import random
 import scipy.linalg as la
 import scipy.sparse as sp
 from Qobj import *
@@ -66,7 +65,7 @@ def rand_herm(N,density=0.75,dims=None):
     X = sp.rand(N,N,herm_density,format='csr')
     X.data=X.data-0.5
     Y=X.copy()
-    Y.data=1.0j*random(len(X.data))-(0.5+0.5j)
+    Y.data=1.0j*np.random.random(len(X.data))-(0.5+0.5j)
     X=X+Y
     X=Qobj(X)
     if dims:
@@ -138,7 +137,7 @@ def rand_ket(N,density=0.75,dims=None):
     X = sp.rand(N,1,density,format='csr')
     X.data=X.data-0.5
     Y=X.copy()
-    Y.data=1.0j*random(len(X.data))-(0.5+0.5j)
+    Y.data=1.0j*np.random.random(len(X.data))-(0.5+0.5j)
     X=X+Y
     X=Qobj(X)
     if dims:
@@ -170,10 +169,10 @@ def rand_dm(N,density=0.75,pure=False,dims=None):
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
     
-    .. note::
-    
-        For small density matricies, choosing a low `density` will result in an error
-        as no diagonal elements will be generated such that :math:`Tr(\rho)=1`.
+    Notes
+    -----
+    For small density matricies, choosing a low `density` will result in an error
+    as no diagonal elements will be generated such that :math:`Tr(\rho)=1`.
     
     
     """
