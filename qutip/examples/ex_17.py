@@ -3,9 +3,6 @@
 # cavity for various driving frequencies calculated using 
 # iterative 'steady' solver.
 #
-# A faster version, using the parallel 'parfor' function is 
-# given in the Users Guide.  
-#
 # Adapted from 'probss' example in the qotoolbox by Sze M. Tan.
 #
 from qutip.expect import *
@@ -15,8 +12,6 @@ from qutip.states import *
 from qutip.steady import *
 from qutip.tensor import *
 from pylab import *
-import time
-
 
 
 def probss(E,kappa,gamma,g,wc,w0,wl,N):
@@ -44,33 +39,37 @@ def probss(E,kappa,gamma,g,wc,w0,wl,N):
     return count1,count2,infield
 
 
+# setup the calculation
+#-----------------------
+# must be done before parfunc unless we
+# want to pass all variables as one using
+# zip function (see documentation for an example)
+kappa=2
+gamma=0.2
+g=1
+wc=0
+w0=0
+N=5
+E=0.5
+nloop=101
+wlist=linspace(-5,5,nloop)
+
+
+# define single-variable function for use in parfor
+# cannot be defined inside run() since it needs to
+# be passed into seperate threads.
+def parfunc(wl):#function of wl only
+    count1,count2,infield=probss(E,kappa,gamma,g,wc,w0,wl,N)
+    return count1,count2,infield
+
+
 def run():
-    # setup the calculation
-    #-----------------------
-    kappa=2
-    gamma=0.2
-    g=1
-    wc=0
-    w0=0
-    N=5
-    E=0.5
-    nloop=101
-    wlist=linspace(-5,5,nloop)
-    #going to use lists instead of arrays here as an example.
-    count1=[]
-    count2=[]
-    infield=[]
     
-    #run loop over wlist
-    for wl in wlist:
-        c1,c2,infld = probss(E,kappa,gamma,g,wc,w0,wl,N)
-        #append results to lists (append to array is costly)
-        count1.append(c1)
-        count2.append(c2)
-        infield.append(infld)
-    
+    #run parallel for-loop over wlist
+    count1,count2,infield = parfor(parfunc,wlist)
+
     #plot cavity emission and qubit spontaneous emssion
-    fig=figure()
+    fig=figure(1)
     ax = fig.add_subplot(111)
     ax.plot(wlist,count1,wlist,count2,lw=2)
     xlabel('Drive Frequency Detuning')
@@ -78,12 +77,13 @@ def run():
     show()
     
     #plot phase shift of cavity light
-    fig2=figure()
+    fig2=figure(2)
     ax2= fig2.add_subplot(111)
     ax2.plot(wlist,180.0*angle(infield)/pi,lw=2)
     xlabel('Drive Frequency Detuning')
     ylabel('Intracavity phase shift')
     show()
+
 
 if __name__=="__main__":
     run()
