@@ -25,7 +25,6 @@ from scipy import *
 import scipy.sparse as sp
 from scipy.linalg import *
 from qutip.Qobj import Qobj
-from qutip.tidyup import tidyup
 import qutip.settings
 
 def tensor(*args):

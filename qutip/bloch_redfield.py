@@ -19,7 +19,6 @@
 
 from types import *
 from scipy.integrate import *
-from qutip.tidyup import tidyup
 from qutip.Qobj import *
 from qutip.superoperator import *
 from qutip.expect import *

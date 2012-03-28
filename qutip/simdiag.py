@@ -18,7 +18,7 @@
 ###########################################################################
 from qutip.Qobj import *
 import scipy.linalg as la
-from qutip.varargout import varargout
+
 
 def simdiag(ops):
     """
