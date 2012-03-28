@@ -37,13 +37,12 @@ basic_desc=['Schrodinger Cat state formed from a \nsuperposition of two coherent
 basic_nums=10+arange(len(basic_labels)) #does not start at zero so commandline output numbers match (0=quit in commandline)
 
 #master equation demos
-master_labels=["i-Swap Gate","Vacuum Rabi oscillations","Single-atom lasing","Wigner distribution","Single photon source","blank","blank"]
+master_labels=["i-Swap Gate","Vacuum Rabi oscillations","Single-atom lasing","Wigner distribution","blank","blank","blank"]
 master_desc=["Dissipative i-Swap Gate vs. ideal gate.  Accuracy\nof dissipative gate given by fidelity.",
             "Vacuum Rabi oscillations in the Jaynes-Cummings\nmodel with dissipation",
             "Single-atom lasing in a Jaynes-Cumming-like system",
             "Wigner distributions from the evolution of the Jaynes-Cummings model",
-            "Single photon source based on a three level atom strongly coupled to a cavity",
-            "blank","blank"]
+            "blank","blank","blank"]
 master_nums=20+arange(len(master_labels))
 
 
@@ -58,21 +57,23 @@ monte_desc=["Monte Carlo evoution of a coherently driven\ncavity with a two-leve
             "blank"]
 monte_nums=30+arange(len(monte_labels))
 
-#bloch-redfield equation demos
-redfield_labels=["blank","blank","blank","blank","blank","blank"]
-redfield_desc=["blank","blank","blank","blank","blank","blank"]
-redfield_nums=40+arange(len(redfield_labels))
-
 #time-dependence examples
-td_labels=["blank","blank","blank","blank","blank","blank","blank"]
-td_desc=["blank","blank","blank","blank","blank","blank","blank"]
-td_nums=50+arange(len(td_labels))
+td_labels=["Rabi oscillations","Single photon source","blank","blank","blank","blank","blank"]
+td_desc=["Rabi oscillations of an atom subject to a time-dependent classical driving field",
+         "Single photon source based on a three level atom strongly coupled to a cavity",
+         "blank","blank","blank","blank","blank"]
+td_nums=40+arange(len(td_labels))
+
+#bloch-advanced equation demos
+advanced_labels=["blank","blank","blank","blank","blank","blank"]
+advanced_desc=["blank","blank","blank","blank","blank","blank"]
+advanced_nums=50+arange(len(advanced_labels))
 
 #variables to be sent to Examples GUI
-tab_labels=['Basics','Master Eq.','Monte Carlo','Bloch-Redfield','Time-Dependent']
-button_labels=[basic_labels,master_labels,monte_labels,redfield_labels,td_labels]
-button_desc=[basic_desc,master_desc,monte_desc,redfield_desc,td_desc]
-button_nums=[basic_nums,master_nums,monte_nums,redfield_nums,td_nums]
+tab_labels=['Basics','Master Eq.','Monte Carlo','Time dependent','Advanced']
+button_labels=[basic_labels,master_labels,monte_labels,td_labels,advanced_labels]
+button_desc=[basic_desc,master_desc,monte_desc,td_desc,advanced_desc]
+button_nums=[basic_nums,master_nums,monte_nums,td_nums,advanced_nums]
 
 
 qutip_keywords=['basis','Bloch','brmesolve','concurrence','create','destroy','displace',
