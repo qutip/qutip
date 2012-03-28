@@ -70,17 +70,20 @@ def run():
         infield.append(infld)
     
     #plot cavity emission and qubit spontaneous emssion
-    plot(wlist,count1,wlist,count2,lw=2)
+    fig=figure()
+    ax = fig.add_subplot(111)
+    ax.plot(wlist,count1,wlist,count2,lw=2)
     xlabel('Drive Frequency Detuning')
     ylabel('Count rates')
     show()
     
     #plot phase shift of cavity light
-    plot(wlist,180.0*angle(infield)/pi,lw=2)
+    fig2=figure()
+    ax2= fig2.add_subplot(111)
+    ax2.plot(wlist,180.0*angle(infield)/pi,lw=2)
     xlabel('Drive Frequency Detuning')
     ylabel('Intracavity phase shift')
     show()
-
 
 if __name__=="__main__":
     run()

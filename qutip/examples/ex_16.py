@@ -74,7 +74,7 @@ def run():
     title='Bell state density matrix'
     #plot Bell state density matrix
     qubit_hist(rho_bell,x_bell_labels,y_bell_labels,title)
-
+    
     #trace over qubit 0
     bell_trace_1=ptrace(rho_bell,1)
     xlabels=['$\left|0\\rangle\\right.$','$\left|1\\rangle\\right.$']
@@ -82,7 +82,7 @@ def run():
     title='Partial trace over qubit 0 in Bell state'
     #plot remaining qubit density matrix
     qubit_hist(bell_trace_1,xlabels,ylabels,title)
-
+    
     #create projection operator
     left = (up + dn).unit()
     Omegaleft = tensor(qeye(2),left*left.dag())
@@ -96,7 +96,7 @@ def run():
     after_trace=ptrace(after,1)
     title="Completely mixed state after partial trace over qubit 0"
     qubit_hist(after_trace,xlabels,ylabels,title)
-
+    
 
 if __name__=='__main__':
     run()
