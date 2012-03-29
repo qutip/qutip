@@ -238,7 +238,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, H_args, J_c
             for b in range(N):
                 k_idx = 0
                 for k in range(-kmax,kmax+1, 1):
-                    X[a,b,k_idx] += (dT/T) * exp(-1j * k * omega * t) * (f_modes_t[a].dag() * c_op * f_modes_t[b]).full()[0,0]
+                    X[a,b,k_idx] += (dT/T) * exp(-1j * k * omega * t) * (f_modes_t[a].dag() * c_op * f_modes_t[b])[0,0]
                     k_idx += 1
 
     Heaviside = lambda x: ((sign(x)+1)/2.0)
@@ -359,7 +359,7 @@ def fmmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
         opt.nsteps = 2500  # 
 
     if opt.tidy:
-        R = tidyup(R, opt.atol)
+        R.tidyup()
 
     #
     # check initial state
