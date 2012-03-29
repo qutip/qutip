@@ -95,7 +95,7 @@ class TestCommand(Command):
     user_options = [ ]
 
     def initialize_options(self):
-        self._dir = os.getcwd()
+        self._dir = os.getcwd()+"/test/"
 
     def finalize_options(self):
         pass
@@ -108,9 +108,8 @@ class TestCommand(Command):
         for t in glob(pjoin(self._dir, 'unittests', 'test_*.py')):
             if not t.endswith('__init__.py'):
                 testfiles.append('.'.join(
-                    ['unittests', splitext(basename(t))[0]])
+                    ['test.unittests', splitext(basename(t))[0]])
                 )
-
         tests = TestLoader().loadTestsFromNames(testfiles)
         t = TextTestRunner(verbosity = 1)
         t.run(tests)
