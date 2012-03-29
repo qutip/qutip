@@ -36,19 +36,6 @@ The Quantum Toolbox in Python, or QuTiP, is a fully open-source implementation o
 
 * Includes the ability to create high-quality plots, and animations, using the excellent `Matplotlib <http://matplotlib.sourceforge.net/>`_ package.
 
-.. _about-org:
-
-Organization
-=============
-
-QuTiP is designed to be a general toolbox for solving quantum optics like problems.  As such, the QuTiP framework is built from a large (and ever growing) library of functions; from :func:`qutip.states.basis` to :func:`qutip.wigner`.  The general organization of QuTiP, highlighting the important functions avalaible to the user is shown below.
-
-.. figure:: figures/qutip_org.png
-   :align: center
-   :width: 7in
-   
-   QuTiP tree-diagram of user accessible functions and classes.
-
 
 .. _about-whatsnew:
 
