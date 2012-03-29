@@ -32,9 +32,9 @@ class Examples(QtGui.QWidget):
         QtGui.QWidget.__init__(self, parent)
         from qutip.examples.examples_text import tab_labels,button_labels,button_desc,button_nums
         #set tab button style
-        tab_button_style='QPushButton {font-family: Arial;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #B8E2EF, stop: 0.1 #A5DBEB, stop: 0.49 #8CD1E6, stop: 0.5 #7BCAE1, stop: 1 #57BCD9)}'
+        tab_button_style='QPushButton {font-family: Verdana;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #B8E2EF, stop: 0.1 #A5DBEB, stop: 0.49 #8CD1E6, stop: 0.5 #7BCAE1, stop: 1 #57BCD9)}'
         #set quit button style
-        quit_style='QPushButton {font-family: Arial;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;font-size: 16px;background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #FFAAAA, stop: 0.1 #FF9999, stop: 0.49 #FF8888, stop: 0.5 #FF7777, stop: 1 #FF6666)}'
+        quit_style='QPushButton {font-family: Verdana;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;font-size: 16px;background-color: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #FFAAAA, stop: 0.1 #FF9999, stop: 0.49 #FF8888, stop: 0.5 #FF7777, stop: 1 #FF6666)}'
         
         #WINDOW PROPERTIES
         self.setWindowTitle('QuTiP Examples')
@@ -49,9 +49,9 @@ class Examples(QtGui.QWidget):
         
         
         title_font = QtGui.QFont()
-        title_font.setFamily("Arial")
+        title_font.setFamily("Verdana")
         title_font.setBold(True)
-        title_font.setPointSize(16)
+        title_font.setPointSize(14)
         title_fm = QtGui.QFontMetrics(title_font)
         #text across top of demos window
         title = QtGui.QLabel(self)
@@ -63,7 +63,7 @@ class Examples(QtGui.QWidget):
         
         
         font = QtGui.QFont()
-        font.setFamily("Arial")
+        font.setFamily("Verdana")
         font.setBold(True)
         font.setPointSize(12)
         fm = QtGui.QFontMetrics(font)
@@ -83,7 +83,6 @@ class Examples(QtGui.QWidget):
         font.setBold(False)
         copyright.setFont(font)
         copyright.setGeometry(10, 695, 400, 30)
-        font.setBold(True)
         #tab widget
         tab_widget = QtGui.QTabWidget() 
         tab_widget.move(10,10)
@@ -108,21 +107,28 @@ class Examples(QtGui.QWidget):
                 button.setFont(font)
                 if button_nums[j][k]==exconfig.is_green:
                     button.setText('Run Example')
-                    button.setStyleSheet('QPushButton {font-family: Arial;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #E0F1E0, stop: 0.1 #C1E3C1, stop: 0.49 #A3D6A3, stop: 0.5 #84C884, stop: 1 #66BB66)}')
+                    button.setStyleSheet('QPushButton {font-family: Verdana;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #E0F1E0, stop: 0.1 #C1E3C1, stop: 0.49 #A3D6A3, stop: 0.5 #84C884, stop: 1 #66BB66)}')
                 else:
                     button.setText(button_labels[j][k])
                     button.setStyleSheet(tab_button_style)
-                button.setFixedSize(150, 40)
+                button.setFixedSize(170, 40)
                 self.connect(button, QtCore.SIGNAL("clicked()"), mapper, QtCore.SLOT("map()"))
                 mapper.setMapping(button,button_nums[j][k])
                 self.tab_buttons[j].append(button)
         
+        #font for example descriptions
+        font2 = QtGui.QFont()
+        font2.setFamily("Verdana")
+        font2.setBold(False)
+        font2.setPointSize(12)
+        
         self.tab_button_desc = [[] for j in range(num_tabs)]
         for j in range(num_tabs):
             for k in range(self.num_elems[j]):
-                label = QtGui.QLabel(button_desc[j][k])
-                label.setWordWrap(True)
-                self.tab_button_desc[j].append(label)
+                _label=QtGui.QLabel(button_desc[j][k])
+                _label.setWordWrap(True) #auto wrap
+                _label.setFont(font2)
+                self.tab_button_desc[j].append(_label)
         
         self.tab_widgets=[[QtGui.QWidget() for k in range(self.num_elems[j])] for j in range(num_tabs)]
         self.tab_horiz_layouts=[[QtGui.QHBoxLayout(self.tab_widgets[j][k]) for k in range(self.num_elems[j])] for j in range(num_tabs)]
@@ -166,12 +172,12 @@ class Examples(QtGui.QWidget):
         if exconfig.button_num!=num and exconfig.is_green!=num:
             tab_num=int(floor(num/10))-1
             row_num=num % 10
-            self.tab_buttons[tab_num][row_num].setStyleSheet('QPushButton {font-family: Arial;border-width: 3px;border-color:#111111;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #E0F1E0, stop: 0.1 #C1E3C1, stop: 0.49 #A3D6A3, stop: 0.5 #84C884, stop: 1 #66BB66)}')
+            self.tab_buttons[tab_num][row_num].setStyleSheet('QPushButton {font-family: Verdana;border-width: 3px;border-color:#111111;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #E0F1E0, stop: 0.1 #C1E3C1, stop: 0.49 #A3D6A3, stop: 0.5 #84C884, stop: 1 #66BB66)}')
             self.tab_buttons[tab_num][row_num].setText('Run Example')
             exconfig.button_num=num
             old_tab_num=int(floor(exconfig.is_green/10))-1
             old_row_num=exconfig.is_green % 10
-            self.tab_buttons[old_tab_num][old_row_num].setStyleSheet('QPushButton {font-family: Arial;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #B8E2EF, stop: 0.1 #A5DBEB, stop: 0.49 #8CD1E6, stop: 0.5 #7BCAE1, stop: 1 #57BCD9)}')
+            self.tab_buttons[old_tab_num][old_row_num].setStyleSheet('QPushButton {font-family: Verdana;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #B8E2EF, stop: 0.1 #A5DBEB, stop: 0.49 #8CD1E6, stop: 0.5 #7BCAE1, stop: 1 #57BCD9)}')
             self.tab_buttons[old_tab_num][old_row_num].setText(self.tab_buttons[old_tab_num][old_row_num].label)
             exconfig.is_green=num
             syntax.PythonHighlighter(self.editor.document())
@@ -193,21 +199,21 @@ class HoverButton(QtGui.QPushButton):
             self.label=label
     def enterEvent(self,event):  
         if exconfig.is_green==self.num:
-            self.setStyleSheet('QPushButton {font-family: Arial;border-width: 3px;border-color:#111111;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #E0F1E0, stop: 0.1 #C1E3C1, stop: 0.49 #A3D6A3, stop: 0.5 #84C884, stop: 1 #66BB66)}')
+            self.setStyleSheet('QPushButton {font-family: Verdana;border-width: 3px;border-color:#111111;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #E0F1E0, stop: 0.1 #C1E3C1, stop: 0.49 #A3D6A3, stop: 0.5 #84C884, stop: 1 #66BB66)}')
         else:
-            self.setStyleSheet('QPushButton {font-family: Arial;border-width: 3px;border-color:#111111;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #B8E2EF, stop: 0.1 #A5DBEB, stop: 0.49 #8CD1E6, stop: 0.5 #7BCAE1, stop: 1 #57BCD9)}')
+            self.setStyleSheet('QPushButton {font-family: Verdana;border-width: 3px;border-color:#111111;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #B8E2EF, stop: 0.1 #A5DBEB, stop: 0.49 #8CD1E6, stop: 0.5 #7BCAE1, stop: 1 #57BCD9)}')
     def leaveEvent(self,event):  
         if exconfig.is_green==self.num:
-            self.setStyleSheet('QPushButton {font-family: Arial;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #E0F1E0, stop: 0.1 #C1E3C1, stop: 0.49 #A3D6A3, stop: 0.5 #84C884, stop: 1 #66BB66)}')
+            self.setStyleSheet('QPushButton {font-family: Verdana;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #E0F1E0, stop: 0.1 #C1E3C1, stop: 0.49 #A3D6A3, stop: 0.5 #84C884, stop: 1 #66BB66)}')
         else:
-            self.setStyleSheet('QPushButton {font-family: Arial;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #B8E2EF, stop: 0.1 #A5DBEB, stop: 0.49 #8CD1E6, stop: 0.5 #7BCAE1, stop: 1 #57BCD9)}')
+            self.setStyleSheet('QPushButton {font-family: Verdana;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #B8E2EF, stop: 0.1 #A5DBEB, stop: 0.49 #8CD1E6, stop: 0.5 #7BCAE1, stop: 1 #57BCD9)}')
 
 
 class HoverExit(QtGui.QPushButton): 
     def enterEvent(self,event):  
-        self.setStyleSheet('QPushButton {font-family: Arial;border-width: 3px;border-color:#111111;border-style: solid;border-radius: 7;font-size: 16px;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #FFAAAA, stop: 0.1 #FF9999, stop: 0.49 #FF8888, stop: 0.5 #FF7777, stop: 1 #FF6666)}')
+        self.setStyleSheet('QPushButton {font-family: Verdana;border-width: 3px;border-color:#111111;border-style: solid;border-radius: 7;font-size: 16px;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #FFAAAA, stop: 0.1 #FF9999, stop: 0.49 #FF8888, stop: 0.5 #FF7777, stop: 1 #FF6666)}')
     def leaveEvent(self,event):  
-        self.setStyleSheet('QPushButton {font-family: Arial;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;font-size: 16px;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #FFAAAA, stop: 0.1 #FF9999, stop: 0.49 #FF8888, stop: 0.5 #FF7777, stop: 1 #FF6666)}')
+        self.setStyleSheet('QPushButton {font-family: Verdana;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;font-size: 16px;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #FFAAAA, stop: 0.1 #FF9999, stop: 0.49 #FF8888, stop: 0.5 #FF7777, stop: 1 #FF6666)}')
 
 
 
