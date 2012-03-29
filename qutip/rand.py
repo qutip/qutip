@@ -109,7 +109,7 @@ def rand_unitary(N,density=0.75,dims=None):
         return Qobj(U)
 
 
-def rand_ket(N,density=0.75,dims=None):
+def rand_ket(N,density=1,dims=None):
     """Creates a random Nx1 sparse ket vector.
     
     Parameters
