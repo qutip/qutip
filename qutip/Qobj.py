@@ -411,7 +411,10 @@ class Qobj():
         else:
             s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+"\n"
         s += "Qobj data =\n"
-        s += str(self.full())
+        if all(imag(self.data.data)==0):
+            s += str(real(self.full()))
+        else:
+            s += str(self.full())
         return s
         
     def __repr__(self):#give complete information on Qobj without print statement in commandline
