@@ -20,7 +20,6 @@
 import sys
 sys.path.append('..')
 from qutip import *
-
 import unittest
 
 class TestEvolution(unittest.TestCase):
@@ -53,8 +52,9 @@ class TestEvolution(unittest.TestCase):
         elif solver == "es":
             expt_list = essolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])  
         elif solver == "mc":
-            ntraj = 750
-            expt_list = mcsolve(H, psi0, tlist, ntraj, c_op_list, [sigmax(), sigmay(), sigmaz()])  
+            opts=Odeoptions(gui=False)
+            expt_list = mcsolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()],ntraj = 750,options=opts)
+            expt_list=[expt_list.expect[0],expt_list.expect[1],expt_list.expect[2]]  
         else:
             raise ValueError("unknown solver")
         
