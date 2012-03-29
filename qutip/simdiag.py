@@ -20,7 +20,7 @@ from qutip.Qobj import *
 import scipy.linalg as la
 
 
-def simdiag(ops):
+def simdiag(ops,evals=True):
     """
     Simulateous diagonalization of communting Hermitian matricies
     
@@ -33,7 +33,6 @@ def simdiag(ops):
         eigvecs,eigvals of quantum objects corresponding to simultaneous eigenvectors 
         and eigenvalues for each operator.
     """
-    outputs=varargout()
     tol=1e-14
     start_flag=0
     if not any(ops):
@@ -77,7 +76,7 @@ def simdiag(ops):
         k=max(inds)+1
     eigvals_out=zeros((num_ops,len(ds)),dtype=float)
     kets_out=array([Qobj(eigvecs_array[j]/la.norm(eigvecs_array[j]),dims=[ops[0].dims[0],[1]],shape=[ops[0].shape[0],1]) for j in xrange(len(ds))])
-    if outputs==1:
+    if not evals:
         return kets_out
     else:
         for kk in xrange(num_ops):
