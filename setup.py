@@ -39,7 +39,10 @@ import shutil
 import re
 import subprocess
 import warnings
-from distutils.core import setup,Extension
+from distutils.core import setup,Extension,Command
+from unittest import TextTestRunner, TestLoader
+from glob import glob
+from os.path import splitext, basename, join as pjoin, walk
 import numpy as np 
 
 def svn_version():
@@ -85,6 +88,56 @@ sys.path.insert(0,os.path.join(local_path,'qutip')) # to retrive _version
 if os.path.exists('qutip/_version.py'): os.remove('qutip/_version.py')
 write_version_py()
 
+
+#--------- test command for running unittests-------------#
+
+class TestCommand(Command):
+    user_options = [ ]
+
+    def initialize_options(self):
+        self._dir = os.getcwd()
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        '''
+        Finds all the tests modules in tests/, and runs them.
+        '''
+        testfiles = [ ]
+        for t in glob(pjoin(self._dir, 'unittests', '*.py')):
+            if not t.endswith('__init__.py'):
+                testfiles.append('.'.join(
+                    ['unittests', splitext(basename(t))[0]])
+                )
+
+        tests = TestLoader().loadTestsFromNames(testfiles)
+        t = TextTestRunner(verbosity = 1)
+        t.run(tests)
+
+
+#------ clean command for removing .pyc files -----------------#
+
+class CleanCommand(Command):
+    user_options = [ ]
+
+    def initialize_options(self):
+        self._clean_me = [ ]
+        for root, dirs, files in os.walk('.'):
+            for f in files:
+                if f.endswith('.pyc'):
+                    self._clean_me.append(pjoin(root, f))
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        for clean_me in self._clean_me:
+            try:
+                os.unlink(clean_me)
+            except:
+                pass
+#--------- Setup commands go here ----------------#
 setup(
     name = "QuTiP",
     version =FULLVERSION,
@@ -102,5 +155,6 @@ setup(
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
     platforms = ["Linux", "Mac OSX", "Unix"],
     requires=['numpy (>=1.6)','scipy (>=0.9)','matplotlib (>=1.1)'],
-    package_data={'qutip/gui': ['logo.png']}
+    package_data={'qutip/gui': ['logo.png']},
+    cmdclass = { 'test': TestCommand, 'clean': CleanCommand }
     )
