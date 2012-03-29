@@ -61,8 +61,8 @@ def steadystate(H, c_op_list,maxiter=100,tol=1e-6,method='solve'):
     
     Returns
     -------
-    dm : qobj 
-        Density matrix for steady state.
+    ket : qobj 
+        Ket vector for steady state.
     
     Notes
     -----
@@ -99,8 +99,8 @@ def steady(L,maxiter=100,tol=1e-6,method='solve'):
     
     Returns
     --------
-    dm : qobj
-        Density matrix for steady state.
+    ket : qobj
+        Ket vector for steady state.
     
     Notes
     -----
