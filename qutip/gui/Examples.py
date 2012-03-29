@@ -138,7 +138,9 @@ class Examples(QtGui.QWidget):
         self.connect(mapper, QtCore.SIGNAL("mapped(int)"), self.on_button_clicked)
         self.layout = QtGui.QGridLayout(self)
         #create text editor widget
-        self.editor = QtGui.QPlainTextEdit()
+        self.editor = QtGui.QTextEdit()
+        self.editor.setCurrentFont(QtGui.QFont("Courier"))
+        self.editor.setFontPointSize(12)
         self.editor.setReadOnly(True)
         self.editor.resize(550,665)
         self.editor.setFixedSize(550,666)
