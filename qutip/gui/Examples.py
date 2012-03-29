@@ -38,9 +38,9 @@ class Examples(QtGui.QWidget):
         
         #WINDOW PROPERTIES
         self.setWindowTitle('QuTiP Examples')
-        self.resize(1200, 720)
-        self.setMinimumSize(1200, 720)
-        self.setMaximumSize(1200, 720)
+        self.resize(1300, 720)
+        self.setMinimumSize(1300, 720)
+        self.setMaximumSize(1300, 720)
         self.center()
         self.setFocus()
         self.dir=direc+'/examples/'
@@ -51,7 +51,10 @@ class Examples(QtGui.QWidget):
         title_font = QtGui.QFont()
         title_font.setFamily("Verdana")
         title_font.setBold(True)
-        title_font.setPointSize(14)
+        if sys.platform=='darwin':
+            title_font.setPointSize(14)
+        else:
+            title_font.setPointSize(12)
         title_fm = QtGui.QFontMetrics(title_font)
         #text across top of demos window
         title = QtGui.QLabel(self)
@@ -65,7 +68,10 @@ class Examples(QtGui.QWidget):
         font = QtGui.QFont()
         font.setFamily("Verdana")
         font.setBold(True)
-        font.setPointSize(12)
+        if sys.platform=='darwin':
+            font.setPointSize(12)
+        else:
+            font.setPointSize(10)
         fm = QtGui.QFontMetrics(font)
 
         
@@ -86,8 +92,8 @@ class Examples(QtGui.QWidget):
         #tab widget
         tab_widget = QtGui.QTabWidget() 
         tab_widget.move(10,10)
-        tab_widget.resize(550,665)
-        tab_widget.setFixedSize(550,665)
+        tab_widget.resize(600,665)
+        tab_widget.setFixedSize(600,665)
         #tabs for tab widget
         num_tabs=len(tab_labels)
         tabs=[QtGui.QWidget() for k in range(num_tabs)]
@@ -120,7 +126,10 @@ class Examples(QtGui.QWidget):
         font2 = QtGui.QFont()
         font2.setFamily("Verdana")
         font2.setBold(False)
-        font2.setPointSize(12)
+        if sys.platform=='darwin':
+            font2.setPointSize(12)
+        else:
+            font2.setPointSize(10)
         
         self.tab_button_desc = [[] for j in range(num_tabs)]
         for j in range(num_tabs):
@@ -148,10 +157,13 @@ class Examples(QtGui.QWidget):
         #create text editor widget
         self.editor = QtGui.QTextEdit()
         self.editor.setCurrentFont(QtGui.QFont("Courier"))
-        self.editor.setFontPointSize(12)
+        if sys.platform=='darwin':
+            self.editor.setFontPointSize(12)
+        else:
+            self.editor.setFontPointSize(10)
         self.editor.setReadOnly(True)
-        self.editor.resize(550,665)
-        self.editor.setFixedSize(550,666)
+        self.editor.resize(600,665)
+        self.editor.setFixedSize(600,666)
         #add tabwidget and textwidget to main window
         self.layout.addWidget(tab_widget, 0, 0, 5, 1)
         self.layout.addWidget(self.editor, 0, 3, 5, 1)
