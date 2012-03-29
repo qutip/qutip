@@ -12,13 +12,31 @@ Using Tensor Products and Partial Traces
 Tensor products
 ===============
 
-To describe the states of multipartite quantum systems, such as two coupled qubits, a qubit coupled to an oscillator, etc., we need to expand the Hilbert space by taking the tensor product of the state vectors of the component systems. Similarly, the operators acting on the state vectors in the combined Hilbert space (describing the coupled system) are formed by taking the tensor product of the component operators.
+To describe the states of multipartite quantum systems, such as two coupled qubits, a qubit coupled to an oscillator, etc..., we need to expand the Hilbert space by taking the tensor product of the state vectors for each of the system components. Similarly, the operators acting on the state vectors in the combined Hilbert space (describing the coupled system) are formed by taking the tensor product of the individual operators.
 
-In QuTiP the function the function :func:`qutip.tensor.tensor` is used for this. The *tensor* function takes as argument a list of state vectors *or* operators and returns the corresponding quantity for the combined Hilbert space.
+In QuTiP the function :func:`qutip.tensor.tensor` is used to accomplish this task. The *tensor* function takes as its argument a collection::
 
-For example, the state vector describing two qubits in their ground states is formed by taking the tensor product of the two single-qubit groundstate vectors::
+>>> tensor(op1,op2,op3)
+
+or a ``list``::
+
+>>> tensor([op1,op2,op3])
+
+of state vectors *or* operators and returns a composite quantum object for the combined Hilbert space.  The returned quantum objects type is the same as that of the input(s).
+
+For example, the state vector describing two qubits in their ground states is formed by taking the tensor product of the two single-qubit ground state vectors::
     
     >>> tensor(basis(2,0), basis(2,0))
+    Quantum object: dims = [[2, 2], [1, 1]], shape = [4, 1], type = ket
+    Qobj data = 
+    [[ 1.]
+     [ 0.]
+     [ 0.]
+     [ 0.]]
+
+or equivilently using the ``list`` format::
+
+    >>> tensor([basis(2,0), basis(2,0)])
     Quantum object: dims = [[2, 2], [1, 1]], shape = [4, 1], type = ket
     Qobj data = 
     [[ 1.]
@@ -40,9 +58,9 @@ This is straight forward to generalize to more qubits by adding more component s
      [ 0.5]
      [ 0. ]]
 
-(This state is slightly more complicated, describing two qubits in a superposition between the up and down states, while the third qubit is in its ground state).
+This state is slightly more complicated, describing two qubits in a superposition between the up and down states, while the third qubit remains in it's ground state.
 
-To construct operators that act on an extended Hilbert space of a combined system, we similarly pass a list of operators for each component system to the *tensor* function. For example, to form the operator that represents the simultaneous action of the sigma x operator on two qubits::
+To construct operators that act on an extended Hilbert space of a combined system, we similarly pass a list of operators for each component system to the :func:`qutip.tensor.tensor` function. For example, to form the operator that represents the simultaneous action of the sigma x operator on two qubits::
 
     >>> tensor(sigmax(), sigmax())
     Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
@@ -52,7 +70,7 @@ To construct operators that act on an extended Hilbert space of a combined syste
      [ 0.  1.  0.  0.]
      [ 1.  0.  0.  0.]]
 
-To form operators in a combined Hilbert space that only act only on a single component we take the tensor product of that operator with the identity operators for the other component systems. For example, the operator that represents sigma z on one of the qubits in a two-qubit system, while leaving the other qubit uneffected::
+To create operators in a combined Hilbert space that only act only on a single component, we take the tensor product of the operator acting on the subspace of interest, with the identity operators corresponding to the components that are to be unchanged. For example, the operator that represents sigma-z on the first qubit in a two-qubit system, while leaving the second qubit unaffected::
 
     >>> tensor(sigmaz(), qeye(2))
     Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
@@ -131,9 +149,9 @@ Here N is the number of Fock states included in the cavity mode.
 Partial trace
 =============
 
-The partial trace is an operation that reduces the dimension of a Hilbert space by eliminating some degrees of freedom by averaging (tracing). In this sense it is therefore the converse of the tensor product. It is useful when only interested in the state of a part of a coupled quantum system. In QuTiP the function :func:`qutip.ptrace.ptrace` is used to take partial traces. It takes two arguments: *rho* is the density matrix (or state vector) of the composite system, and *sel* is a list of integers that mark the component systems that should be kept (all other components are traced out).
+The partial trace is an operation that reduces the dimension of a Hilbert space by eliminating some degrees of freedom by averaging (tracing). In this sense it is therefore the converse of the tensor product. It is useful when one is interested in only a part of a coupled quantum system.  For open quantum systems, this typically involves tracing over the environment leaving only the system of interest.  In QuTiP the function :func:`qutip.ptrace.ptrace` is used to take partial traces. It takes two arguments: ``rho`` is the density matrix (or state vector) of the composite system, and ``sel`` is a ``list`` of integers that mark the component systems that should be **kept**.  All other components are traced over.
 
-For example, the density matrix describing a single qubit from a coupled two-qubit system is formed as::
+For example, the density matrix describing a single qubit obtained from a coupled two-qubit system is obtained via::
 
     >>> psi = tensor(basis(2,0), basis(2,1))
     >>> ptrace(psi, 0)
