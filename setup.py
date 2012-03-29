@@ -105,7 +105,7 @@ class TestCommand(Command):
         Finds all the tests modules in tests/, and runs them.
         '''
         testfiles = [ ]
-        for t in glob(pjoin(self._dir, 'unittests', '*.py')):
+        for t in glob(pjoin(self._dir, 'unittests', 'test_*.py')):
             if not t.endswith('__init__.py'):
                 testfiles.append('.'.join(
                     ['unittests', splitext(basename(t))[0]])
