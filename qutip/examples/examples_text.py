@@ -23,23 +23,23 @@ from scipy import arange
 basic_labels=["Schrodinger Cat","Q-function","Squeezed State","Ground State","Density Matrix Metrics",
             "Coupled Qubit Energies","Bell State","Cavity-Qubit Steadystate","Binary Entropy","3-Qubit GHZ State"]
 
-basic_desc=['Schrodinger Cat state formed from a \nsuperposition of two coherent states.',
-            "Calculates the Q-function of Schrodinger cat\nstate formed from two coherent states.",
-            "3D Wigner and Q-functions for a squeezed \ncoherent state.",
-            "Groundstate properties of an ultra-strongly\ncoupled atom-cavity system.",
-            "Show relationship between fidelity and trace\ndistance for pure state denisty matrices.",
-            "Calculate Eigenenergies of a coupled three qubit\nsystem.",
-            "Creation and manipulation of a Bell state density\nmatrix.",
-            "Steady state of cavity-qubit system as cavity\ndriving frequency is varied.",
-            "Entropy of binary system as probability of being\nin the excited state is varied.",
+basic_desc=['Schrodinger Cat state formed from a superposition of two coherent states.',
+            "Calculates the Q-function of Schrodinger catstate formed from two coherent states.",
+            "3D Wigner and Q-functions for a squeezed coherent state.",
+            "Groundstate properties of an ultra-stronglycoupled atom-cavity system.",
+            "Show relationship between fidelity and tracedistance for pure state denisty matrices.",
+            "Calculate Eigenenergies of a coupled three qubitsystem.",
+            "Creation and manipulation of a Bell state densitymatrix.",
+            "Steady state of cavity-qubit system as cavitydriving frequency is varied.",
+            "Entropy of binary system as probability of beingin the excited state is varied.",
             "Plot the density matrix for the 3-qubit GHZ state."]
 
 basic_nums=10+arange(len(basic_labels)) #does not start at zero so commandline output numbers match (0=quit in commandline)
 
 #master equation demos
 master_labels=["i-Swap Gate","Vacuum Rabi oscillations","Single-atom lasing","Wigner distribution","blank","blank","blank"]
-master_desc=["Dissipative i-Swap Gate vs. ideal gate.  Accuracy\nof dissipative gate given by fidelity.",
-            "Vacuum Rabi oscillations in the Jaynes-Cummings\nmodel with dissipation",
+master_desc=["Dissipative i-Swap Gate vs. ideal gate.  Accuracyof dissipative gate given by fidelity.",
+            "Vacuum Rabi oscillations in the Jaynes-Cummingsmodel with dissipation",
             "Single-atom lasing in a Jaynes-Cumming-like system",
             "Wigner distributions from the evolution of the Jaynes-Cummings model",
             "blank","blank","blank"]
@@ -48,9 +48,9 @@ master_nums=20+arange(len(master_labels))
 
 #monte carlo equation demos
 monte_labels=["Mc Cavity+Qubit","blank","MC Ensemble Avg.","blank","blank","blank","blank"]
-monte_desc=["Monte Carlo evoution of a coherently driven\ncavity with a two-level atom",
+monte_desc=["Monte Carlo evoution of a coherently drivencavity with a two-level atom",
             "blank",
-            "Ensemble averaging of MC trajectories to master\nequation for Fock state decay. (be patient)",
+            "Ensemble averaging of MC trajectories to masterequation for Fock state decay. (be patient)",
             "blank",
             "blank",
             "blank",

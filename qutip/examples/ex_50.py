@@ -59,9 +59,9 @@ def compute(N, M, h, Jx, Jy, Jz, taulist):
     for n in range(N):
         H1 += - 0.5 * h[n] * sz_list[n]
 
-    # interaction terms
     H1 = 0    
     for n in range(N-1):
+        # interaction terms
         H1 += - 0.5 * Jx[n] * sx_list[n] * sx_list[n+1]
         H1 += - 0.5 * Jy[n] * sy_list[n] * sy_list[n+1]
         H1 += - 0.5 * Jz[n] * sz_list[n] * sz_list[n+1]

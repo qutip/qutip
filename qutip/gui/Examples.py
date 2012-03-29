@@ -120,7 +120,9 @@ class Examples(QtGui.QWidget):
         self.tab_button_desc = [[] for j in range(num_tabs)]
         for j in range(num_tabs):
             for k in range(self.num_elems[j]):
-                self.tab_button_desc[j].append(QtGui.QLabel(button_desc[j][k]))
+                label = QtGui.QLabel(button_desc[j][k])
+                label.setWordWrap(True)
+                self.tab_button_desc[j].append(label)
         
         self.tab_widgets=[[QtGui.QWidget() for k in range(self.num_elems[j])] for j in range(num_tabs)]
         self.tab_horiz_layouts=[[QtGui.QHBoxLayout(self.tab_widgets[j][k]) for k in range(self.num_elems[j])] for j in range(num_tabs)]
