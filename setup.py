@@ -114,7 +114,7 @@ class TestCommand(Command):
         t = TextTestRunner(verbosity = 1)
         t.run(tests)
 
-#--------- test-inplace command for running unittests-------------#
+#--------- devtest command for running unittests-------------#
 class TestHereCommand(Command):
     user_options = [ ]
     sys.path.append(os.getcwd())
@@ -155,11 +155,46 @@ class CleanCommand(Command):
         pass
 
     def run(self):
+        pyc_rm=0
         for clean_me in self._clean_me:
             try:
                 os.unlink(clean_me)
             except:
-                pass
+                pyc_rm+=1
+        if pyc_rm>0:
+            print "Could not remove "+str(pyc_rm)+" pyc files."
+        else:
+            print "Removed all pyc files."
+
+#------ clean command for removing .svn directories ------------#
+
+class CleanSVNCommand(Command):
+    user_options = [ ]
+
+    def initialize_options(self):
+        self._clean_me = [ ]
+        for root, dirs, files in os.walk('.'):
+            for d in dirs:
+                if d.endswith('.svn'):
+                    self._clean_me.append(pjoin(root, d))
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        svn_rm=0
+        for clean_me in self._clean_me:
+            try:
+                shutil.rmtree(clean_me)
+            except:
+                svn_rm+=1
+        if svn_rm>0:
+            print "Could not remove "+str(svn_rm)+" svn directories."
+        else:
+            print "Removed all SVN directories."
+
+
+
 #--------- Setup commands go here ----------------#
 setup(
     name = "QuTiP",
@@ -179,5 +214,5 @@ setup(
     platforms = ["Linux", "Mac OSX", "Unix"],
     requires=['numpy (>=1.6)','scipy (>=0.9)','matplotlib (>=1.1)'],
     package_data={'qutip/gui': ['logo.png']},
-    cmdclass = { 'test': TestCommand,'devtest': TestHereCommand, 'clean': CleanCommand }
+    cmdclass = { 'test': TestCommand,'devtest': TestHereCommand, 'clean': CleanCommand, 'svnclean': CleanSVNCommand }
     )
