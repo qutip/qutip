@@ -7,6 +7,13 @@
 Installation
 **************
 
+.. important::
+	
+	QuTiP is designed for use on Unix based platforms such as Linux and Mac OSX *only*, and is known
+	to break when running under the Microsoft Windows operating system.  As such, we do not provide
+	any support for these platforms.  If they ever figure out that matricies do not have
+	floating-point dimensions, then we might reconsider.
+
 .. _install-requires:
 
 General Installation Requirements
