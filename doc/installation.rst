@@ -92,23 +92,19 @@ On the Mac, it is recommended that you install the required libraries via `MacPo
 
 >>> sudo port install py27-scipy
 >>> sudo port install py27-matplotlib
->>> sudo port install py27-cython
 
 additional, but optional, ports include:
 
->>> sudo port install py27-pyside or sudo port install py27-pyqt4
 >>> sudo port install py27-ipython
+>>> sudo port install py27-cython
 
-After installing the required ports, you may need to change your matplotlib backend
+and:
 
->>> /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/\
-python2.7/site-packages/matplotlib/mpl-data/matplotlibrc
+>>> sudo port install py27-pyside
 
-on line #31 to read:
+or:
 
->>> backend      : MacOSX
-
-although this appears to have been corrected in the current version.
+>>> sudo port install py27-pyqt4
 
 
 SciPy Superpack
@@ -134,15 +130,13 @@ No matter which installation path you choose, installing QuTiP is the same as on
 Verifying the Installation
 ============================
 
-.. important::
-   Do not run QuTiP from the installation directory.
+QuTiP now includes a collection of builtin test scripts to verify that the installation was indeed successful.  To run the suite of tests scripts, after installing QuTiP call:
 
+>>> python setup.py test
 
-To verify that everything is installed properly, from the python command line, or iPython, call:
+If sucessful, these tests indicate that all of the QuTiP functions are working properly.  If any errors occur, please check that your have installed all of the required modules.  See the next section on how to check the installed versions of the QuTiP dependencies.  If these tests still fail, then head on over to the `QuTiP Discussion Board <http://groups.google.com/group/qutip>`_ and post a message detailing your particular issue.
 
->>> from qutip import *
-
-which will attempt to load the QuTiP modules.  If nothing but another command prompt appears, then your system can find all of the necessary QuTiP files.  To further verify that all of the QuTiP components are working, you can try running the examples built into QuTiP as dicussed in the guide section: :ref:`examples` 
+To further verify that all of the QuTiP components are working, you can run the coolection of examples built into QuTiP as discussed in the :ref:`examples` section of the guide. 
 
 .. _install-aboutbox:
 
@@ -163,4 +157,4 @@ which will pop-up a window similar to the one shown below.  If instead you get c
 
 
 
-.. [*] Installing QuTiP via Macports will take a long time as each of the QuTiP dependencies is build from source code.  The advantage is that everything is more or less guarenteed to work.  However, if you have a hot date waiting for you, then we do not recommend this path.  Or course, if you are reading this guide, this may not be the case. 
+.. [*] Installing QuTiP via Macports will take a long time as each of the QuTiP dependencies is build from source code.  The advantage is that, after installation, everything is more or less guarenteed to work.  However, if you have a hot date waiting for you, then we do not recommend this path.  Or course, if you are reading this guide, this may not be the case. 
