@@ -114,6 +114,30 @@ class TestCommand(Command):
         t = TextTestRunner(verbosity = 1)
         t.run(tests)
 
+#--------- test-inplace command for running unittests-------------#
+class TestHereCommand(Command):
+    user_options = [ ]
+    sys.path.append(os.getcwd())
+    def initialize_options(self):
+        self._dir = os.getcwd()+"/test/"
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        '''
+        Finds all the tests modules in tests/, and runs them.
+        '''
+        testfiles = [ ]
+        for t in glob(pjoin(self._dir, 'unittests', 'test_*.py')):
+            if not t.endswith('__init__.py'):
+                testfiles.append('.'.join(
+                    ['test.unittests', splitext(basename(t))[0]])
+                )
+        tests = TestLoader().loadTestsFromNames(testfiles)
+        t = TextTestRunner(verbosity = 1)
+        t.run(tests)
+
 
 #------ clean command for removing .pyc files -----------------#
 
@@ -155,5 +179,5 @@ setup(
     platforms = ["Linux", "Mac OSX", "Unix"],
     requires=['numpy (>=1.6)','scipy (>=0.9)','matplotlib (>=1.1)'],
     package_data={'qutip/gui': ['logo.png']},
-    cmdclass = { 'test': TestCommand, 'clean': CleanCommand }
+    cmdclass = { 'test': TestCommand,'devtest': TestHereCommand, 'clean': CleanCommand }
     )
