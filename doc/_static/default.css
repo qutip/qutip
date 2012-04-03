@@ -161,8 +161,6 @@ pre a {
 div.document {
     background-color: white;
     text-align: left;
-    background-image: url(contents.png);
-    background-repeat: repeat-x;
 }
 
 /*
@@ -398,7 +396,10 @@ div.admonition {
     -webkit-border-radius: 10px;
     -khtml-border-radius: 10px;
     -moz-border-radius: 10px;
-    border-radius: 10px;
+	-moz-box-shadow:0px 0px 10px #666;
+    -webkit-box-shadow:0px 0px 10px #666;
+	box-shadow:0px 0px 10px #666;
+	border-radius: 10px;
     border-style: solid;
     border-width: thin;
     border-color: #dcdcdc;
@@ -413,22 +414,42 @@ div.danger, div.error {
 }
 
 div.warning, div.caution, div.attention {
-    background: #F7977A;/* Pastel red */
+	padding: 15px 15px 10px 55px;
+	background-position: top left;
+	background-repeat:no-repeat;
+	background-attachment:fixed;
+	background-position:top-left;
+	background: #F7977A url(warning.png) 10px 10px no-repeat;/* Pastel red */
     min-height: 42px;
 }
 
 div.note {
-    background: #6ECFF6; /* Pastel cyan, blue is too dark */
+	padding: 15px 15px 10px 55px;
+	background-position: top left;
+	background-repeat:no-repeat;
+	background-attachment:fixed;
+	background-position:top-left;
+	background: #6ECFF6 url(note.png) 10px 10px no-repeat; /* Pastel cyan, blue is too dark */
     min-height: 42px;
 }
 
 div.important {
-    background: #FFF79A;/* Pastel yellow */
+	padding: 15px 15px 10px 55px;
+	background-position: top left;
+	background-repeat:no-repeat;
+	background-attachment:fixed;
+	background-position:top-left;
+	background: #FFF79A url(important.png) 10px 10px no-repeat;/* Pastel yellow */
     min-height: 42px;
 }
 
 div.hint, div.tip {
-    background: #82CA9D; /* Pastel green */
+	padding: 15px 15px 10px 55px;
+	background-position: top left;
+	background-repeat:no-repeat;
+	background-attachment:fixed;
+	background-position:top-left;
+	background: #82CA9D url(hint.png) 10px 10px no-repeat; /* Pastel green */
     min-height: 42px;
 }
 
