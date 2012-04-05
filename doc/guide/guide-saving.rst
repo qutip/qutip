@@ -34,7 +34,7 @@ Quantum object: dims = [[10], [10]], shape = [10, 10], type = oper, isHerm = Tru
 >>> expect(a.dag() * a, rho_ss_loaded)
 array(0.9902248289344705)
 
-The nice thing about the :func:`qutip.qsave` and :func:`qutip.qload` functions is that almost any object can be stored and load again later on. We can for example store a list of density matrices as returned by :func:`mesolve`:
+The nice thing about the :func:`qutip.qsave` and :func:`qutip.qload` functions is that almost any object can be stored and load again later on. We can for example store a list of density matrices as returned by :func:`qutip.mesolve`:
 
 >>> a = destroy(10); H = a.dag() * a ; c_ops = [sqrt(0.5) * a, sqrt(0.25) * a.dag()]
 >>> psi0 = rand_ket(10)
@@ -56,7 +56,7 @@ array([ 4.30052873,  3.41114025,  2.78257234,  2.32509271,  1.98722684,
 Storing and loading datasets
 ============================
 
-The :func:`qutip.qsave` and :func:`qutip.qload` are great, but the file format used is only understood by QuTiP (python) programs. When data must be exported to other programs the prefered method is to store the data in the commonly used plain-text file formats. With the QuTiP :func:`file_data_store` and :func:`qutip.file_data_read` we can store and load **numpy** arrays and matrices to files on disk using a deliminator-separated value format (for example comma-separated values CSV). Almost any program can handle this file format.
+The :func:`qutip.qsave` and :func:`qutip.qload` are great, but the file format used is only understood by QuTiP (python) programs. When data must be exported to other programs the prefered method is to store the data in the commonly used plain-text file formats. With the QuTiP :func:`qutip.file_data_store` and :func:`qutip.file_data_read` we can store and load **numpy** arrays and matrices to files on disk using a deliminator-separated value format (for example comma-separated values CSV). Almost any program can handle this file format.
 
 The :func:`qutip.file_data_store` takes two mandatory and three optional arguments: 
 
@@ -64,7 +64,7 @@ The :func:`qutip.file_data_store` takes two mandatory and three optional argumen
 
 where `filename` is the name of the file, `data` is the data to be written to the file (must be a *numpy* array), `numtype` (optional) is a flag indicating numerical type that can take values `complex` or `real`, `numformat` (optional) specifies the numerical format that can take the values `exp` for the format `1.0e1` and `decimal` for the format `10.0`, and `sep` (optional) is an arbitrary single-character field separator (usually a tab, space, comma, semicolon, etc.). 
 
-A common use for the :func:`qutip.file_data_write` function is to store the expectation values of a set of operatators for a sequence of times, e.g., as returned by the :func:`mesolve` function, which is what the following example does:
+A common use for the :func:`qutip.file_data_store` function is to store the expectation values of a set of operatators for a sequence of times, e.g., as returned by the :func:`qutip.mesolve` function, which is what the following example does:
 
 >>> a = destroy(10); H = a.dag() * a ; c_ops = [sqrt(0.5) * a, sqrt(0.25) * a.dag()]
 >>> psi0 = rand_ket(10)
@@ -111,7 +111,7 @@ and if we prefer scientific notation we can request that using the `numformat="e
 3.0303030303e-01,3.9527450545e+00,2.1495725421e+00,-4.6059133382e-01
 
 
-Loading data previously stored using :func:`file_data_store` (or some other software) is a even easier. Regardless of which deliminator was used, if data was stored and complex or real numbers, if it is decimal or exponential form, the data can be loaded using the :func:`file_data_read` which only takes the filename 
+Loading data previously stored using :func:`qutip.file_data_store` (or some other software) is a even easier. Regardless of which deliminator was used, if data was stored as complex or real numbers, if it is in decimal or exponential form, the data can be loaded using the :func:`qutip.file_data_read`, which only takes the filename as mandatory argument.
 
 >>> input_data = file_data_read('expect.dat')
 >>> shape(input_data)
