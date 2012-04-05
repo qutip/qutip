@@ -22,12 +22,19 @@ class Codegen():
     """
     Class for generating cython code files at runtime.
     """
-    def __init__(self,hterms,tdterms,hconst=None,tab="\t"):
+    def __init__(self,h_terms,h_tdterms,h_const=None,c_terms=None,c_tdterms=None,c_const=None,tab="\t"):
         import sys,os
         sys.path.append(os.getcwd())
-        self.hterms=hterms
-        self.tdterms=tdterms
-        self.hconst=hconst
+        
+        #--- Hamiltonian time-depdendent pieces ----#
+        self.h_terms=h_terms
+        self.h_tdterms=h_tdterms
+        self.h_const=h_const
+        #--- Collapse operator time-depdendent pieces ----#
+        self.c_terms=c_terms
+        self.c_tdterms=c_tdterms
+        self.c_const=c_const
+        #--- Code generator properties----#
         self.code=[]
         self.tab=tab
         self.level=0
@@ -41,7 +48,7 @@ class Codegen():
     #generate the file    
     def generate(self,filename="rhs.pyx"):
         self.time_vars()
-        for line in cython_preamble()+cython_checks()+self.func_header():
+        for line in cython_preamble()+cython_checks()+self.ODE_func_header():
             self.write(line)
         self.indent()
         for line in self.func_vars():
@@ -50,8 +57,19 @@ class Codegen():
             self.write(line)
         self.write(self.func_end())
         self.dedent()
-        for line in cython_checks()+cython_spmv():
+        
+        #generate collapse operator function if any c_terms
+        if self.c_terms:
+             for line in cython_checks()+cython_spmv():
+                 self.write(line)
+        
+        for line in cython_checks()+self.col_spmv_header()+cython_col_spmv():
             self.write(line)
+        self.indent()
+        for line in self.func_which():
+            self.write(line)
+        self.write(self.func_end())
+        self.dedent()
         self.file(filename)
         self.file.writelines(self.code)
         self.file.close()
@@ -64,49 +82,72 @@ class Codegen():
         if self.level==0:
             raise SyntaxError("Error in code generator")
         self.level-=1
-    def func_header(self):
+    def ODE_func_header(self):
         """
         Creates function header for time-dependent ODE RHS.
         """
         func_name="def cyq_td_ode_rhs("
-        input_vars="float t, np.ndarray[CTYPE_t, ndim=1] vec, " #strings for time and vector variables
-        for k in range(self.hterms):
-            input_vars+="np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k)+","
-        if self.hconst:
-            td_consts=self.hconst.items()
+        input_vars="float t, np.ndarray[CTYPE_t, ndim=1] vec" #strings for time and vector variables
+        for k in xrange(self.h_terms):
+            input_vars+=", np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k)
+        if self.h_const:
+            td_consts=self.h_const.items()
             td_len=len(td_consts)
             for jj in range(td_len):
                 kind=type(td_consts[jj][1]).__name__
-                input_vars+="np."+kind+"_t"+" "+td_consts[jj][0]
-                if jj!=td_len-1:
-                    input_vars+=","
+                input_vars+=", np."+kind+"_t"+" "+td_consts[jj][0]
+        func_end="):"
+        return [func_name+input_vars+func_end]
+    
+    def col_spmv_header(self):
+        """
+        Creates function header for time-dependent
+        collapse operator terms.
+        """
+        func_name="def col_spmv("
+        input_vars="int which, float t, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=2] vec"
+        if self.c_const:
+            td_consts=self.c_const.items()
+            td_len=len(td_consts)
+            for jj in range(td_len):
+                kind=type(td_consts[jj][1]).__name__
+                input_vars+=", np."+kind+"_t"+" "+td_consts[jj][0]
         func_end="):"
         return [func_name+input_vars+func_end]
     def time_vars(self):
         """
         Rewrites time-dependent parts to include np.
         """
-        out_td=[]
-        for jj in range(len(self.tdterms)):
-            text=self.tdterms[jj]
+        for jj in xrange(self.h_terms):
+            text=self.h_tdterms[jj]
             any_np=np.array([text.find(x) for x in self.func_list])
             ind=np.nonzero(any_np>-1)[0]
             for kk in ind:
                 new_text='np.'+self.func_list[kk]
                 text=text.replace(self.func_list[kk],new_text)
-            self.tdterms[jj]=text
-            
+            self.h_tdterms[jj]=text
+        if self.c_tdterms:
+            for jj in xrange(self.c_terms):
+                text=self.c_tdterms[jj]
+                any_np=np.array([text.find(x) for x in self.func_list])
+                ind=np.nonzero(any_np>-1)[0]
+                for kk in ind:
+                    new_text='np.'+self.func_list[kk]
+                    text=text.replace(self.func_list[kk],new_text)
+                self.c_tdterms[jj]=text
+
     def func_vars(self):
         """
         Writes the variables and their types & spmv parts
         """
         func_vars=["",'cdef Py_ssize_t row','cdef int num_rows = len(vec)','cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)']
         func_vars.append(" ") #add a spacer line between variables and Hamiltonian components.
-        for ht in range(self.hterms):
+        terms=self.h_terms
+        tdterms=self.h_tdterms
+        for ht in xrange(terms):
             hstr=str(ht)
             str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data"+hstr+","+"idx"+hstr+","+"ptr"+hstr+","+"vec"+")"
-            if ht!=0:
-                str_out+=" * "+self.tdterms[ht-1]
+            str_out+=" * "+tdterms[ht]
             func_vars.append(str_out)
         return func_vars
     def func_for(self):
@@ -115,10 +156,21 @@ class Codegen():
         """
         func_terms=["","for row in range(num_rows):"]
         sum_string="\tout[row,0] = Hvec0[row,0]"
-        for ht in range(1,self.hterms):
+        for ht in xrange(1,self.h_terms):
             sum_string+=" + Hvec"+str(ht)+"[row,0]"
         func_terms.append(sum_string)
         return func_terms
+    
+    def func_which(self):
+        """
+        Writes 'else-if' statements for
+        collapse operator eval fucntion
+        """
+        out_string=[]
+        for k in xrange(self.c_terms):
+            out_string.append("if which == "+str(k)+":")
+            out_string.append("\tout*= "+self.c_tdterms[k])
+        return out_string
     def func_end(self):
         return "return out"
         
@@ -291,23 +343,21 @@ def cython_spmv():
     lineD="\treturn out"
     return [line0,line1,line2,line3,line4,line5,line6,line7,line8,line9,lineA,lineB,lineC,lineD]
 
-def parallel_cython_spmv():
+def cython_col_spmv():
     """
-    Writes parallel SPMV function.
+    Writes col_SPMV header.
     """
-    line0="def parallel_spmv(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=1] vec):"
     line1="\tcdef Py_ssize_t row"
     line2="\tcdef int jj,row_start,row_end"
     line3="\tcdef int num_rows=len(vec)"
     line4="\tcdef complex dot"
     line5="\tcdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)"
-    line6="\tfor row in prange(num_rows,nogil=True):"
+    line6="\tfor row in range(num_rows):"
     line7="\t\tdot=0.0"
     line8="\t\trow_start = ptr[row]"
     line9="\t\trow_end = ptr[row+1]"
     lineA="\t\tfor jj in range(row_start,row_end):"
-    lineB="\t\t\tdot=dot+data[jj]*vec[idx[jj]]"
+    lineB="\t\t\tdot=dot+data[jj]*vec[idx[jj],0]"
     lineC="\t\tout[row,0]=dot"
-    lineD="\treturn out"
-    return [line0,line1,line2,line3,line4,line5,line6,line7,line8,line9,lineA,lineB,lineC,lineD]
+    return [line1,line2,line3,line4,line5,line6,line7,line8,line9,lineA,lineB,lineC]
 
