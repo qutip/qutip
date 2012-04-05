@@ -46,7 +46,7 @@ If we know the Floquet modes (for :math:`t \in [0,T]`) and the quasienergies for
    
     \Psi(t) = \sum_\alpha c_\alpha \Psi_\alpha(t) = \sum_\alpha c_\alpha \exp(-i\epsilon_\alpha t/\hbar)\Phi_\alpha(t),
 
-where the coefficients :math:`c_\alpha` are determined by the initial wave :math:`\Psi(0) = \sum_\alpha c_\alpha \Psi_\alpha(0)`.
+where the coefficients :math:`c_\alpha` are determined by the initial wavefunction :math:`\Psi(0) = \sum_\alpha c_\alpha \Psi_\alpha(0)`.
 
 This formalism is useful for finding :math:`\Psi(t)` for a given :math:`H(t)` only if we can obtain the Floquet modes :math:`\Phi_a(t)` and quasienergies :math:`\epsilon_\alpha` more easily than directly solving :eq:`eq_td_schrodinger`. By substituting :eq:`eq_floquet_states` into the Schrödinger equation :eq:`eq_td_schrodinger` we obtain an eigenvalue equation for the Floquet modes and quasienergies
 
@@ -61,7 +61,7 @@ where :math:`\mathcal{H}(t) = H(t) - i\hbar\partial_t`. This eigenvalue problem 
 
     U(T+t,t)\Psi(t) = \Psi(T+t).
 
-Inserting the Floquet wavefunctions from :eq:`eq_floquet_states` into this expression results in 
+Inserting the Floquet states from :eq:`eq_floquet_states` into this expression results in 
 
 .. math::
     U(T+t,t)\exp(-i\epsilon_\alpha t/\hbar)\Phi_\alpha(t) = \exp(-i\epsilon_\alpha(T+t)/\hbar)\Phi_\alpha(T+t),
@@ -101,7 +101,7 @@ In QuTiP we can define this Hamiltonian as follows
 >>> args = {'w': omega}
 >>> H = [H0, [H1, 'sin(w * t)']]
 
-The :math:`t=0` floquet modes corresponding to the Hamiltonian :eq:`eq_driven_qubit` can then be calculated using the :func:`qutip.floquet_modes` function, which returns list containing the Floquet modes and the quasienergies
+The :math:`t=0` floquet modes corresponding to the Hamiltonian :eq:`eq_driven_qubit` can then be calculated using the :func:`qutip.floquet_modes` function, which returns lists containing the Floquet modes and the quasienergies
 
 >>> T = 2*pi / omega
 >>> f_modes, f_energies = floquet_modes(H, T, args)
@@ -130,14 +130,14 @@ Qobj data =
 [[-0.61110159-0.39866357j]
  [ 0.03189259+0.6830849j ]]]
 
-The purpose of calculating the Floquet modes is to find the wavefunction solution to the original problem :eq:`eq_driven_qubit` given some intial state :math:`\left|\psi_0\right>`. To do that, we first need to decompose the intial state in the floquet mode, using the function :func:`qutip.`
+The purpose of calculating the Floquet modes is to find the wavefunction solution to the original problem :eq:`eq_driven_qubit` given some intial state :math:`\left|\psi_0\right>`. To do that, we first need to decompose the intial state in the floquet states, using the function :func:`qutip.floquet_state_decomposition`
 
 >>> psi0 = rand_ket(2)
 >>> f_coeff = floquet_state_decomposition(f_modes_0, f_energies, psi0)
 [(0.81334464307183041-0.15802444453870021j),
  (-0.17549465805005662-0.53169576969399113j)]
 
-and given this decomposition of the initial state in the Floquet states we can easily evaluate the wavefunction that is the solution to :eq:`eq_driven_qubit` at an arbitrary time :math:`t` using the function :func:`qutip.floquet`
+and given this decomposition of the initial state in the Floquet states we can easily evaluate the wavefunction that is the solution to :eq:`eq_driven_qubit` at an arbitrary time :math:`t` using the function :func:`qutip.floquet_wavefunction_t`
 
 >>> t = 10 * rand()
 >>> psi_t = floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args)  
