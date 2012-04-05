@@ -15,11 +15,12 @@ QuTiP Users Guide
    guide-states.rst
    guide-tensor.rst
    guide-dynamics.rst
-   guide-correlation.rst
    guide-steady.rst
+   guide-correlation.rst
    guide-bloch.rst
-   guide-parfor.rst
    guide-eseries.rst
-   guide-saving.rst
    guide-bloch-redfield.rst
    guide-floquet.rst
+   guide-parfor.rst
+   guide-saving.rst
+
