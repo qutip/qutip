@@ -30,17 +30,15 @@ from qutip.rhs_generate import rhs_generate
 from qutip.Odedata import Odedata
 import os,numpy,odeconfig
 import scipy.sparse as sp
-# ------------------------------------------------------------------------------
+
+
+#-------------------------------------------------------------------------------
+# Evolution of the Bloch-Redfield master equation given the Bloch-Redfield
+# tensor.
 # 
-# 
-# 
-#def me_ode_solve(H, rho0, tlist, c_op_list, expt_op_list, H_args, opt):
 def brmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
     """
     Solve the dynamics for the system using the Bloch-Redfeild master equation.
-    
-    ..note:: Experimental
-    
     """
 
     if opt == None:
@@ -48,7 +46,7 @@ def brmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
         opt.nsteps = 2500  # 
 
     if opt.tidy:
-        R = tidyup(R, opt.atol)
+        R.tidyup()
 
     #
     # check initial state
@@ -59,7 +57,7 @@ def brmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
        
     #
     # prepare output array
-    # 
+    # m
     n_e_ops  = len(e_ops)
     n_tsteps = len(tlist)
     dt       = tlist[1]-tlist[0]
@@ -119,68 +117,7 @@ def brmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
         t_idx += 1
           
     return result_list
-
-# ------------------------------------------------------------------------------
-# Functions for calculting the Bloch-Redfield tensor for a time-independent 
-# system.
-# 
-def bloch_redfield_tensor_cb(H, c_ops, spectra_cb, use_secular=True):
-    """
-    Calculate the Bloch-Redfield tensor for a system given a set of operators
-    and corresponding spectral functions that describes the system's coupling
-    to its environment. Use the original computational basis: not working
-    
-    ..note:: Experimental
-    
-    """
-        
-    # TODO: check that H is a Qobj
-
-    # use the eigenbasis         
-    evals = H.eigenenergies()
-
-    N = len(evals)  
-    K = len(c_ops)
-    W = zeros((N,N))
-    
-    # pre-calculate matrix elements
-    for n in xrange(N):
-        for m in xrange(N):
-            W[n,m] = real(evals[n] - evals[m])
-    
-    dw_min = abs(W[W.nonzero()]).min()
-                    
-    # unitary part
-    R = -1.0j*(spre(H) - spost(H))
-    R.data=R.data.tolil()
-    for I in xrange(N*N):
-        a,b = vec2mat_index(N, I)
-        for J in xrange(N*N):
-            c,d = vec2mat_index(N, J)
    
-            # unitary part: use spre and spost above, same as this:
-            # R[I,J] = -1j * (H[a,c] * (b == d) - H[d,b] * (a == c))   
-            # in eb
-            # R[I,J] = -1j * W[a,b] * (a == c) * (b == d)
- 
-            if use_secular == False or abs(W[a,b]-W[c,d]) < dw_min:
-  
-                # dissipative part:
-                for k in xrange(K):
-                    # for each operator coupling the system to the environment
-
-                    R.data[I,J] +=  c_ops[k].data[a,c] * c_ops[k].data[d,b] * (spectra_cb[k](W[a,c]) + spectra_cb[k](W[b,d])) / 4
-                      
-                    s1 = s2 = 0
-                    for n in xrange(N):                         
-                        s1 += c_ops[k].data[a,n] * c_ops[k].data[n,c] * spectra_cb[k](W[n,c])
-                        s2 += c_ops[k].data[d,n] * c_ops[k].data[n,b] * spectra_cb[k](W[n,b])
-        
-                    R.data[I,J] += - (b == d) * s1 / 4 - (a == c) * s2 / 4
-                
-    R.data=R.data.tocsr()
-    return R, None
-    
 # ------------------------------------------------------------------------------
 # Functions for calculting the Bloch-Redfield tensor for a time-independent 
 # system.
@@ -189,16 +126,16 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
     """
     Calculate the Bloch-Redfield tensor for a system given a set of operators
     and corresponding spectral functions that describes the system's coupling
-    to its environment. Use the eigenbasis for calculating R.
-    
-    ..note:: Experimental
+    to its environment.
     
     """
         
-    # TODO: check that H is a Qobj
+    # Sanity checks for input parameters
+    if not isinstance(H, Qobj):
+        raise "H must be a quantum object"
 
     # use the eigenbasis         
-    ekets, evals = H.eigenstates()
+    evals, ekets = H.eigenstates()
 
     N = len(evals)  
     K = len(c_ops)
@@ -208,7 +145,9 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
     # pre-calculate matrix elements
     for n in xrange(N):
         for m in xrange(N):
-            W[n,m] = real(evals[m] - evals[n])
+            W[m,n] = real(evals[m] - evals[n])
+
+    print "W =", W
 
     for k in range(K):
         #A[k,n,m] = c_ops[k].matrix_element(ekets[n], ekets[m])
@@ -226,8 +165,6 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
             c,d = vec2mat_index(N, J)
    
             # unitary part: use spre and spost above, same as this:
-            # R[I,J] = -1j * (H[a,c] * (b == d) - H[d,b] * (a == c))   
-            # in eb
             # R[I,J] = -1j * W[a,b] * (a == c) * (b == d)
  
             if use_secular == False or abs(W[a,b]-W[c,d]) < dw_min/10.0:
@@ -236,14 +173,14 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
                 for k in xrange(K):
                     # for each operator coupling the system to the environment
 
-                    R.data[I,J] += (A[k,a,c] * A[k,d,b] / 4) * (spectra_cb[k](W[a,c]) + spectra_cb[k](W[b,d]))                      
+                    R.data[I,J] += (A[k,a,c] * A[k,d,b] / 2) * (spectra_cb[k](W[c,a]) + spectra_cb[k](W[d,b]))                      
                     
                     s1 = s2 = 0
-                    for n in xrange(N):                         
-                        s1 += A[k,a,n] * A[k,n,c] * spectra_cb[k](W[n,c])
-                        s2 += A[k,d,n] * A[k,n,b] * spectra_cb[k](W[n,d])
+                    for n in xrange(N): 
+                        s1 += A[k,a,n] * A[k,n,c] * spectra_cb[k](W[c,n])
+                        s2 += A[k,d,n] * A[k,n,b] * spectra_cb[k](W[d,n])
         
-                    R.data[I,J] += - (b == d) * s1 / 4 - (a == c) * s2 / 4
+                    R.data[I,J] += - (b == d) * s1 / 2 - (a == c) * s2 / 2
                 
     R.data=R.data.tocsr()
     return R, ekets    
