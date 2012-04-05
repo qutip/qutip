@@ -35,7 +35,7 @@ The most general form of a master eqaution for the system dynamics is obtained b
 
 where the additional assumption that the total system-bath density matrix can be factorized as :math:`\rho(t) \approx \rho_S(t) \otimes \rho_B`. This assumption is known as the Born approximation, and it implies that there never is any entanglement between the system and the bath, neither in the initial state nor at any time during the evolution. *It is justified for weak system-bath interaction.*
 
-The master equation :eq:`br_nonmarkovian_form1` is non-Markovian, i.e., the change in the density matrix at a time :math:`t` depends on states at all times :math:`\tau < t`, making it intractible to solve both theoretically and numerically. To make progress towards a managable master equation, we now introduce the Markovian approximation, in which :math:`\rho(s)` is replaced by :math:`\rho(t)` in Eq. :eq:`br_nonmarkovian_form1`. The result is the Redfield equation
+The master equation :eq:`br-nonmarkovian-form1` is non-Markovian, i.e., the change in the density matrix at a time :math:`t` depends on states at all times :math:`\tau < t`, making it intractible to solve both theoretically and numerically. To make progress towards a managable master equation, we now introduce the Markovian approximation, in which :math:`\rho(s)` is replaced by :math:`\rho(t)` in Eq. :eq:`br-nonmarkovian-form1`. The result is the Redfield equation
 
 .. math::
    :label: br-nonmarkovian-form2
@@ -51,7 +51,7 @@ which is local in time with respect the density matrix, but still not Markovian 
 
 The two Markovian approximations introduced above are valid if the time-scale with which the system dynamics changes is large compared to the time-scale with which correlations in the bath decays (corresponding to a "short-memory" bath, which results in Markovian system dynamics).
 
-The master equation :eq:`br_markovian_form` is still on a too general form to be suitable for numerical implementation. We therefore assume that the system-bath interaction takes the form :math:`H_I = \sum_\alpha A_\alpha \otimes B_\alpha` and where :math:`A_\alpha` are system operators and :math:`B_\alpha` are bath operators. This allows us to write master equation in terms of system operators and bath correlation functions:
+The master equation :eq:`br-markovian-form` is still on a too general form to be suitable for numerical implementation. We therefore assume that the system-bath interaction takes the form :math:`H_I = \sum_\alpha A_\alpha \otimes B_\alpha` and where :math:`A_\alpha` are system operators and :math:`B_\alpha` are bath operators. This allows us to write master equation in terms of system operators and bath correlation functions:
 
 .. math::
 
@@ -139,7 +139,7 @@ where
 
 is the Bloch-Redfield tensor. 
 
-The Bloch-Redfield master equation in the form Eq. :eq:`br_final` is suitable for numerical implementation. The input parameters are the system Hamiltonian :math:`H`, the system operators through which the environment couples to the system :math:`A_\alpha`, and the noise-power spectrum :math:`S_{\alpha\beta}(\omega)` associated with each system-environment interaction term.
+The Bloch-Redfield master equation in the form Eq. :eq:`br-final` is suitable for numerical implementation. The input parameters are the system Hamiltonian :math:`H`, the system operators through which the environment couples to the system :math:`A_\alpha`, and the noise-power spectrum :math:`S_{\alpha\beta}(\omega)` associated with each system-environment interaction term.
 
 To simplify the numerical implementation we assume that :math:`A_\alpha` are Hermitian and that cross-correlations between different environment operators vanish, so that the final expression for the Bloch-Redfield tensor that is implemented in QuTiP is
 
@@ -166,7 +166,7 @@ To simplify the numerical implementation we assume that :math:`A_\alpha` are Her
 Bloch-Redfield master equation in QuTiP
 =======================================
 
-In QuTiP, the Bloch-Redfield tensor Eq. :eq:`br_tensor` can be calculated using the function :func:`bloch_redfield_tensor`. It takes three mandatory arguments: The system Hamiltonian :math:`H`, a list of operators through which to the bath :math:`A_\alpha`, and a list of corresponding spectral density functions :math:`S_\alpha(\omega)`. The spectral density functions are callback functions that takes the (angular) frequency as a single argument.
+In QuTiP, the Bloch-Redfield tensor Eq. :eq:`br-tensor` can be calculated using the function :func:`bloch_redfield_tensor`. It takes three mandatory arguments: The system Hamiltonian :math:`H`, a list of operators through which to the bath :math:`A_\alpha`, and a list of corresponding spectral density functions :math:`S_\alpha(\omega)`. The spectral density functions are callback functions that takes the (angular) frequency as a single argument.
 
 To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-level atom
 
@@ -194,7 +194,7 @@ array([[ 0.        ,  0.        ,  0.        ,  0.04902903],
 
 For convenience, the function :func:`bloch_redfield_tensor` also returns a list of eigenkets `ekets`, since they are calculated in the process of calculating the Bloch-Redfield tensor `R`, and the `ekets` are usually needed again later when transforming operators between the computational basis and the eigenbasis.
 
-The evolution of a wavefunction or density matrix, according to the Bloch-Redfield master equation :eq:`br_final`, can be calculated using the QuTiP function :func:`bloch_redfield_solve`. It takes five mandatory arguments: the Bloch-Redfield tensor `R`, the list of eigenkets `ekets`, the initial state `psi0` (as a ket or density matrix), a list of times `tlist` for which to evaluate the expectation values, and a list of expectation values to evaluate at each time-step defined by `tlist`. For example, to evaluate the expectation values of the :math:`\sigma_x`, :math:`\sigma_y`, and :math:`\sigma_z` operators for the example above, we can use the following code:
+The evolution of a wavefunction or density matrix, according to the Bloch-Redfield master equation :eq:`br-final`, can be calculated using the QuTiP function :func:`bloch_redfield_solve`. It takes five mandatory arguments: the Bloch-Redfield tensor `R`, the list of eigenkets `ekets`, the initial state `psi0` (as a ket or density matrix), a list of times `tlist` for which to evaluate the expectation values, and a list of expectation values to evaluate at each time-step defined by `tlist`. For example, to evaluate the expectation values of the :math:`\sigma_x`, :math:`\sigma_y`, and :math:`\sigma_z` operators for the example above, we can use the following code:
 
 >>> tlist = linspace(0, 15.0, 1000)
 >>> psi0 = rand_ket(2)
