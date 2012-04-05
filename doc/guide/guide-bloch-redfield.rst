@@ -29,7 +29,7 @@ The starting point of the Bloch-Redfield formalism is the total Hamiltonian for 
 The most general form of a master eqaution for the system dynamics is obtained by tracing out the bath from the von Neumann equation of motion for the combined system (:math:`\dot\rho = -i\hbar^{-1}[H, \rho]`). In the interaction picture the result is
 
 .. math::
-   :label: br_nonmarkovian_form1
+   :label: br-nonmarkovian-form1
 
     \frac{d}{dt}\rho_S(t) = - \hbar^{-2}\int_0^t d\tau\;  {\rm Tr}_B [H_I(t), [H_I(\tau), \rho_S(\tau)\otimes\rho_B]],
 
@@ -38,14 +38,14 @@ where the additional assumption that the total system-bath density matrix can be
 The master equation :eq:`br_nonmarkovian_form1` is non-Markovian, i.e., the change in the density matrix at a time :math:`t` depends on states at all times :math:`\tau < t`, making it intractible to solve both theoretically and numerically. To make progress towards a managable master equation, we now introduce the Markovian approximation, in which :math:`\rho(s)` is replaced by :math:`\rho(t)` in Eq. :eq:`br_nonmarkovian_form1`. The result is the Redfield equation
 
 .. math::
-   :label: br_nonmarkovian_form2
+   :label: br-nonmarkovian-form2
    
     \frac{d}{dt}\rho_S(t) = - \hbar^{-2}\int_0^t d\tau\; {\rm Tr}_B [H_I(t), [H_I(\tau), \rho_S(t)\otimes\rho_B]],
 
 which is local in time with respect the density matrix, but still not Markovian since it contains an implicit dependence on the initial state. By extending the integration to infinity and substituting :math:`\tau \rightarrow t-\tau`, a fully Markovian master equation is obtained: 
 
 .. math::
-   :label: br_markovian_form
+   :label: br-markovian-form
    
     \frac{d}{dt}\rho_S(t) = - \hbar^{-2}\int_0^\infty d\tau\; {\rm Tr}_B [H_I(t), [H_I(t-\tau), \rho_S(t)\otimes\rho_B]].
 
@@ -102,7 +102,7 @@ In the eigenbasis of the system Hamiltonian, where :math:`A_{mn}(t) = A_{mn} e^{
 where the "sec" above the summation symbol indicate summation of the secular terms which satisfy :math:`|\omega_{ab}-\omega_{cd}| \ll \tau_ {\rm decay}`. This is an almost-useful form of the master equation. The final step before arriving at the form of the Bloch-Redfield master equation that is implemented in QuTiP, involves rewriting the bath correlation function :math:`g(\tau)` in terms of the noise-power spectrum of the environment :math:`S(\omega) = \int_{-\infty}^\infty d\tau e^{i\omega\tau} g(\tau)`:
 
 .. math::
-   :label: br_nonmarkovian_form
+   :label: br-nonmarkovian-form
 
     \int_0^\infty d\tau\; g_{\alpha\beta}(\tau) e^{i\omega\tau} = \frac{1}{2}S_{\alpha\beta}(\omega) + i\lambda_{\alpha\beta}(\omega),
 
@@ -110,7 +110,7 @@ where :math:`\lambda_{ab}(\omega)` is an energy shift that is neglected here. Th
 
 
 .. math::
-    :label: br_final
+    :label: br-final
 
     \frac{d}{dt}\rho_{ab}(t)
     = 
@@ -121,7 +121,7 @@ where :math:`\lambda_{ab}(\omega)` is an energy shift that is neglected here. Th
 where
 
 .. math::
-   :label: br_nonmarkovian_form
+   :label: br-nonmarkovian-form
 
     R_{abcd} =  -\frac{\hbar^{-2}}{2} \sum_{\alpha,\beta}
     &&
@@ -144,7 +144,7 @@ The Bloch-Redfield master equation in the form Eq. :eq:`br_final` is suitable fo
 To simplify the numerical implementation we assume that :math:`A_\alpha` are Hermitian and that cross-correlations between different environment operators vanish, so that the final expression for the Bloch-Redfield tensor that is implemented in QuTiP is
 
 .. math::
-   :label: br_tensor
+   :label: br-tensor
 
     R_{abcd} =  -\frac{\hbar^{-2}}{2} \sum_{\alpha}
     &&
