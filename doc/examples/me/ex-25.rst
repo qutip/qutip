@@ -6,17 +6,17 @@
 Steady state calculation for a sideband-cooled nanomechanical resonator
 =======================================================================
 
-In this example we look at how to calculate the steady state for a master equation. To demonstrate a steady state calculation we look at an example from nanomechanics: Consider a low-frequency nanomechanical resonator (with frequency :math:`\omega_m` lower than temperature) parametrically coupled to a high-frequency (optical) resonantor (with frequency :math:`\omega_r` higher than temperature). In the steady state the mechanical resonator is highly excited and the optical resonator is near its quantum ground state. 
+In this example we look at how to calculate the steady state for a master equation. To demonstrate a steady state calculation we look at an example from nanomechanics: Consider a low-frequency nanomechanical resonator (with frequency :math:`\omega_m` lower than temperature) coupled to a high-frequency (optical) resonantor (with frequency :math:`\omega_r` higher than temperature). In the steady state the mechanical resonator is highly excited and the optical resonator is near its quantum ground state. 
 
 By applying a driving field to the high-frequency resonator with a frequency matching the frequency difference between the resonator, the two oscilators can effectively be brought into resonance in a rotating frame, allowing for excitation transfer from the low-frequency mechanical resonator to the high-frequency resonator (i.e., sideband cooling of the mechanical resonator). 
 
-The Hamiltonian for this problem is
+The Hamiltonian considered for this problem is
 
 .. math::
     
     H = \omega_r a^\dagger a + \omega_m b^\dagger b + g a^\dagger a (b + b^\dagger) + A \sin(\omega_d t) (a + a^\dagger),
 
-which in a rotating frame which eliminates the time-dependence of the driving term becomes
+which in the rotating frame that eliminates the time-dependence of the driving term becomes
 
 .. math::
     
