@@ -22,8 +22,9 @@ from Qobj import *
 
 
 def _ode_checks(H,c_ops,solver='me'):
-    # do some basic sanity checks on the format of H and c_ops: this should
-    # be moved to a function that can be reused.
+    """
+    Checks on time-dependent format.
+    """
     h_const = 0
     h_func  = 0
     h_str   = 0
@@ -76,6 +77,16 @@ def _ode_checks(H,c_ops,solver='me'):
     #
     if (h_str > 0 and h_func > 0) or (c_str > 0 and c_func > 0):
         raise TypeError("Cannot mix string and function type time-dependence formats")       
+    
+    #check to see if Cython is installed and version is high enough.
+    if h_str>0 or c_str>0:
+        try:
+            import Cython
+        except:
+            raise Exception("Unable to load Cython. Use Python function format.")
+        else:
+            if float(Cython.__version__)<0.14:
+                raise Exception("Cython version is too old.  Upgrade to version 0.14+")
     
     if solver=='me':
         return [h_const+c_const,h_func+c_func,h_str+c_str]
