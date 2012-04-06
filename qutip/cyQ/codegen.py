@@ -22,7 +22,7 @@ class Codegen():
     """
     Class for generating cython code files at runtime.
     """
-    def __init__(self,h_terms,h_tdterms,h_const=None,c_terms=None,c_tdterms=None,c_const=None,tab="\t"):
+    def __init__(self,h_terms=None,h_tdterms=None,h_const=None,c_terms=None,c_tdterms=None,c_const=None,tab="\t"):
         import sys,os
         sys.path.append(os.getcwd())
         
@@ -48,28 +48,31 @@ class Codegen():
     #generate the file    
     def generate(self,filename="rhs.pyx"):
         self.time_vars()
-        for line in cython_preamble()+cython_checks()+self.ODE_func_header():
+        for line in cython_preamble():
             self.write(line)
-        self.indent()
-        for line in self.func_vars():
-            self.write(line)
-        for line in self.func_for():
-            self.write(line)
-        self.write(self.func_end())
-        self.dedent()
+        if self.h_terms:
+            for line in cython_checks()+self.ODE_func_header():
+                self.write(line)
+            self.indent()
+            for line in self.func_vars():
+                self.write(line)
+            for line in self.func_for():
+                self.write(line)
+            self.write(self.func_end())
+            self.dedent()
+            for line in cython_checks()+cython_spmv():
+                 self.write(line)
         
         #generate collapse operator function if any c_terms
         if self.c_terms:
-             for line in cython_checks()+cython_spmv():
-                 self.write(line)
+            for line in cython_checks()+self.col_spmv_header()+cython_col_spmv():
+                self.write(line)
+            self.indent()
+            for line in self.func_which():
+                self.write(line)
+            self.write(self.func_end())
+            self.dedent()
         
-        for line in cython_checks()+self.col_spmv_header()+cython_col_spmv():
-            self.write(line)
-        self.indent()
-        for line in self.func_which():
-            self.write(line)
-        self.write(self.func_end())
-        self.dedent()
         self.file(filename)
         self.file.writelines(self.code)
         self.file.close()
@@ -118,14 +121,15 @@ class Codegen():
         """
         Rewrites time-dependent parts to include np.
         """
-        for jj in xrange(self.h_terms):
-            text=self.h_tdterms[jj]
-            any_np=np.array([text.find(x) for x in self.func_list])
-            ind=np.nonzero(any_np>-1)[0]
-            for kk in ind:
-                new_text='np.'+self.func_list[kk]
-                text=text.replace(self.func_list[kk],new_text)
-            self.h_tdterms[jj]=text
+        if self.h_terms:
+            for jj in xrange(self.h_terms):
+                text=self.h_tdterms[jj]
+                any_np=np.array([text.find(x) for x in self.func_list])
+                ind=np.nonzero(any_np>-1)[0]
+                for kk in ind:
+                    new_text='np.'+self.func_list[kk]
+                    text=text.replace(self.func_list[kk],new_text)
+                self.h_tdterms[jj]=text
         if self.c_tdterms:
             for jj in xrange(self.c_terms):
                 text=self.c_tdterms[jj]
