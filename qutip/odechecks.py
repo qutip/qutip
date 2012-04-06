@@ -27,24 +27,24 @@ def _ode_checks(H,c_ops,solver='me'):
     """
     h_const = 0
     h_func  = 0
-    h_str   = 0
+    h_str   = []
     # check H for incorrect format
     if isinstance(H, Qobj):    
         h_const += 1
     elif isinstance(H, FunctionType):
         pass #n_func += 1
     elif isinstance(H, list):
-        for h in H:
-            if isinstance(h, Qobj):
+        for k in xrange(len(H)):
+            if isinstance(H[k], Qobj):
                 h_const += 1
-            elif isinstance(h, list):
-                if len(h) != 2 or not isinstance(h[0], Qobj):
+            elif isinstance(H[k], list):
+                if len(H[k]) != 2 or not isinstance(H[k][0], Qobj):
                     raise TypeError("Incorrect hamiltonian specification")
                 else:
-                    if isinstance(h[1], FunctionType):
+                    if isinstance(H[k][1], FunctionType):
                         h_func += 1
-                    elif isinstance(h[1], str):
-                        h_str += 1
+                    elif isinstance(H[k][1], str):
+                        h_str.append(k)
                     else:
                         raise TypeError("Incorrect hamiltonian specification")
     else:
@@ -53,19 +53,19 @@ def _ode_checks(H,c_ops,solver='me'):
     # the the whole thing again for c_ops 
     c_const = 0
     c_func  = 0
-    c_str   = 0
+    c_str   = []
     if isinstance(c_ops, list):
-        for c in c_ops:
-            if isinstance(c, Qobj):
+        for k in xrange(len(c_ops)):
+            if isinstance(c_ops[k], Qobj):
                 c_const += 1
-            elif isinstance(c, list):
-                if len(c) != 2 or not isinstance(c[0], Qobj):
+            elif isinstance(c_ops[k], list):
+                if len(c_ops[k]) != 2 or not isinstance(c_ops[k][0], Qobj):
                     raise TypeError("Incorrect collapse operator specification")
                 else:
-                    if isinstance(c[1], FunctionType):
+                    if isinstance(c_ops[k][1], FunctionType):
                         c_func += 1
-                    elif isinstance(c[1], str):
-                        c_str += 1
+                    elif isinstance(c_ops[k][1], str):
+                        c_str.append(k)
                     else:
                         raise TypeError("Incorrect collapse operator specification")
     else:
@@ -89,7 +89,7 @@ def _ode_checks(H,c_ops,solver='me'):
                 raise Exception("Cython version (%s) is too old.  Upgrade to version 0.14+" % Cython.__version__)
     
     if solver=='me':
-        return [h_const+c_const,h_func+c_func,h_str+c_str]
+        return [h_const+c_const,h_func+c_func,len(h_str)+len(c_str)]
     elif solver=='mc':
         #Time-indepdent problems
         if (h_func==h_str==0) and (c_func==c_str==0):
@@ -97,7 +97,7 @@ def _ode_checks(H,c_ops,solver='me'):
         
         #Python function style Hamiltonian
         elif h_func>0:
-            if c_func==c_str==0:
+            if len(c_func)==len(c_str)==0:
                 time_type=10
             elif c_func>0:
                 time_type=11
@@ -106,7 +106,7 @@ def _ode_checks(H,c_ops,solver='me'):
         
         #list style Hamiltonian
         elif h_str>0:
-            if c_func==c_str==0:
+            if c_func==len(c_str)==0:
                 time_type=20
             elif c_func>0:
                 time_type=21
@@ -114,13 +114,35 @@ def _ode_checks(H,c_ops,solver='me'):
                 time_type=22
         
         #constant Hamiltonian, time-dependent collapse operators
-        elif h_func==h_str==0:
+        elif h_func==len(h_str)==0:
             if c_func>0:
                 time_type=31
-            elif c_str>0:
+            elif len(c_str)>0:
                 time_type=32
         
         return time_type,[h_const,h_func,h_str],[c_const,c_func,c_str]
         
 
+def _args_sort(H,h_inds,c_ops,c_inds,args):
+    """
+    Sorts mcsolve args into two dicts, one
+    for Hamiltonian, one for collapse operators.
+    
+    Takes indices from _ode_checks
+    """
+    keys=args.keys()
+    h_args=args.copy()
+    c_args=args.copy()
+    for k in keys:
+        if k not in [H[x][1] for x in h_inds]:
+            h_args.pop(k)
+        if k not in [c_ops[x][1] for x in c_inds]:
+            c_args.pop(k)
+    if not any(h_args):
+        h_args=None
+    if not any(c_args):
+        c_args=None
+    return h_args,c_args
+ 
+    
 
