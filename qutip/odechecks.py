@@ -16,7 +16,7 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-
+import numpy as np
 from types import FunctionType
 from Qobj import *
 
@@ -123,6 +123,27 @@ def _ode_checks(H,c_ops,solver='me'):
         return time_type,[h_const,h_func,h_str],[c_const,c_func,c_str]
         
 
+
+def _args_check(H,h_inds,c_ops,c_inds,args):
+    """
+    Checks args variables to make sure they are not too close to the built in numpy math commands
+    """
+    keys=args.keys()
+    func_list=array([func+'(' for func in dir(np.math)[4:-1]]) #add a '(' on the end to guarentee function is selected 
+    if any(['e'==j for j in keys]) or any(['pi'==j for j in keys]):
+        raise ValueError("'e' and 'pi' are not allowed arguments.")
+    for k in keys:
+        #checks if key is in np.math
+        math_key=where([text.find(k)!=-1 for text in func_list])[0]
+        if len(math_key)>0:
+            #checks if any math functions with key in the string are in the Hamiltonian strings
+            math_in_h_str=where(array([[H[x][1].find(jj)!=-1 for jj in func_list[math_key]] for x in h_inds]))[0]
+            math_in_c_str=where(array([[c_ops[x][1].find(jj)!=-1 for jj in func_list[math_key]] for x in c_inds]))[0]
+            #if the args and math function names are too close or equal, raise an error
+            if (len(math_in_h_str)>0 or len(math_in_c_str)>0) and len(k)>2:
+                raise Exception("Argument "+k+" is too close to, or equal to, a math function name used in Hamiltonian list. Switch argument name.")
+
+
 def _args_sort(H,h_inds,c_ops,c_inds,args):
     """
     Sorts mcsolve args into two dicts, one
@@ -134,10 +155,15 @@ def _args_sort(H,h_inds,c_ops,c_inds,args):
     h_args=args.copy()
     c_args=args.copy()
     for k in keys:
-        if k not in [H[x][1] for x in h_inds]:
+        
+        in_h=array([H[x][1].find(k) for x in h_inds])
+        if not any(in_h!=-1):
             h_args.pop(k)
-        if k not in [c_ops[x][1] for x in c_inds]:
+    
+        in_c=array([c_ops[x][1].find(k) for x in c_inds])
+        if not any(in_c!=-1):
             c_args.pop(k)
+    
     if not any(h_args):
         h_args=None
     if not any(c_args):
