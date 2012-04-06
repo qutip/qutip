@@ -22,17 +22,19 @@ class Codegen():
     """
     Class for generating cython code files at runtime.
     """
-    def __init__(self,h_terms=None,h_tdterms=None,h_const=None,c_terms=None,c_tdterms=None,c_const=None,tab="\t"):
+    def __init__(self,h_terms=None,h_tdterms=None,h_td_inds=None,h_const=None,c_terms=None,c_tdterms=None,c_td_inds=None,c_const=None,tab="\t"):
         import sys,os
         sys.path.append(os.getcwd())
         
         #--- Hamiltonian time-depdendent pieces ----#
         self.h_terms=h_terms
         self.h_tdterms=h_tdterms
+        self.h_td_inds=h_td_inds
         self.h_const=h_const
         #--- Collapse operator time-depdendent pieces ----#
         self.c_terms=c_terms
         self.c_tdterms=c_tdterms
+        self.c_td_inds=c_td_inds
         self.c_const=c_const
         #--- Code generator properties----#
         self.code=[]
@@ -50,7 +52,7 @@ class Codegen():
         self.time_vars()
         for line in cython_preamble():
             self.write(line)
-        if self.h_terms:
+        if self.h_terms>0:
             for line in cython_checks()+self.ODE_func_header():
                 self.write(line)
             self.indent()
@@ -64,7 +66,7 @@ class Codegen():
                  self.write(line)
         
         #generate collapse operator function if any c_terms
-        if self.c_terms:
+        if self.c_terms>0:
             for line in cython_checks()+self.col_spmv_header()+cython_col_spmv():
                 self.write(line)
             self.indent()
@@ -121,8 +123,8 @@ class Codegen():
         """
         Rewrites time-dependent parts to include np.
         """
-        if self.h_terms:
-            for jj in xrange(self.h_terms):
+        if self.h_tdterms:
+            for jj in xrange(len(self.h_tdterms)):
                 text=self.h_tdterms[jj]
                 any_np=np.array([text.find(x) for x in self.func_list])
                 ind=np.nonzero(any_np>-1)[0]
@@ -131,7 +133,7 @@ class Codegen():
                     text=text.replace(self.func_list[kk],new_text)
                 self.h_tdterms[jj]=text
         if self.c_tdterms:
-            for jj in xrange(self.c_terms):
+            for jj in xrange(len(self.c_tdterms)):
                 text=self.c_tdterms[jj]
                 any_np=np.array([text.find(x) for x in self.func_list])
                 ind=np.nonzero(any_np>-1)[0]
@@ -148,10 +150,13 @@ class Codegen():
         func_vars.append(" ") #add a spacer line between variables and Hamiltonian components.
         terms=self.h_terms
         tdterms=self.h_tdterms
+        inds=0
         for ht in xrange(terms):
             hstr=str(ht)
             str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data"+hstr+","+"idx"+hstr+","+"ptr"+hstr+","+"vec"+")"
-            str_out+=" * "+tdterms[ht]
+            if ht in self.h_td_inds:
+                str_out+=" * "+tdterms[inds]
+                inds+=1
             func_vars.append(str_out)
         return func_vars
     def func_for(self):
@@ -171,9 +176,11 @@ class Codegen():
         collapse operator eval fucntion
         """
         out_string=[]
-        for k in xrange(self.c_terms):
+        ind=0
+        for k in self.c_td_inds:
             out_string.append("if which == "+str(k)+":")
-            out_string.append("\tout*= "+self.c_tdterms[k])
+            out_string.append("\tout*= "+self.c_tdterms[ind])
+            ind+=1
         return out_string
     def func_end(self):
         return "return out"
