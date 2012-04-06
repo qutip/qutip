@@ -152,17 +152,12 @@ def _args_sort(H,h_inds,c_ops,c_inds,args):
     Takes indices from _ode_checks
     """
     keys=args.keys()
-    h_args=args.copy()
-    c_args=args.copy()
-    for k in keys:
-        
-        in_h=array([H[x][1].find(k) for x in h_inds])
-        if not any(in_h!=-1):
-            h_args.pop(k)
     
-        in_c=array([c_ops[x][1].find(k) for x in c_inds])
-        if not any(in_c!=-1):
-            c_args.pop(k)
+    in_h=where([any(array([H[x][1].find(k)!=-1 for x in h_inds])) for k in keys])[0]
+    in_c=where([any(array([c_ops[x][1].find(k)!=-1 for x in c_inds])) for k in keys])[0]
+    
+    h_args={ k : v for k,v in args.iteritems() if k in [keys[j] for j in in_h] }
+    c_args={ k : v for k,v in args.iteritems() if k in [keys[j] for j in in_c] }
     
     if not any(h_args):
         h_args=None
