@@ -85,8 +85,8 @@ def _ode_checks(H,c_ops,solver='me'):
         except:
             raise Exception("Unable to load Cython. Use Python function format.")
         else:
-            if float(Cython.__version__)<0.14:
-                raise Exception("Cython version is too old.  Upgrade to version 0.14+")
+            if Cython.__version__ < '0.14':
+                raise Exception("Cython version (%s) is too old.  Upgrade to version 0.14+" % Cython.__version__)
     
     if solver=='me':
         return [h_const+c_const,h_func+c_func,h_str+c_str]
