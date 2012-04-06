@@ -91,4 +91,36 @@ def _ode_checks(H,c_ops,solver='me'):
     if solver=='me':
         return [h_const+c_const,h_func+c_func,h_str+c_str]
     elif solver=='mc':
-        return [h_const,h_func,h_str],[c_const,c_func,c_str]
+        #Time-indepdent problems
+        if (h_func==h_str==0) and (c_func==c_str==0):
+            time_type=0
+        
+        #Python function style Hamiltonian
+        elif h_func>0:
+            if c_func==c_str==0:
+                time_type=10
+            elif c_func>0:
+                time_type=11
+            elif c_str>0:
+                time_type=12
+        
+        #list style Hamiltonian
+        elif h_str>0:
+            if c_func==c_str==0:
+                time_type=20
+            elif c_func>0:
+                time_type=21
+            elif c_str>0:
+                time_type=22
+        
+        #constant Hamiltonian, time-dependent collapse operators
+        elif h_func==h_str==0:
+            if c_func>0:
+                time_type=31
+            elif c_str>0:
+                time_type=32
+        
+        return time_type,[h_const,h_func,h_str],[c_const,c_func,c_str]
+        
+
+
