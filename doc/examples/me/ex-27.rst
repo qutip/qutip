@@ -1,0 +1,12 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exme27:
+
+Decay of a qubit state coupled to a zero-temp. bath shown on a Bloch sphere
+===========================================================================
+
+This example demonstrates how to visualize the dynamics of a two-level system on the Bloch sphere. 
+    
+.. plot:: ../qutip/qutip/examples/ex_27.py
+	:include-source:
