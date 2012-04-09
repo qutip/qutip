@@ -16,7 +16,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 
 # constants
-hbar = 6.626e-34
+hbar = 6.626e-34/(2*pi)
 kB   = 1.38e-23
 
 #
@@ -47,16 +47,16 @@ def compute(T_vec, N_r, N_m, w_r, w_m, g, w_d, A, kappa_r, kappa_m):
         # collapse operators for high-frequency resonator
         n_r_th = 1.0 / (exp(w_r/w_th) - 1.0)
         rate = kappa_r * (1 + n_r_th)
-        if rate > 0.0: c_ops.append(sqrt(rate) * a)
+        if rate > 0.0: c_ops.append(sqrt(rate) * a)       # relaxation
         rate = kappa_r * n_r_th
-        if rate > 0.0: c_ops.append(sqrt(rate) * a.dag())
+        if rate > 0.0: c_ops.append(sqrt(rate) * a.dag()) # thermal excitation
 
         # collapse operators for mechanical mode
         n_m_th = 1.0 / (exp(w_m/w_th) - 1.0)
         rate = kappa_m * (1 + n_m_th)
-        if rate > 0.0: c_ops.append(sqrt(rate) * b)
+        if rate > 0.0: c_ops.append(sqrt(rate) * b)       # relaxation
         rate = kappa_m * n_m_th
-        if rate > 0.0: c_ops.append(sqrt(rate) * b.dag())
+        if rate > 0.0: c_ops.append(sqrt(rate) * b.dag()) # thermal excitation
 
         # find the steady state
         rho_ss = steadystate(H, c_ops)
@@ -71,9 +71,8 @@ def compute(T_vec, N_r, N_m, w_r, w_m, g, w_d, A, kappa_r, kappa_m):
     
 def run():
 
-    # Configure parameters
-    N_r = 4         # number of fock states in high-frequency resonator
-    N_m = 10        # number of fock states in mechanical resonator
+    N_r = 5          # number of fock states in high-frequency resonator
+    N_m = 20         # number of fock states in mechanical resonator
 
     w_r = 2*pi*10.0  # high-freq. resonator frequency [2*pi GHz] 
     w_m = 2*pi*0.25  # mechanical resonator frequency [2*pi GHz]
@@ -81,12 +80,14 @@ def run():
     g  = 2*pi*0.01   # coupling strength
 
     w_d = w_r-w_m    # driving frequency, selected to match resonance condition
-    A   = 2*pi*0.05   # driving amplitude in frequency units
+    A   = 2*pi*0.10  # driving amplitude in frequency units
 
+    #A = w_d = 0     # no cooling 
+    
     kappa_r = 0.001  # dissipation rate for high-frequency resoantor
     kappa_m = 0.001  # dissipation rate for mechanical resonator
     
-    T_vec = linspace(0.0, 100.0, 25.0) # Temperature [mK]
+    T_vec = linspace(0.0, 50.0, 25.0) # Temperature [mK]
 
     # find the steady state occupation numbers
     photon_count = compute(T_vec, N_r, N_m, w_r, w_m, g, w_d, A, kappa_r, kappa_m)
