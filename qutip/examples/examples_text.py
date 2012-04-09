@@ -43,9 +43,9 @@ master_desc=["Dissipative i-Swap Gate vs. ideal gate. Accuracy of dissipative ga
             "Single-atom lasing in a Jaynes-Cummings-like system.",
             "Wigner distributions from the evolution of the Jaynes-Cummings model.",
             "The dynamics of a Heisenberg spin-1/2 chain.",
-            "Steady state calculation for a sideband-cooled nanomechanical resonator",
-            "Measuring the distance between density matrices via the fidelity",
-            "Dissipative qubit dynamics visualized on the Bloch sphere."
+            "Steady state calculation for a sideband-cooled nanomechanical resonator. (be patient)",
+            "Measuring the distance between density matrices via the fidelity.",
+            "Dissipative qubit dynamics visualized on the Bloch sphere.",
             "blank"]
 master_nums=20+arange(len(master_labels))
 
