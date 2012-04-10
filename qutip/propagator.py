@@ -65,10 +65,15 @@ def propagator(H, t, c_op_list, H_args=None):
         opt.rhs_reuse = True
                 
         for n in range(0, N):
-
             psi0 = basis(N, n)
             psi_t = mesolve(H, psi0, [0, t], [], [], H_args, opt)
             u[:,n] = psi_t[1].full().T
+
+        # todo: evolving a batch of wave functions:
+        #psi_0_list = [basis(N, n) for n in range(N)]
+        #psi_t_list = mesolve(H, psi_0_list, [0, t], [], [], H_args, opt)
+        #for n in range(0, N):
+        #    u[:,n] = psi_t_list[n][1].full().T
 
     else:
         # calculate the propagator for the vector representation of the 
@@ -88,8 +93,41 @@ def propagator(H, t, c_op_list, H_args=None):
         for n in xrange(0, N*N):
             psi0  = basis(N*N, n)
             rho0  = Qobj(vec2mat(psi0.full()))
-            rho_t = odesolve(H, rho0, [0, t], c_op_list, [], H_args)
+            rho_t = mesolve(H, rho0, [0, t], c_op_list, [], H_args)
             u[:,n] = mat2vec(rho_t[1].full()).T
 
     return Qobj(u)
 
+
+def get_min_and_index(lst): 
+    """
+    Private function for obtaining min and max indicies.
+    """
+    minval,minidx = lst[0],0 
+    for i,v in enumerate(lst[1:]): 
+        if v < minval: 
+            minval,minidx = v,i+1 
+    return minval,minidx 
+
+
+def propagator_steadystate(U):
+    """
+    Find the steady state for successive applications of the propagator :math:`U`.
+    
+    Arguments:
+    
+        `U` (:class:`qutip.Qobj`) Operator representing the propagator.
+    
+    Returns a :class:`qutip.Qobj` instance representing the steady-state vector.
+    """
+
+    evals,evecs = la.eig(U.full())
+
+    ev_min, ev_idx = get_min_and_index(abs(evals-1.0))
+
+    N = int(sqrt(len(evals)))
+
+    evecs = evecs.T
+    rho = Qobj(vec2mat(evecs[ev_idx]))
+
+    return rho * (1 / real(rho.tr()))

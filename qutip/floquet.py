@@ -29,38 +29,6 @@ from qutip.states import projection
 from qutip.Odeoptions import Odeoptions
 from qutip.propagator import propagator
 
-def get_min_and_index(lst): 
-    """
-    Private function for obtaining min and max indicies.
-    """
-    minval,minidx = lst[0],0 
-    for i,v in enumerate(lst[1:]): 
-        if v < minval: 
-            minval,minidx = v,i+1 
-    return minval,minidx 
-
-def propagator_steadystate(U):
-    """
-    Find the steady state for successive applications of the propagator :math:`U`.
-    
-    Arguments:
-    
-        `U` (:class:`qutip.Qobj`) Operator representing the propagator.
-    
-    Returns a :class:`qutip.Qobj` instance representing the steady-state vector.
-    """
-
-    evals,evecs = la.eig(U.full())
-
-    ev_min, ev_idx = get_min_and_index(abs(evals-1.0))
-
-    N = int(sqrt(len(evals)))
-
-    evecs = evecs.T
-    rho = Qobj(vec2mat(evecs[ev_idx]))
-
-    return rho * (1 / real(rho.tr()))
-
 
 def floquet_modes(H, T, H_args=None):
     """
