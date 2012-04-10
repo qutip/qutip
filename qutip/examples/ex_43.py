@@ -109,7 +109,7 @@ def run():
     xlabel('Time')
     ylabel('Probability')
     title('Occupation probabilty of qubit [NEW]')
-    legend(("Excited state", "Ground state", "Excited steady state"), loc=0)
+    legend((r"$\left|1\right>$", r"$\left|0\right>$", r"$\left|1\right>$ steady state"), loc=0)
 
     subplot(212)
     plot(tlist, -delta/2.0 * ones(shape(tlist)), 'r')
