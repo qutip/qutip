@@ -1,0 +1,21 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exme42:
+
+Landau-Zener transitions in a quantum two-level system
+======================================================
+
+The Landau-Zener problem is a simple yet nontrivial example of a time-dependent problem in quantum mechanics. It concerns the occupation probabilities of the states of a two-level atom when its energy bias is linearly swept from negative to positive infinity, through an avoided-level crossing. The Hamiltonian for the problem is
+
+.. math::
+
+    H(t) = \frac{1}{2}\Delta\sigma_x + \frac{1}{2}vt\sigma_z,
+    
+where :math:`\Delta` is the tunneling rate at :math:`t=0`, :math:`v` is the sweep rate of the bare energy splitting, and time :math:`t` goes from :math:`-\infty` to :math:`\infty`. The Landau-Zener formula gives the final occupation probabilities at :math:`t\rightarrow\infty`, e.g., for the final ground state: :math:`P = 1 - \exp(-\pi\Delta^2/2v)`. However, there is no analytic formala for the occupation probabilities at intermediate times. 
+
+In QuTiP it is easy to calculate the time-evolution of the Landau-Zener problem numerically, which is demonstrated here. This example also shows how to use the function-callback format to define a time-dependent Hamiltonian.  
+
+
+.. plot:: ../qutip/qutip/examples/ex_42.py
+	:include-source:

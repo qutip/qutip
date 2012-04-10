@@ -213,7 +213,7 @@ The evolution of a wavefunction or density matrix, according to the Bloch-Redfie
    :align:  center
    :width: 4in
 
-The two steps of calculating the Bloch-Refield tensor and evolve the corresponding master equation can be combined into one by using the function :func:`brmesolve`, which takes same arguments as :func:`mesolve` and  :func:`mcsolve` expect for the additional list of spectral callback functions.
+The two steps of calculating the Bloch-Redfield tensor and evolve the corresponding master equation can be combined into one by using the function :func:`brmesolve`, which takes same arguments as :func:`mesolve` and :func:`mcsolve` expect for the additional list of spectral callback functions.
 
 >>> expt_values = brmesolve(H, psi0, tlist, [sigmax()], e_ops, [ohmic_spectrum])
 

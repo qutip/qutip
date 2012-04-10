@@ -1,0 +1,24 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exme43:
+
+Using the propagator to find the steady state of a driven system
+================================================================
+
+In this example we consider a strongly driven two-level system where the driving field couples to the :math:`\sigma_z` operator. The system is subject to repeated Landau-Zener-like transitions:
+
+.. math::
+
+    H(t) = -\frac{1}{2}\Delta\sigma_x - \frac{1}{2}\epsilon\sigma_z - \frac{1}{2}A\cos(\omega t) \sigma_z.
+
+Here, :math:`\Delta` is the tunneling rate, :math:`\epsilon` is the energy-bias in the absense of the driving field, :math:`A \gg \epsilon` is the (strong) driving amplitude, and :math:`\omega` is the driving frequency.
+
+In the following code we evolve the system for a few driving periods and plot the results, to get an idea of how the state of the two-level system changes at the avoided-level crossing points (where the :math:`\sigma_z` coefficient in the Hamiltonian is zero). 
+
+Next, we use the :func:`qutip.propagator` function to find the propagator for the system for one driving period, and then we use the :func:`qutip.propagator_steadystate` function to find the pseudo steady state density matrix that follows from infinitely many applications of the one-period propagotor.
+
+This examples demonstrates how to use the list-callback format to define a time-dependent Hamiltonian.
+
+.. plot:: ../qutip/qutip/examples/ex_43.py
+	:include-source:
