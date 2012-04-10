@@ -809,7 +809,8 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
     """
-
+    n_op = len(c_op_list)
+    
     #
     # check initial state
     #
@@ -825,8 +826,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     #
     # construct liouvillian
     #
-    n_op = len(c_op_list)
-    
+
     if len(H_func)!=2:
         raise TypeError('Time-dependent Hamiltonian list must have two terms.')
     if (not isinstance(H_func[0],(list,ndarray))) or (len(H_func[0])<=1):
