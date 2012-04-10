@@ -33,12 +33,29 @@ import scipy.sparse as sp
 
 
 #-------------------------------------------------------------------------------
+# Solve the Bloch-Redfield master quation
+# 
+# 
+def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[], args={}, options=Odeoptions()):
+    """
+    Solve the dynamics for the system using the Bloch-Redfeild master equation.
+    """
+
+    if len(spectra_cb) == 0:
+        for n in range(len(c_ops)):
+            spectra_cb.append(lambda w: 1.0) # add white noise callbacks if absent
+
+    R, ekets = bloch_redfield_tensor(H, c_ops, spectra_cb)
+        
+    return bloch_redfield_solve(R, ekets, psi0, tlist, e_ops, options)   
+
+#-------------------------------------------------------------------------------
 # Evolution of the Bloch-Redfield master equation given the Bloch-Redfield
 # tensor.
 # 
-def brmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
+def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], opt=None):
     """
-    Solve the dynamics for the system using the Bloch-Redfeild master equation.
+    Evolve the ODEs defined by Bloch-Redfeild master equation.
     """
 
     if opt == None:
@@ -80,7 +97,7 @@ def brmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
     if ekets != None:
         rho0 = rho0.transform(ekets)
         for n in arange(len(e_ops)):
-            e_ops[n] = e_ops[n].transform(ekets)
+            e_ops[n] = e_ops[n].transform(ekets, False)
 
     #
     # setup integrator
@@ -146,8 +163,6 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
     for n in xrange(N):
         for m in xrange(N):
             W[m,n] = real(evals[m] - evals[n])
-
-    print "W =", W
 
     for k in range(K):
         #A[k,n,m] = c_ops[k].matrix_element(ekets[n], ekets[m])
