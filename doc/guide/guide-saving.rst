@@ -12,14 +12,14 @@ With time-consuming calculations it is often necessary to store the results to f
 Storing and loading QuTiP objects
 =================================
 
-To store and load an arbitrary QuTiP related objects (:class:`Qobj`, :class:`Odedata`, etc.) the two functions :func:`qutip.qsave` and :func:`qutip.qload`. The :func:`qutip.qsave` takes an arbitrary object as first parameter and an optional filename as second parameter (default filename is `qutip_data.qu`). The filename extension is always `.qu`. The :func:`qutip.qload` a mandatory filename as first argument and loads and returns the objects in the file.
+To store and load arbitrary QuTiP related objects (:class:`Qobj`, :class:`Odedata`, etc.) there are two functions: :func:`qutip.qsave` and :func:`qutip.qload`. The function :func:`qutip.qsave` takes an arbitrary object as first parameter and an optional filename as second parameter (default filename is `qutip_data.qu`). The filename extension is always `.qu`. The function :func:`qutip.qload` takes a mandatory filename as first argument and loads and returns the objects in the file.
 
-To illustrate how these functions can be used, consider a simple calculation of the steadystate of the 
+To illustrate how these functions can be used, consider a simple calculation of the steadystate of the harmonic oscillator:
 
 >>> a = destroy(10); H = a.dag() * a ; c_ops = [sqrt(0.5) * a, sqrt(0.25) * a.dag()]
 >>> rho_ss = steadystate(H, c_ops)
 
-The steadystate density matrix `rho_ss` is an instance of :class:`Qobj`. It can be stored to a file `steadystate.qu` using 
+The steadystate density matrix `rho_ss` is an instance of :class:`qutip.Qobj`. It can be stored to a file `steadystate.qu` using 
 
 >>> qsave(rho_ss, 'steadystate')
 >>> ls *.qu
@@ -42,7 +42,7 @@ The nice thing about the :func:`qutip.qsave` and :func:`qutip.qload` functions i
 >>> dm_list = mesolve(H, psi0, tlist, c_ops, [])
 >>> qsave(dm_list, 'density_matrix_vs_time')
 
-And it can be loaded used again later on, for example in an other program.
+And it can then be loaded and used again, for example in an other program:
 
 >>> dm_list_loaded = qload('density_matrix_vs_time')
 Loaded list object.
@@ -56,7 +56,7 @@ array([ 4.30052873,  3.41114025,  2.78257234,  2.32509271,  1.98722684,
 Storing and loading datasets
 ============================
 
-The :func:`qutip.qsave` and :func:`qutip.qload` are great, but the file format used is only understood by QuTiP (python) programs. When data must be exported to other programs the prefered method is to store the data in the commonly used plain-text file formats. With the QuTiP :func:`qutip.file_data_store` and :func:`qutip.file_data_read` we can store and load **numpy** arrays and matrices to files on disk using a deliminator-separated value format (for example comma-separated values CSV). Almost any program can handle this file format.
+The :func:`qutip.qsave` and :func:`qutip.qload` are great, but the file format used is only understood by QuTiP (python) programs. When data must be exported to other programs the prefered method is to store the data in the commonly used plain-text file formats. With the QuTiP functions :func:`qutip.file_data_store` and :func:`qutip.file_data_read` we can store and load **numpy** arrays and matrices to files on disk using a deliminator-separated value format (for example comma-separated values CSV). Almost any program can handle this file format.
 
 The :func:`qutip.file_data_store` takes two mandatory and three optional arguments: 
 

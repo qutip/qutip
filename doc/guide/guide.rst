@@ -16,9 +16,9 @@ QuTiP Users Guide
    guide-tensor.rst
    guide-dynamics.rst
    guide-steady.rst
-   guide-correlation.rst
-   guide-bloch.rst
    guide-eseries.rst
+   guide-bloch.rst
+   guide-correlation.rst
    guide-bloch-redfield.rst
    guide-floquet.rst
    guide-parfor.rst

@@ -16,10 +16,10 @@ QuTiP: The Quantum Toolbox in Python
    installation.rst
    guide/guide.rst
    examples/examples.rst
-   contributors.rst
-   changelog.rst
    apidoc/apidoc.rst
-
+   changelog.rst
+   contributors.rst
+   
 
 Indices and tables
 ====================

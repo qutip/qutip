@@ -3,13 +3,21 @@
 
 .. _correlation:
 
-****************************************
-Solving Two-Time Correlation Functions
-****************************************
+******************************
+Two-time correlation functions
+******************************
+
+With the QuTiP time-evolution functions, for example :func:`qutip.odesolve.mesolve` and :func:`qutip.mcsolve`, the wave function or density matrix for a system can be calculated, which can be used to evaluate the expectation values of arbitrary combinations of *same-time* operators. To calculate *two-time* correlation functions on the form :math:`\left<A(t+\tau)B(t)\right>`, we can use the quantum regression theorem to write
+
+.. math::
+
+    \left<A(t+\tau)B(t)\right> = {\rm Tr}_{\rm sys}\left[A V(t+\tau, t)\left\{B\rho(t)\right\}\right]
+
+where :math:`V(t+\tau, t)` according to the Lindblad master equation from time :math:`t` to :math:`t+\tau`, so that :math:`\rho(t)=V(t, 0)\left\{\rho(0)\right\}`. To evalulate the correlation function we can therefore first calculate :math:`\rho(t)` using one of the QuTiP evolution solvers with :math:`\rho(0)` as initial state, and then again use the same solver to calculate :math:`V(t+\tau, t)\left\{B\rho(t)\right\}` using :math:`B\rho(t)` as initial state.
 
 Here we demonstrate how to calculate two-time correlation functions in QuTiP. Using the quantum regression theorem, we can apply the equation of motion for the system itself also to calculate two-time correlation functions. In QuTiP, there are two functions that assists in this process: :func:`qutip.correlation.correlation` and :func:`qutip.correlation.correlation_ss` (for steadystate correlations). Both these functions can use one of the following evolution solvers: Master-equation, Exponential series and the Monte-Carlo. The choice of solver is defined by the optional last argument `solver`. The following table describes in detail the usage of each function:
 
-.. tabularcolumns:: | p{6cm} | L |
+.. tabularcolumns:: | p{5cm} | L |
 
 +----------------------------------------------+-----------------------------------------+
 | Function                                     | Usage                                   |
