@@ -9,7 +9,7 @@ Two-time correlation functions
 
 With the QuTiP time-evolution functions (for example :func:`qutip.odesolve.mesolve` and :func:`qutip.mcsolve`), a state vector or density matrix can be evolved from an initial state at :math:`t_0` to an arbitrary time :math:`t`, :math:`\rho(t)=V(t, t_0)\left\{\rho(t_0)\right\}`, where :math:`V(t, t_0)` is the propagator defined by the equation of motion. The resulting density matrix can then be used to evaluate the expectation values of arbitrary combinations of *same-time* operators.
 
-To calculate *two-time* correlation functions on the form :math:`\left<A(t+\tau)B(t)\right>`, we can use the quantum regression theorem [see, e.g., Gardineer and Zoller, *Quantum Noise*] to write
+To calculate *two-time* correlation functions on the form :math:`\left<A(t+\tau)B(t)\right>`, we can use the quantum regression theorem [see, e.g., Gardineer and Zoller, *Quantum Noise*, Springer, 2004] to write
 
 .. math::
 
