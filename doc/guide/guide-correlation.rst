@@ -7,7 +7,8 @@
 Two-time correlation functions
 ******************************
 
-With the QuTiP time-evolution functions, for example :func:`qutip.odesolve.mesolve` and :func:`qutip.mcsolve`, the wave function or density matrix for a system can be calculated, which can be used to evaluate the expectation values of arbitrary combinations of *same-time* operators. To calculate *two-time* correlation functions on the form :math:`\left<A(t+\tau)B(t)\right>`, we can use the quantum regression theorem to write
+With the QuTiP time-evolution functions, for example :func:`qutip.odesolve.mesolve` and :func:`qutip.mcsolve`, the wave function or density matrix for a system can be propagated to an arbitrary time :math:`t`, given an initial state: :math:`\rho(t)=V(t, 0)\left\{\rho(0)\right\}`.
+calculated, which can be used to evaluate the expectation values of arbitrary combinations of *same-time* operators. To calculate *two-time* correlation functions on the form :math:`\left<A(t+\tau)B(t)\right>`, we can use the quantum regression theorem to write
 
 .. math::
 
