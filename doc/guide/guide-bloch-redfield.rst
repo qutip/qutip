@@ -59,16 +59,14 @@ The master equation :eq:`br-markovian-form` is still on a too general form to be
     -\hbar^{-2}
     \sum_{\alpha\beta}
     \int_0^\infty d\tau\; 
-    &&
     \left\{
     g_{\alpha\beta}(\tau) \left[A_\alpha(t)A_\beta(t-\tau)\rho_S(t) - A_\alpha(t-\tau)\rho_S(t)A_\beta(t)\right]
     \right. \nonumber\\
-    &&
     \left.
     g_{\alpha\beta}(-\tau) \left[\rho_S(t)A_\alpha(t-\tau)A_\beta(t) - A_\alpha(t)\rho_S(t)A_\beta(t-\tau)\right]
     \right\},
     
-where :math:`g_{\alpha\beta}(\tau) = {\rm Tr}_B\left[B_\alpha(t)B_\beta(t-\tau)\rho_B\right] = \left<B_\alpha(\tau)B_\beta(0)\right>`. 
+where :math:`g_{\alpha\beta}(\tau) = {\rm Tr}_B\left[B_\alpha(t)B_\beta(t-\tau)\rho_B\right] = \left<B_\alpha(\tau)B_\beta(0)\right>`, since the bath state :math:`\rho_B` is a steady state. 
 
 In the eigenbasis of the system Hamiltonian, where :math:`A_{mn}(t) = A_{mn} e^{i\omega_{mn}t}`, :math:`\omega_{mn} = \omega_m - \omega_n` and :math:`\omega_m` are the eigenfrequencies corresponding the eigenstate :math:`\left|m\right>`, we obtain in matrix form in the Schrödinger picture
 
@@ -81,7 +79,6 @@ In the eigenbasis of the system Hamiltonian, where :math:`A_{mn}(t) = A_{mn} e^{
     \sum_{\alpha,\beta}
     \sum_{c,d}^{\rm sec}
     \int_0^\infty d\tau\; 
-    &&
     \left\{
     g_{\alpha\beta}(\tau) 
     \left[\delta_{bd}\sum_nA^\alpha_{an}A^\beta_{nc}e^{i\omega_{cn}\tau}
@@ -89,7 +86,7 @@ In the eigenbasis of the system Hamiltonian, where :math:`A_{mn}(t) = A_{mn} e^{
     A^\alpha_{ac} A^\beta_{db} e^{i\omega_{ca}\tau} 
     \right]
     \right. \nonumber\\
-    &&+
+    +
     \left.
     g_{\alpha\beta}(-\tau) 
     \left[\delta_{ac}\sum_n A^\alpha_{dn}A^\beta_{nb} e^{i\omega_{nd}\tau}
@@ -124,13 +121,12 @@ where
    :label: br-nonmarkovian-form
 
     R_{abcd} =  -\frac{\hbar^{-2}}{2} \sum_{\alpha,\beta}
-    &&
     \left\{
     \delta_{bd}\sum_nA^\alpha_{an}A^\beta_{nc}S_{\alpha\beta}(\omega_{cn})
     - 
     A^\alpha_{ac} A^\beta_{db} S_{\alpha\beta}(\omega_{ca})
     \right. \nonumber\\
-    &&+
+    +
     \left.
     \delta_{ac}\sum_n A^\alpha_{dn}A^\beta_{nb} S_{\alpha\beta}(\omega_{dn})
     - 
@@ -147,13 +143,12 @@ To simplify the numerical implementation we assume that :math:`A_\alpha` are Her
    :label: br-tensor
 
     R_{abcd} =  -\frac{\hbar^{-2}}{2} \sum_{\alpha}
-    &&
     \left\{
     \delta_{bd}\sum_nA^\alpha_{an}A^\alpha_{nc}S_{\alpha}(\omega_{cn})
     - 
     A^\alpha_{ac} A^\alpha_{db} S_{\alpha}(\omega_{ca})
     \right. \nonumber\\
-    &&+
+    +
     \left.
     \delta_{ac}\sum_n A^\alpha_{dn}A^\alpha_{nb} S_{\alpha}(\omega_{dn})
     - 
