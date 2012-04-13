@@ -34,24 +34,35 @@ def correlation_ss(H, tlist, c_op_list, a_op, b_op, solver="me"):
     Calculate a two-time correlation function :math:`\left<A(\\tau)B(0)\\right>`
     using the quantum regression theorem, using the solver indicated by the
     *solver* parameter.
- 
-    Args:
+          
+    Parameters
+    ----------
+        
+    H : :class:`qutip.Qobj`
+        system Hamiltonian.
     
-        H (Qobj): system Hamiltonian.
-        
-        tlist (*list/array*): list of times for :math:`t`.
-        
-        c_op_list (list of Qobj's): list of collapse operators.
-        
-        a_op (Qobj): for A operator.
-        
-        b_op (Qobj): for B operator.
+    tlist : *list* / *array*    
+        list of times for :math:`t`.
     
-        solver (str): choice of solver (me for master-equation, es for exponential series and mc for Monte-carlo)
+    c_op_list : list of :class:`qutip.Qobj`
+        list of collapse operators.
+    
+    a_op : :class:`qutip.Qobj`
+        operator A.
+    
+    b_op : :class:`qutip.Qobj`
+        operator B.
+    
+    solver : str
+        choice of solver (`me` for master-equation, 
+        `es` for exponential series and `mc` for Monte-carlo)
 
-    Returns: 
-        
-        array of expectation values.
+    Returns
+    -------
+
+    corr_list: *array*   
+        An *array* of correlation values for the times specified by `tlist`
+
     """
 
     if solver == "me":
@@ -67,29 +78,45 @@ def correlation_ss(H, tlist, c_op_list, a_op, b_op, solver="me"):
 def correlation(H, rho0, tlist, taulist, c_op_list, a_op, b_op, solver="me"):
     """
     Calculate a two-time correlation function :math:`\left<A(t+\\tau)B(t)\\right>`
-    using exponential series and the quantum regression theorem.
+    using the quantum regression theorem, using the solver indicated by the
+    *solver* parameter.
     
-    Arguments:
+
+    Parameters
+    ----------
+        
+    H : :class:`qutip.Qobj`
+        system Hamiltonian.
+
+    rho0 : :class:`qutip.Qobj`
+        initial density matrix :math:`\\rho(t_0)`
+            
+    tlist : *list* / *array*    
+        list of times for :math:`t`.
+
+    taulist : *list* / *array*    
+        list of times for :math:`\\tau`.
+            
+    c_op_list : list of :class:`qutip.Qobj`
+        list of collapse operators.
     
-        `H` (:class:`qutip.Qobj`) system Hamiltonian.
-        
-        `rho0` (:class:`qutip.Qobj`) initial density matrix.
-        
-        `tlist` (*list/array*) list of times for :math:`t`.
+    a_op : :class:`qutip.Qobj`
+        operator A.
+    
+    b_op : :class:`qutip.Qobj`
+        operator B.
+    
+    solver : str
+        choice of solver (`me` for master-equation, 
+        `es` for exponential series and `mc` for Monte-carlo)
 
-        `taulist` (*list/array*) list of times for :math:`\\tau`.
-        
-        `c_op_list` (list of :class:`qutip.Qobj`) list of collapse operators.
-        
-        `a_op` (:class:`qutip.Qobj`) for A operator.
-        
-        `b_op` (:class:`qutip.Qobj`) for B operator.
+    Returns
+    -------
 
-        solver (str): choice of solver (me for master-equation, es for exponential series and mc for Monte-carlo)
-                
-    Returns:
-
-        two-dimensional array of expectation values.
+    corr_mat: *array*  
+        An 2-dimensional *array* (matrix) of correlation values for the times
+        specified by `tlist` (first index) and `taulist` (second index).
+        
     """
 
     if solver == "me":
@@ -112,7 +139,6 @@ def correlation_ss_es(H, tlist, c_op_list, a_op, b_op):
     Internal function for calculating correlation functions using the 
     exponential series solver. See :func:`correlation_ss` usage.
     """
-
 
     # contruct the Liouvillian
     L = liouvillian(H, c_op_list)
@@ -230,26 +256,38 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
 def spectrum_ss(H, wlist, c_op_list, a_op, b_op):
     """
     Calculate the spectrum corresponding to a correlation function
-    :math:`\left<A(\\tau)B(t)\\right>`, i.e., the Fourier transform of the
-    correlation funciton:
+    :math:`\left<A(\\tau)B(0)\\right>`, i.e., the Fourier transform of the
+    correlation function:
     
     .. math::
     
-        S(\omega) = \int_{-\infty}^{\infty} \left<A(t)B(0)\\right> e^{-i\omega t} dt.
-    
-    Arguments:
-    
-        `H` (:class:`qutip.Qobj`) system Hamiltonian.
-        
-        `wlist` (*list/array*) list of times for :math:`\omega`.
+        S(\omega) = \int_{-\infty}^{\infty} \left<A(\\tau)B(0)\\right> e^{-i\omega\\tau} d\\tau.
 
-        `c_op_list` (list of :class:`qutip.Qobj`) list of collapse operators.
+    Parameters
+    ----------
         
-        `a_op` (:class:`qutip.Qobj`) for A operator.
+    H : :class:`qutip.Qobj`
+        system Hamiltonian.
+            
+    wlist : *list* / *array*    
+        list of frequencies for :math:`\\omega`.
+           
+    c_op_list : list of :class:`qutip.Qobj`
+        list of collapse operators.
+    
+    a_op : :class:`qutip.Qobj`
+        operator A.
+    
+    b_op : :class:`qutip.Qobj`
+        operator B.
+
+    Returns
+    -------
+
+    spectrum: *array*  
+        An *array* with spectrum :math:`S(\omega)` for the frequencies specified
+        in `wlist`.
         
-        `b_op` (:class:`qutip.Qobj`) for B operator.
-                
-    Returns *array* with spectrum :math:`S(\omega)` for the frequencies specified in `wlist`.
     """
 
     # contruct the Liouvillian
