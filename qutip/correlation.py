@@ -29,7 +29,7 @@ from qutip.steady import *
 # solver wrapers:
 #
 
-def correlation_ss(H, tlist, c_op_list, a_op, b_op, solver="me"):
+def correlation_ss(H, tlist, c_op_list, a_op, b_op, rho0=None, solver="me"):
     """
     Calculate a two-time correlation function :math:`\left<A(\\tau)B(0)\\right>`
     using the quantum regression theorem, using the solver indicated by the
@@ -52,8 +52,11 @@ def correlation_ss(H, tlist, c_op_list, a_op, b_op, solver="me"):
     
     b_op : :class:`qutip.Qobj`
         operator B.
-    
-    solver : str
+
+    rho0 : :class:`qutip.Qobj`
+        Optional initial state density matrix (default is the steady state).
+            
+    solver : str 
         choice of solver (`me` for master-equation, 
         `es` for exponential series and `mc` for Monte-carlo)
 
@@ -66,11 +69,11 @@ def correlation_ss(H, tlist, c_op_list, a_op, b_op, solver="me"):
     """
 
     if solver == "me":
-        return correlation_ss_ode(H, tlist, c_op_list, a_op, b_op)
+        return correlation_ss_ode(H, tlist, c_op_list, a_op, b_op, rho0)
     elif solver == "es":
-        return correlation_ss_es(H, tlist, c_op_list, a_op, b_op)
+        return correlation_ss_es(H, tlist, c_op_list, a_op, b_op, rho0)
     elif solver == "es":
-        return correlation_ss_mc(H, tlist, c_op_list, a_op, b_op)
+        return correlation_ss_mc(H, tlist, c_op_list, a_op, b_op, rho0)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
@@ -134,7 +137,7 @@ def correlation(H, rho0, tlist, taulist, c_op_list, a_op, b_op, solver="me"):
 # EXPONENTIAL SERIES SOLVERS
 # ------------------------------------------------------------------------------
 
-def correlation_ss_es(H, tlist, c_op_list, a_op, b_op):
+def correlation_ss_es(H, tlist, c_op_list, a_op, b_op, rho0=None):
     """
     Internal function for calculating correlation functions using the 
     exponential series solver. See :func:`correlation_ss` usage.
@@ -144,7 +147,8 @@ def correlation_ss_es(H, tlist, c_op_list, a_op, b_op):
     L = liouvillian(H, c_op_list)
 
     # find the steady state
-    rho0 = steady(L)
+    if rho0 == None:
+        rho0 = steady(L)
 
     # evaluate the correlation function
     solC_tau = ode2es(L, b_op * rho0)
@@ -181,14 +185,15 @@ def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 # MASTER EQUATION SOLVERS
 # ------------------------------------------------------------------------------
 
-def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op):
+def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op, rho0=None):
     """
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation_ss` usage.
     """
 
     L = liouvillian(H, c_op_list)
-    rho0 = steady(L)
+    if rho0 == None:
+        rho0 = steady(L)
 
     return mesolve(H, b_op * rho0, tlist, c_op_list, [a_op])[0]
 
@@ -215,13 +220,14 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 # MONTE CARLO SOLVERS
 # ------------------------------------------------------------------------------
 
-def correlation_ss_mc(H, tlist, c_op_list, a_op, b_op):
+def correlation_ss_mc(H, tlist, c_op_list, a_op, b_op, rho0=None):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation_ss` usage.
     """
 
-    rho0 = steadystate(L, co_op_list)
+    if rho0 == None:
+        rho0 = steadystate(H, co_op_list)
 
     return mcsolve(H, b_op * rho0, tlist, c_op_list, [a_op])[0]
 
