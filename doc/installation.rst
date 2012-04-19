@@ -35,7 +35,7 @@ QuTiP requires the following packages to run:
 +------------+--------------+-----------------------------------------------------+
 | Matplotlib | 1.1.0+       | Some plotting does not work on lower versions.      |
 +------------+--------------+-----------------------------------------------------+
-| Qt         |  4.7.3+      | Optional.  For GUI elements only.                   |
+| Qt         | 4.7.3+       | Optional.  For GUI elements only.                   |
 +------------+--------------+-----------------------------------------------------+
 | PySide     | 1.0.6+       | Optional, required only for GUI elements.           |
 |            |              | PyQt4 may be used instead.                          |
@@ -55,6 +55,9 @@ QuTiP requires the following packages to run:
 | Python     | 2.6+         | Linux only.  Needed for compiling Cython files.     |
 | Headers    |              |                                                     |
 +------------+--------------+-----------------------------------------------------+
+| LaTeX      | TexLive 2009+| Optional.  Needed if using LaTex in figure labels.  |    
++------------+--------------+-----------------------------------------------------+
+
 
 On all platforms (Linux, Mac), QuTiP works "out-of-the-box" using the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher.  This distribution is created by the developers of Numpy and Scipy, and is free for academic use.
 
@@ -104,8 +107,9 @@ additional, but optional, ports include:
 
 >>> sudo port install py27-ipython
 >>> sudo port install py27-cython
+>>> sudo port install texlive-latex-extra
 
-and:
+the last of which installs LaTeX and it's required fonts, and in addition:
 
 >>> sudo port install py27-pyside
 
@@ -143,7 +147,7 @@ QuTiP now includes a collection of builtin test scripts to verify that the insta
 
 If sucessful, these tests indicate that all of the QuTiP functions are working properly.  If any errors occur, please check that your have installed all of the required modules.  See the next section on how to check the installed versions of the QuTiP dependencies.  If these tests still fail, then head on over to the `QuTiP Discussion Board <http://groups.google.com/group/qutip>`_ and post a message detailing your particular issue.
 
-To further verify that all of the QuTiP components are working, you can run the coolection of examples built into QuTiP as discussed in the :ref:`examples` section of the guide. 
+To further verify that all of the QuTiP components are working, you can run the collection of examples built into QuTiP as discussed in the :ref:`examples` section of the guide. 
 
 .. _install-aboutbox:
 
