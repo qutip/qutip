@@ -66,8 +66,8 @@ def propagator(H, t, c_op_list, H_args=None):
                 
         for n in range(0, N):
             psi0 = basis(N, n)
-            psi_t = mesolve(H, psi0, [0, t], [], [], H_args, opt)
-            u[:,n] = psi_t[1].full().T
+            output = mesolve(H, psi0, [0, t], [], [], H_args, opt)
+            u[:,n] = output.states[1].full().T
 
         # todo: evolving a batch of wave functions:
         #psi_0_list = [basis(N, n) for n in range(N)]
@@ -93,8 +93,8 @@ def propagator(H, t, c_op_list, H_args=None):
         for n in xrange(0, N*N):
             psi0  = basis(N*N, n)
             rho0  = Qobj(vec2mat(psi0.full()))
-            rho_t = mesolve(H, rho0, [0, t], c_op_list, [], H_args)
-            u[:,n] = mat2vec(rho_t[1].full()).T
+            output = mesolve(H, rho0, [0, t], c_op_list, [], H_args)
+            u[:,n] = mat2vec(output.states[1].full()).T
 
     return Qobj(u)
 
