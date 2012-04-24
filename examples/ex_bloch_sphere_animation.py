@@ -30,7 +30,7 @@ gamma2 = 0.2      # qubit dephasing rate
 # initial state
 a = 1.0
 psi0 = (a* basis(2,0) + (1-a)*basis(2,1))/(sqrt(a**2 + (1-a)**2))
-tlist = linspace(0,10,500)
+tlist = linspace(0,4,250)
 sx, sy, sz = qubit_integrate(w, theta, gamma1, gamma2, psi0, tlist)
 
 ## animate the dynamics on the Bloch sphere

@@ -124,15 +124,13 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     Returns
     -------
 
-    expt_list: *array*   
-        An *array* of expectation values for the times specified by `tlist`
-        
-    state_vectors : *array* of :class:`qutip.Qobj`
-        Or, an *array* or state vectors or density matrices corresponding to the
-        times in `tlist` [if `expt_ops` is an empty list]
-    
-    none:
-        Or, nothing if a callback function was given inplace of operators for
+    output: :class:`qutip.MEData`
+
+        An instance of the class :class:`qutip.MEData`, which contains either
+        an *array* of expectation values for the times specified by `tlist`, or
+        an *array* or state vectors or density matrices corresponding to the
+        times in `tlist` [if `expt_ops` is an empty list], or
+        nothing if a callback function was given inplace of operators for
         which to calculate the expectation values.
     
     """
@@ -987,15 +985,15 @@ def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize):
     n_tsteps  = len(tlist)
     dt        = tlist[1]-tlist[0]
        
+    output = MEData()
+    output.times = tlist
+        
     if isinstance(expt_ops, FunctionType):
         n_expt_op = 0
         expt_callback = True
         
     elif isinstance(expt_ops, list):
-
-        output = MEData()
-        output.times = tlist
-    
+  
         n_expt_op = len(expt_ops)
         expt_callback = False
 
@@ -1041,10 +1039,6 @@ def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize):
         
     #if not opt.rhs_reuse:
     #    os.remove(name+".pyx") # XXX: keep it for inspection. fix before release
-    
-    if expt_callback:    
-        # no return values if callback function is used
-        return
 
     return output
 
