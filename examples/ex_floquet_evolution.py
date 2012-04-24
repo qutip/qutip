@@ -62,8 +62,8 @@ def qubit_integrate(delta, eps0, A, omega, psi0, tlist, T, option):
         # for reference: evolve and calculate expectation using the full ode solver
         #H_args = (H0, H1, omega)
         #expt_list = mesolve(hamiltonian_t, psi0, tlist, [], [sm.dag() * sm], H_args)
-        expt_list = mesolve(H, psi0, tlist, [], [sm.dag() * sm], H_args)
-        p_ex = expt_list[0]
+        output = mesolve(H, psi0, tlist, [], [sm.dag() * sm], H_args)
+        p_ex = output.expect[0]
         
     return tlist, p_ex
     

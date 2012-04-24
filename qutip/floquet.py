@@ -110,8 +110,8 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, H_args=None):
     opt.rhs_reuse = True
 
     for n, f_mode in enumerate(f_modes_0):
-        f_state_tlist = mesolve(H, f_mode, tlist_period, [], [], H_args, opt)
-        for t_idx, f_state_t in enumerate(f_state_tlist):
+        output = mesolve(H, f_mode, tlist_period, [], [], H_args, opt)
+        for t_idx, f_state_t in enumerate(output.states):
             f_modes_table_t[t_idx].append(f_state_t * exp(1j * f_energies[n]*tlist_period[t_idx]))
         
     return f_modes_table_t    
