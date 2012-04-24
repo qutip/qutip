@@ -55,7 +55,6 @@ class TestJCModelEvolution(unittest.TestCase):
         n_th_a = 0.0 # zero temperature
     
         rate = kappa * (1 + n_th_a)
-        #if rate > 0.0:
         c_op_list.append(sqrt(rate) * a)
     
         rate = kappa * n_th_a
@@ -94,7 +93,6 @@ class TestJCModelEvolution(unittest.TestCase):
         n_th_a = 0.0 # zero temperature
     
         rate = kappa * (1 + n_th_a)
-        #if rate > 0.0:
         c_op_list.append(sqrt(rate) * a)
     
         rate = kappa * n_th_a
@@ -112,11 +110,13 @@ class TestJCModelEvolution(unittest.TestCase):
     
         # evolve and calculate expectation values
         if solver == "mc":
-            expt_list = mcsolve(H, psi0, tlist, 250, c_op_list, [a.dag() * a, sm.dag() * sm])  
+            output = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
+            expt_list = output.expect[0],output.expect[1]
+        if solver == "ode":
+            output = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
+            expt_list = output.expect[0],output.expect[1]
         if solver == "es":
             expt_list = essolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
-        if solver == "ode":
-            expt_list = odesolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
 
         return expt_list[0], expt_list[1]
         

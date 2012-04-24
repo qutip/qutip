@@ -47,14 +47,15 @@ class TestEvolution(unittest.TestCase):
             c_op_list.append(sqrt(rate) * sigmaz())
    
         if solver == "ode":
-            expt_list = odesolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])  
+            output = mesolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()]) 
+            expt_list = output.expect[0], output.expect[1], output.expect[2]
         elif solver == "es":
             expt_list = essolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])  
         elif solver == "mc":
             print '' #to look nicer when running tests
             opts=Odeoptions(gui=False)
-            expt_list = mcsolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()],ntraj = 750,options=opts)
-            expt_list=[expt_list.expect[0],expt_list.expect[1],expt_list.expect[2]]  
+            output = mcsolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()],ntraj = 750,options=opts)
+            expt_list = output.expect[0], output.expect[1], output.expect[2]
         else:
             raise ValueError("unknown solver")
         
