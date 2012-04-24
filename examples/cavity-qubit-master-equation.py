@@ -28,9 +28,9 @@ def ode_prob(E,kappa,gamma,g,wc,w0,wl,N,tlist):
     rho0 = psi0.dag() * psi0;
 
     # evolve and calculate expectation values
-    expt_list = mesolve(H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a])  
+    output = mesolve(H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a])  
 
-    return expt_list[0], expt_list[1], expt_list[2]
+    return output.expect[0], output.expect[1], output.expect[2]
     
 #-----------------------------------------------------------------------------
 # set up the calculation
