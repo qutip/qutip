@@ -33,7 +33,7 @@ def demos():
     exconfig.tab=0
     exconfig.button_num=0
     exconfig.is_green=0
-    if qutip.settings.qutip_graphics=='YES':
+    if qutip.settings.qutip_gui!='NONE':
         from gui import Examples
         if qutip.settings.qutip_gui=="PYSIDE":
             from PySide import QtGui, QtCore
@@ -55,7 +55,7 @@ def demos():
     
     while exconfig.option<123456:
         exconfig.option=123456
-        if qutip.settings.qutip_graphics=='YES':
+        if qutip.settings.qutip_gui!='NONE':
             import _version
             if _version.release:
                 ver=_version.short_version

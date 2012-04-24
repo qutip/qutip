@@ -40,11 +40,7 @@ if not ('DISPLAY' in os.environ):
     qutip.settings.qutip_graphics='NO'
     os.environ['QUTIP_GUI']="NONE"
     qutip.settings.qutip_gui="NONE"
-# check for windows platform
-if sys.platform[0:3] == 'win':
-    # graphics always available on windows
-    os.environ['QUTIP_GRAPHICS']="YES"
-    qutip.settings.qutip_graphics='YES'
+
 #-Check for Matplotlib
 try:
     import matplotlib
@@ -64,7 +60,7 @@ if qutip.settings.qutip_graphics=='YES':
             os.environ['QUTIP_GUI']="PYQT4"
             qutip.settings.qutip_gui="PYQT4"
         except:
-            pass
+            qutip.settings.qutip_gui="NONE"
 
 #-------------------------------------------------------------------------------
 # external
