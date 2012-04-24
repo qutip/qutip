@@ -195,7 +195,9 @@ def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op, rho0=None):
     if rho0 == None:
         rho0 = steady(L)
 
-    return mesolve(H, b_op * rho0, tlist, c_op_list, [a_op])[0]
+    output = mesolve(H, b_op * rho0, tlist, c_op_list, [a_op])
+    
+    return output.expect[0]
 
 def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     """
@@ -211,8 +213,8 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     rho_t = mesolve(H, rho0, tlist, c_op_list, [])
 
     for t_idx in range(len(tlist)):
-        
-        C_mat[t_idx,:] = mesolve(H, b_op * rho_t[t_idx], taulist, c_op_list, [a_op])[0]
+        output = mesolve(H, b_op * rho_t[t_idx], taulist, c_op_list, [a_op])
+        C_mat[t_idx,:] = output.expect[0]
 
     return C_mat
 
