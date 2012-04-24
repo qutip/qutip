@@ -21,7 +21,7 @@ from scipy import *
 from qutip.Qobj import *
 
 from qutip.superoperator import *
-from qutip.odesolve import *
+from qutip.mesolve import *
 from qutip.essolve import *
 from qutip.steady import steadystate
 from qutip.states import basis
@@ -199,7 +199,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, H_args, J_c
 
     for t in tlist:
         # TODO: repeated invocations of floquet_modes_t is inefficient...
-        # make a and b outer loops and use the odesolve instead of the propagator.
+        # make a and b outer loops and use the mesolve instead of the propagator.
         #f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, H_args)
         f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)   
         for a in range(N):

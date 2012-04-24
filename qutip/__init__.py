@@ -65,55 +65,65 @@ if qutip.settings.qutip_graphics=='YES':
             qutip.settings.qutip_gui="PYQT4"
         except:
             pass
-#----------------------------------------------------
+
+#-------------------------------------------------------------------------------
+# external
 from scipy import *
 import scipy.linalg as la
 import scipy.sparse as sp
-from qutip.Qobj import *
-from qutip.about import *
 
+# core
+import qutip.settings
+from qutip.Qobj import *
+from qutip.istests import *
+from qutip.states import *
+from qutip.operators import *
+from qutip.expect import *
+from qutip.superoperator import *
+from qutip.tensor import *
+
+from qutip.parfor import *
+import qutip.settings
+
+# graphics
 if qutip.settings.qutip_graphics=='YES':
     from qutip.Bloch import Bloch
     from qutip.graph import hinton
+    from qutip.sphereplot import *
+    from qutip.orbital import *
 
-from qutip.correlation import *
-from qutip.clebsch import clebsch
-from qutip.eseries import *
-
-from qutip.demos import demos
-import qutip.examples
-
-from qutip.entropy import *
-from qutip.expect import *
-from qutip.gates import *
-from qutip.istests import *
-from qutip.Odeoptions import Odeoptions
-from qutip.Mcdata import Mcdata
-from qutip.mcsolve import mcsolve
-from qutip.metrics import fidelity,tracedist
-import qutip.odeconfig
-from qutip.Odedata import Odedata
-from qutip.odesolve import odesolve
-from qutip.essolve import *
-from qutip.operators import *
-from qutip.orbital import *
-from qutip.parfor import *
-#from qutip.ptrace import ptrace
-
-from qutip.propagator import *
-from qutip.floquet import *
+# library functions
+from qutip.wigner import *
 
 from qutip.qstate import *
 from qutip.rand import *
-from qutip.rhs_generate import rhs_generate
 from qutip.simdiag import *
-from qutip.sphereplot import *
-from qutip.states import *
+from qutip.clebsch import clebsch
+from qutip.entropy import *
+from qutip.gates import *
+from qutip.metrics import fidelity,tracedist
+
+# evolution
+import qutip.odeconfig
+from qutip.Odeoptions import Odeoptions
+from qutip.Odedata import Odedata
+from qutip.MEData import MEData
+from qutip.Mcdata import Mcdata
+from qutip.rhs_generate import rhs_generate
+from qutip.mesolve import mesolve, odesolve
+from qutip.mcsolve import mcsolve
+from qutip.essolve import *
+from qutip.eseries import *
 from qutip.steady import *
-from qutip.superoperator import *
-from qutip.tensor import *
-from qutip.wigner import *
-from qutip.fileio import *
+from qutip.correlation import *
+from qutip.propagator import *
+from qutip.floquet import *
 from qutip.bloch_redfield import *
-import qutip.settings
+
+# utilities
+from qutip.fileio import *
+
+from qutip.demos import demos
+import qutip.examples
+from qutip.about import *
 

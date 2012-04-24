@@ -21,7 +21,7 @@ from scipy import *
 from qutip.Qobj import *
 
 from qutip.superoperator import *
-from qutip.odesolve import *
+from qutip.mesolve import *
 from qutip.essolve import *
 from qutip.steady import steadystate
 from qutip.states import basis

@@ -31,6 +31,8 @@ from qutip.states import ket2dm
 from odechecks import _ode_checks
 import os,numpy,odeconfig
 
+from MEData import MEData
+
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
@@ -984,27 +986,32 @@ def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize):
     # 
     n_tsteps  = len(tlist)
     dt        = tlist[1]-tlist[0]
-    
+       
     if isinstance(expt_ops, FunctionType):
         n_expt_op = 0
         expt_callback = True
         
     elif isinstance(expt_ops, list):
+
+        output = MEData()
+        output.times = tlist
+    
         n_expt_op = len(expt_ops)
         expt_callback = False
 
         if n_expt_op == 0:
-            result_list = []
+            output.states = []
         else:
-            result_list = []
+            output.expect = []
+            output.num_expect = n_expt_op
             for op in expt_ops:
                 if op.isherm:
-                    result_list.append(zeros(n_tsteps))
+                    output.expect.append(zeros(n_tsteps))
                 else:
-                    result_list.append(zeros(n_tsteps,dtype=complex))
+                    output.expect.append(zeros(n_tsteps,dtype=complex))
 
     else:
-        raise TypeError("Expection parameter must be a list or a function")
+        raise TypeError("Expectation parameter must be a list or a function")
    
     #
     # start evolution
@@ -1024,10 +1031,10 @@ def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize):
         else:
             # calculate all the expectation values, or output rho if no operators
             if n_expt_op == 0:
-                result_list.append(Qobj(psi)) # copy rho
+                output.states.append(Qobj(psi)) # copy psi/rho
             else:
                 for m in range(0, n_expt_op):
-                    result_list[m][t_idx] = expect(expt_ops[m], psi)
+                    output.expect[m][t_idx] = expect(expt_ops[m], psi)
 
         r.integrate(r.t + dt)
         t_idx += 1
@@ -1039,7 +1046,7 @@ def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize):
         # no return values if callback function is used
         return
 
-    return result_list
+    return output
 
 # ------------------------------------------------------------------------------
 # Old style API below. 

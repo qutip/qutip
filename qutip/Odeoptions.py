@@ -25,7 +25,7 @@ class Odeoptions():
     
         Updated in version 2.0
         
-    Class of options for ODE solver used by :func:`qutip.odesolve` and :func:`qutip.mcsolve`.
+    Class of options for ODE solver used by :func:`qutip.mesolve` and :func:`qutip.mcsolve`.
     Options can be changed either inline:
     
         opts=Odeoptions(gui=False,order=10,.....)
