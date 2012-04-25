@@ -24,7 +24,7 @@ import unittest
 class TestRand(unittest.TestCase):
 
     """
-    A test class for the built-in QuTiP operators
+    A test class for the built-in random quantum object generators.
     """
 
     def setUp(self):
@@ -47,6 +47,8 @@ class TestRand(unittest.TestCase):
             self.assertEqual(sum(R[k].tr())-1.0<1e-15, True)
             #verify all eigvals are >=0
             self.assertFalse(any(sp_eigs(R[k],vecs=False))<0)
+            #verify hermitian
+            self.assertTrue(R[k].isherm)
     def testRandket(self):
         P=array([rand_ket(5) for k in range(5)])
         for k in range(5):
