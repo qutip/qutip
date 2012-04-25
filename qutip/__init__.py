@@ -95,7 +95,7 @@ from qutip.qstate import *
 from qutip.rand import *
 from qutip.simdiag import *
 from qutip.clebsch import clebsch
-from qutip.entropy import *
+from qutip.entropy import entropy_vn,entropy_linear,entropy_mutual,concurrence,entropy_conditional
 from qutip.gates import *
 from qutip.metrics import fidelity,tracedist
 
