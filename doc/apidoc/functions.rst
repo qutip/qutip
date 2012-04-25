@@ -70,7 +70,7 @@ Dynamics and time-evolution
 Master Equation
 -----------------
 
-.. automodule:: qutip.odesolve
+.. automodule:: qutip.mesolve
     :members: mesolve, odesolve
 
 Monte Carlo Evolution
@@ -101,11 +101,15 @@ Steady-state Solvers
 Other Functions
 ===============
 
+.. _functions-entropy:
+
 Entropy Functions
 -----------------
 
 .. automodule:: qutip.entropy
     :members: entropy_linear, entropy_vn
+
+.. _functions-gates:
 
 Quantum Computing Gates
 -----------------------
@@ -113,11 +117,16 @@ Quantum Computing Gates
 .. automodule:: qutip.gates
     :members: cnot, fredkin, phasegate, snot, swap, toffoli 
 
+.. _functions-metrics:
+
 Density Matrix Metrics
 ----------------------
 
 .. automodule:: qutip.metrics
     :members: fidelity, tracedist
+
+
+.. _functions-rand:
 
 Random Operators and States
 ---------------------------
@@ -125,6 +134,7 @@ Random Operators and States
 .. automodule:: qutip.rand
     :members: rand_dm, rand_herm, rand_ket, rand_unitary
 
+.. _functions-misc:
 
 Miscellaneous
 --------------

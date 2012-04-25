@@ -23,4 +23,5 @@ QuTiP Users Guide
    guide-floquet.rst
    guide-parfor.rst
    guide-saving.rst
+   guide-random.rst
 
