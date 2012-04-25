@@ -18,7 +18,8 @@
 ###########################################################################
 
 """
-Collection of metrics (distance measures) between density matricies
+A Module containing a collection of metrics 
+(distance measures) between density matricies.
 """
 
 from qutip.Qobj import *
@@ -32,21 +33,24 @@ def fidelity(A,B):
     Calculates the fidelity (pseudo-metric) between two density matricies.
     See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
     
-    Args:
+    Parameters
+    ----------
+    A : qobj
+        Density matrix
+    B : qobj 
+        Density matrix with same dimensions as A.
     
-        A (Qobj): Density matrix.
-        
-        B (Qobj): Density matrix with same dimensions as A.
+    Returns
+    -------
+    fid : float
+        Fidelity pseudo-metric between A and B.
     
-    Returns:
-        float for fidelity.
-    
-    Example::
-    
-        >>> x=fock_dm(5,3)
-        >>> y=coherent_dm(5,1)
-        >>> fidelity(x,y)
-        0.24104350624628332
+    Examples
+    --------
+    >>> x=fock_dm(5,3)
+    >>> y=coherent_dm(5,1)
+    >>> fidelity(x,y)
+    0.24104350624628332
         
     """
     if A.dims!=B.dims:
@@ -56,28 +60,36 @@ def fidelity(A,B):
         return float(real((A*(B*A)).sqrtm().tr()))
 
 
-def tracedist(A,B,tol=0):
+def tracedist(A,B,sparse=False,tol=0):
     """
     Calculates the trace distance between two density matricies.
     See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
     
-    Args:
-    
-        A (Qobj): Density matrix.
+    Parameters
+    ----------
+    A : qobj 
+        Density matrix.
+    B : qobj:
+        Density matrix with same dimensions as A.
         
-        B (Qobj): Sensity matrix with same dimensions as A.
-        
-        tol (float): Tolerance used by sparse eigensolver. (0=Machine precision)
+    Other Parameters
+    ----------------
+    tol : float 
+        Tolerance used by sparse eigensolver. (0=Machine precision)
+    sparse : {False, True}
+        Use sparse eigensolver.
     
-    Returns:
-        float for trace distance
+    Returns
+    -------
+    tracedist : float
+        Trace distance between A and B.
     
-    Example::
-    
-        >>> x=fock_dm(5,3)
-        >>> y=coherent_dm(5,1)
-        >>> tracedist(x,y)
-        0.9705143161472971
+    Examples
+    --------    
+    >>> x=fock_dm(5,3)
+    >>> y=coherent_dm(5,1)
+    >>> tracedist(x,y)
+    0.9705143161472971
     
     """
     if A.dims!=B.dims:
@@ -85,5 +97,5 @@ def tracedist(A,B,tol=0):
     else:
         diff=A-B
         diff=diff.dag()*diff
-        vals=sp_eigs(diff,vecs=False,tol=0)
+        vals=sp_eigs(diff,vecs=False,sparse=sparse,tol=tol)
         return float(real(0.5*sum(sqrt(vals))))
