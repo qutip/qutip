@@ -56,7 +56,6 @@ def entropy_vn(rho,base=e,sparse=False):
         rho=ket2dm(rho)
     vals=sp_eigs(rho,vecs=False,sparse=sparse)
     nzvals=vals[vals!=0]
-    nzvals=nzvals[nzvals>=1e-15]
     if base==2:
         logvals=log2(nzvals)
     elif base==e:
@@ -98,14 +97,20 @@ def concurrence(rho):
     Calculate the concurrence entanglement measure for 
     a two-qubit state.
     
-    Args:
-        
-        rho (Qobj): density matrix.
+    Parameters
+    ----------
+    rho : qobj 
+        Density matrix for two-qubits.
     
-    Returns:
-        
-        float for concurrence
+    Returns
+    -------
+    concur : float
+        Concurrence
+    
     """
+    if rho.dims!=[[2, 2], [2, 2]]:
+        raise Exception("Density matrix must be tensor product of two qubits.")
+    
     sysy = tensor(sigmay(), sigmay())
 
     rho_tilde = (rho * sysy) * (rho.conj() * sysy)
@@ -119,90 +124,117 @@ def concurrence(rho):
     return max(0, lsum)
 
 
-def entropy_mutual(rho,base=e):
+def entropy_mutual(rho,selA,selB,base=e,sparse=False):
     """
-    Calculates the mutual information S(A:B) of a bipartite system density matrix.
+    Calculates the mutual information S(A:B) between selection components of a system density matrix.
     
-    Args:
+    Parameters
+    ----------
+    rho : qobj
+        Density matrix for composite quantum systems
+    selA : int/list
+        `int` or `list` of first selected density matrix components.
+    selB : int/list
+        `int` or `list` of second selected density matrix components.
+    base : {e,2} 
+        Base of logarithm.
     
-        rho (Qobj): density matrix.
-        
-        base (float): base of logarithm, e (default) or 2
+    Other Parameters
+    ----------------
+    sparse : {False,True}
+        Use sparse eigensolver.
     
-    Returns:
+    Returns
+    -------
+    ent_mut : float 
+       Mutual information between selected components.
     
-        float value of mutual information
     """
+    if isinstance(selA,int):
+        selA=[selA]
+    if isinstance(selB,int):
+        selB=[selB]
     if rho.type!='oper':
         raise TypeError("Input must be a density matrix.")
-    if len(rho.dims[0])!=2:
-        raise TypeError("Input must be bipartite system.")
+    if (len(selA)+len(selB))!=len(rho.dims[0]):
+        raise TypeError("Number of selected components must match total number.")
     
-    rhoA=ptrace(rho,0)
-    rhoB=ptrace(rho,1)
-    out=entropy_vn(rhoA,base)+entropy_vn(rhoB,base)-entropy_vn(rho,base)
+    rhoA=ptrace(rho,selA)
+    rhoB=ptrace(rho,selB)
+    out=entropy_vn(rhoA,base,sparse=sparse)+entropy_vn(rhoB,base,sparse=sparse)-entropy_vn(rho,base,sparse=sparse)
     return out
 
 
-def entropy_relative(rho,sigma,base=e):
+def _entropy_relative(rho,sigma,base=e,sparse=False):
     """
+    ****NEEDS TO BE WORKED ON**** (after 2.0 release)
+    
     Calculates the relative entropy S(rho||sigma) between two density matricies.
-    Relative entropy of rho to sigma
     
-    Args:
+    Parameters
+    ----------
+    rho : qobj 
+        First density matrix.
+    sigma : qobj 
+        Second density matrix.
+    base : {e,2} 
+        Base of logarithm.
     
-        rho (Qobj): density matrix.
-        
-        sigma (Qobj): density matrix.
-        
-        base (float): base of logarithm, e (default) or 2
+    Returns
+    -------
+    rel_ent : float
+        Value of relative entropy.
     
-    Returns:
-    
-        float value of relative entropy
     """ 
     if rho.type!='oper' or sigma.type!='oper':
         raise TypeError("Inputs must be density matricies.")
-    vals,vecs=la.eigh(rho.full())
-    nzvals=vals[vals!=0]
+    #sigma terms
+    svals=sp_eigs(sigma,vecs=False,sparse=sparse)
+    snzvals=svals[svals!=0]
     if base==2:
-        logvals=log2(nzvals)
+        slogvals=log2(snzvals)
     elif base==e:
-        logvals=log(nzvals)
+        slogvals=log(snzvals)
     else:
         raise ValueError("Base must be 2 or e.")
-    vals2,vecs2=la.eigh(rho.full())
-    nzvals2=vals2[vals2!=0]
-    rel_ent=float(real(-sum(nzvals2*logvals)))
-    return -1.0*entropy_vn(rho,base)-rel_ent
+    #rho terms
+    rvals=sp_eigs(rho,vecs=False,sparse=sparse)
+    rnzvals=rvals[rvals!=0]
+    #calculate tr(rho*log sigma)
+    rel_trace=float(real(sum(rnzvals*slogvals)))
+    return -entropy_vn(rho,base,sparse)-rel_trace
 
 
-def entropy_conditional(rho,sel,base=e):
+def entropy_conditional(rho,selB,base=e,sparse=False):
     """
-    Calculates the conditional entropy S(A|B) of a bipartite system density matrix.
+    Calculates the conditional entropy :math:`S(A|B)=S(A,B)-S(B)` 
+    of a slected density matrix component.
 
-    Args:
+    Parameters
+    ----------
+    rho : qobj 
+        Density matrix of composite object
+    selB : int/list 
+        Selected components for density matrix B
+    base : {e,2} 
+        Base of logarithm.
 
-        rho (Qobj): density matrix.
-
-        sel (int): Which component is "A" component (0 or 1) 
-
-        base (float): base of logarithm, e (default) or 2
-
-    Returns:
-
-        float value of conditional entropy
+    Other Parameters
+    ----------------
+    sparse : {False,True}
+        Use sparse eigensolver.
+    
+    Returns
+    -------
+    ent_cond : float
+        Value of conditional entropy
+    
     """
     if rho.type!='oper':
         raise TypeError("Input must be density matrix.")
-    if len(rho.dims[0])!=2:
-        raise TypeError("Input must be bipartite system.")
-    if sel!=0 or sel!=1:
-        raise ValueError("Choice of density matrix 'A' component must be 0 or 1.")
-    if sel==0:
-        rhoB=ptrace(rho,1)
-    else:
-        rhoB=ptrace(rho,0)
-    out=entropy_vn(rho,base)-entropy_vn(rhoB,base)
+    if isinstance(selB,int):
+        selB=[selB]
+    B=ptrace(rho,selB)
+    out=entropy_vn(rho,base,sparse=sparse)-entropy_vn(B,base,sparse=sparse)
     return out
 

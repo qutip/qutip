@@ -179,7 +179,7 @@ def rand_dm(N,density=0.75,pure=False,dims=None):
     if pure:
         dm_density=sqrt(density)
         psi=rand_ket(N,dm_density)
-        rho=psi*psi.dag()
+        H=psi*psi.dag()
     else:
         density=density**2
         non_zero=0
