@@ -12,7 +12,7 @@ Frontmatter
 About This Documentation
 ==========================
 
-These pages contains automatically generated API documentation for QuTiP. A PDF version of this text may be found on the `downloads page <http://code.google.com/p/qutip/downloads/list>`_. 
+These pages contains automatically generated API documentation for QuTiP. A PDF version of this text is included with QuTiP, or may be found on the `downloads page <http://code.google.com/p/qutip/downloads/list>`_. 
 
 **For more information see the** `QuTiP project web page`_.
 
@@ -35,7 +35,7 @@ Citing This Project
     
 If you find this project useful, then please cite:
 
-.. centered:: J. R. Johansson, P.D. Nation, and F. Nori, "QuTiP: An open-source Python framework for the dynamics of open quantum systems", Comp. Phys. Comm., (in press) (2012)
+.. centered:: J. R. Johansson, P.D. Nation, and F. Nori, "QuTiP: An open-source Python framework for the dynamics of open quantum systems", Comp. Phys. Comm. 183 1760 (2012).
 
 which may also be download from http://arxiv.org/abs/1110.0573.
 
