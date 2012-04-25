@@ -5,7 +5,7 @@ from qutip.tensor import *
 from qutip.operators import *
 from qutip.expect import *
 from qutip.states import basis
-from qutip.odesolve import mesolve
+from qutip.mesolve import mesolve
 from qutip.Bloch import *
 
 from pylab import *

@@ -9,7 +9,7 @@ from qutip.ptrace import *
 from qutip.operators import *
 from qutip.expect import *
 from qutip.states import *
-from qutip.odesolve import mesolve
+from qutip.mesolve import mesolve
 
 from pylab import *
 

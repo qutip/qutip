@@ -13,7 +13,7 @@
 
 from qutip.expect import *
 from qutip.mcsolve import *
-from qutip.odesolve import *
+from qutip.mesolve import *
 from qutip.operators import *
 from qutip.states import *
 from qutip.steady import *

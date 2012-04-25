@@ -5,7 +5,7 @@ from qutip.tensor import *
 from qutip.operators import *
 from qutip.expect import *
 from qutip.states import coherent,basis,thermal_dm
-from qutip.odesolve import mesolve
+from qutip.mesolve import mesolve
 from qutip.metrics import fidelity
 
 from pylab import *

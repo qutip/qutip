@@ -4,7 +4,7 @@
 # final state and ideal final state.
 #
 from qutip.metrics import *
-from qutip.odesolve import *
+from qutip.mesolve import *
 from qutip.operators import *
 from qutip.Qobj import *
 from qutip.states import *

@@ -9,7 +9,7 @@ from qutip.operators import *
 from qutip.expect import *
 from qutip.wigner import *
 from qutip.steady import *
-from qutip.odesolve import mesolve
+from qutip.mesolve import mesolve
 
 from pylab import *
 from mpl_toolkits.mplot3d import Axes3D
