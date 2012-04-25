@@ -181,21 +181,20 @@ def rand_dm(N,density=0.75,pure=False,dims=None):
         psi=rand_ket(N,dm_density)
         rho=psi*psi.dag()
     else:
+        density=density**2
         non_zero=0
         tries=0
         while non_zero==0 and tries<10: 
             H = rand_herm(N,density)
+            H=H.dag()*H
             non_zero=sum(H.tr())
             tries+=1
         if tries>=10:
             raise ValueError("Requested density is too low to generate density matrix.")
-        H=sp.triu(H.data,format='csr')#take only upper triangle
-        rho = 0.5*sp.eye(N,N,format='csr')*(H+H.conj().T)
-        rho=Qobj(rho)
     if dims:
-        return Qobj(rho/rho.tr(),dims=dims,shape=[N,N])
+        return Qobj(H/H.tr(),dims=dims,shape=[N,N])
     else:
-        return Qobj(rho/rho.tr())
+        return Qobj(H/H.tr())
 
 
 
