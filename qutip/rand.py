@@ -156,13 +156,11 @@ def rand_dm(N,density=0.75,pure=False,dims=None):
     density : float
         Density etween [0,1] of output density matrix.
     
-    
     Returns
     -------
     oper : qobj
         NxN density matrix quantum operator.
     
-        
     Other Parameters
     ----------------
     dims : list 
@@ -171,8 +169,8 @@ def rand_dm(N,density=0.75,pure=False,dims=None):
     
     Notes
     -----
-    For small density matricies, choosing a low `density` will result in an error
-    as no diagonal elements will be generated such that :math:`Tr(\rho)=1`.
+    For small density matricies, choosing a low density will result in an error
+    as no diagonal elements will be generated such that :math:`Tr(\\rho)=1`.
     
     
     """
