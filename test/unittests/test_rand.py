@@ -45,7 +45,8 @@ class TestRand(unittest.TestCase):
         R=array([rand_dm(5) for k in range(5)])
         for k in range(5):
             self.assertEqual(sum(R[k].tr())-1.0<1e-15, True)
-    
+            #verify all eigvals are >=0
+            self.assertFalse(any(sp_eigs(R[k],vecs=False))<0)
     def testRandket(self):
         P=array([rand_ket(5) for k in range(5)])
         for k in range(5):
