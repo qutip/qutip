@@ -22,31 +22,41 @@ import scipy.linalg as la
 from qutip.states import ket2dm
 from qutip.tensor import tensor
 from qutip.operators import sigmay
+from qutip.sparse import sp_eigs
 
-def entropy_vn(rho,base=e):
+def entropy_vn(rho,base=e,sparse=False):
     """
     Von-Neumann entropy of density matrix
     
-    Args:
-        
-        rho (Qobj): density matrix.
-        
-        base (float): base of logarithm 2 or e (defult=e)
+    Parameters
+    ----------
+    rho : qobj
+        Density matrix.
+    base : {e,2} 
+        Base of logarithm.
     
-    Returns: 
-        
-        float for entropy value
+    Other Parameters
+    ----------------
+    sparse : {False,True}
+        Use sparse eigensolver.
     
-    Example::
+    Returns
+    ------- 
+    entropy : float
+        Von-Neumann entropy of `rho`.
     
-        >>> rho=0.5*fock_dm(2,0)+0.5*fock_dm(2,1)
-        >>> entropy_vn(rho,2)
-        1.0
+    Examples
+    --------
+    >>> rho=0.5*fock_dm(2,0)+0.5*fock_dm(2,1)
+    >>> entropy_vn(rho,2)
+    1.0
+    
     """
     if rho.type=='ket' or rho.type=='bra':
         rho=ket2dm(rho)
-    vals,vecs=la.eigh(rho.full())
+    vals=sp_eigs(rho,vecs=False,sparse=sparse)
     nzvals=vals[vals!=0]
+    nzvals=nzvals[nzvals>=1e-15]
     if base==2:
         logvals=log2(nzvals)
     elif base==e:
@@ -58,20 +68,24 @@ def entropy_vn(rho,base=e):
 
 def entropy_linear(rho):
     """
-    Linear entropy of density matrix
+    Linear entropy of a density matrix.
     
-    Args:
-        rho (Qobj): density matrix or ket/bra vector.
+    Parameters
+    ----------
+    rho : qobj
+        sensity matrix or ket/bra vector.
     
-    Returns:
-        
-        float for entropy value.
+    Returns
+    -------
+    entropy : float
+        Linear entropy of rho.
     
-    Example:: 
-        
-        >>> rho=0.5*fock_dm(2,0)+0.5*fock_dm(2,1)
-        >>> entropy_linear(rho)
-        0.5
+    Examples
+    -------- 
+    >>> rho=0.5*fock_dm(2,0)+0.5*fock_dm(2,1)
+    >>> entropy_linear(rho)
+    0.5
+    
     """
     if rho.type=='ket' or rho.type=='bra':
         rho=ket2dm(rho)
