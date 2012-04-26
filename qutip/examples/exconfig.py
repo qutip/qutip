@@ -17,8 +17,9 @@
 #
 ###########################################################################
 
-#variable for use by Examples GUI 
+#variable for use by Examples GUI and command line
 option=0
 tab=0
 button_num=0
 is_green=0
+cmd_screen=0

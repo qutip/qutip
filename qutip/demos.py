@@ -18,7 +18,8 @@
 ###########################################################################
 import sys,os
 import qutip.examples as examples
-from .examples import exconfig
+from qutip.examples import exconfig
+from qutip.examples.examples_text import button_labels,button_nums
 from scipy import arange,array,any
 import qutip.settings
 
@@ -33,6 +34,7 @@ def demos():
     exconfig.tab=0
     exconfig.button_num=0
     exconfig.is_green=0
+    exconfig.cmd_screen=1
     if qutip.settings.qutip_gui!='NONE':
         from gui import Examples
         if qutip.settings.qutip_gui=="PYSIDE":
@@ -49,7 +51,7 @@ def demos():
             gui.raise_()
             app.exec_()
     else:
-        opts=array([123456,11,12,13,14,15,21,22,23,24,25,31,32,33,34,35,41,42,43,44,45])
+        opts=array([button_nums[k] for k in range(len(button_nums))])
         lopts=arange(len(opts))
     exconfig.option=0
     
@@ -62,61 +64,87 @@ def demos():
             else:
                 ver='HEAD'
             start_gui(ver,direc)
+            if not exconfig.option==123456:
+                example_code = compile('examples.ex_'+str(exconfig.option)+'.run()', '<string>', 'exec')
+                eval(example_code)
         else:
+            #---Commandline Demos output---#
             if sys.stdout.isatty():
-                print('')
-                print('\nQuTiP Example Scripts:')
-                print('-----------------------')
-                #first row
-                print('[1]  Basic Obj operations')
-                print('[2]  Operator & state usage examples')
-                print('[3]  Tensor / partial trace usage')
-                print('[4]  Wigner & Q dist. of Schrodinger cat-state')
-                print('[5]  Squeezed state')
-                #second row
-                print('[6]  Steady-state cavity+qubit')
-                print('[7]  Steady-state oscillator in thermal bath')
-                print('[8]  Eseries example')
-                print('[9]  Master equation: Rabi oscillations')
-                print('[10] Master equation: Single-atom lasing')
-                #third row
-                print('[11] Density matrix metrics: Fidelity')
-                print('[12] Propagator: Steady-state of driven sys.')
-                print('[13] Heisenberg spin-chain (N=4)')
-                print('[14] Correlations and spectrum')
-                print('[15] Qubit decay on the Bloch sphere')
-                #forth row
-                print('[16] Monte-Carlo: cavity+qubit')
-                print('[17] Monte-Carlo: trilinear Hamiltonian')
-                print('[18] Monte-Carlo: thermal deviations')
-                print('[19] Time-dependent H: Rabi oscillations')
-                print('[20] Time-dependent H: LZ transistions')
-                print('[0]  Exit...')
-                wflag=0
-                while wflag<3:
-                    userinpt=raw_input("\nPick an example to run:")
-                    try:
-                        userinpt=int(userinpt)
-                    except:
-                        print('Invalid choice.  Please pick again.')
-                        wflag+=1
+                while exconfig.cmd_screen!=0:
+                    bnums=button_nums[exconfig.cmd_screen-1]
+                    blabels=button_labels[exconfig.cmd_screen-1]
+                    print("\n"*5)
+                    #first screen
+                    if exconfig.cmd_screen==1:
+                        print('\nQuTiP Basic Example Scripts:')
+                        print('=============================')
+                        for jj in xrange(len(bnums)):
+                            print("["+str(bnums[jj])+"] "+blabels[jj])
+                        print('[1] Next Page ==>')
+                        print('[0] Exit Demos')
+                    #last screen
+                    elif exconfig.cmd_screen==5:
+                        print('\nQuTiP Advanced Example Scripts:')
+                        print('================================')
+                        for jj in xrange(len(bnums)):
+                            print("["+str(bnums[jj])+"] "+blabels[jj])
+                        print('[2] Previous Page <==')
+                        print('[0] Exit Demos')
+                    #in between screens
                     else:
-                        if any(userinpt==lopts):
-                            exconfig.option=opts[userinpt]
-                            break
-                        else:
+                        tt=["Master Equation","Monte Carlo","Time-Dependent"]
+                        print("\nQuTiP "+tt[exconfig.cmd_screen-2]+" Example Scripts:")
+                        print('======================================')
+                        for jj in xrange(len(bnums)):
+                            print("["+str(bnums[jj])+"] "+blabels[jj])
+                        print('[1] Next Page ==>')
+                        print('[2] Previous Page <==')
+                        print('[0] Exit Demos')
+                    #code for selecting examples
+                    wflag=0
+                    while wflag<3:
+                        userinpt=raw_input("\nPick an example to run:")
+                        try:
+                            userinpt=int(userinpt)
+                        except:
                             print('Invalid choice.  Please pick again.')
                             wflag+=1
-                if wflag==3:
-                    print('\nThird time was not a charm in your case.')
-                    print('It seems you cannot pick a valid option...\n')
-                    return
+                        else:
+                            if userinpt==0:
+                                exconfig.cmd_screen=0
+                                exconfig.option=123456
+                                break
+                            elif userinpt==1:
+                                if exconfig.cmd_screen==5:
+                                    pass
+                                else:
+                                    exconfig.cmd_screen+=1
+                                break
+                            elif userinpt==2:
+                                if exconfig.cmd_screen==1:
+                                    pass
+                                else:
+                                    exconfig.cmd_screen-=1
+                                break 
+                            elif any(userinpt==opts[exconfig.cmd_screen-1]):
+                                exconfig.option=userinpt
+                                break
+                            else:
+                                print('Invalid choice.  Please pick again.')
+                                wflag+=1
+                    if wflag==3:
+                        print('\nThird time was not a charm in your case.')
+                        print('It seems you cannot pick a valid option...\n')
+                        return
+                    if not exconfig.option==123456:
+                        example_code = compile('examples.ex_'+str(exconfig.option)+'.run()', '<string>', 'exec')
+                        eval(example_code)
+                    
             else:
-                raise TypeError('Demos must be run from the terminal if no GUI is avaliable.')
-        #run selected example
-        if not exconfig.option==123456:
-            example_code = compile('examples.ex_'+str(exconfig.option)+'.run()', '<string>', 'exec')
-            eval(example_code)
+                #raise exception if running demos from scipt with no GUI.
+                raise Exception('Demos must be run from the terminal if no GUI is avaliable.')
+        
+        
         
             
             
