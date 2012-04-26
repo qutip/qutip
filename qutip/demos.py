@@ -119,12 +119,14 @@ def demos():
                                     pass
                                 else:
                                     exconfig.cmd_screen+=1
+                                exconfig.option=123456
                                 break
                             elif userinpt==2:
                                 if exconfig.cmd_screen==1:
                                     pass
                                 else:
                                     exconfig.cmd_screen-=1
+                                exconfig.option=123456
                                 break 
                             elif any(userinpt==opts[exconfig.cmd_screen-1]):
                                 exconfig.option=userinpt
