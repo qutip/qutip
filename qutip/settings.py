@@ -17,10 +17,10 @@
 #
 ###########################################################################
 """
-This module contains settings for the QuTiP GUI,multiprocessing,
-and tidyup functionality.
-"""
+This module contains settings for the QuTiP GUI,multiprocessing, and 
+tidyup functionality.
 
+"""
 #QuTiP Graphics (set at qutip import)
 qutip_graphics=None
 #QuTiP GUI selection (set at qutip import)
