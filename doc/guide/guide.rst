@@ -24,4 +24,5 @@ QuTiP Users Guide
    guide-parfor.rst
    guide-saving.rst
    guide-random.rst
+   guide-settings.rst
 
