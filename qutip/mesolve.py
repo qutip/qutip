@@ -926,7 +926,12 @@ def me_ode_solve_func_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
         else:
             L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
 
-    L_func_and_args = [H_func, L.data]
+    if n_op > 0:
+        L_func_and_args = [H_func, L.data]
+    else:
+        n,m = rho0.shape
+        L_func_and_args = [H_func, sp.lil_matrix((n**2,m**2)).tocsr()]
+
     for arg in H_args:
         if isinstance(arg,Qobj):
             L_func_and_args.append((-1j*(spre(arg) - spost(arg))).data)
@@ -1111,6 +1116,12 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, H_args=None, options=None):
         options.max_step = max(tlist)/10.0 # take at least 10 steps.. 
         
     if (c_op_list and len(c_op_list) > 0) or not isket(rho0):
-        return me_ode_solve(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
+        output = me_ode_solve(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
     else:
-        return wf_ode_solve(H, rho0, tlist, expt_ops, H_args, options)
+        output = wf_ode_solve(H, rho0, tlist, expt_ops, H_args, options)
+
+    if len(expt_ops) > 0:
+        return output.expect
+    else:
+        return output.states
+
