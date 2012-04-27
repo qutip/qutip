@@ -36,6 +36,7 @@ for any of the three configurations::
          |                 /        --------           \ /
       -------|one>      -------      |three>         -------
                          |one>                       |two>
+
 References
 ----------
 The naming of qutip operators follows the convention in [1]_ .
@@ -58,7 +59,7 @@ def three_level_basis():
     Returns
     -------
     states : array
-        ``array`` of three level atom basis vectors.
+        `array` of three level atom basis vectors.
     
     '''
     # A three level atom has the same representation as a qutrit, i.e.
@@ -71,7 +72,7 @@ def three_level_ops():
     Returns
     --------
     ops : array
-        ``array`` of three level operators.
+        `array` of three level operators.
     
     '''
     one, two, three = qutrit_basis()

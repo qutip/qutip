@@ -13,9 +13,10 @@
 #    You should have received a copy of the GNU General Public License
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+#Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
+
 import sys,os,time,numpy,datetime
 from scipy import *
 from scipy.integrate import *
@@ -33,34 +34,36 @@ from qutip.cyQ.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
 from Mcdata import Mcdata
 import qutip.settings
+
 def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
-    """
-    Monte-Carlo evolution of a state vector |psi> for a given
+    """Monte-Carlo evolution of a state vector :math:`|\psi \\rangle` for a given
     Hamiltonian and sets of collapse operators and operators
     for calculating expectation values. Options for solver are 
     given by the Odeoptions class.
     
-    Args:
-        
-        H (Qobj): Hamiltonian.
-        
-        psi0 (Qobj): Initial state vector.
-        
-        tlist (list/array): Times at which results are recorded.
-        
-        ntraj (integer): Number of trajectories to run.
-        
-        c_ops (list/array of Qobj's): Collapse operators.
-        
-        e_ops (list/array of Qobj's) Operators for calculating expectation values.
-        
-        args (list/array of Qobj's): Arguments for time-dependent Hamiltonians.
-        
-        options (Odeoptions): Instance of ODE solver options.
+    Parameters
+    ----------
+    H : qobj
+        System Hamiltonian.
+    psi0 : qobj 
+        Initial state vector
+    tlist : array_like 
+        Times at which results are recorded.
+    ntraj : int 
+        Number of trajectories to run.
+    c_ops : array_like 
+        ``list`` or ``array`` of collapse operators.
+    e_ops : array_like 
+        ``list`` or ``array`` of operators for calculating expectation values.
+    args : dict
+        Arguments for time-dependent Hamiltonian and collapse operator terms.
+    options : Odeoptions
+        Instance of ODE solver options.
     
-    Returns:
-        
-        Mcdata object storing all results from simulation.
+    Returns
+    -------
+    results : ODEData    
+        ODEData object storing all results from simulation.
         
     """
     #reset odeconfig collapse and time-dependence flags to default values

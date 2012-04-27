@@ -30,6 +30,7 @@ def liouvillian(H, c_op_list):
     and a ``list`` of collapse operators.
     
     Parameters
+    ----------
     H : qobj
         System Hamiltonian.
         
