@@ -59,12 +59,12 @@ def run():
     # evolve and calculate expectation values
     #
     tlist = linspace(-10.0, 10.0, 1500)
-    p_ex = mesolve(hamiltonian_t, psi0, tlist, c_ops, [sm.dag() * sm], args)  
+    output = mesolve(hamiltonian_t, psi0, tlist, c_ops, [sm.dag() * sm], args)  
  
     # 
     # Plot the results
     #    
-    plot(tlist, real(p_ex[0]), 'b', tlist, real(1-p_ex[0]), 'r')
+    plot(tlist, real(output.expect[0]), 'b', tlist, real(1-output.expect[0]), 'r')
     plot(tlist, 1 - exp( - pi * delta **2 / (2 * A)) * ones(shape(tlist)), 'k')
     xlabel('Time')
     ylabel('Occupation probability')

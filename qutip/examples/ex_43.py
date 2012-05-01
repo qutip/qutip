@@ -17,18 +17,6 @@ from matplotlib import cm
 def run():
 
     #
-    # Define a hamiltonian: a strongly driven two-level system
-    # (repeated LZ transitions)
-    #
-    def hamiltonian_t_bk(t, args):
-        """ evaluate the hamiltonian at time t"""
-        H0 = args[0]
-        H1 = args[1]
-        w  = args[2]
-    
-        return H0 + cos(w * t) * H1
-
-    #
     # configure the parameters 
     #
     delta = 0.075 * 2 * pi  # qubit sigma_x coefficient
@@ -49,21 +37,31 @@ def run():
 
     H0 = - delta/2.0 * sx - eps0/2.0 * sz
     H1 = - A/2.0 * sz
-    args = {'w': omega}
-            
+
+    # alternative 1: using function callback format (H_func_t)
+    #args = [H0,H1,omega]
+    #def hamiltonian_t(t, args):
+    #    H0 = args[0]
+    #    H1 = args[1]
+    #    w  = args[2]   
+    #    return H0 + cos(w * t) * H1
+
+    # alternative 2: using list-callback format
+    args = {'w': omega}        
     def H1_coeff_t(t, args):
-        return cos(args['w'] * t)
-           
+        return cos(args['w'] * t)       
     hamiltonian_t = [H0, [H1, H1_coeff_t]]
     
-    # hamiltonian_t = [H0, [H1, 'cos(w * t)']] # using the list-string format
+    # alternative 3: using list-string format
+    #args = {'w': omega}
+    #hamiltonian_t = [H0, [H1, 'cos(w * t)']]
 
     #
     # collapse operators
     #
     c_op_list = []
 
-    n_th = 0.0 # zero temperature
+    n_th = 0.0 # temperature in terms of the bath excitation number
 
     rate = gamma1 * (1 + n_th)
     if rate > 0.0:
@@ -82,8 +80,8 @@ def run():
     # evolve for five driving periods
     #
     tlist = linspace(0.0, 5 * T, 1500)
-    p_ex = mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], args)  
-
+    output = mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], args)  
+    
     #
     # find the propagator for one driving period
     #
@@ -103,8 +101,8 @@ def run():
     figure(1)
 
     subplot(211)
-    plot(tlist, real(p_ex[0]), 'b')
-    plot(tlist, real(1-p_ex[0]), 'r')
+    plot(tlist, real(output.expect[0]), 'b')
+    plot(tlist, real(1-output.expect[0]), 'r')
     plot(tlist, ones(shape(tlist)) * p_ex_ss, 'k', linewidth=2)
     xlabel('Time')
     ylabel('Probability')

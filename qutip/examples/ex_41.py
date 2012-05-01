@@ -89,8 +89,10 @@ def run():
     state_UU = tensor(basis(N,0), ustate)
     sigma_UU = state_UU * state_UU.dag()
 
-    exp_ada, exp_uu, exp_gg = mesolve(Hfunc, psi0, t, c_op_list,
-                                     [ada, sigma_UU, sigma_GG], [H0, H1])
+    output = mesolve(Hfunc, psi0, t, c_op_list,
+                     [ada, sigma_UU, sigma_GG], [H0, H1])
+
+    exp_ada, exp_uu, exp_gg = output.expect[0],output.expect[1],output.expect[2]
 
     # Plot the results
     fig=figure()

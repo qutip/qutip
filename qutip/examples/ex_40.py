@@ -55,18 +55,18 @@ def run():
     # evolve and system subject to the time-dependent hamiltonian
     #
     tlist = linspace(0, 5.0 * 2 * pi / A, 500)
-    expt_list1 = mesolve(Ht, psi0, tlist, c_op_list, [sm.dag() * sm], args)  
+    output1 = mesolve(Ht, psi0, tlist, c_op_list, [sm.dag() * sm], args)  
 
     # Alternative: write the hamiltonian in a rotating frame, and neglect the
     # the high frequency component (rotating wave approximation), so that the
     # resulting Hamiltonian is time-independent.
     H_rwa = - delta/2.0 * sx - A * sx / 2
-    expt_list2 = mesolve(H_rwa, psi0, tlist, c_op_list, [sm.dag() * sm])  
+    output2 = mesolve(H_rwa, psi0, tlist, c_op_list, [sm.dag() * sm])  
 
     #
     # Plot the solution
     #
-    plot(tlist, real(expt_list1[0]), 'b', tlist, real(expt_list2[0]), 'r.')
+    plot(tlist, real(output1.expect[0]), 'b', tlist, real(output2.expect[0]), 'r')
     xlabel('Time')
     ylabel('Occupation probability')
     title('Excitation probabilty of qubit')
