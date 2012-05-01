@@ -91,7 +91,7 @@ def run():
     # subplot 3
     ax3=subplot(413,sharex=ax1) #share x-axis of subplot 1
     ax3.plot(tlist,ex15,'b',lw=1.5)
-    ax3.plot(tlist,me[0],'r--',lw=1.5)
+    ax3.plot(tlist,me.expect[0],'r--',lw=1.5)
     ax3.axhline(y=fexpt,color='k',lw=1.0)
     yticks(linspace(0,1,3))
     ylim([-0.1,1.1])
@@ -101,7 +101,7 @@ def run():
     # subplot 4 (bottom)
     ax4=subplot(414,sharex=ax1) #share x-axis of subplot 1
     ax4.plot(tlist,ex904,'b',lw=1.5)
-    ax4.plot(tlist,me[0],'r--',lw=1.5)
+    ax4.plot(tlist,me.expect[0],'r--',lw=1.5)
     ax4.axhline(y=fexpt,color='k',lw=1.0)
     yticks(linspace(0,1,3))
     ylim([-0.1,1.1])

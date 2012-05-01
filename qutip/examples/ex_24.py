@@ -65,11 +65,11 @@ def integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver):
             
     # evolve and calculate expectation values
     if solver == "me":
-        expt_list = mesolve(H, psi0, tlist, c_op_list, sz_list)
+        output = mesolve(H, psi0, tlist, c_op_list, sz_list)
     elif solver == "mc":
-        expt_list = mcsolve(H, psi0, tlist, c_op_list, sz_list)
+        output = mcsolve(H, psi0, tlist, c_op_list, sz_list)
 
-    return expt_list
+    return output.expect
 
 def run():
    

@@ -52,11 +52,11 @@ def run():
 
     # evolve and calculate expectation values
     tlist = linspace(0,25,100)
-    nc, na = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
+    output = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
 
     # plot the results
-    plot(tlist, nc)
-    plot(tlist, na)
+    plot(tlist, output.expect[0])
+    plot(tlist, output.expect[1])
     legend(("Cavity", "Atom excited state"))
     xlabel('Time')
     ylabel('Occupation probability')

@@ -55,14 +55,14 @@ def run():
 
     # evolve the system
     tlist = linspace(0, 10, 100)
-    rho_list = mesolve(H, psi0, tlist, c_op_list, [])  
+    output = mesolve(H, psi0, tlist, c_op_list, [])  
 
     # calculate the wigner function  
     xvec = linspace(-5.,5.,100)
     X,Y = meshgrid(xvec, xvec)
 
-    #for idx, rho in enumerate(rho_list): # suggestion: try to loop over all rho
-    for idx, rho in enumerate([rho_list[44]]): # for a selected time t=4.4
+    #for idx, rho in enumerate(output.states): # suggestion: try to loop over all rho
+    for idx, rho in enumerate([output.states[44]]): # for a selected time t=4.4
            
         rho_cavity = ptrace(rho, 0)
         W = wigner(rho_cavity, xvec, xvec)

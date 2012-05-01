@@ -58,11 +58,11 @@ def run():
 
     # evolve the system
     tlist = linspace(0, 200, 500)
-    rho_list = mesolve(H, psi0, tlist, c_op_list, [])  
+    output = mesolve(H, psi0, tlist, c_op_list, [])  
 
     # calculate expectation values
-    nc = expect(a.dag()  *  a, rho_list) 
-    na = expect(sm.dag() * sm, rho_list)
+    nc = expect(a.dag()  *  a, output.states) 
+    na = expect(sm.dag() * sm, output.states)
 
     #
     # plot the time-evolution of the cavity and atom occupation
@@ -76,7 +76,7 @@ def run():
     #
     # plot the final photon distribution in the cavity
     #
-    rho_final  = rho_list[-1]
+    rho_final  = output.states[-1]
     rho_cavity = ptrace(rho_final, 0)
 
     figure(2)

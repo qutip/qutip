@@ -43,10 +43,10 @@ def run():
 
         #run odesolver
         tlist=linspace(0,3,60)
-        states=mesolve(H,psi0,tlist,[],[])
+        output=mesolve(H,psi0,tlist,[],[])
         
-        mode1=[ptrace(k,1) for k in states] #extract mode #1
-        num1=[expect(num1,k) for k in states] #get <n> for mode #1
+        mode1=[ptrace(k,1) for k in output.states] #extract mode #1
+        num1=[expect(num1,k) for k in output.states] #get <n> for mode #1
         thermal=[thermal_dm(N1,k) for k in num1] #calculate thermal matrix for <n>
         fids[j,:]=[fidelity(mode1[k],thermal[k]) for k in range(len(tlist))] #calc. fidelity
 
