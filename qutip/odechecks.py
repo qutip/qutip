@@ -75,11 +75,11 @@ def _ode_checks(H,c_ops,solver='me'):
     # if n_str == 0 and n_func == 0:
     #     # no time-dependence at all
     #
-    if (h_str > 0 and h_func > 0) or (c_str > 0 and c_func > 0):
+    if (len(h_str) > 0 and h_func > 0) or (len(c_str) > 0 and c_func > 0):
         raise TypeError("Cannot mix string and function type time-dependence formats")       
     
     #check to see if Cython is installed and version is high enough.
-    if h_str>0 or c_str>0:
+    if len(h_str) > 0 or len(c_str) > 0:
         try:
             import Cython
         except:
