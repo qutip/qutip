@@ -103,7 +103,6 @@ from qutip.metrics import fidelity,tracedist
 import qutip.odeconfig
 from qutip.Odeoptions import Odeoptions
 from qutip.Odedata import Odedata
-from qutip.MEData import MEData
 from qutip.Mcdata import Mcdata
 from qutip.rhs_generate import rhs_generate
 from qutip.mesolve import mesolve, odesolve

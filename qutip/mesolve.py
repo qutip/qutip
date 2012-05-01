@@ -31,7 +31,7 @@ from qutip.states import ket2dm
 from odechecks import _ode_checks
 import os,numpy,odeconfig
 
-from MEData import MEData
+from Odedata import Odedata
 
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
@@ -124,9 +124,9 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     Returns
     -------
 
-    output: :class:`qutip.MEData`
+    output: :class:`qutip.Odedata`
 
-        An instance of the class :class:`qutip.MEData`, which contains either
+        An instance of the class :class:`qutip.Odedata`, which contains either
         an *array* of expectation values for the times specified by `tlist`, or
         an *array* or state vectors or density matrices corresponding to the
         times in `tlist` [if `expt_ops` is an empty list], or
@@ -990,7 +990,7 @@ def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize):
     n_tsteps  = len(tlist)
     dt        = tlist[1]-tlist[0]
        
-    output = MEData()
+    output = Odedata()
     output.times = tlist
         
     if isinstance(expt_ops, FunctionType):
