@@ -24,6 +24,8 @@ class Odedata():
     Class for storing results from odesolve.
     """
     def __init__(self):
+        #: Solver Used ('mesolve', 'mcsolve', 'floquet', 'brmesolve')
+        self.solver=None
         #: Array of times at which state vector was evaluated.
         self.times=None
         #: Array of state vectors if odesolve was run without expectation operators.
@@ -31,21 +33,27 @@ class Odedata():
         #: Array of expectation values if odesolve was called with expectation operators.
         self.expect=None
         #: Number of expectation operators (if any).
-        self.num_expect=None
+        self.num_expect=0
         #: Number of collapse operators (if any).
-        self.num_collapse=None
+        self.num_collapse=0
+        #: Number of trajectories ('mc' solver only)
+        self.ntraj=None
     def __str__(self):
         s="Odedata object: "
-        if (not self.expect) and (not self.states):
-            s+="Empty Odedata object."
+        if not self.solver:
+            s+="Empty object."
             return s
+        s+="solver = "+self.solver+"\n"
+        s+="-"*(len(s)-1)+"\n"
         if self.states and (not self.expect):
-            s+= "states = True"
+            s+= "states = True\n"
         elif self.expect and (not self.states):
-            s+="expect = True, num_expect = "+str(self.num_expect)+", "
+            s+="expect = True\nnum_expect = "+str(self.num_expect)+", "
         else:
-            s+= "states = True, expect = True, "+"num_expect = "+str(self.num_expect)+", "
+            s+= "states = True, expect = True\n"+"num_expect = "+str(self.num_expect)+", "
         s+="num_collapse = "+str(self.num_collapse)
+        if self.solver=='mcsolve':
+            s+=", ntraj = "+str(self.ntraj)
         return s
     def __repr__(self):
         return self.__str__()
