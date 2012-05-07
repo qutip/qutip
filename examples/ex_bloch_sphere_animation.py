@@ -42,20 +42,18 @@ from mpl_toolkits.mplot3d import Axes3D
 
 fig = figure()
 ax = Axes3D(fig,azim=-40,elev=30)
-
-sphere=Bloch(axes=ax)
+sphere=Bloch(fig=fig,axes=ax)
 
 def animate(i):
     sphere.clear()
-    sphere.add_points([sx[i],sy[i],sz[i]])
-    sphere.plot_points()
-    return ax,
+    sphere.add_vectors([sin(theta),0,cos(theta)])
+    sphere.add_points([sx[:i+1],sy[:i+1],sz[:i+1]])
+    sphere.make_sphere()
+    return ax
 
 def init():
     sphere.vector_color = ['r']
-    sphere.add_vectors([sin(theta),0,cos(theta)])
-    sphere.make_sphere()
-    return ax,
+    return ax
 
 ani = animation.FuncAnimation(fig, animate, np.arange(len(sx)), init_func=init, blit=True, repeat=False)
 
