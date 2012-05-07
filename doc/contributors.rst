@@ -28,6 +28,8 @@ Contributors
 	Anyone is free to contribute to QuTiP.  If you are interested in helping, please let us know!
 
 
+**Bredan Abolins** (Berkeley) - Bug hunter
+
 **Markus Baden** (Centre for Quantum Technologies, Singapore) - Examples and documentation, **QuTiP member**
 
 **James Clemens** (Miami University - Ohio) - Bug hunter
