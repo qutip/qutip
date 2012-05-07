@@ -8,6 +8,7 @@ About QuTiP
 **************
 
 .. figure:: figures/wide_logo.png
+   :width: 5in
    :align: center
 
 .. _about-brief:

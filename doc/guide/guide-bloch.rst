@@ -166,7 +166,7 @@ Adding multiple points to the Bloch sphere works slightly differently than addin
    
    A set of equatorial data points plotted simultaneously.
 
-Notice that, in contrast to states or vectors, each point remains the same color as the initial point.  This is because adding multiple data points using the add_points function is interpreted, by default, to correspond to a single data point (single qubit state) plotted at different times.  This is very useful when visualizing the dynamics of a qubit.  An example of this is given in the example :ref:`examples_bloch_qubit_decay`.  If we want to plot additional qubit states we can call additional `add_points` functions:
+Notice that, in contrast to states or vectors, each point remains the same color as the initial point.  This is because adding multiple data points using the add_points function is interpreted, by default, to correspond to a single data point (single qubit state) plotted at different times.  This is very useful when visualizing the dynamics of a qubit.  An example of this is given in the example .  If we want to plot additional qubit states we can call additional `add_points` functions:
 
 >>> xz=zeros(20)
 >>> yz=[sin(th) for th in linspace(0,pi,20)]
@@ -197,7 +197,7 @@ The entire code for this final sphere is thus:
 
 Again, we have had to call ``add_points`` twice because adding more than one set of multiple data points is *not* supported by the ``add_points`` function.
 
-What if we want to vary the color of our points.  We can tell the :class:`qutip.Bloch` class to vary the color of each point according to the colors listed in the ``b.point_color`` list (see :ref:`guide_configuring_the_bloch_sphere` below).  Again after ``clear()``:
+What if we want to vary the color of our points.  We can tell the :class:`qutip.Bloch` class to vary the color of each point according to the colors listed in the ``b.point_color`` list (see :ref:`bloch-config` below).  Again after ``clear()``:
 
 >>> xp=[cos(th) for th in linspace(0,2*pi,20)]
 >>> yp=[sin(th) for th in linspace(0,2*pi,20)]
@@ -225,7 +225,7 @@ Now, the data points cycle through a variety of predefined colors.  Now lets add
    :width: 2.5in
    
 
-A more slick way of using this 'multi' color feature is also given in the :ref:`examples_bloch_qubit_decay` example, where we set the color of the markers as a function of time.
+A more slick way of using this 'multi' color feature is also given in the example, where we set the color of the markers as a function of time.
 
 
 .. _bloch-config:
@@ -315,15 +315,66 @@ zlpos:         [1.2, -1.2]
 Animating with the Bloch sphere
 ===============================
 
-The Bloch class was designed from the outset to generate animations.  To animate a set of vectors or data points the basic idea is: plot the data at time t1, save the sphere, clear the sphere, plot data at t2,... The Bloch sphere will automatically number the output file based on how many times the object has been saved (this is stored in b.savenum).  An example of generating images for animation is given below::
+The Bloch class was designed from the outset to generate animations.  To animate a set of vectors or data points the basic idea is: plot the data at time t1, save the sphere, clear the sphere, plot data at t2,... The Bloch sphere will automatically number the output file based on how many times the object has been saved (this is stored in b.savenum).  The easiest way to animate data on the Bloch sphere is to use the ``save()`` method and generate a series of images to convert into an animation.  However, as of Matplotlib version 1.1, creating animations is built-in.  We will demonstrate both methods by looking at the decay of a qubit on the bloch sphere.   
 
-    from qutip import *
-    b=Bloch()
-    vec=array([[cos(th),sin(th),0.5*sin(4*th)] for th in linspace(0,2*pi,120)])
-    vec=array([k/norm(k) for k in vec]) #normalize
-    for k in range(120):
-        b.add_vectors(vec[k])
-        b.save(dirc=os.getcwd()+'/temp') #saving images to temp directory in current working directory
-        b.clear()
+.. _bloch-animate-decay:
+
+Example: Qubit Decay
+--------------------
+
+The code for calculating the expectation values for the Pauli spin operators of a qubit decay is given below.  This code is common to both animation examples.
+
+.. literalinclude:: scripts/ex_bloch_animation.py
+
+.. _bloch-animate-decay-images:
+
+Generating Images for Animation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An example of generating images for generating an animation outside of Python is given below::
+
+	b=Bloch()
+	b.vector_color = ['r']
+	b.view=[-40,30]
+	for i in xrange(len(sx)):
+	    b.clear()
+	    b.add_vectors([sin(theta),0,cos(theta)])
+	    b.add_points([sx[:i+1],sy[:i+1],sz[:i+1]])
+	    b.save(dirc='temp') #saving images to temp directory in current working directory
+
+Generating an animation using ffmpeg (for example) is fairly simple::
+
+	ffmpeg -r 20 -b 1800 -i bloch_%01d.png bloch.mp4
+
+.. _bloch-animate-decay-direct:
+
+Directly Generating an Animation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. important:: Generating animations directly from Matplotlib requires installing either mencoder or ffmpeg.  While either choice works on linux, it is best to choose ffmpeg when running on the Mac.  If using macports just do: ``sudo port install ffmpeg``.
 
 
+To the code to directly generate an mp4 movie of the Qubit decay is as follows::
+
+	from pylab import *
+	import matplotlib.animation as animation
+	from mpl_toolkits.mplot3d import Axes3D
+	
+	fig = figure()
+	ax = Axes3D(fig,azim=-40,elev=30)
+	sphere=Bloch(axes=ax)
+	
+	def animate(i):
+	    sphere.clear()
+	    sphere.add_vectors([sin(theta),0,cos(theta)])
+	    sphere.add_points([sx[:i+1],sy[:i+1],sz[:i+1]])
+	    sphere.make_sphere()
+	    return ax
+		
+	def init():
+	    sphere.vector_color = ['r']
+	    return ax
+		
+	ani = animation.FuncAnimation(fig, animate, np.arange(len(sx)),
+	                            init_func=init, blit=True, repeat=False)
+	ani.save('bloch_sphere.mp4', fps=20, clear_temp=True)
