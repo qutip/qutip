@@ -3,9 +3,9 @@
 
 .. _basics:
 
-***********************************************
-Performing Basic Operations on Quantum Objects
-***********************************************
+************************************
+Basic Operations on Quantum Objects
+************************************
 
 .. _basics-first:
 

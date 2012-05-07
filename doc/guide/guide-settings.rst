@@ -7,6 +7,11 @@
 Modifying Internal QuTiP Settings
 *********************************
 
+.. _settings-params:
+
+User Accessible Parameters
+==========================
+
 .. note:: This section deals with modifying the internal QuTiP settings.  Use only if you know what you are doing.
 
 In this section we show how to modify a few of the internal parameters used by QuTiP.  The settings that can be modified are given in the following table:
@@ -28,6 +33,11 @@ In this section we show how to modify a few of the internal parameters used by Q
 +-------------------------------+-------------------------------------------+-----------------------------+
 | `franco`                      | Turns on the Franco easter egg.           | False / True                |
 +-------------------------------+-------------------------------------------+-----------------------------+
+
+.. _settings-usage:
+
+Example: Changing Settings
+==========================
 
 The two most important settings are `auto_tidyup` and `auto_tidyup_atol` as they control whether the small elements of a quantum object should be removed, and what number should be considered as the cutoff tolerance.  Modifying these, or any other parameters, is quite simple::
 

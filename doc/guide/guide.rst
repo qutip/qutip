@@ -19,8 +19,6 @@ QuTiP Users Guide
    guide-eseries.rst
    guide-bloch.rst
    guide-correlation.rst
-   guide-bloch-redfield.rst
-   guide-floquet.rst
    guide-parfor.rst
    guide-saving.rst
    guide-random.rst

@@ -7,10 +7,18 @@
 Solving for Steady-State Solutions
 *************************************
 
+.. _steady-intro:
+
+Introduction
+============
+
 For open quantum systems with decay rates larger than the corresponding excitation rate, the system will tend toward a steady-state as :math:`t\rightarrow\infty`.  For many these systems, solving for the asymptotic state vector can be achieved using an iterative method faster than master equation or monte-carlo methods.  In QuTiP, the steady-state solution for a system Hamiltonian or Louivillian is given by :func:`qutip.steady.steadystate` or :func:`qutip.steady.steady`, respectively.  Both of these functions use an inverse power method with a random initial state.  (Details of these methods may be found in any iterative linear algebra text.)  In general, it is best to use the :func:`qutip.steady.steadystate` function with a given Hamiltonian and list of collapse operators.  This function will automatically build the Louivillian for you and then call the :func:`qutip.steady.steady` function. 
 
-Usage
-=====
+
+.. _steady-usage:
+
+Using the Steadystate Solver
+=============================
 
 A general call to the steady-state solver :func:`qutip.steady.steadystate` may be accomplished using the command::
 
@@ -28,8 +36,10 @@ This solver can also use a Louvillian constructed from a Hamiltonian and collaps
 
 where ``L`` is the Louvillian.  This function also takes the previously mentioned optional parameters.  We do however recommend using the :func:`qutip.steady.steadystate` function as it will automatically build the system Louvillian and call :func:`qutip.steady.steady` for you.
 
-Example
-=======
+.. _steady-example:
+
+Example: Harmonic Oscillator in Thermal Bath
+============================================
 
 A simple example of a system that reaches a steady-state is a harmonic oscillator coupled to a thermal environment.  Below we consider a harmonic oscillator, initially in a :math:`\left|10\right>` number state, and weakly coupled to a thermal environment characterized by an average particle expectation value of :math:`\left< n\right>=2`.  We calculate the evolution via master equation and monte-carlo methods, and see that they converge to the steady-state solution.  Here we choose to perform only a few Monte Carlo trajectories so we can distinguish this evolution from the master equation solution.
     
