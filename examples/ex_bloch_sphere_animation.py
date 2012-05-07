@@ -42,7 +42,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 fig = figure()
 ax = Axes3D(fig,azim=-40,elev=30)
-sphere=Bloch(fig=fig,axes=ax)
+sphere=Bloch(axes=ax)
 
 def animate(i):
     sphere.clear()
