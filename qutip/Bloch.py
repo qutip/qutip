@@ -313,7 +313,7 @@ class Bloch():
         self.make_sphere()
         show(self.fig)
         
-    def save(self,name=None,format='png',dirc=os.getcwd()):
+    def save(self,name=None,format='png',dirc=None):
         """
         Saves Bloch sphere to file of type `format`
         
@@ -332,8 +332,14 @@ class Bloch():
         """
         from pylab import figure,plot,show,savefig,close
         self.make_sphere()
+        if dirc:
+            if not os.path.isdir(os.getcwd()+"/"+str(dirc)):
+                os.makedirs(os.getcwd()+"/"+str(dirc))
         if name==None:
-            savefig(str(dirc)+'/bloch_'+str(self.savenum)+'.'+format)
+            if dirc: 
+                savefig(os.getcwd()+"/"+str(dirc)+'/bloch_'+str(self.savenum)+'.'+format)
+            else:
+                savefig(os.getcwd()+'/bloch_'+str(self.savenum)+'.'+format)
         else:
             savefig(name)
         self.savenum+=1
