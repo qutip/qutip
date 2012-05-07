@@ -32,6 +32,7 @@ class Bloch():
         self.axes=None
         self.user_fig=None
         self.user_axes=None
+        #check if user specified figure or axes.
         if fig:
             self.user_fig=fig
         if axes:
@@ -129,8 +130,7 @@ class Bloch():
         print("zlpos:        ",self.zlpos)
         return ''
     def clear(self):
-        """
-        Resets Bloch sphere data sets to empty.
+        """Resets Bloch sphere data sets to empty.
         """
         self.points=[]
         self.num_points=0
@@ -139,13 +139,16 @@ class Bloch():
         self.point_style=[]
     
     def add_points(self,points,meth='s'):
-        """
-        Add a list of data points to bloch sphere.
+        """Add a list of data points to bloch sphere.
         
-        Args:
-            points (array): data points
+        Parameters
+        ----------
+        points : array/list
+            Collection of data points.
             
-            meth (string): type of points to plot, use 'm' for multicolored.
+        meth : str {'s','m'} 
+            Type of points to plot, use 'm' for multicolored.
+        
         """
         if not isinstance(points[0],(list,ndarray)):
             points=[[points[0]],[points[1]],[points[2]]]
@@ -165,13 +168,16 @@ class Bloch():
             self.point_style.append('m')
             
     def add_states(self,state,kind='vector'):
-        """
-        Add a state vector Qobj to plot.
+        """Add a state vector Qobj to Bloch sphere.
         
-        Args:
-            state (Qobj): Input state vector.
+        Parameters
+        ----------
+        state : qobj
+            Input state vector.
             
-            kind (string): Type of object to plot, 'vector' or 'point'.
+        kind : str {'vector','point'}
+            Type of object to plot.
+        
         """
         if isinstance(state,Qobj):
             state=[state]
@@ -184,11 +190,13 @@ class Bloch():
                 self.add_points(pnt)
     
     def add_vectors(self,vectors): 
-        """
-        Add a list of vectors to Bloch sphere.
+        """Add a list of vectors to Bloch sphere.
         
-        Args:
-            vectors (array): Array of vectors of unit length or smaller.
+        Parameters
+        ----------
+        vectors : array/list 
+            Array with vectors of unit length or smaller.
+        
         """
         if isinstance(vectors[0],(list,ndarray)):
             for vec in vectors:
@@ -314,21 +322,25 @@ class Bloch():
         show(self.fig)
         
     def save(self,name=None,format='png',dirc=None):
-        """
-        Saves Bloch sphere to file of type `format`
+        """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
         
-        Args:
-            name (string): String for saving image. Must include path and format as well.
-                i.e. '/Users/Paul/Desktop/bloch.png'
+        Parameters
+        ----------
+        name : str 
+            Name of saved image. Must include path and format as well.
+            i.e. '/Users/Paul/Desktop/bloch.png'
+            This overrides the 'format' and 'dirc' arguments.
             
-                .. note:: This overrides the 'format' and 'dirc' arguments.
+        format : str 
+            Format of output image.
             
-            format (string): Format of output image.
-            
-            dirc (string): Directory of output. Defaults to current working directory.
+        dirc : str
+            Directory for output images. Defaults to current working directory.
         
-        Returns: 
-            File containing plot of Bloch sphere.
+        Returns
+        ------- 
+        File containing plot of Bloch sphere.
+        
         """
         from pylab import figure,plot,show,savefig,close
         self.make_sphere()
