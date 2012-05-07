@@ -26,8 +26,18 @@ class Bloch():
     """
     Class for plotting data on the Bloch sphere.
     """
-    def __init__(self, axes=None):
+    def __init__(self,fig=None,axes=None):
         #---sphere options---
+        self.fig=None
+        self.axes=None
+        self.user_fig=None
+        self.user_axes=None
+        if fig:
+            self.user_fig=fig
+        if axes:
+            self.user_axes=axes
+        # use user-supplied figure object if present
+        self.input_axes = axes
         #: The size of the figure in inches, default = [7,7].
         self.size=[7,7]
         #: Azimuthal and Elvation viewing angles, default = [-60,30].
@@ -87,9 +97,6 @@ class Bloch():
         self.savenum=0
         #: Style of points, 'm' for multiple colors, 's' for single color
         self.point_style=[]
-        
-        # use user-supplied figure object if present
-        self.axes = axes
         
     def __str__(self):
         print('')
@@ -195,21 +202,19 @@ class Bloch():
         """
         Plots Bloch sphere and data sets.
         """
-        from pylab import figure,plot,show
-        from mpl_toolkits.mplot3d import Axes3D
-        #from matplotlib.pyplot import rc
-        #rc('text', usetex=True)
-        
-        try:#close figure if self.show() has already been run
-            close(self.fig)
-        except:
-            pass
         #setup plot
         ##Figure instance for Bloch sphere plot
-        if self.axes == None:
+        from pylab import figure,plot,show,close
+        from mpl_toolkits.mplot3d import Axes3D
+        if self.user_fig:
+            self.fig=self.user_fig
+        else:
             self.fig = figure(figsize=self.size)
-            ##Axes3D instance for Bloch sphere
+        if self.user_axes:
+            self.axes=self.user_axes
+        else:
             self.axes = Axes3D(self.fig,azim=self.view[0],elev=self.view[1])
+        self.axes.clear()
         self.axes.grid(False)
         self.plot_back()
         self.plot_axes()
@@ -303,9 +308,10 @@ class Bloch():
         """
         Display Bloch sphere and corresponding data sets.
         """
-        from pylab import figure,plot,show
+        from pylab import figure,plot,show,close
+        from mpl_toolkits.mplot3d import Axes3D
         self.make_sphere()
-        show()
+        show(self.fig)
         
     def save(self,name=None,format='png',dirc=os.getcwd()):
         """
