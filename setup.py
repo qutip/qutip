@@ -194,6 +194,9 @@ class CleanSVNCommand(Command):
             print "Removed all SVN directories."
 
 
+#remove needless error warnings for released version.
+if ISRELEASED:
+    os.environ['CFLAGS'] = '-w'
 
 #--------- Setup commands go here ----------------#
 setup(
