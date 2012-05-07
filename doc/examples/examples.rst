@@ -18,10 +18,15 @@ and run the demos function::
 This will generate the examples GUI, or a command line list of demos, depending on the availability of the graphics libraries:
 
 .. figure:: ../figures/demos.png
-    :align: center
+	:width: 5in
+	:align: center
 
 If you do not have any graphics libraries installed, or they are disabled, then the demos function *must* be run from the terminal.
 
+.._examples-list:
+
+List of Built-in Examples
+=========================
 
 .. toctree::
    :maxdepth: 2
