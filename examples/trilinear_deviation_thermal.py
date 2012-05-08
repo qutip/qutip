@@ -29,11 +29,11 @@ H=1.0j*(a0*a1.dag()*a2.dag()-a0.dag()*a1*a2)
 
 #run Monte-Carlo
 tlist=linspace(0,2.5,50)
-states=mcsolve(H,psi0,tlist,1,[],[])
+output=mcsolve(H,psi0,tlist,[],[],1)
 
-mode1=[ptrace(k,1) for k in states]
+mode1=[ptrace(k,1) for k in output.states]
 diags1=[real(k.diag()) for k in mode1]
-num1=[expect(num1,k) for k in states]
+num1=[expect(num1,k) for k in output.states]
 thermal=[thermal_dm(N1,k).diag() for k in num1]
 
 colors=['m', 'g','orange','b', 'y','pink']

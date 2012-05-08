@@ -72,9 +72,7 @@ def sd_qubit_integrate(delta, eps0_vec, A_vec, w, gamma1, gamma2):
             # find the steady state of the driven system 
             rho_ss = propagator_steadystate(U)
         
-            p_ex[n, m] = expect(sn, rho_ss)
-
-            #print "p_ex[", n, ", ", m, "] =", p_ex[n,m]
+            p_ex[n, m] = real(expect(sn, rho_ss))
 
         print "Percent completed: ", (100.0 * (n+1)) / N
 
@@ -101,7 +99,6 @@ pcolor(A_vec, eps0_vec, real(p_ex), edgecolors='none')
 xlabel('A/w')
 ylabel('eps0/w')
 title('Excitation probabilty of qubit, in steady state')
-savefig("qubit_sd.png")
 show()
 
 

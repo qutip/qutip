@@ -34,17 +34,22 @@ def system_integrate(Na, Nb, wa, wb, wab, ga, gb, solver):
         c_op_list.append(sqrt(rate) * b)
 
     if solver == "me":
-        expt_list = mesolve(H, psi0 * psi0.dag(), tlist, c_op_list, [na, nb])
+        output = mesolve(H, psi0 * psi0.dag(), tlist, c_op_list, [na, nb])
+        expt_list = output.expect
     elif solver == "wf":
-        expt_list = mesolve(H, psi0, tlist, [], [na, nb])
+        output = mesolve(H, psi0, tlist, [], [na, nb])
+        expt_list = output.expect
     elif solver == "es":
         expt_list = essolve(H, psi0, tlist, c_op_list, [na, nb])
     elif solver == "mc1":
-        expt_list = mcsolve(H, psi0, tlist, 1, c_op_list, [na, nb])
+        output = mcsolve(H, psi0, tlist, c_op_list, [na, nb], 1)
+        expt_list = output.expect
     elif solver == "mc250":
-        expt_list = mcsolve(H, psi0, tlist, 250, c_op_list, [na, nb])
+        output = mcsolve(H, psi0, tlist, c_op_list, [na, nb], 250)
+        expt_list = output.expect
     elif solver == "mc500":
-        expt_list = mcsolve(H, psi0, tlist, 500, c_op_list, [na, nb])
+        output = mcsolve(H, psi0, tlist, c_op_list, [na, nb], 500)
+        expt_list = output.expect
     else:
         raise ValueError("unknown solver")
         

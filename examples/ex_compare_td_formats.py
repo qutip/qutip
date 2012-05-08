@@ -49,7 +49,8 @@ def qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
     #c_op_list.append(sqrt(gamma2) * sz) # dephasing
     
     start_time = time.time()
-    expt_list1 = mesolve(H, psi0, tlist, c_op_list, [sm.dag() * sm], args=args)  
+    output = mesolve(H, psi0, tlist, c_op_list, [sm.dag() * sm], args=args)  
+    expt_list1 = output.expect
     print 'Method 1: time elapsed = ' + str(time.time() - start_time) 
         
     # --------------------------------------------------------------------------
@@ -67,7 +68,8 @@ def qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
     #c_op_list.append(sqrt(gamma2) * sz) # dephasing
 
     start_time = time.time()
-    expt_list2 = mesolve(H, psi0, tlist, c_op_list, [sm.dag() * sm], args=args)      
+    output = mesolve(H, psi0, tlist, c_op_list, [sm.dag() * sm], args=args)
+    expt_list2 = output.expect      
     print 'Method 2: time elapsed = ' + str(time.time() - start_time)  
     
     # --------------------------------------------------------------------------
@@ -82,7 +84,8 @@ def qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
     c_op_list.append(sqrt(gamma2) * sz) # dephasing
 
     start_time = time.time()
-    expt_list3 = mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], args=args)      
+    output = mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], args=args)      
+    expt_list3 = output.expect
     print 'Method 3: time elapsed = ' + str(time.time() - start_time)         
 
     # --------------------------------------------------------------------------
@@ -96,7 +99,8 @@ def qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
     c_op_list.append(sqrt(gamma2) * sz) # dephasing
     
     start_time = time.time()
-    expt_list4 = mesolve(H_rwa, psi0, tlist, c_op_list, [sm.dag() * sm])  
+    output = mesolve(H_rwa, psi0, tlist, c_op_list, [sm.dag() * sm])  
+    expt_list4 = output.expect
     print 'Method 4: time elapsed = ' + str(time.time() - start_time)     
     
     # --------------------------------------------------------------------------
@@ -106,7 +110,8 @@ def qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
     c_op_list = []
     
     start_time = time.time()
-    expt_list5 = mesolve(H_rwa, psi0, tlist, c_op_list, [sm.dag() * sm])  
+    output = mesolve(H_rwa, psi0, tlist, c_op_list, [sm.dag() * sm])  
+    expt_list5 = output.expect
     print 'Method 5: time elapsed = ' + str(time.time() - start_time)         
 
     return expt_list1[0], expt_list2[0], expt_list3[0], expt_list4[0], expt_list5[0]

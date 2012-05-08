@@ -44,7 +44,7 @@ def jc_integrate(N, wc, wa, g, kappa, gamma, psi0, use_rwa, tlist):
         c_op_list.append(sqrt(rate) * sm)
 
     # evolve and calculate expectation values
-    wf_list = mesolve(H, psi0, tlist, c_op_list, [])  
+    output = mesolve(H, psi0, tlist, c_op_list, [])  
 
 
     xvec = linspace(-5.,5.,100)
@@ -55,7 +55,7 @@ def jc_integrate(N, wc, wa, g, kappa, gamma, psi0, use_rwa, tlist):
     if not os.path.exists("jc_animation"):
         os.mkdir("jc_animation")
 
-    for wf in wf_list:
+    for wf in output.states:
 
         # trace out the atom
         rho_cavity = ptrace(wf, 0)

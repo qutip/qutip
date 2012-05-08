@@ -47,8 +47,8 @@ print ptrace(bell, 1).full()
 print
 print "... or as a density matrix"
 #-----------------------------------------------------------------------------
-rho_bell = bell * trans(bell)
-print "ptrace(bell*trans(bell),1) = "
+rho_bell = bell * bell.dag()
+print "ptrace(bell*bell.dag(),1) = "
 print ptrace(rho_bell,1).full()
 #-----------------------------------------------------------------------------
 print
@@ -60,7 +60,7 @@ print left.full()
 #-----------------------------------------------------------------------------
 print "Action of this measurement is to apply the projection operator Omegaleft"
 #-----------------------------------------------------------------------------
-Omegaleft = tensor(qeye(2),left*trans(left));
+Omegaleft = tensor(qeye(2),left*left.dag());
 print "Omegaleft ="
 print Omegaleft.full()
 after = Omegaleft*bell;

@@ -39,13 +39,12 @@ def jc_integrate(N, wc, wa, g, kappa, gamma, psi0, use_rwa, tlist):
         c_op_list.append(sqrt(rate) * sm)
 
     # evolve and calculate expectation values
-    expt_list = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
+    #output = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
 
     # or use the MC solver
-    #ntraj = 100
-    #expt_list = mcsolve(H, psi0, tlist, ntraj, c_op_list, [a.dag() * a, sm.dag() * sm])
+    output = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])
 
-    return expt_list[0], expt_list[1]
+    return output.expect[0], output.expect[1]
     
 #
 # set up the calculation

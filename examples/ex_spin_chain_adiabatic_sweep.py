@@ -61,7 +61,7 @@ def run(N, M, h, Jx, Jy, Jz, taulist):
     # Evolve the system
     #
     h_t = [[H0, '(%f-t)/%f' % (max(taulist),max(taulist))], [H1, 't/%f' % max(taulist)]]       
-    psi_list = mesolve(h_t, psi0, taulist, [], [])
+    output = mesolve(h_t, psi0, taulist, [], [])
 
     evals_mat      = zeros((len(taulist),M))
     occupation_mat = zeros((len(taulist),M))
@@ -80,7 +80,7 @@ def run(N, M, h, Jx, Jy, Jz, taulist):
         # find the overlap between the eigenstates and psi 
         for n, eket in enumerate(ekets):
             #occupation_mat[idx,n] = abs((eket.dag() *  psi_list[idx]).full()[0,0])**2
-            occupation_mat[idx,n] = abs(dot(eket.dag().data, psi_list[idx].data)[0,0])**2
+            occupation_mat[idx,n] = abs(dot(eket.dag().data, output.states[idx].data)[0,0])**2
         
     return evals_mat, occupation_mat
     

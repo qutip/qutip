@@ -41,13 +41,13 @@ def jc_integrate(N, wc, wa, g, kappa, gamma, pump, psi0, use_rwa, tlist):
 
 
     # evolve, and return the density matrix at each time
-    rho_list = mesolve(H, psi0, tlist, c_op_list, [])  
+    output = mesolve(H, psi0, tlist, c_op_list, [])  
 
     # calculate expectation values
-    nc_list = expect(a.dag()  *  a, rho_list) 
-    na_list = expect(sm.dag() * sm, rho_list)
+    nc_list = expect(a.dag()  *  a, output.states) 
+    na_list = expect(sm.dag() * sm, output.states)
 
-    return nc_list, na_list, rho_list
+    return nc_list, na_list, output.states
     
 #
 # 

@@ -27,7 +27,7 @@ def compute(N, wc, wa, glist, use_rwa):
             H = wc * nc + wa * na + g * (a.dag() + a) * (sm + sm.dag())
 
         # find the groundstate of the composite system
-        ekets, evals = H.eigenstates()
+        evals, ekets = H.eigenstates()
         psi_gnd = ekets[0]
         na_expt[idx] = expect(na, psi_gnd)
         nc_expt[idx] = expect(nc, psi_gnd)

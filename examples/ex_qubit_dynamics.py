@@ -26,16 +26,16 @@ def qubit_integrate(epsilon, delta, g1, g2, solver):
         c_op_list.append(sqrt(rate) * sigmaz())
 
     if solver == "ode":
-        expt_list = mesolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])  
+        output = mesolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])  
     elif solver == "es":
-        expt_list = essolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])  
+        output = essolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])  
     elif solver == "mc":
         ntraj = 250
-        expt_list = mcsolve(H, psi0, tlist, ntraj, c_op_list, [sigmax(), sigmay(), sigmaz()])  
+        output = mcsolve(H, psi0, tlist, ntraj, c_op_list, [sigmax(), sigmay(), sigmaz()])  
     else:
         raise ValueError("unknown solver")
         
-    return expt_list[0], expt_list[1], expt_list[2]
+    return output.expect[0], output.expect[1], output.expect[2]
     
 #
 # set up the calculation
