@@ -11,13 +11,13 @@ n_th = 2.00  # bath temperature in terms of excitation number
 c_ops = [sqrt(G1*(1+n_th)) * a, sqrt(G1*n_th) * a.dag()]
 
 # start with a coherent state
-rho_t1 = coherent_dm(N, 2.0)
+rho0 = coherent_dm(N, 2.0)
 
 # first calculate the occupation number as a function of time
-n = mesolve(H, rho_t1, taulist, c_ops, [a.dag() * a]).expect[0]
+n = mesolve(H, rho0, taulist, c_ops, [a.dag() * a]).expect[0]
 
 # calculate the correlation function G1 and normalize with n to obtain g1
-G1 = correlation(H, rho_t1, None, taulist, c_ops, a.dag(), a)
+G1 = correlation(H, rho0, None, taulist, c_ops, a.dag(), a)
 g1 = G1 / sqrt(n[0] * n)
 
 from pylab import *
