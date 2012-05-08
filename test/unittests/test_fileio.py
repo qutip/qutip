@@ -19,7 +19,7 @@
 
 
 from qutip import *
-
+import os
 import unittest
 
 class TestFileIO(unittest.TestCase):
@@ -41,10 +41,10 @@ class TestFileIO(unittest.TestCase):
 
         file_data_store("test.dat", data)
         data2 = file_data_read("test.dat")
-
         # make sure the deviation is small:
         self.assertTrue(amax(abs((data-data2))) < 1e-8) 
-
+        os.remove("test.dat")
+    
     def testRWRealDecimal(self):
 
         # create some random data
@@ -53,10 +53,10 @@ class TestFileIO(unittest.TestCase):
 
         file_data_store("test.dat", data, "real", "decimal")
         data2 = file_data_read("test.dat", ",")
-
         # make sure the deviation is small:
         self.assertTrue(amax(abs((data-data2))) < 1e-8) 
-
+        os.remove("test.dat")
+    
     def testRWRealExp(self):
 
         # create some random data
@@ -65,9 +65,9 @@ class TestFileIO(unittest.TestCase):
 
         file_data_store("test.dat", data, "real", "exp")
         data2 = file_data_read("test.dat", ",")
-
         # make sure the deviation is small:
         self.assertTrue(amax(abs((data-data2))) < 1e-8) 
+        os.remove("test.dat")
 
     def testRWComplexDefault(self):
 
@@ -77,10 +77,9 @@ class TestFileIO(unittest.TestCase):
 
         file_data_store("test.dat", data)
         data2 = file_data_read("test.dat")
-
         # make sure the deviation is small:
         self.assertTrue(amax(abs((data-data2))) < 1e-8) 
-
+        os.remove("test.dat")
     def testRWComplexDecimal(self):
 
         # create some random data
@@ -89,10 +88,9 @@ class TestFileIO(unittest.TestCase):
 
         file_data_store("test.dat", data, "complex", "decimal")
         data2 = file_data_read("test.dat", ",")
-
         # make sure the deviation is small:
         self.assertTrue(amax(abs((data-data2))) < 1e-8) 
-
+        os.remove("test.dat")
     def testRWComplexExp(self):
 
         # create some random data
@@ -101,10 +99,9 @@ class TestFileIO(unittest.TestCase):
 
         file_data_store("test.dat", data, "complex", "exp")
         data2 = file_data_read("test.dat", ",")
-
         # make sure the deviation is small:
         self.assertTrue(amax(abs((data-data2))) < 1e-8) 
-
+        os.remove("test.dat")
 
     def testRWSeparatorDetection(self):
 
@@ -136,7 +133,7 @@ class TestFileIO(unittest.TestCase):
         file_data_store("test.dat", data, "complex", "exp", " \t ")
         data2 = file_data_read("test.dat")
         self.assertTrue(amax(abs((data-data2))) < 1e-8) 
-        
+        os.remove("test.dat")
 
 
 if __name__ == '__main__':

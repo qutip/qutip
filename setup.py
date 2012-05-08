@@ -9,9 +9,9 @@ to provide user-friendly and efficient numerical simulations
 of a wide variety of Hamiltonian's, including those with 
 arbitrary time-dependence, commonly found in a wide range of 
 physics applications. QuTiP is freely available for use and/or 
-modification on all major platforms. Being free of any licensing 
-fees, QuTiP is ideal for exploring quantum mechanics and 
-dynamics in the classroom.
+modification on all Unix based platforms. Being free of any 
+licensing fees, QuTiP is ideal for exploring quantum mechanics
+and dynamics in the classroom.
 """
 
 DOCLINES = __doc__.split('\n')
