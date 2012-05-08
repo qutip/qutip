@@ -57,9 +57,9 @@ def qubit_integrate(delta, eps0, A, gamma1, gamma2, psi0, tlist):
     # for large systems or long time evolutions, but there is fixed-time
     # overhead that makes it inefficient for small and short-time evolutions.
     H = [H0, [H1, 't']]
-    expt_list = mesolve(H, psi0, tlist, c_op_list, [sm.dag() * sm], {})  
+    output = mesolve(H, psi0, tlist, c_op_list, [sm.dag() * sm], {})  
 
-    return expt_list[0]
+    return output.expect[0]
     
 #
 # set up the calculation
