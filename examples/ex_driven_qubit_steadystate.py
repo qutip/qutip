@@ -51,7 +51,7 @@ def sd_qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
 
 
     # evolve and calculate expectation values
-    expt_list = mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
+    output = mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sm.dag() * sm], H_args)  
 
     T = 2 * pi / w
 
@@ -61,7 +61,7 @@ def sd_qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
 
     print "rho_ss =", rho_ss
 
-    return expt_list[0], expect(sm.dag() * sm, rho_ss) * ones(shape(tlist))
+    return output.expect[0], expect(sm.dag() * sm, rho_ss) * ones(shape(tlist))
     
 #
 # set up the calculation

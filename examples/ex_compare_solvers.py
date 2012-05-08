@@ -26,15 +26,22 @@ def qubit_integrate(epsilon, delta, g1, g2, solver):
         c_op_list.append(sqrt(rate) * sigmaz())
 
     if solver == "me":
-        expt_list = mesolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])  
+        output = mesolve(H, psi0 * psi0.dag(), tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])
+        expt_list = output.expect
     elif solver == "wf":
-        expt_list = mesolve(H, psi0, tlist, [], [sigmax(), sigmay(), sigmaz()])  
+        output = mesolve(H, psi0, tlist, [], [sigmax(), sigmay(), sigmaz()])
+        expt_list = output.expect
     elif solver == "es":
-        expt_list = essolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])  
+        expt_list = essolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])
     elif solver == "mc1":
-        expt_list = mcsolve(H, psi0, tlist, [], [sigmax(), sigmay(), sigmaz()], 1).expect
+        output = mcsolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()], 1)
+        expt_list = output.expect
     elif solver == "mc250":
-        expt_list = mcsolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()], 250).excect
+        output = mcsolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()], 250)
+        expt_list = output.expect
+    elif solver == "mc500":
+        output = mcsolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()], 500)
+        expt_list = output.expect
     else:
         raise ValueError("unknown solver")
         
