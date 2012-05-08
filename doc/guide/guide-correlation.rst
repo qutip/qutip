@@ -80,7 +80,7 @@ The following code demonstrates how to calculate the :math:`\left<x(t)x(0)\right
 Non-steadystate correlation function
 ====================================
     
-More generally, we can also calculate correlation functions of the kind :math:`\left<a(t_1+t_2)b(t_1)\right>`, i.e., the correlation function of a system that is not in its steadystate. In QuTiP, we can evoluate such correlation functions using, e.g., the function :func:`qutip.correlation.correlation`. This function returns a matrix with the correlations as a function of the two time coordinates::
+More generally, we can also calculate correlation functions of the kind :math:`\left<a(t_1+t_2)b(t_1)\right>`, i.e., the correlation function of a system that is not in its steadystate. In QuTiP, we can evoluate such correlation functions using the function :func:`qutip.correlation.correlation`. The default behavior of this function is to return a matrix with the correlations as a function of the two time coordinates (:math:`t_1` and :math:`t_2`)::
 
     >>> tlist = linspace(0,10.0,200)
     >>> a  = destroy(10)
@@ -103,13 +103,16 @@ More generally, we can also calculate correlation functions of the kind :math:`\
    
    :math:`\alpha = 2.5`
 
+However, in some cases we might be interested in the correlation functions on the form :math:`\left<a(t_1+t_2)b(t_1)\right>`, but only as a function of time coordinate :math:`t_2`. In this case we can also use the :func:`qutip.correlation.correlation` function, if we pass the density matrix at time :math:`t_1` as second argument, and `None` as third argument. The :func:`qutip.correlation.correlation` function then returns a vector with the correlation values corresponding to times in `taulist` (the fourth argument).
 
-.. figure:: guide-correlation-3.png
-   :align:  center
-   :width: 4in
-   
-   :math:`\alpha = 0`
+Example: first-order optical coherence function
+-----------------------------------------------
 
-Notice that in the figure above to the right, where :math:`\alpha = 0.0` and the system therefore initially is in its steadystate, that the correlations does not depend on the :math:`t_1` coordinate, and we could in this case have used the steadystate solver to only calculate the :math:`t_2` dependence. 
+This example demonstrates how to calculate a correlation function on the form :math:`\left<a(\tau)b(0)\right>` for a non-steady initial state. Consider an oscillator that is interacting with a thermal environment. If the oscillator initially is in a coherent state, it will gradually decay to a thermal (incoherent) state. The amount of coherence can be quantified using the first-order optical coherence function :math:`g^{(1)}(\tau) = \frac{\left<a^\dagger(\tau)a(0)\right>}{\sqrt{\left<a^\dagger(\tau)a(\tau)\right>\left<a^\dagger(0)a(0)\right>}}`. For a coherent state :math:`|g^{(1)}(\tau)| = 1`, and for a completely incoherent (thermal) state :math:`g^{(1)}(\tau) = 0`. The following code calculates and plots :math:`g^{(1)}(\tau)` as a function of :math:`\tau`.
+
+
+.. plot:: guide/scripts/correlation_ex1.py
+   :width: 4.0in
+   :include-source:
 
 
