@@ -118,9 +118,17 @@ def correlation(H, rho0, tlist, taulist, c_op_list, a_op, b_op, solver="me"):
 
     corr_mat: *array*  
         An 2-dimensional *array* (matrix) of correlation values for the times
-        specified by `tlist` (first index) and `taulist` (second index).
+        specified by `tlist` (first index) and `taulist` (second index). If
+        `tlist` is `None`, then a 1-dimensional *array* of correlation values
+        is returned instead. 
         
     """
+
+    if tlist == None:
+        # only interested in correlation vs one time coordinate, so we can use
+        # the ss solver with the supplied density matrix as initial state (in
+        # place of the steady state)
+        return correlation_ss(H, taulist, c_op_list, a_op, b_op, rho0, solver)
 
     if solver == "me":
         return correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op)
