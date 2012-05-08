@@ -203,9 +203,7 @@ def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op, rho0=None):
     if rho0 == None:
         rho0 = steady(L)
 
-    output = mesolve(H, b_op * rho0, tlist, c_op_list, [a_op])
-    
-    return output.expect[0]
+    return mesolve(H, b_op * rho0, tlist, c_op_list, [a_op]).expect[0]
 
 def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     """
@@ -218,11 +216,10 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
     C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
 
-    rho_t = mesolve(H, rho0, tlist, c_op_list, [])
+    rho_t = mesolve(H, rho0, tlist, c_op_list, []).states
 
     for t_idx in range(len(tlist)):
-        output = mesolve(H, b_op * rho_t[t_idx], taulist, c_op_list, [a_op])
-        C_mat[t_idx,:] = output.expect[0]
+        C_mat[t_idx,:] = mesolve(H, b_op * rho_t[t_idx], taulist, c_op_list, [a_op]).expect[0]
 
     return C_mat
 
@@ -239,7 +236,7 @@ def correlation_ss_mc(H, tlist, c_op_list, a_op, b_op, rho0=None):
     if rho0 == None:
         rho0 = steadystate(H, co_op_list)
 
-    return mcsolve(H, b_op * rho0, tlist, c_op_list, [a_op])[0]
+    return mcsolve(H, b_op * rho0, tlist, c_op_list, [a_op]).expect[0]
 
 def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
     """
@@ -254,13 +251,13 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
     mc_opt = Mcoptions()
     mc_opt.progressbar = False
 
-    psi_t = mcsolve(H, psi0, tlist, ntraj, c_op_list, [], mc_opt)
+    psi_t = mcsolve(H, psi0, tlist, ntraj, c_op_list, [], mc_opt).states
 
     for t_idx in range(len(tlist)):
 
         psi0_t = psi_t[0][t_idx]
 
-        C_mat[t_idx, :] = mcsolve(H, b_op * psi0_t, tlist, ntraj, c_op_list, [a_op], mc_opt)
+        C_mat[t_idx, :] = mcsolve(H, b_op * psi0_t, tlist, ntraj, c_op_list, [a_op], mc_opt).expect[0]
 
     return C_mat
 
