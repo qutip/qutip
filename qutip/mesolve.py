@@ -450,13 +450,13 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     # generate and compile new cython code if necessary
     #
     if not opt.rhs_reuse or odeconfig.tdfunc == None:
-        name="rhs"+str(odeconfig.cgen_num)
+        opt.rhs_filename="rhs"+str(odeconfig.cgen_num)
         cgen=Codegen2(n_L_terms, Lcoeff, args)
-        cgen.generate(name+".pyx")
+        cgen.generate(opt.rhs_filename+".pyx")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
         pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-        code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
+        code = compile('from '+opt.rhs_filename+' import cyq_td_ode_rhs', '<string>', 'exec')
         exec(code)
         odeconfig.tdfunc=cyq_td_ode_rhs
         
@@ -541,13 +541,13 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     # generate and compile new cython code if necessary
     #
     if not opt.rhs_reuse or odeconfig.tdfunc == None:
-        name="rhs"+str(odeconfig.cgen_num)
+        opt.rhs_filename="rhs"+str(odeconfig.cgen_num)
         cgen=Codegen2(n_L_terms, Lcoeff, args)
-        cgen.generate(name+".pyx")
+        cgen.generate(opt.rhs_filename+".pyx")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
         pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-        code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
+        code = compile('from '+opt.rhs_filename+' import cyq_td_ode_rhs', '<string>', 'exec')
         exec(code)
         odeconfig.tdfunc=cyq_td_ode_rhs
         
@@ -659,15 +659,14 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_ops,H_args, opt):
                 string+=(",")
     #run code generator
     if not opt.rhs_reuse:
-        name="rhs"+str(odeconfig.cgen_num)
-        odeconfig.tdname=name
+        opt.rhs_filename="rhs"+str(odeconfig.cgen_num)
         cgen=Codegen(lenh,H_func[1],H_args)
-        cgen.generate(name+".pyx")
-        print("Compiling '"+name+".pyx' ...")
+        cgen.generate(opt.rhs_filename+".pyx")
+        print("Compiling '"+opt.rhs_filename+".pyx' ...")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
         pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-        code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
+        code = compile('from '+opt.rhs_filename+' import cyq_td_ode_rhs', '<string>', 'exec')
         exec(code)
         print("Done.")
         odeconfig.tdfunc=cyq_td_ode_rhs
@@ -861,14 +860,14 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     
     #run code generator
     if not opt.rhs_reuse:
-        name="rhs"+str(odeconfig.cgen_num)
+        opt.rhs_filename="rhs"+str(odeconfig.cgen_num)
         cgen=Codegen(lenh,L_func[1],H_args)
-        cgen.generate(name+".pyx")
-        print("Compiling '"+name+".pyx' ...")
+        cgen.generate(opt.rhs_filename+".pyx")
+        print("Compiling '"+opt.rhs_filename+".pyx' ...")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
         pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-        code = compile('from '+name+' import cyq_td_ode_rhs', '<string>', 'exec')
+        code = compile('from '+opt.rhs_filename+' import cyq_td_ode_rhs', '<string>', 'exec')
         exec(code)
         print("Done.")
         odeconfig.tdfunc=cyq_td_ode_rhs
@@ -1042,8 +1041,12 @@ def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize):
         r.integrate(r.t + dt)
         t_idx += 1
         
-    #if not opt.rhs_reuse:
-    #    os.remove(name+".pyx") # XXX: keep it for inspection. fix before release
+    if not opt.rhs_reuse and opt.rhs_filename != None:
+        try:
+            os.remove(opt.rhs_filename+".pyx")
+        except:
+            print("Warning: Failed to remove RHS file %s" % opt.rhs_filename+".pyx")
+            pass
 
     return output
 
