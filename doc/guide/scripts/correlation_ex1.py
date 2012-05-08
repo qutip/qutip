@@ -1,30 +1,16 @@
 from qutip import *
 
-N = 15
-taulist = linspace(0,10.0,200)
-a = destroy(N)
-H = 2*pi*a.dag()*a
+tlist = linspace(0,10.0,200)
+a  = destroy(10)
+x  = a.dag() + a
+H = a.dag()*a
 
-# collapse operator
-G1 = 0.75
-n_th = 2.00  # bath temperature in terms of excitation number
-c_ops = [sqrt(G1*(1+n_th)) * a, sqrt(G1*n_th) * a.dag()]
-
-# start with a coherent state
-rho0 = coherent_dm(N, 2.0)
-
-# first calculate the occupation number as a function of time
-n = mesolve(H, rho0, taulist, c_ops, [a.dag() * a]).expect[0]
-
-# calculate the correlation function G1 and normalize with n to obtain g1
-G1 = correlation(H, rho0, None, taulist, c_ops, a.dag(), a)
-g1 = G1 / sqrt(n[0] * n)
+corr1 = correlation_ss(H, tlist, [sqrt(0.5)*a], x, x)
+corr2 = correlation_ss(H, tlist, [sqrt(1.0)*a], x, x)
+corr3 = correlation_ss(H, tlist, [sqrt(2.0)*a], x, x)
 
 from pylab import *
-plot(taulist, g1, 'b')
-plot(taulist, n, 'r')
-title('Decay of a coherent state to an incoherent (thermal) state')
-xlabel(r'$\tau$')
-legend((r'First-order coherence function $g^{(1)}(\tau)$', 
-        r'occupation number $n(\tau)$'))
+plot(tlist, real(corr1), tlist, real(corr2), tlist, real(corr3))
+xlabel(r'Time $t$')
+ylabel(r'Correlation $\left<x(t)x(0)\right>$')
 show()

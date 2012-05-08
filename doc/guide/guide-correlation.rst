@@ -54,64 +54,31 @@ The most common use-case is to calculate correlation functions of the kind :math
 Steadystate correlation function
 ================================
 
-The following code demonstrates how to calculate the :math:`\left<x(t)x(0)\right>` correlation for a leaky cavity with three different relaxation rates::
+The following code demonstrates how to calculate the :math:`\left<x(t)x(0)\right>` correlation for a leaky cavity with three different relaxation rates.
 
-    >>> tlist = linspace(0,10.0,200)
-    >>> a  = destroy(10)
-    >>> x  = a.dag() + a
-    >>> H  = a.dag()*a
-    >>>  
-    >>> corr1 = correlation_ss(H, tlist, [sqrt(0.5)*a], x, x)
-    >>> corr2 = correlation_ss(H, tlist, [sqrt(1.0)*a], x, x)
-    >>> corr3 = correlation_ss(H, tlist, [sqrt(2.0)*a], x, x)
-    >>>  
-    >>> from pylab import *
-    >>> plot(tlist, real(corr1), tlist, real(corr2), tlist, real(corr3))
-    >>> xlabel('Time')
-    >>> ylabel('Correlation <x(t)x(0)>')
-
-.. figure:: guide-correlation-1.png
-    :align: center
-    :width: 4in
-	
+.. plot:: guide/scripts/correlation_ex1.py
+   :width: 4.0in
+   :include-source:	
 
 .. _correlation-nosteady:
 
 Non-steadystate correlation function
 ====================================
     
-More generally, we can also calculate correlation functions of the kind :math:`\left<a(t_1+t_2)b(t_1)\right>`, i.e., the correlation function of a system that is not in its steadystate. In QuTiP, we can evoluate such correlation functions using the function :func:`qutip.correlation.correlation`. The default behavior of this function is to return a matrix with the correlations as a function of the two time coordinates (:math:`t_1` and :math:`t_2`)::
+More generally, we can also calculate correlation functions of the kind :math:`\left<A(t_1+t_2)B(t_1)\right>`, i.e., the correlation function of a system that is not in its steadystate. In QuTiP, we can evoluate such correlation functions using the function :func:`qutip.correlation.correlation`. The default behavior of this function is to return a matrix with the correlations as a function of the two time coordinates (:math:`t_1` and :math:`t_2`).
 
-    >>> tlist = linspace(0,10.0,200)
-    >>> a  = destroy(10)
-    >>> x  = a.dag() + a
-    >>> H  = a.dag()*a
-    >>> alpha = 2.5
-    >>> corr = correlation(H, coherent_dm(10, alpha), tlist, tlist, [sqrt(0.25)*a], x, x)
-    >>> 
-    >>> from pylab import *
-    >>> pcolor(corr)
-    >>> xlabel('Time t2')
-    >>> ylabel('Time t1')
-    >>> title('Correlation <x(t1+t2)x(t1)>')
-    >>> show()
+.. plot:: guide/scripts/correlation_ex2.py
+   :width: 4.0in
+   :include-source:
 
-
-.. figure:: guide-correlation-2.png
-   :align:  center
-   :width: 4in
-   
-   :math:`\alpha = 2.5`
-
-However, in some cases we might be interested in the correlation functions on the form :math:`\left<a(t_1+t_2)b(t_1)\right>`, but only as a function of time coordinate :math:`t_2`. In this case we can also use the :func:`qutip.correlation.correlation` function, if we pass the density matrix at time :math:`t_1` as second argument, and `None` as third argument. The :func:`qutip.correlation.correlation` function then returns a vector with the correlation values corresponding to times in `taulist` (the fourth argument).
+However, in some cases we might be interested in the correlation functions on the form :math:`\left<A(t_1+t_2)B(t_1)\right>`, but only as a function of time coordinate :math:`t_2`. In this case we can also use the :func:`qutip.correlation.correlation` function, if we pass the density matrix at time :math:`t_1` as second argument, and `None` as third argument. The :func:`qutip.correlation.correlation` function then returns a vector with the correlation values corresponding to the times in `taulist` (the fourth argument).
 
 Example: first-order optical coherence function
 -----------------------------------------------
 
-This example demonstrates how to calculate a correlation function on the form :math:`\left<a(\tau)b(0)\right>` for a non-steady initial state. Consider an oscillator that is interacting with a thermal environment. If the oscillator initially is in a coherent state, it will gradually decay to a thermal (incoherent) state. The amount of coherence can be quantified using the first-order optical coherence function :math:`g^{(1)}(\tau) = \frac{\left<a^\dagger(\tau)a(0)\right>}{\sqrt{\left<a^\dagger(\tau)a(\tau)\right>\left<a^\dagger(0)a(0)\right>}}`. For a coherent state :math:`|g^{(1)}(\tau)| = 1`, and for a completely incoherent (thermal) state :math:`g^{(1)}(\tau) = 0`. The following code calculates and plots :math:`g^{(1)}(\tau)` as a function of :math:`\tau`.
+This example demonstrates how to calculate a correlation function on the form :math:`\left<A(\tau)B(0)\right>` for a non-steady initial state. Consider an oscillator that is interacting with a thermal environment. If the oscillator initially is in a coherent state, it will gradually decay to a thermal (incoherent) state. The amount of coherence can be quantified using the first-order optical coherence function :math:`g^{(1)}(\tau) = \frac{\left<a^\dagger(\tau)a(0)\right>}{\sqrt{\left<a^\dagger(\tau)a(\tau)\right>\left<a^\dagger(0)a(0)\right>}}`. For a coherent state :math:`|g^{(1)}(\tau)| = 1`, and for a completely incoherent (thermal) state :math:`g^{(1)}(\tau) = 0`. The following code calculates and plots :math:`g^{(1)}(\tau)` as a function of :math:`\tau`.
 
-
-.. plot:: guide/scripts/correlation_ex1.py
+.. plot:: guide/scripts/correlation_ex3.py
    :width: 4.0in
    :include-source:
 
