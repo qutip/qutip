@@ -91,34 +91,51 @@ def _ode_checks(H,c_ops,solver='me'):
     if solver=='me':
         return [h_const+c_const,h_func+c_func,len(h_str)+len(c_str)]
     elif solver=='mc':
+        
+        #   H      C_ops    #
+        #   --     -----    --
+        #   NO      NO      00
+        #   NO     STR      01
+        #   NO     FUNC     02
+        #
+        #   STR    NO       10
+        #   STR    STR      11
+        #   STR    FUNC     12
+        #
+        #   FUNC   NO       20
+        #   FUNC   STR      21
+        #   FUNC   FUNC     22
+        
         #Time-indepdent problems
         if (h_func==len(h_str)==0) and (c_func==len(c_str)==0):
             time_type=0
         
-        #Python function style Hamiltonian
-        elif h_func>0:
-            if len(c_func)==len(c_str)==0:
-                time_type=10
+        #constant Hamiltonian, time-dependent collapse operators
+        elif h_func==len(h_str)==0:
+            if len(c_str)>0:
+                time_type=1
             elif c_func>0:
-                time_type=11
-            elif len(c_str)>0:
-                time_type=12
+                time_type=2
+        
         
         #list style Hamiltonian
         elif len(h_str)>0:
             if c_func==len(c_str)==0:
-                time_type=20
-            elif c_func>0:
-                time_type=21
-            elif c_str>0:
-                time_type=22
-        
-        #constant Hamiltonian, time-dependent collapse operators
-        elif h_func==len(h_str)==0:
-            if c_func>0:
-                time_type=31
+                time_type=10
             elif len(c_str)>0:
-                time_type=32
+                time_type=11
+            elif c_func>0:
+                time_type=12
+    
+    
+        #Python function style Hamiltonian
+        elif h_func>0:
+            if len(c_func)==len(c_str)==0:
+                time_type=20
+            elif len(c_str)>0:
+                time_type=21
+            elif c_func>0:
+                time_type=22
         
         return time_type,[h_const,h_func,h_str],[c_const,c_func,c_str]
         
