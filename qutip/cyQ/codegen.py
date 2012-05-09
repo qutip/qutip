@@ -52,7 +52,7 @@ class Codegen():
         self.time_vars()
         for line in cython_preamble():
             self.write(line)
-        if self.h_terms>0:
+        if len(self.h_tdterms)>0:
             for line in cython_checks()+self.ODE_func_header():
                 self.write(line)
             self.indent()
