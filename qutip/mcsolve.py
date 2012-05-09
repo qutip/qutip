@@ -32,7 +32,7 @@ from qutip.cyQ.cy_mc_funcs import mc_expect,spmv,cy_mc_no_time
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
-from Mcdata import Mcdata
+from Odedata import Odedata
 import qutip.settings
 
 def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
@@ -137,7 +137,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     #AFTER MCSOLVER IS DONE --------------------------------------
     if odeconfig.tflag==1 and (not options.rhs_reuse):
         os.remove(odeconfig.tdname+".pyx")
-    output=Mcdata()
+    output=Odedata()
     
     #if any(mc.psi_out) and odeconfig.cflag==1 and options.mc_avg==True:#averaging if multiple trajectories
         #output.states=mean(mc.psi_out,axis=0)
@@ -426,7 +426,7 @@ def no_collapse_expect_out(opt,psi_in,tlist,e_ops_data,e_ops_ind,e_ops_ptr,e_ops
 #---single-trajectory for monte-carlo---          
 def mc_alg_evolve(nt,args):
     """
-    Monte-Carlo algorithm returning state-vector or expect. values at times tlist for a single trajectory
+    Monte-Carlo algorithm returning state-vector or expectation values at times tlist for a single trajectory.
     """
     #get input data
     mc_alg_out,opt,psi_in,psi_dims,psi_shape,tlist,num_times,seeds=args[0:8]
@@ -470,7 +470,7 @@ def mc_alg_evolve(nt,args):
             last_t=ODE.t;last_y=ODE.y
             ODE.integrate(tlist[k],step=1) #integrate up to tlist[k], one step at a time.
             psi_nrm2=norm(ODE.y,2)**2
-            if psi_nrm2<=rand_vals[0]:#collpase has occured
+            if psi_nrm2<=rand_vals[0]:# <== collpase has occured
                 collapse_times.append(ODE.t)
                 n_dp=array([mc_expect(norm_c_data[i],norm_c_ind[i],norm_c_ptr[i],1,ODE.y) for i in xrange(num_collapse)])
                 kk=cumsum(n_dp/sum(n_dp))
