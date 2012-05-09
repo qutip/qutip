@@ -26,10 +26,7 @@ def qubit_integrate(w, theta, gamma1, gamma2, psi0, tlist):
     rate = gamma1 * n_th
     if rate > 0.0:
         c_op_list.append(sqrt(rate) * sm.dag())
-    lme_results = mesolve(H, psi0, tlist, c_op_list, [sx, sy, sz])  
-
-    L = liouvillian(H, c_op_list)
-    #print "L.re =\n", real(L.full())
+    lme_results = mesolve(H, psi0, tlist, c_op_list, [sx, sy, sz]).expect
 
     #
     # Bloch-Redfield tensor
@@ -41,13 +38,14 @@ def qubit_integrate(w, theta, gamma1, gamma2, psi0, tlist):
             return gamma1
         else:
             # relaxation inducing noise
-            return gamma1 * w / (2*pi) * (w > 0.0)
+            return gamma1/2 * w / (2*pi) * (w > 0.0)
             
-    R, ekets = bloch_redfield_tensor(H, [sx], [ohmic_spectrum])
-    
-    #print "R.re =\n", real(R.full())
-        
-    brme_results = brmesolve(R, ekets, psi0, tlist, [sx, sy, sz])   
+
+    brme_results = brmesolve(H, psi0, tlist, [sx], [sx, sy, sz], [ohmic_spectrum]).expect
+
+    # alternative:
+    #R, ekets = bloch_redfield_tensor(H, [sx], [ohmic_spectrum])
+    #brme_results = bloch_redfield_solve(R, ekets, psi0, tlist, [sx, sy, sz])   
 
     return lme_results, brme_results
     
@@ -83,13 +81,13 @@ ax.plot(tlist, brme_results[2], 'b')
 ax.legend(("sx", "sy", "sz"))
 
 
-sphere=Bloch(fig.add_subplot(2,2,3, projection='3d'))
+sphere=Bloch(axes=fig.add_subplot(2,2,3, projection='3d'))
 sphere.add_points([lme_results[0],lme_results[1],lme_results[2]])
 sphere.vector_color = ['r']
 sphere.add_vectors([sin(theta),0,cos(theta)])
 sphere.make_sphere()
 
-sphere=Bloch(fig.add_subplot(2,2,4, projection='3d'))
+sphere=Bloch(axes=fig.add_subplot(2,2,4, projection='3d'))
 sphere.add_points([brme_results[0],brme_results[1],brme_results[2]])
 sphere.vector_color = ['r']
 sphere.add_vectors([sin(theta),0,cos(theta)])
