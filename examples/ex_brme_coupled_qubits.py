@@ -30,22 +30,14 @@ def qubit_integrate(w, theta, g, gamma1, gamma2, psi0, tlist):
     n_th = 0.0 # zero temperature
     rate = gamma1[0] * (n_th + 1)
     if rate > 0.0: c_op_list.append(sqrt(rate) * sm1)
-    #rate = gamma1[0] * n_th
-    #if rate > 0.0: c_op_list.append(sqrt(rate) * sm1.dag())
     rate = gamma1[1] * (n_th + 1)
     if rate > 0.0: c_op_list.append(sqrt(rate) * sm2)
-    #rate = gamma1[1] * n_th
-    #if rate > 0.0: c_op_list.append(sqrt(rate) * sm2.dag())
         
-    lme_results = mesolve(H, psi0, tlist, c_op_list, [sx1, sy1, sz1])  
-
-    L = liouvillian(H, c_op_list)
-    #print "L.re =\n", real(L.full())
+    lme_results = mesolve(H, psi0, tlist, c_op_list, [sx1, sy1, sz1]).expect 
 
     #
     # Bloch-Redfield tensor
     #  
-    #ohmic_spectrum = lambda w: gamma1[0] * w / (2*pi) * (w > 0.0)   
     def ohmic_spectrum1(w):
         if w == 0.0:
             # dephasing inducing noise
@@ -61,11 +53,11 @@ def qubit_integrate(w, theta, g, gamma1, gamma2, psi0, tlist):
             # relaxation inducing noise
             return gamma1[1] * w / (2*pi) * (w > 0.0)
 
-    R, ekets = bloch_redfield_tensor(H, [sx1, sx2], [ohmic_spectrum1, ohmic_spectrum2])       
-    #R, ekets = bloch_redfield_tensor(H, [sx1], [ohmic_spectrum])       
-    brme_results = brmesolve(R, ekets, psi0, tlist, [sx1, sy1, sz1])   
+    brme_results = brmesolve(H, psi0, tlist, [sx1, sx2], [sx1, sy1, sz1], [ohmic_spectrum1, ohmic_spectrum2]).expect
 
-    #print "R.re =\n", real(R.full())
+    # alternative:
+    #R, ekets = bloch_redfield_tensor(H, [sx1, sx2], [ohmic_spectrum1, ohmic_spectrum2])       
+    #brme_results = brmesolve(R, ekets, psi0, tlist, [sx1, sy1, sz1])   
 
     return lme_results, brme_results    
 #
@@ -103,13 +95,13 @@ ax.plot(tlist, brme_results[1], 'g')
 ax.plot(tlist, brme_results[2], 'b')
 ax.legend(("sx", "sy", "sz"))
 
-sphere=Bloch(fig.add_subplot(2,2,3, projection='3d'))
+sphere=Bloch(axes=fig.add_subplot(2,2,3, projection='3d'))
 sphere.add_points([lme_results[0],lme_results[1],lme_results[2]])
 sphere.vector_color = ['r']
 sphere.add_vectors([sin(theta[0]),0,cos(theta[0])])
 sphere.make_sphere()
 
-sphere=Bloch(fig.add_subplot(2,2,4, projection='3d'))
+sphere=Bloch(axes=fig.add_subplot(2,2,4, projection='3d'))
 sphere.add_points([brme_results[0],brme_results[1],brme_results[2]])
 sphere.vector_color = ['r']
 sphere.add_vectors([sin(theta[0]),0,cos(theta[0])])
