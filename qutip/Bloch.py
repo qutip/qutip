@@ -214,13 +214,13 @@ class Bloch():
         ##Figure instance for Bloch sphere plot
         from pylab import figure,plot,show,close
         from mpl_toolkits.mplot3d import Axes3D
-        if self.user_fig:
-            self.fig=self.user_fig
-        else:
-            self.fig = figure(figsize=self.size)
         if self.user_axes:
             self.axes=self.user_axes
         else:
+            if self.user_fig:
+                self.fig=self.user_fig
+            else:
+                self.fig = figure(figsize=self.size)
             self.axes = Axes3D(self.fig,azim=self.view[0],elev=self.view[1])
         self.axes.clear()
         self.axes.grid(False)
@@ -319,7 +319,8 @@ class Bloch():
         from pylab import figure,plot,show,close
         from mpl_toolkits.mplot3d import Axes3D
         self.make_sphere()
-        show(self.fig)
+        if self.fig:
+            show(self.fig)
         
     def save(self,name=None,format='png',dirc=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
@@ -355,7 +356,8 @@ class Bloch():
         else:
             savefig(name)
         self.savenum+=1
-        close(self.fig)
+        if self.fig:
+            close(self.fig)
 
 
 
