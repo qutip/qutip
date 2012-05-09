@@ -39,6 +39,43 @@ import scipy.sparse as sp
 def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[], args={}, options=Odeoptions()):
     """
     Solve the dynamics for the system using the Bloch-Redfeild master equation.
+
+    .. note:: 
+    
+        This solver does not currently support time-dependent Hamiltonian or
+        collapse operators.
+   
+    Parameters
+    ----------
+    
+    H : :class:`qutip.Qobj`
+        system Hamiltonian.
+        
+    rho0 / psi0: :class:`qutip.Qobj`
+        initial density matrix or state vector (ket).
+     
+    tlist : *list* / *array*    
+        list of times for :math:`t`.
+        
+    c_ops : list of :class:`qutip.Qobj`
+        list of collapse operators.
+    
+    expt_ops : list of :class:`qutip.Qobj` / callback function
+        list of operators for which to evaluate expectation values.
+     
+    args : *dictionary*
+        dictionary of parameters for time-dependent Hamiltonians and collapse operators.
+     
+    options : :class:`qutip.Qdeoptions`
+        with options for the ODE solver.
+
+    Returns
+    -------
+
+    output: :class:`qutip.Odedata`
+
+        An instance of the class :class:`qutip.Odedata`, which contains either
+        an *array* of expectation values for the times specified by `tlist`.
     """
 
     if len(spectra_cb) == 0:
@@ -148,8 +185,33 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
     """
     Calculate the Bloch-Redfield tensor for a system given a set of operators
     and corresponding spectral functions that describes the system's coupling
-    to its environment.
+    to its environment.   
+   
+    Parameters
+    ----------
     
+    H : :class:`qutip.Qobj`
+        system Hamiltonian.
+                
+    c_ops : list of :class:`qutip.Qobj`
+        list of collapse operators.
+    
+    spectra_cb : list of callback functions
+        list of callback functions that evaluate the noise power spectrum
+        at a given frequency.
+        
+    use_secular : bool
+        flag (True of False) that indicates if the secular approximation should
+        be used.
+
+    Returns
+    -------
+
+    R, kets: :class:`qutip.Qobj`, list of :class:`qutip.Qobj`
+
+        R is the Bloch-Redfield tensor and kets is a list eigenstates of the
+        Hamiltonian.
+
     """
         
     # Sanity checks for input parameters
