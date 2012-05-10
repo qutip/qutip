@@ -314,17 +314,13 @@ def floquet_basis_transform(f_modes, f_energies, rho0):
 # Floquet-Markov master equation
 # 
 # 
-def fmmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
+def floquet_markov_mesolve(R, ekets, rho0, tlist, expt_ops, opt=None):
     """
-    Solve the dynamics for the system using the Floquet-Markov master equation.
-    
-    ..note:: Experimental
-    
+    Solve the dynamics for the system using the Floquet-Markov master equation.   
     """
 
     if opt == None:
         opt = Odeoptions()
-        opt.nsteps = 2500  # 
 
     if opt.tidy:
         R.tidyup()
@@ -334,24 +330,39 @@ def fmmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
     #
     if isket(rho0):
         # Got a wave function as initial state: convert to density matrix.
-        rho0 = rho0 * rho0.dag()
+        rho0 = ket2dm(rho0)
        
     #
     # prepare output array
     # 
-    n_e_ops  = len(e_ops)
-    n_tsteps = len(tlist)
-    dt       = tlist[1]-tlist[0]
+    n_tsteps  = len(tlist)
+    dt        = tlist[1]-tlist[0]
+       
+    output = Odedata()
+    output.times = tlist
+        
+    if isinstance(expt_ops, FunctionType):
+        n_expt_op = 0
+        expt_callback = True
+        
+    elif isinstance(expt_ops, list):
+  
+        n_expt_op = len(expt_ops)
+        expt_callback = False
 
-    if n_e_ops == 0:
-        result_list = []
+        if n_expt_op == 0:
+            output.states = []
+        else:
+            output.expect = []
+            output.num_expect = n_expt_op
+            for op in expt_ops:
+                if op.isherm:
+                    output.expect.append(zeros(n_tsteps))
+                else:
+                    output.expect.append(zeros(n_tsteps,dtype=complex))
+
     else:
-        result_list = []
-        for op in e_ops:
-            if op.isherm and rho0.isherm:
-                result_list.append(zeros(n_tsteps))
-            else:
-                result_list.append(zeros(n_tsteps,dtype=complex))
+        raise TypeError("Expectation parameter must be a list or a function")
 
 
     #
@@ -360,8 +371,9 @@ def fmmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
     #
     if ekets != None:
         rho0 = rho0.transform(ekets, True)
-        for n in arange(len(e_ops)):             # not working
-            e_ops[n] = e_ops[n].transform(ekets) #
+        if isinstance(expt_ops, list):
+            for n in arange(len(e_ops)):             # not working
+                e_ops[n] = e_ops[n].transform(ekets) #
 
     #
     # setup integrator
@@ -385,17 +397,102 @@ def fmmesolve(R, ekets, rho0, tlist, e_ops, opt=None):
             break;
 
         rho.data = vec2mat(r.y)
-        
-        # calculate all the expectation values, or output rho if no operators
-        if n_e_ops == 0:
-            result_list.append(Qobj(rho))
+
+        if expt_callback:
+            # use callback method
+            expt_ops(t, Qobj(rho))
         else:
-            for m in range(0, n_e_ops):
-                result_list[m][t_idx] = expect(e_ops[m], rho) # not working
+            # calculate all the expectation values, or output rho if no operators
+            if n_expt_op == 0:
+                output.states.append(Qobj(rho)) # copy psi/rho
+            else:
+                for m in range(0, n_expt_op):
+                    output.expect[m][t_idx] = expect(expt_ops[m], rho) # basis OK?
 
         r.integrate(r.t + dt)
         t_idx += 1
           
-    return result_list
+    return output
 
+#-------------------------------------------------------------------------------
+# Solve the Floquet-Markov master equation
+# 
+# 
+def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T, args={}, options=Odeoptions()):
+    """
+    Solve the dynamics for the system using the Floquet-Markov master equation.  
+
+    .. note:: 
+    
+        This solver does not currently only support a single collapse operator.
+   
+    Parameters
+    ----------
+    
+    H : :class:`qutip.Qobj`
+        system Hamiltonian.
+        
+    rho0 / psi0: :class:`qutip.Qobj`
+        initial density matrix or state vector (ket).
+     
+    tlist : *list* / *array*    
+        list of times for :math:`t`.
+        
+    c_ops : list of :class:`qutip.Qobj`
+        list of collapse operators.
+    
+    expt_ops : list of :class:`qutip.Qobj` / callback function
+        list of operators for which to evaluate expectation values.
+
+    T : float
+        The period of the time-depdendence of the hamiltonian.
+     
+    args : *dictionary*
+        dictionary of parameters for time-dependent Hamiltonians and collapse operators.
+
+        This dictionary should also contain an entry 'w_th', which is the temperature
+        of the environment (if finite) in the energy/frequency units of the Hamiltonian.
+        For example, if the Hamiltonian written in units of 2pi GHz, and the temperature
+        is given in K, use the following conversion
+
+        >>> temperature = 25e-3 # unit K
+        >>> h = 6.626e-34
+        >>> kB = 1.38e-23
+        >>> args['w_th'] = temperature * (kB / h) * 2 * pi * 1e-9
+     
+    options : :class:`qutip.Qdeoptions`
+        with options for the ODE solver.
+
+    Returns
+    -------
+
+    output: :class:`qutip.Odedata`
+
+        An instance of the class :class:`qutip.Odedata`, which contains either
+        an *array* of expectation values for the times specified by `tlist`.
+    """
+
+    if len(spectra_cb) == 0:
+        for n in range(len(c_ops)):
+            spectra_cb.append(lambda w: 1.0) # add white noise callbacks if absent
+
+    f_modes_0, f_energies = floquet_modes(H, T, args)    
+    
+    kmax = 1
+
+    f_modes_table_t = floquet_modes_table(f_modes_0, f_energies, linspace(0, T, 500+1), H, T, args) 
+
+    # XXX: get w_th from args
+    temp = 25e-3
+    w_th = temp * (1.38e-23 / 6.626e-34) * 2 * pi * 1e-9   
+       
+    # calculate the rate-matrices for the floquet-markov master equation
+    Delta, X, Gamma, Amat = floquet_master_equation_rates(f_modes_0, f_energies, c_ops, H, T, args, spectra_cb, w_th, kmax, f_modes_table_t)
+   
+    # the floquet-markov master equation tensor
+    R = floquet_master_equation_tensor(Amat, f_energies)
+    
+    output = fmmesolve(R, f_modes_0, psi0, tlist, [], opt=None) 
+
+    return output
     

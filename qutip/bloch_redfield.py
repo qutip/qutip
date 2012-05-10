@@ -33,7 +33,7 @@ import scipy.sparse as sp
 
 
 #-------------------------------------------------------------------------------
-# Solve the Bloch-Redfield master quation
+# Solve the Bloch-Redfield master equation
 # 
 # 
 def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[], args={}, options=Odeoptions()):
