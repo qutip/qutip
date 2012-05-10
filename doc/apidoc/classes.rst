@@ -38,3 +38,10 @@ The Odeoptions class
 
 .. autoclass:: qutip.Odeoptions
     :members:
+
+
+The Odedata class
+--------------------
+
+.. autoclass:: qutip.Odedata
+    :members:
