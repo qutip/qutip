@@ -418,13 +418,13 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, expt_ops, opt=None):
 # Solve the Floquet-Markov master equation
 # 
 # 
-def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T, args={}, options=Odeoptions()):
+def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None, args={}, options=Odeoptions()):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.  
 
     .. note:: 
     
-        This solver does not currently only support a single collapse operator.
+        This solver currently does not support multiple collapse operators.
    
     Parameters
     ----------
@@ -432,7 +432,7 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T, args={}, option
     H : :class:`qutip.Qobj`
         system Hamiltonian.
         
-    rho0 / psi0: :class:`qutip.Qobj`
+    rho0 / psi0 : :class:`qutip.Qobj`
         initial density matrix or state vector (ket).
      
     tlist : *list* / *array*    
@@ -445,7 +445,8 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T, args={}, option
         list of operators for which to evaluate expectation values.
 
     T : float
-        The period of the time-depdendence of the hamiltonian.
+        The period of the time-dependence of the hamiltonian. The default value
+        'None' indicates that the 'tlist' spans a single period of the driving.
      
     args : *dictionary*
         dictionary of parameters for time-dependent Hamiltonians and collapse operators.
@@ -460,17 +461,20 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T, args={}, option
         >>> kB = 1.38e-23
         >>> args['w_th'] = temperature * (kB / h) * 2 * pi * 1e-9
      
-    options : :class:`qutip.Qdeoptions`
-        with options for the ODE solver.
+    options : :class:`qutip.Odeoptions`
+        options for the ODE solver.
 
     Returns
     -------
 
-    output: :class:`qutip.Odedata`
+    output : :class:`qutip.Odedata`
 
         An instance of the class :class:`qutip.Odedata`, which contains either
         an *array* of expectation values for the times specified by `tlist`.
     """
+
+    if T == None:
+        T = max(tlist)
 
     if len(spectra_cb) == 0:
         for n in range(len(c_ops)):
