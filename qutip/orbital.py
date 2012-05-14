@@ -20,7 +20,10 @@ from scipy import *
 from qutip.Qobj import Qobj
 import scipy.sparse as sp
 from qutip.istests import isket
-
+try:#for scipy v <= 0.90
+    from scipy import factorial
+except:#for scipy v >= 0.10
+    from scipy.misc import factorial
 
 def orbital(theta,phi,*args):
 	"""
