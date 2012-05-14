@@ -17,7 +17,7 @@
 #
 ###########################################################################
 """
-This module resets the global properties in qutip.settings
+This module resets the global properties in qutip.settings and the odeconfig parameters.
 """
 
 def _reset():
@@ -29,3 +29,48 @@ def _reset():
     qutip.settings.auto_tidyup_atol=1e-15
     qutip.settings.franco=False
     qutip.settings.num_cpus=int(os.environ['NUM_THREADS'])
+
+
+def _reset_odeconfig():
+    import qutip.odeconfig as odeconfig
+    #flags for setting time-dependence, collapse ops, and number of times codegen has been run
+    odeconfig.cflag=0             #Flag signaling collapse operators
+    odeconfig.tflag=0             #Flag signaling time-dependent problem
+    odeconfig.cgen_num=0          #Number of times codegen function has been called in current Python session.
+
+    #time-dependent function stuff
+    odeconfig.tdfunc=None         #Placeholder for time-dependent RHS function.
+    odeconfig.colspmv=None        #Placeholder for time-dependent col-spmv function.
+    odeconfig.colexpect=None      #Placeholder for time-dependent col_expect function.
+    odeconfig.string=None         #Holds string of variables to be passed onto time-depdendent ODE solver.
+    odeconfig.tdname=None         #Name of td .pyx file (used in parallel mc code)
+
+    #Initial state stuff
+    odeconfig.psi0=None   
+    odeconfig.psi0_dims=None 
+    odeconfig.psi0_shape=None 
+    #Hamiltonian stuff
+    odeconfig.h_td_inds=[]        #indicies of time-dependent Hamiltonian operators
+    odeconfig.Hdata=None          #List of sparse matrix data
+    odeconfig.Hinds=None          #List of sparse matrix indices
+    odeconfig.Hptrs=None          #List of sparse matrix ptrs
+
+    #Expectation operator stuff
+    odeconfig.e_num=0             #number of expect ops
+    odeconfig.e_ops_data=[]       #expect op data
+    odeconfig.e_ops_ind=[]        #expect op indices
+    odeconfig.e_ops_ptr=[]        #expect op indptrs
+    odeconfig.e_ops_isherm=[]     #expect op isherm
+
+    #Collapse operator stuff
+    odeconfig.c_num=0             #number of collapse ops
+    odeconfig.c_const_inds=[]     #indicies of constant collapse operators
+    odeconfig.c_td_inds=[]        #indicies of time-dependent collapse operators
+    odeconfig.c_ops_data=[]       #collapse op data
+    odeconfig.c_ops_ind=[]        #collapse op indices
+    odeconfig.c_ops_ptr=[]        #collapse op indptrs
+
+    #Norm collapse operator stuff
+    odeconfig.n_ops_data=[]       #norm collapse op data
+    odeconfig.n_ops_ind=[]        #norm collapse op indices
+    odeconfig.n_ops_ptr=[]        #norm collapse op indptrs

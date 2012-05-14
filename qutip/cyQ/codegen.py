@@ -22,51 +22,63 @@ class Codegen():
     """
     Class for generating cython code files at runtime.
     """
-    def __init__(self,h_terms=None,h_tdterms=None,h_td_inds=None,h_const=None,c_terms=None,c_tdterms=None,c_td_inds=None,c_const=None,tab="\t"):
+    def __init__(self,h_terms=None,h_tdterms=None,h_td_inds=None,args=None,c_terms=None,c_tdterms=None,c_td_inds=None,tab="\t"):
         import sys,os
         sys.path.append(os.getcwd())
         
+        #--------------------------------------------#
+        #  CLASS PROPERTIES`                         #
+        #--------------------------------------------#
+        
         #--- Hamiltonian time-depdendent pieces ----#
-        self.h_terms=h_terms
-        self.h_tdterms=h_tdterms
-        self.h_td_inds=h_td_inds
-        self.h_const=h_const
+        self.h_terms=h_terms        #number of H pieces
+        self.h_tdterms=h_tdterms    #list of time-dependent strings
+        self.h_td_inds=h_td_inds    #indicies of time-dependnt terms
+        self.args=args              #args for strings
         #--- Collapse operator time-depdendent pieces ----#
-        self.c_terms=c_terms
-        self.c_tdterms=c_tdterms
-        self.c_td_inds=c_td_inds
-        self.c_const=c_const
+        self.c_terms=c_terms        #number of C pieces
+        self.c_tdterms=c_tdterms    #list of time-dependent strings
+        self.c_td_inds=c_td_inds    #indicies of time-dependnt terms
         #--- Code generator properties----#
-        self.code=[]
-        self.tab=tab
-        self.level=0
+        self.code=[] #strings to be written to file
+        self.tab=tab # type of tab to use
+        self.level=0 #indent level
+        #math functions available from numpy
         self.func_list=[func+'(' for func in dir(np.math)[4:-1]] #add a '(' on the end to guarentee function is selected 
-    #write lines of code to self.code
+        #fix pi and e strings since they are constants and not functions
+        self.func_list[self.func_list.index('pi(')]='pi' 
+    #--------------------------------------------#
+    #  CLASS METHODS`                            #
+    #--------------------------------------------#
     def write(self,string):
-        self.code.append(self.tab*self.level+string+"\n")
-    #open file called filename for writing    
+        """write lines of code to self.code"""
+        self.code.append(self.tab*self.level+string+"\n")    
+    #----
     def file(self,filename):
+        """open file called filename for writing"""
         self.file=open(filename,"w")
-    #generate the file    
+    #----
     def generate(self,filename="rhs.pyx"):
+        """generate the file"""
         self.time_vars()
         for line in cython_preamble():
             self.write(line)
-        if len(self.h_tdterms)>0:
-            for line in cython_checks()+self.ODE_func_header():
-                self.write(line)
-            self.indent()
-            for line in self.func_vars():
-                self.write(line)
-            for line in self.func_for():
-                self.write(line)
-            self.write(self.func_end())
-            self.dedent()
-            for line in cython_checks()+cython_spmv():
-                 self.write(line)
         
-        #generate collapse operator function if any c_terms
-        if self.c_terms>0:
+        #write function for Hamiltonian terms (there is always at least one term)
+        for line in cython_checks()+self.ODE_func_header():
+            self.write(line)
+        self.indent()
+        for line in self.func_vars():
+            self.write(line)
+        for line in self.func_for():
+            self.write(line)
+        self.write(self.func_end())
+        self.dedent()
+        for line in cython_checks()+cython_spmv():
+             self.write(line)
+        
+        #generate collapse operator functions if any c_terms
+        if any(self.c_tdterms):
             for line in cython_checks()+self.col_spmv_header()+cython_col_spmv():
                 self.write(line)
             self.indent()
@@ -74,36 +86,46 @@ class Codegen():
                 self.write(line)
             self.write(self.func_end())
             self.dedent()
-        
+            for line in cython_checks()+self.col_expect_header()+cython_col_expect():
+                self.write(line)
+            self.indent()
+            for line in self.func_which_expect():
+                self.write(line)
+            self.write(self.func_end_real())
+            self.dedent()
         self.file(filename)
         self.file.writelines(self.code)
         self.file.close()
         odeconfig.cgen_num+=1
-    #increase indention level by one
+    #----
     def indent(self):
+        """increase indention level by one"""
         self.level+=1
-    #decrease indention level by one
+    #----
     def dedent(self):
+        """decrease indention level by one"""
         if self.level==0:
             raise SyntaxError("Error in code generator")
         self.level-=1
+    #----
     def ODE_func_header(self):
-        """
-        Creates function header for time-dependent ODE RHS.
-        """
+        """Creates function header for time-dependent ODE RHS."""
         func_name="def cyq_td_ode_rhs("
         input_vars="float t, np.ndarray[CTYPE_t, ndim=1] vec" #strings for time and vector variables
-        for k in xrange(self.h_terms):
+        for k in self.h_terms:
             input_vars+=", np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k)
-        if self.h_const:
-            td_consts=self.h_const.items()
+        if any(self.c_tdterms):
+            for k in xrange(len(self.h_terms),len(self.h_terms)+len(self.c_tdterms)):
+                input_vars+=", np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k)
+        if self.args:
+            td_consts=self.args.items()
             td_len=len(td_consts)
             for jj in range(td_len):
                 kind=type(td_consts[jj][1]).__name__
                 input_vars+=", np."+kind+"_t"+" "+td_consts[jj][0]
         func_end="):"
         return [func_name+input_vars+func_end]
-    
+    #----
     def col_spmv_header(self):
         """
         Creates function header for time-dependent
@@ -111,14 +133,31 @@ class Codegen():
         """
         func_name="def col_spmv("
         input_vars="int which, float t, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=2] vec"
-        if self.c_const:
-            td_consts=self.c_const.items()
+        if len(self.args)>0:
+            td_consts=self.args.items()
             td_len=len(td_consts)
             for jj in range(td_len):
                 kind=type(td_consts[jj][1]).__name__
                 input_vars+=", np."+kind+"_t"+" "+td_consts[jj][0]
         func_end="):"
         return [func_name+input_vars+func_end]
+    #----
+    def col_expect_header(self):
+        """
+        Creates function header for time-dependent
+        collapse expectation values.
+        """
+        func_name="def col_expect("
+        input_vars="int which, float t, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=2] vec"
+        if len(self.args)>0:
+            td_consts=self.args.items()
+            td_len=len(td_consts)
+            for jj in range(td_len):
+                kind=type(td_consts[jj][1]).__name__
+                input_vars+=", np."+kind+"_t"+" "+td_consts[jj][0]
+        func_end="):"
+        return [func_name+input_vars+func_end]
+    #----
     def time_vars(self):
         """
         Rewrites time-dependent parts to include np.
@@ -132,7 +171,7 @@ class Codegen():
                     new_text='np.'+self.func_list[kk]
                     text=text.replace(self.func_list[kk],new_text)
                 self.h_tdterms[jj]=text
-        if self.c_tdterms:
+        if len(self.c_tdterms)>0:
             for jj in xrange(len(self.c_tdterms)):
                 text=self.c_tdterms[jj]
                 any_np=np.array([text.find(x) for x in self.func_list])
@@ -141,40 +180,48 @@ class Codegen():
                     new_text='np.'+self.func_list[kk]
                     text=text.replace(self.func_list[kk],new_text)
                 self.c_tdterms[jj]=text
-
+    #----
     def func_vars(self):
-        """
-        Writes the variables and their types & spmv parts
-        """
+        """Writes the variables and their types & spmv parts"""
         func_vars=["",'cdef Py_ssize_t row','cdef int num_rows = len(vec)','cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)']
         func_vars.append(" ") #add a spacer line between variables and Hamiltonian components.
-        terms=self.h_terms
         tdterms=self.h_tdterms
-        inds=0
-        for ht in xrange(terms):
+        hinds=0
+        for ht in self.h_terms:
             hstr=str(ht)
             str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data"+hstr+","+"idx"+hstr+","+"ptr"+hstr+","+"vec"+")"
             if ht in self.h_td_inds:
-                str_out+=" * "+tdterms[inds]
-                inds+=1
+                str_out+=" * "+tdterms[hinds]
+                hinds+=1
             func_vars.append(str_out)
+        if len(self.c_tdterms)>0:
+            func_vars.append(" ") #add a spacer line between Hamiltonian components and collapse copoenets.
+            terms=len(self.c_tdterms)
+            tdterms=self.c_tdterms
+            cinds=0
+            for ct in xrange(terms):
+                cstr=str(ct+hinds+1)
+                str_out="cdef np.ndarray[CTYPE_t, ndim=2] Cvec"+str(ct)+" = "+"spmv(data"+cstr+","+"idx"+cstr+","+"ptr"+cstr+","+"vec"+")"
+                if ct in xrange(len(self.c_td_inds)):
+                    str_out+=" * np.abs("+tdterms[ct]+")**2"
+                    cinds+=1
+                func_vars.append(str_out)
         return func_vars
+    #----
     def func_for(self):
-        """
-        Writes function for-loop
-        """
+        """Writes function for-loop"""
         func_terms=["","for row in range(num_rows):"]
         sum_string="\tout[row,0] = Hvec0[row,0]"
-        for ht in xrange(1,self.h_terms):
+        for ht in xrange(1,len(self.h_terms)):
             sum_string+=" + Hvec"+str(ht)+"[row,0]"
+        if any(self.c_tdterms):
+            for ct in xrange(len(self.c_tdterms)):
+                sum_string+=" + Cvec"+str(ct)+"[row,0]"
         func_terms.append(sum_string)
         return func_terms
-    
+    #----
     def func_which(self):
-        """
-        Writes 'else-if' statements for
-        collapse operator eval fucntion
-        """
+        """Writes 'else-if' statements forcollapse operator eval function"""
         out_string=[]
         ind=0
         for k in self.c_td_inds:
@@ -182,8 +229,23 @@ class Codegen():
             out_string.append("\tout*= "+self.c_tdterms[ind])
             ind+=1
         return out_string
+    #----
+    def func_which_expect(self):
+        """Writes 'else-if' statements for collapse expect function
+        """
+        out_string=[]
+        ind=0
+        for k in self.c_td_inds:
+            out_string.append("if which == "+str(k)+":")
+            out_string.append("\tout*= np.conj("+self.c_tdterms[ind]+")")
+            ind+=1
+        return out_string
+    #----
     def func_end(self):
         return "return out"
+    #----
+    def func_end_real(self):
+        return "return np.float(np.real(out))"
         
 #
 # Alternative implementation of the Cython code generator. Include the
@@ -356,7 +418,7 @@ def cython_spmv():
 
 def cython_col_spmv():
     """
-    Writes col_SPMV header.
+    Writes col_SPMV vars.
     """
     line1="\tcdef Py_ssize_t row"
     line2="\tcdef int jj,row_start,row_end"
@@ -372,3 +434,15 @@ def cython_col_spmv():
     lineC="\t\tout[row,0]=dot"
     return [line1,line2,line3,line4,line5,line6,line7,line8,line9,lineA,lineB,lineC]
 
+def cython_col_expect():
+    """
+    Writes col_expect vars.
+    """
+    line1="\tcdef Py_ssize_t row"
+    line2="\tcdef int num_rows=len(vec)"
+    line3="\tcdef complex out = 0.0"
+    line4="\tcdef np.ndarray[CTYPE_t, ndim=2] vec_ct = vec.conj().T"
+    line5="\tcdef np.ndarray[CTYPE_t, ndim=2] dot = col_spmv(which,t,data,idx,ptr,vec)"
+    line6="\tfor row in range(num_rows):"
+    line7="\t\tout+=vec_ct[0,row]*dot[row,0]"
+    return [line1,line2,line3,line4,line5,line6,line7]
