@@ -636,8 +636,7 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
         col_expect_code+=") for i in odeconfig.c_td_inds]"
         odeconfig.col_spmv_code=compile(col_spmv_code,'<string>', 'exec')
         odeconfig.col_expect_code=compile(col_expect_code,'<string>', 'exec')    
-        print col_spmv_code
-        
+        #----
         
         
         #setup ode args string

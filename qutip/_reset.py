@@ -74,3 +74,7 @@ def _reset_odeconfig():
     odeconfig.n_ops_data=[]       #norm collapse op data
     odeconfig.n_ops_ind=[]        #norm collapse op indices
     odeconfig.n_ops_ptr=[]        #norm collapse op indptrs
+    
+    #executable strring stuff
+    odeconfig.col_expect_code=None
+    odeconfig.col_spmv_code=None
