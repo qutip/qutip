@@ -86,7 +86,7 @@ def qubit_integrate(solver, N, w0, A, w, gamma, rho0, tlist):
     # 5) Unitary evolution, constant hamiltonian
     #
     start_time = time.time()
-    output = mesolve(H0, rho0, tlist*10, [], [num(N)])  
+    output = solver(H0, rho0, tlist, [], [num(N)])  
     expt_list5 = output.expect
     print 'Method 5: time elapsed = ' + str(time.time() - start_time)         
 
