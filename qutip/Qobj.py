@@ -1019,11 +1019,7 @@ def dag(inQobj):
     """
     if not isinstance(inQobj,Qobj): #checks for Qobj
         raise TypeError("Input is not a quantum object")
-    outQobj=Qobj()
-    outQobj.data=inQobj.data.T.conj()
-    outQobj.dims=[inQobj.dims[1],inQobj.dims[0]]
-    outQobj.shape=[inQobj.shape[1],inQobj.shape[0]]
-    return Qobj(outQobj)
+    return inQobj.dag()
 
 
 def ptrace(Q,sel):

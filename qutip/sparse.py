@@ -72,28 +72,36 @@ def sp_one_norm(op):
 
 
 def sp_eigs(op,vecs=True,sparse=False,sort='low',eigvals=0,tol=0,maxiter=100000):
-    """
-    Returns Eigenvalues and Eigenvectors for Qobj.  Uses sparse eigen-solver if dims >=10 and sparse!=False.
+    """Returns Eigenvalues and Eigenvectors for Qobj.
+    Uses dense eigen-solver unless user sets sparse=True.
     
-    Args:
+    Parameters
+    ----------
+    op : qobj 
+        Input quantum operator
     
-        op (Qobj): Input Qobj
-        
-        vecs (bool): Return eigenvectors?
-        
-        sparse (bool): Use sparse solver?. default = None (automatic)
-        
-        sort: (str): Return lowest or highest eigenvals/vecs
-        
-        eigvals (int): Number of eigenvals/vecs to return.  Default = 0 (return all)
-        
-        tol (float): Tolerance for sparse eigensolver.  Default = 0 (Machine precision)
-        
-        maxiter (int): Max. number of iterations used by sparse sigensolver.
+    vecs : bool {True , False}
+        Flag for requesting eigenvectors
     
-    Returns:
+    sparse : bool {False , True}
+        Flag to use sparse solver
     
-        Array of eigenvalues and (by default) array of corresponding Eigenvectors.
+    sort : str {'low' , 'high}
+        Return lowest or highest eigenvals/vecs
+    
+    eigvals : int 
+        Number of eigenvals/vecs to return.  Default = 0 (return all)
+    
+    tol : float
+        Tolerance for sparse eigensolver.  Default = 0 (Machine precision)
+    
+    maxiter : int 
+        Max. number of iterations used by sparse sigensolver.
+    
+    Returns
+    -------
+    Array of eigenvalues and (by default) array of corresponding Eigenvectors.
+    
     """
     if op.type=='ket' or op.type=='bra':
         raise TypeError("Can only diagonalize operators and superoperators")

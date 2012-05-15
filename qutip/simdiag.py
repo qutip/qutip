@@ -21,17 +21,19 @@ import scipy.linalg as la
 
 
 def simdiag(ops,evals=True):
-    """
-    Simulateous diagonalization of communting Hermitian matricies
+    """Simulateous diagonalization of communting Hermitian matricies.
     
-    Args:
+    Parameters
+    ----------
+    ops : list/array 
+        ``list`` or ``array`` of qobjs representing commuting Hermitian operators.
     
-        ops (list/aray of Qobj's): List of commuting, Hermitian operators.
+    Returns
+    --------
+    eigs : tuple
+    Tuple of arrays representing eigvecs and eigvals of quantum objects 
+    corresponding to simultaneous eigenvectors and eigenvalues for each operator.
     
-    Returns:
-    
-        eigvecs,eigvals of quantum objects corresponding to simultaneous eigenvectors 
-        and eigenvalues for each operator.
     """
     tol=1e-14
     start_flag=0

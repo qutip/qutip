@@ -18,22 +18,27 @@
 ###########################################################################
 from scipy import *
 def sphereplot(theta,phi,values,save=False):
-	"""
-	Plots a matrix of values on a sphere
+	"""Plots a matrix of values on a sphere
 	
-	Args:
+	Parameters
+	----------
+	theta : float
+	    Angle with respect to z-axis
 	
-	    theta (float): Angle with respect to z-axis
+	phi : float
+        Angle in x-y plane 
 	
-	    phi (float): Angle in x-y plane 
+	values : array 
+	    Data set to be plotted
 	
-	    values (array): data set to be plotted
+	save : bool {False , True} 
+	    Whether to save the figure or not
 	
-	    save (bool): Whether to save the figure or not
+	Returns
+	-------
+	Plots figure, returns nonthing.
 	
-	Returns:
 	
-	    Plots figure, returns nonthing.
 	"""
 	from matplotlib import pyplot, mpl,cm
 	from pylab import plot,show,meshgrid,figure,savefig

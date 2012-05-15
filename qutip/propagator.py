@@ -34,17 +34,27 @@ def propagator(H, t, c_op_list, H_args=None):
     :math:`\psi(t) = U(t)\psi(0)` or :math:`\\rho_{\mathrm vec}(t) = U(t) \\rho_{\mathrm vec}(0)`
     where :math:`\\rho_{\mathrm vec}` is the vector representation of the density matrix.
     
-    Arguments:
+    Parameters
+    ----------
+    H : qobj 
+        Hamiltonian
+        
+    t : float 
+        Time.
+        
+    c_op_list : list 
+        List of qobj collapse operators.
+        
+    Other Parameters
+    ----------------
+    H_args : list/array 
+        Parameters to callback functions for time-dependent Hamiltonians.
     
-        `H` (:class:`qutip.Qobj`) Hamiltonian.
-        
-        `t` (*float*) time.
-        
-        `c_op_list` (list of :class:`qutip.Qobj`) collapse operators.
-        
-        `H_args` (*list/array*) [optional] parameters to callback functions for time-dependent Hamiltonians.
+    Returns
+    -------
+     a : qobj 
+        Instance representing the propagator :math:`U(t)`.
     
-    Returns a :class:`qutip.Qobj` instance representing the propagator :math:`U(t)`.
     """
 
     if len(c_op_list) == 0:
@@ -111,14 +121,18 @@ def get_min_and_index(lst):
 
 
 def propagator_steadystate(U):
-    """
-    Find the steady state for successive applications of the propagator :math:`U`.
+    """Find the steady state for successive applications of the propagator :math:`U`.
     
-    Arguments:
+    Parameters
+    ----------
+    U : qobj 
+        Operator representing the propagator.
     
-        `U` (:class:`qutip.Qobj`) Operator representing the propagator.
+    Returns
+    ------- 
+    a : qobj
+        Instance representing the steady-state vector.
     
-    Returns a :class:`qutip.Qobj` instance representing the steady-state vector.
     """
 
     evals,evecs = la.eig(U.full())

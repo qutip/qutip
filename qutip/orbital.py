@@ -26,25 +26,29 @@ except:#for scipy v >= 0.10
     from scipy.misc import factorial
 
 def orbital(theta,phi,*args):
-	"""
-	Calculates an angular wave function on a sphere
-        ``psi = orbital(theta,phi,ket1,ket2,...)`` calculates the angular wave function 
+	"""Calculates an angular wave function on a sphere.
+    ``psi = orbital(theta,phi,ket1,ket2,...)`` calculates the angular wave function 
 	on a sphere at the mesh of points defined by theta and phi which is 
         :math:`\sum_{lm} c_{lm} Y_{lm}(theta,phi)`
-        where :math:`C_{lm}` are the coefficients specified by the list of kets. Each ket has 2l+1 
-        components for some integer l.
+    where :math:`C_{lm}` are the coefficients specified by the list of kets. Each ket has 2l+1 
+    components for some integer l.
     
-    Args:
-    
-        theta (list/array): Polar angles.
+    Parameters
+    ----------
+    theta : list/array
+        Polar angles
 
-        phi (list/array): Azimuthal angles.
+    phi : list/array 
+        Azimuthal angles
 
-        args (list/array): list of ket vectors.
+    args : list/array 
+        ``list`` of ket vectors.
     
-    Returns: 
+    Returns
+    ------- 
+    ``array`` for angular wave function    
     
-        array for angular wave function                 
+                 
 	"""
 	psi=0.0
 	if isinstance(args[0],list):
@@ -63,7 +67,7 @@ def orbital(theta,phi,*args):
 		if l==0:
 			SPlm=sqrt(2)*ones((size(theta),1),dtype=complex)
 		else:
-			SPlm=sch_lpmv(l,cos(theta))
+			SPlm=_sch_lpmv(l,cos(theta))
 		fac = sqrt((2.0*l+1)/(8*pi))
 		kf=ket.full()
 		psi += sqrt(2)*fac*kf[l,0]*ones((size(phi),size(theta)),dtype=complex)*SPlm[0]
@@ -77,7 +81,7 @@ def orbital(theta,phi,*args):
 
 
 #Schmidt Semi-normalized Associated Legendre Functions
-def sch_lpmv(n,x):
+def _sch_lpmv(n,x):
 	'''
 	Outputs array of Schmidt Seminormalized Associated Legendre Functions S_{n}^{m}
 	    for m<=n.
