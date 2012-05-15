@@ -159,17 +159,20 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
             # constant hamiltonian
             if n_func == 0 and n_str == 0:
                 # constant collapse operators
-                return me_ode_solve(H, rho0, tlist, c_ops, expt_ops, args, options)
-            else: # n_str > 0
-                # constant hamiltonian but time-dependent collapse operators
+                return mesolve_const(H, rho0, tlist, c_ops, expt_ops, args, options)
+            elif n_str > 0:
+                # constant hamiltonian but time-dependent collapse operators in list string format
                 return mesolve_list_str_td([H], rho0, tlist, c_ops, expt_ops, args, options)     
+            elif n_func > 0:
+                # constant hamiltonian but time-dependent collapse operators in list function format
+                return mesolve_list_func_td([H], rho0, tlist, c_ops, expt_ops, args, options)     
         
         if isinstance(H, FunctionType):
             # old style time-dependence: must have constant collapse operators
             if n_str > 0: # or n_func > 0:
                 raise TypeError("Incorrect format: function-format Hamiltonian cannot be mixed with time-dependent collapse operators.")
             else:
-                return me_ode_solve(H, rho0, tlist, c_ops, expt_ops, args, options)
+                return mesolve_func_td(H, rho0, tlist, c_ops, expt_ops, args, options)
         
         if isinstance(H, list):
             # determine if we are dealing with list of [Qobj, string] or [Qobj, function]
@@ -190,7 +193,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
         elif n_str > 0:
             return wfsolve_list_str_td(H, rho0, tlist, expt_ops, args, options)
         else:
-            return wf_ode_solve(H, rho0, tlist, expt_ops, args, options)
+            return wfsolve_const(H, rho0, tlist, expt_ops, args, options)
 
 
 # ------------------------------------------------------------------------------
@@ -574,16 +577,10 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
 # Wave function evolution using a ODE solver (unitary quantum evolution) using
 # a constant Hamiltonian.
 # 
-def wf_ode_solve(H, psi0, tlist, expt_ops, H_args, opt):
+def wfsolve_const(H, psi0, tlist, expt_ops, H_args, opt):
     """!
     Evolve the wave function using an ODE solver
     """
-    
-    # XXX: do these checks elsewhere (in mesolve)
-    if isinstance(H, list):
-        return wf_ode_solve_td(H, psi0, tlist, expt_ops, H_args, opt)
-    if isinstance(H, FunctionType):
-        return wf_ode_solve_func_td(H, psi0, tlist, expt_ops, H_args, opt)
 
     if not isket(psi0):
         raise TypeError("psi0 must be a ket")
@@ -595,10 +592,11 @@ def wf_ode_solve(H, psi0, tlist, expt_ops, H_args, opt):
     r = scipy.integrate.ode(cyq_ode_rhs)
     L = -1.0j * H
     r.set_f_params(L.data.data, L.data.indices, L.data.indptr) # for cython RHS
-    r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, #nsteps=opt.nsteps,
-                              #first_step=opt.first_step, min_step=opt.min_step,
+    r.set_integrator('zvode', method=opt.method, order=opt.order, atol=opt.atol, 
+                              rtol=opt.rtol, nsteps=opt.nsteps, 
+                              first_step=opt.first_step, min_step=opt.min_step, 
                               max_step=opt.max_step)
+
     r.set_initial_value(initial_vector, tlist[0])
    
     #
@@ -616,7 +614,7 @@ def psi_ode_func(t, psi, H):
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
 # time dependent hamiltonians
 # 
-def wf_ode_solve_td(H_func, psi0, tlist, expt_ops,H_args, opt):
+def wfsolve_list_td(H_func, psi0, tlist, expt_ops,H_args, opt):
     """!
     Evolve the wave function using an ODE solver with time-dependent
     Hamiltonian.
@@ -692,7 +690,7 @@ def wf_ode_solve_td(H_func, psi0, tlist, expt_ops,H_args, opt):
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
 # time dependent hamiltonians
 # 
-def wf_ode_solve_func_td(H_func, psi0, tlist, expt_ops, H_args, opt):
+def wfsolve_func_td(H_func, psi0, tlist, expt_ops, H_args, opt):
     """!
     Evolve the wave function using an ODE solver with time-dependent
     Hamiltonian.
@@ -714,8 +712,8 @@ def wf_ode_solve_func_td(H_func, psi0, tlist, expt_ops, H_args, opt):
     initial_vector = psi0.full()
     r = scipy.integrate.ode(psi_ode_func_td)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, #nsteps=opt.nsteps,
-                              #first_step=opt.first_step, min_step=opt.min_step,
+                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                              first_step=opt.first_step, min_step=opt.min_step,
                               max_step=opt.max_step)                              
     r.set_initial_value(initial_vector, tlist[0])
     r.set_f_params(H_func_and_args)
@@ -739,17 +737,11 @@ def psi_ode_func_td(t, psi, H_func_and_args):
 # ------------------------------------------------------------------------------
 # Master equation solver
 # 
-def me_ode_solve(H, rho0, tlist, c_op_list, expt_ops, H_args, opt):
+def mesolve_const(H, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     """!
-    Evolve the density matrix using an ODE solver
+    Evolve the density matrix using an ODE solver, for constant hamiltonian
+    and collapse operators.
     """
-
-    # XXX: do these checks elsewhere (in mesolve)
-    if isinstance(H, list):
-        return me_ode_solve_td(H, rho0, tlist, c_op_list, expt_ops, H_args, opt)
-
-    if isinstance(H, FunctionType):
-        return me_ode_solve_func_td(H, rho0, tlist, c_op_list, expt_ops, H_args, opt)
 
     #
     # check initial state
@@ -760,7 +752,7 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_ops, H_args, opt):
         # if initial state is a ket and no collapse operator where given,
         # fallback on the unitary schrodinger equation solver
         if n_op == 0:
-            return wf_ode_solve(H, rho0, tlist, expt_ops)
+            return wfsolve_const(H, rho0, tlist, expt_ops)
 
         # Got a wave function as initial state: convert to density matrix.
         rho0 = rho0 * rho0.dag()
@@ -777,13 +769,11 @@ def me_ode_solve(H, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full())
-    #r = scipy.integrate.ode(rho_ode_func)
-    #r.set_f_params(L.data)
     r = scipy.integrate.ode(cyq_ode_rhs)
     r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, #nsteps=opt.nsteps,
-                              #first_step=opt.first_step, min_step=opt.min_step,
+                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                              first_step=opt.first_step, min_step=opt.min_step,
                               max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
 
@@ -801,9 +791,10 @@ def rho_ode_func(t, rho, L):
     return L*rho
 
 # ------------------------------------------------------------------------------
-# Master equation solver
+# Master equation solver: deprecated in 2.0.0. No support for time-dependent
+# collapse operators. Only used by the deprecated odesolve function.
 # 
-def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
+def mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     """!
     Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
@@ -817,7 +808,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
         # if initial state is a ket and no collapse operator where given,
         # fallback on the unitary schrodinger equation solver
         if n_op == 0:
-            return wf_ode_solve_td(H_func, rho0, tlist, expt_ops, H_args, opt)
+            return wfsolve_list_td(H_func, rho0, tlist, expt_ops, H_args, opt)
 
         # Got a wave function as initial state: convert to density matrix.
         rho0 = ket2dm(rho0)
@@ -894,7 +885,7 @@ def me_ode_solve_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
 # ------------------------------------------------------------------------------
 # Master equation solver
 # 
-def me_ode_solve_func_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
+def mesolve_func_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     """!
     Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
@@ -909,7 +900,7 @@ def me_ode_solve_func_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
         # if initial state is a ket and no collapse operator where given,
         # fallback on the unitary schrodinger equation solver
         if n_op == 0:
-            return wf_ode_solve_td(H_func, rho0, tlist, expt_ops, H_args, opt)
+            return wfsolve_list_td(H_func, rho0, tlist, expt_ops, H_args, opt)
 
         # Got a wave function as initial state: convert to density matrix.
         rho0 = ket2dm(rho0)
@@ -1119,9 +1110,19 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, H_args=None, options=None):
         options.max_step = max(tlist)/10.0 # take at least 10 steps.. 
         
     if (c_op_list and len(c_op_list) > 0) or not isket(rho0):
-        output = me_ode_solve(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
+        if isinstance(H, list):
+            output = mesolve_list_td(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
+        if isinstance(H, FunctionType):
+            output = mesolve_func_td(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
+        else:
+            output = mesolve_const(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
     else:
-        output = wf_ode_solve(H, rho0, tlist, expt_ops, H_args, options)
+        if isinstance(H, list):
+            output = wfsolve_list_td(H, rho0, tlist, expt_ops, H_args, options)
+        if isinstance(H, FunctionType):
+            output = wfsolve_func_td(H, rho0, tlist, expt_ops, H_args, options)
+        else:
+            output = wfsolve_const(H, rho0, tlist, expt_ops, H_args, options)
 
     if len(expt_ops) > 0:
         return output.expect
