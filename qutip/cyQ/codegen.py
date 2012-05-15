@@ -86,7 +86,7 @@ class Codegen():
                 self.write(line)
             self.write(self.func_end())
             self.dedent()
-            for line in cython_checks()+self.col_expect_header()+cython_col_expect():
+            for line in cython_checks()+self.col_expect_header()+cython_col_expect(self.args):
                 self.write(line)
             self.indent()
             for line in self.func_which_expect():
@@ -434,7 +434,7 @@ def cython_col_spmv():
     lineC="\t\tout[row,0]=dot"
     return [line1,line2,line3,line4,line5,line6,line7,line8,line9,lineA,lineB,lineC]
 
-def cython_col_expect():
+def cython_col_expect(args):
     """
     Writes col_expect vars.
     """
@@ -442,7 +442,13 @@ def cython_col_expect():
     line2="\tcdef int num_rows=len(vec)"
     line3="\tcdef complex out = 0.0"
     line4="\tcdef np.ndarray[CTYPE_t, ndim=2] vec_ct = vec.conj().T"
-    line5="\tcdef np.ndarray[CTYPE_t, ndim=2] dot = col_spmv(which,t,data,idx,ptr,vec)"
+    line5="\tcdef np.ndarray[CTYPE_t, ndim=2] dot = col_spmv(which,t,data,idx,ptr,vec"
+    if args:
+        td_consts=args.items()
+        td_len=len(td_consts)
+        for jj in xrange(td_len):
+            line5+=","+td_consts[jj][0]
+    line5+=")"
     line6="\tfor row in range(num_rows):"
     line7="\t\tout+=vec_ct[0,row]*dot[row,0]"
     return [line1,line2,line3,line4,line5,line6,line7]

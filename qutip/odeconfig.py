@@ -28,7 +28,6 @@ colspmv=None        #Placeholder for time-dependent col-spmv function.
 colexpect=None      #Placeholder for time-dependent col_expect function.
 string=None         #Holds string of variables to be passed onto time-depdendent ODE solver.
 tdname=None         #Name of td .pyx file (used in parallel mc code)
-
 #Initial state stuff
 psi0=None   
 psi0_dims=None 
@@ -53,13 +52,15 @@ c_td_inds=[]        #indicies of time-dependent collapse operators
 c_ops_data=[]       #collapse op data
 c_ops_ind=[]        #collapse op indices
 c_ops_ptr=[]        #collapse op indptrs
-
+c_args=[]           #store args for time-dependent collapse functions
 #Norm collapse operator stuff
 n_ops_data=[]       #norm collapse op data
 n_ops_ind=[]        #norm collapse op indices
 n_ops_ptr=[]        #norm collapse op indptrs
 
-
+#holds executable strings for time-dependent collapse evaluation
+col_expect_code=None
+col_spmv_code=None
 
 
 

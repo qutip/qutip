@@ -426,10 +426,10 @@ def mc_alg_evolve(nt,args):
             psi_nrm2=norm(ODE.y,2)**2
             if psi_nrm2<=rand_vals[0]:# <== collpase has occured
                 collapse_times.append(ODE.t)
-                 #some string based collapse operators
+                #some string based collapse operators
                 if odeconfig.tflag in array([1,11]):
                     n_dp=[mc_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in odeconfig.c_const_inds]
-                    n_dp+=[odeconfig.colexpect(i,ODE.t,odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],ODE.y) for i in odeconfig.c_td_inds]
+                    exec(odeconfig.col_expect_code)
                     n_dp=array(n_dp)
                 #all constant collapse operators.
                 else:
@@ -440,7 +440,7 @@ def mc_alg_evolve(nt,args):
                 if j in odeconfig.c_const_inds:
                     state=spmv(odeconfig.c_ops_data[j],odeconfig.c_ops_ind[j],odeconfig.c_ops_ptr[j],ODE.y)
                 else:
-                    state=odeconfig.colspmv(j,ODE.t,odeconfig.c_ops_data[j],odeconfig.c_ops_ind[j],odeconfig.c_ops_ptr[j],ODE.y)
+                    exec(odeconfig.col_spmv_code)
                 state_nrm=norm(state,2)
                 ODE.set_initial_value(state/state_nrm,ODE.t)
                 rand_vals=random.rand(2)
@@ -524,6 +524,7 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
         odeconfig.n_ops_ptr=array(odeconfig.n_ops_ptr)
     #----
     
+    
     #Hamiltonian & collapse terms are time-INDEPENDENT
     if odeconfig.tflag==0:
         if odeconfig.cflag:
@@ -541,6 +542,11 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
     
     #Hamiltonian &/or collapse terms have string-type time-DEPENDENCE
     elif odeconfig.tflag in array([1,10,11]):
+        #take care of arguments for collapse operators, if any
+        if any(args):
+            arg_items=args.items()
+            for k in xrange(len(args)):
+                odeconfig.c_args.append(arg_items[k][1])
         #constant Hamiltonian / string-type collapse operators
         if odeconfig.tflag==1:
             H_inds=arange(1)
@@ -552,6 +558,7 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
             C_tdterms=[c_ops[k][1] for k in C_td_inds] #extract time-dependent coefficients (strings)
             odeconfig.c_const_inds=C_const_inds#store indicies of constant collapse terms
             odeconfig.c_td_inds=C_td_inds#store indicies of time-dependent collapse terms
+            
             for k in odeconfig.c_const_inds:
                 H-=0.5j*(c_ops[k].dag()*c_ops[k])
             if options.tidy:
@@ -580,11 +587,12 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
             odeconfig.h_td_inds=arange(1,len_h)#store indicies of time-dependent Hamiltonian terms
             #if there are any collpase operatorss
             if odeconfig.c_num>0:
-                
                 if odeconfig.tflag==10: #constant collapse operators
                     odeconfig.c_const_inds=arange(odeconfig.c_num)
                     for k in odeconfig.c_const_inds:
                         H[0]-=0.5j*(c_ops[k].dag()*c_ops[k])
+                    C_inds=arange(odeconfig.c_num)
+                    C_tdterms=array([])
                 #-----
                 else:#some time-dependent collapse terms
                     C_inds=arange(odeconfig.c_num)
@@ -601,10 +609,10 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
                 C_tdterms=array([])
                 C_inds=array([])
             
+            
             #tidyup
             if options.tidy:
                 H=array([H[k].tidyup(options.atol) for k in xrange(len_h)])
-            
             #construct data sets
             odeconfig.Hdata=[H[k].data.data for k in xrange(len_h)]
             odeconfig.Hinds=[H[k].data.indices for k in xrange(len_h)]
@@ -618,19 +626,33 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
             odeconfig.Hptrs=array(odeconfig.Hptrs)
         #----
         
+        #set execuatble code for collapse expectation values and spmv
+        col_spmv_code="state=odeconfig.colspmv(j,ODE.t,odeconfig.c_ops_data[j],odeconfig.c_ops_ind[j],odeconfig.c_ops_ptr[j],ODE.y"
+        col_expect_code="n_dp+=[odeconfig.colexpect(i,ODE.t,odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],ODE.y"
+        for kk in xrange(len(odeconfig.c_args)):
+            col_spmv_code+=",odeconfig.c_args["+str(k)+"]"
+            col_expect_code+=",odeconfig.c_args["+str(k)+"]"
+        col_spmv_code+=")"
+        col_expect_code+=") for i in odeconfig.c_td_inds]"
+        odeconfig.col_spmv_code=compile(col_spmv_code,'<string>', 'exec')
+        odeconfig.col_expect_code=compile(col_expect_code,'<string>', 'exec')    
+        print col_spmv_code
+        
+        
+        
         #setup ode args string
         odeconfig.string=""
-        data_range=xrange(len(odeconfig.Hdata))
+        data_range=range(len(odeconfig.Hdata))
         for k in data_range:
             odeconfig.string+="odeconfig.Hdata["+str(k)+"],odeconfig.Hinds["+str(k)+"],odeconfig.Hptrs["+str(k)+"]"
             if k!=data_range[-1]:
                 odeconfig.string+="," 
-        if len(args)>0:
+        #attach args
+        if any(args):
             td_consts=args.items()
             for elem in td_consts:
-                odeconfig.string+=str(elem[1])
-                if elem!=td_consts[-1]:
-                    odeconfig.string+=(",")
+                odeconfig.string+=","+str(elem[1])
+        #----
         if not options.rhs_reuse:
             name="rhs"+str(odeconfig.cgen_num)
             odeconfig.tdname=name
@@ -638,74 +660,6 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
             cgen.generate(name+".pyx")
         #----
         
-        
-        
-        # #combine collapse operators and constant H term if collapse ops are time-independent.
-        #         if odeconfig.cflag:
-        #             if odeconfig.tflag==10:
-        #                 C_const_inds=arange(odeconfig.c_num)
-        #             for k in C_const_inds:
-        #                 #if H is constant qobj
-        #                 if len_h==1:
-        #                     H-=0.5j*(c_ops[k].dag()*c_ops[k])
-        #                 #otherwise
-        #                 else:
-        #                     H[0]-=0.5j*(c_ops[k].dag()*c_ops[k])
-        
-        # #do some tidyup
-        #         if options.tidy:
-        #             #if some H term is time-dependent
-        #             if odeconfig.tflag!=1:
-        #                 H[0]=H[0].tidyup(options.atol)
-        #                 H[1:]=array([(H[k][0]).tidyup(options.atol) for k in xrange(1,len_h)])
-        #             #if H is constant qobj
-        #             else:
-        #                 H=H.tidyup(options.atol)
-        #         
-        #             #generate cython files if reuse, but not previously ran.
-        #             if options.rhs_reuse==True and odeconfig.tdfunc==None:
-        #                 print "No previous time-dependent RHS found...Generating one for you."
-        #                 rhs_generate(H,args)
-        #             #create data arrays for time-dependent RHS function
-        #             if odeconfig.tflag==1:
-        #                 odeconfig.Hdata=[H.data.data]
-        #                 odeconfig.Hinds=[H.data.indices]
-        #                 odeconfig.Hptrs=[H.data.indptr]
-        #                 
-        #             else:
-        #                 odeconfig.Hdata=[-1.0j*H[0].data.data]+[-1.0j*H[k].data.data for k in xrange(1,len_h)]
-        #                 odeconfig.Hinds=[H[0].data.indices]+[H[k].data.indices for k in xrange(1,len_h)]
-        #                 odeconfig.Hptrs=[H[0].data.indptr]+[H[k].data.indptr for k in xrange(1,len_h)]
-        #             #add time-dependent c
-        #             for k in odeconfig.c_td_inds:
-        #                 op=c_ops[k][0].dag()*c_ops[k][0]
-        #                 odeconfig.Hdata.append(-0.5j*op.data.data)
-        #                 odeconfig.Hinds.append(op.data.indices)
-        #                 odeconfig.Hptrs.append(op.data.indptr)
-        #             #turn into arrays
-        #             odeconfig.Hdata=array(odeconfig.Hdata)
-        #             odeconfig.Hinds=array(odeconfig.Hinds)
-        #             odeconfig.Hptrs=array(odeconfig.Hptrs)  
-        #         
-        #             #setup ode args string
-        #             odeconfig.string=""
-        #             data_range=xrange(len(odeconfig.Hdata))
-        #             for k in data_range:
-        #                 odeconfig.string+="odeconfig.Hdata["+str(k)+"],odeconfig.Hinds["+str(k)+"],odeconfig.Hptrs["+str(k)+"]"
-        #                 if k!=data_range[-1]:
-        #                     odeconfig.string+="," 
-        #             if len(args)>0:
-        #                 td_consts=args.items()
-        #                 for elem in td_consts:
-        #                     odeconfig.string+=str(elem[1])
-        #                     if elem!=td_consts[-1]:
-        #                         odeconfig.string+=(",")
-        #             if not options.rhs_reuse:
-        #                 name="rhs"+str(odeconfig.cgen_num)
-        #                 odeconfig.tdname=name
-        #                 cgen=Codegen(H_inds,H_tdterms,h_stuff[2],args,C_inds,C_tdterms,c_stuff[2])
-        #                 cgen.generate(name+".pyx")
-    #-------
     #--------------------------------------------
     # NON-CYTHON TIME-DEPENDENT CODE
     elif isinstance(H,FunctionType):
