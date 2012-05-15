@@ -134,6 +134,16 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
     #if debug: print "t = %f -> t_wrap = %f @ %d of %d" % (t, t_wrap, t_idx, N)
 
     return f_modes_table_t[t_idx]
+
+def floquet_states(f_modes, f_energies, t):
+    """
+    Evaluate the floquet states at time t.
+    
+    Returns a list of the wavefunctions.
+        
+    """
+    
+    return [(f_modes[i] * exp(-1j * f_energies[i]*t)) for i in arange(len(f_energies))]   
         
 def floquet_states_t(f_modes_0, f_energies, t, H, T, H_args=None):
     """
@@ -147,6 +157,14 @@ def floquet_states_t(f_modes_0, f_energies, t, H, T, H_args=None):
     f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, H_args)
     return [(f_modes_t[i] * exp(-1j * f_energies[i]*t)) for i in arange(len(f_energies))]    
     
+def floquet_wavefunction(f_modes, f_energies, f_coeff, t):
+    """
+    Evaluate the wavefunction for a time t using the Floquet states decompositon.
+    
+    Returns the wavefunction.
+        
+    """
+    return sum([f_modes[i] * exp(-1j * f_energies[i]*t) * f_coeff[i] for i in arange(len(f_energies))])
     
 def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, H_args=None):
     """
