@@ -429,7 +429,7 @@ def mc_alg_evolve(nt,args):
                 #some string based collapse operators
                 if odeconfig.tflag in array([1,11]):
                     n_dp=[mc_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in odeconfig.c_const_inds]
-                    exec(odeconfig.col_expect_code)
+                    exec(odeconfig.col_expect_code) #calculates the expectation values for time-dependent norm collapse operators
                     n_dp=array(n_dp)
                 #all constant collapse operators.
                 else:
@@ -440,7 +440,7 @@ def mc_alg_evolve(nt,args):
                 if j in odeconfig.c_const_inds:
                     state=spmv(odeconfig.c_ops_data[j],odeconfig.c_ops_ind[j],odeconfig.c_ops_ptr[j],ODE.y)
                 else:
-                    exec(odeconfig.col_spmv_code)
+                    exec(odeconfig.col_spmv_code)#calculates the state vector for  collapse by a time-dependent collapse operator
                 state_nrm=norm(state,2)
                 ODE.set_initial_value(state/state_nrm,ODE.t)
                 rand_vals=random.rand(2)
@@ -629,15 +629,14 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
         #set execuatble code for collapse expectation values and spmv
         col_spmv_code="state=odeconfig.colspmv(j,ODE.t,odeconfig.c_ops_data[j],odeconfig.c_ops_ind[j],odeconfig.c_ops_ptr[j],ODE.y"
         col_expect_code="n_dp+=[odeconfig.colexpect(i,ODE.t,odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],ODE.y"
-        for kk in xrange(len(odeconfig.c_args)):
-            col_spmv_code+=",odeconfig.c_args["+str(k)+"]"
-            col_expect_code+=",odeconfig.c_args["+str(k)+"]"
+        for kk in range(len(odeconfig.c_args)):
+            col_spmv_code+=",odeconfig.c_args["+str(kk)+"]"
+            col_expect_code+=",odeconfig.c_args["+str(kk)+"]"
         col_spmv_code+=")"
         col_expect_code+=") for i in odeconfig.c_td_inds]"
         odeconfig.col_spmv_code=compile(col_spmv_code,'<string>', 'exec')
         odeconfig.col_expect_code=compile(col_expect_code,'<string>', 'exec')    
         #----
-        
         
         #setup ode args string
         odeconfig.string=""
