@@ -46,7 +46,7 @@ QuTiP requires the following packages to run:
 | PyObjC     | 2.2+         | Mac only.  Very optional.  Needed only for a        |
 |            |              | GUI Monte-Carlo progress bar.                       |
 +------------+--------------+-----------------------------------------------------+
-| Cython     | 0.15+        | Optional.  Needed for compiling time-dependent      |
+| Cython     | 0.15+        | Optional.  Needed for compiling some time-dependent |
 |            |              | Hamiltonians.                                       |
 +------------+--------------+-----------------------------------------------------+
 | GCC        | 4.2+         | Needed for compiling Cython files.                  |
@@ -71,16 +71,23 @@ Installation on Ubuntu Linux
 >>> sudo apt-get install python-setuptools
 >>> sudo apt-get install python-dev
 
-Ubuntu 11.04 and lower do not have Matplotlib>=1.0, and we therefore need to add the unofficial repository (in Ubuntu 11.10, skip this step)
+Ubuntu 11.04 and Lower (skip this step in Ubuntu 11.10+):
+---------------------------------------------------------
+
+These releases do not have Matplotlib>=1.0, and we therefore need to add the unofficial repository:
 
 >>> sudo add-apt-repository ppa:bgamari/matplotlib-unofficial
 >>> sudo apt-get update
 
-before running
+Install Matplotlib:
+-------------------
+
+Regardless of Ubuntu version, we are now in a position to install the plotting library:
 
 >>> sudo apt-get install python-matplotlib
 
 QuTiP installation:
+-------------------
 
 >>> sudo python setup.py install
 
@@ -95,8 +102,8 @@ Installation on Mac OS X (10.6+)
 
 If you have not done so already, install the Apple XCode developer tools from the Apple App Store.
 
-Macports [*]_
-----------------
+Setup Using Macports: [*]_
+--------------------------
 
 On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via:  
 
@@ -118,18 +125,18 @@ or:
 >>> sudo port install py27-pyqt4
 
 
-SciPy Superpack
------------------
+Setup via SciPy Superpack:
+--------------------------
 
 A second option is to install the required Python packages using the `SciPy Superpack <http://fonnesbeck.github.com/ScipySuperpack/>`_.  Further information on installing the superpack can be found on the `SciPy Downloads page <http://www.scipy.org/Download>`_.  Note that, if you choose this option, the GUI elements of QuTiP will not be available without futher installing either the PyQt4 or PySide packages separately.
 
 
-Enthought Python
--------------------
+Enthought Python Distribution:
+------------------------------
 
 Finally, one can also use the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher to satisfy the QuTiP dependencies.  
 
-Installing
+Installing QuTiP:
 -----------------
 
 No matter which installation path you choose, installing QuTiP is the same as on linux.  From the QuTiP directory:
@@ -154,11 +161,11 @@ To further verify that all of the QuTiP components are working, you can run the 
 Checking Version Information via the About Box
 ===============================================
 
-QuTiP includes a graphical "about" box for viewing information about the important dependencies installed on your system.  To view the about box, type:
+QuTiP includes a graphical "about" box for viewing information about QuTiP, and the important dependencies installed on your system.  To view the about box type:
 
 >>> about()
 
-which will pop-up a window similar to the one shown below.  If instead you get command-line output, then your PyQt or PySide graphics are not installed properly or unavailable.  When running the about box, QuTiP will automatically check for a newer version of itself from the QuTiP website.  As shown below, the about box will have an "update" link next to the QuTiP version number if your are not running the latest version of QuTiP
+that will pop-up a window similar to the one shown below.  If instead you get command-line output, then your PyQt or PySide graphics are not installed properly or unavailable.  When running the about box, QuTiP will automatically check for a newer version of itself from the QuTiP website.  As shown below, the about box will have an "update" link next to the QuTiP version number if your are not running the latest version of QuTiP
 
 .. figure:: figures/about.png
    :align: center

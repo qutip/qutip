@@ -14,7 +14,7 @@ Quantum States
 ----------------
 
 .. automodule:: qutip.states
-    :members: basis, qutrit_basis, coherent, coherent_dm, fock, fock_dm, thermal_dm, ket2dm
+    :members: basis, coherent, coherent_dm, fock, fock_dm, ket2dm, qutrit_basis, thermal_dm
 
 .. automodule:: qutip.qstate
     :members: qstate 
@@ -23,13 +23,13 @@ Quantum Operators
 ---------------------
 
 .. automodule:: qutip.operators
-    :members: jmat, sigmap, sigmam, sigmax, sigmay, sigmaz, destroy, create, qeye, num, squeez, displace, qutrit_ops
+    :members: create, destroy, displace, jmat, num, qeye, qutrit_ops, sigmam, sigmap, sigmax, sigmay, sigmaz, squeez
 
 Qobj Check Functions
 --------------------
 
 .. automodule:: qutip.istests
-    :members: isket, isbra, isoper, issuper, isequal, isherm
+    :members: isbra, isequal, isherm, isket, isoper, issuper
 
 Liouvillian
 -----------

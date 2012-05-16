@@ -7,7 +7,7 @@
 Guide Overview
 ******************
 
-The goal of this guide is to introduce you to the basic structures and functions that make up QuTiP. If you are familiar with the Quantum Optics Toolbox, then you should have no problem getting used to QuTiP. The guide is broken up into several sections, each highlighting a specific set of functionalities. In combination with the examples, this guide should provide a more or less complete overview.
+The goal of this guide is to introduce you to the basic structures and functions that make up QuTiP. If you are familiar with the Quantum Optics Toolbox, then you should have no problem getting used to QuTiP. The guide is broken up into several sections, each highlighting a specific set of functionalities. In combination with the examples, this guide should provide a more or less complete overview.  In addition, :ref:`apidoc` for each function is located at the end of this guide.
 
 
 .. _overview-org:
@@ -15,7 +15,10 @@ The goal of this guide is to introduce you to the basic structures and functions
 Organization
 =============
 
-QuTiP is designed to be a general toolbox for solving quantum optics like problems.  As such, the QuTiP framework is built from a large (and ever growing) library of functions; from :func:`qutip.states.basis` to :func:`qutip.wigner`.  The general organization of QuTiP, highlighting the important functions avalaible to the user is shown below.
+QuTiP is designed to be a general toolbox for solving quantum optics like problems.  As such, the QuTiP framework is built from a large (and ever growing) library of functions; from :func:`qutip.states.basis` to :func:`qutip.wigner`.  The general organization of QuTiP, highlighting the important functions avalaible to the user is shown in :ref:`figure-qutip_org`.
+
+
+.. _figure-qutip_org:
 
 .. figure:: qutip_org.png
    :align: center

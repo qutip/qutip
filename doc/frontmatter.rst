@@ -12,7 +12,7 @@ Frontmatter
 About This Documentation
 ==========================
 
-These pages contains automatically generated API documentation for QuTiP. A PDF version of this text is included with QuTiP, or may be found on the `downloads page <http://code.google.com/p/qutip/downloads/list>`_. 
+These pages contains automatically generated API documentation for QuTiP. A PDF version of this text is included with QuTiP, and may be found on the `downloads page <http://code.google.com/p/qutip/downloads/list>`_. 
 
 **For more information see the** `QuTiP project web page`_.
 
