@@ -574,6 +574,10 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
             odeconfig.Hdata=-1.0j*array(odeconfig.Hdata)
             odeconfig.Hinds=array(odeconfig.Hinds)
             odeconfig.Hptrs=array(odeconfig.Hptrs)
+            #--------------------------------------------
+            # END OF IF STATEMENT
+            #--------------------------------------------
+        
         
         #string-type Hamiltonian & string-type (or constant) collapse operators
         else:
@@ -601,14 +605,14 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
                     C_tdterms=[c_ops[k][1] for k in C_td_inds] #extract time-dependent coefficients (strings)
                     odeconfig.c_const_inds=C_const_inds#store indicies of constant collapse terms
                     odeconfig.c_td_inds=C_td_inds#store indicies of time-dependent collapse terms
-            
+                    for k in odeconfig.c_const_inds:
+                        H[0]-=0.5j*(c_ops[k].dag()*c_ops[k])
             else:#set empty objects if no collapse operators
                 C_const_inds=arange(odeconfig.c_num)
                 odeconfig.c_const_inds=range(odeconfig.c_num)
                 odeconfig.c_td_inds=array([])
                 C_tdterms=array([])
                 C_inds=array([])
-            
             
             #tidyup
             if options.tidy:
@@ -624,7 +628,9 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
             odeconfig.Hdata=-1.0j*array(odeconfig.Hdata)
             odeconfig.Hinds=array(odeconfig.Hinds)
             odeconfig.Hptrs=array(odeconfig.Hptrs)
-        #----
+            #--------------------------------------------
+            # END OF ELSE STATEMENT
+            #--------------------------------------------
         
         #set execuatble code for collapse expectation values and spmv
         col_spmv_code="state=odeconfig.colspmv(j,ODE.t,odeconfig.c_ops_data[j],odeconfig.c_ops_ind[j],odeconfig.c_ops_ptr[j],ODE.y"
@@ -645,7 +651,7 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
             odeconfig.string+="odeconfig.Hdata["+str(k)+"],odeconfig.Hinds["+str(k)+"],odeconfig.Hptrs["+str(k)+"]"
             if k!=data_range[-1]:
                 odeconfig.string+="," 
-        #attach args
+        #attach args to ode args string
         if any(args):
             td_consts=args.items()
             for elem in td_consts:
