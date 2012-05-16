@@ -16,11 +16,12 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-
 import os,sys,platform,multiprocessing
 import qutip.settings
 import qutip._version
 
+
+#check to see if running from install directory for released versions.
 top_path=os.path.dirname(os.path.dirname(__file__))
 try:
     setup_file=open(top_path+'/setup.py', 'r')
@@ -30,13 +31,17 @@ else:
     if ('QuTiP' in setup_file.readlines()[1][3:]) and qutip._version.release==True:
         print("You are in the installation directory. Change directories before running QuTiP.")
     setup_file.close()
+#----
+
+
 #automatically set number of threads used by MKL
 os.environ['MKL_NUM_THREADS']=str(multiprocessing.cpu_count())
 os.environ['NUM_THREADS']=str(multiprocessing.cpu_count())
 qutip.settings.num_cpus=multiprocessing.cpu_count()
-#
+#----
+
+
 # default, use graphics (unless QUTIP_GRAPHICS is already set)
-#
 if not ('QUTIP_GRAPHICS' in os.environ):
     os.environ['QUTIP_GRAPHICS']="YES"
     qutip.settings.qutip_graphics='YES'
@@ -51,13 +56,17 @@ if not ('DISPLAY' in os.environ):
     qutip.settings.qutip_graphics='NO'
     os.environ['QUTIP_GUI']="NONE"
     qutip.settings.qutip_gui="NONE"
+#----
 
-#-Check for Matplotlib
+
+#Check for Matplotlib
 try:
     import matplotlib
 except:
     os.environ['QUTIP_GRAPHICS']="NO"
     qutip.settings.qutip_graphics='NO'
+#----
+
 
 #if being run locally, check for installed gui modules
 if qutip.settings.qutip_graphics=='YES':
@@ -72,7 +81,10 @@ if qutip.settings.qutip_graphics=='YES':
             qutip.settings.qutip_gui="PYQT4"
         except:
             qutip.settings.qutip_gui="NONE"
+#----
 
+
+# Load modules
 #-------------------------------------------------------------------------------
 # external
 from scipy import *
@@ -128,7 +140,6 @@ from qutip.bloch_redfield import *
 
 # utilities
 from qutip.fileio import *
-
 from qutip.demos import demos
 import qutip.examples
 from qutip.about import *
