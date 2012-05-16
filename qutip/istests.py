@@ -21,25 +21,28 @@ import scipy.linalg as la
 from numpy import where
 
 """
-Set of tests used to determine type of quantum objects
+A collection of tests used to determine the type of quantum objects.
 """
 
 def isket(Q):
     """
-    Determines if given quantum object is a ket-vector
+    Determines if given quantum object is a ket-vector.
 	
-	Args:
-	    
-	    Q (Qobj) quantum object
+	Parameters
+	----------
+	Q : qobj
+	    Quantum object
 	
-	Returns: 
-	    
-	    True is Qobj is ket-vector, False otherwise.
+	Returns
+	------- 
+	isket : bool
+	    True if qobj is ket-vector, False otherwise.
 	
-	Example::
-	    >>> psi=basis(5,2)
-	    >>> print isket(psi)
-	    True
+	Examples
+	--------
+	>>> psi=basis(5,2)
+    >>> print isket(psi)
+    True
 	    
 	"""
     result = isinstance(Q.dims[0],list)
@@ -49,24 +52,24 @@ def isket(Q):
 
 #***************************
 def isbra(Q):
-	"""
-	Determines if given quantum object is a bra-vector
+	"""Determines if given quantum object is a bra-vector.
 	
-	Args:
-	    
-	    Q (Qobj) quantum object
+	Parameters
+	----------
+	Q : qobj
+	    Quantum object
 	
-	Returns:
-	    
-	    True is Qobj is bra-vector, False otherwise.
+	Returns
+	-------
+	isbra : bool
+	    True if Qobj is bra-vector, False otherwise.
 	
-	Example::
-	    
-	    >>> psi=basis(5,2)
-	    >>> print isket(psi)
-	    False
+	Examples
+	--------	    
+    >>> psi=basis(5,2)
+    >>> print isket(psi)
+    False
 	
-
 	"""
 	result = isinstance(Q.dims[1],list)
 	if result:
@@ -76,22 +79,23 @@ def isbra(Q):
 
 #***************************
 def isoper(Q):
-	"""
-	Determines if given quantum object is a operator
+	"""Determines if given quantum object is a operator.
 	
-	Args:
-	    
-	    Q (Qobj): quantum object
+	Parameters
+	----------
+	Q : qobj
+	    Quantum object
 	
-	Returns:
-	    
-	    True is Qobj is operator, False otherwise.
+	Returns
+	-------
+	isoper : bool
+	    True if Qobj is operator, False otherwise.
 	
-	Example::
-	    
-	    >>> a=destroy(4)
-	    >>> isoper(a)
-	    True
+	Examples
+	--------    
+	>>> a=destroy(4)
+    >>> isoper(a)
+    True
 	
 	"""
 	return isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0], int) and (Q.dims[0]==Q.dims[1])
@@ -99,16 +103,18 @@ def isoper(Q):
 
 #***************************
 def issuper(Q):
-	"""
-	Determines if given quantum object is a super-operator
+	"""Determines if given quantum object is a super-operator.
 	
-	Args:
-	    
-	    Q (Qobj): quantum object
+	Parameters
+	----------
+	Q : qobj
+	    Quantum object
 	
-	Returns: 
-	    
-	    True is Qobj is superoperator, False otherwise.
+	Returns
+	------- 
+	issuper  : bool
+	    True if Qobj is superoperator, False otherwise.
+	
 	"""
 	result = isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0],list)
 	if result:
@@ -117,36 +123,37 @@ def issuper(Q):
 
 
 #**************************
-def isequal(A,B,rtol=1e-10,atol=1e-12):
-    """
-    Determines if two array objects are equal to within tolerances
+def isequal(A,B,tol=1e-15):
+    """Determines if two qobj objects are equal to within given tolerance.
     
-    Args:
-        
-        A (array): array one
-        
-        B (array): array two
-        
-        rtol (float): for relative tolerence
-        
-        atol (float): for absolute tolerence
+    Parameters
+    ----------    
+    A : qobj 
+        Qobj one
     
-    Returns: 
-        
-        True if arrays are equal.  False otherwise.
+    B : qobj 
+        Qobj two
+    
+    tol : float
+        Tolerence for equality to be valid
+    
+    Returns
+    -------
+    
+    isequal : bool
+        True if qobjs are equal, False otherwise.
+    
     """
-    if shape(A)!=shape(B):
-        raise TypeError('Inputs do not have same shape.')
+    if A.dims!=B.dims:
+        return False
     else:
-        x=allclose(A,B,rtol,atol)
-        y=allclose(B,A,rtol,atol)
-        if x and y:
-            return True
-        elif x or y:
-            print('isequal result is not symmetric with respect to inputs.\n See numpy.allclose documentation')
-            return True
-        else:
+        Adat=A.data
+        Bdat=B.data
+        elems=(Adat-Bdat).data
+        if any(abs(elems)>tol):
             return False
+        else:
+            return True
 
 #**************************
 def ischeck(Q):
@@ -164,22 +171,23 @@ def ischeck(Q):
 
 #**************************
 def isherm(Q):
-    """
-    Determines whether a given operator is Hermitian.
+    """Determines if given operator is Hermitian.
     
-    Args:
-        
-        Q (Qobj): Input quantum object.
+    Parameters
+	----------
+	Q : qobj
+	    Quantum object
     
-    Returns: 
-        
+    Returns
+    ------- 
+    isherm : bool
         True if operator is Hermitian, False otherwise.
     
-    Example::
-        
-        >>> a=destroy(4)
-        >>> isherm(a)
-        False
+    Examples
+    --------    
+    >>> a=destroy(4)
+    >>> isherm(a)
+    False
     
     """
     if Q.dims[0]!=Q.dims[1]:

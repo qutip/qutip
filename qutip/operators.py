@@ -29,21 +29,44 @@ from qutip.Qobj import Qobj
 #
 
 def jmat(j,*args):
-    """
-    Higher-order spin operators:
+    """Higher-order spin operators:
     
-    Args:
+    Parameters
+    ----------
+    j : float
+        Spin of operator
     
-        j (float): Spin
+    args : str 
+        Which operator to return 'x','y','z','+','-'.
+        If no args given, then output is ['x','y','z']
+    
+    Returns
+    ------- 
+    jmat : qobj/list
+        ``qobj`` for requested spin operator(s).
         
-        args (string): Which operator to return 'x','y','z','+','-'
-                       If no args given, then output is ['x','y','z']
     
-    Returns: 
+    Examples
+    --------
+    >>>jmat(1)
+    [ Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+    Qobj data =
+    [[ 0.          0.70710678  0.        ]
+     [ 0.70710678  0.          0.70710678]
+     [ 0.          0.70710678  0.        ]]
+     Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+    Qobj data =
+    [[ 0.+0.j          0.+0.70710678j  0.+0.j        ]
+     [ 0.-0.70710678j  0.+0.j          0.+0.70710678j]
+     [ 0.+0.j          0.-0.70710678j  0.+0.j        ]]
+     Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+    Qobj data =
+    [[ 1.  0.  0.]
+     [ 0.  0.  0.]
+     [ 0.  0. -1.]]]
     
-        Qobj for requested spin operator.
-        
-        ..note:: If no 'args' input, then returns array of ['x','y','z'] operators.
+    
+    ..note:: If no 'args' input, then returns array of ['x','y','z'] operators.
         
     """
     if (fix(2*j)!=2*j) or (j<0):

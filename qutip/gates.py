@@ -25,19 +25,20 @@ def cnot():
     """
     Quantum object representing the CNOT gate.
     
-    Returns:
-        
-        Qobj for quantum object representation of CNOT gate
+    Returns
+    -------
+    cnot_gate : qobj
+        Quantum object representation of CNOT gate
     
-    Example::
-         
-         >>> cnot()
-         Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
-         Qobj data = 
-             [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
-              [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
-              [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]
-              [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]]
+    Examples
+    --------  
+    >>> cnot()
+    Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
+    Qobj data = 
+        [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]
+         [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]]
     
     """
     uu=qstate('uu')
@@ -50,29 +51,27 @@ def cnot():
 
 #------------------
 def fredkin():
-    """
-    Quantum object representing the Fredkin gate.
+    """Quantum object representing the Fredkin gate.
     
-    Returns:
+    Returns
+    -------
+    fred_gate : qobj
+        Quantum object representation of Fredkin gate.
     
-        Qobj for quantum object representation of Fredkin gate.
-    
-    Example::
-        
-        >>> fredkin()
-        Quantum object: dims = [[2, 2, 2], [2, 2, 2]], shape = [8, 8], type = oper, isHerm = True
-            Qobj data = 
-            [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
-             [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
-             [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
-             [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
-             [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j]
-             [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j]
-             [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j]
-             [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
+    Examples
+    --------    
+    >>> fredkin()
+    Quantum object: dims = [[2, 2, 2], [2, 2, 2]], shape = [8, 8], type = oper, isHerm = True
+    Qobj data = 
+        [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
          
-         
-
     """
     uuu = qstate('uuu')
     uud = qstate('uud') 
@@ -88,26 +87,26 @@ def fredkin():
 
 #------------------
 def toffoli():
-    """
-    Quantum object representing the Toffoli gate.
+    """Quantum object representing the Toffoli gate.
     
-    Returns:
+    Returns
+    -------
+    toff_gate : qobj
+        Quantum object representation of Toffoli gate.
     
-        Qobj quantum object representation of Toffoli gate.
-    
-    Example::
-        
-        >>> toffoli()
-        Quantum object: dims = [[2, 2, 2], [2, 2, 2]], shape = [8, 8], type = oper, isHerm = True
-        Qobj data = 
-            [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
-             [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
-             [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
-             [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
-             [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j]
-             [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j]
-             [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j]
-             [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j]]
+    Examples
+    --------    
+    >>> toffoli()
+    Quantum object: dims = [[2, 2, 2], [2, 2, 2]], shape = [8, 8], type = oper, isHerm = True
+    Qobj data = 
+        [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j]
+         [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j]]
          
          
     """
@@ -124,22 +123,22 @@ def toffoli():
 
 #------------------
 def swap():
-    """
-    Quantum object representing the SWAP gate.
+    """Quantum object representing the SWAP gate.
     
-    Returns:
+    Returns
+    -------
+    swap_gate : qobj
+        Quantum object representation of SWAP gate
     
-        Qobj quantum object representation of SWAP gate
-    
-    Example::
-    
-        >>> swap()
-        Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
-        Qobj data = 
-        [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
-         [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]
-         [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
-         [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
+    Examples
+    --------
+    >>> swap()
+    Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
+    Qobj data = 
+    [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
+     [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]
+     [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
+     [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
          
     """
     uu=qstate('uu')
@@ -152,20 +151,20 @@ def swap():
 
 
 def snot():
-    """
-    Quantum object representing the SNOT (Hadamard) gate.
+    """Quantum object representing the SNOT (Hadamard) gate.
     
-    Returns:
+    Returns
+    -------
+    snot_gate : qobj
+        Quantum object representation of SNOT (Hadamard) gate.
     
-        Qobj quantum object representation of SNOT (Hadamard) gate.
-    
-    Example::
-    
-        >>> snot()
-        Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = True
-        Qobj data = 
-        [[ 0.70710678+0.j  0.70710678+0.j]
-         [ 0.70710678+0.j -0.70710678+0.j]]
+    Examples
+    --------
+    >>> snot()
+    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = True
+    Qobj data = 
+    [[ 0.70710678+0.j  0.70710678+0.j]
+     [ 0.70710678+0.j -0.70710678+0.j]]
          
     """
     u=qstate('u')
@@ -178,21 +177,23 @@ def phasegate(theta):
     """
     Returns quantum object representing the phase shift gate.
     
-    Args:
-        
-        theta (float): Phase rotation angle.
+    Parameters
+    ----------
+    theta : float
+        Phase rotation angle.
     
-    Returns:
+    Returns
+    -------
+    phase_gate : qobj
+        Quantum object representation of phase shift gate.
     
-        Qobj for quantum object representation of phase shift gate.
-    
-    Example::
-        
-        >>> phasegate(pi/4)
-        Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
-        Qobj data = 
-        [[ 1.00000000+0.j          0.00000000+0.j        ]
-         [ 0.00000000+0.j          0.70710678+0.70710678j]]
+    Examples
+    --------    
+    >>> phasegate(pi/4)
+    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
+    Qobj data = 
+    [[ 1.00000000+0.j          0.00000000+0.j        ]
+     [ 0.00000000+0.j          0.70710678+0.70710678j]]
         
     """
     u=qstate('u')

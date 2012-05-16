@@ -23,31 +23,32 @@ from qutip.tensor import *
 
 
 def qstate(string):
-	"""
-	Creates a tensor product for a set of qubits in either 
+	"""Creates a tensor product for a set of qubits in either 
 	the 'up' :math:`|0>` or 'down' :math:`|1>` state.
     
-    Args:
-    
-        string (string): containing 'u' or 'd' for each qubit (ex. 'ududd')
+    Parameters
+    ----------
+    string : str 
+        String containing 'u' or 'd' for each qubit (ex. 'ududd')
 
-    Returns: 
-    
+    Returns
+    ------- 
+    qstate : qobj
         Qobj for tensor product corresponding to input string.
     
-    Example::
-    
-        >>> qstate('udu')
-        Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = [8, 1], type = ket
-        Qobj data = 
-        [[ 0.]
-         [ 0.]
-         [ 0.]
-         [ 0.]
-         [ 0.]
-         [ 1.]
-         [ 0.]
-         [ 0.]]
+    Examples
+    --------
+    >>> qstate('udu')
+    Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = [8, 1], type = ket
+    Qobj data = 
+    [[ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 1.]
+     [ 0.]
+     [ 0.]]
     
 	"""
 	n=len(string)

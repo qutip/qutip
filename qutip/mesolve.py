@@ -1064,27 +1064,35 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, H_args=None, options=None):
     at that point in time. `H_args` is a list of parameters that is
     passed to the callback function `H` (only used for time-dependent Hamiltonians).    
    
-    Args:
+    Parameters
+    ----------
     
-        `H` (:class:`qutip.Qobj`): system Hamiltonian, or a callback function for time-dependent Hamiltonians.
+    H : :class:`qutip.Qobj`
+        system Hamiltonian, or a callback function for time-dependent Hamiltonians.
         
-        `rho0` (:class:`qutip.Qobj`): initial density matrix.
+    rho0 : :class:`qutip.Qobj`
+        initial density matrix or state vector (ket).
+     
+    tlist : *list* / *array*    
+        list of times for :math:`t`.
         
-        `tlist` (*list/array*): list of times for :math:`t`.
-        
-        `c_ops` (list of :class:`qutip.Qobj`): list of collapse operators.
-        
-        `expt_ops` (list of :class:`qutip.Qobj`): list of operators for which to evaluate expectation values.
-        
-        `H_args` (*list*): of parameters to time-dependent Hamiltonians.
-        
-        `options` (:class:`qutip.Qdeoptions`): with options for the ODE solver.
+    c_op_list : list of :class:`qutip.Qobj`
+        list of collapse operators.
+    
+    expt_ops : list of :class:`qutip.Qobj` / callback function
+        list of operators for which to evaluate expectation values.
+     
+    H_args : *dictionary*
+        dictionary of parameters for time-dependent Hamiltonians and collapse operators.
+     
+    options : :class:`qutip.Qdeoptions`
+        with options for the ODE solver.
 
 
-    Returns:
-    
-        An *array* of expectation values of wavefunctions/density matrices
-        for the times specified by `tlist`.
+    Returns
+    -------
+    An ``array`` of expectation values of wavefunctions/density matrices
+    for the times specified by `tlist`.
 
     .. note:: 
     

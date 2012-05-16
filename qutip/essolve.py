@@ -35,27 +35,31 @@ def essolve(H, rho0, tlist, c_op_list, expt_op_list):
     arbitrary points in time (`tlist`), or the expectation values of the supplied
     operators (`expt_op_list`). 
    
-    Arguments:
+    Parameters
+    ----------
+    H : qobj/function_type 
+        System Hamiltonian.
     
-        H (Qobj): system Hamiltonian, or a callback function for time-dependent Hamiltonians.
-        
-        rho0 (Qobj): initial density matrix.
-        
-        tlist (list/array): list of times for :math:`t`.
-        
-        c_op_list (list of Qobj's): list of collapse operators.
-        
-        expt_op_list (list of Qobj's): list of operators for which to evaluate expectation values.
-
-
-    Returns:
-     
-     An (array) of expectation values of wavefunctions/density matrices
-     for the times specified by 'tlist'.        
-
-    .. note::
+    rho0 : qobj 
+        Initial state density matrix.
     
-        This solver does not support time-dependent Hamiltonians.
+    tlist : list/array
+        ``list`` of times for :math:`t`.
+    
+    c_op_list : list 
+        ``list`` of ``qobj`` collapse operators.
+    
+    expt_op_list : list
+        ``list`` of ``qobj`` operators for which to evaluate expectation values.
+
+
+    Returns
+    -------
+     expt_array : array
+        Expectation values of wavefunctions/density matrices for the times specified in ``tlist``.        
+
+    
+    .. note:: This solver does not support time-dependent Hamiltonians.
 
     """
     n_expt_op = len(expt_op_list)
@@ -84,20 +88,23 @@ def essolve(H, rho0, tlist, c_op_list, expt_op_list):
 #
 #
 def ode2es(L, rho0):
-    """
-    Create an exponential series that describes the time evolution for the
+    """Creates an exponential series that describes the time evolution for the
     initial density matrix (or state vector) `rho0`, given the Liouvillian 
     (or Hamiltonian) `L`.
     
-    Arguments:
-        
-        L (Qobj): Liouvillian of the system.
-        
-        rho0 (Qobj): Initial state vector or density matrix.
+    Parameters
+    ----------
+    L : qobj
+        Liouvillian of the system.
     
-    Returns 
+    rho0 : qobj
+        Initial state vector or density matrix.
     
-        eseries representing the system dynamics.
+    Returns
+    ------- 
+    ode_series : eseries 
+        ``eseries`` represention of the system dynamics.
+    
     """
 
     if issuper(L):
