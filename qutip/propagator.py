@@ -28,7 +28,7 @@ from qutip.states import basis
 from qutip.states import projection
 from qutip.Odeoptions import Odeoptions
 
-def propagator(H, t, c_op_list, H_args=None):
+def propagator(H, t, c_op_list, H_args=None, opt=None):
     """
     Calculate the propagator U(t) for the density matrix or wave function such that
     :math:`\psi(t) = U(t)\psi(0)` or :math:`\\rho_{\mathrm vec}(t) = U(t) \\rho_{\mathrm vec}(0)`
@@ -57,6 +57,10 @@ def propagator(H, t, c_op_list, H_args=None):
     
     """
 
+    if opt == None:
+        opt = Odeoptions()
+        opt.rhs_reuse = True
+
     if len(c_op_list) == 0:
         # calculate propagator for the wave function
 
@@ -70,10 +74,7 @@ def propagator(H, t, c_op_list, H_args=None):
             N = H.shape[0]
 
         u = zeros([N, N], dtype=complex)
-        
-        opt = Odeoptions()
-        opt.rhs_reuse = True
-                
+
         for n in range(0, N):
             psi0 = basis(N, n)
             output = mesolve(H, psi0, [0, t], [], [], H_args, opt)
@@ -103,7 +104,7 @@ def propagator(H, t, c_op_list, H_args=None):
         for n in xrange(0, N*N):
             psi0  = basis(N*N, n)
             rho0  = Qobj(vec2mat(psi0.full()))
-            output = mesolve(H, rho0, [0, t], c_op_list, [], H_args)
+            output = mesolve(H, rho0, [0, t], c_op_list, [], H_args, opt)
             u[:,n] = mat2vec(output.states[1].full()).T
 
     return Qobj(u)
