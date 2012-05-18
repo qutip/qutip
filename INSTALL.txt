@@ -1,26 +1,37 @@
 ################################
 # QuTiP INSTALLATION GUIDE
-# Version: 1.1.3
+# Version: 2.0.0
 # P.D. Nation and J.R. Johansson
 ################################
 
-** A complete guide may be found at http://qutip.googlecode.com/svn/doc/1.1.3/html/installation.html **
 
-**********************
-* GENERAL REQUIREMENTS
-**********************
-Package        Version        Details
--------        -------        --------
-Python	      2.6+ (not 3)	  Requires multiprocessing (v2.6 and higher only). At present, Matplotlib does not work for Python 3
-Numpy	      1.5.1+	      Not tested on lower versions.
-Scipy	      0.8+	          Not tested on lower versions (use 0.9+ if possible).
-Matplotlib	  1.0.1+	      Some plotting routines do not work on lower versions.
-Qt libraries  4.7.3+	      Optional. For GUI elements only. Not tested on lower versions.
-PyQt4	      4.8+	          Optional, required only for GUI elements. Can be substituted with PySide (recommended).
-PySide?	      1.0.2+	      Optional, required only for GUI elements. PyQt4 may be used instead.
-PyObjC	      2.2+	          MAC ONLY. Very optional. Needed only for a GUI Monte-Carlo progress bar on the mac. Other GUI elements will work without this package.
-GCC Compiler  4.2+	          Needed for compiling Cython files.
+A complete guide may be found at http://qutip.googlecode.com/svn/doc/2.0.0/html/installation.html
 
+
+===> IMPORTANT: QuTiP is designed for use on Unix based systems only, and is known to break on Microsoft Windows platforms. <===
+
+
+GENERAL REQUIREMENTS
+********************
+Package         Version         	Details
+-------         -------         	--------
+Python	      	2.6+ (not 3)		Requires multiprocessing (v2.6 and higher only). At present, Matplotlib does not work for Python 3
+Numpy	      	1.6+				Requires new array creation methods available in 1.6+.
+Scipy	      	0.9+	        	Not tested on lower versions.
+Matplotlib	  	1.0.1+	        	Some plotting routines do not work on lower versions.
+GCC Compiler  	4.2+	        	Needed for compiling c-code files used for ODE solvers.
+Python Headers	2.6+	        	LINUX ONLY. Needed for compiling c-code files.
+
+Qt libraries  	4.7.3+	        	Optional. For GUI elements only. Not tested on lower versions.
+PyQt4	      	4.8+	        	Optional, required only for GUI elements. Can be substituted with PySide (recommended).
+PySide?	      	1.0.6+	        	Optional, required only for GUI elements. PyQt4 may be used instead.
+PyObjC	      	2.2+	        	Optional.  MAC ONLY.  Needed only for a GUI Monte-Carlo progress bar on the mac.
+Cython			0.14+				Optional.  Needed for compiling list-string format time-dependent Hamiltonians.
+LaTex			Texlive 2009+       Optional.  Needed if using LaTex in figure labels.
+
+
+INSTALLATION
+************
 
 UBUNTU LINUX (RECOMMENDED)
 --------------------------
@@ -30,7 +41,7 @@ UBUNTU LINUX (RECOMMENDED)
 >>> sudo apt-get install python-setuptools
 >>> sudo apt-get install python-dev
 
-Ubuntu 11.04 and lower do not have Matplotlib>=1.0, and we therefore need to add the unofficial repository (in Ubuntu 11.10, skip this step)
+Ubuntu 11.04 and lower do not have Matplotlib>=1.0, and we therefore need to add the unofficial repository (in Ubuntu 11.10+, skip this step)
 
 >>> sudo add-apt-repository ppa:bgamari/matplotlib-unofficial
 >>> sudo apt-get update
@@ -43,43 +54,47 @@ QuTiP installation:
 
 >>> sudo python setup.py install
 
+
 APPLE MAC OSX (10.6+)
 ---------------------
 If you have not done so already, install the Apple XCode developer tools from the Apple App Store.
 
 On the Mac, it is recommended that you install the required libraries via MacPorts. 
-After installing with MacPorts, you may need to change your matplotlib backend
+After installation, the necessary “ports” for QuTiP may be installed using:
 
->>> sudo open -a TextEdit /opt/local/Library/Frameworks/Python.framework/Versions/2.7/lib/\
-python2.7/site-packages/matplotlib/mpl-data/matplotlibrc
+>>> sudo port install py27-scipy
+>>> sudo port install py27-matplotlib
 
-on line #31 to read:
+additional, but optional, ports include:
 
->>> backend      : MacOSX
+>>> sudo port install py27-ipython
+>>> sudo port install py27-cython
+>>> sudo port install texlive-latex-extra
 
-One can also use the Enthought Python Distribution version 7.1 or higher to satisfy the QuTiP dependencies.
+the last of which installs LaTeX and it’s required fonts, and in addition:
 
-A further possibility is to use the Scipy Superpack installer script. 
-In order to have GUI elements using this method, you need to further install the Qt4 and PySide packages at:
+>>> sudo port install py27-pyside
 
-http://qt.nokia.com/downloads/qt-for-open-source-cpp-development-on-mac-os-x
+or 
 
-http://developer.qt.nokia.com/wiki/PySide_Binaries_MacOSX
+>>> sudo port install py27-pyqt4
+
+A second option is to install the required Python packages using the SciPy Superpack. Further information on installing the superpack can be found on the SciPy Downloads page. Note that, if you choose this option, the GUI elements of QuTiP will not be available without further installing either the PyQt4 or PySide packages separately.
+
+Finally, one can also use the Enthought Python Distribution version 7.1 or higher to satisfy the QuTiP dependencies.
 
 Installing QuTiP is the same as on linux. From the QuTiP directory:
 
 >>> sudo python setup.py install
 
-MICROSOFT WINDOWS
------------------
-The developers of QuTiP have not touched Windows in several years, and will be continuing this trend for the foreseeable future. 
-Therefore we recommend the Enthought Python Distribution version 7.1 or higher to satisfy the QuTiP dependencies. 
-QuTiP has also been reported to work out-of-the-box with Python(x,y). 
-In Python(x,y), QuTiP may be installed using:
 
->>> python setup.py install build --compiler=mingw32
+VERIFY INSTALLATION
+*******************
+QuTiP now includes a collection of built-in test scripts to verify that the installation was indeed successful. To run the suite of tests scripts, after installing QuTiP call:
 
+>>> python setup.py test
 
+If successful, these tests indicate that all of the QuTiP functions are working properly. If any errors occur, please check that your have installed all of the required modules. See the next section on how to check the installed versions of the QuTiP dependencies. If these tests still fail, then head on over to the QuTiP Discussion Board and post a message detailing your particular issue.
 
 
 
