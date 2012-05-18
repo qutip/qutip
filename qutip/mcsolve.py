@@ -93,17 +93,24 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     
     
     #AFTER MCSOLVER IS DONE --------------------------------------
-    #if (odeconfig.tflag in array([1,10,11,12])) and (not options.rhs_reuse):
-        #try:
-            #os.remove(odeconfig.tdname+".pyx")
-        #except:
-            #print("Error removing pyx file.  File not found.")
+    if (odeconfig.tflag in array([1,10,11,12])) and (not options.rhs_reuse):
+        try:
+            os.remove(odeconfig.tdname+".pyx")
+        except:
+            print("Error removing pyx file.  File not found.")
+    
+    
     
     #-------COLLECT AND RETURN OUTPUT DATA IN ODEDATA OBJECT --------------#
     output=Odedata()
     output.states=mc.psi_out
     if any(mc.expect_out) and odeconfig.cflag and options.mc_avg==True:#averaging if multiple trajectories
-        output.expect=mean(mc.expect_out,axis=0)
+        if isinstance(ntraj,int):
+            output.expect=mean(mc.expect_out,axis=0)
+        elif isinstance(ntraj,(list,ndarray)):
+            output.expect=[]
+            for num in ntraj:
+                output.expect.append(mean(mc.expect_out[:num],axis=0))
     else:#no averaging for single trajectory or if mc_avg flag (Odeoptions) is off
         output.expect=mc.expect_out
 
@@ -158,7 +165,7 @@ class MC_class():
         self.thread=None
         ##check if user wants multiple trajectory averages
         if isinstance(ntraj,(list,ndarray)):
-            ntraj=sum(ntraj)
+            ntraj=ntraj[-1]
         ##number of Monte-Carlo trajectories
         self.ntraj=ntraj
         #Number of completed trajectories
@@ -525,7 +532,9 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
     #----
     
     
-    #Hamiltonian & collapse terms are time-INDEPENDENT
+    #--------------------------------------------
+    # START CONSTANT H * C_OPS CODE
+    #--------------------------------------------
     if odeconfig.tflag==0:
         if odeconfig.cflag:
             odeconfig.c_const_inds=arange(len(c_ops))
@@ -540,7 +549,9 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
         odeconfig.Hptrs=H.data.indptr  
     #----
     
-    #Hamiltonian &/or collapse terms have string-type time-DEPENDENCE
+    #--------------------------------------------
+    # START STRING BASED TIME-DEPENDENCE
+    #--------------------------------------------
     elif odeconfig.tflag in array([1,10,11]):
         #take care of arguments for collapse operators, if any
         if any(args):
@@ -579,7 +590,7 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
             #--------------------------------------------
         
         
-        #string-type Hamiltonian & string-type (or constant) collapse operators
+        #string-type Hamiltonian & at least one string-type collapse operator
         else:
             H_inds=arange(len(H))
             H_td_inds=array(h_stuff[2]) #find inds of time-dependent terms
@@ -589,7 +600,7 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
             len_h=len(H)
             H_inds=arange(len_h)
             odeconfig.h_td_inds=arange(1,len_h)#store indicies of time-dependent Hamiltonian terms
-            #if there are any collpase operatorss
+            #if there are any collpase operators
             if odeconfig.c_num>0:
                 if odeconfig.tflag==10: #constant collapse operators
                     odeconfig.c_const_inds=arange(odeconfig.c_num)
@@ -663,13 +674,19 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
             cgen=Codegen(H_inds,H_tdterms,odeconfig.h_td_inds,args,C_inds,C_tdterms,odeconfig.c_td_inds)
             cgen.generate(name+".pyx")
         #----
-        
     #--------------------------------------------
-    # NON-CYTHON TIME-DEPENDENT CODE
-    elif isinstance(H,FunctionType):
-        odeconfig.tflag=2
-        odeconfig.Hfunc=H
-        odeconfig.Hargs=-1.0j*array([op.data for op in args])
+    # END OF STRING TYPE TIME DEPENDENT CODE
+    #--------------------------------------------
+    
+    #--------------------------------------------
+    # START PYTHON FUNCTION BASED TIME-DEPENDENCE
+    #--------------------------------------------
+    elif odeconfig.tflag in array([2,20,22]):
+        
+        # constant Hamiltonian, at least one function based collapse operators
+        if odeconfig.tflag==2:
+            pass
+        
         if len(c_ops)>0:
             odeconfig.cflag=1
             Hq=0
