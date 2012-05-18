@@ -212,11 +212,11 @@ class MC_class():
                 ##List of output expectation values calculated at times in tlist
                 self.expect_out=[]
                 for i in xrange(odeconfig.e_num):
-                    if self.e_ops_isherm[i]:#preallocate real array of zeros
+                    if odeconfig.e_ops_isherm[i]:#preallocate real array of zeros
                         self.expect_out.append(zeros(self.num_times))
                     else:#preallocate complex array of zeros
                         self.expect_out.append(zeros(self.num_times,dtype=complex))
-                    self.expect_out[i][0]=mc_expect(self.e_ops_data[i],self.e_ops_ind[i],self.e_ops_ptr[i],self.e_ops_isherm[i],self.psi_in)
+                    self.expect_out[i][0]=mc_expect(self.e_ops_data[i],self.e_ops_ind[i],self.e_ops_ptr[i],odeconfig.e_ops_isherm[i],self.psi_in)
         
         #FOR EVOLUTION WITH COLLAPSE OPERATORS---------------------------------------------
         elif odeconfig.c_num!=0:
