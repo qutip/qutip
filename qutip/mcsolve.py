@@ -110,7 +110,17 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
         elif isinstance(ntraj,(list,ndarray)):
             output.expect=[]
             for num in ntraj:
-                output.expect.append(mean(mc.expect_out[:num],axis=0))
+                expt_data=mean(mc.expect_out[:num],axis=0)
+                data_list=[]
+                if any([op.isherm==False for op in e_ops]):
+                    for k in xrange(len(e_ops)):
+                        if e_ops[k].isherm:
+                            data_list.append(real(expt_data[k]))
+                        else:
+                            data_list.append(expt_data[k])
+                else:
+                    data_list=[data for data in expt_data]
+                output.expect.append(data_list)
     else:#no averaging for single trajectory or if mc_avg flag (Odeoptions) is off
         output.expect=mc.expect_out
 
