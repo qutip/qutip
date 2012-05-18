@@ -1,7 +1,4 @@
 #
-# Python script for generating Figure 4 from the 
-# QuTiP manuscript.
-#
 # This is a Monte-Carlo simulation showing the decay of a cavity
 # Fock state |1> in a thermal environment with an average
 # occupation number of n=0.063.  Here, the coupling strength is given
@@ -11,12 +8,8 @@
 # S. Gleyzes, et al., Nature 446, 297 (2007). 
 #
 
-from qutip.expect import *
-from qutip.mcsolve import *
-from qutip.mesolve import *
-from qutip.operators import *
-from qutip.states import *
-from qutip.steady import *
+#load qutip and matplotlib
+from qutip import *
 from pylab import *
 
 def run():
@@ -38,18 +31,14 @@ def run():
     c_op_list.append(sqrt(kappa * nth) * a.dag())
 
     # run monte carlo simulation
-    ntraj=904 # number of MC trajectories
+    ntraj=[1,5,15,904] # list of number of trajectories to avg. over
     tlist=linspace(0,0.6,100)
-    # here we return state vectors to show that this is possible
-    mc = mcsolve(H,psi0,tlist,c_op_list,[],ntraj)
-
-    # calculate expectation values for different # of trajectories
-    ex1=expect(num(N),mc.states[0])
-    # here the '0' is needed as 2nd arg to mean so it knows to avererage over
-    # different trajectories and not different times.
-    ex5=mean([expect(num(N),mc.states[k]) for k in range(5)],0)
-    ex15=mean([expect(num(N),mc.states[k]) for k in range(15)],0)
-    ex904=mean([expect(num(N),mc.states[k]) for k in range(904)],0)
+    mc = mcsolve(H,psi0,tlist,c_op_list,[a.dag()*a],ntraj)
+    # get expectation values from mc data (need extra index since ntraj is list)
+    ex1=mc.expect[0][0]     #for ntraj=1
+    ex5=mc.expect[1][0]     #for ntraj=5
+    ex15=mc.expect[2][0]    #for ntraj=15
+    ex904=mc.expect[3][0]   #for ntraj=904
 
     ## run master equation to get ensemble average expectation values ## 
     me = mesolve(H,psi0,tlist,c_op_list, [a.dag()*a])
@@ -62,7 +51,7 @@ def run():
     # plot results using vertically stacked plots
     #
     
-    # set legend fortsize
+    # set legend fontsize
     import matplotlib.font_manager
     leg_prop = matplotlib.font_manager.FontProperties(size=10)
     
@@ -71,40 +60,40 @@ def run():
     
     # subplot 1 (top)
     ax1 = subplot(411)
-    ax1.plot(tlist,ex1,'b',lw=1.5)
-    ax1.axhline(y=fexpt,color='k',lw=1.0)
-    yticks(linspace(0,1,3))
-    ylim([-0.1,1.1])
+    ax1.plot(tlist,ex1,'b',lw=2)
+    ax1.axhline(y=fexpt,color='k',lw=1.5)
+    yticks(linspace(0,2,5))
+    ylim([-0.1,1.5])
     ylabel('$\left< N \\right>$',fontsize=14)
     title("Ensemble Averaging of Monte Carlo Trajectories")
     legend(('Single trajectory','steady state'),prop=leg_prop)
     
     # subplot 2
     ax2=subplot(412,sharex=ax1) #share x-axis of subplot 1
-    ax2.plot(tlist,ex5,'b',lw=1.5)
-    ax2.axhline(y=fexpt,color='k',lw=1.0)
-    yticks(linspace(0,1,3))
-    ylim([-0.1,1.1])
+    ax2.plot(tlist,ex5,'b',lw=2)
+    ax2.axhline(y=fexpt,color='k',lw=1.5)
+    yticks(linspace(0,2,5))
+    ylim([-0.1,1.5])
     ylabel('$\left< N \\right>$',fontsize=14)
     legend(('5 trajectories','steadystate'),prop=leg_prop)
     
     # subplot 3
     ax3=subplot(413,sharex=ax1) #share x-axis of subplot 1
-    ax3.plot(tlist,ex15,'b',lw=1.5)
+    ax3.plot(tlist,ex15,'b',lw=2)
     ax3.plot(tlist,me.expect[0],'r--',lw=1.5)
-    ax3.axhline(y=fexpt,color='k',lw=1.0)
-    yticks(linspace(0,1,3))
-    ylim([-0.1,1.1])
+    ax3.axhline(y=fexpt,color='k',lw=1.5)
+    yticks(linspace(0,2,5))
+    ylim([-0.1,1.5])
     ylabel('$\left< N \\right>$',fontsize=14)
     legend(('15 trajectories','master equation','steady state'),prop=leg_prop)
     
     # subplot 4 (bottom)
     ax4=subplot(414,sharex=ax1) #share x-axis of subplot 1
-    ax4.plot(tlist,ex904,'b',lw=1.5)
+    ax4.plot(tlist,ex904,'b',lw=2)
     ax4.plot(tlist,me.expect[0],'r--',lw=1.5)
-    ax4.axhline(y=fexpt,color='k',lw=1.0)
-    yticks(linspace(0,1,3))
-    ylim([-0.1,1.1])
+    ax4.axhline(y=fexpt,color='k',lw=1.5)
+    yticks(linspace(0,2,5))
+    ylim([-0.1,1.5])
     ylabel('$\left< N \\right>$',fontsize=14)
     legend(('904 trajectories','master equation','steady state'),prop=leg_prop)
     

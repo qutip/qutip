@@ -54,7 +54,7 @@ master_nums=20+arange(len(master_labels))
 monte_labels=["Mc Cavity+Qubit","none","MC Ensemble Avg.","none","none","none","none"]
 monte_desc=["Monte Carlo evoution of a coherently driven cavity with a two-level atom.",
             "none",
-            "Ensemble averaging of MC trajectories to master equation for Fock state decay. (be patient)",
+            "Ensemble averaging of MC trajectories to master equation for Fock state decay.",
             "none",
             "none",
             "none",
