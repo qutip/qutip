@@ -19,7 +19,6 @@
 import pickle
 from scipy import *
 from Qobj import *
-from Mcdata import Mcdata
 from Odedata import Odedata
 
 # ------------------------------------------------------------------------------
