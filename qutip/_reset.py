@@ -51,9 +51,9 @@ def _reset_odeconfig():
     odeconfig.psi0_shape=None 
     #Hamiltonian stuff
     odeconfig.h_td_inds=[]        #indicies of time-dependent Hamiltonian operators
-    odeconfig.Hdata=None          #List of sparse matrix data
-    odeconfig.Hinds=None          #List of sparse matrix indices
-    odeconfig.Hptrs=None          #List of sparse matrix ptrs
+    odeconfig.h_data=None          #List of sparse matrix data
+    odeconfig.h_inds=None          #List of sparse matrix indices
+    odeconfig.h_ptrs=None          #List of sparse matrix ptrs
 
     #Expectation operator stuff
     odeconfig.e_num=0             #number of expect ops
@@ -75,6 +75,10 @@ def _reset_odeconfig():
     odeconfig.n_ops_ind=[]        #norm collapse op indices
     odeconfig.n_ops_ptr=[]        #norm collapse op indptrs
     
-    #executable strring stuff
+    #executable string stuff
     odeconfig.col_expect_code=None
     odeconfig.col_spmv_code=None
+    
+    #python function stuff
+    odeconfig.c_funcs=None
+    odeconfig.c_func_args=None

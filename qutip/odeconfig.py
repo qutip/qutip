@@ -28,15 +28,17 @@ colspmv=None        #Placeholder for time-dependent col-spmv function.
 colexpect=None      #Placeholder for time-dependent col_expect function.
 string=None         #Holds string of variables to be passed onto time-depdendent ODE solver.
 tdname=None         #Name of td .pyx file (used in parallel mc code)
+
 #Initial state stuff
 psi0=None   
 psi0_dims=None 
 psi0_shape=None 
+
 #Hamiltonian stuff
 h_td_inds=[]        #indicies of time-dependent Hamiltonian operators
-Hdata=None          #List of sparse matrix data
-Hinds=None          #List of sparse matrix indices
-Hptrs=None          #List of sparse matrix ptrs
+h_data=None          #List of sparse matrix data
+h_ind=None          #List of sparse matrix indices
+h_ptr=None          #List of sparse matrix ptrs
 
 #Expectation operator stuff
 e_num=0             #number of expect ops
@@ -62,5 +64,6 @@ n_ops_ptr=[]        #norm collapse op indptrs
 col_expect_code=None
 col_spmv_code=None
 
-
-
+#hold stuff for function based time dependence
+c_funcs=None
+func_args=None
