@@ -19,7 +19,6 @@
 import numpy as np
 cimport numpy as np
 cimport cython
-#from cython.parallel cimport prange
 
 ctypedef np.complex128_t CTYPE_t
 ctypedef np.float64_t DTYPE_t
@@ -57,20 +56,22 @@ def mc_expect(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[i
     else:
         return dot
 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cy_mc_no_time(float t, np.ndarray[CTYPE_t, ndim=1] psi, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr):
-    cdef int row, jj, row_start, row_end
-    cdef int num_rows=len(psi)
+def spmv1d(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=1] vec):
+    cdef Py_ssize_t row
+    cdef int jj,row_start,row_end
+    cdef int num_rows=len(vec)
     cdef complex dot
     cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)
-    for row from 0 <= row < num_rows:
-        dot = 0.0
+    for row in range(num_rows):
+        dot=0.0
         row_start = ptr[row]
         row_end = ptr[row+1]
-        for jj from row_start <= jj < row_end:
-            dot += data[jj] * psi[idx[jj]]
-        out[row,0] = dot
+        for jj in range(row_start,row_end):
+            dot+=data[jj]*vec[idx[jj]]
+        out[row,0]=dot
     return out
 
 

@@ -16,11 +16,9 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-
 import numpy as np
 cimport numpy as np
 cimport cython
-#from cython.parallel cimport prange
 
 ctypedef np.complex128_t CTYPE_t
 ctypedef np.float64_t DTYPE_t
