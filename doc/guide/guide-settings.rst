@@ -31,8 +31,6 @@ In this section we show how to modify a few of the internal parameters used by Q
 +-------------------------------+-------------------------------------------+-----------------------------+
 | `num_cpus`                    | Number of CPU's used for multiprocessing. | `int` between 1 and # cpu's |
 +-------------------------------+-------------------------------------------+-----------------------------+
-| `franco`                      | Turns on the Franco easter egg.           | False / True                |
-+-------------------------------+-------------------------------------------+-----------------------------+
 
 .. _settings-usage:
 
