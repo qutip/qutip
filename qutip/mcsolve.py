@@ -352,12 +352,22 @@ def cRHStd(t,psi):
     col=array([abs(odeconfig.c_funcs[j](t,odeconfig.c_func_args))**2*spmv1d(odeconfig.n_ops_data[j],odeconfig.n_ops_ind[j],odeconfig.n_ops_ptr[j],psi) for j in odeconfig.c_td_inds])
     return sys-0.5*sum(col,0)
 
-#RHS of ODE for function based Hamiltonian and at least one function based collapse operator
+#RHS of ODE for function-list based Hamiltonian
 def tdRHStd(t,psi):
     const_term=spmv1d(odeconfig.h_data,odeconfig.h_ind,odeconfig.h_ptr,psi)
     h_func_term=array([odeconfig.h_funcs[j](t,odeconfig.h_func_args)*spmv1d(odeconfig.h_td_data[j],odeconfig.h_td_ind[j],odeconfig.h_td_ptr[j],psi) for j in odeconfig.h_td_inds])
     col_func_terms=array([abs(odeconfig.c_funcs[j](t,odeconfig.c_func_args))**2*spmv1d(odeconfig.n_ops_data[j],odeconfig.n_ops_ind[j],odeconfig.n_ops_ptr[j],psi) for j in odeconfig.c_td_inds])
     return const_term-1.0j*sum(h_func_term,0)-0.5*sum(col_func_terms,0)
+
+#RHS of ODE for python function Hamiltonian
+def tdRHStd(t,psi):
+    h_func_data=odeconfig.h_funcs(t,odeconfig.h_func_args).data
+    h_func_term=-1.0j*spmv1d(h_func_data.data,h_func_data.indices,h_func_data.indptr,psi)
+    const_term=0
+    if any(odeconfig.c_const_inds):
+        const_term=spmv1d(odeconfig.h_data,odeconfig.h_ind,odeconfig.h_ptr,psi)
+    col_func_terms=array([abs(odeconfig.c_funcs[j](t,odeconfig.c_func_args))**2*spmv1d(odeconfig.n_ops_data[j],odeconfig.n_ops_ind[j],odeconfig.n_ops_ptr[j],psi) for j in odeconfig.c_td_inds])
+    return const_term+h_func_term-0.5*sum(col_func_terms,0)
 #----------------------------------------------------
 # END PYTHON FUNCTION RHS
 #----------------------------------------------------
@@ -783,6 +793,66 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
         odeconfig.h_td_data=array([-1.0j*Htd[k].data.data for k in odeconfig.h_td_inds])
         odeconfig.h_td_ind=array([Htd[k].data.indices for k in odeconfig.h_td_inds])
         odeconfig.h_td_ptr=array([Htd[k].data.indptr for k in odeconfig.h_td_inds])
-        
-            
-            
+        #--------------------------------------------
+        # END PYTHON FUNCTION BASED TIME-DEPENDENCE
+        #--------------------------------------------
+     
+     
+    #--------------------------------------------
+    # START PYTHON FUNCTION BASED HAMILTONIAN
+    #--------------------------------------------
+    elif odeconfig.tflag==3:
+         #take care of Hamiltonian
+         odeconfig.h_funcs=H
+         odeconfig.h_func_args=args
+         
+         #take care of collapse operators
+         C_inds=arange(odeconfig.c_num)
+         C_td_inds=array(c_stuff[1]) #find inds of time-dependent terms
+         C_const_inds=setdiff1d(C_inds,C_td_inds) #find inds of constant terms
+         odeconfig.c_const_inds=C_const_inds#store indicies of constant collapse terms
+         odeconfig.c_td_inds=C_td_inds#store indicies of time-dependent collapse terms    
+         odeconfig.c_funcs=zeros(odeconfig.c_num,dtype=FunctionType)
+         for k in odeconfig.c_td_inds:
+             odeconfig.c_funcs[k]=c_ops[k][1]
+         odeconfig.c_func_args=args
+         if any(odeconfig.c_const_inds):
+             H=0
+             for k in odeconfig.c_const_inds:
+                 H-=0.5j*(c_ops[k].dag()*c_ops[k])
+             if options.tidy:
+                 H=H.tidyup(options.atol)
+             odeconfig.h_data=-1.0j*H.data.data
+             odeconfig.h_ind=H.data.indices
+             odeconfig.h_ptr=H.data.indptr
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         
+         

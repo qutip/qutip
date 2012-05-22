@@ -64,7 +64,7 @@ n_ops_ptr=[]        #norm collapse op indptrs
 col_expect_code=None
 col_spmv_code=None
 
-#hold stuff for function based time dependence
+#hold stuff for function list based time dependence
 h_td_inds=[]
 h_td_data=[]
 h_td_ind=[]
@@ -73,3 +73,12 @@ h_funcs=None
 h_func_args=None
 c_funcs=None
 c_func_args=None
+
+
+
+
+
+
+
+
+

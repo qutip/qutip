@@ -105,8 +105,10 @@ def _ode_checks(H,c_ops,solver='me'):
         #
         #   FUNC   FUNC     22
         
+        if isinstance(H, FunctionType):
+            time_type=3
         #Time-indepdent problems
-        if (len(h_func)==len(h_str)==0) and (len(c_func)==len(c_str)==0):
+        elif (len(h_func)==len(h_str)==0) and (len(c_func)==len(c_str)==0):
             time_type=0
         
         #constant Hamiltonian, time-dependent collapse operators
