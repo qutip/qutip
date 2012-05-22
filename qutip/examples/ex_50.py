@@ -68,7 +68,8 @@ def compute(N, M, h, Jx, Jy, Jz, taulist):
 
 
     # the time-dependent hamiltonian in list-string format
-    h_t = [[H0, '(%f-t)/%f' % (max(taulist),max(taulist))], [H1, 't/%f' % max(taulist)]]       
+    args = max(taulist)
+    h_t = [[H0, lambda t, t_max : (t_max-t)/t_max], [H1, lambda t, t_max : t/t_max]]       
 
     #
     # callback function for each time-step
@@ -80,7 +81,7 @@ def compute(N, M, h, Jx, Jy, Jz, taulist):
     def process_rho(tau, psi):
   
         # evaluate the Hamiltonian with gradually switched on interaction
-        H = qobj_list_evaluate(h_t, tau, {})
+        H = qobj_list_evaluate(h_t, tau, args)
 
         # find the M lowest eigenvalues of the system
         evals, ekets = H.eigenstates(eigvals=M)
@@ -97,7 +98,7 @@ def compute(N, M, h, Jx, Jy, Jz, taulist):
     # Evolve the system, request the solver to call process_rho at each time
     # step.
     #
-    mesolve(h_t, psi0, taulist, [], process_rho)
+    mesolve(h_t, psi0, taulist, [], process_rho, args)
         
     return evals_mat, occupation_mat
     
