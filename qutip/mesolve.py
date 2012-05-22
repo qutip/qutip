@@ -447,6 +447,8 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     string_list = []
     for k in range(n_L_terms):
         string_list.append("Ldata["+str(k)+"],Linds["+str(k)+"],Lptrs["+str(k)+"]")
+    for name, value in args.iteritems():
+        string_list.append(str(value))
     parameter_string = ",".join(string_list)
    
     #
@@ -538,6 +540,8 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     string_list = []
     for k in range(n_L_terms):
         string_list.append("Ldata["+str(k)+"],Linds["+str(k)+"],Lptrs["+str(k)+"]")
+    for name, value in args.iteritems():
+        string_list.append(str(value))
     parameter_string = ",".join(string_list)
    
     #

@@ -316,10 +316,17 @@ class Codegen2():
         """
         func_name  = "def cyq_td_ode_rhs("
         input_vars = "float t, np.ndarray[CTYPE_t, ndim=1] vec, " #strings for time and vector variables
-        arg_L_list = []
+        arg_list = []
         for k in range(self.n_L_terms):
-            arg_L_list.append("np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k))
-        input_vars += ", ".join(arg_L_list)
+            arg_list.append("np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k))
+
+        if self.args:
+            for name, value in self.args.iteritems():
+                kind = type(value).__name__
+                arg_list.append("np."+kind+"_t"+" "+name)
+
+        input_vars += ", ".join(arg_list)
+
         func_end="):"
         return [func_name+input_vars+func_end]
         
@@ -342,12 +349,6 @@ class Codegen2():
         Writes the variables and their types & spmv parts
         """
         decl_list = ["",'cdef Py_ssize_t row','cdef int num_rows = len(vec)','cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)', ""]
-
-        if self.args:
-            for name, value in self.args.iteritems():
-                kind = type(value).__name__
-                decl_list.append("cdef np."+kind+"_t"+" "+name+" = "+str(value))
-            decl_list.append("")
 
         for n in range(self.n_L_terms):
             nstr=str(n)
