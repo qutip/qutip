@@ -11,4 +11,5 @@ Advanced topics and examples
    :maxdepth: 2
    
    advanced/ex-50.rst
+   advanced/ex-lzs.rst
 
