@@ -47,7 +47,7 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         
     Other Parameters
     ----------------
-    H_args : list/array 
+    H_args : list/array/dictionary 
         Parameters to callback functions for time-dependent Hamiltonians.
     
     Returns
