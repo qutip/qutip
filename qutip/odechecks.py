@@ -130,7 +130,7 @@ def _ode_checks(H,c_ops,solver='me'):
     
     
         #Python function style Hamiltonian
-        elif lenn(h_func)>0:
+        elif len(h_func)>0:
             if len(c_func)==len(c_str)==0:
                 time_type=20
             elif len(c_func)>0:

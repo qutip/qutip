@@ -78,6 +78,12 @@ def _reset_odeconfig():
     odeconfig.col_expect_code=None
     odeconfig.col_spmv_code=None
     
-    #python function stuff
+    #hold stuff for function based time dependence
+    odeconfig.h_td_inds=[]
+    odeconfig.h_td_data=[]
+    odeconfig.h_td_ind=[]
+    odeconfig.h_td_ptr=[]
+    odeconfig.h_funcs=None
+    odeconfig.h_func_args=None
     odeconfig.c_funcs=None
     odeconfig.c_func_args=None

@@ -335,21 +335,36 @@ class MC_class():
                 
 
 
+
+
+
 #----------------------------------------------------
 # CODES FOR PYTHON FUNCTION BASED TIME-DEPENDENT RHS
 #----------------------------------------------------
 #RHS of ODE for time-dependent systems with no collapse operators
-def RHStd(t,psi):
-    return odeconfig.Hfunc(t,odeconfig.args)*psi
+def tdRHS(t,psi):
+    h_data=odeconfig.h_func(t,odeconfig.h_func_args).data
+    return spmv1d(-1.0j*h_data.data,h_data.indices,h_data.indptr,psi)
 
-#RHS of ODE for constant Hamiltonians and at least one function based collapse operator
+#RHS of ODE for constant Hamiltonian and at least one function based collapse operator
 def cRHStd(t,psi):
     sys=cyq_ode_rhs(t,psi,odeconfig.h_data,odeconfig.h_ind,odeconfig.h_ptr)
     col=array([abs(odeconfig.c_funcs[j](t,odeconfig.c_func_args))**2*spmv1d(odeconfig.n_ops_data[j],odeconfig.n_ops_ind[j],odeconfig.n_ops_ptr[j],psi) for j in odeconfig.c_td_inds])
     return sys-0.5*sum(col,0)
+
+#RHS of ODE for function based Hamiltonian and at least one function based collapse operator
+def tdRHStd(t,psi):
+    const_term=spmv1d(odeconfig.h_data,odeconfig.h_ind,odeconfig.h_ptr,psi)
+    h_func_term=array([odeconfig.h_funcs[j](t,odeconfig.h_func_args)*spmv1d(odeconfig.h_td_data[j],odeconfig.h_td_ind[j],odeconfig.h_td_ptr[j],psi) for j in odeconfig.h_td_inds])
+    col_func_terms=array([abs(odeconfig.c_funcs[j](t,odeconfig.c_func_args))**2*spmv1d(odeconfig.n_ops_data[j],odeconfig.n_ops_ind[j],odeconfig.n_ops_ptr[j],psi) for j in odeconfig.c_td_inds])
+    return const_term-1.0j*sum(h_func_term,0)-0.5*sum(col_func_terms,0)
 #----------------------------------------------------
 # END PYTHON FUNCTION RHS
 #----------------------------------------------------
+
+
+
+
 
 
 
@@ -432,20 +447,26 @@ def mc_alg_evolve(nt,args):
     random.seed(seeds[nt])
     rand_vals=random.rand(2)#first rand is collapse norm, second is which operator
     
-    #CREATE ODE OBJECT CORRESPONDING TO RHS
+    #CREATE ODE OBJECT CORRESPONDING TO DESIRED TIME-DEPENDENCE
     if odeconfig.tflag in array([1,10,11]):
         ODE=ode(odeconfig.tdfunc)
         code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
         exec(code)
     elif odeconfig.tflag==2:
         ODE=ode(cRHStd)
+    elif odeconfig.tflag in array([20,22]):
+        ODE=ode(tdRHStd)
     else:
         ODE = ode(cyq_ode_rhs)
         ODE.set_f_params(odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr)
-    
+
+    #initialize ODE solver for RHS
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,
-                        first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
-    ODE.set_initial_value(odeconfig.psi0,tlist[0]) #set initial conditions
+                        first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step)
+    
+    #set initial conditions
+    ODE.set_initial_value(odeconfig.psi0,tlist[0])
+    
     #RUN ODE UNTIL EACH TIME IN TLIST
     cinds=arange(num_collapse)
     for k in xrange(1,num_times):
@@ -463,11 +484,10 @@ def mc_alg_evolve(nt,args):
                     n_dp=array(n_dp)
                 
                 #some Python function based collapse operators
-                elif odeconfig.tflag in array([2,22]):
+                elif odeconfig.tflag in array([2,20,22]):
                     n_dp=[mc_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in odeconfig.c_const_inds]
                     n_dp+=[abs(odeconfig.c_funcs[i](ODE.t,odeconfig.c_func_args))**2*mc_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in odeconfig.c_td_inds]
                     n_dp=array(n_dp)
-                
                 #all constant collapse operators.
                 else:    
                     n_dp=array([mc_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in xrange(num_collapse)])
@@ -526,6 +546,8 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
     """Creates the appropriate data structures for the monte carlo solver
     based on the given time-dependent, or indepdendent, format.
     """
+    print odeconfig.tflag
+    
     #set initial value data
     if options.tidy:
         odeconfig.psi0=psi0.tidyup(options.atol).full()
@@ -534,6 +556,7 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
     odeconfig.psi0_dims=psi0.dims
     odeconfig.psi0_shape=psi0.shape
     #----
+    
     #take care of expectation values, if any
     if any(e_ops):
         odeconfig.e_num=len(e_ops)
@@ -569,7 +592,7 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
     
     
     #--------------------------------------------
-    # START CONSTANT H * C_OPS CODE
+    # START CONSTANT H & C_OPS CODE
     #--------------------------------------------
     if odeconfig.tflag==0:
         if odeconfig.cflag:
@@ -656,7 +679,7 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
                         H[0]-=0.5j*(c_ops[k].dag()*c_ops[k])
             else:#set empty objects if no collapse operators
                 C_const_inds=arange(odeconfig.c_num)
-                odeconfig.c_const_inds=range(odeconfig.c_num)
+                odeconfig.c_const_inds=arange(odeconfig.c_num)
                 odeconfig.c_td_inds=array([])
                 C_tdterms=array([])
                 C_inds=array([])
@@ -718,27 +741,48 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
     # START PYTHON FUNCTION BASED TIME-DEPENDENCE
     #--------------------------------------------
     elif odeconfig.tflag in array([2,20,22]):
-        # constant Hamiltonian, at least one function based collapse operators
-        if odeconfig.tflag==2:
-            H_inds=arange(1)
+        
+        #take care of Hamiltonian
+        if odeconfig.tflag==2:# constant Hamiltonian, at least one function based collapse operators
+            H_inds=array([0])
             H_tdterms=0
             len_h=1
-            C_inds=arange(odeconfig.c_num)
-            C_td_inds=array(c_stuff[1]) #find inds of time-dependent terms
-            C_const_inds=setdiff1d(C_inds,C_td_inds) #find inds of constant terms
-            #odeconfig.c_args=array([c_ops[k][1] for k in C_td_inds]) #extract time-dependent coefficients (strings)
-            odeconfig.c_const_inds=C_const_inds#store indicies of constant collapse terms
-            odeconfig.c_td_inds=C_td_inds#store indicies of time-dependent collapse terms
+        else:# function based Hamiltonian
+            H_inds=arange(len(H))
+            H_td_inds=array(h_stuff[1]) #find inds of time-dependent terms
+            H_const_inds=setdiff1d(H_inds,H_td_inds) #find inds of constant terms    
+            odeconfig.h_funcs=array([H[k][1] for k in H_td_inds])
+            odeconfig.h_func_args=args
+            Htd=array([H[k][0] for k in H_td_inds])
+            odeconfig.h_td_inds=arange(len(Htd))
+            H=sum(H[k] for k in H_const_inds)
+        
+        #take care of collapse operators
+        C_inds=arange(odeconfig.c_num)
+        C_td_inds=array(c_stuff[1]) #find inds of time-dependent terms
+        C_const_inds=setdiff1d(C_inds,C_td_inds) #find inds of constant terms
+        odeconfig.c_const_inds=C_const_inds#store indicies of constant collapse terms
+        odeconfig.c_td_inds=C_td_inds#store indicies of time-dependent collapse terms    
+        odeconfig.c_funcs=zeros(odeconfig.c_num,dtype=FunctionType)
+        for k in odeconfig.c_td_inds:
+            odeconfig.c_funcs[k]=c_ops[k][1]
+        odeconfig.c_func_args=args
             
-            for k in odeconfig.c_const_inds:
-                H-=0.5j*(c_ops[k].dag()*c_ops[k])
-            if options.tidy:
-                H=H.tidyup(options.atol)
-            odeconfig.h_data=-1.0j*H.data.data
-            odeconfig.h_ind=H.data.indices
-            odeconfig.h_ptr=H.data.indptr
-            odeconfig.c_funcs=zeros(odeconfig.c_num,dtype=FunctionType)
-            for k in odeconfig.c_td_inds:
-                odeconfig.c_funcs[k]=c_ops[k][1]
-            odeconfig.c_func_args=args
+        #combine constant collapse terms with constant H and construct data
+        for k in odeconfig.c_const_inds:
+            H-=0.5j*(c_ops[k].dag()*c_ops[k])
+        if options.tidy:
+            H=H.tidyup(options.atol)
+            Htd=array([Htd[j].tidyup(options.atol) for j in odeconfig.h_td_inds])
+            #setup cosntant H terms data
+        odeconfig.h_data=-1.0j*H.data.data
+        odeconfig.h_ind=H.data.indices
+        odeconfig.h_ptr=H.data.indptr     
+        
+        #setup td H terms data
+        odeconfig.h_td_data=array([-1.0j*Htd[k].data.data for k in odeconfig.h_td_inds])
+        odeconfig.h_td_ind=array([Htd[k].data.indices for k in odeconfig.h_td_inds])
+        odeconfig.h_td_ptr=array([Htd[k].data.indptr for k in odeconfig.h_td_inds])
+        
+            
             

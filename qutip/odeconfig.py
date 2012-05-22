@@ -65,5 +65,11 @@ col_expect_code=None
 col_spmv_code=None
 
 #hold stuff for function based time dependence
+h_td_inds=[]
+h_td_data=[]
+h_td_ind=[]
+h_td_ptr=[]
+h_funcs=None
+h_func_args=None
 c_funcs=None
-func_args=None
+c_func_args=None
