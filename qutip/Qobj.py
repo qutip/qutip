@@ -170,7 +170,8 @@ class Qobj():
     def __add__(self, other): #defines left addition for Qobj class
         if classcheck(other)=='eseries':
             return other.__radd__(self)
-        other=Qobj(other)
+        if not isinstance(other, Qobj):
+            other=Qobj(other)
         if prod(other.shape)==1 and prod(self.shape)!=1: #case for scalar quantum object
             dat=array(other.full())[0][0]
             if dat!=0:
