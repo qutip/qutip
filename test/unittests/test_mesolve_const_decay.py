@@ -26,8 +26,7 @@ def sqrt_kappa(t,args):
     return sqrt(kappa)
 
 #percent error for failure
-mc_error=5e-2
-me_error=1e-2
+me_error=1e-8
 
 class TestMESolverConstDecay(unittest.TestCase):
 
@@ -51,23 +50,7 @@ class TestMESolverConstDecay(unittest.TestCase):
         expt=medata.expect[0]
         actual_answer=9.0*exp(-kappa*tlist)
         avg_diff=mean(abs(actual_answer-expt)/actual_answer)
-        print avg_diff
         self.assertTrue(avg_diff<me_error)
-    
-    def testMCSimpleConstDecay(self):
-        print ""
-        N=10 #number of basis states to consider
-        a=destroy(N)
-        H=a.dag()*a
-        psi0=basis(N,9) #initial state
-        kappa=0.2 #coupling to oscillator
-        c_op_list=[sqrt(kappa)*a]
-        tlist=linspace(0,10,100)
-        mcdata=mcsolve(H,psi0,tlist,c_op_list,[a.dag()*a],options=Odeoptions(gui=False))
-        expt=mcdata.expect[0]
-        actual_answer=9.0*exp(-kappa*tlist)
-        avg_diff=mean(abs(actual_answer-expt)/actual_answer)
-        self.assertTrue(avg_diff<mc_error)
      
     def testMESimpleConstDecayAsFuncList(self):
         N=10 #number of basis states to consider
@@ -82,21 +65,6 @@ class TestMESolverConstDecay(unittest.TestCase):
         actual_answer=9.0*exp(-kappa*tlist)
         avg_diff=mean(abs(actual_answer-expt)/actual_answer)
         self.assertTrue(avg_diff<me_error)
-    # 
-    def testMCSimpleConstDecayAsFuncList(self):
-        print ""
-        N=10 #number of basis states to consider
-        a=destroy(N)
-        H=a.dag()*a
-        psi0=basis(N,9) #initial state
-        kappa=0.2 #coupling to oscillator
-        c_op_list=[[a,sqrt_kappa]]
-        tlist=linspace(0,10,100)
-        mcdata=mcsolve(H,psi0,tlist,c_op_list,[a.dag()*a],options=Odeoptions(gui=False))
-        expt=mcdata.expect[0]
-        actual_answer=9.0*exp(-kappa*tlist)
-        avg_diff=mean(abs(actual_answer-expt)/actual_answer)
-        self.assertTrue(avg_diff<mc_error)
     # 
     def testMESimpleConstDecayAsStrList(self):
         N=10 #number of basis states to consider
@@ -113,22 +81,6 @@ class TestMESolverConstDecay(unittest.TestCase):
         avg_diff=mean(abs(actual_answer-expt)/actual_answer)
         self.assertTrue(avg_diff<me_error)
         
-    # 
-    def testMCSimpleConstDecayAsStrList(self):
-        print ''
-        N=10 #number of basis states to consider
-        a=destroy(N)
-        H=a.dag()*a
-        psi0=basis(N,9) #initial state
-        kappa=0.2 #coupling to oscillator
-        c_op_list=[[a,'sqrt(k)']]
-        args={'k':kappa}
-        tlist=linspace(0,10,100)
-        mcdata=mcsolve(H,psi0,tlist,c_op_list,[a.dag()*a],args=args,options=Odeoptions(gui=False))
-        expt=mcdata.expect[0]
-        actual_answer=9.0*exp(-kappa*tlist)
-        avg_diff=mean(abs(actual_answer-expt)/actual_answer)
-        self.assertTrue(avg_diff<mc_error)
     
       
 if __name__ == '__main__':
