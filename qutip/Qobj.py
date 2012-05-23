@@ -111,13 +111,13 @@ class Qobj():
         """
         Qobj constructor.
         """
-        if fast=='ket':#fast Qobj construction for use in mcsolve
+        if fast=='mc':#fast Qobj construction for use in mcsolve
             self.data=sp.csr_matrix(inpt,dtype=complex)
             self.dims=dims
             self.shape=shape
             self.isherm=False
             self.type='ket'
-            pass
+            return
         elif isinstance(inpt,Qobj):#if input is already Qobj then return identical copy
             ##Quantum object data
             self.data=sp.csr_matrix(inpt.data,dtype=complex) #make sure matrix is sparse (safety check)
@@ -137,7 +137,7 @@ class Qobj():
                 inpt=array([[inpt]])
             #case where input is array or sparse
             if (isinstance(inpt,ndarray)) or (isinstance(inpt,sp.csr_matrix)):
-                self.data=sp.csr_matrix(inpt,dtype=complex) #data stored as space array
+                self.data=sp.lil_matrix(inpt,dtype=complex).tocsr() #data stored as space array
                 if not any(dims):
                     self.dims=[[int(inpt.shape[0])],[int(inpt.shape[1])]] #list of object dimensions
                 else:
@@ -151,7 +151,7 @@ class Qobj():
                     inpt=array([inpt])
                 else:#if list has two dimensions (i.e [[5,4]])
                     inpt=array(inpt)
-                self.data=sp.csr_matrix(inpt,dtype=complex)
+                self.data=sp.lil_matrix(inpt,dtype=complex).tocsr()
                 if not any(dims):
                     self.dims=[[int(inpt.shape[0])],[int(inpt.shape[1])]]
                 else:
@@ -160,11 +160,31 @@ class Qobj():
                     self.shape=[int(inpt.shape[0]),int(inpt.shape[1])]
                 else:
                     self.shape=shape
-        ##Signifies if quantum object corresponds to Hermitian operator
-        self.isherm=isherm(self)
-        ##Signifies if quantum object corresponds to a ket, bra, operator, or super-operator
-        self.type=ischeck(self)
- 
+        
+        #check for isherm and type if not using fast flag
+        if not fast:
+            ##Signifies if quantum object corresponds to Hermitian operator
+            self.isherm=isherm(self)
+            ##Signifies if quantum object corresponds to a ket, bra, operator, or super-operator
+            self.type=ischeck(self)
+        elif fast=='herm_oper':
+            self.isherm=True
+            self.type='oper'
+        elif fast=='ket':
+            self.isherm=False
+            self.type='ket'
+        elif fast=='bra':
+            self.isherm=False
+            self.type='bra'
+        elif fast=='oper':
+            self.isherm=False
+            self.type='oper'
+        elif fast=='super':
+            self.isherm=False
+            self.type='super'
+        elif fast=='herm_super':
+            self.isherm=True
+            self.type='super'
     
     ##### Definition of PLUS with Qobj on LEFT (ex. Qobj+4) #########                
     def __add__(self, other): #defines left addition for Qobj class
@@ -204,10 +224,17 @@ class Qobj():
             out.data=self.data+other.data
             out.dims=self.dims
             out.shape=self.shape
+            check=None
+            if self.type==other.type:
+                check=self.type
+                if check=='oper' and (self.isherm==other.isherm==True):
+                    check='herm_oper'
+                if check=='super' and (self.isherm==other.isherm==True):
+                    check='herm_super'
             if qset.auto_tidyup:
-                return Qobj(out).tidyup()
+                return Qobj(out,fast=check).tidyup()
             else:
-                return Qobj(out)
+                return Qobj(out,fast=check)
 
     #- Definition of PLUS with Qobj on RIGHT (ex. 4+Qobj) ###############
     def __radd__(self,other): #defines left addition for Qobj class
@@ -678,11 +705,6 @@ class Qobj():
         else:
             outdata=sp.csr_matrix((self.shape[0],self.shape[1]),dtype=complex)
        
-        # this commented code breaks the ode solver, giving diverging results 
-        #real_inds=where(abs(imag(outdata.data))<1e-15)
-        #imag_inds=where(abs(real(outdata.data))<1e-15)
-        #outdata.data[real_inds]=real(outdata.data[real_inds])
-        #outdata.data[imag_inds]=imag(outdata.data[imag_inds])
         outdata.eliminate_zeros()
         return Qobj(outdata,dims=self.dims,shape=self.shape)
 

@@ -104,6 +104,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     #-------COLLECT AND RETURN OUTPUT DATA IN ODEDATA OBJECT --------------#
     
     output=Odedata()
+    output.solver='mc'
     #state vectors
     if any(mc.psi_out) and options.mc_avg:
         if isinstance(ntraj,int):
@@ -167,7 +168,7 @@ class MC_class():
             except:
                 self.options.gui=False
         #check if running in iPython and using Cython compiling (then no GUI to work around error)
-        if self.options.gui and odeconfig.tflag==1:
+        if self.options.gui and odeconfig.tflag in array([1,10,11]):
             try:
                 __IPYTHON__
             except:
@@ -387,9 +388,12 @@ def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
         code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
         exec(code)
     elif odeconfig.tflag==2:
-        ODE=ode(RHStd)
+        ODE=ode(cRHStd)
+    elif odeconfig.tflag in array([20,22]):
+        ODE=ode(tdRHStd)
+    elif odeconfig.tflag==3:
+        ODE=ode(pyRHSc)
     else:
-        #ODE=ode(RHS)
         ODE = ode(cyq_ode_rhs)
         ODE.set_f_params(odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr)
         
@@ -417,7 +421,11 @@ def no_collapse_expect_out(opt,psi_in,tlist,e_ops_data,e_ops_ind,e_ops_ptr,e_ops
         code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
         exec(code)
     elif odeconfig.tflag==2:
-        ODE=ode(RHStd)
+        ODE=ode(cRHStd)
+    elif odeconfig.tflag in array([20,22]):
+        ODE=ode(tdRHStd)
+    elif odeconfig.tflag==3:
+        ODE=ode(pyRHSc)
     else:
         ODE = ode(cyq_ode_rhs)
         ODE.set_f_params(odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr)
@@ -530,7 +538,7 @@ def mc_alg_evolve(nt,args):
                 mc_alg_out[jj][k]=mc_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],epsi)
     #RETURN VALUES
     if num_expect==0:
-        mc_alg_out=array([Qobj(k,odeconfig.psi0_dims,odeconfig.psi0_shape,'ket') for k in mc_alg_out])
+        mc_alg_out=array([Qobj(k,odeconfig.psi0_dims,odeconfig.psi0_shape,fast='mc') for k in mc_alg_out])
         return nt,mc_alg_out,array(collapse_times),array(which_oper)
     else:
         return nt,mc_alg_out,array(collapse_times),array(which_oper)
