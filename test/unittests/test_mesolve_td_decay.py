@@ -27,9 +27,9 @@ def sqrt_kappa(t,args):
     return sqrt(kappa*exp(-t))
 
 #average error for failure
-mc_error=5e-2 #5% for ntraj=500
+me_error=1e-8
 
-class TestODESolversTDDecay(unittest.TestCase):
+class TestMESolveTDDecay(unittest.TestCase):
 
     """
     A test class for the time-dependent odes.  Comparing to analytic answer
@@ -44,7 +44,6 @@ class TestODESolversTDDecay(unittest.TestCase):
         """
         
     def testMCSimpleTDDecayAsFuncList(self):
-        print ""
         N=10 #number of basis states to consider
         a=destroy(N)
         H=a.dag()*a
@@ -52,15 +51,14 @@ class TestODESolversTDDecay(unittest.TestCase):
         kappa=0.2 #coupling to oscillator
         c_op_list=[[a,sqrt_kappa]]
         tlist=linspace(0,10,100)
-        mcdata=mcsolve(H,psi0,tlist,c_op_list,[a.dag()*a],options=Odeoptions(gui=False))
-        expt=mcdata.expect[0]
+        medata=mesolve(H,psi0,tlist,c_op_list,[a.dag()*a])
+        expt=medata.expect[0]
         actual_answer=9.0*exp(-kappa*(1.0-exp(-tlist)))
         avg_diff=mean(abs(actual_answer-expt)/actual_answer)
-        self.assertTrue(avg_diff<mc_error)
+        self.assertTrue(avg_diff<me_error)
     
     
     def testMCSimpleTDDecayAsStrList(self):
-        print ""
         N=10 #number of basis states to consider
         a=destroy(N)
         H=a.dag()*a
@@ -69,11 +67,11 @@ class TestODESolversTDDecay(unittest.TestCase):
         c_op_list=[[a,'sqrt(k*exp(-t))']]
         args={'k':kappa}
         tlist=linspace(0,10,100)
-        mcdata=mcsolve(H,psi0,tlist,c_op_list,[a.dag()*a],args=args,options=Odeoptions(gui=False))
-        expt=mcdata.expect[0]
+        medata=mesolve(H,psi0,tlist,c_op_list,[a.dag()*a],args=args)
+        expt=medata.expect[0]
         actual_answer=9.0*exp(-kappa*(1.0-exp(-tlist)))
         avg_diff=mean(abs(actual_answer-expt)/actual_answer)
-        self.assertTrue(avg_diff<mc_error)
+        self.assertTrue(avg_diff<me_error)
     
     
     
