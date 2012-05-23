@@ -29,7 +29,7 @@ def spmv(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] p
     cdef Py_ssize_t row
     cdef int jj,row_start,row_end
     cdef int num_rows=len(vec)
-    cdef complex dot
+    cdef CTYPE_t dot
     cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)
     for row in range(num_rows):
         dot=0.0
@@ -48,7 +48,7 @@ def mc_expect(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[i
     cdef np.ndarray[CTYPE_t, ndim=2] y = spmv(data,idx,ptr,state)
     cdef np.ndarray[CTYPE_t, ndim=2] x = state.conj().transpose()
     cdef int num_rows = len(state)
-    cdef complex dot = 0.0j
+    cdef CTYPE_t dot = 0.0j
     for row in range(num_rows):
         dot+=x[0,row]*y[row,0]
     if isherm:
@@ -63,7 +63,7 @@ def spmv1d(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int]
     cdef Py_ssize_t row
     cdef int jj,row_start,row_end
     cdef int num_rows=len(vec)
-    cdef complex dot
+    cdef CTYPE_t dot
     cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)
     for row in range(num_rows):
         dot=0.0

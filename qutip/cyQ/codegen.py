@@ -111,7 +111,7 @@ class Codegen():
     def ODE_func_header(self):
         """Creates function header for time-dependent ODE RHS."""
         func_name="def cyq_td_ode_rhs("
-        input_vars="float t, np.ndarray[CTYPE_t, ndim=1] vec" #strings for time and vector variables
+        input_vars="double t, np.ndarray[CTYPE_t, ndim=1] vec" #strings for time and vector variables
         for k in self.h_terms:
             input_vars+=", np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k)
         if any(self.c_tdterms):
@@ -132,7 +132,7 @@ class Codegen():
         collapse operator terms.
         """
         func_name="def col_spmv("
-        input_vars="int which, float t, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=2] vec"
+        input_vars="int which, double t, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=2] vec"
         if len(self.args)>0:
             td_consts=self.args.items()
             td_len=len(td_consts)
@@ -148,7 +148,7 @@ class Codegen():
         collapse expectation values.
         """
         func_name="def col_expect("
-        input_vars="int which, float t, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=2] vec"
+        input_vars="int which, double t, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=2] vec"
         if len(self.args)>0:
             td_consts=self.args.items()
             td_len=len(td_consts)
@@ -245,7 +245,7 @@ class Codegen():
         return "return out"
     #----
     def func_end_real(self):
-        return "return np.float(np.real(out))"
+        return "return np.float64(np.real(out))"
         
 #
 # Alternative implementation of the Cython code generator. Include the
@@ -315,7 +315,7 @@ class Codegen2():
         Creates function header for time-dependent ODE RHS.
         """
         func_name  = "def cyq_td_ode_rhs("
-        input_vars = "float t, np.ndarray[CTYPE_t, ndim=1] vec, " #strings for time and vector variables
+        input_vars = "double t, np.ndarray[CTYPE_t, ndim=1] vec, " #strings for time and vector variables
         arg_list = []
         for k in range(self.n_L_terms):
             arg_list.append("np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k))
@@ -408,7 +408,7 @@ def cython_spmv():
     line1="\tcdef Py_ssize_t row"
     line2="\tcdef int jj,row_start,row_end"
     line3="\tcdef int num_rows=len(vec)"
-    line4="\tcdef complex dot"
+    line4="\tcdef CTYPE_t dot"
     line5="\tcdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)"
     line6="\tfor row in range(num_rows):"
     line7="\t\tdot=0.0"
@@ -427,7 +427,7 @@ def cython_col_spmv():
     line1="\tcdef Py_ssize_t row"
     line2="\tcdef int jj,row_start,row_end"
     line3="\tcdef int num_rows=len(vec)"
-    line4="\tcdef complex dot"
+    line4="\tcdef CTYPE_t dot"
     line5="\tcdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)"
     line6="\tfor row in range(num_rows):"
     line7="\t\tdot=0.0"
@@ -444,7 +444,7 @@ def cython_col_expect(args):
     """
     line1="\tcdef Py_ssize_t row"
     line2="\tcdef int num_rows=len(vec)"
-    line3="\tcdef complex out = 0.0"
+    line3="\tcdef CTYPE_t out = 0.0"
     line4="\tcdef np.ndarray[CTYPE_t, ndim=2] vec_ct = vec.conj().T"
     line5="\tcdef np.ndarray[CTYPE_t, ndim=2] dot = col_spmv(which,t,data,idx,ptr,vec"
     if args:

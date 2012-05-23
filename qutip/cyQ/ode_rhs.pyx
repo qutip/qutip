@@ -25,10 +25,10 @@ ctypedef np.float64_t DTYPE_t
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cyq_ode_rhs(float t, np.ndarray[CTYPE_t, ndim=1] rho, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr):
+def cyq_ode_rhs(double t, np.ndarray[CTYPE_t, ndim=1] rho, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr):
     cdef int row, jj, row_start, row_end
     cdef int num_rows=len(rho)
-    cdef complex dot
+    cdef CTYPE_t dot
     cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)
     for row from 0 <= row < num_rows:
         dot = 0.0
