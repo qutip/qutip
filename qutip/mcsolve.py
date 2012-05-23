@@ -109,10 +109,12 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     if any(mc.psi_out) and options.mc_avg:
         if isinstance(ntraj,int):
             output.states=mean(mc.psi_out,axis=0)
+            output.states=array([states.unit() for states in output.states])
         elif isinstance(ntraj,(list,ndarray)):
             output.states=[]
             for num in ntraj:
-                output.states.append(mean(mc.psi_out[:num],axis=0))
+                states=mean(mc.psi_out[:num],axis=0)
+                output.states.append(array([states.unit() for states in output.states]))
     else:
         output.states=mc.psi_out
     

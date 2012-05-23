@@ -229,7 +229,7 @@ class Qobj():
                 check=self.type
                 if check=='oper' and (self.isherm==other.isherm==True):
                     check='herm_oper'
-                if check=='super' and (self.isherm==other.isherm==True):
+                elif check=='super' and (self.isherm==other.isherm==True):
                     check='herm_super'
             if qset.auto_tidyup:
                 return Qobj(out,fast=check).tidyup()
