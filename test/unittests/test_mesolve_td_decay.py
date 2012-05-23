@@ -27,7 +27,7 @@ def sqrt_kappa(t,args):
     return sqrt(kappa*exp(-t))
 
 #average error for failure
-me_error=1e-8
+me_error=1e-7
 
 class TestMESolveTDDecay(unittest.TestCase):
 
@@ -43,7 +43,7 @@ class TestMESolveTDDecay(unittest.TestCase):
         setup
         """
         
-    def testMCSimpleTDDecayAsFuncList(self):
+    def testMESimpleTDDecayAsFuncList(self):
         N=10 #number of basis states to consider
         a=destroy(N)
         H=a.dag()*a
@@ -58,7 +58,7 @@ class TestMESolveTDDecay(unittest.TestCase):
         self.assertTrue(avg_diff<me_error)
     
     
-    def testMCSimpleTDDecayAsStrList(self):
+    def testMESimpleTDDecayAsStrList(self):
         N=10 #number of basis states to consider
         a=destroy(N)
         H=a.dag()*a
@@ -72,9 +72,6 @@ class TestMESolveTDDecay(unittest.TestCase):
         actual_answer=9.0*exp(-kappa*(1.0-exp(-tlist)))
         avg_diff=mean(abs(actual_answer-expt)/actual_answer)
         self.assertTrue(avg_diff<me_error)
-    
-    
-    
       
 if __name__ == '__main__':
     unittest.main()
