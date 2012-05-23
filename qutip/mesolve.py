@@ -249,7 +249,7 @@ def mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             raise TypeError("Incorrect specification of time-dependent collapse operators (expected callback function)")
                 
         cdc = c.dag() * c
-        L_list.append([(spre(c)*spost(c.dag())-0.5*spre(cdc)-0.5*spost(cdc)).data, c_coeff])    
+        L_list.append([(spre(c)*spost(c.dag())-0.5*spre(cdc)-0.5*spost(cdc)).data, lambda t, args: (c_coeff(t, args))**2])    
         
     L_list_and_args = [L_list, args]
 
@@ -412,7 +412,7 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             Ldata.append(L.data.data)
             Linds.append(L.data.indices)
             Lptrs.append(L.data.indptr)
-            Lcoeff.append(h_coeff)       
+            Lcoeff.append(h_coeff) 
 
         else:
             raise TypeError("Incorrect specification of time-dependent Hamiltonian (expected string format)")
@@ -437,7 +437,7 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             Ldata.append(L.data.data)
             Linds.append(L.data.indices)
             Lptrs.append(L.data.indptr)
-            Lcoeff.append(c_coeff)       
+            Lcoeff.append("("+c_coeff+")**2")
 
         else:
             raise TypeError("Incorrect specification of time-dependent collapse operators (expected string format)")
