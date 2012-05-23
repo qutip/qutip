@@ -386,7 +386,9 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     # construct liouvillian
     #       
     n_op = len(c_list)
-        
+
+    Lconst = 0        
+
     Ldata = []
     Linds = []
     Lptrs = []
@@ -398,44 +400,55 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     
         if isinstance(h_spec, Qobj):
             h = h_spec
-            h_coeff = "1.0"
+
+            Lconst += -1j*(spre(h) - spost(h)) # apply tidyup ?
    
         elif isinstance(h_spec, list): 
             h = h_spec[0]
             h_coeff = h_spec[1]
             
+            L = -1j*(spre(h) - spost(h)) # apply tidyup ?
+            
+            Ldata.append(L.data.data)
+            Linds.append(L.data.indices)
+            Lptrs.append(L.data.indptr)
+            Lcoeff.append(h_coeff)       
+
         else:
             raise TypeError("Incorrect specification of time-dependent Hamiltonian (expected string format)")
                 
-        L = -1j*(spre(h) - spost(h)) # apply tidyup ?
-        
-        Ldata.append(L.data.data)
-        Linds.append(L.data.indices)
-        Lptrs.append(L.data.indptr)
-        Lcoeff.append(h_coeff)       
-        
         
     # loop over all collapse operators        
     for c_spec in c_list:
 
         if isinstance(c_spec, Qobj):
             c = c_spec
-            c_coeff = "1.0"
+            
+            cdc = c.dag() * c
+            Lconst += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc) # apply tidyup?
    
         elif isinstance(c_spec, list): 
             c = c_spec[0]
             c_coeff = c_spec[1]
             
+            cdc = c.dag() * c
+            L = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc) # apply tidyup?
+
+            Ldata.append(L.data.data)
+            Linds.append(L.data.indices)
+            Lptrs.append(L.data.indptr)
+            Lcoeff.append(c_coeff)       
+
         else:
             raise TypeError("Incorrect specification of time-dependent collapse operators (expected string format)")
                 
-        cdc = c.dag() * c
-        L = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc) # apply tidyup?
+    # add the constant part of the lagrangian
+    if Lconst != 0:
+        Ldata.append(Lconst.data.data)
+        Linds.append(Lconst.data.indices)
+        Lptrs.append(Lconst.data.indptr)
+        Lcoeff.append("1.0")
 
-        Ldata.append(L.data.data)
-        Linds.append(L.data.indices)
-        Lptrs.append(L.data.indptr)
-        Lcoeff.append(c_coeff)       
 
     # the total number of liouvillian terms (hamiltonian terms + collapse operators)      
     n_L_terms = len(Ldata)      
