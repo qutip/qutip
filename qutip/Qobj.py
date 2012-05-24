@@ -27,7 +27,8 @@ import scipy.sparse as sp
 import scipy.linalg as la
 import qutip.settings as qset
 from qutip.ptrace import _ptrace
-from qutip.istests import *
+from qutip.istests import ischeck
+from qutip.istests import isherm as hermcheck
 from qutip.sparse import *
 
 
@@ -72,34 +73,49 @@ class Qobj():
     -------
     conj()
         Conjugate of quantum object.
+    
     dag()
         Adjoint (dagger) of quantum object.
+    
     eigenenergies(sparse=False, sort='low', eigvals=0, tol=0, maxiter=100000)
         Returns eigenenergies (eigenvalues) of a quantum object.
+    
     eigenstates(sparse=False, sort='low', eigvals=0, tol=0, maxiter=100000)
         Returns eigenenergies and eigenstates of quantum object.
-    expm()
+    
+    xpm()
         Matrix exponential of quantum object.
+    
     full()
         Returns dense array of quantum object `data` attribute.
+    
     groundstate(sparse=False,tol=0,maxiter=100000)
         Returns eigenvalue and eigenket for the groundstate of a quantum object.
+    
     matrix_element(bra,ket)
         Returns the matrix element of operator between `bra` and `ket` vectors.
+    
     norm(oper_norm='tr',sparse=False,tol=0,maxiter=100000)
         Returns norm of operator.
+    
     ptrace(sel)
         Returns quantum object for selected dimensions after performing partial trace.
+    
     sqrtm()
         Matrix square root of quantum object.
+    
     tidyup(atol=1e-15)
         Removes small elements from quantum object.
+    
     tr()
         Trace of quantum object.
+    
     trans()
         Transpose of quantum object.
+    
     transform(inpt,inverse=False)
         Performs a basis transformation defined by `inpt` matrix.
+    
     unit(oper_norm='tr',sparse=False,tol=0,maxiter=100000)
         Returns normalized quantum object.
         
@@ -107,7 +123,7 @@ class Qobj():
     """
     ################## Define Qobj class #################
     __array_priority__=100 #sets Qobj priority above numpy arrays
-    def __init__(self,inpt=array([[0]]),dims=[[],[]],shape=[],fast=False):
+    def __init__(self,inpt=array([[0]]),dims=[[],[]],shape=[],type=None,isherm=None,fast=False):
         """
         Qobj constructor.
         """
@@ -161,30 +177,16 @@ class Qobj():
                 else:
                     self.shape=shape
         
-        #check for isherm and type if not using fast flag
-        if not fast:
-            ##Signifies if quantum object corresponds to Hermitian operator
-            self.isherm=isherm(self)
-            ##Signifies if quantum object corresponds to a ket, bra, operator, or super-operator
+        #check for type if not given
+        if not type:
             self.type=ischeck(self)
-        elif fast=='herm_oper':
-            self.isherm=True
-            self.type='oper'
-        elif fast=='ket':
-            self.isherm=False
-            self.type='ket'
-        elif fast=='bra':
-            self.isherm=False
-            self.type='bra'
-        elif fast=='oper':
-            self.isherm=False
-            self.type='oper'
-        elif fast=='super':
-            self.isherm=False
-            self.type='super'
-        elif fast=='herm_super':
-            self.isherm=True
-            self.type='super'
+        else:
+            self.type=type
+        # check for isherm if not given
+        if not isherm:
+            self.isherm=hermcheck(self)
+        else:
+            self.isherm=isherm
     
     ##### Definition of PLUS with Qobj on LEFT (ex. Qobj+4) #########                
     def __add__(self, other): #defines left addition for Qobj class
@@ -224,17 +226,15 @@ class Qobj():
             out.data=self.data+other.data
             out.dims=self.dims
             out.shape=self.shape
-            check=None
-            if self.type==other.type:
-                check=self.type
-                if check=='oper' and (self.isherm==other.isherm==True):
-                    check='herm_oper'
-                elif check=='super' and (self.isherm==other.isherm==True):
-                    check='herm_super'
+            #check for hermicity
+            isherm=None
+            if self.isherm==other.isherm:
+                isherm=self.isherm
+            #----
             if qset.auto_tidyup:
-                return Qobj(out,fast=check).tidyup()
+                return Qobj(out,type=self.type,isherm=isherm).tidyup()
             else:
-                return Qobj(out,fast=check)
+                return Qobj(out,type=self.type,isherm=self.isherm)
 
     #- Definition of PLUS with Qobj on RIGHT (ex. 4+Qobj) ###############
     def __radd__(self,other): #defines left addition for Qobj class
