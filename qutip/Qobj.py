@@ -296,9 +296,9 @@ class Qobj():
                 if self.isherm==other.isherm==True:
                     isherm=True
                 if qset.auto_tidyup:
-                    return Qobj(out,type=self.type,isherm=isherm).tidyup()
+                    return Qobj(out,isherm=isherm).tidyup()
                 else:
-                    return Qobj(out,type=self.type,isherm=isherm)
+                    return Qobj(out,isherm=isherm)
             else:
                 raise TypeError("Incompatible Qobj shapes")
 
@@ -332,20 +332,26 @@ class Qobj():
                 out.data=dat * (sp.csr_matrix(ones(self.shape))*self.data)
                 out.dims=self.dims
                 out.shape=self.shape
+                isherm=None
+                if isinstance(dat,(int,float)):
+                    isherm=self.isherm
                 if qset.auto_tidyup:
-                    return Qobj(out).tidyup()
+                    return Qobj(out,type=self.type,isherm=isherm).tidyup()
                 else:
-                    return Qobj(out)
+                    return Qobj(out,type=self.type,isherm=isherm)
             elif prod(self.shape)==1 and prod(other.shape)!=1:#take care of right mul as well for scalar Qobjs
                 dat=array(self.data.todense())[0][0]
                 out=Qobj()
                 out.data=dat*sp.csr_matrix(ones(other.shape))*other.data
                 out.dims=other.dims
                 out.shape=other.shape
+                isherm=None
+                if isinstance(dat,(int,float)):
+                    isherm=other.isherm
                 if qset.auto_tidyup:
-                    return Qobj(out).tidyup()
+                    return Qobj(out,type=other.type,isherm=isherm).tidyup()
                 else:
-                    return Qobj(out)
+                    return Qobj(out,type=other.type,isherm=isherm)
             elif self.shape[1]==other.shape[0] and self.dims[1]==other.dims[0]:
                 out=Qobj()
                 out.data=other.data * self.data
@@ -355,9 +361,9 @@ class Qobj():
                 if self.isherm==other.isherm==True:
                     isherm=True
                 if qset.auto_tidyup:
-                    return Qobj(out,type=self.type,isherm=isherm).tidyup()
+                    return Qobj(out,isherm=isherm).tidyup()
                 else:
-                    return Qobj(out,type=self.type,isherm=isherm)
+                    return Qobj(out,isherm=isherm)
             else:
                 raise TypeError("Incompatible Qobj shapes")
 
