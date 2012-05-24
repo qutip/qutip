@@ -188,6 +188,10 @@ class Qobj():
         else:
             self.isherm=isherm
     
+    #---------------------------------
+    # BEGIN QOBJ METHODS
+    #---------------------------------
+    
     ##### Definition of PLUS with Qobj on LEFT (ex. Qobj+4) #########                
     def __add__(self, other): #defines left addition for Qobj class
         if classcheck(other)=='eseries':
@@ -228,8 +232,8 @@ class Qobj():
             out.shape=self.shape
             #check for hermicity
             isherm=None
-            if self.isherm==other.isherm:
-                isherm=self.isherm
+            if self.isherm==other.isherm==True:
+                isherm=True
             #----
             if qset.auto_tidyup:
                 return Qobj(out,type=self.type,isherm=isherm).tidyup()
@@ -288,18 +292,18 @@ class Qobj():
                 out.data=self.data*other.data
                 out.dims  = [self.dims[0],  other.dims[1]]
                 out.shape = [self.shape[0], other.shape[1]]
+                isherm=None
+                if self.isherm==other.isherm==True:
+                    isherm=True
                 if qset.auto_tidyup:
-                    return Qobj(out).tidyup()
+                    return Qobj(out,type=self.type,isherm=isherm).tidyup()
                 else:
-                    return Qobj(out)
+                    return Qobj(out,type=self.type,isherm=isherm)
             else:
                 raise TypeError("Incompatible Qobj shapes")
 
-        if isinstance(other, list): # if other is a list, do element-wise multiplication
-            prod_list = []
-            for item in other:
-                prod_list.append(self * item)
-            return prod_list
+        if isinstance(other, (list,ndarray)): # if other is a list/array, do element-wise multiplication
+            return array([self * item for item in other])
 
         if classcheck(other)=='eseries':
             return other.__rmul__(self)
@@ -309,10 +313,13 @@ class Qobj():
             out.data=self.data*other
             out.dims=self.dims
             out.shape=self.shape
+            isherm=None
+            if isinstance(other,(int,float)):
+                isherm=self.isherm
             if qset.auto_tidyup:
-                return Qobj(out).tidyup()
+                return Qobj(out,type=self.type,isherm=isherm).tidyup()
             else:
-                return Qobj(out)
+                return Qobj(out,type=self.type,isherm=isherm)
         else:
             raise TypeError("Incompatible object for multiplication")
     
@@ -344,18 +351,18 @@ class Qobj():
                 out.data=other.data * self.data
                 out.dims=self.dims
                 out.shape=[self.shape[0],other.shape[1]]
+                isherm=None
+                if self.isherm==other.isherm==True:
+                    isherm=True
                 if qset.auto_tidyup:
-                    return Qobj(out).tidyup()
+                    return Qobj(out,type=self.type,isherm=isherm).tidyup()
                 else:
-                    return Qobj(out)
+                    return Qobj(out,type=self.type,isherm=isherm)
             else:
                 raise TypeError("Incompatible Qobj shapes")
 
-        if isinstance(other, list): # if other is a list, do element-wise multiplication
-            prod_list = []
-            for item in other:
-                prod_list.append(item * self)
-            return prod_list
+        if isinstance(other, (list,ndarray)): # if other is a list, do element-wise multiplication
+            return array([item * self for item in other])
 
         if classcheck(other)=='eseries':
             return other.__mul__(self)
@@ -365,10 +372,13 @@ class Qobj():
             out.data=other*self.data
             out.dims=self.dims
             out.shape=self.shape
+            isherm=None
+            if isinstance(other,(int,float)):
+                isherm=self.isherm
             if qset.auto_tidyup:
-                return Qobj(out).tidyup()
+                return Qobj(out,type=self.type,isherm=isherm).tidyup()
             else:
-                return Qobj(out)
+                return Qobj(out,type=self.type,isherm=isherm)
         else:
             raise TypeError("Incompatible object for multiplication")
 
@@ -383,10 +393,13 @@ class Qobj():
             out.data=self.data/other
             out.dims=self.dims
             out.shape=self.shape
+            isherm=None
+            if isinstance(other,(int,float)):
+                isherm=self.isherm
             if qset.auto_tidyup:
-                return Qobj(out).tidyup()
+                return Qobj(out,type=self.type,isherm=isherm).tidyup()
             else:
-                return Qobj(out)
+                return Qobj(out,type=self.type,isherm=isherm)
         else:
             raise TypeError("Incompatible object for division")
     def __neg__(self):
@@ -394,10 +407,8 @@ class Qobj():
         out.data=-self.data
         out.dims=self.dims
         out.shape=self.shape
-        if qset.auto_tidyup:
-            return Qobj(out).tidyup()
-        else:
-            return Qobj(out)
+        return Qobj(out,type=self.type,isherm=self.isherm)
+        
     def __getitem__(self,ind):
         out=self.data[ind]
         if sp.issparse(out):
@@ -458,7 +469,7 @@ class Qobj():
         out.data=self.data.T.conj()
         out.dims=[self.dims[1],self.dims[0]]
         out.shape=[self.shape[1],self.shape[0]]
-        return Qobj(out)
+        return Qobj(out,type=self.type,isherm=self.isherm)
     def conj(self):
         """Returns the conjugate operator of quantum object.
         
@@ -706,7 +717,7 @@ class Qobj():
             outdata=sp.csr_matrix((self.shape[0],self.shape[1]),dtype=complex)
        
         outdata.eliminate_zeros()
-        return Qobj(outdata,dims=self.dims,shape=self.shape)
+        return Qobj(outdata,dims=self.dims,shape=self.shape,type=self.type,isherm=self.isherm)
 
 
     #
