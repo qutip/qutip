@@ -50,6 +50,15 @@ class Qobj():
         Dimensions of object used for tensor products.
     shape : list 
         Shape of underlying data structure (matrix shape).
+    
+    Other Parameters
+    ----------------
+    type : str
+        String declaring type of qobj.  Used internally only.
+        
+    isherm : bool
+        Boolean declaring Hermicity of qobj.  Used internally only.
+    
     fast : bool
         Flag for fast qobj creation when running ode solvers.
         This parameter is used internally only.
@@ -205,10 +214,13 @@ class Qobj():
                 out.data=self.data+dat*sp.csr_matrix(ones(self.shape))
                 out.dims=self.dims
                 out.shape=self.shape
+                isherm=None
+                if isinstance(dat,(int,float)):
+                    isherm=self.isherm
                 if qset.auto_tidyup:
-                    return Qobj(out).tidyup()
+                    return Qobj(out,type=self.type,isherm=isherm).tidyup()
                 else:
-                    return Qobj(out)
+                    return Qobj(out,type=self.type,isherm=isherm)
             else: #if other qobj is zero object
                 return self
         elif prod(self.shape)==1 and prod(other.shape)!=1:#case for scalar quantum object
@@ -217,10 +229,13 @@ class Qobj():
             out.data=dat*sp.csr_matrix(ones(other.shape))+other.data
             out.dims=other.dims
             out.shape=other.shape
+            isherm=None
+            if isinstance(dat,(int,float)):
+                isherm=other.isherm
             if qset.auto_tidyup:
-                return Qobj(out).tidyup()
+                return Qobj(out,type=other.type,isherm=isherm).tidyup()
             else:
-                return Qobj(out)
+                return Qobj(out,type=other.type,isherm=isherm)
         elif self.dims!=other.dims:
             raise TypeError('Incompatible quantum object dimensions')
         elif self.shape!=other.shape:
@@ -232,7 +247,9 @@ class Qobj():
             out.shape=self.shape
             #check for hermicity
             isherm=None
-            if self.isherm==other.isherm==True:
+            if self.type=='super':
+                isherm=False
+            elif self.isherm==other.isherm==True:
                 isherm=True
             #----
             if qset.auto_tidyup:
@@ -273,27 +290,35 @@ class Qobj():
                 out.data=dat * (sp.csr_matrix(ones(self.shape))*self.data)
                 out.dims=self.dims
                 out.shape=self.shape
+                isherm=None
+                if isinstance(dat,(int,float)):
+                    isherm=self.isherm
                 if qset.auto_tidyup:
-                    return Qobj(out).tidyup()
+                    return Qobj(out,type=self.type,isherm=isherm).tidyup()
                 else:
-                    return Qobj(out)
+                    return Qobj(out,type=self.type,isherm=isherm)
             elif prod(self.shape)==1 and prod(other.shape)!=1:#take care of right mul as well for scalar Qobjs
                 dat=array(self.data.todense())[0][0]
                 out=Qobj()
                 out.data=dat*sp.csr_matrix(ones(other.shape))*other.data
                 out.dims=other.dims
                 out.shape=other.shape
+                isherm=None
+                if isinstance(dat,(int,float)):
+                    isherm=other.isherm
                 if qset.auto_tidyup:
-                    return Qobj(out).tidyup()
+                    return Qobj(out,type=other.type,isherm=isherm).tidyup()
                 else:
-                    return Qobj(out)
+                    return Qobj(out,type=other.type,isherm=isherm)
             elif self.shape[1]==other.shape[0] and self.dims[1]==other.dims[0]:
                 out=Qobj()
                 out.data=self.data*other.data
                 out.dims  = [self.dims[0],  other.dims[1]]
                 out.shape = [self.shape[0], other.shape[1]]
                 isherm=None
-                if self.isherm==other.isherm==True:
+                if self.type=='super':
+                    isherm=False
+                elif self.isherm==other.isherm==True:
                     isherm=True
                 if qset.auto_tidyup:
                     return Qobj(out,isherm=isherm).tidyup()
@@ -358,7 +383,9 @@ class Qobj():
                 out.dims=self.dims
                 out.shape=[self.shape[0],other.shape[1]]
                 isherm=None
-                if self.isherm==other.isherm==True:
+                if self.type=='super':
+                    isherm=False
+                elif self.isherm==other.isherm==True:
                     isherm=True
                 if qset.auto_tidyup:
                     return Qobj(out,isherm=isherm).tidyup()
