@@ -27,7 +27,7 @@ import scipy.sparse as sp
 import scipy.linalg as la
 import qutip.settings as qset
 from qutip.ptrace import _ptrace
-from qutip.istests import ischeck
+from qutip.istests import ischeck,isket,isbra,isoper,issuper
 from qutip.istests import isherm as hermcheck
 from qutip.sparse import *
 
