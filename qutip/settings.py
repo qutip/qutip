@@ -27,6 +27,8 @@ qutip_graphics=None
 qutip_gui=None
 #use auto tidyup
 auto_tidyup=True
+#detect hermiticity
+auto_herm=True
 #use auto tidyup absolute tolerance 
 auto_tidyup_atol=1e-15
 #number of cpus (set at qutip import)

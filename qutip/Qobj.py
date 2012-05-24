@@ -193,7 +193,10 @@ class Qobj():
             self.type=type
         # check for isherm if not given
         if not isherm:
-            self.isherm=hermcheck(self)
+            if qset.auto_herm:
+                self.isherm=hermcheck(self)
+            else:
+                self.isherm=False
         else:
             self.isherm=isherm
     
