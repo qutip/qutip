@@ -157,12 +157,12 @@ def isequal(A,B,tol=1e-15):
 
 #**************************
 def ischeck(Q):
-    if isket(Q):
+    if isoper(Q):
+        return 'oper'
+    elif isket(Q):
         return 'ket'
     elif isbra(Q):
         return 'bra'
-    elif isoper(Q):
-        return 'oper'
     elif issuper(Q):
         return 'super'
     else:
