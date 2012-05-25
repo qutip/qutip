@@ -3,28 +3,28 @@
 
 .. _time:
 
-**************************************************************
-Solving Time-dependent Hamiltonians (unitary and non-unitary)
-**************************************************************
+*************************************
+Solving Time-dependent Hamiltonians
+*************************************
 
-In the previous examples of quantum evolution, we assumed that the systems under consideration were described by time-independent Hamiltonians.  However, many systems have explicit time-dependence in either the Hamiltonian, or the collpase operators describing coupling to the environment, and sometimes both components might depend on time.  The two main evolution solvers in QuTiP, :func:`qutip.mesolve` and :func:`qutip.mcsolve`, are capable of handling time-dependent Hamiltonians and collapse terms.  There are, in general, three different ways to input time-dependent problems in QutiP 2:
-
-- String (Cython) based: The Hamiltonian and/or collapse operators are expressed as a list of [qobj,string] pairs, where the time-dependence is expresed in the string.  The resulting Hamiltonian is then compiled into c-code using Cython and executed.
-
-- Function based: Hamiltonian / collapse operators expressed using [qobj,func] pairs, where the time-dependence is expressed in the Python function.
-
-- Hamiltonian function (outdated): Hamiltonian is itself a Python function with time-dependence.  Collapse operators must be constant using this input format. 
+In the previous examples of quantum evolution, we assumed that the systems under consideration were described by time-independent Hamiltonians.  However, many systems have explicit time-dependence in either the Hamiltonian, or the collpase operators describing coupling to the environment, and sometimes both components might depend on time.  The two main evolution solvers in QuTiP, :func:`qutip.mesolve` and :func:`qutip.mcsolve`, discussed in :ref:`master` and :ref:`monte` respectively, are capable of handling time-dependent Hamiltonians and collapse terms.  There are, in general, three different ways to implement time-dependent problems in QuTiP 2:
 
 
+1. **Function based**: Hamiltonian / collapse operators expressed using [qobj,func] pairs, where the time-dependent coefficients of the Hamiltonian (or collapse operators) are expresed in the Python functions.
 
 
+2. **String (Cython) based**: The Hamiltonian and/or collapse operators are expressed as a list of [qobj,string] pairs, where the time-dependent coefficients are represented as strings.  The resulting Hamiltonian is then compiled into c-code using Cython and executed.
 
 
+3. **Hamiltonian function (outdated)**: The Hamiltonian is itself a Python function with time-dependence.  Collapse operators must be time-independent using this input format. 
 
 
- If a callback function is passed as first parameter to the solver function (instead of :class:`qutip.Qobj` Hamiltonian), then this function is called at each time step and is expected to return the :class:`qutip.Qobj` Hamiltonian for that point in time. The callback function takes two arguments: the time `t` and list additional Hamiltonian arguments ``args``. This list of additional arguments is the same object as is passed as the sixth parameter to the solver function (only used for time-dependent Hamiltonians).
+Give the multiple choices of input style, the first question that arrises is which option to choose?  In short, the function based method (option 1) is the most general, allowing for essentially arbitrary coefficents expressed via user defined functions.  However, by automatically compiling your system into c-code, the second option (string based) tends to be more efficent and will run faster.  Of course, for small system sizes and evolution times, the difference will be minor.  Although this method does not support all time-dependent coefficients that one can think of, it does support essentially all problems that one would typically encounter.  If you can write you time-dependent coefficients using any of the following functions, or comnbinations thereof (including constants) then you may use this method.   
 
-For example, let's consider a two-level system with energy splitting 1.0, and subject to a time-dependent field that couples to the :math:`\sigma_x` operator with amplitude 0.1. Furthermore, to make the example a little bit more interesting, let's also assume that the two-level system is subject to relaxation, with relaxation rate 0.01. The following code calculates the dynamics of the system in the absence and in the presence of the time-dependent driving signal::
+
+If a callback function is passed as first parameter to the solver function (instead of :class:`qutip.Qobj` Hamiltonian), then this function is called at each time step and is expected to return the :class:`qutip.Qobj` Hamiltonian for that point in time. The callback function takes two arguments: the time `t` and list additional Hamiltonian arguments ``args``. This list of additional arguments is the same object as is passed as the sixth parameter to the solver function (only used for time-dependent Hamiltonians).
+
+For example, let's consider a two-level system with energy splitting 1.0, and subject to a time-dependent field that couples to the :math:`\sigma_x` operator with amplitude 0.1. Furthermore, to make the example a little bit more interesting, let's also assume that the two-level system is subject to relaxation, with relaxation rate 0.01. The following code calculates the dynamics of the system in the absence and in the presence of the time-dependent driving signal
 
 
 
