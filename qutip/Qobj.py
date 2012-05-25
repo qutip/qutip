@@ -118,7 +118,7 @@ class Qobj():
             self.shape=shape
             self.isherm=False
             self.type='ket'
-            pass
+            return
         elif isinstance(inpt,Qobj):#if input is already Qobj then return identical copy
             ##Quantum object data
             self.data=sp.csr_matrix(inpt.data,dtype=complex) #make sure matrix is sparse (safety check)
@@ -176,10 +176,13 @@ class Qobj():
         else:
             self.type=type
  
-    
-    ##### Definition of PLUS with Qobj on LEFT (ex. Qobj+4) #########                
-
+    #----------------------------------
+    # BEGIN QOBJ METHODS
+    #----------------------------------
     def __add__(self, other): #defines left addition for Qobj class
+        """
+        ADDITION with Qobj on LEFT [ ex. Qobj+4 ]            
+        """
         if classcheck(other)=='eseries':
             return other.__radd__(self)
         if not isinstance(other, Qobj):
@@ -191,22 +194,31 @@ class Qobj():
                 out.data=self.data+dat*sp.csr_matrix(ones(self.shape))
                 out.dims=self.dims
                 out.shape=self.shape
+                isherm=None
+                if isinstance(dat,(int,float)):
+                    isherm=self.isherm
                 if qset.auto_tidyup:
-                    return Qobj(out).tidyup()
+                    return Qobj(out,type=self.type,isherm=isherm).tidyup()
                 else:
-                    return Qobj(out)
+                    return Qobj(out,type=self.type,isherm=isherm)
             else: #if other qobj is zero object
                 return self
         elif prod(self.shape)==1 and prod(other.shape)!=1:#case for scalar quantum object
             dat=array(self.full())[0][0]
             out=Qobj()
-            out.data=dat*sp.csr_matrix(ones(other.shape))+other.data
+            if dat!=0:
+                out.data=dat*sp.csr_matrix(ones(other.shape))+other.data
+            else:
+                out.data=other.data
             out.dims=other.dims
             out.shape=other.shape
+            isherm=None
+            if isinstance(dat,(int,float)):
+                isherm=other.isherm
             if qset.auto_tidyup:
-                return Qobj(out).tidyup()
+                return Qobj(out,type=other.type,isherm=isherm).tidyup()
             else:
-                return Qobj(out)
+                return Qobj(out,type=other.type,isherm=isherm)
         elif self.dims!=other.dims:
             raise TypeError('Incompatible quantum object dimensions')
         elif self.shape!=other.shape:
@@ -216,59 +228,54 @@ class Qobj():
             out.data=self.data+other.data
             out.dims=self.dims
             out.shape=self.shape
+            isherm=None
+            if self.type in array(['ket','bra','super']):
+                isherm=False
+            elif self.isherm==other.isherm==True:
+                isherm==True
+            elif (self.isherm==True and other.isherm==False) or (self.isherm==False and other.isherm==True):
+                isherm==False
             if qset.auto_tidyup:
-                return Qobj(out).tidyup()
+                return Qobj(out,type=self.type,isherm=isherm).tidyup()
             else:
-                return Qobj(out)
-
-    #- Definition of PLUS with Qobj on RIGHT (ex. 4+Qobj) ###############
-    def __radd__(self,other): #defines left addition for Qobj class
+                return Qobj(out,type=self.type,isherm=isherm)
+    #----
+    def __radd__(self,other):
+        """
+        ADDITION with Qobj on RIGHT [ ex. 4+Qobj ] (just calls left addition)            
+        """
         out=self+other
         if qset.auto_tidyup:
             return out.tidyup()
         else:
             return out
-
-    #- Definition of SUBTRACTION with Qobj on LEFT (ex. Qobj-4) #########
+    #----
     def __sub__(self,other):
+        """
+        SUBTRACTION with Qobj on LEFT [ ex. Qobj-4 ]        
+        """
         out=self+(-other)
         if qset.auto_tidyup:
             return out.tidyup()
         else:
             return out
-
-    #- Definition of SUBTRACTION with Qobj on RIGHT (ex. 4-Qobj) #########
+    #----
     def __rsub__(self,other):
+        """
+        SUBTRACTION with Qobj on RIGHT [ ex. 4-Qobj ]           
+        """
         out=(-self)+other
         if qset.auto_tidyup:
             return out.tidyup()
         else:
             return out
-    
-    #-Definition of Multiplication with Qobj on left (ex. Qobj*5) #########
+    #----
     def __mul__(self,other):
+        """
+        MULTIPLICATION with Qobj on LEFT [ ex. Qobj*4 ]        
+        """
         if isinstance(other,Qobj): #if both are quantum objects
-            if prod(other.shape)==1 and prod(self.shape)!=1:#case for scalar quantum object
-                dat=array(other.data.todense())[0][0]
-                out=Qobj()
-                out.data=dat * (sp.csr_matrix(ones(self.shape))*self.data)
-                out.dims=self.dims
-                out.shape=self.shape
-                if qset.auto_tidyup:
-                    return Qobj(out).tidyup()
-                else:
-                    return Qobj(out)
-            elif prod(self.shape)==1 and prod(other.shape)!=1:#take care of right mul as well for scalar Qobjs
-                dat=array(self.data.todense())[0][0]
-                out=Qobj()
-                out.data=dat*sp.csr_matrix(ones(other.shape))*other.data
-                out.dims=other.dims
-                out.shape=other.shape
-                if qset.auto_tidyup:
-                    return Qobj(out).tidyup()
-                else:
-                    return Qobj(out)
-            elif self.shape[1]==other.shape[0] and self.dims[1]==other.dims[0]:
+            if self.shape[1]==other.shape[0] and self.dims[1]==other.dims[0]:
                 out=Qobj()
                 out.data=self.data*other.data
                 out.dims  = [self.dims[0],  other.dims[1]]
@@ -280,11 +287,8 @@ class Qobj():
             else:
                 raise TypeError("Incompatible Qobj shapes")
 
-        if isinstance(other, list): # if other is a list, do element-wise multiplication
-            prod_list = []
-            for item in other:
-                prod_list.append(self * item)
-            return prod_list
+        if isinstance(other, (list,ndarray)): # if other is a list, do element-wise multiplication
+            return array([self * item for item in other])
 
         if classcheck(other)=='eseries':
             return other.__rmul__(self)
@@ -294,37 +298,22 @@ class Qobj():
             out.data=self.data*other
             out.dims=self.dims
             out.shape=self.shape
+            isherm=None
+            if isinstance(other,(int,float)):
+                isherm=self.isherm
             if qset.auto_tidyup:
-                return Qobj(out).tidyup()
+                return Qobj(out,type=self.type,isherm=isherm).tidyup()
             else:
-                return Qobj(out)
+                return Qobj(out,type=self.type,isherm=isherm)
         else:
             raise TypeError("Incompatible object for multiplication")
-    
-    #- Definition of Multiplication with Qobj on right (ex. 5*Qobj) #########
+    #----
     def __rmul__(self,other):
+        """
+        MULTIPLICATION with Qobj on RIGHT [ ex. 4*Qobj ]           
+        """
         if isinstance(other,Qobj): #if both are quantum objects
-            if prod(other.shape)==1 and prod(self.shape)!=1:#case for scalar quantum object
-                dat=array(other.data.todense())[0][0]
-                out=Qobj()
-                out.data=dat * (sp.csr_matrix(ones(self.shape))*self.data)
-                out.dims=self.dims
-                out.shape=self.shape
-                if qset.auto_tidyup:
-                    return Qobj(out).tidyup()
-                else:
-                    return Qobj(out)
-            elif prod(self.shape)==1 and prod(other.shape)!=1:#take care of right mul as well for scalar Qobjs
-                dat=array(self.data.todense())[0][0]
-                out=Qobj()
-                out.data=dat*sp.csr_matrix(ones(other.shape))*other.data
-                out.dims=other.dims
-                out.shape=other.shape
-                if qset.auto_tidyup:
-                    return Qobj(out).tidyup()
-                else:
-                    return Qobj(out)
-            elif self.shape[1]==other.shape[0] and self.dims[1]==other.dims[0]:
+            if self.shape[1]==other.shape[0] and self.dims[1]==other.dims[0]:
                 out=Qobj()
                 out.data=other.data * self.data
                 out.dims=self.dims
@@ -336,11 +325,8 @@ class Qobj():
             else:
                 raise TypeError("Incompatible Qobj shapes")
 
-        if isinstance(other, list): # if other is a list, do element-wise multiplication
-            prod_list = []
-            for item in other:
-                prod_list.append(item * self)
-            return prod_list
+        if isinstance(other, (list,ndarray)): # if other is a list, do element-wise multiplication
+            return array([item*self for item in other])
 
         if classcheck(other)=='eseries':
             return other.__mul__(self)
@@ -350,15 +336,21 @@ class Qobj():
             out.data=other*self.data
             out.dims=self.dims
             out.shape=self.shape
+            isherm=None
+            if isinstance(other,(int,float)):
+                isherm=self.isherm
             if qset.auto_tidyup:
-                return Qobj(out).tidyup()
+                return Qobj(out,type=self.type,isherm=isherm).tidyup()
             else:
-                return Qobj(out)
+                return Qobj(out,type=self.type,isherm=isherm)
         else:
             raise TypeError("Incompatible object for multiplication")
 
-    #- Definition of Division with Qobj on left (ex. Qobj / sqrt(2)) #########
+    #----
     def __div__(self,other):
+        """
+        DIVISION (by numbers only)
+        """
         if isinstance(other,Qobj): #if both are quantum objects
             raise TypeError("Incompatible Qobj shapes [division with Qobj not implemented]")
         #if isinstance(other,Qobj): #if both are quantum objects
@@ -368,33 +360,44 @@ class Qobj():
             out.data=self.data/other
             out.dims=self.dims
             out.shape=self.shape
+            isherm=None
+            if isinstance(other,(int,float)):
+                isherm=self.isherm
             if qset.auto_tidyup:
-                return Qobj(out).tidyup()
+                return Qobj(out,type=self.type,isherm=isherm).tidyup()
             else:
-                return Qobj(out)
+                return Qobj(out,type=self.type,isherm=isherm)
         else:
             raise TypeError("Incompatible object for division")
-
+    
+    #----
     def __neg__(self):
+        """
+        NEGATION operation.
+        """
         out=Qobj()
         out.data=-self.data
         out.dims=self.dims
         out.shape=self.shape
         if qset.auto_tidyup:
-            return Qobj(out).tidyup()
+            return Qobj(out,type=self.type,isherm=self.isherm).tidyup()
         else:
-            return Qobj(out)
-
+            return Qobj(out,type=self.type,isherm=self.isherm)
+    
+    #----
     def __getitem__(self,ind):
+        """
+        GET qobj elements.
+        """
         out=self.data[ind]
         if sp.issparse(out):
             return asarray(out.todense())
         else:
             return out
-
+    #----
     def __eq__(self, other):
         """
-        Defines equality operator.
+        EQUALITY operator.
         """
         if isinstance(other,Qobj) and self.dims == other.dims and \
            self.shape == other.shape and abs(sp_max_norm(self-other))<1e-14:
@@ -404,11 +407,16 @@ class Qobj():
 
     def __ne__(self, other):
         """
-        Defines inequality operator.
+        INEQUALITY operator.
         """
         return not (self == other)
     
     def __pow__(self,n):#calculates powers of Qobj
+        """
+        POWER operation.
+        """
+        if self.type not in ['oper','super']:
+            raise Exception("Raising a qobj to some power works only for operators and super-operators (square matrices).")
         try:
             data=self.data**n
             out=Qobj(data,dims=self.dims,shape=self.shape)
@@ -445,7 +453,7 @@ class Qobj():
         out.data=self.data.T.conj()
         out.dims=[self.dims[1],self.dims[0]]
         out.shape=[self.shape[1],self.shape[0]]
-        return Qobj(out)
+        return Qobj(out,isherm=self.isherm)
 
     def conj(self):
         """Returns the conjugate operator of quantum object.
@@ -716,7 +724,7 @@ class Qobj():
         #outdata.data[real_inds]=real(outdata.data[real_inds])
         #outdata.data[imag_inds]=imag(outdata.data[imag_inds])
         outdata.eliminate_zeros()
-        return Qobj(outdata,dims=self.dims,shape=self.shape)
+        return Qobj(outdata,dims=self.dims,shape=self.shape,type=self.type,isherm=self.isherm)
 
 
     #
