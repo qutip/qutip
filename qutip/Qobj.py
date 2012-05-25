@@ -163,7 +163,7 @@ class Qobj():
                     self.shape=shape
         
         ##Signifies if quantum object corresponds to Hermitian operator
-        if not isherm:
+        if isherm == None:
             if qset.auto_herm:
                 self.isherm=hermcheck(self)
             else:
@@ -178,6 +178,7 @@ class Qobj():
  
     
     ##### Definition of PLUS with Qobj on LEFT (ex. Qobj+4) #########                
+
     def __add__(self, other): #defines left addition for Qobj class
         if classcheck(other)=='eseries':
             return other.__radd__(self)
@@ -373,6 +374,7 @@ class Qobj():
                 return Qobj(out)
         else:
             raise TypeError("Incompatible object for division")
+
     def __neg__(self):
         out=Qobj()
         out.data=-self.data
@@ -382,6 +384,7 @@ class Qobj():
             return Qobj(out).tidyup()
         else:
             return Qobj(out)
+
     def __getitem__(self,ind):
         out=self.data[ind]
         if sp.issparse(out):
@@ -443,6 +446,7 @@ class Qobj():
         out.dims=[self.dims[1],self.dims[0]]
         out.shape=[self.shape[1],self.shape[0]]
         return Qobj(out)
+
     def conj(self):
         """Returns the conjugate operator of quantum object.
         
@@ -452,6 +456,7 @@ class Qobj():
         out.dims=[self.dims[1],self.dims[0]]
         out.shape=[self.shape[1],self.shape[0]]
         return Qobj(out)
+
     def norm(self,oper_norm='tr',sparse=False,tol=0,maxiter=100000):
         """Returns the norm of a quantum object. 
         
@@ -502,6 +507,7 @@ class Qobj():
                 raise ValueError("Operator norm must be 'tr', 'fro', 'one', or 'max'.")
         else:
             return sp_L2_norm(self)
+
     def tr(self):
         """The trace of a quantum object.
         
@@ -515,6 +521,7 @@ class Qobj():
             return float(real(sum(self.data.diagonal())))
         else:
             return complex(sum(self.data.diagonal()))
+
     def full(self):
         """Returns a dense array from quantum object.
         
@@ -525,6 +532,7 @@ class Qobj():
         
         """
         return array(self.data.todense())
+
     def diag(self):
         """Diagonal elements of Qobj.
         
@@ -540,6 +548,7 @@ class Qobj():
             return out
         else:
             return real(out)
+
     def expm(self):
         """Matrix exponential of quantum operator.
         
@@ -563,6 +572,18 @@ class Qobj():
                 return sp_expm(self)
         else:
             raise TypeError('Invalid operand for matrix exponential')
+
+    def checkherm(self):
+        """ Explicitly check if the Qobj is hermitian 
+
+        Returns
+        -------
+        isherm: bool
+            Returns the new value of isherm property.
+        """
+        self.isherm=hermcheck(self)
+        return self.isherm
+
     def sqrtm(self,sparse=False,tol=0,maxiter=100000):
         """The sqrt of a quantum operator.
            
@@ -1055,6 +1076,7 @@ def ptrace(Q,sel):
     
     """
     return Q.ptrace(sel)
+
 #-############################################################################
 #      
 #
