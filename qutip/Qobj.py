@@ -191,7 +191,7 @@ class Qobj():
             dat=array(other.full())[0][0]
             if dat!=0:
                 out=Qobj()
-                out.data=self.data+dat*sp.csr_matrix(ones(self.shape))
+                out.data=self.data+dat*sp.csr_matrix(ones(self.shape),dtype=complex)
                 out.dims=self.dims
                 out.shape=self.shape
                 isherm=None
@@ -207,7 +207,7 @@ class Qobj():
             dat=array(self.full())[0][0]
             out=Qobj()
             if dat!=0:
-                out.data=dat*sp.csr_matrix(ones(other.shape))+other.data
+                out.data=dat*sp.csr_matrix(ones(other.shape),dtype=complex)+other.data
             else:
                 out.data=other.data
             out.dims=other.dims
