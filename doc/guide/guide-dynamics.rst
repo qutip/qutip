@@ -13,8 +13,8 @@ Evaluating Quantum System Dynamics
    dynamics/dynamics-master.rst
    dynamics/dynamics-monte.rst
    dynamics/dynamics-bloch-redfield.rst
-   dynamics/dynamics-time.rst
    dynamics/dynamics-floquet.rst
+   dynamics/dynamics-time.rst
    dynamics/dynamics-performance.rst
    dynamics/dynamics-options.rst
 
