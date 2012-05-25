@@ -137,7 +137,7 @@ class Qobj():
             if isinstance(inpt,(int,float,complex)):
                 inpt=array([[inpt]])
             #case where input is array or sparse
-            if (isinstance(inpt,ndarray)) or (isinstance(inpt,sp.csr_matrix)):
+            if (isinstance(inpt,ndarray)) or sp.issparse(inpt):
                 self.data=sp.csr_matrix(inpt,dtype=complex) #data stored as space array
                 if not any(dims):
                     self.dims=[[int(inpt.shape[0])],[int(inpt.shape[1])]] #list of object dimensions
@@ -161,7 +161,14 @@ class Qobj():
                     self.shape=[int(inpt.shape[0]),int(inpt.shape[1])]
                 else:
                     self.shape=shape
-        
+            else:
+                #
+                print "Warning: Initializing Qobj from unsupported type"
+                inpt=array([[0]])
+                self.data=sp.csr_matrix(inpt,dtype=complex)
+                self.dims=[[int(inpt.shape[0])],[int(inpt.shape[1])]]
+                self.shape=[int(inpt.shape[0]),int(inpt.shape[1])]        
+
         ##Signifies if quantum object corresponds to Hermitian operator
         if isherm == None:
             if qset.auto_herm:
@@ -171,7 +178,7 @@ class Qobj():
         else:
             self.isherm=isherm
         ##Signifies if quantum object corresponds to a ket, bra, operator, or super-operator
-        if not type:
+        if type == None:
             self.type=ischeck(self)
         else:
             self.type=type
@@ -190,7 +197,7 @@ class Qobj():
         if prod(other.shape)==1 and prod(self.shape)!=1: #case for scalar quantum object
             dat=array(other.full())[0][0]
             if dat!=0:
-                out=Qobj()
+                out=Qobj(type=self.type)
                 if self.type in ['oper','super']:
                     out.data=self.data+dat*sp.identity(self.shape[0],dtype=complex,format='csr')
                 else:
@@ -232,7 +239,7 @@ class Qobj():
         elif self.shape!=other.shape:
             raise TypeError('Matrix shapes do not match')
         else:#case for matching quantum objects
-            out=Qobj()
+            out=Qobj(type=self.type)
             out.data=self.data+other.data
             out.dims=self.dims
             out.shape=self.shape
@@ -284,14 +291,14 @@ class Qobj():
         """
         if isinstance(other,Qobj): #if both are quantum objects
             if self.shape[1]==other.shape[0] and self.dims[1]==other.dims[0]:
-                out=Qobj()
+                out=Qobj(type=self.type)
                 out.data=self.data*other.data
                 out.dims  = [self.dims[0],  other.dims[1]]
                 out.shape = [self.shape[0], other.shape[1]]
                 if qset.auto_tidyup:
-                    return Qobj(out).tidyup()
+                    return out.tidyup()
                 else:
-                    return Qobj(out)
+                    return out
             else:
                 raise TypeError("Incompatible Qobj shapes")
 
@@ -302,7 +309,7 @@ class Qobj():
             return other.__rmul__(self)
 
         if isinstance(other,(int,float,complex)): #if other is int,float,complex
-            out=Qobj()
+            out=Qobj(type=self.type)
             out.data=self.data*other
             out.dims=self.dims
             out.shape=self.shape
@@ -322,14 +329,14 @@ class Qobj():
         """
         if isinstance(other,Qobj): #if both are quantum objects
             if self.shape[1]==other.shape[0] and self.dims[1]==other.dims[0]:
-                out=Qobj()
+                out=Qobj(type=self.type)
                 out.data=other.data * self.data
                 out.dims=self.dims
                 out.shape=[self.shape[0],other.shape[1]]
                 if qset.auto_tidyup:
-                    return Qobj(out).tidyup()
+                    return out.tidyup()
                 else:
-                    return Qobj(out)
+                    return out
             else:
                 raise TypeError("Incompatible Qobj shapes")
 
@@ -340,7 +347,7 @@ class Qobj():
             return other.__mul__(self)
 
         if isinstance(other,(int,float,complex)): #if other is int,float,complex
-            out=Qobj()
+            out=Qobj(type=self.type)
             out.data=other*self.data
             out.dims=self.dims
             out.shape=self.shape
@@ -364,7 +371,7 @@ class Qobj():
         #if isinstance(other,Qobj): #if both are quantum objects
         #    raise TypeError("Incompatible Qobj shapes [division with Qobj not implemented]")
         if isinstance(other,(int,float,complex)): #if other is int,float,complex
-            out=Qobj()
+            out=Qobj(type=self.type)
             out.data=self.data/other
             out.dims=self.dims
             out.shape=self.shape
@@ -457,7 +464,7 @@ class Qobj():
     def dag(self):
         """Returns the adjont operator of quantum object.
         """
-        out=Qobj()
+        out=Qobj(type=self.type)
         out.data=self.data.T.conj()
         out.dims=[self.dims[1],self.dims[0]]
         out.shape=[self.shape[1],self.shape[0]]
@@ -467,11 +474,11 @@ class Qobj():
         """Returns the conjugate operator of quantum object.
         
         """
-        out=Qobj()
+        out=Qobj(type=self.type)
         out.data=self.data.conj()
         out.dims=[self.dims[1],self.dims[0]]
         out.shape=[self.shape[1],self.shape[0]]
-        return Qobj(out)
+        return out
 
     def norm(self,oper_norm='tr',sparse=False,tol=0,maxiter=100000):
         """Returns the norm of a quantum object. 
@@ -777,7 +784,7 @@ class Qobj():
         # normalize S just in case the supplied basis states aren't normalized
         #S = S/la.norm(S)
 
-        out=Qobj()
+        out=Qobj(type=self.type)
         out.dims=[self.dims[1],self.dims[0]]
         out.shape=[self.shape[1],self.shape[0]]
         out.isherm=self.isherm
@@ -802,7 +809,7 @@ class Qobj():
         # force sparse
         out.data = sp.csr_matrix(out.data,dtype=complex)
         
-        return Qobj(out)
+        return out
 
     #
     # calculate the matrix element between self and a bra and a ket
@@ -982,11 +989,11 @@ class Qobj():
             Transpose of input operator.
         
         """
-        out=Qobj()
+        out=Qobj(type=self.type)
         out.data=self.data.T
         out.dims=[self.dims[1],self.dims[0]]
         out.shape=[self.shape[1],self.shape[0]]
-        return Qobj(out)
+        return out
 #-------------------------------------------------------------------------------
 # This functions evaluates a time-dependent quantum object on the list-string
 # and list-function formats that are used by the time-dependent solvers.
