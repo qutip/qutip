@@ -291,10 +291,12 @@ class Qobj():
         """
         if isinstance(other,Qobj): #if both are quantum objects
             if self.shape[1]==other.shape[0] and self.dims[1]==other.dims[0]:
-                out=Qobj(type=self.type)
+                out=Qobj()
                 out.data=self.data*other.data
                 out.dims  = [self.dims[0],  other.dims[1]]
                 out.shape = [self.shape[0], other.shape[1]]
+                out.type=ischeck(out)
+                out.isherm=hermcheck(out)
                 if qset.auto_tidyup:
                     return out.tidyup()
                 else:
@@ -329,10 +331,12 @@ class Qobj():
         """
         if isinstance(other,Qobj): #if both are quantum objects
             if self.shape[1]==other.shape[0] and self.dims[1]==other.dims[0]:
-                out=Qobj(type=self.type)
+                out=Qobj()
                 out.data=other.data * self.data
                 out.dims=self.dims
                 out.shape=[self.shape[0],other.shape[1]]
+                out.type=ischeck(out)
+                out.isherm=hermcheck(out)
                 if qset.auto_tidyup:
                     return out.tidyup()
                 else:
