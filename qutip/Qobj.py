@@ -191,7 +191,11 @@ class Qobj():
             dat=array(other.full())[0][0]
             if dat!=0:
                 out=Qobj()
-                out.data=self.data+dat*sp.csr_matrix(ones(self.shape),dtype=complex)
+                if self.type in ['oper','super']:
+                    out.data=self.data+dat*sp.identity(self.shape[0],dtype=complex,format='csr')
+                else:
+                    out.data=self.data
+                    out.data.data=out.data.data+dat
                 out.dims=self.dims
                 out.shape=self.shape
                 isherm=None
@@ -205,20 +209,24 @@ class Qobj():
                 return self
         elif prod(self.shape)==1 and prod(other.shape)!=1:#case for scalar quantum object
             dat=array(self.full())[0][0]
-            out=Qobj()
             if dat!=0:
-                out.data=dat*sp.csr_matrix(ones(other.shape),dtype=complex)+other.data
+                out=Qobj()
+                if other.type in ['oper','super']:
+                    out.data=dat*sp.identity(other.shape[0],dtype=complex,format='csr')+other.data
+                else:
+                    out.data=other.data
+                    out.data.data=out.data.data+dat
+                out.dims=other.dims
+                out.shape=other.shape
+                isherm=None
+                if isinstance(dat,(int,float)):
+                    isherm=other.isherm
+                if qset.auto_tidyup:
+                    return Qobj(out,type=other.type,isherm=isherm).tidyup()
+                else:
+                    return Qobj(out,type=other.type,isherm=isherm)
             else:
-                out.data=other.data
-            out.dims=other.dims
-            out.shape=other.shape
-            isherm=None
-            if isinstance(dat,(int,float)):
-                isherm=other.isherm
-            if qset.auto_tidyup:
-                return Qobj(out,type=other.type,isherm=isherm).tidyup()
-            else:
-                return Qobj(out,type=other.type,isherm=isherm)
+                return other
         elif self.dims!=other.dims:
             raise TypeError('Incompatible quantum object dimensions')
         elif self.shape!=other.shape:
