@@ -129,7 +129,10 @@ class TestQobj(unittest.TestCase):
         q3 = Qobj(data3)
 
         q4 = q1 + q2
-
+        
+        self.assertTrue(q4.type==ischeck(q4))
+        self.assertTrue(q4.isherm==isherm(q4))
+        
         # check elementwise addition/subtraction
         self.assertEqual(q3, q4)
 
@@ -165,6 +168,8 @@ class TestQobj(unittest.TestCase):
         
         q3=q1-q2
         data3=data1-data2
+        
+        
         
         self.assertTrue(all(q3.data.todense()-matrix(data3))==0)
         
@@ -232,7 +237,34 @@ class TestQobj(unittest.TestCase):
         self.assertTrue(q[0,0]==data[0,0])
         self.assertTrue(q[-1,2]==data[-1,2])
     
-    
+    def testCheckMulType(self):
+        psi=basis(5)
+        dm=psi*psi.dag()
+        self.assertTrue(dm.type=='oper')
+        self.assertTrue(dm.isherm==True)
+        
+        nrm=psi.dag()*psi
+        self.assertTrue(dm.type=='oper')
+        self.assertTrue(dm.isherm==True)
+        
+        H1=rand_herm(3)
+        H2=rand_herm(3)
+        out=H1*H2
+        self.assertTrue(out.type=='oper')
+        self.assertTrue(out.isherm==isherm(out))
+        
+        U=rand_unitary(5)
+        out=U.dag()*U
+        self.assertTrue(out.type=='oper')
+        self.assertTrue(out.isherm==True)
+        
+        N=num(5)
+        
+        out=N*N
+        self.assertTrue(out.type=='oper')
+        self.assertTrue(out.isherm==True)
+        
+        
     #-------- test the Qobj methods ------------#
     
     def testQobjConjugate(self):
