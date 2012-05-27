@@ -33,6 +33,11 @@ def _reset():
 
 def _reset_odeconfig():
     import qutip.odeconfig as odeconfig
+    #General stuff
+    odeconfig.tlist=None #evaluations times
+    odeconfig.ntraj=None #number / list of trajectories
+    odeconfig.options=None #options for odesolvers
+    
     #flags for setting time-dependence, collapse ops, and number of times codegen has been run
     odeconfig.cflag=0             #Flag signaling collapse operators
     odeconfig.tflag=0             #Flag signaling time-dependent problem
@@ -49,6 +54,7 @@ def _reset_odeconfig():
     odeconfig.psi0=None   
     odeconfig.psi0_dims=None 
     odeconfig.psi0_shape=None 
+    
     #Hamiltonian stuff
     odeconfig.h_td_inds=[]        #indicies of time-dependent Hamiltonian operators
     odeconfig.h_data=None          #List of sparse matrix data

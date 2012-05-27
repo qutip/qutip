@@ -17,6 +17,16 @@
 #
 ###########################################################################
 
+#General stuff
+tlist=None #evaluations times
+ntraj=None #number / list of trajectories
+options=None #options for odesolvers
+ 
+#Initial state stuff
+psi0=None #initial state
+psi0_dims=None#initial state dims
+psi0_shape=None #initial state shape
+
 #flags for setting time-dependence, collapse ops, and number of times codegen has been run
 cflag=0             #Flag signaling collapse operators
 tflag=0             #Flag signaling time-dependent problem
@@ -28,11 +38,6 @@ colspmv=None        #Placeholder for time-dependent col-spmv function.
 colexpect=None      #Placeholder for time-dependent col_expect function.
 string=None         #Holds string of variables to be passed onto time-depdendent ODE solver.
 tdname=None         #Name of td .pyx file (used in parallel mc code)
-
-#Initial state stuff
-psi0=None   
-psi0_dims=None 
-psi0_shape=None 
 
 #Hamiltonian stuff
 h_td_inds=[]        #indicies of time-dependent Hamiltonian operators

@@ -68,32 +68,63 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
         Object storing all results from simulation.
         
     """
-    #reset odeconfig collapse and time-dependence flags to default values
-    _reset_odeconfig()
+    if (not options.rhs_reuse) or (not odeconfig.tdname):
+        #reset odeconfig collapse and time-dependence flags to default values
+        _reset_odeconfig()
     
-    #check for type of time-dependence (if any)
-    time_type,h_stuff,c_stuff=_ode_checks(H,c_ops,'mc')
-    h_terms=len(h_stuff[0])+len(h_stuff[1])+len(h_stuff[2])
-    c_terms=len(c_stuff[0])+len(c_stuff[1])+len(c_stuff[2])
-    #set time_type for use in multiprocessing
-    odeconfig.tflag=time_type
-    #check for collapse operators
-    if c_terms>0:
-        odeconfig.cflag=1
+        #set general items
+        odeconfig.tlist=tlist
+        if isinstance(ntraj,(list,ndarray)):
+            odeconfig.ntraj=sort(ntraj)[-1]
+        else:
+            odeconfig.ntraj=ntraj
+        odeconfig.options=options
+        
+        #-Check for PyObjC on Mac platforms
+        if sys.platform=='darwin':
+            try:
+                import Foundation
+            except:
+                odeconfig.options.gui=False
+        #check if running in iPython and using Cython compiling (then no GUI to work around error)
+        if odeconfig.options.gui and odeconfig.tflag in array([1,10,11]):
+            try:
+                __IPYTHON__
+            except:
+                pass
+            else:
+                odeconfig.options.gui=False    
+        if qutip.settings.qutip_gui=="NONE":odeconfig.options.gui=False
+        #set num_cpus to the value given in qutip.settings if none in Odeoptions
+        if not odeconfig.options.num_cpus:
+            odeconfig.options.num_cpus=qutip.settings.num_cpus
+        
+        #check for type of time-dependence (if any)
+        time_type,h_stuff,c_stuff=_ode_checks(H,c_ops,'mc')
+        h_terms=len(h_stuff[0])+len(h_stuff[1])+len(h_stuff[2])
+        c_terms=len(c_stuff[0])+len(c_stuff[1])+len(c_stuff[2])
+        #set time_type for use in multiprocessing
+        odeconfig.tflag=time_type
+        #check for collapse operators
+        if c_terms>0:
+            odeconfig.cflag=1
+        else:
+            odeconfig.cflag=0
+    
+        #Configure data
+        _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options)
     else:
-        odeconfig.cflag=0
-    
-    #Configure data
-    _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options)
-    
+        #setup args for new parameters when rhs_reuse=True and tdfunc is given
+        pass
+        
     #load monte-carlo class
-    mc=MC_class(psi0,tlist,ntraj,c_ops,e_ops,options)
+    mc=MC_class()
     #RUN THE SIMULATION
     mc.run()
     
     
     #AFTER MCSOLVER IS DONE --------------------------------------
-    if (odeconfig.tflag in array([1,10,11,12])) and (not options.rhs_reuse):
+    if (odeconfig.tflag in array([1,10,11,12])) and (not odeconfig.options.rhs_reuse):
         try:
             os.remove(odeconfig.tdname+".pyx")
         except:
@@ -102,24 +133,14 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     
     
     #-------COLLECT AND RETURN OUTPUT DATA IN ODEDATA OBJECT --------------#
-    
     output=Odedata()
     output.solver='mc'
     #state vectors
-    if any(mc.psi_out) and options.mc_avg:
-        if isinstance(ntraj,int):
-            output.states=mean(mc.psi_out,axis=0)
-            output.states=array([states.unit() for states in output.states])
-        elif isinstance(ntraj,(list,ndarray)):
-            output.states=[]
-            for num in ntraj:
-                states=mean(mc.psi_out[:num],axis=0)
-                output.states.append(array([states.unit() for states in output.states]))
-    else:
+    if any(mc.psi_out) and odeconfig.options.mc_avg:
         output.states=mc.psi_out
-    
     #expectation values
-    if any(mc.expect_out) and odeconfig.cflag and options.mc_avg:#averaging if multiple trajectories
+    
+    if any(mc.expect_out) and odeconfig.cflag and odeconfig.options.mc_avg:#averaging if multiple trajectories
         if isinstance(ntraj,int):
             output.expect=mean(mc.expect_out,axis=0)
         elif isinstance(ntraj,(list,ndarray)):
@@ -140,10 +161,10 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
         output.expect=mc.expect_out
 
     #simulation parameters
-    output.times=mc.times
+    output.times=odeconfig.tlist
     output.num_expect=odeconfig.e_num
     output.num_collapse=odeconfig.c_num
-    output.ntraj=mc.ntraj
+    output.ntraj=odeconfig.ntraj
     output.collapse_times=mc.collapse_times_out
     output.collapse_which=mc.which_op_out
     return output
@@ -157,43 +178,17 @@ class MC_class():
     Private class for solving Monte-Carlo evolution from mcsolve
     
     """
-    def __init__(self,psi0,tlist,ntraj,c_ops,e_ops,options):
+    def __init__(self):
         
-        #----CLASS SETUP-------------------------------#
-        
-        ##ODE options from Odeoptions class
-        self.options=options
-        #-Check for PyObjC on Mac platforms
-        if sys.platform=='darwin':
-            try:
-                import Foundation
-            except:
-                self.options.gui=False
-        #check if running in iPython and using Cython compiling (then no GUI to work around error)
-        if self.options.gui and odeconfig.tflag in array([1,10,11]):
-            try:
-                __IPYTHON__
-            except:
-                pass
-            else:
-                self.options.gui=False    
-        if qutip.settings.qutip_gui=="NONE":self.options.gui=False
-        #set num_cpus to the value given in qutip.settings if none in Odeoptions
-        if not self.options.num_cpus:
-            self.options.num_cpus=qutip.settings.num_cpus
-        #----------------------------------------------#
-        
-        
+        #-----------------------------------#
+        # INIT MC CLASS
+        #-----------------------------------#
+    
         #----MAIN OBJECT PROPERTIES--------------------#
         ##holds instance of the ProgressBar class
         self.bar=None
         ##holds instance of the Pthread class
         self.thread=None
-        ##check if user wants multiple trajectory averages
-        if isinstance(ntraj,(list,ndarray)):
-            self.ntraj=sort(ntraj)[-1]
-        else:
-            self.ntraj=ntraj
         #Number of completed trajectories
         self.count=0
         ##step-size for count attribute
@@ -203,23 +198,21 @@ class MC_class():
         ##used in implimenting the command line progress ouput
         self.level=0.1
         ##times at which to output state vectors or expectation values
-        self.times=tlist
         ##number of time steps in tlist
-        self.num_times=len(tlist)
+        self.num_times=len(odeconfig.tlist)
         #holds seed for random number generator
         self.seed=None
         #holds expected time to completion
         self.st=None
         #number of cpus to be used 
-        self.cpus=options.num_cpus
-        
+        self.cpus=odeconfig.options.num_cpus
         #set output variables, even if they are not used to simplify output code.
         self.psi_out=None
         self.expect_out=None
         self.collapse_times_out=None
         self.which_op_out=None
         
-        #FOR EVOLUTION FOR NO COLLAPSE OPERATORS---------------------------------------------
+        #FOR EVOLUTION FOR NO COLLAPSE OPERATORS
         if odeconfig.c_num==0:
             if odeconfig.e_num==0:
                 ##Output array of state vectors calculated at times in tlist
@@ -234,19 +227,20 @@ class MC_class():
                         self.expect_out.append(zeros(self.num_times,dtype=complex))
                     self.expect_out[i][0]=mc_expect(odeconfig.e_ops_data[i],odeconfig.e_ops_ind[i],odeconfig.e_ops_ptr[i],odeconfig.e_ops_isherm[i],odeconfig.psi0)
         
-        #FOR EVOLUTION WITH COLLAPSE OPERATORS---------------------------------------------
+        #FOR EVOLUTION WITH COLLAPSE OPERATORS
         elif odeconfig.c_num!=0:
             #preallocate #ntraj arrays for state vectors, collapse times, and which operator
-            self.collapse_times_out=zeros((self.ntraj),dtype=ndarray)
-            self.which_op_out=zeros((self.ntraj),dtype=ndarray)
+            self.collapse_times_out=zeros((odeconfig.ntraj),dtype=ndarray)
+            self.which_op_out=zeros((odeconfig.ntraj),dtype=ndarray)
             if odeconfig.e_num==0:# if no expectation operators, preallocate #ntraj arrays for state vectors
-                self.psi_out=array([zeros((self.num_times),dtype=object) for q in xrange(self.ntraj)])#preallocate array of Qobjs
+                self.psi_out=array([zeros((self.num_times),dtype=object) for q in xrange(odeconfig.ntraj)])#preallocate array of Qobjs
             else: #preallocate array of lists for expectation values
-                self.expect_out=[[] for x in xrange(self.ntraj)]
+                self.expect_out=[[] for x in xrange(odeconfig.ntraj)]
+    
+    
     #-------------------------------------------------#
-    
-    
-    #---CLASS METHODS---------------------------------#
+    # CLASS METHODS
+    #-------------------------------------------------#
     def callback(self,results):
         r=results[0]
         if odeconfig.e_num==0:#output state-vector
@@ -256,16 +250,16 @@ class MC_class():
         self.collapse_times_out[r]=results[2]
         self.which_op_out[r]=results[3]
         self.count+=self.step
-        if (not self.options.gui): #do not use GUI
-            self.percent=self.count/(1.0*self.ntraj)
-            if self.count/float(self.ntraj)>=self.level:
+        if (not odeconfig.options.gui): #do not use GUI
+            self.percent=self.count/(1.0*odeconfig.ntraj)
+            if self.count/float(odeconfig.ntraj)>=self.level:
                 #calls function to determine simulation time remaining
-                self.level=_time_remaining(self.st,self.ntraj,self.count,self.level)
+                self.level=_time_remaining(self.st,odeconfig.ntraj,self.count,self.level)
     #-----
     def parallel(self,args,top=None):  
         self.st=datetime.datetime.now() #set simulation starting time
         pl=Pool(processes=self.cpus)
-        [pl.apply_async(mc_alg_evolve,args=(nt,args),callback=top.callback) for nt in xrange(0,self.ntraj)]
+        [pl.apply_async(mc_alg_evolve,args=(nt,args),callback=top.callback) for nt in xrange(0,odeconfig.ntraj)]
         pl.close()
         try:
             pl.join()
@@ -277,7 +271,7 @@ class MC_class():
     #-----
     def run(self):
         if odeconfig.tflag in array([1,10,11]): #compile time-depdendent RHS code
-            if not self.options.rhs_reuse:
+            if not odeconfig.options.rhs_reuse:
                 os.environ['CFLAGS'] = '-w'
                 import pyximport
                 pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
@@ -292,15 +286,15 @@ class MC_class():
                     exec(code)
                     odeconfig.tdfunc=cyq_td_ode_rhs
         if odeconfig.c_num==0:
-            if self.ntraj!=1:#check if ntraj!=1 which is pointless for no collapse operators
-                self.ntraj=1
+            if odeconfig.ntraj!=1:#check if ntraj!=1 which is pointless for no collapse operators
+                odeconfig.ntraj=1
                 print('No collapse operators specified.\nRunning a single trajectory only.\n')
             if odeconfig.e_num==0:# return psi Qobj at each requested time 
-                self.psi_out=no_collapse_psi_out(self.options,odeconfig.psi0,self.times,self.num_times,odeconfig.psi0_dims,odeconfig.psi0_shape,self.psi_out)
+                self.psi_out=no_collapse_psi_out(odeconfig.options,odeconfig.psi0,odeconfig.tlist,self.num_times,odeconfig.psi0_dims,odeconfig.psi0_shape,self.psi_out)
             else:# return expectation values of requested operators
-                self.expect_out=no_collapse_expect_out(self.options,odeconfig.psi0,self.times,odeconfig.e_ops_data,odeconfig.e_ops_ind,odeconfig.e_ops_ptr,odeconfig.e_ops_isherm,self.num_times,odeconfig.psi0_dims,odeconfig.psi0_shape,self.expect_out)
+                self.expect_out=no_collapse_expect_out(odeconfig.options,odeconfig.psi0,odeconfig.tlist,odeconfig.e_ops_data,odeconfig.e_ops_ind,odeconfig.e_ops_ptr,odeconfig.e_ops_isherm,self.num_times,odeconfig.psi0_dims,odeconfig.psi0_shape,self.expect_out)
         elif odeconfig.c_num!=0:
-            self.seed=array([int(ceil(random.rand()*1e4)) for ll in xrange(self.ntraj)])
+            self.seed=array([int(ceil(random.rand()*1e4)) for ll in xrange(odeconfig.ntraj)])
             if odeconfig.e_num==0:
                 mc_alg_out=zeros((self.num_times),dtype=ndarray)
                 mc_alg_out[0]=odeconfig.psi0
@@ -315,8 +309,8 @@ class MC_class():
                     mc_alg_out[i][0]=mc_expect(odeconfig.e_ops_data[i],odeconfig.e_ops_ind[i],odeconfig.e_ops_ptr[i],odeconfig.e_ops_isherm[i],odeconfig.psi0)
             
             #set arguments for input to monte-carlo
-            args=(mc_alg_out,self.options,self.times,self.num_times,self.seed)
-            if not self.options.gui:
+            args=(mc_alg_out,odeconfig.options,odeconfig.tlist,self.num_times,self.seed)
+            if not odeconfig.options.gui:
                 self.parallel(args,self)
             else:
                 if qutip.settings.qutip_gui=="PYSIDE":
@@ -328,7 +322,7 @@ class MC_class():
                 if not app:#create QApplication if it doesnt exist
                     app = QtGui.QApplication(sys.argv)
                 thread=Pthread(target=self.parallel,args=args,top=self)
-                self.bar=ProgressBar(self,thread,self.ntraj,self.cpus)
+                self.bar=ProgressBar(self,thread,odeconfig.ntraj,self.cpus)
                 QtCore.QTimer.singleShot(0,self.bar.run)
                 self.bar.show()
                 self.bar.activateWindow()
@@ -567,6 +561,7 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
     """Creates the appropriate data structures for the monte carlo solver
     based on the given time-dependent, or indepdendent, format.
     """
+    
     #set initial value data
     if options.tidy:
         odeconfig.psi0=psi0.tidyup(options.atol).full()
@@ -579,10 +574,18 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
     #take care of expectation values, if any
     if any(e_ops):
         odeconfig.e_num=len(e_ops)
-        odeconfig.e_ops_data=array([op.data.data for op in e_ops])
-        odeconfig.e_ops_ind=array([op.data.indices for op in e_ops])
-        odeconfig.e_ops_ptr=array([op.data.indptr for op in e_ops])
-        odeconfig.e_ops_isherm=array([op.isherm for op in e_ops])
+        for op in e_ops:
+            if isinstance(op,list):
+                op=op[0]
+            odeconfig.e_ops_data.append(op.data.data)
+            odeconfig.e_ops_ind.append(op.data.indices)
+            odeconfig.e_ops_ptr.append(op.data.indptr)
+            odeconfig.e_ops_isherm.append(op.isherm)
+        
+        odeconfig.e_ops_data=array(odeconfig.e_ops_data)
+        odeconfig.e_ops_ind=array(odeconfig.e_ops_ind)
+        odeconfig.e_ops_ptr=array(odeconfig.e_ops_ptr)
+        odeconfig.e_ops_isherm=array(odeconfig.e_ops_isherm)
     #----
     
     #take care of collapse operators, if any
