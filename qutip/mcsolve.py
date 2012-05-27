@@ -752,7 +752,7 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
         if not options.rhs_reuse:
             name="rhs"+str(odeconfig.cgen_num)
             odeconfig.tdname=name
-            cgen=Codegen(H_inds,H_tdterms,odeconfig.h_td_inds,args,C_inds,C_tdterms,odeconfig.c_td_inds)
+            cgen=Codegen(H_inds,H_tdterms,odeconfig.h_td_inds,args,C_inds,C_tdterms,odeconfig.c_td_inds,type='mc')
             cgen.generate(name+".pyx")
         #----
     #--------------------------------------------

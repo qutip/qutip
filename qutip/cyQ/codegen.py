@@ -22,15 +22,17 @@ class Codegen():
     """
     Class for generating cython code files at runtime.
     """
-    def __init__(self,h_terms=None,h_tdterms=None,h_td_inds=None,args=None,c_terms=None,c_tdterms=None,c_td_inds=None,tab="\t"):
+    def __init__(self,h_terms=None,h_tdterms=None,h_td_inds=None,args=None,c_terms=None,c_tdterms=[],c_td_inds=None,tab="\t",type='me'):
         import sys,os
         sys.path.append(os.getcwd())
-        
         #--------------------------------------------#
         #  CLASS PROPERTIES`                         #
         #--------------------------------------------#
         
         #--- Hamiltonian time-depdendent pieces ----#
+        self.type=type
+        if isinstance(h_terms,int):
+            h_terms=range(h_terms)
         self.h_terms=h_terms        #number of H pieces
         self.h_tdterms=h_tdterms    #list of time-dependent strings
         self.h_td_inds=h_td_inds    #indicies of time-dependnt terms
@@ -189,11 +191,18 @@ class Codegen():
         hinds=0
         for ht in self.h_terms:
             hstr=str(ht)
-            str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data"+hstr+","+"idx"+hstr+","+"ptr"+hstr+","+"vec"+")"
-            if ht in self.h_td_inds:
-                str_out+=" * "+tdterms[hinds]
-                hinds+=1
-            func_vars.append(str_out)
+            if self.type=='mc':
+                str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data"+hstr+","+"idx"+hstr+","+"ptr"+hstr+","+"vec"+")"
+                if ht in self.h_td_inds:
+                    str_out+=" * "+tdterms[hinds]
+                    hinds+=1
+                func_vars.append(str_out)
+            else:
+                if self.h_tdterms[ht] == "1.0":
+                    str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data"+hstr+","+"idx"+hstr+","+"ptr"+hstr+","+"vec"+")"
+                else:
+                    str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data"+hstr+","+"idx"+hstr+","+"ptr"+hstr+","+"vec"+") * ("+self.h_tdterms[ht]+")"
+                func_vars.append(str_out)
         if len(self.c_tdterms)>0:
             func_vars.append(" ") #add a spacer line between Hamiltonian components and collapse copoenets.
             terms=len(self.c_tdterms)

@@ -469,7 +469,7 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     #
     if not opt.rhs_reuse or odeconfig.tdfunc == None:
         opt.rhs_filename="rhs"+str(odeconfig.cgen_num)
-        cgen=Codegen2(n_L_terms, Lcoeff, args)
+        cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
         cgen.generate(opt.rhs_filename+".pyx")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
@@ -562,7 +562,7 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     #
     if not opt.rhs_reuse or odeconfig.tdfunc == None:
         opt.rhs_filename="rhs"+str(odeconfig.cgen_num)
-        cgen=Codegen2(n_L_terms, Lcoeff, args)
+        cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
         cgen.generate(opt.rhs_filename+".pyx")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
@@ -675,7 +675,7 @@ def wfsolve_list_td(H_func, psi0, tlist, expt_ops,H_args, opt):
     #run code generator
     if not opt.rhs_reuse:
         opt.rhs_filename="rhs"+str(odeconfig.cgen_num)
-        cgen=Codegen(lenh,H_func[1],H_args)
+        cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
         cgen.generate(opt.rhs_filename+".pyx")
         print("Compiling '"+opt.rhs_filename+".pyx' ...")
         os.environ['CFLAGS'] = '-O3 -w'
@@ -869,7 +869,7 @@ def mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     #run code generator
     if not opt.rhs_reuse:
         opt.rhs_filename="rhs"+str(odeconfig.cgen_num)
-        cgen=Codegen(lenh,L_func[1],H_args)
+        cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
         cgen.generate(opt.rhs_filename+".pyx")
         print("Compiling '"+opt.rhs_filename+".pyx' ...")
         os.environ['CFLAGS'] = '-O3 -w'
