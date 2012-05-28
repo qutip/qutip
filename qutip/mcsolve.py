@@ -71,7 +71,6 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     if (not options.rhs_reuse) or (not odeconfig.tdname):
         #reset odeconfig collapse and time-dependence flags to default values
         _reset_odeconfig()
-    
         #set general items
         odeconfig.tlist=tlist
         if isinstance(ntraj,(list,ndarray)):
@@ -94,6 +93,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
                 pass
             else:
                 odeconfig.options.gui=False    
+        
         if qutip.settings.qutip_gui=="NONE":odeconfig.options.gui=False
         #set num_cpus to the value given in qutip.settings if none in Odeoptions
         if not odeconfig.options.num_cpus:
@@ -113,10 +113,20 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     
         #Configure data
         _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options)
-    else:
-        #setup args for new parameters when rhs_reuse=True and tdfunc is given
-        pass
         
+    else:#setup args for new parameters when rhs_reuse=True and tdfunc is given
+        #string based
+        if odeconfig.tflag in array([1,10,11]):
+            if any(args):
+                odeconfig.c_args=[]
+                arg_items=args.items()
+                for k in xrange(len(args)):
+                    odeconfig.c_args.append(arg_items[k][1])
+        #function based
+        elif odeconfig.tflag in array([2,3,20,22]):
+            odeconfig.h_func_args=args
+    
+    
     #load monte-carlo class
     mc=MC_class()
     #RUN THE SIMULATION
@@ -271,20 +281,19 @@ class MC_class():
     #-----
     def run(self):
         if odeconfig.tflag in array([1,10,11]): #compile time-depdendent RHS code
-            if not odeconfig.options.rhs_reuse:
-                os.environ['CFLAGS'] = '-w'
-                import pyximport
-                pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-                if odeconfig.tflag in array([1,11]):
-                    code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs,col_spmv,col_expect', '<string>', 'exec')
-                    exec(code)
-                    odeconfig.tdfunc=cyq_td_ode_rhs
-                    odeconfig.colspmv=col_spmv
-                    odeconfig.colexpect=col_expect
-                else:
-                    code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
-                    exec(code)
-                    odeconfig.tdfunc=cyq_td_ode_rhs
+            os.environ['CFLAGS'] = '-w'
+            import pyximport
+            pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
+            if odeconfig.tflag in array([1,11]):
+                code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs,col_spmv,col_expect', '<string>', 'exec')
+                exec(code)
+                odeconfig.tdfunc=cyq_td_ode_rhs
+                odeconfig.colspmv=col_spmv
+                odeconfig.colexpect=col_expect
+            else:
+                code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
+                exec(code)
+                odeconfig.tdfunc=cyq_td_ode_rhs
         if odeconfig.c_num==0:
             if odeconfig.ntraj!=1:#check if ntraj!=1 which is pointless for no collapse operators
                 odeconfig.ntraj=1
@@ -744,16 +753,14 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
             if k!=data_range[-1]:
                 odeconfig.string+="," 
         #attach args to ode args string
-        if any(args):
-            td_consts=args.items()
-            for elem in td_consts:
-                odeconfig.string+=","+str(elem[1])
+        if any(odeconfig.c_args):
+            for kk in range(len(odeconfig.c_args)):
+                odeconfig.string+=","+"odeconfig.c_args["+str(kk)+"]"
         #----
-        if not options.rhs_reuse:
-            name="rhs"+str(odeconfig.cgen_num)
-            odeconfig.tdname=name
-            cgen=Codegen(H_inds,H_tdterms,odeconfig.h_td_inds,args,C_inds,C_tdterms,odeconfig.c_td_inds,type='mc')
-            cgen.generate(name+".pyx")
+        name="rhs"+str(odeconfig.cgen_num)
+        odeconfig.tdname=name
+        cgen=Codegen(H_inds,H_tdterms,odeconfig.h_td_inds,args,C_inds,C_tdterms,odeconfig.c_td_inds,type='mc')
+        cgen.generate(name+".pyx")
         #----
     #--------------------------------------------
     # END OF STRING TYPE TIME DEPENDENT CODE
