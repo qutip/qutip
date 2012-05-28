@@ -84,6 +84,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     # SETUP ODE DATA IF NONE EXISTS OR NOT REUSING
     #----------------------------------------------
     if (not options.rhs_reuse) or (not odeconfig.tdfunc):
+        print 'running config'
         #reset odeconfig collapse and time-dependence flags to default values
         _reset_odeconfig()
         
@@ -146,6 +147,8 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
                 os.remove(odeconfig.tdname+".pyx")
             except:
                 print("Error removing pyx file.  File not found.")
+        elif odeconfig.tflag==0:
+            odeconfig.tdfunc=cyq_ode_rhs
     else:#setup args for new parameters when rhs_reuse=True and tdfunc is given
         #string based
         if odeconfig.tflag in array([1,10,11]):
