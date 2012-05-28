@@ -31,7 +31,6 @@ from types import FunctionType
 from qutip.cyQ.cy_mc_funcs import mc_expect,spmv,spmv1d
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
-from qutip.rhs_generate import rhs_generate
 from Odedata import Odedata
 from odechecks import _ode_checks
 import qutip.settings
@@ -68,16 +67,30 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
         Object storing all results from simulation.
         
     """
-    if (not options.rhs_reuse) or (not odeconfig.tdname):
+    odeconfig.options=options
+    #set num_cpus to the value given in qutip.settings if none in Odeoptions
+    if not odeconfig.options.num_cpus:
+        odeconfig.options.num_cpus=qutip.settings.num_cpus
+    #----------------------------------------------
+    # SETUP ODE DATA IF NONE EXISTS OR NOT REUSING
+    #----------------------------------------------
+    if (not options.rhs_reuse) or (not odeconfig.tdfunc):
         #reset odeconfig collapse and time-dependence flags to default values
         _reset_odeconfig()
+        
         #set general items
         odeconfig.tlist=tlist
         if isinstance(ntraj,(list,ndarray)):
             odeconfig.ntraj=sort(ntraj)[-1]
         else:
             odeconfig.ntraj=ntraj
-        odeconfig.options=options
+        
+        #check for type of time-dependence (if any)
+        time_type,h_stuff,c_stuff=_ode_checks(H,c_ops,'mc')
+        h_terms=len(h_stuff[0])+len(h_stuff[1])+len(h_stuff[2])
+        c_terms=len(c_stuff[0])+len(c_stuff[1])+len(c_stuff[2])
+        #set time_type for use in multiprocessing
+        odeconfig.tflag=time_type
         
         #-Check for PyObjC on Mac platforms
         if sys.platform=='darwin':
@@ -85,6 +98,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
                 import Foundation
             except:
                 odeconfig.options.gui=False
+
         #check if running in iPython and using Cython compiling (then no GUI to work around error)
         if odeconfig.options.gui and odeconfig.tflag in array([1,10,11]):
             try:
@@ -93,18 +107,9 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
                 pass
             else:
                 odeconfig.options.gui=False    
-        
-        if qutip.settings.qutip_gui=="NONE":odeconfig.options.gui=False
-        #set num_cpus to the value given in qutip.settings if none in Odeoptions
-        if not odeconfig.options.num_cpus:
-            odeconfig.options.num_cpus=qutip.settings.num_cpus
-        
-        #check for type of time-dependence (if any)
-        time_type,h_stuff,c_stuff=_ode_checks(H,c_ops,'mc')
-        h_terms=len(h_stuff[0])+len(h_stuff[1])+len(h_stuff[2])
-        c_terms=len(c_stuff[0])+len(c_stuff[1])+len(c_stuff[2])
-        #set time_type for use in multiprocessing
-        odeconfig.tflag=time_type
+        if qutip.settings.qutip_gui=="NONE":
+            odeconfig.options.gui=False
+
         #check for collapse operators
         if c_terms>0:
             odeconfig.cflag=1
@@ -114,6 +119,24 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
         #Configure data
         _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options)
         
+        if odeconfig.tflag in array([1,10,11]): #compile time-depdendent RHS code
+            os.environ['CFLAGS'] = '-w'
+            import pyximport
+            pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
+            if odeconfig.tflag in array([1,11]):
+                code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs,col_spmv,col_expect', '<string>', 'exec')
+                exec(code)
+                odeconfig.tdfunc=cyq_td_ode_rhs
+                odeconfig.colspmv=col_spmv
+                odeconfig.colexpect=col_expect
+            else:
+                code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
+                exec(code)
+                odeconfig.tdfunc=cyq_td_ode_rhs
+            try:
+                os.remove(odeconfig.tdname+".pyx")
+            except:
+                print("Error removing pyx file.  File not found.")
     else:#setup args for new parameters when rhs_reuse=True and tdfunc is given
         #string based
         if odeconfig.tflag in array([1,10,11]):
@@ -134,11 +157,6 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     
     
     #AFTER MCSOLVER IS DONE --------------------------------------
-    if (odeconfig.tflag in array([1,10,11,12])) and (not odeconfig.options.rhs_reuse):
-        try:
-            os.remove(odeconfig.tdname+".pyx")
-        except:
-            print("Error removing pyx file.  File not found.")
     
     
     
@@ -280,20 +298,7 @@ class MC_class():
         return
     #-----
     def run(self):
-        if odeconfig.tflag in array([1,10,11]): #compile time-depdendent RHS code
-            os.environ['CFLAGS'] = '-w'
-            import pyximport
-            pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-            if odeconfig.tflag in array([1,11]):
-                code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs,col_spmv,col_expect', '<string>', 'exec')
-                exec(code)
-                odeconfig.tdfunc=cyq_td_ode_rhs
-                odeconfig.colspmv=col_spmv
-                odeconfig.colexpect=col_expect
-            else:
-                code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
-                exec(code)
-                odeconfig.tdfunc=cyq_td_ode_rhs
+        
         if odeconfig.c_num==0:
             if odeconfig.ntraj!=1:#check if ntraj!=1 which is pointless for no collapse operators
                 odeconfig.ntraj=1

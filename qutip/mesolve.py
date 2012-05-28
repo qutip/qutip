@@ -468,13 +468,13 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     # generate and compile new cython code if necessary
     #
     if not opt.rhs_reuse or odeconfig.tdfunc == None:
-        opt.rhs_filename="rhs"+str(odeconfig.cgen_num)
+        odeconfig.tdname="rhs"+str(odeconfig.cgen_num)
         cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
-        cgen.generate(opt.rhs_filename+".pyx")
+        cgen.generate(odeconfig.tdname+".pyx")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
         pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-        code = compile('from '+opt.rhs_filename+' import cyq_td_ode_rhs', '<string>', 'exec')
+        code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
         exec(code)
         odeconfig.tdfunc=cyq_td_ode_rhs
         
@@ -561,13 +561,13 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     # generate and compile new cython code if necessary
     #
     if not opt.rhs_reuse or odeconfig.tdfunc == None:
-        opt.rhs_filename="rhs"+str(odeconfig.cgen_num)
+        odeconfig.tdname="rhs"+str(odeconfig.cgen_num)
         cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
-        cgen.generate(opt.rhs_filename+".pyx")
+        cgen.generate(odeconfig.tdname+".pyx")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
         pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-        code = compile('from '+opt.rhs_filename+' import cyq_td_ode_rhs', '<string>', 'exec')
+        code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
         exec(code)
         odeconfig.tdfunc=cyq_td_ode_rhs
         
@@ -674,14 +674,14 @@ def wfsolve_list_td(H_func, psi0, tlist, expt_ops,H_args, opt):
                 string+=(",")
     #run code generator
     if not opt.rhs_reuse:
-        opt.rhs_filename="rhs"+str(odeconfig.cgen_num)
+        odeconfig.tdname="rhs"+str(odeconfig.cgen_num)
         cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
-        cgen.generate(opt.rhs_filename+".pyx")
-        print("Compiling '"+opt.rhs_filename+".pyx' ...")
+        cgen.generate(odeconfig.tdname+".pyx")
+        print("Compiling '"+odeconfig.tdname+".pyx' ...")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
         pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-        code = compile('from '+opt.rhs_filename+' import cyq_td_ode_rhs', '<string>', 'exec')
+        code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
         exec(code)
         print("Done.")
         odeconfig.tdfunc=cyq_td_ode_rhs
@@ -868,14 +868,14 @@ def mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     
     #run code generator
     if not opt.rhs_reuse:
-        opt.rhs_filename="rhs"+str(odeconfig.cgen_num)
+        odeconfig.tdname="rhs"+str(odeconfig.cgen_num)
         cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
-        cgen.generate(opt.rhs_filename+".pyx")
-        print("Compiling '"+opt.rhs_filename+".pyx' ...")
+        cgen.generate(odeconfig.tdname+".pyx")
+        print("Compiling '"+odeconfig.tdname+".pyx' ...")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
         pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-        code = compile('from '+opt.rhs_filename+' import cyq_td_ode_rhs', '<string>', 'exec')
+        code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
         exec(code)
         print("Done.")
         odeconfig.tdfunc=cyq_td_ode_rhs
