@@ -76,8 +76,12 @@ class Codegen():
             self.write(line)
         self.write(self.func_end())
         self.dedent()
-        for line in cython_checks()+cython_spmv():
-             self.write(line)
+        if self.type == 'mc':
+            for line in cython_checks()+cython_spmv():
+                 self.write(line)
+        else:
+            for line in cython_checks()+cython_spmvpy():
+                 self.write(line)
         
         #generate collapse operator functions if any c_terms
         if any(self.c_tdterms):
@@ -199,9 +203,9 @@ class Codegen():
                 func_vars.append(str_out)
             else:
                 if self.h_tdterms[ht] == "1.0":
-                    str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data"+hstr+","+"idx"+hstr+","+"ptr"+hstr+","+"vec"+")"
+                    str_out="spmvpy(data%s, idx%s, ptr%s, vec, 1.0, out)" % (ht,ht,ht)
                 else:
-                    str_out="cdef np.ndarray[CTYPE_t, ndim=2] Hvec"+hstr+" = "+"spmv(data"+hstr+","+"idx"+hstr+","+"ptr"+hstr+","+"vec"+") * ("+self.h_tdterms[ht]+")"
+                    str_out="spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (ht,ht,ht,self.h_tdterms[ht])
                 func_vars.append(str_out)
         if len(self.c_tdterms)>0:
             func_vars.append(" ") #add a spacer line between Hamiltonian components and collapse copoenets.
@@ -219,14 +223,16 @@ class Codegen():
     #----
     def func_for(self):
         """Writes function for-loop"""
-        func_terms=["","for row in range(num_rows):"]
-        sum_string="\tout[row,0] = Hvec0[row,0]"
-        for ht in xrange(1,len(self.h_terms)):
-            sum_string+=" + Hvec"+str(ht)+"[row,0]"
-        if any(self.c_tdterms):
-            for ct in xrange(len(self.c_tdterms)):
-                sum_string+=" + Cvec"+str(ct)+"[row,0]"
-        func_terms.append(sum_string)
+        func_terms=[]
+        if self.type=='mc':
+            func_terms.append("for row in range(num_rows):")
+            sum_string="\tout[row,0] = Hvec0[row,0]"
+            for ht in xrange(1,len(self.h_terms)):
+                sum_string+=" + Hvec"+str(ht)+"[row,0]"
+            if any(self.c_tdterms):
+                for ct in xrange(len(self.c_tdterms)):
+                    sum_string+=" + Cvec"+str(ct)+"[row,0]"
+            func_terms.append(sum_string)
         return func_terms
     #----
     def func_which(self):
@@ -300,7 +306,7 @@ class Codegen2():
             self.write(line)
         self.write(self.func_end())
         self.dedent()
-        for line in cython_checks()+cython_zaxpy():
+        for line in cython_checks()+cython_spmvpy():
             self.write(line)
         self.file(filename)
         self.file.writelines(self.code)
@@ -359,9 +365,9 @@ class Codegen2():
 
         for n in range(self.n_L_terms):
             if self.L_coeffs[n] == "1.0":
-                str_out="zaxpy(data%s, idx%s, ptr%s, vec, 1.0, out)" % (n,n,n)
+                str_out="spmvpy(data%s, idx%s, ptr%s, vec, 1.0, out)" % (n,n,n)
             else:
-                str_out="zaxpy(data%s, idx%s, ptr%s, vec, %s, out)" % (n,n,n,self.L_coeffs[n])
+                str_out="spmvpy(data%s, idx%s, ptr%s, vec, %s, out)" % (n,n,n,self.L_coeffs[n])
             line_list.append(str_out)
         return line_list
         
@@ -413,11 +419,11 @@ def cython_spmv():
     lineD="\treturn out"
     return [line0,line1,line2,line3,line4,line5,line6,line7,line8,line9,lineA,lineB,lineC,lineD]
 
-def cython_zaxpy():
+def cython_spmvpy():
     """
-    Writes ZAXPY function: out = out + a * (data,idx,pty) * vec
+    Writes spmvpy function: out = out + a * (data,idx,pty) * vec
     """
-    code = """def zaxpy(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr, np.ndarray[CTYPE_t, ndim=1] vec, CTYPE_t a, np.ndarray[CTYPE_t, ndim=2] out):
+    code = """def spmvpy(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr, np.ndarray[CTYPE_t, ndim=1] vec, CTYPE_t a, np.ndarray[CTYPE_t, ndim=2] out):
 \tcdef Py_ssize_t row
 \tcdef int jj,row_start,row_end
 \tcdef int num_rows=len(vec)
