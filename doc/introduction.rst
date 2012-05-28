@@ -44,3 +44,37 @@ Whats New in QuTiP Version 2.0
 ================================
 
 The second version of QuTiP has seen many improvements in the performance of the original code base, as well as the addition of several new routines supporting a wide range of functionality.  Some of the highlights of this release include:
+
+- QuTiP now includes solvers for both Floquet and Bloch-Redfield master equations.
+
+- The Lindblad master equation and monte-carlo solvers allow for time-dependent collapse operators.
+
+- It is possible to automatically compile time-dependent problems into c-code using Cython (if installed).
+
+- Solvers now return Odedata objects containing all simulation results and parameters, simplifying the saving of simulation results.
+
+- mesolve and mcsolve can reuse Hamiltonian data when only the initial state, or time-dependent arguments, need to be changed.
+
+- QuTiP includes functions for creating random quantum states and operators.
+
+- The generation and manipulation of quantum objects is now more efficient.
+
+- Quantum objects have basis transformation and matrix element calulations as built-in methods.
+
+- The quantum object eigensolver can use sparse solvers.
+
+- The partial-trace (ptrace) function is up to 20x faster.
+
+- The Bloch sphere can now be used with the Matplotlib animation function, and embedded as a subplot in a figure.
+
+- QuTiP has built-in functions for saving quantum objects and data arrays.
+
+- The steady-state solver has been further optimized for sparse matricies, and can handle much larger system Hamiltonians.
+
+- There are three new entropy functions for concurrence, mutual information, and conditional entropy.
+
+- Global settings can be modified.
+
+- QuTiP includes a collection of unit tests for verifying the installation.
+
+- Many new demos.
