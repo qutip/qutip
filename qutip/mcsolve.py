@@ -71,6 +71,15 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     #set num_cpus to the value given in qutip.settings if none in Odeoptions
     if not odeconfig.options.num_cpus:
         odeconfig.options.num_cpus=qutip.settings.num_cpus
+    #set initial value data
+    if options.tidy:
+        odeconfig.psi0=psi0.tidyup(options.atol).full()
+    else:
+        odeconfig.psi0=psi0.full()
+    odeconfig.psi0_dims=psi0.dims
+    odeconfig.psi0_shape=psi0.shape
+    #----
+    
     #----------------------------------------------
     # SETUP ODE DATA IF NONE EXISTS OR NOT REUSING
     #----------------------------------------------
@@ -575,15 +584,6 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
     """Creates the appropriate data structures for the monte carlo solver
     based on the given time-dependent, or indepdendent, format.
     """
-    
-    #set initial value data
-    if options.tidy:
-        odeconfig.psi0=psi0.tidyup(options.atol).full()
-    else:
-        odeconfig.psi0=psi0.full()
-    odeconfig.psi0_dims=psi0.dims
-    odeconfig.psi0_shape=psi0.shape
-    #----
     
     #take care of expectation values, if any
     if any(e_ops):
