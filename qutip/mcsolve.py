@@ -67,6 +67,8 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
         Object storing all results from simulation.
         
     """
+    if psi0.type!='ket':
+        raise Exception("Initial state must be a state vector.")
     odeconfig.options=options
     #set num_cpus to the value given in qutip.settings if none in Odeoptions
     if not odeconfig.options.num_cpus:
@@ -84,7 +86,6 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     # SETUP ODE DATA IF NONE EXISTS OR NOT REUSING
     #----------------------------------------------
     if (not options.rhs_reuse) or (not odeconfig.tdfunc):
-        print 'running config'
         #reset odeconfig collapse and time-dependence flags to default values
         _reset_odeconfig()
         
