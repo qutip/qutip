@@ -42,7 +42,7 @@ class ProgressBar(QtGui.QWidget):
     def __init__(self,top,thread,mx,ncpus,parent = None):
         QtGui.QWidget.__init__(self, parent)
         self.setWindowFlags(QtCore.Qt.Window|QtCore.Qt.CustomizeWindowHint|QtCore.Qt.WindowTitleHint|QtCore.Qt.WindowMinimizeButtonHint)
-        self.wait=ncpus
+        self.wait=2*ncpus
         self.top=top
         self.max=mx
         self.st=datetime.datetime.now()
