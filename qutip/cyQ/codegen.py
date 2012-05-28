@@ -296,13 +296,11 @@ class Codegen2():
         for line in cython_preamble()+cython_checks()+self.func_header():
             self.write(line)
         self.indent()
-        for line in self.func_vars():
-            self.write(line)
-        for line in self.func_for():
+        for line in self.func_body():
             self.write(line)
         self.write(self.func_end())
         self.dedent()
-        for line in cython_checks()+cython_spmv():
+        for line in cython_checks()+cython_zaxpy():
             self.write(line)
         self.file(filename)
         self.file.writelines(self.code)
@@ -353,33 +351,19 @@ class Codegen2():
             self.L_coeffs[n]=text
 
             
-    def func_vars(self):
+    def func_body(self):
         """
         Writes the variables and their types & spmv parts
         """
-        decl_list = ["",'cdef Py_ssize_t row','cdef int num_rows = len(vec)','cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)', ""]
+        line_list = ['cdef int num_rows = len(vec)','cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)']
 
         for n in range(self.n_L_terms):
-            nstr=str(n)
             if self.L_coeffs[n] == "1.0":
-                str_out="cdef np.ndarray[CTYPE_t, ndim=2] Lvec"+nstr+" = "+"spmv(data"+nstr+","+"idx"+nstr+","+"ptr"+nstr+","+"vec"+")"
+                str_out="zaxpy(data%s, idx%s, ptr%s, vec, 1.0, out)" % (n,n,n)
             else:
-                str_out="cdef np.ndarray[CTYPE_t, ndim=2] Lvec"+nstr+" = "+"spmv(data"+nstr+","+"idx"+nstr+","+"ptr"+nstr+","+"vec"+") * ("+self.L_coeffs[n]+")"
-            decl_list.append(str_out)
-            
-        return decl_list
-
-    def func_for(self):
-        """
-        Writes function for-loop
-        """
-        func_terms=["", "for row in range(num_rows):"]
-        sum_str_list = []
-        for n in range(self.n_L_terms):
-            sum_str_list.append("Lvec"+str(n)+"[row,0]")
-        func_terms.append("\tout[row,0] = " + " + ".join(sum_str_list))
-        func_terms.append("")
-        return func_terms
+                str_out="zaxpy(data%s, idx%s, ptr%s, vec, %s, out)" % (n,n,n,self.L_coeffs[n])
+            line_list.append(str_out)
+        return line_list
         
     def func_end(self):
         return "return out"        
@@ -428,6 +412,26 @@ def cython_spmv():
     lineC="\t\tout[row,0]=dot"
     lineD="\treturn out"
     return [line0,line1,line2,line3,line4,line5,line6,line7,line8,line9,lineA,lineB,lineC,lineD]
+
+def cython_zaxpy():
+    """
+    Writes ZAXPY function: out = out + a * (data,idx,pty) * vec
+    """
+    code = """def zaxpy(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr, np.ndarray[CTYPE_t, ndim=1] vec, CTYPE_t a, np.ndarray[CTYPE_t, ndim=2] out):
+\tcdef Py_ssize_t row
+\tcdef int jj,row_start,row_end
+\tcdef int num_rows=len(vec)
+\tcdef CTYPE_t dot
+\tfor row in range(num_rows):
+\t\tdot=0.0
+\t\trow_start = ptr[row]
+\t\trow_end = ptr[row+1]
+\t\tfor jj in range(row_start, row_end):
+\t\t\tdot = dot + data[jj]*vec[idx[jj]]
+\t\tout[row,0] = out[row,0] + a * dot
+\treturn out
+    """
+    return code.split("\n")
 
 def cython_col_spmv():
     """
