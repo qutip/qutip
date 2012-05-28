@@ -48,7 +48,7 @@ def jmat(j,*args):
     
     Examples
     --------
-    >>>jmat(1)
+    >>> jmat(1)
     [ Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
     Qobj data =
     [[ 0.          0.70710678  0.        ]
