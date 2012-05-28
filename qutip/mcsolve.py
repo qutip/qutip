@@ -38,9 +38,44 @@ from _reset import _reset_odeconfig
 
 def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     """Monte-Carlo evolution of a state vector :math:`|\psi \\rangle` for a given
-    Hamiltonian and sets of collapse operators and operators
-    for calculating expectation values. Options for solver are 
+    Hamiltonian and sets of collapse operators, and possibly, operators
+    for calculating expectation values. Options for the underlying ODE solver are 
     given by the Odeoptions class.
+    
+    mcsolve supports time-dependent Hamiltonians and collapse operators using either
+    Python functions of strings to represent time-dependent coefficients.  Note that, 
+    the system Hamiltonian MUST have at least one constant term.
+    
+    As an example of a time-dependent problem, consider a Hamiltonian with two terms ``H0``
+    and ``H1``, where ``H1`` is time-dependent with coefficient ``sin(w*t)``, and collapse operators
+    ``C0`` and ``C1``, where ``C1`` is time-dependent with coeffcient ``exp(-a*t)``.  Here, w and a are
+    constant arguments with values ``W`` and ``A``.  
+    
+    Using the Python function time-dependent format requires two Python functions,
+    one for each collapse coefficient. Therefore, this problem could be expressed as::
+    
+        def H1_coeff(t,args):
+            return sin(args['w']*t)
+    
+        def C1_coeff(t,args):
+            return exp(-args['a']*t)
+    
+        H=[H0,[H1,H1_coeff]]
+    
+        c_op_list=[C0,[C1,C1_coeff]]
+    
+        args={'a':A,'w':W}
+    
+    or in String (Cython) format we could write::
+    
+        H=[H0,[H1,'sin(w*t)']]
+    
+        c_op_list=[C0,[C1,'exp(-a*t)']]
+    
+        args={'a':A,'w':W}
+    
+    Constant terms are preferably placed first in the Hamiltonian and collapse 
+    operator lists.
     
     Parameters
     ----------

@@ -66,7 +66,9 @@ def jmat(j,*args):
      [ 0.  0. -1.]]]
     
     
-    ..note:: If no 'args' input, then returns array of ['x','y','z'] operators.
+    Notes
+    -----
+    If no 'args' input, then returns array of ['x','y','z'] operators.
         
     """
     if (fix(2*j)!=2*j) or (j<0):

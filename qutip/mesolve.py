@@ -1108,24 +1108,23 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, H_args=None, options=None):
 
     Returns
     -------
-    An ``array`` of expectation values of wavefunctions/density matrices
+    output :array
+    Expectation values of wavefunctions/density matrices
     for the times specified by `tlist`.
 
-    .. note:: 
-    
-        On using callback function: odesolve transforms all :class:`qutip.Qobj`
-        objects to sparse matrices before handing the problem to the integrator
-        function. In order for your callback function to work correctly, pass
-        all :class:`qutip.Qobj` objects that are used in constructing the
-        Hamiltonian via H_args. odesolve will check for :class:`qutip.Qobj` in
-        `H_args` and handle the conversion to sparse matrices. All other
-        :class:`qutip.Qobj` objects that are not passed via `H_args` will be
-        passed on to the integrator to scipy who will raise an NotImplemented
-        exception.
+    Notes
+    -----
+    On using callback function: odesolve transforms all :class:`qutip.Qobj`
+    objects to sparse matrices before handing the problem to the integrator
+    function. In order for your callback function to work correctly, pass
+    all :class:`qutip.Qobj` objects that are used in constructing the
+    Hamiltonian via H_args. odesolve will check for :class:`qutip.Qobj` in
+    `H_args` and handle the conversion to sparse matrices. All other
+    :class:`qutip.Qobj` objects that are not passed via `H_args` will be
+    passed on to the integrator to scipy who will raise an NotImplemented
+    exception.
         
-    .. deprecated:: 2.0.0
-    
-        Use :func:`mesolve` instead.
+    Depreciated in QuTiP 2.0.0.  Use :func:`mesolve` instead.
         
     """
 

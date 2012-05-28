@@ -39,9 +39,9 @@ def isket(Q):
 	    True if qobj is ket-vector, False otherwise.
 	
 	Examples
-	--------
-	>>> psi=basis(5,2)
-    >>> print isket(psi)
+	--------	    
+    >>> psi=basis(5,2)
+    >>> isket(psi)
     True
 	    
 	"""
@@ -67,7 +67,7 @@ def isbra(Q):
 	Examples
 	--------	    
     >>> psi=basis(5,2)
-    >>> print isket(psi)
+    >>> isket(psi)
     False
 	
 	"""
@@ -92,8 +92,8 @@ def isoper(Q):
 	    True if Qobj is operator, False otherwise.
 	
 	Examples
-	--------    
-	>>> a=destroy(4)
+	--------	    
+    >>> a=destroy(5)
     >>> isoper(a)
     True
 	
@@ -139,7 +139,6 @@ def isequal(A,B,tol=1e-15):
     
     Returns
     -------
-    
     isequal : bool
         True if qobjs are equal, False otherwise.
     
