@@ -192,7 +192,7 @@ def _set_strings(Qversion):
         current=None
     if current and int(current.replace('.','')[0:3])>int(Qversion.replace('.','')[0:3]):
         label.setOpenExternalLinks(True)
-        lstring+=" (<a href=http://code.google.com/p/qutip/downloads/list>Update</a>)"
+        lstring+=" (<a href=http://code.google.com/p/qutip/wiki/Download>Update</a>)"
     t1_font.setBold(True)
     label.setFont(t1_font)
     label.setText(lstring)
