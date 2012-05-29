@@ -16,27 +16,38 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-##
-#Class for storing data from odesolve.
-#
+
+
 class Odedata():
-    """
-    Class for storing results from odesolve.
+    """Class for storing simulation results from any of the dynamics solvers.
+    
+    Attributes
+    ----------
+    
+    solver : str
+        Which solver was used ['mesolve','mcsolve','brsolve','floquet']
+    times : list/array
+        Times at which simulation data was collected.
+    expect : list/array
+        Expectation values (if requested) for simulation. None otherwise.
+    states : array
+        State of the simulation (density matrix or ket) evaluated at ``times``.
+    num_expect : int
+        Number of expectation value operators in simulation.
+    num_collapse : int
+        Number of collapse operators in simualation.
+    ntraj : int/list
+        Number of monte-carlo trajectories (if using mcsolve).  List indicates that averaging of
+        expectation values was done over a subset of total number of trajectories.
+    
     """
     def __init__(self):
-        #: Solver Used ('mesolve', 'mcsolve', 'floquet', 'brmesolve')
         self.solver=None
-        #: Array of times at which state vector was evaluated.
         self.times=None
-        #: Array of state vectors if odesolve was run without expectation operators.
         self.states=None
-        #: Array of expectation values if odesolve was called with expectation operators.
         self.expect=None
-        #: Number of expectation operators (if any).
         self.num_expect=0
-        #: Number of collapse operators (if any).
         self.num_collapse=0
-        #: Number of trajectories ('mc' solver only)
         self.ntraj=None
     def __str__(self):
         s="Odedata object: "
