@@ -210,7 +210,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     
     #-------COLLECT AND RETURN OUTPUT DATA IN ODEDATA OBJECT --------------#
     output=Odedata()
-    output.solver='mc'
+    output.solver='mcsolve'
     #state vectors
     if any(mc.psi_out) and odeconfig.options.mc_avg:
         output.states=mc.psi_out

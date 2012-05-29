@@ -44,21 +44,21 @@ class Odedata():
     def __init__(self):
         self.solver=None
         self.times=None
-        self.states=None
-        self.expect=None
+        self.states=[]
+        self.expect=[]
         self.num_expect=0
         self.num_collapse=0
         self.ntraj=None
     def __str__(self):
-        s="Odedata object: "
-        if not self.solver:
-            s+="Empty object."
-            return s
-        s+="solver = "+self.solver+"\n"
+        s="Odedata object "
+        if self.solver:
+            s+="with "+self.solver+" data.\n"
+        else:
+            s+="missing solver information.\n"
         s+="-"*(len(s)-1)+"\n"
-        if self.states and (not self.expect):
+        if len(self.states)>0 and (not len(self.expect)>0):
             s+= "states = True\n"
-        elif self.expect and (not self.states):
+        elif len(self.expect)>0 and (not len(self.states)>0):
             s+="expect = True\nnum_expect = "+str(self.num_expect)+", "
         else:
             s+= "states = True, expect = True\n"+"num_expect = "+str(self.num_expect)+", "
