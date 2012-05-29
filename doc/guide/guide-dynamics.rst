@@ -10,6 +10,7 @@ Evaluating Quantum System Dynamics
 .. toctree::
    :maxdepth: 2
    
+   dynamics/dynamics-data.rst
    dynamics/dynamics-master.rst
    dynamics/dynamics-monte.rst
    dynamics/dynamics-bloch-redfield.rst

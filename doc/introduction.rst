@@ -53,6 +53,8 @@ The second version of QuTiP has seen many improvements in the performance of the
 
 - Solvers now return Odedata objects containing all simulation results and parameters, simplifying the saving of simulation results.
 
+.. important:: This breaks compatibility with QuTiP version 1.x.  See :ref:`odedata` for further details.
+
 - mesolve and mcsolve can reuse Hamiltonian data when only the initial state, or time-dependent arguments, need to be changed.
 
 - QuTiP includes functions for creating random quantum states and operators.

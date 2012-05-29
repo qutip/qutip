@@ -12,28 +12,28 @@ Quantum Dynamics via the Monte-Carlo Solver
 Introduction
 =============
 
-Where as the density matrix formalism describes the ensemble average over many identical realizations of a quantum system, the Monte-Carlo (MC), or quantum-jump approach to wave function evolution, allows for simulating an individual realization of the system dynamics.  Here, the environment is continuously monitored, resulting in a series of quantum jumps in the system wave function, conditioned on the increase in information gained about the state of the system via the environmental measurements.  In general, this evolution is governed by the Schrödinger equation (:eq:`schrodinger`) with a **non-Hermitian** effective Hamiltonian  
+Where as the density matrix formalism describes the ensemble average over many identical realizations of a quantum system, the Monte-Carlo (MC), or quantum-jump approach to wave function evolution, allows for simulating an individual realization of the system dynamics.  Here, the environment is continuously monitored, resulting in a series of quantum jumps in the system wave function, conditioned on the increase in information gained about the state of the system via the environmental measurements.  In general, this evolution is governed by the Schrödinger equation with a **non-Hermitian** effective Hamiltonian  
 
 .. math::
 	:label: heff
 	
 	H_{\rm eff}=H_{\rm sys}-\frac{i\hbar}{2}\sum_{i}C^{+}_{n}C_{n},
 
-where again, the :math:`C_{n}` are collapse operators, each corresponding to a separate irreversible process with rate :math:`\gamma_{n}`.  Here, the strictly negative non-Hermitian portion of Eq.~(:eq:`heff`) gives rise to a reduction in the norm of the wave function, that to first-order in a small time :math:`\delta t`, is given by :math:`\left<\psi(t+\delta t)|\psi(t+\delta t)\right>=1-\delta p` where
+where again, the :math:`C_{n}` are collapse operators, each corresponding to a separate irreversible process with rate :math:`\gamma_{n}`.  Here, the strictly negative non-Hermitian portion of Eq.(:eq:`heff`) gives rise to a reduction in the norm of the wave function, that to first-order in a small time :math:`\delta t`, is given by :math:`\left<\psi(t+\delta t)|\psi(t+\delta t)\right>=1-\delta p` where
 
 .. math::
 	:label: jump
 
 	\delta p =\delta t \sum_{n}\left<\psi(t)|C^{+}_{n}C_{n}|\psi(t)\right>,
 
-and :math:`\delta t` is such that :math:`\delta p \ll 1`.  With a probability of remaining in the state :math:`\left|\psi(t+\delta t)\right>` given by :math:`1-\delta p`, the corresponding quantum jump probability is thus Eq.~(:eq:`jump`).  If the environmental measurements register a quantum jump, say via the emission of a photon into the environment, or a change in the spin of a quantum dot, the wave function undergoes a jump into a state defined by projecting :math:`\left|\psi(t)\right>` using the collapse operator :math:`C_{n}` corresponding to the measurement
+and :math:`\delta t` is such that :math:`\delta p \ll 1`.  With a probability of remaining in the state :math:`\left|\psi(t+\delta t)\right>` given by :math:`1-\delta p`, the corresponding quantum jump probability is thus Eq.(:eq:`jump`).  If the environmental measurements register a quantum jump, say via the emission of a photon into the environment, or a change in the spin of a quantum dot, the wave function undergoes a jump into a state defined by projecting :math:`\left|\psi(t)\right>` using the collapse operator :math:`C_{n}` corresponding to the measurement
 
 .. math::
 	:label: project
 
 	\left|\psi(t+\delta t)\right>=C_{n}\left|\psi(t)\right>/\left<\psi(t)|C_{n}^{+}C_{n}|\psi(t)\right>^{1/2}.
 
-If more than a single collapse operator is present in Eq~(:eq:`heff`), the probability of collapse due to the :math:`i\mathrm{th}$-operator $C_{i}` is given by 
+If more than a single collapse operator is present in Eq~(:eq:`heff`), the probability of collapse due to the :math:`i\mathrm{th}`-operator :math:`C_{i}` is given by 
 
 .. math::
 	:label: pcn
@@ -46,14 +46,14 @@ Evaluating the MC evolution to first-order in time is quite tedious.  Instead, Q
 
 - **II:** Integrate the Schrödinger equation (:eq:`schrodinger`), using the effective Hamiltonian (:eq:`heff`) until a time :math:`\tau` such that the norm of the wave function satisfies :math:`\left<\psi(\tau)\right.\left|\psi(\tau)\right>=r`, at which point a jump occurs.
 
-- **III:** The resultant jump projects the system at time :math:`\tau` into one of the renormalized states given by Eq.~(:eq:`project`).  The corresponding collapse operator :math:`C_{n}` is chosen such that :math:`n` is the smallest integer satisfying:
+- **III:** The resultant jump projects the system at time :math:`\tau` into one of the renormalized states given by Eq.(:eq:`project`).  The corresponding collapse operator :math:`C_{n}` is chosen such that :math:`n` is the smallest integer satisfying:
 
 .. math::
 	:label: mc3
 
 	\sum_{i=1}^{n} P_{n}(\tau) \ge r
 
-where the individual :math:`P_{n}` are given by Eq.~(:eq:`pcn`).  Note that the left hand side of Eq.~(:eq:`mc3`) is, by definition, normalized to unity.
+where the individual :math:`P_{n}` are given by Eq.(:eq:`pcn`).  Note that the left hand side of Eq.(:eq:`mc3`) is, by definition, normalized to unity.
 
 - **IV:** Using the renormalized state from step III as the new initial condition at time :math:`\tau`, draw a new random number, and repeat the above procedure until the final simulation time is reached.
 
@@ -63,36 +63,29 @@ where the individual :math:`P_{n}` are given by Eq.~(:eq:`pcn`).  Note that the 
 Monte-Carlo in QuTiP:
 =====================
 
-In QuTiP, Monto-Carlo evolution is implemented with the
-:func:`qutip.mcsolve` function. It takes nearly the same arguments as the :func:`qutip.mesolve`
-function for master-equation evolution, expect for one additional parameter
-``ntraj`` (fourth parameter), which define the number of stochastic trajectories
-that should be averaged. This number should usually be in the range 100 - 500 to
-give a smooth results (although the optimal number for ``ntraj`` can vary from
-case to case).
+In QuTiP, Monto-Carlo evolution is implemented with the :func:`qutip.mcsolve` function. It takes nearly the same arguments as the :func:`qutip.mesolve`
+function for master-equation evolution, except that the initial state must be a ket vector, as oppose to a density matrix, and there is an optional keyword parameter ``ntraj`` that defines the number of stochastic trajectories to be simulated.  By default, ``ntraj=500`` indicating that 500 monte-carlo trajectories will be performed. 
 
 To illustrate the use of the Monte-Carlo evolution of quantum systems in QuTiP,
 let's again consider the case of a two-level atom coupled to a leaky cavity. The 
 only differences to the master-equation treatment is that in this case we 
-invoke the :func:`qutip.mcsolve` function instead of :func:`qutip.mesolve`, and a new parameter 
-``ntraj = 250`` has been defined::
+invoke the :func:`qutip.mcsolve` function instead of :func:`qutip.mesolve`::
 
-    >>> tlist = linspace(0.0, 10.0, 200)
-    >>> psi0 = tensor(fock(2,0), fock(10, 5))
-    >>> a  = tensor(qeye(2), destroy(10))
-    >>> sm = tensor(destroy(2), qeye(10))
-    >>> H = 2*pi * a.dag() * a + 2 * pi * sm.dag() * sm + 2*pi * 0.25 * (sm*a.dag() + sm.dag() * a)
-    >>> ntraj = 250
-    >>> expt_list = mcsolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
-    >>> 
-    >>> from pylab import *
-    >>> plot(tlist, real(expt_list[0]))
-    >>> plot(tlist, real(expt_list[1]))
-    >>> title('Monte-Carlo time evolution')
-    >>> xlabel('Time')
-    >>> ylabel('Expectation values')
-    >>> legend(("cavity photon number", "atom excitation probability"))
-    >>> show()
+	from qutip import *
+	from pylab import *
+
+	tlist = linspace(0.0, 10.0, 200)
+	psi0 = tensor(fock(2,0), fock(10, 5))
+	a  = tensor(qeye(2), destroy(10))
+	sm = tensor(destroy(2), qeye(10))
+	H = 2*pi * a.dag() * a + 2 * pi * sm.dag() * sm + 2*pi * 0.25 * (sm*a.dag() + sm.dag() * a)
+	data = mcsolve(H, psi0, tlist, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
+	plot(tlist, data.expect[0],tlist, data.expect[1])
+	title('Monte-Carlo time evolution')
+	xlabel('Time')
+	ylabel('Expectation values')
+	legend(("cavity photon number", "atom excitation probability"))
+	show()
 
 
 .. figure:: guide-dynamics-mc.png
