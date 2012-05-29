@@ -23,8 +23,57 @@ from qutip.operators import *
 
 
 class Bloch():
-    """
-    Class for plotting data on the Bloch sphere.
+    """Class for plotting data on the Bloch sphere.  Valid data can be either points, vectors, or qobj objects.
+    
+    Attributes
+    ----------
+    
+    axes : instance {None}
+        User supplied Matplotlib axes for Bloch sphere animation.
+    fig : instance {None}
+        User supplied Matplotlib Figure instance for plotting Bloch sphere.
+    font_color : str {'black'}
+        Color of font used for Bloch sphere labels.
+    font_size : int {20}
+        Size of font used for Bloch sphere labels.
+    frame_alpha : float {0.1}
+        Sets transparency of Bloch sphere frame.
+    frame_color : str {'gray'}
+        Color of sphere wireframe.
+    frame_width : int {1}
+        Width of wireframe.
+    point_color : list {["b","r","g","#CC6600"]}
+        List of colors for Bloch sphere point markers to cycle through. i.e. By default, points 0 and 4 will both be blue ('b').
+    point_marker : list {["o","s","d","^"]}
+        List of point marker shapes to cycle through.
+    point_size : list {[25,32,35,45]}
+        List of point marker sizes. Note, not all point markers look the same size when plotted!
+    sphere_alpha : float {0.2}
+        Transparency of Bloch sphere itself.
+    sphere_color : str {'#FFDDDD'}
+        Color of Bloch sphere.
+    size : list {[7,7]}
+        Size of Bloch sphere plot.  Best to have both numbers the same; otherwise you will have a Bloch sphere that looks like a football.
+    vector_color : list {["g","#CC6600","b","r"]}
+        List of vector colors to cycle through.
+    vector_width : int {3}
+        Width of displayed vectors.
+    view : list {[-60,30]}
+        Azimuthal and Elevation viewing angles.
+    xlabel : list {["$x$",""]}
+        List of strings corresponding to +x and -x axes labels, respectively.
+    xlpos : list {[1.1,-1.1]}
+        Positions of +x and -x labels respectively.
+    ylabel : list {["$y$",""]}
+        List of strings corresponding to +y and -y axes labels, respectively.
+    ylpos : list {[1.2,-1.2]}
+        Positions of +y and -y labels respectively.
+    zlabel : list {['$\left|0\\right>$','$\left|1\\right>$']}
+        List of strings corresponding to +z and -z axes labels, respectively.
+    zlpos : list {[1.2,-1.2]}
+        Positions of +z and -z labels respectively.
+    
+    
     """
     def __init__(self,fig=None,axes=None):
         #---sphere options---
@@ -39,64 +88,64 @@ class Bloch():
             self.user_axes=axes
         # use user-supplied figure object if present
         self.input_axes = axes
-        #: The size of the figure in inches, default = [7,7].
+        #he size of the figure in inches, default = [7,7].
         self.size=[7,7]
-        #: Azimuthal and Elvation viewing angles, default = [-60,30].
+        #Azimuthal and Elvation viewing angles, default = [-60,30].
         self.view=[-60,30]
-        #: Color of Bloch sphere, default = #FFDDDD
+        #Color of Bloch sphere, default = #FFDDDD
         self.sphere_color='#FFDDDD'
-        #: Transparency of Bloch sphere, default = 0.2
+        #Transparency of Bloch sphere, default = 0.2
         self.sphere_alpha=0.2
-        #: Color of wireframe, default = 'gray'
+        #Color of wireframe, default = 'gray'
         self.frame_color='gray'
-        #: Width of wireframe, default = 1
+        #Width of wireframe, default = 1
         self.frame_width=1
-        #: Transparency of wireframe, default = 0.2
+        #Transparency of wireframe, default = 0.2
         self.frame_alpha=0.2
-        #: Labels for x-axis (in LaTex), default = ['$x$','']
+        #Labels for x-axis (in LaTex), default = ['$x$','']
         self.xlabel=['$x$','']
-        #: Position of x-axis labels, default = [1.2,-1.2]
+        #Position of x-axis labels, default = [1.2,-1.2]
         self.xlpos=[1.2,-1.2]
-        #: Labels for y-axis (in LaTex), default = ['$y$','']
+        #Labels for y-axis (in LaTex), default = ['$y$','']
         self.ylabel=['$y$','']
-        #: Position of y-axis labels, default = [1.1,-1.1]
+        #Position of y-axis labels, default = [1.1,-1.1]
         self.ylpos=[1.1,-1.1]
-        #: Labels for z-axis (in LaTex), default = ['$\left|0\\right>$','$\left|1\\right>$']
+        #Labels for z-axis (in LaTex), default = ['$\left|0\\right>$','$\left|1\\right>$']
         self.zlabel=['$\left|0\\right>$','$\left|1\\right>$']
-        #: Position of z-axis labels, default = [1.2,-1.2]
+        #Position of z-axis labels, default = [1.2,-1.2]
         self.zlpos=[1.2,-1.2]
         #---font options---
-        #: Color of fonts, default = 'black'
+        #Color of fonts, default = 'black'
         self.font_color='black'
-        #; Size of fonts, default = 20
+        #Size of fonts, default = 20
         self.font_size=20
         
         #---vector options---
-        #: List of colors for Bloch vectors, default = ['b','g','r','y']
+        #List of colors for Bloch vectors, default = ['b','g','r','y']
         self.vector_color=['g','#CC6600','b','r']
         #: Width of Bloch vectors, default = 3
         self.vector_width=3
         
         #---point options---
-        #: List of colors for Bloch point markers, default = ['b','g','r','y']
+        #List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_color=['b','r','g','#CC6600']
-        #; Size of point markers, default = 25
+        #Size of point markers, default = 25
         self.point_size=[25,32,35,45]
-        #: Shape of point markers, default = ['o','^','d','s']
+        #Shape of point markers, default = ['o','^','d','s']
         self.point_marker=['o','s','d','^']
         
         #---data lists---
-        #: Data for point markers
+        #Data for point markers
         self.points=[]
-        #: Number of point markers to plot
+        #Number of point markers to plot
         self.num_points=0
-        #: Data for Bloch vectors
+        #Data for Bloch vectors
         self.vectors=[]
-        #: Number of Bloch vectors to plot
+        #Number of Bloch vectors to plot
         self.num_vectors=0
-        #: Number of times sphere has been saved
+        #Number of times sphere has been saved
         self.savenum=0
-        #: Style of points, 'm' for multiple colors, 's' for single color
+        #Style of points, 'm' for multiple colors, 's' for single color
         self.point_style=[]
         
     def __str__(self):
@@ -327,6 +376,7 @@ class Bloch():
         
         Parameters
         ----------
+        
         name : str 
             Name of saved image. Must include path and format as well.
             i.e. '/Users/Paul/Desktop/bloch.png'
