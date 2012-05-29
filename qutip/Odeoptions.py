@@ -20,17 +20,13 @@ from __future__ import print_function
 import os
 
 class Odeoptions():
-    """
-    .. note::
-    
-        Updated in version 2.0
-        
+    """ 
     Class of options for ODE solver used by :func:`qutip.mesolve` and :func:`qutip.mcsolve`.
-    Options can be changed either inline:
+    Options can be changed either inline::
     
         opts=Odeoptions(gui=False,order=10,.....)
     
-    or by changing the class properties after creation:
+    or by changing the class properties after creation::
     
         opts=Odeoptions()
         opts.gui=False
@@ -38,59 +34,76 @@ class Odeoptions():
         
     Returns options class to be used as options in :func:`qutip.mesolve` and :func:`qutip.mcsolve`.
     
-    List of properties:
+    Attributes
+    ----------
         
-        atol (float): Absolute tolerance (default = 1e-8)
-        rtol (float): Relative tolerance (default = 1e-6)
-        method (str): Integration method (default = 'adams', use 'bdf' for stiff)
-        order (int):  Order of Integrator (default = 12, <=12 'adams', <=5 'bdf')
-        nsteps (int): Max. number of internal steps/call (default = 2500)
-        first_step (float): Size of initial step (default = 0, automatic)
-        min_step (float): Minimum step size (default = 0, automatic)
-        max_step (float): Maximum step size (default = 0, automatic)
-        tidy (bool): Tidyup Hamiltonian by removing small terms (default = True)
-        num_cpus (int): Number of cpus used by mcsolver (default = # of cpus)
-        gui (bool): Use progress bar GUI for mcsolver (default = True)
-        mc_avg (bool): Avg. expect. values or states in mcsolver (default = True)
-        rhs_filename (str): Name for compiled Cython file (default = None)
-        rhs_reuse (bool): Reuse compiled Cython file (default = False)
-        
+    atol : float {1e-8}
+        Absolute tolerance.
+    rtol : float {1e-6}
+        Relative tolerance.
+    method : str {'adams','bdf'}
+        Integration method.
+    order : int {12}
+        Order of integrator (<=12 'adams', <=5 'bdf')
+    nsteps : int {2500}
+        Max. number of internal steps/call.
+    first_step : float {0}
+        Size of initial step (0 = automatic).
+    min_step : float {0}
+        Minimum step size (0 = automatic).
+    max_step : float {0}
+        Maximum step size (0 = automatic)
+    tidy : bool {True,False} 
+        Tidyup Hamiltonian and initial state by removing small terms.
+    num_cpus : int
+        Number of cpus used by mcsolver (default = # of cpus).
+    gui : bool {True,False}
+        Use progress bar GUI for mcsolver.
+    mc_avg : bool {True,False}
+        Avg. expectation values in mcsolver.
+    rhs_reuse : bool {False,True}
+        Reuse Hamiltonian data.
+    
+    Other Parameters
+    ----------------
+    rhs_filename : str
+        Name for compiled Cython file. 
     
     """
     def __init__(self,atol=1e-8,rtol=1e-6,method='adams',order=12,nsteps=2500,first_step=0,max_step=0,min_step=0,
                 mc_avg=True,tidy=True,num_cpus=0,rhs_reuse=False,rhs_filename=None,gui=True):
-        #: Absolute tolerance (default = 1e-8)
+        #Absolute tolerance (default = 1e-8)
         self.atol=atol
-        #: Relative tolerance (default = 1e-6)
+        #Relative tolerance (default = 1e-6)
         self.rtol=rtol
-        #: Integration method (default = 'adams', for stiff 'bdf')
+        #Integration method (default = 'adams', for stiff 'bdf')
         self.method=method
-        #: Max. number of internal steps/call
+        #Max. number of internal steps/call
         self.nsteps=nsteps
-        #: Size of initial step (0 = determined by solver)
+        #Size of initial step (0 = determined by solver)
         self.first_step=first_step
-        #: Minimal step size (0 = determined by solver)
+        #Minimal step size (0 = determined by solver)
         self.min_step=min_step
-        #: Max step size (0 = determined by solver)
+        #Max step size (0 = determined by solver)
         self.max_step=max_step
-        #: Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
+        #Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
         self.order=order
-        #: Average expectation values over trajectories (default = True) 
+        #Average expectation values over trajectories (default = True) 
         self.mc_avg=mc_avg
-        #: tidyup Hamiltonian before calculation (default = True)
+        #tidyup Hamiltonian before calculation (default = True)
         self.tidy=tidy
-        #: Use preexisting RHS function for time-dependent solvers
+        #Use preexisting RHS function for time-dependent solvers
         self.rhs_reuse=rhs_reuse
-        #: Use filename for preexisting RHS function (will default to last compiled function if None & rhs_exists=True)
+        #Use filename for preexisting RHS function (will default to last compiled function if None & rhs_exists=True)
         self.rhs_filename=rhs_filename
-        #: Number of processors to use (mcsolve only)
+        #Number of processors to use (mcsolve only)
         if num_cpus:
             self.num_cpus=num_cpus
             if self.num_cpus>int(os.environ['NUM_THREADS']):
                 raise Exception("Requested number of CPU's too large. Max = "+str(int(os.environ['NUM_THREADS'])))
         else:
             self.num_cpus=0
-        #: Use Progressbar (mcsolve only)
+        #Use Progressbar (mcsolve only)
         self.gui=gui
     def __str__(self):
         print("Odeoptions properties:")
