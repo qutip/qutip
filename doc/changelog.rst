@@ -1,8 +1,22 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
+**********
 Change Log
 **********
+
+Version 1.1.4 [fixes backported to SVN-1450] (May 28, 2012):
+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Bug Fixes:
+----------
+
+SVN-2101: Fixed bug pointed out by Brendan Abolins.
+
+SVN-1796: Qobj.tr() returns zero-dim ndarray instead of float or complex.
+
+SVN-1463: Updated factorial import for scipy version 0.10+
+
 
 Version 1.1.3 [svn-1450] (November 21, 2011):
 +++++++++++++++++++++++++++++++++++++++++++++
