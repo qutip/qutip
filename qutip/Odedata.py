@@ -29,7 +29,7 @@ class Odedata():
     times : list/array
         Times at which simulation data was collected.
     expect : list/array
-        Expectation values (if requested) for simulation. None otherwise.
+        Expectation values (if requested) for simulation.
     states : array
         State of the simulation (density matrix or ket) evaluated at ``times``.
     num_expect : int
