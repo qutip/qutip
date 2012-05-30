@@ -338,7 +338,7 @@ class MC_class():
         try:
             pl.join()
         except KeyboardInterrupt:
-            print "Cancel all MC threads on keyboard interrupt"
+            print("Cancel all MC threads on keyboard interrupt")
             pl.terminate()
             pl.join()
         return
@@ -613,7 +613,7 @@ def _time_remaining(st,ntraj,count,level):
     secs=datetime.timedelta(seconds=ceil(diff))
     dd = datetime.datetime(1,1,1) + secs
     time_string="%02d:%02d:%02d:%02d" % (dd.day-1,dd.hour,dd.minute,dd.second)
-    print str(floor(count/float(ntraj)*100))+'%  ('+str(count)+'/'+str(ntraj)+')'+'  Est. time remaining: '+time_string
+    print(str(floor(count/float(ntraj)*100))+'%  ('+str(count)+'/'+str(ntraj)+')'+'  Est. time remaining: '+time_string)
     level+=0.1
     return level
 

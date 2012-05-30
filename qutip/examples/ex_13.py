@@ -60,7 +60,7 @@ def run():
     #run computation
     start_time = time.time()
     nc, na, grnd_kets = compute(N, wc, wa, glist, use_rwa)
-    print 'time elapsed = ' +str(time.time() - start_time) 
+    print('time elapsed = ' +str(time.time() - start_time))
 
     #
     # plot the cavity and atom occupation numbers as a function of 

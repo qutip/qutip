@@ -122,7 +122,7 @@ def run():
 
     start_time = time.time()
     evals_mat, occ_mat = compute(N, M, h, Jx, Jy, Jz, taulist)
-    print 'time elapsed = ' +str(time.time() - start_time) 
+    print('time elapsed = ' +str(time.time() - start_time))
 
     #---------------------------------------------------------------------------
     # plots

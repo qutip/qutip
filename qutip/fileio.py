@@ -258,12 +258,12 @@ def qload(name):
             str1 += ", isHerm = "+str(out.isherm)+"\n"
         else:
             str1 +="\n"
-        print str1
+        print(str1)
     elif isinstance(out,Odedata):
-        print 'Loaded Odedata object:'
-        print out
+        print('Loaded Odedata object:')
+        print(out)
     else:
-        print "Loaded "+str(type(out).__name__)+" object."
+        print("Loaded "+str(type(out).__name__)+" object.")
     return out
         
         

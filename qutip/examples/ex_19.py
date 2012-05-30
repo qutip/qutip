@@ -80,9 +80,9 @@ def run():
     #convert last eigenstate to density matrix
     rho0=ket2dm(states[-1])
     #create labels for density matrix plot
-    upupup="$|\uparrow,\uparrow,\uparrow\\rangle$"
-    dndndn="$|\downarrow,\downarrow,\downarrow\\rangle$"
-    title="3-Qubit GHZ state: $\\frac{1}{\sqrt{2}}$"+upupup+"+"+dndndn
+    upupup="$|\\uparrow,\\uparrow,\\uparrow\\rangle$"
+    dndndn="$|\\downarrow,\\downarrow,\\downarrow\\rangle$"
+    title="3-Qubit GHZ state: $\\frac{1}{\\sqrt{2}}$"+upupup+"+"+dndndn
     xlabels=[""]*8
     xlabels[0]=upupup  #set first xaxes label
     xlabels[-1]=dndndn #set last xaxes label

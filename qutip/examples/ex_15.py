@@ -57,7 +57,7 @@ def run():
     # run computation
     start_time = time.time()
     evals_mat = compute(w1list, w2, w3, g12, g13)
-    print 'time elapsed = ' +str(time.time() - start_time) 
+    print('time elapsed = ' +str(time.time() - start_time)) 
 
     #
     # plot the energy eigenvalues
