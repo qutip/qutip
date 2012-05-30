@@ -41,7 +41,6 @@ def _reset_odeconfig():
     #flags for setting time-dependence, collapse ops, and number of times codegen has been run
     odeconfig.cflag=0             #Flag signaling collapse operators
     odeconfig.tflag=0             #Flag signaling time-dependent problem
-    odeconfig.cgen_num=0          #Number of times codegen function has been called in current Python session.
 
     #time-dependent function stuff
     odeconfig.tdfunc=None         #Placeholder for time-dependent RHS function.
@@ -50,11 +49,7 @@ def _reset_odeconfig():
     odeconfig.string=None         #Holds string of variables to be passed onto time-depdendent ODE solver.
     odeconfig.tdname=None         #Name of td .pyx file (used in parallel mc code)
 
-    #Initial state stuff
-    odeconfig.psi0=None   
-    odeconfig.psi0_dims=None 
-    odeconfig.psi0_shape=None 
-    
+
     #Hamiltonian stuff
     odeconfig.h_td_inds=[]        #indicies of time-dependent Hamiltonian operators
     odeconfig.h_data=None          #List of sparse matrix data
@@ -69,6 +64,7 @@ def _reset_odeconfig():
     odeconfig.e_ops_isherm=[]     #expect op isherm
 
     #Collapse operator stuff
+    odeconfig.c_args=[]           #clears arguments for time-dependent problems
     odeconfig.c_num=0             #number of collapse ops
     odeconfig.c_const_inds=[]     #indicies of constant collapse operators
     odeconfig.c_td_inds=[]        #indicies of time-dependent collapse operators

@@ -123,7 +123,6 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     if (not options.rhs_reuse) or (not odeconfig.tdfunc):
         #reset odeconfig collapse and time-dependence flags to default values
         _reset_odeconfig()
-        
         #set general items
         odeconfig.tlist=tlist
         if isinstance(ntraj,(list,ndarray)):
@@ -164,7 +163,6 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     
         #Configure data
         _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options)
-        
         if odeconfig.tflag in array([1,10,11]): #compile time-depdendent RHS code
             os.environ['CFLAGS'] = '-w'
             import pyximport
@@ -346,7 +344,6 @@ class MC_class():
         return
     #-----
     def run(self):
-        
         if odeconfig.c_num==0:
             if odeconfig.ntraj!=1:#check if ntraj!=1 which is pointless for no collapse operators
                 odeconfig.ntraj=1
