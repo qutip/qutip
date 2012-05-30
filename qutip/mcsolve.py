@@ -179,10 +179,10 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
                 code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
                 exec(code)
                 odeconfig.tdfunc=cyq_td_ode_rhs
-            try:
-                os.remove(odeconfig.tdname+".pyx")
-            except:
-                print("Error removing pyx file.  File not found.")
+            # try:
+            #                 os.remove(odeconfig.tdname+".pyx")
+            #             except:
+            #                 print("Error removing pyx file.  File not found.")
         elif odeconfig.tflag==0:
             odeconfig.tdfunc=cyq_ode_rhs
     else:#setup args for new parameters when rhs_reuse=True and tdfunc is given
@@ -354,7 +354,7 @@ class MC_class():
             if odeconfig.e_num==0:# return psi Qobj at each requested time 
                 self.psi_out=no_collapse_psi_out(odeconfig.options,odeconfig.psi0,odeconfig.tlist,self.num_times,odeconfig.psi0_dims,odeconfig.psi0_shape,self.psi_out)
             else:# return expectation values of requested operators
-                self.expect_out=no_collapse_expect_out(odeconfig.options,odeconfig.psi0,odeconfig.tlist,odeconfig.e_ops_data,odeconfig.e_ops_ind,odeconfig.e_ops_ptr,odeconfig.e_ops_isherm,self.num_times,odeconfig.psi0_dims,odeconfig.psi0_shape,self.expect_out)
+                self.expect_out=no_collapse_expect_out(self.num_times,self.expect_out)
         elif odeconfig.c_num!=0:
             self.seed=array([int(ceil(random.rand()*1e4)) for ll in xrange(odeconfig.ntraj)])
             if odeconfig.e_num==0:
@@ -456,10 +456,10 @@ def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
         ODE.set_f_params(odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr)
         
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
-    ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
-    psi_out[0]=Qobj(psi_in,odeconfig.psi0_dims,odeconfig.psi0_shape,'ket')
-    for k in xrange(1,num_times):
-        ODE.integrate(tlist[k],step=0) #integrate up to tlist[k]
+    ODE.set_initial_value(odeconfig.psi0,odeconfig.tlist[0]) #set initial conditions
+    psi_out[0]=Qobj(odeconfig.psi0,odeconfig.psi0_dims,odeconfig.psi0_shape,'ket')
+    for k in xrange(1,self.num_times):
+        ODE.integrate(odeconfig.tlist[k],step=0) #integrate up to tlist[k]
         if ODE.successful():
             psi_out[k]=Qobj(ODE.y/norm(ODE.y,2),odeconfig.psi0_dims,odeconfig.psi0_shape,'ket')
         else:
@@ -469,11 +469,11 @@ def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
 
 
 ######---return expectation values at requested times for no collapse operators---######
-def no_collapse_expect_out(opt,psi_in,tlist,e_ops_data,e_ops_ind,e_ops_ptr,e_ops_isherm,num_times,psi_dims,psi_shape,expect_out):
+def no_collapse_expect_out(num_times,expect_out):
     ##Calculates xpect.values at times tlist if no collapse ops. given
     #  
     #------------------------------------
-    num_expect=len(e_ops_data)
+    opt=odeconfig.options
     if odeconfig.tflag in array([1,10,11]):
         ODE=ode(odeconfig.tdfunc)
         code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
@@ -487,16 +487,17 @@ def no_collapse_expect_out(opt,psi_in,tlist,e_ops_data,e_ops_ind,e_ops_ptr,e_ops
     else:
         ODE = ode(cyq_ode_rhs)
         ODE.set_f_params(odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr)
+    
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
-    ODE.set_initial_value(psi_in,tlist[0]) #set initial conditions
-    for jj in xrange(num_expect):
-        expect_out[jj][0]=mc_expect(e_ops_data[jj],e_ops_ind[jj],e_ops_ptr[jj],e_ops_isherm[jj],psi_in)
+    ODE.set_initial_value(odeconfig.psi0,odeconfig.tlist[0]) #set initial conditions
+    for jj in xrange(odeconfig.e_num):
+        expect_out[jj][0]=mc_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],odeconfig.psi0)
     for k in xrange(1,num_times):
-        ODE.integrate(tlist[k],step=0) #integrate up to tlist[k]
+        ODE.integrate(odeconfig.tlist[k],step=0) #integrate up to tlist[k]
         if ODE.successful():
             state=ODE.y/norm(ODE.y)
-            for jj in xrange(num_expect):
-                expect_out[jj][k]=mc_expect(e_ops_data[jj],e_ops_ind[jj],e_ops_ptr[jj],e_ops_isherm[jj],state)
+            for jj in xrange(odeconfig.e_num):
+                expect_out[jj][k]=mc_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],state)
         else:
             raise ValueError('Error in ODE solver')
     return expect_out #return times and expectiation values
@@ -797,7 +798,7 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
             if k!=data_range[-1]:
                 odeconfig.string+="," 
         #attach args to ode args string
-        if any(odeconfig.c_args):
+        if len(odeconfig.c_args)>0:
             for kk in range(len(odeconfig.c_args)):
                 odeconfig.string+=","+"odeconfig.c_args["+str(kk)+"]"
         #----
