@@ -162,8 +162,7 @@ class Qobj():
                 else:
                     self.shape=shape
             else:
-                #
-                print "Warning: Initializing Qobj from unsupported type"
+                print("Warning: Initializing Qobj from unsupported type")
                 inpt=array([[0]])
                 self.data=sp.csr_matrix(inpt,dtype=complex)
                 self.dims=[[int(inpt.shape[0])],[int(inpt.shape[1])]]

@@ -42,7 +42,8 @@ import warnings
 from distutils.core import setup,Extension,Command
 from unittest import TextTestRunner, TestLoader
 from glob import glob
-from os.path import splitext, basename, join as pjoin, walk
+from os.path import splitext, basename, join as pjoin
+from os import walk
 import numpy as np 
 
 def svn_version():
@@ -162,9 +163,9 @@ class CleanCommand(Command):
             except:
                 pyc_rm+=1
         if pyc_rm>0:
-            print "Could not remove "+str(pyc_rm)+" pyc files."
+            print("Could not remove "+str(pyc_rm)+" pyc files.")
         else:
-            print "Removed all pyc files."
+            print("Removed all pyc files.")
 
 #------ clean command for removing .svn directories ------------#
 
@@ -189,9 +190,9 @@ class CleanSVNCommand(Command):
             except:
                 svn_rm+=1
         if svn_rm>0:
-            print "Could not remove "+str(svn_rm)+" svn directories."
+            print("Could not remove "+str(svn_rm)+" svn directories.")
         else:
-            print "Removed all SVN directories."
+            print("Removed all SVN directories.")
 
 
 #remove needless error warnings for released version.
