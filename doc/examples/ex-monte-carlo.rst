@@ -11,4 +11,6 @@ Monte-Carlo Examples
    :maxdepth: 2
    
    mc/ex-30.rst
+   mc/ex-31.rst
    mc/ex-32.rst
+   mc/ex-33.rst

@@ -1,7 +1,7 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-.. _exme22:
+.. _exmc32:
 
 Averaging of Monte-Carlo Trajectories to Master Equation Solution
 =================================================================

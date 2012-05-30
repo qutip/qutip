@@ -1,0 +1,15 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exmc31:
+
+Coupled Driven Oscillators 
+==========================
+
+Occupation number of two coupled osciilators with oscillator A driven by an external classical drive.  Both oscillators are assumed to start in the ground state.
+
+.. literalinclude:: ex_31.py
+
+.. figure:: ex-31.png
+	:width: 4in
+	:align: center
