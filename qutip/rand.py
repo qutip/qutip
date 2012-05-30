@@ -26,7 +26,7 @@ from scipy import arcsin,sqrt,pi
 import numpy as np
 import scipy.linalg as la
 import scipy.sparse as sp
-from Qobj import *
+from qutip.Qobj import *
 
 
 

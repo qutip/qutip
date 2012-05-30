@@ -60,7 +60,7 @@ class TestMCSolverConstDecay(unittest.TestCase):
         """
         Constant H with no collapse ops (returns expect)
         """
-        print ""
+        print('')
         error=1e-8
         N=10 #number of basis states to consider
         a=destroy(N)
@@ -79,7 +79,7 @@ class TestMCSolverConstDecay(unittest.TestCase):
         """
         Constant H with no collapse ops (returns states)
         """
-        print ""
+        print('')
         error=1e-8
         N=10 #number of basis states to consider
         a=destroy(N)
@@ -100,28 +100,85 @@ class TestMCSolverConstDecay(unittest.TestCase):
         """
         Constant H but str based (args=0) with no collapse ops (returns expect)
         """
-        print ""
+        print('')
         error=1e-8
         N=10 #number of basis states to consider
         a=destroy(N)
-        H=[a.dag()*a,[a.dag()*a,'a']]
+        H=[a.dag()*a,[a.dag()*a,'c']]
         psi0=basis(N,9) #initial state
         kappa=0.2 #coupling to oscillator
         c_op_list=[]
         tlist=linspace(0,10,100)
-        mcdata=mcsolve(H,psi0,tlist,c_op_list,[a.dag()*a],args={'a':0.0},options=Odeoptions(gui=False))
+        mcdata=mcsolve(H,psi0,tlist,c_op_list,[a.dag()*a],args={'c':0.0},options=Odeoptions(gui=False))
         expt=mcdata.expect[0]
         actual_answer=9.0*ones(len(tlist))
         diff=mean(abs(actual_answer-expt)/actual_answer)
         self.assertTrue(diff<error)
     
+    def testMCNoCollFuncExpt(self):
+        """
+        Constant H but func based (args=0) with no collapse ops (returns expect)
+        """
+        print('')
+        error=1e-8
+        N=10 #number of basis states to consider
+        a=destroy(N)
+        H=[a.dag()*a,[a.dag()*a,const_H1_coeff]]
+        psi0=basis(N,9) #initial state
+        kappa=0.2 #coupling to oscillator
+        c_op_list=[]
+        tlist=linspace(0,10,100)
+        mcdata=mcsolve(H,psi0,tlist,c_op_list,[a.dag()*a],options=Odeoptions(gui=False))
+        expt=mcdata.expect[0]
+        actual_answer=9.0*ones(len(tlist))
+        diff=mean(abs(actual_answer-expt)/actual_answer)
+        self.assertTrue(diff<error)
     
+    def testMCNoCollStrStates(self):
+        """
+        Constant H but str based (args=0) with no collapse ops (returns states)
+        """
+        print('')
+        error=1e-8
+        N=10 #number of basis states to consider
+        a=destroy(N)
+        H=[a.dag()*a,[a.dag()*a,'c']]
+        psi0=basis(N,9) #initial state
+        kappa=0.2 #coupling to oscillator
+        c_op_list=[]
+        tlist=linspace(0,10,100)
+        mcdata=mcsolve(H,psi0,tlist,c_op_list,[],args={'c':0.0},options=Odeoptions(gui=False))
+        states=mcdata.states
+        expt=expect(a.dag()*a,states)
+        actual_answer=9.0*ones(len(tlist))
+        diff=mean(abs(actual_answer-expt)/actual_answer)
+        self.assertTrue(diff<error)
+    
+    def testMCNoCollFuncStates(self):
+        """
+        Constant H but str based (args=0) with no collapse ops (returns states)
+        """
+        print('')
+        error=1e-8
+        N=10 #number of basis states to consider
+        a=destroy(N)
+        H=[a.dag()*a,[a.dag()*a,const_H1_coeff]]
+        psi0=basis(N,9) #initial state
+        kappa=0.2 #coupling to oscillator
+        c_op_list=[]
+        tlist=linspace(0,10,100)
+        mcdata=mcsolve(H,psi0,tlist,c_op_list,[],options=Odeoptions(gui=False))
+        states=mcdata.states
+        expt=expect(a.dag()*a,states)
+        actual_answer=9.0*ones(len(tlist))
+        diff=mean(abs(actual_answer-expt)/actual_answer)
+        self.assertTrue(diff<error)
     
     def testMCSimpleConst(self):
         """
         Collapse terms are constants.
         """
-        print ""
+        print('')
         N=10 #number of basis states to consider
         a=destroy(N)
         H=a.dag()*a
@@ -140,7 +197,7 @@ class TestMCSolverConstDecay(unittest.TestCase):
         Collapse terms are constant, but written in time-dependent
         function format with a constant coefficient (should yield same result).
         """
-        print ""
+        print('')
         N=10 #number of basis states to consider
         a=destroy(N)
         H=a.dag()*a
@@ -160,7 +217,7 @@ class TestMCSolverConstDecay(unittest.TestCase):
         Collapse terms are constant, but written in time-dependent
         string format with a constant coefficient (should yield same result).
         """
-        print ''
+        print('')
         N=10 #number of basis states to consider
         a=destroy(N)
         H=a.dag()*a
@@ -176,13 +233,13 @@ class TestMCSolverConstDecay(unittest.TestCase):
         self.assertTrue(avg_diff<mc_error)
     
     
-    def testTDFunc(self):
+    def testMCTDFunc(self):
         """
         Comparing to analytic answer
 
         N(t)=9 * exp[ -kappa*( 1-exp(-t) ) ]
         """
-        print ""
+        print('')
         error=5e-2
         N=10 #number of basis states to consider
         a=destroy(N)
@@ -205,7 +262,7 @@ class TestMCSolverConstDecay(unittest.TestCase):
 
         N(t)=9 * exp[ -kappa*( 1-exp(-t) ) ]
         """
-        print ""
+        print('')
         error=5e-2
         N=10 #number of basis states to consider
         a=destroy(N)

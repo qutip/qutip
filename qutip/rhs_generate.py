@@ -16,7 +16,7 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from cyQ.codegen import Codegen
+from qutip.cyQ.codegen import Codegen
 import odeconfig,os,platform,numpy
 from _reset import _reset_odeconfig
 from qutip.Odeoptions import Odeoptions
