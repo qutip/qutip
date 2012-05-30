@@ -192,9 +192,10 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
             return wfsolve_list_func_td(H, rho0, tlist, expt_ops, args, options)
         elif n_str > 0:
             return wfsolve_list_str_td(H, rho0, tlist, expt_ops, args, options)
+        elif isinstance(H, FunctionType):
+            return wfsolve_func_td(H, rho0, tlist, expt_ops, args, options)
         else:
             return wfsolve_const(H, rho0, tlist, expt_ops, args, options)
-
 
 # ------------------------------------------------------------------------------
 # A time-dependent disipative master equation on the list-function format
