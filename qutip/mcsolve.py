@@ -177,10 +177,10 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
                 code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
                 exec(code)
                 odeconfig.tdfunc=cyq_td_ode_rhs
-            # try:
-            #                 os.remove(odeconfig.tdname+".pyx")
-            #             except:
-            #                 print("Error removing pyx file.  File not found.")
+            try:
+                os.remove(odeconfig.tdname+".pyx")
+            except:
+                print("Error removing pyx file.  File not found.")
         elif odeconfig.tflag==0:
             odeconfig.tdfunc=cyq_ode_rhs
     else:#setup args for new parameters when rhs_reuse=True and tdfunc is given
@@ -349,7 +349,7 @@ class MC_class():
                 odeconfig.ntraj=1
                 print('No collapse operators specified.\nRunning a single trajectory only.\n')
             if odeconfig.e_num==0:# return psi Qobj at each requested time 
-                self.psi_out=no_collapse_psi_out(odeconfig.options,odeconfig.psi0,odeconfig.tlist,self.num_times,odeconfig.psi0_dims,odeconfig.psi0_shape,self.psi_out)
+                self.psi_out=no_collapse_psi_out(self.num_times,self.psi_out)
             else:# return expectation values of requested operators
                 self.expect_out=no_collapse_expect_out(self.num_times,self.expect_out)
         elif odeconfig.c_num!=0:
@@ -435,9 +435,10 @@ def pyRHSc(t,psi):
 
 
 ######---return psi at requested times for no collapse operators---######
-def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
+def no_collapse_psi_out(num_times,psi_out):
     ##Calculates state vectors at times tlist if no collapse AND no expectation values are given.
     #
+    opt=odeconfig.options
     if odeconfig.tflag in array([1,10,11]):
         ODE=ode(odeconfig.tdfunc)
         code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
@@ -455,7 +456,7 @@ def no_collapse_psi_out(opt,psi_in,tlist,num_times,psi_dims,psi_shape,psi_out):
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(odeconfig.psi0,odeconfig.tlist[0]) #set initial conditions
     psi_out[0]=Qobj(odeconfig.psi0,odeconfig.psi0_dims,odeconfig.psi0_shape,'ket')
-    for k in xrange(1,self.num_times):
+    for k in xrange(1,num_times):
         ODE.integrate(odeconfig.tlist[k],step=0) #integrate up to tlist[k]
         if ODE.successful():
             psi_out[k]=Qobj(ODE.y/norm(ODE.y,2),odeconfig.psi0_dims,odeconfig.psi0_shape,'ket')
