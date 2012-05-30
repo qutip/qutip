@@ -68,8 +68,12 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
             H0 = H(0.0, H_args)
             N = H0.shape[0]
         elif isinstance(H, list):
-            H0 = H[0]
-            N = H0.shape[0]
+            if isinstance(H[0], list):
+                H0 = H[0][0]
+                N = H0.shape[0]            
+            else:
+                H0 = H[0]
+                N = H0.shape[0] 
         else:
             N = H.shape[0]
 
@@ -94,8 +98,12 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
             H0 = H(0.0, H_args)
             N = H0.shape[0]
         elif isinstance(H, list):
-            H0 = H[0]
-            N = H0.shape[0]            
+            if isinstance(H[0], list):
+                H0 = H[0][0]
+                N = H0.shape[0]            
+            else:
+                H0 = H[0]
+                N = H0.shape[0]            
         else:
             N = H.shape[0]
 
