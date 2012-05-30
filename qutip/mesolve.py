@@ -28,10 +28,11 @@ from qutip.cyQ.codegen import Codegen, Codegen2
 from qutip.rhs_generate import rhs_generate
 from qutip.Odedata import Odedata
 from qutip.states import ket2dm
-from odechecks import _ode_checks
-import os,numpy,odeconfig
+from qutip.odechecks import _ode_checks
+import os,numpy
+import qutip.odeconfig
 
-from Odedata import Odedata
+from qutip.Odedata import Odedata
 
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether

@@ -18,8 +18,8 @@
 ###########################################################################
 import pickle
 from scipy import *
-from Qobj import *
-from Odedata import Odedata
+from qutip.Qobj import *
+from qutip.Odedata import Odedata
 
 # ------------------------------------------------------------------------------
 # Write matrix data to a file

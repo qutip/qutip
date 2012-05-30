@@ -28,7 +28,8 @@ from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
 from qutip.Odedata import Odedata
-import os,numpy,odeconfig
+import os,numpy
+import qutip.odeconfig
 import scipy.sparse as sp
 
 

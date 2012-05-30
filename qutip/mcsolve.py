@@ -31,10 +31,10 @@ from types import FunctionType
 from qutip.cyQ.cy_mc_funcs import mc_expect,spmv,spmv1d
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
-from Odedata import Odedata
-from odechecks import _ode_checks
+from qutip.Odedata import Odedata
+from qutip.odechecks import _ode_checks
 import qutip.settings
-from _reset import _reset_odeconfig
+from qutip._reset import _reset_odeconfig
 
 def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     """Monte-Carlo evolution of a state vector :math:`|\psi \\rangle` for a given

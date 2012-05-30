@@ -17,8 +17,9 @@
 #
 ###########################################################################
 from qutip.cyQ.codegen import Codegen
-import odeconfig,os,platform,numpy
-from _reset import _reset_odeconfig
+import os,platform,numpy
+import qutip.odeconfig
+from qutip._reset import _reset_odeconfig
 from qutip.Odeoptions import Odeoptions
 from scipy import ndarray, array
 from qutip.odechecks import _ode_checks
