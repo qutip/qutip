@@ -141,8 +141,9 @@ def steady(L,maxiter=100,tol=1e-6,method='solve'):
 		data=data/la.norm(v)
 	data=reshape(data,(rhoss.shape[0],rhoss.shape[1])).T
 	data=sp.csr_matrix(data)
-	data=sp.triu(data,format='csr')#take only upper triangle
-	rhoss.data=0.5*sp.eye(rhoss.shape[0],rhoss.shape[1],format='csr')*(data+data.conj().T) #output should be hermitian, but not guarenteed using iterative meth
+	rhoss.data=0.5*(data+data.conj().T)
+	#data=sp.triu(data,format='csr')#take only upper triangle
+	#rhoss.data=0.5*sp.eye(rhoss.shape[0],rhoss.shape[1],format='csr')*(data+data.conj().T) #output should be hermitian, but not guarenteed using iterative meth
 	if qset.auto_tidyup:
 	    return Qobj(rhoss).tidyup()
 	else:
