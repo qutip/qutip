@@ -108,7 +108,7 @@ Setup Using Macports: [*]_
 On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via:  
 
 >>> sudo port install py27-scipy
->>> sudo port install py27-matplotlib
+>>> sudo port install py27-matplotlib +latex
 
 additional, but optional, ports include:
 
@@ -116,7 +116,7 @@ additional, but optional, ports include:
 >>> sudo port install py27-cython
 >>> sudo port install texlive-latex-extra
 
-the last of which installs LaTeX and it's required fonts, and in addition:
+the last of which installs supplimentary LaTex fonts, and in addition:
 
 >>> sudo port install py27-pyside
 
@@ -124,6 +124,33 @@ or:
 
 >>> sudo port install py27-pyqt4
 
+.. note:: The next step is optional, but is recommended if you plan to use the string (Cython) based time-dependent format.  See :ref:`time`.
+
+Finally, we want to set the macports compiler to the vanilla GCC version.  From the command line type:
+
+>>> port select gcc
+
+which will bring up a list of installed compilers, such as::
+
+	Available versions for gcc:
+		apple-gcc42
+		gcc42
+		llvm-gcc42
+		mp-gcc45
+		none (active)
+
+We want to set the the compiler to the gcc4x compiler, where x is the highest number avaliable, in this case ``mp-gcc45`` (the "mp-" does not matter).  To do this type:
+
+>>> sudo port select gcc mp-gcc45
+
+Running port select again should give::
+
+	 Available versions for gcc:
+	 	apple-gcc42
+	 	gcc42
+	 	llvm-gcc42
+	 	mp-gcc45 (active)
+	 	none
 
 Setup via SciPy Superpack:
 --------------------------
