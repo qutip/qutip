@@ -365,6 +365,9 @@ class Qobj():
             raise TypeError("Incompatible object for multiplication")
 
     #----
+    def __truediv__(self,other):
+        return self.__div__(other)
+
     def __div__(self,other):
         """
         DIVISION (by numbers only)
