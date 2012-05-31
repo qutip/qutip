@@ -64,7 +64,7 @@ The development of QuTiP has been partially supported by the Japanese Society fo
 
 Contributing to QuTiP
 =====================
-Like any open-source project, we welcome anyone who is interested in helping us make QuTiP the best package for simulating quantum optics-like systems.  Anyone who contributes will be duely recongnized.  Even small contributions are noted.  See :ref:`developers-contributors` for a list of people who have helped in one way or another.  If you are interested, please drop us a line at the `QuTiP discussion group webpage`_. 
+Like any open-source project, we welcome anyone who is interested in helping us make QuTiP the best package for simulating quantum optics-like systems.  Anyone who contributes will be duly recognized.  Even small contributions are noted.  See :ref:`developers-contributors` for a list of people who have helped in one way or another.  If you are interested, please drop us a line at the `QuTiP discussion group webpage`_. 
 
 
 .. _QuTiP discussion group webpage: http://groups.google.com/group/qutip.
