@@ -51,12 +51,12 @@ master_nums=20+arange(len(master_labels))
 
 
 #monte carlo equation demos
-monte_labels=["MC Cavity+Qubit","Coupled Oscillators","MC Ensemble Avg.","Trilinear Hamiltonian","none","none","none"]
+monte_labels=["MC Cavity+Qubit","Coupled Oscillators","MC Ensemble Avg.","Trilinear Hamiltonian","Visualize MC Dissipation","none","none"]
 monte_desc=["Monte Carlo evoution of a coherently driven cavity with a two-level atom.",
             "Occupation number of two coupled osciilators, one driven by external force.",
             "Ensemble averaging of MC trajectories to master equation for Fock state decay.",
             "Demonstrating the deviation from a thermal state for the trilinear Hamiltonian.",
-            "none",
+            "Visualization of collapse times and operators of a dissipative trilinear Hamiltonian.",
             "none",
             "none"]
 monte_nums=30+arange(len(monte_labels))
