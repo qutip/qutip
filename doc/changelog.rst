@@ -5,6 +5,56 @@
 Change Log
 **********
 
+Version 2.0.0 [SVN-2XXX] (June 01, 2012):
++++++++++++++++++++++++++++++++++++++++++
+
+New Features
+-------------
+
+- QuTiP now includes solvers for both Floquet and Bloch-Redfield master equations.
+
+- The Lindblad master equation and monte-carlo solvers allow for time-dependent collapse operators.
+
+- It is possible to automatically compile time-dependent problems into c-code using Cython (if installed).
+
+- Python functions can be used to create arbitrary time-dependent Hamiltonians and collapse operators.
+
+- Solvers now return Odedata objects containing all simulation results and parameters, simplifying the saving of simulation results.
+
+- mesolve and mcsolve can reuse Hamiltonian data when only the initial state, or time-dependent arguments, need to be changed.
+
+- QuTiP includes functions for creating random quantum states and operators.
+
+- The generation and manipulation of quantum objects is now more efficient.
+
+- Quantum objects have basis transformation and matrix element calulations as built-in methods.
+
+- The quantum object eigensolver can use sparse solvers.
+
+- The partial-trace (ptrace) function is up to 20x faster.
+
+- The Bloch sphere can now be used with the Matplotlib animation function, and embedded as a subplot in a figure.
+
+- QuTiP has built-in functions for saving quantum objects and data arrays.
+
+- The steady-state solver has been further optimized for sparse matrices, and can handle much larger system Hamiltonians.
+
+- The steady-state solver can use the iterative bi-conjugate gradient method instead of a direct solver.
+
+- There are three new entropy functions for concurrence, mutual information, and conditional entropy.
+
+- Correlation functions have been combined under a single function.
+
+- The operator norm can now be set to trace, Frobius, one, or max norm.
+
+- Global QuTiP settings can now be modified.
+
+- QuTiP includes a collection of unit tests for verifying the installation.
+
+- Demos window now lets you copy and paste code from each example.
+
+
+
 Version 1.1.4 [fixes backported to SVN-1450] (May 28, 2012):
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -121,4 +171,4 @@ SVN-1041: Fixed issue in Wigner where xvec was used twice (in place of yvec).
 Version 1.0.0 [svn-1021] (July 29, 2011)
 +++++++++++++++++++++++++++++++++++++++++
 
-Initial release.
+**Initial release.**

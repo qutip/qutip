@@ -61,7 +61,7 @@ The second version of QuTiP has seen many improvements in the performance of the
 
 - The generation and manipulation of quantum objects is now more efficient.
 
-- Quantum objects have basis transformation and matrix element calulations as built-in methods.
+- Quantum objects have basis transformation and matrix element calculations as built-in methods.
 
 - The quantum object eigensolver can use sparse solvers.
 
@@ -71,7 +71,7 @@ The second version of QuTiP has seen many improvements in the performance of the
 
 - QuTiP has built-in functions for saving quantum objects and data arrays.
 
-- The steady-state solver has been further optimized for sparse matricies, and can handle much larger system Hamiltonians.
+- The steady-state solver has been further optimized for sparse matrices, and can handle much larger system Hamiltonians.
 
 - There are three new entropy functions for concurrence, mutual information, and conditional entropy.
 
