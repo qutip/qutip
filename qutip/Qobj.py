@@ -1060,12 +1060,12 @@ def qobj_list_evaluate(qobj_list, t, args):
 # functions acting on Qobj class
 #
 #
-def dag(inQobj):
+def dag(A):
     """Adjont operator (dagger) of a quantum object.
     
     Parameters
     ----------
-    inQobj : qobj 
+    A : qobj 
         Input quantum object.
     
     Returns
@@ -1079,9 +1079,9 @@ def dag(inQobj):
     It is recommended to use the ``dag()`` Qobj method.
     
     """
-    if not isinstance(inQobj,Qobj): #checks for Qobj
+    if not isinstance(A,Qobj): #checks for Qobj
         raise TypeError("Input is not a quantum object")
-    return inQobj.dag()
+    return A.dag()
 
 
 def ptrace(Q,sel):
