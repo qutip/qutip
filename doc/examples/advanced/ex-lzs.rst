@@ -23,5 +23,5 @@ This example also illustrates how to use the :func:`qutip.parfor` to parallelize
 .. _lzs-figure: 
 .. figure:: ex-lzs.png
    :align: center
-   :width: 6in
+   :width: 4in
 
