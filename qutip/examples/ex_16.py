@@ -3,11 +3,7 @@
 # 3D histogram plot output.
 #
 
-from qutip.Qobj import *
-from qutip.states import *
-from qutip.operators import *
-from qutip.ptrace import *
-from qutip.tensor import *
+from qutip import *
 from pylab import *
 from matplotlib import pyplot, mpl,cm
 from mpl_toolkits.mplot3d import Axes3D

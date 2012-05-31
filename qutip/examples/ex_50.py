@@ -3,17 +3,8 @@
 # hamiltonian to a complicated interacting spin chain.
 #
 
-from qutip.Qobj import *
-from qutip.tensor import *
-from qutip.ptrace import *
-from qutip.operators import *
-from qutip.expect import *
-from qutip.states import *
-from qutip.mesolve import mesolve
-
+from qutip import *
 from pylab import *
-
-import time
 
 def compute(N, M, h, Jx, Jy, Jz, taulist):
 
@@ -120,10 +111,8 @@ def run():
     taumax = 5.0
     taulist = linspace(0, taumax, 100)
 
-    start_time = time.time()
     evals_mat, occ_mat = compute(N, M, h, Jx, Jy, Jz, taulist)
-    print('time elapsed = ' +str(time.time() - start_time))
-
+    
     #---------------------------------------------------------------------------
     # plots
     #

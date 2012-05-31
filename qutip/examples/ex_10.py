@@ -2,9 +2,7 @@
 #Calculates the Schrodinger cat state for
 #a superposition of two coherent states.
 #
-from qutip.operators import *
-from qutip.states import *
-from qutip.wigner import *
+from qutip import *
 from pylab import * #loads matplotlib
 
 def run():

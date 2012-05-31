@@ -1,16 +1,8 @@
 #
 # Qubit dynamics shown in a Bloch sphere.
 #
-from qutip.tensor import *
-from qutip.operators import *
-from qutip.expect import *
-from qutip.states import basis
-from qutip.mesolve import mesolve
-from qutip.Bloch import *
-
+from qutip import *
 from pylab import *
-import time
-
 
 def qubit_integrate(w, theta, gamma1, gamma2, psi0, tlist):
     # Hamiltonian

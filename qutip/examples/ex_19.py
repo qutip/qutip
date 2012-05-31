@@ -4,10 +4,7 @@
 #
 # From the xGHZ qotoolbox example by Sze M. Tan
 #
-from qutip.operators import *
-from qutip.simdiag import *
-from qutip.states import *
-from qutip.tensor import *
+from qutip import *
 from pylab import *
 from matplotlib import pyplot, mpl,cm
 from mpl_toolkits.mplot3d import Axes3D

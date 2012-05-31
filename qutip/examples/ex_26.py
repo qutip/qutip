@@ -1,16 +1,8 @@
 #
 # Measuring the distance between density matrices via the fidelity
 #
-from qutip.tensor import *
-from qutip.operators import *
-from qutip.expect import *
-from qutip.states import coherent,basis,thermal_dm
-from qutip.mesolve import mesolve
-from qutip.metrics import fidelity
-
+from qutip import *
 from pylab import *
-import time
-
 
 def run():
     fids=zeros((3,60)) #initialize data matrix

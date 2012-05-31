@@ -4,11 +4,7 @@
 #
 #Adapted from qotoolbox example 'probqmc3' by Sze M. Tan
 #
-from qutip.expect import *
-from qutip.mcsolve import *
-from qutip.operators import *
-from qutip.states import *
-from qutip.tensor import *
+from qutip import *
 from pylab import *
 
 def run():

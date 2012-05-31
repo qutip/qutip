@@ -2,8 +2,7 @@
 # Entropy of binary system as probability
 # of being in the excited state is varied.
 #
-from qutip.entropy import *
-from qutip.states import *
+from qutip import *
 from pylab import *
 
 def run():

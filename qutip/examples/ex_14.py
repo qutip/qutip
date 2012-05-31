@@ -3,9 +3,7 @@
 # where F and T are the fidelity and trace distance metrics,
 # respectively using randomly generated ket vectors.
 #
-from qutip.metrics import *
-from qutip.rand import *
-from qutip.states import *
+from qutip import *
 from pylab import *
 
 def run():

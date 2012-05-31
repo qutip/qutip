@@ -2,12 +2,8 @@
 # Textbook example: Energy spectrum of 
 # three coupled qubits.
 #
-from qutip.operators import *
-from qutip.states import *
-from qutip.tensor import *
+from qutip import *
 from pylab import *
-import time
-
 
 def compute(w1list, w2, w3, g12, g13):
 
@@ -55,9 +51,7 @@ def run():
     w1list = linspace(0.75, 1.25, 50) * 2 * pi
 
     # run computation
-    start_time = time.time()
-    evals_mat = compute(w1list, w2, w3, g12, g13)
-    print('time elapsed = ' +str(time.time() - start_time)) 
+    evals_mat = compute(w1list, w2, w3, g12, g13) 
 
     #
     # plot the energy eigenvalues

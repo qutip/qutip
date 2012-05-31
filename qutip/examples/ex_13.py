@@ -3,13 +3,7 @@
 # ultra-strongly coupled atom-cavity system.
 # 
 #
-from qutip.expect import *
-from qutip.Qobj import *
-from qutip.operators import *
-from qutip.states import *
-from qutip.tensor import *
-from qutip.wigner import *
-import time
+from qutip import *
 from pylab import *
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -58,9 +52,7 @@ def run():
     glist = linspace(0, 2.5, 50) * 2 * pi
 
     #run computation
-    start_time = time.time()
     nc, na, grnd_kets = compute(N, wc, wa, glist, use_rwa)
-    print('time elapsed = ' +str(time.time() - start_time))
 
     #
     # plot the cavity and atom occupation numbers as a function of 

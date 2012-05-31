@@ -1,14 +1,7 @@
 #
 # Landau-Zener transitions in a quantum two-level system
 #
-from qutip.states import *
-from qutip.Qobj import *
-from qutip.tensor import *
-from qutip.ptrace import *
-from qutip.operators import *
-from qutip.expect import *
-from qutip.correlation import *
-
+from qutip import *
 from pylab import *
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm

@@ -1,17 +1,8 @@
 #
 # Dynamics of a Heisenberg spin 1/2 chain
 #
-from scipy import *
-from qutip.Qobj import *
-from qutip.tensor import *
-from qutip.ptrace import *
-from qutip.operators import *
-from qutip.expect import *
-from qutip.wigner import *
-from qutip.mesolve import mesolve
-
+from qutip import *
 from pylab import *
-import time
 
 def integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver):
 
@@ -99,9 +90,7 @@ def run():
 
     tlist = linspace(0, 50, 300)
 
-    start_time = time.time()
     sz_expt = integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver)
-    print('time elapsed = ' +str(time.time() - start_time))
 
     rc('font', family='Bitstream Vera Sans')
     for n in range(N):

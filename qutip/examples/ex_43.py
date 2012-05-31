@@ -1,14 +1,7 @@
 #
 # Using the propagator to find the steady state of a driven system.
 #
-from qutip.states import *
-from qutip.Qobj import *
-from qutip.tensor import *
-from qutip.ptrace import *
-from qutip.operators import *
-from qutip.expect import *
-from qutip.propagator import *
-
+from qutip import *
 from pylab import *
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm

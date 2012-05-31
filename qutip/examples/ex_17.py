@@ -5,12 +5,7 @@
 #
 # Adapted from 'probss' example in the qotoolbox by Sze M. Tan.
 #
-from qutip.expect import *
-from qutip.operators import *
-from qutip.parfor import *
-from qutip.states import *
-from qutip.steady import *
-from qutip.tensor import *
+from qutip import *
 from pylab import *
 
 

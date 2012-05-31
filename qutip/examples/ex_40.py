@@ -1,14 +1,7 @@
 #
 # Rabi oscillations of qubit subject to a classical driving field.
 #
-from qutip.states import *
-from qutip.Qobj import *
-from qutip.tensor import *
-from qutip.ptrace import *
-from qutip.operators import *
-from qutip.expect import *
-from qutip.correlation import *
-
+from qutip import *
 from pylab import *
 
 def run():

@@ -23,16 +23,7 @@
 # Omega, and |g> and |e> by a cavity field with 2g being the single-photon
 # Rabi frequency.
 #
-from __future__ import division
-
-from qutip.Qobj import *
-from qutip.tensor import *
-from qutip.ptrace import *
-from qutip.operators import *
-from qutip.expect import *
-from qutip.wigner import *
-from qutip.mesolve import mesolve
-
+from qutip import *
 from pylab import *
 
 def run():

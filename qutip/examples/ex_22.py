@@ -1,13 +1,7 @@
 #
 # Single-atom lasing in a Jaynes-Cumming-like system
 #
-from qutip.Qobj import *
-from qutip.tensor import *
-from qutip.ptrace import *
-from qutip.operators import *
-from qutip.expect import *
-from qutip.wigner import *
-from qutip.mesolve import mesolve
+from qutip import *
 from pylab import *
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
