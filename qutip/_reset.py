@@ -34,8 +34,8 @@ def _reset():
 def _reset_odeconfig():
     import qutip.odeconfig as odeconfig
     #General stuff
-    odeconfig.tlist=None #evaluations times
-    odeconfig.ntraj=None #number / list of trajectories
+    #odeconfig.tlist=None #evaluations times
+    #odeconfig.ntraj=None #number / list of trajectories
     #odeconfig.options=None #options for odesolvers
     
     #flags for setting time-dependence, collapse ops, and number of times codegen has been run
