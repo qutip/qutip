@@ -44,7 +44,7 @@ class TestMCSolveTDDecay(unittest.TestCase):
         """
         
     def testMCSimpleTDDecayAsFuncList(self):
-        print ""
+        print("")
         N=10 #number of basis states to consider
         a=destroy(N)
         H=a.dag()*a
@@ -60,7 +60,7 @@ class TestMCSolveTDDecay(unittest.TestCase):
     
     
     def testMCSimpleTDDecayAsStrList(self):
-        print ""
+        print("")
         N=10 #number of basis states to consider
         a=destroy(N)
         H=a.dag()*a

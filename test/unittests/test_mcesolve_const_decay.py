@@ -40,7 +40,7 @@ class TestMCSolverConstDecay(unittest.TestCase):
         """
     
     def testMCSimpleConstDecay(self):
-        print ""
+        print("")
         N=10 #number of basis states to consider
         a=destroy(N)
         H=a.dag()*a
@@ -55,7 +55,7 @@ class TestMCSolverConstDecay(unittest.TestCase):
         self.assertTrue(avg_diff<mc_error)
      
     def testMCSimpleConstDecayAsFuncList(self):
-        print ""
+        print("")
         N=10 #number of basis states to consider
         a=destroy(N)
         H=a.dag()*a
@@ -70,7 +70,7 @@ class TestMCSolverConstDecay(unittest.TestCase):
         self.assertTrue(avg_diff<mc_error)
         
     def testMCSimpleConstDecayAsStrList(self):
-        print ''
+        print('')
         N=10 #number of basis states to consider
         a=destroy(N)
         H=a.dag()*a
