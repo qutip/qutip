@@ -19,9 +19,12 @@ These pages contains automatically generated API documentation for QuTiP. A PDF 
 .. _QuTiP project web page: http://code.google.com/p/qutip
 
 
-:Authors: P.D. Nation; J.R. Johansson
+:Author: P.D. Nation
+:Address: Department of Physics, Korea University,
+          Seongbuk-Gu Seoul, 136-701 South Korea
+:Author: J.R. Johansson
 :Address: Digital Materials Laboratory
-		  Advanced Science Institute, RIKEN
+		  Advanced Science Institute, RIKEN,
 		  Wako-shi Saitama, 351-0198 Japan
 :version: 2.0
 :status: In Development
@@ -57,3 +60,12 @@ The development of QuTiP has been partially supported by the Japanese Society fo
 .. figure:: figures/riken-logo.png
 	:width: 1.5in
 	:figclass: align-center
+
+
+Contributing to QuTiP
+=====================
+Like any open-source project, we welcome anyone who is interested in helping us make QuTiP the best package for simulating quantum optics-like systems.  Anyone who contributes will be duely recongnized.  Even small contributions are noted.  See :ref:`developers-contributors` for a list of people who have helped in one way or another.  If you are interested, please drop us a line at the `QuTiP discussion group webpage`_. 
+
+
+.. _QuTiP discussion group webpage: http://groups.google.com/group/qutip.
+

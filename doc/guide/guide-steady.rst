@@ -48,5 +48,5 @@ A simple example of a system that reaches a steady-state is a harmonic oscillato
 .. _steady-figure: 
 .. figure:: guide-steady.png
    :align: center
-   :width: 6in
+   :width: 4in
 
