@@ -115,6 +115,12 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
         odeconfig.psi0=psi0.full()
     odeconfig.psi0_dims=psi0.dims
     odeconfig.psi0_shape=psi0.shape
+    #set general items
+    odeconfig.tlist=tlist
+    if isinstance(ntraj,(list,ndarray)):
+        odeconfig.ntraj=sort(ntraj)[-1]
+    else:
+        odeconfig.ntraj=ntraj
     #----
     
     #----------------------------------------------
@@ -123,12 +129,6 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     if (not options.rhs_reuse) or (not odeconfig.tdfunc):
         #reset odeconfig collapse and time-dependence flags to default values
         _reset_odeconfig()
-        #set general items
-        odeconfig.tlist=tlist
-        if isinstance(ntraj,(list,ndarray)):
-            odeconfig.ntraj=sort(ntraj)[-1]
-        else:
-            odeconfig.ntraj=ntraj
         
         #check for type of time-dependence (if any)
         time_type,h_stuff,c_stuff=_ode_checks(H,c_ops,'mc')
