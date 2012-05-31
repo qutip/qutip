@@ -28,9 +28,9 @@ tlist=linspace(0,50,100)
 #monte-carlo
 mcdata = mcsolve(H,psi0,tlist,c_op_list, [a.dag()*a],ntraj=100)
 #master eq.
-meexpt = mesolve(H,psi0,tlist,c_op_list, [a.dag()*a])
+medata = mesolve(H,psi0,tlist,c_op_list, [a.dag()*a])
 
-plot(tlist,mcdata.expect[0],tlist,meexpt[0],lw=2)
+plot(tlist,mcdata.expect[0],tlist,medata.expect[0],lw=2)
 #plot steady-state expt. value as horizontal line (should be = 2)
 axhline(y=fexpt,color='r',lw=1.5)
 ylim([0,10])
