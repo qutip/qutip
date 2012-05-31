@@ -35,6 +35,12 @@ Before embarking on simulating the dynamics of quantum systems, we will first lo
 +------------------------+-----------------------------------------------------------------------+
 | odedata.ntraj          | Number of monte-carlo trajectories run (if using mcsolve).            |
 +------------------------+-----------------------------------------------------------------------+
+| odedata.col_times      | Times at which state collpase occurred.  Only for Monte-Carlo solver. |
++------------------------+-----------------------------------------------------------------------+
+| odedata.col_which      | Which collapse operator was responsible for each collapse in          |
+|                        | in ``col_times``. mcsolver only.                                      |
++------------------------+-----------------------------------------------------------------------+
+
 
 .. _odedata-access:
 
@@ -73,7 +79,7 @@ we can plot the resulting expectation values:
    Data for expectation values extracted from the ``data`` Odedata object.
 
 
-State vectors, or density matrices, are accessed in a similar manner, although typically one does not need an index (i.e [0]) since there is only one list of state vectors.  The one exception to this rule is if you choose to ouput states from the Monte-Carlo solver, where there are ``ntraj`` number of state vectors arrays.
+State vectors, or density matrices, as well as ``col_times`` and ``col_which``, are accessed in a similar manner, although typically one does not need an index (i.e [0]) since there is only one list for each of these components.  The one exception to this rule is if you choose to ouput state vectors from the Monte-Carlo solver, in which case there are ``ntraj`` number of state vector arrays.
 
 .. _odedata-saving:
 
