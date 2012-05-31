@@ -4,17 +4,85 @@
 # P.D. Nation and J.R. Johansson
 ################################
 
+
+USERS GUIDE
+-----------        
+An in-depth user guide, including installation instructions, may be found at the QuTiP homepage:
+
+http://code.google.com/p/qutip/ 
+        
+        
+DEMO SCRIPTS
+------------
+QuTiP contains a collection of built-in demo scripts that may be called from the Python command line via:
+	
+>>> from qutip import *
+>>> demos()
+
+
 FILES LIST
 ----------
 COPYING.txt                         # Copy of GPL-3.
 INSTALL.txt                         # Installation instructions.
+README.txt                          # This file for Comp. Phys. Comm.
 RELEASE.txt                         # Release notes for each version of QuTiP.
 setup.py                            # QuTiP Python installation script.
     
+	cyQ/
+        __init__.py             # Initialize cyQ modules.
+        codegen.py		    	# Class for automatically generating Cython files for time-dependent problems.
+    	cy_mc_funcs.c           # Cython generated C-code for Monte-Carlo solver.
+        cy_mc_funcs.pyx         # Cython source code for cy_mc_funcs.c.
+    	ode.rhs.c		    	# Cython generated C-code for ODE RHS multiplication.
+        ode.rhs.pyx		    	# Cython source code for ode_rhs.c.
+    	setup.py                # Setup file for generating *.c files from *.pyx.
+    
+	examples/
+        __init__.py             # Initialize examples modules.
+  		ex_10.py				# Demo script.
+		ex_11.py				# Demo script.
+		ex_12.py				# Demo script.
+		ex_13.py				# Demo script.
+		ex_14.py				# Demo script.
+		ex_15.py				# Demo script.
+		ex_16.py				# Demo script.
+		ex_17.py				# Demo script.
+		ex_18.py				# Demo script.
+		ex_19.py				# Demo script.
+		ex_20.py				# Demo script.
+		ex_21.py				# Demo script.
+		ex_22.py				# Demo script.
+		ex_23.py				# Demo script.
+		ex_24.py				# Demo script.
+		ex_25.py				# Demo script.
+		ex_26.py				# Demo script.
+		ex_27.py				# Demo script.
+		ex_30.py				# Demo script.
+		ex_31.py				# Demo script.
+		ex_32.py				# Demo script.
+		ex_33.py				# Demo script.
+		ex_34.py				# Demo script.
+		ex_40.py				# Demo script.
+		ex_41.py				# Demo script.
+		ex_42.py				# Demo script.
+		ex_43.py				# Demo script.
+		ex_50.py				# Demo script.
+		examples_text.py		# List of demo names and descriptions loaded by demos GUI.
+		exconfig.py				# Module containing parameters for launching demo based on users command.
+    
+	gui/
+        __init__.py             # Initialize GUI modules.
+        AboutBox.py             # Class for generating QuTiP About box.
+        Examples.py             # Class for demos GUI or command line. 
+        logo.png                # QuTiP logo used in About box.
+        ProgressBar.py          # Class for Monte-Carlo progress bar GUI.
+		syntax.py				# Class for syntax highlighting used in demos GUI.
+	
 	qutip/
         __init__.py                 # Initialize qutip modules.
-        _version.py                 # Holds qutip version information.
-        about.py                    # Calls about box.
+        _reset.py					# Resets global QuTiP settings and odeconfig data
+		_version.py                 # Holds qutip version information.
+		about.py                    # Calls about box.
         bloch-redfield.py           # Bloch-Redfield master equation solver.
         Bloch.py                    # Class generating a Bloch sphere plot.
         clebsch.py                  # Calculates Clebsch-Gordon coefficients.
@@ -54,65 +122,6 @@ setup.py                            # QuTiP Python installation script.
         tensor.py                   # Generates a composite quantum object from two or more state vectors or density matricies.
         three_level_atom.py         # A collection of commonly used states and operators for three-level atoms.
         wigner.py                   # Generates the Wigner function and Q function for a given state vector or density matrix.
-        
-		cyQ/
-            __init__.py             # Initialize cyQ modules.
-            codegen.py		    	# Class for automatically generating Cython files for time-dependent problems.
-	    	cy_mc_funcs.c           # Cython generated C-code for Monte-Carlo solver.
-            cy_mc_funcs.pyx         # Cython source code for cy_mc_funcs.c.
-	    	ode.rhs.c		    	# Cython generated C-code for ODE RHS multiplication.
-            ode.rhs.pyx		    	# Cython source code for ode_rhs.c.
-	    	setup.py                # Setup file for generating *.c files from *.pyx.
-        
-		examples/
-            __init__.py             # Initialize examples modules.
-            blochdemo.py            # Demo for Bloch sphere plotting.
-            cavityqubitmc.py        # Demo for cavity-qubit evolution using Monte-Carlo method.
-            correlation.py          # Demo for calculating correlation functions.
-            cqsteady.py             # Example for solving steady-state evolution.
-            esdemo.py               # Demo using eseries class
-            exconfig.py             # Holds variable used by Examples.py.
-            fidelity_example.py     # Demo calculating fidelity of trilinear Hamiltonian.
-            jc_lasing.py            # Jaynes-Cumming single-atom lasing demo.
-            jc_vacuum_rabi.py       # Jaynes-Cumming vacuum Rabi oscillations demo.
-            mcthermal.py            # Demo of trilinear deviations from a thermal state.
-            propagatordemo.py       # Demo for calculating the propagator of a closed system.
-            qobjbasics.py           # Demo introducing the Qobj class and it's methods.
-            schrodingercat.py       # Plots the Wigner function for a Schrodinger cat-state.
-            spinchain.py            # Example for calculating expectation values of a spin-chain.
-            squeezed.py             # Wigner and Q functions of a squeezed state.
-            states_opers.py         # Introduction to manipulating states and operators.
-            td_landauzener.py       # Demo for time-dependent Landau-Zener problem.
-            td_rabi.py              # Demo for time-dependent Rabi oscillations.
-            tensorptrace.py         # Demo using tensor products and partial traces.
-            termpause.py            # Function that waits for terminal input.
-            thermalss.py            # Demo solving for steady-state in a thermal environment.
-            trilinearmc.py          # Solving trilinear Hamiltonian using Monte-Carlo method.
-        
-		gui/
-            __init__.py             # Initialize GUI modules.
-            AboutBox.py             # Class for generating QuTiP About box.
-            Examples.py             # Class for demos GUI or command line. 
-            logo.png                # QuTiP logo used in About box.
-            ProgressBar.py          # Class for Monte-Carlo progress bar GUI.
-        
-        
-        
-USER GUIDE
-----------        
-
-An in-depth user guide may be found at the QuTiP homepage:
-
-http://qutip.googlecode.com/svn/doc/2.0.0/html/index.html       
-        
-        
-DEMO SCRIPTS
-------------
-
-QuTiP contains a collection of built-in demo scripts that may be called from the Python command line via:
-	
->>> from qutip import *
->>> demos()
 
         
         
