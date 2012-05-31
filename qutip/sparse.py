@@ -169,9 +169,9 @@ def sp_eigs(op,vecs=True,sparse=False,sort='low',eigvals=0,tol=0,maxiter=100000)
                 if num_small>0:
                     small_vals=sp.linalg.eigs(op.data,k=num_small,which='SR',return_eigenvectors=False,tol=tol,maxiter=maxiter)
         evals=hstack((small_vals,big_vals))
-        _zipped = zip(evals,range(len(evals)))
+        _zipped = list(zip(evals,range(len(evals))))
         _zipped.sort()
-        evals,perm = zip(*_zipped)
+        evals,perm = list(zip(*_zipped))
         if op.isherm:evals=real(evals)
         perm=array(perm)
     
@@ -201,9 +201,9 @@ def sp_eigs(op,vecs=True,sparse=False,sort='low',eigvals=0,tol=0,maxiter=100000)
             else:
                 evals=la.eigvals(op.full())
         #sort return values
-        _zipped = zip(evals,range(len(evals)))
+        _zipped = list(zip(evals,range(len(evals))))
         _zipped.sort()
-        evals,perm = zip(*_zipped)
+        evals,perm = list(zip(*_zipped))
         if op.isherm:evals=real(evals)
         perm=array(perm)
         
