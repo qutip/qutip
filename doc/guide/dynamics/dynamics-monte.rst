@@ -102,7 +102,7 @@ Like the master equation solver :func:`qutip.mesolve`, the Monte-Carlo solver re
 Changing the Number of Trajectories
 -----------------------------------
 
-As mentioned earlier, by defualt, the ``mcsolve`` function runs 500 trajectories.  This value was chosen because it gives good accuracy, monte-carlo errors scale as :math:`1/n` where :math:`n` is the number of trajectories, and simultaneously does not take an excessive amount of time to run.  However, like many other options in QuTiP you are free to change the number of trajectories to fit your needs.  If we want to run 1000 trajectories in the above example, we can simply modify the call to ``macsolve`` like:
+As mentioned earlier, by default, the ``mcsolve`` function runs 500 trajectories.  This value was chosen because it gives good accuracy, monte-carlo errors scale as :math:`1/n` where :math:`n` is the number of trajectories, and simultaneously does not take an excessive amount of time to run.  However, like many other options in QuTiP you are free to change the number of trajectories to fit your needs.  If we want to run 1000 trajectories in the above example, we can simply modify the call to ``macsolve`` like:
 
 >>> data = mcsolve(H, psi0, tlist, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm],ntraj=1000)
 
@@ -110,7 +110,7 @@ where we have added the keyword arguement ``ntraj=1000`` at the end of the input
 
 >>> ntraj = [1,10,100,1000]
 
-Keep in mind that the input list must be in ascending order since the total number of trajectories run by ``mcsolve`` will be calculated using the last element of ``ntraj``.  In this case, we need to use an extra indice when getting the expectation values from the ODedata object returned by ``mcsolve``.  In the above example using:
+Keep in mind that the input list must be in ascending order since the total number of trajectories run by ``mcsolve`` will be calculated using the last element of ``ntraj``.  In this case, we need to use an extra index when getting the expectation values from the ODedata object returned by ``mcsolve``.  In the above example using:
 
 >>> data = mcsolve(H, psi0, tlist, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm],ntraj=[1,10,100,1000])
 
@@ -133,7 +133,7 @@ Reusing Hamiltonian Data
 
 .. note:: This section covers a specialized topic and may be skipped if you are new to QuTiP.
 
-In order to solve a given simulation as fast as possible, the solvers in QuTiP take the given input operators and break them down into simpler components before passing them on to the ODE solvers.  Although these operations are reasonably fast, the time spent organizing data can become appreciable when repeatedly solving a system over, for example, many different initial conditions. In cases such as this, the Hamiltonian and other operators may be reused after the inital configuration, thus speeding up calculations.  Note that, unless you are planning to reuse the data many times, this functionality will not be very useful.
+In order to solve a given simulation as fast as possible, the solvers in QuTiP take the given input operators and break them down into simpler components before passing them on to the ODE solvers.  Although these operations are reasonably fast, the time spent organizing data can become appreciable when repeatedly solving a system over, for example, many different initial conditions. In cases such as this, the Hamiltonian and other operators may be reused after the initial configuration, thus speeding up calculations.  Note that, unless you are planning to reuse the data many times, this functionality will not be very useful.
 
 To turn on the "reuse" functionality we must set the ``rhs_reuse=True`` flag in the :func:`qutip.Odeoptions`:  
 
@@ -175,7 +175,7 @@ A full account of this feature is given in :ref:`odeoptions`.  Using the previou
    :align: center
    :width: 4in
 
-In addition to the inital state, one may reuse the Hamiltonian data when changing the number of trajectories ``ntraj`` or simulation times ``tlist``.  The reusing of Hamiltonian data is also supported for time-dependent Hamiltonians.  See :ref:`time` for futher details.
+In addition to the initial state, one may reuse the Hamiltonian data when changing the number of trajectories ``ntraj`` or simulation times ``tlist``.  The reusing of Hamiltonian data is also supported for time-dependent Hamiltonians.  See :ref:`time` for further details.
 
 
 
