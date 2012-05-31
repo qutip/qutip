@@ -30,9 +30,7 @@ from qutip.Odedata import Odedata
 from qutip.states import ket2dm
 from qutip.odechecks import _ode_checks
 import os,numpy
-import qutip.odeconfig
-
-from qutip.Odedata import Odedata
+import qutip.odeconfig as odeconfig
 
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
