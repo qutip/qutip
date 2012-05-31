@@ -14,3 +14,4 @@ Monte-Carlo Examples
    mc/ex-31.rst
    mc/ex-32.rst
    mc/ex-33.rst
+   mc/ex-34.rst
