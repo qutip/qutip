@@ -11,6 +11,6 @@ Example showing which times and operators were responsible for wave function col
 
 .. literalinclude:: ex_34.py
 
-.. figure:: ex-34.png
+.. figure:: ex_34.png
 	:width: 4in
 	:align: center
