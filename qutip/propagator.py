@@ -109,7 +109,7 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
 
         u = zeros([N*N, N*N], dtype=complex)
         
-        for n in xrange(0, N*N):
+        for n in range(0, N*N):
             psi0  = basis(N*N, n)
             rho0  = Qobj(vec2mat(psi0.full()))
             output = mesolve(H, rho0, [0, t], c_op_list, [], H_args, opt)

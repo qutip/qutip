@@ -54,7 +54,7 @@ def orbital(theta,phi,*args):
 		# use the list in args[0] 
 		args = args[0]
 
-	for k in xrange(len(args)):
+	for k in range(len(args)):
 		ket=args[k]
 		if not ket.type=='ket':
 			raise TypeError('Invalid input ket in orbital')
@@ -70,9 +70,9 @@ def orbital(theta,phi,*args):
 		fac = sqrt((2.0*l+1)/(8*pi))
 		kf=ket.full()
 		psi += sqrt(2)*fac*kf[l,0]*ones((size(phi),size(theta)),dtype=complex)*SPlm[0]
-		for m in xrange(1,l+1):
+		for m in range(1,l+1):
 			psi+= ((-1.0)**m*fac*kf[l-m,0])*array([exp(1.0j*1*phi)]).T*ones((size(phi),size(theta)),dtype=complex)*SPlm[1]
-		for m in xrange(-l,0):
+		for m in range(-l,0):
 			psi=psi+(fac*kf[l-m,0])*array([exp(1.0j*1*phi)]).T*ones((size(phi),size(theta)),dtype=complex)*SPlm[abs(m)]
 	return psi
 		
@@ -99,13 +99,13 @@ def _sch_lpmv(n,x):
 	'''
 	from scipy.special import lpmv
 	sch=array([1.0])
-	sch2=array([(-1.0)**m*sqrt((2.0*factorial(n-m))/factorial(n+m)) for m in xrange(1,n+1)])
+	sch2=array([(-1.0)**m*sqrt((2.0*factorial(n-m))/factorial(n+m)) for m in range(1,n+1)])
 	sch=append(sch,sch2)
 	if isinstance(x,float) or len(x)==1:
 		leg=lpmv(arange(0,n+1),n,x)
 		return array([sch*leg]).T
 	else:
-		for j in xrange(0,len(x)):
+		for j in range(0,len(x)):
 			leg=lpmv(range(0,n+1),n,x[j])
 			if j==0:
 				out=array([sch*leg]).T

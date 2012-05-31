@@ -228,8 +228,8 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
     W = zeros((N,N))
     
     # pre-calculate matrix elements
-    for n in xrange(N):
-        for m in xrange(N):
+    for n in range(N):
+        for m in range(N):
             W[m,n] = real(evals[m] - evals[n])
 
     for k in range(K):
@@ -242,9 +242,9 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
     Heb = H.transform(ekets)
     R = -1.0j*(spre(Heb) - spost(Heb))
     R.data=R.data.tolil()
-    for I in xrange(N*N):
+    for I in range(N*N):
         a,b = vec2mat_index(N, I)
-        for J in xrange(N*N):
+        for J in range(N*N):
             c,d = vec2mat_index(N, J)
    
             # unitary part: use spre and spost above, same as this:
@@ -253,13 +253,13 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
             if use_secular == False or abs(W[a,b]-W[c,d]) < dw_min/10.0:
   
                 # dissipative part:
-                for k in xrange(K):
+                for k in range(K):
                     # for each operator coupling the system to the environment
 
                     R.data[I,J] += (A[k,a,c] * A[k,d,b] / 2) * (spectra_cb[k](W[c,a]) + spectra_cb[k](W[d,b]))                      
                     
                     s1 = s2 = 0
-                    for n in xrange(N): 
+                    for n in range(N): 
                         s1 += A[k,a,n] * A[k,n,c] * spectra_cb[k](W[c,n])
                         s2 += A[k,d,n] * A[k,n,b] * spectra_cb[k](W[d,n])
         

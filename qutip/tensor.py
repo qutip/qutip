@@ -55,7 +55,7 @@ def tensor(*args):
         raise TypeError("Requires at least one input argument")
     num_args=len(args)
     step=0
-    for n in xrange(num_args):
+    for n in range(num_args):
         if isinstance(args[n],Qobj):
             qos=args[n]
             if step==0:
@@ -89,7 +89,7 @@ def tensor(*args):
                     dim=qos[0].dims
                     shp=qos[0].shape
                     step=1
-                for k in xrange(items-1): #cycle over all items
+                for k in range(items-1): #cycle over all items
                     dat=sp.kron(dat,qos[k+1].data, format='csr') #sparse Kronecker product
                     dim=[dim[0]+qos[k+1].dims[0],dim[1]+qos[k+1].dims[1]] #append dimensions of Qobjs
                     shp=[dat.shape[0],dat.shape[1]] #new shape of matrix

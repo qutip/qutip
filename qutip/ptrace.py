@@ -40,7 +40,7 @@ def _ptrace(rho,sel):
     indrest=list2ind(ilistrest,drho)
     irest=(indrest-1)*N+indrest-2
     # Possibly use parfor here if M > some value ?
-    perm.rows=array([(irest+(indsel[int(floor(m/M))]-1)*N+indsel[int(mod(m,M))]).T[0] for  m in xrange(M**2)])
+    perm.rows=array([(irest+(indsel[int(floor(m/M))]-1)*N+indsel[int(mod(m,M))]).T[0] for  m in range(M**2)])
     #perm.data=ones_like(perm.rows,dtype=int)
     perm.data=ones_like(perm.rows)
     perm.tocsr()
@@ -77,7 +77,7 @@ def selct(sel,dims):
 	rprod=prod(rlst)
 	ilist=ones((rprod,len(dims)),dtype=int);
 	counter=arange(rprod)
-	for k in xrange(len(sel)):
+	for k in range(len(sel)):
 		ilist[:,sel[k]]=remainder(fix(counter/prod(dims[sel[k+1:]])),dims[sel[k]])+1
 	return ilist
 
@@ -90,8 +90,8 @@ def csr_to_col(mat):
         matricies.
     """
     mat.sort_indices()
-    rows=array([len(range(mat.indptr[i],mat.indptr[i+1])) for i in xrange(mat.shape[1])])
-    rows=[[k for j in xrange(rows[k])] for k in xrange(len(rows))] 
+    rows=array([len(range(mat.indptr[i],mat.indptr[i+1])) for i in range(mat.shape[1])])
+    rows=[[k for j in range(rows[k])] for k in range(len(rows))] 
     rows=array([item for sublist in rows for item in sublist])
     datlen=len(mat.data)
     ptrs=zeros((datlen+2),dtype=int)

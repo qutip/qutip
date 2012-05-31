@@ -121,7 +121,7 @@ class Codegen():
         for k in self.h_terms:
             input_vars+=", np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k)
         if any(self.c_tdterms):
-            for k in xrange(len(self.h_terms),len(self.h_terms)+len(self.c_tdterms)):
+            for k in range(len(self.h_terms),len(self.h_terms)+len(self.c_tdterms)):
                 input_vars+=", np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k)
         if self.args:
             td_consts=self.args.items()
@@ -169,7 +169,7 @@ class Codegen():
         Rewrites time-dependent parts to include np.
         """
         if self.h_tdterms:
-            for jj in xrange(len(self.h_tdterms)):
+            for jj in range(len(self.h_tdterms)):
                 text=self.h_tdterms[jj]
                 any_np=np.array([text.find(x) for x in self.func_list])
                 ind=np.nonzero(any_np>-1)[0]
@@ -178,7 +178,7 @@ class Codegen():
                     text=text.replace(self.func_list[kk],new_text)
                 self.h_tdterms[jj]=text
         if len(self.c_tdterms)>0:
-            for jj in xrange(len(self.c_tdterms)):
+            for jj in range(len(self.c_tdterms)):
                 text=self.c_tdterms[jj]
                 any_np=np.array([text.find(x) for x in self.func_list])
                 ind=np.nonzero(any_np>-1)[0]
@@ -212,10 +212,10 @@ class Codegen():
             terms=len(self.c_tdterms)
             tdterms=self.c_tdterms
             cinds=0
-            for ct in xrange(terms):
+            for ct in range(terms):
                 cstr=str(ct+hinds+1)
                 str_out="cdef np.ndarray[CTYPE_t, ndim=2] Cvec"+str(ct)+" = "+"spmv(data"+cstr+","+"idx"+cstr+","+"ptr"+cstr+","+"vec"+")"
-                if ct in xrange(len(self.c_td_inds)):
+                if ct in range(len(self.c_td_inds)):
                     str_out+=" * np.abs("+tdterms[ct]+")**2"
                     cinds+=1
                 func_vars.append(str_out)
@@ -227,10 +227,10 @@ class Codegen():
         if self.type=='mc':
             func_terms.append("for row in range(num_rows):")
             sum_string="\tout[row,0] = Hvec0[row,0]"
-            for ht in xrange(1,len(self.h_terms)):
+            for ht in range(1,len(self.h_terms)):
                 sum_string+=" + Hvec"+str(ht)+"[row,0]"
             if any(self.c_tdterms):
-                for ct in xrange(len(self.c_tdterms)):
+                for ct in range(len(self.c_tdterms)):
                     sum_string+=" + Cvec"+str(ct)+"[row,0]"
             func_terms.append(sum_string)
         return func_terms
@@ -469,7 +469,7 @@ def cython_col_expect(args):
     if args:
         td_consts=args.items()
         td_len=len(td_consts)
-        for jj in xrange(td_len):
+        for jj in range(td_len):
             line5+=","+td_consts[jj][0]
     line5+=")"
     line6="\tfor row in range(num_rows):"

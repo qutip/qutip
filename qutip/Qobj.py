@@ -778,7 +778,7 @@ class Qobj():
         if isinstance(inpt, list) or isinstance(inpt, ndarray):       
             if len(inpt) != self.shape[0] or len(inpt) != self.shape[1]:
                 raise TypeError('Invalid size of ket list for basis transformation')
-            S = matrix([inpt[n].full()[:,0] for n in xrange(len(inpt))]).H
+            S = matrix([inpt[n].full()[:,0] for n in range(len(inpt))]).H
         elif isinstance(inpt,ndarray):
             S = matrix(inpt)
         else:
@@ -1221,16 +1221,16 @@ def sp_expm(qo):
         n=shape(A)[0]
         c=_padecoeff(m)
         if m!=13:
-            apows= [[] for jj in xrange(int(ceil((m+1)/2)))]
+            apows= [[] for jj in range(int(ceil((m+1)/2)))]
             apows[0]=sp.eye(n,n,format='csr')
             apows[1]=A*A
-            for jj in xrange(2,int(ceil((m+1)/2))):
+            for jj in range(2,int(ceil((m+1)/2))):
                 apows[jj]=apows[jj-1]*apows[1]
             U=sp.lil_matrix((n,n)).tocsr(); V=sp.lil_matrix((n,n)).tocsr()
-            for jj in xrange(m,0,-2):
+            for jj in range(m,0,-2):
                 U=U+c[jj]*apows[jj/2]
             U=A*U
-            for jj in xrange(m-1,-1,-2):
+            for jj in range(m-1,-1,-2):
                 V=V+c[jj]*apows[(jj+1)/2]
             F=la.solve((-U+V).todense(),(U+V).todense())
             return sp.lil_matrix(F).tocsr()
@@ -1248,7 +1248,7 @@ def sp_expm(qo):
     theta=array([0.01495585217958292,0.2539398330063230,0.9504178996162932,2.097847961257068,5.371920351148152],dtype=float)
     normA=sp_one_norm(qo)
     if normA<=theta[-1]:
-        for ii in xrange(len(m_vals)):
+        for ii in range(len(m_vals)):
             if normA<=theta[ii]:
                 F=pade(m_vals[ii])
                 break
@@ -1257,7 +1257,7 @@ def sp_expm(qo):
         s=s-(t==0.5)
         A=A/2.0**s
         F=pade(m_vals[-1])
-        for i in xrange(s):
+        for i in range(s):
             F=F*F
     out=Qobj(F,dims=qo.dims,shape=qo.shape)
     if qset.auto_tidyup:

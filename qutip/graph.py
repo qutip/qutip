@@ -69,8 +69,8 @@ def hinton(rho):
     fill(array([0,width,width,0]),array([0,0,height,height]), color=cm.jet(128))
     axis('off')
     axis('equal')
-    for x in xrange(width):
-        for y in xrange(height):
+    for x in range(width):
+        for y in range(height):
             _x = x+1
             _y = y+1
             if real(W[x,y]) < 0.0:

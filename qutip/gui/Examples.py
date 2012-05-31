@@ -104,8 +104,8 @@ class Examples(QtGui.QWidget):
         
         
         #tab buttons
-        self.tab_verts =[QtGui.QVBoxLayout(tabs[k]) for k in xrange(num_tabs)]
-        self.num_elems=[len(button_labels[k]) for k in xrange(num_tabs)]
+        self.tab_verts =[QtGui.QVBoxLayout(tabs[k]) for k in range(num_tabs)]
+        self.num_elems=[len(button_labels[k]) for k in range(num_tabs)]
         self.tab_buttons=[[] for j in range(num_tabs)]
         for j in range(num_tabs):
             for k in range(self.num_elems[j]):

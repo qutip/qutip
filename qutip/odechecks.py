@@ -34,7 +34,7 @@ def _ode_checks(H,c_ops,solver='me'):
     elif isinstance(H, FunctionType):
         pass #n_func += 1
     elif isinstance(H, list):
-        for k in xrange(len(H)):
+        for k in range(len(H)):
             if isinstance(H[k], Qobj):
                 h_const.append(k)
             elif isinstance(H[k], list):
@@ -55,7 +55,7 @@ def _ode_checks(H,c_ops,solver='me'):
     c_func  = []
     c_str   = []
     if isinstance(c_ops, list):
-        for k in xrange(len(c_ops)):
+        for k in range(len(c_ops)):
             if isinstance(c_ops[k], Qobj):
                 c_const.append(k)
             elif isinstance(c_ops[k], list):

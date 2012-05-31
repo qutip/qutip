@@ -62,23 +62,23 @@ def wigner(psi,xvec,yvec,g=sqrt(2)):
     X,Y = meshgrid(xvec, yvec)
     amat = 0.5*g*(X + 1.0j*Y)
     wmat=zeros(shape(amat))
-    Wlist=array([zeros(shape(amat),dtype=complex) for k in xrange(M)])
+    Wlist=array([zeros(shape(amat),dtype=complex) for k in range(M)])
     Wlist[0]=exp(-2.0*abs(amat)**2)/pi
     if psi.type=='ket' or psi.type=='bra':
         psi=ket2dm(psi)
     wmat=real(psi[0,0])*real(Wlist[0])
-    for n in xrange(1,M):
+    for n in range(1,M):
         Wlist[n]=(2.0*amat*Wlist[n-1])/sqrt(n)
         wmat+= 2.0*real(psi[0,n]*Wlist[n])
-    for m in xrange(M-1):
+    for m in range(M-1):
         temp=copy(Wlist[m+1])
         Wlist[m+1]=(2.0*conj(amat)*temp-sqrt(m+1)*Wlist[m])/sqrt(m+1)
-        for n in xrange(m+1,M-1):
+        for n in range(m+1,M-1):
             temp2=(2.0*amat*Wlist[n]-sqrt(m+1)*temp)/sqrt(n+1)
             temp=copy(Wlist[n+1])
             Wlist[n+1]=temp2
         wmat+=real(psi[m+1,m+1]*Wlist[m+1])
-        for k in xrange(m+2,M):
+        for k in range(m+2,M):
             wmat+=2.0*real(psi[m+1,k]*Wlist[k])
     return 0.5*wmat*g**2
             

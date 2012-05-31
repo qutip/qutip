@@ -39,7 +39,7 @@ def sp_inf_norm(op):
     """
     Infinity norm for Qobj
     """
-    return max([sum(abs((op.data[k,:]).data)) for k in xrange(op.shape[0])])
+    return max([sum(abs((op.data[k,:]).data)) for k in range(op.shape[0])])
 
 
 
@@ -68,7 +68,7 @@ def sp_one_norm(op):
     """
     One norm for Qobj
     """
-    return max(array([sum(abs((op.data[:,k]).data)) for k in xrange(op.shape[1])]))
+    return max(array([sum(abs((op.data[:,k]).data)) for k in range(op.shape[1])]))
 
 
 def sp_eigs(op,vecs=True,sparse=False,sort='low',eigvals=0,tol=0,maxiter=100000):

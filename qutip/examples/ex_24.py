@@ -93,7 +93,7 @@ def run():
     # intial state, first spin in state |1>, the rest in state |0>
     psi_list = []
     psi_list.append(basis(2,1))
-    for n in xrange(N-1):
+    for n in range(N-1):
         psi_list.append(basis(2,0))
     psi0 = tensor(psi_list)
 
@@ -104,7 +104,7 @@ def run():
     print('time elapsed = ' +str(time.time() - start_time))
 
     rc('font', family='Bitstream Vera Sans')
-    for n in xrange(N):
+    for n in range(N):
         plot(tlist, real(sz_expt[n]), label=r'$\langle\sigma_z($'+str(n)+r'$)\rangle$',lw=2)
     xlabel(r'Time [ns]',fontsize=14)
     ylabel(r'$\langle\sigma_{z}\rangle$',fontsize=14)

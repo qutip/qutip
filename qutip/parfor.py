@@ -61,7 +61,7 @@ def parfor(func,frange):
         if isinstance(par_return[0],tuple):
             par_return=[elem for elem in par_return]
             num_elems=len(par_return[0])
-            return [array([elem[ii] for elem in par_return]) for ii in xrange(num_elems)]
+            return [array([elem[ii] for elem in par_return]) for ii in range(num_elems)]
         else:
             return list(par_return)
     except KeyboardInterrupt:

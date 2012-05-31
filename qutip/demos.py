@@ -78,7 +78,7 @@ def demos():
                     if exconfig.cmd_screen==1:
                         print('\nQuTiP Basic Example Scripts:')
                         print('=============================')
-                        for jj in xrange(len(bnums)):
+                        for jj in range(len(bnums)):
                             print("["+str(bnums[jj])+"] "+blabels[jj])
                         print('[1] Next Page ==>')
                         print('[0] Exit Demos')
@@ -86,7 +86,7 @@ def demos():
                     elif exconfig.cmd_screen==5:
                         print('\nQuTiP Advanced Example Scripts:')
                         print('================================')
-                        for jj in xrange(len(bnums)):
+                        for jj in range(len(bnums)):
                             print("["+str(bnums[jj])+"] "+blabels[jj])
                         print('[2] Previous Page <==')
                         print('[0] Exit Demos')
@@ -95,7 +95,7 @@ def demos():
                         tt=["Master Equation","Monte Carlo","Time-Dependent"]
                         print("\nQuTiP "+tt[exconfig.cmd_screen-2]+" Example Scripts:")
                         print('======================================')
-                        for jj in xrange(len(bnums)):
+                        for jj in range(len(bnums)):
                             print("["+str(bnums[jj])+"] "+blabels[jj])
                         print('[1] Next Page ==>')
                         print('[2] Previous Page <==')

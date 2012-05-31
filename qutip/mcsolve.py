@@ -189,7 +189,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
             if any(args):
                 odeconfig.c_args=[]
                 arg_items=args.items()
-                for k in xrange(len(args)):
+                for k in range(len(args)):
                     odeconfig.c_args.append(arg_items[k][1])
         #function based
         elif odeconfig.tflag in array([2,3,20,22]):
@@ -223,7 +223,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
                 expt_data=mean(mc.expect_out[:num],axis=0)
                 data_list=[]
                 if any([op.isherm==False for op in e_ops]):
-                    for k in xrange(len(e_ops)):
+                    for k in range(len(e_ops)):
                         if e_ops[k].isherm:
                             data_list.append(real(expt_data[k]))
                         else:
@@ -294,7 +294,7 @@ class MC_class():
             elif odeconfig.e_num!=0:#no collpase expectation values
                 ##List of output expectation values calculated at times in tlist
                 self.expect_out=[]
-                for i in xrange(odeconfig.e_num):
+                for i in range(odeconfig.e_num):
                     if odeconfig.e_ops_isherm[i]:#preallocate real array of zeros
                         self.expect_out.append(zeros(self.num_times))
                     else:#preallocate complex array of zeros
@@ -307,9 +307,9 @@ class MC_class():
             self.collapse_times_out=zeros((odeconfig.ntraj),dtype=ndarray)
             self.which_op_out=zeros((odeconfig.ntraj),dtype=ndarray)
             if odeconfig.e_num==0:# if no expectation operators, preallocate #ntraj arrays for state vectors
-                self.psi_out=array([zeros((self.num_times),dtype=object) for q in xrange(odeconfig.ntraj)])#preallocate array of Qobjs
+                self.psi_out=array([zeros((self.num_times),dtype=object) for q in range(odeconfig.ntraj)])#preallocate array of Qobjs
             else: #preallocate array of lists for expectation values
-                self.expect_out=[[] for x in xrange(odeconfig.ntraj)]
+                self.expect_out=[[] for x in range(odeconfig.ntraj)]
     
     
     #-------------------------------------------------#
@@ -333,7 +333,7 @@ class MC_class():
     def parallel(self,args,top=None):  
         self.st=datetime.datetime.now() #set simulation starting time
         pl=Pool(processes=self.cpus)
-        [pl.apply_async(mc_alg_evolve,args=(nt,args),callback=top.callback) for nt in xrange(0,odeconfig.ntraj)]
+        [pl.apply_async(mc_alg_evolve,args=(nt,args),callback=top.callback) for nt in range(0,odeconfig.ntraj)]
         pl.close()
         try:
             pl.join()
@@ -353,14 +353,14 @@ class MC_class():
             else:# return expectation values of requested operators
                 self.expect_out=no_collapse_expect_out(self.num_times,self.expect_out)
         elif odeconfig.c_num!=0:
-            self.seed=array([int(ceil(random.rand()*1e4)) for ll in xrange(odeconfig.ntraj)])
+            self.seed=array([int(ceil(random.rand()*1e4)) for ll in range(odeconfig.ntraj)])
             if odeconfig.e_num==0:
                 mc_alg_out=zeros((self.num_times),dtype=ndarray)
                 mc_alg_out[0]=odeconfig.psi0
             else:
                 #PRE-GENERATE LIST OF EXPECTATION VALUES
                 mc_alg_out=[]
-                for i in xrange(odeconfig.e_num):
+                for i in range(odeconfig.e_num):
                     if odeconfig.e_ops_isherm[i]:#preallocate real array of zeros
                         mc_alg_out.append(zeros(self.num_times))
                     else:#preallocate complex array of zeros
@@ -456,7 +456,7 @@ def no_collapse_psi_out(num_times,psi_out):
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(odeconfig.psi0,odeconfig.tlist[0]) #set initial conditions
     psi_out[0]=Qobj(odeconfig.psi0,odeconfig.psi0_dims,odeconfig.psi0_shape,'ket')
-    for k in xrange(1,num_times):
+    for k in range(1,num_times):
         ODE.integrate(odeconfig.tlist[k],step=0) #integrate up to tlist[k]
         if ODE.successful():
             psi_out[k]=Qobj(ODE.y/norm(ODE.y,2),odeconfig.psi0_dims,odeconfig.psi0_shape,'ket')
@@ -488,13 +488,13 @@ def no_collapse_expect_out(num_times,expect_out):
     
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(odeconfig.psi0,odeconfig.tlist[0]) #set initial conditions
-    for jj in xrange(odeconfig.e_num):
+    for jj in range(odeconfig.e_num):
         expect_out[jj][0]=mc_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],odeconfig.psi0)
-    for k in xrange(1,num_times):
+    for k in range(1,num_times):
         ODE.integrate(odeconfig.tlist[k],step=0) #integrate up to tlist[k]
         if ODE.successful():
             state=ODE.y/norm(ODE.y)
-            for jj in xrange(odeconfig.e_num):
+            for jj in range(odeconfig.e_num):
                 expect_out[jj][k]=mc_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],state)
         else:
             raise ValueError('Error in ODE solver')
@@ -545,7 +545,7 @@ def mc_alg_evolve(nt,args):
     
     #RUN ODE UNTIL EACH TIME IN TLIST
     cinds=arange(num_collapse)
-    for k in xrange(1,num_times):
+    for k in range(1,num_times):
         #ODE WHILE LOOP FOR INTEGRATE UP TO TIME TLIST[k]
         while ODE.successful() and ODE.t<tlist[k]:
             last_t=ODE.t;last_y=ODE.y
@@ -566,7 +566,7 @@ def mc_alg_evolve(nt,args):
                     n_dp=array(n_dp)
                 #all constant collapse operators.
                 else:    
-                    n_dp=array([mc_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in xrange(num_collapse)])
+                    n_dp=array([mc_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in range(num_collapse)])
                 
                 #determine which operator does collapse
                 kk=cumsum(n_dp/sum(n_dp))
@@ -591,7 +591,7 @@ def mc_alg_evolve(nt,args):
         if num_expect==0:
             mc_alg_out[k]=epsi
         else:
-            for jj in xrange(num_expect):
+            for jj in range(num_expect):
                 mc_alg_out[jj][k]=mc_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],epsi)
     #RETURN VALUES
     if num_expect==0:
@@ -689,7 +689,7 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
         #take care of arguments for collapse operators, if any
         if any(args):
             arg_items=args.items()
-            for k in xrange(len(args)):
+            for k in range(len(args)):
                 odeconfig.c_args.append(arg_items[k][1])
         #constant Hamiltonian / string-type collapse operators
         if odeconfig.tflag==1:
@@ -760,11 +760,11 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
             
             #tidyup
             if options.tidy:
-                H=array([H[k].tidyup(options.atol) for k in xrange(len_h)])
+                H=array([H[k].tidyup(options.atol) for k in range(len_h)])
             #construct data sets
-            odeconfig.h_data=[H[k].data.data for k in xrange(len_h)]
-            odeconfig.h_ind=[H[k].data.indices for k in xrange(len_h)]
-            odeconfig.h_ptr=[H[k].data.indptr for k in xrange(len_h)]
+            odeconfig.h_data=[H[k].data.data for k in range(len_h)]
+            odeconfig.h_ind=[H[k].data.indices for k in range(len_h)]
+            odeconfig.h_ptr=[H[k].data.indptr for k in range(len_h)]
             for k in odeconfig.c_td_inds:
                 odeconfig.h_data.append(-0.5j*odeconfig.n_ops_data[k])
                 odeconfig.h_ind.append(odeconfig.n_ops_ind[k])

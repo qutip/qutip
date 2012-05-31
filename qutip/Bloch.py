@@ -337,16 +337,16 @@ class Bloch():
     def plot_vectors(self):
         # -X and Y data are switched for plotting purposes
         if len(self.vectors)>0:
-            for k in xrange(len(self.vectors)):
+            for k in range(len(self.vectors)):
                 length=sqrt(self.vectors[k][0]**2+self.vectors[k][1]**2+self.vectors[k][2]**2)
                 self.axes.plot(self.vectors[k][1]*linspace(0,length,2),-self.vectors[k][0]*linspace(0,length,2),self.vectors[k][2]*linspace(0,length,2),zs=0, zdir='z', label='Z',lw=self.vector_width,color=self.vector_color[mod(k,len(self.vector_color))])
     
     def plot_points(self):
         # -X and Y data are switched for plotting purposes
         if self.num_points>0:
-            for k in xrange(self.num_points):
+            for k in range(self.num_points):
                 num=len(self.points[k][0])
-                dist=[sqrt(self.points[k][0][j]**2+self.points[k][1][j]**2+self.points[k][2][j]**2) for j in xrange(num)]
+                dist=[sqrt(self.points[k][0][j]**2+self.points[k][1][j]**2+self.points[k][2][j]**2) for j in range(num)]
                 if any(abs(dist-dist[0])/dist[0]>1e-12):
                     zipped=zip(dist,range(num))#combine arrays so that they can be sorted together
                     zipped.sort() #sort rates from lowest to highest

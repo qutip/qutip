@@ -58,7 +58,7 @@ def qstate(string):
 		up=basis(2,1)
 		dn=basis(2,0)
 	lst=[]
-	for k in xrange(n):
+	for k in range(n):
 		if string[k]=='u':
 			lst.append(up)
 		else:
