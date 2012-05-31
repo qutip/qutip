@@ -39,6 +39,10 @@ class Odedata():
     ntraj : int/list
         Number of monte-carlo trajectories (if using mcsolve).  List indicates that averaging of
         expectation values was done over a subset of total number of trajectories.
+    col_times : list
+        Times at which state collpase occurred.  Only for Monte-Carlo solver.
+    col_which : list
+        Which collapse operator was responsible for each collapse in ``col_times``. mcsolver only.
     
     """
     def __init__(self):
@@ -49,6 +53,8 @@ class Odedata():
         self.num_expect=0
         self.num_collapse=0
         self.ntraj=None
+        self.col_times=None
+        self.col_which=None
     def __str__(self):
         s="Odedata object "
         if self.solver:

@@ -239,8 +239,8 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     output.num_expect=odeconfig.e_num
     output.num_collapse=odeconfig.c_num
     output.ntraj=odeconfig.ntraj
-    output.collapse_times=mc.collapse_times_out
-    output.collapse_which=mc.which_op_out
+    output.col_times=mc.collapse_times_out
+    output.col_which=mc.which_op_out
     return output
 
 
