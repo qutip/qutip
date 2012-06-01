@@ -1231,10 +1231,10 @@ def sp_expm(qo):
                 apows[jj]=apows[jj-1]*apows[1]
             U=sp.lil_matrix((n,n)).tocsr(); V=sp.lil_matrix((n,n)).tocsr()
             for jj in range(m,0,-2):
-                U=U+c[jj]*apows[jj/2]
+                U=U+c[jj]*apows[jj//2]
             U=A*U
             for jj in range(m-1,-1,-2):
-                V=V+c[jj]*apows[(jj+1)/2]
+                V=V+c[jj]*apows[(jj+1)//2]
             F=la.solve((-U+V).todense(),(U+V).todense())
             return sp.lil_matrix(F).tocsr()
         elif m==13:
