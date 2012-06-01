@@ -23,6 +23,7 @@ it's methods.
 
 import types
 from scipy import *
+import numpy as np
 import scipy.sparse as sp
 import scipy.linalg as la
 import qutip.settings as qset
@@ -134,7 +135,7 @@ class Qobj():
                 self.shape=shape
         else:#if input is NOT Qobj
             #if input is int, float, or complex then convert to array
-            if isinstance(inpt,(int,float,complex)):
+            if isinstance(inpt,(int,float,complex,np.int64)):
                 inpt=array([[inpt]])
             #case where input is array or sparse
             if (isinstance(inpt,ndarray)) or sp.issparse(inpt):
@@ -309,7 +310,7 @@ class Qobj():
         if classcheck(other)=='eseries':
             return other.__rmul__(self)
 
-        if isinstance(other,(int,float,complex)): #if other is int,float,complex
+        if isinstance(other,(int,float,complex,np.int64)): #if other is int,float,complex
             out=Qobj(type=self.type)
             out.data=self.data*other
             out.dims=self.dims
@@ -349,7 +350,7 @@ class Qobj():
         if classcheck(other)=='eseries':
             return other.__mul__(self)
 
-        if isinstance(other,(int,float,complex)): #if other is int,float,complex
+        if isinstance(other,(int,float,complex,np.int64)): #if other is int,float,complex
             out=Qobj(type=self.type)
             out.data=other*self.data
             out.dims=self.dims
@@ -376,13 +377,13 @@ class Qobj():
             raise TypeError("Incompatible Qobj shapes [division with Qobj not implemented]")
         #if isinstance(other,Qobj): #if both are quantum objects
         #    raise TypeError("Incompatible Qobj shapes [division with Qobj not implemented]")
-        if isinstance(other,(int,float,complex)): #if other is int,float,complex
+        if isinstance(other,(int,float,complex,np.int64)): #if other is int,float,complex
             out=Qobj(type=self.type)
             out.data=self.data/other
             out.dims=self.dims
             out.shape=self.shape
             isherm=None
-            if isinstance(other,(int,float)):
+            if isinstance(other,(int,float,np.int64)):
                 isherm=self.isherm
             if qset.auto_tidyup:
                 return Qobj(out,type=self.type,isherm=isherm).tidyup()

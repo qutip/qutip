@@ -688,9 +688,8 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
     elif odeconfig.tflag in array([1,10,11]):
         #take care of arguments for collapse operators, if any
         if any(args):
-            arg_items=args.items()
-            for k in range(len(args)):
-                odeconfig.c_args.append(arg_items[k][1])
+            for item in args.items():
+                odeconfig.c_args.append(item[1])
         #constant Hamiltonian / string-type collapse operators
         if odeconfig.tflag==1:
             H_inds=arange(1)

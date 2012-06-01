@@ -124,7 +124,7 @@ class Codegen():
             for k in range(len(self.h_terms),len(self.h_terms)+len(self.c_tdterms)):
                 input_vars+=", np.ndarray[CTYPE_t, ndim=1] data"+str(k)+", np.ndarray[int, ndim=1] idx"+str(k)+", np.ndarray[int, ndim=1] ptr"+str(k)
         if self.args:
-            td_consts=self.args.items()
+            td_consts=list(self.args.items())
             td_len=len(td_consts)
             for jj in range(td_len):
                 kind=type(td_consts[jj][1]).__name__
@@ -140,7 +140,7 @@ class Codegen():
         func_name="def col_spmv("
         input_vars="int which, double t, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=2] vec"
         if len(self.args)>0:
-            td_consts=self.args.items()
+            td_consts=list(self.args.items())
             td_len=len(td_consts)
             for jj in range(td_len):
                 kind=type(td_consts[jj][1]).__name__
@@ -156,7 +156,7 @@ class Codegen():
         func_name="def col_expect("
         input_vars="int which, double t, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,np.ndarray[CTYPE_t, ndim=2] vec"
         if len(self.args)>0:
-            td_consts=self.args.items()
+            td_consts=list(self.args.items())
             td_len=len(td_consts)
             for jj in range(td_len):
                 kind=type(td_consts[jj][1]).__name__
@@ -467,10 +467,8 @@ def cython_col_expect(args):
     line4="\tcdef np.ndarray[CTYPE_t, ndim=2] vec_ct = vec.conj().T"
     line5="\tcdef np.ndarray[CTYPE_t, ndim=2] dot = col_spmv(which,t,data,idx,ptr,vec"
     if args:
-        td_consts=args.items()
-        td_len=len(td_consts)
-        for jj in range(td_len):
-            line5+=","+td_consts[jj][0]
+        for td_const in args.items():
+            line5+=","+td_const[0]
     line5+=")"
     line6="\tfor row in range(num_rows):"
     line7="\t\tout+=vec_ct[0,row]*dot[row,0]"
