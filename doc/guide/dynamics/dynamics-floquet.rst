@@ -170,4 +170,33 @@ When evaluating the Floquet states or the wavefunction at many points in time it
 
 Note that the parameters and the Hamiltonian used in this example is not the same as in the previous section, and hence the different appearance of the resulting figure.
 
+.. _floquet-unitary:
+
+
+Floquet theory for dissipative evolution
+========================================
+
+A driven system that is interacting with its environment is not necessarily well described by the standard Lindblad master equation, since its dissipation process could be time-dependent due to the driving. In such cases a rigorious approach would be to take the driving into account when deriving the master equation. This can be done in many different ways, but one way common approach is to derive the master equation in the Floquet basis. That approach results in the so-called Floquet-Markov master equation, see Grifoni et al., Physics Reports 304, 299 (1998) for details. 
+
+
+The Floquet-Markov master equation in QuTiP
+-------------------------------------------
+
+The QuTiP function :func:`qutip.floquet.fmmesolve` implements the Floquet-Markov master equation. It calculates the dynamics of a system given its initial state, a time-dependent hamiltonian, a list of operators through which the system couples to its environment and a list of corresponding spectral density functions that describes the environment. In contrast to the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, and the :func:`qutip.floquet.fmmesolve` does characterize the environment with dissipation rates, but extract the strength of the coupling to the environment from the noise spectral-density functions and the instantaneous Hamiltonian parameters (similar to the Bloch-Redfield master equation solver :func:`qutip.bloch_redfield.brmesolve`). 
+
+.. note::
+
+    Currently the :func:`qutip.floquet.fmmesolve` can only accept a single environment coupling operator and spectral density function.
+
+The noise spectral density function of the environment is implemented as a python callback function that is passed to the solver. For example:
+
+>>> gamma1 = 0.1
+>>> def noise_spectrum(omega):
+>>>     return 0.5 * gamma1 * omega/(2*pi)
+
+The other parameters are similar to the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, and the same format for the return value is used :class:`qutip.Odedata`. The following example extends the example studied above, and uses :func:`qutip.floquet.fmmesolve` to introduce dissipation into the calculation
+
+.. plot:: guide/scripts/floquet_ex3.py
+   :width: 4.0in
+   :include-source:	 
 
