@@ -1,3 +1,4 @@
+
 #This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
@@ -35,7 +36,7 @@ class TestEntropy(unittest.TestCase):
     def testEntropyVN(self):
         #verify that entropy_vn gives correct binary entropy 
         a=linspace(0,1,20)
-        for k in xrange(len(a)):
+        for k in range(len(a)):
             # a*|0><0|
             x=a[k]*ket2dm(basis(2,0))
             # (1-a)*|1><1|
@@ -57,7 +58,7 @@ class TestEntropy(unittest.TestCase):
         self.assertTrue(abs(entropy_linear(psi))<=1e-13)
         
         #test linear entropy always less than or equal to VN entropy
-        rhos=[rand_dm(6) for k in xrange(10)]
+        rhos=[rand_dm(6) for k in range(10)]
         for k in rhos:
             self.assertTrue(entropy_linear(k)<=entropy_vn(k))
     
@@ -67,29 +68,29 @@ class TestEntropy(unittest.TestCase):
         self.assertTrue(abs(concurrence(bell)-1.0)<1e-15)
         
         #check all concurrence values >=0
-        rhos=[rand_dm(4,dims=[[2,2],[2,2]]) for k in xrange(10)]
+        rhos=[rand_dm(4,dims=[[2,2],[2,2]]) for k in range(10)]
         for k in rhos:
             self.assertTrue(concurrence(k)>=0)
     
     def testEntropyMutual(self):
         #verify mutual information = S(A)+S(B) for pure state
-        rhos=[rand_dm(25,dims=[[5,5],[5,5]],pure=True) for k in xrange(10)]
+        rhos=[rand_dm(25,dims=[[5,5],[5,5]],pure=True) for k in range(10)]
         for r in rhos:
             self.assertTrue(abs(entropy_mutual(r,[0],[1])-(entropy_vn(ptrace(r,0))+entropy_vn(ptrace(r,1))))<1e-13)
         #check component selection
-        rhos=[rand_dm(8,dims=[[2,2,2],[2,2,2]],pure=True) for k in xrange(10)]
+        rhos=[rand_dm(8,dims=[[2,2,2],[2,2,2]],pure=True) for k in range(10)]
         for r in rhos:
             self.assertTrue(abs(entropy_mutual(r,[0,2],[1])-(entropy_vn(ptrace(r,[0,2]))+entropy_vn(ptrace(r,1))))<1e-13)
 
     def testEntropyConditional(self):
         #test S(A,B|C,D)<=S(A|C)+S(B|D)
-        rhos=[rand_dm(16,dims=[[2,2,2,2],[2,2,2,2]],pure=True) for k in xrange(20)]
+        rhos=[rand_dm(16,dims=[[2,2,2,2],[2,2,2,2]],pure=True) for k in range(20)]
         for ABCD in rhos:
             AC=ptrace(ABCD,[0,2])
             BD=ptrace(ABCD,[1,3])
             self.assertTrue(entropy_conditional(ABCD,[2,3])<=(entropy_conditional(AC,1)+entropy_conditional(BD,1)))
         #test S(A|B,C)<=S(A|B)
-        rhos=[rand_dm(8,dims=[[2,2,2],[2,2,2]],pure=True) for k in xrange(20)]
+        rhos=[rand_dm(8,dims=[[2,2,2],[2,2,2]],pure=True) for k in range(20)]
         for ABC in rhos:
             AB=ptrace(ABC,[0,1])
             self.assertTrue(entropy_conditional(ABC,[1,2])<=entropy_conditional(AB,1))

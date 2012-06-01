@@ -127,7 +127,7 @@ class TestJCModelEvolution(unittest.TestCase):
         for solver in ("ode", "es"):
 
             use_rwa = True
-            N = 8           # number of cavity fock states
+            N = 4           # number of cavity fock states
             wc = 2*pi*1.0   # cavity frequency
             wa = 2*pi*1.0   # atom frequency
             g  = 2*pi*0.01  # coupling strength
@@ -155,7 +155,7 @@ class TestJCModelEvolution(unittest.TestCase):
         for solver in ("ode", "es"):
 
             use_rwa = True
-            N = 8           # number of cavity fock states
+            N = 4           # number of cavity fock states
             wc = 2*pi*1.0   # cavity frequency
             wa = 2*pi*1.0   # atom frequency
             g  = 2*pi*0.0   # coupling strength
@@ -183,7 +183,7 @@ class TestJCModelEvolution(unittest.TestCase):
         for solver in ("ode", "es"):
 
             use_rwa = True
-            N = 8           # number of cavity fock states
+            N = 4           # number of cavity fock states
             wc = 2*pi*1.0   # cavity frequency
             wa = 2*pi*1.0   # atom frequency
             g  = 2*pi*0.1   # coupling strength

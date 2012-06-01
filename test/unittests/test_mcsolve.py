@@ -211,7 +211,7 @@ class TestMCSolverConstDecay(unittest.TestCase):
         avg_diff=mean(abs(actual_answer-expt)/actual_answer)
         self.assertTrue(avg_diff<mc_error)
         
-    @unittest.skipIf(Cython.__version__ < 0.14 or Cython_found==0,"Cython module not found")
+    @unittest.skipIf(Cython.__version__ < '0.14' or Cython_found==0, "Cython module not found")
     def testMCSimpleConstStr(self):
         """
         Collapse terms are constant, but written in time-dependent
@@ -255,7 +255,7 @@ class TestMCSolverConstDecay(unittest.TestCase):
         self.assertTrue(diff<error)
         
     
-    @unittest.skipIf(Cython.__version__ < 0.14 or Cython_found==0,"Cython module not found")
+    @unittest.skipIf(Cython.__version__ < '0.14' or Cython_found==0,"Cython module not found")
     def testTDStr(self):
         """
         Comparing to analytic answer

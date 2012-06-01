@@ -52,7 +52,7 @@ class TestEvolution(unittest.TestCase):
         elif solver == "es":
             expt_list = essolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])  
         elif solver == "mc":
-            print '' #to look nicer when running tests
+            print('') #to look nicer when running tests
             opts=Odeoptions(gui=False)
             output = mcsolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()],ntraj = 750,options=opts)
             expt_list = output.expect[0], output.expect[1], output.expect[2]
