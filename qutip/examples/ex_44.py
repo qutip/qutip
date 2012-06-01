@@ -17,7 +17,6 @@ def run():
 
     sx = sigmax()
     sz = sigmaz()
-    sm = destroy(2)
 
     q_energies = zeros((len(E_vec), 2))
 
@@ -26,8 +25,7 @@ def run():
         H1 = A/2.0 * sx
        
         # H = H0 + H1 * sin(w * t) in the 'list-string' format
-        args = {'w': omega}
-        H = [H0, [H1, 'cos(w * t)']]
+        args = {'w': omega}; H = [H0, [H1, 'cos(w * t)']]
             
         # find the floquet modes
         f_modes,f_energies = floquet_modes(H, T, args)
