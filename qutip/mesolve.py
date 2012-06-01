@@ -1016,7 +1016,7 @@ def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize):
             output.expect = []
             output.num_expect = n_expt_op
             for op in expt_ops:
-                if op.isherm:
+                if op.isherm and psi0.isherm:
                     output.expect.append(zeros(n_tsteps))
                 else:
                     output.expect.append(zeros(n_tsteps,dtype=complex))
