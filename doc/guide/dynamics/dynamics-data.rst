@@ -26,7 +26,7 @@ Before embarking on simulating the dynamics of quantum systems, we will first lo
 +------------------------+-----------------------------------------------------------------------+
 | odedata.expect         | List/array of expectation values, if requested.                       |
 +------------------------+-----------------------------------------------------------------------+
-| odedata.states         | List/array of state vectors /density matrices calculated at ``times``  |
+| odedata.states         | List/array of state vectors /density matrices calculated at ``times`` |
 |                        | , if requested.                                                       |
 +------------------------+-----------------------------------------------------------------------+
 | odedata.num_expect     | The number of expectation value operators in the simulation.          |
