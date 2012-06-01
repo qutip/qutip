@@ -5,7 +5,7 @@
 Change Log
 **********
 
-Version 2.0.0 [SVN-2XXX] (June 01, 2012):
+Version 2.0.0 [SVN-2354] (June 01, 2012):
 +++++++++++++++++++++++++++++++++++++++++
 
 New Features
