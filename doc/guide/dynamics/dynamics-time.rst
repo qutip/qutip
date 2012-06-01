@@ -34,7 +34,104 @@ Finally option #3, expressing the Hamiltonian as a Python function, is the origi
 
 Function Based Time-Dependence
 ==============================
-Here
+The most general way to write a time-dependent Hamiltonian or collapse operator is by using Python functions as the time-dependent coefficients.  To accomplish this, we need to write a python function that returns the time-dependent coefficient.  Additionally, we need to tell QuTiP that a given Hamiltonian or collapse operator should be associated with a given Python function.  To do this, one needs to specify operator-function pairs in list format: ``[Op,py_coeff]``, where ``Op`` is a given Hamiltonian or collapse operator and ``py_coeff`` is the name of the Python function representing the coefficient.  With this format, the form of the Hamiltonian for both ``mesolve`` and ``mcsolve`` is:
+
+>>> H = [H0,[H1,py_coeff1],[H2,py_coeff2],...]
+
+where ``H0`` is a time-INDEPENDENT Hamiltonian, while ``H1``,``H2``, are time-dependent.  Keep in mind that **there must always be at least one time-independent Hamiltonian term**.  The same format can be used for collapse operators:
+
+>>> c_op_list = [[C0,py_coeff0],C1,[C2,py_coeff2],...]
+
+Here we have demonstrated that the ordering of time-dependent and time-indepdendent terms does not matter.  In addition, any or all of the collapse operators may be time-depdendent.  
+
+.. note:: While, in general, you can arrange time-dependent and independent terms in any order you like, it is best to place all time-independent terms first.
+
+As an example, we will look at :ref:`exme41` that has a time-dependent Hamiltonian of the form :math:`H=H_{0}-f(t)H_{1}` where :math:`f(t)` is the time-dependent driving strength given as :math:`f(t)=9\exp\left[-\left( t/5 \right)^{2}\right]`.  The follow code sets up the problem::
+
+    from qutip import *
+    # Define atomic states. Use ordering from paper
+    ustate = basis(3,0)
+    excited = basis(3,1)
+    ground = basis(3,2)
+    
+    # Set where to truncate Fock state for cavity
+    N = 2
+    
+    # Create the atomic operators needed for the Hamiltonian
+    sigma_ge = tensor(qeye(N), ground * excited.dag()) # |g><e|
+    sigma_ue = tensor(qeye(N), ustate * excited.dag()) # |u><e|
+    
+    # Create the photon operator
+    a = tensor(destroy(N), qeye(3))
+    ada = tensor(num(N), qeye(3))
+    
+    # Define collapse operators
+    c_op_list = []
+    # Cavity decay rate
+    kappa = 1.5
+    c_op_list.append(sqrt(kappa) * a)
+    
+    # Atomic decay rate
+    gamma = 6 #decay rate
+    # Use Rb branching ratio of 5/9 e->u, 4/9 e->g
+    c_op_list.append(sqrt(5*gamma/9) * sigma_ue)
+    c_op_list.append(sqrt(4*gamma/9) * sigma_ge)
+    
+    # Define time vector
+    t = linspace(-15,15,100)
+	
+    # Define initial state
+    psi0 = tensor(basis(N,0), ustate)
+    
+    # Define states onto which to project
+    state_GG = tensor(basis(N,1), ground)
+    sigma_GG = state_GG * state_GG.dag()
+    state_UU = tensor(basis(N,0), ustate)
+    sigma_UU = state_UU * state_UU.dag()
+    
+    # Set up the time varying Hamiltonian
+    g = 5 #coupling strength
+    H0 = -g * (sigma_ge.dag() * a + a.dag() * sigma_ge) #time-INDEPENDENT term
+    H1 = (sigma_ue.dag() + sigma_ue) #time-DEPENDENT term
+
+Given that we have a single time-dependent Hamiltonian term, and constant collapse terms, we need to specify a single Python function for the coefficient :math:`f(t)`.  In this case, one can simply do::
+
+	def H1_coeff(t, args):
+	        return 9 * exp(-(t/5.)**2)
+
+In this case, the return value dependents only on time.  However, when specifying Python functions for coefficients, **the function must have (t,args) as the input variables, in that order**.  Having specified our coefficient function, we can now specify the Hamiltonian in list format and call the solver (in this case ``mesolve``)::
+
+    H=[H0,[H1,H1_coeff]]
+    output = mesolve(H, psi0, t, c_op_list,[ada, sigma_UU, sigma_GG])
+
+We can call the Monte-Carlo solver in the exact same way (if using the default ``ntraj=500``):
+
+>>> output = mcsolve(H, psi0, t, c_op_list,[ada, sigma_UU, sigma_GG])
+
+The output from the master equation solver is identical to that shown in the examples, the monte-carlo however will be noticably off, suggesting we should increase the number of trajectories for this example.  In addition, we can also consider the decay of a simple Harmonic oscillator with time-varying decay rate::
+
+    from qutip import *
+    kappa=0.5
+    def col_coeff(t,args): #coefficient function
+        return sqrt(kappa*exp(-t))
+    N=10 #number of basis states
+    a=destroy(N)
+    H=a.dag()*a #simple HO
+    psi0=basis(N,9) #initial state
+    c_op_list=[[a,col_coeff]] #time-depdendent collapse term
+    tlist=linspace(0,10,100)
+    output=mesolve(H,psi0,tlist,c_op_list,[a.dag()*a])
+
+A comparision of this time-dependent damping, with that of a constant decay term is presented below.
+
+.. figure:: td-decay.png
+   :width: 4in
+   :align: center
+
+
+Using the args variable
+------------------------
+
 
 
 String Format Method
@@ -50,6 +147,10 @@ If a callback function is passed as first parameter to the solver function (inst
 For example, let's consider a two-level system with energy splitting 1.0, and subject to a time-dependent field that couples to the :math:`\sigma_x` operator with amplitude 0.1. Furthermore, to make the example a little bit more interesting, let's also assume that the two-level system is subject to relaxation, with relaxation rate 0.01. The following code calculates the dynamics of the system in the absence and in the presence of the time-dependent driving signal
 
 
+Reusing Time-Dependent Hamiltonian Data
+=======================================
+
+.. note:: This section covers a specialized topic and may be skipped if you are new to QuTiP.
 
 
 
