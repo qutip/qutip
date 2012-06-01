@@ -72,8 +72,9 @@ def correlation_ss(H, tlist, c_op_list, a_op, b_op, rho0=None, solver="me"):
         return correlation_ss_ode(H, tlist, c_op_list, a_op, b_op, rho0)
     elif solver == "es":
         return correlation_ss_es(H, tlist, c_op_list, a_op, b_op, rho0)
-    elif solver == "es":
-        return correlation_ss_mc(H, tlist, c_op_list, a_op, b_op, rho0)
+    elif solver == "mc":
+        print("Monte-Carlo solver is currently disabled, using master equation.")
+        return correlation_ss_ode(H, tlist, c_op_list, a_op, b_op, rho0)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
