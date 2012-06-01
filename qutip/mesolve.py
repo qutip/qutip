@@ -1053,7 +1053,6 @@ def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize):
         try:
             os.remove(odeconfig.tdname+".pyx")
         except:
-            print("Warning: Failed to remove RHS file %s" % opt.rhs_filename+".pyx")
             pass
 
     return output

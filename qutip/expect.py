@@ -49,7 +49,7 @@ def expect(oper,state):
     if isinstance(state,Qobj) or isinstance(state, eseries):
         return single_expect(oper,state)
     elif isinstance(state,ndarray) or isinstance(state,list):
-        if oper.isherm:
+        if oper.isherm and all([(op.isherm or op.type=='ket') for op in state]):
             return array([single_expect(oper,x) for x in state])
         else:
             return array([single_expect(oper,x) for x in state],dtype=complex)
@@ -82,7 +82,6 @@ def single_expect(oper,state):
     # eseries
     # 
     elif isinstance(oper,Qobj) and isinstance(state, eseries):
-
         out = eseries()
 
         if isoper(state.ampl[0]):
