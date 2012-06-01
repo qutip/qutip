@@ -30,7 +30,7 @@ from qutip.Odeoptions import Odeoptions
 from qutip.propagator import propagator
 
 
-def floquet_modes(H, T, H_args=None):
+def floquet_modes(H, T, H_args=None, sort=False):
     """
     Calculate the initial Floquet modes Phi_alpha(0) for a driven system with
     period T.
@@ -58,7 +58,10 @@ def floquet_modes(H, T, H_args=None):
     e_quasi = -eargs/T
 
     # sort by the quasi energy
-    order = argsort(-e_quasi)
+    if sort == True:
+        order = argsort(-e_quasi)
+    else:
+        order = list(range(len(evals)))
 
     # prepare a list of kets for the floquet states
     new_dims  = [U.dims[0], [1] * len(U.dims[0])]

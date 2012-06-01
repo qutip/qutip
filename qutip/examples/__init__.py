@@ -19,5 +19,5 @@
 import qutip.examples.ex_10,qutip.examples.ex_11,qutip.examples.ex_12,qutip.examples.ex_13,qutip.examples.ex_14,qutip.examples.ex_15,qutip.examples.ex_16,qutip.examples.ex_17,qutip.examples.ex_18,qutip.examples.ex_19
 import qutip.examples.ex_20,qutip.examples.ex_21,qutip.examples.ex_22,qutip.examples.ex_23,qutip.examples.ex_24,qutip.examples.ex_25,qutip.examples.ex_26,qutip.examples.ex_27
 import qutip.examples.ex_30,qutip.examples.ex_31,qutip.examples.ex_32,qutip.examples.ex_33,qutip.examples.ex_34,qutip.examples.ex_35
-import qutip.examples.ex_40,qutip.examples.ex_41,qutip.examples.ex_42,qutip.examples.ex_43
+import qutip.examples.ex_40,qutip.examples.ex_41,qutip.examples.ex_42,qutip.examples.ex_43,qutip.examples.ex_44
 import qutip.examples.ex_50

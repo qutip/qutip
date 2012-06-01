@@ -62,12 +62,12 @@ monte_desc=["Monte Carlo evoution of a coherently driven cavity with a two-level
 monte_nums=30+arange(len(monte_labels))
 
 #time-dependence examples
-td_labels=["Rabi oscillations","Single photon source","Landau-Zener","Driven steady state","none","none","none"]
+td_labels=["Rabi oscillations","Single photon source","Landau-Zener","Driven steady state","Quasienergies","none","none"]
 td_desc=["Rabi oscillations of an atom subject to a time-dependent classical driving field.",
          "Single photon source based on a three level atom strongly coupled to a cavity.",
          "Landau-Zener transitions in a quantum two-level system.",
          "Using the propagator to find the steady state of a driven system.",
-         "none","none","none"]
+         "Calculate the Floquet quasieenergy levels for a driven two-level system.","none","none"]
 td_nums=40+arange(len(td_labels))
 
 # advanced equation demos
