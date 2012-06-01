@@ -39,8 +39,7 @@ def floquet_modes(H, T, H_args=None, sort=False):
     modes and a list of corresponding quasienergies, sorted by increasing
     quasienergy in the interval [-pi/T, pi/T]. The optional parameter `sort`
     decides if the output is to be sorted in increasing quasienergies or not.
-         
-    .. note:: Experimental
+
     """
 
     # get the unitary propagator
@@ -75,8 +74,7 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, H_args=None):
     """
     Calculate the Floquet modes at times tlist Phi_alpha(tlist) propagting the
     initial Floquet modes Phi_alpha(0)
-    
-    .. note:: Experimental    
+  
     """
 
     # find t in [0,T] such that t_orig = t + n * T for integer n
@@ -102,7 +100,6 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, H_args=None):
     period. Can later be used as a table to look up the floquet modes for
     any time.
     
-    .. note:: Experimental    
     """
 
     # truncate tlist to the driving period
@@ -154,8 +151,7 @@ def floquet_states_t(f_modes_0, f_energies, t, H, T, H_args=None):
     Evaluate the floquet states at time t.
     
     Returns a list of the wavefunctions.
-        
-    .. note:: Experimental    
+          
     """
     
     f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, H_args)
@@ -175,8 +171,7 @@ def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, H_args=None)
     Evaluate the wavefunction for a time t using the Floquet states decompositon.
     
     Returns the wavefunction.
-        
-    .. note:: Experimental    
+           
     """
     
     f_states_t = floquet_states_t(f_modes_0, f_energies, t, H, T, H_args)
