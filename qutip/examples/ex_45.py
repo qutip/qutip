@@ -47,7 +47,7 @@ def run():
     f_modes_table_t = floquet_modes_table(f_modes_0, f_energies, linspace(0, T, 500+1), H, T, args) 
     
     # solve the floquet-markov master equation
-    rho_list = fmmesolve(H, psi0, tlist, sigmax(), [], [J_cb], T, args).states
+    rho_list = fmmesolve(H, psi0, tlist, [sigmax()], [], [J_cb], T, args).states
 
     # calculate expectation values in the computational basis
     p_ex_fmme = zeros(shape(p_ex_me), dtype=complex)
