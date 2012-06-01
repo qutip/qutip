@@ -72,9 +72,10 @@ td_desc=["Rabi oscillations of an atom subject to a time-dependent classical dri
 td_nums=40+arange(len(td_labels))
 
 # advanced equation demos
-advanced_labels=["Nonadiabtic evolution","none","none","none","none","none"]
+advanced_labels=["Nonadiabtic evolution","Lindbld vs. Redfield","none","none","none","none"]
 advanced_desc=["Nonadiabatic transformation from a decoupled to a coupled spin chain.",
-               "none","none","none","none","none"]
+               "Comparison of Lindblad vs. Bloch Redfield master equations for a coupled qubit system.",
+               "none","none","none","none"]
 advanced_nums=50+arange(len(advanced_labels))
 
 #variables to be sent to Examples GUI
