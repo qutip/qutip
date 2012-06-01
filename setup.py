@@ -35,7 +35,7 @@ VERSION             = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 
 import os
 import sys
-import shutil
+import shutil,fnmatch
 import re
 import subprocess
 import warnings
@@ -96,6 +96,21 @@ class TestCommand(Command):
     user_options = [ ]
 
     def initialize_options(self):
+
+        matches = []
+        for root, dirnames, filenames in os.walk(os.getcwd()+'/build'):
+          for filename in fnmatch.filter(filenames, 'cy_mc_funcs.so'):
+              matches.append(os.path.join(root, filename))
+          for filename in fnmatch.filter(filenames, 'ode_rhs.so'):
+              matches.append(os.path.join(root, filename))
+
+        for files in matches:
+            if 'cy_mc_funcs.so' in files:
+                shutil.copyfile(files,os.getcwd()+'/qutip/cyQ/cy_mc_funcs.so')
+            elif 'ode_rhs.so' in files:
+                shutil.copyfile(files,os.getcwd()+'/qutip/cyQ/ode_rhs.so')
+        
+        
         self._dir = os.getcwd()+"/test/"
 
     def finalize_options(self):
