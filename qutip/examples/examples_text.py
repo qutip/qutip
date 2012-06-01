@@ -51,13 +51,13 @@ master_nums=20+arange(len(master_labels))
 
 
 #monte carlo equation demos
-monte_labels=["MC Cavity+Qubit","Coupled Oscillators","MC Ensemble Avg.","Trilinear Hamiltonian","Visualize MC Dissipation","none","none"]
+monte_labels=["MC Cavity+Qubit","Coupled Oscillators","MC Ensemble Avg.","Trilinear Hamiltonian","Visualize MC Dissipation","Correlation + Spectrum","none"]
 monte_desc=["Monte Carlo evoution of a coherently driven cavity with a two-level atom.",
             "Occupation number of two coupled osciilators, one driven by external force.",
             "Ensemble averaging of MC trajectories to master equation for Fock state decay.",
             "Demonstrating the deviation from a thermal state for the trilinear Hamiltonian.",
             "Visualization of collapse times and operators of a dissipative trilinear Hamiltonian.",
-            "none",
+            "Calculate the correlation and power spectrum of a cavity, with and without coupling to a two-level atom.",
             "none"]
 monte_nums=30+arange(len(monte_labels))
 
@@ -77,7 +77,7 @@ advanced_desc=["Nonadiabatic transformation from a decoupled to a coupled spin c
 advanced_nums=50+arange(len(advanced_labels))
 
 #variables to be sent to Examples GUI
-tab_labels=['Basics','Master Eq.','Monte Carlo','Time dependent','Advanced']
+tab_labels=['Basics','Master Eq.','Monte Carlo + Corr.','Time dependent','Advanced']
 button_labels=[basic_labels,master_labels,monte_labels,td_labels,advanced_labels]
 button_desc=[basic_desc,master_desc,monte_desc,td_desc,advanced_desc]
 button_nums=[basic_nums,master_nums,monte_nums,td_nums,advanced_nums]
