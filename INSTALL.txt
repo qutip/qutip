@@ -63,7 +63,7 @@ On the Mac, it is recommended that you install the required libraries via MacPor
 After installation, the necessary “ports” for QuTiP may be installed using:
 
 >>> sudo port install py27-scipy
->>> sudo port install py27-matplotlib
+>>> sudo port install py27-matplotlib +latex
 
 additional, but optional, ports include:
 
