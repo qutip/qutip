@@ -5,7 +5,7 @@
 
 
 *********************************************
-Version 2.0.0 [svn-1450] (June 01, 2012):
+Version 2.0.0 [svn-2354] (June 01, 2012):
 *********************************************
 
 - QuTiP now includes solvers for both Floquet and Bloch-Redfield master equations.
