@@ -37,7 +37,7 @@ basic_desc=['Schrodinger Cat state formed from a superposition of two coherent s
 basic_nums=10+arange(len(basic_labels)) #does not start at zero so commandline output numbers match (0=quit in commandline)
 
 #master equation demos
-master_labels=["i-Swap Gate","Vacuum Rabi oscillations","Single-atom lasing","Wigner distribution","Heisenberg spin chain","Steady state","State distances","Bloch sphere","none"]
+master_labels=["i-Swap Gate","Vacuum Rabi oscillations","Single-atom lasing","Wigner distribution","Heisenberg spin chain","Steady state","State distances","Bloch sphere"]
 master_desc=["Dissipative i-Swap Gate vs. ideal gate. Accuracy of dissipative gate given by fidelity.",
             "Vacuum Rabi oscillations in the Jaynes-Cummings model with dissipation.",
             "Single-atom lasing in a Jaynes-Cummings-like system.",
@@ -45,20 +45,18 @@ master_desc=["Dissipative i-Swap Gate vs. ideal gate. Accuracy of dissipative ga
             "The dynamics of a Heisenberg spin-1/2 chain.",
             "Steady state calculation for a sideband-cooled nanomechanical resonator. (be patient)",
             "Measuring the distance between density matrices via the fidelity.",
-            "Dissipative qubit dynamics visualized on the Bloch sphere.",
-            "none"]
+            "Dissipative qubit dynamics visualized on the Bloch sphere."]
 master_nums=20+arange(len(master_labels))
 
 
 #monte carlo equation demos
-monte_labels=["MC Cavity+Qubit","Coupled Oscillators","MC Ensemble Avg.","Trilinear Hamiltonian","Visualize MC Dissipation","Correlation + Spectrum","none"]
+monte_labels=["MC Cavity+Qubit","Coupled Oscillators","MC Ensemble Avg.","Trilinear Hamiltonian","Visualize MC Dissipation","Correlation + Spectrum"]
 monte_desc=["Monte Carlo evoution of a coherently driven cavity with a two-level atom.",
             "Occupation number of two coupled osciilators, one driven by external force.",
             "Ensemble averaging of MC trajectories to master equation for Fock state decay.",
             "Demonstrating the deviation from a thermal state for the trilinear Hamiltonian.",
             "Visualization of collapse times and operators of a dissipative trilinear Hamiltonian.",
-            "Calculate the correlation and power spectrum of a cavity, with and without coupling to a two-level atom.",
-            "none"]
+            "Calculate the correlation and power spectrum of a cavity, with and without coupling to a two-level atom."]
 monte_nums=30+arange(len(monte_labels))
 
 #time-dependence examples
@@ -72,10 +70,9 @@ td_desc=["Rabi oscillations of an atom subject to a time-dependent classical dri
 td_nums=40+arange(len(td_labels))
 
 # advanced equation demos
-advanced_labels=["Nonadiabtic evolution","Lindbld vs. Redfield","none","none","none","none"]
+advanced_labels=["Nonadiabtic evolution","Lindbld vs. Redfield"]
 advanced_desc=["Nonadiabatic transformation from a decoupled to a coupled spin chain.",
-               "Comparison of Lindblad vs. Bloch Redfield master equations for a coupled qubit system.",
-               "none","none","none","none"]
+               "Comparison of Lindblad vs. Bloch Redfield master equations for a coupled qubit system."]
 advanced_nums=50+arange(len(advanced_labels))
 
 #variables to be sent to Examples GUI
