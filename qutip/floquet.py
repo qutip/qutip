@@ -37,7 +37,8 @@ def floquet_modes(H, T, H_args=None, sort=False):
     
     Returns a list of :class:`qutip.Qobj` instances representing the Floquet
     modes and a list of corresponding quasienergies, sorted by increasing
-    quasienergy in the interval [-pi/T, pi/T]
+    quasienergy in the interval [-pi/T, pi/T]. The optional parameter `sort`
+    decides if the output is to be sorted in increasing quasienergies or not.
          
     .. note:: Experimental
     """
@@ -190,10 +191,10 @@ def floquet_state_decomposition(f_modes_0, f_energies, psi0):
 
 # should be moved to a utility library?    
 def n_thermal(w, w_th):
-    if (w > 0): 
+    if (w_th > 0): 
         return 1.0/(exp(w/w_th) - 1.0)
     else: 
-        return 0.0
+        return 0.0 * ones(shape(w))
     
 def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, H_args, J_cb, w_th, kmax=5,f_modes_table_t=None):
     """
@@ -335,7 +336,7 @@ def floquet_basis_transform(f_modes, f_energies, rho0):
 # Floquet-Markov master equation
 # 
 # 
-def floquet_markov_mesolve(R, ekets, rho0, tlist, expt_ops, opt=None):
+def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, opt=None):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.   
     """
@@ -362,13 +363,13 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, expt_ops, opt=None):
     output = Odedata()
     output.times = tlist
         
-    if isinstance(expt_ops, FunctionType):
+    if isinstance(e_ops, FunctionType):
         n_expt_op = 0
         expt_callback = True
         
-    elif isinstance(expt_ops, list):
+    elif isinstance(e_ops, list):
   
-        n_expt_op = len(expt_ops)
+        n_expt_op = len(e_ops)
         expt_callback = False
 
         if n_expt_op == 0:
@@ -376,7 +377,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, expt_ops, opt=None):
         else:
             output.expect = []
             output.num_expect = n_expt_op
-            for op in expt_ops:
+            for op in e_ops:
                 if op.isherm:
                     output.expect.append(zeros(n_tsteps))
                 else:
@@ -392,7 +393,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, expt_ops, opt=None):
     #
     if ekets != None:
         rho0 = rho0.transform(ekets, True)
-        if isinstance(expt_ops, list):
+        if isinstance(e_ops, list):
             for n in arange(len(e_ops)):             # not working
                 e_ops[n] = e_ops[n].transform(ekets) #
 
@@ -421,14 +422,14 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, expt_ops, opt=None):
 
         if expt_callback:
             # use callback method
-            expt_ops(t, Qobj(rho))
+            e_ops(t, Qobj(rho))
         else:
             # calculate all the expectation values, or output rho if no operators
             if n_expt_op == 0:
                 output.states.append(Qobj(rho)) # copy psi/rho
             else:
                 for m in range(0, n_expt_op):
-                    output.expect[m][t_idx] = expect(expt_ops[m], rho) # basis OK?
+                    output.expect[m][t_idx] = expect(e_ops[m], rho) # basis OK?
 
         r.integrate(r.t + dt)
         t_idx += 1
@@ -462,7 +463,7 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None, args={}, o
     c_ops : list of :class:`qutip.Qobj`
         list of collapse operators.
     
-    expt_ops : list of :class:`qutip.Qobj` / callback function
+    e_ops : list of :class:`qutip.Qobj` / callback function
         list of operators for which to evaluate expectation values.
 
     T : float
@@ -507,17 +508,21 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None, args={}, o
 
     f_modes_table_t = floquet_modes_table(f_modes_0, f_energies, linspace(0, T, 500+1), H, T, args) 
 
-    # XXX: get w_th from args
-    temp = 25e-3
-    w_th = temp * (1.38e-23 / 6.626e-34) * 2 * pi * 1e-9   
+    # get w_th from args if it exists
+    if args.has_key('w_th'):
+        w_th = args['w_th']
+    else:
+        w_th = 0
        
+
+    # TODO: loop over input c_ops and spectra_cb, calculate one R for each set
+
     # calculate the rate-matrices for the floquet-markov master equation
-    Delta, X, Gamma, Amat = floquet_master_equation_rates(f_modes_0, f_energies, c_ops, H, T, args, spectra_cb, w_th, kmax, f_modes_table_t)
+    Delta, X, Gamma, Amat = floquet_master_equation_rates(f_modes_0, f_energies, c_ops, H, T, args, spectra_cb[0], w_th, kmax, f_modes_table_t)
    
     # the floquet-markov master equation tensor
     R = floquet_master_equation_tensor(Amat, f_energies)
     
-    output = fmmesolve(R, f_modes_0, psi0, tlist, [], opt=None) 
+    return floquet_markov_mesolve(R, f_modes_0, rho0, tlist, e_ops, options)
 
-    return output
-    
+
