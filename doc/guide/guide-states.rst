@@ -415,7 +415,7 @@ If one wants to create spin operators for higher spin systems, then the :func:`q
 Expectation values
 ===================
 
-Some of the most important information about quantum systems comes from calculating the expectation value of operators, both Hermitian and non-Hermitian, as the state or density matrix of the system varies in time.  Therefore, in this section we demonstrate the use of the :func:`qutip.expect` function.  Further examples of using the :func:`qutip.expect` function may be found at :ref:`examples_drivencavitysteady` and :ref:`examples_thermalmonte`.  To begin:
+Some of the most important information about quantum systems comes from calculating the expectation value of operators, both Hermitian and non-Hermitian, as the state or density matrix of the system varies in time.  Therefore, in this section we demonstrate the use of the :func:`qutip.expect` function.  To begin:
 
 >>> vac=basis(5,0)
 >>> one=basis(5,1)
