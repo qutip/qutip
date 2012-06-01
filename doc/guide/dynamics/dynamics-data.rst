@@ -79,7 +79,7 @@ we can plot the resulting expectation values:
    Data for expectation values extracted from the ``data`` Odedata object.
 
 
-State vectors, or density matrices, as well as ``col_times`` and ``col_which``, are accessed in a similar manner, although typically one does not need an index (i.e [0]) since there is only one list for each of these components.  The one exception to this rule is if you choose to ouput state vectors from the Monte-Carlo solver, in which case there are ``ntraj`` number of state vector arrays.
+State vectors, or density matrices, as well as ``col_times`` and ``col_which``, are accessed in a similar manner, although typically one does not need an index (i.e [0]) since there is only one list for each of these components.  The one exception to this rule is if you choose to output state vectors from the Monte-Carlo solver, in which case there are ``ntraj`` number of state vector arrays.
 
 .. _odedata-saving:
 
