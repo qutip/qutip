@@ -25,6 +25,7 @@ from scipy import ndarray, array
 from qutip.odechecks import _ode_checks
 from qutip.mcsolve import _mc_data_config
 import qutip.settings
+
 def rhs_generate(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions(),solver='me',name=None):
     """
     Used to generate the Cython functions for solving the dynamics of a
@@ -32,11 +33,26 @@ def rhs_generate(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()
     
     Parameters
     ----------
-    H : qobj/list
-        Hamiltonian for system.
-    
-    Other Parameters
-    ----------------
+    H : qobj
+        System Hamiltonian.
+    psi0 : qobj 
+        Initial state vector
+    tlist : array_like 
+        Times at which results are recorded.
+    ntraj : int 
+        Number of trajectories to run.
+    c_ops : array_like 
+        ``list`` or ``array`` of collapse operators.
+    e_ops : array_like 
+        ``list`` or ``array`` of operators for calculating expectation values.
+    args : dict
+        Arguments for time-dependent Hamiltonian and collapse operator terms.
+    options : Odeoptions
+        Instance of ODE solver options.
+    solver: str
+        String indicating which solver "me" or "mc"
+    name: str
+        Name of generated RHS
     
     """
     _reset_odeconfig() #clear odeconfig
