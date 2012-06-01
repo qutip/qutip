@@ -66,7 +66,7 @@ def single_expect(oper,state):
                 prod = oper.data*state.data
                 tr=sum(prod.diagonal()) #sum of diagonal elements
                 if oper.isherm and state.isherm: #if hermitian
-                    return real(tr)
+                    return float(real(tr))
                 else: #not hermitian
                     return tr
             elif state.type=='ket':
