@@ -31,7 +31,7 @@ from qutip.states import ket2dm
 from qutip.odechecks import _ode_checks
 import os,numpy
 import qutip.odeconfig as odeconfig
-
+from qutip._reset import _reset_odeconfig
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
@@ -138,6 +138,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     n_const,n_func,n_str=_ode_checks(H,c_ops)
 
     if options == None:
+        _reset_odeconfig()
         options = Odeoptions()
         options.max_step = max(tlist)/10.0 # take at least 10 steps.
     #
@@ -1053,6 +1054,7 @@ def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize):
         try:
             os.remove(odeconfig.tdname+".pyx")
         except:
+            print('Error removing '+str(odeconfig.tdname)+".pyx file")
             pass
 
     return output
