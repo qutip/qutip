@@ -6,6 +6,10 @@ from qutip import *
 import os
 import time
 
+# performance tuning
+qutip.settings.auto_herm=False
+qutip.settings.auto_tidyup=False
+
 # set up the parameters and start calculation
 delta  = 0.1  * 2 * pi  # qubit sigma_x coefficient
 w      = 2.0  * 2 * pi  # driving frequency
@@ -25,8 +29,6 @@ c_op_list = [sqrt(gamma1) * sm, sqrt(gamma2) * sz]  # relaxation and dephasing
 # ODE settings (for list-str format)
 options = Odeoptions()
 options.rhs_reuse = True
-#options.atol = 1e-6 # reduce accuracy to speed
-#options.rtol = 1e-5 # up the calculation a bit
 
 # for function-callback style time-dependence
 def hamiltonian_t(t, args):
@@ -41,7 +43,7 @@ def hamiltonian_t(t, args):
 def task(args):
 
     m, eps = args
-    H0 = - delta/2.0 * sx - eps/2.0 * sz
+    #H0 = - delta/2.0 * sx - eps/2.0 * sz
     p_mat_m = zeros(len(A_list))
 
     # this trick avoid problem with cython code generator in 
@@ -50,13 +52,13 @@ def task(args):
         odeconfig.cgen_num = os.getpid()
 
     for n, A in enumerate(A_list):
-        H1 = (A/2) * sz
+        #H1 = (A/2) * sz
 
         # function callback format
         #args = (H0, H1, w); H_td = hamiltonian_t
 
         # list-str format
-        args = {'w': w}; H_td = [H0, [H1, 'sin(w * t)']]
+        args = {'w': w}; H_td = [[sz, '-delta/2.0'], [sx, '-eps/2.0 + A/2 *sin(w * t)']]
 
         # list-function format
         #args = w; H_td = [H0, [H1, lambda t, w: sin(w * t)]]

@@ -14,3 +14,4 @@ Dynamics of time-dependent systems
    td/ex-41.rst
    td/ex-42.rst
    td/ex-43.rst
+   td/ex-44.rst
