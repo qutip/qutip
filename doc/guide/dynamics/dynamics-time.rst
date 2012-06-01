@@ -194,6 +194,7 @@ We can also use the ``args`` variable in the same manner as before, however we m
 
 Collapse operators are handled in the exact same way.
 
+
 .. _time-hfunc:
 
 Function Based Hamiltonian
@@ -219,7 +220,7 @@ A Quick Comparison of Simulation Times
 
 Here we give a table of simulation times for the single-photon example using the different time-dependent formats and both the master equation and monte-carlo solver.
 
-.. tabularcolumns:: | p{4cm} | p{2cm} | p{2cm} |
+.. tabularcolumns:: | p{4cm} | p{4cm} | p{4cm} |
 
 +------------------------+-----------------+-------------+
 | Format                 | Master Equation | Monte-Carlo |       
@@ -231,8 +232,7 @@ Here we give a table of simulation times for the single-photon example using the
 | Hamiltonian Function   | 1.0 sec         | 238 sec     |
 +------------------------+-----------------+-------------+
 
-For the current example, the table indicates that the Hamiltonian function method is in fact the fastest when using the master equation solver.  This is because the simulation is quite small.  In contrast, the Hamiltonian function is over 26x slower than the compiled string version when using the monte-carlo solver.  In this case, the 500 trajectories needed in the simulation highlights the inefficient nature of the Python function calls.  
-
+For the current example, the table indicates that the Hamiltonian function method is in fact the fastest when using the master equation solver.  This is because the simulation is quite small.  In contrast, the Hamiltonian function is over 26x slower than the compiled string version when using the monte-carlo solver.  In this case, the 500 trajectories needed in the simulation highlights the inefficient nature of the Python function calls.
 
 .. _time-reuse:
 
@@ -240,6 +240,37 @@ Reusing Time-Dependent Hamiltonian Data
 =======================================
 
 .. note:: This section covers a specialized topic and may be skipped if you are new to QuTiP.
+
+When repeatedly simulating a system where only the time-dependent variables, or initial state change, it is possible to reuse the Hamiltonian data stored in QuTiP and there by avoid spending time needlessly preparing the Hamiltonian and collapse terms for simulation.  To turn on the the reuse features, we must pass a :class:`qutip.Odeoptions` object with the ``rhs_resue`` flag turned on.  Instructions on setting flags are found in :ref:`odeoptions`.  For example, we can do::
+
+    H=[H0,[H1,'A * exp(-(t/sig)**2)']]
+    args = {'A':9,'sig':5}
+    output=mcsolve(H,psi0,tlist,c_op_list,[a.dag()*a],args=args)
+    opts=Odeoptions(rhs_reuse=True)
+    args = {'A':10,'sig':3}
+    output=mcsolve(H,psi0,tlist,c_op_list,[a.dag()*a],args=args,options=opts)
+	
+
+In this case, the second call to ``mcsolve`` takes 3 seconds less than the first.  Of course our parameters are different, but this also shows how much time one can save by not reorganizing the data, and in the case of the string format, not recompiling the code.  If you need to call the solvers many times for different parameters, this savings will obviously start to add up.
+
+
+.. _time-parallel:
+
+Running String Based Problems using Parfor
+==========================================
+
+.. note:: This section covers a specialized topic and may be skipped if you are new to QuTiP.
+
+In this section we discuss running string based time-dependent problems using the :func:`qutip.parfor` function.  Because the ``parfor`` function uses the built-in Python multiprocessing functionality, the solvers will try to generate the same compiled code over and over and will crash.  To get around this problem you can call the :func:`qutip.rhs_generate` function to compile simulation into c-code before calling parfor.  You **must** then set the :class:`qutip.Odedata` object ``rhs_reuse=True`` for all solver calls inside the parfor loop.
+
+
+
+
+
+
+
+
+
 
 
 

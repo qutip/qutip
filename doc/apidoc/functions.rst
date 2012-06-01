@@ -114,6 +114,15 @@ Steady-state Solvers
 Other Functions
 ===============
 
+.. _functions-fileio:
+
+Fileio Functions
+----------------
+
+.. automodule:: qutip.fileio
+    :members: file_data_read, file_data_store, qload, qsave
+
+
 .. _functions-entropy:
 
 Entropy Functions
@@ -153,6 +162,6 @@ Miscellaneous
 --------------
 
 .. automodule:: qutip
-    :members: about, clebsch, demos, hinton, orbital, parfor, simdiag, sphereplot
+    :members: about, clebsch, demos, hinton, orbital, parfor, rhs_generate, simdiag, sphereplot
     :undoc-members:
 
