@@ -51,6 +51,8 @@ The second version of QuTiP has seen many improvements in the performance of the
 
 - It is possible to automatically compile time-dependent problems into c-code using Cython (if installed).
 
+- Python functions can be used to create arbitrary time-dependent Hamiltonians and collapse operators.
+
 - Solvers now return Odedata objects containing all simulation results and parameters, simplifying the saving of simulation results.
 
 .. important:: This breaks compatibility with QuTiP version 1.x.  See :ref:`odedata` for further details.
@@ -73,10 +75,18 @@ The second version of QuTiP has seen many improvements in the performance of the
 
 - The steady-state solver has been further optimized for sparse matrices, and can handle much larger system Hamiltonians.
 
+- The steady-state solver can use the iterative bi-conjugate gradient method instead of a direct solver.
+
 - There are three new entropy functions for concurrence, mutual information, and conditional entropy.
 
-- Global settings can be modified.
+- Correlation functions have been combined under a single function.
+
+- The operator norm can now be set to trace, Frobius, one, or max norm.
+
+- Global QuTiP settings can now be modified.
 
 - QuTiP includes a collection of unit tests for verifying the installation.
 
-- Many new demos.
+- Demos window now lets you copy and paste code from each example.
+
+

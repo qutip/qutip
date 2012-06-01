@@ -170,8 +170,8 @@ In QuTiP, the product of the square root of the rate and the operator that
 describe the dissipation process is called a collapse operator. A list of 
 collapse operators (``c_op_list``) is passed as the fourth argument to the 
 :func:`qutip.mesolve` function in order to define the dissipation processes in the master
-eqaution. When the ``c_op_list`` isn't empty, the :func:`qutip.mesolve` function will use
-the master equation instead of the unitary Schröderinger equation.
+equation. When the ``c_op_list`` isn't empty, the :func:`qutip.mesolve` function will use
+the master equation instead of the unitary Schrödinger equation.
 
 Using the example with the spin dynamics from the previous section, we can
 easily add a relaxation process (describing the dissipation of energy from the
@@ -197,7 +197,7 @@ process.
    :width: 4in
 
 
-Now a slightly more complex example: Consider a two-level atom coupled to a leaky single-mode cavity through a dipole-type interaction, which supports a coherent exchange of quanta between the two systems. If the atom initially is in its groundstate and the cavity in a 5-photon fock state, the dynamics is calculated with the lines following code::
+Now a slightly more complex example: Consider a two-level atom coupled to a leaky single-mode cavity through a dipole-type interaction, which supports a coherent exchange of quanta between the two systems. If the atom initially is in its groundstate and the cavity in a 5-photon Fock state, the dynamics is calculated with the lines following code::
 
     >>> tlist = linspace(0.0, 10.0, 200)
     >>> psi0 = tensor(fock(2,0), fock(10, 5))

@@ -7,7 +7,7 @@
 Setting Options for the Dynamics ODE Solvers
 *********************************************
 
-Occasionally it is necessary to change the built in parameters of the ODE solvers used by both the mesolve and mcsolve functions.  The ODE options for either of these functions may be changed by calling the Odeoptions class :class:`qutip.Odeoptions`
+Occasionally it is necessary to change the built in parameters of the ODE solvers used by both the ``mesolve`` and ``mcsolve`` functions.  The ODE options for either of these functions may be changed by calling the Odeoptions class :class:`qutip.Odeoptions`
 
 >>> opts=Odeoptions()
 
@@ -98,7 +98,7 @@ Note that the order in which you input the options does not matter.  Using eithe
 	gui:           False
 	expect_avg:    True
 
-To use these new settings we can use the keyword argument `options` in either the `mesolve` or `mcsolve` function.  We can modify the last example as::
+To use these new settings we can use the keyword argument ``options`` in either the ``mesolve`` or ``mcsolve`` function.  We can modify the last example as::
 
     >>> mesolve(H0, psi0, tlist, c_op_list, [sigmaz()],options=opts)
     >>> mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sigmaz()], H_args,options=opts)

@@ -7,7 +7,7 @@
 Saving QuTiP Objects and Data Sets
 **********************************
 
-With time-consuming calculations it is often necessary to store the results to files on disk, so it can be post-processed and archived. In QuTiP there are two facilities for storing data: Quantum objects can be stored to files and later read back as python pickles, and numerical data (vectors and matrices) can be exported as plain text files in for example CSV (comma-separated values), TSV (tab-separated values), etc. The former method is prefered when further calculations will be performed with the data, and the latter when the calculations are completed and data is to be imported into a post-processing tool (e.g. for generating figures).
+With time-consuming calculations it is often necessary to store the results to files on disk, so it can be post-processed and archived. In QuTiP there are two facilities for storing data: Quantum objects can be stored to files and later read back as python pickles, and numerical data (vectors and matrices) can be exported as plain text files in for example CSV (comma-separated values), TSV (tab-separated values), etc. The former method is preferred when further calculations will be performed with the data, and the latter when the calculations are completed and data is to be imported into a post-processing tool (e.g. for generating figures).
 
 Storing and loading QuTiP objects
 =================================
@@ -64,7 +64,7 @@ The :func:`qutip.file_data_store` takes two mandatory and three optional argumen
 
 where `filename` is the name of the file, `data` is the data to be written to the file (must be a *numpy* array), `numtype` (optional) is a flag indicating numerical type that can take values `complex` or `real`, `numformat` (optional) specifies the numerical format that can take the values `exp` for the format `1.0e1` and `decimal` for the format `10.0`, and `sep` (optional) is an arbitrary single-character field separator (usually a tab, space, comma, semicolon, etc.). 
 
-A common use for the :func:`qutip.file_data_store` function is to store the expectation values of a set of operatators for a sequence of times, e.g., as returned by the :func:`qutip.mesolve` function, which is what the following example does:
+A common use for the :func:`qutip.file_data_store` function is to store the expectation values of a set of operators for a sequence of times, e.g., as returned by the :func:`qutip.mesolve` function, which is what the following example does:
 
 >>> a = destroy(10); H = a.dag() * a ; c_ops = [sqrt(0.5) * a, sqrt(0.25) * a.dag()]
 >>> psi0 = rand_ket(10)

@@ -146,7 +146,7 @@ Qobj data =
  [ 0.]
  [ 0.]]
 
-Since we are giving a demonstration of using states and operators, we have done a lot more work than we should have.  For example, we do not need to operate on the vacuum state to generate a higher number fock state.  Instead we can use the :func:`qutip.basis` (or :func:`qutip.fock`) function to directly obtain the required state:
+Since we are giving a demonstration of using states and operators, we have done a lot more work than we should have.  For example, we do not need to operate on the vacuum state to generate a higher number Fock state.  Instead we can use the :func:`qutip.basis` (or :func:`qutip.fock`) function to directly obtain the required state:
 
 >>> vec=basis(5,2)
 >>> print vec

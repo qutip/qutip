@@ -139,7 +139,7 @@ which will bring up a list of installed compilers, such as::
 		mp-gcc45
 		none (active)
 
-We want to set the the compiler to the gcc4x compiler, where x is the highest number avaliable, in this case ``mp-gcc45`` (the "mp-" does not matter).  To do this type:
+We want to set the the compiler to the gcc4x compiler, where x is the highest number available, in this case ``mp-gcc45`` (the "mp-" does not matter).  To do this type:
 
 >>> sudo port select gcc mp-gcc45
 
@@ -155,7 +155,7 @@ Running port select again should give::
 Setup via SciPy Superpack:
 --------------------------
 
-A second option is to install the required Python packages using the `SciPy Superpack <http://fonnesbeck.github.com/ScipySuperpack/>`_.  Further information on installing the superpack can be found on the `SciPy Downloads page <http://www.scipy.org/Download>`_.  Note that, if you choose this option, the GUI elements of QuTiP will not be available without futher installing either the PyQt4 or PySide packages separately.
+A second option is to install the required Python packages using the `SciPy Superpack <http://fonnesbeck.github.com/ScipySuperpack/>`_.  Further information on installing the superpack can be found on the `SciPy Downloads page <http://www.scipy.org/Download>`_.  Note that, if you choose this option, the GUI elements of QuTiP will not be available without further installing either the PyQt4 or PySide packages separately.
 
 
 Enthought Python Distribution:
@@ -175,11 +175,11 @@ No matter which installation path you choose, installing QuTiP is the same as on
 Verifying the Installation
 ============================
 
-QuTiP now includes a collection of builtin test scripts to verify that the installation was indeed successful.  To run the suite of tests scripts, after installing QuTiP call:
+QuTiP now includes a collection of built-in test scripts to verify that the installation was indeed successful.  To run the suite of tests scripts, after installing QuTiP call:
 
 >>> python setup.py test
 
-If sucessful, these tests indicate that all of the QuTiP functions are working properly.  If any errors occur, please check that your have installed all of the required modules.  See the next section on how to check the installed versions of the QuTiP dependencies.  If these tests still fail, then head on over to the `QuTiP Discussion Board <http://groups.google.com/group/qutip>`_ and post a message detailing your particular issue.
+If successful, these tests indicate that all of the QuTiP functions are working properly.  If any errors occur, please check that your have installed all of the required modules.  See the next section on how to check the installed versions of the QuTiP dependencies.  If these tests still fail, then head on over to the `QuTiP Discussion Board <http://groups.google.com/group/qutip>`_ and post a message detailing your particular issue.
 
 To further verify that all of the QuTiP components are working, you can run the collection of examples built into QuTiP as discussed in the :ref:`examples` section of the guide. 
 
@@ -202,4 +202,4 @@ that will pop-up a window similar to the one shown below.  If instead you get co
 
 
 
-.. [*] Installing QuTiP via Macports will take a long time as each of the QuTiP dependencies is build from source code.  The advantage is that, after installation, everything is more or less guarenteed to work.  However, if you have a hot date waiting for you, then we do not recommend this path.  Or course, if you are reading this guide, this may not be the case. 
+.. [*] Installing QuTiP via Macports will take a long time as each of the QuTiP dependencies is build from source code.  The advantage is that, after installation, everything is more or less guaranteed to work.  However, if you have a hot date waiting for you, then we do not recommend this path.  Or course, if you are reading this guide, this may not be the case. 

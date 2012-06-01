@@ -84,7 +84,7 @@ so that :math:`\Phi_\alpha(t) = \exp(i\epsilon_\alpha t/\hbar) U(t,0)\Phi_\alpha
 Floquet formalism in QuTiP
 --------------------------
 
-QuTiP provides a family of functions to calculate the Floquet modes and quasi energies, floquet state decomposition, etc., given a time-dependent Hamiltonian on the *callback format*, *list-string format* and *list-callback format* (see, e.g., :func:`qutip.mesolve` for details). 
+QuTiP provides a family of functions to calculate the Floquet modes and quasi energies, Floquet state decomposition, etc., given a time-dependent Hamiltonian on the *callback format*, *list-string format* and *list-callback format* (see, e.g., :func:`qutip.mesolve` for details). 
 
 Consider for example the case of a strongly driven two-level atom, described by the Hamiltonian
 
@@ -101,7 +101,7 @@ In QuTiP we can define this Hamiltonian as follows
 >>> args = {'w': omega}
 >>> H = [H0, [H1, 'sin(w * t)']]
 
-The :math:`t=0` floquet modes corresponding to the Hamiltonian :eq:`eq_driven_qubit` can then be calculated using the :func:`qutip.floquet.floquet_modes` function, which returns lists containing the Floquet modes and the quasienergies
+The :math:`t=0` Floquet modes corresponding to the Hamiltonian :eq:`eq_driven_qubit` can then be calculated using the :func:`qutip.floquet.floquet_modes` function, which returns lists containing the Floquet modes and the quasienergies
 
 >>> T = 2*pi / omega
 >>> f_modes, f_energies = floquet_modes(H, T, args)
@@ -136,7 +136,7 @@ Qobj data =
 [[-0.61110159-0.39866357j]
  [ 0.03189259+0.6830849j ]]]
 
-The purpose of calculating the Floquet modes is to find the wavefunction solution to the original problem :eq:`eq_driven_qubit` given some intial state :math:`\left|\psi_0\right>`. To do that, we first need to decompose the intial state in the floquet states, using the function :func:`qutip.floquet.floquet_state_decomposition`
+The purpose of calculating the Floquet modes is to find the wavefunction solution to the original problem :eq:`eq_driven_qubit` given some initial state :math:`\left|\psi_0\right>`. To do that, we first need to decompose the initial state in the Floquet states, using the function :func:`qutip.floquet.floquet_state_decomposition`
 
 >>> psi0 = rand_ket(2)
 >>> f_coeff = floquet_state_decomposition(f_modes_0, f_energies, psi0)
@@ -162,7 +162,7 @@ The following example illustrates how to use the functions introduced above to c
 Pre-computing the Floquet modes for one period
 ----------------------------------------------
 
-When evaluating the Floquet states or the wavefunction at many points in time it is useful to pre-compute the Floquet modes for the first period of the driving with the required resolution. In QuTiP the function :func:`qutip.floquet.floquet_modes_table` calculates a table of Floquet modes which later can be used together with the function :func:`qutip.floquet.floquet_modes_t_lookup` to efficiently lookup the Floquet mode at an arbitrary time. The following example illustrates how the example from the previous section can be solved more efficientlty using these functions for pre-computing the Floquet modes.
+When evaluating the Floquet states or the wavefunction at many points in time it is useful to pre-compute the Floquet modes for the first period of the driving with the required resolution. In QuTiP the function :func:`qutip.floquet.floquet_modes_table` calculates a table of Floquet modes which later can be used together with the function :func:`qutip.floquet.floquet_modes_t_lookup` to efficiently lookup the Floquet mode at an arbitrary time. The following example illustrates how the example from the previous section can be solved more efficiently using these functions for pre-computing the Floquet modes.
 
 .. plot:: guide/scripts/floquet_ex2.py
    :width: 4.0in

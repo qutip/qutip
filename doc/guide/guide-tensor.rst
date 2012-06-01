@@ -131,7 +131,7 @@ The two-qubit example is easily generalized to three coupled qubits::
 A two-level system coupled to a cavity: The Jaynes-Cummings model
 -------------------------------------------------------------------
 
-The simplest possible quantum mechanical description for light-matter interaction is encapsulated in the Jaynes-Cummings model, which describes the coupling between a two-level atom and a single-mode electomagnetic field (a cavity mode). Denoting the energy splitting of the atom and cavity omega_a and omega_c, respectively, and the atom-cavity interaction strength g, the Jaynes-Cumming Hamiltonian can be constructed as::
+The simplest possible quantum mechanical description for light-matter interaction is encapsulated in the Jaynes-Cummings model, which describes the coupling between a two-level atom and a single-mode electromagnetic field (a cavity mode). Denoting the energy splitting of the atom and cavity omega_a and omega_c, respectively, and the atom-cavity interaction strength g, the Jaynes-Cumming Hamiltonian can be constructed as::
 
     >>> N = 10
     >>> omega_a = 1.0

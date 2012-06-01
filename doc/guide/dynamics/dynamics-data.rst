@@ -26,7 +26,7 @@ Before embarking on simulating the dynamics of quantum systems, we will first lo
 +------------------------+-----------------------------------------------------------------------+
 | odedata.expect         | List/array of expectation values, if requested.                       |
 +------------------------+-----------------------------------------------------------------------+
-| odedata.states         | List/array of state vectors /density matrices calcuated at ``times``  |
+| odedata.states         | List/array of state vectors /density matrices calculated at ``times``  |
 |                        | , if requested.                                                       |
 +------------------------+-----------------------------------------------------------------------+
 | odedata.num_expect     | The number of expectation value operators in the simulation.          |
@@ -35,7 +35,7 @@ Before embarking on simulating the dynamics of quantum systems, we will first lo
 +------------------------+-----------------------------------------------------------------------+
 | odedata.ntraj          | Number of monte-carlo trajectories run (if using mcsolve).            |
 +------------------------+-----------------------------------------------------------------------+
-| odedata.col_times      | Times at which state collpase occurred.  Only for Monte-Carlo solver. |
+| odedata.col_times      | Times at which state collapse occurred.  Only for Monte-Carlo solver. |
 +------------------------+-----------------------------------------------------------------------+
 | odedata.col_which      | Which collapse operator was responsible for each collapse in          |
 |                        | in ``col_times``. mcsolver only.                                      |
@@ -54,7 +54,7 @@ To understand how to access the data in a Odedata object we will use the :ref:`e
     expect = True
     num_expect = 2, num_collapse = 2, ntraj = 500
 
-The first line tells us that this data object was generated from the Monte-Carlo solver ``mcsolve`` (discussed in :ref:`monte`).  The next line (not the ``---`` line of course) indicates that this object contains expectation value data.  Finally, the last line gives the number of expectation value and collapse operators used in the simulation, along with the number of Monte-Carlo trajectories run.  Note that the number of trjaectories ``ntraj`` is only displayed when using the Monte-Carlo solver.
+The first line tells us that this data object was generated from the Monte-Carlo solver ``mcsolve`` (discussed in :ref:`monte`).  The next line (not the ``---`` line of course) indicates that this object contains expectation value data.  Finally, the last line gives the number of expectation value and collapse operators used in the simulation, along with the number of Monte-Carlo trajectories run.  Note that the number of trajectories ``ntraj`` is only displayed when using the Monte-Carlo solver.
 
 Now we have all the information needed to reproduce the simulation results.  To access the data for the two expectation values one can do:
 

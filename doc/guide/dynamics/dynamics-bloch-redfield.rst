@@ -12,11 +12,11 @@ Bloch-Redfield master equation
 Introduction
 ============
 
-The Lindblad master equation introduced earlier is constructed so that it describes a physical evolution of the density matrix (i.e., trace and positivity preserving), but it does not provide a connection to any underlaying microscopic physical model. The Lindblad operators (collapse operators) describe phenomelogical processes, such as for example dephasing and spin flips, and the rates of these processes are arbitrary parameters in the model. In many situations the collapse operators and their corresponding rates have clear physical interpretation, such as dephasing and relaxation rates, and in those cases the Lindblad master equation is usually the method of choice. 
+The Lindblad master equation introduced earlier is constructed so that it describes a physical evolution of the density matrix (i.e., trace and positivity preserving), but it does not provide a connection to any underlaying microscopic physical model. The Lindblad operators (collapse operators) describe phenomenological processes, such as for example dephasing and spin flips, and the rates of these processes are arbitrary parameters in the model. In many situations the collapse operators and their corresponding rates have clear physical interpretation, such as dephasing and relaxation rates, and in those cases the Lindblad master equation is usually the method of choice. 
 
 However, in some cases, for example systems with varying energy biases and eigenstates and that couple to an environment in some well-defined manner (through a physically motivated system-environment interaction operator), it is often desirable to derive the master equation from more fundamental physical principles, and relate it to for example the noise-power spectrum of the environment. 
 
-The Bloch-Redfield formalism is one such approach to derive a master equation from a microscopic system. It starts from a combined system-environment perspective, and derives a perturbative master equation for the system alone, under the assumption of weak system-environment coupling. One advantage of this approach is that the dissipation processes and rates are obtained directly from the properties of the environment. On the downside, it does not intrinsically guarantee that the resulting master equation unconditionally perserves the physical properties of the density matrix (because it is a perturbative method). The Bloch-Redfield master equation must therefore be used with care, and the assumptions made in the dervivation must be honored. (The Lindblad master equation is in a sense more robust -- it always results in a physical density matrix -- although some collapse operators might not be physically justified). For a full derivation of the Bloch Redfield master equation, see e.g. Atom-Physics Interactions by Cohen-Tannoudji *et al.* (Wiley, 1992), or Theory of open quantum systems by Breuer and Petruccione (Oxford, 2002). Here we present only a brief version of the derviation, with the intention of introducing the notation and how it relates to the implementation in QuTiP. 
+The Bloch-Redfield formalism is one such approach to derive a master equation from a microscopic system. It starts from a combined system-environment perspective, and derives a perturbative master equation for the system alone, under the assumption of weak system-environment coupling. One advantage of this approach is that the dissipation processes and rates are obtained directly from the properties of the environment. On the downside, it does not intrinsically guarantee that the resulting master equation unconditionally preserves the physical properties of the density matrix (because it is a perturbative method). The Bloch-Redfield master equation must therefore be used with care, and the assumptions made in the derivation must be honored. (The Lindblad master equation is in a sense more robust -- it always results in a physical density matrix -- although some collapse operators might not be physically justified). For a full derivation of the Bloch Redfield master equation, see e.g. Atom-Physics Interactions by Cohen-Tannoudji *et al.* (Wiley, 1992), or Theory of open quantum systems by Breuer and Petruccione (Oxford, 2002). Here we present only a brief version of the derivation, with the intention of introducing the notation and how it relates to the implementation in QuTiP. 
 
 .. _bloch-redfield-derivation:
 
@@ -26,7 +26,7 @@ Brief Derivation and definitions
 
 The starting point of the Bloch-Redfield formalism is the total Hamiltonian for the system and the environment (bath): :math:`H = H_{\rm S} + H_{\rm B} + H_{\rm I}`, where :math:`H` is the total system+bath Hamiltonian, :math:`H_{\rm S}` and :math:`H_{\rm B}` are the system and bath Hamiltonians, respectively, and :math:`H_{\rm I}` is the interaction Hamiltonian.
 
-The most general form of a master eqaution for the system dynamics is obtained by tracing out the bath from the von Neumann equation of motion for the combined system (:math:`\dot\rho = -i\hbar^{-1}[H, \rho]`). In the interaction picture the result is
+The most general form of a master equation for the system dynamics is obtained by tracing out the bath from the von-Neumann equation of motion for the combined system (:math:`\dot\rho = -i\hbar^{-1}[H, \rho]`). In the interaction picture the result is
 
 .. math::
    :label: br-nonmarkovian-form-one
@@ -35,7 +35,7 @@ The most general form of a master eqaution for the system dynamics is obtained b
 
 where the additional assumption that the total system-bath density matrix can be factorized as :math:`\rho(t) \approx \rho_S(t) \otimes \rho_B`. This assumption is known as the Born approximation, and it implies that there never is any entanglement between the system and the bath, neither in the initial state nor at any time during the evolution. *It is justified for weak system-bath interaction.*
 
-The master equation :eq:`br-nonmarkovian-form-one` is non-Markovian, i.e., the change in the density matrix at a time :math:`t` depends on states at all times :math:`\tau < t`, making it intractible to solve both theoretically and numerically. To make progress towards a managable master equation, we now introduce the Markovian approximation, in which :math:`\rho(s)` is replaced by :math:`\rho(t)` in Eq. :eq:`br-nonmarkovian-form-one`. The result is the Redfield equation
+The master equation :eq:`br-nonmarkovian-form-one` is non-Markovian, i.e., the change in the density matrix at a time :math:`t` depends on states at all times :math:`\tau < t`, making it intractable to solve both theoretically and numerically. To make progress towards a manageable master equation, we now introduce the Markovian approximation, in which :math:`\rho(s)` is replaced by :math:`\rho(t)` in Eq. :eq:`br-nonmarkovian-form-one`. The result is the Redfield equation
 
 .. math::
    :label: br-nonmarkovian-form-two
@@ -212,5 +212,5 @@ The two steps of calculating the Bloch-Redfield tensor and evolve the correspond
 
 >>> output = brmesolve(H, psi0, tlist, [sigmax()], e_ops, [ohmic_spectrum])
 
-where the resultnig `output` is an instance of the class :class:`qutip.Odedata`.
+where the resulting `output` is an instance of the class :class:`qutip.Odedata`.
 
