@@ -15,7 +15,7 @@ The Odedata Class
 =================
 Before embarking on simulating the dynamics of quantum systems, we will first look at the data structure used for returning the simulation results to the user.  This object is a :func:`qutip.Odedata` class that stores all the crucial data needed for analyzing and plotting the results of a simulation.  Like the :func:`qutip.Qobj` class, the ``Odedata`` class has a collection of properties for storing information.  However, in contrast to the Qobj class, this structure contains no methods, and is therefore nothing but a container object.  A generic Odedata object ``odedata`` contains the following properties for storing simulation data:
 
-.. tabularcolumns:: | p{2cm} | p{3cm} |
+.. tabularcolumns:: | p{4cm} | p{10cm} |
 
 +------------------------+-----------------------------------------------------------------------+
 | Property               | Description                                                           |

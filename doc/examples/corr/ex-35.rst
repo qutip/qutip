@@ -1,0 +1,15 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _excorr35:
+
+Driven Cavity+Qubit Monte-Carlo
+===============================
+
+Monte Carlo evoution of a coherently driven cavity with a two-level atom initially in the ground state and no photons in the cavity.
+
+Adapted from qotoolbox example 'probqmc3' by Sze M. Tan.
+
+.. plot:: ../qutip/qutip/examples/ex_35.py
+	:include-source:
+

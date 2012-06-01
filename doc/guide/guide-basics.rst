@@ -221,7 +221,7 @@ In general, the properties of a Qobj object (or any Python class) can be retriev
 .. _about: 
 .. figure:: quide-basics-qobj-box.png
    :align: center
-   :width: 4in
+   :width: 3in
    
    The `Qobj` Class viewed as a container for the properties need to characterize a quantum operator or state vector.
 

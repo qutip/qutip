@@ -34,13 +34,13 @@ In QuTiP, there are two functions that assists in the process of calculating two
 +----------------------------------------------+-----------------------------------------+
 | Function                                     | Usage                                   |
 +==============================================+=========================================+
-| :func:`qutip.correlation.correlation_ss`     | Calculates the steady state correlation |
+| correlation_ss                               | Calculates the steady state correlation |
 |                                              | :math:`\left<A(\tau)B(0)\right>`,       |
 |                                              | using the either the master equation,   |
 |                                              | the exponential series, or the          |
 |                                              | Monte Carlo solver.                     |
 +----------------------------------------------+-----------------------------------------+
-| :func:`qutip.correlation.correlation`        | Calculates the correlation function     |
+| correlation                                  | Calculates the correlation function     |
 |                                              | :math:`\left<A(t_1+t_2)B(t_1)\right>`,  |
 |                                              | using the either the master eqaution,   |
 |                                              | the exponential series, or the          |

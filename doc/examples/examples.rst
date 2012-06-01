@@ -40,6 +40,7 @@ List of Built-in Examples
    ex-basic.rst
    ex-master-equation.rst
    ex-monte-carlo.rst
+   ex-correlation.rst
    ex-time-dependence.rst   
    ex-advanced.rst 
 

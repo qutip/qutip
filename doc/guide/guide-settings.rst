@@ -16,7 +16,7 @@ User Accessible Parameters
 
 In this section we show how to modify a few of the internal parameters used by QuTiP.  The settings that can be modified are given in the following table:
 
-.. tabularcolumns:: | p{2cm} | p{3cm} | p{2cm} |
+.. tabularcolumns:: | p{3cm} | p{5cm} | p{5cm} |
 
 +-------------------------------+-------------------------------------------+-----------------------------+
 | Setting                       | Description                               | Options                     |

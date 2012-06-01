@@ -36,7 +36,7 @@ which will load an instance of the :class:`qutip.Bloch` class.  Before getting i
 
 In addition to the show() command, the Bloch class has the following functions:
 
-.. tabularcolumns:: | p{4cm} | p{6cm} | L |
+.. tabularcolumns:: | p{3.5cm} | p{7cm} | p{6cm} |
 
 +--------------------------+--------------------------------------+------------------------------------------+
 | Name                     | Input Parameters (#=optional)        | Description                              |
@@ -221,7 +221,7 @@ Configuring the Bloch sphere
 
 At the end of the last section we saw that the colors and marker shapes of the data plotted on the Bloch sphere are automatically varied according to the number of points and vectors added.  But what if you want a different choice of color, or you want your sphere to be purple with different axes labels? Well then you are in luck as the Bloch class has 20 attributes which one can control.  Assuming ``b=Bloch()``:
    
-.. tabularcolumns:: | p{4cm} | p{6cm} | L |
+.. tabularcolumns:: | p{3cm} | p{7cm} |  p{7cm} |
 
 +---------------+---------------------------------------------------------+---------------------------------------------+
 | Attribute     | Function                                                | Default Setting                             | 
