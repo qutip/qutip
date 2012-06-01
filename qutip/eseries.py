@@ -84,9 +84,9 @@ class eseries:
                     raise TypeError('Number of rates must match number of members in object array.')
                 self.rates=array(s)
         if len(self.ampl)!=0:
-            zipped=zip(self.rates,self.ampl)#combine arrays so that they can be sorted together
+            zipped=list(zip(self.rates,self.ampl))#combine arrays so that they can be sorted together
             zipped.sort() #sort rates from lowest to highest
-            rates,ampl=zip(*zipped) #get back rates and ampl
+            rates,ampl=list(zip(*zipped)) #get back rates and ampl
             self.ampl=array(ampl)
             self.rates=array(rates)
     
