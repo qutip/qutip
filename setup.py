@@ -95,22 +95,7 @@ write_version_py()
 class TestCommand(Command):
     user_options = [ ]
 
-    def initialize_options(self):
-
-        matches = []
-        for root, dirnames, filenames in os.walk(os.getcwd()+'/build'):
-          for filename in fnmatch.filter(filenames, 'cy_mc_funcs.so'):
-              matches.append(os.path.join(root, filename))
-          for filename in fnmatch.filter(filenames, 'ode_rhs.so'):
-              matches.append(os.path.join(root, filename))
-
-        for files in matches:
-            if 'cy_mc_funcs.so' in files:
-                shutil.copyfile(files,os.getcwd()+'/qutip/cyQ/cy_mc_funcs.so')
-            elif 'ode_rhs.so' in files:
-                shutil.copyfile(files,os.getcwd()+'/qutip/cyQ/ode_rhs.so')
-        
-        
+    def initialize_options(self):        
         self._dir = os.getcwd()+"/test/"
 
     def finalize_options(self):
@@ -235,3 +220,27 @@ setup(
     package_data={'qutip/gui': ['logo.png']},
     cmdclass = { 'test': TestCommand,'devtest': TestHereCommand, 'clean': CleanCommand, 'svnclean': CleanSVNCommand }
     )
+
+
+matches = []
+
+try:
+    walk=os.walk(os.getcwd()+'/build')
+except:
+    pass
+else:
+    for root, dirnames, filenames in walk:
+      for filename in fnmatch.filter(filenames, 'cy_mc_funcs.so'):
+          matches.append(os.path.join(root, filename))
+      for filename in fnmatch.filter(filenames, 'ode_rhs.so'):
+          matches.append(os.path.join(root, filename))
+    for files in matches:
+        if 'cy_mc_funcs.so' in files:
+            shutil.copyfile(files,os.getcwd()+'/qutip/cyQ/cy_mc_funcs.so')
+        elif 'ode_rhs.so' in files:
+            shutil.copyfile(files,os.getcwd()+'/qutip/cyQ/ode_rhs.so')
+
+
+
+
+
