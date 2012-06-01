@@ -169,13 +169,13 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
             pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
             if odeconfig.tflag in array([1,11]):
                 code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs,col_spmv,col_expect', '<string>', 'exec')
-                exec(code)
+                exec(code, globals())
                 odeconfig.tdfunc=cyq_td_ode_rhs
                 odeconfig.colspmv=col_spmv
                 odeconfig.colexpect=col_expect
             else:
                 code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
-                exec(code)
+                exec(code, globals())
                 odeconfig.tdfunc=cyq_td_ode_rhs
             try:
                 os.remove(odeconfig.tdname+".pyx")
