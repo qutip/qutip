@@ -95,6 +95,34 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None):
     Calculate the Floquet modes at times tlist Phi_alpha(tlist) propagting the
     initial Floquet modes Phi_alpha(0)
   
+    Parameters
+    ----------
+    
+    f_modes_0 : list of :class:`qutip.Qobj` (kets)
+        Floquet modes at :math:`t`
+
+    f_energies : list
+        Floquet energies.
+        
+    t : float
+        The time at which to evaluate the floquet modes.
+
+    H : :class:`qutip.Qobj`
+        system Hamiltonian, time-dependent with period `T`
+        
+    args : dictionary
+        dictionary with variables required to evaluate H     
+
+    T : float
+        The period of the time-dependence of the hamiltonian. 
+     
+    Returns
+    -------
+
+    output : list of kets
+
+        The Floquet modes as kets at time :math:`t`
+
     """
 
     # find t in [0,T] such that t_orig = t + n * T for integer n
