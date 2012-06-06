@@ -1,3 +1,9 @@
+qutip (2.0.0) precise; urgency=low
+
+  * New packaging for the 2.0.0 upstream release.
+
+ -- Robert Johansson <jrjohansson@gmail.com>  Wed, 06 Jun 2012 11:36:00 +0900
+
 qutip (1.1.0) stable; urgency=low
 
   * Initial release with debian/ubuntu packaging.
