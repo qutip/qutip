@@ -47,3 +47,5 @@ Contributors
 **Denis Vasilyev** (St. Petersburg State University) - Bug hunter
 
 **Dong Zhou** (Yale) - Bug hunter
+
+**Robert Jördens**  - Linux packaging
