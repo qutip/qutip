@@ -2,13 +2,14 @@ Source: qutip
 Section: python
 Priority: optional
 Maintainer: Robert Johansson <jrjohansson@gmail.com>
-Build-Depends: cdbs (>= 0.4.90~), debhelper (>= 5), python (>= 2.6.6-3~), python-all-dev, python-setuptools, python-numpy, python-scipy
+Build-Depends: debhelper (>= 8), python (>= 2.6.6-3~), python-all-dev, python-setuptools, python-numpy, python-scipy
 XS-Python-Version: >=2.5
-Standards-Version: 3.9.1
+Standards-Version: 3.9.3
 
 Package: python-qutip
 Architecture: any
-Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}, python-scipy, python-qt4, python-matplotlib, ipython-notebook (>= 0.12)
+Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}, python-scipy
+Recommends: ipython-notebook (>= 0.12), python-matplotlib, python-qt4
 Provides: ${python:Provides}
 Homepage: http://code.google.com/p/qutip
 Description: Python framework for solving the dynamics of quantum systems.
