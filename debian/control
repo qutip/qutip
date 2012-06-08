@@ -1,22 +1,23 @@
 Source: qutip
-Section: science
+Section: python
 Priority: optional
 Maintainer: Robert Johansson <jrjohansson@gmail.com>
 Build-Depends: cdbs (>= 0.4.90~), debhelper (>= 5), python (>= 2.6.6-3~), python-all-dev, python-setuptools, python-numpy, python-scipy
 XS-Python-Version: >=2.5
 Standards-Version: 3.9.1
 
-Package: qutip
+Package: python-qutip
 Architecture: any
 Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}, python-scipy, python-qt4, python-matplotlib, ipython-notebook (>= 0.12)
-XB-Python-Version: all
+Provides: ${python:Provides}
 Homepage: http://code.google.com/p/qutip
 Description: Python framework for solving the dynamics of quantum systems.
- QuTiP is an open-source framework for solving the dynamics of open and
- closed quantum systems written in python. The focus of QuTiP is on
- systems with Hamiltonians that are composed of harmonic oscillator modes
- and multi-level (typically two-levels) atoms, where the Hilbert space may
- be constructed using the Fock basis. This large class of Hamiltonians appears
- in a wide variety of physical problems, including those in quantum optics,
- trapped ions, superconducting circuit devices, and mechanical systems in the
- quantum regime.
+ QuTiP is an open-source framework for solving the dynamics of open
+ and closed quantum systems written in python. The focus of QuTiP
+ is on systems with Hamiltonians that are composed of harmonic
+ oscillator modes and multi-level (typically two-levels) atoms,
+ where the Hilbert space may be constructed using the Fock basis.
+ This large class of Hamiltonians appears in a wide variety of
+ physical problems, including those in quantum optics, trapped
+ ions, superconducting circuit devices, and mechanical systems in
+ the quantum regime.
