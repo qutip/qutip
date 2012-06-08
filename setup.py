@@ -143,10 +143,11 @@ class TestHereCommand(Command):
 #------ clean command for removing .pyc files -----------------#
 
 class CleanCommand(Command):
-    user_options = [ ]
+    user_options = [("all", "a", "All")]
 
     def initialize_options(self):
         self._clean_me = [ ]
+	self.all = None
         for root, dirs, files in os.walk('.'):
             for f in files:
                 if f.endswith('.pyc'):
