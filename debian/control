@@ -7,7 +7,7 @@ XS-Python-Version: >=2.5
 Standards-Version: 3.9.3
 
 Package: python-qutip
-Architecture: all
+Architecture: any
 Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}, python-scipy
 Recommends: ipython-notebook (>= 0.12), python-matplotlib, python-qt4
 Provides: ${python:Provides}
