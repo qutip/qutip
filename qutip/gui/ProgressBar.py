@@ -53,11 +53,11 @@ class ProgressBar(QtGui.QWidget):
         self.pbar.setGeometry(25, 40, 300,40)
         self.label = QtGui.QLabel(self)
         self.label.setStyleSheet("QLabel {font-size: 12px;}")
-        self.label.setText("Trajectories completed:                                       ")
+        self.label.setText("Trajectories completed:                                             ")
         self.label.move(25, 20)
         self.estlabel = QtGui.QLabel(self)
         self.estlabel.setStyleSheet("QLabel {font-size: 12px;}")
-        self.estlabel.setText("                                                           ")
+        self.estlabel.setText("                                                                 ")
         self.estlabel.move(25, 82)
         self.setWindowTitle('Monte-Carlo Trajectories on '+str(self.wait)+" CPUs")
         self.setGeometry(300, 300, 350, 120)
@@ -73,14 +73,14 @@ class ProgressBar(QtGui.QWidget):
     def updates(self):
         self.num+=1
         self.pbar.setValue((100.0*self.num)/self.max)
-        self.label.setText("Trajectories completed: "+ str(self.num)+"/"+str(self.max))
+        self.label.setText("Trajectories completed: "+ str(self.num)+"/"+str(self.max)+"  ")
         if self.num>=self.wait and remainder(self.num,self.wait)==0:
             nwt=datetime.datetime.now()
             diff=((nwt.day-self.st.day)*86400+(nwt.hour-self.st.hour)*(60**2)+(nwt.minute-self.st.minute)*60+(nwt.second-self.st.second))*(self.max-self.num)/(1.0*self.num)
             secs=datetime.timedelta(seconds=ceil(diff))
             dd = datetime.datetime(1,1,1) + secs
             time_string="%02d:%02d:%02d:%02d" % (dd.day-1,dd.hour,dd.minute,dd.second)
-            self.estlabel.setText("Est. time remaining: "+time_string)
+            self.estlabel.setText("Est. time remaining: "+time_string+"  ")
     def run(self):
         self.thread.start()
     def end(self):
