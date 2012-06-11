@@ -23,8 +23,7 @@ These pages contains automatically generated API documentation for QuTiP. A PDF 
 :Address: Department of Physics, Korea University,
           Seongbuk-Gu Seoul, 136-701 South Korea
 :Author: J.R. Johansson
-:Address: Digital Materials Laboratory
-		  Advanced Science Institute, RIKEN,
+:Address: Advanced Science Institute, RIKEN,
 		  Wako-shi Saitama, 351-0198 Japan
 :version: 2.0
 :status: In Development

@@ -64,12 +64,26 @@ On all platforms (Linux, Mac), QuTiP works "out-of-the-box" using the `Enthought
 .. _install-linux:
 
 Installation on Ubuntu Linux
-=================================
+============================
+
+The easiest way to install QuTiP in Ubuntu (12.04 and later) is to use the QuTiP PPA
+
+>>> sudo add-apt-repository ppa:jrjohansson/qutip-releases
+>>> sudo apt-get update
+>>> sudo apt-get install python-qutip
+
+With this method the most important dependencies are installed automatically, and when new version of QuTiP is released it can be upgraded through the standard package management system. In addition to the required dependencies, it is also strongly recommended that you install the ``texlive-latex-extra`` package. 
+
+Manual installation
+-------------------
+
+First install the following dependency packages:
 
 >>> sudo apt-get install python-scipy
->>> sudo apt-get install python-pyside or sudo apt-get install python-qt4
+>>> sudo apt-get install python-pyside
 >>> sudo apt-get install python-setuptools
 >>> sudo apt-get install python-dev
+>>> sudo apt-get install texlive-latex-extra # recommended
 
 Ubuntu 11.04 and Lower (skip this step in Ubuntu 11.10+):
 ---------------------------------------------------------
@@ -93,7 +107,7 @@ QuTiP installation:
 
 .. note:: 
 
-    On some versions of Ubuntu you might have to configure Matplotlib to use the GTKAgg or Qt4Agg backends instead of the default TkAgg backend. To do this, edit /etc/matplotlibrc, and change ``backend: TkAgg`` to ``backend: GTKAgg`` or ``backend: Qt4Agg``.
+    On some versions of Ubuntu you might have to configure Matplotlib to use the GTKAgg or Qt4Agg backends instead of the default TkAgg backend. To do change backend, edit /etc/matplotlibrc, and change ``backend: TkAgg`` to ``backend: GTKAgg`` or ``backend: Qt4Agg``.
 
 .. _install-mac:
 
