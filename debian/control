@@ -9,7 +9,7 @@ Standards-Version: 3.9.3
 Package: python-qutip
 Architecture: any
 Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}, python-scipy
-Recommends: ipython-notebook (>= 0.12), python-matplotlib, python-qt4
+Recommends: ipython (>= 0.12), python-matplotlib, python-qt4, cython
 Provides: ${python:Provides}
 Homepage: http://code.google.com/p/qutip
 Description: Python framework for solving the dynamics of quantum systems.
