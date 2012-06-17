@@ -574,7 +574,7 @@ class Qobj():
         
         """
         out=self.data.diagonal()
-        if any(imag(out)!=0):
+        if any(imag(out)>1e-15) or self.isherm==False:
             return out
         else:
             return real(out)
