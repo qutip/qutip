@@ -1,4 +1,82 @@
-<LINK href="../stylesheet.css" rel="stylesheet" type="text/css">
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN"
+   "http://www.w3.org/TR/html4/strict.dtd">
+
+<html>
+<head>
+  <title></title>
+  <meta http-equiv="content-type" content="text/html; charset=utf-8">
+  <style type="text/css">
+td.linenos { background-color: #f0f0f0; padding-right: 10px; }
+span.lineno { background-color: #f0f0f0; padding: 0 5px 0 5px; }
+pre { line-height: 125%; }
+body .hll { background-color: #ffffcc }
+body  { background: #f8f8f8; }
+body .c { color: #408080; font-style: italic } /* Comment */
+body .err { border: 1px solid #FF0000 } /* Error */
+body .k { color: #008000; font-weight: bold } /* Keyword */
+body .o { color: #666666 } /* Operator */
+body .cm { color: #408080; font-style: italic } /* Comment.Multiline */
+body .cp { color: #BC7A00 } /* Comment.Preproc */
+body .c1 { color: #408080; font-style: italic } /* Comment.Single */
+body .cs { color: #408080; font-style: italic } /* Comment.Special */
+body .gd { color: #A00000 } /* Generic.Deleted */
+body .ge { font-style: italic } /* Generic.Emph */
+body .gr { color: #FF0000 } /* Generic.Error */
+body .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+body .gi { color: #00A000 } /* Generic.Inserted */
+body .go { color: #808080 } /* Generic.Output */
+body .gp { color: #000080; font-weight: bold } /* Generic.Prompt */
+body .gs { font-weight: bold } /* Generic.Strong */
+body .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+body .gt { color: #0040D0 } /* Generic.Traceback */
+body .kc { color: #008000; font-weight: bold } /* Keyword.Constant */
+body .kd { color: #008000; font-weight: bold } /* Keyword.Declaration */
+body .kn { color: #008000; font-weight: bold } /* Keyword.Namespace */
+body .kp { color: #008000 } /* Keyword.Pseudo */
+body .kr { color: #008000; font-weight: bold } /* Keyword.Reserved */
+body .kt { color: #B00040 } /* Keyword.Type */
+body .m { color: #666666 } /* Literal.Number */
+body .s { color: #BA2121 } /* Literal.String */
+body .na { color: #7D9029 } /* Name.Attribute */
+body .nb { color: #008000 } /* Name.Builtin */
+body .nc { color: #0000FF; font-weight: bold } /* Name.Class */
+body .no { color: #880000 } /* Name.Constant */
+body .nd { color: #AA22FF } /* Name.Decorator */
+body .ni { color: #999999; font-weight: bold } /* Name.Entity */
+body .ne { color: #D2413A; font-weight: bold } /* Name.Exception */
+body .nf { color: #0000FF } /* Name.Function */
+body .nl { color: #A0A000 } /* Name.Label */
+body .nn { color: #0000FF; font-weight: bold } /* Name.Namespace */
+body .nt { color: #008000; font-weight: bold } /* Name.Tag */
+body .nv { color: #19177C } /* Name.Variable */
+body .ow { color: #AA22FF; font-weight: bold } /* Operator.Word */
+body .w { color: #bbbbbb } /* Text.Whitespace */
+body .mf { color: #666666 } /* Literal.Number.Float */
+body .mh { color: #666666 } /* Literal.Number.Hex */
+body .mi { color: #666666 } /* Literal.Number.Integer */
+body .mo { color: #666666 } /* Literal.Number.Oct */
+body .sb { color: #BA2121 } /* Literal.String.Backtick */
+body .sc { color: #BA2121 } /* Literal.String.Char */
+body .sd { color: #BA2121; font-style: italic } /* Literal.String.Doc */
+body .s2 { color: #BA2121 } /* Literal.String.Double */
+body .se { color: #BB6622; font-weight: bold } /* Literal.String.Escape */
+body .sh { color: #BA2121 } /* Literal.String.Heredoc */
+body .si { color: #BB6688; font-weight: bold } /* Literal.String.Interpol */
+body .sx { color: #008000 } /* Literal.String.Other */
+body .sr { color: #BB6688 } /* Literal.String.Regex */
+body .s1 { color: #BA2121 } /* Literal.String.Single */
+body .ss { color: #19177C } /* Literal.String.Symbol */
+body .bp { color: #008000 } /* Name.Builtin.Pseudo */
+body .vc { color: #19177C } /* Name.Variable.Class */
+body .vg { color: #19177C } /* Name.Variable.Global */
+body .vi { color: #19177C } /* Name.Variable.Instance */
+body .il { color: #666666 } /* Literal.Number.Integer.Long */
+
+  </style>
+</head>
+<body>
+<h2></h2>
+
 <div class="highlight"><pre><span class="sd">&#39;&#39;&#39;</span>
 <span class="sd">Code for simulating secure key rate, twofolds, and quantum bit error rate</span>
 <span class="sd">Written in Python and QuTIP by Catherine Holloway (c2hollow@iqc.ca).</span>
@@ -89,7 +167,8 @@
 
 <span class="k">def</span> <span class="nf">measure_2folds_4modes_squashing</span><span class="p">(</span><span class="n">N</span><span class="p">,</span><span class="n">psi</span><span class="p">,</span><span class="n">proj</span><span class="p">,</span><span class="n">proj2</span><span class="p">):</span>
 	<span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">	Determines the 2-fold count rate on the joint state outputs for an array of double count probabilities.</span>
+<span class="sd">	Determines the 2-fold count rate on the joint state </span>
+<span class="sd">	outputs for an array of double count probabilities.</span>
 <span class="sd">	</span>
 <span class="sd">	Parameters</span>
 <span class="sd">	----------</span>
@@ -166,11 +245,13 @@
 <span class="sd">	qber : float</span>
 <span class="sd">	    The Quantum Bit Error Rate</span>
 <span class="sd">	twofolds : float</span>
-<span class="sd">	    Probability of Alice and Bob getting a simultaneous detection of a photon pair </span>
-<span class="sd">	    (also referred to as coincidences) within a timing window.</span>
+<span class="sd">	    Probability of Alice and Bob getting a simultaneous detection </span>
+<span class="sd">	    of a photon pair (also referred to as coincidences) within a </span>
+<span class="sd">	    timing window.</span>
 <span class="sd">	skr : float</span>
-<span class="sd">	    Probability of getting a secure key bit within a timing window, assuming error correction </span>
-<span class="sd">	    and privacy amplification, in the limit of many coincidences.</span>
+<span class="sd">	    Probability of getting a secure key bit within a timing window, </span>
+<span class="sd">	    assuming error correction and privacy amplification, in the </span>
+<span class="sd">	    limit of many coincidences.</span>
 <span class="sd">    </span>
 <span class="sd">    &quot;&quot;&quot;</span>
 	<span class="c">#make vaccuum state</span>
@@ -183,7 +264,8 @@
 	<span class="n">U_sq</span> <span class="o">=</span> <span class="n">H_sq</span><span class="o">.</span><span class="n">expm</span><span class="p">()</span>
 	<span class="n">spdc</span> <span class="o">=</span> <span class="n">U_sq</span><span class="o">*</span><span class="n">tensor</span><span class="p">(</span><span class="n">vacc</span><span class="p">,</span><span class="n">vacc</span><span class="p">)</span>
 	<span class="n">psi</span> <span class="o">=</span> <span class="n">tensor</span><span class="p">(</span><span class="n">spdc</span><span class="p">,</span><span class="n">spdc</span><span class="p">)</span>
-	<span class="c">#since qutip doesn&#39;t have a permute function, we have to do a couple of steps in between</span>
+	<span class="c">#since qutip doesn&#39;t have a permute function, </span>
+	<span class="c">#we have to do a couple of steps in between</span>
 	<span class="c">#1. turn psi from a sparse matrix to a full matrix</span>
 	<span class="n">out</span> <span class="o">=</span> <span class="n">psi</span><span class="o">.</span><span class="n">full</span><span class="p">()</span>
 	<span class="c">#2. reshape psi into a 4-D matrix</span>
@@ -215,13 +297,15 @@
 	<span class="c"># estimate error correction efficiency from the CASCADE algorithm </span>
 	<span class="n">f_e</span> <span class="o">=</span> <span class="mf">1.16904371810274</span> <span class="o">+</span> <span class="n">qber</span>
 	<span class="c">#security analysis - calculate skr in infinite key limit</span>
-	<span class="c">#See Chris Erven&#39;s PhD thesis or Xiongfeng Ma&#39;s paper to understand where this equation comes from</span>
+	<span class="c">#See Chris Erven&#39;s PhD thesis or Xiongfeng Ma&#39;s paper </span>
+	<span class="c">#to understand where this equation comes from</span>
 	<span class="n">skr</span><span class="o">=</span><span class="n">real</span><span class="p">(</span><span class="n">twofolds</span><span class="o">*</span><span class="mf">0.5</span><span class="o">*</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">f_e</span><span class="p">)</span><span class="o">*</span><span class="n">H2</span><span class="p">))</span>
 	<span class="k">return</span> <span class="p">[</span><span class="n">qber</span><span class="p">,</span> <span class="n">skr</span><span class="p">,</span> <span class="n">twofolds</span><span class="p">]</span>
 
 
 <span class="k">if</span> <span class="n">__name__</span><span class="o">==</span><span class="s">&#39;__main__&#39;</span><span class="p">:</span>
-	<span class="c">#Lets look at what happens to the secure key rate and the quantum bit error rate as the loss gets worse.</span>
+	<span class="c">#Lets look at what happens to the secure key rate and </span>
+	<span class="c">#the quantum bit error rate as the loss gets worse.</span>
 	<span class="c">#Analogous to distance with fiber optic links.</span>
 	
 	<span class="c">#define the fock space</span>
@@ -261,3 +345,5 @@
 	<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;Loss (dB)&#39;</span><span class="p">)</span>
 	<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
+</body>
+</html>
