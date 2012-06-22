@@ -59,7 +59,7 @@ class ProgressBar(QtGui.QWidget):
         self.estlabel.setStyleSheet("QLabel {font-size: 12px;}")
         self.estlabel.setText("                                                                 ")
         self.estlabel.move(25, 82)
-        self.setWindowTitle('Monte-Carlo Trajectories on '+str(self.ncpus)+" CPUs")
+        self.setWindowTitle('Monte-Carlo Trajectories on '+str(ncpus)+" CPUs")
         self.setGeometry(300, 300, 350, 120)
         #self.setWindowOpacity(0.9) #make transparent
         screen = QtGui.QDesktopWidget().screenGeometry()
