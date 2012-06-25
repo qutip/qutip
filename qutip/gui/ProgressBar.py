@@ -24,8 +24,8 @@ import datetime
 if os.environ['QUTIP_GRAPHICS']=="NO":
     raise RuntimeError('No graphics installed or available.')
         
-if sys.platform.startswith("darwin"):#needed for PyQt on mac (because of pyobc) 
-    import Foundation
+#if sys.platform.startswith("darwin"):#needed for PyQt on mac (because of pyobc) 
+    #import Foundation
 
 if os.environ['QUTIP_GUI']=="PYSIDE":
     from PySide import QtCore,QtGui
@@ -98,8 +98,6 @@ class Pthread(QtCore.QThread):
         self.top=top
         self.exiting = True
     def run(self):
-        if sys.platform.startswith("darwin"):#needed for PyQt on mac (because of pyobc) 
-            pool = Foundation.NSAutoreleasePool.alloc().init()
         self.target(self.args,self)
         return self.top.bar.sig.finish.emit()
     def callback(self,args):
