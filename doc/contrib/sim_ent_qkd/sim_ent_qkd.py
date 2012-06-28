@@ -234,16 +234,16 @@ if __name__=='__main__':
 	#define the squeezing paramter
 	eps = 0.2
 	#define the noise factor
-	n_factor = 1.0e-2
+	n_factor = 4.0e-5
 	#define the length of the coincidence window (in s)
 	coinc_window = 2.0e-9
-	loss_db = arange(0,60)
-	skr = zeros(60)
-	qber = zeros(60)
-	twofolds = zeros(60)
+	loss_db = arange(0,30)
+	skr = zeros(30)
+	qber = zeros(30)
+	twofolds = zeros(30)
     
     #run calculation
-	for i in range(60):
+	for i in range(30):
 		exp_loss = 10.0**(-loss_db[i]/10.0);
 		[qber[i], skr[i], twofolds[i]] = sim_qkd_entanglement(eps,exp_loss,exp_loss,n_factor,n_factor,N)
 	skr = skr/coinc_window
@@ -253,16 +253,13 @@ if __name__=='__main__':
 	fig = plt.figure()
 	ax = fig.add_subplot(211)
 	ax.plot(loss_db, skr,lw=2)
-	#set symmetric log so negative values get plotted
-	ax.set_yscale('symlog')
-	#set ticks to only those we want
-	ax.set_yticks([-10**6,-10**4,-10**2,10**0,10**2,10**4,10**6,10**8])
+	ax.set_yscale('log')
 	ax.set_ylabel('Secure Key Rate (bits/s)')
 	ax.set_xlabel('Loss (dB)')
 	ax = fig.add_subplot(212)
 	ax.plot(loss_db, qber,lw=2)
 	ax.set_ylabel('Quantum Bit Error Rate (%)')
-	ax.set_ylim([0,60])
+	ax.set_ylim([0,15])
 	ax.set_xlabel('Loss (dB)')
 	plt.show()
 

@@ -313,16 +313,16 @@ body .il { color: #666666 } /* Literal.Number.Integer.Long */
 	<span class="c">#define the squeezing paramter</span>
 	<span class="n">eps</span> <span class="o">=</span> <span class="mf">0.2</span>
 	<span class="c">#define the noise factor</span>
-	<span class="n">n_factor</span> <span class="o">=</span> <span class="mf">1.0e-2</span>
+	<span class="n">n_factor</span> <span class="o">=</span> <span class="mf">4.0e-5</span>
 	<span class="c">#define the length of the coincidence window (in s)</span>
 	<span class="n">coinc_window</span> <span class="o">=</span> <span class="mf">2.0e-9</span>
-	<span class="n">loss_db</span> <span class="o">=</span> <span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">60</span><span class="p">)</span>
-	<span class="n">skr</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span>
-	<span class="n">qber</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span>
-	<span class="n">twofolds</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="mi">60</span><span class="p">)</span>
+	<span class="n">loss_db</span> <span class="o">=</span> <span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">30</span><span class="p">)</span>
+	<span class="n">skr</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
+	<span class="n">qber</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
+	<span class="n">twofolds</span> <span class="o">=</span> <span class="n">zeros</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>
     
     <span class="c">#run calculation</span>
-	<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">60</span><span class="p">):</span>
+	<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">30</span><span class="p">):</span>
 		<span class="n">exp_loss</span> <span class="o">=</span> <span class="mf">10.0</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="n">loss_db</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">/</span><span class="mf">10.0</span><span class="p">);</span>
 		<span class="p">[</span><span class="n">qber</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">skr</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">twofolds</span><span class="p">[</span><span class="n">i</span><span class="p">]]</span> <span class="o">=</span> <span class="n">sim_qkd_entanglement</span><span class="p">(</span><span class="n">eps</span><span class="p">,</span><span class="n">exp_loss</span><span class="p">,</span><span class="n">exp_loss</span><span class="p">,</span><span class="n">n_factor</span><span class="p">,</span><span class="n">n_factor</span><span class="p">,</span><span class="n">N</span><span class="p">)</span>
 	<span class="n">skr</span> <span class="o">=</span> <span class="n">skr</span><span class="o">/</span><span class="n">coinc_window</span>
@@ -332,18 +332,13 @@ body .il { color: #666666 } /* Literal.Number.Integer.Long */
 	<span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
 	<span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">211</span><span class="p">)</span>
 	<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">loss_db</span><span class="p">,</span> <span class="n">skr</span><span class="p">,</span><span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
-	<span class="c">#set symmetric log so negative values get plotted</span>
-	<span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s">&#39;symlog&#39;</span><span class="p">)</span>
-	<span class="c">#set ticks to only those we want</span>
-	<span class="n">ax</span><span class="o">.</span><span class="n">set_yticks</span><span class="p">([</span><span class="o">-</span><span class="mi">10</span><span class="o">**</span><span class="mi">6</span><span class="p">,</span><span class="o">-</span><span class="mi">10</span><span class="o">**</span><span class="mi">4</span><span class="p">,</span><span class="o">-</span><span class="mi">10</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span><span class="mi">10</span><span class="o">**</span><span class="mi">0</span><span class="p">,</span><span class="mi">10</span><span class="o">**</span><span class="mi">2</span><span class="p">,</span><span class="mi">10</span><span class="o">**</span><span class="mi">4</span><span class="p">,</span><span class="mi">10</span><span class="o">**</span><span class="mi">6</span><span class="p">,</span><span class="mi">10</span><span class="o">**</span><span class="mi">8</span><span class="p">])</span>
+	<span class="n">ax</span><span class="o">.</span><span class="n">set_yscale</span><span class="p">(</span><span class="s">&#39;log&#39;</span><span class="p">)</span>
 	<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Secure Key Rate (bits/s)&#39;</span><span class="p">)</span>
 	<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;Loss (dB)&#39;</span><span class="p">)</span>
 	<span class="n">ax</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">add_subplot</span><span class="p">(</span><span class="mi">212</span><span class="p">)</span>
 	<span class="n">ax</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">loss_db</span><span class="p">,</span> <span class="n">qber</span><span class="p">,</span><span class="n">lw</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
 	<span class="n">ax</span><span class="o">.</span><span class="n">set_ylabel</span><span class="p">(</span><span class="s">&#39;Quantum Bit Error Rate (%)&#39;</span><span class="p">)</span>
-	<span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">60</span><span class="p">])</span>
+	<span class="n">ax</span><span class="o">.</span><span class="n">set_ylim</span><span class="p">([</span><span class="mi">0</span><span class="p">,</span><span class="mi">15</span><span class="p">])</span>
 	<span class="n">ax</span><span class="o">.</span><span class="n">set_xlabel</span><span class="p">(</span><span class="s">&#39;Loss (dB)&#39;</span><span class="p">)</span>
 	<span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
-</body>
-</html>
