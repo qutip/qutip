@@ -18,6 +18,7 @@
 ###########################################################################
 
 from types import *
+from scipy.linalg import norm
 from scipy.integrate import *
 from qutip.Qobj import *
 from qutip.superoperator import *
@@ -620,7 +621,7 @@ def wfsolve_const(H, psi0, tlist, expt_ops, H_args, opt):
     #
     # call generic ODE code
     #
-    return generic_ode_solve(r, psi0, tlist, expt_ops, opt, lambda x: x)    
+    return generic_ode_solve(r, psi0, tlist, expt_ops, opt, lambda x: x, norm)    
 
 #
 # evaluate dpsi(t)/dt [not used. using cython function is being used instead]
@@ -983,7 +984,7 @@ def rho_ode_func_td(t, rho, L_func_and_args):
 # Solve an ODE which solver parameters already setup (r). Calculate the required
 # expectation values or invoke callback function at each time step.
 # 
-def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize):
+def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize, state_norm_func=None):
     """
     Internal function for solving ODEs.
     """
@@ -1030,8 +1031,14 @@ def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize):
         if not r.successful():
             break;
 
-        psi.data = state_vectorize(r.y)
-
+        if state_norm_func:
+            psi.data = state_vectorize(r.y)
+            state_norm = state_norm_func(psi.data)
+            psi.data = psi.data / state_norm
+            r.set_initial_value(r.y/state_norm, r.t)
+        else:
+            psi.data = state_vectorize(r.y)
+    
         if expt_callback:
             # use callback method
             expt_ops(t, Qobj(psi))
