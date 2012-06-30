@@ -101,7 +101,7 @@ def spost(A):
 	S.dims=[[d[:],A.dims[1][:]],[d[:],A.dims[0][:]]]
 	S.shape=[prod(S.dims[0][0])*prod(S.dims[0][1]),prod(S.dims[1][0])*prod(S.dims[1][1])]
 	S.data=sp.kron(A.data.T,sp.identity(prod(d)))
-	return Qobj(S)
+	return S
 	
 
 def spre(A):
@@ -125,6 +125,6 @@ def spre(A):
 	S.dims=[[A.dims[0][:],d[:]],[A.dims[1][:],d[:]]]
 	S.shape=[prod(S.dims[0][0])*prod(S.dims[0][1]),prod(S.dims[1][0])*prod(S.dims[1][1])]
 	S.data=sp.kron(sp.identity(prod(d)),A.data)
-	return Qobj(S)
+	return S
 	
 
