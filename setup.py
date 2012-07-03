@@ -218,7 +218,7 @@ setup(
     classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
     platforms = ["Linux", "Mac OSX", "Unix"],
     requires=['numpy (>=1.6)','scipy (>=0.9)','matplotlib (>=1.1)'],
-    package_data={'qutip/gui': ['logo.png']},
+    package_data={'qutip/gui': ['logo.png', 'icon.png']},
     cmdclass = { 'test': TestCommand,'devtest': TestHereCommand, 'clean': CleanCommand, 'svnclean': CleanSVNCommand }
     )
 

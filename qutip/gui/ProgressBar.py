@@ -20,6 +20,7 @@ import os,sys,threading
 from scipy import array,ceil,remainder
 from multiprocessing import Pool,cpu_count
 import datetime
+CD_BASE = os.path.dirname(__file__)
 
 if os.environ['QUTIP_GRAPHICS']=="NO":
     raise RuntimeError('No graphics installed or available.')
@@ -60,6 +61,7 @@ class ProgressBar(QtGui.QWidget):
         self.estlabel.setText("                                                                 ")
         self.estlabel.move(25, 82)
         self.setWindowTitle('Monte-Carlo Trajectories on '+str(ncpus)+" CPUs")
+        self.setWindowIcon(QtGui.QIcon(CD_BASE + "/icon.png"))
         self.setGeometry(300, 300, 350, 120)
         #self.setWindowOpacity(0.9) #make transparent
         screen = QtGui.QDesktopWidget().screenGeometry()

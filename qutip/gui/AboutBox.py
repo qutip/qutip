@@ -38,7 +38,7 @@ class AboutBox(QtGui.QWidget):
          
         self.setGeometry(0,0, 360,480) 
         self.setWindowTitle("About QuTiP") 
-        self.setWindowIcon(QtGui.QIcon(CD_BASE + "/logo.png")) 
+        self.setWindowIcon(QtGui.QIcon(CD_BASE + "/logo.png"))
         self.resize(360,480) 
         self.setMinimumSize(360,480)
         self.setMaximumSize(360,480) 

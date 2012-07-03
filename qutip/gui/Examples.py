@@ -9,6 +9,7 @@ if os.environ['QUTIP_GUI']=="PYSIDE":
 elif os.environ['QUTIP_GUI']=="PYQT4":
     from PyQt4 import QtGui, QtCore
 
+CD_BASE = os.path.dirname(__file__)
 
 class Examples(QtGui.QWidget):
     def center(self):
@@ -38,6 +39,7 @@ class Examples(QtGui.QWidget):
         
         #WINDOW PROPERTIES
         self.setWindowTitle('QuTiP Examples')
+        self.setWindowIcon(QtGui.QIcon(CD_BASE + "/icon.png"))
         self.resize(1300, 720)
         self.setMinimumSize(1300, 720)
         self.setMaximumSize(1300, 720)
