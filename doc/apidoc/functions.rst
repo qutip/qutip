@@ -111,6 +111,13 @@ Steady-state Solvers
     :members: steady, steadystate
     :undoc-members:
 
+Propagators
+-----------
+
+.. automodule:: qutip.propagator
+    :members: propagator, propagator_steadystate
+    :undoc-members:
+
 Other Functions
 ===============
 
