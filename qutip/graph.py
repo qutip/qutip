@@ -18,9 +18,12 @@
 ###########################################################################
 
 from pylab import *
-from matplotlib import cm
+from matplotlib import pyplot, mpl,cm
+from mpl_toolkits.mplot3d import Axes3D
+
 from qutip.istests import *
 
+from qutip.Qobj import Qobj
 
 #
 # A collection of various visalization functions.
@@ -137,6 +140,106 @@ def matrix_histogram(M, xlabels, ylabels, title, limits=None, ax=None):
     norm=mpl.colors.Normalize(z_min, z_max) 
     cmap=get_cmap('jet') # Spectral
     colors=cmap(norm(dz))
+
+    if ax == None:
+        fig = plt.figure()
+        ax = Axes3D(fig, azim=-35, elev=35)
+
+    ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
+    plt.title(title)
+
+    # x axis
+    ax.axes.w_xaxis.set_major_locator(IndexLocator(1,-0.5))
+    ax.set_xticklabels(xlabels) 
+    ax.tick_params(axis='x', labelsize=14)
+
+    # y axis
+    ax.axes.w_yaxis.set_major_locator(IndexLocator(1,-0.5)) 
+    ax.set_yticklabels(ylabels) 
+    ax.tick_params(axis='y', labelsize=14)
+
+    # z axis
+    ax.axes.w_zaxis.set_major_locator(IndexLocator(1,0.5))
+    ax.set_zlim3d([z_min, z_max])
+
+    # color axis
+    cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.02)
+    cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+
+    return ax
+
+def matrix_histogram_complex(M, xlabels, ylabels, title, limits=None, ax=None):
+    """
+    Draw a histogram for the amplitudes of matrix M, using the argument of each element
+    for coloring the bars, with the given x and y labels and title.
+
+    Parameters
+    ----------
+    M : Matrix of Qobj
+        The matrix to visualize
+
+    xlabels : list of strings
+        list of x labels
+
+    ylabels : list of strings
+        list of y labels
+
+    title : string
+        title of the plot
+
+    limits : list/array with two float numbers
+        The z-axis limits [min, max] (optional)
+
+    ax : a matplotlib axes instance
+        The axes context in which the plot will be drawn.
+    
+    Returns
+    -------
+
+        An matplotlib axes instance for the plot.
+
+    Raises
+    ------
+    ValueError
+        Input argument is not valid.
+
+    """
+
+    if isinstance(M, Qobj):
+        # extract matrix data from Qobj
+        M = M.full()
+
+    n=size(M) 
+    xpos,ypos=meshgrid(range(M.shape[0]),range(M.shape[1]))
+    xpos=xpos.T.flatten()-0.5 
+    ypos=ypos.T.flatten()-0.5 
+    zpos = zeros(n) 
+    dx = dy = 0.8 * ones(n) 
+    Mvec = M.flatten()
+    dz = abs(Mvec) 
+    
+    if limits: # check that limits is a list type
+        z_min = limits[0]
+        z_max = limits[1]
+    else:
+        z_min = -pi
+        z_max = pi
+        
+    norm=mpl.colors.Normalize(z_min, z_max) 
+    cmap=get_cmap('jet') # Spectral
+
+    # cdict = {'red':  ((0.0, 0.0, 0.0),
+    #                   (0.5, 0.5, 0.5),
+    #                   (1.0, 0.0, 0.0)),
+    #         'green': ((0.0, 0.0, 0.0),
+    #                   (0.5, 0.5, 0.5),
+    #                   (1.0, 0.0, 0.0)),
+    #         'blue':  ((0.0, 0.0, 0.0),
+    #                   (0.5, 0.5, 0.5),
+    #                   (1.0, 0.0, 0.0))}
+    # cmap = matplotlib.colors.LinearSegmentedColormap('my_colormap',cdict, 256)
+
+    colors=cmap(angle(Mvec))
 
     if ax == None:
         fig = plt.figure()

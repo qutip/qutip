@@ -17,6 +17,14 @@
 #
 ###########################################################################
 
+from qutip.tensor import tensor
+from qutip.superoperator import spre, spost, mat2vec, vec2mat
+from qutip.Qobj import Qobj
+from numpy import hstack
+import scipy.linalg as la
+from qutip.graph import matrix_histogram, matrix_histogram_complex
+
+from pylab import *
 
 def index_permutations(size_list, perm=[]):
     """
@@ -45,13 +53,33 @@ def qpt_plot(chi, lbls_list, title=None, fig=None):
     ax = None
 
     ax = fig.add_subplot(1,2,1, projection='3d')
-    matrix_histogram(real(chi), xlabels, xlabels, r"real($\chi$)", ax)
+    matrix_histogram(real(chi), xlabels, xlabels, r"real($\chi$)", [-1,1], ax)
 
     ax = fig.add_subplot(1,2,2, projection='3d')
-    matrix_histogram(imag(chi), xlabels, xlabels, r"imag($\chi$)", ax)
+    matrix_histogram(imag(chi), xlabels, xlabels, r"imag($\chi$)", [-1,1], ax)
 
     if title:
         fig.suptitle(title)
+
+def qpt_plot_complex(chi, lbls_list, title=None, fig=None):
+    """
+    Visualize the quantum process tomography chi matrix. Plot bars with
+    height that correspond to the absolute value and color that correspond
+    to the phase.
+    """
+    #if fig == None:
+    #    fig = figure(figsize=(16,8))
+
+    xlabels = []
+    for inds in index_permutations([len(lbls) for lbls in lbls_list]):
+        xlabels.append("".join([lbls_list[k][inds[k]] for k in range(len(lbls_list))]))        
+
+    # use given fig instance...
+    
+    if not title:
+        title = r"$\chi$"
+
+    matrix_histogram_complex(chi, xlabels, xlabels, title)
 
 def qpt(U, op_basis_list):
     """
