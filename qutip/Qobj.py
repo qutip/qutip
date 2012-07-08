@@ -728,9 +728,9 @@ class Qobj():
             Quantum object with small elements removed.
         
         """
-        abs_data=abs(self.data.data)
+        abs_data=abs(self.data.data.flatten())
         if any(abs_data):
-            mx=max(abs(self.data.data))
+            mx=max(abs_data)
             if mx>=1e-15:
                 data=abs(self.data.data)
                 outdata=self.data.copy()
