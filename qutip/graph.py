@@ -218,28 +218,38 @@ def matrix_histogram_complex(M, xlabels, ylabels, title, limits=None, ax=None):
     Mvec = M.flatten()
     dz = abs(Mvec) 
     
+    # make small numbers real, to avoid random colors
+    idx, = where(abs(Mvec) < 0.001)
+    Mvec[idx] = abs(Mvec[idx])
+
     if limits: # check that limits is a list type
-        z_min = limits[0]
-        z_max = limits[1]
+        phase_min = limits[0]
+        phase_max = limits[1]
     else:
-        z_min = -pi
-        z_max = pi
+        phase_min = -pi
+        phase_max = pi
         
-    norm=mpl.colors.Normalize(z_min, z_max) 
-    cmap=get_cmap('jet') # Spectral
+    norm=mpl.colors.Normalize(phase_min, phase_max) 
 
-    # cdict = {'red':  ((0.0, 0.0, 0.0),
-    #                   (0.5, 0.5, 0.5),
-    #                   (1.0, 0.0, 0.0)),
-    #         'green': ((0.0, 0.0, 0.0),
-    #                   (0.5, 0.5, 0.5),
-    #                   (1.0, 0.0, 0.0)),
-    #         'blue':  ((0.0, 0.0, 0.0),
-    #                   (0.5, 0.5, 0.5),
-    #                   (1.0, 0.0, 0.0))}
-    # cmap = matplotlib.colors.LinearSegmentedColormap('my_colormap',cdict, 256)
+    # create a cyclic colormap
+    cdict = {'blue': ((0.00, 0.0, 0.0),
+                      (0.25, 0.0, 0.0),
+                      (0.50, 1.0, 1.0),
+                      (0.75, 1.0, 1.0),
+                      (1.00, 0.0, 0.0)),
+            'green': ((0.00, 0.0, 0.0),
+                      (0.25, 1.0, 1.0),
+                      (0.50, 0.0, 0.0),
+                      (0.75, 1.0, 1.0),
+                      (1.00, 0.0, 0.0)),
+            'red':   ((0.00, 1.0, 1.0),
+                      (0.25, 0.5, 0.5),
+                      (0.50, 0.0, 0.0),
+                      (0.75, 0.0, 0.0),
+                      (1.00, 1.0, 1.0))}
+    cmap = matplotlib.colors.LinearSegmentedColormap('phase_colormap', cdict, 256)
 
-    colors=cmap(angle(Mvec))
+    colors = cmap(norm(angle(Mvec)))
 
     if ax == None:
         fig = plt.figure()
@@ -259,11 +269,14 @@ def matrix_histogram_complex(M, xlabels, ylabels, title, limits=None, ax=None):
     ax.tick_params(axis='y', labelsize=14)
 
     # z axis
-    ax.axes.w_zaxis.set_major_locator(IndexLocator(1,0.5))
-    ax.set_zlim3d([z_min, z_max])
+    #ax.axes.w_zaxis.set_major_locator(IndexLocator(1,0.5))
+    ax.set_zlim3d([0, 1])
 
     # color axis
     cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.02)
-    cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+    cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+    cb.set_ticks([-pi, -pi/2, 0, pi/2, pi])
+    cb.set_ticklabels((r'$-\pi$',r'$-\pi/2$',r'$0$',r'$\pi/2$',r'$\pi$'))
+
 
     return ax
