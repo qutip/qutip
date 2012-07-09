@@ -61,7 +61,7 @@ def qpt_plot(chi, lbls_list, title=None, fig=None):
     if title:
         fig.suptitle(title)
 
-def qpt_plot_complex(chi, lbls_list, title=None, fig=None):
+def qpt_plot_combined(chi, lbls_list, title=None, fig=None):
     """
     Visualize the quantum process tomography chi matrix. Plot bars with
     height that correspond to the absolute value and color that correspond
