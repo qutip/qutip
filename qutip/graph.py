@@ -271,12 +271,13 @@ def matrix_histogram_complex(M, xlabels, ylabels, title, limits=None, ax=None):
     # z axis
     #ax.axes.w_zaxis.set_major_locator(IndexLocator(1,0.5))
     ax.set_zlim3d([0, 1])
+    #ax.set_zlabel('abs')
 
     # color axis
     cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.02)
     cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
     cb.set_ticks([-pi, -pi/2, 0, pi/2, pi])
     cb.set_ticklabels((r'$-\pi$',r'$-\pi/2$',r'$0$',r'$\pi/2$',r'$\pi$'))
-
+    cb.set_label('arg')
 
     return ax
