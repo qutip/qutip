@@ -147,7 +147,7 @@ class CleanCommand(Command):
 
     def initialize_options(self):
         self._clean_me = [ ]
-	self.all = None
+        self.all = None
         for root, dirs, files in os.walk('.'):
             for f in files:
                 if f.endswith('.pyc'):
