@@ -149,6 +149,47 @@ def swap():
     return Qobj(Q)
 
 
+def iswap():
+    """Quantum object representing the iSWAP gate.
+    
+    Returns
+    -------
+    iswap_gate : qobj
+        Quantum object representation of iSWAP gate
+    
+    Examples
+    --------
+    >>> iswap()
+    Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = False
+    Qobj data =
+    [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
+     [ 0.+0.j  0.+0.j  0.+1.j  0.+0.j]
+     [ 0.+0.j  0.+1.j  0.+0.j  0.+0.j]
+     [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
+    """
+    return Qobj(array([[1,0,0,0], [0,0,1j,0], [0,1j,0,0], [0,0,0,1]]), dims=[[2, 2], [2, 2]])
+
+
+def sqrtiswap():
+    """Quantum object representing the square root iSWAP gate.
+    
+    Returns
+    -------
+    sqrtiswap_gate : qobj
+        Quantum object representation of square root iSWAP gate
+    
+    Examples
+    --------
+    >>> sqrtiswap()
+    Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = False
+    Qobj data =
+    [[ 1.00000000+0.j   0.00000000+0.j          0.00000000+0.j          0.00000000+0.j]
+     [ 0.00000000+0.j   0.70710678+0.j          0.00000000-0.70710678j  0.00000000+0.j]
+     [ 0.00000000+0.j   0.00000000-0.70710678j  0.70710678+0.j          0.00000000+0.j]
+     [ 0.00000000+0.j   0.00000000+0.j          0.00000000+0.j          1.00000000+0.j]]    
+    """
+    return Qobj(array([[1,0,0,0], [0, 1/sqrt(2), -1j/sqrt(2), 0], [0, -1j/sqrt(2), 1/sqrt(2), 0], [0, 0, 0, 1]]), dims=[[2, 2], [2, 2]])
+
 
 def snot():
     """Quantum object representing the SNOT (Hadamard) gate.
