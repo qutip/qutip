@@ -41,7 +41,7 @@ def index_permutations(size_list, perm=[]):
 def qpt_plot(chi, lbls_list, title=None, fig=None):
     """
     Visualize the quantum process tomography chi matrix. Plot the real and
-    imaginary separately.
+    imaginary parts separately.
     """
     if fig == None:
         fig = figure(figsize=(16,8))
@@ -49,8 +49,6 @@ def qpt_plot(chi, lbls_list, title=None, fig=None):
     xlabels = []
     for inds in index_permutations([len(lbls) for lbls in lbls_list]):
         xlabels.append("".join([lbls_list[k][inds[k]] for k in range(len(lbls_list))]))        
-
-    ax = None
 
     ax = fig.add_subplot(1,2,1, projection='3d')
     matrix_histogram(real(chi), xlabels, xlabels, r"real($\chi$)", [-1,1], ax)
@@ -67,19 +65,19 @@ def qpt_plot_combined(chi, lbls_list, title=None, fig=None):
     height that correspond to the absolute value and color that correspond
     to the phase.
     """
-    #if fig == None:
-    #    fig = figure(figsize=(16,8))
+    if fig == None:
+        fig = figure(figsize=(8,6))
 
     xlabels = []
     for inds in index_permutations([len(lbls) for lbls in lbls_list]):
         xlabels.append("".join([lbls_list[k][inds[k]] for k in range(len(lbls_list))]))        
 
-    # use given fig instance...
-    
     if not title:
         title = r"$\chi$"
 
-    matrix_histogram_complex(chi, xlabels, xlabels, title)
+    ax = fig.add_subplot(1,1,1, projection='3d')
+
+    matrix_histogram_complex(chi, xlabels, xlabels, title, None, ax)
 
 def qpt(U, op_basis_list):
     """
