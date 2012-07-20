@@ -74,7 +74,7 @@ def write_version_py(filename='qutip/_version.py'):
 short_version='%(version)s'
 version='%(fullversion)s'
 release=%(isrelease)s
-    """
+"""
         a = open(filename, 'w')
         try:
             a.write(cnt % {'version': VERSION,'fullversion': FULLVERSION, 'isrelease': str(ISRELEASED)})
