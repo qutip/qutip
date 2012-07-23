@@ -50,10 +50,10 @@ def qpt_plot(chi, lbls_list, title=None, fig=None):
     for inds in index_permutations([len(lbls) for lbls in lbls_list]):
         xlabels.append("".join([lbls_list[k][inds[k]] for k in range(len(lbls_list))]))        
 
-    ax = fig.add_subplot(1,2,1, projection='3d')
+    ax = fig.add_subplot(1,2,1, projection='3d', position=[0, 0, 1, 1])
     matrix_histogram(real(chi), xlabels, xlabels, r"real($\chi$)", [-1,1], ax)
 
-    ax = fig.add_subplot(1,2,2, projection='3d')
+    ax = fig.add_subplot(1,2,2, projection='3d', position=[0, 0, 1, 1])
     matrix_histogram(imag(chi), xlabels, xlabels, r"imag($\chi$)", [-1,1], ax)
 
     if title:
@@ -75,7 +75,7 @@ def qpt_plot_combined(chi, lbls_list, title=None, fig=None):
     if not title:
         title = r"$\chi$"
 
-    ax = fig.add_subplot(1,1,1, projection='3d')
+    ax = fig.add_subplot(1,1,1, projection='3d', position=[0, 0, 1, 1])
 
     matrix_histogram_complex(chi, xlabels, xlabels, title, None, ax)
 

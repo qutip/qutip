@@ -163,7 +163,7 @@ def matrix_histogram(M, xlabels, ylabels, title, limits=None, ax=None):
     ax.set_zlim3d([z_min, z_max])
 
     # color axis
-    cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.02)
+    cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
     cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
     return ax
@@ -261,12 +261,12 @@ def matrix_histogram_complex(M, xlabels, ylabels, title, limits=None, ax=None):
     # x axis
     ax.axes.w_xaxis.set_major_locator(IndexLocator(1,-0.5))
     ax.set_xticklabels(xlabels) 
-    ax.tick_params(axis='x', labelsize=14)
+    ax.tick_params(axis='x', labelsize=12)
 
     # y axis
     ax.axes.w_yaxis.set_major_locator(IndexLocator(1,-0.5)) 
     ax.set_yticklabels(ylabels) 
-    ax.tick_params(axis='y', labelsize=14)
+    ax.tick_params(axis='y', labelsize=12)
 
     # z axis
     #ax.axes.w_zaxis.set_major_locator(IndexLocator(1,0.5))
@@ -274,7 +274,7 @@ def matrix_histogram_complex(M, xlabels, ylabels, title, limits=None, ax=None):
     #ax.set_zlabel('abs')
 
     # color axis
-    cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.02)
+    cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
     cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
     cb.set_ticks([-pi, -pi/2, 0, pi/2, pi])
     cb.set_ticklabels((r'$-\pi$',r'$-\pi/2$',r'$0$',r'$\pi/2$',r'$\pi$'))
