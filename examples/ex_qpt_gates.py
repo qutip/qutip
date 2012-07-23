@@ -4,83 +4,43 @@ Plot the process tomography matrices for some 1, 2, and 3-qubit qubit gates.
 """
 from qutip import *
 
+# select smaller than usual font size to fit all the axis labels
 rcParams['text.usetex'] = True
-rcParams['font.size'] = 16
+rcParams['font.size'] = 14
 rcParams['font.family'] = 'serif'
 
-## cnot gate 
-U_psi = cnot()
-U_rho = spre(U_psi) * spost(U_psi.dag())
+gate_list = [['C-NOT', cnot()],
+             ['SWAP', swap()],
+             ['$i$SWAP', iswap()],
+             ['$\sqrt{i\mathrm{SWAP}}$', sqrtiswap()],
+             ['S-NOT', snot()],
+             ['$\pi/2$ phase gate', phasegate(pi/2)],
+             ['Toffoli', toffoli()],
+             ['Fredkin', fredkin()]]
 
-op_basis = [[qeye(2), sigmax(), sigmay(), sigmaz()], [qeye(2), sigmax(), sigmay(), sigmaz()]]
-op_label = [["i", "x", "y", "z"], ["i", "x", "y", "z"]]
-chi = qpt(U_rho, op_basis)
-qpt_plot_combined(chi, op_label, "cnot")
+# loop though the gate list and plot the gates
+for gate in gate_list:
 
-## swap gate 
-U_psi = swap()
-U_rho = spre(U_psi) * spost(U_psi.dag())
+	name  = gate[0]
+	U_psi = gate[1]
 
-op_basis = [[qeye(2), sigmax(), sigmay(), sigmaz()] for i in range(2)]
-op_label = [["i", "x", "y", "z"] for i in range(2)]
-chi = qpt(U_rho, op_basis)
-qpt_plot_combined(chi, op_label, "swap")
+	N = len(U_psi.dims[0]) # number of qubits
 
-## sqrt(i swap) gate 
-U_psi = Qobj(array([[1,0,0,0], [0, 1/sqrt(2), -1j/sqrt(2), 0], [0, -1j/sqrt(2), 1/sqrt(2), 0], [0, 0, 0, 1]]))
-U_rho = spre(U_psi) * spost(U_psi.dag())
+	# create a superoperator for the density matrix
+	# transformation rho = U_psi * rho_0 * U_psi.dag()
+	U_rho = spre(U_psi) * spost(U_psi.dag())
 
-op_basis = [[qeye(2), sigmax(), sigmay(), sigmaz()] for i in range(2)]
-op_label = [["i", "x", "y", "z"] for i in range(2)]
-chi = qpt(U_rho, op_basis)
-qpt_plot_combined(chi, op_label, "sqrt iSWAP")
+	# operator basis for the process tomography
+	op_basis = [[qeye(2), sigmax(), sigmay(), sigmaz()] for i in range(N)]
 
-## i swap gate 
-U_psi = Qobj(array([[1,0,0,0], [0,0,1j,0], [0,1j,0,0], [0,0,0,1]]))
-U_rho = spre(U_psi) * spost(U_psi.dag())
+	# labels for operator basis
+	op_label = [["i", "x", "y", "z"] for i in range(N)]
 
-op_basis = [[qeye(2), sigmax(), sigmay(), sigmaz()] for i in range(2)]
-op_label = [["i", "x", "y", "z"] for i in range(2)]
-chi = qpt(U_rho, op_basis)
-qpt_plot_combined(chi, op_label, "iSWAP")
+	# calculate the chi matrix
+	chi = qpt(U_rho, op_basis)
 
-## snot gate 
-U_psi = snot()
-U_rho = spre(U_psi) * spost(U_psi.dag())
+	# visualize the chi matrix
+	qpt_plot_combined(chi, op_label, name)
 
-op_basis = [[qeye(2), sigmax(), sigmay(), sigmaz()]]
-op_label = [["i", "x", "y", "z"]]
-chi = qpt(U_rho, op_basis)
-qpt_plot_combined(chi, op_label, "snot")
-
-
-## phase gate
-theta = pi/2
-U_psi = phasegate(theta)
-U_rho = spre(U_psi) * spost(U_psi.dag())
-
-op_basis = [[qeye(2), sigmax(), sigmay(), sigmaz()]]
-op_label = [["i", "x", "y", "z"]]
-chi = qpt(U_rho, op_basis)
-qpt_plot_combined(chi, op_label, "phasegate(theta=%.2f)" % theta)
-
-## toffoli gate 
-U_psi = toffoli()
-U_rho = spre(U_psi) * spost(U_psi.dag())
-
-op_basis = [[qeye(2), sigmax(), sigmay(), sigmaz()] for i in range(3)] 
-op_label = [["i", "x", "y", "z"] for i in range(3)]
-chi = qpt(U_rho, op_basis)
-qpt_plot_combined(chi, op_label, "toffoli")
-
-## fredkin gate 
-U_psi = fredkin()
-U_rho = spre(U_psi) * spost(U_psi.dag())
-
-op_basis = [[qeye(2), sigmax(), sigmay(), sigmaz()] for i in range(3)] 
-op_label = [["i", "x", "y", "z"] for i in range(3)]
-chi = qpt(U_rho, op_basis)
-qpt_plot_combined(chi, op_label, "fredkin")
-
-
+#tight_layout()
 show()
