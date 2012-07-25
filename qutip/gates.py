@@ -18,8 +18,8 @@
 ###########################################################################
 from scipy import sqrt
 from qutip.qstate import qstate
+from qutip.states import state_number_index, state_number_enumerate
 from qutip.Qobj import *
-
 
 def cnot():
     """
@@ -122,7 +122,7 @@ def toffoli():
     return Qobj(Q)
 
 #------------------
-def swap():
+def swap(mask=None):
     """Quantum object representing the SWAP gate.
     
     Returns
@@ -141,15 +141,37 @@ def swap():
      [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
          
     """
-    uu=qstate('uu')
-    ud=qstate('ud')
-    du=qstate('du')
-    dd=qstate('dd')
-    Q=uu*uu.dag()+ud*du.dag()+ du*ud.dag()+dd*dd.dag()
-    return Qobj(Q)
+    if mask is None:
+        uu=qstate('uu')
+        ud=qstate('ud')
+        du=qstate('du')
+        dd=qstate('dd')
+        Q=uu*uu.dag()+ud*du.dag()+ du*ud.dag()+dd*dd.dag()
+        return Qobj(Q)
+    else:
+        if sum(mask) != 2:
+            raise ValueError("mask must only have two ones, rest zeros")
+        
+        dims = [2] * len(mask)
+        idx, = where(mask)
+        N = prod(dims)
+        data = sp.lil_matrix((N,N))
 
+        for s1 in state_number_enumerate(dims):
+            i1 = state_number_index(dims, s1)
 
-def iswap():
+            if s1[idx[0]] == s1[idx[1]]:
+                i2 = i1
+            else:
+                s2 = array(s1).copy()
+                s2[idx[0]], s2[idx[1]] = s2[idx[1]], s2[idx[0]]
+                i2 = state_number_index(dims, s2)
+
+            data[i1,i2] = 1
+
+        return Qobj(data, dims=[dims, dims], shape=[N, N])
+
+def iswap(mask=None):
     """Quantum object representing the iSWAP gate.
     
     Returns
@@ -167,7 +189,32 @@ def iswap():
      [ 0.+0.j  0.+1.j  0.+0.j  0.+0.j]
      [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
     """
-    return Qobj(array([[1,0,0,0], [0,0,1j,0], [0,1j,0,0], [0,0,0,1]]), dims=[[2, 2], [2, 2]])
+    if mask is None:
+        return Qobj(array([[1,0,0,0], [0,0,1j,0], [0,1j,0,0], [0,0,0,1]]), dims=[[2, 2], [2, 2]])
+    else:
+        if sum(mask) != 2:
+            raise ValueError("mask must only have two ones, rest zeros")
+        
+        dims = [2] * len(mask)
+        idx,  = where(mask)
+        N = prod(dims)
+        data = sp.lil_matrix((N,N),dtype=complex)
+
+        for s1 in state_number_enumerate(dims):
+            i1 = state_number_index(dims, s1)
+
+            if s1[idx[0]] == s1[idx[1]]:
+                i2 = i1
+                val = 1.0
+            else:
+                s2 = s1.copy()
+                s2[idx[0]], s2[idx[1]] = s2[idx[1]], s2[idx[0]]
+                i2 = state_number_index(dims, s2)
+                val = 1.0j
+
+            data[i1,i2] = val
+
+        return Qobj(data, dims=[dims, dims], shape=[N, N])
 
 
 def sqrtiswap():
