@@ -309,4 +309,66 @@ def projection(N, n, m):
     
     return ket1 * ket2.dag()
 
+#
+# quantum state number helper functions
+#
+def state_number_enumerate(dims, state=None, idx=0):
+    """
+    An iterator that enumerate all the state number arrays (quantum numbers on
+    the form [n1, n2, n3, ...]) for a system with dimensions given by dims.
+
+    Example:
+
+        >>> for state in state_number_enumerate([2,2]):
+        >>>     print state
+        [ 0.  0.]
+        [ 0.  1.]
+        [ 1.  0.]
+        [ 1.  1.]
+    """
+        
+    if state is None:
+        state = zeros(len(dims))
+        
+    if idx == len(dims):
+        yield array(state)
+    else:
+        for n in range(dims[idx]):
+            state[idx] = n
+            for s in state_number_enumerate(dims, state, idx+1):
+                yield s
+                
+def state_number_index(dims, state):
+    """
+    Return the index of a quantum state corresponding to state,
+    given a system with dimensions given by dims. 
+
+    Example:
+        
+        >>> state_index([2,2,2], [1,1,0])
+        6.0
+
+    """
+    return sum([state[i] * prod(dims[i+1:]) for i, d in enumerate(dims)])
+
+def state_number_qobj(dims, state):
+    """
+    Return a Qobj representation of a quantum state specified by the state
+    array `state`.
+
+    Example:
+        
+        >>> state_number_qobj([2,2,2], [1,0,1])
+        Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = [8, 1], type = ket
+        Qobj data =
+        [[ 0.]
+         [ 0.]
+         [ 0.]
+         [ 0.]
+         [ 0.]
+         [ 1.]
+         [ 0.]
+         [ 0.]]
+    """
+    return tensor([fock(dims[i], s) for i, s in enumerate(state)])
 
