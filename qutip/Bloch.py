@@ -17,9 +17,15 @@
 #
 ###########################################################################
 import os
-from scipy import *
+
+from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
+                   sqrt, real, imag, mod)
+
+from pylab import figure,plot,show,savefig,close
+from mpl_toolkits.mplot3d import Axes3D
+
 from qutip.expect import expect
-from qutip.operators import *
+from qutip.operators import sigmax, sigmay, sigmaz
 
 
 class Bloch():
@@ -261,8 +267,6 @@ class Bloch():
         """
         #setup plot
         ##Figure instance for Bloch sphere plot
-        from pylab import figure,plot,show,close
-        from mpl_toolkits.mplot3d import Axes3D
         if self.user_axes:
             self.axes=self.user_axes
         else:
@@ -365,8 +369,6 @@ class Bloch():
         """
         Display Bloch sphere and corresponding data sets.
         """
-        from pylab import figure,plot,show,close
-        from mpl_toolkits.mplot3d import Axes3D
         self.make_sphere()
         if self.fig:
             show(self.fig)
@@ -393,7 +395,6 @@ class Bloch():
         File containing plot of Bloch sphere.
         
         """
-        from pylab import figure,plot,show,savefig,close
         self.make_sphere()
         if dirc:
             if not os.path.isdir(os.getcwd()+"/"+str(dirc)):

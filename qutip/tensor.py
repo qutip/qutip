@@ -21,9 +21,8 @@ Module for the creation of composite quantum
 objects via the tensor product.
 
 """
-from scipy import *
+from numpy import ndarray, array
 import scipy.sparse as sp
-from scipy.linalg import *
 from qutip.Qobj import Qobj
 import qutip.settings
 

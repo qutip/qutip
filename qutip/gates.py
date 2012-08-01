@@ -16,7 +16,7 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from scipy import sqrt
+from numpy import sqrt, array
 from qutip.states import qstate, state_number_index, state_number_enumerate
 from qutip.Qobj import Qobj
 
