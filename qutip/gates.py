@@ -17,9 +17,8 @@
 #
 ###########################################################################
 from scipy import sqrt
-from qutip.qstate import qstate
-from qutip.states import state_number_index, state_number_enumerate
-from qutip.Qobj import *
+from qutip.states import qstate, state_number_index, state_number_enumerate
+from qutip.Qobj import Qobj
 
 def cnot():
     """

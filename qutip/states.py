@@ -16,10 +16,13 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from scipy import *
+
+from scipy import arange, conj
+import scipy.sparse as sp
+
 from qutip.Qobj import Qobj
 from qutip.operators import destroy
-import scipy.sparse as sp
+from qutip.tensor import tensor
 
 def basis(N,*args):
     """Generates the vector representation of a Fock state.
@@ -308,6 +311,52 @@ def projection(N, n, m):
     ket2 = basis(N, m)
     
     return ket1 * ket2.dag()
+
+#
+# composite qubit states
+#
+def qstate(string):
+	"""Creates a tensor product for a set of qubits in either 
+	the 'up' :math:`|0>` or 'down' :math:`|1>` state.
+    
+    Parameters
+    ----------
+    string : str 
+        String containing 'u' or 'd' for each qubit (ex. 'ududd')
+
+    Returns
+    ------- 
+    qstate : qobj
+        Qobj for tensor product corresponding to input string.
+    
+    Examples
+    --------
+    >>> qstate('udu')
+    Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = [8, 1], type = ket
+    Qobj data = 
+    [[ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 1.]
+     [ 0.]
+     [ 0.]]
+    
+	"""
+	n=len(string)
+	if n!=(string.count('u')+string.count('d')):
+		raise TypeError('String input to QSTATE must consist of "u" and "d" elements only')
+	else:
+		up=basis(2,1)
+		dn=basis(2,0)
+	lst=[]
+	for k in range(n):
+		if string[k]=='u':
+			lst.append(up)
+		else:
+			lst.append(dn)
+	return tensor(lst)
 
 #
 # quantum state number helper functions

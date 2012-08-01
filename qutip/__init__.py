@@ -114,7 +114,6 @@ if qutip.settings.qutip_graphics=='YES':
 # library functions
 from qutip.wigner import *
 
-from qutip.qstate import *
 from qutip.rand import *
 from qutip.simdiag import *
 from qutip.clebsch import clebsch
