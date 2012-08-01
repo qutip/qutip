@@ -16,10 +16,11 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from scipy import *
-from qutip.Qobj import *
-from qutip.eseries import *
-from qutip.expect import *
+
+
+from qutip.Qobj import Qobj
+from qutip.eseries import eseries, estidy
+from qutip.expect import expect
 from qutip.superoperator import *
 
 

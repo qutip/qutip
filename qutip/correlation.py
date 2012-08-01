@@ -17,13 +17,14 @@
 #
 ###########################################################################
 
-from scipy import *
-from qutip.Qobj import *
+from qutip.Qobj import Qobj
 from qutip.superoperator import *
-from qutip.mesolve import *
-from qutip.essolve import *
-from qutip.mcsolve import *
-from qutip.steady import *
+from qutip.expect import expect
+from qutip.mesolve import mesolve
+from qutip.eseries import eseries, esval
+from qutip.essolve import essolve, ode2es
+from qutip.mcsolve import mcsolve
+from qutip.steady import steady, steadystate
 
 #-------------------------------------------------------------------------------
 # solver wrapers:

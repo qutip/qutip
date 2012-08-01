@@ -16,79 +16,80 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from scipy import *
-from qutip.Qobj import *
+
+import numpy as np
+#from numpy import array, any, ndarray, append, zeros, size, exp, dot, sum
+
+from qutip.Qobj import Qobj
 
 class eseries:
     """
     Class representation of an exponential-series expansion of time-dependent quantum objects.
     """
     __array_priority__=101
-    def __init__(self,q=array([]),s=array([])):
-        if (not any(q)) and (not any(s)):
-            self.ampl=array([])
-            self.rates=array([])
+    def __init__(self,q=np.array([]),s=np.array([])):
+        if (not np.any(q)) and (not np.any(s)):
+            self.ampl=np.array([])
+            self.rates=np.array([])
             self.dims=[[1,1]] 
             self.shape=[1,1]
-        if any(q) and (not any(s)):
+        if np.any(q) and (not np.any(s)):
             if isinstance(q,eseries):
                 self.ampl=q.ampl
                 self.rates=q.rates
                 self.dims=q.dims
                 self.shape=q.shape
-            elif isinstance(q,(ndarray,list)):
+            elif isinstance(q,(np.ndarray,list)):
                 ind=shape(q)
                 num=ind[0] #number of elements in q
-                #sh=array([Qobj(x).shape for x in range(0,num)])
-                sh=array([Qobj(x).shape for x in q])
+                sh=np.array([Qobj(x).shape for x in q])
                 if any(sh!=sh[0]):
                     raise TypeError('All amplitudes must have same dimension.')
-                #self.ampl=array([Qobj(x) for x in q])
-                self.ampl=array([x for x in q])
-                self.rates=zeros(ind)
+                self.ampl=np.array([x for x in q])
+                self.rates=np.zeros(ind)
                 self.dims=self.ampl[0].dims
                 self.shape=self.ampl[0].shape
             elif isinstance(q,Qobj):
                 qo=Qobj(q)
-                self.ampl=array([qo])
-                self.rates=array([0])
+                self.ampl=np.array([qo])
+                self.rates=np.array([0])
                 self.dims=qo.dims
                 self.shape=qo.shape
             else:
-                self.ampl  = array([q])
-                self.rates = array([0])
+                self.ampl  = np.array([q])
+                self.rates = np.array([0])
                 self.dims  = [[1, 1]]
                 self.shape = [1,1]
 
-        if any(q) and any(s): 
-            if isinstance(q,(ndarray,list)):
+        if np.any(q) and np.any(s): 
+            if isinstance(q,(np.ndarray,list)):
                 ind=shape(q)
                 num=ind[0]
-                sh=array([Qobj(q[x]).shape for x in range(0,num)])
-                if any(sh!=sh[0]):
+                sh=np.array([Qobj(q[x]).shape for x in range(0,num)])
+                if np.any(sh!=sh[0]):
                     raise TypeError('All amplitudes must have same dimension.')
-                self.ampl=array([Qobj(q[x]) for x in range(0,num)])
+                self.ampl=np.array([Qobj(q[x]) for x in range(0,num)])
                 self.dims=self.ampl[0].dims
                 self.shape=self.ampl[0].shape
             else:
                 num=1
-                self.ampl=array([Qobj(q)])
+                self.ampl=np.array([Qobj(q)])
                 self.dims=self.ampl[0].dims
                 self.shape=self.ampl[0].shape
             if isinstance(s,(int,complex,float)):
                 if num!=1:
                     raise TypeError('Number of rates must match number of members in object array.')
-                self.rates=array([s])
-            elif isinstance(s,(ndarray,list)):
+                self.rates=np.array([s])
+            elif isinstance(s,(np.ndarray,list)):
                 if len(s)!=num:
                     raise TypeError('Number of rates must match number of members in object array.')
-                self.rates=array(s)
+                self.rates=np.array(s)
         if len(self.ampl)!=0:
             zipped=list(zip(self.rates,self.ampl))#combine arrays so that they can be sorted together
             zipped.sort() #sort rates from lowest to highest
             rates,ampl=list(zip(*zipped)) #get back rates and ampl
-            self.ampl=array(ampl)
-            self.rates=array(rates)
+            self.ampl=np.array(ampl)
+            self.rates=np.array(rates)
     
     ######___END_INIT___######################
 
@@ -111,8 +112,8 @@ class eseries:
         out=eseries()
         out.dims=self.dims
         out.shape=self.shape
-        out.ampl=append(self.ampl,right.ampl)
-        out.rates=append(self.rates,right.rates)
+        out.ampl=np.append(self.ampl,right.ampl)
+        out.rates=np.append(self.rates,right.rates)
         return out
     def __radd__(self,other):#Addition with ESERIES on right (ex. 5+ESERIES)
         return self+other
@@ -173,7 +174,7 @@ class eseries:
 
         if self.ampl == None or len(self.ampl) == 0:
             # no terms, evalue to zero
-            return zeros(shape(tlist))
+            return np.zeros(shape(tlist))
 
         if isinstance(tlist, float) or isinstance(tlist, int):
             tlist = [tlist]
@@ -183,7 +184,7 @@ class eseries:
             val_list = []
         
             for j in range(len(tlist)):
-                exp_factors = exp(array(self.rates) * tlist[j])
+                exp_factors = np.exp(np.array(self.rates) * tlist[j])
 
                 val = 0
                 for i in range(len(self.ampl)):
@@ -193,11 +194,11 @@ class eseries:
     
         else:
             # the amplitude vector contains c numbers
-            val_list = zeros(size(tlist),dtype=complex)
+            val_list = np.zeros(np.size(tlist),dtype=complex)
     
             for j in range(len(tlist)):
-                exp_factors = exp(array(self.rates) * tlist[j])
-                val_list[j] = sum(dot(self.ampl, exp_factors))
+                exp_factors = np.exp(np.array(self.rates) * tlist[j])
+                val_list[j] = np.sum(np.dot(self.ampl, exp_factors))
     
     
         if len(tlist) == 1:
@@ -209,7 +210,7 @@ class eseries:
         """
         Evaluate the spectrum of an exponential series at frequencies in wlist. 
         """
-        val_list = zeros(size(wlist))
+        val_list = np.zeros(np.size(wlist))
 
         for i in range(len(wlist)):
             val_list[i] = 2 * real( dot(es.ampl, 1./(1.0j*wlist[i] - es.rates)) )
@@ -246,23 +247,23 @@ class eseries:
                 ur_len = len(unique_rates)
             else:
                 # found matching rate, append amplitude to its list
-                ampl_dict[idx].append(self.ampl[r_idx])
+                ampl_dict[idx].np.append(self.ampl[r_idx])
 
         # create new amplitude and rate list with only unique rates, and
         # nonzero amplitudes
-        self.rates = array([])
-        self.ampl  = array([])
+        self.rates = np.array([])
+        self.ampl  = np.array([])
         for ur_key in unique_rates.keys():
-            total_ampl = sum(ampl_dict[ur_key])
+            total_ampl = np.sum(ampl_dict[ur_key])
 
             if isinstance(total_ampl, float) or isinstance(total_ampl, complex):
                 if abs(total_ampl) > ampl_tol:
-                    self.rates = append(self.rates, unique_rates[ur_key])
-                    self.ampl  = append(self.ampl, total_ampl)
+                    self.rates = np.append(self.rates, unique_rates[ur_key])
+                    self.ampl  = np.append(self.ampl, total_ampl)
             else:
                 if abs(total_ampl.full()).max() > ampl_tol:
-                    self.rates = append(self.rates, unique_rates[ur_key])
-                    self.ampl  = append(self.ampl, total_ampl)
+                    self.rates = np.append(self.rates, unique_rates[ur_key])
+                    self.ampl  = np.append(self.ampl, total_ampl)
 
         return self
 
