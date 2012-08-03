@@ -19,7 +19,7 @@
 
 
 from qutip.Qobj import Qobj
-from qutip.eseries import eseries, estidy
+from qutip.eseries import eseries, estidy, esval
 from qutip.expect import expect
 from qutip.superoperator import *
 

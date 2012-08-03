@@ -18,7 +18,6 @@
 ###########################################################################
 
 import numpy as np
-#from numpy import array, any, ndarray, append, zeros, size, exp, dot, sum
 
 from qutip.Qobj import Qobj
 
@@ -247,7 +246,7 @@ class eseries:
                 ur_len = len(unique_rates)
             else:
                 # found matching rate, append amplitude to its list
-                ampl_dict[idx].np.append(self.ampl[r_idx])
+                ampl_dict[idx].append(self.ampl[r_idx])
 
         # create new amplitude and rate list with only unique rates, and
         # nonzero amplitudes
