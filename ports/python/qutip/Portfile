@@ -1,0 +1,59 @@
+# -*- coding: utf-8; mode: tcl; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*- vim:fenc=utf-8:ft=tcl:et:sw=4:ts=4:sts=4
+# $Id$
+
+PortSystem          1.0
+name                py-qutip
+version             2.0.0
+
+PortGroup           python 1.0
+
+python.versions     27 32
+python.default_version 27
+
+categories          python science
+platforms           darwin
+maintainers         pnation openmaintainer
+license             GPL3
+homepage            http://code.google.com/p/qutip/
+description         QuTiP: Quantum Toolbox in Python
+long_description    ${description}. \
+                    QuTiP is open-source software for simulating the dynamics of \
+                    open quantum systems.  The QuTiP library depends on the \
+                    excellent Numpy and Scipy numerical packages. In addition, \
+                    graphical output is provided by Matplotlib.  QuTiP aims \
+                    to provide user-friendly and efficient numerical simulations \
+                    of a wide variety of Hamiltonian's, including those with \
+                    arbitrary time-dependence, commonly found in a wide range of \
+                    physics applications. QuTiP is freely available for use and/or \
+                    modification on all Unix based platforms. Being free of any \
+                    licensing fees, QuTiP is ideal for exploring quantum mechanics \
+					and dynamics in the classroom.
+
+master_sites        googlecode:qutip
+distname            QuTiP-${version}
+
+checksums \
+    sha1    a5dbd03aad8183c757ef7774f0b042e244976518
+
+if {${subport} != ${name}} {
+    
+    depends_lib-append  \
+        port:py${python.version}-scipy \
+        port:py${python.version}-cython \
+        port:py${python.version}-pyside \
+}
+
+post-destroot {
+	notes "To finish installing QuTiP run the following commands:
+	
+	sudo port install py${python.version}-ipython +notebook+parallel+pyside
+	
+	sudo port install py${python.version}-matplotlib +latex
+	
+	sudo port install texlive-latex-extra
+	"
+}
+
+livecheck.type      regex
+livecheck.url       http://code.google.com/p/qutip/
+livecheck.regex     QuTiP-(\[0-9\]+\.\[0-9\]+(\.\[0-9\]+)?)
