@@ -309,8 +309,7 @@ class MC_class():
             if odeconfig.e_num==0:# if no expectation operators, preallocate #ntraj arrays for state vectors
                 self.psi_out=array([zeros((self.num_times),dtype=object) for q in range(odeconfig.ntraj)])#preallocate array of Qobjs
             else: #preallocate array of lists for expectation values
-                self.expect_out=[[] for x in range(odeconfig.ntraj)]
-    
+                self.expect_out=[[] for x in range(odeconfig.ntraj)]    
     
     #-------------------------------------------------#
     # CLASS METHODS
@@ -330,7 +329,7 @@ class MC_class():
                 #calls function to determine simulation time remaining
                 self.level=_time_remaining(self.st,odeconfig.ntraj,self.count,self.level)
     #-----
-    def parallel(self,args,top=None):  
+    def parallel(self,args,top=None): 
         self.st=datetime.datetime.now() #set simulation starting time
         pl=Pool(processes=self.cpus)
         [pl.apply_async(mc_alg_evolve,args=(nt,args),callback=top.callback) for nt in range(0,odeconfig.ntraj)]
@@ -366,7 +365,6 @@ class MC_class():
                     else:#preallocate complex array of zeros
                         mc_alg_out.append(zeros(self.num_times,dtype=complex))
                     mc_alg_out[i][0]=mc_expect(odeconfig.e_ops_data[i],odeconfig.e_ops_ind[i],odeconfig.e_ops_ptr[i],odeconfig.e_ops_isherm[i],odeconfig.psi0)
-            
             #set arguments for input to monte-carlo
             args=(mc_alg_out,odeconfig.options,odeconfig.tlist,self.num_times,self.seed)
             if not odeconfig.options.gui:
@@ -389,9 +387,6 @@ class MC_class():
                 app.exec_()
                 return
                 
-
-
-
 
 
 #----------------------------------------------------
@@ -426,12 +421,6 @@ def pyRHSc(t,psi):
 #----------------------------------------------------
 # END PYTHON FUNCTION RHS
 #----------------------------------------------------
-
-
-
-
-
-
 
 
 ######---return psi at requested times for no collapse operators---######
@@ -556,8 +545,9 @@ def mc_alg_evolve(nt,args):
                 #some string based collapse operators
                 if odeconfig.tflag in array([1,11]):
                     n_dp=[mc_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in odeconfig.c_const_inds]
-                    exec(odeconfig.col_expect_code) #calculates the expectation values for time-dependent norm collapse operators
-                    n_dp=array(n_dp)
+                    _locals = locals()
+                    exec(odeconfig.col_expect_code, globals(), _locals) #calculates the expectation values for time-dependent norm collapse operators
+                    n_dp=array(_locals['n_dp'])
                 
                 #some Python function based collapse operators
                 elif odeconfig.tflag in array([2,20,22]):
@@ -576,7 +566,9 @@ def mc_alg_evolve(nt,args):
                     state=spmv(odeconfig.c_ops_data[j],odeconfig.c_ops_ind[j],odeconfig.c_ops_ptr[j],ODE.y)
                 else:
                     if odeconfig.tflag in array([1,11]):
-                        exec(odeconfig.col_spmv_code)#calculates the state vector for  collapse by a time-dependent collapse operator
+                        _locals = locals()
+                        exec(odeconfig.col_spmv_code, globals(), _locals)#calculates the state vector for  collapse by a time-dependent collapse operator
+                        state = _locals['state']
                     else:
                         state=odeconfig.c_funcs[j](ODE.t,odeconfig.c_func_args)*spmv(odeconfig.c_ops_data[j],odeconfig.c_ops_ind[j],odeconfig.c_ops_ptr[j],ODE.y)
                 state_nrm=norm(state,2)
@@ -777,12 +769,12 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
         
         #set execuatble code for collapse expectation values and spmv
         col_spmv_code="state=odeconfig.colspmv(j,ODE.t,odeconfig.c_ops_data[j],odeconfig.c_ops_ind[j],odeconfig.c_ops_ptr[j],ODE.y"
-        col_expect_code="n_dp+=[odeconfig.colexpect(i,ODE.t,odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],ODE.y"
+        col_expect_code="for i in odeconfig.c_td_inds: n_dp.append(odeconfig.colexpect(i,ODE.t,odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],ODE.y"
         for kk in range(len(odeconfig.c_args)):
             col_spmv_code+=",odeconfig.c_args["+str(kk)+"]"
             col_expect_code+=",odeconfig.c_args["+str(kk)+"]"
         col_spmv_code+=")"
-        col_expect_code+=") for i in odeconfig.c_td_inds]"
+        col_expect_code+="))"
         odeconfig.col_spmv_code=compile(col_spmv_code,'<string>', 'exec')
         odeconfig.col_expect_code=compile(col_expect_code,'<string>', 'exec')    
         #----
