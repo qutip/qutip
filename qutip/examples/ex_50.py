@@ -81,7 +81,7 @@ def compute(N, M, h, Jx, Jy, Jz, taulist):
     
         # find the overlap between the eigenstates and psi 
         for n, eket in enumerate(ekets):
-            occupation_mat[idx[0],n] = abs(dot(eket.dag().data, psi.data)[0,0])**2    
+            occupation_mat[idx[0],n] = abs((eket.dag().data * psi.data)[0,0])**2    
         
         idx[0] += 1 
         
@@ -116,8 +116,8 @@ def run():
     #---------------------------------------------------------------------------
     # plots
     #
-    rc('text', usetex=True)
     rc('font', family='serif')
+    rc('font', size='10')
 
     figure(figsize=(9,12))
 
