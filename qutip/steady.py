@@ -22,7 +22,8 @@ of an open qunatum system defind by a Louvillian.
 
 """
 
-from scipy import prod, finfo
+import numpy as np
+from scipy import prod, finfo, randn
 import scipy.sparse as sp
 import scipy.linalg as la
 from scipy.sparse.linalg import spsolve,bicg
@@ -123,12 +124,12 @@ def steady(L,maxiter=100,tol=1e-6,method='solve'):
 	L1=L.data+eps*sp_inf_norm(L)*sp.eye(n,n,format='csr')
 	v=randn(n,1)
 	it=0
-	while (la.norm(L.data*v,inf)>tol) and (it<maxiter):
+	while (la.norm(L.data*v,np.inf)>tol) and (it<maxiter):
 		if method=='bicg':
 		    v,check=bicg(L1,v,tol=tol)
 		else:
 		    v=spsolve(L1,v,use_umfpack=False)
-		v=v/la.norm(v,inf)
+		v=v/la.norm(v,np.inf)
 		it+=1
 	if it>=maxiter:
 		raise ValueError('Failed to find steady state after ' + str(maxiter) +' iterations')

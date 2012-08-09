@@ -20,9 +20,13 @@
 it's methods.
 
 """
-
 import types
-from scipy import *
+# import math functions from numpy.math: required for td string evaluation 
+from numpy import (arccos, arccosh, arcsin, arcsinh, arctan, arctan2, arctanh,
+                   ceil, copysign, cos, cosh, degrees, e, exp, expm1, fabs,
+                   floor, fmod, frexp, hypot, isinf, isnan, ldexp, log, log10,
+                   log1p, modf, pi, radians, sin, sinh, sqrt, tan, tanh, trunc)
+
 import numpy as np
 import scipy.sparse as sp
 import scipy.linalg as la
@@ -138,7 +142,7 @@ class Qobj():
             if isinstance(inpt,(int,float,complex,np.int64)):
                 inpt=array([[inpt]])
             #case where input is array or sparse
-            if (isinstance(inpt,ndarray)) or sp.issparse(inpt):
+            if (isinstance(inpt,np.ndarray)) or sp.issparse(inpt):
                 self.data=sp.csr_matrix(inpt,dtype=complex) #data stored as space array
                 if not any(dims):
                     self.dims=[[int(inpt.shape[0])],[int(inpt.shape[1])]] #list of object dimensions
@@ -194,7 +198,7 @@ class Qobj():
             return other.__radd__(self)
         if not isinstance(other, Qobj):
             other=Qobj(other)
-        if prod(other.shape)==1 and prod(self.shape)!=1: #case for scalar quantum object
+        if np.prod(other.shape)==1 and np.prod(self.shape)!=1: #case for scalar quantum object
             dat=array(other.full())[0][0]
             if dat!=0:
                 out=Qobj(type=self.type)
@@ -214,7 +218,7 @@ class Qobj():
                     return Qobj(out,type=self.type,isherm=isherm)
             else: #if other qobj is zero object
                 return self
-        elif prod(self.shape)==1 and prod(other.shape)!=1:#case for scalar quantum object
+        elif np.prod(self.shape)==1 and np.prod(other.shape)!=1:#case for scalar quantum object
             dat=array(self.full())[0][0]
             if dat!=0:
                 out=Qobj()
@@ -304,7 +308,7 @@ class Qobj():
             else:
                 raise TypeError("Incompatible Qobj shapes")
 
-        if isinstance(other, (list,ndarray)): # if other is a list, do element-wise multiplication
+        if isinstance(other, (list,np.ndarray)): # if other is a list, do element-wise multiplication
             return array([self * item for item in other])
 
         if classcheck(other)=='eseries':
@@ -344,7 +348,7 @@ class Qobj():
             else:
                 raise TypeError("Incompatible Qobj shapes")
 
-        if isinstance(other, (list,ndarray)): # if other is a list, do element-wise multiplication
+        if isinstance(other, (list,np.ndarray)): # if other is a list, do element-wise multiplication
             return array([item*self for item in other])
 
         if classcheck(other)=='eseries':
@@ -456,7 +460,7 @@ class Qobj():
         else:
             s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+"\n"
         s += "Qobj data =\n"
-        if all(imag(self.data.data)==0):
+        if all(np.imag(self.data.data)==0):
             s += str(real(self.full()))
         else:
             s += str(self.full())
@@ -574,7 +578,7 @@ class Qobj():
         
         """
         out=self.data.diagonal()
-        if any(imag(out)>1e-15) or self.isherm==False:
+        if any(np.imag(out)>1e-15) or self.isherm==False:
             return out
         else:
             return real(out)
@@ -734,17 +738,17 @@ class Qobj():
             if mx>=1e-15:
                 data=abs(self.data.data)
                 outdata=self.data.copy()
-                outdata.data[data<(atol*mx+finfo(float).eps)]=0
+                outdata.data[data<(atol*mx+np.finfo(float).eps)]=0
             else:
                 outdata=sp.csr_matrix((self.shape[0],self.shape[1]),dtype=complex)
         else:
             outdata=sp.csr_matrix((self.shape[0],self.shape[1]),dtype=complex)
        
         # this commented code breaks the ode solver, giving diverging results 
-        #real_inds=where(abs(imag(outdata.data))<1e-15)
+        #real_inds=where(abs(np.imag(outdata.data))<1e-15)
         #imag_inds=where(abs(real(outdata.data))<1e-15)
         #outdata.data[real_inds]=real(outdata.data[real_inds])
-        #outdata.data[imag_inds]=imag(outdata.data[imag_inds])
+        #outdata.data[imag_inds]=np.imag(outdata.data[imag_inds])
         outdata.eliminate_zeros()
         return Qobj(outdata,dims=self.dims,shape=self.shape,type=self.type,isherm=self.isherm)
 
@@ -779,12 +783,12 @@ class Qobj():
         
         
         """
-        if isinstance(inpt, list) or isinstance(inpt, ndarray):       
+        if isinstance(inpt, list) or isinstance(inpt, np.ndarray):       
             if len(inpt) != self.shape[0] or len(inpt) != self.shape[1]:
                 raise TypeError('Invalid size of ket list for basis transformation')
-            S = matrix([inpt[n].full()[:,0] for n in range(len(inpt))]).H
-        elif isinstance(inpt,ndarray):
-            S = matrix(inpt)
+            S = np.matrix([inpt[n].full()[:,0] for n in range(len(inpt))]).H
+        elif isinstance(inpt,np.ndarray):
+            S = np.matrix(inpt)
         else:
             raise TypeError('Invalid operand for basis transformation')
 

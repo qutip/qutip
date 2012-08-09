@@ -18,6 +18,7 @@
 ###########################################################################
 
 
+import numpy as np
 from qutip.Qobj import Qobj
 from qutip.eseries import eseries, estidy, esval
 from qutip.expect import expect
@@ -78,7 +79,7 @@ def essolve(H, rho0, tlist, c_op_list, expt_op_list):
     if n_expt_op == 0:
         result_list = [Qobj() for k in range(n_tsteps)]
     else:
-        result_list = zeros([n_expt_op, n_tsteps], dtype=complex)
+        result_list = np.zeros([n_expt_op, n_tsteps], dtype=complex)
 
     for n in range(0, n_expt_op):
         result_list[n,:] = esval(expect(expt_op_list[n],es),tlist)

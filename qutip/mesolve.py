@@ -18,6 +18,7 @@
 ###########################################################################
 
 from types import *
+import numpy as np
 from scipy.linalg import norm
 from scipy.integrate import *
 from qutip.Qobj import *
@@ -1014,9 +1015,9 @@ def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize, state_norm
             output.num_expect = n_expt_op
             for op in expt_ops:
                 if op.isherm and psi0.isherm:
-                    output.expect.append(zeros(n_tsteps))
+                    output.expect.append(np.zeros(n_tsteps))
                 else:
-                    output.expect.append(zeros(n_tsteps,dtype=complex))
+                    output.expect.append(np.zeros(n_tsteps,dtype=complex))
 
     else:
         raise TypeError("Expectation parameter must be a list or a function")

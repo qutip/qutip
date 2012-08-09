@@ -187,7 +187,7 @@ def rand_dm(N,density=0.75,pure=False,dims=None):
         while non_zero==0 and tries<10: 
             H = rand_herm(N,density)
             H=H.dag()*H
-            non_zero=sum(H.tr())
+            non_zero=sum([H.tr()])
             tries+=1
         if tries>=10:
             raise ValueError("Requested density is too low to generate density matrix.")
@@ -203,7 +203,7 @@ def _check_dims(dims,N1,N2):
         raise Exception("Qobj dimensions must be list of length 2.")
     if (not isinstance(dims[0],list)) or (not isinstance(dims[1],list)):
         raise TypeError("Qobj dimension components must be lists. i.e. dims=[[N],[N]]")
-    if prod(dims[0])!=N1 or prod(dims[1])!=N2:
+    if np.prod(dims[0])!=N1 or np.prod(dims[1])!=N2:
         raise ValueError("Qobj dimensions must match matrix shape.")
     if len(dims[0])!=len(dims[1]):
         raise TypeError("Qobj dimension components must have same length.")
