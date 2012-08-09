@@ -22,13 +22,13 @@ def run():
     #create superposition of coherent states
     psi=(D1+D2)*basis(N,0)
 
-    #calculate Wigner function
+    #calculate Q-function
     xvec = linspace(-6,6,200)
     yvec=xvec
-    W=qfunc(psi,xvec,yvec)
+    Q=qfunc(psi,xvec,yvec)
 
-    #plot Wigner function as filled contour
-    plt=contourf(xvec,yvec,W,100)
+    #plot Q-function as filled contour
+    plt=contourf(xvec,yvec,Q,100)
     xlim([-6,6])
     ylim([-6,6])
     title('Q - function of Schrodinger cat')
