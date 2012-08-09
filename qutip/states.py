@@ -17,7 +17,7 @@
 #
 ###########################################################################
 
-from scipy import arange, conj
+from scipy import arange, conj, prod
 import scipy.sparse as sp
 
 from qutip.Qobj import Qobj
