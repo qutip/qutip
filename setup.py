@@ -27,24 +27,46 @@ Operating System :: Unix
 Operating System :: MacOS
 """
 
-MAJOR               = 2
-MINOR               = 0
-MICRO               = 0
-ISRELEASED          = False
-VERSION             = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-
+#import statements
 import os
 import sys
 import shutil,fnmatch
 import re
 import subprocess
 import warnings
-from distutils.core import setup,Extension,Command
+from distutils.core import Extension,Command
 from unittest import TextTestRunner, TestLoader
 from glob import glob
 from os.path import splitext, basename, join as pjoin
 from os import walk
-import numpy as np 
+import numpy as np
+from numpy.distutils.core import setup
+
+#all information about QuTiP goes here-------
+MAJOR               = 2
+MINOR               = 0
+MICRO               = 0
+ISRELEASED          = False
+VERSION             = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
+REQUIRES            = ['numpy (>=1.6)','scipy (>=0.9)','matplotlib (>=1.1)']
+PACKAGES            = ['qutip','qutip/gui','qutip/examples','qutip/cyQ']
+PACKAGE_DATA        = {'qutip/gui': ['logo.png', 'icon.png']}
+INCLUDE_DIRS        = [np.get_include()]
+EXT_MODULES         = [Extension("qutip.cyQ.ode_rhs", ["qutip/cyQ/ode_rhs.c"],extra_compile_args=['-ffast-math'],extra_link_args=[]), 
+                        Extension('qutip.cyQ.cy_mc_funcs', ['qutip/cyQ/cy_mc_funcs.c'],extra_compile_args=['-ffast-math'])]
+
+NAME                = "QuTiP"
+AUTHOR              = "Paul D. Nation, Robert J. Johansson"
+AUTHOR_EMAIL        = "pnation@korea.ac.kr, robert@riken.jp"
+LICENSE             = "GPL3"
+DESCRIPTION         = DOCLINES[0]
+LONG_DESCRIPTION    = "\n".join(DOCLINES[2:])
+KEYWORDS            = "quantum physics dynamics"
+URL                 = "http://code.google.com/p/qutip/"
+CLASSIFIERS         = [_f for _f in CLASSIFIERS.split('\n') if _f]
+PLATFORMS           = ["Linux", "Mac OSX", "Unix"]
+
+
 
 def svn_version():
     entries_path = 'qutip/.svn/entries'
@@ -200,26 +222,43 @@ class CleanSVNCommand(Command):
 if ISRELEASED:
     os.environ['CFLAGS'] = '-w'
 
+
+#using numpy distutils to simplify install of data directory for testing
+def configuration(parent_package='',top_path=None):
+    from numpy.distutils.misc_util import Configuration
+
+    config = Configuration(None, parent_package, top_path)
+    config.set_options(ignore_setup_xxx_py=True,
+                       assume_default_configuration=True,
+                       delegate_options_to_subpackages=True,
+                       quiet=True)
+
+    config.add_subpackage('qutip')
+    config.get_version('qutip/_version.py') # sets config.version
+    config.add_data_dir('qutip/tests')
+
+    return config
+
 #--------- Setup commands go here ----------------#
 setup(
-    name = "QuTiP",
+    name = NAME,
     version =FULLVERSION,
-    packages = ['qutip','qutip/gui','qutip/examples','qutip/cyQ','qutip/tests'],
-    include_dirs = [np.get_include()],
-    ext_modules=[Extension("qutip.cyQ.ode_rhs", ["qutip/cyQ/ode_rhs.c"],extra_compile_args=['-ffast-math'],extra_link_args=[]), 
-                    Extension('qutip.cyQ.cy_mc_funcs', ['qutip/cyQ/cy_mc_funcs.c'],extra_compile_args=['-ffast-math'])],
-    author = "Paul D. Nation, Robert J. Johansson",
-    author_email = "pnation@korea.ac.kr, robert@riken.jp",
-    license = "GPL3",
-    description = DOCLINES[0],
-    long_description = "\n".join(DOCLINES[2:]),
-    keywords = "quantum physics dynamics",
-    url = "http://code.google.com/p/qutip/",
-    classifiers=[_f for _f in CLASSIFIERS.split('\n') if _f],
-    platforms = ["Linux", "Mac OSX", "Unix"],
-    requires=['numpy (>=1.6)','scipy (>=0.9)','matplotlib (>=1.1)'],
-    package_data={'qutip/gui': ['logo.png', 'icon.png']},
-    cmdclass = { 'test': TestCommand,'devtest': TestHereCommand, 'clean': CleanCommand, 'svnclean': CleanSVNCommand }
+    packages = PACKAGES,
+    include_dirs = INCLUDE_DIRS,
+    ext_modules=EXT_MODULES,
+    author = AUTHOR,
+    author_email = AUTHOR_EMAIL,
+    license = LICENSE,
+    description = DESCRIPTION,
+    long_description = LONG_DESCRIPTION,
+    keywords = KEYWORDS,
+    url = URL,
+    classifiers=CLASSIFIERS,
+    platforms = PLATFORMS,
+    requires=REQUIRES,
+    package_data=PACKAGE_DATA,
+    cmdclass = { 'test': TestCommand,'devtest': TestHereCommand, 'clean': CleanCommand, 'svnclean': CleanSVNCommand },
+    configuration=configuration
     )
 
 
