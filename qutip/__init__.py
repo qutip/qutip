@@ -144,3 +144,8 @@ from qutip.demos import demos
 import qutip.examples
 from qutip.about import *
 
+#function to run the nose test scripts
+def test():
+    import nose
+    nose.run(defaultTest="qutip.tests",argv=['nosetests', '-v']) #runs tests in qutip.tests module only
+
