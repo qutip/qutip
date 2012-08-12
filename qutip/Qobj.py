@@ -417,7 +417,7 @@ class Qobj():
         """
         out=self.data[ind]
         if sp.issparse(out):
-            return asarray(out.todense())
+            return np.asarray(out.todense())
         else:
             return out
     #----
