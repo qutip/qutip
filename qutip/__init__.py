@@ -86,10 +86,6 @@ if qutip.settings.qutip_graphics=='YES':
 
 # Load modules
 #-------------------------------------------------------------------------------
-# external
-from scipy import *
-import scipy.linalg as la
-import scipy.sparse as sp
 
 # core
 import qutip.settings
