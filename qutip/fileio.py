@@ -17,8 +17,9 @@
 #
 ###########################################################################
 import pickle
-from scipy import *
-from qutip.Qobj import *
+import numpy as np
+
+from qutip.Qobj import Qobj
 from qutip.Odedata import Odedata
 
 # ------------------------------------------------------------------------------
@@ -47,7 +48,7 @@ def file_data_store(filename, data, numtype="complex", numformat="decimal", sep=
     if filename == None or data == None:
         raise ValueError("filename or data is unspecified")
 
-    M,N = shape(data)
+    M,N = np.shape(data)
 
     f = open(filename, "w")
 
@@ -59,10 +60,10 @@ def file_data_store(filename, data, numtype="complex", numformat="decimal", sep=
 
             for m in range(M):
                 for n in range(N):
-                    if imag(data[m,n]) >= 0.0:
-                        f.write("%.10e+%.10ej" % (real(data[m,n]),imag(data[m,n])))
+                    if np.imag(data[m,n]) >= 0.0:
+                        f.write("%.10e+%.10ej" % (np.real(data[m,n]),np.imag(data[m,n])))
                     else:
-                        f.write("%.10e%.10ej" % (real(data[m,n]),imag(data[m,n])))
+                        f.write("%.10e%.10ej" % (np.real(data[m,n]),np.imag(data[m,n])))
                     if n != N-1:
                         f.write(sep)
                 f.write("\n")
@@ -71,10 +72,10 @@ def file_data_store(filename, data, numtype="complex", numformat="decimal", sep=
 
             for m in range(M):
                 for n in range(N):
-                    if imag(data[m,n]) >= 0.0:
-                        f.write("%.10f+%.10fj" % (real(data[m,n]),imag(data[m,n])))
+                    if np.imag(data[m,n]) >= 0.0:
+                        f.write("%.10f+%.10fj" % (np.real(data[m,n]),np.imag(data[m,n])))
                     else:
-                        f.write("%.10f%.10fj" % (real(data[m,n]),imag(data[m,n])))
+                        f.write("%.10f%.10fj" % (np.real(data[m,n]),np.imag(data[m,n])))
                     if n != N-1:
                         f.write(sep)
                 f.write("\n")
@@ -89,7 +90,7 @@ def file_data_store(filename, data, numtype="complex", numformat="decimal", sep=
 
             for m in range(M):
                 for n in range(N):
-                    f.write("%.10e" % (real(data[m,n])))
+                    f.write("%.10e" % (np.real(data[m,n])))
                     if n != N-1:
                         f.write(sep)
                 f.write("\n")
@@ -98,7 +99,7 @@ def file_data_store(filename, data, numtype="complex", numformat="decimal", sep=
 
             for m in range(M):
                 for n in range(N):
-                    f.write("%.10f" % (real(data[m,n])))
+                    f.write("%.10f" % (np.real(data[m,n])))
                     if n != N-1:
                         f.write(sep)
                 f.write("\n")
@@ -170,7 +171,7 @@ def file_data_read(filename, sep=None):
             if ("j" in line_vec[0]) or ("i" in line_vec[0]):
                 numtype = "complex"
             else:
-                numtype = "real"
+                numtype = "np.real"
 
             # check format
             if ("e" in line_vec[0]) or ("E" in line_vec[0]):
@@ -188,7 +189,7 @@ def file_data_read(filename, sep=None):
     f.seek(0)
 
     if numtype == "complex":
-        data = zeros((M,N), dtype="complex")
+        data = np.zeros((M,N), dtype="complex")
         m = n = 0
         for line in f:
             # skip comment lines
@@ -201,7 +202,7 @@ def file_data_read(filename, sep=None):
             m += 1
     
     else:
-        data = zeros((M,N), dtype="float")        
+        data = np.zeros((M,N), dtype="float")        
         m = n = 0
         for line in f:
             # skip comment lines
