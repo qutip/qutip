@@ -17,12 +17,18 @@
 #
 ###########################################################################
 
-from scipy import *
-from qutip.Qobj import *
+from qutip.Qobj import Qobj
 
-from qutip.superoperator import *
-from qutip.mesolve import *
-from qutip.essolve import *
+import numpy as np
+import scipy.linalg as la
+import scipy
+
+from scipy import angle, pi, exp, sqrt
+
+
+from qutip.superoperator import vec2mat_index
+from qutip.mesolve import mesolve
+#from qutip.essolve import *
 from qutip.steady import steadystate
 from qutip.states import basis
 from qutip.states import projection
@@ -86,7 +92,7 @@ def floquet_modes(H, T, args=None, sort=False):
     # prepare a list of kets for the floquet states
     new_dims  = [U.dims[0], [1] * len(U.dims[0])]
     new_shape = [U.shape[0], 1]
-    kets_order = [Qobj(matrix(evecs[:,o]).T, dims=new_dims, shape=new_shape) for o in order]
+    kets_order = [Qobj(np.matrix(evecs[:,o]).T, dims=new_dims, shape=new_shape) for o in order]
 
     return kets_order, e_quasi[order]
 
@@ -134,7 +140,7 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None):
     if t > 0.0:
         U = propagator(H, t, [], args)
 
-        for n in arange(len(f_modes_0)):
+        for n in np.arange(len(f_modes_0)):
             f_modes_t.append(U * f_modes_0[n] * exp(1j * f_energies[n]*t))
 
     else:
@@ -151,7 +157,7 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
     """
 
     # truncate tlist to the driving period
-    tlist_period = tlist[where(tlist <= T)]
+    tlist_period = tlist[np.where(tlist <= T)]
 
     f_modes_table_t = [[] for t in tlist_period]
 
@@ -178,7 +184,7 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
     t_idx = int(t_wrap/T * len(f_modes_table_t))
     
     # XXX: might want to give a warning if the cast of t_idx to int discard
-    # a significant fraction in t_idx, which would happen if the list of time
+    # a np.significant fraction in t_idx, which would happen if the list of time
     # values isn't perfect matching the driving period
     #if debug: print "t = %f -> t_wrap = %f @ %d of %d" % (t, t_wrap, t_idx, N)
 
@@ -192,7 +198,7 @@ def floquet_states(f_modes, f_energies, t):
         
     """
     
-    return [(f_modes[i] * exp(-1j * f_energies[i]*t)) for i in arange(len(f_energies))]   
+    return [(f_modes[i] * exp(-1j * f_energies[i]*t)) for i in np.arange(len(f_energies))]   
         
 def floquet_states_t(f_modes_0, f_energies, t, H, T, args=None):
     """
@@ -203,7 +209,7 @@ def floquet_states_t(f_modes_0, f_energies, t, H, T, args=None):
     """
     
     f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, args)
-    return [(f_modes_t[i] * exp(-1j * f_energies[i]*t)) for i in arange(len(f_energies))]    
+    return [(f_modes_t[i] * exp(-1j * f_energies[i]*t)) for i in np.arange(len(f_energies))]    
     
 def floquet_wavefunction(f_modes, f_energies, f_coeff, t):
     """
@@ -212,7 +218,7 @@ def floquet_wavefunction(f_modes, f_energies, f_coeff, t):
     Returns the wavefunction.
         
     """
-    return sum([f_modes[i] * exp(-1j * f_energies[i]*t) * f_coeff[i] for i in arange(len(f_energies))])
+    return sum([f_modes[i] * exp(-1j * f_energies[i]*t) * f_coeff[i] for i in np.arange(len(f_energies))])
     
 def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None):
     """
@@ -223,21 +229,21 @@ def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None):
     """
     
     f_states_t = floquet_states_t(f_modes_0, f_energies, t, H, T, args)
-    return sum([f_states_t[i] * f_coeff[i] for i in arange(len(f_energies))])
+    return sum([f_states_t[i] * f_coeff[i] for i in np.arange(len(f_energies))])
 
 def floquet_state_decomposition(f_modes_0, f_energies, psi0):
     """
     Decompose the wavefunction psi in the Floquet states, return the coefficients
     in the decomposition as an array of complex amplitudes.
     """
-    return [(f_modes_0[i].dag() * psi0).data[0,0] for i in arange(len(f_energies))]
+    return [(f_modes_0[i].dag() * psi0).data[0,0] for i in np.arange(len(f_energies))]
 
 # should be moved to a utility library?    
 def n_thermal(w, w_th):
-    if (w_th > 0): 
+    if (w_th > 0) and exp(w/w_th) != 1.0: 
         return 1.0/(exp(w/w_th) - 1.0)
     else: 
-        return 0.0 * ones(shape(w))
+        return 0.0 * np.ones(np.shape(w))
     
 def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, args, J_cb, w_th, kmax=5,f_modes_table_t=None):
     """
@@ -250,17 +256,17 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, args, J_cb,
     
     omega = (2*pi)/T
     
-    Delta = zeros((N, N, M))
-    X     = zeros((N, N, M), dtype=complex)
-    Gamma = zeros((N, N, M))
-    A     = zeros((N, N))
+    Delta = np.zeros((N, N, M))
+    X     = np.zeros((N, N, M), dtype=complex)
+    Gamma = np.zeros((N, N, M))
+    A     = np.zeros((N, N))
     
     nT = 100
     dT = T/nT
-    tlist = arange(dT, T+dT/2, dT)
+    tlist = np.arange(dT, T+dT/2, dT)
 
     if f_modes_table_t == None:
-        f_modes_table_t = floquet_modes_table(f_modes_0, f_energies, linspace(0, T, nT+1), H, T, args) 
+        f_modes_table_t = floquet_modes_table(f_modes_0, f_energies, np.linspace(0, T, nT+1), H, T, args) 
 
     for t in tlist:
         # TODO: repeated invocations of floquet_modes_t is inefficient...
@@ -274,7 +280,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, args, J_cb,
                     X[a,b,k_idx] += (dT/T) * exp(-1j * k * omega * t) * (f_modes_t[a].dag() * c_op * f_modes_t[b])[0,0]
                     k_idx += 1
 
-    Heaviside = lambda x: ((sign(x)+1)/2.0)
+    Heaviside = lambda x: ((np.sign(x)+1)/2.0)
     for a in range(N):
         for b in range(N):
             k_idx = 0
@@ -300,7 +306,7 @@ def floquet_collapse_operators(A):
     """
     c_ops = []
     
-    N, M = shape(A)
+    N, M = np.shape(A)
     
     #
     # Here we really need a master equation on Bloch-Redfield form, or perhaps
@@ -327,11 +333,11 @@ def floquet_master_equation_tensor(Alist, f_energies):
     if isinstance(Alist, list):
         # Alist can be a list of rate matrices corresponding
         # to different operators that couple to the environment
-        N, M = shape(Alist[0])
+        N, M = np.shape(Alist[0])
     else:
         # or a simple rate matrix, in which case we put it in a list
         Alist = [Alist]
-        N, M = shape(Alist[0])
+        N, M = np.shape(Alist[0])
       
     R = Qobj(scipy.sparse.csr_matrix((N*N,N*N)), [[N,N], [N,N]], [N*N,N*N])
 
@@ -379,7 +385,7 @@ def floquet_basis_transform(f_modes, f_energies, rho0):
 # Floquet-Markov master equation
 # 
 # 
-def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, opt=None):
+def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.   
     """
@@ -422,9 +428,9 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, opt=None):
             output.num_expect = n_expt_op
             for op in e_ops:
                 if op.isherm:
-                    output.expect.append(zeros(n_tsteps))
+                    output.expect.append(np.zeros(n_tsteps))
                 else:
-                    output.expect.append(zeros(n_tsteps,dtype=complex))
+                    output.expect.append(np.zeros(n_tsteps,dtype=complex))
 
     else:
         raise TypeError("Expectation parameter must be a list or a function")
@@ -437,7 +443,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, opt=None):
     if ekets != None:
         rho0 = rho0.transform(ekets, True)
         if isinstance(e_ops, list):
-            for n in arange(len(e_ops)):             # not working
+            for n in np.arange(len(e_ops)):             # not working
                 e_ops[n] = e_ops[n].transform(ekets) #
 
     #
