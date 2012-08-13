@@ -17,20 +17,19 @@
 #
 ###########################################################################
 
-from types import *
-from scipy.integrate import *
-from qutip.Qobj import *
+import numpy as np
+import scipy.integrate
+
+import qutip.odeconfig
+from qutip.Qobj import Qobj
 from qutip.superoperator import *
-from qutip.expect import *
+from qutip.expect import expect
 from qutip.states import *
 from qutip.Odeoptions import Odeoptions
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
 from qutip.Odedata import Odedata
-import os,numpy
-import qutip.odeconfig
-import scipy.sparse as sp
 
 
 #-------------------------------------------------------------------------------
@@ -128,9 +127,9 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], opt=None):
         result_list = []
         for op in e_ops:
             if op.isherm and rho0.isherm:
-                result_list.append(zeros(n_tsteps))
+                result_list.append(np.zeros(n_tsteps))
             else:
-                result_list.append(zeros(n_tsteps,dtype=complex))
+                result_list.append(np.zeros(n_tsteps,dtype=complex))
 
 
     #
@@ -224,8 +223,8 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
 
     N = len(evals)  
     K = len(c_ops)
-    A = zeros((K,N,N), dtype=complex) # TODO: use sparse here
-    W = zeros((N,N))
+    A = np.zeros((K,N,N), dtype=complex) # TODO: use sparse here
+    W = np.zeros((N,N))
     
     # pre-calculate matrix elements
     for n in range(N):

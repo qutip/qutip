@@ -17,10 +17,11 @@
 #
 ###########################################################################
 
-from numpy import array
-from scipy import *
-from scipy.linalg import *
+import numpy as np
+#import scipy.linalg as la
+import scipy
 import scipy.sparse as sp
+
 from qutip.Qobj import Qobj
 
 
@@ -71,13 +72,13 @@ def jmat(j,*args):
     If no 'args' input, then returns array of ['x','y','z'] operators.
         
     """
-    if (fix(2*j)!=2*j) or (j<0):
+    if (scipy.fix(2*j)!=2*j) or (j<0):
         raise TypeError('j must be a non-negative integer or half-integer')
     if not args:
         a1=Qobj(0.5*(jplus(j)+jplus(j).conj().T))
         a2=Qobj(0.5*1j*(jplus(j)-jplus(j).conj().T))
         a3=Qobj(jz(j))
-        return array([a1,a2,a3])
+        return np.array([a1,a2,a3])
     if args[0]=='+':
         A=jplus(j)
     elif args[0]=='-':
@@ -94,13 +95,13 @@ def jmat(j,*args):
 
 
 def jplus(j):
-    m=arange(j,-j-1,-1)
+    m=np.arange(j,-j-1,-1)
     N=len(m)
-    return sp.spdiags(sqrt(j*(j+1.0)-(m+1.0)*m),1,N,N,format='csr')
+    return sp.spdiags(np.sqrt(j*(j+1.0)-(m+1.0)*m),1,N,N,format='csr')
 
 
 def jz(j):
-    m=arange(j,-j-1,-1)
+    m=np.arange(j,-j-1,-1)
     N=len(m)
     return sp.spdiags(m,0,N,N,format='csr')
 
@@ -210,7 +211,7 @@ def destroy(N):
     '''
     if not isinstance(N,int):#raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
-    return Qobj(sp.spdiags(sqrt(range(0,N)),1,N,N,format='csr'))
+    return Qobj(sp.spdiags(np.sqrt(range(0,N)),1,N,N,format='csr'))
 
 #
 #CREATE returns creation operator for N dimensional Hilbert space
@@ -304,7 +305,7 @@ def num(N):
      [0 0 0 3]]
     
     """
-    data=sp.spdiags(arange(N),0,N,N,format='csr')
+    data=sp.spdiags(np.arange(N),0,N,N,format='csr')
     return Qobj(data)
 
 
@@ -343,7 +344,7 @@ def squeez(N,sp):
     
     """
     a=destroy(N)
-    op=(1/2.0)*conj(sp)*(a**2)-(1/2.0)*sp*(a.dag())**2
+    op=(1/2.0)*np.conj(sp)*(a**2)-(1/2.0)*sp*(a.dag())**2
     return op.expm()
 
 
@@ -375,7 +376,7 @@ def displace(N,alpha):
          
     """
     a=destroy(N)
-    D=(alpha*a.dag()-conj(alpha)*a).expm()
+    D=(alpha*a.dag()-np.conj(alpha)*a).expm()
     return D
 
 #
@@ -397,4 +398,4 @@ def qutrit_ops():
     sig12 = one * two.dag()
     sig23 = two * three.dag()
     sig31 = three * one.dag()
-    return array([sig11, sig22, sig33, sig12, sig23, sig31])
+    return np.array([sig11, sig22, sig33, sig12, sig23, sig31])

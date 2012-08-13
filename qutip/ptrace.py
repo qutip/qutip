@@ -1,6 +1,6 @@
 #This file is part of QuTIP.
 #
-#    QuTIP is free software: you can redistribute it and/or modify
+#    QuTIP is free software: you can redistribute it and/or np.modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
 #   (at your option) any later version.
@@ -16,42 +16,44 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from scipy import *
+
+#from scipy import *
+import numpy as np
 import scipy.sparse as sp
-from scipy.linalg import *
+import scipy.linalg as la
 
 def _ptrace(rho,sel):
     """
     Private function calculating the partial trace.
     """
     if isinstance(sel,int):
-        sel=array([sel])
-    sel=asarray(sel)
+        sel=np.array([sel])
+    sel=np.asarray(sel)
     drho=rho.dims[0]
-    N=prod(drho)
-    M=prod(asarray(drho).take(sel))
-    if prod(rho.dims[1]) == 1:
+    N=np.prod(drho)
+    M=np.prod(np.asarray(drho).take(sel))
+    if np.prod(rho.dims[1]) == 1:
         rho = rho * rho.dag()
     perm = sp.lil_matrix((M*M,N*N))
-    rest=setdiff1d(arange(len(drho)),sel) #all elements in range(len(drho)) not in sel set
+    rest=np.setdiff1d(np.arange(len(drho)),sel) #all elements in range(len(drho)) not in sel set
     ilistsel=selct(sel,drho)
     indsel=list2ind(ilistsel,drho)
     ilistrest=selct(rest,drho)
     indrest=list2ind(ilistrest,drho)
     irest=(indrest-1)*N+indrest-2
     # Possibly use parfor here if M > some value ?
-    perm.rows=array([(irest+(indsel[int(floor(m/M))]-1)*N+indsel[int(mod(m,M))]).T[0] for  m in range(M**2)])
-    #perm.data=ones_like(perm.rows,dtype=int)
-    perm.data=ones_like(perm.rows)
+    perm.rows=np.array([(irest+(indsel[int(np.floor(m/M))]-1)*N+indsel[int(np.mod(m,M))]).T[0] for  m in range(M**2)])
+    #perm.data=np.ones_like(perm.rows,dtype=int)
+    perm.data=np.ones_like(perm.rows)
     perm.tocsr()
-    rws=prod(shape(rho.data))
+    rws=np.prod(np.shape(rho.data))
     rhdata=perm*csr_to_col(rho.data)
     rhdata=rhdata.tolil().reshape((M,M))
     rho1_data=rhdata.tocsr()
-    dims_kept0=asarray(rho.dims[0]).take(sel)
-    dims_kept1=asarray(rho.dims[0]).take(sel)
+    dims_kept0=np.asarray(rho.dims[0]).take(sel)
+    dims_kept1=np.asarray(rho.dims[0]).take(sel)
     rho1_dims=[dims_kept0.tolist(),dims_kept1.tolist()]
-    rho1_shape=[prod(dims_kept0),prod(dims_kept1)]
+    rho1_shape=[np.prod(dims_kept0),np.prod(dims_kept1)]
     return rho1_data,rho1_dims,rho1_shape
 
 
@@ -60,25 +62,25 @@ def list2ind(ilist,dims):
 	"""!
 	Private function returning indicies
 	"""
-	ilist=asarray(ilist)
-	dims=asarray(dims)
-	irev=fliplr(ilist)-1
-	fact=append(array([1]),(cumprod(flipud(dims)[:-1])))
+	ilist=np.asarray(ilist)
+	dims=np.asarray(dims)
+	irev=np.fliplr(ilist)-1
+	fact=np.append(np.array([1]),(np.cumprod(np.flipud(dims)[:-1])))
 	fact=fact.reshape(len(fact),1)
-	return array(sort(dot(irev,fact)+1,0),dtype=int)
+	return np.array(np.sort(np.dot(irev,fact)+1,0),dtype=int)
 
 def selct(sel,dims):
 	"""
 	Private function finding selected components
 	"""
-	sel=asarray(sel)#make sure sel is array
-	dims=asarray(dims)#make sure dims is array
+	sel=np.asarray(sel)#make sure sel is np.array
+	dims=np.asarray(dims)#make sure dims is np.array
 	rlst=dims.take(sel)
-	rprod=prod(rlst)
-	ilist=ones((rprod,len(dims)),dtype=int);
-	counter=arange(rprod)
+	rprod=np.prod(rlst)
+	ilist=np.ones((rprod,len(dims)),dtype=int);
+	counter=np.arange(rprod)
 	for k in range(len(sel)):
-		ilist[:,sel[k]]=remainder(fix(counter/prod(dims[sel[k+1:]])),dims[sel[k]])+1
+		ilist[:,sel[k]]=np.remainder(np.fix(counter/np.prod(dims[sel[k+1:]])),dims[sel[k]])+1
 	return ilist
 
 
@@ -90,18 +92,18 @@ def csr_to_col(mat):
         matricies.
     """
     mat.sort_indices()
-    rows=array([len(range(mat.indptr[i],mat.indptr[i+1])) for i in range(mat.shape[1])])
+    rows=np.array([len(range(mat.indptr[i],mat.indptr[i+1])) for i in range(mat.shape[1])])
     rows=[[k for j in range(rows[k])] for k in range(len(rows))] 
-    rows=array([item for sublist in rows for item in sublist])
+    rows=np.array([item for sublist in rows for item in sublist])
     datlen=len(mat.data)
-    ptrs=zeros((datlen+2),dtype=int)
+    ptrs=np.zeros((datlen+2),dtype=int)
     ptrs[1:-1]=(mat.shape[1]*rows+mat.indices)+1
-    ptrs[-1]=prod(mat.shape)
-    values=arange(datlen+1)#values to use in ptrs
-    counts=diff(ptrs) #number of times values should be repeated
-    ptrs=zeros(sum(counts)+1,dtype=int)
+    ptrs[-1]=np.prod(mat.shape)
+    values=np.arange(datlen+1)#values to use in ptrs
+    counts=np.diff(ptrs) #number of times values should be np.repeated
+    ptrs=np.zeros(sum(counts)+1,dtype=int)
     ptrs[-1]=datlen
-    ptrs[:-1]=repeat(values,counts) #append the number of data elems (per csr format)
-    inds=zeros(datlen,dtype=int) #since this is col vec, all inds = 0 
-    out=sp.csr_matrix((mat.data,inds,ptrs),shape=(prod(mat.shape),1),dtype=complex)
+    ptrs[:-1]=np.repeat(values,counts) #np.append the number of data elems (per csr format)
+    inds=np.zeros(datlen,dtype=int) #since this is col vec, all inds = 0 
+    out=sp.csr_matrix((mat.data,inds,ptrs),shape=(np.prod(mat.shape),1),dtype=complex)
     return out
