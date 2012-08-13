@@ -16,7 +16,7 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from scipy import *
+
 def sphereplot(theta,phi,values,save=False):
 	"""Plots a matrix of values on a sphere
 	

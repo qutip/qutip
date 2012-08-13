@@ -16,7 +16,8 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from scipy import *
+
+
 from qutip.Qobj import Qobj
 import scipy.sparse as sp
 from qutip.istests import isket
