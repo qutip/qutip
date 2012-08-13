@@ -17,18 +17,14 @@
 #
 ###########################################################################
 
-from qutip.Qobj import Qobj
-
 import numpy as np
 import scipy.linalg as la
 import scipy
-
 from scipy import angle, pi, exp, sqrt
 
-
+from qutip.Qobj import Qobj
 from qutip.superoperator import vec2mat_index
 from qutip.mesolve import mesolve
-#from qutip.essolve import *
 from qutip.steady import steadystate
 from qutip.states import basis
 from qutip.states import projection
