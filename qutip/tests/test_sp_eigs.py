@@ -21,7 +21,7 @@
 from qutip import *
 from qutip.sparse import *
 from numpy import allclose
-from numpy.test_ing import assert_equal
+from numpy.testing import assert_equal
 
 
 def test_SparseHermValsVecs():
