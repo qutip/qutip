@@ -17,8 +17,7 @@
 #
 ###########################################################################
 
-
-
+import numpy as np
 from scipy import *
 from qutip import *
 import scipy.sparse as sp
@@ -37,14 +36,14 @@ class TestQobj(unittest.TestCase):
     #-------- test the Qobj properties ------------#
     def testQobjData(self):
         N=10
-        data1=random.random((N,N))+1j*random.random((N,N))-(0.5+0.5j)
+        data1=np.random.random((N,N))+1j*np.random.random((N,N))-(0.5+0.5j)
         q1=Qobj(data1)
         #check if data is a csr_matrix if originally array
         self.assertTrue(sp.isspmatrix_csr(q1.data))
         #check if dense ouput is equal to original data
         self.assertTrue(all(q1.data.todense()-matrix(data1))==0)
         
-        data2=random.random((N,N))+1j*random.random((N,N))-(0.5+0.5j)
+        data2=np.random.random((N,N))+1j*np.random.random((N,N))-(0.5+0.5j)
         data2=sp.csr_matrix(data2)
         q2=Qobj(data2)
         #check if data is a csr_matrix if originally csr_matrix
@@ -55,7 +54,7 @@ class TestQobj(unittest.TestCase):
         #check if data is a csr_matrix if originally int
         self.assertTrue(sp.isspmatrix_csr(q3.data))
         
-        data4=random.random((N,N))+1j*random.random((N,N))-(0.5+0.5j)
+        data4=np.random.random((N,N))+1j*np.random.random((N,N))-(0.5+0.5j)
         data4=matrix(data4)
         q4=Qobj(data4)
         #check if data is a csr_matrix if originally csr_matrix
@@ -65,28 +64,28 @@ class TestQobj(unittest.TestCase):
     
     def testQobjType(self):
         
-        N=int(ceil(10.0*random.random()))+5
+        N=int(ceil(10.0*np.random.random()))+5
         
-        ket_data=random.random((N,1))
+        ket_data=np.random.random((N,1))
         ket_qobj=Qobj(ket_data)
         self.assertTrue(ket_qobj.type=='ket')
         
-        bra_data=random.random((1,N))
+        bra_data=np.random.random((1,N))
         bra_qobj=Qobj(bra_data)
         self.assertTrue(bra_qobj.type=='bra')
         
-        oper_data=random.random((N,N))
+        oper_data=np.random.random((N,N))
         oper_qobj=Qobj(oper_data)
         self.assertTrue(oper_qobj.type=='oper')
         
         N=9
-        super_data=random.random((N,N))
+        super_data=np.random.random((N,N))
         super_qobj=Qobj(super_data,dims=[[[3]],[[3]]])
         self.assertTrue(super_qobj.type=='super')
         
     def testQobjHerm(self): 
         N=10
-        data=random.random((N,N))+1j*random.random((N,N))-(0.5+0.5j)
+        data=np.random.random((N,N))+1j*np.random.random((N,N))-(0.5+0.5j)
         q1=Qobj(data)
         self.assertFalse(q1.isherm==True)
         
@@ -96,13 +95,13 @@ class TestQobj(unittest.TestCase):
     
     def testQobjDimsShape(self): 
         N=10
-        data=random.random((N,N))+1j*random.random((N,N))-(0.5+0.5j)
+        data=np.random.random((N,N))+1j*np.random.random((N,N))-(0.5+0.5j)
         
         q1=Qobj(data)
         self.assertEqual(q1.dims,[[10],[10]])
         self.assertEqual(q1.shape,[10,10])
         
-        data=random.random((N,1))+1j*random.random((N,1))-(0.5+0.5j)
+        data=np.random.random((N,1))+1j*np.random.random((N,1))-(0.5+0.5j)
         
         q1=Qobj(data)
         self.assertEqual(q1.dims,[[10],[1]])
@@ -110,7 +109,7 @@ class TestQobj(unittest.TestCase):
         
         N=4
         
-        data=random.random((N,N))+1j*random.random((N,N))-(0.5+0.5j)
+        data=np.random.random((N,N))+1j*np.random.random((N,N))-(0.5+0.5j)
         
         q1=Qobj(data,dims=[[2,2],[2,2]])
         self.assertEqual(q1.dims,[[2,2],[2,2]])
@@ -139,7 +138,7 @@ class TestQobj(unittest.TestCase):
         # check that addition is commutative
         self.assertEqual(q1+q2, q2+q1)
         
-        data=random.random((5,5))
+        data=np.random.random((5,5))
         q=Qobj(data)
         
         x1=q+5
@@ -149,7 +148,7 @@ class TestQobj(unittest.TestCase):
         self.assertTrue(all(x1.data.todense()-(matrix(data)))==0)
         self.assertTrue(all(x2.data.todense()-(matrix(data)))==0)
         
-        data=random.random((5,5))
+        data=np.random.random((5,5))
         q=Qobj(data)
         x3=q+data
         x4=data+q
@@ -160,10 +159,10 @@ class TestQobj(unittest.TestCase):
         
     
     def testQobjSubtraction(self):
-        data1=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+        data1=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
         q1=Qobj(data1)
         
-        data2=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+        data2=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
         q2=Qobj(data2)
         
         q3=q1-q2
@@ -195,15 +194,15 @@ class TestQobj(unittest.TestCase):
         
     
     def testQobjDivision(self):
-        data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+        data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
         q=Qobj(data)
-        randN=10*random.random()
+        randN=10*np.random.random()
         q=q/randN
         self.assertTrue(all(q.data.todense()-matrix(data)/randN)==0)
     
     
     def testQobjPower(self):
-        data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+        data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
         q=Qobj(data)
         
         q2=q**2
@@ -215,14 +214,14 @@ class TestQobj(unittest.TestCase):
     
     
     def testQobjNeg(self):
-        data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+        data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
         q=Qobj(data)
         x=-q
         self.assertTrue(all(x.data.todense()+matrix(data))==0)
     
     
     def testQobjEquals(self):
-        data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+        data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
         q1=Qobj(data)
         q2=Qobj(data)
         self.assertTrue(q1==q2)
@@ -232,7 +231,7 @@ class TestQobj(unittest.TestCase):
         self.assertTrue(q1!=q2)
     
     def testQobjGetItem(self):
-        data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+        data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
         q=Qobj(data)
         self.assertTrue(q[0,0]==data[0,0])
         self.assertTrue(q[-1,2]==data[-1,2])
@@ -268,19 +267,19 @@ class TestQobj(unittest.TestCase):
     #-------- test the Qobj methods ------------#
     
     def testQobjConjugate(self):
-        data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+        data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
         A=Qobj(data)
         B=A.conj()
         self.assertTrue(all(B.data.todense()-matrix(data.conj()))==0)
     
     def testQobjDagger(self):
-        data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+        data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
         A=Qobj(data)
         B=A.dag()
         self.assertTrue(all(B.data.todense()-matrix(data.conj().T))==0)
     
     def testQobjDiagonals(self):
-        data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+        data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
         A=Qobj(data)
         b=A.diag()
         self.assertTrue(all(b-diag(data))==0)
@@ -316,13 +315,13 @@ class TestQobj(unittest.TestCase):
         
     
     def testQobjExpm(self):
-        data=random.random((15,15))+1j*random.random((15,15))-(0.5+0.5j)
+        data=np.random.random((15,15))+1j*np.random.random((15,15))-(0.5+0.5j)
         A=Qobj(data)
         B=A.expm()
-        self.assertTrue(all(B.data.todense()-matrix(expm(data,13)))<1e-15)
+        self.assertTrue(all(B.data.todense()-matrix(scipy.linalg.expm(data,13)))<1e-15)
     
     def testQobjFull(self):
-        data=random.random((15,15))+1j*random.random((15,15))-(0.5+0.5j)
+        data=np.random.random((15,15))+1j*np.random.random((15,15))-(0.5+0.5j)
         A=Qobj(data)
         b=A.full()
         self.assertTrue(all(b-data)==0)
