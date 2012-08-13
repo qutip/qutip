@@ -22,6 +22,8 @@
 from scipy import *
 from qutip import *
 import scipy.sparse as sp
+import scipy.linalg as la
+import numpy as np
 from numpy.testing import assert_equal
 
 
@@ -29,14 +31,14 @@ from numpy.testing import assert_equal
 def test_QobjData():
     "Qobj data"
     N=10
-    data1=random.random((N,N))+1j*random.random((N,N))-(0.5+0.5j)
+    data1=np.random.random((N,N))+1j*np.random.random((N,N))-(0.5+0.5j)
     q1=Qobj(data1)
     #check if data is a csr_matrix if originally array
     assert_equal(sp.isspmatrix_csr(q1.data),True)
     #check if dense ouput is equal to original data
     assert_equal(all(q1.data.todense()-matrix(data1)),0)
     
-    data2=random.random((N,N))+1j*random.random((N,N))-(0.5+0.5j)
+    data2=np.random.random((N,N))+1j*np.random.random((N,N))-(0.5+0.5j)
     data2=sp.csr_matrix(data2)
     q2=Qobj(data2)
     #check if data is a csr_matrix if originally csr_matrix
@@ -47,7 +49,7 @@ def test_QobjData():
     #check if data is a csr_matrix if originally int
     assert_equal(sp.isspmatrix_csr(q3.data),True)
     
-    data4=random.random((N,N))+1j*random.random((N,N))-(0.5+0.5j)
+    data4=np.random.random((N,N))+1j*np.random.random((N,N))-(0.5+0.5j)
     data4=matrix(data4)
     q4=Qobj(data4)
     #check if data is a csr_matrix if originally csr_matrix
@@ -57,29 +59,29 @@ def test_QobjData():
 
 def test_QobjType():
     "Qobj type"
-    N=int(ceil(10.0*random.random()))+5
+    N=int(ceil(10.0*np.random.random()))+5
     
-    ket_data=random.random((N,1))
+    ket_data=np.random.random((N,1))
     ket_qobj=Qobj(ket_data)
     assert_equal(ket_qobj.type,'ket')
     
-    bra_data=random.random((1,N))
+    bra_data=np.random.random((1,N))
     bra_qobj=Qobj(bra_data)
     assert_equal(bra_qobj.type,'bra')
     
-    oper_data=random.random((N,N))
+    oper_data=np.random.random((N,N))
     oper_qobj=Qobj(oper_data)
     assert_equal(oper_qobj.type,'oper')
     
     N=9
-    super_data=random.random((N,N))
+    super_data=np.random.random((N,N))
     super_qobj=Qobj(super_data,dims=[[[3]],[[3]]])
     assert_equal(super_qobj.type,'super')
     
 def test_QobjHerm():
     "Qobj Hermicity" 
     N=10
-    data=random.random((N,N))+1j*random.random((N,N))-(0.5+0.5j)
+    data=np.random.random((N,N))+1j*np.random.random((N,N))-(0.5+0.5j)
     q1=Qobj(data)
     assert_equal(q1.isherm,False)
     
@@ -90,13 +92,13 @@ def test_QobjHerm():
 def test_QobjDimsShape():
     "Qobj shape" 
     N=10
-    data=random.random((N,N))+1j*random.random((N,N))-(0.5+0.5j)
+    data=np.random.random((N,N))+1j*np.random.random((N,N))-(0.5+0.5j)
     
     q1=Qobj(data)
     assert_equal(q1.dims,[[10],[10]])
     assert_equal(q1.shape,[10,10])
     
-    data=random.random((N,1))+1j*random.random((N,1))-(0.5+0.5j)
+    data=np.random.random((N,1))+1j*np.random.random((N,1))-(0.5+0.5j)
     
     q1=Qobj(data)
     assert_equal(q1.dims,[[10],[1]])
@@ -104,7 +106,7 @@ def test_QobjDimsShape():
     
     N=4
     
-    data=random.random((N,N))+1j*random.random((N,N))-(0.5+0.5j)
+    data=np.random.random((N,N))+1j*np.random.random((N,N))-(0.5+0.5j)
     
     q1=Qobj(data,dims=[[2,2],[2,2]])
     assert_equal(q1.dims,[[2,2],[2,2]])
@@ -133,7 +135,7 @@ def test_QobjAddition():
     # check that addition is commutative
     assert_equal(q1+q2, q2+q1)
     
-    data=random.random((5,5))
+    data=np.random.random((5,5))
     q=Qobj(data)
     
     x1=q+5
@@ -143,7 +145,7 @@ def test_QobjAddition():
     assert_equal(all(x1.data.todense()-(matrix(data))),0)
     assert_equal(all(x2.data.todense()-(matrix(data))),0)
     
-    data=random.random((5,5))
+    data=np.random.random((5,5))
     q=Qobj(data)
     x3=q+data
     x4=data+q
@@ -155,10 +157,10 @@ def test_QobjAddition():
 
 def test_QobjSubtraction():
     "Qobj subtraction"
-    data1=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+    data1=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
     q1=Qobj(data1)
     
-    data2=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+    data2=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
     q2=Qobj(data2)
     
     q3=q1-q2
@@ -191,16 +193,16 @@ def test_QobjMultiplication():
 
 def test_QobjDivision():
     "Qobj division"
-    data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+    data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
     q=Qobj(data)
-    randN=10*random.random()
+    randN=10*np.random.random()
     q=q/randN
     assert_equal(all(q.data.todense()-matrix(data)/randN),0)
 
 
 def test_QobjPower():
     "Qobj power"
-    data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+    data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
     q=Qobj(data)
     
     q2=q**2
@@ -213,7 +215,7 @@ def test_QobjPower():
 
 def test_QobjNeg():
     "Qobj negation"
-    data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+    data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
     q=Qobj(data)
     x=-q
     assert_equal(all(x.data.todense()+matrix(data)),0)
@@ -221,7 +223,7 @@ def test_QobjNeg():
 
 def test_QobjEquals():
     "Qobj equals"
-    data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+    data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
     q1=Qobj(data)
     q2=Qobj(data)
     assert_equal(q1,q2)
@@ -232,7 +234,7 @@ def test_QobjEquals():
 
 def test_QobjGetItem():
     "Qobj getitem"
-    data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+    data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
     q=Qobj(data)
     assert_equal(q[0,0],data[0,0])
     assert_equal(q[-1,2],data[-1,2])
@@ -270,21 +272,21 @@ def test_CheckMulType():
 
 def test_QobjConjugate():
     "Qobj conjugate"
-    data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+    data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
     A=Qobj(data)
     B=A.conj()
     assert_equal(all(B.data.todense()-matrix(data.conj())),0)
 
 def test_QobjDagger():
     "Qobj adjoint (dagger)"
-    data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+    data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
     A=Qobj(data)
     B=A.dag()
     assert_equal(all(B.data.todense()-matrix(data.conj().T)),0)
 
 def test_QobjDiagonals():
     "Qobj diagonals"
-    data=random.random((5,5))+1j*random.random((5,5))-(0.5+0.5j)
+    data=np.random.random((5,5))+1j*np.random.random((5,5))-(0.5+0.5j)
     A=Qobj(data)
     b=A.diag()
     assert_equal(all(b-diag(data)),0)
@@ -323,14 +325,14 @@ def test_QobjEigenStates():
 
 def test_QobjExpm():
     "Qobj expm"
-    data=random.random((15,15))+1j*random.random((15,15))-(0.5+0.5j)
+    data=np.random.random((15,15))+1j*np.random.random((15,15))-(0.5+0.5j)
     A=Qobj(data)
     B=A.expm()
-    assert_equal(all(B.data.todense()-matrix(expm(data,13)))<1e-15,True)
+    assert_equal(all(B.data.todense()-matrix(la.expm(data,13)))<1e-15,True)
 
 def test_QobjFull():
     "Qobj full"
-    data=random.random((15,15))+1j*random.random((15,15))-(0.5+0.5j)
+    data=np.random.random((15,15))+1j*np.random.random((15,15))-(0.5+0.5j)
     A=Qobj(data)
     b=A.full()
     assert_equal(all(b-data),0)
