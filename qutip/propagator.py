@@ -17,12 +17,14 @@
 #
 ###########################################################################
 
-from scipy import *
-from qutip.Qobj import *
+import types
+import numpy as np
+import scipy.linalg as la
 
-from qutip.superoperator import *
-from qutip.mesolve import *
-from qutip.essolve import *
+from qutip.Qobj import Qobj
+from qutip.superoperator import vec2mat, mat2vec
+from qutip.mesolve import mesolve
+from qutip.essolve import essolve
 from qutip.steady import steadystate
 from qutip.states import basis
 from qutip.states import projection
@@ -64,7 +66,7 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
     if len(c_op_list) == 0:
         # calculate propagator for the wave function
 
-        if isinstance(H, FunctionType):
+        if isinstance(H, types.FunctionType):
             H0 = H(0.0, H_args)
             N = H0.shape[0]
         elif isinstance(H, list):
@@ -77,7 +79,7 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         else:
             N = H.shape[0]
 
-        u = zeros([N, N], dtype=complex)
+        u = np.zeros([N, N], dtype=complex)
 
         for n in range(0, N):
             psi0 = basis(N, n)
@@ -94,7 +96,7 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         # calculate the propagator for the vector representation of the 
         # density matrix
 
-        if isinstance(H, FunctionType):
+        if isinstance(H, types.FunctionType):
             H0 = H(0.0, H_args)
             N = H0.shape[0]
         elif isinstance(H, list):
@@ -107,7 +109,7 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         else:
             N = H.shape[0]
 
-        u = zeros([N*N, N*N], dtype=complex)
+        u = np.zeros([N*N, N*N], dtype=complex)
         
         for n in range(0, N*N):
             psi0  = basis(N*N, n)
@@ -148,9 +150,9 @@ def propagator_steadystate(U):
 
     ev_min, ev_idx = get_min_and_index(abs(evals-1.0))
 
-    N = int(sqrt(len(evals)))
+    N = int(np.sqrt(len(evals)))
 
     evecs = evecs.T
     rho = Qobj(vec2mat(evecs[ev_idx]))
 
-    return rho * (1 / real(rho.tr()))
+    return rho * (1 / np.real(rho.tr()))
