@@ -17,13 +17,14 @@
 #
 ###########################################################################
 
-from types import *
+import types
 import numpy as np
 from scipy.linalg import norm
-from scipy.integrate import *
-from qutip.Qobj import *
+import scipy.integrate
+
+from qutip.Qobj import Qobj
 from qutip.superoperator import *
-from qutip.expect import *
+from qutip.expect import expect
 from qutip.Odeoptions import Odeoptions
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen, Codegen2
@@ -34,6 +35,7 @@ from qutip.odechecks import _ode_checks
 import os,numpy
 import qutip.odeconfig as odeconfig
 from qutip._reset import _reset_odeconfig
+
 # ------------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
@@ -169,7 +171,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
                 # constant hamiltonian but time-dependent collapse operators in list function format
                 return mesolve_list_func_td([H], rho0, tlist, c_ops, expt_ops, args, options)     
         
-        if isinstance(H, FunctionType):
+        if isinstance(H, types.FunctionType):
             # old style time-dependence: must have constant collapse operators
             if n_str > 0: # or n_func > 0:
                 raise TypeError("Incorrect format: function-format Hamiltonian cannot be mixed with time-dependent collapse operators.")
@@ -194,7 +196,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
             return wfsolve_list_func_td(H, rho0, tlist, expt_ops, args, options)
         elif n_str > 0:
             return wfsolve_list_str_td(H, rho0, tlist, expt_ops, args, options)
-        elif isinstance(H, FunctionType):
+        elif isinstance(H, types.FunctionType):
             return wfsolve_func_td(H, rho0, tlist, expt_ops, args, options)
         else:
             return wfsolve_const(H, rho0, tlist, expt_ops, args, options)
@@ -999,7 +1001,7 @@ def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize, state_norm
     output = Odedata()
     output.times = tlist
         
-    if isinstance(expt_ops, FunctionType):
+    if isinstance(expt_ops, types.FunctionType):
         n_expt_op = 0
         expt_callback = True
         
@@ -1141,14 +1143,14 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, H_args=None, options=None):
     if (c_op_list and len(c_op_list) > 0) or not isket(rho0):
         if isinstance(H, list):
             output = mesolve_list_td(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
-        if isinstance(H, FunctionType):
+        if isinstance(H, types.FunctionType):
             output = mesolve_func_td(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
         else:
             output = mesolve_const(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
     else:
         if isinstance(H, list):
             output = wfsolve_list_td(H, rho0, tlist, expt_ops, H_args, options)
-        if isinstance(H, FunctionType):
+        if isinstance(H, types.FunctionType):
             output = wfsolve_func_td(H, rho0, tlist, expt_ops, H_args, options)
         else:
             output = wfsolve_const(H, rho0, tlist, expt_ops, H_args, options)
