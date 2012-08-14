@@ -18,7 +18,7 @@
 ###########################################################################
 
 from numpy import allclose
-from numpy.testing import assert_
+from numpy.testing import assert_, run_module_suite
 
 # disable the MC progress bar
 import os
@@ -188,11 +188,6 @@ class TestJCModelEvolution:
         assert_(abs(nc[-1]-nc_ss[-1]) < 0.005, True)
         assert_(abs(na[-1]-na_ss[-1]) < 0.005, True)
 
-
-kappa=0.2
-def sqrt_kappa(t,args):
-    return sqrt(kappa)
-
 #percent error for failure
 me_error=1e-8
 
@@ -225,11 +220,15 @@ class TestMESolverConstDecay:
         H=a.dag()*a
         psi0=basis(N,9) #initial state
         kappa=0.2 #coupling to oscillator
+        def sqrt_kappa(t,args):
+            return sqrt(kappa)
         c_op_list=[[a,sqrt_kappa]]
         tlist=linspace(0,10,100)
         medata=mesolve(H,psi0,tlist,c_op_list,[a.dag()*a])
         expt=medata.expect[0]
         actual_answer=9.0*exp(-kappa*tlist)
+        print "actual_answer =", actual_answer
+        print "expt =", expt
         avg_diff=mean(abs(actual_answer-expt)/actual_answer)
         assert_(avg_diff<me_error)
     
@@ -251,10 +250,6 @@ class TestMESolverConstDecay:
         assert_(avg_diff<me_error)
         
       
-kappa=0.2
-def sqrt_kappa(t,args):
-    return sqrt(kappa*exp(-t))
-
 #average error for failure
 me_error=1e-7
 
@@ -274,6 +269,8 @@ class TestMESolveTDDecay:
         H=a.dag()*a
         psi0=basis(N,9) #initial state
         kappa=0.2 #coupling to oscillator
+        def sqrt_kappa(t,args):
+            return sqrt(kappa*exp(-t))        
         c_op_list=[[a,sqrt_kappa]]
         tlist=linspace(0,10,100)
         medata=mesolve(H,psi0,tlist,c_op_list,[a.dag()*a])
