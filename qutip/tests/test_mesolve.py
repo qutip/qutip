@@ -32,6 +32,25 @@ class TestJCModelEvolution:
     A test class for the QuTiP functions for the evolution of JC model
     """
 
+    def qubit_integrate(self, tlist, psi0, epsilon, delta, g1, g2):
+
+        H = epsilon / 2.0 * sigmaz() + delta / 2.0 * sigmax()
+        
+        c_op_list = []
+
+        rate = g1
+        if rate > 0.0:
+            c_op_list.append(sqrt(rate) * sigmam())
+    
+        rate = g2
+        if rate > 0.0:
+            c_op_list.append(sqrt(rate) * sigmaz())
+   
+        output = mesolve(H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()]) 
+        expt_list = output.expect[0], output.expect[1], output.expect[2]
+        
+        return expt_list[0], expt_list[1], expt_list[2]
+
     def jc_steadystate(self, N, wc, wa, g, kappa, gamma, pump, psi0, use_rwa, tlist):
 
         # Hamiltonian
@@ -106,6 +125,46 @@ class TestJCModelEvolution:
         output = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a, sm.dag() * sm])  
         expt_list = output.expect[0],output.expect[1]
         return expt_list[0], expt_list[1]        
+
+    def testQubitDynamics1(self):
+        "mesolve: qubit with dissipation"
+
+        epsilon = 0.0 * 2 * pi   # cavity frequency
+        delta   = 1.0 * 2 * pi   # atom frequency
+        g2 = 0.1                 # 
+        g1 = 0.0                 # 
+        psi0 = basis(2,0)        # initial state
+        tlist = linspace(0,5,200)
+
+        sx, sy, sz = self.qubit_integrate(tlist, psi0, epsilon, delta, g1, g2)
+
+        sx_analytic = zeros(shape(tlist))
+        sy_analytic = -sin(2*pi*tlist) * exp(-tlist * g2)
+        sz_analytic = cos(2*pi*tlist) * exp(-tlist * g2)
+
+        assert_(max(abs(sx - sx_analytic)) < 0.05)
+        assert_(max(abs(sy - sy_analytic)) < 0.05)
+        assert_(max(abs(sz - sz_analytic)) < 0.05)  
+
+    def testQubitDynamics1(self):
+        "mesolve: qubit without dissipation"
+
+        epsilon = 0.0 * 2 * pi   # cavity frequency
+        delta   = 1.0 * 2 * pi   # atom frequency
+        g2 = 0.0                 # 
+        g1 = 0.0                 # 
+        psi0 = basis(2,0)        # initial state
+        tlist = linspace(0,5,200)
+
+        sx, sy, sz = self.qubit_integrate(tlist, psi0, epsilon, delta, g1, g2)
+
+        sx_analytic = zeros(shape(tlist))
+        sy_analytic = -sin(2*pi*tlist) * exp(-tlist * g2)
+        sz_analytic = cos(2*pi*tlist) * exp(-tlist * g2)
+
+        assert_(max(abs(sx - sx_analytic)) < 0.05)
+        assert_(max(abs(sy - sy_analytic)) < 0.05)
+        assert_(max(abs(sz - sz_analytic)) < 0.05)  
 
     def testCase1(self):
         "mesolve: cavity-qubit interaction, no dissipation"

@@ -17,7 +17,6 @@
 #
 ###########################################################################
 
-from numpy import allclose
 from numpy.testing import assert_, assert_equal, run_module_suite
 
 from qutip import *
