@@ -24,7 +24,7 @@ from qutip import *
 import scipy.sparse as sp
 import scipy.linalg as la
 import numpy as np
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, assert_
 
 
 #-------- test_ the Qobj properties ------------#
@@ -337,4 +337,75 @@ def test_QobjFull():
     b=A.full()
     assert_equal(all(b-data),0)
     
+# --- Test types
+
+def test_KetType():
+    "Qobj ket type"
+
+    psi = basis(2,1)
+    
+    assert_(isket(psi))
+    assert_(not isbra(psi))
+    assert_(not isoper(psi))
+    assert_(not issuper(psi))
+
+    psi = tensor(basis(2,1), basis(2,0))
+
+    assert_(isket(psi))
+    assert_(not isbra(psi))
+    assert_(not isoper(psi))
+    assert_(not issuper(psi))
+
+
+def test_BraType():
+    "Qobj bra type"
+
+    psi = basis(2,1).dag()
+    
+    assert_equal(isket(psi),   False)
+    assert_equal(isbra(psi),   True)
+    assert_equal(isoper(psi),  False)
+    assert_equal(issuper(psi), False)
+
+    psi = tensor(basis(2,1).dag(), basis(2,0).dag())
+
+    assert_equal(isket(psi),   False)
+    assert_equal(isbra(psi),   True)
+    assert_equal(isoper(psi),  False)
+    assert_equal(issuper(psi), False)
+
+
+def test_OperType():
+    "Qobj operator type"
+
+    psi = basis(2,1)
+    rho = psi * psi.dag()
+
+    assert_equal(isket(rho),   False)
+    assert_equal(isbra(rho),   False)
+    assert_equal(isoper(rho),  True)
+    assert_equal(issuper(rho), False)
+
+def test_SuperType():
+    "Qobj superoperator type"
+
+    psi = basis(2,1)
+    rho = psi * psi.dag()
+
+    sop = spre(rho)
+
+    assert_equal(isket(sop),   False)
+    assert_equal(isbra(sop),   False)
+    assert_equal(isoper(sop),  False)
+    assert_equal(issuper(sop), True)
+
+    sop = spost(rho)
+
+    assert_equal(isket(sop),   False)
+    assert_equal(isbra(sop),   False)
+    assert_equal(isoper(sop),  False)
+    assert_equal(issuper(sop), True)
+
+if __name__ == "__main__":
+    run_module_suite()
 
