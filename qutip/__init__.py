@@ -20,6 +20,30 @@ import os,sys,platform,multiprocessing
 import qutip.settings
 import qutip._version
 
+#
+# Check for minimum requirements of dependencies, give the user a warning
+# if the requirements aren't fulfilled
+#
+def version2int(version_string):
+    return sum([int(d)*(100**(3-n)) for n,d in enumerate(version_string.split('.'))])
+    
+numpy_requirement = "1.6.0"
+try:
+    import numpy 
+    if version2int(numpy.__version__) < version2int(numpy_requirement):
+        print("QuTiP warning: old version of numpy detected (%s), requiring %s." %
+              (numpy.__version__, numpy_requirement))
+except:
+    print("QuTiP warning: numpy not found.")
+
+scipy_requirement = "0.9.0"
+try:
+    import scipy 
+    if version2int(scipy.__version__) < version2int(scipy_requirement):
+        print("QuTiP warning: old version of scipy detected (%s), requiring %s." %
+              (scipy.__version__, scipy_requirement))
+except:
+    print("QuTiP warning: scipy not found.")
 
 #check to see if running from install directory for released versions.
 top_path=os.path.dirname(os.path.dirname(__file__))
