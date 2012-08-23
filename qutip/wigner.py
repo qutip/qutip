@@ -84,18 +84,19 @@ def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative'):
 
 
 def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
-    # Using an iterative method to evaluate the wigner functions
-    # for the Fock state |m><n|
-    # 
-    # The wigner function is calculated as W = sum_mn rho_mn W_mn
-    # where W_mn is the wigner function for the density matrix |m><n|.
-    # 
-    # In this implementation, for each row m, Wlist contains the
-    # wigner functions Wlist = [0, ..., W_mm, ..., W_mN]. As soon as one 
-    # W_mn wigner function is calculated, the corresponding contribution
-    # is added to the total wigner function, weighted by the corresponding
-    # element in the density matrix rho_mn.
-    #
+    """
+    Using an iterative method to evaluate the wigner functions for the Fock
+    state |m><n|
+    
+    The wigner function is calculated as W = sum_mn rho_mn W_mn where W_mn is 
+    the wigner function for the density matrix |m><n|.
+     
+    In this implementation, for each row m, Wlist contains the wigner functions
+    Wlist = [0, ..., W_mm, ..., W_mN]. As soon as one W_mn wigner function is
+    calculated, the corresponding contribution is added to the total wigner
+    function, weighted by the corresponding element in the density matrix
+    rho_mn.
+    """
     
     M = prod(rho.shape[0])
     X,Y = meshgrid(xvec, yvec)
@@ -127,7 +128,11 @@ def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
     return 0.5 * W * g**2
 
 def _wigner_laguerre(rho, xvec, yvec, g=sqrt(2)):
-    # Using an Laguerre polynomials from scipy
+    """
+    Using an Laguerre polynomials from scipy to evaluate the Wigner function for
+    the density matrices |m><n|, W_mn. The total wigner function is calculated
+    as W = sum_mn rho_mn W_mn.
+    """
 
     M = prod(rho.shape[0])
 
