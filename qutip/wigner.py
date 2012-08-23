@@ -16,9 +16,11 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
+import numpy
 from scipy import zeros,array,arange,exp,real,imag,conj,copy,sqrt,meshgrid
 import scipy.sparse as sp
 import scipy.linalg as la
+from scipy.special import genlaguerre
 from qutip.tensor import tensor
 from qutip.Qobj import *
 from qutip.states import *
@@ -28,7 +30,7 @@ try:#for scipy v <= 0.90
 except:#for scipy v >= 0.10
     from scipy.misc import factorial
     
-def wigner(psi,xvec,yvec,g=sqrt(2)):
+def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative'):
     """Wigner function for a state vector or density matrix 
     at points xvec+i*yvec.
     
@@ -45,6 +47,15 @@ def wigner(psi,xvec,yvec,g=sqrt(2)):
         
     g : float
         Scaling factor for a = 0.5*g*(x+iy), default g=sqrt(2).
+
+    method : string
+        Select method 'iterative' or 'laguerre', where 'iterative' use a 
+        iterative method to evaluate the Wigner functions for density matrices
+        |m><n|, while 'laguerre' uses the Laguerre polynomicals in scipy for the
+        same task. The 'iterative' method is default, and in general recommended,
+        but the 'laguerre' method is usually more efficient for very sparse
+        density matrices (e.g., superpositions of Fock states in large Hilbert
+        spaces).
     
     Returns
     --------
@@ -53,23 +64,38 @@ def wigner(psi,xvec,yvec,g=sqrt(2)):
     
     
     """
-    if psi.type=='ket' or psi.type=='oper':
-        M=prod(psi.shape[0])
-    elif psi.type=='bra':
-        M=prod(psi.shape[1])
-    else:
+
+    if not (psi.type == 'ket' or psi.type == 'oper' or psi.type == 'bra'):
         raise TypeError('Input state is not a valid operator.')
+
+    if psi.type=='ket' or psi.type=='bra':
+        rho = ket2dm(psi)
+    else:
+        rho = psi
+
+    if method == 'iterative':
+        return _wigner_iterative(rho, xvec, yvec, g)
+
+    elif method == 'laguerre':
+        return _wigner_laguerre(rho, xvec, yvec, g)
+
+    else:
+        raise TypeError("method must be either 'iterative' or 'laguerre'")
+
+
+def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
+    # Using an iterative method to evaluate the Laguerre polynomials
+
+    M = prod(rho.shape[0])
     X,Y = meshgrid(xvec, yvec)
     amat = 0.5*g*(X + 1.0j*Y)
     wmat=zeros(shape(amat))
     Wlist=array([zeros(shape(amat),dtype=complex) for k in range(M)])
     Wlist[0]=exp(-2.0*abs(amat)**2)/pi
-    if psi.type=='ket' or psi.type=='bra':
-        psi=ket2dm(psi)
-    wmat=real(psi[0,0])*real(Wlist[0])
+    wmat=real(rho[0,0])*real(Wlist[0])
     for n in range(1,M):
         Wlist[n]=(2.0*amat*Wlist[n-1])/sqrt(n)
-        wmat+= 2.0*real(psi[0,n]*Wlist[n])
+        wmat+= 2.0*real(rho[0,n]*Wlist[n])
     for m in range(M-1):
         temp=copy(Wlist[m+1])
         Wlist[m+1]=(2.0*conj(amat)*temp-sqrt(m+1)*Wlist[m])/sqrt(m+1)
@@ -77,11 +103,53 @@ def wigner(psi,xvec,yvec,g=sqrt(2)):
             temp2=(2.0*amat*Wlist[n]-sqrt(m+1)*temp)/sqrt(n+1)
             temp=copy(Wlist[n+1])
             Wlist[n+1]=temp2
-        wmat+=real(psi[m+1,m+1]*Wlist[m+1])
+        wmat+=real(rho[m+1,m+1]*Wlist[m+1])
         for k in range(m+2,M):
-            wmat+=2.0*real(psi[m+1,k]*Wlist[k])
+            wmat+=2.0*real(rho[m+1,k]*Wlist[k])
     return 0.5*wmat*g**2
-            
+
+
+def _wigner_laguerre(rho, xvec, yvec, g=sqrt(2)):
+    # Using an Laguerre polynomials from scipy
+
+    M = prod(rho.shape[0])
+
+    X,Y = meshgrid(xvec, yvec)
+    A   = 0.5*g*(X + 1.0j*Y)
+    W = zeros(shape(A))
+
+    # compute wigner functions for density matrices |m><n| and 
+    # weight by all the elements in the density matrix
+    B = 4*abs(A)**2
+    if sp.isspmatrix_csr(rho.data):
+        # for compress sparse row matrices
+
+        for m in range(len(rho.data.indptr)-1):
+            for jj in range(rho.data.indptr[m], rho.data.indptr[m+1]):        
+                n = rho.data.indices[jj]
+
+                if m == n:
+                    W += real(rho[m,m] * (-1)**m * genlaguerre(m,0)(B))
+
+                elif n > m:
+                    W += 2.0 * real(rho[m,n] * (-1)**m * (2*A)**(n-m) * \
+                         sqrt(factorial(m)/factorial(n)) * genlaguerre(m,n-m)(B))
+
+    else:
+        # for dense density matrices
+        B = 4*abs(A)**2
+        for m in range(M):
+            if abs(rho[m,m]) > 0.0:
+                W += real(rho[m,m] * (-1)**m * genlaguerre(m,0)(B))
+            for n in range(m+1,M):
+                if abs(rho[m,n]) > 0.0:
+                    W += 2.0 * real(rho[m,n] * (-1)**m * (2*A)**(n-m) * \
+                         sqrt(factorial(m)/factorial(n)) * genlaguerre(m,n-m)(B))
+
+
+    return 0.5 * W * g**2 * np.exp(-B/2) / pi            
+
+
 #-------------------------------------------------------------------------------
 # Q FUNCTION
 #
