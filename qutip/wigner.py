@@ -84,30 +84,47 @@ def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative'):
 
 
 def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
-    # Using an iterative method to evaluate the Laguerre polynomials
-
+    # Using an iterative method to evaluate the wigner functions
+    # for the Fock state |m><n|
+    # 
+    # The wigner function is calculated as W = sum_mn rho_mn W_mn
+    # where W_mn is the wigner function for the density matrix |m><n|.
+    # 
+    # In this implementation, for each row m, Wlist contains the
+    # wigner functions Wlist = [0, ..., W_mm, ..., W_mN]. As soon as one 
+    # W_mn wigner function is calculated, the corresponding contribution
+    # is added to the total wigner function, weighted by the corresponding
+    # element in the density matrix rho_mn.
+    #
+    
     M = prod(rho.shape[0])
     X,Y = meshgrid(xvec, yvec)
-    amat = 0.5*g*(X + 1.0j*Y)
-    wmat=zeros(shape(amat))
-    Wlist=array([zeros(shape(amat),dtype=complex) for k in range(M)])
-    Wlist[0]=exp(-2.0*abs(amat)**2)/pi
-    wmat=real(rho[0,0])*real(Wlist[0])
-    for n in range(1,M):
-        Wlist[n]=(2.0*amat*Wlist[n-1])/sqrt(n)
-        wmat+= 2.0*real(rho[0,n]*Wlist[n])
-    for m in range(M-1):
-        temp=copy(Wlist[m+1])
-        Wlist[m+1]=(2.0*conj(amat)*temp-sqrt(m+1)*Wlist[m])/sqrt(m+1)
-        for n in range(m+1,M-1):
-            temp2=(2.0*amat*Wlist[n]-sqrt(m+1)*temp)/sqrt(n+1)
-            temp=copy(Wlist[n+1])
-            Wlist[n+1]=temp2
-        wmat+=real(rho[m+1,m+1]*Wlist[m+1])
-        for k in range(m+2,M):
-            wmat+=2.0*real(rho[m+1,k]*Wlist[k])
-    return 0.5*wmat*g**2
+    A = 0.5*g*(X + 1.0j*Y)
+    
+    Wlist = array([zeros(shape(A),dtype=complex) for k in range(M)])
+    Wlist[0] = exp(-2.0 * abs(A)**2)/pi
 
+    W = real(rho[0,0]) * real(Wlist[0])
+    for n in range(1,M):
+        Wlist[n] = (2.0 * A * Wlist[n-1])/sqrt(n)
+        W += 2 * real(rho[0,n] * Wlist[n])
+
+    for m in range(1,M):
+        temp = copy(Wlist[m])
+        Wlist[m] = (2 * conj(A) * temp - sqrt(m) * Wlist[m-1])/sqrt(m)
+
+        # Wlist[m] = Wigner function for |m><m|
+        W += real(rho[m,m] * Wlist[m])
+
+        for n in range(m+1,M):
+            temp2 = (2 * A * Wlist[n-1] - sqrt(m) * temp)/sqrt(n)
+            temp = copy(Wlist[n])
+            Wlist[n] = temp2
+            
+            # Wlist[n] = Wigner function for |m><n|
+            W += 2 * real(rho[m,n] * Wlist[n])
+            
+    return 0.5 * W * g**2
 
 def _wigner_laguerre(rho, xvec, yvec, g=sqrt(2)):
     # Using an Laguerre polynomials from scipy
