@@ -51,17 +51,16 @@ def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative'):
     method : string
         Select method 'iterative' or 'laguerre', where 'iterative' use a 
         iterative method to evaluate the Wigner functions for density matrices
-        |m><n|, while 'laguerre' uses the Laguerre polynomicals in scipy for the
+        |m><n|, while 'laguerre' uses the Laguerre polynomials in scipy for the
         same task. The 'iterative' method is default, and in general recommended,
-        but the 'laguerre' method is usually more efficient for very sparse
-        density matrices (e.g., superpositions of Fock states in large Hilbert
-        spaces).
+        but the 'laguerre' method is more efficient for very sparse density
+        matrices (e.g., superpositions of Fock states in a large Hilbert space).
     
     Returns
     --------
     W : array
-        Values representing the Wigner function calculated over the specified range [xvec,yvec].
-    
+        Values representing the Wigner function calculated over the specified
+        range [xvec,yvec].    
     
     """
 
@@ -100,7 +99,7 @@ def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
     
     M = prod(rho.shape[0])
     X,Y = meshgrid(xvec, yvec)
-    A = 0.5*g*(X + 1.0j*Y)
+    A = 0.5 * g * (X + 1.0j * Y)
     
     Wlist = array([zeros(shape(A),dtype=complex) for k in range(M)])
     Wlist[0] = exp(-2.0 * abs(A)**2)/pi
@@ -129,15 +128,14 @@ def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
 
 def _wigner_laguerre(rho, xvec, yvec, g=sqrt(2)):
     """
-    Using an Laguerre polynomials from scipy to evaluate the Wigner function for
-    the density matrices |m><n|, W_mn. The total wigner function is calculated
+    Using Laguerre polynomials from scipy to evaluate the Wigner function for
+    the density matrices |m><n|, W_mn. The total Wigner function is calculated
     as W = sum_mn rho_mn W_mn.
     """
 
     M = prod(rho.shape[0])
-
     X,Y = meshgrid(xvec, yvec)
-    A   = 0.5*g*(X + 1.0j*Y)
+    A = 0.5 * g * (X + 1.0j * Y)
     W = zeros(shape(A))
 
     # compute wigner functions for density matrices |m><n| and 
@@ -145,7 +143,6 @@ def _wigner_laguerre(rho, xvec, yvec, g=sqrt(2)):
     B = 4*abs(A)**2
     if sp.isspmatrix_csr(rho.data):
         # for compress sparse row matrices
-
         for m in range(len(rho.data.indptr)-1):
             for jj in range(rho.data.indptr[m], rho.data.indptr[m+1]):        
                 n = rho.data.indices[jj]
@@ -167,7 +164,6 @@ def _wigner_laguerre(rho, xvec, yvec, g=sqrt(2)):
                 if abs(rho[m,n]) > 0.0:
                     W += 2.0 * real(rho[m,n] * (-1)**m * (2*A)**(n-m) * \
                          sqrt(factorial(m)/factorial(n)) * genlaguerre(m,n-m)(B))
-
 
     return 0.5 * W * g**2 * np.exp(-B/2) / pi            
 
