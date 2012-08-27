@@ -212,7 +212,7 @@ class eseries:
         val_list = np.zeros(np.size(wlist))
 
         for i in range(len(wlist)):
-            val_list[i] = 2 * real( dot(es.ampl, 1./(1.0j*wlist[i] - es.rates)) )
+            val_list[i] = 2 * np.real(np.dot(es.ampl, 1./(1.0j*wlist[i] - es.rates)) )
 
         return val_list
 
