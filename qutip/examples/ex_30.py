@@ -36,7 +36,6 @@ def run():
     psi0=tensor(basis(N,0),basis(2,1))
     
     #run monte-carlo solver with default 500 trajectories
-    start_time=time.time()
     data=mcsolve(H,psi0,tlist,[C1,C2],[C1dC1,C2dC2])
     #plot expectation values
     plot(tlist,data.expect[0],tlist,data.expect[1],lw=2)
