@@ -1,16 +1,6 @@
 #!/usr/bin/env python
 
 import os
-import sys
-import shutil,fnmatch
-import re
-import subprocess
-import warnings
-from glob import glob
-from os.path import splitext, basename, join as pjoin
-from os import walk
-import numpy as np
-
 import json
 import re
 
