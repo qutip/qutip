@@ -97,6 +97,9 @@ def qutrit_basis():
     """
     return array([basis(3,0), basis(3,1), basis(3,2)])
 
+def _sqrt_factorial(n_vec):
+    # take the square root before multiplying 
+    return np.array([np.prod(np.sqrt(np.arange(1,n+1))) for n in n_vec])
 
 def coherent(N, alpha, method='displacement'):
     """Generates a coherent state with eigenvalue alpha. 
@@ -150,7 +153,7 @@ def coherent(N, alpha, method='displacement'):
 
         data = np.zeros([N,1],dtype=complex)
         n = arange(N)
-        data[:,0] = np.exp(-(abs(alpha)**2)/2.0)*(alpha**(n))/np.sqrt(factorial(n))
+        data[:,0] = np.exp(-(abs(alpha)**2)/2.0)*(alpha**(n))/_sqrt_factorial(n)
         return Qobj(data)
 
     else:
