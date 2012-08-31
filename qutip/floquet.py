@@ -235,7 +235,7 @@ def floquet_state_decomposition(f_modes_0, f_energies, psi0):
     return [(f_modes_0[i].dag() * psi0).data[0,0] for i in np.arange(len(f_energies))]
 
 # should be moved to a utility library?    
-def n_thermal(w, w_th):
+def _n_thermal(w, w_th):
     if (w_th > 0) and exp(w/w_th) != 1.0: 
         return 1.0/(exp(w/w_th) - 1.0)
     else: 
@@ -291,7 +291,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, args, J_cb,
             for k in range(-kmax,kmax+1, 1):
                 k1_idx =   k + kmax;
                 k2_idx = - k + kmax;                
-                A[a,b] += Gamma[a,b,k1_idx] + n_thermal(abs(Delta[a,b,k1_idx]), w_th) * (Gamma[a,b,k1_idx]+Gamma[b,a,k2_idx])
+                A[a,b] += Gamma[a,b,k1_idx] + _n_thermal(abs(Delta[a,b,k1_idx]), w_th) * (Gamma[a,b,k1_idx]+Gamma[b,a,k2_idx])
                 
     return Delta, X, Gamma, A
         

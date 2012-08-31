@@ -21,7 +21,7 @@ import numpy as np
 
 from qutip.Qobj import Qobj
 
-class eseries:
+class eseries():
     """
     Class representation of an exponential-series expansion of time-dependent quantum objects.
     """
