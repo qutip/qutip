@@ -114,7 +114,7 @@ QuTiP installation:
 Installation on Mac OS X (10.6+)
 =================================
 
-If you have not done so already, install the Apple XCode developer tools from the Apple App Store.
+If you have not done so already, install the Apple XCode developer tools from the Apple App Store.  After intallation, open Xcode and go to: Preferences -> Downloads, and install the 'Command Line Tools'.
 
 Setup Using Macports: [*]_
 --------------------------
@@ -128,9 +128,8 @@ additional, but optional, ports include:
 
 >>> sudo port install py27-ipython
 >>> sudo port install py27-cython
->>> sudo port install texlive-latex-extra
 
-the last of which installs supplimentary LaTex fonts, and in addition:
+and in addition:
 
 >>> sudo port install py27-pyside
 
@@ -189,9 +188,10 @@ No matter which installation path you choose, installing QuTiP is the same as on
 Verifying the Installation
 ============================
 
-QuTiP now includes a collection of built-in test scripts to verify that the installation was indeed successful.  To run the suite of tests scripts, after installing QuTiP call:
+QuTiP now includes a collection of built-in test scripts to verify that the installation was indeed successful.  To run the suite of tests scripts, after installing QuTiP, exit the installation directory, run Python (or iPython), and call:
 
->>> python setup.py test
+>>> import qutip.testing as qt
+>>> qt.run()
 
 If successful, these tests indicate that all of the QuTiP functions are working properly.  If any errors occur, please check that your have installed all of the required modules.  See the next section on how to check the installed versions of the QuTiP dependencies.  If these tests still fail, then head on over to the `QuTiP Discussion Board <http://groups.google.com/group/qutip>`_ and post a message detailing your particular issue.
 
