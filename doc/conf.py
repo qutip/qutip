@@ -107,7 +107,7 @@ html_theme = 'sphinx-bootstrap'
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-html_theme_options = {'analytics_code': 'UA-00000000-1'}
+html_theme_options = {'analytics_code': 'UA-16824831-3'}
 # Add any paths that contain custom themes here, relative to this directory.
 html_theme_path = ['_themes']
 
