@@ -502,10 +502,6 @@ def mc_alg_evolve(nt,args):
     """
     #get input data
     mc_alg_out,opt,tlist,num_times,seeds=args
-
-    #number of operators of each type
-    num_expect=odeconfig.e_num
-    num_collapse=odeconfig.c_num
     
     collapse_times=[] #times at which collapse occurs
     which_oper=[] # which operator did the collapse
@@ -537,7 +533,7 @@ def mc_alg_evolve(nt,args):
     ODE.set_initial_value(odeconfig.psi0,tlist[0])
     
     #RUN ODE UNTIL EACH TIME IN TLIST
-    cinds=arange(num_collapse)
+    cinds=arange(odeconfig.c_num)
     for k in range(1,num_times):
         #ODE WHILE LOOP FOR INTEGRATE UP TO TIME TLIST[k]
         while ODE.successful() and ODE.t<tlist[k]:
@@ -560,7 +556,7 @@ def mc_alg_evolve(nt,args):
                     n_dp=array(n_dp)
                 #all constant collapse operators.
                 else:    
-                    n_dp=array([mc_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in range(num_collapse)])
+                    n_dp=array([mc_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in range(odeconfig.c_num)])
                 
                 #determine which operator does collapse
                 kk=cumsum(n_dp/sum(n_dp))
@@ -584,13 +580,13 @@ def mc_alg_evolve(nt,args):
         if ODE.t>last_t:
             psi=(psi-last_y)/(ODE.t-last_t)*(tlist[k]-last_t)+last_y
         epsi=psi/norm(psi,2)
-        if num_expect==0:
+        if odeconfig.e_num==0:
             mc_alg_out[k]=epsi
         else:
-            for jj in range(num_expect):
+            for jj in range(odeconfig.e_num):
                 mc_alg_out[jj][k]=mc_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],epsi)
     #RETURN VALUES
-    if num_expect==0:
+    if odeconfig.e_num==0:
         mc_alg_out=array([Qobj(k,odeconfig.psi0_dims,odeconfig.psi0_shape,fast='mc') for k in mc_alg_out])
         return nt,mc_alg_out,array(collapse_times),array(which_oper)
     else:
