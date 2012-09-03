@@ -209,7 +209,7 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
     qmat = zeros(size(amat))
 
     if isket(state):
-        qmat = qfunc1(state, amat)
+        qmat = _qfunc_pure(state, amat)
     elif isoper(state):
         d,v = la.eig(state.full())
         # d[i]   = eigenvalue i
@@ -217,7 +217,7 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
 
         qmat = zeros(shape(amat))
         for k in arange(0, len(d)):
-            qmat1 = qfunc1(v[:,k], amat)
+            qmat1 = _qfunc_pure(v[:,k], amat)
             qmat += real(d[k] * qmat1)
 
     qmat = 0.25 * qmat * g**2;
@@ -229,7 +229,7 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
 # |psi>   = the state in fock basis
 # |alpha> = the coherent state with amplitude alpha
 #
-def qfunc1(psi, alpha_mat):
+def _qfunc_pure(psi, alpha_mat):
     """
     private function used by qfunc
     """
