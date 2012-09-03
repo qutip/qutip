@@ -21,11 +21,11 @@ These pages contains automatically generated API documentation for QuTiP. A PDF 
 
 :Author: P.D. Nation
 :Address: Department of Physics, Korea University,
-          Seongbuk-Gu Seoul, 136-701 South Korea
+          Seongbuk-Gu Seoul, 136-713 South Korea
 :Author: J.R. Johansson
 :Address: Advanced Science Institute, RIKEN,
 		  Wako-shi Saitama, 351-0198 Japan
-:version: 2.0
+:version: 2.1
 :status: In Development
 :copyright: This documentation is in the public domain.
 			You may do with it as your heart desires.

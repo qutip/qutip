@@ -15,7 +15,7 @@ Lead Developers
 
 `Robert Johansson <http://dml.riken.jp/~rob/>`_ (RIKEN)
 
-`Paul Nation <http://dml.riken.jp/~paul/>`_ (RIKEN / University of Michigan)
+`Paul Nation <http://nqdl.korea.ac.kr>`_ (Korea University)
 
 
 .. _developers-contributors:
@@ -36,7 +36,11 @@ Contributors
 
 **Myung-Joong Hwang** (Pohang University of Science and Technology) - Bug hunter
 
+**Robert Jördens**  - Linux packaging
+
 **Hwajung Kang** (Systems Biology Institute, Tokyo)  - Suggestions for improving Bloch class
+
+**Anders Lund** - Bug hunting for the Monte-Carlo solver.
 
 **Jonas Neergaard-Nielsen** (Technical University of Denmark) - Bug hunter
 
@@ -47,5 +51,3 @@ Contributors
 **Denis Vasilyev** (St. Petersburg State University) - Bug hunter
 
 **Dong Zhou** (Yale) - Bug hunter
-
-**Robert Jördens**  - Linux packaging
