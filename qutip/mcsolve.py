@@ -18,6 +18,7 @@
 ###########################################################################
 
 import sys,os,time,numpy,datetime
+from numpy.random import RandomState
 from scipy import *
 from scipy.integrate import *
 from scipy.linalg import norm
@@ -352,7 +353,7 @@ class MC_class():
             else:# return expectation values of requested operators
                 self.expect_out=no_collapse_expect_out(self.num_times,self.expect_out)
         elif odeconfig.c_num!=0:
-            self.seed=array([int(ceil(random.rand()*1e4)) for ll in range(odeconfig.ntraj)])
+            self.seed=random.random_integers(1e8,size=odeconfig.ntraj)
             if odeconfig.e_num==0:
                 mc_alg_out=zeros((self.num_times),dtype=ndarray)
                 mc_alg_out[0]=odeconfig.psi0
@@ -507,8 +508,8 @@ def mc_alg_evolve(nt,args):
     which_oper=[] # which operator did the collapse
     
     #SEED AND RNG AND GENERATE
-    random.seed(seeds[nt])
-    rand_vals=random.rand(2)#first rand is collapse norm, second is which operator
+    prng = RandomState(seeds[nt])
+    rand_vals=prng.rand(2)#first rand is collapse norm, second is which operator
     
     #CREATE ODE OBJECT CORRESPONDING TO DESIRED TIME-DEPENDENCE
     if odeconfig.tflag in array([1,10,11]):
@@ -573,7 +574,7 @@ def mc_alg_evolve(nt,args):
                         state=odeconfig.c_funcs[j](ODE.t,odeconfig.c_func_args)*spmv(odeconfig.c_ops_data[j],odeconfig.c_ops_ind[j],odeconfig.c_ops_ptr[j],ODE.y)
                 state_nrm=norm(state,2)
                 ODE.set_initial_value(state/state_nrm,ODE.t)
-                rand_vals=random.rand(2)
+                rand_vals=prng.rand(2)
         #-------------------------------------------------------
         ###--after while loop--####
         psi=copy(ODE.y)
