@@ -163,28 +163,29 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
             # constant hamiltonian
             if n_func == 0 and n_str == 0:
                 # constant collapse operators
-                return mesolve_const(H, rho0, tlist, c_ops, expt_ops, args, options)
+                return _mesolve_const(H, rho0, tlist, c_ops, expt_ops, args, options)
             elif n_str > 0:
                 # constant hamiltonian but time-dependent collapse operators in list string format
-                return mesolve_list_str_td([H], rho0, tlist, c_ops, expt_ops, args, options)     
+                return _mesolve_list_str_td([H], rho0, tlist, c_ops, expt_ops, args, options)     
             elif n_func > 0:
                 # constant hamiltonian but time-dependent collapse operators in list function format
-                return mesolve_list_func_td([H], rho0, tlist, c_ops, expt_ops, args, options)     
+                return _mesolve_list_func_td([H], rho0, tlist, c_ops, expt_ops, args, options)     
         
         if isinstance(H, types.FunctionType):
             # old style time-dependence: must have constant collapse operators
             if n_str > 0: # or n_func > 0:
-                raise TypeError("Incorrect format: function-format Hamiltonian cannot be mixed with time-dependent collapse operators.")
+                raise TypeError("Incorrect format: function-format Hamiltonian " +
+                                "cannot be mixed with time-dependent collapse operators.")
             else:
-                return mesolve_func_td(H, rho0, tlist, c_ops, expt_ops, args, options)
+                return _mesolve_func_td(H, rho0, tlist, c_ops, expt_ops, args, options)
         
         if isinstance(H, list):
             # determine if we are dealing with list of [Qobj, string] or [Qobj, function]
             # style time-dependences (for pure python and cython, respectively)
             if n_func > 0:
-                return mesolve_list_func_td(H, rho0, tlist, c_ops, expt_ops, args, options)
+                return _mesolve_list_func_td(H, rho0, tlist, c_ops, expt_ops, args, options)
             else:
-                return mesolve_list_str_td(H, rho0, tlist, c_ops, expt_ops, args, options)
+                return _mesolve_list_str_td(H, rho0, tlist, c_ops, expt_ops, args, options)
                                    
         raise TypeError("Incorrect specification of Hamiltonian or collapse operators.")
 
@@ -193,18 +194,18 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
         # no collapse operators: unitary dynamics
         #
         if n_func > 0:
-            return wfsolve_list_func_td(H, rho0, tlist, expt_ops, args, options)
+            return _wfsolve_list_func_td(H, rho0, tlist, expt_ops, args, options)
         elif n_str > 0:
-            return wfsolve_list_str_td(H, rho0, tlist, expt_ops, args, options)
+            return _wfsolve_list_str_td(H, rho0, tlist, expt_ops, args, options)
         elif isinstance(H, types.FunctionType):
-            return wfsolve_func_td(H, rho0, tlist, expt_ops, args, options)
+            return _wfsolve_func_td(H, rho0, tlist, expt_ops, args, options)
         else:
-            return wfsolve_const(H, rho0, tlist, expt_ops, args, options)
+            return _wfsolve_const(H, rho0, tlist, expt_ops, args, options)
 
 # ------------------------------------------------------------------------------
 # A time-dependent disipative master equation on the list-function format
 # 
-def mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
+def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     """
     Internal function for solving the master equation. See mesolve for usage.   
     """
@@ -234,7 +235,8 @@ def mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             h_coeff = h_spec[1]
             
         else:
-            raise TypeError("Incorrect specification of time-dependent Hamiltonian (expected callback function)")
+            raise TypeError("Incorrect specification of time-dependent " +
+                            "Hamiltonian (expected callback function)")
                 
         L_list.append([(-1j*(spre(h) - spost(h))).data, h_coeff])
         
@@ -251,10 +253,12 @@ def mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             c_coeff = c_spec[1]
             
         else:
-            raise TypeError("Incorrect specification of time-dependent collapse operators (expected callback function)")
+            raise TypeError("Incorrect specification of time-dependent " + 
+                            "collapse operators (expected callback function)")
                 
         cdc = c.dag() * c
-        L_list.append([(spre(c)*spost(c.dag())-0.5*spre(cdc)-0.5*spost(cdc)).data, lambda t, args: (c_coeff(t, args))**2])    
+        L_list.append([(spre(c)*spost(c.dag())-0.5*spre(cdc)-0.5*spost(cdc)).data, 
+                       lambda t, args: (c_coeff(t, args))**2])    
         
     L_list_and_args = [L_list, args]
 
@@ -273,7 +277,7 @@ def mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)      
+    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)      
 
 
 #
@@ -298,7 +302,7 @@ def rho_list_td(t, rho, L_list_and_args):
 # ------------------------------------------------------------------------------
 # A time-dependent unitary wavefunction equation on the list-function format
 # 
-def wfsolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt):
+def _wfsolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt):
     """
     Internal function for solving the master equation. See mesolve for usage.   
     """
@@ -327,7 +331,8 @@ def wfsolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt):
             h_coeff = h_spec[1]
             
         else:
-            raise TypeError("Incorrect specification of time-dependent Hamiltonian (expected callback function)")
+            raise TypeError("Incorrect specification of time-dependent " +
+                            "Hamiltonian (expected callback function)")
                 
         L_list.append([-1j*h.data, h_coeff])
                 
@@ -348,7 +353,7 @@ def wfsolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return generic_ode_solve(r, psi0, tlist, expt_ops, opt, lambda x : x)   
+    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, lambda x : x)   
     
 
 
@@ -376,7 +381,7 @@ def psi_list_td(t, psi, H_list_and_args):
 # A time-dependent disipative master equation on the list-string format for 
 # cython compilation
 # 
-def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
+def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     """
     Internal function for solving the master equation. See mesolve for usage.   
     """
@@ -406,13 +411,13 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
         if isinstance(h_spec, Qobj):
             h = h_spec
 
-            Lconst += -1j*(spre(h) - spost(h)) # apply tidyup ?
+            Lconst += -1j*(spre(h) - spost(h)) 
    
         elif isinstance(h_spec, list): 
             h = h_spec[0]
             h_coeff = h_spec[1]
             
-            L = -1j*(spre(h) - spost(h)) # apply tidyup ?
+            L = -1j*(spre(h) - spost(h))
             
             Ldata.append(L.data.data)
             Linds.append(L.data.indices)
@@ -420,7 +425,8 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             Lcoeff.append(h_coeff) 
 
         else:
-            raise TypeError("Incorrect specification of time-dependent Hamiltonian (expected string format)")
+            raise TypeError("Incorrect specification of time-dependent " + 
+                            "Hamiltonian (expected string format)")
                 
         
     # loop over all collapse operators        
@@ -430,14 +436,14 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             c = c_spec
             
             cdc = c.dag() * c
-            Lconst += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc) # apply tidyup?
+            Lconst += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc) 
    
         elif isinstance(c_spec, list): 
             c = c_spec[0]
             c_coeff = c_spec[1]
             
             cdc = c.dag() * c
-            L = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc) # apply tidyup?
+            L = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc) 
 
             Ldata.append(L.data.data)
             Linds.append(L.data.indices)
@@ -445,7 +451,8 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             Lcoeff.append("("+c_coeff+")**2")
 
         else:
-            raise TypeError("Incorrect specification of time-dependent collapse operators (expected string format)")
+            raise TypeError("Incorrect specification of time-dependent " + 
+                            "collapse operators (expected string format)")
                 
     # add the constant part of the lagrangian
     if Lconst != 0:
@@ -499,7 +506,7 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)    
+    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)    
 
 
 # ------------------------------------------------------------------------------
@@ -507,7 +514,7 @@ def mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
 # cython compilation
 # 
     
-def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
+def _wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     """
     Internal function for solving the master equation. See mesolve for usage.   
     """
@@ -539,7 +546,8 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
             h_coeff = h_spec[1]
             
         else:
-            raise TypeError("Incorrect specification of time-dependent Hamiltonian (expected string format)")
+            raise TypeError("Incorrect specification of time-dependent " +
+                            "Hamiltonian (expected string format)")
                 
         L = -1j*h
         
@@ -592,14 +600,14 @@ def wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return generic_ode_solve(r, psi0, tlist, expt_ops, opt, lambda x: x)
+    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, lambda x: x)
 
 
 # ------------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution) using
 # a constant Hamiltonian.
 # 
-def wfsolve_const(H, psi0, tlist, expt_ops, H_args, opt):
+def _wfsolve_const(H, psi0, tlist, expt_ops, H_args, opt):
     """!
     Evolve the wave function using an ODE solver
     """
@@ -624,19 +632,19 @@ def wfsolve_const(H, psi0, tlist, expt_ops, H_args, opt):
     #
     # call generic ODE code
     #
-    return generic_ode_solve(r, psi0, tlist, expt_ops, opt, lambda x: x, norm)    
+    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, lambda x: x, norm)    
 
 #
 # evaluate dpsi(t)/dt [not used. using cython function is being used instead]
 #
-def psi_ode_func(t, psi, H):
+def _ode_psi_func(t, psi, H):
     return H * psi
 
 # ------------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
 # time dependent hamiltonians
 # 
-def wfsolve_list_td(H_func, psi0, tlist, expt_ops,H_args, opt):
+def _wfsolve_list_td(H_func, psi0, tlist, expt_ops,H_args, opt):
     """!
     Evolve the wave function using an ODE solver with time-dependent
     Hamiltonian.
@@ -653,7 +661,8 @@ def wfsolve_list_td(H_func, psi0, tlist, expt_ops,H_args, opt):
     if (not isinstance(H_func[0],(list,ndarray))) or (len(H_func[0])<=1):
         raise TypeError('Time-dependent Hamiltonians must be a list with two or more terms')
     if (not isinstance(H_func[1],(list,ndarray))) or (len(H_func[1])!=(len(H_func[0])-1)):
-        raise TypeError('Time-dependent coefficients must be list with length N-1 where N is the number of Hamiltonian terms.')
+        raise TypeError('Time-dependent coefficients must be list with length ' +
+                        'N-1 where N is the number of Hamiltonian terms.')
     tflag=1
     if opt.rhs_reuse==True and odeconfig.tdfunc==None:
         print("No previous time-dependent RHS found.")
@@ -704,13 +713,13 @@ def wfsolve_list_td(H_func, psi0, tlist, expt_ops,H_args, opt):
     #
     # call generic ODE code
     #
-    return generic_ode_solve(r, psi0, tlist, expt_ops, opt, lambda x: x)
+    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, lambda x: x)
 
 # ------------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
 # time dependent hamiltonians
 # 
-def wfsolve_func_td(H_func, psi0, tlist, expt_ops, H_args, opt):
+def _wfsolve_func_td(H_func, psi0, tlist, expt_ops, H_args, opt):
     """!
     Evolve the wave function using an ODE solver with time-dependent
     Hamiltonian.
@@ -730,7 +739,7 @@ def wfsolve_func_td(H_func, psi0, tlist, expt_ops, H_args, opt):
             H_func_and_args.append(arg)
 
     initial_vector = psi0.full()
-    r = scipy.integrate.ode(psi_ode_func_td)
+    r = scipy.integrate.ode(_ode_psi_func_td)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                               atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                               first_step=opt.first_step, min_step=opt.min_step,
@@ -741,12 +750,12 @@ def wfsolve_func_td(H_func, psi0, tlist, expt_ops, H_args, opt):
     #
     # call generic ODE code
     #
-    return generic_ode_solve(r, psi0, tlist, expt_ops, opt, lambda x: x)
+    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, lambda x: x)
 
 #
 # evaluate dpsi(t)/dt for time-dependent hamiltonian
 #
-def psi_ode_func_td(t, psi, H_func_and_args):
+def _ode_psi_func_td(t, psi, H_func_and_args):
     H_func = H_func_and_args[0]
     H_args = H_func_and_args[1:]
 
@@ -757,7 +766,7 @@ def psi_ode_func_td(t, psi, H_func_and_args):
 # ------------------------------------------------------------------------------
 # Master equation solver
 # 
-def mesolve_const(H, rho0, tlist, c_op_list, expt_ops, H_args, opt):
+def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     """!
     Evolve the density matrix using an ODE solver, for constant hamiltonian
     and collapse operators.
@@ -772,7 +781,7 @@ def mesolve_const(H, rho0, tlist, c_op_list, expt_ops, H_args, opt):
         # if initial state is a ket and no collapse operator where given,
         # fallback on the unitary schrodinger equation solver
         if n_op == 0:
-            return wfsolve_const(H, rho0, tlist, expt_ops)
+            return _wfsolve_const(H, rho0, tlist, expt_ops)
 
         # Got a wave function as initial state: convert to density matrix.
         rho0 = rho0 * rho0.dag()
@@ -800,21 +809,21 @@ def mesolve_const(H, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     #
     # call generic ODE code
     #
-    return generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)
+    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)
     
 
 #
 # evaluate drho(t)/dt according to the master eqaution
 # [no longer used, replaced by cython function]
 #
-def rho_ode_func(t, rho, L):
+def _ode_rho_func(t, rho, L):
     return L*rho
 
 # ------------------------------------------------------------------------------
 # Master equation solver: deprecated in 2.0.0. No support for time-dependent
 # collapse operators. Only used by the deprecated odesolve function.
 # 
-def mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
+def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     """!
     Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
@@ -828,7 +837,7 @@ def mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
         # if initial state is a ket and no collapse operator where given,
         # fallback on the unitary schrodinger equation solver
         if n_op == 0:
-            return wfsolve_list_td(H_func, rho0, tlist, expt_ops, H_args, opt)
+            return _wfsolve_list_td(H_func, rho0, tlist, expt_ops, H_args, opt)
 
         # Got a wave function as initial state: convert to density matrix.
         rho0 = ket2dm(rho0)
@@ -842,7 +851,8 @@ def mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     if (not isinstance(H_func[0],(list,ndarray))) or (len(H_func[0])<=1):
         raise TypeError('Time-dependent Hamiltonians must be a list with two or more terms')
     if (not isinstance(H_func[1],(list,ndarray))) or (len(H_func[1])!=(len(H_func[0])-1)):
-        raise TypeError('Time-dependent coefficients must be list with length N-1 where N is the number of Hamiltonian terms.')
+        raise TypeError('Time-dependent coefficients must be list with length ' +
+                        'N-1 where N is the number of Hamiltonian terms.')
     if opt.rhs_reuse==True and odeconfig.tdfunc==None:
         print("No previous time-dependent RHS found.")
         print("Generating one for you...")
@@ -897,13 +907,13 @@ def mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     #
     # call generic ODE code
     #
-    return generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)
+    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)
 
 
 # ------------------------------------------------------------------------------
 # Master equation solver
 # 
-def mesolve_func_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
+def _mesolve_func_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     """!
     Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
@@ -918,7 +928,7 @@ def mesolve_func_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
         # if initial state is a ket and no collapse operator where given,
         # fallback on the unitary schrodinger equation solver
         if n_op == 0:
-            return wfsolve_list_td(H_func, rho0, tlist, expt_ops, H_args, opt)
+            return _wfsolve_list_td(H_func, rho0, tlist, expt_ops, H_args, opt)
 
         # Got a wave function as initial state: convert to density matrix.
         rho0 = ket2dm(rho0)
@@ -950,7 +960,7 @@ def mesolve_func_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full())
-    r = scipy.integrate.ode(rho_ode_func_td)
+    r = scipy.integrate.ode(_ode_rho_func_td)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                               atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                               first_step=opt.first_step, min_step=opt.min_step,
@@ -961,13 +971,13 @@ def mesolve_func_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     #
     # call generic ODE code
     #
-    return generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)
+    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)
 
 
 #
 # evaluate drho(t)/dt according to the master eqaution
 #
-def rho_ode_func_td(t, rho, L_func_and_args):
+def _ode_rho_func_td(t, rho, L_func_and_args):
 
     L_func = L_func_and_args[0]
     L0     = L_func_and_args[1]
@@ -987,7 +997,7 @@ def rho_ode_func_td(t, rho, L_func_and_args):
 # Solve an ODE which solver parameters already setup (r). Calculate the required
 # expectation values or invoke callback function at each time step.
 # 
-def generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize, state_norm_func=None):
+def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize, state_norm_func=None):
     """
     Internal function for solving ODEs.
     """
@@ -1131,29 +1141,29 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, H_args=None, options=None):
     passed on to the integrator to scipy who will raise an NotImplemented
     exception.
         
-    Depreciated in QuTiP 2.0.0.  Use :func:`mesolve` instead.
+    Deprecated in QuTiP 2.0.0. Use :func:`mesolve` instead.
         
     """
 
     if options == None:
         options = Odeoptions()
         options.nsteps = 2500  #
-        options.max_step = max(tlist)/10.0 # take at least 10 steps.. 
+        options.max_step = (tlist[-1]-tlist[0])/10.0 # take at least 10 steps.. 
         
     if (c_op_list and len(c_op_list) > 0) or not isket(rho0):
         if isinstance(H, list):
-            output = mesolve_list_td(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
+            output = _mesolve_list_td(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
         if isinstance(H, types.FunctionType):
-            output = mesolve_func_td(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
+            output = _mesolve_func_td(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
         else:
-            output = mesolve_const(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
+            output = _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
     else:
         if isinstance(H, list):
-            output = wfsolve_list_td(H, rho0, tlist, expt_ops, H_args, options)
+            output = _wfsolve_list_td(H, rho0, tlist, expt_ops, H_args, options)
         if isinstance(H, types.FunctionType):
-            output = wfsolve_func_td(H, rho0, tlist, expt_ops, H_args, options)
+            output = _wfsolve_func_td(H, rho0, tlist, expt_ops, H_args, options)
         else:
-            output = wfsolve_const(H, rho0, tlist, expt_ops, H_args, options)
+            output = _wfsolve_const(H, rho0, tlist, expt_ops, H_args, options)
 
     if len(expt_ops) > 0:
         return output.expect
