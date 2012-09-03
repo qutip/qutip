@@ -33,7 +33,7 @@ def test_wigner_coherent():
     dx = xvec[1]-xvec[0]
     dy = yvec[1]-yvec[0]
 
-    N = 15
+    N = 20
     beta = rand() + rand() * 1.0j
     psi = coherent(N, beta)
 
@@ -43,7 +43,7 @@ def test_wigner_coherent():
     W_analytic = 2/pi * exp(-2*abs(a-beta)**2)
 
     # check difference
-    assert_(sum(abs(W_qutip - W_analytic)) < 1e-4)
+    assert_(sum(abs(W_qutip - W_analytic)**2) < 1e-4)
 
     # check normalization
     assert_(sum(W_qutip)    * dx * dy - 1.0 < 1e-8)
@@ -79,6 +79,69 @@ def test_wigner_fock():
         # check normalization
         assert_(sum(W_qutip)    * dx * dy - 1.0 < 1e-8)
         assert_(sum(W_analytic) * dx * dy - 1.0 < 1e-8)
+
+
+def test_wigner_compare_methods_dm():
+    "wigner: compare wigner methods for random density matrices"
+
+    xvec = linspace(-5.0, 5.0, 100)
+    yvec = xvec
+
+    X,Y = meshgrid(xvec, yvec)
+
+    a = X + 1j * Y  # consistent with g=2 option to wigner function
+
+    dx = xvec[1]-xvec[0]
+    dy = yvec[1]-yvec[0]
+
+    N = 15
+
+    for n in range(10):
+        # try ten different random density matrices
+
+        rho = rand_dm(N, 0.5 + rand()/2)
+
+        # calculate the wigner function using qutip and analytic formula
+        W_qutip1 = wigner(rho, xvec, yvec, g=2)
+        W_qutip2 = wigner(rho, xvec, yvec, g=2, method='laguerre')
+
+        # check difference
+        assert_(sum(abs(W_qutip1 - W_qutip1)) < 1e-4)
+
+        # check normalization
+        assert_(sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
+        assert_(sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
+
+def test_wigner_compare_methods_ket():
+    "wigner: compare wigner methods for random state vectors"
+
+    xvec = linspace(-5.0, 5.0, 100)
+    yvec = xvec
+
+    X,Y = meshgrid(xvec, yvec)
+
+    a = X + 1j * Y  # consistent with g=2 option to wigner function
+
+    dx = xvec[1]-xvec[0]
+    dy = yvec[1]-yvec[0]
+
+    N = 15
+
+    for n in range(10):
+        # try ten different random density matrices
+
+        psi = rand_ket(N, 0.5 + rand()/2)
+
+        # calculate the wigner function using qutip and analytic formula
+        W_qutip1 = wigner(psi, xvec, yvec, g=2)
+        W_qutip2 = wigner(psi, xvec, yvec, g=2, method='laguerre')
+
+        # check difference
+        assert_(sum(abs(W_qutip1 - W_qutip1)) < 1e-4)
+
+        # check normalization
+        assert_(sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
+        assert_(sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
 
 
 
