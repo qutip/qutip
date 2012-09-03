@@ -120,7 +120,7 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
     return Qobj(u)
 
 
-def get_min_and_index(lst): 
+def _get_min_and_index(lst): 
     """
     Private function for obtaining min and max indicies.
     """
@@ -148,7 +148,7 @@ def propagator_steadystate(U):
 
     evals,evecs = la.eig(U.full())
 
-    ev_min, ev_idx = get_min_and_index(abs(evals-1.0))
+    ev_min, ev_idx = _get_min_and_index(abs(evals-1.0))
 
     N = int(np.sqrt(len(evals)))
 
