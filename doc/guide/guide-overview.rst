@@ -22,6 +22,6 @@ QuTiP is designed to be a general toolbox for solving quantum optics like proble
 
 .. figure:: qutip_org.png
    :align: center
-   :width: 4in
+   :width: 6in
    
    QuTiP tree-diagram of user accessible functions and classes.

@@ -80,16 +80,6 @@
                 }, 
                 {
                     "color": "#0B5FA5", 
-                    "name": "wfsolve_const", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#0B5FA5", 
-                    "name": "mesolve_const", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#0B5FA5", 
                     "name": "odesolve", 
                     "size": 1000
                 }
@@ -288,11 +278,6 @@
                 {
                     "color": "#0B5FA5", 
                     "name": "propagator", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#0B5FA5", 
-                    "name": "get_min_and_index", 
                     "size": 1000
                 }, 
                 {
@@ -605,12 +590,6 @@
             "color": "#007143", 
             "idx": 4, 
             "name": "three_level_atom"
-        }, 
-        {
-            "children": [], 
-            "color": "#007143", 
-            "idx": 4, 
-            "name": "qstate"
         }, 
         {
             "children": [
