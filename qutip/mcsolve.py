@@ -531,16 +531,45 @@ def mc_alg_evolve(nt,args):
     
     #set initial conditions
     ODE.set_initial_value(odeconfig.psi0,tlist[0])
+    #make array for collapse operator inds
+    cinds=arange(odeconfig.c_num)
     
     #RUN ODE UNTIL EACH TIME IN TLIST
-    cinds=arange(odeconfig.c_num)
     for k in range(1,num_times):
         #ODE WHILE LOOP FOR INTEGRATE UP TO TIME TLIST[k]
         while ODE.successful() and ODE.t<tlist[k]:
-            last_t=ODE.t;last_y=ODE.y
+            t_prev=ODE.t;y_prev=ODE.y;norm2_prev=norm(ODE.y,2)**2
             ODE.integrate(tlist[k],step=1) #integrate up to tlist[k], one step at a time.
-            psi_nrm2=norm(ODE.y,2)**2
-            if psi_nrm2<=rand_vals[0]:# <== collpase has occured
+            #check if ODE jumped over tlist[k], if so, integrate until tlist exactly
+            if ODE.t>tlist[k]:
+                ODE.set_initial_value(y_prev,t_prev)
+                ODE.integrate(tlist[k],step=0)
+            norm2_psi=norm(ODE.y,2)**2
+            if norm2_psi<=rand_vals[0]:# <== collpase has occured
+                #find collpase time to within specified tolerance
+                #---------------------------------------------------
+                ii=0
+                t_final=ODE.t
+                while ii < odeconfig.norm_steps:
+                    ii+=1
+                    #t_guess=t_prev+(rand_vals[0]-norm2_prev)/(norm2_psi-norm2_prev)*(t_final-t_prev)
+                    t_guess=t_prev+log(norm2_prev/rand_vals[0])/log(norm2_prev/norm2_psi)*(t_final-t_prev)
+                    ODE.set_initial_value(y_prev,t_prev)
+                    ODE.integrate(t_guess,step=0)
+                    norm2_guess=norm(ODE.y,2)**2
+                    if abs(rand_vals[0]-norm2_guess) < odeconfig.norm_tol*rand_vals[0]:
+                        break
+                    elif (norm2_guess < rand_vals[0]):
+                        # t_guess is still > t_jump
+                        t_final=t_guess
+                        norm2_psi=norm2_guess
+                    else:
+                        # t_guess < t_jump
+                        t_prev=t_guess
+                        norm2_prev=norm2_guess
+                if ii > odeconfig.norm_steps:
+                    raise Exception("Norm tolerance not reached. Increase accuracy of ODE solver.")
+                #---------------------------------------------------
                 collapse_times.append(ODE.t)
                 #some string based collapse operators
                 if odeconfig.tflag in array([1,11]):
@@ -571,20 +600,19 @@ def mc_alg_evolve(nt,args):
                         state = _locals['state']
                     else:
                         state=odeconfig.c_funcs[j](ODE.t,odeconfig.c_func_args)*spmv(odeconfig.c_ops_data[j],odeconfig.c_ops_ind[j],odeconfig.c_ops_ptr[j],ODE.y)
-                state_nrm=norm(state,2)
-                ODE.set_initial_value(state/state_nrm,ODE.t)
+                state=state/norm(state,2)
+                ODE.set_initial_value(state,ODE.t)
                 rand_vals=prng.rand(2)
         #-------------------------------------------------------
+        
         ###--after while loop--####
-        psi=copy(ODE.y)
-        if ODE.t>last_t:
-            psi=(psi-last_y)/(ODE.t-last_t)*(tlist[k]-last_t)+last_y
-        epsi=psi/norm(psi,2)
+        out_psi=ODE.y/norm(ODE.y,2)
         if odeconfig.e_num==0:
-            mc_alg_out[k]=epsi
+            mc_alg_out[k]=out_psi
         else:
             for jj in range(odeconfig.e_num):
-                mc_alg_out[jj][k]=mc_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],epsi)
+                mc_alg_out[jj][k]=mc_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],out_psi)
+    
     #RETURN VALUES
     if odeconfig.e_num==0:
         mc_alg_out=array([Qobj(k,odeconfig.psi0_dims,odeconfig.psi0_shape,fast='mc') for k in mc_alg_out])
