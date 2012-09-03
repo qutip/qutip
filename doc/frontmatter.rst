@@ -22,9 +22,11 @@ These pages contains automatically generated API documentation for QuTiP. A PDF 
 :Author: P.D. Nation
 :Address: Department of Physics, Korea University,
           Seongbuk-Gu Seoul, 136-713 South Korea
+
 :Author: J.R. Johansson
 :Address: Advanced Science Institute, RIKEN,
 		  Wako-shi Saitama, 351-0198 Japan
+
 :version: 2.1
 :status: In Development
 :copyright: This documentation is in the public domain.
@@ -46,7 +48,7 @@ which may also be download from http://arxiv.org/abs/1110.0573.
 Funding
 =======
 
-The development of QuTiP has been partially supported by the Japanese Society for the Promotion of Science Foreign Postdoctoral Fellowship Program under grants P11202 (PDN) and P11501 (JRJ).  Additional funding comes from RIKEN and Kakenhi grant Nos. 2301202 (PDN) and 2302501 (JRJ). 
+The development of QuTiP has been partially supported by the Japanese Society for the Promotion of Science Foreign Postdoctoral Fellowship Program under grants P11202 (PDN) and P11501 (JRJ).  Additional funding comes from RIKEN and Kakenhi grant Nos. 2301202 (PDN), 2302501 (JRJ), and Korea University. 
 
 .. _image-jsps:
 
@@ -58,6 +60,13 @@ The development of QuTiP has been partially supported by the Japanese Society fo
 
 .. figure:: figures/riken-logo.png
 	:width: 1.5in
+	:figclass: align-center
+
+
+.. _image-korea:
+
+.. figure:: figures/korea-logo.png
+	:width: 3in
 	:figclass: align-center
 
 
