@@ -101,7 +101,7 @@ def _sqrt_factorial(n_vec):
     # take the square root before multiplying 
     return np.array([np.prod(np.sqrt(np.arange(1,n+1))) for n in n_vec])
 
-def coherent(N, alpha, method='displacement'):
+def coherent(N, alpha, method='operator'):
     """Generates a coherent state with eigenvalue alpha. 
     
     Constructed using displacement operator on vacuum state.
@@ -214,7 +214,7 @@ def coherent_dm(N, alpha, method='operator'):
         return psi * psi.dag()
 
     else:
-        raise TypeError("The method option can only take values 'displacement' or 'analytic'")
+        raise TypeError("The method option can only take values 'operator' or 'analytic'")
 
 def fock_dm(N, *args):
     """Density matrix representation of a Fock state 
