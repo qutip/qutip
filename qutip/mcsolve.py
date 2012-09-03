@@ -122,6 +122,9 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
         odeconfig.ntraj=sort(ntraj)[-1]
     else:
         odeconfig.ntraj=ntraj
+    #set norm finding constants
+    odeconfig.norm_tol=options.norm_tol
+    odeconfig.norm_steps=options.norm_steps
     #----
     
     #----------------------------------------------

@@ -57,6 +57,10 @@ class Odeoptions():
         Tidyup Hamiltonian and initial state by removing small terms.
     num_cpus : int
         Number of cpus used by mcsolver (default = # of cpus).
+    norm_tol :float
+        Tolerance used when finding wavefunction norm.
+    norm_steps : int
+        Max. number of steps used to find wavefunction norm to within norm_tol.
     gui : bool {True,False}
         Use progress bar GUI for mcsolver.
     mc_avg : bool {True,False}
@@ -71,7 +75,7 @@ class Odeoptions():
     
     """
     def __init__(self,atol=1e-8,rtol=1e-6,method='adams',order=12,nsteps=2500,first_step=0,max_step=0,min_step=0,
-                mc_avg=True,tidy=True,num_cpus=0,rhs_reuse=False,rhs_filename=None,gui=True):
+                mc_avg=True,tidy=True,num_cpus=0,norm_tol=1e-3,norm_steps=10,rhs_reuse=False,rhs_filename=None,gui=True):
         #Absolute tolerance (default = 1e-8)
         self.atol=atol
         #Relative tolerance (default = 1e-6)
@@ -103,6 +107,10 @@ class Odeoptions():
                 raise Exception("Requested number of CPU's too large. Max = "+str(int(os.environ['NUM_THREADS'])))
         else:
             self.num_cpus=0
+        #Tolerance for wavefunction norm (mcsolve only)
+        self.norm_tol=norm_tol
+        #Max. number of steps taken to find wavefunction norm to within norm_tol (mcsolve only)
+        self.norm_steps=norm_steps
         #Use Progressbar (mcsolve only)
         self.gui=gui
     def __str__(self):
@@ -118,6 +126,8 @@ class Odeoptions():
         print('max_step:     ',self.max_step)
         print('tidy:         ',self.tidy)
         print('num_cpus:     ',self.num_cpus)
+        print('norm_tol:     ',self.norm_tol)
+        print('norm_steps:     ',self.norm_steps)
         print('rhs_filename: ',self.rhs_filename)
         print('rhs_reuse:    ',self.rhs_reuse)
         print('gui:          ',self.gui)

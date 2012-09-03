@@ -18,14 +18,16 @@
 ###########################################################################
 
 #General stuff
-tlist=None #evaluations times
-ntraj=None #number / list of trajectories
-options=None #options for odesolvers
- 
+tlist=None          #evaluations times
+ntraj=None          #number / list of trajectories
+options=None        #options for odesolvers
+norm_tol=None       #tolerance for wavefunction norm
+norm_steps=None     #max. number of steps to take in finding wavefunction norm within tolerance norm_tol.
+
 #Initial state stuff
-psi0=None #initial state
-psi0_dims=None#initial state dims
-psi0_shape=None #initial state shape
+psi0=None           #initial state
+psi0_dims=None      #initial state dims
+psi0_shape=None     #initial state shape
 
 #flags for setting time-dependence, collapse ops, and number of times codegen has been run
 cflag=0             #Flag signaling collapse operators
@@ -60,6 +62,7 @@ c_ops_data=[]       #collapse op data
 c_ops_ind=[]        #collapse op indices
 c_ops_ptr=[]        #collapse op indptrs
 c_args=[]           #store args for time-dependent collapse functions
+
 #Norm collapse operator stuff
 n_ops_data=[]       #norm collapse op data
 n_ops_ind=[]        #norm collapse op indices
