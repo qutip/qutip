@@ -26,8 +26,7 @@ QuTiP requires the following packages to run:
 +------------+--------------+-----------------------------------------------------+
 | Package    | Version      | Details                                             |
 +============+==============+=====================================================+
-| Python     | 2.6+ (not 3) | Requires multiprocessing (v2.6 and higher only).    |
-|            |              | At present, Matplotlib does not work for Python 3.  |
+| Python     | 2.6+         | Requires multiprocessing (v2.6 and higher only).    |
 +------------+--------------+-----------------------------------------------------+
 | Numpy      | 1.6+         | Not tested on lower versions.                       |
 +------------+--------------+-----------------------------------------------------+
@@ -57,6 +56,8 @@ QuTiP requires the following packages to run:
 +------------+--------------+-----------------------------------------------------+
 | LaTeX      | TexLive 2009+| Optional.  Needed if using LaTex in figure labels.  |    
 +------------+--------------+-----------------------------------------------------+
+| nose       | 1.1.2+       | Optional. For running tests.                        |
++------------+--------------+-----------------------------------------------------+
 
 
 On all platforms (Linux, Mac), QuTiP works "out-of-the-box" using the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher.  This distribution is created by the developers of Numpy and Scipy, and is free for academic use.
@@ -83,25 +84,26 @@ First install the following dependency packages:
 >>> sudo apt-get install python-pyside
 >>> sudo apt-get install python-setuptools
 >>> sudo apt-get install python-dev
+>>> sudo apt-get install python-nose         # recommended, for testing
 >>> sudo apt-get install texlive-latex-extra # recommended
 
-Ubuntu 11.04 and Lower (skip this step in Ubuntu 11.10+):
----------------------------------------------------------
+Ubuntu 11.04 and Lower (skip this step in Ubuntu 11.10+)
+--------------------------------------------------------
 
 These releases do not have Matplotlib>=1.0, and we therefore need to add the unofficial repository:
 
 >>> sudo add-apt-repository ppa:bgamari/matplotlib-unofficial
 >>> sudo apt-get update
 
-Install Matplotlib:
--------------------
+Install Matplotlib
+------------------
 
 Regardless of Ubuntu version, we are now in a position to install the plotting library:
 
 >>> sudo apt-get install python-matplotlib
 
-QuTiP installation:
--------------------
+QuTiP installation
+------------------
 
 >>> sudo python setup.py install
 
@@ -128,6 +130,7 @@ additional, but optional, ports include:
 
 >>> sudo port install py27-ipython
 >>> sudo port install py27-cython
+>>> sudo port install py27-nose
 
 and in addition:
 
@@ -165,19 +168,19 @@ Running port select again should give::
 	 	mp-gcc45 (active)
 	 	none
 
-Setup via SciPy Superpack:
---------------------------
+Setup via SciPy Superpack
+-------------------------
 
 A second option is to install the required Python packages using the `SciPy Superpack <http://fonnesbeck.github.com/ScipySuperpack/>`_.  Further information on installing the superpack can be found on the `SciPy Downloads page <http://www.scipy.org/Download>`_.  Note that, if you choose this option, the GUI elements of QuTiP will not be available without further installing either the PyQt4 or PySide packages separately.
 
 
-Enthought Python Distribution:
-------------------------------
+Enthought Python Distribution
+-----------------------------
 
 Finally, one can also use the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher to satisfy the QuTiP dependencies.  
 
-Installing QuTiP:
------------------
+Installing QuTiP
+----------------
 
 No matter which installation path you choose, installing QuTiP is the same as on linux.  From the QuTiP directory:
 

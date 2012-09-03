@@ -14,8 +14,11 @@ qutip_root = "../../qutip/qutip"
 
 colors = ["#0B5FA5", "#043C6B", "#3F8FD2", # blue colors
           "#00AE68", "#007143", "#36D695", # green colors
-          "#FF9400", "#A66000", "#FFAE40"
+          "#FF4500", "#692102", "#BF5730"
           ]
+
+#          "#FF9400", "#A66000", "#FFAE40"
+#          "#FF6F00", "#A64800", "#BF6E30"
 
 module_cmap = {"mesolve":           0, # time evolution
                "mcsolve":           0,
@@ -27,10 +30,11 @@ module_cmap = {"mesolve":           0, # time evolution
                "rhs_generate":      0,
                "propagator":        0,
                "eseries":           0,
-               "states":            1, # states
-               "qstate":            1,
-               "rand":              1,
-               "three_level_atom":  1, 
+               "odeconfig":         1, # options and settings
+               "settings":          1,
+               "odechecks":         1,
+               "Odedata":           1,
+               "Odeoptions":        1,
                "Bloch":             2, # visualization
                "sphereplot":        2,
                "orbital":           2,
@@ -39,12 +43,11 @@ module_cmap = {"mesolve":           0, # time evolution
                "tomography":        2,
                "operators":         3, # operators
                "superoperator":     3,
+               "states":            4, # states
+               "qstate":            4,
+               "rand":              4,
+               "three_level_atom":  4, 
                "gates":             5, # gates
-               "odeconfig":         4, # options and settings
-               "settings":          4,
-               "odechecks":         4,
-               "Odedata":           4,
-               "Odeoptions":        4,
                "entropy":           6, # measures
                "metrics":           6,
                "fileio":            8, # utilities
