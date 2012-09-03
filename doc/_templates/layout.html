@@ -1,15 +1,8 @@
 {% extends "!layout.html" %}
 
-
-{% block rootrellink %}
-        <li><a href="{{ pathto('index') }}">home</a>|&nbsp;</li>
-        <li><a href="{{ pathto('search') }}">search</a>|&nbsp;</li>
-{% endblock %}
-
-
 {% block relbar1 %}
 
-<div style="background-color: #EBEBEB; text-align: left; padding: 0px 0px 15px 15px">
+<div style="background-color: #EBEBEB; text-align: left; padding: 0px 0px 15px 15px; -webkit-border-radius:14px; -moz-border-radius:14px; border-radius:14px; margin: 1em;">
 <a href="{{ pathto('index') }}"><img src="{{
 pathto("_static/logo.png", 1) }}" border="0" alt="qutip"/></a>
 </div>
@@ -17,19 +10,3 @@ pathto("_static/logo.png", 1) }}" border="0" alt="qutip"/></a>
 {{ super() }}
 {% endblock %}
 
-{# put the sidebar before the body #}
-{% block sidebar1 %}{{ sidebar() }}{% endblock %}
-{% block sidebar2 %}{% endblock %}
-
-{% block footer %}
-{{ super() }}
-<script type="text/javascript">
-var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
-document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
-</script>
-<script type="text/javascript">
-try {
-var pageTracker = _gat._getTracker("UA-16824831-3");
-pageTracker._trackPageview();
-} catch(err) {}</script>
-{% endblock %}
