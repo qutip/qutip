@@ -286,8 +286,6 @@ class TestMESolverConstDecay:
         medata=mesolve(H,psi0,tlist,c_op_list,[a.dag()*a])
         expt=medata.expect[0]
         actual_answer=9.0*exp(-kappa*tlist)
-        print "actual_answer =", actual_answer
-        print "expt =", expt
         avg_diff=mean(abs(actual_answer-expt)/actual_answer)
         assert_(avg_diff<me_error)
     
