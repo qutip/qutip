@@ -5,6 +5,43 @@
 Change Log
 **********
 
+Version 2.1.0 [SVN-xxxx] (September XX, 2012):
+++++++++++++++++++++++++++++++++++++++++++++++
+
+Bug Fixes:
+----------
+
+SVN-2485: thermal_dm() function now uses truncated operator method.
+
+SVN-2428: Cython based time-dependence now Python 3 compatible.
+
+SVN-2392: Odeoptions will print expect_avg only if available.
+
+SVN-2391: Removed call to NSAutoPool on mac systems.
+
+SVN-2389: Progress bar now displays the correct number of CPU's used.
+
+SVN-2385: Qobj.diag() returns reals if operator is Hermitian.
+
+SVN-2376: Text for progress bar on Linux systems is no longer cutoff.
+
+
+
+New Features
+-------------
+
+- coherent(), coherent_dm(), and thermal_dm() can now be expressed using analytic values.
+
+- Unittests now use nose and can be run after installation.
+
+- Added iswap and sqrt-iswap gates.
+
+- Functions for quantum process tomography.
+
+- Window icons are now set for Ubuntu application launcher.
+
+
+
 Version 2.0.0 [SVN-2354] (June 01, 2012):
 +++++++++++++++++++++++++++++++++++++++++
 
