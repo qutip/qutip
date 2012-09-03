@@ -568,7 +568,7 @@ def mc_alg_evolve(nt,args):
                         t_prev=t_guess
                         norm2_prev=norm2_guess
                 if ii > odeconfig.norm_steps:
-                    raise Exception("Norm tolerance not reached. Increase accuracy of ODE solver.")
+                    raise Exception("Norm tolerance not reached. Increase accuracy of ODE solver or Odeoptions.norm_steps.")
                 #---------------------------------------------------
                 collapse_times.append(ODE.t)
                 #some string based collapse operators
