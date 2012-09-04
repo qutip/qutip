@@ -308,7 +308,7 @@ class TestMESolverConstDecay:
         
       
 #average error for failure
-me_error=1e-7
+me_error=1e-6
 
 class TestMESolveTDDecay:
     """
