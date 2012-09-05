@@ -18,9 +18,9 @@
 ###########################################################################
 
 import sys,os,time,numpy,datetime
-from numpy.random import RandomState
-from scipy import *
-from scipy.integrate import *
+from numpy.random import RandomState,random_integers
+from scipy import arange,array,cumsum,mean,ndarray,sort,zeros
+from scipy.integrate import ode
 from scipy.linalg import norm
 from qutip.Qobj import *
 from qutip.expect import *
@@ -356,7 +356,7 @@ class MC_class():
             else:# return expectation values of requested operators
                 self.expect_out=no_collapse_expect_out(self.num_times,self.expect_out)
         elif odeconfig.c_num!=0:
-            self.seed=random.random_integers(1e8,size=odeconfig.ntraj)
+            self.seed=random_integers(1e8,size=odeconfig.ntraj)
             if odeconfig.e_num==0:
                 mc_alg_out=zeros((self.num_times),dtype=ndarray)
                 mc_alg_out[0]=odeconfig.psi0
@@ -547,7 +547,7 @@ def mc_alg_evolve(nt,args):
                 ODE.set_initial_value(y_prev,t_prev)
                 ODE.integrate(tlist[k],step=0)
                 if not ODE.successful():
-                    raise Exception("ZVODE failed after adjusting step size!")
+                    raise Exception("ZVODE failed!")
             norm2_psi=norm(ODE.y,2)**2
             if norm2_psi<=rand_vals[0]:# <== collpase has occured
                 #find collpase time to within specified tolerance
@@ -560,6 +560,8 @@ def mc_alg_evolve(nt,args):
                     t_guess=t_prev+log(norm2_prev/rand_vals[0])/log(norm2_prev/norm2_psi)*(t_final-t_prev)
                     ODE.set_initial_value(y_prev,t_prev)
                     ODE.integrate(t_guess,step=0)
+                    if not ODE.successful():
+                        raise Exception("ZVODE failed after adjusting step size!")
                     norm2_guess=norm(ODE.y,2)**2
                     if abs(rand_vals[0]-norm2_guess) < odeconfig.norm_tol*rand_vals[0]:
                         break
