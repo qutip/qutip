@@ -74,7 +74,7 @@ class Odeoptions():
         Name for compiled Cython file. 
     
     """
-    def __init__(self,atol=1e-6,rtol=1e-6,method='adams',order=12,nsteps=2500,first_step=0,max_step=0,min_step=0,
+    def __init__(self,atol=1e-8,rtol=1e-6,method='adams',order=12,nsteps=1000,first_step=0,max_step=0,min_step=0,
                 mc_avg=True,tidy=True,num_cpus=0,norm_tol=1e-3,norm_steps=10,rhs_reuse=False,rhs_filename=None,gui=True):
         #Absolute tolerance (default = 1e-8)
         self.atol=atol
@@ -131,7 +131,7 @@ class Odeoptions():
         print('rhs_filename: ',self.rhs_filename)
         print('rhs_reuse:    ',self.rhs_reuse)
         print('gui:          ',self.gui)
-        if hasattr(self, 'expect_avg'):
-            print('mc_avg:       ',self.expect_avg)
+        if hasattr(self, 'mc_avg'):
+            print('mc_avg:       ',self.mc_avg)
         return ''
 
