@@ -131,7 +131,6 @@ class Odeoptions():
         print('rhs_filename: ',self.rhs_filename)
         print('rhs_reuse:    ',self.rhs_reuse)
         print('gui:          ',self.gui)
-        if hasattr(self, 'mc_avg'):
-            print('mc_avg:       ',self.mc_avg)
+        print('mc_avg:       ',self.mc_avg)
         return ''
 
