@@ -19,7 +19,7 @@
 
 import sys,os,time,numpy,datetime
 from numpy.random import RandomState,random_integers
-from scipy import arange,array,cumsum,mean,ndarray,sort,zeros
+from scipy import arange,array,cumsum,mean,ndarray,setdiff1d,sort,zeros
 from scipy.integrate import ode
 from scipy.linalg import norm
 from qutip.Qobj import *
