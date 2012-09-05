@@ -29,7 +29,7 @@ the properties and default values of this class can be view via the `print` comm
 	rhs_filename:  None
 	rhs_reuse:     False
 	gui:           True
-	expect_avg:    True
+	mc_avg:    	   True
 
 These properties are detailed in the following table.  Assuming ``opts=Odeoptions()``:
 
@@ -63,7 +63,7 @@ These properties are detailed in the following table.  Assuming ``opts=Odeoption
 +-------------------+-----------------+----------------------------------------------------------------+
 | opts.gui          | True (if GUI)   | Use the mcsolve progessbar. Defaults to False on Windows.      |
 +-------------------+-----------------+----------------------------------------------------------------+
-| opts.expect_avg   | True            | Average over trajectories for expectation values from mcsolve. |
+| opts.mc_avg       | True            | Average over trajectories for expectation values from mcsolve. |
 +-------------------+-----------------+----------------------------------------------------------------+
 
 
@@ -96,7 +96,7 @@ Note that the order in which you input the options does not matter.  Using eithe
 	rhs_filename:  None
 	rhs_reuse:     False
 	gui:           False
-	expect_avg:    True
+	mc_avg:    True
 
 To use these new settings we can use the keyword argument ``options`` in either the ``mesolve`` or ``mcsolve`` function.  We can modify the last example as::
 
