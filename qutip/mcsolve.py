@@ -537,13 +537,17 @@ def mc_alg_evolve(nt,args):
     #RUN ODE UNTIL EACH TIME IN TLIST
     for k in range(1,num_times):
         #ODE WHILE LOOP FOR INTEGRATE UP TO TIME TLIST[k]
-        while ODE.successful() and ODE.t<tlist[k]:
+        while ODE.t<tlist[k]:
             t_prev=ODE.t;y_prev=ODE.y;norm2_prev=norm(ODE.y,2)**2
             ODE.integrate(tlist[k],step=1) #integrate up to tlist[k], one step at a time.
+            if not ODE.successful():
+                raise Exception("ZVODE failed!")
             #check if ODE jumped over tlist[k], if so, integrate until tlist exactly
             if ODE.t>tlist[k]:
                 ODE.set_initial_value(y_prev,t_prev)
                 ODE.integrate(tlist[k],step=0)
+                if not ODE.successful():
+                    raise Exception("ZVODE failed after adjusting step size!")
             norm2_psi=norm(ODE.y,2)**2
             if norm2_psi<=rand_vals[0]:# <== collpase has occured
                 #find collpase time to within specified tolerance
