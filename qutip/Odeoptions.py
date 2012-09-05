@@ -58,9 +58,9 @@ class Odeoptions():
     num_cpus : int
         Number of cpus used by mcsolver (default = # of cpus).
     norm_tol :float
-        Tolerance used when finding wavefunction norm.
+        Tolerance used when finding wavefunction norm in mcsolve.
     norm_steps : int
-        Max. number of steps used to find wavefunction norm to within norm_tol.
+        Max. number of steps used to find wavefunction norm to within norm_tol in mcsolve.
     gui : bool {True,False}
         Use progress bar GUI for mcsolver.
     mc_avg : bool {True,False}
@@ -75,7 +75,7 @@ class Odeoptions():
     
     """
     def __init__(self,atol=1e-8,rtol=1e-6,method='adams',order=12,nsteps=1000,first_step=0,max_step=0,min_step=0,
-                mc_avg=True,tidy=True,num_cpus=0,norm_tol=1e-3,norm_steps=10,rhs_reuse=False,rhs_filename=None,gui=True):
+                mc_avg=True,tidy=True,num_cpus=0,norm_tol=1e-3,norm_steps=5,rhs_reuse=False,rhs_filename=None,gui=True):
         #Absolute tolerance (default = 1e-8)
         self.atol=atol
         #Relative tolerance (default = 1e-6)
