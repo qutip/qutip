@@ -18,7 +18,7 @@
 ###########################################################################
 
 import numpy as np
-
+import scipy.sparse as sp
 from qutip.Qobj import Qobj
 
 class eseries():
@@ -27,12 +27,14 @@ class eseries():
     """
     __array_priority__=101
     def __init__(self,q=np.array([]),s=np.array([])):
-        if (not np.any(q)) and (not np.any(s)):
+        if isinstance(s,(int,float,complex)):
+            s=np.array([s])
+        if (not np.any(q)) and (len(s)==0):
             self.ampl=np.array([])
             self.rates=np.array([])
             self.dims=[[1,1]] 
             self.shape=[1,1]
-        if np.any(q) and (not np.any(s)):
+        if np.any(q) and (len(s)==0):
             if isinstance(q,eseries):
                 self.ampl=q.ampl
                 self.rates=q.rates
@@ -60,7 +62,7 @@ class eseries():
                 self.dims  = [[1, 1]]
                 self.shape = [1,1]
 
-        if np.any(q) and np.any(s): 
+        if np.any(q) and len(s)!=0: 
             if isinstance(q,(np.ndarray,list)):
                 ind=shape(q)
                 num=ind[0]
