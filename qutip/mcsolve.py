@@ -570,6 +570,7 @@ def mc_alg_evolve(nt,args):
                     else:
                         # t_guess < t_jump
                         t_prev=t_guess
+                        y_prev=ODE.y
                         norm2_prev=norm2_guess
                 if ii > odeconfig.norm_steps:
                     raise Exception("Norm tolerance not reached. Increase accuracy of ODE solver or Odeoptions.norm_steps.")
