@@ -142,7 +142,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
         odeconfig.tflag=time_type
         
         #-Check for PyObjC on Mac platforms
-        if sys.platform=='darwin':
+        if sys.platform=='darwin' and odeconfig.options.gui:
             try:
                 import Foundation
             except:
