@@ -15,10 +15,10 @@ GENERAL REQUIREMENTS
 ********************
 Package         Version         	Details
 -------         -------         	--------
-Python	      	2.6+ (not 3)		Requires multiprocessing (v2.6 and higher only). At present, Matplotlib does not work for Python 3
+Python	      	2.6+ (not 3)		Requires multiprocessing (v2.6 and higher only). At present, Matplotlib does not work for Python 3.
 Numpy	      	1.6+				Requires new array creation methods available in 1.6+.
 Scipy	      	0.9+	        	Not tested on lower versions.
-Matplotlib	  	1.0.1+	        	Some plotting routines do not work on lower versions.
+Matplotlib	  	1.1.0+	        	Some plotting routines do not work on lower versions.
 GCC Compiler  	4.2+	        	Needed for compiling c-code files used for ODE solvers.
 Python Headers	2.6+	        	LINUX ONLY. Needed for compiling c-code files.
 
@@ -33,15 +33,29 @@ LaTex			Texlive 2009+       Optional.  Needed if using LaTex in figure labels.
 INSTALLATION
 ************
 
-UBUNTU LINUX (RECOMMENDED)
---------------------------
+UBUNTU LINUX (RECOMMENDED PLATFORM FOR QUTIP)
+=============================================
+
+Ubuntu PPA
+----------
+The easiest way to install QuTiP in Ubuntu (12.04 and later) is to use the QuTiP PPA:
+
+>>> sudo add-apt-repository ppa:jrjohansson/qutip-releases
+>>> sudo apt-get update
+>>> sudo apt-get install python-qutip
+
+With this method the most important dependencies are installed automatically, and when new version of QuTiP is released it can be upgraded through the standard package management system. In addition to the required dependencies, it is also strongly recommended that you install the texlive-latex-extra package.
+
+Manual Installation
+-------------------
+First install the following dependency packages:
 
 >>> sudo apt-get install python-scipy
 >>> sudo apt-get install python-pyside
 >>> sudo apt-get install python-setuptools
 >>> sudo apt-get install python-dev
 
-Ubuntu 11.04 and lower do not have Matplotlib>=1.0, and we therefore need to add the unofficial repository (in Ubuntu 11.10+, skip this step)
+Ubuntu 11.04 and lower do not have Matplotlib>=1.1, and we therefore need to add the unofficial repository (in Ubuntu 11.10+, skip this step)
 
 >>> sudo add-apt-repository ppa:bgamari/matplotlib-unofficial
 >>> sudo apt-get update
@@ -50,39 +64,52 @@ before running
 
 >>> sudo apt-get install python-matplotlib
 
-QuTiP installation:
+Install QuTiP
+-------------
 
 >>> sudo python setup.py install
 
 
 APPLE MAC OSX (10.6+)
----------------------
+======================
 If you have not done so already, install the Apple XCode developer tools from the Apple App Store.
+After intallation, open Xcode and go to: Preferences -> Downloads, and install the ‘Command Line Tools’.
 
+MacPorts
+--------
 On the Mac, it is recommended that you install the required libraries via MacPorts. 
 After installation, the necessary “ports” for QuTiP may be installed using:
 
 >>> sudo port install py27-scipy
 >>> sudo port install py27-matplotlib +latex
-
-additional, but optional, ports include:
-
->>> sudo port install py27-ipython
 >>> sudo port install py27-cython
->>> sudo port install texlive-latex-extra
 
-the last of which installs LaTeX and it’s required fonts, and in addition:
+and in addition:
 
->>> sudo port install py27-pyside
+>>> sudo port install py27-pyside	(recommended)
 
 or 
 
 >>> sudo port install py27-pyqt4
 
+Finally, at your option, you can install IPython:
+
+>>> sudo port install py27-ipython +pyside +notebook +parallel 	(replace +pyside with +pyqt4 if using pyqt4)
+
+and additional LaTeX fornts for Matplotlib:
+
+>>> sudo port install texlive-latex-extra
+
+SciPy Superpack
+---------------
 A second option is to install the required Python packages using the SciPy Superpack. Further information on installing the superpack can be found on the SciPy Downloads page. Note that, if you choose this option, the GUI elements of QuTiP will not be available without further installing either the PyQt4 or PySide packages separately.
 
+Enthought Python Distribution
+-----------------------------
 Finally, one can also use the Enthought Python Distribution version 7.1 or higher to satisfy the QuTiP dependencies.
 
+Install QuTiP
+-------------
 Installing QuTiP is the same as on linux. From the QuTiP directory:
 
 >>> sudo python setup.py install
@@ -90,11 +117,12 @@ Installing QuTiP is the same as on linux. From the QuTiP directory:
 
 VERIFY INSTALLATION
 *******************
-QuTiP now includes a collection of built-in test scripts to verify that the installation was indeed successful. To run the suite of tests scripts, after installing QuTiP call:
+QuTiP now includes a collection of built-in test scripts to verify that the installation was indeed successful. To run the suite of tests scripts, after installing QuTiP, from the Python command line (or IPython) call:
 
->>> python setup.py test
+>>> import qutip.testing as qt
+>>> qt.run()
 
-If successful, these tests indicate that all of the QuTiP functions are working properly. If any errors occur, please check that your have installed all of the required modules. See the next section on how to check the installed versions of the QuTiP dependencies. If these tests still fail, then head on over to the QuTiP Discussion Board and post a message detailing your particular issue.
+If successful, these tests indicate that all of the QuTiP functions are working properly. If any errors occur, please check that your have installed all of the required modules. If these tests still fail, then head over to the QuTiP Discussion Board and post a message detailing your particular issue.
 
 
 
