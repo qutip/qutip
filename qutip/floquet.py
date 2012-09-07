@@ -551,7 +551,7 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None, args={}, o
     
     kmax = 1
 
-    f_modes_table_t = floquet_modes_table(f_modes_0, f_energies, linspace(0, T, 500+1), H, T, args) 
+    f_modes_table_t = floquet_modes_table(f_modes_0, f_energies, np.linspace(0, T, 500+1), H, T, args) 
 
     # get w_th from args if it exists
     if args.has_key('w_th'):
