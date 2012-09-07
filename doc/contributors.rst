@@ -34,6 +34,8 @@ Contributors
 
 **James Clemens** (Miami University - Ohio) - Bug hunter
 
+**Arne Grimsmo** (University of Auckland) - Bug hunter
+
 **Myung-Joong Hwang** (Pohang University of Science and Technology) - Bug hunter
 
 **Robert Jördens**  - Linux packaging

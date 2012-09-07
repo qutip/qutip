@@ -11,6 +11,12 @@ Version 2.1.0 [SVN-xxxx] (September XX, 2012):
 Bug Fixes:
 ----------
 
+SVN-2518: mcsolver now gives correct results for strong damping rates.
+
+SVN-2516: Do not check for PyObj in mcsolve when gui=False. 
+
+SVN-2514: Eseries now correctly handles purely complex rates.
+
 SVN-2485: thermal_dm() function now uses truncated operator method.
 
 SVN-2428: Cython based time-dependence now Python 3 compatible.
