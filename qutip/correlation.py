@@ -25,7 +25,7 @@ from qutip.eseries import eseries, esval, esspec
 from qutip.essolve import essolve, ode2es
 from qutip.mcsolve import mcsolve
 from qutip.steady import steady, steadystate
-
+import numpy as np
 #-------------------------------------------------------------------------------
 # solver wrapers:
 #
@@ -177,7 +177,7 @@ def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     if rho0 == None:
         rho0 = steady(L)
 
-    C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
+    C_mat = np.zeros([size(tlist),size(taulist)],dtype=complex)
 
     solES_t = ode2es(L, rho0)
 
@@ -216,7 +216,7 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     if rho0 == None:
         rho0 = steadystate(H, co_op_list)
 
-    C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
+    C_mat = np.zeros([size(tlist),size(taulist)],dtype=complex)
 
     rho_t = mesolve(H, rho0, tlist, c_op_list, []).states
 
@@ -246,7 +246,7 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
     Carlo solver. See :func:`correlation` usage.
     """
 
-    C_mat = zeros([size(tlist),size(taulist)],dtype=complex)
+    C_mat = np.zeros([size(tlist),size(taulist)],dtype=complex)
 
     ntraj = 100
 
