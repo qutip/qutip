@@ -21,16 +21,18 @@ import numpy as np
 import scipy.linalg as la
 import scipy
 from scipy import angle, pi, exp, sqrt
-
+from types import FunctionType
+from qutip.istests import isket
 from qutip.Qobj import Qobj
-from qutip.superoperator import vec2mat_index
+from qutip.superoperator import vec2mat_index, mat2vec, vec2mat
 from qutip.mesolve import mesolve
 from qutip.steady import steadystate
-from qutip.states import basis
+from qutip.states import basis, ket2dm
 from qutip.states import projection
 from qutip.Odeoptions import Odeoptions
 from qutip.propagator import propagator
-
+from qutip.Odedata import Odedata
+from qutip.cyQ.ode_rhs import cyq_ode_rhs
 
 def floquet_modes(H, T, args=None, sort=False):
     """
@@ -386,8 +388,10 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
     Solve the dynamics for the system using the Floquet-Markov master equation.   
     """
 
-    if opt == None:
+    if options == None:
         opt = Odeoptions()
+    else:
+        opt=options
 
     if opt.tidy:
         R.tidyup()
