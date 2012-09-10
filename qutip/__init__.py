@@ -120,7 +120,6 @@ from qutip.operators import *
 from qutip.expect import *
 from qutip.superoperator import *
 from qutip.tensor import *
-
 from qutip.parfor import *
 import qutip.settings
 
@@ -146,7 +145,6 @@ from qutip.metrics import fidelity,tracedist
 import qutip.odeconfig
 from qutip.Odeoptions import Odeoptions
 from qutip.Odedata import Odedata
-#from qutip.Mcdata import Mcdata
 from qutip.rhs_generate import rhs_generate
 from qutip.mesolve import mesolve, odesolve
 from qutip.mcsolve import mcsolve

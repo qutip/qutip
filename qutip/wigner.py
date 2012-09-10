@@ -51,7 +51,7 @@ def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative'):
     method : string
         Select method 'iterative' or 'laguerre', where 'iterative' use a 
         iterative method to evaluate the Wigner functions for density matrices
-        |m><n|, while 'laguerre' uses the Laguerre polynomials in scipy for the
+        :math:`|m><n|`, while 'laguerre' uses the Laguerre polynomials in scipy for the
         same task. The 'iterative' method is default, and in general recommended,
         but the 'laguerre' method is more efficient for very sparse density
         matrices (e.g., superpositions of Fock states in a large Hilbert space).
@@ -88,7 +88,7 @@ def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
     state |m><n|
     
     The wigner function is calculated as W = sum_mn rho_mn W_mn where W_mn is 
-    the wigner function for the density matrix |m><n|.
+    the wigner function for the density matrix :math:`|m><n|`.
      
     In this implementation, for each row m, Wlist contains the wigner functions
     Wlist = [0, ..., W_mm, ..., W_mN]. As soon as one W_mn wigner function is
@@ -129,7 +129,7 @@ def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
 def _wigner_laguerre(rho, xvec, yvec, g=sqrt(2)):
     """
     Using Laguerre polynomials from scipy to evaluate the Wigner function for
-    the density matrices |m><n|, W_mn. The total Wigner function is calculated
+    the density matrices :math:`|m><n|`, W_mn. The total Wigner function is calculated
     as W = sum_mn rho_mn W_mn.
     """
 
