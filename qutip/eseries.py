@@ -106,6 +106,10 @@ class eseries():
             else:
                 print(self.ampl[k])
         return ""
+    
+    def __repr__(self):
+        return self.__str__()
+    
     def __add__(self,other):#Addition with ESERIES on left (ex. ESERIES+5)
         right=eseries(other)
         if self.dims!=right.dims:
