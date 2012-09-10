@@ -41,7 +41,7 @@ class eseries():
                 self.dims=q.dims
                 self.shape=q.shape
             elif isinstance(q,(np.ndarray,list)):
-                ind=shape(q)
+                ind=np.shape(q)
                 num=ind[0] #number of elements in q
                 sh=np.array([Qobj(x).shape for x in q])
                 if any(sh!=sh[0]):
@@ -64,7 +64,7 @@ class eseries():
 
         if np.any(q) and len(s)!=0: 
             if isinstance(q,(np.ndarray,list)):
-                ind=shape(q)
+                ind=np.shape(q)
                 num=ind[0]
                 sh=np.array([Qobj(q[x]).shape for x in range(0,num)])
                 if np.any(sh!=sh[0]):
@@ -175,7 +175,7 @@ class eseries():
 
         if self.ampl == None or len(self.ampl) == 0:
             # no terms, evalue to zero
-            return np.zeros(shape(tlist))
+            return np.zeros(np.shape(tlist))
 
         if isinstance(tlist, float) or isinstance(tlist, int):
             tlist = [tlist]
