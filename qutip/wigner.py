@@ -17,7 +17,7 @@
 #
 ###########################################################################
 import numpy
-from scipy import zeros,array,arange,exp,real,imag,conj,copy,sqrt,meshgrid
+from scipy import zeros,array,arange,exp,real,imag,conj,copy,sqrt,meshgrid,size,polyval,fliplr,conjugate
 import scipy.sparse as sp
 import scipy.linalg as la
 from scipy.special import genlaguerre

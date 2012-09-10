@@ -17,6 +17,7 @@
 #
 ###########################################################################
 from qutip.Qobj import *
+import numpy as np
 import scipy.linalg as la
 
 
@@ -39,8 +40,8 @@ def simdiag(ops,evals=True):
     start_flag=0
     if not any(ops):
         raise ValueError('Need at least one input operator.')
-    if not isinstance(ops,(list,ndarray)):
-        ops=array([ops])
+    if not isinstance(ops,(list,np.ndarray)):
+        ops=np.array([ops])
     num_ops=len(ops)
     for jj in range(num_ops):
         A=ops[jj]
@@ -63,27 +64,27 @@ def simdiag(ops,evals=True):
     zipped=zip(-eigvals,range(len(eigvals)))
     zipped.sort()
     ds,perm=zip(*zipped)
-    ds=-real(array(ds));perm=array(perm)
-    eigvecs_array=array([zeros((A.shape[0],1),dtype=complex) for k in range(A.shape[0])])
+    ds=-np.real(np.array(ds));perm=np.array(perm)
+    eigvecs_array=np.array([np.zeros((A.shape[0],1),dtype=complex) for k in range(A.shape[0])])
     
     for kk in range(len(perm)):#matrix with sorted eigvecs in columns
         eigvecs_array[kk][:,0]=eigvecs[:,perm[kk]]
     k=0
-    rng=arange(len(eigvals))
+    rng=np.arange(len(eigvals))
     while k<len(ds):#find degenerate eigenvalues
-        inds=array(abs(ds-ds[k])<max(tol,tol*abs(ds[k])))#get indicies of degenerate eigvals 
+        inds=np.array(abs(ds-ds[k])<max(tol,tol*abs(ds[k])))#get indicies of degenerate eigvals 
         inds=rng[inds]
         if len(inds)>1:#if at least 2 eigvals are degenerate
-            eigvecs_array[inds]=degen(tol,eigvecs_array[inds],array([ops[kk] for kk in range(1,num_ops)]))
+            eigvecs_array[inds]=degen(tol,eigvecs_array[inds],np.array([ops[kk] for kk in range(1,num_ops)]))
         k=max(inds)+1
-    eigvals_out=zeros((num_ops,len(ds)),dtype=float)
-    kets_out=array([Qobj(eigvecs_array[j]/la.norm(eigvecs_array[j]),dims=[ops[0].dims[0],[1]],shape=[ops[0].shape[0],1]) for j in range(len(ds))])
+    eigvals_out=np.zeros((num_ops,len(ds)),dtype=float)
+    kets_out=np.array([Qobj(eigvecs_array[j]/la.norm(eigvecs_array[j]),dims=[ops[0].dims[0],[1]],shape=[ops[0].shape[0],1]) for j in range(len(ds))])
     if not evals:
         return kets_out
     else:
         for kk in range(num_ops):
             for j in range(len(ds)):
-                eigvals_out[kk,j]=real(dot(eigvecs_array[j].conj().T,ops[kk].data*eigvecs_array[j]))
+                eigvals_out[kk,j]=np.real(np.dot(eigvecs_array[j].conj().T,ops[kk].data*eigvecs_array[j]))
         return eigvals_out,kets_out
     
 
@@ -97,44 +98,28 @@ def degen(tol,in_vecs,ops):
     if n==0:
         return in_vecs
     A=ops[0]
-    vecs=column_stack(in_vecs)
-    eigvals,eigvecs=la.eig(dot(vecs.conj().T,A.data.dot(vecs)))
+    vecs=np.column_stack(in_vecs)
+    eigvals,eigvecs=la.eig(np.dot(vecs.conj().T,A.data.dot(vecs)))
     zipped=zip(-eigvals,range(len(eigvals)))
     zipped.sort()
     ds,perm=zip(*zipped)
-    ds=-real(array(ds));perm=array(perm)
-    vecsperm=zeros(eigvecs.shape,dtype=complex)
+    ds=-np.real(np.array(ds));perm=np.array(perm)
+    vecsperm=np.zeros(eigvecs.shape,dtype=complex)
     for kk in range(len(perm)):#matrix with sorted eigvecs in columns
         vecsperm[:,kk]=eigvecs[:,perm[kk]]
-    vecs_new=dot(vecs,vecsperm)
-    vecs_out=array([zeros((A.shape[0],1),dtype=complex) for k in range(len(ds))])
+    vecs_new=np.dot(vecs,vecsperm)
+    vecs_out=np.array([np.zeros((A.shape[0],1),dtype=complex) for k in range(len(ds))])
     for kk in range(len(perm)):#matrix with sorted eigvecs in columns
         vecs_out[kk][:,0]=vecs_new[:,kk]
     k=0
-    rng=arange(len(ds))
+    rng=np.arange(len(ds))
     while k<len(ds):
-        inds=array(abs(ds-ds[k])<max(tol,tol*abs(ds[k])))#get indicies of degenerate eigvals 
+        inds=np.array(abs(ds-ds[k])<max(tol,tol*abs(ds[k])))#get indicies of degenerate eigvals 
         inds=rng[inds]
         if len(inds)>1:#if at least 2 eigvals are degenerate
             vecs_out[inds]=degen(tol,vecs_out[inds],array([ops[jj] for jj in range(1,n)]))
         k=max(inds)+1
     return vecs_out
-
-
-
-
-
-	
-	    
-	
-	
-
-
-
-
-
-
-
 
 
 
