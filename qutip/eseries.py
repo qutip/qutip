@@ -205,7 +205,8 @@ class eseries():
                 exp_factors = np.exp(np.array(self.rates) * tlist[j])
                 val_list[j] = np.sum(np.dot(self.ampl, exp_factors))
     
-    
+        if all(np.imag(val_list)==0):
+            val_list=np.real(val_list)
         if len(tlist) == 1:
             return val_list[0]
         else:
