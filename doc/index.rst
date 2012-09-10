@@ -5,9 +5,6 @@
 QuTiP: The Quantum Toolbox in Python
 ======================================
 
-
-
-
 .. toctree::
    :maxdepth: 2
    

@@ -191,7 +191,7 @@ No matter which installation path you choose, installing QuTiP is the same as on
 
 
 Verifying the Installation
-============================
+===========================
 
 QuTiP now includes a collection of built-in test scripts to verify that the installation was indeed successful.  To run the suite of tests scripts, after installing QuTiP, exit the installation directory, run Python (or iPython), and call:
 
