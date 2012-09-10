@@ -56,14 +56,11 @@ The development of QuTiP has been partially supported by the Japanese Society fo
    :width: 4in
    :figclass: align-center
 
-
 .. _image-riken:
 
 .. figure:: figures/riken-logo.png
 	:width: 1.5in
 	:figclass: align-center
-
-|
 
 .. _image-korea:
 
