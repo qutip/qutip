@@ -1,6 +1,7 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
+
 .. _states:
 
 *************************************
@@ -22,76 +23,54 @@ State Vectors (kets or bras)
 
 Here we begin by creating a Fock :func:`qutip.basis` vacuum state vector :math:`\left|0\right>` with in a Hilbert space with 5 number states, 0 -> 4:
 
->>> vec=basis(5,0)
->>> print vec
-Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-Qobj data = 
-[[ 1.]  #<-- |0>
- [ 0.]  #<-- |1>
- [ 0.]  #<-- |2>
- [ 0.]  #<-- |3>
- [ 0.]] #<-- |4>
+ .. ipython::
+
+    In [1]: vec=basis(5,0)
+    
+    In [2]: print(vec)
+
 
 and then create a lowering operator :math:`\left(\hat{a}\right)` corresponding to 5 number states using the :func:`qutip.destroy` function:
 
->>> a=destroy(5)
->>> print a
-Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = False
-Qobj data = 
-[[ 0.          1.          0.          0.          0.        ]
- [ 0.          0.          1.41421356  0.          0.        ]
- [ 0.          0.          0.          1.73205081  0.        ]
- [ 0.          0.          0.          0.          2.        ]
- [ 0.          0.          0.          0.          0.        ]]
+ .. ipython::
+
+    In [1]: a=destroy(5)
+	
+    In [2]: print(a)
 
 
 Now lets apply the destruction operator to our vacuum state ``vec``,
 
->>> a*vec
-Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-Qobj data = 
-[[ 0.]
- [ 0.]
- [ 0.]
- [ 0.]
- [ 0.]]
+
+ .. ipython::
+
+    In [1]: a*vec
 
 
-We see that, as expected, the vacuum is transformed to the zero vector.  A more interesting example comes from using the adjoint of the lowering operator, the raising operator :math:`\hat{a}^\dag`:
+We see that, as expected, the vacuum is transformed to the zero vector.  A more interesting example comes from using the adjoint of the lowering operator, the raising operator :math:`\hat{a}^{+}`:
 
->>> a.dag()*vec
-Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-Qobj data = 
-[[ 0.]
- [ 1.]  #<-- |1>
- [ 0.]
- [ 0.]
- [ 0.]]
+ .. ipython::
+
+   In [1]: a.dag()*vec
+
 
 The raising operator has in indeed raised the state `vec` from the vacuum to the :math:`\left| 1\right>` state.  Instead of using the dagger ``dag()`` command to raise the state, we could have also used the built in :func:`qutip.create` function to make a raising operator:
 
->>> c=create(5)
->>> c*vec()
-Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-Qobj data = 
-[[ 0.]
- [ 1.]
- [ 0.]
- [ 0.]
- [ 0.]]
+ .. ipython::
+
+   In [1]: c=create(5)
+	
+   In [2]: c*vec
+
 
 which obviously does the same thing.  We can of course raise the vacuum state more than once:
 
->>> c*c*vec
-Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-Qobj data = 
-[[ 0.        ]
- [ 0.        ]
- [ 1.41421356] #<-- |2>
- [ 0.        ]
- [ 0.        ]]
+ .. ipython::
 
-or just taking the square of the raising operator :math:`\left(\hat{a}^\dag\right)^{2}`:
+  In [1]: c*c*vec
+
+
+or just taking the square of the raising operator :math:`\left(\hat{a}^{+}\right)^{2}`:
 
 >>> c**2*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket

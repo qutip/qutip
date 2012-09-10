@@ -17,7 +17,11 @@ First things first
 
 To load the qutip modules, we must first call the import statement:
 
->>> from qutip import *
+ .. ipython::
+
+   In [1]: from qutip import *
+
+
 
 that will load all of the user available functions.  Note that, in the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`.  However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the command line or a Python script.
 
