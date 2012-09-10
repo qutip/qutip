@@ -25,9 +25,11 @@ Here we begin by creating a Fock :func:`qutip.basis` vacuum state vector :math:`
 
  .. ipython::
 
-    In [1]: vec=basis(5,0)
+    In [1]: from qutip import *
+	
+    In [2]: vec=basis(5,0)
     
-    In [2]: print(vec)
+    In [3]: print(vec)
 
 
 and then create a lowering operator :math:`\left(\hat{a}\right)` corresponding to 5 number states using the :func:`qutip.destroy` function:
@@ -67,135 +69,96 @@ which obviously does the same thing.  We can of course raise the vacuum state mo
 
  .. ipython::
 
-  In [1]: c*c*vec
+   In [1]: c*c*vec
 
 
 or just taking the square of the raising operator :math:`\left(\hat{a}^{+}\right)^{2}`:
 
->>> c**2*vec
-Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-Qobj data = 
-[[ 0.        ]
- [ 0.        ]
- [ 1.41421356]
- [ 0.        ]
- [ 0.        ]]
+ .. ipython::
 
-Applying the raising operator twice gives the expected :math:`\sqrt (n+1)` dependence.  We can use the product of :math:`c*a` to also apply the number operator to the state vector ``vec``:
+    In [1]: c**2*vec
 
->>> c*a*vec
-Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-Qobj data = 
-[[ 0.]
- [ 0.]
- [ 0.]
- [ 0.]
- [ 0.]]
+
+Applying the raising operator twice gives the expected :math:`\sqrt{n+1}` dependence.  We can use the product of :math:`c*a` to also apply the number operator to the state vector ``vec``:
+
+ .. ipython::
+
+    In [1]: c*a*vec
+
 
 or on the :math:`\left| 1\right>` state:
 
->>> c*a*(c*vec)
-Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-Qobj data = 
-[[ 0.]
- [ 1.]
- [ 0.]
- [ 0.]
- [ 0.]]
+ .. ipython::
+
+   In [1]: c*a*(c*vec)
+
 
 or the :math:`\left| 2\right>` state:
 
->>> c*a*(c**2*vec)
-Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-Qobj data = 
-[[ 0.        ]
- [ 0.        ]
- [ 2.82842712]
- [ 0.        ]
- [ 0.        ]]
+ .. ipython::
+
+   In [1]: c*a*(c**2*vec)
+
 
 Notice how in this last example, application of the number operator does not give the expected value :math:`n=2`, but rather :math:`2\sqrt{2}`.  This is because this last state is not normalized to unity as :math:`c\left| n\right>=\sqrt{n+1}\left| n+1\right>`.  Therefore, we should normalize our vector first:
 
->>> c*a*(c**2*vec).unit()
-Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-Qobj data = 
-[[ 0.]
- [ 0.]
- [ 2.]
- [ 0.]
- [ 0.]]
+ .. ipython::
+
+    In [1]: c*a*(c**2*vec).unit()
+
 
 Since we are giving a demonstration of using states and operators, we have done a lot more work than we should have.  For example, we do not need to operate on the vacuum state to generate a higher number Fock state.  Instead we can use the :func:`qutip.basis` (or :func:`qutip.fock`) function to directly obtain the required state:
 
->>> vec=basis(5,2)
->>> print vec
-Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-Qobj data = 
-[[ 0.]
- [ 0.]
- [ 1.]
- [ 0.]
- [ 0.]]
+ .. ipython::
+
+   In [1]: vec=basis(5,2)
+   
+   In [2]: print(vec)
+
 
 Notice how it is automatically normalized.  We can also use the built in :func:`qutip.num` operator:
 
->>> n=num(5)
->>> print n
-Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = True
-Qobj data = 
-[[0 0 0 0 0]
- [0 1 0 0 0]
- [0 0 2 0 0]
- [0 0 0 3 0]
- [0 0 0 0 4]]
+ .. ipython::
+
+  In [1]: n=num(5)
+   
+  In [2]: print(n)
+
 
 Therefore, instead of ``c*a*(c**2*vec).unit()`` we have:
 
->>> n*vec
-Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-Qobj data = 
-[[ 0.]
- [ 0.]
- [ 2.]
- [ 0.]
- [ 0.]]
+ .. ipython::
+
+    In [1]: n*vec
+
 
 We can also create superpositions of states:
 
->>> vec=(basis(5,0)+basis(5,1)).unit()
->>> print vec
-Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-Qobj data = 
-[[ 0.70710678]
- [ 0.70710678]
- [ 0.        ]
- [ 0.        ]
- [ 0.        ]]
+ .. ipython::
+
+  In [1]: vec=(basis(5,0)+basis(5,1)).unit()
+   
+  In [2]: print(vec)
+
 
 where we have used the :func:`qutip.Qobj.unit` function to again normalize the state.  Operating with the number function again:
 
->>> n*vec
-Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-Qobj data = 
-[[ 0.        ]
- [ 0.70710678]
- [ 0.        ]
- [ 0.        ]
- [ 0.        ]]
+ .. ipython::
+
+   In [1]: n*vec
+
 
 We can also create coherent states and squeezed states by applying the :func:`qutip.displace` and :func:`qutip.squeez` functions to the vacuum state:
 
->>> vec=basis(5,0)
->>> d=displace(5,1j)
->>> s=squeez(5,0.25+0.25j)
->>> d*vec
-Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
-Qobj data = 
-[[ 0.60655682+0.j        ]
- [ 0.00000000+0.60628133j]
- [-0.43038740+0.j        ]
- [ 0.00000000-0.24104351j]
- [ 0.14552147+0.j        ]]
+ .. ipython::
+
+   In [1]: vec=basis(5,0)
+  
+   In [2]: d=displace(5,1j)
+   
+   In [3]: s=squeez(5,0.25+0.25j)
+   
+   In [4]: d*vec
 
 >>> d*s*vec
 Quantum object: dims = [[5], [1]], shape = [5, 1], type = ket
