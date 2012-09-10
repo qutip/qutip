@@ -8,33 +8,10 @@ Change Log
 Version 2.1.0 [SVN-xxxx] (September XX, 2012):
 ++++++++++++++++++++++++++++++++++++++++++++++
 
-Bug Fixes:
-----------
-
-SVN-2518: mcsolver now gives correct results for strong damping rates.
-
-SVN-2516: Do not check for PyObj in mcsolve when gui=False. 
-
-SVN-2514: Eseries now correctly handles purely complex rates.
-
-SVN-2485: thermal_dm() function now uses truncated operator method.
-
-SVN-2428: Cython based time-dependence now Python 3 compatible.
-
-SVN-2392: Odeoptions will print expect_avg only if available.
-
-SVN-2391: Removed call to NSAutoPool on mac systems.
-
-SVN-2389: Progress bar now displays the correct number of CPU's used.
-
-SVN-2385: Qobj.diag() returns reals if operator is Hermitian.
-
-SVN-2376: Text for progress bar on Linux systems is no longer cutoff.
-
-
-
 New Features
 -------------
+
+- New method for generating Wigner functions based on Laguerre polynomials.
 
 - coherent(), coherent_dm(), and thermal_dm() can now be expressed using analytic values.
 
@@ -45,6 +22,30 @@ New Features
 - Functions for quantum process tomography.
 
 - Window icons are now set for Ubuntu application launcher.
+
+
+Bug Fixes:
+----------
+
+SVN-2518: mcsolver now gives correct results for strong damping rates.
+
+SVN-2513: Odeoptions now prints mc_avg correctly.
+
+SVN-2516: Do not check for PyObj in mcsolve when gui=False. 
+
+SVN-2514: Eseries now correctly handles purely complex rates.
+
+SVN-2485: thermal_dm() function now uses truncated operator method.
+
+SVN-2428: Cython based time-dependence now Python 3 compatible.
+
+SVN-2391: Removed call to NSAutoPool on mac systems.
+
+SVN-2389: Progress bar now displays the correct number of CPU's used.
+
+SVN-2385: Qobj.diag() returns reals if operator is Hermitian.
+
+SVN-2376: Text for progress bar on Linux systems is no longer cutoff.
 
 
 

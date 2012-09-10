@@ -126,19 +126,20 @@ On the Mac, it is recommended that you install the required libraries via `MacPo
 >>> sudo port install py27-scipy
 >>> sudo port install py27-matplotlib +latex
 
-additional, but optional, ports include:
-
->>> sudo port install py27-ipython
->>> sudo port install py27-cython
->>> sudo port install py27-nose
-
 and in addition:
 
->>> sudo port install py27-pyside
+>>> sudo port install py27-pyside   # recommended
 
 or:
 
 >>> sudo port install py27-pyqt4
+
+
+Optional, but highly recommended ports include:
+
+>>> sudo port install py27-ipython +pyside+notebook+parallel+scientific  #switch +pyside to +pyqt4 if using pyqt4
+>>> sudo port install py27-cython	#used for string-based time-dependent Hamiltonians
+
 
 .. note:: The next step is optional, but is recommended if you plan to use the string (Cython) based time-dependent format.  See :ref:`time`.
 
@@ -187,6 +188,7 @@ No matter which installation path you choose, installing QuTiP is the same as on
 >>> sudo python setup.py install
 
 .. _install-verify:
+
 
 Verifying the Installation
 ============================
