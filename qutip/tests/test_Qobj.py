@@ -328,7 +328,7 @@ def test_QobjExpm():
     data=np.random.random((15,15))+1j*np.random.random((15,15))-(0.5+0.5j)
     A=Qobj(data)
     B=A.expm()
-    assert_equal(all(B.data.todense()-matrix(la.expm(data,13)))<1e-15,True)
+    assert_equal(all(B.data.todense()-matrix(la.expm(data)))<1e-15,True)
 
 def test_QobjFull():
     "Qobj full"
