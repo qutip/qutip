@@ -31,11 +31,12 @@ except:#for scipy v >= 0.10
     from scipy.misc import factorial
     
 def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative'):
-    """Wigner function for a state vector or density matrix 
-    at points xvec+i*yvec.
+    """Wigner function for a state vector or density matrix at points 
+    `xvec + i * yvec`.
     
     Parameters
     ----------
+
     state : qobj 
         A state vector or density matrix.
     
@@ -46,22 +47,31 @@ def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative'):
         y-coordinates at which to calculate the Wigner function.
         
     g : float
-        Scaling factor for a = 0.5*g*(x+iy), default g=sqrt(2).
+        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
 
-    method : string
+    method : string {'iterative', 'laguerre'}
         Select method 'iterative' or 'laguerre', where 'iterative' use a 
         iterative method to evaluate the Wigner functions for density matrices
-        :math:`|m><n|`, while 'laguerre' uses the Laguerre polynomials in scipy for the
-        same task. The 'iterative' method is default, and in general recommended,
-        but the 'laguerre' method is more efficient for very sparse density
-        matrices (e.g., superpositions of Fock states in a large Hilbert space).
+        :math:`|m><n|`, while 'laguerre' uses the Laguerre polynomials in scipy
+        for the same task. The 'iterative' method is default, and in general
+        recommended, but the 'laguerre' method is more efficient for very sparse
+        density matrices (e.g., superpositions of Fock states in a large Hilbert
+        space).
     
     Returns
-    --------
+    -------
+
     W : array
         Values representing the Wigner function calculated over the specified
         range [xvec,yvec].    
     
+
+    References
+    ----------
+
+    Ulf Leonhardt,
+    Measuring the Quantum State of Light, (Cambridge University Press, 1997)
+
     """
 
     if not (psi.type == 'ket' or psi.type == 'oper' or psi.type == 'bra'):
@@ -85,16 +95,17 @@ def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative'):
 def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
     """
     Using an iterative method to evaluate the wigner functions for the Fock
-    state |m><n|
+    state :math:`|m><n|`.
     
-    The wigner function is calculated as W = sum_mn rho_mn W_mn where W_mn is 
-    the wigner function for the density matrix :math:`|m><n|`.
+    The wigner function is calculated as :math:`W = \sum_{mn} \\rho_{mn} W_{mn}`
+    where :math:`W_{mn}` is the wigner function for the density matrix
+    :math:`|m><n|`.
      
     In this implementation, for each row m, Wlist contains the wigner functions
     Wlist = [0, ..., W_mm, ..., W_mN]. As soon as one W_mn wigner function is
     calculated, the corresponding contribution is added to the total wigner
     function, weighted by the corresponding element in the density matrix
-    rho_mn.
+    :math:`rho_{mn}`.
     """
     
     M = prod(rho.shape[0])
@@ -129,8 +140,8 @@ def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
 def _wigner_laguerre(rho, xvec, yvec, g=sqrt(2)):
     """
     Using Laguerre polynomials from scipy to evaluate the Wigner function for
-    the density matrices :math:`|m><n|`, W_mn. The total Wigner function is calculated
-    as W = sum_mn rho_mn W_mn.
+    the density matrices :math:`|m><n|`, :math:`W_{mn}`. The total Wigner
+    function is calculated as :math:`W = \sum_{mn} \\rho_{mn} W_{mn}`.
     """
 
     M = prod(rho.shape[0])
@@ -173,7 +184,7 @@ def _wigner_laguerre(rho, xvec, yvec, g=sqrt(2)):
 #
 def qfunc(state, xvec, yvec, g=sqrt(2)):
     """Q-function of a given state vector or density matrix 
-    at points xvec+i*yvec.
+    at points `xvec + i * yvec`.
     
     Parameters
     ----------
@@ -187,12 +198,13 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
         y-coordinates at which to calculate the Wigner function.
         
     g : float
-        Scaling factor for a = 0.5*g*(x+iy), default g=sqrt(2).
+        Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
     
     Returns
     --------
     Q : array
-        Values representing the Q-function calculated over the specified range [xvec,yvec].
+        Values representing the Q-function calculated over the specified range
+        [xvec,yvec].
     
     """
     X,Y = meshgrid(xvec, yvec)
@@ -231,7 +243,7 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
 #
 def _qfunc_pure(psi, alpha_mat):
     """
-    private function used by qfunc
+    Calculate the Q-function for a pure state.
     """
     n = prod(psi.shape)
     if isinstance(psi, Qobj):
