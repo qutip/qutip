@@ -23,7 +23,7 @@ from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
 
 from pylab import figure,plot,show,savefig,close
 from mpl_toolkits.mplot3d import Axes3D
-from Qobj import Qobj
+from qutip.Qobj import Qobj
 from qutip.expect import expect
 from qutip.operators import sigmax, sigmay, sigmaz
 
