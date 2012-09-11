@@ -471,6 +471,51 @@ class Qobj():
         # return the informal __str__ representation instead.)
         return self.__str__()
 
+    def _repr_latex_(self):
+        s = ""
+        if self.type=='oper' or self.type=='super':
+            s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isHerm = "+str(self.isherm)
+        else:
+            s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type
+
+        d = real(self.full()) if all(np.imag(self.data.data)==0) else self.full()
+
+        s += r'\begin{equation}\begin{pmatrix}'
+        M,N = shape(d)    
+
+        def _format_element(m, n, d):
+            s = ""                
+            if n > 0: 
+                s += ' & '
+            s_d = str(d)
+            return s+"0" if s_d == "0j" else s+s_d
+
+        if M < 10 and N < 10:
+            for m in range(M):
+                for n in range(N): 
+                    s += _format_element(m,n,d[m,n])
+                s += r'\\' 
+        else:               
+            for m in range(5):
+                for n in range(5):     s += _format_element(m,n,d[m,n])
+                s += r' & \cdots'
+                for n in range(N-5,N): s += _format_element(m,n,d[m,n])
+                s += r'\\' 
+
+            for n in range(5):     s += _format_element(m,n,r'\vdots')
+            s += r' & \ddots'
+            for n in range(N-5,N): s += _format_element(m,n,r'\vdots')
+            s += r'\\' 
+
+            for m in range(M-5,M):
+                for n in range(5):     s += _format_element(m,n,d[m,n])
+                s += r' & \cdots'
+                for n in range(N-5,N): s += _format_element(m,n,d[m,n])
+                s += r'\\' 
+
+        s += r'\end{pmatrix}\end{equation}'
+        return s
+
     #---functions acting on quantum objects---######################
     def dag(self):
         """Returns the adjont operator of quantum object.
