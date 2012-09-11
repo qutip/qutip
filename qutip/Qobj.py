@@ -484,11 +484,11 @@ class Qobj():
 
         s += r'\begin{pmatrix}'
         def _format_element(m, n, d):
-            s = ""                
-            if n > 0: 
-                s += ' & '
-            s_d = str(d)
-            return s+"0" if s_d == "0j" else s+s_d
+            s = " & " if n > 0 else ""
+            if type(d) == str:
+                return s + d
+            else:
+                return s+str(np.real(d)) if abs(np.imag(d)) < 1e-12 else s+str(d)
 
         if M > 10 and N > 10:
             for m in range(5):
