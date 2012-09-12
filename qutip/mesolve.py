@@ -137,14 +137,15 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
         which to calculate the expectation values.
     
     """
-    
     # check for type (if any) of time-dependent inputs            
     n_const,n_func,n_str=_ode_checks(H,c_ops)
 
     if options == None:
-        _reset_odeconfig()
         options = Odeoptions()
-        options.max_step = max(tlist)/10.0 # take at least 10 steps.
+    
+    if (not options.rhs_reuse) or (not odeconfig.tdfunc):
+        #reset odeconfig collapse and time-dependence flags to default values
+        _reset_odeconfig() 
     #
     # dispatch the appropriate solver
     #         
@@ -464,7 +465,6 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
 
     # the total number of liouvillian terms (hamiltonian terms + collapse operators)      
     n_L_terms = len(Ldata)      
- 
     #
     # setup ode args string: we expand the list Ldata, Linds and Lptrs into
     # and explicit list of parameters
@@ -1070,7 +1070,7 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize, state_nor
         try:
             os.remove(odeconfig.tdname+".pyx")
         except:
-            print('Error removing '+str(odeconfig.tdname)+".pyx file")
+            # print('Error removing '+str(odeconfig.tdname)+".pyx file")
             pass
 
     return output
@@ -1147,8 +1147,6 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, H_args=None, options=None):
 
     if options == None:
         options = Odeoptions()
-        options.nsteps = 2500  #
-        options.max_step = (tlist[-1]-tlist[0])/10.0 # take at least 10 steps.. 
         
     if (c_op_list and len(c_op_list) > 0) or not isket(rho0):
         if isinstance(H, list):

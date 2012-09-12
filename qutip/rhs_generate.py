@@ -18,99 +18,118 @@
 ###########################################################################
 from qutip.cyQ.codegen import Codegen
 import os,platform,numpy
-import qutip.odeconfig
 from qutip._reset import _reset_odeconfig
 from qutip.Odeoptions import Odeoptions
 from scipy import ndarray, array
 from qutip.odechecks import _ode_checks
-from qutip.mcsolve import _mc_data_config
 import qutip.settings
+import qutip.odeconfig as odeconfig
+from types import FunctionType
+from qutip.Qobj import *
+from superoperator import spre,spost
 
-def rhs_generate(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions(),solver='me',name=None):
+def rhs_generate(H,c_ops,args={},options=Odeoptions(),name=None):
     """
     Used to generate the Cython functions for solving the dynamics of a
-    given system before using the parfor function.  
+    given system using the mesolve function before calling parfor.  
     
     Parameters
     ----------
     H : qobj
         System Hamiltonian.
-    psi0 : qobj 
-        Initial state vector
-    tlist : array_like 
-        Times at which results are recorded.
-    ntraj : int 
-        Number of trajectories to run.
     c_ops : array_like 
         ``list`` or ``array`` of collapse operators.
-    e_ops : array_like 
-        ``list`` or ``array`` of operators for calculating expectation values.
     args : dict
         Arguments for time-dependent Hamiltonian and collapse operator terms.
     options : Odeoptions
         Instance of ODE solver options.
-    solver: str
-        String indicating which solver "me" or "mc"
     name: str
         Name of generated RHS
     
     """
     _reset_odeconfig() #clear odeconfig
-    #------------------------
-    # GENERATE MCSOLVER DATA
-    #------------------------
-    if solver=='mc':
-        odeconfig.tlist=tlist
-        if isinstance(ntraj,(list,ndarray)):
-            odeconfig.ntraj=sort(ntraj)[-1]
-        else:
-            odeconfig.ntraj=ntraj
-        #check for type of time-dependence (if any)
-        time_type,h_stuff,c_stuff=_ode_checks(H,c_ops,'mc')
-        h_terms=len(h_stuff[0])+len(h_stuff[1])+len(h_stuff[2])
-        c_terms=len(c_stuff[0])+len(c_stuff[1])+len(c_stuff[2])
-        #set time_type for use in multiprocessing
-        odeconfig.tflag=time_type
-        #check for collapse operators
-        if c_terms>0:
-            odeconfig.cflag=1
-        else:
-            odeconfig.cflag=0
-        #Configure data
-        _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options)
-        os.environ['CFLAGS'] = '-w'
-        import pyximport
-        pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-        if odeconfig.tflag in array([1,11]):
-            code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs,col_spmv,col_expect', '<string>', 'exec')
-            exec(code)
-            odeconfig.tdfunc=cyq_td_ode_rhs
-            odeconfig.colspmv=col_spmv
-            odeconfig.colexpect=col_expect
-        else:
-            code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
-            exec(code)
-            odeconfig.tdfunc=cyq_td_ode_rhs
-        try:
-            os.remove(odeconfig.tdname+".pyx")
-        except:
-            print("Error removing pyx file.  File not found.")
-        
-    #------------------------
-    # GENERATE MESOLVER STUFF
-    #------------------------
-    elif solver=='me':
-        
+    if name:
+        odeconfig.tdname=name
+    else:
         odeconfig.tdname="rhs"+str(odeconfig.cgen_num)
-        cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
-        cgen.generate(odeconfig.tdname+".pyx")
-        os.environ['CFLAGS'] = '-O3 -w'
-        import pyximport
-        pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
-        code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
-        exec(code)
-        odeconfig.tdfunc=cyq_td_ode_rhs
+    
+    n_op = len(c_ops)
+
+    Lconst = 0        
+
+    Ldata = []
+    Linds = []
+    Lptrs = []
+    Lcoeff = []
+    
+    # loop over all hamiltonian terms, convert to superoperator form and 
+    # add the data of sparse matrix represenation to 
+    for h_spec in H:
+        if isinstance(h_spec, Qobj):
+            h = h_spec
+            Lconst += -1j*(spre(h) - spost(h)) 
+        
+        elif isinstance(h_spec, list): 
+            h = h_spec[0]
+            h_coeff = h_spec[1]
+
+            L = -1j*(spre(h) - spost(h))
+
+            Ldata.append(L.data.data)
+            Linds.append(L.data.indices)
+            Lptrs.append(L.data.indptr)
+            Lcoeff.append(h_coeff)
             
+        else:
+            raise TypeError("Incorrect specification of time-dependent " + 
+                             "Hamiltonian (expected string format)")
+    
+    # loop over all collapse operators        
+    for c_spec in c_ops:
+        if isinstance(c_spec, Qobj):
+            c = c_spec
+            cdc = c.dag() * c
+            Lconst += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc) 
+
+        elif isinstance(c_spec, list): 
+            c = c_spec[0]
+            c_coeff = c_spec[1]
+
+            cdc = c.dag() * c
+            L = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc) 
+
+            Ldata.append(L.data.data)
+            Linds.append(L.data.indices)
+            Lptrs.append(L.data.indptr)
+            Lcoeff.append("("+c_coeff+")**2")
+
+        else:
+            raise TypeError("Incorrect specification of time-dependent " + 
+                             "collapse operators (expected string format)")
+
+     # add the constant part of the lagrangian
+    if Lconst != 0:
+        Ldata.append(Lconst.data.data)
+        Linds.append(Lconst.data.indices)
+        Lptrs.append(Lconst.data.indptr)
+        Lcoeff.append("1.0")
+
+
+    # the total number of liouvillian terms (hamiltonian terms + collapse operators)      
+    n_L_terms = len(Ldata)
+    
+    cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
+    cgen.generate(odeconfig.tdname+".pyx")
+    os.environ['CFLAGS'] = '-O3 -w'
+    import pyximport
+    pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
+    code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs', '<string>', 'exec')
+    exec(code)
+    odeconfig.tdfunc=cyq_td_ode_rhs
+    try:
+        os.remove(odeconfig.tdname+".pyx")
+    except:
+        pass
             
             
             
