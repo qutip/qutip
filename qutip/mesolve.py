@@ -687,7 +687,7 @@ def _wfsolve_list_td(H_func, psi0, tlist, expt_ops,H_args, opt):
             if elem!=td_consts[-1]:
                 string+=(",")
     #run code generator
-    if not opt.rhs_reuse:
+    if not opt.rhs_reuse or odeconfig.tdfunc == None:
         odeconfig.tdname="rhs"+str(odeconfig.cgen_num)
         cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
         cgen.generate(odeconfig.tdname+".pyx")
@@ -880,7 +880,7 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
                 string+=(",")
     
     #run code generator
-    if not opt.rhs_reuse:
+    if not opt.rhs_reuse or odeconfig.tdfunc == None:
         odeconfig.tdname="rhs"+str(odeconfig.cgen_num)
         cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
         cgen.generate(odeconfig.tdname+".pyx")
@@ -1070,7 +1070,6 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize, state_nor
         try:
             os.remove(odeconfig.tdname+".pyx")
         except:
-            # print('Error removing '+str(odeconfig.tdname)+".pyx file")
             pass
 
     return output
