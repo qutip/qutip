@@ -23,13 +23,28 @@ from qutip.Qobj import Qobj
 from numpy import hstack
 import scipy.linalg as la
 from qutip.graph import matrix_histogram, matrix_histogram_complex
-
 from pylab import *
 
 def index_permutations(size_list, perm=[]):
     """
-    Generate a list with all index permutations. size_list is a list that 
-    contains the sizes for each composite system.
+    Generate a list with all index permutations.
+    
+    Parameters
+    ----------
+    size_list : list
+        A list that contains the sizes for each composite system.
+        
+    Other Parameters
+    ----------------
+    perm : list
+        A list of permutations
+    
+    Returns
+    -------
+    perm_idx : list
+        List containing index permutations.
+    
+    
     """
     if len(size_list) == 0:
         yield perm
@@ -42,6 +57,25 @@ def qpt_plot(chi, lbls_list, title=None, fig=None):
     """
     Visualize the quantum process tomography chi matrix. Plot the real and
     imaginary parts separately.
+    
+    Parameters
+    ----------
+    chi : array
+        Input QPT chi matrix. 
+    lbls_list : list
+        List of labels for QPT plot axes.
+    
+    Other Parameters
+    ----------------
+    title : string
+        Plot title.
+    fig : figure instance
+        User defined figure instance used for generating QPT plot.
+    
+    Returns
+    -------
+    An matplotlib axes instance for the plot. 
+    
     """
     if fig == None:
         fig = figure(figsize=(16,8))
@@ -62,8 +96,26 @@ def qpt_plot(chi, lbls_list, title=None, fig=None):
 def qpt_plot_combined(chi, lbls_list, title=None, fig=None):
     """
     Visualize the quantum process tomography chi matrix. Plot bars with
-    height that correspond to the absolute value and color that correspond
-    to the phase.
+    height and color corresponding to the absolute value and phase, respectively.
+    
+    Parameters
+    ----------
+    chi : array
+        Input QPT chi matrix. 
+    lbls_list : list
+        List of labels for QPT plot axes.
+    
+    Other Parameters
+    ----------------
+    title : string
+        Plot title.
+    fig : figure instance
+        User defined figure instance used for generating QPT plot.
+    
+    Returns
+    -------
+    An matplotlib axes instance for the plot.
+    
     """
     if fig == None:
         fig = figure(figsize=(8,6))
@@ -93,6 +145,19 @@ def qpt(U, op_basis_list):
 
     U can be calculated for an open quantum system using the QuTiP propagator
     function.
+    
+    Parameters
+    ----------
+    U : Qobj
+        Transformation operator.  Can be calculated using QuTiP propagator function.
+    op_basis_list : list
+        A list of Qobj's representing the basis states.
+    
+    Returns
+    -------
+    chi : array
+        QPT chi matrix
+     
     """
 
     E_ops = []
