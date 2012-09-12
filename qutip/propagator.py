@@ -151,8 +151,8 @@ def propagator_steadystate(U):
     ev_min, ev_idx = _get_min_and_index(abs(evals-1.0))
 
     N = int(np.sqrt(len(evals)))
-
     evecs = evecs.T
     rho = Qobj(vec2mat(evecs[ev_idx]))
-
-    return rho * (1 / np.real(rho.tr()))
+    rho = rho * (1.0/rho.tr())
+    rho = 0.5*(rho+rho.dag()) #make sure rho is herm
+    return rho
