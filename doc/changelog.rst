@@ -23,6 +23,8 @@ New Features
 
 - Window icons are now set for Ubuntu application launcher.
 
+- The propagator function can now take a list of times as argument, and returns a list of corresponding propagators.
+
 
 Bug Fixes:
 ----------
