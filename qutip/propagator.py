@@ -32,17 +32,21 @@ from qutip.Odeoptions import Odeoptions
 
 def propagator(H, t, c_op_list, H_args=None, opt=None):
     """
-    Calculate the propagator U(t) for the density matrix or wave function such that
-    :math:`\psi(t) = U(t)\psi(0)` or :math:`\\rho_{\mathrm vec}(t) = U(t) \\rho_{\mathrm vec}(0)`
-    where :math:`\\rho_{\mathrm vec}` is the vector representation of the density matrix.
+    Calculate the propagator U(t) for the density matrix or wave function such
+    that :math:`\psi(t) = U(t)\psi(0)` or
+    :math:`\\rho_{\mathrm vec}(t) = U(t) \\rho_{\mathrm vec}(0)`
+    where :math:`\\rho_{\mathrm vec}` is the vector representation of the
+    density matrix.
     
     Parameters
     ----------
-    H : qobj 
-        Hamiltonian
+    H : qobj or list
+        Hamiltonian as a Qobj instance of a nested list of Qobjs and 
+        coefficients in the list-string or list-function format for
+        time-dependent Hamiltonians (see description in :func:`qutip.mesolve`).
         
-    t : float 
-        Time.
+    t : float or array-like 
+        Time or list of times for which to evaluate the propagator.
         
     c_op_list : list 
         List of qobj collapse operators.
@@ -63,6 +67,8 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         opt = Odeoptions()
         opt.rhs_reuse = True
 
+    tlist = [0, t] if isinstance(t,(int,float,np.int64,np.float64)) else t
+    
     if len(c_op_list) == 0:
         # calculate propagator for the wave function
 
@@ -79,12 +85,13 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         else:
             N = H.shape[0]
 
-        u = np.zeros([N, N], dtype=complex)
+        u = np.zeros([N, N, len(tlist)], dtype=complex)
 
         for n in range(0, N):
             psi0 = basis(N, n)
-            output = mesolve(H, psi0, [0, t], [], [], H_args, opt)
-            u[:,n] = output.states[1].full().T
+            output = mesolve(H, psi0, tlist, [], [], H_args, opt)
+            for k, t in enumerate(tlist):
+                u[:,n,k] = output.states[k].full().T
 
         # todo: evolving a batch of wave functions:
         #psi_0_list = [basis(N, n) for n in range(N)]
@@ -109,15 +116,19 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         else:
             N = H.shape[0]
 
-        u = np.zeros([N*N, N*N], dtype=complex)
+        u = np.zeros([N*N, N*N, len(tlist)], dtype=complex)
         
         for n in range(0, N*N):
             psi0  = basis(N*N, n)
             rho0  = Qobj(vec2mat(psi0.full()))
-            output = mesolve(H, rho0, [0, t], c_op_list, [], H_args, opt)
-            u[:,n] = mat2vec(output.states[1].full()).T
+            output = mesolve(H, rho0, tlist, c_op_list, [], H_args, opt)
+            for k, t in enumerate(tlist):
+                u[:,n,k] = mat2vec(output.states[k].full()).T
 
-    return Qobj(u)
+    if len(tlist) == 2:
+        return Qobj(u[:,:,1])
+    else:
+        return [Qobj(u[:,:,k]) for k in range(len(tlist))]
 
 
 def _get_min_and_index(lst): 
@@ -132,7 +143,8 @@ def _get_min_and_index(lst):
 
 
 def propagator_steadystate(U):
-    """Find the steady state for successive applications of the propagator :math:`U`.
+    """Find the steady state for successive applications of the propagator
+    :math:`U`.
     
     Parameters
     ----------
@@ -142,7 +154,7 @@ def propagator_steadystate(U):
     Returns
     ------- 
     a : qobj
-        Instance representing the steady-state vector.
+        Instance representing the steady-state density matrix.
     
     """
 
