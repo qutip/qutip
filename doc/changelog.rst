@@ -27,6 +27,14 @@ New Features
 Bug Fixes:
 ----------
 
+SVN-2571: mesolver now correctly user user defined rhs_filename in Odeoptions().
+
+SVN-2566: rhs_generate() now handles user defined filenames properly.
+
+SVN-2565: Density matrix returned by propagator_steadystate is now Hermitian.
+
+SVN-2548: eseries_value returns real list if all imag parts are zero.
+
 SVN-2518: mcsolver now gives correct results for strong damping rates.
 
 SVN-2513: Odeoptions now prints mc_avg correctly.

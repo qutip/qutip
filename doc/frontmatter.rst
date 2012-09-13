@@ -64,6 +64,8 @@ The development of QuTiP has been partially supported by the Japanese Society fo
 
 .. _image-korea:
 
+|
+
 .. figure:: figures/korea-logo.png
 	:width: 3in
 	:figclass: align-center
