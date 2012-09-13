@@ -480,7 +480,10 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     # generate and compile new cython code if necessary
     #
     if not opt.rhs_reuse or odeconfig.tdfunc == None:
-        odeconfig.tdname="rhs"+str(odeconfig.cgen_num)
+        if opt.rhs_filename==None:
+            odeconfig.tdname="rhs"+str(odeconfig.cgen_num)
+        else:
+            odeconfig.tdname=opt.rhs_filename
         cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
         cgen.generate(odeconfig.tdname+".pyx")
         os.environ['CFLAGS'] = '-O3 -w'
@@ -574,7 +577,10 @@ def _wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     # generate and compile new cython code if necessary
     #
     if not opt.rhs_reuse or odeconfig.tdfunc == None:
-        odeconfig.tdname="rhs"+str(odeconfig.cgen_num)
+        if opt.rhs_filename==None:
+            odeconfig.tdname="rhs"+str(odeconfig.cgen_num)
+        else:
+            odeconfig.tdname=opt.rhs_filename
         cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
         cgen.generate(odeconfig.tdname+".pyx")
         os.environ['CFLAGS'] = '-O3 -w'
@@ -688,7 +694,10 @@ def _wfsolve_list_td(H_func, psi0, tlist, expt_ops,H_args, opt):
                 string+=(",")
     #run code generator
     if not opt.rhs_reuse or odeconfig.tdfunc == None:
-        odeconfig.tdname="rhs"+str(odeconfig.cgen_num)
+        if opt.rhs_filename==None:
+            odeconfig.tdname="rhs"+str(odeconfig.cgen_num)
+        else:
+            odeconfig.tdname=opt.rhs_filename
         cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
         cgen.generate(odeconfig.tdname+".pyx")
         os.environ['CFLAGS'] = '-O3 -w'
@@ -881,7 +890,10 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     
     #run code generator
     if not opt.rhs_reuse or odeconfig.tdfunc == None:
-        odeconfig.tdname="rhs"+str(odeconfig.cgen_num)
+        if opt.rhs_filename==None:
+            odeconfig.tdname="rhs"+str(odeconfig.cgen_num)
+        else:
+            odeconfig.tdname=opt.rhs_filename
         cgen=Codegen(h_terms=n_L_terms,h_tdterms=Lcoeff, args=args)
         cgen.generate(odeconfig.tdname+".pyx")
         os.environ['CFLAGS'] = '-O3 -w'
