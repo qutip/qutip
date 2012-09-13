@@ -25,22 +25,25 @@ from qutip.odechecks import _ode_checks
 import qutip.settings
 import qutip.odeconfig as odeconfig
 from types import FunctionType
-from qutip.Qobj import *
+from qutip.Qobj import Qobj
 from superoperator import spre,spost
 
 def rhs_generate(H,c_ops,args={},options=Odeoptions(),name=None):
     """
-    Used to generate the Cython functions for solving the dynamics of a
-    given system using the mesolve function before calling parfor.  
+    Generates the Cython functions needed for solving the dynamics of a
+    given system using the mesolve function inside a parfor loop.  
     
     Parameters
     ----------
     H : qobj
         System Hamiltonian.
-    c_ops : array_like 
-        ``list`` or ``array`` of collapse operators.
+    c_ops : list
+        ``list`` of collapse operators.
     args : dict
         Arguments for time-dependent Hamiltonian and collapse operator terms.
+    
+    Other Parameters
+    ----------------
     options : Odeoptions
         Instance of ODE solver options.
     name: str
