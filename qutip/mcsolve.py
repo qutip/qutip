@@ -397,25 +397,25 @@ class MC_class():
 # CODES FOR PYTHON FUNCTION BASED TIME-DEPENDENT RHS
 #----------------------------------------------------
 #RHS of ODE for time-dependent systems with no collapse operators
-def tdRHS(t,psi):
+def _tdRHS(t,psi):
     h_data=odeconfig.h_func(t,odeconfig.h_func_args).data
     return spmv1d(-1.0j*h_data.data,h_data.indices,h_data.indptr,psi)
 
 #RHS of ODE for constant Hamiltonian and at least one function based collapse operator
-def cRHStd(t,psi):
+def _cRHStd(t,psi):
     sys=cyq_ode_rhs(t,psi,odeconfig.h_data,odeconfig.h_ind,odeconfig.h_ptr)
     col=array([abs(odeconfig.c_funcs[j](t,odeconfig.c_func_args))**2*spmv1d(odeconfig.n_ops_data[j],odeconfig.n_ops_ind[j],odeconfig.n_ops_ptr[j],psi) for j in odeconfig.c_td_inds])
     return sys-0.5*sum(col,0)
 
 #RHS of ODE for function-list based Hamiltonian
-def tdRHStd(t,psi):
+def _tdRHStd(t,psi):
     const_term=spmv1d(odeconfig.h_data,odeconfig.h_ind,odeconfig.h_ptr,psi)
     h_func_term=array([odeconfig.h_funcs[j](t,odeconfig.h_func_args)*spmv1d(odeconfig.h_td_data[j],odeconfig.h_td_ind[j],odeconfig.h_td_ptr[j],psi) for j in odeconfig.h_td_inds])
     col_func_terms=array([abs(odeconfig.c_funcs[j](t,odeconfig.c_func_args))**2*spmv1d(odeconfig.n_ops_data[j],odeconfig.n_ops_ind[j],odeconfig.n_ops_ptr[j],psi) for j in odeconfig.c_td_inds])
     return const_term-1.0j*sum(h_func_term,0)-0.5*sum(col_func_terms,0)
 
 #RHS of ODE for python function Hamiltonian
-def pyRHSc(t,psi):
+def _pyRHSc(t,psi):
     h_func_data=odeconfig.h_funcs(t,odeconfig.h_func_args).data
     h_func_term=-1.0j*spmv1d(h_func_data.data,h_func_data.indices,h_func_data.indptr,psi)
     const_col_term=0
@@ -437,11 +437,11 @@ def no_collapse_psi_out(num_times,psi_out):
         code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
         exec(code)
     elif odeconfig.tflag==2:
-        ODE=ode(cRHStd)
+        ODE=ode(_cRHStd)
     elif odeconfig.tflag in array([20,22]):
-        ODE=ode(tdRHStd)
+        ODE=ode(_tdRHStd)
     elif odeconfig.tflag==3:
-        ODE=ode(pyRHSc)
+        ODE=ode(_pyRHSc)
     else:
         ODE = ode(cyq_ode_rhs)
         ODE.set_f_params(odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr)
@@ -470,11 +470,11 @@ def no_collapse_expect_out(num_times,expect_out):
         code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
         exec(code)
     elif odeconfig.tflag==2:
-        ODE=ode(cRHStd)
+        ODE=ode(_cRHStd)
     elif odeconfig.tflag in array([20,22]):
-        ODE=ode(tdRHStd)
+        ODE=ode(_tdRHStd)
     elif odeconfig.tflag==3:
-        ODE=ode(pyRHSc)
+        ODE=ode(_pyRHSc)
     else:
         ODE = ode(cyq_ode_rhs)
         ODE.set_f_params(odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr)
@@ -516,11 +516,11 @@ def mc_alg_evolve(nt,args):
         code = compile('ODE.set_f_params('+odeconfig.string+')', '<string>', 'exec')
         exec(code)
     elif odeconfig.tflag==2:
-        ODE=ode(cRHStd)
+        ODE=ode(_cRHStd)
     elif odeconfig.tflag in array([20,22]):
-        ODE=ode(tdRHStd)
+        ODE=ode(_tdRHStd)
     elif odeconfig.tflag==3:
-        ODE=ode(pyRHSc)
+        ODE=ode(_pyRHSc)
     else:
         ODE = ode(cyq_ode_rhs)
         ODE.set_f_params(odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr)
