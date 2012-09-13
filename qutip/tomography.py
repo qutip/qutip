@@ -25,7 +25,7 @@ import scipy.linalg as la
 from qutip.graph import matrix_histogram, matrix_histogram_complex
 from pylab import *
 
-def index_permutations(size_list, perm=[]):
+def _index_permutations(size_list, perm=[]):
     """
     Generate a list with all index permutations.
     
@@ -50,7 +50,7 @@ def index_permutations(size_list, perm=[]):
         yield perm
     else:
         for n in range(size_list[0]):
-            for ip in index_permutations(size_list[1:], perm + [n]):
+            for ip in _index_permutations(size_list[1:], perm + [n]):
                 yield ip
 
 def qpt_plot(chi, lbls_list, title=None, fig=None):
@@ -81,7 +81,7 @@ def qpt_plot(chi, lbls_list, title=None, fig=None):
         fig = figure(figsize=(16,8))
 
     xlabels = []
-    for inds in index_permutations([len(lbls) for lbls in lbls_list]):
+    for inds in _index_permutations([len(lbls) for lbls in lbls_list]):
         xlabels.append("".join([lbls_list[k][inds[k]] for k in range(len(lbls_list))]))        
 
     ax = fig.add_subplot(1,2,1, projection='3d', position=[0, 0, 1, 1])
@@ -121,7 +121,7 @@ def qpt_plot_combined(chi, lbls_list, title=None, fig=None):
         fig = figure(figsize=(8,6))
 
     xlabels = []
-    for inds in index_permutations([len(lbls) for lbls in lbls_list]):
+    for inds in _index_permutations([len(lbls) for lbls in lbls_list]):
         xlabels.append("".join([lbls_list[k][inds[k]] for k in range(len(lbls_list))]))        
 
     if not title:
@@ -162,7 +162,7 @@ def qpt(U, op_basis_list):
 
     E_ops = []
     # loop over all index permutations
-    for inds in index_permutations([len(op_list) for op_list in op_basis_list]):
+    for inds in _index_permutations([len(op_list) for op_list in op_basis_list]):
         # loop over all composite systems
         E_op_list = [op_basis_list[k][inds[k]] for k in range(len(op_basis_list))]
         E_ops.append(tensor(E_op_list))
