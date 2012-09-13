@@ -38,7 +38,26 @@ The Quantum Toolbox in Python, or QuTiP, is a fully open-source implementation o
 * Includes the ability to create high-quality plots, and animations, using the excellent `Matplotlib <http://matplotlib.sourceforge.net/>`_ package.
 
 
-.. _about-whatsnew:
+.. _about-whatsnew21:
+
+Whats New in QuTiP Version 2.1
+================================
+
+- New method for generating Wigner functions based on Laguerre polynomials.
+
+- coherent(), coherent_dm(), and thermal_dm() can now be expressed using analytic values.
+
+- Unittests now use nose and can be run after installation.
+
+- Added iswap and sqrt-iswap gates.
+
+- Functions for quantum process tomography.
+
+- Window icons are now set for Ubuntu application launcher.
+
+
+
+.. _about-whatsnew2:
 
 Whats New in QuTiP Version 2.0
 ================================
