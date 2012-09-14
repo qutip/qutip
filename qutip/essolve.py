@@ -89,7 +89,7 @@ def essolve(H, rho0, tlist, c_op_list, expt_op_list):
 # ------------------------------------------------------------------------------
 #
 #
-def ode2es(L, rho0):
+def ode2es(L,rho0,sparse=False,sort='low',eigvals=0,tol=0,maxiter=100000):
     """Creates an exponential series that describes the time evolution for the
     initial density matrix (or state vector) `rho0`, given the Liouvillian 
     (or Hamiltonian) `L`.
@@ -116,7 +116,8 @@ def ode2es(L, rho0):
             # Got a wave function as initial state: convert to density matrix.
             rho0 = rho0 * rho0.dag()
     
-        w, v = la.eig(L.full())
+        w, v = L.eigenstates(sparse=sparse,sort=sort,eigvals=eigvals,tol=tol,maxiter=maxiter)
+        v=np.hstack([ket.full() for ket in v])
         # w[i]   = eigenvalue i
         # v[:,i] = eigenvector i
     
@@ -138,7 +139,8 @@ def ode2es(L, rho0):
         if not isket(rho0):
             raise TypeError('Second argument must be a ket if first is a Hamiltonian.')
 
-        w, v = la.eig(L.full())
+        w, v = L.eigenstates(sparse=sparse,sort=sort,eigvals=eigvals,tol=tol,maxiter=maxiter)
+        v=np.hstack([ket.full() for ket in v])
         # w[i]   = eigenvalue i
         # v[:,i] = eigenvector i
 
