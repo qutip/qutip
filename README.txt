@@ -36,7 +36,7 @@ setup.py                       			# QuTiP Python installation script.
     	ode.rhs.c		 	   			# Cython generated C-code for ODE RHS multiplication.
         ode.rhs.pyx		       			# Cython source code for ode_rhs.c.
     	setup.py                		# Setup file for generating *.c files from *.pyx.
-    
+
 	examples/
         __init__.py             		# Initialize examples modules.
   		ex_10.py						# Demo script.
