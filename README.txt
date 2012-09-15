@@ -137,7 +137,8 @@ setup.py                       			# QuTiP Python installation script.
 		test_odechecks.py				# ODE configuration test scripts.
         test_operators.py				# Quantum operator test scripts.
 		test_Qobj.py					# Qobj test scripts.
-        test_rand.py					# Random operator/state test scripts.
+		test_qubit_evolution.py			# Test script for dynamics using qubit evolution.        
+		test_rand.py					# Random operator/state test scripts.
 		test_sp_eigs.py					# Sparse/Dense eigenvalue/vector test scripts.
 		test_states.py					# Quantum state test scripts.
 		test_steadystate.py				# Steadystate solver test scripts.
