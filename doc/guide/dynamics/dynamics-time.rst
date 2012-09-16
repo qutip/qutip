@@ -256,14 +256,66 @@ In this case, the second call to ``mcsolve`` takes 3 seconds less than the first
 
 .. _time-parallel:
 
-Running String Based Problems using Parfor
-==========================================
+Running String-Based Time-Dependent Problems using Parfor
+==========================================================
 
 .. note:: This section covers a specialized topic and may be skipped if you are new to QuTiP.
 
-In this section we discuss running string based time-dependent problems using the :func:`qutip.parfor` function.  Because the ``parfor`` function uses the built-in Python multiprocessing functionality, the solvers will try to generate the same compiled code over and over and will crash.  To get around this problem you can call the :func:`qutip.rhs_generate` function to compile simulation into c-code before calling parfor.  You **must** then set the :class:`qutip.Odedata` object ``rhs_reuse=True`` for all solver calls inside the parfor loop.
+In this section we discuss running string based time-dependent problems using the :func:`qutip.parfor` function.  As the :func:`qutip.mcsolve` function is already parallized, running string-based time dependent problems inside of parfor loops should be restricted to the :func:`qutip.mesolve` function only.   When using the string based format, the system Hamiltonian and collapse operators are converted into c-code with a specific file name that is automatically genrated, or supplied by the user via the ``rhs_filename`` property of the :class:`qutip.Odeoptions` class. Because the :func:`qutip.parfor` function uses the built-in Python multiprocessing functionality, in calling the solver inside a parfor loop, each thread will try to generate compiled code with the same file name, leading to a crash.  To get around this problem you can call the :func:`qutip.rhs_generate` function to compile simulation into c-code before calling parfor.  You **must** then set the :class:`qutip.Odedata` object ``rhs_reuse=True`` for all solver calls inside the parfor loop that indicates that a valid c-code file already exists and a new one should not be generated.  As an example, we will look at the Landau-Zener-Stuckelberg interferometry example that can be found in the :ref:`exadvanced` section.
 
+To set up the problem, we run the following code::
 
+	from qutip import *
+	
+	# set up the parameters and start calculation
+	delta    = 0.1  * 2 * pi  # qubit sigma_x coefficient
+	w        = 2.0  * 2 * pi  # driving frequency
+	T        = 2 * pi / w     # driving period 
+	gamma1   = 0.00001        # relaxation rate
+	gamma2   = 0.005          # dephasing  rate
+	eps_list = linspace(-10.0, 10.0, 501) * 2 * pi # epsilon
+	A_list   = linspace(0.0, 20.0, 501) * 2 * pi	#Amplitude
+
+	# pre-calculate the necessary operators
+	sx = sigmax(); sz = sigmaz(); sm = destroy(2); sn = num(2)
+	# collapse operators
+	c_op_list = [sqrt(gamma1) * sm, sqrt(gamma2) * sz]  # relaxation and dephasing
+
+	# setup time-dependent Hamiltonian (list-string format)
+	H0 = -delta/2.0 * sx
+	H1 = [sz,'-eps/2.0+A/2.0*sin(w * t)']
+	H_td = [H0,H1]
+	Hargs = {'w': w,'eps':eps_list[0],'A':A_list[0]}
+	
+
+where the last code block sets up the problem using a string-based Hamiltonian, and ``Hargs`` is a dictionary of arguments to be passed into the Hamiltonian.  In this example, we are going to use the :func:`qutip.propagator` and :func:`qutip.propagator_steadystate` to find expectation
+values for different values of :math:`\epsilon` and :math:`A` in the 
+Hamiltonian :math:`H = -\frac{1}{2}\Delta\sigma_x -\frac{1}{2}\epsilon\sigma_z- \frac{1}{2}A\sin(\omega t)`.
+
+We must now tell the :func:`qutip.mesolve` function, that is called by :func:`qutip.propagator` to reuse a
+pre-generated Hamiltonian constructed using the :func:`qutip.rhs_generate` command::
+
+	# ODE settings (for reusing list-str format Hamiltonian)
+	opts = Odeoptions(rhs_reuse = True)
+	#pre-generate RHS so we can use parfor
+	rhs_generate(H_td,c_op_list,Hargs,name='lz_func')
+
+Here, we have given the generated file a custom name ``lz_func``, however this is not necessary as a generic name will automatically be given.  Now we define the function ``task`` that is called by parfor::
+
+	# a task function for the for-loop parallelization: 
+	# the m-index is parallelized in loop over the elements of p_mat[m,n]
+	def task(args):
+	    m, eps = args
+	    p_mat_m = zeros(len(A_list))
+	    for n, A in enumerate(A_list):
+	        # change args sent to solver, w is really a constant though.
+	        Hargs = {'w': w, 'eps': eps,'A': A} 
+	        U = propagator(H_td, T, c_op_list, Hargs, opts) #<- IMPORTANT LINE
+	        rho_ss = propagator_steadystate(U)
+	        p_mat_m[n] = expect(sn, rho_ss)
+	    return [m, p_mat_m]
+
+Notice the Odeoptions ``opts`` in the call to the ``propagator`` function.  This is tells the ``mesolve`` function used in the propagator to call the pre-generated file ``lz_func``. If this were missing then the routine would fail.
 
 
 

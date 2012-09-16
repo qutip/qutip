@@ -116,6 +116,13 @@ Propagators
     :members: propagator, propagator_steadystate
     :undoc-members:
 
+Quantum Process Tomography
+--------------------------
+
+.. automodule:: qutip.tomography
+    :members: qpt, qpt_plot, qpt_plot_combined
+    :undoc-members:
+
 Other Functions
 ===============
 

@@ -112,7 +112,7 @@ We can examine the resulting :class:`qutip.eseries` object by printing a text re
 
    In [1]: es
 
-or by evaluate it and arbitrary points in time (here at 0.0 and 1.0):
+or by evaluating it and arbitrary points in time (here at 0.0 and 1.0):
 
 .. ipython::
 
@@ -124,7 +124,7 @@ and the expectation value of the exponential series can be calculated using the 
 
    In [1]: es_expect=expect(sigmaz(), es)
 
-The result `es_expect` is now an exponential series with C-numbers as amplitudes, which easily can be evaluated at arbitrary times:
+The result `es_expect` is now an exponential series with c-numbers as amplitudes, which easily can be evaluated at arbitrary times:
 
 .. ipython::
 
