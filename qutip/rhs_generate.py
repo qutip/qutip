@@ -49,6 +49,11 @@ def rhs_generate(H,c_ops,args={},options=Odeoptions(),name=None):
     name: str
         Name of generated RHS
     
+    Note
+    ----
+    Using this function with any solver other than the mesolve function
+    will result in an error.
+    
     """
     _reset_odeconfig() #clear odeconfig
     if name:
