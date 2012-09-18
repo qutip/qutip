@@ -70,9 +70,11 @@ td_desc=["Rabi oscillations of an atom subject to a time-dependent classical dri
 td_nums=40+arange(len(td_labels))
 
 # advanced equation demos
-advanced_labels=["Nonadiabtic evolution","Lindblad vs. Redfield"]
+advanced_labels=["Nonadiabtic evolution","Lindblad vs. Redfield", "LZS inteferometry", "QPT"]
 advanced_desc=["Nonadiabatic transformation from a decoupled to a coupled spin chain.",
-               "Comparison of Lindblad vs. Bloch Redfield master equations for a coupled qubit system."]
+               "Comparison of Lindblad vs. Bloch Redfield master equations for a coupled qubit system.",
+               "Landau-Zener-Stuckelberg inteferometry (this example takes long time to finish).",
+               "Quantum process tomography for a two-qubit i-SWAP gate."]
 advanced_nums=50+arange(len(advanced_labels))
 
 #variables to be sent to Examples GUI
