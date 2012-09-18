@@ -60,7 +60,8 @@ def compute(N, M, h, Jx, Jy, Jz, taulist):
 
     # the time-dependent hamiltonian in list-string format
     args = max(taulist)
-    h_t = [[H0, lambda t, t_max : (t_max-t)/t_max], [H1, lambda t, t_max : t/t_max]]       
+    h_t = [[H0, lambda t, t_max : (t_max-t)/t_max],
+           [H1, lambda t, t_max : t/t_max]]       
 
     #
     # callback function for each time-step
@@ -136,17 +137,20 @@ def run():
             lw = 0.25        
         plot(taulist/max(taulist), evals_mat[:,n] / (2*pi), ls, linewidth=lw)
 
-    # second, draw line that encode the occupation probability of each corresponding
-    # state in the linewidth. thicker line => high occupation probability.
+    # second, draw line that encode the occupation probability of each state in 
+    # its linewidth. thicker line => high occupation probability.
     for idx in range(len(taulist)-1):
         for n in range(len(occ_mat[0,:])):
             lw = 0.5 + 4*occ_mat[idx,n]    
             if lw > 0.55:
-                plot(array([taulist[idx], taulist[idx+1]])/taumax, array([evals_mat[idx,n], evals_mat[idx+1,n]])/(2*pi), 'r', linewidth=lw)    
+                plot(array([taulist[idx], taulist[idx+1]])/taumax, 
+                     array([evals_mat[idx,n], evals_mat[idx+1,n]])/(2*pi), 
+                     'r', linewidth=lw)    
         
     xlabel(r'$\tau$')
     ylabel('Eigenenergies')
-    title("Energyspectrum (%d lowest values) of a chain of %d spins.\nThe occupation probabilities are encoded in the red line widths." % (M, N))
+    title("Energyspectrum (%d lowest values) of a chain of %d spins.\n " % (M,N)
+          + "The occupation probabilities are encoded in the red line widths.")
     legend(("Ground state",))
 
     #
@@ -161,7 +165,8 @@ def run():
 
     xlabel(r'$\tau$')
     ylabel('Occupation probability')
-    title("Occupation probability of the %d lowest eigenstates for a chain of %d spins" % (M, N))
+    title("Occupation probability of the %d lowest " % M +
+          "eigenstates for a chain of %d spins" % N)
     legend(("Ground state",))
 
     show()
