@@ -206,26 +206,6 @@
                 }, 
                 {
                     "color": "#0B5FA5", 
-                    "name": "tdRHS", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#0B5FA5", 
-                    "name": "cRHStd", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#0B5FA5", 
-                    "name": "tdRHStd", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#0B5FA5", 
-                    "name": "pyRHSc", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#0B5FA5", 
                     "name": "no_collapse_psi_out", 
                     "size": 1000
                 }, 
@@ -383,11 +363,6 @@
                     "color": "#3F8FD2", 
                     "name": "qfunc", 
                     "size": 1000
-                }, 
-                {
-                    "color": "#3F8FD2", 
-                    "name": "qfunc1", 
-                    "size": 1000
                 }
             ], 
             "color": "#3F8FD2", 
@@ -420,11 +395,6 @@
         }, 
         {
             "children": [
-                {
-                    "color": "#3F8FD2", 
-                    "name": "index_permutations", 
-                    "size": 1000
-                }, 
                 {
                     "color": "#3F8FD2", 
                     "name": "qpt_plot", 
@@ -804,23 +774,7 @@
             "name": "expect"
         }, 
         {
-            "children": [
-                {
-                    "color": "#692102", 
-                    "name": "list2ind", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#692102", 
-                    "name": "selct", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#692102", 
-                    "name": "csr_to_col", 
-                    "size": 1000
-                }
-            ], 
+            "children": [], 
             "color": "#692102", 
             "idx": 7, 
             "name": "ptrace"
