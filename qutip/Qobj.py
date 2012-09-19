@@ -1,9 +1,9 @@
-#This file is part of QuTIP.
+# This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTIP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -21,6 +21,8 @@ it's methods.
 
 """
 import types
+import pickle
+
 # import math functions from numpy.math: required for td string evaluation 
 from numpy import (arccos, arccosh, arcsin, arcsinh, arctan, arctan2, arctanh,
                    ceil, copysign, cos, cosh, degrees, e, exp, expm1, fabs,
@@ -466,12 +468,17 @@ class Qobj():
             s += str(self.full())
         return s
         
-    def __repr__(self):#give complete information on Qobj without print statement in commandline
+    def __repr__(self):
+        # give complete information on Qobj without print statement in commandline
         # we cant realistically serialize a Qobj into a string, so we simply
         # return the informal __str__ representation instead.)
         return self.__str__()
 
     def _repr_latex_(self):
+        """
+        Generate a LaTeX representation of the Qobj instance. Can be used for
+        formatted output in ipython notebook.
+        """
         s = r'\begin{equation}\text{'
         if self.type=='oper' or self.type=='super':
             s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isHerm = "+str(self.isherm)
@@ -1050,6 +1057,9 @@ class Qobj():
         out.dims=[self.dims[1],self.dims[0]]
         out.shape=[self.shape[1],self.shape[0]]
         return out
+
+
+
 #-------------------------------------------------------------------------------
 # This functions evaluates a time-dependent quantum object on the list-string
 # and list-function formats that are used by the time-dependent solvers.
@@ -1057,16 +1067,13 @@ class Qobj():
 # conventient to be able to evaluate the expressions passed to the solver for
 # arbitrary value of time. This function provides this functionality.
 #
-#
-
-
 def qobj_list_evaluate(qobj_list, t, args):
     """
     Evaluate a time-dependent qobj in list format. For example,
     
         qobj_list = [H0, [H1, func_t]]
         
-    is evaluated to 
+    is evaluated to
     
         Qobj(t) = H0 + H1 * func_t(t, args)
         
@@ -1078,7 +1085,26 @@ def qobj_list_evaluate(qobj_list, t, args):
     
         Qobj(t) = H0 + H1 * sin(args['w'] * t)  
     
-    Returns:    The Qobj that represents the value of qobj_list at time t.    
+    Parameters
+    ----------
+    
+    qobj_list : list
+        A nested list of Qobj instances and corresponding time-dependent
+        coefficients.
+
+    t : float
+        The time for which to evaluate the time-dependent Qobj instance.
+
+    args : dictionary
+        A dictionary with parameter values required to evaluate the
+        time-dependent Qobj intance.
+                
+    Returns
+    -------
+
+    output : Qobj
+
+        The Qobj that represents the value of qobj_list at time t.    
     
     """
        
@@ -1104,12 +1130,11 @@ def qobj_list_evaluate(qobj_list, t, args):
         
     return q_sum
 
-#-############################################################################
-#
+#-------------------------------------------------------------------------------
 #
 # functions acting on Qobj class
 #
-#
+
 def dag(A):
     """Adjont operator (dagger) of a quantum object.
     
@@ -1129,7 +1154,7 @@ def dag(A):
     It is recommended to use the ``dag()`` Qobj method.
     
     """
-    if not isinstance(A,Qobj): #checks for Qobj
+    if not isinstance(A,Qobj):
         raise TypeError("Input is not a quantum object")
     return A.dag()
 
@@ -1156,11 +1181,9 @@ def ptrace(Q,sel):
     """
     return Q.ptrace(sel)
 
-#-############################################################################
+#-------------------------------------------------------------------------------
 #      
-#
 # some functions for increased compatibility with quantum optics toolbox:
-#
 #
 
 def dims(inpt):
@@ -1215,11 +1238,10 @@ def shape(inpt):
         return shp(inpt)
 
 
-#-############################################################################
+#-------------------------------------------------------------------------------
 #      
 # functions for storing and loading Qobj instances to files 
 #
-import pickle
 
 def qobj_save(qobj, filename):
     """
