@@ -122,7 +122,9 @@ Here N is the number of Fock states included in the cavity mode.
 Partial trace
 =============
 
-The partial trace is an operation that reduces the dimension of a Hilbert space by eliminating some degrees of freedom by averaging (tracing). In this sense it is therefore the converse of the tensor product. It is useful when one is interested in only a part of a coupled quantum system.  For open quantum systems, this typically involves tracing over the environment leaving only the system of interest.  In QuTiP the function :func:`qutip.ptrace.ptrace` is used to take partial traces. It takes two arguments: ``rho`` is the density matrix (or state vector) of the composite system, and ``sel`` is a ``list`` of integers that mark the component systems that should be **kept**.  All other components are traced over.
+The partial trace is an operation that reduces the dimension of a Hilbert space by eliminating some degrees of freedom by averaging (tracing). In this sense it is therefore the converse of the tensor product. It is useful when one is interested in only a part of a coupled quantum system.  For open quantum systems, this typically involves tracing over the environment leaving only the system of interest.  In QuTiP the class method 
+:func:`qutip.Qobj.ptrace` (or, alternatively, the function :func:`qutip.ptrace.ptrace`) is used to take partial traces. :func:`qutip.Qobj.ptrace` 
+acts on the :class:`qutip.Qobj` instance for which it is called, and it takes one argument ``sel``, which is a ``list`` of integers that mark the component systems that should be **kept**. All other components are traced over.
 
 For example, the density matrix describing a single qubit obtained from a coupled two-qubit system is obtained via:
 
@@ -130,9 +132,9 @@ For example, the density matrix describing a single qubit obtained from a couple
 	
 	In [1]:	psi = tensor(basis(2,0), basis(2,1))
 	
-	In [2]:	ptrace(psi, 0)
+	In [2]:	psi.ptrace(0)
 	
-	In [3]:	ptrace(psi, 1)
+	In [3]:	psi.ptrace(1)
 
 Note that the partial trace always results in a density matrix (mixed state), regardless of whether the composite system is a pure state (described by a state vector) or a mixed state (described by a density matrix):
 
@@ -142,11 +144,11 @@ Note that the partial trace always results in a density matrix (mixed state), re
    
    	In [2]:	psi
    
-   	In [3]:	ptrace(psi, 0)
+   	In [3]:	psi.ptrace(0)
    
    	In [4]:	rho = tensor(ket2dm((basis(2,0)+basis(2,1)).unit()), fock_dm(2,0))
    
    	In [5]:	rho
    
-   	In [6]:	ptrace(rho, 0)
+   	In [6]:	rho.ptrace(0)
 
