@@ -652,10 +652,9 @@ class Qobj():
         
         """
         if self.dims[0][0]==self.dims[1][0]:
-            if qset.auto_tidyup:
-                return sp_expm(self).tidyup()
-            else:
-                return sp_expm(self)
+            F = sp_expm(self)
+            out = Qobj(F, dims=self.dims, shape=self.shape)
+            return out.tidyup() if qset.auto_tidyup else out
         else:
             raise TypeError('Invalid operand for matrix exponential')
 
@@ -1267,12 +1266,9 @@ def qobj_load(filename):
     f.close()
     return qobj
 
-#-############################################################################
+#-------------------------------------------------------------------------------
 #
-#
-# check for class type (ESERIES,FSERIES)
-#
-#
+# check for class type ESERIES
 #
 def _checkeseries(inpt):
     """
@@ -1283,78 +1279,5 @@ def _checkeseries(inpt):
         return 'eseries'
     else:
         pass
-
-
-#-######################################################################
-def sp_expm(qo):
-    """
-    Sparse matrix exponential of a quantum operator.
-    Called by the Qobj expm method.
-    """
-    #-###########################
-    def pade(m):
-        n=shape(A)[0]
-        c=_padecoeff(m)
-        if m!=13:
-            apows= [[] for jj in range(int(ceil((m+1)/2)))]
-            apows[0]=sp.eye(n,n,format='csr')
-            apows[1]=A*A
-            for jj in range(2,int(ceil((m+1)/2))):
-                apows[jj]=apows[jj-1]*apows[1]
-            U=sp.lil_matrix((n,n)).tocsr(); V=sp.lil_matrix((n,n)).tocsr()
-            for jj in range(m,0,-2):
-                U=U+c[jj]*apows[jj//2]
-            U=A*U
-            for jj in range(m-1,-1,-2):
-                V=V+c[jj]*apows[(jj+1)//2]
-            F=la.solve((-U+V).todense(),(U+V).todense())
-            return sp.lil_matrix(F).tocsr()
-        elif m==13:
-            A2=A*A
-            A4=A2*A2
-            A6=A2*A4
-            U = A*(A6*(c[13]*A6+c[11]*A4+c[9]*A2)+c[7]*A6+c[5]*A4+c[3]*A2+c[1]*sp.eye(n,n).tocsr())
-            V = A6*(c[12]*A6 + c[10]*A4 + c[8]*A2)+ c[6]*A6 + c[4]*A4 + c[2]*A2 + c[0]*sp.eye(n,n).tocsr()
-            F=la.solve((-U+V).todense(),(U+V).todense()) 
-            return sp.csr_matrix(F)
-    #-###############################
-    A=qo.data #extract Qobj data (sparse matrix)
-    m_vals=array([3,5,7,9,13])
-    theta=array([0.01495585217958292,0.2539398330063230,0.9504178996162932,2.097847961257068,5.371920351148152],dtype=float)
-    normA=sp_one_norm(qo)
-    if normA<=theta[-1]:
-        for ii in range(len(m_vals)):
-            if normA<=theta[ii]:
-                F=pade(m_vals[ii])
-                break
-    else:
-        t,s=frexp(normA/theta[-1])
-        s=s-(t==0.5)
-        A=A/2.0**s
-        F=pade(m_vals[-1])
-        for i in range(s):
-            F=F*F
-    out=Qobj(F,dims=qo.dims,shape=qo.shape)
-    if qset.auto_tidyup:
-        return out.tidyup()
-    else:
-        return out
-
-
-def _padecoeff(m):
-    """
-    Private function returning coefficients for Pade approximation.
-    """
-    if m==3:
-        return array([120, 60, 12, 1])
-    elif m==5:
-        return array([30240, 15120, 3360, 420, 30, 1])
-    elif m==7:
-        return array([17297280, 8648640, 1995840, 277200, 25200, 1512, 56, 1])
-    elif m==9:
-        return array([17643225600, 8821612800, 2075673600, 302702400, 30270240,2162160, 110880, 3960, 90, 1])
-    elif m==13:
-        return array([64764752532480000, 32382376266240000, 7771770303897600,1187353796428800, 129060195264000, 10559470521600,670442572800, 33522128640, 1323241920,40840800, 960960, 16380, 182, 1])
-
 
 
