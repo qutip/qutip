@@ -196,7 +196,7 @@ class Qobj():
         """
         ADDITION with Qobj on LEFT [ ex. Qobj+4 ]            
         """
-        if classcheck(other)=='eseries':
+        if _checkeseries(other)=='eseries':
             return other.__radd__(self)
         if not isinstance(other, Qobj):
             other=Qobj(other)
@@ -313,7 +313,7 @@ class Qobj():
         if isinstance(other, (list,np.ndarray)): # if other is a list, do element-wise multiplication
             return array([self * item for item in other])
 
-        if classcheck(other)=='eseries':
+        if _checkeseries(other)=='eseries':
             return other.__rmul__(self)
 
         if isinstance(other,(int,float,complex,np.int64)): #if other is int,float,complex
@@ -353,7 +353,7 @@ class Qobj():
         if isinstance(other, (list,np.ndarray)): # if other is a list, do element-wise multiplication
             return array([item*self for item in other])
 
-        if classcheck(other)=='eseries':
+        if _checkeseries(other)=='eseries':
             return other.__mul__(self)
 
         if isinstance(other,(int,float,complex,np.int64)): #if other is int,float,complex
@@ -1274,7 +1274,7 @@ def qobj_load(filename):
 #
 #
 #
-def classcheck(inpt):
+def _checkeseries(inpt):
     """
     Checks for ESERIES class types
     """
