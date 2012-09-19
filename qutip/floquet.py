@@ -406,10 +406,54 @@ def _n_thermal(w, w_th):
     else: 
         return 0.0 * np.ones(np.shape(w))
     
-def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, args, J_cb, w_th, kmax=5,f_modes_table_t=None):
+def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, args, J_cb, w_th, kmax=5, f_modes_table_t=None):
     """
     Calculate the rates and matrix elements for the Floquet-Markov master
     equation.
+
+    Parameters
+    ----------
+    
+    f_modes_0 : list of :class:`qutip.Qobj` (kets)
+        A list of initial Floquet modes.
+
+    f_energies : array
+        The Floquet energies.
+
+    c_op : :class:`qutip.Qobj`
+        The collapse operators describing the dissipation.
+
+    H : :class:`qutip.Qobj`
+        System Hamiltonian, time-dependent with period `T`.
+        
+    T : float
+        The period of the time-dependence of the hamiltonian. 
+
+    args : dictionary
+        Dictionary with variables required to evaluate H.
+
+    J_cb : callback functions
+        A callback function that computes the noise power spectrum, as
+        a function of frequency, associated with the collapse operator `c_op`.
+
+    w_th : float
+        The temperature in units of frequency.
+
+    k_max : int
+        The truncation of the number of sidebands (default 5).
+
+    f_modes_table_t : nested list of :class:`qutip.Qobj` (kets)
+        A lookup-table of Floquet modes at times precalculated by
+        :func:`qutip.floquet.floquet_modes_table` (optional). 
+     
+    Returns
+    -------
+
+    output : list 
+
+        A list (Delta, X, Gamma, A) containing the matrices Delta, X, Gamma
+        and A used in the construction of the Floquet-Markov master equation.
+
     """
     
     N = len(f_energies)
@@ -463,7 +507,13 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, args, J_cb,
     
 def floquet_collapse_operators(A):
     """
-    Construct
+    Construct collapse operators corresponding to the Floquet-Markov
+    master-equation rate matrix `A`.
+
+    .. note::
+
+        Experimental.
+
     """
     c_ops = []
     
@@ -489,6 +539,23 @@ def floquet_master_equation_tensor(Alist, f_energies):
     basis (with constant Hamiltonian and collapse operators).
     
     Simplest RWA approximation [Grifoni et al, Phys.Rep. 304 229 (1998)]
+
+    Parameters
+    ----------
+    
+    Alist : list
+        A list of Floquet-Markov master equation rate matrices.
+
+    f_energies : array
+        The Floquet energies.
+                
+    Returns
+    -------
+
+    output : array
+
+        The Floquet-Markov master equation tensor `R`.
+
     """
 
     if isinstance(Alist, list):
@@ -677,6 +744,10 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None, args={}, o
     
     e_ops : list of :class:`qutip.Qobj` / callback function
         list of operators for which to evaluate expectation values.
+
+    spectra_cb : list callback functions
+        List of callback functions that compute the noise power spectrum as
+        a function of frequency for the collapse operators in `c_ops`.
 
     T : float
         The period of the time-dependence of the hamiltonian. The default value
