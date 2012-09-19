@@ -237,53 +237,167 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
 
     return f_modes_table_t[t_idx]
 
-def floquet_states(f_modes, f_energies, t):
+def floquet_states(f_modes_t, f_energies, t):
     """
-    Evaluate the floquet states at time t.
+    Evaluate the floquet states at time t given the Floquet modes at that time.
+
+    Parameters
+    ----------
     
-    Returns a list of the wavefunctions.
+    f_modes_t : list of :class:`qutip.Qobj` (kets)
+        A list of Floquet modes for time :math:`t`.
+
+    f_energies : array
+        The Floquet energies.
+        
+    t : float
+        The time for which to evaluate the Floquet states.
+     
+    Returns
+    -------
+
+    output : list
+
+        A list of Floquet states for the time :math:`t`.
         
     """
     
-    return [(f_modes[i] * exp(-1j * f_energies[i]*t)) for i in np.arange(len(f_energies))]   
+    return [(f_modes_t[i] * exp(-1j * f_energies[i]*t)) for i in np.arange(len(f_energies))]   
         
 def floquet_states_t(f_modes_0, f_energies, t, H, T, args=None):
     """
-    Evaluate the floquet states at time t.
+    Evaluate the floquet states at time t given the initial Floquet modes.
     
-    Returns a list of the wavefunctions.
+    Parameters
+    ----------
+    
+    f_modes_t : list of :class:`qutip.Qobj` (kets)
+        A list of initial Floquet modes (for time :math:`t=0`).
+
+    f_energies : array
+        The Floquet energies.
+        
+    t : float
+        The time for which to evaluate the Floquet states.
+
+    H : :class:`qutip.Qobj`
+        System Hamiltonian, time-dependent with period `T`.
+        
+    T : float
+        The period of the time-dependence of the hamiltonian. 
+
+    args : dictionary
+        Dictionary with variables required to evaluate H.
+     
+    Returns
+    -------
+
+    output : list
+
+        A list of Floquet states for the time :math:`t`.
           
     """
     
     f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, args)
     return [(f_modes_t[i] * exp(-1j * f_energies[i]*t)) for i in np.arange(len(f_energies))]    
     
-def floquet_wavefunction(f_modes, f_energies, f_coeff, t):
+def floquet_wavefunction(f_modes_t, f_energies, f_coeff, t):
     """
-    Evaluate the wavefunction for a time t using the Floquet states decompositon.
+    Evaluate the wavefunction for a time t using the Floquet state decompositon,
+    given the Floquet modes at time `t`.
     
-    Returns the wavefunction.
+    Parameters
+    ----------
+    
+    f_modes_t : list of :class:`qutip.Qobj` (kets)
+        A list of initial Floquet modes (for time :math:`t=0`).
+
+    f_energies : array
+        The Floquet energies.
+
+    f_coeff : array
+        The coefficients for Floquet decomposition of the initial wavefunction.
+                
+    t : float
+        The time for which to evaluate the Floquet states.
+     
+    Returns
+    -------
+
+    output : :class:`qutip.Qobj`
+
+        The wavefunction for the time :math:`t`.
         
     """
-    return sum([f_modes[i] * exp(-1j * f_energies[i]*t) * f_coeff[i] for i in np.arange(len(f_energies))])
+    return sum([f_modes_t[i] * exp(-1j * f_energies[i]*t) * f_coeff[i] for i in np.arange(len(f_energies))])
     
 def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None):
     """
-    Evaluate the wavefunction for a time t using the Floquet states decompositon.
+    Evaluate the wavefunction for a time t using the Floquet state decompositon,
+    given the initial Floquet modes.
     
-    Returns the wavefunction.
+    Parameters
+    ----------
+    
+    f_modes_t : list of :class:`qutip.Qobj` (kets)
+        A list of initial Floquet modes (for time :math:`t=0`).
+
+    f_energies : array
+        The Floquet energies.
+
+    f_coeff : array
+        The coefficients for Floquet decomposition of the initial wavefunction.
+                
+    t : float
+        The time for which to evaluate the Floquet states.
+     
+    H : :class:`qutip.Qobj`
+        System Hamiltonian, time-dependent with period `T`.
+        
+    T : float
+        The period of the time-dependence of the hamiltonian. 
+
+    args : dictionary
+        Dictionary with variables required to evaluate H.
+
+    Returns
+    -------
+
+    output : :class:`qutip.Qobj`
+
+        The wavefunction for the time :math:`t`.
            
     """
     
     f_states_t = floquet_states_t(f_modes_0, f_energies, t, H, T, args)
     return sum([f_states_t[i] * f_coeff[i] for i in np.arange(len(f_energies))])
 
-def floquet_state_decomposition(f_modes_0, f_energies, psi0):
+def floquet_state_decomposition(f_states, f_energies, psi):
     """
-    Decompose the wavefunction psi in the Floquet states, return the coefficients
-    in the decomposition as an array of complex amplitudes.
+    Decompose the wavefunction `psi` (typically an initial state) in terms of 
+    the Floquet states, :math:`\psi = \sum_\\alpha c_\\alpha \psi_\\alpha(0)`.
+
+    Parameters
+    ----------
+    
+    f_states : list of :class:`qutip.Qobj` (kets)
+        A list of Floquet modes.
+
+    f_energies : array
+        The Floquet energies.
+
+    psi : :class:`qutip.Qobj`
+        The wavefunction to decompose in the Floquet state basis.
+                
+    Returns
+    -------
+
+    output : array
+
+        The coefficients :math:`c_\\alpha` in the Floquet state decomposition.
+
     """
-    return [(f_modes_0[i].dag() * psi0).data[0,0] for i in np.arange(len(f_energies))]
+    return [(f_states[i].dag() * psi).data[0,0] for i in np.arange(len(f_energies))]
 
 # should be moved to a utility library?    
 def _n_thermal(w, w_th):
