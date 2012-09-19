@@ -62,6 +62,7 @@ def qpt_plot(chi, lbls_list, title=None, fig=None):
     ----------
     chi : array
         Input QPT chi matrix. 
+
     lbls_list : list
         List of labels for QPT plot axes.
     
@@ -74,7 +75,7 @@ def qpt_plot(chi, lbls_list, title=None, fig=None):
     
     Returns
     -------
-    An matplotlib axes instance for the plot. 
+    An matplotlib figure instance for the plot. 
     
     """
     if fig == None:
@@ -85,13 +86,15 @@ def qpt_plot(chi, lbls_list, title=None, fig=None):
         xlabels.append("".join([lbls_list[k][inds[k]] for k in range(len(lbls_list))]))        
 
     ax = fig.add_subplot(1,2,1, projection='3d', position=[0, 0, 1, 1])
-    matrix_histogram(real(chi), xlabels, xlabels, r"real($\chi$)", [-1,1], ax)
+    matrix_histogram(real(chi), xlabels, xlabels, title=r"real($\chi$)", limits=[-1,1], ax=ax)
 
     ax = fig.add_subplot(1,2,2, projection='3d', position=[0, 0, 1, 1])
-    matrix_histogram(imag(chi), xlabels, xlabels, r"imag($\chi$)", [-1,1], ax)
+    matrix_histogram(imag(chi), xlabels, xlabels, title=r"imag($\chi$)", limits=[-1,1], ax=ax)
 
     if title:
         fig.suptitle(title)
+
+    return fig
 
 def qpt_plot_combined(chi, lbls_list, title=None, fig=None):
     """
@@ -102,6 +105,7 @@ def qpt_plot_combined(chi, lbls_list, title=None, fig=None):
     ----------
     chi : array
         Input QPT chi matrix. 
+
     lbls_list : list
         List of labels for QPT plot axes.
     
@@ -114,7 +118,7 @@ def qpt_plot_combined(chi, lbls_list, title=None, fig=None):
     
     Returns
     -------
-    An matplotlib axes instance for the plot.
+    An matplotlib figure instance for the plot.
     
     """
     if fig == None:
@@ -129,13 +133,15 @@ def qpt_plot_combined(chi, lbls_list, title=None, fig=None):
 
     ax = fig.add_subplot(1,1,1, projection='3d', position=[0, 0, 1, 1])
 
-    matrix_histogram_complex(chi, xlabels, xlabels, title, None, ax)
+    matrix_histogram_complex(chi, xlabels, xlabels, title=title, ax=ax)
+
+    return fig
 
 def qpt(U, op_basis_list):
     """
-    Calculate the quantum process tomography chi matrix for a given 
-    (possibly nonunitary) transformation matrix U, which transforms a 
-    density matrix in vector form according to:
+    Calculate the quantum process tomography chi matrix for a given (possibly
+    nonunitary) transformation matrix U, which transforms a density matrix in
+    vector form according to:
 
         vec(rho) = U * vec(rho0)
 
@@ -149,7 +155,9 @@ def qpt(U, op_basis_list):
     Parameters
     ----------
     U : Qobj
-        Transformation operator.  Can be calculated using QuTiP propagator function.
+        Transformation operator. Can be calculated using QuTiP propagator
+        function.
+
     op_basis_list : list
         A list of Qobj's representing the basis states.
     
