@@ -1,6 +1,6 @@
-"""
-Plot the process tomography matrix for a 2-qubit iSWAP gate.
-"""
+#
+# Plot the process tomography matrix for a 2-qubit iSWAP gate.
+#
 
 from qutip import *
 
