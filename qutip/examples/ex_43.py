@@ -3,9 +3,6 @@
 #
 from qutip import *
 from pylab import *
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
-
 
 def run():
 
@@ -86,7 +83,7 @@ def run():
     # (i.e., t -> inf)
     #
     rho_ss  = propagator_steadystate(U)
-    p_ex_ss = real(expect(sm.dag() * sm, rho_ss))
+    p_ex_ss = expect(sm.dag() * sm, rho_ss)
 
     #
     # plot the results
@@ -94,8 +91,8 @@ def run():
     figure(1)
 
     subplot(211)
-    plot(tlist, real(output.expect[0]), 'b')
-    plot(tlist, real(1-output.expect[0]), 'r')
+    plot(tlist, output.expect[0], 'b')
+    plot(tlist, 1-output.expect[0], 'r')
     plot(tlist, ones(shape(tlist)) * p_ex_ss, 'k', linewidth=2)
     xlabel('Time')
     ylabel('Probability')
