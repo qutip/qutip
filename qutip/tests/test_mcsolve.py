@@ -22,7 +22,7 @@ from qutip.odechecks import _ode_checks
 from numpy import allclose
 from numpy.testing import assert_equal
 from numpy.testing.decorators import skipif
-
+import unittest
 #find Cython if it exists
 try:
     import Cython
@@ -175,7 +175,7 @@ def test_MCSimpleConstFunc():
     avg_diff=mean(abs(actual_answer-expt)/actual_answer)
     assert_equal(avg_diff<mc_error,True)
 
-@skipif(Cython.__version__ < '0.14' or Cython_found==0)
+@unittest.skipIf(version2int(Cython.__version__) < version2int('0.14') or Cython_found==0,'Cython not found or version too low.')
 def test_MCSimpleConstStr():
     "Monte-carlo: Collapse terms constant (str format)"
     N=10 #number of basis states to consider
@@ -208,7 +208,7 @@ def test_MCTDFunc():
      diff=mean(abs(actual_answer-expt)/actual_answer)
      assert_equal(diff<error,True)
 
-@skipif(Cython.__version__ < '0.14' or Cython_found==0)
+@unittest.skipIf(version2int(Cython.__version__) < version2int('0.14') or Cython_found==0,'Cython not found or version too low.')
 def test_TDStr():
     "Monte-carlo: Time-dependent H (str format)"
     error=5e-2

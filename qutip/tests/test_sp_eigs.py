@@ -22,8 +22,9 @@ from qutip import *
 from qutip.sparse import *
 from numpy import allclose
 from numpy.testing import assert_equal
+import scipy,unittest
 
-
+@unittest.skipIf(version2int(scipy.__version__) < version2int('0.10'),'Known to fail on SciPy '+scipy.__version__)
 def test_SparseHermValsVecs():
     """
     Sparse eigs Hermitian
@@ -85,6 +86,7 @@ def test_SparseValsVecs():
     spvals,spvecs=U.eigenstates(sparse=True,eigvals=9)
     assert_equal(len(spvals),9)
 
+@unittest.skipIf(version2int(scipy.__version__) < version2int('0.10'),'Known to fail on SciPy '+scipy.__version__)
 def test_SparseValsOnly():
     """
     Sparse eigvals only Hermitian.
