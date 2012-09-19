@@ -152,6 +152,34 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
     period. Can later be used as a table to look up the floquet modes for
     any time.
     
+    Parameters
+    ----------
+    
+    f_modes_0 : list of :class:`qutip.Qobj` (kets)
+        Floquet modes at :math:`t`
+
+    f_energies : list
+        Floquet energies.
+        
+    tlist : array
+        The list of times at which to evaluate the floquet modes.
+
+    H : :class:`qutip.Qobj`
+        system Hamiltonian, time-dependent with period `T`
+        
+    T : float
+        The period of the time-dependence of the hamiltonian. 
+
+    args : dictionary
+        dictionary with variables required to evaluate H     
+     
+    Returns
+    -------
+
+    output : nested list
+
+        A nested list of Floquet modes as kets for each time in `tlist`
+
     """
 
     # truncate tlist to the driving period
@@ -173,6 +201,27 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
     """
     Lookup the floquet mode at time t in the pre-calculated table of floquet
     modes in the first period of the time-dependence.
+
+    Parameters
+    ----------
+    
+    f_modes_table_t : nested list of :class:`qutip.Qobj` (kets)
+        A lookup-table of Floquet modes at times precalculated by
+        :func:`qutip.floquet.floquet_modes_table`.
+
+    t : float
+        The time for which to evaluate the Floquet modes.
+        
+    T : float
+        The period of the time-dependence of the hamiltonian. 
+     
+    Returns
+    -------
+
+    output : nested list
+
+        A list of Floquet modes as kets for the time that most closely matching
+        the time `t` in the supplied table of Floquet modes.
     """
 
     # find t_wrap in [0,T] such that t = t_wrap + n * T for integer n
@@ -182,7 +231,7 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
     t_idx = int(t_wrap/T * len(f_modes_table_t))
     
     # XXX: might want to give a warning if the cast of t_idx to int discard
-    # a np.significant fraction in t_idx, which would happen if the list of time
+    # a significant fraction in t_idx, which would happen if the list of time
     # values isn't perfect matching the driving period
     #if debug: print "t = %f -> t_wrap = %f @ %d of %d" % (t, t_wrap, t_idx, N)
 
