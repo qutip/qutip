@@ -3,8 +3,6 @@
 #
 from qutip import *
 from pylab import *
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
 
 def run():
 
