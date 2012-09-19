@@ -63,8 +63,8 @@ where the individual :math:`P_{n}` are given by Eq.(:eq:`pcn`).  Note that the l
 Monte-Carlo in QuTiP:
 =====================
 
-In QuTiP, Monto-Carlo evolution is implemented with the :func:`qutip.mcsolve` function. It takes nearly the same arguments as the :func:`qutip.mesolve`
-function for master-equation evolution, except that the initial state must be a ket vector, as oppose to a density matrix, and there is an optional keyword parameter ``ntraj`` that defines the number of stochastic trajectories to be simulated.  By default, ``ntraj=500`` indicating that 500 monte-carlo trajectories will be performed. 
+In QuTiP, Monte-Carlo evolution is implemented with the :func:`qutip.mcsolve` function. It takes nearly the same arguments as the :func:`qutip.mesolve`
+function for master-equation evolution, except that the initial state must be a ket vector, as oppose to a density matrix, and there is an optional keyword parameter ``ntraj`` that defines the number of stochastic trajectories to be simulated.  By default, ``ntraj=500`` indicating that 500 Monte-Carlo trajectories will be performed. 
 
 To illustrate the use of the Monte-Carlo evolution of quantum systems in QuTiP, let's again consider the case of a two-level atom coupled to a leaky cavity. The only differences to the master-equation treatment is that in this case we invoke the :func:`qutip.mcsolve` function instead of :func:`qutip.mesolve`::
 
@@ -94,7 +94,7 @@ To illustrate the use of the Monte-Carlo evolution of quantum systems in QuTiP, 
 
 The advantage of the Monte-Carlo method over the master equation approach is that only the state vector is required to be kept in the computers memory, as opposed to the entire density matrix. For large quantum system this becomes a significant advantage, and the Monte-Carlo solver is therefore generally recommended for such systems. For example, simulating a Heisenberg spin-chain consisting of 10 spins with random parameters and initial states takes almost 7 times longer using the master equation rather than Monte-Carlo approach with the default number of trajectories running on a quad-CPU machine.  Furthermore, it takes about 7 times the memory as well. However, for small systems, the added overhead of averaging a large number of stochastic trajectories to obtain the open system dynamics, as well as starting the multiprocessing functionality, outweighs the benefit of the minor (in this case) memory saving. Master equation methods are therefore generally more efficient when Hilbert space sizes are on the order of a couple of hundred states or smaller.
 
-Like the master equation solver :func:`qutip.mesolve`, the Monte-Carlo solver returns a Odedata object consisting of expectation values, if the user has defined expectation value oeprators in the 5th-arguement to ``mcsolve``, or state vectors if no expectation value operators are given.  If state vectors are returned, then the :func:`qutip.Odedata` returned by :func:`qutip.mcsolve` will be an array of length ``ntraj``, with each element containing an array of ket-type qobjs with the same number of elements as ``tlist``.  Furthermore, the output Odedata object will also contain a list of times at which collapse occurred, and which collapse operators did the collapse, in the ``col_times`` and ``col_which`` properties, respectively. See example :ref:`exmc34` for an example using these properties.
+Like the master equation solver :func:`qutip.mesolve`, the Monte-Carlo solver returns a Odedata object consisting of expectation values, if the user has defined expectation value operators in the 5th-arguement to ``mcsolve``, or state vectors if no expectation value operators are given.  If state vectors are returned, then the :func:`qutip.Odedata` returned by :func:`qutip.mcsolve` will be an array of length ``ntraj``, with each element containing an array of ket-type qobjs with the same number of elements as ``tlist``.  Furthermore, the output Odedata object will also contain a list of times at which collapse occurred, and which collapse operators did the collapse, in the ``col_times`` and ``col_which`` properties, respectively. See example :ref:`exmc34` for an example using these properties.
 
 
 .. _monte-ntraj:
@@ -102,15 +102,15 @@ Like the master equation solver :func:`qutip.mesolve`, the Monte-Carlo solver re
 Changing the Number of Trajectories
 -----------------------------------
 
-As mentioned earlier, by default, the ``mcsolve`` function runs 500 trajectories.  This value was chosen because it gives good accuracy, monte-carlo errors scale as :math:`1/n` where :math:`n` is the number of trajectories, and simultaneously does not take an excessive amount of time to run.  However, like many other options in QuTiP you are free to change the number of trajectories to fit your needs.  If we want to run 1000 trajectories in the above example, we can simply modify the call to ``macsolve`` like:
+As mentioned earlier, by default, the ``mcsolve`` function runs 500 trajectories.  This value was chosen because it gives good accuracy, monte-carlo errors scale as :math:`1/n` where :math:`n` is the number of trajectories, and simultaneously does not take an excessive amount of time to run.  However, like many other options in QuTiP you are free to change the number of trajectories to fit your needs.  If we want to run 1000 trajectories in the above example, we can simply modify the call to ``mcsolve`` like:
 
 >>> data = mcsolve(H, psi0, tlist, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm],ntraj=1000)
 
-where we have added the keyword arguement ``ntraj=1000`` at the end of the inputs.  Now, the Monte-Carlo solver will calculate expectation values for both operators, ``a.dag()*a, sm.dag()*sm`` averaging over 1000 trajectories.  Sometimes one is also interested in seeing how the Monte-Carlo trajectories converge to the master equation solution by calculating expectation values over a range of trajectory numbers.  If, for example, we want to average over 1, 10, 100, and 1000 trajectories, then we can input this into the solver using:
+where we have added the keyword argument ``ntraj=1000`` at the end of the inputs.  Now, the Monte-Carlo solver will calculate expectation values for both operators, ``a.dag()*a, sm.dag()*sm`` averaging over 1000 trajectories.  Sometimes one is also interested in seeing how the Monte-Carlo trajectories converge to the master equation solution by calculating expectation values over a range of trajectory numbers.  If, for example, we want to average over 1, 10, 100, and 1000 trajectories, then we can input this into the solver using:
 
 >>> ntraj = [1,10,100,1000]
 
-Keep in mind that the input list must be in ascending order since the total number of trajectories run by ``mcsolve`` will be calculated using the last element of ``ntraj``.  In this case, we need to use an extra index when getting the expectation values from the ODedata object returned by ``mcsolve``.  In the above example using:
+Keep in mind that the input list must be in ascending order since the total number of trajectories run by ``mcsolve`` will be calculated using the last element of ``ntraj``.  In this case, we need to use an extra index when getting the expectation values from the Odedata object returned by ``mcsolve``.  In the above example using:
 
 >>> data = mcsolve(H, psi0, tlist, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm],ntraj=[1,10,100,1000])
 

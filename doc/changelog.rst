@@ -29,7 +29,7 @@ New Features
 Bug Fixes:
 ----------
 
-SVN-2571: mesolver now correctly user user defined rhs_filename in Odeoptions().
+SVN-2571: mesolver now correctly uses the user defined rhs_filename in Odeoptions().
 
 SVN-2566: rhs_generate() now handles user defined filenames properly.
 
@@ -81,7 +81,7 @@ New Features
 
 - The generation and manipulation of quantum objects is now more efficient.
 
-- Quantum objects have basis transformation and matrix element calulations as built-in methods.
+- Quantum objects have basis transformation and matrix element calculations as built-in methods.
 
 - The quantum object eigensolver can use sparse solvers.
 
