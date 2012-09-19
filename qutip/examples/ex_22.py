@@ -3,8 +3,6 @@
 #
 from qutip import *
 from pylab import *
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
 
 def run():
 
@@ -62,7 +60,7 @@ def run():
     # plot the time-evolution of the cavity and atom occupation
     #
     figure(1)
-    plot(tlist, real(nc), 'r-',   tlist, real(na), 'b-')
+    plot(tlist, real(nc), 'r-',   tlist, real(na), 'b-',lw=2)
     xlabel('Time');
     ylabel('Occupation probability');
     legend(("Cavity occupation", "Atom occupation"))
