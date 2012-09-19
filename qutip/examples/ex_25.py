@@ -4,8 +4,6 @@
 #
 from qutip import *
 from pylab import *
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib import cm
 
 # constants
 hbar = 6.626e-34/(2*pi)
@@ -79,7 +77,7 @@ def run():
     kappa_r = 0.001  # dissipation rate for high-frequency resoantor
     kappa_m = 0.001  # dissipation rate for mechanical resonator
     
-    T_vec = linspace(0.0, 50.0, 25.0) # Temperature [mK]
+    T_vec = linspace(1, 50.0, 25.0) # Temperature [mK]
 
     # find the steady state occupation numbers
     photon_count = compute(T_vec, N_r, N_m, w_r, w_m, g, w_d, A, kappa_r, kappa_m)
