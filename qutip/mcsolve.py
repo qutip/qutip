@@ -201,7 +201,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     
     
     #load monte-carlo class
-    mc=MC_class()
+    mc=_MC_class()
     #RUN THE SIMULATION
     mc.run()
     
@@ -251,7 +251,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
 #--------------------------------------------------------------
 # MONTE-CARLO CLASS                                           #
 #--------------------------------------------------------------
-class MC_class():
+class _MC_class():
     """
     Private class for solving Monte-Carlo evolution from mcsolve
     
@@ -336,7 +336,7 @@ class MC_class():
     def parallel(self,args,top=None): 
         self.st=datetime.datetime.now() #set simulation starting time
         pl=Pool(processes=self.cpus)
-        [pl.apply_async(mc_alg_evolve,args=(nt,args),callback=top.callback) for nt in range(0,odeconfig.ntraj)]
+        [pl.apply_async(_mc_alg_evolve,args=(nt,args),callback=top.callback) for nt in range(0,odeconfig.ntraj)]
         pl.close()
         try:
             pl.join()
@@ -352,9 +352,9 @@ class MC_class():
                 odeconfig.ntraj=1
                 print('No collapse operators specified.\nRunning a single trajectory only.\n')
             if odeconfig.e_num==0:# return psi Qobj at each requested time 
-                self.psi_out=no_collapse_psi_out(self.num_times,self.psi_out)
+                self.psi_out=_no_collapse_psi_out(self.num_times,self.psi_out)
             else:# return expectation values of requested operators
-                self.expect_out=no_collapse_expect_out(self.num_times,self.expect_out)
+                self.expect_out=_no_collapse_expect_out(self.num_times,self.expect_out)
         elif odeconfig.c_num!=0:
             self.seed=random_integers(1e8,size=odeconfig.ntraj)
             if odeconfig.e_num==0:
@@ -428,7 +428,7 @@ def _pyRHSc(t,psi):
 
 
 ######---return psi at requested times for no collapse operators---######
-def no_collapse_psi_out(num_times,psi_out):
+def _no_collapse_psi_out(num_times,psi_out):
     ##Calculates state vectors at times tlist if no collapse AND no expectation values are given.
     #
     opt=odeconfig.options
@@ -460,7 +460,7 @@ def no_collapse_psi_out(num_times,psi_out):
 
 
 ######---return expectation values at requested times for no collapse operators---######
-def no_collapse_expect_out(num_times,expect_out):
+def _no_collapse_expect_out(num_times,expect_out):
     ##Calculates xpect.values at times tlist if no collapse ops. given
     #  
     #------------------------------------
@@ -496,7 +496,7 @@ def no_collapse_expect_out(num_times,expect_out):
 
 
 #---single-trajectory for monte-carlo---          
-def mc_alg_evolve(nt,args):
+def _mc_alg_evolve(nt,args):
     """
     Monte-Carlo algorithm returning state-vector or expectation values at times tlist for a single trajectory.
     """
