@@ -7,7 +7,6 @@
 
 from qutip import *
 from pylab import *
-import matplotlib.pyplot as plt
 
 def run():
     #number of states for each mode
@@ -47,7 +46,7 @@ def run():
     data=mcsolve(H,psi0,tlist,[C0,C1,C2],[num0,num1,num2])
 
     #plot results
-    fig = plt.figure()
+    fig = figure()
     ax = fig.add_subplot(111)
     cs=['b','r','g'] #set three colors, one for each operator
     for k in range(ntraj):
