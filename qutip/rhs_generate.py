@@ -26,7 +26,7 @@ import qutip.settings
 import qutip.odeconfig as odeconfig
 from types import FunctionType
 from qutip.Qobj import Qobj
-from superoperator import spre,spost
+from qutip.superoperator import spre,spost
 
 def rhs_generate(H,c_ops,args={},options=Odeoptions(),name=None):
     """
