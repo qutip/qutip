@@ -57,7 +57,7 @@ def run():
         
     # plot the results
     figure()
-    plot(tlist, real(p_ex_me), 'b')  # standard lindblad with time-dependence
+    plot(tlist, p_ex_me, 'b')  # standard lindblad with time-dependence
     plot(tlist, real(p_ex_fmme), 'm-') # floquet markov
     xlabel('Time')
     ylabel('Occupation probability')
