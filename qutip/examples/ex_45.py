@@ -50,15 +50,15 @@ def run():
     rho_list = fmmesolve(H, psi0, tlist, [sigmax()], [], [J_cb], T, args).states
 
     # calculate expectation values in the computational basis
-    p_ex_fmme = zeros(shape(p_ex_me), dtype=complex)
+    p_ex_fmme = zeros(shape(p_ex_me))
     for idx, t in enumerate(tlist):
         f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T) 
         p_ex_fmme[idx] = expect(num(2), rho_list[idx].transform(f_modes_t, False)) 
-        
+
     # plot the results
     figure()
     plot(tlist, p_ex_me, 'b')  # standard lindblad with time-dependence
-    plot(tlist, real(p_ex_fmme), 'm-') # floquet markov
+    plot(tlist, p_ex_fmme, 'm-') # floquet markov
     xlabel('Time')
     ylabel('Occupation probability')
     legend(("Standard Lindblad ME", "Floquet-Markov ME"))
