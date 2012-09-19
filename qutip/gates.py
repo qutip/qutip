@@ -16,7 +16,7 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from numpy import sqrt, array
+from numpy import sqrt, array, exp
 from qutip.states import qstate, state_number_index, state_number_enumerate
 from qutip.Qobj import Qobj
 
@@ -80,7 +80,8 @@ def fredkin():
     dud = qstate('dud')
     ddu = qstate('ddu')
     ddd = qstate('ddd')
-    Q = ddd*dag(ddd) + ddu*dag(ddu) + dud*dag(dud) + duu*dag(duu) + udd*dag(udd) + uud*dag(udu) + udu*dag(uud) + uuu*dag(uuu)
+    Q = ddd*ddd.dag() + ddu*ddu.dag() + dud*dud.dag() + duu*duu.dag() + \
+        udd*udd.dag() + uud*udu.dag() + udu*uud.dag() + uuu*uuu.dag()
     return Qobj(Q)
 
 
@@ -117,7 +118,8 @@ def toffoli():
     dud = qstate('dud') 
     ddu = qstate('ddu') 
     ddd = qstate('ddd')
-    Q = ddd*dag(ddd) + ddu*dag(ddu) + dud*dag(dud) + duu*dag(duu) + udd*dag(udd) + udu*dag(udu) + uuu*dag(uud) + uud*dag(uuu)
+    Q = ddd*ddd.dag() + ddu*ddu.dag() + dud*dud.dag() + duu*duu.dag() + \
+        udd*udd.dag() + udu*udu.dag() + uuu*uud.dag() + uud*uuu.dag()
     return Qobj(Q)
 
 #------------------
