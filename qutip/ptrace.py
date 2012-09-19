@@ -36,10 +36,10 @@ def _ptrace(rho,sel):
         rho = rho * rho.dag()
     perm = sp.lil_matrix((M*M,N*N))
     rest=np.setdiff1d(np.arange(len(drho)),sel) #all elements in range(len(drho)) not in sel set
-    ilistsel=selct(sel,drho)
-    indsel=list2ind(ilistsel,drho)
-    ilistrest=selct(rest,drho)
-    indrest=list2ind(ilistrest,drho)
+    ilistsel=_select(sel,drho)
+    indsel=_list2ind(ilistsel,drho)
+    ilistrest=_select(rest,drho)
+    indrest=_list2ind(ilistrest,drho)
     irest=(indrest-1)*N+indrest-2
     # Possibly use parfor here if M > some value ?
     perm.rows=np.array([(irest+(indsel[int(np.floor(m/M))]-1)*N+indsel[int(np.mod(m,M))]).T[0] for  m in range(M**2)])
@@ -47,7 +47,7 @@ def _ptrace(rho,sel):
     perm.data=np.ones_like(perm.rows)
     perm.tocsr()
     rws=np.prod(np.shape(rho.data))
-    rhdata=perm*csr_to_col(rho.data)
+    rhdata=perm*_csr_to_col(rho.data)
     rhdata=rhdata.tolil().reshape((M,M))
     rho1_data=rhdata.tocsr()
     dims_kept0=np.asarray(rho.dims[0]).take(sel)
@@ -58,7 +58,7 @@ def _ptrace(rho,sel):
 
 
 
-def list2ind(ilist,dims):
+def _list2ind(ilist,dims):
 	"""!
 	Private function returning indicies
 	"""
@@ -69,7 +69,7 @@ def list2ind(ilist,dims):
 	fact=fact.reshape(len(fact),1)
 	return np.array(np.sort(np.dot(irev,fact)+1,0),dtype=int)
 
-def selct(sel,dims):
+def _select(sel,dims):
 	"""
 	Private function finding selected components
 	"""
@@ -85,7 +85,7 @@ def selct(sel,dims):
 
 
 
-def csr_to_col(mat):
+def _csr_to_col(mat):
     """
     Private function for reshape density matrix csr_matrix to a column csr_matrix
         without using lil (reshape) or csc (transpose) matrices which fail for large
