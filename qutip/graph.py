@@ -82,7 +82,7 @@ def hinton(rho):
                 _blob(_x - 0.5, height - _y + 0.5, -abs(W[x,y]), w_max, min(1,abs(W[x,y])/w_max))
 
 
-def matrix_histogram(M, xlabels, ylabels, title, limits=None, ax=None):
+def matrix_histogram(M, xlabels, ylabels, title=None, limits=None, ax=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
@@ -98,7 +98,7 @@ def matrix_histogram(M, xlabels, ylabels, title, limits=None, ax=None):
         list of y labels
 
     title : string
-        title of the plot
+        title of the plot (optional)
 
     limits : list/array with two float numbers
         The z-axis limits [min, max] (optional)
@@ -146,7 +146,9 @@ def matrix_histogram(M, xlabels, ylabels, title, limits=None, ax=None):
         ax = Axes3D(fig, azim=-35, elev=35)
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
-    plt.title(title)
+
+    if title:
+        plt.title(title)
 
     # x axis
     ax.axes.w_xaxis.set_major_locator(IndexLocator(1,-0.5))
@@ -168,7 +170,7 @@ def matrix_histogram(M, xlabels, ylabels, title, limits=None, ax=None):
 
     return ax
 
-def matrix_histogram_complex(M, xlabels, ylabels, title, limits=None, ax=None):
+def matrix_histogram_complex(M, xlabels, ylabels, title=None, limits=None, phase_limits=None, ax=None):
     """
     Draw a histogram for the amplitudes of matrix M, using the argument of each element
     for coloring the bars, with the given x and y labels and title.
@@ -185,10 +187,13 @@ def matrix_histogram_complex(M, xlabels, ylabels, title, limits=None, ax=None):
         list of y labels
 
     title : string
-        title of the plot
+        title of the plot (optional)
 
     limits : list/array with two float numbers
         The z-axis limits [min, max] (optional)
+
+    phase_limits : list/array with two float numbers
+        The phase-axis (colorbar) limits [min, max] (optional)
 
     ax : a matplotlib axes instance
         The axes context in which the plot will be drawn.
@@ -222,9 +227,9 @@ def matrix_histogram_complex(M, xlabels, ylabels, title, limits=None, ax=None):
     idx, = where(abs(Mvec) < 0.001)
     Mvec[idx] = abs(Mvec[idx])
 
-    if limits: # check that limits is a list type
-        phase_min = limits[0]
-        phase_max = limits[1]
+    if phase_limits: # check that limits is a list type
+        phase_min = phase_limits[0]
+        phase_max = phase_limits[1]
     else:
         phase_min = -pi
         phase_max = pi
@@ -256,7 +261,9 @@ def matrix_histogram_complex(M, xlabels, ylabels, title, limits=None, ax=None):
         ax = Axes3D(fig, azim=-35, elev=35)
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
-    plt.title(title)
+
+    if title:
+        plt.title(title)
 
     # x axis
     ax.axes.w_xaxis.set_major_locator(IndexLocator(1,-0.5))
@@ -269,8 +276,10 @@ def matrix_histogram_complex(M, xlabels, ylabels, title, limits=None, ax=None):
     ax.tick_params(axis='y', labelsize=12)
 
     # z axis
-    #ax.axes.w_zaxis.set_major_locator(IndexLocator(1,0.5))
-    ax.set_zlim3d([0, 1])
+    if limits and isinstance(limits, list):
+        ax.set_zlim3d(limits)
+    else:
+        ax.set_zlim3d([0, 1]) # use min/max 
     #ax.set_zlabel('abs')
 
     # color axis
