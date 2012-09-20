@@ -1,7 +1,7 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-.. _tensor:
+.. _visual:
 
 *********************************************
 Visualization of quantum states and processes
@@ -13,8 +13,6 @@ Visualization of quantum states and processes
    In [1]: from qutip import *
 
 
-.. _tensor-products:
-
 Visualization is often an important complement to a simulation of a quantum
 mechanical system. The first method of visualization that comes to mind might be
 to plot the expectation values of a few selected operators. But on top of that,
@@ -25,6 +23,7 @@ section we demonstrate how QuTiP and matplotlib can be used to perform a few
 types of  visualizations that often can provide additional understanding of
 quantum system.
 
+.. _visual-fock:
 
 Fock-basis probability distribution
 ===================================
@@ -64,15 +63,15 @@ Next, we plot histograms of the diagonals of the density matrices:
 
     In [1]: fig, axes = subplots(1, 3, figsize=(12,3))
 
-    In [1]: bar0 = axes[0].bar(range(0, N), real(rho_coherent.diag()))
+    In [1]: bar0 = axes[0].bar(range(0, N), rho_coherent.diag())
 
     In [1]: lbl0 = axes[0].set_title("Coherent state")
 
-    In [1]: bar1 = axes[1].bar(range(0, N), real(rho_thermal.diag()))
+    In [1]: bar1 = axes[1].bar(range(0, N), rho_thermal.diag())
 
     In [1]: lbl1 = axes[1].set_title("Thermal state")
 
-    In [1]: bar2 = axes[2].bar(range(0, N), real(rho_fock.diag()))
+    In [1]: bar2 = axes[2].bar(range(0, N), rho_fock.diag())
 
     In [1]: lbl2 = axes[2].set_title("Fock state")
 
@@ -85,6 +84,8 @@ Next, we plot histograms of the diagonals of the density matrices:
 All these states correspond to an average of two photons, but by visualizing
 the photon distribution in Fock basis the differences between these states are
 easily appreciated. 
+
+.. _visual-dist:
 
 Quasi-probability distributions
 ===============================
@@ -184,11 +185,14 @@ Husumi Q-function
 	@savefig visualization-q-func.png width=8.0in align=center
     In [1]: show()
 
+
+.. _visual-oper:
+
 Visualizing operators
 =====================
 
 
-
+.. _visual-qpt:
 
 Quantum process tomography
 ==========================
