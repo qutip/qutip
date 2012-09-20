@@ -4,59 +4,60 @@
 from qutip import *
 from pylab import *
 
-def run():
-    def qubit_integrate(w, theta, g, gamma1, gamma2, psi0, tlist):
-        #
-        # Hamiltonian
-        #
-        sx1 = tensor(sigmax(),qeye(2))
-        sy1 = tensor(sigmay(),qeye(2))
-        sz1 = tensor(sigmaz(),qeye(2))
-        sm1 = tensor(sigmam(),qeye(2))
+def qubit_integrate(w, theta, g, gamma1, gamma2, psi0, tlist):
+    #
+    # Hamiltonian
+    #
+    sx1 = tensor(sigmax(),qeye(2))
+    sy1 = tensor(sigmay(),qeye(2))
+    sz1 = tensor(sigmaz(),qeye(2))
+    sm1 = tensor(sigmam(),qeye(2))
 
-        sx2 = tensor(qeye(2),sigmax())
-        sy2 = tensor(qeye(2),sigmay())
-        sz2 = tensor(qeye(2),sigmaz())
-        sm2 = tensor(qeye(2),sigmam())
+    sx2 = tensor(qeye(2),sigmax())
+    sy2 = tensor(qeye(2),sigmay())
+    sz2 = tensor(qeye(2),sigmaz())
+    sm2 = tensor(qeye(2),sigmam())
+
+    H  = w[0] * (cos(theta[0]) * sz1 + sin(theta[0]) * sx1) # qubit 1
+    H += w[1] * (cos(theta[1]) * sz2 + sin(theta[1]) * sx2) # qubit 2
+    H += g * sx1 * sx2                                      # interaction
+
+    #
+    # Lindblad master equation
+    #
+    c_op_list = []
+    n_th = 0.0 # zero temperature
+    rate = gamma1[0] * (n_th + 1)
+    if rate > 0.0: c_op_list.append(sqrt(rate) * sm1)
+    rate = gamma1[1] * (n_th + 1)
+    if rate > 0.0: c_op_list.append(sqrt(rate) * sm2)
     
-        H  = w[0] * (cos(theta[0]) * sz1 + sin(theta[0]) * sx1) # qubit 1
-        H += w[1] * (cos(theta[1]) * sz2 + sin(theta[1]) * sx2) # qubit 2
-        H += g * sx1 * sx2                                      # interaction
+    lme_results = mesolve(H, psi0, tlist, c_op_list, [sx1, sy1, sz1]).expect 
 
-        #
-        # Lindblad master equation
-        #
-        c_op_list = []
-        n_th = 0.0 # zero temperature
-        rate = gamma1[0] * (n_th + 1)
-        if rate > 0.0: c_op_list.append(sqrt(rate) * sm1)
-        rate = gamma1[1] * (n_th + 1)
-        if rate > 0.0: c_op_list.append(sqrt(rate) * sm2)
-        
-        lme_results = mesolve(H, psi0, tlist, c_op_list, [sx1, sy1, sz1]).expect 
+    #
+    # Bloch-Redfield tensor
+    #  
+    def ohmic_spectrum1(w):
+        if w == 0.0:
+            # dephasing inducing noise
+            return gamma1[0]
+        else:
+            # relaxation inducing noise
+            return gamma1[0] * w / (2*pi) * (w > 0.0)
+    def ohmic_spectrum2(w):
+        if w == 0.0:
+            # dephasing inducing noise
+            return gamma1[1]
+        else:
+            # relaxation inducing noise
+            return gamma1[1] * w / (2*pi) * (w > 0.0)
 
-        #
-        # Bloch-Redfield tensor
-        #  
-        def ohmic_spectrum1(w):
-            if w == 0.0:
-                # dephasing inducing noise
-                return gamma1[0]
-            else:
-                # relaxation inducing noise
-                return gamma1[0] * w / (2*pi) * (w > 0.0)
-        def ohmic_spectrum2(w):
-            if w == 0.0:
-                # dephasing inducing noise
-                return gamma1[1]
-            else:
-                # relaxation inducing noise
-                return gamma1[1] * w / (2*pi) * (w > 0.0)
+    brme_results = brmesolve(H, psi0, tlist, [sx1, sx2], [sx1, sy1, sz1], 
+                             [ohmic_spectrum1, ohmic_spectrum2]).expect
 
-        brme_results = brmesolve(H, psi0, tlist, [sx1, sx2], [sx1, sy1, sz1], [ohmic_spectrum1, ohmic_spectrum2]).expect
+    return lme_results, brme_results   
 
-        return lme_results, brme_results    
-
+def run():
     #
     # set up the calculation
     #
