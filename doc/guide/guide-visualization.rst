@@ -45,33 +45,34 @@ Consider the following histogram visualization of the number-basis probability
 distribution, which can be obtained from the diagonal of the density matrix, 
 for a few possible oscillator states with on average occupation of two photons.
 
+First we generate the density matrices for the coherent, thermal and fock states.
+
 .. ipython::
 
     In [1]: N = 20
 
+    In [1]: rho_coherent = coherent_dm(N, sqrt(2))
+
+    In [1]: rho_thermal = thermal_dm(N, 2)
+
+    In [1]: rho_fock = fock_dm(N, 2)
+
+
+Next, we plot histograms of the diagonals of the density matrices:
+
+.. ipython::
+
     In [1]: fig, axes = subplots(1, 3, figsize=(12,3))
 
-    In [1]: # coherent state
-
-    In [1]: rho = coherent_dm(N, sqrt(2))
-
-    In [1]: bar0 = axes[0].bar(range(0, N), real(rho.diag()))
+    In [1]: bar0 = axes[0].bar(range(0, N), real(rho_coherent.diag()))
 
     In [1]: lbl0 = axes[0].set_title("Coherent state")
 
-    In [1]: # thermal state
-
-    In [1]: rho = thermal_dm(N, 2)
-
-    In [1]: bar1 = axes[1].bar(range(0, N), real(rho.diag()))
+    In [1]: bar1 = axes[1].bar(range(0, N), real(rho_thermal.diag()))
 
     In [1]: lbl1 = axes[1].set_title("Thermal state")
 
-    In [1]: # Fock state
-
-    In [1]: rho = fock_dm(N, 2)
-
-    In [1]: bar2 = axes[2].bar(range(0, N), real(rho.diag()))
+    In [1]: bar2 = axes[2].bar(range(0, N), real(rho_fock.diag()))
 
     In [1]: lbl2 = axes[2].set_title("Fock state")
 
@@ -112,39 +113,27 @@ are calculated and plotted for the same three states as in the previous section.
 
 .. ipython::
 
-    In [1]: N = 20
-
     In [1]: xvec = linspace(-5,5,200)
+
+    In [1]: W_coherent = wigner(rho_coherent, xvec, xvec)
+
+    In [1]: W_thermal = wigner(rho_thermal, xvec, xvec)
+
+    In [1]: W_fock = wigner(rho_fock, xvec, xvec)
+
+    In [1]: # plot the results
 
     In [1]: fig, axes = subplots(1, 3, figsize=(12,3))
 
-    In [1]: # coherent state
-
-    In [1]: rho = coherent_dm(N, sqrt(2))
-
-    In [1]: W = wigner(rho, xvec, xvec)
-
-    In [1]: cont0 = axes[0].contourf(xvec, xvec, W, 100)
+    In [1]: cont0 = axes[0].contourf(xvec, xvec, W_coherent, 100)
 
     In [1]: lbl0 = axes[0].set_title("Coherent state")
 
-    In [1]: # thermal state
-
-    In [1]: rho = thermal_dm(N, 2)
-
-    In [1]: W = wigner(rho, xvec, xvec)
-
-    In [1]: cont1 = axes[1].contourf(xvec, xvec, W, 100)
+    In [1]: cont1 = axes[1].contourf(xvec, xvec, W_thermal, 100)
 
     In [1]: lbl1 = axes[1].set_title("Thermal state")
 
-    In [1]: # Fock state
-
-    In [1]: rho = fock_dm(N, 2)
-
-    In [1]: W = wigner(rho, xvec, xvec)
-
-    In [1]: cont0 = axes[2].contourf(xvec, xvec, W, 100)
+    In [1]: cont0 = axes[2].contourf(xvec, xvec, W_fock, 100)
 
     In [1]: lbl2 = axes[2].set_title("Fock state")
 
