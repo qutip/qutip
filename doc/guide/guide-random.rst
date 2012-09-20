@@ -61,6 +61,6 @@ In many cases, one is interested in generating random quantum objects that corre
 
 .. ipython::
 
-   In [1]: rand_dm(5,0.5)
+   In [1]: rand_dm(4,0.5, dims=[[2,2], [2,2]])
 
 
