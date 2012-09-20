@@ -7,11 +7,10 @@ Comparing the Lindblad and Bloch-Redfield master equations
 ==========================================================
 
 This example compares the results of simulating a two-qubit system with
-the Lindblad master equation solver and the Bloch-Redfield master equation.
+the Lindblad master equation and the Bloch-Redfield master equation.
 The two models are not intended to be identical, and the results are not 
 similar to each other, but the example demonstrates how a similar physical
-situation can be modelled in different way and simulated with the two 
-different solvers.
+situation can be modelled in different way and simulated with the two solvers.
 
 This example also demonstrates how to stack Bloch spheres in sub figures.
 
