@@ -52,7 +52,7 @@ states with on average occupation of two photons.
 
     In [1]: # coherent state
 
-    In [1]: rho = coherent_dm(N, 2)
+    In [1]: rho = coherent_dm(N, sqrt(2))
 
     In [1]: bar0 = axes[0].bar(range(0, N), real(rho.diag()))
 
@@ -81,9 +81,8 @@ states with on average occupation of two photons.
 
 
 All these states correspond to an average of two photons, but by visualizing
-the photon distribution in Fock basis one can gain additional understanding
-about the nature and properties of the state. 
-
+the photon distribution in Fock basis the differences between these states are
+easily appreciated. 
 
 Quasi-probability distributions
 ===============================
