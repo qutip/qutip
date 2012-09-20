@@ -17,8 +17,9 @@ QuTiP Users Guide
    guide-dynamics.rst
    guide-steady.rst
    guide-eseries.rst
-   guide-bloch.rst
    guide-correlation.rst
+   guide-bloch.rst
+   guide-visualization.rst
    guide-parfor.rst
    guide-saving.rst
    guide-random.rst
