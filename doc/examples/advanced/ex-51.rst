@@ -1,0 +1,19 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exadvanced51:
+
+Comparing the Lindblad and Bloch-Redfield master equations
+==========================================================
+
+This example compares the results of simulating a two-qubit system with
+the Lindblad master equation solver and the Bloch-Redfield master equation.
+The two models are not intended to be identical, and the results are not 
+similar to each other, but the example demonstrates how a similar physical
+situation can be modelled in different way and simulated with the two 
+different solvers.
+
+This example also demonstrates how to stack Bloch spheres in sub figures.
+
+.. plot:: ../qutip/qutip/examples/ex_51.py
+	:include-source:

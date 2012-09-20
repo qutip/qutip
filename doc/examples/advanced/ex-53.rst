@@ -1,0 +1,10 @@
+.. QuTiP 
+   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+
+.. _exadvanced53:
+
+Process tomography matrix for a 2-qubit iSWAP gate
+==================================================
+
+.. plot:: ../qutip/qutip/examples/ex_53.py
+	:include-source:
