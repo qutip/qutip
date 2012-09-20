@@ -26,8 +26,8 @@ types of  visualizations that often can provide additional understanding of
 quantum system.
 
 
-Probability distribution functions
-==================================
+Fock-basis probability distribution
+===================================
 
 In quantum mechanics probability distributions plays an important role, and as
 in statistics, the expectation values computed from a probability distribution
@@ -41,8 +41,9 @@ in the Fock state basis important clues about the underlaying state can be
 obtained.
 
 One convenient way to visualize a probability distribution is to use histograms.
-Consider the following histogram visualization of a few possible oscillator 
-states with on average occupation of two photons.
+Consider the following histogram visualization of the number-basis probability
+distribution, which can be obtained from the diagonal of the density matrix, 
+for a few possible oscillator states with on average occupation of two photons.
 
 .. ipython::
 
@@ -76,7 +77,7 @@ states with on average occupation of two photons.
 
     In [1]: lim2 = axes[2].set_xlim([0, N])
 
-	@savefig visualization-test.png width=8.0in align=center
+	@savefig visualization-distribution.png width=8.0in align=center
     In [1]: show()
 
 
@@ -87,7 +88,112 @@ easily appreciated.
 Quasi-probability distributions
 ===============================
 
+The probability distribution in the number (Fock) basis only describes the
+occupation probabilities for a discrete set of states. A more complete
+phase-space probability-distribution-like function for harmonic modes are 
+the Wigner and Husumi Q-functions, which are full descriptions of the 
+quantum state (equivalent to the density matrix). These are called
+quasi-distribution functions because unlike real probability distribution
+functions they can for example be negative. In addition to being more complete descriptions
+of a state (compared to only the occupation probabilities plotted above),
+these distributions are also great for demonstrating if a quantum state is
+quantum mechanical, since for example a negative Wigner function
+is a definite indicator that a state is distinctly nonclassical.
 
+
+Wigner function
+---------------
+
+In QuTiP, the Wigner function for a harmonic mode can be calculated with the
+function :func:`qutip.wigner.wigner`. It takes a ket or a density matrix as 
+input, together with arrays that define the ranges of the phase space
+coordinates (in x and y plane). In the following example the Wigner functions
+are calculated and plotted for the same three states as in the previous section.
+
+.. ipython::
+
+    In [1]: N = 20
+
+    In [1]: xvec = linspace(-5,5,200)
+
+    In [1]: fig, axes = subplots(1, 3, figsize=(12,3))
+
+    In [1]: # coherent state
+
+    In [1]: rho = coherent_dm(N, sqrt(2))
+
+    In [1]: W = wigner(rho, xvec, xvec)
+
+    In [1]: cont0 = axes[0].contourf(xvec, xvec, W, 100)
+
+    In [1]: lbl0 = axes[0].set_title("Coherent state")
+
+    In [1]: # thermal state
+
+    In [1]: rho = thermal_dm(N, 2)
+
+    In [1]: W = wigner(rho, xvec, xvec)
+
+    In [1]: cont1 = axes[1].contourf(xvec, xvec, W, 100)
+
+    In [1]: lbl1 = axes[1].set_title("Thermal state")
+
+    In [1]: # Fock state
+
+    In [1]: rho = fock_dm(N, 2)
+
+    In [1]: W = wigner(rho, xvec, xvec)
+
+    In [1]: cont0 = axes[2].contourf(xvec, xvec, W, 100)
+
+    In [1]: lbl2 = axes[2].set_title("Fock state")
+
+	@savefig visualization-wigner.png width=8.0in align=center
+    In [1]: show()
+
+Husumi Q-function
+-----------------
+
+.. ipython::
+
+    In [1]: N = 20
+
+    In [1]: xvec = linspace(-5,5,200)
+
+    In [1]: fig, axes = subplots(1, 3, figsize=(12,3))
+
+    In [1]: # coherent state
+
+    In [1]: rho = coherent_dm(N, sqrt(2))
+
+    In [1]: W = qfunc(rho, xvec, xvec)
+
+    In [1]: cont0 = axes[0].contourf(xvec, xvec, W, 100)
+
+    In [1]: lbl0 = axes[0].set_title("Coherent state")
+
+    In [1]: # thermal state
+
+    In [1]: rho = thermal_dm(N, 2)
+
+    In [1]: W = qfunc(rho, xvec, xvec)
+
+    In [1]: cont1 = axes[1].contourf(xvec, xvec, W, 100)
+
+    In [1]: lbl1 = axes[1].set_title("Thermal state")
+
+    In [1]: # Fock state
+
+    In [1]: rho = fock_dm(N, 2)
+
+    In [1]: W = qfunc(rho, xvec, xvec)
+
+    In [1]: cont0 = axes[2].contourf(xvec, xvec, W, 100)
+
+    In [1]: lbl2 = axes[2].set_title("Fock state")
+
+	@savefig visualization-q-func.png width=8.0in align=center
+    In [1]: show()
 
 Visualizing operators
 =====================
