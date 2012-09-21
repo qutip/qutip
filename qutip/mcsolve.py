@@ -286,7 +286,7 @@ class _MC_class():
         self.cpus=odeconfig.options.num_cpus
         #set output variables, even if they are not used to simplify output code.
         self.psi_out=None
-        self.expect_out=None
+        self.expect_out=[]
         self.collapse_times_out=None
         self.which_op_out=None
         

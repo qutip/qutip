@@ -62,9 +62,9 @@ class Odedata():
         else:
             s+="missing solver information.\n"
         s+="-"*(len(s)-1)+"\n"
-        if len(self.states)>0 and (not len(self.expect)>0):
+        if self.states is not None and len(self.states)>0:
             s+= "states = True\n"
-        elif len(self.expect)>0 and (not len(self.states)>0):
+        elif self.expect is not None and len(self.expect)>0:
             s+="expect = True\nnum_expect = "+str(self.num_expect)+", "
         else:
             s+= "states = True, expect = True\n"+"num_expect = "+str(self.num_expect)+", "
