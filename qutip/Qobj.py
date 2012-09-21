@@ -119,12 +119,19 @@ class Qobj():
         """
         Qobj constructor.
         """
-        if fast=='mc':#fast Qobj construction for use in mcsolve
+        if fast=='mc':#fast Qobj construction for use in mcsolve with ket output
             self.data=sp.csr_matrix(inpt,dtype=complex)
             self.dims=dims
             self.shape=shape
             self.isherm=False
             self.type='ket'
+            return
+        if fast=='mc-dm':#fast Qobj construction for use in mcsolve with dm output
+            self.data=sp.csr_matrix(inpt,dtype=complex)
+            self.dims=dims
+            self.shape=shape
+            self.isherm=True
+            self.type='oper'
             return
         elif isinstance(inpt,Qobj):#if input is already Qobj then return identical copy
             ##Quantum object data
