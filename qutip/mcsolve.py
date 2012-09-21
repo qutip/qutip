@@ -927,7 +927,11 @@ def _mc_dm_avg(psi_list):
 	Private function that averages density matrices in parallel
 	over all trajectores for a single time using parfor.
 	"""	
-	return mean(psi_list)      
+	ln=len(psi_list)
+	dims=psi_list[0].dims
+	shape=psi_list[0].shape	
+	out_data=mean([psi.data for psi in psi_list])	
+	return Qobj(out_data,dims=dims,shape=shape,fast='mc-dm')      
          
          
          
