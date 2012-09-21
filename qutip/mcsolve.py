@@ -25,6 +25,8 @@ from scipy.linalg import norm
 from qutip.Qobj import *
 from qutip.expect import *
 from qutip.istests import *
+from qutip.states import ket2dm
+from qutip.parfor import parfor
 from qutip.Odeoptions import Odeoptions
 import qutip.odeconfig as odeconfig
 from multiprocessing import Pool,cpu_count
@@ -214,11 +216,12 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     output=Odedata()
     output.solver='mcsolve'
     #state vectors
-    if any(mc.psi_out) and odeconfig.options.mc_avg:
+    if mc.psi_out!=None and odeconfig.options.mc_avg and odeconfig.cflag:
+        output.states=parfor(_mc_dm_avg,mc.psi_out.T)
+    elif mc.psi_out!=None:
         output.states=mc.psi_out
     #expectation values
-    
-    if any(mc.expect_out) and odeconfig.cflag and odeconfig.options.mc_avg:#averaging if multiple trajectories
+    elif mc.expect_out!=None and odeconfig.cflag and odeconfig.options.mc_avg:#averaging if multiple trajectories
         if isinstance(ntraj,int):
             output.expect=mean(mc.expect_out,axis=0)
         elif isinstance(ntraj,(list,ndarray)):
@@ -236,7 +239,8 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
                     data_list=[data for data in expt_data]
                 output.expect.append(data_list)
     else:#no averaging for single trajectory or if mc_avg flag (Odeoptions) is off
-        output.expect=mc.expect_out
+        if mc.expect_out!=None:        
+            output.expect=mc.expect_out
 
     #simulation parameters
     output.times=odeconfig.tlist
@@ -320,7 +324,7 @@ class _MC_class():
     #-------------------------------------------------#
     def callback(self,results):
         r=results[0]
-        if odeconfig.e_num==0:#output state-vector
+        if odeconfig.e_num==0:#output state-vector    
             self.psi_out[r]=results[1]
         else:#output expectation values
             self.expect_out[r]=results[1]
@@ -359,7 +363,10 @@ class _MC_class():
             self.seed=random_integers(1e8,size=odeconfig.ntraj)
             if odeconfig.e_num==0:
                 mc_alg_out=zeros((self.num_times),dtype=ndarray)
-                mc_alg_out[0]=odeconfig.psi0
+                if odeconfig.options.mc_avg: #output is averaged states, so use dm
+                    mc_alg_out[0]=odeconfig.psi0*odeconfig.psi0.conj().T
+                else: #output is not averaged, so write state vectors
+                    mc_alg_out[0]=odeconfig.psi0
             else:
                 #PRE-GENERATE LIST OF EXPECTATION VALUES
                 mc_alg_out=[]
@@ -615,14 +622,20 @@ def _mc_alg_evolve(nt,args):
         ###--after while loop--####
         out_psi=ODE.y/norm(ODE.y,2)
         if odeconfig.e_num==0:
-            mc_alg_out[k]=out_psi
+            if odeconfig.options.mc_avg:            
+                mc_alg_out[k]=out_psi*out_psi.conj().T
+            else:			
+                mc_alg_out[k]=out_psi
         else:
             for jj in range(odeconfig.e_num):
                 mc_alg_out[jj][k]=mc_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],out_psi)
     
     #RETURN VALUES
     if odeconfig.e_num==0:
-        mc_alg_out=array([Qobj(k,odeconfig.psi0_dims,odeconfig.psi0_shape,fast='mc') for k in mc_alg_out])
+        if odeconfig.options.mc_avg:		
+            mc_alg_out=array([Qobj(k,[odeconfig.psi0_dims[0],odeconfig.psi0_dims[0]],[odeconfig.psi0_shape[0],odeconfig.psi0_shape[0]],fast='mc-dm') for k in mc_alg_out])		
+        else:        
+            mc_alg_out=array([Qobj(k,odeconfig.psi0_dims,odeconfig.psi0_shape,fast='mc') for k in mc_alg_out])
         return nt,mc_alg_out,array(collapse_times),array(which_oper)
     else:
         return nt,mc_alg_out,array(collapse_times),array(which_oper)
@@ -909,7 +922,12 @@ def _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options):
         
          
          
-         
+def _mc_dm_avg(psi_list):
+	"""
+	Private function that averages density matrices in parallel
+	over all trajectores for a single time using parfor.
+	"""	
+	return mean(psi_list)      
          
          
          
