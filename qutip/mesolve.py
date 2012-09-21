@@ -1021,6 +1021,7 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize, state_nor
     dt        = tlist[1]-tlist[0]
        
     output = Odedata()
+    output.solver = "mesolve"
     output.times = tlist
         
     if isinstance(expt_ops, types.FunctionType):
