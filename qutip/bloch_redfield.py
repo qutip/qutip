@@ -49,25 +49,26 @@ def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[], args={}, options=O
     ----------
     
     H : :class:`qutip.Qobj`
-        system Hamiltonian.
+        System Hamiltonian.
         
     rho0 / psi0: :class:`qutip.Qobj`
-        initial density matrix or state vector (ket).
+        Initial density matrix or state vector (ket).
      
     tlist : *list* / *array*    
-        list of times for :math:`t`.
+        List of times for :math:`t`.
         
     c_ops : list of :class:`qutip.Qobj`
-        list of collapse operators.
+        List of collapse operators.
     
     expt_ops : list of :class:`qutip.Qobj` / callback function
-        list of operators for which to evaluate expectation values.
+        List of operators for which to evaluate expectation values.
      
     args : *dictionary*
-        dictionary of parameters for time-dependent Hamiltonians and collapse operators.
+        Dictionary of parameters for time-dependent Hamiltonians and collapse
+        operators.
      
     options : :class:`qutip.Qdeoptions`
-        with options for the ODE solver.
+        Options for the ODE solver.
 
     Returns
     -------
@@ -114,14 +115,13 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
         Initial density matrix.
                 
     tlist : *list* / *array*    
-        list of times for :math:`t`.
+        List of times for :math:`t`.
         
     e_ops : list of :class:`qutip.Qobj` / callback function
-        list of operators for which to evaluate expectation values.
+        List of operators for which to evaluate expectation values.
     
-
-    opts : :class:`qutip.Qdeoptions`
-        with options for the ODE solver.
+    options : :class:`qutip.Qdeoptions`
+        Options for the ODE solver.
 
     Returns
     -------
@@ -149,7 +149,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
        
     #
     # prepare output array
-    # m
+    # 
     n_e_ops  = len(e_ops)
     n_tsteps = len(tlist)
     dt       = tlist[1]-tlist[0]
@@ -224,17 +224,17 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
     ----------
     
     H : :class:`qutip.Qobj`
-        system Hamiltonian.
+        System Hamiltonian.
                 
     c_ops : list of :class:`qutip.Qobj`
-        list of collapse operators.
+        List of collapse operators.
     
     spectra_cb : list of callback functions
-        list of callback functions that evaluate the noise power spectrum
+        List of callback functions that evaluate the noise power spectrum
         at a given frequency.
         
     use_secular : bool
-        flag (True of False) that indicates if the secular approximation should
+        Flag (True of False) that indicates if the secular approximation should
         be used.
 
     Returns
