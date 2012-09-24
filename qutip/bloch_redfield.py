@@ -87,7 +87,7 @@ def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[], args={}, options=O
     output = Odedata()
     output.times = tlist
 
-    output.expect = _bloch_redfield_solve(R, ekets, psi0, tlist, e_ops, options)
+    output.expect = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops, options)
 
     return output
 
@@ -95,16 +95,49 @@ def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[], args={}, options=O
 # Evolution of the Bloch-Redfield master equation given the Bloch-Redfield
 # tensor.
 # 
-def _bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], opt=None):
+def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     """
-    Evolve the ODEs defined by Bloch-Redfeild master equation.
+    Evolve the ODEs defined by Bloch-Redfeild master equation. The 
+    Bloch-Redfield tensor can be calculated by the function
+    :func:`bloch_redfield_tensor`.
+   
+    Parameters
+    ----------
+    
+    R : :class:`qutip.Qobj`
+        Bloch-Redfield tensor.
+
+    ekets : array of :class:`qutip.Qobj`
+        Array of kets that make up a basis tranformation for the eigenbasis.
+
+    rho0 : :class:`qutip.Qobj`
+        Initial density matrix.
+                
+    tlist : *list* / *array*    
+        list of times for :math:`t`.
+        
+    e_ops : list of :class:`qutip.Qobj` / callback function
+        list of operators for which to evaluate expectation values.
+    
+
+    opts : :class:`qutip.Qdeoptions`
+        with options for the ODE solver.
+
+    Returns
+    -------
+
+    output: :class:`qutip.Odedata`
+
+        An instance of the class :class:`qutip.Odedata`, which contains either
+        an *array* of expectation values for the times specified by `tlist`.
+
     """
 
-    if opt == None:
-        opt = Odeoptions()
-        opt.nsteps = 2500  # 
+    if options == None:
+        options = Odeoptions()
+        options.nsteps = 2500  # 
 
-    if opt.tidy:
+    if options.tidy:
         R.tidyup()
 
     #
@@ -147,10 +180,10 @@ def _bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], opt=None):
     initial_vector = mat2vec(rho0.full())
     r = scipy.integrate.ode(cyq_ode_rhs)
     r.set_f_params(R.data.data, R.data.indices, R.data.indptr)
-    r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, #nsteps=opt.nsteps,
-                              #first_step=opt.first_step, min_step=opt.min_step,
-                              max_step=opt.max_step)
+    r.set_integrator('zvode', method=options.method, order=options.order,
+                              atol=options.atol, rtol=options.rtol, #nsteps=options.nsteps,
+                              #first_step=options.first_step, min_step=options.min_step,
+                              max_step=options.max_step)
     r.set_initial_value(initial_vector, tlist[0])
 
     #
