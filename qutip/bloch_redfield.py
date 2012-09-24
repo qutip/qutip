@@ -98,7 +98,7 @@ def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[], args={}, options=O
 # 
 def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     """
-    Evolve the ODEs defined by Bloch-Redfeild master equation. The 
+    Evolve the ODEs defined by Bloch-Redfield master equation. The 
     Bloch-Redfield tensor can be calculated by the function
     :func:`bloch_redfield_tensor`.
    
