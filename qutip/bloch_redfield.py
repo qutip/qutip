@@ -87,7 +87,7 @@ def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[], args={}, options=O
     output = Odedata()
     output.times = tlist
 
-    output.expect = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops, options)
+    output.expect = _bloch_redfield_solve(R, ekets, psi0, tlist, e_ops, options)
 
     return output
 
@@ -95,7 +95,7 @@ def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[], args={}, options=O
 # Evolution of the Bloch-Redfield master equation given the Bloch-Redfield
 # tensor.
 # 
-def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], opt=None):
+def _bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], opt=None):
     """
     Evolve the ODEs defined by Bloch-Redfeild master equation.
     """
