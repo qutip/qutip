@@ -149,7 +149,7 @@ Husimi Q-function
 -----------------
 
 The Husimi Q function is, like the Wigner function, a quasiprobability
-distribution which can be negative for quantum states. It is defined as
+distribution for harmonic modes. It is defined as
 
 .. math::
 
