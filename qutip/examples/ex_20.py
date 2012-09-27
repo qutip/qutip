@@ -38,7 +38,10 @@ def run():
     
     # evolve the dissipative system
     tlist = linspace(0, T, 100)
-    rho_list  = odesolve(H, psi0, tlist, c_op_list, [])
+    medata  = mesolve(H, psi0, tlist, c_op_list, [])
+    #extract density matrices from Odedata object
+    rho_list=medata.states
+    #get final density matrix for fidelity comparison
     rho_final = rho_list[-1]
     
     # calculate expectation values 
@@ -46,12 +49,16 @@ def run():
     n2 = expect(sm2.dag() * sm2, rho_list)     
     
     # calculate the ideal evolution 
-    psi_list_ideal= odesolve(H, psi0, tlist, [], [])
-    n1_ideal = expect(sm1.dag() * sm1, psi_list_ideal)
-    n2_ideal = expect(sm2.dag() * sm2, psi_list_ideal)
-    # get last ket vector for comparision with dissipative model
+    medata_ideal= mesolve(H, psi0, tlist, [], [])
+    # extract states from Odedata object
+    psi_list=medata_ideal.states
+    
+    # calculate expectation values 
+    n1_ideal = expect(sm1.dag() * sm1, psi_list)
+    n2_ideal = expect(sm2.dag() * sm2, psi_list)
+    # get last ket vector for comparision
+    psi_ideal=psi_list[-1]
     # output is ket since no collapse operators.
-    psi_ideal=psi_list_ideal[-1]
     rho_ideal=ket2dm(psi_ideal)
     
     # calculate the fidelity of final states
