@@ -216,7 +216,9 @@ let's visualize of the Jaynes-Cummings Hamiltonian:
 
     In [1]: b = tensor(qeye(N), destroy(2))
 
-    In [1]: H = 1.0 * a.dag() * a + 1.0 * b.dag() * b - 0.5 * (a * b.dag() + a.dag() * b)
+    In [1]: sx = tensor(qeye(N), sigmax())
+
+    In [1]: H = a.dag() * a + sx - 0.5 * (a * b.dag() + a.dag() * b)
 
     In [1]: # visualize H 
 
