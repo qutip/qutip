@@ -83,7 +83,7 @@ def floquet_modes(H, T, args=None, sort=False):
 
     # sort by the quasi energy
     if sort == True:
-        order = argsort(-e_quasi)
+        order = np.argsort(-e_quasi)
     else:
         order = list(range(len(evals)))
 
