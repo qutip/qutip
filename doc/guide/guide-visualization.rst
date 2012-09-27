@@ -265,9 +265,9 @@ To see how this works [see e.g. Mohseni et al., PRA 77, 032322 (2008) for more d
 .. math::
     :label: qpt-quantum-map
 
-    \epsilon(\rho_{\rm in}) = \rho_{\rm out} = \sum_{i} A_i \rho_{\rm in} A_i^\dagger.
+    \epsilon(\rho_{\rm in}) = \rho_{\rm out} = \sum_{i}^{N^2} A_i \rho_{\rm in} A_i^\dagger,
 
-Given an orthogonal operator basis of our choice :math:`\{B_i\}`, which satisfies :math:`{\rm Tr}[B_i^\dagger B_j] = \delta_{ij}`, we can write the map as
+where :math:`N` is the number of states of the system (that is, :math:`\rho` is represented by an :math:`[N\times N]` matrix). Given an orthogonal operator basis of our choice :math:`\{B_i\}_i^{N^2}`, which satisfies :math:`{\rm Tr}[B_i^\dagger B_j] = N\delta_{ij}`, we can write the map as
 
 .. math::
     :label: qpt-quantum-map-transformed
