@@ -256,4 +256,95 @@ used below to visualize the corresponding steadystate density matrix:
 Quantum process tomography
 ==========================
 
+Quantum process tomography (QPT) is a useful technique for characterizing experimental implementations of quantum gates involving a small number of qubits. It can also be a useful theoretical tool that can give insight in how a process transforms states, and it can be used for example to study how noise or other imperfections deteriorate a gate. Whereas a fidelity or distance measure can give a single number that indicates how far from ideal a gate is, a quantum process tomography analysis can give detailed information about exactly what kind of errors various imperfections introduce.
+
+The idea is to construct a transformation matrix for a quantum process (for example a quantum gate) that describes how the density matrix of a system is transformed by the process. We can then decompose the transformation in some operator basis that represent well-defined and easily interpreted transformations of the input states. 
+
+To see how this works [see e.g. Mohseni et al., PRA 77, 032322 (2008) for more details], consider a process that is described by quantum map :math:`\epsilon(\rho_{\rm in}) = \rho_{\rm out}`, which can be written
+
+.. math::
+    :label: qpt-quantum-map
+
+    \epsilon(\rho_{\rm in}) = \rho_{\rm out} = \sum_{i} A_i \rho_{\rm in} A_i^\dagger.
+
+Given an orthogonal operator basis of our choice :math:`\{B_i\}`, which satisfies :math:`{\rm Tr}[B_i^\dagger B_j] = \delta_{ij}`, we can write the map as
+
+.. math::
+    :label: qpt-quantum-map-transformed
+
+    \epsilon(\rho_{\rm in}) = \rho_{\rm out} = \sum_{mn} \chi_{mn} B_m \rho_{\rm in} B_n^\dagger.
+
+where :math:`\chi_{mn} = \sum_{ij} b_{im}b_{jn}^*` and :math:`A_i = \sum_{m} b_{im}B_{m}`. Here, matrix :math:`\chi` is the transformation matrix we are after, since it describes how much :math:`B_m \rho_{\rm in} B_n^\dagger` contributes to the transformation from :math:`\rho_{\rm in}` to :math:`\rho_{\rm out}`.
+
+In a numerical simulation of a quantum process we usually do not have access to the quantum map in the form Eq. :eq:`qpt-quantum-map`. Instead, what we usually can do is to calculate the propagator :math:`U` for the density matrix in superoperator form, using for example the QuTiP function :func:`qutip.propagator.propagator`. We can then write 
+
+.. math::
+
+    \epsilon(\tilde{\rho}_{\rm in}) = U \tilde{\rho}_{\rm in} = \tilde{\rho}_{\rm out}
+
+where :math:`\tilde{\rho}` is the vector representation of the density matrix :math:`\rho`. If we write Eq. :eq:`qpt-quantum-map-transformed` in superoperator form as well we obtain
+
+.. math::
+
+    \tilde{\rho}_{\rm out} = \sum_{mn} \chi_{mn} \tilde{B}_m \tilde{B}_n^\dagger \tilde{\rho}_{\rm in} = U \tilde{\rho}_{\rm in}.
+
+so we can identify
+
+.. math::
+
+    U = \sum_{mn} \chi_{mn} \tilde{B}_m \tilde{B}_n^\dagger.
+
+Now this is a linear equation systems for the :math:`N^2 \times N^2` elements in :math:`\chi`. We can solve it by writing :math:`\chi` and the superoperator propagator as :math:`[N^4]` vectors, and likewise write the superoperator product :math:`\tilde{B}_m\tilde{B}_n^\dagger` in as a :math:`[N^4\times N^4]` matrix:
+
+.. math::
+
+    U_I = \sum_{J}^{N^4} M_{IJ} \chi_{J}
+
+giving the solution
+
+.. math::
+
+    \chi = M^{-1}U.
+
+Note that to obtain :math:`\chi` using this method we had to construct a matrix which size that is the square of the sizes of the superoperator for the system. Obviously this scales very badly with increased system size, but it can still be a very useful method for small systems (such as system comprised of a small number of coupled qubits).
+
+Implementation in QuTiP
+-----------------------
+
+In QuTiP, the procedure described above is implemented in the function :func:`qutip.tomography.qpt`, which returns the :math:`\chi` matrix given a density matrix propagator. To illustrate how to use this function, let's consider the quantum :math:`i`-SWAP gate for two qubits. In QuTiP the function :func:`qutip.gates.iswap` generates the unitary transformation for the state kets:
+
+.. ipython::
+
+    In [1]: U_psi = iswap()
+
+To be able to use this unitary transformation matrix as input to the function :func:`qutip.tomography.qpt`, we first need to convert it to a transformation matrix for the corresponding density matrix:
+
+.. ipython::
+
+    In [1]: U_rho = spre(U_psi) * spost(U_psi.dag())
+
+Next, we construct a list of operators that define the basis :math:`\{B_i\}` in the form of a list of operators for each composite system. At the same time, we also construct a list of corresponding labels that will be used when plotting the :math:`\chi` matrix.
+
+.. ipython::
+
+    In [1]: op_basis = [[qeye(2), sigmax(), sigmay(), sigmaz()]] * 2
+
+    In [1]: op_label = [["i", "x", "y", "z"]] * 2
+
+We are now ready to compute :math:`\chi` using :func:`qutip.tomography.qpt`, and to plot it using :func:`qutip.tomography.qpt_plot_combined`.
+
+.. ipython::
+
+    In [1]: chi = qpt(U_rho, op_basis)
+
+    In [1]: fig = qpt_plot_combined(chi, op_label, r'$i$SWAP')
+
+    @savefig visualization-chi-iswap.png width=5.0in align=center
+    In [1]: show()
+
+
+For a slightly more advanced example, where the density matrix propagator is calculated from the dynamics of a system defined by its Hamiltonian and collapse operators using the function :func:`qutip.propagator.propagator`, see :ref:`exadvanced53`.
+
+
+
 
