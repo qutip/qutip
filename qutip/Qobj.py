@@ -465,7 +465,7 @@ class Qobj():
     def __str__(self):
         s = ""
         if self.type=='oper' or self.type=='super':
-            s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isHerm = "+str(self.isherm)+"\n"
+            s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+", isherm = "+str(self.isherm)+"\n"
         else:
             s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+"\n"
         s += "Qobj data =\n"
