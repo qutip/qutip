@@ -40,10 +40,10 @@ def _blob(x, y, w, w_max, area):
     xcorners = array([x - hs, x + hs, x + hs, x - hs])
     ycorners = array([y - hs, y - hs, y + hs, y + hs])
 
-    fill(xcorners, ycorners, color=cm.jet(int((w+w_max) * 256 / (2*w_max))))
+    fill(xcorners, ycorners, color=cm.RdBu(int((w+w_max) * 256 / (2*w_max))))
 
 # Adopted from the SciPy Cookbook.
-def hinton(rho):
+def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
     """Draws a Hinton diagram for visualizing a density matrix. 
     
     Parameters
@@ -51,38 +51,85 @@ def hinton(rho):
     rho : qobj
         Input density matrix.
     
+    xlabels : list of strings
+        list of x labels
+
+    ylabels : list of strings
+        list of y labels
+
+    title : string
+        title of the plot (optional)
+
+    ax : a matplotlib axes instance
+        The axes context in which the plot will be drawn.
+
+    Returns
+    -------
+
+        An matplotlib axes instance for the plot.
+
     Raises
     ------
     ValueError
         Input argument is not a quantum object.
         
     """
-    if not isoper(rho):
-        raise ValueError("argument must be a quantum operator")
 
-    W = rho.full()
+    if isinstance(rho, Qobj):
+        if isket(rho) or isbra(rho):
+            raise ValueError("argument must be a quantum operator")
 
-    clf()
+        W = rho.full()
+    else:
+        W = rho
+
+    if ax == None:
+        fig, ax = subplots(1, 1, figsize=(8,6))
+
+    if not (xlabels or ylabels):
+        ax.axis('off')
+
+    ax.axis('equal')
+    ax.set_frame_on(False)
+
     height, width = W.shape
   
     w_max = 1.25 * max(abs(diag(matrix(W))))
     if w_max <= 0.0:
         w_max = 1.0
 
-    fill(array([0,width,width,0]),array([0,0,height,height]), color=cm.jet(128))
-    axis('off')
-    axis('equal')
+    # x axis
+    ax.xaxis.set_major_locator(IndexLocator(1,0.5))
+    if xlabels:
+        ax.set_xticklabels(xlabels) 
+    ax.tick_params(axis='x', labelsize=14)
+
+    # y axis
+    ax.yaxis.set_major_locator(IndexLocator(1,0.5)) 
+    if ylabels:
+        ax.set_yticklabels(list(reversed(ylabels))) 
+    ax.tick_params(axis='y', labelsize=14)
+
+    ax.fill(array([0,width,width,0]),array([0,0,height,height]), color=cm.RdBu(128))
     for x in range(width):
         for y in range(height):
             _x = x+1
             _y = y+1
-            if real(W[x,y]) < 0.0:
-                _blob(_x - 0.5, height - _y + 0.5,  abs(W[x,y]), w_max, min(1,abs(W[x,y])/w_max))
+            if real(W[x,y]) > 0.0:
+                _blob(_x - 0.5, height - _y + 0.5, abs(W[x,y]), w_max, min(1,abs(W[x,y])/w_max))
             else:
                 _blob(_x - 0.5, height - _y + 0.5, -abs(W[x,y]), w_max, min(1,abs(W[x,y])/w_max))
 
 
-def matrix_histogram(M, xlabels, ylabels, title=None, limits=None, ax=None):
+    # color axis
+    norm=mpl.colors.Normalize(-abs(W).max(), abs(W).max()) 
+    cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
+    cb = mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cm.RdBu)
+
+    return ax
+
+
+def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None, ax=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
@@ -152,12 +199,14 @@ def matrix_histogram(M, xlabels, ylabels, title=None, limits=None, ax=None):
 
     # x axis
     ax.axes.w_xaxis.set_major_locator(IndexLocator(1,-0.5))
-    ax.set_xticklabels(xlabels) 
+    if xlabels:
+        ax.set_xticklabels(xlabels) 
     ax.tick_params(axis='x', labelsize=14)
 
     # y axis
     ax.axes.w_yaxis.set_major_locator(IndexLocator(1,-0.5)) 
-    ax.set_yticklabels(ylabels) 
+    if ylabels:
+        ax.set_yticklabels(ylabels) 
     ax.tick_params(axis='y', labelsize=14)
 
     # z axis
@@ -170,7 +219,7 @@ def matrix_histogram(M, xlabels, ylabels, title=None, limits=None, ax=None):
 
     return ax
 
-def matrix_histogram_complex(M, xlabels, ylabels, title=None, limits=None, phase_limits=None, ax=None):
+def matrix_histogram_complex(M, xlabels=None, ylabels=None, title=None, limits=None, phase_limits=None, ax=None):
     """
     Draw a histogram for the amplitudes of matrix M, using the argument of each element
     for coloring the bars, with the given x and y labels and title.
@@ -267,12 +316,14 @@ def matrix_histogram_complex(M, xlabels, ylabels, title=None, limits=None, phase
 
     # x axis
     ax.axes.w_xaxis.set_major_locator(IndexLocator(1,-0.5))
-    ax.set_xticklabels(xlabels) 
+    if xlabels:
+        ax.set_xticklabels(xlabels) 
     ax.tick_params(axis='x', labelsize=12)
 
     # y axis
     ax.axes.w_yaxis.set_major_locator(IndexLocator(1,-0.5)) 
-    ax.set_yticklabels(ylabels) 
+    if ylabels:
+        ax.set_yticklabels(ylabels) 
     ax.tick_params(axis='y', labelsize=12)
 
     # z axis
