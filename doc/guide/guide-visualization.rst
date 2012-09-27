@@ -274,7 +274,7 @@ where :math:`N` is the number of states of the system (that is, :math:`\rho` is 
 
     \epsilon(\rho_{\rm in}) = \rho_{\rm out} = \sum_{mn} \chi_{mn} B_m \rho_{\rm in} B_n^\dagger.
 
-where :math:`\chi_{mn} = \sum_{ij} b_{im}b_{jn}^*` and :math:`A_i = \sum_{m} b_{im}B_{m}`. Here, matrix :math:`\chi` is the transformation matrix we are after, since it describes how much :math:`B_m \rho_{\rm in} B_n^\dagger` contributes to the transformation from :math:`\rho_{\rm in}` to :math:`\rho_{\rm out}`.
+where :math:`\chi_{mn} = \sum_{ij} b_{im}b_{jn}^*` and :math:`A_i = \sum_{m} b_{im}B_{m}`. Here, matrix :math:`\chi` is the transformation matrix we are after, since it describes how much :math:`B_m \rho_{\rm in} B_n^\dagger` contributes to :math:`\rho_{\rm out}`.
 
 In a numerical simulation of a quantum process we usually do not have access to the quantum map in the form Eq. :eq:`qpt-quantum-map`. Instead, what we usually can do is to calculate the propagator :math:`U` for the density matrix in superoperator form, using for example the QuTiP function :func:`qutip.propagator.propagator`. We can then write 
 
@@ -294,7 +294,7 @@ so we can identify
 
     U = \sum_{mn} \chi_{mn} \tilde{B}_m \tilde{B}_n^\dagger.
 
-Now this is a linear equation systems for the :math:`N^2 \times N^2` elements in :math:`\chi`. We can solve it by writing :math:`\chi` and the superoperator propagator as :math:`[N^4]` vectors, and likewise write the superoperator product :math:`\tilde{B}_m\tilde{B}_n^\dagger` in as a :math:`[N^4\times N^4]` matrix :math:`M`:
+Now this is a linear equation systems for the :math:`N^2 \times N^2` elements in :math:`\chi`. We can solve it by writing :math:`\chi` and the superoperator propagator as :math:`[N^4]` vectors, and likewise write the superoperator product :math:`\tilde{B}_m\tilde{B}_n^\dagger` as a :math:`[N^4\times N^4]` matrix :math:`M`:
 
 .. math::
 
@@ -311,7 +311,7 @@ Note that to obtain :math:`\chi` with this method we have to construct a matrix 
 Implementation in QuTiP
 -----------------------
 
-In QuTiP, the procedure described above is implemented in the function :func:`qutip.tomography.qpt`, which returns the :math:`\chi` matrix given a density matrix propagator. To illustrate how to use this function, let's consider the quantum :math:`i`-SWAP gate for two qubits. In QuTiP the function :func:`qutip.gates.iswap` generates the unitary transformation for the state kets:
+In QuTiP, the procedure described above is implemented in the function :func:`qutip.tomography.qpt`, which returns the :math:`\chi` matrix given a density matrix propagator. To illustrate how to use this function, let's consider the :math:`i`-SWAP gate for two qubits. In QuTiP the function :func:`qutip.gates.iswap` generates the unitary transformation for the state kets:
 
 .. ipython::
 

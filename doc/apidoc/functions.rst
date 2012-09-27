@@ -123,6 +123,13 @@ Quantum Process Tomography
     :members: qpt, qpt_plot, qpt_plot_combined
     :undoc-members:
 
+Graphs and visualization
+------------------------
+
+.. automodule:: qutip.graph
+    :members: hinton, matrix_histogram, matrix_histogram_complex
+    :undoc-members:
+
 Other Functions
 ===============
 
