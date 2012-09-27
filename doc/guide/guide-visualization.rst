@@ -294,19 +294,19 @@ so we can identify
 
     U = \sum_{mn} \chi_{mn} \tilde{B}_m \tilde{B}_n^\dagger.
 
-Now this is a linear equation systems for the :math:`N^2 \times N^2` elements in :math:`\chi`. We can solve it by writing :math:`\chi` and the superoperator propagator as :math:`[N^4]` vectors, and likewise write the superoperator product :math:`\tilde{B}_m\tilde{B}_n^\dagger` in as a :math:`[N^4\times N^4]` matrix:
+Now this is a linear equation systems for the :math:`N^2 \times N^2` elements in :math:`\chi`. We can solve it by writing :math:`\chi` and the superoperator propagator as :math:`[N^4]` vectors, and likewise write the superoperator product :math:`\tilde{B}_m\tilde{B}_n^\dagger` in as a :math:`[N^4\times N^4]` matrix :math:`M`:
 
 .. math::
 
     U_I = \sum_{J}^{N^4} M_{IJ} \chi_{J}
 
-giving the solution
+with the solution
 
 .. math::
 
     \chi = M^{-1}U.
 
-Note that to obtain :math:`\chi` using this method we had to construct a matrix which size that is the square of the sizes of the superoperator for the system. Obviously this scales very badly with increased system size, but it can still be a very useful method for small systems (such as system comprised of a small number of coupled qubits).
+Note that to obtain :math:`\chi` with this method we have to construct a matrix :math:`M` with a size that is the square of the size of the superoperator for the system. Obviously, this scales very badly with increasing system size, but this method can still be a very useful for small systems (such as system comprised of a small number of coupled qubits).
 
 Implementation in QuTiP
 -----------------------
