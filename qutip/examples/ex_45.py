@@ -38,7 +38,7 @@ def run():
     # --------------------------------------------------------------------------
     # Floquet markov master equation dynamics
     #       
-    qutip.odeconfig.tdfunc = None # reset td func flag
+    rhs_reset() #clears previous time-dependent Hamiltonian data
     
     # find initial floquet modes and quasienergies
     f_modes_0,f_energies = floquet_modes(H, T, args, False)    
