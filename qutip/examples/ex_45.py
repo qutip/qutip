@@ -4,7 +4,6 @@
 #
 from qutip import *
 from pylab import *
-import qutip.odeconfig
 
 gamma1 = 0.05 # relaxation rate
 gamma2 = 0.0  # dephasing  rate
@@ -38,7 +37,7 @@ def run():
     # --------------------------------------------------------------------------
     # Floquet markov master equation dynamics
     #       
-    rhs_reset() #clears previous time-dependent Hamiltonian data
+    rhs_clear() #clears previous time-dependent Hamiltonian data
     
     # find initial floquet modes and quasienergies
     f_modes_0,f_energies = floquet_modes(H, T, args, False)    
@@ -57,10 +56,10 @@ def run():
 
     # plot the results
     figure()
-    plot(tlist, p_ex_me, 'b')  # standard lindblad with time-dependence
-    plot(tlist, p_ex_fmme, 'm-') # floquet markov
-    xlabel('Time')
-    ylabel('Occupation probability')
+    plot(tlist, p_ex_me, 'b',lw=2)  # standard lindblad with time-dependence
+    plot(tlist, p_ex_fmme, 'm-',lw=2) # floquet markov
+    xlabel('Time',fontsize=14)
+    ylabel('Occupation probability',fontsize=14)
     legend(("Standard Lindblad ME", "Floquet-Markov ME"))
     show()
 

@@ -28,6 +28,18 @@ from types import FunctionType
 from qutip.Qobj import Qobj
 from qutip.superoperator import spre,spost
 
+def rhs_clear():
+    """
+    Resets string-format time-dependent Hamiltonian parameters.
+    """
+    #time-dependent function stuff
+    odeconfig.tdfunc=None         #Placeholder for time-dependent RHS function.
+    odeconfig.colspmv=None        #Placeholder for time-dependent col-spmv function.
+    odeconfig.colexpect=None      #Placeholder for time-dependent col_expect function.
+    odeconfig.string=None         #Holds string of variables to be passed onto time-depdendent ODE solver.
+    odeconfig.tdname=None         #Name of td .pyx file (used in parallel mc code)
+
+
 def rhs_generate(H,c_ops,args={},options=Odeoptions(),name=None):
     """
     Generates the Cython functions needed for solving the dynamics of a
@@ -138,22 +150,6 @@ def rhs_generate(H,c_ops,args={},options=Odeoptions(),name=None):
         os.remove(odeconfig.tdname+".pyx")
     except:
         pass
-            
-            
-def rhs_reset():
-    import qutip.odeconfig as odeconfig
-    """
-    Resets string-format time-dependent Hamiltonian parameters.
-    
-    """
-    #time-dependent function stuff
-    odeconfig.tdfunc=None         #Placeholder for time-dependent RHS function.
-    odeconfig.colspmv=None        #Placeholder for time-dependent col-spmv function.
-    odeconfig.colexpect=None      #Placeholder for time-dependent col_expect function.
-    odeconfig.string=None         #Holds string of variables to be passed onto time-depdendent ODE solver.
-    odeconfig.tdname=None         #Name of td .pyx file (used in parallel mc code)          
-            
-            
             
             
             

@@ -212,7 +212,7 @@ from qutip.metrics import fidelity,tracedist
 import qutip.odeconfig
 from qutip.Odeoptions import Odeoptions
 from qutip.Odedata import Odedata
-from qutip.rhs_generate import rhs_generate
+from qutip.rhs_generate import rhs_generate,rhs_clear
 from qutip.mesolve import mesolve, odesolve
 from qutip.mcsolve import mcsolve
 from qutip.essolve import *
@@ -228,4 +228,3 @@ from qutip.fileio import *
 from qutip.demos import demos
 import qutip.examples
 from qutip.about import *
-from qutip.rhs_generate import rhs_generate,rhs_reset
