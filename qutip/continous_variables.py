@@ -97,16 +97,16 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
         Experimental.
 
     """
-    if R not None:
+    if R != None:
 
         if rho is None:
             return np.array([[np.real(R[i,j]+R[j,i]) for i in range(4)] for j in range(4)])
         else:          
             return np.array([[np.real(expect(R[i,j]+R[j,i], rho)) for i in range(4)] for j in range(4)])
 
-    else a1 not None and a2 not None:
+    elif a1 != None and a2 != None:
 
-        if rho not None:
+        if rho != None:
             x1 =      (a1 + a1.dag()) / np.sqrt(2)
             p1 = 1j * (a1 - a1.dag()) / np.sqrt(2)
             x2 =      (a2 + a2.dag()) / np.sqrt(2)
