@@ -228,3 +228,4 @@ from qutip.fileio import *
 from qutip.demos import demos
 import qutip.examples
 from qutip.about import *
+from qutip.rhs_generate import *
