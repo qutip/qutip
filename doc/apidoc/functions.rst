@@ -181,6 +181,6 @@ Miscellaneous
 --------------
 
 .. automodule:: qutip
-    :members: about, clebsch, demos, hinton, orbital, parfor, rhs_generate, simdiag, sphereplot
+    :members: about, clebsch, demos, hinton, orbital, parfor, rhs_generate, rhs_clear, simdiag, sphereplot
     :undoc-members:
 
