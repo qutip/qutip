@@ -24,6 +24,27 @@ from qutip.Qobj import Qobj
 class eseries():
     """
     Class representation of an exponential-series expansion of time-dependent quantum objects.
+    
+    Attributes
+    ----------
+    ampl : ndarray
+        Array of amplitudes for exponential series.
+    rates : ndarray
+        Array of rates for exponential series.
+    dims : list
+        Dimensions of exponential series components
+    shape : list
+        Shape corresponding to exponential series components
+    
+    Methods
+    -------
+    value(tlist)
+        Evaluate an exponential series at the times listed in tlist
+    spec(wlist)
+        Evaluate the spectrum of an exponential series at frequencies in wlist.
+    tidyup() 
+        Returns a tidier version of the exponential series
+    
     """
     __array_priority__=101
     def __init__(self,q=np.array([]),s=np.array([])):
@@ -174,7 +195,18 @@ class eseries():
     #
     def value(self, tlist):
         """
-        Evaluate an exponential series at the times listed in tlist. 
+        Evaluates an exponential series at the times listed in ``tlist``.
+        
+        Parameters
+        ----------
+        tlist : ndarray
+            Times at which to evaluate exponential series.
+        
+        Returns
+        -------
+        val_list : ndarray
+            Values of exponential at times in ``tlist``.
+        
         """
 
         if self.ampl == None or len(self.ampl) == 0:
@@ -212,20 +244,33 @@ class eseries():
         else:
             return val_list
 
-    def spec(es, wlist):
+    def spec(self, wlist):
         """
-        Evaluate the spectrum of an exponential series at frequencies in wlist. 
+        Evaluate the spectrum of an exponential series at frequencies in ``wlist``.
+        
+        Parameters
+        ----------
+        wlist : array_like
+            Array/list of frequenies.
+        
+        Returns
+        -------
+        val_list : ndarray
+            Values of exponential series at frequencies in ``wlist``.
+        
         """
         val_list = np.zeros(np.size(wlist))
 
         for i in range(len(wlist)):
-            val_list[i] = 2 * np.real(np.dot(es.ampl, 1./(1.0j*wlist[i] - es.rates)) )
+            val_list[i] = 2 * np.real(np.dot(self.ampl, 1./(1.0j*wlist[i] - self.rates)) )
 
         return val_list
 
 
-    def tidy(self,*args):
-        """ return a tidier version of self """
+    def tidyup(self,*args):
+        """ Returns a tidier version of exponential series. 
+        
+        """
 
         #
         # combine duplicate entries (same rate)
@@ -279,12 +324,42 @@ class eseries():
 # quantum optics toolbox)
 #
 def esval(es, tlist):
+    """
+    Evaluates an exponential series at the times listed in ``tlist``.
+
+    Parameters
+    ----------
+    tlist : ndarray
+        Times at which to evaluate exponential series.
+            
+    Returns
+    -------
+    val_list : ndarray
+        Values of exponential at times in ``tlist``.
+    
+    """
     return es.value(tlist)
 
 def esspec(es, wlist):
+    """Evaluate the spectrum of an exponential series at frequencies in ``wlist``.
+
+    Parameters
+    ----------
+    wlist : array_like
+        Array/list of frequenies.
+        
+    Returns
+    -------
+    val_list : ndarray
+        Values of exponential series at frequencies in ``wlist``.
+        
+    """
     return es.spec(wlist)
 
 def estidy(es,*args):
-    return es.tidy()
+    """
+    Returns a tidier version of exponential series. 
+    """
+    return es.tidyup()
 
 
