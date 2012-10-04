@@ -1,9 +1,9 @@
-#This file is part of QuTIP.
+# This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTIP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +23,6 @@ from scipy import prod, transpose, reshape
 from qutip.Qobj import *
 from qutip.istests import *
 from qutip.operators import destroy
-
 
 def liouvillian(H, c_op_list):
     """Assembles the Liouvillian superoperator from a Hamiltonian 
@@ -48,6 +47,44 @@ def liouvillian(H, c_op_list):
     for m in range(0, n_op):
         cdc = c_op_list[m].dag() * c_op_list[m]
         L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
+    return L
+
+def liouvillian_fast(H, c_op_list):
+    """Assembles the Liouvillian superoperator from a Hamiltonian 
+    and a ``list`` of collapse operators. Like liouvillian, but with an 
+    experimental implementation which avoids creating extra Qobj instances,
+    which can be advantageous for large systems.
+    
+    Parameters
+    ----------
+    H : qobj
+        System Hamiltonian.
+        
+    c_op_list : array_like 
+        A ``list`` or ``array`` of collpase operators.
+    
+    Returns
+    -------
+    L : qobj
+        Louvillian superoperator.
+
+    .. note::
+
+        Experimental.
+    
+    """
+    d=H.dims[1]
+    L=Qobj()
+    L.dims=[[H.dims[0][:],d[:]],[H.dims[1][:],d[:]]]
+    L.shape=[prod(L.dims[0][0])*prod(L.dims[0][1]),prod(L.dims[1][0])*prod(L.dims[1][1])]
+    L.data = -1j *(sp.kron(sp.identity(prod(d)), H.data) - sp.kron(H.data.T,sp.identity(prod(d))))
+
+    n_op = len(c_op_list)
+    for m in range(0, n_op):
+        L.data = L.data + sp.kron(sp.identity(prod(d)), c_op_list[m].data) * sp.kron(c_op_list[m].data.T.conj().T,sp.identity(prod(d)))
+        cdc = c_op_list[m].data.T.conj()*c_op_list[m].data
+        L.data = L.data - 0.5 * sp.kron(sp.identity(prod(d)), cdc)
+        L.data = L.data - 0.5 * sp.kron(cdc.T,sp.identity(prod(d)))
     return L
 
 
@@ -100,7 +137,7 @@ def spost(A):
 	S=Qobj()
 	S.dims=[[d[:],A.dims[1][:]],[d[:],A.dims[0][:]]]
 	S.shape=[prod(S.dims[0][0])*prod(S.dims[0][1]),prod(S.dims[1][0])*prod(S.dims[1][1])]
-	S.data=sp.kron(A.data.T,sp.identity(prod(d)))
+	S.data=sp.kron(A.data.T,sp.identity(prod(d)),format='csr')
 	return S
 	
 
@@ -124,7 +161,7 @@ def spre(A):
 	S=Qobj()
 	S.dims=[[A.dims[0][:],d[:]],[A.dims[1][:],d[:]]]
 	S.shape=[prod(S.dims[0][0])*prod(S.dims[0][1]),prod(S.dims[1][0])*prod(S.dims[1][1])]
-	S.data=sp.kron(sp.identity(prod(d)),A.data)
+	S.data=sp.kron(sp.identity(prod(d)),A.data,format='csr')
 	return S
 	
 
