@@ -30,7 +30,15 @@ from qutip.superoperator import spre,spost
 
 def rhs_clear():
     """
-    Resets string-format time-dependent Hamiltonian parameters.
+    Resets the string-format time-dependent Hamiltonian parameters.
+    
+    Parameters
+    ----------
+    
+    Returns
+    -------
+    Nothing, just clears data from internal odeconfig module.
+    
     """
     #time-dependent function stuff
     odeconfig.tdfunc=None         #Placeholder for time-dependent RHS function.
