@@ -24,7 +24,7 @@ A Module containing a collection of metrics
 
 from qutip.Qobj import *
 import scipy.linalg as la
-from scipy import real
+import numpy as np
 from qutip.sparse import sp_eigs
 
 
@@ -57,7 +57,7 @@ def fidelity(A,B):
         raise TypeError('Density matricies do not have same dimensions.')
     else:
         A=A.sqrtm()
-        return float(real((A*(B*A)).sqrtm().tr()))
+        return float(np.real((A*(B*A)).sqrtm().tr()))
 
 
 def tracedist(A,B,sparse=False,tol=0):
@@ -95,4 +95,4 @@ def tracedist(A,B,sparse=False,tol=0):
         diff=A-B
         diff=diff.dag()*diff
         vals=sp_eigs(diff,vecs=False,sparse=sparse,tol=tol)
-        return float(real(0.5*sum(sqrt(vals))))
+        return float(np.real(0.5*np.sum(np.sqrt(np.abs(vals)))))

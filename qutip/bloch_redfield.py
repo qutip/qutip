@@ -262,7 +262,7 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
     # pre-calculate matrix elements
     for n in range(N):
         for m in range(N):
-            W[m,n] = real(evals[m] - evals[n])
+            W[m,n] = np.real(evals[m] - evals[n])
 
     for k in range(K):
         #A[k,n,m] = c_ops[k].matrix_element(ekets[n], ekets[m])

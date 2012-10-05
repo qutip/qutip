@@ -712,7 +712,7 @@ class Qobj():
         if self.dims[0][0]==self.dims[1][0]:
             evals,evecs=sp_eigs(self,sparse=sparse,tol=tol,maxiter=maxiter)
             numevals=len(evals)
-            dV=sp.spdiags(sqrt(evals),0,numevals,numevals,format='csr')
+            dV=sp.spdiags(np.sqrt(np.abs(evals)),0,numevals,numevals,format='csr')
             evecs=sp.hstack(evecs,format='csr')
             spDv=dV.dot(evecs.conj().T)
             out=Qobj(evecs.dot(spDv),dims=self.dims,shape=self.shape)

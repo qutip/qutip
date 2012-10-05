@@ -321,7 +321,7 @@ def spectrum_ss(H, wlist, c_op_list, a_op, b_op):
     corr_es = expect(a_op, es)
 
     # covarience
-    cov_es = corr_es - real(np.conjugate(a_op_ss) * b_op_ss)
+    cov_es = corr_es - np.real(np.conjugate(a_op_ss) * b_op_ss)
 
     # spectrum
     spectrum = esspec(cov_es, wlist)
