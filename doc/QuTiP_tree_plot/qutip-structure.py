@@ -77,8 +77,8 @@ for root, dirs, files in os.walk(qutip_root):
 
                 module = f[:-3]
                 
-                idx   = module_cmap[module] if module in module_cmap else "black"                 
-                color = colors[idx]
+                idx   = module_cmap[module] if module in module_cmap else -1                 
+                color = colors[idx] if idx >= 0 else "black"
 
                 symbol_list = []
 
