@@ -5,7 +5,7 @@
 Change Log
 **********
 
-Version 2.1.0 [SVN-2679] (October 05, 2012):
+Version 2.1.0 [SVN-2683] (October 05, 2012):
 ++++++++++++++++++++++++++++++++++++++++++++++
 
 New Features
