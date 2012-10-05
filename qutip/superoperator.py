@@ -77,14 +77,14 @@ def liouvillian_fast(H, c_op_list):
     L=Qobj()
     L.dims=[[H.dims[0][:],d[:]],[H.dims[1][:],d[:]]]
     L.shape=[prod(L.dims[0][0])*prod(L.dims[0][1]),prod(L.dims[1][0])*prod(L.dims[1][1])]
-    L.data = -1j *(sp.kron(sp.identity(prod(d)), H.data) - sp.kron(H.data.T,sp.identity(prod(d))))
+    L.data = -1j *(sp.kron(sp.identity(prod(d)), H.data,format='csr') - sp.kron(H.data.T,sp.identity(prod(d)),format='csr'))
 
     n_op = len(c_op_list)
     for m in range(0, n_op):
-        L.data = L.data + sp.kron(sp.identity(prod(d)), c_op_list[m].data) * sp.kron(c_op_list[m].data.T.conj().T,sp.identity(prod(d)))
+        L.data = L.data + sp.kron(sp.identity(prod(d)), c_op_list[m].data,format='csr') * sp.kron(c_op_list[m].data.T.conj().T,sp.identity(prod(d)),format='csr')
         cdc = c_op_list[m].data.T.conj()*c_op_list[m].data
-        L.data = L.data - 0.5 * sp.kron(sp.identity(prod(d)), cdc)
-        L.data = L.data - 0.5 * sp.kron(cdc.T,sp.identity(prod(d)))
+        L.data = L.data - 0.5 * sp.kron(sp.identity(prod(d)), cdc,format='csr')
+        L.data = L.data - 0.5 * sp.kron(cdc.T,sp.identity(prod(d)),format='csr')
     return L
 
 
