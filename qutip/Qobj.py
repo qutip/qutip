@@ -36,7 +36,8 @@ import qutip.settings as qset
 from qutip.ptrace import _ptrace
 from qutip.istests import ischeck,isket,isbra,isoper,issuper
 from qutip.istests import isherm as hermcheck
-from qutip.sparse import *
+from qutip.sparse import (sp_eigs,_sp_expm,_sp_fro_norm,_sp_max_norm,_sp_one_norm,
+							_sp_L2_norm,_sp_inf_norm)
 
 
 class Qobj():
@@ -115,7 +116,7 @@ class Qobj():
     """
     ################## Define Qobj class #################
     __array_priority__=100 #sets Qobj priority above numpy arrays
-    def __init__(self,inpt=array([[0]]),dims=[[],[]],shape=[],type=None,isherm=None,fast=False):
+    def __init__(self,inpt=np.array([[0]]),dims=[[],[]],shape=[],type=None,isherm=None,fast=False):
         """
         Qobj constructor.
         """
@@ -149,7 +150,7 @@ class Qobj():
         else:#if input is NOT Qobj
             #if input is int, float, or complex then convert to array
             if isinstance(inpt,(int,float,complex,np.int64)):
-                inpt=array([[inpt]])
+                inpt=np.array([[inpt]])
             #case where input is array or sparse
             if (isinstance(inpt,np.ndarray)) or sp.issparse(inpt):
                 self.data=sp.csr_matrix(inpt,dtype=complex) #data stored as space array
@@ -162,10 +163,10 @@ class Qobj():
                 else:
                     self.shape=shape
             elif isinstance(inpt,list):# case where input is not array or sparse, i.e. a list
-                if len(array(inpt).shape)==1:#if list has only one dimension (i.e [5,4])
-                    inpt=array([inpt])
+                if len(np.array(inpt).shape)==1:#if list has only one dimension (i.e [5,4])
+                    inpt=np.array([inpt])
                 else:#if list has two dimensions (i.e [[5,4]])
-                    inpt=array(inpt)
+                    inpt=np.array(inpt)
                 self.data=sp.csr_matrix(inpt,dtype=complex)
                 if not any(dims):
                     self.dims=[[int(inpt.shape[0])],[int(inpt.shape[1])]]
@@ -177,7 +178,7 @@ class Qobj():
                     self.shape=shape
             else:
                 print("Warning: Initializing Qobj from unsupported type")
-                inpt=array([[0]])
+                inpt=np.array([[0]])
                 self.data=sp.csr_matrix(inpt,dtype=complex)
                 self.dims=[[int(inpt.shape[0])],[int(inpt.shape[1])]]
                 self.shape=[int(inpt.shape[0]),int(inpt.shape[1])]        
@@ -208,7 +209,7 @@ class Qobj():
         if not isinstance(other, Qobj):
             other=Qobj(other)
         if np.prod(other.shape)==1 and np.prod(self.shape)!=1: #case for scalar quantum object
-            dat=array(other.full())[0][0]
+            dat=np.array(other.full())[0][0]
             if dat!=0:
                 out=Qobj(type=self.type)
                 if self.type in ['oper','super']:
@@ -228,7 +229,7 @@ class Qobj():
             else: #if other qobj is zero object
                 return self
         elif np.prod(self.shape)==1 and np.prod(other.shape)!=1:#case for scalar quantum object
-            dat=array(self.full())[0][0]
+            dat=np.array(self.full())[0][0]
             if dat!=0:
                 out=Qobj()
                 if other.type in ['oper','super']:
@@ -257,7 +258,7 @@ class Qobj():
             out.dims=self.dims
             out.shape=self.shape
             isherm=None
-            if self.type in array(['ket','bra','super']):
+            if self.type in np.array(['ket','bra','super']):
                 isherm=False
             elif self.isherm==other.isherm==True:
                 isherm==True
@@ -318,7 +319,7 @@ class Qobj():
                 raise TypeError("Incompatible Qobj shapes")
 
         if isinstance(other, (list,np.ndarray)): # if other is a list, do element-wise multiplication
-            return array([self * item for item in other])
+            return np.array([self * item for item in other])
 
         if _checkeseries(other)=='eseries':
             return other.__rmul__(self)
@@ -358,7 +359,7 @@ class Qobj():
                 raise TypeError("Incompatible Qobj shapes")
 
         if isinstance(other, (list,np.ndarray)): # if other is a list, do element-wise multiplication
-            return array([item*self for item in other])
+            return np.array([item*self for item in other])
 
         if _checkeseries(other)=='eseries':
             return other.__mul__(self)
@@ -435,7 +436,7 @@ class Qobj():
         EQUALITY operator.
         """
         if isinstance(other,Qobj) and self.dims == other.dims and \
-           self.shape == other.shape and abs(sp_max_norm(self-other))<1e-14:
+           self.shape == other.shape and abs(_sp_max_norm(self-other))<1e-14:
             return True
         else:
             return False
@@ -470,7 +471,7 @@ class Qobj():
             s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type+"\n"
         s += "Qobj data =\n"
         if all(np.imag(self.data.data)==0):
-            s += str(real(self.full()))
+            s += str(np.real(self.full()))
         else:
             s += str(self.full())
         return s
@@ -493,7 +494,7 @@ class Qobj():
             s += "Quantum object: " + "dims = " + str(self.dims) + ", shape = " + str(self.shape)+", type = "+self.type
         s += r'}\\[1em]'
 
-        d = real(self.full()) if all(np.imag(self.data.data)==0) else self.full()
+        d = np.real(self.full()) if all(np.imag(self.data.data)==0) else self.full()
         M,N = shape(d)    
 
         s += r'\begin{pmatrix}'
@@ -591,15 +592,15 @@ class Qobj():
                 vals=sp_eigs(self,vecs=False,sparse=sparse,tol=tol,maxiter=maxiter)
                 return sum(sqrt(abs(vals)**2))
             elif oper_norm=='fro':
-                return sp_fro_norm(self)
+                return _sp_fro_norm(self)
             elif oper_norm=='one':
-                return sp_one_norm(self)
+                return _sp_one_norm(self)
             elif oper_norm=='max':
-                return sp_max_norm(self)
+                return _sp_max_norm(self)
             else:
                 raise ValueError("Operator norm must be 'tr', 'fro', 'one', or 'max'.")
         else:
-            return sp_L2_norm(self)
+            return _sp_L2_norm(self)
 
     def tr(self):
         """The trace of a quantum object.
@@ -611,7 +612,7 @@ class Qobj():
         
         """
         if self.isherm==True:
-            return float(real(sum(self.data.diagonal())))
+            return float(np.real(sum(self.data.diagonal())))
         else:
             return complex(sum(self.data.diagonal()))
 
@@ -624,7 +625,7 @@ class Qobj():
             Array of complex data from quantum objects `data` attribute.
         
         """
-        return array(self.data.todense())
+        return np.array(self.data.todense())
 
     def diag(self):
         """Diagonal elements of Qobj.
@@ -640,7 +641,7 @@ class Qobj():
         if any(np.imag(out)>1e-15) or self.isherm==False:
             return out
         else:
-            return real(out)
+            return np.real(out)
 
     def expm(self):
         """Matrix exponential of quantum operator.
@@ -659,7 +660,7 @@ class Qobj():
         
         """
         if self.dims[0][0]==self.dims[1][0]:
-            F = sp_expm(self)
+            F = _sp_expm(self)
             out = Qobj(F, dims=self.dims, shape=self.shape)
             return out.tidyup() if qset.auto_tidyup else out
         else:
@@ -802,11 +803,6 @@ class Qobj():
         else:
             outdata=sp.csr_matrix((self.shape[0],self.shape[1]),dtype=complex)
        
-        # this commented code breaks the ode solver, giving diverging results 
-        #real_inds=where(abs(np.imag(outdata.data))<1e-15)
-        #imag_inds=where(abs(real(outdata.data))<1e-15)
-        #outdata.data[real_inds]=real(outdata.data[real_inds])
-        #outdata.data[imag_inds]=np.imag(outdata.data[imag_inds])
         outdata.eliminate_zeros()
         return Qobj(outdata,dims=self.dims,shape=self.shape,type=self.type,isherm=self.isherm)
 
@@ -965,8 +961,8 @@ class Qobj():
         evals,evecs = sp_eigs(self,sparse=sparse,sort=sort,eigvals=eigvals,tol=tol,maxiter=maxiter)
         new_dims  = [self.dims[0], [1] * len(self.dims[0])]
         new_shape = [self.shape[0], 1]
-        ekets = array([Qobj(vec, dims=new_dims, shape=new_shape) for vec in evecs])
-        norms=array([ket.norm() for ket in ekets])
+        ekets = np.array([Qobj(vec, dims=new_dims, shape=new_shape) for vec in evecs])
+        norms=np.array([ket.norm() for ket in ekets])
         return evals, ekets/norms
 
     #

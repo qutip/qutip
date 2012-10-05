@@ -32,7 +32,7 @@ from qutip.istests import *
 from qutip.superoperator import *
 from qutip.operators import qeye
 from qutip.rand import rand_ket
-from qutip.sparse import sp_inf_norm
+from qutip.sparse import _sp_inf_norm
 import qutip.settings as qset
 
 def steadystate(H, c_op_list,maxiter=100,tol=1e-6,method='solve'):
@@ -121,7 +121,7 @@ def steady(L,maxiter=100,tol=1e-6,method='solve'):
 		rhoss.dims=[L.dims[0],1]
 		rhoss.shape=[prod(rhoss.dims[0]),1]
 	n=prod(rhoss.shape)
-	L1=L.data+eps*sp_inf_norm(L)*sp.eye(n,n,format='csr')
+	L1=L.data+eps*_sp_inf_norm(L)*sp.eye(n,n,format='csr')
 	v=randn(n,1)
 	it=0
 	while (la.norm(L.data*v,np.inf)>tol) and (it<maxiter):

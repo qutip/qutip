@@ -188,6 +188,7 @@ from qutip.expect import *
 from qutip.superoperator import *
 from qutip.tensor import *
 from qutip.parfor import *
+from qutip.sparse import sp_eigs
 import qutip.settings
 
 # graphics
@@ -199,7 +200,6 @@ if qutip.settings.qutip_graphics=='YES':
 
 # library functions
 from qutip.wigner import *
-
 from qutip.rand import *
 from qutip.simdiag import *
 from qutip.clebsch import clebsch

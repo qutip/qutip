@@ -50,9 +50,9 @@ def expect(oper,state):
         return single_expect(oper,state)
     elif isinstance(state,np.ndarray) or isinstance(state,list):
         if oper.isherm and all([(op.isherm or op.type=='ket') for op in state]):
-            return array([single_expect(oper,x) for x in state])
+            return np.array([single_expect(oper,x) for x in state])
         else:
-            return array([single_expect(oper,x) for x in state],dtype=complex)
+            return np.array([single_expect(oper,x) for x in state],dtype=complex)
 
 
 def single_expect(oper,state):
@@ -66,7 +66,7 @@ def single_expect(oper,state):
                 prod = oper.data*state.data
                 tr=sum(prod.diagonal()) #sum of diagonal elements
                 if oper.isherm and state.isherm: #if hermitian
-                    return float(real(tr))
+                    return float(np.real(tr))
                 else: #not hermitian
                     return tr
             elif state.type=='ket':
@@ -74,7 +74,7 @@ def single_expect(oper,state):
                 #prod = state.data.conj().T * (oper.data * state.data)
                 prod = state.data.conj().T.dot(oper.data * state.data)
                 if oper.isherm:
-                    return float(real(prod[0,0]))
+                    return float(np.real(prod[0,0]))
                 else:
                     return prod[0,0]
         else:
@@ -87,12 +87,12 @@ def single_expect(oper,state):
         if isoper(state.ampl[0]):
 
             out.rates = state.rates
-            out.ampl = array([expect(oper, a) for a in state.ampl])
+            out.ampl = np.array([expect(oper, a) for a in state.ampl])
 
         else:
 
-            out.rates = array([])
-            out.ampl  = array([])
+            out.rates = np.array([])
+            out.ampl  = np.array([])
 
             for m in range(len(state.rates)):
 
@@ -105,8 +105,8 @@ def single_expect(oper,state):
                     if isinstance(a, sp.spmatrix):
                         a = a.todense()
 
-                    out.rates = append(out.rates, state.rates[n] - state.rates[m])
-                    out.ampl  = append(out.ampl, a)
+                    out.rates = np.append(out.rates, state.rates[n] - state.rates[m])
+                    out.ampl  = np.append(out.ampl, a)
 
         return out
     else:# unsupported types
