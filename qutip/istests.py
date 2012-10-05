@@ -130,10 +130,8 @@ def isequal(A,B,tol=1e-15):
     ----------    
     A : qobj 
         Qobj one
-    
     B : qobj 
         Qobj two
-    
     tol : float
         Tolerence for equality to be valid
     

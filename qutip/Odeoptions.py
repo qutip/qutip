@@ -67,9 +67,6 @@ class Odeoptions():
         Avg. expectation values in mcsolver.
     rhs_reuse : bool {False,True}
         Reuse Hamiltonian data.
-    
-    Other Parameters
-    ----------------
     rhs_filename : str
         Name for compiled Cython file. 
     

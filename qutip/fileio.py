@@ -38,9 +38,6 @@ def file_data_store(filename, data, numtype="complex", numformat="decimal", sep=
         Type of numerical data.
     numformat : str {'decimal','exp'}
         Format for written data.
-    
-    Other Parameters
-    ----------------
     sep : str
         Single-character field seperator.  Usually a tab, space, comma, or semicolon.
         
@@ -123,9 +120,6 @@ def file_data_read(filename, sep=None):
     ----------
     filename : str
         Name of file containing reqested data.
-    
-    Other Parameters
-    ----------------
     sep : str
         Seperator used to store data.
     

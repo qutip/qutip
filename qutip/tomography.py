@@ -33,9 +33,6 @@ def _index_permutations(size_list, perm=[]):
     ----------
     size_list : list
         A list that contains the sizes for each composite system.
-        
-    Other Parameters
-    ----------------
     perm : list
         A list of permutations
     
@@ -62,12 +59,8 @@ def qpt_plot(chi, lbls_list, title=None, fig=None):
     ----------
     chi : array
         Input QPT chi matrix. 
-
     lbls_list : list
         List of labels for QPT plot axes.
-    
-    Other Parameters
-    ----------------
     title : string
         Plot title.
     fig : figure instance
@@ -105,12 +98,8 @@ def qpt_plot_combined(chi, lbls_list, title=None, fig=None):
     ----------
     chi : array
         Input QPT chi matrix. 
-
     lbls_list : list
         List of labels for QPT plot axes.
-    
-    Other Parameters
-    ----------------
     title : string
         Plot title.
     fig : figure instance

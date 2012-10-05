@@ -42,18 +42,14 @@ def rand_herm(N,density=0.75,dims=None):
         Shape of output quantum operator.
     density : float
         Density etween [0,1] of output Hermitian operator.
+    dims : list 
+        Dimensions of quantum object.  Used for specifying
+        tensor structure. Default is dims=[[N],[N]].
     
     Returns
     -------
     oper : qobj
         NxN Hermitian quantum operator.
-        
-    Other Parameters
-    ----------------
-    dims : list 
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[N]].
-    
     
     """
     if dims:
@@ -86,18 +82,14 @@ def rand_unitary(N,density=0.75,dims=None):
         Shape of output quantum operator.
     density : float
         Density between [0,1] of output Unitary operator.
+    dims : list 
+        Dimensions of quantum object.  Used for specifying
+        tensor structure. Default is dims=[[N],[N]].
     
     Returns
     -------
     oper : qobj
         NxN Unitary quantum operator.
-        
-    Other Parameters
-    ----------------
-    dims : list 
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[N]].
-    
     
     """
     if dims:
@@ -118,18 +110,14 @@ def rand_ket(N,density=1,dims=None):
         Number of rows for output quantum operator.
     density : float
         Density between [0,1] of output ket state.
+    dims : list 
+        Dimensions of quantum object.  Used for specifying
+        tensor structure. Default is dims=[[N],[1]].
     
     Returns
     -------
     oper : qobj
         Nx1 ket state quantum operator.
-        
-    Other Parameters
-    ----------------
-    dims : list 
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[1]].
-    
     
     """
     if dims:
@@ -155,23 +143,20 @@ def rand_dm(N,density=0.75,pure=False,dims=None):
         Shape of output density matrix.
     density : float
         Density etween [0,1] of output density matrix.
+    dims : list 
+        Dimensions of quantum object.  Used for specifying
+        tensor structure. Default is dims=[[N],[N]].
+        
     
     Returns
     -------
     oper : qobj
         NxN density matrix quantum operator.
     
-    Other Parameters
-    ----------------
-    dims : list 
-        Dimensions of quantum object.  Used for specifying
-        tensor structure. Default is dims=[[N],[N]].
-    
     Notes
     -----
     For small density matricies, choosing a low density will result in an error
     as no diagonal elements will be generated such that :math:`Tr(\\rho)=1`.
-    
     
     """
     if dims:

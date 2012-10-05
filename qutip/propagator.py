@@ -43,16 +43,11 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
     H : qobj or list
         Hamiltonian as a Qobj instance of a nested list of Qobjs and 
         coefficients in the list-string or list-function format for
-        time-dependent Hamiltonians (see description in :func:`qutip.mesolve`).
-        
+        time-dependent Hamiltonians (see description in :func:`qutip.mesolve`).  
     t : float or array-like 
-        Time or list of times for which to evaluate the propagator.
-        
+        Time or list of times for which to evaluate the propagator.   
     c_op_list : list 
         List of qobj collapse operators.
-        
-    Other Parameters
-    ----------------
     H_args : list/array/dictionary 
         Parameters to callback functions for time-dependent Hamiltonians.
     

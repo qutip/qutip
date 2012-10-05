@@ -71,9 +71,6 @@ def tracedist(A,B,sparse=False,tol=0):
         Density matrix.
     B : qobj:
         Density matrix with same dimensions as A.
-        
-    Other Parameters
-    ----------------
     tol : float 
         Tolerance used by sparse eigensolver. (0=Machine precision)
     sparse : {False, True}

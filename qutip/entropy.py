@@ -36,9 +36,6 @@ def entropy_vn(rho,base=e,sparse=False):
         Density matrix.
     base : {e,2} 
         Base of logarithm.
-    
-    Other Parameters
-    ----------------
     sparse : {False,True}
         Use sparse eigensolver.
     
@@ -140,9 +137,6 @@ def entropy_mutual(rho,selA,selB,base=e,sparse=False):
         `int` or `list` of second selected density matrix components.
     base : {e,2} 
         Base of logarithm.
-    
-    Other Parameters
-    ----------------
     sparse : {False,True}
         Use sparse eigensolver.
     
@@ -220,9 +214,6 @@ def entropy_conditional(rho,selB,base=e,sparse=False):
         Selected components for density matrix B
     base : {e,2} 
         Base of logarithm.
-
-    Other Parameters
-    ----------------
     sparse : {False,True}
         Use sparse eigensolver.
     

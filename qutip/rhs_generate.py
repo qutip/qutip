@@ -61,16 +61,13 @@ def rhs_generate(H,c_ops,args={},options=Odeoptions(),name=None):
         ``list`` of collapse operators.
     args : dict
         Arguments for time-dependent Hamiltonian and collapse operator terms.
-    
-    Other Parameters
-    ----------------
     options : Odeoptions
         Instance of ODE solver options.
     name: str
         Name of generated RHS
     
-    Note
-    ----
+    Notes
+    -----
     Using this function with any solver other than the mesolve function
     will result in an error.
     
