@@ -32,8 +32,8 @@ def simdiag(ops,evals=True):
     Returns
     --------
     eigs : tuple
-    Tuple of arrays representing eigvecs and eigvals of quantum objects 
-    corresponding to simultaneous eigenvectors and eigenvalues for each operator.
+		Tuple of arrays representing eigvecs and eigvals of quantum objects 
+		corresponding to simultaneous eigenvectors and eigenvalues for each operator.
     
     """
     tol=1e-14
@@ -117,7 +117,7 @@ def degen(tol,in_vecs,ops):
         inds=np.array(abs(ds-ds[k])<max(tol,tol*abs(ds[k])))#get indicies of degenerate eigvals 
         inds=rng[inds]
         if len(inds)>1:#if at least 2 eigvals are degenerate
-            vecs_out[inds]=degen(tol,vecs_out[inds],array([ops[jj] for jj in range(1,n)]))
+            vecs_out[inds]=degen(tol,vecs_out[inds],np.array([ops[jj] for jj in range(1,n)]))
         k=max(inds)+1
     return vecs_out
 
