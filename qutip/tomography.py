@@ -50,7 +50,7 @@ def _index_permutations(size_list, perm=[]):
             for ip in _index_permutations(size_list[1:], perm + [n]):
                 yield ip
 
-def qpt_plot(chi, lbls_list, title=None, fig=None):
+def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
     """
     Visualize the quantum process tomography chi matrix. Plot the real and
     imaginary parts separately.
@@ -65,31 +65,38 @@ def qpt_plot(chi, lbls_list, title=None, fig=None):
         Plot title.
     fig : figure instance
         User defined figure instance used for generating QPT plot.
+    axes : list of figure axis instance
+        User defined figure axis instance (list of two axes) used for
+        generating QPT plot.
     
     Returns
     -------
     An matplotlib figure instance for the plot. 
     
     """
-    if fig == None:
-        fig = figure(figsize=(16,8))
+
+    if axes is None or len(axes) != 2:
+        if fig == None:
+            fig = figure(figsize=(16,8))
+
+        ax1 = fig.add_subplot(1,2,1, projection='3d', position=[0, 0, 1, 1])
+        ax2 = fig.add_subplot(1,2,2, projection='3d', position=[0, 0, 1, 1])
+
+        axes = [ax1, ax2]
 
     xlabels = []
     for inds in _index_permutations([len(lbls) for lbls in lbls_list]):
         xlabels.append("".join([lbls_list[k][inds[k]] for k in range(len(lbls_list))]))        
 
-    ax = fig.add_subplot(1,2,1, projection='3d', position=[0, 0, 1, 1])
-    matrix_histogram(real(chi), xlabels, xlabels, title=r"real($\chi$)", limits=[-1,1], ax=ax)
+    matrix_histogram(real(chi), xlabels, xlabels, title=r"real($\chi$)", limits=[-1,1], ax=axes[0])
+    matrix_histogram(imag(chi), xlabels, xlabels, title=r"imag($\chi$)", limits=[-1,1], ax=axes[1])
 
-    ax = fig.add_subplot(1,2,2, projection='3d', position=[0, 0, 1, 1])
-    matrix_histogram(imag(chi), xlabels, xlabels, title=r"imag($\chi$)", limits=[-1,1], ax=ax)
-
-    if title:
+    if title and fig:
         fig.suptitle(title)
 
     return fig
 
-def qpt_plot_combined(chi, lbls_list, title=None, fig=None):
+def qpt_plot_combined(chi, lbls_list, title=None, fig=None, ax=None):
     """
     Visualize the quantum process tomography chi matrix. Plot bars with
     height and color corresponding to the absolute value and phase, respectively.
@@ -104,14 +111,20 @@ def qpt_plot_combined(chi, lbls_list, title=None, fig=None):
         Plot title.
     fig : figure instance
         User defined figure instance used for generating QPT plot.
+    ax : figure axis instance
+        User defined figure axis instance used for generating QPT plot
+        (alternative to the fig argument).
     
     Returns
     -------
     An matplotlib figure instance for the plot.
     
     """
-    if fig == None:
-        fig = figure(figsize=(8,6))
+
+    if ax is None:
+        if fig is None:
+            fig = figure(figsize=(8,6))
+        ax = fig.add_subplot(1,1,1, projection='3d', position=[0, 0, 1, 1])
 
     xlabels = []
     for inds in _index_permutations([len(lbls) for lbls in lbls_list]):
@@ -119,8 +132,6 @@ def qpt_plot_combined(chi, lbls_list, title=None, fig=None):
 
     if not title:
         title = r"$\chi$"
-
-    ax = fig.add_subplot(1,1,1, projection='3d', position=[0, 0, 1, 1])
 
     matrix_histogram_complex(chi, xlabels, xlabels, title=title, ax=ax)
 
