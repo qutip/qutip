@@ -88,7 +88,12 @@ def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[], args={}, options=O
     output = Odedata()
     output.times = tlist
 
-    output.expect = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops, options)
+    result = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops, options)
+
+    if len(e_ops):
+        output.expect = results
+    else:
+        output.states = results
 
     return output
 
