@@ -67,28 +67,16 @@ CLASSIFIERS         = [_f for _f in CLASSIFIERS.split('\n') if _f]
 PLATFORMS           = ["Linux", "Mac OSX", "Unix"]
 
 
-
-def svn_version():
-    entries_path = 'qutip/.svn/entries'
-    try: 
-        entries = open(entries_path, 'r').read()
-        if re.match('(\d+)', entries):
-            rev_match = re.search('\d+\s+dir\s+(\d+)', entries)
-            if rev_match:
-                rev = rev_match.groups()[0]
-            return str(rev)
-        else:
-            return ""
+def git_short_hash():
+    try:
+        return "-" + os.popen('git log -1 --format="%h"').read().strip()
     except:
         return ""
 
 FULLVERSION = VERSION
 if not ISRELEASED:
     FULLVERSION += '.dev'
-    # If in git or something, bypass the svn rev
-    if os.path.exists('.svn'):
-        FULLVERSION += svn_version()
- 
+    FULLVERSION += git_short_hash()
 
 def write_version_py(filename='qutip/_version.py'):
         cnt = """\
@@ -190,34 +178,6 @@ class CleanCommand(Command):
         else:
             print("Removed all pyc files.")
 
-#------ clean command for removing .svn directories ------------#
-
-class CleanSVNCommand(Command):
-    user_options = [ ]
-
-    def initialize_options(self):
-        self._clean_me = [ ]
-        for root, dirs, files in os.walk('.'):
-            for d in dirs:
-                if d.endswith('.svn'):
-                    self._clean_me.append(pjoin(root, d))
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        svn_rm=0
-        for clean_me in self._clean_me:
-            try:
-                shutil.rmtree(clean_me)
-            except:
-                svn_rm+=1
-        if svn_rm>0:
-            print("Could not remove "+str(svn_rm)+" svn directories.")
-        else:
-            print("Removed all SVN directories.")
-
-
 #remove needless error warnings for released version.
 if ISRELEASED:
     os.environ['CFLAGS'] = '-w'
@@ -242,7 +202,6 @@ def configuration(parent_package='',top_path=None):
 #--------- Setup commands go here ----------------#
 setup(
     name = NAME,
-    version =FULLVERSION,
     packages = PACKAGES,
     include_dirs = INCLUDE_DIRS,
     ext_modules=EXT_MODULES,
@@ -257,7 +216,7 @@ setup(
     platforms = PLATFORMS,
     requires=REQUIRES,
     package_data=PACKAGE_DATA,
-    cmdclass = { 'test': TestCommand,'devtest': TestHereCommand, 'clean': CleanCommand, 'svnclean': CleanSVNCommand },
+    cmdclass = { 'test': TestCommand,'devtest': TestHereCommand, 'clean': CleanCommand },
     configuration=configuration
     )
 
