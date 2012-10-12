@@ -36,7 +36,7 @@ def demos():
     exconfig.is_green=0
     exconfig.cmd_screen=1
     if qutip.settings.qutip_gui!='NONE':
-        from gui import Examples
+        from qutip.gui import Examples
         if qutip.settings.qutip_gui=="PYSIDE":
             from PySide import QtGui, QtCore
         elif qutip.settings.qutip_gui=="PYQT4":

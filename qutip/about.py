@@ -35,7 +35,7 @@ def about():
     GUI version requires PySide or PyQt4.
     """
     if qutip.settings.qutip_graphics=='YES' and qutip.settings.qutip_gui!="NONE":
-        from gui import AboutBox
+        from qutip.gui import AboutBox
         import matplotlib
         if qutip.settings.qutip_gui=="PYSIDE":
             from PySide import QtGui, QtCore

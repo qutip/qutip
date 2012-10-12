@@ -1,3 +1,3 @@
 #from ProgressBar import *
-from AboutBox import AboutBox
-from Examples import Examples
+from qutip.gui.AboutBox import AboutBox
+from qutip.gui.Examples import Examples
