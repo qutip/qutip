@@ -43,9 +43,9 @@ import numpy as np
 import scipy
 from scipy.linalg import norm
 
-from qutip.Odedata import Odedata
+from qutip.odedata import Odedata
 from qutip.expect import expect
-from qutip.Qobj import Qobj
+from qutip.qobj import Qobj
 from qutip.superoperator import spre, spost, mat2vec, vec2mat, liouvillian
 from qutip.cyQ.cy_mc_funcs import mc_expect, spmv
 

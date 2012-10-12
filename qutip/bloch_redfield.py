@@ -21,15 +21,15 @@ import numpy as np
 import scipy.integrate
 
 import qutip.odeconfig
-from qutip.Qobj import Qobj
+from qutip.qobj import Qobj
 from qutip.superoperator import *
 from qutip.expect import expect
 from qutip.states import *
-from qutip.Odeoptions import Odeoptions
+from qutip.odeoptions import Odeoptions
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
-from qutip.Odedata import Odedata
+from qutip.odedata import Odedata
 
 
 #-------------------------------------------------------------------------------
@@ -48,19 +48,19 @@ def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[], args={}, options=O
     Parameters
     ----------
     
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.qobj`
         System Hamiltonian.
         
-    rho0 / psi0: :class:`qutip.Qobj`
+    rho0 / psi0: :class:`qutip.qobj`
         Initial density matrix or state vector (ket).
      
     tlist : *list* / *array*    
         List of times for :math:`t`.
         
-    c_ops : list of :class:`qutip.Qobj`
+    c_ops : list of :class:`qutip.qobj`
         List of collapse operators.
     
-    expt_ops : list of :class:`qutip.Qobj` / callback function
+    expt_ops : list of :class:`qutip.qobj` / callback function
         List of operators for which to evaluate expectation values.
      
     args : *dictionary*
@@ -73,9 +73,9 @@ def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[], args={}, options=O
     Returns
     -------
 
-    output: :class:`qutip.Odedata`
+    output: :class:`qutip.odedata`
 
-        An instance of the class :class:`qutip.Odedata`, which contains either
+        An instance of the class :class:`qutip.odedata`, which contains either
         an *array* of expectation values for the times specified by `tlist`.
     """
 
@@ -110,19 +110,19 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     Parameters
     ----------
     
-    R : :class:`qutip.Qobj`
+    R : :class:`qutip.qobj`
         Bloch-Redfield tensor.
 
-    ekets : array of :class:`qutip.Qobj`
+    ekets : array of :class:`qutip.qobj`
         Array of kets that make up a basis tranformation for the eigenbasis.
 
-    rho0 : :class:`qutip.Qobj`
+    rho0 : :class:`qutip.qobj`
         Initial density matrix.
                 
     tlist : *list* / *array*    
         List of times for :math:`t`.
         
-    e_ops : list of :class:`qutip.Qobj` / callback function
+    e_ops : list of :class:`qutip.qobj` / callback function
         List of operators for which to evaluate expectation values.
     
     options : :class:`qutip.Qdeoptions`
@@ -131,9 +131,9 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     Returns
     -------
 
-    output: :class:`qutip.Odedata`
+    output: :class:`qutip.odedata`
 
-        An instance of the class :class:`qutip.Odedata`, which contains either
+        An instance of the class :class:`qutip.odedata`, which contains either
         an *array* of expectation values for the times specified by `tlist`.
 
     """
@@ -228,10 +228,10 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
     Parameters
     ----------
     
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.qobj`
         System Hamiltonian.
                 
-    c_ops : list of :class:`qutip.Qobj`
+    c_ops : list of :class:`qutip.qobj`
         List of collapse operators.
     
     spectra_cb : list of callback functions
@@ -245,7 +245,7 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
     Returns
     -------
 
-    R, kets: :class:`qutip.Qobj`, list of :class:`qutip.Qobj`
+    R, kets: :class:`qutip.qobj`, list of :class:`qutip.qobj`
 
         R is the Bloch-Redfield tensor and kets is a list eigenstates of the
         Hamiltonian.

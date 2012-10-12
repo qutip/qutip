@@ -18,7 +18,7 @@
 ###########################################################################
 from numpy import sqrt, array, exp
 from qutip.states import qstate, state_number_index, state_number_enumerate
-from qutip.Qobj import Qobj
+from qutip.qobj import Qobj
 
 def cnot():
     """

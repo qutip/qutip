@@ -19,8 +19,8 @@
 import pickle
 import numpy as np
 
-from qutip.Qobj import Qobj
-from qutip.Odedata import Odedata
+from qutip.qobj import Qobj
+from qutip.odedata import Odedata
 
 # ------------------------------------------------------------------------------
 # Write matrix data to a file

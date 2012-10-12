@@ -23,15 +23,15 @@ import scipy
 from scipy import angle, pi, exp, sqrt
 from types import FunctionType
 from qutip.istests import isket
-from qutip.Qobj import Qobj
+from qutip.qobj import Qobj
 from qutip.superoperator import vec2mat_index, mat2vec, vec2mat
 from qutip.mesolve import mesolve
 from qutip.steady import steadystate
 from qutip.states import basis, ket2dm
 from qutip.states import projection
-from qutip.Odeoptions import Odeoptions
+from qutip.odeoptions import Odeoptions
 from qutip.propagator import propagator
-from qutip.Odedata import Odedata
+from qutip.odedata import Odedata
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 
 def floquet_modes(H, T, args=None, sort=False):
@@ -39,7 +39,7 @@ def floquet_modes(H, T, args=None, sort=False):
     Calculate the initial Floquet modes Phi_alpha(0) for a driven system with
     period T.
     
-    Returns a list of :class:`qutip.Qobj` instances representing the Floquet
+    Returns a list of :class:`qutip.qobj` instances representing the Floquet
     modes and a list of corresponding quasienergies, sorted by increasing
     quasienergy in the interval [-pi/T, pi/T]. The optional parameter `sort`
     decides if the output is to be sorted in increasing quasienergies or not.
@@ -47,7 +47,7 @@ def floquet_modes(H, T, args=None, sort=False):
     Parameters
     ----------
     
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.qobj`
         system Hamiltonian, time-dependent with period `T`
         
     args : dictionary
@@ -102,7 +102,7 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None):
     Parameters
     ----------
     
-    f_modes_0 : list of :class:`qutip.Qobj` (kets)
+    f_modes_0 : list of :class:`qutip.qobj` (kets)
         Floquet modes at :math:`t`
 
     f_energies : list
@@ -111,7 +111,7 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None):
     t : float
         The time at which to evaluate the floquet modes.
 
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.qobj`
         system Hamiltonian, time-dependent with period `T`
         
     args : dictionary
@@ -155,7 +155,7 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
     Parameters
     ----------
     
-    f_modes_0 : list of :class:`qutip.Qobj` (kets)
+    f_modes_0 : list of :class:`qutip.qobj` (kets)
         Floquet modes at :math:`t`
 
     f_energies : list
@@ -164,7 +164,7 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
     tlist : array
         The list of times at which to evaluate the floquet modes.
 
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.qobj`
         system Hamiltonian, time-dependent with period `T`
         
     T : float
@@ -205,7 +205,7 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
     Parameters
     ----------
     
-    f_modes_table_t : nested list of :class:`qutip.Qobj` (kets)
+    f_modes_table_t : nested list of :class:`qutip.qobj` (kets)
         A lookup-table of Floquet modes at times precalculated by
         :func:`qutip.floquet.floquet_modes_table`.
 
@@ -244,7 +244,7 @@ def floquet_states(f_modes_t, f_energies, t):
     Parameters
     ----------
     
-    f_modes_t : list of :class:`qutip.Qobj` (kets)
+    f_modes_t : list of :class:`qutip.qobj` (kets)
         A list of Floquet modes for time :math:`t`.
 
     f_energies : array
@@ -271,7 +271,7 @@ def floquet_states_t(f_modes_0, f_energies, t, H, T, args=None):
     Parameters
     ----------
     
-    f_modes_t : list of :class:`qutip.Qobj` (kets)
+    f_modes_t : list of :class:`qutip.qobj` (kets)
         A list of initial Floquet modes (for time :math:`t=0`).
 
     f_energies : array
@@ -280,7 +280,7 @@ def floquet_states_t(f_modes_0, f_energies, t, H, T, args=None):
     t : float
         The time for which to evaluate the Floquet states.
 
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.qobj`
         System Hamiltonian, time-dependent with period `T`.
         
     T : float
@@ -309,7 +309,7 @@ def floquet_wavefunction(f_modes_t, f_energies, f_coeff, t):
     Parameters
     ----------
     
-    f_modes_t : list of :class:`qutip.Qobj` (kets)
+    f_modes_t : list of :class:`qutip.qobj` (kets)
         A list of initial Floquet modes (for time :math:`t=0`).
 
     f_energies : array
@@ -324,7 +324,7 @@ def floquet_wavefunction(f_modes_t, f_energies, f_coeff, t):
     Returns
     -------
 
-    output : :class:`qutip.Qobj`
+    output : :class:`qutip.qobj`
 
         The wavefunction for the time :math:`t`.
         
@@ -339,7 +339,7 @@ def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None):
     Parameters
     ----------
     
-    f_modes_t : list of :class:`qutip.Qobj` (kets)
+    f_modes_t : list of :class:`qutip.qobj` (kets)
         A list of initial Floquet modes (for time :math:`t=0`).
 
     f_energies : array
@@ -351,7 +351,7 @@ def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None):
     t : float
         The time for which to evaluate the Floquet states.
      
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.qobj`
         System Hamiltonian, time-dependent with period `T`.
         
     T : float
@@ -363,7 +363,7 @@ def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None):
     Returns
     -------
 
-    output : :class:`qutip.Qobj`
+    output : :class:`qutip.qobj`
 
         The wavefunction for the time :math:`t`.
            
@@ -380,13 +380,13 @@ def floquet_state_decomposition(f_states, f_energies, psi):
     Parameters
     ----------
     
-    f_states : list of :class:`qutip.Qobj` (kets)
+    f_states : list of :class:`qutip.qobj` (kets)
         A list of Floquet modes.
 
     f_energies : array
         The Floquet energies.
 
-    psi : :class:`qutip.Qobj`
+    psi : :class:`qutip.qobj`
         The wavefunction to decompose in the Floquet state basis.
                 
     Returns
@@ -414,16 +414,16 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, args, J_cb,
     Parameters
     ----------
     
-    f_modes_0 : list of :class:`qutip.Qobj` (kets)
+    f_modes_0 : list of :class:`qutip.qobj` (kets)
         A list of initial Floquet modes.
 
     f_energies : array
         The Floquet energies.
 
-    c_op : :class:`qutip.Qobj`
+    c_op : :class:`qutip.qobj`
         The collapse operators describing the dissipation.
 
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.qobj`
         System Hamiltonian, time-dependent with period `T`.
         
     T : float
@@ -442,7 +442,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, args, J_cb,
     k_max : int
         The truncation of the number of sidebands (default 5).
 
-    f_modes_table_t : nested list of :class:`qutip.Qobj` (kets)
+    f_modes_table_t : nested list of :class:`qutip.qobj` (kets)
         A lookup-table of Floquet modes at times precalculated by
         :func:`qutip.floquet.floquet_modes_table` (optional). 
      
@@ -730,19 +730,19 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None, args={}, o
     Parameters
     ----------
     
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.qobj`
         system Hamiltonian.
         
-    rho0 / psi0 : :class:`qutip.Qobj`
+    rho0 / psi0 : :class:`qutip.qobj`
         initial density matrix or state vector (ket).
      
     tlist : *list* / *array*    
         list of times for :math:`t`.
         
-    c_ops : list of :class:`qutip.Qobj`
+    c_ops : list of :class:`qutip.qobj`
         list of collapse operators.
     
-    e_ops : list of :class:`qutip.Qobj` / callback function
+    e_ops : list of :class:`qutip.qobj` / callback function
         list of operators for which to evaluate expectation values.
 
     spectra_cb : list callback functions
@@ -766,15 +766,15 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None, args={}, o
         >>> kB = 1.38e-23
         >>> args['w_th'] = temperature * (kB / h) * 2 * pi * 1e-9
      
-    options : :class:`qutip.Odeoptions`
+    options : :class:`qutip.odeoptions`
         options for the ODE solver.
 
     Returns
     -------
 
-    output : :class:`qutip.Odedata`
+    output : :class:`qutip.odedata`
 
-        An instance of the class :class:`qutip.Odedata`, which contains either
+        An instance of the class :class:`qutip.odedata`, which contains either
         an *array* of expectation values for the times specified by `tlist`.
     """
 

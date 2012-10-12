@@ -18,7 +18,7 @@
 ###########################################################################
 
 from qutip.eseries import *
-from qutip.Qobj import *
+from qutip.qobj import *
 from qutip.istests import *
 import numpy as np
 import scipy.sparse as sp

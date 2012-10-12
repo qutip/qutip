@@ -19,7 +19,7 @@
 
 
 import numpy as np
-from qutip.Qobj import Qobj
+from qutip.qobj import Qobj
 from qutip.eseries import eseries, estidy, esval
 from qutip.expect import expect
 from qutip.superoperator import *

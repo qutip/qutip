@@ -22,19 +22,19 @@ from numpy.random import RandomState,random_integers
 from scipy import arange,array,cumsum,mean,ndarray,setdiff1d,sort,zeros
 from scipy.integrate import ode
 from scipy.linalg import norm
-from qutip.Qobj import *
+from qutip.qobj import *
 from qutip.expect import *
 from qutip.istests import *
 from qutip.states import ket2dm
 from qutip.parfor import parfor
-from qutip.Odeoptions import Odeoptions
+from qutip.odeoptions import Odeoptions
 import qutip.odeconfig as odeconfig
 from multiprocessing import Pool,cpu_count
 from types import FunctionType
 from qutip.cyQ.cy_mc_funcs import mc_expect,spmv,spmv1d
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen
-from qutip.Odedata import Odedata
+from qutip.odedata import Odedata
 from qutip.odechecks import _ode_checks
 import qutip.settings
 from qutip._reset import _reset_odeconfig

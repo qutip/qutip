@@ -20,7 +20,7 @@
 import scipy.linalg as la
 from numpy import e, real, imag, sort, sqrt
 from scipy import log, log2
-from qutip.Qobj import Qobj, ptrace
+from qutip.qobj import Qobj, ptrace
 from qutip.states import ket2dm
 from qutip.tensor import tensor
 from qutip.operators import sigmay

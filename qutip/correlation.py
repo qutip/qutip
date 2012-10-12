@@ -17,7 +17,7 @@
 #
 ###########################################################################
 
-from qutip.Qobj import Qobj
+from qutip.qobj import Qobj
 from qutip.superoperator import *
 from qutip.expect import expect
 from qutip.mesolve import mesolve
@@ -39,22 +39,22 @@ def correlation_ss(H, tlist, c_op_list, a_op, b_op, rho0=None, solver="me"):
     Parameters
     ----------
         
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.qobj`
         system Hamiltonian.
     
     tlist : *list* / *array*    
         list of times for :math:`t`.
     
-    c_op_list : list of :class:`qutip.Qobj`
+    c_op_list : list of :class:`qutip.qobj`
         list of collapse operators.
     
-    a_op : :class:`qutip.Qobj`
+    a_op : :class:`qutip.qobj`
         operator A.
     
-    b_op : :class:`qutip.Qobj`
+    b_op : :class:`qutip.qobj`
         operator B.
 
-    rho0 : :class:`qutip.Qobj`
+    rho0 : :class:`qutip.qobj`
         Optional initial state density matrix (default is the steady state).
             
     solver : str 
@@ -90,10 +90,10 @@ def correlation(H, rho0, tlist, taulist, c_op_list, a_op, b_op, solver="me"):
     Parameters
     ----------
         
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.qobj`
         system Hamiltonian.
 
-    rho0 : :class:`qutip.Qobj`
+    rho0 : :class:`qutip.qobj`
         initial density matrix :math:`\\rho(t_0)`
             
     tlist : *list* / *array*    
@@ -102,13 +102,13 @@ def correlation(H, rho0, tlist, taulist, c_op_list, a_op, b_op, solver="me"):
     taulist : *list* / *array*    
         list of times for :math:`\\tau`.
             
-    c_op_list : list of :class:`qutip.Qobj`
+    c_op_list : list of :class:`qutip.qobj`
         list of collapse operators.
     
-    a_op : :class:`qutip.Qobj`
+    a_op : :class:`qutip.qobj`
         operator A.
     
-    b_op : :class:`qutip.Qobj`
+    b_op : :class:`qutip.qobj`
         operator B.
     
     solver : str
@@ -281,19 +281,19 @@ def spectrum_ss(H, wlist, c_op_list, a_op, b_op):
     Parameters
     ----------
         
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.qobj`
         system Hamiltonian.
             
     wlist : *list* / *array*    
         list of frequencies for :math:`\\omega`.
            
-    c_op_list : list of :class:`qutip.Qobj`
+    c_op_list : list of :class:`qutip.qobj`
         list of collapse operators.
     
-    a_op : :class:`qutip.Qobj`
+    a_op : :class:`qutip.qobj`
         operator A.
     
-    b_op : :class:`qutip.Qobj`
+    b_op : :class:`qutip.qobj`
         operator B.
 
     Returns

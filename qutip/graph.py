@@ -23,7 +23,7 @@ from mpl_toolkits.mplot3d import Axes3D
 
 from qutip.istests import *
 
-from qutip.Qobj import Qobj
+from qutip.qobj import Qobj
 
 #
 # A collection of various visalization functions.

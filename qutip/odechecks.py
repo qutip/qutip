@@ -18,7 +18,7 @@
 ###########################################################################
 import numpy as np
 from types import FunctionType
-from qutip.Qobj import *
+from qutip.qobj import *
 
 
 def _ode_checks(H,c_ops,solver='me'):

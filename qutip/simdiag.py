@@ -16,7 +16,7 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from qutip.Qobj import *
+from qutip.qobj import *
 import numpy as np
 import scipy.linalg as la
 

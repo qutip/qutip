@@ -23,7 +23,7 @@ objects via the tensor product.
 """
 from numpy import ndarray, array
 import scipy.sparse as sp
-from qutip.Qobj import Qobj
+from qutip.qobj import Qobj
 import qutip.settings
 
 def tensor(*args):

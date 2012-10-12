@@ -766,7 +766,7 @@ class Qobj():
         
         Notes
         -----
-        This function is identical to the :func:`qutip.Qobj.ptrace` function that has been
+        This function is identical to the :func:`qutip.qobj.ptrace` function that has been
         depreciated.
         
         """

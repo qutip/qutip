@@ -21,14 +21,14 @@ import types
 import numpy as np
 import scipy.linalg as la
 
-from qutip.Qobj import Qobj
+from qutip.qobj import Qobj
 from qutip.superoperator import vec2mat, mat2vec
 from qutip.mesolve import mesolve
 from qutip.essolve import essolve
 from qutip.steady import steadystate
 from qutip.states import basis
 from qutip.states import projection
-from qutip.Odeoptions import Odeoptions
+from qutip.odeoptions import Odeoptions
 
 def propagator(H, t, c_op_list, H_args=None, opt=None):
     """

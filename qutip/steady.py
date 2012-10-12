@@ -27,7 +27,7 @@ from scipy import prod, finfo, randn
 import scipy.sparse as sp
 import scipy.linalg as la
 from scipy.sparse.linalg import spsolve,bicg
-from qutip.Qobj import *
+from qutip.qobj import *
 from qutip.istests import *
 from qutip.superoperator import *
 from qutip.operators import qeye

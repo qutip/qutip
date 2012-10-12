@@ -22,14 +22,14 @@ import numpy as np
 from scipy.linalg import norm
 import scipy.integrate
 
-from qutip.Qobj import Qobj
+from qutip.qobj import Qobj
 from qutip.superoperator import *
 from qutip.expect import expect
-from qutip.Odeoptions import Odeoptions
+from qutip.odeoptions import Odeoptions
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 from qutip.cyQ.codegen import Codegen, Codegen2
 from qutip.rhs_generate import rhs_generate
-from qutip.Odedata import Odedata
+from qutip.odedata import Odedata
 from qutip.states import ket2dm
 from qutip.odechecks import _ode_checks
 import os,numpy
@@ -65,7 +65,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     
     Alternatively, `H` and `c_ops` can be a specified in a nested-list format
     where each element in the list is a list of length 2, containing an
-    operator (:class:`qutip.Qobj`) at the first element and where the 
+    operator (:class:`qutip.qobj`) at the first element and where the 
     second element is either a string (*list string format*) or a callback
     function (*list callback format*) that evaluates to the time-dependent
     coefficient for the corresponding operator.
@@ -90,32 +90,32 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
    
     .. note:: 
     
-        On using callback function: mesolve transforms all :class:`qutip.Qobj`
+        On using callback function: mesolve transforms all :class:`qutip.qobj`
         objects to sparse matrices before handing the problem to the integrator
         function. In order for your callback function to work correctly, pass
-        all :class:`qutip.Qobj` objects that are used in constructing the
-        Hamiltonian via args. odesolve will check for :class:`qutip.Qobj` in
+        all :class:`qutip.qobj` objects that are used in constructing the
+        Hamiltonian via args. odesolve will check for :class:`qutip.qobj` in
         `args` and handle the conversion to sparse matrices. All other
-        :class:`qutip.Qobj` objects that are not passed via `args` will be
+        :class:`qutip.qobj` objects that are not passed via `args` will be
         passed on to the integrator to scipy who will raise an NotImplemented
         exception.   
    
     Parameters
     ----------
     
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.qobj`
         system Hamiltonian, or a callback function for time-dependent Hamiltonians.
         
-    rho0 : :class:`qutip.Qobj`
+    rho0 : :class:`qutip.qobj`
         initial density matrix or state vector (ket).
      
     tlist : *list* / *array*    
         list of times for :math:`t`.
         
-    c_ops : list of :class:`qutip.Qobj`
+    c_ops : list of :class:`qutip.qobj`
         list of collapse operators.
     
-    expt_ops : list of :class:`qutip.Qobj` / callback function
+    expt_ops : list of :class:`qutip.qobj` / callback function
         list of operators for which to evaluate expectation values.
      
     args : *dictionary*
@@ -127,9 +127,9 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     Returns
     -------
 
-    output: :class:`qutip.Odedata`
+    output: :class:`qutip.odedata`
 
-        An instance of the class :class:`qutip.Odedata`, which contains either
+        An instance of the class :class:`qutip.odedata`, which contains either
         an *array* of expectation values for the times specified by `tlist`, or
         an *array* or state vectors or density matrices corresponding to the
         times in `tlist` [if `expt_ops` is an empty list], or
@@ -1113,19 +1113,19 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, H_args=None, options=None):
     Parameters
     ----------
     
-    H : :class:`qutip.Qobj`
+    H : :class:`qutip.qobj`
         system Hamiltonian, or a callback function for time-dependent Hamiltonians.
         
-    rho0 : :class:`qutip.Qobj`
+    rho0 : :class:`qutip.qobj`
         initial density matrix or state vector (ket).
      
     tlist : *list* / *array*    
         list of times for :math:`t`.
         
-    c_op_list : list of :class:`qutip.Qobj`
+    c_op_list : list of :class:`qutip.qobj`
         list of collapse operators.
     
-    expt_ops : list of :class:`qutip.Qobj` / callback function
+    expt_ops : list of :class:`qutip.qobj` / callback function
         list of operators for which to evaluate expectation values.
      
     H_args : *dictionary*
@@ -1143,13 +1143,13 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, H_args=None, options=None):
 
     Notes
     -----
-    On using callback function: odesolve transforms all :class:`qutip.Qobj`
+    On using callback function: odesolve transforms all :class:`qutip.qobj`
     objects to sparse matrices before handing the problem to the integrator
     function. In order for your callback function to work correctly, pass
-    all :class:`qutip.Qobj` objects that are used in constructing the
-    Hamiltonian via H_args. odesolve will check for :class:`qutip.Qobj` in
+    all :class:`qutip.qobj` objects that are used in constructing the
+    Hamiltonian via H_args. odesolve will check for :class:`qutip.qobj` in
     `H_args` and handle the conversion to sparse matrices. All other
-    :class:`qutip.Qobj` objects that are not passed via `H_args` will be
+    :class:`qutip.qobj` objects that are not passed via `H_args` will be
     passed on to the integrator to scipy who will raise an NotImplemented
     exception.
         

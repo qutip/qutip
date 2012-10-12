@@ -26,7 +26,7 @@ try:#for scipy v <= 0.90
 except:#for scipy v >= 0.10
     from scipy.misc import factorial
 
-from qutip.Qobj import Qobj
+from qutip.qobj import Qobj
 from qutip.operators import destroy
 from qutip.tensor import tensor
 

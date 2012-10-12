@@ -22,7 +22,7 @@ A Module containing a collection of metrics
 (distance measures) between density matricies.
 """
 
-from qutip.Qobj import *
+from qutip.qobj import *
 import scipy.linalg as la
 import numpy as np
 from qutip.sparse import sp_eigs

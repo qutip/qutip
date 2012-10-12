@@ -18,7 +18,7 @@
 ###########################################################################
 
 
-from qutip.Qobj import Qobj
+from qutip.qobj import Qobj
 import scipy.sparse as sp
 from qutip.istests import isket
 try:#for scipy v <= 0.90

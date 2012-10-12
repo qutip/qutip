@@ -19,7 +19,7 @@
 
 from qutip.tensor import tensor
 from qutip.superoperator import spre, spost, mat2vec, vec2mat
-from qutip.Qobj import Qobj
+from qutip.qobj import Qobj
 from numpy import hstack
 import scipy.linalg as la
 from qutip.graph import matrix_histogram, matrix_histogram_complex

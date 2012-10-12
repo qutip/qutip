@@ -22,7 +22,7 @@ import scipy.sparse as sp
 import scipy.linalg as la
 from scipy.special import genlaguerre
 from qutip.tensor import tensor
-from qutip.Qobj import *
+from qutip.qobj import *
 from qutip.states import *
 from qutip.istests import *
 try:#for scipy v <= 0.90

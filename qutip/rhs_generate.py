@@ -19,13 +19,13 @@
 from qutip.cyQ.codegen import Codegen
 import os,platform,numpy
 from qutip._reset import _reset_odeconfig
-from qutip.Odeoptions import Odeoptions
+from qutip.odeoptions import Odeoptions
 from scipy import ndarray, array
 from qutip.odechecks import _ode_checks
 import qutip.settings
 import qutip.odeconfig as odeconfig
 from types import FunctionType
-from qutip.Qobj import Qobj
+from qutip.qobj import Qobj
 from qutip.superoperator import spre,spost
 
 def rhs_clear():

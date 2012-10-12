@@ -180,7 +180,7 @@ if qutip.settings.qutip_graphics=='YES':
 
 # core
 import qutip.settings
-from qutip.Qobj import *
+from qutip.qobj import *
 from qutip.istests import *
 from qutip.states import *
 from qutip.operators import *
@@ -193,7 +193,7 @@ import qutip.settings
 
 # graphics
 if qutip.settings.qutip_graphics=='YES':
-    from qutip.Bloch import Bloch
+    from qutip.bloch import Bloch
     from qutip.graph import hinton
     from qutip.sphereplot import *
     from qutip.orbital import *
@@ -210,8 +210,8 @@ from qutip.metrics import fidelity,tracedist
 
 # evolution
 import qutip.odeconfig
-from qutip.Odeoptions import Odeoptions
-from qutip.Odedata import Odedata
+from qutip.odeoptions import Odeoptions
+from qutip.odedata import Odedata
 from qutip.rhs_generate import rhs_generate,rhs_clear
 from qutip.mesolve import mesolve, odesolve
 from qutip.mcsolve import mcsolve
