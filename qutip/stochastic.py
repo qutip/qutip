@@ -63,7 +63,7 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
         Experimental. tlist must be uniform.
 
     """
-    if debug: print inspect.stack()[0][3]
+    if debug: print(inspect.stack()[0][3])
 
     if (d1 is None) or (d2 is None):
             
@@ -104,7 +104,7 @@ def smesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
         Experimental. tlist must be uniform.
 
     """
-    if debug: print inspect.stack()[0][3]
+    if debug: print(inspect.stack()[0][3])
 
     if solver == 'euler-maruyama':
         return smesolve_generic(H, psi0, tlist, c_ops, e_ops, 
@@ -127,7 +127,7 @@ def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs, d1, d2, ntraj, nsubsteps
         Experimental.
 
     """
-    if debug: print inspect.stack()[0][3]
+    if debug: print(inspect.stack()[0][3])
 
     N_store = len(tlist)
     N_substeps = nsubsteps
@@ -171,7 +171,6 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
     """
     Internal function. See ssesolve.
     """
-    #if debug: print inspect.stack()[0][3]
    
     dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps)
 
@@ -212,7 +211,7 @@ def smesolve_generic(H, rho0, tlist, c_ops, e_ops, rhs, d1, d2, ntraj, nsubsteps
         Experimental.
 
     """
-    if debug: print inspect.stack()[0][3]
+    if debug: print(inspect.stack()[0][3])
 
     N_store = len(tlist)
     N_substeps = nsubsteps
