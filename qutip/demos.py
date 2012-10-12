@@ -17,12 +17,12 @@
 #
 ###########################################################################
 import sys,os
+from scipy import arange,array,any
+
 import qutip.examples as examples
+import qutip.settings as settings
 from qutip.examples import exconfig
 from qutip.examples.examples_text import button_labels,button_nums
-from scipy import arange,array,any
-import qutip.settings
-
 
 def demos():
     """
@@ -35,11 +35,11 @@ def demos():
     exconfig.button_num=0
     exconfig.is_green=0
     exconfig.cmd_screen=1
-    if qutip.settings.qutip_gui!='NONE':
+    if settings.qutip_gui!='NONE':
         from qutip.gui import Examples
-        if qutip.settings.qutip_gui=="PYSIDE":
+        if settings.qutip_gui=="PYSIDE":
             from PySide import QtGui, QtCore
-        elif qutip.settings.qutip_gui=="PYQT4":
+        elif settings.qutip_gui=="PYQT4":
             from PyQt4 import QtGui, QtCore
         def start_gui(ver,direc):
             app=QtGui.QApplication.instance()#checks if QApplication already exists (needed for iPython)
@@ -57,10 +57,10 @@ def demos():
     
     while exconfig.option<123456:
         exconfig.option=123456
-        if qutip.settings.qutip_gui!='NONE':
-            import _version
-            if _version.release:
-                ver=_version.short_version
+        if settings.qutip_gui!='NONE':
+            import qutip._version
+            if qutip._version.release:
+                ver=qutip._version.short_version
             else:
                 ver='HEAD'
             start_gui(ver,direc)

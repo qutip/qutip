@@ -1,6 +1,8 @@
 import qutip.examples
-import sys,os,time,syntax
+import sys,os,time
 from numpy import arange,floor
+
+import qutip.gui.syntax
 from qutip.examples import exconfig
 from qutip.examples import *
 if os.environ['QUTIP_GUI']=="PYSIDE":
@@ -171,10 +173,12 @@ class Examples(QtGui.QWidget):
         self.layout.addWidget(self.editor, 0, 3, 5, 1)
         #set text of editor if demos previsouly ran.
         if exconfig.is_green!=0:
-            syntax.PythonHighlighter(self.editor.document())
+            qutip.gui.syntax.PythonHighlighter(self.editor.document())
             self.editor.show()
             _text_file=compile("infile = open(self.dir+'ex_"+str(exconfig.is_green)+".py', 'r')",'<string>', 'exec')
-            exec(_text_file)
+            _locals = locals()
+            exec(_text_file, globals(), _locals)
+            infile = _locals["infile"]
             self.editor.setPlainText(infile.read())
             
         
@@ -194,10 +198,12 @@ class Examples(QtGui.QWidget):
             self.tab_buttons[old_tab_num][old_row_num].setStyleSheet('QPushButton {font-family: Verdana;border-width: 2px;border-color:#666666;border-style: solid;border-radius: 7;background: QLinearGradient( x1: 0, y1: 0, x2: 0, y2: 1, stop: 0 #B8E2EF, stop: 0.1 #A5DBEB, stop: 0.49 #8CD1E6, stop: 0.5 #7BCAE1, stop: 1 #57BCD9)}')
             self.tab_buttons[old_tab_num][old_row_num].setText(self.tab_buttons[old_tab_num][old_row_num].label)
             exconfig.is_green=num
-            syntax.PythonHighlighter(self.editor.document())
+            qutip.gui.syntax.PythonHighlighter(self.editor.document())
             self.editor.show()
             _text_file=compile("infile = open(self.dir+'ex_"+str(exconfig.is_green)+".py', 'r')",'<string>', 'exec')
-            exec(_text_file)
+            _locals = locals()
+            exec(_text_file, globals(), _locals)
+            infile = _locals["infile"]
             self.editor.setPlainText(infile.read())
         else:
             self.moveout()

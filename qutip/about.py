@@ -59,15 +59,15 @@ def about():
         print("Copyright (c) 2011-2012")
         print("Paul D. Nation & Robert J. Johansson")
         print('')
-        print("QuTiP Version:       "+version)
-        print("Numpy Version:       "+numpy.__version__)
-        print("Scipy Version:       "+scipy.__version__)
+        print(("QuTiP Version:       "+version))
+        print(("Numpy Version:       "+numpy.__version__))
+        print(("Scipy Version:       "+scipy.__version__))
         try:
             import matplotlib
             matplotlib_ver = matplotlib.__version__
         except:
             matplotlib_ver = 'None' 
-        print("Matplotlib Version:  " + matplotlib_ver)
+        print(("Matplotlib Version:  " + matplotlib_ver))
         print('')
 
         try:
@@ -86,9 +86,9 @@ def about():
                 pyobjc='Yes'
             except:
                 pyobjc='No'
-        print("PySide Version:      "+pyside_ver)
-        print("PyQt4 Version:       "+pyqt4_ver)
+        print(("PySide Version:      "+pyside_ver))
+        print(("PyQt4 Version:       "+pyqt4_ver))
         if sys.platform=='darwin':
-            print("PyObjc Installed:    "+pyobjc)
+            print(("PyObjc Installed:    "+pyobjc))
 
 

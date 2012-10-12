@@ -17,7 +17,14 @@
 #
 ###########################################################################
 import sys,os
-from urllib2 import urlopen
+
+try:   
+    # python 2
+    from urllib2 import urlopen
+except:
+    # python 3
+    from urllib.request import urlopen
+
 if os.environ['QUTIP_GUI']=="PYSIDE":
     from PySide import QtGui, QtCore
 
@@ -187,7 +194,7 @@ def _set_strings(Qversion):
     label= QtGui.QLabel()
     label.setText(lstring)
     try:
-        current = urlopen("http://qutip.googlecode.com/svn/doc/current_version.txt").read()
+        current = str(urlopen("http://qutip.googlecode.com/svn/doc/current_version.txt").read(), "utf-8")
     except:
         current=None
     if current and int(current.replace('.','')[0:3])>int(Qversion.replace('.','')[0:3]):
