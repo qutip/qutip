@@ -70,15 +70,14 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         if isinstance(H, types.FunctionType):
             H0 = H(0.0, H_args)
             N = H0.shape[0]
+            dims = H0.dims
         elif isinstance(H, list):
-            if isinstance(H[0], list):
-                H0 = H[0][0]
-                N = H0.shape[0]            
-            else:
-                H0 = H[0]
-                N = H0.shape[0] 
+            H0 = H[0][0] if isinstance(H[0], list) else H[0]
+            N = H0.shape[0] 
+            dims = H0.dims
         else:
             N = H.shape[0]
+            dims = H.dims
 
         u = np.zeros([N, N, len(tlist)], dtype=complex)
 
@@ -96,20 +95,19 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
 
     else:
         # calculate the propagator for the vector representation of the 
-        # density matrix
+        # density matrix (a superoperator propagator)
 
         if isinstance(H, types.FunctionType):
             H0 = H(0.0, H_args)
-            N = H0.shape[0]
+            N = H0.shape[0]            
+            dims = [H0.dims, H0.dims]
         elif isinstance(H, list):
-            if isinstance(H[0], list):
-                H0 = H[0][0]
-                N = H0.shape[0]            
-            else:
-                H0 = H[0]
-                N = H0.shape[0]            
+            H0 = H[0][0] if isinstance(H[0], list) else H[0]
+            N = H0.shape[0]            
+            dims = [H0.dims, H0.dims]
         else:
             N = H.shape[0]
+            dims = [H.dims, H.dims]
 
         u = np.zeros([N*N, N*N, len(tlist)], dtype=complex)
         
@@ -121,9 +119,9 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
                 u[:,n,k] = mat2vec(output.states[k].full()).T
 
     if len(tlist) == 2:
-        return Qobj(u[:,:,1])
+        return Qobj(u[:,:,1], dims=dims)
     else:
-        return [Qobj(u[:,:,k]) for k in range(len(tlist))]
+        return [Qobj(u[:,:,k], dims=dims) for k in range(len(tlist))]
 
 
 def _get_min_and_index(lst): 
