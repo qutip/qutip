@@ -149,7 +149,11 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     #
     # dispatch the appropriate solver
     #         
-    if (c_ops and len(c_ops) > 0) or not isket(rho0):
+    if ((c_ops and len(c_ops) > 0) 
+        or (not isket(rho0))
+        or (isinstance(H, Qobj) and issuper(H))
+        or (isinstance(H, list) and isinstance(H[0], Qobj) and issuper(H[0]))):
+
         #
         # we have collapse operators
         #
@@ -231,16 +235,23 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             h = h_spec
             h_coeff = constant_func
    
-        elif isinstance(h_spec, list): 
+        elif isinstance(h_spec, list) and isinstance(h_spec[0], Qobj): 
             h = h_spec[0]
             h_coeff = h_spec[1]
             
         else:
             raise TypeError("Incorrect specification of time-dependent " +
                             "Hamiltonian (expected callback function)")
-                
-        L_list.append([(-1j*(spre(h) - spost(h))).data, h_coeff])
         
+        if isoper(h):
+            L_list.append([(-1j*(spre(h) - spost(h))).data, h_coeff])
+
+        elif issuper(h):
+            L_list.append([h.data, h_coeff])
+
+        else:        
+            raise TypeError("Incorrect specification of time-dependent " +
+                            "Hamiltonian (expected operator or superoperator)")
         
     # add all collapse operators to the lagrangian list    
     for c_spec in c_list:
@@ -249,7 +260,7 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             c = c_spec
             c_coeff = constant_func
    
-        elif isinstance(c_spec, list): 
+        elif isinstance(c_spec, list) and isinstance(c_spec[0], Qobj): 
             c = c_spec[0]
             c_coeff = c_spec[1]
             
@@ -257,9 +268,18 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             raise TypeError("Incorrect specification of time-dependent " + 
                             "collapse operators (expected callback function)")
                 
-        cdc = c.dag() * c
-        L_list.append([(spre(c)*spost(c.dag())-0.5*spre(cdc)-0.5*spost(cdc)).data, 
-                       lambda t, args: (c_coeff(t, args))**2])    
+        if isoper(c):
+            cdc = c.dag() * c
+            L_list.append([(spre(c)*spost(c.dag())-0.5*spre(cdc)-0.5*spost(cdc)).data, 
+                           lambda t, args: (c_coeff(t, args))**2])    
+
+        elif issuper(c):
+            L_list.append([c.data, c_coeff])
+
+        else:      
+            raise TypeError("Incorrect specification of time-dependent " +
+                            "collapse operators (expected operator or superoperator)")
+        
         
     L_list_and_args = [L_list, args]
 
@@ -370,8 +390,8 @@ def psi_list_td(t, psi, H_list_and_args):
     H = H_list[0][0] * H_list[0][1](t, args)
     for n in range(1,len(H_list)):
         #
-        # H_args[n][0] = the sparse data for a Qobj in operator form
-        # H_args[n][1] = function callback giving the coefficient
+        # args[n][0] = the sparse data for a Qobj in operator form
+        # args[n][1] = function callback giving the coefficient
         #
         H = H + H_list[n][0] * H_list[n][1](t, args)
     
@@ -412,13 +432,25 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
         if isinstance(h_spec, Qobj):
             h = h_spec
 
-            Lconst += -1j*(spre(h) - spost(h)) 
-   
+            if isoper(h):
+                Lconst += -1j*(spre(h) - spost(h)) 
+            elif issuper(h): 
+                Lconst += h
+            else:
+                raise TypeError("Incorrect specification of time-dependent " + 
+                            "Hamiltonian (expected operator or superoperator)")         
+      
         elif isinstance(h_spec, list): 
             h = h_spec[0]
             h_coeff = h_spec[1]
             
-            L = -1j*(spre(h) - spost(h))
+            if isoper(h):
+                L = -1j*(spre(h) - spost(h))
+            elif issuper(h): 
+                L = h
+            else:
+                raise TypeError("Incorrect specification of time-dependent " + 
+                           "Hamiltonian (expected operator or superoperator)")         
             
             Ldata.append(L.data.data)
             Linds.append(L.data.indices)
@@ -436,20 +468,33 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
         if isinstance(c_spec, Qobj):
             c = c_spec
             
-            cdc = c.dag() * c
-            Lconst += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc) 
+            if isoper(c):
+                cdc = c.dag() * c
+                Lconst += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc) 
+            elif issuper(c):
+                Lconst += c
+            else:
+                raise TypeError("Incorrect specification of time-dependent " + 
+                           "Liouvillian (expected operator or superoperator)")         
    
         elif isinstance(c_spec, list): 
             c = c_spec[0]
             c_coeff = c_spec[1]
             
-            cdc = c.dag() * c
-            L = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc) 
+            if isoper(c):
+                cdc = c.dag() * c
+                L = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc) 
+                c_coeff = "("+c_coeff+")**2"
+            elif issuper(c):
+                L = c
+            else:
+                raise TypeError("Incorrect specification of time-dependent " + 
+                           "Liouvillian (expected operator or superoperator)")         
 
             Ldata.append(L.data.data)
             Linds.append(L.data.indices)
             Lptrs.append(L.data.indptr)
-            Lcoeff.append("("+c_coeff+")**2")
+            Lcoeff.append(c_coeff)
 
         else:
             raise TypeError("Incorrect specification of time-dependent " + 
@@ -465,6 +510,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
 
     # the total number of liouvillian terms (hamiltonian terms + collapse operators)      
     n_L_terms = len(Ldata)      
+
     #
     # setup ode args string: we expand the list Ldata, Linds and Lptrs into
     # and explicit list of parameters
@@ -613,7 +659,7 @@ def _wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
 # Wave function evolution using a ODE solver (unitary quantum evolution) using
 # a constant Hamiltonian.
 # 
-def _wfsolve_const(H, psi0, tlist, expt_ops, H_args, opt):
+def _wfsolve_const(H, psi0, tlist, expt_ops, args, opt):
     """!
     Evolve the wave function using an ODE solver
     """
@@ -650,7 +696,7 @@ def _ode_psi_func(t, psi, H):
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
 # time dependent hamiltonians
 # 
-def _wfsolve_list_td(H_func, psi0, tlist, expt_ops,H_args, opt):
+def _wfsolve_list_td(H_func, psi0, tlist, expt_ops,args, opt):
     """!
     Evolve the wave function using an ODE solver with time-dependent
     Hamiltonian.
@@ -673,7 +719,7 @@ def _wfsolve_list_td(H_func, psi0, tlist, expt_ops,H_args, opt):
     if opt.rhs_reuse==True and odeconfig.tdfunc==None:
         print("No previous time-dependent RHS found.")
         print("Generating one for you...")
-        rhs_generate(H_func,H_args)
+        rhs_generate(H_func,args)
     lenh=len(H_func[0])
     if opt.tidy:
         H_func[0]=[(H_func[0][k]).tidyup() for k in range(lenh)]
@@ -686,8 +732,8 @@ def _wfsolve_list_td(H_func, psi0, tlist, expt_ops,H_args, opt):
     for k in range(lenh):
         string+="Hdata["+str(k)+"],Hinds["+str(k)+"],Hptrs["+str(k)+"],"
 
-    if H_args:
-        td_consts=H_args.items()
+    if args:
+        td_consts=args.items()
         for elem in td_consts:
             string+=str(elem[1])
             if elem!=td_consts[-1]:
@@ -728,7 +774,7 @@ def _wfsolve_list_td(H_func, psi0, tlist, expt_ops,H_args, opt):
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
 # time dependent hamiltonians
 # 
-def _wfsolve_func_td(H_func, psi0, tlist, expt_ops, H_args, opt):
+def _wfsolve_func_td(H_func, psi0, tlist, expt_ops, args, opt):
     """!
     Evolve the wave function using an ODE solver with time-dependent
     Hamiltonian.
@@ -741,7 +787,7 @@ def _wfsolve_func_td(H_func, psi0, tlist, expt_ops, H_args, opt):
     # setup integrator
     #
     H_func_and_args = [H_func]
-    for arg in H_args:
+    for arg in args:
         if isinstance(arg,Qobj):
             H_func_and_args.append(arg.data)
         else:
@@ -766,16 +812,16 @@ def _wfsolve_func_td(H_func, psi0, tlist, expt_ops, H_args, opt):
 #
 def _ode_psi_func_td(t, psi, H_func_and_args):
     H_func = H_func_and_args[0]
-    H_args = H_func_and_args[1:]
+    args = H_func_and_args[1:]
 
-    H = H_func(t, H_args)
+    H = H_func(t, args)
 
     return -1j * (H * psi)
 
 # ------------------------------------------------------------------------------
 # Master equation solver
 # 
-def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, H_args, opt):
+def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, opt):
     """!
     Evolve the density matrix using an ODE solver, for constant hamiltonian
     and collapse operators.
@@ -789,8 +835,8 @@ def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     if isket(rho0):
         # if initial state is a ket and no collapse operator where given,
         # fallback on the unitary schrodinger equation solver
-        if n_op == 0:
-            return _wfsolve_const(H, rho0, tlist, expt_ops)
+        if n_op == 0 and isoper(H):
+            return _wfsolve_const(H, rho0, tlist, expt_ops, args, opt)
 
         # Got a wave function as initial state: convert to density matrix.
         rho0 = rho0 * rho0.dag()
@@ -801,7 +847,10 @@ def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     if opt.tidy:
         H=H.tidyup(opt.atol)
 
-    L = liouvillian(H, c_op_list)
+    if issuper(H):
+        L = H + liouvillian(None, c_op_list)
+    else:
+        L = liouvillian(H, c_op_list)
 
     #
     # setup integrator
@@ -832,7 +881,7 @@ def _ode_rho_func(t, rho, L):
 # Master equation solver: deprecated in 2.0.0. No support for time-dependent
 # collapse operators. Only used by the deprecated odesolve function.
 # 
-def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
+def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     """!
     Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
@@ -846,7 +895,7 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
         # if initial state is a ket and no collapse operator where given,
         # fallback on the unitary schrodinger equation solver
         if n_op == 0:
-            return _wfsolve_list_td(H_func, rho0, tlist, expt_ops, H_args, opt)
+            return _wfsolve_list_td(H_func, rho0, tlist, expt_ops, args, opt)
 
         # Got a wave function as initial state: convert to density matrix.
         rho0 = ket2dm(rho0)
@@ -865,7 +914,7 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     if opt.rhs_reuse==True and odeconfig.tdfunc==None:
         print("No previous time-dependent RHS found.")
         print("Generating one for you...")
-        rhs_generate(H_func,H_args)
+        rhs_generate(H_func,args)
     lenh=len(H_func[0])
     if opt.tidy:
         H_func[0]=[(H_func[0][k]).tidyup() for k in range(lenh)]
@@ -881,8 +930,8 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     string=""
     for k in range(lenh):
         string+="Ldata["+str(k)+"],Linds["+str(k)+"],Lptrs["+str(k)+"],"
-    if H_args:
-        td_consts=H_args.items()
+    if args:
+        td_consts=args.items()
         for elem in td_consts:
             string+=str(elem[1])
             if elem!=td_consts[-1]:
@@ -925,22 +974,19 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
 # ------------------------------------------------------------------------------
 # Master equation solver
 # 
-def _mesolve_func_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
+def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     """!
     Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
     """
-
-    n_op = len(c_op_list)
-        
     #
     # check initial state
     #
     if isket(rho0):
         # if initial state is a ket and no collapse operator where given,
         # fallback on the unitary schrodinger equation solver
-        if n_op == 0:
-            return _wfsolve_list_td(H_func, rho0, tlist, expt_ops, H_args, opt)
+        #if n_op == 0:
+        #    return _wfsolve_list_td(H_func, rho0, tlist, expt_ops, args, opt)
 
         # Got a wave function as initial state: convert to density matrix.
         rho0 = ket2dm(rho0)
@@ -948,23 +994,25 @@ def _mesolve_func_td(H_func, rho0, tlist, c_op_list, expt_ops, H_args, opt):
     #
     # construct liouvillian
     #
-    L = 0
-    for m in range(0, n_op):
-        cdc = c_op_list[m].dag() * c_op_list[m]
-        if L == 0:
-            L = spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)            
-        else:
-            L += spre(c_op_list[m])*spost(c_op_list[m].dag())-0.5*spre(cdc)-0.5*spost(cdc)
 
-    if n_op > 0:
-        L_func_and_args = [H_func, L.data]
+    if len(c_op_list) > 0:
+        L = 0
+        for c in c_op_list:
+            cdc = c.dag() * c
+            L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
+
+        L_func_and_args = [L_func, L.data]
+
     else:
         n,m = rho0.shape
-        L_func_and_args = [H_func, sp.lil_matrix((n**2,m**2)).tocsr()]
+        L_func_and_args = [L_func, sp.lil_matrix((n**2,m**2)).tocsr()]
 
-    for arg in H_args:
-        if isinstance(arg,Qobj):
-            L_func_and_args.append((-1j*(spre(arg) - spost(arg))).data)
+    for arg in args:
+        if isinstance(arg, Qobj):
+            if isoper(arg):
+                L_func_and_args.append((-1j*(spre(arg) - spost(arg))).data)
+            else:
+                L_func_and_args.append(arg.data)
         else:
             L_func_and_args.append(arg)
 
@@ -1095,7 +1143,7 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_vectorize, state_nor
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 # 
-def odesolve(H, rho0, tlist, c_op_list, expt_ops, H_args=None, options=None):
+def odesolve(H, rho0, tlist, c_op_list, expt_ops, args=None, options=None):
     """
     Master equation evolution of a density matrix for a given Hamiltonian.
 
@@ -1106,8 +1154,8 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, H_args=None, options=None):
     the expectation values of the supplied operators (`expt_ops`). 
 
     For problems with time-dependent Hamiltonians, `H` can be a callback function
-    that takes two arguments, time and `H_args`, and returns the Hamiltonian
-    at that point in time. `H_args` is a list of parameters that is
+    that takes two arguments, time and `args`, and returns the Hamiltonian
+    at that point in time. `args` is a list of parameters that is
     passed to the callback function `H` (only used for time-dependent Hamiltonians).    
    
     Parameters
@@ -1128,7 +1176,7 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, H_args=None, options=None):
     expt_ops : list of :class:`qutip.qobj` / callback function
         list of operators for which to evaluate expectation values.
      
-    H_args : *dictionary*
+    args : *dictionary*
         dictionary of parameters for time-dependent Hamiltonians and collapse operators.
      
     options : :class:`qutip.Qdeoptions`
@@ -1147,9 +1195,9 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, H_args=None, options=None):
     objects to sparse matrices before handing the problem to the integrator
     function. In order for your callback function to work correctly, pass
     all :class:`qutip.qobj` objects that are used in constructing the
-    Hamiltonian via H_args. odesolve will check for :class:`qutip.qobj` in
-    `H_args` and handle the conversion to sparse matrices. All other
-    :class:`qutip.qobj` objects that are not passed via `H_args` will be
+    Hamiltonian via args. odesolve will check for :class:`qutip.qobj` in
+    `args` and handle the conversion to sparse matrices. All other
+    :class:`qutip.qobj` objects that are not passed via `args` will be
     passed on to the integrator to scipy who will raise an NotImplemented
     exception.
         
@@ -1162,18 +1210,18 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, H_args=None, options=None):
         
     if (c_op_list and len(c_op_list) > 0) or not isket(rho0):
         if isinstance(H, list):
-            output = _mesolve_list_td(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
+            output = _mesolve_list_td(H, rho0, tlist, c_op_list, expt_ops, args, options)
         if isinstance(H, types.FunctionType):
-            output = _mesolve_func_td(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
+            output = _mesolve_func_td(H, rho0, tlist, c_op_list, expt_ops, args, options)
         else:
-            output = _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, H_args, options)
+            output = _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, options)
     else:
         if isinstance(H, list):
-            output = _wfsolve_list_td(H, rho0, tlist, expt_ops, H_args, options)
+            output = _wfsolve_list_td(H, rho0, tlist, expt_ops, args, options)
         if isinstance(H, types.FunctionType):
-            output = _wfsolve_func_td(H, rho0, tlist, expt_ops, H_args, options)
+            output = _wfsolve_func_td(H, rho0, tlist, expt_ops, args, options)
         else:
-            output = _wfsolve_const(H, rho0, tlist, expt_ops, H_args, options)
+            output = _wfsolve_const(H, rho0, tlist, expt_ops, args, options)
 
     if len(expt_ops) > 0:
         return output.expect
