@@ -15,7 +15,8 @@
 #
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
-###########################################################################
+################################################################################
+
 import scipy
 import scipy.linalg as la
 import scipy.sparse as sp
