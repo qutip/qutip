@@ -280,6 +280,21 @@ def qeye(N):
         raise ValueError("N must be integer N>=0")
     return Qobj(sp.eye(N,N,dtype=complex,format='csr'))
     
+def qidentity(N):
+    """Identity operator. Alternative name to :func:`qeye`.
+    
+    Parameters
+    ----------
+    N : int 
+        Dimension of Hilbert space.
+    
+    Returns
+    ------- 
+    oper : qobj    
+        Identity operator Qobj.
+    """
+    return qeye(N)
+
 
 def num(N):
     """Quantum object for number operator.
