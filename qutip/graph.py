@@ -18,6 +18,7 @@
 ###########################################################################
 
 from pylab import *
+import pylab
 from matplotlib import pyplot, mpl,cm
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -341,3 +342,85 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None, title=None, limits=N
     cb.set_label('arg')
 
     return ax
+
+
+def energy_level_diagram(H_list, N=0, figsize=(8,12), labels=None):
+    """
+    Plot the energy level diagrams for a list of Hamiltonians. Include
+    up to N energy levels. For each element in H_list, the energy
+    levels diagram for the cummulative Hamiltonian sum(H_list[0:N]) is plotted,
+    where N is the index of an element in H_list. 
+
+    Parameters
+    ----------
+
+        H_list : List of Qobj
+            A list of Hamiltonians.
+
+        labels : List of string
+            A list of labels for each Hamiltonian
+
+        N : int
+            The number of energy levels to plot
+
+        figsize : tuple (int,int)
+            The size of the figure (width, height).
+    
+    Returns
+    -------
+
+        The figure and axes instances used for the plot.
+
+    Raises
+    ------
+
+        ValueError
+            Input argument is not valid.
+
+    """
+
+
+    if not isinstance(H_list, list):
+        raise ValueError("H_list must be a list of Qobj instances")
+
+    fig, axes = pylab.subplots(1, 1, figsize=figsize)
+
+    H = H_list[0]
+    N = H.shape[0] if N == 0 else min(H.shape[0], N)
+
+    xticks = []
+
+    x = 0
+    evals0 = H.eigenenergies(eigvals=N) / (2*np.pi)
+    for e_idx, e in enumerate(evals0[:N]):
+        axes.plot([x,x+2], np.array([1,1]) * e, 'b', linewidth=2)
+    xticks.append(x+1)
+    x += 2
+
+    for H1 in H_list[1:]:
+        
+        H = H + H1
+        evals1 = H.eigenenergies() / (2*np.pi)
+
+        for e_idx, e in enumerate(evals1[:N]):
+            axes.plot([x,x+1], np.array([evals0[e_idx], e]), 'k:')
+        x += 1
+
+        for e_idx, e in enumerate(evals1[:N]):
+            axes.plot([x,x+2], np.array([1,1]) * e, 'b', linewidth=2)
+        xticks.append(x+1)
+        x += 2
+
+        evals0 = evals1
+
+    axes.set_frame_on(False)
+    axes.axes.get_yaxis().set_visible(False)
+
+    if labels:
+        axes.get_xaxis().tick_bottom()
+        axes.set_xticks(xticks)
+        axes.set_xticklabels(labels)
+    else:
+        axes.axes.get_xaxis().set_visible(False)
+
+    return fig, axes
