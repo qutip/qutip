@@ -270,6 +270,38 @@ class TestMESolverConstDecay:
         actual_answer=9.0*exp(-kappa*tlist)
         avg_diff=mean(abs(actual_answer-expt)/actual_answer)
         assert_(avg_diff<me_error)
+
+    def testMESimpleConstDecaySingleCollapse(self):
+        "mesolve: simple constant decay"
+        
+        N=10 #number of basis states to consider
+        a=destroy(N)
+        H=a.dag()*a
+        psi0=basis(N,9) #initial state
+        kappa=0.2 #coupling to oscillator
+        c_op=sqrt(kappa)*a
+        tlist=linspace(0,10,100)
+        medata=mesolve(H,psi0,tlist,c_op,[a.dag()*a])
+        expt=medata.expect[0]
+        actual_answer=9.0*exp(-kappa*tlist)
+        avg_diff=mean(abs(actual_answer-expt)/actual_answer)
+        assert_(avg_diff<me_error)
+
+    def testMESimpleConstDecaySingleExpect(self):
+        "mesolve: simple constant decay"
+        
+        N=10 #number of basis states to consider
+        a=destroy(N)
+        H=a.dag()*a
+        psi0=basis(N,9) #initial state
+        kappa=0.2 #coupling to oscillator
+        c_op_list=[sqrt(kappa)*a]
+        tlist=linspace(0,10,100)
+        medata=mesolve(H,psi0,tlist,c_op_list,a.dag()*a)
+        expt=medata.expect[0]
+        actual_answer=9.0*exp(-kappa*tlist)
+        avg_diff=mean(abs(actual_answer-expt)/actual_answer)
+        assert_(avg_diff<me_error)
      
     def testMESimpleConstDecayAsFuncList(self):
         "mesolve: constant decay as function list"

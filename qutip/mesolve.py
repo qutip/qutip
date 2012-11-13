@@ -113,10 +113,10 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
         list of times for :math:`t`.
         
     c_ops : list of :class:`qutip.qobj`
-        list of collapse operators.
+        single collapse operator, or list of collapse operators.
     
-    expt_ops : list of :class:`qutip.qobj` / callback function
-        list of operators for which to evaluate expectation values.
+    expt_ops : list of :class:`qutip.qobj` / callback function single
+        single operator or list of operators for which to evaluate expectation values.
      
     args : *dictionary*
         dictionary of parameters for time-dependent Hamiltonians and collapse operators.
@@ -137,6 +137,15 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
         which to calculate the expectation values.
     
     """
+
+    # check whether c_ops or expt_ops is is a single operator
+    # if so convert it to a list containing only that operator
+    if isinstance(c_ops, Qobj):
+        c_ops = [c_ops]
+    if isinstance(expt_ops, Qobj):
+        expt_ops = [expt_ops]
+
+
     # check for type (if any) of time-dependent inputs            
     n_const,n_func,n_str=_ode_checks(H,c_ops)
 
