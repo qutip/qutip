@@ -91,9 +91,9 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     ntraj : int 
         Number of trajectories to run.
     c_ops : array_like 
-        ``list`` or ``array`` of collapse operators.
+        single collapse operator or ``list`` or ``array`` of collapse operators.
     e_ops : array_like 
-        ``list`` or ``array`` of operators for calculating expectation values.
+        single operator or ``list`` or ``array`` of operators for calculating expectation values.
     args : dict
         Arguments for time-dependent Hamiltonian and collapse operator terms.
     options : Odeoptions
@@ -105,6 +105,16 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
         Object storing all results from simulation.
         
     """
+
+
+    # if single operator is passed for c_ops or e_ops, convert it to
+    # list containing only that operator
+    if isinstance(c_ops, Qobj):
+        c_ops = [c_ops]
+    if isinstance(e_ops, Qobj):
+        e_ops = [e_ops]
+
+
     if psi0.type!='ket':
         raise Exception("Initial state must be a state vector.")
     odeconfig.options=options
