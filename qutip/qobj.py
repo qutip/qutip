@@ -29,6 +29,11 @@ from numpy import (arccos, arccosh, arcsin, arcsinh, arctan, arctan2, arctanh,
                    floor, fmod, frexp, hypot, isinf, isnan, ldexp, log, log10,
                    log1p, modf, pi, radians, sin, sinh, sqrt, tan, tanh, trunc)
 
+from scipy import any,prod,allclose,shape
+import scipy.linalg as la
+from numpy import where
+#from qutip.qobj import Qobj
+
 import numpy as np
 import scipy.sparse as sp
 import scipy.linalg as la
@@ -184,7 +189,7 @@ class Qobj():
         ##Signifies if quantum object corresponds to Hermitian operator
         if isherm == None:
             if qset.auto_herm:
-                self.isherm=isherm(self)
+                self.isherm=hermcheck(self)
             else:
                 self.isherm=None
         else:
@@ -308,7 +313,7 @@ class Qobj():
                 out.dims  = [self.dims[0],  other.dims[1]]
                 out.shape = [self.shape[0], other.shape[1]]
                 out.type=ischeck(out)
-                out.isherm=isherm(out)
+                out.isherm=hermcheck(out)
                 if qset.auto_tidyup:
                     return out.tidyup()
                 else:
@@ -348,7 +353,7 @@ class Qobj():
                 out.dims=self.dims
                 out.shape=[self.shape[0],other.shape[1]]
                 out.type=ischeck(out)
-                out.isherm=isherm(out)
+                out.isherm=hermcheck(out)
                 if qset.auto_tidyup:
                     return out.tidyup()
                 else:
@@ -672,7 +677,7 @@ class Qobj():
         isherm: bool
             Returns the new value of isherm property.
         """
-        self.isherm=isherm(self)
+        self.isherm=hermcheck(self)
         return self.isherm
 
     def sqrtm(self,sparse=False,tol=0,maxiter=100000):
@@ -1282,10 +1287,6 @@ def _checkeseries(inpt):
         pass
 
 
-from scipy import any,prod,allclose,shape
-import scipy.linalg as la
-from numpy import where
-from qutip.qobj import Qobj
 
 
 """
@@ -1460,7 +1461,7 @@ def ischeck(Q):
 
 
 #**************************
-def isherm(Q):
+def hermcheck(Q):
     """Determines if given operator is Hermitian.
     
     Parameters
@@ -1476,7 +1477,7 @@ def isherm(Q):
     Examples
     --------    
     >>> a=destroy(4)
-    >>> isherm(a)
+    >>> hermcheck(a)
     False
     
     """
