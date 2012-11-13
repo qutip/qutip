@@ -183,7 +183,7 @@ def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
     for t_idx in range(len(tlist)):
 
-        rho_t = esval_op(solES_t, [tlist[t_idx]])
+        rho_t = esval(solES_t, [tlist[t_idx]])
 
         solES_tau = ode2es(L, b_op * rho_t)
 
