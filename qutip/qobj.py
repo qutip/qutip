@@ -1400,7 +1400,7 @@ def issuper(Q):
     if not isinstance(Q, Qobj):
         return False
 
-        result = isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0],list)
+    result = isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0],list)
     if result:
         result = (Q.dims[0]==Q.dims[1]) & (Q.dims[0][0]==Q.dims[1][0])
     return result
