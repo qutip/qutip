@@ -1461,7 +1461,7 @@ def ischeck(Q):
 
 
 #**************************
-def hermcheck(Q):
+def isherm(Q):
     """Determines if given operator is Hermitian.
     
     Parameters
@@ -1477,7 +1477,7 @@ def hermcheck(Q):
     Examples
     --------    
     >>> a=destroy(4)
-    >>> hermcheck(a)
+    >>> isherm(a)
     False
     
     """
@@ -1494,3 +1494,5 @@ def hermcheck(Q):
             return False
         else:
             return True
+
+hermcheck=isherm

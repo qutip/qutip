@@ -16,6 +16,5 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from qutip.qobj import ischeck, isket, isbra, isoper, issuper, hermcheck
+from qutip.qobj import ischeck, isket, isbra, isoper, issuper, ischeck
 
-isherm=hermcheck
