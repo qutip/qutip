@@ -16,10 +16,12 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
+import qutip.settings
 
-from pylab import *
-from matplotlib import pyplot, mpl,cm
-from mpl_toolkits.mplot3d import Axes3D
+if qutip.settings.qutip_graphics=='YES':
+    from pylab import *
+    from matplotlib import pyplot, mpl,cm
+    from mpl_toolkits.mplot3d import Axes3D
 
 from qutip.istests import *
 

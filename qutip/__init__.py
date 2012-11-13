@@ -197,6 +197,7 @@ if qutip.settings.qutip_graphics=='YES':
     from qutip.graph import hinton
     from qutip.sphereplot import *
     from qutip.orbital import *
+    from qutip.tomography import *
 
 # library functions
 from qutip.wigner import *
@@ -205,7 +206,6 @@ from qutip.simdiag import *
 from qutip.clebsch import clebsch
 from qutip.entropy import entropy_vn,entropy_linear,entropy_mutual,concurrence,entropy_conditional
 from qutip.gates import *
-from qutip.tomography import *
 from qutip.metrics import fidelity,tracedist
 
 # evolution
@@ -226,5 +226,5 @@ from qutip.bloch_redfield import *
 # utilities
 from qutip.fileio import *
 from qutip.demos import demos
-import qutip.examples
+#import qutip.examples
 from qutip.about import *

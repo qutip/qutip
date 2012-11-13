@@ -23,7 +23,9 @@ from qutip.qobj import Qobj
 from numpy import hstack
 import scipy.linalg as la
 from qutip.graph import matrix_histogram, matrix_histogram_complex
-from pylab import *
+import qutip.settings
+if qutip.settings.qutip_graphics=='YES':
+    from pylab import *
 
 def _index_permutations(size_list, perm=[]):
     """

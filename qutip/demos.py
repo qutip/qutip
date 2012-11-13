@@ -19,10 +19,12 @@
 import sys,os
 from scipy import arange,array,any
 
-import qutip.examples as examples
 import qutip.settings as settings
-from qutip.examples import exconfig
-from qutip.examples.examples_text import button_labels,button_nums
+
+if settings.qutip_graphics=='YES':
+    import qutip.examples as examples
+    from qutip.examples import exconfig
+    from qutip.examples.examples_text import button_labels,button_nums
 
 def demos():
     """
@@ -30,6 +32,9 @@ def demos():
     or PyQt4 are avaliable.  Otherwise, a commandline 
     interface is given in the terminal.
     """
+    if settings.qutip_graphics=='NO': #check for matplotlib
+        print('Demos unavailable. Matplotlib was not found.')
+        return
     direc=os.path.dirname(__file__)
     exconfig.tab=0
     exconfig.button_num=0
