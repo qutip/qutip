@@ -160,6 +160,36 @@ def test_MCSimpleConst():
     avg_diff=mean(abs(actual_answer-expt)/actual_answer)
     assert_equal(avg_diff<mc_error,True)
 
+def test_MCSimpleSingleCollapse():
+    "Monte-carlo: Constant H with collapse operator specified as single operator"
+    N=10 #number of basis states to consider
+    a=destroy(N)
+    H=a.dag()*a
+    psi0=basis(N,9) #initial state
+    kappa=0.2 #coupling to oscillator
+    c_op_list=sqrt(kappa)*a
+    tlist=linspace(0,10,100)
+    mcdata=mcsolve(H,psi0,tlist,c_op_list,[a.dag()*a],options=Odeoptions(gui=False))
+    expt=mcdata.expect[0]
+    actual_answer=9.0*exp(-kappa*tlist)
+    avg_diff=mean(abs(actual_answer-expt)/actual_answer)
+    assert_equal(avg_diff<mc_error,True)
+
+def test_MCSimpleSingleExpect():
+    "Monte-carlo: Constant H with collapse operator specified as single operator"
+    N=10 #number of basis states to consider
+    a=destroy(N)
+    H=a.dag()*a
+    psi0=basis(N,9) #initial state
+    kappa=0.2 #coupling to oscillator
+    c_op_list=[sqrt(kappa)*a]
+    tlist=linspace(0,10,100)
+    mcdata=mcsolve(H,psi0,tlist,c_op_list,a.dag()*a,options=Odeoptions(gui=False))
+    expt=mcdata.expect[0]
+    actual_answer=9.0*exp(-kappa*tlist)
+    avg_diff=mean(abs(actual_answer-expt)/actual_answer)
+    assert_equal(avg_diff<mc_error,True)    
+
 def test_MCSimpleConstFunc():
     "Monte-carlo: Collapse terms constant (func format)"
     N=10 #number of basis states to consider
