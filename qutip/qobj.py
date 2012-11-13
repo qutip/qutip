@@ -34,8 +34,6 @@ import scipy.sparse as sp
 import scipy.linalg as la
 import qutip.settings as qset
 from qutip.ptrace import _ptrace
-from qutip.istests import ischeck,isket,isbra,isoper,issuper
-from qutip.istests import isherm as hermcheck
 from qutip.sparse import (sp_eigs,_sp_expm,_sp_fro_norm,_sp_max_norm,_sp_one_norm,
 							_sp_L2_norm,_sp_inf_norm)
 
@@ -186,7 +184,7 @@ class Qobj():
         ##Signifies if quantum object corresponds to Hermitian operator
         if isherm == None:
             if qset.auto_herm:
-                self.isherm=hermcheck(self)
+                self.isherm=isherm(self)
             else:
                 self.isherm=None
         else:
@@ -310,7 +308,7 @@ class Qobj():
                 out.dims  = [self.dims[0],  other.dims[1]]
                 out.shape = [self.shape[0], other.shape[1]]
                 out.type=ischeck(out)
-                out.isherm=hermcheck(out)
+                out.isherm=isherm(out)
                 if qset.auto_tidyup:
                     return out.tidyup()
                 else:
@@ -350,7 +348,7 @@ class Qobj():
                 out.dims=self.dims
                 out.shape=[self.shape[0],other.shape[1]]
                 out.type=ischeck(out)
-                out.isherm=hermcheck(out)
+                out.isherm=isherm(out)
                 if qset.auto_tidyup:
                     return out.tidyup()
                 else:
@@ -674,7 +672,7 @@ class Qobj():
         isherm: bool
             Returns the new value of isherm property.
         """
-        self.isherm=hermcheck(self)
+        self.isherm=isherm(self)
         return self.isherm
 
     def sqrtm(self,sparse=False,tol=0,maxiter=100000):
@@ -1284,3 +1282,214 @@ def _checkeseries(inpt):
         pass
 
 
+from scipy import any,prod,allclose,shape
+import scipy.linalg as la
+from numpy import where
+from qutip.qobj import Qobj
+
+
+"""
+A collection of tests used to determine the type of quantum objects.
+"""
+
+def isket(Q):
+    """
+    Determines if given quantum object is a ket-vector.
+	
+	Parameters
+	----------
+	Q : qobj
+	    Quantum object
+	
+	Returns
+	------- 
+	isket : bool
+	    True if qobj is ket-vector, False otherwise.
+	
+	Examples
+	--------	    
+    >>> psi=basis(5,2)
+    >>> isket(psi)
+    True
+	    
+	"""
+    
+
+    if not isinstance(Q, Qobj):
+            return False
+
+    result = isinstance(Q.dims[0],list)
+    if result:
+        result = result and prod(Q.dims[1])==1
+    return result
+
+#***************************
+def isbra(Q):
+	"""Determines if given quantum object is a bra-vector.
+	
+	Parameters
+	----------
+	Q : qobj
+	    Quantum object
+	
+	Returns
+	-------
+	isbra : bool
+	    True if Qobj is bra-vector, False otherwise.
+	
+	Examples
+	--------	    
+    >>> psi=basis(5,2)
+    >>> isket(psi)
+    False
+	
+	"""
+
+
+        if not isinstance(Q, Qobj):
+            return False
+
+	result = isinstance(Q.dims[1],list)
+	if result:
+		result = result and (prod(Q.dims[0])==1)
+	return result
+
+
+#***************************
+def isoper(Q):
+	"""Determines if given quantum object is a operator.
+	
+	Parameters
+	----------
+	Q : qobj
+	    Quantum object
+	
+	Returns
+	-------
+	isoper : bool
+	    True if Qobj is operator, False otherwise.
+	
+	Examples
+	--------	    
+    >>> a=destroy(5)
+    >>> isoper(a)
+    True
+	
+	"""
+        
+
+        if not isinstance(Q, Qobj):
+            return False
+
+	return isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0], int) and (Q.dims[0]==Q.dims[1])
+	
+
+#***************************
+def issuper(Q):
+	"""Determines if given quantum object is a super-operator.
+	
+	Parameters
+	----------
+	Q : qobj
+	    Quantum object
+	
+	Returns
+	------- 
+	issuper  : bool
+	    True if Qobj is superoperator, False otherwise.
+	
+	"""
+	
+
+        if not isinstance(Q, Qobj):
+            return False
+
+        result = isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0],list)
+	if result:
+	    result = (Q.dims[0]==Q.dims[1]) & (Q.dims[0][0]==Q.dims[1][0])
+	return result
+
+
+#**************************
+def isequal(A,B,tol=1e-15):
+    """Determines if two qobj objects are equal to within given tolerance.
+    
+    Parameters
+    ----------    
+    A : qobj 
+        Qobj one
+    B : qobj 
+        Qobj two
+    tol : float
+        Tolerence for equality to be valid
+    
+    Returns
+    -------
+    isequal : bool
+        True if qobjs are equal, False otherwise.
+    
+    """
+
+
+    if not isinstance(Q, Qobj):
+            return False
+
+    if A.dims!=B.dims:
+        return False
+    else:
+        Adat=A.data
+        Bdat=B.data
+        elems=(Adat-Bdat).data
+        if any(abs(elems)>tol):
+            return False
+        else:
+            return True
+
+#**************************
+def ischeck(Q):
+    if isoper(Q):
+        return 'oper'
+    elif isket(Q):
+        return 'ket'
+    elif isbra(Q):
+        return 'bra'
+    elif issuper(Q):
+        return 'super'
+    else:
+        raise TypeError('Quantum object has undetermined type.')
+
+
+#**************************
+def isherm(Q):
+    """Determines if given operator is Hermitian.
+    
+    Parameters
+	----------
+	Q : qobj
+	    Quantum object
+    
+    Returns
+    ------- 
+    isherm : bool
+        True if operator is Hermitian, False otherwise.
+    
+    Examples
+    --------    
+    >>> a=destroy(4)
+    >>> isherm(a)
+    False
+    
+    """
+
+    if not isinstance(Q, Qobj):
+            return False
+
+    if Q.dims[0]!=Q.dims[1]:
+        return False
+    else:
+        dat=Q.data
+        elems=(dat.transpose().conj()-dat).data
+        if any(abs(elems)>1e-15):
+            return False
+        else:
+            return True
