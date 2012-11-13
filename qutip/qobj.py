@@ -29,10 +29,7 @@ from numpy import (arccos, arccosh, arcsin, arcsinh, arctan, arctan2, arctanh,
                    floor, fmod, frexp, hypot, isinf, isnan, ldexp, log, log10,
                    log1p, modf, pi, radians, sin, sinh, sqrt, tan, tanh, trunc)
 
-from scipy import any,prod,allclose,shape
-import scipy.linalg as la
-from numpy import where
-#from qutip.qobj import Qobj
+from numpy import any,prod,allclose,shape,where
 
 import numpy as np
 import scipy.sparse as sp
@@ -40,7 +37,7 @@ import scipy.linalg as la
 import qutip.settings as qset
 from qutip.ptrace import _ptrace
 from qutip.sparse import (sp_eigs,_sp_expm,_sp_fro_norm,_sp_max_norm,_sp_one_norm,
-							_sp_L2_norm,_sp_inf_norm)
+                            _sp_L2_norm,_sp_inf_norm)
 
 
 class Qobj():
@@ -1296,24 +1293,24 @@ A collection of tests used to determine the type of quantum objects.
 def isket(Q):
     """
     Determines if given quantum object is a ket-vector.
-	
-	Parameters
-	----------
-	Q : qobj
-	    Quantum object
-	
-	Returns
-	------- 
-	isket : bool
-	    True if qobj is ket-vector, False otherwise.
-	
-	Examples
-	--------	    
+    
+    Parameters
+    ----------
+    Q : qobj
+        Quantum object
+    
+    Returns
+    ------- 
+    isket : bool
+        True if qobj is ket-vector, False otherwise.
+    
+    Examples
+    --------        
     >>> psi=basis(5,2)
     >>> isket(psi)
     True
-	    
-	"""
+        
+    """
     
 
     if not isinstance(Q, Qobj):
@@ -1326,89 +1323,87 @@ def isket(Q):
 
 #***************************
 def isbra(Q):
-	"""Determines if given quantum object is a bra-vector.
-	
-	Parameters
-	----------
-	Q : qobj
-	    Quantum object
-	
-	Returns
-	-------
-	isbra : bool
-	    True if Qobj is bra-vector, False otherwise.
-	
-	Examples
-	--------	    
+    """Determines if given quantum object is a bra-vector.
+    
+    Parameters
+    ----------
+    Q : qobj
+        Quantum object
+    
+    Returns
+    -------
+    isbra : bool
+        True if Qobj is bra-vector, False otherwise.
+    
+    Examples
+    --------        
     >>> psi=basis(5,2)
     >>> isket(psi)
     False
-	
-	"""
+    
+    """
 
+    if not isinstance(Q, Qobj):
+        return False
 
-        if not isinstance(Q, Qobj):
-            return False
-
-	result = isinstance(Q.dims[1],list)
-	if result:
-		result = result and (prod(Q.dims[0])==1)
-	return result
+    result = isinstance(Q.dims[1],list)
+    if result:
+        result = result and (prod(Q.dims[0])==1)
+    return result
 
 
 #***************************
 def isoper(Q):
-	"""Determines if given quantum object is a operator.
-	
-	Parameters
-	----------
-	Q : qobj
-	    Quantum object
-	
-	Returns
-	-------
-	isoper : bool
-	    True if Qobj is operator, False otherwise.
-	
-	Examples
-	--------	    
+    """Determines if given quantum object is a operator.
+    
+    Parameters
+    ----------
+    Q : qobj
+        Quantum object
+    
+    Returns
+    -------
+    isoper : bool
+        True if Qobj is operator, False otherwise.
+    
+    Examples
+    --------        
     >>> a=destroy(5)
     >>> isoper(a)
     True
-	
-	"""
+    
+    """
         
+    if not isinstance(Q, Qobj):
+        return False
 
-        if not isinstance(Q, Qobj):
-            return False
-
-	return isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0], int) and (Q.dims[0]==Q.dims[1])
-	
+    return isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0], int) and (Q.dims[0]==Q.dims[1])
+    
 
 #***************************
 def issuper(Q):
-	"""Determines if given quantum object is a super-operator.
-	
-	Parameters
-	----------
-	Q : qobj
-	    Quantum object
-	
-	Returns
-	------- 
-	issuper  : bool
-	    True if Qobj is superoperator, False otherwise.
-	
-	"""
-	
+    """Determines if given quantum object is a super-operator.
+    
+    Parameters
+    ----------
+    Q : qobj
+        Quantum object
+    
+    Returns
+    ------- 
+    issuper  : bool
+        True if Qobj is superoperator, False otherwise.
+    
+    """
+    
 
-        if not isinstance(Q, Qobj):
-            return False
+    if not isinstance(Q, Qobj):
+        return False
 
         result = isinstance(Q.dims[0],list) and isinstance(Q.dims[0][0],list)
-	if result:
-	    result = (Q.dims[0]==Q.dims[1]) & (Q.dims[0][0]==Q.dims[1][0])
-	return result
+    if result:
+        result = (Q.dims[0]==Q.dims[1]) & (Q.dims[0][0]==Q.dims[1][0])
+    return result
 
 
 #**************************
@@ -1433,7 +1428,7 @@ def isequal(A,B,tol=1e-15):
 
 
     if not isinstance(Q, Qobj):
-            return False
+        return False
 
     if A.dims!=B.dims:
         return False
@@ -1465,9 +1460,9 @@ def isherm(Q):
     """Determines if given operator is Hermitian.
     
     Parameters
-	----------
-	Q : qobj
-	    Quantum object
+    ----------
+    Q : qobj
+        Quantum object
     
     Returns
     ------- 
@@ -1483,7 +1478,7 @@ def isherm(Q):
     """
 
     if not isinstance(Q, Qobj):
-            return False
+        return False
 
     if Q.dims[0]!=Q.dims[1]:
         return False
