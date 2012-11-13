@@ -19,6 +19,7 @@
 
 
 from qutip import *
+from numpy import linspace
 from numpy.testing import assert_equal
 
 

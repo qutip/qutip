@@ -20,7 +20,7 @@
 
 from qutip import *
 from qutip.sparse import *
-from numpy import allclose
+from numpy import allclose, isreal, iscomplex
 from numpy.testing import assert_equal
 import scipy,unittest
 

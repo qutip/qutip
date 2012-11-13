@@ -17,7 +17,7 @@
 #
 ###########################################################################
 
-from numpy import allclose
+from numpy import allclose, linspace, mean, ones
 from numpy.testing import assert_, run_module_suite
 
 # disable the MC progress bar

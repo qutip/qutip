@@ -19,7 +19,7 @@
 
 
 from qutip import *
-from numpy import allclose
+from numpy import allclose, diag, eye
 from numpy.testing import assert_equal
 
 

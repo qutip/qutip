@@ -19,7 +19,7 @@
 
 from qutip import *
 from qutip.odechecks import _ode_checks
-from numpy import allclose
+from numpy import allclose, linspace, mean, ones
 from numpy.testing import assert_equal
 from numpy.testing.decorators import skipif
 import unittest

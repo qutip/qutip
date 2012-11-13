@@ -17,6 +17,7 @@
 #
 ###########################################################################
 
+from numpy import linspace
 from numpy.testing import assert_, run_module_suite, assert_equal
 from qutip import *
 
