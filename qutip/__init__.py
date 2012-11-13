@@ -194,7 +194,7 @@ import qutip.settings
 # graphics
 if qutip.settings.qutip_graphics=='YES':
     from qutip.bloch import Bloch
-    from qutip.graph import hinton
+    from qutip.graph import hinton, energy_level_diagram
     from qutip.sphereplot import *
     from qutip.orbital import *
     from qutip.tomography import *
