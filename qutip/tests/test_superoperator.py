@@ -18,6 +18,7 @@
 ###########################################################################
 
 from numpy.testing import assert_, run_module_suite
+import scipy
 
 from qutip import *
 
@@ -30,7 +31,7 @@ class TestMatrixVector:
         """
         Superoperator: Conversion matrix to vector to matrix
         """
-        M = rand(10, 10)
+        M = scipy.rand(10, 10)
         V = mat2vec(M)
         M2 = vec2mat(V)
         assert_(norm(M-M2) == 0.0)
@@ -39,7 +40,7 @@ class TestMatrixVector:
         """
         Superoperator: Conversion vector to matrix to vector
         """
-        V = rand(100)     # a row vector
+        V = scipy.rand(100)     # a row vector
         M = vec2mat(V)
         V2 = mat2vec(M).T # mat2vec returns a column vector
         assert_(norm(V-V2) == 0.0)
@@ -59,7 +60,7 @@ class TestMatrixVector:
         Superoperator: Test compability between matrix/vector conversion and the corresponding index conversion.
         """
         N = 10 
-        M = rand(N, N)
+        M = scipy.rand(N, N)
         V = mat2vec(M)
         for I in range(N*N):
             i,j = vec2mat_index(N, I)
