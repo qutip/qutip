@@ -18,9 +18,8 @@
 ###########################################################################
 
 
-from qutip.qobj import Qobj
+from qutip.qobj import Qobj, isket
 import scipy.sparse as sp
-from qutip.istests import isket
 try:#for scipy v <= 0.90
     from scipy import factorial
 except:#for scipy v >= 0.10

@@ -24,7 +24,6 @@ from scipy.integrate import ode
 from scipy.linalg import norm
 from qutip.qobj import *
 from qutip.expect import *
-from qutip.istests import *
 from qutip.states import ket2dm
 from qutip.parfor import parfor
 from qutip.odeoptions import Odeoptions

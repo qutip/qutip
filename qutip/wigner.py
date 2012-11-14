@@ -24,7 +24,7 @@ from scipy.special import genlaguerre
 from qutip.tensor import tensor
 from qutip.qobj import *
 from qutip.states import *
-from qutip.istests import *
+
 try:#for scipy v <= 0.90
     from scipy import factorial
 except:#for scipy v >= 0.10

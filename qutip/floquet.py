@@ -22,8 +22,7 @@ import scipy.linalg as la
 import scipy
 from scipy import angle, pi, exp, sqrt
 from types import FunctionType
-from qutip.istests import isket
-from qutip.qobj import Qobj
+from qutip.qobj import Qobj, isket
 from qutip.superoperator import vec2mat_index, mat2vec, vec2mat
 from qutip.mesolve import mesolve
 from qutip.steady import steadystate

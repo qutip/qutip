@@ -22,7 +22,6 @@ import scipy.linalg as la
 import scipy.sparse as sp
 from scipy import prod, transpose, reshape
 from qutip.qobj import *
-from qutip.istests import *
 from qutip.operators import destroy
 
 def liouvillian(H, c_op_list):
