@@ -23,8 +23,6 @@ if qutip.settings.qutip_graphics=='YES':
     from matplotlib import pyplot, mpl,cm
     from mpl_toolkits.mplot3d import Axes3D
 
-from qutip.istests import *
-
 from qutip.qobj import Qobj
 
 #
@@ -384,7 +382,7 @@ def energy_level_diagram(H_list, N=0, figsize=(8,12), labels=None):
     if not isinstance(H_list, list):
         raise ValueError("H_list must be a list of Qobj instances")
 
-    fig, axes = pylab.subplots(1, 1, figsize=figsize)
+    fig, axes = subplots(1, 1, figsize=figsize)
 
     H = H_list[0]
     N = H.shape[0] if N == 0 else min(H.shape[0], N)
