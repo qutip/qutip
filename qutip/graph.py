@@ -23,7 +23,7 @@ if qutip.settings.qutip_graphics=='YES':
     from matplotlib import pyplot, mpl,cm
     from mpl_toolkits.mplot3d import Axes3D
 
-from qutip.qobj import Qobj
+from qutip.qobj import Qobj, isket, isbra
 
 #
 # A collection of various visalization functions.
