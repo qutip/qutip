@@ -181,7 +181,6 @@ if qutip.settings.qutip_graphics=='YES':
 # core
 import qutip.settings
 from qutip.qobj import *
-from qutip.istests import *
 from qutip.states import *
 from qutip.operators import *
 from qutip.expect import *
