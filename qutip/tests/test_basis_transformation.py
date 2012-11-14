@@ -20,10 +20,11 @@
 import sys
 from qutip import *
 from numpy.testing import assert_equal
+import scipy
 
 def test_Transformation1():
     "Transform 2-level to eigenbasis and back"
-    H1 = rand() * sigmax() + rand() * sigmay() + rand() * sigmaz()
+    H1 = scipy.rand() * sigmax() + scipy.rand() * sigmay() + scipy.rand() * sigmaz()
     evals, ekets = H1.eigenstates()
     Heb = H1.transform(ekets)       # eigenbasis (should be diagonal)
     H2 = Heb.transform(ekets, True) # back to original basis
@@ -33,7 +34,7 @@ def test_Transformation1():
 def test_Transformation2():
     "Transform 10-level real-values to eigenbasis and back"
     N = 10
-    H1 = Qobj((0.5-rand(N,N)))
+    H1 = Qobj((0.5-scipy.rand(N,N)))
     H1 = H1 + H1.dag()
     evals, ekets = H1.eigenstates()
     Heb = H1.transform(ekets)       # eigenbasis (should be diagonal)
@@ -44,7 +45,7 @@ def test_Transformation2():
 def test_Transformation3():
     "Transform 10-level to eigenbasis and back"
     N = 10
-    H1 = Qobj((0.5-rand(N,N)) + 1j*(0.5-rand(N,N)))
+    H1 = Qobj((0.5-scipy.rand(N,N)) + 1j*(0.5-scipy.rand(N,N)))
     H1 = H1 + H1.dag()
     evals, ekets = H1.eigenstates()
     Heb = H1.transform(ekets)       # eigenbasis (should be diagonal)
@@ -55,7 +56,7 @@ def test_Transformation3():
 def test_Transformation4():
     "Transform 10-level imag to eigenbasis and back"
     N = 10
-    H1 = Qobj(1j*(0.5-rand(N,N)))
+    H1 = Qobj(1j*(0.5-scipy.rand(N,N)))
     H1 = H1 + H1.dag()
     evals, ekets = H1.eigenstates()
     Heb = H1.transform(ekets)       # eigenbasis (should be diagonal)

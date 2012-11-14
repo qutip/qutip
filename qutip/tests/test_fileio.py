@@ -19,6 +19,7 @@
 
 import os
 from numpy.testing import assert_
+import scipy
 
 from qutip import *
 
@@ -32,7 +33,7 @@ class TestFileIO:
         
         # create some random data
         N = 10
-        data = (1-2*rand(N,N))
+        data = (1-2*scipy.rand(N,N))
 
         file_data_store("test.dat", data)
         data2 = file_data_read("test.dat")
@@ -45,7 +46,7 @@ class TestFileIO:
 
         # create some random data
         N = 10
-        data = (1-2*rand(N,N))
+        data = (1-2*scipy.rand(N,N))
 
         file_data_store("test.dat", data, "real", "decimal")
         data2 = file_data_read("test.dat", ",")
@@ -58,7 +59,7 @@ class TestFileIO:
 
         # create some random data
         N = 10
-        data = (1-2*rand(N,N))
+        data = (1-2*scipy.rand(N,N))
 
         file_data_store("test.dat", data, "real", "exp")
         data2 = file_data_read("test.dat", ",")
@@ -71,7 +72,7 @@ class TestFileIO:
 
         # create some random data
         N = 10
-        data = (1-2*rand(N,N)) + 1j*(1-2*rand(N,N))
+        data = (1-2*scipy.rand(N,N)) + 1j*(1-2*scipy.rand(N,N))
 
         file_data_store("test.dat", data)
         data2 = file_data_read("test.dat")
@@ -84,7 +85,7 @@ class TestFileIO:
 
         # create some random data
         N = 10
-        data = (1-2*rand(N,N)) + 1j*(1-2*rand(N,N))
+        data = (1-2*scipy.rand(N,N)) + 1j*(1-2*scipy.rand(N,N))
 
         file_data_store("test.dat", data, "complex", "decimal")
         data2 = file_data_read("test.dat", ",")
@@ -97,7 +98,7 @@ class TestFileIO:
 
         # create some random data
         N = 10
-        data = (1-2*rand(N,N)) + 1j*(1-2*rand(N,N))
+        data = (1-2*scipy.rand(N,N)) + 1j*(1-2*scipy.rand(N,N))
 
         file_data_store("test.dat", data, "complex", "exp")
         data2 = file_data_read("test.dat", ",")
@@ -110,7 +111,7 @@ class TestFileIO:
 
         # create some random data
         N = 10
-        data = (1-2*rand(N,N)) + 1j*(1-2*rand(N,N))
+        data = (1-2*scipy.rand(N,N)) + 1j*(1-2*scipy.rand(N,N))
 
         # comma separated values
         file_data_store("test.dat", data, "complex", "exp", ",")

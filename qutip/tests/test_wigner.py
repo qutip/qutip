@@ -21,6 +21,7 @@ from numpy import linspace
 from numpy.testing import assert_, run_module_suite
 from qutip import *
 from scipy.special import laguerre
+from numpy.random import rand
 
 def test_wigner_coherent():
     "wigner: test wigner function calculation for coherent states"
