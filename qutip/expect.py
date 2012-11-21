@@ -111,3 +111,24 @@ def single_expect(oper,state):
     else:# unsupported types
         raise TypeError('Arguments must be quantum objects or eseries')
 
+
+def variance(oper,state):
+    """
+    Variance of an operator for the given state vector or density matrix.
+    
+    Parameters
+    ----------
+    oper : qobj 
+        Operator for expectation value.
+        
+    state : qobj/list
+        A single or `list` of quantum states or density matricies.
+    
+    Returns
+    -------
+    var : float
+        Variance of operator 'oper' for given state.
+    
+    """
+    return expect(oper**2,state)-expect(oper,state)**2
+
