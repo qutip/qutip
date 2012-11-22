@@ -212,9 +212,9 @@ def sp_eigs(op,vecs=True,sparse=False,sort='low',eigvals=0,tol=0,maxiter=100000)
             if vecs:
                 evecs=np.delete(evecs,-1)
     if vecs:    
-        return evals,evecs
+        return np.array(evals),evecs
     else:
-        return evals
+        return np.array(evals)
 
 
 def _sp_expm(qo):
