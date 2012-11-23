@@ -21,7 +21,6 @@ import numpy as np
 #import scipy.linalg as la
 import scipy
 import scipy.sparse as sp
-
 from qutip.qobj import Qobj
 
 
@@ -414,3 +413,55 @@ def qutrit_ops():
     sig23 = two * three.dag()
     sig31 = three * one.dag()
     return np.array([sig11, sig22, sig33, sig12, sig23, sig31])
+
+#
+# Generate operator from diagonals
+#
+def qdiags(diagonals,offsets,dims=None,shape=None):
+    """
+    Constructs an operator from an array of diagonals.
+    
+    Parameters
+    ----------
+    diagonals : sequence of array_like
+        Array of elements to place along the selected diagonals.
+    offsets : sequence of ints
+        Sequence for diagonals to be set:
+            - k=0 main diagonal
+            - k>0 kth upper diagonal
+            - k<0 kth lower diagonal
+    dims : list, optional
+        Dimensions for operator
+    shape : list, tuple, optional
+        Shape of operator.  If omitted, a square operator large enough
+        to contain the diagonals is generated.
+    
+    See Also
+    --------
+    scipy.sparse.diags for useage information.
+    
+    Notes
+    -----
+    This function requires SciPy 0.11+.
+    
+    Examples
+    --------
+    >>> qdiag(sqrt(range(1,4)),1)
+    Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isherm = False
+    Qobj data =
+    [[ 0.          1.          0.          0.        ]
+     [ 0.          0.          1.41421356  0.        ]
+     [ 0.          0.          0.          1.73205081]
+     [ 0.          0.          0.          0.        ]]
+    
+    """
+    try:
+        data=sp.diags(diagonals,offsets,shape,format='csr',dtype=complex)
+    except:
+        raise NotImplemented("This function required SciPy 0.11+.")
+    if not dims:
+        dims=[[],[]]
+    if not shape:
+        shape=[]
+    return Qobj(data,dims,list(shape))
+
