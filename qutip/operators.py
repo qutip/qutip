@@ -294,6 +294,33 @@ def qidentity(N):
     """
     return qeye(N)
 
+def position(N):
+    """
+    Position operator x=1\sqrt(2)*(a+a.dag())
+
+    Parameters
+    ----------
+    N : int
+        Number of Fock states in Hilbert space.
+
+    """
+    a=destroy(N)
+    return 1.0/np.sqrt(2.0)*(a+a.dag())
+
+
+def momentum(N):
+    """
+    Momentum operator p=1\sqrt(2)*(a-1.0j*a.dag())
+
+    Parameters
+    ----------
+    N : int
+        Number of Fock states in Hilbert space.
+
+    """
+    a=destroy(N)
+    return 1.0/np.sqrt(2.0)*(a-1.0j*a.dag())
+
 
 def num(N):
     """Quantum object for number operator.
