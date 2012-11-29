@@ -26,10 +26,10 @@ from qutip.essolve import essolve, ode2es
 from qutip.mcsolve import mcsolve
 from qutip.steady import steady, steadystate
 import numpy as np
+
 #-------------------------------------------------------------------------------
 # solver wrapers:
 #
-
 def correlation_ss(H, tlist, c_op_list, a_op, b_op, rho0=None, solver="me"):
     """
     Calculate a two-time correlation function :math:`\left<A(\\tau)B(0)\\right>`
@@ -142,6 +142,22 @@ def correlation(H, rho0, tlist, taulist, c_op_list, a_op, b_op, solver="me"):
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
 
+def correlation_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None, solver="me"):
+    """
+    Calculate the correlation function <A(0)B(tau)C(tau)D(0)>
+
+    (ss_gtt = steadystate general two-time)
+    
+    See, Gardiner, Quantum Noise, Section 5.2.1
+
+    .. note::
+        Experimental. 
+    """
+
+    if solver == "me":
+        return _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0)
+    else:
+        raise NotImplementedError("Unrecognized choice of solver %s." % solver)
 
 # ------------------------------------------------------------------------------
 # EXPONENTIAL SERIES SOLVERS
@@ -207,6 +223,22 @@ def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op, rho0=None):
 
     return mesolve(H, b_op * rho0, tlist, c_op_list, [a_op]).expect[0]
 
+def _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None):
+    """
+    Calculate the correlation function <A(0)B(tau)C(tau)D(0)>
+
+    (ss_gtt = steadystate general two-time)
+    
+    See, Gardiner, Quantum Noise, Section 5.2.1
+
+    .. note::
+        Experimental. 
+    """
+    if rho0 is None:
+        rho0 = steadystate(H, c_ops)
+
+    return mesolve(H, d_op * rho0 * a_op, tlist, c_ops, [b_op * c_op]).expect[0]
+
 def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     """
     Internal function for calculating correlation functions using the master
@@ -222,6 +254,29 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
     for t_idx in range(len(tlist)):
         C_mat[t_idx,:] = mesolve(H, b_op * rho_t[t_idx], taulist, c_op_list, [a_op]).expect[0]
+
+    return C_mat
+
+def _correlation_me_gtt(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op):
+    """
+    Calculate the correlation function <A(t)B(t+tau)C(t+tau)D(t)>
+
+    (gtt = general two-time)
+    
+    See, Gardiner, Quantum Noise, Section 5.2.1
+
+    .. note::
+        Experimental. 
+    """
+    if rho0 is None:
+        rho0 = steadystate(H, c_ops)
+
+    C_mat = np.zeros([np.size(tlist),np.size(taulist)],dtype=complex)
+
+    rho_t = mesolve(H, rho0, tlist, c_op_list, []).states
+
+    for t_idx, rho in enumerate(rho_t):
+        C_mat[t_idx,:] = mesolve(H, d_op * rho * a_op, taulist, c_ops, [b_op * c_op]).expect[0]
 
     return C_mat
 
