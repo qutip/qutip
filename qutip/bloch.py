@@ -189,6 +189,7 @@ class Bloch():
         print("zlabel:       ", self.zlabel)
         print("zlpos:        ", self.zlpos)
         return ''
+
     def clear(self):
         """Resets Bloch sphere data sets to empty.
         """
@@ -346,6 +347,7 @@ class Bloch():
         self.axes.set_xlim3d(-1.3, 1.3)
         self.axes.set_ylim3d(-1.3, 1.3)
         self.axes.set_zlim3d(-1.3, 1.3)
+
     def plot_axes_labels(self):
         # axes labels
         self.axes.text(0, -self.xlpos[0], 0, self.xlabel[0],
@@ -393,7 +395,7 @@ class Bloch():
                 if any(abs(dist - dist[0]) / dist[0] > 1e-12):
                     # combine arrays so that they can be sorted together
                     zipped = zip(dist, range(num))
-                    zipped.sort() #sort rates from lowest to highest
+                    zipped.sort()  #sort rates from lowest to highest
                     dist, indperm = zip(*zipped)
                     indperm = array(indperm)
                 else:
