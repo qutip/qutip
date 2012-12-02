@@ -17,12 +17,11 @@
 #
 ###########################################################################
 
-from qutip.qobj import Qobj
 from qutip.superoperator import *
 from qutip.expect import expect
 from qutip.mesolve import mesolve
-from qutip.eseries import eseries, esval, esspec
-from qutip.essolve import essolve, ode2es
+from qutip.eseries import esval, esspec
+from qutip.essolve import ode2es
 from qutip.mcsolve import mcsolve
 from qutip.steady import steady, steadystate
 import numpy as np
