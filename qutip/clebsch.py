@@ -16,7 +16,7 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from numpy import min,max,sqrt,arange
+from numpy import min, max, sqrt
 try:#for scipy v <= 0.90
     from scipy import factorial
 except:#for scipy v >= 0.10
