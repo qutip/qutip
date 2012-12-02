@@ -17,10 +17,9 @@
 #
 ###########################################################################
 
-import scipy.linalg as la
-from numpy import e, real, imag, sort, sqrt
+from numpy import e, real, sort, sqrt
 from scipy import log, log2
-from qutip.qobj import Qobj, ptrace
+from qutip.qobj import ptrace
 from qutip.states import ket2dm
 from qutip.tensor import tensor
 from qutip.operators import sigmay
