@@ -21,9 +21,11 @@ import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import Qobj
 
+
 class eseries():
     """
-    Class representation of an exponential-series expansion of time-dependent quantum objects.
+    Class representation of an exponential-series expansion of
+    time-dependent quantum objects.
 
     Attributes
     ----------
@@ -47,6 +49,7 @@ class eseries():
 
     """
     __array_priority__ = 101
+
     def __init__(self, q=np.array([]), s=np.array([])):
         if isinstance(s, (int, float, complex)):
             s = np.array([s])
@@ -63,7 +66,7 @@ class eseries():
                 self.shape = q.shape
             elif isinstance(q, (np.ndarray, list)):
                 ind = np.shape(q)
-                num = ind[0] #number of elements in q
+                num = ind[0]  # number of elements in q
                 sh = np.array([Qobj(x).shape for x in q])
                 if any(sh != sh[0]):
                     raise TypeError('All amplitudes must have same dimension.')
@@ -78,9 +81,9 @@ class eseries():
                 self.dims = qo.dims
                 self.shape = qo.shape
             else:
-                self.ampl  = np.array([q])
+                self.ampl = np.array([q])
                 self.rates = np.array([0])
-                self.dims  = [[1, 1]]
+                self.dims = [[1, 1]]
                 self.shape = [1, 1]
 
         if np.any(q) and len(s) != 0:
@@ -100,23 +103,26 @@ class eseries():
                 self.shape = self.ampl[0].shape
             if isinstance(s, (int, complex, float)):
                 if num != 1:
-                    raise TypeError('Number of rates must match number of members in object array.')
+                    raise TypeError('Number of rates must match number ' +
+                                    'of members in object array.')
                 self.rates = np.array([s])
             elif isinstance(s, (np.ndarray, list)):
                 if len(s) != num:
-                    raise TypeError('Number of rates must match number of members in object array.')
+                    raise TypeError('Number of rates must match number ' +
+                                    ' of members in object array.')
                 self.rates = np.array(s)
         if len(self.ampl) != 0:
-            zipped = list(zip(self.rates, self.ampl))#combine arrays so that they can be sorted together
-            zipped.sort() #sort rates from lowest to highest
-            rates, ampl = list(zip(*zipped)) #get back rates and ampl
+            #combine arrays so that they can be sorted together
+            zipped = list(zip(self.rates, self.ampl))
+            zipped.sort()  #sort rates from lowest to highest
+            rates, ampl = list(zip(*zipped))  #get back rates and ampl
             self.ampl = np.array(ampl)
             self.rates = np.array(rates)
 
     ######___END_INIT___######################
 
     ##########################################
-    def __str__(self):#string of ESERIES information
+    def __str__(self):  # string of ESERIES information
         self.tidy()
         print("ESERIES object: " + str(len(self.ampl)) + " terms")
         print("Hilbert space dimensions: " + str(self.dims))
@@ -131,7 +137,8 @@ class eseries():
     def __repr__(self):
         return self.__str__()
 
-    def __add__(self, other):#Addition with ESERIES on left (ex. ESERIES+5)
+    # Addition with ESERIES on left (ex. ESERIES+5)
+    def __add__(self, other):
         right = eseries(other)
         if self.dims != right.dims:
             raise TypeError("Incompatible operands for ESERIES addition")
@@ -141,21 +148,30 @@ class eseries():
         out.ampl = np.append(self.ampl, right.ampl)
         out.rates = np.append(self.rates, right.rates)
         return out
-    def __radd__(self, other):#Addition with ESERIES on right (ex. 5+ESERIES)
+
+    # Addition with ESERIES on right(ex. 5+ESERIES)
+    def __radd__(self, other):
         return self + other
-    def __neg__(self):#define negation of ESERIES
+
+    # define negation of ESERIES
+    def __neg__(self):
         out = eseries()
         out.dims = self.dims
         out.shape = self.shape
         out.ampl = -self.ampl
         out.rates = self.rates
         return out
-    def __sub__(self, other):#Subtraction with ESERIES on left (ex. ESERIES-5)
+
+    # Subtraction with ESERIES on left (ex. ESERIES-5)
+    def __sub__(self, other):
         return self + (-other)
-    def __rsub__(self, other):#Subtraction with ESERIES on right (ex. 5-ESERIES)
+
+    # Subtraction with ESERIES on right (ex. 5-ESERIES)
+    def __rsub__(self, other):
         return other + (-self)
 
-    def __mul__(self, other):#Multiplication with ESERIES on left (ex. ESERIES*other)
+    # Multiplication with ESERIES on left (ex. ESERIES*other)
+    def __mul__(self, other):
 
         if isinstance(other, eseries):
             out = eseries()
@@ -164,7 +180,8 @@ class eseries():
 
             for i in range(len(self.rates)):
                 for j in range(len(other.rates)):
-                    out += eseries(self.ampl[i] * other.ampl[j], self.rates[i] + other.rates[j])
+                    out += eseries(self.ampl[i] * other.ampl[j],
+                                   self.rates[i] + other.rates[j])
 
             return out
         else:
@@ -175,7 +192,8 @@ class eseries():
             out.rates = self.rates
             return out
 
-    def __rmul__(self, other): #Multiplication with ESERIES on right (ex. other*ESERIES)
+    # Multiplication with ESERIES on right (ex. other*ESERIES)
+    def __rmul__(self, other):
         out = eseries()
         out.dims = self.dims
         out.shape = self.shape
@@ -246,7 +264,8 @@ class eseries():
 
     def spec(self, wlist):
         """
-        Evaluate the spectrum of an exponential series at frequencies in ``wlist``.
+        Evaluate the spectrum of an exponential series at frequencies
+        in ``wlist``.
 
         Parameters
         ----------
@@ -262,10 +281,10 @@ class eseries():
         val_list = np.zeros(np.size(wlist))
 
         for i in range(len(wlist)):
-            val_list[i] = 2 * np.real(np.dot(self.ampl, 1. / (1.0j * wlist[i] - self.rates)) )
+            val_list[i] = 2 * np.real(
+                np.dot(self.ampl, 1. / (1.0j * wlist[i] - self.rates)))
 
         return val_list
-
 
     def tidyup(self, *args):
         """ Returns a tidier version of exponential series.
@@ -294,7 +313,7 @@ class eseries():
             if idx == -1:
                 # no matching rate, add it
                 unique_rates[ur_len] = self.rates[r_idx]
-                ampl_dict[ur_len]    = [self.ampl[r_idx]]
+                ampl_dict[ur_len] = [self.ampl[r_idx]]
                 ur_len = len(unique_rates)
             else:
                 # found matching rate, append amplitude to its list
@@ -303,7 +322,7 @@ class eseries():
         # create new amplitude and rate list with only unique rates, and
         # nonzero amplitudes
         self.rates = np.array([])
-        self.ampl  = np.array([])
+        self.ampl = np.array([])
         for ur_key in unique_rates.keys():
             total_ampl = np.sum(ampl_dict[ur_key])
 
@@ -318,7 +337,7 @@ class eseries():
 
         return self
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 #
 # wrapper functions for accessing the class methods (for compatibility with
 # quantum optics toolbox)
@@ -341,7 +360,8 @@ def esval(es, tlist):
     return es.value(tlist)
 
 def esspec(es, wlist):
-    """Evaluate the spectrum of an exponential series at frequencies in ``wlist``.
+    """Evaluate the spectrum of an exponential series at frequencies
+    in ``wlist``.
 
     Parameters
     ----------
