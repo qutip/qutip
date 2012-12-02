@@ -30,10 +30,10 @@ from qutip.operators import sigmax, sigmay, sigmaz
 
 class Bloch():
     """Class for plotting data on the Bloch sphere.  Valid data can be either points, vectors, or qobj objects.
-    
+
     Attributes
     ----------
-    
+
     axes : instance {None}
         User supplied Matplotlib axes for Bloch sphere animation.
     fig : instance {None}
@@ -78,8 +78,8 @@ class Bloch():
         List of strings corresponding to +z and -z axes labels, respectively.
     zlpos : list {[1.2,-1.2]}
         Positions of +z and -z labels respectively.
-    
-    
+
+
     """
     def __init__(self,fig=None,axes=None):
         #---sphere options---
@@ -125,13 +125,13 @@ class Bloch():
         self.font_color = 'black'
         # Size of fonts, default = 20
         self.font_size = 20
-        
+
         #---vector options---
         # List of colors for Bloch vectors, default = ['b','g','r','y']
         self.vector_color = ['g','#CC6600','b','r']
         #: Width of Bloch vectors, default = 3
         self.vector_width = 3
-        
+
         #---point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_color = ['b','r','g','#CC6600']
@@ -139,7 +139,7 @@ class Bloch():
         self.point_size = [25,32,35,45]
         # Shape of point markers, default = ['o','^','d','s']
         self.point_marker = ['o','s','d','^']
-        
+
         #---data lists---
         # Data for point markers
         self.points = []
@@ -153,7 +153,7 @@ class Bloch():
         self.savenum = 0
         # Style of points, 'm' for multiple colors, 's' for single color
         self.point_style = []
-        
+
     def __str__(self):
         print('')
         print("Bloch data:")
@@ -192,18 +192,18 @@ class Bloch():
         self.vectors = []
         self.num_vectors = 0
         self.point_style = []
-    
+
     def add_points(self,points,meth='s'):
         """Add a list of data points to bloch sphere.
-        
+
         Parameters
         ----------
         points : array/list
             Collection of data points.
-            
-        meth : str {'s','m'} 
+
+        meth : str {'s','m'}
             Type of points to plot, use 'm' for multicolored.
-        
+
         """
         if not isinstance(points[0],(list,ndarray)):
             points = [[points[0]],[points[1]],[points[2]]]
@@ -221,18 +221,18 @@ class Bloch():
             self.points.append(points)
             self.num_points = len(self.points)
             self.point_style.append('m')
-            
+
     def add_states(self,state,kind='vector'):
         """Add a state vector Qobj to Bloch sphere.
-        
+
         Parameters
         ----------
         state : qobj
             Input state vector.
-            
+
         kind : str {'vector','point'}
             Type of object to plot.
-        
+
         """
         if isinstance(state,Qobj):
             state = [state]
@@ -243,15 +243,15 @@ class Bloch():
             elif kind == 'point':
                 pnt = [expect(sigmax(),st),expect(sigmay(),st),expect(sigmaz(),st)]
                 self.add_points(pnt)
-    
-    def add_vectors(self,vectors): 
+
+    def add_vectors(self,vectors):
         """Add a list of vectors to Bloch sphere.
-        
+
         Parameters
         ----------
-        vectors : array/list 
+        vectors : array/list
             Array with vectors of unit length or smaller.
-        
+
         """
         if isinstance(vectors[0],(list,ndarray)):
             for vec in vectors:
@@ -260,7 +260,7 @@ class Bloch():
         else:
             self.vectors.append(vectors)
             self.num_vectors = len(self.vectors)
-    
+
     def make_sphere(self):
         """
         Plots Bloch sphere and data sets.
@@ -283,8 +283,8 @@ class Bloch():
         self.plot_vectors()
         self.plot_front()
         self.plot_axes_labels()
-    
-    def plot_back(self):    
+
+    def plot_back(self):
         #----back half of sphere------------------
         u = linspace(0, pi, 25)
         v = linspace(0, pi, 25)
@@ -297,8 +297,8 @@ class Bloch():
         # equator
         self.axes.plot(1.0 * cos(u),1.0 * sin(u),zs=0, zdir='z',lw=self.frame_width,color=self.frame_color)
         self.axes.plot(1.0 * cos(u),1.0 * sin(u),zs=0, zdir='x',lw=self.frame_width,color=self.frame_color)
-    
-    def plot_front(self):    
+
+    def plot_front(self):
         # front half of sphere-----------------------
         u = linspace(-pi, 0,25)
         v = linspace(0, pi, 25)
@@ -311,7 +311,7 @@ class Bloch():
         # equator
         self.axes.plot(1.0 * cos(u),1.0 * sin(u),zs=0, zdir='z',lw=self.frame_width,color=self.frame_color)
         self.axes.plot(1.0 * cos(u),1.0 * sin(u),zs=0, zdir='x',lw=self.frame_width,color=self.frame_color)
-    
+
     def plot_axes(self):
         # axes
         span = linspace(-1.0,1.0,2)
@@ -321,14 +321,14 @@ class Bloch():
         self.axes.set_xlim3d(-1.3,1.3)
         self.axes.set_ylim3d(-1.3,1.3)
         self.axes.set_zlim3d(-1.3,1.3)
-    def plot_axes_labels(self):  
+    def plot_axes_labels(self):
         # axes labels
         self.axes.text(0, -self.xlpos[0], 0, self.xlabel[0], color=self.font_color,fontsize=self.font_size)
         self.axes.text(0, -self.xlpos[1], 0, self.xlabel[1], color=self.font_color,fontsize=self.font_size)
-        
+
         self.axes.text(self.ylpos[0], 0, 0, self.ylabel[0], color=self.font_color,fontsize=self.font_size)
         self.axes.text(self.ylpos[1], 0, 0, self.ylabel[1], color=self.font_color,fontsize=self.font_size)
-        
+
         self.axes.text(0, 0, self.zlpos[0], self.zlabel[0], color=self.font_color,fontsize=self.font_size)
         self.axes.text(0, 0, self.zlpos[1], self.zlabel[1], color=self.font_color,fontsize=self.font_size)
         for a in self.axes.w_xaxis.get_ticklines() + self.axes.w_xaxis.get_ticklabels():
@@ -337,14 +337,14 @@ class Bloch():
             a.set_visible(False)
         for a in self.axes.w_zaxis.get_ticklines() + self.axes.w_zaxis.get_ticklabels():
             a.set_visible(False)
-    
+
     def plot_vectors(self):
         # -X and Y data are switched for plotting purposes
         if len(self.vectors) > 0:
             for k in range(len(self.vectors)):
                 length = sqrt(self.vectors[k][0] ** 2 + self.vectors[k][1] ** 2 + self.vectors[k][2] ** 2)
                 self.axes.plot(self.vectors[k][1] * linspace(0,length,2),-self.vectors[k][0] * linspace(0,length,2),self.vectors[k][2] * linspace(0,length,2),zs=0, zdir='z', label='Z',lw=self.vector_width,color=self.vector_color[mod(k,len(self.vector_color))])
-    
+
     def plot_points(self):
         # -X and Y data are switched for plotting purposes
         if self.num_points > 0:
@@ -372,33 +372,33 @@ class Bloch():
         self.make_sphere()
         if self.fig:
             show(self.fig)
-        
+
     def save(self,name=None,format='png',dirc=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
-        
+
         Parameters
         ----------
-        
-        name : str 
+
+        name : str
             Name of saved image. Must include path and format as well.
             i.e. '/Users/Paul/Desktop/bloch.png'
             This overrides the 'format' and 'dirc' arguments.
-        format : str 
-            Format of output image.  
+        format : str
+            Format of output image.
         dirc : str
             Directory for output images. Defaults to current working directory.
-        
+
         Returns
-        ------- 
+        -------
         File containing plot of Bloch sphere.
-        
+
         """
         self.make_sphere()
         if dirc:
             if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
                 os.makedirs(os.getcwd() + "/" + str(dirc))
         if name == None:
-            if dirc: 
+            if dirc:
                 savefig(os.getcwd() + "/" + str(dirc) + '/bloch_' + str(self.savenum) + '.' + format)
             else:
                 savefig(os.getcwd() + '/bloch_' + str(self.savenum) + '.' + format)
@@ -407,6 +407,3 @@ class Bloch():
         self.savenum += 1
         if self.fig:
             close(self.fig)
-
-
-
