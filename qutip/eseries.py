@@ -1,4 +1,4 @@
-#This file is part of QuTIP.
+# This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -46,82 +46,82 @@ class eseries():
         Returns a tidier version of the exponential series
 
     """
-    __array_priority__=101
+    __array_priority__ = 101
     def __init__(self,q=np.array([]),s=np.array([])):
         if isinstance(s,(int,float,complex)):
-            s=np.array([s])
-        if (not np.any(q)) and (len(s)==0):
-            self.ampl=np.array([])
-            self.rates=np.array([])
-            self.dims=[[1,1]]
-            self.shape=[1,1]
-        if np.any(q) and (len(s)==0):
+            s = np.array([s])
+        if (not np.any(q)) and (len(s) == 0):
+            self.ampl = np.array([])
+            self.rates = np.array([])
+            self.dims = [[1,1]]
+            self.shape = [1,1]
+        if np.any(q) and (len(s) == 0):
             if isinstance(q,eseries):
-                self.ampl=q.ampl
-                self.rates=q.rates
-                self.dims=q.dims
-                self.shape=q.shape
+                self.ampl = q.ampl
+                self.rates = q.rates
+                self.dims = q.dims
+                self.shape = q.shape
             elif isinstance(q,(np.ndarray,list)):
-                ind=np.shape(q)
-                num=ind[0] #number of elements in q
-                sh=np.array([Qobj(x).shape for x in q])
-                if any(sh!=sh[0]):
+                ind = np.shape(q)
+                num = ind[0] #number of elements in q
+                sh = np.array([Qobj(x).shape for x in q])
+                if any(sh != sh[0]):
                     raise TypeError('All amplitudes must have same dimension.')
-                self.ampl=np.array([x for x in q])
-                self.rates=np.zeros(ind)
-                self.dims=self.ampl[0].dims
-                self.shape=self.ampl[0].shape
+                self.ampl = np.array([x for x in q])
+                self.rates = np.zeros(ind)
+                self.dims = self.ampl[0].dims
+                self.shape = self.ampl[0].shape
             elif isinstance(q,Qobj):
-                qo=Qobj(q)
-                self.ampl=np.array([qo])
-                self.rates=np.array([0])
-                self.dims=qo.dims
-                self.shape=qo.shape
+                qo = Qobj(q)
+                self.ampl = np.array([qo])
+                self.rates = np.array([0])
+                self.dims = qo.dims
+                self.shape = qo.shape
             else:
                 self.ampl  = np.array([q])
                 self.rates = np.array([0])
                 self.dims  = [[1, 1]]
                 self.shape = [1,1]
 
-        if np.any(q) and len(s)!=0:
+        if np.any(q) and len(s) != 0:
             if isinstance(q,(np.ndarray,list)):
-                ind=np.shape(q)
-                num=ind[0]
-                sh=np.array([Qobj(q[x]).shape for x in range(0,num)])
-                if np.any(sh!=sh[0]):
+                ind = np.shape(q)
+                num = ind[0]
+                sh = np.array([Qobj(q[x]).shape for x in range(0,num)])
+                if np.any(sh != sh[0]):
                     raise TypeError('All amplitudes must have same dimension.')
-                self.ampl=np.array([Qobj(q[x]) for x in range(0,num)])
-                self.dims=self.ampl[0].dims
-                self.shape=self.ampl[0].shape
+                self.ampl = np.array([Qobj(q[x]) for x in range(0,num)])
+                self.dims = self.ampl[0].dims
+                self.shape = self.ampl[0].shape
             else:
-                num=1
-                self.ampl=np.array([Qobj(q)])
-                self.dims=self.ampl[0].dims
-                self.shape=self.ampl[0].shape
+                num = 1
+                self.ampl = np.array([Qobj(q)])
+                self.dims = self.ampl[0].dims
+                self.shape = self.ampl[0].shape
             if isinstance(s,(int,complex,float)):
-                if num!=1:
+                if num != 1:
                     raise TypeError('Number of rates must match number of members in object array.')
-                self.rates=np.array([s])
+                self.rates = np.array([s])
             elif isinstance(s,(np.ndarray,list)):
-                if len(s)!=num:
+                if len(s) != num:
                     raise TypeError('Number of rates must match number of members in object array.')
-                self.rates=np.array(s)
-        if len(self.ampl)!=0:
-            zipped=list(zip(self.rates,self.ampl))#combine arrays so that they can be sorted together
+                self.rates = np.array(s)
+        if len(self.ampl) != 0:
+            zipped = list(zip(self.rates,self.ampl))#combine arrays so that they can be sorted together
             zipped.sort() #sort rates from lowest to highest
-            rates,ampl=list(zip(*zipped)) #get back rates and ampl
-            self.ampl=np.array(ampl)
-            self.rates=np.array(rates)
+            rates,ampl = list(zip(*zipped)) #get back rates and ampl
+            self.ampl = np.array(ampl)
+            self.rates = np.array(rates)
 
     ######___END_INIT___######################
 
     ##########################################
     def __str__(self):#string of ESERIES information
         self.tidy()
-        print("ESERIES object: "+str(len(self.ampl))+" terms")
-        print("Hilbert space dimensions: "+str(self.dims))
+        print("ESERIES object: " + str(len(self.ampl)) + " terms")
+        print("Hilbert space dimensions: " + str(self.dims))
         for k in range(0,len(self.ampl)):
-            print("Exponent #"+str(k)+" = "+str(self.rates[k]))
+            print("Exponent #" + str(k) + " = " + str(self.rates[k]))
             if isinstance(self.ampl[k], sp.spmatrix):
                 print(self.ampl[k].full())
             else:
@@ -132,35 +132,35 @@ class eseries():
         return self.__str__()
 
     def __add__(self,other):#Addition with ESERIES on left (ex. ESERIES+5)
-        right=eseries(other)
-        if self.dims!=right.dims:
+        right = eseries(other)
+        if self.dims != right.dims:
             raise TypeError("Incompatible operands for ESERIES addition")
-        out=eseries()
-        out.dims=self.dims
-        out.shape=self.shape
-        out.ampl=np.append(self.ampl,right.ampl)
-        out.rates=np.append(self.rates,right.rates)
+        out = eseries()
+        out.dims = self.dims
+        out.shape = self.shape
+        out.ampl = np.append(self.ampl,right.ampl)
+        out.rates = np.append(self.rates,right.rates)
         return out
     def __radd__(self,other):#Addition with ESERIES on right (ex. 5+ESERIES)
-        return self+other
+        return self + other
     def __neg__(self):#define negation of ESERIES
-        out=eseries()
-        out.dims=self.dims
-        out.shape=self.shape
-        out.ampl=-self.ampl
-        out.rates=self.rates
+        out = eseries()
+        out.dims = self.dims
+        out.shape = self.shape
+        out.ampl = -self.ampl
+        out.rates = self.rates
         return out
     def __sub__(self,other):#Subtraction with ESERIES on left (ex. ESERIES-5)
-        return self+(-other)
+        return self + (-other)
     def __rsub__(self,other):#Subtraction with ESERIES on right (ex. 5-ESERIES)
-        return other+(-self)
+        return other + (-self)
 
     def __mul__(self,other):#Multiplication with ESERIES on left (ex. ESERIES*other)
 
         if isinstance(other,eseries):
-            out=eseries()
-            out.dims=self.dims
-            out.shape=self.shape
+            out = eseries()
+            out.dims = self.dims
+            out.shape = self.shape
 
             for i in range(len(self.rates)):
                 for j in range(len(other.rates)):
@@ -168,19 +168,19 @@ class eseries():
 
             return out
         else:
-            out=eseries()
-            out.dims=self.dims
-            out.shape=self.shape
-            out.ampl=self.ampl * other
-            out.rates=self.rates
+            out = eseries()
+            out.dims = self.dims
+            out.shape = self.shape
+            out.ampl = self.ampl * other
+            out.rates = self.rates
             return out
 
     def __rmul__(self,other): #Multiplication with ESERIES on right (ex. other*ESERIES)
-        out=eseries()
-        out.dims=self.dims
-        out.shape=self.shape
-        out.ampl=other * self.ampl
-        out.rates=self.rates
+        out = eseries()
+        out.dims = self.dims
+        out.shape = self.shape
+        out.ampl = other * self.ampl
+        out.rates = self.rates
         return out
 
     #
@@ -237,8 +237,8 @@ class eseries():
                 exp_factors = np.exp(np.array(self.rates) * tlist[j])
                 val_list[j] = np.sum(np.dot(self.ampl, exp_factors))
 
-        if all(np.imag(val_list)==0):
-            val_list=np.real(val_list)
+        if all(np.imag(val_list) == 0):
+            val_list = np.real(val_list)
         if len(tlist) == 1:
             return val_list[0]
         else:
@@ -262,7 +262,7 @@ class eseries():
         val_list = np.zeros(np.size(wlist))
 
         for i in range(len(wlist)):
-            val_list[i] = 2 * np.real(np.dot(self.ampl, 1./(1.0j*wlist[i] - self.rates)) )
+            val_list[i] = 2 * np.real(np.dot(self.ampl, 1. / (1.0j * wlist[i] - self.rates)) )
 
         return val_list
 
