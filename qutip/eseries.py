@@ -24,7 +24,7 @@ from qutip.qobj import Qobj
 class eseries():
     """
     Class representation of an exponential-series expansion of time-dependent quantum objects.
-    
+
     Attributes
     ----------
     ampl : ndarray
@@ -35,16 +35,16 @@ class eseries():
         Dimensions of exponential series components
     shape : list
         Shape corresponding to exponential series components
-    
+
     Methods
     -------
     value(tlist)
         Evaluate an exponential series at the times listed in tlist
     spec(wlist)
         Evaluate the spectrum of an exponential series at frequencies in wlist.
-    tidyup() 
+    tidyup()
         Returns a tidier version of the exponential series
-    
+
     """
     __array_priority__=101
     def __init__(self,q=np.array([]),s=np.array([])):
@@ -53,7 +53,7 @@ class eseries():
         if (not np.any(q)) and (len(s)==0):
             self.ampl=np.array([])
             self.rates=np.array([])
-            self.dims=[[1,1]] 
+            self.dims=[[1,1]]
             self.shape=[1,1]
         if np.any(q) and (len(s)==0):
             if isinstance(q,eseries):
@@ -83,7 +83,7 @@ class eseries():
                 self.dims  = [[1, 1]]
                 self.shape = [1,1]
 
-        if np.any(q) and len(s)!=0: 
+        if np.any(q) and len(s)!=0:
             if isinstance(q,(np.ndarray,list)):
                 ind=np.shape(q)
                 num=ind[0]
@@ -112,10 +112,10 @@ class eseries():
             rates,ampl=list(zip(*zipped)) #get back rates and ampl
             self.ampl=np.array(ampl)
             self.rates=np.array(rates)
-    
+
     ######___END_INIT___######################
 
-    ##########################################            
+    ##########################################
     def __str__(self):#string of ESERIES information
         self.tidy()
         print("ESERIES object: "+str(len(self.ampl))+" terms")
@@ -127,10 +127,10 @@ class eseries():
             else:
                 print(self.ampl[k])
         return ""
-    
+
     def __repr__(self):
         return self.__str__()
-    
+
     def __add__(self,other):#Addition with ESERIES on left (ex. ESERIES+5)
         right=eseries(other)
         if self.dims!=right.dims:
@@ -149,7 +149,7 @@ class eseries():
         out.shape=self.shape
         out.ampl=-self.ampl
         out.rates=self.rates
-        return out 
+        return out
     def __sub__(self,other):#Subtraction with ESERIES on left (ex. ESERIES-5)
         return self+(-other)
     def __rsub__(self,other):#Subtraction with ESERIES on right (ex. 5-ESERIES)
@@ -182,31 +182,31 @@ class eseries():
         out.ampl=other * self.ampl
         out.rates=self.rates
         return out
-    
-    # 
+
+    #
     # todo:
     # select_ampl, select_rate: functions to select some terms given the ampl
     # or rate. This is done with {ampl} or (rate) in qotoolbox. we should use
     # functions with descriptive names for this.
-    # 
+    #
 
-    #   
+    #
     # evaluate the eseries for a list of times
     #
     def value(self, tlist):
         """
         Evaluates an exponential series at the times listed in ``tlist``.
-        
+
         Parameters
         ----------
         tlist : ndarray
             Times at which to evaluate exponential series.
-        
+
         Returns
         -------
         val_list : ndarray
             Values of exponential at times in ``tlist``.
-        
+
         """
 
         if self.ampl == None or len(self.ampl) == 0:
@@ -215,28 +215,28 @@ class eseries():
 
         if isinstance(tlist, float) or isinstance(tlist, int):
             tlist = [tlist]
-    
+
         if isinstance(self.ampl[0], Qobj):
             # amplitude vector contains quantum objects
             val_list = []
-        
+
             for j in range(len(tlist)):
                 exp_factors = np.exp(np.array(self.rates) * tlist[j])
 
                 val = 0
                 for i in range(len(self.ampl)):
                     val += self.ampl[i] * exp_factors[i]
-      
+
                 val_list.append(val)
-    
+
         else:
             # the amplitude vector contains c numbers
             val_list = np.zeros(np.size(tlist),dtype=complex)
-    
+
             for j in range(len(tlist)):
                 exp_factors = np.exp(np.array(self.rates) * tlist[j])
                 val_list[j] = np.sum(np.dot(self.ampl, exp_factors))
-    
+
         if all(np.imag(val_list)==0):
             val_list=np.real(val_list)
         if len(tlist) == 1:
@@ -247,17 +247,17 @@ class eseries():
     def spec(self, wlist):
         """
         Evaluate the spectrum of an exponential series at frequencies in ``wlist``.
-        
+
         Parameters
         ----------
         wlist : array_like
             Array/list of frequenies.
-        
+
         Returns
         -------
         val_list : ndarray
             Values of exponential series at frequencies in ``wlist``.
-        
+
         """
         val_list = np.zeros(np.size(wlist))
 
@@ -268,8 +268,8 @@ class eseries():
 
 
     def tidyup(self,*args):
-        """ Returns a tidier version of exponential series. 
-        
+        """ Returns a tidier version of exponential series.
+
         """
 
         #
@@ -277,11 +277,11 @@ class eseries():
         #
         rate_tol = 1e-10
         ampl_tol = 1e-10
- 
+
         ampl_dict = {}
         unique_rates = {}
         ur_len = 0
-    
+
         for r_idx in range(len(self.rates)):
 
             # look for a matching rate in the list of unique rates
@@ -293,7 +293,7 @@ class eseries():
 
             if idx == -1:
                 # no matching rate, add it
-                unique_rates[ur_len] = self.rates[r_idx]                
+                unique_rates[ur_len] = self.rates[r_idx]
                 ampl_dict[ur_len]    = [self.ampl[r_idx]]
                 ur_len = len(unique_rates)
             else:
@@ -331,12 +331,12 @@ def esval(es, tlist):
     ----------
     tlist : ndarray
         Times at which to evaluate exponential series.
-            
+
     Returns
     -------
     val_list : ndarray
         Values of exponential at times in ``tlist``.
-    
+
     """
     return es.value(tlist)
 
@@ -347,19 +347,17 @@ def esspec(es, wlist):
     ----------
     wlist : array_like
         Array/list of frequenies.
-        
+
     Returns
     -------
     val_list : ndarray
         Values of exponential series at frequencies in ``wlist``.
-        
+
     """
     return es.spec(wlist)
 
 def estidy(es,*args):
     """
-    Returns a tidier version of exponential series. 
+    Returns a tidier version of exponential series.
     """
     return es.tidyup()
-
-
