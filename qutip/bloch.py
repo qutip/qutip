@@ -19,9 +19,9 @@
 import os
 
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
-                   sqrt, real, imag, mod, append, ceil, floor)
+                   sqrt, real, mod, append, ceil)
 
-from pylab import figure,plot,show,savefig,close
+from pylab import figure, show, savefig, close
 from mpl_toolkits.mplot3d import Axes3D
 from qutip.qobj import Qobj
 from qutip.expect import expect
