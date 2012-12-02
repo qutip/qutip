@@ -20,15 +20,12 @@
 import numpy as np
 import scipy.integrate
 
-import qutip.odeconfig
 from qutip.qobj import Qobj
 from qutip.superoperator import *
 from qutip.expect import expect
 from qutip.states import *
 from qutip.odeoptions import Odeoptions
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
-from qutip.cyQ.codegen import Codegen
-from qutip.rhs_generate import rhs_generate
 from qutip.odedata import Odedata
 
 
