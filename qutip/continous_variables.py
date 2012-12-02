@@ -18,8 +18,9 @@
 ###########################################################################
 
 """
-This module contains experimental functions for calculating continous variable
-quantities from fock-basis representation of the state of coupled harmonic modes
+This module contains experimental functions for calculating continous
+variable quantities from fock-basis representation of the state of
+coupled harmonic modes
 """
 
 from qutip.expect import expect
@@ -35,12 +36,13 @@ def _correlation_matrix(basis, rho=None):
         Experimental.
     """
 
-    if rho is None:  
+    if rho is None:
         # return array of operators
-        return np.array([[op1*op2 for op1 in basis] for op2 in basis])
+        return np.array([[op1 * op2 for op1 in basis] for op2 in basis])
     else:
         # return array of expectation balues
-        return np.array([[expect(op1*op2, rho) for op1 in basis] for op2 in basis])
+        return np.array([[expect(op1 * op2, rho) for op1 in basis]
+                         for op2 in basis])
 
 
 def covariance_matrix(basis, rho):
@@ -52,7 +54,11 @@ def covariance_matrix(basis, rho):
         Experimental.
     """
 
-    return np.array([[expect(op1*op2+op2*op1, rho)-expect(op1, rho)*expect(op2, rho) for op1 in basis] for op2 in basis])
+    return np.array([[expect(op1 * op2 + op2 * op1, rho) -
+                      expect(op1, rho) * expect(op2, rho)
+                      for op1 in basis]
+                     for op2 in basis])
+
 
 def correlation_matrix_field(a1, a2, rho=None):
     """
@@ -100,9 +106,13 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
     if R != None:
 
         if rho is None:
-            return np.array([[np.real(R[i,j]+R[j,i]) for i in range(4)] for j in range(4)])
-        else:          
-            return np.array([[np.real(expect(R[i,j]+R[j,i], rho)) for i in range(4)] for j in range(4)])
+            return np.array([[np.real(R[i, j] + R[j, i])
+                              for i in range(4)]
+                             for j in range(4)])
+        else:
+            return np.array([[np.real(expect(R[i, j] + R[j, i], rho))
+                              for i in range(4)]
+                             for j in range(4)])
 
     elif a1 != None and a2 != None:
 
@@ -113,10 +123,13 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
             p2 = 1j * (a2 - a2.dag()) / np.sqrt(2)
             return covariance_matrix([x1, p1, x2, p2], rho)
         else:
-            raise ValueError("Must give rho if using field operators (a1 and a2)")
-    
+            raise ValueError("Must give rho if using field operators " +
+                             "(a1 and a2)")
+
     else:
-        raise ValueError("Must give either field operators (a1 and a2) or a precomputed correlation matrix (R)")
+        raise ValueError("Must give either field operators (a1 and a2) " +
+                         "or a precomputed correlation matrix (R)")
+
 
 def wigner_logarithm_negativity(V):
     """
@@ -127,16 +140,14 @@ def wigner_logarithm_negativity(V):
         Experimental.
 
     """
-    
-    A = V[0:2,0:2]
-    B = V[2:4,2:4]
-    C = V[0:2,2:4]
-    
-    sigma = np.linalg.det(A) + np.linalg.det(B) - 2 * np.linalg.det(C)            
-    nu = np.sqrt(sigma/2 - np.sqrt(sigma**2 - 4 * np.linalg.det(V))/2)
-    lognu = -np.log(2*nu)
+
+    A = V[0:2, 0:2]
+    B = V[2:4, 2:4]
+    C = V[0:2, 2:4]
+
+    sigma = np.linalg.det(A) + np.linalg.det(B) - 2 * np.linalg.det(C)
+    nu = np.sqrt(sigma / 2 - np.sqrt(sigma**2 - 4 * np.linalg.det(V)) / 2)
+    lognu = -np.log(2 * nu)
     logneg = max(0, lognu)
-    
+
     return logneg
-
-
