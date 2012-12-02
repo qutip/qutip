@@ -23,34 +23,34 @@ except:#for scipy v >= 0.10
     from scipy.misc import factorial
 
 def clebsch(j1,j2,j3,m1,m2,m3):
-    """Calculates the Clebsch-Gordon coefficient 
+    """Calculates the Clebsch-Gordon coefficient
     for coupling (j1,m1) and (j2,m2) to give (j3,m3).
-    
+
     Parameters
     ----------
     j1 : float
         Total angular momentum 1.
-        
+
     j2 : float
         Total angular momentum 2.
-    
+
     j3 : float
         Total angular momentum 3.
-    
-    m1 : float 
+
+    m1 : float
         z-component of angular momentum 1.
-    
+
     m2 : float
         z-component of angular momentum 2.
-    
+
     m3 : float
         z-component of angular momentum 3.
-    
+
     Returns
     -------
-    cg_coeff : float 
+    cg_coeff : float
         Requested Clebsch-Gordan coefficient.
-    
+
     """
     if m3!=m1+m2:
         return 0
@@ -66,5 +66,3 @@ def clebsch(j1,j2,j3,m1,m2,m3):
 
 if __name__=='main()':
     print(clebsch(0.5,0.5,1,1,0,1))
-
-
