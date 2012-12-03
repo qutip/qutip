@@ -20,48 +20,49 @@ from numpy import sqrt, array, exp
 from qutip.states import qstate, state_number_index, state_number_enumerate
 from qutip.qobj import Qobj
 
+
 def cnot():
     """
     Quantum object representing the CNOT gate.
-    
+
     Returns
     -------
     cnot_gate : qobj
         Quantum object representation of CNOT gate
-    
+
     Examples
-    --------  
+    --------
     >>> cnot()
     Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
-    Qobj data = 
+    Qobj data =
         [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
          [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
          [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]
          [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]]
-    
+
     """
-    uu=qstate('uu')
-    ud=qstate('ud')
-    du=qstate('du')
-    dd=qstate('dd')
-    Q=dd*dd.dag()+du*du.dag()+uu*ud.dag()+ud*uu.dag()
+    uu = qstate('uu')
+    ud = qstate('ud')
+    du = qstate('du')
+    dd = qstate('dd')
+    Q = dd * dd.dag() + du * du.dag() + uu * ud.dag() + ud * uu.dag()
     return Qobj(Q)
 
 
 #------------------
 def fredkin():
     """Quantum object representing the Fredkin gate.
-    
+
     Returns
     -------
     fred_gate : qobj
         Quantum object representation of Fredkin gate.
-    
+
     Examples
-    --------    
+    --------
     >>> fredkin()
     Quantum object: dims = [[2, 2, 2], [2, 2, 2]], shape = [8, 8], type = oper, isHerm = True
-    Qobj data = 
+    Qobj data =
         [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
          [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
          [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
@@ -70,35 +71,36 @@ def fredkin():
          [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j]
          [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j]
          [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
-         
+
     """
     uuu = qstate('uuu')
-    uud = qstate('uud') 
+    uud = qstate('uud')
     udu = qstate('udu')
     udd = qstate('udd')
-    duu = qstate('duu') 
+    duu = qstate('duu')
     dud = qstate('dud')
     ddu = qstate('ddu')
     ddd = qstate('ddd')
-    Q = ddd*ddd.dag() + ddu*ddu.dag() + dud*dud.dag() + duu*duu.dag() + \
-        udd*udd.dag() + uud*udu.dag() + udu*uud.dag() + uuu*uuu.dag()
+    Q = ddd * ddd.dag() + ddu * ddu.dag() + dud * dud.dag() + \
+        duu * duu.dag() + udd * udd.dag() + uud * udu.dag() + \
+        udu * uud.dag() + uuu * uuu.dag()
     return Qobj(Q)
 
 
 #------------------
 def toffoli():
     """Quantum object representing the Toffoli gate.
-    
+
     Returns
     -------
     toff_gate : qobj
         Quantum object representation of Toffoli gate.
-    
+
     Examples
-    --------    
+    --------
     >>> toffoli()
     Quantum object: dims = [[2, 2, 2], [2, 2, 2]], shape = [8, 8], type = oper, isHerm = True
-    Qobj data = 
+    Qobj data =
         [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
          [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
          [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
@@ -107,56 +109,58 @@ def toffoli():
          [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j  0.+0.j]
          [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j]
          [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j  0.+0.j]]
-         
-         
+
+
     """
-    uuu = qstate('uuu') 
-    uud = qstate('uud') 
-    udu = qstate('udu') 
+    uuu = qstate('uuu')
+    uud = qstate('uud')
+    udu = qstate('udu')
     udd = qstate('udd')
-    duu = qstate('duu') 
-    dud = qstate('dud') 
-    ddu = qstate('ddu') 
+    duu = qstate('duu')
+    dud = qstate('dud')
+    ddu = qstate('ddu')
     ddd = qstate('ddd')
-    Q = ddd*ddd.dag() + ddu*ddu.dag() + dud*dud.dag() + duu*duu.dag() + \
-        udd*udd.dag() + udu*udu.dag() + uuu*uud.dag() + uud*uuu.dag()
+    Q = ddd * ddd.dag() + ddu * ddu.dag() + dud * dud.dag() + \
+        duu * duu.dag() + udd * udd.dag() + udu * udu.dag() + \
+        uuu * uud.dag() + uud * uuu.dag()
     return Qobj(Q)
+
 
 #------------------
 def swap(mask=None):
     """Quantum object representing the SWAP gate.
-    
+
     Returns
     -------
     swap_gate : qobj
         Quantum object representation of SWAP gate
-    
+
     Examples
     --------
     >>> swap()
     Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
-    Qobj data = 
+    Qobj data =
     [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
      [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]
      [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
      [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
-         
+
     """
     if mask is None:
-        uu=qstate('uu')
-        ud=qstate('ud')
-        du=qstate('du')
-        dd=qstate('dd')
-        Q=uu*uu.dag()+ud*du.dag()+ du*ud.dag()+dd*dd.dag()
+        uu = qstate('uu')
+        ud = qstate('ud')
+        du = qstate('du')
+        dd = qstate('dd')
+        Q = uu * uu.dag() + ud * du.dag() + du * ud.dag() + dd * dd.dag()
         return Qobj(Q)
     else:
         if sum(mask) != 2:
             raise ValueError("mask must only have two ones, rest zeros")
-        
+
         dims = [2] * len(mask)
         idx, = where(mask)
         N = prod(dims)
-        data = sp.lil_matrix((N,N))
+        data = sp.lil_matrix((N, N))
 
         for s1 in state_number_enumerate(dims):
             i1 = state_number_index(dims, s1)
@@ -168,18 +172,19 @@ def swap(mask=None):
                 s2[idx[0]], s2[idx[1]] = s2[idx[1]], s2[idx[0]]
                 i2 = state_number_index(dims, s2)
 
-            data[i1,i2] = 1
+            data[i1, i2] = 1
 
         return Qobj(data, dims=[dims, dims], shape=[N, N])
 
+
 def iswap(mask=None):
     """Quantum object representing the iSWAP gate.
-    
+
     Returns
     -------
     iswap_gate : qobj
         Quantum object representation of iSWAP gate
-    
+
     Examples
     --------
     >>> iswap()
@@ -191,15 +196,17 @@ def iswap(mask=None):
      [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
     """
     if mask is None:
-        return Qobj(array([[1,0,0,0], [0,0,1j,0], [0,1j,0,0], [0,0,0,1]]), dims=[[2, 2], [2, 2]])
+        return Qobj(array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0],
+                           [0, 0, 0, 1]]),
+                    dims=[[2, 2], [2, 2]])
     else:
         if sum(mask) != 2:
             raise ValueError("mask must only have two ones, rest zeros")
-        
+
         dims = [2] * len(mask)
-        idx,  = where(mask)
+        idx, = where(mask)
         N = prod(dims)
-        data = sp.lil_matrix((N,N),dtype=complex)
+        data = sp.lil_matrix((N, N), dtype=complex)
 
         for s1 in state_number_enumerate(dims):
             i1 = state_number_index(dims, s1)
@@ -213,19 +220,19 @@ def iswap(mask=None):
                 i2 = state_number_index(dims, s2)
                 val = 1.0j
 
-            data[i1,i2] = val
+            data[i1, i2] = val
 
         return Qobj(data, dims=[dims, dims], shape=[N, N])
 
 
 def sqrtiswap():
     """Quantum object representing the square root iSWAP gate.
-    
+
     Returns
     -------
     sqrtiswap_gate : qobj
         Quantum object representation of square root iSWAP gate
-    
+
     Examples
     --------
     >>> sqrtiswap()
@@ -234,61 +241,59 @@ def sqrtiswap():
     [[ 1.00000000+0.j   0.00000000+0.j          0.00000000+0.j          0.00000000+0.j]
      [ 0.00000000+0.j   0.70710678+0.j          0.00000000-0.70710678j  0.00000000+0.j]
      [ 0.00000000+0.j   0.00000000-0.70710678j  0.70710678+0.j          0.00000000+0.j]
-     [ 0.00000000+0.j   0.00000000+0.j          0.00000000+0.j          1.00000000+0.j]]    
+     [ 0.00000000+0.j   0.00000000+0.j          0.00000000+0.j          1.00000000+0.j]]
     """
     return Qobj(array([[1,0,0,0], [0, 1/sqrt(2), -1j/sqrt(2), 0], [0, -1j/sqrt(2), 1/sqrt(2), 0], [0, 0, 0, 1]]), dims=[[2, 2], [2, 2]])
 
 
 def snot():
     """Quantum object representing the SNOT (Hadamard) gate.
-    
+
     Returns
     -------
     snot_gate : qobj
         Quantum object representation of SNOT (Hadamard) gate.
-    
+
     Examples
     --------
     >>> snot()
     Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = True
-    Qobj data = 
+    Qobj data =
     [[ 0.70710678+0.j  0.70710678+0.j]
      [ 0.70710678+0.j -0.70710678+0.j]]
-         
+
     """
-    u=qstate('u')
-    d=qstate('d')
-    Q=1.0/sqrt(2.0)*(d*d.dag()+u*d.dag()+d*u.dag()-u*u.dag())
-    return Qobj(Q)    
+    u = qstate('u')
+    d = qstate('d')
+    Q = 1.0 / sqrt(2.0) * (d * d.dag() + u * d.dag() +
+                           d * u.dag() - u * u.dag())
+    return Qobj(Q)
 
 
 def phasegate(theta):
     """
     Returns quantum object representing the phase shift gate.
-    
+
     Parameters
     ----------
     theta : float
         Phase rotation angle.
-    
+
     Returns
     -------
     phase_gate : qobj
         Quantum object representation of phase shift gate.
-    
+
     Examples
-    --------    
+    --------
     >>> phasegate(pi/4)
     Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
-    Qobj data = 
+    Qobj data =
     [[ 1.00000000+0.j          0.00000000+0.j        ]
      [ 0.00000000+0.j          0.70710678+0.70710678j]]
-        
+
     """
-    u=qstate('u')
-    d=qstate('d')
-    Q=d*d.dag()+(exp(1.0j*theta)*u*u.dag())
+    u = qstate('u')
+    d = qstate('d')
+    Q = d * d.dag() + (exp(1.0j * theta) * u * u.dag())
     return Qobj(Q)
-
-
-    
