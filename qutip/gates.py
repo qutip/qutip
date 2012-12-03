@@ -16,7 +16,8 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from numpy import sqrt, array, exp
+from numpy import sqrt, array, exp, where, prod
+import scipy.sparse as sp
 from qutip.states import qstate, state_number_index, state_number_enumerate
 from qutip.qobj import Qobj
 
