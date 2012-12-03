@@ -18,41 +18,52 @@
 ###########################################################################
 
 """
-Module for aboutbox or command line ouput of information on QuTiP and dependencies.
+Module for aboutbox or command line ouput of information on QuTiP and
+dependencies.
 """
 
-import sys,os
-import numpy,scipy
+import sys
+import os
+import numpy
+import scipy
 import qutip.settings
 
-CD_BASE = os.path.dirname(__file__) # get directory of about.py file
-#execfile(os.path.join(CD_BASE, "_version.py")) #execute _version.py file in CD_BASE directory
-exec(compile(open(os.path.join(CD_BASE, "_version.py")).read(), os.path.join(CD_BASE, "_version.py"), 'exec'))
+CD_BASE = os.path.dirname(__file__)  # get directory of about.py file
+#execfile(os.path.join(CD_BASE, "_version.py"))
+#execute _version.py file in CD_BASE directory
+exec(compile(open(os.path.join(CD_BASE, "_version.py")).read(),
+             os.path.join(CD_BASE, "_version.py"), 'exec'))
+
+
 def about():
     """
-    About box for qutip. Gives version numbers for 
+    About box for qutip. Gives version numbers for
     QuTiP, NumPy, SciPy, and MatPlotLib.
     GUI version requires PySide or PyQt4.
     """
-    if qutip.settings.qutip_graphics=='YES' and qutip.settings.qutip_gui!="NONE":
+    if (qutip.settings.qutip_graphics == 'YES' and
+        qutip.settings.qutip_gui != "NONE"):
+
         from qutip.gui import AboutBox
         import matplotlib
-        if qutip.settings.qutip_gui=="PYSIDE":
+        if qutip.settings.qutip_gui == "PYSIDE":
             from PySide import QtGui, QtCore
-        elif qutip.settings.qutip_gui=="PYQT4":
+        elif qutip.settings.qutip_gui == "PYQT4":
             from PyQt4 import QtGui, QtCore
-        
-        app=QtGui.QApplication.instance()#checks if QApplication already exists (needed for iPython)
-        if not app:#create QApplication if it doesnt exist
+
+        #checks if QApplication already exists (needed for iPython)
+        app = QtGui.QApplication.instance()
+
+        #create QApplication if it doesnt exist
+        if not app:
             app = QtGui.QApplication(sys.argv)
-        box=AboutBox(version)
+
+        box = AboutBox(version)
         box.show()
         box.activateWindow()
         box.raise_()
         app.exec_()
-        
-        
-        
+
     else:
         print('')
         print("QuTiP: The Quantum Toolbox in Python")
@@ -66,29 +77,27 @@ def about():
             import matplotlib
             matplotlib_ver = matplotlib.__version__
         except:
-            matplotlib_ver = 'None' 
+            matplotlib_ver = 'None'
         print(("Matplotlib Version:  " + matplotlib_ver))
         print('')
 
         try:
             import PySide
-            pyside_ver=PySide.__version__
+            pyside_ver = PySide.__version__
         except:
-            pyside_ver='None'
+            pyside_ver = 'None'
         try:
             import PyQt4.QtCore as qt4Core
-            pyqt4_ver=qt4Core.PYQT_VERSION_STR
+            pyqt4_ver = qt4Core.PYQT_VERSION_STR
         except:
-            pyqt4_ver='None'
-        if sys.platform=='darwin':
+            pyqt4_ver = 'None'
+        if sys.platform == 'darwin':
             try:
                 import Foundation
-                pyobjc='Yes'
+                pyobjc = 'Yes'
             except:
-                pyobjc='No'
+                pyobjc = 'No'
         print(("PySide Version:      "+pyside_ver))
         print(("PyQt4 Version:       "+pyqt4_ver))
-        if sys.platform=='darwin':
+        if sys.platform == 'darwin':
             print(("PyObjc Installed:    "+pyobjc))
-
-

@@ -22,65 +22,68 @@ from qutip.qobj import *
 import numpy as np
 import scipy.sparse as sp
 
+
 def expect(oper,state):
     '''Calculates the expectation value for operator and state(s).
-    
+
     Parameters
     ----------
-    oper : qobj 
+    oper : qobj
         Operator for expectation value.
-        
+
     state : qobj/list
         A single or `list` of quantum states or density matricies.
-    
+
     Returns
     -------
     expt : float
         Expectation value.  ``real`` if `oper` is Hermitian, ``complex``
         otherwise.
-    
+
     Examples
-    --------    
+    --------
     >>> expect(num(4),basis(4,3))
     3
-        
+
     '''
-    if isinstance(state,Qobj) or isinstance(state, eseries):
-        return single_expect(oper,state)
-    elif isinstance(state,np.ndarray) or isinstance(state,list):
-        if oper.isherm and all([(op.isherm or op.type=='ket') for op in state]):
-            return np.array([single_expect(oper,x) for x in state])
+    if isinstance(state, Qobj) or isinstance(state, eseries):
+        return single_expect(oper, state)
+    elif isinstance(state, np.ndarray) or isinstance(state, list):
+        if oper.isherm and all([(op.isherm or op.type == 'ket')
+                                for op in state]):
+            return np.array([single_expect(oper, x) for x in state])
         else:
-            return np.array([single_expect(oper,x) for x in state],dtype=complex)
+            return np.array([single_expect(oper, x) for x in state],
+                            dtype=complex)
 
 
-def single_expect(oper,state):
+def single_expect(oper, state):
     """
     Private function used by expect
     """
-    if isinstance(oper,Qobj) and isinstance(state,Qobj):
+    if isinstance(oper, Qobj) and isinstance(state, Qobj):
         if isoper(oper):
-            if state.type=='oper':
+            if state.type == 'oper':
                 #calculates expectation value via TR(op*rho)
-                prod = oper.data*state.data
-                tr=sum(prod.diagonal()) #sum of diagonal elements
-                if oper.isherm and state.isherm: #if hermitian
+                prod = oper.data * state.data
+                tr = sum(prod.diagonal())  # sum of diagonal elements
+                if oper.isherm and state.isherm:  # if hermitian
                     return float(np.real(tr))
-                else: #not hermitian
+                else:  # not hermitian
                     return tr
-            elif state.type=='ket':
+            elif state.type == 'ket':
                 #calculates expectation value via <psi|op|psi>
                 #prod = state.data.conj().T * (oper.data * state.data)
                 prod = state.data.conj().T.dot(oper.data * state.data)
                 if oper.isherm:
-                    return float(np.real(prod[0,0]))
+                    return float(np.real(prod[0, 0]))
                 else:
-                    return prod[0,0]
+                    return prod[0, 0]
         else:
             raise TypeError('Invalid operand types')
     # eseries
-    # 
-    elif isinstance(oper,Qobj) and isinstance(state, eseries):
+    #
+    elif isinstance(oper, Qobj) and isinstance(state, eseries):
         out = eseries()
 
         if isoper(state.ampl[0]):
@@ -91,7 +94,7 @@ def single_expect(oper,state):
         else:
 
             out.rates = np.array([])
-            out.ampl  = np.array([])
+            out.ampl = np.array([])
 
             for m in range(len(state.rates)):
 
@@ -104,31 +107,31 @@ def single_expect(oper,state):
                     if isinstance(a, sp.spmatrix):
                         a = a.todense()
 
-                    out.rates = np.append(out.rates, state.rates[n] - state.rates[m])
-                    out.ampl  = np.append(out.ampl, a)
+                    out.rates = np.append(out.rates, state.rates[n] -
+                                          state.rates[m])
+                    out.ampl = np.append(out.ampl, a)
 
         return out
-    else:# unsupported types
+    else:  # unsupported types
         raise TypeError('Arguments must be quantum objects or eseries')
 
 
-def variance(oper,state):
+def variance(oper, state):
     """
     Variance of an operator for the given state vector or density matrix.
-    
+
     Parameters
     ----------
-    oper : qobj 
+    oper : qobj
         Operator for expectation value.
-        
+
     state : qobj/list
         A single or `list` of quantum states or density matricies.
-    
+
     Returns
     -------
     var : float
         Variance of operator 'oper' for given state.
-    
-    """
-    return expect(oper**2,state)-expect(oper,state)**2
 
+    """
+    return expect(oper**2, state) - expect(oper, state)**2

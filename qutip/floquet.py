@@ -26,18 +26,19 @@ from qutip.qobj import Qobj, isket
 from qutip.superoperator import vec2mat_index, mat2vec, vec2mat
 from qutip.mesolve import mesolve
 from qutip.steady import steadystate
-from qutip.states import basis, ket2dm
+from qutip.states import ket2dm
 from qutip.states import projection
 from qutip.odeoptions import Odeoptions
 from qutip.propagator import propagator
 from qutip.odedata import Odedata
 from qutip.cyQ.ode_rhs import cyq_ode_rhs
 
+
 def floquet_modes(H, T, args=None, sort=False):
     """
     Calculate the initial Floquet modes Phi_alpha(0) for a driven system with
     period T.
-    
+
     Returns a list of :class:`qutip.qobj` instances representing the Floquet
     modes and a list of corresponding quasienergies, sorted by increasing
     quasienergy in the interval [-pi/T, pi/T]. The optional parameter `sort`
@@ -45,17 +46,17 @@ def floquet_modes(H, T, args=None, sort=False):
 
     Parameters
     ----------
-    
+
     H : :class:`qutip.qobj`
         system Hamiltonian, time-dependent with period `T`
-        
+
     args : dictionary
         dictionary with variables required to evaluate H
-     
+
     T : float
         The period of the time-dependence of the hamiltonian. The default value
         'None' indicates that the 'tlist' spans a single period of the driving.
-     
+
     Returns
     -------
 
@@ -69,16 +70,16 @@ def floquet_modes(H, T, args=None, sort=False):
     U = propagator(H, T, [], args)
 
     # find the eigenstates for the propagator
-    evals,evecs = la.eig(U.full())
+    evals, evecs = la.eig(U.full())
 
     eargs = angle(evals)
-    
-    # make sure that the phase is in the interval [-pi, pi], so that the
-    # quasi energy is in the interval [-pi/T, pi/T] where T is the period of the
-    # driving.
-    #eargs  += (eargs <= -2*pi) * (2*pi) + (eargs > 0) * (-2*pi)
-    eargs  += (eargs <= -pi) * (2*pi) + (eargs > pi) * (-2*pi)
-    e_quasi = -eargs/T
+
+    # make sure that the phase is in the interval [-pi, pi], so that
+    # the quasi energy is in the interval [-pi/T, pi/T] where T is the
+    # period of the driving.  eargs += (eargs <= -2*pi) * (2*pi) +
+    # (eargs > 0) * (-2*pi)
+    eargs  += (eargs <= -pi) * (2 * pi) + (eargs > pi) * (-2 * pi)
+    e_quasi = -eargs / T
 
     # sort by the quasi energy
     if sort == True:
@@ -87,38 +88,40 @@ def floquet_modes(H, T, args=None, sort=False):
         order = list(range(len(evals)))
 
     # prepare a list of kets for the floquet states
-    new_dims  = [U.dims[0], [1] * len(U.dims[0])]
+    new_dims = [U.dims[0], [1] * len(U.dims[0])]
     new_shape = [U.shape[0], 1]
-    kets_order = [Qobj(np.matrix(evecs[:,o]).T, dims=new_dims, shape=new_shape) for o in order]
+    kets_order = [Qobj(np.matrix(evecs[:, o]).T,
+                       dims=new_dims, shape=new_shape) for o in order]
 
     return kets_order, e_quasi[order]
+
 
 def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None):
     """
     Calculate the Floquet modes at times tlist Phi_alpha(tlist) propagting the
     initial Floquet modes Phi_alpha(0)
-  
+
     Parameters
     ----------
-    
+
     f_modes_0 : list of :class:`qutip.qobj` (kets)
         Floquet modes at :math:`t`
 
     f_energies : list
         Floquet energies.
-        
+
     t : float
         The time at which to evaluate the floquet modes.
 
     H : :class:`qutip.qobj`
         system Hamiltonian, time-dependent with period `T`
-        
+
     args : dictionary
-        dictionary with variables required to evaluate H     
+        dictionary with variables required to evaluate H
 
     T : float
-        The period of the time-dependence of the hamiltonian. 
-     
+        The period of the time-dependence of the hamiltonian.
+
     Returns
     -------
 
@@ -129,49 +132,50 @@ def floquet_modes_t(f_modes_0, f_energies, t, H, T, args=None):
     """
 
     # find t in [0,T] such that t_orig = t + n * T for integer n
-    t = t - int(t/T) * T
-    
+    t = t - int(t / T) * T
+
     f_modes_t = []
-        
+
     # get the unitary propagator from 0 to t
     if t > 0.0:
         U = propagator(H, t, [], args)
 
         for n in np.arange(len(f_modes_0)):
-            f_modes_t.append(U * f_modes_0[n] * exp(1j * f_energies[n]*t))
+            f_modes_t.append(U * f_modes_0[n] * exp(1j * f_energies[n] * t))
 
     else:
         f_modes_t = f_modes_0
 
     return f_modes_t
-    
+
+
 def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
     """
     Pre-calculate the Floquet modes for a range of times spanning the floquet
     period. Can later be used as a table to look up the floquet modes for
     any time.
-    
+
     Parameters
     ----------
-    
+
     f_modes_0 : list of :class:`qutip.qobj` (kets)
         Floquet modes at :math:`t`
 
     f_energies : list
         Floquet energies.
-        
+
     tlist : array
         The list of times at which to evaluate the floquet modes.
 
     H : :class:`qutip.qobj`
         system Hamiltonian, time-dependent with period `T`
-        
+
     T : float
-        The period of the time-dependence of the hamiltonian. 
+        The period of the time-dependence of the hamiltonian.
 
     args : dictionary
-        dictionary with variables required to evaluate H     
-     
+        dictionary with variables required to evaluate H
+
     Returns
     -------
 
@@ -192,10 +196,12 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
     for n, f_mode in enumerate(f_modes_0):
         output = mesolve(H, f_mode, tlist_period, [], [], args, opt)
         for t_idx, f_state_t in enumerate(output.states):
-            f_modes_table_t[t_idx].append(f_state_t * exp(1j * f_energies[n]*tlist_period[t_idx]))
-        
-    return f_modes_table_t    
-    
+            f_modes_table_t[t_idx].append(
+                f_state_t * exp(1j * f_energies[n] * tlist_period[t_idx]))
+
+    return f_modes_table_t
+
+
 def floquet_modes_t_lookup(f_modes_table_t, t, T):
     """
     Lookup the floquet mode at time t in the pre-calculated table of floquet
@@ -203,17 +209,17 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
 
     Parameters
     ----------
-    
+
     f_modes_table_t : nested list of :class:`qutip.qobj` (kets)
         A lookup-table of Floquet modes at times precalculated by
         :func:`qutip.floquet.floquet_modes_table`.
 
     t : float
         The time for which to evaluate the Floquet modes.
-        
+
     T : float
-        The period of the time-dependence of the hamiltonian. 
-     
+        The period of the time-dependence of the hamiltonian.
+
     Returns
     -------
 
@@ -224,11 +230,11 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
     """
 
     # find t_wrap in [0,T] such that t = t_wrap + n * T for integer n
-    t_wrap = t - int(t/T) * T
+    t_wrap = t - int(t / T) * T
 
     # find the index in the table that corresponds to t_wrap (= tlist[t_idx])
-    t_idx = int(t_wrap/T * len(f_modes_table_t))
-    
+    t_idx = int(t_wrap / T * len(f_modes_table_t))
+
     # XXX: might want to give a warning if the cast of t_idx to int discard
     # a significant fraction in t_idx, which would happen if the list of time
     # values isn't perfect matching the driving period
@@ -236,78 +242,83 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
 
     return f_modes_table_t[t_idx]
 
+
 def floquet_states(f_modes_t, f_energies, t):
     """
     Evaluate the floquet states at time t given the Floquet modes at that time.
 
     Parameters
     ----------
-    
+
     f_modes_t : list of :class:`qutip.qobj` (kets)
         A list of Floquet modes for time :math:`t`.
 
     f_energies : array
         The Floquet energies.
-        
+
     t : float
         The time for which to evaluate the Floquet states.
-     
+
     Returns
     -------
 
     output : list
 
         A list of Floquet states for the time :math:`t`.
-        
+
     """
-    
-    return [(f_modes_t[i] * exp(-1j * f_energies[i]*t)) for i in np.arange(len(f_energies))]   
-        
+
+    return [(f_modes_t[i] * exp(-1j * f_energies[i] * t))
+            for i in np.arange(len(f_energies))]
+
+
 def floquet_states_t(f_modes_0, f_energies, t, H, T, args=None):
     """
     Evaluate the floquet states at time t given the initial Floquet modes.
-    
+
     Parameters
     ----------
-    
+
     f_modes_t : list of :class:`qutip.qobj` (kets)
         A list of initial Floquet modes (for time :math:`t=0`).
 
     f_energies : array
         The Floquet energies.
-        
+
     t : float
         The time for which to evaluate the Floquet states.
 
     H : :class:`qutip.qobj`
         System Hamiltonian, time-dependent with period `T`.
-        
+
     T : float
-        The period of the time-dependence of the hamiltonian. 
+        The period of the time-dependence of the hamiltonian.
 
     args : dictionary
         Dictionary with variables required to evaluate H.
-     
+
     Returns
     -------
 
     output : list
 
         A list of Floquet states for the time :math:`t`.
-          
+
     """
-    
+
     f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, args)
-    return [(f_modes_t[i] * exp(-1j * f_energies[i]*t)) for i in np.arange(len(f_energies))]    
-    
+    return [(f_modes_t[i] * exp(-1j * f_energies[i] * t))
+            for i in np.arange(len(f_energies))]
+
+
 def floquet_wavefunction(f_modes_t, f_energies, f_coeff, t):
     """
-    Evaluate the wavefunction for a time t using the Floquet state decompositon,
-    given the Floquet modes at time `t`.
-    
+    Evaluate the wavefunction for a time t using the Floquet state
+    decompositon, given the Floquet modes at time `t`.
+
     Parameters
     ----------
-    
+
     f_modes_t : list of :class:`qutip.qobj` (kets)
         A list of initial Floquet modes (for time :math:`t=0`).
 
@@ -316,28 +327,30 @@ def floquet_wavefunction(f_modes_t, f_energies, f_coeff, t):
 
     f_coeff : array
         The coefficients for Floquet decomposition of the initial wavefunction.
-                
+
     t : float
         The time for which to evaluate the Floquet states.
-     
+
     Returns
     -------
 
     output : :class:`qutip.qobj`
 
         The wavefunction for the time :math:`t`.
-        
+
     """
-    return sum([f_modes_t[i] * exp(-1j * f_energies[i]*t) * f_coeff[i] for i in np.arange(len(f_energies))])
-    
+    return sum([f_modes_t[i] * exp(-1j * f_energies[i] * t) * f_coeff[i]
+                for i in np.arange(len(f_energies))])
+
+
 def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None):
     """
-    Evaluate the wavefunction for a time t using the Floquet state decompositon,
-    given the initial Floquet modes.
-    
+    Evaluate the wavefunction for a time t using the Floquet state
+    decompositon, given the initial Floquet modes.
+
     Parameters
     ----------
-    
+
     f_modes_t : list of :class:`qutip.qobj` (kets)
         A list of initial Floquet modes (for time :math:`t=0`).
 
@@ -346,15 +359,15 @@ def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None):
 
     f_coeff : array
         The coefficients for Floquet decomposition of the initial wavefunction.
-                
+
     t : float
         The time for which to evaluate the Floquet states.
-     
+
     H : :class:`qutip.qobj`
         System Hamiltonian, time-dependent with period `T`.
-        
+
     T : float
-        The period of the time-dependence of the hamiltonian. 
+        The period of the time-dependence of the hamiltonian.
 
     args : dictionary
         Dictionary with variables required to evaluate H.
@@ -365,20 +378,22 @@ def floquet_wavefunction_t(f_modes_0, f_energies, f_coeff, t, H, T, args=None):
     output : :class:`qutip.qobj`
 
         The wavefunction for the time :math:`t`.
-           
+
     """
-    
+
     f_states_t = floquet_states_t(f_modes_0, f_energies, t, H, T, args)
-    return sum([f_states_t[i] * f_coeff[i] for i in np.arange(len(f_energies))])
+    return sum([f_states_t[i] * f_coeff[i]
+                for i in np.arange(len(f_energies))])
+
 
 def floquet_state_decomposition(f_states, f_energies, psi):
     """
-    Decompose the wavefunction `psi` (typically an initial state) in terms of 
+    Decompose the wavefunction `psi` (typically an initial state) in terms of
     the Floquet states, :math:`\psi = \sum_\\alpha c_\\alpha \psi_\\alpha(0)`.
 
     Parameters
     ----------
-    
+
     f_states : list of :class:`qutip.qobj` (kets)
         A list of Floquet modes.
 
@@ -387,7 +402,7 @@ def floquet_state_decomposition(f_states, f_energies, psi):
 
     psi : :class:`qutip.qobj`
         The wavefunction to decompose in the Floquet state basis.
-                
+
     Returns
     -------
 
@@ -396,23 +411,28 @@ def floquet_state_decomposition(f_states, f_energies, psi):
         The coefficients :math:`c_\\alpha` in the Floquet state decomposition.
 
     """
-    return [(f_states[i].dag() * psi).data[0,0] for i in np.arange(len(f_energies))]
+    return [(f_states[i].dag() * psi).data[0, 0]
+            for i in np.arange(len(f_energies))]
 
-# should be moved to a utility library?    
+
+# should be moved to a utility library?
 def _n_thermal(w, w_th):
-    if (w_th > 0) and exp(w/w_th) != 1.0: 
-        return 1.0/(exp(w/w_th) - 1.0)
-    else: 
+    if (w_th > 0) and exp(w / w_th) != 1.0:
+        return 1.0 / (exp(w / w_th) - 1.0)
+    else:
         return 0.0 * np.ones(np.shape(w))
-    
-def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, args, J_cb, w_th, kmax=5, f_modes_table_t=None):
+
+
+def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
+                                  args, J_cb, w_th, kmax=5,
+                                  f_modes_table_t=None):
     """
     Calculate the rates and matrix elements for the Floquet-Markov master
     equation.
 
     Parameters
     ----------
-    
+
     f_modes_0 : list of :class:`qutip.qobj` (kets)
         A list of initial Floquet modes.
 
@@ -424,9 +444,9 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, args, J_cb,
 
     H : :class:`qutip.qobj`
         System Hamiltonian, time-dependent with period `T`.
-        
+
     T : float
-        The period of the time-dependence of the hamiltonian. 
+        The period of the time-dependence of the hamiltonian.
 
     args : dictionary
         Dictionary with variables required to evaluate H.
@@ -443,67 +463,74 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T, args, J_cb,
 
     f_modes_table_t : nested list of :class:`qutip.qobj` (kets)
         A lookup-table of Floquet modes at times precalculated by
-        :func:`qutip.floquet.floquet_modes_table` (optional). 
-     
+        :func:`qutip.floquet.floquet_modes_table` (optional).
+
     Returns
     -------
 
-    output : list 
+    output : list
 
         A list (Delta, X, Gamma, A) containing the matrices Delta, X, Gamma
         and A used in the construction of the Floquet-Markov master equation.
 
     """
-    
+
     N = len(f_energies)
-    M = 2*kmax + 1
-    
-    omega = (2*pi)/T
-    
+    M = 2 * kmax + 1
+
+    omega = (2 * pi) / T
+
     Delta = np.zeros((N, N, M))
-    X     = np.zeros((N, N, M), dtype=complex)
+    X = np.zeros((N, N, M), dtype=complex)
     Gamma = np.zeros((N, N, M))
-    A     = np.zeros((N, N))
-    
+    A = np.zeros((N, N))
+
     nT = 100
-    dT = T/nT
-    tlist = np.arange(dT, T+dT/2, dT)
+    dT = T / nT
+    tlist = np.arange(dT, T + dT / 2, dT)
 
     if f_modes_table_t == None:
-        f_modes_table_t = floquet_modes_table(f_modes_0, f_energies, np.linspace(0, T, nT+1), H, T, args) 
+        f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
+                                              np.linspace(0, T, nT + 1), H, T,
+                                              args)
 
     for t in tlist:
-        # TODO: repeated invocations of floquet_modes_t is inefficient...
-        # make a and b outer loops and use the mesolve instead of the propagator.
+        # TODO: repeated invocations of floquet_modes_t is
+        # inefficient...  make a and b outer loops and use the mesolve
+        # instead of the propagator.
+
         #f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, args)
-        f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)   
+        f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
         for a in range(N):
             for b in range(N):
                 k_idx = 0
-                for k in range(-kmax,kmax+1, 1):
-                    X[a,b,k_idx] += (dT/T) * exp(-1j * k * omega * t) * (f_modes_t[a].dag() * c_op * f_modes_t[b])[0,0]
+                for k in range(-kmax, kmax + 1, 1):
+                    X[a, b, k_idx] += (dT / T) * exp(-1j * k * omega * t) * \
+                        (f_modes_t[a].dag() * c_op * f_modes_t[b])[0, 0]
                     k_idx += 1
 
-    Heaviside = lambda x: ((np.sign(x)+1)/2.0)
+    Heaviside = lambda x: ((np.sign(x) + 1) / 2.0)
     for a in range(N):
         for b in range(N):
             k_idx = 0
-            for k in range(-kmax,kmax+1, 1):
-                Delta[a,b,k_idx] = f_energies[a] - f_energies[b] + k * omega
-                Gamma[a,b,k_idx] = 2 * pi * Heaviside(Delta[a,b,k_idx]) * J_cb(Delta[a,b,k_idx]) * abs(X[a,b,k_idx])**2
+            for k in range(-kmax, kmax + 1, 1):
+                Delta[a, b, k_idx] = f_energies[a] - f_energies[b] + k * omega
+                Gamma[a, b, k_idx] = 2 * pi * Heaviside(Delta[a, b, k_idx]) * \
+                    J_cb(Delta[a, b, k_idx]) * abs(X[a, b, k_idx])**2
                 k_idx += 1
-                
 
     for a in range(N):
         for b in range(N):
-            for k in range(-kmax,kmax+1, 1):
-                k1_idx =   k + kmax;
-                k2_idx = - k + kmax;                
-                A[a,b] += Gamma[a,b,k1_idx] + _n_thermal(abs(Delta[a,b,k1_idx]), w_th) * (Gamma[a,b,k1_idx]+Gamma[b,a,k2_idx])
-                
+            for k in range(-kmax, kmax + 1, 1):
+                k1_idx = k + kmax
+                k2_idx = -k + kmax
+                A[a, b] += Gamma[a, b, k1_idx] + \
+                    _n_thermal(abs(Delta[a, b, k1_idx]), w_th) * \
+                    (Gamma[a, b, k1_idx] + Gamma[b, a, k2_idx])
+
     return Delta, X, Gamma, A
-        
-    
+
+
 def floquet_collapse_operators(A):
     """
     Construct collapse operators corresponding to the Floquet-Markov
@@ -515,39 +542,39 @@ def floquet_collapse_operators(A):
 
     """
     c_ops = []
-    
+
     N, M = np.shape(A)
-    
+
     #
     # Here we really need a master equation on Bloch-Redfield form, or perhaps
     # we can use the Lindblad form master equation with some rotating frame
     # approximations? ...
-    # 
+    #
     for a in range(N):
         for b in range(N):
-            if a != b and abs(A[a,b]) > 0.0:
+            if a != b and abs(A[a, b]) > 0.0:
                 # only relaxation terms included...
-                c_ops.append(sqrt(A[a,b]) * projection(N, a, b))
-    
+                c_ops.append(sqrt(A[a, b]) * projection(N, a, b))
+
     return c_ops
-    
-    
+
+
 def floquet_master_equation_tensor(Alist, f_energies):
     """
     Construct a tensor that represents the master equation in the floquet
     basis (with constant Hamiltonian and collapse operators).
-    
+
     Simplest RWA approximation [Grifoni et al, Phys.Rep. 304 229 (1998)]
 
     Parameters
     ----------
-    
+
     Alist : list
         A list of Floquet-Markov master equation rate matrices.
 
     f_energies : array
         The Floquet energies.
-                
+
     Returns
     -------
 
@@ -565,62 +592,66 @@ def floquet_master_equation_tensor(Alist, f_energies):
         # or a simple rate matrix, in which case we put it in a list
         Alist = [Alist]
         N, M = np.shape(Alist[0])
-      
-    R = Qobj(scipy.sparse.csr_matrix((N*N,N*N)), [[N,N], [N,N]], [N*N,N*N])
 
-    R.data=R.data.tolil()      
-    for I in range(N*N):
-        a,b = vec2mat_index(N, I)
-        for J in range(N*N):
-            c,d = vec2mat_index(N, J)
+    R = Qobj(scipy.sparse.csr_matrix((N * N, N * N)), [[N, N], [N, N]],
+             [N * N, N * N])
 
-            R.data[I,J] = - 1.0j * (f_energies[a]-f_energies[b]) * (a == c) * (b == d)
-                    
-            for A in Alist:               
+    R.data = R.data.tolil()
+    for I in range(N * N):
+        a, b = vec2mat_index(N, I)
+        for J in range(N * N):
+            c, d = vec2mat_index(N, J)
+
+            R.data[I, J] = -1.0j * (f_energies[a] - f_energies[b]) * \
+                (a == c) * (b == d)
+
+            for A in Alist:
                 s1 = s2 = 0
                 for n in range(N):
-                    s1 += A[a,n] * (n == c) * (n == d) - A[n,a] * (a == c) * (a == d)
-                    s2 += (A[n,a] + A[n,b]) * (a == c) * (b == d)
-                       
+                    s1 += A[a, n] * (n == c) * (n == d) - A[n, a] * \
+                        (a == c) * (a == d)
+                    s2 += (A[n, a] + A[n, b]) * (a == c) * (b == d)
+
                 dR = (a == b) * s1 - 0.5 * (1 - (a == b)) * s2
-                            
+
                 if dR != 0.0:
-                    R.data[I,J] += dR
+                    R.data[I, J] += dR
 
-    R.data=R.data.tocsr()
-    return R                   
+    R.data = R.data.tocsr()
+    return R
 
-    
+
 def floquet_master_equation_steadystate(H, A):
     """
     Returns the steadystate density matrix (in the floquet basis!) for the
     Floquet-Markov master equation.
     """
     c_ops = floquet_collapse_operators(A)
-    rho_ss = steadystate(H, c_ops)   
+    rho_ss = steadystate(H, c_ops)
     return rho_ss
-    
-    
+
+
 def floquet_basis_transform(f_modes, f_energies, rho0):
     """
-    Make a basis transform that takes rho0 from the floquet basis to the 
+    Make a basis transform that takes rho0 from the floquet basis to the
     computational basis.
     """
     return rho0.transform(f_modes, True)
 
-#-------------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
 # Floquet-Markov master equation
-# 
-# 
+#
+#
 def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
     """
-    Solve the dynamics for the system using the Floquet-Markov master equation.   
+    Solve the dynamics for the system using the Floquet-Markov master equation.
     """
 
     if options == None:
         opt = Odeoptions()
     else:
-        opt=options
+        opt = options
 
     if opt.tidy:
         R.tidyup()
@@ -631,22 +662,22 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
     if isket(rho0):
         # Got a wave function as initial state: convert to density matrix.
         rho0 = ket2dm(rho0)
-       
+
     #
     # prepare output array
-    # 
-    n_tsteps  = len(tlist)
-    dt        = tlist[1]-tlist[0]
-       
+    #
+    n_tsteps = len(tlist)
+    dt = tlist[1] - tlist[0]
+
     output = Odedata()
     output.times = tlist
-        
+
     if isinstance(e_ops, FunctionType):
         n_expt_op = 0
         expt_callback = True
-        
+
     elif isinstance(e_ops, list):
-  
+
         n_expt_op = len(e_ops)
         expt_callback = False
 
@@ -659,7 +690,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
                 if op.isherm:
                     output.expect.append(np.zeros(n_tsteps))
                 else:
-                    output.expect.append(np.zeros(n_tsteps,dtype=complex))
+                    output.expect.append(np.zeros(n_tsteps, dtype=complex))
 
     else:
         raise TypeError("Expectation parameter must be a list or a function")
@@ -673,7 +704,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
         rho0 = rho0.transform(ekets, True)
         if isinstance(e_ops, list):
             for n in np.arange(len(e_ops)):             # not working
-                e_ops[n] = e_ops[n].transform(ekets) #
+                e_ops[n] = e_ops[n].transform(ekets)
 
     #
     # setup integrator
@@ -682,8 +713,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
     r = scipy.integrate.ode(cyq_ode_rhs)
     r.set_f_params(R.data.data, R.data.indices, R.data.indptr)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol,
-                              max_step=opt.max_step)
+                     atol=opt.atol, rtol=opt.rtol, max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
 
     #
@@ -694,7 +724,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
     t_idx = 0
     for t in tlist:
         if not r.successful():
-            break;
+            break
 
         rho.data = vec2mat(r.y)
 
@@ -702,45 +732,48 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
             # use callback method
             e_ops(t, Qobj(rho))
         else:
-            # calculate all the expectation values, or output rho if no operators
+            # calculate all the expectation values, or output rho if
+            # no operators
             if n_expt_op == 0:
-                output.states.append(Qobj(rho)) # copy psi/rho
+                output.states.append(Qobj(rho))  # copy psi/rho
             else:
                 for m in range(0, n_expt_op):
-                    output.expect[m][t_idx] = expect(e_ops[m], rho) # basis OK?
+                    output.expect[m][t_idx] = expect(e_ops[m], rho)  # basisOK?
 
         r.integrate(r.t + dt)
         t_idx += 1
-          
+
     return output
 
-#-------------------------------------------------------------------------------
-# Solve the Floquet-Markov master equation
-# 
-# 
-def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None, args={}, options=Odeoptions()):
-    """
-    Solve the dynamics for the system using the Floquet-Markov master equation.  
 
-    .. note:: 
-    
+#------------------------------------------------------------------------------
+# Solve the Floquet-Markov master equation
+#
+#
+def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
+              args={}, options=Odeoptions()):
+    """
+    Solve the dynamics for the system using the Floquet-Markov master equation.
+
+    .. note::
+
         This solver currently does not support multiple collapse operators.
-   
+
     Parameters
     ----------
-    
+
     H : :class:`qutip.qobj`
         system Hamiltonian.
-        
+
     rho0 / psi0 : :class:`qutip.qobj`
         initial density matrix or state vector (ket).
-     
-    tlist : *list* / *array*    
+
+    tlist : *list* / *array*
         list of times for :math:`t`.
-        
+
     c_ops : list of :class:`qutip.qobj`
         list of collapse operators.
-    
+
     e_ops : list of :class:`qutip.qobj` / callback function
         list of operators for which to evaluate expectation values.
 
@@ -751,20 +784,22 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None, args={}, o
     T : float
         The period of the time-dependence of the hamiltonian. The default value
         'None' indicates that the 'tlist' spans a single period of the driving.
-     
-    args : *dictionary*
-        dictionary of parameters for time-dependent Hamiltonians and collapse operators.
 
-        This dictionary should also contain an entry 'w_th', which is the temperature
-        of the environment (if finite) in the energy/frequency units of the Hamiltonian.
-        For example, if the Hamiltonian written in units of 2pi GHz, and the temperature
-        is given in K, use the following conversion
+    args : *dictionary*
+        dictionary of parameters for time-dependent Hamiltonians and
+        collapse operators.
+
+        This dictionary should also contain an entry 'w_th', which is
+        the temperature of the environment (if finite) in the
+        energy/frequency units of the Hamiltonian.  For example, if
+        the Hamiltonian written in units of 2pi GHz, and the
+        temperature is given in K, use the following conversion
 
         >>> temperature = 25e-3 # unit K
         >>> h = 6.626e-34
         >>> kB = 1.38e-23
         >>> args['w_th'] = temperature * (kB / h) * 2 * pi * 1e-9
-     
+
     options : :class:`qutip.odeoptions`
         options for the ODE solver.
 
@@ -782,29 +817,31 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None, args={}, o
 
     if len(spectra_cb) == 0:
         for n in range(len(c_ops)):
-            spectra_cb.append(lambda w: 1.0) # add white noise callbacks if absent
+            # add white noise callbacks if absent
+            spectra_cb.append(lambda w: 1.0)
 
-    f_modes_0, f_energies = floquet_modes(H, T, args)    
-    
+    f_modes_0, f_energies = floquet_modes(H, T, args)
+
     kmax = 1
 
-    f_modes_table_t = floquet_modes_table(f_modes_0, f_energies, np.linspace(0, T, 500+1), H, T, args) 
+    f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
+                                          np.linspace(0, T, 500 + 1),
+                                          H, T, args)
 
     # get w_th from args if it exists
     if args.has_key('w_th'):
         w_th = args['w_th']
     else:
         w_th = 0
-       
 
     # TODO: loop over input c_ops and spectra_cb, calculate one R for each set
 
     # calculate the rate-matrices for the floquet-markov master equation
-    Delta, X, Gamma, Amat = floquet_master_equation_rates(f_modes_0, f_energies, c_ops[0], H, T, args, spectra_cb[0], w_th, kmax, f_modes_table_t)
-   
+    Delta, X, Gamma, Amat = floquet_master_equation_rates(
+        f_modes_0, f_energies, c_ops[0], H, T, args, spectra_cb[0],
+        w_th, kmax, f_modes_table_t)
+
     # the floquet-markov master equation tensor
     R = floquet_master_equation_tensor(Amat, f_energies)
-    
+
     return floquet_markov_mesolve(R, f_modes_0, rho0, tlist, e_ops, options)
-
-
