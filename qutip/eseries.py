@@ -114,8 +114,8 @@ class eseries():
         if len(self.ampl) != 0:
             #combine arrays so that they can be sorted together
             zipped = list(zip(self.rates, self.ampl))
-            zipped.sort()  #sort rates from lowest to highest
-            rates, ampl = list(zip(*zipped))  #get back rates and ampl
+            zipped.sort()  # sort rates from lowest to highest
+            rates, ampl = list(zip(*zipped))  # get back rates and ampl
             self.ampl = np.array(ampl)
             self.rates = np.array(rates)
 
@@ -329,13 +329,14 @@ class eseries():
             if isinstance(total_ampl, float) or isinstance(total_ampl, complex):
                 if abs(total_ampl) > ampl_tol:
                     self.rates = np.append(self.rates, unique_rates[ur_key])
-                    self.ampl  = np.append(self.ampl, total_ampl)
+                    self.ampl = np.append(self.ampl, total_ampl)
             else:
                 if abs(total_ampl.full()).max() > ampl_tol:
                     self.rates = np.append(self.rates, unique_rates[ur_key])
-                    self.ampl  = np.append(self.ampl, total_ampl)
+                    self.ampl = np.append(self.ampl, total_ampl)
 
         return self
+
 
 #------------------------------------------------------------------------------
 #
@@ -359,6 +360,7 @@ def esval(es, tlist):
     """
     return es.value(tlist)
 
+
 def esspec(es, wlist):
     """Evaluate the spectrum of an exponential series at frequencies
     in ``wlist``.
@@ -375,6 +377,7 @@ def esspec(es, wlist):
 
     """
     return es.spec(wlist)
+
 
 def estidy(es, *args):
     """
