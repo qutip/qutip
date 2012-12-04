@@ -127,7 +127,7 @@ def correlation(H, rho0, tlist, taulist, c_op_list, a_op, b_op, solver="me"):
 
     """
 
-    if tlist == None:
+    if tlist is None:
         # only interested in correlation vs one time coordinate, so we can use
         # the ss solver with the supplied density matrix as initial state (in
         # place of the steady state)
@@ -177,7 +177,7 @@ def correlation_ss_es(H, tlist, c_op_list, a_op, b_op, rho0=None):
     L = liouvillian(H, c_op_list)
 
     # find the steady state
-    if rho0 == None:
+    if rho0 is None:
         rho0 = steady(L)
 
     # evaluate the correlation function
@@ -195,7 +195,7 @@ def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     # contruct the Liouvillian
     L = liouvillian(H, c_op_list)
 
-    if rho0 == None:
+    if rho0 is None:
         rho0 = steady(L)
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
@@ -224,7 +224,7 @@ def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op, rho0=None):
     """
 
     L = liouvillian(H, c_op_list)
-    if rho0 == None:
+    if rho0 is None:
         rho0 = steady(L)
 
     return mesolve(H, b_op * rho0, tlist, c_op_list, [a_op]).expect[0]
@@ -254,7 +254,7 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
     equation solver. See :func:`correlation` usage.
     """
 
-    if rho0 == None:
+    if rho0 is None:
         rho0 = steadystate(H, co_op_list)
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
@@ -304,7 +304,7 @@ def correlation_ss_mc(H, tlist, c_op_list, a_op, b_op, rho0=None):
     Carlo solver. See :func:`correlation_ss` usage.
     """
 
-    if rho0 == None:
+    if rho0 is None:
         rho0 = steadystate(H, co_op_list)
 
     return mcsolve(H, b_op * rho0, tlist, c_op_list, [a_op]).expect[0]

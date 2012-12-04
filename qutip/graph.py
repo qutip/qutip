@@ -83,7 +83,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
     else:
         W = rho
 
-    if ax == None:
+    if ax is None:
         fig, ax = subplots(1, 1, figsize=(8,6))
 
     if not (xlabels or ylabels):
@@ -188,7 +188,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None, ax=
     cmap=get_cmap('jet') # Spectral
     colors=cmap(norm(dz))
 
-    if ax == None:
+    if ax is None:
         fig = plt.figure()
         ax = Axes3D(fig, azim=-35, elev=35)
 
@@ -305,7 +305,7 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None, title=None, limits=N
 
     colors = cmap(norm(angle(Mvec)))
 
-    if ax == None:
+    if ax is None:
         fig = plt.figure()
         ax = Axes3D(fig, azim=-35, elev=35)
 

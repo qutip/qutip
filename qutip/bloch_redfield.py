@@ -138,7 +138,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
 
     """
 
-    if options == None:
+    if options is None:
         options = Odeoptions()
         options.nsteps = 2500  #
 
@@ -173,7 +173,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     # transform the initial density matrix and the e_ops opterators to the
     # eigenbasis
     #
-    if ekets != None:
+    if ekets is not None:
         rho0 = rho0.transform(ekets)
         for n in arange(len(e_ops)):
             e_ops[n] = e_ops[n].transform(ekets, False)

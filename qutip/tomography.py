@@ -78,7 +78,7 @@ def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
     """
 
     if axes is None or len(axes) != 2:
-        if fig == None:
+        if fig is None:
             fig = figure(figsize=(16,8))
 
         ax1 = fig.add_subplot(1,2,1, projection='3d', position=[0, 0, 1, 1])

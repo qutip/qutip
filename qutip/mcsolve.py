@@ -225,12 +225,12 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
     output=Odedata()
     output.solver='mcsolve'
     #state vectors
-    if mc.psi_out!=None and odeconfig.options.mc_avg and odeconfig.cflag:
+    if mc.psi_out is not None and odeconfig.options.mc_avg and odeconfig.cflag:
         output.states=parfor(_mc_dm_avg,mc.psi_out.T)
-    elif mc.psi_out!=None:
+    elif mc.psi_out is not None:
         output.states=mc.psi_out
     #expectation values
-    elif mc.expect_out!=None and odeconfig.cflag and odeconfig.options.mc_avg:#averaging if multiple trajectories
+    elif mc.expect_out is not None and odeconfig.cflag and odeconfig.options.mc_avg:#averaging if multiple trajectories
         if isinstance(ntraj,int):
             output.expect=mean(mc.expect_out,axis=0)
         elif isinstance(ntraj,(list,ndarray)):
@@ -248,7 +248,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
                     data_list=[data for data in expt_data]
                 output.expect.append(data_list)
     else:#no averaging for single trajectory or if mc_avg flag (Odeoptions) is off
-        if mc.expect_out!=None:        
+        if mc.expect_out is not None:        
             output.expect=mc.expect_out
 
     #simulation parameters

@@ -440,7 +440,7 @@ class Bloch():
         if dirc:
             if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
                 os.makedirs(os.getcwd() + "/" + str(dirc))
-        if name == None:
+        if name is None:
             if dirc:
                 savefig(os.getcwd() + "/" + str(dirc) + '/bloch_' +
                         str(self.savenum) + '.' + format)

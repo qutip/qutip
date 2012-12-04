@@ -227,7 +227,7 @@ class eseries():
 
         """
 
-        if self.ampl == None or len(self.ampl) == 0:
+        if self.ampl is None or len(self.ampl) == 0:
             # no terms, evalue to zero
             return np.zeros(np.shape(tlist))
 

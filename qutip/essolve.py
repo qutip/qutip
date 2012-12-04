@@ -70,7 +70,7 @@ def essolve(H, rho0, tlist, c_op_list, expt_op_list):
     n_tsteps = len(tlist)
 
     # Calculate the Liouvillian
-    if c_op_list == None or len(c_op_list) == 0:
+    if c_op_list is None or len(c_op_list) == 0:
         L = H
     else:
         L = liouvillian(H, c_op_list)

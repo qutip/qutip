@@ -184,7 +184,7 @@ class Qobj():
                 self.shape=[int(inpt.shape[0]),int(inpt.shape[1])]        
 
         ##Signifies if quantum object corresponds to Hermitian operator
-        if isherm == None:
+        if isherm is None:
             if qset.auto_herm:
                 self.isherm=hermcheck(self)
             else:
@@ -192,7 +192,7 @@ class Qobj():
         else:
             self.isherm=isherm
         ##Signifies if quantum object corresponds to a ket, bra, operator, or super-operator
-        if type == None:
+        if type is None:
             self.type=ischeck(self)
         else:
             self.type=type

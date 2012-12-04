@@ -489,7 +489,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
     dT = T / nT
     tlist = np.arange(dT, T + dT / 2, dT)
 
-    if f_modes_table_t == None:
+    if f_modes_table_t is None:
         f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
                                               np.linspace(0, T, nT + 1), H, T,
                                               args)
@@ -648,7 +648,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
     Solve the dynamics for the system using the Floquet-Markov master equation.
     """
 
-    if options == None:
+    if options is None:
         opt = Odeoptions()
     else:
         opt = options
@@ -700,7 +700,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
     # transform the initial density matrix and the e_ops opterators to the
     # eigenbasis: from computational basis to the floquet basis
     #
-    if ekets != None:
+    if ekets is not None:
         rho0 = rho0.transform(ekets, True)
         if isinstance(e_ops, list):
             for n in np.arange(len(e_ops)):             # not working
@@ -812,7 +812,7 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
         an *array* of expectation values for the times specified by `tlist`.
     """
 
-    if T == None:
+    if T is None:
         T = max(tlist)
 
     if len(spectra_cb) == 0:
