@@ -16,7 +16,7 @@
 # Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-import numpy
+import numpy as np
 from scipy import zeros,array,arange,exp,real,imag,conj,copy,sqrt,meshgrid,size,polyval,fliplr,conjugate
 import scipy.sparse as sp
 import scipy.linalg as la
@@ -24,13 +24,14 @@ from scipy.special import genlaguerre
 from qutip.tensor import tensor
 from qutip.qobj import *
 from qutip.states import *
+from qutip.parfor import parfor
 
 try:#for scipy v <= 0.90
     from scipy import factorial
 except:#for scipy v >= 0.10
     from scipy.misc import factorial
     
-def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative'):
+def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative',parfor=False):
     """Wigner function for a state vector or density matrix at points 
     `xvec + i * yvec`.
     
@@ -57,6 +58,11 @@ def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative'):
         recommended, but the 'laguerre' method is more efficient for very sparse
         density matrices (e.g., superpositions of Fock states in a large Hilbert
         space).
+    
+    parfor : bool {False, True}
+        Flag for calculating the Laguerre polynomial based Wigner function 
+        method='laguerre' in parallel using the parfor function.
+        
     
     Returns
     -------
@@ -86,7 +92,7 @@ def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative'):
         return _wigner_iterative(rho, xvec, yvec, g)
 
     elif method == 'laguerre':
-        return _wigner_laguerre(rho, xvec, yvec, g)
+        return _wigner_laguerre(rho, xvec, yvec, g,parfor)
 
     else:
         raise TypeError("method must be either 'iterative' or 'laguerre'")
@@ -137,7 +143,7 @@ def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
             
     return 0.5 * W * g**2
 
-def _wigner_laguerre(rho, xvec, yvec, g=sqrt(2)):
+def _wigner_laguerre(rho, xvec, yvec, g, parallel):
     """
     Using Laguerre polynomials from scipy to evaluate the Wigner function for
     the density matrices :math:`|m><n|`, :math:`W_{mn}`. The total Wigner
@@ -154,17 +160,21 @@ def _wigner_laguerre(rho, xvec, yvec, g=sqrt(2)):
     B = 4*abs(A)**2
     if sp.isspmatrix_csr(rho.data):
         # for compress sparse row matrices
-        for m in range(len(rho.data.indptr)-1):
-            for jj in range(rho.data.indptr[m], rho.data.indptr[m+1]):        
-                n = rho.data.indices[jj]
+        if parallel:
+            iterator=((m,rho,A,B) for m in range(len(rho.data.indptr)-1))
+            W1_out=parfor(_par_wig_eval,iterator)
+            W+=sum(W1_out)
+        else:
+            for m in range(len(rho.data.indptr)-1):
+                for jj in range(rho.data.indptr[m], rho.data.indptr[m+1]):        
+                    n = rho.data.indices[jj]
 
-                if m == n:
-                    W += real(rho[m,m] * (-1)**m * genlaguerre(m,0)(B))
+                    if m == n:
+                        W += real(rho[m,m] * (-1)**m * genlaguerre(m,0)(B))
 
-                elif n > m:
-                    W += 2.0 * real(rho[m,n] * (-1)**m * (2*A)**(n-m) * \
-                         sqrt(factorial(m)/factorial(n)) * genlaguerre(m,n-m)(B))
-
+                    elif n > m:
+                        W += 2.0 * real(rho[m,n] * (-1)**m * (2*A)**(n-m) * \
+                             sqrt(factorial(m)/factorial(n)) * genlaguerre(m,n-m)(B))
     else:
         # for dense density matrices
         B = 4*abs(A)**2
@@ -178,6 +188,24 @@ def _wigner_laguerre(rho, xvec, yvec, g=sqrt(2)):
 
     return 0.5 * W * g**2 * np.exp(-B/2) / pi            
 
+
+def _par_wig_eval(args):
+    """
+    Private function for calculating terms of Laguerre Wigner function in parfor.
+    """
+    m,rho,A,B=args
+    W1 = zeros(shape(A))
+    for jj in range(rho.data.indptr[m], rho.data.indptr[m+1]):        
+        n = rho.data.indices[jj]
+
+        if m == n:
+            W1 += real(rho[m,m] * (-1)**m * genlaguerre(m,0)(B))
+
+        elif n > m:
+            W1 += 2.0 * real(rho[m,n] * (-1)**m * (2*A)**(n-m) * \
+                 sqrt(factorial(m)/factorial(n)) * genlaguerre(m,n-m)(B))
+    return W1
+    
 
 #-------------------------------------------------------------------------------
 # Q FUNCTION
