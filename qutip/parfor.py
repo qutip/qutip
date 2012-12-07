@@ -48,16 +48,16 @@ def parfor(func,frange):
         containting the output from `func`.  In general, the ordering
         of the output variables will not be in the same order as `frange`.
     
-    .. note::
-    
-        Multiple values can be passed into the parfor function using Pythons
-        builtin 'zip' command, or using multidimensional `lists` or `arrays`.
+    Notes
+    -----
+    Multiple values can be passed into the parfor function using Pythons
+    builtin 'zip' command, or using multidimensional `lists` or `arrays`.
          
     """
     
     pool=Pool(processes=qset.num_cpus)
     try:
-        par_return=list(pool.map(_task_wrapper,[(func,f,os.getpid()) for f in frange]))
+        par_return=list(pool.map(_task_wrapper,((func,f,os.getpid()) for f in frange)))
         if isinstance(par_return[0],tuple):
             par_return=[elem for elem in par_return]
             num_elems=len(par_return[0])
