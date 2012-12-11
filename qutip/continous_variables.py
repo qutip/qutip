@@ -83,9 +83,9 @@ def correlation_matrix_quadrature(a1, a2, rho=None):
         Experimental.
 
     """
-    x1 =      (a1 + a1.dag()) / np.sqrt(2)
+    x1 = (a1 + a1.dag()) / np.sqrt(2)
     p1 = 1j * (a1 - a1.dag()) / np.sqrt(2)
-    x2 =      (a2 + a2.dag()) / np.sqrt(2)
+    x2 = (a2 + a2.dag()) / np.sqrt(2)
     p2 = 1j * (a2 - a2.dag()) / np.sqrt(2)
 
     basis = [x1, p1, x2, p2]
@@ -117,9 +117,9 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
     elif a1 is not None and a2 is not None:
 
         if rho is not None:
-            x1 =      (a1 + a1.dag()) / np.sqrt(2)
+            x1 = (a1 + a1.dag()) / np.sqrt(2)
             p1 = 1j * (a1 - a1.dag()) / np.sqrt(2)
-            x2 =      (a2 + a2.dag()) / np.sqrt(2)
+            x2 = (a2 + a2.dag()) / np.sqrt(2)
             p2 = 1j * (a2 - a2.dag()) / np.sqrt(2)
             return covariance_matrix([x1, p1, x2, p2], rho)
         else:
@@ -146,7 +146,7 @@ def wigner_logarithm_negativity(V):
     C = V[0:2, 2:4]
 
     sigma = np.linalg.det(A) + np.linalg.det(B) - 2 * np.linalg.det(C)
-    nu = np.sqrt(sigma / 2 - np.sqrt(sigma**2 - 4 * np.linalg.det(V)) / 2)
+    nu = np.sqrt(sigma / 2 - np.sqrt(sigma ** 2 - 4 * np.linalg.det(V)) / 2)
     lognu = -np.log(2 * nu)
     logneg = max(0, lognu)
 

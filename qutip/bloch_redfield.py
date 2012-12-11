@@ -140,7 +140,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
 
     if options is None:
         options = Odeoptions()
-        options.nsteps = 2500  #
+        options.nsteps = 2500
 
     if options.tidy:
         R.tidyup()
@@ -157,7 +157,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     #
     n_e_ops = len(e_ops)
     n_tsteps = len(tlist)
-    dt = tlist[1]-tlist[0]
+    dt = tlist[1] - tlist[0]
 
     if n_e_ops == 0:
         result_list = []
@@ -288,7 +288,7 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
             # unitary part: use spre and spost above, same as this:
             # R[I,J] = -1j * W[a,b] * (a == c) * (b == d)
 
-            if use_secular == False or abs(W[a,b]-W[c,d]) < dw_min/10.0:
+            if use_secular is False or abs(W[a, b] - W[c, d]) < dw_min / 10.0:
 
                 # dissipative part:
                 for k in range(K):
