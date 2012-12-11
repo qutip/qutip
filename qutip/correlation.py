@@ -289,7 +289,7 @@ def _correlation_me_gtt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 
     for t_idx, rho in enumerate(rho_t):
         C_mat[t_idx, :] = mesolve(H, d_op * rho * a_op, taulist,
-                                 c_ops, [b_op * c_op]).expect[0]
+                                  c_ops, [b_op * c_op]).expect[0]
 
     return C_mat
 
