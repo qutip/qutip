@@ -66,7 +66,7 @@ def clebsch(j1, j2, j3, m1, m2, m3):
               factorial(j2 - m2) * factorial(j2 + m2)))
     S = 0
     for v in range(vmin, vmax + 1):
-        S += (-1.0)**(v + j2 + m2) / factorial(v) * \
+        S += (-1.0) ** (v + j2 + m2) / factorial(v) * \
             factorial(j2 + j3 + m1 - v) * factorial(j1 - m1 + v) / \
             factorial(j3 - j1 + j2 - v) / factorial(j3 + m3 - v) / \
             factorial(v + j1 - j2 - m3)
