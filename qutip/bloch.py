@@ -364,12 +364,10 @@ class Bloch():
                        color=self.font_color, fontsize=self.font_size)
         self.axes.text(0, 0, self.zlpos[1], self.zlabel[1],
                        color=self.font_color, fontsize=self.font_size)
-        for a in self.axes.w_xaxis.get_ticklines() + self.axes.w_xaxis.get_ticklabels():
-            a.set_visible(False)
-        for a in self.axes.w_yaxis.get_ticklines() + self.axes.w_yaxis.get_ticklabels():
-            a.set_visible(False)
-        for a in self.axes.w_zaxis.get_ticklines() + self.axes.w_zaxis.get_ticklabels():
-            a.set_visible(False)
+
+        for ax in [self.axes.w_xaxis, self.axes.w_yaxis, self.axes.w_zaxis]:
+            _hide_tick_lines_and_labels(ax)
+
 
     def plot_vectors(self):
         # -X and Y data are switched for plotting purposes
@@ -452,3 +450,11 @@ class Bloch():
         self.savenum += 1
         if self.fig:
             close(self.fig)
+
+
+def _hide_tick_lines_and_labels(axis):
+    '''
+    Set visible property of ticklines and ticklabels of an axis to False
+    '''
+    for a in axis.get_ticklines() + axis.get_ticklabels():
+        a.set_visible(False)
