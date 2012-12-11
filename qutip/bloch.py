@@ -368,7 +368,6 @@ class Bloch():
         for ax in [self.axes.w_xaxis, self.axes.w_yaxis, self.axes.w_zaxis]:
             _hide_tick_lines_and_labels(ax)
 
-
     def plot_vectors(self):
         # -X and Y data are switched for plotting purposes
         if len(self.vectors) > 0:
@@ -376,11 +375,12 @@ class Bloch():
                 length = sqrt(self.vectors[k][0] ** 2 +
                               self.vectors[k][1] ** 2 +
                               self.vectors[k][2] ** 2)
-                self.axes.plot(self.vectors[k][1] * linspace(0, length, 2),
-                               -self.vectors[k][0] * linspace(0, length, 2),
-                               self.vectors[k][2] * linspace(0, length, 2),
-                               zs=0, zdir='z', label='Z', lw=self.vector_width,
-                               color=self.vector_color[mod(k, len(self.vector_color))])
+                self.axes.plot(
+                    self.vectors[k][1] * linspace(0, length, 2),
+                    -self.vectors[k][0] * linspace(0, length, 2),
+                    self.vectors[k][2] * linspace(0, length, 2),
+                    zs=0, zdir='z', label='Z', lw=self.vector_width,
+                    color=self.vector_color[mod(k, len(self.vector_color))])
 
     def plot_points(self):
         # -X and Y data are switched for plotting purposes
@@ -393,19 +393,42 @@ class Bloch():
                 if any(abs(dist - dist[0]) / dist[0] > 1e-12):
                     # combine arrays so that they can be sorted together
                     zipped = zip(dist, range(num))
-                    zipped.sort()  #sort rates from lowest to highest
+                    zipped.sort()  # sort rates from lowest to highest
                     dist, indperm = zip(*zipped)
                     indperm = array(indperm)
                 else:
                     indperm = range(num)
                 if self.point_style[k] == 's':
-                    self.axes.scatter(real(self.points[k][1][indperm]), -real(self.points[k][0][indperm]), real(self.points[k][2][indperm]), s=self.point_size[mod(k, len(self.point_size))], alpha=1, edgecolor='none', zdir='z', color=self.point_color[mod(k, len(self.point_color))], marker=self.point_marker[mod(k, len(self.point_marker))])
+                    self.axes.scatter(
+                        real(self.points[k][1][indperm]),
+                        - real(self.points[k][0][indperm]),
+                        real(self.points[k][2][indperm]),
+                        s=self.point_size[mod(k, len(self.point_size))],
+                        alpha=1,
+                        edgecolor='none',
+                        zdir='z',
+                        color=self.point_color[mod(k, len(self.point_color))],
+                        marker=self.point_marker[
+                            mod(k, len(self.point_marker))])
+
                 elif self.point_style[k] == 'm':
-                    pnt_colors = array(self.point_color *
-                                       ceil(num / float(len(self.point_color))))
+                    pnt_colors = array(
+                        self.point_color *
+                        ceil(num / float(len(self.point_color))))
+
                     pnt_colors = pnt_colors[0:num]
                     pnt_colors = list(pnt_colors[indperm])
-                    self.axes.scatter(real(self.points[k][1][indperm]), -real(self.points[k][0][indperm]), real(self.points[k][2][indperm]), s=self.point_size[mod(k, len(self.point_size))], alpha=1, edgecolor='none', zdir='z', color=pnt_colors, marker=self.point_marker[mod(k, len(self.point_marker))])
+                    self.axes.scatter(
+                        real(self.points[k][1][indperm]),
+                        -real(self.points[k][0][indperm]),
+                        real(self.points[k][2][indperm]),
+                        s=self.point_size[
+                            mod(k, len(self.point_size))],
+                        alpha=1, edgecolor='none',
+                        zdir='z', color=pnt_colors,
+                        marker=self.point_marker[
+                            mod(k, len(self.point_marker))])
+
     def show(self):
         """
         Display Bloch sphere and corresponding data sets.
