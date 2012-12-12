@@ -1452,7 +1452,7 @@ def ischeck(Q):
     elif issuper(Q):
         return 'super'
     else:
-        raise TypeError('Quantum object has undetermined type.')
+        return 'other'
 
 
 #**************************
