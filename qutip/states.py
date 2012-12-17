@@ -32,7 +32,7 @@ from qutip.tensor import tensor
 
 def basis(N,*args):
     """Generates the vector representation of a Fock state.
-	
+    
     Parameters
     ----------
     N : int 
@@ -402,8 +402,8 @@ def projection(N, n, m):
 # composite qubit states
 #
 def qstate(string):
-	"""Creates a tensor product for a set of qubits in either 
-	the 'up' :math:`|0>` or 'down' :math:`|1>` state.
+    """Creates a tensor product for a set of qubits in either 
+    the 'up' :math:`|0>` or 'down' :math:`|1>` state.
     
     Parameters
     ----------
@@ -429,20 +429,20 @@ def qstate(string):
      [ 0.]
      [ 0.]]
     
-	"""
-	n=len(string)
-	if n!=(string.count('u')+string.count('d')):
-		raise TypeError('String input to QSTATE must consist of "u" and "d" elements only')
-	else:
-		up=basis(2,1)
-		dn=basis(2,0)
-	lst=[]
-	for k in range(n):
-		if string[k]=='u':
-			lst.append(up)
-		else:
-			lst.append(dn)
-	return tensor(lst)
+    """
+    n=len(string)
+    if n!=(string.count('u')+string.count('d')):
+        raise TypeError('String input to QSTATE must consist of "u" and "d" elements only')
+    else:
+        up=basis(2,1)
+        dn=basis(2,0)
+    lst=[]
+    for k in range(n):
+        if string[k]=='u':
+            lst.append(up)
+        else:
+            lst.append(dn)
+    return tensor(lst)
 
 #
 # quantum state number helper functions
