@@ -463,10 +463,10 @@ def state_number_enumerate(dims, state=None, idx=0):
     """
         
     if state is None:
-        state = zeros(len(dims))
+        state = np.zeros(len(dims))
         
     if idx == len(dims):
-        yield array(state)
+        yield np.array(state)
     else:
         for n in range(dims[idx]):
             state[idx] = n
