@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+# Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
 import numpy as np
@@ -379,7 +379,7 @@ def cython_preamble():
     """
     Returns list of strings for standard Cython file preamble.
     """
-    line0="# This file is generated automatically by QuTiP. (C) 2011-2012 Paul D. Nation & J. R. Johansson"
+    line0="# This file is generated automatically by QuTiP. (C) 2011-2013 Paul D. Nation & J. R. Johansson"
     line1="import numpy as np"
     line2="cimport numpy as np"
     line3="cimport cython"
