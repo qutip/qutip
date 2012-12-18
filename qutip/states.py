@@ -472,7 +472,8 @@ def state_number_enumerate(dims, state=None, idx=0):
             state[idx] = n
             for s in state_number_enumerate(dims, state, idx+1):
                 yield s
-                
+               
+ 
 def state_number_index(dims, state):
     """
     Return the index of a quantum state corresponding to state,
@@ -480,11 +481,34 @@ def state_number_index(dims, state):
 
     Example:
         
-        >>> state_index([2,2,2], [1,1,0])
+        >>> state_number_index([2, 2, 2], [1, 1, 0])
         6.0
 
     """
     return sum([state[i] * prod(dims[i+1:]) for i, d in enumerate(dims)])
+
+
+def state_index_number(dims, index):
+    """
+    Return a quantum number representation given a state index, for a system
+    of composite structure defined by dims.
+
+    Example:
+
+        >>> state_index_number([2, 2, 2], 6)
+        [1, 1, 0]
+
+    """
+    state = np.empty_like(dims)
+    
+    D = np.concatenate([np.flipud(np.cumprod(np.flipud(dims[1:]))), [1]])   
+    
+    for n in range(len(dims)):
+        state[n] = index / D[n]
+        index -= state[n] * D[n]
+
+    return list(state)
+
 
 def state_number_qobj(dims, state):
     """
