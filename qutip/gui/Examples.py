@@ -88,7 +88,7 @@ class Examples(QtGui.QWidget):
         
         #copyright text
         copyright = QtGui.QLabel(self)
-        copy_text="Copyright (c) 2011-2012, P. D. Nation & J. R. Johansson"
+        copy_text="Copyright (c) 2011-2013, P. D. Nation & J. R. Johansson"
         copyright.setText(copy_text)
         font.setBold(False)
         copyright.setFont(font)

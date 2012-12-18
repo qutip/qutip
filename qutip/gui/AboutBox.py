@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with QuTIP.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+# Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
 import sys,os
@@ -157,7 +157,7 @@ class AboutBox(QtGui.QWidget):
         else:
             p1_font.setPointSize(11)
         alabel = QtGui.QLabel(self)
-        astring="Copyright (c) 2011-2012,\nP. D. Nation & J. R. Johansson"
+        astring="Copyright (c) 2011-2013,\nP. D. Nation & J. R. Johansson"
         pixelswide = fm.width(astring)
         alabel.setFont(p1_font)
         alabel.setText(astring)

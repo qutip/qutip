@@ -1,4 +1,4 @@
-# This file is part of QuTIP.
+#This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -16,21 +16,11 @@
 # Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-import os
+import numpy as np
 
-from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
-                   sqrt, real, mod, append, ceil)
-
-from pylab import figure, show, savefig, close
-from mpl_toolkits.mplot3d import Axes3D
-from qutip.qobj import Qobj
-from qutip.expect import expect
-from qutip.operators import sigmax, sigmay, sigmaz
-
-
-class Bloch():
-    """Class for plotting data on the Bloch sphere.  Valid data can be
-    either points, vectors, or qobj objects.
+class Bloch3d():
+    """Class for plotting data on a 3D Bloch sphere using mayavi.  
+    Valid data can be either points, vectors, or qobj objects.
 
     Attributes
     ----------
@@ -86,6 +76,11 @@ class Bloch():
 
     """
     def __init__(self, fig=None, axes=None):
+        #----check for mayavi-----
+        try:
+            from mayavi import mlab
+        except:
+            raise Exception("This function requires the mayavi module.")
         #---sphere options---
         self.fig = None
         self.axes = None
@@ -122,9 +117,9 @@ class Bloch():
         self.ylpos = [1.1, -1.1]
         # Labels for z-axis (in LaTex),
         # default = ['$\left|0\\right>$','$\left|1\\right>$']
-        self.zlabel = ['$\left|0\\right>$', '$\left|1\\right>$']
-        # Position of z-axis labels, default = [1.2,-1.2]
-        self.zlpos = [1.2, -1.2]
+        self.zlabel = ['|0>', '|1>']
+        # Position of z-axis labels, default = [1.05,-1.05]
+        self.zlpos = [1.05, -1.05]
         #---font options---
         # Color of fonts, default = 'black'
         self.font_color = 'black'
@@ -133,13 +128,13 @@ class Bloch():
 
         #---vector options---
         # List of colors for Bloch vectors, default = ['b','g','r','y']
-        self.vector_color = ['g', '#CC6600', 'b', 'r']
+        self.vector_color = ['r', 'b', '#CC6600', 'g']
         #: Width of Bloch vectors, default = 3
         self.vector_width = 3
 
         #---point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
-        self.point_color = ['b', 'r', 'g', '#CC6600']
+        self.point_color = ['r', 'b', '#CC6600', 'g']
         # Size of point markers, default = 25
         self.point_size = [25, 32, 35, 45]
         # Shape of point markers, default = ['o','^','d','s']
@@ -158,15 +153,15 @@ class Bloch():
         self.savenum = 0
         # Style of points, 'm' for multiple colors, 's' for single color
         self.point_style = []
-
+    
     def __str__(self):
         print('')
-        print("Bloch data:")
+        print("Bloch3D data:")
         print('-----------')
         print("Number of points:  ", self.num_points)
         print("Number of vectors: ", self.num_vectors)
         print('')
-        print('Bloch sphere properties:')
+        print('Bloch3D sphere properties:')
         print('------------------------')
         print("font_color:   ", self.font_color)
         print("font_size:    ", self.font_size)
@@ -189,7 +184,7 @@ class Bloch():
         print("zlabel:       ", self.zlabel)
         print("zlpos:        ", self.zlpos)
         return ''
-
+        
     def clear(self):
         """Resets Bloch sphere data sets to empty.
         """
@@ -211,13 +206,13 @@ class Bloch():
             Type of points to plot, use 'm' for multicolored.
 
         """
-        if not isinstance(points[0], (list, ndarray)):
+        if not isinstance(points[0], (list, np.ndarray)):
             points = [[points[0]], [points[1]], [points[2]]]
-        points = array(points)
+        points = np.array(points)
         if meth == 's':
             if len(points[0]) == 1:
-                pnts = array([[points[0][0]], [points[1][0]], [points[2][0]]])
-                pnts = append(pnts, points, axis=1)
+                pnts = np.array([[points[0][0]], [points[1][0]], [points[2][0]]])
+                pnts = np.append(pnts, points, axis=1)
             else:
                 pnts = points
             self.points.append(pnts)
@@ -227,7 +222,7 @@ class Bloch():
             self.points.append(points)
             self.num_points = len(self.points)
             self.point_style.append('m')
-
+            
     def add_states(self, state, kind='vector'):
         """Add a state vector Qobj to Bloch sphere.
 
@@ -251,7 +246,7 @@ class Bloch():
                 pnt = [expect(sigmax(), st), expect(sigmay(), st),
                        expect(sigmaz(), st)]
                 self.add_points(pnt)
-
+            
     def add_vectors(self, vectors):
         """Add a list of vectors to Bloch sphere.
 
@@ -261,133 +256,37 @@ class Bloch():
             Array with vectors of unit length or smaller.
 
         """
-        if isinstance(vectors[0], (list, ndarray)):
+        if isinstance(vectors[0], (list, np.ndarray)):
             for vec in vectors:
                 self.vectors.append(vec)
                 self.num_vectors = len(self.vectors)
         else:
             self.vectors.append(vectors)
             self.num_vectors = len(self.vectors)
-
-    def make_sphere(self):
-        """
-        Plots Bloch sphere and data sets.
-        """
-        # setup plot
-        # Figure instance for Bloch sphere plot
-        if self.user_axes:
-            self.axes = self.user_axes
-        else:
-            if self.user_fig:
-                self.fig = self.user_fig
-            else:
-                self.fig = figure(figsize=self.size)
-            self.axes = Axes3D(self.fig, azim=self.view[0],
-                               elev=self.view[1])
-        self.axes.clear()
-        self.axes.grid(False)
-        self.plot_back()
-        self.plot_axes()
-        self.plot_points()
-        self.plot_vectors()
-        self.plot_front()
-        self.plot_axes_labels()
-
-    def plot_back(self):
-        #----back half of sphere------------------
-        u = linspace(0, pi, 25)
-        v = linspace(0, pi, 25)
-        x = outer(cos(u), sin(v))
-        y = outer(sin(u), sin(v))
-        z = outer(ones(size(u)), cos(v))
-        self.axes.plot_surface(x, y, z,  rstride=2, cstride=2,
-                               color=self.sphere_color, linewidth=0,
-                               alpha=self.sphere_alpha)
-        # wireframe
-        self.axes.plot_wireframe(x, y, z, rstride=5, cstride=5,
-                                 color=self.frame_color,
-                                 alpha=self.frame_alpha)
-        # equator
-        self.axes.plot(1.0 * cos(u), 1.0 * sin(u), zs=0, zdir='z',
-                       lw=self.frame_width, color=self.frame_color)
-        self.axes.plot(1.0 * cos(u), 1.0 * sin(u), zs=0, zdir='x',
-                       lw=self.frame_width, color=self.frame_color)
-
-    def plot_front(self):
-        # front half of sphere-----------------------
-        u = linspace(-pi, 0, 25)
-        v = linspace(0, pi, 25)
-        x = outer(cos(u), sin(v))
-        y = outer(sin(u), sin(v))
-        z = outer(ones(size(u)), cos(v))
-        self.axes.plot_surface(x, y, z,  rstride=2, cstride=2,
-                               color=self.sphere_color, linewidth=0,
-                               alpha=self.sphere_alpha)
-        # wireframe
-        self.axes.plot_wireframe(x, y, z, rstride=5, cstride=5,
-                                 color=self.frame_color,
-                                 alpha=self.frame_alpha)
-        # equator
-        self.axes.plot(1.0 * cos(u), 1.0 * sin(u),
-                       zs=0, zdir='z', lw=self.frame_width,
-                       color=self.frame_color)
-        self.axes.plot(1.0 * cos(u), 1.0 * sin(u),
-                       zs=0, zdir='x', lw=self.frame_width,
-                       color=self.frame_color)
-
-    def plot_axes(self):
-        # axes
-        span = linspace(-1.0, 1.0, 2)
-        self.axes.plot(span, 0 * span, zs=0, zdir='z',
-                       label='X', lw=self.frame_width, color=self.frame_color)
-        self.axes.plot(0 * span, span, zs=0, zdir='z',
-                       label='Y', lw=self.frame_width, color=self.frame_color)
-        self.axes.plot(0 * span, span, zs=0, zdir='y',
-                       label='Z', lw=self.frame_width, color=self.frame_color)
-        self.axes.set_xlim3d(-1.3, 1.3)
-        self.axes.set_ylim3d(-1.3, 1.3)
-        self.axes.set_zlim3d(-1.3, 1.3)
-
-    def plot_axes_labels(self):
-        # axes labels
-        self.axes.text(0, -self.xlpos[0], 0, self.xlabel[0],
-                       color=self.font_color, fontsize=self.font_size)
-        self.axes.text(0, -self.xlpos[1], 0, self.xlabel[1],
-                       color=self.font_color, fontsize=self.font_size)
-
-        self.axes.text(self.ylpos[0], 0, 0, self.ylabel[0],
-                       color=self.font_color, fontsize=self.font_size)
-        self.axes.text(self.ylpos[1], 0, 0, self.ylabel[1],
-                       color=self.font_color, fontsize=self.font_size)
-
-        self.axes.text(0, 0, self.zlpos[0], self.zlabel[0],
-                       color=self.font_color, fontsize=self.font_size)
-        self.axes.text(0, 0, self.zlpos[1], self.zlabel[1],
-                       color=self.font_color, fontsize=self.font_size)
-
-        for ax in [self.axes.w_xaxis, self.axes.w_yaxis, self.axes.w_zaxis]:
-            _hide_tick_lines_and_labels(ax)
-
+    
     def plot_vectors(self):
         # -X and Y data are switched for plotting purposes
+        from mayavi import mlab
+        import matplotlib.colors as colors
         if len(self.vectors) > 0:
             for k in range(len(self.vectors)):
-                length = sqrt(self.vectors[k][0] ** 2 +
-                              self.vectors[k][1] ** 2 +
-                              self.vectors[k][2] ** 2)
-                self.axes.plot(
-                    self.vectors[k][1] * linspace(0, length, 2),
-                    -self.vectors[k][0] * linspace(0, length, 2),
-                    self.vectors[k][2] * linspace(0, length, 2),
-                    zs=0, zdir='z', label='Z', lw=self.vector_width,
-                    color=self.vector_color[mod(k, len(self.vector_color))])
-
+                vec = np.array(self.vectors[k])
+                length = np.sqrt(vec[0] ** 2 +vec[1] ** 2 + vec[2] ** 2)
+                vec=vec/length
+                mlab.quiver3d([0],[0],[0],[vec[0]],
+                            [vec[1]],[vec[2]],
+                            mode='arrow',resolution=20,
+                            color=colors.colorConverter.to_rgb(
+                            self.vector_color[np.mod(k,len(self.vector_color))]))
+    
     def plot_points(self):
         # -X and Y data are switched for plotting purposes
+        from mayavi import mlab
+        import matplotlib.colors as colors
         if self.num_points > 0:
             for k in range(self.num_points):
                 num = len(self.points[k][0])
-                dist = [sqrt(self.points[k][0][j] ** 2 +
+                dist = [np.sqrt(self.points[k][0][j] ** 2 +
                              self.points[k][1][j] ** 2 +
                              self.points[k][2][j] ** 2) for j in range(num)]
                 if any(abs(dist - dist[0]) / dist[0] > 1e-12):
@@ -395,48 +294,85 @@ class Bloch():
                     zipped = zip(dist, range(num))
                     zipped.sort()  # sort rates from lowest to highest
                     dist, indperm = zip(*zipped)
-                    indperm = array(indperm)
+                    indperm = np.array(indperm)
                 else:
                     indperm = range(num)
                 if self.point_style[k] == 's':
-                    self.axes.scatter(
-                        real(self.points[k][1][indperm]),
-                        - real(self.points[k][0][indperm]),
-                        real(self.points[k][2][indperm]),
-                        s=self.point_size[mod(k, len(self.point_size))],
-                        alpha=1,
-                        edgecolor='none',
-                        zdir='z',
-                        color=self.point_color[mod(k, len(self.point_color))],
-                        marker=self.point_marker[
-                            mod(k, len(self.point_marker))])
-
-                elif self.point_style[k] == 'm':
-                    pnt_colors = array(
-                        self.point_color *
-                        ceil(num / float(len(self.point_color))))
-
-                    pnt_colors = pnt_colors[0:num]
-                    pnt_colors = list(pnt_colors[indperm])
-                    self.axes.scatter(
-                        real(self.points[k][1][indperm]),
-                        -real(self.points[k][0][indperm]),
-                        real(self.points[k][2][indperm]),
-                        s=self.point_size[
-                            mod(k, len(self.point_size))],
-                        alpha=1, edgecolor='none',
-                        zdir='z', color=pnt_colors,
-                        marker=self.point_marker[
-                            mod(k, len(self.point_marker))])
-
+                    mlab.points3d(self.points[k][0][indperm],self.points[k][1][indperm],self.points[k][2][indperm],
+                    figure=self.fig,resolution=20,scale_factor=0.05,
+                    color=colors.colorConverter.to_rgb(self.point_color[np.mod(k,len(self.point_color))]))
+    
+    def make_sphere(self):
+        """
+        Plots Bloch sphere and data sets.
+        """
+        # setup plot
+        # Figure instance for Bloch sphere plot
+        from mayavi import mlab
+        if self.user_axes:
+            self.axes = self.user_axes
+        else:
+            if self.user_fig:
+                self.fig = self.user_fig
+            else:
+                self.fig = mlab.figure(1, bgcolor=(1, 1, 1), 
+                                    fgcolor=(0, 0, 0),size=(500, 500))
+                
+                sphere = mlab.points3d(0, 0, 0, figure=self.fig,scale_mode='none',scale_factor=2,
+                                    color=(0, 0, 0),resolution=100,
+                                    opacity=0.1,name='bloch_sphere')
+                #Thse commands make the sphere look better
+                sphere.actor.property.specular = 0.45
+                sphere.actor.property.specular_power = 5
+                sphere.actor.property.backface_culling = True
+                
+                #make mesh grid for sphere surface (should be optional at some point)
+                theta = np.linspace(0, 2*np.pi, 100)
+                num_mesh=8
+                opacity=0.05
+                for angle in np.linspace(-np.pi,np.pi,num_mesh):
+                    xlat = np.cos(theta)*np.cos(angle)
+                    ylat = np.sin(theta)*np.cos(angle)
+                    zlat = np.ones_like(theta)*np.sin(angle)
+                    xlon=np.sin(angle)*np.sin(theta)
+                    ylon=np.cos(angle)*np.sin(theta)
+                    zlon=np.cos(theta)
+                    mlab.plot3d(xlat, ylat, zlat, color=(0, 0, 0),opacity=opacity, tube_radius=0.005)
+                    mlab.plot3d(xlon, ylon, zlon, color=(0, 0, 0),opacity=opacity, tube_radius=0.005)
+                
+                #add axes
+                axis=np.linspace(-1.0,1.0,10)
+                other=np.zeros_like(axis)
+                mlab.plot3d(axis,other,other,color=(0.3, 0.3, 0.3),tube_radius=0.005,opacity=0.4)
+                mlab.plot3d(other,axis,other,color=(0.3, 0.3, 0.3),tube_radius=0.005,opacity=0.4)
+                mlab.plot3d(other,other,axis,color=(0.3, 0.3, 0.3),tube_radius=0.005,opacity=0.4)
+                
+                #add data to sphere
+                self.plot_points()
+                self.plot_vectors()
+                
+                #add axes
+                axes=np.linspace(-1.0,1.0,10)
+                other=np.zeros_like(axis)
+                mlab.plot3d(axes,other,other,color=(0.3, 0.3, 0.3),tube_radius=0.005,opacity=0.4)
+                mlab.plot3d(other,axes,other,color=(0.3, 0.3, 0.3),tube_radius=0.005,opacity=0.4)
+                mlab.plot3d(other,other,axes,color=(0.3, 0.3, 0.3),tube_radius=0.005,opacity=0.4)
+                # #add labels
+                mlab.text3d(0,0,1.05,'|0>',color=(0, 0, 0),scale=0.075)
+                mlab.text3d(0,0,-1.05,'|1>',color=(0,0, 0),scale=0.075)
+                mlab.text3d(1.05,0,0,'|x>',color=(0, 0, 0),scale=0.075)
+                mlab.text3d(0,1.05,0,'|y>',color=(0, 0, 0),scale=0.075)
+                
     def show(self):
         """
         Display Bloch sphere and corresponding data sets.
         """
+        from mayavi import mlab
         self.make_sphere()
+        mlab.view(azimuth=45,elevation=65,distance=5)
         if self.fig:
-            show(self.fig)
-
+            mlab.show()
+    
     def save(self, name=None, format='png', dirc=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
 
@@ -457,27 +393,32 @@ class Bloch():
         File containing plot of Bloch sphere.
 
         """
+        from mayavi import mlab
+        import os
         self.make_sphere()
+        mlab.view(azimuth=45,elevation=65,distance=5)
         if dirc:
             if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
                 os.makedirs(os.getcwd() + "/" + str(dirc))
         if name is None:
             if dirc:
-                savefig(os.getcwd() + "/" + str(dirc) + '/bloch_' +
+                mlab.savefig(os.getcwd() + "/" + str(dirc) + '/bloch_' +
                         str(self.savenum) + '.' + format)
             else:
-                savefig(os.getcwd() + '/bloch_' + str(self.savenum) +
+                mlab.savefig(os.getcwd() + '/bloch_' + str(self.savenum) +
                         '.' + format)
         else:
-            savefig(name)
+            mlab.savefig(name)
         self.savenum += 1
         if self.fig:
-            close(self.fig)
+            mlab.close(self.fig)
+            
 
-
-def _hide_tick_lines_and_labels(axis):
-    '''
-    Set visible property of ticklines and ticklabels of an axis to False
-    '''
-    for a in axis.get_ticklines() + axis.get_ticklabels():
-        a.set_visible(False)
+x=Bloch3d()
+x.add_vectors([0,0.8,0.6])
+#x.add_points([1,0,0])
+#x.add_points([0,1,0])
+#x.add_points([0,0,1])
+x.show()
+x.clear()
+x.show()
