@@ -24,6 +24,7 @@ from qutip.eseries import esval, esspec
 from qutip.essolve import ode2es
 from qutip.mcsolve import mcsolve
 from qutip.steady import steady, steadystate
+from qutip.odeoptions import Odeoptions
 import numpy as np
 
 
@@ -137,7 +138,7 @@ def correlation(H, rho0, tlist, taulist, c_op_list, a_op, b_op, solver="me"):
         return correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op)
     elif solver == "es":
         return correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op)
-    elif solver == "es":
+    elif solver == "mc":
         return correlation_mc(H, rho0, tlist, taulist, c_op_list, a_op, b_op)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
@@ -320,17 +321,19 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
 
     ntraj = 100
 
-    mc_opt = Mcoptions()
-    mc_opt.progressbar = False
+    opt = Odeoptions()
+    opt.gui = False
 
-    psi_t = mcsolve(H, psi0, tlist, ntraj, c_op_list, [], mc_opt).states
+    psi_t = mcsolve(H, psi0, tlist, c_op_list, [], ntraj=ntraj, options=opt).states
+
+    print "psi_t =", psi_t
 
     for t_idx in range(len(tlist)):
 
         psi0_t = psi_t[0][t_idx]
 
         C_mat[t_idx, :] = mcsolve(H, b_op * psi0_t, tlist,
-                                  ntraj, c_op_list, [a_op], mc_opt).expect[0]
+                                  c_op_list, [a_op], ntraj=ntraj, options=opt).expect[0]
 
     return C_mat
 
