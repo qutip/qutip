@@ -414,11 +414,12 @@ class Bloch3d():
             mlab.close(self.fig)
             
 
-x=Bloch3d()
-x.add_vectors([0,0.8,0.6])
-#x.add_points([1,0,0])
-#x.add_points([0,1,0])
-#x.add_points([0,0,1])
-x.show()
-x.clear()
-x.show()
+if __name__ == '__main__':
+    x=Bloch3d()
+    x.add_vectors([0,0.8,0.6])
+    #x.add_points([1,0,0])
+    #x.add_points([0,1,0])
+    #x.add_points([0,0,1])
+    x.show()
+    x.clear()
+    x.show()
