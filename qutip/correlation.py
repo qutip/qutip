@@ -326,8 +326,6 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
 
     psi_t = mcsolve(H, psi0, tlist, c_op_list, [], ntraj=ntraj, options=opt).states
 
-    print "psi_t =", psi_t
-
     for t_idx in range(len(tlist)):
 
         psi0_t = psi_t[0][t_idx]
