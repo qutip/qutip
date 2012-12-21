@@ -17,6 +17,9 @@
 #
 ###########################################################################
 import numpy as np
+from qutip.qobj import Qobj
+from qutip.expect import expect
+from qutip.operators import sigmax,sigmay,sigmaz
 
 class Bloch3d():
     """Class for plotting data on a 3D Bloch sphere using mayavi.  
@@ -24,9 +27,6 @@ class Bloch3d():
 
     Attributes
     ----------
-
-    axes : instance {None}
-        User supplied Matplotlib axes for Bloch sphere animation.
     fig : instance {None}
         User supplied Matplotlib Figure instance for plotting Bloch sphere.
     font_color : str {'black'}
@@ -39,7 +39,7 @@ class Bloch3d():
         Color of sphere wireframe.
     frame_width : int {1}
         Width of wireframe.
-    point_color : list {["b","r","g","#CC6600"]}
+    point_color : list {['r', 'b', 'g', '#CC6600']}
         List of colors for Bloch sphere point markers to cycle through.
         i.e. By default, points 0 and 4 will both be blue ('b').
     point_marker : list {["o","s","d","^"]}
@@ -51,10 +51,10 @@ class Bloch3d():
         Transparency of Bloch sphere itself.
     sphere_color : str {'#FFDDDD'}
         Color of Bloch sphere.
-    size : list {[7,7]}
-        Size of Bloch sphere plot.  Best to have both numbers the same;
+    size : list {[500,500]}
+        Size of Bloch sphere plot in pixels.  Best to have both numbers the same
         otherwise you will have a Bloch sphere that looks like a football.
-    vector_color : list {["g","#CC6600","b","r"]}
+    vector_color : list {['r', 'b', 'g', '#CC6600']}
         List of vector colors to cycle through.
     vector_width : int {3}
         Width of displayed vectors.
@@ -73,74 +73,113 @@ class Bloch3d():
     zlpos : list {[1.2,-1.2]}
         Positions of +z and -z labels respectively.
 
-
+    Notes
+    -----
+    The use of mayavi for 3D rendering of the Bloch sphere comes with 
+    a few limitations: I) You can not embed a Bloch3d figure into a 
+    matplotlib window. II) The use of LaTex is not supported by the 
+    mayavi rendering engine.  Therefore all labels must be defined using
+    standard text.  Of course you can post-process the generated figure
+    later to add LaTeX using other software if needed.
+    
     """
-    def __init__(self, fig=None, axes=None):
+    def __init__(self, fig=None):
         #----check for mayavi-----
         try:
             from mayavi import mlab
         except:
             raise Exception("This function requires the mayavi module.")
-        #---sphere options---
+        
+        #---Image options---
         self.fig = None
-        self.axes = None
         self.user_fig = None
-        self.user_axes = None
         # check if user specified figure or axes.
         if fig:
             self.user_fig = fig
-        if axes:
-            self.user_axes = axes
-        # use user-supplied figure object if present
-        self.input_axes = axes
-        # he size of the figure in inches, default = [7,7].
-        self.size = [7, 7]
+        # The size of the figure in inches, default = [500,500].
+        self.size = [500, 500]
         # Azimuthal and Elvation viewing angles, default = [-60,30].
-        self.view = [-60, 30]
+        self.view = [45, 65]
+        # Image background color
+        self.bgcolor='white'
+        # Image foreground color.  Other options can override.
+        self.fgcolor='black'
+        
+        #---Sphere options---
         # Color of Bloch sphere, default = #FFDDDD
-        self.sphere_color = '#FFDDDD'
+        self.sphere_color = '#808080'
         # Transparency of Bloch sphere, default = 0.2
-        self.sphere_alpha = 0.2
+        self.sphere_alpha = 0.1
+        
+        #---Frame options---
+        # Draw frame?
+        self.frame=True
+        #number of lines to draw for frame
+        self.frame_num=8
         # Color of wireframe, default = 'gray'
-        self.frame_color = 'gray'
+        self.frame_color = 'black'
         # Width of wireframe, default = 1
         self.frame_width = 1
         # Transparency of wireframe, default = 0.2
-        self.frame_alpha = 0.2
+        self.frame_alpha = 0.05
+        # Radius of frame lines
+        self.frame_radius=0.005
+        
+        #--Axes---
+        # Axes color
+        self.axes_color='black'
+        # Transparency of axes
+        self.axes_alpha = 0.4
+        # Radius of axes lines
+        self.axes_radius=0.005
+        
+        #---Labels---
         # Labels for x-axis (in LaTex), default = ['$x$','']
-        self.xlabel = ['$x$', '']
+        self.xlabel = ['|x>', '']
         # Position of x-axis labels, default = [1.2,-1.2]
-        self.xlpos = [1.2, -1.2]
+        self.xlpos = [1.05, -1.05]
         # Labels for y-axis (in LaTex), default = ['$y$','']
-        self.ylabel = ['$y$', '']
+        self.ylabel = ['|y>', '']
         # Position of y-axis labels, default = [1.1,-1.1]
-        self.ylpos = [1.1, -1.1]
-        # Labels for z-axis (in LaTex),
-        # default = ['$\left|0\\right>$','$\left|1\\right>$']
+        self.ylpos = [1.05, -1.05]
+        # Labels for z-axis
         self.zlabel = ['|0>', '|1>']
         # Position of z-axis labels, default = [1.05,-1.05]
         self.zlpos = [1.05, -1.05]
-        #---font options---
+        
+        #---Font options---
         # Color of fonts, default = 'black'
         self.font_color = 'black'
         # Size of fonts, default = 20
-        self.font_size = 20
+        self.font_scale = 0.075
 
-        #---vector options---
+        #---Vector options---
+        # Object used for representing vectors on Bloch sphere.
+        # Options: '2darrow' or '2dcircle' or '2dcross' or '2ddash' or 
+        # '2ddiamond' or '2dhooked_arrow' or '2dsquare' or '2dthick_arrow' 
+        # or '2dthick_cross' or '2dtriangle' or '2dvertex' or 
+        # 'arrow' or 'axes' or 'cone' or 'cube' or 'cylinder' or 'point' or 'sphere'.
+        # Default = 'arrow'
+        self.vector_mode='arrow'
         # List of colors for Bloch vectors, default = ['b','g','r','y']
-        self.vector_color = ['r', 'b', '#CC6600', 'g']
-        #: Width of Bloch vectors, default = 3
-        self.vector_width = 3
-
-        #---point options---
+        self.vector_color = ['r', 'b', 'g', '#CC6600']
+        # Width of Bloch vectors, default = 3
+        self.vector_width = 2.0
+        
+        #---Point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
-        self.point_color = ['r', 'b', '#CC6600', 'g']
-        # Size of point markers, default = 25
-        self.point_size = [25, 32, 35, 45]
-        # Shape of point markers, default = ['o','^','d','s']
-        self.point_marker = ['o', 's', 'd', '^']
+        self.point_color = ['r', 'b', 'g', '#CC6600']
+        # Size of point markers
+        self.point_size = 0.075
+        # Shape of point markers
+        # Options: '2darrow' or '2dcircle' or '2dcross' or '2ddash' or 
+        # '2ddiamond' or '2dhooked_arrow' or '2dsquare' or '2dthick_arrow' 
+        # or '2dthick_cross' or '2dtriangle' or '2dvertex' or 
+        # 'arrow' or 'axes' or 'cone' or 'cube' or 'cylinder' or 'point' or 'sphere'.
+        # Default = 'sphere'
+        self.point_mode = 'sphere'
 
-        #---data lists---
+        #---Data lists---
         # Data for point markers
         self.points = []
         # Number of point markers to plot
@@ -186,7 +225,7 @@ class Bloch3d():
         return ''
         
     def clear(self):
-        """Resets Bloch sphere data sets to empty.
+        """Resets the Bloch sphere data sets to empty.
         """
         self.points = []
         self.num_points = 0
@@ -265,7 +304,9 @@ class Bloch3d():
             self.num_vectors = len(self.vectors)
     
     def plot_vectors(self):
-        # -X and Y data are switched for plotting purposes
+        """
+        Plots vectors on the Bloch sphere.
+        """
         from mayavi import mlab
         import matplotlib.colors as colors
         if len(self.vectors) > 0:
@@ -275,12 +316,14 @@ class Bloch3d():
                 vec=vec/length
                 mlab.quiver3d([0],[0],[0],[vec[0]],
                             [vec[1]],[vec[2]],
-                            mode='arrow',resolution=20,
+                            mode='arrow',resolution=25,line_width=self.vector_width,
                             color=colors.colorConverter.to_rgb(
                             self.vector_color[np.mod(k,len(self.vector_color))]))
     
     def plot_points(self):
-        # -X and Y data are switched for plotting purposes
+        """
+        Plots points on the Bloch sphere.
+        """
         from mayavi import mlab
         import matplotlib.colors as colors
         if self.num_points > 0:
@@ -299,7 +342,7 @@ class Bloch3d():
                     indperm = range(num)
                 if self.point_style[k] == 's':
                     mlab.points3d(self.points[k][0][indperm],self.points[k][1][indperm],self.points[k][2][indperm],
-                    figure=self.fig,resolution=20,scale_factor=0.05,
+                    figure=self.fig,resolution=25,scale_factor=self.point_size,mode=self.point_mode,
                     color=colors.colorConverter.to_rgb(self.point_color[np.mod(k,len(self.point_color))]))
     
     def make_sphere(self):
@@ -309,67 +352,79 @@ class Bloch3d():
         # setup plot
         # Figure instance for Bloch sphere plot
         from mayavi import mlab
-        if self.user_axes:
-            self.axes = self.user_axes
+        import matplotlib.colors as colors
+        if self.user_fig:
+            self.fig = self.user_fig
         else:
-            if self.user_fig:
-                self.fig = self.user_fig
-            else:
-                self.fig = mlab.figure(1, bgcolor=(1, 1, 1), 
-                                    fgcolor=(0, 0, 0),size=(500, 500))
-                
-                sphere = mlab.points3d(0, 0, 0, figure=self.fig,scale_mode='none',scale_factor=2,
-                                    color=(0, 0, 0),resolution=100,
-                                    opacity=0.1,name='bloch_sphere')
-                #Thse commands make the sphere look better
-                sphere.actor.property.specular = 0.45
-                sphere.actor.property.specular_power = 5
-                sphere.actor.property.backface_culling = True
-                
-                #make mesh grid for sphere surface (should be optional at some point)
-                theta = np.linspace(0, 2*np.pi, 100)
-                num_mesh=8
-                opacity=0.05
-                for angle in np.linspace(-np.pi,np.pi,num_mesh):
-                    xlat = np.cos(theta)*np.cos(angle)
-                    ylat = np.sin(theta)*np.cos(angle)
-                    zlat = np.ones_like(theta)*np.sin(angle)
-                    xlon=np.sin(angle)*np.sin(theta)
-                    ylon=np.cos(angle)*np.sin(theta)
-                    zlon=np.cos(theta)
-                    mlab.plot3d(xlat, ylat, zlat, color=(0, 0, 0),opacity=opacity, tube_radius=0.005)
-                    mlab.plot3d(xlon, ylon, zlon, color=(0, 0, 0),opacity=opacity, tube_radius=0.005)
-                
-                #add axes
-                axis=np.linspace(-1.0,1.0,10)
-                other=np.zeros_like(axis)
-                mlab.plot3d(axis,other,other,color=(0.3, 0.3, 0.3),tube_radius=0.005,opacity=0.4)
-                mlab.plot3d(other,axis,other,color=(0.3, 0.3, 0.3),tube_radius=0.005,opacity=0.4)
-                mlab.plot3d(other,other,axis,color=(0.3, 0.3, 0.3),tube_radius=0.005,opacity=0.4)
-                
-                #add data to sphere
-                self.plot_points()
-                self.plot_vectors()
-                
-                #add axes
-                axes=np.linspace(-1.0,1.0,10)
-                other=np.zeros_like(axis)
-                mlab.plot3d(axes,other,other,color=(0.3, 0.3, 0.3),tube_radius=0.005,opacity=0.4)
-                mlab.plot3d(other,axes,other,color=(0.3, 0.3, 0.3),tube_radius=0.005,opacity=0.4)
-                mlab.plot3d(other,other,axes,color=(0.3, 0.3, 0.3),tube_radius=0.005,opacity=0.4)
-                # #add labels
-                mlab.text3d(0,0,1.05,'|0>',color=(0, 0, 0),scale=0.075)
-                mlab.text3d(0,0,-1.05,'|1>',color=(0,0, 0),scale=0.075)
-                mlab.text3d(1.05,0,0,'|x>',color=(0, 0, 0),scale=0.075)
-                mlab.text3d(0,1.05,0,'|y>',color=(0, 0, 0),scale=0.075)
+            self.fig = mlab.figure(1, bgcolor=colors.colorConverter.to_rgb(self.bgcolor), 
+                                fgcolor=colors.colorConverter.to_rgb(self.fgcolor),size=self.size)
+            
+        sphere = mlab.points3d(0, 0, 0, figure=self.fig,scale_mode='none',scale_factor=2,
+                            color=colors.colorConverter.to_rgb(self.sphere_color),
+                            resolution=100,opacity=self.sphere_alpha,name='bloch_sphere')
+        
+        #Thse commands make the sphere look better
+        sphere.actor.property.specular = 0.45
+        sphere.actor.property.specular_power = 5
+        sphere.actor.property.backface_culling = True
+        
+        #make frame for sphere surface
+        if self.frame:
+            theta = np.linspace(0, 2*np.pi, 100)
+            for angle in np.linspace(-np.pi,np.pi,self.frame_num):
+                xlat = np.cos(theta)*np.cos(angle)
+                ylat = np.sin(theta)*np.cos(angle)
+                zlat = np.ones_like(theta)*np.sin(angle)
+                xlon=np.sin(angle)*np.sin(theta)
+                ylon=np.cos(angle)*np.sin(theta)
+                zlon=np.cos(theta)
+                mlab.plot3d(xlat, ylat, zlat, color=colors.colorConverter.to_rgb(self.frame_color),
+                    opacity=self.frame_alpha, tube_radius=self.frame_radius)
+                mlab.plot3d(xlon, ylon, zlon, color=colors.colorConverter.to_rgb(self.frame_color),
+                    opacity=self.frame_alpha, tube_radius=self.frame_radius)
+        
+        #add axes
+        axis=np.linspace(-1.0,1.0,10)
+        other=np.zeros_like(axis)
+        mlab.plot3d(axis,other,other,color=colors.colorConverter.to_rgb(self.axes_color),
+                    tube_radius=self.axes_radius,opacity=self.axes_alpha)
+        mlab.plot3d(other,axis,other,color=colors.colorConverter.to_rgb(self.axes_color),
+                    tube_radius=self.axes_radius,opacity=self.axes_alpha)
+        mlab.plot3d(other,other,axis,color=colors.colorConverter.to_rgb(self.axes_color),
+                    tube_radius=self.axes_radius,opacity=self.axes_alpha)
+            
+        #add data to sphere
+        self.plot_points()
+        self.plot_vectors()
+        
+        
+        # #add labels
+        mlab.text3d(0,0,self.zlpos[0],self.zlabel[0],
+                    color=colors.colorConverter.to_rgb(self.font_color),
+                    scale=self.font_scale)
+        mlab.text3d(0,0,self.zlpos[1],self.zlabel[1],
+                    color=colors.colorConverter.to_rgb(self.font_color),
+                    scale=self.font_scale)
+        mlab.text3d(self.xlpos[0],0,0,self.xlabel[0],
+                    color=colors.colorConverter.to_rgb(self.font_color),
+                    scale=self.font_scale)
+        mlab.text3d(self.xlpos[1],0,0,self.xlabel[1],
+                    color=colors.colorConverter.to_rgb(self.font_color),
+                    scale=self.font_scale)
+        mlab.text3d(0,self.ylpos[0],0,self.ylabel[0],
+                    color=colors.colorConverter.to_rgb(self.font_color),
+                    scale=self.font_scale)
+        mlab.text3d(0,self.ylpos[1],0,self.ylabel[1],
+                    color=colors.colorConverter.to_rgb(self.font_color),
+                    scale=self.font_scale)
                 
     def show(self):
         """
-        Display Bloch sphere and corresponding data sets.
+        Display the Bloch sphere and corresponding data sets.
         """
         from mayavi import mlab
         self.make_sphere()
-        mlab.view(azimuth=45,elevation=65,distance=5)
+        mlab.view(azimuth=self.view[0],elevation=self.view[1],distance=5)
         if self.fig:
             mlab.show()
     
@@ -384,7 +439,7 @@ class Bloch3d():
             i.e. '/Users/Paul/Desktop/bloch.png'
             This overrides the 'format' and 'dirc' arguments.
         format : str
-            Format of output image.
+            Format of output image. Default is 'png'.
         dirc : str
             Directory for output images. Defaults to current working directory.
 
@@ -396,7 +451,7 @@ class Bloch3d():
         from mayavi import mlab
         import os
         self.make_sphere()
-        mlab.view(azimuth=45,elevation=65,distance=5)
+        mlab.view(azimuth=self.view[0],elevation=self.view[1],distance=5)
         if dirc:
             if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
                 os.makedirs(os.getcwd() + "/" + str(dirc))
@@ -412,14 +467,5 @@ class Bloch3d():
         self.savenum += 1
         if self.fig:
             mlab.close(self.fig)
-            
 
-if __name__ == '__main__':
-    x=Bloch3d()
-    x.add_vectors([0,0.8,0.6])
-    #x.add_points([1,0,0])
-    #x.add_points([0,1,0])
-    #x.add_points([0,0,1])
-    x.show()
-    x.clear()
-    x.show()
+

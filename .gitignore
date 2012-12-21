@@ -1,6 +1,7 @@
 *~
 *.py[cod]
 *.so
+.DS_Store
 
 # Packages
 *.egg
