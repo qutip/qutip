@@ -47,11 +47,11 @@ def _partial_transpose_dense(rho, pt_mask):
     Very fast for dense problems.
     """
     nsys = len(pt_mask)
-    pt_dims = arange(2*nsys).reshape(2,nsys).T
-    pt_idx = concatenate([[pt_dims[n,pt_mask[n]] for n in range(nsys)],
-                          [pt_dims[n,1-pt_mask[n]] for n in range(nsys)]])
+    pt_dims = np.arange(2*nsys).reshape(2,nsys).T
+    pt_idx = np.concatenate([[pt_dims[n,pt_mask[n]] for n in range(nsys)],
+                            [pt_dims[n,1-pt_mask[n]] for n in range(nsys)]])
 
-    data = rho.data.toarray().reshape(list(flatten(rho.dims))).transpose(pt_idx).reshape(rho.shape)
+    data = rho.data.toarray().reshape(np.array(rho.dims).flatten()).transpose(pt_idx).reshape(rho.shape)
     return Qobj(data, dims=rho.dims)
 
 
