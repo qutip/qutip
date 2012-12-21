@@ -206,6 +206,7 @@ from qutip.clebsch import clebsch
 from qutip.entropy import entropy_vn,entropy_linear,entropy_mutual,concurrence,entropy_conditional
 from qutip.gates import *
 from qutip.metrics import fidelity,tracedist
+from qutip.partial_transpose import partial_transpose
 
 # evolution
 import qutip.odeconfig
