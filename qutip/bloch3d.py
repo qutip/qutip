@@ -137,35 +137,31 @@ class Bloch3d():
         # Labels for x-axis (in LaTex), default = ['$x$','']
         self.xlabel = ['|x>', '']
         # Position of x-axis labels, default = [1.2,-1.2]
-        self.xlpos = [1.05, -1.05]
+        self.xlpos = [1.07, -1.07]
         # Labels for y-axis (in LaTex), default = ['$y$','']
         self.ylabel = ['|y>', '']
         # Position of y-axis labels, default = [1.1,-1.1]
-        self.ylpos = [1.05, -1.05]
+        self.ylpos = [1.07, -1.07]
         # Labels for z-axis
         self.zlabel = ['|0>', '|1>']
         # Position of z-axis labels, default = [1.05,-1.05]
-        self.zlpos = [1.05, -1.05]
+        self.zlpos = [1.07, -1.07]
         
         #---Font options---
         # Color of fonts, default = 'black'
         self.font_color = 'black'
         # Size of fonts, default = 20
-        self.font_scale = 0.075
+        self.font_scale = 0.08
 
         #---Vector options---
         # Object used for representing vectors on Bloch sphere.
-        # Options: '2darrow' or '2dcircle' or '2dcross' or '2ddash' or 
-        # '2ddiamond' or '2dhooked_arrow' or '2dsquare' or '2dthick_arrow' 
-        # or '2dthick_cross' or '2dtriangle' or '2dvertex' or 
-        # 'arrow' or 'axes' or 'cone' or 'cube' or 'cylinder' or 'point' or 'sphere'.
-        # Default = 'arrow'
-        self.vector_mode='arrow'
         # List of colors for Bloch vectors, default = ['b','g','r','y']
         self.vector_color = ['r', 'b', 'g', '#CC6600']
         # Width of Bloch vectors, default = 3
         self.vector_width = 2.0
-        
+        self.vector_head_height=0.2
+        self.vector_head_radius=0.1
+        self.vector_alpha=1.0
         #---Point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_color = ['r', 'b', 'g', '#CC6600']
@@ -308,19 +304,34 @@ class Bloch3d():
         Plots vectors on the Bloch sphere.
         """
         from mayavi import mlab
+        from tvtk.api import tvtk
         import matplotlib.colors as colors
+        ii=0
         if len(self.vectors) > 0:
             for k in range(len(self.vectors)):
                 vec = np.array(self.vectors[k])
-                length = np.sqrt(vec[0] ** 2 +vec[1] ** 2 + vec[2] ** 2)
-                if length>1.0:
-                    print("Vector length is larger than unity.. Setting length = 1.")
-                    vec=vec/length
-                mlab.quiver3d([0],[0],[0],[vec[0]],
-                            [vec[1]],[vec[2]],
-                            mode='arrow',resolution=25,line_width=self.vector_width,
+                norm=np.linalg.norm(vec)
+                vec=vec/norm
+                theta=np.arccos(vec[2])
+                phi=np.arctan2(vec[1],vec[0])
+                vec=vec*norm
+                vec2=vec/np.sqrt((norm+self.vector_head_height))
+                mlab.plot3d([0,vec2[0]],[0,vec2[1]],[0,vec2[2]],
+                            name='vector'+str(ii),tube_sides=100,
+                            line_width=self.vector_width,
                             color=colors.colorConverter.to_rgb(
                             self.vector_color[np.mod(k,len(self.vector_color))]))
+                cone = tvtk.ConeSource(height=self.vector_head_height,
+                            radius=self.vector_head_radius,resolution=100)
+                cone_mapper = tvtk.PolyDataMapper(input=cone.output)
+                prop = tvtk.Property(opacity=self.vector_alpha,
+                            color=colors.colorConverter.to_rgb(
+                            self.vector_color[np.mod(k,len(self.vector_color))]))
+                cc = tvtk.Actor(mapper=cone_mapper, property=prop)
+                cc.rotate_z(np.degrees(phi))
+                cc.rotate_y(-90+np.degrees(theta))
+                cc.position=np.array([vec[0],vec[1],vec[2]])/np.sqrt((norm+self.vector_head_height))
+                self.fig.scene.add_actor(cc)
     
     def plot_points(self):
         """
@@ -343,8 +354,9 @@ class Bloch3d():
                 else:
                     indperm = range(num)
                 if self.point_style[k] == 's':
-                    mlab.points3d(self.points[k][0][indperm],self.points[k][1][indperm],self.points[k][2][indperm],
-                    figure=self.fig,resolution=25,scale_factor=self.point_size,mode=self.point_mode,
+                    mlab.points3d(self.points[k][0][indperm],self.points[k][1][indperm],
+                    self.points[k][2][indperm],figure=self.fig,resolution=100,
+                    scale_factor=self.point_size,mode=self.point_mode,
                     color=colors.colorConverter.to_rgb(self.point_color[np.mod(k,len(self.point_color))]))
     
     def make_sphere(self):
