@@ -313,7 +313,9 @@ class Bloch3d():
             for k in range(len(self.vectors)):
                 vec = np.array(self.vectors[k])
                 length = np.sqrt(vec[0] ** 2 +vec[1] ** 2 + vec[2] ** 2)
-                vec=vec/length
+                if length>1.0:
+                    print("Vector length is larger than unity.. Setting length = 1.")
+                    vec=vec/length
                 mlab.quiver3d([0],[0],[0],[vec[0]],
                             [vec[1]],[vec[2]],
                             mode='arrow',resolution=25,line_width=self.vector_width,
