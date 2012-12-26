@@ -193,11 +193,15 @@ import qutip.settings
 # graphics
 if qutip.settings.qutip_graphics=='YES':
     from qutip.bloch import Bloch
-    from qutip.bloch3d import Bloch3d
     from qutip.graph import hinton, energy_level_diagram
     from qutip.sphereplot import *
     from qutip.orbital import *
     from qutip.tomography import *
+    #load mayavi dependent functions if available
+    try: import mayavi
+    except: pass
+    else: 
+        from qutip.bloch3d import Bloch3d
 
 # library functions
 from qutip.wigner import *

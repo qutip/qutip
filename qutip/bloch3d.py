@@ -23,7 +23,9 @@ from qutip.operators import sigmax,sigmay,sigmaz
 
 class Bloch3d():
     """Class for plotting data on a 3D Bloch sphere using mayavi.  
-    Valid data can be either points, vectors, or qobj objects.
+    Valid data can be either points, vectors, or qobj objects
+    corresponding to state vectors or density matricies for
+    a two-state system (or subsystem).
 
     Attributes
     ----------
@@ -31,46 +33,50 @@ class Bloch3d():
         User supplied Matplotlib Figure instance for plotting Bloch sphere.
     font_color : str {'black'}
         Color of font used for Bloch sphere labels.
-    font_size : int {20}
-        Size of font used for Bloch sphere labels.
-    frame_alpha : float {0.1}
+    font_scale : float {0.08}
+        Scale for font used for Bloch sphere labels.
+    frame : bool {True}
+        Draw frame for Bloch sphere
+    frame_alpha : float {0.05}
         Sets transparency of Bloch sphere frame.
     frame_color : str {'gray'}
         Color of sphere wireframe.
-    frame_width : int {1}
+    frame_num : int {8}
+        Number of frame elements to draw.
+    frame_radius : floats {0.005}
         Width of wireframe.
-    point_color : list {['r', 'b', 'g', '#CC6600']}
+    point_color : list {['r', 'g', 'b', 'y']}
         List of colors for Bloch sphere point markers to cycle through.
         i.e. By default, points 0 and 4 will both be blue ('b').
-    point_marker : list {["o","s","d","^"]}
+    point_mode : string {'sphere','cone','cube','cylinder','point'}
         List of point marker shapes to cycle through.
     point_size : list {[25,32,35,45]}
         List of point marker sizes. Note, not all point markers look
         the same size when plotted!
-    sphere_alpha : float {0.2}
+    sphere_alpha : float {0.1}
         Transparency of Bloch sphere itself.
-    sphere_color : str {'#FFDDDD'}
+    sphere_color : str {'#808080'}
         Color of Bloch sphere.
     size : list {[500,500]}
         Size of Bloch sphere plot in pixels.  Best to have both numbers the same
         otherwise you will have a Bloch sphere that looks like a football.
-    vector_color : list {['r', 'b', 'g', '#CC6600']}
+    vector_color : list {['r', 'g', 'b', 'y']}
         List of vector colors to cycle through.
     vector_width : int {3}
         Width of displayed vectors.
-    view : list {[-60,30]}
+    view : list {[45,65]}
         Azimuthal and Elevation viewing angles.
-    xlabel : list {["$x$",""]}
+    xlabel : list {['|x>', '']}
         List of strings corresponding to +x and -x axes labels, respectively.
-    xlpos : list {[1.1,-1.1]}
+    xlpos : list {[1.07,-1.07]}
         Positions of +x and -x labels respectively.
-    ylabel : list {["$y$",""]}
+    ylabel : list {['|y>', '']}
         List of strings corresponding to +y and -y axes labels, respectively.
-    ylpos : list {[1.2,-1.2]}
+    ylpos : list {[1.07,-1.07]}
         Positions of +y and -y labels respectively.
-    zlabel : list {['$\left|0\\right>$','$\left|1\\right>$']}
+    zlabel : list {['|0>', '|1>']}
         List of strings corresponding to +z and -z axes labels, respectively.
-    zlpos : list {[1.2,-1.2]}
+    zlpos : list {[1.07,-1.07]}
         Positions of +z and -z labels respectively.
 
     Notes
@@ -98,7 +104,7 @@ class Bloch3d():
             self.user_fig = fig
         # The size of the figure in inches, default = [500,500].
         self.size = [500, 500]
-        # Azimuthal and Elvation viewing angles, default = [-60,30].
+        # Azimuthal and Elvation viewing angles, default = [45,65].
         self.view = [45, 65]
         # Image background color
         self.bgcolor='white'
@@ -106,9 +112,9 @@ class Bloch3d():
         self.fgcolor='black'
         
         #---Sphere options---
-        # Color of Bloch sphere, default = #FFDDDD
+        # Color of Bloch sphere, default = #808080
         self.sphere_color = '#808080'
-        # Transparency of Bloch sphere, default = 0.2
+        # Transparency of Bloch sphere, default = 0.1
         self.sphere_alpha = 0.1
         
         #---Frame options---
@@ -118,8 +124,6 @@ class Bloch3d():
         self.frame_num=8
         # Color of wireframe, default = 'gray'
         self.frame_color = 'black'
-        # Width of wireframe, default = 1
-        self.frame_width = 1
         # Transparency of wireframe, default = 0.2
         self.frame_alpha = 0.05
         # Radius of frame lines
@@ -156,22 +160,23 @@ class Bloch3d():
         #---Vector options---
         # Object used for representing vectors on Bloch sphere.
         # List of colors for Bloch vectors, default = ['b','g','r','y']
-        self.vector_color = ['r', 'b', 'g', '#CC6600']
-        # Width of Bloch vectors, default = 3
-        self.vector_width = 2.0
-        self.vector_head_height=0.2
-        self.vector_head_radius=0.1
+        self.vector_color = ['r', 'g', 'b', 'y']
+        # Transparency of vectors
         self.vector_alpha=1.0
+        # Width of Bloch vectors, default = 2
+        self.vector_width = 2.0
+        # Height of vector head
+        self.vector_head_height=0.2
+        # Radius of vector head
+        self.vector_head_radius=0.1
+        
         #---Point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
-        self.point_color = ['r', 'b', 'g', '#CC6600']
+        self.point_color = ['r', 'g', 'b', 'y']
         # Size of point markers
         self.point_size = 0.075
         # Shape of point markers
-        # Options: '2darrow' or '2dcircle' or '2dcross' or '2ddash' or 
-        # '2ddiamond' or '2dhooked_arrow' or '2dsquare' or '2dthick_arrow' 
-        # or '2dthick_cross' or '2dtriangle' or '2dvertex' or 
-        # 'arrow' or 'axes' or 'cone' or 'cube' or 'cylinder' or 'point' or 'sphere'.
+        # Options: 'cone' or 'cube' or 'cylinder' or 'point' or 'sphere'.
         # Default = 'sphere'
         self.point_mode = 'sphere'
 
@@ -197,27 +202,37 @@ class Bloch3d():
         print("Number of vectors: ", self.num_vectors)
         print('')
         print('Bloch3D sphere properties:')
-        print('------------------------')
-        print("font_color:   ", self.font_color)
-        print("font_size:    ", self.font_size)
-        print("frame_alpha:  ", self.frame_alpha)
-        print("frame_color:  ", self.frame_color)
-        print("frame_width:  ", self.frame_width)
-        print("point_color:  ", self.point_color)
-        print("point_marker: ", self.point_marker)
-        print("point_size:   ", self.point_size)
-        print("sphere_alpha: ", self.sphere_alpha)
-        print("sphere_color: ", self.sphere_color)
-        print("size:         ", self.size)
-        print("vector_color: ", self.vector_color)
-        print("vector_width: ", self.vector_width)
-        print("view:         ", self.view)
-        print("xlabel:       ", self.xlabel)
-        print("xlpos:        ", self.xlpos)
-        print("ylabel:       ", self.ylabel)
-        print("ylpos:        ", self.ylpos)
-        print("zlabel:       ", self.zlabel)
-        print("zlpos:        ", self.zlpos)
+        print('--------------------------')
+        print("axes_alpha:         ", self.axes_alpha)
+        print("axes_color:         ", self.axes_color)
+        print("axes_radius:        ", self.axes_radius)
+        print("bgcolor:            ", self.bgcolor)
+        print("fgcolor:            ", self.fgcolor)
+        print("font_color:         ", self.font_color)
+        print("font_scale:         ", self.font_scale)
+        print("frame:              ", self.frame)
+        print("frame_alpha:        ", self.frame_alpha)
+        print("frame_color:        ", self.frame_color)
+        print("frame_num:          ", self.frame_num)
+        print("frame_radius:       ", self.frame_radius)
+        print("point_color:        ", self.point_color)
+        print("point_mode:         ", self.point_mode)
+        print("point_size:         ", self.point_size)
+        print("sphere_alpha:       ", self.sphere_alpha)
+        print("sphere_color:       ", self.sphere_color)
+        print("size:               ", self.size)
+        print("vector_alpha:       ", self.vector_alpha)
+        print("vector_color:       ", self.vector_color)
+        print("vector_width:       ", self.vector_width)
+        print("vector_head_height: ", self.vector_head_height)
+        print("vector_head_radius: ", self.vector_head_radius)
+        print("view:               ", self.view)
+        print("xlabel:             ", self.xlabel)
+        print("xlpos:              ", self.xlpos)
+        print("ylabel:             ", self.ylabel)
+        print("ylpos:              ", self.ylpos)
+        print("zlabel:             ", self.zlabel)
+        print("zlpos:              ", self.zlpos)
         return ''
         
     def clear(self):
@@ -318,7 +333,7 @@ class Bloch3d():
                 vec2=vec/np.sqrt((norm+self.vector_head_height))
                 mlab.plot3d([0,vec2[0]],[0,vec2[1]],[0,vec2[2]],
                             name='vector'+str(ii),tube_sides=100,
-                            line_width=self.vector_width,
+                            line_width=self.vector_width,opacity=self.vector_alpha,
                             color=colors.colorConverter.to_rgb(
                             self.vector_color[np.mod(k,len(self.vector_color))]))
                 cone = tvtk.ConeSource(height=self.vector_head_height,
@@ -447,7 +462,6 @@ class Bloch3d():
 
         Parameters
         ----------
-
         name : str
             Name of saved image. Must include path and format as well.
             i.e. '/Users/Paul/Desktop/bloch.png'
