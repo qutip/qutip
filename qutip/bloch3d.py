@@ -50,9 +50,8 @@ class Bloch3d():
         i.e. By default, points 0 and 4 will both be blue ('b').
     point_mode : string {'sphere','cone','cube','cylinder','point'}
         List of point marker shapes to cycle through.
-    point_size : list {[25,32,35,45]}
-        List of point marker sizes. Note, not all point markers look
-        the same size when plotted!
+    point_size : float {0.075}
+        Size of points on Bloch sphere.
     sphere_alpha : float {0.1}
         Transparency of Bloch sphere itself.
     sphere_color : str {'#808080'}
@@ -78,14 +77,14 @@ class Bloch3d():
         List of strings corresponding to +z and -z axes labels, respectively.
     zlpos : list {[1.07,-1.07]}
         Positions of +z and -z labels respectively.
-
+    
     Notes
     -----
     The use of mayavi for 3D rendering of the Bloch sphere comes with 
     a few limitations: I) You can not embed a Bloch3d figure into a 
     matplotlib window. II) The use of LaTex is not supported by the 
     mayavi rendering engine.  Therefore all labels must be defined using
-    standard text.  Of course you can post-process the generated figure
+    standard text.  Of course you can post-process the generated figures
     later to add LaTeX using other software if needed.
     
     """
@@ -174,7 +173,7 @@ class Bloch3d():
         # List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_color = ['r', 'g', 'b', 'y']
         # Size of point markers
-        self.point_size = 0.075
+        self.point_size = 0.06
         # Shape of point markers
         # Options: 'cone' or 'cube' or 'cylinder' or 'point' or 'sphere'.
         # Default = 'sphere'
@@ -370,9 +369,19 @@ class Bloch3d():
                     indperm = range(num)
                 if self.point_style[k] == 's':
                     mlab.points3d(self.points[k][0][indperm],self.points[k][1][indperm],
-                    self.points[k][2][indperm],figure=self.fig,resolution=100,
-                    scale_factor=self.point_size,mode=self.point_mode,
-                    color=colors.colorConverter.to_rgb(self.point_color[np.mod(k,len(self.point_color))]))
+                        self.points[k][2][indperm],figure=self.fig,resolution=100,
+                        scale_factor=self.point_size,mode=self.point_mode,
+                        color=colors.colorConverter.to_rgb(self.point_color[np.mod(k,len(self.point_color))]))
+                
+                elif self.point_style[k] == 'm':
+                    pnt_colors = np.array(self.point_color * np.ceil(num / float(len(self.point_color))))
+                    pnt_colors = pnt_colors[0:num]
+                    pnt_colors = list(pnt_colors[indperm])
+                    for kk in range(num):
+                        mlab.points3d(self.points[k][0][indperm[kk]],self.points[k][1][indperm[kk]],
+                            self.points[k][2][indperm[kk]],figure=self.fig,resolution=100,
+                            scale_factor=self.point_size,mode=self.point_mode,
+                            color=colors.colorConverter.to_rgb(pnt_colors[kk]))
     
     def make_sphere(self):
         """
