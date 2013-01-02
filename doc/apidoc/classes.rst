@@ -31,6 +31,12 @@ The Bloch class
 .. autoclass:: qutip.Bloch
     :members:
 
+The Bloch3d class
+-----------------
+
+.. autoclass:: qutip.Bloch3d
+    :members:
+
 .. _classes-odeoptions:
 
 The Odeoptions class

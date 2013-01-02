@@ -23,11 +23,6 @@ Quantum Operators
 .. automodule:: qutip.operators
     :members: create, destroy, displace, jmat, num, qeye, qutrit_ops, sigmam, sigmap, sigmax, sigmay, sigmaz, squeez
 
-Qobj Check Functions
---------------------
-
-.. automodule:: qutip.istests
-    :members: isbra, isequal, isherm, isket, isoper, issuper
 
 Liouvillian
 -----------
