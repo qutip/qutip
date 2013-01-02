@@ -30,8 +30,7 @@ from qutip.odeoptions import Odeoptions
 import qutip.odeconfig as odeconfig
 from multiprocessing import Pool,cpu_count
 from types import FunctionType
-from qutip.cyQ.cy_mc_funcs import mc_expect,spmv,spmv1d
-from qutip.cyQ.ode_rhs import cyq_ode_rhs
+from qutip.cyQ.spmatfuncs import cy_ode_rhs,cy_expect,spmv,spmv1d
 from qutip.cyQ.codegen import Codegen
 from qutip.odedata import Odedata
 from qutip.odechecks import _ode_checks
@@ -197,7 +196,7 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
             except:
                 print("Error removing pyx file.  File not found.")
         elif odeconfig.tflag==0:
-            odeconfig.tdfunc=cyq_ode_rhs
+            odeconfig.tdfunc=cy_ode_rhs
     else:#setup args for new parameters when rhs_reuse=True and tdfunc is given
         #string based
         if odeconfig.tflag in array([1,10,11]):
@@ -316,7 +315,7 @@ class _MC_class():
                         self.expect_out.append(zeros(self.num_times))
                     else:#preallocate complex array of zeros
                         self.expect_out.append(zeros(self.num_times,dtype=complex))
-                    self.expect_out[i][0]=mc_expect(odeconfig.e_ops_data[i],odeconfig.e_ops_ind[i],odeconfig.e_ops_ptr[i],odeconfig.e_ops_isherm[i],odeconfig.psi0)
+                    self.expect_out[i][0]=cy_expect(odeconfig.e_ops_data[i],odeconfig.e_ops_ind[i],odeconfig.e_ops_ptr[i],odeconfig.e_ops_isherm[i],odeconfig.psi0)
         
         #FOR EVOLUTION WITH COLLAPSE OPERATORS
         elif odeconfig.c_num!=0:
@@ -384,7 +383,7 @@ class _MC_class():
                         mc_alg_out.append(zeros(self.num_times))
                     else:#preallocate complex array of zeros
                         mc_alg_out.append(zeros(self.num_times,dtype=complex))
-                    mc_alg_out[i][0]=mc_expect(odeconfig.e_ops_data[i],odeconfig.e_ops_ind[i],odeconfig.e_ops_ptr[i],odeconfig.e_ops_isherm[i],odeconfig.psi0)
+                    mc_alg_out[i][0]=cy_expect(odeconfig.e_ops_data[i],odeconfig.e_ops_ind[i],odeconfig.e_ops_ptr[i],odeconfig.e_ops_isherm[i],odeconfig.psi0)
             #set arguments for input to monte-carlo
             args=(mc_alg_out,odeconfig.options,odeconfig.tlist,self.num_times,self.seed)
             if not odeconfig.options.gui:
@@ -419,7 +418,7 @@ def _tdRHS(t,psi):
 
 #RHS of ODE for constant Hamiltonian and at least one function based collapse operator
 def _cRHStd(t,psi):
-    sys=cyq_ode_rhs(t,psi,odeconfig.h_data,odeconfig.h_ind,odeconfig.h_ptr)
+    sys=cy_ode_rhs(t,psi,odeconfig.h_data,odeconfig.h_ind,odeconfig.h_ptr)
     col=array([abs(odeconfig.c_funcs[j](t,odeconfig.c_func_args))**2*spmv1d(odeconfig.n_ops_data[j],odeconfig.n_ops_ind[j],odeconfig.n_ops_ptr[j],psi) for j in odeconfig.c_td_inds])
     return sys-0.5*sum(col,0)
 
@@ -459,7 +458,7 @@ def _no_collapse_psi_out(num_times,psi_out):
     elif odeconfig.tflag==3:
         ODE=ode(_pyRHSc)
     else:
-        ODE = ode(cyq_ode_rhs)
+        ODE = ode(cy_ode_rhs)
         ODE.set_f_params(odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr)
         
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
@@ -492,19 +491,19 @@ def _no_collapse_expect_out(num_times,expect_out):
     elif odeconfig.tflag==3:
         ODE=ode(_pyRHSc)
     else:
-        ODE = ode(cyq_ode_rhs)
+        ODE = ode(cy_ode_rhs)
         ODE.set_f_params(odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr)
     
     ODE.set_integrator('zvode',method=opt.method,order=opt.order,atol=opt.atol,rtol=opt.rtol,nsteps=opt.nsteps,first_step=opt.first_step,min_step=opt.min_step,max_step=opt.max_step) #initialize ODE solver for RHS
     ODE.set_initial_value(odeconfig.psi0,odeconfig.tlist[0]) #set initial conditions
     for jj in range(odeconfig.e_num):
-        expect_out[jj][0]=mc_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],odeconfig.psi0)
+        expect_out[jj][0]=cy_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],odeconfig.psi0)
     for k in range(1,num_times):
         ODE.integrate(odeconfig.tlist[k],step=0) #integrate up to tlist[k]
         if ODE.successful():
             state=ODE.y/norm(ODE.y)
             for jj in range(odeconfig.e_num):
-                expect_out[jj][k]=mc_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],state)
+                expect_out[jj][k]=cy_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],state)
         else:
             raise ValueError('Error in ODE solver')
     return expect_out #return times and expectiation values
@@ -538,7 +537,7 @@ def _mc_alg_evolve(nt,args):
     elif odeconfig.tflag==3:
         ODE=ode(_pyRHSc)
     else:
-        ODE = ode(cyq_ode_rhs)
+        ODE = ode(cy_ode_rhs)
         ODE.set_f_params(odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr)
 
     #initialize ODE solver for RHS
@@ -596,19 +595,19 @@ def _mc_alg_evolve(nt,args):
                 collapse_times.append(ODE.t)
                 #some string based collapse operators
                 if odeconfig.tflag in array([1,11]):
-                    n_dp=[mc_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in odeconfig.c_const_inds]
+                    n_dp=[cy_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in odeconfig.c_const_inds]
                     _locals = locals()
                     exec(odeconfig.col_expect_code, globals(), _locals) #calculates the expectation values for time-dependent norm collapse operators
                     n_dp=array(_locals['n_dp'])
                 
                 #some Python function based collapse operators
                 elif odeconfig.tflag in array([2,20,22]):
-                    n_dp=[mc_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in odeconfig.c_const_inds]
-                    n_dp+=[abs(odeconfig.c_funcs[i](ODE.t,odeconfig.c_func_args))**2*mc_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in odeconfig.c_td_inds]
+                    n_dp=[cy_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in odeconfig.c_const_inds]
+                    n_dp+=[abs(odeconfig.c_funcs[i](ODE.t,odeconfig.c_func_args))**2*cy_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in odeconfig.c_td_inds]
                     n_dp=array(n_dp)
                 #all constant collapse operators.
                 else:    
-                    n_dp=array([mc_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in range(odeconfig.c_num)])
+                    n_dp=array([cy_expect(odeconfig.n_ops_data[i],odeconfig.n_ops_ind[i],odeconfig.n_ops_ptr[i],1,ODE.y) for i in range(odeconfig.c_num)])
                 
                 #determine which operator does collapse
                 kk=cumsum(n_dp/sum(n_dp))
@@ -637,7 +636,7 @@ def _mc_alg_evolve(nt,args):
                 mc_alg_out[k]=out_psi
         else:
             for jj in range(odeconfig.e_num):
-                mc_alg_out[jj][k]=mc_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],out_psi)
+                mc_alg_out[jj][k]=cy_expect(odeconfig.e_ops_data[jj],odeconfig.e_ops_ind[jj],odeconfig.e_ops_ptr[jj],odeconfig.e_ops_isherm[jj],out_psi)
     
     #RETURN VALUES
     if odeconfig.e_num==0:

@@ -52,9 +52,8 @@ REQUIRES            = ['numpy (>=1.6)','scipy (>=0.9)','matplotlib (>=1.1)']
 PACKAGES            = ['qutip','qutip/gui','qutip/examples','qutip/cyQ']
 PACKAGE_DATA        = {'qutip/gui': ['logo.png', 'icon.png']}
 INCLUDE_DIRS        = [np.get_include()]
-EXT_MODULES         = [Extension("qutip.cyQ.ode_rhs", ["qutip/cyQ/ode_rhs.c"],extra_compile_args=['-ffast-math'],extra_link_args=[]), 
-                        Extension('qutip.cyQ.cy_mc_funcs', ['qutip/cyQ/cy_mc_funcs.c'],extra_compile_args=['-ffast-math'])]
-
+EXT_MODULES         = [Extension("qutip.cyQ.spmatfuncs", ["qutip/cyQ/spmatfuncs.c"],
+                        extra_compile_args=['-ffast-math'],extra_link_args=[])]
 NAME                = "QuTiP"
 AUTHOR              = "Paul D. Nation, Robert J. Johansson"
 AUTHOR_EMAIL        = "pnation@korea.ac.kr, robert@riken.jp"
@@ -229,15 +228,11 @@ except:
     pass
 else:
     for root, dirnames, filenames in walk:
-      for filename in fnmatch.filter(filenames, 'cy_mc_funcs.so'):
-          matches.append(os.path.join(root, filename))
-      for filename in fnmatch.filter(filenames, 'ode_rhs.so'):
+      for filename in fnmatch.filter(filenames, 'spmatfuncs.so'):
           matches.append(os.path.join(root, filename))
     for files in matches:
-        if 'cy_mc_funcs.so' in files:
-            shutil.copyfile(files,os.getcwd()+'/qutip/cyQ/cy_mc_funcs.so')
-        elif 'ode_rhs.so' in files:
-            shutil.copyfile(files,os.getcwd()+'/qutip/cyQ/ode_rhs.so')
+        if 'spmatfuncs.so' in files:
+            shutil.copyfile(files,os.getcwd()+'/qutip/cyQ/spmatfuncs.so')
 
 
 

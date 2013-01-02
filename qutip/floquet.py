@@ -31,7 +31,7 @@ from qutip.states import projection
 from qutip.odeoptions import Odeoptions
 from qutip.propagator import propagator
 from qutip.odedata import Odedata
-from qutip.cyQ.ode_rhs import cyq_ode_rhs
+from qutip.cyQ.spmatfuncs import cy_ode_rhs
 
 
 def floquet_modes(H, T, args=None, sort=False):
@@ -710,7 +710,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full())
-    r = scipy.integrate.ode(cyq_ode_rhs)
+    r = scipy.integrate.ode(cy_ode_rhs)
     r.set_f_params(R.data.data, R.data.indices, R.data.indptr)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, max_step=opt.max_step)

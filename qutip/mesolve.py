@@ -26,7 +26,7 @@ from qutip.qobj import Qobj
 from qutip.superoperator import *
 from qutip.expect import expect
 from qutip.odeoptions import Odeoptions
-from qutip.cyQ.ode_rhs import cyq_ode_rhs
+from qutip.cyQ.spmatfuncs import cy_ode_rhs
 from qutip.cyQ.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
 from qutip.odedata import Odedata
@@ -707,7 +707,7 @@ def _wfsolve_const(H, psi0, tlist, expt_ops, args, opt):
     # setup integrator.
     #
     initial_vector = psi0.full()
-    r = scipy.integrate.ode(cyq_ode_rhs)
+    r = scipy.integrate.ode(cy_ode_rhs)
     L = -1.0j * H
     r.set_f_params(L.data.data, L.data.indices, L.data.indptr)  # cython RHS
     r.set_integrator('zvode', method=opt.method, order=opt.order,
@@ -903,7 +903,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, opt):
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full())
-    r = scipy.integrate.ode(cyq_ode_rhs)
+    r = scipy.integrate.ode(cy_ode_rhs)
     r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                               atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,

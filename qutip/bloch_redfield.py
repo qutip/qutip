@@ -25,7 +25,7 @@ from qutip.superoperator import *
 from qutip.expect import expect
 from qutip.states import *
 from qutip.odeoptions import Odeoptions
-from qutip.cyQ.ode_rhs import cyq_ode_rhs
+from qutip.cyQ.spmatfuncs import cy_ode_rhs
 from qutip.odedata import Odedata
 
 
@@ -182,7 +182,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full())
-    r = scipy.integrate.ode(cyq_ode_rhs)
+    r = scipy.integrate.ode(cy_ode_rhs)
     r.set_f_params(R.data.data, R.data.indices, R.data.indptr)
     r.set_integrator('zvode', method=options.method, order=options.order,
                      atol=options.atol, rtol=options.rtol,
