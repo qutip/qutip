@@ -134,14 +134,14 @@ class Bloch():
         #---vector options---
         # List of colors for Bloch vectors, default = ['b','g','r','y']
         self.vector_color = ['g', '#CC6600', 'b', 'r']
-        #: Width of Bloch vectors, default = 3
-        self.vector_width = 3
+        #: Width of Bloch vectors, default = 4
+        self.vector_width = 4
 
         #---point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_color = ['b', 'r', 'g', '#CC6600']
         # Size of point markers, default = 25
-        self.point_size = [25, 32, 35, 45]
+        self.point_size = [55, 62, 65, 75]
         # Shape of point markers, default = ['o','^','d','s']
         self.point_marker = ['o', 's', 'd', '^']
 

@@ -47,9 +47,9 @@ class Bloch3d():
         Width of wireframe.
     point_color : list {['r', 'g', 'b', 'y']}
         List of colors for Bloch sphere point markers to cycle through.
-        i.e. By default, points 0 and 4 will both be blue ('b').
+        i.e. By default, points 0 and 4 will both be blue ('r').
     point_mode : string {'sphere','cone','cube','cylinder','point'}
-        List of point marker shapes to cycle through.
+        Point marker shapes.
     point_size : float {0.075}
         Size of points on Bloch sphere.
     sphere_alpha : float {0.1}
@@ -86,6 +86,7 @@ class Bloch3d():
     mayavi rendering engine.  Therefore all labels must be defined using
     standard text.  Of course you can post-process the generated figures
     later to add LaTeX using other software if needed.
+    
     
     """
     def __init__(self, fig=None):
