@@ -18,6 +18,7 @@
 ###########################################################################
 
 import os
+from numpy import amax
 from numpy.testing import assert_, run_module_suite
 import scipy
 
