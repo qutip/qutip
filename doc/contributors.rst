@@ -44,7 +44,9 @@ Contributors
 
 **Anders Lund** - Bug hunting for the Monte-Carlo solver.
 
-**Jonas Neergaard-Nielsen** (Technical University of Denmark) - Bug hunter
+**Jonas Neergaard-Nielsen** (Technical University of Denmark) - Bug hunter, Code contributor
+
+**Henri Nielsen** (Technical University of Denmark) - Bug hunter
 
 **Per Kaer Nielsen** (Technical University of Denmark) - Testing the ODE solver
 
@@ -53,3 +55,4 @@ Contributors
 **Denis Vasilyev** (St. Petersburg State University) - Bug hunter
 
 **Dong Zhou** (Yale) - Bug hunter
+
