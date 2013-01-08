@@ -37,6 +37,14 @@ import numpy
 import qutip.odeconfig as odeconfig
 from qutip._reset import _reset_odeconfig
 
+import copy
+
+#
+# Set to True to activate function call trace printouts
+#
+debug = False
+if debug:
+    import inspect
 
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
@@ -139,7 +147,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
         nothing if a callback function was given inplace of operators for
         which to calculate the expectation values.
 
-    """
+    """   
 
     # check whether c_ops or expt_ops is is a single operator
     # if so convert it to a list containing only that operator
@@ -244,6 +252,8 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     Internal function for solving the master equation. See mesolve for usage.
     """
 
+    if debug: print(inspect.stack()[0][3])        
+
     #
     # check initial state
     #
@@ -273,10 +283,10 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
                             "Hamiltonian (expected callback function)")
 
         if isoper(h):
-            L_list.append([(-1j * (spre(h) - spost(h))).data, h_coeff])
+            L_list.append([(-1j * (spre(h) - spost(h))).data, h_coeff, False])
 
         elif issuper(h):
-            L_list.append([h.data, h_coeff])
+            L_list.append([h.data, h_coeff, False])
 
         else:
             raise TypeError("Incorrect specification of time-dependent " +
@@ -288,10 +298,12 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
         if isinstance(c_spec, Qobj):
             c = c_spec
             c_coeff = constant_func
+            c_square = False
 
         elif isinstance(c_spec, list) and isinstance(c_spec[0], Qobj):
             c = c_spec[0]
             c_coeff = c_spec[1]
+            c_square = True
 
         else:
             raise TypeError("Incorrect specification of time-dependent " +
@@ -301,10 +313,10 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             cdc = c.dag() * c
             L_list.append([(spre(c) * spost(c.dag()) - 0.5 * spre(cdc)
                                                      - 0.5 * spost(cdc)).data,
-                           lambda t, args: (c_coeff(t, args)) ** 2])
+                           c_coeff, c_square])
 
         elif issuper(c):
-            L_list.append([c.data, c_coeff])
+            L_list.append([c.data, c_coeff, c_square])
 
         else:
             raise TypeError("Incorrect specification of time-dependent " +
@@ -345,7 +357,10 @@ def rho_list_td(t, rho, L_list_and_args):
         # L_args[n][0] = the sparse data for a Qobj in super-operator form
         # L_args[n][1] = function callback giving the coefficient
         #
-        L = L + L_list[n][0] * L_list[n][1](t, args)
+        if L_list[n][2]:
+            L = L + L_list[n][0] * (L_list[n][1](t, args)) ** 2
+        else:
+            L = L + L_list[n][0] * L_list[n][1](t, args)
 
     return L * rho
 
@@ -357,6 +372,8 @@ def _wfsolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt):
     """
     Internal function for solving the master equation. See mesolve for usage.
     """
+
+    if debug: print(inspect.stack()[0][3])        
 
     #
     # check initial state
@@ -435,6 +452,8 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     """
     Internal function for solving the master equation. See mesolve for usage.
     """
+
+    if debug: print(inspect.stack()[0][3])
 
     #
     # check initial state: must be a density matrix
@@ -600,6 +619,8 @@ def _wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     Internal function for solving the master equation. See mesolve for usage.
     """
 
+    if debug: print(inspect.stack()[0][3])
+
     #
     # check initial state: must be a density matrix
     #
@@ -740,6 +761,8 @@ def _wfsolve_list_td(H_func, psi0, tlist, expt_ops, args, opt):
     Hamiltonian.
     """
 
+    if debug: print(inspect.stack()[0][3])
+
     if not isket(psi0):
         raise TypeError("psi0 must be a ket")
 
@@ -825,6 +848,8 @@ def _wfsolve_func_td(H_func, psi0, tlist, expt_ops, args, opt):
     Hamiltonian.
     """
 
+    if debug: print(inspect.stack()[0][3])
+
     if not isket(psi0):
         raise TypeError("psi0 must be a ket")
 
@@ -873,6 +898,9 @@ def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, opt):
     Evolve the density matrix using an ODE solver, for constant hamiltonian
     and collapse operators.
     """
+
+    if debug: 
+        print(inspect.stack()[0][3])
 
     #
     # check initial state
@@ -934,6 +962,10 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
     """
+
+    if debug:
+        print(inspect.stack()[0][3])
+
     n_op = len(c_op_list)
 
     #
@@ -1030,6 +1062,10 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
     """
+
+    if debug:
+        print(inspect.stack()[0][3])
+
     #
     # check initial state
     #
@@ -1262,6 +1298,8 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, args=None, options=None):
     Deprecated in QuTiP 2.0.0. Use :func:`mesolve` instead.
 
     """
+
+    if debug: print(inspect.stack()[0][3])
 
     if options is None:
         options = Odeoptions()
