@@ -44,7 +44,7 @@ def test_SparseHermValsVecs():
     assert_equal(len(spvals),7)
     assert_equal(spvals[0]<=spvals[-1],True)
     for k in range(7):
-        assert_equal(abs(spvals[k]-k)<1e-14,True)
+        assert_equal(abs(spvals[k]-k)<1e-12,True)
     
     spvals,spvecs=N.eigenstates(sparse=True,sort='high',eigvals=5)
     assert_equal(len(spvals),5)
