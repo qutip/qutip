@@ -19,6 +19,7 @@
 
 import sys
 from qutip import *
+from numpy import amax
 from numpy.testing import assert_equal, run_module_suite
 import scipy
 
