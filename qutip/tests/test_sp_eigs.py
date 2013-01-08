@@ -21,7 +21,7 @@
 from qutip import *
 from qutip.sparse import *
 from numpy import allclose, isreal, iscomplex
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, run_module_suite
 import scipy,unittest
 
 @unittest.skipIf(version2int(scipy.__version__) < version2int('0.10'),'Known to fail on SciPy '+scipy.__version__)
@@ -215,4 +215,6 @@ def test_DenseValsOnly():
     spvals=U.eigenenergies(sparse=False,sort='high',eigvals=4)
     assert_equal(len(spvals),4)
         
+if __name__ == "__main__":
+    run_module_suite()
 

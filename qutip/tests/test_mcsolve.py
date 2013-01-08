@@ -20,7 +20,7 @@
 from qutip import *
 from qutip.odechecks import _ode_checks
 from numpy import allclose, linspace, mean, ones
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, run_module_suite
 from numpy.testing.decorators import skipif
 import unittest
 #find Cython if it exists
@@ -255,3 +255,7 @@ def test_TDStr():
     actual=9.0*exp(-kappa*(1.0-exp(-tlist)))
     diff=mean(abs(actual-expt)/actual)
     assert_equal(diff<error,True)
+
+if __name__ == "__main__":
+    run_module_suite()
+

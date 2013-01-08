@@ -20,7 +20,7 @@
 
 from qutip import *
 from numpy import linspace
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, run_module_suite
 
 
 def test_qubit():
@@ -76,4 +76,6 @@ def test_ho():
     delta = sum(abs(p_ss_analytic - p_ss))
     assert_equal(delta < 1e-3,True)
 
+if __name__ == "__main__":
+    run_module_suite()
 

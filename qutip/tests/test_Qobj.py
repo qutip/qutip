@@ -24,7 +24,7 @@ from qutip import *
 import scipy.sparse as sp
 import scipy.linalg as la
 import numpy as np
-from numpy.testing import assert_equal, assert_
+from numpy.testing import assert_equal, assert_, run_module_suite
 
 
 #-------- test_ the Qobj properties ------------#

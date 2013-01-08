@@ -20,7 +20,7 @@
 
 from qutip import *
 from numpy import allclose
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, run_module_suite
  
 def test_EntropyVN():
     "von-Neumann entropy"
@@ -89,4 +89,6 @@ def test_EntropyConditional():
         AB=ptrace(ABC,[0,1])
         assert_equal(entropy_conditional(ABC,[1,2])<=entropy_conditional(AB,1),True)
 
+if __name__ == "__main__":
+    run_module_suite()
 

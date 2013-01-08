@@ -19,7 +19,7 @@
 
 import sys
 from qutip import *
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, run_module_suite
 import scipy
 
 def test_diagHamiltonian1():
@@ -64,4 +64,6 @@ def test_diagHamiltonian2():
         assert_equal(amax(abs((H * ekets[n] - evals[n] * ekets[n]).full())) < 1e-10,True)
 
 
+if __name__ == "__main__":
+    run_module_suite()
 

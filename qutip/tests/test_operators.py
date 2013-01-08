@@ -20,7 +20,7 @@
 
 from qutip import *
 from numpy import allclose, diag, eye
-from numpy.testing import assert_equal
+from numpy.testing import assert_equal, run_module_suite
 
 
 def test_jmat_12():
@@ -134,4 +134,7 @@ def test_displace():
     
     assert_equal(allclose(dp.full(),dpmatrix),True)
         
+
+if __name__ == "__main__":
+    run_module_suite()
 

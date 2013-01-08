@@ -18,7 +18,7 @@
 ###########################################################################
 
 import os
-from numpy.testing import assert_
+from numpy.testing import assert_, run_module_suite
 
 from qutip import *
 
@@ -64,3 +64,4 @@ def test_qpt_cnot():
     
 if __name__ == "__main__":
     run_module_suite()
+

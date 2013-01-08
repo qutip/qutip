@@ -18,7 +18,7 @@
 ###########################################################################
 
 from numpy import linspace
-from numpy.testing import assert_, run_module_suite, assert_equal
+from numpy.testing import assert_, run_module_suite, assert_equal, run_module_suite
 from qutip import *
 
 
@@ -164,3 +164,4 @@ def test_MCSolverCase2():
 
 if __name__ == "__main__":
     run_module_suite()
+
