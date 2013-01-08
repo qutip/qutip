@@ -45,7 +45,7 @@ class TestRand:
 
         R=array([rand_dm(5) for k in range(5)])
         for k in range(5):
-            assert_equal(sum(R[k].tr())-1.0<1e-15, True)
+            assert_equal(R[k].tr()-1.0<1e-15, True)
             #verify all eigvals are >=0
             assert_(not any(sp_eigs(R[k],vecs=False))<0)
             #verify hermitian
