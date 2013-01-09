@@ -1,9 +1,9 @@
-#This file is part of QuTIP.
+# This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTIP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -51,10 +51,10 @@ def about():
         elif qutip.settings.qutip_gui == "PYQT4":
             from PyQt4 import QtGui, QtCore
 
-        #checks if QApplication already exists (needed for iPython)
+        # checks if QApplication already exists (needed for iPython)
         app = QtGui.QApplication.instance()
 
-        #create QApplication if it doesnt exist
+        # create QApplication if it doesnt exist
         if not app:
             app = QtGui.QApplication(sys.argv)
 
@@ -70,9 +70,9 @@ def about():
         print("Copyright (c) 2011-2013")
         print("Paul D. Nation & Robert J. Johansson")
         print('')
-        print(("QuTiP Version:       "+version))
-        print(("Numpy Version:       "+numpy.__version__))
-        print(("Scipy Version:       "+scipy.__version__))
+        print(("QuTiP Version:       " + version))
+        print(("Numpy Version:       " + numpy.__version__))
+        print(("Scipy Version:       " + scipy.__version__))
         try:
             import matplotlib
             matplotlib_ver = matplotlib.__version__
@@ -97,7 +97,7 @@ def about():
                 pyobjc = 'Yes'
             except:
                 pyobjc = 'No'
-        print(("PySide Version:      "+pyside_ver))
-        print(("PyQt4 Version:       "+pyqt4_ver))
+        print(("PySide Version:      " + pyside_ver))
+        print(("PyQt4 Version:       " + pyqt4_ver))
         if sys.platform == 'darwin':
-            print(("PyObjc Installed:    "+pyobjc))
+            print(("PyObjc Installed:    " + pyobjc))
