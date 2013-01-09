@@ -324,14 +324,15 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
     opt = Odeoptions()
     opt.gui = False
 
-    psi_t = mcsolve(H, psi0, tlist, c_op_list, [], ntraj=ntraj, options=opt).states
+    psi_t = mcsolve(H, psi0, tlist, c_op_list, [],
+                    ntraj=ntraj, options=opt).states
 
     for t_idx in range(len(tlist)):
 
         psi0_t = psi_t[0][t_idx]
 
-        C_mat[t_idx, :] = mcsolve(H, b_op * psi0_t, tlist,
-                                  c_op_list, [a_op], ntraj=ntraj, options=opt).expect[0]
+        C_mat[t_idx, :] = mcsolve(H, b_op * psi0_t, tlist, c_op_list, [a_op],
+                                  ntraj=ntraj, options=opt).expect[0]
 
     return C_mat
 
