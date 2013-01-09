@@ -23,7 +23,7 @@ and master equations.
 
 Release target: 2.2.0
 
-Todo: 
+Todo:
 
 1) test and debug
 
@@ -51,11 +51,12 @@ from qutip.cyQ.cy_mc_funcs import mc_expect, spmv
 
 debug = True
 
-def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, 
-             solver='euler-maruyama', method='homodyne', 
+
+def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
+             solver='euler-maruyama', method='homodyne',
              nsubsteps=10, d1=None, d2=None, rhs=None):
     """
-    Solve stochastic Schrodinger equation. Dispatch to specific solvers 
+    Solve stochastic Schrodinger equation. Dispatch to specific solvers
     depending on the value of the `solver` argument.
 
     .. note::
@@ -63,10 +64,11 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
         Experimental. tlist must be uniform.
 
     """
-    if debug: print(inspect.stack()[0][3])
+    if debug:
+        print(inspect.stack()[0][3])
 
     if (d1 is None) or (d2 is None):
-            
+
         if method == 'homodyne':
             d1 = d1_psi_homodyne
             d2 = d2_psi_homodyne
@@ -79,11 +81,12 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
             raise Exception("Unregognized method '%s'." % method)
 
     if solver == 'euler-maruyama':
-        return ssesolve_generic(H, psi0, tlist, c_ops, e_ops, 
-                                _rhs_psi_euler_maruyama, d1, d2, ntraj, nsubsteps)
+        return ssesolve_generic(H, psi0, tlist, c_ops, e_ops,
+                                _rhs_psi_euler_maruyama, d1, d2,
+                                ntraj, nsubsteps)
 
     elif solver == 'platen':
-        return ssesolve_generic(H, psi0, tlist, c_ops, e_ops, 
+        return ssesolve_generic(H, psi0, tlist, c_ops, e_ops,
                                 _rhs_psi_platen, d1, d2, ntraj, nsubsteps)
 
     elif solver == 'milstein':
@@ -93,10 +96,10 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
         raise Exception("Unrecongized solver '%s'." % solver)
 
 
-def smesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, 
+def smesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
              solver='euler-maruyama', nsubsteps=10):
     """
-    Solve stochastic master equation. Dispatch to specific solvers 
+    Solve stochastic master equation. Dispatch to specific solvers
     depending on the value of the `solver` argument.
 
     .. note::
@@ -104,21 +107,23 @@ def smesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
         Experimental. tlist must be uniform.
 
     """
-    if debug: print(inspect.stack()[0][3])
+    if debug:
+        print(inspect.stack()[0][3])
 
     if solver == 'euler-maruyama':
-        return smesolve_generic(H, psi0, tlist, c_ops, e_ops, 
-                                _rhs_rho_euler_maruyama, 
-                               d1_rho_homodyne, d2_rho_homodyne, ntraj, nsubsteps)
+        return smesolve_generic(H, psi0, tlist, c_ops, e_ops,
+                                _rhs_rho_euler_maruyama,
+                                d1_rho_homodyne, d2_rho_homodyne,
+                                ntraj, nsubsteps)
     else:
         raise Exception("Unrecongized solver '%s'." % solver)
 
 
-
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Generic parameterized stochastic Schrodinger equation solver
 #
-def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs, d1, d2, ntraj, nsubsteps):
+def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs,
+                     d1, d2, ntraj, nsubsteps):
     """
     internal
 
@@ -127,51 +132,54 @@ def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs, d1, d2, ntraj, nsubsteps
         Experimental.
 
     """
-    if debug: print(inspect.stack()[0][3])
+    if debug:
+        print(inspect.stack()[0][3])
 
     N_store = len(tlist)
     N_substeps = nsubsteps
     N = N_store * N_substeps
-    dt = (tlist[1]-tlist[0]) / N_substeps
- 
+    dt = (tlist[1] - tlist[0]) / N_substeps
+
     print("N = %d. dt=%.2e" % (N, dt))
 
     data = Odedata()
 
     data.expect = np.zeros((len(e_ops), N_store), dtype=complex)
-     
+
     # pre-compute collapse operator combinations that are commonly needed
     # when evaluating the RHS of stochastic Schrodinger equations
     A_ops = []
     for c_idx, c in enumerate(c_ops):
-        A_ops.append([c.data, (c+c.dag()).data, (c.dag()*c).data])
+        A_ops.append([c.data, (c + c.dag()).data, (c.dag() * c).data])
 
     progress_acc = 0.0
     for n in range(ntraj):
 
-        if debug and (100 * float(n)/ntraj) >= progress_acc:
-            print("Progress: %.2f" % (100 * float(n)/ntraj))
+        if debug and (100 * float(n) / ntraj) >= progress_acc:
+            print("Progress: %.2f" % (100 * float(n) / ntraj))
             progress_acc += 10.0
 
-        psi_t = psi0.full() 
+        psi_t = psi0.full()
 
-        states_list = _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t, A_ops, e_ops, data, rhs, d1, d2)
+        states_list = _ssesolve_single_trajectory(H, dt, tlist, N_store,
+                                                  N_substeps, psi_t, A_ops,
+                                                  e_ops, data, rhs, d1, d2)
 
         # if average -> average...
         data.states.append(states_list)
 
     # average
-    data.expect = data.expect/ntraj
+    data.expect = data.expect / ntraj
 
     return data
 
 
-def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t, 
+def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
                                 A_ops, e_ops, data, rhs, d1, d2):
     """
     Internal function. See ssesolve.
     """
-   
+
     dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps)
 
     states_list = []
@@ -190,7 +198,8 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 
             for a_idx, A in enumerate(A_ops):
 
-                dpsi_t += rhs(H.data, psi_t, A, dt, dW[a_idx, t_idx, j], d1, d2)
+                dpsi_t += rhs(
+                    H.data, psi_t, A, dt, dW[a_idx, t_idx, j], d1, d2)
 
             # increment and renormalize the wave function
             psi_t += dpsi_t
@@ -199,10 +208,11 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
     return states_list
 
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Generic parameterized stochastic master equation solver
 #
-def smesolve_generic(H, rho0, tlist, c_ops, e_ops, rhs, d1, d2, ntraj, nsubsteps):
+def smesolve_generic(H, rho0, tlist, c_ops, e_ops,
+                     rhs, d1, d2, ntraj, nsubsteps):
     """
     internal
 
@@ -211,19 +221,20 @@ def smesolve_generic(H, rho0, tlist, c_ops, e_ops, rhs, d1, d2, ntraj, nsubsteps
         Experimental.
 
     """
-    if debug: print(inspect.stack()[0][3])
+    if debug:
+        print(inspect.stack()[0][3])
 
     N_store = len(tlist)
     N_substeps = nsubsteps
     N = N_store * N_substeps
-    dt = (tlist[1]-tlist[0]) / N_substeps
- 
+    dt = (tlist[1] - tlist[0]) / N_substeps
+
     print("N = %d. dt=%.2e" % (N, dt))
 
     data = Odedata()
 
     data.expect = np.zeros((len(e_ops), N_store), dtype=complex)
-     
+
     # pre-compute collapse operator combinations that are commonly needed
     # when evaluating the RHS of stochastic master equations
     A_ops = []
@@ -233,42 +244,43 @@ def smesolve_generic(H, rho0, tlist, c_ops, e_ops, rhs, d1, d2, ntraj, nsubsteps
         cdc = c.dag() * c
         Ldt = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
         LdW = spre(c) + spost(c.dag())
-        Lm  = spre(c) + spost(c.dag()) # currently same as LdW
+        Lm = spre(c) + spost(c.dag())  # currently same as LdW
 
         A_ops.append([Ldt.data, LdW.data, Lm.data])
 
-
     # Liouvillian for the unitary part
-    L = -1.0j*(spre(H) - spost(H)) # XXX: should we split the ME in stochastic 
+    L = -1.0j * (spre(H) - spost(H))
+                 # XXX: should we split the ME in stochastic
                                    # and deterministic collapse operators here?
 
     progress_acc = 0.0
     for n in range(ntraj):
 
-        if debug and (100 * float(n)/ntraj) >= progress_acc:
-            print("Progress: %.2f" % (100 * float(n)/ntraj))
+        if debug and (100 * float(n) / ntraj) >= progress_acc:
+            print("Progress: %.2f" % (100 * float(n) / ntraj))
             progress_acc += 10.0
 
         rho_t = mat2vec(rho0.full())
 
-        states_list = _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, 
-                                                  rho_t, A_ops, e_ops, data, rhs, d1, d2)
+        states_list = _smesolve_single_trajectory(
+            L, dt, tlist, N_store, N_substeps,
+            rho_t, A_ops, e_ops, data, rhs, d1, d2)
 
         # if average -> average...
         data.states.append(states_list)
 
     # average
-    data.expect = data.expect/ntraj
+    data.expect = data.expect / ntraj
 
     return data
 
 
-def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t, 
+def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
                                 A_ops, e_ops, data, rhs, d1, d2):
     """
     Internal function. See smesolve.
     """
-   
+
     dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps)
 
     states_list = []
@@ -278,24 +290,26 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
         if e_ops:
             for e_idx, e in enumerate(e_ops):
                 # XXX: need to keep hilbert space structure
-                data.expect[e_idx, t_idx] += expect(e, Qobj(vec2mat(rho_t))) 
+                data.expect[e_idx, t_idx] += expect(e, Qobj(vec2mat(rho_t)))
         else:
-            states_list.append(Qobj(rho_t)) # dito
+            states_list.append(Qobj(rho_t))  # dito
 
         for j in range(N_substeps):
 
-            drho_t = spmv(L.data.data, L.data.indices, L.data.indptr, rho_t) * dt
+            drho_t = spmv(
+                L.data.data, L.data.indices, L.data.indptr, rho_t) * dt
 
             for a_idx, A in enumerate(A_ops):
 
-                drho_t += rhs(L.data, rho_t, A, dt, dW[a_idx, t_idx, j], d1, d2)
+                drho_t += rhs(
+                    L.data, rho_t, A, dt, dW[a_idx, t_idx, j], d1, d2)
 
             rho_t += drho_t
 
     return states_list
 
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Helper-functions for stochastic DE
 #
 # d1 = deterministic part of the contribution to the DE RHS function, to be
@@ -321,7 +335,7 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
 #     A[2] = c.dag() * c
 #
 #     where c is a collapse operator. The combinations of c's stored in A are
-#     precomputed before the time-evolution is started to avoid repeated 
+#     precomputed before the time-evolution is started to avoid repeated
 #     computations.
 
 
@@ -332,9 +346,10 @@ def d1_psi_homodyne(A, psi):
     """
 
     e1 = mc_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
-    return  0.5 * (e1 * spmv(A[0].data, A[0].indices, A[0].indptr, psi) - 
-                        spmv(A[2].data, A[2].indices, A[2].indptr, psi) - 
-                   0.25 * e1**2 * psi) 
+    return 0.5 * (e1 * spmv(A[0].data, A[0].indices, A[0].indptr, psi) -
+                  spmv(A[2].data, A[2].indices, A[2].indptr, psi) -
+                  0.25 * e1 ** 2 * psi)
+
 
 def d2_psi_homodyne(A, psi):
     """
@@ -343,7 +358,7 @@ def d2_psi_homodyne(A, psi):
     """
 
     e1 = mc_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
-    return (spmv(A[0].data, A[0].indices, A[0].indptr, psi) - 0.5 * e1 * psi) 
+    return (spmv(A[0].data, A[0].indices, A[0].indptr, psi) - 0.5 * e1 * psi)
 
 
 def d1_psi_heterodyne(A, psi):
@@ -354,11 +369,12 @@ def d1_psi_heterodyne(A, psi):
     e1 = mc_expect(A[0].data, A[0].indices, A[0].indptr, 0, psi)
 
     B = A[0].T.conj()
-    e2 = mc_expect(B.data,    B.indices,    B.indptr,    0, psi)
+    e2 = mc_expect(B.data, B.indices, B.indptr, 0, psi)
 
-    return (   e2 * spmv(A[0].data, A[0].indices, A[0].indptr, psi) 
-            - 0.5 * spmv(A[2].data, A[2].indices, A[2].indptr, psi) 
-            - 0.5 * e1 * e2 * psi) 
+    return (e2 * spmv(A[0].data, A[0].indices, A[0].indptr, psi)
+            - 0.5 * spmv(A[2].data, A[2].indices, A[2].indptr, psi)
+            - 0.5 * e1 * e2 * psi)
+
 
 def d2_psi_heterodyne(A, psi):
     """
@@ -367,7 +383,7 @@ def d2_psi_heterodyne(A, psi):
     """
 
     e1 = mc_expect(A[0].data, A[0].indices, A[0].indptr, 0, psi)
-    return spmv(A[0].data, A[0].indices, A[0].indptr, psi) - e1 * psi 
+    return spmv(A[0].data, A[0].indices, A[0].indptr, psi) - e1 * psi
 
 
 def d1_current(A, psi):
@@ -376,7 +392,9 @@ def d1_current(A, psi):
     """
 
     n1 = norm(spmv(A[0].data, A[0].indices, A[0].indptr, psi), 2)
-    return -0.5 * (spmv(A[2].data, A[2].indices, A[2].indptr, psi) - n1**2 * psi)
+    return (-0.5 * (spmv(A[2].data, A[2].indices, A[2].indptr, psi)
+            - n1 ** 2 * psi))
+
 
 def d2_current(A, psi):
     """
@@ -397,7 +415,7 @@ def d2_current(A, psi):
 #
 #     A[0] = Ldt (liouvillian contribution for a collapse operator)
 #     A[1] = LdW (stochastic contribution)
-#     A[3] = Lm   
+#     A[3] = Lm
 #
 
 
@@ -412,7 +430,8 @@ def d1_rho_homodyne(A, rho):
     Todo: cythonize
     """
 
-    return spmv(A[0].data, A[0].indices, A[0].indptr, rho) 
+    return spmv(A[0].data, A[0].indices, A[0].indptr, rho)
+
 
 def d2_rho_homodyne(A, rho):
     """
@@ -424,8 +443,8 @@ def d2_rho_homodyne(A, rho):
     return spmv(A[1].data, A[1].indices, A[1].indptr, rho) - e1 * rho
 
 
-#-------------------------------------------------------------------------------
-# Euler-Maruyama rhs functions for the stochastic Schrodinger and master 
+#------------------------------------------------------------------------------
+# Euler-Maruyama rhs functions for the stochastic Schrodinger and master
 # equations
 #
 
@@ -436,7 +455,7 @@ def _rhs_psi_euler_maruyama(H, psi_t, A, dt, dW, d1, d2):
         Experimental.
 
     """
-    
+
     return d1(A, psi_t) * dt + d2(A, psi_t) * dW
 
 
@@ -447,12 +466,13 @@ def _rhs_rho_euler_maruyama(L, rho_t, A, dt, dW, d1, d2):
         Experimental.
 
     """
-    
+
     return d1(A, rho_t) * dt + d2(A, rho_t) * dW
 
-#-------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Platen method
 #
+
 
 def _rhs_psi_platen(H, psi_t, A, dt, dW, d1, d2):
     """
@@ -470,10 +490,9 @@ def _rhs_psi_platen(H, psi_t, A, dt, dW, d1, d2):
     psi_t_p = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t) * sqrt_dt
     psi_t_m = psi_t + dpsi_t_H + d1(A, psi_t) * dt - d2(A, psi_t) * sqrt_dt
 
-    dpsi_t =  0.50 * (d1(A, psi_t_1) + d1(A, psi_t)) * dt + \
-              0.25 * (d2(A, psi_t_p) + d2(A, psi_t_m) + 2 * d2(A, psi_t)) * dW + \
-              0.25 * (d2(A, psi_t_p) - d2(A, psi_t_m)) * (dW**2 - dt) * sqrt_dt
-    
+    dpsi_t = 0.50 * (d1(A, psi_t_1) + d1(A, psi_t)) * dt + \
+        0.25 * (d2(A, psi_t_p) + d2(A, psi_t_m) + 2 * d2(A, psi_t)) * dW + \
+        0.25 * (d2(A, psi_t_p) - d2(A, psi_t_m)) * (
+            dW ** 2 - dt) * sqrt_dt
+
     return dpsi_t
-
-
