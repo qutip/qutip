@@ -1,9 +1,9 @@
-#This file is part of QuTIP.
+# This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTIP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,9 +18,9 @@
 ###########################################################################
 import qutip.settings
 
-if qutip.settings.qutip_graphics=='YES':
+if qutip.settings.qutip_graphics == 'YES':
     from pylab import *
-    from matplotlib import pyplot, mpl,cm
+    from matplotlib import pyplot, mpl, cm
     from mpl_toolkits.mplot3d import Axes3D
 
 from qutip.qobj import Qobj, isket, isbra
@@ -40,17 +40,20 @@ def _blob(x, y, w, w_max, area):
     xcorners = array([x - hs, x + hs, x + hs, x - hs])
     ycorners = array([y - hs, y - hs, y + hs, y + hs])
 
-    fill(xcorners, ycorners, color=cm.RdBu(int((w+w_max) * 256 / (2*w_max))))
+    fill(xcorners, ycorners, color=cm.RdBu(int((w + w_max) * 256 / (2 *
+         w_max))))
 
 # Adopted from the SciPy Cookbook.
+
+
 def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
-    """Draws a Hinton diagram for visualizing a density matrix. 
-    
+    """Draws a Hinton diagram for visualizing a density matrix.
+
     Parameters
     ----------
     rho : qobj
         Input density matrix.
-    
+
     xlabels : list of strings
         list of x labels
 
@@ -72,7 +75,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
     ------
     ValueError
         Input argument is not a quantum object.
-        
+
     """
 
     if isinstance(rho, Qobj):
@@ -84,7 +87,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
         W = rho
 
     if ax is None:
-        fig, ax = subplots(1, 1, figsize=(8,6))
+        fig, ax = subplots(1, 1, figsize=(8, 6))
 
     if not (xlabels or ylabels):
         ax.axis('off')
@@ -93,43 +96,46 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
     ax.set_frame_on(False)
 
     height, width = W.shape
-  
+
     w_max = 1.25 * max(abs(diag(matrix(W))))
     if w_max <= 0.0:
         w_max = 1.0
 
     # x axis
-    ax.xaxis.set_major_locator(IndexLocator(1,0.5))
+    ax.xaxis.set_major_locator(IndexLocator(1, 0.5))
     if xlabels:
-        ax.set_xticklabels(xlabels) 
+        ax.set_xticklabels(xlabels)
     ax.tick_params(axis='x', labelsize=14)
 
     # y axis
-    ax.yaxis.set_major_locator(IndexLocator(1,0.5)) 
+    ax.yaxis.set_major_locator(IndexLocator(1, 0.5))
     if ylabels:
-        ax.set_yticklabels(list(reversed(ylabels))) 
+        ax.set_yticklabels(list(reversed(ylabels)))
     ax.tick_params(axis='y', labelsize=14)
 
-    ax.fill(array([0,width,width,0]),array([0,0,height,height]), color=cm.RdBu(128))
+    ax.fill(array([0, width, width, 0]), array([0, 0, height, height]),
+            color=cm.RdBu(128))
     for x in range(width):
         for y in range(height):
-            _x = x+1
-            _y = y+1
-            if real(W[x,y]) > 0.0:
-                _blob(_x - 0.5, height - _y + 0.5, abs(W[x,y]), w_max, min(1,abs(W[x,y])/w_max))
+            _x = x + 1
+            _y = y + 1
+            if real(W[x, y]) > 0.0:
+                _blob(_x - 0.5, height - _y + 0.5, abs(W[x,
+                      y]), w_max, min(1, abs(W[x, y]) / w_max))
             else:
-                _blob(_x - 0.5, height - _y + 0.5, -abs(W[x,y]), w_max, min(1,abs(W[x,y])/w_max))
-
+                _blob(_x - 0.5, height - _y + 0.5, -abs(W[
+                      x, y]), w_max, min(1, abs(W[x, y]) / w_max))
 
     # color axis
-    norm=mpl.colors.Normalize(-abs(W).max(), abs(W).max()) 
+    norm = mpl.colors.Normalize(-abs(W).max(), abs(W).max())
     cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
     cb = mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cm.RdBu)
 
     return ax
 
 
-def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None, ax=None):
+def matrix_histogram(M, xlabels=None, ylabels=None,
+                     title=None, limits=None, ax=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
@@ -152,7 +158,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None, ax=
 
     ax : a matplotlib axes instance
         The axes context in which the plot will be drawn.
-    
+
     Returns
     -------
 
@@ -169,24 +175,24 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None, ax=
         # extract matrix data from Qobj
         M = M.full()
 
-    n=size(M) 
-    xpos,ypos=meshgrid(range(M.shape[0]),range(M.shape[1]))
-    xpos=xpos.T.flatten()-0.5 
-    ypos=ypos.T.flatten()-0.5 
-    zpos = zeros(n) 
-    dx = dy = 0.8 * ones(n) 
-    dz = real(M.flatten()) 
-    
-    if limits: # check that limits is a list type
+    n = size(M)
+    xpos, ypos = meshgrid(range(M.shape[0]), range(M.shape[1]))
+    xpos = xpos.T.flatten() - 0.5
+    ypos = ypos.T.flatten() - 0.5
+    zpos = zeros(n)
+    dx = dy = 0.8 * ones(n)
+    dz = real(M.flatten())
+
+    if limits:  # check that limits is a list type
         z_min = limits[0]
         z_max = limits[1]
     else:
         z_min = min(dz)
         z_max = max(dz)
-        
-    norm=mpl.colors.Normalize(z_min, z_max) 
-    cmap=get_cmap('jet') # Spectral
-    colors=cmap(norm(dz))
+
+    norm = mpl.colors.Normalize(z_min, z_max)
+    cmap = get_cmap('jet')  # Spectral
+    colors = cmap(norm(dz))
 
     if ax is None:
         fig = plt.figure()
@@ -198,19 +204,19 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None, ax=
         plt.title(title)
 
     # x axis
-    ax.axes.w_xaxis.set_major_locator(IndexLocator(1,-0.5))
+    ax.axes.w_xaxis.set_major_locator(IndexLocator(1, -0.5))
     if xlabels:
-        ax.set_xticklabels(xlabels) 
+        ax.set_xticklabels(xlabels)
     ax.tick_params(axis='x', labelsize=14)
 
     # y axis
-    ax.axes.w_yaxis.set_major_locator(IndexLocator(1,-0.5)) 
+    ax.axes.w_yaxis.set_major_locator(IndexLocator(1, -0.5))
     if ylabels:
-        ax.set_yticklabels(ylabels) 
+        ax.set_yticklabels(ylabels)
     ax.tick_params(axis='y', labelsize=14)
 
     # z axis
-    ax.axes.w_zaxis.set_major_locator(IndexLocator(1,0.5))
+    ax.axes.w_zaxis.set_major_locator(IndexLocator(1, 0.5))
     ax.set_zlim3d([z_min, z_max])
 
     # color axis
@@ -219,10 +225,14 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None, ax=
 
     return ax
 
-def matrix_histogram_complex(M, xlabels=None, ylabels=None, title=None, limits=None, phase_limits=None, ax=None):
+
+def matrix_histogram_complex(M, xlabels=None, ylabels=None,
+                             title=None, limits=None,
+                             phase_limits=None, ax=None):
     """
-    Draw a histogram for the amplitudes of matrix M, using the argument of each element
-    for coloring the bars, with the given x and y labels and title.
+    Draw a histogram for the amplitudes of matrix M, using the argument
+    of each element for coloring the bars, with the given x and y labels
+    and title.
 
     Parameters
     ----------
@@ -246,7 +256,7 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None, title=None, limits=N
 
     ax : a matplotlib axes instance
         The axes context in which the plot will be drawn.
-    
+
     Returns
     -------
 
@@ -263,27 +273,27 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None, title=None, limits=N
         # extract matrix data from Qobj
         M = M.full()
 
-    n=size(M) 
-    xpos,ypos=meshgrid(range(M.shape[0]),range(M.shape[1]))
-    xpos=xpos.T.flatten()-0.5 
-    ypos=ypos.T.flatten()-0.5 
-    zpos = zeros(n) 
-    dx = dy = 0.8 * ones(n) 
+    n = size(M)
+    xpos, ypos = meshgrid(range(M.shape[0]), range(M.shape[1]))
+    xpos = xpos.T.flatten() - 0.5
+    ypos = ypos.T.flatten() - 0.5
+    zpos = zeros(n)
+    dx = dy = 0.8 * ones(n)
     Mvec = M.flatten()
-    dz = abs(Mvec) 
-    
+    dz = abs(Mvec)
+
     # make small numbers real, to avoid random colors
     idx, = where(abs(Mvec) < 0.001)
     Mvec[idx] = abs(Mvec[idx])
 
-    if phase_limits: # check that limits is a list type
+    if phase_limits:  # check that limits is a list type
         phase_min = phase_limits[0]
         phase_max = phase_limits[1]
     else:
         phase_min = -pi
         phase_max = pi
-        
-    norm=mpl.colors.Normalize(phase_min, phase_max) 
+
+    norm = mpl.colors.Normalize(phase_min, phase_max)
 
     # create a cyclic colormap
     cdict = {'blue': ((0.00, 0.0, 0.0),
@@ -291,17 +301,18 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None, title=None, limits=N
                       (0.50, 1.0, 1.0),
                       (0.75, 1.0, 1.0),
                       (1.00, 0.0, 0.0)),
-            'green': ((0.00, 0.0, 0.0),
+             'green': ((0.00, 0.0, 0.0),
                       (0.25, 1.0, 1.0),
                       (0.50, 0.0, 0.0),
                       (0.75, 1.0, 1.0),
                       (1.00, 0.0, 0.0)),
-            'red':   ((0.00, 1.0, 1.0),
-                      (0.25, 0.5, 0.5),
-                      (0.50, 0.0, 0.0),
-                      (0.75, 0.0, 0.0),
-                      (1.00, 1.0, 1.0))}
-    cmap = matplotlib.colors.LinearSegmentedColormap('phase_colormap', cdict, 256)
+             'red': ((0.00, 1.0, 1.0),
+                     (0.25, 0.5, 0.5),
+                     (0.50, 0.0, 0.0),
+                     (0.75, 0.0, 0.0),
+                     (1.00, 1.0, 1.0))}
+    cmap = matplotlib.colors.LinearSegmentedColormap(
+        'phase_colormap', cdict, 256)
 
     colors = cmap(norm(angle(Mvec)))
 
@@ -315,40 +326,40 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None, title=None, limits=N
         plt.title(title)
 
     # x axis
-    ax.axes.w_xaxis.set_major_locator(IndexLocator(1,-0.5))
+    ax.axes.w_xaxis.set_major_locator(IndexLocator(1, -0.5))
     if xlabels:
-        ax.set_xticklabels(xlabels) 
+        ax.set_xticklabels(xlabels)
     ax.tick_params(axis='x', labelsize=12)
 
     # y axis
-    ax.axes.w_yaxis.set_major_locator(IndexLocator(1,-0.5)) 
+    ax.axes.w_yaxis.set_major_locator(IndexLocator(1, -0.5))
     if ylabels:
-        ax.set_yticklabels(ylabels) 
+        ax.set_yticklabels(ylabels)
     ax.tick_params(axis='y', labelsize=12)
 
     # z axis
     if limits and isinstance(limits, list):
         ax.set_zlim3d(limits)
     else:
-        ax.set_zlim3d([0, 1]) # use min/max 
-    #ax.set_zlabel('abs')
+        ax.set_zlim3d([0, 1])  # use min/max
+    # ax.set_zlabel('abs')
 
     # color axis
     cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
     cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
-    cb.set_ticks([-pi, -pi/2, 0, pi/2, pi])
-    cb.set_ticklabels((r'$-\pi$',r'$-\pi/2$',r'$0$',r'$\pi/2$',r'$\pi$'))
+    cb.set_ticks([-pi, -pi / 2, 0, pi / 2, pi])
+    cb.set_ticklabels((r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'))
     cb.set_label('arg')
 
     return ax
 
 
-def energy_level_diagram(H_list, N=0, figsize=(8,12), labels=None):
+def energy_level_diagram(H_list, N=0, figsize=(8, 12), labels=None):
     """
     Plot the energy level diagrams for a list of Hamiltonians. Include
     up to N energy levels. For each element in H_list, the energy
     levels diagram for the cummulative Hamiltonian sum(H_list[0:N]) is plotted,
-    where N is the index of an element in H_list. 
+    where N is the index of an element in H_list.
 
     Parameters
     ----------
@@ -364,7 +375,7 @@ def energy_level_diagram(H_list, N=0, figsize=(8,12), labels=None):
 
         figsize : tuple (int,int)
             The size of the figure (width, height).
-    
+
     Returns
     -------
 
@@ -378,7 +389,6 @@ def energy_level_diagram(H_list, N=0, figsize=(8,12), labels=None):
 
     """
 
-
     if not isinstance(H_list, list):
         raise ValueError("H_list must be a list of Qobj instances")
 
@@ -390,24 +400,24 @@ def energy_level_diagram(H_list, N=0, figsize=(8,12), labels=None):
     xticks = []
 
     x = 0
-    evals0 = H.eigenenergies(eigvals=N) / (2*np.pi)
+    evals0 = H.eigenenergies(eigvals=N) / (2 * np.pi)
     for e_idx, e in enumerate(evals0[:N]):
-        axes.plot([x,x+2], np.array([1,1]) * e, 'b', linewidth=2)
-    xticks.append(x+1)
+        axes.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
+    xticks.append(x + 1)
     x += 2
 
     for H1 in H_list[1:]:
-        
+
         H = H + H1
-        evals1 = H.eigenenergies() / (2*np.pi)
+        evals1 = H.eigenenergies() / (2 * np.pi)
 
         for e_idx, e in enumerate(evals1[:N]):
-            axes.plot([x,x+1], np.array([evals0[e_idx], e]), 'k:')
+            axes.plot([x, x + 1], np.array([evals0[e_idx], e]), 'k:')
         x += 1
 
         for e_idx, e in enumerate(evals1[:N]):
-            axes.plot([x,x+2], np.array([1,1]) * e, 'b', linewidth=2)
-        xticks.append(x+1)
+            axes.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
+        xticks.append(x + 1)
         x += 2
 
         evals0 = evals1
