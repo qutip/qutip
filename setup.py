@@ -80,9 +80,9 @@ if not ISRELEASED:
 def write_version_py(filename='qutip/_version.py'):
         cnt = """\
 # THIS FILE IS GENERATED FROM QUTIP SETUP.PY
-short_version='%(version)s'
-version='%(fullversion)s'
-release=%(isrelease)s
+short_version = '%(version)s'
+version = '%(fullversion)s'
+release = %(isrelease)s
 """
         a = open(filename, 'w')
         try:
