@@ -15,7 +15,7 @@
 #
 # Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
 #
-################################################################################
+##########################################################################
 
 import scipy
 import scipy.linalg as la
@@ -24,26 +24,27 @@ from scipy import prod, transpose, reshape
 from qutip.qobj import *
 from qutip.operators import destroy
 
+
 def liouvillian(H, c_op_list):
-    """Assembles the Liouvillian superoperator from a Hamiltonian 
+    """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators.
-    
+
     Parameters
     ----------
     H : qobj
         System Hamiltonian.
-        
-    c_op_list : array_like 
+
+    c_op_list : array_like
         A ``list`` or ``array`` of collpase operators.
-    
+
     Returns
     -------
     L : qobj
         Louvillian superoperator.
-    
+
     """
 
-    L = -1.0j*(spre(H) - spost(H)) if H else 0
+    L = -1.0j * (spre(H) - spost(H)) if H else 0
 
     for c in c_op_list:
         cdc = c.dag() * c
@@ -51,20 +52,21 @@ def liouvillian(H, c_op_list):
 
     return L
 
+
 def liouvillian_fast(H, c_op_list):
-    """Assembles the Liouvillian superoperator from a Hamiltonian 
-    and a ``list`` of collapse operators. Like liouvillian, but with an 
+    """Assembles the Liouvillian superoperator from a Hamiltonian
+    and a ``list`` of collapse operators. Like liouvillian, but with an
     experimental implementation which avoids creating extra Qobj instances,
     which can be advantageous for large systems.
-    
+
     Parameters
     ----------
     H : qobj
         System Hamiltonian.
-        
-    c_op_list : array_like 
+
+    c_op_list : array_like
         A ``list`` or ``array`` of collpase operators.
-    
+
     Returns
     -------
     L : qobj
@@ -73,20 +75,27 @@ def liouvillian_fast(H, c_op_list):
     .. note::
 
         Experimental.
-    
+
     """
-    d=H.dims[1]
-    L=Qobj()
-    L.dims=[[H.dims[0][:],d[:]],[H.dims[1][:],d[:]]]
-    L.shape=[prod(L.dims[0][0])*prod(L.dims[0][1]),prod(L.dims[1][0])*prod(L.dims[1][1])]
-    L.data = -1j *(sp.kron(sp.identity(prod(d)), H.data,format='csr') - sp.kron(H.data.T,sp.identity(prod(d)),format='csr'))
+    d = H.dims[1]
+    L = Qobj()
+    L.dims = [[H.dims[0][:], d[:]], [H.dims[1][:], d[:]]]
+    L.shape = [prod(L.dims[0][0]) * prod(L.dims[0][1]),
+               prod(L.dims[1][0]) * prod(L.dims[1][1])]
+    L.data = -1j * (sp.kron(sp.identity(prod(d)), H.data, format='csr')
+                    - sp.kron(H.data.T, sp.identity(prod(d)), format='csr'))
 
     n_op = len(c_op_list)
     for m in range(0, n_op):
-        L.data = L.data + sp.kron(sp.identity(prod(d)), c_op_list[m].data,format='csr') * sp.kron(c_op_list[m].data.T.conj().T,sp.identity(prod(d)),format='csr')
-        cdc = c_op_list[m].data.T.conj()*c_op_list[m].data
-        L.data = L.data - 0.5 * sp.kron(sp.identity(prod(d)), cdc,format='csr')
-        L.data = L.data - 0.5 * sp.kron(cdc.T,sp.identity(prod(d)),format='csr')
+        L.data = L.data + \
+            sp.kron(sp.identity(prod(d)), c_op_list[m].data, format='csr') * \
+            sp.kron(c_op_list[m].data.T.conj().T, sp.identity(
+                prod(d)), format='csr')
+        cdc = c_op_list[m].data.T.conj() * c_op_list[m].data
+        L.data = L.data - \
+            0.5 * sp.kron(sp.identity(prod(d)), cdc, format='csr')
+        L.data = L.data - \
+            0.5 * sp.kron(cdc.T, sp.identity(prod(d)), format='csr')
     return L
 
 
@@ -94,23 +103,26 @@ def mat2vec(mat):
     """
     Private function reshaping matrix to vector.
     """
-    return mat.T.reshape(prod(shape(mat)),1)
+    return mat.T.reshape(prod(shape(mat)), 1)
+
 
 def vec2mat(vec):
     """
     Private function reshaping vector to matrix.
     """
     n = int(sqrt(len(vec)))
-    return vec.reshape((n,n)).T
+    return vec.reshape((n, n)).T
+
 
 def vec2mat_index(N, I):
     """
     Convert a vector index to a matrix index pair that is compatible with the
     vector to matrix rearrangement done by the vec2mat function.
     """
-    j = int(I/N) 
+    j = int(I / N)
     i = I - N * j
-    return i,j
+    return i, j
+
 
 def mat2vec_index(N, i, j):
     """
@@ -119,51 +131,52 @@ def mat2vec_index(N, i, j):
     """
     return i + N * j
 
+
 def spost(A):
-	"""Superoperator formed from post-multiplication by operator A
+    """Superoperator formed from post-multiplication by operator A
 
     Parameters
     ----------
     A : qobj
         Quantum operator for post multiplication.
-    
+
     Returns
     -------
     super : qobj
-       Superoperator formed from input qauntum object.
-	"""
-	if not isoper(A):
-		raise TypeError('Input is not a quantum object')
+        Superoperator formed from input qauntum object.
+    """
+    if not isoper(A):
+        raise TypeError('Input is not a quantum object')
 
-	d=A.dims[0]
-	S=Qobj()
-	S.dims=[[d[:],A.dims[1][:]],[d[:],A.dims[0][:]]]
-	S.shape=[prod(S.dims[0][0])*prod(S.dims[0][1]),prod(S.dims[1][0])*prod(S.dims[1][1])]
-	S.data=sp.kron(A.data.T,sp.identity(prod(d)),format='csr')
-	return S
-	
+    d = A.dims[0]
+    S = Qobj()
+    S.dims = [[d[:], A.dims[1][:]], [d[:], A.dims[0][:]]]
+    S.shape = [prod(S.dims[0][0]) * prod(S.dims[0][1]),
+               prod(S.dims[1][0]) * prod(S.dims[1][1])]
+    S.data = sp.kron(A.data.T, sp.identity(prod(d)), format='csr')
+    return S
+
 
 def spre(A):
-	"""Superoperator formed from pre-multiplication by operator A.
-    
+    """Superoperator formed from pre-multiplication by operator A.
+
     Parameters
     ----------
     A : qobj
         Quantum operator for pre-multiplication.
-    
+
     Returns
     --------
     super :qobj
         Superoperator formed from input quantum object.
-    
-    """
-	if not isoper(A):
-		raise TypeError('Input is not a quantum object')
-	d=A.dims[1]
-	S=Qobj()
-	S.dims=[[A.dims[0][:],d[:]],[A.dims[1][:],d[:]]]
-	S.shape=[prod(S.dims[0][0])*prod(S.dims[0][1]),prod(S.dims[1][0])*prod(S.dims[1][1])]
-	S.data=sp.kron(sp.identity(prod(d)),A.data,format='csr')
-	return S
-	
 
+    """
+    if not isoper(A):
+        raise TypeError('Input is not a quantum object')
+    d = A.dims[1]
+    S = Qobj()
+    S.dims = [[A.dims[0][:], d[:]], [A.dims[1][:], d[:]]]
+    S.shape = [prod(S.dims[0][0]) * prod(S.dims[0][1]),
+               prod(S.dims[1][0]) * prod(S.dims[1][1])]
+    S.data = sp.kron(sp.identity(prod(d)), A.data, format='csr')
+    return S
