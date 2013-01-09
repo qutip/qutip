@@ -1,9 +1,9 @@
-#This file is part of QuTIP.
+# This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTIP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -23,7 +23,7 @@ import numpy as np
 import scipy.sparse as sp
 
 
-def expect(oper,state):
+def expect(oper, state):
     '''Calculates the expectation value for operator and state(s).
 
     Parameters
@@ -64,7 +64,7 @@ def single_expect(oper, state):
     if isinstance(oper, Qobj) and isinstance(state, Qobj):
         if isoper(oper):
             if state.type == 'oper':
-                #calculates expectation value via TR(op*rho)
+                # calculates expectation value via TR(op*rho)
                 prod = oper.data * state.data
                 tr = sum(prod.diagonal())  # sum of diagonal elements
                 if oper.isherm and state.isherm:  # if hermitian
@@ -72,8 +72,8 @@ def single_expect(oper, state):
                 else:  # not hermitian
                     return tr
             elif state.type == 'ket':
-                #calculates expectation value via <psi|op|psi>
-                #prod = state.data.conj().T * (oper.data * state.data)
+                # calculates expectation value via <psi|op|psi>
+                # prod = state.data.conj().T * (oper.data * state.data)
                 prod = state.data.conj().T.dot(oper.data * state.data)
                 if oper.isherm:
                     return float(np.real(prod[0, 0]))
