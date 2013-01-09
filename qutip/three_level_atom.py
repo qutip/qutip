@@ -1,9 +1,9 @@
-#This file is part of QuTIP.
+# This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTIP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -53,27 +53,29 @@ Contributed by Markus Baden, Oct. 07, 2011
 from qutip.states import qutrit_basis
 from scipy import array
 
+
 def three_level_basis():
     ''' Basis states for a three level atom.
-    
+
     Returns
     -------
     states : array
         `array` of three level atom basis vectors.
-    
+
     '''
     # A three level atom has the same representation as a qutrit, i.e.
     # three states
     return qutrit_basis()
 
+
 def three_level_ops():
     ''' Operators for a three level system (qutrit)
-    
+
     Returns
     --------
     ops : array
         `array` of three level operators.
-    
+
     '''
     one, two, three = qutrit_basis()
     # Note that the three level operators are different
@@ -86,4 +88,3 @@ def three_level_ops():
     sig12 = one * two.dag()
     sig32 = three * two.dag()
     return array([sig11, sig22, sig33, sig12, sig32])
-
