@@ -3,7 +3,7 @@
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTIP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -326,7 +326,8 @@ class eseries():
         for ur_key in unique_rates.keys():
             total_ampl = np.sum(ampl_dict[ur_key])
 
-            if isinstance(total_ampl, float) or isinstance(total_ampl, complex):
+            if (isinstance(total_ampl, float) or
+                    isinstance(total_ampl, complex)):
                 if abs(total_ampl) > ampl_tol:
                     self.rates = np.append(self.rates, unique_rates[ur_key])
                     self.ampl = np.append(self.ampl, total_ampl)
