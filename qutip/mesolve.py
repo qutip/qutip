@@ -50,6 +50,8 @@ if debug:
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 #
+
+
 def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     """
     Master equation evolution of a density matrix for a given Hamiltonian.
@@ -147,7 +149,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
         nothing if a callback function was given inplace of operators for
         which to calculate the expectation values.
 
-    """   
+    """
 
     # check whether c_ops or expt_ops is is a single operator
     # if so convert it to a list containing only that operator
@@ -173,7 +175,8 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     if ((c_ops and len(c_ops) > 0)
         or (not isket(rho0))
         or (isinstance(H, Qobj) and issuper(H))
-        or (isinstance(H, list) and isinstance(H[0], Qobj) and issuper(H[0]))):
+        or (isinstance(H, list) and
+            isinstance(H[0], Qobj) and issuper(H[0]))):
 
         #
         # we have collapse operators
@@ -252,7 +255,8 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     Internal function for solving the master equation. See mesolve for usage.
     """
 
-    if debug: print(inspect.stack()[0][3])        
+    if debug:
+        print(inspect.stack()[0][3])
 
     #
     # check initial state
@@ -320,7 +324,8 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
 
         else:
             raise TypeError("Incorrect specification of time-dependent " +
-                     "collapse operators (expected operator or superoperator)")
+                            "collapse operators (expected operator or " +
+                            "superoperator)")
 
     L_list_and_args = [L_list, args]
 
@@ -330,9 +335,9 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     initial_vector = mat2vec(rho0.full())
     r = scipy.integrate.ode(rho_list_td)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                              first_step=opt.first_step, min_step=opt.min_step,
-                              max_step=opt.max_step)
+                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                     first_step=opt.first_step, min_step=opt.min_step,
+                     max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
     r.set_f_params(L_list_and_args)
 
@@ -373,7 +378,8 @@ def _wfsolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt):
     Internal function for solving the master equation. See mesolve for usage.
     """
 
-    if debug: print(inspect.stack()[0][3])        
+    if debug:
+        print(inspect.stack()[0][3])
 
     #
     # check initial state
@@ -412,9 +418,9 @@ def _wfsolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt):
     initial_vector = psi0.full()
     r = scipy.integrate.ode(psi_list_td)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                              first_step=opt.first_step, min_step=opt.min_step,
-                              max_step=opt.max_step)
+                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                     first_step=opt.first_step, min_step=opt.min_step,
+                     max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
     r.set_f_params(L_list_and_args)
 
@@ -453,7 +459,8 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     Internal function for solving the master equation. See mesolve for usage.
     """
 
-    if debug: print(inspect.stack()[0][3])
+    if debug:
+        print(inspect.stack()[0][3])
 
     #
     # check initial state: must be a density matrix
@@ -486,7 +493,8 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
                 Lconst += h
             else:
                 raise TypeError("Incorrect specification of time-dependent " +
-                            "Hamiltonian (expected operator or superoperator)")
+                                "Hamiltonian (expected operator or " +
+                                "superoperator)")
 
         elif isinstance(h_spec, list):
             h = h_spec[0]
@@ -498,7 +506,8 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
                 L = h
             else:
                 raise TypeError("Incorrect specification of time-dependent " +
-                           "Hamiltonian (expected operator or superoperator)")
+                                "Hamiltonian (expected operator or " +
+                                "superoperator)")
 
             Ldata.append(L.data.data)
             Linds.append(L.data.indices)
@@ -523,7 +532,8 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
                 Lconst += c
             else:
                 raise TypeError("Incorrect specification of time-dependent " +
-                           "Liouvillian (expected operator or superoperator)")
+                                "Liouvillian (expected operator or " +
+                                "superoperator)")
 
         elif isinstance(c_spec, list):
             c = c_spec[0]
@@ -538,7 +548,8 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
                 L = c
             else:
                 raise TypeError("Incorrect specification of time-dependent " +
-                           "Liouvillian (expected operator or superoperator)")
+                                "Liouvillian (expected operator or " +
+                                "superoperator)")
 
             Ldata.append(L.data.data)
             Linds.append(L.data.indices)
@@ -596,9 +607,9 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     initial_vector = mat2vec(rho0.full())
     r = scipy.integrate.ode(odeconfig.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                              first_step=opt.first_step, min_step=opt.min_step,
-                              max_step=opt.max_step)
+                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                     first_step=opt.first_step, min_step=opt.min_step,
+                     max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
     code = compile('r.set_f_params(' + parameter_string + ')',
                    '<string>', 'exec')
@@ -619,7 +630,8 @@ def _wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     Internal function for solving the master equation. See mesolve for usage.
     """
 
-    if debug: print(inspect.stack()[0][3])
+    if debug:
+        print(inspect.stack()[0][3])
 
     #
     # check initial state: must be a density matrix
@@ -698,9 +710,9 @@ def _wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     initial_vector = psi0.full()
     r = scipy.integrate.ode(odeconfig.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                              first_step=opt.first_step, min_step=opt.min_step,
-                              max_step=opt.max_step)
+                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                     first_step=opt.first_step, min_step=opt.min_step,
+                     max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
     code = compile('r.set_f_params(' + parameter_string + ')',
                    '<string>', 'exec')
@@ -732,9 +744,9 @@ def _wfsolve_const(H, psi0, tlist, expt_ops, args, opt):
     L = -1.0j * H
     r.set_f_params(L.data.data, L.data.indices, L.data.indptr)  # cython RHS
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                              first_step=opt.first_step, min_step=opt.min_step,
-                              max_step=opt.max_step)
+                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                     first_step=opt.first_step, min_step=opt.min_step,
+                     max_step=opt.max_step)
 
     r.set_initial_value(initial_vector, tlist[0])
 
@@ -761,7 +773,8 @@ def _wfsolve_list_td(H_func, psi0, tlist, expt_ops, args, opt):
     Hamiltonian.
     """
 
-    if debug: print(inspect.stack()[0][3])
+    if debug:
+        print(inspect.stack()[0][3])
 
     if not isket(psi0):
         raise TypeError("psi0 must be a ket")
@@ -778,7 +791,8 @@ def _wfsolve_list_td(H_func, psi0, tlist, expt_ops, args, opt):
     if (not isinstance(H_func[1], (list, ndarray))) or \
        (len(H_func[1]) != (len(H_func[0]) - 1)):
         raise TypeError('Time-dependent coefficients must be list with ' +
-                      'length N-1 where N is the number of Hamiltonian terms.')
+                        'length N-1 where N is the number of ' +
+                        'Hamiltonian terms.')
     tflag = 1
     if opt.rhs_reuse and odeconfig.tdfunc is None:
         print("No previous time-dependent RHS found.")
@@ -787,11 +801,11 @@ def _wfsolve_list_td(H_func, psi0, tlist, expt_ops, args, opt):
     lenh = len(H_func[0])
     if opt.tidy:
         H_func[0] = [(H_func[0][k]).tidyup() for k in range(lenh)]
-    #create data arrays for time-dependent RHS function
+    # create data arrays for time-dependent RHS function
     Hdata = [-1.0j * H_func[0][k].data.data for k in range(lenh)]
     Hinds = [H_func[0][k].data.indices for k in range(lenh)]
     Hptrs = [H_func[0][k].data.indptr for k in range(lenh)]
-    #setup ode args string
+    # setup ode args string
     string = ""
     for k in range(lenh):
         string += ("Hdata[" + str(k) + "],Hinds[" + str(k) +
@@ -825,9 +839,9 @@ def _wfsolve_list_td(H_func, psi0, tlist, expt_ops, args, opt):
     initial_vector = psi0.full()
     r = scipy.integrate.ode(odeconfig.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                              first_step=opt.first_step, min_step=opt.min_step,
-                              max_step=opt.max_step)
+                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                     first_step=opt.first_step, min_step=opt.min_step,
+                     max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
     code = compile('r.set_f_params(' + string + ')', '<string>', 'exec')
     exec(code)
@@ -848,7 +862,8 @@ def _wfsolve_func_td(H_func, psi0, tlist, expt_ops, args, opt):
     Hamiltonian.
     """
 
-    if debug: print(inspect.stack()[0][3])
+    if debug:
+        print(inspect.stack()[0][3])
 
     if not isket(psi0):
         raise TypeError("psi0 must be a ket")
@@ -866,9 +881,9 @@ def _wfsolve_func_td(H_func, psi0, tlist, expt_ops, args, opt):
     initial_vector = psi0.full()
     r = scipy.integrate.ode(_ode_psi_func_td)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                              first_step=opt.first_step, min_step=opt.min_step,
-                              max_step=opt.max_step)
+                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                     first_step=opt.first_step, min_step=opt.min_step,
+                     max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
     r.set_f_params(H_func_and_args)
 
@@ -899,7 +914,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, opt):
     and collapse operators.
     """
 
-    if debug: 
+    if debug:
         print(inspect.stack()[0][3])
 
     #
@@ -934,9 +949,9 @@ def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, opt):
     r = scipy.integrate.ode(cy_ode_rhs)
     r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                              first_step=opt.first_step, min_step=opt.min_step,
-                              max_step=opt.max_step)
+                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                     first_step=opt.first_step, min_step=opt.min_step,
+                     max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
 
     #
@@ -991,7 +1006,8 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     if (not isinstance(H_func[1], (list, ndarray))) or \
        (len(H_func[1]) != (len(H_func[0]) - 1)):
         raise TypeError('Time-dependent coefficients must be list with ' +
-                    'length N-1 where N is the number of Hamiltonian terms.')
+                        'length N-1 where N is the number of ' +
+                        'Hamiltonian terms.')
     if opt.rhs_reuse and odeconfig.tdfunc is None:
         print("No previous time-dependent RHS found.")
         print("Generating one for you...")
@@ -1041,9 +1057,9 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     initial_vector = mat2vec(rho0.full())
     r = scipy.integrate.ode(odeconfig.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                              first_step=opt.first_step, min_step=opt.min_step,
-                              max_step=opt.max_step)
+                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                     first_step=opt.first_step, min_step=opt.min_step,
+                     max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
     code = compile('r.set_f_params(' + string + ')', '<string>', 'exec')
     exec(code)
@@ -1072,7 +1088,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     if isket(rho0):
         # if initial state is a ket and no collapse operator where given,
         # fallback on the unitary schrodinger equation solver
-        #if n_op == 0:
+        # if n_op == 0:
         #    return _wfsolve_list_td(H_func, rho0, tlist, expt_ops, args, opt)
 
         # Got a wave function as initial state: convert to density matrix.
@@ -1109,9 +1125,9 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     initial_vector = mat2vec(rho0.full())
     r = scipy.integrate.ode(_ode_rho_func_td)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
-                              atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                              first_step=opt.first_step, min_step=opt.min_step,
-                              max_step=opt.max_step)
+                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                     first_step=opt.first_step, min_step=opt.min_step,
+                     max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
     r.set_f_params(L_func_and_args)
 
@@ -1299,7 +1315,8 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, args=None, options=None):
 
     """
 
-    if debug: print(inspect.stack()[0][3])
+    if debug:
+        print(inspect.stack()[0][3])
 
     if options is None:
         options = Odeoptions()
