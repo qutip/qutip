@@ -1,9 +1,9 @@
-#This file is part of QuTIP.
+# This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTIP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -17,22 +17,23 @@
 #
 ###########################################################################
 """
-This module contains settings for the QuTiP GUI,multiprocessing, and 
+This module contains settings for the QuTiP GUI,multiprocessing, and
 tidyup functionality.
 
 """
-#QuTiP Graphics (set at qutip import)
-qutip_graphics=None
-#QuTiP GUI selection (set at qutip import)
-qutip_gui=None
-#use auto tidyup
-auto_tidyup=True
-#detect hermiticity
-auto_herm=True
-#use auto tidyup absolute tolerance 
-auto_tidyup_atol=1e-15
-#number of cpus (set at qutip import)
-num_cpus=1
+# QuTiP Graphics (set at qutip import)
+qutip_graphics = None
+# QuTiP GUI selection (set at qutip import)
+qutip_gui = None
+# use auto tidyup
+auto_tidyup = True
+# detect hermiticity
+auto_herm = True
+# use auto tidyup absolute tolerance
+auto_tidyup_atol = 1e-15
+# number of cpus (set at qutip import)
+num_cpus = 1
+
 
 def reset():
     from qutip._reset import _reset
