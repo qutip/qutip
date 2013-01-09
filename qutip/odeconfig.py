@@ -1,9 +1,9 @@
-#This file is part of QuTIP.
+# This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTIP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -17,76 +17,71 @@
 #
 ###########################################################################
 
-#General stuff
-tlist=None          #evaluations times
-ntraj=None          #number / list of trajectories
-options=None        #options for odesolvers
-norm_tol=None       #tolerance for wavefunction norm
-norm_steps=None     #max. number of steps to take in finding wavefunction norm within tolerance norm_tol.
+# General stuff
+tlist = None       # evaluations times
+ntraj = None       # number / list of trajectories
+options = None     # options for odesolvers
+norm_tol = None    # tolerance for wavefunction norm
+norm_steps = None  # max. number of steps to take in finding wavefunction
+                   # norm within tolerance norm_tol.
 
-#Initial state stuff
-psi0=None           #initial state
-psi0_dims=None      #initial state dims
-psi0_shape=None     #initial state shape
+# Initial state stuff
+psi0 = None        # initial state
+psi0_dims = None   # initial state dims
+psi0_shape = None  # initial state shape
 
-#flags for setting time-dependence, collapse ops, and number of times codegen has been run
-cflag=0             #Flag signaling collapse operators
-tflag=0             #Flag signaling time-dependent problem
-cgen_num=0          #Number of times codegen function has been called in current Python session.
+# flags for setting time-dependence, collapse ops, and number of times
+# codegen has been run
+cflag = 0     # Flag signaling collapse operators
+tflag = 0     # Flag signaling time-dependent problem
+cgen_num = 0  # Number of times codegen function has been called in
+              # current Python session.
 
-#time-dependent function stuff
-tdfunc=None         #Placeholder for time-dependent RHS function.
-colspmv=None        #Placeholder for time-dependent col-spmv function.
-colexpect=None      #Placeholder for time-dependent col_expect function.
-string=None         #Holds string of variables to be passed onto time-depdendent ODE solver.
-tdname=None         #Name of td .pyx file (used in parallel mc code)
+# time-dependent function stuff
+tdfunc = None     # Placeholder for time-dependent RHS function.
+colspmv = None    # Placeholder for time-dependent col-spmv function.
+colexpect = None  # Placeholder for time-dependent col_expect function.
+string = None     # Holds string of variables to be passed onto
+                  # time-depdendent ODE solver.
+tdname = None     # Name of td .pyx file (used in parallel mc code)
 
-#Hamiltonian stuff
-h_td_inds=[]        #indicies of time-dependent Hamiltonian operators
-h_data=None          #List of sparse matrix data
-h_ind=None          #List of sparse matrix indices
-h_ptr=None          #List of sparse matrix ptrs
+# Hamiltonian stuff
+h_td_inds = []  # indicies of time-dependent Hamiltonian operators
+h_data = None   # List of sparse matrix data
+h_ind = None    # List of sparse matrix indices
+h_ptr = None    # List of sparse matrix ptrs
 
-#Expectation operator stuff
-e_num=0             #number of expect ops
-e_ops_data=[]       #expect op data
-e_ops_ind=[]        #expect op indices
-e_ops_ptr=[]        #expect op indptrs
-e_ops_isherm=[]     #expect op isherm
+# Expectation operator stuff
+e_num = 0        # number of expect ops
+e_ops_data = []  # expect op data
+e_ops_ind = []   # expect op indices
+e_ops_ptr = []   # expect op indptrs
+e_ops_isherm = []  # expect op isherm
 
-#Collapse operator stuff
-c_num=0             #number of collapse ops
-c_const_inds=[]     #indicies of constant collapse operators
-c_td_inds=[]        #indicies of time-dependent collapse operators
-c_ops_data=[]       #collapse op data
-c_ops_ind=[]        #collapse op indices
-c_ops_ptr=[]        #collapse op indptrs
-c_args=[]           #store args for time-dependent collapse functions
+# Collapse operator stuff
+c_num = 0          # number of collapse ops
+c_const_inds = []  # indicies of constant collapse operators
+c_td_inds = []     # indicies of time-dependent collapse operators
+c_ops_data = []    # collapse op data
+c_ops_ind = []     # collapse op indices
+c_ops_ptr = []     # collapse op indptrs
+c_args = []        # store args for time-dependent collapse functions
 
-#Norm collapse operator stuff
-n_ops_data=[]       #norm collapse op data
-n_ops_ind=[]        #norm collapse op indices
-n_ops_ptr=[]        #norm collapse op indptrs
+# Norm collapse operator stuff
+n_ops_data = []  # norm collapse op data
+n_ops_ind = []   # norm collapse op indices
+n_ops_ptr = []   # norm collapse op indptrs
 
-#holds executable strings for time-dependent collapse evaluation
-col_expect_code=None
-col_spmv_code=None
+# holds executable strings for time-dependent collapse evaluation
+col_expect_code = None
+col_spmv_code = None
 
-#hold stuff for function list based time dependence
-h_td_inds=[]
-h_td_data=[]
-h_td_ind=[]
-h_td_ptr=[]
-h_funcs=None
-h_func_args=None
-c_funcs=None
-c_func_args=None
-
-
-
-
-
-
-
-
-
+# hold stuff for function list based time dependence
+h_td_inds = []
+h_td_data = []
+h_td_ind = []
+h_td_ptr = []
+h_funcs = None
+h_func_args = None
+c_funcs = None
+c_func_args = None
