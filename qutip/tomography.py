@@ -1,9 +1,9 @@
-#This file is part of QuTIP.
+# This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTIP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -24,26 +24,28 @@ from numpy import hstack
 import scipy.linalg as la
 from qutip.graph import matrix_histogram, matrix_histogram_complex
 import qutip.settings
-if qutip.settings.qutip_graphics=='YES':
+
+if qutip.settings.qutip_graphics == 'YES':
     from pylab import *
+
 
 def _index_permutations(size_list, perm=[]):
     """
     Generate a list with all index permutations.
-    
+
     Parameters
     ----------
     size_list : list
         A list that contains the sizes for each composite system.
     perm : list
         A list of permutations
-    
+
     Returns
     -------
     perm_idx : list
         List containing index permutations.
-    
-    
+
+
     """
     if len(size_list) == 0:
         yield perm
@@ -52,15 +54,16 @@ def _index_permutations(size_list, perm=[]):
             for ip in _index_permutations(size_list[1:], perm + [n]):
                 yield ip
 
+
 def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
     """
     Visualize the quantum process tomography chi matrix. Plot the real and
     imaginary parts separately.
-    
+
     Parameters
     ----------
     chi : array
-        Input QPT chi matrix. 
+        Input QPT chi matrix.
     lbls_list : list
         List of labels for QPT plot axes.
     title : string
@@ -70,43 +73,48 @@ def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
     axes : list of figure axis instance
         User defined figure axis instance (list of two axes) used for
         generating QPT plot.
-    
+
     Returns
     -------
-    An matplotlib figure instance for the plot. 
-    
+    An matplotlib figure instance for the plot.
+
     """
 
     if axes is None or len(axes) != 2:
         if fig is None:
-            fig = figure(figsize=(16,8))
+            fig = figure(figsize=(16, 8))
 
-        ax1 = fig.add_subplot(1,2,1, projection='3d', position=[0, 0, 1, 1])
-        ax2 = fig.add_subplot(1,2,2, projection='3d', position=[0, 0, 1, 1])
+        ax1 = fig.add_subplot(1, 2, 1, projection='3d', position=[0, 0, 1, 1])
+        ax2 = fig.add_subplot(1, 2, 2, projection='3d', position=[0, 0, 1, 1])
 
         axes = [ax1, ax2]
 
     xlabels = []
     for inds in _index_permutations([len(lbls) for lbls in lbls_list]):
-        xlabels.append("".join([lbls_list[k][inds[k]] for k in range(len(lbls_list))]))        
+        xlabels.append("".join(
+            [lbls_list[k][inds[k]] for k in range(len(lbls_list))]))
 
-    matrix_histogram(real(chi), xlabels, xlabels, title=r"real($\chi$)", limits=[-1,1], ax=axes[0])
-    matrix_histogram(imag(chi), xlabels, xlabels, title=r"imag($\chi$)", limits=[-1,1], ax=axes[1])
+    matrix_histogram(real(chi), xlabels, xlabels,
+                     title=r"real($\chi$)", limits=[-1, 1], ax=axes[0])
+    matrix_histogram(imag(chi), xlabels, xlabels,
+                     title=r"imag($\chi$)", limits=[-1, 1], ax=axes[1])
 
     if title and fig:
         fig.suptitle(title)
 
     return fig
 
+
 def qpt_plot_combined(chi, lbls_list, title=None, fig=None, ax=None):
     """
     Visualize the quantum process tomography chi matrix. Plot bars with
-    height and color corresponding to the absolute value and phase, respectively.
-    
+    height and color corresponding to the absolute value and phase,
+    respectively.
+
     Parameters
     ----------
     chi : array
-        Input QPT chi matrix. 
+        Input QPT chi matrix.
     lbls_list : list
         List of labels for QPT plot axes.
     title : string
@@ -116,21 +124,22 @@ def qpt_plot_combined(chi, lbls_list, title=None, fig=None, ax=None):
     ax : figure axis instance
         User defined figure axis instance used for generating QPT plot
         (alternative to the fig argument).
-    
+
     Returns
     -------
     An matplotlib figure instance for the plot.
-    
+
     """
 
     if ax is None:
         if fig is None:
-            fig = figure(figsize=(8,6))
-        ax = fig.add_subplot(1,1,1, projection='3d', position=[0, 0, 1, 1])
+            fig = figure(figsize=(8, 6))
+        ax = fig.add_subplot(1, 1, 1, projection='3d', position=[0, 0, 1, 1])
 
     xlabels = []
     for inds in _index_permutations([len(lbls) for lbls in lbls_list]):
-        xlabels.append("".join([lbls_list[k][inds[k]] for k in range(len(lbls_list))]))        
+        xlabels.append("".join(
+            [lbls_list[k][inds[k]] for k in range(len(lbls_list))]))
 
     if not title:
         title = r"$\chi$"
@@ -138,6 +147,7 @@ def qpt_plot_combined(chi, lbls_list, title=None, fig=None, ax=None):
     matrix_histogram_complex(chi, xlabels, xlabels, title=title, ax=ax)
 
     return fig
+
 
 def qpt(U, op_basis_list):
     """
@@ -153,7 +163,7 @@ def qpt(U, op_basis_list):
 
     U can be calculated for an open quantum system using the QuTiP propagator
     function.
-    
+
     Parameters
     ----------
     U : Qobj
@@ -162,19 +172,20 @@ def qpt(U, op_basis_list):
 
     op_basis_list : list
         A list of Qobj's representing the basis states.
-    
+
     Returns
     -------
     chi : array
         QPT chi matrix
-     
+
     """
 
     E_ops = []
     # loop over all index permutations
-    for inds in _index_permutations([len(op_list) for op_list in op_basis_list]):
+    for inds in _index_permutations([len(ops) for ops in op_basis_list]):
         # loop over all composite systems
-        E_op_list = [op_basis_list[k][inds[k]] for k in range(len(op_basis_list))]
+        E_op_list = [op_basis_list[k][inds[k]] for k in range(len(
+            op_basis_list))]
         E_ops.append(tensor(E_op_list))
 
     EE_ops = [spre(E1) * spost(E2.dag()) for E1 in E_ops for E2 in E_ops]
