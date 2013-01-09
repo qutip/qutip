@@ -1,9 +1,9 @@
-#This file is part of QuTIP.
+# This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTIP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -92,7 +92,7 @@ def essolve(H, rho0, tlist, c_op_list, expt_op_list):
 # -----------------------------------------------------------------------------
 #
 #
-def ode2es(L,rho0):
+def ode2es(L, rho0):
     """Creates an exponential series that describes the time evolution for the
     initial density matrix (or state vector) `rho0`, given the Liouvillian
     (or Hamiltonian) `L`.
