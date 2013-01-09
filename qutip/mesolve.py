@@ -17,13 +17,18 @@
 #
 ###############################################################################
 
+"""
+This module provides solvers for the Lindblad master equation, von Neumann
+equation and the Schrodinger equation.
+"""
+
 import types
 import numpy as np
 from scipy.linalg import norm
 import scipy.integrate
 
-from qutip.qobj import Qobj
-from qutip.superoperator import *
+from qutip.qobj import Qobj, isket, isoper, issuper
+from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
 from qutip.expect import expect
 from qutip.odeoptions import Odeoptions
 from qutip.cyQ.spmatfuncs import cy_ode_rhs
@@ -33,11 +38,9 @@ from qutip.odedata import Odedata
 from qutip.states import ket2dm
 from qutip.odechecks import _ode_checks
 import os
-import numpy
+
 import qutip.odeconfig as odeconfig
 from qutip._reset import _reset_odeconfig
-
-import copy
 
 #
 # Set to True to activate function call trace printouts
@@ -595,7 +598,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
         cgen.generate(odeconfig.tdname + ".pyx")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
-        pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
+        pyximport.install(setup_args={'include_dirs': [np.get_include()]})
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
@@ -698,7 +701,7 @@ def _wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
         cgen.generate(odeconfig.tdname + ".pyx")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
-        pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
+        pyximport.install(setup_args={'include_dirs': [np.get_include()]})
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
@@ -828,7 +831,7 @@ def _wfsolve_list_td(H_func, psi0, tlist, expt_ops, args, opt):
         cgen.generate(odeconfig.tdname + ".pyx")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
-        pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
+        pyximport.install(setup_args={'include_dirs': [np.get_include()]})
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
@@ -1045,7 +1048,7 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
         cgen.generate(odeconfig.tdname + ".pyx")
         os.environ['CFLAGS'] = '-O3 -w'
         import pyximport
-        pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
+        pyximport.install(setup_args={'include_dirs': [np.get_include()]})
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())

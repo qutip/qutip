@@ -17,13 +17,13 @@
 #
 ###########################################################################
 import numpy as np
-from scipy import (zeros, array, arange, exp, real, imag, conj,
+from scipy import (zeros, array, arange, exp, real, imag, conj, pi,
                    copy, sqrt, meshgrid, size, polyval, fliplr, conjugate)
 import scipy.sparse as sp
 import scipy.linalg as la
 from scipy.special import genlaguerre
 from qutip.tensor import tensor
-from qutip.qobj import *
+from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.states import *
 from qutip.parfor import parfor
 
@@ -120,7 +120,7 @@ def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
     X, Y = meshgrid(xvec, yvec)
     A = 0.5 * g * (X + 1.0j * Y)
 
-    Wlist = array([zeros(shape(A), dtype=complex) for k in range(M)])
+    Wlist = array([zeros(np.shape(A), dtype=complex) for k in range(M)])
     Wlist[0] = exp(-2.0 * abs(A) ** 2) / pi
 
     W = real(rho[0, 0]) * real(Wlist[0])
@@ -156,7 +156,7 @@ def _wigner_laguerre(rho, xvec, yvec, g, parallel):
     M = prod(rho.shape[0])
     X, Y = meshgrid(xvec, yvec)
     A = 0.5 * g * (X + 1.0j * Y)
-    W = zeros(shape(A))
+    W = zeros(np.shape(A))
 
     # compute wigner functions for density matrices |m><n| and
     # weight by all the elements in the density matrix
@@ -203,7 +203,7 @@ def _par_wig_eval(args):
     parfor.
     """
     m, rho, A, B = args
-    W1 = zeros(shape(A))
+    W1 = zeros(np.shape(A))
     for jj in range(rho.data.indptr[m], rho.data.indptr[m + 1]):
         n = rho.data.indices[jj]
 
@@ -266,7 +266,7 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
         # d[i]   = eigenvalue i
         # v[:,i] = eigenvector i
 
-        qmat = zeros(shape(amat))
+        qmat = zeros(np.shape(amat))
         for k in arange(0, len(d)):
             qmat1 = _qfunc_pure(v[:, k], amat)
             qmat += real(d[k] * qmat1)
