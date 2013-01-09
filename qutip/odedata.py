@@ -1,9 +1,9 @@
-#This file is part of QuTIP.
+# This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTIP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -20,10 +20,10 @@
 
 class Odedata():
     """Class for storing simulation results from any of the dynamics solvers.
-    
+
     Attributes
     ----------
-    
+
     solver : str
         Which solver was used ['mesolve','mcsolve','brsolve','floquet']
     times : list/array
@@ -37,43 +37,45 @@ class Odedata():
     num_collapse : int
         Number of collapse operators in simualation.
     ntraj : int/list
-        Number of monte-carlo trajectories (if using mcsolve).  List indicates that averaging of
-        expectation values was done over a subset of total number of trajectories.
+        Number of monte-carlo trajectories (if using mcsolve).  List indicates
+        that averaging of expectation values was done over a subset of total
+        number of trajectories.
     col_times : list
         Times at which state collpase occurred.  Only for Monte-Carlo solver.
     col_which : list
-        Which collapse operator was responsible for each collapse in ``col_times``. mcsolver only.
-    
+        Which collapse operator was responsible for each collapse in
+        ``col_times``. mcsolver only.
+
     """
     def __init__(self):
-        self.solver=None
-        self.times=None
-        self.states=[]
-        self.expect=[]
-        self.num_expect=0
-        self.num_collapse=0
-        self.ntraj=None
-        self.col_times=None
-        self.col_which=None
+        self.solver = None
+        self.times = None
+        self.states = []
+        self.expect = []
+        self.num_expect = 0
+        self.num_collapse = 0
+        self.ntraj = None
+        self.col_times = None
+        self.col_which = None
+
     def __str__(self):
-        s="Odedata object "
+        s = "Odedata object "
         if self.solver:
-            s+="with "+self.solver+" data.\n"
+            s += "with " + self.solver + " data.\n"
         else:
-            s+="missing solver information.\n"
-        s+="-"*(len(s)-1)+"\n"
-        if self.states is not None and len(self.states)>0:
-            s+= "states = True\n"
-        elif self.expect is not None and len(self.expect)>0:
-            s+="expect = True\nnum_expect = "+str(self.num_expect)+", "
+            s += "missing solver information.\n"
+        s += "-" * (len(s) - 1) + "\n"
+        if self.states is not None and len(self.states) > 0:
+            s += "states = True\n"
+        elif self.expect is not None and len(self.expect) > 0:
+            s += "expect = True\nnum_expect = " + str(self.num_expect) + ", "
         else:
-            s+= "states = True, expect = True\n"+"num_expect = "+str(self.num_expect)+", "
-        s+="num_collapse = "+str(self.num_collapse)
-        if self.solver=='mcsolve':
-            s+=", ntraj = "+str(self.ntraj)
+            s += "states = True, expect = True\n" + \
+                "num_expect = " + str(self.num_expect) + ", "
+        s += "num_collapse = " + str(self.num_collapse)
+        if self.solver == 'mcsolve':
+            s += ", ntraj = " + str(self.ntraj)
         return s
+
     def __repr__(self):
         return self.__str__()
-        
-
-
