@@ -1,4 +1,4 @@
-#This file is part of QuTIP.
+# This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
@@ -87,7 +87,7 @@ def entropy_linear(rho):
     """
     if rho.type == 'ket' or rho.type == 'bra':
         rho = ket2dm(rho)
-    return float(real(1.0 - (rho**2).tr()))
+    return float(real(1.0 - (rho ** 2).tr()))
 
 
 def concurrence(rho):
@@ -189,8 +189,8 @@ def _entropy_relative(rho, sigma, base=e, sparse=False):
     """
     if rho.type != 'oper' or sigma.type != 'oper':
         raise TypeError("Inputs must be density matricies.")
-    #sigma terms
-    svals = sp_eigs(sigma,vecs=False, sparse=sparse)
+    # sigma terms
+    svals = sp_eigs(sigma, vecs=False, sparse=sparse)
     snzvals = svals[svals != 0]
     if base == 2:
         slogvals = log2(snzvals)
@@ -198,10 +198,10 @@ def _entropy_relative(rho, sigma, base=e, sparse=False):
         slogvals = log(snzvals)
     else:
         raise ValueError("Base must be 2 or e.")
-    #rho terms
+    # rho terms
     rvals = sp_eigs(rho, vecs=False, sparse=sparse)
     rnzvals = rvals[rvals != 0]
-    #calculate tr(rho*log sigma)
+    # calculate tr(rho*log sigma)
     rel_trace = float(real(sum(rnzvals * slogvals)))
     return -entropy_vn(rho, base, sparse) - rel_trace
 
