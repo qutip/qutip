@@ -128,7 +128,7 @@ else:
     qutip.settings.qutip_gui = os.environ['QUTIP_GUI']
 
 # check if being run remotely
-if sys.platform != 'darwin' and not ('DISPLAY' in os.environ):
+if not sys.platform in ['darwin', 'win32'] and not ('DISPLAY' in os.environ):
     # no graphics if DISPLAY isn't set
     os.environ['QUTIP_GRAPHICS'] = "NO"
     qutip.settings.qutip_graphics = "NO"
