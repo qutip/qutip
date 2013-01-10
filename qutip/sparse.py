@@ -105,9 +105,10 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
         eigvals = 0
     if eigvals > N:
         raise ValueError("Number of requested eigen vals/vecs must be <= N.")
-    if eigvals > 0 and not op.isherm:
-        # only sparse routine can get selected eigs for nonherm matricies
-        sparse = True
+    #if eigvals > 0 and not op.isherm:
+    #    # only sparse routine can get selected eigs for nonherm matricies
+    #    print("forcing sparse solver")
+    #    sparse = True
     remove_one = False
     if eigvals == (N - 1) and sparse:
         # calculate all eigenvalues and remove one at output if using sparse
@@ -211,6 +212,7 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
                             op.full(), eigvals=[N - num_large, N - 1])
             else:
                 evals, evecs = la.eig(op.full())
+
             evecs = sp.csr_matrix(evecs, dtype=complex)
         else:
             if op.isherm:
@@ -225,6 +227,7 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
                             op.full(), eigvals=[N - num_large, N - 1])
             else:
                 evals = la.eigvals(op.full())
+
         # sort return values
         _zipped = list(zip(evals, range(len(evals))))
         _zipped.sort()
