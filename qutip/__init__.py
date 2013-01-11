@@ -72,7 +72,12 @@ else:
 #
 _cython_requirement = "0.15.0"
 try:
-    # todo: check cython version
+    import Cython
+    if version2int(Cython.__version__) < version2int(_cython_requirement):
+        print("QuTiP warning: old version of cython detected " +
+              ("(%s), requiring %s." %
+               (Cython.__version__, _cython_requirement)))
+
     import pyximport
     os.environ['CFLAGS'] = '-O3 -w'
     pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
