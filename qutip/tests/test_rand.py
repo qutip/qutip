@@ -39,7 +39,7 @@ class TestRand:
 
         H = array([rand_herm(5) for k in range(5)])
         for k in range(5):
-            assert_equal(H[k].isherm == True, True)
+            assert_equal(H[k].isherm, True)
 
     def testRanddm(self):
         "random density matrix"
