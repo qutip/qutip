@@ -39,6 +39,7 @@ def test_EntropyVN():
         else:
             assert_equal(
                 out, -a[k] * log2(a[k]) - (1. - a[k]) * log2((1. - a[k])))
+
     # test_ entropy_vn = 0 for pure state
     psi = rand_ket(10)
     assert_equal(abs(entropy_vn(psi)) <= 1e-13, True)
@@ -73,13 +74,16 @@ def test_EntropyMutual():
     "Mutual information"
     # verify mutual information = S(A)+S(B) for pure state
     rhos = [rand_dm(25, dims=[[5, 5], [5, 5]], pure=True) for k in range(10)]
+
     for r in rhos:
         assert_equal(abs(entropy_mutual(r, [0], [1]) - (
             entropy_vn(ptrace(r, 0)) + entropy_vn(ptrace(r, 1)))) < 1e-13,
             True)
+
     # check component selection
     rhos = [rand_dm(8, dims=[[2, 2, 2], [2, 2, 2]], pure=True)
             for k in range(10)]
+
     for r in rhos:
         assert_equal(abs(entropy_mutual(r, [0, 2], [1]) - (entropy_vn(
             ptrace(r, [0, 2])) + entropy_vn(ptrace(r, 1)))) < 1e-13, True)
@@ -88,16 +92,19 @@ def test_EntropyMutual():
 def test_EntropyConditional():
     "Conditional entropy"
     # test_ S(A,B|C,D)<=S(A|C)+S(B|D)
-    rhos = [rand_dm(
-        16, dims=[[2, 2, 2, 2], [2, 2, 2, 2]], pure=True) for k in range(20)]
+    rhos = [rand_dm(16, dims=[[2, 2, 2, 2], [2, 2, 2, 2]], pure=True)
+            for k in range(20)]
+
     for ABCD in rhos:
         AC = ptrace(ABCD, [0, 2])
         BD = ptrace(ABCD, [1, 3])
         assert_equal(entropy_conditional(ABCD, [2, 3]) <= (
             entropy_conditional(AC, 1) + entropy_conditional(BD, 1)), True)
+
     # test_ S(A|B,C)<=S(A|B)
     rhos = [rand_dm(8, dims=[[2, 2, 2], [2, 2, 2]], pure=True)
             for k in range(20)]
+
     for ABC in rhos:
         AB = ptrace(ABC, [0, 1])
         assert_equal(entropy_conditional(
