@@ -178,9 +178,6 @@ def mcsolve(H,psi0,tlist,c_ops,e_ops,ntraj=500,args={},options=Odeoptions()):
         #Configure data
         _mc_data_config(H,psi0,h_stuff,c_ops,c_stuff,args,e_ops,options)
         if odeconfig.tflag in array([1,10,11]): #compile time-depdendent RHS code
-            os.environ['CFLAGS'] = '-O3 -w'
-            import pyximport
-            pyximport.install(setup_args={'include_dirs':[numpy.get_include()]})
             if odeconfig.tflag in array([1,11]):
                 code = compile('from '+odeconfig.tdname+' import cyq_td_ode_rhs,col_spmv,col_expect', '<string>', 'exec')
                 exec(code, globals())

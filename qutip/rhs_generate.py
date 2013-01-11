@@ -151,12 +151,11 @@ def rhs_generate(H, c_ops, args={}, options=Odeoptions(), name=None):
 
     cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args)
     cgen.generate(odeconfig.tdname + ".pyx")
-    os.environ['CFLAGS'] = '-O3 -w'
-    import pyximport
-    pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
+
     code = compile('from ' + odeconfig.tdname +
                    ' import cyq_td_ode_rhs', '<string>', 'exec')
     exec(code)
+
     odeconfig.tdfunc = cyq_td_ode_rhs
     try:
         os.remove(odeconfig.tdname + ".pyx")
