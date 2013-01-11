@@ -42,23 +42,27 @@ import qutip.settings
 from qutip._reset import _reset_odeconfig
 
 
-def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500, args={}, options=Odeoptions()):
+def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500,
+            args={}, options=Odeoptions()):
     """Monte-Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
     are given by the Odeoptions class.
 
     mcsolve supports time-dependent Hamiltonians and collapse operators using
-    either Python functions of strings to represent time-dependent coefficients.
-    Note that, the system Hamiltonian MUST have at least one constant term.
+    either Python functions of strings to represent time-dependent
+    coefficients. Note that, the system Hamiltonian MUST have at least one
+    constant term.
 
-    As an example of a time-dependent problem, consider a Hamiltonian with two terms ``H0``
-    and ``H1``, where ``H1`` is time-dependent with coefficient ``sin(w*t)``, and collapse operators
-    ``C0`` and ``C1``, where ``C1`` is time-dependent with coeffcient ``exp(-a*t)``.  Here, w and a are
-    constant arguments with values ``W`` and ``A``.
+    As an example of a time-dependent problem, consider a Hamiltonian with two
+    terms ``H0`` and ``H1``, where ``H1`` is time-dependent with coefficient
+    ``sin(w*t)``, and collapse operators ``C0`` and ``C1``, where ``C1`` is
+    time-dependent with coeffcient ``exp(-a*t)``.  Here, w and a are constant
+    arguments with values ``W`` and ``A``.
 
-    Using the Python function time-dependent format requires two Python functions,
-    one for each collapse coefficient. Therefore, this problem could be expressed as::
+    Using the Python function time-dependent format requires two Python
+    functions, one for each collapse coefficient. Therefore, this problem could
+    be expressed as::
 
         def H1_coeff(t,args):
             return sin(args['w']*t)
@@ -94,9 +98,11 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500, args={}, options=Odeoptions
     ntraj : int
         Number of trajectories to run.
     c_ops : array_like
-        single collapse operator or ``list`` or ``array`` of collapse operators.
+        single collapse operator or ``list`` or ``array`` of collapse
+        operators.
     e_ops : array_like
-        single operator or ``list`` or ``array`` of operators for calculating expectation values.
+        single operator or ``list`` or ``array`` of operators for calculating
+        expectation values.
     args : dict
         Arguments for time-dependent Hamiltonian and collapse operator terms.
     options : Odeoptions
@@ -181,9 +187,12 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500, args={}, options=Odeoptions
 
         # Configure data
         _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options)
-        if odeconfig.tflag in array([1, 10, 11]):  # compile time-depdendent RHS code
+        if odeconfig.tflag in array([1, 10, 11]):
+            # compile time-depdendent RHS code
             if odeconfig.tflag in array([1, 11]):
-                code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs,col_spmv,col_expect', '<string>', 'exec')
+                code = compile('from ' + odeconfig.tdname +
+                               ' import cyq_td_ode_rhs, col_spmv,col_expect',
+                               '<string>', 'exec')
                 exec(code, globals())
                 odeconfig.tdfunc = cyq_td_ode_rhs
                 odeconfig.colspmv = col_spmv
@@ -199,7 +208,8 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500, args={}, options=Odeoptions
                 print("Error removing pyx file.  File not found.")
         elif odeconfig.tflag == 0:
             odeconfig.tdfunc = cy_ode_rhs
-    else:  # setup args for new parameters when rhs_reuse=True and tdfunc is given
+    else:
+        # setup args for new parameters when rhs_reuse=True and tdfunc is given
         # string based
         if odeconfig.tflag in array([1, 10, 11]):
             if any(args):
