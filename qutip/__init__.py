@@ -68,6 +68,21 @@ else:
     setup_file.close()
 
 
+
+#------------------------------------------------------------------------------
+# setup the cython environment
+#
+_cython_requirement = "0.15.0"
+try:
+    # todo: check cython version
+    import pyximport
+    os.environ['CFLAGS'] = '-O3 -w'
+    pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
+
+except Exception as e:
+    print("QuTiP warning: cython setup failed: " + str(e))
+
+
 #------------------------------------------------------------------------------
 # default configuration settings
 #
