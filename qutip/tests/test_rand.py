@@ -1,9 +1,9 @@
-#This file is part of QuTIP.
+# This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTIP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -21,6 +21,7 @@ from numpy.testing import assert_, assert_equal, run_module_suite
 
 from qutip import *
 
+
 class TestRand:
     """
     A test class for the built-in random quantum object generators.
@@ -29,34 +30,33 @@ class TestRand:
     def testRandUnitary(self):
         "random Unitary"
 
-        U=array([rand_unitary(5) for k in range(5)])
+        U = array([rand_unitary(5) for k in range(5)])
         for k in range(5):
-            assert_equal(U[k]*U[k].dag()==qeye(5), True)
-    
+            assert_equal(U[k] * U[k].dag() == qeye(5), True)
+
     def testRandherm(self):
         "random hermitian"
 
-        H=array([rand_herm(5) for k in range(5)])
+        H = array([rand_herm(5) for k in range(5)])
         for k in range(5):
-            assert_equal(H[k].isherm==True, True)
-            
+            assert_equal(H[k].isherm, True)
+
     def testRanddm(self):
         "random density matrix"
 
-        R=array([rand_dm(5) for k in range(5)])
+        R = array([rand_dm(5) for k in range(5)])
         for k in range(5):
-            assert_equal(R[k].tr()-1.0<1e-15, True)
-            #verify all eigvals are >=0
-            assert_(not any(sp_eigs(R[k],vecs=False))<0)
-            #verify hermitian
+            assert_equal(R[k].tr() - 1.0 < 1e-15, True)
+            # verify all eigvals are >=0
+            assert_(not any(sp_eigs(R[k], vecs=False)) < 0)
+            # verify hermitian
             assert_(R[k].isherm)
 
     def testRandket(self):
         "random ket"
-        P=array([rand_ket(5) for k in range(5)])
+        P = array([rand_ket(5) for k in range(5)])
         for k in range(5):
-            assert_equal(P[k].type=='ket', True)
-        
+            assert_equal(P[k].type == 'ket', True)
+
 if __name__ == "__main__":
     run_module_suite()
-

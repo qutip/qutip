@@ -596,9 +596,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             odeconfig.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args)
         cgen.generate(odeconfig.tdname + ".pyx")
-        os.environ['CFLAGS'] = '-O3 -w'
-        import pyximport
-        pyximport.install(setup_args={'include_dirs': [np.get_include()]})
+
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
@@ -699,9 +697,7 @@ def _wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
             odeconfig.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args)
         cgen.generate(odeconfig.tdname + ".pyx")
-        os.environ['CFLAGS'] = '-O3 -w'
-        import pyximport
-        pyximport.install(setup_args={'include_dirs': [np.get_include()]})
+
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
@@ -829,9 +825,7 @@ def _wfsolve_list_td(H_func, psi0, tlist, expt_ops, args, opt):
             odeconfig.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args)
         cgen.generate(odeconfig.tdname + ".pyx")
-        os.environ['CFLAGS'] = '-O3 -w'
-        import pyximport
-        pyximport.install(setup_args={'include_dirs': [np.get_include()]})
+
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
@@ -1046,9 +1040,7 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
             odeconfig.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args)
         cgen.generate(odeconfig.tdname + ".pyx")
-        os.environ['CFLAGS'] = '-O3 -w'
-        import pyximport
-        pyximport.install(setup_args={'include_dirs': [np.get_include()]})
+
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())

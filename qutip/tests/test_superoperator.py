@@ -23,6 +23,7 @@ import scipy
 
 from qutip import *
 
+
 class TestMatrixVector:
     """
     A test class for the QuTiP function for matrix/vector conversion.
@@ -35,7 +36,7 @@ class TestMatrixVector:
         M = scipy.rand(10, 10)
         V = mat2vec(M)
         M2 = vec2mat(V)
-        assert_(norm(M-M2) == 0.0)
+        assert_(norm(M - M2) == 0.0)
 
     def testVectorMatrixVector(self):
         """
@@ -43,30 +44,30 @@ class TestMatrixVector:
         """
         V = scipy.rand(100)     # a row vector
         M = vec2mat(V)
-        V2 = mat2vec(M).T # mat2vec returns a column vector
-        assert_(norm(V-V2) == 0.0)
-        
+        V2 = mat2vec(M).T  # mat2vec returns a column vector
+        assert_(norm(V - V2) == 0.0)
+
     def testVectorMatrixIndexConversion(self):
         """
         Superoperator: Conversion between matrix and vector indices
         """
-        N = 10 
-        for I in range(N*N):
-            i,j = vec2mat_index(N, I)
-            I2  = mat2vec_index(N, i, j) 
+        N = 10
+        for I in range(N * N):
+            i, j = vec2mat_index(N, I)
+            I2 = mat2vec_index(N, i, j)
             assert_(I == I2)
 
     def testVectorMatrixIndexCompability(self):
         """
-        Superoperator: Test compability between matrix/vector conversion and the corresponding index conversion.
+        Superoperator: Test compability between matrix/vector conversion and
+        the corresponding index conversion.
         """
-        N = 10 
+        N = 10
         M = scipy.rand(N, N)
         V = mat2vec(M)
-        for I in range(N*N):
-            i,j = vec2mat_index(N, I)
-            assert_(V[I][0] == M[i,j])
+        for I in range(N * N):
+            i, j = vec2mat_index(N, I)
+            assert_(V[I][0] == M[i, j])
 
 if __name__ == "__main__":
     run_module_suite()
-

@@ -20,6 +20,7 @@
 from numpy.testing import assert_, run_module_suite
 from qutip import *
 
+
 class TestStates:
     """
     A test class for the QuTiP functions for generating quantum states
@@ -39,7 +40,7 @@ class TestStates:
     def testThermalDensityMatrix(self):
         """
         states: thermal density matrix
-        """        
+        """
         N = 40
 
         rho = thermal_dm(N, 1)
@@ -56,8 +57,7 @@ class TestStates:
             rho = fock_dm(N, i)
             # make sure rho has trace close to 1.0
             assert_(abs(rho.tr() - 1.0) < 1e-12)
-            assert_(rho.data[i,i] == 1.0)        
+            assert_(rho.data[i, i] == 1.0)
 
 if __name__ == "__main__":
     run_module_suite()
-
