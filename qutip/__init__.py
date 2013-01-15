@@ -28,7 +28,6 @@ import qutip._version
 # if the requirements aren't fulfilled
 #
 
-
 def version2int(version_string):
     return sum([int(d) * (100 ** (3 - n))
                 for n, d in enumerate(version_string.split('.')[:3])])
@@ -66,6 +65,25 @@ else:
         print("You are in the installation directory. " +
               "Change directories before running QuTiP.")
     setup_file.close()
+
+
+#------------------------------------------------------------------------------
+# setup the cython environment
+#
+_cython_requirement = "0.15.0"
+try:
+    import Cython
+    if version2int(Cython.__version__) < version2int(_cython_requirement):
+        print("QuTiP warning: old version of cython detected " +
+              ("(%s), requiring %s." %
+               (Cython.__version__, _cython_requirement)))
+
+    import pyximport
+    os.environ['CFLAGS'] = '-O3 -w'
+    pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
+
+except Exception as e:
+    print("QuTiP warning: cython setup failed: " + str(e))
 
 
 #------------------------------------------------------------------------------

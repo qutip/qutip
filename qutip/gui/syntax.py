@@ -1,10 +1,9 @@
-################################################################################
-#This file is part of QuTiP.
+# This file is part of QuTiP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTIP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -16,16 +15,18 @@
 #
 # Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
 #
-################################################################################
-
+##########################################################################
 
 from qutip.examples.examples_text import qutip_keywords
-import sys,os
-if os.environ['QUTIP_GUI']=="PYSIDE":
+import sys
+import os
+
+if os.environ['QUTIP_GUI'] == "PYSIDE":
     from PySide import QtGui, QtCore
 
-elif os.environ['QUTIP_GUI']=="PYQT4":
+elif os.environ['QUTIP_GUI'] == "PYQT4":
     from PyQt4 import QtGui, QtCore
+
 
 def format(color, style=''):
     """Return a QTextCharFormat with the given attributes.
@@ -67,10 +68,9 @@ class PythonHighlighter (QtGui.QSyntaxHighlighter):
         'for', 'from', 'global', 'if', 'import', 'in',
         'is', 'lambda', 'not', 'or', 'pass', 'print',
         'raise', 'return', 'try', 'while', 'yield',
-        'None', 'True', 'False','linspace','array','arange','zeros']
-    
-    
-    keywords=python_keywords+qutip_keywords
+        'None', 'True', 'False', 'linspace', 'array', 'arange', 'zeros']
+
+    keywords = python_keywords + qutip_keywords
     # Python operators
     operators = [
         '=',
@@ -88,6 +88,7 @@ class PythonHighlighter (QtGui.QSyntaxHighlighter):
     braces = [
         '\{', '\}', '\(', '\)', '\[', '\]',
     ]
+
     def __init__(self, document):
         QtGui.QSyntaxHighlighter.__init__(self, document)
 
@@ -101,11 +102,11 @@ class PythonHighlighter (QtGui.QSyntaxHighlighter):
 
         # Keyword, operator, and brace rules
         rules += [(r'\b%s\b' % w, 0, STYLES['keyword'])
-            for w in PythonHighlighter.keywords]
+                  for w in PythonHighlighter.keywords]
         rules += [(r'%s' % o, 0, STYLES['operator'])
-            for o in PythonHighlighter.operators]
+                  for o in PythonHighlighter.operators]
         rules += [(r'%s' % b, 0, STYLES['brace'])
-            for b in PythonHighlighter.braces]
+                  for b in PythonHighlighter.braces]
 
         # All other rules
         rules += [
@@ -128,13 +129,13 @@ class PythonHighlighter (QtGui.QSyntaxHighlighter):
             # Numeric literals
             (r'\b[+-]?[0-9]+[lL]?\b', 0, STYLES['numbers']),
             (r'\b[+-]?0[xX][0-9A-Fa-f]+[lL]?\b', 0, STYLES['numbers']),
-            (r'\b[+-]?[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?\b', 0, STYLES['numbers']),
+            (r'\b[+-]?[0-9]+(?:\.[0-9]+)?(?:[eE][+-]?[0-9]+)?\b',
+             0, STYLES['numbers']),
         ]
 
         # Build a QRegExp for each pattern
         self.rules = [(QtCore.QRegExp(pat), index, fmt)
-            for (pat, index, fmt) in rules]
-
+                      for (pat, index, fmt) in rules]
 
     def highlightBlock(self, text):
         """Apply syntax highlighting to the given block of text.
@@ -156,7 +157,6 @@ class PythonHighlighter (QtGui.QSyntaxHighlighter):
         in_multiline = self.match_multiline(text, *self.tri_single)
         if not in_multiline:
             in_multiline = self.match_multiline(text, *self.tri_double)
-
 
     def match_multiline(self, text, delimiter, in_state, style):
         """Do highlighting of multi-line strings. ``delimiter`` should be a
@@ -197,14 +197,3 @@ class PythonHighlighter (QtGui.QSyntaxHighlighter):
             return True
         else:
             return False
-            
-            
-      
-            
-
-
-
-
-
-
-

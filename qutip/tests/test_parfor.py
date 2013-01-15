@@ -17,47 +17,26 @@
 #
 ###########################################################################
 
+import scipy
+import time
 from numpy.testing import assert_, run_module_suite
+
 from qutip import *
 
+def _func(x):
+    time.sleep(scipy.rand() * 0.25) # random delay
+    return x**2
 
-class TestStates:
-    """
-    A test class for the QuTiP functions for generating quantum states
-    """
 
-    def testCoherentDensityMatrix(self):
-        """
-        states: coherent density matrix
-        """
-        N = 10
+def test_parfor1():
+    "parfor"
 
-        rho = coherent_dm(N, 1)
+    x = arange(10)
+    y1 = map(_func, x)
+    y2 = parfor(_func, x)
 
-        # make sure rho has trace close to 1.0
-        assert_(abs(rho.tr() - 1.0) < 1e-12)
+    assert_((array(y1) == array(y2)).all())
 
-    def testThermalDensityMatrix(self):
-        """
-        states: thermal density matrix
-        """
-        N = 40
-
-        rho = thermal_dm(N, 1)
-
-        # make sure rho has trace close to 1.0
-        assert_(abs(rho.tr() - 1.0) < 1e-12)
-
-    def testFockDensityMatrix(self):
-        """
-        states: Fock density matrix
-        """
-        N = 10
-        for i in range(N):
-            rho = fock_dm(N, i)
-            # make sure rho has trace close to 1.0
-            assert_(abs(rho.tr() - 1.0) < 1e-12)
-            assert_(rho.data[i, i] == 1.0)
 
 if __name__ == "__main__":
     run_module_suite()

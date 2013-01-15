@@ -185,6 +185,7 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
                     small_vals = sp.linalg.eigs(
                         op.data, k=num_small, which='SR',
                         return_eigenvectors=False, tol=tol, maxiter=maxiter)
+
         evals = np.hstack((small_vals, big_vals))
         _zipped = list(zip(evals, range(len(evals))))
         _zipped.sort()
@@ -236,15 +237,30 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
     # return eigenvectors
     if vecs:
         evecs = np.array([evecs[:, k] for k in perm])
+
     if sort == 'high':  # flip arrays to largest values first
         if vecs:
             evecs = np.flipud(evecs)
         evals = np.flipud(evals)
+
     # remove last element if requesting N-1 eigs and using sparse
     if remove_one and sparse:
-            evals = np.delete(evals, -1)
-            if vecs:
-                evecs = np.delete(evecs, -1)
+        evals = np.delete(evals, -1)
+        if vecs:
+            evecs = np.delete(evecs, -1)
+
+    if not sparse and eigvals > 0:
+        if vecs:
+            if num_small > 0:
+                evals, evecs = evals[:num_small], evecs[:num_small]
+            elif num_large > 0:
+                evals, evecs = evals[-num_large:], evecs[-num_large:]
+        else:
+            if num_small > 0:
+                evals = evals[:num_small]
+            elif num_large > 0:
+                evals = evals[-num_large:]
+
     if vecs:
         return np.array(evals), evecs
     else:
