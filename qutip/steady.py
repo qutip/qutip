@@ -130,7 +130,7 @@ See any Linear Algebra book with an iterative methods section.
         if method == 'bicg':
             v, check = bicg(L1, v, tol=tol)
         else:
-            v = spsolve(L1, v, use_umfpack=False)
+            v = spsolve(L1, v, use_umfpack=True)
         v = v / la.norm(v, np.inf)
         it += 1
     if it >= maxiter:
