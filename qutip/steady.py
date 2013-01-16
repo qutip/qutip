@@ -25,7 +25,7 @@ import numpy as np
 from scipy import prod, finfo, randn
 import scipy.sparse as sp
 import scipy.linalg as la
-from scipy.sparse.linalg import spsolve, bicg
+from scipy.sparse.linalg import spsolve, bicgstab, LinearOperator, spilu
 from qutip.qobj import *
 from qutip.superoperator import *
 from qutip.operators import qeye
@@ -123,12 +123,15 @@ See any Linear Algebra book with an iterative methods section.
         rhoss.dims = [L.dims[0], 1]
         rhoss.shape = [prod(rhoss.dims[0]), 1]
     n = prod(rhoss.shape)
-    L1 = L.data + eps * _sp_inf_norm(L) * sp.eye(n, n, format='csr')
+    L1 = L.data.tocsc() + eps * _sp_inf_norm(L) * sp.eye(n, n, format='csc')
     v = randn(n, 1)
     it = 0
     while (la.norm(L.data * v, np.inf) > tol) and (it < maxiter):
         if method == 'bicg':
-            v, check = bicg(L1, v, tol=tol)
+            P= spilu(L1)
+            P_x = lambda x: P.solve(x)
+            M = LinearOperator((n, n), matvec=P_x)
+            v, check = bicgstab(L1, v, tol=tol, M=M)
         else:
             v = spsolve(L1, v, use_umfpack=True)
         v = v / la.norm(v, np.inf)
