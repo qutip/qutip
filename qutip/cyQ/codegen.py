@@ -354,7 +354,7 @@ class Codegen2():
         self.file(filename)
         self.file.writelines(self.code)
         self.file.close()
-        odeconfig.cgen_num += 1
+        self.odeconfig.cgen_num += 1
 
     # increase indention level by one
     def indent(self):
