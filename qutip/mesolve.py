@@ -596,7 +596,8 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
         else:
             odeconfig.tdname = opt.rhs_filename
-        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args)
+        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
+                       odeconfig=odeconfig)
         cgen.generate(odeconfig.tdname + ".pyx")
 
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
@@ -697,7 +698,8 @@ def _wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
             odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
         else:
             odeconfig.tdname = opt.rhs_filename
-        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args)
+        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
+                       odeconfig=odeconfig)
         cgen.generate(odeconfig.tdname + ".pyx")
 
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
@@ -825,7 +827,8 @@ def _wfsolve_list_td(H_func, psi0, tlist, expt_ops, args, opt):
             odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
         else:
             odeconfig.tdname = opt.rhs_filename
-        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args)
+        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
+                       odeconfig=odeconfig)
         cgen.generate(odeconfig.tdname + ".pyx")
 
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
@@ -1040,7 +1043,8 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
             odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
         else:
             odeconfig.tdname = opt.rhs_filename
-        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args)
+        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
+                       odeconfig=odeconfig)
         cgen.generate(odeconfig.tdname + ".pyx")
 
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
