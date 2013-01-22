@@ -20,7 +20,7 @@
 import sys
 import os
 import time
-import numpy
+import numpy as np
 import datetime
 from numpy.random import RandomState, random_integers
 from scipy import arange, array, cumsum, mean, ndarray, setdiff1d, sort, zeros
@@ -455,7 +455,7 @@ class _MC_class():
 # RHS of ODE for time-dependent systems with no collapse operators
 def _tdRHS(t, psi):
     h_data = odeconfig.h_func(t, odeconfig.h_func_args).data
-    return spmv1d(-1.0j * h_data.data, h_data.indices, h_data.indptr, psi)
+    return spmv1d(h_data.data, h_data.indices, h_data.indptr, psi)
 
 # RHS of ODE for constant Hamiltonian and at least one function based
 # collapse operator
@@ -464,12 +464,12 @@ def _tdRHS(t, psi):
 def _cRHStd(t, psi):
     sys = cy_ode_rhs(t, psi, odeconfig.h_data,
                      odeconfig.h_ind, odeconfig.h_ptr)
-    col = array([abs(odeconfig.c_funcs[j](t, odeconfig.c_func_args)) ** 2 *
+    col = array([np.abs(odeconfig.c_funcs[j](t, odeconfig.c_func_args)) ** 2 *
                  spmv1d(odeconfig.n_ops_data[j],
                         odeconfig.n_ops_ind[j],
                         odeconfig.n_ops_ptr[j], psi)
                 for j in odeconfig.c_td_inds])
-    return sys - 0.5 * sum(col, 0)
+    return sys - 0.5 * np.sum(col, 0)
 
 # RHS of ODE for function-list based Hamiltonian
 
@@ -483,22 +483,22 @@ def _tdRHStd(t, psi):
                                 odeconfig.h_td_ind[j],
                                 odeconfig.h_td_ptr[j], psi)
                          for j in odeconfig.h_td_inds])
-    col_func_terms = array([abs(
+    col_func_terms = array([np.abs(
         odeconfig.c_funcs[j](t, odeconfig.c_func_args)) ** 2 *
         spmv1d(odeconfig.n_ops_data[j],
                odeconfig.n_ops_ind[j],
                odeconfig.n_ops_ptr[j],
                psi)
         for j in odeconfig.c_td_inds])
-    return (const_term - 1.0j * sum(h_func_term, 0)
-            - 0.5 * sum(col_func_terms, 0))
+    return (const_term - np.sum(h_func_term, 0)
+            - 0.5 * np.sum(col_func_terms, 0))
 
 # RHS of ODE for python function Hamiltonian
 
 
 def _pyRHSc(t, psi):
     h_func_data = odeconfig.h_funcs(t, odeconfig.h_func_args).data
-    h_func_term = -1.0j * spmv1d(h_func_data.data, h_func_data.indices,
+    h_func_term = spmv1d(h_func_data.data, h_func_data.indices,
                                  h_func_data.indptr, psi)
     const_col_term = 0
     if len(odeconfig.c_const_inds) > 0:
