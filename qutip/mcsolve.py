@@ -44,15 +44,16 @@ from qutip._reset import _reset_odeconfig
 #
 # Set to True to activate function call trace printouts
 #
-debug = True
+debug = False
 if debug:
     import inspect
 
-global_cy_col_spmv_func = None
-global_cy_col_expect_func = None
-global_cy_col_spmv_call_func = None
-global_cy_col_expect_call_func = None
-global_cy_rhs_func = None
+_cy_col_spmv_func = None
+_cy_col_expect_func = None
+_cy_col_spmv_call_func = None
+_cy_col_expect_call_func = None
+_cy_rhs_func = None
+_cgen_num = 0
 
 def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500,
             args={}, options=Odeoptions()):
@@ -204,20 +205,10 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500,
 
         # Configure data
         _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, odeconfig)
-        if odeconfig.tflag in array([1, 10, 11]):
-            print "compile TD RHS"
-            # compile time-depdendent RHS code
-            if odeconfig.tflag in array([1, 11]):
-                code = compile('from ' + odeconfig.tdname +
-                               ' import cyq_td_ode_rhs, col_spmv,col_expect',
-                               '<string>', 'exec')
-                exec(code, globals())
-            else:
-                code = compile('from ' + odeconfig.tdname +
-                               ' import cyq_td_ode_rhs', '<string>', 'exec')
-                exec(code, globals())
-        #elif odeconfig.tflag == 0:
-        #    odeconfig.tdfunc = cy_ode_rhs
+
+        # compile and load cython functions if necessary
+        _mc_func_load(odeconfig)
+        
     else:
         # setup args for new parameters when rhs_reuse=True and tdfunc is given
         # string based
@@ -233,8 +224,16 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500,
 
     # load monte-carlo class
     mc = _MC_class(odeconfig)
+
     # RUN THE SIMULATION
     mc.run()
+
+    # remove RHS cython file if necessary
+    if not options.rhs_reuse and odeconfig.tdname:
+        try:
+            os.remove(odeconfig.tdname + ".pyx")
+        except Exception as e:
+            print("Error removing pyx file: " + str(e))
 
     # AFTER MCSOLVER IS DONE --------------------------------------
     #-------COLLECT AND RETURN OUTPUT DATA IN ODEDATA OBJECT --------------#
@@ -368,10 +367,6 @@ class _MC_class():
     # CLASS METHODS
     #-------------------------------------------------#
     def callback(self, results):
-
-        if debug:
-            print(inspect.stack()[0][3])
-
         r = results[0]
         if self.odeconfig.e_num == 0:  # output state-vector
             self.psi_out[r] = results[1]
@@ -478,15 +473,15 @@ class _MC_class():
 #----------------------------------------------------
 # CODES FOR PYTHON FUNCTION BASED TIME-DEPENDENT RHS
 #----------------------------------------------------
+
 # RHS of ODE for time-dependent systems with no collapse operators
 def _tdRHS(t, psi, odeconfig):
     h_data = odeconfig.h_func(t, odeconfig.h_func_args).data
     return spmv1d(-1.0j * h_data.data, h_data.indices, h_data.indptr, psi)
 
+
 # RHS of ODE for constant Hamiltonian and at least one function based
 # collapse operator
-
-
 def _cRHStd(t, psi, odeconfig):
     sys = cy_ode_rhs(t, psi, odeconfig.h_data,
                      odeconfig.h_ind, odeconfig.h_ptr)
@@ -497,9 +492,8 @@ def _cRHStd(t, psi, odeconfig):
                 for j in odeconfig.c_td_inds])
     return sys - 0.5 * sum(col, 0)
 
+
 # RHS of ODE for function-list based Hamiltonian
-
-
 def _tdRHStd(t, psi, odeconfig):
     const_term = spmv1d(odeconfig.h_data,
                         odeconfig.h_ind,
@@ -519,9 +513,8 @@ def _tdRHStd(t, psi, odeconfig):
     return (const_term - 1.0j * sum(h_func_term, 0)
             - 0.5 * sum(col_func_terms, 0))
 
+
 # RHS of ODE for python function Hamiltonian
-
-
 def _pyRHSc(t, psi, odeconfig):
     h_func_data = odeconfig.h_funcs(t, odeconfig.h_func_args).data
     h_func_term = -1.0j * spmv1d(h_func_data.data, h_func_data.indices,
@@ -531,10 +524,11 @@ def _pyRHSc(t, psi, odeconfig):
         const_col_term = spmv1d(
             odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr, psi)
     return h_func_term + const_col_term
+
+
 #----------------------------------------------------
 # END PYTHON FUNCTION RHS
 #----------------------------------------------------
-
 
 ######---return psi at requested times for no collapse operators---######
 def _no_collapse_psi_out(num_times, psi_out, odeconfig):
@@ -542,40 +536,19 @@ def _no_collapse_psi_out(num_times, psi_out, odeconfig):
     # expectation values are given.
     #
     
+    global _cy_rhs_func
+    global _cy_col_spmv_func, _cy_col_expect_func
+    global _cy_col_spmv_call_func, _cy_col_expect_call_func
+
     if debug:
-        print(inspect.stack()[0][3])
-    
-    try:
-        if global_cy_rhs_func and global_cy_col_spmv_func and global_cy_col_expect_func:
-            print inspect.stack()[0][3] + ": " +str(os.getpid()) + "cython function already available"
+        print(inspect.stack()[0][3])    
 
-    except:
-        # not yet loaded, compile and load now
-        global_cy_col_spmv_call_func = compile(odeconfig.col_spmv_code, '<string>', 'exec')
-        global_cy_col_expect_call_func = compile(odeconfig.col_expect_code, '<string>', 'exec')
-
-        if odeconfig.tflag in array([1, 10, 11]):
-            # compile time-depdendent RHS code
-            if odeconfig.tflag in array([1, 11]):
-                code = compile('from ' + odeconfig.tdname +
-                               ' import cyq_td_ode_rhs, col_spmv, col_expect',
-                               '<string>', 'exec')
-                exec(code, globals(), locals())
-                global_cy_rhs_func = cyq_td_ode_rhs
-                global_cy_col_spmv_func = col_spmv
-                global_cy_col_expect_func = col_expect
-            else:
-                code = compile('from ' + odeconfig.tdname +
-                               ' import cyq_td_ode_rhs', '<string>', 'exec')
-                exec(code, globals())
-                global_cy_rhs_func = cyq_td_ode_rhs
-        elif odeconfig.tflag == 0:
-            global_cy_rhs_func = cy_ode_rhs
-
+    if not _cy_rhs_func:
+        _mc_func_load(odeconfig)
 
     opt = odeconfig.options
     if odeconfig.tflag in array([1, 10, 11]):
-        ODE = ode(global_cy_rhs_func) # XXX
+        ODE = ode(_cy_rhs_func) # XXX
         code = compile('ODE.set_f_params(' + odeconfig.string + ')',
                        '<string>', 'exec')
         exec(code)
@@ -621,36 +594,16 @@ def _no_collapse_expect_out(num_times, expect_out, odeconfig):
     if debug:
         print(inspect.stack()[0][3])
 
-    try:
-        if global_cy_rhs_func and global_cy_col_spmv_func and global_cy_col_expect_func:
-            print inspect.stack()[0][3] + ": " +str(os.getpid()) + "cython function already available"
+    global _cy_rhs_func
+    global _cy_col_spmv_func, _cy_col_expect_func
+    global _cy_col_spmv_call_func, _cy_col_expect_call_func
 
-    except:
-        # not yet loaded, compile and load now
-        global_cy_col_spmv_call_func = compile(odeconfig.col_spmv_code, '<string>', 'exec')
-        global_cy_col_expect_call_func = compile(odeconfig.col_expect_code, '<string>', 'exec')
-
-        if odeconfig.tflag in array([1, 10, 11]):
-            # compile time-depdendent RHS code
-            if odeconfig.tflag in array([1, 11]):
-                code = compile('from ' + odeconfig.tdname +
-                               ' import cyq_td_ode_rhs, col_spmv, col_expect',
-                               '<string>', 'exec')
-                exec(code, globals(), locals())
-                global_cy_rhs_func = cyq_td_ode_rhs
-                global_cy_col_spmv_func = col_spmv
-                global_cy_col_expect_func = col_expect
-            else:
-                code = compile('from ' + odeconfig.tdname +
-                               ' import cyq_td_ode_rhs', '<string>', 'exec')
-                exec(code, globals())
-                global_cy_rhs_func = cyq_td_ode_rhs
-        elif odeconfig.tflag == 0:
-            global_cy_rhs_func = cy_ode_rhs
+    if not _cy_rhs_func:
+        _mc_func_load(odeconfig)
 
     opt = odeconfig.options
     if odeconfig.tflag in array([1, 10, 11]):
-        ODE = ode(global_cy_rhs_func) 
+        ODE = ode(_cy_rhs_func) 
         code = compile('ODE.set_f_params(' + odeconfig.string + ')', '<string>', 'exec')
         exec(code)
     elif odeconfig.tflag == 2:
@@ -701,36 +654,12 @@ def _mc_alg_evolve(nt, args, odeconfig):
     at times tlist for a single trajectory.
     """
 
-    if debug:
-        print(inspect.stack()[0][3] + ": "  + str(os.getpid()))
-  
-    try:
-        if global_cy_rhs_func and global_cy_col_spmv_func and global_cy_col_expect_func:
-            print inspect.stack()[0][3] + ": " +str(os.getpid()) + "cython function already available"
+    global _cy_rhs_func
+    global _cy_col_spmv_func, _cy_col_expect_func
+    global _cy_col_spmv_call_func, _cy_col_expect_call_func
 
-    except:
-        # not yet loaded, compile and load now
-        global_cy_col_spmv_call_func = compile(odeconfig.col_spmv_code, '<string>', 'exec')
-        global_cy_col_expect_call_func = compile(odeconfig.col_expect_code, '<string>', 'exec')
-
-        if odeconfig.tflag in array([1, 10, 11]):
-            # compile time-depdendent RHS code
-            if odeconfig.tflag in array([1, 11]):
-                code = compile('from ' + odeconfig.tdname +
-                               ' import cyq_td_ode_rhs, col_spmv, col_expect',
-                               '<string>', 'exec')
-                exec(code, globals(), locals())
-                global_cy_rhs_func = cyq_td_ode_rhs
-                global_cy_col_spmv_func = col_spmv
-                global_cy_col_expect_func = col_expect
-            else:
-                code = compile('from ' + odeconfig.tdname +
-                               ' import cyq_td_ode_rhs', '<string>', 'exec')
-                exec(code, globals())
-                global_cy_rhs_func = cyq_td_ode_rhs
-        elif odeconfig.tflag == 0:
-            global_cy_rhs_func = cy_ode_rhs
-
+    if not _cy_rhs_func:
+        _mc_func_load(odeconfig)
 
     try:
     
@@ -746,7 +675,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
 
         # CREATE ODE OBJECT CORRESPONDING TO DESIRED TIME-DEPENDENCE
         if odeconfig.tflag in array([1, 10, 11]):
-            ODE = ode(global_cy_rhs_func)
+            ODE = ode(_cy_rhs_func)
             code = compile('ODE.set_f_params(' + odeconfig.string + ')',
                            '<string>', 'exec')
             exec(code)
@@ -760,7 +689,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
             ODE = ode(_pyRHSc)
             ODE.set_f_params(odeconfig)        
         else:
-            ODE = ode(global_cy_rhs_func)
+            ODE = ode(_cy_rhs_func)
             ODE.set_f_params(odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr)
 
         # initialize ODE solver for RHS
@@ -839,7 +768,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                         _locals = locals()
                         # calculates the expectation values for time-dependent
                         # norm collapse operators
-                        exec(global_cy_col_expect_call_func, globals(), _locals)
+                        exec(_cy_col_expect_call_func, globals(), _locals)
                         n_dp = array(_locals['n_dp'])
 
                     # some Python function based collapse operators
@@ -875,7 +804,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                             _locals = locals()
                             # calculates the state vector for collapse by a
                             # time-dependent collapse operator
-                            exec(global_cy_col_spmv_call_func, globals(), _locals)
+                            exec(_cy_col_spmv_call_func, globals(), _locals)
                             state = _locals['state']
                         else:
                             state = odeconfig.c_funcs[j](ODE.t,
@@ -922,7 +851,6 @@ def _mc_alg_evolve(nt, args, odeconfig):
 
     except Expection as e:
         print "failed to run _mc_alg_evolve: " + str(e)
-#-------------------------------------------------------------------------
 
 
 def _time_remaining(st, ntraj, count, level):
@@ -930,10 +858,6 @@ def _time_remaining(st, ntraj, count, level):
     Private function that determines, and prints, how much simulation
     time is remaining.
     """
-        
-    if debug:
-        print(inspect.stack()[0][3])
-    
     nwt = datetime.datetime.now()
     diff = ((nwt.day - st.day) * 86400 +
             (nwt.hour - st.hour) * (60 ** 2) +
@@ -949,10 +873,49 @@ def _time_remaining(st, ntraj, count, level):
     return level
 
 
+def _mc_func_load(odeconfig):
+    """Load cython functions"""
+
+    global _cy_rhs_func
+    global _cy_col_spmv_func, _cy_col_expect_func
+    global _cy_col_spmv_call_func, _cy_col_expect_call_func
+
+    if debug:
+        print inspect.stack()[0][3] + " in " +str(os.getpid())
+
+    if odeconfig.tflag in array([1, 10, 11]):
+        # compile time-depdendent RHS code
+        if odeconfig.tflag in array([1, 11]):
+            code = compile('from ' + odeconfig.tdname +
+                           ' import cyq_td_ode_rhs, col_spmv, col_expect',
+                           '<string>', 'exec')
+            exec(code, globals(), locals())
+            _cy_rhs_func = cyq_td_ode_rhs
+            _cy_col_spmv_func = col_spmv
+            _cy_col_expect_func = col_expect
+        else:
+            code = compile('from ' + odeconfig.tdname +
+                           ' import cyq_td_ode_rhs', '<string>', 'exec')
+            exec(code, globals())
+            _cy_rhs_func = cyq_td_ode_rhs
+
+        # compile wrapper functions for calling cython spmv and expect
+        if odeconfig.col_spmv_code:
+            _cy_col_spmv_call_func = compile(odeconfig.col_spmv_code, '<string>', 'exec')
+
+        if odeconfig.col_expect_code:
+            _cy_col_expect_call_func = compile(odeconfig.col_expect_code, '<string>', 'exec')
+
+    elif odeconfig.tflag == 0:
+        _cy_rhs_func = cy_ode_rhs    
+
+
 def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, odeconfig):
     """Creates the appropriate data structures for the monte carlo solver
     based on the given time-dependent, or indepdendent, format.
     """
+
+    global _cgen_num
 
     if debug:
         print(inspect.stack()[0][3])
@@ -1127,11 +1090,11 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, odec
             #--------------------------------------------
 
         # set execuatble code for collapse expectation values and spmv
-        col_spmv_code = ("state = global_cy_col_spmv_func(j, ODE.t, " +
+        col_spmv_code = ("state = _cy_col_spmv_func(j, ODE.t, " +
                          "odeconfig.c_ops_data[j], odeconfig.c_ops_ind[j], " +
                          "odeconfig.c_ops_ptr[j], ODE.y")
         col_expect_code = ("for i in odeconfig.c_td_inds: " +
-                           "n_dp.append(global_cy_col_expect_func(i, ODE.t, " +
+                           "n_dp.append(_cy_col_expect_func(i, ODE.t, " +
                            "odeconfig.n_ops_data[i], " +
                            "odeconfig.n_ops_ind[i], " +
                            "odeconfig.n_ops_ptr[i], ODE.y")
@@ -1162,12 +1125,15 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, odec
             for kk in range(len(odeconfig.c_args)):
                 odeconfig.string += "," + "odeconfig.c_args[" + str(kk) + "]"
         #----
-        name = "rhs" + str(odeconfig.cgen_num)
+
+        name = "rhs" + str(_cgen_num)
         odeconfig.tdname = name
+        print "Codegen : " + odeconfig.tdname
         cgen = Codegen(H_inds, H_tdterms, odeconfig.h_td_inds, args,
                        C_inds, C_tdterms, odeconfig.c_td_inds, type='mc',
                        odeconfig=odeconfig)
         cgen.generate(name + ".pyx")
+        _cgen_num += 1
         #----
     #--------------------------------------------
     # END OF STRING TYPE TIME DEPENDENT CODE
