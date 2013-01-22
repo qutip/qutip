@@ -17,9 +17,12 @@
 #
 ###########################################################################
 
+import inspect
+
 class Odeconfig():
 
     def __init__(self):
+
         # General stuff
         self.tlist = None       # evaluations times
         self.ntraj = None       # number / list of trajectories
@@ -27,7 +30,6 @@ class Odeconfig():
         self.norm_tol = None    # tolerance for wavefunction norm
         self.norm_steps = None  # max. number of steps to take in finding wavefunction
                                 # norm within tolerance norm_tol.
-
         # Initial state stuff
         self.psi0 = None        # initial state
         self.psi0_dims = None   # initial state dims
@@ -37,16 +39,21 @@ class Odeconfig():
         # codegen has been run
         self.cflag = 0     # Flag signaling collapse operators
         self.tflag = 0     # Flag signaling time-dependent problem
-        self.cgen_num = 0  # Number of times codegen function has been called in
-                           # current Python session.
-
+ 
         # time-dependent function stuff
         self.tdfunc = None     # Placeholder for time-dependent RHS function.
+        self.tdname = None     # Name of td .pyx file (used in parallel mc code)
         self.colspmv = None    # Placeholder for time-dependent col-spmv function.
         self.colexpect = None  # Placeholder for time-dependent col_expect function.
         self.string = None     # Holds string of variables to be passed onto
                                # time-depdendent ODE solver.
-        self.tdname = None     # Name of td .pyx file (used in parallel mc code)
+
+        self.cgen_num = 0
+
+        self.soft_reset()
+    
+    def soft_reset(self):
+
 
         # Hamiltonian stuff
         self.h_td_inds = []  # indicies of time-dependent Hamiltonian operators
@@ -79,6 +86,7 @@ class Odeconfig():
         self.col_expect_code = None
         self.col_spmv_code = None
 
+
         # hold stuff for function list based time dependence
         self.h_td_inds = []
         self.h_td_data = []
@@ -87,4 +95,10 @@ class Odeconfig():
         self.h_funcs = None
         self.h_func_args = None
         self.c_funcs = None
-        self.c_func_args = None
+        self.c_func_args = None   
+
+# 
+# create a global instance of the Odeconfig class
+#
+odeconfig = Odeconfig()
+

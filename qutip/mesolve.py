@@ -39,7 +39,7 @@ from qutip.states import ket2dm
 from qutip.odechecks import _ode_checks
 import os
 
-from qutip.odeconfig import Odeconfig
+from qutip.odeconfig import odeconfig
 from qutip._reset import _reset_odeconfig
 
 #
@@ -49,7 +49,7 @@ debug = False
 if debug:
     import inspect
 
-odeconfig = Odeconfig()        
+#odeconfig = Odeconfig()        
     
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether

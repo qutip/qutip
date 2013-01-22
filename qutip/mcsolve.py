@@ -31,7 +31,7 @@ from qutip.expect import *
 from qutip.states import ket2dm
 from qutip.parfor import parfor
 from qutip.odeoptions import Odeoptions
-from qutip.odeconfig import Odeconfig
+from qutip.odeconfig import odeconfig
 from multiprocessing import Pool, cpu_count
 from types import FunctionType
 from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_expect, spmv, spmv1d
@@ -53,7 +53,7 @@ _cy_col_expect_func = None
 _cy_col_spmv_call_func = None
 _cy_col_expect_call_func = None
 _cy_rhs_func = None
-_cgen_num = 0
+#_cgen_num = 0
 
 def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500,
             args={}, options=Odeoptions()):
@@ -131,7 +131,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500,
     if debug:
         print(inspect.stack()[0][3])
 
-    odeconfig = Odeconfig()
+    #odeconfig = Odeconfig()
         
     # if single operator is passed for c_ops or e_ops, convert it to
     # list containing only that operator
@@ -548,7 +548,7 @@ def _no_collapse_psi_out(num_times, psi_out, odeconfig):
 
     opt = odeconfig.options
     if odeconfig.tflag in array([1, 10, 11]):
-        ODE = ode(_cy_rhs_func) # XXX
+        ODE = ode(_cy_rhs_func)
         code = compile('ODE.set_f_params(' + odeconfig.string + ')',
                        '<string>', 'exec')
         exec(code)
@@ -920,6 +920,8 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, odec
     if debug:
         print(inspect.stack()[0][3])
 
+    odeconfig.soft_reset()
+
     # take care of expectation values, if any
     if any(e_ops):
         odeconfig.e_num = len(e_ops)
@@ -1107,10 +1109,6 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, odec
         odeconfig.col_spmv_code = col_spmv_code
         odeconfig.col_expect_code = col_expect_code
 
-        #col_spmv_func = compile(col_spmv_code, '<string>', 'exec')
-        #col_expect_func = compile(col_expect_code, '<string>', 'exec')
-        #----
-
         # setup ode args string
         odeconfig.string = ""
         data_range = range(len(odeconfig.h_data))
@@ -1126,15 +1124,13 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, odec
                 odeconfig.string += "," + "odeconfig.c_args[" + str(kk) + "]"
         #----
 
-        name = "rhs" + str(_cgen_num)
+        name = "rhs" + str(odeconfig.cgen_num)
         odeconfig.tdname = name
-        print "Codegen : " + odeconfig.tdname
         cgen = Codegen(H_inds, H_tdterms, odeconfig.h_td_inds, args,
                        C_inds, C_tdterms, odeconfig.c_td_inds, type='mc',
                        odeconfig=odeconfig)
         cgen.generate(name + ".pyx")
-        _cgen_num += 1
-        #----
+
     #--------------------------------------------
     # END OF STRING TYPE TIME DEPENDENT CODE
     #--------------------------------------------
@@ -1155,8 +1151,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, odec
             # function based Hamiltonian
             H_inds = arange(len(H))
             H_td_inds = array(h_stuff[1])  # find inds of time-dependent terms
-            H_const_inds = setdiff1d(
-                H_inds, H_td_inds)  # find inds of constant terms
+            H_const_inds = setdiff1d(H_inds, H_td_inds)  # inds of const. terms
             odeconfig.h_funcs = array([H[k][1] for k in H_td_inds])
             odeconfig.h_func_args = args
             Htd = array([H[k][0] for k in H_td_inds])
@@ -1183,9 +1178,9 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, odec
             H -= 0.5j * (c_ops[k].dag() * c_ops[k])
         if options.tidy:
             H = H.tidyup(options.atol)
-            Htd = array(
-                [Htd[j].tidyup(options.atol) for j in odeconfig.h_td_inds])
-            # setup cosntant H terms data
+            Htd = array([Htd[j].tidyup(options.atol)
+                         for j in odeconfig.h_td_inds])
+        # setup constant H terms data
         odeconfig.h_data = -1.0j * H.data.data
         odeconfig.h_ind = H.data.indices
         odeconfig.h_ptr = H.data.indptr
