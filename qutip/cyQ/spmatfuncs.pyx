@@ -118,6 +118,28 @@ cpdef np.ndarray[CTYPE_t, ndim=2] cy_ode_rhs(double t, np.ndarray[CTYPE_t, ndim=
     return out
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef np.ndarray[CTYPE_t, ndim=2] spmv_dia(np.ndarray[CTYPE_t, ndim=2] data, np.ndarray[int] offsets,int num_rows,int num_diags, np.ndarray[CTYPE_t, ndim=2] vec, np.ndarray[CTYPE_t, ndim=2] ret,int N):
+    """DIA sparse matrix-vector product
+    """
+    cdef int ii, jj,i0,i1,i2
+    cdef CTYPE_t dot
+    for ii in range(num_diags):
+        i0=-offsets[ii]
+        if i0>0:i1=i0
+        else:i1=0
+        if num_rows<num_rows+i0:
+            i2=num_rows
+        else:
+            i2=num_rows+i0
+        dot=0.0j
+        for jj in range(i1,i2):
+            dot+=data[ii,jj-i0]*vec[jj-i0,0]
+        ret[jj,0]=dot
+    return ret
+
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
