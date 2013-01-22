@@ -362,7 +362,7 @@ class _MC_class():
         self.collapse_times_out[r] = results[2]
         self.which_op_out[r] = results[3]
         self.count += self.step
-        if (not odeconfig.options.gui):  # do not use GUI
+        if (not odeconfig.options.gui and odeconfig.ntraj!=1): #print to term
             self.percent = self.count / (1.0 * odeconfig.ntraj)
             if self.count / float(odeconfig.ntraj) >= self.level:
                 # calls function to determine simulation time remaining
