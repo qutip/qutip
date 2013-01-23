@@ -17,8 +17,6 @@
 #
 ###########################################################################
 import numpy as np
-from qutip import odeconfig
-
 
 class Codegen():
     """
@@ -26,7 +24,7 @@ class Codegen():
     """
     def __init__(self, h_terms=None, h_tdterms=None, h_td_inds=None,
                  args=None, c_terms=None, c_tdterms=[], c_td_inds=None,
-                 tab="\t", type='me'):
+                 tab="\t", type='me', odeconfig=None):
         import sys
         import os
         sys.path.append(os.getcwd())
@@ -55,7 +53,9 @@ class Codegen():
         self.func_list = [func + '(' for func in dir(np.math)[4:-1]]
         # fix pi and e strings since they are constants and not functions
         self.func_list[self.func_list.index('pi(')] = 'pi'
-
+        # store odeconfig instance
+        self.odeconfig = odeconfig
+        
     #--------------------------------------------#
     #  CLASS METHODS                             #
     #--------------------------------------------#
@@ -113,7 +113,7 @@ class Codegen():
         self.file(filename)
         self.file.writelines(self.code)
         self.file.close()
-        odeconfig.cgen_num += 1
+        self.odeconfig.cgen_num += 1
 
     def indent(self):
         """increase indention level by one"""
