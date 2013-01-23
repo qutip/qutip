@@ -40,7 +40,6 @@ from qutip.odechecks import _ode_checks
 import os
 
 from qutip.odeconfig import odeconfig
-from qutip._reset import _reset_odeconfig
 
 #
 # Set to True to activate function call trace printouts
@@ -48,9 +47,7 @@ from qutip._reset import _reset_odeconfig
 debug = False
 if debug:
     import inspect
-
-#odeconfig = Odeconfig()        
-    
+ 
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
@@ -172,7 +169,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
 
     if (not options.rhs_reuse) or (not odeconfig.tdfunc):
         # reset odeconfig collapse and time-dependence flags to default values
-        _reset_odeconfig()
+        odeconfig.reset()
 
     #
     # dispatch the appropriate solver
