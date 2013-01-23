@@ -43,9 +43,8 @@ def _blob(x, y, w, w_max, area):
     fill(xcorners, ycorners, color=cm.RdBu(int((w + w_max) * 256 / (2 *
          w_max))))
 
+
 # Adopted from the SciPy Cookbook.
-
-
 def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
     """Draws a Hinton diagram for visualizing a density matrix.
 
@@ -354,7 +353,8 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
     return ax
 
 
-def energy_level_diagram(H_list, N=0, figsize=(8, 12), labels=None):
+def energy_level_diagram(H_list, N=0, figsize=(8, 12), labels=None,
+                         fig=None, ax=None):
     """
     Plot the energy level diagrams for a list of Hamiltonians. Include
     up to N energy levels. For each element in H_list, the energy
@@ -392,7 +392,8 @@ def energy_level_diagram(H_list, N=0, figsize=(8, 12), labels=None):
     if not isinstance(H_list, list):
         raise ValueError("H_list must be a list of Qobj instances")
 
-    fig, axes = subplots(1, 1, figsize=figsize)
+    if not fig and not ax:
+        fig, ax = subplots(1, 1, figsize=figsize)
 
     H = H_list[0]
     N = H.shape[0] if N == 0 else min(H.shape[0], N)
@@ -402,7 +403,7 @@ def energy_level_diagram(H_list, N=0, figsize=(8, 12), labels=None):
     x = 0
     evals0 = H.eigenenergies(eigvals=N) / (2 * np.pi)
     for e_idx, e in enumerate(evals0[:N]):
-        axes.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
+        ax.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
     xticks.append(x + 1)
     x += 2
 
@@ -412,24 +413,24 @@ def energy_level_diagram(H_list, N=0, figsize=(8, 12), labels=None):
         evals1 = H.eigenenergies() / (2 * np.pi)
 
         for e_idx, e in enumerate(evals1[:N]):
-            axes.plot([x, x + 1], np.array([evals0[e_idx], e]), 'k:')
+            ax.plot([x, x + 1], np.array([evals0[e_idx], e]), 'k:')
         x += 1
 
         for e_idx, e in enumerate(evals1[:N]):
-            axes.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
+            ax.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
         xticks.append(x + 1)
         x += 2
 
         evals0 = evals1
 
-    axes.set_frame_on(False)
-    axes.axes.get_yaxis().set_visible(False)
+    ax.set_frame_on(False)
+    ax.axes.get_yaxis().set_visible(False)
 
     if labels:
-        axes.get_xaxis().tick_bottom()
-        axes.set_xticks(xticks)
-        axes.set_xticklabels(labels)
+        ax.get_xaxis().tick_bottom()
+        ax.set_xticks(xticks)
+        ax.set_xticklabels(labels)
     else:
-        axes.axes.get_xaxis().set_visible(False)
+        ax.axes.get_xaxis().set_visible(False)
 
-    return fig, axes
+    return fig, ax
