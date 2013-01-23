@@ -80,11 +80,7 @@ try:
 
     import pyximport
     os.environ['CFLAGS'] = '-O3 -w'
-    if sys.platform=='win32':
-        pyximport.install(setup_args={"script_args":["--compiler=mingw32"],
-                                      "include_dirs":numpy.get_include()})
-    else:
-        pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
+    pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
 
 except Exception as e:
     print("QuTiP warning: cython setup failed: " + str(e))
