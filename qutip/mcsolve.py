@@ -444,7 +444,7 @@ class _MC_class():
             # set arguments for input to monte-carlo
             args = (mc_alg_out, self.odeconfig.options,
                     self.odeconfig.tlist, self.num_times, self.seed)
-            if not self.odeconfig.options.gui or True:
+            if not self.odeconfig.options.gui:
                 self.parallel(args, self)
             else:
                 if qutip.settings.qutip_gui == "PYSIDE":
