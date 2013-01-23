@@ -847,7 +847,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
             return nt, mc_alg_out, array(collapse_times), array(which_oper)
 
     except Expection as e:
-        print "failed to run _mc_alg_evolve: " + str(e)
+        print("failed to run _mc_alg_evolve: " + str(e))
 
 
 def _time_remaining(st, ntraj, count, level):
@@ -878,7 +878,7 @@ def _mc_func_load(odeconfig):
     global _cy_col_spmv_call_func, _cy_col_expect_call_func
 
     if debug:
-        print inspect.stack()[0][3] + " in " +str(os.getpid())
+        print(inspect.stack()[0][3] + " in " +str(os.getpid()))
 
     if odeconfig.tflag in array([1, 10, 11]):
         # compile time-depdendent RHS code
