@@ -23,6 +23,12 @@ class Odeconfig():
 
     def __init__(self):
 
+        self.cgen_num = 0
+
+        self.reset()
+
+    def reset(self):
+
         # General stuff
         self.tlist = None       # evaluations times
         self.ntraj = None       # number / list of trajectories
@@ -47,8 +53,6 @@ class Odeconfig():
         self.colexpect = None  # Placeholder for time-dependent col_expect function.
         self.string = None     # Holds string of variables to be passed onto
                                # time-depdendent ODE solver.
-
-        self.cgen_num = 0
 
         self.soft_reset()
     
