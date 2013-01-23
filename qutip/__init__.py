@@ -146,7 +146,7 @@ else:
     qutip.settings.qutip_gui = os.environ['QUTIP_GUI']
 
 # check if being run remotely
-if sys.platform != 'darwin' and not ('DISPLAY' in os.environ):
+if not sys.platform in ['darwin', 'win32'] and not ('DISPLAY' in os.environ):
     # no graphics if DISPLAY isn't set
     os.environ['QUTIP_GRAPHICS'] = "NO"
     qutip.settings.qutip_graphics = "NO"
@@ -247,7 +247,7 @@ from qutip.metrics import fidelity, tracedist
 from qutip.partial_transpose import partial_transpose
 
 # evolution
-import qutip.odeconfig
+from qutip.odeconfig import odeconfig
 from qutip.odeoptions import Odeoptions
 from qutip.odedata import Odedata
 from qutip.rhs_generate import rhs_generate, rhs_clear

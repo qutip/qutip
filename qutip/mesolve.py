@@ -39,8 +39,7 @@ from qutip.states import ket2dm
 from qutip.odechecks import _ode_checks
 import os
 
-import qutip.odeconfig as odeconfig
-from qutip._reset import _reset_odeconfig
+from qutip.odeconfig import odeconfig
 
 #
 # Set to True to activate function call trace printouts
@@ -48,7 +47,7 @@ from qutip._reset import _reset_odeconfig
 debug = False
 if debug:
     import inspect
-
+ 
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
@@ -170,7 +169,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
 
     if (not options.rhs_reuse) or (not odeconfig.tdfunc):
         # reset odeconfig collapse and time-dependence flags to default values
-        _reset_odeconfig()
+        odeconfig.reset()
 
     #
     # dispatch the appropriate solver
@@ -594,7 +593,8 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
             odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
         else:
             odeconfig.tdname = opt.rhs_filename
-        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args)
+        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
+                       odeconfig=odeconfig)
         cgen.generate(odeconfig.tdname + ".pyx")
 
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
@@ -695,7 +695,8 @@ def _wfsolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
             odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
         else:
             odeconfig.tdname = opt.rhs_filename
-        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args)
+        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
+                       odeconfig=odeconfig)
         cgen.generate(odeconfig.tdname + ".pyx")
 
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
@@ -823,7 +824,8 @@ def _wfsolve_list_td(H_func, psi0, tlist, expt_ops, args, opt):
             odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
         else:
             odeconfig.tdname = opt.rhs_filename
-        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args)
+        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
+                       odeconfig=odeconfig)
         cgen.generate(odeconfig.tdname + ".pyx")
 
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
@@ -1038,7 +1040,8 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
             odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
         else:
             odeconfig.tdname = opt.rhs_filename
-        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args)
+        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
+                       odeconfig=odeconfig)
         cgen.generate(odeconfig.tdname + ".pyx")
 
         code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',

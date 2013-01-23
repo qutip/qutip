@@ -17,71 +17,92 @@
 #
 ###########################################################################
 
-# General stuff
-tlist = None       # evaluations times
-ntraj = None       # number / list of trajectories
-options = None     # options for odesolvers
-norm_tol = None    # tolerance for wavefunction norm
-norm_steps = None  # max. number of steps to take in finding wavefunction
-                   # norm within tolerance norm_tol.
+import inspect
 
-# Initial state stuff
-psi0 = None        # initial state
-psi0_dims = None   # initial state dims
-psi0_shape = None  # initial state shape
+class Odeconfig():
 
-# flags for setting time-dependence, collapse ops, and number of times
-# codegen has been run
-cflag = 0     # Flag signaling collapse operators
-tflag = 0     # Flag signaling time-dependent problem
-cgen_num = 0  # Number of times codegen function has been called in
-              # current Python session.
+    def __init__(self):
 
-# time-dependent function stuff
-tdfunc = None     # Placeholder for time-dependent RHS function.
-colspmv = None    # Placeholder for time-dependent col-spmv function.
-colexpect = None  # Placeholder for time-dependent col_expect function.
-string = None     # Holds string of variables to be passed onto
-                  # time-depdendent ODE solver.
-tdname = None     # Name of td .pyx file (used in parallel mc code)
+        self.cgen_num = 0
 
-# Hamiltonian stuff
-h_td_inds = []  # indicies of time-dependent Hamiltonian operators
-h_data = None   # List of sparse matrix data
-h_ind = None    # List of sparse matrix indices
-h_ptr = None    # List of sparse matrix ptrs
+        self.reset()
 
-# Expectation operator stuff
-e_num = 0        # number of expect ops
-e_ops_data = []  # expect op data
-e_ops_ind = []   # expect op indices
-e_ops_ptr = []   # expect op indptrs
-e_ops_isherm = []  # expect op isherm
+    def reset(self):
 
-# Collapse operator stuff
-c_num = 0          # number of collapse ops
-c_const_inds = []  # indicies of constant collapse operators
-c_td_inds = []     # indicies of time-dependent collapse operators
-c_ops_data = []    # collapse op data
-c_ops_ind = []     # collapse op indices
-c_ops_ptr = []     # collapse op indptrs
-c_args = []        # store args for time-dependent collapse functions
+        # General stuff
+        self.tlist = None       # evaluations times
+        self.ntraj = None       # number / list of trajectories
+        self.options = None     # options for odesolvers
+        self.norm_tol = None    # tolerance for wavefunction norm
+        self.norm_steps = None  # max. number of steps to take in finding wavefunction
+                                # norm within tolerance norm_tol.
+        # Initial state stuff
+        self.psi0 = None        # initial state
+        self.psi0_dims = None   # initial state dims
+        self.psi0_shape = None  # initial state shape
 
-# Norm collapse operator stuff
-n_ops_data = []  # norm collapse op data
-n_ops_ind = []   # norm collapse op indices
-n_ops_ptr = []   # norm collapse op indptrs
+        # flags for setting time-dependence, collapse ops, and number of times
+        # codegen has been run
+        self.cflag = 0     # Flag signaling collapse operators
+        self.tflag = 0     # Flag signaling time-dependent problem
+ 
+        # time-dependent function stuff
+        self.tdfunc = None     # Placeholder for time-dependent RHS function.
+        self.tdname = None     # Name of td .pyx file (used in parallel mc code)
+        self.colspmv = None    # Placeholder for time-dependent col-spmv function.
+        self.colexpect = None  # Placeholder for time-dependent col_expect function.
+        self.string = None     # Holds string of variables to be passed onto
+                               # time-depdendent ODE solver.
 
-# holds executable strings for time-dependent collapse evaluation
-col_expect_code = None
-col_spmv_code = None
+        self.soft_reset()
+    
+    def soft_reset(self):
 
-# hold stuff for function list based time dependence
-h_td_inds = []
-h_td_data = []
-h_td_ind = []
-h_td_ptr = []
-h_funcs = None
-h_func_args = None
-c_funcs = None
-c_func_args = None
+
+        # Hamiltonian stuff
+        self.h_td_inds = []  # indicies of time-dependent Hamiltonian operators
+        self.h_data = None   # List of sparse matrix data
+        self.h_ind = None    # List of sparse matrix indices
+        self.h_ptr = None    # List of sparse matrix ptrs
+
+        # Expectation operator stuff
+        self.e_num = 0        # number of expect ops
+        self.e_ops_data = []  # expect op data
+        self.e_ops_ind = []   # expect op indices
+        self.e_ops_ptr = []   # expect op indptrs
+        self.e_ops_isherm = []  # expect op isherm
+
+        # Collapse operator stuff
+        self.c_num = 0          # number of collapse ops
+        self.c_const_inds = []  # indicies of constant collapse operators
+        self.c_td_inds = []     # indicies of time-dependent collapse operators
+        self.c_ops_data = []    # collapse op data
+        self.c_ops_ind = []     # collapse op indices
+        self.c_ops_ptr = []     # collapse op indptrs
+        self.c_args = []        # store args for time-dependent collapse functions
+
+        # Norm collapse operator stuff
+        self.n_ops_data = []  # norm collapse op data
+        self.n_ops_ind = []   # norm collapse op indices
+        self.n_ops_ptr = []   # norm collapse op indptrs
+
+        # holds executable strings for time-dependent collapse evaluation
+        self.col_expect_code = None
+        self.col_spmv_code = None
+
+
+        # hold stuff for function list based time dependence
+        self.h_td_inds = []
+        self.h_td_data = []
+        self.h_td_ind = []
+        self.h_td_ptr = []
+        self.h_funcs = None
+        self.h_func_args = None
+        self.c_funcs = None
+        self.c_func_args = None   
+
+# 
+# create a global instance of the Odeconfig class
+#
+odeconfig = Odeconfig()
+

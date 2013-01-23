@@ -25,7 +25,7 @@ from qutip.odeoptions import Odeoptions
 from scipy import ndarray, array
 from qutip.odechecks import _ode_checks
 import qutip.settings
-import qutip.odeconfig as odeconfig
+from qutip.odeconfig import odeconfig
 from types import FunctionType
 from qutip.qobj import Qobj
 from qutip.superoperator import spre, spost
@@ -149,7 +149,8 @@ def rhs_generate(H, c_ops, args={}, options=Odeoptions(), name=None):
     # operators)
     n_L_terms = len(Ldata)
 
-    cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args)
+    cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
+                   odeconfig=odeconfig)
     cgen.generate(odeconfig.tdname + ".pyx")
 
     code = compile('from ' + odeconfig.tdname +
