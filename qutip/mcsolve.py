@@ -22,6 +22,8 @@ import os
 import time
 import numpy
 import datetime
+from types import FunctionType
+from multiprocessing import Pool, cpu_count
 from numpy.random import RandomState, random_integers
 from scipy import arange, array, cumsum, mean, ndarray, setdiff1d, sort, zeros
 from scipy.integrate import ode
@@ -32,14 +34,11 @@ from qutip.states import ket2dm
 from qutip.parfor import parfor
 from qutip.odeoptions import Odeoptions
 from qutip.odeconfig import odeconfig
-from multiprocessing import Pool, cpu_count
-from types import FunctionType
 from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_expect, spmv, spmv1d
 from qutip.cyQ.codegen import Codegen
 from qutip.odedata import Odedata
 from qutip.odechecks import _ode_checks
 import qutip.settings
-from qutip._reset import _reset_odeconfig
 
 #
 # Set to True to activate function call trace printouts
@@ -53,7 +52,6 @@ _cy_col_expect_func = None
 _cy_col_spmv_call_func = None
 _cy_col_expect_call_func = None
 _cy_rhs_func = None
-#_cgen_num = 0
 
 def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500,
             args={}, options=Odeoptions()):
@@ -130,8 +128,6 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500,
 
     if debug:
         print(inspect.stack()[0][3])
-
-    #odeconfig = Odeconfig()
         
     # if single operator is passed for c_ops or e_ops, convert it to
     # list containing only that operator
@@ -169,7 +165,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500,
     #----------------------------------------------
     if (not options.rhs_reuse) or (not odeconfig.tdfunc):
         # reset odeconfig collapse and time-dependence flags to default values
-        _reset_odeconfig()
+        odeconfig.soft_reset()
 
         # check for type of time-dependence (if any)
         time_type, h_stuff, c_stuff = _ode_checks(H, c_ops, 'mc')
@@ -286,8 +282,8 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500,
 class _MC_class():
     """
     Private class for solving Monte-Carlo evolution from mcsolve
-
     """
+
     def __init__(self, odeconfig):
 
         #-----------------------------------#
@@ -532,9 +528,10 @@ def _pyRHSc(t, psi, odeconfig):
 
 ######---return psi at requested times for no collapse operators---######
 def _no_collapse_psi_out(num_times, psi_out, odeconfig):
-    # Calculates state vectors at times tlist if no collapse AND no
-    # expectation values are given.
-    #
+    """
+    Calculates state vectors at times tlist if no collapse AND no
+    expectation values are given.
+    """
     
     global _cy_rhs_func
     global _cy_col_spmv_func, _cy_col_expect_func
@@ -587,9 +584,9 @@ def _no_collapse_psi_out(num_times, psi_out, odeconfig):
 
 ######---return expectation values at requested times for no collapse oper
 def _no_collapse_expect_out(num_times, expect_out, odeconfig):
-    # Calculates xpect.values at times tlist if no collapse ops. given
-    #
-    #------------------------------------
+    """
+    Calculates expect.values at times tlist if no collapse ops. given
+    """
 
     if debug:
         print(inspect.stack()[0][3])
@@ -914,8 +911,6 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, odec
     """Creates the appropriate data structures for the monte carlo solver
     based on the given time-dependent, or indepdendent, format.
     """
-
-    global _cgen_num
 
     if debug:
         print(inspect.stack()[0][3])
