@@ -34,63 +34,6 @@ def _reset():
 
 
 def _reset_odeconfig():
-    import qutip.odeconfig as odeconfig
-    # General stuff
-    # odeconfig.tlist=None #evaluations times
-    # odeconfig.ntraj=None #number / list of trajectories
-    # odeconfig.options=None #options for odesolvers
+    from qutip.odeconfig import odeconfig
 
-    # flags for setting time-dependence, collapse ops, and number of times
-    # codegen has been run
-    odeconfig.cflag = 0  # Flag signaling collapse operators
-    odeconfig.tflag = 0  # Flag signaling time-dependent problem
-
-    # time-dependent (TD) function stuff
-    odeconfig.tdfunc = None     # Placeholder for TD RHS function.
-    odeconfig.colspmv = None    # Placeholder for TD col-spmv function.
-    odeconfig.colexpect = None  # Placeholder for TD col_expect function.
-    odeconfig.string = None     # Holds string of variables to be passed
-                                # onto time-depdendent ODE solver.
-    odeconfig.tdname = None     # Name of td .pyx file (used in parallel
-                                # mc code)
-
-    # Hamiltonian stuff
-    odeconfig.h_td_inds = []  # indicies of TD Hamiltonian operators
-    odeconfig.h_data = None   # List of sparse matrix data
-    odeconfig.h_inds = None   # List of sparse matrix indices
-    odeconfig.h_ptrs = None   # List of sparse matrix ptrs
-
-    # Expectation operator stuff
-    odeconfig.e_num = 0        # number of expect ops
-    odeconfig.e_ops_data = []  # expect op data
-    odeconfig.e_ops_ind = []   # expect op indices
-    odeconfig.e_ops_ptr = []   # expect op indptrs
-    odeconfig.e_ops_isherm = []  # expect op isherm
-
-    # Collapse operator stuff
-    odeconfig.c_args = []        # clears arguments for TD problems
-    odeconfig.c_num = 0          # number of collapse ops
-    odeconfig.c_const_inds = []  # indicies of constant collapse operators
-    odeconfig.c_td_inds = []     # indicies of TD collapse operators
-    odeconfig.c_ops_data = []    # collapse op data
-    odeconfig.c_ops_ind = []     # collapse op indices
-    odeconfig.c_ops_ptr = []     # collapse op indptrs
-
-    # Norm collapse operator stuff
-    odeconfig.n_ops_data = []  # norm collapse op data
-    odeconfig.n_ops_ind = []   # norm collapse op indices
-    odeconfig.n_ops_ptr = []   # norm collapse op indptrs
-
-    # executable string stuff
-    odeconfig.col_expect_code = None
-    odeconfig.col_spmv_code = None
-
-    # hold stuff for function based time dependence
-    odeconfig.h_td_inds = []
-    odeconfig.h_td_data = []
-    odeconfig.h_td_ind = []
-    odeconfig.h_td_ptr = []
-    odeconfig.h_funcs = None
-    odeconfig.h_func_args = None
-    odeconfig.c_funcs = None
-    odeconfig.c_func_args = None
+    odeconfig.reset()
