@@ -286,4 +286,4 @@ class HoverExit(QtGui.QPushButton):
         self.setStyleSheet(style_hover_enter)
 
     def leaveEvent(self, event):
-        self.setStyleSheet(style_hover_leave)
+        self.setStyleSheet(style_hover_exit)
