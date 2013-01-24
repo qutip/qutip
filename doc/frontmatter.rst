@@ -41,14 +41,16 @@ If you find this project useful, then please cite:
 
 .. centered:: J. R. Johansson, P.D. Nation, and F. Nori, "QuTiP: An open-source Python framework for the dynamics of open quantum systems", Comp. Phys. Comm. 183 1760 (2012).
 
-which may also be download from http://arxiv.org/abs/1110.0573.
+.. centered:: J. R. Johansson, P.D. Nation, and F. Nori, "QuTiP 2: A Python framework for the dynamics of open quantum systems", Comp. Phys. Comm. (2013).
+
+which may also be download from http://arxiv.org/abs/1110.0573 and http://arxiv.org/abs/1211.6518, respectively.
 
 .. _funding-qutip:
 
 Funding
 =======
 
-The development of QuTiP has been partially supported by the Japanese Society for the Promotion of Science Foreign Postdoctoral Fellowship Program under grants P11202 (PDN) and P11501 (JRJ).  Additional funding comes from RIKEN and Kakenhi grant Nos. 2301202 (PDN), 2302501 (JRJ), and Korea University. 
+The development of QuTiP has been partially supported by the Japanese Society for the Promotion of Science Foreign Postdoctoral Fellowship Program under grants P11202 (PDN) and P11501 (JRJ).  Additional funding comes from RIKEN, Kakenhi grant Nos. 2301202 (PDN), 2302501 (JRJ), and Korea University. 
 
 .. _image-jsps:
 
