@@ -7,17 +7,10 @@
 Installation
 **************
 
-.. important::
-	
-	QuTiP is designed for use on Unix based platforms such as Linux and Mac OSX *only*, and is known
-	to break when running under the Microsoft Windows operating system.  As such, we do not provide
-	any support for these platforms.  If they ever figure out that matrices do not have
-	floating-point dimensions, then we might reconsider.
-
 .. _install-requires:
 
-General Installation Requirements
-=================================
+General Requirements
+=====================
 
 QuTiP requires the following packages to run:
 
@@ -67,49 +60,49 @@ On all platforms (Linux, Mac), QuTiP works "out-of-the-box" using the `Enthought
 Installation on Ubuntu Linux
 ============================
 
-The easiest way to install QuTiP in Ubuntu (12.04 and later) is to use the QuTiP PPA
+Using QuTiP's ppa
+-------------------
 
->>> sudo add-apt-repository ppa:jrjohansson/qutip-releases
->>> sudo apt-get update
->>> sudo apt-get install python-qutip
+The easiest way to install QuTiP in Ubuntu (12.04 and later) is to use the QuTiP PPA::
 
-With this method the most important dependencies are installed automatically, and when new version of QuTiP is released it can be upgraded through the standard package management system. In addition to the required dependencies, it is also strongly recommended that you install the ``texlive-latex-extra`` package. 
+    sudo add-apt-repository ppa:jrjohansson/qutip-releases
+    sudo apt-get update
+    sudo apt-get install python-qutip
+
+With this method the most important dependencies are installed automatically, and when new version of QuTiP is released it can be upgraded through the standard package management system. In addition to the required dependencies, it is also strongly recommended that you install the ``texlive-latex-extra`` package::
+
+    sudo apt-get install texlive-latex-extra
 
 Manual installation
 -------------------
 
-First install the following dependency packages:
+First install the following dependency packages::
 
->>> sudo apt-get install python-scipy
->>> sudo apt-get install python-pyside
->>> sudo apt-get install python-setuptools
->>> sudo apt-get install python-dev
->>> sudo apt-get install python-nose         # recommended, for testing
->>> sudo apt-get install texlive-latex-extra # recommended
+    sudo apt-get install python-scipy
+    sudo apt-get install python-pyside
+    sudo apt-get install python-setuptools
+    sudo apt-get install python-dev
+    sudo apt-get install python-matplotlib
+    sudo apt-get install python-nose         # recommended, for testing
+    sudo apt-get install texlive-latex-extra # recommended
 
-Ubuntu 11.04 and Lower (skip this step in Ubuntu 11.10+)
---------------------------------------------------------
+and then run the this installation command in the QuTiP source code directory::
 
-These releases do not have Matplotlib>=1.0, and we therefore need to add the unofficial repository:
+    sudo python setup.py install
 
->>> sudo add-apt-repository ppa:bgamari/matplotlib-unofficial
->>> sudo apt-get update
+.. note::
 
-Install Matplotlib
-------------------
+    Ubuntu 11.04 and lower do not have Matplotlib>=1.0, but we can use the following
+    unofficial matplotlib ppa to install a newer version of matplotlib on these
+    Ubuntu releases::
 
-Regardless of Ubuntu version, we are now in a position to install the plotting library:
-
->>> sudo apt-get install python-matplotlib
-
-QuTiP installation
-------------------
-
->>> sudo python setup.py install
+        sudo add-apt-repository ppa:bgamari/matplotlib-unofficial
+        sudo apt-get update
+        sudo apt-get install python-matplotlib
 
 .. note:: 
 
-    On some versions of Ubuntu you might have to configure Matplotlib to use the GTKAgg or Qt4Agg backends instead of the default TkAgg backend. To do change backend, edit /etc/matplotlibrc, and change ``backend: TkAgg`` to ``backend: GTKAgg`` or ``backend: Qt4Agg``.
+    On some versions of Ubuntu you might have to configure Matplotlib to use the GTKAgg or Qt4Agg backends instead of the default TkAgg backend. To do change backend, edit /etc/matplotlibrc or ~/.matplotlib/matplotlibrc, and change ``backend: TkAgg`` to ``backend: GTKAgg`` or ``backend: Qt4Agg``.
 
 .. _install-mac:
 
@@ -121,31 +114,31 @@ If you have not done so already, install the Apple XCode developer tools from th
 Setup Using Macports: [*]_
 --------------------------
 
-On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via:  
+On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via::
 
->>> sudo port install py27-scipy
->>> sudo port install py27-matplotlib +latex
+    sudo port install py27-scipy
+    sudo port install py27-matplotlib +latex
 
-and in addition:
+and in addition::
 
->>> sudo port install py27-pyside   # recommended
+    sudo port install py27-pyside   # recommended
 
-or:
+or::
 
->>> sudo port install py27-pyqt4
+    sudo port install py27-pyqt4
 
 
-Optional, but highly recommended ports include:
+Optional, but highly recommended ports include::
 
->>> sudo port install py27-ipython +pyside+notebook+parallel+scientific  #switch +pyside to +pyqt4 if using pyqt4
->>> sudo port install py27-cython	#used for string-based time-dependent Hamiltonians
+    sudo port install py27-ipython +pyside+notebook+parallel+scientific  #switch +pyside to +pyqt4 if using pyqt4
+    sudo port install py27-cython	#used for string-based time-dependent Hamiltonians
 
 
 .. note:: The next step is optional, but is recommended if you plan to use the string (Cython) based time-dependent format.  See :ref:`time`.
 
-Finally, we want to set the macports compiler to the vanilla GCC version.  From the command line type:
+Finally, we want to set the macports compiler to the vanilla GCC version.  From the command line type::
 
->>> port select gcc
+    port select gcc
 
 which will bring up a list of installed compilers, such as::
 
@@ -156,9 +149,9 @@ which will bring up a list of installed compilers, such as::
 		mp-gcc45
 		none (active)
 
-We want to set the the compiler to the gcc4x compiler, where x is the highest number available, in this case ``mp-gcc45`` (the "mp-" does not matter).  To do this type:
+We want to set the the compiler to the gcc4x compiler, where x is the highest number available, in this case ``mp-gcc45`` (the "mp-" does not matter).  To do this type::
 
->>> sudo port select gcc mp-gcc45
+    sudo port select gcc mp-gcc45
 
 Running port select again should give::
 
@@ -183,12 +176,35 @@ Finally, one can also use the `Enthought Python Distribution <http://www.enthoug
 Installing QuTiP
 ----------------
 
-No matter which installation path you choose, installing QuTiP is the same as on linux.  From the QuTiP directory:
+No matter which installation path you choose, installing QuTiP is the same as on linux.  From the QuTiP directory::
 
->>> sudo python setup.py install
+    sudo python setup.py install
 
 .. _install-verify:
 
+
+Installation on Windows
+========================
+
+QuTiP is primarily developed for Unix-based platforms such as Linux an Mac OS X, but it can also be used on Windows. We have limited experience and ability to help troubleshoot problems on Windows, but the following installation steps have been reported to work:
+
+1. Install the `Python(X,Y) <http://code.google.com/p/pythonxy/>`_ distribution (tested with version 2.7.3.1). Other Python distribitions, such as `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ or `Anaconda CE <http://continuum.io/downloads.html>`_ might work too, but this has not been verified.
+
+2. When installing Python(x,y), explicitly select to include the Cython package in the installation. This package is not selected by default.
+
+3. Add the following content to the file `C:/Python27/Lib/distutils/distutils.cfg` (or create the file if it does not already exists)::
+
+    [build]
+    compiler = mingw32
+
+    [build_ext]
+    compiler = mingw32
+
+The directory where the distutils.cfg file should be placed might be different if you have installed the Python environment in a different location than in the example above.
+
+4. Obtain the QuTiP source code, unpack it and run the following command in the source code directory::
+
+    python setup.py install
 
 Verifying the Installation
 ===========================
@@ -218,7 +234,6 @@ that will pop-up a window similar to the one shown below.  If instead you get co
    :width: 3in
    
    QuTiP about box window with link to updated version on the QuTiP website.
-
 
 
 .. [*] Installing QuTiP via Macports will take a long time as each of the QuTiP dependencies is build from source code.  The advantage is that, after installation, everything is more or less guaranteed to work.  However, if you have a hot date waiting for you, then we do not recommend this path.  Or course, if you are reading this guide, this may not be the case. 
