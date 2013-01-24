@@ -35,12 +35,12 @@ qutip/
     	__init__.py			# Initialize qutip modules.
     	_reset.py			# Resets global QuTiP settings
     	_version.py			# Holds qutip version information.
-	about.py		      # Calls about box.
-	bloch-redfield.py             # Bloch-Redfield master equation.
+	about.py			# Calls about box.
+	bloch-redfield.py		# Bloch-Redfield master equation.
    	Bloch.py                	# Bloch sphere plot.
-   	Bloch3d.py                    # 3D Bloch sphere plot.
+   	Bloch3d.py			# 3D Bloch sphere plot.
    	clebsch.py              	# Clebsch-Gordon coefficients.
-	correlation.py                # Two-time correlation functions.    
+	correlation.py			# Two-time correlation functions.    
     	demos.py                 	# Runs demos GUI or command line.
    	entropy.py              	# Various entropy measures.
    	eseries.py              	# Exponential series object.
@@ -72,7 +72,7 @@ qutip/
 	sphereplot.py           	# Plots spherical wave functions.
     	states.py               	# State vectors and density matrices.
     	steady.py               	# Steady state evolution.
-    	superoperator.py       	# Superoperators for Louvillian.
+    	superoperator.py		# Superoperators for Louvillian.
     	tensor.py               	# Generates composite quantum objects.
     	testing.py			# Module for running QuTiP unit tests.
 	three_level_atom.py     	# Operators for three-level atoms.
@@ -120,12 +120,12 @@ qutip/
 		exconfig.py		# Examples config file.
     
 	gui/
-        	__init__.py            # Initialize GUI modules.
-        	AboutBox.py            # QuTiP About box.
-        	Examples.py            # Demos GUI or command line. 
+        	__init__.py		# Initialize GUI modules.
+        	AboutBox.py		# QuTiP About box.
+        	Examples.py		# Demos GUI or command line. 
         	icon.png		# Icon for GUI Windows.
-		logo.png               # QuTiP logo used in About box.
-        	ProgressBar.py         # Progress bar GUI.
+		logo.png		# QuTiP logo used in About box.
+        	ProgressBar.py		# Progress bar GUI.
 		syntax.py		# Syntax highlighting.
 	
 
