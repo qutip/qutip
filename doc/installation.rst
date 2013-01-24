@@ -83,6 +83,7 @@ First install the following dependency packages::
     sudo apt-get install python-setuptools
     sudo apt-get install python-dev
     sudo apt-get install python-matplotlib
+    sudo apt-get install cython
     sudo apt-get install python-nose         # recommended, for testing
     sudo apt-get install texlive-latex-extra # recommended
 
