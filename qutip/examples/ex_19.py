@@ -6,7 +6,8 @@
 #
 from qutip import *
 from pylab import *
-from matplotlib import pyplot, mpl,cm
+import matplotlib as mpl
+from matplotlib import pyplot, cm
 from mpl_toolkits.mplot3d import Axes3D
 import matplotlib.pyplot as plt
 
