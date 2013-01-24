@@ -20,7 +20,8 @@ import qutip.settings
 
 if qutip.settings.qutip_graphics == 'YES':
     from pylab import *
-    from matplotlib import pyplot, mpl, cm
+    import matplotlib as mpl
+    from matplotlib import pyplot, cm
     from mpl_toolkits.mplot3d import Axes3D
 
 from qutip.qobj import Qobj, isket, isbra

@@ -41,7 +41,8 @@ def sphereplot(theta, phi, values, save=False):
 
 
     """
-    from matplotlib import pyplot, mpl, cm
+    import matplotlib as mpl
+    from matplotlib import pyplot, cm
     from pylab import plot, show, meshgrid, figure, savefig
     from mpl_toolkits.mplot3d import Axes3D
     thetam, phim = meshgrid(theta, phi)
