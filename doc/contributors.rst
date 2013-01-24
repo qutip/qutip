@@ -30,7 +30,7 @@ Contributors
 
 **Bredan Abolins** (Berkeley) - Bug hunter
 
-**Markus Baden** (Centre for Quantum Technologies, Singapore) - Examples and documentation, **QuTiP member**
+**Markus Baden** (Centre for Quantum Technologies, Singapore) - Code contributor, documentation, **QuTiP member**
 
 **James Clemens** (Miami University - Ohio) - Bug hunter
 
@@ -42,9 +42,11 @@ Contributors
 
 **Hwajung Kang** (Systems Biology Institute, Tokyo)  - Suggestions for improving Bloch class
 
+**Neill Lambert** (RIKEN) - Windows support
+
 **Anders Lund** - Bug hunting for the Monte-Carlo solver.
 
-**Jonas Neergaard-Nielsen** (Technical University of Denmark) - Bug hunter, Code contributor
+**Jonas Neergaard-Nielsen** (Technical University of Denmark) - Bug hunter, Code contributor, Windows support
 
 **Henri Nielsen** (Technical University of Denmark) - Bug hunter
 
@@ -53,6 +55,8 @@ Contributors
 **Florian Ong** (Institute for Quantum Computation) - Bug hunter
 
 **Denis Vasilyev** (St. Petersburg State University) - Bug hunter
+
+**André Xuereb** - Bug hunter
 
 **Dong Zhou** (Yale) - Bug hunter
 
