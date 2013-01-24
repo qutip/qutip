@@ -1,6 +1,7 @@
 ################################
 # QuTiP README FILE FOR CPC
-# Version: 2.1.0
+# Version: 2.2.0
+# Released: XX/XX/2013
 # P.D. Nation and J.R. Johansson
 ################################
 
@@ -30,12 +31,10 @@ setup.py                       			# QuTiP Python installation script.
     
 	cyQ/
         __init__.py            			# Initialize cyQ modules.
-        codegen.py		 	   			# Class for automatically generating Cython files for time-dependent problems.
-    	cy_mc_funcs.c          			# Cython generated C-code for Monte-Carlo solver.
-        cy_mc_funcs.pyx        			# Cython source code for cy_mc_funcs.c.
-    	ode.rhs.c		 	   			# Cython generated C-code for ODE RHS multiplication.
-        ode.rhs.pyx		       			# Cython source code for ode_rhs.c.
-    	setup.py                		# Setup file for generating *.c files from *.pyx.
+        codegen.py		 	   			# Class to auto gen. Cython files.
+		spmatfuncs.c					# C file gen. from spmatfuncs.pyx.
+		spmatfuncs.pyx					# Cython base matrix utils.
+    	setup.py                		# Setup file for *.pyx -> *.c.
 
 	examples/
         __init__.py             		# Initialize examples modules.
@@ -67,64 +66,65 @@ setup.py                       			# QuTiP Python installation script.
 		ex_42.py						# Demo script.
 		ex_43.py						# Demo script.
 		ex_50.py						# Demo script.
-		examples_text.py				# List of demo names and descriptions loaded by demos GUI.
-		exconfig.py						# Module containing parameters for launching demo based on users command.
+		examples_text.py				# List of demos
+		exconfig.py						# Examples config file.
     
 	gui/
         __init__.py             		# Initialize GUI modules.
-        AboutBox.py             		# Class for generating QuTiP About box.
-        Examples.py             		# Class for demos GUI or command line. 
+        AboutBox.py             		# QuTiP About box.
+        Examples.py             		# Demos GUI or command line. 
         icon.png						# Icon for GUI Windows.
 		logo.png                		# QuTiP logo used in About box.
-        ProgressBar.py          		# Class for Monte-Carlo progress bar GUI.
-		syntax.py						# Class for syntax highlighting used in demos GUI.
+        ProgressBar.py          		# Progress bar GUI.
+		syntax.py						# Syntax highlighting.
 	
 	qutip/
         __init__.py             		# Initialize qutip modules.
-        _reset.py						# Resets global QuTiP settings and odeconfig data
+        _reset.py						# Resets global QuTiP settings
 		_version.py             		# Holds qutip version information.
 		about.py                		# Calls about box.
-        bloch-redfield.py       		# Bloch-Redfield master equation solver.
-        Bloch.py                		# Class generating a Bloch sphere plot.
-        clebsch.py              		# Calculates Clebsch-Gordon coefficients.
-        correlation.py          		# Calculates two-time correlation functions <A(tau)B(0)>.
-        demos.py                		# Runs the demos GUI or command line script.
-        entropy.py              		# Module of functions used for calculating various entropy measures.
-        eseries.py              		# Class defining the exponential series object.
-        essolve.py              		# Evolution of a state vector or density matrix with ODE expressed as eseries object.
+        bloch-redfield.py       		# Bloch-Redfield master equation.
+        Bloch.py                		# Bloch sphere plot.
+		Bloch3d.py                		# 3D Bloch sphere plot.
+        clebsch.py              		# Clebsch-Gordon coefficients.
+        correlation.py          		# Two-time correlation functions.
+        demos.py                		# Runs demos GUI or command line.
+        entropy.py              		# Various entropy measures.
+        eseries.py              		# Exponential series object.
+        essolve.py              		# Exponential series ODE solver.
         expect.py               		# Calculates expectation values.
-        fileio.py               		# Module for saving and loading Qobj objects and data sets.
-		floquet.py              		# Floquet-Markov master equation solver.
-        gates.py                		# A Module of select gates for use in quantum computation calculations.
-        graph.py                		# Draws a Hinton diagram for visualizing a density matrix.
-        istests.py              		# A collection of tests for determining the properties of a Qobj object.
+        fileio.py               		# Saving and loading data.
+		floquet.py              		# Floquet-Markov master equation.
+        gates.py                		# Quantum computation gates.
+        graph.py                		# Visualization scripts.
+        istests.py              		# Properties of a Qobj object.
         mcsolve.py              		# Monte-Carlo trajectory solver.
 		mesolve.py              		# Lindblad master equation solver.        
-		metrics.py              		# A collection of density matrix metrics (distance measures).
-		odechecks.py					# Routine for determining which ode solver to use based on user input.
-        odeconfig.py					# Holds data arrays for use by ode solvers.
+		metrics.py              		# Density matrix metrics.
+		odechecks.py					# Checks for ODE inputs.
+        odeconfig.py					# Holds ODE data.
 		Odeoptions.py           		# Class of options for ODE solvers.
-		Odedata.py              		# Class for holding output data from ODE solvers.
-        operators.py            		# A collection of commonly used quantum operators.
-        orbital.py              		# Calculates an angular wave function on a sphere.
-        parfor.py               		# Runs a for-loop in parallel for a given single-variable function. 
-        propagator.py           		# Calculate the propagator U(t) for the density matrix or wave function.
-        ptrace.py               		# Performs a partial trace of a given composite quantum object.
-        Qobj.py                 		# The main quantum object class.  Defines the key properties of the quantum object in QuTiP.
-        qstate.py               		# Generates coupled states of qubits where each qubit is in the |up> or |down> state. 
-        rand.py							# A collection of routines for generating random quantum operators and states.
-		rhs_generate.py					# Generates Cython code for use in simulating time-dependent problems over an array of input variables.
-		simdiag.py              		# Performs simultaneous diagonalization of commuting, Hermitian operators
-        sparse.py						# Sparse eigensolver for quantum objects.
-		sphereplot.py           		# Plots spherical wave functions generated by orbital.py.
-        states.py               		# A collection of commonly used state vectors and density matrices
-        steady.py               		# Calculated the steady state evolution for a given Hamiltonian
-        superoperator.py       			# Module of superoperators used for converting a Hamiltonian into a Louvillian.
-        tensor.py               		# Generates a composite quantum object from two or more state vectors or density matricies.
+		Odedata.py              		# ODE output data class.
+        operators.py            		# Commonly used quantum operators.
+        orbital.py              		# Angular wave function on a sphere.
+        parfor.py               		# Parallel for-loop
+        propagator.py           		# Propagator U(t) for density matrix.
+        ptrace.py               		# Partial trace of a composite object.
+        Qobj.py                 		# Main quantum object class.
+        qstate.py               		# Generates coupled states of qubits. 
+        rand.py							# Random quantum operators and states.
+		rhs_generate.py					# Generates Cython code at runtime.
+		simdiag.py              		# Simultaneous diagonalization.
+        sparse.py						# Sparse eigensolvers.
+		sphereplot.py           		# Plots spherical wave functions.
+        states.py               		# State vectors and density matrices.
+        steady.py               		# Steady state evolution.
+        superoperator.py       			# Superoperators for Louvillian.
+        tensor.py               		# Generates composite quantum objects.
         testing.py						# Module for running QuTiP unit tests.
-		three_level_atom.py     		# A collection of commonly used states and operators for three-level atoms.
-        tomography.py					# Module for quantum process tomograpy functions.
-		wigner.py               		# Generates the Wigner function and Q function for a given state vector or density matrix.
+		three_level_atom.py     		# Operators for three-level atoms.
+        tomography.py					# Quantum process tomograpy functions.
+		wigner.py               		# Wigner function and Q function.
 
 	tests/
 		__init__.py						# Initialize testing modules.
@@ -133,13 +133,13 @@ setup.py                       			# QuTiP Python installation script.
 		test_entropy.py					# Entropy test scripts.
         test_fileio.py					# Read & write file test scripts.
         test_mcsolve.py					# Monte-Carlo solver tests scripts.
-        test_mesolve.py					# Lindlad master equation test scripts.
+        test_mesolve.py					# Lindlad master equation tests.
 		test_odechecks.py				# ODE configuration test scripts.
         test_operators.py				# Quantum operator test scripts.
 		test_Qobj.py					# Qobj test scripts.
-		test_qubit_evolution.py			# Test script for dynamics using qubit evolution.        
+		test_qubit_evolution.py			# Test script for qubit dynamics.  
 		test_rand.py					# Random operator/state test scripts.
-		test_sp_eigs.py					# Sparse/Dense eigenvalue/vector test scripts.
+		test_sp_eigs.py					# Sparse/Dense eigenvalue/vector test.
 		test_states.py					# Quantum state test scripts.
 		test_steadystate.py				# Steadystate solver test scripts.
 		test_superoperator.py			# Quantum superoperator test scripts.
