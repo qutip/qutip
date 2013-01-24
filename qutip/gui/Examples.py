@@ -342,11 +342,13 @@ class Examples(QtGui.QWidget):
         self.editor.setCurrentFont(QtGui.QFont("Courier"))
         if sys.platform == 'darwin':
             self.editor.setFontPointSize(12)
+            self.editor.resize(600, 665)
+            self.editor.setFixedSize(600, 666)
         else:
             self.editor.setFontPointSize(10)
+            self.editor.resize(675, 665)
+            self.editor.setFixedSize(675, 666)
         self.editor.setReadOnly(True)
-        self.editor.resize(600, 665)
-        self.editor.setFixedSize(600, 666)
         # add tabwidget and textwidget to main window
         self.layout.addWidget(tab_widget, 0, 0, 5, 1)
         self.layout.addWidget(self.editor, 0, 3, 5, 1)
