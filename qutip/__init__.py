@@ -29,8 +29,9 @@ import qutip._version
 #
 
 def version2int(version_string):
-    return sum([int(d) * (100 ** (3 - n))
-                for n, d in enumerate(version_string.split('.')[:3])])
+    num_list=version_string.split('.')
+    int_list=num_list[0]+num_list[1]+num_list[2][0]
+    return int(int_list)
 
 numpy_requirement = "1.6.0"
 try:
