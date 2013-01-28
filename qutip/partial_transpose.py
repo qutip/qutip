@@ -27,29 +27,54 @@ from qutip.states import (state_index_number, state_number_index,
                           state_number_enumerate)
 
 
-def partial_transpose(rho, pt_mask, method='dense'):
+def partial_transpose(rho, mask, method='dense'):
     """
     Return the partial transpose of a Qobj instance `rho`,
-    where `pt_mask` is an array/list with length that equals
+    where `mask` is an array/list with length that equals
     the number of components of `rho` (that is, the length of
-    `rho.dims[0]`), and the values in `pt_mask` indicates whether
+    `rho.dims[0]`), and the values in `mask` indicates whether
     or not the corresponding subsystem is to be transposed.
+    The elements in `mask` can be boolean or integers `0` or `1`,
+    where `True`/`1` indicates that the corresponding subsystem
+    should be tranposed.
+
+    Parameters
+    ----------
+
+    rho : :class:`qutip.qobj`
+        A density matrix.
+
+    mask : *list* / *array*
+        A mask that selects which subsystems should be transposed.
+
+    method : str
+        choice of method, `dense` or `sparse`. The default method
+        is `dense`. The `sparse` implementation can be faster for
+        large and sparse systems (hundreds of quantum states).
+
+    Returns
+    -------
+
+    rho_pr: :class:`qutip.qobj`
+
+        A density matrix with the selected subsystems transposed.
+
     """
     if method == 'sparse':
-        return _partial_transpose_sparse(rho, pt_mask)
+        return _partial_transpose_sparse(rho, mask)
     else:
-        return _partial_transpose_dense(rho, pt_mask)
+        return _partial_transpose_dense(rho, mask)
 
 
-def _partial_transpose_dense(rho, pt_mask):
+def _partial_transpose_dense(rho, mask):
     """
     Based on Jonas' implementation using numpy.
     Very fast for dense problems.
     """
-    nsys = len(pt_mask)
+    nsys = len(mask)
     pt_dims = np.arange(2 * nsys).reshape(2, nsys).T
-    pt_idx = np.concatenate([[pt_dims[n, pt_mask[n]] for n in range(nsys)],
-                            [pt_dims[n, 1 - pt_mask[n]] for n in range(nsys)]])
+    pt_idx = np.concatenate([[pt_dims[n, mask[n]] for n in range(nsys)],
+                            [pt_dims[n, 1 - mask[n]] for n in range(nsys)]])
 
     data = rho.data.toarray().reshape(
         np.array(rho.dims).flatten()).transpose(pt_idx).reshape(rho.shape)
@@ -57,7 +82,7 @@ def _partial_transpose_dense(rho, pt_mask):
     return Qobj(data, dims=rho.dims)
 
 
-def _partial_transpose_sparse(rho, pt_mask):
+def _partial_transpose_sparse(rho, mask):
     """
     Implement the partial transpose using the CSR sparse matrix.
     """
@@ -76,16 +101,16 @@ def _partial_transpose_sparse(rho, pt_mask):
             psi_B = state_index_number(rho.dims[1], n)
 
             m_pt = state_number_index(
-                rho.dims[1], np.choose(pt_mask, [psi_A, psi_B]))
+                rho.dims[1], np.choose(mask, [psi_A, psi_B]))
             n_pt = state_number_index(
-                rho.dims[0], np.choose(pt_mask, [psi_B, psi_A]))
+                rho.dims[0], np.choose(mask, [psi_B, psi_A]))
 
             data[m_pt, n_pt] = rho.data.data[n1 + idx]
 
     return Qobj(data.tocsr(), dims=rho.dims)
 
 
-def _partial_transpose_reference(rho, pt_mask):
+def _partial_transpose_reference(rho, mask):
     """
     This is a reference implementation that explicitly loops over
     all states and performs the transpose. It's slow but easy to
@@ -101,9 +126,9 @@ def _partial_transpose_reference(rho, pt_mask):
             n = state_number_index(rho.dims[1], psi_B)
 
             m_pt = state_number_index(
-                rho.dims[1], np.choose(pt_mask, [psi_A, psi_B]))
+                rho.dims[1], np.choose(mask, [psi_A, psi_B]))
             n_pt = state_number_index(
-                rho.dims[0], np.choose(pt_mask, [psi_B, psi_A]))
+                rho.dims[0], np.choose(mask, [psi_B, psi_A]))
 
             A_pt[m_pt, n_pt] = rho.data[m, n]
 
