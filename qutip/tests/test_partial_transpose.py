@@ -24,7 +24,7 @@ import numpy
 from numpy.testing import assert_, assert_equal, run_module_suite
 
 from qutip import *
-
+from qutip.partial_transpose import _partial_transpose_reference
 
 def test_partial_transpose_bipartite():
     """partial transpose of bipartite systems"""
@@ -59,7 +59,7 @@ def test_partial_transpose_bipartite():
 def test_partial_transpose_comparison():
     """partial transpose: comparing sparse and dense implementations"""
 
-    N = 15
+    N = 10
     rho = tensor(rand_dm(N, density=0.5), rand_dm(N, density=0.5))
 
     # partial transpose of system 1
@@ -72,6 +72,22 @@ def test_partial_transpose_comparison():
     rho_pt2 = partial_transpose(rho, [0, 1], method="sparse")
     numpy.abs(numpy.max(rho_pt1.full() - rho_pt1.full())) < 1e-12
 
+def test_partial_transpose_randomized():
+    """partial transpose: randomized tests on tripartite system"""
+
+    rho = tensor(rand_dm(2, density=1),
+                 rand_dm(2, density=1),
+                 rand_dm(2, density=1))
+
+    mask = numpy.random.choice([True, False], size=3)
+
+    rho_pt_ref = _partial_transpose_reference(rho, mask)
+
+    rho_pt1 = partial_transpose(rho, mask, method="dense")
+    numpy.abs(numpy.max(rho_pt1.full() - rho_pt_ref.full())) < 1e-12
+
+    rho_pt2 = partial_transpose(rho, mask, method="sparse")
+    numpy.abs(numpy.max(rho_pt2.full() - rho_pt_ref.full())) < 1e-12
 
 if __name__ == "__main__":
     run_module_suite()
