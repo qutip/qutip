@@ -178,9 +178,7 @@ def test_MCSimpleConst():
 
 
 def test_MCSimpleSingleCollapse():
-    """Monte-carlo: Constant H with collapse operator specified as single
-    operator
-    """
+    """Monte-carlo: Constant H with single collapse operator"""
     N = 10  # number of basis states to consider
     a = destroy(N)
     H = a.dag() * a
@@ -197,9 +195,7 @@ def test_MCSimpleSingleCollapse():
 
 
 def test_MCSimpleSingleExpect():
-    """Monte-carlo: Constant H with collapse operator specified as single
-    operator
-    """
+    """Monte-carlo: Constant H with single expect operator"""
     N = 10  # number of basis states to consider
     a = destroy(N)
     H = a.dag() * a
