@@ -26,6 +26,7 @@ from numpy.testing import assert_, assert_equal, run_module_suite
 from qutip import *
 from qutip.partial_transpose import _partial_transpose_reference
 
+
 def test_partial_transpose_bipartite():
     """partial transpose of bipartite systems"""
 
@@ -71,6 +72,7 @@ def test_partial_transpose_comparison():
     rho_pt1 = partial_transpose(rho, [0, 1], method="dense")
     rho_pt2 = partial_transpose(rho, [0, 1], method="sparse")
     numpy.abs(numpy.max(rho_pt1.full() - rho_pt1.full())) < 1e-12
+
 
 def test_partial_transpose_randomized():
     """partial transpose: randomized tests on tripartite system"""
