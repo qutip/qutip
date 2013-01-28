@@ -887,7 +887,7 @@ def _mc_func_load(odeconfig):
             code = compile('from ' + odeconfig.tdname +
                            ' import cyq_td_ode_rhs, col_spmv, col_expect',
                            '<string>', 'exec')
-            exec(code, globals(), locals())
+            exec(code, globals())
             _cy_rhs_func = cyq_td_ode_rhs
             _cy_col_spmv_func = col_spmv
             _cy_col_expect_func = col_expect
