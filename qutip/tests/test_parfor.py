@@ -32,7 +32,7 @@ def test_parfor1():
     "parfor"
 
     x = arange(10)
-    y1 = map(_func, x)
+    y1 = list(map(_func, x))
     y2 = parfor(_func, x)
 
     assert_((array(y1) == array(y2)).all())
