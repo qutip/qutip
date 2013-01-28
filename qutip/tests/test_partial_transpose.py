@@ -56,5 +56,22 @@ def test_partial_transpose_bipartite():
     assert_(numpy.abs(numpy.max(rho_pt.full() - rho.trans().full())) < 1e-12)
 
 
+def test_partial_transpose_comparison():
+    """partial transpose: comparing sparse and dense implementations"""
+
+    N = 15
+    rho = tensor(rand_dm(N, density=0.5), rand_dm(N, density=0.5))
+
+    # partial transpose of system 1
+    rho_pt1 = partial_transpose(rho, [1, 0], method="dense")
+    rho_pt2 = partial_transpose(rho, [1, 0], method="sparse")
+    numpy.abs(numpy.max(rho_pt1.full() - rho_pt1.full())) < 1e-12
+
+    # partial transpose of system 2
+    rho_pt1 = partial_transpose(rho, [0, 1], method="dense")
+    rho_pt2 = partial_transpose(rho, [0, 1], method="sparse")
+    numpy.abs(numpy.max(rho_pt1.full() - rho_pt1.full())) < 1e-12
+
+
 if __name__ == "__main__":
     run_module_suite()
