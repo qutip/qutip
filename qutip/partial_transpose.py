@@ -23,7 +23,8 @@ import numpy as np
 import scipy.sparse as sp
 
 from qutip.qobj import Qobj
-from qutip.states import state_index_number, state_number_index
+from qutip.states import (state_index_number, state_number_index,
+                          state_number_enumerate)
 
 
 def partial_transpose(rho, pt_mask, method='dense'):
@@ -91,7 +92,7 @@ def _partial_transpose_reference(rho, pt_mask):
     understand and useful for testing.
     """
 
-    A_pt = zeros(rho.shape, dtype=complex)
+    A_pt = np.zeros(rho.shape, dtype=complex)
 
     for psi_A in state_number_enumerate(rho.dims[0]):
         m = state_number_index(rho.dims[0], psi_A)
@@ -100,9 +101,9 @@ def _partial_transpose_reference(rho, pt_mask):
             n = state_number_index(rho.dims[1], psi_B)
 
             m_pt = state_number_index(
-                rho.dims[1], choose(pt_mask, [psi_A, psi_B]))
+                rho.dims[1], np.choose(pt_mask, [psi_A, psi_B]))
             n_pt = state_number_index(
-                rho.dims[0], choose(pt_mask, [psi_B, psi_A]))
+                rho.dims[0], np.choose(pt_mask, [psi_B, psi_A]))
 
             A_pt[m_pt, n_pt] = rho.data[m, n]
 
