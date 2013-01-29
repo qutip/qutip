@@ -166,9 +166,9 @@ class Bloch3d():
         # Width of Bloch vectors, default = 2
         self.vector_width = 2.0
         # Height of vector head
-        self.vector_head_height=0.2
+        self.vector_head_height=0.15
         # Radius of vector head
-        self.vector_head_radius=0.1
+        self.vector_head_radius=0.075
         
         #---Point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
