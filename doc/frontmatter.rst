@@ -27,7 +27,7 @@ These pages contains automatically generated API documentation for QuTiP. A PDF 
 :Address: Advanced Science Institute, RIKEN,
 		  Wako-shi Saitama, 351-0198 Japan
 
-:version: 2.1
+:version: 2.2
 :status: In Development
 :copyright: This documentation is in the public domain.
 			You may do with it as your heart desires.
