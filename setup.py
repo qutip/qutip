@@ -22,9 +22,10 @@ Intended Audience :: Science/Research
 License :: OSI Approved :: GNU General Public License (GPL)
 Programming Language :: Python
 Topic :: Scientific/Engineering
+Operating System :: MacOS
 Operating System :: POSIX
 Operating System :: Unix
-Operating System :: MacOS
+Operating System :: Windows
 """
 
 # import statements
@@ -45,7 +46,7 @@ from numpy.distutils.core import setup
 
 # all information about QuTiP goes here-------
 MAJOR = 2
-MINOR = 1
+MINOR = 2
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
@@ -55,7 +56,7 @@ PACKAGE_DATA = {'qutip/gui': ['logo.png', 'icon.png']}
 INCLUDE_DIRS = [np.get_include()]
 EXT_MODULES = [Extension(
     "qutip.cyQ.spmatfuncs", ["qutip/cyQ/spmatfuncs.c"],
-    extra_compile_args=['-ffast-math'], extra_link_args=[])]
+    extra_compile_args=['-ffast-math -O3'], extra_link_args=[])]
 NAME = "QuTiP"
 AUTHOR = "Paul D. Nation, Robert J. Johansson"
 AUTHOR_EMAIL = "pnation@korea.ac.kr, robert@riken.jp"
@@ -65,7 +66,7 @@ LONG_DESCRIPTION = "\n".join(DOCLINES[2:])
 KEYWORDS = "quantum physics dynamics"
 URL = "http://code.google.com/p/qutip/"
 CLASSIFIERS = [_f for _f in CLASSIFIERS.split('\n') if _f]
-PLATFORMS = ["Linux", "Mac OSX", "Unix"]
+PLATFORMS = ["Linux", "Mac OSX", "Unix", "Windows"]
 
 
 def git_short_hash():
