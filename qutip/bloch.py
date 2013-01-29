@@ -30,7 +30,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
-from qutip.Qobj import Qobj
+from qutip.qobj import Qobj
 from qutip.expect import expect
 from qutip.operators import sigmax, sigmay, sigmaz
 
