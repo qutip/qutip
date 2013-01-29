@@ -87,10 +87,12 @@ class Bloch():
         otherwise you will have a Bloch sphere that looks like a football.
     vector_color : list {["g","#CC6600","b","r"]}
         List of vector colors to cycle through.
-    vector_width : int {3}
+    vector_width : int {5}
         Width of displayed vectors.
-    vector_style : str {'', 'simple', 'fancy', ..}
+    vector_style : str {'-|>', 'simple', 'fancy', ''}
         Vector arrowhead style (from matplotlib's arrow style).
+    vector_mutation : int {20}
+        Width of vectors arrowhead.
     view : list {[-60,30]}
         Azimuthal and Elevation viewing angles.
     xlabel : list {["$x$",""]}
@@ -157,10 +159,12 @@ class Bloch():
         #---vector options---
         # List of colors for Bloch vectors, default = ['b','g','r','y']
         self.vector_color = ['g', '#CC6600', 'b', 'r']
-        #: Width of Bloch vectors, default = 3
-        self.vector_width = 3
-        #: Style of Bloch vectors, default = 'simple'
-        self.vector_style = 'simple'
+        #: Width of Bloch vectors, default = 5
+        self.vector_width = 5
+        #: Style of Bloch vectors, default = '-|>' (or 'simple')
+        self.vector_style = '-|>'
+        #: Sets the width of the vectors arrowhead
+        self.vector_mutation=20
 
         #---point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
@@ -193,27 +197,28 @@ class Bloch():
         print('')
         print('Bloch sphere properties:')
         print('------------------------')
-        print("font_color:   ", self.font_color)
-        print("font_size:    ", self.font_size)
-        print("frame_alpha:  ", self.frame_alpha)
-        print("frame_color:  ", self.frame_color)
-        print("frame_width:  ", self.frame_width)
-        print("point_color:  ", self.point_color)
-        print("point_marker: ", self.point_marker)
-        print("point_size:   ", self.point_size)
-        print("sphere_alpha: ", self.sphere_alpha)
-        print("sphere_color: ", self.sphere_color)
-        print("size:         ", self.size)
-        print("vector_color: ", self.vector_color)
-        print("vector_width: ", self.vector_width)
-        print("vector_style: ", self.vector_style)
-        print("view:         ", self.view)
-        print("xlabel:       ", self.xlabel)
-        print("xlpos:        ", self.xlpos)
-        print("ylabel:       ", self.ylabel)
-        print("ylpos:        ", self.ylpos)
-        print("zlabel:       ", self.zlabel)
-        print("zlpos:        ", self.zlpos)
+        print("font_color:      ", self.font_color)
+        print("font_size:       ", self.font_size)
+        print("frame_alpha:     ", self.frame_alpha)
+        print("frame_color:     ", self.frame_color)
+        print("frame_width:     ", self.frame_width)
+        print("point_color:     ", self.point_color)
+        print("point_marker:    ", self.point_marker)
+        print("point_size:      ", self.point_size)
+        print("sphere_alpha:    ", self.sphere_alpha)
+        print("sphere_color:    ", self.sphere_color)
+        print("size:            ", self.size)
+        print("vector_color:    ", self.vector_color)
+        print("vector_width:    ", self.vector_width)
+        print("vector_style:    ", self.vector_style)
+        print("vector_mutation: ", self.vector_mutation)
+        print("view:            ", self.view)
+        print("xlabel:          ", self.xlabel)
+        print("xlpos:           ", self.xlpos)
+        print("ylabel:          ", self.ylabel)
+        print("ylpos:           ", self.ylpos)
+        print("zlabel:          ", self.zlabel)
+        print("zlpos:           ", self.zlpos)
         return ''
 
     def clear(self):
@@ -429,7 +434,7 @@ class Bloch():
 
                     xs, ys, zs = proj3d.proj_transform(
                         xs3d, ys3d, zs3d, self.axes.get_proj())
-                    a = Arrow3D(xs3d, ys3d, zs3d, mutation_scale=20, lw=1,
+                    a = Arrow3D(xs3d, ys3d, zs3d, mutation_scale=self.vector_mutation, lw=self.vector_width,
                                 arrowstyle=self.vector_style,
                                 color=self.vector_color[mod(k, len(self.vector_color))])
 
