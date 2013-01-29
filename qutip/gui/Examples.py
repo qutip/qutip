@@ -23,6 +23,13 @@ import os
 import time
 from numpy import arange, floor
 
+try:
+    unicode = unicode
+except NameError:
+    # in python 3, use str instead of unicode
+    def unicode(string, encoding):
+        return str(string)
+
 import qutip.gui.syntax
 from qutip.examples import exconfig
 from qutip.examples import *
