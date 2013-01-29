@@ -34,7 +34,7 @@ from qutip.sparse import _sp_inf_norm
 import qutip.settings as qset
 
 
-def steadystate(H, c_op_list, maxiter=100, tol=1e-6, method='solve'):
+def steadystate(H, c_op_list, maxiter=100, tol=1e-6, method='solve', use_umfpack=True):
     """Calculates the steady state for the evolution subject to the
     supplied Hamiltonian and list of collapse operators.
 
@@ -59,6 +59,11 @@ def steadystate(H, c_op_list, maxiter=100, tol=1e-6, method='solve'):
         Method for solving linear equations. Direct solver 'solve' (default) or
         iterative biconjugate gradient method 'bicg'.
 
+    use_umfpack: bool {True, False}
+        Use the UMFpack backend for the direct solver.  If 'False', the solver
+        uses the SuperLU backend.  This option does not affect the 'bicg'
+        method.
+    
     Returns
     -------
     ket : qobj
@@ -77,39 +82,46 @@ def steadystate(H, c_op_list, maxiter=100, tol=1e-6, method='solve'):
                          'nondissipative system (no collapse operators given)')
 
     L = liouvillian(H, c_op_list)
-    return steady(L, maxiter, tol, method)
+    return steady(L, maxiter=maxiter, tol=tol, method=method, use_umfpack=use_umfpack)
 
 
-def steady(L, maxiter=100, tol=1e-6, method='solve'):
+def steady(L, maxiter=100, tol=1e-6, method='solve', use_umfpack=True):
     """Steady state for the evolution subject to the
     supplied Louvillian.
 
-Parameters
-----------
-L : qobj
-    Liouvillian superoperator.
+    Parameters
+    ----------
+    L : qobj
+        Liouvillian superoperator.
 
-maxiter : int
-    Maximum number of iterations to perform, default = 100.
+    maxiter : int
+        Maximum number of iterations to perform, default = 100.
 
-tol : float
-    Tolerance used by iterative solver, default = 1e-6.
+    tol : float
+        Tolerance used by iterative solver, default = 1e-6.
 
-method : str
-    Method for solving linear equations. Direct solver 'solve' (default) or
-    iterative biconjugate gradient method 'bicg'.
+    method : str
+        Method for solving linear equations. Direct solver 'solve' (default) or
+        iterative biconjugate gradient method 'bicg'.
 
-Returns
---------
-ket : qobj
-    Ket vector for steady state.
+    use_umfpack: bool {True, False}
+        Use the UMFpack backend for the direct solver.  If 'False', the solver
+        uses the SuperLU backend.  This option does not affect the 'bicg'
+        method.
 
-Notes
------
-Uses the inverse power method.
-See any Linear Algebra book with an iterative methods section.
+    Returns
+    --------
+    ket : qobj
+        Ket vector for steady state.
 
-"""
+    Notes
+    -----
+    Uses the inverse power method.
+    See any Linear Algebra book with an iterative methods section.
+    Using UMFpack may result in 'out of memory' errors for some
+    Liouvillians.
+
+    """
     eps = finfo(float).eps
     if (not isoper(L)) & (not issuper(L)):
         raise TypeError('Steady states can only be found for operators ' +
@@ -133,7 +145,7 @@ See any Linear Algebra book with an iterative methods section.
             M = LinearOperator((n, n), matvec=P_x)
             v, check = bicgstab(L1, v, tol=tol, M=M)
         else:
-            v = spsolve(L1, v, use_umfpack=True)
+            v = spsolve(L1, v, use_umfpack=use_umfpack)
         v = v / la.norm(v, np.inf)
         it += 1
     if it >= maxiter:
