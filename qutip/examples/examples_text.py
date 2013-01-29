@@ -19,7 +19,7 @@
 from scipy import arange
 
 # basic demos
-basic_labels = ["Schrodinger Cat",
+basic_labels = ["Schrödinger Cat",
                 "Q-function",
                 "Squeezed State",
                 "Ground State",
@@ -32,7 +32,7 @@ basic_labels = ["Schrodinger Cat",
 
 basic_desc = [
     "Wigner functio of a Schrödinger cat state formed from a superposition of two coherent states.",
-    "Q-function of a Schrodinger cat state formed from a superposition of two coherent states.",
+    "Q-function of a Schrödinger cat state formed from a superposition of two coherent states.",
     "3D Wigner and Q-functions for a squeezed coherent state.",
     "Groundstate properties of an ultra-strongly coupled atom-cavity system.",
     "Relationship between fidelity and trace distance for pure state denisty matrices.",
