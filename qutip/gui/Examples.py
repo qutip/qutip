@@ -196,8 +196,8 @@ class Examples(QtGui.QWidget):
     def center(self):
         screen = QtGui.QDesktopWidget().screenGeometry()
         size = self.frameSize()
-        self.move((screen.width(
-        ) - size.width()) / 2, (screen.height() - size.height()) / 2)
+        self.move((screen.width() - size.width()) / 2,
+                  (screen.height() - size.height()) / 2)
 
     def moveout(self):
         # self.clearFocus()
@@ -242,7 +242,7 @@ class Examples(QtGui.QWidget):
         title_text = ("Click button once for code preview. " +
                       "Click again to run example.")
         pixelswide = title_fm.width(title_text)
-        title.setText(title_text)
+        title.setText(unicode(title_text, 'utf-8'))
         title.setGeometry((self.width() - pixelswide) / 2.0, 0, 800, 30)
 
         font = QtGui.QFont()
@@ -292,7 +292,7 @@ class Examples(QtGui.QWidget):
                     button.setText('Run Example')
                     button.setStyleSheet(style_button_highlight)
                 else:
-                    button.setText(button_labels[j][k])
+                    button.setText(unicode(button_labels[j][k], 'utf-8'))
                     button.setStyleSheet(style_tab_button)
                 button.setFixedSize(170, 40)
                 self.connect(button, QtCore.SIGNAL(
@@ -312,13 +312,14 @@ class Examples(QtGui.QWidget):
         self.tab_button_desc = [[] for j in range(num_tabs)]
         for j in range(num_tabs):
             for k in range(self.num_elems[j]):
-                _label = QtGui.QLabel(button_desc[j][k])
+                _label = QtGui.QLabel(unicode(button_desc[j][k], 'utf-8'))
                 _label.setWordWrap(True)  # auto wrap
                 _label.setFont(font2)
                 self.tab_button_desc[j].append(_label)
 
-        self.tab_widgets = [[QtGui.QWidget(
-        ) for k in range(self.num_elems[j])] for j in range(num_tabs)]
+        self.tab_widgets = [[QtGui.QWidget() 
+                             for k in range(self.num_elems[j])]
+                            for j in range(num_tabs)]
         self.tab_horiz_layouts = [[QtGui.QHBoxLayout(self.tab_widgets[j][k])
                                    for k in range(self.num_elems[j])]
                                   for j in range(num_tabs)]
@@ -334,8 +335,8 @@ class Examples(QtGui.QWidget):
             self.tab_verts[j].addStretch()
 
         # set mapper to on_button_clicked funtions
-        self.connect(
-            mapper, QtCore.SIGNAL("mapped(int)"), self.on_button_clicked)
+        self.connect(mapper, QtCore.SIGNAL("mapped(int)"),
+                     self.on_button_clicked)
         self.layout = QtGui.QGridLayout(self)
         # create text editor widget
         self.editor = QtGui.QTextEdit()
@@ -378,7 +379,7 @@ class Examples(QtGui.QWidget):
             self.tab_buttons[old_tab_num][
                 old_row_num].setStyleSheet(style_tab_old)
             self.tab_buttons[old_tab_num][old_row_num].setText(
-                self.tab_buttons[old_tab_num][old_row_num].label)
+                unicode(self.tab_buttons[old_tab_num][old_row_num].label, 'utf-8'))
             exconfig.is_green = num
             qutip.gui.syntax.PythonHighlighter(self.editor.document())
             self.editor.show()
