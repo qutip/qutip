@@ -18,7 +18,7 @@
 ###########################################################################
 
 from scipy import array
-from multiprocessing import Pool
+from multiprocessing import Pool, cpu_count
 import os
 import sys
 import signal
@@ -33,7 +33,7 @@ def _task_wrapper(args):
         os.exit(1)
 
 
-def parfor(func, frange):
+def parfor(func, frange, num_cpus=0):
     """Executes a single-variable function in parallel.
 
     Parallel execution of a for-loop over function `func`
@@ -45,6 +45,10 @@ def parfor(func, frange):
         A single-variable function.
     frange: array_type
         An ``array`` of values to be passed on to `func`.
+    num_cpus : int {0}
+        Number of CPU's to use.  Default '0' uses max. number
+        of CPU's. Performance degrades if num_cpus is larger 
+        than the physical CPU count of your machine.
 
     Returns
     -------
@@ -59,8 +63,15 @@ def parfor(func, frange):
     builtin 'zip' command, or using multidimensional `lists` or `arrays`.
 
     """
-
-    pool = Pool(processes=qset.num_cpus)
+    if num_cpus==0:
+        cpus=qset.num_cpus
+    else:
+        cpus=num_cpus
+        if cpus > cpu_count():
+            print("Requsted num. of CPU's (%s) is larger than physical num. (%s)." 
+                    % (cpus,cpu_count()))
+            print("Suggest reducing 'num_cpus' for greater performance.")
+    pool = Pool(processes=cpus)
     try:
         par_return = list(pool.map(
             _task_wrapper, ((func, f, os.getpid()) for f in frange)))
