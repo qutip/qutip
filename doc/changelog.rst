@@ -1,9 +1,29 @@
 .. QuTiP 
-   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+   Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
 
 **********
 Change Log
 **********
+
+Version 2.2.0 (February XX, 2013):
+++++++++++++++++++++++++++++++++++++++++++++++
+
+** Added Support for Windows **
+
+New Features
+-------------
+
+- New Bloch3d class for plotting 3D Bloch spheres using Mayavi.
+
+- Added partial transpose function.
+
+Bug Fixes:
+----------
+
+- Function based time-dependent Hamiltonians now keep the correct phase.
+
+- mcsolve no longer prints to the command line if ntraj=1.
+
 
 Version 2.1.0 [SVN-2683] (October 05, 2012):
 ++++++++++++++++++++++++++++++++++++++++++++++
