@@ -36,6 +36,8 @@ Contributors
 
 **Arne Grimsmo** (University of Auckland) - Bug hunter
 
+**JP Hadden** (University of Bristol) - Code contributor, improved Bloch sphere visualization
+
 **Myung-Joong Hwang** (Pohang University of Science and Technology) - Bug hunter
 
 **Robert Jördens**  - Linux packaging
