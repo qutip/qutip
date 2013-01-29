@@ -15,17 +15,38 @@
 #
 # Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
 #
+# 2013 - JP Hadden contributed code for improved arrow styles.
+#
 ###########################################################################
+
 import os
 
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
-                   sqrt, real, mod, append, ceil)
+                   sqrt, real, imag, mod, append, ceil, floor)
 
-from pylab import figure, show, savefig, close
+from pylab import figure, plot, show, savefig, close
 from mpl_toolkits.mplot3d import Axes3D
-from qutip.qobj import Qobj
+
+from matplotlib.patches import FancyArrowPatch
+from mpl_toolkits.mplot3d import proj3d
+
+from qutip.Qobj import Qobj
 from qutip.expect import expect
 from qutip.operators import sigmax, sigmay, sigmaz
+
+
+class Arrow3D(FancyArrowPatch):
+    def __init__(self, xs, ys, zs, *args, **kwargs):
+        FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
+
+        self._verts3d = xs, ys, zs
+
+    def draw(self, renderer):
+        xs3d, ys3d, zs3d = self._verts3d
+        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+
+        self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
+        FancyArrowPatch.draw(self, renderer)
 
 
 class Bloch():
@@ -68,6 +89,8 @@ class Bloch():
         List of vector colors to cycle through.
     vector_width : int {3}
         Width of displayed vectors.
+    vector_style : str {'', 'simple', 'fancy', ..}
+        Vector arrowhead style (from matplotlib's arrow style).
     view : list {[-60,30]}
         Azimuthal and Elevation viewing angles.
     xlabel : list {["$x$",""]}
@@ -134,14 +157,16 @@ class Bloch():
         #---vector options---
         # List of colors for Bloch vectors, default = ['b','g','r','y']
         self.vector_color = ['g', '#CC6600', 'b', 'r']
-        #: Width of Bloch vectors, default = 4
-        self.vector_width = 4
+        #: Width of Bloch vectors, default = 3
+        self.vector_width = 3
+        #: Style of Bloch vectors, default = 'simple'
+        self.vector_style = 'simple'
 
         #---point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_color = ['b', 'r', 'g', '#CC6600']
         # Size of point markers, default = 25
-        self.point_size = [55, 62, 65, 75]
+        self.point_size = [25, 32, 35, 45]
         # Shape of point markers, default = ['o','^','d','s']
         self.point_marker = ['o', 's', 'd', '^']
 
@@ -181,6 +206,7 @@ class Bloch():
         print("size:         ", self.size)
         print("vector_color: ", self.vector_color)
         print("vector_width: ", self.vector_width)
+        print("vector_style: ", self.vector_style)
         print("view:         ", self.view)
         print("xlabel:       ", self.xlabel)
         print("xlpos:        ", self.xlpos)
@@ -338,12 +364,12 @@ class Bloch():
     def plot_axes(self):
         # axes
         span = linspace(-1.0, 1.0, 2)
-        self.axes.plot(span, 0 * span, zs=0, zdir='z',
-                       label='X', lw=self.frame_width, color=self.frame_color)
-        self.axes.plot(0 * span, span, zs=0, zdir='z',
-                       label='Y', lw=self.frame_width, color=self.frame_color)
-        self.axes.plot(0 * span, span, zs=0, zdir='y',
-                       label='Z', lw=self.frame_width, color=self.frame_color)
+        self.axes.plot(span, 0 * span, zs=0, zdir='z', label='X',
+                       lw=self.frame_width, color=self.frame_color)
+        self.axes.plot(0 * span, span, zs=0, zdir='z', label='Y',
+                       lw=self.frame_width, color=self.frame_color)
+        self.axes.plot(0 * span, span, zs=0, zdir='y', label='Z',
+                       lw=self.frame_width, color=self.frame_color)
         self.axes.set_xlim3d(-1.3, 1.3)
         self.axes.set_ylim3d(-1.3, 1.3)
         self.axes.set_zlim3d(-1.3, 1.3)
@@ -364,23 +390,44 @@ class Bloch():
                        color=self.font_color, fontsize=self.font_size)
         self.axes.text(0, 0, self.zlpos[1], self.zlabel[1],
                        color=self.font_color, fontsize=self.font_size)
-
-        for ax in [self.axes.w_xaxis, self.axes.w_yaxis, self.axes.w_zaxis]:
-            _hide_tick_lines_and_labels(ax)
+        for a in self.axes.w_xaxis.get_ticklines() + self.axes.w_xaxis.get_ticklabels():
+            a.set_visible(False)
+        for a in self.axes.w_yaxis.get_ticklines() + self.axes.w_yaxis.get_ticklabels():
+            a.set_visible(False)
+        for a in self.axes.w_zaxis.get_ticklines() + self.axes.w_zaxis.get_ticklabels():
+            a.set_visible(False)
 
     def plot_vectors(self):
         # -X and Y data are switched for plotting purposes
         if len(self.vectors) > 0:
             for k in range(len(self.vectors)):
-                length = sqrt(self.vectors[k][0] ** 2 +
-                              self.vectors[k][1] ** 2 +
-                              self.vectors[k][2] ** 2)
-                self.axes.plot(
-                    self.vectors[k][1] * linspace(0, length, 2),
-                    -self.vectors[k][0] * linspace(0, length, 2),
-                    self.vectors[k][2] * linspace(0, length, 2),
-                    zs=0, zdir='z', label='Z', lw=self.vector_width,
-                    color=self.vector_color[mod(k, len(self.vector_color))])
+
+                if self.vector_style == '':
+                    # simple line style
+                    length = sqrt(self.vectors[k][0] ** 2 + self.vectors[
+                                  k][1] ** 2 + self.vectors[k][2] ** 2)
+                    self.axes.plot(self.vectors[k][1] * linspace(0, length, 2), 
+                                   -self.vectors[k][0] * linspace(0, length, 2),
+                                   self.vectors[k][2] * linspace(0, length, 2), 
+                                   zs=0, zdir='z', label='Z', lw=self.vector_width,
+                                   color=self.vector_color[mod(k, len(self.vector_color))])
+
+                else:
+                    # decorated style, with arrow heads
+                    length = sqrt(self.vectors[k][0] ** 2 + self.vectors[
+                                  k][1] ** 2 + self.vectors[k][2] ** 2)
+
+                    xs3d = self.vectors[k][1] * linspace(0, length, 2)
+                    ys3d = -self.vectors[k][0] * linspace(0, length, 2)
+                    zs3d = self.vectors[k][2] * linspace(0, length, 2)
+
+                    xs, ys, zs = proj3d.proj_transform(
+                        xs3d, ys3d, zs3d, self.axes.get_proj())
+                    a = Arrow3D(xs3d, ys3d, zs3d, mutation_scale=20, lw=1,
+                                arrowstyle=self.vector_style,
+                                color=self.vector_color[mod(k, len(self.vector_color))])
+
+                    self.axes.add_artist(a)
 
     def plot_points(self):
         # -X and Y data are switched for plotting purposes
