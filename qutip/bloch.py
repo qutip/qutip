@@ -326,7 +326,7 @@ class Bloch():
         x = outer(cos(u), sin(v))
         y = outer(sin(u), sin(v))
         z = outer(ones(size(u)), cos(v))
-        self.axes.plot_surface(x, y, z,  rstride=2, cstride=2,
+        self.axes.plot_surface(x, y, z, rstride=2, cstride=2,
                                color=self.sphere_color, linewidth=0,
                                alpha=self.sphere_alpha)
         # wireframe
@@ -346,7 +346,7 @@ class Bloch():
         x = outer(cos(u), sin(v))
         y = outer(sin(u), sin(v))
         z = outer(ones(size(u)), cos(v))
-        self.axes.plot_surface(x, y, z,  rstride=2, cstride=2,
+        self.axes.plot_surface(x, y, z, rstride=2, cstride=2,
                                color=self.sphere_color, linewidth=0,
                                alpha=self.sphere_alpha)
         # wireframe
@@ -390,11 +390,15 @@ class Bloch():
                        color=self.font_color, fontsize=self.font_size)
         self.axes.text(0, 0, self.zlpos[1], self.zlabel[1],
                        color=self.font_color, fontsize=self.font_size)
-        for a in self.axes.w_xaxis.get_ticklines() + self.axes.w_xaxis.get_ticklabels():
+
+        for a in (self.axes.w_xaxis.get_ticklines() +
+                  self.axes.w_xaxis.get_ticklabels()):
             a.set_visible(False)
-        for a in self.axes.w_yaxis.get_ticklines() + self.axes.w_yaxis.get_ticklabels():
+        for a in (self.axes.w_yaxis.get_ticklines() +
+                  self.axes.w_yaxis.get_ticklabels()):
             a.set_visible(False)
-        for a in self.axes.w_zaxis.get_ticklines() + self.axes.w_zaxis.get_ticklabels():
+        for a in (self.axes.w_zaxis.get_ticklines() +
+                  self.axes.w_zaxis.get_ticklabels()):
             a.set_visible(False)
 
     def plot_vectors(self):
@@ -404,13 +408,15 @@ class Bloch():
 
                 if self.vector_style == '':
                     # simple line style
-                    length = sqrt(self.vectors[k][0] ** 2 + self.vectors[
-                                  k][1] ** 2 + self.vectors[k][2] ** 2)
-                    self.axes.plot(self.vectors[k][1] * linspace(0, length, 2), 
-                                   -self.vectors[k][0] * linspace(0, length, 2),
-                                   self.vectors[k][2] * linspace(0, length, 2), 
-                                   zs=0, zdir='z', label='Z', lw=self.vector_width,
-                                   color=self.vector_color[mod(k, len(self.vector_color))])
+                    length = sqrt(self.vectors[k][0] ** 2 +
+                                  self.vectors[k][1] ** 2 +
+                                  self.vectors[k][2] ** 2)
+                    self.axes.plot(
+                        self.vectors[k][1] * linspace(0, length, 2),
+                        -self.vectors[k][0] * linspace(0, length, 2),
+                        self.vectors[k][2] * linspace(0, length, 2),
+                        zs=0, zdir='z', label='Z', lw=self.vector_width,
+                        color=self.vector_color[mod(k, len(self.vector_color))])
 
                 else:
                     # decorated style, with arrow heads
