@@ -1,3 +1,5 @@
+# -*- coding: UTF-8 -*-
+#
 # This file is part of QuTiP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
@@ -31,7 +33,7 @@ basic_labels = ["Schrödinger Cat",
                 "3-Qubit GHZ State"]
 
 basic_desc = [
-    "Wigner functio of a Schrödinger cat state formed from a superposition of two coherent states.",
+    "Wigner function of a Schrödinger cat state formed from a superposition of two coherent states.",
     "Q-function of a Schrödinger cat state formed from a superposition of two coherent states.",
     "3D Wigner and Q-functions for a squeezed coherent state.",
     "Groundstate properties of an ultra-strongly coupled atom-cavity system.",
