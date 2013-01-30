@@ -341,6 +341,46 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
 # SPECTRUM
 # -----------------------------------------------------------------------------
 
+def spectrum_correlation_fft(tlist, y):
+    """
+    Calculate the spectrum corresponding to a two-time correlation function
+    using FFT. 
+
+
+    Parameters
+    ----------
+
+    tlist : *list* / *array*
+        list/array of times :math:`t` which the correlation function is given.
+
+    y : *list* / *array*
+        list/array of correlations corresponding to time delays :math:`t`.
+
+
+    Returns
+    -------
+
+    w, S : *tuple*
+
+        Returns an array of frequencies 'w' and the corresponding
+        spectrum 'S'.
+
+    """
+    
+    N = len(tlist)
+    dt = tlist[1]-tlist[0]
+
+    F = fft(y) 
+
+    # calculate the frequencies for the components in F
+    w = fftfreq(N, dt)
+
+    # select only indices for elements that corresponds
+    # to positive frequencies
+    indices = where(w > 0.5)
+
+    return w[indices], F[indices]
+
 def spectrum_ss(H, wlist, c_op_list, a_op, b_op):
     """
     Calculate the spectrum corresponding to a correlation function
