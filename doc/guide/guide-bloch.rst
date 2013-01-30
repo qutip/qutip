@@ -460,7 +460,7 @@ Directly Generating an Animation
 .. important:: Generating animations directly from Matplotlib requires installing either mencoder or ffmpeg.  While either choice works on linux, it is best to choose ffmpeg when running on the Mac.  If using macports just do: ``sudo port install ffmpeg``.
 
 
-To the code to directly generate an mp4 movie of the Qubit decay is as follows::
+The code to directly generate an mp4 movie of the Qubit decay is as follows::
 
 	from pylab import *
 	import matplotlib.animation as animation
@@ -486,5 +486,5 @@ To the code to directly generate an mp4 movie of the Qubit decay is as follows::
 	ani.save('bloch_sphere.mp4', fps=20, clear_temp=True)
 
 
-The resulting move may be viewed here: `Bloch_Decay.mp4 <http://qutip.googlecode.com/svn/doc/figures/bloch_decay.mp4>`_
+The resulting movie may be viewed here: `Bloch_Decay.mp4 <http://qutip.googlecode.com/svn/doc/figures/bloch_decay.mp4>`_
 
