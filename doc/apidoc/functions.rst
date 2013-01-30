@@ -42,6 +42,13 @@ Expectation Values
 
 .. automodule:: qutip.expect
     :members: expect
+
+Partial transpose
+-----------------
+
+.. automodule:: qutip.partial_transpose
+    :members: partial_transpose
+
 	
 Pseudoprobability Functions
 ----------------------------
