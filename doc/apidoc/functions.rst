@@ -96,7 +96,7 @@ Correlation Functions
 -----------------------
 
 .. automodule:: qutip.correlation
-    :members: correlation, correlation_ss, spectrum_ss
+    :members: correlation, correlation_ss, spectrum_ss, spectrum_correlation_fft
 
 Exponential Series
 ------------------
