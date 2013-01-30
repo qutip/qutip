@@ -41,6 +41,8 @@ QuTiP requires the following packages to run:
 | Cython     | 0.15+        | Optional.  Needed for compiling some time-dependent |
 |            |              | Hamiltonians.                                       |
 +------------+--------------+-----------------------------------------------------+
+| Mayavi     | 4.1+         | Optional.  Needed for using the Bloch3d class.      |
++------------+--------------+-----------------------------------------------------+
 | GCC        | 4.2+         | Needed for compiling Cython files.                  |
 | Compiler   |              |                                                     |
 +------------+--------------+-----------------------------------------------------+
@@ -53,7 +55,7 @@ QuTiP requires the following packages to run:
 +------------+--------------+-----------------------------------------------------+
 
 
-On all platforms (Linux, Mac), QuTiP works "out-of-the-box" using the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher.  This distribution is created by the developers of Numpy and Scipy, and is free for academic use.
+On all platforms (Linux, Mac, Windows), QuTiP works "out-of-the-box" using `Anaconda CE <https://store.continuum.io/cshop/anaconda>`_.  This distribution is created by the developers of Numpy, and is free for both commercial and noncommercial use.
 
 .. _install-linux:
 
@@ -86,6 +88,7 @@ First install the following dependency packages::
     sudo apt-get install cython
     sudo apt-get install python-nose         # recommended, for testing
     sudo apt-get install texlive-latex-extra # recommended
+    sudo apt-get install mayavi2             # optional, for Bloch3d only
 
 and then run the this installation command in the QuTiP source code directory::
 
@@ -132,7 +135,9 @@ or::
 Optional, but highly recommended ports include::
 
     sudo port install py27-ipython +pyside+notebook+parallel+scientific  #switch +pyside to +pyqt4 if using pyqt4
-    sudo port install py27-cython	#used for string-based time-dependent Hamiltonians
+    sudo port install py27-cython	         #used for string-based time-dependent Hamiltonians
+    sudo port install vtk5 +python27+qt4_mac #used for the Bloch3d class
+    sudo port install py27-mayavi            #used for the Bloch3d class
 
 
 .. note:: The next step is optional, but is recommended if you plan to use the string (Cython) based time-dependent format.  See :ref:`time`.
@@ -169,10 +174,10 @@ Setup via SciPy Superpack
 A second option is to install the required Python packages using the `SciPy Superpack <http://fonnesbeck.github.com/ScipySuperpack/>`_.  Further information on installing the superpack can be found on the `SciPy Downloads page <http://www.scipy.org/Download>`_.  Note that, if you choose this option, the GUI elements of QuTiP will not be available without further installing either the PyQt4 or PySide packages separately.
 
 
-Enthought Python Distribution
------------------------------
+Anaconda CE Distribution
+------------------------
 
-Finally, one can also use the `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ version 7.1 or higher to satisfy the QuTiP dependencies.  
+Finally, one can also use the `Anaconda CE <https://store.continuum.io/cshop/anaconda>`_ package to install all of the QuTiP dependencies. 
 
 Installing QuTiP
 ----------------
@@ -180,8 +185,6 @@ Installing QuTiP
 No matter which installation path you choose, installing QuTiP is the same as on linux.  From the QuTiP directory::
 
     sudo python setup.py install
-
-.. _install-verify:
 
 
 Installation on Windows
@@ -206,6 +209,9 @@ The directory where the distutils.cfg file should be placed might be different i
 4. Obtain the QuTiP source code, unpack it and run the following command in the source code directory::
 
     python setup.py install
+
+
+.. _install-verify:
 
 Verifying the Installation
 ===========================
