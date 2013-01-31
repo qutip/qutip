@@ -145,6 +145,58 @@ are calculated and plotted for the same three states as in the previous section.
 	@savefig visualization-wigner.png width=8.0in align=center
     In [1]: show()
 
+.. _visual-cmap:
+
+Custom Color Maps
+~~~~~~~~~~~~~~~~~
+
+The main objective when plotting a Wigner function is to demonstrate that the underlying
+state is nonclassical, as indicated by negative values in the Wigner function.  Therefore,
+making these negative values stand out in a figure is helpful for both analysis and publication
+purposes.  Unfortunately, all of the color schemes used in Matplotlib (or any other plotting software)
+are linear colormaps where small negative values tend to be near the same color as the zero values, and
+are thus hidden.  To fix this dilemma, QuTiP includes a nonlinear colormap function :func:`qutip.graph.wigner_cmap`
+that colors all negative values differently than positive of zero values.  Below is a demonstration of how to use
+this function in your Wigner figures:
+
+.. ipython::
+   :suppress:
+
+   In [1]: clf()
+
+.. ipython::
+    
+    In [1]: psi=(basis(10)+1*basis(10,3)+basis(10,9)).unit()
+    
+    In [1]: xvec = linspace(-5,5,500)
+    
+    In [1]: W=wigner(psi,xvec,xvec)
+    
+    In [1]: wmap=wigner_cmap(W) #Generate Wigner colormap
+    
+    In [1]: nrm=mpl.colors.Normalize(-W.max(),W.max())
+    
+    In [1]: subplot(1,2,1)
+    
+    In [1]: plt1=contourf(xvec,xvec,W,100,cmap=cm.RdBu,norm=nrm)
+    
+    In [1]: title("Standard Colormap")
+    
+    In [1]: colorbar(plt1)
+    
+    In [1]: subplot(1,2,2)
+    
+    In [1]: plt2=contourf(xvec,xvec,W,100,cmap=wmap) #Apply Wigner colormap
+    
+    In [1]: title("Wigner Colormap")
+    
+    In [1]: colorbar(plt2)
+    
+    @savefig wigner_cmap.png width=8.0in align=center
+    In [10]: show()
+
+
+
 Husimi Q-function
 -----------------
 
