@@ -5,7 +5,7 @@
 import matplotlib
 matplotlib.use('AGG')
 from qutip import *
-#import time
+import time
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from pylab import *
