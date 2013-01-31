@@ -48,10 +48,6 @@ that loads the :class:`qutip.Bloch3d` version.  Before getting into the details 
 
 or
 
-.. ipython::
-	
-	In [1]: b3d.show()
-
 .. _image-blank3d:
 
 .. figure:: figures/bloch3d-blank.png
