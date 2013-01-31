@@ -47,7 +47,7 @@ from qutip.odedata import Odedata
 from qutip.expect import expect
 from qutip.qobj import Qobj
 from qutip.superoperator import spre, spost, mat2vec, vec2mat, liouvillian
-from qutip.cyQ.cy_mc_funcs import mc_expect, spmv
+from qutip.cyQ.spmatfuncs import cy_expect, spmv
 
 debug = True
 
@@ -345,7 +345,7 @@ def d1_psi_homodyne(A, psi):
     Todo: cythonize
     """
 
-    e1 = mc_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
+    e1 = cy_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
     return 0.5 * (e1 * spmv(A[0].data, A[0].indices, A[0].indptr, psi) -
                   spmv(A[2].data, A[2].indices, A[2].indptr, psi) -
                   0.25 * e1 ** 2 * psi)
@@ -357,7 +357,7 @@ def d2_psi_homodyne(A, psi):
     Todo: cythonize
     """
 
-    e1 = mc_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
+    e1 = cy_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
     return (spmv(A[0].data, A[0].indices, A[0].indptr, psi) - 0.5 * e1 * psi)
 
 
@@ -366,10 +366,10 @@ def d1_psi_heterodyne(A, psi):
     not working/tested
     Todo: cythonize
     """
-    e1 = mc_expect(A[0].data, A[0].indices, A[0].indptr, 0, psi)
+    e1 = cy_expect(A[0].data, A[0].indices, A[0].indptr, 0, psi)
 
     B = A[0].T.conj()
-    e2 = mc_expect(B.data, B.indices, B.indptr, 0, psi)
+    e2 = cy_expect(B.data, B.indices, B.indptr, 0, psi)
 
     return (e2 * spmv(A[0].data, A[0].indices, A[0].indptr, psi)
             - 0.5 * spmv(A[2].data, A[2].indices, A[2].indptr, psi)
@@ -382,7 +382,7 @@ def d2_psi_heterodyne(A, psi):
     Todo: cythonize
     """
 
-    e1 = mc_expect(A[0].data, A[0].indices, A[0].indptr, 0, psi)
+    e1 = cy_expect(A[0].data, A[0].indices, A[0].indptr, 0, psi)
     return spmv(A[0].data, A[0].indices, A[0].indptr, psi) - e1 * psi
 
 
