@@ -156,7 +156,7 @@ making these negative values stand out in a figure is helpful for both analysis 
 purposes.  Unfortunately, all of the color schemes used in Matplotlib (or any other plotting software)
 are linear colormaps where small negative values tend to be near the same color as the zero values, and
 are thus hidden.  To fix this dilemma, QuTiP includes a nonlinear colormap function :func:`qutip.graph.wigner_cmap`
-that colors all negative values differently than positive of zero values.  Below is a demonstration of how to use
+that colors all negative values differently than positive or zero values.  Below is a demonstration of how to use
 this function in your Wigner figures:
 
 .. ipython::
