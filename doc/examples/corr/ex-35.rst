@@ -3,12 +3,10 @@
 
 .. _excorr35:
 
-Driven Cavity+Qubit Monte-Carlo
-===============================
+Spectrum of cavity coupled to an atom
+=====================================
 
-Monte Carlo evoution of a coherently driven cavity with a two-level atom initially in the ground state and no photons in the cavity.
-
-Adapted from qotoolbox example 'probqmc3' by Sze M. Tan.
+Calculate the correlation and power spectrum of a cavity,  with and without coupling to a two-level atom.
 
 .. plot:: ../qutip/qutip/examples/ex_35.py
 	:include-source:
