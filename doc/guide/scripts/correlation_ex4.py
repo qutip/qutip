@@ -23,7 +23,7 @@ for state in states:
     # first calculate the occupation number as a function of time
     n = mesolve(H, rho0, taulist, c_ops, [a.dag() * a]).expect[0]
 
-    # calculate the correlation function G1 and normalize with n to obtain g1
+    # calculate the correlation function G2 and normalize with n^2 to obtain g2
     G2 = correlation_ss_gtt(H, taulist, c_ops, a.dag(), a.dag(), a, a, rho0=rho0)
     g2 = G2 / n**2
 
