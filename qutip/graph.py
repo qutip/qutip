@@ -437,7 +437,7 @@ def energy_level_diagram(H_list, N=0, figsize=(8, 12), labels=None,
     return fig, ax
 
 
-def wigner_cmap(W,levels=1024):
+def wigner_cmap(W,levels=1024,invert=False):
     """A custom colormap that emphasizes negative values
     by creating a nonlinear colormap.
 
@@ -448,6 +448,11 @@ def wigner_cmap(W,levels=1024):
 
     levels : int
         Number of color levels to create.
+    
+    invert: bool
+        Invert the color scheme for negative values
+        so that smaller negative values have darker
+        color.
 
     Returns
     -------
@@ -457,8 +462,12 @@ def wigner_cmap(W,levels=1024):
     """
     max_color=np.array([0.020, 0.19, 0.38, 1.0])
     mid_color=np.array([1, 1, 1, 1.0])
-    min_color=np.array([0.89, 0.61, 0.82,1])
-    neg_color=np.array([0.4, 0.0, 0.12,1])                
+    if invert:
+        min_color=np.array([0.89, 0.61, 0.82,1])
+        neg_color=np.array([0.4, 0.0, 0.12,1])
+    else:
+        min_color=np.array([0.4, 0.0, 0.12,1])
+        neg_color=np.array([0.89, 0.61, 0.82,1])                
     #get min and max values from Wigner function
     bounds=[W.min(),W.max()]
     #create empty array for RGBA colors
