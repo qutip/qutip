@@ -4,7 +4,7 @@
 #########
 from qutip import *
 from pylab import *
-
+import time
 
 #import os
 #os.environ['QUTIP_GRAPHICS']="NO"

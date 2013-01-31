@@ -4,6 +4,7 @@
 #
 from qutip import *
 from pylab import *
+import time
 
 def ode_prob(E,kappa,gamma,g,wc,w0,wl,N,tlist):
 
