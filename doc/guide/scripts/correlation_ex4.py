@@ -1,12 +1,10 @@
+import pylab as plt
 from qutip import *
 
 N = 25
 taulist = linspace(0, 25.0, 200)
 a = destroy(N)
 H = 2 * pi * a.dag() * a
-
-import pylab as plt
-fig, ax = plt.subplots(1, 1)
 
 kappa = 0.25
 n_th = 2.00  # bath temperature in terms of excitation number
@@ -16,8 +14,9 @@ states = [{'state': coherent_dm(N, sqrt(2.0)), 'label': "coherent state"},
           {'state': thermal_dm(N, 2.0), 'label': "thermal state"},
           {'state': fock_dm(N, 2), 'label': "Fock state"}]
 
-for state in states:
+fig, ax = plt.subplots(1, 1)
 
+for state in states:
     rho0 = state['state']
 
     # first calculate the occupation number as a function of time
