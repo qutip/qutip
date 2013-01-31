@@ -29,7 +29,7 @@ from scipy.sparse.linalg import spsolve, bicgstab, LinearOperator, spilu
 from qutip.qobj import *
 from qutip.superoperator import *
 from qutip.operators import qeye
-from qutip.rand import rand_ket
+from qutip.random_objects import rand_ket
 from qutip.sparse import _sp_inf_norm
 import qutip.settings as qset
 

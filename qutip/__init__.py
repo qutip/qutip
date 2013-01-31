@@ -237,7 +237,7 @@ if qutip.settings.qutip_graphics == 'YES':
 
 # library functions
 from qutip.wigner import *
-from qutip.rand import *
+from qutip.random_objects import *
 from qutip.simdiag import *
 from qutip.clebsch import clebsch
 from qutip.entropy import (entropy_vn, entropy_linear, entropy_mutual,
