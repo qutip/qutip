@@ -1,9 +1,9 @@
-#This file is part of QuTIP.
+# This file is part of QuTIP.
 #
 #    QuTIP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTIP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -147,14 +147,52 @@ def correlation(H, rho0, tlist, taulist, c_op_list, a_op, b_op, solver="me"):
 def correlation_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None,
                        solver="me"):
     """
-    Calculate the correlation function <A(0)B(tau)C(tau)D(0)>
+    Calculate a two-time correlation function on the from
+    :math:`\left<A(0)B(\\tau)C(\\tau)D(0)\\right>` using the quantum regression
+    theorem and the solver indicated by the 'solver' parameter.
 
-    (ss_gtt = steadystate general two-time)
+    Parameters
+    ----------
 
-    See, Gardiner, Quantum Noise, Section 5.2.1
+    H : :class:`qutip.qobj`
+        system Hamiltonian.
 
-    .. note::
-        Experimental.
+    tlist : *list* / *array*
+        list of times for :math:`t`.
+
+    c_ops : list of :class:`qutip.qobj`
+        list of collapse operators.
+
+    a_op : :class:`qutip.qobj`
+        operator A.
+
+    b_op : :class:`qutip.qobj`
+        operator B.
+
+    c_op : :class:`qutip.qobj`
+        operator C.
+
+    d_op : :class:`qutip.qobj`
+        operator D.
+
+    rho0 : :class:`qutip.qobj`
+        Optional initial state density matrix (default is the steady state).
+
+    solver : str
+        choice of solver (currently only `me` for master-equation)
+
+    Returns
+    -------
+
+    corr_list: *array*
+        An *array* of correlation values for the times specified by `tlist`
+
+
+    References
+    ----------
+
+    See, Gardiner, Quantum Noise, Section 5.2.1.
+
     """
 
     if solver == "me":
