@@ -87,7 +87,7 @@ def qubit_integrate(delta, eps0, A, w, gamma1, gamma2, psi0, tlist):
     R = floquet_master_equation_tensor(Amat, f_energies)
     
     #expt_list4 = fmmesolve(R, f_modes_0, psi0, tlist, [sm.dag() * sm], opt=None) # note: in floquet basis...
-    rho_list = fmmesolve(R, f_modes_0, psi0, tlist, [], opt=None) 
+    rho_list = fmmesolve(R, f_modes_0, psi0, tlist, []) 
 
     expt_list3 = zeros(shape(expt_list2), dtype=complex)
     expt_list4 = zeros(shape(expt_list2), dtype=complex)
