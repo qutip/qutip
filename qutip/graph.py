@@ -449,7 +449,7 @@ def wigner_cmap(W,levels=1024,invert=False):
     levels : int
         Number of color levels to create.
     
-    invert: bool
+    invert : bool
         Invert the color scheme for negative values
         so that smaller negative values have darker
         color.
