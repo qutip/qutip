@@ -183,6 +183,6 @@ Miscellaneous
 --------------
 
 .. automodule:: qutip
-    :members: about, clebsch, demos, hinton, orbital, parfor, rhs_generate, rhs_clear, simdiag, sparse, sphereplot
+    :members: about, clebsch, demos, hinton, orbital, parfor, rhs_generate, rhs_clear, simdiag, sparse, sphereplot, wigner_cmap
     :undoc-members:
 
