@@ -4,6 +4,7 @@
 #
 from qutip import *
 from pylab import *
+import time
 
 import warnings
 warnings.simplefilter("error", np.ComplexWarning)
