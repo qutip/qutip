@@ -123,7 +123,7 @@ class eseries():
 
     ##########################################
     def __str__(self):  # string of ESERIES information
-        self.tidy()
+        self.tidyup()
         print("ESERIES object: " + str(len(self.ampl)) + " terms")
         print("Hilbert space dimensions: " + str(self.dims))
         for k in range(0, len(self.ampl)):
