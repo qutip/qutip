@@ -57,7 +57,7 @@ def init():
 
 ani = animation.FuncAnimation(fig, animate, np.arange(len(sx)), init_func=init, blit=True, repeat=False)
 
-ani.save('bloch_sphere.mp4', fps=20, clear_temp=True)
+ani.save('bloch_sphere.mp4', fps=20)
 
 
 
