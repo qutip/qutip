@@ -17,7 +17,7 @@
 #
 ###########################################################################
 import qutip.settings
-
+import numpy as np
 if qutip.settings.qutip_graphics == 'YES':
     from pylab import *
     import matplotlib as mpl
@@ -435,3 +435,50 @@ def energy_level_diagram(H_list, N=0, figsize=(8, 12), labels=None,
         ax.axes.get_xaxis().set_visible(False)
 
     return fig, ax
+
+
+def wigner_cmap(W,levels=1024):
+    """A custom colormap that emphasizes negative values
+    by creating a nonlinear colormap.
+
+    Parameters
+    ----------
+    W : array
+        Wigner function array, or any array.
+
+    levels : int
+        Number of color levels to create.
+
+    Returns
+    -------
+    Returns a Matplotlib colormap instance for use
+    in plotting.
+
+    """
+    max_color=np.array([0.020, 0.19, 0.38, 1.0])
+    mid_color=np.array([1, 1, 1, 1.0])
+    min_color=np.array([0.89, 0.61, 0.82,1])
+    neg_color=np.array([0.4, 0.0, 0.12,1])                
+    #get min and max values from Wigner function
+    bounds=[W.min(),W.max()]
+    #create empty array for RGBA colors
+    adjust_RGBA=np.hstack((np.zeros((levels,3)),np.ones((levels,1))))
+    zero_pos=np.round(levels*np.abs(bounds[0])/(bounds[1]-bounds[0]))
+    num_pos= levels-zero_pos
+    num_neg= zero_pos-1
+    #set zero values to mid_color
+    adjust_RGBA[zero_pos]=mid_color
+    #interpolate colors
+    for k in range(0,levels):
+        if k < zero_pos:
+            interp=k/(num_neg+1.0)
+            adjust_RGBA[k][0:3]=(1.0-interp)*min_color[0:3]+interp*neg_color[0:3]
+        elif k > zero_pos:
+            interp=(k-zero_pos)/(num_pos+1.0)
+            adjust_RGBA[k][0:3]=(1.0-interp)*mid_color[0:3]+interp*max_color[0:3]
+    #create colormap
+    wig_cmap = mpl.colors.LinearSegmentedColormap.from_list('wigner_cmap',adjust_RGBA,N=levels)
+    return wig_cmap
+
+
+
