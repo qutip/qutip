@@ -8,7 +8,7 @@ Change Log
 Version 2.2.0 (February XX, 2013):
 ++++++++++++++++++++++++++++++++++++++++++++++
 
-** Added Support for Windows **
+**Added Support for Windows**
 
 New Features
 -------------
