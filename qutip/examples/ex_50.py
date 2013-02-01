@@ -1,10 +1,10 @@
 #
-# Nonadiabatic sweep: Gradually transform a simple decoupled spin chain 
+# Nonadiabatic sweep: Gradually transform a simple decoupled spin chain
 # hamiltonian to a complicated interacting spin chain.
 #
-
 from qutip import *
 from pylab import *
+
 
 def compute(N, M, h, Jx, Jy, Jz, taulist):
 
@@ -31,13 +31,13 @@ def compute(N, M, h, Jx, Jy, Jz, taulist):
 
         op_list[n] = sz
         sz_list.append(tensor(op_list))
-        
+
     #
     # Construct the initial hamiltonian and state vector
     #
-    psi_list = [basis(2,0) for n in range(N)]
+    psi_list = [basis(2, 0) for n in range(N)]
     psi0 = tensor(psi_list)
-    H0 = 0    
+    H0 = 0
     for n in range(N):
         H0 += - 0.5 * 2.5 * sz_list[n]
 
@@ -46,54 +46,56 @@ def compute(N, M, h, Jx, Jy, Jz, taulist):
     #
 
     # energy splitting terms
-    H1 = 0    
+    H1 = 0
     for n in range(N):
         H1 += - 0.5 * h[n] * sz_list[n]
 
-    H1 = 0    
-    for n in range(N-1):
+    H1 = 0
+    for n in range(N - 1):
         # interaction terms
-        H1 += - 0.5 * Jx[n] * sx_list[n] * sx_list[n+1]
-        H1 += - 0.5 * Jy[n] * sy_list[n] * sy_list[n+1]
-        H1 += - 0.5 * Jz[n] * sz_list[n] * sz_list[n+1]
-
+        H1 += - 0.5 * Jx[n] * sx_list[n] * sx_list[n + 1]
+        H1 += - 0.5 * Jy[n] * sy_list[n] * sy_list[n + 1]
+        H1 += - 0.5 * Jz[n] * sz_list[n] * sz_list[n + 1]
 
     # the time-dependent hamiltonian in list-string format
     args = max(taulist)
-    h_t = [[H0, lambda t, t_max : (t_max-t)/t_max],
-           [H1, lambda t, t_max : t/t_max]]       
+    h_t = [[H0, lambda t, t_max: (t_max - t) / t_max],
+           [H1, lambda t, t_max: t / t_max]]
 
     #
     # callback function for each time-step
     #
-    evals_mat      = zeros((len(taulist),M))
-    occupation_mat = zeros((len(taulist),M))
+    evals_mat = zeros((len(taulist), M))
+    occupation_mat = zeros((len(taulist), M))
 
     idx = [0]
+
     def process_rho(tau, psi):
-  
+
         # evaluate the Hamiltonian with gradually switched on interaction
         H = qobj_list_evaluate(h_t, tau, args)
 
         # find the M lowest eigenvalues of the system
         evals, ekets = H.eigenstates(eigvals=M)
 
-        evals_mat[idx[0],:] = real(evals)
-    
-        # find the overlap between the eigenstates and psi 
+        evals_mat[idx[0], :] = real(evals)
+
+        # find the overlap between the eigenstates and psi
         for n, eket in enumerate(ekets):
-            occupation_mat[idx[0],n] = abs((eket.dag().data * psi.data)[0,0])**2    
-        
-        idx[0] += 1 
-        
+            occupation_mat[idx[0], n] = abs((eket.dag().data *
+                                            psi.data)[0, 0]) ** 2
+
+        idx[0] += 1
+
     #
     # Evolve the system, request the solver to call process_rho at each time
     # step.
     #
     mesolve(h_t, psi0, taulist, [], process_rho, args)
-        
+
     return evals_mat, occupation_mat
-    
+
+
 def run():
 
     #
@@ -102,8 +104,8 @@ def run():
     N = 6            # number of spins
     M = 20           # number of eigenenergies to solve for
 
-    # array of spin energy splittings and coupling strengths (random values). 
-    h  = 1.0 * 2 * pi * (1 - 2 * rand(N))
+    # array of spin energy splittings and coupling strengths (random values).
+    h = 1.0 * 2 * pi * (1 - 2 * rand(N))
     Jz = 1.0 * 2 * pi * (1 - 2 * rand(N))
     Jx = 1.0 * 2 * pi * (1 - 2 * rand(N))
     Jy = 1.0 * 2 * pi * (1 - 2 * rand(N))
@@ -113,55 +115,56 @@ def run():
     taulist = linspace(0, taumax, 100)
 
     evals_mat, occ_mat = compute(N, M, h, Jx, Jy, Jz, taulist)
-    
-    #---------------------------------------------------------------------------
+
+    #
     # plots
     #
     rc('font', family='serif')
     rc('font', size='10')
 
-    figure(figsize=(9,12))
+    figure(figsize=(9, 12))
 
     #
     # plot the energy eigenvalues
     #
-    subplot(2,1,1)
-    
+    subplot(2, 1, 1)
+
     # first draw thin lines outlining the energy spectrum
-    for n in range(len(evals_mat[0,:])):
+    for n in range(len(evals_mat[0, :])):
         if n == 0:
             ls = 'b'
-            lw = 1        
+            lw = 1
         else:
-            ls = 'k'        
-            lw = 0.25        
-        plot(taulist/max(taulist), evals_mat[:,n] / (2*pi), ls, linewidth=lw)
+            ls = 'k'
+            lw = 0.25
+        plot(taulist / max(taulist), evals_mat[:, n] / (2 * pi), ls,
+             linewidth=lw)
 
-    # second, draw line that encode the occupation probability of each state in 
+    # second, draw line that encode the occupation probability of each state in
     # its linewidth. thicker line => high occupation probability.
-    for idx in range(len(taulist)-1):
-        for n in range(len(occ_mat[0,:])):
-            lw = 0.5 + 4*occ_mat[idx,n]    
+    for idx in range(len(taulist) - 1):
+        for n in range(len(occ_mat[0, :])):
+            lw = 0.5 + 4 * occ_mat[idx, n]
             if lw > 0.55:
-                plot(array([taulist[idx], taulist[idx+1]])/taumax, 
-                     array([evals_mat[idx,n], evals_mat[idx+1,n]])/(2*pi), 
-                     'r', linewidth=lw)    
-        
+                plot(array([taulist[idx], taulist[idx + 1]]) / taumax,
+                     array([evals_mat[idx, n], evals_mat[idx + 1, n]])/(2*pi),
+                     'r', linewidth=lw)
+
     xlabel(r'$\tau$')
     ylabel('Eigenenergies')
-    title("Energyspectrum (%d lowest values) of a chain of %d spins.\n " % (M,N)
+    title("Energyspectrum (%d lowest values) of a chain of %d spins.\n" % (M, N)
           + "The occupation probabilities are encoded in the red line widths.")
     legend(("Ground state",))
 
     #
     # plot the occupation probabilities for the few lowest eigenstates
     #
-    subplot(2,1,2)
-    for n in range(len(occ_mat[0,:])):
+    subplot(2, 1, 2)
+    for n in range(len(occ_mat[0, :])):
         if n == 0:
-            plot(taulist/max(taulist), 0 + occ_mat[:,n], 'r', linewidth=2)
+            plot(taulist / max(taulist), 0 + occ_mat[:, n], 'r', linewidth=2)
         else:
-            plot(taulist/max(taulist), 0 + occ_mat[:,n])
+            plot(taulist / max(taulist), 0 + occ_mat[:, n])
 
     xlabel(r'$\tau$')
     ylabel('Occupation probability')
@@ -171,6 +174,5 @@ def run():
 
     show()
 
-if __name__=='__main__':
+if __name__ == '__main__':
     run()
-
