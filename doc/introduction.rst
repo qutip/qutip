@@ -50,6 +50,9 @@ Whats New in QuTiP Version 2.2
 
 - Bloch sphere vectors now look like arrows instead of lines.
 
+- The master-equation solver (mesolve) now accepts pre-constructed Liouvillian
+  terms, which makes it possible to solve master equations that are not on
+  the standard Lindblad form.
 
 .. _about-whatsnew21:
 
