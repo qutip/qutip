@@ -26,6 +26,7 @@ from qutip.mcsolve import mcsolve
 from qutip.steady import steady, steadystate
 from qutip.odeoptions import Odeoptions
 import numpy as np
+import scipy.fftpack
 
 
 #------------------------------------------------------------------------------
@@ -280,6 +281,7 @@ def _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None):
     .. note::
         Experimental.
     """
+
     if rho0 is None:
         rho0 = steadystate(H, c_ops)
 
@@ -408,14 +410,14 @@ def spectrum_correlation_fft(tlist, y):
     N = len(tlist)
     dt = tlist[1]-tlist[0]
 
-    F = fft(y) 
+    F = scipy.fftpack.fft(y) 
 
     # calculate the frequencies for the components in F
-    w = fftfreq(N, dt)
+    w = scipy.fftpack.fftfreq(N, dt)
 
     # select only indices for elements that corresponds
     # to positive frequencies
-    indices = where(w > 0.5)
+    indices = np.where(w > 0.5)
 
     return w[indices], F[indices]
 
