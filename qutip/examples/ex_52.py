@@ -76,7 +76,7 @@ def run():
     ax.autoscale(tight=True)
     title('Steadystate excitation probability\n' +
           r'$H = -\frac{1}{2}\Delta\sigma_x - \frac{1}{2}\epsilon\sigma_z' +
-          r' - \frac{1}{2}A\\sin(\omega t)$' + '\\n')
+          r' - \frac{1}{2}A\sin(\omega t)$' + '\\n')
     show()
 
 if __name__ == '__main__':
