@@ -68,9 +68,9 @@ Emission spectrum
 
 Given a correlation function :math:`\left<A(\tau)B(0)\right>` we can define the corresponding spectrum as
 
-    .. math::
+.. math::
 
-        S(\omega) = \int_{-\infty}^{\infty} \left<A(\tau)B(0)\right> e^{-i\omega\tau} d\tau.
+    S(\omega) = \int_{-\infty}^{\infty} \left<A(\tau)B(0)\right> e^{-i\omega\tau} d\tau.
 
 In QuTiP we can calculate :math:`S(\omega)` using either :func:`qutip.correlation.spectrum_ss`, which first calculates the correlation function using the :func:`qutip.essolve.essolve` solver and then performs the Fourier transform semi-analytically, or we can use the function :func:`qutip.correlation.spectrum_correlation_fft` to numerically calculate the Fourier transform of a given correlation data using FFT.  
 
