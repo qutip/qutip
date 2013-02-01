@@ -1,5 +1,5 @@
 .. QuTiP 
-   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+   Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
 
 .. _about-qutip:
 
@@ -36,6 +36,19 @@ The Quantum Toolbox in Python, or QuTiP, is a fully open-source implementation o
 * QuTiP was designed from the start to require a minimal learning curve for those users who have experience using the popular quantum optics toolbox by Sze M. Tan. 
 
 * Includes the ability to create high-quality plots, and animations, using the excellent `Matplotlib <http://matplotlib.sourceforge.net/>`_ package.
+
+.. _about-whatsnew22:
+
+Whats New in QuTiP Version 2.2
+================================
+
+- New Bloch3d class for plotting 3D Bloch spheres using Mayavi.
+
+- Added partial transpose function.
+
+- New Wigner colormap for highlighting negative values.
+
+- Bloch sphere vectors now look like arrows instead of lines.
 
 
 .. _about-whatsnew21:
