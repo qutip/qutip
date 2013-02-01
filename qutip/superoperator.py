@@ -47,8 +47,11 @@ def liouvillian(H, c_op_list):
     L = -1.0j * (spre(H) - spost(H)) if H else 0
 
     for c in c_op_list:
-        cdc = c.dag() * c
-        L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
+        if issuper(c):
+            L += c
+        else:
+            cdc = c.dag() * c
+            L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
 
     return L
 
