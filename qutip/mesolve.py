@@ -102,6 +102,14 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
 
     .. note::
 
+        If an element in the list-specification of the Hamiltonian or 
+        the list of collapse operators are in super-operator for it will be
+        added to the total Liouvillian of the problem with out further 
+        transformation. This allows for using mesolve for solving master
+        equations that are not on standard Lindblad form.
+        
+    .. note::
+
         On using callback function: mesolve transforms all :class:`qutip.qobj`
         objects to sparse matrices before handing the problem to the integrator
         function. In order for your callback function to work correctly, pass
