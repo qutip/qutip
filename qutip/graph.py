@@ -135,7 +135,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
 
 
 def matrix_histogram(M, xlabels=None, ylabels=None,
-                     title=None, limits=None, ax=None):
+                     title=None, limits=None, fig=None, ax=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
@@ -183,12 +183,15 @@ def matrix_histogram(M, xlabels=None, ylabels=None,
     dx = dy = 0.8 * ones(n)
     dz = real(M.flatten())
 
-    if limits:  # check that limits is a list type
+    if limits and type(limits) is list and len(limits) == 2:
         z_min = limits[0]
         z_max = limits[1]
     else:
         z_min = min(dz)
         z_max = max(dz)
+        if z_min == z_max:
+            z_min -= 0.1
+            z_max += 0.1
 
     norm = mpl.colors.Normalize(z_min, z_max)
     cmap = get_cmap('jet')  # Spectral
@@ -200,8 +203,8 @@ def matrix_histogram(M, xlabels=None, ylabels=None,
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
-    if title:
-        plt.title(title)
+    if title and fig:
+        fig.set_title(title)
 
     # x axis
     ax.axes.w_xaxis.set_major_locator(IndexLocator(1, -0.5))
@@ -217,7 +220,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None,
 
     # z axis
     ax.axes.w_zaxis.set_major_locator(IndexLocator(1, 0.5))
-    ax.set_zlim3d([z_min, z_max])
+    ax.set_zlim3d([min(z_min, 0), z_max])
 
     # color axis
     cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
@@ -228,7 +231,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None,
 
 def matrix_histogram_complex(M, xlabels=None, ylabels=None,
                              title=None, limits=None,
-                             phase_limits=None, ax=None):
+                             phase_limits=None, fig=None, ax=None):
     """
     Draw a histogram for the amplitudes of matrix M, using the argument
     of each element for coloring the bars, with the given x and y labels
@@ -322,8 +325,8 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
 
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
-    if title:
-        plt.title(title)
+    if title and fig:
+        fig.set_title(title)
 
     # x axis
     ax.axes.w_xaxis.set_major_locator(IndexLocator(1, -0.5))
