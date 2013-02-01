@@ -1,7 +1,3 @@
-#
-# Power spectrum of a cavity coupled to a two-level atom:
-# Vacuum Rabi splitting
-#
 from qutip import *
 import pylab as plt
 
@@ -18,9 +14,7 @@ H = wc * a.dag() * a + wa * sm.dag() * sm + g * (a.dag() * sm + a * sm.dag())
 
 # collapse operators
 n_th = 0.01
-c_ops = [sqrt(kappa * (1 + n_th)) * a,
-         sqrt(kappa * n_th) * a.dag(),
-         sqrt(gamma) * sm]
+c_ops = [sqrt(kappa * (1 + n_th)) * a, sqrt(kappa * n_th) * a.dag(), sqrt(gamma) * sm]
 
 # calculate the correlation function using the mesolve
 # solver, and then fft to obtain the spectrum
