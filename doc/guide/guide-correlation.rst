@@ -72,9 +72,9 @@ Given a correlation function :math:`\left<A(\tau)B(0)\right>` we can define the 
 
         S(\omega) = \int_{-\infty}^{\infty} \left<A(\tau)B(0)\right> e^{-i\omega\tau} d\tau.
 
-In QuTiP we can calculate :math:`\left<S(\omega)\right>` using either :func:`qutip.correlation.spectrum_ss`, which first calculate the correlation function using the :func:`qutip.essolve.essolve` solver and then performs the Fourier transform semi-analytically, or we can use the function :func:`qutip.correlation.spectrum_correlation_fft` to numerically calculate the Fourier transform of a given correlation data using FFT.  
+In QuTiP we can calculate :math:`S(\omega)` using either :func:`qutip.correlation.spectrum_ss`, which first calculates the correlation function using the :func:`qutip.essolve.essolve` solver and then performs the Fourier transform semi-analytically, or we can use the function :func:`qutip.correlation.spectrum_correlation_fft` to numerically calculate the Fourier transform of a given correlation data using FFT.  
 
-The following example demonstrates how these two function can be used to obtain the emission power spectrum of a quantum system.
+The following example demonstrates how these two functions can be used to obtain the emission power spectrum.
 
 .. plot:: guide/scripts/spectrum_ex1.py
    :width: 4.0in
