@@ -42,17 +42,17 @@ def essolve(H, rho0, tlist, c_op_list, expt_op_list):
     H : qobj/function_type
         System Hamiltonian.
 
-    rho0 : qobj
+    rho0 : :class:`qutip.qobj`
         Initial state density matrix.
 
     tlist : list/array
         ``list`` of times for :math:`t`.
 
-    c_op_list : list
-        ``list`` of ``qobj`` collapse operators.
+    c_op_list : list of :class:`qutip.qobj`
+        ``list`` of :class:`qutip.qobj` collapse operators.
 
-    expt_op_list : list
-        ``list`` of ``qobj`` operators for which to evaluate
+    expt_op_list : list of :class:`qutip.qobj`
+        ``list`` of :class:`qutip.qobj` operators for which to evaluate
         expectation values.
 
 
@@ -107,7 +107,7 @@ def ode2es(L, rho0):
 
     Returns
     -------
-    ode_series : eseries
+    eseries : :class:`qutip.eseries`
         ``eseries`` represention of the system dynamics.
 
     """
