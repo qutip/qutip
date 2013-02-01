@@ -20,3 +20,4 @@ lib64
 
 
 qutip/_version.py
+rhs*.pyx
