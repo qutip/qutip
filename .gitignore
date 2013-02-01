@@ -18,3 +18,5 @@ develop-eggs
 lib
 lib64
 
+
+qutip/_version.py
