@@ -56,7 +56,7 @@ def run():
     p_ex_fmme = zeros(shape(p_ex_me))
     for idx, t in enumerate(tlist):
         f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
-        p_ex_fmme[idx] = expect(num(2), 
+        p_ex_fmme[idx] = expect(num(2),
                                 rho_list[idx].transform(f_modes_t, False))
 
     # plot the results
