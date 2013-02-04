@@ -104,7 +104,7 @@ class Qobj():
         partial trace.
     sqrtm()
         Matrix square root of quantum object.
-    tidyup(atol=1e-15)
+    tidyup(atol=1e-12)
         Removes small elements from quantum object.
     tr()
         Trace of quantum object.
@@ -867,7 +867,7 @@ class Qobj():
         abs_data = abs(self.data.data.flatten())
         if any(abs_data):
             mx = max(abs_data)
-            if mx >= 1e-15:
+            if mx >= atol:
                 data = abs(self.data.data)
                 outdata = self.data.copy()
                 outdata.data[data < (atol * mx + np.finfo(float).eps)] = 0
@@ -1499,7 +1499,7 @@ def issuper(Q):
 
 
 #**************************
-def isequal(A, B, tol=1e-15):
+def isequal(A, B, tol=1e-12):
     """Determines if two qobj objects are equal to within given tolerance.
 
     Parameters

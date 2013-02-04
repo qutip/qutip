@@ -30,7 +30,7 @@ auto_tidyup = True
 # detect hermiticity
 auto_herm = True
 # use auto tidyup absolute tolerance
-auto_tidyup_atol = 1e-15
+auto_tidyup_atol = 1e-12
 # number of cpus (set at qutip import)
 num_cpus = 1
 
