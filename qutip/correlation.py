@@ -85,7 +85,7 @@ def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
     elif solver == "mc":
         print("Monte-Carlo solver is currently disabled, " +
               "using master equation.")
-        return correlation_ss_ode(H, tlist, c_ops, a_op, b_op, rho0)
+        return _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0, reverse)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
@@ -143,7 +143,7 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me"):
         return correlation_ss(H, taulist, c_ops, a_op, b_op, rho0, solver)
 
     if solver == "me":
-        return correlation_ode(H, rho0, tlist, taulist, c_ops, a_op, b_op)
+        return _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op)
     elif solver == "es":
         return correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op)
     elif solver == "mc":
@@ -266,14 +266,11 @@ def correlation_ss_ode(H, tlist, c_ops, a_op, b_op, rho0=None):
     """
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation_ss` for usage.
+
+    Deprecated in QuTiP 2.2.0. Use :func:`correlation.correlation_ss` and
+    the 'solver' argument instead.
     """
-
-    if rho0 is None:
-        L = liouvillian(H, c_ops)
-        rho0 = steady(L)
-
-    return mesolve(H, b_op * rho0, tlist, c_ops, [a_op]).expect[0]
-
+    return _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0=rho0)
 
 def _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0=None,
                           reverse=False):
@@ -309,14 +306,25 @@ def _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None):
     if rho0 is None:
         rho0 = steadystate(H, c_ops)
 
-    return mesolve(H, d_op * rho0 * a_op, tlist,
+    return mesolve(H, d_op * rho0 * a_op, tlist, 
                    c_ops, [b_op * c_op]).expect[0]
 
 
 def correlation_ode(H, rho0, tlist, taulist, c_ops, a_op, b_op):
     """
     Internal function for calculating correlation functions using the master
-    equation solver. See :func:`correlation` usage.
+    equation solver. See :func:`correlation` for usage.
+
+    Deprecated in QuTiP 2.2.0. Instead, use :func:`correlation.correlation` and
+    the 'solver=me' as argument.
+    """
+    return _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op)
+
+
+def _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op):
+    """
+    Internal function for calculating correlation functions using the master
+    equation solver. See :func:`correlation` for usage.
     """
 
     if rho0 is None:
