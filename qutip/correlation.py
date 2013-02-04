@@ -272,11 +272,12 @@ def correlation_ss_ode(H, tlist, c_ops, a_op, b_op, rho0=None):
     """
     return _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0=rho0)
 
+
 def _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0=None,
                           reverse=False):
     """
     Internal function for calculating correlation functions using the master
-    equation solver. See :func:`correlation_ss` usage.
+    equation solver. See :func:`correlation_ss` for usage.
     """
 
     if rho0 is None:
@@ -374,7 +375,7 @@ def _correlation_me_gtt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 def correlation_ss_mc(H, tlist, c_ops, a_op, b_op, rho0=None):
     """
     Internal function for calculating correlation functions using the Monte
-    Carlo solver. See :func:`correlation_ss` usage.
+    Carlo solver. See :func:`correlation_ss` for usage.
     """
 
     if rho0 is None:
@@ -417,7 +418,6 @@ def spectrum_correlation_fft(tlist, y):
     Calculate the spectrum corresponding to a two-time correlation function
     using FFT. 
 
-
     Parameters
     ----------
 
@@ -426,7 +426,6 @@ def spectrum_correlation_fft(tlist, y):
 
     y : *list* / *array*
         list/array of correlations corresponding to time delays :math:`t`.
-
 
     Returns
     -------
