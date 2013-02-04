@@ -32,11 +32,14 @@ import scipy.fftpack
 #------------------------------------------------------------------------------
 # solver wrapers:
 #
-def correlation_ss(H, tlist, c_op_list, a_op, b_op, rho0=None, solver="me"):
+def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
+                   reverse=False):
     """
     Calculate a two-time correlation function
-    :math:`\left<A(\\tau)B(0)\\right>` using the quantum regression
-    theorem, using the solver indicated by the *solver* parameter.
+    :math:`\left<A(t+\\tau)B(t)\\right>` or
+    :math:`\left<A(t)B(t+\\tau)\\right>` (if `reverse=True`),
+    using the quantum regression theorem and the evolution solver indicated by
+    the *solver* parameter.
 
     Parameters
     ----------
@@ -47,7 +50,7 @@ def correlation_ss(H, tlist, c_op_list, a_op, b_op, rho0=None, solver="me"):
     tlist : *list* / *array*
         list of times for :math:`t`.
 
-    c_op_list : list of :class:`qutip.qobj`
+    c_ops : list of :class:`qutip.qobj`
         list of collapse operators.
 
     a_op : :class:`qutip.qobj`
@@ -59,6 +62,10 @@ def correlation_ss(H, tlist, c_op_list, a_op, b_op, rho0=None, solver="me"):
     rho0 : :class:`qutip.qobj`
         Optional initial state density matrix (default is the steady state).
 
+    reverse : bool
+        If `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
+        :math:`\left<A(t+\\tau)B(t)\\right>`.
+
     solver : str
         choice of solver (`me` for master-equation,
         `es` for exponential series and `mc` for Monte-carlo)
@@ -66,24 +73,24 @@ def correlation_ss(H, tlist, c_op_list, a_op, b_op, rho0=None, solver="me"):
     Returns
     -------
 
-    corr_list: *array*
+    correlation: *array*
         An *array* of correlation values for the times specified by `tlist`
 
     """
 
     if solver == "me":
-        return correlation_ss_ode(H, tlist, c_op_list, a_op, b_op, rho0)
+        return _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0, reverse)
     elif solver == "es":
-        return correlation_ss_es(H, tlist, c_op_list, a_op, b_op, rho0)
+        return correlation_ss_es(H, tlist, c_ops, a_op, b_op, rho0)
     elif solver == "mc":
         print("Monte-Carlo solver is currently disabled, " +
               "using master equation.")
-        return correlation_ss_ode(H, tlist, c_op_list, a_op, b_op, rho0)
+        return correlation_ss_ode(H, tlist, c_ops, a_op, b_op, rho0)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
 
-def correlation(H, rho0, tlist, taulist, c_op_list, a_op, b_op, solver="me"):
+def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me"):
     """
     Calculate a two-time correlation function
     :math:`\left<A(t+\\tau)B(t)\\right>` using the quantum regression
@@ -105,7 +112,7 @@ def correlation(H, rho0, tlist, taulist, c_op_list, a_op, b_op, solver="me"):
     taulist : *list* / *array*
         list of times for :math:`\\tau`.
 
-    c_op_list : list of :class:`qutip.qobj`
+    c_ops : list of :class:`qutip.qobj`
         list of collapse operators.
 
     a_op : :class:`qutip.qobj`
@@ -133,14 +140,14 @@ def correlation(H, rho0, tlist, taulist, c_op_list, a_op, b_op, solver="me"):
         # only interested in correlation vs one time coordinate, so we can use
         # the ss solver with the supplied density matrix as initial state (in
         # place of the steady state)
-        return correlation_ss(H, taulist, c_op_list, a_op, b_op, rho0, solver)
+        return correlation_ss(H, taulist, c_ops, a_op, b_op, rho0, solver)
 
     if solver == "me":
-        return correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op)
+        return correlation_ode(H, rho0, tlist, taulist, c_ops, a_op, b_op)
     elif solver == "es":
-        return correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op)
+        return correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op)
     elif solver == "mc":
-        return correlation_mc(H, rho0, tlist, taulist, c_op_list, a_op, b_op)
+        return correlation_mc(H, rho0, tlist, taulist, c_ops, a_op, b_op)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
@@ -202,19 +209,18 @@ def correlation_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None,
     else:
         raise NotImplementedError("Unrecognized choice of solver %s." % solver)
 
+
 # -----------------------------------------------------------------------------
 # EXPONENTIAL SERIES SOLVERS
 # -----------------------------------------------------------------------------
-
-
-def correlation_ss_es(H, tlist, c_op_list, a_op, b_op, rho0=None):
+def correlation_ss_es(H, tlist, c_ops, a_op, b_op, rho0=None):
     """
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation_ss` usage.
     """
 
     # contruct the Liouvillian
-    L = liouvillian(H, c_op_list)
+    L = liouvillian(H, c_ops)
 
     # find the steady state
     if rho0 is None:
@@ -226,14 +232,14 @@ def correlation_ss_es(H, tlist, c_op_list, a_op, b_op, rho0=None):
     return esval(expect(a_op, solC_tau), tlist)
 
 
-def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
+def correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op):
     """
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation` usage.
     """
 
     # contruct the Liouvillian
-    L = liouvillian(H, c_op_list)
+    L = liouvillian(H, c_ops)
 
     if rho0 is None:
         rho0 = steady(L)
@@ -252,22 +258,40 @@ def correlation_es(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
     return C_mat
 
+
 # -----------------------------------------------------------------------------
 # MASTER EQUATION SOLVERS
 # -----------------------------------------------------------------------------
+def correlation_ss_ode(H, tlist, c_ops, a_op, b_op, rho0=None):
+    """
+    Internal function for calculating correlation functions using the master
+    equation solver. See :func:`correlation_ss` for usage.
+    """
+
+    if rho0 is None:
+        L = liouvillian(H, c_ops)
+        rho0 = steady(L)
+
+    return mesolve(H, b_op * rho0, tlist, c_ops, [a_op]).expect[0]
 
 
-def correlation_ss_ode(H, tlist, c_op_list, a_op, b_op, rho0=None):
+def _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0=None,
+                          reverse=False):
     """
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation_ss` usage.
     """
 
-    L = liouvillian(H, c_op_list)
     if rho0 is None:
+        L = liouvillian(H, c_ops)
         rho0 = steady(L)
 
-    return mesolve(H, b_op * rho0, tlist, c_op_list, [a_op]).expect[0]
+    if reverse:
+        # <A(t)B(t+tau)>
+        return mesolve(H, rho0 * a_op, tlist, c_ops, [b_op]).expect[0]
+    else:
+        # <A(t+tau)B(t)>
+        return mesolve(H, b_op * rho0, tlist, c_ops, [a_op]).expect[0]
 
 
 def _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None):
@@ -289,7 +313,7 @@ def _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None):
                    c_ops, [b_op * c_op]).expect[0]
 
 
-def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
+def correlation_ode(H, rho0, tlist, taulist, c_ops, a_op, b_op):
     """
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation` usage.
@@ -300,11 +324,11 @@ def correlation_ode(H, rho0, tlist, taulist, c_op_list, a_op, b_op):
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
-    rho_t = mesolve(H, rho0, tlist, c_op_list, []).states
+    rho_t = mesolve(H, rho0, tlist, c_ops, []).states
 
     for t_idx in range(len(tlist)):
         C_mat[t_idx, :] = mesolve(H, b_op * rho_t[t_idx], taulist,
-                                  c_op_list, [a_op]).expect[0]
+                                  c_ops, [a_op]).expect[0]
 
     return C_mat
 
@@ -326,7 +350,7 @@ def _correlation_me_gtt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
-    rho_t = mesolve(H, rho0, tlist, c_op_list, []).states
+    rho_t = mesolve(H, rho0, tlist, c_ops, []).states
 
     for t_idx, rho in enumerate(rho_t):
         C_mat[t_idx, :] = mesolve(H, d_op * rho * a_op, taulist,
@@ -334,12 +358,12 @@ def _correlation_me_gtt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 
     return C_mat
 
+
+
 # -----------------------------------------------------------------------------
 # MONTE CARLO SOLVERS
 # -----------------------------------------------------------------------------
-
-
-def correlation_ss_mc(H, tlist, c_op_list, a_op, b_op, rho0=None):
+def correlation_ss_mc(H, tlist, c_ops, a_op, b_op, rho0=None):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation_ss` usage.
@@ -348,10 +372,10 @@ def correlation_ss_mc(H, tlist, c_op_list, a_op, b_op, rho0=None):
     if rho0 is None:
         rho0 = steadystate(H, co_op_list)
 
-    return mcsolve(H, b_op * rho0, tlist, c_op_list, [a_op]).expect[0]
+    return mcsolve(H, b_op * rho0, tlist, c_ops, [a_op]).expect[0]
 
 
-def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
+def correlation_mc(H, psi0, tlist, taulist, c_ops, a_op, b_op):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation` usage.
@@ -364,14 +388,14 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
     opt = Odeoptions()
     opt.gui = False
 
-    psi_t = mcsolve(H, psi0, tlist, c_op_list, [],
+    psi_t = mcsolve(H, psi0, tlist, c_ops, [],
                     ntraj=ntraj, options=opt).states
 
     for t_idx in range(len(tlist)):
 
         psi0_t = psi_t[0][t_idx]
 
-        C_mat[t_idx, :] = mcsolve(H, b_op * psi0_t, tlist, c_op_list, [a_op],
+        C_mat[t_idx, :] = mcsolve(H, b_op * psi0_t, tlist, c_ops, [a_op],
                                   ntraj=ntraj, options=opt).expect[0]
 
     return C_mat
@@ -380,7 +404,6 @@ def correlation_mc(H, psi0, tlist, taulist, c_op_list, a_op, b_op):
 # -----------------------------------------------------------------------------
 # SPECTRUM
 # -----------------------------------------------------------------------------
-
 def spectrum_correlation_fft(tlist, y):
     """
     Calculate the spectrum corresponding to a two-time correlation function
@@ -421,7 +444,8 @@ def spectrum_correlation_fft(tlist, y):
 
     return w[indices], F[indices]
 
-def spectrum_ss(H, wlist, c_op_list, a_op, b_op):
+
+def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     """
     Calculate the spectrum corresponding to a correlation function
     :math:`\left<A(\\tau)B(0)\\right>`, i.e., the Fourier transform of the
@@ -441,7 +465,7 @@ def spectrum_ss(H, wlist, c_op_list, a_op, b_op):
     wlist : *list* / *array*
         list of frequencies for :math:`\\omega`.
 
-    c_op_list : list of :class:`qutip.qobj`
+    c_ops : list of :class:`qutip.qobj`
         list of collapse operators.
 
     a_op : :class:`qutip.qobj`
@@ -460,7 +484,7 @@ def spectrum_ss(H, wlist, c_op_list, a_op, b_op):
     """
 
     # contruct the Liouvillian
-    L = liouvillian(H, c_op_list)
+    L = liouvillian(H, c_ops)
 
     # find the steady state density matrix and a_op and b_op expecation values
     rho0 = steady(L)
