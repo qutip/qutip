@@ -154,7 +154,7 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
 
 
 def correlation_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None,
-                       solver="me", reverse):
+                       solver="me", reverse=False):
     """
     Calculate a two-time correlation function on the from
     :math:`\left<A(0)B(\\tau)C(\\tau)D(0)\\right>` using the quantum regression
