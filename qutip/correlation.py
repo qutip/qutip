@@ -81,7 +81,7 @@ def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
     if solver == "me":
         return _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0, reverse)
     elif solver == "es":
-        return correlation_ss_es(H, tlist, c_ops, a_op, b_op, rho0)
+        return correlation_ss_es(H, tlist, c_ops, a_op, b_op, rho0, reverse)
     elif solver == "mc":
         print("Monte-Carlo solver is currently disabled, " +
               "using master equation.")
@@ -90,7 +90,8 @@ def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
 
-def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me"):
+def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
+                reverse=False):
     """
     Calculate a two-time correlation function
     :math:`\left<A(t+\\tau)B(t)\\right>` using the quantum regression
@@ -140,20 +141,20 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me"):
         # only interested in correlation vs one time coordinate, so we can use
         # the ss solver with the supplied density matrix as initial state (in
         # place of the steady state)
-        return correlation_ss(H, taulist, c_ops, a_op, b_op, rho0, solver)
+        return correlation_ss(H, taulist, c_ops, a_op, b_op, rho0, solver, reverse)
 
     if solver == "me":
-        return _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op)
+        return _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse)
     elif solver == "es":
-        return correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op)
+        return correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse)
     elif solver == "mc":
-        return correlation_mc(H, rho0, tlist, taulist, c_ops, a_op, b_op)
+        return correlation_mc(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
 
 def correlation_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None,
-                       solver="me"):
+                       solver="me", reverse):
     """
     Calculate a two-time correlation function on the from
     :math:`\left<A(0)B(\\tau)C(\\tau)D(0)\\right>` using the quantum regression
@@ -205,7 +206,7 @@ def correlation_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None,
 
     if solver == "me":
         return _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op,
-                                      d_op, rho0)
+                                      d_op, rho0, reverse)
     else:
         raise NotImplementedError("Unrecognized choice of solver %s." % solver)
 
@@ -213,7 +214,7 @@ def correlation_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None,
 # -----------------------------------------------------------------------------
 # EXPONENTIAL SERIES SOLVERS
 # -----------------------------------------------------------------------------
-def correlation_ss_es(H, tlist, c_ops, a_op, b_op, rho0=None):
+def correlation_ss_es(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
     """
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation_ss` usage.
@@ -232,7 +233,7 @@ def correlation_ss_es(H, tlist, c_ops, a_op, b_op, rho0=None):
     return esval(expect(a_op, solC_tau), tlist)
 
 
-def correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op):
+def correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
     """
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation` usage.
@@ -262,7 +263,7 @@ def correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op):
 # -----------------------------------------------------------------------------
 # MASTER EQUATION SOLVERS
 # -----------------------------------------------------------------------------
-def correlation_ss_ode(H, tlist, c_ops, a_op, b_op, rho0=None):
+def correlation_ss_ode(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
     """
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation_ss` for usage.
@@ -292,7 +293,8 @@ def _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0=None,
         return mesolve(H, b_op * rho0, tlist, c_ops, [a_op]).expect[0]
 
 
-def _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None):
+def _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None,
+                           reverse=False):
     """
     Calculate the correlation function <A(0)B(tau)C(tau)D(0)>
 
@@ -311,7 +313,7 @@ def _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None):
                    c_ops, [b_op * c_op]).expect[0]
 
 
-def correlation_ode(H, rho0, tlist, taulist, c_ops, a_op, b_op):
+def correlation_ode(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
     """
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation` for usage.
@@ -322,7 +324,8 @@ def correlation_ode(H, rho0, tlist, taulist, c_ops, a_op, b_op):
     return _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op)
 
 
-def _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op):
+def _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
+                       reverse=False):
     """
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation` for usage.
@@ -343,7 +346,7 @@ def _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op):
 
 
 def _correlation_me_gtt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
-                        c_op, d_op):
+                        c_op, d_op, reverse=False):
     """
     Calculate the correlation function <A(t)B(t+tau)C(t+tau)D(t)>
 
@@ -372,7 +375,7 @@ def _correlation_me_gtt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 # -----------------------------------------------------------------------------
 # MONTE CARLO SOLVERS
 # -----------------------------------------------------------------------------
-def correlation_ss_mc(H, tlist, c_ops, a_op, b_op, rho0=None):
+def correlation_ss_mc(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation_ss` for usage.
@@ -384,7 +387,7 @@ def correlation_ss_mc(H, tlist, c_ops, a_op, b_op, rho0=None):
     return mcsolve(H, b_op * rho0, tlist, c_ops, [a_op]).expect[0]
 
 
-def correlation_mc(H, psi0, tlist, taulist, c_ops, a_op, b_op):
+def correlation_mc(H, psi0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation` usage.
