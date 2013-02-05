@@ -34,7 +34,7 @@ from qutip.sparse import _sp_inf_norm
 import qutip.settings as qset
 
 
-def steadystate(H, c_op_list, maxiter=100, tol=1e-6, method='solve', use_umfpack=True):
+def steadystate(H, c_op_list, maxiter=100, tol=1e-6, method='solve', use_umfpack=False):
     """Calculates the steady state for the evolution subject to the
     supplied Hamiltonian and list of collapse operators.
 
@@ -59,7 +59,7 @@ def steadystate(H, c_op_list, maxiter=100, tol=1e-6, method='solve', use_umfpack
         Method for solving linear equations. Direct solver 'solve' (default) or
         iterative biconjugate gradient method 'bicg'.
 
-    use_umfpack: bool {True, False}
+    use_umfpack: bool {False, True}
         Use the UMFpack backend for the direct solver.  If 'False', the solver
         uses the SuperLU backend.  This option does not affect the 'bicg'
         method.
@@ -73,6 +73,8 @@ def steadystate(H, c_op_list, maxiter=100, tol=1e-6, method='solve', use_umfpack
     -----
     Uses the inverse power method.
     See any Linear Algebra book with an iterative methods section.
+    Using UMFpack may result in 'out of memory' errors for some
+    Liouvillians.
 
     """
     n_op = len(c_op_list)
