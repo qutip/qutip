@@ -28,6 +28,9 @@ from qutip.odeoptions import Odeoptions
 import numpy as np
 import scipy.fftpack
 
+debug = False
+if debug:
+    import inspect
 
 #------------------------------------------------------------------------------
 # solver wrapers:
@@ -77,6 +80,9 @@ def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
         An *array* of correlation values for the times specified by `tlist`
 
     """
+
+    if debug:
+        print(inspect.stack()[0][3])
 
     if solver == "me":
         return _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0, reverse)
@@ -136,6 +142,9 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
         is returned instead.
 
     """
+
+    if debug:
+        print(inspect.stack()[0][3])
 
     if tlist is None:
         # only interested in correlation vs one time coordinate, so we can use
@@ -204,6 +213,9 @@ def correlation_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None,
 
     """
 
+    if debug:
+        print(inspect.stack()[0][3])
+
     if solver == "me":
         return _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op,
                                       d_op, rho0)
@@ -219,6 +231,9 @@ def correlation_ss_es(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation_ss` usage.
     """
+
+    if debug:
+        print(inspect.stack()[0][3])
 
     # contruct the Liouvillian
     L = liouvillian(H, c_ops)
@@ -238,6 +253,9 @@ def correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation` usage.
     """
+
+    if debug:
+        print(inspect.stack()[0][3])
 
     # contruct the Liouvillian
     L = liouvillian(H, c_ops)
@@ -281,6 +299,9 @@ def _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0=None,
     equation solver. See :func:`correlation_ss` for usage.
     """
 
+    if debug:
+        print(inspect.stack()[0][3])
+
     if rho0 is None:
         L = liouvillian(H, c_ops)
         rho0 = steady(L)
@@ -304,6 +325,9 @@ def _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None):
     .. note::
         Experimental.
     """
+
+    if debug:
+        print(inspect.stack()[0][3])
 
     if rho0 is None:
         rho0 = steadystate(H, c_ops)
@@ -329,6 +353,9 @@ def _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation` for usage.
     """
+
+    if debug:
+        print(inspect.stack()[0][3])
 
     if rho0 is None:
         rho0 = steadystate(H, c_ops)
@@ -363,6 +390,10 @@ def _correlation_me_gtt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
     .. note::
         Experimental.
     """
+
+    if debug:
+        print(inspect.stack()[0][3])
+
     if rho0 is None:
         rho0 = steadystate(H, c_ops)
 
@@ -387,6 +418,9 @@ def correlation_ss_mc(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
     Carlo solver. See :func:`correlation_ss` for usage.
     """
 
+    if debug:
+        print(inspect.stack()[0][3])
+
     if rho0 is None:
         rho0 = steadystate(H, c_ops)
 
@@ -398,6 +432,9 @@ def correlation_mc(H, psi0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation` usage.
     """
+
+    if debug:
+        print(inspect.stack()[0][3])
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
@@ -445,6 +482,9 @@ def spectrum_correlation_fft(tlist, y):
         spectrum 'S'.
 
     """
+
+    if debug:
+        print(inspect.stack()[0][3])
     
     N = len(tlist)
     dt = tlist[1]-tlist[0]
@@ -498,6 +538,9 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
         specified in `wlist`.
 
     """
+
+    if debug:
+        print(inspect.stack()[0][3])
 
     # contruct the Liouvillian
     L = liouvillian(H, c_ops)
