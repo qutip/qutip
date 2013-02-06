@@ -154,7 +154,7 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
 
 
 def correlation_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None,
-                       solver="me", reverse=False):
+                       solver="me"):
     """
     Calculate a two-time correlation function on the from
     :math:`\left<A(0)B(\\tau)C(\\tau)D(0)\\right>` using the quantum regression
@@ -206,7 +206,7 @@ def correlation_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None,
 
     if solver == "me":
         return _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op,
-                                      d_op, rho0, reverse)
+                                      d_op, rho0)
     else:
         raise NotImplementedError("Unrecognized choice of solver %s." % solver)
 
@@ -293,8 +293,7 @@ def _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0=None,
         return mesolve(H, b_op * rho0, tlist, c_ops, [a_op]).expect[0]
 
 
-def _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None,
-                           reverse=False):
+def _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None):
     """
     Calculate the correlation function <A(0)B(tau)C(tau)D(0)>
 
@@ -332,15 +331,22 @@ def _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
     """
 
     if rho0 is None:
-        rho0 = steadystate(H, co_op_list)
+        rho0 = steadystate(H, c_ops)
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
-    rho_t = mesolve(H, rho0, tlist, c_ops, []).states
+    rho_t_list = mesolve(H, rho0, tlist, c_ops, []).states
 
-    for t_idx in range(len(tlist)):
-        C_mat[t_idx, :] = mesolve(H, b_op * rho_t[t_idx], taulist,
-                                  c_ops, [a_op]).expect[0]
+    if reverse:
+        # <A(t+tau)B(t)>
+        for t_idx, rho_t in enumerate(rho_t_list):
+            C_mat[t_idx, :] = mesolve(H, b_op * rho_t[t_idx], taulist,
+                                      c_ops, [a_op]).expect[0]
+    else:
+        # <A(t)B(t+tau)>
+        for t_idx, rho_t in enumerate(rho_t_list):
+            C_mat[t_idx, :] = mesolve(H, rho_t * a_op, taulist, 
+                                      c_ops, [b_op]).expect[0]
 
     return C_mat
 
@@ -382,7 +388,7 @@ def correlation_ss_mc(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
     """
 
     if rho0 is None:
-        rho0 = steadystate(H, co_op_list)
+        rho0 = steadystate(H, c_ops)
 
     return mcsolve(H, b_op * rho0, tlist, c_ops, [a_op]).expect[0]
 
