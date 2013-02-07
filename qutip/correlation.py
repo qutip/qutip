@@ -243,10 +243,14 @@ def correlation_ss_es(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
         rho0 = steady(L)
 
     # evaluate the correlation function
-    solC_tau = ode2es(L, b_op * rho0)
-
-    return esval(expect(a_op, solC_tau), tlist)
-
+    if reverse:
+        # <A(t)B(t+tau)>
+        solC_tau = ode2es(L, rho0 * a_op)
+        return esval(expect(b_op, solC_tau), tlist)
+    else:
+        # default: <A(t+tau)B(t)>
+        solC_tau = ode2es(L, b_op * rho0)
+        return esval(expect(a_op, solC_tau), tlist)
 
 def correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
     """
@@ -267,13 +271,20 @@ def correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
 
     solES_t = ode2es(L, rho0)
 
-    for t_idx in range(len(tlist)):
+    # evaluate the correlation function
+    if reverse:
+        # <A(t)B(t+tau)>
+        for t_idx in range(len(tlist)):
+            rho_t = esval(solES_t, [tlist[t_idx]])
+            solES_tau = ode2es(L, rho_t * a_op)
+            C_mat[t_idx, :] = esval(expect(b_op, solES_tau), taulist)
 
-        rho_t = esval(solES_t, [tlist[t_idx]])
-
-        solES_tau = ode2es(L, b_op * rho_t)
-
-        C_mat[t_idx, :] = esval(expect(a_op, solES_tau), taulist)
+    else:
+        # default: <A(t+tau)B(t)>
+        for t_idx in range(len(tlist)):
+            rho_t = esval(solES_t, [tlist[t_idx]])
+            solES_tau = ode2es(L, b_op * rho_t)
+            C_mat[t_idx, :] = esval(expect(a_op, solES_tau), taulist)
 
     return C_mat
 
