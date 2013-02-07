@@ -430,7 +430,8 @@ def _correlation_me_gtt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 # -----------------------------------------------------------------------------
 # MONTE CARLO SOLVERS
 # -----------------------------------------------------------------------------
-def correlation_ss_mc(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
+def correlation_ss_mc(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False,
+                      ntraj=500):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation_ss` for usage.
@@ -439,10 +440,13 @@ def correlation_ss_mc(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
     if debug:
         print(inspect.stack()[0][3])
 
-    if rho0 is None:
-        rho0 = steadystate(H, c_ops)
+    if rho0 is None or not isket(rho0):
+        raise Exception("correlation_ss_mc requires initial state as ket")
 
-    return mcsolve(H, b_op * rho0, tlist, c_ops, [a_op]).expect[0]
+    norm = (b_op * rho0).norm()
+
+    return norm * mcsolve(H, (b_op * rho0) / norm, tlist, c_ops,
+                          [a_op], ntraj=ntraj).expect[0]
 
 
 def correlation_mc(H, psi0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
