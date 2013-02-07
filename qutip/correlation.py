@@ -24,6 +24,7 @@ from qutip.eseries import esval, esspec
 from qutip.essolve import ode2es
 from qutip.mcsolve import mcsolve
 from qutip.steady import steady, steadystate
+from qutip.states import ket2dm
 from qutip.odeoptions import Odeoptions
 import numpy as np
 import scipy.fftpack
@@ -83,6 +84,9 @@ def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
 
     if debug:
         print(inspect.stack()[0][3])
+
+    if rho0 and isket(rho0):
+        rho0 = ket2dm(rho0)
 
     if solver == "me":
         return _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0, reverse)
@@ -145,6 +149,9 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
 
     if debug:
         print(inspect.stack()[0][3])
+
+    if rho0 and isket(rho0):
+        rho0 = ket2dm(rho0)
 
     if tlist is None:
         # only interested in correlation vs one time coordinate, so we can use
