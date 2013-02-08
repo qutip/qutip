@@ -99,36 +99,7 @@ qutip.settings.qutip_gui = "NONE"
 #
 try:
     qutip_rc_file = os.environ['HOME'] + "/.qutiprc"
-
-    with open(qutip_rc_file) as f:
-        for line in f.readlines():
-            if line[0] != "#":
-                var, val = line.strip().split("=")
-
-                if var == "qutip_graphics":
-                    qutip.settings.qutip_graphics = "NO" \
-                        if val == "NO" else "YES"
-
-                elif var == "qutip_gui":
-                    qutip.settings.qutip_gui = val
-
-                elif var == "auto_tidyup":
-                    qutip.settings.auto_tidyup = True \
-                        if val == "True" else False
-
-                elif var == "auto_tidyup_atol":
-                    qutip.settings.auto_tidyup_atol = float(val)
-
-                elif var == "auto_herm":
-                    qutip.settings.auto_herm = True \
-                        if val == "True" else False
-
-                elif var == "num_cpus":
-                    qutip.settings.num_cpus = int(val)
-
-                elif var == "debug":
-                    qutip.settings.debug = True \
-                        if val == "True" else False
+    qutip.settings.load_rc_file(qutip_rc_file)
 
 except Exception as e:
     pass
