@@ -17,6 +17,9 @@
 #
 ###########################################################################
 
+import numpy as np
+import scipy.fftpack
+
 from qutip.superoperator import *
 from qutip.expect import expect
 from qutip.mesolve import mesolve
@@ -26,10 +29,8 @@ from qutip.mcsolve import mcsolve
 from qutip.steady import steady, steadystate
 from qutip.states import ket2dm
 from qutip.odeoptions import Odeoptions
-import numpy as np
-import scipy.fftpack
+from qutip.settings import debug
 
-debug = False
 if debug:
     import inspect
 
