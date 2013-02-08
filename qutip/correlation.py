@@ -34,8 +34,9 @@ if debug:
     import inspect
 
 #------------------------------------------------------------------------------
-# solver wrapers:
-#
+# PUBLIC API
+#------------------------------------------------------------------------------
+
 def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
                    reverse=False):
     """
@@ -91,7 +92,7 @@ def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
     if solver == "me":
         return _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0, reverse)
     elif solver == "es":
-        return correlation_ss_es(H, tlist, c_ops, a_op, b_op, rho0, reverse)
+        return _correlation_es_ss(H, tlist, c_ops, a_op, b_op, rho0, reverse)
     elif solver == "mc":
         print("Monte-Carlo solver is currently disabled, " +
               "using master equation.")
@@ -157,14 +158,18 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
         # only interested in correlation vs one time coordinate, so we can use
         # the ss solver with the supplied density matrix as initial state (in
         # place of the steady state)
-        return correlation_ss(H, taulist, c_ops, a_op, b_op, rho0, solver, reverse)
+        return _correlation_ss(H, taulist, c_ops, a_op, b_op, rho0, solver,
+                               reverse)
 
     if solver == "me":
-        return _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse)
+        return _correlation_me_tt(H, rho0, tlist, taulist, c_ops,
+                                  a_op, b_op, reverse)
     elif solver == "es":
-        return correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse)
+        return _correlation_es(H, rho0, tlist, taulist, c_ops,
+                               a_op, b_op, reverse)
     elif solver == "mc":
-        return correlation_mc(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse)
+        return _correlation_mc(H, rho0, tlist, taulist, c_ops,
+                               a_op, b_op,reverse)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
@@ -233,7 +238,7 @@ def correlation_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None,
 # -----------------------------------------------------------------------------
 # EXPONENTIAL SERIES SOLVERS
 # -----------------------------------------------------------------------------
-def correlation_ss_es(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
+def _correlation_es_ss(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
     """
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation_ss` usage.
@@ -259,7 +264,7 @@ def correlation_ss_es(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
         solC_tau = ode2es(L, b_op * rho0)
         return esval(expect(a_op, solC_tau), tlist)
 
-def correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
+def _correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
     """
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation` usage.
@@ -299,16 +304,6 @@ def correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
 # -----------------------------------------------------------------------------
 # MASTER EQUATION SOLVERS
 # -----------------------------------------------------------------------------
-def correlation_ss_ode(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
-    """
-    Internal function for calculating correlation functions using the master
-    equation solver. See :func:`correlation_ss` for usage.
-
-    Deprecated in QuTiP 2.2.0. Use :func:`correlation.correlation_ss` and
-    the 'solver' argument instead.
-    """
-    return _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0=rho0)
-
 
 def _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0=None,
                           reverse=False):
@@ -339,9 +334,6 @@ def _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None):
     (ss_gtt = steadystate general two-time)
 
     See, Gardiner, Quantum Noise, Section 5.2.1
-
-    .. note::
-        Experimental.
     """
 
     if debug:
@@ -352,17 +344,6 @@ def _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None):
 
     return mesolve(H, d_op * rho0 * a_op, tlist, 
                    c_ops, [b_op * c_op]).expect[0]
-
-
-def correlation_ode(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
-    """
-    Internal function for calculating correlation functions using the master
-    equation solver. See :func:`correlation` for usage.
-
-    Deprecated in QuTiP 2.2.0. Instead, use :func:`correlation.correlation` and
-    the 'solver=me' as argument.
-    """
-    return _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op)
 
 
 def _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
@@ -430,8 +411,8 @@ def _correlation_me_gtt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 # -----------------------------------------------------------------------------
 # MONTE CARLO SOLVERS
 # -----------------------------------------------------------------------------
-def correlation_ss_mc(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False,
-                      ntraj=500):
+def _correlation_mc_ss(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False,
+                       ntraj=500):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation_ss` for usage.
@@ -449,7 +430,7 @@ def correlation_ss_mc(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False,
                           [a_op], ntraj=ntraj).expect[0]
 
 
-def correlation_mc(H, psi0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
+def _correlation_mc(H, psi0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation` usage.
