@@ -39,39 +39,40 @@ if debug:
 # PUBLIC API
 #------------------------------------------------------------------------------
 
-def correlation_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, solver="me",
+def correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver="me",
                        reverse=False):
     """
     Calculate a two-operator two-time correlation function
-    :math:`\left<A(t+\\tau)B(t)\\right>` or
-    :math:`\left<A(t)B(t+\\tau)\\right>` (if `reverse=True`),
+    :math:`\left<A(\\tau)B(0)\\right>` or
+    :math:`\left<A(0)B(\\tau)\\right>` (if `reverse=True`),
     using the quantum regression theorem and the evolution solver indicated by
     the *solver* parameter.
 
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`
+    H : :class:`qutip.qobj.Qobj`
         system Hamiltonian.
 
-    rho0 : :class:`qutip.qobj`
-        Optional initial state density matrix (default is the steady state).
+    rho0 : :class:`qutip.qobj.Qobj`
+        Initial state density matrix (or state vector). If 'rho0' is
+        'None', then the steady state will be used as initial state.
 
-    tlist : *list* / *array*
+    taulist : *list* / *array*
         list of times for :math:`t`.
 
-    c_ops : list of :class:`qutip.qobj`
+    c_ops : list of :class:`qutip.qobj.Qobj`
         list of collapse operators.
 
-    a_op : :class:`qutip.qobj`
+    a_op : :class:`qutip.qobj.Qobj`
         operator A.
 
-    b_op : :class:`qutip.qobj`
+    b_op : :class:`qutip.qobj.Qobj`
         operator B.
 
     reverse : bool
-        If `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
-        :math:`\left<A(t+\\tau)B(t)\\right>`.
+        If `True`, calculate :math:`\left<A(0)B(\\tau)\\right>` instead of
+        :math:`\left<A(\\tau)B(0)\\right>`.
 
     solver : str
         choice of solver (`me` for master-equation,
@@ -92,13 +93,13 @@ def correlation_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, solver="me",
         rho0 = ket2dm(rho0)
 
     if solver == "me":
-        return _correlation_me_2op_1t(H, tlist, c_ops, a_op, b_op, rho0, reverse)
+        return _correlation_me_2op_1t(H, taulist, c_ops, a_op, b_op, rho0, reverse)
     elif solver == "es":
-        return _correlation_es_2op_1t(H, tlist, c_ops, a_op, b_op, rho0, reverse)
+        return _correlation_es_2op_1t(H, taulist, c_ops, a_op, b_op, rho0, reverse)
     elif solver == "mc":
         print("Monte-Carlo solver is currently disabled, " +
               "using master equation.")
-        return _correlation_me_2op_1t(H, tlist, c_ops, a_op, b_op, rho0, reverse)
+        return _correlation_me_2op_1t(H, taulist, c_ops, a_op, b_op, rho0, reverse)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
@@ -116,11 +117,12 @@ def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`
+    H : :class:`qutip.qobj.Qobj`
         system Hamiltonian.
 
-    rho0 : :class:`qutip.qobj`
-        initial density matrix :math:`\\rho(t_0)`
+    rho0 : :class:`qutip.qobj.Qobj`
+        Initial state density matrix :math:`\\rho(t_0)` (or state vector). If
+        'rho0' is 'None', then the steady state will be used as initial state.
 
     tlist : *list* / *array*
         list of times for :math:`t`.
@@ -128,13 +130,13 @@ def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
     taulist : *list* / *array*
         list of times for :math:`\\tau`.
 
-    c_ops : list of :class:`qutip.qobj`
+    c_ops : list of :class:`qutip.qobj.Qobj`
         list of collapse operators.
 
-    a_op : :class:`qutip.qobj`
+    a_op : :class:`qutip.qobj.Qobj`
         operator A.
 
-    b_op : :class:`qutip.qobj`
+    b_op : :class:`qutip.qobj.Qobj`
         operator B.
 
     solver : str
@@ -178,7 +180,7 @@ def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
 
-def correlation_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op,
+def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
                        solver="me"):
     """
     Calculate the four-operator two-time correlation function on the from
@@ -233,7 +235,7 @@ def correlation_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op,
         print(inspect.stack()[0][3])
 
     if solver == "me":
-        return _correlation_me_ss_4op_1t(H, rho0, tlist, c_ops,
+        return _correlation_me_ss_4op_1t(H, rho0, taulist, c_ops,
                                          a_op, b_op, c_op, d_op)
     else:
         raise NotImplementedError("Unrecognized choice of solver %s." % solver)
@@ -679,7 +681,7 @@ def spectrum_correlation_fft(tlist, y):
     return w[indices], F[indices]
 
 
-def spectrum_2op_1t(H, wlist, c_ops, a_op, b_op):
+def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     """
     Calculate the spectrum corresponding to a correlation function
     :math:`\left<A(\\tau)B(0)\\right>`, i.e., the Fourier transform of the
