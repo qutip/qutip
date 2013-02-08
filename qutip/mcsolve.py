@@ -41,9 +41,6 @@ from qutip.odechecks import _ode_checks
 import qutip.settings
 from qutip.settings import debug
 
-#
-# Set to True to activate function call trace printouts
-#
 if debug:
     import inspect
 

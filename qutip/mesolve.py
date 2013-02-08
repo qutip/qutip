@@ -22,10 +22,11 @@ This module provides solvers for the Lindblad master equation, von Neumann
 equation and the Schrodinger equation.
 """
 
+import os
 import types
 import numpy as np
-from scipy.linalg import norm
 import scipy.integrate
+from scipy.linalg import norm
 
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
@@ -37,23 +38,17 @@ from qutip.rhs_generate import rhs_generate
 from qutip.odedata import Odedata
 from qutip.states import ket2dm
 from qutip.odechecks import _ode_checks
-import os
-
 from qutip.odeconfig import odeconfig
+from qutip.settings import debug
 
-#
-# Set to True to activate function call trace printouts
-#
-debug = False
 if debug:
     import inspect
  
+
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 #
-
-
 def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
     """
     Master equation evolution of a density matrix for a given Hamiltonian.
