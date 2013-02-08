@@ -33,7 +33,8 @@ auto_herm = True
 auto_tidyup_atol = 1e-12
 # number of cpus (set at qutip import)
 num_cpus = 1
-
+#
+debug = False
 
 def reset():
     from qutip._reset import _reset
