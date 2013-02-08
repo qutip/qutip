@@ -93,13 +93,14 @@ def correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver="me",
         rho0 = ket2dm(rho0)
 
     if solver == "me":
-        return _correlation_me_2op_1t(H, taulist, c_ops, a_op, b_op, rho0, reverse)
+        return _correlation_me_2op_1t(H, taulist, c_ops, a_op, b_op, rho0,
+                                      reverse)
     elif solver == "es":
-        return _correlation_es_2op_1t(H, taulist, c_ops, a_op, b_op, rho0, reverse)
+        return _correlation_es_2op_1t(H, taulist, c_ops, a_op, b_op, rho0,
+                                      reverse)
     elif solver == "mc":
-        print("Monte-Carlo solver is currently disabled, " +
-              "using master equation.")
-        return _correlation_me_2op_1t(H, taulist, c_ops, a_op, b_op, rho0, reverse)
+        return _correlation_mc_2op_1t(H, taulist, c_ops, a_op, b_op, rho0,
+                                      reverse)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
@@ -632,6 +633,9 @@ def _correlation_mc_2op_2t(H, psi0, tlist, taulist, c_ops, a_op, b_op,
 
     if debug:
         print(inspect.stack()[0][3])
+
+    raise NotImplementedError("The Monte-Carlo solver currently cannot be " +
+        "used for correlation functions on the form <A(t)B(t+tau)>")
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
