@@ -293,9 +293,6 @@ class _MC_class():
 
         self.odeconfig = odeconfig
         
-        if debug:
-            print(inspect.stack()[0][3])        
-        
         #----MAIN OBJECT PROPERTIES--------------------#
         # holds instance of the ProgressBar class
         self.bar = None
@@ -590,12 +587,12 @@ def _no_collapse_expect_out(num_times, expect_out, odeconfig):
     Calculates expect.values at times tlist if no collapse ops. given
     """
 
-    if debug:
-        print(inspect.stack()[0][3])
-
     global _cy_rhs_func
     global _cy_col_spmv_func, _cy_col_expect_func
     global _cy_col_spmv_call_func, _cy_col_expect_call_func
+
+    if debug:
+        print(inspect.stack()[0][3])
 
     if not _cy_rhs_func:
         _mc_func_load(odeconfig)
@@ -880,7 +877,7 @@ def _mc_func_load(odeconfig):
     global _cy_col_spmv_call_func, _cy_col_expect_call_func
 
     if debug:
-        print(inspect.stack()[0][3] + " in " +str(os.getpid()))
+        print(inspect.stack()[0][3] + " in " + str(os.getpid()))
 
     if odeconfig.tflag in array([1, 10, 11]):
         # compile time-depdendent RHS code
