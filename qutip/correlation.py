@@ -33,14 +33,15 @@ debug = False
 if debug:
     import inspect
 
+
 #------------------------------------------------------------------------------
 # PUBLIC API
 #------------------------------------------------------------------------------
 
-def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
-                   reverse=False):
+def correlation_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, solver="me",
+                       reverse=False):
     """
-    Calculate a two-time correlation function
+    Calculate a two-operator two-time correlation function
     :math:`\left<A(t+\\tau)B(t)\\right>` or
     :math:`\left<A(t)B(t+\\tau)\\right>` (if `reverse=True`),
     using the quantum regression theorem and the evolution solver indicated by
@@ -51,6 +52,9 @@ def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
 
     H : :class:`qutip.qobj`
         system Hamiltonian.
+
+    rho0 : :class:`qutip.qobj`
+        Optional initial state density matrix (default is the steady state).
 
     tlist : *list* / *array*
         list of times for :math:`t`.
@@ -64,9 +68,6 @@ def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
     b_op : :class:`qutip.qobj`
         operator B.
 
-    rho0 : :class:`qutip.qobj`
-        Optional initial state density matrix (default is the steady state).
-
     reverse : bool
         If `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
         :math:`\left<A(t+\\tau)B(t)\\right>`.
@@ -78,7 +79,7 @@ def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
     Returns
     -------
 
-    correlation: *array*
+    corr_vec: *array*
         An *array* of correlation values for the times specified by `tlist`
 
     """
@@ -90,23 +91,25 @@ def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
         rho0 = ket2dm(rho0)
 
     if solver == "me":
-        return _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0, reverse)
+        return _correlation_me_2op_1t(H, tlist, c_ops, a_op, b_op, rho0, reverse)
     elif solver == "es":
-        return _correlation_es_ss(H, tlist, c_ops, a_op, b_op, rho0, reverse)
+        return _correlation_es_2op_1t(H, tlist, c_ops, a_op, b_op, rho0, reverse)
     elif solver == "mc":
         print("Monte-Carlo solver is currently disabled, " +
               "using master equation.")
-        return _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0, reverse)
+        return _correlation_me_2op_1t(H, tlist, c_ops, a_op, b_op, rho0, reverse)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
 
-def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
-                reverse=False):
+def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
+                       reverse=False):
     """
-    Calculate a two-time correlation function
-    :math:`\left<A(t+\\tau)B(t)\\right>` using the quantum regression
-    theorem, using the solver indicated by the *solver* parameter.
+    Calculate a two-operator two-time correlation function on the form
+    :math:`\left<A(t+\\tau)B(t)\\right>` or
+    :math:`\left<A(t)B(t+\\tau)\\right>` (if `reverse=True`), using the
+    quantum regression theorem and the evolution solver indicated by the
+    *solver* parameter.
 
 
     Parameters
@@ -158,26 +161,26 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
         # only interested in correlation vs one time coordinate, so we can use
         # the ss solver with the supplied density matrix as initial state (in
         # place of the steady state)
-        return _correlation_ss(H, taulist, c_ops, a_op, b_op, rho0, solver,
-                               reverse)
+        return correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver,
+                                  reverse)
 
     if solver == "me":
-        return _correlation_me_tt(H, rho0, tlist, taulist, c_ops,
-                                  a_op, b_op, reverse)
+        return _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops,
+                                      a_op, b_op, reverse)
     elif solver == "es":
-        return _correlation_es(H, rho0, tlist, taulist, c_ops,
-                               a_op, b_op, reverse)
+        return _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops,
+                                      a_op, b_op, reverse)
     elif solver == "mc":
-        return _correlation_mc(H, rho0, tlist, taulist, c_ops,
-                               a_op, b_op,reverse)
+        return _correlation_mc_2op_2t(H, rho0, tlist, taulist, c_ops,
+                                      a_op, b_op, reverse)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
 
-def correlation_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None,
+def correlation_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op,
                        solver="me"):
     """
-    Calculate a two-time correlation function on the from
+    Calculate the four-operator two-time correlation function on the from
     :math:`\left<A(0)B(\\tau)C(\\tau)D(0)\\right>` using the quantum regression
     theorem and the solver indicated by the 'solver' parameter.
 
@@ -214,7 +217,7 @@ def correlation_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None,
     Returns
     -------
 
-    corr_list: *array*
+    corr_vec: *array*
         An *array* of correlation values for the times specified by `tlist`
 
 
@@ -229,16 +232,191 @@ def correlation_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None,
         print(inspect.stack()[0][3])
 
     if solver == "me":
-        return _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op,
-                                      d_op, rho0)
+        return _correlation_me_ss_4op_1t(H, rho0, tlist, c_ops,
+                                         a_op, b_op, c_op, d_op)
     else:
         raise NotImplementedError("Unrecognized choice of solver %s." % solver)
+
+
+def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
+                       solver="me"):
+    """
+    Calculate the four-operator two-time correlation function on the from
+    :math:`\left<A(0)B(\\tau)C(\\tau)D(0)\\right>` using the quantum regression
+    theorem and the solver indicated by the 'solver' parameter.
+
+    Parameters
+    ----------
+
+    H : :class:`qutip.qobj`
+        system Hamiltonian.
+
+    tlist : *list* / *array*
+        list of times for :math:`t`.
+
+    c_ops : list of :class:`qutip.qobj`
+        list of collapse operators.
+
+    a_op : :class:`qutip.qobj`
+        operator A.
+
+    b_op : :class:`qutip.qobj`
+        operator B.
+
+    c_op : :class:`qutip.qobj`
+        operator C.
+
+    d_op : :class:`qutip.qobj`
+        operator D.
+
+    rho0 : :class:`qutip.qobj`
+        Optional initial state density matrix (default is the steady state).
+
+    solver : str
+        choice of solver (currently only `me` for master-equation)
+
+    Returns
+    -------
+
+    corr_mat: *array*
+        An 2-dimensional *array* (matrix) of correlation values for the times
+        specified by `tlist` (first index) and `taulist` (second index). If
+        `tlist` is `None`, then a 1-dimensional *array* of correlation values
+        is returned instead.
+
+    References
+    ----------
+
+    See, Gardiner, Quantum Noise, Section 5.2.1.
+
+    """
+
+    if debug:
+        print(inspect.stack()[0][3])
+
+    if solver == "me":
+        return _correlation_me_ss_4op_2t(H, rho0, tlist, taulist, c_ops,
+                                         a_op, b_op, c_op, d_op)
+    else:
+        raise NotImplementedError("Unrecognized choice of solver %s." % solver)
+
+
+#------------------------------------------------------------------------------
+# LEGACY API
+#------------------------------------------------------------------------------
+
+def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
+                   reverse=False):
+    """
+    Calculate a two-operator two-time correlation function
+    :math:`\left<A(t+\\tau)B(t)\\right>` or
+    :math:`\left<A(t)B(t+\\tau)\\right>` (if `reverse=True`),
+    using the quantum regression theorem and the evolution solver indicated by
+    the *solver* parameter.
+
+    Parameters
+    ----------
+
+    H : :class:`qutip.qobj`
+        system Hamiltonian.
+
+    rho0 : :class:`qutip.qobj`
+        Optional initial state density matrix (default is the steady state).
+
+    tlist : *list* / *array*
+        list of times for :math:`t`.
+
+    c_ops : list of :class:`qutip.qobj`
+        list of collapse operators.
+
+    a_op : :class:`qutip.qobj`
+        operator A.
+
+    b_op : :class:`qutip.qobj`
+        operator B.
+
+    reverse : bool
+        If `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
+        :math:`\left<A(t+\\tau)B(t)\\right>`.
+
+    solver : str
+        choice of solver (`me` for master-equation,
+        `es` for exponential series and `mc` for Monte-carlo)
+
+    Returns
+    -------
+
+    corr_vec: *array*
+        An *array* of correlation values for the times specified by `tlist`
+
+    """
+
+    if debug:
+        print(inspect.stack()[0][3])
+
+    return correlation_2op_1t(H, rho0, tlist, c_ops, a_op, b_op,
+                              solver, reverse=reverse)
+
+def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
+                reverse=False):
+    """
+    Calculate a two-operator two-time correlation function on the form
+    :math:`\left<A(t+\\tau)B(t)\\right>` or
+    :math:`\left<A(t)B(t+\\tau)\\right>` (if `reverse=True`), using the
+    quantum regression theorem and the evolution solver indicated by the
+    *solver* parameter.
+
+
+    Parameters
+    ----------
+
+    H : :class:`qutip.qobj`
+        system Hamiltonian.
+
+    rho0 : :class:`qutip.qobj`
+        initial density matrix :math:`\\rho(t_0)`
+
+    tlist : *list* / *array*
+        list of times for :math:`t`.
+
+    taulist : *list* / *array*
+        list of times for :math:`\\tau`.
+
+    c_ops : list of :class:`qutip.qobj`
+        list of collapse operators.
+
+    a_op : :class:`qutip.qobj`
+        operator A.
+
+    b_op : :class:`qutip.qobj`
+        operator B.
+
+    solver : str
+        choice of solver (`me` for master-equation,
+        `es` for exponential series and `mc` for Monte-carlo)
+
+    Returns
+    -------
+
+    corr_mat: *array*
+        An 2-dimensional *array* (matrix) of correlation values for the times
+        specified by `tlist` (first index) and `taulist` (second index). If
+        `tlist` is `None`, then a 1-dimensional *array* of correlation values
+        is returned instead.
+
+    """
+
+    if debug:
+        print(inspect.stack()[0][3])
+
+    return correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
+                              solver=solver, reverse=reverse)
 
 
 # -----------------------------------------------------------------------------
 # EXPONENTIAL SERIES SOLVERS
 # -----------------------------------------------------------------------------
-def _correlation_es_ss(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
+def _correlation_es_2op_1t(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
     """
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation_ss` usage.
@@ -264,7 +442,8 @@ def _correlation_es_ss(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
         solC_tau = ode2es(L, b_op * rho0)
         return esval(expect(a_op, solC_tau), tlist)
 
-def _correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
+def _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
+                           reverse=False):
     """
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation` usage.
@@ -305,7 +484,7 @@ def _correlation_es(H, rho0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
 # MASTER EQUATION SOLVERS
 # -----------------------------------------------------------------------------
 
-def _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0=None,
+def _correlation_me_2op_1t(H, tlist, c_ops, a_op, b_op, rho0=None,
                           reverse=False):
     """
     Internal function for calculating correlation functions using the master
@@ -327,26 +506,7 @@ def _correlation_me_ss_tt(H, tlist, c_ops, a_op, b_op, rho0=None,
         return mesolve(H, b_op * rho0, tlist, c_ops, [a_op]).expect[0]
 
 
-def _correlation_me_ss_gtt(H, tlist, c_ops, a_op, b_op, c_op, d_op, rho0=None):
-    """
-    Calculate the correlation function <A(0)B(tau)C(tau)D(0)>
-
-    (ss_gtt = steadystate general two-time)
-
-    See, Gardiner, Quantum Noise, Section 5.2.1
-    """
-
-    if debug:
-        print(inspect.stack()[0][3])
-
-    if rho0 is None:
-        rho0 = steadystate(H, c_ops)
-
-    return mesolve(H, d_op * rho0 * a_op, tlist, 
-                   c_ops, [b_op * c_op]).expect[0]
-
-
-def _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
+def _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
                        reverse=False):
     """
     Internal function for calculating correlation functions using the master
@@ -377,17 +537,31 @@ def _correlation_me_tt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
     return C_mat
 
 
-def _correlation_me_gtt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
-                        c_op, d_op, reverse=False):
+def _correlation_me_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op):
     """
-    Calculate the correlation function <A(t)B(t+tau)C(t+tau)D(t)>
-
-    (gtt = general two-time)
+    Calculate the four-operator two-time correlation function on the form
+    <A(0)B(tau)C(tau)D(0)>.
 
     See, Gardiner, Quantum Noise, Section 5.2.1
+    """
 
-    .. note::
-        Experimental.
+    if debug:
+        print(inspect.stack()[0][3])
+
+    if rho0 is None:
+        rho0 = steadystate(H, c_ops)
+
+    return mesolve(H, d_op * rho0 * a_op, tlist, 
+                   c_ops, [b_op * c_op]).expect[0]
+
+
+def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
+                           a_op, b_op, c_op, d_op, reverse=False):
+    """
+    Calculate the four-operator two-time correlation function on the form
+    <A(t)B(t+tau)C(t+tau)D(t)>.
+
+    See, Gardiner, Quantum Noise, Section 5.2.1
     """
 
     if debug:
@@ -407,11 +581,10 @@ def _correlation_me_gtt(H, rho0, tlist, taulist, c_ops, a_op, b_op,
     return C_mat
 
 
-
 # -----------------------------------------------------------------------------
 # MONTE CARLO SOLVERS
 # -----------------------------------------------------------------------------
-def _correlation_mc_ss(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False,
+def _correlation_mc_2op_1t(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False,
                        ntraj=500):
     """
     Internal function for calculating correlation functions using the Monte
@@ -422,7 +595,7 @@ def _correlation_mc_ss(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False,
         print(inspect.stack()[0][3])
 
     if rho0 is None or not isket(rho0):
-        raise Exception("correlation_ss_mc requires initial state as ket")
+        raise Exception("_correlation_mc_2op_1t requires initial state as ket")
 
     norm = (b_op * rho0).norm()
 
@@ -430,7 +603,8 @@ def _correlation_mc_ss(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False,
                           [a_op], ntraj=ntraj).expect[0]
 
 
-def _correlation_mc(H, psi0, tlist, taulist, c_ops, a_op, b_op, reverse=False):
+def _correlation_mc_2op_2t(H, psi0, tlist, taulist, c_ops, a_op, b_op,
+                           reverse=False):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation` usage.
@@ -504,7 +678,7 @@ def spectrum_correlation_fft(tlist, y):
     return w[indices], F[indices]
 
 
-def spectrum_ss(H, wlist, c_ops, a_op, b_op):
+def spectrum_2op_1t(H, wlist, c_ops, a_op, b_op):
     """
     Calculate the spectrum corresponding to a correlation function
     :math:`\left<A(\\tau)B(0)\\right>`, i.e., the Fourier transform of the
