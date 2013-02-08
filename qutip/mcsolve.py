@@ -39,14 +39,18 @@ from qutip.cyQ.codegen import Codegen
 from qutip.odedata import Odedata
 from qutip.odechecks import _ode_checks
 import qutip.settings
+from qutip.settings import debug
 
 #
 # Set to True to activate function call trace printouts
 #
-debug = False
 if debug:
     import inspect
 
+#
+# Internal, global variables for storing references to dynamically loaded
+# cython functions
+#
 _cy_col_spmv_func = None
 _cy_col_expect_func = None
 _cy_col_spmv_call_func = None
