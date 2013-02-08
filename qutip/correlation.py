@@ -59,7 +59,7 @@ def correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver="me",
         'None', then the steady state will be used as initial state.
 
     taulist : *list* / *array*
-        list of times for :math:`t`.
+        list of times for :math:`\\tau`.
 
     c_ops : list of :class:`qutip.qobj.Qobj`
         list of collapse operators.
@@ -143,6 +143,10 @@ def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
         choice of solver (`me` for master-equation,
         `es` for exponential series and `mc` for Monte-carlo)
 
+    reverse : bool
+        If `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
+        :math:`\left<A(t+\\tau)B(t)\\right>`.
+
     Returns
     -------
 
@@ -190,28 +194,28 @@ def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`
+    H : :class:`qutip.qobj.Qobj`
         system Hamiltonian.
 
-    tlist : *list* / *array*
-        list of times for :math:`t`.
+    taulist : *list* / *array*
+        list of times for :math:`\\tau`.
 
-    c_ops : list of :class:`qutip.qobj`
+    c_ops : list of :class:`qutip.qobj.Qobj`
         list of collapse operators.
 
-    a_op : :class:`qutip.qobj`
+    a_op : :class:`qutip.qobj.Qobj`
         operator A.
 
-    b_op : :class:`qutip.qobj`
+    b_op : :class:`qutip.qobj.Qobj`
         operator B.
 
-    c_op : :class:`qutip.qobj`
+    c_op : :class:`qutip.qobj.Qobj`
         operator C.
 
-    d_op : :class:`qutip.qobj`
+    d_op : :class:`qutip.qobj.Qobj`
         operator D.
 
-    rho0 : :class:`qutip.qobj`
+    rho0 : :class:`qutip.qobj.Qobj`
         Optional initial state density matrix (default is the steady state).
 
     solver : str
@@ -221,7 +225,7 @@ def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
     -------
 
     corr_vec: *array*
-        An *array* of correlation values for the times specified by `tlist`
+        An *array* of correlation values for the times specified by `taulist`
 
 
     References
@@ -245,34 +249,37 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
                        solver="me"):
     """
     Calculate the four-operator two-time correlation function on the from
-    :math:`\left<A(0)B(\\tau)C(\\tau)D(0)\\right>` using the quantum regression
-    theorem and the solver indicated by the 'solver' parameter.
+    :math:`\left<A(t)B(t+\\tau)C(t+\\tau)D(t)\\right>` using the quantum
+    regression theorem and the solver indicated by the 'solver' parameter.
 
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`
+    H : :class:`qutip.qobj.Qobj`
         system Hamiltonian.
 
     tlist : *list* / *array*
         list of times for :math:`t`.
 
-    c_ops : list of :class:`qutip.qobj`
+    taulist : *list* / *array*
+        list of times for :math:`\\tau`.
+
+    c_ops : list of :class:`qutip.qobj.Qobj`
         list of collapse operators.
 
-    a_op : :class:`qutip.qobj`
+    a_op : :class:`qutip.qobj.Qobj`
         operator A.
 
-    b_op : :class:`qutip.qobj`
+    b_op : :class:`qutip.qobj.Qobj`
         operator B.
 
-    c_op : :class:`qutip.qobj`
+    c_op : :class:`qutip.qobj.Qobj`
         operator C.
 
-    d_op : :class:`qutip.qobj`
+    d_op : :class:`qutip.qobj.Qobj`
         operator D.
 
-    rho0 : :class:`qutip.qobj`
+    rho0 : :class:`qutip.qobj.Qobj`
         Optional initial state density matrix (default is the steady state).
 
     solver : str
@@ -308,39 +315,39 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
 # LEGACY API
 #------------------------------------------------------------------------------
 
-def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
+def correlation_ss(H, taulist, c_ops, a_op, b_op, rho0=None, solver="me",
                    reverse=False):
     """
     Calculate a two-operator two-time correlation function
-    :math:`\left<A(t+\\tau)B(t)\\right>` or
-    :math:`\left<A(t)B(t+\\tau)\\right>` (if `reverse=True`),
+    :math:`\left<A(\\tau)B(0)\\right>` or
+    :math:`\left<A(0)B(\\tau)\\right>` (if `reverse=True`),
     using the quantum regression theorem and the evolution solver indicated by
     the *solver* parameter.
 
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`
+    H : :class:`qutip.qobj.Qobj`
         system Hamiltonian.
 
-    rho0 : :class:`qutip.qobj`
+    rho0 : :class:`qutip.qobj.Qobj`
         Optional initial state density matrix (default is the steady state).
 
-    tlist : *list* / *array*
-        list of times for :math:`t`.
+    taulist : *list* / *array*
+        list of times for :math:`\\tau`.
 
-    c_ops : list of :class:`qutip.qobj`
+    c_ops : list of :class:`qutip.qobj.Qobj`
         list of collapse operators.
 
-    a_op : :class:`qutip.qobj`
+    a_op : :class:`qutip.qobj.Qobj`
         operator A.
 
-    b_op : :class:`qutip.qobj`
+    b_op : :class:`qutip.qobj.Qobj`
         operator B.
 
     reverse : bool
-        If `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
-        :math:`\left<A(t+\\tau)B(t)\\right>`.
+        If `True`, calculate :math:`\left<A(0)B(\\tau)\\right>` instead of
+        :math:`\left<A(\\tau)B(0)\\right>`.
 
     solver : str
         choice of solver (`me` for master-equation,
@@ -357,7 +364,7 @@ def correlation_ss(H, tlist, c_ops, a_op, b_op, rho0=None, solver="me",
     if debug:
         print(inspect.stack()[0][3])
 
-    return correlation_2op_1t(H, rho0, tlist, c_ops, a_op, b_op,
+    return correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op,
                               solver, reverse=reverse)
 
 def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
@@ -373,10 +380,10 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`
+    H : :class:`qutip.qobj.Qobj`
         system Hamiltonian.
 
-    rho0 : :class:`qutip.qobj`
+    rho0 : :class:`qutip.qobj.Qobj`
         initial density matrix :math:`\\rho(t_0)`
 
     tlist : *list* / *array*
@@ -385,7 +392,7 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
     taulist : *list* / *array*
         list of times for :math:`\\tau`.
 
-    c_ops : list of :class:`qutip.qobj`
+    c_ops : list of :class:`qutip.qobj.Qobj`
         list of collapse operators.
 
     a_op : :class:`qutip.qobj`
