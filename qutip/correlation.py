@@ -55,8 +55,8 @@ def correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver="me",
         system Hamiltonian.
 
     rho0 : :class:`qutip.qobj.Qobj`
-        Initial state density matrix (or state vector). If 'rho0' is
-        'None', then the steady state will be used as initial state.
+        Initial state density matrix (or state vector). If `rho0` is
+        `None`, then the steady state will be used as initial state.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`.
@@ -82,24 +82,21 @@ def correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver="me",
     -------
 
     corr_vec: *array*
-        An *array* of correlation values for the times specified by `tlist`
+        An *array* of correlation values for the times specified by `taulist`
 
     """
 
     if debug:
         print(inspect.stack()[0][3])
 
-    if rho0 and isket(rho0):
-        rho0 = ket2dm(rho0)
-
     if solver == "me":
-        return _correlation_me_2op_1t(H, taulist, c_ops, a_op, b_op, rho0,
+        return _correlation_me_2op_1t(H, rho0, taulist, c_ops, a_op, b_op,
                                       reverse)
     elif solver == "es":
-        return _correlation_es_2op_1t(H, taulist, c_ops, a_op, b_op, rho0,
+        return _correlation_es_2op_1t(H, rho0, taulist, c_ops, a_op, b_op,
                                       reverse)
     elif solver == "mc":
-        return _correlation_mc_2op_1t(H, taulist, c_ops, a_op, b_op, rho0,
+        return _correlation_mc_2op_1t(H, rho0, taulist, c_ops, a_op, b_op,
                                       reverse)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
@@ -161,9 +158,6 @@ def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
 
     if debug:
         print(inspect.stack()[0][3])
-
-    if rho0 and isket(rho0):
-        rho0 = ket2dm(rho0)
 
     if tlist is None:
         # only interested in correlation vs one time coordinate, so we can use
@@ -452,6 +446,8 @@ def _correlation_es_2op_1t(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False
     # find the steady state
     if rho0 is None:
         rho0 = steady(L)
+    elif rho0 and isket(rho0):
+        rho0 = ket2dm(rho0)
 
     # evaluate the correlation function
     if reverse:
@@ -478,6 +474,8 @@ def _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 
     if rho0 is None:
         rho0 = steady(L)
+    elif rho0 and isket(rho0):
+        rho0 = ket2dm(rho0)
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
@@ -516,8 +514,9 @@ def _correlation_me_2op_1t(H, tlist, c_ops, a_op, b_op, rho0=None,
         print(inspect.stack()[0][3])
 
     if rho0 is None:
-        L = liouvillian(H, c_ops)
-        rho0 = steady(L)
+        rho0 = steadystate(H, c_ops)
+    elif rho0 and isket(rho0):
+        rho0 = ket2dm(rho0)
 
     if reverse:
         # <A(t)B(t+tau)>
@@ -539,6 +538,8 @@ def _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 
     if rho0 is None:
         rho0 = steadystate(H, c_ops)
+    elif rho0 and isket(rho0):
+        rho0 = ket2dm(rho0)
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
@@ -571,6 +572,8 @@ def _correlation_me_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op):
 
     if rho0 is None:
         rho0 = steadystate(H, c_ops)
+    elif rho0 and isket(rho0):
+        rho0 = ket2dm(rho0)
 
     return mesolve(H, d_op * rho0 * a_op, tlist, 
                    c_ops, [b_op * c_op]).expect[0]
@@ -590,6 +593,8 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
 
     if rho0 is None:
         rho0 = steadystate(H, c_ops)
+    elif rho0 and isket(rho0):
+        rho0 = ket2dm(rho0)
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
@@ -605,8 +610,8 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
 # -----------------------------------------------------------------------------
 # MONTE CARLO SOLVERS
 # -----------------------------------------------------------------------------
-def _correlation_mc_2op_1t(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False,
-                       ntraj=500):
+def _correlation_mc_2op_1t(H, psi0, taulist, c_ops, a_op, b_op, reverse=False,
+                           ntraj=100):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation_ss` for usage.
@@ -615,12 +620,14 @@ def _correlation_mc_2op_1t(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False
     if debug:
         print(inspect.stack()[0][3])
 
-    if rho0 is None or not isket(rho0):
+    if psi0 is None or not isket(psi0):
         raise Exception("_correlation_mc_2op_1t requires initial state as ket")
 
-    norm = (b_op * rho0).norm()
+    b_op_psi0 = b_op * psi0
 
-    return norm * mcsolve(H, (b_op * rho0) / norm, tlist, c_ops,
+    norm = b_op_psi0.norm()
+
+    return norm * mcsolve(H, b_op_psi0 / norm, taulist, c_ops,
                           [a_op], ntraj=ntraj).expect[0]
 
 
@@ -636,6 +643,9 @@ def _correlation_mc_2op_2t(H, psi0, tlist, taulist, c_ops, a_op, b_op,
 
     raise NotImplementedError("The Monte-Carlo solver currently cannot be " +
         "used for correlation functions on the form <A(t)B(t+tau)>")
+
+    if psi0 is None or not isket(psi0):
+        raise Exception("_correlation_mc_2op_2t requires initial state as ket")
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
