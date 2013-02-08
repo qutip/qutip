@@ -431,7 +431,7 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
 # -----------------------------------------------------------------------------
 # EXPONENTIAL SERIES SOLVERS
 # -----------------------------------------------------------------------------
-def _correlation_es_2op_1t(H, tlist, c_ops, a_op, b_op, rho0=None, reverse=False):
+def _correlation_es_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False):
     """
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation_ss` usage.
@@ -503,8 +503,7 @@ def _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 # MASTER EQUATION SOLVERS
 # -----------------------------------------------------------------------------
 
-def _correlation_me_2op_1t(H, tlist, c_ops, a_op, b_op, rho0=None,
-                          reverse=False):
+def _correlation_me_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False):
     """
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation_ss` for usage.
