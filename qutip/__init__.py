@@ -126,6 +126,10 @@ try:
                 elif var == "num_cpus":
                     qutip.settings.num_cpus = int(val)
 
+                elif var == "debug":
+                    qutip.settings.debug = True \
+                        if val == "True" else False
+
 except Exception as e:
     pass
 
