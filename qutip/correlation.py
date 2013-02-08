@@ -197,6 +197,10 @@ def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
     H : :class:`qutip.qobj.Qobj`
         system Hamiltonian.
 
+    rho0 : :class:`qutip.qobj.Qobj`
+        Initial state density matrix (or state vector). If 'rho0' is
+        'None', then the steady state will be used as initial state.
+
     taulist : *list* / *array*
         list of times for :math:`\\tau`.
 
@@ -257,6 +261,10 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
 
     H : :class:`qutip.qobj.Qobj`
         system Hamiltonian.
+
+    rho0 : :class:`qutip.qobj.Qobj`
+        Initial state density matrix (or state vector). If 'rho0' is
+        'None', then the steady state will be used as initial state.
 
     tlist : *list* / *array*
         list of times for :math:`t`.
@@ -331,7 +339,8 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op, rho0=None, solver="me",
         system Hamiltonian.
 
     rho0 : :class:`qutip.qobj.Qobj`
-        Optional initial state density matrix (default is the steady state).
+        Initial state density matrix (or state vector). If 'rho0' is
+        'None', then the steady state will be used as initial state.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`.
@@ -384,7 +393,8 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
         system Hamiltonian.
 
     rho0 : :class:`qutip.qobj.Qobj`
-        initial density matrix :math:`\\rho(t_0)`
+        Initial state density matrix (or state vector). If 'rho0' is
+        'None', then the steady state will be used as initial state.
 
     tlist : *list* / *array*
         list of times for :math:`t`.
