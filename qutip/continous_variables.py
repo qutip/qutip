@@ -49,9 +49,21 @@ def covariance_matrix(basis, rho):
     """
     The covariance matrix given a basis of operators.
 
-    .. note::
+    Parameters
+    ----------
 
-        Experimental.
+    basis : list of :class:`qutip.qobj.Qobj`
+        List of operators that defines the basis for the covariance matrix.
+
+    rho : :class:`qutip.qobj.Qobj`
+        Density matrix for which to calculate the covariance matrix
+
+    Returns
+    -------
+
+    cov_mat: *array*
+        A 2-dimensional *array* of covariance values. 
+
     """
 
     return np.array([[expect(op1 * op2 + op2 * op1, rho) -
@@ -62,11 +74,28 @@ def covariance_matrix(basis, rho):
 
 def correlation_matrix_field(a1, a2, rho=None):
     """
-    The correlation matrix with field operators.
+    The correlation matrix with field operators. If a density matrix is 
+    given the expectation values calculated, otherwise a matrix with
+    operators are returned
 
-    .. note::
+    Parameters
+    ----------
 
-        Experimental.
+    a1 : :class:`qutip.qobj.Qobj`
+        Field operator for mode 1.
+
+    2 : :class:`qutip.qobj.Qobj`
+        Field operator for mode 2.
+
+    rho : :class:`qutip.qobj.Qobj`
+        Density matrix for which to calculate the covariance matrix.
+
+    Returns
+    -------
+
+    cov_mat: *array*
+        A 2-dimensional *array* of covariance values, or, if rho=0, a matrix
+        of operators.
     """
 
     basis = [a1, a1.dag(), a2, a2.dag()]
