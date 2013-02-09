@@ -27,24 +27,6 @@ from qutip.expect import expect
 import numpy as np
 
 
-def _correlation_matrix(basis, rho=None):
-    """
-    The correlation matrix given a basis of operators.
-
-    .. note::
-
-        Experimental.
-    """
-
-    if rho is None:
-        # return array of operators
-        return np.array([[op1 * op2 for op1 in basis] for op2 in basis])
-    else:
-        # return array of expectation balues
-        return np.array([[expect(op1 * op2, rho) for op1 in basis]
-                         for op2 in basis])
-
-
 def covariance_matrix(basis, rho):
     """
     The covariance matrix given a basis of operators.
@@ -74,9 +56,9 @@ def covariance_matrix(basis, rho):
 
 def correlation_matrix_field(a1, a2, rho=None):
     """
-    The correlation matrix with field operators. If a density matrix is 
-    given the expectation values calculated, otherwise a matrix with
-    operators are returned
+    Calculate the correlation matrix for given field operators :math:`a_1` and
+    :math:`a_2`. If a density matrix is given the expectation values are
+    calculated, otherwise a matrix with operators is returned.
 
     Parameters
     ----------
@@ -84,7 +66,7 @@ def correlation_matrix_field(a1, a2, rho=None):
     a1 : :class:`qutip.qobj.Qobj`
         Field operator for mode 1.
 
-    2 : :class:`qutip.qobj.Qobj`
+    a2 : :class:`qutip.qobj.Qobj`
         Field operator for mode 2.
 
     rho : :class:`qutip.qobj.Qobj`
@@ -93,7 +75,7 @@ def correlation_matrix_field(a1, a2, rho=None):
     Returns
     -------
 
-    cov_mat: *array*
+    cov_mat: *array* of complex numbers or :class:`qutip.qobj.Qobj`
         A 2-dimensional *array* of covariance values, or, if rho=0, a matrix
         of operators.
     """
@@ -105,11 +87,28 @@ def correlation_matrix_field(a1, a2, rho=None):
 
 def correlation_matrix_quadrature(a1, a2, rho=None):
     """
-    The correlation matrix with quadrature operators
+    Calculate the quadrature correlation matrix with given field operators
+    :math:`a_1` and :math:`a_2`. If a density matrix is given the expectation
+    values are calculated, otherwise a matrix with operators is returned.
 
-    .. note::
+    Parameters
+    ----------
 
-        Experimental.
+    a1 : :class:`qutip.qobj.Qobj`
+        Field operator for mode 1.
+
+    a2 : :class:`qutip.qobj.Qobj`
+        Field operator for mode 2.
+
+    rho : :class:`qutip.qobj.Qobj`
+        Density matrix for which to calculate the covariance matrix.
+
+    Returns
+    -------
+
+    cov_mat: *array* of complex numbers or :class:`qutip.qobj.Qobj`
+        A 2-dimensional *array* of covariance values for the field quadratures, 
+        or, if rho=0, a matrix of operators.
 
     """
     x1 = (a1 + a1.dag()) / np.sqrt(2)
@@ -180,3 +179,18 @@ def wigner_logarithm_negativity(V):
     logneg = max(0, lognu)
 
     return logneg
+
+def _correlation_matrix(basis, rho=None):
+    """
+    Internal function for calculating a correlation matrix given a list
+    of operators to use as basis.
+    """
+
+    if rho is None:
+        # return array of operators
+        return np.array([[op1 * op2 for op1 in basis] for op2 in basis])
+    else:
+        # return array of expectation balues
+        return np.array([[expect(op1 * op2, rho) for op1 in basis]
+                         for op2 in basis])
+
