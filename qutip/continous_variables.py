@@ -25,10 +25,52 @@ quantities from fock-basis representation of the state of multi-mode fields.
 from qutip.expect import expect
 import numpy as np
 
+def correlation_matrix(basis, rho=None):
+    """
+    Given a basis set of operators :math:`\\{a\\}_n`, calculate the correlation
+    matrix:
+
+    .. math::
+
+        C_{mn} = \\langle a_m a_n \\rangle
+
+    Parameters
+    ----------
+
+    basis : list of :class:`qutip.qobj.Qobj`
+        List of operators that defines the basis for the correlation matrix.
+
+    rho : :class:`qutip.qobj.Qobj`
+        Density matrix for which to calculate the correlation matrix. If
+        `rho` is `None`, then a matrix of correlation matrix operators is
+        returned instead of expectation values of those operators. 
+
+    Returns
+    -------
+
+    corr_mat: *array*
+        A 2-dimensional *array* of correlation values or operators. 
+
+
+    """
+
+    if rho is None:
+        # return array of operators
+        return np.array([[op1 * op2 for op1 in basis] for op2 in basis])
+    else:
+        # return array of expectation values
+        return np.array([[expect(op1 * op2, rho)
+                          for op1 in basis] for op2 in basis])
+
 
 def covariance_matrix(basis, rho):
     """
-    Calculate the covariance matrix given a set of basis operators.
+    Given a basis set of operators :math:`\{a\}_n`, calculate the covariance
+    matrix:
+
+    .. math::
+
+        V_{mn} = \\langle a_m a_n + a_n a_m \\rangle - \\langle a_m \\rangle \\langle a_n\\rangle
 
     Parameters
     ----------
@@ -46,11 +88,9 @@ def covariance_matrix(basis, rho):
         A 2-dimensional *array* of covariance values. 
 
     """
-
     return np.array([[expect(op1 * op2 + op2 * op1, rho) -
                       expect(op1, rho) * expect(op2, rho)
-                      for op1 in basis]
-                     for op2 in basis])
+                      for op1 in basis] for op2 in basis])
 
 
 def correlation_matrix_field(a1, a2, rho=None):
@@ -81,7 +121,7 @@ def correlation_matrix_field(a1, a2, rho=None):
 
     basis = [a1, a1.dag(), a2, a2.dag()]
 
-    return _correlation_matrix(basis, rho)
+    return correlation_matrix(basis, rho)
 
 
 def correlation_matrix_quadrature(a1, a2, rho=None):
@@ -117,7 +157,7 @@ def correlation_matrix_quadrature(a1, a2, rho=None):
 
     basis = [x1, p1, x2, p2]
 
-    return _correlation_matrix(basis, rho)
+    return correlation_matrix(basis, rho)
 
 
 def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
@@ -127,11 +167,33 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
     the quadrature correlation matrix 
     :math:`R_{ij} = \\frac{1}{2}\\langle R_{i} R_{j}\\rangle`, where 
     :math:`R = (q_1, p_1, q_2, p_2)^T` is the vector with quadrature operators
-    for the two modes. 
+    for the two modes.
 
-    .. note::
+    Alternatively, if `R = None`, and if annilation operators `a1` and `a2` 
+    for the two modes are supplied instead, the quadature correlation matrix
+    is constructed from the annihilation operators before then the covariance
+    matrix is calculated.
 
-        Experimental.
+    Parameters
+    ----------
+
+    a1 : :class:`qutip.qobj.Qobj`
+        Field operator for mode 1.
+
+    a2 : :class:`qutip.qobj.Qobj`
+        Field operator for mode 2.
+
+    R : *array*
+        The quadrature correlation matrix.
+
+    rho : :class:`qutip.qobj.Qobj`
+        Density matrix for which to calculate the covariance matrix.
+
+    Returns
+    -------
+
+    cov_mat: *array* 
+        A 2-dimensional *array* of covariance values.
 
     """
     if R is not None:
@@ -193,18 +255,4 @@ def wigner_logarithm_negativity(V):
     logneg = max(0, lognu)
 
     return logneg
-
-def _correlation_matrix(basis, rho=None):
-    """
-    Internal function for calculating a correlation matrix given a list
-    of operators to use as basis.
-    """
-
-    if rho is None:
-        # return array of operators
-        return np.array([[op1 * op2 for op1 in basis] for op2 in basis])
-    else:
-        # return array of expectation balues
-        return np.array([[expect(op1 * op2, rho) for op1 in basis]
-                         for op2 in basis])
 
