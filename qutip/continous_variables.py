@@ -18,9 +18,8 @@
 ###########################################################################
 
 """
-This module contains experimental functions for calculating continous
-variable quantities from fock-basis representation of the state of
-coupled harmonic modes
+This module contains a collection functions for calculating continous variable
+quantities from fock-basis representation of the state of multi-mode fields.
 """
 
 from qutip.expect import expect
@@ -29,7 +28,7 @@ import numpy as np
 
 def covariance_matrix(basis, rho):
     """
-    The covariance matrix given a basis of operators.
+    Calculate the covariance matrix given a set of basis operators.
 
     Parameters
     ----------
@@ -123,8 +122,12 @@ def correlation_matrix_quadrature(a1, a2, rho=None):
 
 def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
     """
-    calculate the wigner covariance matrix given the quadrature correlation
-    matrix (R) and a state.
+    Calculate the wigner covariance matrix 
+    :math:`V_{ij} = \\frac{1}{2}\\langle R_{ij} + R_{ji}\\rangle`, given
+    the quadrature correlation matrix 
+    :math:`R_{ij} = \\frac{1}{2}\\langle R_{i} R_{j}\\rangle`, where 
+    :math:`R = (q_1, p_1, q_2, p_2)^T` is the vector with quadrature operators
+    for the two modes. 
 
     .. note::
 
@@ -161,11 +164,22 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
 
 def wigner_logarithm_negativity(V):
     """
-    Calculate the logarithmic negativity given the Wigner covariance matrix.
+    Calculate the logarithmic negativity given the Wigner covariance matrix,
+    see :func:`qutip.continous_variables.wigner_covariance_matrix`. Note that
+    the two-mode field state that is described by V must be Gaussian for this
+    function to applicable.
 
-    .. note::
+    Parameters
+    ----------
 
-        Experimental.
+    V : *2d array*
+        The Wigner covariance matrix.
+
+    Returns
+    -------
+
+    N: *float*, the logarithmic negativity for the two-mode Guassian state
+    that is described by the the Wigner covariance matrix V.
 
     """
 
