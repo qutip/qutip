@@ -22,6 +22,7 @@ import platform
 import multiprocessing
 import qutip.settings
 import qutip._version
+from qutip._version import version as __version__
 
 #------------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
