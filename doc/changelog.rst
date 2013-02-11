@@ -17,6 +17,10 @@ New Features
 
 - Added partial transpose function.
 
+- Added continous variable functions for calculating correlation and covariance
+  matrices, the Wigner covariance matrix and the logarithmic negativity for
+  for multimode fields in Fock basis.
+
 Bug Fixes:
 ----------
 
