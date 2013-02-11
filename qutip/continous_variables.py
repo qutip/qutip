@@ -163,9 +163,9 @@ def correlation_matrix_quadrature(a1, a2, rho=None):
 def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
     """
     Calculate the wigner covariance matrix 
-    :math:`V_{ij} = \\frac{1}{2}\\langle R_{ij} + R_{ji}\\rangle`, given
+    :math:`V_{ij} = \\frac{1}{2}(R_{ij} + R_{ji})`, given
     the quadrature correlation matrix 
-    :math:`R_{ij} = \\frac{1}{2}\\langle R_{i} R_{j}\\rangle`, where 
+    :math:`R_{ij} = \\langle R_{i} R_{j}\\rangle`, where 
     :math:`R = (q_1, p_1, q_2, p_2)^T` is the vector with quadrature operators
     for the two modes.
 
