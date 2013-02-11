@@ -21,6 +21,11 @@ New Features
   matrices, the Wigner covariance matrix and the logarithmic negativity for
   for multimode fields in Fock basis.
 
+- The master-equation solver (mesolve) now accepts pre-constructed Liouvillian
+  terms, which makes it possible to solve master equations that are not on
+  the standard Lindblad form.
+
+
 Bug Fixes:
 ----------
 
