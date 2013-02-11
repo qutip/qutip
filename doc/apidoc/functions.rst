@@ -118,6 +118,12 @@ Propagators
     :members: propagator, propagator_steadystate
     :undoc-members:
 
+Continous variables
+-------------------
+
+.. automodule:: qutip.continous_variables
+    :members: correlation_matrix, covariance_matrix, correlation_matrix_field, correlation_matrix_quadrature, wigner_covariance_matrix, wigner_logarithm_negativity
+
 Quantum Process Tomography
 --------------------------
 
