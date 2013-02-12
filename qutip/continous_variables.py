@@ -241,16 +241,16 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
 
 def wigner_logarithm_negativity(V):
     """
-    Calculate the logarithmic negativity given the Wigner covariance matrix,
-    see :func:`qutip.continous_variables.wigner_covariance_matrix`. Note that
-    the two-mode field state that is described by V must be Gaussian for this
+    Calculate the logarithmic negativity given the symmetrized covariance
+    matrix, see :func:`qutip.continous_variables.covariance_matrix`. Note that
+    the two-mode field state that is described by `V` must be Gaussian for this
     function to applicable.
 
     Parameters
     ----------
 
     V : *2d array*
-        The Wigner covariance matrix.
+        The covariance matrix.
 
     Returns
     -------
@@ -265,7 +265,10 @@ def wigner_logarithm_negativity(V):
     C = V[0:2, 2:4]
 
     sigma = np.linalg.det(A) + np.linalg.det(B) - 2 * np.linalg.det(C)
-    nu = np.sqrt(sigma / 2 - np.sqrt(sigma ** 2 - 4 * np.linalg.det(V)) / 2)
+    nu_ = sigma / 2 - np.sqrt(sigma ** 2 - 4 * np.linalg.det(V)) / 2
+    if nu_ < 0.0:
+        return 0.0
+    nu = np.sqrt(nu_)
     lognu = -np.log(2 * nu)
     logneg = max(0, lognu)
 
