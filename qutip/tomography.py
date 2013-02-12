@@ -22,7 +22,7 @@ from qutip.superoperator import spre, spost, mat2vec, vec2mat
 from qutip.qobj import Qobj
 from numpy import hstack
 import scipy.linalg as la
-from qutip.graph import matrix_histogram, matrix_histogram_complex
+from qutip.visualization import matrix_histogram, matrix_histogram_complex
 import qutip.settings
 
 if qutip.settings.qutip_graphics == 'YES':
