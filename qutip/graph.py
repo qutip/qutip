@@ -204,7 +204,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
     if title and fig:
-        fig.set_title(title)
+        ax.set_title(title)
 
     # x axis
     ax.axes.w_xaxis.set_major_locator(IndexLocator(1, -0.5))
@@ -327,7 +327,7 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
     if title and fig:
-        fig.set_title(title)
+        ax.set_title(title)
 
     # x axis
     ax.axes.w_xaxis.set_major_locator(IndexLocator(1, -0.5))
