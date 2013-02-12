@@ -134,8 +134,8 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
     return ax
 
 
-def matrix_histogram(M, xlabels=None, ylabels=None,
-                     title=None, limits=None, fig=None, ax=None):
+def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None, 
+                     colorbar=True, fig=None, ax=None):
     """
     Draw a histogram for the matrix M, with the given x and y labels and title.
 
@@ -223,15 +223,16 @@ def matrix_histogram(M, xlabels=None, ylabels=None,
     ax.set_zlim3d([min(z_min, 0), z_max])
 
     # color axis
-    cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
-    cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+    if colorbar:
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
+        cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
     return ax
 
 
 def matrix_histogram_complex(M, xlabels=None, ylabels=None,
-                             title=None, limits=None,
-                             phase_limits=None, fig=None, ax=None):
+                             title=None, limits=None, phase_limits=None,
+                             colorbar=True, fig=None, ax=None):
     """
     Draw a histogram for the amplitudes of matrix M, using the argument
     of each element for coloring the bars, with the given x and y labels
@@ -348,11 +349,12 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
     # ax.set_zlabel('abs')
 
     # color axis
-    cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
-    cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
-    cb.set_ticks([-pi, -pi / 2, 0, pi / 2, pi])
-    cb.set_ticklabels((r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'))
-    cb.set_label('arg')
+    if colorbar:
+        cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
+        cb = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+        cb.set_ticks([-pi, -pi / 2, 0, pi / 2, pi])
+        cb.set_ticklabels((r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'))
+        cb.set_label('arg')
 
     return ax
 
