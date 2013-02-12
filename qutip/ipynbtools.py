@@ -28,6 +28,7 @@ import numpy
 import scipy
 import Cython
 import matplotlib
+import IPython
 
 def version_table():
     """
@@ -48,8 +49,10 @@ def version_table():
                 "matplotlib": matplotlib.__version__,
                 "Cython": Cython.__version__,
                 "Python": sys.version,
+                "IPython": IPython.__version__,
                 "OS": "%s [%s]" % (os.name, sys.platform)                
                 }
+    
     
     for name in packages:
         html += "<tr><td>%s</td><td>%s</td></tr>" % (name, packages[name])
