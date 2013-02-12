@@ -29,6 +29,7 @@ import scipy
 import Cython
 import matplotlib
 import IPython
+import time
 
 def version_table():
     """
@@ -38,9 +39,7 @@ def version_table():
     possible to reproduce the environment and the calculation later on.
     """
 
-    html = "<p>The following software was used to run this notebook:</p>"
-
-    html += "<table>"
+    html  = "<table>"
     html += "<tr><th>Software</th><th>Version</th></tr>"
     
     packages = {"QuTiP": qutip.__version__,
@@ -57,5 +56,6 @@ def version_table():
     for name in packages:
         html += "<tr><td>%s</td><td>%s</td></tr>" % (name, packages[name])
 
+    html += "<tr><td colspan='2'>%s</td></tr>" % time.ctime()
     html += "</table>"
     return HTML(html)
