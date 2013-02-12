@@ -221,6 +221,7 @@ from qutip.entropy import (entropy_vn, entropy_linear, entropy_mutual,
 from qutip.gates import *
 from qutip.metrics import fidelity, tracedist
 from qutip.partial_transpose import partial_transpose
+from qutip.continuous_variables import *
 
 # evolution
 from qutip.odeconfig import odeconfig
