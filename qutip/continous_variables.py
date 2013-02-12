@@ -95,7 +95,7 @@ def covariance_matrix(basis, rho, symmetrized=True):
     Returns
     -------
 
-    cov_mat: *array*
+    corr_mat: *array*
         A 2-dimensional *array* of covariance values. 
 
     """
@@ -160,7 +160,7 @@ def correlation_matrix_quadrature(a1, a2, rho=None):
     Returns
     -------
 
-    cov_mat: *array* of complex numbers or :class:`qutip.qobj.Qobj`
+    corr_mat: *array* of complex numbers or :class:`qutip.qobj.Qobj`
         A 2-dimensional *array* of covariance values for the field quadratures, 
         or, if rho=0, a matrix of operators.
 
@@ -239,7 +239,7 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
                          "or a precomputed correlation matrix (R)")
 
 
-def wigner_logarithm_negativity(V):
+def logarithmic_negativity(V):
     """
     Calculate the logarithmic negativity given the symmetrized covariance
     matrix, see :func:`qutip.continous_variables.covariance_matrix`. Note that
