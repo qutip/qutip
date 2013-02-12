@@ -23,6 +23,11 @@ This contains utility functions for using QuTiP with IPython notebooks.
 from IPython.core.display import HTML
 import sys
 import os
+import qutip
+import numpy
+import scipy
+import Cython
+import matplotlib
 
 def version_table():
     """
