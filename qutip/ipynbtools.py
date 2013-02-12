@@ -17,7 +17,7 @@
 #
 ###########################################################################
 """
-This contains utility functions for using QuTiP with IPython notebooks.
+This module contains utility functions for using QuTiP with IPython notebooks.
 """
 
 from IPython.core.display import HTML
@@ -33,7 +33,7 @@ import time
 
 def version_table():
     """
-    Print a HTML-formatted table with version numbers for QuTiP and its
+    Print an HTML-formatted table with version numbers for QuTiP and its
     dependencies. Use it in a IPython notebook to show which versions of
     different packages that were used to run the notebook. This should make it
     possible to reproduce the environment and the calculation later on.
@@ -52,10 +52,10 @@ def version_table():
                 "OS": "%s [%s]" % (os.name, sys.platform)                
                 }
     
-    
     for name in packages:
         html += "<tr><td>%s</td><td>%s</td></tr>" % (name, packages[name])
 
     html += "<tr><td colspan='2'>%s</td></tr>" % time.ctime()
     html += "</table>"
+
     return HTML(html)
