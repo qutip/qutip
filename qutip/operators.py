@@ -372,7 +372,7 @@ def squeez(N, sp):
 
     Returns
     -------
-    oper : qobj
+    oper : :class:`qutip.qobj.Qobj`
         Squeezing operator.
 
 
@@ -396,6 +396,32 @@ def squeez(N, sp):
     op = (1 / 2.0) * np.conj(sp) * (a ** 2) - (1 / 2.0) * sp * (a.dag()) ** 2
     return op.expm()
 
+def squeezing(a1, a2, z):
+    """Generalized squeezing operator.
+
+    .. math::
+
+        S(z) = \\exp\\left(\\frac{1}{2}\\left(z^*a_1a_2 - za_1^\daga_2^\dag\\right)\\right)
+
+    Parameters
+    ----------
+    a1 : :class:`qutip.qobj.Qobj`
+        Operator 1.
+
+    a2 : :class:`qutip.qobj.Qobj`
+        Operator 2.
+
+    z : float/complex
+        Squeezing parameter.
+
+    Returns
+    -------
+    oper : :class:`qutip.qobj.Qobj`
+        Squeezing operator.
+
+    """
+    b = 0.5 * (np.conj(z) * (a1 * a2) - z * (a1.dag() * a2.dag()))
+    return b.expm()
 
 def displace(N, alpha):
     """Single-mode displacement operator.
