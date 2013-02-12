@@ -63,14 +63,21 @@ def correlation_matrix(basis, rho=None):
                           for op1 in basis] for op2 in basis])
 
 
-def covariance_matrix(basis, rho):
+def covariance_matrix(basis, rho, symmetrized=True):
     """
     Given a basis set of operators :math:`\{a\}_n`, calculate the covariance
     matrix:
 
     .. math::
 
-        V_{mn} = \\langle a_m a_n + a_n a_m \\rangle - 2\\langle a_m \\rangle \\langle a_n\\rangle
+        V_{mn} = \\frac{1}{2}\\langle a_m a_n + a_n a_m \\rangle - \\langle a_m \\rangle \\langle a_n\\rangle
+
+    or, if of the optional argument `symmetrized=False`,
+
+    .. math::
+
+        V_{mn} = \\langle a_m a_n\\rangle - \\langle a_m \\rangle \\langle a_n\\rangle
+
 
     Parameters
     ----------
@@ -79,7 +86,11 @@ def covariance_matrix(basis, rho):
         List of operators that defines the basis for the covariance matrix.
 
     rho : :class:`qutip.qobj.Qobj`
-        Density matrix for which to calculate the covariance matrix
+        Density matrix for which to calculate the covariance matrix.
+
+    symmetrized : *bool*
+        Flag indicating whether the symmetrized (default) or non-symmetrized
+        correlation matrix is to be calculated.
 
     Returns
     -------
@@ -88,10 +99,14 @@ def covariance_matrix(basis, rho):
         A 2-dimensional *array* of covariance values. 
 
     """
-    return np.array([[expect(op1 * op2 + op2 * op1, rho) -
-                      2 * expect(op1, rho) * expect(op2, rho)
-                      for op1 in basis] for op2 in basis])
-
+    if symmetrized:
+        return np.array([[0.5 * expect(op1 * op2 + op2 * op1, rho) -
+                          expect(op1, rho) * expect(op2, rho)
+                          for op1 in basis] for op2 in basis])
+    else:
+        return np.array([[expect(op1 * op2, rho) -
+                          expect(op1, rho) * expect(op2, rho)
+                          for op1 in basis] for op2 in basis])
 
 def correlation_matrix_field(a1, a2, rho=None):
     """
@@ -151,9 +166,9 @@ def correlation_matrix_quadrature(a1, a2, rho=None):
 
     """
     x1 = (a1 + a1.dag()) / np.sqrt(2)
-    p1 = 1j * (a1 - a1.dag()) / np.sqrt(2)
+    p1 = -1j * (a1 - a1.dag()) / np.sqrt(2)
     x2 = (a2 + a2.dag()) / np.sqrt(2)
-    p2 = 1j * (a2 - a2.dag()) / np.sqrt(2)
+    p2 = -1j * (a2 - a2.dag()) / np.sqrt(2)
 
     basis = [x1, p1, x2, p2]
 
@@ -199,11 +214,11 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
     if R is not None:
 
         if rho is None:
-            return np.array([[np.real(R[i, j] + R[j, i])
+            return np.array([[0.5 * np.real(R[i, j] + R[j, i])
                               for i in range(4)]
                              for j in range(4)])
         else:
-            return np.array([[np.real(expect(R[i, j] + R[j, i], rho))
+            return np.array([[0.5 * np.real(expect(R[i, j] + R[j, i], rho))
                               for i in range(4)]
                              for j in range(4)])
 
@@ -211,9 +226,9 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
 
         if rho is not None:
             x1 = (a1 + a1.dag()) / np.sqrt(2)
-            p1 = 1j * (a1 - a1.dag()) / np.sqrt(2)
+            p1 = -1j * (a1 - a1.dag()) / np.sqrt(2)
             x2 = (a2 + a2.dag()) / np.sqrt(2)
-            p2 = 1j * (a2 - a2.dag()) / np.sqrt(2)
+            p2 = -1j * (a2 - a2.dag()) / np.sqrt(2)
             return covariance_matrix([x1, p1, x2, p2], rho)
         else:
             raise ValueError("Must give rho if using field operators " +
