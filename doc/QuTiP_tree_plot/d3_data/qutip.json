@@ -53,12 +53,104 @@
             "children": [
                 {
                     "color": "#0B5FA5", 
+                    "name": "ssesolve", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "smesolve", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "ssesolve_generic", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "smesolve_generic", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "d1_psi_homodyne", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "d2_psi_homodyne", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "d1_psi_heterodyne", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "d2_psi_heterodyne", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "d1_current", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "d2_current", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "d1_rho_homodyne", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "d2_rho_homodyne", 
+                    "size": 1000
+                }
+            ], 
+            "color": "#0B5FA5", 
+            "idx": 0, 
+            "name": "stochastic"
+        }, 
+        {
+            "children": [
+                {
+                    "color": "#0B5FA5", 
+                    "name": "correlation_2op_1t", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "correlation_2op_2t", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "correlation_4op_1t", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "correlation_4op_2t", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
                     "name": "correlation_ss", 
                     "size": 1000
                 }, 
                 {
                     "color": "#0B5FA5", 
                     "name": "correlation", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "spectrum_correlation_fft", 
                     "size": 1000
                 }, 
                 {
@@ -198,26 +290,6 @@
                     "color": "#0B5FA5", 
                     "name": "mcsolve", 
                     "size": 1000
-                }, 
-                {
-                    "color": "#0B5FA5", 
-                    "name": "MC_class", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#0B5FA5", 
-                    "name": "no_collapse_psi_out", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#0B5FA5", 
-                    "name": "no_collapse_expect_out", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#0B5FA5", 
-                    "name": "mc_alg_evolve", 
-                    "size": 1000
                 }
             ], 
             "color": "#0B5FA5", 
@@ -243,6 +315,11 @@
         }, 
         {
             "children": [
+                {
+                    "color": "#0B5FA5", 
+                    "name": "rhs_clear", 
+                    "size": 1000
+                }, 
                 {
                     "color": "#0B5FA5", 
                     "name": "rhs_generate", 
@@ -280,19 +357,12 @@
             "children": [
                 {
                     "color": "#043C6B", 
-                    "name": "Odedata", 
+                    "name": "reset", 
                     "size": 1000
-                }
-            ], 
-            "color": "#043C6B", 
-            "idx": 1, 
-            "name": "Odedata"
-        }, 
-        {
-            "children": [
+                }, 
                 {
                     "color": "#043C6B", 
-                    "name": "reset", 
+                    "name": "load_rc_file", 
                     "size": 1000
                 }
             ], 
@@ -301,10 +371,28 @@
             "name": "settings"
         }, 
         {
-            "children": [], 
+            "children": [
+                {
+                    "color": "#043C6B", 
+                    "name": "Odeconfig", 
+                    "size": 1000
+                }
+            ], 
             "color": "#043C6B", 
             "idx": 1, 
             "name": "odeconfig"
+        }, 
+        {
+            "children": [
+                {
+                    "color": "#043C6B", 
+                    "name": "Odedata", 
+                    "size": 1000
+                }
+            ], 
+            "color": "#043C6B", 
+            "idx": 1, 
+            "name": "odedata"
         }, 
         {
             "children": [
@@ -316,29 +404,7 @@
             ], 
             "color": "#043C6B", 
             "idx": 1, 
-            "name": "Odeoptions"
-        }, 
-        {
-            "children": [
-                {
-                    "color": "#3F8FD2", 
-                    "name": "hinton", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#3F8FD2", 
-                    "name": "matrix_histogram", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#3F8FD2", 
-                    "name": "matrix_histogram_complex", 
-                    "size": 1000
-                }
-            ], 
-            "color": "#3F8FD2", 
-            "idx": 2, 
-            "name": "graph"
+            "name": "odeoptions"
         }, 
         {
             "children": [
@@ -385,13 +451,62 @@
             "children": [
                 {
                     "color": "#3F8FD2", 
+                    "name": "hinton", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#3F8FD2", 
+                    "name": "matrix_histogram", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#3F8FD2", 
+                    "name": "matrix_histogram_complex", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#3F8FD2", 
+                    "name": "energy_level_diagram", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#3F8FD2", 
+                    "name": "wigner_cmap", 
+                    "size": 1000
+                }
+            ], 
+            "color": "#3F8FD2", 
+            "idx": 2, 
+            "name": "visualization"
+        }, 
+        {
+            "children": [
+                {
+                    "color": "#3F8FD2", 
+                    "name": "Bloch3d", 
+                    "size": 1000
+                }
+            ], 
+            "color": "#3F8FD2", 
+            "idx": 2, 
+            "name": "bloch3d"
+        }, 
+        {
+            "children": [
+                {
+                    "color": "#3F8FD2", 
+                    "name": "Arrow3D", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#3F8FD2", 
                     "name": "Bloch", 
                     "size": 1000
                 }
             ], 
             "color": "#3F8FD2", 
             "idx": 2, 
-            "name": "Bloch"
+            "name": "bloch"
         }, 
         {
             "children": [
@@ -521,12 +636,32 @@
                 }, 
                 {
                     "color": "#00AE68", 
+                    "name": "qidentity", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#00AE68", 
+                    "name": "position", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#00AE68", 
+                    "name": "momentum", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#00AE68", 
                     "name": "num", 
                     "size": 1000
                 }, 
                 {
                     "color": "#00AE68", 
                     "name": "squeez", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#00AE68", 
+                    "name": "squeezing", 
                     "size": 1000
                 }, 
                 {
@@ -538,11 +673,43 @@
                     "color": "#00AE68", 
                     "name": "qutrit_ops", 
                     "size": 1000
+                }, 
+                {
+                    "color": "#00AE68", 
+                    "name": "qdiags", 
+                    "size": 1000
                 }
             ], 
             "color": "#00AE68", 
             "idx": 3, 
             "name": "operators"
+        }, 
+        {
+            "children": [
+                {
+                    "color": "#007143", 
+                    "name": "rand_herm", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#007143", 
+                    "name": "rand_unitary", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#007143", 
+                    "name": "rand_ket", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#007143", 
+                    "name": "rand_dm", 
+                    "size": 1000
+                }
+            ], 
+            "color": "#007143", 
+            "idx": 4, 
+            "name": "random_objects"
         }, 
         {
             "children": [
@@ -625,6 +792,11 @@
                 }, 
                 {
                     "color": "#007143", 
+                    "name": "state_index_number", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#007143", 
                     "name": "state_number_qobj", 
                     "size": 1000
                 }
@@ -637,28 +809,38 @@
             "children": [
                 {
                     "color": "#007143", 
-                    "name": "rand_herm", 
+                    "name": "correlation_matrix", 
                     "size": 1000
                 }, 
                 {
                     "color": "#007143", 
-                    "name": "rand_unitary", 
+                    "name": "covariance_matrix", 
                     "size": 1000
                 }, 
                 {
                     "color": "#007143", 
-                    "name": "rand_ket", 
+                    "name": "correlation_matrix_field", 
                     "size": 1000
                 }, 
                 {
                     "color": "#007143", 
-                    "name": "rand_dm", 
+                    "name": "correlation_matrix_quadrature", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#007143", 
+                    "name": "wigner_covariance_matrix", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#007143", 
+                    "name": "logarithmic_negativity", 
                     "size": 1000
                 }
             ], 
             "color": "#007143", 
             "idx": 4, 
-            "name": "rand"
+            "name": "continuous_variables"
         }, 
         {
             "children": [
@@ -767,6 +949,11 @@
                     "color": "#692102", 
                     "name": "single_expect", 
                     "size": 1000
+                }, 
+                {
+                    "color": "#692102", 
+                    "name": "variance", 
+                    "size": 1000
                 }
             ], 
             "color": "#692102", 
@@ -778,60 +965,6 @@
             "color": "#692102", 
             "idx": 7, 
             "name": "ptrace"
-        }, 
-        {
-            "children": [
-                {
-                    "color": "#692102", 
-                    "name": "isket", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#692102", 
-                    "name": "isbra", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#692102", 
-                    "name": "isoper", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#692102", 
-                    "name": "issuper", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#692102", 
-                    "name": "isequal", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#692102", 
-                    "name": "ischeck", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#692102", 
-                    "name": "isherm", 
-                    "size": 1000
-                }
-            ], 
-            "color": "#692102", 
-            "idx": 7, 
-            "name": "istests"
-        }, 
-        {
-            "children": [
-                {
-                    "color": "#692102", 
-                    "name": "tensor", 
-                    "size": 1000
-                }
-            ], 
-            "color": "#692102", 
-            "idx": 7, 
-            "name": "tensor"
         }, 
         {
             "children": [
@@ -877,18 +1010,67 @@
                 }, 
                 {
                     "color": "#692102", 
-                    "name": "classcheck", 
+                    "name": "isket", 
                     "size": 1000
                 }, 
                 {
                     "color": "#692102", 
-                    "name": "sp_expm", 
+                    "name": "isbra", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#692102", 
+                    "name": "isoper", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#692102", 
+                    "name": "issuper", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#692102", 
+                    "name": "isequal", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#692102", 
+                    "name": "ischeck", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#692102", 
+                    "name": "isherm", 
                     "size": 1000
                 }
             ], 
             "color": "#692102", 
             "idx": 7, 
-            "name": "Qobj"
+            "name": "qobj"
+        }, 
+        {
+            "children": [
+                {
+                    "color": "#692102", 
+                    "name": "partial_transpose", 
+                    "size": 1000
+                }
+            ], 
+            "color": "#692102", 
+            "idx": 7, 
+            "name": "partial_transpose"
+        }, 
+        {
+            "children": [
+                {
+                    "color": "#692102", 
+                    "name": "tensor", 
+                    "size": 1000
+                }
+            ], 
+            "color": "#692102", 
+            "idx": 7, 
+            "name": "tensor"
         }, 
         {
             "children": [
@@ -923,6 +1105,18 @@
             "children": [
                 {
                     "color": "#BF5730", 
+                    "name": "version_table", 
+                    "size": 1000
+                }
+            ], 
+            "color": "#BF5730", 
+            "idx": 8, 
+            "name": "ipynbtools"
+        }, 
+        {
+            "children": [
+                {
+                    "color": "#BF5730", 
                     "name": "demos", 
                     "size": 1000
                 }
@@ -945,31 +1139,6 @@
         }, 
         {
             "children": [
-                {
-                    "color": "#BF5730", 
-                    "name": "sp_fro_norm", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#BF5730", 
-                    "name": "sp_inf_norm", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#BF5730", 
-                    "name": "sp_L2_norm", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#BF5730", 
-                    "name": "sp_max_norm", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#BF5730", 
-                    "name": "sp_one_norm", 
-                    "size": 1000
-                }, 
                 {
                     "color": "#BF5730", 
                     "name": "sp_eigs", 

@@ -22,6 +22,7 @@ colors = ["#0B5FA5", "#043C6B", "#3F8FD2", # blue colors
 
 module_cmap = {"mesolve":           0, # time evolution
                "mcsolve":           0,
+               "stochastic":        0,
                "floquet":           0,
                "essolve":           0,
                "correlation":       0,
@@ -33,24 +34,27 @@ module_cmap = {"mesolve":           0, # time evolution
                "odeconfig":         1, # options and settings
                "settings":          1,
                "odechecks":         1,
-               "Odedata":           1,
-               "Odeoptions":        1,
-               "Bloch":             2, # visualization
+               "odedata":           1,
+               "odeoptions":        1,
+               "bloch":             2, # visualization
+               "bloch3d":           2,
                "sphereplot":        2,
                "orbital":           2,
-               "graph":             2,
+               "visualization":     2,
                "wigner":            2,
                "tomography":        2,
                "operators":         3, # operators
                "superoperator":     3,
                "states":            4, # states
+               "continuous_variables": 4,
                "qstate":            4,
-               "rand":              4,
+               "random_objects":    4,
                "three_level_atom":  4, 
                "gates":             5, # gates
                "entropy":           6, # measures
                "metrics":           6,
                "fileio":            8, # utilities
+               "ipynbtools":        8,
                "sparse":            8,
                "simdiag":           8,
                "demos":             8,
@@ -58,9 +62,10 @@ module_cmap = {"mesolve":           0, # time evolution
                "testing":           8,
                "parfor":            8,
                "clebsch":           8,
-               "Qobj":              7, # core
+               "qobj":              7, # core
                "expect":            7,
                "tensor":            7,
+               "partial_transpose": 7,
                "ptrace":            7,
                "istests":           7
                }
