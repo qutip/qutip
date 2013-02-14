@@ -401,7 +401,7 @@ def squeezing(a1, a2, z):
 
     .. math::
 
-        S(z) = \\exp\\left(\\frac{1}{2}\\left(z^*a_1a_2 - za_1^\daga_2^\dag\\right)\\right)
+        S(z) = \\exp\\left(\\frac{1}{2}\\left(z^*a_1a_2 - za_1^\dagger a_2^\dagger\\right)\\right)
 
     Parameters
     ----------
