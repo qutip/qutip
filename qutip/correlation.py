@@ -671,8 +671,8 @@ def _correlation_mc_2op_2t(H, psi0, tlist, taulist, c_ops, a_op, b_op,
 # -----------------------------------------------------------------------------
 def spectrum_correlation_fft(tlist, y):
     """
-    Calculate the spectrum corresponding to a two-time correlation function
-    using FFT. 
+    Calculate the power spectrum corresponding to a two-time correlation
+    function using FFT. 
 
     Parameters
     ----------
@@ -688,8 +688,8 @@ def spectrum_correlation_fft(tlist, y):
 
     w, S : *tuple*
 
-        Returns an array of frequencies 'w' and the corresponding
-        spectrum 'S'.
+        Returns an array of angular frequencies 'w' and the corresponding
+        one-sided power spectrum 'S(w)'.
 
     """
 
@@ -702,13 +702,13 @@ def spectrum_correlation_fft(tlist, y):
     F = scipy.fftpack.fft(y) 
 
     # calculate the frequencies for the components in F
-    w = scipy.fftpack.fftfreq(N, dt)
+    f = scipy.fftpack.fftfreq(N, dt)
 
     # select only indices for elements that corresponds
     # to positive frequencies
-    indices = np.where(w > 0.5)
+    indices = np.where(f > 0.0)
 
-    return w[indices], F[indices]
+    return 2 * pi * f[indices], 2 * dt * np.real(F[indices])
 
 
 def spectrum_ss(H, wlist, c_ops, a_op, b_op):
