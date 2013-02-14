@@ -7,9 +7,9 @@ from pylab import *
 
 #Call matlab benchmarks (folder must be in Matlab path!!!)
 if sys.platform=='darwin':
-    sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r matlab_benchmarks",shell=True)
+    sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_benchmarks; quit'",shell=True)
 else:
-    sproc.call("matlab -nodesktop -nosplash -r matlab_benchmarks",shell=True)
+    sproc.call("matlab -nodesktop -nosplash -r 'matlab_benchmarks; quit'",shell=True)
 
 #read in matlab results
 matlab_times = genfromtxt('matlab_benchmarks.csv', delimiter=',')
@@ -91,7 +91,8 @@ python_times+=[toc-tic]
 #Generate figure
 barh(0.5*arange(num_tests),matlab_times/array(python_times),align='center',height=0.5,color='#C098EA')
 for ii in range(num_tests):
-    text(0.5,0.5*ii,test_names[ii],color='k',fontsize=16,verticalalignment='center')
+    text(1.5,0.5*ii,test_names[ii],color='k',fontsize=16,verticalalignment='center')
+axvline(x=1, color='k',ls='--')
 frame = gca()
 for y in frame.axes.get_yticklabels():
     y.set_fontsize(0.0)
@@ -102,5 +103,4 @@ for tick in frame.axes.get_yticklines():
     tick.set_visible(False)
 xlabel("Times faster than the Quantum Optics Toolbox",fontsize=16)
 title('QuTiP vs. Quantum Optics Toolbox Performance')
-show()
-
+savefig("qutip_benchmarks.pdf")
