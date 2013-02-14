@@ -32,7 +32,7 @@ from qutip.odeoptions import Odeoptions
 from qutip.propagator import propagator
 from qutip.odedata import Odedata
 from qutip.cyQ.spmatfuncs import cy_ode_rhs
-
+from qutip.expect import expect
 
 def floquet_modes(H, T, args=None, sort=False):
     """
