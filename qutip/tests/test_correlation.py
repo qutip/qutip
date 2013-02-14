@@ -29,7 +29,7 @@ def _func(x):
 
 
 def test_compare_solvers_coherent_state():
-    "comparing me and es for oscillator in coherent initial state"
+    "correlation: comparing me and es for oscillator in coherent initial state"
 
     N = 20
     a = destroy(N)
@@ -49,7 +49,7 @@ def test_compare_solvers_coherent_state():
 
 
 def test_compare_solvers_steadystate():
-    "comparing me and es for oscillator in steady state"
+    "correlation: comparing me and es for oscillator in steady state"
 
     N = 20
     a = destroy(N)
@@ -62,9 +62,36 @@ def test_compare_solvers_steadystate():
     corr1 = correlation(H, None, None, taulist, c_ops, a.dag(), a, solver="me")
     corr2 = correlation(H, None, None, taulist, c_ops, a.dag(), a, solver="es")
 
-    print "norm =", norm(corr1-corr2)
-
     assert_(norm(corr1-corr2) < 1e-3)
+
+
+def test_spectrum():
+    "correlation: compare spectrum obtained for eseries and fft methods"
+
+    # use JC model
+    N = 4
+    wc = wa = 1.0 * 2 * pi
+    g  = 0.1 * 2 * pi
+    kappa = 0.75
+    gamma = 0.25
+    n_th = 0.01
+
+    a  = tensor(destroy(N), qeye(2))
+    sm = tensor(qeye(N), destroy(2))
+    H = wc * a.dag() * a + wa * sm.dag() * sm + \
+        g * (a.dag() * sm + a * sm.dag())
+    c_ops = [sqrt(kappa * (1 + n_th)) * a,
+             sqrt(kappa * n_th) * a.dag(),
+             sqrt(gamma) * sm]
+
+    tlist = linspace(0, 100, 2500)
+    corr = correlation_ss(H, tlist, c_ops, a.dag(), a)
+    wlist1, spec1 = spectrum_correlation_fft(tlist, corr)
+    spec2 = spectrum_ss(H, wlist1, c_ops, a.dag(), a)
+
+    print "max(abs(spec1-spec2)) =", max(abs(spec1-spec2))
+
+    assert_(max(abs(spec1-spec2)) < 1e-3)
 
 if __name__ == "__main__":
     run_module_suite()
