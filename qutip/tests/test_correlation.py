@@ -23,11 +23,6 @@ from numpy.testing import assert_, run_module_suite
 
 from qutip import *
 
-def _func(x):
-    time.sleep(scipy.rand() * 0.25) # random delay
-    return x**2
-
-
 def test_compare_solvers_coherent_state():
     "correlation: comparing me and es for oscillator in coherent initial state"
 
@@ -42,8 +37,6 @@ def test_compare_solvers_coherent_state():
     taulist = linspace(0, 5.0, 100)
     corr1 = correlation(H, rho0, None, taulist, c_ops, a.dag(), a, solver="me")
     corr2 = correlation(H, rho0, None, taulist, c_ops, a.dag(), a, solver="es")
-
-    print "norm =", norm(corr1-corr2)
 
     assert_(norm(corr1-corr2) < 1e-3)
 
@@ -88,8 +81,6 @@ def test_spectrum():
     corr = correlation_ss(H, tlist, c_ops, a.dag(), a)
     wlist1, spec1 = spectrum_correlation_fft(tlist, corr)
     spec2 = spectrum_ss(H, wlist1, c_ops, a.dag(), a)
-
-    print "max(abs(spec1-spec2)) =", max(abs(spec1-spec2))
 
     assert_(max(abs(spec1-spec2)) < 1e-3)
 
