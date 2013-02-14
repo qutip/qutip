@@ -115,7 +115,7 @@ The second-order optical coherence function, with time-delay :math:`\tau`, is de
 
 For a coherent state :math:`g^{(2)}(\tau) = 1`, for a thermal state :math:`g^{(2)}(\tau=0) = 2` and it decreases as a function of time (bunched photons, they tend to appear together), and for a Fock state with :math:`n` photons :math:`g^{(2)}(\tau = 0) = n(n - 1)/n^2 < 1` and it increases with time (anti-bunched photons, more likely to arrive separated in time).  
 
-To calculate this type of correlation function with QuTiP, we can use :func:`qutip.correlation.correlation_ss_gtt`, which computes a correlation function on the form :math:`\left<A(0)B(\tau)C(\tau)D(0)\right>`.
+To calculate this type of correlation function with QuTiP, we can use :func:`qutip.correlation.correlation_4op_1t`, which computes a correlation function on the form :math:`\left<A(0)B(\tau)C(\tau)D(0)\right>` (four operators, one delay-time vector).
 
 The following code calculates and plots :math:`g^{(2)}(\tau)` as a function of :math:`\tau` for a coherent, thermal and fock state.
 
