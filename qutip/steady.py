@@ -34,7 +34,7 @@ from qutip.sparse import _sp_inf_norm
 import qutip.settings as qset
 
 
-def steadystate(H, c_op_list, maxiter=100, tol=1e-6, method='solve', use_umfpack=False):
+def steadystate(H, c_op_list, maxiter=100, tol=1e-6, method='solve', use_umfpack=False, use_precond=False):
     """Calculates the steady state for the evolution subject to the
     supplied Hamiltonian and list of collapse operators.
 
@@ -64,6 +64,10 @@ def steadystate(H, c_op_list, maxiter=100, tol=1e-6, method='solve', use_umfpack
         uses the SuperLU backend.  This option does not affect the 'bicg'
         method.
     
+    use_precond: bool {False, True}
+        Use an incomplete sparse LU decomposition as a preconditioner for the 
+        stabilized bi-conjugate gradient 'bicg' method.
+    
     Returns
     -------
     ket : qobj
@@ -84,10 +88,10 @@ def steadystate(H, c_op_list, maxiter=100, tol=1e-6, method='solve', use_umfpack
                          'nondissipative system (no collapse operators given)')
 
     L = liouvillian(H, c_op_list)
-    return steady(L, maxiter=maxiter, tol=tol, method=method, use_umfpack=use_umfpack)
+    return steady(L, maxiter=maxiter, tol=tol, method=method, use_umfpack=use_umfpack,use_precond=use_precond)
 
 
-def steady(L, maxiter=100, tol=1e-6, method='solve', use_umfpack=True):
+def steady(L, maxiter=100, tol=1e-6, method='solve', use_umfpack=False, use_precond=False):
     """Steady state for the evolution subject to the
     supplied Louvillian.
 
@@ -110,6 +114,10 @@ def steady(L, maxiter=100, tol=1e-6, method='solve', use_umfpack=True):
         Use the UMFpack backend for the direct solver.  If 'False', the solver
         uses the SuperLU backend.  This option does not affect the 'bicg'
         method.
+    
+    use_precond: bool {False, True}
+        Use an incomplete sparse LU decomposition as a preconditioner for the 
+        stabilized bi-conjugate gradient 'bicg' method.
 
     Returns
     --------
@@ -142,10 +150,13 @@ def steady(L, maxiter=100, tol=1e-6, method='solve', use_umfpack=True):
     it = 0
     while (la.norm(L.data * v, np.inf) > tol) and (it < maxiter):
         if method == 'bicg':
-            P= spilu(L1)
-            P_x = lambda x: P.solve(x)
-            M = LinearOperator((n, n), matvec=P_x)
-            v, check = bicgstab(L1, v, tol=tol, M=M)
+            if use_precond:
+                P= spilu(L1)
+                P_x = lambda x: P.solve(x)
+                M = LinearOperator((n, n), matvec=P_x)
+                v, check = bicgstab(L1, v, tol=tol, M=M)
+            else:
+                v, check = bicgstab(L1, v, tol=tol)
         else:
             v = spsolve(L1, v, use_umfpack=use_umfpack)
         v = v / la.norm(v, np.inf)
