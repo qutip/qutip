@@ -62,7 +62,7 @@ On all platforms (Linux, Mac, Windows), QuTiP works "out-of-the-box" using `Anac
 Installation on Ubuntu Linux
 ============================
 
-Using QuTiP's ppa
+Using QuTiP's PPA
 -------------------
 
 The easiest way to install QuTiP in Ubuntu (12.04 and later) is to use the QuTiP PPA::
@@ -115,7 +115,7 @@ Installation on Mac OS X (10.6+)
 
 If you have not done so already, install the Apple XCode developer tools from the Apple App Store.  After intallation, open Xcode and go to: Preferences -> Downloads, and install the 'Command Line Tools'.
 
-Setup Using Macports: [*]_
+Setup Using Macports [*]_
 --------------------------
 
 On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via::
@@ -134,11 +134,15 @@ or::
 
 Optional, but highly recommended ports include::
 
-    sudo port install py27-ipython +pyside+notebook+parallel+scientific  #switch +pyside to +pyqt4 if using pyqt4
-    sudo port install py27-cython	         #used for string-based time-dependent Hamiltonians
-    sudo port install vtk5 +python27+qt4_mac #used for the Bloch3d class
-    sudo port install py27-mayavi            #used for the Bloch3d class
+    sudo port install py27-ipython +pyside+notebook+parallel+scientific  #switch to +pyqt4 if using pyqt4
+    sudo port install py27-cython             #used for string-based time-dependent Hamiltonians
+    sudo port install vtk5 +python27+qt4_mac  #used for the Bloch3d class
+    sudo port install py27-mayavi             #used for the Bloch3d class
 
+Now, we want to tell OSX which Python and iPython we are going to use::
+    
+    sudo port select python  python27
+    sudo port select ipython  ipython27
 
 .. note:: The next step is optional, but is recommended if you plan to use the string (Cython) based time-dependent format.  See :ref:`time`.
 
@@ -232,6 +236,7 @@ Checking Version Information via the About Box
 
 QuTiP includes a graphical "about" box for viewing information about QuTiP, and the important dependencies installed on your system.  To view the about box type:
 
+>>> from qutip import *
 >>> about()
 
 that will pop-up a window similar to the one shown below.  If instead you get command-line output, then your PyQt or PySide graphics are not installed properly or unavailable.  When running the about box, QuTiP will automatically check for a newer version of itself from the QuTiP website.  As shown below, the about box will have an "update" link next to the QuTiP version number if your are not running the latest version of QuTiP
