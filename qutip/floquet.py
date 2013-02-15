@@ -643,7 +643,8 @@ def floquet_basis_transform(f_modes, f_energies, rho0):
 # Floquet-Markov master equation
 #
 #
-def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
+def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None, 
+                           options=None, floquet_basis=True):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
     """
@@ -684,6 +685,11 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
         if n_expt_op == 0:
             output.states = []
         else:
+            if not f_modes_table:
+                raise TypeError("The Floquet mode table has to be provided " +
+                                "when requesting expectation values.")
+
+            f_modes_table_t, T = f_modes_table
             output.expect = []
             output.num_expect = n_expt_op
             for op in e_ops:
@@ -696,14 +702,11 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
         raise TypeError("Expectation parameter must be a list or a function")
 
     #
-    # transform the initial density matrix and the e_ops opterators to the
-    # eigenbasis: from computational basis to the floquet basis
+    # transform the initial density matrix to the eigenbasis: from
+    # computational basis to the floquet basis
     #
     if ekets is not None:
         rho0 = rho0.transform(ekets, True)
-        if isinstance(e_ops, list):
-            for n in np.arange(len(e_ops)):             # not working
-                e_ops[n] = e_ops[n].transform(ekets)
 
     #
     # setup integrator
@@ -729,15 +732,23 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
 
         if expt_callback:
             # use callback method
-            e_ops(t, Qobj(rho))
+            if floquet_basis:
+                e_ops(t, Qobj(rho))
+            else:
+                e_ops(t, Qobj(rho).transform(f_modes_t, False))
         else:
             # calculate all the expectation values, or output rho if
             # no operators
             if n_expt_op == 0:
-                output.states.append(Qobj(rho))  # copy psi/rho
+                if floquet_basis:
+                    output.states.append(Qobj(rho))
+                else:
+                    output.states.append(Qobj(rho).transform(f_modes_t, False))
             else:
+                f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
                 for m in range(0, n_expt_op):
-                    output.expect[m][t_idx] = expect(e_ops[m], rho)  # basisOK?
+                    output.expect[m][t_idx] = expect(e_ops[m],
+                        rho.transform(f_modes_t, False))
 
         r.integrate(r.t + dt)
         t_idx += 1
@@ -750,7 +761,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, options=None):
 #
 #
 def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
-              args={}, options=Odeoptions()):
+              args={}, options=Odeoptions(), floquet_basis=True):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
 
@@ -821,7 +832,7 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
 
     f_modes_0, f_energies = floquet_modes(H, T, args)
 
-    kmax = 1
+    kmax = 5
 
     f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
                                           np.linspace(0, T, 500 + 1),
@@ -843,4 +854,7 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
     # the floquet-markov master equation tensor
     R = floquet_master_equation_tensor(Amat, f_energies)
 
-    return floquet_markov_mesolve(R, f_modes_0, rho0, tlist, e_ops, options)
+    return floquet_markov_mesolve(R, f_modes_0, rho0, tlist, e_ops,
+                                  f_modes_table=(f_modes_table_t, T),
+                                  options=options,
+                                  floquet_basis=floquet_basis)
