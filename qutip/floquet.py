@@ -671,6 +671,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     dt = tlist[1] - tlist[0]
 
     output = Odedata()
+    output.solver = "fmmesolve"
     output.times = tlist
 
     if isinstance(e_ops, FunctionType):
