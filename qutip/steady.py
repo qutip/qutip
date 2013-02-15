@@ -29,12 +29,12 @@ from scipy.sparse.linalg import spsolve, bicgstab, LinearOperator, spilu
 from qutip.qobj import *
 from qutip.superoperator import *
 from qutip.operators import qeye
-from qutip.random_objects import rand_ket
+from qutip.random_objects import rand_dm
 from qutip.sparse import _sp_inf_norm
 import qutip.settings as qset
 
 
-def steadystate(H, c_op_list, maxiter=100, tol=1e-6, method='solve', use_umfpack=False, use_precond=False):
+def steadystate(H, c_op_list, maxiter=100, tol=1e-6, itertol=1e-5, method='solve', use_umfpack=False, use_precond=False):
     """Calculates the steady state for the evolution subject to the
     supplied Hamiltonian and list of collapse operators.
 
@@ -53,7 +53,10 @@ def steadystate(H, c_op_list, maxiter=100, tol=1e-6, method='solve', use_umfpack
         Maximum number of iterations to perform, default = 100.
 
     tol : float
-        Tolerance used by iterative solver, default = 1e-6.
+        Tolerance used for terminating solver solution, default = 1e-6.
+    
+    itertol : float
+        Tolerance used for iterative Ax=b solver, default = 1e-5.
 
     method : str
         Method for solving linear equations. Direct solver 'solve' (default) or
@@ -88,10 +91,11 @@ def steadystate(H, c_op_list, maxiter=100, tol=1e-6, method='solve', use_umfpack
                          'nondissipative system (no collapse operators given)')
 
     L = liouvillian(H, c_op_list)
-    return steady(L, maxiter=maxiter, tol=tol, method=method, use_umfpack=use_umfpack,use_precond=use_precond)
+    return steady(L, maxiter=maxiter, tol=tol, itertol=itertol, 
+                method=method, use_umfpack=use_umfpack, use_precond=use_precond)
 
 
-def steady(L, maxiter=100, tol=1e-6, method='solve', use_umfpack=False, use_precond=False):
+def steady(L, maxiter=100, tol=1e-6, itertol=1e-5, method='solve', use_umfpack=False, use_precond=False):
     """Steady state for the evolution subject to the
     supplied Louvillian.
 
@@ -104,7 +108,10 @@ def steady(L, maxiter=100, tol=1e-6, method='solve', use_umfpack=False, use_prec
         Maximum number of iterations to perform, default = 100.
 
     tol : float
-        Tolerance used by iterative solver, default = 1e-6.
+        Tolerance used for terminating solver solution, default = 1e-6.
+        
+    itertol : float
+        Tolerance used for iterative Ax=b solver, default = 1e-5.
 
     method : str
         Method for solving linear equations. Direct solver 'solve' (default) or
@@ -146,7 +153,7 @@ def steady(L, maxiter=100, tol=1e-6, method='solve', use_umfpack=False, use_prec
         rhoss.shape = [prod(rhoss.dims[0]), 1]
     n = prod(rhoss.shape)
     L1 = L.data.tocsc() + eps * _sp_inf_norm(L) * sp.eye(n, n, format='csc')
-    v = randn(n, 1)
+    v = mat2vec(rand_dm(rhoss.shape[0],0.5).full())
     #generate sparse iLU preconditioner if requested
     if method == 'bicg' and use_precond:
         P= spilu(L1, permc_spec='MMD_AT_PLUS_A')
@@ -157,7 +164,7 @@ def steady(L, maxiter=100, tol=1e-6, method='solve', use_umfpack=False, use_prec
     it = 0
     while (la.norm(L.data * v, np.inf) > tol) and (it < maxiter):
         if method == 'bicg':
-            v, check = bicgstab(L1, v, tol=tol, M=M)
+            v, check = bicgstab(L1, v, tol=itertol, M=M)
         else:
             v = spsolve(L1, v, use_umfpack=use_umfpack)
         v = v / la.norm(v, np.inf)
