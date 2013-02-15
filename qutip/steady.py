@@ -147,16 +147,17 @@ def steady(L, maxiter=100, tol=1e-6, method='solve', use_umfpack=False, use_prec
     n = prod(rhoss.shape)
     L1 = L.data.tocsc() + eps * _sp_inf_norm(L) * sp.eye(n, n, format='csc')
     v = randn(n, 1)
+    #generate sparse iLU preconditioner if requested
+    if method == 'bicg' and use_precond:
+        P= spilu(L1, permc_spec='MMD_AT_PLUS_A')
+        P_x = lambda x: P.solve(x)
+        M = LinearOperator((n, n), matvec=P_x)
+    else:
+        M=None
     it = 0
     while (la.norm(L.data * v, np.inf) > tol) and (it < maxiter):
         if method == 'bicg':
-            if use_precond:
-                P= spilu(L1)
-                P_x = lambda x: P.solve(x)
-                M = LinearOperator((n, n), matvec=P_x)
-                v, check = bicgstab(L1, v, tol=tol, M=M)
-            else:
-                v, check = bicgstab(L1, v, tol=tol)
+            v, check = bicgstab(L1, v, tol=tol, M=M)
         else:
             v = spsolve(L1, v, use_umfpack=use_umfpack)
         v = v / la.norm(v, np.inf)
