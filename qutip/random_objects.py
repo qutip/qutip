@@ -40,7 +40,7 @@ def rand_herm(N, density=0.75, dims=None):
     N : int
         Shape of output quantum operator.
     density : float
-        Density etween [0,1] of output Hermitian operator.
+        Density between [0,1] of output Hermitian operator.
     dims : list
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
