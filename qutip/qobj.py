@@ -913,7 +913,7 @@ class Qobj():
 
         """
         if isinstance(inpt, list) or isinstance(inpt, np.ndarray):
-            if len(inpt) != self.shape[0] or len(inpt) != self.shape[1]:
+            if len(inpt) != max(self.shape):
                 raise TypeError(
                     'Invalid size of ket list for basis transformation')
             S = np.matrix([inpt[n].full()[:, 0] for n in range(len(inpt))]).H
