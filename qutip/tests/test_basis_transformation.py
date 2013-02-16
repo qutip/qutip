@@ -19,7 +19,7 @@
 
 import sys
 from qutip import *
-from numpy.testing import assert_equal, run_module_suite
+from numpy.testing import assert_equal, assert_, run_module_suite
 import scipy
 
 
@@ -64,6 +64,20 @@ def test_Transformation4():
     Heb = H1.transform(ekets)        # eigenbasis (should be diagonal)
     H2 = Heb.transform(ekets, True)  # back to original basis
     assert_equal((H1 - H2).norm() < 1e-6, True)
+
+def test_Transformation5():
+    "Transform test for consistency between transformations of kets and denstity matrices"
+    
+    N = 4
+    psi0 = rand_ket(N)
+
+    # generate a random basis
+    evals, rand_basis = rand_dm(N, density=1).eigenstates()
+
+    rho1 = ket2dm(psi0).transform(rand_basis, True)
+    rho2 = ket2dm(psi0.transform(rand_basis, True))
+
+    assert_((rho1-rho2).norm() < 1e-6)
 
 
 if __name__ == "__main__":
