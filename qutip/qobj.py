@@ -916,7 +916,7 @@ class Qobj():
             if len(inpt) != max(self.shape):
                 raise TypeError(
                     'Invalid size of ket list for basis transformation')
-            S = np.matrix([inpt[n].full()[:, 0] for n in range(len(inpt))]).H
+            S = np.matrix(np.hstack([psi.full() for psi in inpt]))
         elif isinstance(inpt, np.ndarray):
             S = np.matrix(inpt)
         else:
@@ -925,9 +925,7 @@ class Qobj():
         # normalize S just in case the supplied basis states aren't normalized
         # S = S/la.norm(S)
 
-        out = Qobj(type=self.type)
-        out.dims = [self.dims[1], self.dims[0]]
-        out.shape = [self.shape[1], self.shape[0]]
+        out = Qobj(type=self.type, dims=self.dims, shape=self.shape)
         out.isherm = self.isherm
         out.type = self.type
 
@@ -938,14 +936,14 @@ class Qobj():
             elif isbra(self):
                 out.data = self.data * S
             else:
-                out.data = S * self.data * S.H
+                out.data = S.H * self.data * S
         else:
             if isket(self):
                 out.data = S * self.data
             elif isbra(self):
                 out.data = self.data * S.H
             else:
-                out.data = S.H * self.data * S
+                out.data = S * self.data * S.H
 
         # force sparse
         out.data = sp.csr_matrix(out.data, dtype=complex)
