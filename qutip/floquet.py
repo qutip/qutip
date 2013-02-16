@@ -690,7 +690,6 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                 raise TypeError("The Floquet mode table has to be provided " +
                                 "when requesting expectation values.")
 
-            f_modes_table_t, T = f_modes_table
             output.expect = []
             output.num_expect = n_expt_op
             for op in e_ops:
@@ -736,6 +735,8 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
             if floquet_basis:
                 e_ops(t, Qobj(rho))
             else:
+                f_modes_table_t, T = f_modes_table
+                f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
                 e_ops(t, Qobj(rho).transform(f_modes_t, False))
         else:
             # calculate all the expectation values, or output rho if
@@ -744,8 +745,11 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                 if floquet_basis:
                     output.states.append(Qobj(rho))
                 else:
+                    f_modes_table_t, T = f_modes_table
+                    f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
                     output.states.append(Qobj(rho).transform(f_modes_t, False))
             else:
+                f_modes_table_t, T = f_modes_table
                 f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
                 for m in range(0, n_expt_op):
                     output.expect[m][t_idx] = expect(e_ops[m],
