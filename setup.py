@@ -54,9 +54,7 @@ REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.9)', 'matplotlib (>=1.1)']
 PACKAGES = ['qutip', 'qutip/gui', 'qutip/examples', 'qutip/cyQ']
 PACKAGE_DATA = {'qutip/gui': ['logo.png', 'icon.png']}
 INCLUDE_DIRS = [np.get_include()]
-EXT_MODULES = [Extension(
-    "qutip.cyQ.spmatfuncs", ["qutip/cyQ/spmatfuncs.c"],
-    extra_compile_args=['-ffast-math -O3'], extra_link_args=[])]
+EXT_MODULES = []
 NAME = "QuTiP"
 AUTHOR = "Paul D. Nation, Robert J. Johansson"
 AUTHOR_EMAIL = "pnation@korea.ac.kr, robert@riken.jp"
