@@ -415,6 +415,41 @@ def floquet_state_decomposition(f_states, f_energies, psi):
             for i in np.arange(len(f_energies))]
 
 
+def fsesolve(H, psi0, tlist, c_ops, e_ops=[], T=None, args={}):
+    """
+    Solve the Schrodinger equation using the Floquet formalism.
+
+    .. note::
+
+        Experimental
+
+    """
+
+    # find the floquet modes for the time-dependent hamiltonian
+    f_modes_0, f_energies = floquet_modes(H, T, args)
+
+    # calculate the wavefunctions using the from the floquet modes
+    f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
+                                          np.linspace(0, T, 100 + 1),
+                                          H, T, args)
+
+    # setup Odedata for storing the results
+    output = Odedata()
+    output.times = tlist
+    output.solver = "fsesolve"
+    output.expect = zeros((len(e_ops), len(tlist)))
+    
+    psi0_fb = psi0.transform(f_modes_0, True)
+    for n, t in enumerate(tlist):
+        f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
+        f_states_t = floquet_states(f_modes_t, f_energies, t)
+        psi_t = psi0_fb.transform(f_states_t, False)
+        for e_idx, e in enumerate(e_ops):
+            output.expect[e_idx, n] = expect(e, psi_t)
+
+    return output
+
+
 # should be moved to a utility library?
 def _n_thermal(w, w_th):
     if (w_th > 0) and exp(w / w_th) != 1.0:
@@ -863,3 +898,4 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
                                   f_modes_table=(f_modes_table_t, T),
                                   options=options,
                                   floquet_basis=floquet_basis)
+
