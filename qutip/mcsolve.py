@@ -726,8 +726,6 @@ def _mc_alg_evolve(nt, args, odeconfig):
                     t_final = ODE.t
                     while ii < odeconfig.norm_steps:
                         ii += 1
-                        # t_guess=t_prev+(rand_vals[0]-norm2_prev)/(norm2_psi-
-                        # norm2_prev)*(t_final-t_prev)
                         t_guess = t_prev + log(norm2_prev / rand_vals[0]) / log(
                             norm2_prev / norm2_psi) * (t_final - t_prev)
                         ODE.set_initial_value(y_prev, t_prev)
