@@ -437,7 +437,7 @@ def fsesolve(H, psi0, tlist, c_ops, e_ops=[], T=None, args={}):
     output = Odedata()
     output.times = tlist
     output.solver = "fsesolve"
-    output.expect = zeros((len(e_ops), len(tlist)))
+    output.expect = np.zeros((len(e_ops), len(tlist)))
     
     psi0_fb = psi0.transform(f_modes_0, True)
     for n, t in enumerate(tlist):
