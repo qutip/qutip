@@ -457,16 +457,16 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
             output.expect = []
             for op in e_ops:
                 if op.isherm:
-                    output.expect.append(np.zeros(n_tsteps))
+                    output.expect.append(np.zeros(len(tlist)))
                 else:
-                    output.expect.append(np.zeros(n_tsteps, dtype=complex))
+                    output.expect.append(np.zeros(len(tlist), dtype=complex))
 
     else:
         raise TypeError("e_ops must be a list Qobj or a callback function")
 
 
     psi0_fb = psi0.transform(f_modes_0, True)
-    for n, t in enumerate(tlist):
+    for t_idx, t in enumerate(tlist):
         f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
         f_states_t = floquet_states(f_modes_t, f_energies, t)
         psi_t = psi0_fb.transform(f_states_t, False)
@@ -481,7 +481,7 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
                 output.states.append(Qobj(psi_t))
             else:
                 for e_idx, e in enumerate(e_ops):
-                    output.expect[e_idx, n] = expect(e, psi_t)
+                    output.expect[e_idx][t_idx] = expect(e, psi_t)
 
     return output
 
