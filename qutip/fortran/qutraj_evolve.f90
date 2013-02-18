@@ -91,7 +91,7 @@ module qutraj_evolve
     integer :: j,k
     integer :: cnt
     real(wp) :: norm2_psi,norm2_prev,norm2_guess,sump
-    logical, save :: first = .true.
+    ! logical, save :: first = .true.
 
     ode%rwork(1) = tout
     norm2_psi = abs(braket(y,y))
@@ -178,7 +178,7 @@ module qutraj_evolve
     double precision, intent(inout) :: t
     double precision, intent(in) :: tout
     integer, intent(in) :: itask
-    integer :: istat
+    !integer :: istat
 
     call zvode(rhs,ode%neq,y,t,tout,ode%itol,ode%rtol,ode%atol,&
       itask,ode%istate,ode%iopt,ode%zwork,ode%lzw,ode%rwork,ode%lrw,&
