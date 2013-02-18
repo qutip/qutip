@@ -420,10 +420,41 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
     """
     Solve the Schrödinger equation using the Floquet formalism.
 
-    .. note::
+    Parameters
+    ----------
 
-        Experimental
+    H : :class:`qutip.qobj.Qobj`
+        System Hamiltonian, time-dependent with period `T`.
 
+    psi0 : :class:`qutip.qobj`
+        Initial state vector (ket).
+
+    tlist : *list* / *array*
+        list of times for :math:`t`.
+
+    e_ops : list of :class:`qutip.qobj` / callback function
+        list of operators for which to evaluate expectation values. If this
+        list is empty, the state vectors for each time in `tlist` will be
+        returned instead of expectation values.
+
+    T : float
+        The period of the time-dependence of the hamiltonian.
+
+    args : dictionary
+        Dictionary with variables required to evaluate H.
+
+    Tsteps : integer
+        The number of time steps in one driving period for which to
+        precalculate the Floquet modes. `Tsteps` should be an even number.
+
+    Returns
+    -------
+
+    output : :class:`qutip.odedata.Odedata`
+
+        An instance of the class :class:`qutip.odedata.Odedata`, which
+        contains either an *array* of expectation values or an array of
+        state vectors, for the times specified by `tlist`. 
     """
     
     if not T:
