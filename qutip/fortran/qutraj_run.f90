@@ -187,7 +187,7 @@ module qutraj_run
     double precision, optional :: atol(1),rtol(1)
     real(wp), optional :: norm_tol
     integer, intent(in), optional :: ml,mu
-    integer :: istat
+    !integer :: istat
 
     ode%neq = neq
     if (lzw.ne.0) then
@@ -283,7 +283,8 @@ module qutraj_run
     logical :: states
     type(operat) :: rho_sparse
     integer :: istat=0,istat2=0,traj,progress
-    integer :: i,j,l,m,n
+    integer :: i,j,l
+    !integer :: m,n
     real(wp) :: mu,nu,S
     real(wp), allocatable :: p(:)
     ! ITASK  = An index specifying the task to be performed.
@@ -558,7 +559,7 @@ module qutraj_run
   end subroutine
 
   subroutine finalize_work
-    integer :: istat=0
+    !integer :: istat=0
     call finalize(psi0)
     call finalize(hamilt)
     call finalize(c_ops)
