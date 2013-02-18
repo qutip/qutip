@@ -170,8 +170,12 @@ When evaluating the Floquet states or the wavefunction at many points in time it
 
 Note that the parameters and the Hamiltonian used in this example is not the same as in the previous section, and hence the different appearance of the resulting figure.
 
-.. _floquet-unitary:
+For convenience, all the steps described above for calculating the evolution of a quantum system using the Floquet formalisms are encapsulated in the function :func:`qutip.floquet.fsesolve`. Using this function, we could have achieved the same results as in the examples above using::
 
+    output = fsesolve(H, psi0, tlist, [num(2)], args)
+    p_ex = output.expect[0]
+
+.. _floquet-dissipative:
 
 Floquet theory for dissipative evolution
 ========================================
@@ -200,3 +204,7 @@ The other parameters are similar to the :func:`qutip.mesolve` and :func:`qutip.m
    :width: 4.0in
    :include-source:	 
 
+Alternatively, we can let the `fmmesolve` function transform the density matrix at each time step back to the computational basis, and calculating the expectation values for us, but using::
+
+    output = fmmesolve(H, psi0, tlist, [sigmax()], [num(2)], [noise_spectrum], T, args)
+    p_ex = output.expect[0]
