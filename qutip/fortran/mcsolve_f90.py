@@ -1,7 +1,7 @@
 import numpy as np
 from qutip import *
 import qutraj_run as qtf90
-import qutip.odeconfig as odeconfig
+from qutip.odeconfig import odeconfig
 from qutip.mcsolve import _mc_data_config
 from qutip._reset import _reset_odeconfig
 
@@ -77,7 +77,7 @@ def mcsolve_f90(H,psi0,tlist,c_ops,e_ops,ntraj=500,
     odeconfig.norm_steps=options.norm_steps
 
     if (not options.rhs_reuse):
-        _reset_odeconfig()
+        odeconfig.soft_reset()
         # no time dependence
         odeconfig.tflag=0
         # no gui
@@ -88,7 +88,7 @@ def mcsolve_f90(H,psi0,tlist,c_ops,e_ops,ntraj=500,
         else:
             odeconfig.cflag=0
         #Configure data
-        _mc_data_config(H,psi0,[],c_ops,[],[],e_ops,options)
+        _mc_data_config(H, psi0, [], c_ops, [], [], e_ops, options, odeconfig)
         # We don't use the tdfunc structure
         odeconfig.tdfunc = None
 
