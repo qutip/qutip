@@ -1,3 +1,4 @@
+# -*- coding: UTF-8 -*-
 # This file is part of QuTiP.
 #
 #    QuTiP is free software: you can redistribute it and/or modify
@@ -418,7 +419,7 @@ def floquet_state_decomposition(f_states, f_energies, psi):
 
 def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
     """
-    Solve the Schrödinger equation using the Floquet formalism.
+    Solve the Schrodinger equation using the Floquet formalism.
 
     Parameters
     ----------
