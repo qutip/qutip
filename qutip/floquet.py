@@ -837,7 +837,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
 #
 #
 def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
-              args={}, options=Odeoptions(), floquet_basis=True):
+              args={}, options=Odeoptions(), floquet_basis=True, kmax=5):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
 
@@ -889,6 +889,9 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
     options : :class:`qutip.odeoptions`
         options for the ODE solver.
 
+    k_max : int
+        The truncation of the number of sidebands (default 5).
+
     Returns
     -------
 
@@ -907,8 +910,6 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
             spectra_cb.append(lambda w: 1.0)
 
     f_modes_0, f_energies = floquet_modes(H, T, args)
-
-    kmax = 5
 
     f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
                                           np.linspace(0, T, 500 + 1),
