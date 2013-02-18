@@ -34,4 +34,4 @@ def n_thermal(w, w_th):
     if (w_th > 0) and exp(w / w_th) != 1.0:
         return 1.0 / (exp(w / w_th) - 1.0)
     else:
-        return 0.0 * numpy.ones(np.shape(w))
+        return 0.0 * numpy.ones(numpy.shape(w))
