@@ -1,9 +1,9 @@
-#This file is part of QuTiP.
+# This file is part of QuTiP.
 #
 #    QuTiP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTiP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -415,37 +415,73 @@ def floquet_state_decomposition(f_states, f_energies, psi):
             for i in np.arange(len(f_energies))]
 
 
-def fsesolve(H, psi0, tlist, c_ops, e_ops=[], T=None, args={}):
+def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
     """
-    Solve the Schrodinger equation using the Floquet formalism.
+    Solve the Schrödinger equation using the Floquet formalism.
 
     .. note::
 
         Experimental
 
     """
+    
+    if not T:
+        # assume that tlist span exactly one period of the driving
+        T = tlist[-1]
 
     # find the floquet modes for the time-dependent hamiltonian
     f_modes_0, f_energies = floquet_modes(H, T, args)
 
     # calculate the wavefunctions using the from the floquet modes
     f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
-                                          np.linspace(0, T, 100 + 1),
+                                          np.linspace(0, T, Tsteps + 1),
                                           H, T, args)
 
     # setup Odedata for storing the results
     output = Odedata()
     output.times = tlist
     output.solver = "fsesolve"
-    output.expect = np.zeros((len(e_ops), len(tlist)))
-    
+
+    if isinstance(e_ops, FunctionType):
+        output.num_expect = 0
+        expt_callback = True
+
+    elif isinstance(e_ops, list):
+
+        output.num_expect = len(e_ops)
+        expt_callback = False
+
+        if output.num_expect == 0:
+            output.states = []
+        else:
+            output.expect = []
+            for op in e_ops:
+                if op.isherm:
+                    output.expect.append(np.zeros(n_tsteps))
+                else:
+                    output.expect.append(np.zeros(n_tsteps, dtype=complex))
+
+    else:
+        raise TypeError("e_ops must be a list Qobj or a callback function")
+
+
     psi0_fb = psi0.transform(f_modes_0, True)
     for n, t in enumerate(tlist):
         f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
         f_states_t = floquet_states(f_modes_t, f_energies, t)
         psi_t = psi0_fb.transform(f_states_t, False)
-        for e_idx, e in enumerate(e_ops):
-            output.expect[e_idx, n] = expect(e, psi_t)
+
+        if expt_callback:
+            # use callback method
+            e_ops(t, psi_t)
+        else:
+            # calculate all the expectation values, or output psi if
+            # no expectation value operators where defined
+            if output.num_expect == 0:
+                output.states.append(Qobj(psi_t))
+            else:
+                for e_idx, e in enumerate(e_ops):
+                    output.expect[e_idx, n] = expect(e, psi_t)
 
     return output
 
