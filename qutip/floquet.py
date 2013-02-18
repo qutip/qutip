@@ -33,6 +33,7 @@ from qutip.propagator import propagator
 from qutip.odedata import Odedata
 from qutip.cyQ.spmatfuncs import cy_ode_rhs
 from qutip.expect import expect
+from qutip.utilities import n_thermal
 
 def floquet_modes(H, T, args=None, sort=False):
     """
@@ -486,14 +487,6 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
     return output
 
 
-# should be moved to a utility library?
-def _n_thermal(w, w_th):
-    if (w_th > 0) and exp(w / w_th) != 1.0:
-        return 1.0 / (exp(w / w_th) - 1.0)
-    else:
-        return 0.0 * np.ones(np.shape(w))
-
-
 def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
                                   args, J_cb, w_th, kmax=5,
                                   f_modes_table_t=None):
@@ -596,7 +589,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
                 k1_idx = k + kmax
                 k2_idx = -k + kmax
                 A[a, b] += Gamma[a, b, k1_idx] + \
-                    _n_thermal(abs(Delta[a, b, k1_idx]), w_th) * \
+                    n_thermal(abs(Delta[a, b, k1_idx]), w_th) * \
                     (Gamma[a, b, k1_idx] + Gamma[b, a, k2_idx])
 
     return Delta, X, Gamma, A
