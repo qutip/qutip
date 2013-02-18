@@ -108,10 +108,10 @@ write_version_py()
 blas_info=get_info('blas')
 if len(blas_info)==0:
     os.environ['FORTRAN_LIBS'] = 'FALSE'
-    print("blas developement libraries not found.")
+    print("blas development libraries not found.")
     print("Installing without the fortran mcsolver.")
 else:
-    os.environ['FORTRAN_LIBS'] = "TRUE"
+    os.environ['FORTRAN_LIBS'] = 'TRUE'
 
 #--------- test command for running unittests ------------#
 
@@ -197,6 +197,7 @@ class CleanCommand(Command):
 # remove needless error warnings for released version.
 if ISRELEASED:
     os.environ['CFLAGS'] = '-w'
+    os.environ['FFLAGS'] = '-w'
 
 
 # using numpy distutils to simplify install of data directory for testing
