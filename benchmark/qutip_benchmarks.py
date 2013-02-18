@@ -23,7 +23,7 @@ test_names=[]
 #---------------------
 #Run Python Benchmarks
 #---------------------
-num_tests=4
+num_tests=5
 
 #Construct Jaynes-Cumming Hamiltonian with Nc=20, Na=2.
 test_names+=['Build JC Hamiltonian']
@@ -90,14 +90,34 @@ mesolve(H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a])
 toc=time()
 python_times+=[toc-tic]
 
+#cavity+qubit monte carlo equation
+test_names+=['cavity+qubit monte carlo']
+kappa = 2; gamma = 0.2; g = 1;
+wc = 0; w0 = 0; wl = 0; E = 0.5;
+N = 4;
+tlist = linspace(0,10,200);
+tic=time()
+ida = qeye(N)
+idatom = qeye(2)
+a  = tensor(destroy(N),idatom)
+sm = tensor(ida,sigmam())
+H = (w0-wl)*sm.dag()*sm + (wc-wl)*a.dag()*a + 1j*g*(a.dag()*sm - sm.dag()*a) + E*(a.dag()+a)
+C1=sqrt(2*kappa)*a
+C2=sqrt(gamma)*sm
+C1dC1=C1.dag()*C1
+C2dC2=C2.dag()*C2
+psi0 = tensor(basis(N,0),basis(2,1))
+mcsolve(H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a],options=Odeoptions(gui=False))
+toc=time()
+python_times+=[toc-tic]
 
 #-- normalize times and get background colors using wigner_cmap
-normed_times=np.round(matlab_times/array(python_times),1)
+normed_times=np.round(matlab_times/array(python_times),2)
 min_time=min(normed_times)
 max_time=max(normed_times)
 cmap=wigner_cmap(normed_times-1)
 
-
+print normed_times
 #Build HTML page for results
 col_styles=[]
 for kk in normed_times:
@@ -107,6 +127,7 @@ for kk in normed_times:
         col_styles+=["height:50px; width:75px;font-size: large;color: #E4D00A;background-color:rgb(%d,%d,%d)" % (color[0],color[1],color[2])]
     else:
         col_styles+=["height:50px;width:75px;font-size: large;color: #00FF00;background-color:rgb(%d,%d,%d)" % (color[0],color[1],color[2])]
+
 html_file= 'qutip_vs_matlab_benchmarks.html'
 f = open(html_file, 'w')
 htmlcode = HTML.table([list(normed_times)],
