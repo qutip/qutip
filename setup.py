@@ -37,12 +37,14 @@ import re
 import subprocess
 import warnings
 from distutils.core import Extension, Command
+from distutils.command.install import install
 from unittest import TextTestRunner, TestLoader
 from glob import glob
 from os.path import splitext, basename, join as pjoin
 from os import walk
 import numpy as np
 from numpy.distutils.core import setup
+from numpy.distutils.system_info import get_info
 
 # all information about QuTiP goes here-------
 MAJOR = 2
@@ -102,8 +104,16 @@ if os.path.exists('qutip/_version.py'):
     os.remove('qutip/_version.py')
 write_version_py()
 
+#--------- check for fortran blas libs -------------------#
+blas_info=get_info('blas')
+if len(blas_info)==0:
+    os.environ['FORTRAN_LIBS'] = 'FALSE'
+    print("blas developement libraries not found.")
+    print("Installing without the fortran mcsolver.")
+else:
+    os.environ['FORTRAN_LIBS'] = "TRUE"
 
-#--------- test command for running unittests-------------#
+#--------- test command for running unittests ------------#
 
 class TestCommand(Command):
     user_options = []
