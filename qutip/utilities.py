@@ -31,7 +31,12 @@ def n_thermal(w, w_th):
     oscillator mode with frequency 'w', at the temperature described by
     'w_th' where :math:`\\omega_{\\rm th} = k_BT/\\hbar`.
     """
-    if (w_th > 0) and exp(w / w_th) != 1.0:
-        return 1.0 / (exp(w / w_th) - 1.0)
+
+    if type(w) is numpy.ndarray:
+        return 1.0 / (numpy.exp(w / w_th) - 1.0)
+
     else:
-        return 0.0 * numpy.ones(numpy.shape(w))
+        if (w_th > 0) and numpy.exp(w / w_th) != 1.0:
+            return 1.0 / (numpy.exp(w / w_th) - 1.0)
+        else:
+            return 0.0
