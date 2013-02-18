@@ -1,10 +1,12 @@
-import sys
+import sys, HTML
 import subprocess as sproc
 from numpy import genfromtxt
 from qutip import *
+import numpy as np
 from time import time
+import matplotlib as mpl
+from matplotlib import pyplot, cm
 from pylab import *
-
 #Call matlab benchmarks (folder must be in Matlab path!!!)
 if sys.platform=='darwin':
     sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_benchmarks; quit'",shell=True)
@@ -88,19 +90,29 @@ mesolve(H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a])
 toc=time()
 python_times+=[toc-tic]
 
-#Generate figure
-barh(0.5*arange(num_tests),matlab_times/array(python_times),align='center',height=0.5,color='#C098EA')
-for ii in range(num_tests):
-    text(1.5,0.5*ii,test_names[ii],color='k',fontsize=16,verticalalignment='center')
-axvline(x=1, color='k',ls='--')
-frame = gca()
-for y in frame.axes.get_yticklabels():
-    y.set_fontsize(0.0)
-    y.set_visible(False)
-for x in frame.axes.get_xticklabels():
-    x.set_fontsize(12)
-for tick in frame.axes.get_yticklines():
-    tick.set_visible(False)
-xlabel("Times faster than the Quantum Optics Toolbox",fontsize=16)
-title('QuTiP vs. Quantum Optics Toolbox Performance')
-savefig("qutip_benchmarks.pdf")
+
+#-- normalize times and get background colors using wigner_cmap
+normed_times=np.round(matlab_times/array(python_times),1)
+min_time=min(normed_times)
+max_time=max(normed_times)
+cmap=wigner_cmap(normed_times-1)
+
+
+#Build HTML page for results
+col_styles=[]
+for kk in normed_times:
+    level=kk/(max_time-min_time)
+    color=np.round(array(cmap(level)[0:3])*255,1)
+    if kk-1>0:
+        col_styles+=["height:50px; width:75px;font-size: large;color: #E4D00A;background-color:rgb(%d,%d,%d)" % (color[0],color[1],color[2])]
+    else:
+        col_styles+=["height:50px;width:75px;font-size: large;color: #00FF00;background-color:rgb(%d,%d,%d)" % (color[0],color[1],color[2])]
+html_file= 'qutip_vs_matlab_benchmarks.html'
+f = open(html_file, 'w')
+htmlcode = HTML.table([list(normed_times)],
+                    header_row =test_names,
+                    col_align=['center']*num_tests,
+                    col_styles=col_styles)
+
+f.write(htmlcode + '<p>\n')
+f.close()
