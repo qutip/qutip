@@ -1,4 +1,3 @@
-# -*- coding: UTF-8 -*-
 # This file is part of QuTiP.
 #
 #    QuTiP is free software: you can redistribute it and/or modify
