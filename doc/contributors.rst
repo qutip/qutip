@@ -34,13 +34,15 @@ Contributors
 
 **James Clemens** (Miami University - Ohio) - Bug hunter
 
+**Claudia Degrandi** (Yale University) - Documentation
+
 **Arne Grimsmo** (University of Auckland) - Bug hunter
 
 **JP Hadden** (University of Bristol) - Code contributor, improved Bloch sphere visualization
 
 **Myung-Joong Hwang** (Pohang University of Science and Technology) - Bug hunter
 
-**Robert Jördens**  - Linux packaging
+**Robert Jördens** (NIST) - Linux packaging
 
 **Hwajung Kang** (Systems Biology Institute, Tokyo)  - Suggestions for improving Bloch class
 
@@ -58,7 +60,7 @@ Contributors
 
 **Denis Vasilyev** (St. Petersburg State University) - Bug hunter
 
-**André Xuereb** - Bug hunter
+**André Xuereb** (University of Hannover) - Bug hunter
 
-**Dong Zhou** (Yale) - Bug hunter
+**Dong Zhou** (Yale University) - Bug hunter
 
