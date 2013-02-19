@@ -3,10 +3,11 @@ from qutip import *
 import qutraj_run as qtf90
 from qutip.odeconfig import odeconfig
 from qutip.mcsolve import _mc_data_config
+from qutip.odeoptions import Odeoptions
 
 # Working precision
-wpr = dtype(float64)
-wpc = dtype(complex128)
+wpr = np.dtype(np.float64)
+wpc = np.dtype(np.complex128)
 
 
 def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=500,

@@ -133,6 +133,12 @@ if not sys.platform in ['darwin', 'win32'] and not ('DISPLAY' in os.environ):
 os.environ['MKL_NUM_THREADS'] = str(multiprocessing.cpu_count())
 os.environ['NUM_THREADS'] = str(multiprocessing.cpu_count())
 
+try:
+    import qutip.fortran
+except:
+    qutip.settings.fortran = False
+else:
+    qutip.settings.fortran = True
 #------------------------------------------------------------------------------
 # Check that import modules are compatible with requested configuration
 #
@@ -239,7 +245,7 @@ from qutip.floquet import *
 from qutip.bloch_redfield import *
 
 # utilities
-from qutip.utilities import n_thermal
+#from qutip.utilities import n_thermal
 from qutip.fileio import *
 from qutip.demos import demos
 # import qutip.examples

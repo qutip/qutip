@@ -33,6 +33,8 @@ auto_herm = True
 auto_tidyup_atol = 1e-12
 # number of cpus (set at qutip import)
 num_cpus = 1
+# flag indicating if fortran module is installed
+fortran = False
 # debug mode for development
 debug = False
 
