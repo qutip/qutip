@@ -1,9 +1,10 @@
 import numpy as np
 from qutip import *
-import qutraj_run as qtf90
+from qutip.fortran import qutraj_run as qtf90
 from qutip.odeconfig import odeconfig
 from qutip.mcsolve import _mc_data_config
 from qutip.odeoptions import Odeoptions
+from qutip.odedata import Odedata
 
 # Working precision
 wpr = np.dtype(np.float64)
@@ -75,7 +76,7 @@ def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=500,
     odeconfig.psi0_shape = psi0.shape
     # set general items
     odeconfig.tlist = tlist
-    if isinstance(ntraj, (list, ndarray)):
+    if isinstance(ntraj, (list, np.ndarray)):
         print('mcsolve_f90: Sorry, ntraj as list argument is not supported.')
         return
         # odeconfig.ntraj=sort(ntraj)[-1]
@@ -188,7 +189,7 @@ class _MC_class():
         from multiprocessing import Process, Queue, JoinableQueue
         self.ntrajs = []
         for i in range(self.cpus):
-            self.ntrajs.append(min(int(floor(float(self.ntraj)
+            self.ntrajs.append(min(int(np.floor(float(self.ntraj)
                                              / self.cpus)),
                                    self.ntraj - sum(self.ntrajs)))
         cnt = sum(self.ntrajs)
@@ -340,9 +341,9 @@ class _MC_class():
             times = qtf90.qutraj_run.col_times
             which = qtf90.qutraj_run.col_which
             if times is None:
-                times = array([])
+                times = np.array([])
             if which is None:
-                which = array([])
+                which = np.array([])
             else:
                 which = which - 1
             col_times[i] = np.array(times, copy=True)
@@ -477,14 +478,13 @@ def _gather(sols):
 
 def _init_tlist():
     Of = _realarray_to_fortran(odeconfig.tlist)
-    qtf90.qutraj_run.init_tlist(Of,
-                                size(Of))
+    qtf90.qutraj_run.init_tlist(Of, np.size(Of))
 
 
 def _init_psi0():
     # Of = _qobj_to_fortranfull(odeconfig.psi0)
     Of = _complexarray_to_fortran(odeconfig.psi0)
-    qtf90.qutraj_run.init_psi0(Of, size(Of))
+    qtf90.qutraj_run.init_psi0(Of, np.size(Of))
 
 
 def _init_ptrace_stuff(sel):
@@ -503,14 +503,14 @@ def _init_hamilt():
     # Of = _qobj_to_fortrancsr(H_eff)
     # qtf90.qutraj_run.init_hamiltonian(Of[0],Of[1],
     #        Of[2],Of[3],Of[4])
-    d = size(odeconfig.psi0)
+    d = np.size(odeconfig.psi0)
     qtf90.qutraj_run.init_hamiltonian(
         _complexarray_to_fortran(odeconfig.h_data),
         odeconfig.h_ind + 1, odeconfig.h_ptr + 1, d, d)
 
 
 def _init_c_ops():
-    d = size(odeconfig.psi0)
+    d = np.size(odeconfig.psi0)
     n = odeconfig.c_num
     first = True
     for i in range(n):
@@ -527,7 +527,7 @@ def _init_c_ops():
 
 
 def _init_e_ops():
-    d = size(odeconfig.psi0)
+    d = np.size(odeconfig.psi0)
     # n = odeconfig.e_num
     n = len(odeconfig.e_ops_data)
     first = True
