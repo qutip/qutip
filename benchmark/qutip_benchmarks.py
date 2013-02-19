@@ -117,7 +117,7 @@ min_time=min(normed_times)
 max_time=max(normed_times)
 cmap=wigner_cmap(normed_times-1)
 
-print normed_times
+
 #Build HTML page for results
 col_styles=[]
 for kk in normed_times:
@@ -126,7 +126,7 @@ for kk in normed_times:
     if kk-1>0:
         col_styles+=["height:50px; width:75px;font-size: large;color: #E4D00A;background-color:rgb(%d,%d,%d)" % (color[0],color[1],color[2])]
     else:
-        col_styles+=["height:50px;width:75px;font-size: large;color: #00FF00;background-color:rgb(%d,%d,%d)" % (color[0],color[1],color[2])]
+        col_styles+=["height:50px; width:75px;font-size: large;color: #00FF00;background-color:rgb(%d,%d,%d)" % (color[0],color[1],color[2])]
 
 html_file= 'qutip_vs_matlab_benchmarks.html'
 f = open(html_file, 'w')
