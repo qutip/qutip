@@ -104,14 +104,22 @@ if os.path.exists('qutip/_version.py'):
     os.remove('qutip/_version.py')
 write_version_py()
 
-#--------- check for fortran blas libs -------------------#
-blas_info=get_info('blas')
-if len(blas_info)==0:
+#--------- check for fortran and blas libs -------------------#
+if "--with-f90mc" in sys.argv:
+    with_f90mc = True
+    sys.argv.remove("--with-f90mc")
+else:
+    with_f90mc = False
+
+blas_info = get_info('blas')
+if not with_f90mc or len(blas_info) == 0:
     os.environ['FORTRAN_LIBS'] = 'FALSE'
     print("blas development libraries not found.")
     print("Installing without the fortran mcsolver.")
 else:
     os.environ['FORTRAN_LIBS'] = 'TRUE'
+
+print "os.environ['FORTRAN_LIBS'] =", os.environ['FORTRAN_LIBS']
 
 #--------- test command for running unittests ------------#
 
