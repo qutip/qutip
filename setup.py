@@ -119,8 +119,6 @@ if not with_f90mc or len(blas_info) == 0:
 else:
     os.environ['FORTRAN_LIBS'] = 'TRUE'
 
-print "os.environ['FORTRAN_LIBS'] =", os.environ['FORTRAN_LIBS']
-
 #--------- test command for running unittests ------------#
 
 class TestCommand(Command):
