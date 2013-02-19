@@ -65,7 +65,7 @@ def mcsolve_f90(H,psi0,tlist,c_ops,e_ops,ntraj=500,
     #set general items
     odeconfig.tlist=tlist
     if isinstance(ntraj,(list,ndarray)):
-        print 'mcsolve_f90: Sorry, ntraj as list argument is not supported.'
+        print('mcsolve_f90: Sorry, ntraj as list argument is not supported.')
         return
         #odeconfig.ntraj=sort(ntraj)[-1]
         #ntraj_list = ntraj
@@ -100,7 +100,7 @@ def mcsolve_f90(H,psi0,tlist,c_ops,e_ops,ntraj=500,
     elif (options.method == 'bdf'):
         mc.mf = 22
     else:
-        print 'Unrecognized method for ode solver, using "adams".'
+        print('Unrecognized method for ode solver, using "adams".')
         mc.mf = 10
     # store ket and density matrix dims and shape for convenience
     mc.psi0_dims = psi0.dims
@@ -114,15 +114,15 @@ def mcsolve_f90(H,psi0,tlist,c_ops,e_ops,ntraj=500,
     # are we doing a partial trace for returned states?
     mc.ptrace_sel = ptrace_sel
     if (ptrace_sel != []):
-        print 'ptrace_sel set to',ptrace_sel
-        print 'ps. We are using dense density matrices during computation when performing partial trace. Setting sparse_dms = False'
-        print 'This feature is experimental.'
+        print('ptrace_sel set to', ptrace_sel)
+        print('ps. We are using dense density matrices during computation when performing partial trace. Setting sparse_dms = False')
+        print('This feature is experimental.')
         mc.sparse_dms = False
         mc.dm_dims = psi0.ptrace(ptrace_sel).dims
         mc.dm_shape = psi0.ptrace(ptrace_sel).shape
     if (calc_entropy):
         if (ptrace_sel == []):
-            print 'calc_entropy = True, but ptrace_sel = []. Please set a list of components to keep when calculating average entropy of reduced density matrix in ptrace_sel. Setting calc_entropy = False.'
+            print('calc_entropy = True, but ptrace_sel = []. Please set a list of components to keep when calculating average entropy of reduced density matrix in ptrace_sel. Setting calc_entropy = False.')
             calc_entropy = False
         mc.calc_entropy = calc_entropy
 
@@ -188,10 +188,10 @@ class _MC_class():
         sols = []
         processes = []
         resq = JoinableQueue()
-        print "Number of cpus:", self.cpus
-        print "Trying to start", self.nprocs, "process(es)."
-        print "Number of trajectories for each process:"
-        print self.ntrajs
+        print("Number of cpus:", self.cpus)
+        print("Trying to start", self.nprocs, "process(es).")
+        print("Number of trajectories for each process:")
+        print(self.ntrajs)
         for i in range(self.nprocs):
             p = Process(target=self.evolve_serial,
                     args=((resq,self.ntrajs[i],i,self.seed*(i+1)),))
@@ -223,8 +223,8 @@ class _MC_class():
     def serial(self):
         self.nprocs = 1
         self.ntrajs = [self.ntraj]
-        print "Running in serial."
-        print "Number of trajectories:", self.ntraj
+        print("Running in serial.")
+        print("Number of trajectories:", self.ntraj)
         sol = self.evolve_serial((0,self.ntraj,0,self.seed))
         return [sol]
 
@@ -379,7 +379,7 @@ class _MC_class():
 
     def get_entropy(self,nstep):
         if (not self.calc_entropy):
-            print 'get_entropy: calc_entropy=False. Aborting.'
+            print('get_entropy: calc_entropy=False. Aborting.')
             return
         entropy = np.array([0.]*nstep)
         entropy[:] = qtf90.qutraj_run.reduced_state_entropy[:]
