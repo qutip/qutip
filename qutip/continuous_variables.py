@@ -25,6 +25,7 @@ quantities from fock-basis representation of the state of multi-mode fields.
 from qutip.expect import expect
 import numpy as np
 
+
 def correlation_matrix(basis, rho=None):
     """
     Given a basis set of operators :math:`\\{a\\}_n`, calculate the correlation
@@ -43,13 +44,13 @@ def correlation_matrix(basis, rho=None):
     rho : :class:`qutip.qobj.Qobj`
         Density matrix for which to calculate the correlation matrix. If
         `rho` is `None`, then a matrix of correlation matrix operators is
-        returned instead of expectation values of those operators. 
+        returned instead of expectation values of those operators.
 
     Returns
     -------
 
     corr_mat: *array*
-        A 2-dimensional *array* of correlation values or operators. 
+        A 2-dimensional *array* of correlation values or operators.
 
 
     """
@@ -96,7 +97,7 @@ def covariance_matrix(basis, rho, symmetrized=True):
     -------
 
     corr_mat: *array*
-        A 2-dimensional *array* of covariance values. 
+        A 2-dimensional *array* of covariance values.
 
     """
     if symmetrized:
@@ -107,6 +108,7 @@ def covariance_matrix(basis, rho, symmetrized=True):
         return np.array([[expect(op1 * op2, rho) -
                           expect(op1, rho) * expect(op2, rho)
                           for op1 in basis] for op2 in basis])
+
 
 def correlation_matrix_field(a1, a2, rho=None):
     """
@@ -161,7 +163,7 @@ def correlation_matrix_quadrature(a1, a2, rho=None):
     -------
 
     corr_mat: *array* of complex numbers or :class:`qutip.qobj.Qobj`
-        A 2-dimensional *array* of covariance values for the field quadratures, 
+        A 2-dimensional *array* of covariance values for the field quadratures,
         or, if rho=0, a matrix of operators.
 
     """
@@ -177,14 +179,14 @@ def correlation_matrix_quadrature(a1, a2, rho=None):
 
 def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
     """
-    Calculate the wigner covariance matrix 
+    Calculate the wigner covariance matrix
     :math:`V_{ij} = \\frac{1}{2}(R_{ij} + R_{ji})`, given
-    the quadrature correlation matrix 
-    :math:`R_{ij} = \\langle R_{i} R_{j}\\rangle - \\langle R_{i}\\rangle \\langle R_{j}\\rangle`, where 
+    the quadrature correlation matrix
+    :math:`R_{ij} = \\langle R_{i} R_{j}\\rangle - \\langle R_{i}\\rangle \\langle R_{j}\\rangle`, where
     :math:`R = (q_1, p_1, q_2, p_2)^T` is the vector with quadrature operators
     for the two modes.
 
-    Alternatively, if `R = None`, and if annilation operators `a1` and `a2` 
+    Alternatively, if `R = None`, and if annilation operators `a1` and `a2`
     for the two modes are supplied instead, the quadature correlation matrix
     is constructed from the annihilation operators before then the covariance
     matrix is calculated.
@@ -207,7 +209,7 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
     Returns
     -------
 
-    cov_mat: *array* 
+    cov_mat: *array*
         A 2-dimensional *array* of covariance values.
 
     """
@@ -273,4 +275,3 @@ def logarithmic_negativity(V):
     logneg = max(0, lognu)
 
     return logneg
-

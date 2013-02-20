@@ -34,7 +34,8 @@ from qutip.sparse import _sp_inf_norm
 import qutip.settings as qset
 
 
-def steadystate(H, c_op_list, maxiter=100, tol=1e-6, itertol=1e-5, method='solve', use_umfpack=False, use_precond=False):
+def steadystate(H, c_op_list, maxiter=100, tol=1e-6, itertol=1e-5,
+                method='solve', use_umfpack=False, use_precond=False):
     """Calculates the steady state for the evolution subject to the
     supplied Hamiltonian and list of collapse operators.
 
@@ -54,7 +55,7 @@ def steadystate(H, c_op_list, maxiter=100, tol=1e-6, itertol=1e-5, method='solve
 
     tol : float
         Tolerance used for terminating solver solution, default = 1e-6.
-    
+
     itertol : float
         Tolerance used for iterative Ax=b solver, default = 1e-5.
 
@@ -66,11 +67,11 @@ def steadystate(H, c_op_list, maxiter=100, tol=1e-6, itertol=1e-5, method='solve
         Use the UMFpack backend for the direct solver.  If 'False', the solver
         uses the SuperLU backend.  This option does not affect the 'bicg'
         method.
-    
+
     use_precond: bool {False, True}
-        Use an incomplete sparse LU decomposition as a preconditioner for the 
+        Use an incomplete sparse LU decomposition as a preconditioner for the
         stabilized bi-conjugate gradient 'bicg' method.
-    
+
     Returns
     -------
     ket : qobj
@@ -91,11 +92,13 @@ def steadystate(H, c_op_list, maxiter=100, tol=1e-6, itertol=1e-5, method='solve
                          'nondissipative system (no collapse operators given)')
 
     L = liouvillian(H, c_op_list)
-    return steady(L, maxiter=maxiter, tol=tol, itertol=itertol, 
-                method=method, use_umfpack=use_umfpack, use_precond=use_precond)
+    return steady(L, maxiter=maxiter, tol=tol, itertol=itertol,
+                  method=method, use_umfpack=use_umfpack,
+                  use_precond=use_precond)
 
 
-def steady(L, maxiter=100, tol=1e-6, itertol=1e-5, method='solve', use_umfpack=False, use_precond=False):
+def steady(L, maxiter=100, tol=1e-6, itertol=1e-5, method='solve',
+           use_umfpack=False, use_precond=False):
     """Steady state for the evolution subject to the
     supplied Louvillian.
 
@@ -109,7 +112,7 @@ def steady(L, maxiter=100, tol=1e-6, itertol=1e-5, method='solve', use_umfpack=F
 
     tol : float
         Tolerance used for terminating solver solution, default = 1e-6.
-        
+
     itertol : float
         Tolerance used for iterative Ax=b solver, default = 1e-5.
 
@@ -121,9 +124,9 @@ def steady(L, maxiter=100, tol=1e-6, itertol=1e-5, method='solve', use_umfpack=F
         Use the UMFpack backend for the direct solver.  If 'False', the solver
         uses the SuperLU backend.  This option does not affect the 'bicg'
         method.
-    
+
     use_precond: bool {False, True}
-        Use an incomplete sparse LU decomposition as a preconditioner for the 
+        Use an incomplete sparse LU decomposition as a preconditioner for the
         stabilized bi-conjugate gradient 'bicg' method.
 
     Returns
@@ -153,14 +156,14 @@ def steady(L, maxiter=100, tol=1e-6, itertol=1e-5, method='solve', use_umfpack=F
         rhoss.shape = [prod(rhoss.dims[0]), 1]
     n = prod(rhoss.shape)
     L1 = L.data.tocsc() + eps * _sp_inf_norm(L) * sp.eye(n, n, format='csc')
-    v = mat2vec(rand_dm(rhoss.shape[0], 0.5/rhoss.shape[0] + 0.5).full())
+    v = mat2vec(rand_dm(rhoss.shape[0], 0.5 / rhoss.shape[0] + 0.5).full())
     # generate sparse iLU preconditioner if requested
     if method == 'bicg' and use_precond:
-        P= spilu(L1, permc_spec='MMD_AT_PLUS_A')
+        P = spilu(L1, permc_spec='MMD_AT_PLUS_A')
         P_x = lambda x: P.solve(x)
         M = LinearOperator((n, n), matvec=P_x)
     else:
-        M=None
+        M = None
     it = 0
     while (la.norm(L.data * v, np.inf) > tol) and (it < maxiter):
         if method == 'bicg':
