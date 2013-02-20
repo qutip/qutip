@@ -143,8 +143,15 @@ Other Functions
 
 .. _functions-fileio:
 
-Fileio Functions
-----------------
+Utitlitu functions
+------------------
+
+.. automodule:: qutip.utilities
+    :members: n_thermal
+
+
+File I/O Functions
+------------------
 
 .. automodule:: qutip.fileio
     :members: file_data_read, file_data_store, qload, qsave
