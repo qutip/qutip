@@ -2,6 +2,7 @@ import numpy as np
 from qutip import *
 from qutip.fortran import qutraj_run as qtf90
 from qutip.odeconfig import odeconfig
+from qutip.qobj import Qobj
 from qutip.mcsolve import _mc_data_config
 from qutip.odeoptions import Odeoptions
 from qutip.odedata import Odedata
@@ -376,14 +377,14 @@ class _MC_class():
             if (ntraj == 1):
                 states = np.array([Qobj()] * nstep)
                 for i in range(nstep):
-                    states[i] = Qobj(matrix(
+                    states[i] = Qobj(numpy.matrix(
                         qtf90.qutraj_run.sol[0, 0, i, :]).transpose(),
                         dims=self.psi0_dims, shape=self.psi0_shape)
             else:
                 states = np.array([np.array([Qobj()] * nstep)] * ntraj)
                 for traj in range(ntraj):
                     for i in range(nstep):
-                        states[traj][i] = Qobj(matrix(
+                        states[traj][i] = Qobj(numpy.matrix(
                             qtf90.qutraj_run.sol[0, traj, i, :]).transpose(),
                             dims=self.psi0_dims, shape=self.psi0_shape)
         return states
