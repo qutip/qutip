@@ -467,7 +467,7 @@ def _gather(sols):
             sol.states = sol.states / len(sols)
         else:
             sol.expect = list(sol.expect / len(sols))
-            inds=np.where(odeconfig.e_ops_isherm==0)[0]
+            inds=np.where(odeconfig.e_ops_isherm)[0]
             for jj in inds:
                 sol.expect[jj]=np.real(sol.expect[jj])
         if (hasattr(sols[0], 'entropy')):
