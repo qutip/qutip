@@ -127,7 +127,7 @@ def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=500,
     # are we doing a partial trace for returned states?
     mc.ptrace_sel = ptrace_sel
     if (ptrace_sel != []):
-        print("ptrace_sel set to ", ptrace_sel)
+        print("ptrace_sel set to " + str(ptrace_sel))
         print("ps. We are using dense density matrices during computation " +
               "when performing partial trace. Setting sparse_dms = False")
         print('This feature is experimental.')
@@ -206,10 +206,9 @@ class _MC_class():
         sols = []
         processes = []
         resq = JoinableQueue()
-        print("Number of cpus:", self.cpus)
-        print("Trying to start", self.nprocs, "process(es).")
-        print("Number of trajectories for each process:")
-        print(self.ntrajs)
+        print("Number of cpus: " + str(self.cpus))
+        print("Trying to start " + str(self.nprocs) + " process(es).")
+        print("Number of trajectories for each process: " + str(self.ntrajs))
         for i in range(self.nprocs):
             p = Process(target=self.evolve_serial,
                         args=((resq, self.ntrajs[i], i, self.seed * (i + 1)),))
@@ -243,7 +242,7 @@ class _MC_class():
         self.nprocs = 1
         self.ntrajs = [self.ntraj]
         print("Running in serial.")
-        print("Number of trajectories:", self.ntraj)
+        print("Number of trajectories: " + str(self.ntraj))
         sol = self.evolve_serial((0, self.ntraj, 0, self.seed))
         return [sol]
 
