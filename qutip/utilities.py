@@ -30,6 +30,26 @@ def n_thermal(w, w_th):
     Return the number of photons in thermal equilibrium for an harmonic 
     oscillator mode with frequency 'w', at the temperature described by
     'w_th' where :math:`\\omega_{\\rm th} = k_BT/\\hbar`.
+
+    Parameters
+    ----------
+
+    w : *float* or *array*
+        Frequency of the oscillator.
+
+    w_th : *float*
+        The temperature in units of frequency (or the same units as `w`).
+
+
+    Returns
+    -------
+
+    n_avg : *float* or *array*
+
+        Return the number of average photons in thermal equilibrium for a
+        an oscillator with the given frequency and temperature.
+    
+
     """
 
     if type(w) is numpy.ndarray:
