@@ -246,7 +246,7 @@ from qutip.floquet import *
 from qutip.bloch_redfield import *
 
 # utilities
-#from qutip.utilities import n_thermal
+from qutip.utilities import n_thermal
 from qutip.fileio import *
 from qutip.demos import demos
 # import qutip.examples
