@@ -390,9 +390,12 @@ class _MC_class():
 
     def get_expect(self, nstep, ntraj):
         if (odeconfig.options.mc_avg):
-            expect = np.array([np.array([0. + 0.j] * nstep)] * odeconfig.e_num)
+            expect = []
             for j in range(odeconfig.e_num):
-                expect[j] = qtf90.qutraj_run.sol[j, 0, :, 0]
+                if odeconfig.e_ops_isherm[j]:
+                    expect+= [np.real(qtf90.qutraj_run.sol[j, 0, :, 0])]
+                else:
+                    expect[j]+= [qtf90.qutraj_run.sol[j, 0, :, 0]]
         else:
             expect = np.array([[np.array([0. + 0.j] * nstep)] *
                                odeconfig.e_num] * ntraj)
