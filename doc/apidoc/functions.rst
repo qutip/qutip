@@ -187,7 +187,7 @@ Density Matrix Metrics
 Random Operators and States
 ---------------------------
 
-.. automodule:: qutip.rand
+.. automodule:: qutip.random_objects
     :members: rand_dm, rand_herm, rand_ket, rand_unitary
 
 .. _functions-misc:
