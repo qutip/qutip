@@ -243,18 +243,3 @@ setup(
               'clean': CleanCommand},
     configuration=configuration
 )
-
-
-matches = []
-
-try:
-    walk = os.walk(os.getcwd() + '/build')
-except:
-    pass
-else:
-    for root, dirnames, filenames in walk:
-        for filename in fnmatch.filter(filenames, 'spmatfuncs.so'):
-            matches.append(os.path.join(root, filename))
-    for files in matches:
-        if 'spmatfuncs.so' in files:
-            shutil.copyfile(files, os.getcwd() + '/qutip/cyQ/spmatfuncs.so')
