@@ -35,6 +35,7 @@ from qutip.cyQ.spmatfuncs import cy_ode_rhs
 from qutip.expect import expect
 from qutip.utilities import n_thermal
 
+
 def floquet_modes(H, T, args=None, sort=False):
     """
     Calculate the initial Floquet modes Phi_alpha(0) for a driven system with
@@ -239,7 +240,8 @@ def floquet_modes_t_lookup(f_modes_table_t, t, T):
     # XXX: might want to give a warning if the cast of t_idx to int discard
     # a significant fraction in t_idx, which would happen if the list of time
     # values isn't perfect matching the driving period
-    #if debug: print "t = %f -> t_wrap = %f @ %d of %d" % (t, t_wrap, t_idx, N)
+    # if debug: print "t = %f -> t_wrap = %f @ %d of %d" % (t, t_wrap, t_idx,
+    # N)
 
     return f_modes_table_t[t_idx]
 
@@ -454,9 +456,9 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
 
         An instance of the class :class:`qutip.odedata.Odedata`, which
         contains either an *array* of expectation values or an array of
-        state vectors, for the times specified by `tlist`. 
+        state vectors, for the times specified by `tlist`.
     """
-    
+
     if not T:
         # assume that tlist span exactly one period of the driving
         T = tlist[-1]
@@ -495,7 +497,6 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
 
     else:
         raise TypeError("e_ops must be a list Qobj or a callback function")
-
 
     psi0_fb = psi0.transform(f_modes_0, True)
     for t_idx, t in enumerate(tlist):
@@ -594,7 +595,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
         # inefficient...  make a and b outer loops and use the mesolve
         # instead of the propagator.
 
-        #f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, args)
+        # f_modes_t = floquet_modes_t(f_modes_0, f_energies, t, H, T, args)
         f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
         for a in range(N):
             for b in range(N):
@@ -611,7 +612,7 @@ def floquet_master_equation_rates(f_modes_0, f_energies, c_op, H, T,
             for k in range(-kmax, kmax + 1, 1):
                 Delta[a, b, k_idx] = f_energies[a] - f_energies[b] + k * omega
                 Gamma[a, b, k_idx] = 2 * pi * Heaviside(Delta[a, b, k_idx]) * \
-                    J_cb(Delta[a, b, k_idx]) * abs(X[a, b, k_idx])**2
+                    J_cb(Delta[a, b, k_idx]) * abs(X[a, b, k_idx]) ** 2
                 k_idx += 1
 
     for a in range(N):
@@ -738,7 +739,7 @@ def floquet_basis_transform(f_modes, f_energies, rho0):
 # Floquet-Markov master equation
 #
 #
-def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None, 
+def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                            options=None, floquet_basis=True):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
@@ -848,7 +849,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                 f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
                 for m in range(0, n_expt_op):
                     output.expect[m][t_idx] = expect(e_ops[m],
-                        rho.transform(f_modes_t, False))
+                                                     rho.transform(f_modes_t, False))
 
         r.integrate(r.t + dt)
         t_idx += 1
@@ -959,4 +960,3 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
                                   f_modes_table=(f_modes_table_t, T),
                                   options=options,
                                   floquet_basis=floquet_basis)
-
