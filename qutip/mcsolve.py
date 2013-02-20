@@ -246,7 +246,8 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500,
             and odeconfig.options.mc_avg):
         # averaging if multiple trajectories
         if isinstance(ntraj, int):
-            output.expect = mean(mc.expect_out, axis=0)
+            output.expect= [mean([mc.expect_out[nt][op] for nt in range(ntraj)],axis=0) 
+                            for op in range(odeconfig.e_num)]
         elif isinstance(ntraj, (list, ndarray)):
             output.expect = []
             for num in ntraj:
