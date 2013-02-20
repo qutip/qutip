@@ -134,7 +134,7 @@ os.environ['MKL_NUM_THREADS'] = str(multiprocessing.cpu_count())
 os.environ['NUM_THREADS'] = str(multiprocessing.cpu_count())
 
 try:
-    import qutip.fortran
+    from qutip.fortran import qutraj_run
 except:
     qutip.settings.fortran = False
 else:
