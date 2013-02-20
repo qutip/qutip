@@ -119,8 +119,8 @@ if not with_f90mc or len(blas_info) == 0:
 else:
     os.environ['FORTRAN_LIBS'] = 'TRUE'
 
-#--------- test command for running unittests ------------#
 
+#--------- test command for running unittests ------------#
 class TestCommand(Command):
     user_options = []
 
@@ -144,9 +144,8 @@ class TestCommand(Command):
         t = TextTestRunner(verbosity=1)
         t.run(tests)
 
+
 #--------- devtest command for running unittests-------------#
-
-
 class TestHereCommand(Command):
     user_options = []
     sys.path.append(os.getcwd())
@@ -173,7 +172,6 @@ class TestHereCommand(Command):
 
 
 #------ clean command for removing .pyc files -----------------#
-
 class CleanCommand(Command):
     user_options = [("all", "a", "All")]
 
@@ -221,6 +219,7 @@ def configuration(parent_package='', top_path=None):
     config.add_data_dir('qutip/tests')
 
     return config
+
 
 #--------- Setup commands go here ----------------#
 setup(

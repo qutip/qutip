@@ -1,9 +1,10 @@
 import os
 
-def configuration(parent_package='',top_path=None):
+
+def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
-    config = Configuration('qutip',parent_package,top_path)
-    #Add all QuTiP subpackages here:
+    config = Configuration('qutip', parent_package, top_path)
+    # Add all QuTiP subpackages here:
     config.add_subpackage('cyQ')
     if os.environ['FORTRAN_LIBS'] == 'TRUE':
         config.add_subpackage('fortran')
