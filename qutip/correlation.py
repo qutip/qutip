@@ -313,6 +313,49 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
     else:
         raise NotImplementedError("Unrecognized choice of solver %s." % solver)
 
+#------------------------------------------------------------------------------
+# high-level correlation function
+#------------------------------------------------------------------------------
+
+def coherence_function_g1(H, rho0, taulist, c_ops, a_op, solver="me"):
+    """
+    Calculate the first-order quantum coherence function:
+    """
+
+    # first calculate the photon number
+    if rho0 is None:
+        rho0 = steadystate(H, c_ops)
+        n = np.array([expect(rho0, a_op.dag() * a_op)])
+    else:
+        n = mesolve(H, rho0, taulist, c_ops, [a_op.dag() * a_op]).expect[0]
+
+    # calculate the correlation function G1 and normalize with n to obtain g1
+    G1 = correlation_2op_1t(H, rho0, taulist, c_ops, a_op.dag(), a_op,
+                            solver=solver)
+    g1 = G1 / sqrt(n[0] * n)
+
+    return g1, G1
+
+def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me"):
+    """
+    Calculate the second-order quantum coherence function:
+    """
+
+    # first calculate the photon number
+    if rho0 is None:
+        rho0 = steadystate(H, c_ops)
+        n = np.array([expect(rho0, a_op.dag() * a_op)])
+    else:
+        n = mesolve(H, rho0, taulist, c_ops, [a_op.dag() * a_op]).expect[0]
+
+    # calculate the correlation function G2 and normalize with n to obtain g2
+    G2 = correlation_4op_1t(H, rho0, taulist, c_ops, 
+                            a_op.dag(), a_op.dag(), a_op, a_op,
+                            solver=solver)
+    g2 = G2 / (n[0] * n)
+
+    return g2, G2
+    
 
 #------------------------------------------------------------------------------
 # LEGACY API
