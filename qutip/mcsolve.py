@@ -256,7 +256,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500,
                 if any([not op.isherm for op in e_ops]):
                     for k in range(len(e_ops)):
                         if e_ops[k].isherm:
-                            data_list.append(real(expt_data[k]))
+                            data_list.append(np.real(expt_data[k]))
                         else:
                             data_list.append(expt_data[k])
                 else:
