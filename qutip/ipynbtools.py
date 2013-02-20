@@ -31,6 +31,7 @@ import matplotlib
 import IPython
 import time
 
+
 def version_table():
     """
     Print an HTML-formatted table with version numbers for QuTiP and its
@@ -39,9 +40,9 @@ def version_table():
     possible to reproduce the environment and the calculation later on.
     """
 
-    html  = "<table>"
+    html = "<table>"
     html += "<tr><th>Software</th><th>Version</th></tr>"
-    
+
     packages = {"QuTiP": qutip.__version__,
                 "Numpy": numpy.__version__,
                 "SciPy": scipy.__version__,
@@ -49,9 +50,9 @@ def version_table():
                 "Cython": Cython.__version__,
                 "Python": sys.version,
                 "IPython": IPython.__version__,
-                "OS": "%s [%s]" % (os.name, sys.platform)                
+                "OS": "%s [%s]" % (os.name, sys.platform)
                 }
-    
+
     for name in packages:
         html += "<tr><td>%s</td><td>%s</td></tr>" % (name, packages[name])
 

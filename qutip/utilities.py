@@ -18,7 +18,7 @@
 ###########################################################################
 
 """
-This module contains utility functions that are commonly needed in other 
+This module contains utility functions that are commonly needed in other
 qutip modules.
 """
 
@@ -27,7 +27,7 @@ import numpy
 
 def n_thermal(w, w_th):
     """
-    Return the number of photons in thermal equilibrium for an harmonic 
+    Return the number of photons in thermal equilibrium for an harmonic
     oscillator mode with frequency 'w', at the temperature described by
     'w_th' where :math:`\\omega_{\\rm th} = k_BT/\\hbar`.
 
@@ -48,7 +48,7 @@ def n_thermal(w, w_th):
 
         Return the number of average photons in thermal equilibrium for a
         an oscillator with the given frequency and temperature.
-    
+
 
     """
 

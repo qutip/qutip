@@ -24,11 +24,11 @@ import qutip.settings
 import qutip._version
 from qutip._version import version as __version__
 
+
 #------------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
 # if the requirements aren't fulfilled
 #
-
 def version2int(version_string):
     str_list=version_string.split("rc")[0].split("b")[0].split('.')
     return sum([int(d) * (100 ** (3 - n)) for n, d in enumerate(str_list[:3])])
