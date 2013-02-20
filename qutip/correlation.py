@@ -214,9 +214,6 @@ def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
     d_op : :class:`qutip.qobj.Qobj`
         operator D.
 
-    rho0 : :class:`qutip.qobj.Qobj`
-        Optional initial state density matrix (default is the steady state).
-
     solver : str
         choice of solver (currently only `me` for master-equation)
 
@@ -281,9 +278,6 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
 
     d_op : :class:`qutip.qobj.Qobj`
         operator D.
-
-    rho0 : :class:`qutip.qobj.Qobj`
-        Optional initial state density matrix (default is the steady state).
 
     solver : str
         choice of solver (currently only `me` for master-equation)
