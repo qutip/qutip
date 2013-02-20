@@ -317,7 +317,7 @@ def coherence_function_g1(H, rho0, taulist, c_ops, a_op, solver="me"):
 
     .. math::
 
-        g^{(1)}(\\tau) = \\frac{\\langle a^\\dagger(\\tau)a(0)\\rangle}{\sqrt{\langle a^\dagger(\\tau)a(\\tau)\\rangle\\langle a^\\dagger(0)a(0)\\rangle}
+        g^{(1)}(\\tau) = \\frac{\\langle a^\\dagger(\\tau)a(0)\\rangle}{\sqrt{\langle a^\dagger(\\tau)a(\\tau)\\rangle\\langle a^\\dagger(0)a(0)\\rangle}}
 
     Parameters
     ----------
