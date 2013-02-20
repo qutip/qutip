@@ -134,7 +134,7 @@ Quantum Process Tomography
 Graphs and visualization
 ------------------------
 
-.. automodule:: qutip.graph
+.. automodule:: qutip.visualization
     :members: hinton, matrix_histogram, matrix_histogram_complex
     :undoc-members:
 
