@@ -139,6 +139,7 @@ except:
     qutip.settings.fortran = False
 else:
     qutip.settings.fortran = True
+    from qutip.fortran import *
 #------------------------------------------------------------------------------
 # Check that import modules are compatible with requested configuration
 #
