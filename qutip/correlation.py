@@ -320,6 +320,39 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
 def coherence_function_g1(H, rho0, taulist, c_ops, a_op, solver="me"):
     """
     Calculate the first-order quantum coherence function:
+
+    .. math::
+
+        g^{(1)}(\\tau) = \\frac{\\langle a^\\dagger(\\tau)a(0)\\rangle}{\sqrt{\langle a^\dagger(\\tau)a(\\tau)\\rangle\\langle a^\\dagger(0)a(0)\\rangle}
+
+    Parameters
+    ----------
+
+    H : :class:`qutip.qobj.Qobj`
+        system Hamiltonian.
+
+    rho0 : :class:`qutip.qobj.Qobj`
+        Initial state density matrix (or state vector). If 'rho0' is
+        'None', then the steady state will be used as initial state.
+
+    taulist : *list* / *array*
+        list of times for :math:`\\tau`.
+
+    c_ops : list of :class:`qutip.qobj.Qobj`
+        list of collapse operators.
+
+    a_op : :class:`qutip.qobj.Qobj`
+        The annihilation operator of the mode.
+
+    solver : str
+        choice of solver ('me', 'mc', 'es')
+
+    Returns
+    -------
+
+    g1, G2: tuble of *array*
+        The normalized and unnormalized first-order coherence function.
+
     """
 
     # first calculate the photon number
@@ -339,6 +372,39 @@ def coherence_function_g1(H, rho0, taulist, c_ops, a_op, solver="me"):
 def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me"):
     """
     Calculate the second-order quantum coherence function:
+
+    .. math::
+
+        g^{(2)}(\\tau) = \\frac{\\langle a^\\dagger(0)a^\\dagger(\\tau)a(\\tau)a(0)\\rangle}{\\langle a^\\dagger(\\tau)a(\\tau)\\rangle\\langle a^\\dagger(0)a(0)\\rangle}
+
+    Parameters
+    ----------
+
+    H : :class:`qutip.qobj.Qobj`
+        system Hamiltonian.
+
+    rho0 : :class:`qutip.qobj.Qobj`
+        Initial state density matrix (or state vector). If 'rho0' is
+        'None', then the steady state will be used as initial state.
+
+    taulist : *list* / *array*
+        list of times for :math:`\\tau`.
+
+    c_ops : list of :class:`qutip.qobj.Qobj`
+        list of collapse operators.
+
+    a_op : :class:`qutip.qobj.Qobj`
+        The annihilation operator of the mode.
+
+    solver : str
+        choice of solver (currently only 'me')
+
+    Returns
+    -------
+
+    g2, G2: tuble of *array*
+        The normalized and unnormalized second-order coherence function.
+
     """
 
     # first calculate the photon number
