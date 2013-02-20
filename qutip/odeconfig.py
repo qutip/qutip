@@ -19,6 +19,7 @@
 
 import inspect
 
+
 class Odeconfig():
 
     def __init__(self):
@@ -45,7 +46,7 @@ class Odeconfig():
         # codegen has been run
         self.cflag = 0     # Flag signaling collapse operators
         self.tflag = 0     # Flag signaling time-dependent problem
- 
+
         # time-dependent function stuff
         self.tdfunc = None     # Placeholder for time-dependent RHS function.
         self.tdname = None     # Name of td .pyx file (used in parallel mc code)
@@ -55,9 +56,8 @@ class Odeconfig():
                                # time-depdendent ODE solver.
 
         self.soft_reset()
-    
-    def soft_reset(self):
 
+    def soft_reset(self):
 
         # Hamiltonian stuff
         self.h_td_inds = []  # indicies of time-dependent Hamiltonian operators
@@ -79,7 +79,8 @@ class Odeconfig():
         self.c_ops_data = []    # collapse op data
         self.c_ops_ind = []     # collapse op indices
         self.c_ops_ptr = []     # collapse op indptrs
-        self.c_args = []        # store args for time-dependent collapse functions
+        self.c_args = []        # store args for time-dependent collapse
+                                # functions
 
         # Norm collapse operator stuff
         self.n_ops_data = []  # norm collapse op data
@@ -90,7 +91,6 @@ class Odeconfig():
         self.col_expect_code = None
         self.col_spmv_code = None
 
-
         # hold stuff for function list based time dependence
         self.h_td_inds = []
         self.h_td_data = []
@@ -99,10 +99,9 @@ class Odeconfig():
         self.h_funcs = None
         self.h_func_args = None
         self.c_funcs = None
-        self.c_func_args = None   
+        self.c_func_args = None
 
-# 
+#
 # create a global instance of the Odeconfig class
 #
 odeconfig = Odeconfig()
-

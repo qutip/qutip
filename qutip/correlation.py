@@ -236,7 +236,7 @@ def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
 
     if solver == "me":
         return _correlation_me_4op_1t(H, rho0, taulist, c_ops,
-                                         a_op, b_op, c_op, d_op)
+                                      a_op, b_op, c_op, d_op)
     else:
         raise NotImplementedError("Unrecognized choice of solver %s." % solver)
 
@@ -307,6 +307,7 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
     else:
         raise NotImplementedError("Unrecognized choice of solver %s." % solver)
 
+
 #------------------------------------------------------------------------------
 # high-level correlation function
 #------------------------------------------------------------------------------
@@ -363,6 +364,7 @@ def coherence_function_g1(H, rho0, taulist, c_ops, a_op, solver="me"):
 
     return g1, G1
 
+
 def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me"):
     """
     Calculate the second-order quantum coherence function:
@@ -409,13 +411,13 @@ def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me"):
         n = mesolve(H, rho0, taulist, c_ops, [a_op.dag() * a_op]).expect[0]
 
     # calculate the correlation function G2 and normalize with n to obtain g2
-    G2 = correlation_4op_1t(H, rho0, taulist, c_ops, 
+    G2 = correlation_4op_1t(H, rho0, taulist, c_ops,
                             a_op.dag(), a_op.dag(), a_op, a_op,
                             solver=solver)
     g2 = G2 / (n[0] * n)
 
     return g2, G2
-    
+
 
 #------------------------------------------------------------------------------
 # LEGACY API
@@ -473,6 +475,7 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op, rho0=None, solver="me",
 
     return correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op,
                               solver, reverse=reverse)
+
 
 def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
                 reverse=False):
@@ -562,6 +565,7 @@ def _correlation_es_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False):
         solC_tau = ode2es(L, b_op * rho0)
         return esval(expect(a_op, solC_tau), tlist)
 
+
 def _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
                            reverse=False):
     """
@@ -629,7 +633,7 @@ def _correlation_me_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False):
 
 
 def _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
-                       reverse=False):
+                           reverse=False):
     """
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation` for usage.
@@ -655,7 +659,7 @@ def _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
     else:
         # <A(t)B(t+tau)>
         for t_idx, rho_t in enumerate(rho_t_list):
-            C_mat[t_idx, :] = mesolve(H, rho_t * a_op, taulist, 
+            C_mat[t_idx, :] = mesolve(H, rho_t * a_op, taulist,
                                       c_ops, [b_op]).expect[0]
 
     return C_mat
@@ -677,7 +681,7 @@ def _correlation_me_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op):
     elif rho0 and isket(rho0):
         rho0 = ket2dm(rho0)
 
-    return mesolve(H, d_op * rho0 * a_op, tlist, 
+    return mesolve(H, d_op * rho0 * a_op, tlist,
                    c_ops, [b_op * c_op]).expect[0]
 
 
@@ -744,7 +748,7 @@ def _correlation_mc_2op_2t(H, psi0, tlist, taulist, c_ops, a_op, b_op,
         print(inspect.stack()[0][3])
 
     raise NotImplementedError("The Monte-Carlo solver currently cannot be " +
-        "used for correlation functions on the form <A(t)B(t+tau)>")
+                              "used for correlation functions on the form <A(t)B(t+tau)>")
 
     if psi0 is None or not isket(psi0):
         raise Exception("_correlation_mc_2op_2t requires initial state as ket")
@@ -775,7 +779,7 @@ def _correlation_mc_2op_2t(H, psi0, tlist, taulist, c_ops, a_op, b_op,
 def spectrum_correlation_fft(tlist, y):
     """
     Calculate the power spectrum corresponding to a two-time correlation
-    function using FFT. 
+    function using FFT.
 
     Parameters
     ----------
@@ -798,11 +802,11 @@ def spectrum_correlation_fft(tlist, y):
 
     if debug:
         print(inspect.stack()[0][3])
-    
-    N = len(tlist)
-    dt = tlist[1]-tlist[0]
 
-    F = scipy.fftpack.fft(y) 
+    N = len(tlist)
+    dt = tlist[1] - tlist[0]
+
+    F = scipy.fftpack.fft(y)
 
     # calculate the frequencies for the components in F
     f = scipy.fftpack.fftfreq(N, dt)
