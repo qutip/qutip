@@ -519,7 +519,7 @@ def fock_distribution(rho, fig=None, ax=None, figsize=(8,6)):
     Returns
     -------
 
-        An tuble of matplotlib figure and axes instances.
+        A tuple of matplotlib figure and axes instances.
 
     """
 
@@ -575,7 +575,7 @@ def wigner_fock_distribution(rho, fig=None, ax=None, figsize=(8,4),
     Returns
     -------
 
-        An tuble of matplotlib figure and axes instances.
+        A tuple of matplotlib figure and axes instances.
 
     """
 
