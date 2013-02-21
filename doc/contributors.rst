@@ -25,7 +25,7 @@ Contributors
 
 .. note::
 	
-	Anyone is free to contribute to QuTiP.  If you are interested in helping, please let us know!
+	Anyone is welcome to contribute to QuTiP.  If you are interested in helping, please let us know!
 
 
 **Bredan Abolins** (Berkeley) - Bug hunter
@@ -36,7 +36,7 @@ Contributors
 
 **Claudia Degrandi** (Yale University) - Documentation
 
-**Arne Grimsmo** (University of Auckland) - Bug hunter
+**Arne Grimsmo** (University of Auckland) - Code contributor, Bug hunter
 
 **JP Hadden** (University of Bristol) - Code contributor, improved Bloch sphere visualization
 
