@@ -78,7 +78,8 @@ class Odeoptions():
     def __init__(self, atol=1e-8, rtol=1e-6, method='adams', order=12,
                  nsteps=1000, first_step=0, max_step=0, min_step=0,
                  mc_avg=True, tidy=True, num_cpus=0, norm_tol=1e-3,
-                 norm_steps=5, rhs_reuse=False, rhs_filename=None, gui=True):
+                 norm_steps=5, rhs_reuse=False, rhs_filename=None, gui=True,
+                 ntraj=500):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -97,6 +98,8 @@ class Odeoptions():
         self.order = order
         # Average expectation values over trajectories (default = True)
         self.mc_avg = mc_avg
+        # Number of trajectories (default = 500)
+        self.ntraj = ntraj
         # tidyup Hamiltonian before calculation (default = True)
         self.tidy = tidy
         # Use preexisting RHS function for time-dependent solvers
@@ -134,9 +137,10 @@ class Odeoptions():
         print('tidy:         ', self.tidy)
         print('num_cpus:     ', self.num_cpus)
         print('norm_tol:     ', self.norm_tol)
-        print('norm_steps:     ', self.norm_steps)
+        print('norm_steps:   ', self.norm_steps)
         print('rhs_filename: ', self.rhs_filename)
         print('rhs_reuse:    ', self.rhs_reuse)
         print('gui:          ', self.gui)
         print('mc_avg:       ', self.mc_avg)
+        print('ntraj:        ', self.ntraj)
         return ''
