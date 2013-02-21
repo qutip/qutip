@@ -275,9 +275,9 @@ module qutraj_run
   ! Evolution
   !
 
-  subroutine evolve(instanceno,rngseed)
+  subroutine evolve(instanceno, rngseed, show_progress)
     ! What process # am I?
-    integer, intent(in) :: instanceno,rngseed
+    integer, intent(in) :: instanceno, rngseed, show_progress
     double precision :: t, tout
     double complex, allocatable :: y(:),y_tmp(:),rho(:,:)
     logical :: states
@@ -489,7 +489,7 @@ module qutraj_run
         ! End time loop
       enddo
       ! Indicate progress
-      if (instanceno == 1 .and. traj.ge.progress*ntraj/10.0) then
+      if (show_progress == 1 .and. instanceno == 1 .and. traj.ge.progress*ntraj/10.0) then
         write(*,*) "progress of process 1: ", progress*10, "%"
         progress=progress+1
       endif

@@ -114,9 +114,10 @@ python module qutraj_run ! in
             subroutine get_collapses(traj)
                 integer intent(in) :: traj
             end subroutine get_collapses
-            subroutine evolve(instanceno,rngseed) ! in :qutraj_run:qutraj_run.f90:qutraj_run
+            subroutine evolve(instanceno,rngseed,show_progress) ! in :qutraj_run:qutraj_run.f90:qutraj_run
                 integer intent(in) :: instanceno
                 integer intent(in) :: rngseed
+                integer intent(in) :: show_progress
             end subroutine evolve
             subroutine finalize_work ! in :qutraj_run:qutraj_run.f90:qutraj_run
             end subroutine finalize_work

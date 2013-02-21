@@ -335,7 +335,8 @@ class _MC_class():
         # calculate entropy of reduced density matrice?
         qtf90.qutraj_run.calc_entropy = self.calc_entropy
         # run
-        qtf90.qutraj_run.evolve(instanceno, rngseed)
+        show_progress = 1 if debug else 0
+        qtf90.qutraj_run.evolve(instanceno, rngseed, show_progress)
         # construct Odedata instance
         sol = Odedata()
         sol.ntraj = ntraj
