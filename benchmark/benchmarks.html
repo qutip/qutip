@@ -1,0 +1,75 @@
+<html>
+  <head>
+  <script src="http://d3js.org/d3.v3.min.js"></script>
+  <style>
+    .fig {
+      font-family:Arial;
+      font-size:10pt;
+      color:darkgray;
+    }
+  </style>
+	<title>QuTiP vs. qotoolbox Benchmarks</title>
+  </head>
+  <body>
+    <script type="text/javascript" src="benchmark_data.js"></script>
+	<script type="text/javascript">
+
+    var mySVG = d3.select("body")
+      .append("svg")
+      .attr("width", 800) 
+      .attr("height", 500)
+      .style('position','absolute')
+      .style('top',50)
+      .style('left',40)
+      .attr('class','fig');
+    var heightScale = d3.scale.linear()
+      .domain([0, d3.max(data,function(d) { return d.factor;})])
+      .range([0, 400]);
+
+    mySVG.selectAll(".xLabel")
+      .data(data)
+      .enter().append("svg:text")
+      .attr("x", function(d,i) {return 113 + (i * 22);})
+      .attr("y", 435)
+      .attr("text-anchor", "middle") 
+      .text(function(d,i) {return d.name;})
+      .attr('transform',function(d,i) {return 'rotate(-90,' + (113 + (i * 22)) + ',435)';}); 
+
+    mySVG.selectAll(".yLabel")
+      .data(heightScale.ticks(10))
+      .enter().append("svg:text")
+      .attr('x',80)
+      .attr('y',function(d) {return 400 - heightScale(d);})
+      .attr("text-anchor", "end") 
+      .attr("font-size", "14px")
+	  .text(function(d) {return d;}); 
+
+    mySVG.selectAll(".yTicks")
+      .data(heightScale.ticks(10))
+      .enter().append("svg:line")
+      .attr('x1','90')
+      .attr('y1',function(d) {return 400 - heightScale(d);})
+      .attr('x2',320)
+      .attr('y2',function(d) {return 400 - heightScale(d);})
+      .style('stroke','lightgray'); 
+
+    var myBars = mySVG.selectAll('rect')
+      .data(data)
+      .enter()
+      .append('svg:rect')
+      .attr('width',20)
+      .attr('height',function(d,i) {return heightScale(d.factor);})
+      .attr('x',function(d,i) {return (i * 22) + 100;})
+      .attr('y',function(d,i) {return 400 - heightScale(d.factor);})
+      .style('fill',function(d, i) {return d.factor < 1.0 ? 'lightcoral' : 'lightblue';});
+
+	mySVG.append("text")
+		.attr("y", 40)
+		.attr("x",-200)
+		.attr("transform", "rotate(-90)")
+		.attr("font-size", "16px")
+		.style("text-anchor", "middle")
+		.text("Speedup");
+	</script>
+  </body>
+</html>
