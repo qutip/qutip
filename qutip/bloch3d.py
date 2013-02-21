@@ -195,45 +195,45 @@ class Bloch3d():
         self.point_style = []
     
     def __str__(self):
-        print('')
-        print("Bloch3D data:")
-        print('-----------')
-        print("Number of points:  ", self.num_points)
-        print("Number of vectors: ", self.num_vectors)
-        print('')
-        print('Bloch3D sphere properties:')
-        print('--------------------------')
-        print("axes_alpha:         ", self.axes_alpha)
-        print("axes_color:         ", self.axes_color)
-        print("axes_radius:        ", self.axes_radius)
-        print("bgcolor:            ", self.bgcolor)
-        print("fgcolor:            ", self.fgcolor)
-        print("font_color:         ", self.font_color)
-        print("font_scale:         ", self.font_scale)
-        print("frame:              ", self.frame)
-        print("frame_alpha:        ", self.frame_alpha)
-        print("frame_color:        ", self.frame_color)
-        print("frame_num:          ", self.frame_num)
-        print("frame_radius:       ", self.frame_radius)
-        print("point_color:        ", self.point_color)
-        print("point_mode:         ", self.point_mode)
-        print("point_size:         ", self.point_size)
-        print("sphere_alpha:       ", self.sphere_alpha)
-        print("sphere_color:       ", self.sphere_color)
-        print("size:               ", self.size)
-        print("vector_alpha:       ", self.vector_alpha)
-        print("vector_color:       ", self.vector_color)
-        print("vector_width:       ", self.vector_width)
-        print("vector_head_height: ", self.vector_head_height)
-        print("vector_head_radius: ", self.vector_head_radius)
-        print("view:               ", self.view)
-        print("xlabel:             ", self.xlabel)
-        print("xlpos:              ", self.xlpos)
-        print("ylabel:             ", self.ylabel)
-        print("ylpos:              ", self.ylpos)
-        print("zlabel:             ", self.zlabel)
-        print("zlpos:              ", self.zlpos)
-        return ''
+        s = ""
+        s += "Bloch3D data:\n"
+        s += "-----------\n"
+        s += "Number of points:  " + str(self.num_points) + "\n"
+        s += "Number of vectors: " + str(self.num_vectors) + "\n"
+        s += "\n"
+        s += "Bloch3D sphere properties:\n"
+        s += "--------------------------\n"
+        s += "axes_alpha:         " + str(self.axes_alpha) + "\n"
+        s += "axes_color:         " + str(self.axes_color) + "\n"
+        s += "axes_radius:        " + str(self.axes_radius) + "\n"
+        s += "bgcolor:            " + str(self.bgcolor) + "\n"
+        s += "fgcolor:            " + str(self.fgcolor) + "\n"
+        s += "font_color:         " + str(self.font_color) + "\n"
+        s += "font_scale:         " + str(self.font_scale) + "\n"
+        s += "frame:              " + str(self.frame) + "\n"
+        s += "frame_alpha:        " + str(self.frame_alpha) + "\n"
+        s += "frame_color:        " + str(self.frame_color) + "\n"
+        s += "frame_num:          " + str(self.frame_num) + "\n"
+        s += "frame_radius:       " + str(self.frame_radius) + "\n"
+        s += "point_color:        " + str(self.point_color) + "\n"
+        s += "point_mode:         " + str(self.point_mode) + "\n"
+        s += "point_size:         " + str(self.point_size) + "\n"
+        s += "sphere_alpha:       " + str(self.sphere_alpha) + "\n"
+        s += "sphere_color:       " + str(self.sphere_color) + "\n"
+        s += "size:               " + str(self.size) + "\n"
+        s += "vector_alpha:       " + str(self.vector_alpha) + "\n"
+        s += "vector_color:       " + str(self.vector_color) + "\n"
+        s += "vector_width:       " + str(self.vector_width) + "\n"
+        s += "vector_head_height: " + str(self.vector_head_height) + "\n"
+        s += "vector_head_radius: " + str(self.vector_head_radius) + "\n"
+        s += "view:               " + str(self.view) + "\n"
+        s += "xlabel:             " + str(self.xlabel) + "\n"
+        s += "xlpos:              " + str(self.xlpos) + "\n"
+        s += "ylabel:             " + str(self.ylabel) + "\n"
+        s += "ylpos:              " + str(self.ylpos) + "\n"
+        s += "zlabel:             " + str(self.zlabel) + "\n"
+        s += "zlpos:              " + str(self.zlpos) + "\n"
+        return s
         
     def clear(self):
         """Resets the Bloch sphere data sets to empty.
