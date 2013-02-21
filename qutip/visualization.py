@@ -500,6 +500,27 @@ def fock_distribution(rho, fig=None, ax=None, figsize=(8,6)):
     """
     Plot the Fock distribution for a density matrix (or ket) that describes
     an oscillator mode.
+
+    Parameters
+    ----------
+    rho : :class:`qutip.qobj.Qobj`
+        The density matrix (or ket) of the state to visualize.
+
+    fig : a matplotlib Figure instance
+        The Figure canvas in which the plot will be drawn.
+
+    ax : a matplotlib axes instance
+        The axes context in which the plot will be drawn.
+
+    figsize : (width, height)
+        The size of the matplotlib figure (in inches) if it is to be created
+        (that is, if no 'fig' and 'ax' arguments are passed).
+
+    Returns
+    -------
+
+        An tuble of matplotlib figure and axes instances.
+
     """
 
     if not fig and not ax:
@@ -514,8 +535,8 @@ def fock_distribution(rho, fig=None, ax=None, figsize=(8,6)):
            width=0.8)
     ax.set_ylim(0, 1)
     ax.set_xlim(-.5, N)
-    ax.set_xlabel('Fock number', fontsize=14)
-    ax.set_ylabel('Occupation probability', fontsize=14)
+    ax.set_xlabel('Fock number', fontsize=12)
+    ax.set_ylabel('Occupation probability', fontsize=12)
 
     return fig, ax
 
@@ -523,8 +544,39 @@ def fock_distribution(rho, fig=None, ax=None, figsize=(8,6)):
 def wigner_fock_distribution(rho, fig=None, ax=None, figsize=(8,4),
                              cmap=None, alpha_max=7.5, colorbar=False):
     """
-    Plot the Fock distribution and the wigner function for a density matrix
+    Plot the Fock distribution and the Wigner function for a density matrix
     (or ket) that describes an oscillator mode.
+
+    Parameters
+    ----------
+    rho : :class:`qutip.qobj.Qobj`
+        The density matrix (or ket) of the state to visualize.
+
+    fig : a matplotlib Figure instance
+        The Figure canvas in which the plot will be drawn.
+
+    ax : a matplotlib axes instance
+        The axes context in which the plot will be drawn.
+
+    figsize : (width, height)
+        The size of the matplotlib figure (in inches) if it is to be created
+        (that is, if no 'fig' and 'ax' arguments are passed).
+
+    cmap : a matplotlib cmap instance
+        The colormap.
+
+    alpha_max : float
+        The span of the x and y coordinates (both [-alpha_max, alpha_max]).
+
+    colorbar : bool
+        Whether (True) or not (False) a colorbar should be attached to the
+        Wigner function graph.
+
+    Returns
+    -------
+
+        An tuble of matplotlib figure and axes instances.
+
     """
 
     if not fig and not ax:
@@ -544,13 +596,16 @@ def wigner_fock_distribution(rho, fig=None, ax=None, figsize=(8,4),
         #cmap = wigner_cmap(W)
 
     cf = axes[1].contourf(xvec, xvec, W, 100,
-                          norm=mpl.colors.Normalize(-wlim, wlim),
-                          cmap=cmap)
-    axes[1].set_xlabel(r'Im $\alpha$', fontsize=14)
-    axes[1].set_ylabel(r'Re $\alpha$', fontsize=14)
+                          norm=mpl.colors.Normalize(-wlim, wlim), cmap=cmap)
+
+    axes[1].set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
+    axes[1].set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
 
     if colorbar:
         cb = fig.colorbar(cf, ax=axes[1])
+
+    axes[0].set_title("Fock distribution", fontsize=12)
+    axes[1].set_title("Wigner function", fontsize=12)
 
     return fig, ax
 
