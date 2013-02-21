@@ -76,6 +76,11 @@ def ipy_parfor(task, task_vec, args=None, client=None, view=None):
     if view is None:
         view = client.load_balanced_view()
 
+    # make sure qutip is available at engines
+    dview = client[:]
+    dview.block = True
+    dview.execute("from qutip import *")
+
     if args is None:
         ar = [view.apply_async(task, x) for x in task_vec]
     else:
