@@ -472,6 +472,14 @@ def _gather(sols):
                 sol.expect[jj]=np.real(sol.expect[jj])
         if (hasattr(sols[0], 'entropy')):
             sol.entropy = sol.entropy / len(sols)
+    
+    #convert sol.expect array to list and fix dtypes of arrays
+    if (not odeconfig.options.mc_avg) and odeconfig.e_num!=0:
+        temp=[list(sol.expect[ii]) for ii in range(ntraj)]
+        for ii in range(ntraj):
+            for jj in np.where(odeconfig.e_ops_isherm)[0]:
+                temp[ii][jj]=np.real(temp[ii][jj])
+        sol.expect=temp
     # convert to list/array to be consistent with qutip mcsolve
     sol.states = list(sol.states)
     return sol
