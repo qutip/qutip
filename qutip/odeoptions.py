@@ -69,6 +69,8 @@ class Odeoptions():
         Use progress bar GUI for mcsolver.
     mc_avg : bool {True,False}
         Avg. expectation values in mcsolver.
+    ntraj : int {500}
+        Number of trajectories in mcsolver.
     rhs_reuse : bool {False,True}
         Reuse Hamiltonian data.
     rhs_filename : str
@@ -124,23 +126,24 @@ class Odeoptions():
         self.gui = gui
 
     def __str__(self):
-        print("Odeoptions properties:")
-        print("----------------------")
-        print("atol:         ", self.atol)
-        print('rtol:         ', self.rtol)
-        print('method:       ', self.method)
-        print('order:        ', self.order)
-        print('nsteps:       ', self.nsteps)
-        print('first_step:   ', self.first_step)
-        print('min_step:     ', self.min_step)
-        print('max_step:     ', self.max_step)
-        print('tidy:         ', self.tidy)
-        print('num_cpus:     ', self.num_cpus)
-        print('norm_tol:     ', self.norm_tol)
-        print('norm_steps:   ', self.norm_steps)
-        print('rhs_filename: ', self.rhs_filename)
-        print('rhs_reuse:    ', self.rhs_reuse)
-        print('gui:          ', self.gui)
-        print('mc_avg:       ', self.mc_avg)
-        print('ntraj:        ', self.ntraj)
-        return ''
+        s = ""
+        s += "Odeoptions properties:\n"
+        s += "----------------------\n"
+        s += "atol:         " + str(self.atol) + "\n"
+        s += "rtol:         " + str(self.rtol) + "\n"
+        s += "method:       " + str(self.method) + "\n"
+        s += "order:        " + str(self.order) + "\n"
+        s += "nsteps:       " + str(self.nsteps) + "\n"
+        s += "first_step:   " + str(self.first_step) + "\n"
+        s += "min_step:     " + str(self.min_step) + "\n"
+        s += "max_step:     " + str(self.max_step) + "\n"
+        s += "tidy:         " + str(self.tidy) + "\n"
+        s += "num_cpus:     " + str(self.num_cpus) + "\n"
+        s += "norm_tol:     " + str(self.norm_tol) + "\n"
+        s += "norm_steps:   " + str(self.norm_steps) + "\n"
+        s += "rhs_filename: " + str(self.rhs_filename) + "\n"
+        s += "rhs_reuse:    " + str(self.rhs_reuse) + "\n"
+        s += "gui:          " + str(self.gui) + "\n"
+        s += "mc_avg:       " + str(self.mc_avg) + "\n"
+        s += "ntraj:        " + str(self.ntraj) + "\n"
+        return s
