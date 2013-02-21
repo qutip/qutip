@@ -140,6 +140,16 @@
                 }, 
                 {
                     "color": "#0B5FA5", 
+                    "name": "coherence_function_g1", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "coherence_function_g2", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
                     "name": "correlation_ss", 
                     "size": 1000
                 }, 
@@ -242,6 +252,11 @@
                 {
                     "color": "#0B5FA5", 
                     "name": "floquet_state_decomposition", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#0B5FA5", 
+                    "name": "fsesolve", 
                     "size": 1000
                 }, 
                 {
@@ -472,6 +487,16 @@
                 {
                     "color": "#3F8FD2", 
                     "name": "wigner_cmap", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#3F8FD2", 
+                    "name": "fock_distribution", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#3F8FD2", 
+                    "name": "wigner_fock_distribution", 
                     "size": 1000
                 }
             ], 
@@ -1187,6 +1212,23 @@
             "color": "#BF5730", 
             "idx": 8, 
             "name": "clebsch"
+        }, 
+        {
+            "children": [
+                {
+                    "color": "#BF5730", 
+                    "name": "n_thermal", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#BF5730", 
+                    "name": "linspace_with", 
+                    "size": 1000
+                }
+            ], 
+            "color": "#BF5730", 
+            "idx": 8, 
+            "name": "utilities"
         }, 
         {
             "children": [

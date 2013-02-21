@@ -54,6 +54,7 @@ module_cmap = {"mesolve":           0, # time evolution
                "entropy":           6, # measures
                "metrics":           6,
                "fileio":            8, # utilities
+               "utilities":         8,
                "ipynbtools":        8,
                "sparse":            8,
                "simdiag":           8,
@@ -78,7 +79,7 @@ for root, dirs, files in os.walk(qutip_root):
     if not ".svn" in root and root == "../../qutip/qutip":
 
         for f in files:
-            if f[-3:] == ".py" and f[0] != "_":
+            if f[-3:] == ".py" and f[0] != "_" and f != "setup.py":
 
                 module = f[:-3]
                 
