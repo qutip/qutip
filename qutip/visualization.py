@@ -25,6 +25,7 @@ if qutip.settings.qutip_graphics == 'YES':
     from mpl_toolkits.mplot3d import Axes3D
 
 from qutip.qobj import Qobj, isket, isbra
+from qutip.wigner import wigner
 
 #
 # A collection of various visalization functions.
@@ -493,3 +494,63 @@ def wigner_cmap(W, levels=1024, invert=False):
                                                             adjust_RGBA,
                                                             N=levels)
     return wig_cmap
+
+
+def fock_distribution(rho, fig=None, ax=None, figsize=(8,6)):
+    """
+    Plot the Fock distribution for a density matrix (or ket) that describes
+    an oscillator mode.
+    """
+
+    if not fig and not ax:
+        fig, ax = subplots(1, 1, figsize=figsize)
+
+    if isket(rho):
+        rho = ket2dm(rho)
+
+    N = rho.shape[0]
+
+    ax.bar(arange(0, N)-.4, real(rho.diag()), color="green", alpha=0.6,
+           width=0.8)
+    ax.set_ylim(0, 1)
+    ax.set_xlim(-.5, N)
+    ax.set_xlabel('Fock number', fontsize=14)
+    ax.set_ylabel('Occupation probability', fontsize=14)
+
+    return fig, ax
+
+
+def wigner_fock_distribution(rho, fig=None, ax=None, figsize=(8,4),
+                             cmap=None, alpha_max=7.5, colorbar=False):
+    """
+    Plot the Fock distribution and the wigner function for a density matrix
+    (or ket) that describes an oscillator mode.
+    """
+
+    if not fig and not ax:
+        fig, axes = subplots(1, 2, figsize=figsize)
+
+    if isket(rho):
+        rho = ket2dm(rho)
+
+    fock_distribution(rho, fig=fig, ax=axes[0])
+    
+    xvec = linspace(-alpha_max, alpha_max, 200)
+    W = wigner(rho, xvec, xvec)
+    wlim = abs(W).max()
+
+    if cmap is None:
+        cmap = get_cmap('RdBu')
+        #cmap = wigner_cmap(W)
+
+    cf = axes[1].contourf(xvec, xvec, W, 100,
+                          norm=mpl.colors.Normalize(-wlim, wlim),
+                          cmap=cmap)
+    axes[1].set_xlabel(r'Im $\alpha$', fontsize=14)
+    axes[1].set_ylabel(r'Re $\alpha$', fontsize=14)
+
+    if colorbar:
+        cb = fig.colorbar(cf, ax=axes[1])
+
+    return fig, ax
+
