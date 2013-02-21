@@ -12,7 +12,7 @@ wpr = np.dtype(np.float64)
 wpc = np.dtype(np.complex128)
 
 
-def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=500,
+def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=None,
                 options=Odeoptions(), sparse_dms=True, serial=False,
                 ptrace_sel=[], calc_entropy=False):
     """
@@ -61,6 +61,9 @@ def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=500,
         Object storing all results from simulation.
 
     """
+    if ntraj is None:
+        ntraj = options.ntraj
+
     if psi0.type != 'ket':
         raise Exception("Initial state must be a state vector.")
     odeconfig.options = options

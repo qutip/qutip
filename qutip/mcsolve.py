@@ -54,7 +54,7 @@ _cy_col_spmv_call_func = None
 _cy_col_expect_call_func = None
 _cy_rhs_func = None
 
-def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500,
+def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
             args={}, options=Odeoptions()):
     """Monte-Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
@@ -129,6 +129,9 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=500,
 
     if debug:
         print(inspect.stack()[0][3])
+
+    if ntraj is None:
+        ntraj = options.ntraj
         
     # if single operator is passed for c_ops or e_ops, convert it to
     # list containing only that operator
