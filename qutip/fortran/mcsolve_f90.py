@@ -26,6 +26,7 @@ from qutip.qobj import Qobj
 from qutip.mcsolve import _mc_data_config
 from qutip.odeoptions import Odeoptions
 from qutip.odedata import Odedata
+from qutip.settings import debug
 
 # Working precision
 wpr = np.dtype(np.float64)
@@ -101,10 +102,7 @@ def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     # set general items
     odeconfig.tlist = tlist
     if isinstance(ntraj, (list, np.ndarray)):
-        print('mcsolve_f90: Sorry, ntraj as list argument is not supported.')
-        return
-        # odeconfig.ntraj=sort(ntraj)[-1]
-        # ntraj_list = ntraj
+        raise Exception("ntraj as list argument is not supported.")
     else:
         odeconfig.ntraj = ntraj
         # ntraj_list = [ntraj]
@@ -136,7 +134,8 @@ def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     elif (options.method == 'bdf'):
         mc.mf = 22
     else:
-        print('Unrecognized method for ode solver, using "adams".')
+        if debug:
+            print('Unrecognized method for ode solver, using "adams".')
         mc.mf = 10
     # store ket and density matrix dims and shape for convenience
     mc.psi0_dims = psi0.dims
@@ -150,19 +149,21 @@ def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     # are we doing a partial trace for returned states?
     mc.ptrace_sel = ptrace_sel
     if (ptrace_sel != []):
-        print("ptrace_sel set to " + str(ptrace_sel))
-        print("ps. We are using dense density matrices during computation " +
-              "when performing partial trace. Setting sparse_dms = False")
-        print('This feature is experimental.')
+        if debug:
+            print("ptrace_sel set to " + str(ptrace_sel))
+            print("We are using dense density matrices during computation " +
+                  "when performing partial trace. Setting sparse_dms = False")
+            print("This feature is experimental.")
         mc.sparse_dms = False
         mc.dm_dims = psi0.ptrace(ptrace_sel).dims
         mc.dm_shape = psi0.ptrace(ptrace_sel).shape
     if (calc_entropy):
         if (ptrace_sel == []):
-            print("calc_entropy = True, but ptrace_sel = []. Please set a " +
-                  "list of components to keep when calculating average " +
-                  "entropy of reduced density matrix in ptrace_sel. Setting " +
-                  "calc_entropy = False.")
+            if debug:
+                print("calc_entropy = True, but ptrace_sel = []. Please set " +
+                     "a list of components to keep when calculating average " +
+                     "entropy of reduced density matrix in ptrace_sel. " +
+                     "Setting calc_entropy = False.")
             calc_entropy = False
         mc.calc_entropy = calc_entropy
 
@@ -229,9 +230,10 @@ class _MC_class():
         sols = []
         processes = []
         resq = JoinableQueue()
-        print("Number of cpus: " + str(self.cpus))
-        print("Trying to start " + str(self.nprocs) + " process(es).")
-        print("Number of trajectories for each process: " + str(self.ntrajs))
+        if debug:
+            print("Number of cpus: " + str(self.cpus))
+            print("Trying to start " + str(self.nprocs) + " process(es).")
+            print("Number of trajectories for each process: " + str(self.ntrajs))
         for i in range(self.nprocs):
             p = Process(target=self.evolve_serial,
                         args=((resq, self.ntrajs[i], i, self.seed * (i + 1)),))
@@ -255,7 +257,8 @@ class _MC_class():
             try:
                 proc.join()
             except KeyboardInterrupt:
-                print("Cancel thread on keyboard interrupt")
+                if debug:
+                    print("Cancel thread on keyboard interrupt")
                 proc.terminate()
                 proc.join()
         resq.close()
@@ -264,8 +267,9 @@ class _MC_class():
     def serial(self):
         self.nprocs = 1
         self.ntrajs = [self.ntraj]
-        print("Running in serial.")
-        print("Number of trajectories: " + str(self.ntraj))
+        if debug:
+            print("Running in serial.")
+            print("Number of trajectories: " + str(self.ntraj))
         sol = self.evolve_serial((0, self.ntraj, 0, self.seed))
         return [sol]
 
@@ -428,8 +432,7 @@ class _MC_class():
 
     def get_entropy(self, nstep):
         if (not self.calc_entropy):
-            print('get_entropy: calc_entropy=False. Aborting.')
-            return
+            raise Exception('get_entropy: calc_entropy=False. Aborting.')
         entropy = np.array([0.] * nstep)
         entropy[:] = qtf90.qutraj_run.reduced_state_entropy[:]
         return entropy
