@@ -66,7 +66,7 @@ def test_Transformation4():
     assert_equal((H1 - H2).norm() < 1e-6, True)
 
 def test_Transformation5():
-    "Transform test for consistency between transformations of kets and denstity matrices"
+    "Consistency between transformations of kets and denstity matrices"
     
     N = 4
     psi0 = rand_ket(N)
