@@ -189,37 +189,37 @@ class Bloch():
         self.point_style = []
 
     def __str__(self):
-        print('')
-        print("Bloch data:")
-        print('-----------')
-        print("Number of points:  ", self.num_points)
-        print("Number of vectors: ", self.num_vectors)
-        print('')
-        print('Bloch sphere properties:')
-        print('------------------------')
-        print("font_color:      ", self.font_color)
-        print("font_size:       ", self.font_size)
-        print("frame_alpha:     ", self.frame_alpha)
-        print("frame_color:     ", self.frame_color)
-        print("frame_width:     ", self.frame_width)
-        print("point_color:     ", self.point_color)
-        print("point_marker:    ", self.point_marker)
-        print("point_size:      ", self.point_size)
-        print("sphere_alpha:    ", self.sphere_alpha)
-        print("sphere_color:    ", self.sphere_color)
-        print("size:            ", self.size)
-        print("vector_color:    ", self.vector_color)
-        print("vector_width:    ", self.vector_width)
-        print("vector_style:    ", self.vector_style)
-        print("vector_mutation: ", self.vector_mutation)
-        print("view:            ", self.view)
-        print("xlabel:          ", self.xlabel)
-        print("xlpos:           ", self.xlpos)
-        print("ylabel:          ", self.ylabel)
-        print("ylpos:           ", self.ylpos)
-        print("zlabel:          ", self.zlabel)
-        print("zlpos:           ", self.zlpos)
-        return ''
+        s = ""
+        s += "Bloch data:\n"
+        s += "-----------\n"
+        s += "Number of points:  " + str(self.num_points) + "\n"
+        s += "Number of vectors: " + str(self.num_vectors) + "\n"
+        s += "\n"
+        s += "Bloch sphere properties:\n"
+        s += "------------------------\n"
+        s += "font_color:      " + str(self.font_color) + "\n"
+        s += "font_size:       " + str(self.font_size) + "\n"
+        s += "frame_alpha:     " + str(self.frame_alpha) + "\n"
+        s += "frame_color:     " + str(self.frame_color) + "\n"
+        s += "frame_width:     " + str(self.frame_width) + "\n"
+        s += "point_color:     " + str(self.point_color) + "\n"
+        s += "point_marker:    " + str(self.point_marker) + "\n"
+        s += "point_size:      " + str(self.point_size) + "\n"
+        s += "sphere_alpha:    " + str(self.sphere_alpha) + "\n"
+        s += "sphere_color:    " + str(self.sphere_color) + "\n"
+        s += "size:            " + str(self.size) + "\n"
+        s += "vector_color:    " + str(self.vector_color) + "\n"
+        s += "vector_width:    " + str(self.vector_width) + "\n"
+        s += "vector_style:    " + str(self.vector_style) + "\n"
+        s += "vector_mutation: " + str(self.vector_mutation) + "\n"
+        s += "view:            " + str(self.view) + "\n"
+        s += "xlabel:          " + str(self.xlabel) + "\n"
+        s += "xlpos:           " + str(self.xlpos) + "\n"
+        s += "ylabel:          " + str(self.ylabel) + "\n"
+        s += "ylpos:           " + str(self.ylpos) + "\n"
+        s += "zlabel:          " + str(self.zlabel) + "\n"
+        s += "zlpos:           " + str(self.zlpos) + "\n"
+        return s
 
     def clear(self):
         """Resets Bloch sphere data sets to empty.
