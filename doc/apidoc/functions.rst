@@ -147,7 +147,7 @@ Utitlitu functions
 ------------------
 
 .. automodule:: qutip.utilities
-    :members: n_thermal
+    :members: n_thermal, linspace_with
 
 
 File I/O Functions
