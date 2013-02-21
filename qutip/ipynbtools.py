@@ -21,6 +21,8 @@ This module contains utility functions for using QuTiP with IPython notebooks.
 """
 
 from IPython.core.display import HTML
+from IPython.parallel import Client
+
 import sys
 import os
 import qutip
@@ -60,3 +62,26 @@ def version_table():
     html += "</table>"
 
     return HTML(html)
+
+
+def ipy_parfor(task, task_vec, args=None, client=None, view=None):
+    """
+    Call the function 'tast' for each value in 'task_vec' using a cluster
+    of IPython engines.
+    """
+
+    if client is None:
+        client = Client()
+
+    if view is None:
+        view = client.load_balanced_view()
+
+    if args is None:
+        ar = [view.apply_async(task, x) for x in task_vec]
+    else:
+        ar = [view.apply_async(task, x, args) for x in task_vec]
+
+    view.wait(ar)
+
+    return [a.get() for a in ar]
+
