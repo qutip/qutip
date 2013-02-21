@@ -249,5 +249,4 @@ from qutip.bloch_redfield import *
 from qutip.utilities import *
 from qutip.fileio import *
 from qutip.demos import demos
-# import qutip.examples
 from qutip.about import *

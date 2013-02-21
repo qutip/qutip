@@ -22,12 +22,6 @@ from scipy import arange, array, any
 
 import qutip.settings as settings
 
-if settings.qutip_graphics == 'YES':
-    import qutip.examples as examples
-    from qutip.examples import exconfig
-    from qutip.examples.examples_text import button_labels, button_nums
-
-
 def demos():
     """
     Calls the demos scripts via a GUI window if PySide
@@ -37,6 +31,11 @@ def demos():
     if settings.qutip_graphics == 'NO':  # check for matplotlib
         print('Demos unavailable. Matplotlib was not found.')
         return
+
+    import qutip.examples as examples
+    from qutip.examples import exconfig
+    from qutip.examples.examples_text import button_labels, button_nums
+
     direc = os.path.dirname(__file__)
     exconfig.tab = 0
     exconfig.button_num = 0
