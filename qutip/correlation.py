@@ -40,7 +40,7 @@ if debug:
 #------------------------------------------------------------------------------
 
 def correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver="me",
-                       reverse=False):
+                       reverse=False, options=Odeoptions()):
     """
     Calculate a two-operator two-time correlation function
     :math:`\left<A(\\tau)B(0)\\right>` or
@@ -91,19 +91,19 @@ def correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver="me",
 
     if solver == "me":
         return _correlation_me_2op_1t(H, rho0, taulist, c_ops, a_op, b_op,
-                                      reverse)
+                                      reverse, options=options)
     elif solver == "es":
         return _correlation_es_2op_1t(H, rho0, taulist, c_ops, a_op, b_op,
-                                      reverse)
+                                      reverse, options=options)
     elif solver == "mc":
         return _correlation_mc_2op_1t(H, rho0, taulist, c_ops, a_op, b_op,
-                                      reverse)
+                                      reverse, options=options)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
 
 def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
-                       reverse=False):
+                       reverse=False, options=Odeoptions()):
     """
     Calculate a two-operator two-time correlation function on the form
     :math:`\left<A(t+\\tau)B(t)\\right>` or
@@ -164,23 +164,23 @@ def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
         # the ss solver with the supplied density matrix as initial state (in
         # place of the steady state)
         return correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver,
-                                  reverse)
+                                  reverse, options=options)
 
     if solver == "me":
         return _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops,
-                                      a_op, b_op, reverse)
+                                      a_op, b_op, reverse, options=options)
     elif solver == "es":
         return _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops,
-                                      a_op, b_op, reverse)
+                                      a_op, b_op, reverse, options=options)
     elif solver == "mc":
         return _correlation_mc_2op_2t(H, rho0, tlist, taulist, c_ops,
-                                      a_op, b_op, reverse)
+                                      a_op, b_op, reverse, options=options)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
 
 def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
-                       solver="me"):
+                       solver="me", options=Odeoptions()):
     """
     Calculate the four-operator two-time correlation function on the from
     :math:`\left<A(0)B(\\tau)C(\\tau)D(0)\\right>` using the quantum regression
@@ -236,13 +236,14 @@ def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
 
     if solver == "me":
         return _correlation_me_4op_1t(H, rho0, taulist, c_ops,
-                                      a_op, b_op, c_op, d_op)
+                                      a_op, b_op, c_op, d_op,
+                                      options=options)
     else:
         raise NotImplementedError("Unrecognized choice of solver %s." % solver)
 
 
 def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
-                       solver="me"):
+                       solver="me", options=Odeoptions()):
     """
     Calculate the four-operator two-time correlation function on the from
     :math:`\left<A(t)B(t+\\tau)C(t+\\tau)D(t)\\right>` using the quantum
@@ -303,7 +304,8 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
 
     if solver == "me":
         return _correlation_me_ss_4op_2t(H, rho0, tlist, taulist, c_ops,
-                                         a_op, b_op, c_op, d_op)
+                                         a_op, b_op, c_op, d_op,
+                                         options=options)
     else:
         raise NotImplementedError("Unrecognized choice of solver %s." % solver)
 
@@ -312,7 +314,8 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
 # high-level correlation function
 #------------------------------------------------------------------------------
 
-def coherence_function_g1(H, rho0, taulist, c_ops, a_op, solver="me"):
+def coherence_function_g1(H, rho0, taulist, c_ops, a_op, solver="me",
+                          options=Odeoptions()):
     """
     Calculate the first-order quantum coherence function:
 
@@ -355,17 +358,19 @@ def coherence_function_g1(H, rho0, taulist, c_ops, a_op, solver="me"):
         rho0 = steadystate(H, c_ops)
         n = np.array([expect(rho0, a_op.dag() * a_op)])
     else:
-        n = mesolve(H, rho0, taulist, c_ops, [a_op.dag() * a_op]).expect[0]
+        n = mesolve(H, rho0, taulist, c_ops, [a_op.dag() * a_op],
+                    options=options).expect[0]
 
     # calculate the correlation function G1 and normalize with n to obtain g1
     G1 = correlation_2op_1t(H, rho0, taulist, c_ops, a_op.dag(), a_op,
-                            solver=solver)
+                            solver=solver, options=options)
     g1 = G1 / sqrt(n[0] * n)
 
     return g1, G1
 
 
-def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me"):
+def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me",
+                          options=Odeoptions()):
     """
     Calculate the second-order quantum coherence function:
 
@@ -413,7 +418,7 @@ def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me"):
     # calculate the correlation function G2 and normalize with n to obtain g2
     G2 = correlation_4op_1t(H, rho0, taulist, c_ops,
                             a_op.dag(), a_op.dag(), a_op, a_op,
-                            solver=solver)
+                            solver=solver, options=options)
     g2 = G2 / (n[0] * n)
 
     return g2, G2
@@ -424,7 +429,7 @@ def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me"):
 #------------------------------------------------------------------------------
 
 def correlation_ss(H, taulist, c_ops, a_op, b_op, rho0=None, solver="me",
-                   reverse=False):
+                   reverse=False, options=Odeoptions()):
     """
     Calculate a two-operator two-time correlation function
     :math:`\left<A(\\tau)B(0)\\right>` or
@@ -474,11 +479,11 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op, rho0=None, solver="me",
         print(inspect.stack()[0][3])
 
     return correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op,
-                              solver, reverse=reverse)
+                              solver, reverse=reverse, options=options)
 
 
 def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
-                reverse=False):
+                reverse=False, options=Odeoptions()):
     """
     Calculate a two-operator two-time correlation function on the form
     :math:`\left<A(t+\\tau)B(t)\\right>` or
@@ -531,13 +536,14 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
         print(inspect.stack()[0][3])
 
     return correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
-                              solver=solver, reverse=reverse)
+                              solver=solver, reverse=reverse, options=options)
 
 
 # -----------------------------------------------------------------------------
 # EXPONENTIAL SERIES SOLVERS
 # -----------------------------------------------------------------------------
-def _correlation_es_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False):
+def _correlation_es_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False,
+                           options=Odeoptions()):
     """
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation_ss` usage.
@@ -567,7 +573,7 @@ def _correlation_es_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False):
 
 
 def _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
-                           reverse=False):
+                           reverse=False, options=Odeoptions()):
     """
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation` usage.
@@ -610,7 +616,8 @@ def _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 # MASTER EQUATION SOLVERS
 # -----------------------------------------------------------------------------
 
-def _correlation_me_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False):
+def _correlation_me_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False,
+                           options=Odeoptions()):
     """
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation_ss` for usage.
@@ -626,14 +633,16 @@ def _correlation_me_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False):
 
     if reverse:
         # <A(t)B(t+tau)>
-        return mesolve(H, rho0 * a_op, tlist, c_ops, [b_op]).expect[0]
+        return mesolve(H, rho0 * a_op, tlist, c_ops, [b_op],
+                       options=options).expect[0]
     else:
         # <A(t+tau)B(t)>
-        return mesolve(H, b_op * rho0, tlist, c_ops, [a_op]).expect[0]
+        return mesolve(H, b_op * rho0, tlist, c_ops, [a_op],
+                       options=options).expect[0]
 
 
 def _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
-                           reverse=False):
+                           reverse=False, options=Odeoptions()):
     """
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation` for usage.
@@ -649,23 +658,24 @@ def _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
-    rho_t_list = mesolve(H, rho0, tlist, c_ops, []).states
+    rho_t_list = mesolve(H, rho0, tlist, c_ops, [], options=options).states
 
     if reverse:
         # <A(t+tau)B(t)>
         for t_idx, rho_t in enumerate(rho_t_list):
             C_mat[t_idx, :] = mesolve(H, b_op * rho_t, taulist,
-                                      c_ops, [a_op]).expect[0]
+                                      c_ops, [a_op], options=options).expect[0]
     else:
         # <A(t)B(t+tau)>
         for t_idx, rho_t in enumerate(rho_t_list):
             C_mat[t_idx, :] = mesolve(H, rho_t * a_op, taulist,
-                                      c_ops, [b_op]).expect[0]
+                                      c_ops, [b_op], options=options).expect[0]
 
     return C_mat
 
 
-def _correlation_me_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op):
+def _correlation_me_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op,
+                           options=Odeoptions()):
     """
     Calculate the four-operator two-time correlation function on the form
     <A(0)B(tau)C(tau)D(0)>.
@@ -682,11 +692,12 @@ def _correlation_me_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op):
         rho0 = ket2dm(rho0)
 
     return mesolve(H, d_op * rho0 * a_op, tlist,
-                   c_ops, [b_op * c_op]).expect[0]
+                   c_ops, [b_op * c_op], options=options).expect[0]
 
 
 def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
-                           a_op, b_op, c_op, d_op, reverse=False):
+                           a_op, b_op, c_op, d_op, reverse=False,
+                           options=Odeoptions()):
     """
     Calculate the four-operator two-time correlation function on the form
     <A(t)B(t+tau)C(t+tau)D(t)>.
@@ -704,11 +715,12 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
-    rho_t = mesolve(H, rho0, tlist, c_ops, []).states
+    rho_t = mesolve(H, rho0, tlist, c_ops, [], options=options).states
 
     for t_idx, rho in enumerate(rho_t):
         C_mat[t_idx, :] = mesolve(H, d_op * rho * a_op, taulist,
-                                  c_ops, [b_op * c_op]).expect[0]
+                                  c_ops, [b_op * c_op],
+                                  options=options).expect[0]
 
     return C_mat
 
@@ -717,7 +729,7 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
 # MONTE CARLO SOLVERS
 # -----------------------------------------------------------------------------
 def _correlation_mc_2op_1t(H, psi0, taulist, c_ops, a_op, b_op, reverse=False,
-                           ntraj=100):
+                           options=Odeoptions()):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation_ss` for usage.
@@ -729,16 +741,18 @@ def _correlation_mc_2op_1t(H, psi0, taulist, c_ops, a_op, b_op, reverse=False,
     if psi0 is None or not isket(psi0):
         raise Exception("_correlation_mc_2op_1t requires initial state as ket")
 
+    options.gui = False
+
     b_op_psi0 = b_op * psi0
 
     norm = b_op_psi0.norm()
 
-    return norm * mcsolve(H, b_op_psi0 / norm, taulist, c_ops,
-                          [a_op], ntraj=ntraj).expect[0]
+    return norm * mcsolve(H, b_op_psi0 / norm, taulist, c_ops, [a_op],
+                          options=options).expect[0]
 
 
 def _correlation_mc_2op_2t(H, psi0, tlist, taulist, c_ops, a_op, b_op,
-                           reverse=False):
+                           reverse=False, options=Odeoptions()):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation` usage.
@@ -755,20 +769,16 @@ def _correlation_mc_2op_2t(H, psi0, tlist, taulist, c_ops, a_op, b_op,
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
-    ntraj = 100
+    options.gui = False
 
-    opt = Odeoptions()
-    opt.gui = False
-
-    psi_t = mcsolve(H, psi0, tlist, c_ops, [],
-                    ntraj=ntraj, options=opt).states
+    psi_t = mcsolve(H, psi0, tlist, c_ops, [], options=options).states
 
     for t_idx in range(len(tlist)):
 
         psi0_t = psi_t[0][t_idx]
 
         C_mat[t_idx, :] = mcsolve(H, b_op * psi0_t, tlist, c_ops, [a_op],
-                                  ntraj=ntraj, options=opt).expect[0]
+                                  options=options).expect[0]
 
     return C_mat
 
