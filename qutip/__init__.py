@@ -206,7 +206,9 @@ import qutip.settings
 # graphics
 if qutip.settings.qutip_graphics == 'YES':
     from qutip.bloch import Bloch
-    from qutip.visualization import hinton, energy_level_diagram, wigner_cmap
+    from qutip.visualization import (hinton, energy_level_diagram, wigner_cmap,
+                                     fock_distribution,
+                                     wigner_fock_distribution)
     from qutip.sphereplot import *
     from qutip.orbital import *
     from qutip.tomography import *
