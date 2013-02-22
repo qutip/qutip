@@ -66,17 +66,18 @@ def n_thermal(w, w_th):
         else:
             return 0.0
 
-def linspace_with(start,stop,num=50,elems=[]):
+
+def linspace_with(start, stop, num=50, elems=[]):
     """
     Return an array of numbers sampled over specified interval
     with additional elements added.
-    
+
     Returns `num` spaced array with elements from `elems` inserted
     if not already included in set.
-    
+
     Returned sample array is not evenly spaced if addtional elements
     are added.
-    
+
     Parameters
     ----------
     start : int
@@ -87,16 +88,16 @@ def linspace_with(start,stop,num=50,elems=[]):
         Number of samples to generate.
     elems : list/ndarray, optional
         Requested elements to include in array
-    
+
     Returns
     -------
     samples : ndadrray
         Original equally spaced sample array with additional
         elements added.
     """
-    elems=np.array(elems)
-    lspace=np.linspace(start,stop,num)
-    return np.union1d(lspace,elems)
+    elems = np.array(elems)
+    lspace = np.linspace(start, stop, num)
+    return np.union1d(lspace, elems)
 
 
 def clebsch(j1, j2, j3, m1, m2, m3):
@@ -135,11 +136,11 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     vmax = int(np.min([j2 + j3 + m1, j3 - j1 + j2, j3 + m3]))
 
     C = np.sqrt((2.0 * j3 + 1.0) * factorial(j3 + j1 - j2) *
-             factorial(j3 - j1 + j2) * factorial(j1 + j2 - j3) *
-             factorial(j3 + m3) * factorial(j3 - m3) /
-             (factorial(j1 + j2 + j3 + 1) *
-              factorial(j1 - m1) * factorial(j1 + m1) *
-              factorial(j2 - m2) * factorial(j2 + m2)))
+                factorial(j3 - j1 + j2) * factorial(j1 + j2 - j3) *
+                factorial(j3 + m3) * factorial(j3 - m3) /
+               (factorial(j1 + j2 + j3 + 1) *
+                factorial(j1 - m1) * factorial(j1 + m1) *
+                factorial(j2 - m2) * factorial(j2 + m2)))
     S = 0
     for v in range(vmin, vmax + 1):
         S += (-1.0) ** (v + j2 + m2) / factorial(v) * \
@@ -148,4 +149,3 @@ def clebsch(j1, j2, j3, m1, m2, m3):
             factorial(v + j1 - j2 - m3)
     C = C * S
     return C
-    
