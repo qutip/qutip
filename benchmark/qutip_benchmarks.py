@@ -14,6 +14,9 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--qutip-only",
                     help="only run qutip benchmarks",
                     action='store_true')
+parser.add_argument("--run-profiler",
+                    help="run profiler on qutip benchmarks",
+                    action='store_true')
 args = parser.parse_args()
 
 if not args.qutip_only:
@@ -146,16 +149,24 @@ def run_tests():
 
     return python_times, test_names
 
-python_times, test_names = run_tests()
+if args.run_profiler:
+    import cProfile
+    cProfile.run('run_tests()', 'qutip_benchmarks_profiler')
+    import pstats
+    p = pstats.Stats('qutip_benchmarks_profiler')
+    p.sort_stats('cumulative').print_stats(30)
 
-factors=np.round(matlab_times/array(python_times),2)
-data=[]
-for ii in range(len(test_names)):
-    entry={'name':test_names[ii],'factor':factors[ii]}
-    data.append(entry)
+else:
+    python_times, test_names = run_tests()
 
-f = open("benchmark_data.js", "w")
-f.write('data = ' + str(data) + ';\n')
-f.write('platform = ' + str(platform) + ';\n')
-f.write('matlab_info= ' + str(matlab_info) + ';\n')
-f.close()
+    factors=np.round(matlab_times/array(python_times),2)
+    data=[]
+    for ii in range(len(test_names)):
+        entry={'name':test_names[ii],'factor':factors[ii]}
+        data.append(entry)
+
+    f = open("benchmark_data.js", "w")
+    f.write('data = ' + str(data) + ';\n')
+    f.write('platform = ' + str(platform) + ';\n')
+    f.write('matlab_info= ' + str(matlab_info) + ';\n')
+    f.close()
