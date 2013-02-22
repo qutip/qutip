@@ -1,4 +1,23 @@
-import os, sys
+# This file is part of QuTiP.
+#
+#    QuTiP is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    QuTiP is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
+#
+###########################################################################
+import os
+import sys
 
 def _mac_hardware_info():
 	info=dict()
@@ -31,14 +50,15 @@ def _linux_hardware_info():
 	results.update({'memsize':int(mem_info['MemTotal'])/1024})
 	return results
 
+
 def _win_hardware_info():
-	return None
+    return {}
 
 def hardware_info():
     """
     Returns basic hardware information about the computer.
     
-    Returns actual number of CPU's in the machine, even
+    Gives actual number of CPU's in the machine, even
     when hyperthreading is turned on.
     
     Returns
@@ -51,10 +71,10 @@ def hardware_info():
         return _mac_hardware_info()
     elif sys.platform == 'win32':
         return _win_hardware_info()
-    elif sys.platform == 'linux2':
+    elif sys.platform in ['linux','linux2']:
         return _linux_hardware_info()
     else:
-        return None
+        return {}
 
 if __name__=='__main__':
     print hardware_info()

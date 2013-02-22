@@ -25,10 +25,29 @@ odeconfig parameters.
 def _reset():
     import os
     import qutip.settings
+    from qutip.hardware_info import hardware_info
     qutip.settings.qutip_graphics = os.environ['QUTIP_GRAPHICS']
     qutip.settings.qutip_gui = os.environ['QUTIP_GUI']
     qutip.settings.auto_herm = True
     qutip.settings.auto_tidyup = True
     qutip.settings.auto_tidyup_atol = 1e-12
-    qutip.settings.num_cpus = int(os.environ['NUM_THREADS'])
     qutip.settings.debug = False
+<<<<<<< HEAD
+=======
+    #set cpus using hardware_info
+    try:
+        info=hardware_info()
+    except:
+        qutip.settings.num_cpus = multiprocessing.cpu_count()
+    else:
+      if len(info)!=0:
+          qutip.settings.num_cpus = info['cpus']
+      else: #required since windows version is not ready
+          qutip.settings.num_cpus = multiprocessing.cpu_count()
+
+
+def _reset_odeconfig():
+    from qutip.odeconfig import odeconfig
+
+    odeconfig.reset()
+>>>>>>> UPDATED: Number of CPU's set using hardware_info

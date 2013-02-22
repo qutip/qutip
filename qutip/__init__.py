@@ -90,7 +90,20 @@ except Exception as e:
 #------------------------------------------------------------------------------
 # default configuration settings
 #
-qutip.settings.num_cpus = multiprocessing.cpu_count()
+
+#load cpus
+from qutip.hardware_info import hardware_info
+try:
+    info=hardware_info()
+except:
+    qutip.settings.num_cpus = multiprocessing.cpu_count()
+else:
+  if len(info)!=0:
+      qutip.settings.num_cpus = info['cpus']
+  else: #required since windows version is not ready
+      qutip.settings.num_cpus = multiprocessing.cpu_count()
+
+
 qutip.settings.qutip_graphics = "YES"
 qutip.settings.qutip_gui = "NONE"
 
