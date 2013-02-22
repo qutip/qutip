@@ -45,7 +45,8 @@ def run_tests():
     #setup list for python times
     python_times=[]
     test_names=[]
-
+    
+    #test 1
     #Construct Jaynes-Cumming Hamiltonian with Nc=10, Na=2.
     test_names+=['Qobj add [20]']
     wc = 1.0 * 2 * pi  
@@ -58,14 +59,16 @@ def run_tests():
     H=wc*a.dag()*a+wa*sm.dag()*sm+g*(a.dag()+a)*(sm.dag()+sm)
     toc=time()
     python_times+=[toc-tic]
-
+    
+    #test 2
     #tensor 6 spin operators.
     test_names+=['Qobj tensor [64]']
     tic=time()
     tensor(sigmax(),sigmay(),sigmaz(),sigmay(),sigmaz(),sigmax())
     toc=time()
     python_times+=[toc-tic]
-
+    
+    #test 3
     #ptrace 6 spin operators.
     test_names+=['Qobj ptrace [64]']
     out=tensor([sigmax(),sigmay(),sigmaz(),sigmay(),sigmaz(),sigmax()])
@@ -74,6 +77,7 @@ def run_tests():
     toc=time()
     python_times+=[toc-tic]
 
+    #test 4
     #test expm with displacement and squeezing operators.
     test_names+=['Qobj expm [20]']
     N=20
@@ -85,6 +89,7 @@ def run_tests():
     toc=time()
     python_times+=[toc-tic]
 
+    #test 5
     #cavity+qubit steady state
     test_names+=['JC SS [20]']
     kappa=2;gamma=0.2;g=1;wc=0
@@ -104,6 +109,7 @@ def run_tests():
     toc=time()
     python_times+=[toc-tic]
 
+    #test 6
     #cavity+qubit master equation
     test_names+=['JC ME [20]']
     kappa = 2; gamma = 0.2; g = 1;
@@ -126,6 +132,7 @@ def run_tests():
     toc=time()
     python_times+=[toc-tic]
 
+    #test 7
     #cavity+qubit monte carlo equation
     test_names+=['JC MC [20]']
     kappa = 2; gamma = 0.2; g = 1;
@@ -146,6 +153,32 @@ def run_tests():
     mcsolve_f90(H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a],options=Odeoptions(gui=False))
     toc=time()
     python_times+=[toc-tic]
+    
+    #test 8
+    #cavity+qubit wigner function
+    test_names+=['Wigner [10]']
+    kappa = 2; gamma = 0.2; g = 1;
+    wc = 0; w0 = 0; wl = 0; E = 0.5;
+    N = 10;
+    tlist = linspace(0,10,200);
+    ida    = qeye(N)
+    idatom = qeye(2)
+    a  = tensor(destroy(N),idatom)
+    sm = tensor(ida,sigmam())
+    H = (w0-wl)*sm.dag()*sm + (wc-wl)*a.dag()*a + 1j*g*(a.dag()*sm - sm.dag()*a) + E*(a.dag()+a)
+    C1=sqrt(2*kappa)*a
+    C2=sqrt(gamma)*sm
+    C1dC1=C1.dag()*C1
+    C2dC2=C2.dag()*C2
+    psi0 = tensor(basis(N,0),basis(2,1))
+    rho0 = psi0.dag() * psi0
+    out=mesolve(H, psi0, tlist, [C1, C2], [])
+    rho_cavity=ptrace(out.states[-1],0)
+    xvec=linspace(-10,10,200)
+    tic=time()
+    W=wigner(rho_cavity,xvec,xvec)
+    toc=time()
+    python_times+=[toc-tic]
 
     return python_times, test_names
 
@@ -159,7 +192,12 @@ if args.run_profiler:
 else:
     python_times, test_names = run_tests()
 
-    factors=np.round(matlab_times/array(python_times),2)
+    factors=np.log1p(np.round(matlab_times/array(python_times),2))
+    scale_factors=np.floor(np.exp(linspace(0,max(factors),5))-1)
+    scale=[]
+    for ii in range(len(scale_factors)):
+        entry={'scale':scale_factors[ii]}
+        scale.append(entry)
     data=[]
     for ii in range(len(test_names)):
         entry={'name':test_names[ii],'factor':factors[ii]}
@@ -167,6 +205,7 @@ else:
 
     f = open("benchmark_data.js", "w")
     f.write('data = ' + str(data) + ';\n')
+    f.write('scale = ' + str(scale) + ';\n')
     f.write('platform = ' + str(platform) + ';\n')
     f.write('qutip_info = ' + str(qutip_info) + ';\n')
     f.write('matlab_info= ' + str(matlab_info) + ';\n')

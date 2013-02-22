@@ -1,6 +1,6 @@
 function []=matlab_benchmarks()
 %Create array to hold test results
-test_results=zeros(1,7);
+test_results=zeros(1,8);
 
 
 %test #1
@@ -26,7 +26,7 @@ tensor(sigmax(),sigmay(),sigmaz(),sigmay(),sigmaz(),sigmax());
 time=toc;
 test_results(1,2)=time;
 
-%test #2
+%test #3
 %tensor 6 spin operators
 out=tensor(sigmax(),sigmay(),sigmaz(),sigmay(),sigmaz(),sigmax());
 tic;
@@ -35,9 +35,9 @@ time=toc;
 test_results(1,3)=time;
 
 
-%test #2
+%test #4
 %matrix exponentiation to construct squeezed state and coherent state
-N=25;
+N=20;
 alpha=2+2i;
 sp=1.25i;
 tic;
@@ -50,9 +50,9 @@ sqz_state=S_oper*grnd;
 time=toc;
 test_results(1,4)=time;
 
-%test #3
+%test #5
 %cavity+qubit steady state
-N=5;kappa = 2; gamma = 0.2; g = 1;
+N=10;kappa = 2; gamma = 0.2; g = 1;
 wc = 0; w0 = 0; wl = 0; E = 0.5;
 tic;
 ida = identity(N); idatom = identity(2); 
@@ -71,7 +71,7 @@ rhoss = steady(L);% Find steady state
 time=toc;
 test_results(1,5)=time;
 
-%test #4
+%test #6
 %cavity+qubit master equation
 kappa = 2; gamma = 0.2; g = 1;
 wc = 0; w0 = 0; wl = 0; E = 0.5;
@@ -100,11 +100,11 @@ time=toc;
 test_results(1,6)=time;
 
 
-%test #5
+%test #7
 %cavity+qubit monte carlo
 kappa = 2; gamma = 0.2; g = 1;
 wc = 0; w0 = 0; wl = 0; E = 0.5;
-N = 4;
+N = 10;
 ntraj = 500;
 tlist = linspace(0,10,200);
 tic;
@@ -131,6 +131,37 @@ fid = fopen('out.dat','rb');
 fclose(fid);
 time=toc;
 test_results(1,7)=time;
+
+%test #8
+%cavity+qubit Wigner function
+kappa = 2; gamma = 0.2; g = 1;
+wc = 0; w0 = 0; wl = 0; E = 0.5;
+N = 10;
+tlist = linspace(0,10,200);
+ida = identity(N); idatom = identity(2); 
+a  = tensor(destroy(N),idatom);
+sm = tensor(ida,sigmam);
+H = (w0-wl)*sm'*sm + (wc-wl)*a'*a + i*g*(a'*sm - sm'*a) + E*(a'+a);
+C1  = sqrt(2*kappa)*a;
+C2  = sqrt(gamma)*sm;
+C1dC1 = C1'*C1;
+C2dC2 = C2'*C2;
+LH = -i * (spre(H) - spost(H)); 
+L1 = spre(C1)*spost(C1')-0.5*spre(C1dC1)-0.5*spost(C1dC1);
+L2 = spre(C2)*spost(C2')-0.5*spre(C2dC2)-0.5*spost(C2dC2);
+L = LH+L1+L2;
+psi0 = tensor(basis(N,1),basis(2,2));
+rho0 = psi0 * psi0';
+ode2file('file1.dat',L,rho0,tlist);
+odesolve('file1.dat','file2.dat');
+fid = fopen('file2.dat','rb');
+rho = qoread(fid,dims(rho0),200);
+rho_cavity=ptrace(rho,1);
+xvec=linspace(-10,10,200);
+tic;
+W=wfunc(rho,xvec,xvec);
+time=toc;
+test_results(1,8)=time;
 
 
 xlswrite('matlab_benchmarks',test_results);

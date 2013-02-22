@@ -28,8 +28,8 @@
 	var heightScale = d3.scale.linear()
       .domain([0, d3.max(data,function(d) { return d.factor;})])
       .range([0, 300]);
-
-    mySVG.selectAll(".xLabel")
+	
+	mySVG.selectAll(".xLabel")
       .data(data)
       .enter().append("svg:text")
       .attr("x", function(d,i) {return 120 + (i * 32);})
@@ -64,7 +64,7 @@
       .attr('height',function(d,i) {return heightScale(d.factor);})
       .attr('x',function(d,i) {return (i * 32) + 100;})
       .attr('y',function(d,i) {return 400 - heightScale(d.factor);})
-      .style('fill',function(d, i) {return d.factor < 1.0 ? 'lightcoral' : 'lightblue';});
+      .style('fill',function(d, i) {return d.factor < Math.log(2) ? 'lightcoral' : 'lightblue';});
 
 	mySVG.append("text")
 		.attr("y", 40)
