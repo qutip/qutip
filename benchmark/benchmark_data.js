@@ -1,1 +1,2 @@
-data = [{'name': 'Qobj add', 'factor': 5.0}, {'name': 'Qobj expm', 'factor': 2.4700000000000002}, {'name': 'JC SS', 'factor': 0.27000000000000002}, {'name': 'JC ME', 'factor': 1.05}, {'name': 'JC MC', 'factor': 1.53}];
+data = [{'name': 'Qobj add', 'factor': 4.9299999999999997}, {'name': 'Qobj expm', 'factor': 2.5600000000000001}, {'name': 'JC SS', 'factor': 0.29999999999999999}, {'name': 'JC ME', 'factor': 1.0700000000000001}, {'name': 'JC MC', 'factor': 1.1200000000000001}];
+platform = [{'cpu_freq': 1.8, 'os': 'Mac OSX', 'cpus': 2, 'memsize': 4096}];

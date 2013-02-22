@@ -17,12 +17,13 @@
     var mySVG = d3.select("body")
       .append("svg")
       .attr("width", 800) 
-      .attr("height", 500)
+      .attr("height", 700)
       .style('position','absolute')
       .style('top',50)
       .style('left',40)
       .attr('class','fig');
-    var heightScale = d3.scale.linear()
+    
+	var heightScale = d3.scale.linear()
       .domain([0, d3.max(data,function(d) { return d.factor;})])
       .range([0, 400]);
 
@@ -70,6 +71,43 @@
 		.attr("font-size", "16px")
 		.style("text-anchor", "middle")
 		.text("Speedup");
+	
+	mySVG.append("text")
+		.attr("y", 520)
+		.attr("x",100)
+		.attr("font-size", "20px")
+		.style("text-anchor", "left")
+		.text("System Information:");
+	
+	mySVG.append("text")
+		.data(platform)
+		.attr("y", 550)
+		.attr("x",120)
+		.attr("font-size", "16px")
+		.style("text-anchor", "left")
+		.text('Platform: ');
+	
+	mySVG.append("text")
+		.attr("y", 570)
+		.attr("x",120)
+		.attr("font-size", "16px")
+		.style("text-anchor", "left")
+		.text("Num. CPU's:");
+	
+	mySVG.append("text")
+		.attr("y", 590)
+		.attr("x",120)
+		.attr("font-size", "16px")
+		.style("text-anchor", "left")
+		.text("CPU Speed:");
+	
+	mySVG.append("text")
+		.attr("y", 610)
+		.attr("x",120)
+		.attr("font-size", "16px")
+		.style("text-anchor", "left")
+		.text("Memory:");
+	
 	</script>
   </body>
 </html>

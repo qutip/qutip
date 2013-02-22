@@ -108,14 +108,15 @@ mcsolve_f90(H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a],options=Odeoptions(gui=F
 toc=time()
 python_times+=[toc-tic]
 
-#-- normalize times and get background colors using wigner_cmap
-factors=np.round(matlab_times/array(python_times),2)
 
+factors=np.round(matlab_times/array(python_times),2)
 data=[]
 for ii in range(num_tests):
     entry={'name':test_names[ii],'factor':factors[ii]}
     data.append(entry)
 
+platform=[hardware_info()]
 f = open("benchmark_data.js", "w")
-f.write('data = ' + str(data) + ';')
+f.write('data = ' + str(data) + ';\n')
+f.write('platform = ' + str(platform) + ';')
 f.close()
