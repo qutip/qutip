@@ -33,6 +33,7 @@ def _mac_hardware_info():
 
 
 def _linux_hardware_info():
+<<<<<<< HEAD
     results={}
     #get cpu number
     cpu_info = dict()
@@ -59,6 +60,34 @@ def _linux_hardware_info():
     #add OS information
     results.update({'os':'Linux'})
     return results
+=======
+	results={}
+	#get cpu number
+	cpu_info = dict()
+	for l in [l.split(':') for l in os.popen('lscpu').readlines()]:
+		cpu_info[l[0]] = l[1].strip('.\n ').strip('kB')
+	sockets=int(cpu_info['Socket(s)'])
+	cores_per_socket=int(cpu_info['Core(s) per socket'])
+	results.update({'cpus':sockets*cores_per_socket})
+	#get cpu frequency directly (bypasses freq scaling)
+	try:
+		open('/sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq')
+	except:
+		cpu_freq=float(cpu_info['CPU MHz'])/1000.
+		results.update({'cpu_freq':cpu_freq})
+	else:		
+		cpu_freq=os.popen('cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_max_freq').readlines()[0]
+		cpu_freq=float(cpu_freq.strip('\n'))
+		results.update({'cpu_freq':cpu_freq/(1000.**2)})
+	#get total amount of memory
+	mem_info = dict()
+	for l in [l.split(':') for l in os.popen('cat /proc/meminfo').readlines()]:
+		mem_info[l[0]] = l[1].strip('.\n ').strip('kB')
+	results.update({'memsize':int(mem_info['MemTotal'])/1024})
+	#add OS information
+	results.update({'os':'Linux'})
+	return results
+>>>>>>> UPDATED: hardware_info one more time
 
 
 def _win_hardware_info():
