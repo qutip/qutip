@@ -20,7 +20,6 @@ from qutip.cyQ.codegen import Codegen
 import os
 import platform
 import numpy
-from qutip._reset import _reset_odeconfig
 from qutip.odeoptions import Odeoptions
 from scipy import ndarray, array
 from qutip.odechecks import _ode_checks
@@ -77,7 +76,9 @@ def rhs_generate(H, c_ops, args={}, options=Odeoptions(), name=None):
     will result in an error.
 
     """
-    _reset_odeconfig()  # clear odeconfig
+    odeconfig.reset()
+    odeconfig.options = options
+
     if name:
         odeconfig.tdname = name
     else:

@@ -32,9 +32,3 @@ def _reset():
     qutip.settings.auto_tidyup_atol = 1e-12
     qutip.settings.num_cpus = int(os.environ['NUM_THREADS'])
     qutip.settings.debug = False
-
-
-def _reset_odeconfig():
-    from qutip.odeconfig import odeconfig
-
-    odeconfig.reset()
