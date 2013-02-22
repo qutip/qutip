@@ -98,7 +98,7 @@
 		.attr("x",120)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
-		.text(function(d) {return 'Num CPUs: ' + (d.cpus).toString();});
+		.text(function(d) {return 'Num. CPUs: ' + (d.cpus).toString();});
 	
 	mySVG.append("text")
 		.data(platform)
@@ -115,6 +115,29 @@
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
 		.text(function(d) {return 'Memory: ' + (d.memsize).toString()+ ' MB';});
+	
+	mySVG.append("text")
+		.attr("y", st+20)
+		.attr("x",400)
+		.attr("font-size", "20px")
+		.style("text-anchor", "left")
+		.text("Matlab Information:");
+	
+	mySVG.append("text")
+		.data(matlab_info)
+		.attr("y", st+50)
+		.attr("x",420)
+		.attr("font-size", "16px")
+		.style("text-anchor", "left")
+		.text(function(d) {return 'Version: '+d.version;});
+	
+	mySVG.append("text")
+		.data(matlab_info)
+		.attr("y", st+70)
+		.attr("x",420)
+		.attr("font-size", "16px")
+		.style("text-anchor", "left")
+		.text(function(d) {return 'Type: '+d.type;});
 	
 	</script>
   </body>
