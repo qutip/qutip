@@ -18,7 +18,7 @@
 
     var mySVG = d3.select("body")
       .append("svg")
-      .attr("width", 800) 
+      .attr("width", 900) 
       .attr("height", 700)
       .style('position','absolute')
       .style('top',0)
@@ -117,15 +117,47 @@
 	
 	mySVG.append("text")
 		.attr("y", st+20)
-		.attr("x",400)
+		.attr("x",320)
+		.attr("font-size", "20px")
+		.style("text-anchor", "left")
+		.text("QuTiP Information:");
+	
+	mySVG.append("text")
+		.data(qutip_info)
+		.attr("y", st+50)
+		.attr("x",340)
+		.attr("font-size", "16px")
+		.style("text-anchor", "left")
+		.text(function(d) {return 'QuTiP Version: '+d.qutip;});
+
+	mySVG.append("text")
+		.data(qutip_info)
+		.attr("y", st+70)
+		.attr("x",340)
+		.attr("font-size", "16px")
+		.style("text-anchor", "left")
+		.text(function(d) {return 'Numpy Version: '+d.numpy;});
+
+	mySVG.append("text")
+		.data(qutip_info)
+		.attr("y", st+90)
+		.attr("x",340)
+		.attr("font-size", "16px")
+		.style("text-anchor", "left")
+		.text(function(d) {return 'SciPy Version: '+d.scipy;});
+	
+	mySVG.append("text")
+		.attr("y", st+20)
+		.attr("x",620)
 		.attr("font-size", "20px")
 		.style("text-anchor", "left")
 		.text("Matlab Information:");
 	
+	
 	mySVG.append("text")
 		.data(matlab_info)
 		.attr("y", st+50)
-		.attr("x",420)
+		.attr("x",640)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
 		.text(function(d) {return 'Version: '+d.version;});
@@ -133,7 +165,7 @@
 	mySVG.append("text")
 		.data(matlab_info)
 		.attr("y", st+70)
-		.attr("x",420)
+		.attr("x",640)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
 		.text(function(d) {return 'Type: '+d.type;});
@@ -141,7 +173,7 @@
 	mySVG.append("text")
 		.data(matlab_info)
 		.attr("y", st+90)
-		.attr("x",420)
+		.attr("x",640)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
 		.text('Qotoolbox Version: 0.15');

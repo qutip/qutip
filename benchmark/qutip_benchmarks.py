@@ -34,13 +34,24 @@ matlab_times = genfromtxt('matlab_benchmarks.csv', delimiter=',')
 
 # setup hardware and matlab info lists
 platform=[hardware_info()]
+
 for row in matlab_version:
     matlab_info=[{'version': row[0],'type': row[1]}]
 
+<<<<<<< HEAD
+=======
+qutip_info=[{'qutip':qutip.__version__,'numpy':numpy.__version__,'scipy':scipy.__version__}]
+
+
+#setup list for python times
+python_times=[]
+test_names=[]
+>>>>>>> UPDATED: Added qutip info to bencmarks html
 
 #---------------------
 #Run Python Benchmarks
 #---------------------
+<<<<<<< HEAD
 def run_tests():
     #setup list for python times
     python_times=[]
@@ -170,3 +181,121 @@ else:
     f.write('platform = ' + str(platform) + ';\n')
     f.write('matlab_info= ' + str(matlab_info) + ';\n')
     f.close()
+=======
+num_tests=7
+
+#Construct Jaynes-Cumming Hamiltonian with Nc=10, Na=2.
+test_names+=['Qobj add [20]']
+wc = 1.0 * 2 * pi  
+wa = 1.0 * 2 * pi
+g  = 0.05 * 2 * pi
+Nc=10
+tic=time()
+a=tensor(destroy(Nc),qeye(2))
+sm=tensor(qeye(Nc),sigmam())
+H=wc*a.dag()*a+wa*sm.dag()*sm+g*(a.dag()+a)*(sm.dag()+sm)
+toc=time()
+python_times+=[toc-tic]
+
+#tensor 6 spin operators.
+test_names+=['Qobj tensor [64]']
+tic=time()
+tensor(sigmax(),sigmay(),sigmaz(),sigmay(),sigmaz(),sigmax())
+toc=time()
+python_times+=[toc-tic]
+
+#ptrace 6 spin operators.
+test_names+=['Qobj ptrace [64]']
+out=tensor([sigmax(),sigmay(),sigmaz(),sigmay(),sigmaz(),sigmax()])
+tic=time()
+ptrace(out,[1,3,4])
+toc=time()
+python_times+=[toc-tic]
+
+#test expm with displacement and squeezing operators.
+test_names+=['Qobj expm [20]']
+N=20
+alpha=2+2j
+sp=1.25j
+tic=time()
+coherent(N,alpha)
+squeez(N,sp)
+toc=time()
+python_times+=[toc-tic]
+
+#cavity+qubit steady state
+test_names+=['JC SS [20]']
+kappa=2;gamma=0.2;g=1;wc=0
+w0=0;N=10;E=0.5;wl=0
+tic=time()
+ida=qeye(N)
+idatom=qeye(2)
+a=tensor(destroy(N),idatom)
+sm=tensor(ida,sigmam())
+H=(w0-wl)*sm.dag()*sm+(wc-wl)*a.dag()*a+1j*g*(a.dag()*sm-sm.dag()*a)+E*(a.dag()+a)
+C1=sqrt(2*kappa)*a
+C2=sqrt(gamma)*sm
+C1dC1=C1.dag() * C1
+C2dC2=C2.dag() * C2
+L = liouvillian(H, [C1, C2])
+rhoss=steady(L)
+toc=time()
+python_times+=[toc-tic]
+
+#cavity+qubit master equation
+test_names+=['JC ME [20]']
+kappa = 2; gamma = 0.2; g = 1;
+wc = 0; w0 = 0; wl = 0; E = 0.5;
+N = 10;
+tlist = linspace(0,10,200);
+tic=time()
+ida    = qeye(N)
+idatom = qeye(2)
+a  = tensor(destroy(N),idatom)
+sm = tensor(ida,sigmam())
+H = (w0-wl)*sm.dag()*sm + (wc-wl)*a.dag()*a + 1j*g*(a.dag()*sm - sm.dag()*a) + E*(a.dag()+a)
+C1=sqrt(2*kappa)*a
+C2=sqrt(gamma)*sm
+C1dC1=C1.dag()*C1
+C2dC2=C2.dag()*C2
+psi0 = tensor(basis(N,0),basis(2,1))
+rho0 = psi0.dag() * psi0
+mesolve(H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a])
+toc=time()
+python_times+=[toc-tic]
+
+#cavity+qubit monte carlo equation
+test_names+=['JC MC [20]']
+kappa = 2; gamma = 0.2; g = 1;
+wc = 0; w0 = 0; wl = 0; E = 0.5;
+N = 10;
+tlist = linspace(0,10,200);
+tic=time()
+ida = qeye(N)
+idatom = qeye(2)
+a  = tensor(destroy(N),idatom)
+sm = tensor(ida,sigmam())
+H = (w0-wl)*sm.dag()*sm + (wc-wl)*a.dag()*a + 1j*g*(a.dag()*sm - sm.dag()*a) + E*(a.dag()+a)
+C1=sqrt(2*kappa)*a
+C2=sqrt(gamma)*sm
+C1dC1=C1.dag()*C1
+C2dC2=C2.dag()*C2
+psi0 = tensor(basis(N,0),basis(2,1))
+mcsolve_f90(H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a],options=Odeoptions(gui=False))
+toc=time()
+python_times+=[toc-tic]
+
+
+factors=np.round(matlab_times/array(python_times),2)
+data=[]
+for ii in range(num_tests):
+    entry={'name':test_names[ii],'factor':factors[ii]}
+    data.append(entry)
+
+f = open("benchmark_data.js", "w")
+f.write('data = ' + str(data) + ';\n')
+f.write('platform = ' + str(platform) + ';\n')
+f.write('qutip_info = ' + str(qutip_info) + ';\n')
+f.write('matlab_info= ' + str(matlab_info) + ';\n')
+f.close()
+>>>>>>> UPDATED: Added qutip info to bencmarks html
