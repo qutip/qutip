@@ -32,8 +32,6 @@ def _reset():
     qutip.settings.auto_tidyup = True
     qutip.settings.auto_tidyup_atol = 1e-12
     qutip.settings.debug = False
-<<<<<<< HEAD
-=======
     #set cpus using hardware_info
     try:
         info=hardware_info()
@@ -48,6 +46,4 @@ def _reset():
 
 def _reset_odeconfig():
     from qutip.odeconfig import odeconfig
-
     odeconfig.reset()
->>>>>>> UPDATED: Number of CPU's set using hardware_info
