@@ -22,10 +22,13 @@ This module contains utility functions for using QuTiP with IPython notebooks.
 
 from IPython.core.display import HTML
 from IPython.parallel import Client
+from IPython.display import HTML, Javascript, display
 
 import matplotlib.pyplot as plt
 
 import datetime
+import uuid
+import time
 
 import sys
 import os
@@ -67,6 +70,27 @@ def version_table():
 
     return HTML(html)
 
+class _HTMLProgressBar():
+    """
+    Based on IPython ProgressBar demo notebook:
+    https://github.com/ipython/ipython/tree/master/examples/notebooks
+    """
+
+    def __init__(self, iterations):
+        self.N = float(iterations)
+        self.divid = str(uuid.uuid4())
+        self.pb = HTML("""\
+<div style="border: 1px solid grey; width: 600px">
+  <div id="%s" style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
+</div> 
+""" % self.divid)
+        display(self.pb)
+
+    def update(self, n):
+        p = (n / self.N) * 100.0
+        display(Javascript("$('div#%s').width('%i%%')" % (self.divid, p)))
+
+
 def _visualize_parfor_data(metadata):
     """
     Visalizing the task scheduling meta data collected from AsyncResults.
@@ -93,7 +117,7 @@ def _visualize_parfor_data(metadata):
     ax.set_title("Task schedule")
 
 def parfor(task, task_vec, args=None, client=None, view=None,
-           show_scheduling=False):
+           show_scheduling=False, show_progressbar=True):
     """
     Call the function 'tast' for each value in 'task_vec' using a cluster
     of IPython engines.
@@ -113,17 +137,28 @@ def parfor(task, task_vec, args=None, client=None, view=None,
         view = client.load_balanced_view()
 
     if args is None:
-        ar = [view.apply_async(task, x) for x in task_vec]
+        ar_list = [view.apply_async(task, x) for x in task_vec]
     else:
-        ar = [view.apply_async(task, x, args) for x in task_vec]
+        ar_list = [view.apply_async(task, x, args) for x in task_vec]
 
-    view.wait(ar)
+    if show_progressbar:
+        n = len(ar_list)
+        pbar = _HTMLProgressBar(n)
+        while True:
+            n_finished = sum([ar.progress for ar in ar_list])
+            pbar.update(n_finished)
+
+            if view.wait(ar_list, timeout=0.5):
+                pbar.update(n)
+                break
+    else:
+        view.wait(ar_list)
 
     if show_scheduling:
-        metadata = [[a.engine_id,
-                     (a.started - submitted).total_seconds(), 
-                     (a.completed - submitted).total_seconds()]
-                    for a in ar]
+        metadata = [[ar.engine_id,
+                     (ar.started - submitted).total_seconds(), 
+                     (ar.completed - submitted).total_seconds()]
+                    for ar in ar_list]
         _visualize_parfor_data(metadata)
 
-    return [a.get() for a in ar]
+    return [ar.get() for ar in ar_list]
