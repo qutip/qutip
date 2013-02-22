@@ -23,6 +23,10 @@ This module contains utility functions for using QuTiP with IPython notebooks.
 from IPython.core.display import HTML
 from IPython.parallel import Client
 
+import matplotlib.pyplot as plt
+
+import datetime
+
 import sys
 import os
 import qutip
@@ -63,23 +67,50 @@ def version_table():
 
     return HTML(html)
 
+def _visualize_parfor_data(metadata):
+    """
+    Visalizing the task scheduling meta data collected from AsyncResults.
+    """
+    res = numpy.array(metadata)
+    fig, ax = plt.subplots(figsize=(10, res.shape[1]))
+    
+    yticks = []
+    yticklabels = []
+    tmin = min(res[:,1])
+    for n, pid in enumerate(numpy.unique(res[:,0])):
+        yticks.append(n)
+        yticklabels.append("%d" % pid)
+        for m in numpy.where(res[:,0] == pid)[0]:
+            ax.add_patch(plt.Rectangle((res[m,1] - tmin, n-0.25),
+                         res[m,2] - res[m,1], 0.5, color="green", alpha=0.5))
+        
+    ax.set_ylim(-.5, n+.5)
+    ax.set_xlim(0, max(res[:,2]) - tmin + 0.)
+    ax.set_yticks(yticks)
+    ax.set_yticklabels(yticklabels)
+    ax.set_ylabel("Engine")
+    ax.set_xlabel("seconds")
+    ax.set_title("Task schedule")
 
-def ipy_parfor(task, task_vec, args=None, client=None, view=None):
+def ipy_parfor(task, task_vec, args=None, client=None, view=None,
+               show_scheduling=True):
     """
     Call the function 'tast' for each value in 'task_vec' using a cluster
     of IPython engines.
     """
 
+    submitted = datetime.datetime.now()
+
     if client is None:
         client = Client()
 
+        # make sure qutip is available at engines
+        dview = client[:]
+        dview.block = True
+        dview.execute("from qutip import *")
+
     if view is None:
         view = client.load_balanced_view()
-
-    # make sure qutip is available at engines
-    dview = client[:]
-    dview.block = True
-    dview.execute("from qutip import *")
 
     if args is None:
         ar = [view.apply_async(task, x) for x in task_vec]
@@ -88,5 +119,11 @@ def ipy_parfor(task, task_vec, args=None, client=None, view=None):
 
     view.wait(ar)
 
-    return [a.get() for a in ar]
+    if show_scheduling:
+        metadata = [[a.engine_id,
+                     (a.started - submitted).total_seconds(), 
+                     (a.completed - submitted).total_seconds()]
+                    for a in ar]
+        _visualize_parfor_data(metadata)
 
+    return [a.get() for a in ar]
