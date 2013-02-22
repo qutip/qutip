@@ -28,6 +28,9 @@ from qutip.odeoptions import Odeoptions
 from qutip.odedata import Odedata
 from qutip.settings import debug
 
+if debug:
+    import inspect
+ 
 # Working precision
 wpr = np.dtype(np.float64)
 wpc = np.dtype(np.complex128)
@@ -212,6 +215,10 @@ class _MC_class():
 
     def parallel(self):
         from multiprocessing import Process, Queue, JoinableQueue
+
+        if debug:
+            print(inspect.stack()[0][3])
+    
         self.ntrajs = []
         for i in range(self.cpus):
             self.ntrajs.append(min(int(np.floor(float(self.ntraj)
@@ -265,6 +272,10 @@ class _MC_class():
         return sols
 
     def serial(self):
+
+        if debug:
+            print(inspect.stack()[0][3])
+
         self.nprocs = 1
         self.ntrajs = [self.ntraj]
         if debug:
@@ -274,6 +285,10 @@ class _MC_class():
         return [sol]
 
     def run(self):
+
+        if debug:
+            print(inspect.stack()[0][3])
+
         from numpy.random import random_integers
         if (odeconfig.c_num == 0):
             # force one trajectory if no collapse operators
@@ -298,6 +313,7 @@ class _MC_class():
         self.sol = _gather(sols)
 
     def evolve_serial(self, args):
+
         # run ntraj trajectories for one process via fortran
         # get args
         queue, ntraj, instanceno, rngseed = args
