@@ -94,7 +94,7 @@ except Exception as e:
 #load cpus
 from qutip.hardware_info import hardware_info
 info=hardware_info()
-if len(info)!=0:
+if 'cpus' in info:
     qutip.settings.num_cpus = info['cpus']
 else:
     qutip.settings.num_cpus = multiprocessing.cpu_count()

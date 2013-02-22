@@ -34,7 +34,7 @@ def _reset():
     qutip.settings.debug = False
     #set cpus using hardware_info
     info=hardware_info()
-    if len(info)!=0:
+    if 'cpus' in info:
         qutip.settings.num_cpus = info['cpus']
     else:
         qutip.settings.num_cpus = multiprocessing.cpu_count()
