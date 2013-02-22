@@ -1,4 +1,5 @@
 import sys
+import csv
 import subprocess as sproc
 from numpy import genfromtxt
 from qutip import *
@@ -6,12 +7,20 @@ import numpy as np
 from time import time
 #Call matlab benchmarks (folder must be in Matlab path!!!)
 if sys.platform=='darwin':
+    sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
     sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_benchmarks; quit'",shell=True)
 else:
+    sproc.call("matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
     sproc.call("matlab -nodesktop -nosplash -r 'matlab_benchmarks; quit'",shell=True)
 
 #read in matlab results
+matlab_version = csv.reader(open('matlab_version.csv'),dialect='excel')
 matlab_times = genfromtxt('matlab_benchmarks.csv', delimiter=',')
+
+#setup hardware and matlab info lists
+platform=[hardware_info()]
+for row in matlab_version:
+    matlab_info=[{'version': row[0],'type': row[1]}]
 
 #setup list for python times
 python_times=[]
@@ -130,8 +139,8 @@ for ii in range(num_tests):
     entry={'name':test_names[ii],'factor':factors[ii]}
     data.append(entry)
 
-platform=[hardware_info()]
 f = open("benchmark_data.js", "w")
 f.write('data = ' + str(data) + ';\n')
-f.write('platform = ' + str(platform) + ';')
+f.write('platform = ' + str(platform) + ';\n')
+f.write('matlab_info= ' + str(matlab_info) + ';\n')
 f.close()
