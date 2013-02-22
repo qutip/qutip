@@ -85,28 +85,31 @@
 		.attr("x",120)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
-		.text('Platform: ');
+		.text(function(d) {return 'Platform: '+d.os;});
 	
 	mySVG.append("text")
+		.data(platform)
 		.attr("y", 570)
 		.attr("x",120)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
-		.text("Num. CPU's:");
+		.text(function(d) {return 'Num CPUs: ' + (d.cpus).toString();});
 	
 	mySVG.append("text")
+		.data(platform)
 		.attr("y", 590)
 		.attr("x",120)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
-		.text("CPU Speed:");
+		.text(function(d) {return 'CPU Speed: ' + (d.cpu_freq).toString()+' GHz';});
 	
 	mySVG.append("text")
+		.data(platform)
 		.attr("y", 610)
 		.attr("x",120)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
-		.text("Memory:");
+		.text(function(d) {return 'Memory: ' + (d.memsize).toString()+ ' MB';});
 	
 	</script>
   </body>
