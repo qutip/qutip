@@ -92,8 +92,8 @@ def _visualize_parfor_data(metadata):
     ax.set_xlabel("seconds")
     ax.set_title("Task schedule")
 
-def ipy_parfor(task, task_vec, args=None, client=None, view=None,
-               show_scheduling=True):
+def parfor(task, task_vec, args=None, client=None, view=None,
+           show_scheduling=False):
     """
     Call the function 'tast' for each value in 'task_vec' using a cluster
     of IPython engines.
