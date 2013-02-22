@@ -47,17 +47,17 @@ def expect(oper, state):
 
     '''
     if isinstance(state, Qobj) or isinstance(state, eseries):
-        return single_expect(oper, state)
+        return _single_expect(oper, state)
     elif isinstance(state, np.ndarray) or isinstance(state, list):
         if oper.isherm and all([(op.isherm or op.type == 'ket')
                                 for op in state]):
-            return np.array([single_expect(oper, x) for x in state])
+            return np.array([_single_expect(oper, x) for x in state])
         else:
-            return np.array([single_expect(oper, x) for x in state],
+            return np.array([_single_expect(oper, x) for x in state],
                             dtype=complex)
 
 
-def single_expect(oper, state):
+def _single_expect(oper, state):
     """
     Private function used by expect
     """
