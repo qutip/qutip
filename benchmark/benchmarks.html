@@ -139,6 +139,14 @@
 		.style("text-anchor", "left")
 		.text(function(d) {return 'Type: '+d.type;});
 	
+	mySVG.append("text")
+		.data(matlab_info)
+		.attr("y", st+90)
+		.attr("x",420)
+		.attr("font-size", "16px")
+		.style("text-anchor", "left")
+		.text('Qotoolbox Version: 0.15');
+	
 	</script>
   </body>
 </html>
