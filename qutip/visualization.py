@@ -485,10 +485,12 @@ def wigner_cmap(W, levels=1024, invert=False):
     for k in range(0, levels):
         if k < zero_pos:
             interp = k / (num_neg + 1.0)
-            adjust_RGBA[k][0:3] = (1.0 - interp) * min_color[0:3] + interp * neg_color[0:3]
+            adjust_RGBA[k][0:3] = (1.0 - interp) * \
+                min_color[0:3] + interp * neg_color[0:3]
         elif k > zero_pos:
             interp = (k - zero_pos) / (num_pos + 1.0)
-            adjust_RGBA[k][0:3] = (1.0 - interp) * mid_color[0:3] + interp * max_color[0:3]
+            adjust_RGBA[k][0:3] = (1.0 - interp) * \
+                mid_color[0:3] + interp * max_color[0:3]
     # create colormap
     wig_cmap = mpl.colors.LinearSegmentedColormap.from_list('wigner_cmap',
                                                             adjust_RGBA,
@@ -496,7 +498,7 @@ def wigner_cmap(W, levels=1024, invert=False):
     return wig_cmap
 
 
-def fock_distribution(rho, fig=None, ax=None, figsize=(8,6)):
+def fock_distribution(rho, fig=None, ax=None, figsize=(8, 6)):
     """
     Plot the Fock distribution for a density matrix (or ket) that describes
     an oscillator mode.
@@ -531,7 +533,7 @@ def fock_distribution(rho, fig=None, ax=None, figsize=(8,6)):
 
     N = rho.shape[0]
 
-    ax.bar(arange(0, N)-.4, real(rho.diag()), color="green", alpha=0.6,
+    ax.bar(arange(0, N) - .4, real(rho.diag()), color="green", alpha=0.6,
            width=0.8)
     ax.set_ylim(0, 1)
     ax.set_xlim(-.5, N)
@@ -541,7 +543,7 @@ def fock_distribution(rho, fig=None, ax=None, figsize=(8,6)):
     return fig, ax
 
 
-def wigner_fock_distribution(rho, fig=None, ax=None, figsize=(8,4),
+def wigner_fock_distribution(rho, fig=None, ax=None, figsize=(8, 4),
                              cmap=None, alpha_max=7.5, colorbar=False):
     """
     Plot the Fock distribution and the Wigner function for a density matrix
@@ -586,14 +588,14 @@ def wigner_fock_distribution(rho, fig=None, ax=None, figsize=(8,4),
         rho = ket2dm(rho)
 
     fock_distribution(rho, fig=fig, ax=axes[0])
-    
+
     xvec = linspace(-alpha_max, alpha_max, 200)
     W = wigner(rho, xvec, xvec)
     wlim = abs(W).max()
 
     if cmap is None:
         cmap = get_cmap('RdBu')
-        #cmap = wigner_cmap(W)
+        # cmap = wigner_cmap(W)
 
     cf = axes[1].contourf(xvec, xvec, W, 100,
                           norm=mpl.colors.Normalize(-wlim, wlim), cmap=cmap)
@@ -608,4 +610,3 @@ def wigner_fock_distribution(rho, fig=None, ax=None, figsize=(8,4),
     axes[1].set_title("Wigner function", fontsize=12)
 
     return fig, ax
-
