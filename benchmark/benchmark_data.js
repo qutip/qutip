@@ -1,2 +1,2 @@
-data = [{'name': 'Qobj add', 'factor': 4.9299999999999997}, {'name': 'Qobj expm', 'factor': 2.5600000000000001}, {'name': 'JC SS', 'factor': 0.29999999999999999}, {'name': 'JC ME', 'factor': 1.0700000000000001}, {'name': 'JC MC', 'factor': 1.1200000000000001}];
+data = [{'name': 'Qobj add [20]', 'factor': 6.1500000000000004}, {'name': 'Qobj tensor [64]', 'factor': 0.46999999999999997}, {'name': 'Qobj ptrace [64]', 'factor': 1.8100000000000001}, {'name': 'Qobj expm [20]', 'factor': 2.7799999999999998}, {'name': 'JC SS [20]', 'factor': 0.19}, {'name': 'JC ME [20]', 'factor': 1.1000000000000001}, {'name': 'JC MC [20]', 'factor': 0.87}];
 platform = [{'cpu_freq': 1.8, 'os': 'Mac OSX', 'cpus': 2, 'memsize': 4096}];

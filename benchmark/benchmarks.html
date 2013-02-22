@@ -11,7 +11,10 @@
 	<title>QuTiP vs. qotoolbox Benchmarks</title>
   </head>
   <body>
-    <script type="text/javascript" src="benchmark_data.js"></script>
+    <div align='center'>
+	<h1>QuTiP Benchmarks: Comparison with the qotoolbox<h1>
+	</div>
+	<script type="text/javascript" src="benchmark_data.js"></script>
 	<script type="text/javascript">
 
     var mySVG = d3.select("body")
@@ -19,25 +22,25 @@
       .attr("width", 800) 
       .attr("height", 700)
       .style('position','absolute')
-      .style('top',50)
-      .style('left',40)
+      .style('top',0)
+      .style('left',50)
       .attr('class','fig');
-    
+	
 	var heightScale = d3.scale.linear()
       .domain([0, d3.max(data,function(d) { return d.factor;})])
-      .range([0, 400]);
+      .range([0, 300]);
 
     mySVG.selectAll(".xLabel")
       .data(data)
       .enter().append("svg:text")
-      .attr("x", function(d,i) {return 113 + (i * 22);})
-      .attr("y", 435)
-      .attr("text-anchor", "middle") 
+      .attr("x", function(d,i) {return 120 + (i * 32);})
+      .attr("y", 410)
+      .attr("text-anchor", "end") 
       .text(function(d,i) {return d.name;})
-      .attr('transform',function(d,i) {return 'rotate(-90,' + (113 + (i * 22)) + ',435)';}); 
+      .attr('transform',function(d,i) {return 'rotate(-60,' + (120 + (i * 32)) + ',410)';}); 
 
     mySVG.selectAll(".yLabel")
-      .data(heightScale.ticks(10))
+      .data(heightScale.ticks(5))
       .enter().append("svg:text")
       .attr('x',80)
       .attr('y',function(d) {return 400 - heightScale(d);})
@@ -46,7 +49,7 @@
 	  .text(function(d) {return d;}); 
 
     mySVG.selectAll(".yTicks")
-      .data(heightScale.ticks(10))
+      .data(heightScale.ticks(5))
       .enter().append("svg:line")
       .attr('x1','90')
       .attr('y1',function(d) {return 400 - heightScale(d);})
@@ -58,22 +61,24 @@
       .data(data)
       .enter()
       .append('svg:rect')
-      .attr('width',20)
+      .attr('width',30)
       .attr('height',function(d,i) {return heightScale(d.factor);})
-      .attr('x',function(d,i) {return (i * 22) + 100;})
+      .attr('x',function(d,i) {return (i * 32) + 100;})
       .attr('y',function(d,i) {return 400 - heightScale(d.factor);})
       .style('fill',function(d, i) {return d.factor < 1.0 ? 'lightcoral' : 'lightblue';});
 
 	mySVG.append("text")
 		.attr("y", 40)
-		.attr("x",-200)
+		.attr("x",-250)
 		.attr("transform", "rotate(-90)")
 		.attr("font-size", "16px")
 		.style("text-anchor", "middle")
 		.text("Speedup");
 	
+	var st=510
+	
 	mySVG.append("text")
-		.attr("y", 520)
+		.attr("y", st+20)
 		.attr("x",100)
 		.attr("font-size", "20px")
 		.style("text-anchor", "left")
@@ -81,7 +86,7 @@
 	
 	mySVG.append("text")
 		.data(platform)
-		.attr("y", 550)
+		.attr("y", st+50)
 		.attr("x",120)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
@@ -89,7 +94,7 @@
 	
 	mySVG.append("text")
 		.data(platform)
-		.attr("y", 570)
+		.attr("y", st+70)
 		.attr("x",120)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
@@ -97,7 +102,7 @@
 	
 	mySVG.append("text")
 		.data(platform)
-		.attr("y", 590)
+		.attr("y", st+90)
 		.attr("x",120)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
@@ -105,7 +110,7 @@
 	
 	mySVG.append("text")
 		.data(platform)
-		.attr("y", 610)
+		.attr("y", st+110)
 		.attr("x",120)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")

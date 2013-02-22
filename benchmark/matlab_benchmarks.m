@@ -1,6 +1,6 @@
 function []=matlab_benchmarks()
 %Create array to hold test results
-test_results=zeros(1,5);
+test_results=zeros(1,7);
 
 
 %test #1
@@ -18,6 +18,23 @@ H=wc * a' * a + wa * sm' * sm + g * (a' + a) * (sm + sm');
 time=toc;
 test_results(1,1)=time;
 
+
+%test #2
+%tensor 6 spin operators
+tic;
+tensor(sigmax(),sigmay(),sigmaz(),sigmay(),sigmaz(),sigmax());
+time=toc;
+test_results(1,2)=time;
+
+%test #2
+%tensor 6 spin operators
+out=tensor(sigmax(),sigmay(),sigmaz(),sigmay(),sigmaz(),sigmax());
+tic;
+ptrace(out,[1,3,4]);
+time=toc;
+test_results(1,3)=time;
+
+
 %test #2
 %matrix exponentiation to construct squeezed state and coherent state
 N=25;
@@ -31,7 +48,7 @@ S_oper=expm((1/2.0)*conj(sp)*a^2-(1/2.0)*sp*(a')^2);
 coh_state=D_oper*grnd;
 sqz_state=S_oper*grnd;
 time=toc;
-test_results(1,2)=time;
+test_results(1,4)=time;
 
 %test #3
 %cavity+qubit steady state
@@ -52,7 +69,7 @@ L2 = spre(C2)*spost(C2')-0.5*spre(C2dC2)-0.5*spost(C2dC2);
 L  = LH+L1+L2;
 rhoss = steady(L);% Find steady state
 time=toc;
-test_results(1,3)=time;
+test_results(1,5)=time;
 
 %test #4
 %cavity+qubit master equation
@@ -80,7 +97,7 @@ odesolve('file1.dat','file2.dat');
 fid = fopen('file2.dat','rb');
 rho = qoread(fid,dims(rho0),size(tlist));
 time=toc;
-test_results(1,4)=time;
+test_results(1,6)=time;
 
 
 %test #5
@@ -113,9 +130,7 @@ fid = fopen('out.dat','rb');
 [iter,count1,count2,infield] = expread(fid,nexpect,tlist);
 fclose(fid);
 time=toc;
-test_results(1,5)=time;
-
-
+test_results(1,7)=time;
 
 
 xlswrite('matlab_benchmarks',test_results);

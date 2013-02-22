@@ -20,14 +20,14 @@ test_names=[]
 #---------------------
 #Run Python Benchmarks
 #---------------------
-num_tests=5
+num_tests=7
 
-#Construct Jaynes-Cumming Hamiltonian with Nc=20, Na=2.
-test_names+=['Qobj add']
+#Construct Jaynes-Cumming Hamiltonian with Nc=10, Na=2.
+test_names+=['Qobj add [20]']
 wc = 1.0 * 2 * pi  
 wa = 1.0 * 2 * pi
 g  = 0.05 * 2 * pi
-Nc=20
+Nc=10
 tic=time()
 a=tensor(destroy(Nc),qeye(2))
 sm=tensor(qeye(Nc),sigmam())
@@ -35,9 +35,24 @@ H=wc*a.dag()*a+wa*sm.dag()*sm+g*(a.dag()+a)*(sm.dag()+sm)
 toc=time()
 python_times+=[toc-tic]
 
-#Construct Jaynes-Cumming Hamiltonian with Nc=20, Na=2.
-test_names+=['Qobj expm']
-N=25
+#tensor 6 spin operators.
+test_names+=['Qobj tensor [64]']
+tic=time()
+tensor(sigmax(),sigmay(),sigmaz(),sigmay(),sigmaz(),sigmax())
+toc=time()
+python_times+=[toc-tic]
+
+#ptrace 6 spin operators.
+test_names+=['Qobj ptrace [64]']
+out=tensor([sigmax(),sigmay(),sigmaz(),sigmay(),sigmaz(),sigmax()])
+tic=time()
+ptrace(out,[1,3,4])
+toc=time()
+python_times+=[toc-tic]
+
+#test expm with displacement and squeezing operators.
+test_names+=['Qobj expm [20]']
+N=20
 alpha=2+2j
 sp=1.25j
 tic=time()
@@ -47,9 +62,9 @@ toc=time()
 python_times+=[toc-tic]
 
 #cavity+qubit steady state
-test_names+=['JC SS']
+test_names+=['JC SS [20]']
 kappa=2;gamma=0.2;g=1;wc=0
-w0=0;N=5;E=0.5;wl=0
+w0=0;N=10;E=0.5;wl=0
 tic=time()
 ida=qeye(N)
 idatom=qeye(2)
@@ -66,7 +81,7 @@ toc=time()
 python_times+=[toc-tic]
 
 #cavity+qubit master equation
-test_names+=['JC ME']
+test_names+=['JC ME [20]']
 kappa = 2; gamma = 0.2; g = 1;
 wc = 0; w0 = 0; wl = 0; E = 0.5;
 N = 10;
@@ -88,10 +103,10 @@ toc=time()
 python_times+=[toc-tic]
 
 #cavity+qubit monte carlo equation
-test_names+=['JC MC']
+test_names+=['JC MC [20]']
 kappa = 2; gamma = 0.2; g = 1;
 wc = 0; w0 = 0; wl = 0; E = 0.5;
-N = 4;
+N = 10;
 tlist = linspace(0,10,200);
 tic=time()
 ida = qeye(N)
