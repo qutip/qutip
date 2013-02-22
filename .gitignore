@@ -22,7 +22,6 @@ lib64
 qutip/_version.py
 rhs*.pyx
 
-benchmark/matlab_benchmarks.csv
 
 *.dat
 
