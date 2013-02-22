@@ -118,7 +118,7 @@ def _visualize_parfor_data(metadata):
 
 
 def parfor(task, task_vec, args=None, client=None, view=None,
-           show_scheduling=False, show_progressbar=True):
+           show_scheduling=False, show_progressbar=False):
     """
     Call the function 'tast' for each value in 'task_vec' using a cluster
     of IPython engines.
