@@ -39,7 +39,3 @@ def _reset():
     else:
         qutip.settings.num_cpus = multiprocessing.cpu_count()
 
-
-def _reset_odeconfig():
-    from qutip.odeconfig import odeconfig
-    odeconfig.reset()
