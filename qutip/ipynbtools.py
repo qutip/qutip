@@ -20,7 +20,6 @@
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
 
-from IPython.core.display import HTML
 from IPython.parallel import Client
 from IPython.display import HTML, Javascript, display
 
@@ -70,6 +69,7 @@ def version_table():
 
     return HTML(html)
 
+
 class _HTMLProgressBar():
     """
     Based on IPython ProgressBar demo notebook:
@@ -82,7 +82,7 @@ class _HTMLProgressBar():
         self.pb = HTML("""\
 <div style="border: 1px solid grey; width: 600px">
   <div id="%s" style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
-</div> 
+</div>
 """ % self.divid)
         display(self.pb)
 
@@ -97,24 +97,25 @@ def _visualize_parfor_data(metadata):
     """
     res = numpy.array(metadata)
     fig, ax = plt.subplots(figsize=(10, res.shape[1]))
-    
+
     yticks = []
     yticklabels = []
-    tmin = min(res[:,1])
-    for n, pid in enumerate(numpy.unique(res[:,0])):
+    tmin = min(res[:, 1])
+    for n, pid in enumerate(numpy.unique(res[:, 0])):
         yticks.append(n)
         yticklabels.append("%d" % pid)
-        for m in numpy.where(res[:,0] == pid)[0]:
-            ax.add_patch(plt.Rectangle((res[m,1] - tmin, n-0.25),
-                         res[m,2] - res[m,1], 0.5, color="green", alpha=0.5))
-        
-    ax.set_ylim(-.5, n+.5)
-    ax.set_xlim(0, max(res[:,2]) - tmin + 0.)
+        for m in numpy.where(res[:, 0] == pid)[0]:
+            ax.add_patch(plt.Rectangle((res[m, 1] - tmin, n - 0.25),
+                         res[m, 2] - res[m, 1], 0.5, color="green", alpha=0.5))
+
+    ax.set_ylim(-.5, n + .5)
+    ax.set_xlim(0, max(res[:, 2]) - tmin + 0.)
     ax.set_yticks(yticks)
     ax.set_yticklabels(yticklabels)
     ax.set_ylabel("Engine")
     ax.set_xlabel("seconds")
     ax.set_title("Task schedule")
+
 
 def parfor(task, task_vec, args=None, client=None, view=None,
            show_scheduling=False, show_progressbar=True):
@@ -156,7 +157,7 @@ def parfor(task, task_vec, args=None, client=None, view=None,
 
     if show_scheduling:
         metadata = [[ar.engine_id,
-                     (ar.started - submitted).total_seconds(), 
+                     (ar.started - submitted).total_seconds(),
                      (ar.completed - submitted).total_seconds()]
                     for ar in ar_list]
         _visualize_parfor_data(metadata)
