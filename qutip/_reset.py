@@ -33,15 +33,11 @@ def _reset():
     qutip.settings.auto_tidyup_atol = 1e-12
     qutip.settings.debug = False
     #set cpus using hardware_info
-    try:
-        info=hardware_info()
-    except:
-        qutip.settings.num_cpus = multiprocessing.cpu_count()
+    info=hardware_info()
+    if len(info)!=0:
+        qutip.settings.num_cpus = info['cpus']
     else:
-      if len(info)!=0:
-          qutip.settings.num_cpus = info['cpus']
-      else: #required since windows version is not ready
-          qutip.settings.num_cpus = multiprocessing.cpu_count()
+        qutip.settings.num_cpus = multiprocessing.cpu_count()
 
 
 def _reset_odeconfig():

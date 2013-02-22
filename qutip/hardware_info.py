@@ -67,14 +67,19 @@ def hardware_info():
         Dictionary containing cpu and memory informaton.
     
     """
-    if sys.platform == 'darwin':
-        return _mac_hardware_info()
-    elif sys.platform == 'win32':
-        return _win_hardware_info()
-    elif sys.platform in ['linux','linux2']:
-        return _linux_hardware_info()
-    else:
+    try:
+        if sys.platform == 'darwin':
+            out=_mac_hardware_info()
+        elif sys.platform == 'win32':
+            out=_win_hardware_info()
+        elif sys.platform in ['linux','linux2']:
+            out=_linux_hardware_info()
+        else:
+            out={}
+    except:
         return {}
+    else:
+        return out
 
 if __name__=='__main__':
     print hardware_info()

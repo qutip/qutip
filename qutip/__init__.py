@@ -93,15 +93,11 @@ except Exception as e:
 
 #load cpus
 from qutip.hardware_info import hardware_info
-try:
-    info=hardware_info()
-except:
-    qutip.settings.num_cpus = multiprocessing.cpu_count()
+info=hardware_info()
+if len(info)!=0:
+    qutip.settings.num_cpus = info['cpus']
 else:
-  if len(info)!=0:
-      qutip.settings.num_cpus = info['cpus']
-  else: #required since windows version is not ready
-      qutip.settings.num_cpus = multiprocessing.cpu_count()
+    qutip.settings.num_cpus = multiprocessing.cpu_count()
 
 
 qutip.settings.qutip_graphics = "YES"
