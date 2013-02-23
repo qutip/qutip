@@ -25,6 +25,7 @@ equation and the Schrodinger equation.
 import os
 import types
 import numpy as np
+import scipy.sparse as sp
 import scipy.integrate
 from scipy.linalg import norm
 
@@ -787,11 +788,11 @@ def _wfsolve_list_td(H_func, psi0, tlist, expt_ops, args, opt):
     #
     if len(H_func) != 2:
         raise TypeError('Time-dependent Hamiltonian list must have two terms.')
-    if (not isinstance(H_func[0], (list, ndarray))) or \
+    if (not isinstance(H_func[0], (list, np.ndarray))) or \
        (len(H_func[0]) <= 1):
         raise TypeError('Time-dependent Hamiltonians must be a list with two '
                         + 'or more terms')
-    if (not isinstance(H_func[1], (list, ndarray))) or \
+    if (not isinstance(H_func[1], (list, np.ndarray))) or \
        (len(H_func[1]) != (len(H_func[0]) - 1)):
         raise TypeError('Time-dependent coefficients must be list with ' +
                         'length N-1 where N is the number of ' +
@@ -1002,10 +1003,10 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     #
     if len(H_func) != 2:
         raise TypeError('Time-dependent Hamiltonian list must have two terms.')
-    if (not isinstance(H_func[0], (list, ndarray))) or (len(H_func[0]) <= 1):
+    if (not isinstance(H_func[0], (list, np.ndarray))) or (len(H_func[0]) <= 1):
         raise TypeError('Time-dependent Hamiltonians must be a list ' +
                         'with two or more terms')
-    if (not isinstance(H_func[1], (list, ndarray))) or \
+    if (not isinstance(H_func[1], (list, np.ndarray))) or \
        (len(H_func[1]) != (len(H_func[0]) - 1)):
         raise TypeError('Time-dependent coefficients must be list with ' +
                         'length N-1 where N is the number of ' +
