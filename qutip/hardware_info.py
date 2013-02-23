@@ -92,4 +92,4 @@ def hardware_info():
         return out
 
 if __name__=='__main__':
-    print hardware_info()
+    print(hardware_info())
