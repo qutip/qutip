@@ -95,9 +95,9 @@ def _ode_checks(H, c_ops, solver='me'):
                                 "version 0.14+" % Cython.__version__)
 
     if solver == 'me':
-        return [len(h_const + c_const),
+        return (len(h_const + c_const),
                 len(h_func) + len(c_func),
-                len(h_str) + len(c_str)]
+                len(h_str) + len(c_str))
     elif solver == 'mc':
 
         #   H      C_ops    #
