@@ -16,8 +16,4 @@ for the cavity alone).
 .. plot:: ../qutip/qutip/examples/ex_23.py
 	:include-source:
 	
-The saved images may be used to generate a animation of the dynamics of the 
-Wigner distribution.
 
-.. figure:: examples-jc-model-wigner.gif
-    :align: center

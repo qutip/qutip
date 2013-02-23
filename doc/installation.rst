@@ -12,50 +12,51 @@ Installation
 General Requirements
 =====================
 
-QuTiP requires the following packages to run:
+QuTiP is based on several open-source packages designed for numerical simulations in the Python
+programming language.  Currently. QuTiP requires the following packages to run:
 
 .. tabularcolumns:: | p{3cm} | p{2.5cm} | L |
 
-+------------+--------------+-----------------------------------------------------+
-| Package    | Version      | Details                                             |
-+============+==============+=====================================================+
-| Python     | 2.6+         | Requires multiprocessing (v2.6 and higher only).    |
-+------------+--------------+-----------------------------------------------------+
-| Numpy      | 1.6+         | Not tested on lower versions.                       |
-+------------+--------------+-----------------------------------------------------+
-| Scipy      | 0.9+         | Not tested on lower versions. Use 0.9+ if possible. |
-+------------+--------------+-----------------------------------------------------+
-| Matplotlib | 1.1.0+       | Some plotting does not work on lower versions.      |
-+------------+--------------+-----------------------------------------------------+
-| Qt         | 4.7.3+       | Optional.  For GUI elements only.                   |
-+------------+--------------+-----------------------------------------------------+
-| PySide     | 1.0.6+       | Optional, required only for GUI elements.           |
-|            |              | PyQt4 may be used instead.                          |
-+------------+--------------+-----------------------------------------------------+
-| PyQt4      | 4.8+         | Optional, required only for GUI elements.           |
-|            |              | PySide may be used instead (recommended).           |
-+------------+--------------+-----------------------------------------------------+                      
-| PyObjC     | 2.2+         | Mac only.  Very optional.  Needed only for a        |
-|            |              | GUI Monte-Carlo progress bar.                       |
-+------------+--------------+-----------------------------------------------------+
-| Cython     | 0.15+        | Optional.  Needed for compiling some time-dependent |
-|            |              | Hamiltonians.                                       |
-+------------+--------------+-----------------------------------------------------+
-| Mayavi     | 4.1+         | Optional.  Needed for using the Bloch3d class.      |
-+------------+--------------+-----------------------------------------------------+
-| GCC        | 4.2+         | Needed for compiling Cython files.                  |
-| Compiler   |              |                                                     |
-+------------+--------------+-----------------------------------------------------+
-| Python     | 2.6+         | Linux only.  Needed for compiling Cython files.     |
-| Headers    |              |                                                     |
-+------------+--------------+-----------------------------------------------------+
-| LaTeX      | TexLive 2009+| Optional.  Needed if using LaTex in figure labels.  |    
-+------------+--------------+-----------------------------------------------------+
-| nose       | 1.1.2+       | Optional. For running tests.                        |
-+------------+--------------+-----------------------------------------------------+
++----------------+--------------+-----------------------------------------------------+
+| Package        | Version      | Details                                             |
++================+==============+=====================================================+
+| **Python**     | 2.6+         | Requires multiprocessing (v2.6 and higher only).    |
++----------------+--------------+-----------------------------------------------------+
+| **Numpy**      | 1.6+         | Not tested on lower versions.                       |
++----------------+--------------+-----------------------------------------------------+
+| **Scipy**      | 0.9+         | Not tested on lower versions. Use 0.9+ if possible. |
++----------------+--------------+-----------------------------------------------------+
+| **Matplotlib** | 1.1.0+       | Some plotting does not work on lower versions.      |
++----------------+--------------+-----------------------------------------------------+
+| **GCC**        | 4.2+         | Needed for compiling Cython files.                  |
+| **Compiler**   |              |                                                     |
++----------------+--------------+-----------------------------------------------------+
+| Qt             | 4.7.3+       | Optional.  For GUI elements only.                   |
++----------------+--------------+-----------------------------------------------------+
+| PySide         | 1.0.6+       | Optional, required only for GUI elements.           |
+|                |              | PyQt4 may be used instead.                          |
++----------------+--------------+-----------------------------------------------------+
+| PyQt4          | 4.8+         | Optional, required only for GUI elements.           |
+|                |              | PySide may be used instead (recommended).           |
++----------------+--------------+-----------------------------------------------------+                      
+| PyObjC         | 2.2+         | Mac only.  Very optional.  Needed only for a        |
+|                |              | GUI Monte-Carlo progress bar.                       |
++----------------+--------------+-----------------------------------------------------+
+| Cython         | 0.15+        | Optional.  Needed for compiling some time-dependent |
+|                |              | Hamiltonians.                                       |
++----------------+--------------+-----------------------------------------------------+
+| Mayavi         | 4.1+         | Optional.  Needed for using the Bloch3d class.      |
++----------------+--------------+-----------------------------------------------------+
+| Python         | 2.6+         | Linux only.  Needed for compiling Cython files.     |
+| Headers        |              |                                                     |
++----------------+--------------+-----------------------------------------------------+
+| LaTeX          | TexLive 2009+| Optional.  Needed if using LaTex in figure labels.  |    
++----------------+--------------+-----------------------------------------------------+
+| nose           | 1.1.2+       | Optional. For running tests.                        |
++----------------+--------------+-----------------------------------------------------+
 
-
-On all platforms (Linux, Mac, Windows), QuTiP works "out-of-the-box" using `Anaconda CE <https://store.continuum.io/cshop/anaconda>`_.  This distribution is created by the developers of Numpy, and is free for both commercial and noncommercial use.
+|
+On all platforms (Linux, Mac, Windows), QuTiP works "out-of-the-box" using the `Anaconda CE <https://store.continuum.io/cshop/anaconda>`_.  This distribution is created by the developers of Numpy, and is free for both commercial and noncommercial use.
 
 .. _install-linux:
 
@@ -88,6 +89,7 @@ First install the following dependency packages::
     sudo apt-get install cython
     sudo apt-get install python-nose         # recommended, for testing
     sudo apt-get install texlive-latex-extra # recommended
+    sudo apt-get install libblas-dev         # optional, for Fortran monte carlo solver
     sudo apt-get install mayavi2             # optional, for Bloch3d only
 
 and then run the this installation command in the QuTiP source code directory::
@@ -113,7 +115,7 @@ and then run the this installation command in the QuTiP source code directory::
 Installation on Mac OS X (10.6+)
 =================================
 
-If you have not done so already, install the Apple XCode developer tools from the Apple App Store.  After intallation, open Xcode and go to: Preferences -> Downloads, and install the 'Command Line Tools'.
+If you have not done so already, install the Apple XCode developer tools from the Apple App Store.  After installation, open Xcode and go to: Preferences -> Downloads, and install the 'Command Line Tools'.
 
 Setup Using Macports [*]_
 --------------------------
@@ -156,12 +158,12 @@ which will bring up a list of installed compilers, such as::
 		apple-gcc42
 		gcc42
 		llvm-gcc42
-		mp-gcc45
+		mp-gcc47
 		none (active)
 
-We want to set the the compiler to the gcc4x compiler, where x is the highest number available, in this case ``mp-gcc45`` (the "mp-" does not matter).  To do this type::
+We want to set the the compiler to the gcc4x compiler, where x is the highest number available, in this case ``mp-gcc47`` (the "mp-" does not matter).  To do this type::
 
-    sudo port select gcc mp-gcc45
+    sudo port select gcc mp-gcc47
 
 Running port select again should give::
 
@@ -169,7 +171,7 @@ Running port select again should give::
 	 	apple-gcc42
 	 	gcc42
 	 	llvm-gcc42
-	 	mp-gcc45 (active)
+	 	mp-gcc47 (active)
 	 	none
 
 Setup via SciPy Superpack

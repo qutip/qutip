@@ -42,6 +42,8 @@ The Quantum Toolbox in Python, or QuTiP, is a fully open-source implementation o
 Whats New in QuTiP Version 2.2
 ================================
 
+- **QuTiP is now 100% compatible with the Windows Operating System!**
+
 - New Bloch3d class for plotting 3D Bloch spheres using Mayavi.
 
 - Added partial transpose function.
