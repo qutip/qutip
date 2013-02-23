@@ -55,7 +55,9 @@ def run_tests():
     out=test_7();test_names+=out[0];python_times+=out[1]
     out=test_8();test_names+=out[0];python_times+=out[1]
     out=test_9();test_names+=out[0];python_times+=out[1]
-    #out=test_10();test_names+=out[0];python_times+=out[1]
+    out=test_10();test_names+=out[0];python_times+=out[1]
+    out=test_11();test_names+=out[0];python_times+=out[1]
+    #out=test_12();test_names+=out[0];python_times+=out[1]
     
     #return all results
     return python_times, test_names

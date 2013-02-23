@@ -1,6 +1,6 @@
 function []=matlab_benchmarks()
 %Create array to hold test results
-test_results=zeros(1,9);
+test_results=zeros(1,11);
 
 
 %test #1
@@ -17,6 +17,7 @@ sm=tensor(identity(Nc),sigmam());
 H=wc * a' * a + wa * sm' * sm + g * (a' + a) * (sm + sm');
 time=toc;
 test_results(1,1)=time;
+%----------------------------------------------------------
 
 
 %test #2
@@ -25,6 +26,8 @@ tic;
 tensor(sigmax(),sigmay(),sigmaz(),sigmay(),sigmaz(),sigmax());
 time=toc;
 test_results(1,2)=time;
+%----------------------------------------------------------
+
 
 %test #3
 %tensor 6 spin operators
@@ -33,6 +36,7 @@ tic;
 ptrace(out,[1,3,4]);
 time=toc;
 test_results(1,3)=time;
+%----------------------------------------------------------
 
 
 %test #4
@@ -49,6 +53,8 @@ coh_state=D_oper*grnd;
 sqz_state=S_oper*grnd;
 time=toc;
 test_results(1,4)=time;
+%----------------------------------------------------------
+
 
 %test #5
 %cavity+qubit steady state
@@ -70,6 +76,8 @@ L  = LH+L1+L2;
 rhoss = steady(L);% Find steady state
 time=toc;
 test_results(1,5)=time;
+%----------------------------------------------------------
+
 
 %test #6
 %cavity+qubit master equation
@@ -98,6 +106,7 @@ fid = fopen('file2.dat','rb');
 rho = qoread(fid,dims(rho0),size(tlist));
 time=toc;
 test_results(1,6)=time;
+%----------------------------------------------------------
 
 
 %test #7
@@ -131,6 +140,8 @@ fid = fopen('out.dat','rb');
 fclose(fid);
 time=toc;
 test_results(1,7)=time;
+%----------------------------------------------------------
+
 
 %test #8
 %cavity+qubit monte carlo (compare with mcsolve_f90)
@@ -163,6 +174,7 @@ fid = fopen('out.dat','rb');
 fclose(fid);
 time=toc;
 test_results(1,8)=time;
+%----------------------------------------------------------
 
 
 %test #9
@@ -195,9 +207,157 @@ tic;
 W=wfunc(rho,xvec,xvec);
 time=toc;
 test_results(1,9)=time;
+%----------------------------------------------------------
+
 
 %test #10
-%spin chain with 8 spins
+%spin chain with 4 spins (master equation)
+N = 4; %number of spins
+h  = 1.0 * 2 * pi * ones(1,N); 
+Jz = 0.1 * 2 * pi * ones(1,N);
+Jx = 0.1 * 2 * pi * ones(1,N);
+Jy = 0.1 * 2 * pi * ones(1,N);
+gamma = 0.01 * ones(1,N);
+psi_list={basis(2,2)};
+for ii=2:N
+    psi_list{ii}=basis(2,1);
+end
+psi0=tensor(psi_list{:});
+rho0 = psi0 * psi0';
+tlist = linspace(0, 10, 200);
+si = identity(2);
+sx = sigmax();
+sy = sigmay();
+sz = sigmaz();
+sx_list = {};
+sy_list = {};
+sz_list = {};
+
+for n=1:N
+    op_list = {};
+    for m=1:N
+        op_list{m}=si;
+    end
+    op_list{n}=sx;
+    sx_list{n}=tensor(op_list{:});
+    op_list{n}=sy;
+    sy_list{n}=tensor(op_list{:});
+    op_list{n}=sz;
+    sz_list{n}=tensor(op_list{:});
+end
+H=0;
+for n=1:N
+    H=H+h(n)+sz_list{n};
+end
+for n=1:N-1
+    H=H- 0.5 * Jx(n) * sx_list{n} * sx_list{n+1};
+    H=H- 0.5 * Jy(n) * sy_list{n} * sy_list{n+1};
+    H=H- 0.5 * Jz(n) * sz_list{n} * sz_list{n+1};
+end
+tic;
+LH=-1i * (spre(H) - spost(H));
+LC=0;
+for n=1:N
+    C1=sqrt(gamma(n))*sz_list{n};
+    C1dC1=C1'*C1;
+    LC=LC+spre(C1)*spost(C1')-0.5*spre(C1dC1)-0.5*spost(C1dC1);
+end
+L=LH+LC;
+options.mxstep = 2500;
+tic;
+ode2file('file1.dat',L,rho0,tlist,options);
+odesolve('file1.dat','file2.dat');
+time=toc;
+test_results(1,10)=time;
+%----------------------------------------------------------
+
+
+%test #11
+%spin chain with 4 spins (monte carlo)
+N = 4; %number of spins
+h  = 1.0 * 2 * pi * ones(1,N); 
+Jz = 0.1 * 2 * pi * ones(1,N);
+Jx = 0.1 * 2 * pi * ones(1,N);
+Jy = 0.1 * 2 * pi * ones(1,N);
+gamma = 0.01 * ones(1,N);
+psi_list={basis(2,2)};
+for ii=2:N
+    psi_list{ii}=basis(2,1);
+end
+psi0=tensor(psi_list{:});
+tlist = linspace(0, 10, 200);
+si = identity(2);
+sx = sigmax();
+sy = sigmay();
+sz = sigmaz();
+sx_list = {};
+sy_list = {};
+sz_list = {};
+
+for n=1:N
+    op_list = {};
+    for m=1:N
+        op_list{m}=si;
+    end
+    op_list{n}=sx;
+    sx_list{n}=tensor(op_list{:});
+    op_list{n}=sy;
+    sy_list{n}=tensor(op_list{:});
+    op_list{n}=sz;
+    sz_list{n}=tensor(op_list{:});
+end
+H=0;
+for n=1:N
+    H=H+h(n)+sz_list{n};
+end
+for n=1:N-1
+    H=H- 0.5 * Jx(n) * sx_list{n} * sx_list{n+1};
+    H=H- 0.5 * Jy(n) * sy_list{n} * sy_list{n+1};
+    H=H- 0.5 * Jz(n) * sz_list{n} * sz_list{n+1};
+end
+Heff=H;
+c_op_list={};
+tic;
+for n=1:N
+    C1=sqrt(gamma(n))*sz_list{n};
+    c_op_list{n}=C1;
+    C1dC1=C1'*C1;
+    Heff=Heff-0.5i*C1dC1;
+end
+options.mxstep = 2500;
+ntraj=500;
+nexpect = mc2file('test.dat',-i*Heff,c_op_list,sz_list,psi0,tlist,ntraj,options);
+mcsolve('test.dat','out.dat');
+time=toc;
+test_results(1,11)=time;
+%----------------------------------------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

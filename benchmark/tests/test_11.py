@@ -1,11 +1,11 @@
 from qutip import *
 from time import time
 
-def test_10():
+def test_11():
     """
-    mesolve evolution of 4-spin chain
+    mcsolve evolution of 4-spin chain
     """
-    test_name='ME 4-spin [16]'
+    test_name='MC 4-spin [16]'
     N = 4# number of spins
     # uniform parameters
     h  = 1.0 * 2 * pi * ones(N) 
@@ -57,11 +57,12 @@ def test_10():
     for n in range(N):
         c_op_list.append(sqrt(gamma[n]) * sz_list[n])
     # evolve and calculate expectation values
+    opts=Odeoptions(gui=False)
     tic=time()
-    mesolve(H, psi0, tlist, c_op_list, sz_list)
+    mcsolve(H, psi0, tlist, c_op_list, sz_list,options=opts)
     toc=time()
     return [test_name], [toc-tic]
  
 
 if __name__=='__main__':
-    test_10()
+    test_11()

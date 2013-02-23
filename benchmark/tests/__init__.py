@@ -8,3 +8,5 @@ from test_7 import test_7
 from test_8 import test_8
 from test_9 import test_9
 from test_10 import test_10
+from test_11 import test_11
+from test_12 import test_12
