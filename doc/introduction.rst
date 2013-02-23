@@ -57,6 +57,8 @@ Whats New in QuTiP Version 2.2
 - The master-equation solver (mesolve) now accepts pre-constructed Liouvillian
   terms, which makes it possible to solve master equations that are not on
   the standard Lindblad form.
+ 
+- Optional Fortran monte carlo solver (mcsolve_f90) by Arne Grimsmo.
 
 .. _about-whatsnew21:
 
