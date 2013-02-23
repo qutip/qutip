@@ -15,7 +15,41 @@
 	</div>
 	<script type="text/javascript" src="benchmark_data.js"></script>
 	<script type="text/javascript">
+	
+	d3.scale.genericLog = function() {
+	    return GenericLog();
+	};
+	
+	function GenericLog() {
+	    var PROJECTION=[1,100];
+	    var linearScale, logScale;
 
+	    linearScale=d3.scale.linear();
+	    linearScale.range(PROJECTION);
+
+	    logScale=d3.scale.log();
+	    logScale.domain(PROJECTION);
+
+	    function scale(x) {
+	        return logScale(linearScale(x));
+	    }
+	    scale.domain = function(x) {
+	        if (!arguments.length) return linearScale.domain();
+	        linearScale.domain(x);
+	        return scale;
+	    };
+	    scale.range = function(x) {
+	        if (!arguments.length) return logScale.range();
+	        logScale.range(x);
+	        return scale;
+	    };
+	    scale.ticks = function(m) {
+	        return linearScale.ticks(m);
+	    };
+	    return scale;
+
+	}
+	
     var mySVG = d3.select("body")
       .append("svg")
       .attr("width", 900) 
@@ -25,7 +59,7 @@
       .style('left',50)
       .attr('class','fig');
 	
-	var heightScale = d3.scale.linear()
+	var heightScale = d3.scale.genericLog()
       .domain([0, d3.max(data,function(d) { return d.factor;})])
       .range([0, 300]);
 	
@@ -45,7 +79,7 @@
       .attr('y',function(d) {return 400 - heightScale(d);})
       .attr("text-anchor", "end") 
       .attr("font-size", "14px")
-	  .text(function(d,i) {return scale[i];}); 
+	  .text(function(d,i) {return d;}); 
 
     mySVG.selectAll(".yTicks")
       .data(heightScale.ticks(5))

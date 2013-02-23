@@ -191,9 +191,7 @@ if args.run_profiler:
 
 else:
     python_times, test_names = run_tests()
-
-    factors=np.log1p(np.round(matlab_times/array(python_times),2))
-    scale=list(np.floor(np.exp(linspace(0,max(factors),5))-1))
+    factors=matlab_times/array(python_times)
     data=[]
     for ii in range(len(test_names)):
         entry={'name':test_names[ii],'factor':factors[ii]}
@@ -201,7 +199,6 @@ else:
 
     f = open("benchmark_data.js", "w")
     f.write('data = ' + str(data) + ';\n')
-    f.write('scale = ' + str(scale) + ';\n')
     f.write('platform = ' + str(platform) + ';\n')
     f.write('qutip_info = ' + str(qutip_info) + ';\n')
     f.write('matlab_info= ' + str(matlab_info) + ';\n')

@@ -26,3 +26,5 @@ rhs*.pyx
 *.dat
 
 *.qo
+
+benchmark/benchmark_data.js
