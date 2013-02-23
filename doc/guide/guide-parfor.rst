@@ -71,5 +71,5 @@ Although :func:`qutip.parfor` allows functions with only one input, we can in fa
 	In [5]: print(a)
 
 
-This example also highlights the fact that the parfor function does not evaluate the sequence of elements in order.  Therefore, passing an index variable, as done in the previous example, is useful if one needs to keep track of individual function evaluations, for example when plotting.  Parfor is also useful for repeated tasks such as generating plots corresponding to the dynamical evolution of your system, or simultaneously simulating different parameter configurations.
+Parfor is also useful for repeated tasks such as generating plots corresponding to the dynamical evolution of your system, or simultaneously simulating different parameter configurations.
 
