@@ -5,6 +5,7 @@ test_results=zeros(1,15);
 
 %test #1
 %perform basic operator algebra to construct JC-Hamiltonian
+clearvars -except test_results;
 Nc=20;
 wc = 1.0 * 2 * pi;   
 wa = 1.0 * 2 * pi;
@@ -22,6 +23,7 @@ test_results(1,1)=time;
 
 %test #2
 %tensor 6 spin operators
+clearvars -except test_results;
 tic;
 tensor(sigmax(),sigmay(),sigmaz(),sigmay(),sigmaz(),sigmax());
 time=toc;
@@ -31,6 +33,7 @@ test_results(1,2)=time;
 
 %test #3
 %tensor 6 spin operators
+clearvars -except test_results;
 out=tensor(sigmax(),sigmay(),sigmaz(),sigmay(),sigmaz(),sigmax());
 tic;
 ptrace(out,[1,3,4]);
@@ -41,6 +44,7 @@ test_results(1,3)=time;
 
 %test #4
 %matrix exponentiation to construct squeezed state and coherent state
+clearvars -except test_results;
 N=20;
 alpha=2+2i;
 sp=1.25i;
@@ -58,6 +62,7 @@ test_results(1,4)=time;
 
 %test #5
 %cavity+qubit steady state
+clearvars -except test_results;
 N=10;kappa = 2; gamma = 0.2; g = 1;
 wc = 0; w0 = 0; wl = 0; E = 0.5;
 tic;
@@ -81,6 +86,7 @@ test_results(1,5)=time;
 
 %test #6
 %cavity+qubit master equation
+clearvars -except test_results;
 kappa = 2; gamma = 0.2; g = 1;
 wc = 0; w0 = 0; wl = 0; E = 0.5;
 N = 10;
@@ -111,6 +117,7 @@ test_results(1,6)=time;
 
 %test #7
 %cavity+qubit monte carlo (compare with mcsolver)
+clearvars -except test_results;
 kappa = 2; gamma = 0.2; g = 1;
 wc = 0; w0 = 0; wl = 0; E = 0.5;
 N = 10;
@@ -145,6 +152,7 @@ test_results(1,7)=time;
 
 %test #8
 %cavity+qubit monte carlo (compare with mcsolve_f90)
+clearvars -except test_results;
 kappa = 2; gamma = 0.2; g = 1;
 wc = 0; w0 = 0; wl = 0; E = 0.5;
 N = 10;
@@ -179,6 +187,7 @@ test_results(1,8)=time;
 
 %test #9
 %cavity+qubit Wigner function
+clearvars -except test_results;
 kappa = 2; gamma = 0.2; g = 1;
 wc = 0; w0 = 0; wl = 0; E = 0.5;
 N = 10;
@@ -212,6 +221,7 @@ test_results(1,9)=time;
 
 %test #10
 %spin chain with 4 spins (master equation)
+clearvars -except test_results;
 N = 4; %number of spins
 h  = 1.0 * 2 * pi * ones(1,N); 
 Jz = 0.1 * 2 * pi * ones(1,N);
@@ -274,6 +284,7 @@ test_results(1,10)=time;
 
 %test #11
 %spin chain with 4 spins (monte carlo)
+clearvars -except test_results;
 N = 4; %number of spins
 h  = 1.0 * 2 * pi * ones(1,N); 
 Jz = 0.1 * 2 * pi * ones(1,N);
@@ -335,6 +346,7 @@ test_results(1,11)=time;
 
 %test #12
 %spin chain with 4 spins (monte carlo)
+clearvars -except test_results;
 N = 4; %number of spins
 h  = 1.0 * 2 * pi * ones(1,N); 
 Jz = 0.1 * 2 * pi * ones(1,N);
@@ -396,6 +408,7 @@ test_results(1,12)=time;
 
 %test #13
 %spin chain with 8 spins (master equation)
+clearvars -except test_results;
 N = 8; %number of spins
 h  = 1.0 * 2 * pi * ones(1,N); 
 Jz = 0.1 * 2 * pi * ones(1,N);
@@ -459,6 +472,7 @@ test_results(1,13)=time;
 
 %test #14
 %spin chain with 8 spins (monte carlo)
+clearvars -except test_results;
 N = 8; %number of spins
 h  = 1.0 * 2 * pi * ones(1,N); 
 Jz = 0.1 * 2 * pi * ones(1,N);
@@ -520,6 +534,7 @@ test_results(1,14)=time;
 
 %test #15
 %spin chain with 8 spins (monte carlo F90 compare)
+clearvars -except test_results;
 N = 8; %number of spins
 h  = 1.0 * 2 * pi * ones(1,N); 
 Jz = 0.1 * 2 * pi * ones(1,N);
