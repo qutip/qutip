@@ -241,13 +241,13 @@ QuTiP includes a graphical "about" box for viewing information about QuTiP, and 
 >>> from qutip import *
 >>> about()
 
-that will pop-up a window similar to the one shown below.  If instead you get command-line output, then your PyQt or PySide graphics are not installed properly or unavailable.  When running the about box, QuTiP will automatically check for a newer version of itself from the QuTiP website.  As shown below, the about box will have an "update" link next to the QuTiP version number if your are not running the latest version of QuTiP
+that will pop-up a window similar to the one shown below.  If instead you get command-line output, then your PyQt or PySide graphics are not installed properly or unavailable.  When running the about box, QuTiP will automatically check for a newer version of itself from the QuTiP website. The about box will have an "update" link next to the QuTiP version number if your are not running the latest version of QuTiP
 
 .. figure:: figures/about.png
    :align: center
    :width: 3in
    
-   QuTiP about box window with link to updated version on the QuTiP website.
+   QuTiP about box window.
 
 
 .. [*] Installing QuTiP via Macports will take a long time as each of the QuTiP dependencies is build from source code.  The advantage is that, after installation, everything is more or less guaranteed to work.  However, if you have a hot date waiting for you, then we do not recommend this path.  Or course, if you are reading this guide, this may not be the case. 
