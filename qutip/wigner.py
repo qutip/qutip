@@ -249,12 +249,8 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
     X, Y = meshgrid(xvec, yvec)
     amat = 0.5 * g * (X + Y * 1j)
 
-    if isoper(state):
-        ketflag = 0
-    elif isket(state):
-        ketflag = 1
-    else:
-        TypeError('Invalid state operand to qfunc.')
+    if not (isoper(state) or isket(state)):
+        raise TypeError('Invalid state operand to qfunc.')
 
     N = prod(state.dims)
     qmat = zeros(size(amat))
