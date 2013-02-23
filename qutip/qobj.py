@@ -29,7 +29,7 @@ from numpy import (arccos, arccosh, arcsin, arcsinh, arctan, arctan2, arctanh,
                    floor, fmod, frexp, hypot, isinf, isnan, ldexp, log, log10,
                    log1p, modf, pi, radians, sin, sinh, sqrt, tan, tanh, trunc)
 
-from numpy import any, prod, allclose, shape, where
+from numpy import prod, allclose, shape, where
 
 import numpy as np
 import scipy.sparse as sp
@@ -148,13 +148,13 @@ class Qobj():
 
             # make sure matrix is sparse (safety check)
             self.data = sp.csr_matrix(inpt.data, dtype=complex)
-            if not any(dims):
+            if not np.any(dims):
                 # Dimensions of quantum object used for keeping track of tensor
                 # components
                 self.dims = inpt.dims
             else:
                 self.dims = dims
-            if not any(shape):
+            if not np.any(shape):
                 # Shape of undelying quantum obejct data matrix
                 self.shape = inpt.shape
             else:
@@ -168,12 +168,12 @@ class Qobj():
             if (isinstance(inpt, np.ndarray)) or sp.issparse(inpt):
                 self.data = sp.csr_matrix(
                     inpt, dtype=complex)  # data stored as space array
-                if not any(dims):
+                if not np.any(dims):
                     self.dims = [[int(inpt.shape[0])], [int(
                         inpt.shape[1])]]  # list of object dimensions
                 else:
                     self.dims = dims
-                if not any(shape):
+                if not np.any(shape):
                     self.shape = [int(inpt.shape[0]), int(
                         inpt.shape[1])]  # list of matrix dimensions
                 else:
@@ -187,11 +187,11 @@ class Qobj():
                 else:  # if list has two dimensions (i.e [[5,4]])
                     inpt = np.array(inpt)
                 self.data = sp.csr_matrix(inpt, dtype=complex)
-                if not any(dims):
+                if not np.any(dims):
                     self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
                 else:
                     self.dims = dims
-                if not any(shape):
+                if not np.any(shape):
                     self.shape = [int(inpt.shape[0]), int(inpt.shape[1])]
                 else:
                     self.shape = shape
@@ -707,7 +707,7 @@ class Qobj():
 
         """
         out = self.data.diagonal()
-        if any(np.imag(out) > 1e-15) or not self.isherm:
+        if np.any(np.imag(out) > 1e-15) or not self.isherm:
             return out
         else:
             return np.real(out)
@@ -865,7 +865,7 @@ class Qobj():
 
         """
         abs_data = abs(self.data.data.flatten())
-        if any(abs_data):
+        if np.any(abs_data):
             mx = max(abs_data)
             if mx >= atol:
                 data = abs(self.data.data)
@@ -1492,7 +1492,7 @@ def issuper(Q):
 
     result = isinstance(Q.dims[0], list) and isinstance(Q.dims[0][0], list)
     if result:
-        result = (Q.dims[0] == Q.dims[1]) & (Q.dims[0][0] == Q.dims[1][0])
+        result = (Q.dims[0] == Q.dims[1]) and (Q.dims[0][0] == Q.dims[1][0])
     return result
 
 
@@ -1516,19 +1516,19 @@ def isequal(A, B, tol=1e-12):
 
     """
 
-    if not isinstance(Q, Qobj):
+    if not isinstance(A, Qobj) or not isinstance(B, Qobj):
         return False
 
     if A.dims != B.dims:
         return False
-    else:
-        Adat = A.data
-        Bdat = B.data
-        elems = (Adat - Bdat).data
-        if any(abs(elems) > tol):
-            return False
-        else:
-            return True
+
+    Adat = A.data
+    Bdat = B.data
+    elems = (Adat - Bdat).data
+    if np.any(abs(elems) > tol):
+        return False
+
+    return True
 
 #**************************
 
@@ -1576,7 +1576,7 @@ def isherm(Q):
     else:
         dat = Q.data
         elems = (dat.transpose().conj() - dat).data
-        if any(abs(elems) > 1e-12):
+        if np.any(abs(elems) > 1e-12):
             return False
         else:
             return True
