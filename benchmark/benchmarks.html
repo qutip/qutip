@@ -73,7 +73,7 @@
       .attr('transform',function(d,i) {return 'rotate(-60,' + (120 + (i * 32)) + ',410)';}); 
 
     mySVG.selectAll(".yLabel")
-      .data(heightScale.ticks(5))
+      .data(heightScale.ticks(6))
       .enter().append("svg:text")
       .attr('x',80)
       .attr('y',function(d) {return 400 - heightScale(d);})
@@ -82,7 +82,7 @@
 	  .text(function(d,i) {return d;}); 
 
     mySVG.selectAll(".yTicks")
-      .data(heightScale.ticks(5))
+      .data(heightScale.ticks(6))
       .enter().append("svg:line")
       .attr('x1','90')
       .attr('y1',function(d) {return 400 - heightScale(d);})
