@@ -10,3 +10,6 @@ from test_9 import test_9
 from test_10 import test_10
 from test_11 import test_11
 from test_12 import test_12
+from test_13 import test_13
+from test_14 import test_14
+from test_15 import test_15
