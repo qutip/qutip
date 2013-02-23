@@ -54,7 +54,6 @@ def _ptrace(rho, sel):
     # perm.data = np.ones_like(perm.rows,dtype=int)
     perm.data = np.ones_like(perm.rows)
     perm.tocsr()
-    rws = np.prod(np.shape(rho.data))
     rhdata = perm * _csr_to_col(rho.data)
     rhdata = rhdata.tolil().reshape((M, M))
     rho1_data = rhdata.tocsr()

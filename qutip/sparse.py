@@ -146,7 +146,6 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
                                                         which='LM', tol=tol,
                                                         maxiter=maxiter)
                 big_vecs = sp.csr_matrix(big_vecs, dtype=complex)
-                big_vals = big_vals
             # small values
             if num_small > 0:
                 if op.isherm:
@@ -175,7 +174,6 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
                     small_vals = sp.linalg.eigsh(
                         op.data, k=num_small, which='SM',
                         return_eigenvectors=False, tol=tol, maxiter=maxiter)
-                    small_vals = small_vals
             else:
                 if num_large > 0:
                     big_vals = sp.linalg.eigs(
