@@ -273,7 +273,6 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     #
     # construct liouvillian in list-function format
     #
-    n_op = len(c_list)
     L_list = []
     constant_func = lambda x, y: 1.0
 
@@ -477,8 +476,6 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     #
     # construct liouvillian
     #
-    n_op = len(c_list)
-
     Lconst = 0
 
     Ldata = []
@@ -923,12 +920,10 @@ def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, opt):
     #
     # check initial state
     #
-    n_op = len(c_op_list)
-
     if isket(rho0):
         # if initial state is a ket and no collapse operator where given,
         # fallback on the unitary schrodinger equation solver
-        if n_op == 0 and isoper(H):
+        if len(c_op_list) == 0 and isoper(H):
             return _wfsolve_const(H, rho0, tlist, expt_ops, args, opt)
 
         # Got a wave function as initial state: convert to density matrix.
@@ -984,15 +979,13 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     if debug:
         print(inspect.stack()[0][3])
 
-    n_op = len(c_op_list)
-
     #
     # check initial state
     #
     if isket(rho0):
         # if initial state is a ket and no collapse operator where given,
         # fallback on the unitary schrodinger equation solver
-        if n_op == 0:
+        if len(c_op_list) == 0:
             return _wfsolve_list_td(H_func, rho0, tlist, expt_ops, args, opt)
 
         # Got a wave function as initial state: convert to density matrix.
@@ -1088,12 +1081,6 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     # check initial state
     #
     if isket(rho0):
-        # if initial state is a ket and no collapse operator where given,
-        # fallback on the unitary schrodinger equation solver
-        # if n_op == 0:
-        #    return _wfsolve_list_td(H_func, rho0, tlist, expt_ops, args, opt)
-
-        # Got a wave function as initial state: convert to density matrix.
         rho0 = ket2dm(rho0)
 
     #
