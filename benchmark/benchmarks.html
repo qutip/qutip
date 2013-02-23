@@ -45,7 +45,7 @@
       .attr('y',function(d) {return 400 - heightScale(d);})
       .attr("text-anchor", "end") 
       .attr("font-size", "14px")
-	  .text(function(d) {return d;}); 
+	  .text(function(d,i) {return scale[i];}); 
 
     mySVG.selectAll(".yTicks")
       .data(heightScale.ticks(5))

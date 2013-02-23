@@ -193,11 +193,7 @@ else:
     python_times, test_names = run_tests()
 
     factors=np.log1p(np.round(matlab_times/array(python_times),2))
-    scale_factors=np.floor(np.exp(linspace(0,max(factors),5))-1)
-    scale=[]
-    for ii in range(len(scale_factors)):
-        entry={'scale':scale_factors[ii]}
-        scale.append(entry)
+    scale=list(np.floor(np.exp(linspace(0,max(factors),5))-1))
     data=[]
     for ii in range(len(test_names)):
         entry={'name':test_names[ii],'factor':factors[ii]}
