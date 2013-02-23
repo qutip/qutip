@@ -86,7 +86,7 @@
       .enter().append("svg:line")
       .attr('x1','90')
       .attr('y1',function(d) {return 400 - heightScale(d);})
-      .attr('x2',320)
+      .attr('x2',850)
       .attr('y2',function(d) {return 400 - heightScale(d);})
       .style('stroke','lightgray'); 
 
@@ -104,85 +104,85 @@
 		.attr("y", 40)
 		.attr("x",-250)
 		.attr("transform", "rotate(-90)")
-		.attr("font-size", "16px")
+		.attr("font-size", "20px")
 		.style("text-anchor", "middle")
 		.text("Speedup");
 	
-	var st=510
-	
+	var top=540
+	var left=60
 	mySVG.append("text")
-		.attr("y", st+20)
-		.attr("x",100)
+		.attr("y", top)
+		.attr("x",left)
 		.attr("font-size", "20px")
 		.style("text-anchor", "left")
 		.text("System Information:");
 	
 	mySVG.append("text")
 		.data(platform)
-		.attr("y", st+50)
-		.attr("x",120)
+		.attr("y", top+30)
+		.attr("x",left+20)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
 		.text(function(d) {return 'Platform: '+d.os;});
 	
 	mySVG.append("text")
 		.data(platform)
-		.attr("y", st+70)
-		.attr("x",120)
+		.attr("y", top+50)
+		.attr("x",left+20)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
 		.text(function(d) {return 'Num. CPUs: ' + (d.cpus).toString();});
 	
 	mySVG.append("text")
 		.data(platform)
-		.attr("y", st+90)
-		.attr("x",120)
+		.attr("y", top+70)
+		.attr("x",left+20)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
 		.text(function(d) {return 'CPU Speed: ' + (d.cpu_freq).toString()+' GHz';});
 	
 	mySVG.append("text")
 		.data(platform)
-		.attr("y", st+110)
-		.attr("x",120)
+		.attr("y", top+90)
+		.attr("x",left+20)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
 		.text(function(d) {return 'Memory: ' + (d.memsize).toString()+ ' MB';});
 	
 	mySVG.append("text")
-		.attr("y", st+20)
-		.attr("x",320)
+		.attr("y", top)
+		.attr("x",left+250)
 		.attr("font-size", "20px")
 		.style("text-anchor", "left")
 		.text("QuTiP Information:");
 	
 	mySVG.append("text")
 		.data(qutip_info)
-		.attr("y", st+50)
-		.attr("x",340)
+		.attr("y", top+30)
+		.attr("x",left+270)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
 		.text(function(d) {return 'QuTiP Version: '+d.qutip;});
 
 	mySVG.append("text")
 		.data(qutip_info)
-		.attr("y", st+70)
-		.attr("x",340)
+		.attr("y", top+50)
+		.attr("x",left+270)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
 		.text(function(d) {return 'Numpy Version: '+d.numpy;});
 
 	mySVG.append("text")
 		.data(qutip_info)
-		.attr("y", st+90)
-		.attr("x",340)
+		.attr("y", top+70)
+		.attr("x",left+270)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
 		.text(function(d) {return 'SciPy Version: '+d.scipy;});
 	
 	mySVG.append("text")
-		.attr("y", st+20)
-		.attr("x",620)
+		.attr("y", top)
+		.attr("x",left+570)
 		.attr("font-size", "20px")
 		.style("text-anchor", "left")
 		.text("Matlab Information:");
@@ -190,24 +190,24 @@
 	
 	mySVG.append("text")
 		.data(matlab_info)
-		.attr("y", st+50)
-		.attr("x",640)
+		.attr("y", top+30)
+		.attr("x",left+590)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
 		.text(function(d) {return 'Version: '+d.version;});
 	
 	mySVG.append("text")
 		.data(matlab_info)
-		.attr("y", st+70)
-		.attr("x",640)
+		.attr("y", top+50)
+		.attr("x",left+590)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
 		.text(function(d) {return 'Type: '+d.type;});
 	
 	mySVG.append("text")
 		.data(matlab_info)
-		.attr("y", st+90)
-		.attr("x",640)
+		.attr("y", top+70)
+		.attr("x",left+590)
 		.attr("font-size", "16px")
 		.style("text-anchor", "left")
 		.text('Qotoolbox Version: 0.15');
