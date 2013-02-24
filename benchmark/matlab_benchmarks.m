@@ -1,6 +1,6 @@
 function []=matlab_benchmarks()
 %Create array to hold test results
-test_results=zeros(1,15);
+test_results=zeros(1,16);
 
 
 %test #1
@@ -152,35 +152,7 @@ test_results(1,7)=time;
 
 %test #8
 %cavity+qubit monte carlo (compare with mcsolve_f90)
-clearvars -except test_results;
-kappa = 2; gamma = 0.2; g = 1;
-wc = 0; w0 = 0; wl = 0; E = 0.5;
-N = 10;
-ntraj = 500;
-tlist = linspace(0,10,200);
-tic;
-ida = identity(N); idatom = identity(2); 
-% Define cavity field and atomic operators
-a  = tensor(destroy(N),idatom);
-sm = tensor(ida,sigmam);
-% Hamiltonian
-H = (w0-wl)*sm'*sm + (wc-wl)*a'*a + i*g*(a'*sm - sm'*a) + E*(a'+a);
-% Collapse operators
-C1  = sqrt(2*kappa)*a;
-C2  = sqrt(gamma)*sm;
-C1dC1 = C1'*C1;
-C2dC2 = C2'*C2;
-% Calculate Heff
-Heff = H - 0.5*i*(C1dC1+C2dC2);
-% Initial state
-psi0 = tensor(basis(N,1),basis(2,2));
-% Quantum Monte Carlo simulation
-nexpect = mc2file('test.dat',-i*Heff,{C1,C2},{C1dC1,C2dC2,a},psi0,tlist,ntraj);
-mcsolve('test.dat','out.dat');
-fid = fopen('out.dat','rb');
-[iter,count1,count2,infield] = expread(fid,nexpect,tlist);
-fclose(fid);
-time=toc;
+%just copy time from test #7
 test_results(1,8)=time;
 %----------------------------------------------------------
 
@@ -345,63 +317,8 @@ test_results(1,11)=time;
 
 
 %test #12
-%spin chain with 4 spins (monte carlo)
-clearvars -except test_results;
-N = 4; %number of spins
-h  = 1.0 * 2 * pi * ones(1,N); 
-Jz = 0.1 * 2 * pi * ones(1,N);
-Jx = 0.1 * 2 * pi * ones(1,N);
-Jy = 0.1 * 2 * pi * ones(1,N);
-gamma = 0.01 * ones(1,N);
-psi_list={basis(2,2)};
-for ii=2:N
-    psi_list{ii}=basis(2,1);
-end
-psi0=tensor(psi_list{:});
-tlist = linspace(0, 10, 200);
-si = identity(2);
-sx = sigmax();
-sy = sigmay();
-sz = sigmaz();
-sx_list = {};
-sy_list = {};
-sz_list = {};
-
-for n=1:N
-    op_list = {};
-    for m=1:N
-        op_list{m}=si;
-    end
-    op_list{n}=sx;
-    sx_list{n}=tensor(op_list{:});
-    op_list{n}=sy;
-    sy_list{n}=tensor(op_list{:});
-    op_list{n}=sz;
-    sz_list{n}=tensor(op_list{:});
-end
-H=0;
-for n=1:N
-    H=H+h(n)+sz_list{n};
-end
-for n=1:N-1
-    H=H- 0.5 * Jx(n) * sx_list{n} * sx_list{n+1};
-    H=H- 0.5 * Jy(n) * sy_list{n} * sy_list{n+1};
-    H=H- 0.5 * Jz(n) * sz_list{n} * sz_list{n+1};
-end
-Heff=H;
-c_op_list={};
-tic;
-for n=1:N
-    C1=sqrt(gamma(n))*sz_list{n};
-    c_op_list{n}=C1;
-    C1dC1=C1'*C1;
-    Heff=Heff-0.5i*C1dC1;
-end
-options.mxstep = 2500;
-ntraj=500;
-nexpect = mc2file('test.dat',-i*Heff,c_op_list,sz_list,psi0,tlist,ntraj,options);
-mcsolve('test.dat','out.dat');
-time=toc;
+%spin chain with 4 spins (monte carlo F90)
+%just copy results from test 11
 test_results(1,12)=time;
 %----------------------------------------------------------
 
@@ -534,72 +451,41 @@ test_results(1,14)=time;
 
 %test #15
 %spin chain with 6 spins (monte carlo F90 compare)
-clearvars -except test_results;
-N = 6; %number of spins
-h  = 1.0 * 2 * pi * ones(1,N); 
-Jz = 0.1 * 2 * pi * ones(1,N);
-Jx = 0.1 * 2 * pi * ones(1,N);
-Jy = 0.1 * 2 * pi * ones(1,N);
-gamma = 0.01 * ones(1,N);
-psi_list={basis(2,2)};
-for ii=2:N
-    psi_list{ii}=basis(2,1);
-end
-psi0=tensor(psi_list{:});
-tlist = linspace(0, 10, 200);
-si = identity(2);
-sx = sigmax();
-sy = sigmay();
-sz = sigmaz();
-sx_list = {};
-sy_list = {};
-sz_list = {};
-
-for n=1:N
-    op_list = {};
-    for m=1:N
-        op_list{m}=si;
-    end
-    op_list{n}=sx;
-    sx_list{n}=tensor(op_list{:});
-    op_list{n}=sy;
-    sy_list{n}=tensor(op_list{:});
-    op_list{n}=sz;
-    sz_list{n}=tensor(op_list{:});
-end
-H=0;
-for n=1:N
-    H=H+h(n)+sz_list{n};
-end
-for n=1:N-1
-    H=H- 0.5 * Jx(n) * sx_list{n} * sx_list{n+1};
-    H=H- 0.5 * Jy(n) * sy_list{n} * sy_list{n+1};
-    H=H- 0.5 * Jz(n) * sz_list{n} * sz_list{n+1};
-end
-Heff=H;
-c_op_list={};
-tic;
-for n=1:N
-    C1=sqrt(gamma(n))*sz_list{n};
-    c_op_list{n}=C1;
-    C1dC1=C1'*C1;
-    Heff=Heff-0.5i*C1dC1;
-end
-options.mxstep = 2500;
-ntraj=500;
-nexpect = mc2file('test.dat',-i*Heff,c_op_list,sz_list,psi0,tlist,ntraj,options);
-mcsolve('test.dat','out.dat');
-time=toc;
+%just copy results from test 14
 test_results(1,15)=time;
 %----------------------------------------------------------
 
 
+%test #16
+%steadystate optomechanical system
+clearvars -except test_results;
+Nc=6;
+Nm=45;
+alpha=0.311;
+g0=0.36;						
+kappa=0.3;
+gamma=0.00147;
+delta=0.0;
+idc=identity(Nc);
+idm=identity(Nm);
+a=tensor(destroy(Nc),idm);
+b=tensor(idc,destroy(Nm));
+cc=sqrt(kappa)*a;
+cm=sqrt(gamma)*b;
+ccdcc=cc'*cc;
+cmdcm=cm'*cm;
 
+H=(-delta+g0*(b'+b))*(a'+a)+(b'*b)+alpha*(a'+a);
 
-
-
-
-
+LH=-1i * (spre(H) - spost(H));
+LC=spre(cc)*spost(cc')-0.5*spre(ccdcc)-0.5*spost(ccdcc);
+LM=spre(cm)*spost(cm')-0.5*spre(cmdcm)-0.5*spost(cmdcm);
+L=LH+LC+LM;
+tic;
+rhoss = steady(L);% Find steady state
+time=toc;
+test_results(1,16)=time;
+%----------------------------------------------------------
 
 
 

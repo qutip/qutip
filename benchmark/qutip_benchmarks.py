@@ -61,6 +61,7 @@ def run_tests():
     out=test_13();test_names+=out[0];python_times+=out[1]
     out=test_14();test_names+=out[0];python_times+=out[1]
     out=test_15();test_names+=out[0];python_times+=out[1]
+    out=test_16();test_names+=out[0];python_times+=out[1]
     
     #return all results
     return python_times, test_names
