@@ -21,7 +21,7 @@
 	};
 	
 	function GenericLog() {
-	    var PROJECTION=[1,100];
+	    var PROJECTION=[1,10000];
 	    var linearScale, logScale;
 
 	    linearScale=d3.scale.linear();
@@ -55,9 +55,13 @@
       .attr("width", 900) 
       .attr("height", 700)
       .style('position','absolute')
-      .style('top',0)
+      .style('top',20)
       .style('left',50)
       .attr('class','fig');
+
+	var text = mySVG.selectAll("text")
+		.data(data).enter()
+		.append("text");
 	
 	var heightScale = d3.scale.genericLog()
       .domain([0, d3.max(data,function(d) { return d.factor;})])
@@ -72,23 +76,8 @@
       .text(function(d,i) {return d.name;})
       .attr('transform',function(d,i) {return 'rotate(-60,' + (120 + (i * 32)) + ',410)';}); 
 
-    mySVG.selectAll(".yLabel")
-      .data(heightScale.ticks(6))
-      .enter().append("svg:text")
-      .attr('x',80)
-      .attr('y',function(d) {return 400 - heightScale(d);})
-      .attr("text-anchor", "end") 
-      .attr("font-size", "14px")
-	  .text(function(d,i) {return d;}); 
+    
 
-    mySVG.selectAll(".yTicks")
-      .data(heightScale.ticks(6))
-      .enter().append("svg:line")
-      .attr('x1','90')
-      .attr('y1',function(d) {return 400 - heightScale(d);})
-      .attr('x2',850)
-      .attr('y2',function(d) {return 400 - heightScale(d);})
-      .style('stroke','lightgray'); 
 
     var myBars = mySVG.selectAll('rect')
       .data(data)
@@ -100,6 +89,12 @@
       .attr('y',function(d,i) {return 400 - heightScale(d.factor);})
       .style('fill',function(d, i) {return d.factor < Math.log(2) ? 'lightcoral' : 'lightblue';});
 
+	var textLabels = text
+	  .attr("font-size", "14px")
+	  .style("text-anchor", "middle")
+	  .text(function(d,i){return Number(d.factor).toPrecision(3);})
+	  .attr("transform", function(d,i) {return "translate("+(i * 32+119)+","+(400 - heightScale(d.factor)-20-((Number(d.factor).toPrecision(3)).toString().length))+") rotate(-90)" ;});
+	
 	mySVG.append("text")
 		.attr("y", 40)
 		.attr("x",-250)
@@ -108,7 +103,7 @@
 		.style("text-anchor", "middle")
 		.text("Speedup");
 	
-	var top=540
+	var top=550
 	var left=60
 	mySVG.append("text")
 		.attr("y", top)
