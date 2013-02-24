@@ -27,17 +27,16 @@ import matplotlib.pyplot as plt
 
 import datetime
 import uuid
-import time
-
 import sys
 import os
+import time
+
 import qutip
 import numpy
 import scipy
 import Cython
 import matplotlib
 import IPython
-import time
 
 
 def version_table():
