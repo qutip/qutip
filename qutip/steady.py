@@ -143,7 +143,7 @@ def steady(L, maxiter=100, tol=1e-6, itertol=1e-5, method='solve',
 
     """
     eps = finfo(float).eps
-    if (not isoper(L)) & (not issuper(L)):
+    if (not isoper(L)) and (not issuper(L)):
         raise TypeError('Steady states can only be found for operators ' +
                         'or superoperators.')
     rhoss = Qobj()
