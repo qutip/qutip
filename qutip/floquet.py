@@ -190,7 +190,7 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
     # truncate tlist to the driving period
     tlist_period = tlist[np.where(tlist <= T)]
 
-    f_modes_table_t = [[] for t in tlist_period]
+    f_modes_table_t = [[]] * len(tlist_period)
 
     opt = Odeoptions()
     opt.rhs_reuse = True
@@ -930,10 +930,9 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
         T = max(tlist)
 
     if len(spectra_cb) == 0:
-        for n in range(len(c_ops)):
-            # add white noise callbacks if absent
-            spectra_cb.append(lambda w: 1.0)
-
+        # add white noise callbacks if absent
+        spectra_cb = [lambda w: 1.0] * len(c_ops)
+ 
     f_modes_0, f_energies = floquet_modes(H, T, args)
 
     f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
