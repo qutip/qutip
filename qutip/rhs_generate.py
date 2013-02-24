@@ -16,16 +16,14 @@
 # Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from qutip.cyQ.codegen import Codegen
 import os
-import platform
 import numpy
-from qutip.odeoptions import Odeoptions
 from scipy import ndarray, array
+
+from qutip.cyQ.codegen import Codegen
+from qutip.odeoptions import Odeoptions
 from qutip.odechecks import _ode_checks
-import qutip.settings
 from qutip.odeconfig import odeconfig
-from types import FunctionType
 from qutip.qobj import Qobj
 from qutip.superoperator import spre, spost
 
@@ -84,8 +82,6 @@ def rhs_generate(H, c_ops, args={}, options=Odeoptions(), name=None):
     else:
         odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
 
-    n_op = len(c_ops)
-
     Lconst = 0
 
     Ldata = []
@@ -139,7 +135,7 @@ def rhs_generate(H, c_ops, args={}, options=Odeoptions(), name=None):
             raise TypeError("Incorrect specification of time-dependent " +
                             "collapse operators (expected string format)")
 
-     # add the constant part of the lagrangian
+    # add the constant part of the lagrangian
     if Lconst != 0:
         Ldata.append(Lconst.data.data)
         Linds.append(Lconst.data.indices)
