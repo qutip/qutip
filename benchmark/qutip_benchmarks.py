@@ -19,21 +19,13 @@ parser.add_argument("--run-profiler",
                     action='store_true')
 args = parser.parse_args()
 
-if not args.qutip_only:
-    # Call matlab benchmarks (folder must be in Matlab path!!!)
-    if sys.platform=='darwin':
-        sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
-        sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_benchmarks; quit'",shell=True)
-    else:
-        sproc.call("matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
-        sproc.call("matlab -nodesktop -nosplash -r 'matlab_benchmarks; quit'",shell=True)
-
-# read in matlab results
-matlab_version = csv.reader(open('matlab_version.csv'),dialect='excel')
-matlab_times = genfromtxt('matlab_benchmarks.csv', delimiter=',')
-
 # setup hardware and matlab info lists
 platform=[hardware_info()]
+if sys.platform=='darwin':
+    sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
+else:
+    sproc.call("matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
+matlab_version = csv.reader(open('matlab_version.csv'),dialect='excel')
 for row in matlab_version:
     matlab_info=[{'version': row[0],'type': row[1]}]
 
@@ -64,7 +56,7 @@ def run_tests():
     out=test_16();test_names+=out[0];python_times+=out[1]
     out=test_17();test_names+=out[0];python_times+=out[1]
     out=test_18();test_names+=out[0];python_times+=out[1]
-    
+    out=test_19();test_names+=out[0];python_times+=out[1]
     #return all results
     return python_times, test_names
 
@@ -77,6 +69,19 @@ if args.run_profiler:
 
 else:
     python_times, test_names = run_tests()
+    
+    if not args.qutip_only:
+        # Call matlab benchmarks (folder must be in Matlab path!!!)
+        if sys.platform=='darwin':
+            sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
+            sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_benchmarks; quit'",shell=True)
+        else:
+            sproc.call("matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
+            sproc.call("matlab -nodesktop -nosplash -r 'matlab_benchmarks; quit'",shell=True)
+    
+    # read in matlab results
+    matlab_times = genfromtxt('matlab_benchmarks.csv', delimiter=',')
+    
     factors=matlab_times/array(python_times)
     data=[]
     for ii in range(len(test_names)):

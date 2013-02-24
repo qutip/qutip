@@ -1,6 +1,6 @@
 function []=matlab_benchmarks()
 %Create array to hold test results
-test_results=zeros(1,18);
+test_results=zeros(1,19);
 
 
 %test #1
@@ -50,7 +50,7 @@ alpha=2+2i;
 sp=1.25i;
 tic;
 a=destroy(N);
-grnd=basis(N);
+grnd=basis(N,1);
 D_oper=expm(alpha*a'-conj(alpha)*a);
 S_oper=expm((1/2.0)*conj(sp)*a^2-(1/2.0)*sp*(a')^2);
 coh_state=D_oper*grnd;
@@ -537,7 +537,23 @@ test_results(1,18)=time;
 %----------------------------------------------------------
 
 
-
+%test #19
+%expectation values
+clearvars -except test_results;
+N=25;
+alpha=3i;
+a=destroy(N);
+vac=basis(N,1);
+D=expm(alpha*a'-conj(alpha)*a);
+coh=D*vac;
+coh_dm=coh*coh';
+n=a'*a;
+tic;
+expect(n,coh);
+expect(n,coh_dm);
+time=toc;
+test_results(1,19)=time;
+%----------------------------------------------------------
 
 
 xlswrite('matlab_benchmarks',test_results);

@@ -1,0 +1,12 @@
+N=25;
+alpha=3;
+a=destroy(N);
+vac=basis(N,1);
+D=expm(alpha*a'-conj(alpha)*a);
+coh=D*vac;
+coh_dm=coh*coh';
+n=a'*a;
+tic;
+expect(n,coh);
+expect(n,coh_dm);
+toc
