@@ -30,7 +30,7 @@ def _task_wrapper(args):
         return args[0](args[1])
     except KeyboardInterrupt:
         os.kill(args[2], signal.SIGINT)
-        os.exit(1)
+        sys.exit(1)
 
 
 def parfor(func, frange, num_cpus=0):
