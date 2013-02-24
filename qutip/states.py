@@ -95,7 +95,7 @@ def qutrit_basis():
         Array of qutrit basis vectors
 
     """
-    return array([basis(3, 0), basis(3, 1), basis(3, 2)])
+    return np.array([basis(3, 0), basis(3, 1), basis(3, 2)])
 
 
 def _sqrt_factorial(n_vec):
