@@ -487,13 +487,17 @@ class Qobj():
         """
         return not (self == other)
 
-    def __pow__(self, n):  # calculates powers of Qobj
+    def __pow__(self, n, m=None):  # calculates powers of Qobj
         """
         POWER operation.
         """
         if self.type not in ['oper', 'super']:
             raise Exception("Raising a qobj to some power works only for " +
                             "operators and super-operators (square matrices).")
+
+        if m is not None:
+            raise NotImplementedError("modulo is not implemented for Qobj")
+
         try:
             data = self.data ** n
             out = Qobj(data, dims=self.dims, shape=self.shape)
