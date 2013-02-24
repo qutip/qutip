@@ -78,6 +78,9 @@ Monte Carlo Evolution
 
 .. automodule:: qutip.mcsolve
     :members: mcsolve
+    
+.. automodule:: qutip.fortran.mcsolve_f90
+    :members: mcsolve_f90
 
 Bloch-Redfield Master Equation
 ------------------------------
@@ -163,7 +166,7 @@ Entropy Functions
 -----------------
 
 .. automodule:: qutip.entropy
-    :members: entropy_linear, entropy_vn
+    :members: concurrence, entropy_conditional, entropy_linear, entropy_mutual, entropy_vn
 
 .. _functions-gates:
 

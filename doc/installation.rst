@@ -45,6 +45,9 @@ programming language.  Currently. QuTiP requires the following packages to run:
 | Cython         | 0.15+        | Optional.  Needed for compiling some time-dependent |
 |                |              | Hamiltonians.                                       |
 +----------------+--------------+-----------------------------------------------------+
+| BLAS           | 1.2+         | Optional, Linux & Mac only.                         |
+| library        |              | Needed for installing Fortran monte carlo solver.   |
++----------------+--------------+-----------------------------------------------------+
 | Mayavi         | 4.1+         | Optional.  Needed for using the Bloch3d class.      |
 +----------------+--------------+-----------------------------------------------------+
 | Python         | 2.6+         | Linux only.  Needed for compiling Cython files.     |
@@ -57,6 +60,9 @@ programming language.  Currently. QuTiP requires the following packages to run:
 
 |
 On all platforms (Linux, Mac, Windows), QuTiP works "out-of-the-box" using the `Anaconda CE <https://store.continuum.io/cshop/anaconda>`_.  This distribution is created by the developers of Numpy, and is free for both commercial and noncommercial use.
+
+As of version 2.2, QuTiP includes an optional Fortran based monte-carlo solver that has a substantial performance benefit when compared with the standard Python routine.  In order to install this package you must have the gfortran compiler and BLAS development libraries.  At present, these packages are only available on the Linux and OSX platforms.
+
 
 .. _install-linux:
 
@@ -92,9 +98,13 @@ First install the following dependency packages::
     sudo apt-get install libblas-dev         # optional, for Fortran monte carlo solver
     sudo apt-get install mayavi2             # optional, for Bloch3d only
 
-and then run the this installation command in the QuTiP source code directory::
+For a standard installation, run this command in the QuTiP source code directory::
 
     sudo python setup.py install
+
+To install QuTiP with the optional Fortran monte-carlo function use::
+
+    sudo python setup.py install --with-f90mc
 
 .. note::
 
@@ -188,10 +198,15 @@ Finally, one can also use the `Anaconda CE <https://store.continuum.io/cshop/ana
 Installing QuTiP
 ----------------
 
-No matter which installation path you choose, installing QuTiP is the same as on linux.  From the QuTiP directory::
+No matter which installation path you choose, installing a standard QuTiP installation is the same as on linux.  From the QuTiP directory run::
 
     sudo python setup.py install
 
+In order to install the Fortran monte-carlo solver use the following command::
+
+    sudo python setup.py install --with-f90mc
+
+.. _install-win:
 
 Installation on Windows
 ========================

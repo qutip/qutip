@@ -8,10 +8,9 @@ Change Log
 Version 2.2.0 (February XX, 2013):
 ++++++++++++++++++++++++++++++++++++++++++++++
 
-**Added Support for Windows**
-
 New Features
 -------------
+- **Added Support for Windows**
 
 - New Bloch3d class for plotting 3D Bloch spheres using Mayavi.
 
