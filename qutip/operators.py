@@ -18,15 +18,15 @@
 ###########################################################################
 
 import numpy as np
-# import scipy.linalg as la
 import scipy
 import scipy.sparse as sp
+
 from qutip.qobj import Qobj
 
-#
-# Spin opeators
-#
 
+#
+# Spin operators
+#
 def jmat(j, *args):
     """Higher-order spin operators:
 
@@ -460,14 +460,17 @@ def displace(N, alpha):
 
 
 def qutrit_ops():
-    ''' Operators for a three level system (qutrit).
+    """
+    Operators for a three level system (qutrit).
 
     Returns
     -------
     opers: array
         `array` of qutrit operators.
 
-    '''
+    """
+    from qutip.states import qutrit_basis
+
     one, two, three = qutrit_basis()
     sig11 = one * one.dag()
     sig22 = two * two.dag()
