@@ -303,7 +303,7 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
         print(inspect.stack()[0][3])
 
     if solver == "me":
-        return _correlation_me_ss_4op_2t(H, rho0, tlist, taulist, c_ops,
+        return _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
                                          a_op, b_op, c_op, d_op,
                                          options=options)
     else:
