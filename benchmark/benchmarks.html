@@ -21,7 +21,7 @@
 	};
 	
 	function GenericLog() {
-	    var PROJECTION=[1,10000];
+	    var PROJECTION=[1,100];
 	    var linearScale, logScale;
 
 	    linearScale=d3.scale.linear();
@@ -87,7 +87,7 @@
       .attr('height',function(d,i) {return heightScale(d.factor);})
       .attr('x',function(d,i) {return (i * 32) + 100;})
       .attr('y',function(d,i) {return 400 - heightScale(d.factor);})
-      .style('fill',function(d, i) {return d.factor < Math.log(2) ? 'lightcoral' : 'lightblue';});
+      .style('fill',function(d, i) {return d.factor < 1.0 ? 'lightcoral' : 'lightblue';});
 
 	var textLabels = text
 	  .attr("font-size", "14px")

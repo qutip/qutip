@@ -19,7 +19,6 @@ def test_16():
     idm=qeye(Nm)
     a=tensor(destroy(Nc),idm)
     b=tensor(idc,destroy(Nm))
-    print b.shape
     #collapse operators
     cc=sqrt(kappa)*a
     cm=sqrt(gamma)*b

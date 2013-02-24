@@ -1,6 +1,6 @@
 function []=matlab_benchmarks()
 %Create array to hold test results
-test_results=zeros(1,16);
+test_results=zeros(1,18);
 
 
 %test #1
@@ -229,7 +229,7 @@ for n=1:N
 end
 H=0;
 for n=1:N
-    H=H+h(n)+sz_list{n};
+    H=H+h(n)*sz_list{n};
 end
 for n=1:N-1
     H=H- 0.5 * Jx(n) * sx_list{n} * sx_list{n+1};
@@ -291,7 +291,7 @@ for n=1:N
 end
 H=0;
 for n=1:N
-    H=H+h(n)+sz_list{n};
+    H=H+h(n)*sz_list{n};
 end
 for n=1:N-1
     H=H- 0.5 * Jx(n) * sx_list{n} * sx_list{n+1};
@@ -324,9 +324,9 @@ test_results(1,12)=time;
 
 
 %test #13
-%spin chain with 6 spins (master equation)
+%spin chain with 8 spins (master equation)
 clearvars -except test_results;
-N = 6; %number of spins
+N = 8; %number of spins
 h  = 1.0 * 2 * pi * ones(1,N); 
 Jz = 0.1 * 2 * pi * ones(1,N);
 Jx = 0.1 * 2 * pi * ones(1,N);
@@ -361,7 +361,7 @@ for n=1:N
 end
 H=0;
 for n=1:N
-    H=H+h(n)+sz_list{n};
+    H=H+h(n)*sz_list{n};
 end
 for n=1:N-1
     H=H- 0.5 * Jx(n) * sx_list{n} * sx_list{n+1};
@@ -388,9 +388,9 @@ test_results(1,13)=time;
 
 
 %test #14
-%spin chain with 6 spins (monte carlo)
+%spin chain with 8 spins (monte carlo)
 clearvars -except test_results;
-N = 6; %number of spins
+N = 8; %number of spins
 h  = 1.0 * 2 * pi * ones(1,N); 
 Jz = 0.1 * 2 * pi * ones(1,N);
 Jx = 0.1 * 2 * pi * ones(1,N);
@@ -424,7 +424,7 @@ for n=1:N
 end
 H=0;
 for n=1:N
-    H=H+h(n)+sz_list{n};
+    H=H+h(n)*sz_list{n};
 end
 for n=1:N-1
     H=H- 0.5 * Jx(n) * sx_list{n} * sx_list{n+1};
@@ -450,7 +450,7 @@ test_results(1,14)=time;
 
 
 %test #15
-%spin chain with 6 spins (monte carlo F90 compare)
+%spin chain with 8 spins (monte carlo F90 compare)
 %just copy results from test 14
 test_results(1,15)=time;
 %----------------------------------------------------------
@@ -487,6 +487,54 @@ time=toc;
 test_results(1,16)=time;
 %----------------------------------------------------------
 
+
+%test #17
+%dissipative trilinear hamiltonian (monte carlo)
+clearvars -except test_results;
+N0=15;
+N1=15; %number of basis states for first mode
+N2=15; %number of basis st3ates for second mode
+gamma0=0.01;
+gamma1=0.05;
+gamma2=0.05;
+alpha=2;%fock state amplitude
+epsilon=0.5i; %squeezing parameter
+tlist=linspace(0,5,200);
+ntraj=500;
+%defining lowering operators
+a0=tensor(destroy(N0),identity(N1),identity(N2));
+a1=tensor(identity(N0),destroy(N1),identity(N2)); 
+a2=tensor(identity(N0),identity(N1),destroy(N2));
+%define number oeprators for modes 0->2
+num0=a0'*a0;
+num1=a1'*a1;
+num2=a2'*a2;
+%dissipative operators for zero-temp. bath
+C0=sqrt(2*gamma0)*a0;
+C1=sqrt(2*gamma1)*a1;
+C2=sqrt(2*gamma2)*a2;
+%inital state for system: coherent state for mode 0 and vacuum for 1&2
+vacuum=tensor(basis(N0,1),1/sqrt(3)*(basis(N1,3+1)+basis(N1,5+1)+basis(N1,9+1)),basis(N2,1));
+D=expm(alpha*a0'-conj(alpha)*a0); %mode 0 displacement operator
+initial_state=D*vacuum;
+%interaction picture Hamiltonian
+H=1i*(a0*a1'*a2'-a0'*a1*a2);
+%effective non-unitary Hamiltonian (includes losses)
+tic;
+Heff=H-0.5*1i*((C0'*C0)+(C1'*C1)+(C2'*C2));
+%call to monte-carlo solver
+mc2file('test.dat',-1i*Heff,{C0,C1,C2},{num0,num1,num2},initial_state,tlist,ntraj);
+mcsolve('test.dat','out.dat','clix.dat');
+time=toc;
+test_results(1,17)=time;
+%----------------------------------------------------------
+
+
+%test #18
+%dissipative trilinear hamiltonian (monte carlo F90)
+%just copy results from test 17
+test_results(1,18)=time;
+%----------------------------------------------------------
 
 
 
