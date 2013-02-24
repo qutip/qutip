@@ -407,9 +407,9 @@ test_results(1,12)=time;
 
 
 %test #13
-%spin chain with 8 spins (master equation)
+%spin chain with 6 spins (master equation)
 clearvars -except test_results;
-N = 8; %number of spins
+N = 6; %number of spins
 h  = 1.0 * 2 * pi * ones(1,N); 
 Jz = 0.1 * 2 * pi * ones(1,N);
 Jx = 0.1 * 2 * pi * ones(1,N);
@@ -471,9 +471,9 @@ test_results(1,13)=time;
 
 
 %test #14
-%spin chain with 8 spins (monte carlo)
+%spin chain with 6 spins (monte carlo)
 clearvars -except test_results;
-N = 8; %number of spins
+N = 6; %number of spins
 h  = 1.0 * 2 * pi * ones(1,N); 
 Jz = 0.1 * 2 * pi * ones(1,N);
 Jx = 0.1 * 2 * pi * ones(1,N);
@@ -533,9 +533,9 @@ test_results(1,14)=time;
 
 
 %test #15
-%spin chain with 8 spins (monte carlo F90 compare)
+%spin chain with 6 spins (monte carlo F90 compare)
 clearvars -except test_results;
-N = 8; %number of spins
+N = 6; %number of spins
 h  = 1.0 * 2 * pi * ones(1,N); 
 Jz = 0.1 * 2 * pi * ones(1,N);
 Jx = 0.1 * 2 * pi * ones(1,N);

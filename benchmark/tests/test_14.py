@@ -3,10 +3,10 @@ from time import time
 
 def test_14():
     """
-    mcsolve evolution of 8-spin chain
+    mcsolve evolution of 6-spin chain
     """
-    test_name='MC 8-spin [256]'
-    N = 8# number of spins
+    test_name='MC 6-spin [64]'
+    N = 6# number of spins
     # uniform parameters
     h  = 1.0 * 2 * pi * ones(N) 
     Jz = 0.1 * 2 * pi * ones(N)
