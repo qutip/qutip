@@ -25,6 +25,7 @@ if qutip.settings.qutip_graphics == 'YES':
     from mpl_toolkits.mplot3d import Axes3D
 
 from qutip.qobj import Qobj, isket, isbra
+from qutip.states import ket2dm
 from qutip.wigner import wigner
 
 #
