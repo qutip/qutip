@@ -22,6 +22,7 @@ from scipy import arange, array, any
 
 import qutip.settings as settings
 
+
 def demos():
     """
     Calls the demos scripts via a GUI window if PySide
@@ -139,7 +140,8 @@ def demos():
                                     exconfig.cmd_screen -= 1
                                 exconfig.option = 123456
                                 break
-                            elif any(userinpt == opts[exconfig.cmd_screen - 1]):
+                            elif any(userinpt ==
+                                     opts[exconfig.cmd_screen - 1]):
                                 exconfig.option = userinpt
                                 break
                             else:
