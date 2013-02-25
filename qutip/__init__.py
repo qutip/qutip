@@ -30,7 +30,7 @@ from qutip._version import version as __version__
 # if the requirements aren't fulfilled
 #
 def version2int(version_string):
-    str_list=version_string.split("rc")[0].split("b")[0].split('.')
+    str_list = version_string.split("rc")[0].split("b")[0].split('.')
     return sum([int(d) * (100 ** (3 - n)) for n, d in enumerate(str_list[:3])])
 
 numpy_requirement = "1.6.0"
@@ -93,7 +93,7 @@ except Exception as e:
 
 #load cpus
 from qutip.hardware_info import hardware_info
-info=hardware_info()
+info = hardware_info()
 if 'cpus' in info:
     qutip.settings.num_cpus = info['cpus']
 else:
