@@ -190,7 +190,7 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
     # truncate tlist to the driving period
     tlist_period = tlist[np.where(tlist <= T)]
 
-    f_modes_table_t = [[]] * len(tlist_period)
+    f_modes_table_t = [[] for t in tlist_period]
 
     opt = Odeoptions()
     opt.rhs_reuse = True
