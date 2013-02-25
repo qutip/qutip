@@ -18,6 +18,7 @@
 ###########################################################################
 import numpy as np
 
+
 class Codegen():
     """
     Class for generating cython code files at runtime.
@@ -29,7 +30,7 @@ class Codegen():
         import os
         sys.path.append(os.getcwd())
         #--------------------------------------------#
-        #  CLASS PROPERTIES`                         #
+        #  CLASS PROPERTIES                          #
         #--------------------------------------------#
 
         #--- Hamiltonian time-depdendent pieces ----#
@@ -55,7 +56,7 @@ class Codegen():
         self.func_list[self.func_list.index('pi(')] = 'pi'
         # store odeconfig instance
         self.odeconfig = odeconfig
-        
+
     #--------------------------------------------#
     #  CLASS METHODS                             #
     #--------------------------------------------#
@@ -310,7 +311,7 @@ class Codegen2():
     """
     Class for generating cython code files at runtime.
     """
-    def __init__(self, n_L_terms, L_coeffs, args, tab="\t"):
+    def __init__(self, n_L_terms, L_coeffs, args, tab="\t", odeconfig=None):
         import sys
         import os
         sys.path.append(os.getcwd())
@@ -322,6 +323,7 @@ class Codegen2():
         self.level = 0
         # add a '(' on the end to guarentee function is selected
         self.func_list = [func + '(' for func in dir(np.math)[4:-1]]
+        self.odeconfig = odeconfig
 
     #
     # write lines of code to self.code
@@ -352,7 +354,7 @@ class Codegen2():
         self.file(filename)
         self.file.writelines(self.code)
         self.file.close()
-        odeconfig.cgen_num += 1
+        self.odeconfig.cgen_num += 1
 
     # increase indention level by one
     def indent(self):

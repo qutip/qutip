@@ -324,7 +324,7 @@ class Examples(QtGui.QWidget):
                 _label.setFont(font2)
                 self.tab_button_desc[j].append(_label)
 
-        self.tab_widgets = [[QtGui.QWidget() 
+        self.tab_widgets = [[QtGui.QWidget()
                              for k in range(self.num_elems[j])]
                             for j in range(num_tabs)]
         self.tab_horiz_layouts = [[QtGui.QHBoxLayout(self.tab_widgets[j][k])
@@ -386,7 +386,8 @@ class Examples(QtGui.QWidget):
             self.tab_buttons[old_tab_num][
                 old_row_num].setStyleSheet(style_tab_old)
             self.tab_buttons[old_tab_num][old_row_num].setText(
-                unicode(self.tab_buttons[old_tab_num][old_row_num].label, 'utf-8'))
+                unicode(self.tab_buttons[old_tab_num][old_row_num].label,
+                        'utf-8'))
             exconfig.is_green = num
             qutip.gui.syntax.PythonHighlighter(self.editor.document())
             self.editor.show()
