@@ -23,6 +23,7 @@ odeconfig parameters.
 
 
 def _reset():
+    import multiprocessing
     import os
     import qutip.settings
     from qutip.hardware_info import hardware_info
@@ -32,10 +33,9 @@ def _reset():
     qutip.settings.auto_tidyup = True
     qutip.settings.auto_tidyup_atol = 1e-12
     qutip.settings.debug = False
-    #set cpus using hardware_info
-    info=hardware_info()
+    # set cpus using hardware_info
+    info = hardware_info()
     if 'cpus' in info:
         qutip.settings.num_cpus = info['cpus']
     else:
         qutip.settings.num_cpus = multiprocessing.cpu_count()
-
