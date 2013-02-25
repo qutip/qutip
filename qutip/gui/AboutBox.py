@@ -35,6 +35,8 @@ elif os.environ['QUTIP_GUI'] == "PYQT4":
 import numpy
 import scipy
 import matplotlib
+from qutip import version2int, __version__ as qutip_version
+
 CD_BASE = os.path.dirname(__file__)
 
 
@@ -55,7 +57,7 @@ QPushButton {
 
 
 class AboutBox(QtGui.QWidget):
-    def __init__(self, Qversion):
+    def __init__(self):
         from qutip import _version
         if _version.release:
             version = _version.short_version
@@ -105,7 +107,7 @@ class AboutBox(QtGui.QWidget):
 
         # first tab text
         # call _set_strings function to get label and label2 widgets
-        label, label2 = _set_strings(Qversion)
+        label, label2 = _set_strings()
         tab1_vert.addWidget(label)
         tab1_vert.addWidget(label2)
 
@@ -135,8 +137,9 @@ class AboutBox(QtGui.QWidget):
         t2_vert.addWidget(tab2_text_1)
 
         tab2_text_2 = QtGui.QLabel()
-        dev_string2 = ("<a href=http://dml.riken.jp/~rob>Robert Johansson</a>" +
-                       " & <a href=http://dml.riken.jp/~paul>Paul Nation</a>")
+        dev_string2 = (
+            "<a href=http://dml.riken.jp/~rob>Robert Johansson</a>" +
+            " & <a href=http://dml.riken.jp/~paul>Paul Nation</a>")
         tab2_text_2.setOpenExternalLinks(True)
         tab2_text_2.setFont(t2_font2)
         tab2_text_2.setText(dev_string2)
@@ -161,8 +164,10 @@ class AboutBox(QtGui.QWidget):
         t2_vert.addWidget(tab2_text_5)
 
         tab2_text_6 = QtGui.QLabel()
-        bug_string2 = ("supporters, see the <a href=http://qutip.googlecode.com/svn/doc/"
-                       + version + "/html/contributors.html>QuTiP documentation</a>.")
+        bug_string2 = ("supporters, see the " +
+                       "<a href=http://qutip.googlecode.com/svn/doc/"
+                       + version +
+                       "/html/contributors.html>QuTiP documentation</a>.")
         tab2_text_6.setOpenExternalLinks(True)
         tab2_text_6.setFont(t2_font2)
         tab2_text_6.setText(bug_string2)
@@ -192,11 +197,11 @@ class AboutBox(QtGui.QWidget):
     def center(self):
         screen = QtGui.QDesktopWidget().screenGeometry()
         size = self.frameSize()
-        self.move((screen.width(
-        ) - size.width()) / 2, (screen.height() - size.height()) / 2)
+        self.move((screen.width() - size.width()) / 2,
+                  (screen.height() - size.height()) / 2)
 
 
-def _set_strings(Qversion):
+def _set_strings():
     t1_font = QtGui.QFont()
     t1_font.setFamily("Arial")
     t1_font.setBold(False)
@@ -205,16 +210,24 @@ def _set_strings(Qversion):
     else:
         t1_font.setPointSize(12)
     # qutip text
-    lstring = "QuTiP Version:           " + Qversion
+    lstring = "QuTiP Version:           " + qutip_version
     label = QtGui.QLabel()
     label.setText(lstring)
+
     try:
-        current = str(urlopen("http://qutip.googlecode.com/svn/doc/current_version.txt").read(), "utf-8")
+        url = "http://qutip.googlecode.com/svn/doc/current_version.txt"
+        current = urlopen(url).read()
+        current = str(current, "utf-8")  # for python 3
     except:
-        current = None
-    if current and int(current.replace('.', '')[0:3]) > int(Qversion.replace('.', '')[0:3]):
+        try:
+            current = str(current)  # for python 2
+        except:
+            current = None
+
+    if current and version2int(current) > version2int(qutip_version):
         label.setOpenExternalLinks(True)
         lstring += " (<a href=http://code.google.com/p/qutip/wiki/Download>Update</a>)"
+
     t1_font.setBold(True)
     label.setFont(t1_font)
     label.setText(lstring)
@@ -240,7 +253,7 @@ def _set_strings(Qversion):
             pyobjc = 'No'
     lstring2 = "NumPy Version:           " + str(numpy.__version__) + "\n"
     lstring2 += "SciPy Version:              " + str(scipy.__version__) + "\n"
-    lstring2 += "MatPlotLib Version:      " + str(
+    lstring2 += "Matplotlib Version:       " + str(
         matplotlib.__version__) + "\n\n"
     lstring2 += "PySide Version:           " + str(pyside_ver) + "\n"
     lstring2 += "PyQt4 Version:             " + str(pyqt4_ver) + "\n"

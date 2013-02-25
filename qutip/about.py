@@ -27,12 +27,7 @@ import os
 import numpy
 import scipy
 import qutip.settings
-
-CD_BASE = os.path.dirname(__file__)  # get directory of about.py file
-#execfile(os.path.join(CD_BASE, "_version.py"))
-#execute _version.py file in CD_BASE directory
-exec(compile(open(os.path.join(CD_BASE, "_version.py")).read(),
-             os.path.join(CD_BASE, "_version.py"), 'exec'))
+from qutip import __version__ as qutip_version
 
 
 def about():
@@ -47,9 +42,9 @@ def about():
         from qutip.gui import AboutBox
         import matplotlib
         if qutip.settings.qutip_gui == "PYSIDE":
-            from PySide import QtGui, QtCore
+            from PySide import QtGui
         elif qutip.settings.qutip_gui == "PYQT4":
-            from PyQt4 import QtGui, QtCore
+            from PyQt4 import QtGui
 
         # checks if QApplication already exists (needed for iPython)
         app = QtGui.QApplication.instance()
@@ -58,7 +53,7 @@ def about():
         if not app:
             app = QtGui.QApplication(sys.argv)
 
-        box = AboutBox(version)
+        box = AboutBox()
         box.show()
         box.activateWindow()
         box.raise_()
@@ -70,9 +65,9 @@ def about():
         print("Copyright (c) 2011-2013")
         print("Paul D. Nation & Robert J. Johansson")
         print('')
-        print(("QuTiP Version:       " + version))
-        print(("Numpy Version:       " + numpy.__version__))
-        print(("Scipy Version:       " + scipy.__version__))
+        print("QuTiP Version:       " + qutip.__version__)
+        print("Numpy Version:       " + numpy.__version__)
+        print("Scipy Version:       " + scipy.__version__)
         try:
             import matplotlib
             matplotlib_ver = matplotlib.__version__
