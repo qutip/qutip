@@ -54,6 +54,7 @@ _cy_col_spmv_call_func = None
 _cy_col_expect_call_func = None
 _cy_rhs_func = None
 
+
 def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
             args={}, options=Odeoptions()):
     """Monte-Carlo evolution of a state vector :math:`|\psi \\rangle` for a
@@ -132,7 +133,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     if ntraj is None:
         ntraj = options.ntraj
-        
+
     # if single operator is passed for c_ops or e_ops, convert it to
     # list containing only that operator
     if isinstance(c_ops, Qobj):
@@ -204,11 +205,12 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
             odeconfig.cflag = 0
 
         # Configure data
-        _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, odeconfig)
+        _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
+                        options, odeconfig)
 
         # compile and load cython functions if necessary
         _mc_func_load(odeconfig)
-        
+
     else:
         # setup args for new parameters when rhs_reuse=True and tdfunc is given
         # string based
@@ -249,8 +251,9 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
             and odeconfig.options.mc_avg):
         # averaging if multiple trajectories
         if isinstance(ntraj, int):
-            output.expect= [mean([mc.expect_out[nt][op] for nt in range(ntraj)],axis=0) 
-                            for op in range(odeconfig.e_num)]
+            output.expect = [mean([mc.expect_out[nt][op]
+                                   for nt in range(ntraj)], axis=0)
+                             for op in range(odeconfig.e_num)]
         elif isinstance(ntraj, (list, ndarray)):
             output.expect = []
             for num in ntraj:
@@ -296,7 +299,7 @@ class _MC_class():
         #-----------------------------------#
 
         self.odeconfig = odeconfig
-        
+
         #----MAIN OBJECT PROPERTIES--------------------#
         # holds instance of the ProgressBar class
         self.bar = None
@@ -383,13 +386,15 @@ class _MC_class():
     #-----
 
     def parallel(self, args, top=None):
-    
+
         if debug:
             print(inspect.stack()[0][3])
-    
+
         self.st = datetime.datetime.now()  # set simulation starting time
         pl = Pool(processes=self.cpus)
-        [pl.apply_async(_mc_alg_evolve, args=(nt, args, self.odeconfig), callback=top.callback)
+        [pl.apply_async(_mc_alg_evolve,
+                        args=(nt, args, self.odeconfig),
+                        callback=top.callback)
          for nt in range(0, self.odeconfig.ntraj)]
         pl.close()
         try:
@@ -402,17 +407,17 @@ class _MC_class():
     #-----
 
     def run(self):
-    
+
         if debug:
             print(inspect.stack()[0][3])
-    
+
         if self.odeconfig.c_num == 0:
             if self.odeconfig.ntraj != 1:
                 # Ntraj != 1 IS pointless for no collapse operators
                 self.odeconfig.ntraj = 1
                 print('No collapse operators specified.\n' +
                       'Running a single trajectory only.\n')
-            if self.odeconfig.e_num == 0:  # return psi Qobj at each requested time
+            if self.odeconfig.e_num == 0:  # return psi at each requested time
                 self.psi_out = _no_collapse_psi_out(
                     self.num_times, self.psi_out, self.odeconfig)
             else:  # return expectation values of requested operators
@@ -424,7 +429,8 @@ class _MC_class():
                 mc_alg_out = zeros((self.num_times), dtype=ndarray)
                 if self.odeconfig.options.mc_avg:
                     # output is averaged states, so use dm
-                    mc_alg_out[0] = self.odeconfig.psi0 * self.odeconfig.psi0.conj().T
+                    mc_alg_out[0] = \
+                        self.odeconfig.psi0 * self.odeconfig.psi0.conj().T
                 else:
                     # output is not averaged, so write state vectors
                     mc_alg_out[0] = self.odeconfig.psi0
@@ -438,11 +444,12 @@ class _MC_class():
                     else:
                         # preallocate complex array of zeros
                         mc_alg_out.append(zeros(self.num_times, dtype=complex))
-                    mc_alg_out[i][0] = cy_expect(self.odeconfig.e_ops_data[i],
-                                                 self.odeconfig.e_ops_ind[i],
-                                                 self.odeconfig.e_ops_ptr[i],
-                                                 self.odeconfig.e_ops_isherm[i],
-                                                 self.odeconfig.psi0)
+                    mc_alg_out[i][0] = \
+                        cy_expect(self.odeconfig.e_ops_data[i],
+                                  self.odeconfig.e_ops_ind[i],
+                                  self.odeconfig.e_ops_ptr[i],
+                                  self.odeconfig.e_ops_isherm[i],
+                                  self.odeconfig.psi0)
             # set arguments for input to monte-carlo
             args = (mc_alg_out, self.odeconfig.options,
                     self.odeconfig.tlist, self.num_times, self.seed)
@@ -517,7 +524,7 @@ def _tdRHStd(t, psi, odeconfig):
 def _pyRHSc(t, psi, odeconfig):
     h_func_data = odeconfig.h_funcs(t, odeconfig.h_func_args).data
     h_func_term = spmv1d(h_func_data.data, h_func_data.indices,
-                                 h_func_data.indptr, psi)
+                         h_func_data.indptr, psi)
     const_col_term = 0
     if len(odeconfig.c_const_inds) > 0:
         const_col_term = spmv1d(
@@ -535,13 +542,13 @@ def _no_collapse_psi_out(num_times, psi_out, odeconfig):
     Calculates state vectors at times tlist if no collapse AND no
     expectation values are given.
     """
-    
+
     global _cy_rhs_func
     global _cy_col_spmv_func, _cy_col_expect_func
     global _cy_col_spmv_call_func, _cy_col_expect_call_func
 
     if debug:
-        print(inspect.stack()[0][3])    
+        print(inspect.stack()[0][3])
 
     if not _cy_rhs_func:
         _mc_func_load(odeconfig)
@@ -603,8 +610,9 @@ def _no_collapse_expect_out(num_times, expect_out, odeconfig):
 
     opt = odeconfig.options
     if odeconfig.tflag in array([1, 10, 11]):
-        ODE = ode(_cy_rhs_func) 
-        code = compile('ODE.set_f_params(' + odeconfig.string + ')', '<string>', 'exec')
+        ODE = ode(_cy_rhs_func)
+        code = compile('ODE.set_f_params(' + odeconfig.string + ')',
+                       '<string>', 'exec')
         exec(code)
     elif odeconfig.tflag == 2:
         ODE = ode(_cRHStd)
@@ -662,7 +670,6 @@ def _mc_alg_evolve(nt, args, odeconfig):
         _mc_func_load(odeconfig)
 
     try:
-    
         # get input data
         mc_alg_out, opt, tlist, num_times, seeds = args
 
@@ -671,7 +678,8 @@ def _mc_alg_evolve(nt, args, odeconfig):
 
         # SEED AND RNG AND GENERATE
         prng = RandomState(seeds[nt])
-        rand_vals = prng.rand(2)  # first rand is collapse norm, second is which operator
+        rand_vals = prng.rand(2)  # first rand is collapse norm,
+                                  # second is which operator
 
         # CREATE ODE OBJECT CORRESPONDING TO DESIRED TIME-DEPENDENCE
         if odeconfig.tflag in array([1, 10, 11]):
@@ -687,17 +695,18 @@ def _mc_alg_evolve(nt, args, odeconfig):
             ODE.set_f_params(odeconfig)
         elif odeconfig.tflag == 3:
             ODE = ode(_pyRHSc)
-            ODE.set_f_params(odeconfig)        
+            ODE.set_f_params(odeconfig)
         else:
             ODE = ode(_cy_rhs_func)
-            ODE.set_f_params(odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr)
+            ODE.set_f_params(odeconfig.h_data, odeconfig.h_ind,
+                             odeconfig.h_ptr)
 
         # initialize ODE solver for RHS
         ODE.set_integrator('zvode', method=opt.method, order=opt.order,
                            atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                            first_step=opt.first_step, min_step=opt.min_step,
                            max_step=opt.max_step)
-                           
+
         # set initial conditions
         ODE.set_initial_value(odeconfig.psi0, tlist[0])
 
@@ -715,8 +724,8 @@ def _mc_alg_evolve(nt, args, odeconfig):
                 ODE.integrate(tlist[k], step=1)
                 if not ODE.successful():
                     raise Exception("ZVODE failed!")
-                # check if ODE jumped over tlist[k], if so, integrate until tlist
-                # exactly
+                # check if ODE jumped over tlist[k], if so,
+                # integrate until tlist exactly
                 if ODE.t > tlist[k]:
                     ODE.set_initial_value(y_prev, t_prev)
                     ODE.integrate(tlist[k], step=0)
@@ -730,8 +739,8 @@ def _mc_alg_evolve(nt, args, odeconfig):
                     t_final = ODE.t
                     while ii < odeconfig.norm_steps:
                         ii += 1
-                        t_guess = t_prev + log(norm2_prev / rand_vals[0]) / log(
-                            norm2_prev / norm2_psi) * (t_final - t_prev)
+                        t_guess = t_prev + log(norm2_prev / rand_vals[0]) / \
+                            log(norm2_prev / norm2_psi) * (t_final - t_prev)
                         ODE.set_initial_value(y_prev, t_prev)
                         ODE.integrate(t_guess, step=0)
                         if not ODE.successful():
@@ -786,7 +795,8 @@ def _mc_alg_evolve(nt, args, odeconfig):
                     else:
                         n_dp = array([cy_expect(odeconfig.n_ops_data[i],
                                                 odeconfig.n_ops_ind[i],
-                                                odeconfig.n_ops_ptr[i], 1, ODE.y)
+                                                odeconfig.n_ops_ptr[i],
+                                                1, ODE.y)
                                       for i in range(odeconfig.c_num)])
 
                     # determine which operator does collapse
@@ -805,8 +815,9 @@ def _mc_alg_evolve(nt, args, odeconfig):
                             exec(_cy_col_spmv_call_func, globals(), _locals)
                             state = _locals['state']
                         else:
-                            state = odeconfig.c_funcs[j](ODE.t,
-                                                         odeconfig.c_func_args) * \
+                            state = \
+                                odeconfig.c_funcs[j](ODE.t,
+                                                     odeconfig.c_func_args) * \
                                 spmv(odeconfig.c_ops_data[j],
                                      odeconfig.c_ops_ind[j],
                                      odeconfig.c_ops_ptr[j], ODE.y)
@@ -899,16 +910,19 @@ def _mc_func_load(odeconfig):
 
         # compile wrapper functions for calling cython spmv and expect
         if odeconfig.col_spmv_code:
-            _cy_col_spmv_call_func = compile(odeconfig.col_spmv_code, '<string>', 'exec')
+            _cy_col_spmv_call_func = compile(
+                odeconfig.col_spmv_code, '<string>', 'exec')
 
         if odeconfig.col_expect_code:
-            _cy_col_expect_call_func = compile(odeconfig.col_expect_code, '<string>', 'exec')
+            _cy_col_expect_call_func = compile(
+                odeconfig.col_expect_code, '<string>', 'exec')
 
     elif odeconfig.tflag == 0:
-        _cy_rhs_func = cy_ode_rhs    
+        _cy_rhs_func = cy_ode_rhs
 
 
-def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops, options, odeconfig):
+def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
+                    options, odeconfig):
     """Creates the appropriate data structures for the monte carlo solver
     based on the given time-dependent, or indepdendent, format.
     """
