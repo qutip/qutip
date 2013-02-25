@@ -19,7 +19,7 @@
 
 from qutip import *
 from numpy import allclose, linspace, log2
-from numpy.testing import assert_equal, run_module_suite
+from numpy.testing import assert_, assert_equal, run_module_suite
 
 
 def test_EntropyVN():
@@ -37,8 +37,8 @@ def test_EntropyVN():
         if k == 0 or k == 19:
             assert_equal(out, -0.0)
         else:
-            assert_equal(
-                out, -a[k] * log2(a[k]) - (1. - a[k]) * log2((1. - a[k])))
+            assert_(abs(-out - a[k] * log2(a[k])
+                        - (1. - a[k]) * log2((1. - a[k]))) < 1e-12)
 
     # test_ entropy_vn = 0 for pure state
     psi = rand_ket(10)
