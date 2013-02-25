@@ -43,7 +43,8 @@ def tensor(*args):
     Examples
     --------
     >>> tensor([sigmax(), sigmax()])
-    Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
+    Quantum object: dims = [[2, 2], [2, 2]], \
+shape = [4, 4], type = oper, isHerm = True
     Qobj data =
     [[ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]
      [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]
