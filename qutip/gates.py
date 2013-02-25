@@ -34,7 +34,8 @@ def cnot():
     Examples
     --------
     >>> cnot()
-    Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
+    Quantum object: dims = [[2, 2], [2, 2]], \
+shape = [4, 4], type = oper, isHerm = True
     Qobj data =
         [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
          [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
@@ -62,7 +63,8 @@ def fredkin():
     Examples
     --------
     >>> fredkin()
-    Quantum object: dims = [[2, 2, 2], [2, 2, 2]], shape = [8, 8], type = oper, isHerm = True
+    Quantum object: dims = [[2, 2, 2], [2, 2, 2]], \
+shape = [8, 8], type = oper, isHerm = True
     Qobj data =
         [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
          [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
@@ -100,7 +102,8 @@ def toffoli():
     Examples
     --------
     >>> toffoli()
-    Quantum object: dims = [[2, 2, 2], [2, 2, 2]], shape = [8, 8], type = oper, isHerm = True
+    Quantum object: dims = [[2, 2, 2], [2, 2, 2]], \
+shape = [8, 8], type = oper, isHerm = True
     Qobj data =
         [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
          [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
@@ -139,7 +142,8 @@ def swap(mask=None):
     Examples
     --------
     >>> swap()
-    Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = True
+    Quantum object: dims = [[2, 2], [2, 2]], \
+shape = [4, 4], type = oper, isHerm = True
     Qobj data =
     [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
      [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]
@@ -189,7 +193,8 @@ def iswap(mask=None):
     Examples
     --------
     >>> iswap()
-    Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = False
+    Quantum object: dims = [[2, 2], [2, 2]], \
+shape = [4, 4], type = oper, isHerm = False
     Qobj data =
     [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
      [ 0.+0.j  0.+0.j  0.+1.j  0.+0.j]
@@ -237,12 +242,17 @@ def sqrtiswap():
     Examples
     --------
     >>> sqrtiswap()
-    Quantum object: dims = [[2, 2], [2, 2]], shape = [4, 4], type = oper, isHerm = False
+    Quantum object: dims = [[2, 2], [2, 2]], \
+shape = [4, 4], type = oper, isHerm = False
     Qobj data =
-    [[ 1.00000000+0.j   0.00000000+0.j          0.00000000+0.j          0.00000000+0.j]
-     [ 0.00000000+0.j   0.70710678+0.j          0.00000000-0.70710678j  0.00000000+0.j]
-     [ 0.00000000+0.j   0.00000000-0.70710678j  0.70710678+0.j          0.00000000+0.j]
-     [ 0.00000000+0.j   0.00000000+0.j          0.00000000+0.j          1.00000000+0.j]]
+    [[ 1.00000000+0.j   0.00000000+0.j   \
+       0.00000000+0.j          0.00000000+0.j]
+     [ 0.00000000+0.j   0.70710678+0.j   \
+       0.00000000-0.70710678j  0.00000000+0.j]
+     [ 0.00000000+0.j   0.00000000-0.70710678j\
+  0.70710678+0.j          0.00000000+0.j]
+     [ 0.00000000+0.j   0.00000000+0.j   \
+       0.00000000+0.j          1.00000000+0.j]]
     """
     return Qobj(array([[1, 0, 0, 0],
                        [0, 1 / sqrt(2), -1j / sqrt(2), 0],
@@ -261,7 +271,8 @@ def snot():
     Examples
     --------
     >>> snot()
-    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = True
+    Quantum object: dims = [[2], [2]], \
+shape = [2, 2], type = oper, isHerm = True
     Qobj data =
     [[ 0.70710678+0.j  0.70710678+0.j]
      [ 0.70710678+0.j -0.70710678+0.j]]
@@ -291,7 +302,8 @@ def phasegate(theta):
     Examples
     --------
     >>> phasegate(pi/4)
-    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
+    Quantum object: dims = [[2], [2]], \
+shape = [2, 2], type = oper, isHerm = False
     Qobj data =
     [[ 1.00000000+0.j          0.00000000+0.j        ]
      [ 0.00000000+0.j          0.70710678+0.70710678j]]
