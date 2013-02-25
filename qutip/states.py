@@ -188,11 +188,13 @@ def coherent_dm(N, alpha, method='operator'):
     Examples
     --------
     >>> coherent_dm(3,0.25j)
-    Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+    Quantum object: dims = [[3], [3]], \
+shape = [3, 3], type = oper, isHerm = True
     Qobj data =
     [[ 0.93941695+0.j          0.00000000-0.23480733j -0.04216943+0.j        ]
      [ 0.00000000+0.23480733j  0.05869011+0.j          0.00000000-0.01054025j]
-     [-0.04216943+0.j          0.00000000+0.01054025j  0.00189294+0.j        ]]
+     [-0.04216943+0.j          0.00000000+0.01054025j  0.00189294+0.j\
+        ]]
 
     Notes
     -----
@@ -241,7 +243,8 @@ def fock_dm(N, *args):
     Examples
     --------
      >>> fock_dm(3,1)
-     Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+     Quantum object: dims = [[3], [3]], \
+shape = [3, 3], type = oper, isHerm = True
      Qobj data =
      [[ 0.+0.j  0.+0.j  0.+0.j]
       [ 0.+0.j  1.+0.j  0.+0.j]
@@ -312,7 +315,8 @@ def thermal_dm(N, n, method='operator'):
     Examples
     --------
     >>> thermal_dm(5,1)
-    Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = True
+    Quantum object: dims = [[5], [5]], \
+shape = [5, 5], type = oper, isHerm = True
     Qobj data =
     [[ 0.51612903  0.          0.          0.          0.        ]
      [ 0.          0.25806452  0.          0.          0.        ]
@@ -322,7 +326,8 @@ def thermal_dm(N, n, method='operator'):
 
 
     >>> thermal_dm(5,1,'analytic')
-    Quantum object: dims = [[5], [5]], shape = [5, 5], type = oper, isHerm = True
+    Quantum object: dims = [[5], [5]], \
+shape = [5, 5], type = oper, isHerm = True
     Qobj data =
     [[ 0.5      0.       0.       0.       0.     ]
      [ 0.       0.25     0.       0.       0.     ]
@@ -377,7 +382,8 @@ def ket2dm(Q):
     --------
     >>> x=basis(3,2)
     >>> ket2dm(x)
-    Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+    Quantum object: dims = [[3], [3]], \
+shape = [3, 3], type = oper, isHerm = True
     Qobj data =
     [[ 0.+0.j  0.+0.j  0.+0.j]
      [ 0.+0.j  0.+0.j  0.+0.j]
@@ -536,7 +542,8 @@ def state_number_qobj(dims, state):
     Example:
 
         >>> state_number_qobj([2,2,2], [1,0,1])
-        Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = [8, 1], type = ket
+        Quantum object: dims = [[2, 2, 2], [1, 1, 1]], \
+shape = [8, 1], type = ket
         Qobj data =
         [[ 0.]
          [ 0.]
