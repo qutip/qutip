@@ -17,13 +17,14 @@
 #
 ###########################################################################
 
-
-from qutip.qobj import Qobj, isket
+import numpy as np
 import scipy.sparse as sp
 try:  # for scipy v <= 0.90
     from scipy import factorial
 except:  # for scipy v >= 0.10
     from scipy.misc import factorial
+
+from qutip.qobj import Qobj, isket
 
 
 def orbital(theta, phi, *args):
@@ -62,26 +63,28 @@ def orbital(theta, phi, *args):
             raise TypeError('Invalid input ket in orbital')
         sk = ket.shape
         nchk = (sk[0] - 1) / 2.0
-        if nchk != floor(nchk):
+        if nchk != np.floor(nchk):
             raise ValueError(
                 'Kets must have odd number of components in orbital')
         l = (sk[0] - 1) / 2
         if l == 0:
-            SPlm = sqrt(2) * ones((size(theta), 1), dtype=complex)
+            SPlm = np.sqrt(2) * np.ones((np.size(theta), 1), dtype=complex)
         else:
-            SPlm = _sch_lpmv(l, cos(theta))
-        fac = sqrt((2.0 * l + 1) / (8 * pi))
+            SPlm = _sch_lpmv(l, np.cos(theta))
+        fac = np.sqrt((2.0 * l + 1) / (8 * np.pi))
         kf = ket.full()
-        psi += sqrt(2) * fac * kf[l, 0] * ones((size(phi), size(theta)),
-                                               dtype=complex) * SPlm[0]
+        psi += np.sqrt(2) * fac * kf[l, 0] * np.ones((np.size(phi),
+                                                      np.size(theta)),
+                                                     dtype=complex) * SPlm[0]
         for m in range(1, l + 1):
             psi += ((-1.0) ** m * fac * kf[l - m, 0]) * \
-                array([exp(1.0j * 1 * phi)]).T * \
-                ones((size(phi), size(theta)), dtype=complex) * SPlm[1]
+                np.array([np.exp(1.0j * 1 * phi)]).T * \
+                np.ones((np.size(phi), np.size(theta)),
+                        dtype=complex) * SPlm[1]
         for m in range(-l, 0):
             psi = psi + (fac * kf[l - m, 0]) * \
-                array([exp(1.0j * 1 * phi)]).T * \
-                ones((size(phi), size(theta)), dtype=complex) * \
+                np.array([np.exp(1.0j * 1 * phi)]).T * \
+                np.ones((np.size(phi), np.size(theta)), dtype=complex) * \
                 SPlm[abs(m)]
     return psi
 
@@ -106,18 +109,18 @@ def _sch_lpmv(n, x):
 
     '''
     from scipy.special import lpmv
-    sch = array([1.0])
-    sch2 = array([(-1.0) ** m * sqrt(
+    sch = np.array([1.0])
+    sch2 = np.array([(-1.0) ** m * np.sqrt(
         (2.0 * factorial(n - m)) / factorial(n + m)) for m in range(1, n + 1)])
-    sch = append(sch, sch2)
+    sch = np.append(sch, sch2)
     if isinstance(x, float) or len(x) == 1:
-        leg = lpmv(arange(0, n + 1), n, x)
-        return array([sch * leg]).T
+        leg = lpmv(np.arange(0, n + 1), n, x)
+        return np.array([sch * leg]).T
     else:
         for j in range(0, len(x)):
             leg = lpmv(range(0, n + 1), n, x[j])
             if j == 0:
-                out = array([sch * leg]).T
+                out = np.array([sch * leg]).T
             else:
-                out = append(out, array([sch * leg]).T, axis=1)
+                out = np.append(out, np.array([sch * leg]).T, axis=1)
     return out
