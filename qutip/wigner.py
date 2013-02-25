@@ -252,7 +252,6 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
     if not (isoper(state) or isket(state)):
         raise TypeError('Invalid state operand to qfunc.')
 
-    N = prod(state.dims)
     qmat = zeros(size(amat))
 
     if isket(state):
