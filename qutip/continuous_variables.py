@@ -71,13 +71,15 @@ def covariance_matrix(basis, rho, symmetrized=True):
 
     .. math::
 
-        V_{mn} = \\frac{1}{2}\\langle a_m a_n + a_n a_m \\rangle - \\langle a_m \\rangle \\langle a_n\\rangle
+        V_{mn} = \\frac{1}{2}\\langle a_m a_n + a_n a_m \\rangle -
+        \\langle a_m \\rangle \\langle a_n\\rangle
 
     or, if of the optional argument `symmetrized=False`,
 
     .. math::
 
-        V_{mn} = \\langle a_m a_n\\rangle - \\langle a_m \\rangle \\langle a_n\\rangle
+        V_{mn} = \\langle a_m a_n\\rangle -
+        \\langle a_m \\rangle \\langle a_n\\rangle
 
 
     Parameters
@@ -182,7 +184,8 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
     Calculate the wigner covariance matrix
     :math:`V_{ij} = \\frac{1}{2}(R_{ij} + R_{ji})`, given
     the quadrature correlation matrix
-    :math:`R_{ij} = \\langle R_{i} R_{j}\\rangle - \\langle R_{i}\\rangle \\langle R_{j}\\rangle`, where
+    :math:`R_{ij} = \\langle R_{i} R_{j}\\rangle -
+    \\langle R_{i}\\rangle \\langle R_{j}\\rangle`, where
     :math:`R = (q_1, p_1, q_2, p_2)^T` is the vector with quadrature operators
     for the two modes.
 
