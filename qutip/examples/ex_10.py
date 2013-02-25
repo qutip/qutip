@@ -13,9 +13,6 @@ def run():
     # amplitude of coherent states
     alpha = 2.0 + 2j
 
-    # define ladder oeprators
-    a = destroy(N)
-
     # define displacement oeprators
     D1 = displace(N, alpha)
     D2 = displace(N, -alpha)
