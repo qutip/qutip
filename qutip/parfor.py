@@ -68,9 +68,9 @@ def parfor(func, frange, num_cpus=0):
     else:
         cpus = num_cpus
         if cpus > cpu_count():
-            print("Requsted num. of CPU's (%s) is larger than physical num. (%s)."
-                  % (cpus, cpu_count()))
-            print("Suggest reducing 'num_cpus' for greater performance.")
+            print("Requested number of CPUs (%s) " % cpus +
+                  "is larger than physical number (%s)." % cpu_count())
+            print("Reducing 'num_cpus' for greater performance.")
     pool = Pool(processes=cpus)
     try:
         par_return = list(pool.map(
