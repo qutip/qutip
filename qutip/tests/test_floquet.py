@@ -31,17 +31,17 @@ class TestFloquet:
         Floquet: test unitary evolution of time-dependent two-level system
         """
 
-        delta = 1.0 * 2*pi
-        eps0  = 1.0 * 2*pi
-        A     = 0.5 * 2*pi
-        omega = sqrt(delta**2 + eps0**2)
-        T      = (2*pi)/omega
-        tlist  = linspace(0.0, 2 * T, 101)
-        psi0   = rand_ket(2)
-        H0 = - eps0/2.0 * sigmaz() - delta/2.0 * sigmax()
-        H1 = A/2.0 * sigmax()
+        delta = 1.0 * 2 * pi
+        eps0 = 1.0 * 2 * pi
+        A = 0.5 * 2 * pi
+        omega = sqrt(delta ** 2 + eps0 ** 2)
+        T = (2 * pi) / omega
+        tlist = linspace(0.0, 2 * T, 101)
+        psi0 = rand_ket(2)
+        H0 = - eps0 / 2.0 * sigmaz() - delta / 2.0 * sigmax()
+        H1 = A / 2.0 * sigmax()
         args = {'w': omega}
-        H = [H0, [H1, lambda t,args: sin(args['w'] * t)]]
+        H = [H0, [H1, lambda t, args: sin(args['w'] * t)]]
         e_ops = [num(2)]
 
         # solve schrodinger equation with floquet solver

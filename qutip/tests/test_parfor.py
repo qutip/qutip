@@ -23,8 +23,9 @@ from numpy.testing import assert_, run_module_suite
 
 from qutip import *
 
+
 def _func(x):
-    time.sleep(scipy.rand() * 0.25) # random delay
+    time.sleep(scipy.rand() * 0.25)  # random delay
     return x**2
 
 

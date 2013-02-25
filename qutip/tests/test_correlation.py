@@ -23,6 +23,7 @@ from numpy.testing import assert_, run_module_suite
 
 from qutip import *
 
+
 def test_compare_solvers_coherent_state():
     "correlation: comparing me and es for oscillator in coherent initial state"
 
@@ -31,14 +32,14 @@ def test_compare_solvers_coherent_state():
     H = a.dag() * a
     G1 = 0.75
     n_th = 2.00
-    c_ops = [sqrt(G1*(1+n_th)) * a, sqrt(G1*n_th) * a.dag()]
+    c_ops = [sqrt(G1 * (1 + n_th)) * a, sqrt(G1 * n_th) * a.dag()]
     rho0 = coherent_dm(N, sqrt(4.0))
 
     taulist = linspace(0, 5.0, 100)
     corr1 = correlation(H, rho0, None, taulist, c_ops, a.dag(), a, solver="me")
     corr2 = correlation(H, rho0, None, taulist, c_ops, a.dag(), a, solver="es")
 
-    assert_(norm(corr1-corr2) < 1e-3)
+    assert_(norm(corr1 - corr2) < 1e-3)
 
 
 def test_compare_solvers_steadystate():
@@ -49,13 +50,13 @@ def test_compare_solvers_steadystate():
     H = a.dag() * a
     G1 = 0.75
     n_th = 2.00
-    c_ops = [sqrt(G1*(1+n_th)) * a, sqrt(G1*n_th) * a.dag()]
+    c_ops = [sqrt(G1 * (1 + n_th)) * a, sqrt(G1 * n_th) * a.dag()]
 
     taulist = linspace(0, 5.0, 100)
     corr1 = correlation(H, None, None, taulist, c_ops, a.dag(), a, solver="me")
     corr2 = correlation(H, None, None, taulist, c_ops, a.dag(), a, solver="es")
 
-    assert_(norm(corr1-corr2) < 1e-3)
+    assert_(norm(corr1 - corr2) < 1e-3)
 
 
 def test_spectrum():
@@ -64,12 +65,12 @@ def test_spectrum():
     # use JC model
     N = 4
     wc = wa = 1.0 * 2 * pi
-    g  = 0.1 * 2 * pi
+    g = 0.1 * 2 * pi
     kappa = 0.75
     gamma = 0.25
     n_th = 0.01
 
-    a  = tensor(destroy(N), qeye(2))
+    a = tensor(destroy(N), qeye(2))
     sm = tensor(qeye(N), destroy(2))
     H = wc * a.dag() * a + wa * sm.dag() * sm + \
         g * (a.dag() * sm + a * sm.dag())
@@ -82,7 +83,7 @@ def test_spectrum():
     wlist1, spec1 = spectrum_correlation_fft(tlist, corr)
     spec2 = spectrum_ss(H, wlist1, c_ops, a.dag(), a)
 
-    assert_(max(abs(spec1-spec2)) < 1e-3)
+    assert_(max(abs(spec1 - spec2)) < 1e-3)
 
 if __name__ == "__main__":
     run_module_suite()
