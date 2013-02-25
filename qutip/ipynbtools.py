@@ -80,7 +80,8 @@ class _HTMLProgressBar():
         self.divid = str(uuid.uuid4())
         self.pb = HTML("""\
 <div style="border: 1px solid grey; width: 600px">
-  <div id="%s" style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
+  <div id="%s" \
+style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
 </div>
 """ % self.divid)
         display(self.pb)

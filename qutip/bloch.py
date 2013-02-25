@@ -164,7 +164,7 @@ class Bloch():
         #: Style of Bloch vectors, default = '-|>' (or 'simple')
         self.vector_style = '-|>'
         #: Sets the width of the vectors arrowhead
-        self.vector_mutation=20
+        self.vector_mutation = 20
 
         #---point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
@@ -416,12 +416,13 @@ class Bloch():
                     length = sqrt(self.vectors[k][0] ** 2 +
                                   self.vectors[k][1] ** 2 +
                                   self.vectors[k][2] ** 2)
+                    color = self.vector_color[mod(k, len(self.vector_color))]
                     self.axes.plot(
                         self.vectors[k][1] * linspace(0, length, 2),
                         -self.vectors[k][0] * linspace(0, length, 2),
                         self.vectors[k][2] * linspace(0, length, 2),
                         zs=0, zdir='z', label='Z', lw=self.vector_width,
-                        color=self.vector_color[mod(k, len(self.vector_color))])
+                        color=color)
 
                 else:
                     # decorated style, with arrow heads
@@ -434,9 +435,12 @@ class Bloch():
 
                     xs, ys, zs = proj3d.proj_transform(
                         xs3d, ys3d, zs3d, self.axes.get_proj())
-                    a = Arrow3D(xs3d, ys3d, zs3d, mutation_scale=self.vector_mutation, lw=self.vector_width,
+                    color = self.vector_color[mod(k, len(self.vector_color))]
+                    a = Arrow3D(xs3d, ys3d, zs3d,
+                                mutation_scale=self.vector_mutation,
+                                lw=self.vector_width,
                                 arrowstyle=self.vector_style,
-                                color=self.vector_color[mod(k, len(self.vector_color))])
+                                color=color)
 
                     self.axes.add_artist(a)
 
