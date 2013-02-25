@@ -304,8 +304,8 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
 
     if solver == "me":
         return _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
-                                         a_op, b_op, c_op, d_op,
-                                         options=options)
+                                      a_op, b_op, c_op, d_op,
+                                      options=options)
     else:
         raise NotImplementedError("Unrecognized choice of solver %s." % solver)
 
@@ -321,7 +321,9 @@ def coherence_function_g1(H, rho0, taulist, c_ops, a_op, solver="me",
 
     .. math::
 
-        g^{(1)}(\\tau) = \\frac{\\langle a^\\dagger(\\tau)a(0)\\rangle}{\sqrt{\langle a^\dagger(\\tau)a(\\tau)\\rangle\\langle a^\\dagger(0)a(0)\\rangle}}
+        g^{(1)}(\\tau) = \\frac{\\langle a^\\dagger(\\tau)a(0)\\rangle}
+        {\sqrt{\langle a^\dagger(\\tau)a(\\tau)\\rangle
+        \\langle a^\\dagger(0)a(0)\\rangle}}
 
     Parameters
     ----------
@@ -376,7 +378,10 @@ def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me",
 
     .. math::
 
-        g^{(2)}(\\tau) = \\frac{\\langle a^\\dagger(0)a^\\dagger(\\tau)a(\\tau)a(0)\\rangle}{\\langle a^\\dagger(\\tau)a(\\tau)\\rangle\\langle a^\\dagger(0)a(0)\\rangle}
+        g^{(2)}(\\tau) =
+        \\frac{\\langle a^\\dagger(0)a^\\dagger(\\tau)a(\\tau)a(0)\\rangle}
+        {\\langle a^\\dagger(\\tau)a(\\tau)\\rangle
+         \\langle a^\\dagger(0)a(0)\\rangle}
 
     Parameters
     ----------
@@ -762,7 +767,8 @@ def _correlation_mc_2op_2t(H, psi0, tlist, taulist, c_ops, a_op, b_op,
         print(inspect.stack()[0][3])
 
     raise NotImplementedError("The Monte-Carlo solver currently cannot be " +
-                              "used for correlation functions on the form <A(t)B(t+tau)>")
+                              "used for correlation functions on the form " +
+                              "<A(t)B(t+tau)>")
 
     if psi0 is None or not isket(psi0):
         raise Exception("_correlation_mc_2op_2t requires initial state as ket")
