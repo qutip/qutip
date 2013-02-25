@@ -33,8 +33,8 @@ class Odeconfig():
         self.ntraj = None       # number / list of trajectories
         self.options = None     # options for odesolvers
         self.norm_tol = None    # tolerance for wavefunction norm
-        self.norm_steps = None  # max. number of steps to take in finding wavefunction
-                                # norm within tolerance norm_tol.
+        self.norm_steps = None  # max. number of steps to take in finding
+                                # wavefunction norm within tolerance norm_tol.
         # Initial state stuff
         self.psi0 = None        # initial state
         self.psi0_dims = None   # initial state dims
@@ -45,11 +45,11 @@ class Odeconfig():
         self.cflag = 0     # Flag signaling collapse operators
         self.tflag = 0     # Flag signaling time-dependent problem
 
-        # time-dependent function stuff
-        self.tdfunc = None     # Placeholder for time-dependent RHS function.
-        self.tdname = None     # Name of td .pyx file (used in parallel mc code)
-        self.colspmv = None    # Placeholder for time-dependent col-spmv function.
-        self.colexpect = None  # Placeholder for time-dependent col_expect function.
+        # time-dependent (TD) function stuff
+        self.tdfunc = None     # Placeholder for TD RHS function.
+        self.tdname = None     # Name of td .pyx file
+        self.colspmv = None    # Placeholder for TD col-spmv function.
+        self.colexpect = None  # Placeholder for TD col_expect function.
         self.string = None     # Holds string of variables to be passed onto
                                # time-depdendent ODE solver.
 
