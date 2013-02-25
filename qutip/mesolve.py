@@ -44,7 +44,7 @@ from qutip.settings import debug
 
 if debug:
     import inspect
- 
+
 
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
@@ -98,12 +98,12 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
 
     .. note::
 
-        If an element in the list-specification of the Hamiltonian or 
+        If an element in the list-specification of the Hamiltonian or
         the list of collapse operators are in super-operator for it will be
-        added to the total Liouvillian of the problem with out further 
+        added to the total Liouvillian of the problem with out further
         transformation. This allows for using mesolve for solving master
         equations that are not on standard Lindblad form.
-        
+
     .. note::
 
         On using callback function: mesolve transforms all :class:`qutip.qobj`
@@ -996,7 +996,7 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     #
     if len(H_func) != 2:
         raise TypeError('Time-dependent Hamiltonian list must have two terms.')
-    if (not isinstance(H_func[0], (list, np.ndarray))) or (len(H_func[0]) <= 1):
+    if not isinstance(H_func[0], (list, np.ndarray)) or len(H_func[0]) <= 1:
         raise TypeError('Time-dependent Hamiltonians must be a list ' +
                         'with two or more terms')
     if (not isinstance(H_func[1], (list, np.ndarray))) or \
