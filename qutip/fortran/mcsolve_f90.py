@@ -314,6 +314,9 @@ class _MC_class():
 
     def evolve_serial(self, args):
 
+        if debug:
+            print(inspect.stack()[0][3] + ":" + str(os.getpid()))
+
         # run ntraj trajectories for one process via fortran
         # get args
         queue, ntraj, instanceno, rngseed = args
@@ -375,6 +378,10 @@ class _MC_class():
 
     # Routines for retrieving data data from fortran
     def get_collapses(self, ntraj):
+
+        if debug:
+            print(inspect.stack()[0][3])
+
         col_times = np.zeros((ntraj), dtype=np.ndarray)
         col_which = np.zeros((ntraj), dtype=np.ndarray)
         if (odeconfig.c_num == 0):
@@ -395,6 +402,10 @@ class _MC_class():
         return col_times, col_which
 
     def get_states(self, nstep, ntraj):
+
+        if debug:
+            print(inspect.stack()[0][3])
+
         from scipy.sparse import csr_matrix
         if (odeconfig.options.mc_avg):
             states = np.array([Qobj()] * nstep)
@@ -420,6 +431,8 @@ class _MC_class():
             if (ntraj == 1):
                 states = np.array([Qobj()] * nstep)
                 for i in range(nstep):
+                    print "type sol =", type(qtf90.qutraj_run.sol)
+                    print "shape sol =", np.shape(qtf90.qutraj_run.sol)
                     states[i] = Qobj(numpy.matrix(
                         qtf90.qutraj_run.sol[0, 0, i, :]).transpose(),
                         dims=self.psi0_dims, shape=self.psi0_shape)
@@ -433,6 +446,10 @@ class _MC_class():
         return states
 
     def get_expect(self, nstep, ntraj):
+
+        if debug:
+            print(inspect.stack()[0][3])
+
         if (odeconfig.options.mc_avg):
             expect = []
             for j in range(odeconfig.e_num):
@@ -448,6 +465,10 @@ class _MC_class():
         return expect
 
     def get_entropy(self, nstep):
+
+        if debug:
+            print(inspect.stack()[0][3])
+
         if (not self.calc_entropy):
             raise Exception('get_entropy: calc_entropy=False. Aborting.')
         entropy = np.array([0.] * nstep)
@@ -456,6 +477,10 @@ class _MC_class():
 
     def finalize():
         # not in use...
+
+        if debug:
+            print(inspect.stack()[0][3])
+
         qtf90.qutraj_run.finalize_work()
         qtf90.qutraj_run.finalize_sol()
 
