@@ -848,8 +848,8 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                 f_modes_table_t, T = f_modes_table
                 f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
                 for m in range(0, n_expt_op):
-                    output.expect[m][t_idx] = expect(e_ops[m],
-                                                     rho.transform(f_modes_t, False))
+                    output.expect[m][t_idx] = \
+                        expect(e_ops[m], rho.transform(f_modes_t, False))
 
         r.integrate(r.t + dt)
         t_idx += 1
@@ -932,7 +932,7 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
     if len(spectra_cb) == 0:
         # add white noise callbacks if absent
         spectra_cb = [lambda w: 1.0] * len(c_ops)
- 
+
     f_modes_0, f_energies = floquet_modes(H, T, args)
 
     f_modes_table_t = floquet_modes_table(f_modes_0, f_energies,
