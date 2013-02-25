@@ -96,8 +96,9 @@ def test_MCNoCollStrExpt():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag(
-    ) * a], args={'c': 0.0}, options=Odeoptions(gui=False))
+    mcdata = mcsolve(H, psi0, tlist, c_op_list,
+                     [a.dag() * a], args={'c': 0.0},
+                     options=Odeoptions(gui=False))
     expt = mcdata.expect[0]
     actual_answer = 9.0 * ones(len(tlist))
     diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -290,64 +291,69 @@ def test_TDStr():
 def test_mc_dtypes1():
     "Monte-carlo: check for correct dtypes (mc_avg=True)"
     # set system parameters
-    kappa=2.0 #mirror coupling
-    gamma=0.2 #spontaneous emission rate
-    g=1 #atom/cavity coupling strength
-    wc=0 #cavity frequency
-    w0=0 #atom frequency
-    wl=0 #driving frequency
-    E=0.5 #driving amplitude
-    N=5 #number of cavity energy levels (0->3 Fock states)
-    tlist=linspace(0,10,5) #times for expectation values
+    kappa = 2.0  # mirror coupling
+    gamma = 0.2  # spontaneous emission rate
+    g = 1  # atom/cavity coupling strength
+    wc = 0  # cavity frequency
+    w0 = 0  # atom frequency
+    wl = 0  # driving frequency
+    E = 0.5  # driving amplitude
+    N = 5  # number of cavity energy levels (0->3 Fock states)
+    tlist = linspace(0, 10, 5)  # times for expectation values
     # construct Hamiltonian
-    ida=qeye(N)
-    idatom=qeye(2)
-    a=tensor(destroy(N),idatom)
-    sm=tensor(ida,sigmam())
-    H=(w0-wl)*sm.dag()*sm+(wc-wl)*a.dag()*a+1j*g*(a.dag()*sm-sm.dag()*a)+E*(a.dag()+a)
-    #collapse operators
-    C1=sqrt(2*kappa)*a
-    C2=sqrt(gamma)*sm
-    C1dC1=C1.dag()*C1
-    C2dC2=C2.dag()*C2
-    #intial state
-    psi0=tensor(basis(N,0),basis(2,1))
-    opts=Odeoptions(gui=False,mc_avg=True)
-    data=mcsolve(H,psi0,tlist,[C1,C2],[C1dC1,C2dC2,a],ntraj=5,options=opts)
-    assert_equal(isinstance(data.expect[0][0],float), True)
-    assert_equal(isinstance(data.expect[1][0],float), True)
-    assert_equal(isinstance(data.expect[2][0],complex), True)
+    ida = qeye(N)
+    idatom = qeye(2)
+    a = tensor(destroy(N), idatom)
+    sm = tensor(ida, sigmam())
+    H = (w0 - wl) * sm.dag() * sm + (wc - wl) * a.dag() * a + \
+        1j * g * (a.dag() * sm - sm.dag() * a) + E * (a.dag() + a)
+    # collapse operators
+    C1 = sqrt(2 * kappa) * a
+    C2 = sqrt(gamma) * sm
+    C1dC1 = C1.dag() * C1
+    C2dC2 = C2.dag() * C2
+    # intial state
+    psi0 = tensor(basis(N, 0), basis(2, 1))
+    opts = Odeoptions(gui=False, mc_avg=True)
+    data = mcsolve(
+        H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
+    assert_equal(isinstance(data.expect[0][0], float), True)
+    assert_equal(isinstance(data.expect[1][0], float), True)
+    assert_equal(isinstance(data.expect[2][0], complex), True)
+
 
 def test_mc_dtypes2():
     "Monte-carlo: check for correct dtypes (mc_avg=False)"
     # set system parameters
-    kappa=2.0 #mirror coupling
-    gamma=0.2 #spontaneous emission rate
-    g=1 #atom/cavity coupling strength
-    wc=0 #cavity frequency
-    w0=0 #atom frequency
-    wl=0 #driving frequency
-    E=0.5 #driving amplitude
-    N=5 #number of cavity energy levels (0->3 Fock states)
-    tlist=linspace(0,10,5) #times for expectation values
+    kappa = 2.0  # mirror coupling
+    gamma = 0.2  # spontaneous emission rate
+    g = 1  # atom/cavity coupling strength
+    wc = 0  # cavity frequency
+    w0 = 0  # atom frequency
+    wl = 0  # driving frequency
+    E = 0.5  # driving amplitude
+    N = 5  # number of cavity energy levels (0->3 Fock states)
+    tlist = linspace(0, 10, 5)  # times for expectation values
     # construct Hamiltonian
-    ida=qeye(N)
-    idatom=qeye(2)
-    a=tensor(destroy(N),idatom)
-    sm=tensor(ida,sigmam())
-    H=(w0-wl)*sm.dag()*sm+(wc-wl)*a.dag()*a+1j*g*(a.dag()*sm-sm.dag()*a)+E*(a.dag()+a)
-    #collapse operators
-    C1=sqrt(2*kappa)*a
-    C2=sqrt(gamma)*sm
-    C1dC1=C1.dag()*C1
-    C2dC2=C2.dag()*C2
-    #intial state
-    psi0=tensor(basis(N,0),basis(2,1))
-    opts=Odeoptions(gui=False,mc_avg=False)
-    data=mcsolve(H,psi0,tlist,[C1,C2],[C1dC1,C2dC2,a],ntraj=5,options=opts)
-    assert_equal(isinstance(data.expect[0][0][0],float), True)
-    assert_equal(isinstance(data.expect[0][1][0],float), True)
-    assert_equal(isinstance(data.expect[0][2][0],complex), True)
+    ida = qeye(N)
+    idatom = qeye(2)
+    a = tensor(destroy(N), idatom)
+    sm = tensor(ida, sigmam())
+    H = (w0 - wl) * sm.dag() * sm + (wc - wl) * a.dag() * a + \
+        1j * g * (a.dag() * sm - sm.dag() * a) + E * (a.dag() + a)
+    # collapse operators
+    C1 = sqrt(2 * kappa) * a
+    C2 = sqrt(gamma) * sm
+    C1dC1 = C1.dag() * C1
+    C2dC2 = C2.dag() * C2
+    # intial state
+    psi0 = tensor(basis(N, 0), basis(2, 1))
+    opts = Odeoptions(gui=False, mc_avg=False)
+    data = mcsolve(
+        H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
+    assert_equal(isinstance(data.expect[0][0][0], float), True)
+    assert_equal(isinstance(data.expect[0][1][0], float), True)
+    assert_equal(isinstance(data.expect[0][2][0], complex), True)
 
 if __name__ == "__main__":
     run_module_suite()
