@@ -19,9 +19,9 @@ def qubit_integrate(w, theta, g, gamma1, gamma2, psi0, tlist):
     sz2 = tensor(qeye(2), sigmaz())
     sm2 = tensor(qeye(2), sigmam())
 
-    H = w[0] * (cos(theta[0]) * sz1 + sin(theta[0]) * sx1)  # qubit 1
+    H = w[0] * (cos(theta[0]) * sz1 + sin(theta[0]) * sx1)   # qubit 1
     H += w[1] * (cos(theta[1]) * sz2 + sin(theta[1]) * sx2)  # qubit 2
-    H += g * sx1 * sx2                                      # interaction
+    H += g * sx1 * sx2                                       # interaction
 
     #
     # Lindblad master equation
@@ -43,7 +43,7 @@ def qubit_integrate(w, theta, g, gamma1, gamma2, psi0, tlist):
     def ohmic_spectrum1(w):
         if w == 0.0:
             # dephasing inducing noise
-            return gamma1[0]
+            return gamma2[0]
         else:
             # relaxation inducing noise
             return gamma1[0] * w / (2 * pi) * (w > 0.0)
@@ -51,7 +51,7 @@ def qubit_integrate(w, theta, g, gamma1, gamma2, psi0, tlist):
     def ohmic_spectrum2(w):
         if w == 0.0:
             # dephasing inducing noise
-            return gamma1[1]
+            return gamma2[1]
         else:
             # relaxation inducing noise
             return gamma1[1] * w / (2 * pi) * (w > 0.0)

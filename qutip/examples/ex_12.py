@@ -14,7 +14,6 @@ def run():
     alpha = -1.0  # Coherent amplitude of field
     epsilon = 0.5j  # Squeezing parameter
 
-    a = destroy(N)
     D = displace(N, alpha)  # Displacement
     S = squeez(N, epsilon)  # Squeezing
     psi = D * S * basis(N, 0)

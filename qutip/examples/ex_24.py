@@ -24,9 +24,7 @@ def integrate(N, h, Jx, Jy, Jz, psi0, tlist, gamma, solver):
     sy_list = []
     sz_list = []
     for n in range(N):
-        op_list = []
-        for m in range(N):
-            op_list.append(si)
+        op_list = [si] * N
         op_list[n] = sx
         sx_list.append(tensor(op_list))
         op_list[n] = sy

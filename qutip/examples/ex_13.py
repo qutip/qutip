@@ -76,8 +76,8 @@ def run():
     # plot Wigner function
     fig = figure()
     ax = Axes3D(fig, azim=-61, elev=43)
-    surf = ax.plot_surface(X, Y, W, rstride=1, cstride=1, cmap=cm.jet,
-                           linewidth=0.1, vmax=0.15, vmin=-0.05)
+    ax.plot_surface(X, Y, W, rstride=1, cstride=1, cmap=cm.jet,
+                    linewidth=0.1, vmax=0.15, vmin=-0.05)
     title("Wigner Function for the Cavity Ground State at g= " +
           str(1. / (2 * pi) * glist[-1]))
     ax.set_xlabel('Position')

@@ -12,7 +12,6 @@ def run():
 
     T = pi / (4 * g)
     H = g * (tensor(sigmax(), sigmax()) + tensor(sigmay(), sigmay()))
-    psi0 = tensor(basis(2, 1), basis(2, 0))
 
     c_ops = []
     # qubit 1 collapse operators

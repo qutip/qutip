@@ -51,7 +51,7 @@ def run():
     for k in range(ntraj):
         if len(data.col_times[k]) > 0:  # just in case no collapse
             colors = [cs[j] for j in data.col_which[k]]  # set color
-            xdat = [k for x in range(len(data.col_times[k]))]
+            xdat = [k] * len(data.col_times[k])
             ax.scatter(xdat, data.col_times[k], marker='o', c=colors)
     ax.set_xlim([-1, ntraj + 1])
     ax.set_ylim([0, tlist[-1]])

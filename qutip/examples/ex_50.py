@@ -19,9 +19,7 @@ def compute(N, M, h, Jx, Jy, Jz, taulist):
     sz_list = []
 
     for n in range(N):
-        op_list = []
-        for m in range(N):
-            op_list.append(si)
+        op_list = [si] * N
 
         op_list[n] = sx
         sx_list.append(tensor(op_list))

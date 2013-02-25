@@ -89,7 +89,7 @@ def run():
                                output.expect[2])
 
     # Plot the results
-    fig = figure()
+    figure()
     subplot(211)
     plot(t, wp(t), 'k')
     ylabel('Control Field, $\Omega_\mathrm{p}$ [MHz]')

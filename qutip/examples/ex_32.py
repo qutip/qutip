@@ -56,7 +56,7 @@ def run():
     import matplotlib.font_manager
     leg_prop = matplotlib.font_manager.FontProperties(size=10)
 
-    f = figure(figsize=(6, 9))
+    figure(figsize=(6, 9))
     subplots_adjust(hspace=0.001)  # no space between plots
 
     # subplot 1 (top)
