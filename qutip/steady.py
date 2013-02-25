@@ -155,7 +155,8 @@ def steady(L, maxiter=100, tol=1e-6, itertol=1e-5, method='solve',
         rhoss.dims = [L.dims[0], 1]
         rhoss.shape = [prod(rhoss.dims[0]), 1]
     n = prod(rhoss.shape)
-    L1 = (L.data - eps * _sp_inf_norm(L) * sp.eye(n, n, format='csr')).sorted_indices()
+    L1 = (L.data -
+          eps * _sp_inf_norm(L) * sp.eye(n, n, format='csr')).sorted_indices()
     v = mat2vec(rand_dm(rhoss.shape[0], 0.5 / rhoss.shape[0] + 0.5).full())
     # generate sparse iLU preconditioner if requested
     if method == 'bicg' and use_precond:
