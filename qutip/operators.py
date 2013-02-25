@@ -48,17 +48,20 @@ def jmat(j, *args):
     Examples
     --------
     >>> jmat(1)
-    [ Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+    [ Quantum object: dims = [[3], [3]], \
+shape = [3, 3], type = oper, isHerm = True
     Qobj data =
     [[ 0.          0.70710678  0.        ]
      [ 0.70710678  0.          0.70710678]
      [ 0.          0.70710678  0.        ]]
-     Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+     Quantum object: dims = [[3], [3]], \
+shape = [3, 3], type = oper, isHerm = True
     Qobj data =
     [[ 0.+0.j          0.+0.70710678j  0.+0.j        ]
      [ 0.-0.70710678j  0.+0.j          0.+0.70710678j]
      [ 0.+0.j          0.-0.70710678j  0.+0.j        ]]
-     Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+     Quantum object: dims = [[3], [3]], \
+shape = [3, 3], type = oper, isHerm = True
     Qobj data =
     [[ 1.  0.  0.]
      [ 0.  0.  0.]
@@ -115,7 +118,8 @@ def sigmap():
     Examples
     --------
     >>> sigmam()
-    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
+    Quantum object: dims = [[2], [2]], \
+shape = [2, 2], type = oper, isHerm = False
     Qobj data =
     [[ 0.  1.]
      [ 0.  0.]]
@@ -130,7 +134,8 @@ def sigmam():
     Examples
     --------
     >>> sigmam()
-    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
+    Quantum object: dims = [[2], [2]], \
+shape = [2, 2], type = oper, isHerm = False
     Qobj data =
     [[ 0.  0.]
      [ 1.  0.]]
@@ -145,7 +150,8 @@ def sigmax():
     Examples
     --------
     >>> sigmax()
-    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = False
+    Quantum object: dims = [[2], [2]], \
+shape = [2, 2], type = oper, isHerm = False
     Qobj data =
     [[ 0.  1.]
      [ 1.  0.]]
@@ -160,7 +166,8 @@ def sigmay():
     Examples
     --------
     >>> sigmay()
-    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = True
+    Quantum object: dims = [[2], [2]], \
+shape = [2, 2], type = oper, isHerm = True
     Qobj data =
     [[ 0.+0.j  0.-1.j]
      [ 0.+1.j  0.+0.j]]
@@ -175,7 +182,8 @@ def sigmaz():
     Examples
     --------
     >>> sigmaz()
-    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isHerm = True
+    Quantum object: dims = [[2], [2]], \
+shape = [2, 2], type = oper, isHerm = True
     Qobj data =
     [[ 1.  0.]
      [ 0. -1.]]
@@ -204,7 +212,8 @@ def destroy(N):
     Examples
     --------
     >>> destroy(4)
-    Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
+    Quantum object: dims = [[4], [4]], \
+shape = [4, 4], type = oper, isHerm = False
     Qobj data =
     [[ 0.00000000+0.j  1.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
      [ 0.00000000+0.j  0.00000000+0.j  1.41421356+0.j  0.00000000+0.j]
@@ -238,7 +247,8 @@ def create(N):
     Examples
     --------
     >>> create(4)
-    Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
+    Quantum object: dims = [[4], [4]], \
+shape = [4, 4], type = oper, isHerm = False
     Qobj data =
     [[ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
      [ 1.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]
@@ -273,7 +283,8 @@ def qeye(N):
     Examples
     --------
     >>> qeye(3)
-    Quantum object: dims = [[3], [3]], shape = [3, 3], type = oper, isHerm = True
+    Quantum object: dims = [[3], [3]], \
+shape = [3, 3], type = oper, isHerm = True
     Qobj data =
     [[ 1.  0.  0.]
      [ 0.  1.  0.]
@@ -346,7 +357,8 @@ def num(N):
     Examples
     --------
     >>> num(4)
-    Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = True
+    Quantum object: dims = [[4], [4]], \
+shape = [4, 4], type = oper, isHerm = True
     Qobj data =
     [[0 0 0 0]
      [0 1 0 0]
@@ -379,7 +391,8 @@ def squeez(N, sp):
     Examples
     --------
     >>> squeez(4,0.25)
-    Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
+    Quantum object: dims = [[4], [4]], \
+shape = [4, 4], type = oper, isHerm = False
     Qobj data =
     [[ 0.98441565+0.j  0.00000000+0.j  0.17585742+0.j  0.00000000+0.j]
      [ 0.00000000+0.j  0.95349007+0.j  0.00000000+0.j  0.30142443+0.j]
@@ -396,12 +409,14 @@ def squeez(N, sp):
     op = (1 / 2.0) * np.conj(sp) * (a ** 2) - (1 / 2.0) * sp * (a.dag()) ** 2
     return op.expm()
 
+
 def squeezing(a1, a2, z):
     """Generalized squeezing operator.
 
     .. math::
 
-        S(z) = \\exp\\left(\\frac{1}{2}\\left(z^*a_1a_2 - za_1^\dagger a_2^\dagger\\right)\\right)
+        S(z) = \\exp\\left(\\frac{1}{2}\\left(z^*a_1a_2
+        - za_1^\dagger a_2^\dagger\\right)\\right)
 
     Parameters
     ----------
@@ -423,6 +438,7 @@ def squeezing(a1, a2, z):
     b = 0.5 * (np.conj(z) * (a1 * a2) - z * (a1.dag() * a2.dag()))
     return b.expm()
 
+
 def displace(N, alpha):
     """Single-mode displacement operator.
 
@@ -442,7 +458,8 @@ def displace(N, alpha):
     Examples
     ---------
     >>> displace(4,0.25)
-    Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isHerm = False
+    Quantum object: dims = [[4], [4]], \
+shape = [4, 4], type = oper, isHerm = False
     Qobj data =
     [[ 0.96923323+0.j -0.24230859+0.j  0.04282883+0.j -0.00626025+0.j]
      [ 0.24230859+0.j  0.90866411+0.j -0.33183303+0.j  0.07418172+0.j]
@@ -515,7 +532,8 @@ def qdiags(diagonals, offsets, dims=None, shape=None):
     Examples
     --------
     >>> qdiag(sqrt(range(1,4)),1)
-    Quantum object: dims = [[4], [4]], shape = [4, 4], type = oper, isherm = False
+    Quantum object: dims = [[4], [4]], \
+shape = [4, 4], type = oper, isherm = False
     Qobj data =
     [[ 0.          1.          0.          0.        ]
      [ 0.          0.          1.41421356  0.        ]
