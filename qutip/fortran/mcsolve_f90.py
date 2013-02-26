@@ -27,7 +27,6 @@ from qutip.mcsolve import _mc_data_config
 from qutip.odeoptions import Odeoptions
 from qutip.odedata import Odedata
 from qutip.settings import debug
-import time
 
 if debug:
     import inspect
@@ -236,17 +235,20 @@ class _MC_class():
         sols = []
         processes = []
         resq = JoinableQueue()
+        resq.join()
+
         if debug:
             print("Number of cpus: " + str(self.cpus))
             print("Trying to start " + str(self.nprocs) + " process(es).")
             print("Number of trajectories for each process: " + str(self.ntrajs))
+
         for i in range(self.nprocs):
             p = Process(target=self.evolve_serial,
                         args=((resq, self.ntrajs[i], i, self.seed * (i + 1)),))
             p.start()
             processes.append(p)
-        resq.join()
         cnt = 0
+
         while True:
             try:
                 sols.append(resq.get())
@@ -258,6 +260,7 @@ class _MC_class():
                 break
             except:
                 pass
+
         resq.join()
         for proc in processes:
             try:
@@ -370,21 +373,9 @@ class _MC_class():
         if (self.calc_entropy):
             sol.entropy = self.get_entropy(len(odeconfig.tlist))
 
-
-        if (not self.serial_run):
-            
-            # XXX: Temporary work-around. If we put the result on the queue
-            # too quickly, which can happen if we have very few trajectories
-            # and the fortran function qtf90.qutraj_run.evolve therefore 
-            # finish very quickly, something goes wrong with the queue and the
-            # process hangs forever. The following workaround prevents this
-            # from happening, but a better solution is obviously needed.
-            if ntraj < 16: 
-                time.sleep(0.01)
-
+        if (not self.serial_run):            
             # put to queue
             queue.put(sol)
-            # queue.put('STOP')
             queue.join()
 
         # deallocate stuff
