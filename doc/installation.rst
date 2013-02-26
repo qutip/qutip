@@ -63,6 +63,20 @@ On all platforms (Linux, Mac, Windows), QuTiP works "out-of-the-box" using the `
 
 As of version 2.2, QuTiP includes an optional Fortran based monte-carlo solver that has a substantial performance benefit when compared with the standard Python routine.  In order to install this package you must have the gfortran compiler and BLAS development libraries.  At present, these packages are only available on the Linux and OSX platforms.
 
+.. _install-get-it:
+
+Get the software
+================
+
+Official releases of QuTiP are available from the download section of the project's web pages
+
+    http://code.google.com/p/qutip/downloads
+
+and the source code is available in our Github repository
+
+    http://github.com/qutip
+
+In general we recommend users to use the latest stable release of QuTiP, but if you are interested in helping us out with development or wish to submit bug fixes, then use the latest development version from the Github repository.
 
 .. _install-linux:
 
