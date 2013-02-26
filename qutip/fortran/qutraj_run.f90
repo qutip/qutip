@@ -323,6 +323,7 @@ module qutraj_run
         call error("evolve: could not deallocate.",istat)
       endif
     endif
+
     if (states) then
       if (mc_avg) then
         if (rho_return_sparse) then
@@ -332,36 +333,42 @@ module qutraj_run
           if (rho_reduced_dim == 0) then
             ! Not doing partial trace
             allocate(sol(1,size(tlist),ode%neq,ode%neq),stat=istat)
-            allocate(rho(ode%neq,ode%neq),stat=istat2)
+            allocate(rho(ode%neq,ode%neq), stat=istat2)
           else
             ! Doing partial trace
             allocate(sol(1,size(tlist),&
               rho_reduced_dim,rho_reduced_dim),stat=istat)
-            allocate(rho(rho_reduced_dim,rho_reduced_dim),stat=istat2)
+            allocate(rho(rho_reduced_dim,rho_reduced_dim), stat=istat2)
           endif
           sol = (0.,0.)
           rho = (0.,0.)
         endif
       else
-        allocate(sol(1,ntraj,size(tlist),ode%neq),stat=istat)
+        allocate(sol(1,ntraj,size(tlist),ode%neq), stat=istat)
         sol = (0.,0.)
       endif
     elseif (n_e_ops>0) then
       if (mc_avg) then
-        allocate(sol(n_e_ops,1,size(tlist),1),stat=istat)
+        allocate(sol(n_e_ops,1,size(tlist),1), stat=istat)
         sol = (0.,0.)
       else
-        allocate(sol(n_e_ops,ntraj,size(tlist),1),stat=istat)
+        allocate(sol(n_e_ops,ntraj,size(tlist),1), stat=istat)
         sol = (0.,0.)
       endif
     endif
-    if (istat.ne.0) call fatal_error("evolve: could not allocate.",istat)
-    if (istat2.ne.0) call fatal_error("evolve: could not allocate.",&
-      istat2)
+
+    if (istat.ne.0) then
+      call fatal_error("evolve: could not allocate sol.", istat)
+    endif
+ 
+    if (istat2.ne.0) then
+      call fatal_error("evolve: could not allocate rho.", istat2)
+    endif
+
     ! Array for average entropy
     if (calc_entropy) then
       if (.not.allocated(rho)) then
-        allocate(rho(rho_reduced_dim,rho_reduced_dim),stat=istat2)
+        allocate(rho(rho_reduced_dim, rho_reduced_dim), stat=istat2)
       endif
       call new(reduced_state_entropy,size(tlist))
       reduced_state_entropy = 0.
@@ -369,21 +376,28 @@ module qutraj_run
 
     ! Allocate linked lists for collapse times and operators
     if (allocated(ll_col_times)) then
-      deallocate(ll_col_times,stat=istat)
+      deallocate(ll_col_times, stat=istat)
       if (istat.ne.0) then
-        call error("evolve: could not deallocate.",istat)
+        call error("evolve: could not deallocate ll_col_times.", istat)
       endif
     endif
-    if (allocated(ll_col_times)) then
-      deallocate(ll_col_times,stat=istat)
+
+    allocate(ll_col_times(ntraj), stat=istat)
+    if (istat.ne.0) then
+      call fatal_error("evolve: could not allocate ll_col_times.", istat)
+    endif
+
+    if (allocated(ll_col_which)) then
+      deallocate(ll_col_which, stat=istat)
       if (istat.ne.0) then
-        call error("evolve: could not deallocate.",istat)
+        call fatal_error("evolve: could not deallocate ll_col_which.", istat)
       endif
     endif
-    allocate(ll_col_times(ntraj),stat=istat)
-    if (istat.ne.0) call fatal_error("evolve: could not allocate.",istat)
-    allocate(ll_col_which(ntraj),stat=istat)
-    if (istat.ne.0) call fatal_error("evolve: could not allocate.",istat)
+
+    allocate(ll_col_which(ntraj), stat=istat)
+    if (istat.ne.0) then
+      call fatal_error("evolve: could not allocate ll_col_which.", istat)
+    endif
 
     ! Allocate work arrays
     call new(y,ode%neq)
