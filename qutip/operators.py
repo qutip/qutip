@@ -297,7 +297,7 @@ shape = [3, 3], type = oper, isHerm = True
     return Qobj(sp.eye(N, N, dtype=complex, format='csr'))
 
 
-def qidentity(N):
+def identity(N):
     """Identity operator. Alternative name to :func:`qeye`.
 
     Parameters
