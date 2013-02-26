@@ -20,6 +20,7 @@ import os
 import sys
 import platform
 import multiprocessing
+
 import qutip.settings
 import qutip._version
 from qutip._version import version as __version__
@@ -201,7 +202,6 @@ if qutip.settings.qutip_graphics == 'YES':
 #
 
 # core
-import qutip.settings
 from qutip.qobj import *
 from qutip.states import *
 from qutip.operators import *
@@ -210,7 +210,6 @@ from qutip.superoperator import *
 from qutip.tensor import *
 from qutip.parfor import *
 from qutip.sparse import sp_eigs
-import qutip.settings
 
 # graphics
 if qutip.settings.qutip_graphics == 'YES':
