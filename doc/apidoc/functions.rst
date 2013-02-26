@@ -14,7 +14,7 @@ Quantum States
 ----------------
 
 .. automodule:: qutip.states
-    :members: basis, coherent, coherent_dm, fock, fock_dm, ket2dm, qutrit_basis, thermal_dm
+    :members: basis, coherent, coherent_dm, fock, fock_dm, ket2dm, qutrit_basis, thermal_dm, state_number_enumerate, state_number_index, state_index_number, state_number_qobj
 
 
 Quantum Operators
