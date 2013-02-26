@@ -21,7 +21,7 @@ Quantum Operators
 ---------------------
 
 .. automodule:: qutip.operators
-    :members: create, destroy, displace, jmat, num, qeye, qutrit_ops, sigmam, sigmap, sigmax, sigmay, sigmaz, squeez, squeezing
+    :members: create, destroy, displace, jmat, num, qeye, identity, qutrit_ops, sigmam, sigmap, sigmax, sigmay, sigmaz, squeez, squeezing
 
 
 Liouvillian
