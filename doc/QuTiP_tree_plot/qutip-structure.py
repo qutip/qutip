@@ -62,7 +62,7 @@ module_cmap = {"mesolve":           0, # time evolution
                "about":             8,
                "testing":           8,
                "parfor":            8,
-               "clebsch":           8,
+               "hardware_info":     8,
                "qobj":              7, # core
                "expect":            7,
                "tensor":            7,

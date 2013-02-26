@@ -972,11 +972,6 @@
                 }, 
                 {
                     "color": "#692102", 
-                    "name": "single_expect", 
-                    "size": 1000
-                }, 
-                {
-                    "color": "#692102", 
                     "name": "variance", 
                     "size": 1000
                 }
@@ -1132,6 +1127,11 @@
                     "color": "#BF5730", 
                     "name": "version_table", 
                     "size": 1000
+                }, 
+                {
+                    "color": "#BF5730", 
+                    "name": "parfor", 
+                    "size": 1000
                 }
             ], 
             "color": "#BF5730", 
@@ -1149,6 +1149,18 @@
             "color": "#BF5730", 
             "idx": 8, 
             "name": "demos"
+        }, 
+        {
+            "children": [
+                {
+                    "color": "#BF5730", 
+                    "name": "hardware_info", 
+                    "size": 1000
+                }
+            ], 
+            "color": "#BF5730", 
+            "idx": 8, 
+            "name": "hardware_info"
         }, 
         {
             "children": [
@@ -1205,24 +1217,17 @@
             "children": [
                 {
                     "color": "#BF5730", 
-                    "name": "clebsch", 
-                    "size": 1000
-                }
-            ], 
-            "color": "#BF5730", 
-            "idx": 8, 
-            "name": "clebsch"
-        }, 
-        {
-            "children": [
-                {
-                    "color": "#BF5730", 
                     "name": "n_thermal", 
                     "size": 1000
                 }, 
                 {
                     "color": "#BF5730", 
                     "name": "linspace_with", 
+                    "size": 1000
+                }, 
+                {
+                    "color": "#BF5730", 
+                    "name": "clebsch", 
                     "size": 1000
                 }
             ], 
