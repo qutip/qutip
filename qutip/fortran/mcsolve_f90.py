@@ -30,6 +30,7 @@ from qutip.settings import debug
 
 if debug:
     import inspect
+    import os
  
 # Working precision
 wpr = np.dtype(np.float64)
@@ -431,8 +432,6 @@ class _MC_class():
             if (ntraj == 1):
                 states = np.array([Qobj()] * nstep)
                 for i in range(nstep):
-                    print "type sol =", type(qtf90.qutraj_run.sol)
-                    print "shape sol =", np.shape(qtf90.qutraj_run.sol)
                     states[i] = Qobj(numpy.matrix(
                         qtf90.qutraj_run.sol[0, 0, i, :]).transpose(),
                         dims=self.psi0_dims, shape=self.psi0_shape)
