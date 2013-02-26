@@ -54,13 +54,15 @@ Whats New in QuTiP Version 2.2
 
 - Continous variable functions for calculating correlation and covariance
   matrices, the Wigner covariance matrix and the logarithmic negativity for
-  for multimode fields in Fock basis.
+  multimode field states expressed in the Fock basis.
 
 - The master-equation solver (mesolve) now accepts pre-constructed Liouvillian
   terms, which makes it possible to solve master equations that are not on
   the standard Lindblad form.
  
-- Optional Fortran monte carlo solver (mcsolve_f90) by Arne Grimsmo.
+- Optional Fortran Monte Carlo solver (mcsolve_f90) by Arne Grimsmo.
+
+- A module with tools for using QuTiP in IPython notebooks.
 
 .. _about-whatsnew21:
 
@@ -90,7 +92,7 @@ The second version of QuTiP has seen many improvements in the performance of the
 
 - QuTiP now includes solvers for both Floquet and Bloch-Redfield master equations.
 
-- The Lindblad master equation and monte-carlo solvers allow for time-dependent collapse operators.
+- The Lindblad master equation and Monte Carlo solvers allow for time-dependent collapse operators.
 
 - It is possible to automatically compile time-dependent problems into c-code using Cython (if installed).
 
