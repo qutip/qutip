@@ -53,24 +53,24 @@ We can create a Qobj with a user defined data set by passing a list or array of 
 
 	In [1]: Qobj([1,2,3,4,5])
 
-	In [2]: x=array([[1],[2],[3],[4],[5]])
+	In [2]: x = array([[1],[2],[3],[4],[5]])
 	
 	In [3]: Qobj(x)
 
-	In [4]: r=random((4,4))
+	In [4]: r = random((4, 4))
 	
 	In [5]: Qobj(r)
 
 Notice how both the dims and shape change according to the input data.  Although dims and shape appear to have the same function, the difference will become quite clear in the section on tensor products and partial traces.
 
-.. note:: If you are running QuTiP from a python script you must use the :func:`print` function to view the Qobj properties.
+.. note:: If you are running QuTiP from a python script you must use the :func:`print` function to view the Qobj attributes.
 
 .. _basics-qobj-states:
 
 States and operators
 ---------------------
 
-Now, unless you have lots of free time, specifying the data for each object is inefficient.  Even more so when most objects correspond to commonly used types such as the ladder operators of a harmonic oscillator,the Pauli spin operators for a two-level system, or state vectors such as Fock states.  Therefore, QuTiP includes predefined objects for a variety of states:
+Now, unless you have lots of free time, specifying the data for each object is inefficient.  Even more so when most objects correspond to commonly used types such as the ladder operators of a harmonic oscillator, the Pauli spin operators for a two-level system, or state vectors such as Fock states.  Therefore, QuTiP includes predefined objects for a variety of states:
 
 +--------------------------+----------------------------+----------------------------------------+
 | States                   | Command (# means optional) | Inputs                                 |
@@ -129,7 +129,7 @@ and operators:
 +--------------------------+----------------------------+----------------------------------------+
 
 
-As an example, we give the output for a few of these objects:
+As an example, we give the output for a few of these functions:
 
 .. ipython::
 
@@ -146,25 +146,25 @@ As an example, we give the output for a few of these objects:
 
 .. _basics-qobj-props:
 
-Qobj properties
-----------------
+Qobj attributes
+---------------
 
-We have seen that a quantum object has three internal attributes, the data, dims, and shape properties.  These can be accessed in the following way:
+We have seen that a quantum object has several internal attributes, such as data, dims, and shape.  These can be accessed in the following way:
 
 .. ipython::
 
-	In [1]: q=destroy(4)
+	In [1]: q = destroy(4)
 	
 	In [2]: q.dims
 
 	In [3]: q.shape 
 
-In general, the properties of a Qobj object (or any Python class) can be retrieved using the `Q.property` notation.  In addition to the properties shown with the `print` function, the Qobj class also has the following:
+In general, the attributes (properties) of a Qobj object (or any Python class) can be retrieved using the `Q.attribute` notation.  In addition to the attributes shown with the `print` function, the Qobj class also has the following:
 
 .. tabularcolumns:: | p{4cm} | L | L |
 
 +---------------+---------------+----------------------------------------+
-| Property      | Command       | Description                            |
+| Property      | Attribute     | Description                            |
 +===============+===============+========================================+
 | Data          | Q.data        | Matrix representing state or operator  |
 +---------------+---------------+----------------------------------------+
@@ -200,7 +200,7 @@ For the destruction operator above:
 	In [3]: q.data
 
 
-The data property returns a message stating that the data is a sparse matrix.  All Qobj's store their data as a sparse matrix to save memory.  To access the underlying matrix one needs to use the :func:`qutip.Qobj.full` function as described in the functions section.
+The data attribute returns a message stating that the data is a sparse matrix.  All Qobjs store their data as a sparse matrix to save memory.  To access the underlying matrix one needs to use the :func:`qutip.Qobj.full` function as described in the functions section.
 
 .. _basics-qobj-math:
 
@@ -211,22 +211,22 @@ The rules for mathematical operations on Qobj's are similar to standard matrix a
 
 .. ipython::
 
-	In [1]: q=destroy(4)
+	In [1]: q = destroy(4)
 	
-	In [2]: x=sigmax()
+	In [2]: x = sigmax()
 	
-	In [3]: q+5
+	In [3]: q + 5
 	
-	In [4]: x*x
+	In [4]: x * x
 	
-	In [5]: q**3 
+	In [5]: q ** 3 
 	
-	In [6]: x/sqrt(2)
+	In [6]: x / sqrt(2)
 
 
-of course, like matrices, multiplying two objects of incompatible shape throws an error:
+Of course, like matrices, multiplying two objects of incompatible shape throws an error:
 
->>> q*x
+>>> q * x
 TypeError: Incompatible Qobj shapes
 
 
@@ -237,7 +237,7 @@ In addition, the logic operators is equal `==` and is not equal `!=` are also su
 Functions operating on Qobj class
 ==================================
 
-Like properties, the quantum object class has defined functions (methods) that operate only on members of the Qobj class.  For a general quantum object `Q`:
+Like attributes, the quantum object class has defined functions (methods) that operate on Qobj class instances. For a general quantum object `Q`:
 
 +-----------------+--------------------------+----------------------------------------+
 | Function        | Command                  | Description                            |
@@ -255,7 +255,7 @@ Like properties, the quantum object class has defined functions (methods) that o
 | Exponential     | Q.expm()                 | Matrix exponential of operator.        |
 +-----------------+--------------------------+----------------------------------------+
 | Full            | Q.full()                 | Returns full (not sparse) array of     |
-|                 |                          | Q's data property.                     |
+|                 |                          | Q's data.                              |
 +-----------------+--------------------------+----------------------------------------+
 | Groundstate     | Q.groundstate()          | Eigenval & eigket of Qobj groundstate. |
 +-----------------+--------------------------+----------------------------------------+
@@ -284,20 +284,20 @@ Like properties, the quantum object class has defined functions (methods) that o
 
 .. ipython::
 
-	In [1]: basis(5,3)
+	In [1]: basis(5, 3)
 	
-	In [2]: basis(5,3).dag()
+	In [2]: basis(5, 3).dag()
 	
-	In [3]: coherent_dm(5,1)
+	In [3]: coherent_dm(5, 1)
 	
-	In [4]: coherent_dm(5,1).diag()
+	In [4]: coherent_dm(5, 1).diag()
 	
-	In [5]: coherent_dm(5,1).full()
+	In [5]: coherent_dm(5, 1).full()
 	
-	In [6]: coherent_dm(5,1).norm()
+	In [6]: coherent_dm(5, 1).norm()
 	
-	In [7]: coherent_dm(5,1).sqrtm()
+	In [7]: coherent_dm(5, 1).sqrtm()
 	
-	In [8]: coherent_dm(5,1).tr()
+	In [8]: coherent_dm(5, 1).tr()
 	
-	In [9]: (basis(4,2)+basis(4,1)).unit()
+	In [9]: (basis(4, 2) + basis(4, 1)).unit()
