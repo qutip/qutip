@@ -40,20 +40,20 @@ programming language.  Currently. QuTiP requires the following packages to run:
 |                |              | PySide may be used instead (recommended).           |
 +----------------+--------------+-----------------------------------------------------+                      
 | PyObjC         | 2.2+         | Mac only.  Very optional.  Needed only for a        |
-|                |              | GUI Monte-Carlo progress bar.                       |
+|                |              | GUI Monte Carlo progress bar.                       |
 +----------------+--------------+-----------------------------------------------------+
 | Cython         | 0.15+        | Optional.  Needed for compiling some time-dependent |
 |                |              | Hamiltonians.                                       |
 +----------------+--------------+-----------------------------------------------------+
 | BLAS           | 1.2+         | Optional, Linux & Mac only.                         |
-| library        |              | Needed for installing Fortran monte carlo solver.   |
+| library        |              | Needed for installing Fortran Monte Carlo solver.   |
 +----------------+--------------+-----------------------------------------------------+
 | Mayavi         | 4.1+         | Optional.  Needed for using the Bloch3d class.      |
 +----------------+--------------+-----------------------------------------------------+
 | Python         | 2.6+         | Linux only.  Needed for compiling Cython files.     |
 | Headers        |              |                                                     |
 +----------------+--------------+-----------------------------------------------------+
-| LaTeX          | TexLive 2009+| Optional.  Needed if using LaTex in figure labels.  |    
+| LaTeX          | TexLive 2009+| Optional.  Needed if using LaTeX in figures.        |    
 +----------------+--------------+-----------------------------------------------------+
 | nose           | 1.1.2+       | Optional. For running tests.                        |
 +----------------+--------------+-----------------------------------------------------+
@@ -61,18 +61,18 @@ programming language.  Currently. QuTiP requires the following packages to run:
 |
 On all platforms (Linux, Mac, Windows), QuTiP works "out-of-the-box" using the `Anaconda CE <https://store.continuum.io/cshop/anaconda>`_.  This distribution is created by the developers of Numpy, and is free for both commercial and noncommercial use.
 
-As of version 2.2, QuTiP includes an optional Fortran based monte-carlo solver that has a substantial performance benefit when compared with the standard Python routine.  In order to install this package you must have the gfortran compiler and BLAS development libraries.  At present, these packages are only available on the Linux and OSX platforms.
+As of version 2.2, QuTiP includes an optional Fortran-based Monte Carlo solver that has a substantial performance benefit when compared with the Python-based solver. In order to install this package you must have a Fortran compiler (for example gfortran) and BLAS development libraries.  At present, these packages are only tested on the Linux and OS X platforms.
 
 .. _install-get-it:
 
 Get the software
 ================
 
-Official releases of QuTiP are available from the download section of the project's web pages
+Official releases of QuTiP are available from the download section on the project's web pages
 
     http://code.google.com/p/qutip/downloads
 
-and the source code is available in our Github repository
+and the latest source code is available in our Github repository
 
     http://github.com/qutip
 
@@ -92,7 +92,7 @@ The easiest way to install QuTiP in Ubuntu (12.04 and later) is to use the QuTiP
     sudo apt-get update
     sudo apt-get install python-qutip
 
-With this method the most important dependencies are installed automatically, and when new version of QuTiP is released it can be upgraded through the standard package management system. In addition to the required dependencies, it is also strongly recommended that you install the ``texlive-latex-extra`` package::
+With this method the most important dependencies are installed automatically, and when a new version of QuTiP is released it can be upgraded through the standard package management system. In addition to the required dependencies, it is also strongly recommended that you install the ``texlive-latex-extra`` package::
 
     sudo apt-get install texlive-latex-extra
 
@@ -109,14 +109,14 @@ First install the following dependency packages::
     sudo apt-get install cython
     sudo apt-get install python-nose         # recommended, for testing
     sudo apt-get install texlive-latex-extra # recommended
-    sudo apt-get install libblas-dev         # optional, for Fortran monte carlo solver
+    sudo apt-get install libblas-dev         # optional, for Fortran Monte Carlo solver
     sudo apt-get install mayavi2             # optional, for Bloch3d only
 
 For a standard installation, run this command in the QuTiP source code directory::
 
     sudo python setup.py install
 
-To install QuTiP with the optional Fortran monte-carlo function use::
+To install QuTiP with the optional Fortran Monte Carlo function use::
 
     sudo python setup.py install --with-f90mc
 
@@ -139,7 +139,7 @@ To install QuTiP with the optional Fortran monte-carlo function use::
 Installation on Mac OS X (10.6+)
 =================================
 
-If you have not done so already, install the Apple XCode developer tools from the Apple App Store.  After installation, open Xcode and go to: Preferences -> Downloads, and install the 'Command Line Tools'.
+If you have not done so already, install the Apple Xcode developer tools from the Apple App Store.  After installation, open Xcode and go to: Preferences -> Downloads, and install the 'Command Line Tools'.
 
 Setup Using Macports [*]_
 --------------------------
@@ -167,10 +167,10 @@ Optional, but highly recommended ports include::
 
 Now, we want to tell OSX which Python and iPython we are going to use::
     
-    sudo port select python  python27
-    sudo port select ipython  ipython27
+    sudo port select python python27
+    sudo port select ipython ipython27
 
-.. note:: The next step is optional, but is recommended if you plan to use the string (Cython) based time-dependent format.  See :ref:`time`.
+.. note:: The next step is optional, but is necessary if you plan to use the string (Cython) based time-dependent format.  See :ref:`time`.
 
 Finally, we want to set the macports compiler to the vanilla GCC version.  From the command line type::
 
@@ -216,7 +216,7 @@ No matter which installation path you choose, installing a standard QuTiP instal
 
     sudo python setup.py install
 
-In order to install the Fortran monte-carlo solver use the following command::
+In order to install the Fortran Monte Carlo solver use the following command::
 
     sudo python setup.py install --with-f90mc
 
@@ -270,7 +270,7 @@ QuTiP includes a graphical "about" box for viewing information about QuTiP, and 
 >>> from qutip import *
 >>> about()
 
-that will pop-up a window similar to the one shown below.  If instead you get command-line output, then your PyQt or PySide graphics are not installed properly or unavailable.  When running the about box, QuTiP will automatically check for a newer version of itself from the QuTiP website. The about box will have an "update" link next to the QuTiP version number if your are not running the latest version of QuTiP
+That will pop up a window similar to the one shown below.  If instead you get command-line output, then your PyQt or PySide graphics are not installed properly or unavailable.  When running the about box, QuTiP will automatically check for a newer version of itself from the QuTiP website. The about box will have an "update" link next to the QuTiP version number if your are not running the latest version of QuTiP.
 
 .. figure:: figures/about.png
    :align: center
