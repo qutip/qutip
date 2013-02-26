@@ -64,6 +64,8 @@ Whats New in QuTiP Version 2.2
 
 - A module with tools for using QuTiP in IPython notebooks.
 
+- Added more graph styles to the visualization module.
+
 .. _about-whatsnew21:
 
 Whats New in QuTiP Version 2.1
