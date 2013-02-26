@@ -50,7 +50,7 @@ class TestFloquet:
         # compare with results from standard schrodinger equation
         sol_ref = mesolve(H, psi0, tlist, [], e_ops, args)
 
-        assert_(max(abs(sol.expect[0] - sol_ref.expect[0])) < 1e-5)
+        assert_(max(abs(sol.expect[0] - sol_ref.expect[0])) < 1e-4)
 
 
 if __name__ == "__main__":
