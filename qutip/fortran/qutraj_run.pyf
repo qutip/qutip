@@ -11,8 +11,10 @@ python module qutraj_run ! in
             use qutraj_linalg
             use mt19937
             use linked_list
-            integer, optional :: ntraj=1
-            integer, optional :: unravel_type=2
+            integer, optional :: ntraj = 1
+            integer, optional :: n_e_ops = 0
+            integer, optional :: n_c_ops = 0
+            integer, optional :: unravel_type = 2
             logical, optional :: mc_avg = .true.
             double precision, allocatable,dimension(:) :: tlist
             integer, optional :: order=0
