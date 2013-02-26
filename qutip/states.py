@@ -467,11 +467,10 @@ def qstate(string):
             lst.append(dn)
     return tensor(lst)
 
+
 #
 # quantum state number helper functions
 #
-
-
 def state_number_enumerate(dims, state=None, idx=0):
     """
     An iterator that enumerate all the state number arrays (quantum numbers on
@@ -485,6 +484,24 @@ def state_number_enumerate(dims, state=None, idx=0):
         [ 0.  1.]
         [ 1.  0.]
         [ 1.  1.]
+
+    Parameters
+    ----------
+    dims : list or array
+        The quantum state dimensions array, as it would appear in a Qobj.
+
+    state : list
+        Current state in the iteration. Used internally.
+
+    idx : integer
+        Current index in the iteration. Used internally.
+
+    Returns
+    -------
+    state_number : list
+        Successive state number arrays that can be used in loops and other
+        iterations, using standard state enumeration *by definition*.
+
     """
 
     if state is None:
@@ -509,6 +526,20 @@ def state_number_index(dims, state):
         >>> state_number_index([2, 2, 2], [1, 1, 0])
         6.0
 
+    Parameters
+    ----------
+    dims : list or array
+        The quantum state dimensions array, as it would appear in a Qobj.
+
+    state : list
+        State number array.
+
+    Returns
+    -------
+    idx : list
+        The index of the state given by `state` in standard enumeration
+        ordering.
+
     """
     return sum([state[i] * prod(dims[i + 1:]) for i, d in enumerate(dims)])
 
@@ -522,6 +553,20 @@ def state_index_number(dims, index):
 
         >>> state_index_number([2, 2, 2], 6)
         [1, 1, 0]
+
+    Parameters
+    ----------
+    dims : list or array
+        The quantum state dimensions array, as it would appear in a Qobj.
+
+    index : integer
+        The index of the state in standard enumeration ordering.
+
+    Returns
+    -------
+    state : list
+        The state number array corresponding to index `index` in standard
+        enumeration ordering.
 
     """
     state = np.empty_like(dims)
@@ -542,7 +587,7 @@ def state_number_qobj(dims, state):
 
     Example:
 
-        >>> state_number_qobj([2,2,2], [1,0,1])
+        >>> state_number_qobj([2, 2, 2], [1, 0, 1])
         Quantum object: dims = [[2, 2, 2], [1, 1, 1]], \
 shape = [8, 1], type = ket
         Qobj data =
