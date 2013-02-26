@@ -141,8 +141,8 @@ def coherent(N, alpha, method='operator'):
     truncated Hilbert space of size 'N'. This method guarantees that the
     resulting state is normalized. With 'analytic' method the coherent state
     is generated using the analytical formula for the coherent state
-    coefficients in the Fock basis. THIS METHOD DOES NOT GUARANTEE THAT THE
-    STATE IS NORMALIZED if truncated to a small number of Fock states,
+    coefficients in the Fock basis. This method does not guarantee that the
+    state is normalized if truncated to a small number of Fock states,
     but would in that case give more accurate coefficients.
 
     """
@@ -314,7 +314,7 @@ def thermal_dm(N, n, method='operator'):
 
     Examples
     --------
-    >>> thermal_dm(5,1)
+    >>> thermal_dm(5, 1)
     Quantum object: dims = [[5], [5]], \
 shape = [5, 5], type = oper, isHerm = True
     Qobj data =
@@ -325,7 +325,7 @@ shape = [5, 5], type = oper, isHerm = True
      [ 0.          0.          0.          0.          0.03225806]]
 
 
-    >>> thermal_dm(5,1,'analytic')
+    >>> thermal_dm(5, 1, 'analytic')
     Quantum object: dims = [[5], [5]], \
 shape = [5, 5], type = oper, isHerm = True
     Qobj data =
@@ -341,7 +341,8 @@ shape = [5, 5], type = oper, isHerm = True
     the thermal state using the truncated number operator ``num(N)``. This
     is the method that should be used in computations. The
     'analytic' method uses the analytic coefficients derived in
-    an infinite Hilbert space. THE ANALYTIC FORM IS NOT NORMALIZED.
+    an infinite Hilbert space. The analytic form is not necessarily normalized,
+    if truncated too agressively.
 
     """
     if n == 0:
