@@ -27,6 +27,7 @@ from qutip.mcsolve import _mc_data_config
 from qutip.odeoptions import Odeoptions
 from qutip.odedata import Odedata
 from qutip.settings import debug
+import time
 
 if debug:
     import inspect
@@ -352,8 +353,10 @@ class _MC_class():
         # calculate entropy of reduced density matrice?
         qtf90.qutraj_run.calc_entropy = self.calc_entropy
         # run
-        show_progress = 1 if debug else 0
+        show_progress = 0 # 1 if debug else 0
         qtf90.qutraj_run.evolve(instanceno, rngseed, show_progress)
+    
+
         # construct Odedata instance
         sol = Odedata()
         sol.ntraj = ntraj
@@ -366,10 +369,24 @@ class _MC_class():
             sol.expect = self.get_expect(len(odeconfig.tlist), ntraj)
         if (self.calc_entropy):
             sol.entropy = self.get_entropy(len(odeconfig.tlist))
+
+
         if (not self.serial_run):
+            
+            # XXX: Temporary work-around. If we put the result on the queue
+            # too quickly, which can happen if we have very few trajectories
+            # and the fortran function qtf90.qutraj_run.evolve therefore 
+            # finish very quickly, something goes wrong with the queue and the
+            # process hangs forever. The following workaround prevents this
+            # from happening, but a better solution is obviously needed.
+            if ntraj < 16: 
+                time.sleep(0.01)
+
             # put to queue
             queue.put(sol)
             # queue.put('STOP')
+            queue.join()
+
         # deallocate stuff
         # finalize()
         return sol
