@@ -599,5 +599,20 @@ shape = [8, 1], type = ket
          [ 1.]
          [ 0.]
          [ 0.]]
+
+    Parameters
+    ----------
+    dims : list or array
+        The quantum state dimensions array, as it would appear in a Qobj.
+
+    state : list
+        State number array.
+
+    Returns
+    -------
+    state : :class:`qutip.Qobj.qobj`
+        The state as a :class:`qutip.Qobj.qobj` instance.
+
+
     """
     return tensor([fock(dims[i], s) for i, s in enumerate(state)])
