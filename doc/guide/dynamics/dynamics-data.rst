@@ -26,19 +26,19 @@ Before embarking on simulating the dynamics of quantum systems, we will first lo
 +------------------------+-----------------------------------------------------------------------+
 | odedata.expect         | List/array of expectation values, if requested.                       |
 +------------------------+-----------------------------------------------------------------------+
-| odedata.states         | List/array of state vectors /density matrices calculated at ``times`` |
-|                        | , if requested.                                                       |
+| odedata.states         | List/array of state vectors/density matrices calculated at ``times``, |
+|                        | if requested.                                                         |
 +------------------------+-----------------------------------------------------------------------+
 | odedata.num_expect     | The number of expectation value operators in the simulation.          |
 +------------------------+-----------------------------------------------------------------------+
 | odedata.num_collapse   | The number of collapse operators in the simulation.                   |
 +------------------------+-----------------------------------------------------------------------+
-| odedata.ntraj          | Number of monte-carlo trajectories run (if using mcsolve).            |
+| odedata.ntraj          | Number of Monte Carlo trajectories run.                               |
 +------------------------+-----------------------------------------------------------------------+
-| odedata.col_times      | Times at which state collapse occurred.  Only for Monte-Carlo solver. |
+| odedata.col_times      | Times at which state collapse occurred. Only for Monte Carlo solver.  |
 +------------------------+-----------------------------------------------------------------------+
 | odedata.col_which      | Which collapse operator was responsible for each collapse in          |
-|                        | in ``col_times``. mcsolver only.                                      |
+|                        | in ``col_times``. Only used by Monte Carlo solver.                    |
 +------------------------+-----------------------------------------------------------------------+
 
 
@@ -46,17 +46,17 @@ Before embarking on simulating the dynamics of quantum systems, we will first lo
 
 Accessing Odedata Data
 ======================
-To understand how to access the data in a Odedata object we will use the :ref:`exmc30` example as a guide, although we do not worry about the simulation details at this stage.  Like all solvers, the monte-carlo solver used in this example returns an Odedata object, here called simply ``data``.  To see what is contained inside ``data`` we can use the print command:
+To understand how to access the data in a Odedata object we will use the :ref:`exmc30` example as a guide, although we do not worry about the simulation details at this stage.  Like all solvers, the Monte Carlo solver used in this example returns an Odedata object, here called simply ``data``.  To see what is contained inside ``data`` we can use the print function:
 
->>> print data
+>>> print(data)
     Odedata object with mcsolve data.
     ---------------------------------
     expect = True
     num_expect = 2, num_collapse = 2, ntraj = 500
 
-The first line tells us that this data object was generated from the Monte-Carlo solver ``mcsolve`` (discussed in :ref:`monte`).  The next line (not the ``---`` line of course) indicates that this object contains expectation value data.  Finally, the last line gives the number of expectation value and collapse operators used in the simulation, along with the number of Monte-Carlo trajectories run.  Note that the number of trajectories ``ntraj`` is only displayed when using the Monte-Carlo solver.
+The first line tells us that this data object was generated from the Monte Carlo solver ``mcsolve`` (discussed in :ref:`monte`).  The next line (not the ``---`` line of course) indicates that this object contains expectation value data.  Finally, the last line gives the number of expectation value and collapse operators used in the simulation, along with the number of Monte Carlo trajectories run.  Note that the number of trajectories ``ntraj`` is only displayed when using the Monte Carlo solver.
 
-Now we have all the information needed to reproduce the simulation results.  To access the data for the two expectation values one can do:
+Now we have all the information needed to analyze the simulation results. To access the data for the two expectation values one can do:
 
 >>> expt0 = data.expect[0]
 >>> expt1 = data.expect[1]
@@ -67,7 +67,7 @@ Recall that Python uses C-style indexing that begins with zero ( i.e. [0] => 1st
 
 we can plot the resulting expectation values:
 
->>> plot(times,expt0,times,expt1)
+>>> plot(times, expt0, times, expt1)
 >>> show()
 
 .. image-odedata1:
@@ -79,7 +79,7 @@ we can plot the resulting expectation values:
    Data for expectation values extracted from the ``data`` Odedata object.
 
 
-State vectors, or density matrices, as well as ``col_times`` and ``col_which``, are accessed in a similar manner, although typically one does not need an index (i.e [0]) since there is only one list for each of these components.  The one exception to this rule is if you choose to output state vectors from the Monte-Carlo solver, in which case there are ``ntraj`` number of state vector arrays.
+State vectors, or density matrices, as well as ``col_times`` and ``col_which``, are accessed in a similar manner, although typically one does not need an index (i.e [0]) since there is only one list for each of these components.  The one exception to this rule is if you choose to output state vectors from the Monte Carlo solver, in which case there are ``ntraj`` number of state vector arrays.
 
 .. _odedata-saving:
 
@@ -88,11 +88,11 @@ Saving and Loading Odedata Objects
 
 The main advantage in using the Odedata class as a data storage object comes from the simplicity in which simulation data can be stored and later retrieved. The :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload` functions are designed for this task.  To begin, let us save the ``data`` object from the previous section into a file called "cavity+qubit-data" in the current working directory by calling:
 
->>> qsave(data,'cavity+qubit-data')
+>>> qsave(data, 'cavity+qubit-data')
 
 All of the data results are then stored in a single file of the same name with a ".qu" extension.  Therefore, everything needed to later this data is stored in a single file.  Loading the file is just as easy as saving:
 
->>> chicken=qload('cavity+qubit-data')
+>>> chicken = qload('cavity+qubit-data')
     Loaded Odedata object:
     Odedata object with mcsolve data.
     ---------------------------------
@@ -104,7 +104,7 @@ where ``chicken`` is the new name of the Odedata object.  We can then extract th
 	expt0 = chicken.expect[0]
 	expt1 = chicken.expect[1]
 	times = chicken.times
-	plot(times,expt0,times,expt1)
+	plot(times, expt0, times, expt1)
 	show()
 
 
