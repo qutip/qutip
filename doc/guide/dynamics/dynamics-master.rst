@@ -33,44 +33,51 @@ For example, the time evolution of a quantum spin-1/2 system with tunneling rate
     >>> H = 2 * pi * 0.1 * sigmax()
     >>> psi0 = basis(2, 0)
     >>> tlist = linspace(0.0, 10.0, 20.0)
-    >>> mesolve(H, psi0, tlist, [], [sigmaz()])
-    array([[ 1.00000000+0.j,  0.78914229+0.j,  0.24548596+0.j, -0.40169696+0.j,
-            -0.87947669+0.j, -0.98636356+0.j, -0.67728166+0.j, -0.08257676+0.j,
-             0.54695235+0.j,  0.94582040+0.j,  0.94581706+0.j,  0.54694422+0.j,
-            -0.08258520+0.j, -0.67728673+0.j, -0.98636329+0.j, -0.87947111+0.j,
-            -0.40168898+0.j,  0.24549302+0.j,  0.78914528+0.j,  0.99999927+0.j]])
+    >>> result = mesolve(H, psi0, tlist, [], [sigmaz()])
+    >>> result
+    Odedata object with mesolve data.
+    ---------------------------------
+    expect = True
+    num_expect = 1, num_collapse = 0
+    >>> result.expect[0]
+    array([ 1.00000000+0.j,  0.78914229+0.j,  0.24548596+0.j, -0.40169696+0.j,
+           -0.87947669+0.j, -0.98636356+0.j, -0.67728166+0.j, -0.08257676+0.j,
+            0.54695235+0.j,  0.94582040+0.j,  0.94581706+0.j,  0.54694422+0.j,
+           -0.08258520+0.j, -0.67728673+0.j, -0.98636329+0.j, -0.87947111+0.j,
+           -0.40168898+0.j,  0.24549302+0.j,  0.78914528+0.j,  0.99999927+0.j])
 
-The brackets in the fourth argument is an empty list of collapse operators,  since we consider unitary evolution in this example. See the next section for examples on how dissipation is included by defining a list of collapse operators.
+The brackets in the fourth argument is an empty list of collapse operators, since we consider unitary evolution in this example. See the next section for examples on how dissipation is included by defining a list of collapse operators.
 
-The function returns an array of expectation values for the operators that are included in the list in the fifth argument. Adding operators to this list results in a larger output array returned by the function (one list of numbers, corresponding to the times in tlist, for each operator)::
+The function returns an instance of :class:`qutip.Odedata`, as described in the previous section :ref:`odedata`. The attribute ``expect`` in ``result`` is a list of expectation values for the operators that are included in the list in the fifth argument. Adding operators to this list results in a larger output list returned by the function (one array of numbers, corresponding to the times in tlist, for each operator)::
 
-    >>> mesolve(H, psi0, tlist, [], [sigmaz(), sigmay()])
-    array([[  1.00000000e+00+0.j,   7.89142292e-01+0.j,   2.45485961e-01+0.j,
+    >>> result = mesolve(H, psi0, tlist, [], [sigmaz(), sigmay()])
+    >>> result.expect
+    [array([  1.00000000e+00+0.j,   7.89142292e-01+0.j,   2.45485961e-01+0.j,
              -4.01696962e-01+0.j,  -8.79476686e-01+0.j,  -9.86363558e-01+0.j,
              -6.77281655e-01+0.j,  -8.25767574e-02+0.j,   5.46952346e-01+0.j,
               9.45820404e-01+0.j,   9.45817056e-01+0.j,   5.46944216e-01+0.j,
              -8.25852032e-02+0.j,  -6.77286734e-01+0.j,  -9.86363287e-01+0.j,
              -8.79471112e-01+0.j,  -4.01688979e-01+0.j,   2.45493023e-01+0.j,
-              7.89145284e-01+0.j,   9.99999271e-01+0.j],
-           [  0.00000000e+00+0.j,  -6.14214010e-01+0.j,  -9.69403055e-01+0.j,
+              7.89145284e-01+0.j,   9.99999271e-01+0.j]),
+     array([  0.00000000e+00+0.j,  -6.14214010e-01+0.j,  -9.69403055e-01+0.j,
              -9.15775807e-01+0.j,  -4.75947716e-01+0.j,   1.64596791e-01+0.j,
               7.35726839e-01+0.j,   9.96586861e-01+0.j,   8.37166184e-01+0.j,
               3.24695883e-01+0.j,  -3.24704840e-01+0.j,  -8.37170685e-01+0.j,
              -9.96585195e-01+0.j,  -7.35720619e-01+0.j,  -1.64588257e-01+0.j,
               4.75953748e-01+0.j,   9.15776736e-01+0.j,   9.69398541e-01+0.j,
-              6.14206262e-01+0.j,  -8.13905967e-06+0.j]])
+              6.14206262e-01+0.j,  -8.13905967e-06+0.j])]
   
 The resulting list of expectation values can easily be visualized using matplotlib's plotting functions::
 
     >>> tlist = linspace(0.0, 10.0, 100)
-    >>> expt_list = mesolve(H, psi0, tlist, [], [sigmaz(), sigmay()])
+    >>> result = mesolve(H, psi0, tlist, [], [sigmaz(), sigmay()])
     >>> 
     >>> from pylab import *
-    >>> plot(tlist, real(expt_list[0]))
-    >>> plot(tlist, real(expt_list[1]))
+    >>> plot(result.times, result.expect[0])
+    >>> plot(result.times, result.expect[1])
     >>> xlabel('Time')
     >>> ylabel('Expectation values')
-    >>> legend(("Simga-Z", "Sigma-Y"))
+    >>> legend(("Sigma-Z", "Sigma-Y"))
     >>> show()
 
 
@@ -79,10 +86,11 @@ The resulting list of expectation values can easily be visualized using matplotl
    :width: 4in
 
 
-If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a list of state vectors for the times specified in ``tlist``::
+If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a :class:`qutip.Odedata` instance that contains a list of state vectors for the times specified in ``tlist``::
 
     >>> tlist = [0.0, 1.0]
-    >>> mesolve(H, psi0, tlist, [], [])
+    >>> result = mesolve(H, psi0, tlist, [], [])
+    >>> result.states
     [
     Quantum object: dims = [[2], [1]], shape = [2, 1], type = ket
     Qobj data = 
