@@ -90,7 +90,7 @@ Applications of exponential series
 
 The exponential series formalism can be useful for the time-evolution of quantum systems. One approach to calculating the time evolution of a quantum system is to diagonalize its Hamiltonian (or Liouvillian, for dissipative systems) and to express the propagator (e.g., :math:`\exp(-iHt) \rho \exp(iHt)`) as an exponential series. 
 
-The QuTiP function :func:`qutip.es2ode` and :func:`qutip.essolve` use this method to evolve quantum systems in time. The exponential series approach is particularly suitable for cases when the same system is to be evolved for many different initial states, since the diagonalization only needs to be performed once (as opposed to e.g. the ode solver that would need to be ran independently for each initial state).
+The QuTiP function :func:`qutip.essolve.ode2es` and :func:`qutip.essolve` use this method to evolve quantum systems in time. The exponential series approach is particularly suitable for cases when the same system is to be evolved for many different initial states, since the diagonalization only needs to be performed once (as opposed to e.g. the ode solver that would need to be ran independently for each initial state).
 
 As an example, consider a spin-1/2 with a Hamiltonian pointing in the :math:`\sigma_z` direction, and that is subject to noise causing relaxation. For a spin originally is in the up state, we can create an :class:`qutip.eseries` object describing its dynamics by using the :func:`qutip.es2ode` function:
 
@@ -104,7 +104,7 @@ As an example, consider a spin-1/2 with a Hamiltonian pointing in the :math:`\si
    
    In [4]: es = ode2es(L, psi0)
 
-The :func:`qutip.eseries.ode2es` function diagonalizes the Liouvillian :math:`L` and creates an exponential series with the correct eigenfrequencies and amplitudes for the initial state :math:`\psi_0` (`psi0`).
+The :func:`qutip.essolve.ode2es` function diagonalizes the Liouvillian :math:`L` and creates an exponential series with the correct eigenfrequencies and amplitudes for the initial state :math:`\psi_0` (`psi0`).
 
 We can examine the resulting :class:`qutip.eseries` object by printing a text representation:
 
@@ -122,7 +122,7 @@ and the expectation value of the exponential series can be calculated using the 
 
 .. ipython::
 
-   In [1]: es_expect=expect(sigmaz(), es)
+   In [1]: es_expect = expect(sigmaz(), es)
 
 The result `es_expect` is now an exponential series with c-numbers as amplitudes, which easily can be evaluated at arbitrary times:
 
@@ -136,12 +136,12 @@ The result `es_expect` is now an exponential series with c-numbers as amplitudes
 	
 	In [2]: sz_expect = es_expect.value(tlist)
 
-	In [3]: from pylab import *	#Import Matplotlib
+	In [3]: from pylab import *	
 	
-	In [4]: plot(tlist, sz_expect,lw=2)
+	In [4]: plot(tlist, sz_expect, lw=2);
 	
-	In [5]: xlabel("Time",fontsize=16); ylabel("Expectation value of sigma-z",fontsize=16)
+	In [5]: xlabel("Time", fontsize=16); ylabel("Expectation value of sigma-z", fontsize=16);
 	
 	@savefig eseries_example.png width=4in align=center
-	In [6]: title("The expectation value of the $\sigma_{z}$ operator",fontsize=16)
+	In [6]: title("The expectation value of the $\sigma_{z}$ operator", fontsize=16);
 
