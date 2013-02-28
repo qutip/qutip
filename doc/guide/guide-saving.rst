@@ -18,7 +18,7 @@ With time-consuming calculations it is often necessary to store the results to f
 Storing and loading QuTiP objects
 =================================
 
-To store and load arbitrary QuTiP related objects (:class:`Qobj`, :class:`Odedata`, etc.) there are two functions: :func:`qutip.qsave` and :func:`qutip.qload`. The function :func:`qutip.qsave` takes an arbitrary object as first parameter and an optional filename as second parameter (default filename is `qutip_data.qu`). The filename extension is always `.qu`. The function :func:`qutip.qload` takes a mandatory filename as first argument and loads and returns the objects in the file.
+To store and load arbitrary QuTiP related objects (:class:`qutip.Qobj`, :class:`qutip.Odedata`, etc.) there are two functions: :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload`. The function :func:`qutip.fileio.qsave` takes an arbitrary object as first parameter and an optional filename as second parameter (default filename is `qutip_data.qu`). The filename extension is always `.qu`. The function :func:`qutip.fileio.qload` takes a mandatory filename as first argument and loads and returns the objects in the file.
 
 To illustrate how these functions can be used, consider a simple calculation of the steadystate of the harmonic oscillator:
 
@@ -47,8 +47,7 @@ and it can later be loaded again, and used in further calculations:
 	
 	In [3]: expect(a.dag() * a, rho_ss_loaded)
 
-
-The nice thing about the :func:`qutip.qsave` and :func:`qutip.qload` functions is that almost any object can be stored and load again later on. We can for example store a list of density matrices as returned by :func:`qutip.mesolve`:
+The nice thing about the :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload` functions is that almost any object can be stored and load again later on. We can for example store a list of density matrices as returned by :func:`qutip.mesolve`:
 
 .. ipython::
 
@@ -76,7 +75,7 @@ And it can then be loaded and used again, for example in an other program:
 Storing and loading datasets
 ============================
 
-The :func:`qutip.qsave` and :func:`qutip.qload` are great, but the file format used is only understood by QuTiP (python) programs. When data must be exported to other programs the prefered method is to store the data in the commonly used plain-text file formats. With the QuTiP functions :func:`qutip.file_data_store` and :func:`qutip.file_data_read` we can store and load **numpy** arrays and matrices to files on disk using a deliminator-separated value format (for example comma-separated values CSV). Almost any program can handle this file format.
+The :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload` are great, but the file format used is only understood by QuTiP (python) programs. When data must be exported to other programs the preferred method is to store the data in the commonly used plain-text file formats. With the QuTiP functions :func:`qutip.file_data_store` and :func:`qutip.file_data_read` we can store and load **numpy** arrays and matrices to files on disk using a deliminator-separated value format (for example comma-separated values CSV). Almost any program can handle this file format.
 
 The :func:`qutip.file_data_store` takes two mandatory and three optional arguments: 
 
@@ -94,7 +93,7 @@ A common use for the :func:`qutip.file_data_store` function is to store the expe
 	
 	In [3]: tlist = linspace(0, 100, 100)
 	
-	In [4]: medata = mesolve(H, psi0, tlist, c_ops, [a.dag() * a, a+a.dag(), -1j*(a-a.dag())])
+	In [4]: medata = mesolve(H, psi0, tlist, c_ops, [a.dag() * a, a + a.dag(), -1j * (a - a.dag())])
 	
 	In [5]:	shape(medata.expect)
 	
@@ -137,7 +136,7 @@ Loading data previously stored using :func:`qutip.file_data_store` (or some othe
 	In [4]: from pylab import *
 	
 	@savefig saving_ex.png width=4in align=center
-	In [3]: plot(input_data[:,0],input_data[:,1]) #plot the data
+	In [3]: plot(input_data[:,0], input_data[:,1]);  # plot the data
 
 
 (If a particularly obscure choice of deliminator was used it might be necessary to use the optional second argument, for example `sep="_"` if _ is the deliminator).
