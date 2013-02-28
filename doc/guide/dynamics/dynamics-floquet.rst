@@ -186,13 +186,13 @@ A driven system that is interacting with its environment is not necessarily well
 The Floquet-Markov master equation in QuTiP
 -------------------------------------------
 
-The QuTiP function :func:`qutip.floquet.fmmesolve` implements the Floquet-Markov master equation. It calculates the dynamics of a system given its initial state, a time-dependent hamiltonian, a list of operators through which the system couples to its environment and a list of corresponding spectral density functions that describes the environment. In contrast to the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, and the :func:`qutip.floquet.fmmesolve` does characterize the environment with dissipation rates, but extract the strength of the coupling to the environment from the noise spectral-density functions and the instantaneous Hamiltonian parameters (similar to the Bloch-Redfield master equation solver :func:`qutip.bloch_redfield.brmesolve`). 
+The QuTiP function :func:`qutip.floquet.fmmesolve` implements the Floquet-Markov master equation. It calculates the dynamics of a system given its initial state, a time-dependent hamiltonian, a list of operators through which the system couples to its environment and a list of corresponding spectral-density functions that describes the environment. In contrast to the :func:`qutip.mesolve` and :func:`qutip.mcsolve`, and the :func:`qutip.floquet.fmmesolve` does characterize the environment with dissipation rates, but extract the strength of the coupling to the environment from the noise spectral-density functions and the instantaneous Hamiltonian parameters (similar to the Bloch-Redfield master equation solver :func:`qutip.bloch_redfield.brmesolve`). 
 
 .. note::
 
-    Currently the :func:`qutip.floquet.fmmesolve` can only accept a single environment coupling operator and spectral density function.
+    Currently the :func:`qutip.floquet.fmmesolve` can only accept a single environment coupling operator and spectral-density function.
 
-The noise spectral density function of the environment is implemented as a python callback function that is passed to the solver. For example:
+The noise spectral-density function of the environment is implemented as a Python callback function that is passed to the solver. For example:
 
 >>> gamma1 = 0.1
 >>> def noise_spectrum(omega):
@@ -204,7 +204,7 @@ The other parameters are similar to the :func:`qutip.mesolve` and :func:`qutip.m
    :width: 4.0in
    :include-source:	 
 
-Alternatively, we can let the `fmmesolve` function transform the density matrix at each time step back to the computational basis, and calculating the expectation values for us, but using::
+Alternatively, we can let the :func:`qutip.floquet.fmmesolve` function transform the density matrix at each time step back to the computational basis, and calculating the expectation values for us, but using::
 
     output = fmmesolve(H, psi0, tlist, [sigmax()], [num(2)], [noise_spectrum], T, args)
     p_ex = output.expect[0]
