@@ -36,7 +36,7 @@ in a state described by its density matrix :math:`\rho`, and which on average
 is occupied by two photons, :math:`\mathrm{Tr}[\rho a^\dagger a] = 2`. Given
 this information we cannot say whether the oscillator is in a Fock state, 
 a thermal state, a coherent state, etc. By visualizing the photon distribution
-in the Fock state basis important clues about the underlaying state can be
+in the Fock state basis important clues about the underlying state can be
 obtained.
 
 One convenient way to visualize a probability distribution is to use histograms.
@@ -88,6 +88,25 @@ Next, we plot histograms of the diagonals of the density matrices:
 All these states correspond to an average of two photons, but by visualizing
 the photon distribution in Fock basis the differences between these states are
 easily appreciated. 
+
+One frequently need to visualize the Fock-distribution in the way described
+above, so QuTiP provides a convenience function for doing this, see
+:func:`qutip.visualization.fock_distribution`, and the following example:
+
+.. ipython::
+
+    In [1]: fig, axes = subplots(1, 3, figsize=(12,3))
+
+    In [1]: fock_distribution(rho_coherent, fig=fig, ax=axes[0], title="Coherent state");
+
+    In [1]: fock_distribution(rho_thermal, fig=fig, ax=axes[1], title="Thermal state");
+
+    In [1]: fock_distribution(rho_fock, fig=fig, ax=axes[2], title="Fock state");
+
+    In [1]: fig.tight_layout()
+
+	@savefig visualization-distribution-2.png width=8.0in align=center
+    In [1]: show()
 
 .. _visual-dist:
 
@@ -155,7 +174,7 @@ state is nonclassical, as indicated by negative values in the Wigner function.  
 making these negative values stand out in a figure is helpful for both analysis and publication
 purposes.  Unfortunately, all of the color schemes used in Matplotlib (or any other plotting software)
 are linear colormaps where small negative values tend to be near the same color as the zero values, and
-are thus hidden.  To fix this dilemma, QuTiP includes a nonlinear colormap function :func:`qutip.graph.wigner_cmap`
+are thus hidden.  To fix this dilemma, QuTiP includes a nonlinear colormap function :func:`qutip.visualization.wigner_cmap`
 that colors all negative values differently than positive or zero values.  Below is a demonstration of how to use
 this function in your Wigner figures:
 
@@ -166,31 +185,31 @@ this function in your Wigner figures:
 
 .. ipython::
     
-    In [1]: psi=(basis(10)+1*basis(10,3)+basis(10,9)).unit()
+    In [1]: psi = (basis(10, 0) + basis(10, 3) + basis(10, 9)).unit()
     
-    In [1]: xvec = linspace(-5,5,500)
+    In [1]: xvec = linspace(-5, 5, 500)
     
-    In [1]: W=wigner(psi,xvec,xvec)
+    In [1]: W = wigner(psi, xvec, xvec)
     
-    In [1]: wmap=wigner_cmap(W) #Generate Wigner colormap
+    In [1]: wmap = wigner_cmap(W)  # Generate Wigner colormap
     
-    In [1]: nrm=mpl.colors.Normalize(-W.max(),W.max())
+    In [1]: nrm = mpl.colors.Normalize(-W.max(), W.max())
     
-    In [1]: subplot(1,2,1)
+    In [1]: fig, axes = subplots(1, 2, figsize=(10, 4))
     
-    In [1]: plt1=contourf(xvec,xvec,W,100,cmap=cm.RdBu,norm=nrm)
+    In [1]: plt1 = axes[0].contourf(xvec, xvec, W, 100, cmap=cm.RdBu, norm=nrm)
     
-    In [1]: title("Standard Colormap")
+    In [1]: axes[0].set_title("Standard Colormap");
     
-    In [1]: colorbar(plt1)
+    In [1]: cb1 = colorbar(plt1, ax=axes[0])
     
-    In [1]: subplot(1,2,2)
+    In [1]: plt2 = axes[1].contourf(xvec, xvec, W, 100, cmap=wmap)  # Apply Wigner colormap
     
-    In [1]: plt2=contourf(xvec,xvec,W,100,cmap=wmap) #Apply Wigner colormap
+    In [1]: axes[1].set_title("Wigner Colormap");
     
-    In [1]: title("Wigner Colormap")
-    
-    In [1]: colorbar(plt2)
+    In [1]: cb2 = fig.colorbar(plt2, ax=axes[1])
+
+    In [1]: fig.tight_layout()
     
     @savefig wigner_cmap.png width=8.0in align=center
     In [10]: show()
@@ -250,14 +269,14 @@ also be interesting in plotting the matrix of an Hamiltonian to inspect the
 structure and relative importance of various elements.
 
 QuTiP offers a few functions for quickly visualizing matrix data in the
-form of histograms, :func:`qutip.graph.matrix_histogram` and
-:func:`qutip.graph.matrix_histogram_complex`, and as Hinton diagram of weighted
-squares, :func:`qutip.graph.hinton`. These functions takes a
+form of histograms, :func:`qutip.visualization.matrix_histogram` and
+:func:`qutip.visualization.matrix_histogram_complex`, and as Hinton diagram of weighted
+squares, :func:`qutip.visualization.hinton`. These functions takes a
 :class:`qutip.Qobj.Qobj` as first argument, and optional arguments to, for
 example, set the axis labels and figure title (see the function's documentation
 for details). 
 
-For example, to illustrate the use of :func:`qutip.graph.matrix_histogram`, 
+For example, to illustrate the use of :func:`qutip.visualization.matrix_histogram`, 
 let's visualize of the Jaynes-Cummings Hamiltonian:
 
 .. ipython::
@@ -289,7 +308,7 @@ let's visualize of the Jaynes-Cummings Hamiltonian:
     In [1]: show()
 
 
-Similarly, we can use the function :func:`qutip.graph.hinton`, which is
+Similarly, we can use the function :func:`qutip.visualization.hinton`, which is
 used below to visualize the corresponding steadystate density matrix: 
 
 .. ipython::
