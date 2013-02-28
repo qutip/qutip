@@ -82,6 +82,13 @@ Monte Carlo Evolution
 .. automodule:: qutip.fortran.mcsolve_f90
     :members: mcsolve_f90
 
+Schrödinger Equation
+--------------------
+
+.. automodule:: qutip.sesolve
+    :members: sesolve
+
+
 Bloch-Redfield Master Equation
 ------------------------------
 
