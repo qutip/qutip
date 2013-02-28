@@ -46,10 +46,10 @@ In this previous example, we see that the generated Hermitian operator contains 
 
 .. ipython::
 
-   In [1]: rand_dm(5,0.5)
+   In [1]: rand_dm(5, 0.5)
 
 
-has rougly half nonzero elements, or equivilently a density of 0.5.
+has rougly half nonzero elements, or equivalently a density of 0.5.
 
 .. important::  In the case of a density matrix, setting the density too low will result in not enough diagonal elements to satisfy :math:`Tr(\rho)=1`.
 
@@ -61,6 +61,6 @@ In many cases, one is interested in generating random quantum objects that corre
 
 .. ipython::
 
-   In [1]: rand_dm(4,0.5, dims=[[2,2], [2,2]])
+   In [1]: rand_dm(4, 0.5, dims=[[2,2], [2,2]])
 
 
