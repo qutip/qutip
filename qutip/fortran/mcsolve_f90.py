@@ -114,18 +114,19 @@ def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     odeconfig.norm_tol = options.norm_tol
     odeconfig.norm_steps = options.norm_steps
 
-    odeconfig.soft_reset()
-    # no time dependence
-    odeconfig.tflag = 0
-    # no gui
-    odeconfig.options.gui = False
-    # check for collapse operators
-    if len(c_ops) > 0:
-        odeconfig.cflag = 1
-    else:
-        odeconfig.cflag = 0
-    # Configure data
-    _mc_data_config(H, psi0, [], c_ops, [], [], e_ops, options, odeconfig)
+    if not options.rhs_reuse:
+        odeconfig.soft_reset()
+        # no time dependence
+        odeconfig.tflag = 0
+        # no gui
+        odeconfig.options.gui = False
+        # check for collapse operators
+        if len(c_ops) > 0:
+            odeconfig.cflag = 1
+        else:
+            odeconfig.cflag = 0
+        # Configure data
+        _mc_data_config(H, psi0, [], c_ops, [], [], e_ops, options, odeconfig)
 
     # Load Monte Carlo class
     mc = _MC_class()
