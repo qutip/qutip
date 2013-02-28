@@ -7,13 +7,13 @@
 Setting Options for the Dynamics ODE Solvers
 *********************************************
 
-Occasionally it is necessary to change the built in parameters of the ODE solvers used by both the ``mesolve`` and ``mcsolve`` functions.  The ODE options for either of these functions may be changed by calling the Odeoptions class :class:`qutip.Odeoptions`
+Occasionally it is necessary to change the built in parameters of the ODE solvers used by both the :func:`qutip.mesolve` and :func:`qutip.mcsolve` functions.  The ODE options for either of these functions may be changed by calling the Odeoptions class :class:`qutip.Odeoptions`
 
->>> opts=Odeoptions()
+>>> opts = Odeoptions()
 
-the properties and default values of this class can be view via the `print` command::
+the properties and default values of this class can be view via the `print` function::
 
-    >>> print opts
+    >>> print(opts)
 	Odeoptions properties:
 	----------------------
 	atol:          1e-08
@@ -31,7 +31,7 @@ the properties and default values of this class can be view via the `print` comm
 	gui:           True
 	mc_avg:    	   True
 
-These properties are detailed in the following table.  Assuming ``opts=Odeoptions()``:
+These properties are detailed in the following table.  Assuming ``opts = Odeoptions()``:
 
 +-------------------+-----------------+----------------------------------------------------------------+
 | Property          | Default setting | Description                                                    |
@@ -69,14 +69,14 @@ These properties are detailed in the following table.  Assuming ``opts=Odeoption
 
 As an example, let us consider changing the number of processors used, turn the GUI off, and strengthen the absolute tolerance.  There are two equivalent ways to do this using the Odeoptions class.  First way,
 
-    >>> opts=Odeoptions()
-    >>> opts.num_cpus=3
-    >>> opts.gui=False
-    >>> opts.atol=1e-10
+    >>> opts = Odeoptions()
+    >>> opts.num_cpus = 3
+    >>> opts.gui = False
+    >>> opts.atol = 1e-10
 
 or one can use an inline method,
 
-	>>> opts=Odeoptions(num_cpus=3,gui=False,atol=1e-10)
+	>>> opts = Odeoptions(num_cpus=3, gui=False, atol=1e-10)
 
 Note that the order in which you input the options does not matter.  Using either method, the resulting `opts` variable is now::
 
@@ -98,14 +98,14 @@ Note that the order in which you input the options does not matter.  Using eithe
 	gui:           False
 	mc_avg:    True
 
-To use these new settings we can use the keyword argument ``options`` in either the ``mesolve`` or ``mcsolve`` function.  We can modify the last example as::
+To use these new settings we can use the keyword argument ``options`` in either the func:`qutip.mesolve` and :func:`qutip.mcsolve` function.  We can modify the last example as::
 
-    >>> mesolve(H0, psi0, tlist, c_op_list, [sigmaz()],options=opts)
-    >>> mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sigmaz()], H_args,options=opts)
+    >>> mesolve(H0, psi0, tlist, c_op_list, [sigmaz()], options=opts)
+    >>> mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sigmaz()], H_args, options=opts)
 
 or::
     
-    >>> mcsolve(H0, psi0, tlist, ntraj,c_op_list, [sigmaz()],options=opts)
-    >>> mcsolve(hamiltonian_t, psi0, tlist, ntraj, c_op_list, [sigmaz()], H_args,options=opts)
+    >>> mcsolve(H0, psi0, tlist, ntraj,c_op_list, [sigmaz()], options=opts)
+    >>> mcsolve(hamiltonian_t, psi0, tlist, ntraj, c_op_list, [sigmaz()], H_args, options=opts)
 
 
