@@ -27,27 +27,25 @@ Note that if the intial state is the steady state, then :math:`\rho(t)=V(t, 0)\l
     
 which is independent of :math:`t`, so that we only have one time coordinate :math:`\tau`.
 
-In QuTiP, there are two functions that assists in the process of calculating two-time correlation functions, :func:`qutip.correlation.correlation` and :func:`qutip.correlation.correlation_ss` (for steadystate correlations). Both these functions can use one of the following evolution solvers: Master-equation, Exponential series and the Monte-Carlo. The choice of solver is defined by the optional last argument `solver`. The following table describes the usage of each function:
+QuTiP provides a family of functions that assists in the process of calculating two-time correlation functions. The available functions and their usage is show in the table below. Each of these functions can use one of the following evolution solvers: Master-equation, Exponential series and the Monte-Carlo. The choice of solver is defined by the optional argument ``solver``. 
 
 .. tabularcolumns:: | p{4cm} | L |
 
-+----------------------------------------------+-----------------------------------------+
-| Function                                     | Usage                                   |
-+==============================================+=========================================+
-| correlation_ss                               | Calculates the steady state correlation |
-|                                              | :math:`\left<A(\tau)B(0)\right>`,       |
-|                                              | using the either the master equation,   |
-|                                              | the exponential series, or the          |
-|                                              | Monte Carlo solver.                     |
-+----------------------------------------------+-----------------------------------------+
-| correlation                                  | Calculates the correlation function     |
-|                                              | :math:`\left<A(t_1+t_2)B(t_1)\right>`,  |
-|                                              | using the either the master eqaution,   |
-|                                              | the exponential series, or the          |
-|                                              | Monte Carlo solver.                     |
-+----------------------------------------------+-----------------------------------------+
++----------------------------------------------+--------------------------------------------------+
+| QuTiP function                               | Correlation function                             |
++==============================================+==================================================+
+| :func:`qutip.correlation.correlation` or     | :math:`\left<A(t+\tau)B(t)\right>` or            |
+| :func:`qutip.correlation.correlation_2op_2t` | :math:`\left<A(t)B(t+\tau)\right>`.              |
++----------------------------------------------+--------------------------------------------------+
+| :func:`qutip.correlation.correlation_ss` or  | :math:`\left<A(\tau)B(0)\right>` or              |
+| :func:`qutip.correlation.correlation_2op_1t` | :math:`\left<A(0)B(\tau)\right>`.                |
++----------------------------------------------+--------------------------------------------------+
+| :func:`qutip.correlation.correlation_4op_1t` | :math:`\left<A(0)B(\tau)C(\tau)D(0)\right>`.     |
++----------------------------------------------+--------------------------------------------------+
+| :func:`qutip.correlation.correlation_4op_2t` | :math:`\left<A(t)B(t+\tau)C(t+\tau)D(t)\right>`. |
++----------------------------------------------+--------------------------------------------------+
 
-The most common use-case is to calculate correlation functions of the kind :math:`\left<A(\tau)B(0)\right>`, in which case we use the correlation function solvers that start from the steady state, e.g., the :func:`qutip.correlation.correlation_ss` function. These functions return a vector (in general complex) with the correlations between the operators as a function of the difference time. 
+The most common use-case is to calculate correlation functions of the kind :math:`\left<A(\tau)B(0)\right>`, in which case we use the correlation function solvers that start from the steady state, e.g., the :func:`qutip.correlation.correlation_2op_1t` function. These correlation function sovlers return a vector or matrix (in general complex) with the correlations as a function of the delays times. 
 
 .. _correlation-steady:
 
@@ -103,6 +101,7 @@ This example demonstrates how to calculate a correlation function on the form :m
    :width: 4.0in
    :include-source:
 
+For convenience, the steps for calculating the first-order coherence function have been collected in the function :func:`correlation.correlation.coherence_function_g1`.
 
 Example: second-order optical coherence function
 ------------------------------------------------
@@ -123,5 +122,6 @@ The following code calculates and plots :math:`g^{(2)}(\tau)` as a function of :
    :width: 4.0in
    :include-source:
 
+For convenience, the steps for calculating the second-order coherence function have been collected in the function :func:`correlation.correlation.coherence_function_g2`.
 
 

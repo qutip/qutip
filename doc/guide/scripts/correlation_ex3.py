@@ -3,12 +3,12 @@ from qutip import *
 N = 15
 taulist = linspace(0,10.0,200)
 a = destroy(N)
-H = 2*pi*a.dag()*a
+H = 2 * pi * a.dag() * a
 
 # collapse operator
 G1 = 0.75
 n_th = 2.00  # bath temperature in terms of excitation number
-c_ops = [sqrt(G1*(1+n_th)) * a, sqrt(G1*n_th) * a.dag()]
+c_ops = [sqrt(G1 * (1 + n_th)) * a, sqrt(G1 * n_th) * a.dag()]
 
 # start with a coherent state
 rho0 = coherent_dm(N, 2.0)
