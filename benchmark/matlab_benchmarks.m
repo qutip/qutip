@@ -460,7 +460,7 @@ test_results(1,15)=time;
 %steadystate optomechanical system
 clearvars -except test_results;
 Nc=6;
-Nm=45;
+Nm=30;
 alpha=0.311;
 g0=0.36;						
 kappa=0.3;

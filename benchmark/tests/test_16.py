@@ -5,9 +5,9 @@ def test_16():
     """
     optomechanical steady state
     """
-    test_name='opto steady [270]'
+    test_name='opto steady [180]'
     Nc=6						#Number of cavity states
-    Nm=45						#Number of mechanical states
+    Nm=30						#Number of mechanical states
     alpha=0.311					#Coherent state amplitude
     g0=0.36						#Coupling strength
     kappa=0.3					#Cavity damping rate

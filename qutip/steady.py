@@ -25,7 +25,7 @@ import numpy as np
 from scipy import prod, finfo, randn
 import scipy.sparse as sp
 import scipy.linalg as la
-from scipy.sparse.linalg import spsolve, bicgstab, LinearOperator, spilu
+from scipy.sparse.linalg import *
 from qutip.qobj import *
 from qutip.superoperator import *
 from qutip.operators import qeye
@@ -34,8 +34,8 @@ from qutip.sparse import _sp_inf_norm
 import qutip.settings as qset
 
 
-def steadystate(H, c_op_list, maxiter=100, tol=1e-6, itertol=1e-5,
-                method='solve', use_umfpack=False, use_precond=False):
+def steadystate(H, c_op_list, maxiter=10, tol=1e-6, itertol=1e-5,
+                method='solve', use_umfpack=True, use_precond=False):
     """Calculates the steady state for the evolution subject to the
     supplied Hamiltonian and list of collapse operators.
 
@@ -97,8 +97,8 @@ def steadystate(H, c_op_list, maxiter=100, tol=1e-6, itertol=1e-5,
                   use_precond=use_precond)
 
 
-def steady(L, maxiter=100, tol=1e-6, itertol=1e-5, method='solve',
-           use_umfpack=False, use_precond=False):
+def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
+           use_umfpack=True, use_precond=False):
     """Steady state for the evolution subject to the
     supplied Louvillian.
 
@@ -142,7 +142,7 @@ def steady(L, maxiter=100, tol=1e-6, itertol=1e-5, method='solve',
     Liouvillians.
 
     """
-    eps = finfo(float).eps
+    use_solver(assumeSortedIndices = True,useUmfpack=use_umfpack)
     if (not isoper(L)) and (not issuper(L)):
         raise TypeError('Steady states can only be found for operators ' +
                         'or superoperators.')
@@ -155,15 +155,13 @@ def steady(L, maxiter=100, tol=1e-6, itertol=1e-5, method='solve',
         rhoss.dims = [L.dims[0], 1]
         rhoss.shape = [prod(rhoss.dims[0]), 1]
     n = prod(rhoss.shape)
-    L1 = L.data - eps * _sp_inf_norm(L) * sp.eye(n, n, format='csr')
-    L1.sort_indices()
+    L = L.data.tocsc()
+    L.sort_indices()
     v = mat2vec(rand_dm(rhoss.shape[0], 0.5 / rhoss.shape[0] + 0.5).full())
     # generate sparse iLU preconditioner if requested
     if method == 'bicg' and use_precond:
-        L1=L1.tocsc()
-        L1.sort_indices()
         try:
-            P = spilu(L1, permc_spec='MMD_AT_PLUS_A')
+            P = spilu(L, permc_spec='MMD_AT_PLUS_A')
             P_x = lambda x: P.solve(x)
         except:
             print("Preconditioning failed.")
@@ -174,11 +172,11 @@ def steady(L, maxiter=100, tol=1e-6, itertol=1e-5, method='solve',
     else:
         M = None
     it = 0
-    while (la.norm(L.data * v, np.inf) > tol) and (it < maxiter):
+    while (la.norm(L * v, np.inf) > tol) and (it < maxiter):
         if method == 'bicg':
-            v, check = bicgstab(L1, v, tol=itertol, M=M)
+            v, check = bicgstab(L, v, tol=itertol, M=M)
         else:
-            v = spsolve(L1, v, use_umfpack=use_umfpack)
+            v = spsolve(L, v, permc_spec="MMD_AT_PLUS_A", use_umfpack=use_umfpack)
         v = v / la.norm(v, np.inf)
         it += 1
     if it >= maxiter:
