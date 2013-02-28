@@ -86,7 +86,7 @@ Bloch-Redfield Master Equation
 ------------------------------
 
 .. automodule:: qutip.bloch_redfield
-    :members: brmesolve
+    :members: brmesolve, bloch_redfield_tensor, bloch_redfield_solve
 
 
 Floquet States and Floquet-Markov Master Equation
