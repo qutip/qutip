@@ -144,14 +144,15 @@ Graphs and visualization
 Other Functions
 ===============
 
-.. _functions-fileio:
+.. _functions-utilities:
 
-Utitlitu functions
+Utility functions
 ------------------
 
 .. automodule:: qutip.utilities
     :members: n_thermal, linspace_with
 
+.. _functions-fileio:
 
 File I/O Functions
 ------------------
@@ -195,10 +196,16 @@ Random Operators and States
 
 .. _functions-misc:
 
+IPython notebook tools
+----------------------
+
+.. automodule:: qutip.ipynbtools
+    :members: parfor, version_table
+
 Miscellaneous
 --------------
 
 .. automodule:: qutip
-    :members: about, clebsch, demos, hinton, orbital, parfor, rhs_generate, rhs_clear, simdiag, sparse, sphereplot, wigner_cmap
+    :members: about, clebsch, demos, orbital, parfor, rhs_generate, rhs_clear, simdiag, sparse, sphereplot
     :undoc-members:
 
