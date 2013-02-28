@@ -142,7 +142,7 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
     Liouvillians.
 
     """
-    use_solver(assumeSortedIndices = True,useUmfpack=use_umfpack)
+    use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
     if (not isoper(L)) and (not issuper(L)):
         raise TypeError('Steady states can only be found for operators ' +
                         'or superoperators.')
@@ -155,7 +155,8 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
         rhoss.dims = [L.dims[0], 1]
         rhoss.shape = [prod(rhoss.dims[0]), 1]
     n = prod(rhoss.shape)
-    L = L.data.tocsc()
+    L = L.data - finfo(float).eps * _sp_inf_norm(L) * sp.eye(n, n, format='csr')
+    L = L.tocsc()
     L.sort_indices()
     v = mat2vec(rand_dm(rhoss.shape[0], 0.5 / rhoss.shape[0] + 0.5).full())
     # generate sparse iLU preconditioner if requested
@@ -192,10 +193,7 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
     data = reshape(data, (rhoss.shape[0], rhoss.shape[1])).T
     data = sp.csr_matrix(data)
     rhoss.data = 0.5 * (data + data.conj().T)
-    # data=sp.triu(data,format='csr')#take only upper triangle
-    # rhoss.data=0.5*sp.eye(rhoss.shape[0],rhoss.shape[1],format='csr')
-    # * (data+data.conj().T)
-    # #output should be hermitian, but not guarenteed using iterative meth
+
     if qset.auto_tidyup:
         return Qobj(rhoss).tidyup()
     else:
