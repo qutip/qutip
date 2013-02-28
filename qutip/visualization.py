@@ -499,7 +499,7 @@ def wigner_cmap(W, levels=1024, invert=False):
     return wig_cmap
 
 
-def fock_distribution(rho, fig=None, ax=None, figsize=(8, 6)):
+def fock_distribution(rho, fig=None, ax=None, figsize=(8, 6), title=None):
     """
     Plot the Fock distribution for a density matrix (or ket) that describes
     an oscillator mode.
@@ -514,6 +514,9 @@ def fock_distribution(rho, fig=None, ax=None, figsize=(8, 6)):
 
     ax : a matplotlib axes instance
         The axes context in which the plot will be drawn.
+
+    title : string
+        An optional title for the figure.
 
     figsize : (width, height)
         The size of the matplotlib figure (in inches) if it is to be created
@@ -540,6 +543,9 @@ def fock_distribution(rho, fig=None, ax=None, figsize=(8, 6)):
     ax.set_xlim(-.5, N)
     ax.set_xlabel('Fock number', fontsize=12)
     ax.set_ylabel('Occupation probability', fontsize=12)
+
+    if title:
+        ax.set_title(title)
 
     return fig, ax
 
