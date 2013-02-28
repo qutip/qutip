@@ -14,10 +14,9 @@ def run():
     alpha = -1.0  # Coherent amplitude of field
     epsilon = 0.5j  # Squeezing parameter
 
-    D = displace(N, alpha)  # Displacement
-    S = squeez(N, epsilon)  # Squeezing
-    psi = D * S * basis(N, 0)
-    # Apply to vacuum state
+    D = displace(N, alpha)     # Displacement
+    S = squeez(N, epsilon)     # Squeezing
+    psi = D * S * basis(N, 0)  # Apply to vacuum state
 
     xvec = linspace(-6, 6, 150)
     X, Y = meshgrid(xvec, xvec)

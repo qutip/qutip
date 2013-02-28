@@ -14,11 +14,10 @@ def compute(N, wc, wa, glist, use_rwa):
     nc = a.dag() * a
     na = sm.dag() * sm
 
-    idx = 0
     na_expt = zeros(len(glist))
     nc_expt = zeros(len(glist))
     grnd_kets = zeros(len(glist), dtype=object)
-    for g in glist:
+    for idx, g in enumerate(glist):
 
         # recalculate the hamiltonian for each value of g in glist
         # use non-RWA Hamiltonian
@@ -34,7 +33,6 @@ def compute(N, wc, wa, glist, use_rwa):
         na_expt[idx] = expect(na, grndstate)
         nc_expt[idx] = expect(nc, grndstate)
         grnd_kets[idx] = grndstate
-        idx += 1
 
     return nc_expt, na_expt, grnd_kets
 

@@ -6,7 +6,6 @@ from pylab import *
 
 
 def compute(w1list, w2, w3, g12, g13):
-
     # Pre-compute operators for the hamiltonian
 
     # qubit 1 operators
@@ -21,10 +20,9 @@ def compute(w1list, w2, w3, g12, g13):
     sz3 = tensor(qeye(2), qeye(2), sigmaz())
     sx3 = tensor(qeye(2), qeye(2), sigmax())
 
-    idx = 0
     # preallocate output array
     evals_mat = zeros((len(w1list), 2 * 2 * 2))
-    for w1 in w1list:
+    for idx, w1 in enumerate(w1list):
 
         # evaluate the Hamiltonian
         H = w1 * sz1 + w2 * sz2 + w3 * sz3 + g12 * sx1 * sx2 + g13 * sx1 * sx3
@@ -32,8 +30,6 @@ def compute(w1list, w2, w3, g12, g13):
         # find the energy eigenvalues and vectors of the composite system
         evals, evecs = H.eigenstates()
         evals_mat[idx, :] = evals
-
-        idx += 1
 
     return evals_mat
 
@@ -60,8 +56,8 @@ def run():
     figure(1)
     colors = ['b', 'r', 'g']  # list of colors for plotting
     for n in [1, 2, 3]:
-        plot(w1list / (2 * pi), (evals_mat[:, n] - evals_mat[:, 0]) / (
-            2 * pi), colors[n - 1], lw=2)
+        plot(w1list / (2 * pi), (evals_mat[:, n] - evals_mat[:, 0]) / (2 * pi),
+             colors[n - 1], lw=2)
 
     xlabel('Energy Splitting of Qubit 1')
     ylabel('Eigenenergies')
