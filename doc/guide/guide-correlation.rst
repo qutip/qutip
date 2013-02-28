@@ -101,7 +101,7 @@ This example demonstrates how to calculate a correlation function on the form :m
    :width: 4.0in
    :include-source:
 
-For convenience, the steps for calculating the first-order coherence function have been collected in the function :func:`correlation.correlation.coherence_function_g1`.
+For convenience, the steps for calculating the first-order coherence function have been collected in the function :func:`qutip.correlation.coherence_function_g1`.
 
 Example: second-order optical coherence function
 ------------------------------------------------
@@ -122,6 +122,6 @@ The following code calculates and plots :math:`g^{(2)}(\tau)` as a function of :
    :width: 4.0in
    :include-source:
 
-For convenience, the steps for calculating the second-order coherence function have been collected in the function :func:`correlation.correlation.coherence_function_g2`.
+For convenience, the steps for calculating the second-order coherence function have been collected in the function :func:`qutip.correlation.coherence_function_g2`.
 
 
