@@ -251,7 +251,7 @@ The directory where the distutils.cfg file should be placed might be different i
 Verifying the Installation
 ===========================
 
-QuTiP now includes a collection of built-in test scripts to verify that the installation was indeed successful.  To run the suite of tests scripts, after installing QuTiP, exit the installation directory, run Python (or iPython), and call:
+QuTiP now includes a collection of built-in test scripts to verify that the installation was indeed successful.  To run the suite of tests scripts you must have the nose testing library.  After installing QuTiP, exit the installation directory, run Python (or iPython), and call:
 
 >>> import qutip.testing as qt
 >>> qt.run()

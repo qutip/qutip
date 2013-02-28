@@ -177,10 +177,17 @@ A full account of this feature is given in :ref:`odeoptions`.  Using the previou
 
 In addition to the initial state, one may reuse the Hamiltonian data when changing the number of trajectories ``ntraj`` or simulation times ``tlist``.  The reusing of Hamiltonian data is also supported for time-dependent Hamiltonians.  See :ref:`time` for further details.
 
+Fortran Based Monte Carlo Solver
+--------------------------------
+.. note:: In order to use the Fortran monte carlo solver, you must have the blas development libraries, and installed QuTiP using the flag: ``--with-f90mc``.
 
+**(New in QuTiP 2.2)**
 
+In performing time-independent monte carlo simulations with QuTiP, systems with small Hilbert spaces suffer from poor performance as the ODE solver must exit the ODE solver at each time step and check for the state vector norm.  To correct this, QuTiP now includes an optional Fortran based monte carlo solver that has markedly enhanced performance for smaller systems.  Using the Fortran based solver is extremely simple; one just needs to replace ``mcsolve`` with ``mcsolve_f90``.  For example, from our previous demonstation::
 
+    data1 = mcsolve_f90(H, psi0, tlist, [sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
 
+In using the Fortran solver, there are a few limitations that must be kept in mind.  First, this solver only works for time-independent systems.  Second, you can not pass a list of trajectories to ``ntraj``.  Finally, at present, this solver does not give any output has to how far along the simulation has progressed, nor how much time is remaining.  These issues will be fixed in a later QuTiP release.
 
 
 

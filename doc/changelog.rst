@@ -5,7 +5,7 @@
 Change Log
 **********
 
-Version 2.2.0 (February XX, 2013):
+Version 2.2.0 (March XX, 2013):
 ++++++++++++++++++++++++++++++++++++++++++++++
 
 New Features
@@ -13,6 +13,8 @@ New Features
 - **Added Support for Windows**
 
 - New Bloch3d class for plotting 3D Bloch spheres using Mayavi.
+
+- Bloch sphere vectors now look like arrows.
 
 - Added partial transpose function.
 
@@ -26,8 +28,9 @@ New Features
   
 - Optional Fortran monte carlo solver (mcsolve_f90) by Arne Grimsmo.
 
+- A module of tools for using QuTiP in IPython notebooks.
 
-
+- Increased performance of the steady state solver.
 
 Bug Fixes:
 ----------

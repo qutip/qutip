@@ -66,6 +66,8 @@ Whats New in QuTiP Version 2.2
 
 - Added more graph styles to the visualization module.
 
+- Increased performance of the steady state solver.
+
 .. _about-whatsnew21:
 
 Whats New in QuTiP Version 2.1
