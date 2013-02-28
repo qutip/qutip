@@ -63,12 +63,12 @@ def steadystate(H, c_op_list, maxiter=10, tol=1e-6, itertol=1e-5,
         Method for solving linear equations. Direct solver 'solve' (default) or
         iterative biconjugate gradient method 'bicg'.
 
-    use_umfpack: bool {False, True}
+    use_umfpack: bool, default = True
         Use the UMFpack backend for the direct solver.  If 'False', the solver
         uses the SuperLU backend.  This option does not affect the 'bicg'
         method.
 
-    use_precond: bool {False, True}
+    use_precond: bool, default = False
         Use an incomplete sparse LU decomposition as a preconditioner for the
         stabilized bi-conjugate gradient 'bicg' method.
 
