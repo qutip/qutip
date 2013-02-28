@@ -19,9 +19,9 @@ To use the parfor function we need to define a function of a single-variable, an
 
 .. ipython::
 
-   In [1]: def func1(x): return x,x**2,x**3
+   In [1]: def func1(x): return x, x**2, x**3
    
-   In [2]: [a,b,c]=parfor(func1,range(10))
+   In [2]: [a,b,c] = parfor(func1, range(10))
    
    In [3]: print(a)
    
@@ -33,7 +33,7 @@ One can also use a single output variable as:
 
 .. ipython::
 
-   In [1]: x=parfor(func1,range(10))
+   In [1]: x = parfor(func1, range(10))
    
    In [2]: print(x[0])
    
@@ -45,9 +45,9 @@ The :func:`qutip.parfor` function is not limited to just numbers, but also works
 
 .. ipython::
 
-   In [1]: def func2(x): return x,Qobj(x),'a'*x
+   In [1]: def func2(x): return x, Qobj(x), 'a' * x
    
-   In [2]: [a,b,c]=parfor(func2,range(5))
+   In [2]: [a, b, c] = parfor(func2, range(5))
    
    In [3]: print(a)
    
@@ -60,16 +60,22 @@ Although :func:`qutip.parfor` allows functions with only one input, we can in fa
 
 .. ipython::
 
-	In [1]: def func1(args): index,x=args; print(index); return x,x**2,x**3
+	In [1]: def func1(args): index, x=args; print(index); return x, x**2, x**3
    
-	In [2]: args=[[k,2*k] for k in range(10)] #<-- create list of lists with more than one variable
+	In [2]: args = [[k, 2 * k] for k in range(10)]  # create list of lists with more than one variable
 
 	In [3]: args
 	
-	In [4]: [a,b,c]=parfor(func1,args)
+	In [4]: [a, b, c] = parfor(func1, args)
 	
 	In [5]: print(a)
 
 
 Parfor is also useful for repeated tasks such as generating plots corresponding to the dynamical evolution of your system, or simultaneously simulating different parameter configurations.
 
+IPython-based parfor
+--------------------
+
+When QuTiP is used with IPython interpreter, there is an alternative parallel for-loop implementation in the QuTiP  module :func:`qutip.ipynbtools`, see :func:`qutip.ipynbtools.parfor`. The advantage of this parfor implementation is based on IPythons powerful framework for parallelization, so the compute processes are not confined to run on the same host as the main process. 
+
+ 
