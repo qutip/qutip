@@ -244,6 +244,7 @@ from qutip.odeoptions import Odeoptions
 from qutip.odedata import Odedata
 from qutip.rhs_generate import rhs_generate, rhs_clear
 from qutip.mesolve import mesolve, odesolve
+from qutip.sesolve import sesolve
 from qutip.mcsolve import mcsolve
 from qutip.essolve import *
 from qutip.eseries import *
