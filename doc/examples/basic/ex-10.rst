@@ -3,10 +3,10 @@
 
 .. _exbasic10:
 
-Wigner Function for Schrodinger Cat State
+Wigner Function for Schrödinger Cat State
 =========================================
 
-Calculates the Wigner distribution for a Schrodinger Cat-state composed of two coherent states :math:`\alpha_1=-2-2j`, and :math:`\alpha_2=2+2j`.
+Calculates the Wigner distribution for a Schrödinger Cat state composed of two coherent states :math:`\alpha_1=-2-2j`, and :math:`\alpha_2=2+2j`.
 
 .. plot:: ../qutip/qutip/examples/ex_10.py
 	:include-source:

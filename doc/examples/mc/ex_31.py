@@ -21,7 +21,7 @@ def run():
     b = tensor(qeye(Na), destroy(Nb))
     na = a.dag() * a
     nb = b.dag() * b
-    H = wa*na + wb*nb + wab*(a.dag()*b+a*b.dag()) + E*(a.dag()+a)
+    H = wa * na + wb * nb + wab * (a.dag() * b + a * b.dag()) + E * (a.dag() + a)
 
     # start with both oscillators in ground state
     psi0 = tensor(basis(Na), basis(Nb))
@@ -33,12 +33,12 @@ def run():
     tlist = linspace(0, 5, 101)
 
     #run simulation
-    data = mcsolve(H,psi0,tlist,c_op_list,[na,nb])
+    data = mcsolve(H, psi0, tlist, c_op_list, [na, nb])
 
     #plot results
-    plot(tlist,data.expect[0],'b',tlist,data.expect[1],'r',lw=2)
-    xlabel('Time',fontsize=14)
-    ylabel('Excitations',fontsize=14)
+    plot(tlist, data.expect[0], 'b', tlist, data.expect[1],'r', lw=2)
+    xlabel('Time', fontsize=14)
+    ylabel('Excitations', fontsize=14)
     legend(('Oscillator A', 'Oscillator B'))
     show()
     

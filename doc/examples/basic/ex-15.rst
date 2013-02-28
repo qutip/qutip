@@ -3,10 +3,10 @@
 
 .. _exbasic15:
 
-Coupled Qubit Energies
-=======================
+Energy-levels of a Coupled-Qubit System
+=======================================
 
-Calculate Eigenenergies of a coupled three qubit system.
+Calculates the eigenenergies of a coupled three-qubit system.
 
 .. plot:: ../qutip/qutip/examples/ex_15.py
     :include-source:

@@ -3,10 +3,10 @@
 
 .. _exmc32:
 
-Averaging of Monte-Carlo Trajectories to Master Equation Solution
+Averaging of Monte Carlo Trajectories to Master Equation Solution
 =================================================================
 
-This is a Monte-Carlo simulation showing the decay of a cavity
+This is a Monte Carlo simulation showing the decay of a cavity
 Fock state :math:`\left|1\rangle\right.` in a thermal environment with an average
 occupation number of :math:`n=0.063`.  Here, the coupling strength is given
 by the inverse of the cavity ring-down time :math:`T_{c}=0.129`.

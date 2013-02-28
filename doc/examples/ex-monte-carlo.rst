@@ -4,7 +4,7 @@
 .. _exmc:
 
 ********************
-Monte-Carlo Examples
+Monte Carlo Examples
 ********************
 
 .. toctree::

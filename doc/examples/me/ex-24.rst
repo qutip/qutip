@@ -3,7 +3,7 @@
 
 .. _exme23:
 
-The dynamics of a Heisenberg spin-1/2 chain
+The Dynamics of a Heisenberg Spin-1/2 Chain
 ===========================================
 
 This example demonstrates how to calculate the dynamics of a spin-1/2 Heisenberg chain, i.e., a sequence of two-level system (spin up or spin down) that are coupled to its nearest neighbors. The Hamiltonian for this system is
@@ -15,7 +15,7 @@ This example demonstrates how to calculate the dynamics of a spin-1/2 Heisenberg
 
 and the initial state used in the example is :math:`\left|\psi_0\right> = \left|\uparrow\downarrow\cdots\downarrow\right>`.
     
-This example is slightly more complicated than the previous in that it dynamically builds a composite Hamiltonian and initial state for a configurable number of two-level system (parameter `N=4` in the program).
+This example is slightly more complicated than the previous in that it dynamically builds a composite Hamiltonian and initial state for a configurable number of two-level system (parameter ``N=4`` in the program).
     
 
 .. plot:: ../qutip/qutip/examples/ex_24.py

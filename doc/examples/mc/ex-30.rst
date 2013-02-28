@@ -3,7 +3,7 @@
 
 .. _exmc30:
 
-Driven Cavity+Qubit Monte-Carlo
+Driven Cavity+Qubit Monte Carlo
 ===============================
 
 Monte Carlo evoution of a coherently driven cavity with a two-level atom initially in the ground state and no photons in the cavity.
