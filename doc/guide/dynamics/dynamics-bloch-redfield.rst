@@ -21,7 +21,7 @@ The Bloch-Redfield formalism is one such approach to derive a master equation fr
 .. _bloch-redfield-derivation:
 
 
-Brief Derivation and definitions
+Brief Derivation and Definitions
 ================================
 
 The starting point of the Bloch-Redfield formalism is the total Hamiltonian for the system and the environment (bath): :math:`H = H_{\rm S} + H_{\rm B} + H_{\rm I}`, where :math:`H` is the total system+bath Hamiltonian, :math:`H_{\rm S}` and :math:`H_{\rm B}` are the system and bath Hamiltonians, respectively, and :math:`H_{\rm I}` is the interaction Hamiltonian.
@@ -161,7 +161,7 @@ To simplify the numerical implementation we assume that :math:`A_\alpha` are Her
 Bloch-Redfield master equation in QuTiP
 =======================================
 
-In QuTiP, the Bloch-Redfield tensor Eq. :eq:`br-tensor` can be calculated using the function :func:`bloch_redfield_tensor`. It takes three mandatory arguments: The system Hamiltonian :math:`H`, a list of operators through which to the bath :math:`A_\alpha`, and a list of corresponding spectral density functions :math:`S_\alpha(\omega)`. The spectral density functions are callback functions that takes the (angular) frequency as a single argument.
+In QuTiP, the Bloch-Redfield tensor Eq. :eq:`br-tensor` can be calculated using the function :func:`qutip.bloch_redfield.bloch_redfield_tensor`. It takes three mandatory arguments: The system Hamiltonian :math:`H`, a list of operators through which to the bath :math:`A_\alpha`, and a list of corresponding spectral density functions :math:`S_\alpha(\omega)`. The spectral density functions are callback functions that takes the (angular) frequency as a single argument.
 
 To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-level atom
 
@@ -178,7 +178,7 @@ that couples to an Ohmic bath through the :math:`\sigma_x` operator. The corresp
 >>>     if w == 0.0: # dephasing inducing noise
 >>>         return gamma1 
 >>>     else: # relaxation inducing noise
->>>         return gamma1/2 * (w / (2*pi)) * (w > 0.0)
+>>>         return gamma1 / 2 * (w / (2 * pi)) * (w > 0.0)
 >>>         
 >>> R, ekets = bloch_redfield_tensor(H, [sigmax()], [ohmic_spectrum])
 >>> real(R.full())
@@ -187,20 +187,20 @@ array([[ 0.        ,  0.        ,  0.        ,  0.04902903],
        [ 0.        ,  0.        , -0.03220682,  0.        ],
        [ 0.        ,  0.        ,  0.        , -0.04902903]])
 
-For convenience, the function :func:`bloch_redfield_tensor` also returns a list of eigenkets `ekets`, since they are calculated in the process of calculating the Bloch-Redfield tensor `R`, and the `ekets` are usually needed again later when transforming operators between the computational basis and the eigenbasis.
+For convenience, the function :func:`qutip.bloch_redfield.bloch_redfield_tensor` also returns a list of eigenkets `ekets`, since they are calculated in the process of calculating the Bloch-Redfield tensor `R`, and the `ekets` are usually needed again later when transforming operators between the computational basis and the eigenbasis.
 
-The evolution of a wavefunction or density matrix, according to the Bloch-Redfield master equation :eq:`br-final`, can be calculated using the QuTiP function :func:`bloch_redfield_solve`. It takes five mandatory arguments: the Bloch-Redfield tensor `R`, the list of eigenkets `ekets`, the initial state `psi0` (as a ket or density matrix), a list of times `tlist` for which to evaluate the expectation values, and a list of expectation values to evaluate at each time-step defined by `tlist`. For example, to evaluate the expectation values of the :math:`\sigma_x`, :math:`\sigma_y`, and :math:`\sigma_z` operators for the example above, we can use the following code:
+The evolution of a wavefunction or density matrix, according to the Bloch-Redfield master equation :eq:`br-final`, can be calculated using the QuTiP function :func:`qutip.bloch_redfield.bloch_redfield_solve`. It takes five mandatory arguments: the Bloch-Redfield tensor ``R``, the list of eigenkets ``ekets``, the initial state ``psi0`` (as a ket or density matrix), a list of times ``tlist`` for which to evaluate the expectation values, and a list of operators ``e_ops`` for which to evaluate the expectation values at each time step defined by `tlist`. For example, to evaluate the expectation values of the :math:`\sigma_x`, :math:`\sigma_y`, and :math:`\sigma_z` operators for the example above, we can use the following code:
 
 >>> tlist = linspace(0, 15.0, 1000)
 >>> psi0 = rand_ket(2)
 >>> e_ops = [sigmax(), sigmay(), sigmaz()]
->>> expt_values = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops) 
+>>> expt_list = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops) 
 >>>
 >>> sphere = Bloch()
->>> sphere.add_points([expt_values[0], expt_values[1], expt_values[2]])
+>>> sphere.add_points([expt_list[0], expt_list[1], expt_list[2]])
 >>> sphere.vector_color = ['r']
 >>> # Hamiltonian axis
->>> sphere.add_vectors(array([delta, 0, eps0]) / sqrt(delta**2 + eps0**2)) 
+>>> sphere.add_vectors(array([delta, 0, eps0]) / sqrt(delta ** 2 + eps0 ** 2)) 
 >>> sphere.make_sphere()
 >>> show()
 
@@ -208,7 +208,7 @@ The evolution of a wavefunction or density matrix, according to the Bloch-Redfie
    :align:  center
    :width: 4in
 
-The two steps of calculating the Bloch-Redfield tensor and evolve the corresponding master equation can be combined into one by using the function :func:`brmesolve`, which takes same arguments as :func:`mesolve` and :func:`mcsolve` expect for the additional list of spectral callback functions.
+The two steps of calculating the Bloch-Redfield tensor and evolve the corresponding master equation can be combined into one by using the function :func:`qutip.bloch_redfield.brmesolve`, which takes same arguments as :func:`qutip.mesolve` and :func:`qutip.mcsolve`, expect for the additional list of spectral callback functions.
 
 >>> output = brmesolve(H, psi0, tlist, [sigmax()], e_ops, [ohmic_spectrum])
 
