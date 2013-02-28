@@ -3,9 +3,9 @@
 
 .. _functions:
 
-********************
-QuTiP Function List
-********************
+***************
+QuTiP Functions
+***************
 
 Manipulation and Creation of States and Operators
 =================================================
@@ -138,7 +138,7 @@ Graphs and visualization
 ------------------------
 
 .. automodule:: qutip.visualization
-    :members: hinton, matrix_histogram, matrix_histogram_complex, energy_level_diagram, wigner_cmap, fock_distribution, wigner_fock_distribution
+    :members: hinton, matrix_histogram, matrix_histogram_complex, energy_level_diagram, wigner_cmap, fock_distribution, wigner_fock_distribution, sphereplot
     :undoc-members:
 
 Other Functions
@@ -150,7 +150,7 @@ Utility functions
 ------------------
 
 .. automodule:: qutip.utilities
-    :members: n_thermal, linspace_with
+    :members: n_thermal, linspace_with, clebsch
 
 .. _functions-fileio:
 
@@ -206,6 +206,6 @@ Miscellaneous
 --------------
 
 .. automodule:: qutip
-    :members: about, clebsch, demos, orbital, parfor, rhs_generate, rhs_clear, simdiag, sparse, sphereplot
+    :members: about, demos, orbital, parfor, rhs_generate, rhs_clear, simdiag
     :undoc-members:
 
