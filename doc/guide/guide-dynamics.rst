@@ -3,9 +3,9 @@
 
 .. _dynamics:
 
-**********************************
-Evaluating Quantum System Dynamics
-**********************************
+******************************************
+Time Evolution and Quantum System Dynamics
+******************************************
 
 .. toctree::
    :maxdepth: 2
