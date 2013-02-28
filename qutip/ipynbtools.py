@@ -45,6 +45,14 @@ def version_table():
     dependencies. Use it in a IPython notebook to show which versions of
     different packages that were used to run the notebook. This should make it
     possible to reproduce the environment and the calculation later on.
+
+    
+    Returns
+    --------
+    version_table: string
+        Return an HTML-formatted string containing version information for
+        QuTiP dependencies.
+
     """
 
     html = "<table>"
@@ -120,8 +128,59 @@ def _visualize_parfor_data(metadata):
 def parfor(task, task_vec, args=None, client=None, view=None,
            show_scheduling=False, show_progressbar=False):
     """
-    Call the function 'tast' for each value in 'task_vec' using a cluster
-    of IPython engines.
+    Call the function ``tast`` for each value in ``task_vec`` using a cluster
+    of IPython engines. The function ``task`` should have the signature
+    ``task(value, args)`` or ``task(value)`` if ``args=None``. 
+
+    The ``client`` and ``view`` are the IPython.parallel client and 
+    load-balanced view that will be used in the parfor execution. If these
+    are ``None``, new instances will be created.
+
+    Parameters
+    ----------
+
+    task: a Python function
+        The function that is to be called for each value in ``task_vec``.
+
+    task_vec: array / list
+        The list or array of values for which the ``task`` function is to be
+        evaluated.
+
+    args: list / dictionary
+        The optional additional argument to the ``task`` function. For example
+        a dictionary with parameter values.
+
+    client: IPython.parallel.Client
+        The IPython.parallel Client instance that will be used in the 
+        parfor execution.
+
+
+    client: IPython.parallel.Client
+        The IPython.parallel Client instance that will be used in the 
+        parfor execution.
+
+    view: a IPython.parallel.Client view
+        The view that is to be used in scheduling the tasks on the IPython
+        cluster. Preferably a load-balanced view, which is obtained from the
+        IPython.parallel.Client instance client by calling,
+        view = client.load_balanced_view().
+
+    show_scheduling: bool {False, True}, default False
+        Display a graph showing how the tasks (the evaluation of ``task`` for
+        for the value in ``task_vec1``) was scheduled on the IPython engine
+        cluster.
+
+    show_progressbar: bool {False, True}, default False
+        Display a HTML-based progress bar duing the execution of the parfor
+        loop. 
+
+    Returns
+    --------
+    result : list
+        The result list contains the value of ``task(value, args)`` for each
+        value in ``task_vec``, that is, it should be equivalent to 
+        ``[task(v, args) for v in task_vec]``.
+
     """
 
     submitted = datetime.datetime.now()
