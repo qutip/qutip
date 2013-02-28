@@ -138,7 +138,7 @@ Graphs and visualization
 ------------------------
 
 .. automodule:: qutip.visualization
-    :members: hinton, matrix_histogram, matrix_histogram_complex
+    :members: hinton, matrix_histogram, matrix_histogram_complex, energy_level_diagram, wigner_cmap, fock_distribution, wigner_fock_distribution
     :undoc-members:
 
 Other Functions
