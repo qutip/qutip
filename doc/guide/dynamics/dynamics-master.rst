@@ -129,20 +129,20 @@ The standard approach for deriving the equations of motion for a system interact
    
    \dot \rho_{\rm tot}(t) = -\frac{i}{\hbar}[H_{\rm tot}, \rho_{\rm tot}(t)],
 
-the equivalent of the Schrödinger equation (:eq:`schrodinger`) in the density matrix formalism. Here, the total Hamiltonian 
+the equivalent of the Schrödinger equation :eq:`schrodinger` in the density matrix formalism. Here, the total Hamiltonian 
 
 .. math::
 
  	H_{\rm tot} = H_{\rm sys} + H_{\rm env} + H_{\rm int},
 
-includes the original system Hamiltonian :math:`H_{\rm sys}`, the Hamiltonian for the environment :math:`H_{\rm env}`, and a term representing the interaction between the system and its environment :math:`H_{\rm int}`. Since we are only interested in the dynamics of the system, we can at this point perform a partial trace over the environmental degrees of freedom in Eq.~(:eq:`neumann_total`), and thereby obtain a master equation for the motion of the original system density matrix. The most general trace-preserving and completely positive form of this evolution is the Lindblad master equation for the reduced density matrix :math:`\rho = {\rm Tr}_{\rm env}[\rho_{\rm tot}]` 
+includes the original system Hamiltonian :math:`H_{\rm sys}`, the Hamiltonian for the environment :math:`H_{\rm env}`, and a term representing the interaction between the system and its environment :math:`H_{\rm int}`. Since we are only interested in the dynamics of the system, we can at this point perform a partial trace over the environmental degrees of freedom in Eq. :eq:`neumann_total`, and thereby obtain a master equation for the motion of the original system density matrix. The most general trace-preserving and completely positive form of this evolution is the Lindblad master equation for the reduced density matrix :math:`\rho = {\rm Tr}_{\rm env}[\rho_{\rm tot}]` 
 
 .. math::
 	:label: master_equation
 
 	\dot\rho(t)=-\frac{i}{\hbar}[H(t),\rho(t)]+\sum_n \frac{1}{2} \left[2 C_n \rho(t) C_n^{+} - \rho(t) C_n^{+} C_n - C_n^{+} C_n \rho(t)\right]
 
-where the :math:`C_n = \sqrt{\gamma_n} A_n` are collapse operators, and :math:`A_n` are the operators through which the environment couples to the system in :math:`H_{\rm int}`, and :math:`\gamma_n` are the corresponding rates.  The derivation of Eq.~(:eq:`master_equation`) may be found in several sources, and will not be reproduced here.  Instead, we emphasize the approximations that are required to arrive at the master equation in the form of Eq.~(:eq:`master_equation`), and hence perform a calculation in QuTiP:
+where the :math:`C_n = \sqrt{\gamma_n} A_n` are collapse operators, and :math:`A_n` are the operators through which the environment couples to the system in :math:`H_{\rm int}`, and :math:`\gamma_n` are the corresponding rates.  The derivation of Eq. :eq:`master_equation` may be found in several sources, and will not be reproduced here.  Instead, we emphasize the approximations that are required to arrive at the master equation in the form of Eq. :eq:`master_equation` from physical arguments, and hence perform a calculation in QuTiP:
 
 - **Separability:** At :math:`t=0` there are no correlations between the system and its environment such that the total density matrix can be written as a tensor product :math:`\rho^I_{\rm tot}(0) = \rho^I(0) \otimes \rho^I_{\rm env}(0)`.
 
@@ -150,10 +150,10 @@ where the :math:`C_n = \sqrt{\gamma_n} A_n` are collapse operators, and :math:`A
 
 - **Markov approximation** The time-scale of decay for the environment :math:`\tau_{\rm env}` is much shorter than the smallest time-scale of the system dynamics :math:`\tau_{\rm sys} \gg \tau_{\rm env}`. This approximation is often deemed a "short-memory environment" as it requires that environmental correlation functions decay on a time-scale fast compared to those of the system.
 
-- **Secular approximation** Stipulates that elements in the master equation corresponding to transition frequencies satisfy :math:`|\omega_{ab}-\omega_{cd}| \ll 1/\tau_{\rm sys}`, i.e., all fast rotating terms in the interaction picture can be neglected. It also ignores terms that lead to a small renormalization of the system energy levels. This approximation is not strictly necessary for all master-equation formalisms (e.g., the Block-Redfield master equation), but it is required for arriving at the Lindblad form (:eq:`master_equation`) which is used in QuTiP.
+- **Secular approximation** Stipulates that elements in the master equation corresponding to transition frequencies satisfy :math:`|\omega_{ab}-\omega_{cd}| \ll 1/\tau_{\rm sys}`, i.e., all fast rotating terms in the interaction picture can be neglected. It also ignores terms that lead to a small renormalization of the system energy levels. This approximation is not strictly necessary for all master-equation formalisms (e.g., the Block-Redfield master equation), but it is required for arriving at the Lindblad form :eq:`master_equation` which is used in :func:`qutip.mesolve`.
 
 
-For systems with environments satisfying the conditions outlined above, the Lindblad master equation (:eq:`master_equation`) governs the time-evolution of the system density matrix, giving an ensemble average of the system dynamics. In order to ensure that these approximations are not violated, it is important that the decay rates :math:`\gamma_n` be smaller than the minimum energy splitting in the system Hamiltonian. Situations that demand special attention therefore include, for example, systems strongly coupled to their environment, and systems with degenerate or nearly degenerate energy levels. 
+For systems with environments satisfying the conditions outlined above, the Lindblad master equation :eq:`master_equation` governs the time-evolution of the system density matrix, giving an ensemble average of the system dynamics. In order to ensure that these approximations are not violated, it is important that the decay rates :math:`\gamma_n` be smaller than the minimum energy splitting in the system Hamiltonian. Situations that demand special attention therefore include, for example, systems strongly coupled to their environment, and systems with degenerate or nearly degenerate energy levels. 
 
 
 For non-unitary evolution of a quantum systems, i.e., evolution that includes
@@ -187,11 +187,10 @@ spin to its environment), by adding ``sqrt(0.05) * sigmax()`` to
 the previously empty list in the fourth parameter to the :func:`qutip.mesolve` function::
 
     >>> tlist = linspace(0.0, 10.0, 100)
-    >>> expt_list = mesolve(H, psi0, tlist, [sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
-    >>> 
+    >>> result = mesolve(H, psi0, tlist, [sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
     >>> from pylab import *
-    >>> plot(tlist, real(expt_list[0]))
-    >>> plot(tlist, real(expt_list[1]))
+    >>> plot(tlist, result.expect[0])
+    >>> plot(tlist, result.expect[1])
     >>> xlabel('Time')
     >>> ylabel('Expectation values')
     >>> legend(("Sigma-Z", "Sigma-Y"))
@@ -211,12 +210,11 @@ Now a slightly more complex example: Consider a two-level atom coupled to a leak
     >>> psi0 = tensor(fock(2,0), fock(10, 5))
     >>> a  = tensor(qeye(2), destroy(10))
     >>> sm = tensor(destroy(2), qeye(10))
-    >>> H = 2*pi * a.dag() * a + 2 * pi * sm.dag() * sm + 2*pi * 0.25 * (sm*a.dag() + sm.dag() * a)
-    >>> expt_list = mesolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
-    >>> 
+    >>> H = 2 * pi * a.dag() * a + 2 * pi * sm.dag() * sm + 2 * pi * 0.25 * (sm * a.dag() + sm.dag() * a)
+    >>> result = mesolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
     >>> from pylab import *
-    >>> plot(tlist, real(expt_list[0]))
-    >>> plot(tlist, real(expt_list[1]))
+    >>> plot(tlist, result.expect[0])
+    >>> plot(tlist, result.expect[1])
     >>> xlabel('Time')
     >>> ylabel('Expectation values')
     >>> legend(("cavity photon number", "atom excitation probability"))
