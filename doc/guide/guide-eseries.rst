@@ -11,6 +11,8 @@ An Overview of the Eseries Class
    :suppress:
 
    In [1]: from qutip import *
+   
+   In [2]: from scipy import *
 
 .. _eseries-rep:
 
