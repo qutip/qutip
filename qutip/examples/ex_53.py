@@ -2,7 +2,7 @@
 # Plot the process tomography matrix for a 2-qubit iSWAP gate.
 #
 from qutip import *
-
+from pylab import *
 
 def run():
     g = 1.0 * 2 * pi  # coupling strength
