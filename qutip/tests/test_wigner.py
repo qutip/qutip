@@ -17,7 +17,7 @@
 #
 ###########################################################################
 
-from numpy import linspace
+from numpy import linspace, sum
 from numpy.testing import assert_, run_module_suite
 from qutip import *
 from scipy.special import laguerre

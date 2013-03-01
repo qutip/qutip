@@ -17,6 +17,7 @@
 #
 ###########################################################################
 
+import numpy as np
 from numpy.testing import assert_, run_module_suite
 from qutip import *
 
@@ -36,7 +37,7 @@ class TestFloquet:
         A = 0.5 * 2 * pi
         omega = sqrt(delta ** 2 + eps0 ** 2)
         T = (2 * pi) / omega
-        tlist = linspace(0.0, 2 * T, 101)
+        tlist = np.linspace(0.0, 2 * T, 101)
         psi0 = rand_ket(2)
         H0 = - eps0 / 2.0 * sigmaz() - delta / 2.0 * sigmax()
         H1 = A / 2.0 * sigmax()
