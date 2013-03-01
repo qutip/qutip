@@ -32,6 +32,8 @@ if not args.qutip_only:
     matlab_version = csv.reader(open('matlab_version.csv'),dialect='excel')
     for row in matlab_version:
         matlab_info=[{'version': row[0],'type': row[1]}]
+else:
+    matlab_info = []
 
 qutip_info=[{'qutip':qutip.__version__,'numpy':numpy.__version__,'scipy':scipy.__version__}]
 #---------------------
