@@ -19,15 +19,19 @@ parser.add_argument("--run-profiler",
                     action='store_true')
 args = parser.parse_args()
 
-# setup hardware and matlab info lists
+# setup hardware list
 platform=[hardware_info()]
-if sys.platform=='darwin':
-    sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
-else:
-    sproc.call("matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
-matlab_version = csv.reader(open('matlab_version.csv'),dialect='excel')
-for row in matlab_version:
-    matlab_info=[{'version': row[0],'type': row[1]}]
+
+# setup matlab info lists
+if not args.qutip_only:
+
+    if sys.platform=='darwin':
+        sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
+    else:
+        sproc.call("matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
+    matlab_version = csv.reader(open('matlab_version.csv'),dialect='excel')
+    for row in matlab_version:
+        matlab_info=[{'version': row[0],'type': row[1]}]
 
 qutip_info=[{'qutip':qutip.__version__,'numpy':numpy.__version__,'scipy':scipy.__version__}]
 #---------------------
