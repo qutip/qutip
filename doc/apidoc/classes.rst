@@ -4,7 +4,7 @@
 .. _classes:
 
 ***************
-QuTiP classes
+QuTiP Classes
 ***************
 
 .. _classes-qobj:

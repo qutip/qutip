@@ -26,7 +26,7 @@ New Features
   terms, which makes it possible to solve master equations that are not on
   the standard Lindblad form.
   
-- Optional Fortran monte carlo solver (mcsolve_f90) by Arne Grimsmo.
+- Optional Fortran Monte Carlo solver (mcsolve_f90) by Arne Grimsmo.
 
 - A module of tools for using QuTiP in IPython notebooks.
 
@@ -102,7 +102,7 @@ New Features
 
 - QuTiP now includes solvers for both Floquet and Bloch-Redfield master equations.
 
-- The Lindblad master equation and monte-carlo solvers allow for time-dependent collapse operators.
+- The Lindblad master equation and Monte Carlo solvers allow for time-dependent collapse operators.
 
 - It is possible to automatically compile time-dependent problems into c-code using Cython (if installed).
 
@@ -188,7 +188,7 @@ Version 1.1.2 [svn-1218] (October 27, 2011)
 Bug Fixes
 ---------
 
-SVN-1218: Fixed issue where Monte-Carlo states were not output properly.
+SVN-1218: Fixed issue where Monte Carlo states were not output properly.
 
 
 Version 1.1.1 [svn-1210] (October 25, 2011)

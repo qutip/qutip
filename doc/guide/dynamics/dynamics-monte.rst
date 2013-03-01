@@ -179,11 +179,11 @@ In addition to the initial state, one may reuse the Hamiltonian data when changi
 
 Fortran Based Monte Carlo Solver
 --------------------------------
-.. note:: In order to use the Fortran monte carlo solver, you must have the blas development libraries, and installed QuTiP using the flag: ``--with-f90mc``.
+.. note:: In order to use the Fortran Monte Carlo solver, you must have the blas development libraries, and installed QuTiP using the flag: ``--with-f90mc``.
 
 **(New in QuTiP 2.2)**
 
-In performing time-independent monte carlo simulations with QuTiP, systems with small Hilbert spaces suffer from poor performance as the ODE solver must exit the ODE solver at each time step and check for the state vector norm.  To correct this, QuTiP now includes an optional Fortran based monte carlo solver that has markedly enhanced performance for smaller systems.  Using the Fortran based solver is extremely simple; one just needs to replace ``mcsolve`` with ``mcsolve_f90``.  For example, from our previous demonstation::
+In performing time-independent Monte Carlo simulations with QuTiP, systems with small Hilbert spaces suffer from poor performance as the ODE solver must exit the ODE solver at each time step and check for the state vector norm.  To correct this, QuTiP now includes an optional Fortran based Monte Carlo solver that has markedly enhanced performance for smaller systems.  Using the Fortran based solver is extremely simple; one just needs to replace ``mcsolve`` with ``mcsolve_f90``.  For example, from our previous demonstation::
 
     data1 = mcsolve_f90(H, psi0, tlist, [sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
 

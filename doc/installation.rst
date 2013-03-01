@@ -116,9 +116,14 @@ For a standard installation, run this command in the QuTiP source code directory
 
     sudo python setup.py install
 
-To install QuTiP with the optional Fortran Monte Carlo function use::
+To install QuTiP with the optional Fortran Monte Carlo solver use::
 
     sudo python setup.py install --with-f90mc
+
+However, this additionally requires a Fortran compiler to be installed. For
+example the GNU Fortran compiler, which can be installed using::
+
+    sudo apt-get install gfortran
 
 .. note::
 
