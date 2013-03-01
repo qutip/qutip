@@ -154,11 +154,6 @@ def parfor(task, task_vec, args=None, client=None, view=None,
         The IPython.parallel Client instance that will be used in the 
         parfor execution.
 
-
-    client: IPython.parallel.Client
-        The IPython.parallel Client instance that will be used in the 
-        parfor execution.
-
     view: a IPython.parallel.Client view
         The view that is to be used in scheduling the tasks on the IPython
         cluster. Preferably a load-balanced view, which is obtained from the
