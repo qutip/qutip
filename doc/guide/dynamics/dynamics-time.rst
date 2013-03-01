@@ -53,6 +53,7 @@ Here we have demonstrated that the ordering of time-dependent and time-independe
 As an example, we will look at :ref:`exme41` that has a time-dependent Hamiltonian of the form :math:`H=H_{0}-f(t)H_{1}` where :math:`f(t)` is the time-dependent driving strength given as :math:`f(t)=A\exp\left[-\left( t/\sigma \right)^{2}\right]`.  The follow code sets up the problem::
 
     from qutip import *
+    from scipy import *
     # Define atomic states. Use ordering from paper
     ustate = basis(3, 0)
     excited = basis(3, 1)

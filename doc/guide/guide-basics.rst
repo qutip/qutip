@@ -23,7 +23,13 @@ To load the qutip modules, we must first call the import statement:
 
 
 
-that will load all of the user available functions.  Note that, in the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`.  However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the command line or a Python script.
+that will load all of the user available functions.  We will also need to import the SciPy library with:
+
+.. ipython::
+
+	In [1]: from scipy import *
+
+Note that, in the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`.  However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the command line or a Python script.
 
 .. _basics-qobj:
 
@@ -57,7 +63,7 @@ We can create a Qobj with a user defined data set by passing a list or array of 
 	
 	In [3]: Qobj(x)
 
-	In [4]: r = random((4, 4))
+	In [4]: r = rand(4, 4)
 	
 	In [5]: Qobj(r)
 
