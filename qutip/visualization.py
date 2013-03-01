@@ -23,6 +23,7 @@ if qutip.settings.qutip_graphics == 'YES':
     import matplotlib as mpl
     from matplotlib import pyplot, cm
     from mpl_toolkits.mplot3d import Axes3D
+    import matplotlib.pyplot as plt
 
 from qutip.qobj import Qobj, isket, isbra
 from qutip.states import ket2dm
@@ -89,7 +90,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
         W = rho
 
     if ax is None:
-        fig, ax = subplots(1, 1, figsize=(8, 6))
+        fig, ax = plt.subplots(1, 1, figsize=(8, 6))
 
     if not (xlabels or ylabels):
         ax.axis('off')
@@ -454,7 +455,7 @@ def energy_level_diagram(H_list, N=0, figsize=(8, 12), labels=None,
         raise ValueError("H_list must be a list of Qobj instances")
 
     if not fig and not ax:
-        fig, ax = subplots(1, 1, figsize=figsize)
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     H = H_list[0]
     N = H.shape[0] if N == 0 else min(H.shape[0], N)
@@ -582,7 +583,7 @@ def fock_distribution(rho, fig=None, ax=None, figsize=(8, 6), title=None):
     """
 
     if not fig and not ax:
-        fig, ax = subplots(1, 1, figsize=figsize)
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
 
     if isket(rho):
         rho = ket2dm(rho)
@@ -641,7 +642,7 @@ def wigner_fock_distribution(rho, fig=None, ax=None, figsize=(8, 4),
     """
 
     if not fig and not ax:
-        fig, axes = subplots(1, 2, figsize=figsize)
+        fig, axes = plt.subplots(1, 2, figsize=figsize)
 
     if isket(rho):
         rho = ket2dm(rho)

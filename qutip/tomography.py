@@ -26,7 +26,7 @@ from qutip.visualization import matrix_histogram, matrix_histogram_complex
 import qutip.settings
 
 if qutip.settings.qutip_graphics == 'YES':
-    from pylab import *
+    import matplotlib.pyplot as plt
 
 
 def _index_permutations(size_list, perm=[]):
@@ -133,7 +133,7 @@ def qpt_plot_combined(chi, lbls_list, title=None, fig=None, ax=None):
 
     if ax is None:
         if fig is None:
-            fig = figure(figsize=(8, 6))
+            fig = plt.figure(figsize=(8, 6))
         ax = fig.add_subplot(1, 1, 1, projection='3d', position=[0, 0, 1, 1])
 
     xlabels = []
