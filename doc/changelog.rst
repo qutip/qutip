@@ -5,7 +5,7 @@
 Change Log
 **********
 
-Version 2.2.0 (March XX, 2013):
+Version 2.2.0 (March 01, 2013):
 ++++++++++++++++++++++++++++++++++++++++++++++
 
 New Features
