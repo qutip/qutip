@@ -136,6 +136,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
 
     return ax
 
+
 def sphereplot(theta, phi, values, save=False):
     """Plots a matrix of values on a sphere
 
@@ -188,6 +189,7 @@ def sphereplot(theta, phi, values, save=False):
         savefig("sphereplot.png")
     show()
     return
+
 
 def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
                      colorbar=True, fig=None, ax=None):

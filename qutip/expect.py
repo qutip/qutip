@@ -134,4 +134,4 @@ def variance(oper, state):
         Variance of operator 'oper' for given state.
 
     """
-    return expect(oper**2, state) - expect(oper, state)**2
+    return expect(oper ** 2, state) - expect(oper, state) ** 2
