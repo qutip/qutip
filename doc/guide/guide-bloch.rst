@@ -11,6 +11,8 @@ Plotting on the Bloch Sphere
    :suppress:
 
    In [1]: from qutip import *
+   
+   In [2]: from scipy import *
 
 .. _bloch-intro:
 
