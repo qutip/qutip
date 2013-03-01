@@ -5,7 +5,9 @@ from numpy import genfromtxt
 from qutip import *
 import numpy as np
 from time import time
+import qutip.settings as qset
 from tests import *
+#qset.auto_tidyup=False
 #
 # command-line parsing
 #
@@ -19,15 +21,21 @@ parser.add_argument("--run-profiler",
                     action='store_true')
 args = parser.parse_args()
 
-# setup hardware and matlab info lists
+# setup hardware list
 platform=[hardware_info()]
-if sys.platform=='darwin':
-    sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
+
+# setup matlab info lists
+if not args.qutip_only:
+
+    if sys.platform=='darwin':
+        sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
+    else:
+        sproc.call("matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
+    matlab_version = csv.reader(open('matlab_version.csv'),dialect='excel')
+    for row in matlab_version:
+        matlab_info=[{'version': row[0],'type': row[1]}]
 else:
-    sproc.call("matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
-matlab_version = csv.reader(open('matlab_version.csv'),dialect='excel')
-for row in matlab_version:
-    matlab_info=[{'version': row[0],'type': row[1]}]
+    matlab_info = []
 
 qutip_info=[{'qutip':qutip.__version__,'numpy':numpy.__version__,'scipy':scipy.__version__}]
 #---------------------

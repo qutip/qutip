@@ -1,7 +1,7 @@
 ################################
 # QuTiP README FILE FOR CPC
 # Version: 2.2.0
-# Released: XX/XX/2013
+# Released: 2013/03/01
 # P.D. Nation and J.R. Johansson
 ################################
 
@@ -39,7 +39,7 @@ qutip/
 	bloch-redfield.py		# Bloch-Redfield master equation.
    	Bloch.py                	# Bloch sphere plot.
    	Bloch3d.py			# 3D Bloch sphere plot.
-   	clebsch.py              	# Clebsch-Gordon coefficients.
+	continuous_variables.py	# Continuous variables routines.
 	correlation.py			# Two-time correlation functions.    
     	demos.py                 	# Runs demos GUI or command line.
    	entropy.py              	# Various entropy measures.
@@ -50,7 +50,8 @@ qutip/
     	floquet.py              	# Floquet-Markov master equation.
     	gates.py                	# Quantum computation gates.
     	graph.py                	# Visualization scripts.
-    	istests.py              	# Properties of a Qobj object.
+    	ipynbtools.py			# Tools for QuTiP in IPython notebooks.
+	istests.py              	# Properties of a Qobj object.
     	mcsolve.py              	# Monte-Carlo trajectory solver.
     	mesolve.py              	# Lindblad master equation solver.        
     	metrics.py              	# Density matrix metrics.
@@ -61,23 +62,28 @@ qutip/
     	operators.py            	# Commonly used quantum operators.
     	orbital.py              	# Angular wave function on a sphere.
     	parfor.py               	# Parallel for-loop
-    	propagator.py           	# Propagator U(t) for density matrix.
+    	partial_transpose.py		# Partial transpose routine.
+	propagator.py           	# Propagator U(t) for density matrix.
     	ptrace.py               	# Partial trace of a composite object.
     	Qobj.py                 	# Main quantum object class.
     	qstate.py               	# Generates coupled states of qubits. 
-    	rand.py				# Random quantum operators and states.
+    	random_objects.py		# Random quantum operators and states.
 	rhs_generate.py			# Generates Cython code at runtime.
+	sesolve.py			# Module for Schrodinger solvers.
 	simdiag.py              	# Simultaneous diagonalization.
     	sparse.py			# Sparse eigensolvers.
 	sphereplot.py           	# Plots spherical wave functions.
     	states.py               	# State vectors and density matrices.
     	steady.py               	# Steady state evolution.
-    	superoperator.py		# Superoperators for Louvillian.
+    	stochastic.py			# Module for SDE solvers.
+	superoperator.py		# Superoperators for Louvillian.
     	tensor.py               	# Generates composite quantum objects.
     	testing.py			# Module for running QuTiP unit tests.
 	three_level_atom.py     	# Operators for three-level atoms.
-    	tomography.py			# Quantum process tomograpy functions.
-	wigner.py               	# Wigner function and Q function.
+    	tomography.py			# Quantum process tomography functions.
+	utilities.py			# Collection of utility functions.
+	visualization.py		# Various visualization functions.
+	wigner.py                     # Wigner function and Q functions.
     
     	cyQ/
         	__init__.py           	# Initialize cyQ modules.

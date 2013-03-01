@@ -19,9 +19,11 @@
 
 """
 This module contains experimental functions for solving stochastic schrodinger
-and master equations.
+and master equations. The API should not be considered stable, and is subject
+to change when we work more on optimizing this module for performance and
+features.
 
-Release target: 2.2.0
+Release target: 2.3.0 or 3.0.0
 
 Todo:
 
