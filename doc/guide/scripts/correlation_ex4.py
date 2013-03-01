@@ -1,5 +1,6 @@
 import pylab as plt
 from qutip import *
+from scipy import *
 
 N = 25
 taulist = linspace(0, 25.0, 200)

@@ -1,6 +1,6 @@
 from qutip import *
 from pylab import *
-
+from scipy import *
 
 # Define paramters
 N = 20  # number of basis states to consider

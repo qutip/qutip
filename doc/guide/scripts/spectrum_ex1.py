@@ -1,6 +1,7 @@
 from qutip import *
 import pylab as plt
-
+from scipy import *
+from scipy import *
 N = 4                   # number of cavity fock states
 wc = wa = 1.0 * 2 * pi  # cavity and atom frequency
 g  = 0.1 * 2 * pi       # coupling strength

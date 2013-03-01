@@ -1,5 +1,5 @@
 from qutip import *
-
+from scipy import *
 def qubit_integrate(w, theta, gamma1, gamma2, psi0, tlist):
     # operators and the hamiltonian
     sx = sigmax(); sy = sigmay(); sz = sigmaz(); sm = sigmam()

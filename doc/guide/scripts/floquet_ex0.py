@@ -1,4 +1,5 @@
 from qutip import *
+from scipy import *
 
 delta = 0.2 * 2*pi; eps0  = 0.0 * 2*pi
 omega = 1.0 * 2*pi; A_vec = linspace(0, 10, 100) * omega;

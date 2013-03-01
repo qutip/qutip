@@ -1,4 +1,5 @@
 from qutip import *
+from scipy import *
 
 tlist = linspace(0,10.0,200)
 a = destroy(10)

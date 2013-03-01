@@ -1,4 +1,5 @@
 from qutip import *
+from scipy import *
 
 N = 15
 taulist = linspace(0,10.0,200)

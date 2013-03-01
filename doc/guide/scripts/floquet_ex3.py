@@ -1,4 +1,5 @@
 from qutip import *
+from scipy import *
 
 delta = 0.0  * 2*pi; eps0  = 1.0 * 2*pi
 A     = 0.25 * 2*pi; omega = 1.0 * 2*pi
