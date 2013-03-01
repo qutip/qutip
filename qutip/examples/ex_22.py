@@ -90,6 +90,7 @@ def run():
     contourf(X, Y, W, 100)
     colorbar()
     show()
+    close('all')
 
 if __name__ == '__main__':
     run()

@@ -18,12 +18,14 @@ def run():
         # Von-Neumann entropy (base 2) of rho
         out[k] = entropy_vn(rho, 2)
 
-    figure()
+    figure(1)
     plot(a, out, lw=2)
     xlabel(r'Probability of being in excited state $(a)$')
     ylabel(r'Entropy')
     title("Entropy of $a|0\\rangle\langle0|+(1-a)|1\\rangle\langle1|$")
     show()
+    close()
+
 
 if __name__ == '__main__':
     run()

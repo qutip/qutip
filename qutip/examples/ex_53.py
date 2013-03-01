@@ -43,6 +43,7 @@ def run():
     qpt_plot_combined(chi, op_label)
 
     show()
+    close('all')
 
 if __name__ == '__main__':
     run()

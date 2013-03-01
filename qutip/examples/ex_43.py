@@ -110,6 +110,7 @@ def run():
     ylabel('Coefficients in the Hamiltonian')
 
     show()
+    close()
 
 
 if __name__ == '__main__':

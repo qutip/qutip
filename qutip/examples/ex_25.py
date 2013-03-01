@@ -107,6 +107,7 @@ def run():
             "Mech. resonator (%.2f GHz)" % (w_m / (2 * pi)),
             "Mech. resonator, no cooling"), loc=2)
     show()
+    close()
 
 if __name__ == '__main__':
     run()

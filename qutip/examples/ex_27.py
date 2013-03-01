@@ -51,6 +51,7 @@ def run():
     sphere.font_size = 14
     sphere.add_vectors([sin(theta), 0, cos(theta)])
     sphere.show()
+    close('all')
 
 
 if __name__ == "__main__":

@@ -54,14 +54,13 @@ def run():
 
     # plot the cavity and atom occupation numbers as a function of
     # coupling strength
-    figure(1)
+    fig1 = figure(1)
     plot(glist / (2 * pi), nc, lw=2)
     plot(glist / (2 * pi), na, lw=2)
     legend(("Cavity", "Atom excited state"), loc=0)
     xlabel('Coupling strength (g)')
     ylabel('Occupation Number')
     title('# of Photons in the Groundstate')
-    show()
 
     # partial trace over qubit
     rho_cavity = ptrace(grnd_kets[-1], 0)
@@ -72,8 +71,8 @@ def run():
     W = wigner(rho_cavity, xvec, xvec)
 
     # plot Wigner function
-    fig = figure()
-    ax = Axes3D(fig, azim=-61, elev=43)
+    fig2 = figure(2)
+    ax = Axes3D(fig2, azim=-61, elev=43)
     ax.plot_surface(X, Y, W, rstride=1, cstride=1, cmap=cm.jet,
                     linewidth=0.1, vmax=0.15, vmin=-0.05)
     title("Wigner Function for the Cavity Ground State at g= " +
@@ -81,6 +80,8 @@ def run():
     ax.set_xlabel('Position')
     ax.set_ylabel('Momentum')
     show()
+    close('all')
+
 
 
 if __name__ == "__main__":

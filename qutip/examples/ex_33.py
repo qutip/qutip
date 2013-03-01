@@ -65,6 +65,7 @@ def run():
     ax.set_ylabel(r'Time')
     ax.set_zlim3d(0, 1)
     show()
+    close()
 
 if __name__ == '__main__':
     run()

@@ -71,6 +71,7 @@ def run():
     ylabel('Correlation')
     legend(("g = 0.1", "g = 0.0"))
     show()
+    close()
 
 
 if __name__ == '__main__':

@@ -68,6 +68,7 @@ def run():
     title('Excitation probabilty of qubit')
     legend(("Time-dependent Hamiltonian", "Corresponding RWA"))
     show()
+    close()
 
 
 if __name__ == '__main__':

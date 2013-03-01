@@ -106,6 +106,7 @@ def run():
     xlabel('Time [$\mu s$]')
     legend()
     show()
+    close()
 
 if __name__ == '__main__':
     run()

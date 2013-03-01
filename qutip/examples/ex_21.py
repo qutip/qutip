@@ -59,6 +59,7 @@ def run():
     ylabel('Occupation probability')
     title('Vacuum Rabi oscillations')
     show()
+    close()
 
 if __name__ == '__main__':
     run()

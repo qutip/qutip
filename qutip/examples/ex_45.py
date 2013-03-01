@@ -67,6 +67,7 @@ def run():
     ylabel('Occupation probability', fontsize=14)
     legend(("Standard Lindblad ME", "Floquet-Markov ME"))
     show()
+    close()
 
 
 if __name__ == '__main__':

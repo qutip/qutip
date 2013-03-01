@@ -26,6 +26,7 @@ def run():
     Q = qfunc(psi, xvec, yvec)
 
     # plot Q-function as filled contour
+    figure()
     plt = contourf(xvec, yvec, Q, 100)
     xlim([-6, 6])
     ylim([-6, 6])
@@ -36,6 +37,7 @@ def run():
     cbar.ax.set_ylabel('Probability')
     # show plot
     show()
+    close('all')
 
 if __name__ == "__main__":
     run()

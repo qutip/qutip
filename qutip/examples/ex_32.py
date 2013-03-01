@@ -108,6 +108,7 @@ def run():
     ax1.xaxis.set_major_locator(MaxNLocator(4))
     xlabel('Time (sec)', fontsize=14)
     show()
+    close()
 
 
 if __name__ == "__main__":

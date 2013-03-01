@@ -30,7 +30,6 @@ def run():
     ax.set_xlim3d(-6, 6)
     ax.set_zlim3d(0, 0.4)
     title('Wigner function of squeezed coherent state')
-    show()
 
     fig = figure()
     ax2 = Axes3D(fig, azim=-43, elev=37)
@@ -40,6 +39,8 @@ def run():
     ax2.set_zlim3d(0, 0.2)
     title('Q-function of squeezed coherent state')
     show()
+    close('all')
+
 
 if __name__ == "__main__":
     run()

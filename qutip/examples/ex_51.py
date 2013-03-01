@@ -115,6 +115,7 @@ def run():
     sphere.make_sphere()
 
     show()
+    close('all')
 
 if __name__ == "__main__":
     run()

@@ -42,6 +42,7 @@ def run():
     ylabel('Excitations', fontsize=14)
     legend(('Oscillator A', 'Oscillator B'))
     show()
+    close()
 
 if __name__ == '__main__':
     run()

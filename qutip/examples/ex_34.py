@@ -59,6 +59,7 @@ def run():
     ax.set_ylabel('Collpase Time', fontsize=14)
     ax.set_title('Blue = C0, Red = C1, Green= C2')
     show()
+    close()
 
 if __name__ == '__main__':
     run()

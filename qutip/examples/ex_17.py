@@ -70,6 +70,7 @@ def run():
     xlabel('Drive Frequency Detuning')
     ylabel('Count rates')
     show()
+    close()
 
     # plot phase shift of cavity light
     fig2 = figure(2)
@@ -78,6 +79,7 @@ def run():
     xlabel('Drive Frequency Detuning')
     ylabel('Intracavity phase shift')
     show()
+    close()
 
 
 if __name__ == "__main__":

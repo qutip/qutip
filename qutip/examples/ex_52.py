@@ -78,6 +78,8 @@ def run():
           r'$H = -\frac{1}{2}\Delta\sigma_x - \frac{1}{2}\epsilon\sigma_z' +
           r' - \frac{1}{2}A\sin(\omega t)$' + '\\n')
     show()
+    close()
+
 
 if __name__ == '__main__':
     run()

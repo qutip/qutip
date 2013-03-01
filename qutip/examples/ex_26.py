@@ -55,6 +55,7 @@ def run():
     legend(('$\langle n\\rangle_{0}=1$', '$\langle n\\rangle_{0}=2$',
            '$\langle n\\rangle_{0}=3$'), loc=3)
     show()
+    close()
 
 if __name__ == "__main__":
     run()

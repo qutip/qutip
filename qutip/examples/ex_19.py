@@ -42,6 +42,7 @@ def run():
     # generate plot with labels
     matrix_histogram(rho0, xlabels=xlabels, ylabels=ylabels, title=title)
     show()
+    close()
 
 if __name__ == '__main__':
     run()

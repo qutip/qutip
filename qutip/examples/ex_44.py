@@ -44,6 +44,7 @@ def run():
          r'$H = \frac{\Delta}{2}\sigma_z + \frac{E}{2}\cos(\omega t)\sigma_x$',
          fontsize=20)
     show()
+    close()
 
 if __name__ == '__main__':
     run()

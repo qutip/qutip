@@ -26,6 +26,7 @@ def run():
     W = wigner(psi, xvec, yvec)
 
     # plot Wigner function as filled contour
+    figure()
     plt = contourf(xvec, yvec, W, 100)
     xlim([-5, 5])
     ylim([-5, 5])
@@ -36,6 +37,8 @@ def run():
     cbar.ax.set_ylabel('Pseudoprobability')
     # show plot
     show()
+    close('all')
+
 
 if __name__ == "__main__":
     run()

@@ -64,6 +64,8 @@ def run():
     title('Excitation probabilty the two-level system')
     legend(("Excited state", "Ground state", "Landau-Zener formula"), loc=0)
     show()
+    close()
+
 
 if __name__ == '__main__':
     run()

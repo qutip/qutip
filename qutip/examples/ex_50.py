@@ -169,8 +169,9 @@ def run():
     title("Occupation probability of the %d lowest " % M +
           "eigenstates for a chain of %d spins" % N)
     legend(("Ground state",))
-
     show()
+    close()
+
 
 if __name__ == '__main__':
     run()

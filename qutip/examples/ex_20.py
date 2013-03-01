@@ -71,6 +71,7 @@ def run():
     title("Dissipative i-Swap Gate vs. Ideal Gate (dashed)")
     ylim([0, 1])
     show()
+    close()
 
 
 if __name__ == '__main__':

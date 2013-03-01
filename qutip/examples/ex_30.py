@@ -45,6 +45,7 @@ def run():
     ylabel('Counts')
     xlabel('Time')
     show()
+    close()
 
 if __name__ == '__main__':
     run()

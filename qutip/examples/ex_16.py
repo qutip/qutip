@@ -28,7 +28,7 @@ def qubit_hist(Q, xlabels, ylabels, title):
     colors = cm.jet(nrm(dz))
 
     # plot figure
-    fig = plt.figure()
+    fig = plt.figure(1)
     ax = Axes3D(fig, azim=-47, elev=85)
     ax.bar3d(xpos, ypos, zpos, dx, dy, dz, color=colors)
 
@@ -52,6 +52,7 @@ def qubit_hist(Q, xlabels, ylabels, title):
     cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cm.jet, norm=nrm)
     cb1.set_label("Probability", fontsize=14)
     show()
+    close()
 
 
 def run():

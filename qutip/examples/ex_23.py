@@ -76,6 +76,7 @@ def run():
         # savefig("jc_model_wigner_"+str(idx)+".png")
 
     show()
+    close()
 
 if __name__ == '__main__':
     run()

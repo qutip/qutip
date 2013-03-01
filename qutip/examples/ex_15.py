@@ -53,7 +53,7 @@ def run():
     #
     # plot the energy eigenvalues
     #
-    figure(1)
+    figure()
     colors = ['b', 'r', 'g']  # list of colors for plotting
     for n in [1, 2, 3]:
         plot(w1list / (2 * pi), (evals_mat[:, n] - evals_mat[:, 0]) / (2 * pi),
@@ -62,8 +62,8 @@ def run():
     xlabel('Energy Splitting of Qubit 1')
     ylabel('Eigenenergies')
     title('Energy Spectrum of Three Coupled Qubits')
-
     show()
+    close()
 
 
 if __name__ == "__main__":

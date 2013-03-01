@@ -96,8 +96,8 @@ def run():
     ylabel(r'$\langle\sigma_{z}\rangle$', fontsize=14)
     title(r'Dynamics of a Heisenberg spin chain')
     legend(loc="lower right")
-
     show()
+    close()
 
 if __name__ == "__main__":
     run()

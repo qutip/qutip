@@ -19,10 +19,12 @@ def run():
     F = array([fidelity(x[k], y[k]) for k in range(N)])
 
     # plot T and 1-F**2 where x=range(N)
+    figure()
     plot(range(N), T, 'b', range(N), 1 - F ** 2, 'r', lw=2)
     title("Verification of 1-F**2<=T for random pure states.")
     legend(("trace distance", "1-fidelity**2"), loc=0)
     show()
+    close()
 
 if __name__ == "__main__":
     run()
