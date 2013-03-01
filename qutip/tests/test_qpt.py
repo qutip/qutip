@@ -19,6 +19,7 @@
 
 import os
 from numpy.testing import assert_, run_module_suite
+from numpy.linalg import norm
 
 from qutip import *
 

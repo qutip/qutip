@@ -48,7 +48,7 @@ def sesolve(H, rho0, tlist, expt_ops, args={}, options=None):
 
     Evolve the state vector or density matrix (`rho0`) using a given
     Hamiltonian (`H`), by integrating the set of ordinary differential
-    equations that define the system. 
+    equations that define the system.
 
     The output is either the state vector at arbitrary points in time
     (`tlist`), or the expectation values of the supplied operators
@@ -115,7 +115,6 @@ def sesolve(H, rho0, tlist, expt_ops, args={}, options=None):
         return _sesolve_func_td(H, rho0, tlist, expt_ops, args, options)
     else:
         return _sesolve_const(H, rho0, tlist, expt_ops, args, options)
-
 
 
 # -----------------------------------------------------------------------------
@@ -196,7 +195,6 @@ def psi_list_td(t, psi, H_list_and_args):
         H = H + H_list[n][0] * H_list[n][1](t, args)
 
     return H * psi
-
 
 
 # -----------------------------------------------------------------------------
@@ -461,5 +459,3 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_norm_func=None):
             pass
 
     return output
-
-

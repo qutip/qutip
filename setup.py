@@ -199,9 +199,9 @@ class CleanCommand(Command):
             print("Removed all pyc files.")
 
 # remove needless error warnings for released version.
-if ISRELEASED:
-    os.environ['CFLAGS'] = '-w'
-    os.environ['FFLAGS'] = '-w'
+#if ISRELEASED:
+#    os.environ['CFLAGS'] = '-w'
+#    os.environ['FFLAGS'] = '-w'
 
 
 # using numpy distutils to simplify install of data directory for testing

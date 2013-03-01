@@ -17,6 +17,7 @@
 #
 ###########################################################################
 
+import numpy as np
 import scipy
 import time
 from numpy.testing import assert_, run_module_suite
@@ -35,11 +36,11 @@ def test_compare_solvers_coherent_state():
     c_ops = [sqrt(G1 * (1 + n_th)) * a, sqrt(G1 * n_th) * a.dag()]
     rho0 = coherent_dm(N, sqrt(4.0))
 
-    taulist = linspace(0, 5.0, 100)
+    taulist = np.linspace(0, 5.0, 100)
     corr1 = correlation(H, rho0, None, taulist, c_ops, a.dag(), a, solver="me")
     corr2 = correlation(H, rho0, None, taulist, c_ops, a.dag(), a, solver="es")
 
-    assert_(norm(corr1 - corr2) < 1e-3)
+    assert_(max(abs(corr1 - corr2)) < 1e-4)
 
 
 def test_compare_solvers_steadystate():
@@ -52,11 +53,11 @@ def test_compare_solvers_steadystate():
     n_th = 2.00
     c_ops = [sqrt(G1 * (1 + n_th)) * a, sqrt(G1 * n_th) * a.dag()]
 
-    taulist = linspace(0, 5.0, 100)
+    taulist = np.linspace(0, 5.0, 100)
     corr1 = correlation(H, None, None, taulist, c_ops, a.dag(), a, solver="me")
     corr2 = correlation(H, None, None, taulist, c_ops, a.dag(), a, solver="es")
 
-    assert_(norm(corr1 - corr2) < 1e-3)
+    assert_(max(abs(corr1 - corr2)) < 1e-4)
 
 
 def test_spectrum():
@@ -78,7 +79,7 @@ def test_spectrum():
              sqrt(kappa * n_th) * a.dag(),
              sqrt(gamma) * sm]
 
-    tlist = linspace(0, 100, 2500)
+    tlist = np.linspace(0, 100, 2500)
     corr = correlation_ss(H, tlist, c_ops, a.dag(), a)
     wlist1, spec1 = spectrum_correlation_fft(tlist, corr)
     spec2 = spectrum_ss(H, wlist1, c_ops, a.dag(), a)

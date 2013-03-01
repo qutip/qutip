@@ -166,7 +166,7 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
         except:
             print("Preconditioning failed.")
             print("Continuing without.")
-            M=None
+            M = None
         else:
             M = LinearOperator((n, n), matvec=P_x)
     else:
@@ -176,7 +176,8 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
         if method == 'bicg':
             v, check = bicgstab(L, v, tol=itertol, M=M)
         else:
-            v = spsolve(L, v, permc_spec="MMD_AT_PLUS_A", use_umfpack=use_umfpack)
+            v = spsolve(L, v, permc_spec="MMD_AT_PLUS_A",
+                        use_umfpack=use_umfpack)
         v = v / la.norm(v, np.inf)
         it += 1
     if it >= maxiter:

@@ -46,7 +46,7 @@ def version_table():
     different packages that were used to run the notebook. This should make it
     possible to reproduce the environment and the calculation later on.
 
-    
+
     Returns
     --------
     version_table: string
@@ -130,9 +130,9 @@ def parfor(task, task_vec, args=None, client=None, view=None,
     """
     Call the function ``tast`` for each value in ``task_vec`` using a cluster
     of IPython engines. The function ``task`` should have the signature
-    ``task(value, args)`` or ``task(value)`` if ``args=None``. 
+    ``task(value, args)`` or ``task(value)`` if ``args=None``.
 
-    The ``client`` and ``view`` are the IPython.parallel client and 
+    The ``client`` and ``view`` are the IPython.parallel client and
     load-balanced view that will be used in the parfor execution. If these
     are ``None``, new instances will be created.
 
@@ -151,12 +151,7 @@ def parfor(task, task_vec, args=None, client=None, view=None,
         a dictionary with parameter values.
 
     client: IPython.parallel.Client
-        The IPython.parallel Client instance that will be used in the 
-        parfor execution.
-
-
-    client: IPython.parallel.Client
-        The IPython.parallel Client instance that will be used in the 
+        The IPython.parallel Client instance that will be used in the
         parfor execution.
 
     view: a IPython.parallel.Client view
@@ -172,13 +167,13 @@ def parfor(task, task_vec, args=None, client=None, view=None,
 
     show_progressbar: bool {False, True}, default False
         Display a HTML-based progress bar duing the execution of the parfor
-        loop. 
+        loop.
 
     Returns
     --------
     result : list
         The result list contains the value of ``task(value, args)`` for each
-        value in ``task_vec``, that is, it should be equivalent to 
+        value in ``task_vec``, that is, it should be equivalent to
         ``[task(v, args) for v in task_vec]``.
 
     """

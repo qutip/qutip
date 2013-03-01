@@ -377,7 +377,6 @@ def rho_list_td(t, rho, L_list_and_args):
     return L * rho
 
 
-
 # -----------------------------------------------------------------------------
 # A time-dependent disipative master equation on the list-string format for
 # cython compilation
@@ -646,7 +645,6 @@ def _sesolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     # call generic ODE code
     #
     return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, lambda x: x)
-
 
 
 # -----------------------------------------------------------------------------

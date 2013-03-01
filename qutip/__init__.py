@@ -218,7 +218,6 @@ if qutip.settings.qutip_graphics == 'YES':
                                      sphereplot, fock_distribution,
                                      wigner_fock_distribution)
     from qutip.orbital import *
-    from qutip.tomography import *
     # load mayavi dependent functions if available
     try:
         import mayavi
@@ -228,6 +227,7 @@ if qutip.settings.qutip_graphics == 'YES':
         from qutip.bloch3d import Bloch3d
 
 # library functions
+from qutip.tomography import *
 from qutip.wigner import *
 from qutip.random_objects import *
 from qutip.simdiag import *
