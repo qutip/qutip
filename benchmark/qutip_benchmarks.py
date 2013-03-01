@@ -5,7 +5,9 @@ from numpy import genfromtxt
 from qutip import *
 import numpy as np
 from time import time
+import qutip.settings as qset
 from tests import *
+#qset.auto_tidyup=False
 #
 # command-line parsing
 #

@@ -3,6 +3,43 @@
 # P.D. Nation and J.R. Johansson
 ################################
 
+*********************************************
+Version 2.2.0 (March 01, 2013):
+*********************************************
+
+New Features
+-------------
+
+- Added Support for Windows
+
+- New Bloch3d class for plotting 3D Bloch spheres using Mayavi.
+
+- Bloch sphere vectors now look like arrows.
+
+- Added partial transpose function.
+
+- Added continous variable functions for calculating correlation and covariance
+  matrices, the Wigner covariance matrix and the logarithmic negativity for
+  for multimode fields in Fock basis.
+
+- The master-equation solver (mesolve) now accepts pre-constructed Liouvillian
+  terms, which makes it possible to solve master equations that are not on
+  the standard Lindblad form.
+  
+- Optional Fortran monte carlo solver (mcsolve_f90) by Arne Grimsmo.
+
+- A module of tools for using QuTiP in IPython notebooks.
+
+- Increased performance of the steady state solver.
+
+
+Bug Fixes:
+----------
+
+- Function based time-dependent Hamiltonians now keep the correct phase.
+
+- mcsolve no longer prints to the command line if ntraj=1.
+
 
 *********************************************
 Version 2.1.0 [SVN-2686] (October 05, 2012):
