@@ -2,23 +2,21 @@ Source: qutip
 Section: python
 Priority: optional
 Maintainer: Robert Johansson <jrjohansson@gmail.com>
-Build-Depends: debhelper (>= 8), python (>= 2.6.6-3~), python-all-dev, python-setuptools, python-numpy, python-scipy
+Build-Depends: debhelper (>= 8), python (>= 2.6.6-3~), python-all-dev, python-setuptools, python-numpy, python-scipy, cython
 XS-Python-Version: >=2.5
 Standards-Version: 3.9.3
 
 Package: python-qutip
 Architecture: any
 Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}, python-scipy
-Recommends: ipython (>= 0.12), python-matplotlib, python-pyside, cython
+Recommends: ipython (>= 0.12), ipython-notebook, python-matplotlib, python-pyside, cython
 Provides: ${python:Provides}
 Homepage: http://code.google.com/p/qutip
 Description: Python framework for solving the dynamics of quantum systems.
- QuTiP is an open-source framework for solving the dynamics of open
- and closed quantum systems written in python. The focus of QuTiP
- is on systems with Hamiltonians that are composed of harmonic
- oscillator modes and multi-level (typically two-levels) atoms,
- where the Hilbert space may be constructed using the Fock basis.
- This large class of Hamiltonians appears in a wide variety of
- physical problems, including those in quantum optics, trapped
- ions, superconducting circuit devices, and mechanical systems in
- the quantum regime.
+ QuTiP is an open-source framework for solving the dynamics of open and closed
+ quantum systems written in Python. The focus of QuTiP is on systems with
+ Hamiltonians that are composed of harmonic oscillator modes and multi-level
+ (typically two-levels) atoms, where the Hilbert space may be constructed using
+ the Fock basis. This large class of Hamiltonians appears in a wide variety of
+ physical problems, including those in quantum optics, trapped ions,
+ superconducting circuit devices, and mechanical systems in the quantum regime.
