@@ -47,7 +47,7 @@ from numpy.distutils.system_info import get_info
 
 # all information about QuTiP goes here-------
 MAJOR = 2
-MINOR = 2
+MINOR = 3
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
