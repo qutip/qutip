@@ -11,18 +11,17 @@ from scipy import *
 
 import json
 
-#qset.auto_tidyup=False
 #
 # command-line parsing
 #
 import argparse
 parser = argparse.ArgumentParser()
-#parser.add_argument("--qutip-only",
-#                    help="only run qutip benchmarks",
-#                    action='store_true')
 parser.add_argument("--run-profiler",
                     help="run profiler on qutip benchmarks",
                     action='store_true')
+parser.add_argument("-o", "--output-file",
+                    help="file name for benchmark output",
+                    default="qutip-benchmarks.json", type=str)
 args = parser.parse_args()
 
 qutip_info = [{'qutip': qutip.__version__,
@@ -67,12 +66,11 @@ if args.run_profiler:
     p.sort_stats('cumulative').print_stats(30)
 
 else:
-    python_times, test_names = run_tests()
+    times, names = run_tests()
         
-    data = [{'name': test_names[n], 'factor': python_times[n]}
-            for n in range(len(test_names))]
+    data = [{'name': names[n], 'time': times[n]} for n in range(len(names))]
  
     qutip_bm = {"info": qutip_info, "data": data}
 
-    print json.dumps(qutip_bm, sort_keys=True, indent=4)
-
+    with open(args.output_file, "w") as outfile:
+        json.dump(qutip_bm, outfile, sort_keys=True, indent=4)

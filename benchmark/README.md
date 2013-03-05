@@ -3,7 +3,11 @@ Note on how to use qutip's benchmark scripts
 
 * Use matlab-benchmarks.py to generate matlab-benchmarks.json
 
-* Use qutip-benchmarks.py to generate qutip-benchmarks.json
+    $ python matlab_benchmark.py -o matlab-benchmarks.json
+
+* Use qutip-benchmarks.py to generate qutip-benchmarks.json::
+
+    $ python qutip_benchmark.py -o qutip-benchmarks.json
 
 * Use benchmark-ratio.py to generate benchmark-data.js which is used by the d3
   script in benchmark.html. It should take two arguments specifying which 
