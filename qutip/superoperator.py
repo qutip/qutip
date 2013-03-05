@@ -84,8 +84,10 @@ def liouvillian_fast(H, c_op_list):
         elif issuper(H):
             op_dims = H.dims[0]
             op_shape = [prod(op_dims[0]), prod(op_dims[0])]
+        else:
+            raise TypeError("Invalid type for Hamiltonian.")
     else:
-        # no hamiltonian given
+        # no hamiltonian given, pick system size from a collapse operator
         if isinstance(c_op_list, list) and len(c_op_list) > 0:
             c = c_op_list[0]
             if isoper(c):
@@ -94,6 +96,8 @@ def liouvillian_fast(H, c_op_list):
             elif issuper(c):
                 op_dims = c.dims[0]
                 op_shape = [prod(op_dims[0]), prod(op_dims[0])]
+            else:
+                raise TypeError("Invalid type for collapse operator.")
         else:
             raise TypeError("Either H or c_op_list must be given.")
 
@@ -121,7 +125,7 @@ def liouvillian_fast(H, c_op_list):
         else:
             cd = c_op.data.T.conj()
             c = c_op.data
-            L.data = L.data + sp.kron(cd, c, format='csr')
+            L.data = L.data + sp.kron(cd.T, c, format='csr')
             cdc = cd * c
             L.data = L.data - 0.5 * sp.kron(spI, cdc, format='csr')
             L.data = L.data - 0.5 * sp.kron(cdc.T, spI, format='csr')
