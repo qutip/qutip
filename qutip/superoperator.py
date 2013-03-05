@@ -75,30 +75,57 @@ def liouvillian_fast(H, c_op_list):
     L : qobj
         Louvillian superoperator.
 
-    .. note::
-
-        Experimental.
-
     """
-    d = H.dims[1]
-    L = Qobj()
-    L.dims = [[H.dims[0][:], d[:]], [H.dims[1][:], d[:]]]
-    L.shape = [prod(L.dims[0][0]) * prod(L.dims[0][1]),
-               prod(L.dims[1][0]) * prod(L.dims[1][1])]
-    L.data = -1j * (sp.kron(sp.identity(prod(d)), H.data, format='csr')
-                    - sp.kron(H.data.T, sp.identity(prod(d)), format='csr'))
 
-    n_op = len(c_op_list)
-    for m in range(0, n_op):
-        L.data = L.data + \
-            sp.kron(sp.identity(prod(d)), c_op_list[m].data, format='csr') * \
-            sp.kron(c_op_list[m].data.T.conj().T, sp.identity(
-                prod(d)), format='csr')
-        cdc = c_op_list[m].data.T.conj() * c_op_list[m].data
-        L.data = L.data - \
-            0.5 * sp.kron(sp.identity(prod(d)), cdc, format='csr')
-        L.data = L.data - \
-            0.5 * sp.kron(cdc.T, sp.identity(prod(d)), format='csr')
+    if H is not None:
+        if isoper(H):
+            op_dims = H.dims
+            op_shape = H.shape
+        elif issuper(H):
+            op_dims = H.dims[0]
+            op_shape = [prod(op_dims[0]), prod(op_dims[0])]
+    else:
+        # no hamiltonian given
+        if isinstance(c_op_list, list) and len(c_op_list) > 0:
+            c = c_op_list[0]
+            if isoper(c):
+                op_dims = c.dims
+                op_shape = c.shape
+            elif issuper(c):
+                op_dims = c.dims[0]
+                op_shape = [prod(op_dims[0]), prod(op_dims[0])]
+        else:
+            raise TypeError("Either H or c_op_list must be given.")
+
+    sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
+    sop_shape = [prod(op_dims), prod(op_dims)]
+
+    spI = sp.identity(op_shape[0])
+
+    L = Qobj()
+    L.dims = sop_dims
+    L.shape = sop_shape
+
+    if H:
+        if isoper(H):
+            L.data = -1j * (sp.kron(spI, H.data, format='csr')
+                            - sp.kron(H.data.T, spI, format='csr'))
+        else:
+            L.data = H.data
+    else:
+        L.data = sp.csr_matrix((sop_shape[0], sop_shape[1]), dtype=complex)
+
+    for c_op in c_op_list:
+        if issuper(c_op):
+            L.data = L.data + c_op.data
+        else:
+            cd = c_op.data.T.conj()
+            c = c_op.data
+            L.data = L.data + sp.kron(cd, c, format='csr')
+            cdc = cd * c
+            L.data = L.data - 0.5 * sp.kron(spI, cdc, format='csr')
+            L.data = L.data - 0.5 * sp.kron(cdc.T, spI, format='csr')
+
     return L
 
 
