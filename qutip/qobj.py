@@ -554,10 +554,6 @@ class Qobj():
 
         s += r'}\\[1em]'
 
-        #d = np.real(self.full()) \
-        #    if all(np.imag(self.data.data) == 0) else self.full()
-        #d = self.data
-
         M, N = self.data.shape
 
         s += r'\begin{pmatrix}'
