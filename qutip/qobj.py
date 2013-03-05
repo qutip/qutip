@@ -554,10 +554,11 @@ class Qobj():
 
         s += r'}\\[1em]'
 
-        d = np.real(self.full()) \
-            if all(np.imag(self.data.data) == 0) else self.full()
+        #d = np.real(self.full()) \
+        #    if all(np.imag(self.data.data) == 0) else self.full()
+        #d = self.data
 
-        M, N = shape(d)
+        M, N = self.data.shape
 
         s += r'\begin{pmatrix}'
 
@@ -573,10 +574,10 @@ class Qobj():
             # truncated matrix output
             for m in range(5):
                 for n in range(5):
-                    s += _format_element(m, n, d[m, n])
+                    s += _format_element(m, n, self.data[m, n])
                 s += r' & \cdots'
                 for n in range(N - 5, N):
-                    s += _format_element(m, n, d[m, n])
+                    s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
             for n in range(5):
@@ -588,39 +589,39 @@ class Qobj():
 
             for m in range(M - 5, M):
                 for n in range(5):
-                    s += _format_element(m, n, d[m, n])
+                    s += _format_element(m, n, self.data[m, n])
                 s += r' & \cdots'
                 for n in range(N - 5, N):
-                    s += _format_element(m, n, d[m, n])
+                    s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
         elif M > 10 and N == 1:
             # truncated column vector output
             for m in range(5):
-                s += _format_element(m, 0, d[m, 0])
+                s += _format_element(m, 0, self.data[m, 0])
                 s += r'\\'
 
             s += _format_element(m, 0, r'\vdots')
             s += r'\\'
 
             for m in range(M - 5, M):
-                s += _format_element(m, 0, d[m, 0])
+                s += _format_element(m, 0, self.data[m, 0])
                 s += r'\\'
 
         elif M == 1 and N > 10:
             # truncated row vector output
             for n in range(5):
-                s += _format_element(0, n, d[0, n])
+                s += _format_element(0, n, self.data[0, n])
             s += r' & \cdots'
             for n in range(N - 5, N):
-                s += _format_element(0, n, d[0, n])
+                s += _format_element(0, n, self.data[0, n])
             s += r'\\'
 
         else:
             # full output
             for m in range(M):
                 for n in range(N):
-                    s += _format_element(m, n, d[m, n])
+                    s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
         s += r'\end{pmatrix}\end{equation}'
