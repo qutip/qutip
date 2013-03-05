@@ -9,11 +9,11 @@ Note on how to use qutip's benchmark scripts
 
     $ python qutip_benchmark.py -o qutip-benchmarks.json
 
-* Use benchmark-ratio.py to generate benchmark-data.js which is used by the d3
-  script in benchmark.html. It should take two arguments specifying which 
+* Use benchmark-comparison.py to generate benchmark-data.js which is used by
+  the d3 script in benchmark.html. It should take two arguments specifying which 
   benchmark runs to compare::
 
-    python benchmark-ration.py qutip-benchmark.json matlab-benchmark.json
+    python benchmark-comparison.py -i qutip-benchmark.json -r matlab-benchmark.json -o benchmark_data.js
 
 * The html file and d3 scripts uses benchmark_data.js to render the comparison
   graphics.
