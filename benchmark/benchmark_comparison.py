@@ -1,13 +1,9 @@
 import sys
 import csv
-import subprocess as sproc
-from numpy import genfromtxt
-from qutip import *
+import json
 import numpy as np
-from time import time
-import qutip.settings as qset
-from tests import *
-#qset.auto_tidyup=False
+from qutip import *
+
 #
 # command-line parsing
 #
@@ -18,27 +14,34 @@ parser.add_argument("--qutip-only",
                     action='store_true')
 args = parser.parse_args()
 
+#
+# get hardware info
+#
 platform = [hardware_info()]
 
-matlab_info=[{'version': row[0],'type': row[1]}]
-qutip_info=[{'qutip':qutip.__version__,'numpy':numpy.__version__,'scipy':scipy.__version__}]
-
-f = open("qutip-benchmark.json")
+#
+# read in benchmark files
+#
+f = open("qutip-benchmark.json") # get from args
 mb1_data = json.loads(f.read())
 f.close()
 
-f = open("qutip-benchmark.json")
+f = open("qutip-benchmark.json") # get from args
 mb2_data = json.loads(f.read())
 f.close()
-    
-factors = array(bm1_times) / array(bm2_times)
 
+#
+# generate comparison data for the two benchmarks
+#
 data = []
-for ii in range(len(test_names)):
-    entry = {'name': "test%d" % ii, 'factor': factors[ii]}
-    data.append(entry)
+for n in range(len(mb1_data["data"])):
+    name = mb1_data["data"][n]["name"]
+    dt1 = mb1_data["data"][n]["factor"]
+    dt2 = mb2_data["data"][n]["factor"]
+    factor = dt1 / dt2
+    data.append({'name': str(name), 'factor': factor})   
 
-#f = open("benchmark_data.js", "w")
+#f = open("benchmark_data.js", "w") # get filename from args
 print('data = ' + str(data) + ';\n')
 print('platform = ' + str(platform) + ';\n')
 print('bm1_info = ' + str(mb1_data["info"]) + ';\n')
