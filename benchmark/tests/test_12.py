@@ -1,4 +1,5 @@
 from qutip import *
+from numpy import *
 from time import time
 
 def test_12():

@@ -1,4 +1,5 @@
 import sys
+import platform
 import csv
 import subprocess as sproc
 from numpy import genfromtxt
@@ -7,39 +8,30 @@ import numpy as np
 from time import time
 import qutip.settings as qset
 from tests import *
-#qset.auto_tidyup=False
+from scipy import *
+
+import json
+
 #
 # command-line parsing
 #
 import argparse
 parser = argparse.ArgumentParser()
-parser.add_argument("--qutip-only",
-                    help="only run qutip benchmarks",
-                    action='store_true')
 parser.add_argument("--run-profiler",
                     help="run profiler on qutip benchmarks",
                     action='store_true')
+parser.add_argument("-o", "--output-file",
+                    help="file name for benchmark output",
+                    default="qutip-benchmarks.json", type=str)
 args = parser.parse_args()
 
-# setup hardware list
-platform=[hardware_info()]
+qutip_info = [{'label': 'QuTiP', 'value': qutip.__version__},
+              {'label': 'Python', 'value': platform.python_version()},
+              {'label': 'NumPy', 'value': numpy.__version__},
+              {'label': 'SciPy', 'value': scipy.__version__}]
 
-# setup matlab info lists
-if not args.qutip_only:
-
-    if sys.platform=='darwin':
-        sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
-    else:
-        sproc.call("matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
-    matlab_version = csv.reader(open('matlab_version.csv'),dialect='excel')
-    for row in matlab_version:
-        matlab_info=[{'version': row[0],'type': row[1]}]
-else:
-    matlab_info = []
-
-qutip_info=[{'qutip':qutip.__version__,'numpy':numpy.__version__,'scipy':scipy.__version__}]
 #---------------------
-#Run Python Benchmarks
+# Run Python Benchmarks
 #---------------------
 def run_tests():
     #setup list for python times
@@ -76,29 +68,11 @@ if args.run_profiler:
     p.sort_stats('cumulative').print_stats(30)
 
 else:
-    python_times, test_names = run_tests()
-    
-    if not args.qutip_only:
-        # Call matlab benchmarks (folder must be in Matlab path!!!)
-        if sys.platform=='darwin':
-            sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
-            sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_benchmarks; quit'",shell=True)
-        else:
-            sproc.call("matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
-            sproc.call("matlab -nodesktop -nosplash -r 'matlab_benchmarks; quit'",shell=True)
-    
-    # read in matlab results
-    matlab_times = genfromtxt('matlab_benchmarks.csv', delimiter=',')
-    
-    factors=matlab_times/array(python_times)
-    data=[]
-    for ii in range(len(test_names)):
-        entry={'name':test_names[ii],'factor':factors[ii]}
-        data.append(entry)
+    times, names = run_tests()
+        
+    data = [{'name': names[n], 'time': times[n]} for n in range(len(names))]
+ 
+    qutip_bm = {"info": qutip_info, "data": data}
 
-    f = open("benchmark_data.js", "w")
-    f.write('data = ' + str(data) + ';\n')
-    f.write('platform = ' + str(platform) + ';\n')
-    f.write('qutip_info = ' + str(qutip_info) + ';\n')
-    f.write('matlab_info= ' + str(matlab_info) + ';\n')
-    f.close()
+    with open(args.output_file, "w") as outfile:
+        json.dump(qutip_bm, outfile, sort_keys=True, indent=4)
