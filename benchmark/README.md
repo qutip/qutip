@@ -4,17 +4,17 @@ Note on how to use QuTiP's benchmark scripts
 Comparing QuTiP to qotoolbax and matlab
 ----------------------------------------
 
-* Use `matlab-benchmarks.py` to generate `matlab-benchmarks.json`
+* Use `matlab-benchmarks.py` to generate `matlab-benchmarks.json`:
 
     $ python matlab_benchmarks.py -o matlab-benchmarks.json
 
-* Use `qutip-benchmarks.py` to generate `qutip-benchmarks.json`
+* Use `qutip-benchmarks.py` to generate `qutip-benchmarks.json`:
 
     $ python qutip_benchmarks.py -o qutip-benchmarks.json
 
 * Use `benchmark_comparison.py` to generate `benchmark-data.js` which is used by
   the d3 script in benchmark.html. It should take two arguments specifying which 
-  benchmark runs to compare
+  benchmark runs to compare:
 
     $ python benchmark_comparison.py -i qutip-benchmarks.json -r matlab-benchmarks.json -o benchmark_data.js
 
