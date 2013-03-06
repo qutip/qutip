@@ -23,18 +23,18 @@ args = parser.parse_args()
 #
 # get hardware info
 #
-platform = [hardware_info()]
+platform = [{'label': label, 'value': value}
+            for label, value in hardware_info().iteritems()]
+
 
 #
 # read in benchmark files
 #
-f = open(args.benchmark_input)
-mb1_data = json.loads(f.read())
-f.close()
+with open(args.benchmark_input) as f:
+    mb1_data = json.load(f)
 
-f = open(args.benchmark_reference)
-mb2_data = json.loads(f.read())
-f.close()
+with open(args.benchmark_reference) as f:
+    mb2_data = json.load(f)
 
 #
 # generate comparison data for the two benchmarks
@@ -49,7 +49,7 @@ for n in range(len(mb1_data["data"])):
 
 f = open(args.output_file, "w")
 f.write('data = ' + str(data) + ';\n')
-f.write('platform = ' + str(platform) + ';\n')
-f.write('bm1_info = ' + str(mb1_data["info"]) + ';\n')
-f.write('bm2_info= ' + str(mb2_data["info"]) + ';\n')
+f.write('platform = ' + str(platform).replace("u'", "'") + ';\n')
+f.write('bm1_info = ' + str(mb1_data["info"]).replace("u'", "'") + ';\n')
+f.write('bm2_info= ' + str(mb2_data["info"]).replace("u'", "'") + ';\n')
 f.close()

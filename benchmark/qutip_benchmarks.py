@@ -1,4 +1,5 @@
 import sys
+import platform
 import csv
 import subprocess as sproc
 from numpy import genfromtxt
@@ -24,9 +25,10 @@ parser.add_argument("-o", "--output-file",
                     default="qutip-benchmarks.json", type=str)
 args = parser.parse_args()
 
-qutip_info = [{'qutip': qutip.__version__,
-               'numpy': numpy.__version__,
-               'scipy': scipy.__version__}]
+qutip_info = [{'label': 'QuTiP', 'value': qutip.__version__},
+              {'label': 'Python', 'value': platform.python_version()},
+              {'label': 'NumPy', 'value': numpy.__version__},
+              {'label': 'SciPy', 'value': scipy.__version__}]
 
 #---------------------
 # Run Python Benchmarks
