@@ -1,7 +1,7 @@
 from qutip import *
 from time import time
 
-def test_4():
+def test_4(N=1.0):
     """
     Test expm with displacement and squeezing operators.
     """
@@ -9,11 +9,15 @@ def test_4():
     N=20
     alpha=2+2j
     sp=1.25j
-    tic=time()
-    coherent(N,alpha)
-    squeez(N,sp)
-    toc=time()
-    return [test_name], [toc-tic]
+    tot_elapsed = 0
+    for n in range(N):
+        tic=time()
+        coherent(N,alpha)
+        squeez(N,sp)
+        toc=time()
+        tot_elapsed += toc - tic
+
+    return [test_name], [tot_elapsed / N]
  
 
 

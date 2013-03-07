@@ -1,16 +1,21 @@
 from qutip import *
 from time import time
 
-def test_3():
+def test_3(N=1.0):
     """
     ptrace 6 spin operators.
     """
     test_name='Qobj ptrace [64]'
     out=tensor([sigmax(),sigmay(),sigmaz(),sigmay(),sigmaz(),sigmax()])
-    tic=time()
-    ptrace(out,[1,3,4])
-    toc=time()
-    return [test_name], [toc-tic]
+
+    tot_elapsed = 0
+    for n in range(N):
+        tic=time()
+        ptrace(out,[1,3,4])
+        toc=time()
+        tot_elapsed += toc - tic
+
+    return [test_name], [tot_elapsed / N]
  
 
 

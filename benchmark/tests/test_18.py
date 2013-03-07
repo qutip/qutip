@@ -2,7 +2,7 @@ from qutip import *
 from numpy import *
 from time import time
 
-def test_18():
+def test_18(N=1.0):
     """
     dissipative trilinear hamiltonian
     """
@@ -27,10 +27,15 @@ def test_18():
     H=1j*(a0*a1.dag()*a2.dag()-a0.dag()*a1*a2)
     psi0=tensor([coherent(N0,alpha),basis(N1,0),basis(N2,0)])
     opts=Odeoptions(gui=False)
-    tic=time()
-    mcsolve_f90(H, psi0, tlist, [C0,C1,C2],[num0,num1,num2],options=opts)
-    toc=time()
-    return [test_name], [toc-tic]
+
+    tot_elapsed = 0
+    for n in range(N):
+        tic=time()
+        mcsolve_f90(H, psi0, tlist, [C0,C1,C2],[num0,num1,num2],options=opts)
+        toc=time()
+        tot_elapsed += toc - tic
+
+    return [test_name], [tot_elapsed / N]
  
 
 if __name__=='__main__':

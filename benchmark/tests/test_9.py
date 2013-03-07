@@ -2,7 +2,7 @@ from qutip import *
 from numpy import *
 from time import time
 
-def test_9():
+def test_9(N=1.0):
     """
     Cavity+qubit wigner function
     """
@@ -26,11 +26,15 @@ def test_9():
     out=mesolve(H, psi0, tlist, [C1, C2], [])
     rho_cavity=ptrace(out.states[-1],0)
     xvec=linspace(-10,10,200)
-    tic=time()
-    W=wigner(rho_cavity,xvec,xvec)
-    toc=time()
+
+    tot_elapsed = 0
+    for n in range(N):
+        tic=time()
+        W=wigner(rho_cavity,xvec,xvec)
+        toc=time()
+        tot_elapsed += toc - tic
     
-    return [test_name], [toc-tic]
+    return [test_name], [tot_elapsed / N]
  
 
 
