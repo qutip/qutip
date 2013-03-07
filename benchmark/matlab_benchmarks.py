@@ -35,13 +35,12 @@ parser.add_argument("-o", "--output-file",
 args = parser.parse_args()
 
 # Call matlab benchmarks (folder must be in Matlab path!!!)
-if False:
-    if sys.platform == 'darwin':
-        sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
-        sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_benchmarks; quit'",shell=True)
-    else:
-        sproc.call("matlab -nodesktop -nosplash -r 'matlab_version; quit'",shell=True)
-        sproc.call("matlab -nodesktop -nosplash -r 'matlab_benchmarks; quit'",shell=True)
+if sys.platform == 'darwin':
+    sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_version; quit'", shell=True)
+    sproc.call("/Applications/MATLAB_R2012b.app/bin/matlab -nodesktop -nosplash -r 'matlab_benchmarks; quit'", shell=True)
+else:
+    sproc.call("matlab -nodesktop -nosplash -r 'matlab_version; quit'", shell=True)
+    sproc.call("matlab -nodesktop -nosplash -r 'matlab_benchmarks; quit'", shell=True)
 
 # read matlab versions
 matlab_version = csv.reader(open('matlab_version.csv'), dialect='excel')
@@ -51,7 +50,7 @@ for row in matlab_version:
 
 # read in matlab results
 times = np.genfromtxt('matlab_benchmarks.csv', delimiter=',')
-    
+
 data = [{'name': "test%d" % n, 'time': times[n]} for n in range(len(times))]
 
 matlab_bm = {"info": matlab_info, "data": data}
