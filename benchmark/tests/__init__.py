@@ -17,3 +17,8 @@ from test_16 import test_16
 from test_17 import test_17
 from test_18 import test_18
 from test_19 import test_19
+
+def test_function_list():
+    return [test_1, test_2, test_3, test_4, test_5, test_6, test_7,
+            test_8, test_9, test_10, test_11, test_12, test_13,
+            test_14, test_15, test_16, test_17, test_18, test_19]

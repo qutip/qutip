@@ -17,19 +17,12 @@
 #
 ###########################################################################
 
-import sys
 import platform
-import csv
-import subprocess as sproc
-from numpy import genfromtxt
-from qutip import *
-import numpy as np
-from time import time
-import qutip.settings as qset
-from tests import *
-from scipy import *
-
 import json
+import numpy as np
+from scipy import *
+from qutip import *
+from tests import *
 
 #
 # command-line parsing
@@ -52,34 +45,20 @@ qutip_info = [{'label': 'QuTiP', 'value': qutip.__version__},
               {'label': 'NumPy', 'value': numpy.__version__},
               {'label': 'SciPy', 'value': scipy.__version__}]
 
+
 #---------------------
 # Run Python Benchmarks
 #---------------------
 def run_tests(N):
-    #setup list for python times
-    python_times=[]
-    test_names=[]
-    
-    out = test_1(N); test_names += out[0]; python_times += out[1]
-    out = test_2(N); test_names += out[0]; python_times += out[1]
-    out = test_3(N); test_names += out[0]; python_times += out[1]
-    out = test_4(N); test_names += out[0]; python_times += out[1]
-    out = test_5(N); test_names += out[0]; python_times += out[1]
-    out = test_6(N); test_names += out[0]; python_times += out[1]
-    out = test_7(N); test_names += out[0]; python_times += out[1]
-    out = test_8(N); test_names += out[0]; python_times += out[1]
-    out = test_9(N); test_names += out[0]; python_times += out[1]
-    out = test_10(N); test_names += out[0]; python_times += out[1]
-    out = test_11(N); test_names += out[0]; python_times += out[1]
-    out = test_12(N); test_names += out[0]; python_times += out[1]
-    out = test_13(N); test_names += out[0]; python_times += out[1]
-    out = test_14(N); test_names += out[0]; python_times += out[1]
-    out = test_15(N); test_names += out[0]; python_times += out[1]
-    out = test_16(N); test_names += out[0]; python_times += out[1]
-    out = test_17(N); test_names += out[0]; python_times += out[1]
-    out = test_18(N); test_names += out[0]; python_times += out[1]
-    out = test_19(N); test_names += out[0]; python_times += out[1]
-    #return all results
+    # setup list for python times
+    python_times = []
+    test_names = []
+
+    for test_function in test_function_list():
+        out = test_function(N)
+        test_names += out[0]
+        python_times += out[1]
+
     return python_times, test_names
 
 if args.run_profiler:
@@ -91,9 +70,9 @@ if args.run_profiler:
 
 else:
     times, names = run_tests(args.runs)
-        
+
     data = [{'name': names[n], 'time': times[n]} for n in range(len(names))]
- 
+
     qutip_bm = {"info": qutip_info, "data": data}
 
     with open(args.output_file, "w") as outfile:
