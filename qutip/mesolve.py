@@ -29,7 +29,7 @@ import scipy.integrate
 from scipy.linalg import norm
 
 from qutip.qobj import Qobj, isket, isoper, issuper
-from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
+from qutip.superoperator import spre, spost, liouvillian_fast, mat2vec, vec2mat
 from qutip.expect import expect
 from qutip.odeoptions import Odeoptions
 from qutip.cyQ.spmatfuncs import cy_ode_rhs
@@ -321,9 +321,13 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
                             "collapse operators (expected callback function)")
 
         if isoper(c):
+            #cdc = c.dag() * c
+            #L_list.append([(spre(c) * spost(c.dag()) - 0.5 * spre(cdc)
+            #                                         - 0.5 * spost(cdc)).data,
+            #               c_coeff, c_square])
+
             cdc = c.dag() * c
-            L_list.append([(spre(c) * spost(c.dag()) - 0.5 * spre(cdc)
-                                                     - 0.5 * spost(cdc)).data,
+            L_list.append([liouvillian_fast(None, [c], data_only=True),
                            c_coeff, c_square])
 
         elif issuper(c):
@@ -502,8 +506,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     #
     string_list = []
     for k in range(n_L_terms):
-        string_list.append("Ldata[" + str(k) + "],Linds[" + str(k) +
-                           "],Lptrs[" + str(k) + "]")
+        string_list.append("Ldata[%d], Linds[%d], Lptrs[%d]" % (k, k, k))
     for name, value in args.items():
         string_list.append(str(value))
     parameter_string = ",".join(string_list)
@@ -604,8 +607,7 @@ def _sesolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     #
     string_list = []
     for k in range(n_L_terms):
-        string_list.append("Ldata[" + str(k) + "],Linds[" + str(k) +
-                           "],Lptrs[" + str(k) + "]")
+        string_list.append("Ldata[%d], Linds[%d], Lptrs[%d]" % (k, k, k))
     for name, value in args.items():
         string_list.append(str(value))
     parameter_string = ",".join(string_list)
@@ -677,10 +679,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, opt):
     if opt.tidy:
         H = H.tidyup(opt.atol)
 
-    if issuper(H):
-        L = H + liouvillian(None, c_op_list)
-    else:
-        L = liouvillian(H, c_op_list)
+    L = liouvillian_fast(H, c_op_list)
 
     #
     # setup integrator
@@ -753,9 +752,9 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     lenh = len(H_func[0])
     if opt.tidy:
         H_func[0] = [(H_func[0][k]).tidyup() for k in range(lenh)]
-    L_func = [[liouvillian(H_func[0][0], c_op_list)], H_func[1]]
+    L_func = [[liouvillian_fast(H_func[0][0], c_op_list)], H_func[1]]
     for m in range(1, lenh):
-        L_func[0].append(liouvillian(H_func[0][m], []))
+        L_func[0].append(liouvillian_fast(H_func[0][m], []))
 
     # create data arrays for time-dependent RHS function
     Ldata = [L_func[0][k].data.data for k in range(lenh)]
@@ -764,8 +763,8 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     # setup ode args string
     string = ""
     for k in range(lenh):
-        string += ("Ldata[" + str(k) + "],Linds[" + str(k) +
-                   "],Lptrs[" + str(k) + "],")
+        string += ("Ldata[%d], Linds[%d], Lptrs[%d]," % (k, k, k))
+
     if args:
         td_consts = args.items()
         for elem in td_consts:
@@ -830,16 +829,19 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     #
 
     if len(c_op_list) > 0:
-        L = 0
-        for c in c_op_list:
-            cdc = c.dag() * c
-            L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
+        #L = 0
+        #for c in c_op_list:
+        #    cdc = c.dag() * c
+        #    L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
+
+        L = liouvillian_fast(H, c_op_list)
 
         L_func_and_args = [L_func, L.data]
 
     else:
         n, m = rho0.shape
-        L_func_and_args = [L_func, sp.lil_matrix((n ** 2, m ** 2)).tocsr()]
+        L_func_and_args = [L_func,
+                           sp.csr_matrix((n ** 2, m ** 2), dtype=complex)]
 
     for arg in args:
         if isinstance(arg, Qobj):
