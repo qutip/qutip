@@ -73,6 +73,8 @@ else:
 
     data = [{'name': names[n], 'time': times[n]} for n in range(len(names))]
 
+    qutip_info.append({'label': 'Acc. time', 'value': "%.2f s" % sum(times)})
+
     qutip_bm = {"info": qutip_info, "data": data}
 
     with open(args.output_file, "w") as outfile:

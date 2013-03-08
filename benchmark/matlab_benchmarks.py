@@ -51,6 +51,8 @@ for row in matlab_version:
 # read in matlab results
 times = np.genfromtxt('matlab_benchmarks.csv', delimiter=',')
 
+matlab_info.append({'label': 'Acc. time', 'value': "%.2f s" % sum(times)})
+
 data = [{'name': "test%d" % n, 'time': times[n]} for n in range(len(times))]
 
 matlab_bm = {"info": matlab_info, "data": data}
