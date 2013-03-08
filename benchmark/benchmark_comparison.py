@@ -63,7 +63,7 @@ for n in range(len(mb1_data["data"])):
     name = mb1_data["data"][n]["name"]
     dt1 = mb1_data["data"][n]["time"]
     dt2 = mb2_data["data"][n]["time"]
-    factor = dt1 / dt2
+    factor = dt2 / dt1
     data.append({'name': str(name), 'factor': factor})
 
 f = open(args.output_file, "w")
