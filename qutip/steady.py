@@ -91,7 +91,7 @@ def steadystate(H, c_op_list, maxiter=10, tol=1e-6, itertol=1e-5,
         raise ValueError('Cannot calculate the steady state for a ' +
                          'nondissipative system (no collapse operators given)')
 
-    L = liouvillian(H, c_op_list)
+    L = liouvillian_fast(H, c_op_list)
     return steady(L, maxiter=maxiter, tol=tol, itertol=itertol,
                   method=method, use_umfpack=use_umfpack,
                   use_precond=use_precond)
