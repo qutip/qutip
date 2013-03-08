@@ -55,7 +55,10 @@ def run_tests(N):
     test_names = []
 
     for test_function in test_function_list():
-        out = test_function(N)
+        try:
+            out = test_function(N)
+        except:
+            out = [["unsupported"], [0.0]]
         test_names += out[0]
         python_times += out[1]
 
