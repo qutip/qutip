@@ -56,7 +56,7 @@ def liouvillian(H, c_op_list):
     return L
 
 
-def liouvillian_fast(H, c_op_list):
+def liouvillian_fast(H, c_op_list, data_only=False):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators. Like liouvillian, but with an
     experimental implementation which avoids creating extra Qobj instances,
@@ -106,31 +106,34 @@ def liouvillian_fast(H, c_op_list):
 
     spI = sp.identity(op_shape[0])
 
-    L = Qobj()
-    L.dims = sop_dims
-    L.shape = sop_shape
-
     if H:
         if isoper(H):
-            L.data = -1j * (sp.kron(spI, H.data, format='csr')
-                            - sp.kron(H.data.T, spI, format='csr'))
+            data = -1j * (sp.kron(spI, H.data, format='csr')
+                          - sp.kron(H.data.T, spI, format='csr'))
         else:
-            L.data = H.data
+            data = H.data
     else:
-        L.data = sp.csr_matrix((sop_shape[0], sop_shape[1]), dtype=complex)
+        data = sp.csr_matrix((sop_shape[0], sop_shape[1]), dtype=complex)
 
     for c_op in c_op_list:
         if issuper(c_op):
-            L.data = L.data + c_op.data
+            data = data + c_op.data
         else:
             cd = c_op.data.T.conj()
             c = c_op.data
-            L.data = L.data + sp.kron(cd.T, c, format='csr')
+            data = data + sp.kron(cd.T, c, format='csr')
             cdc = cd * c
-            L.data = L.data - 0.5 * sp.kron(spI, cdc, format='csr')
-            L.data = L.data - 0.5 * sp.kron(cdc.T, spI, format='csr')
+            data = data - 0.5 * sp.kron(spI, cdc, format='csr')
+            data = data - 0.5 * sp.kron(cdc.T, spI, format='csr')
 
-    return L
+    if data_only:
+        return data
+    else:
+        L = Qobj()
+        L.dims = sop_dims
+        L.shape = sop_shape
+        L.data = data
+        return L
 
 
 def mat2vec(mat):
@@ -182,12 +185,10 @@ def spost(A):
     if not isoper(A):
         raise TypeError('Input is not a quantum object')
 
-    d = A.dims[0]
     S = Qobj()
-    S.dims = [[d[:], A.dims[1][:]], [d[:], A.dims[0][:]]]
-    S.shape = [prod(S.dims[0][0]) * prod(S.dims[0][1]),
-               prod(S.dims[1][0]) * prod(S.dims[1][1])]
-    S.data = sp.kron(A.data.T, sp.identity(prod(d)), format='csr')
+    S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
+    S.shape = [prod(S.dims[0]), prod(S.dims[1])]
+    S.data = sp.kron(A.data.T, sp.identity(prod(A.dims[0])), format='csr')
     return S
 
 
@@ -207,10 +208,9 @@ def spre(A):
     """
     if not isoper(A):
         raise TypeError('Input is not a quantum object')
-    d = A.dims[1]
+
     S = Qobj()
-    S.dims = [[A.dims[0][:], d[:]], [A.dims[1][:], d[:]]]
-    S.shape = [prod(S.dims[0][0]) * prod(S.dims[0][1]),
-               prod(S.dims[1][0]) * prod(S.dims[1][1])]
-    S.data = sp.kron(sp.identity(prod(d)), A.data, format='csr')
+    S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
+    S.shape = [prod(S.dims[0]), prod(S.dims[1])]
+    S.data = sp.kron(sp.identity(prod(A.dims[1])), A.data, format='csr')
     return S
