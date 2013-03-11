@@ -28,7 +28,6 @@ http://nbviewer.ipython.org:
  * [development-mesolve-and-liouvillians](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-mesolve-and-liouvillians.ipynb)
  * [development-correlation-functions](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-correlation-functions.ipynb)
  * [development-liouvillian-construction](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-liouvillian-construction.ipynb)
- * [development-Qobj-latex-output](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-Qobj-latex-output.ipynb)
  * [development-floquet-test](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-floquet-test.ipynb)
  * [development-mcf90-test](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-mcf90-test.ipynb)
  * [development-spectrum-test](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-spectrum-test.ipynb)
