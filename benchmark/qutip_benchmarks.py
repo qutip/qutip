@@ -40,7 +40,7 @@ parser.add_argument("-N", "--runs",
                     default=1, type=int)
 args = parser.parse_args()
 
-qutip_info = [{'label': 'QuTiP', 'value': qutip.__version__},
+qutip_info = [{'label': 'QuTiP', 'value': "2.1.0"}, #qutip.__version__},
               {'label': 'Python', 'value': platform.python_version()},
               {'label': 'NumPy', 'value': numpy.__version__},
               {'label': 'SciPy', 'value': scipy.__version__}]
@@ -66,10 +66,10 @@ def run_tests(N):
 
 if args.run_profiler:
     import cProfile
-    cProfile.run('run_tests()', 'qutip_benchmarks_profiler')
+    cProfile.run('run_tests(1)', 'qutip_benchmarks_profiler')
     import pstats
     p = pstats.Stats('qutip_benchmarks_profiler')
-    p.sort_stats('cumulative').print_stats(30)
+    p.sort_stats('cumulative').print_stats(50)
 
 else:
     times, names = run_tests(args.runs)
