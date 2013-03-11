@@ -77,10 +77,19 @@ def version_table():
     return HTML(html)
 
 
-class _HTMLProgressBar():
+class HTMLProgressBar():
     """
-    Based on IPython ProgressBar demo notebook:
+    A simple HTML progress bar for using in IPython notebooks. Based on
+    IPython ProgressBar demo notebook:
     https://github.com/ipython/ipython/tree/master/examples/notebooks
+
+    Example usage:
+
+        n_vec = linspace(0, 10, 100)
+        pbar = HTMLProgressBar(len(n_vec))
+        for n in n_vec:
+            pbar.update(n)
+            compute_with_n(n)
     """
 
     def __init__(self, iterations):
@@ -198,7 +207,7 @@ def parfor(task, task_vec, args=None, client=None, view=None,
 
     if show_progressbar:
         n = len(ar_list)
-        pbar = _HTMLProgressBar(n)
+        pbar = HTMLProgressBar(n)
         while True:
             n_finished = sum([ar.progress for ar in ar_list])
             pbar.update(n_finished)
