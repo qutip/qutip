@@ -23,7 +23,7 @@ objects via the tensor product.
 """
 from numpy import ndarray, array
 import scipy.sparse as sp
-from qutip.qobj import Qobj
+from qutip.qobj import Qobj, ischeck
 import qutip.settings
 
 
@@ -56,6 +56,7 @@ shape = [4, 4], type = oper, isHerm = True
         raise TypeError("Requires at least one input argument")
     num_args = len(args)
     step = 0
+    isherm = True
     for n in range(num_args):
         if isinstance(args[n], Qobj):
             qos = args[n]
@@ -63,9 +64,11 @@ shape = [4, 4], type = oper, isHerm = True
                 dat = qos.data
                 dim = qos.dims
                 shp = qos.shape
+                isherm = isherm and qos.isherm
                 step = 1
             else:
                 dat = sp.kron(dat, qos.data, format='csr')
+                isherm = isherm and qos.isherm
                 dim = [dim[0] + qos.dims[0],
                        dim[1] + qos.dims[1]]  # append dimensions of Qobjs
                 shp = [dat.shape[0], dat.shape[1]]  # new shape of matrix
@@ -81,9 +84,11 @@ shape = [4, 4], type = oper, isHerm = True
                     dat = qos[0].data
                     dim = qos[0].dims
                     shp = qos[0].shape
+                    isherm = isherm and qos[0].isherm
                     step = 1
                 else:
                     dat = sp.kron(dat, qos[0].data, format='csr')
+                    isherm = isherm and qos[0].isherm
                     dim = [dim[0] + qos[0].dims[0],
                            dim[1] + qos[0].dims[1]]  # append dimensions of qos
                     shp = [dat.shape[0], dat.shape[1]]  # new shape of matrix
@@ -93,8 +98,10 @@ shape = [4, 4], type = oper, isHerm = True
                     dim = qos[0].dims
                     shp = qos[0].shape
                     step = 1
+                    isherm = isherm and qos[0].isherm
                 for k in range(items - 1):  # cycle over all items
                     dat = sp.kron(dat, qos[k + 1].data, format='csr')
+                    isherm = isherm and qos[k + 1].isherm
                     dim = [dim[0] + qos[k + 1].dims[0],
                            dim[1] + qos[k + 1].dims[1]]
                     shp = [dat.shape[0], dat.shape[1]]  # new shape of matrix
@@ -102,7 +109,9 @@ shape = [4, 4], type = oper, isHerm = True
     out.data = dat
     out.dims = dim
     out.shape = shp
+    out.type = ischeck(out)
+    out.isherm = isherm
     if qutip.settings.auto_tidyup:
-        return Qobj(out).tidyup()  # returns tidy Qobj
+        return out.tidyup()  # returns tidy Qobj
     else:
-        return Qobj(out)
+        return out
