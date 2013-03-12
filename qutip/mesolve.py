@@ -355,7 +355,7 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)
+    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt)
 
 
 #
@@ -545,7 +545,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)
+    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt)
 
 
 # -----------------------------------------------------------------------------
@@ -595,7 +595,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)
+    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt)
 
 
 #
@@ -702,7 +702,7 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)
+    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt)
 
 
 # -----------------------------------------------------------------------------
@@ -766,7 +766,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)
+    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt)
 
 
 #
@@ -792,10 +792,9 @@ def _ode_rho_func_td(t, rho, L_func_and_args):
 # Solve an ODE which solver parameters already setup (r). Calculate the
 # required expectation values or invoke callback function at each time step.
 #
-def _generic_ode_solve(r, psi0, tlist, expt_ops, opt,
-                       state_vectorize, state_norm_func=None):
+def _generic_ode_solve(r, psi0, tlist, expt_ops, opt):
     """
-    Internal function for solving ODEs.
+    Internal function for solving ME.
     """
 
     #
@@ -841,13 +840,7 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt,
         if not r.successful():
             break
 
-        if state_norm_func:
-            psi.data = state_vectorize(r.y)
-            state_norm = state_norm_func(psi.data)
-            psi.data = psi.data / state_norm
-            r.set_initial_value(r.y / state_norm, r.t)
-        else:
-            psi.data = state_vectorize(r.y)
+        psi.data = vec2mat(r.y)
 
         if expt_callback:
             # use callback method
