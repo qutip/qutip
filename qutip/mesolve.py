@@ -41,8 +41,8 @@ from qutip.odechecks import _ode_checks
 from qutip.odeconfig import odeconfig
 from qutip.settings import debug
 
-from qutip.sesolve import (_sesolve_list_func_td, _sesolve_func_td,
-                           _sesolve_const, _sesolve_list_td)
+from qutip.sesolve import (_sesolve_list_func_td, _sesolve_list_str_td,
+                           _sesolve_list_td, _sesolve_func_td, _sesolve_const)
 
 if debug:
     import inspect
@@ -546,107 +546,6 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     # call generic ODE code
     #
     return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, vec2mat)
-
-
-# -----------------------------------------------------------------------------
-# A time-dependent disipative master equation on the list-string format for
-# cython compilation
-#
-def _sesolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
-    """
-    Internal function for solving the master equation. See mesolve for usage.
-    """
-
-    if debug:
-        print(inspect.stack()[0][3])
-
-    #
-    # check initial state: must be a density matrix
-    #
-    if not isket(psi0):
-        raise TypeError("The unitary solver requires a ket as initial state")
-
-    #
-    # construct liouvillian
-    #
-    Ldata = []
-    Linds = []
-    Lptrs = []
-    Lcoeff = []
-
-    # loop over all hamiltonian terms, convert to superoperator form and
-    # add the data of sparse matrix representation to h_coeff
-    for h_spec in H_list:
-
-        if isinstance(h_spec, Qobj):
-            h = h_spec
-            h_coeff = "1.0"
-
-        elif isinstance(h_spec, list):
-            h = h_spec[0]
-            h_coeff = h_spec[1]
-
-        else:
-            raise TypeError("Incorrect specification of time-dependent " +
-                            "Hamiltonian (expected string format)")
-
-        L = -1j * h
-
-        Ldata.append(L.data.data)
-        Linds.append(L.data.indices)
-        Lptrs.append(L.data.indptr)
-        Lcoeff.append(h_coeff)
-
-    # the total number of liouvillian terms (hamiltonian terms +
-    # collapse operators)
-    n_L_terms = len(Ldata)
-
-    #
-    # setup ode args string: we expand the list Ldata, Linds and Lptrs into
-    # and explicit list of parameters
-    #
-    string_list = []
-    for k in range(n_L_terms):
-        string_list.append("Ldata[%d], Linds[%d], Lptrs[%d]" % (k, k, k))
-    for name, value in args.items():
-        string_list.append(str(value))
-    parameter_string = ",".join(string_list)
-
-    #
-    # generate and compile new cython code if necessary
-    #
-    if not opt.rhs_reuse or odeconfig.tdfunc is None:
-        if opt.rhs_filename is None:
-            odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
-        else:
-            odeconfig.tdname = opt.rhs_filename
-        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                       odeconfig=odeconfig)
-        cgen.generate(odeconfig.tdname + ".pyx")
-
-        code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
-                       '<string>', 'exec')
-        exec(code, globals())
-        odeconfig.tdfunc = cyq_td_ode_rhs
-
-    #
-    # setup integrator
-    #
-    initial_vector = psi0.full()
-    r = scipy.integrate.ode(odeconfig.tdfunc)
-    r.set_integrator('zvode', method=opt.method, order=opt.order,
-                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                     first_step=opt.first_step, min_step=opt.min_step,
-                     max_step=opt.max_step)
-    r.set_initial_value(initial_vector, tlist[0])
-    code = compile('r.set_f_params(' + parameter_string + ')',
-                   '<string>', 'exec')
-    exec(code)
-
-    #
-    # call generic ODE code
-    #
-    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, lambda x: x)
 
 
 # -----------------------------------------------------------------------------
