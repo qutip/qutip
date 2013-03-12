@@ -17,8 +17,7 @@
 #
 ###########################################################################
 """Main module for QuTiP, consisting of the Quantum Object (Qobj) class and
-it's methods.
-
+its methods.
 """
 import types
 import pickle
@@ -36,9 +35,8 @@ import scipy.sparse as sp
 import scipy.linalg as la
 import qutip.settings as qset
 from qutip.ptrace import _ptrace
-from qutip.sparse import (
-    sp_eigs, _sp_expm, _sp_fro_norm, _sp_max_norm, _sp_one_norm,
-    _sp_L2_norm, _sp_inf_norm)
+from qutip.sparse import (sp_eigs, _sp_expm, _sp_fro_norm, _sp_max_norm,
+                          _sp_one_norm, _sp_L2_norm, _sp_inf_norm)
 
 
 class Qobj():
@@ -147,7 +145,10 @@ class Qobj():
             # if input is already Qobj then return identical copy
 
             # make sure matrix is sparse (safety check)
-            self.data = sp.csr_matrix(inpt.data, dtype=complex)
+            if sp.issparse(inpt.data):
+                self.data = inpt.data.copy() # faster than csr_matrix ?
+            else:
+                self.data = sp.csr_matrix(inpt.data, dtype=complex)
             if not np.any(dims):
                 # Dimensions of quantum object used for keeping track of tensor
                 # components
@@ -625,13 +626,14 @@ class Qobj():
 
     #---functions acting on quantum objects---######################
     def dag(self):
-        """Returns the adjont operator of quantum object.
+        """Returns the adjoint operator of quantum object.
         """
         out = Qobj(type=self.type)
         out.data = self.data.T.conj()
         out.dims = [self.dims[1], self.dims[0]]
         out.shape = [self.shape[1], self.shape[0]]
-        return Qobj(out, isherm=self.isherm)
+        out.isherm = self.isherm
+        return out
 
     def conj(self):
         """Returns the conjugate operator of quantum object.
@@ -891,23 +893,25 @@ class Qobj():
             Quantum object with small elements removed.
 
         """
+        out = Qobj(dims=self.dims, shape=self.shape, 
+                   type=self.type, isherm=self.isherm)
+
         abs_data = abs(self.data.data.flatten())
         if np.any(abs_data):
             mx = max(abs_data)
             if mx >= atol:
                 data = abs(self.data.data)
-                outdata = self.data.copy()
-                outdata.data[data < (atol * mx + np.finfo(float).eps)] = 0
+                out.data = self.data.copy()
+                out.data.data[data < (atol * mx + np.finfo(float).eps)] = 0
             else:
-                outdata = sp.csr_matrix(
+                out.data = sp.csr_matrix(
                     (self.shape[0], self.shape[1]), dtype=complex)
         else:
-            outdata = sp.csr_matrix(
+            out.data = sp.csr_matrix(
                 (self.shape[0], self.shape[1]), dtype=complex)
 
-        outdata.eliminate_zeros()
-        return Qobj(outdata, dims=self.dims, shape=self.shape,
-                    type=self.type, isherm=self.isherm)
+        out.data.eliminate_zeros()
+        return out
 
     #
     # basis transformation
@@ -1243,11 +1247,11 @@ def qobj_list_evaluate(qobj_list, t, args):
 
     return q_sum
 
+
 #------------------------------------------------------------------------------
 #
 # functions acting on Qobj class
 #
-
 
 def dag(A):
     """Adjont operator (dagger) of a quantum object.
@@ -1347,11 +1351,10 @@ def shape(inpt):
     Using the `Qobj.dims` attribute is recommended.
 
     """
-    from scipy import shape as shp
     if isinstance(inpt, Qobj):
         return Qobj.shape
     else:
-        return shp(inpt)
+        return np.shape(inpt)
 
 
 #------------------------------------------------------------------------------
@@ -1367,9 +1370,8 @@ def qobj_save(qobj, filename):
 
     Returns file returns qobj as file in current directory
     """
-    f = open(filename, 'wb')
-    pickle.dump(qobj, f, protocol=2)
-    f.close()
+    with open(filename, 'wb') as f:
+        pickle.dump(qobj, f, protocol=2)
 
 
 def qobj_load(filename):
@@ -1379,9 +1381,9 @@ def qobj_load(filename):
 
     Returns Qobj returns quantum object
     """
-    f = open(filename, 'rb')
-    qobj = pickle.load(f)
-    f.close()
+    with open(filename, 'wb') as f:
+        qobj = pickle.load(f)
+
     return qobj
 
 
@@ -1431,10 +1433,7 @@ def isket(Q):
     if not isinstance(Q, Qobj):
             return False
 
-    result = isinstance(Q.dims[0], list)
-    if result:
-        result = result and prod(Q.dims[1]) == 1
-    return result
+    return isinstance(Q.dims[0], list) and prod(Q.dims[1]) == 1
 
 #***************************
 
@@ -1463,10 +1462,7 @@ def isbra(Q):
     if not isinstance(Q, Qobj):
         return False
 
-    result = isinstance(Q.dims[1], list)
-    if result:
-        result = result and (prod(Q.dims[0]) == 1)
-    return result
+    return isinstance(Q.dims[1], list) and (prod(Q.dims[0]) == 1)
 
 
 #***************************
@@ -1523,7 +1519,6 @@ def issuper(Q):
     return result
 
 
-#**************************
 def isequal(A, B, tol=1e-12):
     """Determines if two qobj objects are equal to within given tolerance.
 
@@ -1557,8 +1552,6 @@ def isequal(A, B, tol=1e-12):
 
     return True
 
-#**************************
-
 
 def ischeck(Q):
     if isoper(Q):
@@ -1573,7 +1566,6 @@ def ischeck(Q):
         return 'other'
 
 
-#**************************
 def isherm(Q):
     """Determines if given operator is Hermitian.
 
