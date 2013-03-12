@@ -21,8 +21,9 @@ Module contains functions for iteratively solving for the steady state
 density matrix of an open qunatum system defind by a Louvillian.
 """
 
+import warnings
 import numpy as np
-from scipy import prod, finfo, randn
+from scipy import prod, randn
 import scipy.sparse as sp
 import scipy.linalg as la
 from scipy.sparse.linalg import *
@@ -164,8 +165,8 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
             P = spilu(L, permc_spec='MMD_AT_PLUS_A')
             P_x = lambda x: P.solve(x)
         except:
-            print("Preconditioning failed.")
-            print("Continuing without.")
+            warnings.warn("Preconditioning failed. Continuing without.",
+                          UserWarning)
             M = None
         else:
             M = LinearOperator((n, n), matvec=P_x)
