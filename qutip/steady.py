@@ -194,8 +194,8 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
     data = reshape(data, (rhoss.shape[0], rhoss.shape[1])).T
     data = sp.csr_matrix(data)
     rhoss.data = 0.5 * (data + data.conj().T)
-
+    rhoss.isherm = True
     if qset.auto_tidyup:
-        return Qobj(rhoss).tidyup()
+        return rhoss.tidyup()
     else:
-        return Qobj(rhoss)
+        return rhoss
