@@ -115,7 +115,6 @@ class Qobj():
 
 
     """
-    ################## Define Qobj class #################
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
 
     def __init__(self, inpt=np.array([[0]]), dims=[[], []], shape=[],
@@ -146,7 +145,7 @@ class Qobj():
 
             # make sure matrix is sparse (safety check)
             if sp.issparse(inpt.data):
-                self.data = inpt.data.copy() # faster than csr_matrix ?
+                self.data = inpt.data.copy()  # faster than csr_matrix ?
             else:
                 self.data = sp.csr_matrix(inpt.data, dtype=complex)
             if not np.any(dims):
@@ -219,9 +218,6 @@ class Qobj():
         else:
             self.type = type
 
-    #----------------------------------
-    # BEGIN QOBJ METHODS
-    #----------------------------------
     def __add__(self, other):  # defines left addition for Qobj class
         """
         ADDITION with Qobj on LEFT [ ex. Qobj+4 ]
@@ -295,7 +291,6 @@ class Qobj():
                 return Qobj(out, type=self.type, isherm=isherm).tidyup()
             else:
                 return Qobj(out, type=self.type, isherm=isherm)
-    #----
 
     def __radd__(self, other):
         """
@@ -306,7 +301,6 @@ class Qobj():
             return out.tidyup()
         else:
             return out
-    #----
 
     def __sub__(self, other):
         """
@@ -317,7 +311,6 @@ class Qobj():
             return out.tidyup()
         else:
             return out
-    #----
 
     def __rsub__(self, other):
         """
@@ -328,7 +321,6 @@ class Qobj():
             return out.tidyup()
         else:
             return out
-    #----
 
     def __mul__(self, other):
         """
@@ -371,7 +363,6 @@ class Qobj():
                 return Qobj(out, type=self.type, isherm=isherm)
         else:
             raise TypeError("Incompatible object for multiplication")
-    #----
 
     def __rmul__(self, other):
         """
@@ -415,7 +406,6 @@ class Qobj():
         else:
             raise TypeError("Incompatible object for multiplication")
 
-    #----
     def __truediv__(self, other):
         return self.__div__(other)
 
@@ -444,7 +434,6 @@ class Qobj():
         else:
             raise TypeError("Incompatible object for division")
 
-    #----
     def __neg__(self):
         """
         NEGATION operation.
@@ -458,7 +447,6 @@ class Qobj():
         else:
             return Qobj(out, type=self.type, isherm=self.isherm)
 
-    #----
     def __getitem__(self, ind):
         """
         GET qobj elements.
@@ -468,7 +456,6 @@ class Qobj():
             return np.asarray(out.todense())
         else:
             return out
-    #----
 
     def __eq__(self, other):
         """
@@ -624,7 +611,6 @@ class Qobj():
         s += r'\end{pmatrix}\end{equation}'
         return s
 
-    #---functions acting on quantum objects---######################
     def dag(self):
         """Returns the adjoint operator of quantum object.
         """
@@ -893,7 +879,7 @@ class Qobj():
             Quantum object with small elements removed.
 
         """
-        out = Qobj(dims=self.dims, shape=self.shape, 
+        out = Qobj(dims=self.dims, shape=self.shape,
                    type=self.type, isherm=self.isherm)
 
         abs_data = abs(self.data.data.flatten())
@@ -913,9 +899,6 @@ class Qobj():
         out.data.eliminate_zeros()
         return out
 
-    #
-    # basis transformation
-    #
     def transform(self, inpt, inverse=False):
         """Performs a basis transformation defined by an input array.
 
@@ -981,9 +964,6 @@ class Qobj():
 
         return out
 
-    #
-    # calculate the matrix element between self and a bra and a ket
-    #
     def matrix_element(self, bra, ket):
         """Calculates a matrix element.
 
@@ -1021,10 +1001,6 @@ class Qobj():
         raise TypeError("Can only calculate matrix elements for operators " +
                         "and between ket and bra Qobj")
 
-    #
-    # Find the eigenstates and eigenenergies (defined for operators and
-    # superoperators)
-    #
     def eigenstates(self, sparse=False, sort='low',
                     eigvals=0, tol=0, maxiter=100000):
         """Find the eigenstates and eigenenergies.
@@ -1074,9 +1050,6 @@ class Qobj():
         norms = np.array([ket.norm() for ket in ekets])
         return evals, ekets / norms
 
-    #
-    # Find only the eigenenergies (defined for operators and superoperators)
-    #
     def eigenenergies(self, sparse=False, sort='low',
                       eigvals=0, tol=0, maxiter=100000):
         """Finds the Eigenenergies (Eigenvalues) of a quantum object.
@@ -1115,9 +1088,6 @@ class Qobj():
         return sp_eigs(self, vecs=False, sparse=sparse, sort=sort,
                        eigvals=eigvals, tol=tol, maxiter=maxiter)
 
-    #
-    # Find ground state (eigenvector for lowest eigenvalue) for operator
-    #
     def groundstate(self, sparse=False, tol=0, maxiter=100000):
         """Finds the ground state Eigenvalue and Eigenvector.
 
@@ -1250,7 +1220,7 @@ def qobj_list_evaluate(qobj_list, t, args):
 
 #------------------------------------------------------------------------------
 #
-# functions acting on Qobj class
+# some functions for increased compatibility with quantum optics toolbox:
 #
 
 def dag(A):
@@ -1300,11 +1270,6 @@ def ptrace(Q, sel):
     """
     return Q.ptrace(sel)
 
-
-#------------------------------------------------------------------------------
-#
-# some functions for increased compatibility with quantum optics toolbox:
-#
 
 def dims(inpt):
     """Returns the dims attribute of a quantum object.
@@ -1435,8 +1400,6 @@ def isket(Q):
 
     return isinstance(Q.dims[0], list) and prod(Q.dims[1]) == 1
 
-#***************************
-
 
 def isbra(Q):
     """Determines if given quantum object is a bra-vector.
@@ -1465,7 +1428,6 @@ def isbra(Q):
     return isinstance(Q.dims[1], list) and (prod(Q.dims[0]) == 1)
 
 
-#***************************
 def isoper(Q):
     """Determines if given quantum object is a operator.
 
@@ -1494,7 +1456,6 @@ def isoper(Q):
             isinstance(Q.dims[0][0], int) and (Q.dims[0] == Q.dims[1]))
 
 
-#***************************
 def issuper(Q):
     """Determines if given quantum object is a super-operator.
 
