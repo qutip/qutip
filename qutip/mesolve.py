@@ -27,6 +27,7 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.integrate
 from scipy.linalg import norm
+import warnings
 
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian_fast, mat2vec, vec2mat
@@ -939,6 +940,9 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, args=None, options=None):
     Deprecated in QuTiP 2.0.0. Use :func:`mesolve` instead.
 
     """
+
+    warnings.warn("odesolve is deprecated since 2.0.0. Use mesolve instead.",
+                  DeprecationWarning)
 
     if debug:
         print(inspect.stack()[0][3])
