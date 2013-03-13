@@ -1210,17 +1210,7 @@ class Qobj():
         keep_indices = np.array([s not in states_indices
                                  for s in range(self.shape[0])]).nonzero()[0]
 
-        if isoper(self):
-            q = Qobj(self.data[keep_indices,:][:,keep_indices])
-        elif isket(self):
-            q = Qobj(self.data[keep_indices,:])
-        elif isbra(self):
-            q = Qobj(self.data[:,keep_indices])
-        else:
-            raise TypeError("Can only eliminate states from operators or " +
-                            "state vectors")
-
-        return q.unit() if normalize else q
+        return self.extract_states(keep_indices, normalize=normalize)
 
 #------------------------------------------------------------------------------
 # This functions evaluates a time-dependent quantum object on the list-string
