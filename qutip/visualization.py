@@ -510,7 +510,7 @@ def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
     if labels:
         ax.get_xaxis().tick_bottom()
         ax.set_xticks(xticks)
-        ax.set_xticklabels(labels)
+        ax.set_xticklabels(labels, fontsize=16)
     else:
         ax.axes.get_xaxis().set_visible(False)
 
