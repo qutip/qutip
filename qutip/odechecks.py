@@ -17,7 +17,8 @@
 #
 ###########################################################################
 import numpy as np
-from types import FunctionType
+from types import FunctionType, BuiltinFunctionType
+from functools import partial
 from qutip.qobj import *
 
 
@@ -41,7 +42,8 @@ def _ode_checks(H, c_ops, solver='me'):
                 if len(H[k]) != 2 or not isinstance(H[k][0], Qobj):
                     raise TypeError("Incorrect hamiltonian specification")
                 else:
-                    if isinstance(H[k][1], FunctionType):
+                    if isinstance(H[k][1], (FunctionType,
+                                            BuiltinFunctionType, partial)):
                         h_func.append(k)
                     elif isinstance(H[k][1], str):
                         h_str.append(k)
@@ -63,7 +65,8 @@ def _ode_checks(H, c_ops, solver='me'):
                     raise TypeError(
                         "Incorrect collapse operator specification")
                 else:
-                    if isinstance(c_ops[k][1], FunctionType):
+                    if isinstance(c_ops[k][1], (FunctionType,
+                                                BuiltinFunctionType, partial)):
                         c_func.append(k)
                     elif isinstance(c_ops[k][1], str):
                         c_str.append(k)
