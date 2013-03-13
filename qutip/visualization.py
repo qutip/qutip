@@ -417,13 +417,13 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
     return ax
 
 
-def energy_level_diagram(H_list, N=0, figsize=(8, 12), labels=None,
-                         fig=None, ax=None):
+def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
+                         figsize=(8, 12), fig=None, ax=None):
     """
     Plot the energy level diagrams for a list of Hamiltonians. Include
     up to N energy levels. For each element in H_list, the energy
-    levels diagram for the cummulative Hamiltonian sum(H_list[0:N]) is plotted,
-    where N is the index of an element in H_list.
+    levels diagram for the cummulative Hamiltonian sum(H_list[0:n]) is plotted,
+    where n is the index of an element in H_list.
 
     Parameters
     ----------
@@ -434,11 +434,21 @@ def energy_level_diagram(H_list, N=0, figsize=(8, 12), labels=None,
         labels : List of string
             A list of labels for each Hamiltonian
 
+        show_ylabels : Bool (default False)
+            Show y labels to the left of energy levels of the initial
+            Hamiltonian.
+
         N : int
             The number of energy levels to plot
 
         figsize : tuple (int,int)
             The size of the figure (width, height).
+
+        fig : a matplotlib Figure instance
+            The Figure canvas in which the plot will be drawn.
+
+        ax : a matplotlib axes instance
+            The axes context in which the plot will be drawn.
 
     Returns
     -------
@@ -463,11 +473,13 @@ def energy_level_diagram(H_list, N=0, figsize=(8, 12), labels=None,
     N = H.shape[0] if N == 0 else min(H.shape[0], N)
 
     xticks = []
+    yticks = []
 
     x = 0
     evals0 = H.eigenenergies(eigvals=N) / (2 * np.pi)
     for e_idx, e in enumerate(evals0[:N]):
         ax.plot([x, x + 2], np.array([1, 1]) * e, 'b', linewidth=2)
+        yticks.append(e)
     xticks.append(x + 1)
     x += 2
 
@@ -488,7 +500,12 @@ def energy_level_diagram(H_list, N=0, figsize=(8, 12), labels=None,
         evals0 = evals1
 
     ax.set_frame_on(False)
-    ax.axes.get_yaxis().set_visible(False)
+
+    if show_ylabels:
+        yticks = np.unique(np.around(yticks, 1))
+        ax.set_yticks(yticks)
+    else:
+        ax.axes.get_yaxis().set_visible(False)
 
     if labels:
         ax.get_xaxis().tick_bottom()
