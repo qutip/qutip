@@ -17,6 +17,7 @@
 #
 ###########################################################################
 
+from functools import partial
 from numpy import allclose, linspace, mean, ones
 from numpy.testing import assert_, run_module_suite
 
@@ -383,6 +384,23 @@ class TestMESolveTDDecay:
         actual_answer = 9.0 * exp(-kappa * (1.0 - exp(-tlist)))
         avg_diff = mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < me_error)
+
+    def testMESimpleTDDecayAsPartialFuncList(self):
+        "mesolve: simple time-dependence as partial function list"
+
+        N = 10
+        a = destroy(N)
+        H = num(N)
+        psi0 = basis(N, 9)
+        tlist = linspace(0, 10, 100)
+        c_ops = [[[a, partial(lambda t, args, k : sqrt(k * exp(-t)), k=kappa)]]
+                 for kappa in [0.05, 0.1, 0.2]]
+
+        for idx, kappa in enumerate([0.05, 0.1, 0.2]):
+            medata = mesolve(H, psi0, tlist, c_ops[idx], [H])
+            ref = 9.0 * exp(-kappa * (1.0 - exp(-tlist)))
+            avg_diff = mean(abs(ref - medata.expect[0]) / ref)
+            assert_(avg_diff < me_error)
 
     def testMESimpleTDDecayAsStrList(self):
         "mesolve: simple time-dependence as string list"
