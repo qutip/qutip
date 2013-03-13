@@ -1177,7 +1177,7 @@ class Qobj():
         out.shape = [self.shape[1], self.shape[0]]
         return out
 
-    def extract_states(self, states_indices):
+    def extract_states(self, states_indices, normalize=False):
         """
         Create a new Qobj instance for which only states corresponding to 
         those in state_indices has been kept.
@@ -1186,9 +1186,11 @@ class Qobj():
 
             Experimental.
         """
-        return Qobj(self.data[states_indices,:][:,states_indices])
+        q = Qobj(self.data[states_indices,:][:,states_indices])
 
-    def eliminate_states(self, states_indices):
+        return q.unit() if normalize else q
+
+    def eliminate_states(self, states_indices, normalize=False):
         """
         Create a new Qobj instance for which states corresponding to 
         those in state_indices has been eliminated.
@@ -1199,7 +1201,10 @@ class Qobj():
         """
         keep_indices = np.array([s not in states_indices
                                  for s in range(self.shape[0])]).nonzero()[0]
-        return Qobj(self.data[keep_indices,:][:,keep_indices])
+
+        q = Qobj(self.data[keep_indices,:][:,keep_indices])
+
+        return q.unit() if normalize else q
 
 #------------------------------------------------------------------------------
 # This functions evaluates a time-dependent quantum object on the list-string
