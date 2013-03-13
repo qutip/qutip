@@ -1001,6 +1001,41 @@ class Qobj():
         raise TypeError("Can only calculate matrix elements for operators " +
                         "and between ket and bra Qobj")
 
+    def overlap(self, state):
+        """Calculates a overlap between two state vectors.
+
+        Gives overlap (scalar product) for the Qobj and `state` state vector.
+
+        Parameters
+        -----------
+        state : qobj
+            Quantum object for a state vector of type 'ket' or 'bra'.
+
+        Returns
+        -------
+        overlap : complex
+            Complex valued overlap.
+
+        Raises
+        ------
+        TypeError
+            Can only calculate overlap between a bra and ket quantum objects.
+        """
+
+        if isbra(self):
+            if isket(state):
+                return (self.data * state.data)[0, 0]
+            elif isbra(state):
+                return (self.data * state.data.H)[0, 0]
+
+        elif isket(self):
+            if isbra(state):
+                return (self.data.H * state.data.H)[0, 0]
+            elif isket(state):
+                return (self.data.H * state.data)[0, 0]
+
+        raise TypeError("Can only calculate overlap for state vector Qobjs")
+
     def eigenstates(self, sparse=False, sort='low',
                     eigvals=0, tol=0, maxiter=100000):
         """Find the eigenstates and eigenenergies.
