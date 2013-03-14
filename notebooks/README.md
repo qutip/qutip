@@ -31,4 +31,5 @@ http://nbviewer.ipython.org:
  * [development-floquet-test](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-floquet-test.ipynb)
  * [development-mcf90-test](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-mcf90-test.ipynb)
  * [development-spectrum-test](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-spectrum-test.ipynb)
+ * [development-Qobj-extract-eliminate](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-Qobj-extract-eliminate.ipynb)
 
