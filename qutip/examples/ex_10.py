@@ -13,7 +13,7 @@ def run():
     # amplitude of coherent states
     alpha = 2.0 + 2j
 
-    # define displacement oeprators
+    # define displacement operators
     D1 = displace(N, alpha)
     D2 = displace(N, -alpha)
 
