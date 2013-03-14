@@ -53,6 +53,17 @@ class Distribution:
     provide implementation of basic functions that are shared among all
     Distribution functions, such as visualization, calculating marginal
     distributions, etc.
+
+    Parameters
+    ----------
+    data : array_like
+        Data for the distribution. The dimensions must match the lengths of
+        the coordinate arrays in xvecs.
+    xvecs : list
+        List of arrays that spans the space for each coordinate.
+    xlabels : list
+        List of labels for each coordinate.
+
     """
 
     def __init__(self, data=None, xvecs=[], xlabels=[]):
@@ -177,6 +188,12 @@ class Distribution:
         `dim`. Return a new Distribution instance describing this reduced-
         dimensionality distribution.
 
+        Parameters
+        ----------
+        dim : int
+            The dimension (coordinate index) along which to obtain the 
+            marginal distribution.
+
         Returns
         -------
 
@@ -195,9 +212,14 @@ class Distribution:
         dimension `dim`. Return a new Distribution instance describing this
         reduced-dimensionality distribution.
 
+        Parameters
+        ----------
+        dim : int
+            The dimension (coordinate index) along which to obtain the 
+            projected distribution.
+
         Returns
         -------
-
         d : Distributions
             A new instances of Distribution that describes the projection.
 
