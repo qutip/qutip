@@ -144,10 +144,7 @@ class Qobj():
             # if input is already Qobj then return identical copy
 
             # make sure matrix is sparse (safety check)
-            if sp.issparse(inpt.data):
-                self.data = inpt.data.copy()  # faster than csr_matrix ?
-            else:
-                self.data = sp.csr_matrix(inpt.data, dtype=complex)
+            self.data = sp.csr_matrix(inpt.data, dtype=complex)
             if not np.any(dims):
                 # Dimensions of quantum object used for keeping track of tensor
                 # components
