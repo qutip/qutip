@@ -53,8 +53,10 @@ class Distribution:
 
         n = len(self.xvecs)
         if n == 2:
-            self.visualize_2d(fig=fig, ax=ax, figsize=figsize,
-                              colorbar=colorbar, cmap=cmap)
+            return self.visualize_2d(fig=fig, ax=ax, figsize=figsize,
+                                     colorbar=colorbar, cmap=cmap)
+        elif n == 1:
+            return self.visualize_1d(fig=fig, ax=ax, figsize=figsize)
         else:
             raise NotImplementedError("Distribution visualization in " + 
                                       "%d dimensions is not implemented." % n)
@@ -83,11 +85,23 @@ class Distribution:
 
         return fig, ax
 
+    def visualize_1d(self, fig=None, ax=None, figsize=(8, 6)):
+
+        if not fig and not ax:
+            fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+        p = ax.plot(self.xvecs[0], self.data)
+
+        ax.set_xlabel(self.xlabels[0], fontsize=12)
+        ax.set_ylabel("Marginal distribution", fontsize=12)
+
+        return fig, ax
 
     def marginal(self, dim=0):
-        return Distribution(data=self.data.sum(axis=dim),
+
+        return Distribution(data=self.data.mean(axis=dim),
                             xvecs=[self.xvecs[dim]],
-                            xlabels=[self.xvecs[dim]])
+                            xlabels=[self.xlabels[dim]])
 
 
 
