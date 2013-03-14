@@ -42,6 +42,17 @@ if qutip.settings.qutip_graphics == 'YES':
 
 
 class Distribution:
+    """A class for representation spatial distribution functions.
+
+    The Distribution class can be used to prepresent spatial distribution
+    functions of arbitray dimension (although only 1D and 2D distributions
+    are used so far).
+
+    It is indented as a base class for specific distribution function, and 
+    provide implementation of basic functions that are shared among all 
+    Distribution functions, such as visualization, calculating marginal
+    distributions, etc.
+    """
 
     def __init__(self, data=None, xvecs=[], xlabels=[]):
         self.data = data
@@ -50,7 +61,28 @@ class Distribution:
 
     def visualize(self, fig=None, ax=None, figsize=(8, 6),
                   colorbar=True, cmap=None):
+        """
+        Visualize the data of the distribution in 1D or 2D, depending
+        on the dimensionality of the underlaying distribution.
 
+        Parameters:
+
+        fig : matplotlib Figure instance
+            If given, use this figure instance for the visualization,
+
+        ax : matplotlib Axes instance
+            If given, render the visualization using this axis instance.
+
+        figsize : tuple
+            Size of the new Figure instance, if one needs to be created.
+
+        colorbar: Bool
+            Whether or not the colorbar (in 2D visualization) should be used.
+
+        cmap: matplotlib colormap instance
+            If given, use this colormap for 2D visualizations.
+
+        """
         n = len(self.xvecs)
         if n == 2:
             return self.visualize_2d(fig=fig, ax=ax, figsize=figsize,
@@ -98,13 +130,21 @@ class Distribution:
         return fig, ax
 
     def marginal(self, dim=0):
-
+        """
+        Calculate the marginal distribution function along the dimension 
+        `dim`. Return a new Distribution instance describing this reduced-
+        dimensionality distribution.
+        """
         return Distribution(data=self.data.mean(axis=dim),
                             xvecs=[self.xvecs[dim]],
                             xlabels=[self.xlabels[dim]])
 
     def project(self, dim=0):
-
+        """
+        Calculate the projection (max value) distribution function along the
+        dimension `dim`. Return a new Distribution instance describing this
+        reduced-dimensionality distribution.
+        """
         return Distribution(data=self.data.max(axis=dim),
                             xvecs=[self.xvecs[dim]],
                             xlabels=[self.xlabels[dim]])
