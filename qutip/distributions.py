@@ -43,6 +43,11 @@ if qutip.settings.qutip_graphics == 'YES':
 
 class Distribution:
 
+    def __init__(self, data=None, xvecs=[], xlabels=[]):
+        self.data = data
+        self.xvecs = xvecs
+        self.xlabels = xlabels
+
     def visualize(self, fig=None, ax=None, figsize=(8, 6),
                   colorbar=True, cmap=None):
 
@@ -77,6 +82,13 @@ class Distribution:
             cb = fig.colorbar(cf, ax=ax)
 
         return fig, ax
+
+
+    def marginal(self, dim=0):
+        return Distribution(data=self.data.sum(axis=dim),
+                            xvecs=[self.xvecs[dim]],
+                            xlabels=[self.xvecs[dim]])
+
 
 
 class WignerDistribution(Distribution):
