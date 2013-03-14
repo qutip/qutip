@@ -83,6 +83,15 @@ class Distribution:
         cmap: matplotlib colormap instance
             If given, use this colormap for 2D visualizations.
 
+        style : string
+            Type of visualization: 'colormap' (default) or 'surface'.
+
+        Returns
+        -------
+
+        fig, ax : tuple
+            A tuple of matplotlib figure and axes instances.
+
         """
         n = len(self.xvecs)
         if n == 2:
@@ -170,6 +179,14 @@ class Distribution:
         Calculate the marginal distribution function along the dimension 
         `dim`. Return a new Distribution instance describing this reduced-
         dimensionality distribution.
+
+        Returns
+        -------
+
+        d : Distributions
+            A new instances of Distribution that describes the marginal 
+            distribution.
+
         """
         return Distribution(data=self.data.mean(axis=dim),
                             xvecs=[self.xvecs[dim]],
@@ -180,6 +197,13 @@ class Distribution:
         Calculate the projection (max value) distribution function along the
         dimension `dim`. Return a new Distribution instance describing this
         reduced-dimensionality distribution.
+
+        Returns
+        -------
+
+        d : Distributions
+            A new instances of Distribution that describes the projection.
+
         """
         return Distribution(data=self.data.max(axis=dim),
                             xvecs=[self.xvecs[dim]],
