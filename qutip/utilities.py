@@ -207,8 +207,8 @@ def convert_meV_to_mK(w):
     w_new_unit : float / array
         The energy in the new unit.
     """
-    # 1 mK = 0.000086 meV
-    w_mK = w / 0.000086
+    # 1 mK = 0.0000861740 meV
+    w_mK = w / 0.0000861740
     return w_mK
 
 def convert_mK_to_meV(w):
@@ -225,8 +225,8 @@ def convert_mK_to_meV(w):
     w_new_unit : float / array
         The energy in the new unit.
     """
-    # 1 mK = 0.000086 meV
-    w_meV = w * 0.000086
+    # 1 mK = 0.0000861740 meV
+    w_meV = w * 0.0000861740
     return w_meV
 
 
