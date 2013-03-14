@@ -39,6 +39,7 @@ import qutip.settings
 if qutip.settings.qutip_graphics == 'YES':
     import matplotlib as mpl
     import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
 
 
 class Distribution:
@@ -60,7 +61,7 @@ class Distribution:
         self.xlabels = xlabels
 
     def visualize(self, fig=None, ax=None, figsize=(8, 6),
-                  colorbar=True, cmap=None):
+                  colorbar=True, cmap=None, style="colormap"):
         """
         Visualize the data of the distribution in 1D or 2D, depending
         on the dimensionality of the underlaying distribution.
@@ -85,16 +86,24 @@ class Distribution:
         """
         n = len(self.xvecs)
         if n == 2:
-            return self.visualize_2d(fig=fig, ax=ax, figsize=figsize,
-                                     colorbar=colorbar, cmap=cmap)
+            if style == "colormap":
+                return self.visualize_2d_colormap(fig=fig, ax=ax,
+                                                  figsize=figsize,
+                                                  colorbar=colorbar,
+                                                  cmap=cmap)
+            else:
+                return self.visualize_2d_surface(fig=fig, ax=ax,
+                                                 figsize=figsize,
+                                                 colorbar=colorbar,
+                                                 cmap=cmap)
         elif n == 1:
             return self.visualize_1d(fig=fig, ax=ax, figsize=figsize)
         else:
             raise NotImplementedError("Distribution visualization in " + 
                                       "%d dimensions is not implemented." % n)
 
-    def visualize_2d(self, fig=None, ax=None, figsize=(8, 6),
-                     colorbar=True, cmap=None):
+    def visualize_2d_colormap(self, fig=None, ax=None, figsize=(8, 6),
+                              colorbar=True, cmap=None):
 
 
         if not fig and not ax:
@@ -116,6 +125,33 @@ class Distribution:
             cb = fig.colorbar(cf, ax=ax)
 
         return fig, ax
+
+    def visualize_2d_surface(self, fig=None, ax=None, figsize=(8, 6),
+                             colorbar=True, cmap=None):
+
+
+        if not fig and not ax:
+            fig = plt.figure(figsize=figsize)
+            ax = Axes3D(fig, azim=-62, elev=25)
+
+        if cmap is None:
+            cmap = mpl.cm.get_cmap('RdBu')
+
+        lim = abs(self.data).max()
+
+        X, Y = np.meshgrid(self.xvecs[0], self.xvecs[1])
+        s = ax.plot_surface(X, Y, self.data,
+                            norm=mpl.colors.Normalize(-lim, lim),
+                            rstride=5, cstride=5, cmap=cmap, lw=0.1)
+
+        ax.set_xlabel(self.xlabels[0], fontsize=12)
+        ax.set_ylabel(self.xlabels[1], fontsize=12)
+
+        if colorbar:
+            cb = fig.colorbar(s, ax=ax, shrink=0.5)
+
+        return fig, ax
+
 
     def visualize_1d(self, fig=None, ax=None, figsize=(8, 6)):
 
