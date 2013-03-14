@@ -1179,9 +1179,29 @@ class Qobj():
         Create a new Qobj instance for which only states corresponding to 
         those in state_indices has been kept.
 
+        Parameters
+        ----------
+        states_indices : list of integer
+            The states that should be kept.
+
+        normalize : True / False
+            Weather or not the new Qobj instance should be normalized (default
+            is False). For Qobjs that represents density matrices or state
+            vectors normalized should probably be set to True, but for Qobjs
+            that represents operators in for example an Hamiltonian, normalize
+            should be False. 
+
+        Returns
+        -------
+        q : :class:`qutip.Qobj`
+
+            A new instance of :class:`qutip.Qobj` that contains only the states
+            corresponding to the indices in `state_indices`.
+
         .. note::
 
             Experimental.
+
         """
         if isoper(self):
             q = Qobj(self.data[states_indices,:][:,states_indices])
@@ -1199,6 +1219,25 @@ class Qobj():
         """
         Create a new Qobj instance for which states corresponding to 
         those in state_indices has been eliminated.
+
+        Parameters
+        ----------
+        states_indices : list of integer
+            The states that should be removed.
+
+        normalize : True / False
+            Weather or not the new Qobj instance should be normalized (default
+            is False). For Qobjs that represents density matrices or state
+            vectors normalized should probably be set to True, but for Qobjs
+            that represents operators in for example an Hamiltonian, normalize
+            should be False. 
+
+        Returns
+        -------
+        q : :class:`qutip.Qobj`
+
+            A new instance of :class:`qutip.Qobj` that contains only the states
+            corresponding to indices that are **not** in `state_indices`.
 
         .. note::
 
