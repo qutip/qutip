@@ -103,6 +103,12 @@ class Distribution:
                             xvecs=[self.xvecs[dim]],
                             xlabels=[self.xlabels[dim]])
 
+    def project(self, dim=0):
+
+        return Distribution(data=self.data.max(axis=dim),
+                            xvecs=[self.xvecs[dim]],
+                            xlabels=[self.xlabels[dim]])
+
 
 
 class WignerDistribution(Distribution):
