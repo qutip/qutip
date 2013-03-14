@@ -452,8 +452,9 @@ def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
 
     Returns
     -------
-
-        The figure and axes instances used for the plot.
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce 
+        the figure.
 
     Raises
     ------
@@ -596,9 +597,9 @@ def fock_distribution(rho, fig=None, ax=None, figsize=(8, 6), title=None):
 
     Returns
     -------
-
-        A tuple of matplotlib figure and axes instances.
-
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce 
+        the figure.
     """
 
     if not fig and not ax:
@@ -655,9 +656,9 @@ def wigner_fock_distribution(rho, fig=None, ax=None, figsize=(8, 4),
 
     Returns
     -------
-
-        A tuple of matplotlib figure and axes instances.
-
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce 
+        the figure.
     """
 
     if not fig and not ax:
