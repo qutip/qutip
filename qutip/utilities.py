@@ -149,3 +149,47 @@ def clebsch(j1, j2, j3, m1, m2, m3):
             factorial(v + j1 - j2 - m3)
     C = C * S
     return C
+
+
+
+#------------------------------------------------------------------------------
+# Functions for unit conversions
+#
+
+def convert_GHz_to_meV(w_GHz):
+    # 1 GHz = 4.1357e-6 eV = 4.1357e-3 meV
+    w_meV = w_GHz * 4.1357e-3
+    return w_meV
+ 
+def convert_meV_to_GHz(w_meV):
+    # 1 meV = 1.0/4.1357e-3 GHz
+    w_GHz = w_meV / 4.1357e-3
+    return w_GHz
+
+
+def convert_meV_to_mK(w_meV):
+    # 1 mK = 0.000086 meV
+    w_mK = w_meV / 0.000086
+    return w_mK
+
+def convert_mK_to_meV(w_mK):
+    # 1 mK = 0.000086 meV
+    w_meV = w_mK * 0.000086
+    return w_meV
+
+
+_kB = 1.3806488e-23
+_h = 6.62606957e-34
+def convert_GHz_to_mK(w_GHz):
+    # h v [Hz] = kB T [K]
+    # h 1e9 v [GHz] = kB 1e-3 T [mK]
+    # T [mK] = 1e12 * (h/kB) * v [GHz]
+    w_mK = w_GHz * 1.0e12 * (_h/_kB)
+    return w_mK
+
+def convert_mK_to_GHz(w_mK):
+    w_GHz = w_mK * 1.0e-12 * (_kB/_h)
+    return w_GHz
+
+
+
