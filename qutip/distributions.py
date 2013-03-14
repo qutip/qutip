@@ -27,8 +27,13 @@ distributions, such as Wigner distributions, etc.
 
 """
 import numpy as np
+from numpy import pi, exp, sqrt
+
+from scipy.misc import factorial
+from scipy.special import hermite
 
 from qutip.wigner import wigner, qfunc
+from qutip.states import state_number_index
 import qutip.settings
 
 if qutip.settings.qutip_graphics == 'YES':
@@ -97,4 +102,48 @@ class QDistribution(Distribution):
     def update(self, rho):
 
         self.data = qfunc(rho, self.xvec, self.yvec)
+
+
+class TwoModeQuadratureCorrelation(Distribution):
+
+    def __init__(self, rho=None, theta1=0.0, theta2=0.0,
+                 extent=[[-5, 5], [-5, 5]], steps=250):
+
+        self.xvec = np.linspace(extent[0][0], extent[0][1], steps)
+        self.yvec = np.linspace(extent[1][0], extent[1][1], steps)
+                
+        self.xlabel = r'$X_1(\theta_1)$'
+        self.ylabel = r'$X_2(\theta_2)$'
+    
+        self.theta1 = theta1
+        self.theta2 = theta2
+
+        if rho:
+            self.update(rho)
+
+    def update(self, rho):
+        """
+        calculate probability distribution for quadrature measurement
+        outcomes given a two-mode wavefunction/density matrix
+        """
+        
+        X1, X2 = np.meshgrid(self.xvec, self.yvec)
+        
+        p = np.zeros((len(self.xvec), len(self.yvec)), dtype=complex)
+        N = rho.dims[0][0]
+        
+        for n1 in range(N):
+            kn1 = exp(-1j * self.theta1 * n1) / \
+                sqrt(sqrt(pi) * 2**n1 * factorial(n1)) * \
+                exp(-X1**2/2.0) * np.polyval(hermite(n1), X1)
+
+            for n2 in range(N):
+                kn2 = exp(-1j * self.theta2 * n2) / \
+                    sqrt(sqrt(pi) * 2**n2 * factorial(n2)) * \
+                    exp(-X2**2/2.0) * np.polyval(hermite(n2), X2)
+
+                i = state_number_index([N, N], [n1, n2])
+                p += kn1 * kn2 * rho.data[i,0]
+
+        self.data = abs(p)**2
 
