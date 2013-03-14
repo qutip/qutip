@@ -49,8 +49,8 @@ class Distribution:
     functions of arbitray dimension (although only 1D and 2D distributions
     are used so far).
 
-    It is indented as a base class for specific distribution function, and 
-    provide implementation of basic functions that are shared among all 
+    It is indented as a base class for specific distribution function, and
+    provide implementation of basic functions that are shared among all
     Distribution functions, such as visualization, calculating marginal
     distributions, etc.
     """
@@ -108,12 +108,11 @@ class Distribution:
         elif n == 1:
             return self.visualize_1d(fig=fig, ax=ax, figsize=figsize)
         else:
-            raise NotImplementedError("Distribution visualization in " + 
+            raise NotImplementedError("Distribution visualization in " +
                                       "%d dimensions is not implemented." % n)
 
     def visualize_2d_colormap(self, fig=None, ax=None, figsize=(8, 6),
                               colorbar=True, cmap=None):
-
 
         if not fig and not ax:
             fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -138,7 +137,6 @@ class Distribution:
     def visualize_2d_surface(self, fig=None, ax=None, figsize=(8, 6),
                              colorbar=True, cmap=None):
 
-
         if not fig and not ax:
             fig = plt.figure(figsize=figsize)
             ax = Axes3D(fig, azim=-62, elev=25)
@@ -161,7 +159,6 @@ class Distribution:
 
         return fig, ax
 
-
     def visualize_1d(self, fig=None, ax=None, figsize=(8, 6)):
 
         if not fig and not ax:
@@ -176,7 +173,7 @@ class Distribution:
 
     def marginal(self, dim=0):
         """
-        Calculate the marginal distribution function along the dimension 
+        Calculate the marginal distribution function along the dimension
         `dim`. Return a new Distribution instance describing this reduced-
         dimensionality distribution.
 
@@ -184,7 +181,7 @@ class Distribution:
         -------
 
         d : Distributions
-            A new instances of Distribution that describes the marginal 
+            A new instances of Distribution that describes the marginal
             distribution.
 
         """
@@ -210,16 +207,15 @@ class Distribution:
                             xlabels=[self.xlabels[dim]])
 
 
-
 class WignerDistribution(Distribution):
 
     def __init__(self, rho=None, extent=[[-5, 5], [-5, 5]], steps=250):
 
         self.xvecs = [np.linspace(extent[0][0], extent[0][1], steps),
                       np.linspace(extent[1][0], extent[1][1], steps)]
-                
+
         self.xlabels = [r'$\rm{Re}(\alpha)$', r'$\rm{Im}(\alpha)$']
-    
+
         if rho:
             self.update(rho)
 
@@ -234,9 +230,9 @@ class QDistribution(Distribution):
 
         self.xvecs = [np.linspace(extent[0][0], extent[0][1], steps),
                       np.linspace(extent[1][0], extent[1][1], steps)]
-                
+
         self.xlabels = [r'$\rm{Re}(\alpha)$', r'$\rm{Im}(\alpha)$']
-    
+
         if rho:
             self.update(rho)
 
@@ -252,9 +248,9 @@ class TwoModeQuadratureCorrelation(Distribution):
 
         self.xvecs = [np.linspace(extent[0][0], extent[0][1], steps),
                       np.linspace(extent[1][0], extent[1][1], steps)]
-                
+
         self.xlabels = [r'$X_1(\theta_1)$', r'$X_2(\theta_2)$']
-    
+
         self.theta1 = theta1
         self.theta2 = theta2
 
@@ -266,23 +262,22 @@ class TwoModeQuadratureCorrelation(Distribution):
         calculate probability distribution for quadrature measurement
         outcomes given a two-mode wavefunction/density matrix
         """
-        
+
         X1, X2 = np.meshgrid(self.xvecs[0], self.xvecs[1])
-        
+
         p = np.zeros((len(self.xvecs[0]), len(self.xvecs[1])), dtype=complex)
         N = rho.dims[0][0]
-        
+
         for n1 in range(N):
             kn1 = exp(-1j * self.theta1 * n1) / \
-                sqrt(sqrt(pi) * 2**n1 * factorial(n1)) * \
-                exp(-X1**2/2.0) * np.polyval(hermite(n1), X1)
+                sqrt(sqrt(pi) * 2 ** n1 * factorial(n1)) * \
+                exp(-X1 ** 2 / 2.0) * np.polyval(hermite(n1), X1)
 
             for n2 in range(N):
                 kn2 = exp(-1j * self.theta2 * n2) / \
-                    sqrt(sqrt(pi) * 2**n2 * factorial(n2)) * \
-                    exp(-X2**2/2.0) * np.polyval(hermite(n2), X2)
+                    sqrt(sqrt(pi) * 2 ** n2 * factorial(n2)) * \
+                    exp(-X2 ** 2 / 2.0) * np.polyval(hermite(n2), X2)
                 i = state_number_index([N, N], [n1, n2])
                 p += kn1 * kn2 * rho.data[i, 0]
 
-        self.data = abs(p)**2
-
+        self.data = abs(p) ** 2
