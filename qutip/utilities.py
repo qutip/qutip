@@ -156,39 +156,118 @@ def clebsch(j1, j2, j3, m1, m2, m3):
 # Functions for unit conversions
 #
 
-def convert_GHz_to_meV(w_GHz):
+def convert_GHz_to_meV(w):
+    """
+    Convert an energy from unit GHz to unit meV.
+
+    Parameters
+    ----------
+    w : float / array
+        The energy in the old unit.
+ 
+    Returns
+    -------
+    w_new_unit : float / array
+        The energy in the new unit.
+    """
     # 1 GHz = 4.1357e-6 eV = 4.1357e-3 meV
-    w_meV = w_GHz * 4.1357e-3
+    w_meV = w * 4.1357e-3
     return w_meV
  
-def convert_meV_to_GHz(w_meV):
+def convert_meV_to_GHz(w):
+    """
+    Convert an energy from unit meV to unit GHz.
+
+    Parameters
+    ----------
+    w : float / array
+        The energy in the old unit.
+ 
+    Returns
+    -------
+    w_new_unit : float / array
+        The energy in the new unit.
+    """
     # 1 meV = 1.0/4.1357e-3 GHz
-    w_GHz = w_meV / 4.1357e-3
+    w_GHz = w / 4.1357e-3
     return w_GHz
 
 
-def convert_meV_to_mK(w_meV):
+def convert_meV_to_mK(w):
+    """
+    Convert an energy from unit meV to unit mK.
+
+    Parameters
+    ----------
+    w : float / array
+        The energy in the old unit.
+ 
+    Returns
+    -------
+    w_new_unit : float / array
+        The energy in the new unit.
+    """
     # 1 mK = 0.000086 meV
-    w_mK = w_meV / 0.000086
+    w_mK = w / 0.000086
     return w_mK
 
-def convert_mK_to_meV(w_mK):
+def convert_mK_to_meV(w):
+    """
+    Convert an energy from unit mK to unit meV.
+
+    Parameters
+    ----------
+    w : float / array
+        The energy in the old unit.
+ 
+    Returns
+    -------
+    w_new_unit : float / array
+        The energy in the new unit.
+    """
     # 1 mK = 0.000086 meV
-    w_meV = w_mK * 0.000086
+    w_meV = w * 0.000086
     return w_meV
 
 
 _kB = 1.3806488e-23
 _h = 6.62606957e-34
-def convert_GHz_to_mK(w_GHz):
+def convert_GHz_to_mK(w):
+    """
+    Convert an energy from unit GHz to unit mK.
+
+    Parameters
+    ----------
+    w : float / array
+        The energy in the old unit.
+ 
+    Returns
+    -------
+    w_new_unit : float / array
+        The energy in the new unit.
+    """
     # h v [Hz] = kB T [K]
     # h 1e9 v [GHz] = kB 1e-3 T [mK]
     # T [mK] = 1e12 * (h/kB) * v [GHz]
-    w_mK = w_GHz * 1.0e12 * (_h/_kB)
+    w_mK = w * 1.0e12 * (_h/_kB)
     return w_mK
 
-def convert_mK_to_GHz(w_mK):
-    w_GHz = w_mK * 1.0e-12 * (_kB/_h)
+def convert_mK_to_GHz(w):
+    """
+    Convert an energy from unit mK to unit GHz.
+
+    Parameters
+    ----------
+    w : float / array
+        The energy in the old unit.
+ 
+    Returns
+    -------
+    w_new_unit : float / array
+        The energy in the new unit.
+
+    """
+    w_GHz = w * 1.0e-12 * (_kB/_h)
     return w_GHz
 
 
