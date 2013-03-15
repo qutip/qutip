@@ -40,7 +40,7 @@ parser.add_argument("-N", "--runs",
                     default=1, type=int)
 args = parser.parse_args()
 
-qutip_info = [{'label': 'QuTiP', 'value': "2.1.0"}, #qutip.__version__},
+qutip_info = [{'label': 'QuTiP', 'value': qutip.__version__},
               {'label': 'Python', 'value': platform.python_version()},
               {'label': 'NumPy', 'value': numpy.__version__},
               {'label': 'SciPy', 'value': scipy.__version__}]
