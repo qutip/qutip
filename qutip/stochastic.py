@@ -142,8 +142,6 @@ def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs,
     N = N_store * N_substeps
     dt = (tlist[1] - tlist[0]) / N_substeps
 
-    print("N = %d. dt=%.2e" % (N, dt))
-
     data = Odedata()
 
     data.expect = np.zeros((len(e_ops), N_store), dtype=complex)
@@ -190,7 +188,9 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                data.expect[e_idx, t_idx] += expect(e, Qobj(psi_t))
+                data.expect[e_idx, t_idx] += \
+                    cy_expect(e.data.data, e.data.indices,
+                              e.data.indptr, 0, psi_t)
         else:
             states_list.append(Qobj(psi_t))
 
@@ -248,7 +248,7 @@ def smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
 
         A_ops.append([Ldt.data, LdW.data, Lm.data])
 
-    # Liouvillian for the unitary part
+    # Liouvillian for the deterministic part
     L = liouvillian_fast(H, c_ops)  # needs to be modified for TD systems
 
     progress_acc = 0.0
@@ -300,8 +300,8 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
 
             for a_idx, A in enumerate(A_ops):
 
-                drho_t += rhs(
-                    L.data, rho_t, A, dt, dW[a_idx, t_idx, j], d1, d2)
+                drho_t += rhs(L.data, rho_t, A,
+                              dt, dW[a_idx, t_idx, j], d1, d2)
 
             rho_t += drho_t
 
@@ -491,7 +491,6 @@ def _rhs_psi_platen(H, psi_t, A, dt, dW, d1, d2):
 
     dpsi_t = 0.50 * (d1(A, psi_t_1) + d1(A, psi_t)) * dt + \
         0.25 * (d2(A, psi_t_p) + d2(A, psi_t_m) + 2 * d2(A, psi_t)) * dW + \
-        0.25 * (d2(A, psi_t_p) - d2(A, psi_t_m)) * (
-            dW ** 2 - dt) * sqrt_dt
+        0.25 * (d2(A, psi_t_p) - d2(A, psi_t_m)) * (dW ** 2 - dt) * sqrt_dt
 
     return dpsi_t
