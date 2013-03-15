@@ -48,7 +48,7 @@ from scipy.linalg import norm
 from qutip.odedata import Odedata
 from qutip.expect import expect
 from qutip.qobj import Qobj
-from qutip.superoperator import spre, spost, mat2vec, vec2mat, liouvillian
+from qutip.superoperator import spre, spost, mat2vec, vec2mat, liouvillian_fast
 from qutip.cyQ.spmatfuncs import cy_expect, spmv
 
 debug = True
@@ -98,7 +98,7 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
         raise Exception("Unrecongized solver '%s'." % solver)
 
 
-def smesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
+def smesolve(H, psi0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
              solver='euler-maruyama', nsubsteps=10):
     """
     Solve stochastic master equation. Dispatch to specific solvers
@@ -113,7 +113,7 @@ def smesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
         print(inspect.stack()[0][3])
 
     if solver == 'euler-maruyama':
-        return smesolve_generic(H, psi0, tlist, c_ops, e_ops,
+        return smesolve_generic(H, psi0, tlist, c_ops, sc_ops, e_ops,
                                 _rhs_rho_euler_maruyama,
                                 d1_rho_homodyne, d2_rho_homodyne,
                                 ntraj, nsubsteps)
@@ -200,8 +200,8 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 
             for a_idx, A in enumerate(A_ops):
 
-                dpsi_t += rhs(
-                    H.data, psi_t, A, dt, dW[a_idx, t_idx, j], d1, d2)
+                dpsi_t += rhs(H.data, psi_t, A,
+                              dt, dW[a_idx, t_idx, j], d1, d2)
 
             # increment and renormalize the wave function
             psi_t += dpsi_t
@@ -213,7 +213,7 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 #------------------------------------------------------------------------------
 # Generic parameterized stochastic master equation solver
 #
-def smesolve_generic(H, rho0, tlist, c_ops, e_ops,
+def smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
                      rhs, d1, d2, ntraj, nsubsteps):
     """
     internal
@@ -231,8 +231,6 @@ def smesolve_generic(H, rho0, tlist, c_ops, e_ops,
     N = N_store * N_substeps
     dt = (tlist[1] - tlist[0]) / N_substeps
 
-    print("N = %d. dt=%.2e" % (N, dt))
-
     data = Odedata()
 
     data.expect = np.zeros((len(e_ops), N_store), dtype=complex)
@@ -240,7 +238,7 @@ def smesolve_generic(H, rho0, tlist, c_ops, e_ops,
     # pre-compute collapse operator combinations that are commonly needed
     # when evaluating the RHS of stochastic master equations
     A_ops = []
-    for c_idx, c in enumerate(c_ops):
+    for c_idx, c in enumerate(sc_ops):
 
         # xxx: precompute useful operator expressions...
         cdc = c.dag() * c
@@ -251,9 +249,7 @@ def smesolve_generic(H, rho0, tlist, c_ops, e_ops,
         A_ops.append([Ldt.data, LdW.data, Lm.data])
 
     # Liouvillian for the unitary part
-    L = -1.0j * (spre(H) - spost(H))
-                 # XXX: should we split the ME in stochastic
-                                   # and deterministic collapse operators here?
+    L = liouvillian_fast(H, c_ops)  # needs to be modified for TD systems
 
     progress_acc = 0.0
     for n in range(ntraj):
@@ -298,8 +294,9 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
 
         for j in range(N_substeps):
 
-            drho_t = spmv(
-                L.data.data, L.data.indices, L.data.indptr, rho_t) * dt
+            drho_t = spmv(L.data.data,
+                          L.data.indices,
+                          L.data.indptr, rho_t) * dt
 
             for a_idx, A in enumerate(A_ops):
 
