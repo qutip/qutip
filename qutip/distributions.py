@@ -303,3 +303,31 @@ class TwoModeQuadratureCorrelation(Distribution):
                 p += kn1 * kn2 * rho.data[i, 0]
 
         self.data = abs(p) ** 2
+
+class HarmonicOscillatorWaveFunction(Distribution):
+
+    def __init__(self, psi=None, omega=1.0, extent=[-5, 5], steps=250):
+
+        self.xvecs = [np.linspace(extent[0], extent[1], steps)]
+        self.xlabels = [r'$x$']
+        self.omega = omega
+
+        if psi:
+            self.update(psi)
+
+    def update(self, psi):
+        """
+        Calculate the wavefunction for the given state of an harmonic
+        oscillator
+        """
+
+        self.data = np.zeros(len(self.xvecs[0]), dtype=complex)
+        N = psi.shape[0]
+
+        for n in range(N):
+            k = pow(self.omega / pi, 0.25) / \
+                sqrt(2 ** n * factorial(n)) * \
+                exp(-self.xvecs[0] ** 2 / 2.0) * \
+                np.polyval(hermite(n), self.xvecs[0])
+
+            self.data += k * psi.data[n, 0]
