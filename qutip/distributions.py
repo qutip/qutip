@@ -72,7 +72,8 @@ class Distribution:
         self.xlabels = xlabels
 
     def visualize(self, fig=None, ax=None, figsize=(8, 6),
-                  colorbar=True, cmap=None, style="colormap"):
+                  colorbar=True, cmap=None, style="colormap",
+                  show_xlabel=True, show_ylabel=True):
         """
         Visualize the data of the distribution in 1D or 2D, depending
         on the dimensionality of the underlaying distribution.
@@ -110,20 +111,28 @@ class Distribution:
                 return self.visualize_2d_colormap(fig=fig, ax=ax,
                                                   figsize=figsize,
                                                   colorbar=colorbar,
-                                                  cmap=cmap)
+                                                  cmap=cmap,
+                                                  show_xlabel=show_xlabel,
+                                                  show_ylabel=show_ylabel)
             else:
                 return self.visualize_2d_surface(fig=fig, ax=ax,
                                                  figsize=figsize,
                                                  colorbar=colorbar,
-                                                 cmap=cmap)
+                                                 cmap=cmap,
+                                                 show_xlabel=show_xlabel,
+                                                 show_ylabel=show_ylabel)
+
         elif n == 1:
-            return self.visualize_1d(fig=fig, ax=ax, figsize=figsize)
+            return self.visualize_1d(fig=fig, ax=ax, figsize=figsize,
+                                     show_xlabel=show_xlabel,
+                                     show_ylabel=show_ylabel)
         else:
             raise NotImplementedError("Distribution visualization in " +
                                       "%d dimensions is not implemented." % n)
 
     def visualize_2d_colormap(self, fig=None, ax=None, figsize=(8, 6),
-                              colorbar=True, cmap=None):
+                              colorbar=True, cmap=None,
+                              show_xlabel=True, show_ylabel=True):
 
         if not fig and not ax:
             fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -137,8 +146,10 @@ class Distribution:
                          norm=mpl.colors.Normalize(-lim, lim),
                          cmap=cmap)
 
-        ax.set_xlabel(self.xlabels[0], fontsize=12)
-        ax.set_ylabel(self.xlabels[1], fontsize=12)
+        if show_xlabel:
+            ax.set_xlabel(self.xlabels[0], fontsize=12)
+        if show_ylabel:
+            ax.set_ylabel(self.xlabels[1], fontsize=12)
 
         if colorbar:
             cb = fig.colorbar(cf, ax=ax)
@@ -146,7 +157,8 @@ class Distribution:
         return fig, ax
 
     def visualize_2d_surface(self, fig=None, ax=None, figsize=(8, 6),
-                             colorbar=True, cmap=None):
+                             colorbar=True, cmap=None,
+                             show_xlabel=True, show_ylabel=True):
 
         if not fig and not ax:
             fig = plt.figure(figsize=figsize)
@@ -162,23 +174,28 @@ class Distribution:
                             norm=mpl.colors.Normalize(-lim, lim),
                             rstride=5, cstride=5, cmap=cmap, lw=0.1)
 
-        ax.set_xlabel(self.xlabels[0], fontsize=12)
-        ax.set_ylabel(self.xlabels[1], fontsize=12)
+        if show_xlabel:
+            ax.set_xlabel(self.xlabels[0], fontsize=12)
+        if show_ylabel:
+            ax.set_ylabel(self.xlabels[1], fontsize=12)
 
         if colorbar:
             cb = fig.colorbar(s, ax=ax, shrink=0.5)
 
         return fig, ax
 
-    def visualize_1d(self, fig=None, ax=None, figsize=(8, 6)):
+    def visualize_1d(self, fig=None, ax=None, figsize=(8, 6),
+                     show_xlabel=True, show_ylabel=True):
 
         if not fig and not ax:
             fig, ax = plt.subplots(1, 1, figsize=figsize)
 
         p = ax.plot(self.xvecs[0], self.data)
 
-        ax.set_xlabel(self.xlabels[0], fontsize=12)
-        ax.set_ylabel("Marginal distribution", fontsize=12)
+        if show_xlabel:
+            ax.set_xlabel(self.xlabels[0], fontsize=12)
+        if show_ylabel:
+            ax.set_ylabel("Marginal distribution", fontsize=12)
 
         return fig, ax
 
