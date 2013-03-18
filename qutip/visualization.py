@@ -690,3 +690,39 @@ def wigner_fock_distribution(rho, fig=None, ax=None, figsize=(8, 4),
     axes[1].set_title("Wigner function", fontsize=12)
 
     return fig, ax
+
+
+def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
+                            fig=None, axes=None, figsize=(8, 4)):
+    """
+    Visualize the results (expectation values) for an evolution solver. 
+    `results` is assumed to be an instance of Odedata, or a list of Odedata
+    instances. 
+    """
+    if not isinstance(results, list):
+        results = [results]
+
+    n_e_ops = max([len(result.expect) for result in results])
+
+    if not fig or not axes:
+        if not figsize:
+            figsize = (12, 3 * n_e_ops)
+        fig, axes = plt.subplots(n_e_ops, 1, sharex=True,
+                                 figsize=figsize, squeeze=False)
+
+    for r_idx, result in enumerate(results):
+        for e_idx, e in enumerate(result.expect):
+            axes[e_idx, 0].plot(result.times, e,
+                                label="%s [%d]" % (result.solver, e_idx))
+
+    if title:
+        axes[0, 0].set_title(title)
+
+    axes[n_e_ops-1, 0].set_xlabel("time", fontsize=12)
+    for n in range(n_e_ops):
+        if show_legend:
+            axes[n, 0].legend()
+        if ylabels:
+            axes[n, 0].set_ylabel(ylabels[n], fontsize=12)
+
+    return fig, axes

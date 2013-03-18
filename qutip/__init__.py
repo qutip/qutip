@@ -216,7 +216,8 @@ if qutip.settings.qutip_graphics == 'YES':
     from qutip.bloch import Bloch
     from qutip.visualization import (hinton, energy_level_diagram, wigner_cmap,
                                      sphereplot, fock_distribution,
-                                     wigner_fock_distribution)
+                                     wigner_fock_distribution,
+                                     plot_expectation_values)
     from qutip.orbital import *
     # load mayavi dependent functions if available
     try:
