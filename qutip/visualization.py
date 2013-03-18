@@ -16,6 +16,10 @@
 # Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
+"""
+Functions for visualizing results of quantum dynamics simulations,
+visualizations of quantum states and processes.
+"""
 import qutip.settings
 import numpy as np
 if qutip.settings.qutip_graphics == 'YES':
@@ -28,11 +32,6 @@ if qutip.settings.qutip_graphics == 'YES':
 from qutip.qobj import Qobj, isket, isbra
 from qutip.states import ket2dm
 from qutip.wigner import wigner
-
-#
-# A collection of various visalization functions.
-#
-
 
 # Adopted from the SciPy Cookbook.
 def _blob(x, y, w, w_max, area):
@@ -701,6 +700,36 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
     Visualize the results (expectation values) for an evolution solver. 
     `results` is assumed to be an instance of Odedata, or a list of Odedata
     instances. 
+
+    Parameters
+    ----------
+    results : (list of) :class:`qutip.Odedata`
+        List of results objects returned by any of the QuTiP evolution solvers.
+
+    ylabels : list of strings
+        The y-axis labels. List should be of the same length as `results`.
+
+    title : string
+        The title of the figure.
+
+    show_legend : bool
+        Whether or not to show the legend.
+
+    fig : a matplotlib Figure instance
+        The Figure canvas in which the plot will be drawn.
+
+    ax : a matplotlib axes instance
+        The axes context in which the plot will be drawn.
+
+    figsize : (width, height)
+        The size of the matplotlib figure (in inches) if it is to be created
+        (that is, if no 'fig' and 'ax' arguments are passed).
+
+    Returns
+    -------
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce 
+        the figure.
     """
     if not isinstance(results, list):
         results = [results]
