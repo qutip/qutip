@@ -20,7 +20,7 @@
 from qutip.tensor import tensor
 from qutip.superoperator import spre, spost, mat2vec, vec2mat
 from qutip.qobj import Qobj
-from numpy import hstack
+from numpy import hstack, real, imag
 import scipy.linalg as la
 from qutip.visualization import matrix_histogram, matrix_histogram_complex
 import qutip.settings
@@ -82,7 +82,7 @@ def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
 
     if axes is None or len(axes) != 2:
         if fig is None:
-            fig = figure(figsize=(16, 8))
+            fig = plt.figure(figsize=(16, 8))
 
         ax1 = fig.add_subplot(1, 2, 1, projection='3d', position=[0, 0, 1, 1])
         ax2 = fig.add_subplot(1, 2, 2, projection='3d', position=[0, 0, 1, 1])
@@ -105,7 +105,8 @@ def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
     return fig
 
 
-def qpt_plot_combined(chi, lbls_list, title=None, fig=None, ax=None):
+def qpt_plot_combined(chi, lbls_list, title=None,
+                      fig=None, ax=None, figsize=(8, 6)):
     """
     Visualize the quantum process tomography chi matrix. Plot bars with
     height and color corresponding to the absolute value and phase,
@@ -133,7 +134,7 @@ def qpt_plot_combined(chi, lbls_list, title=None, fig=None, ax=None):
 
     if ax is None:
         if fig is None:
-            fig = plt.figure(figsize=(8, 6))
+            fig = plt.figure(figsize=figsize)
         ax = fig.add_subplot(1, 1, 1, projection='3d', position=[0, 0, 1, 1])
 
     xlabels = []
