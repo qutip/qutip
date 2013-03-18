@@ -44,8 +44,8 @@ def _blob(x, y, w, w_max, area):
     xcorners = array([x - hs, x + hs, x + hs, x - hs])
     ycorners = array([y - hs, y - hs, y + hs, y + hs])
 
-    fill(xcorners, ycorners, color=cm.RdBu(int((w + w_max) * 256 / (2 *
-         w_max))))
+    fill(xcorners, ycorners,
+         color=cm.RdBu(int((w + w_max) * 256 / (2 * w_max))))
 
 
 # Adopted from the SciPy Cookbook.
@@ -71,8 +71,9 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
 
     Returns
     -------
-
-        An matplotlib axes instance for the plot.
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce 
+        the figure.
 
     Raises
     ------
@@ -134,7 +135,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
     cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
     cb = mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cm.RdBu)
 
-    return ax
+    return fig, ax
 
 
 def sphereplot(theta, phi, values, save=False):
@@ -218,8 +219,9 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
 
     Returns
     -------
-
-        An matplotlib axes instance for the plot.
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce 
+        the figure.
 
     Raises
     ------
@@ -284,7 +286,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
         cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
-    return ax
+    return fig, ax
 
 
 def matrix_histogram_complex(M, xlabels=None, ylabels=None,
@@ -320,8 +322,9 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
 
     Returns
     -------
-
-        An matplotlib axes instance for the plot.
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce 
+        the figure.
 
     Raises
     ------
@@ -414,7 +417,7 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
             (r'$-\pi$', r'$-\pi/2$', r'$0$', r'$\pi/2$', r'$\pi$'))
         cb.set_label('arg')
 
-    return ax
+    return fig, ax
 
 
 def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,

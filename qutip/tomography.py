@@ -76,7 +76,9 @@ def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
 
     Returns
     -------
-    An matplotlib figure instance for the plot.
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce 
+        the figure.
 
     """
 
@@ -91,8 +93,8 @@ def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
 
     xlabels = []
     for inds in _index_permutations([len(lbls) for lbls in lbls_list]):
-        xlabels.append("".join(
-            [lbls_list[k][inds[k]] for k in range(len(lbls_list))]))
+        xlabels.append("".join([lbls_list[k][inds[k]]
+                                for k in range(len(lbls_list))]))
 
     matrix_histogram(real(chi), xlabels, xlabels,
                      title=r"real($\chi$)", limits=[-1, 1], ax=axes[0])
@@ -102,7 +104,7 @@ def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
     if title and fig:
         fig.suptitle(title)
 
-    return fig
+    return fig, axes
 
 
 def qpt_plot_combined(chi, lbls_list, title=None,
@@ -128,8 +130,9 @@ def qpt_plot_combined(chi, lbls_list, title=None,
 
     Returns
     -------
-    An matplotlib figure instance for the plot.
-
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce 
+        the figure.
     """
 
     if ax is None:
@@ -147,7 +150,7 @@ def qpt_plot_combined(chi, lbls_list, title=None,
 
     matrix_histogram_complex(chi, xlabels, xlabels, title=title, ax=ax)
 
-    return fig
+    return fig, ax
 
 
 def qpt(U, op_basis_list):
