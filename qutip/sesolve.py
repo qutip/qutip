@@ -493,7 +493,7 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_norm_func=None):
     dt = tlist[1] - tlist[0]
 
     output = Odedata()
-    output.solver = "mesolve"
+    output.solver = "sesolve"
     output.times = tlist
 
     if isinstance(expt_ops, types.FunctionType):
