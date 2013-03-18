@@ -143,6 +143,7 @@ def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs,
     dt = (tlist[1] - tlist[0]) / N_substeps
 
     data = Odedata()
+    data.solver = "ssesolve"
     data.times = tlist
     data.expect = np.zeros((len(e_ops), N_store), dtype=complex)
 
@@ -232,6 +233,7 @@ def smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
     dt = (tlist[1] - tlist[0]) / N_substeps
 
     data = Odedata()
+    data.solver = "smesolve"
     data.times = tlist
     data.expect = np.zeros((len(e_ops), N_store), dtype=complex)
 
