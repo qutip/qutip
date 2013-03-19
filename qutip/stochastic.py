@@ -334,6 +334,7 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
 #     A[0] = c
 #     A[1] = c + c.dag()
 #     A[2] = c.dag() * c
+#     A[3] = c - c.dag()
 #
 #     where c is a collapse operator. The combinations of c's stored in A are
 #     precomputed before the time-evolution is started to avoid repeated
@@ -374,7 +375,7 @@ def d1_psi_heterodyne(A, psi):
 
     return (e2 * spmv(A[0].data, A[0].indices, A[0].indptr, psi)
             - 0.5 * spmv(A[2].data, A[2].indices, A[2].indptr, psi)
-            - 0.5 * e1 * e2 * psi)
+            - 0.25 * e1 * e2 * psi)
 
 
 def d2_psi_heterodyne(A, psi):
@@ -383,8 +384,13 @@ def d2_psi_heterodyne(A, psi):
     Todo: cythonize
     """
 
-    e1 = cy_expect(A[0].data, A[0].indices, A[0].indptr, 0, psi)
-    return spmv(A[0].data, A[0].indices, A[0].indptr, psi) - e1 * psi
+    e1 = 1/sqrt(2.0) * cy_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
+    d2_re = spmv(A[0].data, A[0].indices, A[0].indptr, psi) - e1 * psi
+
+    e1 = 1/sqrt(2.0) * cy_expect(A[3].data, A[3].indices, A[3].indptr, 0, psi)
+    d2_im = spmv(1j * A[0].data, A[0].indices, A[0].indptr, psi) + e1 * psi
+
+    return d2_re, d2_im
 
 
 def d1_current(A, psi):
