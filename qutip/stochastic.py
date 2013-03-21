@@ -74,22 +74,25 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
         if method == 'homodyne':
             d1 = d1_psi_homodyne
             d2 = d2_psi_homodyne
+            d2_len = 1
 
         elif method == 'heterodyne':
             d1 = d1_psi_heterodyne
             d2 = d2_psi_heterodyne
+            d2_len = 2
 
         else:
             raise Exception("Unregognized method '%s'." % method)
 
     if solver == 'euler-maruyama':
         return ssesolve_generic(H, psi0, tlist, c_ops, e_ops,
-                                _rhs_psi_euler_maruyama, d1, d2,
+                                _rhs_psi_euler_maruyama, d1, d2, d2_len,
                                 ntraj, nsubsteps)
 
     elif solver == 'platen':
         return ssesolve_generic(H, psi0, tlist, c_ops, e_ops,
-                                _rhs_psi_platen, d1, d2, ntraj, nsubsteps)
+                                _rhs_psi_platen,
+                                d1, d2, d2_len, ntraj, nsubsteps)
 
     elif solver == 'milstein':
         raise NotImplementedError("Solver '%s' not yet implemented." % solver)
@@ -125,7 +128,7 @@ def smesolve(H, psi0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
 # Generic parameterized stochastic Schrodinger equation solver
 #
 def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs,
-                     d1, d2, ntraj, nsubsteps):
+                     d1, d2, d2_len, ntraj, nsubsteps):
     """
     internal
 
@@ -151,7 +154,10 @@ def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs,
     # when evaluating the RHS of stochastic Schrodinger equations
     A_ops = []
     for c_idx, c in enumerate(c_ops):
-        A_ops.append([c.data, (c + c.dag()).data, (c.dag() * c).data])
+        A_ops.append([c.data,
+                      (c + c.dag()).data,
+                      (c - c.dag()).data,
+                      (c.dag() * c).data])
 
     progress_acc = 0.0
     for n in range(ntraj):
@@ -164,7 +170,8 @@ def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs,
 
         states_list = _ssesolve_single_trajectory(H, dt, tlist, N_store,
                                                   N_substeps, psi_t, A_ops,
-                                                  e_ops, data, rhs, d1, d2)
+                                                  e_ops, data, rhs,
+                                                  d1, d2, d2_len)
 
         # if average -> average...
         data.states.append(states_list)
@@ -176,12 +183,12 @@ def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs,
 
 
 def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
-                                A_ops, e_ops, data, rhs, d1, d2):
+                                A_ops, e_ops, data, rhs, d1, d2, d2_len):
     """
     Internal function. See ssesolve.
     """
 
-    dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps)
+    dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
 
     states_list = []
 
@@ -202,7 +209,7 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
             for a_idx, A in enumerate(A_ops):
 
                 dpsi_t += rhs(H.data, psi_t, A,
-                              dt, dW[a_idx, t_idx, j], d1, d2)
+                              dt, dW[a_idx, t_idx, j, :], d1, d2)
 
             # increment and renormalize the wave function
             psi_t += dpsi_t
@@ -329,17 +336,16 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
 #
 # def d(A, psi):
 #
-#     psi = wave function at the current time stemp
+#     psi = wave function at the current time step
 #
 #     A[0] = c
 #     A[1] = c + c.dag()
-#     A[2] = c.dag() * c
-#     A[3] = c - c.dag()
+#     A[2] = c - c.dag()
+#     A[3] = c.dag() * c
 #
 #     where c is a collapse operator. The combinations of c's stored in A are
 #     precomputed before the time-evolution is started to avoid repeated
 #     computations.
-
 
 def d1_psi_homodyne(A, psi):
     """
@@ -349,7 +355,7 @@ def d1_psi_homodyne(A, psi):
 
     e1 = cy_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
     return 0.5 * (e1 * spmv(A[0].data, A[0].indices, A[0].indptr, psi) -
-                  spmv(A[2].data, A[2].indices, A[2].indptr, psi) -
+                  spmv(A[3].data, A[3].indices, A[3].indptr, psi) -
                   0.25 * e1 ** 2 * psi)
 
 
@@ -360,7 +366,7 @@ def d2_psi_homodyne(A, psi):
     """
 
     e1 = cy_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
-    return (spmv(A[0].data, A[0].indices, A[0].indptr, psi) - 0.5 * e1 * psi)
+    return [spmv(A[0].data, A[0].indices, A[0].indptr, psi) - 0.5 * e1 * psi]
 
 
 def d1_psi_heterodyne(A, psi):
@@ -374,7 +380,7 @@ def d1_psi_heterodyne(A, psi):
     e2 = cy_expect(B.data, B.indices, B.indptr, 0, psi)
 
     return (e2 * spmv(A[0].data, A[0].indices, A[0].indptr, psi)
-            - 0.5 * spmv(A[2].data, A[2].indices, A[2].indptr, psi)
+            - 0.5 * spmv(A[3].data, A[3].indices, A[3].indptr, psi)
             - 0.25 * e1 * e2 * psi)
 
 
@@ -384,13 +390,13 @@ def d2_psi_heterodyne(A, psi):
     Todo: cythonize
     """
 
-    e1 = 1/sqrt(2.0) * cy_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
+    e1 = 1/np.sqrt(2.0) * cy_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
     d2_re = spmv(A[0].data, A[0].indices, A[0].indptr, psi) - e1 * psi
 
-    e1 = 1/sqrt(2.0) * cy_expect(A[3].data, A[3].indices, A[3].indptr, 0, psi)
+    e1 = 1/np.sqrt(2.0) * cy_expect(A[2].data, A[2].indices, A[2].indptr, 0, psi)
     d2_im = spmv(1j * A[0].data, A[0].indices, A[0].indptr, psi) + e1 * psi
 
-    return d2_re, d2_im
+    return [d2_re, d2_im]
 
 
 def d1_current(A, psi):
@@ -454,7 +460,6 @@ def d2_rho_homodyne(A, rho):
 # Euler-Maruyama rhs functions for the stochastic Schrodinger and master
 # equations
 #
-
 def _rhs_psi_euler_maruyama(H, psi_t, A, dt, dW, d1, d2):
     """
     .. note::
@@ -462,8 +467,8 @@ def _rhs_psi_euler_maruyama(H, psi_t, A, dt, dW, d1, d2):
         Experimental.
 
     """
-
-    return d1(A, psi_t) * dt + d2(A, psi_t) * dW
+    d2_vec = d2(A, psi_t)
+    return d1(A, psi_t) * dt + sum([d2_vec[n] * dW[n] for n in range(len(dW))])
 
 
 def _rhs_rho_euler_maruyama(L, rho_t, A, dt, dW, d1, d2):
@@ -473,16 +478,16 @@ def _rhs_rho_euler_maruyama(L, rho_t, A, dt, dW, d1, d2):
         Experimental.
 
     """
-
     return d1(A, rho_t) * dt + d2(A, rho_t) * dW
+
 
 #------------------------------------------------------------------------------
 # Platen method
 #
-
-
 def _rhs_psi_platen(H, psi_t, A, dt, dW, d1, d2):
     """
+    TODO: support multiple stochastic increments
+
     .. note::
 
         Experimental.
@@ -493,12 +498,12 @@ def _rhs_psi_platen(H, psi_t, A, dt, dW, d1, d2):
 
     dpsi_t_H = (-1.0j * dt) * spmv(H.data, H.indices, H.indptr, psi_t)
 
-    psi_t_1 = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t) * dW
-    psi_t_p = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t) * sqrt_dt
-    psi_t_m = psi_t + dpsi_t_H + d1(A, psi_t) * dt - d2(A, psi_t) * sqrt_dt
+    psi_t_1 = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t)[0] * dW[0]
+    psi_t_p = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t)[0] * sqrt_dt
+    psi_t_m = psi_t + dpsi_t_H + d1(A, psi_t) * dt - d2(A, psi_t)[0] * sqrt_dt
 
     dpsi_t = 0.50 * (d1(A, psi_t_1) + d1(A, psi_t)) * dt + \
-        0.25 * (d2(A, psi_t_p) + d2(A, psi_t_m) + 2 * d2(A, psi_t)) * dW + \
-        0.25 * (d2(A, psi_t_p) - d2(A, psi_t_m)) * (dW ** 2 - dt) * sqrt_dt
+        0.25 * (d2(A, psi_t_p)[0] + d2(A, psi_t_m)[0] + 2 * d2(A, psi_t)[0]) * dW[0] + \
+        0.25 * (d2(A, psi_t_p)[0] - d2(A, psi_t_m)[0]) * (dW[0] ** 2 - dt) * sqrt_dt
 
     return dpsi_t
