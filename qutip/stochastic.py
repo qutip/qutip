@@ -56,7 +56,7 @@ debug = True
 
 def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
              solver='euler-maruyama', method='homodyne',
-             nsubsteps=10, d1=None, d2=None, rhs=None):
+             nsubsteps=10, d1=None, d2=None, d2_len=1, rhs=None):
     """
     Solve stochastic Schrodinger equation. Dispatch to specific solvers
     depending on the value of the `solver` argument.
@@ -74,7 +74,6 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
         if method == 'homodyne':
             d1 = d1_psi_homodyne
             d2 = d2_psi_homodyne
-            d2_len = 1
 
         elif method == 'heterodyne':
             d1 = d1_psi_heterodyne
@@ -91,8 +90,8 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
 
     elif solver == 'platen':
         return ssesolve_generic(H, psi0, tlist, c_ops, e_ops,
-                                _rhs_psi_platen,
-                                d1, d2, d2_len, ntraj, nsubsteps)
+                                _rhs_psi_platen, d1, d2, d2_len,
+                                ntraj, nsubsteps)
 
     elif solver == 'milstein':
         raise NotImplementedError("Solver '%s' not yet implemented." % solver)
@@ -102,7 +101,8 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
 
 
 def smesolve(H, psi0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
-             solver='euler-maruyama', nsubsteps=10):
+             d1=None, d2=None, d2_len=1, rhs=None,
+             method='homodyne', solver='euler-maruyama', nsubsteps=10):
     """
     Solve stochastic master equation. Dispatch to specific solvers
     depending on the value of the `solver` argument.
@@ -115,14 +115,22 @@ def smesolve(H, psi0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
     if debug:
         print(inspect.stack()[0][3])
 
-    if solver == 'euler-maruyama':
-        return smesolve_generic(H, psi0, tlist, c_ops, sc_ops, e_ops,
-                                _rhs_rho_euler_maruyama,
-                                d1_rho_homodyne, d2_rho_homodyne,
-                                ntraj, nsubsteps)
-    else:
-        raise Exception("Unrecongized solver '%s'." % solver)
+    if (d1 is None) or (d2 is None):
 
+        if method == 'homodyne':
+            d1 = d1_rho_homodyne
+            d2 = d2_rho_homodyne
+        else:
+            raise Exception("Unregognized method '%s'." % method)
+
+    if rhs is None:
+        if solver == 'euler-maruyama':
+            rhs = _rhs_rho_euler_maruyama
+        else:
+            raise Exception("Unrecongized solver '%s'." % solver)
+
+    return smesolve_generic(H, psi0, tlist, c_ops, sc_ops, e_ops,
+                            rhs, d1, d2, d2_len, ntraj, nsubsteps)
 
 #------------------------------------------------------------------------------
 # Generic parameterized stochastic Schrodinger equation solver
@@ -222,7 +230,7 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 # Generic parameterized stochastic master equation solver
 #
 def smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
-                     rhs, d1, d2, ntraj, nsubsteps):
+                     rhs, d1, d2, d2_len, ntraj, nsubsteps):
     """
     internal
 
@@ -271,7 +279,7 @@ def smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
 
         states_list = _smesolve_single_trajectory(
             L, dt, tlist, N_store, N_substeps,
-            rho_t, A_ops, e_ops, data, rhs, d1, d2)
+            rho_t, A_ops, e_ops, data, rhs, d1, d2, d2_len)
 
         # if average -> average...
         data.states.append(states_list)
@@ -283,12 +291,12 @@ def smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
 
 
 def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
-                                A_ops, e_ops, data, rhs, d1, d2):
+                                A_ops, e_ops, data, rhs, d1, d2, d2_len):
     """
     Internal function. See smesolve.
     """
 
-    dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps)
+    dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
 
     states_list = []
 
@@ -308,9 +316,8 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
                           L.data.indptr, rho_t) * dt
 
             for a_idx, A in enumerate(A_ops):
-
                 drho_t += rhs(L.data, rho_t, A,
-                              dt, dW[a_idx, t_idx, j], d1, d2)
+                              dt, dW[a_idx, t_idx, j, :], d1, d2)
 
             rho_t += drho_t
 
@@ -442,7 +449,6 @@ def d1_rho_homodyne(A, rho):
     not tested
     Todo: cythonize
     """
-
     return spmv(A[0].data, A[0].indices, A[0].indptr, rho)
 
 
@@ -453,7 +459,7 @@ def d2_rho_homodyne(A, rho):
     """
 
     e1 = _rho_expect(A[2], rho)
-    return spmv(A[1].data, A[1].indices, A[1].indptr, rho) - e1 * rho
+    return [spmv(A[1].data, A[1].indices, A[1].indptr, rho) - e1 * rho]
 
 
 #------------------------------------------------------------------------------
@@ -478,7 +484,8 @@ def _rhs_rho_euler_maruyama(L, rho_t, A, dt, dW, d1, d2):
         Experimental.
 
     """
-    return d1(A, rho_t) * dt + d2(A, rho_t) * dW
+    d2_vec = d2(A, rho_t)
+    return d1(A, rho_t) * dt + sum([d2_vec[n] * dW[n] for n in range(len(dW))])
 
 
 #------------------------------------------------------------------------------
