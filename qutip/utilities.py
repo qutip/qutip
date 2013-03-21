@@ -155,6 +155,10 @@ def clebsch(j1, j2, j3, m1, m2, m3):
 #------------------------------------------------------------------------------
 # Functions for unit conversions
 #
+_e = 1.602e-19
+_kB = 1.3806488e-23
+_h = 6.62606957e-34
+
 
 def convert_GHz_to_meV(w):
     """
@@ -173,6 +177,7 @@ def convert_GHz_to_meV(w):
     # 1 GHz = 4.1357e-6 eV = 4.1357e-3 meV
     w_meV = w * 4.1357e-3
     return w_meV
+
  
 def convert_meV_to_GHz(w):
     """
@@ -193,6 +198,44 @@ def convert_meV_to_GHz(w):
     return w_GHz
 
 
+def convert_J_to_meV(w):
+    """
+    Convert an energy from unit J to unit meV.
+
+    Parameters
+    ----------
+    w : float / array
+        The energy in the old unit.
+ 
+    Returns
+    -------
+    w_new_unit : float / array
+        The energy in the new unit.
+    """
+    # 1 eV = 1.602e-19 J
+    w_meV = 1000.0 * w / _e
+    return w_meV
+ 
+
+def convert_meV_to_J(w):
+    """
+    Convert an energy from unit meV to unit J.
+
+    Parameters
+    ----------
+    w : float / array
+        The energy in the old unit.
+ 
+    Returns
+    -------
+    w_new_unit : float / array
+        The energy in the new unit.
+    """
+    # 1 eV = 1.602e-19 J
+    w_J = 0.001 * w * _e
+    return w_J
+
+
 def convert_meV_to_mK(w):
     """
     Convert an energy from unit meV to unit mK.
@@ -210,6 +253,7 @@ def convert_meV_to_mK(w):
     # 1 mK = 0.0000861740 meV
     w_mK = w / 0.0000861740
     return w_mK
+
 
 def convert_mK_to_meV(w):
     """
@@ -230,8 +274,6 @@ def convert_mK_to_meV(w):
     return w_meV
 
 
-_kB = 1.3806488e-23
-_h = 6.62606957e-34
 def convert_GHz_to_mK(w):
     """
     Convert an energy from unit GHz to unit mK.
