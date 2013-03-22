@@ -238,6 +238,7 @@ from qutip.gates import *
 from qutip.metrics import fidelity, tracedist
 from qutip.partial_transpose import partial_transpose
 from qutip.continuous_variables import *
+from qutip.distributions import *
 
 # evolution
 from qutip.odeconfig import odeconfig
