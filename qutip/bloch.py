@@ -484,8 +484,7 @@ class Bloch():
                         real(self.points[k][1][indperm]),
                         -real(self.points[k][0][indperm]),
                         real(self.points[k][2][indperm]),
-                        s=self.point_size[
-                            mod(k, len(self.point_size))],
+                        s=self.point_size[mod(k, len(self.point_size))],
                         alpha=1, edgecolor='none',
                         zdir='z', color=pnt_colors,
                         marker=self.point_marker[

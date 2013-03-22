@@ -625,7 +625,7 @@ def fock_distribution(rho, fig=None, ax=None, figsize=(8, 6), title=None):
     return fig, ax
 
 
-def wigner_fock_distribution(rho, fig=None, ax=None, figsize=(8, 4),
+def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
                              cmap=None, alpha_max=7.5, colorbar=False):
     """
     Plot the Fock distribution and the Wigner function for a density matrix
@@ -639,7 +639,7 @@ def wigner_fock_distribution(rho, fig=None, ax=None, figsize=(8, 4),
     fig : a matplotlib Figure instance
         The Figure canvas in which the plot will be drawn.
 
-    ax : a matplotlib axes instance
+    axes : a list of two matplotlib axes instances
         The axes context in which the plot will be drawn.
 
     figsize : (width, height)
@@ -663,7 +663,7 @@ def wigner_fock_distribution(rho, fig=None, ax=None, figsize=(8, 4),
         the figure.
     """
 
-    if not fig and not ax:
+    if not fig and not axes:
         fig, axes = plt.subplots(1, 2, figsize=figsize)
 
     if isket(rho):
@@ -691,7 +691,7 @@ def wigner_fock_distribution(rho, fig=None, ax=None, figsize=(8, 4),
     axes[0].set_title("Fock distribution", fontsize=12)
     axes[1].set_title("Wigner function", fontsize=12)
 
-    return fig, ax
+    return fig, axes
 
 
 def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
