@@ -155,10 +155,28 @@ def clebsch(j1, j2, j3, m1, m2, m3):
 #------------------------------------------------------------------------------
 # Functions for unit conversions
 #
-_e = 1.602e-19
-_kB = 1.3806488e-23
-_h = 6.62606957e-34
+_e = 1.602176565e-19  # C
+_kB = 1.3806488e-23   # J/K
+_h = 6.62606957e-34   # Js
 
+_unit_func_tbl = {
+#   "unit": "function that convert argument from unit 'unit' to Joule"
+    "J" :   lambda x, d: x,
+    "eV" :  lambda x, d: x * _e if d else x / _e,
+    "meV" : lambda x, d: x * 1.0e-3 * _e if d else x / (1.0e-3 * _e),
+    "GHz" : lambda x, d: x * 1.0e9 * _h if d else x / (1.0e9 * _h),
+    "mK" :  lambda x, d: x * 1.0e-3 * _kB if d else x / (1.0e-3 * _kB),
+}
+
+def convert_unit(value, orig="meV", to="GHz"):
+
+    if not orig in _unit_func_tbl:
+        raise TypeError("Unsupported unit %s" % orig)
+
+    if not to in _unit_func_tbl:
+        raise TypeError("Unsupported unit %s" % to)
+
+    return _unit_func_tbl[to](_unit_func_tbl[orig](value, True), False)
 
 def convert_GHz_to_meV(w):
     """
