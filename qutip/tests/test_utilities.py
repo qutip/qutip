@@ -25,14 +25,35 @@ from qutip import *
 
 
 def test_unit_conversions():
-    "utilities: unit conversions"
+    "utilities: energy unit conversions"
 
     T = np.random.rand() * 100.0
-    diff = convert_meV_to_mK(convert_GHz_to_meV(convert_mK_to_GHz(T))) - T
+
+    diff = convert_unit(convert_unit(T, orig="mK", to="GHz"), 
+                                        orig="GHz", to="mK") - T
+    assert_(abs(diff) < 1e-6)
+    diff = convert_unit(convert_unit(T, orig="mK", to="meV"), 
+                                        orig="meV", to="mK") - T
+    assert_(abs(diff) < 1e-6)
+
+    diff = convert_unit(convert_unit(convert_unit(T, orig="mK", to="GHz"), 
+                                                     orig="GHz", to="meV"),
+                                                     orig="meV", to="mK") - T
     assert_(abs(diff) < 1e-6)
 
     w = np.random.rand() * 100.0
-    diff = convert_meV_to_GHz(convert_mK_to_meV(convert_GHz_to_mK(w))) - w
+
+    diff = convert_unit(convert_unit(w, orig="GHz", to="meV"),
+                                        orig="meV", to="GHz") - w
+    assert_(abs(diff) < 1e-6)
+
+    diff = convert_unit(convert_unit(w, orig="GHz", to="mK"),
+                                        orig="mK", to="GHz") - w
+    assert_(abs(diff) < 1e-6)
+
+    diff = convert_unit(convert_unit(convert_unit(w, orig="GHz", to="mK"), 
+                                                     orig="mK", to="meV"),
+                                                     orig="meV", to="GHz") - w
     assert_(abs(diff) < 1e-6)
 
 
