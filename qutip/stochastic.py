@@ -46,6 +46,7 @@ import scipy
 from scipy.linalg import norm
 
 from qutip.odedata import Odedata
+from qutip.odeoptions import Odeoptions
 from qutip.expect import expect
 from qutip.qobj import Qobj
 from qutip.superoperator import spre, spost, mat2vec, vec2mat, liouvillian_fast
@@ -56,7 +57,8 @@ debug = True
 
 def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
              solver='euler-maruyama', method='homodyne',
-             nsubsteps=10, d1=None, d2=None, d2_len=1, rhs=None):
+             nsubsteps=10, d1=None, d2=None, d2_len=1, rhs=None,
+             options=Odeoptions()):
     """
     Solve stochastic Schrodinger equation. Dispatch to specific solvers
     depending on the value of the `solver` argument.
@@ -86,12 +88,12 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
     if solver == 'euler-maruyama':
         return ssesolve_generic(H, psi0, tlist, c_ops, e_ops,
                                 _rhs_psi_euler_maruyama, d1, d2, d2_len,
-                                ntraj, nsubsteps)
+                                ntraj, nsubsteps, options)
 
     elif solver == 'platen':
         return ssesolve_generic(H, psi0, tlist, c_ops, e_ops,
                                 _rhs_psi_platen, d1, d2, d2_len,
-                                ntraj, nsubsteps)
+                                ntraj, nsubsteps, options)
 
     elif solver == 'milstein':
         raise NotImplementedError("Solver '%s' not yet implemented." % solver)
@@ -102,7 +104,8 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
 
 def smesolve(H, psi0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
              d1=None, d2=None, d2_len=1, rhs=None,
-             method='homodyne', solver='euler-maruyama', nsubsteps=10):
+             method='homodyne', solver='euler-maruyama', nsubsteps=10,
+             options=Odeoptions()):
     """
     Solve stochastic master equation. Dispatch to specific solvers
     depending on the value of the `solver` argument.
@@ -130,13 +133,14 @@ def smesolve(H, psi0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
             raise Exception("Unrecongized solver '%s'." % solver)
 
     return smesolve_generic(H, psi0, tlist, c_ops, sc_ops, e_ops,
-                            rhs, d1, d2, d2_len, ntraj, nsubsteps)
+                            rhs, d1, d2, d2_len, ntraj, nsubsteps,
+                            options)
 
 #------------------------------------------------------------------------------
 # Generic parameterized stochastic Schrodinger equation solver
 #
 def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs,
-                     d1, d2, d2_len, ntraj, nsubsteps):
+                     d1, d2, d2_len, ntraj, nsubsteps, options):
     """
     internal
 
@@ -230,7 +234,7 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 # Generic parameterized stochastic master equation solver
 #
 def smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
-                     rhs, d1, d2, d2_len, ntraj, nsubsteps):
+                     rhs, d1, d2, d2_len, ntraj, nsubsteps, options):
     """
     internal
 
