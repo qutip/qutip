@@ -238,8 +238,9 @@ class Bloch():
         points : array/list
             Collection of data points.
 
-        meth : str {'s','m'}
-            Type of points to plot, use 'm' for multicolored.
+        meth : str {'s', 'm', 'l'}
+            Type of points to plot, use 'm' for multicolored, 'l' for points
+            connected with a line.
 
         """
         if not isinstance(points[0], (list, ndarray)):
@@ -254,6 +255,10 @@ class Bloch():
             self.points.append(pnts)
             self.num_points = len(self.points)
             self.point_style.append('s')
+        elif meth == 'l':
+            self.points.append(points)
+            self.num_points = len(self.points)
+            self.point_style.append('l')
         else:
             self.points.append(points)
             self.num_points = len(self.points)
@@ -474,21 +479,25 @@ class Bloch():
                             mod(k, len(self.point_marker))])
 
                 elif self.point_style[k] == 'm':
-                    pnt_colors = array(
-                        self.point_color *
+                    pnt_colors = array(self.point_color *
                         ceil(num / float(len(self.point_color))))
 
                     pnt_colors = pnt_colors[0:num]
                     pnt_colors = list(pnt_colors[indperm])
-                    self.axes.scatter(
-                        real(self.points[k][1][indperm]),
-                        -real(self.points[k][0][indperm]),
-                        real(self.points[k][2][indperm]),
-                        s=self.point_size[mod(k, len(self.point_size))],
-                        alpha=1, edgecolor='none',
-                        zdir='z', color=pnt_colors,
-                        marker=self.point_marker[
-                            mod(k, len(self.point_marker))])
+                    marker = self.point_marker[mod(k, len(self.point_marker))]
+                    s = self.point_size[mod(k, len(self.point_size))]
+                    self.axes.scatter(real(self.points[k][1][indperm]),
+                                      -real(self.points[k][0][indperm]),
+                                      real(self.points[k][2][indperm]),
+                                      s=s, alpha=1, edgecolor='none',
+                                      zdir='z', color=pnt_colors,
+                                      marker=marker)
+
+                elif self.point_style[k] == 'l':
+                    self.axes.plot(real(self.points[k][1][indperm]),
+                                   -real(self.points[k][0][indperm]),
+                                   real(self.points[k][2][indperm]),
+                                   alpha=0.75, zdir='z')
 
     def show(self):
         """
