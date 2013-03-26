@@ -494,10 +494,12 @@ class Bloch():
                                       marker=marker)
 
                 elif self.point_style[k] == 'l':
+                    color = self.point_color[mod(k, len(self.point_color))]
                     self.axes.plot(real(self.points[k][1][indperm]),
                                    -real(self.points[k][0][indperm]),
                                    real(self.points[k][2][indperm]),
-                                   alpha=0.75, zdir='z')
+                                   alpha=0.75, zdir='z',
+                                   color=color)
 
     def show(self):
         """
