@@ -71,7 +71,8 @@ def version_table():
     for name in packages:
         html += "<tr><td>%s</td><td>%s</td></tr>" % (name, packages[name])
 
-    html += "<tr><td colspan='2'>%s</td></tr>" % time.ctime()
+    html += "<tr><td colspan='2'>%s</td></tr>" % time.strftime(
+        '%a %b %d %H:%M:%S %Y %Z')
     html += "</table>"
 
     return HTML(html)
