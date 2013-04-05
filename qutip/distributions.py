@@ -348,3 +348,37 @@ class HarmonicOscillatorWaveFunction(Distribution):
                 np.polyval(hermite(n), self.xvecs[0])
 
             self.data += k * psi.data[n, 0]
+
+class HarmonicOscillatorProbabilityFunction(Distribution):
+
+    def __init__(self, rho=None, omega=1.0, extent=[-5, 5], steps=250):
+
+        self.xvecs = [np.linspace(extent[0], extent[1], steps)]
+        self.xlabels = [r'$x$']
+        self.omega = omega
+
+        if rho:
+            self.update(rho)
+
+    def update(self, rho):
+        """
+        Calculate the probability function for the given state of an harmonic
+        oscillator (as density matrix)
+        """
+
+        self.data = np.zeros(len(self.xvecs[0]), dtype=complex)
+        M, N = rho.shape
+
+        for m in range(M):
+            k_m = pow(self.omega / pi, 0.25) / \
+                  sqrt(2 ** m * factorial(m)) * \
+                  exp(-self.xvecs[0] ** 2 / 2.0) * \
+                  np.polyval(hermite(m), self.xvecs[0])
+
+            for n in range(N):
+                k_n = pow(self.omega / pi, 0.25) / \
+                      sqrt(2 ** n * factorial(n)) * \
+                      exp(-self.xvecs[0] ** 2 / 2.0) * \
+                      np.polyval(hermite(n), self.xvecs[0])
+
+                self.data += np.conjugate(k_m) * k_n * rho.data[m, n]
