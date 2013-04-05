@@ -16,7 +16,7 @@
 # Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-
+from qutip._version import version as qversion
 
 class Odedata():
     """Class for storing simulation results from any of the dynamics solvers.
@@ -79,3 +79,14 @@ class Odedata():
 
     def __repr__(self):
         return self.__str__()
+        
+    def __getstate__(self):
+        #defines what happens when Qobj object gets pickled
+        self.__dict__.update({'qutip_version':qversion[:5]})
+        return self.__dict__
+    
+    def __setstate__(self, state):
+        #defines what happens when loading a pickled Qobj
+        if 'qutip_version' in state.keys():
+            del state['qutip_version']
+        (self.__dict__).update(state)

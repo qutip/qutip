@@ -34,6 +34,7 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.linalg as la
 import qutip.settings as qset
+from qutip._version import version as qversion
 from qutip.ptrace import _ptrace
 from qutip.sparse import (sp_eigs, _sp_expm, _sp_fro_norm, _sp_max_norm,
                           _sp_one_norm, _sp_L2_norm, _sp_inf_norm)
@@ -519,6 +520,17 @@ class Qobj():
         # so we simply return the informal __str__ representation instead.)
         return self.__str__()
 
+    def __getstate__(self):
+        #defines what happens when Qobj object gets pickled
+        self.__dict__.update({'qutip_version':qversion[:5]})
+        return self.__dict__
+    
+    def __setstate__(self, state):
+        #defines what happens when loading a pickled Qobj
+        if 'qutip_version' in state.keys():
+            del state['qutip_version']
+        (self.__dict__).update(state)
+    
     def _repr_latex_(self):
         """
         Generate a LaTeX representation of the Qobj instance. Can be used for
