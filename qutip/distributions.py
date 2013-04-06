@@ -385,4 +385,4 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
                       exp(-self.xvecs[0] ** 2 / 2.0) * \
                       np.polyval(hermite(n), self.xvecs[0])
 
-                self.data += np.conjugate(k_m) * k_n * rho.data[m, n]
+                self.data += np.conjugate(k_n) * k_m * rho.data[m, n]
