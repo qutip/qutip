@@ -32,8 +32,9 @@ from numpy import pi, exp, sqrt
 from scipy.misc import factorial
 from scipy.special import hermite
 
+from qutip.qobj import isket
 from qutip.wigner import wigner, qfunc
-from qutip.states import state_number_index
+from qutip.states import ket2dm, state_number_index
 import qutip.settings
 
 if qutip.settings.qutip_graphics == 'YES':
@@ -365,6 +366,9 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
         Calculate the probability function for the given state of an harmonic
         oscillator (as density matrix)
         """
+        
+        if isket(rho):
+            rho = ket2dm(rho)
 
         self.data = np.zeros(len(self.xvecs[0]), dtype=complex)
         M, N = rho.shape
