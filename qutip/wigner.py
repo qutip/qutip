@@ -269,26 +269,25 @@ def qfunc(state, xvec, yvec, g=sqrt(2)):
     qmat = 0.25 * qmat * g ** 2
     return qmat
 
+
 #
 # Q-function for a pure state: Q = |<alpha|psi>|^2 / pi
 #
 # |psi>   = the state in fock basis
 # |alpha> = the coherent state with amplitude alpha
 #
-
-
 def _qfunc_pure(psi, alpha_mat):
     """
     Calculate the Q-function for a pure state.
     """
     n = prod(psi.shape)
     if isinstance(psi, Qobj):
-        psi = array(psi.trans().full())[0, :]
+        psi = psi.full().flatten()
     else:
         psi = psi.T
 
-    qmat1 = abs(polyval(fliplr(
-        [psi / sqrt(factorial(arange(0, n)))])[0], conjugate(alpha_mat))) ** 2
-    qmat1 = real(qmat1) * exp(-abs(alpha_mat) ** 2) / pi
+    qmat = abs(polyval(fliplr([psi / sqrt(factorial(arange(n)))])[0], 
+                       conjugate(alpha_mat))) ** 2
+    
+    return real(qmat) * exp(-abs(alpha_mat) ** 2) / pi
 
-    return qmat1
