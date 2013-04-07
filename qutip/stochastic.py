@@ -44,6 +44,7 @@ import inspect
 import numpy as np
 import scipy
 from scipy.linalg import norm
+from numpy.random import RandomState
 
 from qutip.odedata import Odedata
 from qutip.odeoptions import Odeoptions
@@ -135,6 +136,19 @@ def smesolve(H, psi0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
     return smesolve_generic(H, psi0, tlist, c_ops, sc_ops, e_ops,
                             rhs, d1, d2, d2_len, ntraj, nsubsteps,
                             options)
+
+def spdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
+              options=Odeoptions()):
+    """
+    A stochastic PDP solver for experimental/development and comparison to the 
+    stochastic DE solvers. Use mcsolve for real quantum trajectory
+    simulations.
+    """
+    if debug:
+        print(inspect.stack()[0][3])
+
+    return spdpsolve_generic(H, psi0, tlist, c_ops, e_ops,
+                             ntraj, nsubsteps, options)
 
 #------------------------------------------------------------------------------
 # Generic parameterized stochastic Schrodinger equation solver
@@ -324,6 +338,111 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
                               dt, dW[a_idx, t_idx, j, :], d1, d2)
 
             rho_t += drho_t
+
+    return states_list
+
+
+#------------------------------------------------------------------------------
+# Generic parameterized stochastic PDP solver
+#
+def spdpsolve_generic(H, psi0, tlist, c_ops, e_ops,
+                      ntraj, nsubsteps, options):
+    """
+    For internal use.
+
+    .. note::
+
+        Experimental.
+
+    """
+    if debug:
+        print(inspect.stack()[0][3])
+
+    N_store = len(tlist)
+    N_substeps = nsubsteps
+    N = N_store * N_substeps
+    dt = (tlist[1] - tlist[0]) / N_substeps
+
+    data = Odedata()
+    data.solver = "spdpsolve"
+    data.times = tlist
+    data.expect = np.zeros((len(e_ops), N_store), dtype=complex)
+
+    # effective hamiltonian for deterministic part
+    Heff = H
+    for c in c_ops:
+        Heff += -0.5j * c.dag() * c
+        
+    progress_acc = 0.0
+    for n in range(ntraj):
+
+        if debug and (100 * float(n) / ntraj) >= progress_acc:
+            print("Progress: %.2f" % (100 * float(n) / ntraj))
+            progress_acc += 10.0
+
+        psi_t = psi0.full()
+
+        states_list = _spdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t, c_ops, e_ops, data)
+
+        # if average -> average...
+        data.states.append(states_list)
+
+    # average
+    data.expect = data.expect / ntraj
+
+    return data
+
+
+def _spdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t, c_ops, e_ops, data):
+    """
+    Internal function.
+    """
+    states_list = []
+
+    phi_t = np.copy(psi_t)
+
+    prng = RandomState() # todo: seed it
+    r_jump, r_op = prng.rand(2)
+
+    for t_idx, t in enumerate(tlist):
+
+        if e_ops:
+            for e_idx, e in enumerate(e_ops):
+                data.expect[e_idx, t_idx] += \
+                    cy_expect(e.data.data, e.data.indices,
+                              e.data.indptr, 0, psi_t)
+        else:
+            states_list.append(Qobj(psi_t))
+
+        for j in range(N_substeps):
+
+            if norm(phi_t) ** 2 < r_jump:
+                # jump occurs
+                p = np.array([norm(c.data * psi_t) ** 2 for c in c_ops])
+                p = np.cumsum(p / np.sum(p))
+                n = np.where(p >= r_op)[0][0]
+
+                # apply jump
+                psi_t = c_ops[n].data * psi_t
+                psi_t /= norm(psi_t)
+                phi_t = np.copy(psi_t)
+
+                # todo: store info about jump
+
+                # get new random numbers for next jump
+                r_jump, r_op = prng.rand(2)
+
+            # deterministic evolution wihtout correction for norm decay
+            dphi_t = (-1.0j * dt) * (Heff.data * phi_t)
+
+            # deterministic evolution with correction for norm decay
+            dpsi_t = (-1.0j * dt) * (Heff.data * psi_t)
+            A = 0.5 * np.sum([norm(c.data * psi_t) ** 2 for c in c_ops])
+            dpsi_t += dt * A * psi_t
+
+            # increment wavefunctions
+            phi_t += dphi_t
+            psi_t += dpsi_t
 
     return states_list
 
