@@ -52,6 +52,7 @@ from qutip.expect import expect
 from qutip.qobj import Qobj
 from qutip.superoperator import spre, spost, mat2vec, vec2mat, liouvillian_fast
 from qutip.cyQ.spmatfuncs import cy_expect, spmv
+from qutip.gui.progressbar import TextProgressBar
 
 debug = True
 
@@ -59,7 +60,7 @@ debug = True
 def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
              solver='euler-maruyama', method='homodyne',
              nsubsteps=10, d1=None, d2=None, d2_len=1, rhs=None,
-             options=Odeoptions()):
+             options=Odeoptions(), progress_bar=TextProgressBar()):
     """
     Solve stochastic Schrodinger equation. Dispatch to specific solvers
     depending on the value of the `solver` argument.
@@ -89,12 +90,12 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
     if solver == 'euler-maruyama':
         return ssesolve_generic(H, psi0, tlist, c_ops, e_ops,
                                 _rhs_psi_euler_maruyama, d1, d2, d2_len,
-                                ntraj, nsubsteps, options)
+                                ntraj, nsubsteps, options, progress_bar)
 
     elif solver == 'platen':
         return ssesolve_generic(H, psi0, tlist, c_ops, e_ops,
                                 _rhs_psi_platen, d1, d2, d2_len,
-                                ntraj, nsubsteps, options)
+                                ntraj, nsubsteps, options, progress_bar)
 
     elif solver == 'milstein':
         raise NotImplementedError("Solver '%s' not yet implemented." % solver)
@@ -106,7 +107,7 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
 def smesolve(H, psi0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
              d1=None, d2=None, d2_len=1, rhs=None,
              method='homodyne', solver='euler-maruyama', nsubsteps=10,
-             options=Odeoptions()):
+             options=Odeoptions(), progress_bar=TextProgressBar()):
     """
     Solve stochastic master equation. Dispatch to specific solvers
     depending on the value of the `solver` argument.
@@ -135,10 +136,10 @@ def smesolve(H, psi0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
 
     return smesolve_generic(H, psi0, tlist, c_ops, sc_ops, e_ops,
                             rhs, d1, d2, d2_len, ntraj, nsubsteps,
-                            options)
+                            options, progress_bar)
 
 def spdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
-              options=Odeoptions()):
+              options=Odeoptions(), progress_bar=TextProgressBar()):
     """
     A stochastic PDP solver for experimental/development and comparison to the 
     stochastic DE solvers. Use mcsolve for real quantum trajectory
@@ -148,13 +149,13 @@ def spdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
         print(inspect.stack()[0][3])
 
     return spdpsolve_generic(H, psi0, tlist, c_ops, e_ops,
-                             ntraj, nsubsteps, options)
+                             ntraj, nsubsteps, options, progress_bar)
 
 #------------------------------------------------------------------------------
 # Generic parameterized stochastic Schrodinger equation solver
 #
 def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs,
-                     d1, d2, d2_len, ntraj, nsubsteps, options):
+                     d1, d2, d2_len, ntraj, nsubsteps, options, progress_bar):
     """
     internal
 
@@ -185,12 +186,10 @@ def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs,
                       (c - c.dag()).data,
                       (c.dag() * c).data])
 
-    progress_acc = 0.0
-    for n in range(ntraj):
+    progress_bar.start(ntraj)
 
-        if debug and (100 * float(n) / ntraj) >= progress_acc:
-            print("Progress: %.2f" % (100 * float(n) / ntraj))
-            progress_acc += 10.0
+    for n in range(ntraj):
+        progress_bar.update(n)
 
         psi_t = psi0.full()
 
@@ -201,6 +200,8 @@ def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs,
 
         # if average -> average...
         data.states.append(states_list)
+
+    progress_bar.finished()
 
     # average
     data.expect = data.expect / ntraj
@@ -248,7 +249,8 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 # Generic parameterized stochastic master equation solver
 #
 def smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
-                     rhs, d1, d2, d2_len, ntraj, nsubsteps, options):
+                     rhs, d1, d2, d2_len, ntraj, nsubsteps,
+                     options, progress_bar):
     """
     internal
 
@@ -286,12 +288,10 @@ def smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
     # Liouvillian for the deterministic part
     L = liouvillian_fast(H, c_ops)  # needs to be modified for TD systems
 
-    progress_acc = 0.0
-    for n in range(ntraj):
+    progress_bar.start(ntraj)
 
-        if debug and (100 * float(n) / ntraj) >= progress_acc:
-            print("Progress: %.2f" % (100 * float(n) / ntraj))
-            progress_acc += 10.0
+    for n in range(ntraj):
+        progress_bar.update(n)
 
         rho_t = mat2vec(rho0.full())
 
@@ -301,6 +301,8 @@ def smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
 
         # if average -> average...
         data.states.append(states_list)
+
+    progress_bar.finished()
 
     # average
     data.expect = data.expect / ntraj
@@ -346,7 +348,8 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
 # Generic parameterized stochastic PDP solver
 #
 def spdpsolve_generic(H, psi0, tlist, c_ops, e_ops,
-                      ntraj, nsubsteps, options):
+                      ntraj, nsubsteps, options,
+                      progress_bar):
     """
     For internal use.
 
@@ -373,19 +376,18 @@ def spdpsolve_generic(H, psi0, tlist, c_ops, e_ops,
     for c in c_ops:
         Heff += -0.5j * c.dag() * c
         
-    progress_acc = 0.0
+    progress_bar.start(ntraj)
+
     for n in range(ntraj):
-
-        if debug and (100 * float(n) / ntraj) >= progress_acc:
-            print("Progress: %.2f" % (100 * float(n) / ntraj))
-            progress_acc += 10.0
-
+        progress_bar.update(n)
         psi_t = psi0.full()
 
         states_list = _spdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t, c_ops, e_ops, data)
 
         # if average -> average...
         data.states.append(states_list)
+
+    progress_bar.finished()
 
     # average
     data.expect = data.expect / ntraj
