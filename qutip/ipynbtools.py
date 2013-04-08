@@ -112,7 +112,7 @@ style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
         display(Javascript("$('div#%s').width('%i%%')" % (self.divid, p)))
 
     def finished(self):
-        pass
+        display(Javascript("$('div#%s').width('%i%%')" % (self.divid, 100.0)))
 
 def _visualize_parfor_data(metadata):
     """
