@@ -56,6 +56,24 @@ from qutip.gui.progressbar import TextProgressBar
 
 debug = True
 
+class _StochasticSolverData:
+    """
+    Internal class for passing data between stochastic solver functions.
+    """
+    def __init__(self, H=None, state0=None, tlist=None, 
+                 c_ops=[], sc_ops=[], e_ops=[], ntraj=1, substeps=1,
+                 solver=None, method=None):
+
+        self.H = H
+        self.state0 = state0
+        self.tlist = tlist
+        self.c_ops = c_ops
+        self.sc_ops = sc_ops
+        self.e_ops = e_ops
+        self.ntraj = ntraj
+        self.substeps = substeps
+        self.solver = None
+        self.method = None
 
 def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
              solver='euler-maruyama', method='homodyne',
@@ -72,6 +90,11 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
     """
     if debug:
         print(inspect.stack()[0][3])
+
+    ssdata = _StochasticSolverData(H=H, state0=psi0, tlist=tlist, c_ops=c_ops,
+                                   sc_ops=sc_ops, e_ops=e_ops, ntraj=ntraj,
+                                   substeps=substeps, solver=solver, 
+                                   method=method)
 
     if (d1 is None) or (d2 is None):
 
@@ -402,7 +425,8 @@ def spdpsolve_generic(H, psi0, tlist, c_ops, e_ops,
     return data
 
 
-def _spdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t, c_ops, e_ops, data):
+def _spdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t,
+                                 c_ops, e_ops, data):
     """
     Internal function.
     """
