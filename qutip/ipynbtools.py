@@ -93,8 +93,7 @@ class HTMLProgressBar():
             compute_with_n(n)
     """
 
-    def __init__(self, iterations=0, chunk_size=0):
-        self.N = float(iterations)
+    def __init__(self, iterations=0, chunk_size=1.0):
         self.divid = str(uuid.uuid4())
         self.pb = HTML("""\
 <div style="border: 1px solid grey; width: 600px">
@@ -103,16 +102,25 @@ style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
 </div>
 """ % self.divid)
         display(self.pb)
+        self.start(iterations, chunk_size)
 
-    def start(self, iterations=0, chunk_size=0):
+    def start(self, iterations=0, chunk_size=1.0):
+        self.t_start = time.time()
         self.N = float(iterations)
+        self.p_chunk_size = chunk_size
+        self.p_chunk = 0
 
     def update(self, n):
         p = (n / self.N) * 100.0
-        display(Javascript("$('div#%s').width('%i%%')" % (self.divid, p)))
+        if p >= self.p_chunk:
+            display(Javascript("$('div#%s').width('%i%%')" % (self.divid, p)))
+            self.p_chunk += self.p_chunk_size
 
     def finished(self):
+        self.t_done = time.time()
         display(Javascript("$('div#%s').width('%i%%')" % (self.divid, 100.0)))
+        lbl = HTML("<p>Elapsed time: %.2fs</p>" % (self.t_done - self.t_start))
+        display(lbl)
 
 def _visualize_parfor_data(metadata):
     """
