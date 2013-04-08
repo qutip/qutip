@@ -370,6 +370,8 @@ def spdpsolve_generic(H, psi0, tlist, c_ops, e_ops,
     data.solver = "spdpsolve"
     data.times = tlist
     data.expect = np.zeros((len(e_ops), N_store), dtype=complex)
+    data.jump_times = []
+    data.jump_op_idx = []
 
     # effective hamiltonian for deterministic part
     Heff = H
@@ -382,10 +384,15 @@ def spdpsolve_generic(H, psi0, tlist, c_ops, e_ops,
         progress_bar.update(n)
         psi_t = psi0.full()
 
-        states_list = _spdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t, c_ops, e_ops, data)
+        states_list, jump_times, jump_op_idx = \
+            _spdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps,
+                                         psi_t, c_ops, e_ops, data)
 
         # if average -> average...
         data.states.append(states_list)
+
+        data.jump_times.append(jump_times)
+        data.jump_op_idx.append(jump_op_idx)
 
     progress_bar.finished()
 
@@ -405,6 +412,9 @@ def _spdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t, c_
 
     prng = RandomState() # todo: seed it
     r_jump, r_op = prng.rand(2)
+
+    jump_times = []
+    jump_op_idx = []
 
     for t_idx, t in enumerate(tlist):
 
@@ -429,7 +439,9 @@ def _spdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t, c_
                 psi_t /= norm(psi_t)
                 phi_t = np.copy(psi_t)
 
-                # todo: store info about jump
+                # store info about jump
+                jump_times.append(tlist[t_idx] + dt * j)
+                jump_op_idx.append(n)
 
                 # get new random numbers for next jump
                 r_jump, r_op = prng.rand(2)
@@ -446,7 +458,7 @@ def _spdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t, c_
             phi_t += dphi_t
             psi_t += dpsi_t
 
-    return states_list
+    return states_list, jump_times, jump_op_idx
 
 
 #------------------------------------------------------------------------------
