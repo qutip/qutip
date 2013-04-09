@@ -287,10 +287,9 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                data.expect[e_idx, t_idx] += \
-                    cy_expect(e.data.data, e.data.indices,
-                              e.data.indptr, 0, psi_t)
-                data.ss[e_idx, t_idx] += data.expect[e_idx, t_idx] ** 2
+                s = cy_expect(e.data.data, e.data.indices, e.data.indptr, 0, psi_t)
+                data.expect[e_idx, t_idx] += s
+                data.ss[e_idx, t_idx] += s ** 2
         else:
             states_list.append(Qobj(psi_t))
 
@@ -496,10 +495,9 @@ def _sepdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                data.expect[e_idx, t_idx] += \
-                    cy_expect(e.data.data, e.data.indices,
-                              e.data.indptr, 0, psi_t)
-                data.ss[e_idx, t_idx] += data.expect[e_idx, t_idx] ** 2
+                s = cy_expect(e.data.data, e.data.indices, e.data.indptr, 0, psi_t)
+                data.expect[e_idx, t_idx] += s
+                data.ss[e_idx, t_idx] += s ** 2
         else:
             states_list.append(Qobj(psi_t))
 
@@ -540,6 +538,7 @@ def _sepdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t,
             psi_t /= norm(psi_t)
 
     return states_list, jump_times, jump_op_idx
+
 
 #------------------------------------------------------------------------------
 # Generic parameterized stochastic ME PDP solver
@@ -653,6 +652,7 @@ def _smepdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, rho_t,
             rho_t += drho_t
 
     return states_list, jump_times, jump_op_idx
+
 
 #------------------------------------------------------------------------------
 # Helper-functions for stochastic DE
