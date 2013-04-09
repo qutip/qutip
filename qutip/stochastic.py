@@ -99,26 +99,33 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
     if (d1 is None) or (d2 is None):
 
         if method == 'homodyne':
-            d1 = d1_psi_homodyne
-            d2 = d2_psi_homodyne
+            ssdata.d1 = d1_psi_homodyne
+            ssdata.d2 = d2_psi_homodyne
+            ssdata.d2_len = 1
+            ssdata.homogeneous = True
 
         elif method == 'heterodyne':
-            d1 = d1_psi_heterodyne
-            d2 = d2_psi_heterodyne
-            d2_len = 2
+            ssdata.d1 = d1_psi_heterodyne
+            ssdata.d2 = d2_psi_heterodyne
+            ssdata.d2_len = 2
+            ssdata.homogeneous = True
+
+        elif method == 'photocurrent':
+            ssdata.d1 = d1_psi_photocurrent
+            ssdata.d2 = d2_psi_photocurrent
+            ssdata.d2_len = 1
+            ssdata.homogeneous = False
 
         else:
-            raise Exception("Unregognized method '%s'." % method)
+            raise Exception("Unrecognized method '%s'." % method)
 
     if solver == 'euler-maruyama':
-        return ssesolve_generic(H, psi0, tlist, c_ops, e_ops,
-                                _rhs_psi_euler_maruyama, d1, d2, d2_len,
-                                ntraj, nsubsteps, options, progress_bar)
+        ssdata.rhs_func = _rhs_psi_euler_maruyama
+        return ssesolve_generic(ssdata, options, progress_bar)
 
     elif solver == 'platen':
-        return ssesolve_generic(H, psi0, tlist, c_ops, e_ops,
-                                _rhs_psi_platen, d1, d2, d2_len,
-                                ntraj, nsubsteps, options, progress_bar)
+        ssdata.rhs_func = _rhs_psi_platen
+        return ssesolve_generic(ssdata, options, progress_bar)
 
     elif solver == 'milstein':
         raise NotImplementedError("Solver '%s' not yet implemented." % solver)
@@ -205,8 +212,7 @@ def smepdpsolve(H, rho0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
 #------------------------------------------------------------------------------
 # Generic parameterized stochastic Schrodinger equation solver
 #
-def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs,
-                     d1, d2, d2_len, ntraj, nsubsteps, options, progress_bar):
+def ssesolve_generic(ssdata, options, progress_bar):
     """
     internal
 
@@ -218,36 +224,37 @@ def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs,
     if debug:
         print(inspect.stack()[0][3])
 
-    N_store = len(tlist)
-    N_substeps = nsubsteps
+    N_store = len(ssdata.tlist)
+    N_substeps = ssdata.nsubsteps
     N = N_store * N_substeps
-    dt = (tlist[1] - tlist[0]) / N_substeps
+    dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
 
     data = Odedata()
     data.solver = "ssesolve"
-    data.times = tlist
-    data.expect = np.zeros((len(e_ops), N_store), dtype=complex)
+    data.times = ssdata.tlist
+    data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
 
     # pre-compute collapse operator combinations that are commonly needed
     # when evaluating the RHS of stochastic Schrodinger equations
     A_ops = []
-    for c_idx, c in enumerate(c_ops):
+    for c_idx, c in enumerate(ssdata.c_ops):
         A_ops.append([c.data,
                       (c + c.dag()).data,
                       (c - c.dag()).data,
                       (c.dag() * c).data])
 
-    progress_bar.start(ntraj)
+    progress_bar.start(ssdata.ntraj)
 
-    for n in range(ntraj):
+    for n in range(ssdata.ntraj):
         progress_bar.update(n)
 
         psi_t = psi0.full()
 
-        states_list = _ssesolve_single_trajectory(H, dt, tlist, N_store,
+        states_list = _ssesolve_single_trajectory(ssdata.H, dt, ssdata.tlist, N_store,
                                                   N_substeps, psi_t, A_ops,
-                                                  e_ops, data, rhs,
-                                                  d1, d2, d2_len)
+                                                  ssdata.e_ops, data, ssdata.rhs_func,
+                                                  ssdata.d1, ssdata.d2, ssdata.d2_len,
+                                                  ssdata.homogeneous)
 
         # if average -> average...
         data.states.append(states_list)
@@ -255,18 +262,19 @@ def ssesolve_generic(H, psi0, tlist, c_ops, e_ops, rhs,
     progress_bar.finished()
 
     # average
-    data.expect = data.expect / ntraj
+    data.expect = data.expect / ssdata.ntraj
 
     return data
 
 
 def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
-                                A_ops, e_ops, data, rhs, d1, d2, d2_len):
+                                A_ops, e_ops, data, rhs, d1, d2, d2_len, homogeneous):
     """
     Internal function. See ssesolve.
     """
 
-    dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
+    if homogeneous:
+        dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
 
     states_list = []
 
@@ -286,8 +294,12 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 
             for a_idx, A in enumerate(A_ops):
 
-                dpsi_t += rhs(H.data, psi_t, A,
-                              dt, dW[a_idx, t_idx, j, :], d1, d2)
+                if homogeneous:
+                    dw = dW[a_idx, t_idx, j, :]
+                else:
+                    dw = np.random.poisson(0.5 * norm(A.data * psi_t) ** 2 * dt, d2_len)
+
+                dpsi_t += rhs(H.data, psi_t, A, dt, dw, d1, d2)
 
             # increment and renormalize the wave function
             psi_t += dpsi_t
@@ -711,7 +723,7 @@ def d2_psi_heterodyne(A, psi):
     return [d2_re, d2_im]
 
 
-def d1_current(A, psi):
+def d1_photocurrent(A, psi):
     """
     Todo: cythonize, requires poisson increments
     """
@@ -721,7 +733,7 @@ def d1_current(A, psi):
             - n1 ** 2 * psi))
 
 
-def d2_current(A, psi):
+def d2_photocurrent(A, psi):
     """
     Todo: cythonize, requires poisson increments
     """
