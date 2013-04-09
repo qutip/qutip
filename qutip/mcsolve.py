@@ -460,7 +460,7 @@ class _MC_class():
                     from PySide import QtGui, QtCore
                 elif qutip.settings.qutip_gui == "PYQT4":
                     from PyQt4 import QtGui, QtCore
-                from gui.ProgressBar import ProgressBar, Pthread
+                from gui.gui_progressbar import ProgressBar, Pthread
                 # checks if QApplication already exists (needed for iPython)
                 app = QtGui.QApplication.instance()
                 if not app:  # create QApplication if it doesnt exist
