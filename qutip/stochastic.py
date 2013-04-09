@@ -482,6 +482,10 @@ def _spdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t,
             phi_t += dphi_t
             psi_t += dpsi_t
 
+            # ensure that normalized wavefunction remains normalized
+            # this allows larger time step than otherwise would be possible
+            psi_t /= norm(psi_t)
+
     return states_list, jump_times, jump_op_idx
 
 
