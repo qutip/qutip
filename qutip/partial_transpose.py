@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
+# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
 #
 # Significant parts of this code was contributed by Jonas Neergaard-Nielsen
 #
