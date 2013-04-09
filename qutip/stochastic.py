@@ -162,7 +162,7 @@ def smesolve(H, psi0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
                             options, progress_bar)
 
 def sepdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
-              options=Odeoptions(), progress_bar=TextProgressBar()):
+               options=Odeoptions(), progress_bar=TextProgressBar()):
     """
     A stochastic PDP solver for experimental/development and comparison to the 
     stochastic DE solvers. Use mcsolve for real quantum trajectory
@@ -180,8 +180,27 @@ def sepdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
     ssdata.ntraj = ntraj
     ssdata.nsubsteps = nsubsteps
 
-
     return sepdpsolve_generic(ssdata, options, progress_bar)
+
+
+def smepdpsolve(H, rho0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
+                options=Odeoptions(), progress_bar=TextProgressBar()):
+    """
+    A stochastic PDP solver for density matrix evolution.
+    """
+    if debug:
+        print(inspect.stack()[0][3])
+
+    ssdata = _StochasticSolverData()
+    ssdata.H = H
+    ssdata.rho0 = rho0
+    ssdata.tlist = tlist
+    ssdata.c_ops = c_ops
+    ssdata.e_ops = e_ops
+    ssdata.ntraj = ntraj
+    ssdata.nsubsteps = nsubsteps
+
+    return smepdpsolve_generic(ssdata, options, progress_bar)
 
 #------------------------------------------------------------------------------
 # Generic parameterized stochastic Schrodinger equation solver
@@ -377,7 +396,7 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
 
 
 #------------------------------------------------------------------------------
-# Generic parameterized stochastic PDP solver
+# Generic parameterized stochastic SE PDP solver
 #
 def sepdpsolve_generic(ssdata, options, progress_bar):
     """
@@ -497,6 +516,118 @@ def _sepdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t,
 
     return states_list, jump_times, jump_op_idx
 
+#------------------------------------------------------------------------------
+# Generic parameterized stochastic ME PDP solver
+#
+def smepdpsolve_generic(ssdata, options, progress_bar):
+    """
+    For internal use.
+
+    .. note::
+
+        Experimental.
+
+    """
+    if debug:
+        print(inspect.stack()[0][3])
+
+    N_store = len(ssdata.tlist)
+    N_substeps = ssdata.nsubsteps
+    N = N_store * N_substeps
+    dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
+
+    data = Odedata()
+    data.solver = "smepdpsolve"
+    data.times = ssdata.tlist
+    data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
+    data.jump_times = []
+    data.jump_op_idx = []
+
+    # effective hamiltonian for deterministic part
+    Heff = ssdata.H
+    for c in ssdata.c_ops:
+        Heff += -0.5j * c.dag() * c
+        
+    progress_bar.start(ssdata.ntraj)
+
+    for n in range(ssdata.ntraj):
+        progress_bar.update(n)
+        rho_t = ssdata.rho0.full()
+
+        states_list, jump_times, jump_op_idx = \
+            _smepdpsolve_single_trajectory(Heff, dt, ssdata.tlist,
+                                           N_store, N_substeps,
+                                           rho_t, ssdata.c_ops, ssdata.e_ops, 
+                                           data)
+
+        # if average -> average...
+        data.states.append(states_list)
+
+        data.jump_times.append(jump_times)
+        data.jump_op_idx.append(jump_op_idx)
+
+    progress_bar.finished()
+
+    # average
+    data.expect = data.expect / ssdata.ntraj
+
+    return data
+
+
+def _smepdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, rho_t,
+                                   c_ops, e_ops, data):
+    """ 
+    Internal function.
+    """
+    states_list = []
+
+    raise NotImplemented("SME PDP solver not yet completed")
+
+    phi_t = np.copy(psi_t)
+
+    prng = RandomState() # todo: seed it
+    r_jump, r_op = prng.rand(2)
+
+    jump_times = []
+    jump_op_idx = []
+
+    for t_idx, t in enumerate(tlist):
+
+        if e_ops:
+            for e_idx, e in enumerate(e_ops):
+                data.expect[e_idx, t_idx] += _rho_expect(e, rho_t)
+        else:
+            states_list.append(Qobj(rho_t))
+
+        for j in range(N_substeps):
+
+            if _rho_expect(d_op, sigma_t) < r_jump:
+                # jump occurs
+                p = np.array([rho_expect(c.dag() * c, rho_t) for c in c_ops])
+                p = np.cumsum(p / np.sum(p))
+                n = np.where(p >= r_op)[0][0]
+
+                # apply jump
+                rho_t = c_ops[n] * psi_t * c_ops[n].dag()
+                rho_t /= rho_expect(c.dag() * c, rho_t)
+                rho_t = np.copy(rho_t)
+
+                # store info about jump
+                jump_times.append(tlist[t_idx] + dt * j)
+                jump_op_idx.append(n)
+
+                # get new random numbers for next jump
+                r_jump, r_op = prng.rand(2)
+
+            # deterministic evolution wihtout correction for norm decay
+
+            # deterministic evolution with correction for norm decay
+
+            # increment wavefunctions
+            sigma_t += dsigma_t
+            rho_t += drho_t
+
+    return states_list, jump_times, jump_op_idx
 
 #------------------------------------------------------------------------------
 # Helper-functions for stochastic DE
