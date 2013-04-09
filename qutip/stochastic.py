@@ -161,7 +161,7 @@ def smesolve(H, psi0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
                             rhs, d1, d2, d2_len, ntraj, nsubsteps,
                             options, progress_bar)
 
-def spdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
+def sepdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
               options=Odeoptions(), progress_bar=TextProgressBar()):
     """
     A stochastic PDP solver for experimental/development and comparison to the 
@@ -171,8 +171,17 @@ def spdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
     if debug:
         print(inspect.stack()[0][3])
 
-    return spdpsolve_generic(H, psi0, tlist, c_ops, e_ops,
-                             ntraj, nsubsteps, options, progress_bar)
+    ssdata = _StochasticSolverData()
+    ssdata.H = H
+    ssdata.psi0 = psi0
+    ssdata.tlist = tlist
+    ssdata.c_ops = c_ops
+    ssdata.e_ops = e_ops
+    ssdata.ntraj = ntraj
+    ssdata.nsubsteps = nsubsteps
+
+
+    return sepdpsolve_generic(ssdata, options, progress_bar)
 
 #------------------------------------------------------------------------------
 # Generic parameterized stochastic Schrodinger equation solver
@@ -370,9 +379,7 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
 #------------------------------------------------------------------------------
 # Generic parameterized stochastic PDP solver
 #
-def spdpsolve_generic(H, psi0, tlist, c_ops, e_ops,
-                      ntraj, nsubsteps, options,
-                      progress_bar):
+def sepdpsolve_generic(ssdata, options, progress_bar):
     """
     For internal use.
 
@@ -384,32 +391,34 @@ def spdpsolve_generic(H, psi0, tlist, c_ops, e_ops,
     if debug:
         print(inspect.stack()[0][3])
 
-    N_store = len(tlist)
-    N_substeps = nsubsteps
+    N_store = len(ssdata.tlist)
+    N_substeps = ssdata.nsubsteps
     N = N_store * N_substeps
-    dt = (tlist[1] - tlist[0]) / N_substeps
+    dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
 
     data = Odedata()
     data.solver = "spdpsolve"
-    data.times = tlist
-    data.expect = np.zeros((len(e_ops), N_store), dtype=complex)
+    data.times = ssdata.tlist
+    data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
     data.jump_times = []
     data.jump_op_idx = []
 
     # effective hamiltonian for deterministic part
-    Heff = H
-    for c in c_ops:
+    Heff = ssdata.H
+    for c in ssdata.c_ops:
         Heff += -0.5j * c.dag() * c
         
-    progress_bar.start(ntraj)
+    progress_bar.start(ssdata.ntraj)
 
-    for n in range(ntraj):
+    for n in range(ssdata.ntraj):
         progress_bar.update(n)
-        psi_t = psi0.full()
+        psi_t = ssdata.psi0.full()
 
         states_list, jump_times, jump_op_idx = \
-            _spdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps,
-                                         psi_t, c_ops, e_ops, data)
+            _sepdpsolve_single_trajectory(Heff, dt, ssdata.tlist,
+                                          N_store, N_substeps,
+                                          psi_t, ssdata.c_ops, ssdata.e_ops, 
+                                          data)
 
         # if average -> average...
         data.states.append(states_list)
@@ -420,13 +429,13 @@ def spdpsolve_generic(H, psi0, tlist, c_ops, e_ops,
     progress_bar.finished()
 
     # average
-    data.expect = data.expect / ntraj
+    data.expect = data.expect / ssdata.ntraj
 
     return data
 
 
-def _spdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t,
-                                 c_ops, e_ops, data):
+def _sepdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t,
+                                  c_ops, e_ops, data):
     """
     Internal function.
     """
