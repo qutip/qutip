@@ -320,7 +320,7 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 
             # increment and renormalize the wave function
             psi_t += dpsi_t
-            psi_t /= norm(psi_t, 2)
+            psi_t /= norm(psi_t)
 
     return states_list
 
@@ -841,7 +841,7 @@ def _rhs_psi_euler_maruyama(H, psi_t, A, dt, dW, d1, d2):
 
     """
     d2_vec = d2(A, psi_t)
-    return d1(A, psi_t) * dt + sum([d2_vec[n] * dW[n] for n in range(len(dW))])
+    return d1(A, psi_t) * dt + sum([d2_vec[n] * dW[n] for n in range(len(dW)) if dW[n] > 0])
 
 
 def _rhs_rho_euler_maruyama(L, rho_t, A, dt, dW, d1, d2):
@@ -852,7 +852,7 @@ def _rhs_rho_euler_maruyama(L, rho_t, A, dt, dW, d1, d2):
 
     """
     d2_vec = d2(A, rho_t)
-    return d1(A, rho_t) * dt + sum([d2_vec[n] * dW[n] for n in range(len(dW))])
+    return d1(A, rho_t) * dt + sum([d2_vec[n] * dW[n] for n in range(len(dW)) if dW[n] > 0])
 
 
 #------------------------------------------------------------------------------
