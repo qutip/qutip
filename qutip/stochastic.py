@@ -61,7 +61,7 @@ class _StochasticSolverData:
     Internal class for passing data between stochastic solver functions.
     """
     def __init__(self, H=None, state0=None, tlist=None, 
-                 c_ops=[], sc_ops=[], e_ops=[], ntraj=1, substeps=1,
+                 c_ops=[], sc_ops=[], e_ops=[], ntraj=1, nsubsteps=1,
                  solver=None, method=None):
 
         self.H = H
@@ -71,7 +71,7 @@ class _StochasticSolverData:
         self.sc_ops = sc_ops
         self.e_ops = e_ops
         self.ntraj = ntraj
-        self.substeps = substeps
+        self.nsubsteps = nsubsteps
         self.solver = None
         self.method = None
 
@@ -93,7 +93,7 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
 
     ssdata = _StochasticSolverData(H=H, state0=psi0, tlist=tlist, c_ops=c_ops,
                                    e_ops=e_ops, ntraj=ntraj,
-                                   substeps=substeps, solver=solver, 
+                                   nsubsteps=nsubsteps, solver=solver, 
                                    method=method)
 
     if (d1 is None) or (d2 is None):
@@ -103,18 +103,21 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
             ssdata.d2 = d2_psi_homodyne
             ssdata.d2_len = 1
             ssdata.homogeneous = True
+            ssdata.incr_distr = 'normal'
 
         elif method == 'heterodyne':
             ssdata.d1 = d1_psi_heterodyne
             ssdata.d2 = d2_psi_heterodyne
             ssdata.d2_len = 2
             ssdata.homogeneous = True
+            ssdata.incr_distr = 'normal'
 
         elif method == 'photocurrent':
             ssdata.d1 = d1_psi_photocurrent
             ssdata.d2 = d2_psi_photocurrent
             ssdata.d2_len = 1
             ssdata.homogeneous = False
+            ssdata.incr_distr = 'poisson'
 
         else:
             raise Exception("Unrecognized method '%s'." % method)
@@ -250,13 +253,13 @@ def ssesolve_generic(ssdata, options, progress_bar):
     for n in range(ssdata.ntraj):
         progress_bar.update(n)
 
-        psi_t = psi0.full()
+        psi_t = ssdata.state0.full()
 
         states_list = _ssesolve_single_trajectory(ssdata.H, dt, ssdata.tlist, N_store,
                                                   N_substeps, psi_t, A_ops,
                                                   ssdata.e_ops, data, ssdata.rhs_func,
                                                   ssdata.d1, ssdata.d2, ssdata.d2_len,
-                                                  ssdata.homogeneous)
+                                                  ssdata.homogeneous, ssdata)
 
         # if average -> average...
         data.states.append(states_list)
@@ -273,13 +276,21 @@ def ssesolve_generic(ssdata, options, progress_bar):
 
 
 def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
-                                A_ops, e_ops, data, rhs, d1, d2, d2_len, homogeneous):
+                                A_ops, e_ops, data, rhs, d1, d2, d2_len,
+                                homogeneous, ssdata):
     """
     Internal function. See ssesolve.
     """
 
     if homogeneous:
-        dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
+        if ssdata.incr_distr == 'normal':
+            dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
+        else:
+            raise TypeError('Unsupported increment distribution for homogeneous process.')
+    else:
+        if ssdata.incr_distr != 'poisson':
+            raise TypeError('Unsupported increment distribution for inhomogeneous process.')
+
 
     states_list = []
 
@@ -302,7 +313,8 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
                 if homogeneous:
                     dw = dW[a_idx, t_idx, j, :]
                 else:
-                    dw = np.random.poisson(0.5 * norm(A.data * psi_t) ** 2 * dt, d2_len)
+                    dw_expect = norm(spmv(A[0].data, A[0].indices, A[0].indptr, psi_t)) ** 2 * dt
+                    dw = np.random.poisson(dw_expect, d2_len)
 
                 dpsi_t += rhs(H.data, psi_t, A, dt, dw, d1, d2)
 
@@ -747,7 +759,7 @@ def d2_psi_heterodyne(A, psi):
     return [d2_re, d2_im]
 
 
-def d1_photocurrent(A, psi):
+def d1_psi_photocurrent(A, psi):
     """
     Todo: cythonize.
 
@@ -764,7 +776,7 @@ def d1_photocurrent(A, psi):
             - n1 ** 2 * psi))
 
 
-def d2_photocurrent(A, psi):
+def d2_psi_photocurrent(A, psi):
     """
     Todo: cythonize
 
