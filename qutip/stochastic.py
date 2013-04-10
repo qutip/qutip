@@ -799,7 +799,10 @@ def d2_psi_photocurrent(A, psi):
     """
     psi_1 = spmv(A[0].data, A[0].indices, A[0].indptr, psi)
     n1 = norm(psi_1)
-    return psi_1 / n1 - psi
+    if n1 != 0:
+        return psi_1 / n1 - psi
+    else:
+        return - psi
 
 
 #
