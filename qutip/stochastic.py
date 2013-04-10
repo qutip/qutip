@@ -92,7 +92,7 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
         print(inspect.stack()[0][3])
 
     ssdata = _StochasticSolverData(H=H, state0=psi0, tlist=tlist, c_ops=c_ops,
-                                   sc_ops=sc_ops, e_ops=e_ops, ntraj=ntraj,
+                                   e_ops=e_ops, ntraj=ntraj,
                                    substeps=substeps, solver=solver, 
                                    method=method)
 
@@ -688,6 +688,12 @@ def d1_psi_homodyne(A, psi):
     """
     OK
     Todo: cythonize
+
+    .. math::
+
+        D_1(\psi, t) = \\frac{1}{2}(\\langle C + C^\\dagger\\rangle\\psi - 
+        C^\\dagger C\\psi - \\frac{1}{4}\\langle C + C^\\dagger\\rangle^2\\psi)
+
     """
 
     e1 = cy_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
@@ -700,6 +706,11 @@ def d2_psi_homodyne(A, psi):
     """
     OK
     Todo: cythonize
+
+    .. math::
+
+        D_2(\psi, t) = (C - \\frac{1}{2}\\langle C + C^\\dagger\\rangle)\\psi
+
     """
 
     e1 = cy_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
@@ -738,20 +749,34 @@ def d2_psi_heterodyne(A, psi):
 
 def d1_photocurrent(A, psi):
     """
-    Todo: cythonize, requires poisson increments
+    Todo: cythonize.
+
+    Note: requires poisson increments
+
+    .. math::
+
+        D_1(\psi, t) = - \\frac{1}{2}(C^\dagger C \psi - ||C\psi||^2 \psi)
+
     """
 
-    n1 = norm(spmv(A[0].data, A[0].indices, A[0].indptr, psi), 2)
-    return (-0.5 * (spmv(A[2].data, A[2].indices, A[2].indptr, psi)
+    n1 = norm(spmv(A[0].data, A[0].indices, A[0].indptr, psi))
+    return (-0.5 * (spmv(A[3].data, A[3].indices, A[3].indptr, psi)
             - n1 ** 2 * psi))
 
 
 def d2_photocurrent(A, psi):
     """
-    Todo: cythonize, requires poisson increments
+    Todo: cythonize
+
+    Note: requires poisson increments
+
+    .. math::
+
+        D_2(\psi, t) = C\psi / ||C\psi|| - \psi
+
     """
     psi_1 = spmv(A[0].data, A[0].indices, A[0].indptr, psi)
-    n1 = norm(psi_1, 2)
+    n1 = norm(psi_1)
     return psi_1 / n1 - psi
 
 
