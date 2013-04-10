@@ -770,10 +770,8 @@ def d1_psi_photocurrent(A, psi):
         D_1(\psi, t) = - \\frac{1}{2}(C^\dagger C \psi - ||C\psi||^2 \psi)
 
     """
-
-    n1 = norm(spmv(A[0].data, A[0].indices, A[0].indptr, psi))
     return (-0.5 * (spmv(A[3].data, A[3].indices, A[3].indptr, psi)
-            - n1 ** 2 * psi))
+            -norm(spmv(A[0].data, A[0].indices, A[0].indptr, psi)) ** 2 * psi))
 
 
 def d2_psi_photocurrent(A, psi):
@@ -841,7 +839,7 @@ def _rhs_psi_euler_maruyama(H, psi_t, A, dt, dW, d1, d2):
 
     """
     d2_vec = d2(A, psi_t)
-    return d1(A, psi_t) * dt + sum([d2_vec[n] * dW[n] for n in range(len(dW)) if dW[n] > 0])
+    return d1(A, psi_t) * dt + sum([d2_vec[n] * dW[n] for n in range(len(dW)) if dW[n] != 0])
 
 
 def _rhs_rho_euler_maruyama(L, rho_t, A, dt, dW, d1, d2):
@@ -852,7 +850,7 @@ def _rhs_rho_euler_maruyama(L, rho_t, A, dt, dW, d1, d2):
 
     """
     d2_vec = d2(A, rho_t)
-    return d1(A, rho_t) * dt + sum([d2_vec[n] * dW[n] for n in range(len(dW)) if dW[n] > 0])
+    return d1(A, rho_t) * dt + sum([d2_vec[n] * dW[n] for n in range(len(dW)) if dW[n] != 0])
 
 
 #------------------------------------------------------------------------------
