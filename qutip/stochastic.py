@@ -228,11 +228,13 @@ def ssesolve_generic(ssdata, options, progress_bar):
     N_substeps = ssdata.nsubsteps
     N = N_store * N_substeps
     dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
+    NT = ssdata.ntraj
 
     data = Odedata()
     data.solver = "ssesolve"
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
+    data.ss = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
 
     # pre-compute collapse operator combinations that are commonly needed
     # when evaluating the RHS of stochastic Schrodinger equations
@@ -262,7 +264,10 @@ def ssesolve_generic(ssdata, options, progress_bar):
     progress_bar.finished()
 
     # average
-    data.expect = data.expect / ssdata.ntraj
+    data.expect = data.expect / NT
+
+    # standard error
+    data.ss = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
 
     return data
 
@@ -282,9 +287,9 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                data.expect[e_idx, t_idx] += \
-                    cy_expect(e.data.data, e.data.indices,
-                              e.data.indptr, 0, psi_t)
+                s = cy_expect(e.data.data, e.data.indices, e.data.indptr, 0, psi_t)
+                data.expect[e_idx, t_idx] += s
+                data.ss[e_idx, t_idx] += s ** 2
         else:
             states_list.append(Qobj(psi_t))
 
@@ -426,11 +431,13 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
     N_substeps = ssdata.nsubsteps
     N = N_store * N_substeps
     dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
+    NT = ssdata.ntraj
 
     data = Odedata()
     data.solver = "spdpsolve"
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
+    data.ss = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
     data.jump_times = []
     data.jump_op_idx = []
 
@@ -460,7 +467,11 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
     progress_bar.finished()
 
     # average
-    data.expect = data.expect / ssdata.ntraj
+    data.expect = data.expect / NT
+
+    # standard error
+    if NT > 1:
+        data.ss = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
 
     return data
 
@@ -484,9 +495,9 @@ def _sepdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                data.expect[e_idx, t_idx] += \
-                    cy_expect(e.data.data, e.data.indices,
-                              e.data.indptr, 0, psi_t)
+                s = cy_expect(e.data.data, e.data.indices, e.data.indptr, 0, psi_t)
+                data.expect[e_idx, t_idx] += s
+                data.ss[e_idx, t_idx] += s ** 2
         else:
             states_list.append(Qobj(psi_t))
 
@@ -527,6 +538,7 @@ def _sepdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t,
             psi_t /= norm(psi_t)
 
     return states_list, jump_times, jump_op_idx
+
 
 #------------------------------------------------------------------------------
 # Generic parameterized stochastic ME PDP solver
@@ -640,6 +652,7 @@ def _smepdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, rho_t,
             rho_t += drho_t
 
     return states_list, jump_times, jump_op_idx
+
 
 #------------------------------------------------------------------------------
 # Helper-functions for stochastic DE
