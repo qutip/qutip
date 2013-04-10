@@ -731,32 +731,44 @@ def d2_psi_homodyne(A, psi):
 
 def d1_psi_heterodyne(A, psi):
     """
-    not working/tested
     Todo: cythonize
+
+    .. math::
+
+        D_1(\psi, t) = -\\frac{1}{2}(C^\\dagger C - \\langle C^\\dagger \\rangle C + 
+                        \\frac{1}{2}\\langle C \\rangle\\langle C^\\dagger \\rangle))\psi
+
     """
-    e1 = cy_expect(A[0].data, A[0].indices, A[0].indptr, 0, psi)
-
+    e_C = cy_expect(A[0].data, A[0].indices, A[0].indptr, 0, psi) # e_C
     B = A[0].T.conj()
-    e2 = cy_expect(B.data, B.indices, B.indptr, 0, psi)
+    e_Cd = cy_expect(B.data, B.indices, B.indptr, 0, psi) # e_Cd
 
-    return (e2 * spmv(A[0].data, A[0].indices, A[0].indptr, psi)
-            - 0.5 * spmv(A[3].data, A[3].indices, A[3].indptr, psi)
-            - 0.25 * e1 * e2 * psi)
+    return  (-0.5 * spmv(A[3].data, A[3].indices, A[3].indptr, psi) +
+             0.5 * e_Cd * spmv(A[0].data, A[0].indices, A[0].indptr, psi) -
+             0.25 * e_C * e_Cd * psi)
 
 
 def d2_psi_heterodyne(A, psi):
     """
-    not working/tested
     Todo: cythonize
+
+        X = \\frac{1}{2}(C + C^\\dagger)
+
+        Y = \\frac{1}{2}(C - C^\\dagger)
+
+        D_{2,1}(\psi, t) = \\sqrt(1/2) * (C - \\langle X \\rangle) \\psi
+
+        D_{2,2}(\psi, t) = -i\\sqrt(1/2) * (C - \\langle Y \\rangle) \\psi
+
     """
 
-    e1 = 1/np.sqrt(2.0) * cy_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
-    d2_re = spmv(A[0].data, A[0].indices, A[0].indptr, psi) - e1 * psi
+    X = 0.5 * cy_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
+    Y = 0.5 * cy_expect(A[2].data, A[2].indices, A[2].indptr, 0, psi)
 
-    e1 = 1/np.sqrt(2.0) * cy_expect(A[2].data, A[2].indices, A[2].indptr, 0, psi)
-    d2_im = spmv(1j * A[0].data, A[0].indices, A[0].indptr, psi) + e1 * psi
+    d2_1 = np.sqrt(0.5) * (spmv(A[0].data, A[0].indices, A[0].indptr, psi) - X * psi)
+    d2_2 = -1.0j * np.sqrt(0.5) * (spmv(A[0].data, A[0].indices, A[0].indptr, psi) - Y * psi)
 
-    return [d2_re, d2_im]
+    return [d2_1, d2_2]
 
 
 def d1_psi_photocurrent(A, psi):
