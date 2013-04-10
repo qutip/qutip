@@ -252,12 +252,12 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
             if num_small > 0:
                 evals, evecs = evals[:num_small], evecs[:num_small]
             elif num_large > 0:
-                evals, evecs = evals[-num_large:], evecs[-num_large:]
+                evals, evecs = evals[:num_large], evecs[:num_large]
         else:
             if num_small > 0:
                 evals = evals[:num_small]
             elif num_large > 0:
-                evals = evals[-num_large:]
+                evals = evals[:num_large]
 
     if vecs:
         return np.array(evals), evecs
