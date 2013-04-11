@@ -734,7 +734,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt):
         #    cdc = c.dag() * c
         #    L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
 
-        L = liouvillian_fast(H, c_op_list)
+        L = liouvillian_fast(None, c_op_list)
 
         L_func_and_args = [L_func, L.data]
 
