@@ -73,6 +73,9 @@ class Odeoptions():
         Number of trajectories in mcsolver.
     rhs_reuse : bool {False,True}
         Reuse Hamiltonian data.
+    rhs_with_state : bool {False,True}
+        Whether or not to include the state in the Hamiltonian function
+        callback signature.
     rhs_filename : str
         Name for compiled Cython file.
 
@@ -81,7 +84,7 @@ class Odeoptions():
                  nsteps=1000, first_step=0, max_step=0, min_step=0,
                  mc_avg=True, tidy=True, num_cpus=0, norm_tol=1e-3,
                  norm_steps=5, rhs_reuse=False, rhs_filename=None, gui=True,
-                 ntraj=500):
+                 ntraj=500, rhs_with_state=False):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -104,6 +107,8 @@ class Odeoptions():
         self.ntraj = ntraj
         # tidyup Hamiltonian before calculation (default = True)
         self.tidy = tidy
+        # include the state in the function callback signature
+        self.rhs_with_state = rhs_with_state
         # Use preexisting RHS function for time-dependent solvers
         self.rhs_reuse = rhs_reuse
         # Use filename for preexisting RHS function (will default to last
