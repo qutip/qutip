@@ -756,7 +756,10 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full())
-    r = scipy.integrate.ode(_ode_rho_func_td)
+    if not opt.rhs_with_state:
+        r = scipy.integrate.ode(_ode_rho_func_td)
+    else:
+        r = scipy.integrate.ode(_ode_rho_func_td_with_state)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -780,6 +783,20 @@ def _ode_rho_func_td(t, rho, L_func_and_args):
     L_args = L_func_and_args[2:]
 
     L = L0 + L_func(t, L_args)
+
+    return L * rho
+
+
+#
+# evaluate drho(t)/dt according to the master eqaution
+#
+def _ode_rho_func_td_with_state(t, rho, L_func_and_args):
+
+    L_func = L_func_and_args[0]
+    L0 = L_func_and_args[1]
+    L_args = L_func_and_args[2:]
+
+    L = L0 + L_func(t, rho, L_args)
 
     return L * rho
 
