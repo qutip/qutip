@@ -743,15 +743,40 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt):
         L_func_and_args = [L_func,
                            sp.csr_matrix((n ** 2, m ** 2), dtype=complex)]
 
-    for arg in args:
-        if isinstance(arg, Qobj):
-            if isoper(arg):
-                L_func_and_args.append((-1j * (spre(arg) - spost(arg))).data)
+    if type(args) is dict:
+        new_args = {}
+        for key in args:
+            if isinstance(args[key], Qobj):
+                if isoper(args[key]):
+                    new_args[key] = (-1j * (spre(args[key]) - spost(args[key]))).data
+                else:
+                    new_args[key] = args[key].data   
             else:
-                L_func_and_args.append(arg.data)
-        else:
-            L_func_and_args.append(arg)
+                new_args[key] = args[key]
 
+        L_func_and_args.append(new_args)
+
+    elif type(args) is list:
+        new_args = []
+        for arg in args:
+            if isinstance(arg, Qobj):
+                if isoper(arg):
+                    new_args.append((-1j * (spre(arg) - spost(arg))).data)
+                else:
+                    new_args.append(arg.data)
+            else:
+                new_args.append(arg)
+
+        L_func_and_args.append(new_args)
+    else:
+        if isinstance(args, Qobj):
+            if isoper(args):
+                L_func_and_args.append((-1j * (spre(args) - spost(args))).data)
+            else:
+                L_func_and_args.append(args.data)
+        else:
+            L_func_and_args.append(args)
+        
     #
     # setup integrator
     #
@@ -780,7 +805,7 @@ def _ode_rho_func_td(t, rho, L_func_and_args):
 
     L_func = L_func_and_args[0]
     L0 = L_func_and_args[1]
-    L_args = L_func_and_args[2:]
+    L_args = L_func_and_args[2]
 
     L = L0 + L_func(t, L_args)
 
@@ -794,7 +819,7 @@ def _ode_rho_func_td_with_state(t, rho, L_func_and_args):
 
     L_func = L_func_and_args[0]
     L0 = L_func_and_args[1]
-    L_args = L_func_and_args[2:]
+    L_args = L_func_and_args[2]
 
     L = L0 + L_func(t, rho, L_args)
 
