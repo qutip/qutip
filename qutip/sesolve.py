@@ -336,6 +336,7 @@ def _sesolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     #
     return _generic_ode_solve(r, psi0, tlist, expt_ops, opt)
 
+
 # -----------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
 # time dependent hamiltonians
@@ -451,7 +452,12 @@ def _sesolve_func_td(H_func, psi0, tlist, expt_ops, args, opt):
             H_func_and_args.append(arg)
 
     initial_vector = psi0.full()
-    r = scipy.integrate.ode(_ode_psi_func_td)
+
+    if not opt.rhs_with_state:
+        r = scipy.integrate.ode(_ode_psi_func_td)
+    else:
+        r = scipy.integrate.ode(_ode_psi_func_td_with_state)
+
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -473,6 +479,15 @@ def _ode_psi_func_td(t, psi, H_func_and_args):
     args = H_func_and_args[1:]
 
     H = H_func(t, args)
+
+    return -1j * (H * psi)
+
+
+def _ode_psi_func_td_with_state(t, psi, H_func_and_args):
+    H_func = H_func_and_args[0]
+    args = H_func_and_args[1:]
+
+    H = H_func(t, psi, args)
 
     return -1j * (H * psi)
 
