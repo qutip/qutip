@@ -555,13 +555,28 @@ class Qobj():
 
         s += r'\begin{pmatrix}'
 
+        def _format_float(value):
+            if value == 0.0:
+                return "0.0"
+            elif abs(value) > 1000.0 or abs(value) < 0.001:
+                return ("%.3e" % value).replace("e", r"\times10^{") + "}"
+            elif abs(value - int(value)) < 0.001:
+                return "%.1f" % value
+            else:
+                return "%.3f" % value
+
         def _format_element(m, n, d):
             s = " & " if n > 0 else ""
             if type(d) == str:
                 return s + d
             else:
-                return s + str(np.real(d)) \
-                    if abs(np.imag(d)) < 1e-12 else s + str(d)
+                if abs(np.imag(d)) < 1e-12:
+                    return s + _format_float(np.real(d))
+                elif abs(np.real(d)) < 1e-12:
+                    return s + _format_float(np.imag(d)) + "j"
+                else:
+                    return (s + "(" + _format_float(np.real(d)) + "+" +
+                            _format_float(np.imag(d)) + "j)")
 
         if M > 10 and N > 10:
             # truncated matrix output

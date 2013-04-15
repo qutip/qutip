@@ -40,6 +40,8 @@ from qutip.odedata import Odedata
 from qutip.odechecks import _ode_checks
 import qutip.settings
 from qutip.settings import debug
+import threading
+threading._DummyThread._Thread__stop = lambda x: 42
 
 if debug:
     import inspect

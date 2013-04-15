@@ -16,7 +16,7 @@
 # Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-import cPickle as pickle
+import pickle
 import numpy as np
 
 from qutip.qobj import Qobj
