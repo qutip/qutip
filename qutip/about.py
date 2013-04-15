@@ -62,7 +62,7 @@ def about():
     else:
         print('')
         print("QuTiP: The Quantum Toolbox in Python")
-        print("Copyright (c) 2011-2013")
+        print("Copyright (c) 2011 and later.")
         print("Paul D. Nation & Robert J. Johansson")
         print('')
         print("QuTiP Version:       " + qutip.__version__)
