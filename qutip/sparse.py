@@ -143,7 +143,7 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
                                                          maxiter=maxiter)
                 else:
                     big_vals, big_vecs = sp.linalg.eigs(op.data, k=num_large,
-                                                        which='LM', tol=tol,
+                                                        which='LR', tol=tol,
                                                         maxiter=maxiter)
                 big_vecs = sp.csr_matrix(big_vecs, dtype=complex)
             # small values
