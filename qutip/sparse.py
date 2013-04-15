@@ -147,13 +147,11 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
                 print(inspect.stack()[0][3] + ": sparse -> vectors")
 
             if op.isherm:
-                # big values
                 if num_large > 0:
                     big_vals, big_vecs = sp.linalg.eigsh(op.data, k=num_large,
                                                          which='LA', tol=tol,
                                                          maxiter=maxiter)
                     big_vecs = sp.csr_matrix(big_vecs, dtype=complex)
-                # small values
                 if num_small > 0:
                     small_vals, small_vecs = sp.linalg.eigsh(
                         op.data, k=num_small, which='SA',
@@ -161,13 +159,11 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
                     small_vecs = sp.csr_matrix(small_vecs, dtype=complex)
 
             else:  # nonhermitian
-                # big values
                 if num_large > 0:
                     big_vals, big_vecs = sp.linalg.eigs(op.data, k=num_large,
                                                         which='LR', tol=tol,
                                                         maxiter=maxiter)
                     big_vecs = sp.csr_matrix(big_vecs, dtype=complex)
-                # small values
                 if num_small > 0:
                     small_vals, small_vecs = sp.linalg.eigs(
                         op.data, k=num_small, which='SR',
@@ -175,8 +171,7 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
                     small_vecs = sp.csr_matrix(small_vecs, dtype=complex)
 
             if num_large != 0 and num_small != 0:
-                evecs = sp.hstack([small_vecs, big_vecs],
-                                  format='csr')  # combine eigenvector sets
+                evecs = sp.hstack([small_vecs, big_vecs], format='csr')
             elif num_large != 0 and num_small == 0:
                 evecs = big_vecs
             elif num_large == 0 and num_small != 0:
