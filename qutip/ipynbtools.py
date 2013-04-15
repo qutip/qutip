@@ -19,6 +19,7 @@
 """
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
+from qutip.gui.progressbar import AbstractProgressBar
 
 from IPython.parallel import Client
 from IPython.display import HTML, Javascript, display
@@ -78,7 +79,7 @@ def version_table():
     return HTML(html)
 
 
-class HTMLProgressBar():
+class HTMLProgressBar(AbstractProgressBar):
     """
     A simple HTML progress bar for using in IPython notebooks. Based on
     IPython ProgressBar demo notebook:
