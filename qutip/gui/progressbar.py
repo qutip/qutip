@@ -19,9 +19,9 @@
 
 import time
 
-class TextProgressBar():
+class AbstractProgressBar():
     """
-    A simple text-based progress bar.
+    An abstract progress bar with some shared functionality.
 
     Example usage:
 
@@ -31,6 +31,25 @@ class TextProgressBar():
             pbar.update(n)
             compute_with_n(n)
         pbar.finished()
+
+    """
+
+    def __init__(self, iterations=0, chunk_size=10):
+        pass
+
+    def start(self, iterations, chunk_size=10):
+        pass
+
+    def update(self, n):
+        pass
+
+    def finished(self):
+       pass
+
+
+class TextProgressBar(AbstractProgressBar):
+    """
+    A simple text-based progress bar.
     """
 
     def __init__(self, iterations=0, chunk_size=10):
