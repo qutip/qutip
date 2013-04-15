@@ -575,8 +575,12 @@ class Qobj():
                 elif abs(np.real(d)) < 1e-12:
                     return s + _format_float(np.imag(d)) + "j"
                 else:
-                    return (s + "(" + _format_float(np.real(d)) + "+" +
-                            _format_float(np.imag(d)) + "j)")
+                    s_re = _format_float(np.real(d))
+                    s_im = _format_float(np.imag(d))
+                    if np.imag(d) > 0.0:
+                        return (s + "(" + s_re + "+" + s_im + "j)")
+                    else:
+                        return (s + "(" + s_re + s_im + "j)")
 
         if M > 10 and N > 10:
             # truncated matrix output
