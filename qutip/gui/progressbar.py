@@ -64,7 +64,7 @@ class TextProgressBar(AbstractProgressBar):
     def update(self, n):
         p = (n / self.N) * 100.0
         if p >= self.p_chunk:
-            print("%.2f" % p)
+            print("Completed: %.1f%%" % p)
             self.p_chunk += self.p_chunk_size
 
     def finished(self):
