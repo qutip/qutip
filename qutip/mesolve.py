@@ -45,6 +45,8 @@ from qutip.settings import debug
 from qutip.sesolve import (_sesolve_list_func_td, _sesolve_list_str_td,
                            _sesolve_list_td, _sesolve_func_td, _sesolve_const)
 
+from qutip.gui.progressbar import AbstractProgressBar
+
 if debug:
     import inspect
 
@@ -53,7 +55,8 @@ if debug:
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 #
-def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
+def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
+            progress_bar=AbstractProgressBar()):
     """
     Master equation evolution of a density matrix for a given Hamiltonian.
 
@@ -202,17 +205,20 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
             if n_func == 0 and n_str == 0:
                 # constant collapse operators
                 return _mesolve_const(H, rho0, tlist, c_ops,
-                                      expt_ops, args, options)
+                                      expt_ops, args, options,
+                                      progress_bar=progress_bar)
             elif n_str > 0:
                 # constant hamiltonian but time-dependent collapse
                 # operators in list string format
                 return _mesolve_list_str_td([H], rho0, tlist, c_ops,
-                                            expt_ops, args, options)
+                                            expt_ops, args, options,
+                                            progress_bar=progress_bar)
             elif n_func > 0:
                 # constant hamiltonian but time-dependent collapse
                 # operators in list function format
                 return _mesolve_list_func_td([H], rho0, tlist, c_ops,
-                                             expt_ops, args, options)
+                                             expt_ops, args, options,
+                                             progress_bar=progress_bar)
 
         if isinstance(H, types.FunctionType):
             # old style time-dependence: must have constant collapse operators
@@ -222,7 +228,8 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
                                 "time-dependent collapse operators.")
             else:
                 return _mesolve_func_td(H, rho0, tlist, c_ops,
-                                        expt_ops, args, options)
+                                        expt_ops, args, options,
+                                        progress_bar=progress_bar)
 
         if isinstance(H, list):
             # determine if we are dealing with list of [Qobj, string] or
@@ -230,10 +237,12 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
             # cython, respectively)
             if n_func > 0:
                 return _mesolve_list_func_td(H, rho0, tlist, c_ops,
-                                             expt_ops, args, options)
+                                             expt_ops, args, options,
+                                             progress_bar=progress_bar)
             else:
                 return _mesolve_list_str_td(H, rho0, tlist, c_ops,
-                                            expt_ops, args, options)
+                                            expt_ops, args, options,
+                                            progress_bar=progress_bar)
 
         raise TypeError("Incorrect specification of Hamiltonian " +
                         "or collapse operators.")
@@ -259,7 +268,8 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None):
 # -----------------------------------------------------------------------------
 # A time-dependent disipative master equation on the list-function format
 #
-def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
+def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
+                          progress_bar):
     """
     Internal function for solving the master equation. See mesolve for usage.
     """
@@ -356,7 +366,7 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt)
+    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar)
 
 
 #
@@ -386,7 +396,8 @@ def rho_list_td(t, rho, L_list_and_args):
 # A time-dependent disipative master equation on the list-string format for
 # cython compilation
 #
-def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
+def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
+                         progress_bar):
     """
     Internal function for solving the master equation. See mesolve for usage.
     """
@@ -546,13 +557,14 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt)
+    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar)
 
 
 # -----------------------------------------------------------------------------
 # Master equation solver
 #
-def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, opt):
+def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, opt,
+                   progress_bar):
     """!
     Evolve the density matrix using an ODE solver, for constant hamiltonian
     and collapse operators.
@@ -596,7 +608,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt)
+    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar)
 
 
 #
@@ -611,7 +623,8 @@ def _ode_rho_func(t, rho, L):
 # Master equation solver: deprecated in 2.0.0. No support for time-dependent
 # collapse operators. Only used by the deprecated odesolve function.
 #
-def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
+def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt,
+                     progress_bar):
     """!
     Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
@@ -703,13 +716,14 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt)
+    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar)
 
 
 # -----------------------------------------------------------------------------
 # Master equation solver
 #
-def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt):
+def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt,
+                     progress_bar):
     """!
     Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
@@ -795,7 +809,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt)
+    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar)
 
 
 #
@@ -835,7 +849,7 @@ def _ode_rho_func_td_with_state(t, rho, L_func_and_args):
 # Solve an ODE which solver parameters already setup (r). Calculate the
 # required expectation values or invoke callback function at each time step.
 #
-def _generic_ode_solve(r, psi0, tlist, expt_ops, opt):
+def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar):
     """
     Internal function for solving ME.
     """
@@ -876,10 +890,12 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt):
     #
     # start evolution
     #
+    progress_bar.start(n_tsteps)
+
     psi = Qobj(psi0)
 
-    t_idx = 0
-    for t in tlist:
+    for t_idx, t in enumerate(tlist):
+        progress_bar.update(t_idx)
         if not r.successful():
             break
 
@@ -898,7 +914,8 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt):
                     output.expect[m][t_idx] = expect(expt_ops[m], psi)
 
         r.integrate(r.t + dt)
-        t_idx += 1
+
+    progress_bar.finished()
 
     if not opt.rhs_reuse and odeconfig.tdname is not None:
         try:
