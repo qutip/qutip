@@ -25,6 +25,10 @@ having to use dense matrices.
 import scipy.sparse as sp
 import numpy as np
 import scipy.linalg as la
+from qutip.settings import debug
+
+if debug:
+    import inspect
 
 
 def _sp_fro_norm(op):
@@ -98,6 +102,10 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
     Array of eigenvalues and (by default) array of corresponding Eigenvectors.
 
     """
+
+    if debug:
+        print(inspect.stack()[0][3])
+
     if op.type == 'ket' or op.type == 'bra':
         raise TypeError("Can only diagonalize operators and superoperators")
     N = op.shape[0]
@@ -135,11 +143,14 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
     small_vals = np.array([])
     if sparse:
         if vecs:
+            if debug:
+                print(inspect.stack()[0][3] + ": sparse -> vectors")
+
             # big values
             if num_large > 0:
                 if op.isherm:
                     big_vals, big_vecs = sp.linalg.eigsh(op.data, k=num_large,
-                                                         which='LM', tol=tol,
+                                                         which='LA', tol=tol,
                                                          maxiter=maxiter)
                 else:
                     big_vals, big_vecs = sp.linalg.eigs(op.data, k=num_large,
@@ -150,7 +161,7 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
             if num_small > 0:
                 if op.isherm:
                     small_vals, small_vecs = sp.linalg.eigsh(
-                        op.data, k=num_small, which='SM',
+                        op.data, k=num_small, which='SA',
                         tol=tol, maxiter=maxiter)
                 else:
                     small_vals, small_vecs = sp.linalg.eigs(
@@ -165,14 +176,17 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
             elif num_large == 0 and num_small != 0:
                 evecs = small_vecs
         else:
+            if debug:
+                print(inspect.stack()[0][3] + ": sparse -> values")
+
             if op.isherm:
                 if num_large > 0:
                     big_vals = sp.linalg.eigsh(
-                        op.data, k=num_large, which='LM',
+                        op.data, k=num_large, which='LA',
                         return_eigenvectors=False, tol=tol, maxiter=maxiter)
                 if num_small > 0:
                     small_vals = sp.linalg.eigsh(
-                        op.data, k=num_small, which='SM',
+                        op.data, k=num_small, which='SA',
                         return_eigenvectors=False, tol=tol, maxiter=maxiter)
             else:
                 if num_large > 0:
@@ -196,6 +210,9 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
     # sparse==False)
     else:
         if vecs:
+            if debug:
+                print(inspect.stack()[0][3] + ": dense -> vectors")
+
             if op.isherm:
                 if eigvals == 0:
                     evals, evecs = la.eigh(op.full())
@@ -211,6 +228,9 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
 
             evecs = sp.csr_matrix(evecs, dtype=complex)
         else:
+            if debug:
+                print(inspect.stack()[0][3] + ": dense -> values")
+
             if op.isherm:
                 if eigvals == 0:
                     evals = la.eigvalsh(op.full())
