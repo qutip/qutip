@@ -849,7 +849,7 @@ def _ode_rho_func_td_with_state(t, rho, L_func_and_args):
 # Solve an ODE which solver parameters already setup (r). Calculate the
 # required expectation values or invoke callback function at each time step.
 #
-def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar):
+def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
     """
     Internal function for solving ME.
     """
@@ -879,7 +879,7 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar):
             output.expect = []
             output.num_expect = n_expt_op
             for op in expt_ops:
-                if op.isherm and psi0.isherm:
+                if op.isherm and rho0.isherm:
                     output.expect.append(np.zeros(n_tsteps))
                 else:
                     output.expect.append(np.zeros(n_tsteps, dtype=complex))
@@ -892,26 +892,26 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar):
     #
     progress_bar.start(n_tsteps)
 
-    psi = Qobj(psi0)
+    rho = Qobj(rho0)
 
     for t_idx, t in enumerate(tlist):
         progress_bar.update(t_idx)
         if not r.successful():
             break
 
-        psi.data = vec2mat(r.y)
+        rho.data = vec2mat(r.y)
 
         if expt_callback:
             # use callback method
-            expt_ops(t, Qobj(psi))
+            expt_ops(t, Qobj(rho))
         else:
             # calculate all the expectation values,
             # or output rho if no operators
             if n_expt_op == 0:
-                output.states.append(Qobj(psi))  # copy psi/rho
+                output.states.append(Qobj(rho))
             else:
                 for m in range(0, n_expt_op):
-                    output.expect[m][t_idx] = expect(expt_ops[m], psi)
+                    output.expect[m][t_idx] = expect(expt_ops[m], rho)
 
         r.integrate(r.t + dt)
 
@@ -922,6 +922,9 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar):
             os.remove(odeconfig.tdname + ".pyx")
         except:
             pass
+
+    if opt.store_final_state:
+        result.final_state = Qobj(rho)
 
     return output
 

@@ -588,4 +588,7 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar,
         except:
             pass
 
+    if opt.store_final_state:
+        result.final_state = Qobj(psi)
+
     return output
