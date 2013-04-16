@@ -206,19 +206,19 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
                 # constant collapse operators
                 return _mesolve_const(H, rho0, tlist, c_ops,
                                       expt_ops, args, options,
-                                      progress_bar=progress_bar)
+                                      progress_bar)
             elif n_str > 0:
                 # constant hamiltonian but time-dependent collapse
                 # operators in list string format
                 return _mesolve_list_str_td([H], rho0, tlist, c_ops,
                                             expt_ops, args, options,
-                                            progress_bar=progress_bar)
+                                            progress_bar)
             elif n_func > 0:
                 # constant hamiltonian but time-dependent collapse
                 # operators in list function format
                 return _mesolve_list_func_td([H], rho0, tlist, c_ops,
                                              expt_ops, args, options,
-                                             progress_bar=progress_bar)
+                                             progress_bar)
 
         if isinstance(H, types.FunctionType):
             # old style time-dependence: must have constant collapse operators
@@ -229,7 +229,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
             else:
                 return _mesolve_func_td(H, rho0, tlist, c_ops,
                                         expt_ops, args, options,
-                                        progress_bar=progress_bar)
+                                        progress_bar)
 
         if isinstance(H, list):
             # determine if we are dealing with list of [Qobj, string] or
@@ -238,11 +238,11 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
             if n_func > 0:
                 return _mesolve_list_func_td(H, rho0, tlist, c_ops,
                                              expt_ops, args, options,
-                                             progress_bar=progress_bar)
+                                             progress_bar)
             else:
                 return _mesolve_list_str_td(H, rho0, tlist, c_ops,
                                             expt_ops, args, options,
-                                            progress_bar=progress_bar)
+                                            progress_bar)
 
         raise TypeError("Incorrect specification of Hamiltonian " +
                         "or collapse operators.")
@@ -253,16 +253,16 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
         #
         if n_func > 0:
             return _sesolve_list_func_td(H, rho0, tlist,
-                                         expt_ops, args, options)
+                                         expt_ops, args, options, progress_bar)
         elif n_str > 0:
             return _sesolve_list_str_td(H, rho0, tlist,
-                                        expt_ops, args, options)
+                                        expt_ops, args, options, progress_bar)
         elif isinstance(H, types.FunctionType):
             return _sesolve_func_td(H, rho0, tlist,
-                                    expt_ops, args, options)
+                                    expt_ops, args, options, progress_bar)
         else:
             return _sesolve_const(H, rho0, tlist,
-                                  expt_ops, args, options)
+                                  expt_ops, args, options, progress_bar)
 
 
 # -----------------------------------------------------------------------------
