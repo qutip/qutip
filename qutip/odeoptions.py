@@ -84,7 +84,8 @@ class Odeoptions():
                  nsteps=1000, first_step=0, max_step=0, min_step=0,
                  mc_avg=True, tidy=True, num_cpus=0, norm_tol=1e-3,
                  norm_steps=5, rhs_reuse=False, rhs_filename=None, gui=True,
-                 ntraj=500, rhs_with_state=False):
+                 ntraj=500, rhs_with_state=False, store_final_state=False,
+                 store_states=False):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -129,6 +130,10 @@ class Odeoptions():
         self.norm_steps = norm_steps
         # Use Progressbar (mcsolve only)
         self.gui = gui
+        # store final state?
+        self.store_final_state = store_final_state
+        # store states even if expectation operators are given?
+        self.store_states = store_states
 
     def __str__(self):
         s = ""
