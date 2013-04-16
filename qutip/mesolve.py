@@ -45,7 +45,7 @@ from qutip.settings import debug
 from qutip.sesolve import (_sesolve_list_func_td, _sesolve_list_str_td,
                            _sesolve_list_td, _sesolve_func_td, _sesolve_const)
 
-from qutip.gui.progressbar import AbstractProgressBar
+from qutip.gui.progressbar import BaseProgressBar
 
 if debug:
     import inspect
@@ -56,7 +56,7 @@ if debug:
 # any collapse operators were given.
 #
 def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
-            progress_bar=AbstractProgressBar()):
+            progress_bar=BaseProgressBar()):
     """
     Master equation evolution of a density matrix for a given Hamiltonian.
 

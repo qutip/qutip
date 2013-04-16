@@ -19,7 +19,7 @@
 """
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
-from qutip.gui.progressbar import AbstractProgressBar
+from qutip.gui.progressbar import BaseProgressBar
 
 from IPython.parallel import Client
 from IPython.display import HTML, Javascript, display
@@ -79,7 +79,7 @@ def version_table():
     return HTML(html)
 
 
-class HTMLProgressBar(AbstractProgressBar):
+class HTMLProgressBar(BaseProgressBar):
     """
     A simple HTML progress bar for using in IPython notebooks. Based on
     IPython ProgressBar demo notebook:
@@ -103,13 +103,10 @@ style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
 </div>
 """ % self.divid)
         display(self.pb)
-        self.start(iterations, chunk_size)
+        super(HTMLProgressBar, self).start(iterations, chunk_size)
 
     def start(self, iterations=0, chunk_size=1.0):
-        self.t_start = time.time()
-        self.N = float(iterations)
-        self.p_chunk_size = chunk_size
-        self.p_chunk = 0
+        super(HTMLProgressBar, self).start(iterations, chunk_size)
 
     def update(self, n):
         p = (n / self.N) * 100.0
@@ -119,8 +116,9 @@ style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
 
     def finished(self):
         self.t_done = time.time()
+        elapsed_time_str = self.time_elapsed()
         display(Javascript("$('div#%s').width('%i%%')" % (self.divid, 100.0)))
-        lbl = HTML("<p>Elapsed time: %.2fs</p>" % (self.t_done - self.t_start))
+        lbl = HTML("<p>Elapsed time: %s</p>" % elapsed_time_str)
         display(lbl)
 
 def _visualize_parfor_data(metadata):

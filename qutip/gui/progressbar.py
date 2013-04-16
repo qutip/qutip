@@ -19,7 +19,7 @@
 
 import time
 
-class AbstractProgressBar():
+class BaseProgressBar(object):
     """
     An abstract progress bar with some shared functionality.
 
@@ -38,35 +38,48 @@ class AbstractProgressBar():
         pass
 
     def start(self, iterations, chunk_size=10):
-        pass
+        self.N = float(iterations)
+        self.p_chunk_size = chunk_size
+        self.p_chunk = 0
+        self.t_start = time.time()
 
     def update(self, n):
         pass
+
+    def time_elapsed(self):
+        return "%6.2fs" % (time.time() - self.t_start)
+
+    def time_remaining_est(self, p):
+        if p > 0.0:
+            t_r_est = (time.time() - self.t_start) * (100.0 - p) / p
+        else:
+            t_r_est = 0
+
+        return "%6.2fs" % (t_r_est)
 
     def finished(self):
        pass
 
 
-class TextProgressBar(AbstractProgressBar):
+class TextProgressBar(BaseProgressBar):
     """
     A simple text-based progress bar.
     """
 
     def __init__(self, iterations=0, chunk_size=10):
-        self.start(iterations, chunk_size)
+        super(TextProgressBar, self).start(iterations, chunk_size)
 
     def start(self, iterations, chunk_size=10):
-        self.N = float(iterations)
-        self.t_start = time.time()
-        self.p_chunk_size = chunk_size
-        self.p_chunk = 0
+        super(TextProgressBar, self).start(iterations, chunk_size)
 
     def update(self, n):
         p = (n / self.N) * 100.0
         if p >= self.p_chunk:
-            print("Completed: %.1f%%" % p)
+            print("Completed: %4.1f%%." % p +
+                  " Elapsed time: %s." % self.time_elapsed() +
+                  " Est. remaining time: %s." % self.time_remaining_est(p))
             self.p_chunk += self.p_chunk_size
 
     def finished(self):
        self.t_done = time.time()
-       print("Elapsed time = %.2fs" % (self.t_done - self.t_start))
+       print("Elapsed time: %s" % self.time_elapsed())
