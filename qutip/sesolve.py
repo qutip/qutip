@@ -38,11 +38,14 @@ from qutip.settings import debug
 from qutip.cyQ.spmatfuncs import cy_ode_rhs
 from qutip.cyQ.codegen import Codegen
 
+from qutip.gui.progressbar import BaseProgressBar
+
 if debug:
     import inspect
 
 
-def sesolve(H, rho0, tlist, expt_ops, args={}, options=None):
+def sesolve(H, rho0, tlist, expt_ops, args={}, options=None,
+            progress_bar=BaseProgressBar()):
     """
     Schrodinger equation evolution of a state vector for a given Hamiltonian.
 
@@ -108,19 +111,24 @@ def sesolve(H, rho0, tlist, expt_ops, args={}, options=None):
         odeconfig.reset()
 
     if n_func > 0:
-        return _sesolve_list_func_td(H, rho0, tlist, expt_ops, args, options)
+        return _sesolve_list_func_td(H, rho0, tlist, expt_ops, args, options,
+                                     progress_bar)
     elif n_str > 0:
-        return _sesolve_list_str_td(H, rho0, tlist, expt_ops, args, options)
+        return _sesolve_list_str_td(H, rho0, tlist, expt_ops, args, options,
+                                    progress_bar)
     elif isinstance(H, types.FunctionType):
-        return _sesolve_func_td(H, rho0, tlist, expt_ops, args, options)
+        return _sesolve_func_td(H, rho0, tlist, expt_ops, args, options,
+                                progress_bar)
     else:
-        return _sesolve_const(H, rho0, tlist, expt_ops, args, options)
+        return _sesolve_const(H, rho0, tlist, expt_ops, args, options,
+                              progress_bar)
 
 
 # -----------------------------------------------------------------------------
 # A time-dependent unitary wavefunction equation on the list-function format
 #
-def _sesolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt):
+def _sesolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt,
+                          progress_bar):
     """
     Internal function for solving the master equation. See mesolve for usage.
     """
@@ -174,7 +182,7 @@ def _sesolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt)
+    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar)
 
 
 #
@@ -201,7 +209,7 @@ def psi_list_td(t, psi, H_list_and_args):
 # Wave function evolution using a ODE solver (unitary quantum evolution) using
 # a constant Hamiltonian.
 #
-def _sesolve_const(H, psi0, tlist, expt_ops, args, opt):
+def _sesolve_const(H, psi0, tlist, expt_ops, args, opt, progress_bar):
     """!
     Evolve the wave function using an ODE solver
     """
@@ -226,7 +234,8 @@ def _sesolve_const(H, psi0, tlist, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, norm)
+    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt,
+                              progress_bar, norm)
 
 
 #
@@ -240,7 +249,8 @@ def _ode_psi_func(t, psi, H):
 # A time-dependent disipative master equation on the list-string format for
 # cython compilation
 #
-def _sesolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
+def _sesolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt,
+                         progress_bar):
     """
     Internal function for solving the master equation. See mesolve for usage.
     """
@@ -334,14 +344,14 @@ def _sesolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt)
+    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar)
 
 
 # -----------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
 # time dependent hamiltonians
 #
-def _sesolve_list_td(H_func, psi0, tlist, expt_ops, args, opt):
+def _sesolve_list_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
     """!
     Evolve the wave function using an ODE solver with time-dependent
     Hamiltonian.
@@ -422,14 +432,14 @@ def _sesolve_list_td(H_func, psi0, tlist, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt)
+    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar)
 
 
 # -----------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
 # time dependent hamiltonians
 #
-def _sesolve_func_td(H_func, psi0, tlist, expt_ops, args, opt):
+def _sesolve_func_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
     """!
     Evolve the wave function using an ODE solver with time-dependent
     Hamiltonian.
@@ -468,7 +478,7 @@ def _sesolve_func_td(H_func, psi0, tlist, expt_ops, args, opt):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt)
+    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar)
 
 
 #
@@ -496,7 +506,8 @@ def _ode_psi_func_td_with_state(t, psi, H_func_and_args):
 # Solve an ODE which solver parameters already setup (r). Calculate the
 # required expectation values or invoke callback function at each time step.
 #
-def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_norm_func=None):
+def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar, 
+                       state_norm_func=None):
     """
     Internal function for solving ODEs.
     """
@@ -537,10 +548,13 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_norm_func=None):
     #
     # start evolution
     #
+    progress_bar.start(n_tsteps)
+
     psi = Qobj(psi0)
 
-    t_idx = 0
-    for t in tlist:
+    for t_idx, t in enumerate(tlist):
+        progress_bar.update(t_idx)
+
         if not r.successful():
             break
 
@@ -565,7 +579,8 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, state_norm_func=None):
                     output.expect[m][t_idx] = expect(expt_ops[m], psi)
 
         r.integrate(r.t + dt)
-        t_idx += 1
+
+    progress_bar.finished()
 
     if not opt.rhs_reuse and odeconfig.tdname is not None:
         try:
