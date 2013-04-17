@@ -125,7 +125,7 @@ style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
         self.t_done = time.time()
         lbl = "Elapsed time: %s" % self.time_elapsed()
         js_code = ("$('div#%s').width('%i%%');" % (self.divid, 100.0) + 
-                   "$('div#%s').text('%s');" % (self.textid, lbl))
+                   "$('p#%s').text('%s');" % (self.textid, lbl))
         display(Javascript(js_code))
 
 def _visualize_parfor_data(metadata):
