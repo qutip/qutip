@@ -96,12 +96,14 @@ class HTMLProgressBar(BaseProgressBar):
 
     def __init__(self, iterations=0, chunk_size=1.0):
         self.divid = str(uuid.uuid4())
+        self.textid = str(uuid.uuid4())
         self.pb = HTML("""\
 <div style="border: 1px solid grey; width: 600px">
   <div id="%s" \
 style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
 </div>
-""" % self.divid)
+<p id="%s"></p>
+""" % (self.divid, self.textid))
         display(self.pb)
         super(HTMLProgressBar, self).start(iterations, chunk_size)
 
@@ -111,15 +113,20 @@ style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
     def update(self, n):
         p = (n / self.N) * 100.0
         if p >= self.p_chunk:
-            display(Javascript("$('div#%s').width('%i%%')" % (self.divid, p)))
+            lbl = ("Elapsed time: %s. " % self.time_elapsed() +
+                   "Est. remaining time: %s." % self.time_remaining_est(p))
+            js_code = ("$('div#%s').width('%i%%');" % (self.divid, p) + 
+                       "$('p#%s').text('%s');" % (self.textid, lbl))
+            display(Javascript(js_code))
+            #display(Javascript("$('div#%s').width('%i%%')" % (self.divid, p)))
             self.p_chunk += self.p_chunk_size
 
     def finished(self):
         self.t_done = time.time()
-        elapsed_time_str = self.time_elapsed()
-        display(Javascript("$('div#%s').width('%i%%')" % (self.divid, 100.0)))
-        lbl = HTML("<p>Elapsed time: %s</p>" % elapsed_time_str)
-        display(lbl)
+        lbl = "Elapsed time: %s" % self.time_elapsed()
+        js_code = ("$('div#%s').width('%i%%');" % (self.divid, 100.0) + 
+                   "$('div#%s').text('%s');" % (self.textid, lbl))
+        display(Javascript(js_code))
 
 def _visualize_parfor_data(metadata):
     """
