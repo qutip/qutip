@@ -23,19 +23,19 @@ import os
 
 class Odeoptions():
     """
-    Class of options for ODE solver used by :func:`qutip.mesolve` and
-    :func:`qutip.mcsolve`. Options can be changed either inline::
+    Class of options for evolution solvers such as :func:`qutip.mesolve` and
+    :func:`qutip.mcsolve`. Options can be specified either as arguments to the 
+    constructor::
 
-        opts=Odeoptions(gui=False,order=10,.....)
+        opts = Odeoptions(gui=False, order=10, ...)
 
-    or by changing the class properties after creation::
+    or by changing the class attributes after creation::
 
-        opts=Odeoptions()
-        opts.gui=False
-        opts.order=10
+        opts = Odeoptions()
+        opts.gui = False
+        opts.order = 10
 
-    Returns options class to be used as options in :func:`qutip.mesolve`
-    and :func:`qutip.mcsolve`.
+    Returns options class to be used as options in evolution solvers.
 
     Attributes
     ----------
@@ -78,7 +78,14 @@ class Odeoptions():
         callback signature.
     rhs_filename : str
         Name for compiled Cython file.
-
+    store_final_state : bool {False, True}
+        Whether or not to store the final state of the evolution in the
+        result class.
+    store_states : bool {False, True}
+        Whether or not to store the state vectors or density matrices in the
+        result class, even if expectation values operators are given. If no
+        expectation are provided, then states are stored by default and this
+        option has no effect.
     """
     def __init__(self, atol=1e-8, rtol=1e-6, method='adams', order=12,
                  nsteps=1000, first_step=0, max_step=0, min_step=0,
@@ -137,23 +144,27 @@ class Odeoptions():
 
     def __str__(self):
         s = ""
-        s += "Odeoptions properties:\n"
-        s += "----------------------\n"
-        s += "atol:         " + str(self.atol) + "\n"
-        s += "rtol:         " + str(self.rtol) + "\n"
-        s += "method:       " + str(self.method) + "\n"
-        s += "order:        " + str(self.order) + "\n"
-        s += "nsteps:       " + str(self.nsteps) + "\n"
-        s += "first_step:   " + str(self.first_step) + "\n"
-        s += "min_step:     " + str(self.min_step) + "\n"
-        s += "max_step:     " + str(self.max_step) + "\n"
-        s += "tidy:         " + str(self.tidy) + "\n"
-        s += "num_cpus:     " + str(self.num_cpus) + "\n"
-        s += "norm_tol:     " + str(self.norm_tol) + "\n"
-        s += "norm_steps:   " + str(self.norm_steps) + "\n"
-        s += "rhs_filename: " + str(self.rhs_filename) + "\n"
-        s += "rhs_reuse:    " + str(self.rhs_reuse) + "\n"
-        s += "gui:          " + str(self.gui) + "\n"
-        s += "mc_avg:       " + str(self.mc_avg) + "\n"
-        s += "ntraj:        " + str(self.ntraj) + "\n"
+        s += "Odeoptions:\n"
+        s += "-----------\n"
+        s += "atol:              " + str(self.atol) + "\n"
+        s += "rtol:              " + str(self.rtol) + "\n"
+        s += "method:            " + str(self.method) + "\n"
+        s += "order:             " + str(self.order) + "\n"
+        s += "nsteps:            " + str(self.nsteps) + "\n"
+        s += "first_step:        " + str(self.first_step) + "\n"
+        s += "min_step:          " + str(self.min_step) + "\n"
+        s += "max_step:          " + str(self.max_step) + "\n"
+        s += "tidy:              " + str(self.tidy) + "\n"
+        s += "num_cpus:          " + str(self.num_cpus) + "\n"
+        s += "norm_tol:          " + str(self.norm_tol) + "\n"
+        s += "norm_steps:        " + str(self.norm_steps) + "\n"
+        s += "rhs_filename:      " + str(self.rhs_filename) + "\n"
+        s += "rhs_reuse:         " + str(self.rhs_reuse) + "\n"
+        s += "rhs_with_state:    " + str(self.rhs_with_state) + "\n"
+        s += "gui:               " + str(self.gui) + "\n"
+        s += "mc_avg:            " + str(self.mc_avg) + "\n"
+        s += "ntraj:             " + str(self.ntraj) + "\n"
+        s += "store_states:      " + str(self.store_states) + "\n"
+        s += "store_final_state: " + str(self.store_final_state) + "\n"
+
         return s
