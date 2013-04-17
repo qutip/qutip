@@ -924,7 +924,7 @@ def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
             pass
 
     if opt.store_final_state:
-        result.final_state = Qobj(rho)
+        output.final_state = Qobj(rho)
 
     return output
 
