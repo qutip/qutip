@@ -36,7 +36,7 @@ from qutip.expect import expect
 from qutip.utilities import n_thermal
 
 
-def floquet_modes(H, T, args=None, sort=False):
+def floquet_modes(H, T, args=None, sort=False, U=None):
     """
     Calculate the initial Floquet modes Phi_alpha(0) for a driven system with
     period T.
@@ -68,8 +68,9 @@ def floquet_modes(H, T, args=None, sort=False):
 
     """
 
-    # get the unitary propagator
-    U = propagator(H, T, [], args)
+    if U is None:
+        # get the unitary propagator
+        U = propagator(H, T, [], args)
 
     # find the eigenstates for the propagator
     evals, evecs = la.eig(U.full())
