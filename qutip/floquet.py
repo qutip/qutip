@@ -59,6 +59,11 @@ def floquet_modes(H, T, args=None, sort=False, U=None):
         The period of the time-dependence of the hamiltonian. The default value
         'None' indicates that the 'tlist' spans a single period of the driving.
 
+    U : :class:`qutip.qobj`
+        The propagator for the time-dependent Hamiltonian with period `T`.
+        If U is `None` (default), it will be calculated from the Hamiltonian
+        `H` using :func:`qutip.propagator.propagator`.
+
     Returns
     -------
 
