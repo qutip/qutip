@@ -522,6 +522,9 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar,
     output.solver = "sesolve"
     output.times = tlist
 
+    if opt.store_states:
+        output.states = []
+
     if isinstance(expt_ops, types.FunctionType):
         n_expt_op = 0
         expt_callback = True
@@ -532,16 +535,17 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar,
         expt_callback = False
 
         if n_expt_op == 0:
+            # fallback on storing states
             output.states = []
+            opt.store_states = True
         else:
             output.expect = []
             output.num_expect = n_expt_op
             for op in expt_ops:
-                if op.isherm and psi0.isherm:
+                if op.isherm and rho0.isherm:
                     output.expect.append(np.zeros(n_tsteps))
                 else:
                     output.expect.append(np.zeros(n_tsteps, dtype=complex))
-
     else:
         raise TypeError("Expectation parameter must be a list or a function")
 
@@ -566,17 +570,15 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar,
         else:
             psi.data = r.y
 
+        if opt.store_states:
+            output.states.append(Qobj(psi))
+
         if expt_callback:
             # use callback method
             expt_ops(t, Qobj(psi))
-        else:
-            # calculate all the expectation values,
-            # or output state if no operators
-            if n_expt_op == 0:
-                output.states.append(Qobj(psi))  # copy psi/rho
-            else:
-                for m in range(0, n_expt_op):
-                    output.expect[m][t_idx] = expect(expt_ops[m], psi)
+
+        for m in range(n_expt_op):
+            output.expect[m][t_idx] = expect(expt_ops[m], psi)
 
         r.integrate(r.t + dt)
 
