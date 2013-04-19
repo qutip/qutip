@@ -864,6 +864,9 @@ def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
     output.solver = "mesolve"
     output.times = tlist
 
+    if opt.store_states:
+        output.states = []
+
     if isinstance(expt_ops, types.FunctionType):
         n_expt_op = 0
         expt_callback = True
@@ -874,7 +877,9 @@ def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
         expt_callback = False
 
         if n_expt_op == 0:
+            # fallback on storing states
             output.states = []
+            opt.store_states = True
         else:
             output.expect = []
             output.num_expect = n_expt_op
@@ -896,22 +901,21 @@ def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
 
     for t_idx, t in enumerate(tlist):
         progress_bar.update(t_idx)
+
         if not r.successful():
             break
 
         rho.data = vec2mat(r.y)
 
+        if opt.store_states:
+            output.states.append(Qobj(rho))
+    
         if expt_callback:
             # use callback method
             expt_ops(t, Qobj(rho))
-        else:
-            # calculate all the expectation values,
-            # or output rho if no operators
-            if n_expt_op == 0:
-                output.states.append(Qobj(rho))
-            else:
-                for m in range(0, n_expt_op):
-                    output.expect[m][t_idx] = expect(expt_ops[m], rho)
+
+        for m in range(n_expt_op):
+            output.expect[m][t_idx] = expect(expt_ops[m], rho)
 
         r.integrate(r.t + dt)
 
