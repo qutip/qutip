@@ -77,7 +77,7 @@ def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
     Returns
     -------
     fig, ax : tuple
-        A tuple of the matplotlib figure and axes instances used to produce 
+        A tuple of the matplotlib figure and axes instances used to produce
         the figure.
 
     """
@@ -131,7 +131,7 @@ def qpt_plot_combined(chi, lbls_list, title=None,
     Returns
     -------
     fig, ax : tuple
-        A tuple of the matplotlib figure and axes instances used to produce 
+        A tuple of the matplotlib figure and axes instances used to produce
         the figure.
     """
 

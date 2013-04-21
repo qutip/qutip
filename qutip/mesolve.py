@@ -332,8 +332,8 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
                             "collapse operators (expected callback function)")
 
         if isoper(c):
-            #cdc = c.dag() * c
-            #L_list.append([(spre(c) * spost(c.dag()) - 0.5 * spre(cdc)
+            # cdc = c.dag() * c
+            # L_list.append([(spre(c) * spost(c.dag()) - 0.5 * spre(cdc)
             #                                         - 0.5 * spost(cdc)).data,
             #               c_coeff, c_square])
 
@@ -743,8 +743,8 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt,
     #
 
     if len(c_op_list) > 0:
-        #L = 0
-        #for c in c_op_list:
+        # L = 0
+        # for c in c_op_list:
         #    cdc = c.dag() * c
         #    L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
 
@@ -762,9 +762,10 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt,
         for key in args:
             if isinstance(args[key], Qobj):
                 if isoper(args[key]):
-                    new_args[key] = (-1j * (spre(args[key]) - spost(args[key]))).data
+                    new_args[key] = (
+                        -1j * (spre(args[key]) - spost(args[key]))).data
                 else:
-                    new_args[key] = args[key].data   
+                    new_args[key] = args[key].data
             else:
                 new_args[key] = args[key]
 
@@ -790,7 +791,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt,
                 L_func_and_args.append(args.data)
         else:
             L_func_and_args.append(args)
-        
+
     #
     # setup integrator
     #
@@ -909,7 +910,7 @@ def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
 
         if opt.store_states:
             output.states.append(Qobj(rho))
-    
+
         if expt_callback:
             # use callback method
             expt_ops(t, Qobj(rho))

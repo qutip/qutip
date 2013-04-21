@@ -209,7 +209,7 @@ class Distribution:
         Parameters
         ----------
         dim : int
-            The dimension (coordinate index) along which to obtain the 
+            The dimension (coordinate index) along which to obtain the
             marginal distribution.
 
         Returns
@@ -233,7 +233,7 @@ class Distribution:
         Parameters
         ----------
         dim : int
-            The dimension (coordinate index) along which to obtain the 
+            The dimension (coordinate index) along which to obtain the
             projected distribution.
 
         Returns
@@ -322,6 +322,7 @@ class TwoModeQuadratureCorrelation(Distribution):
 
         self.data = abs(p) ** 2
 
+
 class HarmonicOscillatorWaveFunction(Distribution):
 
     def __init__(self, psi=None, omega=1.0, extent=[-5, 5], steps=250):
@@ -350,6 +351,7 @@ class HarmonicOscillatorWaveFunction(Distribution):
 
             self.data += k * psi.data[n, 0]
 
+
 class HarmonicOscillatorProbabilityFunction(Distribution):
 
     def __init__(self, rho=None, omega=1.0, extent=[-5, 5], steps=250):
@@ -366,7 +368,7 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
         Calculate the probability function for the given state of an harmonic
         oscillator (as density matrix)
         """
-        
+
         if isket(rho):
             rho = ket2dm(rho)
 
@@ -375,14 +377,14 @@ class HarmonicOscillatorProbabilityFunction(Distribution):
 
         for m in range(M):
             k_m = pow(self.omega / pi, 0.25) / \
-                  sqrt(2 ** m * factorial(m)) * \
-                  exp(-self.xvecs[0] ** 2 / 2.0) * \
-                  np.polyval(hermite(m), self.xvecs[0])
+                sqrt(2 ** m * factorial(m)) * \
+                exp(-self.xvecs[0] ** 2 / 2.0) * \
+                np.polyval(hermite(m), self.xvecs[0])
 
             for n in range(N):
                 k_n = pow(self.omega / pi, 0.25) / \
-                      sqrt(2 ** n * factorial(n)) * \
-                      exp(-self.xvecs[0] ** 2 / 2.0) * \
-                      np.polyval(hermite(n), self.xvecs[0])
+                    sqrt(2 ** n * factorial(n)) * \
+                    exp(-self.xvecs[0] ** 2 / 2.0) * \
+                    np.polyval(hermite(n), self.xvecs[0])
 
                 self.data += np.conjugate(k_n) * k_m * rho.data[m, n]
