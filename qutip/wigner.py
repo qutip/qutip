@@ -286,8 +286,7 @@ def _qfunc_pure(psi, alpha_mat):
     else:
         psi = psi.T
 
-    qmat = abs(polyval(fliplr([psi / sqrt(factorial(arange(n)))])[0], 
+    qmat = abs(polyval(fliplr([psi / sqrt(factorial(arange(n)))])[0],
                        conjugate(alpha_mat))) ** 2
-    
-    return real(qmat) * exp(-abs(alpha_mat) ** 2) / pi
 
+    return real(qmat) * exp(-abs(alpha_mat) ** 2) / pi
