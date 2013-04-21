@@ -34,6 +34,8 @@ from qutip.states import ket2dm
 from qutip.wigner import wigner
 
 # Adopted from the SciPy Cookbook.
+
+
 def _blob(x, y, w, w_max, area):
     """
     Draws a square-shaped blob with the given area (< 1) at
@@ -71,7 +73,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
     Returns
     -------
     fig, ax : tuple
-        A tuple of the matplotlib figure and axes instances used to produce 
+        A tuple of the matplotlib figure and axes instances used to produce
         the figure.
 
     Raises
@@ -219,7 +221,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     Returns
     -------
     fig, ax : tuple
-        A tuple of the matplotlib figure and axes instances used to produce 
+        A tuple of the matplotlib figure and axes instances used to produce
         the figure.
 
     Raises
@@ -322,7 +324,7 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
     Returns
     -------
     fig, ax : tuple
-        A tuple of the matplotlib figure and axes instances used to produce 
+        A tuple of the matplotlib figure and axes instances used to produce
         the figure.
 
     Raises
@@ -455,7 +457,7 @@ def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
     Returns
     -------
     fig, ax : tuple
-        A tuple of the matplotlib figure and axes instances used to produce 
+        A tuple of the matplotlib figure and axes instances used to produce
         the figure.
 
     Raises
@@ -600,7 +602,7 @@ def fock_distribution(rho, fig=None, ax=None, figsize=(8, 6), title=None):
     Returns
     -------
     fig, ax : tuple
-        A tuple of the matplotlib figure and axes instances used to produce 
+        A tuple of the matplotlib figure and axes instances used to produce
         the figure.
     """
 
@@ -659,7 +661,7 @@ def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
     Returns
     -------
     fig, ax : tuple
-        A tuple of the matplotlib figure and axes instances used to produce 
+        A tuple of the matplotlib figure and axes instances used to produce
         the figure.
     """
 
@@ -697,9 +699,9 @@ def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
 def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
                             fig=None, axes=None, figsize=(8, 4)):
     """
-    Visualize the results (expectation values) for an evolution solver. 
+    Visualize the results (expectation values) for an evolution solver.
     `results` is assumed to be an instance of Odedata, or a list of Odedata
-    instances. 
+    instances.
 
     Parameters
     ----------
@@ -728,7 +730,7 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
     Returns
     -------
     fig, ax : tuple
-        A tuple of the matplotlib figure and axes instances used to produce 
+        A tuple of the matplotlib figure and axes instances used to produce
         the figure.
     """
     if not isinstance(results, list):
@@ -750,7 +752,7 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
     if title:
         axes[0, 0].set_title(title)
 
-    axes[n_e_ops-1, 0].set_xlabel("time", fontsize=12)
+    axes[n_e_ops - 1, 0].set_xlabel("time", fontsize=12)
     for n in range(n_e_ops):
         if show_legend:
             axes[n, 0].legend()
