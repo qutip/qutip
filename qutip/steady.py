@@ -32,6 +32,7 @@ from qutip.superoperator import *
 from qutip.operators import qeye
 from qutip.random_objects import rand_dm
 from qutip.sparse import _sp_inf_norm
+from qutip.states import ket2dm
 import qutip.settings as qset
 
 
@@ -199,3 +200,56 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
         return rhoss.tidyup()
     else:
         return rhoss
+
+
+def steady_nonlinear(L_func, rho0, args={}, maxiter=10,
+                     random_initial_state=False,
+                     tol=1e-6, itertol=1e-5, use_umfpack=True):
+    """
+    Steady state for the evolution subject to the nonlinear Liouvillian
+    (which depends on the density matrix).
+
+    .. note:: Experimental. Not at all certain that the inverse power method
+              works for state-dependent liouvillian operators.
+    """
+    use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
+
+    if random_initial_state:
+        rhoss = rand_dm(rho0.shape[0], 1.0, dims=rho0.dims)
+    elif isket(rho0):
+        rhoss = ket2dm(rho0)
+    else:
+        rhoss = Qobj(rho0)
+
+    v = mat2vec(rhoss.full())
+
+    n = prod(rhoss.shape)
+    tr_vec = sp.eye(rhoss.shape[0], rhoss.shape[0], format='lil')
+    tr_vec = tr_vec.reshape((1, n)).tocsr()
+
+    it = 0
+    while it < maxiter:
+
+        L = L_func(rhoss, args)
+        L = L.data.tocsc() - (tol ** 2) * sp.eye(n, n, format='csc')
+        L.sort_indices()
+
+        v = spsolve(L, v, permc_spec="MMD_AT_PLUS_A", use_umfpack=use_umfpack)
+        v = v / la.norm(v, np.inf)
+
+        data = v / sum(tr_vec.dot(v))
+        data = reshape(data, (rhoss.shape[0], rhoss.shape[1])).T
+        rhoss.data = sp.csr_matrix(data)
+
+        it += 1
+
+        if la.norm(L * v, np.inf) <= tol:
+            break
+
+    if it >= maxiter:
+        raise ValueError('Failed to find steady state after ' +
+                         str(maxiter) + ' iterations')
+
+    #rhoss.data = 0.5 * (data + data.conj().T)
+    return rhoss.tidyup() if qset.auto_tidyup else rhoss
+
