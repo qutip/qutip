@@ -253,3 +253,62 @@ def steady_nonlinear(L_func, rho0, args={}, maxiter=10,
     #rhoss.data = 0.5 * (data + data.conj().T)
     return rhoss.tidyup() if qset.auto_tidyup else rhoss
 
+
+def steadystate_direct(H, c_ops, sparse=True):
+    """
+    Simple steady state solver that use a direct solve method.
+
+    .. note:: Experimental.
+    """
+    L = liouvillian_fast(H, c_ops)
+    if sparse:
+        return steady_direct(L)
+    else:
+        return steady_direct_dense(L)
+
+
+def steady_direct(L):
+    """
+    Direct solver that use scipy sparse matrices
+
+    .. note:: Experimental.
+    """
+    n = prod(L.dims[0][0])
+    
+    b = sp.lil_matrix((n ** 2, 1))
+    b[0,0] = 1
+    
+    tr_vec = sp.eye(n, n, format='lil')
+    tr_vec = tr_vec.reshape((1, n ** 2))
+
+    M = sp.lil_matrix(L.data)
+    M[0,:] = tr_vec
+    M = sp.csc_matrix(M)
+    
+    v = spsolve(M, b, permc_spec="MMD_AT_PLUS_A", use_umfpack=False)
+    
+    return Qobj(vec2mat(v), dims=L.dims[0], isherm=True)
+
+
+def steady_direct_dense(L):
+    """
+    Direct solver that use numpy dense matrices. Suitable for 
+    small system, with a few states.
+
+    .. note:: Experimental.
+    """
+    
+    n = prod(L.dims[0][0])
+    
+    b = np.zeros(n ** 2)
+    b[0] = 1.0
+    
+    tr_vec = np.diag(np.ones(n)).reshape((1, n ** 2))
+
+    M = L.data.todense()
+    M[0,:] = tr_vec
+    
+    v = np.linalg.solve(M, b)
+    
+    return Qobj(v.reshape(n, n), dims=L.dims[0], isherm=True)
+
