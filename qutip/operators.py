@@ -471,11 +471,25 @@ shape = [4, 4], type = oper, isHerm = False
     D = (alpha * a.dag() - np.conj(alpha) * a).expm()
     return D
 
+
+def commutator(A, B, kind="normal"):
+    """
+    Return the commutator of kind `kind` (normal, anti) of the 
+    two operators A and B.
+    """
+    if kind == 'normal':
+        return A * B - B * A
+
+    elif kind == 'anti':
+        return A * B + B * A
+
+    else:
+        raise TypeError("Unknown commutator kind '%s'" % kind)
+
+
 #
 # Three-level operators (qutrits)
 #
-
-
 def qutrit_ops():
     """
     Operators for a three level system (qutrit).
