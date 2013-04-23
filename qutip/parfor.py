@@ -19,12 +19,11 @@
 
 from scipy import array
 from multiprocessing import Pool, cpu_count
+from functools import partial
 import os
 import sys
 import signal
 import qutip.settings as qset
-
-from functools import partial
 
 def _task_wrapper(args):
     try:
@@ -45,23 +44,29 @@ def _task_wrapper_with_args(args, user_args):
 def parfor(func, frange, num_cpus=0, args=None):
     """Executes a single-variable function in parallel.
 
-    Parallel execution of a for-loop over function `func`
-    for a single variable `frange`.
+    Parallel execution of a for-loop over function `func` for a single variable
+    `frange`.
 
     Parameters
     ----------
     func: function_type
         A single-variable function.
+
     frange: array_type
         An ``array`` of values to be passed on to `func`.
+
     num_cpus : int {0}
         Number of CPU's to use.  Default '0' uses max. number
         of CPU's. Performance degrades if num_cpus is larger
         than the physical CPU count of your machine.
 
+    args : dictionary
+        Option parameter dictionary that is passed to the user-defined
+        task function.
+
     Returns
     -------
-    ans : list
+    result : list
         A ``list`` with length equal to number of input parameters
         containting the output from `func`.  In general, the ordering
         of the output variables will not be in the same order as `frange`.
@@ -70,6 +75,8 @@ def parfor(func, frange, num_cpus=0, args=None):
     -----
     Multiple values can be passed into the parfor function using Pythons
     builtin 'zip' command, or using multidimensional `lists` or `arrays`.
+    Alternatively, the optional argument `args` can be used to pass additional
+    parameters to the task function.
 
     """
     if args is not None:
