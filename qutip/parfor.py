@@ -24,6 +24,7 @@ import sys
 import signal
 import qutip.settings as qset
 
+from functools import partial
 
 def _task_wrapper(args):
     try:
@@ -33,7 +34,15 @@ def _task_wrapper(args):
         sys.exit(1)
 
 
-def parfor(func, frange, num_cpus=0):
+def _task_wrapper_with_args(args, user_args):
+    try:
+        return args[0](args[1], user_args)
+    except KeyboardInterrupt:
+        os.kill(args[2], signal.SIGINT)
+        sys.exit(1)
+
+
+def parfor(func, frange, num_cpus=0, args=None):
     """Executes a single-variable function in parallel.
 
     Parallel execution of a for-loop over function `func`
@@ -63,6 +72,11 @@ def parfor(func, frange, num_cpus=0):
     builtin 'zip' command, or using multidimensional `lists` or `arrays`.
 
     """
+    if args is not None:
+        task_func = partial(_task_wrapper_with_args, user_args=args)
+    else:
+        task_func = _task_wrapper
+
     if num_cpus == 0:
         cpus = qset.num_cpus
     else:
@@ -71,10 +85,12 @@ def parfor(func, frange, num_cpus=0):
             print("Requested number of CPUs (%s) " % cpus +
                   "is larger than physical number (%s)." % cpu_count())
             print("Reduce 'num_cpus' for greater performance.")
+
     pool = Pool(processes=cpus)
     try:
-        par_return = list(pool.map(
-            _task_wrapper, ((func, f, os.getpid()) for f in frange)))
+        map_args = ((func, f, os.getpid()) for f in frange)
+        par_return = list(pool.map(task_func, map_args))
+
         if isinstance(par_return[0], tuple):
             par_return = [elem for elem in par_return]
             num_elems = len(par_return[0])
@@ -82,5 +98,6 @@ def parfor(func, frange, num_cpus=0):
                     for ii in range(num_elems)]
         else:
             return list(par_return)
+
     except KeyboardInterrupt:
         pool.terminate()
