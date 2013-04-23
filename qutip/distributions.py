@@ -283,7 +283,7 @@ class QDistribution(Distribution):
 
 class TwoModeQuadratureCorrelation(Distribution):
 
-    def __init__(self, rho=None, theta1=0.0, theta2=0.0,
+    def __init__(self, state=None, theta1=0.0, theta2=0.0,
                  extent=[[-5, 5], [-5, 5]], steps=250):
 
         self.xvecs = [np.linspace(extent[0][0], extent[0][1], steps),
@@ -294,19 +294,28 @@ class TwoModeQuadratureCorrelation(Distribution):
         self.theta1 = theta1
         self.theta2 = theta2
 
-        if rho:
-            self.update(rho)
-
-    def update(self, rho):
+        self.update(state)
+    
+    def update(self, state):
         """
         calculate probability distribution for quadrature measurement
-        outcomes given a two-mode wavefunction/density matrix
+        outcomes given a two-mode wavefunction or density matrix
+        """
+        if isket(state):
+            self.update_psi(state)
+        else:
+            self.update_rho(state)
+
+    def update_psi(self, psi):
+        """
+        calculate probability distribution for quadrature measurement
+        outcomes given a two-mode wavefunction
         """
 
         X1, X2 = np.meshgrid(self.xvecs[0], self.xvecs[1])
 
         p = np.zeros((len(self.xvecs[0]), len(self.xvecs[1])), dtype=complex)
-        N = rho.dims[0][0]
+        N = psi.dims[0][0]
 
         for n1 in range(N):
             kn1 = exp(-1j * self.theta1 * n1) / \
@@ -318,9 +327,42 @@ class TwoModeQuadratureCorrelation(Distribution):
                     sqrt(sqrt(pi) * 2 ** n2 * factorial(n2)) * \
                     exp(-X2 ** 2 / 2.0) * np.polyval(hermite(n2), X2)
                 i = state_number_index([N, N], [n1, n2])
-                p += kn1 * kn2 * rho.data[i, 0]
+                p += kn1 * kn2 * psi.data[i, 0]
 
         self.data = abs(p) ** 2
+
+    def update_rho(self, rho):
+        """
+        calculate probability distribution for quadrature measurement
+        outcomes given a two-mode density matrix
+        """
+
+        X1, X2 = np.meshgrid(self.xvecs[0], self.xvecs[1])
+
+        p = np.zeros((len(self.xvecs[0]), len(self.xvecs[1])), dtype=complex)
+        N = rho.dims[0][0]
+
+        M1 = np.zeros((N, N, len(self.xvecs[0]), len(self.xvecs[1])), dtype=complex)
+        M2 = np.zeros((N, N, len(self.xvecs[0]), len(self.xvecs[1])), dtype=complex)
+
+        for m in range(N):
+            for n in range(N):
+                M1[m,n] = exp(-1j * self.theta1 * (m - n)) / \
+                    sqrt(pi * 2 ** (m + n) * factorial(n) * factorial(m)) * \
+                    exp(-X1 ** 2) * np.polyval(hermite(m), X1) * np.polyval(hermite(n), X1)
+                M2[m,n] = exp(-1j * self.theta2 * (m - n)) / \
+                    sqrt(pi * 2 ** (m + n) * factorial(n) * factorial(m)) * \
+                    exp(-X2 ** 2) * np.polyval(hermite(m), X2) * np.polyval(hermite(n), X2)
+
+        for n1 in range(N):
+            for n2 in range(N):
+                i = state_number_index([N, N], [n1, n2])
+                for p1 in range(N):
+                    for p2 in range(N):
+                        j = state_number_index([N, N], [p1, p2])
+                        p += M1[n1, p1] * M2[n2, p2] * rho.data[i, j]
+
+        self.data = p
 
 
 class HarmonicOscillatorWaveFunction(Distribution):
