@@ -121,14 +121,14 @@ cpdef np.ndarray[CTYPE_t, ndim=2] cy_ode_rhs(double t, np.ndarray[CTYPE_t, ndim=
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[CTYPE_t, ndim=1] cy_ode_psi_func_td(double t, np.ndarray[CTYPE_t, ndim=1] psi, H_func, args):
+cpdef np.ndarray[CTYPE_t, ndim=1] cy_ode_psi_func_td(double t, np.ndarray[CTYPE_t, ndim=1] psi, object H_func, object args):
     H = H_func(t, args)
     return -1j * spmv1d(H.data, H.indices, H.indptr, psi)
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[CTYPE_t, ndim=1] cy_ode_psi_func_td_with_state(double t, np.ndarray[CTYPE_t, ndim=1] psi, H_func, args):
+cpdef np.ndarray[CTYPE_t, ndim=1] cy_ode_psi_func_td_with_state(double t, np.ndarray[CTYPE_t, ndim=1] psi, object H_func, object args):
     H = H_func(t, psi, args)
     return -1j * spmv1d(H.data, H.indices, H.indptr, psi)
 
