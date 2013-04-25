@@ -22,6 +22,7 @@ This module provides solvers for the unitary Schrodinger equation.
 
 import os
 import types
+from functools import partial
 import numpy as np
 import scipy.sparse as sp
 import scipy.integrate
@@ -116,7 +117,7 @@ def sesolve(H, rho0, tlist, expt_ops, args={}, options=None,
     elif n_str > 0:
         return _sesolve_list_str_td(H, rho0, tlist, expt_ops, args, options,
                                     progress_bar)
-    elif isinstance(H, types.FunctionType):
+    elif isinstance(H, (types.FunctionType, types.BuiltinFunctionType, partial)):
         return _sesolve_func_td(H, rho0, tlist, expt_ops, args, options,
                                 progress_bar)
     else:
@@ -455,11 +456,32 @@ def _sesolve_func_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
     # setup integrator
     #
     H_func_and_args = [H_func]
-    for arg in args:
-        if isinstance(arg, Qobj):
-            H_func_and_args.append(arg.data)
+
+    if type(args) is dict:
+        new_args = {}
+        for key in args:
+            if isinstance(args[key], Qobj):
+                new_args[key] = args[key].data
+            else:
+                new_args[key] = args[key]
+
+        H_func_and_args.append(new_args)
+
+    elif type(args) is list:
+        new_args = []
+        for arg in args:
+            if isinstance(arg, Qobj):
+                new_args.append(arg.data)
+            else:
+                new_args.append(arg)
+
+        H_func_and_args.append(new_args)
+
+    else:
+        if isinstance(args, Qobj):
+            H_func_and_args.append(args.data)
         else:
-            H_func_and_args.append(arg)
+            H_func_and_args.append(args)
 
     initial_vector = psi0.full()
 
@@ -486,7 +508,7 @@ def _sesolve_func_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
 #
 def _ode_psi_func_td(t, psi, H_func_and_args):
     H_func = H_func_and_args[0]
-    args = H_func_and_args[1:]
+    args = H_func_and_args[1]
 
     H = H_func(t, args)
 
@@ -495,7 +517,7 @@ def _ode_psi_func_td(t, psi, H_func_and_args):
 
 def _ode_psi_func_td_with_state(t, psi, H_func_and_args):
     H_func = H_func_and_args[0]
-    args = H_func_and_args[1:]
+    args = H_func_and_args[1]
 
     H = H_func(t, psi, args)
 
