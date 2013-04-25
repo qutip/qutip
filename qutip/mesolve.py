@@ -23,6 +23,7 @@ equation.
 
 import os
 import types
+from functools import partial
 import numpy as np
 import scipy.sparse as sp
 import scipy.integrate
@@ -220,7 +221,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
                                              expt_ops, args, options,
                                              progress_bar)
 
-        if isinstance(H, types.FunctionType):
+        if isinstance(H, (types.FunctionType, types.BuiltinFunctionType, partial)):
             # old style time-dependence: must have constant collapse operators
             if n_str > 0:  # or n_func > 0:
                 raise TypeError("Incorrect format: function-format " +
@@ -257,7 +258,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
         elif n_str > 0:
             return _sesolve_list_str_td(H, rho0, tlist,
                                         expt_ops, args, options, progress_bar)
-        elif isinstance(H, types.FunctionType):
+        elif isinstance(H, (types.FunctionType, types.BuiltinFunctionType, partial)):
             return _sesolve_func_td(H, rho0, tlist,
                                     expt_ops, args, options, progress_bar)
         else:
@@ -1021,7 +1022,7 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, args=None, options=None):
         if isinstance(H, list):
             output = _mesolve_list_td(H, rho0, tlist,
                                       c_op_list, expt_ops, args, options)
-        if isinstance(H, types.FunctionType):
+        if isinstance(H, (types.FunctionType, types.BuiltinFunctionType, partial)):
             output = _mesolve_func_td(H, rho0, tlist,
                                       c_op_list, expt_ops, args, options)
         else:
@@ -1030,7 +1031,7 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, args=None, options=None):
     else:
         if isinstance(H, list):
             output = _sesolve_list_td(H, rho0, tlist, expt_ops, args, options)
-        if isinstance(H, types.FunctionType):
+        if isinstance(H, (types.FunctionType, types.BuiltinFunctionType, partial)):
             output = _sesolve_func_td(H, rho0, tlist, expt_ops, args, options)
         else:
             output = _sesolve_const(H, rho0, tlist, expt_ops, args, options)

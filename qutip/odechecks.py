@@ -32,7 +32,7 @@ def _ode_checks(H, c_ops, solver='me'):
     # check H for incorrect format
     if isinstance(H, Qobj):
         pass
-    elif isinstance(H, FunctionType):
+    elif isinstance(H, (FunctionType, BuiltinFunctionType, partial)):
         pass  # n_func += 1
     elif isinstance(H, list):
         for k in range(len(H)):
