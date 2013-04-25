@@ -742,21 +742,13 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt,
     #
     # construct liouvillian
     #
+    new_args = None
 
     if len(c_op_list) > 0:
-        # L = 0
-        # for c in c_op_list:
-        #    cdc = c.dag() * c
-        #    L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
-
         L = liouvillian_fast(None, c_op_list)
-
-        L_func_and_args = [L_func, L.data]
-
     else:
         n, m = rho0.shape
-        L_func_and_args = [L_func,
-                           sp.csr_matrix((n ** 2, m ** 2), dtype=complex)]
+        L = sp.csr_matrix((n ** 2, m ** 2), dtype=complex)
 
     if type(args) is dict:
         new_args = {}
@@ -770,8 +762,6 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt,
             else:
                 new_args[key] = args[key]
 
-        L_func_and_args.append(new_args)
-
     elif type(args) is list:
         new_args = []
         for arg in args:
@@ -783,15 +773,14 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt,
             else:
                 new_args.append(arg)
 
-        L_func_and_args.append(new_args)
     else:
         if isinstance(args, Qobj):
             if isoper(args):
-                L_func_and_args.append((-1j * (spre(args) - spost(args))).data)
+                new_args = (-1j * (spre(args) - spost(args))).data
             else:
-                L_func_and_args.append(args.data)
+                new_args = args.data
         else:
-            L_func_and_args.append(args)
+            new_args = args
 
     #
     # setup integrator
@@ -806,7 +795,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt,
                      first_step=opt.first_step, min_step=opt.min_step,
                      max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
-    r.set_f_params(L_func_and_args)
+    r.set_f_params(L.data, L_func, new_args)
 
     #
     # call generic ODE code
@@ -817,28 +806,16 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt,
 #
 # evaluate drho(t)/dt according to the master eqaution
 #
-def _ode_rho_func_td(t, rho, L_func_and_args):
-
-    L_func = L_func_and_args[0]
-    L0 = L_func_and_args[1]
-    L_args = L_func_and_args[2]
-
-    L = L0 + L_func(t, L_args)
-
+def _ode_rho_func_td(t, rho, L0, L_func, args):
+    L = L0 + L_func(t, args)
     return L * rho
 
 
 #
 # evaluate drho(t)/dt according to the master eqaution
 #
-def _ode_rho_func_td_with_state(t, rho, L_func_and_args):
-
-    L_func = L_func_and_args[0]
-    L0 = L_func_and_args[1]
-    L_args = L_func_and_args[2]
-
-    L = L0 + L_func(t, rho, L_args)
-
+def _ode_rho_func_td_with_state(t, rho, L0, L_func, args):
+    L = L0 + L_func(t, rho, args)
     return L * rho
 
 
