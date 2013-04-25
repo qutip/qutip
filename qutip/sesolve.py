@@ -36,7 +36,9 @@ from qutip.odeoptions import Odeoptions
 from qutip.odeconfig import odeconfig
 from qutip.odechecks import _ode_checks
 from qutip.settings import debug
-from qutip.cyQ.spmatfuncs import cy_ode_rhs
+from qutip.cyQ.spmatfuncs import (cy_ode_rhs,
+                                  cy_ode_psi_func_td,
+                                  cy_ode_psi_func_td_with_state)
 from qutip.cyQ.codegen import Codegen
 
 from qutip.gui.progressbar import BaseProgressBar
@@ -455,7 +457,7 @@ def _sesolve_func_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
     #
     # setup integrator
     #
-    H_func_and_args = [H_func]
+    new_args = None
 
     if type(args) is dict:
         new_args = {}
@@ -465,8 +467,6 @@ def _sesolve_func_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
             else:
                 new_args[key] = args[key]
 
-        H_func_and_args.append(new_args)
-
     elif type(args) is list:
         new_args = []
         for arg in args:
@@ -474,28 +474,25 @@ def _sesolve_func_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
                 new_args.append(arg.data)
             else:
                 new_args.append(arg)
-
-        H_func_and_args.append(new_args)
-
     else:
         if isinstance(args, Qobj):
-            H_func_and_args.append(args.data)
+            new_args = args.data
         else:
-            H_func_and_args.append(args)
+            new_args = args
 
     initial_vector = psi0.full()
 
     if not opt.rhs_with_state:
-        r = scipy.integrate.ode(_ode_psi_func_td)
+        r = scipy.integrate.ode(cy_ode_psi_func_td)
     else:
-        r = scipy.integrate.ode(_ode_psi_func_td_with_state)
+        r = scipy.integrate.ode(cy_ode_psi_func_td_with_state)
 
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
                      max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
-    r.set_f_params(H_func_and_args)
+    r.set_f_params(H_func, new_args)
 
     #
     # call generic ODE code
@@ -506,21 +503,13 @@ def _sesolve_func_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
 #
 # evaluate dpsi(t)/dt for time-dependent hamiltonian
 #
-def _ode_psi_func_td(t, psi, H_func_and_args):
-    H_func = H_func_and_args[0]
-    args = H_func_and_args[1]
-
+def _ode_psi_func_td(t, psi, H_func, args):
     H = H_func(t, args)
-
     return -1j * (H * psi)
 
 
-def _ode_psi_func_td_with_state(t, psi, H_func_and_args):
-    H_func = H_func_and_args[0]
-    args = H_func_and_args[1]
-
+def _ode_psi_func_td_with_state(t, psi, H_func, args):
     H = H_func(t, psi, args)
-
     return -1j * (H * psi)
 
 
