@@ -34,7 +34,7 @@ from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian_fast, mat2vec, vec2mat
 from qutip.expect import expect
 from qutip.odeoptions import Odeoptions
-from qutip.cyQ.spmatfuncs import cy_ode_rhs
+from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
 from qutip.cyQ.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
 from qutip.odedata import Odedata
@@ -782,7 +782,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt,
     #
     initial_vector = mat2vec(rho0.full())
     if not opt.rhs_with_state:
-        r = scipy.integrate.ode(_ode_rho_func_td)
+        r = scipy.integrate.ode(cy_ode_rho_func_td)
     else:
         r = scipy.integrate.ode(_ode_rho_func_td_with_state)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
