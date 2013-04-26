@@ -350,8 +350,6 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
                             "collapse operators (expected operator or " +
                             "superoperator)")
 
-    L_list_and_args = [L_list, args]
-
     #
     # setup integrator
     #
@@ -362,7 +360,7 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
                      first_step=opt.first_step, min_step=opt.min_step,
                      max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
-    r.set_f_params(L_list_and_args)
+    r.set_f_params(L_list, args)
 
     #
     # call generic ODE code
@@ -374,10 +372,7 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
 # evaluate drho(t)/dt according to the master equation using the
 # [Qobj, function] style time dependence API
 #
-def rho_list_td(t, rho, L_list_and_args):
-
-    L_list = L_list_and_args[0]
-    args = L_list_and_args[1]
+def rho_list_td(t, rho, L_list, args):
 
     L = L_list[0][0] * L_list[0][1](t, args)
     for n in range(1, len(L_list)):
