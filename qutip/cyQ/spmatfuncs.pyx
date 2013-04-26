@@ -135,6 +135,13 @@ cpdef np.ndarray[CTYPE_t, ndim=1] cy_ode_psi_func_td_with_state(double t, np.nda
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cpdef np.ndarray[CTYPE_t, ndim=1] cy_ode_rho_func_td(double t, np.ndarray[CTYPE_t, ndim=1] rho, object L0, object L_func, object args):
+    L = L0 + L_func(t, args)
+    return spmv1d(L.data, L.indices, L.indptr, rho)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cpdef np.ndarray[CTYPE_t, ndim=2] spmv_dia(np.ndarray[CTYPE_t, ndim=2] data, np.ndarray[int] offsets,int num_rows,int num_diags, np.ndarray[CTYPE_t, ndim=2] vec, np.ndarray[CTYPE_t, ndim=2] ret,int N):
     """DIA sparse matrix-vector product
     """
