@@ -740,10 +740,10 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt,
     new_args = None
 
     if len(c_op_list) > 0:
-        L = liouvillian_fast(None, c_op_list)
+        L_data = liouvillian_fast(None, c_op_list).data
     else:
         n, m = rho0.shape
-        L = sp.csr_matrix((n ** 2, m ** 2), dtype=complex)
+        L_data = sp.csr_matrix((n ** 2, m ** 2), dtype=complex)
 
     if type(args) is dict:
         new_args = {}
@@ -790,7 +790,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt,
                      first_step=opt.first_step, min_step=opt.min_step,
                      max_step=opt.max_step)
     r.set_initial_value(initial_vector, tlist[0])
-    r.set_f_params(L.data, L_func, new_args)
+    r.set_f_params(L_data, L_func, new_args)
 
     #
     # call generic ODE code
