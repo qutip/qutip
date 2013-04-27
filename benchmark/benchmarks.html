@@ -13,7 +13,7 @@
     <div align='center'>
 	<h1>QuTiP Benchmarks<h1>
 	</div>
-	<script type="text/javascript" src="benchmark_data.js"></script>
+	<script type="text/javascript" src="benchmark_data.json"></script>
 	<script type="text/javascript">
 	
 	d3.scale.genericLog = function() {
@@ -96,8 +96,8 @@
 	  .attr("transform", function(d,i) {return "translate("+(i * 32+119)+","+(400 - heightScale(d.factor)-20-((Number(d.factor).toPrecision(3)).toString().length))+") rotate(-90)" ;});
 	
 	mySVG.append("text")
-		.attr("y", 40)
-		.attr("x",-250)
+		.attr("y", 80)
+		.attr("x",-220)
 		.attr("transform", "rotate(-90)")
 		.attr("font-size", "20px")
 		.style("text-anchor", "middle")
