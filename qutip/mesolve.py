@@ -147,7 +147,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : :class:`qutip.Qdeoptions`
+    options : :class:`qutip.Odeoptions`
         with options for the ODE solver.
 
     Returns
@@ -955,7 +955,7 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, args=None, options=None):
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : :class:`qutip.Qdeoptions`
+    options : :class:`qutip.Odeoptions`
         with options for the ODE solver.
 
 
