@@ -33,7 +33,7 @@ from qutip.states import projection
 from qutip.odeoptions import Odeoptions
 
 
-def propagator(H, t, c_op_list, args=None, opt=None):
+def propagator(H, t, c_op_list, args=None, options=None):
     """
     Calculate the propagator U(t) for the density matrix or wave function such
     that :math:`\psi(t) = U(t)\psi(0)` or
@@ -58,7 +58,7 @@ def propagator(H, t, c_op_list, args=None, opt=None):
         Parameters to callback functions for time-dependent Hamiltonians and
         collapse operators.
 
-    opt : :class:`qutip.Odeoptions`
+    options : :class:`qutip.Odeoptions`
         with options for the ODE solver.
 
     Returns
@@ -68,11 +68,11 @@ def propagator(H, t, c_op_list, args=None, opt=None):
 
     """
 
-    if opt is None:
-        opt = Odeoptions()
-        opt.rhs_reuse = True
+    if options is None:
+        options = Odeoptions()
+        options.rhs_reuse = True
         rhs_clear()
-    elif opt.rhs_reuse:
+    elif options.rhs_reuse:
         warnings.warn("propagator is using previously defined rhs function (options.rhs_reuse = True)")
 
     tlist = [0, t] if isinstance(t, (int, float, np.int64, np.float64)) else t
@@ -96,13 +96,13 @@ def propagator(H, t, c_op_list, args=None, opt=None):
 
         for n in range(0, N):
             psi0 = basis(N, n)
-            output = mesolve(H, psi0, tlist, [], [], args, opt)
+            output = mesolve(H, psi0, tlist, [], [], args, options)
             for k, t in enumerate(tlist):
                 u[:, n, k] = output.states[k].full().T
 
         # todo: evolving a batch of wave functions:
         #psi_0_list = [basis(N, n) for n in range(N)]
-        #psi_t_list = mesolve(H, psi_0_list, [0, t], [], [], args, opt)
+        #psi_t_list = mesolve(H, psi_0_list, [0, t], [], [], args, options)
         #for n in range(0, N):
         #    u[:,n] = psi_t_list[n][1].full().T
 
@@ -127,7 +127,7 @@ def propagator(H, t, c_op_list, args=None, opt=None):
         for n in range(0, N * N):
             psi0 = basis(N * N, n)
             rho0 = Qobj(vec2mat(psi0.full()))
-            output = mesolve(H, rho0, tlist, c_op_list, [], args, opt)
+            output = mesolve(H, rho0, tlist, c_op_list, [], args, options)
             for k, t in enumerate(tlist):
                 u[:, n, k] = mat2vec(output.states[k].full()).T
 
