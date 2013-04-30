@@ -22,6 +22,7 @@ import numpy as np
 import scipy.linalg as la
 
 from qutip.qobj import Qobj
+from qutip.rhs_generate import rhs_clear
 from qutip.superoperator import vec2mat, mat2vec
 from qutip.mesolve import mesolve
 from qutip.essolve import essolve
@@ -45,13 +46,19 @@ def propagator(H, t, c_op_list, args=None, opt=None):
         Hamiltonian as a Qobj instance of a nested list of Qobjs and
         coefficients in the list-string or list-function format for
         time-dependent Hamiltonians (see description in :func:`qutip.mesolve`).
+
     t : float or array-like
         Time or list of times for which to evaluate the propagator.
+
     c_op_list : list
         List of qobj collapse operators.
+
     args : list/array/dictionary
         Parameters to callback functions for time-dependent Hamiltonians and
         collapse operators.
+
+    opt : :class:`qutip.Odeoptions`
+        with options for the ODE solver.
 
     Returns
     -------
@@ -63,6 +70,7 @@ def propagator(H, t, c_op_list, args=None, opt=None):
     if opt is None:
         opt = Odeoptions()
         opt.rhs_reuse = True
+        rhs_clear()
 
     tlist = [0, t] if isinstance(t, (int, float, np.int64, np.float64)) else t
 
