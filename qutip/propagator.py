@@ -20,6 +20,7 @@
 import types
 import numpy as np
 import scipy.linalg as la
+import warnings
 
 from qutip.qobj import Qobj
 from qutip.rhs_generate import rhs_clear
@@ -71,6 +72,8 @@ def propagator(H, t, c_op_list, args=None, opt=None):
         opt = Odeoptions()
         opt.rhs_reuse = True
         rhs_clear()
+    elif opt.rhs_reuse:
+        warnings.warn("propagator is using previously defined rhs function (options.rhs_reuse = True)")
 
     tlist = [0, t] if isinstance(t, (int, float, np.int64, np.float64)) else t
 
