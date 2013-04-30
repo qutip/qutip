@@ -31,7 +31,7 @@ from qutip.states import projection
 from qutip.odeoptions import Odeoptions
 
 
-def propagator(H, t, c_op_list, H_args=None, opt=None):
+def propagator(H, t, c_op_list, args=None, opt=None):
     """
     Calculate the propagator U(t) for the density matrix or wave function such
     that :math:`\psi(t) = U(t)\psi(0)` or
@@ -49,8 +49,9 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         Time or list of times for which to evaluate the propagator.
     c_op_list : list
         List of qobj collapse operators.
-    H_args : list/array/dictionary
-        Parameters to callback functions for time-dependent Hamiltonians.
+    args : list/array/dictionary
+        Parameters to callback functions for time-dependent Hamiltonians and
+        collapse operators.
 
     Returns
     -------
@@ -69,7 +70,7 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         # calculate propagator for the wave function
 
         if isinstance(H, types.FunctionType):
-            H0 = H(0.0, H_args)
+            H0 = H(0.0, args)
             N = H0.shape[0]
             dims = H0.dims
         elif isinstance(H, list):
@@ -84,13 +85,13 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
 
         for n in range(0, N):
             psi0 = basis(N, n)
-            output = mesolve(H, psi0, tlist, [], [], H_args, opt)
+            output = mesolve(H, psi0, tlist, [], [], args, opt)
             for k, t in enumerate(tlist):
                 u[:, n, k] = output.states[k].full().T
 
         # todo: evolving a batch of wave functions:
         #psi_0_list = [basis(N, n) for n in range(N)]
-        #psi_t_list = mesolve(H, psi_0_list, [0, t], [], [], H_args, opt)
+        #psi_t_list = mesolve(H, psi_0_list, [0, t], [], [], args, opt)
         #for n in range(0, N):
         #    u[:,n] = psi_t_list[n][1].full().T
 
@@ -99,7 +100,7 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         # density matrix (a superoperator propagator)
 
         if isinstance(H, types.FunctionType):
-            H0 = H(0.0, H_args)
+            H0 = H(0.0, args)
             N = H0.shape[0]
             dims = [H0.dims, H0.dims]
         elif isinstance(H, list):
@@ -115,7 +116,7 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         for n in range(0, N * N):
             psi0 = basis(N * N, n)
             rho0 = Qobj(vec2mat(psi0.full()))
-            output = mesolve(H, rho0, tlist, c_op_list, [], H_args, opt)
+            output = mesolve(H, rho0, tlist, c_op_list, [], args, opt)
             for k, t in enumerate(tlist):
                 u[:, n, k] = mat2vec(output.states[k].full()).T
 
