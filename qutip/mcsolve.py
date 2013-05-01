@@ -43,6 +43,8 @@ from qutip.settings import debug
 import threading
 threading._DummyThread._Thread__stop = lambda x: 42
 
+from qutip.gui.progressbar import BaseProgressBar
+
 if debug:
     import inspect
 
@@ -58,7 +60,7 @@ _cy_rhs_func = None
 
 
 def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
-            args={}, options=Odeoptions()):
+            args={}, options=Odeoptions(), progress_bar=BaseProgressBar()):
     """Monte-Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
@@ -145,7 +147,10 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     if psi0.type != 'ket':
         raise Exception("Initial state must be a state vector.")
+        
     odeconfig.options = options
+    odeconfig.progress_bar = progress_bar
+    
     # set num_cpus to the value given in qutip.settings if none in Odeoptions
     if not odeconfig.options.num_cpus:
         odeconfig.options.num_cpus = qutip.settings.num_cpus
@@ -380,11 +385,12 @@ class _MC_class():
         self.count += self.step
         if (not self.odeconfig.options.gui and self.odeconfig.ntraj != 1):
             # print to term
-            self.percent = self.count / (1.0 * self.odeconfig.ntraj)
-            if self.count / float(self.odeconfig.ntraj) >= self.level:
-                # calls function to determine simulation time remaining
-                self.level = _time_remaining(
-                    self.st, self.odeconfig.ntraj, self.count, self.level)
+            #self.percent = self.count / (1.0 * self.odeconfig.ntraj)
+            #if self.count / float(self.odeconfig.ntraj) >= self.level:
+            #    # calls function to determine simulation time remaining
+            #    self.level = _time_remaining(
+            #        self.st, self.odeconfig.ntraj, self.count, self.level)
+            self.odeconfig.progress_bar.update(self.count)
     #-----
 
     def parallel(self, args, top=None):
@@ -455,8 +461,12 @@ class _MC_class():
             # set arguments for input to monte-carlo
             args = (mc_alg_out, self.odeconfig.options,
                     self.odeconfig.tlist, self.num_times, self.seed)
+
+
             if not self.odeconfig.options.gui:
+                self.odeconfig.progress_bar.start(self.odeconfig.ntraj)
                 self.parallel(args, self)
+                self.odeconfig.progress_bar.finished()
             else:
                 if qutip.settings.qutip_gui == "PYSIDE":
                     from PySide import QtGui, QtCore
