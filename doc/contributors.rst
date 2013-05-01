@@ -60,6 +60,8 @@ Contributors
 
 **Denis Vasilyev** (St. Petersburg State University) - Bug hunter
 
+**W.M. Witzel** - Bug hunter
+
 **André Xuereb** (University of Hannover) - Bug hunter
 
 **Dong Zhou** (Yale University) - Bug hunter
