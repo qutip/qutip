@@ -21,7 +21,6 @@ import sys
 import os
 import time
 import numpy as np
-import datetime
 from types import FunctionType
 from multiprocessing import Pool, cpu_count
 from numpy.random import RandomState, random_integers
@@ -325,8 +324,6 @@ class _MC_class():
         self.num_times = len(self.odeconfig.tlist)
         # holds seed for random number generator
         self.seed = None
-        # holds expected time to completion
-        self.st = None
         # number of cpus to be used
         self.cpus = self.odeconfig.options.num_cpus
         # set output variables, even if they are not used to simplify output
@@ -380,25 +377,20 @@ class _MC_class():
             self.psi_out[r] = results[1]
         else:  # output expectation values
             self.expect_out[r] = results[1]
+
         self.collapse_times_out[r] = results[2]
         self.which_op_out[r] = results[3]
         self.count += self.step
+
         if (not self.odeconfig.options.gui and self.odeconfig.ntraj != 1):
-            # print to term
-            #self.percent = self.count / (1.0 * self.odeconfig.ntraj)
-            #if self.count / float(self.odeconfig.ntraj) >= self.level:
-            #    # calls function to determine simulation time remaining
-            #    self.level = _time_remaining(
-            #        self.st, self.odeconfig.ntraj, self.count, self.level)
             self.odeconfig.progress_bar.update(self.count)
-    #-----
+
 
     def parallel(self, args, top=None):
 
         if debug:
             print(inspect.stack()[0][3])
 
-        self.st = datetime.datetime.now()  # set simulation starting time
         pl = Pool(processes=self.cpus)
         [pl.apply_async(_mc_alg_evolve,
                         args=(nt, args, self.odeconfig),
@@ -872,26 +864,6 @@ def _mc_alg_evolve(nt, args, odeconfig):
 
     except Expection as e:
         print("failed to run _mc_alg_evolve: " + str(e))
-
-
-def _time_remaining(st, ntraj, count, level):
-    """
-    Private function that determines, and prints, how much simulation
-    time is remaining.
-    """
-    nwt = datetime.datetime.now()
-    diff = ((nwt.day - st.day) * 86400 +
-            (nwt.hour - st.hour) * (60 ** 2) +
-            (nwt.minute - st.minute) * 60 +
-            (nwt.second - st.second)) * (ntraj - count) / (1.0 * count)
-    secs = datetime.timedelta(seconds=ceil(diff))
-    dd = datetime.datetime(1, 1, 1) + secs
-    time_string = "%02d:%02d:%02d:%02d" % \
-        (dd.day - 1, dd.hour, dd.minute, dd.second)
-    print(str(floor(count / float(ntraj) * 100)) + '%  (' + str(count) + '/' +
-          str(ntraj) + ')' + '  Est. time remaining: ' + time_string)
-    level += 0.1
-    return level
 
 
 def _mc_func_load(odeconfig):
