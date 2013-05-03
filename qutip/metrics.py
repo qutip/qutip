@@ -36,9 +36,9 @@ def fidelity(A, B):
     Parameters
     ----------
     A : qobj
-        Density matrix
+        Density matrix or state vector.
     B : qobj
-        Density matrix with same dimensions as A.
+        Density matrix or state vector with same dimensions as A.
 
     Returns
     -------
@@ -53,6 +53,10 @@ def fidelity(A, B):
     0.24104350624628332
 
     """
+    if A.type!='oper':
+        A=ket2dm(A)
+    if B.type!='oper':
+        B=ket2dm(B)
     if A.dims != B.dims:
         raise TypeError('Density matricies do not have same dimensions.')
     else:
@@ -68,11 +72,11 @@ def tracedist(A, B, sparse=False, tol=0):
     Parameters
     ----------
     A : qobj
-        Density matrix.
+        Density matrix or state vector.
     B : qobj:
-        Density matrix with same dimensions as A.
+        Density matrix or state vector with same dimensions as A.
     tol : float
-        Tolerance used by sparse eigensolver. (0=Machine precision)
+        Tolerance used by sparse eigensolver, if used. (0=Machine precision)
     sparse : {False, True}
         Use sparse eigensolver.
 
@@ -89,6 +93,10 @@ def tracedist(A, B, sparse=False, tol=0):
     0.9705143161472971
 
     """
+    if A.type!='oper':
+        A=ket2dm(A)
+    if B.type!='oper':
+        B=ket2dm(B)
     if A.dims != B.dims:
         raise TypeError('Density matricies do not have same dimensions.')
     else:
