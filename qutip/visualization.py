@@ -549,7 +549,7 @@ def wigner_cmap(W, levels=1024, shift=0, invert=False):
     Notes
     -----
     The 'shift' parameter allows you to vary where the colormap begins
-    to highlight negative colors. This in beneficial is cases where there
+    to highlight negative colors. This is beneficial in cases where there
     are small negative Wigner elements due to numerical round-off and/or
     truncation.    
     """
