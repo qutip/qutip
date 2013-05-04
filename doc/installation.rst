@@ -175,6 +175,10 @@ Now, we want to tell OSX which Python and iPython we are going to use::
     sudo port select python python27
     sudo port select ipython ipython27
 
+To install QuTiP from Macports, run::
+
+    sudo port install py-qutip
+
 .. note:: The next step is optional, but is necessary if you plan to use the string (Cython) based time-dependent format.  See :ref:`time`.
 
 Finally, we want to set the macports compiler to the vanilla GCC version.  From the command line type::
@@ -214,10 +218,10 @@ Anaconda CE Distribution
 
 Finally, one can also use the `Anaconda CE <https://store.continuum.io/cshop/anaconda>`_ package to install all of the QuTiP dependencies. 
 
-Installing QuTiP
-----------------
+Installing QuTiP from source
+----------------------------
 
-No matter which installation path you choose, installing a standard QuTiP installation is the same as on linux.  From the QuTiP directory run::
+No matter which installation path you choose, installing a standard QuTiP installation is the same as on linux. From the QuTiP directory run::
 
     sudo python setup.py install
 
