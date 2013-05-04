@@ -545,14 +545,13 @@ def wigner_cmap(W, levels=1024, shift=0, invert=False):
     Returns
     -------
     Returns a Matplotlib colormap instance for use in plotting.
-    
+
     Notes
     -----
     The 'shift' parameter allows you to vary where the colormap begins
-    to highlight negative colors.  This is beneficial is cases where there
-    are small negative Wigenr elements due to numerical round-off and/or
-    truncation.  
-    
+    to highlight negative colors. This in beneficial is cases where there
+    are small negative Wigner elements due to numerical round-off and/or
+    truncation.    
     """
     max_color = np.array([0.020, 0.19, 0.38, 1.0])
     mid_color = np.array([1, 1, 1, 1.0])
