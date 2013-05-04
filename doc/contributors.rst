@@ -58,6 +58,8 @@ Contributors
 
 **Florian Ong** (Institute for Quantum Computation) - Bug hunter
 
+**Frank Schima** - Macports packaging
+
 **Denis Vasilyev** (St. Petersburg State University) - Bug hunter
 
 **W.M. Witzel** - Bug hunter
