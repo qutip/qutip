@@ -254,7 +254,7 @@ def steady_nonlinear(L_func, rho0, args={}, maxiter=10,
     return rhoss.tidyup() if qset.auto_tidyup else rhoss
 
 
-def steadystate_direct(H, c_ops, sparse=True):
+def steadystate_direct(H, c_ops, sparse=True, use_umfpack=False):
     """
     Simple steady state solver that use a direct solve method.
 
@@ -262,12 +262,24 @@ def steadystate_direct(H, c_ops, sparse=True):
     """
     L = liouvillian_fast(H, c_ops)
     if sparse:
-        return steady_direct(L)
+        return steady_direct_sparse(L, use_umfpack=use_umfpack)
     else:
         return steady_direct_dense(L)
 
 
-def steady_direct(L):
+def steady_direct(L, sparse=True, use_umfpack=False):
+    """
+    Simple steady state solver that use a direct solve method.
+
+    .. note:: Experimental.
+    """
+    if sparse:
+        return steady_direct_sparse(L, use_umfpack=use_umfpack)
+    else:
+        return steady_direct_dense(L)
+
+
+def steady_direct_sparse(L, use_umfpack=False):
     """
     Direct solver that use scipy sparse matrices
 
@@ -285,7 +297,7 @@ def steady_direct(L):
     M[0,:] = tr_vec
     M = sp.csc_matrix(M)
     
-    v = spsolve(M, b, permc_spec="MMD_AT_PLUS_A", use_umfpack=False)
+    v = spsolve(M, b, permc_spec="MMD_AT_PLUS_A", use_umfpack=use_umfpack)
     
     return Qobj(vec2mat(v), dims=L.dims[0], isherm=True)
 
