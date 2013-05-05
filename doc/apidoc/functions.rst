@@ -14,21 +14,21 @@ Quantum States
 ----------------
 
 .. automodule:: qutip.states
-    :members: basis, coherent, coherent_dm, fock, fock_dm, ket2dm, qutrit_basis, thermal_dm, state_number_enumerate, state_number_index, state_index_number, state_number_qobj
+    :members: basis, coherent, coherent_dm, fock, fock_dm, ket2dm, qutrit_basis, thermal_dm, state_number_enumerate, state_number_index, state_index_number, state_number_qobj, phase_basis
 
 
 Quantum Operators
 ---------------------
 
 .. automodule:: qutip.operators
-    :members: create, destroy, displace, jmat, num, qeye, identity, qutrit_ops, sigmam, sigmap, sigmax, sigmay, sigmaz, squeez, squeezing
+    :members: create, destroy, displace, jmat, num, qeye, identity, qutrit_ops, sigmam, sigmap, sigmax, sigmay, sigmaz, squeez, squeezing, phase
 
 
 Liouvillian
 -----------
 
 .. automodule:: qutip.superoperator
-    :members: liouvillian, spost, spre
+    :members: liouvillian, liouvillian_fast, spost, spre
 
 Tensor
 -------
@@ -41,7 +41,7 @@ Expectation Values
 --------------------
 
 .. automodule:: qutip.expect
-    :members: expect
+    :members: expect, variance
 
 Partial transpose
 -----------------
@@ -157,7 +157,7 @@ Utility functions
 ------------------
 
 .. automodule:: qutip.utilities
-    :members: n_thermal, linspace_with, clebsch
+    :members: n_thermal, linspace_with, clebsch, convert_unit
 
 .. _functions-fileio:
 
