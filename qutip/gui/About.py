@@ -363,9 +363,10 @@ class Aboutbox(object):
                 pyobjc = 'Yes'
             except:
                 pyobjc = 'No'
-        Form.setWindowTitle(_translate("Form", "Form", None))
+        Form.setWindowTitle(_translate("Form", "About QuTiP", None))
+        Form.setWindowIcon(QtGui.QIcon(CD_BASE + "/logo.png"))
         self.label.setText(_translate("Form", "QuTiP: The Quantum Toolbox in Python", None))
-        self.label_3.setText(_translate("Form", "Copyright 2011 and later, P.D. Nation & J. R. Johansson", None))
+        self.label_3.setText(_translate("Form", "Copyright 2011 and later, P. D. Nation & J. R. Johansson", None))
         self.qutip_label.setText(_translate("Form", "QuTiP Version:", None))
         self.numpy_label.setText(_translate("Form", "NumPy Version:", None))
         self.scipy_label.setText(_translate("Form", "SciPy Version:", None))
