@@ -39,7 +39,7 @@ def about():
     if (qutip.settings.qutip_graphics == 'YES' and
             qutip.settings.qutip_gui != "NONE"):
 
-        from qutip.gui import AboutBox
+        from qutip.gui import Aboutbox
         import matplotlib
         if qutip.settings.qutip_gui == "PYSIDE":
             from PySide import QtGui
@@ -53,10 +53,12 @@ def about():
         if not app:
             app = QtGui.QApplication(sys.argv)
 
-        box = AboutBox()
-        box.show()
-        box.activateWindow()
-        box.raise_()
+        gui = QtGui.QWidget()
+        box = Aboutbox()
+        box.setupUi(gui)
+        gui.activateWindow()
+        gui.show()
+        gui.raise_()
         app.exec_()
 
     else:
