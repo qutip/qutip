@@ -1,11 +1,21 @@
-# -*- coding: utf-8 -*-
-
-# Form implementation generated from reading ui file '/Users/paul/Desktop/about.ui'
+# This file is part of QuTiP.
 #
-# Created: Sat May 11 12:17:02 2013
-#      by: PyQt4 UI code generator 4.10
+#    QuTiP is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
 #
-# WARNING! All changes made in this file will be lost!
+#    QuTiP is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#
+###########################################################################
 import os,sys
 import qutip
 if os.environ['QUTIP_GUI'] == "PYSIDE":

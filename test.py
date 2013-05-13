@@ -1,2 +1,0 @@
-from qutip import *
-about()
