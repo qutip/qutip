@@ -50,8 +50,10 @@ class Aboutbox(object):
     def setupUi(self, Form):
         Form.setObjectName(_fromUtf8("About QuTiP"))
         Form.resize(365, 505)
+
         self.gridLayout = QtGui.QGridLayout(Form)
         self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
+
         self.label = QtGui.QLabel(Form)
         font = QtGui.QFont()
         font.setFamily(_fromUtf8("Arial"))
@@ -63,11 +65,13 @@ class Aboutbox(object):
         self.label.setAlignment(QtCore.Qt.AlignCenter)
         self.label.setIndent(0)
         self.label.setObjectName(_fromUtf8("label"))
+
         self.gridLayout.addWidget(self.label, 2, 0, 1, 1)
         spacerItem = QtGui.QSpacerItem(20, 5, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
         self.gridLayout.addItem(spacerItem, 3, 0, 1, 1)
         spacerItem1 = QtGui.QSpacerItem(20, 5, QtGui.QSizePolicy.Minimum, QtGui.QSizePolicy.Minimum)
         self.gridLayout.addItem(spacerItem1, 1, 0, 1, 1)
+
         self.label_4 = QtGui.QLabel(Form)
         self.label_4.setMinimumSize(QtCore.QSize(240, 0))
         self.label_4.setMaximumSize(QtCore.QSize(16777215, 150))
@@ -77,6 +81,7 @@ class Aboutbox(object):
         self.label_4.setIndent(0)
         self.label_4.setObjectName(_fromUtf8("label_4"))
         self.gridLayout.addWidget(self.label_4, 0, 0, 1, 1)
+
         self.label_3 = QtGui.QLabel(Form)
         font = QtGui.QFont()
         font.setFamily(_fromUtf8("Arial"))
@@ -87,10 +92,12 @@ class Aboutbox(object):
         self.label_3.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.label_3.setObjectName(_fromUtf8("label_3"))
         self.gridLayout.addWidget(self.label_3, 6, 0, 1, 1)
+
         self.tabWidget = QtGui.QTabWidget(Form)
         self.tabWidget.setObjectName(_fromUtf8("tabWidget"))
         self.tab = QtGui.QWidget()
         self.tab.setObjectName(_fromUtf8("tab"))
+ 
         self.qutip_label = QtGui.QLabel(self.tab)
         self.qutip_label.setGeometry(QtCore.QRect(10, 10, 121, 22))
         font = QtGui.QFont()
@@ -101,6 +108,7 @@ class Aboutbox(object):
         self.qutip_label.setFont(font)
         self.qutip_label.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.qutip_label.setObjectName(_fromUtf8("qutip_label"))
+
         self.numpy_label = QtGui.QLabel(self.tab)
         self.numpy_label.setGeometry(QtCore.QRect(10, 40, 121, 22))
         font = QtGui.QFont()
@@ -118,6 +126,7 @@ class Aboutbox(object):
         font.setPointSize(16)
         font.setBold(False)
         font.setWeight(50)
+
         self.scipy_label.setFont(font)
         self.scipy_label.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.scipy_label.setObjectName(_fromUtf8("scipy_label"))
@@ -128,6 +137,7 @@ class Aboutbox(object):
         font.setPointSize(16)
         font.setBold(False)
         font.setWeight(50)
+
         self.cython_label.setFont(font)
         self.cython_label.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.cython_label.setObjectName(_fromUtf8("cython_label"))
@@ -138,6 +148,7 @@ class Aboutbox(object):
         font.setPointSize(16)
         font.setBold(False)
         font.setWeight(50)
+
         self.mpl_label.setFont(font)
         self.mpl_label.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.mpl_label.setObjectName(_fromUtf8("mpl_label"))
@@ -148,9 +159,11 @@ class Aboutbox(object):
         font.setPointSize(16)
         font.setBold(False)
         font.setWeight(50)
+
         self.pyside_label.setFont(font)
         self.pyside_label.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.pyside_label.setObjectName(_fromUtf8("pyside_label"))
+
         self.pyqt4_label = QtGui.QLabel(self.tab)
         self.pyqt4_label.setGeometry(QtCore.QRect(10, 150, 141, 22))
         font = QtGui.QFont()
@@ -161,6 +174,7 @@ class Aboutbox(object):
         self.pyqt4_label.setFont(font)
         self.pyqt4_label.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.pyqt4_label.setObjectName(_fromUtf8("pyqt4_label"))
+
         self.pyobjc_label = QtGui.QLabel(self.tab)
         self.pyobjc_label.setGeometry(QtCore.QRect(10, 170, 141, 22))
         font = QtGui.QFont()
@@ -172,6 +186,7 @@ class Aboutbox(object):
             self.pyobjc_label.setFont(font)
             self.pyobjc_label.setLayoutDirection(QtCore.Qt.LeftToRight)
             self.pyobjc_label.setObjectName(_fromUtf8("pyobjc_label"))
+
         self.qutip_version = QtGui.QLabel(self.tab)
         self.qutip_version.setGeometry(QtCore.QRect(160, 10, 151, 22))
         font = QtGui.QFont()
@@ -182,6 +197,7 @@ class Aboutbox(object):
         self.qutip_version.setFont(font)
         self.qutip_version.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.qutip_version.setObjectName(_fromUtf8("qutip_version"))
+
         self.numpy_version = QtGui.QLabel(self.tab)
         self.numpy_version.setGeometry(QtCore.QRect(160, 41, 151, 21))
         font = QtGui.QFont()
@@ -192,6 +208,7 @@ class Aboutbox(object):
         self.numpy_version.setFont(font)
         self.numpy_version.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.numpy_version.setObjectName(_fromUtf8("numpy_version"))
+
         self.scipy_version = QtGui.QLabel(self.tab)
         self.scipy_version.setGeometry(QtCore.QRect(160, 60, 151, 22))
         font = QtGui.QFont()
@@ -202,6 +219,7 @@ class Aboutbox(object):
         self.scipy_version.setFont(font)
         self.scipy_version.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.scipy_version.setObjectName(_fromUtf8("scipy_version"))
+
         self.cython_version = QtGui.QLabel(self.tab)
         self.cython_version.setGeometry(QtCore.QRect(160, 80, 151, 22))
         font = QtGui.QFont()
@@ -212,6 +230,7 @@ class Aboutbox(object):
         self.cython_version.setFont(font)
         self.cython_version.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.cython_version.setObjectName(_fromUtf8("cython_version"))
+
         self.mpl_version = QtGui.QLabel(self.tab)
         self.mpl_version.setGeometry(QtCore.QRect(160, 100, 151, 22))
         font = QtGui.QFont()
@@ -222,6 +241,7 @@ class Aboutbox(object):
         self.mpl_version.setFont(font)
         self.mpl_version.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.mpl_version.setObjectName(_fromUtf8("mpl_version"))
+
         self.pyside_version = QtGui.QLabel(self.tab)
         self.pyside_version.setGeometry(QtCore.QRect(160, 130, 151, 22))
         font = QtGui.QFont()
@@ -232,6 +252,7 @@ class Aboutbox(object):
         self.pyside_version.setFont(font)
         self.pyside_version.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.pyside_version.setObjectName(_fromUtf8("pyside_version"))
+
         self.pyqt4_version = QtGui.QLabel(self.tab)
         self.pyqt4_version.setGeometry(QtCore.QRect(160, 150, 151, 22))
         font = QtGui.QFont()
@@ -242,6 +263,7 @@ class Aboutbox(object):
         self.pyqt4_version.setFont(font)
         self.pyqt4_version.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.pyqt4_version.setObjectName(_fromUtf8("pyqt4_version"))
+
         self.pyobjc_version = QtGui.QLabel(self.tab)
         self.pyobjc_version.setGeometry(QtCore.QRect(160, 170, 151, 22))
         font = QtGui.QFont()
@@ -253,9 +275,11 @@ class Aboutbox(object):
             self.pyobjc_version.setFont(font)
             self.pyobjc_version.setLayoutDirection(QtCore.Qt.LeftToRight)
             self.pyobjc_version.setObjectName(_fromUtf8("pyobjc_version"))
+
         self.tabWidget.addTab(self.tab, _fromUtf8(""))
         self.tab_2 = QtGui.QWidget()
         self.tab_2.setObjectName(_fromUtf8("tab_2"))
+
         self.devs = QtGui.QLabel(self.tab_2)
         self.devs.setGeometry(QtCore.QRect(10, 10, 151, 22))
         font = QtGui.QFont()
@@ -267,6 +291,7 @@ class Aboutbox(object):
         self.devs.setFont(font)
         self.devs.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.devs.setObjectName(_fromUtf8("devs"))
+
         self.rob = QtGui.QLabel(self.tab_2)
         self.rob.setGeometry(QtCore.QRect(10, 40, 131, 16))
         font = QtGui.QFont()
@@ -286,6 +311,7 @@ class Aboutbox(object):
         font.setWeight(50)
         self.and_symbol.setFont(font)
         self.and_symbol.setObjectName(_fromUtf8("and_symbol"))
+
         self.paul = QtGui.QLabel(self.tab_2)
         self.paul.setGeometry(QtCore.QRect(170, 40, 91, 16))
         font = QtGui.QFont()
@@ -296,6 +322,7 @@ class Aboutbox(object):
         self.paul.setFont(font)
         self.paul.setOpenExternalLinks(True)
         self.paul.setObjectName(_fromUtf8("paul"))
+
         self.conrib = QtGui.QLabel(self.tab_2)
         self.conrib.setGeometry(QtCore.QRect(10, 70, 151, 22))
         font = QtGui.QFont()
@@ -307,6 +334,7 @@ class Aboutbox(object):
         self.conrib.setFont(font)
         self.conrib.setLayoutDirection(QtCore.Qt.LeftToRight)
         self.conrib.setObjectName(_fromUtf8("conrib"))
+
         self.contributors = QtGui.QLabel(self.tab_2)
         self.contributors.setGeometry(QtCore.QRect(10, 100, 301, 16))
         font = QtGui.QFont()
@@ -316,6 +344,7 @@ class Aboutbox(object):
         font.setWeight(50)
         self.contributors.setFont(font)
         self.contributors.setObjectName(_fromUtf8("contributors"))
+
         self.others = QtGui.QLabel(self.tab_2)
         self.others.setGeometry(QtCore.QRect(10, 150, 321, 16))
         font = QtGui.QFont()
@@ -334,6 +363,7 @@ class Aboutbox(object):
         font.setWeight(50)
         self.others_1.setFont(font)
         self.others_1.setObjectName(_fromUtf8("others_1"))
+
         self.docs_link = QtGui.QLabel(self.tab_2)
         self.docs_link.setGeometry(QtCore.QRect(150, 170, 161, 16))
         font = QtGui.QFont()
@@ -344,6 +374,7 @@ class Aboutbox(object):
         self.docs_link.setFont(font)
         self.docs_link.setOpenExternalLinks(True)
         self.docs_link.setObjectName(_fromUtf8("docs_link"))
+
         self.tabWidget.addTab(self.tab_2, _fromUtf8(""))
         self.gridLayout.addWidget(self.tabWidget, 5, 0, 1, 1)
         self.retranslateUi(Form)
