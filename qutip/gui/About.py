@@ -172,7 +172,7 @@ class Aboutbox(object):
             self.pyobjc_label.setFont(font)
             self.pyobjc_label.setLayoutDirection(QtCore.Qt.LeftToRight)
             self.pyobjc_label.setObjectName(_fromUtf8("pyobjc_label"))
-            self.qutip_version = QtGui.QLabel(self.tab)
+        self.qutip_version = QtGui.QLabel(self.tab)
         self.qutip_version.setGeometry(QtCore.QRect(160, 10, 151, 22))
         font = QtGui.QFont()
         font.setFamily(_fromUtf8("Arial"))
