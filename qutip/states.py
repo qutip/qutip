@@ -618,10 +618,10 @@ shape = [8, 1], type = ket
     return tensor([fock(dims[i], s) for i, s in enumerate(state)])
 
 
-def phase_basis(N,m,phi0=0):
+def phase_basis(N, m, phi0=0):
     """
     Basis vector for the mth phase of the Pegg-Barnett phase operator.
-    
+
     Parameters
     ----------
     N : int
@@ -630,24 +630,19 @@ def phase_basis(N,m,phi0=0):
         Integer corresponding to the mth discrete phase phi_m=phi0+2*pi*m/N
     phi0 : float (default=0)
         Reference phase angle.
-    
+
     Returns
     -------
     state : qobj
         Ket vector for mth Pegg-Barnett phase operator basis state.
-    
+
     Notes
     -----
     The Pegg-Barnett basis states form a complete set over the truncated
     Hilbert space.
-    
+
     """
-    phim=phi0+(2.0*pi*m)/N
-    n=np.arange(N).reshape((N,1))
-    data=1.0/np.sqrt(N)*exp(1.0j*n*phim)
+    phim = phi0 + (2.0 * np.pi * m) / N
+    n = np.arange(N).reshape((N, 1))
+    data = 1.0 / np.sqrt(N) * np.exp(1.0j * n * phim)
     return Qobj(data)
-
-
-
-
-
