@@ -360,7 +360,7 @@ class Aboutbox(object):
         self.pyside_label.setText(_translate("Form", "PySide Version:", None))
         self.pyqt4_label.setText(_translate("Form", "PyQt4 Version:", None))
         if sys.platform == 'darwin':
-            self.pyobjc_label.setText(_translate("Form", "PyObjC Version:", None))
+            self.pyobjc_label.setText(_translate("Form", "PyObjC Installed:", None))
         self.qutip_version.setText(_translate("Form", qutip_version, None))
         self.numpy_version.setText(_translate("Form", str(numpy.__version__), None))
         self.scipy_version.setText(_translate("Form", str(scipy.__version__), None))
@@ -379,7 +379,7 @@ class Aboutbox(object):
         self.contributors.setText(_translate("Form", "Arne Grimsmo, Markus Baden", None))
         self.others.setText(_translate("Form", "For a list of bug hunters and other", None))
         self.others_1.setText(_translate("Form", "supporters, see the", None))
-        self.docs_link.setText(_translate("Form", "<html><head/><body><p><a href=\"http://qutip.googlecode.com/svn/doc/2.2.0/html/index.html\"><span style=\" text-decoration: underline; color:#0000ff;\">QuTiP Documentation</span></a></p></body></html>", None))
+        self.docs_link.setText(_translate("Form", "<html><head/><body><p><a href=\"http://qutip.googlecode.com/svn/doc/"+qutip_version[0:5]+"/html/index.html\"><span style=\" text-decoration: underline; color:#0000ff;\">QuTiP Documentation</span></a></p></body></html>", None))
         self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("Form", "Developers", None))
 
 if __name__ == "__main__":
