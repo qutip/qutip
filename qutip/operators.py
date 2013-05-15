@@ -474,7 +474,7 @@ shape = [4, 4], type = oper, isHerm = False
 
 def commutator(A, B, kind="normal"):
     """
-    Return the commutator of kind `kind` (normal, anti) of the 
+    Return the commutator of kind `kind` (normal, anti) of the
     two operators A and B.
     """
     if kind == 'normal':
@@ -565,32 +565,31 @@ shape = [4, 4], type = oper, isherm = False
         shape = []
     return Qobj(data, dims, list(shape))
 
-def phase(N,phi0=0):
+
+def phase(N, phi0=0):
     """
     Single-mode Pegg-Barnett phase operator.
-    
+
     Parameters
     ----------
     N : int
         Number of basis states in Hilbert space.
     phi0 : float
         Reference phase.
-    
+
     Returns
     -------
     oper : qobj
         Phase operator with respect to reference phase.
-    
+
     Notes
     -----
     The Pegg-Barnett phase operator is Hermitian on a truncated Hilbert space.
-    
+
     """
-    phim=phi0+(2.0*np.pi*np.arange(N))/N #discrete phase angles
-    n=np.arange(N).reshape((N,1))
-    states=np.array([np.sqrt(kk)/np.sqrt(N)*np.exp(1.0j*n*kk) for kk in phim])
-    ops=np.array([np.outer(st,st.conj()) for st in states])
-    return Qobj(np.sum(ops,axis=0))
-
-
-
+    phim = phi0 + (2.0 * np.pi * np.arange(N)) / N  # discrete phase angles
+    n = np.arange(N).reshape((N, 1))
+    states = np.array([np.sqrt(kk) / np.sqrt(N) * np.exp(1.0j * n * kk)
+                       for kk in phim])
+    ops = np.array([np.outer(st, st.conj()) for st in states])
+    return Qobj(np.sum(ops, axis=0))
