@@ -586,10 +586,10 @@ def phase(N,phi0=0):
     The Pegg-Barnett phase operator is Hermitian on a truncated Hilbert space.
     
     """
-    phim=phi0+(2.0*pi*np.arange(N))/N #discrete phase angles
+    phim=phi0+(2.0*np.pi*np.arange(N))/N #discrete phase angles
     n=np.arange(N).reshape((N,1))
-    states=array([np.sqrt(kk)/np.sqrt(N)*exp(1.0j*n*kk) for kk in phim])
-    ops=array([np.outer(st,st.conj()) for st in states])
+    states=np.array([np.sqrt(kk)/np.sqrt(N)*np.exp(1.0j*n*kk) for kk in phim])
+    ops=np.array([np.outer(st,st.conj()) for st in states])
     return Qobj(np.sum(ops,axis=0))
 
 
