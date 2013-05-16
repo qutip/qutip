@@ -95,9 +95,10 @@ class Aboutbox(object):
 
         self.tabWidget = QtGui.QTabWidget(Form)
         self.tabWidget.setObjectName(_fromUtf8("tabWidget"))
-        self.tab = QtGui.QWidget()
-        self.tab.setObjectName(_fromUtf8("tab"))
- 
+        self.tab_vers = QtGui.QWidget()
+        self.tab_vers.setObjectName(_fromUtf8("tab_vers"))
+        self.tabWidget.addTab(self.tab_vers, _fromUtf8(""))
+
         # Version info tab content
         font1 = QtGui.QFont()
         font1.setFamily(_fromUtf8("Arial"))
@@ -111,7 +112,7 @@ class Aboutbox(object):
         font2.setBold(False)
         font2.setWeight(50)
 
-        self.version_info_grid = QtGui.QGridLayout(self.tab)
+        self.version_info_grid = QtGui.QGridLayout(self.tab_vers)
 
         # qutip
         self.qutip_label = QtGui.QLabel()
@@ -220,106 +221,41 @@ class Aboutbox(object):
 
 
         # Developers tab
-        self.tabWidget.addTab(self.tab, _fromUtf8(""))
-        self.tab_2 = QtGui.QWidget()
-        self.tab_2.setObjectName(_fromUtf8("tab_2"))
+        self.tab_devs = QtGui.QWidget()
+        self.tab_devs.setObjectName(_fromUtf8("tab_devs"))
+        self.tabWidget.addTab(self.tab_devs, _fromUtf8(""))
 
-        self.devs = QtGui.QLabel(self.tab_2)
-        self.devs.setGeometry(QtCore.QRect(10, 10, 151, 22))
-        font = QtGui.QFont()
-        font.setFamily(_fromUtf8("Arial"))
-        font.setPointSize(16)
-        font.setBold(True)
-        font.setUnderline(True)
-        font.setWeight(75)
-        self.devs.setFont(font)
-        self.devs.setLayoutDirection(QtCore.Qt.LeftToRight)
+        self.devs_grid = QtGui.QGridLayout(self.tab_devs)
+
+        self.devs_title = QtGui.QLabel()
+        self.devs_title.setFont(font1)
+        self.devs_title.setLayoutDirection(QtCore.Qt.LeftToRight)
+        self.devs_title.setObjectName(_fromUtf8("devs_title"))
+        self.devs_grid.addWidget(self.devs_title, 0, 0) 
+
+        self.devs = QtGui.QLabel()
+        self.devs.setFont(font2)
+        self.devs.setOpenExternalLinks(True)
         self.devs.setObjectName(_fromUtf8("devs"))
+        self.devs_grid.addWidget(self.devs, 1, 0) 
 
-        self.rob = QtGui.QLabel(self.tab_2)
-        self.rob.setGeometry(QtCore.QRect(10, 40, 131, 16))
-        font = QtGui.QFont()
-        font.setFamily(_fromUtf8("Arial"))
-        font.setPointSize(16)
-        font.setBold(False)
-        font.setWeight(50)
-        self.rob.setFont(font)
-        self.rob.setOpenExternalLinks(True)
-        self.rob.setObjectName(_fromUtf8("rob"))
-        self.and_symbol = QtGui.QLabel(self.tab_2)
-        self.and_symbol.setGeometry(QtCore.QRect(150, 40, 16, 16))
-        font = QtGui.QFont()
-        font.setFamily(_fromUtf8("Arial"))
-        font.setPointSize(16)
-        font.setBold(False)
-        font.setWeight(50)
-        self.and_symbol.setFont(font)
-        self.and_symbol.setObjectName(_fromUtf8("and_symbol"))
+        self.contribs_title = QtGui.QLabel()
+        self.contribs_title.setFont(font1)
+        self.contribs_title.setLayoutDirection(QtCore.Qt.LeftToRight)
+        self.contribs_title.setObjectName(_fromUtf8("contribs_title"))
+        self.devs_grid.addWidget(self.contribs_title, 2, 0) 
 
-        self.paul = QtGui.QLabel(self.tab_2)
-        self.paul.setGeometry(QtCore.QRect(170, 40, 91, 16))
-        font = QtGui.QFont()
-        font.setFamily(_fromUtf8("Arial"))
-        font.setPointSize(16)
-        font.setBold(False)
-        font.setWeight(50)
-        self.paul.setFont(font)
-        self.paul.setOpenExternalLinks(True)
-        self.paul.setObjectName(_fromUtf8("paul"))
+        self.contribs = QtGui.QLabel()
+        self.contribs.setFont(font2)
+        self.contribs.setObjectName(_fromUtf8("contribs"))
+        self.devs_grid.addWidget(self.contribs, 3, 0) 
 
-        self.conrib = QtGui.QLabel(self.tab_2)
-        self.conrib.setGeometry(QtCore.QRect(10, 70, 151, 22))
-        font = QtGui.QFont()
-        font.setFamily(_fromUtf8("Arial"))
-        font.setPointSize(16)
-        font.setBold(True)
-        font.setUnderline(True)
-        font.setWeight(75)
-        self.conrib.setFont(font)
-        self.conrib.setLayoutDirection(QtCore.Qt.LeftToRight)
-        self.conrib.setObjectName(_fromUtf8("conrib"))
+        self.docs = QtGui.QLabel()
+        self.docs.setFont(font2)
+        self.docs.setOpenExternalLinks(True)
+        self.docs.setObjectName(_fromUtf8("docs"))
+        self.devs_grid.addWidget(self.docs, 4, 0) 
 
-        self.contributors = QtGui.QLabel(self.tab_2)
-        self.contributors.setGeometry(QtCore.QRect(10, 100, 301, 16))
-        font = QtGui.QFont()
-        font.setFamily(_fromUtf8("Arial"))
-        font.setPointSize(16)
-        font.setBold(False)
-        font.setWeight(50)
-        self.contributors.setFont(font)
-        self.contributors.setObjectName(_fromUtf8("contributors"))
-
-        self.others = QtGui.QLabel(self.tab_2)
-        self.others.setGeometry(QtCore.QRect(10, 150, 321, 16))
-        font = QtGui.QFont()
-        font.setFamily(_fromUtf8("Arial"))
-        font.setPointSize(16)
-        font.setBold(False)
-        font.setWeight(50)
-        self.others.setFont(font)
-        self.others.setObjectName(_fromUtf8("others"))
-        self.others_1 = QtGui.QLabel(self.tab_2)
-        self.others_1.setGeometry(QtCore.QRect(10, 170, 141, 16))
-        font = QtGui.QFont()
-        font.setFamily(_fromUtf8("Arial"))
-        font.setPointSize(16)
-        font.setBold(False)
-        font.setWeight(50)
-        self.others_1.setFont(font)
-        self.others_1.setObjectName(_fromUtf8("others_1"))
-
-        self.docs_link = QtGui.QLabel(self.tab_2)
-        self.docs_link.setGeometry(QtCore.QRect(150, 170, 161, 16))
-        font = QtGui.QFont()
-        font.setFamily(_fromUtf8("Arial"))
-        font.setPointSize(16)
-        font.setBold(False)
-        font.setWeight(50)
-        self.docs_link.setFont(font)
-        self.docs_link.setOpenExternalLinks(True)
-        self.docs_link.setObjectName(_fromUtf8("docs_link"))
-
-        self.tabWidget.addTab(self.tab_2, _fromUtf8(""))
         self.gridLayout.addWidget(self.tabWidget, 5, 0, 1, 1)
         self.retranslateUi(Form)
         self.tabWidget.setCurrentIndex(0)
@@ -348,39 +284,50 @@ class Aboutbox(object):
                 pyobjc = 'Yes'
             except:
                 pyobjc = 'No'
+
         Form.setWindowTitle(_translate("Form", "About QuTiP", None))
         Form.setWindowIcon(QtGui.QIcon(CD_BASE + "/logo.png"))
+
         self.label.setText(_translate("Form", "QuTiP: The Quantum Toolbox in Python", None))
         self.label_3.setText(_translate("Form", "Copyright 2011 and later, P. D. Nation & J. R. Johansson", None))
+
         self.qutip_label.setText(_translate("Form", "QuTiP Version:", None))
+        self.qutip_version.setText(_translate("Form", qutip_version, None))
+
         self.numpy_label.setText(_translate("Form", "NumPy Version:", None))
+        self.numpy_version.setText(_translate("Form", str(numpy.__version__), None))
+
         self.scipy_label.setText(_translate("Form", "SciPy Version:", None))
+        self.scipy_version.setText(_translate("Form", str(scipy.__version__), None))
+
         self.cython_label.setText(_translate("Form", "Cython Version:", None))
+        self.cython_version.setText(_translate("Form", str(Cython.__version__), None))
+
         self.mpl_label.setText(_translate("Form", "Matplotlib Version:", None))
+        self.mpl_version.setText(_translate("Form", str(matplotlib.__version__), None))
+
         self.pyside_label.setText(_translate("Form", "PySide Version:", None))
+        self.pyside_version.setText(_translate("Form", pyside_ver, None))
+
         self.pyqt4_label.setText(_translate("Form", "PyQt4 Version:", None))
+        self.pyqt4_version.setText(_translate("Form", pyqt4_ver, None))
+
         if sys.platform == 'darwin':
             self.pyobjc_label.setText(_translate("Form", "PyObjC Installed:", None))
-        self.qutip_version.setText(_translate("Form", qutip_version, None))
-        self.numpy_version.setText(_translate("Form", str(numpy.__version__), None))
-        self.scipy_version.setText(_translate("Form", str(scipy.__version__), None))
-        self.cython_version.setText(_translate("Form", str(Cython.__version__), None))
-        self.mpl_version.setText(_translate("Form", str(matplotlib.__version__), None))
-        self.pyside_version.setText(_translate("Form", pyside_ver, None))
-        self.pyqt4_version.setText(_translate("Form", pyqt4_ver, None))
-        if sys.platform == 'darwin':
             self.pyobjc_version.setText(_translate("Form", str(pyobjc), None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab), _translate("Form", "Version Info", None))
-        self.devs.setText(_translate("Form", "Lead Developers:", None))
-        self.rob.setText(_translate("Form", "<html><head/><body><p><a href=\"http://dml.riken.jp/~rob\"><span style=\" text-decoration: underline; color:#0000ff;\">Robert Johansson</span></a></p></body></html>", None))
-        self.and_symbol.setText(_translate("Form", "&", None))
-        self.paul.setText(_translate("Form", "<html><head/><body><p><a href=\"http://nqdl.korea.ac.kr\"><span style=\" text-decoration: underline; color:#0000ff;\">Paul Nation</span></a></p></body></html>", None))
-        self.conrib.setText(_translate("Form", "Contributors:", None))
-        self.contributors.setText(_translate("Form", "Arne Grimsmo, Markus Baden", None))
-        self.others.setText(_translate("Form", "For a list of bug hunters and other", None))
-        self.others_1.setText(_translate("Form", "supporters, see the", None))
-        self.docs_link.setText(_translate("Form", "<html><head/><body><p><a href=\"http://qutip.googlecode.com/svn/doc/"+qutip_version[0:5]+"/html/index.html\"><span style=\" text-decoration: underline; color:#0000ff;\">QuTiP Documentation</span></a></p></body></html>", None))
-        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_2), _translate("Form", "Developers", None))
+
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_vers),
+                                  _translate("Form", "Version Info", None))
+        self.tabWidget.setTabText(self.tabWidget.indexOf(self.tab_devs),
+                                  _translate("Form", "Developers", None))
+
+        self.devs_title.setText(_translate("Form", "Lead Developers:", None))
+        self.devs.setText(_translate("Form", "<a href=\"http://dml.riken.jp/~rob\"><span style=\" text-decoration: underline; color:#0000ff;\">Robert Johansson</span></a> & <a href=\"http://nqdl.korea.ac.kr\"><span style=\" text-decoration: underline; color:#0000ff;\">Paul Nation</span></a>", None))
+
+        self.contribs_title.setText(_translate("Form", "Contributors:", None))
+        self.contribs.setText(_translate("Form", "Arne Grimsmo, Markus Baden", None))
+        self.docs.setText(_translate("Form", "For a list of bug hunters and other supporters, <br />see the <a href=\"http://qutip.googlecode.com/svn/doc/"+qutip_version[0:5]+"/html/index.html\"><span style=\" text-decoration: underline; color:#0000ff;\">QuTiP Documentation</span></a>", None))
+
 
 if __name__ == "__main__":
     import sys
