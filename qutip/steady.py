@@ -17,16 +17,19 @@
 #
 ###########################################################################
 """
-Module contains functions for iteratively solving for the steady state
-density matrix of an open qunatum system defind by a Louvillian.
+Module contains functions for solving for the steady state density matrix of
+open qunatum systems defined by a Louvillian or Hamiltonian and list of 
+collapse operators.
 """
 
 import warnings
 import numpy as np
+from numpy.linalg import svd
 from scipy import prod, randn
 import scipy.sparse as sp
 import scipy.linalg as la
 from scipy.sparse.linalg import *
+
 from qutip.qobj import *
 from qutip.superoperator import *
 from qutip.operators import qeye
@@ -250,7 +253,6 @@ def steady_nonlinear(L_func, rho0, args={}, maxiter=10,
         raise ValueError('Failed to find steady state after ' +
                          str(maxiter) + ' iterations')
 
-    #rhoss.data = 0.5 * (data + data.conj().T)
     return rhoss.tidyup() if qset.auto_tidyup else rhoss
 
 
@@ -324,3 +326,23 @@ def steady_direct_dense(L):
     
     return Qobj(v.reshape(n, n), dims=L.dims[0], isherm=True)
 
+
+def steadystate_svd_dense(H, c_ops, atol=1e-12, rtol=0):
+    """
+    Find the steadystate(s) of an open quantum system by solving for the
+    nullspace of the Liouvillian.
+
+    .. note:: Experimental.
+    """
+    
+    L = liouvillian_fast(H, c_ops)
+    
+    u, s, vh = svd(L.full(), full_matrices=False)
+
+    tol = max(atol, rtol * s[0])
+    nnz = (s >= tol).sum()
+    ns = vh[nnz:].conj().T
+    
+    rhoss = Qobj(vec2mat(ns), dims=H.dims)
+    
+    return rhoss / rhoss.tr()
