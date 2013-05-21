@@ -327,7 +327,8 @@ def steady_direct_dense(L):
     return Qobj(v.reshape(n, n), dims=L.dims[0], isherm=True)
 
 
-def steadystate_svd_dense(H, c_ops, atol=1e-12, rtol=0):
+def steadystate_svd_dense(H, c_ops, atol=1e-12, rtol=0,
+                          all_steadystates=False):
     """
     Find the steadystate(s) of an open quantum system by solving for the
     nullspace of the Liouvillian.
@@ -343,6 +344,14 @@ def steadystate_svd_dense(H, c_ops, atol=1e-12, rtol=0):
     nnz = (s >= tol).sum()
     ns = vh[nnz:].conj().T
     
-    rhoss = Qobj(vec2mat(ns), dims=H.dims)
-    
-    return rhoss / rhoss.tr()
+    if all_steadystates:
+        rhoss_list = [] 
+        for n in range(ns.shape[1]):
+            rhoss = Qobj(vec2mat(ns[:,n]), dims=H.dims)
+            rhoss_list.append(rhoss / rhoss.tr())
+        return rhoss_list
+    else:
+        rhoss = Qobj(vec2mat(ns[:,0]), dims=H.dims)
+        return rhoss / rhoss.tr()
+
+
