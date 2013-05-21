@@ -495,9 +495,9 @@ class Bloch():
 
                 elif self.point_style[k] == 'l':
                     color = self.point_color[mod(k, len(self.point_color))]
-                    self.axes.plot(real(self.points[k][1][indperm]),
-                                   -real(self.points[k][0][indperm]),
-                                   real(self.points[k][2][indperm]),
+                    self.axes.plot(real(self.points[k][1]),
+                                   -real(self.points[k][0]),
+                                   real(self.points[k][2]),
                                    alpha=0.75, zdir='z',
                                    color=color)
 
