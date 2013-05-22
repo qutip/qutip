@@ -289,16 +289,8 @@ def steady_direct_sparse(L, use_umfpack=False):
     """
     n = prod(L.dims[0][0])
     
-    b = sp.lil_matrix((n ** 2, 1))
-    b[0,0] = 1
-    
-    tr_vec = sp.eye(n, n, format='lil')
-    tr_vec = tr_vec.reshape((1, n ** 2))
-
-    M = sp.lil_matrix(L.data)
-    M[0,:] = tr_vec
-    M = sp.csc_matrix(M)
-    
+    b = sp.csr_matrix(([1.0], ([0], [0])), shape=(n ** 2, 1))
+    M = L.data + sp.eye(n, n, format='lil').reshape((n ** 2, n ** 2)).tocsr()    
     v = spsolve(M, b, permc_spec="MMD_AT_PLUS_A", use_umfpack=use_umfpack)
     
     return Qobj(vec2mat(v), dims=L.dims[0], isherm=True)
@@ -316,11 +308,9 @@ def steady_direct_dense(L):
     
     b = np.zeros(n ** 2)
     b[0] = 1.0
-    
-    tr_vec = np.diag(np.ones(n)).reshape((1, n ** 2))
 
     M = L.data.todense()
-    M[0,:] = tr_vec
+    M[0,:] = np.diag(np.ones(n)).reshape((1, n ** 2))
     
     v = np.linalg.solve(M, b)
     
