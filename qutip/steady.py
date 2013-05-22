@@ -287,10 +287,11 @@ def steady_direct_sparse(L, use_umfpack=False):
 
     .. note:: Experimental.
     """
+
     n = prod(L.dims[0][0])
-    
-    b = sp.csr_matrix(([1.0], ([0], [0])), shape=(n ** 2, 1))
-    M = L.data + sp.eye(n, n, format='lil').reshape((n ** 2, n ** 2)).tocsr()    
+    b = sp.csc_matrix(([1.0], ([0], [0])), shape=(n ** 2, 1))
+    #M = L.data.tocsc() + sp.eye(n, n, format='lil').reshape((n ** 2, n ** 2)).tocsc()
+    M = L.data.tocsc() + sp.csc_matrix((np.ones(n), (np.zeros(n), [nn * (n + 1) for nn in range(n)])), shape=(n ** 2, n ** 2))    
     v = spsolve(M, b, permc_spec="MMD_AT_PLUS_A", use_umfpack=use_umfpack)
     
     return Qobj(vec2mat(v), dims=L.dims[0], isherm=True)
