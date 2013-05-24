@@ -256,7 +256,7 @@ def steady_nonlinear(L_func, rho0, args={}, maxiter=10,
     return rhoss.tidyup() if qset.auto_tidyup else rhoss
 
 
-def steadystate_direct(H, c_ops, sparse=True, use_umfpack=False):
+def steadystate_direct(H, c_ops, sparse=True, use_umfpack=True):
     """
     Simple steady state solver that use a direct solve method.
 
@@ -269,7 +269,7 @@ def steadystate_direct(H, c_ops, sparse=True, use_umfpack=False):
         return steady_direct_dense(L)
 
 
-def steady_direct(L, sparse=True, use_umfpack=False):
+def steady_direct(L, sparse=True, use_umfpack=True):
     """
     Simple steady state solver that use a direct solve method.
 
@@ -281,7 +281,7 @@ def steady_direct(L, sparse=True, use_umfpack=False):
         return steady_direct_dense(L)
 
 
-def steady_direct_sparse(L, use_umfpack=False):
+def steady_direct_sparse(L, use_umfpack=True):
     """
     Direct solver that use scipy sparse matrices
 
@@ -289,9 +289,13 @@ def steady_direct_sparse(L, use_umfpack=False):
     """
 
     n = prod(L.dims[0][0])
-    b = sp.csc_matrix(([1.0], ([0], [0])), shape=(n ** 2, 1))
-    #M = L.data.tocsc() + sp.eye(n, n, format='lil').reshape((n ** 2, n ** 2)).tocsc()
-    M = L.data.tocsc() + sp.csc_matrix((np.ones(n), (np.zeros(n), [nn * (n + 1) for nn in range(n)])), shape=(n ** 2, n ** 2))    
+
+    b = sp.csr_matrix(([1.0], ([0], [0])), shape=(n ** 2, 1))
+    M = L.data + sp.csr_matrix((np.ones(n), (np.zeros(n), \
+            [nn * (n + 1) for nn in range(n)])), shape=(n ** 2, n ** 2))
+
+    use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
+    M.sort_indices()  
     v = spsolve(M, b, permc_spec="MMD_AT_PLUS_A", use_umfpack=use_umfpack)
     
     return Qobj(vec2mat(v), dims=L.dims[0], isherm=True)
