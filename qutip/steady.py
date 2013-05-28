@@ -294,10 +294,45 @@ def steady_direct_sparse(L, use_umfpack=True):
     M = L.data + sp.csr_matrix((np.ones(n), (np.zeros(n), \
             [nn * (n + 1) for nn in range(n)])), shape=(n ** 2, n ** 2))
 
+
+    #b = sp.csr_matrix(([1.0], ([n**2-1], [0])), shape=(n ** 2, 1))
+    #b = np.zeros(n ** 2)
+    #b[n**2-1] = 1.0
+    #M = L.data + sp.csr_matrix((np.ones(n), (np.ones(n) * (n ** 2 - 1), \
+    #        [nn * (n + 1) for nn in range(n)])), shape=(n ** 2, n ** 2))    
+
     use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
     M.sort_indices()  
     v = spsolve(M, b, permc_spec="MMD_AT_PLUS_A", use_umfpack=use_umfpack)
     
+    return Qobj(vec2mat(v), dims=L.dims[0], isherm=True)
+
+
+def steadystate_iterative(H, c_ops, use_precond=True):
+    """
+    .. note:: Experimental.
+    """
+    L = liouvillian_fast(H, c_ops)
+    n = prod(L.dims[0][0])
+    b = np.zeros(n ** 2)
+    b[0] = 1.0
+    A = L.data + sp.csr_matrix((np.ones(n), (np.zeros(n), \
+            [nn * (n + 1) for nn in range(n)])), shape=(n ** 2, n ** 2))
+
+    if use_precond:
+        try:
+            P = spilu(A, permc_spec='MMD_AT_PLUS_A')
+            P_x = lambda x: P.solve(x)
+            M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
+        except:
+            warnings.warn("Preconditioning failed. Continuing without.",
+                          UserWarning)
+            M = None
+    else:
+        M = None
+
+    v, check = bicgstab(A, b, tol=1e-5, M=M)
+
     return Qobj(vec2mat(v), dims=L.dims[0], isherm=True)
 
 
