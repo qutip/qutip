@@ -43,7 +43,8 @@ def super_to_choi(q_oper):
     #TODO Sanitize input, incorporate as method on Qobj if type=='super'
     """
     sqrt_shape = np.sqrt(q_oper.shape[0])
-    return q_oper.reshape([sqrt_shape] * 4).transpose(0, 2, 1, 3).reshape(q_oper.shape)
+    return q_oper.reshape([sqrt_shape] * 4).\
+                transpose(0, 2, 1, 3).reshape(q_oper.shape)
 
 
 def choi_to_super(q_oper):
@@ -51,8 +52,7 @@ def choi_to_super(q_oper):
     Takes a Choi matrix to a superoperator
     #TODO Sanitize input, Abstract-ify application of channels to states
     """
-    sqrt_shape = np.sqrt(q_oper.shape[0])
-    return q_oper.reshape([sqrt_shape] * 4).transpose(0, 2, 1, 3).reshape(q_oper.shape)
+    return super_to_choi(q_oper)
 
 
 def choi_to_kraus(q_oper):
