@@ -221,7 +221,7 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]]
 
     '''
-    if not isinstance(N, int):  # raise error if N not integer
+    if not isinstance(N, (int,np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
     return Qobj(sp.spdiags(np.sqrt(range(0, N)), 1, N, N, format='csr'))
 
@@ -256,7 +256,7 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00000000+0.j  0.00000000+0.j  1.73205081+0.j  0.00000000+0.j]]
 
     '''
-    if not isinstance(N, int):  # raise error if N not integer
+    if not isinstance(N, (int,np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
     qo = destroy(N)  # create operator using destroy function
     qo.data = qo.data.T  # transpsoe data in Qobj
@@ -292,7 +292,7 @@ shape = [3, 3], type = oper, isHerm = True
 
     """
     N = int(N)
-    if (not isinstance(N, int)) or N < 0:  # check if N is int and N>0
+    if (not isinstance(N, (int,np.integer))) or N < 0:  # check if N is int and N>0
         raise ValueError("N must be integer N>=0")
     return Qobj(sp.eye(N, N, dtype=complex, format='csr'))
 
