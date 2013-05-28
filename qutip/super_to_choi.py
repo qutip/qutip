@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # -*- coding: utf-8 -*-
 """
 Created on Thu May 23 16:35:42 2013
@@ -67,5 +66,3 @@ def choi_to_kraus(q_oper):
     print vecs
     vecs = map(np.array, zip(*vecs))
     return [np.sqrt(vals[j]) * vec2mat(vecs[j]) for j in range(len(vals))]
-=======
->>>>>>> 72dcf3ea5819c04314fc766a67e7e5addb23f961
