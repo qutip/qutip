@@ -25,7 +25,7 @@ from qutip.operators import sigmax, sigmay, sigmaz
 class Bloch3d():
     """Class for plotting data on a 3D Bloch sphere using mayavi.
     Valid data can be either points, vectors, or qobj objects
-    corresponding to state vectors or density matricies for
+    corresponding to state vectors or density matrices. for
     a two-state system (or subsystem).
 
     Attributes

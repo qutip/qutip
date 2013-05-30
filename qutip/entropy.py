@@ -170,7 +170,7 @@ def _entropy_relative(rho, sigma, base=e, sparse=False):
     ****NEEDS TO BE WORKED ON**** (after 2.0 release)
 
     Calculates the relative entropy S(rho||sigma) between two density
-    matricies.
+    matrices..
 
     Parameters
     ----------
@@ -188,7 +188,7 @@ def _entropy_relative(rho, sigma, base=e, sparse=False):
 
     """
     if rho.type != 'oper' or sigma.type != 'oper':
-        raise TypeError("Inputs must be density matricies.")
+        raise TypeError("Inputs must be density matrices..")
     # sigma terms
     svals = sp_eigs(sigma, vecs=False, sparse=sparse)
     snzvals = svals[svals != 0]

@@ -22,7 +22,7 @@ import scipy.linalg as la
 
 
 def simdiag(ops, evals=True):
-    """Simulateous diagonalization of communting Hermitian matricies.
+    """Simulateous diagonalization of communting Hermitian matrices..
 
     Parameters
     ----------
@@ -53,7 +53,7 @@ def simdiag(ops, evals=True):
         if start_flag == 0:
             s = shape[0]
         if s != shape[0]:
-            raise TypeError('All matricies must be the same shape')
+            raise TypeError('All matrices. must be the same shape')
         if not A.isherm:
             raise TypeError('Matricies must be Hermitian')
         for kk in range(jj):
@@ -102,7 +102,7 @@ def simdiag(ops, evals=True):
 
 def degen(tol, in_vecs, ops):
     """
-    Private function that finds eigen vals and vecs for degenerate matricies.
+    Private function that finds eigen vals and vecs for degenerate matrices..
     """
     n = len(ops)
     if n == 0:

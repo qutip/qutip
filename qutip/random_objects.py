@@ -154,7 +154,7 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
 
     Notes
     -----
-    For small density matricies, choosing a low density will result in an error
+    For small density matrices., choosing a low density will result in an error
     as no diagonal elements will be generated such that :math:`Tr(\\rho)=1`.
 
     """

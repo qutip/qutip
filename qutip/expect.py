@@ -32,7 +32,7 @@ def expect(oper, state):
         Operator for expectation value.
 
     state : qobj/list
-        A single or `list` of quantum states or density matricies.
+        A single or `list` of quantum states or density matrices..
 
     Returns
     -------
@@ -126,7 +126,7 @@ def variance(oper, state):
         Operator for expectation value.
 
     state : qobj/list
-        A single or `list` of quantum states or density matricies.
+        A single or `list` of quantum states or density matrices..
 
     Returns
     -------

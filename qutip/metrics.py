@@ -19,7 +19,7 @@
 
 """
 A Module containing a collection of metrics
-(distance measures) between density matricies.
+(distance measures) between density matrices..
 """
 
 from qutip.qobj import *
@@ -30,7 +30,7 @@ from qutip.sparse import sp_eigs
 
 def fidelity(A, B):
     """
-    Calculates the fidelity (pseudo-metric) between two density matricies.
+    Calculates the fidelity (pseudo-metric) between two density matrices..
     See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
 
     Parameters
@@ -58,7 +58,7 @@ def fidelity(A, B):
     if B.type!='oper':
         B=ket2dm(B)
     if A.dims != B.dims:
-        raise TypeError('Density matricies do not have same dimensions.')
+        raise TypeError('Density matrices. do not have same dimensions.')
     else:
         A = A.sqrtm()
         return float(np.real((A * (B * A)).sqrtm().tr()))
@@ -66,7 +66,7 @@ def fidelity(A, B):
 
 def tracedist(A, B, sparse=False, tol=0):
     """
-    Calculates the trace distance between two density matricies.
+    Calculates the trace distance between two density matrices..
     See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
 
     Parameters
@@ -98,7 +98,7 @@ def tracedist(A, B, sparse=False, tol=0):
     if B.type!='oper':
         B=ket2dm(B)
     if A.dims != B.dims:
-        raise TypeError('Density matricies do not have same dimensions.')
+        raise TypeError('Density matrices. do not have same dimensions.')
     else:
         diff = A - B
         diff = diff.dag() * diff

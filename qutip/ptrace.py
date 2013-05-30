@@ -96,7 +96,7 @@ def _csr_to_col(mat):
     """
     Private function for reshape density matrix csr_matrix to a column
     csr_matrix without using lil (reshape) or csc (transpose) matrices
-    which fail for large matricies.
+    which fail for large matrices..
     """
     mat.sort_indices()
     rows = np.array([len(range(mat.indptr[i], mat.indptr[i + 1]))
