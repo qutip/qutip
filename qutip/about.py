@@ -39,7 +39,7 @@ def about():
     if (qutip.settings.qutip_graphics == 'YES' and
             qutip.settings.qutip_gui != "NONE"):
 
-        from qutip.gui import Aboutbox
+        from qutip.gui.about import Aboutbox
         import matplotlib
         if qutip.settings.qutip_gui == "PYSIDE":
             from PySide import QtGui

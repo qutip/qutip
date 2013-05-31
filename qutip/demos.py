@@ -33,6 +33,7 @@ def demos():
         print('Demos unavailable. Matplotlib was not found.')
         return
 
+    import qutip.gui.Examples
     import qutip.examples as examples
     from qutip.examples import exconfig
     from qutip.examples.examples_text import button_labels, button_nums
@@ -54,7 +55,7 @@ def demos():
             )  # checks if QApplication already exists (needed for iPython)
             if not app:  # create QApplication if it doesnt exist
                 app = QtGui.QApplication(sys.argv)
-            gui = Examples(ver, direc)
+            gui = qutip.gui.Examples.Examples(ver, direc)
             gui.show()
             gui.activateWindow()
             gui.raise_()
