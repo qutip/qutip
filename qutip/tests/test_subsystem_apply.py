@@ -19,81 +19,96 @@
 
 from numpy.linalg import norm
 from numpy.testing import assert_, run_module_suite
-from scipy import rand
 
+from qutip.random_objects import rand_dm, rand_unitary, rand_kraus_map
+from qutip.subsystem_apply import subsystem_apply
+from qutip.superop_reps import kraus_to_super
+from qutip.superoperator import mat2vec, vec2mat
+from qutip.tensor import tensor
 
-
-class TestSubsystemApply:
+class TestSubsystemApply(object):
     """
     A test class for the QuTiP function for applying superoperators to
     subsystems.
+    The four tests below determine whether efficient numerics, naive numerics
+    and semi-analytic results are identical.  
     """
 
 
-    def test_SimpleApply(self):
+    def test_SimpleSingleApply(self):
+        """
+        Non-composite system, operator on Hilbert space.
+        """
+        rho_3 = rand_dm(3)
+        single_op = rand_unitary(3)
+        analytic_result = single_op * rand_dm * single_op.dag()
+        naive_result = subsystem_apply(rho_3, single_op, [True],
+                                       reference=True)
+        efficient_result = subsystem_apply(rho_3, single_op, [True])
+        naive_diff = (analytic_result-naive_result).data.todense()
+        efficient_diff = (efficient_result-analytic_result).data.todense()        
+        assert_(norm(naive_diff) == 0.0 & norm(efficient_diff) == 0.0)
+
+    
+    def test_SimpleSuperApply(self):
+        """
+        Non-composite system, operator on Liouville space.  
+        """
+        rho_3 = rand_dm(3)
+        superop = kraus_to_super(rand_kraus_map(3))
+        analytic_result = vec2mat(superop.data.todense() *
+                                  mat2vec(rho_3.data.todense()))
+        naive_result = subsystem_apply(rho_3, superop, [True],
+                                       reference=True)
+        efficient_result = subsystem_apply(rho_3, superop, [True])
+        naive_diff = (analytic_result-naive_result).data.todense()
+        efficient_diff = (efficient_result-analytic_result).data.todense()        
+        assert_(norm(naive_diff) == 0.0 & norm(efficient_diff) == 0.0)
+
+
+    def test_ComplexSingleApply(self):
+        """
+        Composite system, operator on Hilbert space. 
+        """
+        rho_list=tensor(map(rand_dm,[2,3,2,3,2]))
+        rho_input=tensor(rho_list)
+        single_op = rand_unitary(3)
+        analytic_result = rho_input
+        analytic_result[1] = single_op * analytic_result[1] * single_op.dag()
+        analytic_result[3] = single_op * analytic_result[3] * single_op.dag()
+        analytic_result=tensor(analytic_result)                         
+        naive_result = subsystem_apply(rho_input, single_op,
+                                       [False,True,False,True,False],
+                                       reference=True)
+        efficient_result = subsystem_apply(rho_input, single_op,
+                                           [False,True,False,True,False])
+        naive_diff = (analytic_result-naive_result).data.todense()
+        efficient_diff = (efficient_result-analytic_result).data.todense()        
+        assert_(norm(naive_diff) == 0.0 & norm(efficient_diff) == 0.0)
+                          
+    
+    def test_ComplexSuperApply(self):
         """
         Superoperator: Efficient numerics and reference return same result,
         acting on non-composite system  
         """
-        h_5 = rand(5, 5)
-        h_5 = h_5 * h_5.H
-        V = mat2vec(M)
-        M2 = vec2mat(V)
-        assert_(norm(M - M2) == 0.0)
+        rho_list=tensor(map(rand_dm,[2,3,2,3,2]))
+        rho_input=tensor(rho_list)
+        superop = kraus_to_super(rand_kraus_map(3))
 
+        analytic_result = rho_input
+        
+        analytic_result[1] = vec2mat(superop.data.todense() *
+                                  mat2vec(analytic_result[1].data.todense()))
+        analytic_result[3] = vec2mat(superop.data.todense() *
+                                  mat2vec(analytic_result[3].data.todense()))
 
-    def testVectorMatrixVector(self):
-        """
-        Superoperator: Conversion vector to matrix to vector
-        """
-        V = scipy.rand(100)     # a row vector
-        M = vec2mat(V)
-        V2 = mat2vec(M).T  # mat2vec returns a column vector
-        assert_(norm(V - V2) == 0.0)
-
-    def testVectorMatrixIndexConversion(self):
-        """
-        Superoperator: Conversion between matrix and vector indices
-        """
-        N = 10
-        for I in range(N * N):
-            i, j = vec2mat_index(N, I)
-            I2 = mat2vec_index(N, i, j)
-            assert_(I == I2)
-
-    def testVectorMatrixIndexCompability(self):
-        """
-        Superoperator: Test compability between matrix/vector conversion and
-        the corresponding index conversion.
-        """
-        N = 10
-        M = scipy.rand(N, N)
-        V = mat2vec(M)
-        for I in range(N * N):
-            i, j = vec2mat_index(N, I)
-            assert_(V[I][0] == M[i, j])
-
-    def testLiouvillianImplementations(self):
-        """
-        Superoperator: Randomized comparison of standard and optimized
-        liouvillian.
-        """
-        N1 = 3
-        N2 = 4
-        N3 = 5
-
-        a1 = tensor(rand_dm(N1, density=0.75), identity(N2), identity(N3))
-        a2 = tensor(identity(N1), rand_dm(N2, density=0.75), identity(N3))
-        a3 = tensor(identity(N1), identity(N2), rand_dm(N3, density=0.75))
-        H = a1.dag() * a1 + a2.dag() * a2 + a3.dag() * a3
-
-        c_ops = [sqrt(0.01) * a1, sqrt(0.025) * a2, sqrt(0.05) * a3]
-
-        L1 = liouvillian(H, c_ops)
-        L2 = liouvillian_fast(H, c_ops)
-
-        assert_((L1 - L2).norm() < 1e-8)
-
-
+        naive_result = subsystem_apply(rho_input, superop, [True],
+                                       reference=True)
+        efficient_result = subsystem_apply(rho_input, superop, [True])
+        naive_diff = (analytic_result-naive_result).data.todense()
+        efficient_diff = (efficient_result-analytic_result).data.todense()        
+        assert_(norm(naive_diff) == 0.0 & norm(efficient_diff) == 0.0)
+        
 if __name__ == "__main__":
     run_module_suite()

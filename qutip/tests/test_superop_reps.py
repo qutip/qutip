@@ -36,7 +36,7 @@ from qutip.superop_reps import (super_to_choi, choi_to_kraus,
                                 choi_to_super, kraus_to_choi)
 
 
-class TestSuperopReps:
+class TestSuperopReps(object):
     """
     A test class for the QuTiP function for applying superoperators to
     subsystems.
