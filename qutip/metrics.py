@@ -58,7 +58,7 @@ def fidelity(A, B):
     if B.type!='oper':
         B=ket2dm(B)
     if A.dims != B.dims:
-        raise TypeError('Density matrices. do not have same dimensions.')
+        raise TypeError('Density matrices do not have same dimensions.')
     else:
         A = A.sqrtm()
         return float(np.real((A * (B * A)).sqrtm().tr()))
@@ -73,7 +73,7 @@ def tracedist(A, B, sparse=False, tol=0):
     ----------
     A : qobj
         Density matrix or state vector.
-    B : qobj:
+    B : qobj
         Density matrix or state vector with same dimensions as A.
     tol : float
         Tolerance used by sparse eigensolver, if used. (0=Machine precision)
@@ -104,3 +104,92 @@ def tracedist(A, B, sparse=False, tol=0):
         diff = diff.dag() * diff
         vals = sp_eigs(diff, vecs=False, sparse=sparse, tol=tol)
         return float(np.real(0.5 * np.sum(np.sqrt(np.abs(vals)))))
+
+
+def hilbert_dist(A,B):
+    """
+    Returns the Hilbert-Schmidt distance between two density matrices A & B.
+    
+    Parameters
+    ----------
+    A : qobj
+        Density matrix or state vector.
+    B : qobj
+        Density matrix or state vector with same dimensions as A.
+    
+    Returns
+    -------
+    dist : float
+        Hilbert-Schmidt distance between density matrices.
+    
+    """
+    if A.type!='oper':
+        A=ket2dm(A)
+    if B.type!='oper':
+        B=ket2dm(B)
+    if A.dims != B.dims:
+        raise TypeError('Density matrices do not have same dimensions.')
+    return (A-B).norm('fro')
+
+
+def bures_dist(A,B):
+    """
+    Returns the Bures distance between two density matrices A & B.
+    
+    The Bures distance ranges from 0, for states with unit fidelity, 
+    to sqrt(2).
+    
+    Parameters
+    ----------
+    A : qobj
+        Density matrix or state vector.
+    B : qobj
+        Density matrix or state vector with same dimensions as A.
+    
+    Returns
+    -------
+    dist : float
+        Bures distance between density matrices.
+    
+    """
+    
+    if A.type!='oper':
+        A=ket2dm(A)
+    if B.type!='oper':
+        B=ket2dm(B)
+    if A.dims != B.dims:
+        raise TypeError('Density matrices do not have same dimensions.')
+    dist=np.sqrt(2.0*(1.0-np.sqrt(fidelity(A, B))))
+    return dist
+
+
+def bures_angle(A,B):
+    """
+    Returns the Bures Angle between two density matrices A & B.
+    
+    The Bures angle ranges from 0, for states with unit fidelity, to pi/2.
+    
+    Parameters
+    ----------
+    A : qobj
+        Density matrix or state vector.
+    B : qobj
+        Density matrix or state vector with same dimensions as A.
+    
+    Returns
+    -------
+    angle : float
+        Bures angle between density matrices.  
+    
+    """
+    
+    if A.type!='oper':
+        A=ket2dm(A)
+    if B.type!='oper':
+        B=ket2dm(B)
+    if A.dims != B.dims:
+        raise TypeError('Density matrices do not have same dimensions.')
+    return np.arccos(np.sqrt(fidelity(A, B)))
+
+    
+

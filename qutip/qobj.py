@@ -642,11 +642,12 @@ class Qobj():
     def dag(self):
         """Returns the adjoint operator of quantum object.
         """
-        out = Qobj(type=self.type)
+        out = Qobj()
         out.data = self.data.T.conj()
         out.dims = [self.dims[1], self.dims[0]]
         out.shape = [self.shape[1], self.shape[0]]
         out.isherm = self.isherm
+        out.type=ischeck(out)
         return out
 
     def conj(self):
