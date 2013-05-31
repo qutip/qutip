@@ -236,3 +236,30 @@ def entropy_conditional(rho, selB, base=e, sparse=False):
     out = (entropy_vn(rho, base, sparse=sparse) -
            entropy_vn(B, base, sparse=sparse))
     return out
+
+
+
+def participation_ratio(rho):
+    """
+    Returns the effective number of states for a density matrix.
+    
+    The participation is unity for pure states, and maximally N,
+    where N is the Hilbert space dimensionality, for completely 
+    mixed states.
+    
+    Parameters
+    ----------
+    rho : qobj
+        Density matrix
+    
+    Returns
+    -------
+    pr : float
+        Effective number of states in the density matrix
+    
+    """
+    if rho.type=='ket' or rho.type=='bra':
+        return 1.0
+    else:
+        return 1.0/(rho**2).tr()
+
