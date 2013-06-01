@@ -52,9 +52,10 @@ def super_to_choi(q_oper):
     Takes a superoperator to a Choi matrix
     #TODO Sanitize input, incorporate as method on Qobj if type=='super'
     """
-    sqrt_shape = sqrt(q_oper.data.todense().shape[0])
+    data = q_oper.data.todense()
+    sqrt_shape = sqrt(data.shape[0])
     return Qobj(dims=q_oper.dims,
-                inpt=q_oper.data.reshape([sqrt_shape] * 4).\
+                inpt=data.reshape([sqrt_shape] * 4).\
                 transpose(0, 2, 1, 3).reshape(q_oper.data.shape))
 
 
