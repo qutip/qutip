@@ -34,6 +34,8 @@ Contributors
 
 **James Clemens** (Miami University - Ohio) - Bug hunter
 
+**Ben Criger** (Waterloo IQC) - Code contributor
+
 **Claudia Degrandi** (Yale University) - Documentation
 
 **Arne Grimsmo** (University of Auckland) - Code contributor, Bug hunter
