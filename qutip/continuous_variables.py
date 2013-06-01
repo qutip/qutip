@@ -18,7 +18,7 @@
 ###########################################################################
 
 """
-This module contains a collection functions for calculating continous variable
+This module contains a collection functions for calculating continuous variable
 quantities from fock-basis representation of the state of multi-mode fields.
 """
 
@@ -181,7 +181,7 @@ def correlation_matrix_quadrature(a1, a2, rho=None):
 
 def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
     """
-    Calculate the wigner covariance matrix
+    Calculate the Wigner covariance matrix
     :math:`V_{ij} = \\frac{1}{2}(R_{ij} + R_{ji})`, given
     the quadrature correlation matrix
     :math:`R_{ij} = \\langle R_{i} R_{j}\\rangle -
@@ -189,8 +189,8 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
     :math:`R = (q_1, p_1, q_2, p_2)^T` is the vector with quadrature operators
     for the two modes.
 
-    Alternatively, if `R = None`, and if annilation operators `a1` and `a2`
-    for the two modes are supplied instead, the quadature correlation matrix
+    Alternatively, if `R = None`, and if annihilation operators `a1` and `a2`
+    for the two modes are supplied instead, the quadrature correlation matrix
     is constructed from the annihilation operators before then the covariance
     matrix is calculated.
 
@@ -260,7 +260,7 @@ def logarithmic_negativity(V):
     Returns
     -------
 
-    N: *float*, the logarithmic negativity for the two-mode Guassian state
+    N: *float*, the logarithmic negativity for the two-mode Gaussian state
     that is described by the the Wigner covariance matrix V.
 
     """

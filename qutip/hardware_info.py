@@ -77,7 +77,7 @@ def hardware_info():
     Returns
     -------
     info : dict
-        Dictionary containing cpu and memory informaton.
+        Dictionary containing cpu and memory information.
 
     """
     try:
