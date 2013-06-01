@@ -255,6 +255,8 @@ from qutip.correlation import *
 from qutip.propagator import *
 from qutip.floquet import *
 from qutip.bloch_redfield import *
+from qutip.superop_reps import *
+from qutip.subsystem_apply import subsystem_apply
 
 # utilities
 from qutip.utilities import *

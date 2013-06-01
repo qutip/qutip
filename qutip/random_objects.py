@@ -25,8 +25,10 @@ The sparsity of the ouput Qobj's is controlled by varing the
 from scipy import arcsin, sqrt, pi
 import numpy as np
 import scipy.linalg as la
+from scipy.linalg.matfuncs import sqrtm
 import scipy.sparse as sp
 from qutip.qobj import *
+from operator import add
 
 
 def rand_herm(N, density=0.75, dims=None):
@@ -141,7 +143,7 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
     N : int
         Shape of output density matrix.
     density : float
-        Density etween [0,1] of output density matrix.
+        Density between [0,1] of output density matrix.
     dims : list
         Dimensions of quantum object.  Used for specifying
         tensor structure. Default is dims=[[N],[N]].
@@ -181,6 +183,37 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
     else:
         return Qobj(H / H.tr())
 
+
+def rand_kraus_map(N, dims=None):
+    """
+    Creates a random CPTP map on an N-dimensional Hilbert space in Kraus
+    form.
+
+    Parameters
+    ----------
+    N : int
+        Length of input/output density matrix.
+    dims : list
+        Dimensions of quantum object.  Used for specifying
+        tensor structure. Default is dims=[[N],[N]].
+
+
+    Returns
+    -------
+    oper_list : list of qobj
+        N^2 x N x N qobj operators.
+
+    """
+
+    if dims:
+        _check_dims(dims, N, N)
+    
+    
+    #Random unitary (Stinespring Dilation)
+    big_unitary = rand_unitary(N ** 3).data.todense()
+    orthog_cols = array(big_unitary[:, :N])
+    oper_list = np.reshape(orthog_cols,(N ** 2, N, N))
+    return map(lambda x: Qobj(inpt=x,dims=dims), oper_list)
 
 def _check_dims(dims, N1, N2):
     if len(dims) != 2:
