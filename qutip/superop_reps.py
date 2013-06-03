@@ -54,7 +54,7 @@ def super_to_choi(q_oper):
     """
     sqrt_shape = sqrt(q_oper.data.todense().shape[0])
     return Qobj(dims=q_oper.dims,
-                inpt=q_oper.data.reshape([sqrt_shape] * 4).\
+                inpt=q_oper.data.todense().reshape([sqrt_shape] * 4).\
                 transpose(0, 2, 1, 3).reshape(q_oper.data.shape))
 
 
@@ -87,7 +87,7 @@ def kraus_to_choi(kraus_list):
     op_len = len(kraus_list[0])
     op_rng = range(op_len)
     choi_blocks = array([[reduce(add,
-                           [op[:, c_ix]*array([op.H[r_ix, :]])
+                           [op[:, c_ix]*array([op.T.conj()[r_ix, :]])
                            for op in kraus_list])
                            for r_ix in op_rng]
                            for c_ix in op_rng])

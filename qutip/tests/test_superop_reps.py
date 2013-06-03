@@ -48,7 +48,7 @@ class TestSuperopReps(object):
         Superoperator: Converting superoperator to Choi matrix and back.  
         """
         h_5 = scipy.rand(5, 5)
-        h_5 = Qobj(inpt=h_5 * h_5.H)
+        h_5 = Qobj(inpt=h_5 * h_5.conj().T)
         superoperator = propagator(h_5, scipy.rand,
                                    [create(5), destroy(5), jmat(2,'z')])
         choi_matrix=super_to_choi(superoperator)
@@ -61,7 +61,7 @@ class TestSuperopReps(object):
         Superoperator: Converting superoperator to Choi matrix and back.  
         """
         h_5 = scipy.rand(5, 5)
-        h_5 = Qobj(inpt=h_5 * h_5.H)
+        h_5 = Qobj(inpt=h_5 * h_5.conj().T)
         superoperator = propagator(h_5, scipy.rand,
                                    [create(5), destroy(5), jmat(2,'z')])
         choi_matrix=super_to_choi(superoperator)
