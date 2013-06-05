@@ -137,6 +137,19 @@ def liouvillian_fast(H, c_op_list, data_only=False):
         return L
 
 
+def lindblad_dissipator(c, data_only=False):
+    """
+    Return the Lindblad dissipator for a single collapse operator.
+
+    TODO: optimize like liouvillian_fast
+    """
+
+    cdc = c.dag() * c
+    D = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
+
+    return D.data if data_only else D
+
+
 def mat2vec(mat):
     """
     Private function reshaping matrix to vector.
