@@ -64,7 +64,7 @@ class _StochasticSolverData:
     """
     def __init__(self, H=None, state0=None, tlist=None, 
                  c_ops=[], sc_ops=[], e_ops=[], ntraj=1, nsubsteps=1,
-                 d1=None, d2=None,
+                 d1=None, d2=None, homogeneous=True,
                  solver=None, method=None, distribution='normal'):
 
         self.H = H
@@ -81,6 +81,8 @@ class _StochasticSolverData:
         self.solver = None
         self.method = None
         self.distribution = distribution
+        self.homogeneous = homogeneous
+
 
 def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
              nsubsteps=10, d1=None, d2=None, d2_len=1, rhs=None,
@@ -163,7 +165,8 @@ def smesolve(H, rho0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
     ssdata = _StochasticSolverData(H=H, state0=rho0, tlist=tlist, c_ops=c_ops,
                                    e_ops=e_ops, sc_ops=sc_ops, ntraj=ntraj,
                                    nsubsteps=nsubsteps, solver=solver, 
-                                   method=method, d1=d1, d2=d2)
+                                   method=method, d1=d1, d2=d2,
+                                   distribution=distribution)
 
     if (d1 is None) or (d2 is None):
 
@@ -177,6 +180,9 @@ def smesolve(H, rho0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
         else:
             raise Exception("Unregognized method '%s'." % method)
 
+    if distribution == 'poisson':
+        ssdata.homogeneous = False
+
     if rhs is None:
         if solver == 'euler-maruyama':
             ssdata.rhs = _rhs_rho_euler_maruyama
@@ -184,6 +190,7 @@ def smesolve(H, rho0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
             raise Exception("Unrecongized solver '%s'." % solver)
 
     return smesolve_generic(ssdata, options, progress_bar)
+
 
 def sepdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
                options=Odeoptions(), progress_bar=TextProgressBar()):
@@ -225,6 +232,7 @@ def smepdpsolve(H, rho0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
     ssdata.nsubsteps = nsubsteps
 
     return smepdpsolve_generic(ssdata, options, progress_bar)
+
 
 #------------------------------------------------------------------------------
 # Generic parameterized stochastic Schrodinger equation solver
@@ -396,7 +404,8 @@ def smesolve_generic(ssdata, options, progress_bar):
 
         states_list = _smesolve_single_trajectory(
             L, dt, ssdata.tlist, N_store, N_substeps,
-            rho_t, A_ops, ssdata.e_ops, data, ssdata.rhs, ssdata.d1, ssdata.d2, ssdata.d2_len)
+            rho_t, A_ops, ssdata.e_ops, data, ssdata.rhs,
+            ssdata.d1, ssdata.d2, ssdata.d2_len, ssdata)
 
         # if average -> average...
         data.states.append(states_list)
@@ -410,12 +419,21 @@ def smesolve_generic(ssdata, options, progress_bar):
 
 
 def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
-                                A_ops, e_ops, data, rhs, d1, d2, d2_len):
+                                A_ops, e_ops, data, rhs, d1, d2, d2_len,
+                                ssdata):
     """
     Internal function. See smesolve.
     """
 
-    dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
+    if ssdata.homogeneous:
+        if ssdata.distribution == 'normal':
+            dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)    
+        else:
+            raise TypeError('Unsupported increment distribution for homogeneous process.')
+    else:
+        if ssdata.distribution != 'poisson':
+            raise TypeError('Unsupported increment distribution for inhomogeneous process.')
+
 
     states_list = []
 
@@ -435,8 +453,13 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
                           L.data.indptr, rho_t) * dt
 
             for a_idx, A in enumerate(A_ops):
-                drho_t += rhs(L.data, rho_t, A,
-                              dt, dW[a_idx, t_idx, j, :], d1, d2)
+                if ssdata.homogeneous:
+                    dw = dW[a_idx, t_idx, j, :]
+                else:
+                    dw_expect = _rho_vec_expect(A[4], rho_t) ** 2 * dt
+                    dw = np.random.poisson(dw_expect, d2_len)
+
+                drho_t += rhs(L.data, rho_t, A, dt, dw, d1, d2)
 
             rho_t += drho_t
 
