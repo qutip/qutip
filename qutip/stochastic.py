@@ -64,9 +64,13 @@ class _StochasticSolverData:
     """
     def __init__(self, H=None, state0=None, tlist=None, 
                  c_ops=[], sc_ops=[], e_ops=[], ntraj=1, nsubsteps=1,
-                 solver=None, method=None):
+                 d1=None, d2=None,
+                 solver=None, method=None, distribution='normal'):
 
         self.H = H
+        self.d1 = d1
+        self.d2 = d2
+        self.d2_len = 1
         self.state0 = state0
         self.tlist = tlist
         self.c_ops = c_ops
@@ -76,10 +80,11 @@ class _StochasticSolverData:
         self.nsubsteps = nsubsteps
         self.solver = None
         self.method = None
+        self.distribution = distribution
 
 def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
-             solver='euler-maruyama', method='homodyne',
              nsubsteps=10, d1=None, d2=None, d2_len=1, rhs=None,
+             solver='euler-maruyama', method='homodyne', distribution='normal',
              options=Odeoptions(), progress_bar=TextProgressBar()):
     """
     Solve stochastic Schrodinger equation. Dispatch to specific solvers
@@ -94,9 +99,9 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
         print(inspect.stack()[0][3])
 
     ssdata = _StochasticSolverData(H=H, state0=psi0, tlist=tlist, c_ops=c_ops,
-                                   e_ops=e_ops, ntraj=ntraj,
+                                   e_ops=e_ops, ntraj=ntraj, d1=d1, d2=d2,
                                    nsubsteps=nsubsteps, solver=solver, 
-                                   method=method)
+                                   method=method, distribution=distribution)
 
     if (d1 is None) or (d2 is None):
 
@@ -105,21 +110,21 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
             ssdata.d2 = d2_psi_homodyne
             ssdata.d2_len = 1
             ssdata.homogeneous = True
-            ssdata.incr_distr = 'normal'
+            ssdata.distribution = 'normal'
 
         elif method == 'heterodyne':
             ssdata.d1 = d1_psi_heterodyne
             ssdata.d2 = d2_psi_heterodyne
             ssdata.d2_len = 2
             ssdata.homogeneous = True
-            ssdata.incr_distr = 'normal'
+            ssdata.distribution = 'normal'
 
         elif method == 'photocurrent':
             ssdata.d1 = d1_psi_photocurrent
             ssdata.d2 = d2_psi_photocurrent
             ssdata.d2_len = 1
             ssdata.homogeneous = False
-            ssdata.incr_distr = 'poisson'
+            ssdata.distribution = 'poisson'
 
         else:
             raise Exception("Unrecognized method '%s'." % method)
@@ -132,16 +137,13 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
         ssdata.rhs_func = _rhs_psi_platen
         return ssesolve_generic(ssdata, options, progress_bar)
 
-    elif solver == 'milstein':
-        raise NotImplementedError("Solver '%s' not yet implemented." % solver)
-
     else:
         raise Exception("Unrecongized solver '%s'." % solver)
 
 
 def smesolve(H, rho0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
-             d1=None, d2=None, d2_len=1, rhs=None,
-             method='homodyne', solver='euler-maruyama', nsubsteps=10,
+             nsubsteps=10, d1=None, d2=None, d2_len=1, rhs=None,
+             method='homodyne', solver='euler-maruyama', distribution='normal',
              options=Odeoptions(), progress_bar=TextProgressBar()):
     """
     Solve stochastic master equation. Dispatch to specific solvers
@@ -158,23 +160,30 @@ def smesolve(H, rho0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
     if isket(rho0):
         rho0 = ket2dm(rho0)
 
+    ssdata = _StochasticSolverData(H=H, state0=rho0, tlist=tlist, c_ops=c_ops,
+                                   e_ops=e_ops, sc_ops=sc_ops, ntraj=ntraj,
+                                   nsubsteps=nsubsteps, solver=solver, 
+                                   method=method, d1=d1, d2=d2)
+
     if (d1 is None) or (d2 is None):
 
         if method == 'homodyne':
-            d1 = d1_rho_homodyne
-            d2 = d2_rho_homodyne
+            ssdata.d1 = d1_rho_homodyne
+            ssdata.d2 = d2_rho_homodyne
+            ssdata.d2_len = 1
+            ssdata.homogeneous = True
+            ssdata.distribution = 'normal'
+
         else:
             raise Exception("Unregognized method '%s'." % method)
 
     if rhs is None:
         if solver == 'euler-maruyama':
-            rhs = _rhs_rho_euler_maruyama
+            ssdata.rhs = _rhs_rho_euler_maruyama
         else:
             raise Exception("Unrecongized solver '%s'." % solver)
 
-    return smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
-                            rhs, d1, d2, d2_len, ntraj, nsubsteps,
-                            options, progress_bar)
+    return smesolve_generic(ssdata, options, progress_bar)
 
 def sepdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
                options=Odeoptions(), progress_bar=TextProgressBar()):
@@ -288,12 +297,12 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
     """
 
     if homogeneous:
-        if ssdata.incr_distr == 'normal':
+        if ssdata.distribution == 'normal':
             dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
         else:
             raise TypeError('Unsupported increment distribution for homogeneous process.')
     else:
-        if ssdata.incr_distr != 'poisson':
+        if ssdata.distribution != 'poisson':
             raise TypeError('Unsupported increment distribution for inhomogeneous process.')
 
 
@@ -333,9 +342,7 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 #------------------------------------------------------------------------------
 # Generic parameterized stochastic master equation solver
 #
-def smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
-                     rhs, d1, d2, d2_len, ntraj, nsubsteps,
-                     options, progress_bar):
+def smesolve_generic(ssdata, options, progress_bar):
     """
     internal
 
@@ -347,20 +354,20 @@ def smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
     if debug:
         print(inspect.stack()[0][3])
 
-    N_store = len(tlist)
-    N_substeps = nsubsteps
+    N_store = len(ssdata.tlist)
+    N_substeps = ssdata.nsubsteps
     N = N_store * N_substeps
-    dt = (tlist[1] - tlist[0]) / N_substeps
+    dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
 
     data = Odedata()
     data.solver = "smesolve"
-    data.times = tlist
-    data.expect = np.zeros((len(e_ops), N_store), dtype=complex)
+    data.times = ssdata.tlist
+    data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
 
     # pre-compute suporoperator operator combinations that are commonly needed
     # when evaluating the RHS of stochastic master equations
     A_ops = []
-    for c_idx, c in enumerate(sc_ops):
+    for c_idx, c in enumerate(ssdata.sc_ops):
 
         # xxx: precompute useful operator expressions...
         # how are these useful ?!?
@@ -378,18 +385,18 @@ def smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
                       lindblad_dissipator(c, data_only=True)])
 
     # Liouvillian for the deterministic part
-    L = liouvillian_fast(H, c_ops)  # needs to be modified for TD systems
+    L = liouvillian_fast(ssdata.H, ssdata.c_ops)  # needs to be modified for TD systems
 
-    progress_bar.start(ntraj)
+    progress_bar.start(ssdata.ntraj)
 
-    for n in range(ntraj):
+    for n in range(ssdata.ntraj):
         progress_bar.update(n)
 
-        rho_t = mat2vec(rho0.full())
+        rho_t = mat2vec(ssdata.state0.full())
 
         states_list = _smesolve_single_trajectory(
-            L, dt, tlist, N_store, N_substeps,
-            rho_t, A_ops, e_ops, data, rhs, d1, d2, d2_len)
+            L, dt, ssdata.tlist, N_store, N_substeps,
+            rho_t, A_ops, ssdata.e_ops, data, ssdata.rhs, ssdata.d1, ssdata.d2, ssdata.d2_len)
 
         # if average -> average...
         data.states.append(states_list)
@@ -397,7 +404,7 @@ def smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
     progress_bar.finished()
 
     # average
-    data.expect = data.expect / ntraj
+    data.expect = data.expect / ssdata.ntraj
 
     return data
 
