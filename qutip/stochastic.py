@@ -49,8 +49,9 @@ from numpy.random import RandomState
 from qutip.odedata import Odedata
 from qutip.odeoptions import Odeoptions
 from qutip.expect import expect
-from qutip.qobj import Qobj
+from qutip.qobj import Qobj, isket
 from qutip.superoperator import spre, spost, mat2vec, vec2mat, liouvillian_fast
+from qutip.states import ket2dm
 from qutip.cyQ.spmatfuncs import cy_expect, spmv
 from qutip.gui.progressbar import TextProgressBar
 
@@ -137,7 +138,7 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
         raise Exception("Unrecongized solver '%s'." % solver)
 
 
-def smesolve(H, psi0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
+def smesolve(H, rho0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
              d1=None, d2=None, d2_len=1, rhs=None,
              method='homodyne', solver='euler-maruyama', nsubsteps=10,
              options=Odeoptions(), progress_bar=TextProgressBar()):
@@ -153,6 +154,9 @@ def smesolve(H, psi0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
     if debug:
         print(inspect.stack()[0][3])
 
+    if isket(rho0):
+        rho0 = ket2dm(rho0)
+
     if (d1 is None) or (d2 is None):
 
         if method == 'homodyne':
@@ -167,7 +171,7 @@ def smesolve(H, psi0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
         else:
             raise Exception("Unrecongized solver '%s'." % solver)
 
-    return smesolve_generic(H, psi0, tlist, c_ops, sc_ops, e_ops,
+    return smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
                             rhs, d1, d2, d2_len, ntraj, nsubsteps,
                             options, progress_bar)
 
