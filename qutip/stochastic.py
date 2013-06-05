@@ -50,7 +50,8 @@ from qutip.odedata import Odedata
 from qutip.odeoptions import Odeoptions
 from qutip.expect import expect
 from qutip.qobj import Qobj, isket
-from qutip.superoperator import spre, spost, mat2vec, vec2mat, liouvillian_fast
+from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
+                                 liouvillian_fast, lindblad_dissipator)
 from qutip.states import ket2dm
 from qutip.cyQ.spmatfuncs import cy_expect, spmv
 from qutip.gui.progressbar import TextProgressBar
@@ -356,18 +357,25 @@ def smesolve_generic(H, rho0, tlist, c_ops, sc_ops, e_ops,
     data.times = tlist
     data.expect = np.zeros((len(e_ops), N_store), dtype=complex)
 
-    # pre-compute collapse operator combinations that are commonly needed
+    # pre-compute suporoperator operator combinations that are commonly needed
     # when evaluating the RHS of stochastic master equations
     A_ops = []
     for c_idx, c in enumerate(sc_ops):
 
         # xxx: precompute useful operator expressions...
-        cdc = c.dag() * c
-        Ldt = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
-        LdW = spre(c) + spost(c.dag())
-        Lm = spre(c) + spost(c.dag())  # currently same as LdW
+        # how are these useful ?!?
+        #cdc = c.dag() * c
+        #Ldt = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
+        #LdW = spre(c) + spost(c.dag())
+        #Lm = spre(c) + spost(c.dag())  # currently same as LdW
+        #A_ops.append([Ldt.data, LdW.data, Lm.data])
 
-        A_ops.append([Ldt.data, LdW.data, Lm.data])
+        n = c.dag() * c
+        A_ops.append([spre(c).data, spost(c).data,
+                      spre(c.dag()).data, spost(c.dag()).data,
+                      spre(n).data, spost(n).data,
+                      (spre(c) * spost(c.dag())).data,
+                      lindblad_dissipator(c, data_only=True)])
 
     # Liouvillian for the deterministic part
     L = liouvillian_fast(H, c_ops)  # needs to be modified for TD systems
@@ -813,37 +821,51 @@ def d2_psi_photocurrent(A, psi):
 # For SME
 #
 
-# def d(A, rho):
+# def d(A, rho_vec):
 #
-#     rho = wave function at the current time stemp
+#     rho = density operator in vector form at the current time stemp
 #
 #     A[0] = Ldt (liouvillian contribution for a collapse operator)
 #     A[1] = LdW (stochastic contribution)
 #     A[3] = Lm
 #
+#     A[0] = spre(c)
+#     A[1] = spost(c)
+#     A[2] = spre(c.dag())
+#     A[3] = spost(c.dag())
+#     A[4] = spre(n)
+#     A[5] = spost(n)
+#     A[6] = (spre(c) * spost(c.dag())
+#     A[7] = lindblad_dissipator(c)
 
 
-def _rho_expect(oper, state):
-    prod = spmv(oper.data, oper.indices, oper.indptr, state)
-    return sum(vec2mat(prod).diagonal())
+def _rho_vec_expect(super_op, rho_vec):
+    prod_vec = spmv(super_op.data, super_op.indices, super_op.indptr, rho_vec)
+    return vec2mat(prod_vec).diagonal().sum()
 
 
-def d1_rho_homodyne(A, rho):
+def d1_rho_homodyne(A, rho_vec):
     """
-    not tested
+    
+    D1[a] rho = lindblad_dissipator(a) * rho
+
     Todo: cythonize
     """
-    return spmv(A[0].data, A[0].indices, A[0].indptr, rho)
+    return spmv(A[7].data, A[7].indices, A[7].indptr, rho_vec)
 
 
-def d2_rho_homodyne(A, rho):
-    """
-    not tested
-    Todo: cythonize
+def d2_rho_homodyne(A, rho_vec):
     """
 
-    e1 = _rho_expect(A[2], rho)
-    return [spmv(A[1].data, A[1].indices, A[1].indptr, rho) - e1 * rho]
+    D2[a] rho = a rho + rho a^\dagger - Tr[a rho + rho a^\dagger]
+              = (A_L + Ad_R) rho_vec - E[(A_L + Ad_R) rho_vec]
+
+    Todo: cythonize, add A_L + Ad_R to precomputed operators
+    """
+    M = A[0] + A[3]
+
+    e1 = _rho_vec_expect(M, rho_vec)
+    return [spmv(M.data, M.indices, M.indptr, rho_vec) - e1 * rho_vec]
 
 
 #------------------------------------------------------------------------------
