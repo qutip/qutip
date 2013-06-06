@@ -177,6 +177,13 @@ def smesolve(H, rho0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
 
+        elif method == 'photocurrent':
+            ssdata.d1 = d1_rho_photocurrent
+            ssdata.d2 = d2_rho_photocurrent
+            ssdata.d2_len = 1
+            ssdata.homogeneous = False
+            ssdata.distribution = 'poisson'
+
         else:
             raise Exception("Unregognized method '%s'." % method)
 
@@ -897,6 +904,22 @@ def d2_rho_homodyne(A, rho_vec):
     e1 = _rho_vec_expect(M, rho_vec)
     return [spmv(M.data, M.indices, M.indptr, rho_vec) - e1 * rho_vec]
 
+
+def d1_rho_photocurrent(A, rho_vec):
+    """
+    Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
+    """
+    n_sum = A[4] + A[5]
+    e1 = _rho_vec_expect(n_sum, rho_vec)
+    return -spmv(n_sum.data, n_sum.indices, n_sum.indptr, rho_vec) + e1 * rho_vec
+
+
+def d2_rho_photocurrent(A, rho_vec):
+    """
+    Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
+    """
+    e1 = _rho_vec_expect(A[6], rho_vec)
+    return [spmv(A[6].data, A[6].indices, A[6].indptr, rho_vec) / e1 - rho_vec]
 
 #------------------------------------------------------------------------------
 # Euler-Maruyama rhs functions for the stochastic Schrodinger and master
