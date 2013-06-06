@@ -456,7 +456,7 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
                 if ssdata.homogeneous:
                     dw = dW[a_idx, t_idx, j, :]
                 else:
-                    dw_expect = _rho_vec_expect(A[4], rho_t) ** 2 * dt
+                    dw_expect = np.real(_rho_vec_expect(A[4], rho_t)) * dt
                     dw = np.random.poisson(dw_expect, d2_len)
 
                 drho_t += rhs(L.data, rho_t, A, dt, dw, d1, d2)
