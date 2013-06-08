@@ -29,6 +29,20 @@ class TestMatrixVector:
     A test class for the QuTiP function for matrix/vector conversion.
     """
 
+    def testOperatorVector(self):
+        """
+        Superoperator: Test unitary transformation with operators and superoperators.
+        """
+        N = 3
+        rho = rand_dm(N)
+        U = rand_unitary(N)
+   
+        rho1 = U * rho * U.dag()
+        rho2_vec = spre(U) * spost(U.dag()) * operator_to_vector(rho)
+        rho2 = vector_to_operator(rho2_vec)
+
+        assert_((rho1 - rho2).norm() < 1e-8)
+
     def testMatrixVectorMatrix(self):
         """
         Superoperator: Conversion matrix to vector to matrix

@@ -171,7 +171,7 @@ def vector_to_operator(op):
     q = Qobj()
     q.shape = [op.dims[0][0][0], op.dims[0][1][0]]
     q.dims = op.dims[0] 
-    q.data = op.data.T.tolil().reshape(tuple(q.shape)).tocsr()
+    q.data = op.data.H.tolil().reshape(tuple(q.shape)).tocsr()
     q.type = 'oper'
     return q
 
