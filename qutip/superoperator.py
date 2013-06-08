@@ -157,8 +157,8 @@ def operator_to_vector(op):
     """
     q = Qobj()
     q.shape = [prod(op.shape), 1]
-    q.dims = op.dims 
-    q.data = op.data.tolil().reshape(tuple(q.shape)).tocsr()
+    q.dims = [op.dims, [1]] 
+    q.data = op.data.T.tolil().reshape(tuple(q.shape)).tocsr()
     q.type = 'operator-vector'
     return q
 
@@ -169,9 +169,9 @@ def vector_to_operator(op):
     vector form.
     """
     q = Qobj()
-    q.shape = [prod(op.dims[0]), prod(op.dims[1])]
-    q.dims = op.dims 
-    q.data = op.data.tolil().reshape(tuple(q.shape)).tocsr()
+    q.shape = [op.dims[0][0][0], op.dims[0][1][0]]
+    q.dims = op.dims[0] 
+    q.data = op.data.T.tolil().reshape(tuple(q.shape)).tocsr()
     q.type = 'oper'
     return q
 
