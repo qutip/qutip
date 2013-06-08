@@ -150,6 +150,32 @@ def lindblad_dissipator(c, data_only=False):
     return D.data if data_only else D
 
 
+def operator_to_vector(op):
+    """
+    Create a vector representation of a quantum operator given
+    the matrix representation.
+    """
+    q = Qobj()
+    q.shape = [prod(op.shape), 1]
+    q.dims = op.dims 
+    q.data = op.data.tolil().reshape(tuple(q.shape)).tocsr()
+    q.type = 'operator-vector'
+    return q
+
+
+def vector_to_operator(op):
+    """
+    Create a matrix representation given a quantum operator in 
+    vector form.
+    """
+    q = Qobj()
+    q.shape = [prod(op.dims[0]), prod(op.dims[1])]
+    q.dims = op.dims 
+    q.data = op.data.tolil().reshape(tuple(q.shape)).tocsr()
+    q.type = 'oper'
+    return q
+
+
 def mat2vec(mat):
     """
     Private function reshaping matrix to vector.
