@@ -61,11 +61,11 @@ def basis(N, *args):
     Notes
     -----
 
-    A subtle incompability with the quantum optics toolbox: In QuTiP::
+    A subtle incompatibility with the quantum optics toolbox: In QuTiP::
 
         basis(N, 0) = ground state
 
-    but in qotoolbox::
+    but in the qotoolbox::
 
         basis(N, 1) = ground state
 
@@ -342,7 +342,7 @@ shape = [5, 5], type = oper, isHerm = True
     is the method that should be used in computations. The
     'analytic' method uses the analytic coefficients derived in
     an infinite Hilbert space. The analytic form is not necessarily normalized,
-    if truncated too agressively.
+    if truncated too aggressively.
 
     """
     if n == 0:
@@ -646,3 +646,26 @@ def phase_basis(N, m, phi0=0):
     n = np.arange(N).reshape((N, 1))
     data = 1.0 / np.sqrt(N) * np.exp(1.0j * n * phim)
     return Qobj(data)
+
+
+
+def zero_ket(N,dims=None):
+    """
+    Creates the zero ket vector with shape Nx1 and
+    dimensions `dims`.
+    
+    Parameters
+    ----------
+    N : int
+        Hilbert space dimensionality
+    dims : list
+        Optional dimensions if ket corresponds to
+        a composite Hilbert space.
+    
+    Returns
+    -------
+    zero_ket : qobj
+        Zero ket on given Hilbert space.
+    
+    """
+    return Qobj(sp.csr_matrix((N,1),dtype=complex),dims=dims)

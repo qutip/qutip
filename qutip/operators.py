@@ -390,7 +390,7 @@ def squeeze(N, sp):
 
     Examples
     --------
-    >>> squeez(4,0.25)
+    >>> squeeze(4,0.25)
     Quantum object: dims = [[4], [4]], \
 shape = [4, 4], type = oper, isHerm = False
     Qobj data =
@@ -608,6 +608,10 @@ def squeez(N, sp):
     oper : :class:`qutip.qobj.Qobj`
         Squeezing operator.
 
+    Notes
+    -----
+    This function is depreciated and will be removed in a future release.
+    Use the function `squeeze` instead.
 
     Examples
     --------
@@ -620,16 +624,31 @@ shape = [4, 4], type = oper, isHerm = False
      [-0.17585742+0.j  0.00000000+0.j  0.98441565+0.j  0.00000000+0.j]
      [ 0.00000000+0.j -0.30142443+0.j  0.00000000+0.j  0.95349007+0.j]]
 
-    Notes
-    -----
-    This function is depreciated and will be removed in a future release.
-    Use the function `squeeze` instead.
-
     """
     
     return squeeze(N, sp)
 
 
 
+def zero_oper(N,dims=None):
+    """
+    Creates the zero operator with shape NxN and
+    dimensions `dims`.
+    
+    Parameters
+    ----------
+    N : int
+        Hilbert space dimensionality
+    dims : list
+        Optional dimensions if operator corresponds to
+        a composite Hilbert space.
+    
+    Returns
+    -------
+    zero_op : qobj
+        Zero operator on given Hilbert space.
+    
+    """
+    return Qobj(sp.csr_matrix((N,N),dtype=complex),dims=dims)
 
 
