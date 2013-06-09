@@ -66,6 +66,7 @@ class _StochasticSolverData:
                  c_ops=[], sc_ops=[], e_ops=[], ntraj=1, nsubsteps=1,
                  d1=None, d2=None, rhs=None, homogeneous=True,
                  solver=None, method=None, distribution='normal',
+                 store_measurement=False, noise=None,
                  options=Odeoptions(), progress_bar=TextProgressBar()):
 
         self.H = H
@@ -86,6 +87,8 @@ class _StochasticSolverData:
         self.rhs = rhs
         self.options = options
         self.progress_bar = progress_bar
+        self.store_measurement = store_measurement
+        self.noise = noise
 
 
 def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
@@ -101,7 +104,8 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
     if debug:
         print(inspect.stack()[0][3])
 
-    ssdata = _StochasticSolverData(H=H, state0=psi0, tlist=tlist, sc_ops=sc_ops, e_ops=e_ops, **kwargs)
+    ssdata = _StochasticSolverData(H=H, state0=psi0, tlist=tlist,
+                                   sc_ops=sc_ops, e_ops=e_ops, **kwargs)
 
     if (ssdata.d1 is None) or (ssdata.d2 is None):
 
@@ -259,7 +263,8 @@ def ssesolve_generic(ssdata, options, progress_bar):
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
     data.ss = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
-    data.noise= []
+    data.noise = []
+    data.measurement = []
 
     # pre-compute collapse operator combinations that are commonly needed
     # when evaluating the RHS of stochastic Schrodinger equations
@@ -277,16 +282,16 @@ def ssesolve_generic(ssdata, options, progress_bar):
 
         psi_t = ssdata.state0.full()
 
-        states_list, dW = _ssesolve_single_trajectory(ssdata.H, dt, ssdata.tlist, N_store,
-                                                  N_substeps, psi_t, A_ops,
-                                                  ssdata.e_ops, data, ssdata.rhs_func,
-                                                  ssdata.d1, ssdata.d2, ssdata.d2_len,
-                                                  ssdata.homogeneous, ssdata)
+        states_list, dW, m = _ssesolve_single_trajectory(
+            ssdata.H, dt, ssdata.tlist, N_store, N_substeps, psi_t, A_ops,
+            ssdata.e_ops, data, ssdata.rhs_func, ssdata.d1, ssdata.d2,
+            ssdata.d2_len, ssdata.homogeneous, ssdata.distribution,
+            store_measurement=ssdata.store_measurement)
 
         # if average -> average...
         data.states.append(states_list)
-
         data.noise.append(dW)
+        data.measurement.append(m)
 
     progress_bar.finished()
 
@@ -301,24 +306,26 @@ def ssesolve_generic(ssdata, options, progress_bar):
 
 def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
                                 A_ops, e_ops, data, rhs, d1, d2, d2_len,
-                                homogeneous, ssdata):
+                                homogeneous, distribution,
+                                store_measurement=False):
     """
     Internal function. See ssesolve.
     """
 
     if homogeneous:
-        if ssdata.distribution == 'normal':
+        if distribution == 'normal':
             dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
         else:
             raise TypeError('Unsupported increment distribution for homogeneous process.')
     else:
-        if ssdata.distribution != 'poisson':
+        if distribution != 'poisson':
             raise TypeError('Unsupported increment distribution for inhomogeneous process.')
 
         dW = np.zeros((len(A_ops), N_store, N_substeps, d2_len))
 
 
     states_list = []
+    measurements = np.zeros((len(tlist), len(A_ops)), dtype=complex)
 
     for t_idx, t in enumerate(tlist):
 
@@ -329,6 +336,8 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
                 data.ss[e_idx, t_idx] += s ** 2
         else:
             states_list.append(Qobj(psi_t))
+
+        dpsi_t_tot = 0
 
         for j in range(N_substeps):
 
@@ -342,11 +351,18 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 
                 dpsi_t += rhs(H.data, psi_t, A, dt, dW[a_idx, t_idx, j, :], d1, d2)
 
-            # increment and renormalize the wave function
-            psi_t += dpsi_t
-            psi_t /= norm(psi_t)
+            dpsi_t_tot += dpsi_t
 
-    return states_list, dW
+        if store_measurement:
+            for a_idx, A in enumerate(A_ops):
+                measurements[t_idx, a_idx] = norm(spmv(A[0].data, A[0].indices, A[0].indptr, psi_t)) ** 2 * dt * N_substeps + dW[a_idx, t_idx, :, 0].sum()
+
+        # increment and renormalize the wave function
+        psi_t += dpsi_t_tot
+        psi_t /= norm(psi_t)
+
+
+    return states_list, dW, measurements
 
 
 #------------------------------------------------------------------------------
@@ -374,6 +390,7 @@ def smesolve_generic(ssdata, options, progress_bar):
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
     data.noise = []
+    data.measurement = []
 
     # pre-compute suporoperator operator combinations that are commonly needed
     # when evaluating the RHS of stochastic master equations
@@ -397,14 +414,16 @@ def smesolve_generic(ssdata, options, progress_bar):
 
         rho_t = mat2vec(ssdata.state0.full())
 
-        states_list, dW = _smesolve_single_trajectory(
+        states_list, dW, m = _smesolve_single_trajectory(
             L, dt, ssdata.tlist, N_store, N_substeps,
             rho_t, A_ops, ssdata.e_ops, data, ssdata.rhs,
-            ssdata.d1, ssdata.d2, ssdata.d2_len, ssdata)
+            ssdata.d1, ssdata.d2, ssdata.d2_len, ssdata,
+            store_measurement=ssdata.store_measurement)
 
         # if average -> average...
         data.states.append(states_list)
         data.noise.append(dW)
+        data.measurement.append(m)
 
     progress_bar.finished()
 
@@ -416,7 +435,7 @@ def smesolve_generic(ssdata, options, progress_bar):
 
 def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
                                 A_ops, e_ops, data, rhs, d1, d2, d2_len,
-                                ssdata):
+                                ssdata, store_measurement=False):
     """
     Internal function. See smesolve.
     """
@@ -433,6 +452,7 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
         dW = np.zeros((len(A_ops), N_store, N_substeps, d2_len))
 
     states_list = []
+    measurements = np.zeros((len(tlist), len(A_ops)), dtype=complex)
 
     for t_idx, t in enumerate(tlist):
 
@@ -442,6 +462,8 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
                 data.expect[e_idx, t_idx] += expect(e, Qobj(vec2mat(rho_t)))
         else:
             states_list.append(Qobj(rho_t))  # dito
+
+        drho_t_tot = 0
 
         for j in range(N_substeps):
 
@@ -456,9 +478,16 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
 
                 drho_t += rhs(L.data, rho_t, A, dt, dW[a_idx, t_idx, j, :], d1, d2)
 
-            rho_t += drho_t
+            drho_t_tot += drho_t
 
-    return states_list, dW
+        if store_measurement:
+            for a_idx, A in enumerate(A_ops):
+                measurements[t_idx, a_idx] = _rho_vec_expect(A[0], rho_t) * dt * N_substeps + dW[a_idx, t_idx, :, 0].sum()
+
+        rho_t += drho_t_tot
+
+
+    return states_list, dW, measurements
 
 
 #------------------------------------------------------------------------------
