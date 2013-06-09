@@ -259,6 +259,7 @@ def ssesolve_generic(ssdata, options, progress_bar):
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
     data.ss = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
+    data.noise= []
 
     # pre-compute collapse operator combinations that are commonly needed
     # when evaluating the RHS of stochastic Schrodinger equations
@@ -276,7 +277,7 @@ def ssesolve_generic(ssdata, options, progress_bar):
 
         psi_t = ssdata.state0.full()
 
-        states_list = _ssesolve_single_trajectory(ssdata.H, dt, ssdata.tlist, N_store,
+        states_list, dW = _ssesolve_single_trajectory(ssdata.H, dt, ssdata.tlist, N_store,
                                                   N_substeps, psi_t, A_ops,
                                                   ssdata.e_ops, data, ssdata.rhs_func,
                                                   ssdata.d1, ssdata.d2, ssdata.d2_len,
@@ -284,6 +285,8 @@ def ssesolve_generic(ssdata, options, progress_bar):
 
         # if average -> average...
         data.states.append(states_list)
+
+        data.noise.append(dW)
 
     progress_bar.finished()
 
@@ -312,6 +315,8 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
         if ssdata.distribution != 'poisson':
             raise TypeError('Unsupported increment distribution for inhomogeneous process.')
 
+        dW = np.zeros((len(A_ops), N_store, N_substeps, d2_len))
+
 
     states_list = []
 
@@ -331,19 +336,17 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 
             for a_idx, A in enumerate(A_ops):
 
-                if homogeneous:
-                    dw = dW[a_idx, t_idx, j, :]
-                else:
+                if not homogeneous:
                     dw_expect = norm(spmv(A[0].data, A[0].indices, A[0].indptr, psi_t)) ** 2 * dt
-                    dw = np.random.poisson(dw_expect, d2_len)
+                    dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
 
-                dpsi_t += rhs(H.data, psi_t, A, dt, dw, d1, d2)
+                dpsi_t += rhs(H.data, psi_t, A, dt, dW[a_idx, t_idx, j, :], d1, d2)
 
             # increment and renormalize the wave function
             psi_t += dpsi_t
             psi_t /= norm(psi_t)
 
-    return states_list
+    return states_list, dW
 
 
 #------------------------------------------------------------------------------
@@ -370,19 +373,12 @@ def smesolve_generic(ssdata, options, progress_bar):
     data.solver = "smesolve"
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
+    data.noise = []
 
     # pre-compute suporoperator operator combinations that are commonly needed
     # when evaluating the RHS of stochastic master equations
     A_ops = []
     for c_idx, c in enumerate(ssdata.sc_ops):
-
-        # xxx: precompute useful operator expressions...
-        # how are these useful ?!?
-        #cdc = c.dag() * c
-        #Ldt = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
-        #LdW = spre(c) + spost(c.dag())
-        #Lm = spre(c) + spost(c.dag())  # currently same as LdW
-        #A_ops.append([Ldt.data, LdW.data, Lm.data])
 
         n = c.dag() * c
         A_ops.append([spre(c).data, spost(c).data,
@@ -401,13 +397,14 @@ def smesolve_generic(ssdata, options, progress_bar):
 
         rho_t = mat2vec(ssdata.state0.full())
 
-        states_list = _smesolve_single_trajectory(
+        states_list, dW = _smesolve_single_trajectory(
             L, dt, ssdata.tlist, N_store, N_substeps,
             rho_t, A_ops, ssdata.e_ops, data, ssdata.rhs,
             ssdata.d1, ssdata.d2, ssdata.d2_len, ssdata)
 
         # if average -> average...
         data.states.append(states_list)
+        data.noise.append(dW)
 
     progress_bar.finished()
 
@@ -433,6 +430,7 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
         if ssdata.distribution != 'poisson':
             raise TypeError('Unsupported increment distribution for inhomogeneous process.')
 
+        dW = np.zeros((len(A_ops), N_store, N_substeps, d2_len))
 
     states_list = []
 
@@ -452,17 +450,15 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
                           L.data.indptr, rho_t) * dt
 
             for a_idx, A in enumerate(A_ops):
-                if ssdata.homogeneous:
-                    dw = dW[a_idx, t_idx, j, :]
-                else:
+                if not ssdata.homogeneous:
                     dw_expect = np.real(_rho_vec_expect(A[4], rho_t)) * dt
-                    dw = np.random.poisson(dw_expect, d2_len)
+                    dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
 
-                drho_t += rhs(L.data, rho_t, A, dt, dw, d1, d2)
+                drho_t += rhs(L.data, rho_t, A, dt, dW[a_idx, t_idx, j, :], d1, d2)
 
             rho_t += drho_t
 
-    return states_list
+    return states_list, dW
 
 
 #------------------------------------------------------------------------------
