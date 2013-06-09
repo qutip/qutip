@@ -64,8 +64,9 @@ class _StochasticSolverData:
     """
     def __init__(self, H=None, state0=None, tlist=None, 
                  c_ops=[], sc_ops=[], e_ops=[], ntraj=1, nsubsteps=1,
-                 d1=None, d2=None, homogeneous=True,
-                 solver=None, method=None, distribution='normal'):
+                 d1=None, d2=None, rhs=None, homogeneous=True,
+                 solver=None, method=None, distribution='normal',
+                 options=Odeoptions(), progress_bar=TextProgressBar()):
 
         self.H = H
         self.d1 = d1
@@ -78,16 +79,16 @@ class _StochasticSolverData:
         self.e_ops = e_ops
         self.ntraj = ntraj
         self.nsubsteps = nsubsteps
-        self.solver = None
-        self.method = None
+        self.solver = solver
+        self.method = method
         self.distribution = distribution
         self.homogeneous = homogeneous
+        self.rhs = rhs
+        self.options = options
+        self.progress_bar = progress_bar
 
 
-def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
-             nsubsteps=10, d1=None, d2=None, d2_len=1, rhs=None,
-             solver='euler-maruyama', method='homodyne', distribution='normal',
-             options=Odeoptions(), progress_bar=TextProgressBar()):
+def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
     """
     Solve stochastic Schrodinger equation. Dispatch to specific solvers
     depending on the value of the `solver` argument.
@@ -100,28 +101,25 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
     if debug:
         print(inspect.stack()[0][3])
 
-    ssdata = _StochasticSolverData(H=H, state0=psi0, tlist=tlist, c_ops=c_ops,
-                                   e_ops=e_ops, ntraj=ntraj, d1=d1, d2=d2,
-                                   nsubsteps=nsubsteps, solver=solver, 
-                                   method=method, distribution=distribution)
+    ssdata = _StochasticSolverData(H=H, state0=psi0, tlist=tlist, sc_ops=sc_ops, e_ops=e_ops, **kwargs)
 
-    if (d1 is None) or (d2 is None):
+    if (ssdata.d1 is None) or (ssdata.d2 is None):
 
-        if method == 'homodyne':
+        if ssdata.method == 'homodyne':
             ssdata.d1 = d1_psi_homodyne
             ssdata.d2 = d2_psi_homodyne
             ssdata.d2_len = 1
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
 
-        elif method == 'heterodyne':
+        elif ssdata.method == 'heterodyne':
             ssdata.d1 = d1_psi_heterodyne
             ssdata.d2 = d2_psi_heterodyne
             ssdata.d2_len = 2
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
 
-        elif method == 'photocurrent':
+        elif ssdata.method == 'photocurrent':
             ssdata.d1 = d1_psi_photocurrent
             ssdata.d2 = d2_psi_photocurrent
             ssdata.d2_len = 1
@@ -129,24 +127,21 @@ def ssesolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1,
             ssdata.distribution = 'poisson'
 
         else:
-            raise Exception("Unrecognized method '%s'." % method)
+            raise Exception("Unrecognized method '%s'." % ssdata.method)
 
-    if solver == 'euler-maruyama':
+    if ssdata.solver == 'euler-maruyama' or ssdata.solver == None:
         ssdata.rhs_func = _rhs_psi_euler_maruyama
-        return ssesolve_generic(ssdata, options, progress_bar)
+        return ssesolve_generic(ssdata, ssdata.options, ssdata.progress_bar)
 
-    elif solver == 'platen':
+    elif ssdata.solver == 'platen':
         ssdata.rhs_func = _rhs_psi_platen
-        return ssesolve_generic(ssdata, options, progress_bar)
+        return ssesolve_generic(ssdata, ssdata.options, ssdata.progress_bar)
 
     else:
-        raise Exception("Unrecongized solver '%s'." % solver)
+        raise Exception("Unrecongized solver '%s'." % ssdata.solver)
 
 
-def smesolve(H, rho0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
-             nsubsteps=10, d1=None, d2=None, d2_len=1, rhs=None,
-             method='homodyne', solver='euler-maruyama', distribution='normal',
-             options=Odeoptions(), progress_bar=TextProgressBar()):
+def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
     """
     Solve stochastic master equation. Dispatch to specific solvers
     depending on the value of the `solver` argument.
@@ -163,21 +158,18 @@ def smesolve(H, rho0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
         rho0 = ket2dm(rho0)
 
     ssdata = _StochasticSolverData(H=H, state0=rho0, tlist=tlist, c_ops=c_ops,
-                                   e_ops=e_ops, sc_ops=sc_ops, ntraj=ntraj,
-                                   nsubsteps=nsubsteps, solver=solver, 
-                                   method=method, d1=d1, d2=d2,
-                                   distribution=distribution)
+                                   sc_ops=sc_ops, e_ops=e_ops, **kwargs)
 
-    if (d1 is None) or (d2 is None):
+    if (ssdata.d1 is None) or (ssdata.d2 is None):
 
-        if method == 'homodyne':
+        if ssdata.method == 'homodyne':
             ssdata.d1 = d1_rho_homodyne
             ssdata.d2 = d2_rho_homodyne
             ssdata.d2_len = 1
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
 
-        elif method == 'photocurrent':
+        elif ssdata.method == 'photocurrent':
             ssdata.d1 = d1_rho_photocurrent
             ssdata.d2 = d2_rho_photocurrent
             ssdata.d2_len = 1
@@ -185,18 +177,18 @@ def smesolve(H, rho0, tlist, c_ops=[], sc_ops=[], e_ops=[], ntraj=1,
             ssdata.distribution = 'poisson'
 
         else:
-            raise Exception("Unregognized method '%s'." % method)
+            raise Exception("Unregognized method '%s'." % ssdata.method)
 
-    if distribution == 'poisson':
+    if ssdata.distribution == 'poisson':
         ssdata.homogeneous = False
 
-    if rhs is None:
-        if solver == 'euler-maruyama':
+    if ssdata.rhs is None:
+        if ssdata.solver == 'euler-maruyama' or ssdata.solver == None:
             ssdata.rhs = _rhs_rho_euler_maruyama
         else:
-            raise Exception("Unrecongized solver '%s'." % solver)
+            raise Exception("Unrecongized solver '%s'." % ssdata.solver)
 
-    return smesolve_generic(ssdata, options, progress_bar)
+    return smesolve_generic(ssdata, ssdata.options, ssdata.progress_bar)
 
 
 def sepdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
@@ -271,7 +263,7 @@ def ssesolve_generic(ssdata, options, progress_bar):
     # pre-compute collapse operator combinations that are commonly needed
     # when evaluating the RHS of stochastic Schrodinger equations
     A_ops = []
-    for c_idx, c in enumerate(ssdata.c_ops):
+    for c_idx, c in enumerate(ssdata.sc_ops):
         A_ops.append([c.data,
                       (c + c.dag()).data,
                       (c - c.dag()).data,
