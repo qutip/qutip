@@ -64,7 +64,7 @@ class _StochasticSolverData:
     """
     def __init__(self, H=None, state0=None, tlist=None, 
                  c_ops=[], sc_ops=[], e_ops=[], ntraj=1, nsubsteps=1,
-                 d1=None, d2=None, rhs=None, homogeneous=True,
+                 d1=None, d2=None, d2_len=1, rhs=None, homogeneous=True,
                  solver=None, method=None, distribution='normal',
                  store_measurement=False, noise=None,
                  options=Odeoptions(), progress_bar=TextProgressBar()):
@@ -72,7 +72,7 @@ class _StochasticSolverData:
         self.H = H
         self.d1 = d1
         self.d2 = d2
-        self.d2_len = 1
+        self.d2_len = d2_len
         self.state0 = state0
         self.tlist = tlist
         self.c_ops = c_ops
@@ -170,6 +170,13 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
             ssdata.d1 = d1_rho_homodyne
             ssdata.d2 = d2_rho_homodyne
             ssdata.d2_len = 1
+            ssdata.homogeneous = True
+            ssdata.distribution = 'normal'
+
+        elif ssdata.method == 'heterodyne':
+            ssdata.d1 = d1_rho_heterodyne
+            ssdata.d2 = d2_rho_heterodyne
+            ssdata.d2_len = 2
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
 
@@ -925,6 +932,26 @@ def d2_rho_homodyne(A, rho_vec):
 
     e1 = _rho_vec_expect(M, rho_vec)
     return [spmv(M.data, M.indices, M.indptr, rho_vec) - e1 * rho_vec]
+
+
+def d1_rho_heterodyne(A, rho_vec):
+    """
+    todo: cythonize, docstrings
+    """
+    return spmv(A[7].data, A[7].indices, A[7].indptr, rho_vec)
+
+
+def d2_rho_heterodyne(A, rho_vec):
+    """
+    todo: cythonize, docstrings
+    """
+    M = A[0] + A[3]
+    e1 = _rho_vec_expect(M, rho_vec)
+    d1 = spmv(M.data, M.indices, M.indptr, rho_vec) - e1 * rho_vec
+    M = A[0] - A[3]
+    e1 = _rho_vec_expect(M, rho_vec)
+    d2 = spmv(M.data, M.indices, M.indptr, rho_vec) - e1 * rho_vec
+    return [1.0/np.sqrt(2) * d1, -1.0j/np.sqrt(2) * d2]
 
 
 def d1_rho_photocurrent(A, rho_vec):
