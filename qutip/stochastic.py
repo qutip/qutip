@@ -142,7 +142,7 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
         return ssesolve_generic(ssdata, ssdata.options, ssdata.progress_bar)
 
     else:
-        raise Exception("Unrecongized solver '%s'." % ssdata.solver)
+        raise Exception("Unrecognized solver '%s'." % ssdata.solver)
 
 
 def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
@@ -166,7 +166,7 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
 
     if (ssdata.d1 is None) or (ssdata.d2 is None):
 
-        if ssdata.method == 'homodyne':
+        if ssdata.method == 'homodyne' or ssdata.method is None:
             ssdata.d1 = d1_rho_homodyne
             ssdata.d2 = d2_rho_homodyne
             ssdata.d2_len = 1
@@ -181,7 +181,7 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
             ssdata.distribution = 'poisson'
 
         else:
-            raise Exception("Unregognized method '%s'." % ssdata.method)
+            raise Exception("Unrecognized method '%s'." % ssdata.method)
 
     if ssdata.distribution == 'poisson':
         ssdata.homogeneous = False
@@ -190,7 +190,7 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
         if ssdata.solver == 'euler-maruyama' or ssdata.solver == None:
             ssdata.rhs = _rhs_rho_euler_maruyama
         else:
-            raise Exception("Unrecongized solver '%s'." % ssdata.solver)
+            raise Exception("Unrecognized solver '%s'." % ssdata.solver)
 
     return smesolve_generic(ssdata, ssdata.options, ssdata.progress_bar)
 
@@ -341,7 +341,7 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
         else:
             states_list.append(Qobj(psi_t))
 
-        dpsi_t_tot = 0
+        psi_prev = np.copy(psi_t)
 
         for j in range(N_substeps):
 
@@ -355,15 +355,13 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 
                 dpsi_t += rhs(H.data, psi_t, A, dt, dW[a_idx, t_idx, j, :], d1, d2)
 
-            dpsi_t_tot += dpsi_t
+            # increment and renormalize the wave function
+            psi_t += dpsi_t
+            psi_t /= norm(psi_t)
 
         if store_measurement:
             for a_idx, A in enumerate(A_ops):
-                measurements[t_idx, a_idx] = norm(spmv(A[0].data, A[0].indices, A[0].indptr, psi_t)) ** 2 * dt * N_substeps + dW[a_idx, t_idx, :, 0].sum()
-
-        # increment and renormalize the wave function
-        psi_t += dpsi_t_tot
-        psi_t /= norm(psi_t)
+                measurements[t_idx, a_idx] = norm(spmv(A[0].data, A[0].indices, A[0].indptr, psi_prev)) ** 2 * dt * N_substeps + dW[a_idx, t_idx, :, 0].sum()
 
 
     return states_list, dW, measurements
@@ -469,12 +467,12 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                # XXX: need to keep hilbert space structure
-                data.expect[e_idx, t_idx] += expect(e, Qobj(vec2mat(rho_t)))
+                data.expect[e_idx, t_idx] += expect(e, Qobj(vec2mat(rho_t))) # XXX optimize
         else:
-            states_list.append(Qobj(rho_t))  # dito
+            # XXX: need to keep hilbert space structure
+            states_list.append(Qobj(vec2mat(rho_t)))
 
-        drho_t_tot = 0
+        rho_prev = np.copy(rho_t)
 
         for j in range(N_substeps):
 
@@ -489,14 +487,11 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
 
                 drho_t += rhs(L.data, rho_t, A, dt, dW[a_idx, t_idx, j, :], d1, d2)
 
-            drho_t_tot += drho_t
+            rho_t += drho_t
 
         if store_measurement:
             for a_idx, A in enumerate(A_ops):
-                measurements[t_idx, a_idx] = _rho_vec_expect(A[0], rho_t) * dt * N_substeps + dW[a_idx, t_idx, :, 0].sum()
-
-        rho_t += drho_t_tot
-
+                measurements[t_idx, a_idx] = _rho_vec_expect(A[0], rho_prev) * dt * N_substeps + dW[a_idx, t_idx, :, 0].sum()
 
     return states_list, dW, measurements
 
@@ -549,7 +544,6 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
 
         # if average -> average...
         data.states.append(states_list)
-
         data.jump_times.append(jump_times)
         data.jump_op_idx.append(jump_op_idx)
 
@@ -946,8 +940,9 @@ def d2_rho_photocurrent(A, rho_vec):
     """
     Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
-    e1 = _rho_vec_expect(A[6], rho_vec)
+    e1 = _rho_vec_expect(A[6], rho_vec) + 1e-15
     return [spmv(A[6].data, A[6].indices, A[6].indptr, rho_vec) / e1 - rho_vec]
+
 
 #------------------------------------------------------------------------------
 # Euler-Maruyama rhs functions for the stochastic Schrodinger and master
