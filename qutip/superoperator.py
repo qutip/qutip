@@ -35,12 +35,12 @@ def liouvillian(H, c_op_list):
         System Hamiltonian.
 
     c_op_list : array_like
-        A ``list`` or ``array`` of collpase operators.
+        A ``list`` or ``array`` of collapse operators.
 
     Returns
     -------
     L : qobj
-        Louvillian superoperator.
+        Liouvillian superoperator.
 
     """
 
@@ -52,7 +52,7 @@ def liouvillian(H, c_op_list):
         else:
             cdc = c.dag() * c
             L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
-
+    L.type='super'
     return L
 
 
@@ -68,12 +68,12 @@ def liouvillian_fast(H, c_op_list, data_only=False):
         System Hamiltonian.
 
     c_op_list : array_like
-        A ``list`` or ``array`` of collpase operators.
+        A ``list`` or ``array`` of collapse operators.
 
     Returns
     -------
     L : qobj
-        Louvillian superoperator.
+        Liouvillian superoperator.
 
     """
 
@@ -134,6 +134,7 @@ def liouvillian_fast(H, c_op_list, data_only=False):
         L.shape = sop_shape
         L.data = data
         L.isherm = False
+        L.type='super'
         return L
 
 
