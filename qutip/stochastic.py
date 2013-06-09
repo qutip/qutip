@@ -282,11 +282,13 @@ def ssesolve_generic(ssdata, options, progress_bar):
 
         psi_t = ssdata.state0.full()
 
+        noise = ssdata.noise[n] if ssdata.noise else None
+
         states_list, dW, m = _ssesolve_single_trajectory(
             ssdata.H, dt, ssdata.tlist, N_store, N_substeps, psi_t, A_ops,
             ssdata.e_ops, data, ssdata.rhs_func, ssdata.d1, ssdata.d2,
             ssdata.d2_len, ssdata.homogeneous, ssdata.distribution,
-            store_measurement=ssdata.store_measurement)
+            store_measurement=ssdata.store_measurement, noise=noise)
 
         # if average -> average...
         data.states.append(states_list)
@@ -307,22 +309,24 @@ def ssesolve_generic(ssdata, options, progress_bar):
 def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
                                 A_ops, e_ops, data, rhs, d1, d2, d2_len,
                                 homogeneous, distribution,
-                                store_measurement=False):
+                                store_measurement=False, noise=None):
     """
     Internal function. See ssesolve.
     """
 
-    if homogeneous:
-        if distribution == 'normal':
-            dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
+    if noise is None:
+        if homogeneous:
+            if distribution == 'normal':
+                dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
+            else:
+                raise TypeError('Unsupported increment distribution for homogeneous process.')
         else:
-            raise TypeError('Unsupported increment distribution for homogeneous process.')
+            if distribution != 'poisson':
+                raise TypeError('Unsupported increment distribution for inhomogeneous process.')
+
+            dW = np.zeros((len(A_ops), N_store, N_substeps, d2_len))
     else:
-        if distribution != 'poisson':
-            raise TypeError('Unsupported increment distribution for inhomogeneous process.')
-
-        dW = np.zeros((len(A_ops), N_store, N_substeps, d2_len))
-
+        dW = noise
 
     states_list = []
     measurements = np.zeros((len(tlist), len(A_ops)), dtype=complex)
@@ -345,7 +349,7 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 
             for a_idx, A in enumerate(A_ops):
 
-                if not homogeneous:
+                if noise is None and not homogeneous:
                     dw_expect = norm(spmv(A[0].data, A[0].indices, A[0].indptr, psi_t)) ** 2 * dt
                     dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
 
@@ -414,11 +418,14 @@ def smesolve_generic(ssdata, options, progress_bar):
 
         rho_t = mat2vec(ssdata.state0.full())
 
+        noise = ssdata.noise[n] if ssdata.noise else None
+
         states_list, dW, m = _smesolve_single_trajectory(
             L, dt, ssdata.tlist, N_store, N_substeps,
             rho_t, A_ops, ssdata.e_ops, data, ssdata.rhs,
-            ssdata.d1, ssdata.d2, ssdata.d2_len, ssdata,
-            store_measurement=ssdata.store_measurement)
+            ssdata.d1, ssdata.d2, ssdata.d2_len, ssdata.homogeneous,
+            ssdata.distribution, store_measurement=ssdata.store_measurement,
+            noise=noise)
 
         # if average -> average...
         data.states.append(states_list)
@@ -435,21 +442,25 @@ def smesolve_generic(ssdata, options, progress_bar):
 
 def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
                                 A_ops, e_ops, data, rhs, d1, d2, d2_len,
-                                ssdata, store_measurement=False):
+                                homogeneous, distribution,
+                                store_measurement=False, noise=None):
     """
     Internal function. See smesolve.
     """
 
-    if ssdata.homogeneous:
-        if ssdata.distribution == 'normal':
-            dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)    
+    if noise is None:
+        if homogeneous:
+            if distribution == 'normal':
+                dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)    
+            else:
+                raise TypeError('Unsupported increment distribution for homogeneous process.')
         else:
-            raise TypeError('Unsupported increment distribution for homogeneous process.')
-    else:
-        if ssdata.distribution != 'poisson':
-            raise TypeError('Unsupported increment distribution for inhomogeneous process.')
+            if distribution != 'poisson':
+                raise TypeError('Unsupported increment distribution for inhomogeneous process.')
 
-        dW = np.zeros((len(A_ops), N_store, N_substeps, d2_len))
+            dW = np.zeros((len(A_ops), N_store, N_substeps, d2_len))
+    else:
+        dW = noise
 
     states_list = []
     measurements = np.zeros((len(tlist), len(A_ops)), dtype=complex)
@@ -472,7 +483,7 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
                           L.data.indptr, rho_t) * dt
 
             for a_idx, A in enumerate(A_ops):
-                if not ssdata.homogeneous:
+                if noise is None and not homogeneous:
                     dw_expect = np.real(_rho_vec_expect(A[4], rho_t)) * dt
                     dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
 
