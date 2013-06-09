@@ -36,6 +36,7 @@ import scipy.linalg as la
 import qutip.settings as qset
 from qutip._version import version as qversion
 from qutip.ptrace import _ptrace
+from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, _sp_expm, _sp_fro_norm, _sp_max_norm,
                           _sp_one_norm, _sp_L2_norm, _sp_inf_norm)
 
@@ -893,6 +894,24 @@ class Qobj():
         else:
             return Qobj(qdata, qdims, qshape)
 
+    def permute(self, order):
+        """
+        Permutes a composite quantum object in the given order.
+    
+        Parameters
+        ----------
+        order : list/array
+            List specifying new tensor order.
+    
+        Returns
+        -------
+        P : qobj
+            Permuted quantum object.
+    
+        """
+        data,dims,shape=_permute(self,order)
+        return Qobj(data,dims=dims,shape=shape)
+    
     def tidyup(self, atol=qset.auto_tidyup_atol):
         """Removes small elements from a quantum object.
 
@@ -1196,14 +1215,15 @@ class Qobj():
 
         Returns
         -------
-        oper: qobj
+        oper : qobj
             Transpose of input operator.
 
         """
-        out = Qobj(type=self.type)
+        out = Qobj()
         out.data = self.data.T
         out.dims = [self.dims[1], self.dims[0]]
         out.shape = [self.shape[1], self.shape[0]]
+        out.type=ischeck(out)
         return out
 
     def extract_states(self, states_indices, normalize=False):
@@ -1343,10 +1363,10 @@ def qobj_list_evaluate(qobj_list, t, args):
                     args['t'] = t
                     q_sum += q[0] * float(eval(q[1], globals(), args))
                 else:
-                    raise TypeError('Unrecongized format for specification ' +
+                    raise TypeError('Unrecognized format for specification ' +
                                     'of time-dependent Qobj')
             else:
-                raise TypeError('Unrecongized format for specification ' +
+                raise TypeError('Unrecognized format for specification ' +
                                 'of time-dependent Qobj')
     else:
         raise TypeError(
