@@ -16,7 +16,7 @@
 # Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-#import numpy as np
+import numpy as np
 cimport numpy as np
 cimport cython
 cimport libc.math
