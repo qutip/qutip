@@ -273,6 +273,9 @@ Like attributes, the quantum object class has defined functions (methods) that o
 | Partial Trace   | Q.ptrace(sel)            | Partial trace returning components     |
 |                 |                          | selected using 'sel' parameter.        |
 +-----------------+--------------------------+----------------------------------------+
+| Permute         | Q.permute(order)         | Permutes the tensor structure of a     | 
+|                 |                          | composite object in the given order.   |
++-----------------+--------------------------+----------------------------------------+
 | Sqrt            | Q.sqrtm()                | Matrix sqrt of operator.               |
 +-----------------+--------------------------+----------------------------------------+
 | Tidyup          | Q.tidyup()               | Removes small elements from Qobj.      |
