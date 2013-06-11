@@ -16,9 +16,11 @@
 # Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-import numpy as np
+#import numpy as np
 cimport numpy as np
 cimport cython
+cimport libc.math
+
 ctypedef np.complex128_t CTYPE_t
 ctypedef np.float64_t DTYPE_t
 
@@ -162,7 +164,6 @@ cpdef np.ndarray[CTYPE_t, ndim=2] spmv_dia(np.ndarray[CTYPE_t, ndim=2] data, np.
     return ret
 
 
-
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def cy_expect(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,int isherm, np.ndarray[CTYPE_t, ndim=2] state):
@@ -177,6 +178,13 @@ def cy_expect(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[i
     else:
         return dot
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef cy_expect_rho_vec(object super_op, np.ndarray[CTYPE_t, ndim=2] rho_vec):
+    cdef np.ndarray[CTYPE_t, ndim=2] prod_vec = spmv(super_op.data, super_op.indices, super_op.indptr, rho_vec)
+    cdef int n = <int>libc.math.sqrt(rho_vec.size)
+    return prod_vec.reshape((n, n)).diagonal().sum()
 
 
 
