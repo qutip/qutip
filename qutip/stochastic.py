@@ -53,7 +53,7 @@ from qutip.qobj import Qobj, isket
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
                                  liouvillian_fast, lindblad_dissipator)
 from qutip.states import ket2dm
-from qutip.cyQ.spmatfuncs import cy_expect, spmv
+from qutip.cyQ.spmatfuncs import cy_expect, spmv, cy_expect_rho_vec
 from qutip.gui.progressbar import TextProgressBar
 
 debug = True
@@ -489,7 +489,7 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
 
             for a_idx, A in enumerate(A_ops):
                 if noise is None and not homogeneous:
-                    dw_expect = np.real(_rho_vec_expect(A[4], rho_t)) * dt
+                    dw_expect = np.real(cy_expect_rho_vec(A[4], rho_t)) * dt
                     dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
 
                 drho_t += rhs(L.data, rho_t, A, dt, dW[a_idx, t_idx, j, :], d1, d2)
@@ -498,7 +498,7 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
 
         if store_measurement:
             for a_idx, A in enumerate(A_ops):
-                measurements[t_idx, a_idx] = _rho_vec_expect(A[0], rho_prev) * dt * N_substeps + dW[a_idx, t_idx, :, 0].sum()
+                measurements[t_idx, a_idx] = cy_expect_rho_vec(A[0], rho_prev) * dt * N_substeps + dW[a_idx, t_idx, :, 0].sum()
 
     return states_list, dW, measurements
 
@@ -891,10 +891,6 @@ def d2_psi_photocurrent(A, psi):
 #
 #     rho = density operator in vector form at the current time stemp
 #
-#     A[0] = Ldt (liouvillian contribution for a collapse operator)
-#     A[1] = LdW (stochastic contribution)
-#     A[3] = Lm
-#
 #     A[0] = spre(c)
 #     A[1] = spost(c)
 #     A[2] = spre(c.dag())
@@ -903,12 +899,6 @@ def d2_psi_photocurrent(A, psi):
 #     A[5] = spost(n)
 #     A[6] = (spre(c) * spost(c.dag())
 #     A[7] = lindblad_dissipator(c)
-
-
-def _rho_vec_expect(super_op, rho_vec):
-    prod_vec = spmv(super_op.data, super_op.indices, super_op.indptr, rho_vec)
-    return vec2mat(prod_vec).diagonal().sum()
-
 
 def d1_rho_homodyne(A, rho_vec):
     """
@@ -930,7 +920,7 @@ def d2_rho_homodyne(A, rho_vec):
     """
     M = A[0] + A[3]
 
-    e1 = _rho_vec_expect(M, rho_vec)
+    e1 = cy_expect_rho_vec(M, rho_vec)
     return [spmv(M.data, M.indices, M.indptr, rho_vec) - e1 * rho_vec]
 
 
@@ -946,10 +936,10 @@ def d2_rho_heterodyne(A, rho_vec):
     todo: cythonize, docstrings
     """
     M = A[0] + A[3]
-    e1 = _rho_vec_expect(M, rho_vec)
+    e1 = cy_expect_rho_vec(M, rho_vec)
     d1 = spmv(M.data, M.indices, M.indptr, rho_vec) - e1 * rho_vec
     M = A[0] - A[3]
-    e1 = _rho_vec_expect(M, rho_vec)
+    e1 = cy_expect_rho_vec(M, rho_vec)
     d2 = spmv(M.data, M.indices, M.indptr, rho_vec) - e1 * rho_vec
     return [1.0/np.sqrt(2) * d1, -1.0j/np.sqrt(2) * d2]
 
@@ -959,7 +949,7 @@ def d1_rho_photocurrent(A, rho_vec):
     Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
     n_sum = A[4] + A[5]
-    e1 = _rho_vec_expect(n_sum, rho_vec)
+    e1 = cy_expect_rho_vec(n_sum, rho_vec)
     return -spmv(n_sum.data, n_sum.indices, n_sum.indptr, rho_vec) + e1 * rho_vec
 
 
@@ -967,7 +957,7 @@ def d2_rho_photocurrent(A, rho_vec):
     """
     Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
-    e1 = _rho_vec_expect(A[6], rho_vec) + 1e-15
+    e1 = cy_expect_rho_vec(A[6], rho_vec) + 1e-15
     return [spmv(A[6].data, A[6].indices, A[6].indptr, rho_vec) / e1 - rho_vec]
 
 
