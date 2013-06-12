@@ -666,15 +666,15 @@ def _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
     rho_t_list = mesolve(H, rho0, tlist, c_ops, [], args=args, options=options).states
 
     if reverse:
-        # <A(t+tau)B(t)>
-        for t_idx, rho_t in enumerate(rho_t_list):
-            C_mat[t_idx, :] = mesolve(H, b_op * rho_t, taulist,
-                                      c_ops, [a_op], args=args, options=options).expect[0]
-    else:
         # <A(t)B(t+tau)>
         for t_idx, rho_t in enumerate(rho_t_list):
             C_mat[t_idx, :] = mesolve(H, rho_t * a_op, taulist,
                                       c_ops, [b_op], args=args, options=options).expect[0]
+    else:
+        # <A(t+tau)B(t)>
+        for t_idx, rho_t in enumerate(rho_t_list):
+            C_mat[t_idx, :] = mesolve(H, b_op * rho_t, taulist,
+                                      c_ops, [a_op], args=args, options=options).expect[0]
 
     return C_mat
 
