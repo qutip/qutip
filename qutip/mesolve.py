@@ -288,7 +288,10 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
     # construct liouvillian in list-function format
     #
     L_list = []
-    constant_func = lambda x, y: 1.0
+    if not opt.rhs_with_state:
+        constant_func = lambda x, y: 1.0
+    else:
+        constant_func = lambda x, y, z: 1.0
 
     # add all hamitonian terms to the lagrangian list
     for h_spec in H_list:
@@ -354,7 +357,10 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full())
-    r = scipy.integrate.ode(rho_list_td)
+    if not opt.rhs_with_state:
+        r = scipy.integrate.ode(drho_list_td)
+    else:
+        r = scipy.integrate.ode(drho_list_td_with_state)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -372,7 +378,7 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
 # evaluate drho(t)/dt according to the master equation using the
 # [Qobj, function] style time dependence API
 #
-def rho_list_td(t, rho, L_list, args):
+def drho_list_td(t, rho, L_list, args):
 
     L = L_list[0][0] * L_list[0][1](t, args)
     for n in range(1, len(L_list)):
@@ -384,6 +390,21 @@ def rho_list_td(t, rho, L_list, args):
             L = L + L_list[n][0] * (L_list[n][1](t, args)) ** 2
         else:
             L = L + L_list[n][0] * L_list[n][1](t, args)
+
+    return L * rho
+
+def drho_list_td_with_state(t, rho, L_list, args):
+
+    L = L_list[0][0] * L_list[0][1](t, rho, args)
+    for n in range(1, len(L_list)):
+        #
+        # L_args[n][0] = the sparse data for a Qobj in super-operator form
+        # L_args[n][1] = function callback giving the coefficient
+        #
+        if L_list[n][2]:
+            L = L + L_list[n][0] * (L_list[n][1](t, rho, args)) ** 2
+        else:
+            L = L + L_list[n][0] * L_list[n][1](t, rho, args)
 
     return L * rho
 
