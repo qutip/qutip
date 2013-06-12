@@ -75,6 +75,48 @@ def _sp_one_norm(op):
                             for k in range(op.shape[1])]))
 
 
+def sp_reshape(A, shape,format='csr'):
+    """
+    Reshapes a sparse matrix.
+    
+    Parameters
+    ----------
+    A : sparse_matrix
+        Input matrix in any format
+    shape : list/tuple
+        Desired shape of new matrix
+    format : string {'csr','coo','csc','lil'}
+        Optional string indicating desired output format
+    
+    Returns
+    -------
+    B : csr_matrix
+        Reshaped sparse matrix
+
+    """
+    if not hasattr(shape, '__len__') or len(shape) != 2:
+        raise ValueError('Shape must be a list of two integers')
+    C = A.tocoo()
+    nrows, ncols = C.shape
+    size = nrows * ncols
+    new_size =  shape[0] * shape[1]
+    if new_size != size:
+        raise ValueError('Total size of new array must be unchanged.')
+    flat_indices = ncols * C.row + C.col
+    new_row, new_col = divmod(flat_indices, shape[1])
+    B = sp.coo_matrix((C.data, (new_row, new_col)), shape=shape)
+    if format=='csr':
+        return B.tocsr()
+    elif format=='coo':
+        return B
+    elif format=='csc':
+        return B.tocsc()
+    elif format=='lil':
+        return B.tolil()
+    else:
+        raise ValueError('Return format not valid.')
+
+
 def sp_eigs(op, vecs=True, sparse=False, sort='low',
             eigvals=0, tol=0, maxiter=100000):
     """Returns Eigenvalues and Eigenvectors for Qobj.
