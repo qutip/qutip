@@ -187,6 +187,14 @@ cpdef cy_expect_rho_vec(object super_op, np.ndarray[CTYPE_t, ndim=2] rho_vec):
     return prod_vec.reshape((n, n)).diagonal().sum()
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef cy_expect_rho_vec1d(object super_op, np.ndarray[CTYPE_t, ndim=1] rho_vec):
+    cdef np.ndarray[CTYPE_t, ndim=2] prod_vec = spmv1d(super_op.data, super_op.indices, super_op.indptr, rho_vec)
+    cdef int n = <int>libc.math.sqrt(rho_vec.size)
+    return prod_vec.reshape((n, n)).diagonal().sum()
+
+
 
 
 

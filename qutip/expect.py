@@ -17,11 +17,15 @@
 #
 ###########################################################################
 
-from qutip.eseries import *
-from qutip.qobj import *
 import numpy as np
 import scipy.sparse as sp
 
+from qutip.qobj import Qobj, issuper, isoper
+from qutip.eseries import eseries
+from qutip.cyQ.spmatfuncs import cy_expect_rho_vec, cy_expect_rho_vec1d
+
+expect_rho_vec = cy_expect_rho_vec
+expect_rho_vec1d = cy_expect_rho_vec1d
 
 def expect(oper, state):
     '''Calculates the expectation value for operator and state(s).
