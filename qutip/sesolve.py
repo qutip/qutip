@@ -149,7 +149,10 @@ def _sesolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt,
     # construct liouvillian in list-function format
     #
     L_list = []
-    constant_func = lambda x, y: 1.0
+    if not opt.rhs_with_state:
+        constant_func = lambda x, y: 1.0
+    else:
+        constant_func = lambda x, y, z: 1.0
 
     # add all hamitonian terms to the lagrangian list
     for h_spec in H_list:
@@ -174,7 +177,10 @@ def _sesolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt,
     # setup integrator
     #
     initial_vector = psi0.full()
-    r = scipy.integrate.ode(psi_list_td)
+    if not opt.rhs_with_state:
+        r = scipy.integrate.ode(psi_list_td)
+    else:
+        r = scipy.integrate.ode(psi_list_td_with_state)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -204,6 +210,22 @@ def psi_list_td(t, psi, H_list_and_args):
         # args[n][1] = function callback giving the coefficient
         #
         H = H + H_list[n][0] * H_list[n][1](t, args)
+
+    return H * psi
+
+
+def psi_list_td_with_state(t, psi, H_list_and_args):
+
+    H_list = H_list_and_args[0]
+    args = H_list_and_args[1]
+
+    H = H_list[0][0] * H_list[0][1](t, psi, args)
+    for n in range(1, len(H_list)):
+        #
+        # args[n][0] = the sparse data for a Qobj in operator form
+        # args[n][1] = function callback giving the coefficient
+        #
+        H = H + H_list[n][0] * H_list[n][1](t, psi, args)
 
     return H * psi
 

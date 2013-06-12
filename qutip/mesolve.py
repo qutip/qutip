@@ -288,10 +288,10 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
     # construct liouvillian in list-function format
     #
     L_list = []
-    if not opt.rhs_with_state:
-        constant_func = lambda x, y: 1.0
-    else:
+    if opt.rhs_with_state:
         constant_func = lambda x, y, z: 1.0
+    else:
+        constant_func = lambda x, y: 1.0
 
     # add all hamitonian terms to the lagrangian list
     for h_spec in H_list:
@@ -357,10 +357,10 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full())
-    if not opt.rhs_with_state:
-        r = scipy.integrate.ode(drho_list_td)
-    else:
+    if opt.rhs_with_state:
         r = scipy.integrate.ode(drho_list_td_with_state)
+    else:
+        r = scipy.integrate.ode(drho_list_td)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -392,6 +392,7 @@ def drho_list_td(t, rho, L_list, args):
             L = L + L_list[n][0] * L_list[n][1](t, args)
 
     return L * rho
+
 
 def drho_list_td_with_state(t, rho, L_list, args):
 
