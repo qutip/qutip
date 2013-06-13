@@ -545,7 +545,7 @@ def _tdRHStd_with_state(t, psi, odeconfig):
 
 # RHS of ODE for python function Hamiltonian
 def _pyRHSc(t, psi, odeconfig):
-    h_func_data = odeconfig.h_funcs(t, odeconfig.h_func_args).data
+    h_func_data = - 1.0j * odeconfig.h_funcs(t, odeconfig.h_func_args).data
     h_func_term = spmv1d(h_func_data.data, h_func_data.indices,
                          h_func_data.indptr, psi)
     const_col_term = 0
@@ -557,7 +557,7 @@ def _pyRHSc(t, psi, odeconfig):
 
 # RHS of ODE for python function Hamiltonian
 def _pyRHSc_with_state(t, psi, odeconfig):
-    h_func_data = odeconfig.h_funcs(t, psi, odeconfig.h_func_args).data
+    h_func_data = - 1.0j * odeconfig.h_funcs(t, psi, odeconfig.h_func_args).data
     h_func_term = spmv1d(h_func_data.data, h_func_data.indices,
                          h_func_data.indptr, psi)
     const_col_term = 0
