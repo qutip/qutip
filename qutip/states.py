@@ -70,12 +70,12 @@ def basis(N, *args):
         basis(N, 1) = ground state
 
     """
-    if (not isinstance(N, int)) or N < 0:
+    if (not isinstance(N, (int,np.int64))) or N < 0:
         raise ValueError("N must be integer N>=0")
     if not any(args):  # if no args then assume vacuum state
         args = 0
-    if not isinstance(args, int):  # if input arg!=0
-        if not isinstance(args[0], int):
+    if not isinstance(args, (int,np.int64)):  # if input arg!=0
+        if not isinstance(args[0], (int,np.int64)):
             raise ValueError("need integer for basis vector index")
         args = args[0]
     if args < 0 or args > (N - 1):  # check if args is within bounds
