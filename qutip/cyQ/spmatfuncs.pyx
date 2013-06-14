@@ -166,6 +166,21 @@ cpdef np.ndarray[CTYPE_t, ndim=2] spmv_dia(np.ndarray[CTYPE_t, ndim=2] data, np.
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+def cy_expect_psi(object op, int isherm, np.ndarray[CTYPE_t, ndim=2] state):
+    cdef np.ndarray[CTYPE_t, ndim=2] y = spmv(op.data, op.indices, op.indptr, state)
+    cdef np.ndarray[CTYPE_t, ndim=2] x = state.conj().transpose()
+    cdef int num_rows = len(state)
+    cdef CTYPE_t dot = 0.0j
+    for row in range(num_rows):
+        dot+=x[0,row]*y[row,0]
+    if isherm:
+        return np.real(dot)
+    else:
+        return dot
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 def cy_expect(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,int isherm, np.ndarray[CTYPE_t, ndim=2] state):
     cdef np.ndarray[CTYPE_t, ndim=2] y = spmv(data,idx,ptr,state)
     cdef np.ndarray[CTYPE_t, ndim=2] x = state.conj().transpose()
