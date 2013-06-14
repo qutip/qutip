@@ -503,7 +503,7 @@ def _cRHStd(t, psi, odeconfig):
     return sys - 0.5 * np.sum(col, 0)
 
 
-# RHS of ODE for function-list based Hamiltonian
+# RHS of ODE for list-function based Hamiltonian
 def _tdRHStd(t, psi, odeconfig):
     const_term = spmv1d(odeconfig.h_data,
                         odeconfig.h_ind,
@@ -522,6 +522,7 @@ def _tdRHStd(t, psi, odeconfig):
         for j in odeconfig.c_td_inds])
     return (const_term - np.sum(h_func_term, 0)
             - 0.5 * np.sum(col_func_terms, 0))
+
 
 def _tdRHStd_with_state(t, psi, odeconfig):
     const_term = spmv1d(odeconfig.h_data,
@@ -545,25 +546,26 @@ def _tdRHStd_with_state(t, psi, odeconfig):
 
 # RHS of ODE for python function Hamiltonian
 def _pyRHSc(t, psi, odeconfig):
-    h_func_data = - 1.0j * odeconfig.h_funcs(t, odeconfig.h_func_args).data
+    h_func_data = - 1.0j * odeconfig.h_funcs(t, odeconfig.h_func_args)
     h_func_term = spmv1d(h_func_data.data, h_func_data.indices,
                          h_func_data.indptr, psi)
     const_col_term = 0
     if len(odeconfig.c_const_inds) > 0:
-        const_col_term = spmv1d(
-            odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr, psi)
+        const_col_term = spmv1d(odeconfig.h_data, odeconfig.h_ind,
+                                odeconfig.h_ptr, psi)
+
     return h_func_term + const_col_term
 
 
-# RHS of ODE for python function Hamiltonian
 def _pyRHSc_with_state(t, psi, odeconfig):
-    h_func_data = - 1.0j * odeconfig.h_funcs(t, psi, odeconfig.h_func_args).data
+    h_func_data = - 1.0j * odeconfig.h_funcs(t, psi, odeconfig.h_func_args)
     h_func_term = spmv1d(h_func_data.data, h_func_data.indices,
                          h_func_data.indptr, psi)
     const_col_term = 0
     if len(odeconfig.c_const_inds) > 0:
-        const_col_term = spmv1d(
-            odeconfig.h_data, odeconfig.h_ind, odeconfig.h_ptr, psi)
+        const_col_term = spmv1d(odeconfig.h_data, odeconfig.h_ind,
+                                odeconfig.h_ptr, psi)
+
     return h_func_term + const_col_term
 
 
@@ -1174,13 +1176,10 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
                        odeconfig=odeconfig)
         cgen.generate(name + ".pyx")
 
-    #--------------------------------------------
-    # END OF STRING TYPE TIME DEPENDENT CODE
-    #--------------------------------------------
 
-    #--------------------------------------------
-    # START PYTHON FUNCTION BASED TIME-DEPENDENCE
-    #--------------------------------------------
+    #-------------------------------------------------
+    # START PYTHON LIST-FUNCTION BASED TIME-DEPENDENCE
+    #-------------------------------------------------
     elif odeconfig.tflag in array([2, 20, 22]):
 
         # take care of Hamiltonian
@@ -1235,9 +1234,6 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             [Htd[k].data.indices for k in odeconfig.h_td_inds])
         odeconfig.h_td_ptr = array(
             [Htd[k].data.indptr for k in odeconfig.h_td_inds])
-        #--------------------------------------------
-        # END PYTHON FUNCTION BASED TIME-DEPENDENCE
-        #--------------------------------------------
 
     #--------------------------------------------
     # START PYTHON FUNCTION BASED HAMILTONIAN
