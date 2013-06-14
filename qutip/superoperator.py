@@ -23,7 +23,7 @@ import scipy.sparse as sp
 from scipy import prod, transpose, reshape
 from qutip.qobj import *
 from qutip.operators import destroy
-
+from qutip.sparse import sp_reshape
 
 def liouvillian(H, c_op_list):
     """Assembles the Liouvillian superoperator from a Hamiltonian
@@ -159,7 +159,7 @@ def operator_to_vector(op):
     q = Qobj()
     q.shape = [prod(op.shape), 1]
     q.dims = [op.dims, [1]] 
-    q.data = op.data.T.tolil().reshape(tuple(q.shape)).tocsr()
+    q.data = sp_reshape(op.data.T, tuple(q.shape))
     q.type = 'operator-vector'
     return q
 
@@ -172,7 +172,7 @@ def vector_to_operator(op):
     q = Qobj()
     q.shape = [op.dims[0][0][0], op.dims[0][1][0]]
     q.dims = op.dims[0] 
-    q.data = op.data.H.tolil().reshape(tuple(q.shape)).tocsr()
+    q.data = sp_reshape(op.data.H, tuple(q.shape))
     q.type = 'oper'
     return q
 
