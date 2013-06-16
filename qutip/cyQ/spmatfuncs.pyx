@@ -51,7 +51,7 @@ cpdef np.ndarray[CTYPE_t, ndim=2] spmv(np.ndarray[CTYPE_t, ndim=1] data, np.ndar
     """
     cdef Py_ssize_t row
     cdef int jj,row_start,row_end
-    cdef int num_rows=len(vec)
+    cdef int num_rows = vec.size
     cdef CTYPE_t dot
     cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)
     for row in range(num_rows):
@@ -91,7 +91,7 @@ cpdef np.ndarray[CTYPE_t, ndim=2] spmv1d(np.ndarray[CTYPE_t, ndim=1] data, np.nd
     """
     cdef Py_ssize_t row
     cdef int jj,row_start,row_end
-    cdef int num_rows=len(vec)
+    cdef int num_rows = vec.size
     cdef CTYPE_t dot
     cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)
     for row in range(num_rows):
@@ -108,7 +108,7 @@ cpdef np.ndarray[CTYPE_t, ndim=2] spmv1d(np.ndarray[CTYPE_t, ndim=1] data, np.nd
 @cython.wraparound(False)
 cpdef np.ndarray[CTYPE_t, ndim=2] cy_ode_rhs(double t, np.ndarray[CTYPE_t, ndim=1] rho, np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr):
     cdef int row, jj, row_start, row_end
-    cdef int num_rows=len(rho)
+    cdef int num_rows = rho.size
     cdef CTYPE_t dot
     cdef np.ndarray[CTYPE_t, ndim=2] out = np.zeros((num_rows,1),dtype=np.complex)
     for row from 0 <= row < num_rows:
@@ -169,9 +169,9 @@ cpdef np.ndarray[CTYPE_t, ndim=2] spmv_dia(np.ndarray[CTYPE_t, ndim=2] data, np.
 def cy_expect_psi(object op, int isherm, np.ndarray[CTYPE_t, ndim=2] state):
     cdef np.ndarray[CTYPE_t, ndim=2] y = spmv(op.data, op.indices, op.indptr, state)
     cdef np.ndarray[CTYPE_t, ndim=2] x = state.conj().transpose()
-    cdef int num_rows = len(state)
+    cdef int row, num_rows = state.size
     cdef CTYPE_t dot = 0.0j
-    for row in range(num_rows):
+    for row from 0 <= row < num_rows:
         dot+=x[0,row]*y[row,0]
     if isherm:
         return np.real(dot)
@@ -184,9 +184,9 @@ def cy_expect_psi(object op, int isherm, np.ndarray[CTYPE_t, ndim=2] state):
 def cy_expect(np.ndarray[CTYPE_t, ndim=1] data, np.ndarray[int] idx,np.ndarray[int] ptr,int isherm, np.ndarray[CTYPE_t, ndim=2] state):
     cdef np.ndarray[CTYPE_t, ndim=2] y = spmv(data,idx,ptr,state)
     cdef np.ndarray[CTYPE_t, ndim=2] x = state.conj().transpose()
-    cdef int num_rows = len(state)
+    cdef int row, num_rows = state.size
     cdef CTYPE_t dot = 0.0j
-    for row in range(num_rows):
+    for row from 0 <= row < num_rows:
         dot+=x[0,row]*y[row,0]
     if isherm:
         return np.real(dot)
