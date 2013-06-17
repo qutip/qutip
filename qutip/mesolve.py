@@ -32,7 +32,7 @@ import warnings
 
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian_fast, mat2vec, vec2mat
-from qutip.expect import expect
+from qutip.expect import expect, expect_rho_vec
 from qutip.odeoptions import Odeoptions
 from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
 from qutip.cyQ.codegen import Codegen
@@ -855,6 +855,7 @@ def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
     #
     n_tsteps = len(tlist)
     dt = tlist[1] - tlist[0]
+    e_sops_data = []
 
     output = Odedata()
     output.solver = "mesolve"
@@ -880,6 +881,7 @@ def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
             output.expect = []
             output.num_expect = n_expt_op
             for op in expt_ops:
+                e_sops_data.append(spre(op).data)
                 if op.isherm and rho0.isherm:
                     output.expect.append(np.zeros(n_tsteps))
                 else:
@@ -901,17 +903,21 @@ def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
         if not r.successful():
             break
 
-        rho.data = vec2mat(r.y)
+        if opt.store_states or expt_callback:
+            rho.data = vec2mat(r.y)
 
-        if opt.store_states:
-            output.states.append(Qobj(rho))
+            if opt.store_states:
+                output.states.append(Qobj(rho))
 
-        if expt_callback:
-            # use callback method
-            expt_ops(t, Qobj(rho))
+            if expt_callback:
+                # use callback method
+                expt_ops(t, rho)
 
         for m in range(n_expt_op):
-            output.expect[m][t_idx] = expect(expt_ops[m], rho)
+            if output.expect[m].dtype == complex:
+                output.expect[m][t_idx] = expect_rho_vec(e_sops_data[m], r.y)
+            else:
+                output.expect[m][t_idx] = np.real(expect_rho_vec(e_sops_data[m], r.y))
 
         r.integrate(r.t + dt)
 
@@ -924,14 +930,15 @@ def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
             pass
 
     if opt.store_final_state:
+        rho.data = vec2mat(r.y)
         output.final_state = Qobj(rho)
 
     return output
 
+
 # -----------------------------------------------------------------------------
 # Old style API below.
 # -----------------------------------------------------------------------------
-
 
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
