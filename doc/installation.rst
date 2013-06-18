@@ -251,6 +251,17 @@ The directory where the distutils.cfg file should be placed might be different i
     python setup.py install
 
 
+.. note::
+
+    In some cases, to get the dynamic compilation of Cython code to work, it
+    might be necessary to edit the PATH variable and make sure that
+    `C:\MinGW32-xy\bin` appears either *first* in the PATH list, or possibly
+    *right after* `C:\Python27\Lib\site-packages\PyQt4`. This is to make sure
+    that the right version of the MinGW compiler is used if more than one
+    is installed (not uncommon under Windows, since many packages are
+    distributed and installed with their own version of all dependencies).
+
+
 .. _install-verify:
 
 Verifying the Installation
