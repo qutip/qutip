@@ -34,6 +34,8 @@ Contributors
 
 **James Clemens** (Miami University - Ohio) - Bug hunter
 
+**Ben Criger** (Waterloo IQC) - Code contributor
+
 **Claudia Degrandi** (Yale University) - Documentation
 
 **Arne Grimsmo** (University of Auckland) - Code contributor, Bug hunter
@@ -58,9 +60,13 @@ Contributors
 
 **Florian Ong** (Institute for Quantum Computation) - Bug hunter
 
+**Frank Schima** - Macports packaging
+
 **Denis Vasilyev** (St. Petersburg State University) - Bug hunter
 
 **Simon Whalen** - Code contributor
+
+**W.M. Witzel** - Bug hunter
 
 **André Xuereb** (University of Hannover) - Bug hunter
 
