@@ -330,10 +330,14 @@ class Qobj():
                     self.dims[1] == other.dims[0]):
                 out = Qobj()
                 out.data = self.data * other.data
-                dims = [self.dims[0], other.dims[1]]                
-                mask = [dims[0][n] == dims[1][n] == 1 for n in range(len(dims[0]))]
-                out.dims = [max([1], [dims[0][n] for n in range(len(dims[0])) if not mask[n]]),
-                            max([1], [dims[1][n] for n in range(len(dims[0])) if not mask[n]])]
+                dims = [self.dims[0], other.dims[1]]
+                if not isinstance(dims[0][0], list):
+                    r = range(len(dims[0]))
+                    mask = [dims[0][n] == dims[1][n] == 1 for n in r]
+                    out.dims = [max([1], [dims[0][n] for n in r if not mask[n]]),
+                                max([1], [dims[1][n] for n in r if not mask[n]])]
+                else:
+                    out.dims = dims
                 out.shape = [self.shape[0], other.shape[1]]
                 out.type = ischeck(out)
                 out.isherm = hermcheck(out)
