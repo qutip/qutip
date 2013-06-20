@@ -348,14 +348,14 @@ class Qobj():
             else:
                 raise TypeError("Incompatible Qobj shapes")
 
-        if isinstance(other, (list, np.ndarray)):
+        elif isinstance(other, (list, np.ndarray)):
             # if other is a list, do element-wise multiplication
             return np.array([self * item for item in other])
 
-        if _checkeseries(other) == 'eseries':
+        elif _checkeseries(other) == 'eseries':
             return other.__rmul__(self)
 
-        if isinstance(other, (int, float, complex, np.int64)):
+        elif isinstance(other, (int, float, complex, np.int64)):
             out = Qobj(type=self.type)
             out.data = self.data * other
             out.dims = self.dims
