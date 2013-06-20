@@ -52,7 +52,7 @@ def super_to_choi(q_oper):
     Takes a superoperator to a Choi matrix
     #TODO Sanitize input, incorporate as method on Qobj if type=='super'
     """
-    data = q_oper.data.todense()
+    data = q_oper.data.toarray()
     sqrt_shape = sqrt(data.shape[0])
     return Qobj(dims=q_oper.dims,
                 inpt=data.reshape([sqrt_shape] * 4).\
@@ -74,9 +74,9 @@ def choi_to_kraus(q_oper):
     strict sub-class of Qobj.
     """
     vals, vecs = eig(q_oper.data.todense())
-    vecs = map(array, zip(*vecs))
-    return map(lambda x: Qobj(inpt=x),
-               [sqrt(vals[j]) * vec2mat(vecs[j]) for j in range(len(vals))])
+    vecs = list(map(array, zip(*vecs)))
+    return list(map(lambda x: Qobj(inpt=x),
+               [sqrt(vals[j]) * vec2mat(vecs[j]) for j in range(len(vals))]))
 
 
 def kraus_to_choi(kraus_list):
@@ -84,15 +84,15 @@ def kraus_to_choi(kraus_list):
     Takes a list of Kraus operators and returns the Choi matrix for the channel
     represented by the Kraus operators in `kraus_list`    
     """
-    kraus_list=map(lambda x: matrix(x.data.todense()),kraus_list)
-    op_len = len(kraus_list[0])
+    kraus_mat_list = list(map(lambda x: matrix(x.data.todense()), kraus_list))
+    op_len = len(kraus_mat_list[0])
     op_rng = range(op_len)
-    choi_blocks = array([[reduce(add,
-                           [op[:, c_ix]*array([op.H[r_ix, :]])
-                           for op in kraus_list])
-                           for r_ix in op_rng]
-                           for c_ix in op_rng])
-    return Qobj(inpt=hstack(hstack(choi_blocks)))
+    choi_blocks = array([[sum([op[:, c_ix]*array([op.H[r_ix, :]])
+                               for op in kraus_mat_list])
+                               for r_ix in op_rng]
+                               for c_ix in op_rng])
+    return Qobj(inpt=hstack(hstack(choi_blocks)),
+                dims=[kraus_list[0].dims, kraus_list[0].dims])
 
 
 def kraus_to_super(kraus_list):

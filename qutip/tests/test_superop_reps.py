@@ -31,7 +31,7 @@ import scipy
 from qutip.qobj import Qobj
 from qutip.operators import create, destroy, jmat
 from qutip.propagator import propagator
-
+from qutip.random_objects import rand_herm
 from qutip.superop_reps import (super_to_choi, choi_to_kraus,
                                 choi_to_super, kraus_to_choi)
 
@@ -47,27 +47,26 @@ class TestSuperopReps(object):
         """
         Superoperator: Converting superoperator to Choi matrix and back.  
         """
-        h_5 = scipy.rand(5, 5)
-        h_5 = Qobj(inpt=h_5 * h_5.H)
-        superoperator = propagator(h_5, scipy.rand,
+        h_5 = rand_herm(5)
+        superoperator = propagator(h_5, scipy.rand(),
                                    [create(5), destroy(5), jmat(2,'z')])
         choi_matrix=super_to_choi(superoperator)
         test_supe=choi_to_super(choi_matrix)
-        assert_(norm(test_supe - superoperator) == 0.0)
+        assert_((test_supe - superoperator).norm() < 1e-12)
 
 
     def test_ChoiKrausChoi(self):
         """
         Superoperator: Converting superoperator to Choi matrix and back.  
         """
-        h_5 = scipy.rand(5, 5)
-        h_5 = Qobj(inpt=h_5 * h_5.H)
-        superoperator = propagator(h_5, scipy.rand,
+        h_5 = rand_herm(5)
+        superoperator = propagator(h_5, scipy.rand(),
                                    [create(5), destroy(5), jmat(2,'z')])
-        choi_matrix=super_to_choi(superoperator)
-        kraus_ops=choi_to_kraus(choi_matrix)
-        test_choi=kraus_to_choi(kraus_ops)
-        assert_(norm(test_choi - choi_matrix) == 0.0)
+        choi_matrix = super_to_choi(superoperator)
+        kraus_ops = choi_to_kraus(choi_matrix)
+        test_choi = kraus_to_choi(kraus_ops)
+        assert_((test_choi - choi_matrix).norm() < 1e-12)
+
 
 if __name__ == "__main__":
     run_module_suite()
