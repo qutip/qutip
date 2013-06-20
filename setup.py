@@ -30,17 +30,11 @@ Operating System :: Windows
 # import statements
 import os
 import sys
-import shutil
-import fnmatch
 import re
-import subprocess
-import warnings
-from distutils.core import Extension, Command
-from distutils.command.install import install
+from distutils.core import Command
 from unittest import TextTestRunner, TestLoader
 from glob import glob
 from os.path import splitext, basename, join as pjoin
-from os import walk
 import numpy as np
 from numpy.distutils.core import setup
 from numpy.distutils.system_info import get_info
