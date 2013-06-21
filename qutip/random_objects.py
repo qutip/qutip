@@ -213,7 +213,7 @@ def rand_kraus_map(N, dims=None):
     big_unitary = rand_unitary(N ** 3).data.todense()
     orthog_cols = np.array(big_unitary[:, :N])
     oper_list = np.reshape(orthog_cols,(N ** 2, N, N))
-    return map(lambda x: Qobj(inpt=x,dims=dims), oper_list)
+    return list(map(lambda x: Qobj(inpt=x,dims=dims), oper_list))
 
 def _check_dims(dims, N1, N2):
     if len(dims) != 2:
