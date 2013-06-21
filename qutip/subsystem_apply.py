@@ -81,7 +81,7 @@ def subsystem_apply(state, channel, mask, reference=False):
     # the same dimensions:
     aff_subs_dim_ar = transpose(array(state.dims))[array(mask)]
 
-    assert all([aff_subs_dim_ar[j] == aff_subs_dim_ar[0]
+    assert all([(aff_subs_dim_ar[j] == aff_subs_dim_ar[0]).all()
                    for j in range(len(aff_subs_dim_ar))]), \
         "Affected subsystems must have the same dimension. Given:" +\
         repr(aff_subs_dim_ar)
@@ -90,10 +90,11 @@ def subsystem_apply(state, channel, mask, reference=False):
     # as the affected subsystem. If it is on the Liouville space, it must
     # exist on a space as large as the square of the Hilbert dimension.
     if issuper(channel):
-        required_shape = map(lambda x: x ** 2, aff_subs_dim_ar[0])
+        required_shape = list(map(lambda x: x ** 2, aff_subs_dim_ar[0]))
     else:
         required_shape = aff_subs_dim_ar[0]
-    assert all(channel.shape == required_shape),\
+
+    assert array([channel.shape == required_shape]).all(), \
     "Superoperator dimension must be the subsystem dimension squared, given: "\
     + repr(channel.shape)
 
@@ -145,7 +146,7 @@ def _one_subsystem_apply(state, channel, idx):
     # Apply channel to top subsystem of each block in matrix
     full_data_matrix = state.data.todense()
 
-    if all(isreal(full_data_matrix)):
+    if isreal(full_data_matrix).all():
         full_data_matrix = full_data_matrix.astype(complex)
 
     for blk_r in range(n_blks):
@@ -178,7 +179,7 @@ def _top_apply_U(block, channel):
     the leftmost register in the tensor product, given a unitary matrix
     for a channel.
     """
-    if all(isreal(block)):
+    if isreal(block).all():
         block = block.astype(complex)
     split_mat = _block_split(block, *channel.shape)
     # print split_mat
@@ -257,10 +258,10 @@ def _subsystem_apply_reference(state, channel, mask):
         return full_oper * state * full_oper.dag()
     else:
         # Go to Choi, then Kraus
-        chan_mat = array(channel.data.todense())
-        choi_matrix = super_to_choi(chan_mat)
-        vals, vecs = eig(choi_matrix)
-        vecs = map(array, zip(*vecs))
+        #chan_mat = array(channel.data.todense())
+        choi_matrix = super_to_choi(channel)
+        vals, vecs = eig(choi_matrix.full())
+        vecs = list(map(array, zip(*vecs)))
         kraus_list = [sqrt(vals[j]) * vec2mat(vecs[j])
                       for j in range(len(vals))]
         # Kraus operators to be padded with identities:
@@ -268,10 +269,10 @@ def _subsystem_apply_reference(state, channel, mask):
         rho_out = Qobj(inpt=zeros(state.shape), dims=state.dims)
         for operator_iter in k_qubit_kraus_list:
             operator_iter = iter(operator_iter)
-            op_iter_list = [operator_iter.next() if mask[j]
+            op_iter_list = [next(operator_iter) if mask[j]
                             else qeye(state.dims[0][j])
                             for j in range(len(state.dims[0]))]
-            full_oper = tensor(map(Qobj, op_iter_list))
+            full_oper = tensor(list(map(Qobj, op_iter_list)))
             rho_out = rho_out + full_oper * state * full_oper.dag()
         return Qobj(rho_out)
 """
