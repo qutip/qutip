@@ -99,6 +99,8 @@ class Qobj():
         Returns the matrix element of operator between `bra` and `ket` vectors.
     norm(oper_norm='tr',sparse=False,tol=0,maxiter=100000)
         Returns norm of operator.
+    permute(order)
+        Returns composite qobj with indices reordered.
     ptrace(sel)
         Returns quantum object for selected dimensions after performing
         partial trace.
