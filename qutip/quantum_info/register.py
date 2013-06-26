@@ -16,25 +16,49 @@
 # Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
+from qutip.qobj import *
 from qutip.states import basis
 from qutip.tensor import tensor
 
 
-def quantum_register(N,state=None):
+class Register(Qobj):
+    """A class for representing quantum registers.  Subclass
+    of the quantum object (Qobj) class.
     """
-    Creates a quantum register of N qubits.
+    def __init__(self,N,state=None):
+        if state==None:
+            reg=tensor([basis(2) for k in range(N)])
+        Qobj.__init__(self, reg.data, reg.dims, reg.shape,
+                 reg.type, reg.isherm, fast=False)
+        
+    def width(self):
+        # gives the number of qubits in register.
+        return len(self.dims[0])
+
+    def __str__(self):
+        s = ""
+        if self.type == 'oper' or self.type == 'super':
+            s += ("Quantum Register: " +
+                  "dims = " + str(self.dims) +
+                  ", shape = " + str(self.shape) +
+                  ", type = " + self.type +
+                  ", isherm = " + str(self.isherm) + "\n")
+        else:
+            s += ("Quantum Register: " +
+                  "dims = " + str(self.dims) +
+                  ", shape = " + str(self.shape) +
+                  ", type = " + self.type + "\n")
+        s += "Register data =\n"
+        if all(np.imag(self.data.data) == 0):
+            s += str(np.real(self.full()))
+        else:
+            s += str(self.full())
+        return s
     
-    Parameters
-    ----------
-    N : int
-        Number of qubits in register.
-    
-    Returns
-    -------
-    reg : qobj
-        Quantum register for N qubits.
-    
-    """
-    if state==None:
-        return tensor([basis(2) for k in range(N)])
+    def __repr__(self):
+        # give complete information on register without print statement in
+        # command-line we cant realistically serialize a Qobj into a string,
+        # so we simply return the informal __str__ representation instead.)
+        return self.__str__()
+
 
