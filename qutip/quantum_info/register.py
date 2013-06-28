@@ -22,14 +22,19 @@ from qutip.states import *
 from qutip.operators import *
 from qutip.tensor import tensor
 from qutip.gates import *
+from qutip.quantum_info.utils import _reg_str2array
 
 class Register(Qobj):
     """A class for representing quantum registers.  Subclass
     of the quantum object (Qobj) class.
     """
     def __init__(self,N,state=None):
+        #construct register intial state
         if state==None:
             reg=tensor([basis(2) for k in range(N)])
+        if isinstance(state,str):
+            state=_reg_str2array(state,N)
+            reg=tensor([basis(2,state[k]) for k in state])
         Qobj.__init__(self, reg.data, reg.dims, reg.shape,
                  reg.type, reg.isherm, fast=False)
         
@@ -40,7 +45,7 @@ class Register(Qobj):
     def __str__(self):
         s = ""
         s += ("Quantum Register: " +
-            ", width = " + self.width() + "\n")
+            ", width = " + str(self.width()) + ", type = " + self.type + "\n")
         s += "Register data =\n"
         if all(np.imag(self.data.data) == 0):
             s += str(np.real(self.full()))
@@ -63,7 +68,11 @@ class Register(Qobj):
         _reg_input_check(target,self.width()) 
         H=1.0 / sqrt(2.0) * (sigmaz()+sigmax())
         reg_gate=_single_op_reg_gate(H,target,self.width())
-        self.data=(reg_gate*self).data
+        if self.type=='ket':
+            self.data=(reg_gate*self).data
+        else:
+            self.data=(reg_gate*self*reg_gate.dag()).data
+            
         
     def apply_not(self,target):
         #Applies NOT gate (sigmax) to target qubits

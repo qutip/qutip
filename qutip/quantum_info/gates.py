@@ -18,10 +18,10 @@
 ###########################################################################
 from numpy import sqrt, array, exp, where, prod
 import scipy.sparse as sp
-from qutip.states import qstate, state_number_index, state_number_enumerate
+from qutip.states import basis, qstate, state_number_index, state_number_enumerate
 from qutip.qobj import Qobj
-
-
+from qutip.operators import *
+from qutip.tensor import tensor
 def cnot():
     """
     Quantum object representing the CNOT gate.
@@ -43,11 +43,11 @@ shape = [4, 4], type = oper, isHerm = True
          [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]]
 
     """
-    uu = qstate('uu')
-    ud = qstate('ud')
-    du = qstate('du')
-    dd = qstate('dd')
-    Q = dd * dd.dag() + du * du.dag() + uu * ud.dag() + ud * uu.dag()
+    uu = tensor(basis(2),basis(2))
+    ud = tensor(basis(2),basis(2,1))
+    du = tensor(basis(2,1),basis(2))
+    dd = tensor(basis(2,1),basis(2,1))
+    Q = uu * uu.dag() + ud * ud.dag() + dd * du.dag() + du * dd.dag()
     return Qobj(Q)
 
 
@@ -278,11 +278,10 @@ shape = [2, 2], type = oper, isHerm = True
      [ 0.70710678+0.j -0.70710678+0.j]]
 
     """
-    u = qstate('u')
-    d = qstate('d')
-    Q = 1.0 / sqrt(2.0) * (d * d.dag() + u * d.dag() +
-                           d * u.dag() - u * u.dag())
-    return Qobj(Q)
+    u = basis(2,0)
+    d = basis(2,1)
+    Q = 1.0 / sqrt(2.0) * (sigmax()+sigmaz())
+    return Q
 
 
 def phasegate(theta):

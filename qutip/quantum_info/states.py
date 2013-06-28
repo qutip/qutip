@@ -21,64 +21,64 @@ from qutip.states import basis
 from qutip.tensor import tensor
 
 
-def bell_state1():
+def bell_state00():
     """
-    Returns the Bell state:
+    Returns the B00 Bell state:
     
-        |B1>=1/sqrt(2)*[|0>|0>+|1>|1>]
+        |B00>=1/sqrt(2)*[|0>|0>+|1>|1>]
     
     Returns
     -------
-    B1 : qobj
-        B1 Bell state
+    B00 : qobj
+        B00 Bell state
     
     """
     B=tensor(basis(2),basis(2))+tensor(basis(2,1),basis(2,1))
     return B.unit()
 
 
-def bell_state2():
+def bell_state01():
     """
-    Returns the Bell state:
+    Returns the B01 Bell state:
     
-        |B1>=1/sqrt(2)*[|0>|0>-|1>|1>]
+        |B01>=1/sqrt(2)*[|0>|0>-|1>|1>]
     
     Returns
     -------
-    B2 : qobj
-        B2 Bell state
+    B01 : qobj
+        B01 Bell state
     
     """
     B=tensor(basis(2),basis(2))-tensor(basis(2,1),basis(2,1))
     return B.unit()
 
     
-def bell_state3():
+def bell_state10():
     """
-    Returns the Bell state:
+    Returns the B10 Bell state:
     
-        |B3>=1/sqrt(2)*[|0>|1>+|1>|0>]
+        |B10>=1/sqrt(2)*[|0>|1>+|1>|0>]
     
     Returns
     -------
-    B4 : qobj
-        B4 Bell state
+    B10 : qobj
+        B10 Bell state
     
     """
     B=tensor(basis(2),basis(2,1))+tensor(basis(2,1),basis(2))
     return B.unit()
 
 
-def bell_state4():
+def bell_state11():
     """
-    Returns the Bell state:
+    Returns the B11 Bell state:
     
-        |B4>=1/sqrt(2)*[|0>|1>-|1>|0>]
+        |B11>=1/sqrt(2)*[|0>|1>-|1>|0>]
     
     Returns
     -------
-    B4 : qobj
-        B4 Bell state
+    B11 : qobj
+        B11 Bell state
     
     """
     B=tensor(basis(2),basis(2,1))-tensor(basis(2,1),basis(2))
