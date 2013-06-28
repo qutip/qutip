@@ -39,17 +39,8 @@ class Register(Qobj):
     
     def __str__(self):
         s = ""
-        if self.type == 'oper' or self.type == 'super':
-            s += ("Quantum Register: " +
-                  "dims = " + str(self.dims) +
-                  ", shape = " + str(self.shape) +
-                  ", type = " + self.type +
-                  ", isherm = " + str(self.isherm) + "\n")
-        else:
-            s += ("Quantum Register: " +
-                  "dims = " + str(self.dims) +
-                  ", shape = " + str(self.shape) +
-                  ", type = " + self.type + "\n")
+        s += ("Quantum Register: " +
+            ", width = " + self.width() + "\n")
         s += "Register data =\n"
         if all(np.imag(self.data.data) == 0):
             s += str(np.real(self.full()))
@@ -64,25 +55,47 @@ class Register(Qobj):
     # Gate operations begin here
     ########################################################
     
+    #Single Qubit gates
+    #----------------------
     def apply_hadamard(self, target):
         #Applies Hadamard gate to target qubits
         target=np.asarray(target)
-        _reg_input_check(target,self.width())
-        u=basis(2,0)
-        d=basis(2,1)
-        I=qeye(2)  
+        _reg_input_check(target,self.width()) 
         H=1.0 / sqrt(2.0) * (sigmaz()+sigmax())
-        if 0 in target:
-            op_list=[H]
-        else:
-            op_list=[I]
-        for kk in range(1,self.width()):
-            if kk in target:
-                op_list+=[H]
-            else:
-                op_list+=[I]    
-        reg_gate=tensor(op_list)  
-        #apply reg_gate to register
+        reg_gate=_single_op_reg_gate(H,target,self.width())
+        self.data=(reg_gate*self).data
+        
+    def apply_not(self,target):
+        #Applies NOT gate (sigmax) to target qubits
+        target=np.asarray(target)
+        _reg_input_check(target,self.width())
+        reg_gate=_single_op_reg_gate(sigmax(),target,self.width())
+        self.data=(reg_gate*self).data
+    
+    def apply_sigmaz(self,target):
+        #Applies sigmaz to target qubits
+        target=np.asarray(target)
+        _reg_input_check(target,self.width())
+        reg_gate=_single_op_reg_gate(sigmaz(),target,self.width())
+        self.data=(reg_gate*self).data
+    
+    def apply_sigmay(self,target):
+        #Applies sigmaz to target qubits
+        target=np.asarray(target)
+        _reg_input_check(target,self.width())
+        reg_gate=_single_op_reg_gate(sigmay(),target,self.width())
+        self.data=(reg_gate*self).data
+    
+    def apply_sigmax(self,target):
+        #Applies sigmax, same as NOT
+        self.apply_not(self,target,self.width())
+    
+    def apply_phasegate(self, target, phase=0):
+        #Applies phase gate to target qubits
+        target=np.asarray(target)
+        _reg_input_check(target,self.width()) 
+        P=fock_dm(2,0)+np.exp(1.0j*phase)*fock_dm(2,1)
+        reg_gate=_single_op_reg_gate(P,target,self.width())
         self.data=(reg_gate*self).data
 
 
@@ -96,7 +109,6 @@ def _reg_input_check(A,width):
     Checks if all elements of input are integers >=0
     and that they are within the register width.
     """
-    A=np.asarray(A)
     int_check=np.equal(np.mod(A, 1), 0)
     if np.any(int_check==False):
         raise TypeError('Target and control qubit indices must be integers.')
@@ -104,4 +116,38 @@ def _reg_input_check(A,width):
         raise ValueError('Target and control qubit indices must be positive.')
     if np.any(A>width-1):
         raise ValueError('Qubit indices must be within the register width.')
+
+
+def _single_op_reg_gate(op,target,width):
+    """
+    Constructs register gate composed of single-qubit operators
+    """
+    I=qeye(2)  
+    H=1.0 / sqrt(2.0) * (sigmaz()+sigmax())
+    if 0 in target:
+        op_list=[op]
+    else:
+        op_list=[I]
+    for kk in range(1,width):
+        if kk in target:
+            op_list+=[op]
+        else:
+            op_list+=[I]    
+    return tensor(op_list)
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
