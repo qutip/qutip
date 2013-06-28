@@ -123,7 +123,6 @@ def _single_op_reg_gate(op,target,width):
     Constructs register gate composed of single-qubit operators
     """
     I=qeye(2)  
-    H=1.0 / sqrt(2.0) * (sigmaz()+sigmax())
     if 0 in target:
         op_list=[op]
     else:
