@@ -234,7 +234,6 @@ from qutip.random_objects import *
 from qutip.simdiag import *
 from qutip.entropy import (entropy_vn, entropy_linear, entropy_mutual,
                            concurrence, entropy_conditional)
-from qutip.gates import *
 from qutip.metrics import fidelity, tracedist
 from qutip.partial_transpose import partial_transpose
 from qutip.continuous_variables import *
