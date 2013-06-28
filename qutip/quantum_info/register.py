@@ -16,10 +16,12 @@
 # Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
+import numpy as np
 from qutip.qobj import *
-from qutip.states import basis
+from qutip.states import *
+from qutip.operators import *
 from qutip.tensor import tensor
-
+from qutip.gates import *
 
 class Register(Qobj):
     """A class for representing quantum registers.  Subclass
@@ -34,7 +36,7 @@ class Register(Qobj):
     def width(self):
         # gives the number of qubits in register.
         return len(self.dims[0])
-
+    
     def __str__(self):
         s = ""
         if self.type == 'oper' or self.type == 'super':
@@ -56,9 +58,50 @@ class Register(Qobj):
         return s
     
     def __repr__(self):
-        # give complete information on register without print statement in
-        # command-line we cant realistically serialize a Qobj into a string,
-        # so we simply return the informal __str__ representation instead.)
         return self.__str__()
+    
+    ########################################################
+    # Gate operations begin here
+    ########################################################
+    
+    def apply_hadamard(self, target):
+        #Applies Hadamard gate to target qubits
+        target=np.asarray(target)
+        _reg_input_check(target,self.width())
+        u=basis(2,0)
+        d=basis(2,1)
+        I=qeye(2)  
+        H=1.0 / sqrt(2.0) * (sigmaz()+sigmax())
+        if 0 in target:
+            op_list=[H]
+        else:
+            op_list=[I]
+        for kk in range(1,self.width()):
+            if kk in target:
+                op_list+=[H]
+            else:
+                op_list+=[I]    
+        reg_gate=tensor(op_list)  
+        #apply reg_gate to register
+        self.data=(reg_gate*self).data
 
+
+
+########################################################
+# End Register class
+########################################################
+
+def _reg_input_check(A,width):
+    """
+    Checks if all elements of input are integers >=0
+    and that they are within the register width.
+    """
+    A=np.asarray(A)
+    int_check=np.equal(np.mod(A, 1), 0)
+    if np.any(int_check==False):
+        raise TypeError('Target and control qubit indices must be integers.')
+    if np.any(A<0):
+        raise ValueError('Target and control qubit indices must be positive.')
+    if np.any(A>width-1):
+        raise ValueError('Qubit indices must be within the register width.')
 
