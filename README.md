@@ -44,3 +44,5 @@ All contributions are acknowledged in the
 [contributors](http://github.com/qutip/qutip-doc/blob/master/contributors.rst)
 section in the documentation.
 
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/qutip/qutip/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
