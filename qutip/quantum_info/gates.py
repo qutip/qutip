@@ -308,7 +308,7 @@ shape = [2, 2], type = oper, isHerm = False
      [ 0.00000000+0.j          0.70710678+0.70710678j]]
 
     """
-    u = qstate('u')
-    d = qstate('d')
-    Q = d * d.dag() + (exp(1.0j * theta) * u * u.dag())
+    u = basis(2)
+    d = basis(2,1)
+    Q = u * u.dag() + (exp(1.0j * theta) * d * d.dag())
     return Qobj(Q)
