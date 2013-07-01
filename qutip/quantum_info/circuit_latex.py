@@ -36,7 +36,7 @@ def _latex_pdf(name):
         stdout, stderr = process.communicate()
         success=1
     except:
-        print 'pdflatex binary not found.'
+        print('pdflatex binary not found.')
         success=0
     if success:
         try:
@@ -48,11 +48,11 @@ def _latex_pdf(name):
 
 
 def _latex_preamble():
-    string="\documentclass[class=minimal,border=0pt]{standalone}\n"
-    string+="\usepackage{tikz}\n"
-    string+="\usetikzlibrary{backgrounds,fit,decorations.pathreplacing}\n"
-    string+="\\newcommand{\ket}[1]{\ensuremath{\left|#1\\right\\rangle}}\n"
-    string+='\\begin{document}\n'
+    string = "\\documentclass[class=minimal,border=0pt]{standalone}\n"
+    string += "\\usepackage{tikz}\n"
+    string += "\\usetikzlibrary{backgrounds,fit,decorations.pathreplacing}\n"
+    string += "\\newcommand{\\ket}[1]{\\ensuremath{\left|#1\\right\\rangle}}\n"
+    string += '\\begin{document}\n'
     return string
 
 def _latex_ending():
