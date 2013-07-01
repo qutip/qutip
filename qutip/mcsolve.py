@@ -386,17 +386,30 @@ class _MC_class():
             self.odeconfig.progress_bar.update(self.count)
 
 
-    def parallel(self, args, top=None):
+    def serial(self, args):
 
         if debug:
             print(inspect.stack()[0][3])
 
+        for nt in range(self.odeconfig.ntraj):
+            self.callback(_mc_alg_evolve(nt, args, self.odeconfig))
+
+
+    def parallel(self, args, top):
+
+        if debug:
+            print(inspect.stack()[0][3])
+
+        if self.cpus == 1:
+            self.serial(args)
+            return
+
         pl = Pool(processes=self.cpus)
-        [pl.apply_async(_mc_alg_evolve,
-                        args=(nt, args, self.odeconfig),
-                        callback=top.callback)
-         for nt in range(0, self.odeconfig.ntraj)]
+        for nt in range(self.odeconfig.ntraj):
+            pl.apply_async(_mc_alg_evolve, args=(nt, args, self.odeconfig),
+                           callback=top.callback)
         pl.close()
+
         try:
             pl.join()
         except KeyboardInterrupt:
@@ -404,7 +417,7 @@ class _MC_class():
             pl.terminate()
             pl.join()
         return
-    #-----
+
 
     def run(self):
 
@@ -525,23 +538,26 @@ def _tdRHStd(t, psi, odeconfig):
 
 
 def _tdRHStd_with_state(t, psi, odeconfig):
+
     const_term = spmv1d(odeconfig.h_data,
                         odeconfig.h_ind,
                         odeconfig.h_ptr, psi)
-    h_func_term = array([odeconfig.h_funcs[j](t, psi, odeconfig.h_func_args) *
-                         spmv1d(odeconfig.h_td_data[j],
-                                odeconfig.h_td_ind[j],
-                                odeconfig.h_td_ptr[j], psi)
-                         for j in odeconfig.h_td_inds])
-    col_func_terms = array([np.abs(
-        odeconfig.c_funcs[j](t, odeconfig.c_func_args)) ** 2 *
+
+    h_func_term = array([
+        odeconfig.h_funcs[j](t, psi, odeconfig.h_func_args) *
+        spmv1d(odeconfig.h_td_data[j],
+               odeconfig.h_td_ind[j],
+               odeconfig.h_td_ptr[j], psi) 
+        for j in odeconfig.h_td_inds])
+
+    col_func_terms = array([
+        np.abs(odeconfig.c_funcs[j](t, odeconfig.c_func_args)) ** 2 *
         spmv1d(odeconfig.n_ops_data[j],
                odeconfig.n_ops_ind[j],
-               odeconfig.n_ops_ptr[j],
-               psi)
+               odeconfig.n_ops_ptr[j], psi)
         for j in odeconfig.c_td_inds])
-    return (const_term - np.sum(h_func_term, 0)
-            - 0.5 * np.sum(col_func_terms, 0))
+
+    return (const_term - np.sum(h_func_term, 0) - 0.5 * np.sum(col_func_terms, 0))
 
 
 # RHS of ODE for python function Hamiltonian
