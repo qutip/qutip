@@ -316,7 +316,7 @@ def steadystate_iterative(H, c_ops, use_precond=True):
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2)
     b[0] = 1.0
-    A = L.data + sp.csr_matrix((np.ones(n), (np.zeros(n), \
+    A = L.data.tocsc() + sp.csc_matrix((np.ones(n), (np.zeros(n), \
             [nn * (n + 1) for nn in range(n)])), shape=(n ** 2, n ** 2))
 
     if use_precond:
