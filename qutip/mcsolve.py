@@ -929,7 +929,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
         else:
             return nt, mc_alg_out, array(collapse_times), array(which_oper)
 
-    except Expection as e:
+    except Exception as e:
         print("failed to run _mc_alg_evolve: " + str(e))
 
 
