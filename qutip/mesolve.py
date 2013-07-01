@@ -676,10 +676,10 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt,
         raise TypeError('Time-dependent coefficients must be list with ' +
                         'length N-1 where N is the number of ' +
                         'Hamiltonian terms.')
+
     if opt.rhs_reuse and odeconfig.tdfunc is None:
-        print("No previous time-dependent RHS found.")
-        print("Generating one for you...")
         rhs_generate(H_func, args)
+
     lenh = len(H_func[0])
     if opt.tidy:
         H_func[0] = [(H_func[0][k]).tidyup() for k in range(lenh)]
