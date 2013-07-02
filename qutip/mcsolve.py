@@ -386,13 +386,13 @@ class _MC_class():
             self.odeconfig.progress_bar.update(self.count)
 
 
-    def serial(self, args):
+    def serial(self, args, top):
 
         if debug:
             print(inspect.stack()[0][3])
 
         for nt in range(self.odeconfig.ntraj):
-            self.callback(_mc_alg_evolve(nt, args, self.odeconfig))
+            top.callback(_mc_alg_evolve(nt, args, self.odeconfig))
 
 
     def parallel(self, args, top):
@@ -401,7 +401,7 @@ class _MC_class():
             print(inspect.stack()[0][3])
 
         if self.cpus == 1:
-            self.serial(args)
+            self.serial(args, top)
             return
 
         pl = Pool(processes=self.cpus)
