@@ -303,7 +303,7 @@ def steady_direct_sparse(L, use_umfpack=True):
 
     use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
     M.sort_indices()  
-    v = spsolve(M, b, permc_spec="MMD_AT_PLUS_A", use_umfpack=use_umfpack)
+    v = spsolve(M, b, use_umfpack=use_umfpack)
     
     return Qobj(vec2mat(v), dims=L.dims[0], isherm=True)
 
@@ -321,7 +321,7 @@ def steadystate_iterative(H, c_ops, use_precond=True):
 
     if use_precond:
         try:
-            P = spilu(A, permc_spec='MMD_AT_PLUS_A')
+            P = spilu(A)
             P_x = lambda x: P.solve(x)
             M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
         except:
@@ -330,10 +330,11 @@ def steadystate_iterative(H, c_ops, use_precond=True):
             M = None
     else:
         M = None
-
-    v, check = bicgstab(A, b, tol=1e-5, M=M)
-
-    return Qobj(vec2mat(v), dims=L.dims[0], isherm=True)
+    v, check = lgmres(A, b, tol=1e-5, M=M, maxiter=5000)
+    if check!=0:
+        print("Steadystate solver did not reach tolerance after "+str(check)+" steps.")
+    out=Qobj(vec2mat(v), dims=L.dims[0])
+    return 0.5*(out+out.dag())
 
 
 def steady_direct_dense(L):
