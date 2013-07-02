@@ -181,9 +181,10 @@ def _top_apply_U(block, channel):
     """
     if isreal(block).all():
         block = block.astype(complex)
+
     split_mat = _block_split(block, *channel.shape)
-    # print split_mat
     temp_split_mat = zeros(shape(split_mat)).astype(complex)
+
     for dm_row_idx in range(channel.shape[0]):
         for dm_col_idx in range(channel.shape[1]):
             for op_row_idx in range(channel.shape[0]):
@@ -200,17 +201,17 @@ def _top_apply_S(block, channel):
     # If the channel is a super-operator,
     # perform second block decomposition; block-size
     # matches Hilbert space of affected subsystem:
-    column = _block_col(block, *map(
-        sqrt, channel.shape))  # FIXME use state shape?
+    column = _block_col(block, *list(map(
+        sqrt, channel.shape)))  # FIXME use state shape?
     chan_mat = channel.data.todense()
     temp_col = zeros(shape(column)).astype(complex)
     # print chan_mat.shape
     for row_idx in range(len(chan_mat)):
         row = chan_mat[row_idx]
         # print [scal[0,0]*mat for (scal,mat) in zip(transpose(row),column)]
-        temp_col[row_idx] = reduce(add, [scal[0, 0] * mat for (
-            scal, mat) in zip(transpose(row), column)])
-    return _block_stack(temp_col, *map(sqrt, channel.shape))
+        temp_col[row_idx] = sum([scal[0, 0] * mat
+                                 for (scal, mat) in zip(transpose(row), column)])
+    return _block_stack(temp_col, *list(map(sqrt, channel.shape)))
 
 
 def _block_split(mat_in, n_v, n_h):
@@ -218,7 +219,7 @@ def _block_split(mat_in, n_v, n_h):
     Returns a 4D array of matrices, splitting mat_in into
     n_v * n_h square sub-arrays.
     """
-    return map(lambda x: hsplit(x, n_h), vsplit(mat_in, n_v))
+    return list(map(lambda x: hsplit(x, n_h), vsplit(mat_in, n_v)))
 
 
 def _block_join(mat_in):
@@ -241,7 +242,7 @@ def _block_stack(arr_in, n_v, n_h):
     Inverse of _block_split
     """
     rs, cs = shape(arr_in)[-2:]
-    temp = map(transpose, arr_in)
+    temp = list(map(transpose, arr_in))
     # print shape(arr_in)
     temp = reshape(temp, (n_v, n_h, rs, cs))
     return hstack(hstack(temp)).T
