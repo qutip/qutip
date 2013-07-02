@@ -21,7 +21,7 @@ from qutip.qobj import *
 from qutip.states import *
 from qutip.operators import *
 from qutip.tensor import tensor
-from qutip.gates import *
+from qutip.quantum_info.gates import *
 from qutip.quantum_info.utils import _reg_str2array
 
 class Register(Qobj):
