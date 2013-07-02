@@ -19,7 +19,7 @@
 
 from __future__ import print_function
 import os
-
+import warnings
 
 class Odeoptions():
     """
@@ -126,8 +126,9 @@ class Odeoptions():
         if num_cpus:
             self.num_cpus = num_cpus
             if self.num_cpus > int(os.environ['NUM_THREADS']):
-                raise Exception("Requested number of CPU's too large. Max = " +
-                                str(int(os.environ['NUM_THREADS'])))
+                message = ("Requested number of threads larger than number " +
+                           "of CPUs (%s)." % os.environ['NUM_THREADS'])
+                warnings.warn(message)
         else:
             self.num_cpus = 0
         # Tolerance for wavefunction norm (mcsolve only)
