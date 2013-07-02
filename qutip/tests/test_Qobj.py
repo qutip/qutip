@@ -219,10 +219,10 @@ def test_QobjPower():
     q = Qobj(data)
 
     q2 = q ** 2
-    assert_equal(all(q2.data.todense() - matrix(data) ** 2), 0)
+    assert_((q2.data.todense() - matrix(data) ** 2 < 1e-12).all())
 
     q3 = q ** 3
-    assert_equal(all(q3.data.todense() - matrix(data) ** 3), 0)
+    assert_((q3.data.todense() - matrix(data) ** 3 < 1e-12).all())
 
 
 def test_QobjNeg():
@@ -351,7 +351,7 @@ def test_QobjExpm():
         (15, 15)) + 1j * np.random.random((15, 15)) - (0.5 + 0.5j)
     A = Qobj(data)
     B = A.expm()
-    assert_equal(all(B.data.todense() - np.matrix(la.expm(data))) < 1e-12, True)
+    assert_((B.data.todense() - np.matrix(la.expm(data))  < 1e-12).all())
 
 
 def test_QobjFull():
