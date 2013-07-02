@@ -323,7 +323,7 @@ class _MC_class():
         # number of time steps in tlist
         self.num_times = len(self.odeconfig.tlist)
         # holds seed for random number generator
-        self.seed = None
+        self.seeds = self.odeconfig.options.seeds
         # number of cpus to be used
         self.cpus = self.odeconfig.options.num_cpus
         # set output variables, even if they are not used to simplify output
@@ -436,8 +436,15 @@ class _MC_class():
             else:  # return expectation values of requested operators
                 self.expect_out = _no_collapse_expect_out(
                     self.num_times, self.expect_out, self.odeconfig)
+
         elif self.odeconfig.c_num != 0:
-            self.seed = random_integers(1e8, size=self.odeconfig.ntraj)
+
+            if self.seeds is None:
+                self.seeds = random_integers(1e8, size=self.odeconfig.ntraj)
+            #else:
+            #    if len(self.seeds) != self.odeconfig.ntraj:
+            #        raise "Incompatible size of seeds vector in Odeconfig."
+
             if self.odeconfig.e_num == 0:
                 mc_alg_out = zeros((self.num_times), dtype=ndarray)
                 if self.odeconfig.options.mc_avg:
@@ -457,15 +464,17 @@ class _MC_class():
                     else:
                         # preallocate complex array of zeros
                         mc_alg_out.append(zeros(self.num_times, dtype=complex))
+
                     mc_alg_out[i][0] = \
                         cy_expect(self.odeconfig.e_ops_data[i],
                                   self.odeconfig.e_ops_ind[i],
                                   self.odeconfig.e_ops_ptr[i],
                                   self.odeconfig.e_ops_isherm[i],
                                   self.odeconfig.psi0)
+
             # set arguments for input to monte-carlo
             args = (mc_alg_out, self.odeconfig.options,
-                    self.odeconfig.tlist, self.num_times, self.seed)
+                    self.odeconfig.tlist, self.num_times, self.seeds)
 
 
             if not self.odeconfig.options.gui:

@@ -92,7 +92,7 @@ class Odeoptions():
                  mc_avg=True, tidy=True, num_cpus=0, norm_tol=1e-3,
                  norm_steps=5, rhs_reuse=False, rhs_filename=None, gui=True,
                  ntraj=500, rhs_with_state=False, store_final_state=False,
-                 store_states=False):
+                 store_states=False, seeds=None):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -141,6 +141,8 @@ class Odeoptions():
         self.store_final_state = store_final_state
         # store states even if expectation operators are given?
         self.store_states = store_states
+        # extra solver parameters
+        self.seeds = seeds
 
     def __str__(self):
         s = ""
