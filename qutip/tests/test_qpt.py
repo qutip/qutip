@@ -22,6 +22,7 @@ from numpy.testing import assert_, run_module_suite
 from numpy.linalg import norm
 
 from qutip import *
+from qutip.quantum_info.gates import *
 
 
 def test_qpt_snot():
