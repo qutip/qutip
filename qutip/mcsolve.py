@@ -934,9 +934,9 @@ def _mc_alg_evolve(nt, args, odeconfig):
                 mc_alg_out = array([Qobj(k, odeconfig.psi0_dims,
                                          odeconfig.psi0_shape, fast='mc')
                                     for k in mc_alg_out])
-            return nt, mc_alg_out, array(collapse_times), array(which_oper)
+            return nt, array(mc_alg_out), array(collapse_times), array(which_oper)
         else:
-            return nt, mc_alg_out, array(collapse_times), array(which_oper)
+            return nt, array(mc_alg_out), array(collapse_times), array(which_oper)
 
     except Exception as e:
         print("failed to run _mc_alg_evolve: " + str(e))
