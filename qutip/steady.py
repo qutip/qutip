@@ -166,7 +166,7 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
     # generate sparse iLU preconditioner if requested
     if method == 'bicg' and use_precond:
         try:
-            P = spilu(L, permc_spec='MMD_AT_PLUS_A')
+            P = spilu(L, drop_tol=1e-1)
             P_x = lambda x: P.solve(x)
         except:
             warnings.warn("Preconditioning failed. Continuing without.",
@@ -181,8 +181,7 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
         if method == 'bicg':
             v, check = bicgstab(L, v, tol=itertol, M=M)
         else:
-            v = spsolve(L, v, permc_spec="MMD_AT_PLUS_A",
-                        use_umfpack=use_umfpack)
+            v = spsolve(L, v, use_umfpack=use_umfpack)
         v = v / la.norm(v, np.inf)
         it += 1
     if it >= maxiter:
@@ -237,7 +236,7 @@ def steady_nonlinear(L_func, rho0, args={}, maxiter=10,
         L = L.data.tocsc() - (tol ** 2) * sp.eye(n, n, format='csc')
         L.sort_indices()
 
-        v = spsolve(L, v, permc_spec="MMD_AT_PLUS_A", use_umfpack=use_umfpack)
+        v = spsolve(L, v, use_umfpack=use_umfpack)
         v = v / la.norm(v, np.inf)
 
         data = v / sum(tr_vec.dot(v))
@@ -308,9 +307,10 @@ def steady_direct_sparse(L, use_umfpack=True):
     return Qobj(vec2mat(v), dims=L.dims[0], isherm=True)
 
 
-def steadystate_iterative(H, c_ops, use_precond=True):
+def steadystate_iterative(H, c_ops, tol=1e-5, maxiter=5000, use_precond=True):
     """
-    .. note:: Experimental.
+    Iterative steady state solver using the LGMRES algorithm
+    and a sparse incomplete LU preconditioner.
     """
     L = liouvillian_fast(H, c_ops)
     n = prod(L.dims[0][0])
@@ -321,7 +321,7 @@ def steadystate_iterative(H, c_ops, use_precond=True):
 
     if use_precond:
         try:
-            P = spilu(A)
+            P = spilu(A,drop_tol=1e-1)
             P_x = lambda x: P.solve(x)
             M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
         except:
@@ -330,9 +330,11 @@ def steadystate_iterative(H, c_ops, use_precond=True):
             M = None
     else:
         M = None
-    v, check = lgmres(A, b, tol=1e-5, M=M, maxiter=5000)
-    if check!=0:
-        print("Steadystate solver did not reach tolerance after "+str(check)+" steps.")
+    v, check = lgmres(A, b, tol=tol, M=M, maxiter=maxiter)
+    if check>0:
+        raise UserWarning("Steadystate solver did not reach tolerance after "+str(check)+" steps.")
+    elif check<0:
+        raise UserWarning("Steadystate solver failed with error: "+str(check)+".")
     out=Qobj(vec2mat(v), dims=L.dims[0])
     return 0.5*(out+out.dag())
 
