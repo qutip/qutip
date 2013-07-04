@@ -20,6 +20,7 @@
 import sys
 import os
 import time
+import copy
 import numpy as np
 from types import FunctionType
 from multiprocessing import Pool, cpu_count
@@ -726,8 +727,8 @@ def _no_collapse_expect_out(num_times, expect_out, odeconfig):
                                               odeconfig.e_ops_isherm[jj])
         else:
             raise ValueError('Error in ODE solver')
-    return expect_out  # return times and expectiation values
-#------------------------------------------------------------------------
+
+    return expect_out
 
 
 #---single-trajectory for monte-carlo---
@@ -935,9 +936,8 @@ def _mc_alg_evolve(nt, args, odeconfig):
                 mc_alg_out = array([Qobj(k, odeconfig.psi0_dims,
                                          odeconfig.psi0_shape, fast='mc')
                                     for k in mc_alg_out])
-            return nt, array(mc_alg_out), array(collapse_times), array(which_oper)
-        else:
-            return nt, array(mc_alg_out), array(collapse_times), array(which_oper)
+
+        return nt, copy.deepcopy(mc_alg_out), array(collapse_times), array(which_oper)
 
     except Exception as e:
         print("failed to run _mc_alg_evolve: " + str(e))
