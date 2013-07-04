@@ -50,78 +50,82 @@ def expect(oper, state):
 
     Examples
     --------
-    >>> expect(num(4),basis(4,3))
+    >>> expect(num(4), basis(4, 3))
     3
 
     '''
-    if isinstance(state, Qobj) or isinstance(state, eseries):
-        return _single_expect(oper, state)
+    if isinstance(state, Qobj) and isinstance(oper, Qobj):
+        return _single_qobj_expect(oper, state)
+
+    elif isinstance(oper, Qobj) and isinstance(state, eseries):
+        return _single_eseries_expect(oper, state)
+
     elif isinstance(state, np.ndarray) or isinstance(state, list):
         if oper.isherm and all([(op.isherm or op.type == 'ket')
                                 for op in state]):
-            return np.array([_single_expect(oper, x) for x in state])
+            return np.array([_single_qobj_expect(oper, x) for x in state])
         else:
-            return np.array([_single_expect(oper, x) for x in state],
+            return np.array([_single_qobj_expect(oper, x) for x in state],
                             dtype=complex)
-
-
-def _single_expect(oper, state):
-    """
-    Private function used by expect
-    """
-    if isinstance(oper, Qobj) and isinstance(state, Qobj):
-        if isoper(oper):
-            if state.type == 'oper':
-                # calculates expectation value via TR(op*rho)
-                prod = oper.data * state.data
-                tr = sum(prod.diagonal())  # sum of diagonal elements
-                if oper.isherm and state.isherm:  # if hermitian
-                    return float(np.real(tr))
-                else:  # not hermitian
-                    return tr
-            elif state.type == 'ket':
-                # calculates expectation value via <psi|op|psi>
-                # prod = state.data.conj().T * (oper.data * state.data)
-                prod = state.data.conj().T.dot(oper.data * state.data)
-                if oper.isherm:
-                    return float(np.real(prod[0, 0]))
-                else:
-                    return prod[0, 0]
-        else:
-            raise TypeError('Invalid operand types')
-    # eseries
-    #
-    elif isinstance(oper, Qobj) and isinstance(state, eseries):
-        out = eseries()
-
-        if isoper(state.ampl[0]):
-
-            out.rates = state.rates
-            out.ampl = np.array([expect(oper, a) for a in state.ampl])
-
-        else:
-
-            out.rates = np.array([])
-            out.ampl = np.array([])
-
-            for m in range(len(state.rates)):
-
-                op_m = state.ampl[m].data.conj().T * oper.data
-
-                for n in range(len(state.rates)):
-
-                    a = op_m * state.ampl[n].data
-
-                    if isinstance(a, sp.spmatrix):
-                        a = a.todense()
-
-                    out.rates = np.append(out.rates, state.rates[n] -
-                                          state.rates[m])
-                    out.ampl = np.append(out.ampl, a)
-
-        return out
-    else:  # unsupported types
+    else:
         raise TypeError('Arguments must be quantum objects or eseries')
+
+
+def _single_qobj_expect(oper, state):
+    """
+    Private function used by expect to calculate expectation values of Qobjs.
+    """
+    if isoper(oper):
+        if state.type == 'oper':
+            # calculates expectation value via TR(op*rho)
+            prod = oper.data * state.data
+            tr = prod.diagonal().sum()
+            if oper.isherm and state.isherm:
+                return float(np.real(tr))
+            else:
+                return tr
+
+        elif state.type == 'ket':
+            # calculates expectation value via <psi|op|psi>
+            prod = state.data.conj().T.dot(oper.data * state.data)
+            if oper.isherm:
+                return float(np.real(prod[0, 0]))
+            else:
+                return prod[0, 0]
+    else:
+        raise TypeError('Invalid operand types')
+
+
+def _single_eseries_expect(oper, state):
+    """
+    Private function used by expect to calculate expectation values for
+    eseries.
+    """
+
+    out = eseries()
+
+    if isoper(state.ampl[0]):
+        out.rates = state.rates
+        out.ampl = np.array([expect(oper, a) for a in state.ampl])
+
+    else:
+        out.rates = np.array([])
+        out.ampl = np.array([])
+
+        for m in range(len(state.rates)):
+            op_m = state.ampl[m].data.conj().T * oper.data
+
+            for n in range(len(state.rates)):
+                a = op_m * state.ampl[n].data
+
+                if isinstance(a, sp.spmatrix):
+                    a = a.todense()
+
+                out.rates = np.append(out.rates, state.rates[n] -
+                                      state.rates[m])
+                out.ampl = np.append(out.ampl, a)
+
+    return out
 
 
 def variance(oper, state):
