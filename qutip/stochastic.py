@@ -342,7 +342,7 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                s = cy_expect(e.data.data, e.data.indices, e.data.indptr, 0, psi_t)
+                s = cy_expect(e.data.data, e.data.indices, e.data.indptr, psi_t)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2
         else:
@@ -585,7 +585,7 @@ def _sepdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                s = cy_expect(e.data.data, e.data.indices, e.data.indptr, 0, psi_t)
+                s = cy_expect(e.data.data, e.data.indices, e.data.indptr, psi_t)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2
         else:
@@ -786,7 +786,7 @@ def d1_psi_homodyne(A, psi):
 
     """
 
-    e1 = cy_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
+    e1 = cy_expect(A[1].data, A[1].indices, A[1].indptr, psi)
     return 0.5 * (e1 * spmv(A[0].data, A[0].indices, A[0].indptr, psi) -
                   spmv(A[3].data, A[3].indices, A[3].indptr, psi) -
                   0.25 * e1 ** 2 * psi)
@@ -803,7 +803,7 @@ def d2_psi_homodyne(A, psi):
 
     """
 
-    e1 = cy_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
+    e1 = cy_expect(A[1].data, A[1].indices, A[1].indptr, psi)
     return [spmv(A[0].data, A[0].indices, A[0].indptr, psi) - 0.5 * e1 * psi]
 
 
@@ -817,9 +817,9 @@ def d1_psi_heterodyne(A, psi):
                         \\frac{1}{2}\\langle C \\rangle\\langle C^\\dagger \\rangle))\psi
 
     """
-    e_C = cy_expect(A[0].data, A[0].indices, A[0].indptr, 0, psi) # e_C
+    e_C = cy_expect(A[0].data, A[0].indices, A[0].indptr, psi) # e_C
     B = A[0].T.conj()
-    e_Cd = cy_expect(B.data, B.indices, B.indptr, 0, psi) # e_Cd
+    e_Cd = cy_expect(B.data, B.indices, B.indptr, psi) # e_Cd
 
     return  (-0.5 * spmv(A[3].data, A[3].indices, A[3].indptr, psi) +
              0.5 * e_Cd * spmv(A[0].data, A[0].indices, A[0].indptr, psi) -
@@ -840,8 +840,8 @@ def d2_psi_heterodyne(A, psi):
 
     """
 
-    X = 0.5 * cy_expect(A[1].data, A[1].indices, A[1].indptr, 0, psi)
-    Y = 0.5 * cy_expect(A[2].data, A[2].indices, A[2].indptr, 0, psi)
+    X = 0.5 * cy_expect(A[1].data, A[1].indices, A[1].indptr, psi)
+    Y = 0.5 * cy_expect(A[2].data, A[2].indices, A[2].indptr, psi)
 
     d2_1 = np.sqrt(0.5) * (spmv(A[0].data, A[0].indices, A[0].indptr, psi) - X * psi)
     d2_2 = -1.0j * np.sqrt(0.5) * (spmv(A[0].data, A[0].indices, A[0].indptr, psi) - Y * psi)

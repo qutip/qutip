@@ -351,8 +351,8 @@ class _MC_class():
                             zeros(self.num_times, dtype=complex))
                     self.expect_out[i][0] = cy_expect(
                         odeconfig.e_ops_data[i], odeconfig.e_ops_ind[i],
-                        odeconfig.e_ops_ptr[i], odeconfig.e_ops_isherm[i],
-                        odeconfig.psi0)
+                        odeconfig.e_ops_ptr[i], odeconfig.psi0,
+                        odeconfig.e_ops_isherm[i])
 
         # FOR EVOLUTION WITH COLLAPSE OPERATORS
         elif odeconfig.c_num != 0:
@@ -469,8 +469,8 @@ class _MC_class():
                         cy_expect(self.odeconfig.e_ops_data[i],
                                   self.odeconfig.e_ops_ind[i],
                                   self.odeconfig.e_ops_ptr[i],
-                                  self.odeconfig.e_ops_isherm[i],
-                                  self.odeconfig.psi0)
+                                  self.odeconfig.psi0,
+                                  self.odeconfig.e_ops_isherm[i])
 
             # set arguments for input to monte-carlo
             args = (mc_alg_out, self.odeconfig.options,
@@ -711,8 +711,9 @@ def _no_collapse_expect_out(num_times, expect_out, odeconfig):
         expect_out[jj][0] = cy_expect(odeconfig.e_ops_data[jj],
                                       odeconfig.e_ops_ind[jj],
                                       odeconfig.e_ops_ptr[jj],
-                                      odeconfig.e_ops_isherm[jj],
-                                      odeconfig.psi0)
+                                      odeconfig.psi0,
+                                      odeconfig.e_ops_isherm[jj])
+
     for k in range(1, num_times):
         ODE.integrate(odeconfig.tlist[k], step=0)  # integrate up to tlist[k]
         if ODE.successful():
@@ -721,8 +722,8 @@ def _no_collapse_expect_out(num_times, expect_out, odeconfig):
                 expect_out[jj][k] = cy_expect(odeconfig.e_ops_data[jj],
                                               odeconfig.e_ops_ind[jj],
                                               odeconfig.e_ops_ptr[jj],
-                                              odeconfig.e_ops_isherm[jj],
-                                              state)
+                                              state,
+                                              odeconfig.e_ops_isherm[jj])
         else:
             raise ValueError('Error in ODE solver')
     return expect_out  # return times and expectiation values
@@ -849,7 +850,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                     if odeconfig.tflag in array([1, 11]):
                         n_dp = [cy_expect(odeconfig.n_ops_data[i],
                                           odeconfig.n_ops_ind[i],
-                                          odeconfig.n_ops_ptr[i], 1, ODE.y)
+                                          odeconfig.n_ops_ptr[i], ODE.y, 1)
                                 for i in odeconfig.c_const_inds]
 
                         _locals = locals()
@@ -862,13 +863,13 @@ def _mc_alg_evolve(nt, args, odeconfig):
                     elif odeconfig.tflag in array([2, 20, 22]):
                         n_dp = [cy_expect(odeconfig.n_ops_data[i],
                                           odeconfig.n_ops_ind[i],
-                                          odeconfig.n_ops_ptr[i], 1, ODE.y)
+                                          odeconfig.n_ops_ptr[i], ODE.y, 1)
                                 for i in odeconfig.c_const_inds]
                         n_dp += [abs(odeconfig.c_funcs[i](
                                      ODE.t, odeconfig.c_func_args)) ** 2 *
                                  cy_expect(odeconfig.n_ops_data[i],
                                            odeconfig.n_ops_ind[i],
-                                           odeconfig.n_ops_ptr[i], 1, ODE.y)
+                                           odeconfig.n_ops_ptr[i], ODE.y, 1)
                                  for i in odeconfig.c_td_inds]
                         n_dp = array(n_dp)
                     # all constant collapse operators.
@@ -876,7 +877,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                         n_dp = array([cy_expect(odeconfig.n_ops_data[i],
                                                 odeconfig.n_ops_ind[i],
                                                 odeconfig.n_ops_ptr[i],
-                                                1, ODE.y)
+                                                ODE.y, 1)
                                       for i in range(odeconfig.c_num)])
 
                     # determine which operator does collapse
@@ -918,8 +919,8 @@ def _mc_alg_evolve(nt, args, odeconfig):
                     mc_alg_out[jj][k] = cy_expect(odeconfig.e_ops_data[jj],
                                                   odeconfig.e_ops_ind[jj],
                                                   odeconfig.e_ops_ptr[jj],
-                                                  odeconfig.e_ops_isherm[jj],
-                                                  out_psi)
+                                                  out_psi,
+                                                  odeconfig.e_ops_isherm[jj])
 
         # RETURN VALUES
         if odeconfig.e_num == 0:
