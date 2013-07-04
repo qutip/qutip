@@ -144,7 +144,12 @@ cpdef np.ndarray[CTYPE_t, ndim=1] cy_ode_rho_func_td(double t, np.ndarray[CTYPE_
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[CTYPE_t, ndim=2] spmv_dia(np.ndarray[CTYPE_t, ndim=2] data, np.ndarray[int] offsets,int num_rows,int num_diags, np.ndarray[CTYPE_t, ndim=2] vec, np.ndarray[CTYPE_t, ndim=2] ret,int N):
+cpdef np.ndarray[CTYPE_t, ndim=2] spmv_dia(np.ndarray[CTYPE_t, ndim=2] data,
+                                           np.ndarray[int] offsets, 
+                                           int num_rows, int num_diags,
+                                           np.ndarray[CTYPE_t, ndim=2] vec,
+                                           np.ndarray[CTYPE_t, ndim=2] ret,
+                                           int N):
     """DIA sparse matrix-vector product
     """
     cdef int ii, jj,i0,i1,i2
@@ -166,13 +171,14 @@ cpdef np.ndarray[CTYPE_t, ndim=2] spmv_dia(np.ndarray[CTYPE_t, ndim=2] data, np.
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def cy_expect_psi(object op, int isherm, np.ndarray[CTYPE_t, ndim=2] state):
+def cy_expect_psi(object op, np.ndarray[CTYPE_t, ndim=2] state, int isherm=0):
     cdef np.ndarray[CTYPE_t, ndim=2] y = spmv(op.data, op.indices, op.indptr, state)
     cdef np.ndarray[CTYPE_t, ndim=2] x = state.conj().transpose()
     cdef int row, num_rows = state.size
     cdef CTYPE_t dot = 0.0j
     for row from 0 <= row < num_rows:
         dot+=x[0,row]*y[row,0]
+
     if isherm:
         return float(np.real(dot))
     else:
@@ -184,14 +190,15 @@ def cy_expect_psi(object op, int isherm, np.ndarray[CTYPE_t, ndim=2] state):
 def cy_expect(np.ndarray[CTYPE_t, ndim=1] data,
               np.ndarray[int] idx,
               np.ndarray[int] ptr, 
-              int isherm,
-              np.ndarray[CTYPE_t, ndim=2] state):
+              np.ndarray[CTYPE_t, ndim=2] state,
+              int isherm = 0):
     cdef np.ndarray[CTYPE_t, ndim=2] y = spmv(data,idx,ptr,state)
     cdef np.ndarray[CTYPE_t, ndim=2] x = state.conj().transpose()
     cdef int row, num_rows = state.size
     cdef CTYPE_t dot = 0.0j
     for row from 0 <= row < num_rows:
         dot+=x[0,row]*y[row,0]
+
     if isherm:
         return float(np.real(dot))
     else:
@@ -200,18 +207,26 @@ def cy_expect(np.ndarray[CTYPE_t, ndim=1] data,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_expect_rho_vec(object super_op, np.ndarray[CTYPE_t, ndim=2] rho_vec):
+cpdef cy_expect_rho_vec(object super_op, np.ndarray[CTYPE_t, ndim=2] rho_vec, int herm=0):
     cdef np.ndarray[CTYPE_t, ndim=2] prod_vec = spmv(super_op.data, super_op.indices, super_op.indptr, rho_vec)
     cdef int n = <int>libc.math.sqrt(rho_vec.size)
-    return prod_vec.reshape((n, n)).diagonal().sum()
+
+    if herm == 0:
+        return prod_vec.reshape((n, n)).diagonal().sum()
+    else:
+        return float(np.real(prod_vec.reshape((n, n)).diagonal().sum()))
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_expect_rho_vec1d(object super_op, np.ndarray[CTYPE_t, ndim=1] rho_vec):
+cpdef cy_expect_rho_vec1d(object super_op, np.ndarray[CTYPE_t, ndim=1] rho_vec, int herm=0):
     cdef np.ndarray[CTYPE_t, ndim=2] prod_vec = spmv1d(super_op.data, super_op.indices, super_op.indptr, rho_vec)
     cdef int n = <int>libc.math.sqrt(rho_vec.size)
-    return prod_vec.reshape((n, n)).diagonal().sum()
+
+    if herm == 0:
+        return prod_vec.reshape((n, n)).diagonal().sum()
+    else:
+        return float(np.real(prod_vec.reshape((n, n)).diagonal().sum()))
 
 
 
