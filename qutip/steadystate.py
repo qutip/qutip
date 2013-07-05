@@ -113,18 +113,18 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_umfpack=True,
 
     if A.type=='oper':
         if n_op == 0:
-            raise UserWarning('Cannot calculate the steady state for a ' +
+            raise TypeError('Cannot calculate the steady state for a ' +
                          'non-dissipative system (no collapse operators given)')
         else:
             A = liouvillian_fast(A, c_op_list)
     if not issuper(A):
-        raise UserWarning('Solving for steady states requires Liouvillian (super) operators')
+        raise TypeError('Solving for steady states requires Liouvillian (super) operators')
     
     if method=='direct':
         if sparse:
-            return _steady_direct_sparse(A, use_umfpack=use_umfpack, verbose=verbose)
+            return _steadystate_direct_sparse(A, use_umfpack=use_umfpack, verbose=verbose)
         else:
-            return _steady_direct_dense(A, verbose=verbose)
+            return _steadystate_direct_dense(A, verbose=verbose)
     
     elif method=='iterative':
         return _steadystate_iterative(A, tol=tol, use_precond=use_precond, 
@@ -135,7 +135,7 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_umfpack=True,
                 all_steadystates=False, verbose=verbose)
     
     elif method=='power':
-        return _steady_power(A, maxiter=10, tol=tol, itertol=tol,
+        return _steadystate_power(A, maxiter=10, tol=tol, itertol=tol,
                 use_umfpack=use_umfpack, verbose=verbose)
     
     else:
@@ -153,9 +153,9 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
                        use_umfpack=use_umfpack, use_precond=use_precond)    
 
 
-def steady_nonlinear(L_func, rho0, args={}, maxiter=10,
-                     random_initial_state=False,
-                     tol=1e-6, itertol=1e-5, use_umfpack=True, verbose=False):
+def steadystate_nonlinear(L_func, rho0, args={}, maxiter=10,
+                          random_initial_state=False, tol=1e-6, itertol=1e-5, 
+                          use_umfpack=True, verbose=False):
     """
     Steady state for the evolution subject to the nonlinear Liouvillian
     (which depends on the density matrix).
@@ -204,7 +204,8 @@ def steady_nonlinear(L_func, rho0, args={}, maxiter=10,
     return rhoss.tidyup() if qset.auto_tidyup else rhoss
 
 
-def _steady_power(L, maxiter=10, tol=1e-6, itertol=1e-5, use_umfpack=True, verbose=False):
+def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5, use_umfpack=True,
+                       verbose=False):
     """
     Inverse power method for steady state solving.
     """
@@ -231,8 +232,8 @@ def _steady_power(L, maxiter=10, tol=1e-6, itertol=1e-5, use_umfpack=True, verbo
         v = v / la.norm(v, np.inf)
         it += 1
     if it >= maxiter:
-        raise UserWarning('Failed to find steady state after ' +
-                         str(maxiter) + ' iterations')
+        raise Exception('Failed to find steady state after ' +
+                        str(maxiter) + ' iterations')
     # normalise according to type of problem
     if sflag:
         trow = sp.eye(rhoss.shape[0], rhoss.shape[0], format='coo')
@@ -252,25 +253,29 @@ def _steady_power(L, maxiter=10, tol=1e-6, itertol=1e-5, use_umfpack=True, verbo
         return rhoss
 
 
-def _steady_direct_sparse(L, use_umfpack=True, verbose=False):
+def _steadystate_direct_sparse(L, use_umfpack=True, verbose=False):
     """
     Direct solver that use scipy sparse matrices
     """
     if verbose:
         print('Starting direct solver...')
-    n = prod(L.dims[0][0])
 
+    n = prod(L.dims[0][0])
     b = sp.csr_matrix(([1.0], ([0], [0])), shape=(n ** 2, 1))
     M = L.data + sp.csr_matrix((np.ones(n), (np.zeros(n), \
             [nn * (n + 1) for nn in range(n)])), shape=(n ** 2, n ** 2))
    
     use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
     M.sort_indices()  
+
     if verbose:
         start_time=time.time()
+
     v = spsolve(M, b, use_umfpack=use_umfpack)
+
     if verbose:
         print('Direct solver time: ',time.time()-start_time)
+
     out=Qobj(vec2mat(v), dims=L.dims[0], isherm=True)
     return 0.5*(out+out.dag())
 
@@ -283,6 +288,7 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000,
     """
     if verbose:
         print('Starting LGMRES solver...')
+
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2)
     b[0] = 1.0
@@ -317,8 +323,9 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000,
                         print('Preconditioning time: ',time.time()-start_time)
                 except:
                     warnings.warn("Preconditioning failed. Continuing without.",
-                          UserWarning)
+                                  UserWarning)
                     M = None
+
     elif use_precond:
         if verbose:
             start_time=time.time()
@@ -328,34 +335,39 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000,
             M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
         except:
             warnings.warn("Preconditioning failed. Continuing without.",
-                  UserWarning)
+                          UserWarning)
             M = None
         if verbose:   
             print('Preconditioning time: ',time.time()-start_time)
+
     else:
         M = None
+
     if verbose:
         start_time=time.time()
+
     v, check = lgmres(A, b, tol=tol, M=M, maxiter=maxiter)
     if check>0:
-        raise UserWarning("Steadystate solver did not reach tolerance after "+str(check)+" steps.")
+        raise Exception("Steadystate solver did not reach tolerance after "+str(check)+" steps.")
     elif check<0:
-        raise UserWarning("Steadystate solver failed with fatal error: "+str(check)+".")
+        raise Exception("Steadystate solver failed with fatal error: "+str(check)+".")
+
     if verbose:   
         print('LGMRES solver time: ',time.time()-start_time)
+
     out=Qobj(vec2mat(v), dims=L.dims[0],isherm=True)
     return Qobj(0.5*(out+out.dag()),dims=out.dims,shape=out.shape,isherm=True)
 
 
-def _steady_direct_dense(L, verbose=False):
+def _steadystate_direct_dense(L, verbose=False):
     """
     Direct solver that use numpy dense matrices. Suitable for 
     small system, with a few states.
     """
     if verbose:
         print('Starting direct dense solver...')
-    n = prod(L.dims[0][0])
-    
+
+    n = prod(L.dims[0][0])    
     b = np.zeros(n ** 2)
     b[0] = 1.0
 
@@ -364,18 +376,19 @@ def _steady_direct_dense(L, verbose=False):
     if verbose:
         start_time=time.time()
     v = np.linalg.solve(M, b)
+
     if verbose:   
         print('Direct dense solver time: ',time.time()-start_time)
+
     out = Qobj(v.reshape(n, n), dims=L.dims[0], isherm=True)
-    
     return Qobj(0.5*(out+out.dag()),dims=out.dims,shape=out.shape,isherm=True)
 
 
-def _steadystate_svd_dense(L, atol=1e-12, rtol=0, all_steadystates=False, verbose=False):
+def _steadystate_svd_dense(L, atol=1e-12, rtol=0, all_steadystates=False,
+                           verbose=False):
     """
     Find the steady state(s) of an open quantum system by solving for the
     nullspace of the Liouvillian.
-
     """
     if verbose:
         print('Starting SVD solver...')
@@ -385,14 +398,17 @@ def _steadystate_svd_dense(L, atol=1e-12, rtol=0, all_steadystates=False, verbos
     tol = max(atol, rtol * s[0])
     nnz = (s >= tol).sum()
     ns = vh[nnz:].conj().T
+
     if verbose:   
         print('SVD solver time: ',time.time()-start_time)
+
     if all_steadystates:
         rhoss_list = [] 
         for n in range(ns.shape[1]):
             rhoss = Qobj(vec2mat(ns[:,n]), dims=H.dims)
             rhoss_list.append(rhoss / rhoss.tr())
         return rhoss_list
+
     else:
         rhoss = Qobj(vec2mat(ns[:,0]), dims=H.dims)
         return rhoss / rhoss.tr()
