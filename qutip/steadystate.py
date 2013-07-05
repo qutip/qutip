@@ -289,6 +289,7 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000,
             M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
             if verbose:
                 print('Preconditioned with COLAMD ordering.')
+                print('Preconditioning time: ',time.time()-start_time)
         except:
             try:
                 P = spilu(A,drop_tol=1e-1, permc_spec="MMD_ATA")
@@ -296,19 +297,19 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000,
                 M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
                 if verbose:
                     print('Preconditioned with MMD_ATA ordering.')
+                    print('Preconditioning time: ',time.time()-start_time)
             except:
                 try:
                     P = spilu(A,drop_tol=1e-1, permc_spec="NATURAL")
                     P_x = lambda x: P.solve(x)
                     M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
                     if verbose:
-                        print('Preconditioned with NATURAL ordering.')
+                        print('Preconditioned with NATURAL ordering.')   
+                        print('Preconditioning time: ',time.time()-start_time)
                 except:
                     warnings.warn("Preconditioning failed. Continuing without.",
                           UserWarning)
                     M = None
-        if verbose:   
-            print('Preconditioning time: ',time.time()-start_time)
     elif use_precond:
         if verbose:
             start_time=time.time()
