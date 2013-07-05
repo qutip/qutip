@@ -40,20 +40,21 @@ import qutip.settings as qset
 
 
 def steadystate(A, c_op_list=[], method='direct', sparse=True, use_umfpack=True, 
-                maxiter=5000, tol=1e-5, use_precond=True, perm_method='AUTO', verbose=False):
+                maxiter=5000, tol=1e-5, use_precond=True, perm_method='AUTO',
+                verbose=False):
     
     """Calculates the steady state for the evolution subject to the
-    supplied Hamiltonian or Lindblad operator and (if given a Hamiltonian) a list of 
-    collapse operators.
+    supplied Hamiltonian or Liouvillian operator and (if given a Hamiltonian) a
+    list of collapse operators.
 
-    If the user passes a Hamiltonian then it, along with the list of collapse operators, 
-    will be converted into a Liouvillian operator in Lindblad form.
+    If the user passes a Hamiltonian then it, along with the list of collapse
+    operators, will be converted into a Liouvillian operator in Lindblad form.
 
     
     Parameters
     ----------
     A : qobj
-        A Hamiltonian or Lindblad operator.
+        A Hamiltonian or Liouvillian operator.
 
     c_op_list : list
         A list of collapse operators.
@@ -144,9 +145,9 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_umfpack=True,
 def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
            use_umfpack=True, use_precond=False):
     """
-    Depracated. See steadystate instead.
+    Deprecated. See steadystate instead.
     """
-    message = "steady has been depracated, use steadystate instead"
+    message = "steady has been deprecated, use steadystate instead"
     warnings.warn(message, DeprecationWarning)
     return steadystate(L, [], maxiter=maxiter, tol=tol,
                        use_umfpack=use_umfpack, use_precond=use_precond)    
