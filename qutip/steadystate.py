@@ -141,6 +141,17 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_umfpack=True,
         raise ValueError('Invalid method argument for steadystate.')
 
 
+def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
+           use_umfpack=True, use_precond=False):
+    """
+    Depracated. See steadystate instead.
+    """
+    message = "steady has been depracated, use steadystate instead"
+    warnings.warn(message, DeprecationWarning)
+    return steadystate(L, [], maxiter=maxiter, tol=tol,
+                       use_umfpack=use_umfpack, use_precond=use_precond)    
+
+
 def steady_nonlinear(L_func, rho0, args={}, maxiter=10,
                      random_initial_state=False,
                      tol=1e-6, itertol=1e-5, use_umfpack=True, verbose=False):
@@ -190,9 +201,6 @@ def steady_nonlinear(L_func, rho0, args={}, maxiter=10,
                          
     rhoss=0.5*(rhoss+rhoss.dag())
     return rhoss.tidyup() if qset.auto_tidyup else rhoss
-
-
-
 
 
 def _steady_power(L, maxiter=10, tol=1e-6, itertol=1e-5, use_umfpack=True, verbose=False):
