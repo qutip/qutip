@@ -39,7 +39,7 @@ from qutip.states import ket2dm
 import qutip.settings as qset
 
 
-def steadystate(A, c_op_list=None, method='direct', sparse=True, use_umfpack=True, 
+def steadystate(A, c_op_list=[], method='direct', sparse=True, use_umfpack=True, 
                 maxiter=5000, tol=1e-5, use_precond=True, perm_method='AUTO', verbose=False):
     
     """Calculates the steady state for the evolution subject to the
