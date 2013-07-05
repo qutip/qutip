@@ -26,7 +26,7 @@ from qutip.mesolve import mesolve
 from qutip.eseries import esval, esspec
 from qutip.essolve import ode2es
 from qutip.mcsolve import mcsolve
-from qutip.steady import steady, steadystate
+from qutip.steadystate import steadystate
 from qutip.states import ket2dm
 from qutip.odeoptions import Odeoptions
 from qutip.settings import debug
@@ -562,7 +562,7 @@ def _correlation_es_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False,
 
     # find the steady state
     if rho0 is None:
-        rho0 = steady(L)
+        rho0 = steadystate(L)
     elif rho0 and isket(rho0):
         rho0 = ket2dm(rho0)
 
@@ -591,7 +591,7 @@ def _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
     L = liouvillian(H, c_ops)
 
     if rho0 is None:
-        rho0 = steady(L)
+        rho0 = steadystate(L)
     elif rho0 and isket(rho0):
         rho0 = ket2dm(rho0)
 
@@ -879,7 +879,7 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     L = liouvillian(H, c_ops)
 
     # find the steady state density matrix and a_op and b_op expecation values
-    rho0 = steady(L)
+    rho0 = steadystate(L)
 
     a_op_ss = expect(a_op, rho0)
     b_op_ss = expect(b_op, rho0)

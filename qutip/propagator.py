@@ -27,7 +27,7 @@ from qutip.rhs_generate import rhs_clear
 from qutip.superoperator import vec2mat, mat2vec
 from qutip.mesolve import mesolve
 from qutip.essolve import essolve
-from qutip.steady import steadystate
+from qutip.steadystate import steadystate
 from qutip.states import basis
 from qutip.states import projection
 from qutip.odeoptions import Odeoptions

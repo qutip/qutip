@@ -250,7 +250,7 @@ from qutip.mcsolve import mcsolve
 from qutip.stochastic import ssesolve, sepdpsolve, smesolve, smepdpsolve
 from qutip.essolve import *
 from qutip.eseries import *
-from qutip.steady import *
+from qutip.steadystate import *
 from qutip.correlation import *
 from qutip.propagator import *
 from qutip.floquet import *

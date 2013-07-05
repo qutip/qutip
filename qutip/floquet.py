@@ -25,7 +25,7 @@ from types import FunctionType
 from qutip.qobj import Qobj, isket
 from qutip.superoperator import vec2mat_index, mat2vec, vec2mat
 from qutip.mesolve import mesolve
-from qutip.steady import steadystate
+from qutip.steadystate import steadystate
 from qutip.states import ket2dm
 from qutip.states import projection
 from qutip.odeoptions import Odeoptions
