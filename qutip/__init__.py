@@ -209,7 +209,7 @@ from qutip.expect import *
 from qutip.superoperator import *
 from qutip.tensor import *
 from qutip.parfor import *
-from qutip.sparse import sp_eigs
+from qutip.sparse import sp_eigs, condest
 
 # graphics
 if qutip.settings.qutip_graphics == 'YES':

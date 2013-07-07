@@ -327,6 +327,42 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
     else:
         return np.array(evals)
 
+def condest(Q):
+    """
+    Estimates the condition number of the underlying
+    matrix for a given Qobj operator or super-operator
+    based on the one-norm.
+    
+    Parameters
+    ----------
+    Q : Qobj
+        Input qobj.
+    
+    Returns
+    -------
+    cond_est : float
+        Estimated condition number of Qobj matrix.
+    
+    """
+    out=0
+    v=np.zeros((Q.shape[0],1),dtype=complex)
+    v[0,0]=1
+    old_ind=1
+    while out==0:
+        u=Q.data*v
+        unrm=la.norm(u,1)
+        w=np.sign(u)
+        x=Q.dag().data*w
+        xnrm=la.norm(x,inf)
+        new_ind=int(np.where(x==xnrm)[0][0])
+        if xnrm<=unrm:
+            out=1
+        else:
+            v[old_ind,0]=0
+            v[new_ind,0]=1
+            old_ind=new_ind
+    return unrm
+
 
 def _sp_expm(qo):
     """
