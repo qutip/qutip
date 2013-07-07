@@ -71,7 +71,7 @@ def _sp_one_norm(op):
     """
     One norm for Qobj
     """
-    return np.max(np.array([np.sum(np.abs((op.data[:, k]).data))
+    return np.max(np.array([np.sum(np.abs((op.data.getcol(k).data)))
                             for k in range(op.shape[1])]))
 
 
