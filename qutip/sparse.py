@@ -350,11 +350,11 @@ def condest(Q):
     old_ind=1
     while out==0:
         u=Q.data*v
-        unrm=la.norm(u,1)
+        unrm=np.linalg.norm(u,1)
         w=np.sign(u)
         x=Q.dag().data*w
-        xnrm=la.norm(x,inf)
-        new_ind=int(np.where(x==xnrm)[0][0])
+        xnrm=np.linalg.norm(x,np.inf)
+        new_ind=int(np.where(np.abs(x)==xnrm)[0][0])
         if xnrm<=unrm:
             out=1
         else:
