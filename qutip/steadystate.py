@@ -41,7 +41,7 @@ import qutip.settings as qset
 
 def steadystate(A, c_op_list=[], method='direct', sparse=True, use_umfpack=True, 
                 maxiter=5000, tol=1e-5, use_precond=True, perm_method='AUTO',
-                verbose=False):
+                drop_tol=1e-1, diag_pivot_thresh=0.33, verbose=False):
     
     """Calculates the steady state for the evolution subject to the
     supplied Hamiltonian or Liouvillian operator and (if given a Hamiltonian) a
@@ -59,9 +59,10 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_umfpack=True,
     c_op_list : list
         A list of collapse operators.
     
-    method : str {'direct','iterative','svd','power'}
+    method : str {'direct', 'iterative', 'lu', 'svd', 'power'}
         Method for solving the underlying linear equation. Direct solver 'direct' (default),
-        iterative LGMRES method 'iterative', SVD 'svd' (dense), or inverse-power method 'power'.
+        iterative LGMRES method 'iterative', LU decomposition 'lu', 
+        SVD 'svd' (dense), or inverse-power method 'power'.
     
     sparse : bool default=True
         Solve for the steady state using sparse algorithms.  If set to False, the underlying
@@ -69,9 +70,9 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_umfpack=True,
         systems.
     
     use_umfpack : bool optional, default = True
-        Use the UMFpack backend for the direct solver 'direct'.  If 'False', the solver
-        uses the SuperLU backend.  This option does not affect the iterative methods,
-        'iterative' and 'power'.  Used only when sparse=True.
+        Use the UMFpack backend for the direct solver 'direct' or Power method 'power.  
+        If 'False', the solver uses the SuperLU backend.  This option does not 
+        affect the other methods. Used only when sparse=True.
     
     maxiter : int optional
         Maximum number of iterations to perform if using an iterative method such
@@ -81,15 +82,25 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_umfpack=True,
         Tolerance used for terminating solver solution when using iterative solvers.
 
     use_precond : bool optional, default = True
-        Use an incomplete sparse LU decomposition as a preconditioner for the 'iterative'
-        LGMRES solver.  Speeds up convergence time by orders of magnitude.
+        ITERATIVE OLNLY. Use an incomplete sparse LU decomposition as a 
+        preconditioner for the 'iterative' LGMRES solver.  
+        Speeds up convergence time by orders of magnitude in many cases.
 
-    perm_method : str {'AUTO', 'COLAMD', 'MMD_ATA', 'NATURAL'}
-        Sets the method for column ordering the incomplete LU preconditioner
-        used by the 'iterative' method.  When set to 'AUTO' (default), the 
-        solver will attempt to precondition the system first using 'COLAMD'.
-        If this fails, the other two methods will be tried in the order given
-        above.
+    perm_method : str {'AUTO', 'AUTO-BREAK', 'COLAMD', 'MMD_ATA', 'NATURAL'}
+        ITERATIVE OLNLY. Sets the method for column ordering the incomplete 
+        LU preconditioner used by the 'iterative' method.  When set to 'AUTO' 
+        (default), the solver will attempt to precondition the system using 'COLAMD'.
+        If this fails, the solver will use no preconditioner.  Using 
+        'AUTO-BREAK' will cause the solver to issue an exception and stop if
+        the 'COLAMD' method fails.
+    
+    drop_tol : float default=1e-1
+        ITERATIVE OLNLY. Sets the threshold for the magnitude of preconditioner
+        elements that should be dropped.
+    
+    diag_pivot_thresh : float default=0.33
+        ITERATIVE OLNLY. Sets the threshold for which diagonal elements are
+        considered acceptable pivot points when using a preconditioner.
     
     verbose : bool default=False
         Flag for printing out detailed information on the steady state solver. 
@@ -128,7 +139,11 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_umfpack=True,
     
     elif method=='iterative':
         return _steadystate_iterative(A, tol=tol, use_precond=use_precond, 
-                maxiter=maxiter, perm_method=perm_method, verbose=verbose)
+                maxiter=maxiter, perm_method=perm_method, drop_tol=drop_tol,
+                diag_pivot_thresh=diag_pivot_thresh, verbose=verbose)
+    
+    elif method=='lu':
+        return _steadystate_lu(A, verbose=verbose)
     
     elif method=='svd':
         return _steadystate_svd_dense(A, atol=1e-12, rtol=0, 
@@ -151,6 +166,7 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
     warnings.warn(message, DeprecationWarning)
     return steadystate(L, [], maxiter=maxiter, tol=tol,
                        use_umfpack=use_umfpack, use_precond=use_precond)    
+
 
 
 def steadystate_nonlinear(L_func, rho0, args={}, maxiter=10,
@@ -204,6 +220,180 @@ def steadystate_nonlinear(L_func, rho0, args={}, maxiter=10,
     return rhoss.tidyup() if qset.auto_tidyup else rhoss
 
 
+
+def _steadystate_direct_sparse(L, use_umfpack=True, verbose=False):
+    """
+    Direct solver that use scipy sparse matrices
+    """
+    if verbose:
+        print('Starting direct solver...')
+
+    n = prod(L.dims[0][0])
+    b = sp.csr_matrix(([1.0], ([0], [0])), shape=(n ** 2, 1))
+    M = L.data + sp.csr_matrix((np.ones(n), (np.zeros(n), \
+            [nn * (n + 1) for nn in range(n)])), shape=(n ** 2, n ** 2))
+   
+    use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
+    M.sort_indices()  
+
+    if verbose:
+        start_time=time.time()
+
+    v = spsolve(M, b, use_umfpack=use_umfpack)
+
+    if verbose:
+        print('Direct solver time: ',time.time()-start_time)
+
+    out=Qobj(vec2mat(v), dims=L.dims[0], isherm=True)
+    return 0.5*(out+out.dag())
+
+
+
+def _steadystate_direct_dense(L, verbose=False):
+    """
+    Direct solver that use numpy dense matrices. Suitable for 
+    small system, with a few states.
+    """
+    if verbose:
+        print('Starting direct dense solver...')
+
+    n = prod(L.dims[0][0])    
+    b = np.zeros(n ** 2)
+    b[0] = 1.0
+
+    M = L.data.todense()
+    M[0,:] = np.diag(np.ones(n)).reshape((1, n ** 2))
+    if verbose:
+        start_time=time.time()
+    v = np.linalg.solve(M, b)
+
+    if verbose:   
+        print('Direct dense solver time: ',time.time()-start_time)
+
+    out = Qobj(v.reshape(n, n), dims=L.dims[0], isherm=True)
+    return Qobj(0.5*(out+out.dag()),dims=out.dims,shape=out.shape,isherm=True)
+
+
+def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000, 
+                            perm_method='AUTO', drop_tol=1e-1,
+                diag_pivot_thresh=0.33, verbose=False):
+    """
+    Iterative steady state solver using the LGMRES algorithm
+    and a sparse incomplete LU preconditioner.
+    """
+    if verbose:
+        print('Starting LGMRES solver...')
+    use_solver(assumeSortedIndices=True)
+    n = prod(L.dims[0][0])
+    b = np.zeros(n ** 2)
+    b[0] = 1.0
+    A = L.data.tocsc() + sp.csc_matrix((np.ones(n), (np.zeros(n), \
+            [nn * (n + 1) for nn in range(n)])), shape=(n ** 2, n ** 2))
+    A.sort_indices()
+    if use_precond and perm_method in ['AUTO', 'AUTO-BREAK']:
+        if verbose:
+            start_time=time.time()
+        try:
+            P = spilu(A,drop_tol=1e-1, permc_spec="COLAMD", diag_pivot_thresh=0.33)
+            P_x = lambda x: P.solve(x)
+            M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
+            if verbose:
+                print('Preconditioned with COLAMD ordering.')
+                print('Preconditioning time: ',time.time()-start_time)
+        except:
+            if perm_method=='AUTO':
+                warnings.warn("Preconditioning failed. Continuing without.",
+                        UserWarning)
+                M = None
+            else:
+                raise Exception('Preconditioning failed. Halting solver.')
+
+    elif use_precond:
+        if verbose:
+            start_time=time.time()
+        try:
+            P = spilu(A,drop_tol=drop_tol, permc_spec=perm_method, 
+                        diag_pivot_thresh=diag_pivot_thresh)
+            P_x = lambda x: P.solve(x)
+            M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
+        except:
+            warnings.warn("Preconditioning failed. Continuing without.",
+                          UserWarning)
+            M = None
+        if verbose:   
+            print('Preconditioning time: ',time.time()-start_time)
+
+    else:
+        M = None
+
+    if verbose:
+        start_time=time.time()
+
+    v, check = lgmres(A, b, tol=tol, M=M, maxiter=maxiter)
+    if check>0:
+        raise Exception("Steadystate solver did not reach tolerance after "+str(check)+" steps.")
+    elif check<0:
+        raise Exception("Steadystate solver failed with fatal error: "+str(check)+".")
+
+    if verbose:   
+        print('LGMRES solver time: ',time.time()-start_time)
+
+    out=Qobj(vec2mat(v), dims=L.dims[0],isherm=True)
+    return Qobj(0.5*(out+out.dag()),dims=out.dims,shape=out.shape,isherm=True)
+
+
+def _steadystate_lu(L, verbose=False):
+    """
+    Find the steady state(s) of an open quantum system by computing the 
+    LU decomposition of the underlying matrix.
+    """
+    use_solver(assumeSortedIndices=True)
+    if verbose:
+        print('Starting LU solver...')
+        start_time=time.time()
+    n = prod(L.dims[0][0])
+    b = np.zeros(n ** 2)
+    b[0] = 1.0
+    A = L.data.tocsc() + sp.csc_matrix((np.ones(n), (np.zeros(n), \
+            [nn * (n + 1) for nn in range(n)])), shape=(n ** 2, n ** 2))
+    A.sort_indices()
+    solve=factorized(A)
+    v = solve(b)
+    if verbose:   
+        print('LU solver time: ',time.time()-start_time)
+    out = Qobj(v.reshape(n, n), dims=L.dims[0], isherm=True)
+    return Qobj(0.5*(out+out.dag()),dims=out.dims,shape=out.shape,isherm=True)
+
+
+def _steadystate_svd_dense(L, atol=1e-12, rtol=0, all_steadystates=False,
+                           verbose=False):
+    """
+    Find the steady state(s) of an open quantum system by solving for the
+    nullspace of the Liouvillian.
+    """
+    if verbose:
+        print('Starting SVD solver...')
+        start_time=time.time()
+    
+    u, s, vh = svd(L.full(), full_matrices=False)
+    tol = max(atol, rtol * s[0])
+    nnz = (s >= tol).sum()
+    ns = vh[nnz:].conj().T
+
+    if verbose:   
+        print('SVD solver time: ',time.time()-start_time)
+
+    if all_steadystates:
+        rhoss_list = [] 
+        for n in range(ns.shape[1]):
+            rhoss = Qobj(vec2mat(ns[:,n]), dims=H.dims)
+            rhoss_list.append(rhoss / rhoss.tr())
+        return rhoss_list
+
+    else:
+        rhoss = Qobj(vec2mat(ns[:,0]), dims=H.dims)
+        return rhoss / rhoss.tr()
+
 def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5, use_umfpack=True,
                        verbose=False):
     """
@@ -251,166 +441,4 @@ def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5, use_umfpack=True,
         return rhoss.tidyup()
     else:
         return rhoss
-
-
-def _steadystate_direct_sparse(L, use_umfpack=True, verbose=False):
-    """
-    Direct solver that use scipy sparse matrices
-    """
-    if verbose:
-        print('Starting direct solver...')
-
-    n = prod(L.dims[0][0])
-    b = sp.csr_matrix(([1.0], ([0], [0])), shape=(n ** 2, 1))
-    M = L.data + sp.csr_matrix((np.ones(n), (np.zeros(n), \
-            [nn * (n + 1) for nn in range(n)])), shape=(n ** 2, n ** 2))
-   
-    use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
-    M.sort_indices()  
-
-    if verbose:
-        start_time=time.time()
-
-    v = spsolve(M, b, use_umfpack=use_umfpack)
-
-    if verbose:
-        print('Direct solver time: ',time.time()-start_time)
-
-    out=Qobj(vec2mat(v), dims=L.dims[0], isherm=True)
-    return 0.5*(out+out.dag())
-
-
-def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000, 
-                            perm_method='AUTO', verbose=False):
-    """
-    Iterative steady state solver using the LGMRES algorithm
-    and a sparse incomplete LU preconditioner.
-    """
-    if verbose:
-        print('Starting LGMRES solver...')
-
-    n = prod(L.dims[0][0])
-    b = np.zeros(n ** 2)
-    b[0] = 1.0
-    A = L.data.tocsc() + sp.csc_matrix((np.ones(n), (np.zeros(n), \
-            [nn * (n + 1) for nn in range(n)])), shape=(n ** 2, n ** 2))
-
-    if use_precond and perm_method=='AUTO':
-        if verbose:
-            start_time=time.time()
-        try:
-            P = spilu(A,drop_tol=1e-1, permc_spec="COLAMD")
-            P_x = lambda x: P.solve(x)
-            M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
-            if verbose:
-                print('Preconditioned with COLAMD ordering.')
-                print('Preconditioning time: ',time.time()-start_time)
-        except:
-            try:
-                P = spilu(A,drop_tol=1e-1, permc_spec="MMD_ATA")
-                P_x = lambda x: P.solve(x)
-                M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
-                if verbose:
-                    print('Preconditioned with MMD_ATA ordering.')
-                    print('Preconditioning time: ',time.time()-start_time)
-            except:
-                try:
-                    P = spilu(A,drop_tol=1e-1, permc_spec="NATURAL")
-                    P_x = lambda x: P.solve(x)
-                    M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
-                    if verbose:
-                        print('Preconditioned with NATURAL ordering.')   
-                        print('Preconditioning time: ',time.time()-start_time)
-                except:
-                    warnings.warn("Preconditioning failed. Continuing without.",
-                                  UserWarning)
-                    M = None
-
-    elif use_precond:
-        if verbose:
-            start_time=time.time()
-        try:
-            P = spilu(A,drop_tol=1e-1, permc_spec=perm_method)
-            P_x = lambda x: P.solve(x)
-            M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
-        except:
-            warnings.warn("Preconditioning failed. Continuing without.",
-                          UserWarning)
-            M = None
-        if verbose:   
-            print('Preconditioning time: ',time.time()-start_time)
-
-    else:
-        M = None
-
-    if verbose:
-        start_time=time.time()
-
-    v, check = lgmres(A, b, tol=tol, M=M, maxiter=maxiter)
-    if check>0:
-        raise Exception("Steadystate solver did not reach tolerance after "+str(check)+" steps.")
-    elif check<0:
-        raise Exception("Steadystate solver failed with fatal error: "+str(check)+".")
-
-    if verbose:   
-        print('LGMRES solver time: ',time.time()-start_time)
-
-    out=Qobj(vec2mat(v), dims=L.dims[0],isherm=True)
-    return Qobj(0.5*(out+out.dag()),dims=out.dims,shape=out.shape,isherm=True)
-
-
-def _steadystate_direct_dense(L, verbose=False):
-    """
-    Direct solver that use numpy dense matrices. Suitable for 
-    small system, with a few states.
-    """
-    if verbose:
-        print('Starting direct dense solver...')
-
-    n = prod(L.dims[0][0])    
-    b = np.zeros(n ** 2)
-    b[0] = 1.0
-
-    M = L.data.todense()
-    M[0,:] = np.diag(np.ones(n)).reshape((1, n ** 2))
-    if verbose:
-        start_time=time.time()
-    v = np.linalg.solve(M, b)
-
-    if verbose:   
-        print('Direct dense solver time: ',time.time()-start_time)
-
-    out = Qobj(v.reshape(n, n), dims=L.dims[0], isherm=True)
-    return Qobj(0.5*(out+out.dag()),dims=out.dims,shape=out.shape,isherm=True)
-
-
-def _steadystate_svd_dense(L, atol=1e-12, rtol=0, all_steadystates=False,
-                           verbose=False):
-    """
-    Find the steady state(s) of an open quantum system by solving for the
-    nullspace of the Liouvillian.
-    """
-    if verbose:
-        print('Starting SVD solver...')
-        start_time=time.time()
-    
-    u, s, vh = svd(L.full(), full_matrices=False)
-    tol = max(atol, rtol * s[0])
-    nnz = (s >= tol).sum()
-    ns = vh[nnz:].conj().T
-
-    if verbose:   
-        print('SVD solver time: ',time.time()-start_time)
-
-    if all_steadystates:
-        rhoss_list = [] 
-        for n in range(ns.shape[1]):
-            rhoss = Qobj(vec2mat(ns[:,n]), dims=H.dims)
-            rhoss_list.append(rhoss / rhoss.tr())
-        return rhoss_list
-
-    else:
-        rhoss = Qobj(vec2mat(ns[:,0]), dims=H.dims)
-        return rhoss / rhoss.tr()
-
 
