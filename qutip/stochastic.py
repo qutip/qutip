@@ -308,7 +308,10 @@ def ssesolve_generic(ssdata, options, progress_bar):
     data.expect = data.expect / NT
 
     # standard error
-    data.ss = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
+    if NT > 1:
+        data.se = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
+    else:
+        data.se = None
 
     return data
 
@@ -393,11 +396,13 @@ def smesolve_generic(ssdata, options, progress_bar):
     N_substeps = ssdata.nsubsteps
     N = N_store * N_substeps
     dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
+    NT = ssdata.ntraj
 
     data = Odedata()
     data.solver = "smesolve"
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
+    data.ss = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
     data.noise = []
     data.measurement = []
 
@@ -413,8 +418,9 @@ def smesolve_generic(ssdata, options, progress_bar):
                       (spre(c) * spost(c.dag())).data,
                       lindblad_dissipator(c, data_only=True)])
 
-    # Liouvillian for the deterministic part
-    L = liouvillian_fast(ssdata.H, ssdata.c_ops)  # needs to be modified for TD systems
+    # Liouvillian for the deterministic part.
+    # needs to be modified for TD systems
+    L = liouvillian_fast(ssdata.H, ssdata.c_ops)
 
     progress_bar.start(ssdata.ntraj)
 
@@ -440,7 +446,13 @@ def smesolve_generic(ssdata, options, progress_bar):
     progress_bar.finished()
 
     # average
-    data.expect = data.expect / ssdata.ntraj
+    data.expect = data.expect / NT
+
+    # standard error
+    if NT > 1:
+        data.se = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
+    else:
+        data.se = None
 
     return data
 
@@ -474,7 +486,9 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                data.expect[e_idx, t_idx] += expect(e, Qobj(vec2mat(rho_t))) # XXX optimize
+                s = expect_rho_vec(e.data, rho_t) # XXX optimize
+                data.expect[e_idx, t_idx] += s
+                data.ss[e_idx, t_idx] += s ** 2 
         else:
             # XXX: need to keep hilbert space structure
             states_list.append(Qobj(vec2mat(rho_t)))
