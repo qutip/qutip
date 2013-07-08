@@ -104,7 +104,7 @@ if "--with-f90mc" in sys.argv:
 else:
     with_f90mc = False
 
-blas_info = get_info('blas')
+blas_info = get_info('lapack')
 if not with_f90mc or len(blas_info) == 0:
     os.environ['FORTRAN_LIBS'] = 'FALSE'
     print("blas development libraries not found.")
