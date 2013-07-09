@@ -1022,20 +1022,28 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, args=None, options=None):
     if (c_op_list and len(c_op_list) > 0) or not isket(rho0):
         if isinstance(H, list):
             output = _mesolve_list_td(H, rho0, tlist,
-                                      c_op_list, expt_ops, args, options)
-        if isinstance(H, (types.FunctionType, types.BuiltinFunctionType, partial)):
+                                      c_op_list, expt_ops, args, options,
+                                      BaseProgressBar())
+        if isinstance(H, (types.FunctionType,
+                          types.BuiltinFunctionType, partial)):
             output = _mesolve_func_td(H, rho0, tlist,
-                                      c_op_list, expt_ops, args, options)
+                                      c_op_list, expt_ops, args, options,
+                                      BaseProgressBar())
         else:
             output = _mesolve_const(H, rho0, tlist,
-                                    c_op_list, expt_ops, args, options)
+                                    c_op_list, expt_ops, args, options,
+                                    BaseProgressBar())
     else:
         if isinstance(H, list):
-            output = _sesolve_list_td(H, rho0, tlist, expt_ops, args, options)
-        if isinstance(H, (types.FunctionType, types.BuiltinFunctionType, partial)):
-            output = _sesolve_func_td(H, rho0, tlist, expt_ops, args, options)
+            output = _sesolve_list_td(H, rho0, tlist, expt_ops, args, options,
+                                      BaseProgressBar())
+        if isinstance(H, (types.FunctionType,
+                          types.BuiltinFunctionType, partial)):
+            output = _sesolve_func_td(H, rho0, tlist, expt_ops, args, options,
+                                      BaseProgressBar())
         else:
-            output = _sesolve_const(H, rho0, tlist, expt_ops, args, options)
+            output = _sesolve_const(H, rho0, tlist, expt_ops, args, options,
+                                    BaseProgressBar())
 
     if len(expt_ops) > 0:
         return output.expect
