@@ -17,8 +17,8 @@
 #
 ###########################################################################
 
-from numpy import linspace, sum
-from numpy.testing import assert_, run_module_suite
+from numpy import linspace, sum, abs
+from numpy.testing import assert_, run_module_suite, assert_equal
 from qutip import *
 from scipy.special import laguerre
 from numpy.random import rand
@@ -147,6 +147,33 @@ def test_wigner_compare_methods_ket():
         assert_(sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
         assert_(sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
 
+
+def test_wigner_fft_comparse_ket():
+    "Wigner: Compare Wigner fft and iterative for rand. ket"
+    N=20
+    xvec=linspace(-10,10,128)
+    for i in range(3):
+        rho=rand_ket(N)
+
+        Wfft,yvec=wigner(rho,xvec,xvec,method='fft')
+        W=wigner(rho,xvec,yvec,method='iterative')
+
+        Wdiff=abs(W-Wfft)
+        assert_equal(sum(abs(Wdiff))<1e-8, True)
+
+
+def test_wigner_fft_comparse_dm():
+    "Wigner: Compare Wigner fft and iterative for rand. dm"
+    N=20
+    xvec=linspace(-10,10,128)
+    for i in range(3):
+        rho=rand_dm(N)
+
+        Wfft,yvec=wigner(rho,xvec,xvec,method='fft')
+        W=wigner(rho,xvec,yvec,method='iterative')
+
+        Wdiff=abs(W-Wfft)
+        assert_equal(sum(abs(Wdiff))<1e-8, True)
 
 if __name__ == "__main__":
     run_module_suite()
