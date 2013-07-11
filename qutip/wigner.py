@@ -34,7 +34,7 @@ except:  # for scipy v >= 0.10
     from scipy.misc import factorial
 
 
-def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative', parfor=False):
+def wigner(psi, xvec, yvec, method='iterative', g=sqrt(2), parfor=False):
     """Wigner function for a state vector or density matrix at points
     `xvec + i * yvec`.
 
@@ -112,7 +112,7 @@ def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative', parfor=False):
         return _wigner_laguerre(rho, xvec, yvec, g, parfor)
 
     else:
-        raise TypeError("method must be either 'iterative' or 'laguerre'")
+        raise TypeError("method must be either 'iterative', 'laguerre', or 'fft'.")
 
 
 def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
