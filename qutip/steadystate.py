@@ -277,25 +277,17 @@ def _steadystate_direct_dense(L, verbose=False):
     return Qobj(data, dims=L.dims[0], isherm=True)
 
 
-def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000, 
-                            perm_method='AUTO', drop_tol=1e-1,
-                diag_pivot_thresh=0.33, verbose=False):
+def _iterative_precondition(A, b, perm_method, drop_tol, diag_pivot_thresh, 
+                            verbose=False):
     """
-    Iterative steady state solver using the LGMRES algorithm
-    and a sparse incomplete LU preconditioner.
+    Internal function for preconditioning the steadystate problem for use
+    with iterative solvers.
     """
+
     if verbose:
-        print('Starting LGMRES solver...')
-    use_solver(assumeSortedIndices=True)
-    n = prod(L.dims[0][0])
-    b = np.zeros(n ** 2)
-    b[0] = 1.0
-    A = L.data.tocsc() + sp.csc_matrix((np.ones(n), (np.zeros(n), \
-            [nn * (n + 1) for nn in range(n)])), shape=(n ** 2, n ** 2))
-    A.sort_indices()
-    if use_precond and perm_method in ['AUTO', 'AUTO-BREAK']:
-        if verbose:
-            start_time=time.time()
+        start_time=time.time()
+
+    if perm_method in ['AUTO', 'AUTO-BREAK']:
         try:
             P = spilu(A,drop_tol=1e-1, permc_spec="COLAMD", diag_pivot_thresh=0.33)
             P_x = lambda x: P.solve(x)
@@ -311,23 +303,51 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000,
             else:
                 raise Exception('Preconditioning failed. Halting solver.')
 
-    elif use_precond:
+    else:
+
         if verbose:
             start_time=time.time()
+
         try:
-            P = spilu(A,drop_tol=drop_tol, permc_spec=perm_method, 
-                        diag_pivot_thresh=diag_pivot_thresh)
+            P = spilu(A, drop_tol=drop_tol, permc_spec=perm_method, 
+                      diag_pivot_thresh=diag_pivot_thresh)
             P_x = lambda x: P.solve(x)
             M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
         except:
             warnings.warn("Preconditioning failed. Continuing without.",
                           UserWarning)
             M = None
-        if verbose:   
-            print('Preconditioning time: ',time.time()-start_time)
 
+    if verbose:   
+        print('Preconditioning time: ',time.time()-start_time)
+
+    return M
+
+
+def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000, 
+                           perm_method='AUTO', drop_tol=1e-1,
+                           diag_pivot_thresh=0.33, verbose=False):
+    """
+    Iterative steady state solver using the LGMRES algorithm
+    and a sparse incomplete LU preconditioner.
+    """
+
+    if verbose:
+        print('Starting LGMRES solver...')
+
+    use_solver(assumeSortedIndices=True)
+    n = prod(L.dims[0][0])
+    b = np.zeros(n ** 2)
+    b[0] = 1.0
+    A = L.data.tocsc() + sp.csc_matrix((np.ones(n), (np.zeros(n), \
+            [nn * (n + 1) for nn in range(n)])), shape=(n ** 2, n ** 2))
+    A.sort_indices()
+
+    if use_precond:
+        M = _iterative_precondition(A, b, perm_method, drop_tol,
+                                    diag_pivot_thresh, verbose)
     else:
-        M = None
+        M = 0
 
     if verbose:
         start_time=time.time()
@@ -339,7 +359,7 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000,
         raise Exception("Steadystate solver failed with fatal error: "+str(check)+".")
 
     if verbose:   
-        print('LGMRES solver time: ',time.time()-start_time)
+        print('LGMRES solver time: ', time.time() - start_time)
 
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
