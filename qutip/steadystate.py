@@ -244,9 +244,10 @@ def _steadystate_direct_sparse(L, use_umfpack=True, verbose=False):
     if verbose:
         print('Direct solver time: ',time.time()-start_time)
 
-    out=Qobj(vec2mat(v), dims=L.dims[0], isherm=True)
-    return 0.5*(out+out.dag())
+    data = vec2mat(v)
+    data = 0.5 * (data + data.conj().T)
 
+    return Qobj(data, dims=L.dims[0], isherm=True)
 
 
 def _steadystate_direct_dense(L, verbose=False):
@@ -270,8 +271,10 @@ def _steadystate_direct_dense(L, verbose=False):
     if verbose:   
         print('Direct dense solver time: ',time.time()-start_time)
 
-    out = Qobj(v.reshape(n, n), dims=L.dims[0], isherm=True)
-    return Qobj(0.5*(out+out.dag()),dims=out.dims,shape=out.shape,isherm=True)
+    data = vec2mat(v)
+    data = 0.5 * (data + data.conj().T)
+
+    return Qobj(data, dims=L.dims[0], isherm=True)
 
 
 def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000, 
@@ -338,8 +341,10 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000,
     if verbose:   
         print('LGMRES solver time: ',time.time()-start_time)
 
-    out=Qobj(vec2mat(v), dims=L.dims[0],isherm=True)
-    return Qobj(0.5*(out+out.dag()),dims=out.dims,shape=out.shape,isherm=True)
+    data = vec2mat(v)
+    data = 0.5 * (data + data.conj().T)
+
+    return Qobj(data, dims=L.dims[0], isherm=True)
 
 
 def _steadystate_lu(L, verbose=False):
@@ -361,8 +366,11 @@ def _steadystate_lu(L, verbose=False):
     v = solve(b)
     if verbose:   
         print('LU solver time: ',time.time()-start_time)
-    out = Qobj(v.reshape(n, n), dims=L.dims[0], isherm=True)
-    return Qobj(0.5*(out+out.dag()),dims=out.dims,shape=out.shape,isherm=True)
+
+    data = vec2mat(v)
+    data = 0.5 * (data + data.conj().T)
+
+    return Qobj(data, dims=L.dims[0], isherm=True)
 
 
 def _steadystate_svd_dense(L, atol=1e-12, rtol=0, all_steadystates=False,
