@@ -22,7 +22,7 @@ from qutip.ptrace import _select
 
 def _permute(Q,order):
     if Q.type=='ket':
-        dims, perm = _perm_inds(A.dims[0],order)
+        dims, perm = _perm_inds(Q.dims[0],order)
         nzs=Q.data.nonzero()[0]
         wh=np.where(perm==nzs)[0]
         data=np.ones(len(wh),dtype=int)
