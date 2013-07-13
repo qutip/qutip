@@ -159,7 +159,7 @@ def test_wigner_fft_comparse_ket():
         W=wigner(rho,xvec,yvec,method='iterative')
 
         Wdiff=abs(W-Wfft)
-        assert_equal(sum(abs(Wdiff))<1e-8, True)
+        assert_equal(sum(abs(Wdiff))<1e-7, True)
 
 
 def test_wigner_fft_comparse_dm():
@@ -173,7 +173,7 @@ def test_wigner_fft_comparse_dm():
         W=wigner(rho,xvec,yvec,method='iterative')
 
         Wdiff=abs(W-Wfft)
-        assert_equal(sum(abs(Wdiff))<1e-8, True)
+        assert_equal(sum(abs(Wdiff))<1e-7, True)
 
 if __name__ == "__main__":
     run_module_suite()
