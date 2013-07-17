@@ -313,6 +313,10 @@ def ssesolve_generic(ssdata, options, progress_bar):
     else:
         data.se = None
 
+    # convert complex data to real if hermitian
+    data.expect = [np.real(data.expect[n,:]) if e.isherm else data.expect[n,:]
+                   for n, e in enumerate(ssdata.e_ops)]
+
     return data
 
 
@@ -438,12 +442,13 @@ def smesolve_generic(ssdata, options, progress_bar):
             ssdata.distribution, store_measurement=ssdata.store_measurement,
             noise=noise)
 
-        # if average -> average...
         data.states.append(states_list)
         data.noise.append(dW)
         data.measurement.append(m)
 
     progress_bar.finished()
+
+    # if options.state_average -> average data.states
 
     # average
     data.expect = data.expect / NT
@@ -455,8 +460,8 @@ def smesolve_generic(ssdata, options, progress_bar):
         data.se = None
 
     # convert complex data to real if hermitian
-    data.expect = [np.real(data.expect[n,:]) if ssdata.e_ops[n].isherm else data.expect[n,:]
-                   for n in range(len(ssdata.e_ops))]
+    data.expect = [np.real(data.expect[n,:]) if e.isherm else data.expect[n,:]
+                   for n, e in enumerate(ssdata.e_ops)]
 
     return data
 
@@ -490,7 +495,7 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                s = expect_rho_vec(e.data, rho_t) # XXX optimize
+                s = expect_rho_vec(e.data, rho_t)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2 
         else:
@@ -567,7 +572,6 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
                                           psi_t, ssdata.c_ops, ssdata.e_ops, 
                                           data)
 
-        # if average -> average...
         data.states.append(states_list)
         data.jump_times.append(jump_times)
         data.jump_op_idx.append(jump_op_idx)
@@ -682,19 +686,18 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
     data.jump_times = []
     data.jump_op_idx = []
 
-    # effective hamiltonian for deterministic part
-    Heff = ssdata.H
-    for c in ssdata.c_ops:
-        Heff += -0.5j * c.dag() * c
+    # Liouvillian for the deterministic part.
+    # needs to be modified for TD systems
+    L = liouvillian_fast(ssdata.H, ssdata.c_ops)
         
     progress_bar.start(ssdata.ntraj)
 
     for n in range(ssdata.ntraj):
         progress_bar.update(n)
-        rho_t = ssdata.rho0.full()
+        rho_t = mat2vec(ssdata.rho0.full())
 
         states_list, jump_times, jump_op_idx = \
-            _smepdpsolve_single_trajectory(Heff, dt, ssdata.tlist,
+            _smepdpsolve_single_trajectory(L, dt, ssdata.tlist,
                                            N_store, N_substeps,
                                            rho_t, ssdata.c_ops, ssdata.e_ops, 
                                            data)
@@ -719,16 +722,14 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
     return data
 
 
-def _smepdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, rho_t,
+def _smepdpsolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
                                    c_ops, e_ops, data):
     """ 
     Internal function.
     """
     states_list = []
 
-    raise NotImplemented("SME PDP solver not yet completed")
-
-    phi_t = np.copy(psi_t)
+    rho_t = np.copy(rho_t)
 
     prng = RandomState() # todo: seed it
     r_jump, r_op = prng.rand(2)
@@ -740,13 +741,13 @@ def _smepdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, rho_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                data.expect[e_idx, t_idx] += _rho_expect(e, rho_t)
+                data.expect[e_idx, t_idx] += expect_rho_vec(e, rho_t)
         else:
-            states_list.append(Qobj(rho_t))
+            states_list.append(Qobj(vec2mat(rho_t)))
 
         for j in range(N_substeps):
 
-            if _rho_expect(d_op, sigma_t) < r_jump:
+            if expect_rho_vec(d_op, sigma_t) < r_jump:
                 # jump occurs
                 p = np.array([rho_expect(c.dag() * c, rho_t) for c in c_ops])
                 p = np.cumsum(p / np.sum(p))
@@ -765,10 +766,18 @@ def _smepdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, rho_t,
                 r_jump, r_op = prng.rand(2)
 
             # deterministic evolution wihtout correction for norm decay
+            dsigma_t = spmv(L.data.data,
+                            L.data.indices,
+                            L.data.indptr, sigma_t) * dt
 
             # deterministic evolution with correction for norm decay
+            drho_t = spmv(L.data.data,
+                          L.data.indices,
+                          L.data.indptr, rho_t) * dt
 
-            # increment wavefunctions
+            rho_t += drho_t
+
+            # increment density matrices
             sigma_t += dsigma_t
             rho_t += drho_t
 
