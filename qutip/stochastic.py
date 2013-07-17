@@ -48,7 +48,7 @@ from numpy.random import RandomState
 
 from qutip.odedata import Odedata
 from qutip.odeoptions import Odeoptions
-from qutip.expect import expect
+from qutip.expect import expect, expect_rho_vec
 from qutip.qobj import Qobj, isket
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
                                  liouvillian_fast, lindblad_dissipator)
@@ -454,6 +454,10 @@ def smesolve_generic(ssdata, options, progress_bar):
     else:
         data.se = None
 
+    # convert complex data to real if hermitian
+    data.expect = [np.real(data.expect[n,:]) if ssdata.e_ops[n].isherm else data.expect[n,:]
+                   for n in range(len(ssdata.e_ops))]
+
     return data
 
 
@@ -539,7 +543,7 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
     NT = ssdata.ntraj
 
     data = Odedata()
-    data.solver = "spdpsolve"
+    data.solver = "sepdpsolve"
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
     data.ss = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
@@ -575,7 +579,13 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
 
     # standard error
     if NT > 1:
-        data.ss = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
+        data.se = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
+    else:
+        data.se = None
+
+    # convert complex data to real if hermitian
+    data.expect = [np.real(data.expect[n,:]) if e.isherm else data.expect[n,:]
+                   for n, e in enumerate(ssdata.e_ops)]
 
     return data
 
@@ -663,6 +673,7 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
     N_substeps = ssdata.nsubsteps
     N = N_store * N_substeps
     dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
+    NT = ssdata.ntraj
 
     data = Odedata()
     data.solver = "smepdpsolve"
@@ -688,16 +699,22 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
                                            rho_t, ssdata.c_ops, ssdata.e_ops, 
                                            data)
 
-        # if average -> average...
         data.states.append(states_list)
-
         data.jump_times.append(jump_times)
         data.jump_op_idx.append(jump_op_idx)
 
     progress_bar.finished()
 
+    # if options.state_average = True -> average data.states
+
     # average
     data.expect = data.expect / ssdata.ntraj
+
+    # standard error
+    if NT > 1:
+        data.se = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
+    else:
+        data.se = None
 
     return data
 
