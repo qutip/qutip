@@ -48,7 +48,7 @@ from numpy.random import RandomState
 
 from qutip.odedata import Odedata
 from qutip.odeoptions import Odeoptions
-from qutip.expect import expect, expect_rho_vec
+from qutip.expect import expect, expect_rho_vec, expect_rho_vec1d
 from qutip.qobj import Qobj, isket
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
                                  liouvillian_fast, lindblad_dissipator)
@@ -422,6 +422,8 @@ def smesolve_generic(ssdata, options, progress_bar):
                       (spre(c) * spost(c.dag())).data,
                       lindblad_dissipator(c, data_only=True)])
 
+    s_e_ops = [spre(e) for e in ssdata.e_ops]
+
     # Liouvillian for the deterministic part.
     # needs to be modified for TD systems
     L = liouvillian_fast(ssdata.H, ssdata.c_ops)
@@ -437,7 +439,7 @@ def smesolve_generic(ssdata, options, progress_bar):
 
         states_list, dW, m = _smesolve_single_trajectory(
             L, dt, ssdata.tlist, N_store, N_substeps,
-            rho_t, A_ops, ssdata.e_ops, data, ssdata.rhs,
+            rho_t, A_ops, s_e_ops, data, ssdata.rhs,
             ssdata.d1, ssdata.d2, ssdata.d2_len, ssdata.homogeneous,
             ssdata.distribution, store_measurement=ssdata.store_measurement,
             noise=noise)
