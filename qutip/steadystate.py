@@ -60,10 +60,11 @@ def steadystate(
     c_op_list : list
         A list of collapse operators.
 
-    method : str {'direct', 'iterative', 'lu', 'svd', 'power'}
+    method : str {'direct', 'iterative', 'iterative-bicg', 'lu', 'svd', 'power'}
         Method for solving the underlying linear equation. Direct solver
-        'direct' (default), iterative LGMRES method 'iterative', LU
-        decomposition 'lu', SVD 'svd' (dense), or inverse-power method 'power'.
+        'direct' (default), iterative LGMRES method 'iterative',
+        iterative method BICG 'iterative-bicg', LU decomposition 'lu',
+        SVD 'svd' (dense), or inverse-power method 'power'.
 
     sparse : bool default=True
         Solve for the steady state using sparse algorithms. If set to False,
@@ -84,12 +85,12 @@ def steadystate(
         solvers.
 
     use_precond : bool optional, default = True
-        ITERATIVE OLNLY. Use an incomplete sparse LU decomposition as a
-        preconditioner for the 'iterative' LGMRES solver.
+        ITERATIVE ONLY. Use an incomplete sparse LU decomposition as a
+        preconditioner for the 'iterative' LGMRES and BICG solvers.
         Speeds up convergence time by orders of magnitude in many cases.
 
     perm_method : str {'AUTO', 'AUTO-BREAK', 'COLAMD', 'MMD_ATA', 'NATURAL'}
-        ITERATIVE OLNLY. Sets the method for column ordering the incomplete
+        ITERATIVE ONLY. Sets the method for column ordering the incomplete
         LU preconditioner used by the 'iterative' method.  When set to 'AUTO'
         (default), the solver will attempt to precondition the system using
         'COLAMD'. If this fails, the solver will use no preconditioner.  Using
@@ -386,12 +387,12 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, maxiter=5000,
                                 perm_method='AUTO', drop_tol=1e-1,
                                 diag_pivot_thresh=0.33, verbose=False):
     """
-    Iterative steady state solver using the LGMRES algorithm
+    Iterative steady state solver using the BICG algorithm
     and a sparse incomplete LU preconditioner.
     """
 
     if verbose:
-        print('Starting LGMRES solver...')
+        print('Starting BICG solver...')
 
     use_solver(assumeSortedIndices=True)
     n = prod(L.dims[0][0])
