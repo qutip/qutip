@@ -23,6 +23,10 @@ Online read-only versions
 You can also view the notebooks online, as read-only HTML pages rendered by
 http://nbviewer.ipython.org:
 
+
+Feature demo notebooks
+----------------------
+
  * [development-continuous-variable-test](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-continuous-variable-test.ipynb)
  * [development-ipynbtools-test](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-ipynbtools-test.ipynb)
  * [development-mesolve-and-liouvillians](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-mesolve-and-liouvillians.ipynb)
@@ -32,4 +36,10 @@ http://nbviewer.ipython.org:
  * [development-mcf90-test](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-mcf90-test.ipynb)
  * [development-spectrum-test](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-spectrum-test.ipynb)
  * [development-Qobj-extract-eliminate](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-Qobj-extract-eliminate.ipynb)
+
+Benchmark notebooks
+-------------------
+
+ * [development-benchmark-steadystate-1](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-steadystate-solver-benchmarks-1.ipynb)
+ * [development-benchmark-steadystate-2](http://nbviewer.ipython.org/urls/raw.github.com/qutip/qutip/master/notebooks/development-steadystate-solver-benchmarks-2.ipynb)
 
