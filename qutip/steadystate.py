@@ -97,11 +97,11 @@ def steadystate(
         the 'COLAMD' method fails.
 
     drop_tol : float default=1e-1
-        ITERATIVE OLNLY. Sets the threshold for the magnitude of preconditioner
+        ITERATIVE ONLY. Sets the threshold for the magnitude of preconditioner
         elements that should be dropped.
 
     diag_pivot_thresh : float default=0.33
-        ITERATIVE OLNLY. Sets the threshold for which diagonal elements are
+        ITERATIVE ONLY. Sets the threshold for which diagonal elements are
         considered acceptable pivot points when using a preconditioner.
 
     verbose : bool default=False
@@ -144,6 +144,12 @@ def steadystate(
 
     elif method == 'iterative':
         return _steadystate_iterative(A, tol=tol, use_precond=use_precond,
+                                      maxiter=maxiter, perm_method=perm_method,
+                                      drop_tol=drop_tol, verbose=verbose,
+                                      diag_pivot_thresh=diag_pivot_thresh)
+
+    elif method == 'iterative-bicg':
+        return _steadystate_iterative_bicg(A, tol=tol, use_precond=use_precond,
                                       maxiter=maxiter, perm_method=perm_method,
                                       drop_tol=drop_tol, verbose=verbose,
                                       diag_pivot_thresh=diag_pivot_thresh)
@@ -376,6 +382,53 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000,
     return Qobj(data, dims=L.dims[0], isherm=True)
 
 
+def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, maxiter=5000,
+                                perm_method='AUTO', drop_tol=1e-1,
+                                diag_pivot_thresh=0.33, verbose=False):
+    """
+    Iterative steady state solver using the LGMRES algorithm
+    and a sparse incomplete LU preconditioner.
+    """
+
+    if verbose:
+        print('Starting LGMRES solver...')
+
+    use_solver(assumeSortedIndices=True)
+    n = prod(L.dims[0][0])
+    b = np.zeros(n ** 2)
+    b[0] = 1.0
+    A = L.data.tocsc() + sp.csc_matrix((np.ones(n),
+            (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
+            shape=(n ** 2, n ** 2))
+    A.sort_indices()
+
+    if use_precond:
+        M = _iterative_precondition(A, b, perm_method, drop_tol,
+                                    diag_pivot_thresh, verbose)
+    else:
+        M = 0
+
+    if verbose:
+        start_time = time.time()
+
+    v, check = bicgstab(A, b, tol=tol, M=M)
+
+    if check > 0:
+        raise Exception("Steadystate solver did not reach tolerance after " +
+                        str(check) + " steps.")
+    elif check < 0:
+        raise Exception(
+            "Steadystate solver failed with fatal error: " + str(check) + ".")
+
+    if verbose:
+        print('BICG solver time: ', time.time() - start_time)
+
+    data = vec2mat(v)
+    data = 0.5 * (data + data.conj().T)
+
+    return Qobj(data, dims=L.dims[0], isherm=True)
+
+
 def _steadystate_lu(L, verbose=False):
     """
     Find the steady state(s) of an open quantum system by computing the
@@ -425,12 +478,12 @@ def _steadystate_svd_dense(L, atol=1e-12, rtol=0, all_steadystates=False,
     if all_steadystates:
         rhoss_list = []
         for n in range(ns.shape[1]):
-            rhoss = Qobj(vec2mat(ns[:, n]), dims=H.dims)
+            rhoss = Qobj(vec2mat(ns[:, n]), dims=L.dims[0])
             rhoss_list.append(rhoss / rhoss.tr())
         return rhoss_list
 
     else:
-        rhoss = Qobj(vec2mat(ns[:, 0]), dims=H.dims)
+        rhoss = Qobj(vec2mat(ns[:, 0]), dims=L.dims[0])
         return rhoss / rhoss.tr()
 
 
