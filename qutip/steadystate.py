@@ -360,7 +360,7 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000,
         M = _iterative_precondition(A, b, perm_method, drop_tol,
                                     diag_pivot_thresh, verbose)
     else:
-        M = 0
+        M = None
 
     if verbose:
         start_time = time.time()
@@ -406,7 +406,7 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, maxiter=5000,
         M = _iterative_precondition(A, b, perm_method, drop_tol,
                                     diag_pivot_thresh, verbose)
     else:
-        M = 0
+        M = None
 
     if verbose:
         start_time = time.time()
