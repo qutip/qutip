@@ -524,8 +524,8 @@ def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5, use_umfpack=True,
         data = v / sum(trow.dot(v))
     else:
         data = data / la.norm(v)
-    data = sp_reshape(data, (rhoss.shape[0], rhoss.shape[1])).T
-    data = sp.csr_matrix(data)
+
+    data = sp.csr_matrix(vec2mat(data))
     rhoss.data = 0.5 * (data + data.conj().T)
     rhoss.isherm = True
     if verbose:
