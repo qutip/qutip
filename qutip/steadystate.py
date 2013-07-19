@@ -3,7 +3,7 @@
 #    QuTiP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTiP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -22,15 +22,17 @@ open qunatum systems defined by a Louvillian or Hamiltonian and list of
 collapse operators.
 """
 
+import time
 import warnings
+
 import numpy as np
 from numpy.linalg import svd
 from scipy import prod, randn
 import scipy.sparse as sp
 import scipy.linalg as la
 from scipy.sparse.linalg import *
-import time
-from qutip.qobj import *
+
+from qutip.qobj import Qobj, issuper, isoper
 from qutip.superoperator import *
 from qutip.operators import qeye
 from qutip.random_objects import rand_dm
@@ -125,7 +127,7 @@ def steadystate(
     """
     n_op = len(c_op_list)
 
-    if A.type == 'oper':
+    if isoper(A):
         if n_op == 0:
             raise TypeError('Cannot calculate the steady state for a ' +
                             'non-dissipative system ' +
