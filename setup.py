@@ -70,8 +70,7 @@ def git_short_hash():
 
 FULLVERSION = VERSION
 if not ISRELEASED:
-    FULLVERSION += '.dev'
-    FULLVERSION += git_short_hash()
+    FULLVERSION += '.dev' + git_short_hash()
 
 
 def write_version_py(filename='qutip/_version.py'):
@@ -97,99 +96,18 @@ if os.path.exists('qutip/_version.py'):
     os.remove('qutip/_version.py')
 write_version_py()
 
-#--------- check for fortran and blas libs -------------------#
+#--------- check for fortran option -------------------#
 if "--with-f90mc" in sys.argv:
     with_f90mc = True
     sys.argv.remove("--with-f90mc")
 else:
     with_f90mc = False
 
-blas_info = get_info('lapack')
-if not with_f90mc or len(blas_info) == 0:
+if not with_f90mc:
     os.environ['FORTRAN_LIBS'] = 'FALSE'
-    print("blas development libraries not found.")
     print("Installing without the fortran mcsolver.")
 else:
     os.environ['FORTRAN_LIBS'] = 'TRUE'
-
-
-#--------- test command for running unittests ------------#
-class TestCommand(Command):
-    user_options = []
-
-    def initialize_options(self):
-        self._dir = os.getcwd() + "/test/"
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        '''
-        Finds all the tests modules in tests/, and runs them.
-        '''
-        testfiles = []
-        for t in glob(pjoin(self._dir, 'unittests', 'test_*.py')):
-            if not t.endswith('__init__.py'):
-                testfiles.append('.'.join(
-                    ['test.unittests', splitext(basename(t))[0]])
-                )
-        tests = TestLoader().loadTestsFromNames(testfiles)
-        t = TextTestRunner(verbosity=1)
-        t.run(tests)
-
-
-#--------- devtest command for running unittests-------------#
-class TestHereCommand(Command):
-    user_options = []
-    sys.path.append(os.getcwd())
-
-    def initialize_options(self):
-        self._dir = os.getcwd() + "/test/"
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        '''
-        Finds all the tests modules in tests/, and runs them.
-        '''
-        testfiles = []
-        for t in glob(pjoin(self._dir, 'unittests', 'test_*.py')):
-            if not t.endswith('__init__.py'):
-                testfiles.append('.'.join(
-                    ['test.unittests', splitext(basename(t))[0]])
-                )
-        tests = TestLoader().loadTestsFromNames(testfiles)
-        t = TextTestRunner(verbosity=1)
-        t.run(tests)
-
-
-#------ clean command for removing .pyc files -----------------#
-class CleanCommand(Command):
-    user_options = [("all", "a", "All")]
-
-    def initialize_options(self):
-        self._clean_me = []
-        self.all = None
-        for root, dirs, files in os.walk('.'):
-            for f in files:
-                if f.endswith('.pyc'):
-                    self._clean_me.append(pjoin(root, f))
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        pyc_rm = 0
-        for clean_me in self._clean_me:
-            try:
-                os.unlink(clean_me)
-            except:
-                pyc_rm += 1
-        if pyc_rm > 0:
-            print("Could not remove " + str(pyc_rm) + " pyc files.")
-        else:
-            print("Removed all pyc files.")
 
 # remove needless error warnings for released version.
 #if ISRELEASED:
@@ -231,7 +149,5 @@ setup(
     platforms=PLATFORMS,
     requires=REQUIRES,
     package_data=PACKAGE_DATA,
-    cmdclass={'test': TestCommand, 'devtest': TestHereCommand,
-              'clean': CleanCommand},
     configuration=configuration
 )
