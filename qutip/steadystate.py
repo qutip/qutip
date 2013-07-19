@@ -289,7 +289,7 @@ def _steadystate_direct_dense(L, verbose=False):
     return Qobj(data, dims=L.dims[0], isherm=True)
 
 
-def _iterative_precondition(A, b, perm_method, drop_tol, diag_pivot_thresh,
+def _iterative_precondition(A, n, perm_method, drop_tol, diag_pivot_thresh,
                             verbose=False):
     """
     Internal function for preconditioning the steadystate problem for use
@@ -358,7 +358,7 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000,
     A.sort_indices()
 
     if use_precond:
-        M = _iterative_precondition(A, b, perm_method, drop_tol,
+        M = _iterative_precondition(A, n, perm_method, drop_tol,
                                     diag_pivot_thresh, verbose)
     else:
         M = None
@@ -404,7 +404,7 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, maxiter=5000,
     A.sort_indices()
 
     if use_precond:
-        M = _iterative_precondition(A, b, perm_method, drop_tol,
+        M = _iterative_precondition(A, n, perm_method, drop_tol,
                                     diag_pivot_thresh, verbose)
     else:
         M = None
