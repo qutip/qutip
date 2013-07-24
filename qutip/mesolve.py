@@ -356,7 +356,7 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
     #
     # setup integrator
     #
-    initial_vector = mat2vec(rho0.full())
+    initial_vector = mat2vec(rho0.full()).ravel()
     if opt.rhs_with_state:
         r = scipy.integrate.ode(drho_list_td_with_state)
     else:
@@ -561,7 +561,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
     #
     # setup integrator
     #
-    initial_vector = mat2vec(rho0.full())
+    initial_vector = mat2vec(rho0.full()).ravel()
     r = scipy.integrate.ode(odeconfig.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
@@ -614,7 +614,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, opt,
     #
     # setup integrator
     #
-    initial_vector = mat2vec(rho0.full())
+    initial_vector = mat2vec(rho0.full()).ravel()
     r = scipy.integrate.ode(cy_ode_rhs)
     r.set_f_params(L.data.data, L.data.indices, L.data.indptr)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
@@ -721,7 +721,7 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt,
     #
     # setup integrator
     #
-    initial_vector = mat2vec(rho0.full())
+    initial_vector = mat2vec(rho0.full()).ravel()
     r = scipy.integrate.ode(odeconfig.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
@@ -802,7 +802,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt,
     #
     # setup integrator
     #
-    initial_vector = mat2vec(rho0.full())
+    initial_vector = mat2vec(rho0.full()).ravel()
     if not opt.rhs_with_state:
         r = scipy.integrate.ode(cy_ode_rho_func_td)
     else:
