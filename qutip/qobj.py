@@ -149,34 +149,40 @@ class Qobj():
 
             # make sure matrix is sparse (safety check)
             self.data = sp.csr_matrix(inpt.data, dtype=complex)
+
             if not np.any(dims):
                 # Dimensions of quantum object used for keeping track of tensor
                 # components
                 self.dims = inpt.dims
             else:
                 self.dims = dims
+
             if not np.any(shape):
                 # Shape of undelying quantum obejct data matrix
                 self.shape = inpt.shape
             else:
                 self.shape = shape
 
-        else:  # if input is NOT Qobj
+        else:
             # if input is int, float, or complex then convert to array
             if isinstance(inpt, (int, float, complex, np.int64)):
                 inpt = np.array([[inpt]])
+
             # case where input is array or sparse
             if (isinstance(inpt, np.ndarray)) or sp.issparse(inpt):
-                self.data = sp.csr_matrix(
-                    inpt, dtype=complex)  # data stored as space array
+
+                if inpt.ndim == 1:
+                    inpt = inpt[:, np.newaxis]
+
+                self.data = sp.csr_matrix(inpt, dtype=complex)
+ 
                 if not np.any(dims):
-                    self.dims = [[int(inpt.shape[0])], [int(
-                        inpt.shape[1])]]  # list of object dimensions
+                    self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
                 else:
                     self.dims = dims
+
                 if not np.any(shape):
-                    self.shape = [int(inpt.shape[0]), int(
-                        inpt.shape[1])]  # list of matrix dimensions
+                    self.shape = [int(inpt.shape[0]), int(inpt.shape[1])]
                 else:
                     self.shape = shape
 
@@ -187,11 +193,14 @@ class Qobj():
                     inpt = np.array([inpt])
                 else:  # if list has two dimensions (i.e [[5,4]])
                     inpt = np.array(inpt)
+
                 self.data = sp.csr_matrix(inpt, dtype=complex)
+
                 if not np.any(dims):
                     self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
                 else:
                     self.dims = dims
+
                 if not np.any(shape):
                     self.shape = [int(inpt.shape[0]), int(inpt.shape[1])]
                 else:
