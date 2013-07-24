@@ -287,7 +287,7 @@ def ssesolve_generic(ssdata, options, progress_bar):
     for n in range(ssdata.ntraj):
         progress_bar.update(n)
 
-        psi_t = ssdata.state0.full()
+        psi_t = ssdata.state0.full().ravel()
 
         noise = ssdata.noise[n] if ssdata.noise else None
 
@@ -433,7 +433,7 @@ def smesolve_generic(ssdata, options, progress_bar):
     for n in range(ssdata.ntraj):
         progress_bar.update(n)
 
-        rho_t = mat2vec(ssdata.state0.full())
+        rho_t = mat2vec(ssdata.state0.full()).ravel()
 
         noise = ssdata.noise[n] if ssdata.noise else None
 
@@ -566,7 +566,7 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
 
     for n in range(ssdata.ntraj):
         progress_bar.update(n)
-        psi_t = ssdata.psi0.full()
+        psi_t = ssdata.psi0.full().ravel()
 
         states_list, jump_times, jump_op_idx = \
             _sepdpsolve_single_trajectory(Heff, dt, ssdata.tlist,
@@ -696,7 +696,7 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
 
     for n in range(ssdata.ntraj):
         progress_bar.update(n)
-        rho_t = mat2vec(ssdata.rho0.full())
+        rho_t = mat2vec(ssdata.rho0.full()).ravel()
 
         states_list, jump_times, jump_op_idx = \
             _smepdpsolve_single_trajectory(L, dt, ssdata.tlist,
