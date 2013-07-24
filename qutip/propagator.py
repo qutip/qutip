@@ -26,6 +26,7 @@ from qutip.qobj import Qobj
 from qutip.rhs_generate import rhs_clear
 from qutip.superoperator import vec2mat, mat2vec
 from qutip.mesolve import mesolve
+from qutip.sesolve import sesolve
 from qutip.essolve import essolve
 from qutip.steadystate import steadystate
 from qutip.states import basis
@@ -96,7 +97,7 @@ def propagator(H, t, c_op_list, args=None, options=None):
 
         for n in range(0, N):
             psi0 = basis(N, n)
-            output = mesolve(H, psi0, tlist, [], [], args, options)
+            output = sesolve(H, psi0, tlist, [], args, options)
             for k, t in enumerate(tlist):
                 u[:, n, k] = output.states[k].full().T
 
