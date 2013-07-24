@@ -48,7 +48,7 @@ from numpy.random import RandomState
 
 from qutip.odedata import Odedata
 from qutip.odeoptions import Odeoptions
-from qutip.expect import expect, expect_rho_vec, expect_rho_vec1d
+from qutip.expect import expect, expect_rho_vec
 from qutip.qobj import Qobj, isket
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
                                  liouvillian_fast, lindblad_dissipator)
