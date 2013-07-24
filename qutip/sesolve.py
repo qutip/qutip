@@ -176,7 +176,7 @@ def _sesolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt,
     #
     # setup integrator
     #
-    initial_vector = psi0.full()
+    initial_vector = psi0.full().ravel()
     if not opt.rhs_with_state:
         r = scipy.integrate.ode(psi_list_td)
     else:
@@ -238,6 +238,8 @@ def _sesolve_const(H, psi0, tlist, expt_ops, args, opt, progress_bar):
     """!
     Evolve the wave function using an ODE solver
     """
+    if debug:
+        print(inspect.stack()[0][3])
 
     if not isket(psi0):
         raise TypeError("psi0 must be a ket")
@@ -245,7 +247,7 @@ def _sesolve_const(H, psi0, tlist, expt_ops, args, opt, progress_bar):
     #
     # setup integrator.
     #
-    initial_vector = psi0.full()
+    initial_vector = psi0.full().ravel()
     r = scipy.integrate.ode(cy_ode_rhs)
     L = -1.0j * H
     r.set_f_params(L.data.data, L.data.indices, L.data.indptr)  # cython RHS
@@ -355,7 +357,7 @@ def _sesolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt,
     #
     # setup integrator
     #
-    initial_vector = psi0.full()
+    initial_vector = psi0.full().ravel()
     r = scipy.integrate.ode(odeconfig.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
@@ -444,7 +446,7 @@ def _sesolve_list_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
     #
     # setup integrator
     #
-    initial_vector = psi0.full()
+    initial_vector = psi0.full().ravel()
     r = scipy.integrate.ode(odeconfig.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
@@ -502,7 +504,7 @@ def _sesolve_func_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
         else:
             new_args = args
 
-    initial_vector = psi0.full()
+    initial_vector = psi0.full().ravel()
 
     if not opt.rhs_with_state:
         r = scipy.integrate.ode(cy_ode_psi_func_td)
@@ -587,8 +589,6 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar,
     #
     progress_bar.start(n_tsteps)
 
-    psi = Qobj(psi0)
-
     for t_idx, t in enumerate(tlist):
         progress_bar.update(t_idx)
 
@@ -596,22 +596,18 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar,
             break
 
         if state_norm_func:
-            psi.data = r.y
-            state_norm = state_norm_func(psi.data)
-            psi.data = psi.data / state_norm
-            r.set_initial_value(r.y / state_norm, r.t)
-        else:
-            psi.data = r.y
+            data = r.y / state_norm_func(r.y)
+            r.set_initial_value(data, r.t)
 
         if opt.store_states:
-            output.states.append(Qobj(psi))
+            output.states.append(Qobj(r.y))
 
         if expt_callback:
             # use callback method
-            expt_ops(t, Qobj(psi))
+            expt_ops(t, Qobj(r.y))
 
         for m in range(n_expt_op):
-            output.expect[m][t_idx] = expect(expt_ops[m], psi)
+            output.expect[m][t_idx] = expect(expt_ops[m], Qobj(r.y)) # optimize
 
         r.integrate(r.t + dt)
 
@@ -624,6 +620,6 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar,
             pass
 
     if opt.store_final_state:
-        output.final_state = Qobj(psi)
+        output.final_state = Qobj(r.y)
 
     return output
