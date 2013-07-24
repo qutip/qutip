@@ -159,7 +159,7 @@ class Codegen():
         func_name = "def col_spmv("
         input_vars = ("int which, double t, np.ndarray[CTYPE_t, ndim=1] " +
                       "data, np.ndarray[int] idx,np.ndarray[int] " +
-                      "ptr,np.ndarray[CTYPE_t, ndim=2] vec")
+                      "ptr,np.ndarray[CTYPE_t, ndim=1] vec")
         if len(self.args) > 0:
             td_consts = list(self.args.items())
             td_len = len(td_consts)
@@ -178,7 +178,7 @@ class Codegen():
         func_name = "def col_expect("
         input_vars = ("int which, double t, np.ndarray[CTYPE_t, ndim=1] " +
                       "data, np.ndarray[int] idx,np.ndarray[int] " +
-                      "ptr,np.ndarray[CTYPE_t, ndim=2] vec")
+                      "ptr,np.ndarray[CTYPE_t, ndim=1] vec")
         if len(self.args) > 0:
             td_consts = list(self.args.items())
             td_len = len(td_consts)
@@ -215,15 +215,15 @@ class Codegen():
     def func_vars(self):
         """Writes the variables and their types & spmv parts"""
         func_vars = ["", 'cdef Py_ssize_t row', 'cdef int num_rows = len(vec)',
-                     'cdef np.ndarray[CTYPE_t, ndim=2] ' +
-                     'out = np.zeros((num_rows,1),dtype=np.complex)']
+                     'cdef np.ndarray[CTYPE_t, ndim=1] ' +
+                     'out = np.zeros((num_rows),dtype=np.complex)']
         func_vars.append(" ")
         tdterms = self.h_tdterms
         hinds = 0
         for ht in self.h_terms:
             hstr = str(ht)
             if self.type == 'mc':
-                str_out = ("cdef np.ndarray[CTYPE_t, ndim=2] Hvec" + hstr +
+                str_out = ("cdef np.ndarray[CTYPE_t, ndim=1] Hvec" + hstr +
                            " = " + "spmv(data" + hstr + "," +
                            "idx" + hstr + "," + "ptr" + hstr +
                            "," + "vec" + ")")
@@ -249,7 +249,7 @@ class Codegen():
             cinds = 0
             for ct in range(terms):
                 cstr = str(ct + hinds + 1)
-                str_out = ("cdef np.ndarray[CTYPE_t, ndim=2] Cvec" + str(ct) +
+                str_out = ("cdef np.ndarray[CTYPE_t, ndim=1] Cvec" + str(ct) +
                            " = " + "spmv(data" + cstr + "," +
                            "idx" + cstr + "," +
                            "ptr" + cstr + "," + "vec" + ")")
@@ -264,12 +264,12 @@ class Codegen():
         func_terms = []
         if self.type == 'mc':
             func_terms.append("for row in range(num_rows):")
-            sum_string = "\tout[row,0] = Hvec0[row,0]"
+            sum_string = "\tout[row] = Hvec0[row]"
             for ht in range(1, len(self.h_terms)):
-                sum_string += " + Hvec" + str(ht) + "[row,0]"
+                sum_string += " + Hvec" + str(ht) + "[row]"
             if any(self.c_tdterms):
                 for ct in range(len(self.c_tdterms)):
-                    sum_string += " + Cvec" + str(ct) + "[row,0]"
+                    sum_string += " + Cvec" + str(ct) + "[row]"
             func_terms.append(sum_string)
         return func_terms
 
@@ -406,8 +406,8 @@ class Codegen2():
         Writes the variables and their types & spmv parts
         """
         line_list = ['cdef int num_rows = len(vec)',
-                     'cdef np.ndarray[CTYPE_t, ndim=2] ' +
-                     'out = np.zeros((num_rows,1),dtype=np.complex)']
+                     'cdef np.ndarray[CTYPE_t, ndim=1] ' +
+                     'out = np.zeros((num_rows),dtype=np.complex)']
 
         for n in range(self.n_L_terms):
             if self.L_coeffs[n] == "1.0":
@@ -459,15 +459,15 @@ def cython_spmv():
     line2 = "\tcdef int jj,row_start,row_end"
     line3 = "\tcdef int num_rows=len(vec)"
     line4 = "\tcdef CTYPE_t dot"
-    line5 = ("\tcdef np.ndarray[CTYPE_t, ndim=2] out = " +
-             "np.zeros((num_rows,1),dtype=np.complex)")
+    line5 = ("\tcdef np.ndarray[CTYPE_t, ndim=1] out = " +
+             "np.zeros((num_rows),dtype=np.complex)")
     line6 = "\tfor row in range(num_rows):"
     line7 = "\t\tdot=0.0"
     line8 = "\t\trow_start = ptr[row]"
     line9 = "\t\trow_end = ptr[row+1]"
     lineA = "\t\tfor jj in range(row_start,row_end):"
     lineB = "\t\t\tdot=dot+data[jj]*vec[idx[jj]]"
-    lineC = "\t\tout[row,0]=dot"
+    lineC = "\t\tout[row]=dot"
     lineD = "\treturn out"
     return [line0, line1, line2, line3, line4, line5, line6, line7,
             line8, line9, lineA, lineB, lineC, lineD]
@@ -481,7 +481,7 @@ def cython_spmvpy():
 def spmvpy(np.ndarray[CTYPE_t, ndim=1] data,
            np.ndarray[int] idx,np.ndarray[int] ptr,
            np.ndarray[CTYPE_t, ndim=1] vec,
-           CTYPE_t a, np.ndarray[CTYPE_t, ndim=2] out):
+           CTYPE_t a, np.ndarray[CTYPE_t, ndim=1] out):
 \tcdef Py_ssize_t row
 \tcdef int jj,row_start,row_end
 \tcdef int num_rows=len(vec)
@@ -492,7 +492,7 @@ def spmvpy(np.ndarray[CTYPE_t, ndim=1] data,
 \t\trow_end = ptr[row+1]
 \t\tfor jj in range(row_start, row_end):
 \t\t\tdot = dot + data[jj]*vec[idx[jj]]
-\t\tout[row,0] = out[row,0] + a * dot
+\t\tout[row] = out[row] + a * dot
 \treturn out
     """
     return code.split("\n")
@@ -506,15 +506,15 @@ def cython_col_spmv():
     line2 = "\tcdef int jj,row_start,row_end"
     line3 = "\tcdef int num_rows=len(vec)"
     line4 = "\tcdef CTYPE_t dot"
-    line5 = ("\tcdef np.ndarray[CTYPE_t, ndim=2] out = " +
-             "np.zeros((num_rows,1),dtype=np.complex)")
+    line5 = ("\tcdef np.ndarray[CTYPE_t, ndim=1] out = " +
+             "np.zeros((num_rows),dtype=np.complex)")
     line6 = "\tfor row in range(num_rows):"
     line7 = "\t\tdot=0.0"
     line8 = "\t\trow_start = ptr[row]"
     line9 = "\t\trow_end = ptr[row+1]"
     lineA = "\t\tfor jj in range(row_start,row_end):"
-    lineB = "\t\t\tdot=dot+data[jj]*vec[idx[jj],0]"
-    lineC = "\t\tout[row,0]=dot"
+    lineB = "\t\t\tdot=dot+data[jj]*vec[idx[jj]]"
+    lineC = "\t\tout[row]=dot"
     return [line1, line2, line3, line4, line5, line6, line7, line8,
             line9, lineA, lineB, lineC]
 
@@ -526,8 +526,8 @@ def cython_col_expect(args):
     line1 = "\tcdef Py_ssize_t row"
     line2 = "\tcdef int num_rows=len(vec)"
     line3 = "\tcdef CTYPE_t out = 0.0"
-    line4 = "\tcdef np.ndarray[CTYPE_t, ndim=2] vec_ct = vec.conj().T"
-    line5 = ("\tcdef np.ndarray[CTYPE_t, ndim=2] dot = " +
+    line4 = "\tcdef np.ndarray[CTYPE_t, ndim=1] vec_ct = vec.conj()"
+    line5 = ("\tcdef np.ndarray[CTYPE_t, ndim=1] dot = " +
              "col_spmv(which,t,data,idx,ptr,vec")
 
     if args:
@@ -535,5 +535,6 @@ def cython_col_expect(args):
             line5 += "," + td_const[0]
     line5 += ")"
     line6 = "\tfor row in range(num_rows):"
-    line7 = "\t\tout+=vec_ct[0,row]*dot[row,0]"
+    line7 = "\t\tout+=vec_ct[row]*dot[row]"
     return [line1, line2, line3, line4, line5, line6, line7]
+
