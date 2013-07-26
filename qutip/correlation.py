@@ -897,3 +897,70 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     spectrum = esspec(cov_es, wlist)
 
     return spectrum
+
+	
+def spectrum_pi(L, aop, bop, wlist, use_pinv=False):
+    """
+    Calculate the spectrum corresponding to a correlation function
+    :math:`\left<A(\\tau)B(0)\\right>`, i.e., the Fourier transform of the
+    correlation function:
+
+    .. math::
+
+        S(\omega) = \int_{-\infty}^{\infty} \left<A(\\tau)B(0)\\right>
+        e^{-i\omega\\tau} d\\tau.
+
+    Parameters
+    ----------
+
+    L : :class:`qutip.qobj`
+        system Liouvillian.
+
+    wlist : *list* / *array*
+        list of frequencies for :math:`\\omega`.
+
+    
+    a_op : :class:`qutip.qobj`
+        operator A.
+
+    b_op : :class:`qutip.qobj`
+        operator B.
+
+    Returns
+    -------
+
+    s_vec: *array*
+        An *array* with spectrum :math:`S(\omega)` for the frequencies
+        specified in `wlist`.
+
+    """
+
+    unitvec = tensor([qeye(n) for n in L.dims[0][0]])
+    N = prod(L.dims[0][0])
+    
+    A = L.full()
+    aflat = spre(bop).full()
+    adagflat = spre(aop).full()
+    
+    unitflat = transpose(mat2vec(unitvec.full()))
+    I = np.identity(N * N)
+
+    rho_ss = steady(L)    
+    rho = transpose(mat2vec(rho_ss.full()))
+
+    P = np.kron(transpose(rho), unitflat)
+    Q = I - P
+
+    s_vec = zeros(len(wlist))
+    
+    for idx, freq in enumerate(wlist):
+        
+        if use_pinv:
+            MMR=numpy.linalg.pinv(-freq*1.0j*unit22+A)
+        else:
+            MMR = dot(Q, np.linalg.solve((-freq*1.0j*I+A),Q))
+        
+        
+        s_vec[idx] = np.real(-2*dot(unitflat,dot(adagflat,dot(MMR,dot(aflat,transpose(rho)))))[0,0])
+
+    return s_vec
