@@ -301,9 +301,9 @@ class _MC_class():
             self.unravel_type = 1
             if (odeconfig.e_num == 0):
                 # If we are returning states, and there are no
-                # collapse operators, set mc_avg to False to return
+                # collapse operators, set average_states to False to return
                 # ket vectors instead of density matrices
-                odeconfig.options.mc_avg = False
+                odeconfig.options.average_states = False
         # generate a random seed, useful if e.g. running with MPI
         self.seed = random_integers(1e8)
         if (self.serial_run):
@@ -338,7 +338,7 @@ class _MC_class():
         qtf90.qutraj_run.n_e_ops = odeconfig.e_num
         qtf90.qutraj_run.ntraj = ntraj
         qtf90.qutraj_run.unravel_type = self.unravel_type
-        qtf90.qutraj_run.mc_avg = odeconfig.options.mc_avg
+        qtf90.qutraj_run.average_states = odeconfig.options.average_states
         qtf90.qutraj_run.init_odedata(odeconfig.psi0_shape[0],
                                       odeconfig.options.atol,
                                       odeconfig.options.rtol, mf=self.mf,
@@ -414,7 +414,7 @@ class _MC_class():
             print(inspect.stack()[0][3])
 
         from scipy.sparse import csr_matrix
-        if (odeconfig.options.mc_avg):
+        if (odeconfig.options.average_states):
             states = np.array([Qobj()] * nstep)
             if (self.sparse_dms):
                 # averaged sparse density matrices
@@ -455,7 +455,7 @@ class _MC_class():
         if debug:
             print(inspect.stack()[0][3])
 
-        if (odeconfig.options.mc_avg):
+        if (odeconfig.options.average_states):
             expect = []
             for j in range(odeconfig.e_num):
                 if odeconfig.e_ops_isherm[j]:
@@ -511,7 +511,7 @@ def _gather(sols):
         sol.col_which[sofar:sofar + sols[j].ntraj] = (
             sols[j].col_which)
         if (odeconfig.e_num == 0):
-            if (odeconfig.options.mc_avg):
+            if (odeconfig.options.average_states):
                 # collect states, averaged over trajectories
                 sol.states += np.array(sols[j].states)
             else:
@@ -519,7 +519,7 @@ def _gather(sols):
                 sol.states = np.vstack((sol.states,
                                         np.array(sols[j].states)))
         else:
-            if (odeconfig.options.mc_avg):
+            if (odeconfig.options.average_states):
                 # collect expectation values, averaged
                 for i in range(odeconfig.e_num):
                     sol.expect[i] += np.array(sols[j].expect[i])
@@ -528,14 +528,14 @@ def _gather(sols):
                 sol.expect = np.vstack((sol.expect,
                                         np.array(sols[j].expect)))
         if (hasattr(sols[j], 'entropy')):
-            if (odeconfig.options.mc_avg):
+            if (odeconfig.options.average_states):
                 # collect entropy values, averaged
                 sol.entropy += np.array(sols[j].entropy)
             else:
                 # collect entropy values, all trajectories
                 sol.entropy = np.vstack((sol.entropy,
                                          np.array(sols[j].entropy)))
-    if (odeconfig.options.mc_avg):
+    if (odeconfig.options.average_states):
         if (odeconfig.e_num == 0):
             sol.states = sol.states / len(sols)
         else:
@@ -547,7 +547,7 @@ def _gather(sols):
             sol.entropy = sol.entropy / len(sols)
     
     #convert sol.expect array to list and fix dtypes of arrays
-    if (not odeconfig.options.mc_avg) and odeconfig.e_num!=0:
+    if (not odeconfig.options.average_states) and odeconfig.e_num!=0:
         temp=[list(sol.expect[ii]) for ii in range(ntraj)]
         for ii in range(ntraj):
             for jj in np.where(odeconfig.e_ops_isherm)[0]:
