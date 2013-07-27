@@ -297,12 +297,15 @@ def ssesolve_generic(ssdata, options, progress_bar):
             ssdata.d2_len, ssdata.homogeneous, ssdata.distribution,
             store_measurement=ssdata.store_measurement, noise=noise)
 
-        # if average -> average...
         data.states.append(states_list)
         data.noise.append(dW)
         data.measurement.append(m)
 
     progress_bar.finished()
+
+    # average density matrices
+    if options.average_states:
+        data.states = [sum(state_list).unit() for state_list in data.states]
 
     # average
     data.expect = data.expect / NT
@@ -450,7 +453,9 @@ def smesolve_generic(ssdata, options, progress_bar):
 
     progress_bar.finished()
 
-    # if options.state_average -> average data.states
+    # average density matrices
+    if options.average_states:
+        data.states = [sum(state_list).unit() for state_list in data.states]
 
     # average
     data.expect = data.expect / NT
@@ -579,6 +584,10 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
         data.jump_op_idx.append(jump_op_idx)
 
     progress_bar.finished()
+
+    # average density matrices
+    if options.average_states:
+        data.states = [sum(state_list).unit() for state_list in data.states]
 
     # average
     data.expect = data.expect / NT
@@ -710,8 +719,10 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
 
     progress_bar.finished()
 
-    # if options.state_average = True -> average data.states
-
+    # average density matrices
+    if options.average_states:
+        data.states = [sum(state_list).unit() for state_list in data.states]
+    
     # average
     data.expect = data.expect / ssdata.ntraj
 
