@@ -124,15 +124,15 @@ class eseries():
     ##########################################
     def __str__(self):  # string of ESERIES information
         self.tidyup()
-        print("ESERIES object: " + str(len(self.ampl)) + " terms")
-        print("Hilbert space dimensions: " + str(self.dims))
+        s = "ESERIES object: " + str(len(self.ampl)) + " terms\n"
+        s += "Hilbert space dimensions: " + str(self.dims) + "\n"
         for k in range(0, len(self.ampl)):
-            print("Exponent #" + str(k) + " = " + str(self.rates[k]))
+            s += "Exponent #" + str(k) + " = " + str(self.rates[k]) + "\n"
             if isinstance(self.ampl[k], sp.spmatrix):
-                print(self.ampl[k].full())
+                s += str(self.ampl[k]) + "\n"
             else:
-                print(self.ampl[k])
-        return ""
+                s += str(self.ampl[k]) + "\n"
+        return s
 
     def __repr__(self):
         return self.__str__()
