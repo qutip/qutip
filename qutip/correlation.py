@@ -937,32 +937,32 @@ def spectrum_pi(L, aop, bop, wlist, use_pinv=False):
 
     """
 
-    unitvec = tensor([qeye(n) for n in L.dims[0][0]])
+    tr_mat = tensor([qeye(n) for n in L.dims[0][0]])
     N = prod(L.dims[0][0])
     
     A = L.full()
-    aflat = spre(bop).full()
-    adagflat = spre(aop).full()
+    b = spre(bop).full()
+    a = spre(aop).full()
     
-    unitflat = transpose(mat2vec(unitvec.full()))
-    I = np.identity(N * N)
+    tr_vec = transpose(mat2vec(tr_mat.full()))
 
-    rho_ss = steadystate(L)    
+    rho_ss = steadystate(L) 
     rho = transpose(mat2vec(rho_ss.full()))
 
-    P = np.kron(transpose(rho), unitflat)
+    I = np.identity(N * N)
+    P = np.kron(transpose(rho), tr_vec)
     Q = I - P
 
     s_vec = np.zeros(len(wlist))
     
-    for idx, freq in enumerate(wlist):
+    for idx, w in enumerate(wlist):
         
         if use_pinv:
-            MMR=numpy.linalg.pinv(-freq*1.0j*unit22+A)
+            MMR = numpy.linalg.pinv(-1.0j * w * I + A)
         else:
-            MMR = np.dot(Q, np.linalg.solve((-freq*1.0j*I+A),Q))
+            MMR = np.dot(Q, np.linalg.solve(-1.0j * w * I + A, Q))
         
-        
-        s_vec[idx] = np.real(-2*np.dot(unitflat,np.dot(adagflat,np.dot(MMR,np.dot(aflat,transpose(rho)))))[0,0])
+        s_vec[idx] = -2 * np.real(np.dot(tr_vec, np.dot(a, np.dot(MMR, \
+                        np.dot(b, transpose(rho)))))[0,0])
 
     return s_vec
