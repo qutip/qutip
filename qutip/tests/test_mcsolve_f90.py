@@ -144,7 +144,7 @@ def test_MCSimpleSingleExpect():
 
 @unittest.skipIf(fortran_found == 0, 'fortran files not found')
 def test_mcf90_dtypes1():
-    "mcsolve_f90: check for correct dtypes (mc_avg=True)"
+    "mcsolve_f90: check for correct dtypes (average_states=True)"
     # set system parameters
     kappa = 2.0  # mirror coupling
     gamma = 0.2  # spontaneous emission rate
@@ -169,7 +169,7 @@ def test_mcf90_dtypes1():
     C2dC2 = C2.dag() * C2
     # intial state
     psi0 = tensor(basis(N, 0), basis(2, 1))
-    opts = Odeoptions(gui=False, mc_avg=True)
+    opts = Odeoptions(gui=False, average_states=True)
     data = mcsolve_f90(
         H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
     assert_equal(isinstance(data.expect[0][0], float), True)
@@ -179,7 +179,7 @@ def test_mcf90_dtypes1():
 
 @unittest.skipIf(fortran_found == 0, 'fortran files not found')
 def test_mcf90_dtypes2():
-    "mcsolve_f90: check for correct dtypes (mc_avg=False)"
+    "mcsolve_f90: check for correct dtypes (average_states=False)"
     # set system parameters
     kappa = 2.0  # mirror coupling
     gamma = 0.2  # spontaneous emission rate
@@ -204,7 +204,7 @@ def test_mcf90_dtypes2():
     C2dC2 = C2.dag() * C2
     # intial state
     psi0 = tensor(basis(N, 0), basis(2, 1))
-    opts = Odeoptions(gui=False, mc_avg=False)
+    opts = Odeoptions(gui=False, average_states=False)
     data = mcsolve_f90(
         H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
     assert_equal(isinstance(data.expect[0][0][0], float), True)
