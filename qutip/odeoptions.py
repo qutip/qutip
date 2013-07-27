@@ -67,10 +67,10 @@ class Odeoptions():
         in mcsolve.
     gui : bool {True,False}
         Use progress bar GUI for mcsolver.
-    mc_avg : bool {True,False}
+    average_states : bool {True, False}
         Avg. expectation values in mcsolver.
     ntraj : int {500}
-        Number of trajectories in mcsolver.
+        Number of trajectories in stochastic solvers.
     rhs_reuse : bool {False,True}
         Reuse Hamiltonian data.
     rhs_with_state : bool {False,True}
@@ -89,10 +89,10 @@ class Odeoptions():
     """
     def __init__(self, atol=1e-8, rtol=1e-6, method='adams', order=12,
                  nsteps=1000, first_step=0, max_step=0, min_step=0,
-                 mc_avg=True, tidy=True, num_cpus=0, norm_tol=1e-3,
-                 norm_steps=5, rhs_reuse=False, rhs_filename=None, gui=True,
-                 ntraj=500, rhs_with_state=False, store_final_state=False,
-                 store_states=False, seeds=None):
+                 mc_avg=True, average_states=True, tidy=True, num_cpus=0,
+                 norm_tol=1e-3, norm_steps=5, rhs_reuse=False,
+                 rhs_filename=None, gui=True, ntraj=500, rhs_with_state=False,
+                 store_final_state=False, store_states=False, seeds=None):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -110,7 +110,7 @@ class Odeoptions():
         # Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
         self.order = order
         # Average expectation values over trajectories (default = True)
-        self.mc_avg = mc_avg
+        self.average_states = average_states and mc_avg
         # Number of trajectories (default = 500)
         self.ntraj = ntraj
         # tidyup Hamiltonian before calculation (default = True)
@@ -165,7 +165,7 @@ class Odeoptions():
         s += "rhs_reuse:         " + str(self.rhs_reuse) + "\n"
         s += "rhs_with_state:    " + str(self.rhs_with_state) + "\n"
         s += "gui:               " + str(self.gui) + "\n"
-        s += "mc_avg:            " + str(self.mc_avg) + "\n"
+        s += "average_states:    " + str(self.average_states) + "\n"
         s += "ntraj:             " + str(self.ntraj) + "\n"
         s += "store_states:      " + str(self.store_states) + "\n"
         s += "store_final_state: " + str(self.store_final_state) + "\n"

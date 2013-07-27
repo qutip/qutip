@@ -249,13 +249,13 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     output = Odedata()
     output.solver = 'mcsolve'
     # state vectors
-    if mc.psi_out is not None and odeconfig.options.mc_avg and odeconfig.cflag:
+    if mc.psi_out is not None and odeconfig.options.average_states and odeconfig.cflag:
         output.states = parfor(_mc_dm_avg, mc.psi_out.T)
     elif mc.psi_out is not None:
         output.states = mc.psi_out
     # expectation values
     elif (mc.expect_out is not None and odeconfig.cflag
-            and odeconfig.options.mc_avg):
+            and odeconfig.options.average_states):
         # averaging if multiple trajectories
         if isinstance(ntraj, int):
             output.expect = [mean([mc.expect_out[nt][op]
@@ -276,7 +276,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
                     data_list = [data for data in expt_data]
                 output.expect.append(data_list)
     else:
-        # no averaging for single trajectory or if mc_avg flag
+        # no averaging for single trajectory or if average_states flag
         # (Odeoptions) is off
         if mc.expect_out is not None:
             output.expect = mc.expect_out
@@ -448,7 +448,7 @@ class _MC_class():
 
             if self.odeconfig.e_num == 0:
                 mc_alg_out = zeros((self.num_times), dtype=ndarray)
-                if self.odeconfig.options.mc_avg:
+                if self.odeconfig.options.average_states:
                     # output is averaged states, so use dm
                     mc_alg_out[0] = \
                         self.odeconfig.psi0 * self.odeconfig.psi0.conj().T
@@ -911,7 +911,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
             ###--after while loop--####
             out_psi = ODE.y / norm(ODE.y, 2)
             if odeconfig.e_num == 0:
-                if odeconfig.options.mc_avg:
+                if odeconfig.options.average_states:
                     mc_alg_out[k] = out_psi * out_psi.conj().T
                 else:
                     mc_alg_out[k] = out_psi
@@ -925,7 +925,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
 
         # RETURN VALUES
         if odeconfig.e_num == 0:
-            if odeconfig.options.mc_avg:
+            if odeconfig.options.average_states:
                 mc_alg_out = array([Qobj(k, [odeconfig.psi0_dims[0],
                                              odeconfig.psi0_dims[0]],
                                             [odeconfig.psi0_shape[0],
