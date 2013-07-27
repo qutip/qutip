@@ -22,6 +22,8 @@ import scipy.fftpack
 
 from qutip.superoperator import *
 from qutip.expect import expect
+from qutip.tensor import tensor
+from qutip.operators import qeye
 from qutip.mesolve import mesolve
 from qutip.eseries import esval, esspec
 from qutip.essolve import ode2es
@@ -945,22 +947,22 @@ def spectrum_pi(L, aop, bop, wlist, use_pinv=False):
     unitflat = transpose(mat2vec(unitvec.full()))
     I = np.identity(N * N)
 
-    rho_ss = steady(L)    
+    rho_ss = steadystate(L)    
     rho = transpose(mat2vec(rho_ss.full()))
 
     P = np.kron(transpose(rho), unitflat)
     Q = I - P
 
-    s_vec = zeros(len(wlist))
+    s_vec = np.zeros(len(wlist))
     
     for idx, freq in enumerate(wlist):
         
         if use_pinv:
             MMR=numpy.linalg.pinv(-freq*1.0j*unit22+A)
         else:
-            MMR = dot(Q, np.linalg.solve((-freq*1.0j*I+A),Q))
+            MMR = np.dot(Q, np.linalg.solve((-freq*1.0j*I+A),Q))
         
         
-        s_vec[idx] = np.real(-2*dot(unitflat,dot(adagflat,dot(MMR,dot(aflat,transpose(rho)))))[0,0])
+        s_vec[idx] = np.real(-2*np.dot(unitflat,np.dot(adagflat,np.dot(MMR,np.dot(aflat,transpose(rho)))))[0,0])
 
     return s_vec
