@@ -69,6 +69,30 @@ cpdef np.ndarray[CTYPE_t, ndim=1] spmv(np.ndarray[CTYPE_t, ndim=1] data,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cpdef spmvpy(np.ndarray[CTYPE_t, ndim=1] data,
+             np.ndarray[int] idx,np.ndarray[int] ptr,
+             np.ndarray[CTYPE_t, ndim=1] vec,
+             CTYPE_t a, np.ndarray[CTYPE_t, ndim=1] out):
+    """
+    Sparse matrix time vector plus vector function:
+    out = out + a * (data, idx, ptr) * vec
+    """
+    cdef Py_ssize_t row
+    cdef int jj, row_start, row_end
+    cdef int num_rows = len(vec)
+    cdef CTYPE_t dot
+    for row in range(num_rows):
+        dot = 0.0
+        row_start = ptr[row]
+        row_end = ptr[row+1]
+        for jj in range(row_start, row_end):
+            dot = dot + data[jj] * vec[idx[jj]]
+        out[row] = out[row] + a * dot
+    return out
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cpdef np.ndarray[CTYPE_t, ndim=1] cy_ode_rhs(double t, 
                                              np.ndarray[CTYPE_t, ndim=1] rho,
                                              np.ndarray[CTYPE_t, ndim=1] data,
