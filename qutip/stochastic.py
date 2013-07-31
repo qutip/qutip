@@ -27,13 +27,13 @@ Release target: 2.3.0 or 3.0.0
 
 Todo:
 
-1) test and debug
+1) test and debug - always more to do here
 
-2) store measurement records
+2) store measurement records - done
 
-3) add more sme solvers
+3) add more sme solvers - done
 
-4) cythonize some rhs or d1,d2 functions
+4) cythonize some rhs or d1,d2 functions - done
 
 5) parallelize
 
@@ -56,7 +56,10 @@ from qutip.states import ket2dm
 from qutip.cyQ.spmatfuncs import cy_expect, spmv, cy_expect_rho_vec
 from qutip.gui.progressbar import TextProgressBar
 
-debug = True
+from qutip.settings import debug
+
+if debug:
+    import inspect
 
 class _StochasticSolverData:
     """
