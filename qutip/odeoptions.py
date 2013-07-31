@@ -21,10 +21,11 @@ from __future__ import print_function
 import os
 import warnings
 
+
 class Odeoptions():
     """
     Class of options for evolution solvers such as :func:`qutip.mesolve` and
-    :func:`qutip.mcsolve`. Options can be specified either as arguments to the 
+    :func:`qutip.mcsolve`. Options can be specified either as arguments to the
     constructor::
 
         opts = Odeoptions(gui=False, order=10, ...)

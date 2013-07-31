@@ -147,10 +147,10 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     if psi0.type != 'ket':
         raise Exception("Initial state must be a state vector.")
-        
+
     odeconfig.options = options
     odeconfig.progress_bar = progress_bar
-    
+
     # set num_cpus to the value given in qutip.settings if none in Odeoptions
     if not odeconfig.options.num_cpus:
         odeconfig.options.num_cpus = qutip.settings.num_cpus
@@ -249,7 +249,8 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     output = Odedata()
     output.solver = 'mcsolve'
     # state vectors
-    if mc.psi_out is not None and odeconfig.options.average_states and odeconfig.cflag:
+    if (mc.psi_out is not None and odeconfig.options.average_states
+            and odeconfig.cflag):
         output.states = parfor(_mc_dm_avg, mc.psi_out.T)
     elif mc.psi_out is not None:
         output.states = mc.psi_out
@@ -386,7 +387,6 @@ class _MC_class():
         if (not self.odeconfig.options.gui and self.odeconfig.ntraj != 1):
             self.odeconfig.progress_bar.update(self.count)
 
-
     def serial(self, args, top):
 
         if debug:
@@ -394,7 +394,6 @@ class _MC_class():
 
         for nt in range(self.odeconfig.ntraj):
             top.callback(_mc_alg_evolve(nt, args, self.odeconfig))
-
 
     def parallel(self, args, top):
 
@@ -419,7 +418,6 @@ class _MC_class():
             pl.join()
         return
 
-
     def run(self):
 
         if debug:
@@ -442,7 +440,7 @@ class _MC_class():
 
             if self.seeds is None:
                 self.seeds = random_integers(1e8, size=self.odeconfig.ntraj)
-            #else:
+            # else:
             #    if len(self.seeds) != self.odeconfig.ntraj:
             #        raise "Incompatible size of seeds vector in Odeconfig."
 
@@ -476,7 +474,6 @@ class _MC_class():
             # set arguments for input to monte-carlo
             args = (mc_alg_out, self.odeconfig.options,
                     self.odeconfig.tlist, self.num_times, self.seeds)
-
 
             if not self.odeconfig.options.gui:
                 self.odeconfig.progress_bar.start(self.odeconfig.ntraj)
@@ -557,7 +554,7 @@ def _tdRHStd_with_state(t, psi, odeconfig):
         odeconfig.h_funcs[j](t, psi, odeconfig.h_func_args) *
         spmv1d(odeconfig.h_td_data[j],
                odeconfig.h_td_ind[j],
-               odeconfig.h_td_ptr[j], psi) 
+               odeconfig.h_td_ptr[j], psi)
         for j in odeconfig.h_td_inds])
 
     col_func_terms = array([
@@ -567,7 +564,8 @@ def _tdRHStd_with_state(t, psi, odeconfig):
                odeconfig.n_ops_ptr[j], psi)
         for j in odeconfig.c_td_inds])
 
-    return (const_term - np.sum(h_func_term, 0) - 0.5 * np.sum(col_func_terms, 0))
+    return (const_term - np.sum(h_func_term, 0)
+            - 0.5 * np.sum(col_func_terms, 0))
 
 
 # RHS of ODE for python function Hamiltonian
@@ -937,7 +935,8 @@ def _mc_alg_evolve(nt, args, odeconfig):
                                          odeconfig.psi0_shape, fast='mc')
                                     for k in mc_alg_out])
 
-        return nt, copy.deepcopy(mc_alg_out), array(collapse_times), array(which_oper)
+        return nt, copy.deepcopy(mc_alg_out), \
+            array(collapse_times), array(which_oper)
 
     except Exception as e:
         print("failed to run _mc_alg_evolve: " + str(e))
@@ -1201,7 +1200,6 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
                        C_inds, C_tdterms, odeconfig.c_td_inds, type='mc',
                        odeconfig=odeconfig)
         cgen.generate(name + ".pyx")
-
 
     #-------------------------------------------------
     # START PYTHON LIST-FUNCTION BASED TIME-DEPENDENCE

@@ -221,7 +221,8 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
                                              expt_ops, args, options,
                                              progress_bar)
 
-        if isinstance(H, (types.FunctionType, types.BuiltinFunctionType, partial)):
+        if isinstance(H, (types.FunctionType,
+                          types.BuiltinFunctionType, partial)):
             # old style time-dependence: must have constant collapse operators
             if n_str > 0:  # or n_func > 0:
                 raise TypeError("Incorrect format: function-format " +
@@ -258,7 +259,8 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
         elif n_str > 0:
             return _sesolve_list_str_td(H, rho0, tlist,
                                         expt_ops, args, options, progress_bar)
-        elif isinstance(H, (types.FunctionType, types.BuiltinFunctionType, partial)):
+        elif isinstance(H, (types.FunctionType,
+                            types.BuiltinFunctionType, partial)):
             return _sesolve_func_td(H, rho0, tlist,
                                     expt_ops, args, options, progress_bar)
         else:
@@ -917,7 +919,8 @@ def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
             if output.expect[m].dtype == complex:
                 output.expect[m][t_idx] = expect_rho_vec(e_sops_data[m], r.y)
             else:
-                output.expect[m][t_idx] = np.real(expect_rho_vec(e_sops_data[m], r.y))
+                output.expect[m][t_idx] = np.real(
+                    expect_rho_vec(e_sops_data[m], r.y))
 
         r.integrate(r.t + dt)
 

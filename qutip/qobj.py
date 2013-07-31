@@ -336,8 +336,9 @@ class Qobj():
                 if not isinstance(dims[0][0], list):
                     r = range(len(dims[0]))
                     mask = [dims[0][n] == dims[1][n] == 1 for n in r]
-                    out.dims = [max([1], [dims[0][n] for n in r if not mask[n]]),
-                                max([1], [dims[1][n] for n in r if not mask[n]])]
+                    out.dims = [max(
+                        [1], [dims[0][n] for n in r if not mask[n]]),
+                        max([1], [dims[1][n] for n in r if not mask[n]])]
                 else:
                     out.dims = dims
                 out.shape = [self.shape[0], other.shape[1]]
@@ -531,16 +532,16 @@ class Qobj():
         return self.__str__()
 
     def __getstate__(self):
-        #defines what happens when Qobj object gets pickled
-        self.__dict__.update({'qutip_version':qversion[:5]})
+        # defines what happens when Qobj object gets pickled
+        self.__dict__.update({'qutip_version': qversion[:5]})
         return self.__dict__
-    
+
     def __setstate__(self, state):
-        #defines what happens when loading a pickled Qobj
+        # defines what happens when loading a pickled Qobj
         if 'qutip_version' in state.keys():
             del state['qutip_version']
         (self.__dict__).update(state)
-    
+
     def _repr_latex_(self):
         """
         Generate a LaTeX representation of the Qobj instance. Can be used for
@@ -657,7 +658,7 @@ class Qobj():
         out.dims = [self.dims[1], self.dims[0]]
         out.shape = [self.shape[1], self.shape[0]]
         out.isherm = self.isherm
-        out.type=ischeck(out)
+        out.type = ischeck(out)
         return out
 
     def conj(self):
@@ -906,21 +907,21 @@ class Qobj():
     def permute(self, order):
         """
         Permutes a composite quantum object in the given order.
-    
+
         Parameters
         ----------
         order : list/array
             List specifying new tensor order.
-    
+
         Returns
         -------
         P : qobj
             Permuted quantum object.
-    
+
         """
-        data,dims,shape=_permute(self,order)
-        return Qobj(data,dims=dims,shape=shape)
-    
+        data, dims, shape = _permute(self, order)
+        return Qobj(data, dims=dims, shape=shape)
+
     def tidyup(self, atol=qset.auto_tidyup_atol):
         """Removes small elements from a quantum object.
 
@@ -1232,12 +1233,12 @@ class Qobj():
         out.data = self.data.T
         out.dims = [self.dims[1], self.dims[0]]
         out.shape = [self.shape[1], self.shape[0]]
-        out.type=ischeck(out)
+        out.type = ischeck(out)
         return out
 
     def extract_states(self, states_indices, normalize=False):
         """
-        Create a new Qobj instance for which only states corresponding to 
+        Create a new Qobj instance for which only states corresponding to
         those in state_indices has been kept.
 
         Parameters
@@ -1250,7 +1251,7 @@ class Qobj():
             is False). For Qobjs that represents density matrices or state
             vectors normalized should probably be set to True, but for Qobjs
             that represents operators in for example an Hamiltonian, normalize
-            should be False. 
+            should be False.
 
         Returns
         -------
@@ -1265,11 +1266,11 @@ class Qobj():
 
         """
         if isoper(self):
-            q = Qobj(self.data[states_indices,:][:,states_indices])
+            q = Qobj(self.data[states_indices, :][:, states_indices])
         elif isket(self):
-            q = Qobj(self.data[states_indices,:])
+            q = Qobj(self.data[states_indices, :])
         elif isbra(self):
-            q = Qobj(self.data[:,states_indices])
+            q = Qobj(self.data[:, states_indices])
         else:
             raise TypeError("Can only eliminate states from operators or " +
                             "state vectors")
@@ -1278,7 +1279,7 @@ class Qobj():
 
     def eliminate_states(self, states_indices, normalize=False):
         """
-        Create a new Qobj instance for which states corresponding to 
+        Create a new Qobj instance for which states corresponding to
         those in state_indices has been eliminated.
 
         Parameters
@@ -1291,7 +1292,7 @@ class Qobj():
             is False). For Qobjs that represents density matrices or state
             vectors normalized should probably be set to True, but for Qobjs
             that represents operators in for example an Hamiltonian, normalize
-            should be False. 
+            should be False.
 
         Returns
         -------
@@ -1316,6 +1317,8 @@ class Qobj():
 # conventient to be able to evaluate the expressions passed to the solver for
 # arbitrary value of time. This function provides this functionality.
 #
+
+
 def qobj_list_evaluate(qobj_list, t, args):
     """
     Evaluate a time-dependent qobj in list format. For example,

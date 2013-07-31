@@ -119,7 +119,9 @@ def sesolve(H, rho0, tlist, expt_ops, args={}, options=None,
     elif n_str > 0:
         return _sesolve_list_str_td(H, rho0, tlist, expt_ops, args, options,
                                     progress_bar)
-    elif isinstance(H, (types.FunctionType, types.BuiltinFunctionType, partial)):
+    elif isinstance(H, (types.FunctionType,
+                        types.BuiltinFunctionType,
+                        partial)):
         return _sesolve_func_td(H, rho0, tlist, expt_ops, args, options,
                                 progress_bar)
     else:
@@ -539,7 +541,7 @@ def _ode_psi_func_td_with_state(t, psi, H_func, args):
 # Solve an ODE which solver parameters already setup (r). Calculate the
 # required expectation values or invoke callback function at each time step.
 #
-def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar, 
+def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar,
                        state_norm_func=None):
     """
     Internal function for solving ODEs.

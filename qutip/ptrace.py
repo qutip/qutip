@@ -22,6 +22,7 @@ import scipy.sparse as sp
 import scipy.linalg as la
 from qutip.sparse import sp_reshape
 
+
 def _ptrace(rho, sel):
     """
     Private function calculating the partial trace.
@@ -54,7 +55,7 @@ def _ptrace(rho, sel):
     # perm.data = np.ones_like(perm.rows,dtype=int)
     perm.data = np.ones_like(perm.rows)
     perm.tocsr()
-    rhdata = perm * sp_reshape(rho.data,[np.prod(rho.shape),1])
+    rhdata = perm * sp_reshape(rho.data, [np.prod(rho.shape), 1])
     rhdata = rhdata.tolil().reshape((M, M))
     rho1_data = rhdata.tocsr()
     dims_kept0 = np.asarray(rho.dims[0]).take(sel)
@@ -90,4 +91,3 @@ def _select(sel, dims):
         ilist[:, sel[k]] = np.remainder(
             np.fix(counter / np.prod(dims[sel[k + 1:]])), dims[sel[k]]) + 1
     return ilist
-
