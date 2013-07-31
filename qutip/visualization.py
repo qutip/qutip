@@ -533,11 +533,11 @@ def wigner_cmap(W, levels=1024, shift=0, invert=False):
 
     levels : int
         Number of color levels to create.
-    
+
     shift : float
         Shifts the value at which Wigner elements are emphasized.
         This parameter should typically be negative and small (i.e -5e-3).
-    
+
     invert : bool
         Invert the color scheme for negative values so that smaller negative
         values have darker color.
@@ -551,7 +551,7 @@ def wigner_cmap(W, levels=1024, shift=0, invert=False):
     The 'shift' parameter allows you to vary where the colormap begins
     to highlight negative colors. This is beneficial in cases where there
     are small negative Wigner elements due to numerical round-off and/or
-    truncation.    
+    truncation.
     """
     max_color = np.array([0.020, 0.19, 0.38, 1.0])
     mid_color = np.array([1, 1, 1, 1.0])
@@ -565,8 +565,8 @@ def wigner_cmap(W, levels=1024, shift=0, invert=False):
     bounds = [W.min(), W.max()]
     # create empty array for RGBA colors
     adjust_RGBA = np.hstack((np.zeros((levels, 3)), np.ones((levels, 1))))
-    zero_pos = np.round(levels * np.abs(shift-bounds[0]) \
-                                / (bounds[1] - bounds[0]))
+    zero_pos = np.round(levels * np.abs(shift - bounds[0])
+                        / (bounds[1] - bounds[0]))
     num_pos = levels - zero_pos
     num_neg = zero_pos - 1
     # set zero values to mid_color

@@ -70,12 +70,12 @@ def basis(N, *args):
         basis(N, 1) = ground state
 
     """
-    if (not isinstance(N, (int,np.int64))) or N < 0:
+    if (not isinstance(N, (int, np.int64))) or N < 0:
         raise ValueError("N must be integer N>=0")
     if not any(args):  # if no args then assume vacuum state
         args = 0
-    if not isinstance(args, (int,np.int64)):  # if input arg!=0
-        if not isinstance(args[0], (int,np.int64)):
+    if not isinstance(args, (int, np.int64)):  # if input arg!=0
+        if not isinstance(args[0], (int, np.int64)):
             raise ValueError("need integer for basis vector index")
         args = args[0]
     if args < 0 or args > (N - 1):  # check if args is within bounds
@@ -648,12 +648,11 @@ def phase_basis(N, m, phi0=0):
     return Qobj(data)
 
 
-
-def zero_ket(N,dims=None):
+def zero_ket(N, dims=None):
     """
     Creates the zero ket vector with shape Nx1 and
     dimensions `dims`.
-    
+
     Parameters
     ----------
     N : int
@@ -661,11 +660,11 @@ def zero_ket(N,dims=None):
     dims : list
         Optional dimensions if ket corresponds to
         a composite Hilbert space.
-    
+
     Returns
     -------
     zero_ket : qobj
         Zero ket on given Hilbert space.
-    
+
     """
-    return Qobj(sp.csr_matrix((N,1),dtype=complex),dims=dims)
+    return Qobj(sp.csr_matrix((N, 1), dtype=complex), dims=dims)
