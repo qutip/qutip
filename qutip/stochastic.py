@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2012, Paul D. Nation & Robert J. Johansson
+# Copyright (C) 2012-2013, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
 
@@ -38,8 +38,6 @@ Todo:
 5) parallelize
 
 """
-
-import inspect
 
 import numpy as np
 import scipy
@@ -97,12 +95,38 @@ class _StochasticSolverData:
 def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
     """
     Solve stochastic Schrodinger equation. Dispatch to specific solvers
-    depending on the value of the `solver` argument.
+    depending on the value of the `solver` keyword argument.
 
-    .. note::
+    Parameters
+    ----------
 
-        Experimental. tlist must be uniform.
+    H : :class:`qutip.qobj`
+        system Hamiltonian.
 
+    psi0 : :class:`qutip.qobj`
+        initial state vector (ket).
+
+    tlist : *list* / *array*
+        list of times for :math:`t`. Must be uniform.
+
+    sc_ops : list of :class:`qutip.qobj`
+        List of stochastic collapse operators. Each stochastic collapse
+        operator will give a deterministic and stochastic contribution
+        to the equation of motion.
+
+    e_ops : list of :class:`qutip.qobj` / callback function single
+        single operator or list of operators for which to evaluate
+        expectation values.
+
+    kwargs : *dictionary*
+        Optional keyword arguments. See StochasticSolverData.
+
+    Returns
+    -------
+
+    output: :class:`qutip.odedata`
+
+        An instance of the class :class:`qutip.odedata`.
     """
     if debug:
         print(inspect.stack()[0][3])
@@ -151,13 +175,45 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
 def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
     """
     Solve stochastic master equation. Dispatch to specific solvers
-    depending on the value of the `solver` argument.
+    depending on the value of the `solver` keyword argument.
 
-    .. note::
+    Parameters
+    ----------
 
-        Experimental. tlist must be uniform.
+    H : :class:`qutip.qobj`
+        system Hamiltonian.
 
+    rho0 : :class:`qutip.qobj`
+        initial density matrix of state vector (ket).
+
+    tlist : *list* / *array*
+        list of times for :math:`t`. Must be uniform.
+
+    c_ops : list of :class:`qutip.qobj`
+        Deterministic collapse operator which will contribute with a standard
+        Lindblad type of dissipation.
+
+    sc_ops : list of :class:`qutip.qobj`
+        List of stochastic collapse operators. Each stochastic collapse
+        operator will give a deterministic and stochastic contribution
+        to the eqaution of motion according to how the D1 and D2 functions
+        are defined.
+
+    e_ops : list of :class:`qutip.qobj` / callback function single
+        single operator or list of operators for which to evaluate
+        expectation values.
+
+    kwargs : *dictionary*
+        Optional keyword arguments. See StochasticSolverData.
+
+    Returns
+    -------
+
+    output: :class:`qutip.odedata`
+
+        An instance of the class :class:`qutip.odedata`.
     """
+
     if debug:
         print(inspect.stack()[0][3])
 
