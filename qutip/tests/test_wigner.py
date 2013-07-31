@@ -150,30 +150,30 @@ def test_wigner_compare_methods_ket():
 
 def test_wigner_fft_comparse_ket():
     "Wigner: Compare Wigner fft and iterative for rand. ket"
-    N=20
-    xvec=linspace(-10,10,128)
+    N = 20
+    xvec = linspace(-10, 10, 128)
     for i in range(3):
-        rho=rand_ket(N)
+        rho = rand_ket(N)
 
-        Wfft,yvec=wigner(rho,xvec,xvec,method='fft')
-        W=wigner(rho,xvec,yvec,method='iterative')
+        Wfft, yvec = wigner(rho, xvec, xvec, method='fft')
+        W = wigner(rho, xvec, yvec, method='iterative')
 
-        Wdiff=abs(W-Wfft)
-        assert_equal(sum(abs(Wdiff))<1e-7, True)
+        Wdiff = abs(W - Wfft)
+        assert_equal(sum(abs(Wdiff)) < 1e-7, True)
 
 
 def test_wigner_fft_comparse_dm():
     "Wigner: Compare Wigner fft and iterative for rand. dm"
-    N=20
-    xvec=linspace(-10,10,128)
+    N = 20
+    xvec = linspace(-10, 10, 128)
     for i in range(3):
-        rho=rand_dm(N)
+        rho = rand_dm(N)
 
-        Wfft,yvec=wigner(rho,xvec,xvec,method='fft')
-        W=wigner(rho,xvec,yvec,method='iterative')
+        Wfft, yvec = wigner(rho, xvec, xvec, method='fft')
+        W = wigner(rho, xvec, yvec, method='iterative')
 
-        Wdiff=abs(W-Wfft)
-        assert_equal(sum(abs(Wdiff))<1e-7, True)
+        Wdiff = abs(W - Wfft)
+        assert_equal(sum(abs(Wdiff)) < 1e-7, True)
 
 if __name__ == "__main__":
     run_module_suite()
