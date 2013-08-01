@@ -138,15 +138,20 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     if ntraj is None:
         ntraj = options.ntraj
 
-    # if single operator is passed for c_ops or e_ops, convert it to
-    # list containing only that operator
+    if psi0.type != 'ket':
+        raise Exception("Initial state must be a state vector.")
+
     if isinstance(c_ops, Qobj):
         c_ops = [c_ops]
+
     if isinstance(e_ops, Qobj):
         e_ops = [e_ops]
 
-    if psi0.type != 'ket':
-        raise Exception("Initial state must be a state vector.")
+    if isinstance(e_ops, dict):
+        e_ops_dict = e_ops
+        e_ops = [e for e in e_ops.values()]
+    else:
+        e_ops_dict = None
 
     odeconfig.options = options
     odeconfig.progress_bar = progress_bar
@@ -289,6 +294,11 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     output.ntraj = odeconfig.ntraj
     output.col_times = mc.collapse_times_out
     output.col_which = mc.which_op_out
+
+    if e_ops_dict:
+        output.expect = {e: output.expect[n]
+                         for n, e in enumerate(e_ops_dict.keys())}
+
     return output
 
 
