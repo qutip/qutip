@@ -42,26 +42,24 @@ class TestSuperopReps(object):
     subsystems.
     """
 
-
     def test_SuperChoiSuper(self):
         """
-        Superoperator: Converting superoperator to Choi matrix and back.  
+        Superoperator: Converting superoperator to Choi matrix and back.
         """
         h_5 = rand_herm(5)
         superoperator = propagator(h_5, scipy.rand(),
-                                   [create(5), destroy(5), jmat(2,'z')])
-        choi_matrix=super_to_choi(superoperator)
-        test_supe=choi_to_super(choi_matrix)
+                                   [create(5), destroy(5), jmat(2, 'z')])
+        choi_matrix = super_to_choi(superoperator)
+        test_supe = choi_to_super(choi_matrix)
         assert_((test_supe - superoperator).norm() < 1e-12)
-
 
     def test_ChoiKrausChoi(self):
         """
-        Superoperator: Converting superoperator to Choi matrix and back.  
+        Superoperator: Converting superoperator to Choi matrix and back.
         """
         h_5 = rand_herm(5)
         superoperator = propagator(h_5, scipy.rand(),
-                                   [create(5), destroy(5), jmat(2,'z')])
+                                   [create(5), destroy(5), jmat(2, 'z')])
         choi_matrix = super_to_choi(superoperator)
         kraus_ops = choi_to_kraus(choi_matrix)
         test_choi = kraus_to_choi(kraus_ops)

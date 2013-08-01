@@ -153,9 +153,10 @@ def steadystate(
 
     elif method == 'iterative-bicg':
         return _steadystate_iterative_bicg(A, tol=tol, use_precond=use_precond,
-                                      maxiter=maxiter, perm_method=perm_method,
-                                      drop_tol=drop_tol, verbose=verbose,
-                                      diag_pivot_thresh=diag_pivot_thresh)
+                                           maxiter=maxiter,
+                                           perm_method=perm_method,
+                                           drop_tol=drop_tol, verbose=verbose,
+                                           diag_pivot_thresh=diag_pivot_thresh)
 
     elif method == 'lu':
         return _steadystate_lu(A, verbose=verbose)

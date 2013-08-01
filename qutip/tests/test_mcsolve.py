@@ -289,7 +289,7 @@ def test_TDStr():
 
 
 def test_mc_dtypes1():
-    "Monte-carlo: check for correct dtypes (mc_avg=True)"
+    "Monte-carlo: check for correct dtypes (average_states=True)"
     # set system parameters
     kappa = 2.0  # mirror coupling
     gamma = 0.2  # spontaneous emission rate
@@ -314,7 +314,7 @@ def test_mc_dtypes1():
     C2dC2 = C2.dag() * C2
     # intial state
     psi0 = tensor(basis(N, 0), basis(2, 1))
-    opts = Odeoptions(gui=False, mc_avg=True)
+    opts = Odeoptions(gui=False, average_states=True)
     data = mcsolve(
         H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
     assert_equal(isinstance(data.expect[0][0], float), True)
@@ -323,7 +323,7 @@ def test_mc_dtypes1():
 
 
 def test_mc_dtypes2():
-    "Monte-carlo: check for correct dtypes (mc_avg=False)"
+    "Monte-carlo: check for correct dtypes (average_states=False)"
     # set system parameters
     kappa = 2.0  # mirror coupling
     gamma = 0.2  # spontaneous emission rate
@@ -348,7 +348,7 @@ def test_mc_dtypes2():
     C2dC2 = C2.dag() * C2
     # intial state
     psi0 = tensor(basis(N, 0), basis(2, 1))
-    opts = Odeoptions(gui=False, mc_avg=False)
+    opts = Odeoptions(gui=False, average_states=False)
     data = mcsolve(
         H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
     assert_equal(isinstance(data.expect[0][0][0], float), True)

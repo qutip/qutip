@@ -295,7 +295,7 @@ class TwoModeQuadratureCorrelation(Distribution):
         self.theta2 = theta2
 
         self.update(state)
-    
+
     def update(self, state):
         """
         calculate probability distribution for quadrature measurement
@@ -342,17 +342,21 @@ class TwoModeQuadratureCorrelation(Distribution):
         p = np.zeros((len(self.xvecs[0]), len(self.xvecs[1])), dtype=complex)
         N = rho.dims[0][0]
 
-        M1 = np.zeros((N, N, len(self.xvecs[0]), len(self.xvecs[1])), dtype=complex)
-        M2 = np.zeros((N, N, len(self.xvecs[0]), len(self.xvecs[1])), dtype=complex)
+        M1 = np.zeros(
+            (N, N, len(self.xvecs[0]), len(self.xvecs[1])), dtype=complex)
+        M2 = np.zeros(
+            (N, N, len(self.xvecs[0]), len(self.xvecs[1])), dtype=complex)
 
         for m in range(N):
             for n in range(N):
-                M1[m,n] = exp(-1j * self.theta1 * (m - n)) / \
+                M1[m, n] = exp(-1j * self.theta1 * (m - n)) / \
                     sqrt(pi * 2 ** (m + n) * factorial(n) * factorial(m)) * \
-                    exp(-X1 ** 2) * np.polyval(hermite(m), X1) * np.polyval(hermite(n), X1)
-                M2[m,n] = exp(-1j * self.theta2 * (m - n)) / \
+                    exp(-X1 ** 2) * np.polyval(
+                        hermite(m), X1) * np.polyval(hermite(n), X1)
+                M2[m, n] = exp(-1j * self.theta2 * (m - n)) / \
                     sqrt(pi * 2 ** (m + n) * factorial(n) * factorial(m)) * \
-                    exp(-X2 ** 2) * np.polyval(hermite(m), X2) * np.polyval(hermite(n), X2)
+                    exp(-X2 ** 2) * np.polyval(
+                        hermite(m), X2) * np.polyval(hermite(n), X2)
 
         for n1 in range(N):
             for n2 in range(N):

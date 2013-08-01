@@ -221,7 +221,7 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]]
 
     '''
-    if not isinstance(N, (int,np.integer)):  # raise error if N not integer
+    if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
     return Qobj(sp.spdiags(np.sqrt(range(0, N)), 1, N, N, format='csr'))
 
@@ -256,7 +256,7 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00000000+0.j  0.00000000+0.j  1.73205081+0.j  0.00000000+0.j]]
 
     '''
-    if not isinstance(N, (int,np.integer)):  # raise error if N not integer
+    if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
     qo = destroy(N)  # create operator using destroy function
     qo.data = qo.data.T  # transpsoe data in Qobj
@@ -292,7 +292,7 @@ shape = [3, 3], type = oper, isHerm = True
 
     """
     N = int(N)
-    if (not isinstance(N, (int,np.integer))) or N < 0:  # check if N is int and N>0
+    if (not isinstance(N, (int, np.integer))) or N < 0:
         raise ValueError("N must be integer N>=0")
     return Qobj(sp.eye(N, N, dtype=complex, format='csr'))
 
@@ -590,7 +590,6 @@ def phase(N, phi0=0):
     return Qobj(np.sum(ops, axis=0))
 
 
-
 def squeez(N, sp):
     """Single-mode Squeezing operator.
 
@@ -625,16 +624,15 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00000000+0.j -0.30142443+0.j  0.00000000+0.j  0.95349007+0.j]]
 
     """
-    
+
     return squeeze(N, sp)
 
 
-
-def zero_oper(N,dims=None):
+def zero_oper(N, dims=None):
     """
     Creates the zero operator with shape NxN and
     dimensions `dims`.
-    
+
     Parameters
     ----------
     N : int
@@ -642,13 +640,11 @@ def zero_oper(N,dims=None):
     dims : list
         Optional dimensions if operator corresponds to
         a composite Hilbert space.
-    
+
     Returns
     -------
     zero_op : qobj
         Zero operator on given Hilbert space.
-    
+
     """
-    return Qobj(sp.csr_matrix((N,N),dtype=complex),dims=dims)
-
-
+    return Qobj(sp.csr_matrix((N, N), dtype=complex), dims=dims)

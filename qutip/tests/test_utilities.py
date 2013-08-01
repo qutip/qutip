@@ -29,31 +29,31 @@ def test_unit_conversions():
 
     T = np.random.rand() * 100.0
 
-    diff = convert_unit(convert_unit(T, orig="mK", to="GHz"), 
-                                        orig="GHz", to="mK") - T
+    diff = convert_unit(convert_unit(T, orig="mK", to="GHz"),
+                        orig="GHz", to="mK") - T
     assert_(abs(diff) < 1e-6)
-    diff = convert_unit(convert_unit(T, orig="mK", to="meV"), 
-                                        orig="meV", to="mK") - T
+    diff = convert_unit(convert_unit(T, orig="mK", to="meV"),
+                        orig="meV", to="mK") - T
     assert_(abs(diff) < 1e-6)
 
-    diff = convert_unit(convert_unit(convert_unit(T, orig="mK", to="GHz"), 
-                                                     orig="GHz", to="meV"),
-                                                     orig="meV", to="mK") - T
+    diff = convert_unit(convert_unit(convert_unit(T, orig="mK", to="GHz"),
+                                     orig="GHz", to="meV"),
+                        orig="meV", to="mK") - T
     assert_(abs(diff) < 1e-6)
 
     w = np.random.rand() * 100.0
 
     diff = convert_unit(convert_unit(w, orig="GHz", to="meV"),
-                                        orig="meV", to="GHz") - w
+                        orig="meV", to="GHz") - w
     assert_(abs(diff) < 1e-6)
 
     diff = convert_unit(convert_unit(w, orig="GHz", to="mK"),
-                                        orig="mK", to="GHz") - w
+                        orig="mK", to="GHz") - w
     assert_(abs(diff) < 1e-6)
 
-    diff = convert_unit(convert_unit(convert_unit(w, orig="GHz", to="mK"), 
-                                                     orig="mK", to="meV"),
-                                                     orig="meV", to="GHz") - w
+    diff = convert_unit(convert_unit(convert_unit(w, orig="GHz", to="mK"),
+                                     orig="mK", to="meV"),
+                        orig="meV", to="GHz") - w
     assert_(abs(diff) < 1e-6)
 
 

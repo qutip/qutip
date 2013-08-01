@@ -61,7 +61,7 @@ def test_compare_solvers_steadystate():
 
 
 def test_spectrum():
-    "correlation: compare spectrum obtained for eseries and fft methods"
+    "correlation: compare spectrum from eseries and fft methods"
 
     # use JC model
     N = 4
@@ -83,6 +83,34 @@ def test_spectrum():
     corr = correlation_ss(H, tlist, c_ops, a.dag(), a)
     wlist1, spec1 = spectrum_correlation_fft(tlist, corr)
     spec2 = spectrum_ss(H, wlist1, c_ops, a.dag(), a)
+
+    assert_(max(abs(spec1 - spec2)) < 1e-3)
+
+
+def test_spectrum():
+    "correlation: compare spectrum from eseries and pseudo-inverse methods"
+
+    # use JC model
+    N = 4
+    wc = wa = 1.0 * 2 * pi
+    g = 0.1 * 2 * pi
+    kappa = 0.75
+    gamma = 0.25
+    n_th = 0.01
+
+    a = tensor(destroy(N), qeye(2))
+    sm = tensor(qeye(N), destroy(2))
+    H = wc * a.dag() * a + wa * sm.dag() * sm + \
+        g * (a.dag() * sm + a * sm.dag())
+    c_ops = [sqrt(kappa * (1 + n_th)) * a,
+             sqrt(kappa * n_th) * a.dag(),
+             sqrt(gamma) * sm]
+
+    wlist = 2 * pi * np.linspace(0.5, 1.5, 100)
+    spec1 = spectrum_ss(H, wlist, c_ops, a.dag(), a)
+
+    L = liouvillian(H, c_ops)
+    spec2 = spectrum_pi(L, a.dag(), a, wlist)
 
     assert_(max(abs(spec1 - spec2)) < 1e-3)
 

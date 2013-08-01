@@ -138,19 +138,24 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     if ntraj is None:
         ntraj = options.ntraj
 
-    # if single operator is passed for c_ops or e_ops, convert it to
-    # list containing only that operator
+    if psi0.type != 'ket':
+        raise Exception("Initial state must be a state vector.")
+
     if isinstance(c_ops, Qobj):
         c_ops = [c_ops]
+
     if isinstance(e_ops, Qobj):
         e_ops = [e_ops]
 
-    if psi0.type != 'ket':
-        raise Exception("Initial state must be a state vector.")
-        
+    if isinstance(e_ops, dict):
+        e_ops_dict = e_ops
+        e_ops = [e for e in e_ops.values()]
+    else:
+        e_ops_dict = None
+
     odeconfig.options = options
     odeconfig.progress_bar = progress_bar
-    
+
     # set num_cpus to the value given in qutip.settings if none in Odeoptions
     if not odeconfig.options.num_cpus:
         odeconfig.options.num_cpus = qutip.settings.num_cpus
@@ -249,13 +254,14 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     output = Odedata()
     output.solver = 'mcsolve'
     # state vectors
-    if mc.psi_out is not None and odeconfig.options.mc_avg and odeconfig.cflag:
+    if (mc.psi_out is not None and odeconfig.options.average_states
+            and odeconfig.cflag):
         output.states = parfor(_mc_dm_avg, mc.psi_out.T)
     elif mc.psi_out is not None:
         output.states = mc.psi_out
     # expectation values
     elif (mc.expect_out is not None and odeconfig.cflag
-            and odeconfig.options.mc_avg):
+            and odeconfig.options.average_states):
         # averaging if multiple trajectories
         if isinstance(ntraj, int):
             output.expect = [mean([mc.expect_out[nt][op]
@@ -276,7 +282,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
                     data_list = [data for data in expt_data]
                 output.expect.append(data_list)
     else:
-        # no averaging for single trajectory or if mc_avg flag
+        # no averaging for single trajectory or if average_states flag
         # (Odeoptions) is off
         if mc.expect_out is not None:
             output.expect = mc.expect_out
@@ -288,6 +294,11 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     output.ntraj = odeconfig.ntraj
     output.col_times = mc.collapse_times_out
     output.col_which = mc.which_op_out
+
+    if e_ops_dict:
+        output.expect = {e: output.expect[n]
+                         for n, e in enumerate(e_ops_dict.keys())}
+
     return output
 
 
@@ -386,7 +397,6 @@ class _MC_class():
         if (not self.odeconfig.options.gui and self.odeconfig.ntraj != 1):
             self.odeconfig.progress_bar.update(self.count)
 
-
     def serial(self, args, top):
 
         if debug:
@@ -394,7 +404,6 @@ class _MC_class():
 
         for nt in range(self.odeconfig.ntraj):
             top.callback(_mc_alg_evolve(nt, args, self.odeconfig))
-
 
     def parallel(self, args, top):
 
@@ -419,7 +428,6 @@ class _MC_class():
             pl.join()
         return
 
-
     def run(self):
 
         if debug:
@@ -442,13 +450,13 @@ class _MC_class():
 
             if self.seeds is None:
                 self.seeds = random_integers(1e8, size=self.odeconfig.ntraj)
-            #else:
+            # else:
             #    if len(self.seeds) != self.odeconfig.ntraj:
             #        raise "Incompatible size of seeds vector in Odeconfig."
 
             if self.odeconfig.e_num == 0:
                 mc_alg_out = zeros((self.num_times), dtype=ndarray)
-                if self.odeconfig.options.mc_avg:
+                if self.odeconfig.options.average_states:
                     # output is averaged states, so use dm
                     mc_alg_out[0] = \
                         self.odeconfig.psi0 * self.odeconfig.psi0.conj().T
@@ -476,7 +484,6 @@ class _MC_class():
             # set arguments for input to monte-carlo
             args = (mc_alg_out, self.odeconfig.options,
                     self.odeconfig.tlist, self.num_times, self.seeds)
-
 
             if not self.odeconfig.options.gui:
                 self.odeconfig.progress_bar.start(self.odeconfig.ntraj)
@@ -557,7 +564,7 @@ def _tdRHStd_with_state(t, psi, odeconfig):
         odeconfig.h_funcs[j](t, psi, odeconfig.h_func_args) *
         spmv(odeconfig.h_td_data[j],
                odeconfig.h_td_ind[j],
-               odeconfig.h_td_ptr[j], psi) 
+               odeconfig.h_td_ptr[j], psi)
         for j in odeconfig.h_td_inds])
 
     col_func_terms = array([
@@ -567,7 +574,8 @@ def _tdRHStd_with_state(t, psi, odeconfig):
                odeconfig.n_ops_ptr[j], psi)
         for j in odeconfig.c_td_inds])
 
-    return (const_term - np.sum(h_func_term, 0) - 0.5 * np.sum(col_func_terms, 0))
+    return (const_term - np.sum(h_func_term, 0)
+            - 0.5 * np.sum(col_func_terms, 0))
 
 
 # RHS of ODE for python function Hamiltonian
@@ -911,7 +919,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
             ###--after while loop--####
             out_psi = ODE.y / norm(ODE.y, 2)
             if odeconfig.e_num == 0:
-                if odeconfig.options.mc_avg:
+                if odeconfig.options.average_states:
                     mc_alg_out[k] = out_psi * out_psi.conj().T
                 else:
                     mc_alg_out[k] = out_psi
@@ -925,7 +933,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
 
         # RETURN VALUES
         if odeconfig.e_num == 0:
-            if odeconfig.options.mc_avg:
+            if odeconfig.options.average_states:
                 mc_alg_out = array([Qobj(k, [odeconfig.psi0_dims[0],
                                              odeconfig.psi0_dims[0]],
                                             [odeconfig.psi0_shape[0],
@@ -937,7 +945,8 @@ def _mc_alg_evolve(nt, args, odeconfig):
                                          odeconfig.psi0_shape, fast='mc')
                                     for k in mc_alg_out])
 
-        return nt, copy.deepcopy(mc_alg_out), array(collapse_times), array(which_oper)
+        return nt, copy.deepcopy(mc_alg_out), \
+            array(collapse_times), array(which_oper)
 
     except Exception as e:
         print("failed to run _mc_alg_evolve: " + str(e))
@@ -1201,7 +1210,6 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
                        C_inds, C_tdterms, odeconfig.c_td_inds, type='mc',
                        odeconfig=odeconfig)
         cgen.generate(name + ".pyx")
-
 
     #-------------------------------------------------
     # START PYTHON LIST-FUNCTION BASED TIME-DEPENDENCE

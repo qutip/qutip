@@ -22,6 +22,8 @@ import scipy.fftpack
 
 from qutip.superoperator import *
 from qutip.expect import expect
+from qutip.tensor import tensor
+from qutip.operators import qeye
 from qutip.mesolve import mesolve
 from qutip.eseries import esval, esspec
 from qutip.essolve import ode2es
@@ -168,13 +170,16 @@ def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
 
     if solver == "me":
         return _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops,
-                                      a_op, b_op, reverse, args=args, options=options)
+                                      a_op, b_op, reverse, args=args,
+                                      options=options)
     elif solver == "es":
         return _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops,
-                                      a_op, b_op, reverse, args=args, options=options)
+                                      a_op, b_op, reverse, args=args,
+                                      options=options)
     elif solver == "mc":
         return _correlation_mc_2op_2t(H, rho0, tlist, taulist, c_ops,
-                                      a_op, b_op, reverse, args=args, options=options)
+                                      a_op, b_op, reverse, args=args,
+                                      options=options)
     else:
         raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
 
@@ -418,7 +423,8 @@ def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me",
         rho0 = steadystate(H, c_ops)
         n = np.array([expect(rho0, a_op.dag() * a_op)])
     else:
-        n = mesolve(H, rho0, taulist, c_ops, [a_op.dag() * a_op], args=args).expect[0]
+        n = mesolve(
+            H, rho0, taulist, c_ops, [a_op.dag() * a_op], args=args).expect[0]
 
     # calculate the correlation function G2 and normalize with n to obtain g2
     G2 = correlation_4op_1t(H, rho0, taulist, c_ops,
@@ -484,7 +490,8 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op, rho0=None, solver="me",
         print(inspect.stack()[0][3])
 
     return correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op,
-                              solver, reverse=reverse, args=args, options=options)
+                              solver, reverse=reverse, args=args,
+                              options=options)
 
 
 def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
@@ -541,7 +548,8 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
         print(inspect.stack()[0][3])
 
     return correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
-                              solver=solver, reverse=reverse, args=args, options=options)
+                              solver=solver, reverse=reverse, args=args,
+                              options=options)
 
 
 # -----------------------------------------------------------------------------
@@ -663,18 +671,21 @@ def _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
-    rho_t_list = mesolve(H, rho0, tlist, c_ops, [], args=args, options=options).states
+    rho_t_list = mesolve(
+        H, rho0, tlist, c_ops, [], args=args, options=options).states
 
     if reverse:
         # <A(t)B(t+tau)>
         for t_idx, rho_t in enumerate(rho_t_list):
             C_mat[t_idx, :] = mesolve(H, rho_t * a_op, taulist,
-                                      c_ops, [b_op], args=args, options=options).expect[0]
+                                      c_ops, [b_op], args=args,
+                                      options=options).expect[0]
     else:
         # <A(t+tau)B(t)>
         for t_idx, rho_t in enumerate(rho_t_list):
             C_mat[t_idx, :] = mesolve(H, b_op * rho_t, taulist,
-                                      c_ops, [a_op], args=args, options=options).expect[0]
+                                      c_ops, [a_op], args=args,
+                                      options=options).expect[0]
 
     return C_mat
 
@@ -720,7 +731,8 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
-    rho_t = mesolve(H, rho0, tlist, c_ops, [], args=args, options=options).states
+    rho_t = mesolve(
+        H, rho0, tlist, c_ops, [], args=args, options=options).states
 
     for t_idx, rho in enumerate(rho_t):
         C_mat[t_idx, :] = mesolve(H, d_op * rho * a_op, taulist,
@@ -777,7 +789,8 @@ def _correlation_mc_2op_2t(H, psi0, tlist, taulist, c_ops, a_op, b_op,
 
     options.gui = False
 
-    psi_t = mcsolve(H, psi0, tlist, c_ops, [], args=args, options=options).states
+    psi_t = mcsolve(
+        H, psi0, tlist, c_ops, [], args=args, options=options).states
 
     for t_idx in range(len(tlist)):
 
@@ -897,3 +910,70 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     spectrum = esspec(cov_es, wlist)
 
     return spectrum
+
+
+def spectrum_pi(L, a_op, b_op, wlist, use_pinv=False):
+    """
+    Calculate the spectrum corresponding to a correlation function
+    :math:`\left<A(\\tau)B(0)\\right>`, i.e., the Fourier transform of the
+    correlation function:
+
+    .. math::
+
+        S(\omega) = \int_{-\infty}^{\infty} \left<A(\\tau)B(0)\\right>
+        e^{-i\omega\\tau} d\\tau.
+
+    Parameters
+    ----------
+
+    L : :class:`qutip.qobj`
+        system Liouvillian.
+
+    wlist : *list* / *array*
+        list of frequencies for :math:`\\omega`.
+
+
+    a_op : :class:`qutip.qobj`
+        operator A.
+
+    b_op : :class:`qutip.qobj`
+        operator B.
+
+    Returns
+    -------
+
+    s_vec: *array*
+        An *array* with spectrum :math:`S(\omega)` for the frequencies
+        specified in `wlist`.
+
+    """
+
+    tr_mat = tensor([qeye(n) for n in L.dims[0][0]])
+    N = prod(L.dims[0][0])
+
+    A = L.full()
+    b = spre(b_op).full()
+    a = spre(a_op).full()
+
+    tr_vec = transpose(mat2vec(tr_mat.full()))
+
+    rho_ss = steadystate(L)
+    rho = transpose(mat2vec(rho_ss.full()))
+
+    I = np.identity(N * N)
+    P = np.kron(transpose(rho), tr_vec)
+    Q = I - P
+
+    s_vec = np.zeros(len(wlist))
+
+    for idx, w in enumerate(wlist):
+
+        if use_pinv:
+            MMR = numpy.linalg.pinv(-1.0j * w * I + A)
+        else:
+            MMR = np.dot(Q, np.linalg.solve(-1.0j * w * I + A, Q))
+
+        s = np.dot(tr_vec, np.dot(a, np.dot(MMR, np.dot(b, transpose(rho)))))
+        s_vec[idx] = -2 * np.real(s[0, 0])
+
+    return s_vec

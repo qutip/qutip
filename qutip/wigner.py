@@ -55,15 +55,16 @@ def wigner(psi, xvec, yvec, method='iterative', g=sqrt(2), parfor=False):
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
 
     method : string {'iterative', 'laguerre', 'fft'}
-        Select method 'iterative', 'laguerre', or 'fft', where 'iterative' uses a
-        iterative method to evaluate the Wigner functions for density matrices
-        :math:`|m><n|`, while 'laguerre' uses the Laguerre polynomials in scipy
-        for the same task. The 'fft' method evaluates the Fourier transform
-        of the density matrix. The 'iterative' method is default, and in general
-        recommended, but the 'laguerre' method is more efficient for very
-        sparse density matrices (e.g., superpositions of Fock states in a large
-        Hilbert space).  The 'fft' method is the preferred method for dealing with
-        density matrices that have a large number of excitations (>~50).
+        Select method 'iterative', 'laguerre', or 'fft', where 'iterative' uses
+        an iterative method to evaluate the Wigner functions for density
+        matrices :math:`|m><n|`, while 'laguerre' uses the Laguerre polynomials
+        in scipy for the same task. The 'fft' method evaluates the Fourier
+        transform of the density matrix. The 'iterative' method is default, and
+        in general recommended, but the 'laguerre' method is more efficient for
+        very sparse density matrices (e.g., superpositions of Fock states in a
+        large Hilbert space). The 'fft' method is the preferred method for
+        dealing with density matrices that have a large number of excitations
+        (>~50).
 
     parfor : bool {False, True}
         Flag for calculating the Laguerre polynomial based Wigner function
@@ -76,16 +77,16 @@ def wigner(psi, xvec, yvec, method='iterative', g=sqrt(2), parfor=False):
     W : array
         Values representing the Wigner function calculated over the specified
         range [xvec,yvec].
-    
+
     yvex : array
         FFT ONLY. Returns the y-coordinate values calculated via the Fourier
         transform.
-        
+
     Notes
     -----
     The 'fft' method accepts only an xvec input for the x-coordinate.
     The y-coordinates are calculated internally.
-    
+
     References
     ----------
 
@@ -96,10 +97,10 @@ def wigner(psi, xvec, yvec, method='iterative', g=sqrt(2), parfor=False):
 
     if not (psi.type == 'ket' or psi.type == 'oper' or psi.type == 'bra'):
         raise TypeError('Input state is not a valid operator.')
-    
+
     if method == 'fft':
-        return _wigner_fourier(psi,xvec,g)
-    
+        return _wigner_fourier(psi, xvec, g)
+
     if psi.type == 'ket' or psi.type == 'bra':
         rho = ket2dm(psi)
     else:
@@ -112,7 +113,8 @@ def wigner(psi, xvec, yvec, method='iterative', g=sqrt(2), parfor=False):
         return _wigner_laguerre(rho, xvec, yvec, g, parfor)
 
     else:
-        raise TypeError("method must be either 'iterative', 'laguerre', or 'fft'.")
+        raise TypeError(
+            "method must be either 'iterative', 'laguerre', or 'fft'.")
 
 
 def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
@@ -233,71 +235,80 @@ def _par_wig_eval(args):
     return W1
 
 
-def _wigner_fourier(psi,xvec,g=np.sqrt(2)):
+def _wigner_fourier(psi, xvec, g=np.sqrt(2)):
     """
     Evaluate the Wigner function via the Fourier transform.
     """
-    if psi.type=='bra':
-        psi=psi.dag()
-    if psi.type=='ket':
-        return _psi_wigner_fft(psi.full(),xvec,g)
-    elif psi.type=='oper':
+    if psi.type == 'bra':
+        psi = psi.dag()
+    if psi.type == 'ket':
+        return _psi_wigner_fft(psi.full(), xvec, g)
+    elif psi.type == 'oper':
         eig_vals, eig_vecs = la.eigh(psi.full())
-        W=0
+        W = 0
         for ii in range(psi.shape[0]):
-            W1, yvec=_psi_wigner_fft(np.reshape(eig_vecs[:,ii],(psi.shape[0],1)),xvec,g)
-            W+=eig_vals[ii]*W1
+            W1, yvec = _psi_wigner_fft(
+                np.reshape(eig_vecs[:, ii], (psi.shape[0], 1)), xvec, g)
+            W += eig_vals[ii] * W1
         return W, yvec
 
 
-def _psi_wigner_fft(psi,xvec,g=sqrt(2)):
+def _psi_wigner_fft(psi, xvec, g=sqrt(2)):
     """
     FFT method for a single state vector.  Called multiple times when the
     input is a density matrix.
     """
-    n=len(psi)
-    A = _osc_eigen(n,xvec*g/np.sqrt(2))
-    xpsi=np.dot(psi.T,A)
-    W,yvec=_wigner_fft(xpsi,xvec*g/np.sqrt(2))
-    return (0.5*g**2)*np.real(W.T), yvec*np.sqrt(2)/g
-    
+    n = len(psi)
+    A = _osc_eigen(n, xvec * g / np.sqrt(2))
+    xpsi = np.dot(psi.T, A)
+    W, yvec = _wigner_fft(xpsi, xvec * g / np.sqrt(2))
+    return (0.5 * g ** 2) * np.real(W.T), yvec * np.sqrt(2) / g
 
-def _wigner_fft(psi,xvec):
+
+def _wigner_fft(psi, xvec):
     """
     Evaluates the Fourier transformation of a given state vector.
     Returns the corresponding density matrix and range
     """
-    n=2*len(psi.T)
-    r1=np.concatenate((np.array([[0]]),np.fliplr(psi.conj()),np.zeros((1,n/2-1))),axis=1)
-    r2=np.concatenate((np.array([[0]]),psi,np.zeros((1,n/2-1))),axis=1)
-    w=la.toeplitz(np.zeros((n/2,1)),r1)*np.flipud(la.toeplitz(np.zeros((n/2,1)),r2))
-    w=np.concatenate((w[:,n/2:n],w[:,0:n/2]),axis=1)
-    w=ft.fft(w)
-    w=np.real(np.concatenate((w[:,3*n/4:n+1],w[:,0:n/4]),axis=1))
-    p=np.arange(-n/4,n/4)*np.pi/(n*(xvec[1]-xvec[0]))
-    w=w/(p[1]-p[0])/n
-    return w,p
+    n = 2 * len(psi.T)
+    r1 = np.concatenate((np.array([[0]]),
+                        np.fliplr(psi.conj()),
+                        np.zeros((1, n / 2 - 1))), axis=1)
+    r2 = np.concatenate((np.array([[0]]), psi,
+                        np.zeros((1, n / 2 - 1))), axis=1)
+    w = la.toeplitz(np.zeros((n / 2, 1)), r1) * \
+        np.flipud(la.toeplitz(np.zeros((n / 2, 1)), r2))
+    w = np.concatenate((w[:, n / 2:n], w[:, 0:n / 2]), axis=1)
+    w = ft.fft(w)
+    w = np.real(np.concatenate((w[:, 3 * n / 4:n + 1], w[:, 0:n / 4]), axis=1))
+    p = np.arange(-n / 4, n / 4) * np.pi / (n * (xvec[1] - xvec[0]))
+    w = w / (p[1] - p[0]) / n
+    return w, p
 
-def _osc_eigen(N,pnts):
+
+def _osc_eigen(N, pnts):
     """
     Vector of and N-dim oscillator eigenfunctions evaluated
-    at the points in pnts. 
+    at the points in pnts.
     """
-    pnts=np.asarray(pnts)
+    pnts = np.asarray(pnts)
     lpnts = len(pnts)
-    A = np.zeros((N,lpnts))
-    A[0,:] = np.exp(-pnts**2/2.0)/pi**0.25
+    A = np.zeros((N, lpnts))
+    A[0, :] = np.exp(-pnts ** 2 / 2.0) / pi ** 0.25
     if N == 1:
         return A
     else:
-        A[1,:] = np.sqrt(2) * pnts * A[0,:]
-        for k in range(2,N):
-            A[k,:] = np.sqrt(2.0/k)*pnts*A[k-1,:] - np.sqrt((k-1.0)/k) * A[k-2,:]
+        A[1, :] = np.sqrt(2) * pnts * A[0, :]
+        for k in range(2, N):
+            A[k, :] = np.sqrt(2.0 / k) * pnts * A[k - 1, :] - \
+                np.sqrt((k - 1.0) / k) * A[k - 2, :]
         return A
 
 #------------------------------------------------------------------------------
 # Q FUNCTION
 #
+
+
 def qfunc(state, xvec, yvec, g=sqrt(2)):
     """Q-function of a given state vector or density matrix
     at points `xvec + i * yvec`.

@@ -75,10 +75,10 @@ def _sp_one_norm(op):
                             for k in range(op.shape[1])]))
 
 
-def sp_reshape(A, shape,format='csr'):
+def sp_reshape(A, shape, format='csr'):
     """
     Reshapes a sparse matrix.
-    
+
     Parameters
     ----------
     A : sparse_matrix
@@ -87,7 +87,7 @@ def sp_reshape(A, shape,format='csr'):
         Desired shape of new matrix
     format : string {'csr','coo','csc','lil'}
         Optional string indicating desired output format
-    
+
     Returns
     -------
     B : csr_matrix
@@ -99,19 +99,19 @@ def sp_reshape(A, shape,format='csr'):
     C = A.tocoo()
     nrows, ncols = C.shape
     size = nrows * ncols
-    new_size =  shape[0] * shape[1]
+    new_size = shape[0] * shape[1]
     if new_size != size:
         raise ValueError('Total size of new array must be unchanged.')
     flat_indices = ncols * C.row + C.col
     new_row, new_col = divmod(flat_indices, shape[1])
     B = sp.coo_matrix((C.data, (new_row, new_col)), shape=shape)
-    if format=='csr':
+    if format == 'csr':
         return B.tocsr()
-    elif format=='coo':
+    elif format == 'coo':
         return B
-    elif format=='csc':
+    elif format == 'csc':
         return B.tocsc()
-    elif format=='lil':
+    elif format == 'lil':
         return B.tolil()
     else:
         raise ValueError('Return format not valid.')
@@ -327,40 +327,41 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
     else:
         return np.array(evals)
 
+
 def condest(Q):
     """
     Estimates the condition number of the underlying
     matrix for a given Qobj operator or super-operator
     based on the one-norm.
-    
+
     Parameters
     ----------
     Q : Qobj
         Input qobj.
-    
+
     Returns
     -------
     cond_est : float
         Estimated condition number of Qobj matrix.
-    
+
     """
-    out=0
-    v=np.zeros((Q.shape[0],1),dtype=complex)
-    v[0,0]=1
-    old_ind=1
-    while out==0:
-        u=Q.data*v
-        unrm=np.linalg.norm(u,1)
-        w=np.sign(u)
-        x=Q.dag().data*w
-        xnrm=np.linalg.norm(x,np.inf)
-        new_ind=int(np.where(np.abs(x)==xnrm)[0][0])
-        if xnrm<=unrm:
-            out=1
+    out = 0
+    v = np.zeros((Q.shape[0], 1), dtype=complex)
+    v[0, 0] = 1
+    old_ind = 1
+    while out == 0:
+        u = Q.data * v
+        unrm = np.linalg.norm(u, 1)
+        w = np.sign(u)
+        x = Q.dag().data * w
+        xnrm = np.linalg.norm(x, np.inf)
+        new_ind = int(np.where(np.abs(x) == xnrm)[0][0])
+        if xnrm <= unrm:
+            out = 1
         else:
-            v[old_ind,0]=0
-            v[new_ind,0]=1
-            old_ind=new_ind
+            v[old_ind, 0] = 0
+            v[new_ind, 0] = 1
+            old_ind = new_ind
     return unrm
 
 

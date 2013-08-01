@@ -13,7 +13,7 @@
 #    You should have received a copy of the GNU General Public License
 #    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
 #
-# Copyright (C) 2012, Paul D. Nation & Robert J. Johansson
+# Copyright (C) 2012-2013, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
 
@@ -27,19 +27,17 @@ Release target: 2.3.0 or 3.0.0
 
 Todo:
 
-1) test and debug
+1) test and debug - always more to do here
 
-2) store measurement records
+2) store measurement records - done
 
-3) add more sme solvers
+3) add more sme solvers - done
 
-4) cythonize some rhs or d1,d2 functions
+4) cythonize some rhs or d1,d2 functions - done
 
 5) parallelize
 
 """
-
-import inspect
 
 import numpy as np
 import scipy
@@ -56,7 +54,10 @@ from qutip.states import ket2dm
 from qutip.cyQ.spmatfuncs import cy_expect, spmv, cy_expect_rho_vec
 from qutip.gui.progressbar import TextProgressBar
 
-debug = True
+from qutip.settings import debug
+
+if debug:
+    import inspect
 
 class _StochasticSolverData:
     """
@@ -94,12 +95,38 @@ class _StochasticSolverData:
 def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
     """
     Solve stochastic Schrodinger equation. Dispatch to specific solvers
-    depending on the value of the `solver` argument.
+    depending on the value of the `solver` keyword argument.
 
-    .. note::
+    Parameters
+    ----------
 
-        Experimental. tlist must be uniform.
+    H : :class:`qutip.qobj`
+        system Hamiltonian.
 
+    psi0 : :class:`qutip.qobj`
+        initial state vector (ket).
+
+    tlist : *list* / *array*
+        list of times for :math:`t`. Must be uniform.
+
+    sc_ops : list of :class:`qutip.qobj`
+        List of stochastic collapse operators. Each stochastic collapse
+        operator will give a deterministic and stochastic contribution
+        to the equation of motion.
+
+    e_ops : list of :class:`qutip.qobj` / callback function single
+        single operator or list of operators for which to evaluate
+        expectation values.
+
+    kwargs : *dictionary*
+        Optional keyword arguments. See StochasticSolverData.
+
+    Returns
+    -------
+
+    output: :class:`qutip.odedata`
+
+        An instance of the class :class:`qutip.odedata`.
     """
     if debug:
         print(inspect.stack()[0][3])
@@ -148,13 +175,45 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
 def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
     """
     Solve stochastic master equation. Dispatch to specific solvers
-    depending on the value of the `solver` argument.
+    depending on the value of the `solver` keyword argument.
 
-    .. note::
+    Parameters
+    ----------
 
-        Experimental. tlist must be uniform.
+    H : :class:`qutip.qobj`
+        system Hamiltonian.
 
+    rho0 : :class:`qutip.qobj`
+        initial density matrix of state vector (ket).
+
+    tlist : *list* / *array*
+        list of times for :math:`t`. Must be uniform.
+
+    c_ops : list of :class:`qutip.qobj`
+        Deterministic collapse operator which will contribute with a standard
+        Lindblad type of dissipation.
+
+    sc_ops : list of :class:`qutip.qobj`
+        List of stochastic collapse operators. Each stochastic collapse
+        operator will give a deterministic and stochastic contribution
+        to the eqaution of motion according to how the D1 and D2 functions
+        are defined.
+
+    e_ops : list of :class:`qutip.qobj` / callback function single
+        single operator or list of operators for which to evaluate
+        expectation values.
+
+    kwargs : *dictionary*
+        Optional keyword arguments. See StochasticSolverData.
+
+    Returns
+    -------
+
+    output: :class:`qutip.odedata`
+
+        An instance of the class :class:`qutip.odedata`.
     """
+
     if debug:
         print(inspect.stack()[0][3])
 
@@ -297,12 +356,15 @@ def ssesolve_generic(ssdata, options, progress_bar):
             ssdata.d2_len, ssdata.homogeneous, ssdata.distribution,
             store_measurement=ssdata.store_measurement, noise=noise)
 
-        # if average -> average...
         data.states.append(states_list)
         data.noise.append(dW)
         data.measurement.append(m)
 
     progress_bar.finished()
+
+    # average density matrices
+    if options.average_states:
+        data.states = [sum(state_list).unit() for state_list in data.states]
 
     # average
     data.expect = data.expect / NT
@@ -450,7 +512,9 @@ def smesolve_generic(ssdata, options, progress_bar):
 
     progress_bar.finished()
 
-    # if options.state_average -> average data.states
+    # average density matrices
+    if options.average_states:
+        data.states = [sum(state_list).unit() for state_list in data.states]
 
     # average
     data.expect = data.expect / NT
@@ -579,6 +643,10 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
         data.jump_op_idx.append(jump_op_idx)
 
     progress_bar.finished()
+
+    # average density matrices
+    if options.average_states:
+        data.states = [sum(state_list).unit() for state_list in data.states]
 
     # average
     data.expect = data.expect / NT
@@ -710,8 +778,10 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
 
     progress_bar.finished()
 
-    # if options.state_average = True -> average data.states
-
+    # average density matrices
+    if options.average_states:
+        data.states = [sum(state_list).unit() for state_list in data.states]
+    
     # average
     data.expect = data.expect / ssdata.ntraj
 

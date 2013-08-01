@@ -25,6 +25,7 @@ import sys
 import signal
 import qutip.settings as qset
 
+
 def _task_wrapper(args):
     try:
         return args[0](args[1])

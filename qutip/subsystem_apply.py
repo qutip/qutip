@@ -82,7 +82,7 @@ def subsystem_apply(state, channel, mask, reference=False):
     aff_subs_dim_ar = transpose(array(state.dims))[array(mask)]
 
     assert all([(aff_subs_dim_ar[j] == aff_subs_dim_ar[0]).all()
-                   for j in range(len(aff_subs_dim_ar))]), \
+                for j in range(len(aff_subs_dim_ar))]), \
         "Affected subsystems must have the same dimension. Given:" +\
         repr(aff_subs_dim_ar)
 
@@ -95,8 +95,9 @@ def subsystem_apply(state, channel, mask, reference=False):
         required_shape = aff_subs_dim_ar[0]
 
     assert array([channel.shape == required_shape]).all(), \
-    "Superoperator dimension must be the subsystem dimension squared, given: "\
-    + repr(channel.shape)
+        "Superoperator dimension must be the " + \
+        "subsystem dimension squared, given: " \
+        + repr(channel.shape)
 
     # Ensure mask is an array:
     mask = array(mask)
@@ -201,16 +202,15 @@ def _top_apply_S(block, channel):
     # If the channel is a super-operator,
     # perform second block decomposition; block-size
     # matches Hilbert space of affected subsystem:
-    column = _block_col(block, *list(map(
-        sqrt, channel.shape)))  # FIXME use state shape?
+    column = _block_col(block, *list(map(sqrt, channel.shape)))  # FIXME use state shape?
     chan_mat = channel.data.todense()
     temp_col = zeros(shape(column)).astype(complex)
     # print chan_mat.shape
     for row_idx in range(len(chan_mat)):
         row = chan_mat[row_idx]
         # print [scal[0,0]*mat for (scal,mat) in zip(transpose(row),column)]
-        temp_col[row_idx] = sum([scal[0, 0] * mat
-                                 for (scal, mat) in zip(transpose(row), column)])
+        temp_col[row_idx] = sum([s[0, 0] * mat
+                                 for (s, mat) in zip(transpose(row), column)])
     return _block_stack(temp_col, *list(map(sqrt, channel.shape)))
 
 
@@ -233,8 +233,8 @@ def _block_col(mat_in, n_v, n_h):
     """
     rows, cols = shape(mat_in)
     return reshape(
-           array(_block_split(mat_in, n_v, n_h)).transpose(1, 0, 2, 3),
-           (n_v * n_h, rows / n_v, cols / n_h))
+        array(_block_split(mat_in, n_v, n_h)).transpose(1, 0, 2, 3),
+        (n_v * n_h, rows / n_v, cols / n_h))
 
 
 def _block_stack(arr_in, n_v, n_h):
@@ -259,7 +259,7 @@ def _subsystem_apply_reference(state, channel, mask):
         return full_oper * state * full_oper.dag()
     else:
         # Go to Choi, then Kraus
-        #chan_mat = array(channel.data.todense())
+        # chan_mat = array(channel.data.todense())
         choi_matrix = super_to_choi(channel)
         vals, vecs = eig(choi_matrix.full())
         vecs = list(map(array, zip(*vecs)))

@@ -36,7 +36,7 @@ class TestMatrixVector:
         N = 3
         rho = rand_dm(N)
         U = rand_unitary(N)
-   
+
         rho1 = U * rho * U.dag()
         rho2_vec = spre(U) * spost(U.dag()) * operator_to_vector(rho)
         rho2 = vector_to_operator(rho2_vec)

@@ -36,7 +36,7 @@ module qutraj_run
   !real(wp) :: norm_tol = 0.001
   integer :: n_c_ops = 0
   integer :: n_e_ops = 0
-  logical :: mc_avg = .true.
+  logical :: average_states = .true.
 
   ! Optional ode options, 0 means use default values
   integer :: order=0,nsteps=0
@@ -325,7 +325,7 @@ module qutraj_run
     endif
 
     if (states) then
-      if (mc_avg) then
+      if (average_states) then
         if (rho_return_sparse) then
           call new(sol_rho,size(tlist))
           call new(rho_sparse,1,1)
@@ -348,7 +348,7 @@ module qutraj_run
         sol = (0.,0.)
       endif
     elseif (n_e_ops>0) then
-      if (mc_avg) then
+      if (average_states) then
         allocate(sol(n_e_ops,1,size(tlist),1), stat=istat)
         sol = (0.,0.)
       else
@@ -465,7 +465,7 @@ module qutraj_run
            call ptrace_pure(y_tmp,rho,ptrace_sel,psi0_dims1)
         endif
         if (states) then
-          if (mc_avg) then
+          if (average_states) then
             ! construct density matrix
             if (rho_return_sparse) then
               call densitymatrix_sparse(y_tmp,rho_sparse)
@@ -486,7 +486,7 @@ module qutraj_run
             sol(1,traj,i,:) = y_tmp
           endif
         else
-          if (mc_avg) then
+          if (average_states) then
             do l=1,n_e_ops
               sol(l,1,i,1) = sol(l,1,i,1)+braket(y_tmp,e_ops(l)*y_tmp)
             enddo
@@ -510,7 +510,7 @@ module qutraj_run
       ! End loop over trajectories
     enddo
     ! Normalize
-    if (mc_avg) then
+    if (average_states) then
       if (states .and. rho_return_sparse) then
         do j=1,size(sol_rho)
           sol_rho(j) = (1._wp/ntraj)*sol_rho(j)

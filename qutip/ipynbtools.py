@@ -115,18 +115,20 @@ style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
         if p >= self.p_chunk:
             lbl = ("Elapsed time: %s. " % self.time_elapsed() +
                    "Est. remaining time: %s." % self.time_remaining_est(p))
-            js_code = ("$('div#%s').width('%i%%');" % (self.divid, p) + 
+            js_code = ("$('div#%s').width('%i%%');" % (self.divid, p) +
                        "$('p#%s').text('%s');" % (self.textid, lbl))
             display(Javascript(js_code))
-            #display(Javascript("$('div#%s').width('%i%%')" % (self.divid, p)))
+            # display(Javascript("$('div#%s').width('%i%%')" % (self.divid,
+            # p)))
             self.p_chunk += self.p_chunk_size
 
     def finished(self):
         self.t_done = time.time()
         lbl = "Elapsed time: %s" % self.time_elapsed()
-        js_code = ("$('div#%s').width('%i%%');" % (self.divid, 100.0) + 
+        js_code = ("$('div#%s').width('%i%%');" % (self.divid, 100.0) +
                    "$('p#%s').text('%s');" % (self.textid, lbl))
         display(Javascript(js_code))
+
 
 def _visualize_parfor_data(metadata):
     """

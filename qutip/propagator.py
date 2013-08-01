@@ -74,7 +74,9 @@ def propagator(H, t, c_op_list, args=None, options=None):
         options.rhs_reuse = True
         rhs_clear()
     elif options.rhs_reuse:
-        warnings.warn("propagator is using previously defined rhs function (options.rhs_reuse = True)")
+        msg = ("propagator is using previously defined rhs " +
+               "function (options.rhs_reuse = True)")
+        warnings.warn(msg)
 
     tlist = [0, t] if isinstance(t, (int, float, np.int64, np.float64)) else t
 
@@ -102,9 +104,9 @@ def propagator(H, t, c_op_list, args=None, options=None):
                 u[:, n, k] = output.states[k].full().T
 
         # todo: evolving a batch of wave functions:
-        #psi_0_list = [basis(N, n) for n in range(N)]
-        #psi_t_list = mesolve(H, psi_0_list, [0, t], [], [], args, options)
-        #for n in range(0, N):
+        # psi_0_list = [basis(N, n) for n in range(N)]
+        # psi_t_list = mesolve(H, psi_0_list, [0, t], [], [], args, options)
+        # for n in range(0, N):
         #    u[:,n] = psi_t_list[n][1].full().T
 
     else:

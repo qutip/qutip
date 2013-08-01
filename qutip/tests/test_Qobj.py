@@ -351,7 +351,7 @@ def test_QobjExpm():
         (15, 15)) + 1j * np.random.random((15, 15)) - (0.5 + 0.5j)
     A = Qobj(data)
     B = A.expm()
-    assert_((B.data.todense() - np.matrix(la.expm(data))  < 1e-12).all())
+    assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-12).all())
 
 
 def test_QobjFull():
@@ -362,37 +362,38 @@ def test_QobjFull():
     b = A.full()
     assert_equal(all(b - data), 0)
 
+
 def test_QobjPermute():
     "Qobj permute"
-    A=basis(5,0)
-    B=basis(5,4)
-    C=basis(5,2)
-    psi=tensor(A,B,C)
-    psi2=psi.permute([2,0,1])
-    assert_equal(psi2,tensor(C,A,B))
-    
-    A=fock_dm(5,0)
-    B=fock_dm(5,4)
-    C=fock_dm(5,2)
-    rho=tensor(A,B,C)
-    rho2=rho.permute([2,0,1])
-    assert_equal(rho2,tensor(C,A,B))
-    
+    A = basis(5, 0)
+    B = basis(5, 4)
+    C = basis(5, 2)
+    psi = tensor(A, B, C)
+    psi2 = psi.permute([2, 0, 1])
+    assert_equal(psi2, tensor(C, A, B))
+
+    A = fock_dm(5, 0)
+    B = fock_dm(5, 4)
+    C = fock_dm(5, 2)
+    rho = tensor(A, B, C)
+    rho2 = rho.permute([2, 0, 1])
+    assert_equal(rho2, tensor(C, A, B))
+
     for ii in range(3):
-        A=rand_ket(5)
-        B=rand_ket(5)
-        C=rand_ket(5)
-        psi=tensor(A,B,C)
-        psi2=psi.permute([1,0,2])
-        assert_equal(psi2,tensor(B,A,C))
-    
+        A = rand_ket(5)
+        B = rand_ket(5)
+        C = rand_ket(5)
+        psi = tensor(A, B, C)
+        psi2 = psi.permute([1, 0, 2])
+        assert_equal(psi2, tensor(B, A, C))
+
     for ii in range(3):
-        A=rand_dm(5)
-        B=rand_dm(5)
-        C=rand_dm(5)
-        rho=tensor(A,B,C)
-        rho2=rho.permute([1,0,2])
-        assert_equal(rho2,tensor(B,A,C))
+        A = rand_dm(5)
+        B = rand_dm(5)
+        C = rand_dm(5)
+        rho = tensor(A, B, C)
+        rho2 = rho.permute([1, 0, 2])
+        assert_equal(rho2, tensor(B, A, C))
 
 # --- Test types
 
