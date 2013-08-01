@@ -56,7 +56,7 @@ if debug:
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 #
-def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
+def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
             progress_bar=BaseProgressBar()):
     """
     Master equation evolution of a density matrix for a given Hamiltonian.
@@ -69,7 +69,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
 
     The output is either the state vector at arbitrary points in time
     (`tlist`), or the expectation values of the supplied operators
-    (`expt_ops`). If expt_ops is a callback function, it is invoked for each
+    (`e_ops`). If e_ops is a callback function, it is invoked for each
     time in `tlist` with time and the state as arguments, and the function
     does not use any return values.
 
@@ -139,7 +139,7 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
     c_ops : list of :class:`qutip.qobj`
         single collapse operator, or list of collapse operators.
 
-    expt_ops : list of :class:`qutip.qobj` / callback function single
+    e_ops : list of :class:`qutip.qobj` / callback function single
         single operator or list of operators for which to evaluate
         expectation values.
 
@@ -158,19 +158,25 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
         An instance of the class :class:`qutip.odedata`, which contains either
         an *array* of expectation values for the times specified by `tlist`, or
         an *array* or state vectors or density matrices corresponding to the
-        times in `tlist` [if `expt_ops` is an empty list], or
+        times in `tlist` [if `e_ops` is an empty list], or
         nothing if a callback function was given inplace of operators for
         which to calculate the expectation values.
 
     """
 
-    # check whether c_ops or expt_ops is is a single operator
+    # check whether c_ops or e_ops is is a single operator
     # if so convert it to a list containing only that operator
     if isinstance(c_ops, Qobj):
         c_ops = [c_ops]
 
-    if isinstance(expt_ops, Qobj):
-        expt_ops = [expt_ops]
+    if isinstance(e_ops, Qobj):
+        e_ops = [e_ops]
+
+    if isinstance(e_ops, dict):
+        e_ops_dict = e_ops
+        e_ops = [e for e in e_ops.values()]
+    else:
+        e_ops_dict = None
 
     # check for type (if any) of time-dependent inputs
     n_const, n_func, n_str = _ode_checks(H, c_ops)
@@ -182,6 +188,8 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
         # reset odeconfig collapse and time-dependence flags to default values
         odeconfig.reset()
 
+    res = None
+    
     #
     # dispatch the appropriate solver
     #
@@ -205,73 +213,78 @@ def mesolve(H, rho0, tlist, c_ops, expt_ops, args={}, options=None,
             # constant hamiltonian
             if n_func == 0 and n_str == 0:
                 # constant collapse operators
-                return _mesolve_const(H, rho0, tlist, c_ops,
-                                      expt_ops, args, options,
-                                      progress_bar)
+                res = _mesolve_const(H, rho0, tlist, c_ops,
+                                     e_ops, args, options,
+                                     progress_bar)
             elif n_str > 0:
                 # constant hamiltonian but time-dependent collapse
                 # operators in list string format
-                return _mesolve_list_str_td([H], rho0, tlist, c_ops,
-                                            expt_ops, args, options,
-                                            progress_bar)
+                res = _mesolve_list_str_td([H], rho0, tlist, c_ops,
+                                           e_ops, args, options,
+                                           progress_bar)
             elif n_func > 0:
                 # constant hamiltonian but time-dependent collapse
                 # operators in list function format
-                return _mesolve_list_func_td([H], rho0, tlist, c_ops,
-                                             expt_ops, args, options,
-                                             progress_bar)
+                res = _mesolve_list_func_td([H], rho0, tlist, c_ops,
+                                            e_ops, args, options,
+                                            progress_bar)
 
-        if isinstance(H, (types.FunctionType,
-                          types.BuiltinFunctionType, partial)):
+        elif isinstance(H, (types.FunctionType,
+                            types.BuiltinFunctionType, partial)):
             # old style time-dependence: must have constant collapse operators
             if n_str > 0:  # or n_func > 0:
                 raise TypeError("Incorrect format: function-format " +
                                 "Hamiltonian cannot be mixed with " +
                                 "time-dependent collapse operators.")
             else:
-                return _mesolve_func_td(H, rho0, tlist, c_ops,
-                                        expt_ops, args, options,
-                                        progress_bar)
+                res = _mesolve_func_td(H, rho0, tlist, c_ops,
+                                       e_ops, args, options,
+                                       progress_bar)
 
-        if isinstance(H, list):
+        elif isinstance(H, list):
             # determine if we are dealing with list of [Qobj, string] or
             # [Qobj, function] style time-dependences (for pure python and
             # cython, respectively)
             if n_func > 0:
-                return _mesolve_list_func_td(H, rho0, tlist, c_ops,
-                                             expt_ops, args, options,
-                                             progress_bar)
-            else:
-                return _mesolve_list_str_td(H, rho0, tlist, c_ops,
-                                            expt_ops, args, options,
+                res = _mesolve_list_func_td(H, rho0, tlist, c_ops,
+                                            e_ops, args, options,
                                             progress_bar)
+            else:
+                res = _mesolve_list_str_td(H, rho0, tlist, c_ops,
+                                           e_ops, args, options,
+                                           progress_bar)
 
-        raise TypeError("Incorrect specification of Hamiltonian " +
-                        "or collapse operators.")
+        else:
+            raise TypeError("Incorrect specification of Hamiltonian " +
+                            "or collapse operators.")
 
     else:
         #
         # no collapse operators: unitary dynamics
         #
         if n_func > 0:
-            return _sesolve_list_func_td(H, rho0, tlist,
-                                         expt_ops, args, options, progress_bar)
+            res = _sesolve_list_func_td(H, rho0, tlist,
+                                         e_ops, args, options, progress_bar)
         elif n_str > 0:
-            return _sesolve_list_str_td(H, rho0, tlist,
-                                        expt_ops, args, options, progress_bar)
+            res = _sesolve_list_str_td(H, rho0, tlist,
+                                        e_ops, args, options, progress_bar)
         elif isinstance(H, (types.FunctionType,
                             types.BuiltinFunctionType, partial)):
-            return _sesolve_func_td(H, rho0, tlist,
-                                    expt_ops, args, options, progress_bar)
+            res = _sesolve_func_td(H, rho0, tlist,
+                                   e_ops, args, options, progress_bar)
         else:
-            return _sesolve_const(H, rho0, tlist,
-                                  expt_ops, args, options, progress_bar)
+            res = _sesolve_const(H, rho0, tlist,
+                                 e_ops, args, options, progress_bar)
 
+    if e_ops_dict:
+        res.expect = {e: res.expect[n] for n, e in enumerate(e_ops_dict.keys())}
+
+    return res
 
 # -----------------------------------------------------------------------------
 # A time-dependent disipative master equation on the list-function format
 #
-def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
+def _mesolve_list_func_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
                           progress_bar):
     """
     Internal function for solving the master equation. See mesolve for usage.
@@ -373,7 +386,7 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar)
+    return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar)
 
 
 #
@@ -416,7 +429,7 @@ def drho_list_td_with_state(t, rho, L_list, args):
 # A time-dependent disipative master equation on the list-string format for
 # cython compilation
 #
-def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
+def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
                          progress_bar):
     """
     Internal function for solving the master equation. See mesolve for usage.
@@ -577,13 +590,13 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, expt_ops, args, opt,
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar)
+    return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar)
 
 
 # -----------------------------------------------------------------------------
 # Master equation solver
 #
-def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, opt,
+def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
                    progress_bar):
     """!
     Evolve the density matrix using an ODE solver, for constant hamiltonian
@@ -600,7 +613,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, opt,
         # if initial state is a ket and no collapse operator where given,
         # fallback on the unitary schrodinger equation solver
         if len(c_op_list) == 0 and isoper(H):
-            return _sesolve_const(H, rho0, tlist, expt_ops, args, opt)
+            return _sesolve_const(H, rho0, tlist, e_ops, args, opt)
 
         # Got a wave function as initial state: convert to density matrix.
         rho0 = rho0 * rho0.dag()
@@ -628,7 +641,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, expt_ops, args, opt,
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar)
+    return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar)
 
 
 #
@@ -643,7 +656,7 @@ def _ode_rho_func(t, rho, L):
 # Master equation solver: deprecated in 2.0.0. No support for time-dependent
 # collapse operators. Only used by the deprecated odesolve function.
 #
-def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt,
+def _mesolve_list_td(H_func, rho0, tlist, c_op_list, e_ops, args, opt,
                      progress_bar):
     """!
     Evolve the density matrix using an ODE solver with time dependent
@@ -660,7 +673,7 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt,
         # if initial state is a ket and no collapse operator where given,
         # fallback on the unitary schrodinger equation solver
         if len(c_op_list) == 0:
-            return _sesolve_list_td(H_func, rho0, tlist, expt_ops, args, opt)
+            return _sesolve_list_td(H_func, rho0, tlist, e_ops, args, opt)
 
         # Got a wave function as initial state: convert to density matrix.
         rho0 = ket2dm(rho0)
@@ -736,13 +749,13 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, expt_ops, args, opt,
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar)
+    return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar)
 
 
 # -----------------------------------------------------------------------------
 # Master equation solver
 #
-def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt,
+def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
                      progress_bar):
     """!
     Evolve the density matrix using an ODE solver with time dependent
@@ -819,7 +832,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, expt_ops, args, opt,
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar)
+    return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar)
 
 
 #
@@ -847,7 +860,7 @@ def _ode_rho_func_td_with_state(t, rho, L0, L_func, args):
 # Solve an ODE which solver parameters already setup (r). Calculate the
 # required expectation values or invoke callback function at each time step.
 #
-def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
+def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
     """
     Internal function for solving ME.
     """
@@ -866,13 +879,13 @@ def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
     if opt.store_states:
         output.states = []
 
-    if isinstance(expt_ops, types.FunctionType):
+    if isinstance(e_ops, types.FunctionType):
         n_expt_op = 0
         expt_callback = True
 
-    elif isinstance(expt_ops, list):
+    elif isinstance(e_ops, list):
 
-        n_expt_op = len(expt_ops)
+        n_expt_op = len(e_ops)
         expt_callback = False
 
         if n_expt_op == 0:
@@ -882,7 +895,7 @@ def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
         else:
             output.expect = []
             output.num_expect = n_expt_op
-            for op in expt_ops:
+            for op in e_ops:
                 e_sops_data.append(spre(op).data)
                 if op.isherm and rho0.isherm:
                     output.expect.append(np.zeros(n_tsteps))
@@ -913,7 +926,7 @@ def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
 
             if expt_callback:
                 # use callback method
-                expt_ops(t, rho)
+                e_ops(t, rho)
 
         for m in range(n_expt_op):
             if output.expect[m].dtype == complex:
@@ -947,7 +960,7 @@ def _generic_ode_solve(r, rho0, tlist, expt_ops, opt, progress_bar):
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 #
-def odesolve(H, rho0, tlist, c_op_list, expt_ops, args=None, options=None):
+def odesolve(H, rho0, tlist, c_op_list, e_ops, args=None, options=None):
     """
     Master equation evolution of a density matrix for a given Hamiltonian.
 
@@ -956,7 +969,7 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, args=None, options=None):
     integrating the set of ordinary differential equations that define the
     system. The output is either the state vector at arbitrary points in time
     (`tlist`), or the expectation values of the supplied operators
-    (`expt_ops`).
+    (`e_ops`).
 
     For problems with time-dependent Hamiltonians, `H` can be a callback
     function that takes two arguments, time and `args`, and returns the
@@ -980,7 +993,7 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, args=None, options=None):
     c_op_list : list of :class:`qutip.qobj`
         list of collapse operators.
 
-    expt_ops : list of :class:`qutip.qobj` / callback function
+    e_ops : list of :class:`qutip.qobj` / callback function
         list of operators for which to evaluate expectation values.
 
     args : *dictionary*
@@ -1025,30 +1038,30 @@ def odesolve(H, rho0, tlist, c_op_list, expt_ops, args=None, options=None):
     if (c_op_list and len(c_op_list) > 0) or not isket(rho0):
         if isinstance(H, list):
             output = _mesolve_list_td(H, rho0, tlist,
-                                      c_op_list, expt_ops, args, options,
+                                      c_op_list, e_ops, args, options,
                                       BaseProgressBar())
         if isinstance(H, (types.FunctionType,
                           types.BuiltinFunctionType, partial)):
             output = _mesolve_func_td(H, rho0, tlist,
-                                      c_op_list, expt_ops, args, options,
+                                      c_op_list, e_ops, args, options,
                                       BaseProgressBar())
         else:
             output = _mesolve_const(H, rho0, tlist,
-                                    c_op_list, expt_ops, args, options,
+                                    c_op_list, e_ops, args, options,
                                     BaseProgressBar())
     else:
         if isinstance(H, list):
-            output = _sesolve_list_td(H, rho0, tlist, expt_ops, args, options,
+            output = _sesolve_list_td(H, rho0, tlist, e_ops, args, options,
                                       BaseProgressBar())
         if isinstance(H, (types.FunctionType,
                           types.BuiltinFunctionType, partial)):
-            output = _sesolve_func_td(H, rho0, tlist, expt_ops, args, options,
+            output = _sesolve_func_td(H, rho0, tlist, e_ops, args, options,
                                       BaseProgressBar())
         else:
-            output = _sesolve_const(H, rho0, tlist, expt_ops, args, options,
+            output = _sesolve_const(H, rho0, tlist, e_ops, args, options,
                                     BaseProgressBar())
 
-    if len(expt_ops) > 0:
+    if len(e_ops) > 0:
         return output.expect
     else:
         return output.states
