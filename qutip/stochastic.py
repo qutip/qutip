@@ -409,7 +409,7 @@ def ssesolve_generic(ssdata, options, progress_bar):
     progress_bar.finished()
 
     # average density matrices
-    if options.average_states:
+    if options.average_states and np.any(data.states):
         data.states = [sum(state_list).unit() for state_list in data.states]
 
     # average
@@ -559,7 +559,7 @@ def smesolve_generic(ssdata, options, progress_bar):
     progress_bar.finished()
 
     # average density matrices
-    if options.average_states:
+    if options.average_states and np.any(data.states):
         data.states = [sum(state_list).unit() for state_list in data.states]
 
     # average
@@ -691,7 +691,7 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
     progress_bar.finished()
 
     # average density matrices
-    if options.average_states:
+    if options.average_states and np.any(data.states):
         data.states = [sum(state_list).unit() for state_list in data.states]
 
     # average
@@ -825,7 +825,7 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
     progress_bar.finished()
 
     # average density matrices
-    if options.average_states:
+    if options.average_states and np.any(data.states):
         data.states = [sum(state_list).unit() for state_list in data.states]
     
     # average
