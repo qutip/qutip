@@ -243,7 +243,7 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
 
         elif isinstance(H, list):
             # determine if we are dealing with list of [Qobj, string] or
-            # [Qobj, function] style time-dependences (for pure python and
+            # [Qobj, function] style time-dependencies (for pure python and
             # cython, respectively)
             if n_func > 0:
                 res = _mesolve_list_func_td(H, rho0, tlist, c_ops,
@@ -282,7 +282,7 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     return res
 
 # -----------------------------------------------------------------------------
-# A time-dependent disipative master equation on the list-function format
+# A time-dependent dissipative master equation on the list-function format
 #
 def _mesolve_list_func_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
                           progress_bar):
@@ -351,11 +351,6 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
                             "collapse operators (expected callback function)")
 
         if isoper(c):
-            # cdc = c.dag() * c
-            # L_list.append([(spre(c) * spost(c.dag()) - 0.5 * spre(cdc)
-            #                                         - 0.5 * spost(cdc)).data,
-            #               c_coeff, c_square])
-
             cdc = c.dag() * c
             L_list.append([liouvillian_fast(None, [c], data_only=True),
                            c_coeff, c_square])
@@ -426,7 +421,7 @@ def drho_list_td_with_state(t, rho, L_list, args):
 
 
 # -----------------------------------------------------------------------------
-# A time-dependent disipative master equation on the list-string format for
+# A time-dependent dissipative master equation on the list-string format for
 # cython compilation
 #
 def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
@@ -455,7 +450,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
     Lcoeff = []
 
     # loop over all hamiltonian terms, convert to superoperator form and
-    # add the data of sparse matrix represenation to
+    # add the data of sparse matrix representation to
     for h_spec in H_list:
 
         if isinstance(h_spec, Qobj):
@@ -611,7 +606,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
     #
     if isket(rho0):
         # if initial state is a ket and no collapse operator where given,
-        # fallback on the unitary schrodinger equation solver
+        # fall back on the unitary schrodinger equation solver
         if len(c_op_list) == 0 and isoper(H):
             return _sesolve_const(H, rho0, tlist, e_ops, args, opt)
 
@@ -671,7 +666,7 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, e_ops, args, opt,
     #
     if isket(rho0):
         # if initial state is a ket and no collapse operator where given,
-        # fallback on the unitary schrodinger equation solver
+        # fall back on the unitary schrodinger equation solver
         if len(c_op_list) == 0:
             return _sesolve_list_td(H_func, rho0, tlist, e_ops, args, opt)
 
@@ -836,7 +831,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
 
 
 #
-# evaluate drho(t)/dt according to the master eqaution
+# evaluate drho(t)/dt according to the master equation
 #
 def _ode_rho_func_td(t, rho, L0, L_func, args):
     L = L0 + L_func(t, args)
@@ -844,7 +839,7 @@ def _ode_rho_func_td(t, rho, L0, L_func, args):
 
 
 #
-# evaluate drho(t)/dt according to the master eqaution
+# evaluate drho(t)/dt according to the master equation
 #
 def _ode_rho_func_td_with_state(t, rho, L0, L_func, args):
     L = L0 + L_func(t, rho, args)
@@ -852,7 +847,7 @@ def _ode_rho_func_td_with_state(t, rho, L0, L_func, args):
 
 
 # -----------------------------------------------------------------------------
-# Generic ODE solver: shared code amoung the various ODE solver
+# Generic ODE solver: shared code among the various ODE solver
 # -----------------------------------------------------------------------------
 
 
@@ -889,7 +884,7 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
         expt_callback = False
 
         if n_expt_op == 0:
-            # fallback on storing states
+            # fall back on storing states
             output.states = []
             opt.store_states = True
         else:

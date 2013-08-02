@@ -131,6 +131,12 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
     if debug:
         print(inspect.stack()[0][3])
 
+    if isinstance(e_ops, dict):
+        e_ops_dict = e_ops
+        e_ops = [e for e in e_ops.values()]
+    else:
+        e_ops_dict = None
+
     ssdata = _StochasticSolverData(H=H, state0=psi0, tlist=tlist,
                                    sc_ops=sc_ops, e_ops=e_ops, **kwargs)
 
@@ -162,14 +168,20 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
 
     if ssdata.solver == 'euler-maruyama' or ssdata.solver == None:
         ssdata.rhs_func = _rhs_psi_euler_maruyama
-        return ssesolve_generic(ssdata, ssdata.options, ssdata.progress_bar)
+        res = ssesolve_generic(ssdata, ssdata.options, ssdata.progress_bar)
 
     elif ssdata.solver == 'platen':
         ssdata.rhs_func = _rhs_psi_platen
-        return ssesolve_generic(ssdata, ssdata.options, ssdata.progress_bar)
+        res = ssesolve_generic(ssdata, ssdata.options, ssdata.progress_bar)
 
     else:
         raise Exception("Unrecognized solver '%s'." % ssdata.solver)
+
+    if e_ops_dict:
+        res.expect = {e: res.expect[n]
+                      for n, e in enumerate(e_ops_dict.keys())}
+
+    return res
 
 
 def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
@@ -220,6 +232,12 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
     if isket(rho0):
         rho0 = ket2dm(rho0)
 
+    if isinstance(e_ops, dict):
+        e_ops_dict = e_ops
+        e_ops = [e for e in e_ops.values()]
+    else:
+        e_ops_dict = None
+
     ssdata = _StochasticSolverData(H=H, state0=rho0, tlist=tlist, c_ops=c_ops,
                                    sc_ops=sc_ops, e_ops=e_ops, **kwargs)
 
@@ -258,7 +276,13 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
         else:
             raise Exception("Unrecognized solver '%s'." % ssdata.solver)
 
-    return smesolve_generic(ssdata, ssdata.options, ssdata.progress_bar)
+    res = smesolve_generic(ssdata, ssdata.options, ssdata.progress_bar)
+
+    if e_ops_dict:
+        res.expect = {e: res.expect[n]
+                      for n, e in enumerate(e_ops_dict.keys())}
+
+    return res
 
 
 def sepdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
@@ -271,6 +295,12 @@ def sepdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
     if debug:
         print(inspect.stack()[0][3])
 
+    if isinstance(e_ops, dict):
+        e_ops_dict = e_ops
+        e_ops = [e for e in e_ops.values()]
+    else:
+        e_ops_dict = None
+
     ssdata = _StochasticSolverData()
     ssdata.H = H
     ssdata.psi0 = psi0
@@ -280,7 +310,12 @@ def sepdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
     ssdata.ntraj = ntraj
     ssdata.nsubsteps = nsubsteps
 
-    return sepdpsolve_generic(ssdata, options, progress_bar)
+    res = sepdpsolve_generic(ssdata, options, progress_bar)
+
+    if e_ops_dict:
+        res.expect = {e: res.expect[n]
+                      for n, e in enumerate(e_ops_dict.keys())}
+    return res
 
 
 def smepdpsolve(H, rho0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
@@ -291,6 +326,12 @@ def smepdpsolve(H, rho0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
     if debug:
         print(inspect.stack()[0][3])
 
+    if isinstance(e_ops, dict):
+        e_ops_dict = e_ops
+        e_ops = [e for e in e_ops.values()]
+    else:
+        e_ops_dict = None
+
     ssdata = _StochasticSolverData()
     ssdata.H = H
     ssdata.rho0 = rho0
@@ -300,7 +341,12 @@ def smepdpsolve(H, rho0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
     ssdata.ntraj = ntraj
     ssdata.nsubsteps = nsubsteps
 
-    return smepdpsolve_generic(ssdata, options, progress_bar)
+    res = smepdpsolve_generic(ssdata, options, progress_bar)
+
+    if e_ops_dict:
+        res.expect = {e: res.expect[n]
+                      for n, e in enumerate(e_ops_dict.keys())}
+    return res
 
 
 #------------------------------------------------------------------------------
@@ -363,7 +409,7 @@ def ssesolve_generic(ssdata, options, progress_bar):
     progress_bar.finished()
 
     # average density matrices
-    if options.average_states:
+    if options.average_states and np.any(data.states):
         data.states = [sum(state_list).unit() for state_list in data.states]
 
     # average
@@ -513,7 +559,7 @@ def smesolve_generic(ssdata, options, progress_bar):
     progress_bar.finished()
 
     # average density matrices
-    if options.average_states:
+    if options.average_states and np.any(data.states):
         data.states = [sum(state_list).unit() for state_list in data.states]
 
     # average
@@ -645,7 +691,7 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
     progress_bar.finished()
 
     # average density matrices
-    if options.average_states:
+    if options.average_states and np.any(data.states):
         data.states = [sum(state_list).unit() for state_list in data.states]
 
     # average
@@ -779,7 +825,7 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
     progress_bar.finished()
 
     # average density matrices
-    if options.average_states:
+    if options.average_states and np.any(data.states):
         data.states = [sum(state_list).unit() for state_list in data.states]
     
     # average
