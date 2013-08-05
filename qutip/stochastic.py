@@ -89,6 +89,7 @@ class _StochasticSolverData:
         self.options = options
         self.progress_bar = progress_bar
         self.store_measurement = store_measurement
+        self.store_states = options.store_states
         self.noise = noise
 
 
@@ -469,21 +470,24 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
 
             dpsi_t = (-1.0j * dt) * (H.data * psi_t)
 
-            for a_idx, A in enumerate(A_ops):
-
-                if noise is None and not homogeneous:
+            if noise is None and not homogeneous:
+                for a_idx, A in enumerate(A_ops):
                     dw_expect = norm(spmv(A[0].data, A[0].indices, A[0].indptr, psi_t)) ** 2 * dt
                     dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
 
-                dpsi_t += rhs(H.data, psi_t, A, dt, dW[a_idx, t_idx, j, :], d1, d2)
+            dpsi_t += rhs(H.data, psi_t, A_ops, dt, dW[:, t_idx, j, :], d1, d2)
 
-            # increment and renormalize the wave function
+            # increment and renormalize the wave function: TODO: make the 
+            # renormalization optional througha configuration parameter in
+            # Odeoptions
             psi_t += dpsi_t
             psi_t /= norm(psi_t)
 
         if store_measurement:
             for a_idx, A in enumerate(A_ops):
-                measurements[t_idx, a_idx] = norm(spmv(A[0].data, A[0].indices, A[0].indptr, psi_prev)) ** 2 * dt * N_substeps + dW[a_idx, t_idx, :, 0].sum()
+                phi = spmv(A[0].data, A[0].indices, A[0].indptr, psi_prev)
+                measurements[t_idx, a_idx] = (norm(phi) ** 2 * dt * N_substeps
+                                              + dW[a_idx, t_idx, :, 0].sum())
 
 
     return states_list, dW, measurements
@@ -550,7 +554,7 @@ def smesolve_generic(ssdata, options, progress_bar):
             rho_t, A_ops, s_e_ops, data, ssdata.rhs,
             ssdata.d1, ssdata.d2, ssdata.d2_len, ssdata.homogeneous,
             ssdata.distribution, store_measurement=ssdata.store_measurement,
-            noise=noise)
+            store_states=ssdata.store_states, noise=noise)
 
         data.states.append(states_list)
         data.noise.append(dW)
@@ -581,7 +585,8 @@ def smesolve_generic(ssdata, options, progress_bar):
 def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
                                 A_ops, e_ops, data, rhs, d1, d2, d2_len,
                                 homogeneous, distribution,
-                                store_measurement=False, noise=None):
+                                store_measurement=False, 
+                                store_states=False, noise=None):
     """
     Internal function. See smesolve.
     """
@@ -610,7 +615,8 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
                 s = expect_rho_vec(e.data, rho_t)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2 
-        else:
+        
+        if store_states or not e_ops:
             # XXX: need to keep hilbert space structure
             states_list.append(Qobj(vec2mat(rho_t)))
 
@@ -622,13 +628,12 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
                           L.data.indices,
                           L.data.indptr, rho_t) * dt
 
-            for a_idx, A in enumerate(A_ops):
-                if noise is None and not homogeneous:
+            if noise is None and not homogeneous:
+                for a_idx, A in enumerate(A_ops):
                     dw_expect = np.real(cy_expect_rho_vec(A[4], rho_t)) * dt
                     dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
 
-                drho_t += rhs(L.data, rho_t, A, dt, dW[a_idx, t_idx, j, :], d1, d2)
-
+            drho_t += rhs(L.data, rho_t, A_ops, dt, dW[:, t_idx, j, :], d1, d2)
             rho_t += drho_t
 
         if store_measurement:
@@ -1123,32 +1128,46 @@ def d2_rho_photocurrent(A, rho_vec):
 # Euler-Maruyama rhs functions for the stochastic Schrodinger and master
 # equations
 #
-def _rhs_psi_euler_maruyama(H, psi_t, A, dt, dW, d1, d2):
+def _rhs_psi_euler_maruyama(H, psi_t, A_ops, dt, dW, d1, d2):
     """
     .. note::
 
         Experimental.
 
     """
-    d2_vec = d2(A, psi_t)
-    return d1(A, psi_t) * dt + sum([d2_vec[n] * dW[n] for n in range(len(dW)) if dW[n] != 0])
+    dW_len = len(dW[0, :])
+    dpsi_t = 0
+    for a_idx, A in enumerate(A_ops):
+        d2_vec = d2(A, psi_t)
+        dpsi_t += d1(A, psi_t) * dt + sum([d2_vec[n] * dW[a_idx, n]
+                                           for n in range(dW_len)
+                                           if dW[a_idx, n] != 0])
+
+    return dpsi_t
 
 
-def _rhs_rho_euler_maruyama(L, rho_t, A, dt, dW, d1, d2):
+def _rhs_rho_euler_maruyama(L, rho_t, A_ops, dt, dW, d1, d2):
     """
     .. note::
 
         Experimental.
 
     """
-    d2_vec = d2(A, rho_t)
-    return d1(A, rho_t) * dt + sum([d2_vec[n] * dW[n] for n in range(len(dW)) if dW[n] != 0])
+    dW_len = len(dW[0, :])
+    drho_t = 0
+    for a_idx, A in enumerate(A_ops):
+        d2_vec = d2(A, rho_t)
+        drho_t += d1(A, rho_t) * dt + sum([d2_vec[n] * dW[a_idx, n]
+                                           for n in range(dW_len)
+                                           if dW[a_idx, n] != 0])
+
+    return drho_t
 
 
 #------------------------------------------------------------------------------
 # Platen method
 #
-def _rhs_psi_platen(H, psi_t, A, dt, dW, d1, d2):
+def _rhs_psi_platen(H, psi_t, A_ops, dt, dW, d1, d2):
     """
     TODO: support multiple stochastic increments
 
@@ -1160,14 +1179,21 @@ def _rhs_psi_platen(H, psi_t, A, dt, dW, d1, d2):
 
     sqrt_dt = np.sqrt(dt)
 
-    dpsi_t_H = (-1.0j * dt) * spmv(H.data, H.indices, H.indptr, psi_t)
+    dW_len = len(dW[0, :])
+    dpsi_t = 0
+    for a_idx, A in enumerate(A_ops):
+        # XXX: This needs to be revised now that 
+        # dpsi_t is the change for all stochastic collapse operators
+        dpsi_t_H = (-1.0j * dt) * spmv(H.data, H.indices, H.indptr, psi_t)
 
-    psi_t_1 = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t)[0] * dW[0]
-    psi_t_p = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t)[0] * sqrt_dt
-    psi_t_m = psi_t + dpsi_t_H + d1(A, psi_t) * dt - d2(A, psi_t)[0] * sqrt_dt
+        psi_t_1 = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t)[0] * dW[0]
+        psi_t_p = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t)[0] * sqrt_dt
+        psi_t_m = psi_t + dpsi_t_H + d1(A, psi_t) * dt - d2(A, psi_t)[0] * sqrt_dt
 
-    dpsi_t = 0.50 * (d1(A, psi_t_1) + d1(A, psi_t)) * dt + \
-        0.25 * (d2(A, psi_t_p)[0] + d2(A, psi_t_m)[0] + 2 * d2(A, psi_t)[0]) * dW[0] + \
-        0.25 * (d2(A, psi_t_p)[0] - d2(A, psi_t_m)[0]) * (dW[0] ** 2 - dt) * sqrt_dt
+        dpsi_t += 0.50 * (d1(A, psi_t_1) + d1(A, psi_t)) * dt + \
+            0.25 * (d2(A, psi_t_p)[0] + d2(A, psi_t_m)[0] + 2 * d2(A, psi_t)[0]) * dW[0] + \
+            0.25 * (d2(A, psi_t_p)[0] - d2(A, psi_t_m)[0]) * (dW[0] ** 2 - dt) * sqrt_dt
 
     return dpsi_t
+
+
