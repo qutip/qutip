@@ -206,7 +206,7 @@ def _sesolve_list_func_td(H_list, psi0, tlist, e_ops, args, opt,
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar)
+    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,dims=psi0.dims)
 
 
 #
@@ -277,7 +277,7 @@ def _sesolve_const(H, psi0, tlist, e_ops, args, opt, progress_bar):
     # call generic ODE code
     #
     return _generic_ode_solve(r, psi0, tlist, e_ops, opt,
-                              progress_bar, norm)
+                              progress_bar, norm,dims=psi0.dims)
 
 
 #
@@ -386,7 +386,7 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar)
+    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,dims=psi0.dims)
 
 
 # -----------------------------------------------------------------------------
@@ -474,7 +474,7 @@ def _sesolve_list_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar)
+    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,dims=psi0.dims)
 
 
 # -----------------------------------------------------------------------------
@@ -536,7 +536,7 @@ def _sesolve_func_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar)
+    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,dims=psi0.dims)
 
 
 #
@@ -557,7 +557,7 @@ def _ode_psi_func_td_with_state(t, psi, H_func, args):
 # required expectation values or invoke callback function at each time step.
 #
 def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
-                       state_norm_func=None):
+                       state_norm_func=None,dims=None):
     """
     Internal function for solving ODEs.
     """
@@ -615,7 +615,7 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
             r.set_initial_value(data, r.t)
 
         if opt.store_states:
-            output.states.append(Qobj(r.y))
+            output.states.append(Qobj(r.y,dims=dims))
 
         if expt_callback:
             # use callback method

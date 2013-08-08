@@ -342,6 +342,7 @@ class Qobj():
                 out = Qobj()
                 out.data = self.data * other.data
                 dims = [self.dims[0], other.dims[1]]
+                out.dims = dims
                 if not isinstance(dims[0][0], list):
                     r = range(len(dims[0]))
                     mask = [dims[0][n] == dims[1][n] == 1 for n in r]
