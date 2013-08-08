@@ -619,10 +619,10 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
 
         if expt_callback:
             # use callback method
-            expt_ops(t, Qobj(r.y))
+            e_ops(t, Qobj(r.y))
 
         for m in range(n_expt_op):
-            output.expect[m][t_idx] = expect(expt_ops[m], Qobj(r.y)) # optimize
+            output.expect[m][t_idx] = expect(e_ops[m], Qobj(r.y)) # optimize
 
         r.integrate(r.t + dt)
 
