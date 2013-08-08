@@ -34,7 +34,7 @@ from qutip.states import ket2dm
 from qutip.parfor import parfor
 from qutip.odeoptions import Odeoptions
 from qutip.odeconfig import odeconfig
-from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_expect, spmv, spmv1d
+from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_expect, spmv
 from qutip.cyQ.codegen import Codegen
 from qutip.odedata import Odedata
 from qutip.odechecks import _ode_checks
@@ -161,7 +161,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         odeconfig.options.num_cpus = qutip.settings.num_cpus
     # set initial value data
     if options.tidy:
-        odeconfig.psi0 = psi0.tidyup(options.atol).full()
+        odeconfig.psi0 = psi0.tidyup(options.atol).full().ravel()
     else:
         odeconfig.psi0 = psi0.full()
     odeconfig.psi0_dims = psi0.dims
@@ -517,7 +517,7 @@ class _MC_class():
 # RHS of ODE for time-dependent systems with no collapse operators
 def _tdRHS(t, psi, odeconfig):
     h_data = odeconfig.h_func(t, odeconfig.h_func_args).data
-    return spmv1d(h_data.data, h_data.indices, h_data.indptr, psi)
+    return spmv(h_data.data, h_data.indices, h_data.indptr, psi)
 
 
 # RHS of ODE for constant Hamiltonian and at least one function based
@@ -526,7 +526,7 @@ def _cRHStd(t, psi, odeconfig):
     sys = cy_ode_rhs(t, psi, odeconfig.h_data,
                      odeconfig.h_ind, odeconfig.h_ptr)
     col = array([np.abs(odeconfig.c_funcs[j](t, odeconfig.c_func_args)) ** 2 *
-                 spmv1d(odeconfig.n_ops_data[j],
+                 spmv(odeconfig.n_ops_data[j],
                         odeconfig.n_ops_ind[j],
                         odeconfig.n_ops_ptr[j], psi)
                 for j in odeconfig.c_td_inds])
@@ -535,17 +535,17 @@ def _cRHStd(t, psi, odeconfig):
 
 # RHS of ODE for list-function based Hamiltonian
 def _tdRHStd(t, psi, odeconfig):
-    const_term = spmv1d(odeconfig.h_data,
+    const_term = spmv(odeconfig.h_data,
                         odeconfig.h_ind,
                         odeconfig.h_ptr, psi)
     h_func_term = array([odeconfig.h_funcs[j](t, odeconfig.h_func_args) *
-                         spmv1d(odeconfig.h_td_data[j],
+                         spmv(odeconfig.h_td_data[j],
                                 odeconfig.h_td_ind[j],
                                 odeconfig.h_td_ptr[j], psi)
                          for j in odeconfig.h_td_inds])
     col_func_terms = array([np.abs(
         odeconfig.c_funcs[j](t, odeconfig.c_func_args)) ** 2 *
-        spmv1d(odeconfig.n_ops_data[j],
+        spmv(odeconfig.n_ops_data[j],
                odeconfig.n_ops_ind[j],
                odeconfig.n_ops_ptr[j],
                psi)
@@ -556,20 +556,20 @@ def _tdRHStd(t, psi, odeconfig):
 
 def _tdRHStd_with_state(t, psi, odeconfig):
 
-    const_term = spmv1d(odeconfig.h_data,
+    const_term = spmv(odeconfig.h_data,
                         odeconfig.h_ind,
                         odeconfig.h_ptr, psi)
 
     h_func_term = array([
         odeconfig.h_funcs[j](t, psi, odeconfig.h_func_args) *
-        spmv1d(odeconfig.h_td_data[j],
+        spmv(odeconfig.h_td_data[j],
                odeconfig.h_td_ind[j],
                odeconfig.h_td_ptr[j], psi)
         for j in odeconfig.h_td_inds])
 
     col_func_terms = array([
         np.abs(odeconfig.c_funcs[j](t, odeconfig.c_func_args)) ** 2 *
-        spmv1d(odeconfig.n_ops_data[j],
+        spmv(odeconfig.n_ops_data[j],
                odeconfig.n_ops_ind[j],
                odeconfig.n_ops_ptr[j], psi)
         for j in odeconfig.c_td_inds])
@@ -581,11 +581,11 @@ def _tdRHStd_with_state(t, psi, odeconfig):
 # RHS of ODE for python function Hamiltonian
 def _pyRHSc(t, psi, odeconfig):
     h_func_data = - 1.0j * odeconfig.h_funcs(t, odeconfig.h_func_args)
-    h_func_term = spmv1d(h_func_data.data, h_func_data.indices,
+    h_func_term = spmv(h_func_data.data, h_func_data.indices,
                          h_func_data.indptr, psi)
     const_col_term = 0
     if len(odeconfig.c_const_inds) > 0:
-        const_col_term = spmv1d(odeconfig.h_data, odeconfig.h_ind,
+        const_col_term = spmv(odeconfig.h_data, odeconfig.h_ind,
                                 odeconfig.h_ptr, psi)
 
     return h_func_term + const_col_term
@@ -593,11 +593,11 @@ def _pyRHSc(t, psi, odeconfig):
 
 def _pyRHSc_with_state(t, psi, odeconfig):
     h_func_data = - 1.0j * odeconfig.h_funcs(t, psi, odeconfig.h_func_args)
-    h_func_term = spmv1d(h_func_data.data, h_func_data.indices,
+    h_func_term = spmv(h_func_data.data, h_func_data.indices,
                          h_func_data.indptr, psi)
     const_col_term = 0
     if len(odeconfig.c_const_inds) > 0:
-        const_col_term = spmv1d(odeconfig.h_data, odeconfig.h_ind,
+        const_col_term = spmv(odeconfig.h_data, odeconfig.h_ind,
                                 odeconfig.h_ptr, psi)
 
     return h_func_term + const_col_term
