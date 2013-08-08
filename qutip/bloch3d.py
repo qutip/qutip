@@ -188,8 +188,6 @@ class Bloch3d():
         self.num_points = 0
         # Data for Bloch vectors
         self.vectors = []
-        # Number of Bloch vectors to plot
-        self.num_vectors = 0
         # Number of times sphere has been saved
         self.savenum = 0
         # Style of points, 'm' for multiple colors, 's' for single color
@@ -200,7 +198,7 @@ class Bloch3d():
         s += "Bloch3D data:\n"
         s += "-----------\n"
         s += "Number of points:  " + str(self.num_points) + "\n"
-        s += "Number of vectors: " + str(self.num_vectors) + "\n"
+        s += "Number of vectors: " + str(len(self.vectors)) + "\n"
         s += "\n"
         s += "Bloch3D sphere properties:\n"
         s += "--------------------------\n"
@@ -242,7 +240,6 @@ class Bloch3d():
         self.points = []
         self.num_points = 0
         self.vectors = []
-        self.num_vectors = 0
         self.point_style = []
 
     def add_points(self, points, meth='s'):
@@ -311,10 +308,8 @@ class Bloch3d():
         if isinstance(vectors[0], (list, np.ndarray)):
             for vec in vectors:
                 self.vectors.append(vec)
-                self.num_vectors = len(self.vectors)
         else:
             self.vectors.append(vectors)
-            self.num_vectors = len(self.vectors)
 
     def plot_vectors(self):
         """
@@ -328,31 +323,32 @@ class Bloch3d():
             for k in range(len(self.vectors)):
                 vec = np.array(self.vectors[k])
                 norm = np.linalg.norm(vec)
-                vec = vec / norm
-                theta = np.arccos(vec[2])
+                theta = np.arccos(vec[2] / norm)
                 phi = np.arctan2(vec[1], vec[0])
-                vec = vec * norm
-                vec2 = vec / np.sqrt((norm + self.vector_head_height))
+                vec -= 0.5 * self.vector_head_height *\
+                     np.array([np.sin(theta) * np.cos(phi),
+                               np.sin(theta) * np.sin(phi), np.cos(theta)])
+
                 color = colors.colorConverter.to_rgb(
                     self.vector_color[np.mod(k, len(self.vector_color))])
-                mlab.plot3d([0, vec2[0]], [0, vec2[1]], [0, vec2[2]],
+
+                mlab.plot3d([0, vec[0]], [0, vec[1]], [0, vec[2]],
                             name='vector' + str(ii), tube_sides=100,
                             line_width=self.vector_width,
                             opacity=self.vector_alpha,
                             color=color)
+
                 cone = tvtk.ConeSource(height=self.vector_head_height,
                                        radius=self.vector_head_radius,
                                        resolution=100)
                 cone_mapper = tvtk.PolyDataMapper(input=cone.output)
-                color = colors.colorConverter.to_rgb(
-                    self.vector_color[np.mod(k, len(self.vector_color))])
                 prop = tvtk.Property(opacity=self.vector_alpha, color=color)
                 cc = tvtk.Actor(mapper=cone_mapper, property=prop)
                 cc.rotate_z(np.degrees(phi))
                 cc.rotate_y(-90 + np.degrees(theta))
-                cc.position = np.array([vec[0], vec[1], vec[2]]) / \
-                    np.sqrt((norm + self.vector_head_height))
+                cc.position = vec 
                 self.fig.scene.add_actor(cc)
+
 
     def plot_points(self):
         """
