@@ -181,8 +181,6 @@ class Bloch():
         self.num_points = 0
         # Data for Bloch vectors
         self.vectors = []
-        # Number of Bloch vectors to plot
-        self.num_vectors = 0
         # Number of times sphere has been saved
         self.savenum = 0
         # Style of points, 'm' for multiple colors, 's' for single color
@@ -193,7 +191,7 @@ class Bloch():
         s += "Bloch data:\n"
         s += "-----------\n"
         s += "Number of points:  " + str(self.num_points) + "\n"
-        s += "Number of vectors: " + str(self.num_vectors) + "\n"
+        s += "Number of vectors: " + str(len(self.vectors)) + "\n"
         s += "\n"
         s += "Bloch sphere properties:\n"
         s += "------------------------\n"
@@ -227,7 +225,6 @@ class Bloch():
         self.points = []
         self.num_points = 0
         self.vectors = []
-        self.num_vectors = 0
         self.point_style = []
 
     def add_points(self, points, meth='s'):
@@ -300,10 +297,8 @@ class Bloch():
         if isinstance(vectors[0], (list, ndarray)):
             for vec in vectors:
                 self.vectors.append(vec)
-                self.num_vectors = len(self.vectors)
         else:
             self.vectors.append(vectors)
-            self.num_vectors = len(self.vectors)
 
     def make_sphere(self):
         """
@@ -416,31 +411,22 @@ class Bloch():
         if len(self.vectors) > 0:
             for k in range(len(self.vectors)):
 
+                xs3d = self.vectors[k][1] * array([0, 1])
+                ys3d = -self.vectors[k][0] * array([0, 1])
+                zs3d = self.vectors[k][2] * array([0, 1])
+
+                color = self.vector_color[mod(k, len(self.vector_color))]
+
                 if self.vector_style == '':
                     # simple line style
-                    length = sqrt(self.vectors[k][0] ** 2 +
-                                  self.vectors[k][1] ** 2 +
-                                  self.vectors[k][2] ** 2)
-                    color = self.vector_color[mod(k, len(self.vector_color))]
-                    self.axes.plot(
-                        self.vectors[k][1] * linspace(0, length, 2),
-                        -self.vectors[k][0] * linspace(0, length, 2),
-                        self.vectors[k][2] * linspace(0, length, 2),
-                        zs=0, zdir='z', label='Z', lw=self.vector_width,
-                        color=color)
-
+                    self.axes.plot(xs3d, ys3d, zs3d,
+                                   zs=0, zdir='z', label='Z',
+                                   lw=self.vector_width, color=color)
                 else:
                     # decorated style, with arrow heads
-                    length = sqrt(self.vectors[k][0] ** 2 + self.vectors[
-                                  k][1] ** 2 + self.vectors[k][2] ** 2)
-
-                    xs3d = self.vectors[k][1] * linspace(0, length, 2)
-                    ys3d = -self.vectors[k][0] * linspace(0, length, 2)
-                    zs3d = self.vectors[k][2] * linspace(0, length, 2)
-
                     xs, ys, zs = proj3d.proj_transform(
-                        xs3d, ys3d, zs3d, self.axes.get_proj())
-                    color = self.vector_color[mod(k, len(self.vector_color))]
+                        xs3d, ys3d, zs3d, self.axes.get_proj()) # not used?
+
                     a = Arrow3D(xs3d, ys3d, zs3d,
                                 mutation_scale=self.vector_mutation,
                                 lw=self.vector_width,
