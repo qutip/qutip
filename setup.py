@@ -57,7 +57,7 @@ LICENSE = "GPL3"
 DESCRIPTION = DOCLINES[0]
 LONG_DESCRIPTION = "\n".join(DOCLINES[2:])
 KEYWORDS = "quantum physics dynamics"
-URL = "http://code.google.com/p/qutip/"
+URL = "http://qutip.org"
 CLASSIFIERS = [_f for _f in CLASSIFIERS.split('\n') if _f]
 PLATFORMS = ["Linux", "Mac OSX", "Unix", "Windows"]
 
