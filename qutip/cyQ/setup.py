@@ -13,11 +13,11 @@ def configuration(parent_package='', top_path=None):
                          include_dirs=[np.get_include()],
                          extra_compile_args=['-w -ffast-math -O3'],
                          extra_link_args=[]),
-    config.add_extension('blas_funcs',
-                         sources=["blas_funcs.c"],
-                         include_dirs=[np.get_include()],
-                         extra_compile_args=['-w -ffast-math -O3'],
-                         extra_link_args=[])
+    #config.add_extension('blas_funcs',
+                         #sources=["blas_funcs.c"],
+                         #include_dirs=[np.get_include()],
+                         #extra_compile_args=['-w -ffast-math -O3'],
+                         #extra_link_args=[])
     return config
 
 
@@ -27,8 +27,6 @@ if __name__ == '__main__':
         cmdclass={'build_ext': build_ext},
         include_dirs=[np.get_include()],
         ext_modules=[Extension("spmatfuncs", ["spmatfuncs.pyx"],
-                               extra_compile_args=['-w -ffast-math -O3'],
-                               extra_link_args=[]),Extension("blas_funcs", ["blas_funcs.pyx"],
                                extra_compile_args=['-w -ffast-math -O3'],
                                extra_link_args=[])]
     )

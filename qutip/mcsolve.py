@@ -36,7 +36,7 @@ from qutip.odeoptions import Odeoptions
 from qutip.odeconfig import odeconfig
 from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_expect, spmv
 from qutip.cyQ.codegen import Codegen
-from qutip.cyQ.blas_funcs import znrm_1d
+from scipy.linalg.blas import dznrm2
 from qutip.odedata import Odedata
 from qutip.odechecks import _ode_checks
 import qutip.settings
@@ -810,7 +810,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
             while ODE.t < tlist[k]:
                 t_prev = ODE.t
                 y_prev = ODE.y
-                norm2_prev = znrm_1d(ODE.y) ** 2
+                norm2_prev = dznrm2(ODE.y) ** 2
                 # integrate up to tlist[k], one step at a time.
                 ODE.integrate(tlist[k], step=1)
                 if not ODE.successful():
@@ -822,7 +822,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                     ODE.integrate(tlist[k], step=0)
                     if not ODE.successful():
                         raise Exception("ZVODE failed!")
-                norm2_psi = znrm_1d(ODE.y) ** 2
+                norm2_psi = dznrm2(ODE.y) ** 2
                 if norm2_psi <= rand_vals[0]:  # <== collpase has occured
                     # find collpase time to within specified tolerance
                     #---------------------------------------------------
@@ -837,7 +837,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                         if not ODE.successful():
                             raise Exception(
                                 "ZVODE failed after adjusting step size!")
-                        norm2_guess = znrm_1d(ODE.y)**2
+                        norm2_guess = dznrm2(ODE.y)**2
                         if (abs(rand_vals[0] - norm2_guess) <
                                 odeconfig.norm_tol * rand_vals[0]):
                             break
@@ -918,7 +918,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
             #-------------------------------------------------------
 
             ###--after while loop--####
-            out_psi = ODE.y / znrm_1d(ODE.y)
+            out_psi = ODE.y / dznrm2(ODE.y)
             if odeconfig.e_num == 0:
                 if odeconfig.options.average_states:
                     mc_alg_out[k] = out_psi * out_psi.conj().T
