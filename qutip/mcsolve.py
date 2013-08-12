@@ -761,8 +761,8 @@ def _mc_alg_evolve(nt, args, odeconfig):
         # get input data
         mc_alg_out, opt, tlist, num_times, seeds = args
 
-        collapse_times = []  # times at which collapse occurs
-        which_oper = []  # which operator did the collapse
+        collapse_times = np.array([],dtype=float)  # times at which collapse occurs
+        which_oper = array([],dtype=float)  # which operator did the collapse
 
         # SEED AND RNG AND GENERATE
         prng = RandomState(seeds[nt])
@@ -805,7 +805,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
         ODE.set_initial_value(odeconfig.psi0, tlist[0])
 
         # make array for collapse operator inds
-        cinds = arange(odeconfig.c_num)
+        cinds = np.arange(odeconfig.c_num)
 
         # RUN ODE UNTIL EACH TIME IN TLIST
         for k in range(1, num_times):
@@ -833,15 +833,15 @@ def _mc_alg_evolve(nt, args, odeconfig):
                     t_final = ODE.t
                     while ii < odeconfig.norm_steps:
                         ii += 1
-                        t_guess = t_prev + log(norm2_prev / rand_vals[0]) / \
-                            log(norm2_prev / norm2_psi) * (t_final - t_prev)
+                        t_guess = t_prev + np.log(norm2_prev / rand_vals[0]) / \
+                            np.log(norm2_prev / norm2_psi) * (t_final - t_prev)
                         ODE.set_initial_value(y_prev, t_prev)
                         ODE.integrate(t_guess, step=0)
                         if not ODE.successful():
                             raise Exception(
                                 "ZVODE failed after adjusting step size!")
                         norm2_guess = dznrm2(ODE.y)**2
-                        if (abs(rand_vals[0] - norm2_guess) <
+                        if (np.abs(rand_vals[0] - norm2_guess) <
                                 odeconfig.norm_tol * rand_vals[0]):
                             break
                         elif (norm2_guess < rand_vals[0]):
@@ -858,7 +858,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                                         "Increase accuracy of ODE solver or " +
                                         "Odeoptions.norm_steps.")
                     #---------------------------------------------------
-                    collapse_times.append(ODE.t)
+                    np.append(collapse_times,ODE.t)
                     # some string based collapse operators
                     if odeconfig.tflag in array([1, 11]):
                         n_dp = [cy_expect(odeconfig.n_ops_data[i],
@@ -896,7 +896,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                     # determine which operator does collapse
                     kk = cumsum(n_dp / sum(n_dp))
                     j = cinds[kk >= rand_vals[1]][0]
-                    which_oper.append(j)  # record which operator did collapse
+                    np.append(which_oper,j)  # record which operator did collapse
                     if j in odeconfig.c_const_inds:
                         state = spmv(odeconfig.c_ops_data[j],
                                      odeconfig.c_ops_ind[j],
@@ -950,7 +950,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                                     for k in mc_alg_out])
 
         return nt, copy.deepcopy(mc_alg_out), \
-            array(collapse_times), array(which_oper)
+            collapse_times, which_oper
 
     except Exception as e:
         print("failed to run _mc_alg_evolve: " + str(e))
