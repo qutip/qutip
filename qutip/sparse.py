@@ -371,7 +371,7 @@ def _sp_expm(qo):
     Sparse matrix exponential of a quantum operator.
     Called by the Qobj expm method.
     """
-    A = qo.data  # extract Qobj data (sparse matrix)
+    A = qo.data.tocsc()  # extract Qobj data (sparse matrix)
     m_vals = np.array([3, 5, 7, 9, 13])
     theta = np.array([0.01495585217958292, 0.2539398330063230,
                       0.9504178996162932, 2.097847961257068,
@@ -409,7 +409,7 @@ def _pade(A, m):
         U = A * U
         for jj in range(m - 1, -1, -2):
             V = V + c[jj] * apows[(jj + 1) // 2]
-        F = spla.spsolve((-U + V).tocsc(), (U + V).tocsc())
+        F = spla.spsolve((-U + V), (U + V))
         return F.tocsr()
     elif m == 13:
         A2 = A * A
@@ -420,7 +420,7 @@ def _pade(A, m):
                  c[1] * sp.eye(n, n).tocsc())
         V = A6 * (c[12] * A6 + c[10] * A4 + c[8] * A2) + c[6] * A6 + c[4] * \
             A4 + c[2] * A2 + c[0] * sp.eye(n, n).tocsc()
-        F = spla.spsolve((-U + V).tocsc(), (U + V).tocsc())
+        F = spla.spsolve((-U + V), (U + V))
         return F.tocsr()
 
 
