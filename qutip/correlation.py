@@ -912,7 +912,7 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     return spectrum
 
 
-def spectrum_pi(L, a_op, b_op, wlist, use_pinv=False):
+def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
     """
     Calculate the spectrum corresponding to a correlation function
     :math:`\left<A(\\tau)B(0)\\right>`, i.e., the Fourier transform of the
@@ -926,11 +926,14 @@ def spectrum_pi(L, a_op, b_op, wlist, use_pinv=False):
     Parameters
     ----------
 
-    L : :class:`qutip.qobj`
-        system Liouvillian.
+    H : :class:`qutip.qobj`
+        system Hamiltonian.
 
     wlist : *list* / *array*
         list of frequencies for :math:`\\omega`.
+
+    c_ops : list of :class:`qutip.qobj`
+        list of collapse operators.
 
 
     a_op : :class:`qutip.qobj`
@@ -947,6 +950,8 @@ def spectrum_pi(L, a_op, b_op, wlist, use_pinv=False):
         specified in `wlist`.
 
     """
+
+    L = H if issuper(H) else liouvillian_fast(H, c_ops)
 
     tr_mat = tensor([qeye(n) for n in L.dims[0][0]])
     N = prod(L.dims[0][0])
