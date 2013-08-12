@@ -32,7 +32,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1] spmv(np.ndarray[CTYPE_t, ndim=1] data,
                                        np.ndarray[CTYPE_t, ndim=1] vec):
     """
     Sparse matrix, dense vector multiplication.  
-    Here the vector is assumed to have two-dimensions.
+    Here the vector is assumed to have one-dimension.
     Matrix must be in CSR format and have complex entries.
     
     Parameters

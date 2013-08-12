@@ -36,15 +36,15 @@ def _sp_fro_norm(op):
     """
     Frobius norm for Qobj
     """
-    op = op * op.dag()
-    return np.sqrt(op.tr())
+    out=np.sum(np.abs(op.data.data)**2)
+    return np.sqrt(out)
 
 
 def _sp_inf_norm(op):
     """
     Infinity norm for Qobj
     """
-    return np.max([np.sum(np.abs((op.data[k, :]).data))
+    return np.max([np.sum(np.abs(op.data.getrow(k).data))
                    for k in range(op.shape[0])])
 
 
