@@ -184,12 +184,8 @@ class Bloch3d():
         #---Data lists---
         # Data for point markers
         self.points = []
-        # Number of point markers to plot
-        self.num_points = 0
         # Data for Bloch vectors
         self.vectors = []
-        # Number of Bloch vectors to plot
-        self.num_vectors = 0
         # Number of times sphere has been saved
         self.savenum = 0
         # Style of points, 'm' for multiple colors, 's' for single color
@@ -199,8 +195,8 @@ class Bloch3d():
         s = ""
         s += "Bloch3D data:\n"
         s += "-----------\n"
-        s += "Number of points:  " + str(self.num_points) + "\n"
-        s += "Number of vectors: " + str(self.num_vectors) + "\n"
+        s += "Number of points:  " + str(len(self.points)) + "\n"
+        s += "Number of vectors: " + str(len(self.vectors)) + "\n"
         s += "\n"
         s += "Bloch3D sphere properties:\n"
         s += "--------------------------\n"
@@ -240,9 +236,7 @@ class Bloch3d():
         """Resets the Bloch sphere data sets to empty.
         """
         self.points = []
-        self.num_points = 0
         self.vectors = []
-        self.num_vectors = 0
         self.point_style = []
 
     def add_points(self, points, meth='s'):
@@ -268,11 +262,9 @@ class Bloch3d():
             else:
                 pnts = points
             self.points.append(pnts)
-            self.num_points = len(self.points)
             self.point_style.append('s')
         else:
             self.points.append(points)
-            self.num_points = len(self.points)
             self.point_style.append('m')
 
     def add_states(self, state, kind='vector'):
@@ -311,10 +303,8 @@ class Bloch3d():
         if isinstance(vectors[0], (list, np.ndarray)):
             for vec in vectors:
                 self.vectors.append(vec)
-                self.num_vectors = len(self.vectors)
         else:
             self.vectors.append(vectors)
-            self.num_vectors = len(self.vectors)
 
     def plot_vectors(self):
         """
@@ -324,35 +314,35 @@ class Bloch3d():
         from tvtk.api import tvtk
         import matplotlib.colors as colors
         ii = 0
-        if len(self.vectors) > 0:
-            for k in range(len(self.vectors)):
-                vec = np.array(self.vectors[k])
-                norm = np.linalg.norm(vec)
-                vec = vec / norm
-                theta = np.arccos(vec[2])
-                phi = np.arctan2(vec[1], vec[0])
-                vec = vec * norm
-                vec2 = vec / np.sqrt((norm + self.vector_head_height))
-                color = colors.colorConverter.to_rgb(
-                    self.vector_color[np.mod(k, len(self.vector_color))])
-                mlab.plot3d([0, vec2[0]], [0, vec2[1]], [0, vec2[2]],
-                            name='vector' + str(ii), tube_sides=100,
-                            line_width=self.vector_width,
-                            opacity=self.vector_alpha,
-                            color=color)
-                cone = tvtk.ConeSource(height=self.vector_head_height,
-                                       radius=self.vector_head_radius,
-                                       resolution=100)
-                cone_mapper = tvtk.PolyDataMapper(input=cone.output)
-                color = colors.colorConverter.to_rgb(
-                    self.vector_color[np.mod(k, len(self.vector_color))])
-                prop = tvtk.Property(opacity=self.vector_alpha, color=color)
-                cc = tvtk.Actor(mapper=cone_mapper, property=prop)
-                cc.rotate_z(np.degrees(phi))
-                cc.rotate_y(-90 + np.degrees(theta))
-                cc.position = np.array([vec[0], vec[1], vec[2]]) / \
-                    np.sqrt((norm + self.vector_head_height))
-                self.fig.scene.add_actor(cc)
+        for k in range(len(self.vectors)):
+            vec = np.array(self.vectors[k])
+            norm = np.linalg.norm(vec)
+            theta = np.arccos(vec[2] / norm)
+            phi = np.arctan2(vec[1], vec[0])
+            vec -= 0.5 * self.vector_head_height *\
+                 np.array([np.sin(theta) * np.cos(phi),
+                           np.sin(theta) * np.sin(phi), np.cos(theta)])
+
+            color = colors.colorConverter.to_rgb(
+                self.vector_color[np.mod(k, len(self.vector_color))])
+
+            mlab.plot3d([0, vec[0]], [0, vec[1]], [0, vec[2]],
+                        name='vector' + str(ii), tube_sides=100,
+                        line_width=self.vector_width,
+                        opacity=self.vector_alpha,
+                        color=color)
+
+            cone = tvtk.ConeSource(height=self.vector_head_height,
+                                   radius=self.vector_head_radius,
+                                   resolution=100)
+            cone_mapper = tvtk.PolyDataMapper(input=cone.output)
+            prop = tvtk.Property(opacity=self.vector_alpha, color=color)
+            cc = tvtk.Actor(mapper=cone_mapper, property=prop)
+            cc.rotate_z(np.degrees(phi))
+            cc.rotate_y(-90 + np.degrees(theta))
+            cc.position = vec 
+            self.fig.scene.add_actor(cc)
+
 
     def plot_points(self):
         """
@@ -360,43 +350,42 @@ class Bloch3d():
         """
         from mayavi import mlab
         import matplotlib.colors as colors
-        if self.num_points > 0:
-            for k in range(self.num_points):
-                num = len(self.points[k][0])
-                dist = [np.sqrt(self.points[k][0][j] ** 2 +
-                                self.points[k][1][j] ** 2 +
-                                self.points[k][2][j] ** 2) for j in range(num)]
-                if any(abs(dist - dist[0]) / dist[0] > 1e-12):
-                    # combine arrays so that they can be sorted together
-                    zipped = zip(dist, range(num))
-                    zipped.sort()  # sort rates from lowest to highest
-                    dist, indperm = zip(*zipped)
-                    indperm = np.array(indperm)
-                else:
-                    indperm = range(num)
-                if self.point_style[k] == 's':
-                    color = colors.colorConverter.to_rgb(
-                        self.point_color[np.mod(k, len(self.point_color))])
-                    mlab.points3d(
-                        self.points[k][0][indperm], self.points[k][1][indperm],
-                        self.points[k][2][
-                            indperm], figure=self.fig, resolution=100,
-                        scale_factor=self.point_size, mode=self.point_mode,
-                        color=color)
+        for k in range(len(self.points)):
+            num = len(self.points[k][0])
+            dist = [np.sqrt(self.points[k][0][j] ** 2 +
+                            self.points[k][1][j] ** 2 +
+                            self.points[k][2][j] ** 2) for j in range(num)]
+            if any(abs(dist - dist[0]) / dist[0] > 1e-12):
+                # combine arrays so that they can be sorted together
+                zipped = zip(dist, range(num))
+                zipped.sort()  # sort rates from lowest to highest
+                dist, indperm = zip(*zipped)
+                indperm = np.array(indperm)
+            else:
+                indperm = range(num)
+            if self.point_style[k] == 's':
+                color = colors.colorConverter.to_rgb(
+                    self.point_color[np.mod(k, len(self.point_color))])
+                mlab.points3d(
+                    self.points[k][0][indperm], self.points[k][1][indperm],
+                    self.points[k][2][indperm], figure=self.fig, resolution=100,
+                    scale_factor=self.point_size, mode=self.point_mode,
+                    color=color)
 
-                elif self.point_style[k] == 'm':
-                    pnt_colors = np.array(self.point_color * np.ceil(
-                        num / float(len(self.point_color))))
-                    pnt_colors = pnt_colors[0:num]
-                    pnt_colors = list(pnt_colors[indperm])
-                    for kk in range(num):
-                        mlab.points3d(
-                            self.points[k][0][
-                                indperm[kk]], self.points[k][1][indperm[kk]],
-                            self.points[k][2][
-                                indperm[kk]], figure=self.fig, resolution=100,
-                            scale_factor=self.point_size, mode=self.point_mode,
-                            color=colors.colorConverter.to_rgb(pnt_colors[kk]))
+            elif self.point_style[k] == 'm':
+                pnt_colors = np.array(self.point_color * np.ceil(
+                    num / float(len(self.point_color))))
+                pnt_colors = pnt_colors[0:num]
+                pnt_colors = list(pnt_colors[indperm])
+                for kk in range(num):
+                    mlab.points3d(
+                        self.points[k][0][
+                            indperm[kk]], self.points[k][1][indperm[kk]],
+                        self.points[k][2][
+                            indperm[kk]], figure=self.fig, resolution=100,
+                        scale_factor=self.point_size, mode=self.point_mode,
+                        color=colors.colorConverter.to_rgb(pnt_colors[kk]))
+
 
     def make_sphere(self):
         """
