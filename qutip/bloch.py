@@ -177,12 +177,8 @@ class Bloch():
         #---data lists---
         # Data for point markers
         self.points = []
-        # Number of point markers to plot
-        self.num_points = 0
         # Data for Bloch vectors
         self.vectors = []
-        # Number of Bloch vectors to plot
-        self.num_vectors = 0
         # Number of times sphere has been saved
         self.savenum = 0
         # Style of points, 'm' for multiple colors, 's' for single color
@@ -192,8 +188,8 @@ class Bloch():
         s = ""
         s += "Bloch data:\n"
         s += "-----------\n"
-        s += "Number of points:  " + str(self.num_points) + "\n"
-        s += "Number of vectors: " + str(self.num_vectors) + "\n"
+        s += "Number of points:  " + str(len(self.points)) + "\n"
+        s += "Number of vectors: " + str(len(self.vectors)) + "\n"
         s += "\n"
         s += "Bloch sphere properties:\n"
         s += "------------------------\n"
@@ -225,9 +221,7 @@ class Bloch():
         """Resets Bloch sphere data sets to empty.
         """
         self.points = []
-        self.num_points = 0
         self.vectors = []
-        self.num_vectors = 0
         self.point_style = []
 
     def add_points(self, points, meth='s'):
@@ -253,15 +247,12 @@ class Bloch():
             else:
                 pnts = points
             self.points.append(pnts)
-            self.num_points = len(self.points)
             self.point_style.append('s')
         elif meth == 'l':
             self.points.append(points)
-            self.num_points = len(self.points)
             self.point_style.append('l')
         else:
             self.points.append(points)
-            self.num_points = len(self.points)
             self.point_style.append('m')
 
     def add_states(self, state, kind='vector'):
@@ -300,10 +291,8 @@ class Bloch():
         if isinstance(vectors[0], (list, ndarray)):
             for vec in vectors:
                 self.vectors.append(vec)
-                self.num_vectors = len(self.vectors)
         else:
             self.vectors.append(vectors)
-            self.num_vectors = len(self.vectors)
 
     def make_sphere(self):
         """
@@ -413,93 +402,78 @@ class Bloch():
 
     def plot_vectors(self):
         # -X and Y data are switched for plotting purposes
-        if len(self.vectors) > 0:
-            for k in range(len(self.vectors)):
+        for k in range(len(self.vectors)):
 
-                if self.vector_style == '':
-                    # simple line style
-                    length = sqrt(self.vectors[k][0] ** 2 +
-                                  self.vectors[k][1] ** 2 +
-                                  self.vectors[k][2] ** 2)
-                    color = self.vector_color[mod(k, len(self.vector_color))]
-                    self.axes.plot(
-                        self.vectors[k][1] * linspace(0, length, 2),
-                        -self.vectors[k][0] * linspace(0, length, 2),
-                        self.vectors[k][2] * linspace(0, length, 2),
-                        zs=0, zdir='z', label='Z', lw=self.vector_width,
-                        color=color)
+            xs3d = self.vectors[k][1] * array([0, 1])
+            ys3d = -self.vectors[k][0] * array([0, 1])
+            zs3d = self.vectors[k][2] * array([0, 1])
 
-                else:
-                    # decorated style, with arrow heads
-                    length = sqrt(self.vectors[k][0] ** 2 + self.vectors[
-                                  k][1] ** 2 + self.vectors[k][2] ** 2)
+            color = self.vector_color[mod(k, len(self.vector_color))]
 
-                    xs3d = self.vectors[k][1] * linspace(0, length, 2)
-                    ys3d = -self.vectors[k][0] * linspace(0, length, 2)
-                    zs3d = self.vectors[k][2] * linspace(0, length, 2)
+            if self.vector_style == '':
+                # simple line style
+                self.axes.plot(xs3d, ys3d, zs3d,
+                               zs=0, zdir='z', label='Z',
+                               lw=self.vector_width, color=color)
+            else:
+                # decorated style, with arrow heads
+                a = Arrow3D(xs3d, ys3d, zs3d,
+                            mutation_scale=self.vector_mutation,
+                            lw=self.vector_width,
+                            arrowstyle=self.vector_style,
+                            color=color)
 
-                    xs, ys, zs = proj3d.proj_transform(
-                        xs3d, ys3d, zs3d, self.axes.get_proj())
-                    color = self.vector_color[mod(k, len(self.vector_color))]
-                    a = Arrow3D(xs3d, ys3d, zs3d,
-                                mutation_scale=self.vector_mutation,
-                                lw=self.vector_width,
-                                arrowstyle=self.vector_style,
-                                color=color)
-
-                    self.axes.add_artist(a)
+                self.axes.add_artist(a)
 
     def plot_points(self):
         # -X and Y data are switched for plotting purposes
-        if self.num_points > 0:
-            for k in range(self.num_points):
-                num = len(self.points[k][0])
-                dist = [sqrt(self.points[k][0][j] ** 2 +
-                             self.points[k][1][j] ** 2 +
-                             self.points[k][2][j] ** 2) for j in range(num)]
-                if any(abs(dist - dist[0]) / dist[0] > 1e-12):
-                    # combine arrays so that they can be sorted together
-                    zipped = list(zip(dist, range(num)))
-                    zipped.sort()  # sort rates from lowest to highest
-                    dist, indperm = zip(*zipped)
-                    indperm = array(indperm)
-                else:
-                    indperm = range(num)
-                if self.point_style[k] == 's':
-                    self.axes.scatter(
-                        real(self.points[k][1][indperm]),
-                        - real(self.points[k][0][indperm]),
-                        real(self.points[k][2][indperm]),
-                        s=self.point_size[mod(k, len(self.point_size))],
-                        alpha=1,
-                        edgecolor='none',
-                        zdir='z',
-                        color=self.point_color[mod(k, len(self.point_color))],
-                        marker=self.point_marker[
-                            mod(k, len(self.point_marker))])
+        for k in range(len(self.points)):
+            num = len(self.points[k][0])
+            dist = [sqrt(self.points[k][0][j] ** 2 +
+                         self.points[k][1][j] ** 2 +
+                         self.points[k][2][j] ** 2) for j in range(num)]
+            if any(abs(dist - dist[0]) / dist[0] > 1e-12):
+                # combine arrays so that they can be sorted together
+                zipped = list(zip(dist, range(num)))
+                zipped.sort()  # sort rates from lowest to highest
+                dist, indperm = zip(*zipped)
+                indperm = array(indperm)
+            else:
+                indperm = range(num)
+            if self.point_style[k] == 's':
+                self.axes.scatter(
+                    real(self.points[k][1][indperm]),
+                    - real(self.points[k][0][indperm]),
+                    real(self.points[k][2][indperm]),
+                    s=self.point_size[mod(k, len(self.point_size))],
+                    alpha=1,
+                    edgecolor='none',
+                    zdir='z',
+                    color=self.point_color[mod(k, len(self.point_color))],
+                    marker=self.point_marker[mod(k, len(self.point_marker))])
 
-                elif self.point_style[k] == 'm':
-                    pnt_colors = array(self.point_color *
-                        ceil(num / float(len(self.point_color))))
+            elif self.point_style[k] == 'm':
+                pnt_colors = array(self.point_color *
+                    ceil(num / float(len(self.point_color))))
 
-                    pnt_colors = pnt_colors[0:num]
-                    pnt_colors = list(pnt_colors[indperm])
-                    marker = self.point_marker[mod(k, len(self.point_marker))]
-                    s = self.point_size[mod(k, len(self.point_size))]
-                    self.axes.scatter(real(self.points[k][1][indperm]),
-                                      -real(self.points[k][0][indperm]),
-                                      real(self.points[k][2][indperm]),
-                                      s=s, alpha=1, edgecolor='none',
-                                      zdir='z', color=pnt_colors,
-                                      marker=marker)
+                pnt_colors = pnt_colors[0:num]
+                pnt_colors = list(pnt_colors[indperm])
+                marker = self.point_marker[mod(k, len(self.point_marker))]
+                s = self.point_size[mod(k, len(self.point_size))]
+                self.axes.scatter(real(self.points[k][1][indperm]),
+                                  -real(self.points[k][0][indperm]),
+                                  real(self.points[k][2][indperm]),
+                                  s=s, alpha=1, edgecolor='none',
+                                  zdir='z', color=pnt_colors,
+                                  marker=marker)
 
-                elif self.point_style[k] == 'l':
-                    color = self.point_color[mod(k, len(self.point_color))]
-                    self.axes.plot(real(self.points[k][1]),
-                                   -real(self.points[k][0]),
-                                   real(self.points[k][2]),
-                                   alpha=0.75, zdir='z',
-                                   color=color)
+            elif self.point_style[k] == 'l':
+                color = self.point_color[mod(k, len(self.point_color))]
+                self.axes.plot(real(self.points[k][1]),
+                               -real(self.points[k][0]),
+                               real(self.points[k][2]),
+                               alpha=0.75, zdir='z',
+                               color=color)
 
     def show(self):
         """
