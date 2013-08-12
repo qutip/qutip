@@ -25,9 +25,13 @@ import numpy as np
 from types import FunctionType
 from multiprocessing import Pool, cpu_count
 from numpy.random import RandomState, random_integers
+
 from scipy import arange, array, cumsum, mean, ndarray, setdiff1d, sort, zeros
 from scipy.integrate import ode
 from scipy.linalg import norm
+from scipy.linalg.blas import get_blas_funcs
+dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
+
 from qutip.qobj import *
 from qutip.expect import *
 from qutip.states import ket2dm
@@ -36,7 +40,6 @@ from qutip.odeoptions import Odeoptions
 from qutip.odeconfig import odeconfig
 from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_expect, spmv
 from qutip.cyQ.codegen import Codegen
-from scipy.linalg.blas import dznrm2
 from qutip.odedata import Odedata
 from qutip.odechecks import _ode_checks
 import qutip.settings
