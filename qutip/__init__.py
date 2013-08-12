@@ -139,10 +139,12 @@ if not sys.platform in ['darwin', 'win32'] and not ('DISPLAY' in os.environ):
     os.environ['QUTIP_GUI'] = "NONE"
     qutip.settings.qutip_gui = "NONE"
 
-# automatically set number of threads used by MKL
-os.environ['MKL_NUM_THREADS'] = str(multiprocessing.cpu_count())
-os.environ['NUM_THREADS'] = str(multiprocessing.cpu_count())
-
+# automatically set number of threads used by MKL and openblas to 1
+# prevents errors when running things in parallel.  Should be set 
+# by user directly in a script or notebook if >1 is needed.
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['NUM_THREADS'] = '1'
+os.environ['OMP_NUM_THREADS'] = '1'
 try:
     from qutip.fortran import qutraj_run
 except:

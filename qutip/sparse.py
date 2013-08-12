@@ -23,6 +23,7 @@ having to use dense matrices.
 """
 
 import scipy.sparse as sp
+import scipy.sparse.linalg as spla
 import numpy as np
 import scipy.linalg as la
 from qutip.settings import debug
@@ -397,30 +398,30 @@ def _pade(A, m):
     c = _padecoeff(m)
     if m != 13:
         apows = [[] for jj in range(int(np.ceil((m + 1) / 2)))]
-        apows[0] = sp.eye(n, n, format='csr')
+        apows[0] = sp.eye(n, n, format='csc')
         apows[1] = A * A
         for jj in range(2, int(np.ceil((m + 1) / 2))):
             apows[jj] = apows[jj - 1] * apows[1]
-        U = sp.lil_matrix((n, n)).tocsr()
-        V = sp.lil_matrix((n, n)).tocsr()
+        U = sp.lil_matrix((n, n)).tocsc()
+        V = sp.lil_matrix((n, n)).tocsc()
         for jj in range(m, 0, -2):
             U = U + c[jj] * apows[jj // 2]
         U = A * U
         for jj in range(m - 1, -1, -2):
             V = V + c[jj] * apows[(jj + 1) // 2]
-        F = la.solve((-U + V).todense(), (U + V).todense())
-        return sp.lil_matrix(F).tocsr()
+        F = spla.spsolve((-U + V).tocsc(), (U + V).tocsc())
+        return F.tocsr()
     elif m == 13:
         A2 = A * A
         A4 = A2 * A2
         A6 = A2 * A4
         U = A * (A6 * (c[13] * A6 + c[11] * A4 + c[9] * A2) +
                  c[7] * A6 + c[5] * A4 + c[3] * A2 +
-                 c[1] * sp.eye(n, n).tocsr())
+                 c[1] * sp.eye(n, n).tocsc())
         V = A6 * (c[12] * A6 + c[10] * A4 + c[8] * A2) + c[6] * A6 + c[4] * \
-            A4 + c[2] * A2 + c[0] * sp.eye(n, n).tocsr()
-        F = la.solve((-U + V).todense(), (U + V).todense())
-        return sp.csr_matrix(F)
+            A4 + c[2] * A2 + c[0] * sp.eye(n, n).tocsc()
+        F = spla.spsolve((-U + V).tocsc(), (U + V).tocsc())
+        return F.tocsr()
 
 
 def _padecoeff(m):
