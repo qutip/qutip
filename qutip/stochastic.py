@@ -1050,14 +1050,48 @@ def d2_psi_photocurrent(A, psi):
 #
 #     rho = density operator in vector form at the current time stemp
 #
-#     A[0] = spre(c)
-#     A[1] = spost(c)
-#     A[2] = spre(c.dag())
-#     A[3] = spost(c.dag())
-#     A[4] = spre(n)
-#     A[5] = spost(n)
-#     A[6] = (spre(c) * spost(c.dag())
-#     A[7] = lindblad_dissipator(c)
+#     A[0] = spre(a) = A_L
+#     A[1] = spost(a) = A_R
+#     A[2] = spre(a.dag()) = Ad_L
+#     A[3] = spost(a.dag()) = Ad_R
+#     A[4] = spre(a.dag() * a) = (Ad A)_L
+#     A[5] = spost(a.dag() * a) = (Ad A)_R
+#     A[6] = (spre(a) * spost(a.dag()) = A_L * Ad_R
+#     A[7] = lindblad_dissipator(a) 
+
+
+def sop_H(A, rho_vec):
+    """
+    Evaluate the superoperator
+
+    H[a] rho = a rho + rho a^\dagger - Tr[a rho + rho a^\dagger]
+            -> (A_L + Ad_R) rho_vec - E[(A_L + Ad_R) rho_vec]
+
+    Todo: cythonize, add A_L + Ad_R to precomputed operators
+    """
+    M = A[0] + A[3]
+
+    e1 = cy_expect_rho_vec(M, rho_vec)
+    return spmv(M.data, M.indices, M.indptr, rho_vec) - e1 * rho_vec
+
+
+def sop_G(A, rho_vec):
+    """
+    Evaluate the superoperator
+
+    G[a] rho = a rho a^\dagger / Tr[a rho a^\dagger] - rho
+            -> A_L Ad_R rho_vec / Tr[A_L Ad_R rho_vec] - rho_vec
+
+    Todo: cythonize, add A_L + Ad_R to precomputed operators
+    """
+
+    e1 = cy_expect_rho_vec(A[6], rho_vec)
+
+    if e1 > 1e-15:
+        return spmv(A[6].data, A[6].indices, A[6].indptr, rho_vec) / e1 - rho_vec
+    else:
+        return -rho_vec
+
 
 def d1_rho_homodyne(A, rho_vec):
     """
