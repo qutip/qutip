@@ -19,6 +19,7 @@
 
 
 from qutip import *
+from qutip import _version2int
 from qutip.sparse import *
 from numpy import allclose, isreal, iscomplex
 from numpy.testing import assert_equal, run_module_suite
@@ -26,7 +27,7 @@ import scipy
 import unittest
 
 
-@unittest.skipIf(version2int(scipy.__version__) < version2int('0.10'),
+@unittest.skipIf(_version2int(scipy.__version__) < _version2int('0.10'),
                  'Known to fail on SciPy ' + scipy.__version__)
 def test_SparseHermValsVecs():
     """
@@ -91,7 +92,7 @@ def test_SparseValsVecs():
     assert_equal(len(spvals), 9)
 
 
-@unittest.skipIf(version2int(scipy.__version__) < version2int('0.10'),
+@unittest.skipIf(_version2int(scipy.__version__) < _version2int('0.10'),
                  'Known to fail on SciPy ' + scipy.__version__)
 def test_SparseValsOnly():
     """

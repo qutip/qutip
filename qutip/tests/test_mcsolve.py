@@ -18,6 +18,7 @@
 ###########################################################################
 
 from qutip import *
+from qutip import _version2int
 from qutip.odechecks import _ode_checks
 from numpy import allclose, linspace, mean, ones
 from numpy.testing import assert_equal, run_module_suite
@@ -229,7 +230,7 @@ def test_MCSimpleConstFunc():
     assert_equal(avg_diff < mc_error, True)
 
 
-@unittest.skipIf(version2int(Cython.__version__) < version2int('0.14') or
+@unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
                  Cython_found == 0, 'Cython not found or version too low.')
 def test_MCSimpleConstStr():
     "Monte-carlo: Collapse terms constant (str format)"
@@ -267,7 +268,7 @@ def test_MCTDFunc():
     assert_equal(diff < error, True)
 
 
-@unittest.skipIf(version2int(Cython.__version__) < version2int('0.14') or
+@unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
                  Cython_found == 0, 'Cython not found or version too low.')
 def test_TDStr():
     "Monte-carlo: Time-dependent H (str format)"
