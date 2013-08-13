@@ -106,7 +106,7 @@ Correlation Functions
 -----------------------
 
 .. automodule:: qutip.correlation
-    :members: correlation, correlation_ss, correlation_2op_1t, correlation_2op_2t, correlation_4op_1t, correlation_4op_2t, spectrum_ss, spectrum_correlation_fft, coherence_function_g1, coherence_function_g2
+    :members: correlation, correlation_ss, correlation_2op_1t, correlation_2op_2t, correlation_4op_1t, correlation_4op_2t, spectrum_ss, spectrum_pi, spectrum_correlation_fft, coherence_function_g1, coherence_function_g2
 
 Exponential Series
 ------------------
