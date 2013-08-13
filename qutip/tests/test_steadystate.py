@@ -20,7 +20,7 @@
 
 from qutip import *
 from numpy import linspace
-from numpy.testing import assert_equal, run_module_suite
+from numpy.testing import assert_, assert_equal, run_module_suite
 
 
 def test_qubit():
@@ -77,6 +77,24 @@ def test_ho():
     p_ss_analytic = 1.0 / (exp(1.0 / wth_vec) - 1)
     delta = sum(abs(p_ss_analytic - p_ss))
     assert_equal(delta < 1e-3, True)
+
+
+def test_driven_cavity():
+    "Steady state: Driven cavity"
+
+    N = 30
+    Omega = 0.01 * 2 * pi
+    Gamma = 0.05
+
+    a = destroy(N)
+    H = Omega * (a.dag() + a)
+    c_ops = [sqrt(Gamma) * a]
+
+    rho_ss = steadystate(H, c_ops)
+    rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
+
+    assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
+
 
 if __name__ == "__main__":
     run_module_suite()
