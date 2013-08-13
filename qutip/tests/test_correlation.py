@@ -108,9 +108,7 @@ def test_spectrum():
 
     wlist = 2 * pi * np.linspace(0.5, 1.5, 100)
     spec1 = spectrum_ss(H, wlist, c_ops, a.dag(), a)
-
-    L = liouvillian(H, c_ops)
-    spec2 = spectrum_pi(L, a.dag(), a, wlist)
+    spec2 = spectrum_pi(H, wlist, c_ops, a.dag(), a)
 
     assert_(max(abs(spec1 - spec2)) < 1e-3)
 
