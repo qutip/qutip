@@ -68,9 +68,9 @@ def demos():
     while exconfig.option < 123456:
         exconfig.option = 123456
         if settings.qutip_gui != 'NONE':
-            import qutip._version
-            if qutip._version.release:
-                ver = qutip._version.short_version
+            import qutip.version
+            if qutip.version.release:
+                ver = qutip.version.short_version
             else:
                 ver = 'HEAD'
             start_gui(ver, direc)

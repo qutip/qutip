@@ -34,7 +34,7 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.linalg as la
 import qutip.settings as qset
-from qutip._version import version as qversion
+from qutip import __version__
 from qutip.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, _sp_expm, _sp_fro_norm, _sp_max_norm,
@@ -543,7 +543,7 @@ class Qobj():
 
     def __getstate__(self):
         # defines what happens when Qobj object gets pickled
-        self.__dict__.update({'qutip_version': qversion[:5]})
+        self.__dict__.update({'qutip_version': __version__[:5]})
         return self.__dict__
 
     def __setstate__(self, state):

@@ -22,22 +22,22 @@ import platform
 import multiprocessing
 
 import qutip.settings
-import qutip._version
-from qutip._version import version as __version__
+import qutip.version 
+from qutip.version import version as __version__
 
 
 #------------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
 # if the requirements aren't fulfilled
 #
-def version2int(version_string):
+def _version2int(version_string):
     str_list = version_string.split("-dev")[0].split("rc")[0].split("b")[0].split('.')
     return sum([int(d) * (100 ** (3 - n)) for n, d in enumerate(str_list[:3])])
 
 numpy_requirement = "1.6.0"
 try:
     import numpy
-    if version2int(numpy.__version__) < version2int(numpy_requirement):
+    if _version2int(numpy.__version__) < _version2int(numpy_requirement):
         print("QuTiP warning: old version of numpy detected " +
               ("(%s), requiring %s." %
                (numpy.__version__, numpy_requirement)))
@@ -47,7 +47,7 @@ except:
 scipy_requirement = "0.9.0"
 try:
     import scipy
-    if version2int(scipy.__version__) < version2int(scipy_requirement):
+    if _version2int(scipy.__version__) < _version2int(scipy_requirement):
         print("QuTiP warning: old version of scipy detected " +
               ("(%s), requiring %s." %
                (scipy.__version__, scipy_requirement)))
@@ -63,7 +63,7 @@ try:
 except:
     pass
 else:
-    if ('QuTiP' in setup_file.readlines()[1][3:]) and qutip._version.release:
+    if ('QuTiP' in setup_file.readlines()[1][3:]) and qutip.version.release:
         print("You are in the installation directory. " +
               "Change directories before running QuTiP.")
     setup_file.close()
@@ -75,7 +75,7 @@ else:
 _cython_requirement = "0.15.0"
 try:
     import Cython
-    if version2int(Cython.__version__) < version2int(_cython_requirement):
+    if _version2int(Cython.__version__) < _version2int(_cython_requirement):
         print("QuTiP warning: old version of cython detected " +
               ("(%s), requiring %s." %
                (Cython.__version__, _cython_requirement)))
@@ -98,7 +98,7 @@ info = hardware_info()
 if 'cpus' in info:
     qutip.settings.num_cpus = info['cpus']
 else:
-    qutip.settings.num_cpus = multiprocessing.cpu_count()
+    imiqutip.settings.num_cpus = multiprocessing.cpu_count()
 
 
 qutip.settings.qutip_graphics = "YES"

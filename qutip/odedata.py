@@ -16,7 +16,7 @@
 # Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-from qutip._version import version as qversion
+from qutip import  __version__
 
 
 class Odedata():
@@ -83,7 +83,7 @@ class Odedata():
 
     def __getstate__(self):
         # defines what happens when Qobj object gets pickled
-        self.__dict__.update({'qutip_version': qversion[:5]})
+        self.__dict__.update({'qutip_version': __version__[:5]})
         return self.__dict__
 
     def __setstate__(self, state):
