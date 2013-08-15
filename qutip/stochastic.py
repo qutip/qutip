@@ -64,7 +64,7 @@ class _StochasticSolverData:
     Internal class for passing data between stochastic solver functions.
     """
     def __init__(self, H=None, state0=None, tlist=None, c_ops=[], sc_ops=[],
-                 e_ops=[], args=None, ntraj=1, nsubsteps=1,
+                 e_ops=[], m_ops=[], args=None, ntraj=1, nsubsteps=1,
                  d1=None, d2=None, d2_len=1, rhs=None, homogeneous=True,
                  solver=None, method=None, distribution='normal',
                  store_measurement=False, noise=None,
@@ -79,6 +79,7 @@ class _StochasticSolverData:
         self.c_ops = c_ops
         self.sc_ops = sc_ops
         self.e_ops = e_ops
+        self.m_ops = m_ops
         self.ntraj = ntraj
         self.nsubsteps = nsubsteps
         self.solver = solver
@@ -150,6 +151,7 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 1
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
+            ssdata.m_ops = [c + c.dag() for c in ssdata.sc_ops]
 
         elif ssdata.method == 'heterodyne':
             ssdata.d1 = d1_psi_heterodyne
@@ -251,6 +253,7 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 1
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
+            ssdata.m_ops = [c + c.dag() for c in ssdata.sc_ops]
 
         elif ssdata.method == 'heterodyne':
             ssdata.d1 = d1_rho_heterodyne
@@ -400,7 +403,7 @@ def ssesolve_generic(ssdata, options, progress_bar):
 
         states_list, dW, m = _ssesolve_single_trajectory(
             ssdata.H, dt, ssdata.tlist, N_store, N_substeps, psi_t, A_ops,
-            ssdata.e_ops, data, ssdata.rhs_func, ssdata.d1, ssdata.d2,
+            ssdata.e_ops, ssdata.m_ops, data, ssdata.rhs_func, ssdata.d1, ssdata.d2,
             ssdata.d2_len, ssdata.homogeneous, ssdata.distribution, ssdata.args,
             store_measurement=ssdata.store_measurement, noise=noise)
 
@@ -431,7 +434,7 @@ def ssesolve_generic(ssdata, options, progress_bar):
 
 
 def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
-                                A_ops, e_ops, data, rhs, d1, d2, d2_len,
+                                A_ops, e_ops, m_ops, data, rhs, d1, d2, d2_len,
                                 homogeneous, distribution, args,
                                 store_measurement=False, noise=None):
     """
@@ -453,7 +456,7 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
         dW = noise
 
     states_list = []
-    measurements = np.zeros((len(tlist), len(A_ops)), dtype=complex)
+    measurements = np.zeros((len(tlist), len(m_ops)), dtype=complex)
 
     for t_idx, t in enumerate(tlist):
 
@@ -478,15 +481,15 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
                         A_ops, dt, dW[:, t_idx, j, :], d1, d2, args)
 
             # optionally renormalize the wave function: TODO: make the 
-            # renormalization optional througha configuration parameter in
+            # renormalization optional through a configuration parameter in
             # Odeoptions
             psi_t /= norm(psi_t)
 
         if store_measurement:
-            for a_idx, A in enumerate(A_ops):
-                phi = spmv(A[0].data, A[0].indices, A[0].indptr, psi_prev)
-                measurements[t_idx, a_idx] = (norm(phi) ** 2 * dt * N_substeps
-                                              + dW[a_idx, t_idx, :, 0].sum())
+            for m_idx, m in enumerate(m_ops):
+                phi = spmv(m.data.data, m.data.indices, m.data.indptr, psi_prev)
+                measurements[t_idx, m_idx] = (norm(phi) ** 2 * dt * N_substeps
+                                              + dW[m_idx, t_idx, :, 0].sum())
 
 
     return states_list, dW, measurements
@@ -533,8 +536,15 @@ def smesolve_generic(ssdata, options, progress_bar):
                       (spre(c) * spost(c.dag())).data,
                       lindblad_dissipator(c, data_only=True)])
 
+    # use .data instead of Qobj ?
     s_e_ops = [spre(e) for e in ssdata.e_ops]
 
+    if ssdata.m_ops:
+        s_m_ops = [spre(m) for m in ssdata.m_ops]
+    else:
+        s_m_ops = [spre(c) for c in ssdata.sc_ops]
+
+    
     # Liouvillian for the deterministic part.
     # needs to be modified for TD systems
     L = liouvillian_fast(ssdata.H, ssdata.c_ops)
@@ -550,7 +560,7 @@ def smesolve_generic(ssdata, options, progress_bar):
 
         states_list, dW, m = _smesolve_single_trajectory(
             L, dt, ssdata.tlist, N_store, N_substeps,
-            rho_t, A_ops, s_e_ops, data, ssdata.rhs,
+            rho_t, A_ops, s_e_ops, s_m_ops, data, ssdata.rhs,
             ssdata.d1, ssdata.d2, ssdata.d2_len, ssdata.homogeneous,
             ssdata.distribution, ssdata.args,
             store_measurement=ssdata.store_measurement,
@@ -583,7 +593,7 @@ def smesolve_generic(ssdata, options, progress_bar):
 
 
 def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
-                                A_ops, e_ops, data, rhs, d1, d2, d2_len,
+                                A_ops, e_ops, m_ops, data, rhs, d1, d2, d2_len,
                                 homogeneous, distribution, args,
                                 store_measurement=False, 
                                 store_states=False, noise=None):
@@ -606,7 +616,7 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
         dW = noise
 
     states_list = []
-    measurements = np.zeros((len(tlist), len(A_ops)), dtype=complex)
+    measurements = np.zeros((len(tlist), len(m_ops)), dtype=complex)
 
     for t_idx, t in enumerate(tlist):
 
@@ -633,8 +643,9 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
                         A_ops, dt, dW[:, t_idx, j, :], d1, d2, args)
 
         if store_measurement:
-            for a_idx, A in enumerate(A_ops):
-                measurements[t_idx, a_idx] = cy_expect_rho_vec(A[0], rho_prev) * dt * N_substeps + dW[a_idx, t_idx, :, 0].sum()
+            for m_idx, m in enumerate(m_ops):
+                # TODO: allow using more than one increment
+                measurements[t_idx, m_idx] = cy_expect_rho_vec(m.data, rho_prev) * dt * N_substeps + dW[m_idx, t_idx, :, 0].sum()
 
     return states_list, dW, measurements
 
