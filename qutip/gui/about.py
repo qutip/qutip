@@ -28,7 +28,7 @@ import numpy
 import scipy
 import matplotlib
 import Cython
-from qutip import version2int, __version__ as qutip_version
+from qutip import _version2int, __version__ as qutip_version
 
 try:
     _fromUtf8 = QtCore.QString.fromUtf8
@@ -262,9 +262,9 @@ class Aboutbox(object):
         QtCore.QMetaObject.connectSlotsByName(Form)
 
     def retranslateUi(self, Form):
-        from qutip import _version
-        if _version.release:
-            version = _version.short_version
+        from qutip import version
+        if version.release:
+            version = version.short_version
         else:
             version = 'HEAD'
         try:
