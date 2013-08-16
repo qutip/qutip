@@ -73,7 +73,7 @@ if not ISRELEASED:
     FULLVERSION += '.dev' + git_short_hash()
 
 
-def write_version_py(filename='qutip/_version.py'):
+def write_version_py(filename='qutip/version.py'):
     cnt = """\
 # THIS FILE IS GENERATED FROM QUTIP SETUP.PY
 short_version = '%(version)s'
@@ -92,8 +92,8 @@ os.chdir(local_path)
 sys.path.insert(0, local_path)
 sys.path.insert(0, os.path.join(local_path, 'qutip'))  # to retrive _version
 # always rewrite _version
-if os.path.exists('qutip/_version.py'):
-    os.remove('qutip/_version.py')
+if os.path.exists('qutip/version.py'):
+    os.remove('qutip/version.py')
 write_version_py()
 
 #--------- check for fortran option -------------------#
@@ -126,7 +126,7 @@ def configuration(parent_package='', top_path=None):
                        quiet=True)
 
     config.add_subpackage('qutip')
-    config.get_version('qutip/_version.py')  # sets config.version
+    config.get_version('qutip/version.py')  # sets config.version
     config.add_data_dir('qutip/tests')
 
     return config
