@@ -98,8 +98,7 @@ info = hardware_info()
 if 'cpus' in info:
     qutip.settings.num_cpus = info['cpus']
 else:
-    imiqutip.settings.num_cpus = multiprocessing.cpu_count()
-
+    qutip.settings.num_cpus = multiprocessing.cpu_count()
 
 qutip.settings.qutip_graphics = "YES"
 qutip.settings.qutip_gui = "NONE"
