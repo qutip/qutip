@@ -462,8 +462,8 @@ class _MC_class():
                 mc_alg_out = zeros((self.num_times), dtype=ndarray)
                 if self.odeconfig.options.average_states:
                     # output is averaged states, so use dm
-                    mc_alg_out[0] = \
-                        self.odeconfig.psi0 * self.odeconfig.psi0.conj().T
+                    mc_alg_out[0] = np.outer(self.odeconfig.psi0,
+                                             self.odeconfig.psi0.conj())
                 else:
                     # output is not averaged, so write state vectors
                     mc_alg_out[0] = self.odeconfig.psi0
@@ -924,7 +924,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
             out_psi = ODE.y / dznrm2(ODE.y)
             if odeconfig.e_num == 0:
                 if odeconfig.options.average_states:
-                    mc_alg_out[k] = out_psi * out_psi.conj().T
+                    mc_alg_out[k] = np.outer(out_psi, out_psi.conj())
                 else:
                     mc_alg_out[k] = out_psi
             else:
