@@ -589,7 +589,7 @@ def wigner_cmap(W, levels=1024, shift=0, invert=False):
 
 
 def fock_distribution(rho, offset=0, fig=None, ax=None,
-                      figsize=(8, 6), title=None):
+                      figsize=(8, 6), title=None, unit_y_range=True):
     """
     Plot the Fock distribution for a density matrix (or ket) that describes
     an oscillator mode.
@@ -629,7 +629,9 @@ def fock_distribution(rho, offset=0, fig=None, ax=None,
 
     ax.bar(arange(offset, offset + N) - .4, real(rho.diag()),
            color="green", alpha=0.6, width=0.8)
-    ax.set_ylim(0, 1)
+    if unit_y_range:
+        ax.set_ylim(0, 1)
+
     ax.set_xlim(-.5 + offset, N + offset)
     ax.set_xlabel('Fock number', fontsize=12)
     ax.set_ylabel('Occupation probability', fontsize=12)
