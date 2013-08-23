@@ -196,13 +196,17 @@ shape = [2, 2], type = oper, isHerm = True
 # DESTROY returns annihilation operator for N dimensional Hilbert space
 # out = destroy(N), N is integer value &  N>0
 #
-def destroy(N):
+def destroy(N, offset=0):
     '''Destruction (lowering) operator.
 
     Parameters
     ----------
     N : int
         Dimension of Hilbert space.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the operator.
 
     Returns
     -------
@@ -223,7 +227,7 @@ shape = [4, 4], type = oper, isHerm = False
     '''
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
-    return Qobj(sp.spdiags(np.sqrt(range(0, N)), 1, N, N, format='csr'))
+    return Qobj(sp.spdiags(np.sqrt(range(offset, N+offset)), 1, N, N, format='csr'))
 
 #
 # CREATE returns creation operator for N dimensional Hilbert space
@@ -231,7 +235,7 @@ shape = [4, 4], type = oper, isHerm = False
 #
 
 
-def create(N):
+def create(N, offset=0):
     '''Creation (raising) operator.
 
     Parameters
@@ -243,6 +247,10 @@ def create(N):
     -------
     oper : qobj
         Qobj for raising operator.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the operator.
 
     Examples
     --------
@@ -258,9 +266,9 @@ shape = [4, 4], type = oper, isHerm = False
     '''
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
-    qo = destroy(N)  # create operator using destroy function
-    qo.data = qo.data.T  # transpsoe data in Qobj
-    return Qobj(qo)
+    qo = destroy(N, offset=offset)  # create operator using destroy function
+    qo.data = qo.data.T  # transpose data in Qobj
+    return qo
 
 
 #
@@ -313,7 +321,7 @@ def identity(N):
     return qeye(N)
 
 
-def position(N):
+def position(N, offset=0):
     """
     Position operator x=1\sqrt(2)*(a+a.dag())
 
@@ -322,12 +330,20 @@ def position(N):
     N : int
         Number of Fock states in Hilbert space.
 
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the operator.
+
+    Returns
+    -------
+    oper : qobj
+        Position operator as Qobj.
     """
-    a = destroy(N)
+    a = destroy(N, offset=offset)
     return 1.0 / np.sqrt(2.0) * (a + a.dag())
 
 
-def momentum(N):
+def momentum(N, offset=0):
     """
     Momentum operator p=1\sqrt(2)*(a-1.0j*a.dag())
 
@@ -336,18 +352,30 @@ def momentum(N):
     N : int
         Number of Fock states in Hilbert space.
 
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the operator.
+
+    Returns
+    -------
+    oper : qobj
+        Momentum operator as Qobj.
     """
-    a = destroy(N)
+    a = destroy(N, offset=offset)
     return 1.0 / np.sqrt(2.0) * (a - 1.0j * a.dag())
 
 
-def num(N):
+def num(N, offset=0):
     """Quantum object for number operator.
 
     Parameters
     ----------
     N : int
         The dimension of the Hilbert space.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the operator.
 
     Returns
     -------
@@ -366,11 +394,11 @@ shape = [4, 4], type = oper, isHerm = True
      [0 0 0 3]]
 
     """
-    data = sp.spdiags(np.arange(N), 0, N, N, format='csr')
+    data = sp.spdiags(np.arange(offset, offset + N), 0, N, N, format='csr')
     return Qobj(data)
 
 
-def squeeze(N, sp):
+def squeeze(N, sp, offset=0):
     """Single-mode Squeezing operator.
 
 
@@ -381,6 +409,10 @@ def squeeze(N, sp):
 
     sp : float/complex
         Squeezing parameter.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the operator.
 
     Returns
     -------
@@ -400,7 +432,7 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00000000+0.j -0.30142443+0.j  0.00000000+0.j  0.95349007+0.j]]
 
     """
-    a = destroy(N)
+    a = destroy(N, offset=offset)
     op = (1 / 2.0) * np.conj(sp) * (a ** 2) - (1 / 2.0) * sp * (a.dag()) ** 2
     return op.expm()
 
@@ -434,7 +466,7 @@ def squeezing(a1, a2, z):
     return b.expm()
 
 
-def displace(N, alpha):
+def displace(N, alpha, offset=0):
     """Single-mode displacement operator.
 
     Parameters
@@ -444,6 +476,10 @@ def displace(N, alpha):
 
     alpha : float/complex
         Displacement amplitude.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the operator.
 
     Returns
     -------
@@ -462,7 +498,7 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00626025+0.j  0.07418172+0.j  0.41083747+0.j  0.90866411+0.j]]
 
     """
-    a = destroy(N)
+    a = destroy(N, offset=offset)
     D = (alpha * a.dag() - np.conj(alpha) * a).expm()
     return D
 
