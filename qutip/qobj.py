@@ -557,7 +557,7 @@ class Qobj():
         Generate a LaTeX representation of the Qobj instance. Can be used for
         formatted output in ipython notebook.
         """
-        s = r'\begin{equation}\text{'
+        s = r'$\text{'
         if self.type == 'oper' or self.type == 'super':
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
@@ -657,7 +657,7 @@ class Qobj():
                     s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
-        s += r'\end{pmatrix}\end{equation}'
+        s += r'\end{pmatrix}$'
         return s
 
     def dag(self):
