@@ -661,7 +661,7 @@ class Qobj():
         return s
 
     def dag(self):
-        """Returns the adjoint operator of quantum object.
+        """Adjoint operator of quantum object.
         """
         out = Qobj()
         out.data = self.data.T.conj()
@@ -672,7 +672,7 @@ class Qobj():
         return out
 
     def conj(self):
-        """Returns the conjugate operator of quantum object.
+        """Conjugate operator of quantum object.
 
         """
         out = Qobj(type=self.type)
@@ -682,7 +682,7 @@ class Qobj():
         return out
 
     def norm(self, oper_norm='tr', sparse=False, tol=0, maxiter=100000):
-        """Returns the norm of a quantum object.
+        """Norm of a quantum object.
 
         Norm is L2-norm for kets and trace-norm (by default) for operators.
         Other operator norms may be specified using the `oper_norm` argument.
@@ -736,7 +736,7 @@ class Qobj():
             return _sp_L2_norm(self)
 
     def tr(self):
-        """The trace of a quantum object.
+        """Trace of a quantum object.
 
         Returns
         -------
@@ -751,7 +751,7 @@ class Qobj():
             return complex(sum(self.data.diagonal()))
 
     def full(self):
-        """Returns a dense array from quantum object.
+        """Dense array from quantum object.
 
         Returns
         -------
@@ -801,7 +801,7 @@ class Qobj():
             raise TypeError('Invalid operand for matrix exponential')
 
     def checkherm(self):
-        """ Explicitly check if the Qobj is hermitian
+        """Check if the Qobj is hermitian.
 
         Returns
         -------
@@ -812,7 +812,7 @@ class Qobj():
         return self.isherm
 
     def sqrtm(self, sparse=False, tol=0, maxiter=100000):
-        """The sqrt of a quantum operator.
+        """Sqrt of a quantum operator.
 
         Operator must be square.
 
@@ -860,7 +860,7 @@ class Qobj():
             raise TypeError('Invalid operand for matrix square root')
 
     def unit(self, oper_norm='tr', sparse=False, tol=0, maxiter=100000):
-        """Returns the operator or state normalized to unity.
+        """Operator or state normalized to unity.
 
         Uses norm from Qobj.norm().
 
@@ -889,7 +889,7 @@ class Qobj():
             return out
 
     def ptrace(self, sel):
-        """Partial trace of the Qobj with selected components remaining.
+        """Partial trace of the Qobj.
 
         Parameters
         ----------
@@ -915,8 +915,7 @@ class Qobj():
             return Qobj(qdata, qdims, qshape)
 
     def permute(self, order):
-        """
-        Permutes a composite quantum object in the given order.
+        """Permutes a composite quantum object.
 
         Parameters
         ----------
@@ -933,7 +932,7 @@ class Qobj():
         return Qobj(data, dims=dims, shape=shape)
 
     def tidyup(self, atol=qset.auto_tidyup_atol):
-        """Removes small elements from a quantum object.
+        """Removes small elements from Qobj.
 
         Parameters
         ----------
@@ -968,7 +967,7 @@ class Qobj():
         return out
 
     def transform(self, inpt, inverse=False):
-        """Performs a basis transformation defined by an input array.
+        """Basis transform defined by input array.
 
         Input array can be a ``matrix`` defining the transformation,
         or a ``list`` of kets that defines the new basis.
@@ -1070,7 +1069,7 @@ class Qobj():
                         "and between ket and bra Qobj")
 
     def overlap(self, state):
-        """Calculates a overlap between two state vectors.
+        """Overlap between two state vectors.
 
         Gives overlap (scalar product) for the Qobj and `state` state vector.
 
@@ -1106,7 +1105,7 @@ class Qobj():
 
     def eigenstates(self, sparse=False, sort='low',
                     eigvals=0, tol=0, maxiter=100000):
-        """Find the eigenstates and eigenenergies.
+        """Eigenstates and eigenenergies.
 
         Eigenstates and Eigenvalues are defined for operators and
         superoperators only.
@@ -1155,9 +1154,9 @@ class Qobj():
 
     def eigenenergies(self, sparse=False, sort='low',
                       eigvals=0, tol=0, maxiter=100000):
-        """Finds the Eigenenergies (Eigenvalues) of a quantum object.
+        """Eigenvalues of a quantum object.
 
-        Eigenenergies are defined for operators or superoperators only.
+        Eigenenergies (Eigenvalues) are defined for operators or superoperators only.
 
         Parameters
         ----------
@@ -1192,7 +1191,7 @@ class Qobj():
                        eigvals=eigvals, tol=tol, maxiter=maxiter)
 
     def groundstate(self, sparse=False, tol=0, maxiter=100000):
-        """Finds the ground state Eigenvalue and Eigenvector.
+        """Ground state Eigenvalue and Eigenvector.
 
         Defined for quantum operators or superoperators only.
 
@@ -1246,14 +1245,12 @@ class Qobj():
         out.type = ischeck(out)
         return out
 
-    def extract_states(self, states_indices, normalize=False):
-        """
-        Create a new Qobj instance for which only states corresponding to
-        those in state_indices has been kept.
+    def extract_states(self, states_inds, normalize=False):
+        """Qobj with states in state_inds only.
 
         Parameters
         ----------
-        states_indices : list of integer
+        states_inds : list of integer
             The states that should be kept.
 
         normalize : True / False
@@ -1268,7 +1265,7 @@ class Qobj():
         q : :class:`qutip.Qobj`
 
             A new instance of :class:`qutip.Qobj` that contains only the states
-            corresponding to the indices in `state_indices`.
+            corresponding to the indices in `state_inds`.
 
         .. note::
 
@@ -1276,25 +1273,23 @@ class Qobj():
 
         """
         if isoper(self):
-            q = Qobj(self.data[states_indices, :][:, states_indices])
+            q = Qobj(self.data[states_inds, :][:, states_inds])
         elif isket(self):
-            q = Qobj(self.data[states_indices, :])
+            q = Qobj(self.data[states_inds, :])
         elif isbra(self):
-            q = Qobj(self.data[:, states_indices])
+            q = Qobj(self.data[:, states_inds])
         else:
             raise TypeError("Can only eliminate states from operators or " +
                             "state vectors")
 
         return q.unit() if normalize else q
 
-    def eliminate_states(self, states_indices, normalize=False):
-        """
-        Create a new Qobj instance for which states corresponding to
-        those in state_indices has been eliminated.
+    def eliminate_states(self, states_inds, normalize=False):
+        """New Qobj with states in state_inds eliminated.
 
         Parameters
         ----------
-        states_indices : list of integer
+        states_inds : list of integer
             The states that should be removed.
 
         normalize : True / False
@@ -1309,13 +1304,13 @@ class Qobj():
         q : :class:`qutip.Qobj`
 
             A new instance of :class:`qutip.Qobj` that contains only the states
-            corresponding to indices that are **not** in `state_indices`.
+            corresponding to indices that are **not** in `state_inds`.
 
         .. note::
 
             Experimental.
         """
-        keep_indices = np.array([s not in states_indices
+        keep_indices = np.array([s not in states_inds
                                  for s in range(self.shape[0])]).nonzero()[0]
 
         return self.extract_states(keep_indices, normalize=normalize)

@@ -349,3 +349,30 @@ def convert_mK_to_GHz(w):
     """
     w_GHz = w * 1.0e-12 * (_kB / _h)
     return w_GHz
+
+
+def view_methods(Q):
+    """
+    View the methods and corresponding doc strings
+    for a Qobj class.
+    
+    Parameters
+    ----------
+    Q : Qobj
+        Input Quantum object.
+    
+    """
+    meth=dir(Q)
+    qobj_props=['data','dims','isherm','shape','type']
+    pub_meth=[x for x in meth if x.find('_') and x not in qobj_props]
+    ml=max([len(x) for x in pub_meth])
+    nl=len(Q.__class__.__name__+ 'Class Methods:')
+    print(Q.__class__.__name__+' Class Methods:')
+    print('-'*nl)
+    for ii in range(len(pub_meth)):
+        m=getattr(Q,pub_meth[ii])
+        meth_str=m.__doc__
+        ind=meth_str.find('\n')
+        pub_len=len(pub_meth[ii]+': ')
+        print(pub_meth[ii]+':'+' '*(ml+3-pub_len)+ meth_str[:ind])
+
