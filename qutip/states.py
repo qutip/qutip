@@ -31,16 +31,21 @@ from qutip.operators import destroy
 from qutip.tensor import tensor
 
 
-def basis(N, n=0):
+def basis(N, n=0, offset=0):
     """Generates the vector representation of a Fock state.
 
     Parameters
     ----------
     N : int
         Number of Fock states in Hilbert space.
+
     n : int
-        ``int`` corresponding to desired number state, defaults
+        Integer corresponding to desired number state, defaults
         to 0 if omitted.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the state.
 
     Returns
     -------
@@ -73,14 +78,14 @@ def basis(N, n=0):
     if (not isinstance(N, (int, np.int64))) or N < 0:
         raise ValueError("N must be integer N >= 0")
 
-    if (not isinstance(n, (int, np.int64))) or n < 0:
+    if (not isinstance(n, (int, np.int64))) or n < offset:
         raise ValueError("n must be integer n >= 0")
 
-    if n > (N - 1):  # check if n is within bounds
+    if n - offset > (N - 1):  # check if n is within bounds
         raise ValueError("basis vector index need to be in n <= N-1")
 
     bas = sp.lil_matrix((N, 1))  # column vector of zeros
-    bas[n, 0] = 1  # 1 located at position n
+    bas[n-offset, 0] = 1  # 1 located at position n
     bas = bas.tocsr()
 
     return Qobj(bas)
@@ -103,7 +108,7 @@ def _sqrt_factorial(n_vec):
     return np.array([np.prod(np.sqrt(np.arange(1, n + 1))) for n in n_vec])
 
 
-def coherent(N, alpha, method='operator'):
+def coherent(N, alpha, offset=0, method='operator'):
     """Generates a coherent state with eigenvalue alpha.
 
     Constructed using displacement operator on vacuum state.
@@ -112,8 +117,15 @@ def coherent(N, alpha, method='operator'):
     ----------
     N : int
         Number of Fock states in Hilbert space.
+
     alpha : float/complex
         Eigenvalue of coherent state.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the state. Using a non-zero offset will make the 
+        default method 'analytic'.
+
     method : string {'operator', 'analytic'}
         Method for generating coherent state.
 
@@ -146,17 +158,17 @@ def coherent(N, alpha, method='operator'):
     but would in that case give more accurate coefficients.
 
     """
-    if method == "operator":
+    if method == "operator" and offset == 0:
 
         x = basis(N, 0)
         a = destroy(N)
         D = (alpha * a.dag() - conj(alpha) * a).expm()
         return D * x
 
-    elif method == "analytic":
+    elif method == "analytic" or offset > 0:
 
         data = np.zeros([N, 1], dtype=complex)
-        n = arange(N)
+        n = arange(N) + offset
         data[:, 0] = np.exp(-(abs(alpha) ** 2) / 2.0) * (alpha ** (n)) / \
             _sqrt_factorial(n)
         return Qobj(data)
@@ -166,7 +178,7 @@ def coherent(N, alpha, method='operator'):
             "The method option can only take values 'operator' or 'analytic'")
 
 
-def coherent_dm(N, alpha, method='operator'):
+def coherent_dm(N, alpha, offset=0, method='operator'):
     """Density matrix representation of a coherent state.
 
     Constructed via outer product of :func:`qutip.states.coherent`
@@ -175,8 +187,14 @@ def coherent_dm(N, alpha, method='operator'):
     ----------
     N : int
         Number of Fock states in Hilbert space.
+
     alpha : float/complex
         Eigenvalue for coherent state.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the state.
+
     method : string {'operator', 'analytic'}
         Method for generating coherent density matrix.
 
@@ -210,11 +228,11 @@ shape = [3, 3], type = oper, isHerm = True
 
     """
     if method == "operator":
-        psi = coherent(N, alpha)
+        psi = coherent(N, alpha, offset=offset)
         return psi * psi.dag()
 
     elif method == "analytic":
-        psi = coherent(N, alpha, method='analytic')
+        psi = coherent(N, alpha, offset=offset, method='analytic')
         return psi * psi.dag()
 
     else:
@@ -222,7 +240,7 @@ shape = [3, 3], type = oper, isHerm = True
             "The method option can only take values 'operator' or 'analytic'")
 
 
-def fock_dm(N, n=0):
+def fock_dm(N, n=0, offset=0):
     """Density matrix representation of a Fock state
 
     Constructed via outer product of :func:`qutip.states.fock`.
@@ -251,12 +269,12 @@ shape = [3, 3], type = oper, isHerm = True
       [ 0.+0.j  0.+0.j  0.+0.j]]
 
     """
-    psi = basis(N, n)
+    psi = basis(N, n, offset=offset)
 
     return psi * psi.dag()
 
 
-def fock(N, n=0):
+def fock(N, n=0, offset=0):
     """Bosonic Fock (number) state.
 
     Same as :func:`qutip.states.basis`.
@@ -284,7 +302,7 @@ def fock(N, n=0):
      [ 1.+0.j]]
 
     """    
-    return basis(N, n)
+    return basis(N, n, offset=offset)
 
 
 def thermal_dm(N, n, method='operator'):
@@ -398,18 +416,29 @@ shape = [3, 3], type = oper, isHerm = True
 #
 # projection operator
 #
-def projection(N, n, m):
-    ''' The projection operator that projects state |m> on state |n>.
+def projection(N, n, m, offset=0):
+    """The projection operator that projects state |m> on state |n>: |n><m|.
 
-    i.e., |n><m|.
+    Parameters
+    ----------
+
+    N : int
+        Number of basis states in Hilbert space.
+
+    n, m : float
+        The number states in the projection.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the projector.
 
     Returns
     -------
     oper : qobj
          Requested projection operator.
-    '''
-    ket1 = basis(N, n)
-    ket2 = basis(N, m)
+    """
+    ket1 = basis(N, n, offset=offset)
+    ket2 = basis(N, m, offset=offset)
 
     return ket1 * ket2.dag()
 
