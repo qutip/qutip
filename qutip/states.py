@@ -31,21 +31,21 @@ from qutip.operators import destroy
 from qutip.tensor import tensor
 
 
-def basis(N, *args):
+def basis(N, n=0):
     """Generates the vector representation of a Fock state.
 
     Parameters
     ----------
     N : int
         Number of Fock states in Hilbert space.
-    args : int
+    n : int
         ``int`` corresponding to desired number state, defaults
         to 0 if omitted.
 
     Returns
     -------
     state : qobj
-      Qobj representing the requested number state ``|args>``.
+      Qobj representing the requested number state ``|n>``.
 
     Examples
     --------
@@ -71,18 +71,18 @@ def basis(N, *args):
 
     """
     if (not isinstance(N, (int, np.int64))) or N < 0:
-        raise ValueError("N must be integer N>=0")
-    if not any(args):  # if no args then assume vacuum state
-        args = 0
-    if not isinstance(args, (int, np.int64)):  # if input arg!=0
-        if not isinstance(args[0], (int, np.int64)):
-            raise ValueError("need integer for basis vector index")
-        args = args[0]
-    if args < 0 or args > (N - 1):  # check if args is within bounds
-        raise ValueError("basis vector index need to be in 0=<indx<=N-1")
+        raise ValueError("N must be integer N >= 0")
+
+    if (not isinstance(n, (int, np.int64))) or n < 0:
+        raise ValueError("n must be integer n >= 0")
+
+    if n > (N - 1):  # check if n is within bounds
+        raise ValueError("basis vector index need to be in n <= N-1")
+
     bas = sp.lil_matrix((N, 1))  # column vector of zeros
-    bas[args, 0] = 1  # 1 located at position args
+    bas[n, 0] = 1  # 1 located at position n
     bas = bas.tocsr()
+
     return Qobj(bas)
 
 
@@ -222,7 +222,7 @@ shape = [3, 3], type = oper, isHerm = True
             "The method option can only take values 'operator' or 'analytic'")
 
 
-def fock_dm(N, *args):
+def fock_dm(N, n=0):
     """Density matrix representation of a Fock state
 
     Constructed via outer product of :func:`qutip.states.fock`.
@@ -232,7 +232,7 @@ def fock_dm(N, *args):
     N : int
         Number of Fock states in Hilbert space.
 
-    m : int
+    n : int
         ``int`` for desired number state, defaults to 0 if omitted.
 
     Returns
@@ -251,14 +251,12 @@ shape = [3, 3], type = oper, isHerm = True
       [ 0.+0.j  0.+0.j  0.+0.j]]
 
     """
-    if not args:
-        psi = basis(N)
-    else:
-        psi = basis(N, args[0])
+    psi = basis(N, n)
+
     return psi * psi.dag()
 
 
-def fock(N, *args):
+def fock(N, n=0):
     """Bosonic Fock (number) state.
 
     Same as :func:`qutip.states.basis`.
@@ -268,12 +266,12 @@ def fock(N, *args):
     N : int
         Number of states in the Hilbert space.
 
-    m : int
+    n : int
         ``int`` for desired number state, defaults to 0 if omitted.
 
     Returns
     -------
-        Requested number state :math:`\left|\mathrm{args}\\right>`.
+        Requested number state :math:`\\left|n\\right>`.
 
     Examples
     --------
@@ -285,11 +283,8 @@ def fock(N, *args):
      [ 0.+0.j]
      [ 1.+0.j]]
 
-    """
-    if not args:
-        return basis(N)
-    else:
-        return basis(N, args[0])
+    """    
+    return basis(N, n)
 
 
 def thermal_dm(N, n, method='operator'):
@@ -418,11 +413,10 @@ def projection(N, n, m):
 
     return ket1 * ket2.dag()
 
+
 #
 # composite qubit states
 #
-
-
 def qstate(string):
     """Creates a tensor product for a set of qubits in either
     the 'up' :math:`|0>` or 'down' :math:`|1>` state.
