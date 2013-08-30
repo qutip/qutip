@@ -26,7 +26,7 @@ from qutip.operators import destroy
 from qutip.sparse import sp_reshape
 
 
-def liouvillian(H, c_op_list):
+def liouvillian(H, c_op_list=[]):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators.
 
