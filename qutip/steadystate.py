@@ -18,7 +18,7 @@
 ###########################################################################
 """
 Module contains functions for solving for the steady state density matrix of
-open qunatum systems defined by a Louvillian or Hamiltonian and list of
+open qunatum systems defined by a Louvillian or Hamiltonian and a list of
 collapse operators.
 """
 
@@ -43,7 +43,7 @@ import qutip.settings as qset
 
 def steadystate(
     A, c_op_list=[], method='direct', sparse=True, use_umfpack=True,
-    maxiter=5000, tol=1e-5, use_precond=True, perm_method='AUTO',
+    maxiter=5000, tol=1e-5, use_precond=True, M=None, perm_method='AUTO',
         drop_tol=1e-1, diag_pivot_thresh=0.33, verbose=False):
 
     """Calculates the steady state for the evolution subject to the
@@ -91,6 +91,11 @@ def steadystate(
         preconditioner for the 'iterative' LGMRES and BICG solvers.
         Speeds up convergence time by orders of magnitude in many cases.
 
+    M : {sparse matrix, dense matrix, LinearOperator}
+        Preconditioner for A. The preconditioner should approximate the inverse of A. 
+        Effective preconditioning dramatically improves the rate of convergence, 
+        for iterative methods.  Does not affect other solvers.
+    
     perm_method : str {'AUTO', 'AUTO-BREAK', 'COLAMD', 'MMD_ATA', 'NATURAL'}
         ITERATIVE ONLY. Sets the method for column ordering the incomplete
         LU preconditioner used by the 'iterative' method.  When set to 'AUTO'
@@ -359,11 +364,11 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000,
             (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
             shape=(n ** 2, n ** 2))
     A.sort_indices()
-
-    if use_precond:
+    
+    if use_precond and M==None:
         M = _iterative_precondition(A, n, perm_method, drop_tol,
                                     diag_pivot_thresh, verbose)
-    else:
+    elif use_precond==False and M==None:
         M = None
 
     if verbose:
@@ -406,10 +411,10 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, maxiter=5000,
             shape=(n ** 2, n ** 2))
     A.sort_indices()
 
-    if use_precond:
+    if use_precond and M==None:
         M = _iterative_precondition(A, n, perm_method, drop_tol,
                                     diag_pivot_thresh, verbose)
-    else:
+    elif use_precond==False and M==None:
         M = None
 
     if verbose:
