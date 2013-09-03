@@ -424,7 +424,8 @@ def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me",
         n = np.array([expect(rho0, a_op.dag() * a_op)])
     else:
         n = mesolve(
-            H, rho0, taulist, c_ops, [a_op.dag() * a_op], args=args).expect[0]
+            H, rho0, taulist, c_ops, [a_op.dag() * a_op], 
+            args=args, options=options).expect[0]
 
     # calculate the correlation function G2 and normalize with n to obtain g2
     G2 = correlation_4op_1t(H, rho0, taulist, c_ops,
