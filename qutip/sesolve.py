@@ -592,7 +592,7 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
             output.expect = []
             output.num_expect = n_expt_op
             for op in e_ops:
-                if op.isherm and psi0.isherm:
+                if op.isherm:
                     output.expect.append(np.zeros(n_tsteps))
                 else:
                     output.expect.append(np.zeros(n_tsteps, dtype=complex))
