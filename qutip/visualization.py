@@ -25,7 +25,7 @@ import numpy as np
 if qutip.settings.qutip_graphics == 'YES':
     from pylab import *
     import matplotlib as mpl
-    from matplotlib import pyplot, cm
+    from matplotlib import cm
     from mpl_toolkits.mplot3d import Axes3D
     import matplotlib.pyplot as plt
 
@@ -163,7 +163,7 @@ def sphereplot(theta, phi, values, save=False):
 
     """
     import matplotlib as mpl
-    from matplotlib import pyplot, cm
+    from matplotlib import cm
     from pylab import plot, show, meshgrid, figure, savefig
     from mpl_toolkits.mplot3d import Axes3D
     thetam, phim = meshgrid(theta, phi)
@@ -254,7 +254,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
             z_max += 0.1
 
     norm = mpl.colors.Normalize(z_min, z_max)
-    cmap = get_cmap('jet')  # Spectral
+    cmap = cm.get_cmap('jet')  # Spectral
     colors = cmap(norm(dz))
 
     if ax is None:
@@ -643,7 +643,8 @@ def fock_distribution(rho, offset=0, fig=None, ax=None,
 
 
 def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
-                             cmap=None, alpha_max=7.5, colorbar=False):
+                             cmap=None, alpha_max=7.5, colorbar=False,
+                             method='iterative'):
     """
     Plot the Fock distribution and the Wigner function for a density matrix
     (or ket) that describes an oscillator mode.
@@ -673,6 +674,10 @@ def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
         Whether (True) or not (False) a colorbar should be attached to the
         Wigner function graph.
 
+    method : string {'iterative', 'laguerre', 'fft'}
+        The method used for calculating the wigner function. See the
+        documentation for qutip.wigner for details.
+
     Returns
     -------
     fig, ax : tuple
@@ -689,15 +694,20 @@ def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
     fock_distribution(rho, fig=fig, ax=axes[0])
 
     xvec = linspace(-alpha_max, alpha_max, 200)
-    W = wigner(rho, xvec, xvec)
+    W0 = wigner(rho, xvec, xvec, method=method)
+
+    W, yvec = W0 if type(W0) is tuple else (W0, xvec)
+
     wlim = abs(W).max()
 
     if cmap is None:
-        cmap = get_cmap('RdBu')
-        # cmap = wigner_cmap(W)
+        cmap = cm.get_cmap('RdBu')
 
-    cf = axes[1].contourf(xvec, xvec, W, 100,
+    cf = axes[1].contourf(xvec, yvec, W, 100,
                           norm=mpl.colors.Normalize(-wlim, wlim), cmap=cmap)
+
+    if not xvec is yvec:
+        axes[1].set_ylim(xvec.min(), xvec.max())
 
     axes[1].set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
     axes[1].set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
