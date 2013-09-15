@@ -1,7 +1,7 @@
 from qutip import *
 from time import time
 
-def test_5(N=1.0):
+def test_5(runs=1):
     """
     Cavity+qubit steady state
     """
@@ -11,7 +11,7 @@ def test_5(N=1.0):
     w0=0;N=10;E=0.5;wl=0
 
     tot_elapsed = 0
-    for n in range(N):
+    for n in range(runs):
         tic=time()
         ida=qeye(N)
         idatom=qeye(2)
@@ -27,7 +27,7 @@ def test_5(N=1.0):
         toc=time()
         tot_elapsed += toc - tic
     
-    return [test_name], [tot_elapsed / N]
+    return [test_name], [tot_elapsed / runs]
  
 
 

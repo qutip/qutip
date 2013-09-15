@@ -1,7 +1,7 @@
 from qutip import *
 from time import time
 
-def test_16(N=1.0):
+def test_16(runs=1):
     """
     optomechanical steady state
     """
@@ -27,13 +27,13 @@ def test_16(N=1.0):
     H=(-delta+g0*(b.dag()+b))*(a.dag()*a)+b.dag()*b+alpha*(a.dag()+a)
     #find steady state
     tot_elapsed = 0
-    for n in range(N):
+    for n in range(runs):
         tic=time()
         steadystate(H,c_op_list)
         toc=time()
         tot_elapsed += toc - tic
 
-    return [test_name], [tot_elapsed / N]
+    return [test_name], [tot_elapsed / runs]
  
 
 if __name__=='__main__':
