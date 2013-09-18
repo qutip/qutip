@@ -345,7 +345,7 @@ def position(N, offset=0):
 
 def momentum(N, offset=0):
     """
-    Momentum operator p=1\sqrt(2)*(a-1.0j*a.dag())
+    Momentum operator p=-1j/sqrt(2)*(a-a.dag())
 
     Parameters
     ----------
@@ -362,7 +362,7 @@ def momentum(N, offset=0):
         Momentum operator as Qobj.
     """
     a = destroy(N, offset=offset)
-    return 1.0 / np.sqrt(2.0) * (a - 1.0j * a.dag())
+    return -1j / np.sqrt(2.0) * (a - a.dag())
 
 
 def num(N, offset=0):
