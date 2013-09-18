@@ -151,14 +151,14 @@ def steadystate(
             return _steadystate_direct_dense(A, verbose=verbose)
 
     elif method == 'iterative':
-        return _steadystate_iterative(A, tol=tol, use_precond=use_precond,
+        return _steadystate_iterative(A, tol=tol, use_precond=use_precond, M=M,
                                       maxiter=maxiter, perm_method=perm_method,
                                       drop_tol=drop_tol, verbose=verbose,
                                       diag_pivot_thresh=diag_pivot_thresh)
 
     elif method == 'iterative-bicg':
         return _steadystate_iterative_bicg(A, tol=tol, use_precond=use_precond,
-                                           maxiter=maxiter,
+                                           M=M, maxiter=maxiter,
                                            perm_method=perm_method,
                                            drop_tol=drop_tol, verbose=verbose,
                                            diag_pivot_thresh=diag_pivot_thresh)
@@ -345,9 +345,10 @@ def _iterative_precondition(A, n, perm_method, drop_tol, diag_pivot_thresh,
     return M
 
 
-def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000,
-                           perm_method='AUTO', drop_tol=1e-1,
-                           diag_pivot_thresh=0.33, verbose=False):
+def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
+                           maxiter=5000, perm_method='AUTO',
+                           drop_tol=1e-1, diag_pivot_thresh=0.33,
+                           verbose=False):
     """
     Iterative steady state solver using the LGMRES algorithm
     and a sparse incomplete LU preconditioner.
@@ -365,10 +366,10 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000,
             shape=(n ** 2, n ** 2))
     A.sort_indices()
     
-    if use_precond and M==None:
+    if use_precond and M is None:
         M = _iterative_precondition(A, n, perm_method, drop_tol,
                                     diag_pivot_thresh, verbose)
-    elif use_precond==False and M==None:
+    elif use_precond==False and M is None:
         M = None
 
     if verbose:
@@ -391,9 +392,10 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, maxiter=5000,
     return Qobj(data, dims=L.dims[0], isherm=True)
 
 
-def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, maxiter=5000,
-                                perm_method='AUTO', drop_tol=1e-1,
-                                diag_pivot_thresh=0.33, verbose=False):
+def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, M=None,
+                                maxiter=5000, perm_method='AUTO',
+                                drop_tol=1e-1, diag_pivot_thresh=0.33,
+                                verbose=False):
     """
     Iterative steady state solver using the BICG algorithm
     and a sparse incomplete LU preconditioner.
@@ -411,10 +413,10 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, maxiter=5000,
             shape=(n ** 2, n ** 2))
     A.sort_indices()
 
-    if use_precond and M==None:
+    if use_precond and M is None:
         M = _iterative_precondition(A, n, perm_method, drop_tol,
                                     diag_pivot_thresh, verbose)
-    elif use_precond==False and M==None:
+    elif use_precond==False and M is None:
         M = None
 
     if verbose:
