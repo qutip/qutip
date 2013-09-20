@@ -20,14 +20,14 @@ Download
 
 The official releases of QuTiP can be downloaded at:
 
-[http://code.google.com/p/qutip/downloads/list](http://code.google.com/p/qutip/downloads/list)
+[http://qutip.org/download.html](http://qutip.org/download.html)
 
 Documentation 
 -------------
 
 The documentation for official releases, in HTML and PDF formats, are available at:
 
-[http://code.google.com/p/qutip/wiki/Documentation](http://code.google.com/p/qutip/wiki/Documentation)
+[http://qutip.org/documentation.html](http://qutip.org/documentation.html)
 
 and the development documentation is available at [github.com/qutip/qutip-doc](http://github.com/qutip/qutip-doc).
 
