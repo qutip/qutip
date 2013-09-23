@@ -31,11 +31,11 @@ def cloudfor(func, *args, **kwargs):
     In addition to the function 'func' to be run in parallel, the cloudfor
     function accepts a series of arguments that are passed to the function
     as variables. In general, the function can have multiple input variables, 
-    and these arguemnts must be passed in the same order as they are defined in
+    and these arguments must be passed in the same order as they are defined in
     the function definition.
     
     Furthermore, several keyword arguments may be given that set the settings
-    for the PiCloud cluster.
+    for the PiCloud cluster:
     
     _type - Type of core used in picloud: 'c1', 'c2', 'f2' (default), 'm1', 's1'
     _cores - Number of cores used: 4 (default)

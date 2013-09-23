@@ -210,7 +210,6 @@ from qutip.expect import *
 from qutip.superoperator import *
 from qutip.tensor import *
 from qutip.parfor import *
-from qutip.cloudfor import *
 from qutip.sparse import sp_eigs, condest
 
 # graphics
@@ -265,3 +264,12 @@ from qutip.utilities import *
 from qutip.fileio import *
 from qutip.demos import demos
 from qutip.about import *
+
+
+# picloud parallel for-loop
+try:
+    import cloud
+except:
+    pass
+else:
+    from cloudfor import *
