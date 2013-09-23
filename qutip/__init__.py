@@ -210,6 +210,7 @@ from qutip.expect import *
 from qutip.superoperator import *
 from qutip.tensor import *
 from qutip.parfor import *
+from qutip.cloudfor import *
 from qutip.sparse import sp_eigs, condest
 
 # graphics
