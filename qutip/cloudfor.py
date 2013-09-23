@@ -37,10 +37,12 @@ def cloudfor(func, *args, **kwargs):
     Furthermore, several keyword arguments may be given that set the settings
     for the PiCloud cluster.
     
-    type - Type of core used in picloud: 'c1', 'c2', 'f2' (default), 'm1', 's1'
-    cores - Number of cores used: 4 (default)
-    env - Custom environment for computation.  Set to current version of qutip.
-    label - Provide a label for the current computation.
+    _type - Type of core used in picloud: 'c1', 'c2', 'f2' (default), 'm1', 's1'
+    _cores - Number of cores used: 4 (default)
+    _env - Custom environment for computation.  Set to current version of qutip.
+    _label - Provide a label for the current computation.
+    
+    For more information see the PiCloud website: http://www.picloud.com/
     
     """
     kw = _default_cloud_settings()
@@ -49,8 +51,7 @@ def cloudfor(func, *args, **kwargs):
             raise Exception(str(keys)+' is not a valid kwarg.')
         else:
             kw[keys]=kwargs[keys]
-    job_ids = cloud.map(func, *args, _type=kw['type'], _cores=kw['cores'], 
-                        _env=kw['env'], _label=kw['label'])
+    job_ids = cloud.map(func, *args, **kw)
     results = cloud.result(job_ids)
     if isinstance(results[0], tuple):
         par_return = [elem for elem in results]
@@ -62,6 +63,6 @@ def cloudfor(func, *args, **kwargs):
 
 
 def _default_cloud_settings():
-    settings = {'type':'f2','cores':4,'env':'/pnation/qutip_2_2',
-                'label': 'qutip job'}
+    settings = {'_type':'f2','_cores':4,'_env':'/pnation/qutip_2_2',
+                '_label': 'qutip job'}
     return settings
