@@ -21,7 +21,7 @@ import numpy as np
 
 def cloudfor(func, *args, **kwargs):
     """
-    Runs the given function in parallel over the PiCloud cluster
+    Runs the given function in parallel over the PiCloud cluster.
     
     Parameters
     ----------

@@ -272,4 +272,4 @@ try:
 except:
     pass
 else:
-    from cloudfor import *
+    from qutip.cloudfor import *
