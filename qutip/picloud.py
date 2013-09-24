@@ -19,7 +19,7 @@
 import cloud
 import numpy as np
 
-def cloudfor(func, *args, **kwargs):
+def picloud(func, *args, **kwargs):
     """
     Runs the given function in parallel over the PiCloud cluster.
     
@@ -28,7 +28,7 @@ def cloudfor(func, *args, **kwargs):
     func : function
         Function to run in parallel.
         
-    In addition to the function 'func' to be run in parallel, the cloudfor
+    In addition to the function 'func' to be run in parallel, the picloud
     function accepts a series of arguments that are passed to the function
     as variables. In general, the function can have multiple input variables, 
     and these arguments must be passed in the same order as they are defined in

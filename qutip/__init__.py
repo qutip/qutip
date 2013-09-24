@@ -272,4 +272,4 @@ try:
 except:
     pass
 else:
-    from qutip.cloudfor import *
+    from qutip.picloud import *
