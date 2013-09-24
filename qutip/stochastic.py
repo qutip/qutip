@@ -67,7 +67,7 @@ class _StochasticSolverData:
                  e_ops=[], m_ops=[], args=None, ntraj=1, nsubsteps=1,
                  d1=None, d2=None, d2_len=1, rhs=None, homogeneous=True,
                  solver=None, method=None, distribution='normal',
-                 store_measurement=False, noise=None,
+                 store_measurement=False, noise=None, normalize=True,
                  options=Odeoptions(), progress_bar=TextProgressBar()):
 
         self.H = H
@@ -93,6 +93,7 @@ class _StochasticSolverData:
         self.store_states = options.store_states
         self.noise = noise
         self.args = args
+        self.normalize = normalize
 
 
 def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
@@ -420,11 +421,12 @@ def ssesolve_generic(ssdata, options, progress_bar):
 
         noise = ssdata.noise[n] if ssdata.noise else None
 
-        states_list, dW, m = _ssesolve_single_trajectory(
+        states_list, dW, m = _ssesolve_single_trajectory(data,
             ssdata.H, dt, ssdata.tlist, N_store, N_substeps, psi_t, A_ops,
-            ssdata.e_ops, ssdata.m_ops, data, ssdata.rhs_func, ssdata.d1, ssdata.d2,
+            ssdata.e_ops, ssdata.m_ops, ssdata.rhs_func, ssdata.d1, ssdata.d2,
             ssdata.d2_len, ssdata.homogeneous, ssdata.distribution, ssdata.args,
-            store_measurement=ssdata.store_measurement, noise=noise)
+            store_measurement=ssdata.store_measurement, noise=noise,
+            normalize=ssdata.normalize)
 
         data.states.append(states_list)
         data.noise.append(dW)
@@ -452,10 +454,11 @@ def ssesolve_generic(ssdata, options, progress_bar):
     return data
 
 
-def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
-                                A_ops, e_ops, m_ops, data, rhs, d1, d2, d2_len,
+def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
+                                A_ops, e_ops, m_ops, rhs, d1, d2, d2_len,
                                 homogeneous, distribution, args,
-                                store_measurement=False, noise=None):
+                                store_measurement=False, noise=None,
+                                normalize=True):
     """
     Internal function. See ssesolve.
     """
@@ -502,7 +505,8 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
             # optionally renormalize the wave function: TODO: make the 
             # renormalization optional through a configuration parameter in
             # Odeoptions
-            psi_t /= norm(psi_t)
+            if normalize:
+                psi_t /= norm(psi_t)
 
         if store_measurement:
             for m_idx, m in enumerate(m_ops):
@@ -577,9 +581,9 @@ def smesolve_generic(ssdata, options, progress_bar):
 
         noise = ssdata.noise[n] if ssdata.noise else None
 
-        states_list, dW, m = _smesolve_single_trajectory(
+        states_list, dW, m = _smesolve_single_trajectory(data,
             L, dt, ssdata.tlist, N_store, N_substeps,
-            rho_t, A_ops, s_e_ops, s_m_ops, data, ssdata.rhs,
+            rho_t, A_ops, s_e_ops, s_m_ops, ssdata.rhs,
             ssdata.d1, ssdata.d2, ssdata.d2_len, ssdata.homogeneous,
             ssdata.distribution, ssdata.args,
             store_measurement=ssdata.store_measurement,
@@ -611,8 +615,8 @@ def smesolve_generic(ssdata, options, progress_bar):
     return data
 
 
-def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
-                                A_ops, e_ops, m_ops, data, rhs, d1, d2, d2_len,
+def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
+                                A_ops, e_ops, m_ops, rhs, d1, d2, d2_len,
                                 homogeneous, distribution, args,
                                 store_measurement=False, 
                                 store_states=False, noise=None):
@@ -711,10 +715,9 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
         psi_t = ssdata.psi0.full().ravel()
 
         states_list, jump_times, jump_op_idx = \
-            _sepdpsolve_single_trajectory(Heff, dt, ssdata.tlist,
+            _sepdpsolve_single_trajectory(data, Heff, dt, ssdata.tlist,
                                           N_store, N_substeps,
-                                          psi_t, ssdata.c_ops, ssdata.e_ops, 
-                                          data)
+                                          psi_t, ssdata.c_ops, ssdata.e_ops)
 
         data.states.append(states_list)
         data.jump_times.append(jump_times)
@@ -742,8 +745,8 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
     return data
 
 
-def _sepdpsolve_single_trajectory(Heff, dt, tlist, N_store, N_substeps, psi_t,
-                                  c_ops, e_ops, data):
+def _sepdpsolve_single_trajectory(data, Heff, dt, tlist, N_store, N_substeps,
+                                  psi_t, c_ops, e_ops):
     """
     Internal function.
     """
@@ -845,10 +848,9 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
         rho_t = mat2vec(ssdata.rho0.full()).ravel()
 
         states_list, jump_times, jump_op_idx = \
-            _smepdpsolve_single_trajectory(L, dt, ssdata.tlist,
+            _smepdpsolve_single_trajectory(data, L, dt, ssdata.tlist,
                                            N_store, N_substeps,
-                                           rho_t, ssdata.c_ops, ssdata.e_ops, 
-                                           data)
+                                           rho_t, ssdata.c_ops, ssdata.e_ops)
 
         data.states.append(states_list)
         data.jump_times.append(jump_times)
@@ -872,8 +874,8 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
     return data
 
 
-def _smepdpsolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
-                                   c_ops, e_ops, data):
+def _smepdpsolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps,
+                                   rho_t, c_ops, e_ops):
     """ 
     Internal function.
     """
