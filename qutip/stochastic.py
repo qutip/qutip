@@ -507,8 +507,8 @@ def _ssesolve_single_trajectory(H, dt, tlist, N_store, N_substeps, psi_t,
         if store_measurement:
             for m_idx, m in enumerate(m_ops):
                 phi = spmv(m.data.data, m.data.indices, m.data.indptr, psi_prev)
-                measurements[t_idx, m_idx] = (norm(phi) ** 2 * dt * N_substeps
-                                              + dW[m_idx, t_idx, :, 0].sum())
+                measurements[t_idx, m_idx] = (norm(phi) ** 2 +
+                                              dW[m_idx, t_idx, :, 0].sum())
 
 
     return states_list, dW, measurements
@@ -664,7 +664,8 @@ def _smesolve_single_trajectory(L, dt, tlist, N_store, N_substeps, rho_t,
         if store_measurement:
             for m_idx, m in enumerate(m_ops):
                 # TODO: allow using more than one increment
-                measurements[t_idx, m_idx] = cy_expect_rho_vec(m.data, rho_prev) * dt * N_substeps + dW[m_idx, t_idx, :, 0].sum()
+                measurements[t_idx, m_idx] = cy_expect_rho_vec(m.data, rho_prev)  + dW[m_idx, t_idx, :, 0].sum()
+                #* dt * N_substeps
 
     return states_list, dW, measurements
 
