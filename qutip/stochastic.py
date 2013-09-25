@@ -523,7 +523,10 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
                     measurements[t_idx, m_idx, d2_idx] = (norm(phi) ** 2 +
                                                   dW[m_idx, t_idx, :, 0].sum() / (dt * N_substeps))
 
-    return states_list, dW, measurements.squeeze(axis=(2))
+    if d2_len == 1:
+        measurements = measurements.squeeze(axis=(2))
+
+    return states_list, dW, measurements
 
 
 #------------------------------------------------------------------------------
@@ -679,7 +682,10 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
                     m_expt = cy_expect_rho_vec(m[d2_idx].data, rho_prev)
                     measurements[t_idx, m_idx, d2_idx] = m_expt + d2_factor * dW[m_idx, t_idx, :, d2_idx].sum() / (dt * N_substeps)
 
-    return states_list, dW, measurements.squeeze(axis=(2))
+    if d2_len == 1:
+        measurements = measurements.squeeze(axis=(2))
+
+    return states_list, dW, measurements
 
 
 #------------------------------------------------------------------------------
