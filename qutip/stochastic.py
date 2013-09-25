@@ -64,8 +64,8 @@ class _StochasticSolverData:
     Internal class for passing data between stochastic solver functions.
     """
     def __init__(self, H=None, state0=None, tlist=None, c_ops=[], sc_ops=[],
-                 e_ops=[], m_ops=[], args=None, ntraj=1, nsubsteps=1,
-                 d1=None, d2=None, d2_len=1, rhs=None, homogeneous=True,
+                 e_ops=[], m_ops=None, args=None, ntraj=1, nsubsteps=1,
+                 d1=None, d2=None, d2_len=1, d2_factors=None, rhs=None, homogeneous=True,
                  solver=None, method=None, distribution='normal',
                  store_measurement=False, noise=None, normalize=True,
                  options=Odeoptions(), progress_bar=TextProgressBar()):
@@ -74,12 +74,18 @@ class _StochasticSolverData:
         self.d1 = d1
         self.d2 = d2
         self.d2_len = d2_len
+        self.d2_factors = d2_factors if d2_factors else np.ones(d2_len)
         self.state0 = state0
         self.tlist = tlist
         self.c_ops = c_ops
         self.sc_ops = sc_ops
         self.e_ops = e_ops
-        self.m_ops = m_ops
+
+        if m_ops is None:
+            self.m_ops = [[c for _ in range(d2_len)] for c in c_ops]
+        else:
+            self.m_ops = m_ops
+        
         self.ntraj = ntraj
         self.nsubsteps = nsubsteps
         self.solver = solver
@@ -152,7 +158,7 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 1
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
-            ssdata.m_ops = [c + c.dag() for c in ssdata.sc_ops]
+            ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
 
         elif ssdata.method == 'heterodyne':
             ssdata.d1 = d1_psi_heterodyne
@@ -160,6 +166,8 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 2
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
+            ssdata.d2_factors = np.array([np.sqrt(2), np.sqrt(2)])
+            ssdata.m_ops = [[c + c.dag(), -1j*(c - c.dag())] for c in ssdata.sc_ops]
 
         elif ssdata.method == 'photocurrent':
             ssdata.d1 = d1_psi_photocurrent
@@ -257,7 +265,7 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 1
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
-            ssdata.m_ops = [c + c.dag() for c in ssdata.sc_ops]
+            ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
 
         elif ssdata.method == 'heterodyne':
             ssdata.d1 = d1_rho_heterodyne
@@ -265,6 +273,8 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 2
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
+            ssdata.d2_factors = np.array([np.sqrt(2), np.sqrt(2)])
+            ssdata.m_ops = [[c + c.dag(), -1j*(c - c.dag())] for c in ssdata.sc_ops]
 
         elif ssdata.method == 'photocurrent':
             ssdata.d1 = d1_rho_photocurrent
@@ -478,7 +488,7 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
         dW = noise
 
     states_list = []
-    measurements = np.zeros((len(tlist), len(m_ops)), dtype=complex)
+    measurements = np.zeros((len(tlist), len(m_ops), d2_len), dtype=complex)
 
     for t_idx, t in enumerate(tlist):
 
@@ -502,20 +512,18 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
             psi_t = rhs(H.data, psi_t, t + dt * j,
                         A_ops, dt, dW[:, t_idx, j, :], d1, d2, args)
 
-            # optionally renormalize the wave function: TODO: make the 
-            # renormalization optional through a configuration parameter in
-            # Odeoptions
+            # optionally renormalize the wave function
             if normalize:
                 psi_t /= norm(psi_t)
 
         if store_measurement:
             for m_idx, m in enumerate(m_ops):
-                phi = spmv(m.data.data, m.data.indices, m.data.indptr, psi_prev)
-                measurements[t_idx, m_idx] = (norm(phi) ** 2 +
-                                              dW[m_idx, t_idx, :, 0].sum())
+                for d2_idx, d2_factor in enumerate(d2_factors):
+                    phi = spmv(m[d2_idx].data.data, m[d2_idx].data.indices, m[d2_idx].data.indptr, psi_prev)
+                    measurements[t_idx, m_idx, d2_idx] = (norm(phi) ** 2 +
+                                                  dW[m_idx, t_idx, :, 0].sum() / (dt * N_substeps))
 
-
-    return states_list, dW, measurements
+    return states_list, dW, measurements.squeeze(axis=(2))
 
 
 #------------------------------------------------------------------------------
@@ -563,9 +571,9 @@ def smesolve_generic(ssdata, options, progress_bar):
     s_e_ops = [spre(e) for e in ssdata.e_ops]
 
     if ssdata.m_ops:
-        s_m_ops = [spre(m) for m in ssdata.m_ops]
+        s_m_ops = [[spre(m) for m in m_op] for m_op in ssdata.m_ops]
     else:
-        s_m_ops = [spre(c) for c in ssdata.sc_ops]
+        s_m_ops = [[spre(c) for _ in range(ssdata.d2_len)] for c in ssdata.sc_ops]
 
     
     # Liouvillian for the deterministic part.
@@ -584,7 +592,7 @@ def smesolve_generic(ssdata, options, progress_bar):
         states_list, dW, m = _smesolve_single_trajectory(data,
             L, dt, ssdata.tlist, N_store, N_substeps,
             rho_t, A_ops, s_e_ops, s_m_ops, ssdata.rhs,
-            ssdata.d1, ssdata.d2, ssdata.d2_len, ssdata.homogeneous,
+            ssdata.d1, ssdata.d2, ssdata.d2_len, ssdata.d2_factors, ssdata.homogeneous,
             ssdata.distribution, ssdata.args,
             store_measurement=ssdata.store_measurement,
             store_states=ssdata.store_states, noise=noise)
@@ -616,7 +624,7 @@ def smesolve_generic(ssdata, options, progress_bar):
 
 
 def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
-                                A_ops, e_ops, m_ops, rhs, d1, d2, d2_len,
+                                A_ops, e_ops, m_ops, rhs, d1, d2, d2_len, d2_factors, 
                                 homogeneous, distribution, args,
                                 store_measurement=False, 
                                 store_states=False, noise=None):
@@ -639,13 +647,13 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
         dW = noise
 
     states_list = []
-    measurements = np.zeros((len(tlist), len(m_ops)), dtype=complex)
+    measurements = np.zeros((len(tlist), len(m_ops), d2_len), dtype=complex)
 
     for t_idx, t in enumerate(tlist):
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                s = expect_rho_vec(e.data, rho_t)
+                s = cy_expect_rho_vec(e.data, rho_t)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2 
         
@@ -667,11 +675,11 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
 
         if store_measurement:
             for m_idx, m in enumerate(m_ops):
-                # TODO: allow using more than one increment
-                measurements[t_idx, m_idx] = cy_expect_rho_vec(m.data, rho_prev)  + dW[m_idx, t_idx, :, 0].sum()
-                #* dt * N_substeps
+                for d2_idx, d2_factor in enumerate(d2_factors):
+                    m_expt = cy_expect_rho_vec(m[d2_idx].data, rho_prev)
+                    measurements[t_idx, m_idx, d2_idx] = m_expt + d2_factor * dW[m_idx, t_idx, :, d2_idx].sum() / (dt * N_substeps)
 
-    return states_list, dW, measurements
+    return states_list, dW, measurements.squeeze(axis=(2))
 
 
 #------------------------------------------------------------------------------
@@ -1248,9 +1256,8 @@ def _rhs_rho_euler_maruyama(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
 
     for a_idx, A in enumerate(A_ops):
         d2_vec = d2(A, rho_t)
-        drho_t += d1(A, rho_t) * dt + sum([d2_vec[n] * dW[a_idx, n]
-                                           for n in range(dW_len)
-                                           if dW[a_idx, n] != 0])
+        drho_t += d1(A, rho_t) * dt
+        drho_t += sum([d2_vec[n] * dW[a_idx, n] for n in range(dW_len) if dW[a_idx, n] != 0])
 
     return rho_t + drho_t
 
@@ -1317,6 +1324,7 @@ def _rhs_rho_milstein_homodyne_single(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     drho_t += (d2_vec - e1*rho_t)*dW[0,0]
     drho_t += 0.5 * (d2_vec2 - 2*e1*d2_vec + (-e2 + 2*e1*e1)*rho_t)*(dW[0,0]*dW[0,0] - dt)
     return rho_t + drho_t
+
 
 def _rhs_rho_milstein_homodyne(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     """
