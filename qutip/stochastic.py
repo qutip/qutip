@@ -158,7 +158,7 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 1
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
-            ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
+            #ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
 
         elif ssdata.method == 'heterodyne':
             ssdata.d1 = d1_psi_heterodyne
@@ -167,7 +167,8 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
             ssdata.d2_factors = np.array([np.sqrt(2), np.sqrt(2)])
-            ssdata.m_ops = [[c + c.dag(), -1j*(c - c.dag())] for c in ssdata.sc_ops]
+            if not hasattr(kwargs, "m_ops"):
+                ssdata.m_ops = [[c + c.dag(), -1j*(c - c.dag())] for c in ssdata.sc_ops]
 
         elif ssdata.method == 'photocurrent':
             ssdata.d1 = d1_psi_photocurrent
@@ -265,7 +266,7 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 1
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
-            ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
+            #ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
 
         elif ssdata.method == 'heterodyne':
             ssdata.d1 = d1_rho_heterodyne
@@ -274,7 +275,8 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
             ssdata.d2_factors = np.array([np.sqrt(2), np.sqrt(2)])
-            ssdata.m_ops = [[c + c.dag(), -1j*(c - c.dag())] for c in ssdata.sc_ops]
+            if not hasattr(kwargs, "m_ops"):
+                ssdata.m_ops = [[c + c.dag(), -1j*(c - c.dag())] for c in ssdata.sc_ops]
 
         elif ssdata.method == 'photocurrent':
             ssdata.d1 = d1_rho_photocurrent
