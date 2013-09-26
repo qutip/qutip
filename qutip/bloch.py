@@ -22,7 +22,7 @@
 import os
 
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
-                   sqrt, real, imag, mod, append, ceil, floor)
+                   sqrt, real, imag, mod, append, ceil, floor, arange)
 
 from pylab import figure, plot, show, savefig, close
 from mpl_toolkits.mplot3d import Axes3D
@@ -439,7 +439,7 @@ class Bloch():
                 dist, indperm = zip(*zipped)
                 indperm = array(indperm)
             else:
-                indperm = range(num)
+                indperm = arange(num)
             if self.point_style[k] == 's':
                 self.axes.scatter(
                     real(self.points[k][1][indperm]),
