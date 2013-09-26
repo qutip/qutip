@@ -28,7 +28,7 @@ ctypedef np.float64_t DTYPE_t
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_rhs_psi_deterministic(object H,
+cpdef np.ndarray[CTYPE_t, ndim=1] cy_rhs_psi_deterministic(object H,
                                np.ndarray[CTYPE_t, ndim=1] state,
                                double t,
                                double dt,
@@ -37,6 +37,8 @@ cpdef cy_rhs_psi_deterministic(object H,
     Deterministic contribution to the density matrix change; cython
     implementation.
     """
+    cdef np.ndarray[CTYPE_t, ndim=1] dpsi_t 
+
     dpsi_t = (-1.0j * dt) * spmv(H.data, H.indices, H.indptr, state)
 
     return dpsi_t
@@ -44,7 +46,7 @@ cpdef cy_rhs_psi_deterministic(object H,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_rhs_rho_deterministic(object L,
+cpdef np.ndarray[CTYPE_t, ndim=1] cy_rhs_rho_deterministic(object L,
                                np.ndarray[CTYPE_t, ndim=1] rho_t,
                                double t,
                                double dt,
@@ -53,6 +55,8 @@ cpdef cy_rhs_rho_deterministic(object L,
     Deterministic contribution to the density matrix change; cython
     implementation.
     """
+    cdef np.ndarray[CTYPE_t, ndim=1] drho_t
+
     drho_t = spmv(L.data, L.indices, L.indptr, rho_t) * dt
 
     return drho_t
