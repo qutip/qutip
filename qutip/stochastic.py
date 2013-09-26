@@ -55,6 +55,7 @@ from qutip.cyQ.spmatfuncs import cy_expect, spmv, cy_expect_rho_vec
 from qutip.gui.progressbar import TextProgressBar
 
 from qutip.settings import debug
+from qutip.operators import commutator
 
 if debug:
     import inspect
@@ -158,7 +159,8 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 1
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
-            #ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
+            if not hasattr(kwargs, "m_ops"):
+                ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
 
         elif ssdata.method == 'heterodyne':
             ssdata.d1 = d1_psi_heterodyne
@@ -166,9 +168,18 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 2
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
-            ssdata.d2_factors = np.array([np.sqrt(2), np.sqrt(2)])
+            if not hasattr(kwargs, "d2_factors"):
+                ssdata.d2_factors = np.array([np.sqrt(2), np.sqrt(2)])
             if not hasattr(kwargs, "m_ops"):
-                ssdata.m_ops = [[c + c.dag(), -1j*(c - c.dag())] for c in ssdata.sc_ops]
+                # XXX: ugly hack to get around that we need the quadrature
+                # operators and not the collapse operator (factor sqrt(gamma)
+                # difference).
+                g_vec = [0.5 * (commutator((c + c.dag()), -1j * (c - c.dag()))[0,0]).imag
+                         for c in ssdata.sc_ops]
+                ssdata.m_ops = [[(c + c.dag()) / np.sqrt(g_vec[idx]),
+                                 (-1j) * (c - c.dag()) / np.sqrt(g_vec[idx])]
+                                 for idx, c in enumerate(ssdata.sc_ops)]
+                
 
         elif ssdata.method == 'photocurrent':
             ssdata.d1 = d1_psi_photocurrent
@@ -182,14 +193,14 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
 
     if ssdata.solver == 'euler-maruyama' or ssdata.solver == None:
         ssdata.rhs_func = _rhs_psi_euler_maruyama
-        res = ssesolve_generic(ssdata, ssdata.options, ssdata.progress_bar)
 
     elif ssdata.solver == 'platen':
         ssdata.rhs_func = _rhs_psi_platen
-        res = ssesolve_generic(ssdata, ssdata.options, ssdata.progress_bar)
 
     else:
         raise Exception("Unrecognized solver '%s'." % ssdata.solver)
+
+    res = ssesolve_generic(ssdata, ssdata.options, ssdata.progress_bar)
 
     if e_ops_dict:
         res.expect = {e: res.expect[n]
@@ -266,7 +277,10 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 1
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
-            #ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
+            if not hasattr(kwargs, "m_ops"):
+                ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
+            if not hasattr(kwargs, "d2_factors"):
+                ssdata.d2_factors = np.array([np.sqrt(2)])
 
         elif ssdata.method == 'heterodyne':
             ssdata.d1 = d1_rho_heterodyne
@@ -274,9 +288,18 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 2
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
-            ssdata.d2_factors = np.array([np.sqrt(2), np.sqrt(2)])
+            if not hasattr(kwargs, "d2_factors"):
+                ssdata.d2_factors = np.array([np.sqrt(2), np.sqrt(2)])
             if not hasattr(kwargs, "m_ops"):
-                ssdata.m_ops = [[c + c.dag(), -1j*(c - c.dag())] for c in ssdata.sc_ops]
+                # XXX: ugly hack to get around that we need the quadrature
+                # operators without the sqrt(gamma) factor from the collapse
+                # operators
+                g_vec = [0.5 * (commutator((c + c.dag()), -1j * (c - c.dag()))[0,0]).imag
+                         for c in ssdata.sc_ops]
+                ssdata.m_ops = [[(c + c.dag()) / np.sqrt(g_vec[idx]),
+                                 (-1j) * (c - c.dag()) / np.sqrt(g_vec[idx])]
+                                 for idx, c in enumerate(ssdata.sc_ops)]
+
 
         elif ssdata.method == 'photocurrent':
             ssdata.d1 = d1_rho_photocurrent
