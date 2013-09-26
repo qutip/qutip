@@ -66,7 +66,7 @@ class _StochasticSolverData:
     """
     def __init__(self, H=None, state0=None, tlist=None, c_ops=[], sc_ops=[],
                  e_ops=[], m_ops=None, args=None, ntraj=1, nsubsteps=1,
-                 d1=None, d2=None, d2_len=1, d2_factors=None, rhs=None, homogeneous=True,
+                 d1=None, d2=None, d2_len=1, dW_factors=None, rhs=None, homogeneous=True,
                  solver=None, method=None, distribution='normal',
                  store_measurement=False, noise=None, normalize=True,
                  options=Odeoptions(), progress_bar=TextProgressBar()):
@@ -75,7 +75,7 @@ class _StochasticSolverData:
         self.d1 = d1
         self.d2 = d2
         self.d2_len = d2_len
-        self.d2_factors = d2_factors if d2_factors else np.ones(d2_len)
+        self.dW_factors = dW_factors if dW_factors else np.ones(d2_len)
         self.state0 = state0
         self.tlist = tlist
         self.c_ops = c_ops
@@ -168,8 +168,8 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 2
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
-            if not hasattr(kwargs, "d2_factors"):
-                ssdata.d2_factors = np.array([np.sqrt(2), np.sqrt(2)])
+            if not hasattr(kwargs, "dW_factors"):
+                ssdata.dW_factors = np.array([np.sqrt(2), np.sqrt(2)])
             if not hasattr(kwargs, "m_ops"):
                 # XXX: ugly hack to get around that we need the quadrature
                 # operators and not the collapse operator (factor sqrt(gamma)
@@ -279,8 +279,8 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
             ssdata.distribution = 'normal'
             if not hasattr(kwargs, "m_ops"):
                 ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
-            if not hasattr(kwargs, "d2_factors"):
-                ssdata.d2_factors = np.array([np.sqrt(2)])
+            if not hasattr(kwargs, "dW_factors"):
+                ssdata.dW_factors = np.array([np.sqrt(2)])
 
         elif ssdata.method == 'heterodyne':
             ssdata.d1 = d1_rho_heterodyne
@@ -288,8 +288,8 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 2
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
-            if not hasattr(kwargs, "d2_factors"):
-                ssdata.d2_factors = np.array([np.sqrt(2), np.sqrt(2)])
+            if not hasattr(kwargs, "dW_factors"):
+                ssdata.dW_factors = np.array([np.sqrt(2), np.sqrt(2)])
             if not hasattr(kwargs, "m_ops"):
                 # XXX: ugly hack to get around that we need the quadrature
                 # operators without the sqrt(gamma) factor from the collapse
@@ -543,9 +543,9 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
 
         if store_measurement:
             for m_idx, m in enumerate(m_ops):
-                for d2_idx, d2_factor in enumerate(d2_factors):
-                    phi = spmv(m[d2_idx].data.data, m[d2_idx].data.indices, m[d2_idx].data.indptr, psi_prev)
-                    measurements[t_idx, m_idx, d2_idx] = (norm(phi) ** 2 +
+                for dW_idx, dW_factor in enumerate(dW_factors):
+                    phi = spmv(m[dW_idx].data.data, m[dW_idx].data.indices, m[dW_idx].data.indptr, psi_prev)
+                    measurements[t_idx, m_idx, dW_idx] = (norm(phi) ** 2 +
                                                   dW[m_idx, t_idx, :, 0].sum() / (dt * N_substeps))
 
     if d2_len == 1:
@@ -620,7 +620,7 @@ def smesolve_generic(ssdata, options, progress_bar):
         states_list, dW, m = _smesolve_single_trajectory(data,
             L, dt, ssdata.tlist, N_store, N_substeps,
             rho_t, A_ops, s_e_ops, s_m_ops, ssdata.rhs,
-            ssdata.d1, ssdata.d2, ssdata.d2_len, ssdata.d2_factors, ssdata.homogeneous,
+            ssdata.d1, ssdata.d2, ssdata.d2_len, ssdata.dW_factors, ssdata.homogeneous,
             ssdata.distribution, ssdata.args,
             store_measurement=ssdata.store_measurement,
             store_states=ssdata.store_states, noise=noise)
@@ -652,7 +652,7 @@ def smesolve_generic(ssdata, options, progress_bar):
 
 
 def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
-                                A_ops, e_ops, m_ops, rhs, d1, d2, d2_len, d2_factors, 
+                                A_ops, e_ops, m_ops, rhs, d1, d2, d2_len, dW_factors, 
                                 homogeneous, distribution, args,
                                 store_measurement=False, 
                                 store_states=False, noise=None):
@@ -703,9 +703,9 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
 
         if store_measurement:
             for m_idx, m in enumerate(m_ops):
-                for d2_idx, d2_factor in enumerate(d2_factors):
-                    m_expt = cy_expect_rho_vec(m[d2_idx].data, rho_prev)
-                    measurements[t_idx, m_idx, d2_idx] = m_expt + d2_factor * dW[m_idx, t_idx, :, d2_idx].sum() / (dt * N_substeps)
+                for dW_idx, dW_factor in enumerate(dW_factors):
+                    m_expt = cy_expect_rho_vec(m[dW_idx].data, rho_prev)
+                    measurements[t_idx, m_idx, dW_idx] = m_expt + dW_factor * dW[m_idx, t_idx, :, dW_idx].sum() / (dt * N_substeps)
 
     if d2_len == 1:
         measurements = measurements.squeeze(axis=(2))
