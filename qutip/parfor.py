@@ -43,7 +43,7 @@ def _task_wrapper_with_args(args, user_args):
 
 
 def parfor(func, *args, **kwargs):
-    """Executes a single-variable function in parallel on the local machine.
+    """Executes a multi-variable function in parallel on the local machine.
 
     Parallel execution of a for-loop over function `func` for multiple input
     arguments and keyword arguments.
