@@ -38,7 +38,7 @@ def picloud(func, *args, **kwargs):
     for the PiCloud cluster:
     
     _type - Type of core used in picloud: 'c1', 'c2', 'f2' (default), 'm1', 's1'
-    _cores - Number of cores used: 4 (default)
+    _cores - Number of cores used: 1 (default)
     _env - Custom environment for computation.  Set to current version of qutip.
     _label - Provide a label for the current computation.
     
@@ -63,6 +63,6 @@ def picloud(func, *args, **kwargs):
 
 
 def _default_cloud_settings():
-    settings = {'_type':'f2','_cores':4,'_env':'/pnation/qutip_2_2',
+    settings = {'_type':'f2','_cores':1,'_env':'/pnation/qutip_2_2',
                 '_label': 'qutip job'}
     return settings
