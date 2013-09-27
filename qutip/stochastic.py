@@ -696,6 +696,7 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
             if noise is None and not homogeneous:
                 for a_idx, A in enumerate(A_ops):
                     dw_expect = np.real(cy_expect_rho_vec(A[4], rho_t)) * dt
+                    dw_expect = dw_expect if dw_expect > 0 else 0.0
                     dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
 
             rho_t = rhs(L.data, rho_t, t + dt * j,
