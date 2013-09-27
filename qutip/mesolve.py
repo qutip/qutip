@@ -789,7 +789,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
             else:
                 new_args[key] = args[key]
 
-    elif type(args) is list:
+    elif type(args) is list or type(args) is tuple:
         new_args = []
         for arg in args:
             if isinstance(arg, Qobj):
@@ -800,6 +800,8 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
             else:
                 new_args.append(arg)
 
+        if type(args) is tuple:
+            new_args = tuple(new_args)
     else:
         if isinstance(args, Qobj):
             if isoper(args):

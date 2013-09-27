@@ -506,13 +506,16 @@ def _sesolve_func_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
             else:
                 new_args[key] = args[key]
 
-    elif type(args) is list:
+    elif type(args) is list or type(args) is tuple:
         new_args = []
         for arg in args:
             if isinstance(arg, Qobj):
                 new_args.append(arg.data)
             else:
                 new_args.append(arg)
+
+        if type(args) is tuple:
+            new_args = tuple(new_args)
     else:
         if isinstance(args, Qobj):
             new_args = args.data
