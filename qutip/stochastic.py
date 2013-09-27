@@ -546,7 +546,7 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
                 for dW_idx, dW_factor in enumerate(dW_factors):
                     phi = spmv(m[dW_idx].data.data, m[dW_idx].data.indices, m[dW_idx].data.indptr, psi_prev)
                     measurements[t_idx, m_idx, dW_idx] = (norm(phi) ** 2 +
-                                                  dW[m_idx, t_idx, :, 0].sum() / (dt * N_substeps))
+                                                  dW_factor * dW[m_idx, t_idx, :, dW_idx].sum() / (dt * N_substeps))
 
     if d2_len == 1:
         measurements = measurements.squeeze(axis=(2))
