@@ -1213,9 +1213,13 @@ def _generate_noise_Milstein(sc_len, N_store, N_substeps, d2_len, dt):
 	generate noise terms for the fast Milstein scheme
 	"""
 	dW_temp = np.sqrt(dt) * scipy.randn(sc_len, N_store, N_substeps, 1)
-	noise = np.vstack([dW_temp,
-					0.5*(dW_temp*dW_temp - dt*np.ones((sc_len, N_store, N_substeps, 1))),
-					[dW_temp[n]*dW_temp[m] for (n,m) in np.ndindex(sc_len,sc_len) if n > m]])
+	if sc_len ==1:
+		noise = np.vstack([dW_temp,
+				0.5*(dW_temp*dW_temp - dt*np.ones((sc_len, N_store, N_substeps, 1)))])
+	else:
+		noise = np.vstack([dW_temp,
+				0.5*(dW_temp*dW_temp - dt*np.ones((sc_len, N_store, N_substeps, 1))),
+				[dW_temp[n]*dW_temp[m] for (n,m) in np.ndindex(sc_len,sc_len) if n > m]])
 	return noise
 
 
