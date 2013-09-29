@@ -259,6 +259,9 @@ from qutip.bloch_redfield import *
 from qutip.superop_reps import *
 from qutip.subsystem_apply import subsystem_apply
 
+# quantum information
+from qutip.quantum_info import *
+
 # utilities
 from qutip.utilities import *
 from qutip.fileio import *
