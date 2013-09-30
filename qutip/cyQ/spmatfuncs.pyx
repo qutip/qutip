@@ -212,13 +212,13 @@ cpdef cy_expect_rho_vec(object super_op,
                         np.ndarray[CTYPE_t, ndim=1] rho_vec,
                         int herm=0):
 
-    cdef CTYPE_t out = cy_expect_rho_vec_fast(super_op.data, super_op.indices, super_op.indptr, rho_vec, herm)
+    cdef CTYPE_t out = cy_expect_rho_vec_csr(super_op.data, super_op.indices, super_op.indptr, rho_vec, herm)
     return out
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_expect_rho_vec_fast(np.ndarray[CTYPE_t, ndim=1] data,
+cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1] data,
                              np.ndarray[int] idx,
                              np.ndarray[int] ptr,
                              np.ndarray[CTYPE_t, ndim=1] rho_vec,
