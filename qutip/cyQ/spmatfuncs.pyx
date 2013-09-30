@@ -24,7 +24,31 @@ cimport libc.math
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef np.ndarray[CTYPE_t, ndim=1] spmv(np.ndarray[CTYPE_t, ndim=1] data,
+cpdef np.ndarray[CTYPE_t, ndim=1] spmv(object super_op,
+									   np.ndarray[CTYPE_t, ndim=1] vec):
+    """
+    Sparse matrix, dense vector multiplication.  
+    Here the vector is assumed to have one-dimension.
+    Matrix must be in CSR format and have complex entries.
+    
+    Parameters
+    ----------
+    super_op : csr matrix
+    vec : array
+        Dense vector for multiplication.  Must be one-dimensional.
+    
+    Returns
+    -------
+    out : array
+        Returns dense array.
+    
+    """
+    return spmv_csr(super_op.data, super_op.indices, super_op.indptr, vec)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef np.ndarray[CTYPE_t, ndim=1] spmv_csr(np.ndarray[CTYPE_t, ndim=1] data,
                                        np.ndarray[int] idx,
                                        np.ndarray[int] ptr,
                                        np.ndarray[CTYPE_t, ndim=1] vec):
@@ -42,7 +66,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1] spmv(np.ndarray[CTYPE_t, ndim=1] data,
     ptr : array
         Pointers for sparse matrix data.
     vec : array
-        Dense vector for multiplication.  Must be two-dimensional.
+        Dense vector for multiplication.  Must be one-dimensional.
     
     Returns
     -------
@@ -63,7 +87,6 @@ cpdef np.ndarray[CTYPE_t, ndim=1] spmv(np.ndarray[CTYPE_t, ndim=1] data,
             dot+=data[jj]*vec[idx[jj]]
         out[row]=dot
     return out
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -117,7 +140,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1] cy_ode_psi_func_td(double t,
                                                      object H_func,
                                                      object args):
     H = H_func(t, args)
-    return -1j * spmv(H.data, H.indices, H.indptr, psi)
+    return -1j * spmv_csr(H.data, H.indices, H.indptr, psi)
 
 
 @cython.boundscheck(False)
@@ -127,7 +150,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1] cy_ode_psi_func_td_with_state(double t,
                                                                 object H_func,
                                                                 object args):
     H = H_func(t, psi, args)
-    return -1j * spmv(H.data, H.indices, H.indptr, psi)
+    return -1j * spmv_csr(H.data, H.indices, H.indptr, psi)
 
 
 @cython.boundscheck(False)
@@ -138,7 +161,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1] cy_ode_rho_func_td(double t,
                                                      object L_func,
                                                      object args):
     L = L0 + L_func(t, args)
-    return spmv(L.data, L.indices, L.indptr, rho)
+    return spmv_csr(L.data, L.indices, L.indptr, rho)
 
 
 @cython.boundscheck(False)
@@ -173,7 +196,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1] spmv_dia(np.ndarray[CTYPE_t, ndim=2] data,
 def cy_expect_psi(object op,
                   np.ndarray[CTYPE_t, ndim=2] state,
                   int isherm=0):
-    cdef np.ndarray[CTYPE_t, ndim=1] y = spmv(op.data, op.indices, op.indptr, state)
+    cdef np.ndarray[CTYPE_t, ndim=1] y = spmv_csr(op.data, op.indices, op.indptr, state)
     cdef np.ndarray[CTYPE_t, ndim=1] x = state.conj()
     cdef int row, num_rows = state.size
     cdef CTYPE_t dot = 0.0j
@@ -193,7 +216,7 @@ def cy_expect(np.ndarray[CTYPE_t, ndim=1] data,
               np.ndarray[int] ptr, 
               np.ndarray[CTYPE_t, ndim=1] state,
               int isherm = 0):
-    cdef np.ndarray[CTYPE_t, ndim=1] y = spmv(data,idx,ptr,state)
+    cdef np.ndarray[CTYPE_t, ndim=1] y = spmv_csr(data,idx,ptr,state)
     cdef np.ndarray[CTYPE_t, ndim=1] x = state.conj()
     cdef int row, num_rows = state.size
     cdef CTYPE_t dot = 0.0j

@@ -221,7 +221,7 @@ class Codegen():
             hstr = str(ht)
             if self.type == 'mc':
                 str_out = ("cdef np.ndarray[CTYPE_t, ndim=1] Hvec" + hstr +
-                           " = " + "spmv(data" + hstr + "," +
+                           " = " + "spmv_csr(data" + hstr + "," +
                            "idx" + hstr + "," + "ptr" + hstr +
                            "," + "vec" + ")")
                 if ht in self.h_td_inds:
@@ -247,7 +247,7 @@ class Codegen():
             for ct in range(terms):
                 cstr = str(ct + hinds + 1)
                 str_out = ("cdef np.ndarray[CTYPE_t, ndim=1] Cvec" + str(ct) +
-                           " = " + "spmv(data" + cstr + "," +
+                           " = " + "spmv_csr(data" + cstr + "," +
                            "idx" + cstr + "," +
                            "ptr" + cstr + "," + "vec" + ")")
                 if ct in range(len(self.c_td_inds)):
@@ -307,7 +307,7 @@ def cython_preamble():
     line1 = "import numpy as np"
     line2 = "cimport numpy as np"
     line3 = "cimport cython"
-    line4 = "from qutip.cyQ.spmatfuncs import spmv, spmvpy"
+    line4 = "from qutip.cyQ.spmatfuncs import spmv_csr, spmvpy"
     line5 = ""
     line6 = "ctypedef np.complex128_t CTYPE_t"
     line7 = "ctypedef np.float64_t DTYPE_t"
