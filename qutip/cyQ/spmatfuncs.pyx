@@ -21,8 +21,6 @@ cimport numpy as np
 cimport cython
 cimport libc.math
 
-ctypedef np.complex128_t CTYPE_t
-ctypedef np.float64_t DTYPE_t
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
