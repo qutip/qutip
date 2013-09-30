@@ -22,7 +22,7 @@ cimport numpy as np
 ctypedef np.complex128_t CTYPE_t
 ctypedef np.float64_t DTYPE_t
 
-cpdef np.ndarray[CTYPE_t, ndim=1] spmv(np.ndarray[CTYPE_t, ndim=1] data,
+cpdef np.ndarray[CTYPE_t, ndim=1] spmv_csr(np.ndarray[CTYPE_t, ndim=1] data,
                                        np.ndarray[int] idx,
                                        np.ndarray[int] ptr,
                                        np.ndarray[CTYPE_t, ndim=1] vec)
