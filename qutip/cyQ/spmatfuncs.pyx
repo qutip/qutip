@@ -221,3 +221,28 @@ cpdef cy_expect_rho_vec(object super_op,
         return float(np.real(prod_vec.reshape((n, n)).diagonal().sum()))
 
 
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef cy_expect_rho_vec_fast(np.ndarray[CTYPE_t, ndim=1] data,
+                             np.ndarray[int] idx,
+                             np.ndarray[int] ptr,
+                             np.ndarray[CTYPE_t, ndim=1] rho_vec,
+                             int herm=0):
+    
+    cdef Py_ssize_t row
+    cdef int jj,row_start,row_end
+    cdef int num_rows = rho_vec.size
+    cdef int n = <int>libc.math.sqrt(num_rows)
+    cdef CTYPE_t dot = 0.0
+    for row in range(0, num_rows, n+1):
+        row_start = ptr[row]
+        row_end = ptr[row+1]
+        for jj from row_start <= jj < row_end:
+            dot += data[jj]*rho_vec[idx[jj]]
+ 
+    if herm == 0:
+        return dot
+    else:
+        return float(np.real(dot))
+
+
