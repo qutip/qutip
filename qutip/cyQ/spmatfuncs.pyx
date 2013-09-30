@@ -212,13 +212,8 @@ cpdef cy_expect_rho_vec(object super_op,
                         np.ndarray[CTYPE_t, ndim=1] rho_vec,
                         int herm=0):
 
-    cdef np.ndarray[CTYPE_t, ndim=1] prod_vec = spmv(super_op.data, super_op.indices, super_op.indptr, rho_vec)
-    cdef int n = <int>libc.math.sqrt(rho_vec.size)
-
-    if herm == 0:
-        return prod_vec.reshape((n, n)).diagonal().sum()
-    else:
-        return float(np.real(prod_vec.reshape((n, n)).diagonal().sum()))
+    cdef CTYPE_t out = cy_expect_rho_vec_fast(super_op.data, super_op.indices, super_op.indptr, rho_vec, herm)
+    return out
 
 
 @cython.boundscheck(False)
