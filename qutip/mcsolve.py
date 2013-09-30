@@ -38,7 +38,7 @@ from qutip.states import ket2dm
 from qutip.parfor import parfor
 from qutip.odeoptions import Odeoptions
 from qutip.odeconfig import odeconfig
-from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_expect, spmv
+from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_expect, spmv, spmv_csr
 from qutip.cyQ.codegen import Codegen
 from qutip.odedata import Odedata
 from qutip.odechecks import _ode_checks
