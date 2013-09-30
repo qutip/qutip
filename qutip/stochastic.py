@@ -563,7 +563,7 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
 
             if noise is None and not homogeneous:
                 for a_idx, A in enumerate(A_ops):
-                    dw_expect = norm(spmv(A[0].data, A[0].indices, A[0].indptr, psi_t)) ** 2 * dt
+                    dw_expect = norm(spmv(A[0], psi_t)) ** 2 * dt
                     dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
 
             psi_t = rhs(H.data, psi_t, t + dt * j,
@@ -576,7 +576,7 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
         if store_measurement:
             for m_idx, m in enumerate(m_ops):
                 for dW_idx, dW_factor in enumerate(dW_factors):
-                    phi = spmv(m[dW_idx].data.data, m[dW_idx].data.indices, m[dW_idx].data.indptr, psi_prev)
+                    phi = spmv(m[dW_idx].data, psi_prev)
                     measurements[t_idx, m_idx, dW_idx] = (norm(phi) ** 2 +
                                                   dW_factor * dW[m_idx, t_idx, :, dW_idx].sum() / (dt * N_substeps))
 
@@ -988,14 +988,10 @@ def _smepdpsolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps,
                 r_jump, r_op = prng.rand(2)
 
             # deterministic evolution wihtout correction for norm decay
-            dsigma_t = spmv(L.data.data,
-                            L.data.indices,
-                            L.data.indptr, sigma_t) * dt
+            dsigma_t = spmv(L.data, sigma_t) * dt
 
             # deterministic evolution with correction for norm decay
-            drho_t = spmv(L.data.data,
-                          L.data.indices,
-                          L.data.indptr, rho_t) * dt
+            drho_t = spmv(L.data, rho_t) * dt
 
             rho_t += drho_t
 
@@ -1049,8 +1045,8 @@ def d1_psi_homodyne(A, psi):
     """
 
     e1 = cy_expect(A[1].data, A[1].indices, A[1].indptr, psi)
-    return 0.5 * (e1 * spmv(A[0].data, A[0].indices, A[0].indptr, psi) -
-                  spmv(A[3].data, A[3].indices, A[3].indptr, psi) -
+    return 0.5 * (e1 * spmv(A[0], psi) -
+                  spmv(A[3], psi) -
                   0.25 * e1 ** 2 * psi)
 
 
@@ -1066,7 +1062,7 @@ def d2_psi_homodyne(A, psi):
     """
 
     e1 = cy_expect(A[1].data, A[1].indices, A[1].indptr, psi)
-    return [spmv(A[0].data, A[0].indices, A[0].indptr, psi) - 0.5 * e1 * psi]
+    return [spmv(A[0], psi) - 0.5 * e1 * psi]
 
 
 def d1_psi_heterodyne(A, psi):
@@ -1083,8 +1079,8 @@ def d1_psi_heterodyne(A, psi):
     B = A[0].T.conj()
     e_Cd = cy_expect(B.data, B.indices, B.indptr, psi) # e_Cd
 
-    return  (-0.5 * spmv(A[3].data, A[3].indices, A[3].indptr, psi) +
-             0.5 * e_Cd * spmv(A[0].data, A[0].indices, A[0].indptr, psi) -
+    return  (-0.5 * spmv(A[3], psi) +
+             0.5 * e_Cd * spmv(A[0], psi) -
              0.25 * e_C * e_Cd * psi)
 
 
@@ -1105,8 +1101,8 @@ def d2_psi_heterodyne(A, psi):
     X = 0.5 * cy_expect(A[1].data, A[1].indices, A[1].indptr, psi)
     Y = 0.5 * cy_expect(A[2].data, A[2].indices, A[2].indptr, psi)
 
-    d2_1 = np.sqrt(0.5) * (spmv(A[0].data, A[0].indices, A[0].indptr, psi) - X * psi)
-    d2_2 = -1.0j * np.sqrt(0.5) * (spmv(A[0].data, A[0].indices, A[0].indptr, psi) - Y * psi)
+    d2_1 = np.sqrt(0.5) * (spmv(A[0], psi) - X * psi)
+    d2_2 = -1.0j * np.sqrt(0.5) * (spmv(A[0], psi) - Y * psi)
 
     return [d2_1, d2_2]
 
@@ -1122,8 +1118,8 @@ def d1_psi_photocurrent(A, psi):
         D_1(\psi, t) = - \\frac{1}{2}(C^\dagger C \psi - ||C\psi||^2 \psi)
 
     """
-    return (-0.5 * (spmv(A[3].data, A[3].indices, A[3].indptr, psi)
-            -norm(spmv(A[0].data, A[0].indices, A[0].indptr, psi)) ** 2 * psi))
+    return (-0.5 * (spmv(A[3], psi)
+            -norm(spmv(A[0], psi)) ** 2 * psi))
 
 
 def d2_psi_photocurrent(A, psi):
@@ -1137,7 +1133,7 @@ def d2_psi_photocurrent(A, psi):
         D_2(\psi, t) = C\psi / ||C\psi|| - \psi
 
     """
-    psi_1 = spmv(A[0].data, A[0].indices, A[0].indptr, psi)
+    psi_1 = spmv(A[0], psi)
     n1 = norm(psi_1)
     if n1 != 0:
         return psi_1 / n1 - psi
@@ -1235,7 +1231,7 @@ def sop_H(A, rho_vec):
     M = A[0] + A[3]
 
     e1 = cy_expect_rho_vec(M, rho_vec)
-    return spmv(M.data, M.indices, M.indptr, rho_vec) - e1 * rho_vec
+    return spmv(M, rho_vec) - e1 * rho_vec
 
 
 def sop_G(A, rho_vec):
@@ -1251,7 +1247,7 @@ def sop_G(A, rho_vec):
     e1 = cy_expect_rho_vec(A[6], rho_vec)
 
     if e1 > 1e-15:
-        return spmv(A[6].data, A[6].indices, A[6].indptr, rho_vec) / e1 - rho_vec
+        return spmv(A[6], rho_vec) / e1 - rho_vec
     else:
         return -rho_vec
 
@@ -1263,7 +1259,7 @@ def d1_rho_homodyne(A, rho_vec):
 
     Todo: cythonize
     """
-    return spmv(A[7].data, A[7].indices, A[7].indptr, rho_vec)
+    return spmv(A[7], rho_vec)
 
 
 def d2_rho_homodyne(A, rho_vec):
@@ -1277,14 +1273,14 @@ def d2_rho_homodyne(A, rho_vec):
     M = A[0] + A[3]
 
     e1 = cy_expect_rho_vec(M, rho_vec)
-    return [spmv(M.data, M.indices, M.indptr, rho_vec) - e1 * rho_vec]
+    return [spmv(M, rho_vec) - e1 * rho_vec]
 
 
 def d1_rho_heterodyne(A, rho_vec):
     """
     todo: cythonize, docstrings
     """
-    return spmv(A[7].data, A[7].indices, A[7].indptr, rho_vec)
+    return spmv(A[7], rho_vec)
 
 
 def d2_rho_heterodyne(A, rho_vec):
@@ -1293,10 +1289,10 @@ def d2_rho_heterodyne(A, rho_vec):
     """
     M = A[0] + A[3]
     e1 = cy_expect_rho_vec(M, rho_vec)
-    d1 = spmv(M.data, M.indices, M.indptr, rho_vec) - e1 * rho_vec
+    d1 = spmv(M, rho_vec) - e1 * rho_vec
     M = A[0] - A[3]
     e1 = cy_expect_rho_vec(M, rho_vec)
-    d2 = spmv(M.data, M.indices, M.indptr, rho_vec) - e1 * rho_vec
+    d2 = spmv(M, rho_vec) - e1 * rho_vec
     return [1.0/np.sqrt(2) * d1, -1.0j/np.sqrt(2) * d2]
 
 
@@ -1306,7 +1302,7 @@ def d1_rho_photocurrent(A, rho_vec):
     """
     n_sum = A[4] + A[5]
     e1 = cy_expect_rho_vec(n_sum, rho_vec)
-    return -spmv(n_sum.data, n_sum.indices, n_sum.indptr, rho_vec) + e1 * rho_vec
+    return -spmv(n_sum, rho_vec) + e1 * rho_vec
 
 
 def d2_rho_photocurrent(A, rho_vec):
@@ -1314,7 +1310,7 @@ def d2_rho_photocurrent(A, rho_vec):
     Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
     e1 = cy_expect_rho_vec(A[6], rho_vec) + 1e-15
-    return [spmv(A[6].data, A[6].indices, A[6].indptr, rho_vec) / e1 - rho_vec]
+    return [spmv(A[6], rho_vec) / e1 - rho_vec]
 
 
 #------------------------------------------------------------------------------
@@ -1334,9 +1330,7 @@ def _rhs_rho_deterministic(L, rho_t, t, dt, args):
     """
     Deterministic contribution to the density matrix change
     """
-    drho_t = spmv(L.data,
-                  L.indices,
-                  L.indptr, rho_t) * dt
+    drho_t = spmv(L, rho_t) * dt
 
     return drho_t
 
@@ -1391,7 +1385,7 @@ def _rhs_rho_euler_homodyne_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
 
 	dW = ddW[:,0]
 
-	d_vec = spmv(A[0][0].data, A[0][0].indices, A[0][0].indptr, rho_t).reshape(-1, len(rho_t))
+	d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
 	e = np.real(d_vec[:-1].reshape(-1,A[0][1],A[0][1]).trace(axis1=1,axis2=2))
 
 	drho_t = d_vec[-1]
@@ -1422,7 +1416,7 @@ def _rhs_psi_platen(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
         # dpsi_t is the change for all stochastic collapse operators
 
         # TODO: needs to be updated to support mutiple Weiner increments
-        dpsi_t_H = (-1.0j * dt) * spmv(H.data, H.indices, H.indptr, psi_t)
+        dpsi_t_H = (-1.0j * dt) * spmv(H, psi_t)
 
         psi_t_1 = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t)[0] * dW[a_idx,0]
         psi_t_p = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t)[0] * sqrt_dt
@@ -1452,12 +1446,12 @@ def _rhs_rho_milstein_homodyne_single(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     M = A[0] + A[3]
     e1 = cy_expect_rho_vec(M, rho_t)
     
-    d2_vec = spmv(M.data, M.indices, M.indptr, rho_t)
-    d2_vec2 = spmv(M.data, M.indices, M.indptr, d2_vec)
+    d2_vec = spmv(M, rho_t)
+    d2_vec2 = spmv(M, d2_vec)
     e2 = cy_expect_rho_vec(M, d2_vec)
     
     drho_t = _rhs_rho_deterministic(L, rho_t, t, dt, args)
-    drho_t += spmv(A[7].data, A[7].indices, A[7].indptr, rho_t)*dt
+    drho_t += spmv(A[7], rho_t)*dt
     drho_t += (d2_vec - e1*rho_t)*dW[0,0]
     drho_t += 0.5 * (d2_vec2 - 2*e1*d2_vec + (-e2 + 2*e1*e1)*rho_t)*(dW[0,0]*dW[0,0] - dt)
     return rho_t + drho_t
@@ -1478,14 +1472,14 @@ def _rhs_rho_milstein_homodyne(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     M = np.array([A_ops[n][0] + A_ops[n][3] for n in range(A_len)])
     e1 = np.array([cy_expect_rho_vec(M[n], rho_t) for n in range(A_len)])
     
-    d1_vec = np.sum([spmv(A_ops[n][7].data, A_ops[n][7].indices, A_ops[n][7].indptr, rho_t)
+    d1_vec = np.sum([spmv(A_ops[n][7], rho_t)
                   for n in range(A_len)], axis=0)
     
-    d2_vec = np.array([spmv(M[n].data, M[n].indices, M[n].indptr, rho_t) 
+    d2_vec = np.array([spmv(M[n], rho_t) 
     				   for n in range(A_len)])
     
     #This calculation is suboptimal. We need only values for m>n in case of commuting jump operators.
-    d2_vec2 = np.array([[spmv(M[n].data, M[n].indices, M[n].indptr, d2_vec[m]) 
+    d2_vec2 = np.array([[spmv(M[n], d2_vec[m]) 
     					for m in range(A_len)] for n in range(A_len)])
     e2 = np.array([[cy_expect_rho_vec(M[n], d2_vec[m]) 
     				for m in range(A_len)] for n in range(A_len)])
@@ -1512,7 +1506,7 @@ def _rhs_rho_milstein_homodyne_single_fast(L, rho_t, t, A, dt, ddW, d1, d2, args
 	"""
 	dW = ddW[:,0]
 
-	d_vec = spmv(A[0][0].data, A[0][0].indices, A[0][0].indptr, rho_t).reshape(-1, len(rho_t))
+	d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
 	e = np.real(d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1,axis2=2))
 
 	e[1] -= 2.0*e[0]*e[0]
@@ -1532,7 +1526,7 @@ def _rhs_rho_milstein_homodyne_two_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
 	"""
 	dW = ddW[:,0]
 
-	d_vec = spmv(A[0][0].data, A[0][0].indices, A[0][0].indptr, rho_t).reshape(-1, len(rho_t))
+	d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
 	e = np.real(d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1,axis2=2))
 	d_vec[-2] -= np.dot(e[:2][::-1],d_vec[:2])
 
@@ -1556,7 +1550,7 @@ def _rhs_rho_milstein_homodyne_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
 	sc_len = len(A)
 	sc2_len = 2*sc_len
 
-	d_vec = spmv(A[0][0].data, A[0][0].indices, A[0][0].indptr, rho_t).reshape(-1, len(rho_t))
+	d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
 	e = np.real(d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1,axis2=2))
 	d_vec[sc2_len:-1] -= np.array([e[m]*d_vec[n] + e[n]*d_vec[m] for (n,m) in np.ndindex(sc_len, sc_len) if n > m])
 
