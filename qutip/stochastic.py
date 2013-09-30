@@ -1218,8 +1218,8 @@ def _generate_noise_Milstein(sc_len, N_store, N_substeps, d2_len, dt):
 				0.5*(dW_temp*dW_temp - dt*np.ones((sc_len, N_store, N_substeps, 1)))])
 	else:
 		noise = np.vstack([dW_temp,
-				0.5*(dW_temp*dW_temp - dt*np.ones((sc_len, N_store, N_substeps, 1))),
-				[dW_temp[n]*dW_temp[m] for (n,m) in np.ndindex(sc_len,sc_len) if n > m]])
+				0.5*(dW_temp*dW_temp - dt*np.ones((sc_len, N_store, N_substeps, 1)))] + 
+				[[dW_temp[n]*dW_temp[m] for (n,m) in np.ndindex(sc_len,sc_len) if n > m]])
 	return noise
 
 
@@ -1391,8 +1391,7 @@ def _rhs_rho_euler_homodyne_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
 
 	dW = ddW[:,0]
 
-	#d_vec = spmv(A[0][0].data, A[0][0].indices, A[0][0].indptr, rho_t).reshape(-1, len(rho_t))
-	d_vec = (A[0][0] * rho_t).reshape(-1, len(rho_t))
+	d_vec = spmv(A[0][0].data, A[0][0].indices, A[0][0].indptr, rho_t).reshape(-1, len(rho_t))
 	e = np.real(d_vec[:-1].reshape(-1,A[0][1],A[0][1]).trace(axis1=1,axis2=2))
 
 	drho_t = d_vec[-1]
@@ -1511,26 +1510,37 @@ def _rhs_rho_milstein_homodyne_single_fast(L, rho_t, t, A, dt, ddW, d1, d2, args
 	"""
 	fast Milstein for homodyne detection with 1 stochastic operator
 	"""
-	raise Exception("Fast Milstein with a single jump operator is not implemented yet!")
+	dW = ddW[:,0]
+
+	d_vec = spmv(A[0][0].data, A[0][0].indices, A[0][0].indptr, rho_t).reshape(-1, len(rho_t))
+	e = np.real(d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1,axis2=2))
+
+	e[1] -= 2.0*e[0]*e[0]
+	
+	drho_t = (1.0 - np.inner(e, dW)) * rho_t
+	dW[0] -= 2.0*e[0]*dW[1]
+
+	drho_t += d_vec[-1]
+	drho_t += np.dot(dW, d_vec[:-1])
+
+	return drho_t
 
 
 def _rhs_rho_milstein_homodyne_two_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
 	"""
 	fast Milstein for homodyne detection with 2 stochastic operators
 	"""
-
 	dW = ddW[:,0]
 
-	#d_vec = spmv(A[0][0].data, A[0][0].indices, A[0][0].indptr, rho_t).reshape(-1, len(rho_t))
-	d_vec = (A[0][0] * rho_t).reshape(-1, len(rho_t))
+	d_vec = spmv(A[0][0].data, A[0][0].indices, A[0][0].indptr, rho_t).reshape(-1, len(rho_t))
 	e = np.real(d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1,axis2=2))
 	d_vec[-2] -= np.dot(e[:2][::-1],d_vec[:2])
 
-	e[2:4] -= 2*e[:2]*e[:2]
-	e[4] -= 2*e[1]*e[0]
+	e[2:4] -= 2.0*e[:2]*e[:2]
+	e[4] -= 2.0*e[1]*e[0]
 	
 	drho_t = (1.0 - np.inner(e, dW)) * rho_t
-	dW[:2] -= 2*e[:2]*dW[2:4]
+	dW[:2] -= 2.0*e[:2]*dW[2:4]
 
 	drho_t += d_vec[-1]
 	drho_t += np.dot(dW, d_vec[:-1])
@@ -1542,4 +1552,21 @@ def _rhs_rho_milstein_homodyne_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
 	"""
 	fast Milstein for homodyne detection with >2 stochastic operators
 	"""
-	raise Exception("Fast Milstein with >2 jump operators is not implemented yet!")
+	dW = ddW[:,0]
+	sc_len = len(A)
+	sc2_len = 2*sc_len
+
+	d_vec = spmv(A[0][0].data, A[0][0].indices, A[0][0].indptr, rho_t).reshape(-1, len(rho_t))
+	e = np.real(d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1,axis2=2))
+	d_vec[sc2_len:-1] -= np.array([e[m]*d_vec[n] + e[n]*d_vec[m] for (n,m) in np.ndindex(sc_len, sc_len) if n > m])
+
+	e[sc_len:sc2_len] -= 2.0*e[:sc_len]*e[:sc_len]
+	e[sc2_len:] -= 2.0*np.array([e[n]*e[m] for (n,m) in np.ndindex(sc_len, sc_len) if n > m])
+	
+	drho_t = (1.0 - np.inner(e, dW)) * rho_t
+	dW[:sc_len] -= 2.0*e[:sc_len]*dW[sc_len:sc2_len]
+
+	drho_t += d_vec[-1]
+	drho_t += np.dot(dW, d_vec[:-1])
+
+	return drho_t
