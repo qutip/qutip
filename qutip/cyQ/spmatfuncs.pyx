@@ -54,7 +54,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1] spmv(np.ndarray[CTYPE_t, ndim=1] data,
     """
     cdef Py_ssize_t row
     cdef int jj,row_start,row_end
-    cdef int num_rows = vec.size
+    cdef int num_rows = ptr.size-1
     cdef CTYPE_t dot
     cdef np.ndarray[CTYPE_t, ndim=1] out = np.zeros((num_rows), dtype=np.complex)
     for row in range(num_rows):
