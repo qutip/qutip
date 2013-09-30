@@ -38,7 +38,7 @@ from qutip.states import ket2dm
 from qutip.parfor import parfor
 from qutip.odeoptions import Odeoptions
 from qutip.odeconfig import odeconfig
-from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_expect, spmv
+from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_expect, spmv, spmv_csr
 from qutip.cyQ.codegen import Codegen
 from qutip.odedata import Odedata
 from qutip.odechecks import _ode_checks
@@ -521,7 +521,7 @@ class _MC_class():
 # RHS of ODE for time-dependent systems with no collapse operators
 def _tdRHS(t, psi, odeconfig):
     h_data = odeconfig.h_func(t, odeconfig.h_func_args).data
-    return spmv(h_data.data, h_data.indices, h_data.indptr, psi)
+    return spmv(h_data, psi)
 
 
 # RHS of ODE for constant Hamiltonian and at least one function based
@@ -530,7 +530,7 @@ def _cRHStd(t, psi, odeconfig):
     sys = cy_ode_rhs(t, psi, odeconfig.h_data,
                      odeconfig.h_ind, odeconfig.h_ptr)
     col = array([np.abs(odeconfig.c_funcs[j](t, odeconfig.c_func_args)) ** 2 *
-                 spmv(odeconfig.n_ops_data[j],
+                 spmv_csr(odeconfig.n_ops_data[j],
                         odeconfig.n_ops_ind[j],
                         odeconfig.n_ops_ptr[j], psi)
                 for j in odeconfig.c_td_inds])
@@ -539,17 +539,17 @@ def _cRHStd(t, psi, odeconfig):
 
 # RHS of ODE for list-function based Hamiltonian
 def _tdRHStd(t, psi, odeconfig):
-    const_term = spmv(odeconfig.h_data,
+    const_term = spmv_csr(odeconfig.h_data,
                         odeconfig.h_ind,
                         odeconfig.h_ptr, psi)
     h_func_term = array([odeconfig.h_funcs[j](t, odeconfig.h_func_args) *
-                         spmv(odeconfig.h_td_data[j],
+                         spmv_csr(odeconfig.h_td_data[j],
                                 odeconfig.h_td_ind[j],
                                 odeconfig.h_td_ptr[j], psi)
                          for j in odeconfig.h_td_inds])
     col_func_terms = array([np.abs(
         odeconfig.c_funcs[j](t, odeconfig.c_func_args)) ** 2 *
-        spmv(odeconfig.n_ops_data[j],
+        spmv_csr(odeconfig.n_ops_data[j],
                odeconfig.n_ops_ind[j],
                odeconfig.n_ops_ptr[j],
                psi)
@@ -560,20 +560,20 @@ def _tdRHStd(t, psi, odeconfig):
 
 def _tdRHStd_with_state(t, psi, odeconfig):
 
-    const_term = spmv(odeconfig.h_data,
+    const_term = spmv_csr(odeconfig.h_data,
                         odeconfig.h_ind,
                         odeconfig.h_ptr, psi)
 
     h_func_term = array([
         odeconfig.h_funcs[j](t, psi, odeconfig.h_func_args) *
-        spmv(odeconfig.h_td_data[j],
+        spmv_csr(odeconfig.h_td_data[j],
                odeconfig.h_td_ind[j],
                odeconfig.h_td_ptr[j], psi)
         for j in odeconfig.h_td_inds])
 
     col_func_terms = array([
         np.abs(odeconfig.c_funcs[j](t, odeconfig.c_func_args)) ** 2 *
-        spmv(odeconfig.n_ops_data[j],
+        spmv_csr(odeconfig.n_ops_data[j],
                odeconfig.n_ops_ind[j],
                odeconfig.n_ops_ptr[j], psi)
         for j in odeconfig.c_td_inds])
@@ -585,11 +585,10 @@ def _tdRHStd_with_state(t, psi, odeconfig):
 # RHS of ODE for python function Hamiltonian
 def _pyRHSc(t, psi, odeconfig):
     h_func_data = - 1.0j * odeconfig.h_funcs(t, odeconfig.h_func_args)
-    h_func_term = spmv(h_func_data.data, h_func_data.indices,
-                         h_func_data.indptr, psi)
+    h_func_term = spmv(h_func_data, psi)
     const_col_term = 0
     if len(odeconfig.c_const_inds) > 0:
-        const_col_term = spmv(odeconfig.h_data, odeconfig.h_ind,
+        const_col_term = spmv_csr(odeconfig.h_data, odeconfig.h_ind,
                                 odeconfig.h_ptr, psi)
 
     return h_func_term + const_col_term
@@ -597,11 +596,10 @@ def _pyRHSc(t, psi, odeconfig):
 
 def _pyRHSc_with_state(t, psi, odeconfig):
     h_func_data = - 1.0j * odeconfig.h_funcs(t, psi, odeconfig.h_func_args)
-    h_func_term = spmv(h_func_data.data, h_func_data.indices,
-                         h_func_data.indptr, psi)
+    h_func_term = spmv(h_func_data, psi)
     const_col_term = 0
     if len(odeconfig.c_const_inds) > 0:
-        const_col_term = spmv(odeconfig.h_data, odeconfig.h_ind,
+        const_col_term = spmv_csr(odeconfig.h_data, odeconfig.h_ind,
                                 odeconfig.h_ptr, psi)
 
     return h_func_term + const_col_term
@@ -898,7 +896,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                     j = cinds[kk >= rand_vals[1]][0]
                     np.append(which_oper,j)  # record which operator did collapse
                     if j in odeconfig.c_const_inds:
-                        state = spmv(odeconfig.c_ops_data[j],
+                        state = spmv_csr(odeconfig.c_ops_data[j],
                                      odeconfig.c_ops_ind[j],
                                      odeconfig.c_ops_ptr[j], ODE.y)
                     else:
@@ -912,7 +910,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                             state = \
                                 odeconfig.c_funcs[j](ODE.t,
                                                      odeconfig.c_func_args) * \
-                                spmv(odeconfig.c_ops_data[j],
+                                spmv_csr(odeconfig.c_ops_data[j],
                                      odeconfig.c_ops_ind[j],
                                      odeconfig.c_ops_ptr[j], ODE.y)
                     state = state / norm(state, 2)
