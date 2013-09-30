@@ -21,8 +21,6 @@ cimport numpy as np
 cimport cython
 cimport libc.math
 
-ctypedef np.complex128_t CTYPE_t
-ctypedef np.float64_t DTYPE_t
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -54,7 +52,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1] spmv(np.ndarray[CTYPE_t, ndim=1] data,
     """
     cdef Py_ssize_t row
     cdef int jj,row_start,row_end
-    cdef int num_rows = vec.size
+    cdef int num_rows = ptr.size-1
     cdef CTYPE_t dot
     cdef np.ndarray[CTYPE_t, ndim=1] out = np.zeros((num_rows), dtype=np.complex)
     for row in range(num_rows):
@@ -214,12 +212,32 @@ cpdef cy_expect_rho_vec(object super_op,
                         np.ndarray[CTYPE_t, ndim=1] rho_vec,
                         int herm=0):
 
-    cdef np.ndarray[CTYPE_t, ndim=1] prod_vec = spmv(super_op.data, super_op.indices, super_op.indptr, rho_vec)
-    cdef int n = <int>libc.math.sqrt(rho_vec.size)
+    cdef CTYPE_t out = cy_expect_rho_vec_csr(super_op.data, super_op.indices, super_op.indptr, rho_vec, herm)
+    return out
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1] data,
+                             np.ndarray[int] idx,
+                             np.ndarray[int] ptr,
+                             np.ndarray[CTYPE_t, ndim=1] rho_vec,
+                             int herm=0):
+    
+    cdef Py_ssize_t row
+    cdef int jj,row_start,row_end
+    cdef int num_rows = rho_vec.size
+    cdef int n = <int>libc.math.sqrt(num_rows)
+    cdef CTYPE_t dot = 0.0
+    for row in range(0, num_rows, n+1):
+        row_start = ptr[row]
+        row_end = ptr[row+1]
+        for jj from row_start <= jj < row_end:
+            dot += data[jj]*rho_vec[idx[jj]]
+ 
     if herm == 0:
-        return prod_vec.reshape((n, n)).diagonal().sum()
+        return dot
     else:
-        return float(np.real(prod_vec.reshape((n, n)).diagonal().sum()))
+        return float(np.real(dot))
 
 
