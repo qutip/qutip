@@ -263,3 +263,46 @@ cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1] data,
         return float(np.real(dot))
 
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef cy_spmm_tr(object op1, object op2, int herm=0):
+    
+    cdef Py_ssize_t row
+    cdef CTYPE_t tr = 0.0
+
+    cdef int col1, row1_idx_start, row1_idx_end
+    cdef np.ndarray[CTYPE_t, ndim=1] data1 = op1.data
+    cdef np.ndarray[int] idx1 = op1.indices
+    cdef np.ndarray[int] ptr1 = op1.indptr
+
+    cdef int col2, row2_idx_start, row2_idx_end
+    cdef np.ndarray[CTYPE_t, ndim=1] data2 = op2.data
+    cdef np.ndarray[int] idx2 = op2.indices
+    cdef np.ndarray[int] ptr2 = op2.indptr
+
+    cdef int num_rows = ptr1.size-1
+
+    for row in range(num_rows):
+
+        row1_idx_start = ptr1[row]
+        row1_idx_end = ptr1[row + 1]
+        for row1_idx from row1_idx_start <= row1_idx < row1_idx_end:
+            col1 = idx1[row1_idx]
+
+            row2_idx_start = ptr2[col1]
+            row2_idx_end = ptr2[col1 + 1]
+            for row2_idx from row2_idx_start <= row2_idx < row2_idx_end:
+                col2 = idx2[row2_idx]
+
+                if col2 == row:
+                    tr += data1[row1_idx] * data2[row2_idx]
+ 
+    if herm == 0:
+        return tr
+    else:
+        return float(np.real(tr))
+
+
+
+
