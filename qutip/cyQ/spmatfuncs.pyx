@@ -194,7 +194,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1] spmv_dia(np.ndarray[CTYPE_t, ndim=2] data,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def cy_expect_psi(object op,
-                  np.ndarray[CTYPE_t, ndim=2] state,
+                  np.ndarray[CTYPE_t, ndim=1] state,
                   int isherm=0):
     cdef np.ndarray[CTYPE_t, ndim=1] y = spmv_csr(op.data, op.indices, op.indptr, state)
     cdef np.ndarray[CTYPE_t, ndim=1] x = state.conj()
@@ -235,8 +235,7 @@ cpdef cy_expect_rho_vec(object super_op,
                         np.ndarray[CTYPE_t, ndim=1] rho_vec,
                         int herm=0):
 
-    cdef CTYPE_t out = cy_expect_rho_vec_csr(super_op.data, super_op.indices, super_op.indptr, rho_vec, herm)
-    return out
+    return cy_expect_rho_vec_csr(super_op.data, super_op.indices, super_op.indptr, rho_vec, herm)
 
 
 @cython.boundscheck(False)
