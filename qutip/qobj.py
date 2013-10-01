@@ -750,7 +750,7 @@ class Qobj():
         else:
             return complex(sum(self.data.diagonal()))
 
-    def full(self):
+    def full(self, squeeze=False):
         """Dense array from quantum object.
 
         Returns
@@ -759,7 +759,10 @@ class Qobj():
             Array of complex data from quantum objects `data` attribute.
 
         """
-        return np.array(self.data.todense())
+        if squeeze:
+            return self.data.toarray().squeeze()
+        else:
+            return self.data.toarray()
 
     def diag(self):
         """Diagonal elements of Qobj.
