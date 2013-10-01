@@ -85,11 +85,12 @@ def _single_qobj_expect(oper, state):
 
         elif state.type == 'ket':
             # calculates expectation value via <psi|op|psi>
-            prod = state.data.conj().T.dot(oper.data * state.data)
-            if oper.isherm:
-                return float(np.real(prod[0, 0]))
-            else:
-                return prod[0, 0]
+            #prod = state.data.conj().T.dot(oper.data * state.data)
+            #if oper.isherm:
+            #    return float(np.real(prod[0, 0]))
+            #else:
+            #    return prod[0, 0]
+            return cy_expect_psi(oper.data, state.full(squeeze=True), oper.isherm)
     else:
         raise TypeError('Invalid operand types')
 
