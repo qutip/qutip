@@ -22,7 +22,7 @@ import scipy.sparse as sp
 
 from qutip.qobj import Qobj, issuper, isoper
 from qutip.eseries import eseries
-from qutip.cyQ.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi)
+from qutip.cyQ.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, cy_spmm_tr)
 
 
 expect_rho_vec = cy_expect_rho_vec
@@ -76,12 +76,14 @@ def _single_qobj_expect(oper, state):
     if isoper(oper):
         if state.type == 'oper':
             # calculates expectation value via TR(op*rho)
-            prod = oper.data * state.data
-            tr = prod.diagonal().sum()
-            if oper.isherm and state.isherm:
-                return float(np.real(tr))
-            else:
-                return tr
+            #prod = oper.data * state.data
+            #tr = prod.diagonal().sum()
+            #if oper.isherm and state.isherm:
+            #    return float(np.real(tr))
+            #else:
+            #    return tr
+
+            return cy_spmm_tr(oper.data, state.data, state.isherm)
 
         elif state.type == 'ket':
             # calculates expectation value via <psi|op|psi>
