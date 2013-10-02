@@ -23,19 +23,19 @@ from qutip.qobj import Qobj
 from qutip.eseries import eseries, estidy, esval
 from qutip.expect import expect
 from qutip.superoperator import *
-
+from qutip.odedata import Odedata
 
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
 # any collapse operators were given.
 #
-def essolve(H, rho0, tlist, c_op_list, expt_op_list):
+def essolve(H, rho0, tlist, c_op_list, e_ops):
     """
     Evolution of a state vector or density matrix (`rho0`) for a given
     Hamiltonian (`H`) and set of collapse operators (`c_op_list`), by
     expressing the ODE as an exponential series. The output is either
     the state vector at arbitrary points in time (`tlist`), or the
-    expectation values of the supplied operators (`expt_op_list`).
+    expectation values of the supplied operators (`e_ops`).
 
     Parameters
     ----------
@@ -51,7 +51,7 @@ def essolve(H, rho0, tlist, c_op_list, expt_op_list):
     c_op_list : list of :class:`qutip.qobj`
         ``list`` of :class:`qutip.qobj` collapse operators.
 
-    expt_op_list : list of :class:`qutip.qobj`
+    e_ops : list of :class:`qutip.qobj`
         ``list`` of :class:`qutip.qobj` operators for which to evaluate
         expectation values.
 
@@ -66,11 +66,11 @@ def essolve(H, rho0, tlist, c_op_list, expt_op_list):
     .. note:: This solver does not support time-dependent Hamiltonians.
 
     """
-    n_expt_op = len(expt_op_list)
+    n_expt_op = len(e_ops)
     n_tsteps = len(tlist)
 
     # Calculate the Liouvillian
-    if c_op_list is None or len(c_op_list) == 0:
+    if (c_op_list is None or len(c_op_list) == 0) and isket(rho0):
         L = H
     else:
         L = liouvillian(H, c_op_list)
@@ -79,14 +79,20 @@ def essolve(H, rho0, tlist, c_op_list, expt_op_list):
 
     # evaluate the expectation values
     if n_expt_op == 0:
-        result_list = [Qobj()] * n_tsteps
+        result_list = [Qobj()] * n_tsteps # XXX
     else:
         result_list = np.zeros([n_expt_op, n_tsteps], dtype=complex)
 
-    for n in range(0, n_expt_op):
-        result_list[n, :] = esval(expect(expt_op_list[n], es), tlist)
+    for n, e in enumerate(e_ops):
+        result_list[n, :] = expect(e, esval(es, tlist))
 
-    return result_list
+    data = Odedata()
+    data.solver = "essolve"
+    data.times = tlist
+    data.expect = [np.real(result_list[n, :]) if e.isherm else result_list[n, :]
+                   for n, e in enumerate(e_ops)]
+
+    return data
 
 
 # -----------------------------------------------------------------------------
