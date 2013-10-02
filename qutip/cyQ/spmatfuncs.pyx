@@ -248,10 +248,10 @@ cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1] data,
     
     cdef Py_ssize_t row
     cdef int jj,row_start,row_end
-    cdef int num_rows = rho_vec.size
+    cdef int num_rows = len(rho_vec)
     cdef int n = <int>libc.math.sqrt(num_rows)
     cdef CTYPE_t dot = 0.0
-    for row in range(0, num_rows, n+1):
+    for row from 0 <= row < num_rows by n+1:
         row_start = ptr[row]
         row_end = ptr[row+1]
         for jj from row_start <= jj < row_end:
