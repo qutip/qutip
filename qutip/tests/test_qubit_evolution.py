@@ -37,23 +37,20 @@ def _qubit_integrate(tlist, psi0, epsilon, delta, g1, g2, solver):
     if rate > 0.0:
         c_op_list.append(sqrt(rate) * sigmaz())
 
+    e_ops = [sigmax(), sigmay(), sigmaz()]
+
     if solver == "me":
-        output = mesolve(
-            H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])
-        expt_list = output.expect[0], output.expect[1], output.expect[2]
+        output = mesolve(H, psi0, tlist, c_op_list, e_ops)
     elif solver == "es":
-        expt_list = essolve(
-            H, psi0, tlist, c_op_list, [sigmax(), sigmay(), sigmaz()])
+        output = essolve(H, psi0, tlist, c_op_list, e_ops)
     elif solver == "mc":
-        print('')  # to look nicer when running tests
         opts = Odeoptions(gui=False)
-        output = mcsolve(H, psi0, tlist, c_op_list, [sigmax(
-        ), sigmay(), sigmaz()], ntraj=750, options=opts)
-        expt_list = output.expect[0], output.expect[1], output.expect[2]
+        output = mcsolve(H, psi0, tlist, c_op_list, e_ops,
+                         ntraj=750, options=opts)
     else:
         raise ValueError("unknown solver")
 
-    return expt_list[0], expt_list[1], expt_list[2]
+    return output.expect[0], output.expect[1], output.expect[2]
 
 
 def test_MESolverCase1():
