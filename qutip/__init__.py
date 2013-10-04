@@ -265,7 +265,6 @@ from qutip.quantum_info import *
 # utilities
 from qutip.utilities import *
 from qutip.fileio import *
-from qutip.demos import demos
 from qutip.about import *
 
 

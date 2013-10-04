@@ -489,29 +489,10 @@ class _MC_class():
             args = (mc_alg_out, self.odeconfig.options,
                     self.odeconfig.tlist, self.num_times, self.seeds)
 
-            if not self.odeconfig.options.gui:
-                self.odeconfig.progress_bar.start(self.odeconfig.ntraj)
-                self.parallel(args, self)
-                self.odeconfig.progress_bar.finished()
-            else:
-                if qutip.settings.qutip_gui == "PYSIDE":
-                    from PySide import QtGui, QtCore
-                elif qutip.settings.qutip_gui == "PYQT4":
-                    from PyQt4 import QtGui, QtCore
-                from qutip.gui.gui_progressbar import ProgressBar, Pthread
-                # checks if QApplication already exists (needed for iPython)
-                app = QtGui.QApplication.instance()
-                if not app:  # create QApplication if it doesnt exist
-                    app = QtGui.QApplication(sys.argv)
-                thread = Pthread(target=self.parallel, args=args, top=self)
-                self.bar = ProgressBar(
-                    self, thread, self.odeconfig.ntraj, self.cpus)
-                QtCore.QTimer.singleShot(0, self.bar.run)
-                self.bar.show()
-                self.bar.activateWindow()
-                self.bar.raise_()
-                app.exec_()
-                return
+            self.odeconfig.progress_bar.start(self.odeconfig.ntraj)
+            self.parallel(args, self)
+            self.odeconfig.progress_bar.finished()
+
 
 
 #----------------------------------------------------
