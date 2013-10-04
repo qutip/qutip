@@ -664,7 +664,7 @@ class Qobj():
         """Adjoint operator of quantum object.
         """
         out = Qobj()
-        out.data = self.data.T.conj()
+        out.data = self.data.T.conj().tocsr()
         out.dims = [self.dims[1], self.dims[0]]
         out.shape = [self.shape[1], self.shape[0]]
         out.isherm = self.isherm
