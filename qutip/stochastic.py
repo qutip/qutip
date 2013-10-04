@@ -15,6 +15,8 @@
 #
 # Copyright (C) 2012-2013, Paul D. Nation & Robert J. Johansson
 #
+# Significant parts of this code was contributed by Denis Vasilyev 
+#
 ###########################################################################
 
 """
@@ -1223,8 +1225,8 @@ def sop_H(A, rho_vec):
     """
     Evaluate the superoperator
 
-    H[a] rho = a rho + rho a^\dagger - Tr[a rho + rho a^\dagger]
-            -> (A_L + Ad_R) rho_vec - E[(A_L + Ad_R) rho_vec]
+    H[a] rho = a rho + rho a^\dagger - Tr[a rho + rho a^\dagger] rho
+            -> (A_L + Ad_R) rho_vec - E[(A_L + Ad_R) rho_vec] rho_vec
 
     Todo: cythonize, add A_L + Ad_R to precomputed operators
     """
