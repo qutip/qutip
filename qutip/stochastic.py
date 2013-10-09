@@ -505,7 +505,8 @@ def ssesolve_generic(ssdata, options, progress_bar):
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum(state_list).unit() for state_list in data.states]
+        data.states = [sum([ket2dm(data.states[m][n]) for m in range(NT)]).unit() 
+                       for n in range(len(data.times))]
 
     # average
     data.expect = data.expect / NT
@@ -665,7 +666,8 @@ def smesolve_generic(ssdata, options, progress_bar):
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum(state_list).unit() for state_list in data.states]
+        data.states = [sum([data.states[m][n] for m in range(NT)]).unit() 
+                       for n in range(len(data.times))]
 
     # average
     data.expect = data.expect / NT
@@ -799,7 +801,8 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum(state_list).unit() for state_list in data.states]
+        data.states = [sum([data.states[m][n] for m in range(NT)]).unit() 
+                       for n in range(len(data.times))]
 
     # average
     data.expect = data.expect / NT
@@ -932,8 +935,9 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum(state_list).unit() for state_list in data.states]
-    
+        data.states = [sum([data.states[m][n] for m in range(NT)]).unit() 
+                       for n in range(len(data.times))]
+   
     # average
     data.expect = data.expect / ssdata.ntraj
 
