@@ -69,7 +69,7 @@ class _StochasticSolverData:
     """
     def __init__(self, H=None, state0=None, tlist=None, c_ops=[], sc_ops=[],
                  e_ops=[], m_ops=None, args=None, ntraj=1, nsubsteps=1,
-                 d1=None, d2=None, d2_len=1, dW_factors=None, rhs=None, gen_A_ops=None,
+                 d1=None, d2=None, d2_len=1, dW_factors=None, rhs=None, gen_A_ops=None, gen_noise = None,
                  homogeneous=True, solver=None, method=None, distribution='normal',
                  store_measurement=False, noise=None, normalize=True,
                  options=Odeoptions(), progress_bar=TextProgressBar()):
@@ -105,7 +105,7 @@ class _StochasticSolverData:
         self.noise = noise
         self.args = args
         self.normalize = normalize
-        self.gen_noise = None
+        self.gen_noise = gen_noise
 
 
 def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
