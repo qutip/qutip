@@ -76,7 +76,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1] spmv_csr(np.ndarray[CTYPE_t, ndim=1] data,
     """
     cdef Py_ssize_t row
     cdef int jj,row_start,row_end
-    cdef int num_rows = ptr.size-1
+    cdef int num_rows = ptr.shape[0]-1
     cdef CTYPE_t dot
     cdef np.ndarray[CTYPE_t, ndim=1] out = np.zeros((num_rows), dtype=np.complex)
     for row in range(num_rows):
@@ -100,7 +100,7 @@ cpdef spmvpy(np.ndarray[CTYPE_t, ndim=1] data,
     """
     cdef Py_ssize_t row
     cdef int jj, row_start, row_end
-    cdef int num_rows = len(vec)
+    cdef int num_rows = vec.shape[0]
     cdef CTYPE_t dot
     for row in range(num_rows):
         dot = 0.0
@@ -120,7 +120,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1] cy_ode_rhs(double t,
                                              np.ndarray[int] idx,
                                              np.ndarray[int] ptr):
     cdef int row, jj, row_start, row_end
-    cdef int num_rows = rho.size
+    cdef int num_rows = rho.shape[0]
     cdef CTYPE_t dot
     cdef np.ndarray[CTYPE_t, ndim=1] out = np.zeros((num_rows),dtype=np.complex)
     for row from 0 <= row < num_rows:
@@ -198,7 +198,7 @@ def cy_expect_psi(object op,
                   int isherm=0):
     cdef np.ndarray[CTYPE_t, ndim=1] y = spmv_csr(op.data, op.indices, op.indptr, state)
     cdef np.ndarray[CTYPE_t, ndim=1] x = state.conj()
-    cdef int row, num_rows = state.size
+    cdef int row, num_rows = state.shape[0]
     cdef CTYPE_t dot = 0.0j
     for row from 0 <= row < num_rows:
         dot += x[row] * y[row]
@@ -218,7 +218,7 @@ def cy_expect(np.ndarray[CTYPE_t, ndim=1] data,
               int isherm = 0):
     cdef np.ndarray[CTYPE_t, ndim=1] y = spmv_csr(data,idx,ptr,state)
     cdef np.ndarray[CTYPE_t, ndim=1] x = state.conj()
-    cdef int row, num_rows = state.size
+    cdef int row, num_rows = state.shape[0]
     cdef CTYPE_t dot = 0.0j
     for row from 0 <= row < num_rows:
         dot+=x[row]*y[row]
@@ -248,7 +248,7 @@ cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1] data,
     
     cdef Py_ssize_t row
     cdef int jj,row_start,row_end
-    cdef int num_rows = len(rho_vec)
+    cdef int num_rows = rho_vec.shape[0]
     cdef int n = <int>libc.math.sqrt(num_rows)
     cdef CTYPE_t dot = 0.0
     for row from 0 <= row < num_rows by n+1:
@@ -281,7 +281,7 @@ cpdef cy_spmm_tr(object op1, object op2, int herm=0):
     cdef np.ndarray[int] idx2 = op2.indices
     cdef np.ndarray[int] ptr2 = op2.indptr
 
-    cdef int num_rows = ptr1.size-1
+    cdef int num_rows = ptr1.shape[0]-1
 
     for row in range(num_rows):
 
