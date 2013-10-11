@@ -204,7 +204,7 @@ def cy_expect_psi(object op,
         dot += x[row] * y[row]
 
     if isherm:
-        return float(np.real(dot))
+        return float(dot.real)
     else:
         return complex(dot)
 
@@ -224,7 +224,7 @@ def cy_expect(np.ndarray[CTYPE_t, ndim=1] data,
         dot+=x[row]*y[row]
 
     if isherm:
-        return float(np.real(dot))
+        return float(dot.real)
     else:
         return complex(dot)
 
@@ -260,7 +260,7 @@ cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1] data,
     if herm == 0:
         return dot
     else:
-        return float(np.real(dot))
+        return float(dot.real)
 
 
 
@@ -301,7 +301,7 @@ cpdef cy_spmm_tr(object op1, object op2, int herm=0):
     if herm == 0:
         return tr
     else:
-        return float(np.real(tr))
+        return float(tr.real)
 
 
 
