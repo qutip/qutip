@@ -473,7 +473,7 @@ def permute_sparse(A,rperm=[],cperm=[]):
     cperm=np.asarray(cperm)
     nrows=A.shape[0]
     shp=A.shape[0]
-    if isinstance(A,Qobj):
+    if A.__class__.__name__=='Qobj':
         A=A.data
     
     data, ind, ptr=_permute_sparse(A.data, A.indices, 
@@ -507,7 +507,7 @@ def reverse_permute_sparse(A,rperm=[],cperm=[]):
     cperm=np.asarray(cperm)
     nrows=A.shape[0]
     shp=A.shape[0]
-    if isinstance(A,Qobj):
+    if A.__class__.__name__=='Qobj':
         A=A.data
     
     data, ind, ptr=_reverse_permute_sparse(A.data, A.indices, 
