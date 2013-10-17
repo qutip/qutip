@@ -8,21 +8,25 @@ def configuration(parent_package='', top_path=None):
     # compiles files during installation
     from numpy.distutils.misc_util import Configuration
     config = Configuration('cyQ', parent_package, top_path)
+    
     config.add_extension('spmatfuncs',
                          sources=["spmatfuncs.c"],
                          include_dirs=[np.get_include()],
                          extra_compile_args=['-w -ffast-math -O3'],
                          extra_link_args=[])
+    
     config.add_extension('stochastic',
                          sources=["stochastic.c"],
                          include_dirs=[np.get_include()],
                          extra_compile_args=['-w -ffast-math -O3'],
                          extra_link_args=[])
-    #config.add_extension('blas_funcs',
-                         #sources=["blas_funcs.c"],
-                         #include_dirs=[np.get_include()],
-                         #extra_compile_args=['-w -ffast-math -O3'],
-                         #extra_link_args=[])
+    
+    config.add_extension('sparse_utils',
+                         sources=["sparse_utils.c"],
+                         include_dirs=[np.get_include()],
+                         extra_compile_args=['-w -ffast-math -O3'],
+                         extra_link_args=[])
+   
     return config
 
 
@@ -36,5 +40,8 @@ if __name__ == '__main__':
                                extra_link_args=[]),
                      Extension("stochastic", ["stochastic.pyx"],
                                extra_compile_args=['-w -ffast-math -O3'],
-                               extra_link_args=[])]
+                               extra_link_args=[]),
+                   Extension("sparse_utils", ["sparse_utils.pyx"],
+                             extra_compile_args=['-w -ffast-math -O3'],
+                             extra_link_args=[])]
     )

@@ -26,6 +26,7 @@ import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 import numpy as np
 import scipy.linalg as la
+from qutip.cyQ.sparse_utils import _permute_sparse, _reverse_permute_sparse
 from qutip.settings import debug
 
 if debug:
@@ -445,3 +446,75 @@ def _padecoeff(m):
                          129060195264000, 10559470521600, 670442572800,
                          33522128640, 1323241920, 40840800,
                          960960, 16380, 182, 1])
+
+
+def permute_sparse(A,rperm=[],cperm=[]):
+    """
+    Permutes the rows and columns of a sparse CSR matrix or Qobj according to the permutation
+    arrays rperm and cperm, respectively.  Here, the permutation arrays specify the 
+    new order of the rows and columns. i.e. [0,1,2,3,4] -> [3,0,4,1,2].
+    
+    Parameters
+    ----------
+    A : qobj, csr_matrix
+        Input quantum object or csr_matrix.
+    rperm : list/array
+        Array of row permutations.
+    cperm : list/array
+        Array of column permutations.
+    
+    Returns
+    -------
+    perm_csr : csr_matrix
+        CSR matrix with permuted rows/columns.
+    
+    """
+    rperm=np.asarray(rperm)
+    cperm=np.asarray(cperm)
+    nrows=A.shape[0]
+    shp=A.shape[0]
+    if isinstance(A,Qobj):
+        A=A.data
+    
+    data, ind, ptr=_permute_sparse(A.data, A.indices, 
+                    A.indptr, shp, rperm, cperm)
+
+    return sp.csr_matrix((data,ind,ptr),dtype=complex)
+
+
+def reverse_permute_sparse(A,rperm=[],cperm=[]):
+    """
+    Performs a reverse permutations of the rows and columns of a sparse CSR matrix or Qobj 
+    according to the permutation arrays rperm and cperm, respectively.  Here, the permutation 
+    arrays specify the order of the rows and columns used to permute the original array/Qobj.
+    
+    Parameters
+    ----------
+    A : qobj, csr_matrix
+        Input quantum object or csr_matrix.
+    rperm : list/array
+        Array of row permutations.
+    cperm : list/array
+        Array of column permutations.
+    
+    Returns
+    -------
+    perm_csr : csr_matrix
+        CSR matrix with permuted rows/columns.
+    
+    """
+    rperm=np.asarray(rperm)
+    cperm=np.asarray(cperm)
+    nrows=A.shape[0]
+    shp=A.shape[0]
+    if isinstance(A,Qobj):
+        A=A.data
+    
+    data, ind, ptr=_reverse_permute_sparse(A.data, A.indices, 
+                    A.indptr, shp, rperm, cperm)
+
+    return sp.csr_matrix((data,ind,ptr),dtype=complex)
+
+
+
+
