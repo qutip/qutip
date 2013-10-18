@@ -101,7 +101,6 @@ class _StochasticSolverData:
         self.distribution = distribution
         self.homogeneous = homogeneous
         self.rhs = rhs
-        self.gen_A_ops = gen_A_ops
         self.options = options
         self.progress_bar = progress_bar
         self.store_measurement = store_measurement
@@ -109,7 +108,9 @@ class _StochasticSolverData:
         self.noise = noise
         self.args = args
         self.normalize = normalize
+
         self.gen_noise = gen_noise
+        self.gen_A_ops = gen_A_ops
 
 
 def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
@@ -160,6 +161,9 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
     ssdata = _StochasticSolverData(H=H, state0=psi0, tlist=tlist,
                                    sc_ops=sc_ops, e_ops=e_ops, **kwargs)
 
+    if ssdata.gen_A_ops is None:
+        ssdata.gen_A_ops = _generate_psi_A_ops
+
     if (ssdata.d1 is None) or (ssdata.d2 is None):
 
         if ssdata.method == 'homodyne':
@@ -168,6 +172,8 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 1
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
+            if not hasattr(kwargs, "dW_factors"):
+                ssdata.dW_factors = np.array([1, 1])
             if not hasattr(kwargs, "m_ops"):
                 ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
 
@@ -180,13 +186,7 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
             if not hasattr(kwargs, "dW_factors"):
                 ssdata.dW_factors = np.array([np.sqrt(2), np.sqrt(2)])
             if not hasattr(kwargs, "m_ops"):
-                # XXX: ugly hack to get around that we need the quadrature
-                # operators and not the collapse operator (factor sqrt(gamma)
-                # difference).
-                g_vec = [0.5 * (commutator((c + c.dag()), -1j * (c - c.dag()))[0, 0]).imag
-                         for c in ssdata.sc_ops]
-                ssdata.m_ops = [[(c + c.dag()) / np.sqrt(g_vec[idx]),
-                                 (-1j) * (c - c.dag()) / np.sqrt(g_vec[idx])]
+                ssdata.m_ops = [[(c + c.dag()), (-1j) * (c - c.dag())]
                                 for idx, c in enumerate(ssdata.sc_ops)]
 
         elif ssdata.method == 'photocurrent':
@@ -285,10 +285,10 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 1
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
+            if not hasattr(kwargs, "dW_factors"):
+                ssdata.dW_factors = np.array([np.sqrt(1)])
             if not hasattr(kwargs, "m_ops"):
                 ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
-            if not hasattr(kwargs, "dW_factors"):
-                ssdata.dW_factors = np.array([np.sqrt(2)])
 
         elif ssdata.method == 'heterodyne':
             ssdata.d1 = d1_rho_heterodyne
@@ -299,13 +299,7 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
             if not hasattr(kwargs, "dW_factors"):
                 ssdata.dW_factors = np.array([np.sqrt(2), np.sqrt(2)])
             if not hasattr(kwargs, "m_ops"):
-                # XXX: ugly hack to get around that we need the quadrature
-                # operators without the sqrt(gamma) factor from the collapse
-                # operators
-                g_vec = [0.5 * (commutator((c + c.dag()), -1j * (c - c.dag()))[0, 0]).imag
-                         for c in ssdata.sc_ops]
-                ssdata.m_ops = [[(c + c.dag()) / np.sqrt(g_vec[idx]),
-                                 (-1j) * (c - c.dag()) / np.sqrt(g_vec[idx])]
+                ssdata.m_ops = [[(c + c.dag()), -1j * (c - c.dag())]
                                 for idx, c in enumerate(ssdata.sc_ops)]
 
         elif ssdata.method == 'photocurrent':
@@ -322,7 +316,7 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
         ssdata.homogeneous = False
 
     if ssdata.gen_A_ops is None:
-        ssdata.gen_A_ops = _generate_A_ops
+        ssdata.gen_A_ops = _generate_rho_A_ops
 
     if ssdata.rhs is None:
         if ssdata.solver == 'euler-maruyama' or ssdata.solver == None:
@@ -474,12 +468,7 @@ def ssesolve_generic(ssdata, options, progress_bar):
 
     # pre-compute collapse operator combinations that are commonly needed
     # when evaluating the RHS of stochastic Schrodinger equations
-    A_ops = []
-    for c_idx, c in enumerate(ssdata.sc_ops):
-        A_ops.append([c.data,
-                      (c + c.dag()).data,
-                      (c - c.dag()).data,
-                      (c.dag() * c).data])
+    A_ops = ssdata.gen_A_ops(ssdata.sc_ops, ssdata.H)
 
     progress_bar.start(ssdata.ntraj)
 
@@ -1047,6 +1036,23 @@ def _smepdpsolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps,
 #     precomputed before the time-evolution is started to avoid repeated
 #     computations.
 
+
+def _generate_psi_A_ops(sc_ops, H):
+    """
+    pre-compute superoperator operator combinations that are commonly needed
+    when evaluating the RHS of stochastic schrodinger equations
+    """
+
+    A_ops = []
+    for c_idx, c in enumerate(ssdata.sc_ops):
+        A_ops.append([c.data,
+                      (c + c.dag()).data,
+                      (c - c.dag()).data,
+                      (c.dag() * c).data])
+ 
+    return A_ops
+
+
 def d1_psi_homodyne(A, psi):
     """
     OK
@@ -1173,9 +1179,11 @@ def d2_psi_photocurrent(A, psi):
 #     A[6] = (spre(a) * spost(a.dag()) = A_L * Ad_R
 #     A[7] = lindblad_dissipator(a)
 
-def _generate_A_ops(sc, L, dt):
+
+
+def _generate_rho_A_ops(sc, L, dt):
     """
-    pre-compute suporoperator operator combinations that are commonly needed
+    pre-compute superoperator operator combinations that are commonly needed
     when evaluating the RHS of stochastic master equations
     """
     out = []
@@ -1183,8 +1191,7 @@ def _generate_A_ops(sc, L, dt):
         n = c.dag() * c
         out.append([spre(c).data, spost(c).data,
                     spre(c.dag()).data, spost(c.dag()).data,
-                    spre(n).data, spost(
-                        n).data, (spre(c) * spost(c.dag())).data,
+                    spre(n).data, spost(n).data, (spre(c) * spost(c.dag())).data,
                     lindblad_dissipator(c, data_only=True)])
 
     return out
@@ -1433,10 +1440,10 @@ def _rhs_psi_platen(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
     dpsi_t = _rhs_psi_deterministic(H, psi_t, t, dt, args)
 
     for a_idx, A in enumerate(A_ops):
-    # XXX: This needs to be revised now that
-    # dpsi_t is the change for all stochastic collapse operators
+        # XXX: This needs to be revised now that
+        # dpsi_t is the change for all stochastic collapse operators
 
-    # TODO: needs to be updated to support mutiple Weiner increments
+        # TODO: needs to be updated to support mutiple Weiner increments
         dpsi_t_H = (-1.0j * dt) * spmv(H, psi_t)
 
         psi_t_1 = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t)[0] * dW[a_idx, 0]
