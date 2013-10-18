@@ -927,10 +927,9 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
 
         for m in range(n_expt_op):
             if output.expect[m].dtype == complex:
-                output.expect[m][t_idx] = expect_rho_vec(e_sops_data[m], r.y)
+                output.expect[m][t_idx] = expect_rho_vec(e_sops_data[m], r.y, 0)
             else:
-                output.expect[m][t_idx] = np.real(
-                    expect_rho_vec(e_sops_data[m], r.y))
+                output.expect[m][t_idx] = expect_rho_vec(e_sops_data[m], r.y, 1)
 
         r.integrate(r.t + dt)
 

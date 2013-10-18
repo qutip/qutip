@@ -55,6 +55,8 @@ from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
                                  liouvillian_fast, lindblad_dissipator)
 from qutip.states import ket2dm
 from qutip.cyQ.spmatfuncs import cy_expect, spmv, cy_expect_rho_vec
+from qutip.cyQ.stochastic import (cy_d1_rho_photocurrent,
+                                  cy_d2_rho_photocurrent)
 from qutip.gui.progressbar import TextProgressBar
 
 from qutip.settings import debug
@@ -307,8 +309,8 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
 
 
         elif ssdata.method == 'photocurrent':
-            ssdata.d1 = d1_rho_photocurrent
-            ssdata.d2 = d2_rho_photocurrent
+            ssdata.d1 = cy_d1_rho_photocurrent
+            ssdata.d2 = cy_d2_rho_photocurrent
             ssdata.d2_len = 1
             ssdata.homogeneous = False
             ssdata.distribution = 'poisson'
@@ -715,7 +717,7 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                s = cy_expect_rho_vec(e.data, rho_t)
+                s = cy_expect_rho_vec(e.data, rho_t, 0)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2 
         
@@ -729,7 +731,7 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
 
             if noise is None and not homogeneous:
                 for a_idx, A in enumerate(A_ops):
-                    dw_expect = np.real(cy_expect_rho_vec(A[4], rho_t)) * dt
+                    dw_expect = cy_expect_rho_vec(A[4], rho_t, 1) * dt
                     dw_expect = dw_expect if dw_expect > 0 else 0.0
                     dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
 
@@ -739,7 +741,7 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
         if store_measurement:
             for m_idx, m in enumerate(m_ops):
                 for dW_idx, dW_factor in enumerate(dW_factors):
-                    m_expt = cy_expect_rho_vec(m[dW_idx].data, rho_prev)
+                    m_expt = cy_expect_rho_vec(m[dW_idx].data, rho_prev, 0)
                     measurements[t_idx, m_idx, dW_idx] = m_expt + dW_factor * dW[m_idx, t_idx, :, dW_idx].sum() / (dt * N_substeps)
 
     if d2_len == 1:
@@ -1210,6 +1212,7 @@ def _generate_A_ops_Milstein(sc, L, dt):
 	out1 += [[] for n in xrange(A_len-1)]
 	return out1
     
+
 def _generate_noise_Milstein(sc_len, N_store, N_substeps, d2_len, dt):
 	"""
 	generate noise terms for the fast Milstein scheme
@@ -1236,7 +1239,7 @@ def sop_H(A, rho_vec):
     """
     M = A[0] + A[3]
 
-    e1 = cy_expect_rho_vec(M, rho_vec)
+    e1 = cy_expect_rho_vec(M, rho_vec, 0)
     return spmv(M, rho_vec) - e1 * rho_vec
 
 
@@ -1250,7 +1253,7 @@ def sop_G(A, rho_vec):
     Todo: cythonize, add A_L + Ad_R to precomputed operators
     """
 
-    e1 = cy_expect_rho_vec(A[6], rho_vec)
+    e1 = cy_expect_rho_vec(A[6], rho_vec, 0)
 
     if e1 > 1e-15:
         return spmv(A[6], rho_vec) / e1 - rho_vec
@@ -1278,7 +1281,7 @@ def d2_rho_homodyne(A, rho_vec):
     """
     M = A[0] + A[3]
 
-    e1 = cy_expect_rho_vec(M, rho_vec)
+    e1 = cy_expect_rho_vec(M, rho_vec, 0)
     return [spmv(M, rho_vec) - e1 * rho_vec]
 
 
@@ -1294,10 +1297,10 @@ def d2_rho_heterodyne(A, rho_vec):
     todo: cythonize, docstrings
     """
     M = A[0] + A[3]
-    e1 = cy_expect_rho_vec(M, rho_vec)
+    e1 = cy_expect_rho_vec(M, rho_vec, 0)
     d1 = spmv(M, rho_vec) - e1 * rho_vec
     M = A[0] - A[3]
-    e1 = cy_expect_rho_vec(M, rho_vec)
+    e1 = cy_expect_rho_vec(M, rho_vec, 0)
     d2 = spmv(M, rho_vec) - e1 * rho_vec
     return [1.0/np.sqrt(2) * d1, -1.0j/np.sqrt(2) * d2]
 
@@ -1307,7 +1310,7 @@ def d1_rho_photocurrent(A, rho_vec):
     Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
     n_sum = A[4] + A[5]
-    e1 = cy_expect_rho_vec(n_sum, rho_vec)
+    e1 = cy_expect_rho_vec(n_sum, rho_vec, 0)
     return -spmv(n_sum, rho_vec) + e1 * rho_vec
 
 
@@ -1315,8 +1318,8 @@ def d2_rho_photocurrent(A, rho_vec):
     """
     Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
-    e1 = cy_expect_rho_vec(A[6], rho_vec) + 1e-15
-    return [spmv(A[6], rho_vec) / e1 - rho_vec]
+    e1 = cy_expect_rho_vec(A[6], rho_vec, 0)
+    return [spmv(A[6], rho_vec) / e1 - rho_vec] if e1.real > 1e-15 else [- rho_vec]
 
 
 #------------------------------------------------------------------------------
@@ -1450,11 +1453,11 @@ def _rhs_rho_milstein_homodyne_single(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     
     A = A_ops[0]
     M = A[0] + A[3]
-    e1 = cy_expect_rho_vec(M, rho_t)
+    e1 = cy_expect_rho_vec(M, rho_t, 0)
     
     d2_vec = spmv(M, rho_t)
     d2_vec2 = spmv(M, d2_vec)
-    e2 = cy_expect_rho_vec(M, d2_vec)
+    e2 = cy_expect_rho_vec(M, d2_vec, 0)
     
     drho_t = _rhs_rho_deterministic(L, rho_t, t, dt, args)
     drho_t += spmv(A[7], rho_t)*dt
@@ -1476,7 +1479,7 @@ def _rhs_rho_milstein_homodyne(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     A_len = len(A_ops)
     
     M = np.array([A_ops[n][0] + A_ops[n][3] for n in range(A_len)])
-    e1 = np.array([cy_expect_rho_vec(M[n], rho_t) for n in range(A_len)])
+    e1 = np.array([cy_expect_rho_vec(M[n], rho_t, 0) for n in range(A_len)])
     
     d1_vec = np.sum([spmv(A_ops[n][7], rho_t)
                   for n in range(A_len)], axis=0)
@@ -1487,7 +1490,7 @@ def _rhs_rho_milstein_homodyne(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     #This calculation is suboptimal. We need only values for m>n in case of commuting jump operators.
     d2_vec2 = np.array([[spmv(M[n], d2_vec[m]) 
     					for m in range(A_len)] for n in range(A_len)])
-    e2 = np.array([[cy_expect_rho_vec(M[n], d2_vec[m]) 
+    e2 = np.array([[cy_expect_rho_vec(M[n], d2_vec[m], 0) 
     				for m in range(A_len)] for n in range(A_len)])
     
     drho_t = _rhs_rho_deterministic(L, rho_t, t, dt, args)
