@@ -173,7 +173,7 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
             if not hasattr(kwargs, "dW_factors"):
-                ssdata.dW_factors = np.array([1, 1])
+                ssdata.dW_factors = np.array([1])
             if not hasattr(kwargs, "m_ops"):
                 ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
 
@@ -482,7 +482,7 @@ def ssesolve_generic(ssdata, options, progress_bar):
         states_list, dW, m = _ssesolve_single_trajectory(data,
              ssdata.H, dt, ssdata.tlist, N_store, N_substeps, psi_t, A_ops,
              ssdata.e_ops, ssdata.m_ops, ssdata.rhs_func, ssdata.d1, ssdata.d2,
-             ssdata.d2_len, ssdata.homogeneous, ssdata.distribution, ssdata.args,
+             ssdata.d2_len, ssdata.dW_factors, ssdata.homogeneous, ssdata.distribution, ssdata.args,
              store_measurement=ssdata.store_measurement, noise=noise,
              normalize=ssdata.normalize)
 
@@ -515,7 +515,7 @@ def ssesolve_generic(ssdata, options, progress_bar):
 
 def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
                                 A_ops, e_ops, m_ops, rhs, d1, d2, d2_len,
-                                homogeneous, distribution, args,
+                                dW_factors, homogeneous, distribution, args,
                                 store_measurement=False, noise=None,
                                 normalize=True):
     """
@@ -725,9 +725,10 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
             if noise is None and not homogeneous:
                 for a_idx, A in enumerate(A_ops):
                     dw_expect = cy_expect_rho_vec(A[4], rho_t, 1) * dt
-                    dw_expect = dw_expect if dw_expect > 0 else 0.0
-                    dW[a_idx, t_idx, j, :
-                       ] = np.random.poisson(dw_expect, d2_len)
+                    if dw_expect > 0:
+                        dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
+                    else:
+                        dW[a_idx, t_idx, j, :] = np.zeros(d2_len)
 
             rho_t = rhs(L.data, rho_t, t + dt * j,
                         A_ops, dt, dW[:, t_idx, j, :], d1, d2, args)
@@ -1044,7 +1045,7 @@ def _generate_psi_A_ops(sc_ops, H):
     """
 
     A_ops = []
-    for c_idx, c in enumerate(ssdata.sc_ops):
+    for c_idx, c in enumerate(sc_ops):
         A_ops.append([c.data,
                       (c + c.dag()).data,
                       (c - c.dag()).data,
