@@ -15,7 +15,7 @@
 #
 # Copyright (C) 2012-2013, Paul D. Nation & Robert J. Johansson
 #
-# Significant parts of this code was contributed by Denis Vasilyev 
+# Significant parts of this code was contributed by Denis Vasilyev
 #
 ###########################################################################
 
@@ -65,15 +65,17 @@ from qutip.operators import commutator
 if debug:
     import inspect
 
+
 class _StochasticSolverData:
     """
     Internal class for passing data between stochastic solver functions.
     """
     def __init__(self, H=None, state0=None, tlist=None, c_ops=[], sc_ops=[],
                  e_ops=[], m_ops=None, args=None, ntraj=1, nsubsteps=1,
-                 d1=None, d2=None, d2_len=1, dW_factors=None, rhs=None, gen_A_ops=None, gen_noise = None,
-                 homogeneous=True, solver=None, method=None, distribution='normal',
-                 store_measurement=False, noise=None, normalize=True,
+                 d1=None, d2=None, d2_len=1, dW_factors=None, rhs=None,
+                 gen_A_ops=None, gen_noise=None, homogeneous=True, solver=None,
+                 method=None, distribution='normal', store_measurement=False,
+                 noise=None, normalize=True,
                  options=Odeoptions(), progress_bar=TextProgressBar()):
 
         self.H = H
@@ -91,7 +93,7 @@ class _StochasticSolverData:
             self.m_ops = [[c for _ in range(d2_len)] for c in c_ops]
         else:
             self.m_ops = m_ops
-        
+
         self.ntraj = ntraj
         self.nsubsteps = nsubsteps
         self.solver = solver
@@ -181,12 +183,11 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
                 # XXX: ugly hack to get around that we need the quadrature
                 # operators and not the collapse operator (factor sqrt(gamma)
                 # difference).
-                g_vec = [0.5 * (commutator((c + c.dag()), -1j * (c - c.dag()))[0,0]).imag
+                g_vec = [0.5 * (commutator((c + c.dag()), -1j * (c - c.dag()))[0, 0]).imag
                          for c in ssdata.sc_ops]
                 ssdata.m_ops = [[(c + c.dag()) / np.sqrt(g_vec[idx]),
                                  (-1j) * (c - c.dag()) / np.sqrt(g_vec[idx])]
-                                 for idx, c in enumerate(ssdata.sc_ops)]
-                
+                                for idx, c in enumerate(ssdata.sc_ops)]
 
         elif ssdata.method == 'photocurrent':
             ssdata.d1 = d1_psi_photocurrent
@@ -256,8 +257,8 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
     output: :class:`qutip.odedata`
 
         An instance of the class :class:`qutip.odedata`.
-        
-        
+
+
     TODO: add check for commuting jump operators in Milstein.
     """
 
@@ -301,12 +302,11 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
                 # XXX: ugly hack to get around that we need the quadrature
                 # operators without the sqrt(gamma) factor from the collapse
                 # operators
-                g_vec = [0.5 * (commutator((c + c.dag()), -1j * (c - c.dag()))[0,0]).imag
+                g_vec = [0.5 * (commutator((c + c.dag()), -1j * (c - c.dag()))[0, 0]).imag
                          for c in ssdata.sc_ops]
                 ssdata.m_ops = [[(c + c.dag()) / np.sqrt(g_vec[idx]),
                                  (-1j) * (c - c.dag()) / np.sqrt(g_vec[idx])]
-                                 for idx, c in enumerate(ssdata.sc_ops)]
-
+                                for idx, c in enumerate(ssdata.sc_ops)]
 
         elif ssdata.method == 'photocurrent':
             ssdata.d1 = cy_d1_rho_photocurrent
@@ -322,52 +322,50 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
         ssdata.homogeneous = False
 
     if ssdata.gen_A_ops is None:
-    	ssdata.gen_A_ops = _generate_A_ops
+        ssdata.gen_A_ops = _generate_A_ops
 
     if ssdata.rhs is None:
         if ssdata.solver == 'euler-maruyama' or ssdata.solver == None:
             ssdata.rhs = _rhs_rho_euler_maruyama
-            
+
         elif ssdata.solver == 'milstein':
-        	if ssdata.method == 'homodyne' or ssdata.method is None:
-        		if len(sc_ops) == 1:
-        			ssdata.rhs = _rhs_rho_milstein_homodyne_single
-        		else:
-        			ssdata.rhs = _rhs_rho_milstein_homodyne
-        		
-        	elif ssdata.method == 'heterodyne':
-        		ssdata.rhs = _rhs_rho_milstein_homodyne
-        		ssdata.d2_len = 1
-        		ssdata.sc_ops = []
-        		for sc in iter(sc_ops):
-        			ssdata.sc_ops += [sc/sqrt(2), -1.0j*sc/sqrt(2)]
-        
+            if ssdata.method == 'homodyne' or ssdata.method is None:
+                if len(sc_ops) == 1:
+                    ssdata.rhs = _rhs_rho_milstein_homodyne_single
+                else:
+                    ssdata.rhs = _rhs_rho_milstein_homodyne
+
+            elif ssdata.method == 'heterodyne':
+                ssdata.rhs = _rhs_rho_milstein_homodyne
+                ssdata.d2_len = 1
+                ssdata.sc_ops = []
+                for sc in iter(sc_ops):
+                    ssdata.sc_ops += [sc / sqrt(2), -1.0j * sc / sqrt(2)]
+
         elif ssdata.solver == 'euler-maruyama_fast' and ssdata.method == 'homodyne':
             ssdata.rhs = _rhs_rho_euler_homodyne_fast
             ssdata.gen_A_ops = _generate_A_ops_Euler
-            	
 
         elif ssdata.solver == 'milstein_fast':
-        	ssdata.gen_A_ops = _generate_A_ops_Milstein
-        	ssdata.gen_noise = _generate_noise_Milstein
-        	if ssdata.method == 'homodyne' or ssdata.method is None:
-        		if len(sc_ops) == 1:
-        			ssdata.rhs = _rhs_rho_milstein_homodyne_single_fast
-        		elif len(sc_ops) == 2:
-        			ssdata.rhs = _rhs_rho_milstein_homodyne_two_fast
-        		else:
-        			ssdata.rhs = _rhs_rho_milstein_homodyne_fast
-        		
-        	elif ssdata.method == 'heterodyne':
-        		ssdata.d2_len = 1
-        		ssdata.sc_ops = []
-        		for sc in iter(sc_ops):
-        			ssdata.sc_ops += [sc/sqrt(2), -1.0j*sc/sqrt(2)]
-        		if len(sc_ops) == 1:
-        			ssdata.rhs = _rhs_rho_milstein_homodyne_two_fast
-        		else:
-        			ssdata.rhs = _rhs_rho_milstein_homodyne_fast
+            ssdata.gen_A_ops = _generate_A_ops_Milstein
+            ssdata.gen_noise = _generate_noise_Milstein
+            if ssdata.method == 'homodyne' or ssdata.method is None:
+                if len(sc_ops) == 1:
+                    ssdata.rhs = _rhs_rho_milstein_homodyne_single_fast
+                elif len(sc_ops) == 2:
+                    ssdata.rhs = _rhs_rho_milstein_homodyne_two_fast
+                else:
+                    ssdata.rhs = _rhs_rho_milstein_homodyne_fast
 
+            elif ssdata.method == 'heterodyne':
+                ssdata.d2_len = 1
+                ssdata.sc_ops = []
+                for sc in iter(sc_ops):
+                    ssdata.sc_ops += [sc / sqrt(2), -1.0j * sc / sqrt(2)]
+                if len(sc_ops) == 1:
+                    ssdata.rhs = _rhs_rho_milstein_homodyne_two_fast
+                else:
+                    ssdata.rhs = _rhs_rho_milstein_homodyne_fast
 
         else:
             raise Exception("Unrecognized solver '%s'." % ssdata.solver)
@@ -384,7 +382,7 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
 def sepdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
                options=Odeoptions(), progress_bar=TextProgressBar()):
     """
-    A stochastic PDP solver for experimental/development and comparison to the 
+    A stochastic PDP solver for experimental/development and comparison to the
     stochastic DE solvers. Use mcsolve for real quantum trajectory
     simulations.
     """
@@ -493,11 +491,11 @@ def ssesolve_generic(ssdata, options, progress_bar):
         noise = ssdata.noise[n] if ssdata.noise else None
 
         states_list, dW, m = _ssesolve_single_trajectory(data,
-            ssdata.H, dt, ssdata.tlist, N_store, N_substeps, psi_t, A_ops,
-            ssdata.e_ops, ssdata.m_ops, ssdata.rhs_func, ssdata.d1, ssdata.d2,
-            ssdata.d2_len, ssdata.homogeneous, ssdata.distribution, ssdata.args,
-            store_measurement=ssdata.store_measurement, noise=noise,
-            normalize=ssdata.normalize)
+             ssdata.H, dt, ssdata.tlist, N_store, N_substeps, psi_t, A_ops,
+             ssdata.e_ops, ssdata.m_ops, ssdata.rhs_func, ssdata.d1, ssdata.d2,
+             ssdata.d2_len, ssdata.homogeneous, ssdata.distribution, ssdata.args,
+             store_measurement=ssdata.store_measurement, noise=noise,
+             normalize=ssdata.normalize)
 
         data.states.append(states_list)
         data.noise.append(dW)
@@ -507,7 +505,7 @@ def ssesolve_generic(ssdata, options, progress_bar):
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum([ket2dm(data.states[m][n]) for m in range(NT)]).unit() 
+        data.states = [sum([ket2dm(data.states[m][n]) for m in range(NT)]).unit()
                        for n in range(len(data.times))]
 
     # average
@@ -520,7 +518,7 @@ def ssesolve_generic(ssdata, options, progress_bar):
         data.se = None
 
     # convert complex data to real if hermitian
-    data.expect = [np.real(data.expect[n,:]) if e.isherm else data.expect[n,:]
+    data.expect = [np.real(data.expect[n, :]) if e.isherm else data.expect[n, :]
                    for n, e in enumerate(ssdata.e_ops)]
 
     return data
@@ -538,7 +536,8 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
     if noise is None:
         if homogeneous:
             if distribution == 'normal':
-                dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
+                dW = np.sqrt(
+                    dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
             else:
                 raise TypeError('Unsupported increment distribution for homogeneous process.')
         else:
@@ -556,7 +555,8 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                s = cy_expect(e.data.data, e.data.indices, e.data.indptr, psi_t)
+                s = cy_expect(
+                    e.data.data, e.data.indices, e.data.indptr, psi_t)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2
         else:
@@ -569,7 +569,8 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
             if noise is None and not homogeneous:
                 for a_idx, A in enumerate(A_ops):
                     dw_expect = norm(spmv(A[0], psi_t)) ** 2 * dt
-                    dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
+                    dW[a_idx, t_idx, j, :
+                       ] = np.random.poisson(dw_expect, d2_len)
 
             psi_t = rhs(H.data, psi_t, t + dt * j,
                         A_ops, dt, dW[:, t_idx, j, :], d1, d2, args)
@@ -583,7 +584,7 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
                 for dW_idx, dW_factor in enumerate(dW_factors):
                     phi = spmv(m[dW_idx].data, psi_prev)
                     measurements[t_idx, m_idx, dW_idx] = (norm(phi) ** 2 +
-                                                  dW_factor * dW[m_idx, t_idx, :, dW_idx].sum() / (dt * N_substeps))
+                       dW_factor * dW[m_idx, t_idx, :, dW_idx].sum() / (dt * N_substeps))
 
     if d2_len == 1:
         measurements = measurements.squeeze(axis=(2))
@@ -634,9 +635,9 @@ def smesolve_generic(ssdata, options, progress_bar):
     if ssdata.m_ops:
         s_m_ops = [[spre(m) for m in m_op] for m_op in ssdata.m_ops]
     else:
-        s_m_ops = [[spre(c) for _ in range(ssdata.d2_len)] for c in ssdata.sc_ops]
+        s_m_ops = [[spre(c) for _ in range(ssdata.d2_len)]
+                   for c in ssdata.sc_ops]
 
-    
     progress_bar.start(ssdata.ntraj)
 
     for n in range(ssdata.ntraj):
@@ -644,21 +645,23 @@ def smesolve_generic(ssdata, options, progress_bar):
 
         rho_t = mat2vec(ssdata.state0.full()).ravel()
 
-        #noise = ssdata.noise[n] if ssdata.noise else None
+        # noise = ssdata.noise[n] if ssdata.noise else None
         if ssdata.noise:
-        	noise = ssdata.noise[n]
+            noise = ssdata.noise[n]
         elif ssdata.gen_noise:
-        	noise = ssdata.gen_noise(len(A_ops), N_store, N_substeps, ssdata.d2_len, dt)
+            noise = ssdata.gen_noise(
+                len(A_ops), N_store, N_substeps, ssdata.d2_len, dt)
         else:
-        	noise = None
+            noise = None
 
         states_list, dW, m = _smesolve_single_trajectory(data,
-            L, dt, ssdata.tlist, N_store, N_substeps,
-            rho_t, A_ops, s_e_ops, s_m_ops, ssdata.rhs,
-            ssdata.d1, ssdata.d2, ssdata.d2_len, ssdata.dW_factors, ssdata.homogeneous,
-            ssdata.distribution, ssdata.args,
-            store_measurement=ssdata.store_measurement,
-            store_states=ssdata.store_states, noise=noise)
+                                 L, dt, ssdata.tlist, N_store, N_substeps,
+                                 rho_t, A_ops, s_e_ops, s_m_ops, ssdata.rhs,
+                                 ssdata.d1, ssdata.d2, ssdata.d2_len,
+                                 ssdata.dW_factors, ssdata.homogeneous,
+                                 ssdata.distribution, ssdata.args,
+                                 store_measurement=ssdata.store_measurement,
+                                 store_states=ssdata.store_states, noise=noise)
 
         data.states.append(states_list)
         data.noise.append(dW)
@@ -668,7 +671,7 @@ def smesolve_generic(ssdata, options, progress_bar):
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum([data.states[m][n] for m in range(NT)]).unit() 
+        data.states = [sum([data.states[m][n] for m in range(NT)]).unit()
                        for n in range(len(data.times))]
 
     # average
@@ -681,16 +684,16 @@ def smesolve_generic(ssdata, options, progress_bar):
         data.se = None
 
     # convert complex data to real if hermitian
-    data.expect = [np.real(data.expect[n,:]) if e.isherm else data.expect[n,:]
+    data.expect = [np.real(data.expect[n, :]) if e.isherm else data.expect[n, :]
                    for n, e in enumerate(ssdata.e_ops)]
 
     return data
 
 
 def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
-                                A_ops, e_ops, m_ops, rhs, d1, d2, d2_len, dW_factors, 
+                                A_ops, e_ops, m_ops, rhs, d1, d2, d2_len, dW_factors,
                                 homogeneous, distribution, args,
-                                store_measurement=False, 
+                                store_measurement=False,
                                 store_states=False, noise=None):
     """
     Internal function. See smesolve.
@@ -699,7 +702,8 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
     if noise is None:
         if homogeneous:
             if distribution == 'normal':
-                dW = np.sqrt(dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)    
+                dW = np.sqrt(
+                    dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
             else:
                 raise TypeError('Unsupported increment distribution for homogeneous process.')
         else:
@@ -719,8 +723,8 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
             for e_idx, e in enumerate(e_ops):
                 s = cy_expect_rho_vec(e.data, rho_t, 0)
                 data.expect[e_idx, t_idx] += s
-                data.ss[e_idx, t_idx] += s ** 2 
-        
+                data.ss[e_idx, t_idx] += s ** 2
+
         if store_states or not e_ops:
             # XXX: need to keep hilbert space structure
             states_list.append(Qobj(vec2mat(rho_t)))
@@ -733,7 +737,8 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
                 for a_idx, A in enumerate(A_ops):
                     dw_expect = cy_expect_rho_vec(A[4], rho_t, 1) * dt
                     dw_expect = dw_expect if dw_expect > 0 else 0.0
-                    dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
+                    dW[a_idx, t_idx, j, :
+                       ] = np.random.poisson(dw_expect, d2_len)
 
             rho_t = rhs(L.data, rho_t, t + dt * j,
                         A_ops, dt, dW[:, t_idx, j, :], d1, d2, args)
@@ -742,7 +747,8 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
             for m_idx, m in enumerate(m_ops):
                 for dW_idx, dW_factor in enumerate(dW_factors):
                     m_expt = cy_expect_rho_vec(m[dW_idx].data, rho_prev, 0)
-                    measurements[t_idx, m_idx, dW_idx] = m_expt + dW_factor * dW[m_idx, t_idx, :, dW_idx].sum() / (dt * N_substeps)
+                    measurements[t_idx, m_idx, dW_idx] = m_expt + dW_factor * \
+                        dW[m_idx, t_idx, :, dW_idx].sum() / (dt * N_substeps)
 
     if d2_len == 1:
         measurements = measurements.squeeze(axis=(2))
@@ -783,7 +789,7 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
     Heff = ssdata.H
     for c in ssdata.c_ops:
         Heff += -0.5j * c.dag() * c
-        
+
     progress_bar.start(ssdata.ntraj)
 
     for n in range(ssdata.ntraj):
@@ -803,7 +809,7 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum([data.states[m][n] for m in range(NT)]).unit() 
+        data.states = [sum([data.states[m][n] for m in range(NT)]).unit()
                        for n in range(len(data.times))]
 
     # average
@@ -816,7 +822,7 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
         data.se = None
 
     # convert complex data to real if hermitian
-    data.expect = [np.real(data.expect[n,:]) if e.isherm else data.expect[n,:]
+    data.expect = [np.real(data.expect[n, :]) if e.isherm else data.expect[n, :]
                    for n, e in enumerate(ssdata.e_ops)]
 
     return data
@@ -831,7 +837,7 @@ def _sepdpsolve_single_trajectory(data, Heff, dt, tlist, N_store, N_substeps,
 
     phi_t = np.copy(psi_t)
 
-    prng = RandomState() # todo: seed it
+    prng = RandomState()  # todo: seed it
     r_jump, r_op = prng.rand(2)
 
     jump_times = []
@@ -841,7 +847,8 @@ def _sepdpsolve_single_trajectory(data, Heff, dt, tlist, N_store, N_substeps,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                s = cy_expect(e.data.data, e.data.indices, e.data.indptr, psi_t)
+                s = cy_expect(
+                    e.data.data, e.data.indices, e.data.indptr, psi_t)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2
         else:
@@ -917,7 +924,7 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
     # Liouvillian for the deterministic part.
     # needs to be modified for TD systems
     L = liouvillian_fast(ssdata.H, ssdata.c_ops)
-        
+
     progress_bar.start(ssdata.ntraj)
 
     for n in range(ssdata.ntraj):
@@ -937,9 +944,9 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum([data.states[m][n] for m in range(NT)]).unit() 
+        data.states = [sum([data.states[m][n] for m in range(NT)]).unit()
                        for n in range(len(data.times))]
-   
+
     # average
     data.expect = data.expect / ssdata.ntraj
 
@@ -954,14 +961,14 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
 
 def _smepdpsolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps,
                                    rho_t, c_ops, e_ops):
-    """ 
+    """
     Internal function.
     """
     states_list = []
 
     rho_t = np.copy(rho_t)
 
-    prng = RandomState() # todo: seed it
+    prng = RandomState()  # todo: seed it
     r_jump, r_op = prng.rand(2)
 
     jump_times = []
@@ -1047,7 +1054,7 @@ def d1_psi_homodyne(A, psi):
 
     .. math::
 
-        D_1(\psi, t) = \\frac{1}{2}(\\langle C + C^\\dagger\\rangle\\psi - 
+        D_1(\psi, t) = \\frac{1}{2}(\\langle C + C^\\dagger\\rangle\\psi -
         C^\\dagger C\\psi - \\frac{1}{4}\\langle C + C^\\dagger\\rangle^2\\psi)
 
     """
@@ -1079,17 +1086,17 @@ def d1_psi_heterodyne(A, psi):
 
     .. math::
 
-        D_1(\psi, t) = -\\frac{1}{2}(C^\\dagger C - \\langle C^\\dagger \\rangle C + 
+        D_1(\psi, t) = -\\frac{1}{2}(C^\\dagger C - \\langle C^\\dagger \\rangle C +
                         \\frac{1}{2}\\langle C \\rangle\\langle C^\\dagger \\rangle))\psi
 
     """
-    e_C = cy_expect(A[0].data, A[0].indices, A[0].indptr, psi) # e_C
+    e_C = cy_expect(A[0].data, A[0].indices, A[0].indptr, psi)  # e_C
     B = A[0].T.conj()
-    e_Cd = cy_expect(B.data, B.indices, B.indptr, psi) # e_Cd
+    e_Cd = cy_expect(B.data, B.indices, B.indptr, psi)  # e_Cd
 
-    return  (-0.5 * spmv(A[3], psi) +
-             0.5 * e_Cd * spmv(A[0], psi) -
-             0.25 * e_C * e_Cd * psi)
+    return (-0.5 * spmv(A[3], psi) +
+            0.5 * e_Cd * spmv(A[0], psi) -
+            0.25 * e_C * e_Cd * psi)
 
 
 def d2_psi_heterodyne(A, psi):
@@ -1127,7 +1134,7 @@ def d1_psi_photocurrent(A, psi):
 
     """
     return (-0.5 * (spmv(A[3], psi)
-            -norm(spmv(A[0], psi)) ** 2 * psi))
+            - norm(spmv(A[0], psi)) ** 2 * psi))
 
 
 def d2_psi_photocurrent(A, psi):
@@ -1164,68 +1171,70 @@ def d2_psi_photocurrent(A, psi):
 #     A[4] = spre(a.dag() * a) = (Ad A)_L
 #     A[5] = spost(a.dag() * a) = (Ad A)_R
 #     A[6] = (spre(a) * spost(a.dag()) = A_L * Ad_R
-#     A[7] = lindblad_dissipator(a) 
+#     A[7] = lindblad_dissipator(a)
 
 def _generate_A_ops(sc, L, dt):
-	"""
-	pre-compute suporoperator operator combinations that are commonly needed
+    """
+    pre-compute suporoperator operator combinations that are commonly needed
     when evaluating the RHS of stochastic master equations
-	"""
-	out = []
-	for c_idx, c in enumerate(sc):
-		n = c.dag() * c
-		out.append([spre(c).data, spost(c).data, 
-			spre(c.dag()).data, spost(c.dag()).data, 
-			spre(n).data, spost(n).data, (spre(c) * spost(c.dag())).data, 
-			lindblad_dissipator(c, data_only=True)])				    	    	
-            
-	return out
+    """
+    out = []
+    for c_idx, c in enumerate(sc):
+        n = c.dag() * c
+        out.append([spre(c).data, spost(c).data,
+                    spre(c.dag()).data, spost(c.dag()).data,
+                    spre(n).data, spost(
+                        n).data, (spre(c) * spost(c.dag())).data,
+                    lindblad_dissipator(c, data_only=True)])
+
+    return out
+
 
 def _generate_A_ops_Euler(sc, L, dt):
-	"""
-	combine precomputed operators in one long operator for the Euler method
-	"""
-	A_len = len(sc)
-	out = []
-	out += [spre(c).data + spost(c.dag()).data for c in sc]
-	out += [(L + np.sum([lindblad_dissipator(c, data_only=True) for c in sc], axis=0))*dt]
-	out1 = [[sp.vstack(out).tocsr(), sc[0].shape[0]]]
-	#the following hack is required for compatibility with old A_ops
-	out1 += [[] for n in xrange(A_len-1)]
-	return out1
-    
+    """
+    combine precomputed operators in one long operator for the Euler method
+    """
+    A_len = len(sc)
+    out = []
+    out += [spre(c).data + spost(c.dag()).data for c in sc]
+    out += [(L + np.sum(
+        [lindblad_dissipator(c, data_only=True) for c in sc], axis=0)) * dt]
+    out1 = [[sp.vstack(out).tocsr(), sc[0].shape[0]]]
+    # the following hack is required for compatibility with old A_ops
+    out1 += [[] for n in xrange(A_len - 1)]
+    return out1
+
 
 def _generate_A_ops_Milstein(sc, L, dt):
-	"""
-	combine precomputed operators in one long operator for the Milstein method
-	with commuting stochastic jump operators.
-	"""
-	A_len = len(sc)
-	temp = [spre(c).data + spost(c.dag()).data for c in sc]
-	out = []
-	out += temp
-	out += [temp[n]*temp[n] for n in xrange(A_len)]
-	out += [temp[n]*temp[m] for (n,m) in np.ndindex(A_len,A_len) if n > m]
-	out += [(L + np.sum([lindblad_dissipator(c, data_only=True) for c in sc], axis=0))*dt]
-	out1 = [[sp.vstack(out).tocsr(), sc[0].shape[0]]]
-	#the following hack is required for compatibility with old A_ops
-	out1 += [[] for n in xrange(A_len-1)]
-	return out1
-    
+    """
+    combine precomputed operators in one long operator for the Milstein method
+    with commuting stochastic jump operators.
+    """
+    A_len = len(sc)
+    temp = [spre(c).data + spost(c.dag()).data for c in sc]
+    out = []
+    out += temp
+    out += [temp[n] * temp[n] for n in xrange(A_len)]
+    out += [temp[n] * temp[m] for (n, m) in np.ndindex(A_len, A_len) if n > m]
+    out += [(L + np.sum(
+        [lindblad_dissipator(c, data_only=True) for c in sc], axis=0)) * dt]
+    out1 = [[sp.vstack(out).tocsr(), sc[0].shape[0]]]
+    # the following hack is required for compatibility with old A_ops
+    out1 += [[] for n in xrange(A_len - 1)]
+    return out1
+
 
 def _generate_noise_Milstein(sc_len, N_store, N_substeps, d2_len, dt):
-	"""
-	generate noise terms for the fast Milstein scheme
-	"""
-	dW_temp = np.sqrt(dt) * scipy.randn(sc_len, N_store, N_substeps, 1)
-	if sc_len ==1:
-		noise = np.vstack([dW_temp,
-				0.5*(dW_temp*dW_temp - dt*np.ones((sc_len, N_store, N_substeps, 1)))])
-	else:
-		noise = np.vstack([dW_temp,
-				0.5*(dW_temp*dW_temp - dt*np.ones((sc_len, N_store, N_substeps, 1)))] + 
-				[[dW_temp[n]*dW_temp[m] for (n,m) in np.ndindex(sc_len,sc_len) if n > m]])
-	return noise
+    """
+    generate noise terms for the fast Milstein scheme
+    """
+    dW_temp = np.sqrt(dt) * scipy.randn(sc_len, N_store, N_substeps, 1)
+    if sc_len == 1:
+        noise = np.vstack([dW_temp, 0.5 * (dW_temp * dW_temp - dt * np.ones((sc_len, N_store, N_substeps, 1)))])
+    else:
+        noise = np.vstack([dW_temp, 0.5 * (dW_temp * dW_temp - dt * np.ones((sc_len, N_store, N_substeps, 1)))] +
+                          [[dW_temp[n] * dW_temp[m] for (n, m) in np.ndindex(sc_len, sc_len) if n > m]])
+    return noise
 
 
 def sop_H(A, rho_vec):
@@ -1263,7 +1272,7 @@ def sop_G(A, rho_vec):
 
 def d1_rho_homodyne(A, rho_vec):
     """
-    
+
     D1[a] rho = lindblad_dissipator(a) * rho
 
     Todo: cythonize
@@ -1302,7 +1311,7 @@ def d2_rho_heterodyne(A, rho_vec):
     M = A[0] - A[3]
     e1 = cy_expect_rho_vec(M, rho_vec, 0)
     d2 = spmv(M, rho_vec) - e1 * rho_vec
-    return [1.0/np.sqrt(2) * d1, -1.0j/np.sqrt(2) * d2]
+    return [1.0 / np.sqrt(2) * d1, -1.0j / np.sqrt(2) * d2]
 
 
 def d1_rho_photocurrent(A, rho_vec):
@@ -1319,7 +1328,7 @@ def d2_rho_photocurrent(A, rho_vec):
     Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
     e1 = cy_expect_rho_vec(A[6], rho_vec, 0)
-    return [spmv(A[6], rho_vec) / e1 - rho_vec] if e1.real > 1e-15 else [- rho_vec]
+    return [spmv(A[6], rho_vec) / e1 - rho_vec] if e1.real > 1e-15 else [-rho_vec]
 
 
 #------------------------------------------------------------------------------
@@ -1382,25 +1391,28 @@ def _rhs_rho_euler_maruyama(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     for a_idx, A in enumerate(A_ops):
         d2_vec = d2(A, rho_t)
         drho_t += d1(A, rho_t) * dt
-        drho_t += sum([d2_vec[n] * dW[a_idx, n] for n in range(dW_len) if dW[a_idx, n] != 0])
+        drho_t += sum([d2_vec[n] * dW[a_idx, n] for n in range(
+            dW_len) if dW[a_idx, n] != 0])
 
     return rho_t + drho_t
 
 
 def _rhs_rho_euler_homodyne_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
-	"""
-	fast Euler-Maruyama for homodyne detection
-	"""
+    """
+    fast Euler-Maruyama for homodyne detection
+    """
 
-	dW = ddW[:,0]
+    dW = ddW[:, 0]
 
-	d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
-	e = np.real(d_vec[:-1].reshape(-1,A[0][1],A[0][1]).trace(axis1=1,axis2=2))
+    d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
+    e = np.real(
+        d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1, axis2=2))
 
-	drho_t = d_vec[-1]
-	drho_t += np.dot(dW, d_vec[:-1])
-	drho_t += (1.0 - np.inner(e, dW)) * rho_t
-	return drho_t
+    drho_t = d_vec[-1]
+    drho_t += np.dot(dW, d_vec[:-1])
+    drho_t += (1.0 - np.inner(e, dW)) * rho_t
+    return drho_t
+
 
 #------------------------------------------------------------------------------
 # Platen method
@@ -1421,26 +1433,27 @@ def _rhs_psi_platen(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
     dpsi_t = _rhs_psi_deterministic(H, psi_t, t, dt, args)
 
     for a_idx, A in enumerate(A_ops):
-        # XXX: This needs to be revised now that 
-        # dpsi_t is the change for all stochastic collapse operators
+    # XXX: This needs to be revised now that
+    # dpsi_t is the change for all stochastic collapse operators
 
-        # TODO: needs to be updated to support mutiple Weiner increments
+    # TODO: needs to be updated to support mutiple Weiner increments
         dpsi_t_H = (-1.0j * dt) * spmv(H, psi_t)
 
-        psi_t_1 = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t)[0] * dW[a_idx,0]
+        psi_t_1 = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t)[0] * dW[a_idx, 0]
         psi_t_p = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t)[0] * sqrt_dt
         psi_t_m = psi_t + dpsi_t_H + d1(A, psi_t) * dt - d2(A, psi_t)[0] * sqrt_dt
 
         dpsi_t += 0.50 * (d1(A, psi_t_1) + d1(A, psi_t)) * dt + \
-            0.25 * (d2(A, psi_t_p)[0] + d2(A, psi_t_m)[0] + 2 * d2(A, psi_t)[0]) * dW[a_idx,0] + \
-            0.25 * (d2(A, psi_t_p)[0] - d2(A, psi_t_m)[0]) * (dW[a_idx,0] ** 2 - dt) * sqrt_dt
+            0.25 * (d2(A, psi_t_p)[0] + d2(A, psi_t_m)[0] + 2 * d2(A, psi_t)[0]) * dW[a_idx, 0] + \
+            0.25 * (d2(A, psi_t_p)[0] - d2(A, psi_t_m)[0]) * (
+                dW[a_idx, 0] ** 2 - dt) * sqrt_dt
 
     return dpsi_t
 
 
 #------------------------------------------------------------------------------
 # Milstein rhs functions for the stochastic master equation
-# 
+#
 #
 def _rhs_rho_milstein_homodyne_single(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     """
@@ -1450,19 +1463,19 @@ def _rhs_rho_milstein_homodyne_single(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
         Milstein scheme for homodyne detection with single jump operator.
 
     """
-    
+
     A = A_ops[0]
     M = A[0] + A[3]
     e1 = cy_expect_rho_vec(M, rho_t, 0)
-    
+
     d2_vec = spmv(M, rho_t)
     d2_vec2 = spmv(M, d2_vec)
     e2 = cy_expect_rho_vec(M, d2_vec, 0)
-    
+
     drho_t = _rhs_rho_deterministic(L, rho_t, t, dt, args)
-    drho_t += spmv(A[7], rho_t)*dt
-    drho_t += (d2_vec - e1*rho_t)*dW[0,0]
-    drho_t += 0.5 * (d2_vec2 - 2*e1*d2_vec + (-e2 + 2*e1*e1)*rho_t)*(dW[0,0]*dW[0,0] - dt)
+    drho_t += spmv(A[7], rho_t) * dt
+    drho_t += (d2_vec - e1 * rho_t) * dW[0, 0]
+    drho_t += 0.5 * (d2_vec2 - 2 * e1 * d2_vec + (-e2 + 2 * e1 * e1) * rho_t) * (dW[0, 0] * dW[0, 0] - dt)
     return rho_t + drho_t
 
 
@@ -1477,99 +1490,104 @@ def _rhs_rho_milstein_homodyne(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
 
     """
     A_len = len(A_ops)
-    
+
     M = np.array([A_ops[n][0] + A_ops[n][3] for n in range(A_len)])
     e1 = np.array([cy_expect_rho_vec(M[n], rho_t, 0) for n in range(A_len)])
-    
+
     d1_vec = np.sum([spmv(A_ops[n][7], rho_t)
-                  for n in range(A_len)], axis=0)
-    
-    d2_vec = np.array([spmv(M[n], rho_t) 
-    				   for n in range(A_len)])
-    
-    #This calculation is suboptimal. We need only values for m>n in case of commuting jump operators.
-    d2_vec2 = np.array([[spmv(M[n], d2_vec[m]) 
-    					for m in range(A_len)] for n in range(A_len)])
-    e2 = np.array([[cy_expect_rho_vec(M[n], d2_vec[m], 0) 
-    				for m in range(A_len)] for n in range(A_len)])
-    
+                     for n in range(A_len)], axis=0)
+
+    d2_vec = np.array([spmv(M[n], rho_t)
+                       for n in range(A_len)])
+
+    # This calculation is suboptimal. We need only values for m>n in case of
+    # commuting jump operators.
+    d2_vec2 = np.array([[spmv(M[n], d2_vec[m])
+                         for m in range(A_len)] for n in range(A_len)])
+    e2 = np.array([[cy_expect_rho_vec(M[n], d2_vec[m], 0)
+                    for m in range(A_len)] for n in range(A_len)])
+
     drho_t = _rhs_rho_deterministic(L, rho_t, t, dt, args)
     drho_t += d1_vec * dt
-    drho_t += np.sum([(d2_vec[n] - e1[n]*rho_t)*dW[n,0] 
-    				for n in range(A_len)], axis=0)
-    drho_t += 0.5*np.sum([(d2_vec2[n,n] - 2.0*e1[n]*d2_vec[n] + \
-    					(-e2[n,n] + 2.0*e1[n]*e1[n])*rho_t)*(dW[n,0]*dW[n,0] - dt) 
-    					for n in range(A_len)], axis=0)
-    
-    #This calculation is suboptimal. We need only values for m>n in case of commuting jump operators.
-    drho_t += 0.5*np.sum([(d2_vec2[n,m] - e1[m]*d2_vec[n] - e1[n]*d2_vec[m] + \
-    					(-e2[n,m] + 2.0*e1[n]*e1[m])*rho_t)*(dW[n,0]*dW[m,0]) 
-    					for (n,m) in np.ndindex(A_len,A_len) if n != m], axis=0)
-    
+    drho_t += np.sum([(d2_vec[n] - e1[n] * rho_t) * dW[n, 0]
+                      for n in range(A_len)], axis=0)
+    drho_t += 0.5 * np.sum([(d2_vec2[n, n] - 2.0 * e1[n] * d2_vec[n] +
+                            (-e2[n, n] + 2.0 * e1[n] * e1[n]) * rho_t) * (dW[n, 0] * dW[n, 0] - dt)
+                            for n in range(A_len)], axis=0)
+
+    # This calculation is suboptimal. We need only values for m>n in case of
+    # commuting jump operators.
+    drho_t += 0.5 * np.sum([(d2_vec2[n, m] - e1[m] * d2_vec[n] - e1[n] * d2_vec[m] +
+                          (-e2[n, m] + 2.0 * e1[n] * e1[m]) * rho_t) * (dW[n, 0] * dW[m, 0])
+                            for (n, m) in np.ndindex(A_len, A_len) if n != m], axis=0)
+
     return rho_t + drho_t
 
 
 def _rhs_rho_milstein_homodyne_single_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
-	"""
-	fast Milstein for homodyne detection with 1 stochastic operator
-	"""
-	dW = ddW[:,0]
+    """
+    fast Milstein for homodyne detection with 1 stochastic operator
+    """
+    dW = ddW[:, 0]
 
-	d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
-	e = np.real(d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1,axis2=2))
+    d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
+    e = np.real(
+        d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1, axis2=2))
 
-	e[1] -= 2.0*e[0]*e[0]
-	
-	drho_t = (1.0 - np.inner(e, dW)) * rho_t
-	dW[0] -= 2.0*e[0]*dW[1]
+    e[1] -= 2.0 * e[0] * e[0]
 
-	drho_t += d_vec[-1]
-	drho_t += np.dot(dW, d_vec[:-1])
+    drho_t = (1.0 - np.inner(e, dW)) * rho_t
+    dW[0] -= 2.0 * e[0] * dW[1]
 
-	return drho_t
+    drho_t += d_vec[-1]
+    drho_t += np.dot(dW, d_vec[:-1])
+
+    return drho_t
 
 
 def _rhs_rho_milstein_homodyne_two_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
-	"""
-	fast Milstein for homodyne detection with 2 stochastic operators
-	"""
-	dW = ddW[:,0]
+    """
+    fast Milstein for homodyne detection with 2 stochastic operators
+    """
+    dW = ddW[:, 0]
 
-	d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
-	e = np.real(d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1,axis2=2))
-	d_vec[-2] -= np.dot(e[:2][::-1],d_vec[:2])
+    d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
+    e = np.real(
+        d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1, axis2=2))
+    d_vec[-2] -= np.dot(e[:2][::-1], d_vec[:2])
 
-	e[2:4] -= 2.0*e[:2]*e[:2]
-	e[4] -= 2.0*e[1]*e[0]
-	
-	drho_t = (1.0 - np.inner(e, dW)) * rho_t
-	dW[:2] -= 2.0*e[:2]*dW[2:4]
+    e[2:4] -= 2.0 * e[:2] * e[:2]
+    e[4] -= 2.0 * e[1] * e[0]
 
-	drho_t += d_vec[-1]
-	drho_t += np.dot(dW, d_vec[:-1])
+    drho_t = (1.0 - np.inner(e, dW)) * rho_t
+    dW[:2] -= 2.0 * e[:2] * dW[2:4]
 
-	return drho_t
-    
+    drho_t += d_vec[-1]
+    drho_t += np.dot(dW, d_vec[:-1])
+
+    return drho_t
+
 
 def _rhs_rho_milstein_homodyne_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
-	"""
-	fast Milstein for homodyne detection with >2 stochastic operators
-	"""
-	dW = ddW[:,0]
-	sc_len = len(A)
-	sc2_len = 2*sc_len
+    """
+    fast Milstein for homodyne detection with >2 stochastic operators
+    """
+    dW = ddW[:, 0]
+    sc_len = len(A)
+    sc2_len = 2 * sc_len
 
-	d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
-	e = np.real(d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1,axis2=2))
-	d_vec[sc2_len:-1] -= np.array([e[m]*d_vec[n] + e[n]*d_vec[m] for (n,m) in np.ndindex(sc_len, sc_len) if n > m])
+    d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
+    e = np.real(d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1, axis2=2))
+    d_vec[sc2_len:-1] -= np.array([e[m] * d_vec[n] + e[n] * d_vec[m] 
+                                   for (n, m) in np.ndindex(sc_len, sc_len) if n > m])
 
-	e[sc_len:sc2_len] -= 2.0*e[:sc_len]*e[:sc_len]
-	e[sc2_len:] -= 2.0*np.array([e[n]*e[m] for (n,m) in np.ndindex(sc_len, sc_len) if n > m])
-	
-	drho_t = (1.0 - np.inner(e, dW)) * rho_t
-	dW[:sc_len] -= 2.0*e[:sc_len]*dW[sc_len:sc2_len]
+    e[sc_len:sc2_len] -= 2.0 * e[:sc_len] * e[:sc_len]
+    e[sc2_len:] -= 2.0 * np.array([e[n] * e[m] for (n, m) in np.ndindex(sc_len, sc_len) if n > m])
 
-	drho_t += d_vec[-1]
-	drho_t += np.dot(dW, d_vec[:-1])
+    drho_t = (1.0 - np.inner(e, dW)) * rho_t
+    dW[:sc_len] -= 2.0 * e[:sc_len] * dW[sc_len:sc2_len]
 
-	return drho_t
+    drho_t += d_vec[-1]
+    drho_t += np.dot(dW, d_vec[:-1])
+
+    return drho_t
