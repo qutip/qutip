@@ -195,7 +195,7 @@ cpdef np.ndarray[CTYPE_t, ndim=1] spmv_dia(np.ndarray[CTYPE_t, ndim=2] data,
 @cython.wraparound(False)
 def cy_expect_psi(object op,
                   np.ndarray[CTYPE_t, ndim=1] state,
-                  int isherm=0):
+                  int isherm):
     cdef np.ndarray[CTYPE_t, ndim=1] y = spmv_csr(op.data, op.indices, op.indptr, state)
     cdef np.ndarray[CTYPE_t, ndim=1] x = state.conj()
     cdef int row, num_rows = state.shape[0]
@@ -233,7 +233,7 @@ def cy_expect(np.ndarray[CTYPE_t, ndim=1] data,
 @cython.wraparound(False)
 cpdef cy_expect_rho_vec(object super_op,
                         np.ndarray[CTYPE_t, ndim=1] rho_vec,
-                        int herm=0):
+                        int herm):
 
     return cy_expect_rho_vec_csr(super_op.data, super_op.indices, super_op.indptr, rho_vec, herm)
 
@@ -244,7 +244,7 @@ cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1] data,
                              np.ndarray[int] idx,
                              np.ndarray[int] ptr,
                              np.ndarray[CTYPE_t, ndim=1] rho_vec,
-                             int herm=0):
+                             int herm):
     
     cdef Py_ssize_t row
     cdef int jj,row_start,row_end
@@ -266,7 +266,7 @@ cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1] data,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_spmm_tr(object op1, object op2, int herm=0):
+cpdef cy_spmm_tr(object op1, object op2, int herm):
     
     cdef Py_ssize_t row
     cdef CTYPE_t tr = 0.0
