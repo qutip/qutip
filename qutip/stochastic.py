@@ -1209,7 +1209,7 @@ def _generate_A_ops_Euler(sc, L, dt):
         [lindblad_dissipator(c, data_only=True) for c in sc], axis=0)) * dt]
     out1 = [[sp.vstack(out).tocsr(), sc[0].shape[0]]]
     # the following hack is required for compatibility with old A_ops
-    out1 += [[] for n in xrange(A_len - 1)]
+    out1 += [[] for n in range(A_len - 1)]
     return out1
 
 
@@ -1222,13 +1222,13 @@ def _generate_A_ops_Milstein(sc, L, dt):
     temp = [spre(c).data + spost(c.dag()).data for c in sc]
     out = []
     out += temp
-    out += [temp[n] * temp[n] for n in xrange(A_len)]
+    out += [temp[n] * temp[n] for n in range(A_len)]
     out += [temp[n] * temp[m] for (n, m) in np.ndindex(A_len, A_len) if n > m]
     out += [(L + np.sum(
         [lindblad_dissipator(c, data_only=True) for c in sc], axis=0)) * dt]
     out1 = [[sp.vstack(out).tocsr(), sc[0].shape[0]]]
     # the following hack is required for compatibility with old A_ops
-    out1 += [[] for n in xrange(A_len - 1)]
+    out1 += [[] for n in range(A_len - 1)]
     return out1
 
 
