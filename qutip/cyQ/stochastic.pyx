@@ -58,6 +58,42 @@ cpdef np.ndarray[CTYPE_t, ndim=1] cy_rhs_rho_deterministic(object L,
     return spmv_csr(L.data, L.indices, L.indptr, rho_t) * dt
 
 
+# -----------------------------------------------------------------------------
+# Wave function d1 and d2 functions
+#
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef cy_d1_psi_photocurrent(object A, np.ndarray[CTYPE_t, ndim=1] psi):
+    """
+    Cython version of d1_psi_photocurrent. See d1_psi_photocurrent for docs.
+    """
+    a0 = A[0]
+    a3 = A[3]
+    return (-0.5 * (spmv_csr(a3.data, a3.indices, a3.indptr, psi)
+            - psi * np.linalg.norm(spmv_csr(a0.data, a0.indices, a0.indptr, psi)) ** 2))
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef cy_d2_psi_photocurrent(object A, np.ndarray[CTYPE_t, ndim=1] psi):
+    """
+    Cython version of d2_psi_photocurrent. See d2_psi_photocurrent for docs.
+    """
+    cdef np.ndarray[CTYPE_t, ndim=1] psi1 
+
+    psi1 = spmv_csr(A[0].data, A[0].indices, A[0].indptr, psi)
+    n1 = np.linalg.norm(psi1)
+    if n1 != 0:
+        return psi1 / n1 - psi
+    else:
+        return - psi
+
+
+# -----------------------------------------------------------------------------
+# density matric (vector form) d1 and d2 functions
+#
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef cy_d1_rho_photocurrent(object A, np.ndarray[CTYPE_t, ndim=1] rho_vec):
@@ -81,4 +117,5 @@ cpdef cy_d2_rho_photocurrent(object A, np.ndarray[CTYPE_t, ndim=1] rho_vec):
         return [spmv_csr(a.data, a.indices, a.indptr, rho_vec) / e1 - rho_vec]
     else:
         return [- rho_vec]
+
 
