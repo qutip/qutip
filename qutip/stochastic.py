@@ -172,9 +172,9 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 1
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
-            if not hasattr(kwargs, "dW_factors"):
+            if not "dW_factors" in kwargs:
                 ssdata.dW_factors = np.array([1])
-            if not hasattr(kwargs, "m_ops"):
+            if not "m_ops" in kwargs:
                 ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
 
         elif ssdata.method == 'heterodyne':
@@ -183,9 +183,9 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 2
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
-            if not hasattr(kwargs, "dW_factors"):
+            if not "dW_factors" in kwargs:
                 ssdata.dW_factors = np.array([np.sqrt(2), np.sqrt(2)])
-            if not hasattr(kwargs, "m_ops"):
+            if not "m_ops" in kwargs:
                 ssdata.m_ops = [[(c + c.dag()), (-1j) * (c - c.dag())]
                                 for idx, c in enumerate(ssdata.sc_ops)]
 
@@ -285,22 +285,22 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
             ssdata.d2_len = 1
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
-            if not hasattr(kwargs, "dW_factors"):
+            if not "dW_factors" in kwargs:
                 ssdata.dW_factors = np.array([np.sqrt(1)])
-            if not hasattr(kwargs, "m_ops"):
+            if not "m_ops" in kwargs:
                 ssdata.m_ops = [[c + c.dag()] for c in ssdata.sc_ops]
-
+    
         elif ssdata.method == 'heterodyne':
             ssdata.d1 = d1_rho_heterodyne
             ssdata.d2 = d2_rho_heterodyne
             ssdata.d2_len = 2
             ssdata.homogeneous = True
             ssdata.distribution = 'normal'
-            if not hasattr(kwargs, "dW_factors"):
+            if not "dW_factors" in kwargs:
                 ssdata.dW_factors = np.array([np.sqrt(2), np.sqrt(2)])
-            if not hasattr(kwargs, "m_ops"):
+            if not "m_ops" in kwargs:
                 ssdata.m_ops = [[(c + c.dag()), -1j * (c - c.dag())]
-                                for idx, c in enumerate(ssdata.sc_ops)]
+                                for c in ssdata.sc_ops]
 
         elif ssdata.method == 'photocurrent':
             ssdata.d1 = cy_d1_rho_photocurrent
