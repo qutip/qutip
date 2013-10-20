@@ -54,7 +54,7 @@ from qutip.qobj import Qobj, isket
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
                                  liouvillian_fast, lindblad_dissipator)
 from qutip.states import ket2dm
-from qutip.cyQ.spmatfuncs import cy_expect, spmv, cy_expect_rho_vec
+from qutip.cyQ.spmatfuncs import cy_expect_psi_csr, spmv, cy_expect_psi_csr_rho_vec
 from qutip.cyQ.stochastic import (cy_d1_rho_photocurrent,
                                   cy_d2_rho_photocurrent)
 from qutip.gui.progressbar import TextProgressBar
@@ -544,7 +544,7 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                s = cy_expect(
+                s = cy_expect_psi_csr(
                     e.data.data, e.data.indices, e.data.indptr, psi_t)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2
@@ -710,7 +710,7 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                s = cy_expect_rho_vec(e.data, rho_t, 0)
+                s = cy_expect_psi_csr_rho_vec(e.data, rho_t, 0)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2
 
@@ -724,7 +724,7 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
 
             if noise is None and not homogeneous:
                 for a_idx, A in enumerate(A_ops):
-                    dw_expect = cy_expect_rho_vec(A[4], rho_t, 1) * dt
+                    dw_expect = cy_expect_psi_csr_rho_vec(A[4], rho_t, 1) * dt
                     if dw_expect > 0:
                         dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
                     else:
@@ -736,7 +736,7 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
         if store_measurement:
             for m_idx, m in enumerate(m_ops):
                 for dW_idx, dW_factor in enumerate(dW_factors):
-                    m_expt = cy_expect_rho_vec(m[dW_idx].data, rho_prev, 0)
+                    m_expt = cy_expect_psi_csr_rho_vec(m[dW_idx].data, rho_prev, 0)
                     measurements[t_idx, m_idx, dW_idx] = m_expt + dW_factor * \
                         dW[m_idx, t_idx, :, dW_idx].sum() / (dt * N_substeps)
 
@@ -837,7 +837,7 @@ def _sepdpsolve_single_trajectory(data, Heff, dt, tlist, N_store, N_substeps,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                s = cy_expect(
+                s = cy_expect_psi_csr(
                     e.data.data, e.data.indices, e.data.indptr, psi_t)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2
@@ -1066,7 +1066,7 @@ def d1_psi_homodyne(A, psi):
 
     """
 
-    e1 = cy_expect(A[1].data, A[1].indices, A[1].indptr, psi)
+    e1 = cy_expect_psi_csr(A[1].data, A[1].indices, A[1].indptr, psi)
     return 0.5 * (e1 * spmv(A[0], psi) -
                   spmv(A[3], psi) -
                   0.25 * e1 ** 2 * psi)
@@ -1083,7 +1083,7 @@ def d2_psi_homodyne(A, psi):
 
     """
 
-    e1 = cy_expect(A[1].data, A[1].indices, A[1].indptr, psi)
+    e1 = cy_expect_psi_csr(A[1].data, A[1].indices, A[1].indptr, psi)
     return [spmv(A[0], psi) - 0.5 * e1 * psi]
 
 
@@ -1097,9 +1097,9 @@ def d1_psi_heterodyne(A, psi):
                         \\frac{1}{2}\\langle C \\rangle\\langle C^\\dagger \\rangle))\psi
 
     """
-    e_C = cy_expect(A[0].data, A[0].indices, A[0].indptr, psi)  # e_C
+    e_C = cy_expect_psi_csr(A[0].data, A[0].indices, A[0].indptr, psi)  # e_C
     B = A[0].T.conj()
-    e_Cd = cy_expect(B.data, B.indices, B.indptr, psi)  # e_Cd
+    e_Cd = cy_expect_psi_csr(B.data, B.indices, B.indptr, psi)  # e_Cd
 
     return (-0.5 * spmv(A[3], psi) +
             0.5 * e_Cd * spmv(A[0], psi) -
@@ -1120,8 +1120,8 @@ def d2_psi_heterodyne(A, psi):
 
     """
 
-    X = 0.5 * cy_expect(A[1].data, A[1].indices, A[1].indptr, psi)
-    Y = 0.5 * cy_expect(A[2].data, A[2].indices, A[2].indptr, psi)
+    X = 0.5 * cy_expect_psi_csr(A[1].data, A[1].indices, A[1].indptr, psi)
+    Y = 0.5 * cy_expect_psi_csr(A[2].data, A[2].indices, A[2].indptr, psi)
 
     d2_1 = np.sqrt(0.5) * (spmv(A[0], psi) - X * psi)
     d2_2 = -1.0j * np.sqrt(0.5) * (spmv(A[0], psi) - Y * psi)
@@ -1256,7 +1256,7 @@ def sop_H(A, rho_vec):
     """
     M = A[0] + A[3]
 
-    e1 = cy_expect_rho_vec(M, rho_vec, 0)
+    e1 = cy_expect_psi_csr_rho_vec(M, rho_vec, 0)
     return spmv(M, rho_vec) - e1 * rho_vec
 
 
@@ -1270,7 +1270,7 @@ def sop_G(A, rho_vec):
     Todo: cythonize, add A_L + Ad_R to precomputed operators
     """
 
-    e1 = cy_expect_rho_vec(A[6], rho_vec, 0)
+    e1 = cy_expect_psi_csr_rho_vec(A[6], rho_vec, 0)
 
     if e1 > 1e-15:
         return spmv(A[6], rho_vec) / e1 - rho_vec
@@ -1298,7 +1298,7 @@ def d2_rho_homodyne(A, rho_vec):
     """
     M = A[0] + A[3]
 
-    e1 = cy_expect_rho_vec(M, rho_vec, 0)
+    e1 = cy_expect_psi_csr_rho_vec(M, rho_vec, 0)
     return [spmv(M, rho_vec) - e1 * rho_vec]
 
 
@@ -1314,10 +1314,10 @@ def d2_rho_heterodyne(A, rho_vec):
     todo: cythonize, docstrings
     """
     M = A[0] + A[3]
-    e1 = cy_expect_rho_vec(M, rho_vec, 0)
+    e1 = cy_expect_psi_csr_rho_vec(M, rho_vec, 0)
     d1 = spmv(M, rho_vec) - e1 * rho_vec
     M = A[0] - A[3]
-    e1 = cy_expect_rho_vec(M, rho_vec, 0)
+    e1 = cy_expect_psi_csr_rho_vec(M, rho_vec, 0)
     d2 = spmv(M, rho_vec) - e1 * rho_vec
     return [1.0 / np.sqrt(2) * d1, -1.0j / np.sqrt(2) * d2]
 
@@ -1327,7 +1327,7 @@ def d1_rho_photocurrent(A, rho_vec):
     Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
     n_sum = A[4] + A[5]
-    e1 = cy_expect_rho_vec(n_sum, rho_vec, 0)
+    e1 = cy_expect_psi_csr_rho_vec(n_sum, rho_vec, 0)
     return -spmv(n_sum, rho_vec) + e1 * rho_vec
 
 
@@ -1335,7 +1335,7 @@ def d2_rho_photocurrent(A, rho_vec):
     """
     Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
-    e1 = cy_expect_rho_vec(A[6], rho_vec, 0)
+    e1 = cy_expect_psi_csr_rho_vec(A[6], rho_vec, 0)
     return [spmv(A[6], rho_vec) / e1 - rho_vec] if e1.real > 1e-15 else [-rho_vec]
 
 
@@ -1474,11 +1474,11 @@ def _rhs_rho_milstein_homodyne_single(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
 
     A = A_ops[0]
     M = A[0] + A[3]
-    e1 = cy_expect_rho_vec(M, rho_t, 0)
+    e1 = cy_expect_psi_csr_rho_vec(M, rho_t, 0)
 
     d2_vec = spmv(M, rho_t)
     d2_vec2 = spmv(M, d2_vec)
-    e2 = cy_expect_rho_vec(M, d2_vec, 0)
+    e2 = cy_expect_psi_csr_rho_vec(M, d2_vec, 0)
 
     drho_t = _rhs_rho_deterministic(L, rho_t, t, dt, args)
     drho_t += spmv(A[7], rho_t) * dt
@@ -1500,7 +1500,7 @@ def _rhs_rho_milstein_homodyne(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     A_len = len(A_ops)
 
     M = np.array([A_ops[n][0] + A_ops[n][3] for n in range(A_len)])
-    e1 = np.array([cy_expect_rho_vec(M[n], rho_t, 0) for n in range(A_len)])
+    e1 = np.array([cy_expect_psi_csr_rho_vec(M[n], rho_t, 0) for n in range(A_len)])
 
     d1_vec = np.sum([spmv(A_ops[n][7], rho_t)
                      for n in range(A_len)], axis=0)
@@ -1512,7 +1512,7 @@ def _rhs_rho_milstein_homodyne(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     # commuting jump operators.
     d2_vec2 = np.array([[spmv(M[n], d2_vec[m])
                          for m in range(A_len)] for n in range(A_len)])
-    e2 = np.array([[cy_expect_rho_vec(M[n], d2_vec[m], 0)
+    e2 = np.array([[cy_expect_psi_csr_rho_vec(M[n], d2_vec[m], 0)
                     for m in range(A_len)] for n in range(A_len)])
 
     drho_t = _rhs_rho_deterministic(L, rho_t, t, dt, args)

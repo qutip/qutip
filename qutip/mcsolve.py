@@ -38,7 +38,7 @@ from qutip.states import ket2dm
 from qutip.parfor import parfor
 from qutip.odeoptions import Odeoptions
 from qutip.odeconfig import odeconfig
-from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_expect, spmv, spmv_csr
+from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cyQ.codegen import Codegen
 from qutip.odedata import Odedata
 from qutip.odechecks import _ode_checks
@@ -365,7 +365,7 @@ class _MC_class():
                     else:  # preallocate complex array of zeros
                         self.expect_out.append(
                             zeros(self.num_times, dtype=complex))
-                    self.expect_out[i][0] = cy_expect(
+                    self.expect_out[i][0] = cy_expect_psi_csr(
                         odeconfig.e_ops_data[i], odeconfig.e_ops_ind[i],
                         odeconfig.e_ops_ptr[i], odeconfig.psi0,
                         odeconfig.e_ops_isherm[i])
@@ -479,7 +479,7 @@ class _MC_class():
                         mc_alg_out.append(zeros(self.num_times, dtype=complex))
 
                     mc_alg_out[i][0] = \
-                        cy_expect(self.odeconfig.e_ops_data[i],
+                        cy_expect_psi_csr(self.odeconfig.e_ops_data[i],
                                   self.odeconfig.e_ops_ind[i],
                                   self.odeconfig.e_ops_ptr[i],
                                   self.odeconfig.psi0,
@@ -700,7 +700,7 @@ def _no_collapse_expect_out(num_times, expect_out, odeconfig):
     ODE.set_initial_value(
         odeconfig.psi0, odeconfig.tlist[0])  # set initial conditions
     for jj in range(odeconfig.e_num):
-        expect_out[jj][0] = cy_expect(odeconfig.e_ops_data[jj],
+        expect_out[jj][0] = cy_expect_psi_csr(odeconfig.e_ops_data[jj],
                                       odeconfig.e_ops_ind[jj],
                                       odeconfig.e_ops_ptr[jj],
                                       odeconfig.psi0,
@@ -711,7 +711,7 @@ def _no_collapse_expect_out(num_times, expect_out, odeconfig):
         if ODE.successful():
             state = ODE.y / norm(ODE.y)
             for jj in range(odeconfig.e_num):
-                expect_out[jj][k] = cy_expect(odeconfig.e_ops_data[jj],
+                expect_out[jj][k] = cy_expect_psi_csr(odeconfig.e_ops_data[jj],
                                               odeconfig.e_ops_ind[jj],
                                               odeconfig.e_ops_ptr[jj],
                                               state,
@@ -840,7 +840,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                     np.append(collapse_times,ODE.t)
                     # some string based collapse operators
                     if odeconfig.tflag in array([1, 11]):
-                        n_dp = [cy_expect(odeconfig.n_ops_data[i],
+                        n_dp = [cy_expect_psi_csr(odeconfig.n_ops_data[i],
                                           odeconfig.n_ops_ind[i],
                                           odeconfig.n_ops_ptr[i], ODE.y, 1)
                                 for i in odeconfig.c_const_inds]
@@ -853,20 +853,20 @@ def _mc_alg_evolve(nt, args, odeconfig):
 
                     # some Python function based collapse operators
                     elif odeconfig.tflag in array([2, 20, 22]):
-                        n_dp = [cy_expect(odeconfig.n_ops_data[i],
+                        n_dp = [cy_expect_psi_csr(odeconfig.n_ops_data[i],
                                           odeconfig.n_ops_ind[i],
                                           odeconfig.n_ops_ptr[i], ODE.y, 1)
                                 for i in odeconfig.c_const_inds]
                         n_dp += [abs(odeconfig.c_funcs[i](
                                      ODE.t, odeconfig.c_func_args)) ** 2 *
-                                 cy_expect(odeconfig.n_ops_data[i],
+                                 cy_expect_psi_csr(odeconfig.n_ops_data[i],
                                            odeconfig.n_ops_ind[i],
                                            odeconfig.n_ops_ptr[i], ODE.y, 1)
                                  for i in odeconfig.c_td_inds]
                         n_dp = array(n_dp)
                     # all constant collapse operators.
                     else:
-                        n_dp = array([cy_expect(odeconfig.n_ops_data[i],
+                        n_dp = array([cy_expect_psi_csr(odeconfig.n_ops_data[i],
                                                 odeconfig.n_ops_ind[i],
                                                 odeconfig.n_ops_ptr[i],
                                                 ODE.y, 1)
@@ -908,7 +908,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                     mc_alg_out[k] = out_psi
             else:
                 for jj in range(odeconfig.e_num):
-                    mc_alg_out[jj][k] = cy_expect(odeconfig.e_ops_data[jj],
+                    mc_alg_out[jj][k] = cy_expect_psi_csr(odeconfig.e_ops_data[jj],
                                                   odeconfig.e_ops_ind[jj],
                                                   odeconfig.e_ops_ptr[jj],
                                                   out_psi,
