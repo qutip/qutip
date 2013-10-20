@@ -21,7 +21,8 @@ cimport numpy as np
 cimport cython
 cimport libc.math
 
-from qutip.cyQ.spmatfuncs cimport spmv_csr, cy_expect_rho_vec_csr
+from qutip.cyQ.spmatfuncs cimport (spmv_csr,
+                                   cy_expect_rho_vec_csr, cy_expect_psi_csr)
 
 ctypedef np.complex128_t CTYPE_t
 ctypedef np.float64_t DTYPE_t
@@ -89,6 +90,27 @@ cpdef cy_d2_psi_photocurrent(object A, np.ndarray[CTYPE_t, ndim=1] psi):
     else:
         return - psi
 
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef d1_psi_homodyne(A, psi):
+    """
+    Cython version of d2_psi_homodyne. See d2_psi_homodyne for docs.
+    """
+    e1 = cy_expect_psi_csr(A[1].data, A[1].indices, A[1].indptr, psi, 0)
+    return 0.5 * (e1 * spmv_csr(A[0].data, A[0].indices, A[0].indptr, psi) -
+                  spmv_csr(A[3].data, A[3].indices, A[3].indptr, psi) -
+                  0.25 * e1 ** 2 * psi)
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef d2_psi_homodyne(A, psi):
+    """
+    Cython version of d2_psi_homodyne. See d2_psi_homodyne for docs.
+    """
+    e1 = cy_expect_psi_csr(A[1].data, A[1].indices, A[1].indptr, psi, 0)
+    return [spmv_csr(A[0].data, A[0].indices, A[0].indptr, psi) - 0.5 * e1 * psi]
 
 # -----------------------------------------------------------------------------
 # density matric (vector form) d1 and d2 functions
