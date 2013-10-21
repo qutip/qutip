@@ -90,7 +90,7 @@ class _StochasticSolverData:
         self.e_ops = e_ops
 
         if m_ops is None:
-            self.m_ops = [[c for _ in range(d2_len)] for c in c_ops]
+            self.m_ops = [[c for _ in range(d2_len)] for c in sc_ops]
         else:
             self.m_ops = m_ops
 
@@ -198,6 +198,9 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
 
         else:
             raise Exception("Unrecognized method '%s'." % ssdata.method)
+
+    if ssdata.distribution == 'poisson':
+        ssdata.homogeneous = False
 
     if ssdata.solver == 'euler-maruyama' or ssdata.solver == None:
         ssdata.rhs_func = _rhs_psi_euler_maruyama
@@ -544,8 +547,7 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                s = cy_expect_psi_csr(
-                    e.data.data, e.data.indices, e.data.indptr, psi_t)
+                s = cy_expect_psi_csr(e.data.data, e.data.indices, e.data.indptr, psi_t, 0)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2
         else:
@@ -558,8 +560,7 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
             if noise is None and not homogeneous:
                 for a_idx, A in enumerate(A_ops):
                     dw_expect = norm(spmv(A[0], psi_t)) ** 2 * dt
-                    dW[a_idx, t_idx, j, :
-                       ] = np.random.poisson(dw_expect, d2_len)
+                    dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
 
             psi_t = rhs(H.data, psi_t, t + dt * j,
                         A_ops, dt, dW[:, t_idx, j, :], d1, d2, args)
