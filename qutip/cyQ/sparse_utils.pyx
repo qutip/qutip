@@ -6,7 +6,7 @@ ctypedef np.complex128_t CTYPE_t
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _permute_sparse(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.ndarray[int] ptr, int nrows, 
+def _sparse_permute(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.ndarray[int] ptr, int nrows, 
                     np.ndarray[np.intp_t] rperm, np.ndarray[np.intp_t] cperm):
     """
     Permutes the rows and columns of a sparse CSR matrix according to the permutation
@@ -53,7 +53,7 @@ def _permute_sparse(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.ndarray[in
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _reverse_permute_sparse(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.ndarray[int] ptr, int nrows, 
+def _sparse_reverse_permute(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.ndarray[int] ptr, int nrows, 
                     np.ndarray[np.intp_t] rperm, np.ndarray[np.intp_t] cperm):
 
     cdef int ii, jj, kk, k0, nnz

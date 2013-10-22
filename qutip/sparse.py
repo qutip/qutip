@@ -26,7 +26,7 @@ import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 import numpy as np
 import scipy.linalg as la
-from qutip.cyQ.sparse_utils import _permute_sparse, _reverse_permute_sparse
+from qutip.cyQ.sparse_utils import _sparse_permute, _sparse_reverse_permute
 from qutip.settings import debug
 
 if debug:
@@ -448,7 +448,7 @@ def _padecoeff(m):
                          960960, 16380, 182, 1])
 
 
-def permute_sparse(A,rperm=[],cperm=[]):
+def sparse_permute(A,rperm=[],cperm=[]):
     """
     Permutes the rows and columns of a sparse CSR matrix or Qobj according to the permutation
     arrays rperm and cperm, respectively.  Here, the permutation arrays specify the 
@@ -482,7 +482,7 @@ def permute_sparse(A,rperm=[],cperm=[]):
     return sp.csr_matrix((data,ind,ptr),dtype=complex)
 
 
-def reverse_permute_sparse(A,rperm=[],cperm=[]):
+def sparse_reverse_permute(A,rperm=[],cperm=[]):
     """
     Performs a reverse permutations of the rows and columns of a sparse CSR matrix or Qobj 
     according to the permutation arrays rperm and cperm, respectively.  Here, the permutation 
