@@ -96,19 +96,17 @@ def _sparse_bandwidth(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.ndarray[
     """
     Calculates the lower(lb), upper(ub), and max (mb) bandwidths of a qobj or csr_matrix.
     """
-    cdef int lb, ub, mb, ii, j0, j1, jmin, jmax
+    cdef int lb, ub, mb, ii, jj, ldist
     lb=-nrows
     ub=-nrows
     mb=0
     
     for ii in range(nrows):
-        j0=ptr[ii]
-        j1=ptr[ii+1]-1
-        jmin=idx[j0]
-        jmax=idx[j1]
-        lb=max(lb,ii-jmin)
-        ub=max(ub,jmax-ii)
-        mb=max(mb,jmax-jmin+1)
+        for jj in range(ptr[ii],ptr[ii+1]):
+            ldist=ii-idx[jj]
+            lb=max(lb,ldist)
+            ub=max(ub,-ldist)
+            mb=max(mb,ub+lb+1)
     
     return lb, ub, mb
 
