@@ -493,8 +493,13 @@ def sparse_bandwidth(A):
     
     Returns
     -------
-    bw : tuple
-        Tuple consisting of lower, upper, and max bandwidths (lb,ub,mb).
+    lb : int
+        Lower bandwidth of matrix.
+    ub : int
+        Upper bandwidth of matrix.
+    mb : int
+        Maximum bandwidth of matrix.
+    
     """
     nrows = A.shape[0]
     if A.__class__.__name__=='Qobj':
@@ -504,4 +509,36 @@ def sparse_bandwidth(A):
     
     return lb, ub, mb
 
+
+def sparse_adjacency_degree(A):
+    """
+    Finds the adjacency elements and associated degree for the nodes (rows)
+    of an obj or sparse csr_matrix.
+    
+    Parameters
+    ----------
+    A : qobj/csr_matrix
+        Input qobj or csr_matrix.
+    
+    Returns
+    -------
+    adj : array 
+        Adjacency elements for each row (node).
+    
+    degree : array
+        Degree of each row (node).
+    
+    """
+    nrows=A.shape[0]
+    if A.__class__.__name__=='Qobj':
+        A=A.data
+    
+    degree=np.zeros(nrows,dtype=int)
+    adj=np.zeros(nrows,dtype=ndarray)
+    for ii in range(nrows):
+        elems=A.indices[A.indptr[ii]:A.indptr[ii+1]]
+        inds=np.where(elems!=ii)[0]
+        adj[ii]=elems[inds]
+        degree[ii]=len(inds)
+    return adj, degree
 
