@@ -53,9 +53,13 @@ def _sparse_permute(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.ndarray[in
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _sparse_reverse_permute(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.ndarray[int] ptr, int nrows, 
-                    np.ndarray[np.intp_t] rperm, np.ndarray[np.intp_t] cperm):
-
+def _sparse_reverse_permute(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, 
+                            np.ndarray[int] ptr, int nrows, 
+                            np.ndarray[np.intp_t] rperm, np.ndarray[np.intp_t] cperm):
+    """
+    Reverse permutes the rows and columns of a sparse CSR matrix according to the 
+    original permutation arrays rperm and cperm, respectively.
+    """
     cdef int ii, jj, kk, k0, nnz
     cdef np.ndarray[CTYPE_t, ndim=1] new_data = np.zeros(len(data),dtype=np.complex)
     cdef np.ndarray[np.intp_t] new_idx = np.zeros(len(idx),dtype=int)
@@ -86,7 +90,27 @@ def _sparse_reverse_permute(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.nd
         return new_data, new_idx, new_ptr
 
 
-
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _sparse_bandwidth(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.ndarray[int] ptr, int nrows):
+    """
+    Calculates the lower(lb), upper(ub), and max (mb) bandwidths of a qobj or csr_matrix.
+    """
+    cdef int lb, ub, mb, ii, j0, j1, jmin, jmax
+    lb=-nrows
+    ub=-nrows
+    mb=0
+    
+    for ii in range(nrows):
+        j0=ptr[ii]
+        j1=ptr[ii+1]-1
+        jmin=idx[j0]
+        jmax=idx[j1]
+        lb=max(lb,ii-jmin)
+        ub=max(ub,jmax-ii)
+        mb=max(mb,jmax-jmin+1)
+    
+    return lb, ub, mb
 
 
 

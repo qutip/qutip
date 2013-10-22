@@ -26,7 +26,8 @@ import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 import numpy as np
 import scipy.linalg as la
-from qutip.cyQ.sparse_utils import _sparse_permute, _sparse_reverse_permute
+from qutip.cyQ.sparse_utils import (_sparse_permute, _sparse_reverse_permute,
+                                    _sparse_bandwidth)
 from qutip.settings import debug
 
 if debug:
@@ -330,42 +331,6 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
         return np.array(evals)
 
 
-def condest(Q):
-    """
-    Estimates the condition number of the underlying
-    matrix for a given Qobj operator or super-operator
-    based on the one-norm.
-
-    Parameters
-    ----------
-    Q : Qobj
-        Input qobj.
-
-    Returns
-    -------
-    cond_est : float
-        Estimated condition number of Qobj matrix.
-
-    """
-    out = 0
-    v = np.zeros((Q.shape[0], 1), dtype=complex)
-    v[0, 0] = 1
-    old_ind = 1
-    while out == 0:
-        u = Q.data * v
-        unrm = np.linalg.norm(u, 1)
-        w = np.sign(u)
-        x = Q.dag().data * w
-        xnrm = np.linalg.norm(x, np.inf)
-        new_ind = int(np.where(np.abs(x) == xnrm)[0][0])
-        if xnrm <= unrm:
-            out = 1
-        else:
-            v[old_ind, 0] = 0
-            v[new_ind, 0] = 1
-            old_ind = new_ind
-    return unrm
-
 
 def _sp_expm(qo):
     """
@@ -472,14 +437,14 @@ def sparse_permute(A,rperm=[],cperm=[]):
     rperm=np.asarray(rperm)
     cperm=np.asarray(cperm)
     nrows=A.shape[0]
-    shp=A.shape[0]
+    shp=A.shape
     if A.__class__.__name__=='Qobj':
         A=A.data
     
     data, ind, ptr=_permute_sparse(A.data, A.indices, 
-                    A.indptr, shp, rperm, cperm)
+                    A.indptr, nrows, rperm, cperm)
 
-    return sp.csr_matrix((data,ind,ptr),dtype=complex)
+    return sp.csr_matrix((data,ind,ptr),shape=shp,dtype=complex)
 
 
 def sparse_reverse_permute(A,rperm=[],cperm=[]):
@@ -503,18 +468,40 @@ def sparse_reverse_permute(A,rperm=[],cperm=[]):
         CSR matrix with permuted rows/columns.
     
     """
-    rperm=np.asarray(rperm)
-    cperm=np.asarray(cperm)
-    nrows=A.shape[0]
-    shp=A.shape[0]
+    rperm = np.asarray(rperm)
+    cperm = np.asarray(cperm)
+    nrows = A.shape[0]
+    shp = A.shape
     if A.__class__.__name__=='Qobj':
-        A=A.data
+        A = A.data
     
     data, ind, ptr=_reverse_permute_sparse(A.data, A.indices, 
-                    A.indptr, shp, rperm, cperm)
+                    A.indptr, nrows, rperm, cperm)
 
-    return sp.csr_matrix((data,ind,ptr),dtype=complex)
+    return sp.csr_matrix((data,ind,ptr), shape=shp, dtype=complex)
 
 
+def sparse_bandwidth(A):
+    """
+    Returns the lower(lb), upper(ub), and max(mb) bandwidths of a qobj or sparse
+    csr_matrix.
+    
+    Parameters
+    ----------
+    A : qobj/csr_matrix
+        Input qobj or csr_matrix
+    
+    Returns
+    -------
+    bw : tuple
+        Tuple consisting of lower, upper, and max bandwidths (lb,ub,mb).
+    """
+    nrows = A.shape[0]
+    if A.__class__.__name__=='Qobj':
+        A = A.data
+    
+    lb, ub, mb=_sparse_bandwidth(A.data, A.indices, A.indptr, nrows)
+    
+    return lb, ub, mb
 
 
