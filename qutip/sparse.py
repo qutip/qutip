@@ -525,7 +525,7 @@ def sparse_adjacency_degree(A):
     adj : array 
         Adjacency elements for each row (node).
     
-    degree : array
+    deg : array
         Degree of each row (node).
     
     """
@@ -533,12 +533,11 @@ def sparse_adjacency_degree(A):
     if A.__class__.__name__=='Qobj':
         A=A.data
     
-    degree=np.zeros(nrows,dtype=int)
+    deg=np.zeros(nrows,dtype=int)
     adj=np.zeros(nrows,dtype=ndarray)
     for ii in range(nrows):
         elems=A.indices[A.indptr[ii]:A.indptr[ii+1]]
-        inds=np.where(elems!=ii)[0]
-        adj[ii]=elems[inds]
-        degree[ii]=len(inds)
-    return adj, degree
+        adj[ii]=elems[elems!=ii]
+        deg[ii]=adj[ii].shape[0]
+    return adj, deg
 
