@@ -121,7 +121,7 @@ class Qobj():
     """
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
 
-    def __init__(self, inpt=np.array([[0]]), dims=[[], []], shape=[],
+    def __init__(self, inpt=None, dims=[[], []], shape=[],
                  type=None, isherm=None, fast=False):
         """
         Qobj constructor.
@@ -144,7 +144,7 @@ class Qobj():
             self.type = 'oper'
             return
 
-        elif isinstance(inpt, Qobj):
+        if isinstance(inpt, Qobj):
             # if input is already Qobj then return identical copy
 
             # make sure matrix is sparse (safety check)
@@ -163,6 +163,24 @@ class Qobj():
             else:
                 self.shape = shape
 
+        elif inpt is None:
+            # initialize an empty Qobj with correct dimensions and shape
+
+            if any(dims):
+                N, M = prod(dims[0]), prod(dims[1])
+                self.dims = dims
+
+            elif shape:
+                N, M = shape
+                self.dims = [[N], [M]]
+
+            else:                
+                N, M = 1, 1
+                self.dims = [[N], [M]]
+
+            self.shape = [N, M]
+            self.data = sp.csr_matrix((N, M), dtype=complex)
+            
         else:
             # if input is int, float, or complex then convert to array
             if isinstance(inpt, (int, float, complex, np.int64)):
