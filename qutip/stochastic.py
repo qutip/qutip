@@ -1345,7 +1345,7 @@ def d1_rho_photocurrent(A, rho_vec):
     """
     n_sum = A[4] + A[5]
     e1 = cy_expect_rho_vec(n_sum, rho_vec, 0)
-    return -spmv(n_sum, rho_vec) + e1 * rho_vec
+    return 0.5 * (e1 * rho_vec - spmv(n_sum, rho_vec))
 
 
 def d2_rho_photocurrent(A, rho_vec):

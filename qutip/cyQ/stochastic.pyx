@@ -124,7 +124,7 @@ cpdef cy_d1_rho_photocurrent(object A, np.ndarray[CTYPE_t, ndim=1] rho_vec):
     """
     n = A[4] + A[5]
     e1 = cy_expect_rho_vec_csr(n.data, n.indices, n.indptr, rho_vec, 0)
-    return e1 * rho_vec - spmv_csr(n.data, n.indices, n.indptr, rho_vec)
+    return 0.5 * (e1 * rho_vec - spmv_csr(n.data, n.indices, n.indptr, rho_vec))
 
 
 @cython.boundscheck(False)
