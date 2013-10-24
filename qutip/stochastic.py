@@ -196,6 +196,11 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
             ssdata.homogeneous = False
             ssdata.distribution = 'poisson'
 
+            if not "dW_factors" in kwargs:
+                ssdata.dW_factors = np.array([1])
+            if not "m_ops" in kwargs:
+                ssdata.m_ops = [[None] for c in ssdata.sc_ops]
+ 
         else:
             raise Exception("Unrecognized method '%s'." % ssdata.method)
 
@@ -312,6 +317,10 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
             ssdata.homogeneous = False
             ssdata.distribution = 'poisson'
 
+            if not "dW_factors" in kwargs:
+                ssdata.dW_factors = np.array([1])
+            if not "m_ops" in kwargs:
+                ssdata.m_ops = [[None] for c in ssdata.sc_ops]
         else:
             raise Exception("Unrecognized method '%s'." % ssdata.method)
 
@@ -572,8 +581,11 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
         if store_measurement:
             for m_idx, m in enumerate(m_ops):
                 for dW_idx, dW_factor in enumerate(dW_factors):
-                    phi = spmv(m[dW_idx].data, psi_prev)
-                    measurements[t_idx, m_idx, dW_idx] = (norm(phi) ** 2 +
+                    if m[dW_idx]:
+                        m_expt = norm(spmv(m[dW_idx].data, psi_prev)) ** 2
+                    else:
+                        m_expt = 0
+                    measurements[t_idx, m_idx, dW_idx] = (m_expt +
                        dW_factor * dW[m_idx, t_idx, :, dW_idx].sum() / (dt * N_substeps))
 
     if d2_len == 1:
@@ -623,7 +635,8 @@ def smesolve_generic(ssdata, options, progress_bar):
     s_e_ops = [spre(e) for e in ssdata.e_ops]
 
     if ssdata.m_ops:
-        s_m_ops = [[spre(m) for m in m_op] for m_op in ssdata.m_ops]
+        s_m_ops = [[spre(m) if m else None for m in m_op]
+                   for m_op in ssdata.m_ops]
     else:
         s_m_ops = [[spre(c) for _ in range(ssdata.d2_len)]
                    for c in ssdata.sc_ops]
@@ -737,7 +750,10 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
         if store_measurement:
             for m_idx, m in enumerate(m_ops):
                 for dW_idx, dW_factor in enumerate(dW_factors):
-                    m_expt = cy_expect_rho_vec(m[dW_idx].data, rho_prev, 0)
+                    if m[dW_idx]:
+                        m_expt = cy_expect_rho_vec(m[dW_idx].data, rho_prev, 0)
+                    else:
+                        m_expt = 0
                     measurements[t_idx, m_idx, dW_idx] = m_expt + dW_factor * \
                         dW[m_idx, t_idx, :, dW_idx].sum() / (dt * N_substeps)
 
