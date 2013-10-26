@@ -691,3 +691,37 @@ def zero_ket(N, dims=None):
 
     """
     return Qobj(sp.csr_matrix((N, 1), dtype=complex), dims=dims)
+
+
+def spin_state(j, m, type='ket'):
+    """Generates the spin state |j, m>, i.e.  the eigenstate
+    of the spin-j Sz operator with eigenvalue m.
+
+    Parameters
+    ----------
+    j : float
+        The spin of the state ().
+
+    m : int
+        Eigenvalue of the spin-j Sz operator.
+
+    type : string {'ket', 'bra', 'dm'}
+        Type of state to generate.
+
+    Returns
+    -------
+    state : qobj
+        Qobj quantum object for spin state
+
+    """
+    J = 2 * j + 1
+    
+    if type == 'ket':
+        return basis(int(J), int(j - m))
+    elif type == 'bra':
+        return basis(int(J), int(j - m)).dag()
+    elif type == 'dm':
+        return fock_dm(int(J), int(j - m))
+    else:
+        raise ValueError("invalid value keyword argument 'type'")
+
