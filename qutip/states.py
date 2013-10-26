@@ -725,3 +725,41 @@ def spin_state(j, m, type='ket'):
     else:
         raise ValueError("invalid value keyword argument 'type'")
 
+
+def spin_coherent(j, theta, phi, type='ket'):
+    """Generates the spin state |j, m>, i.e.  the eigenstate
+    of the spin-j Sz operator with eigenvalue m.
+
+    Parameters
+    ----------
+    j : float
+        The spin of the state.
+
+    theta : float
+        Angle from z axis.
+
+    phi : float
+        Angle from x axis.
+
+    type : string {'ket', 'bra', 'dm'}
+        Type of state to generate.
+
+    Returns
+    -------
+    state : qobj
+        Qobj quantum object for spin coherent state
+
+    """
+    Sp = jmat(j, '+')
+    Sm = jmat(j, '-')
+    psi = (0.5 * theta * exp(1j * phi) * Sm - 0.5 * theta * exp(-1j * phi) * Sp).expm() * spin_state(j, j)
+
+    if type == 'ket':
+        return psi
+    elif type == 'bra':
+        return psi.dag()
+    elif type == 'dm':
+        return ket2dm(psi)
+    else:
+        raise ValueError("invalid value keyword argument 'type'")
+
