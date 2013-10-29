@@ -790,14 +790,13 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
 def plot_spin_distribution_2d(P, THETA, PHI,
                               fig=None, axes=None, figsize=(8, 8)):
     """
-    Visualize the results (expectation values) for an evolution solver.
-    `results` is assumed to be an instance of Odedata, or a list of Odedata
-    instances.
+    Plot a spin distribution function (given as meshgrid data) with a 2D
+    projection where the surface of the unit sphere is mapped on the unit disk.
 
     Parameters
     ----------
     P : matrix
-        Distribution values.
+        Distribution values as a meshgrid matrix.
 
     THETA : matrix
         Meshgrid matrix for the theta coordinate.
@@ -805,11 +804,11 @@ def plot_spin_distribution_2d(P, THETA, PHI,
     PHI : matrix
         Meshgrid matrix for the phi coordinate.
 
-    fig : a matplotlib Figure instance
-        The Figure canvas in which the plot will be drawn.
+    fig : a matplotlib figure instance
+        The figure canvas on which the plot will be drawn.
 
-    axes : a matplotlib axes instance
-        The axes context in which the plot will be drawn.
+    ax : a matplotlib axis instance
+        The axis context in which the plot will be drawn.
 
     figsize : (width, height)
         The size of the matplotlib figure (in inches) if it is to be created
@@ -822,7 +821,7 @@ def plot_spin_distribution_2d(P, THETA, PHI,
         the figure.
     """
 
-    if not fig or not axes:
+    if not fig or not ax:
         if not figsize:
             figsize = (8, 8)
         fig, ax = plt.subplots(1, 1, figsize=figsize)
