@@ -18,11 +18,14 @@
 ###########################################################################
 import numpy as np
 from scipy import (zeros, array, arange, exp, real, imag, conj, pi,
-                   copy, sqrt, meshgrid, size, polyval, fliplr, conjugate)
+                   copy, sqrt, meshgrid, size, polyval, fliplr, conjugate,
+                   cos, sin)
 import scipy.sparse as sp
 import scipy.fftpack as ft
 import scipy.linalg as la
 from scipy.special import genlaguerre
+from scipy.special import binom
+
 from qutip.tensor import tensor
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.states import *
@@ -378,3 +381,57 @@ def _qfunc_pure(psi, alpha_mat):
                        conjugate(alpha_mat))) ** 2
 
     return real(qmat) * exp(-abs(alpha_mat) ** 2) / pi
+
+
+
+#------------------------------------------------------------------------------
+# PSEUDO DISTRIBUTION FUNCTIONS FOR SPINS
+#
+
+def spin_q_function(rho, theta, phi):
+    """Husimi Q-function for spins.
+
+    Parameters
+    ----------
+
+    state : qobj
+        A state vector or density matrix for a spin-j quantum system.
+
+    theta : array_like
+        theta-coordinates at which to calculate the Q function.
+
+    yvec : array_like
+        phi-coordinates at which to calculate the Q function.
+
+    Returns
+    -------
+
+    Q, THETA, PHI : 2d-array
+        Values representing the spin Q function at the values specified
+        by THETA and PHI.
+
+    """
+
+    if rho.type == 'bra':
+        rho = rho.dag()
+
+    J = rho.shape[0]
+    j = (J - 1) / 2
+
+    THETA, PHI = meshgrid(theta, phi)
+
+    Q = np.zeros_like(THETA, dtype=complex)
+    
+    for m1 in range(-j, j+1):
+
+        Q += binom(2*j, j+m1) * cos(THETA/2) ** (2*(j-m1)) * sin(THETA/2) ** (2*(j+m1)) * \
+             rho.data[j-m1, j-m1]
+
+        for m2 in range(m1+1, j+1):
+
+            Q += (sqrt(binom(2*j, j+m1)) * sqrt(binom(2*j, j+m2)) *
+                  cos(THETA/2) ** (2*j-m1-m2) * sin(THETA/2) ** (2*j+m1+m2)) * \
+                  (exp(1j * (m2-m1) * PHI) * rho.data[j-m1, j-m2] + 
+                   exp(1j * (m1-m2) * PHI) * rho.data[j-m2, j-m1])
+            
+    return Q.real, THETA, PHI
