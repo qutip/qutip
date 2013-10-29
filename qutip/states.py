@@ -27,7 +27,7 @@ except:  # for scipy v >= 0.10
     from scipy.misc import factorial
 
 from qutip.qobj import Qobj
-from qutip.operators import destroy
+from qutip.operators import destroy, jmat
 from qutip.tensor import tensor
 
 
@@ -752,7 +752,8 @@ def spin_coherent(j, theta, phi, type='ket'):
     """
     Sp = jmat(j, '+')
     Sm = jmat(j, '-')
-    psi = (0.5 * theta * exp(1j * phi) * Sm - 0.5 * theta * exp(-1j * phi) * Sp).expm() * spin_state(j, j)
+    psi = (0.5 * theta * np.exp(1j * phi) * Sm - 
+           0.5 * theta * np.exp(-1j * phi) * Sp).expm() * spin_state(j, j)
 
     if type == 'ket':
         return psi
