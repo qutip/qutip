@@ -745,7 +745,7 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
     fig : a matplotlib Figure instance
         The Figure canvas in which the plot will be drawn.
 
-    ax : a matplotlib axes instance
+    axes : a matplotlib axes instance
         The axes context in which the plot will be drawn.
 
     figsize : (width, height)
@@ -785,3 +785,58 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
             axes[n, 0].set_ylabel(ylabels[n], fontsize=12)
 
     return fig, axes
+
+
+def plot_spin_distribution_2d(P, THETA, PHI,
+                              fig=None, axes=None, figsize=(8, 8)):
+    """
+    Visualize the results (expectation values) for an evolution solver.
+    `results` is assumed to be an instance of Odedata, or a list of Odedata
+    instances.
+
+    Parameters
+    ----------
+    P : matrix
+        Distribution values.
+
+    THETA : matrix
+        Meshgrid matrix for the theta coordinate.
+
+    PHI : matrix
+        Meshgrid matrix for the phi coordinate.
+
+    fig : a matplotlib Figure instance
+        The Figure canvas in which the plot will be drawn.
+
+    axes : a matplotlib axes instance
+        The axes context in which the plot will be drawn.
+
+    figsize : (width, height)
+        The size of the matplotlib figure (in inches) if it is to be created
+        (that is, if no 'fig' and 'ax' arguments are passed).
+
+    Returns
+    -------
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce
+        the figure.
+    """
+
+    if not fig or not axes:
+        if not figsize:
+            figsize = (8, 8)
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+    Y = (pi/2 - THETA)/(pi/2)
+    X = (PHI - pi)/pi * sqrt(cos(pi/2 - THETA))
+    
+    ax.pcolor(X, Y, P.real)
+    ax.set_xlabel(r'$\varphi$', fontsize=18)
+    ax.set_ylabel(r'$\theta$', fontsize=18)
+    
+    ax.set_xticks([-1, 0, 1])
+    ax.set_xticklabels([r'$-\pi$', r'$0$', r'$\pi$'], fontsize=18)
+    ax.set_yticks([-1, 0, 1])    
+    ax.set_yticklabels([r'$\pi$', r'$\pi/2$', r'$0$'], fontsize=18)
+
+    return fig, ax
