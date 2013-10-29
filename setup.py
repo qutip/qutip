@@ -109,6 +109,8 @@ if not with_f90mc:
 else:
     os.environ['FORTRAN_LIBS'] = 'TRUE'
 
+os.environ['QUTIP_RELEASE'] = 'TRUE' if ISRELEASED else 'FALSE'
+
 # remove needless error warnings for released version.
 #if ISRELEASED:
 #    os.environ['CFLAGS'] = '-w'

@@ -1,31 +1,34 @@
 from distutils.core import setup
 from distutils.extension import Extension
 from Cython.Distutils import build_ext
-import numpy as np
+from Cython.Build import cythonize
 
+import numpy as np
+import os
 
 def configuration(parent_package='', top_path=None):
     # compiles files during installation
     from numpy.distutils.misc_util import Configuration
     config = Configuration('cyQ', parent_package, top_path)
-    
-    config.add_extension('spmatfuncs',
-                         sources=["spmatfuncs.c"],
-                         include_dirs=[np.get_include()],
-                         extra_compile_args=['-w -ffast-math -O3'],
-                         extra_link_args=[])
-    
-    config.add_extension('stochastic',
-                         sources=["stochastic.c"],
-                         include_dirs=[np.get_include()],
-                         extra_compile_args=['-w -ffast-math -O3'],
-                         extra_link_args=[])
-    
-    config.add_extension('sparse_utils',
-                         sources=["sparse_utils.c"],
-                         include_dirs=[np.get_include()],
-                         extra_compile_args=['-w -ffast-math -O3'],
-                         extra_link_args=[])
+
+    exts = ['spmatfuncs', 'stochastic', 'sparse_utils']
+
+    if os.environ['QUTIP_RELEASE'] == 'TRUE':
+        for ext in exts:
+            config.add_extension(ext,
+                                 sources=[ext + ".c"],
+                                 include_dirs=[np.get_include()],
+                                 extra_compile_args=['-w -ffast-math -O3'],
+                                 extra_link_args=[])
+
+    else:
+        for ext in exts:
+            config.add_extension(ext,
+                                 sources=[ext + ".pyx"],
+                                 include_dirs=[np.get_include()],
+                                 extra_compile_args=['-w -ffast-math -O3'],
+                                 extra_link_args=[])
+        config.ext_modules = cythonize(config.ext_modules)
    
     return config
 
@@ -41,7 +44,7 @@ if __name__ == '__main__':
                      Extension("stochastic", ["stochastic.pyx"],
                                extra_compile_args=['-w -ffast-math -O3'],
                                extra_link_args=[]),
-                   Extension("sparse_utils", ["sparse_utils.pyx"],
-                             extra_compile_args=['-w -ffast-math -O3'],
-                             extra_link_args=[])]
+                     Extension("sparse_utils", ["sparse_utils.pyx"],
+                               extra_compile_args=['-w -ffast-math -O3'],
+                               extra_link_args=[])]
     )
