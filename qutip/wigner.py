@@ -415,23 +415,26 @@ def spin_q_function(rho, theta, phi):
     if rho.type == 'bra':
         rho = rho.dag()
 
+    if rho.type == 'ket':
+        rho = ket2dm(rho)
+
     J = rho.shape[0]
     j = (J - 1) / 2
 
     THETA, PHI = meshgrid(theta, phi)
 
     Q = np.zeros_like(THETA, dtype=complex)
-    
-    for m1 in range(-j, j+1):
+
+    for m1 in arange(-j, j+1):
 
         Q += binom(2*j, j+m1) * cos(THETA/2) ** (2*(j-m1)) * sin(THETA/2) ** (2*(j+m1)) * \
-             rho.data[j-m1, j-m1]
+             rho.data[int(j-m1), int(j-m1)]
 
-        for m2 in range(m1+1, j+1):
+        for m2 in arange(m1+1, j+1):
 
             Q += (sqrt(binom(2*j, j+m1)) * sqrt(binom(2*j, j+m2)) *
                   cos(THETA/2) ** (2*j-m1-m2) * sin(THETA/2) ** (2*j+m1+m2)) * \
-                  (exp(1j * (m2-m1) * PHI) * rho.data[j-m1, j-m2] + 
-                   exp(1j * (m1-m2) * PHI) * rho.data[j-m2, j-m1])
+                  (exp(1j * (m2-m1) * PHI) * rho.data[int(j-m1), int(j-m2)] + 
+                   exp(1j * (m1-m2) * PHI) * rho.data[int(j-m2), int(j-m1)])
             
     return Q.real, THETA, PHI
