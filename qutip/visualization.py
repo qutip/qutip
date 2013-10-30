@@ -788,7 +788,7 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
 
 
 def plot_spin_distribution_2d(P, THETA, PHI,
-                              fig=None, axes=None, figsize=(8, 8)):
+                              fig=None, ax=None, figsize=(8, 8)):
     """
     Plot a spin distribution function (given as meshgrid data) with a 2D
     projection where the surface of the unit sphere is mapped on the unit disk.
@@ -826,8 +826,8 @@ def plot_spin_distribution_2d(P, THETA, PHI,
             figsize = (8, 8)
         fig, ax = plt.subplots(1, 1, figsize=figsize)
 
-    Y = (pi/2 - THETA)/(pi/2)
-    X = (PHI - pi)/pi * sqrt(cos(pi/2 - THETA))
+    Y = (THETA - pi/2)/(pi/2)
+    X = (pi - PHI)/pi * sqrt(cos(THETA - pi/2))
     
     if P.min() < -1e12:
         cmap = cm.RdBu
@@ -839,7 +839,7 @@ def plot_spin_distribution_2d(P, THETA, PHI,
     ax.set_ylabel(r'$\theta$', fontsize=18)
     
     ax.set_xticks([-1, 0, 1])
-    ax.set_xticklabels([r'$-\pi$', r'$0$', r'$\pi$'], fontsize=18)
+    ax.set_xticklabels([r'$0$', r'$\pi$', r'$2\pi$'], fontsize=18)
     ax.set_yticks([-1, 0, 1])    
     ax.set_yticklabels([r'$\pi$', r'$\pi/2$', r'$0$'], fontsize=18)
 
@@ -847,7 +847,7 @@ def plot_spin_distribution_2d(P, THETA, PHI,
 
 
 def plot_spin_distribution_3d(P, THETA, PHI,
-                              fig=None, axes=None, figsize=(8, 6)):
+                              fig=None, ax=None, figsize=(8, 6)):
     """Plots a matrix of values on a sphere
 
     Parameters
