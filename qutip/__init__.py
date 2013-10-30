@@ -219,7 +219,8 @@ if qutip.settings.qutip_graphics == 'YES':
                                      sphereplot, fock_distribution,
                                      wigner_fock_distribution,
                                      plot_expectation_values,
-                                     plot_spin_distribution_2d)
+                                     plot_spin_distribution_2d,
+                                     plot_spin_distribution_3d)
     from qutip.orbital import *
     # load mayavi dependent functions if available
     try:
