@@ -24,7 +24,7 @@ Topic :: Scientific/Engineering
 Operating System :: MacOS
 Operating System :: POSIX
 Operating System :: Unix
-Operating System :: Windows
+Operating System :: Microsoft :: Windows
 """
 
 # import statements
@@ -50,7 +50,7 @@ PACKAGES = ['qutip', 'qutip/gui', 'qutip/examples', 'qutip/cyQ', 'qutip/quantum_
 PACKAGE_DATA = {'qutip/gui': ['logo.png', 'icon.png']}
 INCLUDE_DIRS = [np.get_include()]
 EXT_MODULES = []
-NAME = "QuTiP"
+NAME = "qutip"
 AUTHOR = "Paul D. Nation, Robert J. Johansson"
 AUTHOR_EMAIL = "pnation@korea.ac.kr, robert@riken.jp"
 LICENSE = "GPL3"
