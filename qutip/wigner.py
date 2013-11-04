@@ -439,3 +439,59 @@ def spin_q_function(rho, theta, phi):
             
     return Q.real, THETA, PHI
 
+def _rho_kq(rho, j, k, q):
+    v = 0j
+
+    for m1 in arange(-j, j+1):
+        for m2 in arange(-j, j+1):
+            v += (-1)**(j - m1 - q) * clebsch(j, j, k, m1, -m2, q) * rho.data[m1 + j, m2 + j]
+
+    return v
+
+
+def spin_wigner(rho, theta, phi):
+    """Wigner function for spins.
+
+    Parameters
+    ----------
+
+    state : qobj
+        A state vector or density matrix for a spin-j quantum system.
+
+    theta : array_like
+        theta-coordinates at which to calculate the Q function.
+
+    phi : array_like
+        phi-coordinates at which to calculate the Q function.
+
+    Returns
+    -------
+
+    W, THETA, PHI : 2d-array
+        Values representing the spin Wigner function at the values specified
+        by THETA and PHI.
+
+    .. note::
+
+        Experimental.
+
+    """
+
+    if rho.type == 'bra':
+        rho = rho.dag()
+
+    if rho.type == 'ket':
+        rho = ket2dm(rho)
+
+    J = rho.shape[0]
+    j = (J - 1) / 2
+    
+    THETA, PHI = meshgrid(theta, phi)
+
+    W = np.zeros_like(THETA, dtype=complex)
+    
+    for k in range(int(2 * j)+1):
+        for q in range(-k,k+1):
+            W += _rho_kq(rho, j, k, q) * sph_harm(q, k, PHI, THETA)
+            
+    return W, THETA, PHI
