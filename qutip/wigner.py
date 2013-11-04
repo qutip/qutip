@@ -400,7 +400,7 @@ def spin_q_function(rho, theta, phi):
     theta : array_like
         theta-coordinates at which to calculate the Q function.
 
-    yvec : array_like
+    phi : array_like
         phi-coordinates at which to calculate the Q function.
 
     Returns
@@ -438,3 +438,4 @@ def spin_q_function(rho, theta, phi):
                    exp(1j * (m1-m2) * PHI) * rho.data[int(j-m2), int(j-m1)])
             
     return Q.real, THETA, PHI
+
