@@ -25,11 +25,13 @@ import scipy.fftpack as ft
 import scipy.linalg as la
 from scipy.special import genlaguerre
 from scipy.special import binom
+from scipy.special import sph_harm
 
 from qutip.tensor import tensor
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.states import *
 from qutip.parfor import parfor
+from qutip.utilities import clebsch
 
 try:  # for scipy v <= 0.90
     from scipy import factorial
