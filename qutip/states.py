@@ -460,6 +460,10 @@ def qstate(string):
     qstate : qobj
         Qobj for tensor product corresponding to input string.
 
+    Notes
+    -----
+    Look at ket and bra for more general functions creating multiparticle states.
+
     Examples
     --------
     >>> qstate('udu')
@@ -491,6 +495,27 @@ def qstate(string):
     return tensor(lst)
 
 
+#
+# different qubit notation dictionary
+#
+_qubit_dict = {'g': 0,  # ground state
+               'e': 1,  # excited state
+               'u': 0,  # spin up
+               'd': 1,  # spin down
+               'H': 0,  # horizontal polarization
+               'V': 1}  # vertical polarization
+
+
+def _character_to_qudit(x):
+    """
+    Converts a character representing a one-particle state into int.
+    """
+    if x in _qubit_dict:
+        return _qubit_dict[x]
+    else:
+        return int(x)
+
+
 def ket(seq, dim=2):
     """
     Produces a multiparticle ket state for a list or string,
@@ -498,11 +523,16 @@ def ket(seq, dim=2):
 
     Parameters
     ----------
-    seq : str / list of ints or characteres
+    seq : str / list of ints or characters
         e.g. [1,1,0,1] or a string "1101"
-        (note: for dimension 10 and above you need to use a list)
+        for qubits it is also possible to use the following conventions:
+        - 'g'/'e' (ground and excited state)
+        - 'u'/'d' (spin up and down)
+        - 'H'/'V' (horizontal and vertical polarization)
+        (note: for dimension > 9 you need to use a list)
 
-    dim : int (defalut: 2) / list of ints
+
+    dim : int (default: 2) / list of ints
         space dimension for each particle
         int if there are the same, list if they are different
 
@@ -518,6 +548,18 @@ def ket(seq, dim=2):
     [[ 0.]
      [ 0.]
      [ 1.]
+     [ 0.]]
+
+    >>> ket("Hue")
+    Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = [8, 1], type = ket
+    Qobj data =
+    [[ 0.]
+     [ 1.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
      [ 0.]]
 
     >>> ket("12", 3)
@@ -549,7 +591,7 @@ def ket(seq, dim=2):
     """
     if isinstance(dim, int):
         dim = [dim] * len(seq)
-    return tensor([basis(dim[i], int(x)) for i, x in enumerate(seq)])
+    return tensor([basis(dim[i], _character_to_qudit(x)) for i, x in enumerate(seq)])
 
 
 def bra(seq, dim=2):
@@ -559,11 +601,14 @@ def bra(seq, dim=2):
 
     Parameters
     ----------
-    seq : str / list of ints or characteres
+    seq : str / list of ints or characters
         e.g. [1,1,0,1] or a string "1101"
+        - 'g'/'e' (ground and excited state)
+        - 'u'/'d' (spin up and down)
+        - 'H'/'V' (horizontal and vertical polarization)
         (note: for dimension 10 and above you need to use a list)
 
-    dim : int (defalut: 2) / list of ints
+    dim : int (default: 2) / list of ints
         space dimension for each particle
         int if there are the same, list if they are different
 
@@ -577,6 +622,11 @@ def bra(seq, dim=2):
     Quantum object: dims = [[1, 1], [2, 2]], shape = [1, 4], type = bra
     Qobj data =
     [[ 0.  0.  1.  0.]]
+
+    >>> bra("Hue")
+    Quantum object: dims = [[1, 1, 1], [2, 2, 2]], shape = [1, 8], type = bra
+    Qobj data =
+    [[ 0.  1.  0.  0.  0.  0.  0.  0.]]
 
     >>> bra("12", 3)
     Quantum object: dims = [[1, 1], [3, 3]], shape = [1, 9], type = bra
