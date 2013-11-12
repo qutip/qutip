@@ -123,7 +123,7 @@ def coherent(N, alpha, offset=0, method='operator'):
 
     offset : int (default 0)
         The lowest number state that is included in the finite number state
-        representation of the state. Using a non-zero offset will make the 
+        representation of the state. Using a non-zero offset will make the
         default method 'analytic'.
 
     method : string {'operator', 'analytic'}
@@ -301,7 +301,7 @@ def fock(N, n=0, offset=0):
      [ 0.+0.j]
      [ 1.+0.j]]
 
-    """    
+    """
     return basis(N, n, offset=offset)
 
 
@@ -525,17 +525,18 @@ def ket(seq, dim=2):
     Parameters
     ----------
     seq : str / list of ints or characters
-        e.g. [1,1,0,1] or a string "1101"
-        for qubits it is also possible to use the following conventions:
+        Each element defines state of the respective particle.
+        (e.g. [1,1,0,1] or a string "1101").
+        For qubits it is also possible to use the following conventions:
         - 'g'/'e' (ground and excited state)
         - 'u'/'d' (spin up and down)
         - 'H'/'V' (horizontal and vertical polarization)
-        (note: for dimension > 9 you need to use a list)
+        Note: for dimension > 9 you need to use a list.
 
 
     dim : int (default: 2) / list of ints
-        space dimension for each particle
-        int if there are the same, list if they are different
+        Space dimension for each particle:
+        int if there are the same, list if they are different.
 
     Returns
     -------
@@ -604,15 +605,18 @@ def bra(seq, dim=2):
     Parameters
     ----------
     seq : str / list of ints or characters
-        e.g. [1,1,0,1] or a string "1101"
+        Each element defines state of the respective particle.
+        (e.g. [1,1,0,1] or a string "1101").
+        For qubits it is also possible to use the following conventions:
         - 'g'/'e' (ground and excited state)
         - 'u'/'d' (spin up and down)
         - 'H'/'V' (horizontal and vertical polarization)
-        (note: for dimension 10 and above you need to use a list)
+        Note: for dimension > 9 you need to use a list.
+
 
     dim : int (default: 2) / list of ints
-        space dimension for each particle
-        int if there are the same, list if they are different
+        Space dimension for each particle:
+        int if there are the same, list if they are different.
 
     Returns
     -------
@@ -868,7 +872,7 @@ def spin_state(j, m, type='ket'):
 
     """
     J = 2 * j + 1
-    
+
     if type == 'ket':
         return basis(int(J), int(j - m))
     elif type == 'bra':
