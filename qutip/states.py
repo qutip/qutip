@@ -491,6 +491,107 @@ def qstate(string):
     return tensor(lst)
 
 
+def ket(seq, dim=2):
+    """
+    Produces a multiparticle ket state for a list or string,
+    where each element stands for state of the respective particle.
+
+    Parameters
+    ----------
+    seq : str / list of ints or characteres
+        e.g. [1,1,0,1] or a string "1101"
+        (note: for dimension 10 and above you need to use a list)
+
+    dim : int (defalut: 2) / list of ints
+        space dimension for each particle
+        int if there are the same, list if they are different
+
+    Returns
+    -------
+    ket : qobj
+
+    Examples
+    --------
+    >>> ket("10")
+    Quantum object: dims = [[2, 2], [1, 1]], shape = [4, 1], type = ket
+    Qobj data =
+    [[ 0.]
+     [ 0.]
+     [ 1.]
+     [ 0.]]
+
+    >>> ket("12", 3)
+    Quantum object: dims = [[3, 3], [1, 1]], shape = [9, 1], type = ket
+    Qobj data =
+    [[ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 1.]
+     [ 0.]
+     [ 0.]
+     [ 0.]]
+
+    >>> ket("31", [5, 2])
+    Quantum object: dims = [[5, 2], [1, 1]], shape = [10, 1], type = ket
+    Qobj data =
+    [[ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 1.]
+     [ 0.]
+     [ 0.]]
+    """
+    if isinstance(dim, int):
+        dim = [dim] * len(seq)
+    return tensor([basis(dim[i], int(x)) for i, x in enumerate(seq)])
+
+
+def bra(seq, dim=2):
+    """
+    Produces a multiparticle bra state for a list or string,
+    where each element stands for state of the respective particle.
+
+    Parameters
+    ----------
+    seq : str / list of ints or characteres
+        e.g. [1,1,0,1] or a string "1101"
+        (note: for dimension 10 and above you need to use a list)
+
+    dim : int (defalut: 2) / list of ints
+        space dimension for each particle
+        int if there are the same, list if they are different
+
+    Returns
+    -------
+    bra : qobj
+
+    Examples
+    --------
+    >>> bra("10")
+    Quantum object: dims = [[1, 1], [2, 2]], shape = [1, 4], type = bra
+    Qobj data =
+    [[ 0.  0.  1.  0.]]
+
+    >>> bra("12", 3)
+    Quantum object: dims = [[1, 1], [3, 3]], shape = [1, 9], type = bra
+    Qobj data =
+    [[ 0.  0.  0.  0.  0.  1.  0.  0.  0.]]
+
+
+    >>> bra("31", [5, 2])
+    Quantum object: dims = [[1, 1], [5, 2]], shape = [1, 10], type = bra
+    Qobj data =
+    [[ 0.  0.  0.  0.  0.  0.  0.  1.  0.  0.]]
+    """
+    return ket(seq, dim=dim).dag()
+
+
 #
 # quantum state number helper functions
 #
