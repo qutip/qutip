@@ -462,7 +462,8 @@ def qstate(string):
 
     Notes
     -----
-    Look at ket and bra for more general functions creating multiparticle states.
+    Look at ket and bra for more general functions
+    creating multiparticle states.
 
     Examples
     --------
@@ -591,7 +592,8 @@ def ket(seq, dim=2):
     """
     if isinstance(dim, int):
         dim = [dim] * len(seq)
-    return tensor([basis(dim[i], _character_to_qudit(x)) for i, x in enumerate(seq)])
+    return tensor([basis(dim[i], _character_to_qudit(x))
+                   for i, x in enumerate(seq)])
 
 
 def bra(seq, dim=2):
