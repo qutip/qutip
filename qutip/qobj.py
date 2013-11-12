@@ -458,9 +458,7 @@ class Qobj():
         if isinstance(other, Qobj):  # if both are quantum objects
             raise TypeError("Incompatible Qobj shapes " +
                             "[division with Qobj not implemented]")
-        # if isinstance(other,Qobj): #if both are quantum objects
-        # raise TypeError("Incompatible Qobj shapes [division with Qobj not
-        # implemented]")
+
         if isinstance(other, (int, float, complex, np.int64)):
             out = Qobj(type=self.type)
             out.data = self.data / other
@@ -530,10 +528,8 @@ class Qobj():
         try:
             data = self.data ** n
             out = Qobj(data, dims=self.dims, shape=self.shape)
-            if qset.auto_tidyup:
-                return out.tidyup()
-            else:
-                return out
+            return out.tidyup() if qset.auto_tidyup else out
+
         except:
             raise ValueError('Invalid choice of exponent.')
 
@@ -551,10 +547,20 @@ class Qobj():
                   ", shape = " + str(self.shape) +
                   ", type = " + self.type + "\n")
         s += "Qobj data =\n"
-        if all(np.imag(self.data.data) == 0):
+        
+        if self.shape[0] > 10000 or self.shape[1] > 10000:
+            # if the system is huge, don't attempt to convert to a
+            # dense matrix and then to string, because it is pointless
+            # and is likely going to produce memory errors. Instead print the
+            # sparse data string representation
+            s += str(self.data)
+
+        elif all(np.imag(self.data.data) == 0):
             s += str(np.real(self.full()))
+
         else:
             s += str(self.full())
+
         return s
 
     def __repr__(self):
@@ -742,9 +748,9 @@ class Qobj():
         """
         if self.type == 'oper' or self.type == 'super':
             if oper_norm == 'tr':
-                vals = sp_eigs(
-                    self, vecs=False, sparse=sparse, tol=tol, maxiter=maxiter)
-                return sum(sqrt(abs(vals) ** 2))
+                vals = sp_eigs(self, vecs=False, sparse=sparse,
+                               tol=tol, maxiter=maxiter)
+                return np.sum(sqrt(abs(vals) ** 2))
             elif oper_norm == 'fro':
                 return _sp_fro_norm(self)
             elif oper_norm == 'one':
@@ -768,9 +774,9 @@ class Qobj():
 
         """
         if self.isherm:
-            return float(np.real(sum(self.data.diagonal())))
+            return float(np.real(np.sum(self.data.diagonal())))
         else:
-            return complex(sum(self.data.diagonal()))
+            return complex(np.sum(self.data.diagonal()))
 
     def full(self, squeeze=False):
         """Dense array from quantum object.
