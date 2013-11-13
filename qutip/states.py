@@ -123,7 +123,7 @@ def coherent(N, alpha, offset=0, method='operator'):
 
     offset : int (default 0)
         The lowest number state that is included in the finite number state
-        representation of the state. Using a non-zero offset will make the 
+        representation of the state. Using a non-zero offset will make the
         default method 'analytic'.
 
     method : string {'operator', 'analytic'}
@@ -301,7 +301,7 @@ def fock(N, n=0, offset=0):
      [ 0.+0.j]
      [ 1.+0.j]]
 
-    """    
+    """
     return basis(N, n, offset=offset)
 
 
@@ -460,6 +460,11 @@ def qstate(string):
     qstate : qobj
         Qobj for tensor product corresponding to input string.
 
+    Notes
+    -----
+    Look at ket and bra for more general functions
+    creating multiparticle states.
+
     Examples
     --------
     >>> qstate('udu')
@@ -489,6 +494,158 @@ def qstate(string):
         else:
             lst.append(dn)
     return tensor(lst)
+
+
+#
+# different qubit notation dictionary
+#
+_qubit_dict = {'g': 0,  # ground state
+               'e': 1,  # excited state
+               'u': 0,  # spin up
+               'd': 1,  # spin down
+               'H': 0,  # horizontal polarization
+               'V': 1}  # vertical polarization
+
+
+def _character_to_qudit(x):
+    """
+    Converts a character representing a one-particle state into int.
+    """
+    if x in _qubit_dict:
+        return _qubit_dict[x]
+    else:
+        return int(x)
+
+
+def ket(seq, dim=2):
+    """
+    Produces a multiparticle ket state for a list or string,
+    where each element stands for state of the respective particle.
+
+    Parameters
+    ----------
+    seq : str / list of ints or characters
+        Each element defines state of the respective particle.
+        (e.g. [1,1,0,1] or a string "1101").
+        For qubits it is also possible to use the following conventions:
+        - 'g'/'e' (ground and excited state)
+        - 'u'/'d' (spin up and down)
+        - 'H'/'V' (horizontal and vertical polarization)
+        Note: for dimension > 9 you need to use a list.
+
+
+    dim : int (default: 2) / list of ints
+        Space dimension for each particle:
+        int if there are the same, list if they are different.
+
+    Returns
+    -------
+    ket : qobj
+
+    Examples
+    --------
+    >>> ket("10")
+    Quantum object: dims = [[2, 2], [1, 1]], shape = [4, 1], type = ket
+    Qobj data =
+    [[ 0.]
+     [ 0.]
+     [ 1.]
+     [ 0.]]
+
+    >>> ket("Hue")
+    Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = [8, 1], type = ket
+    Qobj data =
+    [[ 0.]
+     [ 1.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]]
+
+    >>> ket("12", 3)
+    Quantum object: dims = [[3, 3], [1, 1]], shape = [9, 1], type = ket
+    Qobj data =
+    [[ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 1.]
+     [ 0.]
+     [ 0.]
+     [ 0.]]
+
+    >>> ket("31", [5, 2])
+    Quantum object: dims = [[5, 2], [1, 1]], shape = [10, 1], type = ket
+    Qobj data =
+    [[ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 1.]
+     [ 0.]
+     [ 0.]]
+    """
+    if isinstance(dim, int):
+        dim = [dim] * len(seq)
+    return tensor([basis(dim[i], _character_to_qudit(x))
+                   for i, x in enumerate(seq)])
+
+
+def bra(seq, dim=2):
+    """
+    Produces a multiparticle bra state for a list or string,
+    where each element stands for state of the respective particle.
+
+    Parameters
+    ----------
+    seq : str / list of ints or characters
+        Each element defines state of the respective particle.
+        (e.g. [1,1,0,1] or a string "1101").
+        For qubits it is also possible to use the following conventions:
+        - 'g'/'e' (ground and excited state)
+        - 'u'/'d' (spin up and down)
+        - 'H'/'V' (horizontal and vertical polarization)
+        Note: for dimension > 9 you need to use a list.
+
+
+    dim : int (default: 2) / list of ints
+        Space dimension for each particle:
+        int if there are the same, list if they are different.
+
+    Returns
+    -------
+    bra : qobj
+
+    Examples
+    --------
+    >>> bra("10")
+    Quantum object: dims = [[1, 1], [2, 2]], shape = [1, 4], type = bra
+    Qobj data =
+    [[ 0.  0.  1.  0.]]
+
+    >>> bra("Hue")
+    Quantum object: dims = [[1, 1, 1], [2, 2, 2]], shape = [1, 8], type = bra
+    Qobj data =
+    [[ 0.  1.  0.  0.  0.  0.  0.  0.]]
+
+    >>> bra("12", 3)
+    Quantum object: dims = [[1, 1], [3, 3]], shape = [1, 9], type = bra
+    Qobj data =
+    [[ 0.  0.  0.  0.  0.  1.  0.  0.  0.]]
+
+
+    >>> bra("31", [5, 2])
+    Quantum object: dims = [[1, 1], [5, 2]], shape = [1, 10], type = bra
+    Qobj data =
+    [[ 0.  0.  0.  0.  0.  0.  0.  1.  0.  0.]]
+    """
+    return ket(seq, dim=dim).dag()
 
 
 #
@@ -715,7 +872,7 @@ def spin_state(j, m, type='ket'):
 
     """
     J = 2 * j + 1
-    
+
     if type == 'ket':
         return basis(int(J), int(j - m))
     elif type == 'bra':
