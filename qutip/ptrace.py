@@ -30,8 +30,12 @@ def _ptrace(rho, sel):
 
     if isinstance(sel, int):
         sel = np.array([sel])
+    else:
+        sel = np.asarray(sel)
 
-    sel = np.asarray(sel)
+    if (sel < 0).any() or (sel >= len(rho.dims[0])).any():
+        raise TypeError("Invalid selection index in ptrace.")
+
     drho = rho.dims[0]
     N = np.prod(drho)
     M = np.prod(np.asarray(drho).take(sel))
