@@ -94,7 +94,7 @@ def _sparse_reverse_permute(np.ndarray[CTYPE_t] data, np.ndarray[int] idx,
 @cython.wraparound(False)
 def _sparse_bandwidth(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.ndarray[int] ptr, int nrows):
     """
-    Calculates the lower(lb), upper(ub), and max (mb) bandwidths of a qobj or csr_matrix.
+    Calculates the lower(lb), upper(ub), and max (mb) bandwidths of a csr_matrix.
     """
     cdef int lb, ub, mb, ii, jj, ldist
     lb=-nrows
@@ -109,6 +109,26 @@ def _sparse_bandwidth(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.ndarray[
             mb=max(mb,ub+lb+1)
     
     return lb, ub, mb
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cdef _sparse_adjacency_degree(np.ndarray[int] idx, np.ndarray[int] ptr, int nrows):
+    """
+    Calculates the adjacency list and vertex degrees of a sparse csr_matrix.
+    """
+    cdef int ii
+    cdef np.ndarray[np.int_t, ndim=1] degree = np.zeros(nrows,dtype=int)
+    cdef np.ndarray[object, ndim=1] adj = np.zeros(nrows,dtype=np.ndarray)
+    cdef np.ndarray[int, ndim=1] elems
+    for ii in range(nrows):
+        elems=idx[ptr[ii]:ptr[ii+1]]
+        adj[ii]=elems
+        degree[ii]=len(adj[ii])
+        if ii in elems:
+            degree[ii]+=1
+    return adj, degree
+
 
 
 
