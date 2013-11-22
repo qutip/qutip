@@ -260,7 +260,8 @@ from qutip.floquet import *
 from qutip.bloch_redfield import *
 from qutip.superop_reps import *
 from qutip.subsystem_apply import subsystem_apply
-
+from qutip.sparse import sparse_bandwidth
+from qutip.graph import *
 # quantum information
 from qutip.quantum_info import *
 

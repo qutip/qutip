@@ -11,7 +11,7 @@ def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
     config = Configuration('cyQ', parent_package, top_path)
 
-    exts = ['spmatfuncs', 'stochastic', 'sparse_utils']
+    exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils']
 
     if os.environ['QUTIP_RELEASE'] == 'TRUE':
         for ext in exts:
@@ -45,6 +45,9 @@ if __name__ == '__main__':
                                extra_compile_args=['-w -ffast-math -O3'],
                                extra_link_args=[]),
                      Extension("sparse_utils", ["sparse_utils.pyx"],
+                               extra_compile_args=['-w -ffast-math -O3'],
+                               extra_link_args=[]),
+                     Extension("graph_utils", ["graph_utils.pyx"],
                                extra_compile_args=['-w -ffast-math -O3'],
                                extra_link_args=[])]
     )

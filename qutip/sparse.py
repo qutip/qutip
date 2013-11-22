@@ -533,11 +533,35 @@ def sparse_adjacency_degree(A):
     if A.__class__.__name__=='Qobj':
         A=A.data
     
-    deg=np.zeros(nrows,dtype=int)
-    adj=np.zeros(nrows,dtype=ndarray)
-    for ii in range(nrows):
-        elems=A.indices[A.indptr[ii]:A.indptr[ii+1]]
-        adj[ii]=elems[elems!=ii]
-        deg[ii]=adj[ii].shape[0]
+    adj, deg = _sparse_adjacency_degree(A.indices,A.indptr,nrows)
     return adj, deg
 
+
+def reverse_cuthill_mckee_ordering(A,symmetric=False):
+    """
+    Reverse Cuthill-McKee (RCM) ordering of a sparse csr_matrix.
+    Returns the permutation array that reduces the bandwidth
+    of the matrix.  Here we pick the node (row) with the
+    lowest degree as the starting point. This uses a Queue 
+    based method.
+    
+    If the input matrix is not symmetric (as usual), then the 
+    ordering is calculated using A+trans(A).
+    
+    Parameters
+    ----------
+    A : csr_matrix
+        Sparse csr_matrix for reordering
+    
+    symmetric : bool
+        Flag set if input matrix is symmetric
+    
+    Returns
+    -------
+    perm : array
+        Permutation array reordering of rows and cols
+    
+    """
+    if not symmetric:
+        A=A+A.transpose() #could be made faster since dont need data
+    return _rcm_ordering(A.indices,A.indptr,A.shape[0])
