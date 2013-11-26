@@ -708,7 +708,7 @@ class Qobj():
         out.shape = [self.shape[1], self.shape[0]]
         return out
 
-    def norm(self, ket_norm='l2', oper_norm='tr', sparse=False, tol=0, maxiter=100000):
+    def norm(self, norm=None, sparse=False, tol=0, maxiter=100000):
         """Norm of a quantum object.
 
         Default norm is L2-norm for kets and trace-norm for operators.
@@ -717,15 +717,10 @@ class Qobj():
 
         Parameters
         ----------
-        ket_norm : str
-            Which norm to use for ket/bra vectors: L2 'l2', max norm 'max'.
-            This parameter does not affect the norm of a state vector.
+        norm : str
+            Which norm to use for ket/bra vectors: L2 'l2', max norm 'max',
+            or for operators: trace 'tr', Frobius 'fro', one 'one', or max 'max'.
         
-        oper_norm : str
-            Which norm to use for operators: trace 'tr', Frobius 'fro',
-            one 'one', or max 'max'. This parameter does not affect the norm
-            of a state vector.
-
         sparse : bool
             Use sparse eigenvalue solver for trace norm.  Other norms are not
             affected by this parameter.
@@ -751,23 +746,27 @@ class Qobj():
 
         """
         if self.type == 'oper' or self.type == 'super':
-            if oper_norm == 'tr':
+            if norm==None:
+                norm = 'tr'
+            if norm == 'tr':
                 vals = sp_eigs(self, vecs=False, sparse=sparse,
                                tol=tol, maxiter=maxiter)
                 return np.sum(sqrt(abs(vals) ** 2))
-            elif oper_norm == 'fro':
+            elif norm == 'fro':
                 return _sp_fro_norm(self)
-            elif oper_norm == 'one':
+            elif norm == 'one':
                 return _sp_one_norm(self)
-            elif oper_norm == 'max':
+            elif norm == 'max':
                 return _sp_max_norm(self)
             else:
                 raise ValueError(
                     "Operator norm must be 'tr', 'fro', 'one', or 'max'.")
         else:
-            if ket_norm == 'l2':
+            if norm==None:
+                norm = 'l2'
+            if norm == 'l2':
                 return _sp_L2_norm(self)
-            elif ket_norm == 'max':
+            elif norm == 'max':
                 return _sp_max_norm(self)
             else:
                 raise ValueError(
@@ -900,15 +899,15 @@ class Qobj():
         else:
             raise TypeError('Invalid operand for matrix square root')
 
-    def unit(self, oper_norm='tr', sparse=False, tol=0, maxiter=100000):
+    def unit(self, norm=None, sparse=False, tol=0, maxiter=100000):
         """Operator or state normalized to unity.
 
         Uses norm from Qobj.norm().
 
         Parameters
         ----------
-        oper_norm : str
-            Requested norm for operator. Norm is always L2 for states.
+        norm : str
+            Requested norm for states / operators.
         sparse : bool
             Use sparse eigensolver for trace norm. Does not affect other norms.
         tol : float
@@ -923,7 +922,7 @@ class Qobj():
 
         """
         out = self / self.norm(
-            oper_norm=oper_norm, sparse=sparse, tol=tol, maxiter=maxiter)
+            norm=norm, sparse=sparse, tol=tol, maxiter=maxiter)
         if qset.auto_tidyup:
             return out.tidyup()
         else:
