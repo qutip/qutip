@@ -363,6 +363,20 @@ def test_QobjFull():
     assert_equal(all(b - data), 0)
 
 
+def test_QobjNorm():
+    "Qobj norm"
+    #vector L2-norm test
+    N=20
+    x=np.random.random(N)+1j*np.random.random(N)
+    A=Qobj(x)
+    assert_equal(np.abs(A.norm()-la.norm(A.data.data,2))<1e-12,True)
+    #vector max (inf) norm test
+    assert_equal(np.abs(A.norm('max')-la.norm(A.data.data,np.inf))<1e-12,True)
+    #operator frobius norm
+    x=np.random.random((N,N))+1j*np.random.random((N,N))
+    A=Qobj(x)
+    assert_equal(np.abs(A.norm('fro')-la.norm(A.full(),'fro'))<1e-12,True)
+
 def test_QobjPermute():
     "Qobj permute"
     A = basis(5, 0)
