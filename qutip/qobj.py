@@ -40,7 +40,6 @@ from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, _sp_expm, _sp_fro_norm, _sp_max_norm,
                           _sp_one_norm, _sp_L2_norm, _sp_inf_norm)
 
-
 class Qobj():
     """A class for representing quantum objects, such as quantum operators
     and states.
@@ -709,14 +708,19 @@ class Qobj():
         out.shape = [self.shape[1], self.shape[0]]
         return out
 
-    def norm(self, oper_norm='tr', sparse=False, tol=0, maxiter=100000):
+    def norm(self, ket_norm='l2', oper_norm='tr', sparse=False, tol=0, maxiter=100000):
         """Norm of a quantum object.
 
-        Norm is L2-norm for kets and trace-norm (by default) for operators.
-        Other operator norms may be specified using the `oper_norm` argument.
+        Default norm is L2-norm for kets and trace-norm for operators.
+        Other ket and operator norms may be specified using the 
+        `ket_norm` and `oper_norm` arguments.
 
         Parameters
         ----------
+        ket_norm : str
+            Which norm to use for ket/bra vectors: L2 'l2', max norm 'max'.
+            This parameter does not affect the norm of a state vector.
+        
         oper_norm : str
             Which norm to use for operators: trace 'tr', Frobius 'fro',
             one 'one', or max 'max'. This parameter does not affect the norm
@@ -761,8 +765,14 @@ class Qobj():
                 raise ValueError(
                     "Operator norm must be 'tr', 'fro', 'one', or 'max'.")
         else:
-            return _sp_L2_norm(self)
-
+            if ket_norm == 'l2':
+                return _sp_L2_norm(self)
+            elif ket_norm == 'max':
+                return _sp_max_norm(self)
+            else:
+                raise ValueError(
+                    "Ket norm must be 'l2', or 'max'.")
+    
     def tr(self):
         """Trace of a quantum object.
 

@@ -26,6 +26,8 @@ import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 import numpy as np
 import scipy.linalg as la
+from scipy.linalg.blas import get_blas_funcs
+_dznrm2 = get_blas_funcs("znrm2")
 from qutip.cyQ.sparse_utils import (_sparse_permute, _sparse_reverse_permute,
                                     _sparse_bandwidth)
 from qutip.settings import debug
@@ -56,7 +58,7 @@ def _sp_L2_norm(op):
     """
     if op.type == 'super' or op.type == 'oper':
         raise TypeError("Use L2-norm for ket or bra states only.")
-    return la.norm(op.data.data, 2)
+    return _dznrm2(op.data.data)
 
 
 def _sp_max_norm(op):
