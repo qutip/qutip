@@ -83,7 +83,7 @@ def _single_qobj_expect(oper, state):
             #else:
             #    return tr
 
-            return cy_spmm_tr(oper.data, state.data, state.isherm)
+            return cy_spmm_tr(oper.data, state.data, oper.isherm and state.isherm)
 
         elif state.type == 'ket':
             # calculates expectation value via <psi|op|psi>
