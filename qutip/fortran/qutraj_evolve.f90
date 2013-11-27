@@ -203,7 +203,7 @@ module qutraj_evolve
     real(wp) :: t
     integer :: neq,ml,mu,nrpd,ipar
     return
-  end
+  end subroutine
 
   !
   ! Diffusive unravelling evolution
