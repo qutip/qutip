@@ -7,8 +7,7 @@ ctypedef np.float64_t DTYPE_t
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef _breadth_first_search(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr,
-                            int seed, np.ndarray[np.intp_t, mode="c"] level, 
-                            np.ndarray[np.intp_t, mode="c"] order):
+                            int num_rows, int seed):
     """
     Does a breath first search (BSF) of a graph in sparse CSR format matrix 
     starting at a given seed node.
@@ -18,6 +17,8 @@ cpdef _breadth_first_search(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode=
     cdef unsigned int level_start = 0
     cdef unsigned int level_end   = N
     cdef unsigned int current_level = 1
+    cdef np.ndarray[np.intp_t] order = -1*np.ones(num_rows, dtype=int)
+    cdef np.ndarray[np.intp_t] level = -1*np.ones(num_rows, dtype=int)
     #---------------------
     level[seed] = 0
     order[0] = seed
@@ -37,7 +38,7 @@ cpdef _breadth_first_search(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode=
         level_end = N
         current_level+=1
     
-    return level, order
+    return order, level
 
 
 @cython.boundscheck(False)
@@ -50,8 +51,6 @@ cpdef _pseudo_peripheral_node(np.ndarray[int, mode="c"] ind,
     #define all parameters
     cdef unsigned int delta, flag, node, x
     cdef int maxlevel, minlevel, minlastnodesvalence
-    cdef np.ndarray[np.intp_t] order = np.empty(num_rows, dtype=int)
-    cdef np.ndarray[np.intp_t] level = -1*np.ones(num_rows, dtype=int)
     cdef np.ndarray[np.intp_t] lastnodes
     cdef np.ndarray[int] valence, lastnodesvalence
     
@@ -64,7 +63,7 @@ cpdef _pseudo_peripheral_node(np.ndarray[int, mode="c"] ind,
     flag = 1
     while flag:
         # do a level-set traversal from x
-        level, order = _breadth_first_search(ind, ptr, x, level, order)
+        order, level = _breadth_first_search(ind, ptr, num_rows, x)
         # select node in last level with min degree
         maxlevel = max(level)
         lastnodes = np.where(level == maxlevel)[0]
