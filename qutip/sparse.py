@@ -436,14 +436,14 @@ def sparse_permute(A,rperm=[],cperm=[]):
         CSR matrix with permuted rows/columns.
     
     """
-    rperm=np.asarray(rperm)
-    cperm=np.asarray(cperm)
-    nrows=A.shape[0]
-    shp=A.shape
+    rperm = np.asarray(rperm)
+    cperm = np.asarray(cperm)
+    nrows = A.shape[0]
+    shp = A.shape
     if A.__class__.__name__=='Qobj':
-        A=A.data
+        A = A.data
     
-    data, ind, ptr=_permute_sparse(A.data, A.indices, 
+    data, ind, ptr = _permute_sparse(A.data, A.indices, 
                     A.indptr, nrows, rperm, cperm)
 
     return sp.csr_matrix((data,ind,ptr),shape=shp,dtype=complex)
@@ -477,7 +477,7 @@ def sparse_reverse_permute(A,rperm=[],cperm=[]):
     if A.__class__.__name__=='Qobj':
         A = A.data
     
-    data, ind, ptr=_reverse_permute_sparse(A.data, A.indices, 
+    data, ind, ptr = _reverse_permute_sparse(A.data, A.indices, 
                     A.indptr, nrows, rperm, cperm)
 
     return sp.csr_matrix((data,ind,ptr), shape=shp, dtype=complex)
@@ -485,85 +485,28 @@ def sparse_reverse_permute(A,rperm=[],cperm=[]):
 
 def sparse_bandwidth(A):
     """
-    Returns the lower(lb), upper(ub), and max(mb) bandwidths of a qobj or sparse
+    Returns the max(mb), lower(lb), and upper(ub) bandwidths of a qobj or sparse
     csr_matrix.
     
     Parameters
     ----------
-    A : qobj/csr_matrix
+    A : qobj / csr_matrix
         Input qobj or csr_matrix
     
     Returns
     -------
+    mb : int
+        Maximum bandwidth of matrix.
     lb : int
         Lower bandwidth of matrix.
     ub : int
         Upper bandwidth of matrix.
-    mb : int
-        Maximum bandwidth of matrix.
     
     """
     nrows = A.shape[0]
     if A.__class__.__name__=='Qobj':
         A = A.data
     
-    lb, ub, mb=_sparse_bandwidth(A.data, A.indices, A.indptr, nrows)
+    mb, lb, ub = _sparse_bandwidth(A.indices, A.indptr, nrows)
     
-    return lb, ub, mb
-
-
-def sparse_adjacency_degree(A):
-    """
-    Finds the adjacency elements and associated degree for the nodes (rows)
-    of an obj or sparse csr_matrix.
-    
-    Parameters
-    ----------
-    A : qobj/csr_matrix
-        Input qobj or csr_matrix.
-    
-    Returns
-    -------
-    adj : array 
-        Adjacency elements for each row (node).
-    
-    deg : array
-        Degree of each row (node).
-    
-    """
-    nrows=A.shape[0]
-    if A.__class__.__name__=='Qobj':
-        A=A.data
-    
-    adj, deg = _sparse_adjacency_degree(A.indices,A.indptr,nrows)
-    return adj, deg
-
-
-def reverse_cuthill_mckee_ordering(A,symmetric=False):
-    """
-    Reverse Cuthill-McKee (RCM) ordering of a sparse csr_matrix.
-    Returns the permutation array that reduces the bandwidth
-    of the matrix.  Here we pick the node (row) with the
-    lowest degree as the starting point. This uses a Queue 
-    based method.
-    
-    If the input matrix is not symmetric (as usual), then the 
-    ordering is calculated using A+trans(A).
-    
-    Parameters
-    ----------
-    A : csr_matrix
-        Sparse csr_matrix for reordering
-    
-    symmetric : bool
-        Flag set if input matrix is symmetric
-    
-    Returns
-    -------
-    perm : array
-        Permutation array reordering of rows and cols
-    
-    """
-    if not symmetric:
-        A=A+A.transpose() #could be made faster since dont need data
-    return _rcm_ordering(A.indices,A.indptr,A.shape[0])
+    return mb, lb, ub

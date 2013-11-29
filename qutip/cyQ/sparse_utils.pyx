@@ -93,9 +93,9 @@ def _sparse_reverse_permute(np.ndarray[CTYPE_t] data, np.ndarray[int] idx,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _sparse_bandwidth(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.ndarray[int] ptr, int nrows):
+def _sparse_bandwidth(np.ndarray[int] idx, np.ndarray[int] ptr, int nrows):
     """
-    Calculates the lower(lb), upper(ub), and max (mb) bandwidths of a csr_matrix.
+    Calculates the max (mb), lower(lb), and upper(ub) bandwidths of a csr_matrix.
     """
     cdef int lb, ub, mb, ii, jj, ldist
     lb=-nrows
@@ -109,6 +109,6 @@ def _sparse_bandwidth(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.ndarray[
             ub=max(ub,-ldist)
             mb=max(mb,ub+lb+1)
     
-    return lb, ub, mb
+    return mb, lb, ub
 
 
