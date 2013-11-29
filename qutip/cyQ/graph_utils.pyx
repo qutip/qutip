@@ -1,8 +1,43 @@
+# This file is part of QuTiP.
+#
+#    QuTiP is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    QuTiP is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#
+# Copyright (C) 2013 and later, Paul D. Nation & Robert J. Johansson
+#
+###########################################################################
 import numpy as np
 cimport numpy as np
 cimport cython
 ctypedef np.complex128_t CTYPE_t
 ctypedef np.float64_t DTYPE_t
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+cpdef _node_degrees(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr,
+                            int num_rows):
+    #define all parameters
+    cdef unsigned int ii, jj
+    cdef np.ndarray[np.intp_t] degree = np.zeros(num_rows,dtype=int)
+    #---------------------
+    for ii in range(num_rows):
+        degree[ii]=ptr[ii+1]-ptr[ii]
+        for jj in range(ptr[ii],ptr[ii+1]):
+            if ind[jj]==ii:
+                #add one if the diagonal is in row ii
+                degree[ii]+=1
+    return degree
+    
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -37,7 +72,6 @@ cpdef _breadth_first_search(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode=
         level_start = level_end
         level_end = N
         current_level+=1
-    
     return order, level
 
 
@@ -49,33 +83,33 @@ cpdef _pseudo_peripheral_node(np.ndarray[int, mode="c"] ind,
     Find a pseudo peripheral node of a graph represented by a sparse csr_matrix.
     """
     #define all parameters
-    cdef unsigned int delta, flag, node, x
-    cdef int maxlevel, minlevel, minlastnodesvalence
+    cdef unsigned int ii, jj, delta, flag, node, start
+    cdef int maxlevel, minlevel, minlastnodesdegree
     cdef np.ndarray[np.intp_t] lastnodes
-    cdef np.ndarray[int] valence, lastnodesvalence
-    
+    cdef np.ndarray[np.intp_t] lastnodesdegree
+    cdef np.ndarray[np.intp_t] degree = np.zeros(num_rows,dtype=int)
     #---------------------
-    valence = np.diff(ind)
-    # select an initial node x
-    x = int(np.random.rand() * num_rows)
-    #det delta=0
+    #get degrees of each node (row)
+    degree = _node_degrees(ind, ptr, num_rows)
+    # select an initial starting node
+    start = 0
+    #set distance delta=0 & flag
     delta = 0
     flag = 1
     while flag:
         # do a level-set traversal from x
-        order, level = _breadth_first_search(ind, ptr, num_rows, x)
+        order, level = _breadth_first_search(ind, ptr, num_rows, start)
         # select node in last level with min degree
         maxlevel = max(level)
         lastnodes = np.where(level == maxlevel)[0]
-        lastnodesvalence = valence[lastnodes]
-        minlastnodesvalence = min(lastnodesvalence)
-        node = np.where(lastnodesvalence == minlastnodesvalence)[0][0]
+        lastnodesdegree = degree[lastnodes]
+        minlastnodesdegree = min(lastnodesdegree)
+        node = np.where(lastnodesdegree == minlastnodesdegree)[0][0]
         node = lastnodes[node]
-
-        # if d(x,y)>delta, set, and go to bfs above
+        # if d(x,y)>delta, set, and do another BFS fro this minimal node
         if level[node] > delta:
-            x = node
+            start = node
             delta = level[node]
         else:
             flag = 0
-    return x, order, level
+    return start, order, level

@@ -23,16 +23,42 @@ to reorder matrices for iterative steady state solvers.
 
 import numpy as np
 import scipy.sparse as sp
-from qutip.cyQ.graph_utils import _pseudo_peripheral_node, _breadth_first_search
+from qutip.cyQ.graph_utils import (_pseudo_peripheral_node, _breadth_first_search,
+                                    _node_degrees)
 from qutip.settings import debug
 
 if debug:
     import inspect
 
+def graph_degree(A):
+    """
+    Returns the degree for the nodes (rows) of a graph in
+    sparse CSR format.  Takes Qobjs or csr_matrices as inputs.
+    
+    This function requires a matrix with symmetric structure.
+    
+    Parameters
+    ----------
+    A : qobj / csr_matrix
+        Input quantum object or csr_matrix.
+    
+    Returns
+    -------
+    degree : array
+        Array of integers giving the degree for each node (row).
+    
+    """
+    if A.__class__.__name__=='Qobj':
+        A=A.data
+    return _node_degrees(A.indices, A.indptr, A.shape[0])
+
+
 def breadth_first_search(A,start):
     """
     Breadth-First-Search (BFS) of a graph in CSR matrix format starting
     from a given node (row).  Takes Qobjs and csr_matrices as inputs.
+    
+    This function requires a matrix with symmetric structure.
     
     Parameters
     ----------
@@ -55,7 +81,7 @@ def breadth_first_search(A,start):
         A=A.data
     num_rows=A.shape[0]
     start=int(start)
-    order, levels = _breadth_first_search(A.indices,A.indptr,num_rows, start)
+    order, levels = _breadth_first_search(A.indices,A.indptr, num_rows, start)
     #since maybe not all nodes are in search, check for unused entires in arrays
     return order[order!=-1], levels[levels!=-1]
 
@@ -97,4 +123,4 @@ def symrcm(A):
     N = A.shape[0]
     root, order, level = _pseudo_peripheral_node(A.indices,A.indptr,N)
     perm = np.argsort(level)
-    return perm
+    return perm[::-1]
