@@ -477,7 +477,7 @@ def sparse_reverse_permute(A,rperm=[],cperm=[]):
     if A.__class__.__name__=='Qobj':
         A = A.data
     
-    data, ind, ptr = _reverse_permute_sparse(A.data, A.indices, 
+    data, ind, ptr = _sparse_reverse_permute(A.data, A.indices, 
                     A.indptr, nrows, rperm, cperm)
 
     return sp.csr_matrix((data,ind,ptr), shape=shp, dtype=complex)
