@@ -23,11 +23,42 @@ to reorder matrices for iterative steady state solvers.
 
 import numpy as np
 import scipy.sparse as sp
-from qutip.cyQ.graph_utils import _pseudo_peripheral_node
+from qutip.cyQ.graph_utils import _pseudo_peripheral_node, _breadth_first_search
 from qutip.settings import debug
 
 if debug:
     import inspect
+
+def breadth_first_search(A,start):
+    """
+    Breadth-First-Search (BFS) of a graph in CSR matrix format starting
+    from a given node (row).  Takes Qobjs and csr_matrices as inputs.
+    
+    Parameters
+    ----------
+    A : qobj / csr_matrix
+        Input graph in CSR matrix form
+    
+    start : int
+        Staring node for BFS traversal.
+    
+    Returns
+    -------
+    order : array
+        Order in which nodes are traversed from starting node.
+    
+    levels : array
+        Level of the nodes in the order that they are traversed.
+    
+    """
+    if A.__class__.__name__=='Qobj':
+        A=A.data
+    num_rows=A.shape[0]
+    start=int(start)
+    order, levels = _breadth_first_search(A.indices,A.indptr,num_rows, start)
+    #since maybe not all nodes are in search, check for unused entires in arrays
+    return order[order!=-1], levels[levels!=-1]
+
 
 def symrcm(A):
     """
