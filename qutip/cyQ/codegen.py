@@ -143,7 +143,7 @@ class Codegen():
             td_len = len(td_consts)
             for jj in range(td_len):
                 kind = type(td_consts[jj][1]).__name__
-                input_vars += ", np." + kind + "_t" + " " + td_consts[jj][0]
+                input_vars += ", np." + kind + " " + td_consts[jj][0]
         func_end = "):"
         return [func_name + input_vars + func_end]
     #----
@@ -162,7 +162,7 @@ class Codegen():
             td_len = len(td_consts)
             for jj in range(td_len):
                 kind = type(td_consts[jj][1]).__name__
-                input_vars += ", np." + kind + "_t" + " " + td_consts[jj][0]
+                input_vars += ", np." + kind + " " + td_consts[jj][0]
         func_end = "):"
         return [func_name + input_vars + func_end]
     #----
