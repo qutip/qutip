@@ -152,7 +152,7 @@ def rhs_generate(H, c_ops, args={}, options=Odeoptions(), name=None):
 
     code = compile('from ' + odeconfig.tdname +
                    ' import cyq_td_ode_rhs', '<string>', 'exec')
-    exec(code)
+    exec(code, globals())
 
     odeconfig.tdfunc = cyq_td_ode_rhs
     try:
