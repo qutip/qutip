@@ -158,23 +158,20 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     n_e_ops = len(e_ops)
     n_tsteps = len(tlist)
     dt = tlist[1] - tlist[0]
+    result_list = []
 
-    if n_e_ops == 0:
-        result_list = []
-    else:
-        result_list = []
-        for op in e_ops:
-            if op.isherm and rho0.isherm:
-                result_list.append(np.zeros(n_tsteps))
-            else:
-                result_list.append(np.zeros(n_tsteps, dtype=complex))
+    for op in e_ops:
+        if op.isherm and rho0.isherm:
+            result_list.append(np.zeros(n_tsteps))
+        else:
+            result_list.append(np.zeros(n_tsteps, dtype=complex))
 
     #
     # transform the initial density matrix and the e_ops opterators to the
     # eigenbasis
     #
-    rho = Qobj(rho0).transform(ekets, True)
-    e_eb_ops = [Qobj(e).transform(ekets, True) for e in e_ops]
+    rho = rho0.transform(ekets, True)
+    e_eb_ops = [e.transform(ekets, True) for e in e_ops]
 
     #
     # setup integrator
@@ -191,7 +188,6 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     #
     # start evolution
     #
-
     t_idx = 0
     for t in tlist:
         if not r.successful():
@@ -200,11 +196,11 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
         rho.data = vec2mat(r.y)
 
         # calculate all the expectation values, or output rho if no operators
-        if n_e_ops == 0:
-            result_list.append(rho.transform(ekets, False))
-        else:
+        if e_ops:
             for m, e in enumerate(e_eb_ops):
                 result_list[m][t_idx] = expect(e, rho)
+        else:
+            result_list.append(rho.transform(ekets, False))
 
         r.integrate(r.t + dt)
         t_idx += 1
@@ -216,7 +212,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
 # Functions for calculting the Bloch-Redfield tensor for a time-independent
 # system.
 #
-def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
+def bloch_redfield_tensor(H, a_ops, spectra_cb, use_secular=True):
     """
     Calculate the Bloch-Redfield tensor for a system given a set of operators
     and corresponding spectral functions that describes the system's coupling
@@ -228,8 +224,8 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
     H : :class:`qutip.qobj`
         System Hamiltonian.
 
-    c_ops : list of :class:`qutip.qobj`
-        List of collapse operators.
+    a_ops : list of :class:`qutip.qobj`
+        List of system operators that couple to the environment.
 
     spectra_cb : list of callback functions
         List of callback functions that evaluate the noise power spectrum
@@ -251,13 +247,21 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
 
     # Sanity checks for input parameters
     if not isinstance(H, Qobj):
-        raise "H must be a quantum object"
+        raise TypeError("H must be an instance of Qobj")
+
+    for a in a_ops:
+        if not isinstance(a, Qobj) or not a.isherm:
+            raise TypeError("Operators in a_ops must be Hermitian Qobj.")
+
+    # default spectrum
+    if not spectra_cb:
+        spectra_cb = [lambda w: 1.0 for _ in a_ops]
 
     # use the eigenbasis
     evals, ekets = H.eigenstates()
 
     N = len(evals)
-    K = len(c_ops)
+    K = len(a_ops)
     A = np.zeros((K, N, N), dtype=complex)  # TODO: use sparse here
     W = np.zeros((N, N))
 
@@ -267,8 +271,8 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
             W[m, n] = np.real(evals[m] - evals[n])
 
     for k in range(K):
-        #A[k,n,m] = c_ops[k].matrix_element(ekets[n], ekets[m])
-        A[k, :, :] = c_ops[k].transform(ekets, True).full()
+        #A[k,n,m] = a_ops[k].matrix_element(ekets[n], ekets[m])
+        A[k, :, :] = a_ops[k].transform(ekets, True).full()
 
     dw_min = abs(W[W.nonzero()]).min()
 
