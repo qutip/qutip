@@ -1,9 +1,9 @@
-#This file is part of QuTiP.
+# This file is part of QuTiP.
 #
 #    QuTiP is free software: you can redistribute it and/or modify
 #    it under the terms of the GNU General Public License as published by
 #    the Free Software Foundation, either version 3 of the License, or
-#   (at your option) any later version.
+#    (at your option) any later version.
 #
 #    QuTiP is distributed in the hope that it will be useful,
 #    but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -33,7 +33,7 @@ from qutip.odedata import Odedata
 # Solve the Bloch-Redfield master equation
 #
 #
-def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[],
+def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
               args={}, options=Odeoptions()):
     """
     Solve the dynamics for the system using the Bloch-Redfeild master equation.
@@ -55,10 +55,10 @@ def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[],
     tlist : *list* / *array*
         List of times for :math:`t`.
 
-    c_ops : list of :class:`qutip.qobj`
-        List of collapse operators.
+    a_ops : list of :class:`qutip.qobj`
+        List of system operators that couple to bath degrees of freedom.
 
-    expt_ops : list of :class:`qutip.qobj` / callback function
+    e_ops : list of :class:`qutip.qobj` / callback function
         List of operators for which to evaluate expectation values.
 
     args : *dictionary*
@@ -74,22 +74,22 @@ def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[],
     output: :class:`qutip.odedata`
 
         An instance of the class :class:`qutip.odedata`, which contains either
-        an *array* of expectation values for the times specified by `tlist`.
+        a list of expectation values, for operators given in e_ops, or a list
+        of states for the times specified by `tlist`.
     """
 
-    if len(spectra_cb) == 0:
-        for n in range(len(c_ops)):
-            # add white noise callbacks if absent
-            spectra_cb.append(lambda w: 1.0)
+    if not spectra_cb:
+        # default to infinite temperature white noise
+        spectra_cb = [lambda w: 1.0 for _ in a_ops]
 
-    R, ekets = bloch_redfield_tensor(H, c_ops, spectra_cb)
+    R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb)
 
     output = Odedata()
     output.times = tlist
     
     results = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops, options)
 
-    if len(e_ops):
+    if e_ops:
         output.expect = results
     else:
         output.states = results
@@ -140,7 +140,6 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
 
     if options is None:
         options = Odeoptions()
-        options.nsteps = 2500
 
     if options.tidy:
         R.tidyup()
@@ -197,8 +196,9 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
 
         # calculate all the expectation values, or output rho if no operators
         if e_ops:
+            rho_tmp = Qobj(rho)
             for m, e in enumerate(e_eb_ops):
-                result_list[m][t_idx] = expect(e, rho)
+                result_list[m][t_idx] = expect(e, rho_tmp)
         else:
             result_list.append(rho.transform(ekets, False))
 
