@@ -86,7 +86,7 @@ def brmesolve(H, psi0, tlist, c_ops, e_ops=[], spectra_cb=[],
 
     output = Odedata()
     output.times = tlist
-
+    
     results = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops, options)
 
     if len(e_ops):
@@ -173,28 +173,24 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     # transform the initial density matrix and the e_ops opterators to the
     # eigenbasis
     #
-    if ekets is not None:
-        rho0 = rho0.transform(ekets)
-        for n in arange(len(e_ops)):
-            e_ops[n] = e_ops[n].transform(ekets, False)
+    rho = Qobj(rho0).transform(ekets, True)
+    e_eb_ops = [Qobj(e).transform(ekets, True) for e in e_ops]
 
     #
     # setup integrator
     #
-    initial_vector = mat2vec(rho0.full())
+    initial_vector = mat2vec(rho.full())
     r = scipy.integrate.ode(cy_ode_rhs)
     r.set_f_params(R.data.data, R.data.indices, R.data.indptr)
     r.set_integrator('zvode', method=options.method, order=options.order,
-                     atol=options.atol, rtol=options.rtol,
-                     #nsteps=options.nsteps,
-                     #first_step=options.first_step, min_step=options.min_step,
+                     atol=options.atol, rtol=options.rtol, nsteps=options.nsteps,
+                     first_step=options.first_step, min_step=options.min_step,
                      max_step=options.max_step)
     r.set_initial_value(initial_vector, tlist[0])
 
     #
     # start evolution
     #
-    rho = Qobj(rho0)
 
     t_idx = 0
     for t in tlist:
@@ -205,10 +201,10 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
 
         # calculate all the expectation values, or output rho if no operators
         if n_e_ops == 0:
-            result_list.append(Qobj(rho))
+            result_list.append(rho.transform(ekets, False))
         else:
-            for m in range(0, n_e_ops):
-                result_list[m][t_idx] = expect(e_ops[m], rho)
+            for m, e in enumerate(e_eb_ops):
+                result_list[m][t_idx] = expect(e, rho)
 
         r.integrate(r.t + dt)
         t_idx += 1
@@ -272,12 +268,12 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
 
     for k in range(K):
         #A[k,n,m] = c_ops[k].matrix_element(ekets[n], ekets[m])
-        A[k, :, :] = c_ops[k].transform(ekets).full()
+        A[k, :, :] = c_ops[k].transform(ekets, True).full()
 
     dw_min = abs(W[W.nonzero()]).min()
 
     # unitary part
-    Heb = H.transform(ekets)
+    Heb = H.transform(ekets, True)
     R = -1.0j * (spre(Heb) - spost(Heb))
     R.data = R.data.tolil()
     for I in range(N * N):
@@ -286,7 +282,7 @@ def bloch_redfield_tensor(H, c_ops, spectra_cb, use_secular=True):
             c, d = vec2mat_index(N, J)
 
             # unitary part: use spre and spost above, same as this:
-            # R[I,J] = -1j * W[a,b] * (a == c) * (b == d)
+            #R.data[I,J] = -1j * W[a,b] * (a == c) * (b == d)
 
             if use_secular is False or abs(W[a, b] - W[c, d]) < dw_min / 10.0:
 
