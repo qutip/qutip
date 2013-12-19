@@ -26,6 +26,7 @@ from qutip.qobj import *
 import scipy.linalg as la
 import numpy as np
 from qutip.sparse import sp_eigs
+from qutip.states import ket2dm
 
 
 def fidelity(A, B):
