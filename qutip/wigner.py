@@ -32,11 +32,7 @@ from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.states import *
 from qutip.parfor import parfor
 from qutip.utilities import clebsch
-
-try:  # for scipy v <= 0.90
-    from scipy import factorial
-except:  # for scipy v >= 0.10
-    from scipy.misc import factorial
+from scipy.misc import factorial
 
 
 def wigner(psi, xvec, yvec, method='iterative', g=sqrt(2), parfor=False):

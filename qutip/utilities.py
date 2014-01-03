@@ -23,11 +23,7 @@ qutip modules.
 """
 
 import numpy as np
-
-try:  # for scipy v <= 0.90
-    from scipy import factorial
-except:  # for scipy v >= 0.10
-    from scipy.misc import factorial
+from scipy.misc import factorial
 
 
 def n_thermal(w, w_th):

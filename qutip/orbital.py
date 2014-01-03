@@ -19,11 +19,7 @@
 
 import numpy as np
 import scipy.sparse as sp
-try:  # for scipy v <= 0.90
-    from scipy import factorial
-except:  # for scipy v >= 0.10
-    from scipy.misc import factorial
-
+from scipy.misc import factorial
 from qutip.qobj import Qobj, isket
 
 
