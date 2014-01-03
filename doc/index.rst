@@ -2,7 +2,7 @@
    Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
 
 
-QuTiP: The Quantum Toolbox in Python
+QuTiP: Quantum Toolbox in Python
 ======================================
 
 .. toctree::

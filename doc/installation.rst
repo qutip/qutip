@@ -86,7 +86,11 @@ Installation on Ubuntu Linux
 Using QuTiP's PPA
 -------------------
 
-The easiest way to install QuTiP in Ubuntu (12.04 and later) is to use the QuTiP PPA::
+The easiest way to install QuTiP in Ubuntu (12.04 and later) is to use the QuTiP PPA
+
+.. highlight:: bash
+
+::
 
     sudo add-apt-repository ppa:jrjohansson/qutip-releases
     sudo apt-get update
