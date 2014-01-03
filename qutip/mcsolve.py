@@ -195,25 +195,6 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         # set time_type for use in multiprocessing
         odeconfig.tflag = time_type
 
-        #-Check for PyObjC on Mac platforms
-        if sys.platform == 'darwin' and odeconfig.options.gui:
-            try:
-                import Foundation
-            except:
-                odeconfig.options.gui = False
-
-        # check if running in iPython and using Cython compiling (then no GUI
-        # to work around error)
-        if odeconfig.options.gui and odeconfig.tflag in array([1, 10, 11]):
-            try:
-                __IPYTHON__
-            except:
-                pass
-            else:
-                odeconfig.options.gui = False
-        if qutip.settings.qutip_gui == "NONE":
-            odeconfig.options.gui = False
-
         # check for collapse operators
         if c_terms > 0:
             odeconfig.cflag = 1
@@ -398,7 +379,7 @@ class _MC_class():
         self.which_op_out[r] = results[3]
         self.count += self.step
 
-        if (not self.odeconfig.options.gui and self.odeconfig.ntraj != 1):
+        if self.odeconfig.ntraj != 1:
             self.odeconfig.progress_bar.update(self.count)
 
     def serial(self, args, top):

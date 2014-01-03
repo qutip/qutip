@@ -23,8 +23,6 @@ tidyup functionality.
 """
 # QuTiP Graphics (set at qutip import)
 qutip_graphics = None
-# QuTiP GUI selection (set at qutip import)
-qutip_gui = None
 # use auto tidyup
 auto_tidyup = True
 # detect hermiticity
@@ -59,9 +57,6 @@ def load_rc_file(rc_file):
 
                 if var == "qutip_graphics":
                     qutip_graphics = "NO" if val == "NO" else "YES"
-
-                elif var == "qutip_gui":
-                    qutip_gui = val
 
                 elif var == "auto_tidyup":
                     auto_tidyup = True if val == "True" else False

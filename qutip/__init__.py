@@ -44,7 +44,7 @@ try:
 except:
     print("QuTiP warning: numpy not found.")
 
-scipy_requirement = "0.9.0"
+scipy_requirement = "0.10.0"
 try:
     import scipy
     if _version2int(scipy.__version__) < _version2int(scipy_requirement):
@@ -85,7 +85,7 @@ try:
     pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
 
 except Exception as e:
-    print("QuTiP warning: cython setup failed: " + str(e))
+    print("QuTiP warning: Cython setup failed: " + str(e))
 
 
 #------------------------------------------------------------------------------
@@ -125,18 +125,11 @@ if not ('QUTIP_GRAPHICS' in os.environ):
 else:
     qutip.settings.qutip_graphics = os.environ['QUTIP_GRAPHICS']
 
-if not ('QUTIP_GUI' in os.environ):
-    os.environ['QUTIP_GUI'] = qutip.settings.qutip_gui
-else:
-    qutip.settings.qutip_gui = os.environ['QUTIP_GUI']
-
 # check if being run remotely
 if not sys.platform in ['darwin', 'win32'] and not ('DISPLAY' in os.environ):
     # no graphics if DISPLAY isn't set
     os.environ['QUTIP_GRAPHICS'] = "NO"
     qutip.settings.qutip_graphics = "NO"
-    os.environ['QUTIP_GUI'] = "NONE"
-    qutip.settings.qutip_gui = "NONE"
 
 # automatically set number of threads used by MKL and openblas to 1
 # prevents errors when running things in parallel.  Should be set 
@@ -162,41 +155,13 @@ except:
     os.environ['QUTIP_GRAPHICS'] = "NO"
     qutip.settings.qutip_graphics = 'NO'
 
-# if being run locally, check for installed gui modules
-if qutip.settings.qutip_graphics == 'YES':
-
-    if qutip.settings.qutip_gui == "NONE":
-        # no preference, try PYSIDE first, the PYQT4
-        try:
-            import PySide
-            os.environ['QUTIP_GUI'] = "PYSIDE"
-            qutip.settings.qutip_gui = "PYSIDE"
-        except:
-            try:
-                import PyQt4
-                os.environ['QUTIP_GUI'] = "PYQT4"
-                qutip.settings.qutip_gui = "PYQT4"
-            except:
-                qutip.settings.qutip_gui = "NONE"
-
-    elif qutip.settings.qutip_gui == "PYSIDE":
-        # PYSIDE was requested
-        try:
-            import PySide
-            os.environ['QUTIP_GUI'] = "PYSIDE"
-            qutip.settings.qutip_gui = "PYSIDE"
-        except:
-            qutip.settings.qutip_gui = "NONE"
-
-    elif qutip.settings.qutip_gui == "PYQT4":
-        # PYQT4 was requested
-        try:
-            import PyQt4
-            os.environ['QUTIP_GUI'] = "PYQT4"
-            qutip.settings.qutip_gui = "PYQT4"
-        except:
-            qutip.settings.qutip_gui = "NONE"
-
+# Check for picloud parallel for-loop
+try:
+    import cloud
+except:
+    pass
+else:
+    from qutip.picloud import *
 
 #------------------------------------------------------------------------------
 # Load modules
@@ -262,6 +227,7 @@ from qutip.superop_reps import *
 from qutip.subsystem_apply import subsystem_apply
 from qutip.sparse import sparse_bandwidth
 from qutip.graph import *
+
 # quantum information
 from qutip.quantum_info import *
 
@@ -270,11 +236,3 @@ from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *
 
-
-# picloud parallel for-loop
-try:
-    import cloud
-except:
-    pass
-else:
-    from qutip.picloud import *

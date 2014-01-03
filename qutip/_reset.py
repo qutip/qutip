@@ -28,7 +28,6 @@ def _reset():
     import qutip.settings
     from qutip.hardware_info import hardware_info
     qutip.settings.qutip_graphics = os.environ['QUTIP_GRAPHICS']
-    qutip.settings.qutip_gui = os.environ['QUTIP_GUI']
     qutip.settings.auto_herm = True
     qutip.settings.auto_tidyup = True
     qutip.settings.auto_tidyup_atol = 1e-12
