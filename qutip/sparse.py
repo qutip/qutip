@@ -26,8 +26,10 @@ import numpy as np
 import scipy.linalg as la
 from scipy.linalg.blas import get_blas_funcs
 _dznrm2 = get_blas_funcs("znrm2")
-from qutip.cyQ.sparse_utils import (_sparse_permute, _sparse_reverse_permute,
-                                _sparse_bandwidth)
+from qutip.cyQ.sparse_utils import (_sparse_permute_int, _sparse_permute_float, _sparse_permute_complex,
+                                    _sparse_reverse_permute_int, _sparse_reverse_permute_float,
+                                    _sparse_reverse_permute_complex,
+                                    _sparse_bandwidth)
 from qutip.cyQ.graph_utils import _rcm
 from qutip.settings import debug
 
@@ -442,10 +444,23 @@ def sparse_permute(A,rperm=[],cperm=[]):
     if A.__class__.__name__=='Qobj':
         A = A.data
     
-    data, ind, ptr = _sparse_permute(A.data, A.indices, 
-                    A.indptr, nrows, rperm, cperm)
+    val=A.data[0]
+    if val.dtype==np.int_:
+        dt=int
+        data, ind, ptr = _sparse_permute_int(A.data, A.indices, 
+                        A.indptr, nrows, rperm, cperm)
+    elif val.dtype==np.float_:
+        dt=float
+        data, ind, ptr = _sparse_permute_float(A.data, A.indices, 
+                        A.indptr, nrows, rperm, cperm)
+    elif val.dtype==np.complex_:
+        dt=complex
+        data, ind, ptr = _sparse_permute_complex(A.data, A.indices, 
+                        A.indptr, nrows, rperm, cperm)
+    else:
+        raise TypeError('Invalid data type in csr_matrix.')
 
-    return sp.csr_matrix((data,ind,ptr),shape=shp,dtype=complex)
+    return sp.csr_matrix((data,ind,ptr),shape=shp,dtype=dt)
 
 
 def sparse_reverse_permute(A,rperm=[],cperm=[]):
@@ -476,10 +491,22 @@ def sparse_reverse_permute(A,rperm=[],cperm=[]):
     if A.__class__.__name__=='Qobj':
         A = A.data
     
-    data, ind, ptr = _sparse_reverse_permute(A.data, A.indices, 
+    val=A.data[0]
+    
+    if val.dtype==np.int_:
+        dt=int
+        data, ind, ptr = _sparse_reverse_permute_int(A.data, A.indices, 
+                    A.indptr, nrows, rperm, cperm)
+    elif val.dtype==np.float_:
+        dt=float
+        data, ind, ptr = _sparse_reverse_permute_float(A.data, A.indices, 
+                    A.indptr, nrows, rperm, cperm)
+    elif val.dtype==np.complex_:
+        dt=complex
+        data, ind, ptr = _sparse_reverse_permute_complex(A.data, A.indices, 
                     A.indptr, nrows, rperm, cperm)
 
-    return sp.csr_matrix((data,ind,ptr), shape=shp, dtype=complex)
+    return sp.csr_matrix((data,ind,ptr), shape=shp, dtype=dt)
 
 
 def sparse_bandwidth(A):
@@ -517,12 +544,12 @@ def symrcm(A):
     in Reverse-Cuthill McKee ordering.  Since the input matrix must be symmetric,
     this routine works on the matrix A+Trans(A).
     
-    This routine is used primarily for internal reordering Lindblad super-operators
+    This routine is used primarily for internal reordering of Lindblad super-operators
     for use in iterative solver routines.
     
     Parameters
     ----------
-    A : csr_matrix / Qobj
+    A : csr_matrix, qobj
         Input sparse csr_matrix or Qobj.
     
     Returns

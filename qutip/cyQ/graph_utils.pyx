@@ -44,7 +44,7 @@ cpdef _node_degrees(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr
 cpdef _breadth_first_search(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr,
                             int num_rows, int seed):
     """
-    Does a breath first search (BSF) of a graph in sparse CSR format matrix 
+    Does a breath first search (BSF) of a graph in sparse CSR format matrix form
     starting at a given seed node.
     """
     #define all parameters
