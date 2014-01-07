@@ -16,12 +16,10 @@
 # Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
 #
 ###########################################################################
-
 """
 This module contains a collection of sparse routines to get around
 having to use dense matrices.
 """
-
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 import numpy as np
@@ -29,7 +27,8 @@ import scipy.linalg as la
 from scipy.linalg.blas import get_blas_funcs
 _dznrm2 = get_blas_funcs("znrm2")
 from qutip.cyQ.sparse_utils import (_sparse_permute, _sparse_reverse_permute,
-                                    _sparse_bandwidth)
+                                _sparse_bandwidth)
+from qutip.cyQ.graph_utils import _rcm
 from qutip.settings import debug
 
 if debug:
@@ -510,3 +509,39 @@ def sparse_bandwidth(A):
     mb, lb, ub = _sparse_bandwidth(A.indices, A.indptr, nrows)
     
     return mb, lb, ub
+
+
+def symrcm(A):
+    """
+    Returns the permutation array that orders a sparse csr_matrix or Qobj
+    in Reverse-Cuthill McKee ordering.  Since the input matrix must be symmetric,
+    this routine works on the matrix A+Trans(A).
+    
+    This routine is used primarily for internal reordering Lindblad super-operators
+    for use in iterative solver routines.
+    
+    Parameters
+    ----------
+    A : csr_matrix / Qobj
+        Input sparse csr_matrix or Qobj.
+    
+    Returns
+    -------
+    perm : array
+        Array of permuted row and column indices.
+        
+    """
+    nrows = A.shape[0]
+    if A.__class__.__name__=='Qobj':
+        A = A.data
+    A=A+A.transpose()
+    return _rcm(A.indices, A.indptr, nrows)
+    
+    
+    
+    
+    
+    
+    
+    
+    

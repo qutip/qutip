@@ -77,6 +77,51 @@ cpdef _breadth_first_search(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode=
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
+cpdef _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num_rows):
+    """
+    Reverse Cuthill-McKee ordering of a sparse csr_matrix.
+    """
+    # define variables
+    cdef unsigned int N=0, seed, level_start, level_end, temp, zz, i, j, ii, jj, kk
+    # setup arrays
+    cdef np.ndarray[np.intp_t] order = np.zeros(num_rows, dtype=int)
+    cdef np.ndarray[np.intp_t] degree = _node_degrees(ind, ptr, num_rows)
+    cdef np.ndarray[np.intp_t] inds = np.argsort(degree)
+    cdef np.ndarray[np.intp_t] rev_inds = np.argsort(inds)
+    
+    for zz in range(num_rows):
+        if inds[zz] != -1:
+            seed = inds[zz]
+            order[N] = seed
+            N += 1
+            inds[rev_inds[seed]] = -1
+            level_start = 0 
+            level_end = N
+            while level_start < level_end:
+                for ii in range(level_start,level_end):
+                    i = order[ii] # node i to consider
+                    # add unvisited neighbors
+                    for jj in range(ptr[i],ptr[i+1]):   # nodes connected to node i
+                        j = ind[jj]                     # j is node number connected to i
+                        if inds[rev_inds[j]] != -1:     # if node has not been touched
+                            inds[rev_inds[j]] = -1      # touch node
+                            order[N] = j                # add current node to order array
+                            N += 1                      # add to touched count
+                    # Do insertion sort for nodes from lowest to highest degree
+                    for kk in range(level_start,N-1):
+                        temp = order[kk]
+                        while degree[order[kk+1]] < degree[order[kk]]:
+                            order[kk] = order[kk+1]
+                            order[kk+1] = temp
+                # set level start and end ranges            
+                level_start = level_end
+                level_end = N
+    # return reveresed order for RCM ordering
+    return order[::-1]
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
 cpdef _pseudo_peripheral_node(np.ndarray[int, mode="c"] ind, 
                         np.ndarray[int, mode="c"] ptr, int num_rows):
     """
