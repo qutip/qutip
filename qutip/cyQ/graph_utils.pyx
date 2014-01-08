@@ -82,7 +82,7 @@ cpdef _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num
     Reverse Cuthill-McKee ordering of a sparse csr_matrix.
     """
     # define variables
-    cdef unsigned int N=0, seed, level_start, level_end, temp, zz, i, j, ii, jj, kk
+    cdef unsigned int N=0, seed, level_start, N_old, level_end, temp, zz, i, j, ii, jj, kk
     # setup arrays
     cdef np.ndarray[np.intp_t] order = np.zeros(num_rows, dtype=int)
     cdef np.ndarray[np.intp_t] degree = _node_degrees(ind, ptr, num_rows)
@@ -100,6 +100,7 @@ cpdef _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num
             while level_start < level_end:
                 for ii in range(level_start,level_end):
                     i = order[ii] # node i to consider
+                    N_old=N # keeps track of how many untouched nodes are in level
                     # add unvisited neighbors
                     for jj in range(ptr[i],ptr[i+1]):   # nodes connected to node i
                         j = ind[jj]                     # j is node number connected to i
@@ -108,7 +109,7 @@ cpdef _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num
                             order[N] = j                # add current node to order array
                             N += 1                      # add to touched count
                     # Do insertion sort for nodes from lowest to highest degree
-                    for kk in range(level_start,N-1):
+                    for kk in range(N_old,N-1):
                         temp = order[kk]
                         while degree[order[kk+1]] < degree[order[kk]]:
                             order[kk] = order[kk+1]
