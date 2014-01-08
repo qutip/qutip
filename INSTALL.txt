@@ -11,8 +11,8 @@ GENERAL REQUIREMENTS
 Package         Version             Details
 -------         -------             --------
 Python          2.7+                Including version 3.
-Numpy           1.7+                Requires new array creation methods.
-Scipy           0.13+               Some routines not available/fail on lower versions.
+Numpy           1.6+                Requires new array creation methods.
+Scipy           0.11+               Some routines not available/fail on lower versions.
 Matplotlib      1.2+                Some plotting routines do not work on lower versions.
 GCC Compiler    4.2+                Needed for compiling c-code files used for ODE solvers.
 Python Headers  2.7+                LINUX ONLY. Needed for compiling c-code files.
