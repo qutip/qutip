@@ -24,7 +24,7 @@ to reorder matrices for iterative steady state solvers.
 import numpy as np
 import scipy.sparse as sp
 from qutip.cyQ.graph_utils import (_pseudo_peripheral_node, _breadth_first_search,
-                                    _node_degrees)
+                                    _node_degrees, _rcm)
 from qutip.settings import debug
 
 if debug:
@@ -33,13 +33,13 @@ if debug:
 def graph_degree(A):
     """
     Returns the degree for the nodes (rows) of a graph in
-    sparse CSR format.  Takes Qobjs or csr_matrices as inputs.
+    sparse CSR format.  Takes a qobj or csr_matrix as input.
     
     This function requires a matrix with symmetric structure.
     
     Parameters
     ----------
-    A : qobj / csr_matrix
+    A : qobj, csr_matrix
         Input quantum object or csr_matrix.
     
     Returns
@@ -88,39 +88,26 @@ def breadth_first_search(A,start):
 
 def symrcm(A):
     """
-    Symmetric Reverse Cuthill-McKee ordering of a Qobj
-    or sparse csr_matrix.  Input Qobj/matrix must have a 
-    symmetric structure.  
+    Returns the permutation array that orders a sparse csr_matrix or Qobj
+    in Reverse-Cuthill McKee ordering.  Since the input matrix must be symmetric,
+    this routine works on the matrix A+Trans(A).
     
-    Use A+trans(A) if Qobj/matrix is not symmetric.
-    
-    This method first attempts to find a pseudo peripheral
-    node, and then does a breadth level search.  Because
-    the initial seed node is picked at random, the final
-    sorting is in general not unique.
+    This routine is used primarily for internal reordering of Lindblad super-operators
+    for use in iterative solver routines.
     
     Parameters
     ----------
-    A : qobj / csr_matrix
+    A : csr_matrix, qobj
+        Input sparse csr_matrix or Qobj.
     
     Returns
     -------
     perm : array
-        Permuted matrix indices.
-    
-    References
-    ----------
-    E. Cuthill and J. McKee,
-    Reducing the Bandwidth of Sparse Symmetric Matrices, 
-    ACM '69 Proceedings of the 1969 24th national conference.
-    
+        Array of permuted row and column indices.
+        
     """
+    nrows = A.shape[0]
     if A.__class__.__name__=='Qobj':
-        A=A.data
-    else:
-         if not sp.isspmatrix_csr(A):
-             raise TypeError('Input must be sparse matrix in CSR format.')
-    N = A.shape[0]
-    root, order, level = _pseudo_peripheral_node(A.indices,A.indptr,N)
-    perm = np.argsort(level)
-    return perm[::-1]
+        A = A.data
+    A=A+A.transpose()
+    return _rcm(A.indices, A.indptr, nrows)
