@@ -17,6 +17,7 @@
 #
 ###########################################################################
 import numpy as np
+import scipy.sparse as sp
 import unittest
 from numpy.testing import assert_, run_module_suite, assert_equal
 from numpy.testing.decorators import skipif
@@ -50,6 +51,15 @@ def test_graph_bfs():
     arr2 = breadth_first_search(A,seed)[0]
     assert_equal((arr1 - arr2).all(), 0)
 
+def test_graph_rcm():
+    "Graph: Reverse Cuthill-McKee Ordering"
+    A=array([[1,0,0,0,1,0,0,0],[0,1,1,0,0,1,0,1],[0,1,1,0,1,0,0,0],
+            [0,0,0,1,0,0,1,0],[1,0,1,0,1,0,0,0],[0,1,0,0,0,1,0,1],
+            [0,0,0,1,0,0,1,0],[0,1,0,0,0,1,0,1]])
+    A=sp.csr_matrix(A)
+    perm=symrcm(A)
+    ans=array([6,3,7,5,1,2,4,0])
+    assert_equal((perm - ans).all(), 0)
 
 
 if __name__ == "__main__":
