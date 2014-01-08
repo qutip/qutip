@@ -30,7 +30,6 @@ from qutip.cyQ.sparse_utils import (_sparse_permute_int, _sparse_permute_float, 
                                     _sparse_reverse_permute_int, _sparse_reverse_permute_float,
                                     _sparse_reverse_permute_complex,
                                     _sparse_bandwidth)
-from qutip.cyQ.graph_utils import _rcm
 from qutip.settings import debug
 
 if debug:
@@ -514,6 +513,8 @@ def sparse_bandwidth(A):
     Returns the max(mb), lower(lb), and upper(ub) bandwidths of a qobj or sparse
     csr_matrix.
     
+    If the matrix is symmetric then the upper and lower bandwidths are identical.
+    
     Parameters
     ----------
     A : qobj / csr_matrix
@@ -537,32 +538,6 @@ def sparse_bandwidth(A):
     
     return mb, lb, ub
 
-
-def symrcm(A):
-    """
-    Returns the permutation array that orders a sparse csr_matrix or Qobj
-    in Reverse-Cuthill McKee ordering.  Since the input matrix must be symmetric,
-    this routine works on the matrix A+Trans(A).
-    
-    This routine is used primarily for internal reordering of Lindblad super-operators
-    for use in iterative solver routines.
-    
-    Parameters
-    ----------
-    A : csr_matrix, qobj
-        Input sparse csr_matrix or Qobj.
-    
-    Returns
-    -------
-    perm : array
-        Array of permuted row and column indices.
-        
-    """
-    nrows = A.shape[0]
-    if A.__class__.__name__=='Qobj':
-        A = A.data
-    A=A+A.transpose()
-    return _rcm(A.indices, A.indptr, nrows)
     
     
     
