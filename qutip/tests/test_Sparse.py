@@ -20,23 +20,47 @@ import numpy as np
 from numpy.testing import assert_, run_module_suite, assert_equal
 from qutip import *
 
-def _permutateIndexes(array, perm):
-    return array[np.ix_(perm, perm)]
+def _permutateIndexes(array, row_perm, col_perm):
+    return array[np.ix_(row_perm, col_perm)]
 
 def test_sparse_symmetric_permute():
     "Sparse: Symmetric Permute"
-    A=rand_dm(5,0.5)
-    perm=np.array([3,4,2,0,1])
+    A=rand_dm(25,0.5)
+    perm=np.random.permutation(25)
     x=sparse_permute(A,perm,perm).toarray()
-    y=_permutateIndexes(A.full(),perm)
+    y=_permutateIndexes(A.full(), perm, perm)
+    assert_equal((x - y).all(), 0)
+
+def test_sparse_nonsymmetric_permute():
+    "Sparse: Nonsymmetric Permute"
+    A=rand_dm(25,0.5)
+    row_perm=np.random.permutation(25)
+    col_perm=np.random.permutation(25)
+    x=sparse_permute(A,row_perm,col_perm).toarray()
+    y=_permutateIndexes(A.full(),row_perm, col_perm)
     assert_equal((x - y).all(), 0)
 
 def test_sparse_symmetric_reverse_permute():
     "Sparse: Symmetric Reverse Permute"
-    A=rand_dm(5,0.5)
-    perm=np.array([3,4,2,0,1])
+    A=rand_dm(25,0.5)
+    perm=np.random.permutation(25)
     x=sparse_permute(A,perm,perm)
     B=sparse_reverse_permute(x,perm,perm)
+    assert_equal((A.full() - B.toarray()).all(), 0)
+
+def test_sparse_nonsymmetric_reverse_permute():
+    "Sparse: Nonsymmetric Reverse Permute"
+    #square array check
+    A=rand_dm(25,0.5)
+    row_perm=np.random.permutation(25)
+    col_perm=np.random.permutation(25)
+    x=sparse_permute(A,row_perm,col_perm)
+    B=sparse_permute(x,row_perm,col_perm)
+    assert_equal((A.full() - B.toarray()).all(), 0)
+    #column vector check
+    A=basis(25)
+    x=sparse_permute(A,row_perm,[0])
+    B=sparse_permute(x,row_perm,[0])
     assert_equal((A.full() - B.toarray()).all(), 0)
 
 def test_sparse_bandwidth():
