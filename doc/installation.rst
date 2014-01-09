@@ -1,5 +1,5 @@
 .. QuTiP 
-   Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
+   Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
 
 .. _install:
 
@@ -20,37 +20,26 @@ programming language.  Currently. QuTiP requires the following packages to run:
 +----------------+--------------+-----------------------------------------------------+
 | Package        | Version      | Details                                             |
 +================+==============+=====================================================+
-| **Python**     | 2.6+         | Requires multiprocessing (v2.6 and higher only).    |
+| **Python**     | 2.7+         | Version 3.3+ is highly recommended.                 |
 +----------------+--------------+-----------------------------------------------------+
-| **Numpy**      | 1.6+         | Not tested on lower versions.                       |
+| **Numpy**      | 1.7+         | Not tested on lower versions.                       |
 +----------------+--------------+-----------------------------------------------------+
-| **Scipy**      | 0.9+         | Not tested on lower versions. Use 0.9+ if possible. |
+| **Scipy**      | 0.13+        | Lower versions have missing features.               |
 +----------------+--------------+-----------------------------------------------------+
-| **Matplotlib** | 1.1.0+       | Some plotting does not work on lower versions.      |
-+----------------+--------------+-----------------------------------------------------+
-| **GCC**        | 4.2+         | Needed for compiling Cython files.                  |
-| **Compiler**   |              |                                                     |
-+----------------+--------------+-----------------------------------------------------+
-| Qt             | 4.7.3+       | Optional.  For GUI elements only.                   |
-+----------------+--------------+-----------------------------------------------------+
-| PySide         | 1.0.6+       | Optional, required only for GUI elements.           |
-|                |              | PyQt4 may be used instead.                          |
-+----------------+--------------+-----------------------------------------------------+
-| PyQt4          | 4.8+         | Optional, required only for GUI elements.           |
-|                |              | PySide may be used instead (recommended).           |
-+----------------+--------------+-----------------------------------------------------+                      
-| PyObjC         | 2.2+         | Mac only.  Very optional.  Needed only for a        |
-|                |              | GUI Monte Carlo progress bar.                       |
+| **Matplotlib** | 1.2.0+       | Some plotting does not work on lower versions.      |
 +----------------+--------------+-----------------------------------------------------+
 | Cython         | 0.15+        | Optional.  Needed for compiling some time-dependent |
 |                |              | Hamiltonians.                                       |
++----------------+--------------+-----------------------------------------------------+
+| **GCC**        | 4.2+         | Needed for compiling Cython files.                  |
+| **Compiler**   |              |                                                     |
 +----------------+--------------+-----------------------------------------------------+
 | BLAS           | 1.2+         | Optional, Linux & Mac only.                         |
 | library        |              | Needed for installing Fortran Monte Carlo solver.   |
 +----------------+--------------+-----------------------------------------------------+
 | Mayavi         | 4.1+         | Optional.  Needed for using the Bloch3d class.      |
 +----------------+--------------+-----------------------------------------------------+
-| Python         | 2.6+         | Linux only.  Needed for compiling Cython files.     |
+| Python         | 2.7+         | Linux only.  Needed for compiling Cython files.     |
 | Headers        |              |                                                     |
 +----------------+--------------+-----------------------------------------------------+
 | LaTeX          | TexLive 2009+| Optional.  Needed if using LaTeX in figures.        |    
@@ -106,7 +95,6 @@ Manual installation
 First install the following dependency packages::
 
     sudo apt-get install python-scipy
-    sudo apt-get install python-pyside
     sudo apt-get install python-setuptools
     sudo apt-get install python-dev
     sudo apt-get install python-matplotlib
@@ -155,29 +143,21 @@ Setup Using Macports [*]_
 
 On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via::
 
-    sudo port install py27-scipy
-    sudo port install py27-matplotlib +latex
-
-and in addition::
-
-    sudo port install py27-pyside   # recommended
-
-or::
-
-    sudo port install py27-pyqt4
+    sudo port install py33-scipy
+    sudo port install py33-matplotlib +latex
+    sudo port install py33-cython
+    sudo port install py33-ipython +notebook+parallel
 
 
 Optional, but highly recommended ports include::
 
-    sudo port install py27-ipython +pyside+notebook+parallel+scientific  #switch to +pyqt4 if using pyqt4
-    sudo port install py27-cython             #used for string-based time-dependent Hamiltonians
-    sudo port install vtk5 +python27+qt4_mac  #used for the Bloch3d class
+    sudo port install vtk5 +python27          #used for the Bloch3d class
     sudo port install py27-mayavi             #used for the Bloch3d class
 
 Now, we want to tell OSX which Python and iPython we are going to use::
     
-    sudo port select python python27
-    sudo port select ipython ipython27
+    sudo port select python python33
+    sudo port select ipython ipython33
 
 To install QuTiP from Macports, run::
 
@@ -284,23 +264,15 @@ If successful, these tests indicate that all of the QuTiP functions are working 
 
 To further verify that all of the QuTiP components are working, you can run the collection of examples built into QuTiP as discussed in the :ref:`examples` section of the guide. 
 
-.. _install-aboutbox:
+.. _install-about:
 
-Checking Version Information via the About Box
-===============================================
+Checking Version Information via the About Function
+===================================================
 
-QuTiP includes a graphical "about" box for viewing information about QuTiP, and the important dependencies installed on your system.  To view the about box type:
+QuTiP includes an "about" function for viewing information about QuTiP and the important dependencies installed on your system.  To view this information:
 
 >>> from qutip import *
 >>> about()
-
-That will pop up a window similar to the one shown below.  If instead you get command-line output, then your PyQt or PySide graphics are not installed properly or unavailable.  When running the about box, QuTiP will automatically check for a newer version of itself from the QuTiP website. The about box will have an "update" link next to the QuTiP version number if your are not running the latest version of QuTiP.
-
-.. figure:: figures/about.png
-   :align: center
-   :width: 3in
-   
-   QuTiP about box window.
 
 
 .. [*] Installing QuTiP via Macports will take a long time as each of the QuTiP dependencies is build from source code.  The advantage is that, after installation, everything is more or less guaranteed to work.  However, if you have a hot date waiting for you, then we do not recommend this path.  Or course, if you are reading this guide, this may not be the case. 

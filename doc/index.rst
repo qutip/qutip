@@ -5,8 +5,11 @@
 QuTiP: Quantum Toolbox in Python
 ======================================
 
+Version 3.0
+-----------
+
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    
    frontmatter.rst
    introduction.rst

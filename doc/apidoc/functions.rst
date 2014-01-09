@@ -117,7 +117,7 @@ Exponential Series
 Steady-state Solvers
 --------------------
 
-.. automodule:: qutip.steady
+.. automodule:: qutip.steadystate
     :members: steady, steadystate
     :undoc-members:
 
@@ -181,7 +181,7 @@ Entropy Functions
 Quantum Computing Gates
 -----------------------
 
-.. automodule:: qutip.gates
+.. automodule:: qutip.quantum_info.gates
     :members: cnot, fredkin, phasegate, snot, swap, toffoli 
 
 .. _functions-metrics:
@@ -209,10 +209,15 @@ IPython notebook tools
 .. automodule:: qutip.ipynbtools
     :members: parfor, version_table
 
+Graph Theory Routines
+----------------------
+
+.. automodule:: qutip.graph
+    :members: breadth_first_search, graph_degree, symrcm
+
 Miscellaneous
 --------------
 
 .. automodule:: qutip
     :members: about, demos, orbital, parfor, rhs_generate, rhs_clear, simdiag
-    :undoc-members:
 
