@@ -86,28 +86,39 @@ def breadth_first_search(A,start):
     return order[order!=-1], levels[levels!=-1]
 
 
-def symrcm(A):
+def symrcm(A,sym=False):
     """
     Returns the permutation array that orders a sparse csr_matrix or Qobj
     in Reverse-Cuthill McKee ordering.  Since the input matrix must be symmetric,
-    this routine works on the matrix A+Trans(A).
+    this routine works on the matrix A+Trans(A) if the sym flag is set to False.
     
-    This routine is used primarily for internal reordering of Lindblad super-operators
-    for use in iterative solver routines.
+    It is assumed by default (*sym=False*) that the input matrix is not symmetric.  This
+    is because it is faster to do A+Trans(A) than it is to check for symmetry for 
+    a generic matrix.  If you are guaranteed that the matrix is symmetric in structure
+    then set *sym=True*
     
     Parameters
     ----------
     A : csr_matrix, qobj
         Input sparse csr_matrix or Qobj.
     
+    sym : bool {False, True}
+        Flag to set whether input matrix is symmetric.
+    
     Returns
     -------
     perm : array
         Array of permuted row and column indices.
+    
+    Notes
+    -----
+    This routine is used primarily for internal reordering of Lindblad super-operators
+    for use in iterative solver routines.
         
     """
     nrows = A.shape[0]
     if A.__class__.__name__=='Qobj':
         A = A.data
-    A=A+A.transpose()
+    if not sym:
+        A=A+A.transpose()
     return _rcm(A.indices, A.indptr, nrows)
