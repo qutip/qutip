@@ -39,6 +39,33 @@ def test_sparse_symmetric_reverse_permute():
     B=sparse_reverse_permute(x,perm,perm)
     assert_equal((A.full() - B.toarray()).all(), 0)
 
+def test_sparse_bandwidth():
+    "Sparse: Bandwidth"
+    #Bandwidth test 1
+    A=create(25)+destroy(25)+qeye(25)
+    band=sparse_bandwidth(A)
+    assert_equal(band[0], 3)
+    assert_equal(band[1]==band[2]==1, 1)
+    #Bandwidth test 2
+    A=array([[1,0,0,0,1,0,0,0],[0,1,1,0,0,1,0,1],[0,1,1,0,1,0,0,0],
+            [0,0,0,1,0,0,1,0],[1,0,1,0,1,0,0,0],[0,1,0,0,0,1,0,1],
+            [0,0,0,1,0,0,1,0],[0,1,0,0,0,1,0,1]])
+    A=sp.csr_matrix(A)
+    out1=sparse_bandwidth(A)
+    assert_equal(out1[0], 13)
+    assert_equal(out1[1]==out1[2]==6, 1)
+    #Bandwidth test 3
+    perm=symrcm(A)
+    B=sparse_permute(A,perm,perm)
+    out2=sparse_bandwidth(B)
+    assert_equal(out2[0], 5)
+    assert_equal(out2[1]==out2[2]==2, 1)
+    #Asymmetric bandwidth test
+    A=destroy(25)+qeye(25)
+    out1=sparse_bandwidth(A)
+    assert_equal(out1[0], 2)
+    assert_equal(out1[1], 0)
+    assert_equal(out1[2], 1)
 
 if __name__ == "__main__":
     run_module_suite()
