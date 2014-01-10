@@ -36,6 +36,7 @@ cpdef _node_degrees(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr
             if ind[jj]==ii:
                 #add one if the diagonal is in row ii
                 degree[ii]+=1
+                break
     return degree
     
 
