@@ -42,9 +42,9 @@ import qutip.settings as qset
 
 
 def steadystate(
-    A, c_op_list=[], method='direct', sparse=True, use_umfpack=True,
-    maxiter=5000, tol=1e-5, use_precond=True, M=None, perm_method='AUTO',
-        drop_tol=1e-1, diag_pivot_thresh=0.33, verbose=False):
+    A, c_op_list=[], method='direct', sparse=True, maxiter=5000, tol=1e-5, 
+    use_precond=True, M=None, perm_method='AUTO', drop_tol=1e-1, 
+    diag_pivot_thresh=0.33, verbose=False):
 
     """Calculates the steady state for the evolution subject to the
     supplied Hamiltonian or Liouvillian operator and (if given a Hamiltonian) a
@@ -72,11 +72,6 @@ def steadystate(
         Solve for the steady state using sparse algorithms. If set to False,
         the underlying Liouvillian operator will be converted into a dense
         matrix. Use only for 'smaller' systems.
-
-    use_umfpack : bool optional, default = True
-        Use the UMFpack backend for the direct solver 'direct' or Power method
-        'power. If 'False', the solver uses the SuperLU backend. This option
-        does not affect the other methods. Used only when sparse=True.
 
     maxiter : int optional
         Maximum number of iterations to perform if using an iterative method
@@ -126,9 +121,6 @@ def steadystate(
     -----
     The SVD method works only for dense operators (i.e. small systems).
 
-    Setting use_umfpack=True (default) may result in 'out of memory' errors
-    if your system size becomes to large.
-
     """
     n_op = len(c_op_list)
 
@@ -145,8 +137,7 @@ def steadystate(
 
     if method == 'direct':
         if sparse:
-            return _steadystate_direct_sparse(A, use_umfpack=use_umfpack,
-                                              verbose=verbose)
+            return _steadystate_direct_sparse(A, verbose=verbose)
         else:
             return _steadystate_direct_dense(A, verbose=verbose)
 
@@ -172,7 +163,7 @@ def steadystate(
 
     elif method == 'power':
         return _steadystate_power(A, maxiter=10, tol=tol, itertol=tol,
-                                  use_umfpack=use_umfpack, verbose=verbose)
+                                verbose=verbose)
 
     else:
         raise ValueError('Invalid method argument for steadystate.')
@@ -240,7 +231,7 @@ def steadystate_nonlinear(L_func, rho0, args={}, maxiter=10,
     return rhoss.tidyup() if qset.auto_tidyup else rhoss
 
 
-def _steadystate_direct_sparse(L, use_umfpack=True, verbose=False):
+def _steadystate_direct_sparse(L, verbose=False):
     """
     Direct solver that use scipy sparse matrices
     """
@@ -248,18 +239,18 @@ def _steadystate_direct_sparse(L, use_umfpack=True, verbose=False):
         print('Starting direct solver...')
 
     n = prod(L.dims[0][0])
-    b = sp.csr_matrix(([1.0], ([0], [0])), shape=(n ** 2, 1))
+    b = sp.csr_matrix(([1.0], ([0], [0])), shape=(n ** 2, 1), dtype=complex)
     M = L.data + sp.csr_matrix((np.ones(n),
             (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
             shape=(n ** 2, n ** 2))
 
-    use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
+    use_solver(assumeSortedIndices=True)
     M.sort_indices()
 
     if verbose:
         start_time = time.time()
 
-    v = spsolve(M, b, use_umfpack=use_umfpack)
+    v = spsolve(M, b)
 
     if verbose:
         print('Direct solver time: ', time.time() - start_time)
@@ -498,14 +489,14 @@ def _steadystate_svd_dense(L, atol=1e-12, rtol=0, all_steadystates=False,
         return rhoss / rhoss.tr()
 
 
-def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5, use_umfpack=True,
+def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5,
                        verbose=False):
     """
     Inverse power method for steady state solving.
     """
     if verbose:
         print('Starting iterative power method Solver...')
-    use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
+    use_solver(assumeSortedIndices=True)
     rhoss = Qobj()
     sflag = issuper(L)
     if sflag:
@@ -522,7 +513,7 @@ def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5, use_umfpack=True,
         start_time = time.time()
     it = 0
     while (la.norm(L * v, np.inf) > tol) and (it < maxiter):
-        v = spsolve(L, v, use_umfpack=use_umfpack)
+        v = spsolve(L, v)
         v = v / la.norm(v, np.inf)
         it += 1
     if it >= maxiter:
