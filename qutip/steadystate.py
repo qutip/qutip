@@ -36,13 +36,15 @@ from qutip.qobj import Qobj, issuper, isoper
 from qutip.superoperator import *
 from qutip.operators import qeye
 from qutip.random_objects import rand_dm
-from qutip.sparse import _sp_inf_norm, sp_reshape
+from qutip.sparse import *
+from qutip.graph import symrcm
 from qutip.states import ket2dm
 import qutip.settings as qset
 
 
 def steadystate(
-    A, c_op_list=[], method='direct', sparse=True, maxiter=5000, tol=1e-5, 
+    A, c_op_list=[], method='direct', sparse=True, use_rcm=False, sym=False, 
+    maxiter=5000, tol=1e-5, 
     use_precond=True, M=None, perm_method='AUTO', drop_tol=1e-1, 
     diag_pivot_thresh=0.33, verbose=False):
 
@@ -137,7 +139,7 @@ def steadystate(
 
     if method == 'direct':
         if sparse:
-            return _steadystate_direct_sparse(A, verbose=verbose)
+            return _steadystate_direct_sparse(A, use_rcm=use_rcm, sym=sym, verbose=verbose)
         else:
             return _steadystate_direct_dense(A, verbose=verbose)
 
@@ -231,7 +233,7 @@ def steadystate_nonlinear(L_func, rho0, args={}, maxiter=10,
     return rhoss.tidyup() if qset.auto_tidyup else rhoss
 
 
-def _steadystate_direct_sparse(L, verbose=False):
+def _steadystate_direct_sparse(L, use_rcm=False, sym=False, verbose=False):
     """
     Direct solver that use scipy sparse matrices
     """
@@ -243,18 +245,29 @@ def _steadystate_direct_sparse(L, verbose=False):
     M = L.data + sp.csr_matrix((np.ones(n),
             (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
             shape=(n ** 2, n ** 2))
-
+    # Code for reordering M in RCM order
+    if use_rcm:
+        if verbose:
+            print('Original bandwidth ', sparse_bandwidth(M))
+        perm=symrcm(M)
+        rev_perm=np.argsort(perm)
+        M=sparse_permute(M,perm,perm)
+        b=sparse_permute(b,perm,[0])
+        if verbose:
+            print('RCM bandwidth ', sparse_bandwidth(M))
+    
     use_solver(assumeSortedIndices=True)
     M.sort_indices()
 
     if verbose:
         start_time = time.time()
-
+    # Do the actual solving here
     v = spsolve(M, b)
 
     if verbose:
         print('Direct solver time: ', time.time() - start_time)
-
+    if use_rcm:
+        v = v[np.ix_(rev_perm,)]
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
 
