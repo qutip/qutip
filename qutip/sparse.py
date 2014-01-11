@@ -429,7 +429,7 @@ def _padecoeff(m):
                          960960, 16380, 182, 1])
 
 
-def sparse_permute(A,rperm=[],cperm=[]):
+def sparse_permute(A,rperm=[],cperm=[], kind='csr'):
     """
     Permutes the rows and columns of a sparse CSR matrix or Qobj according to the permutation
     arrays rperm and cperm, respectively.  Here, the permutation arrays specify the 
@@ -439,15 +439,20 @@ def sparse_permute(A,rperm=[],cperm=[]):
     ----------
     A : qobj, csr_matrix
         Input quantum object or csr_matrix.
+    
     rperm : list/array
         Array of row permutations.
+    
     cperm : list/array
         Array of column permutations.
+        
+    kind : string {'csr', 'csc'}
+        Type of return sparse matrix
     
     Returns
     -------
-    perm_csr : csr_matrix
-        CSR matrix with permuted rows/columns.
+    perm_csr : {csr_matrix, csc_matrix}
+        CSR or CSC matrix with permuted rows/columns.
     
     """
     rperm = np.asarray(rperm)
@@ -473,10 +478,15 @@ def sparse_permute(A,rperm=[],cperm=[]):
     else:
         raise TypeError('Invalid data type in csr_matrix.')
 
-    return sp.csr_matrix((data,ind,ptr),shape=shp,dtype=dt)
+    if kind=='csr':
+        return sp.csr_matrix((data,ind,ptr),shape=shp,dtype=dt)
+    elif kind=='csc':
+        return sp.csc_matrix((data,ind,ptr),shape=shp,dtype=dt)
+    else:
+        raise TypeError('Unsupported sparse matrix format.')
 
 
-def sparse_reverse_permute(A,rperm=[],cperm=[]):
+def sparse_reverse_permute(A,rperm=[],cperm=[], kind='csr'):
     """
     Performs a reverse permutations of the rows and columns of a sparse CSR matrix or Qobj 
     according to the permutation arrays rperm and cperm, respectively.  Here, the permutation 
@@ -486,15 +496,20 @@ def sparse_reverse_permute(A,rperm=[],cperm=[]):
     ----------
     A : qobj, csr_matrix
         Input quantum object or csr_matrix.
+    
     rperm : list/array
         Array of row permutations.
+    
     cperm : list/array
         Array of column permutations.
     
+    kind : string {'csr', 'csc'}
+        Type of return sparse matrix
+    
     Returns
     -------
-    perm_csr : csr_matrix
-        CSR matrix with permuted rows/columns.
+    perm_csr : {csr_matrix, csc_matrix}
+        CSR or CSC matrix with permuted rows/columns.
     
     """
     rperm = np.asarray(rperm)
@@ -519,7 +534,12 @@ def sparse_reverse_permute(A,rperm=[],cperm=[]):
         data, ind, ptr = _sparse_reverse_permute_complex(A.data, A.indices, 
                     A.indptr, nrows, rperm, cperm)
 
-    return sp.csr_matrix((data,ind,ptr), shape=shp, dtype=dt)
+    if kind=='csr':
+        return sp.csr_matrix((data,ind,ptr),shape=shp,dtype=dt)
+    elif kind=='csc':
+        return sp.csc_matrix((data,ind,ptr),shape=shp,dtype=dt)
+    else:
+        raise TypeError('Unsupported sparse matrix format.')
 
 
 def sparse_bandwidth(A):
