@@ -110,7 +110,7 @@ cpdef _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num
             order[N] = seed # add seed to order
             N += 1          # increase # touched nodes
             inds[rev_inds[seed]] = -1 #mark touched node inds
-            level_start = 0 
+            level_start = N-1 
             level_end = N
             while level_start < level_end:
                 for ii in range(level_start,level_end):
