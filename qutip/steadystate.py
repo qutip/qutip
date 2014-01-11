@@ -32,7 +32,7 @@
 ###############################################################################
 """
 Module contains functions for solving for the steady state density matrix of
-open qunatum systems defined by a Louvillian or Hamiltonian and a list of
+open quantum systems defined by a Liouvillian or Hamiltonian and a list of
 collapse operators.
 """
 
@@ -80,7 +80,7 @@ def steadystate(
 
     method : str {'direct', 'iterative', 'iterative-bicg', 'lu', 'svd', 'power'}
         Method for solving the underlying linear equation. Direct solver
-        'direct' (default), iterative LGMRES method 'iterative',
+        'direct' (default), iterative GMRES method 'iterative',
         iterative method BICG 'iterative-bicg', LU decomposition 'lu',
         SVD 'svd' (dense), or inverse-power method 'power'.
 
@@ -159,6 +159,7 @@ def steadystate(
 
     elif method == 'iterative':
         return _steadystate_iterative(A, tol=tol, use_precond=use_precond, M=M,
+                                      use_rcm=use_rcm, sym=sym,
                                       maxiter=maxiter, perm_method=perm_method,
                                       drop_tol=drop_tol, verbose=verbose,
                                       diag_pivot_thresh=diag_pivot_thresh)
@@ -333,7 +334,6 @@ def _iterative_precondition(A, n, perm_method, drop_tol, diag_pivot_thresh,
             M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
             if verbose:
                 print('Preconditioned with COLAMD ordering.')
-                print('Preconditioning time: ', time.time() - start_time)
         except:
             if perm_method == 'AUTO':
                 warnings.warn("Preconditioning failed. Continuing without.",
@@ -364,6 +364,7 @@ def _iterative_precondition(A, n, perm_method, drop_tol, diag_pivot_thresh,
 
 
 def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
+                           use_rcm=False, sym=False, 
                            maxiter=5000, perm_method='AUTO',
                            drop_tol=1e-1, diag_pivot_thresh=0.33,
                            verbose=False):
@@ -373,7 +374,7 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
     """
 
     if verbose:
-        print('Starting LGMRES solver...')
+        print('Starting GMRES solver...')
 
     use_solver(assumeSortedIndices=True)
     n = prod(L.dims[0][0])
@@ -382,6 +383,18 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
     A = L.data.tocsc() + sp.csc_matrix((np.ones(n),
             (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
             shape=(n ** 2, n ** 2))
+    
+    if use_rcm:
+        if verbose:
+            print('Original bandwidth ', sparse_bandwidth(A))
+        perm=symrcm(A)
+        rev_perm=np.argsort(perm)
+        A=sparse_permute(A,perm,perm,'csc')
+        b = b[np.ix_(perm,)]
+        if verbose:
+            print('RCM bandwidth ', sparse_bandwidth(A))
+    
+    use_solver(assumeSortedIndices=True)
     A.sort_indices()
     
     if use_precond and M is None:
@@ -393,7 +406,7 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
     if verbose:
         start_time = time.time()
 
-    v, check = lgmres(A, b, tol=tol, M=M, maxiter=maxiter)
+    v, check = gmres(A, b, tol=tol, M=M, maxiter=maxiter)
     if check > 0:
         raise Exception("Steadystate solver did not reach tolerance after " +
                         str(check) + " steps.")
@@ -402,8 +415,11 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
             "Steadystate solver failed with fatal error: " + str(check) + ".")
 
     if verbose:
-        print('LGMRES solver time: ', time.time() - start_time)
-
+        print('GMRES solver time: ', time.time() - start_time)
+    
+    if use_rcm:
+        v = v[np.ix_(rev_perm,)]
+    
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
 
