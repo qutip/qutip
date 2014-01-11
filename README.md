@@ -44,3 +44,7 @@ All contributions are acknowledged in the
 [contributors](http://github.com/qutip/qutip-doc/blob/master/contributors.rst)
 section in the documentation.
 
+License
+----------
+QuTiP is licensed under the [New BSD Liencse](http://en.wikipedia.org/wiki/BSD_licenses#3-clause_license_.28.22Revised_BSD_License.22.2C_.22New_BSD_License.22.2C_or_.22Modified_BSD_License.22.29). You are free to use this software, with or without modification, provided that the conditions lisited in the LICENESE.txt file are satisfied.
+
