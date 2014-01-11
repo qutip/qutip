@@ -46,7 +46,7 @@ MINOR = 0
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'matplotlib (>=1.1)']
+REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'cython (>=0.15)', 'matplotlib (>=1.1)']
 PACKAGES = ['qutip', 'qutip/gui', 'qutip/examples', 'qutip/cyQ', 'qutip/quantum_info']
 PACKAGE_DATA = {'qutip/gui': ['logo.png', 'icon.png']}
 INCLUDE_DIRS = [np.get_include()]
