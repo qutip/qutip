@@ -18,8 +18,9 @@ DOCLINES = __doc__.split('\n')
 CLASSIFIERS = """\
 Development Status :: 4 - Beta
 Intended Audience :: Science/Research
-License :: OSI Approved :: GNU General Public License (GPL)
+License :: OSI Approved :: BSD License
 Programming Language :: Python
+Programming Language :: Python :: 3
 Topic :: Scientific/Engineering
 Operating System :: MacOS
 Operating System :: POSIX
@@ -40,12 +41,12 @@ from numpy.distutils.core import setup
 from numpy.distutils.system_info import get_info
 
 # all information about QuTiP goes here-------
-MAJOR = 2
-MINOR = 3
+MAJOR = 3
+MINOR = 0
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.10)', 'matplotlib (>=1.1)']
+REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'matplotlib (>=1.1)']
 PACKAGES = ['qutip', 'qutip/gui', 'qutip/examples', 'qutip/cyQ', 'qutip/quantum_info']
 PACKAGE_DATA = {'qutip/gui': ['logo.png', 'icon.png']}
 INCLUDE_DIRS = [np.get_include()]
