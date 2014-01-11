@@ -5,9 +5,7 @@ QuTiP: Quantum Toolbox in Python
 [P.D. Nation](http://github.com/nonhermitian) and [J.R. Johansson](http://github.com/jrjohansson)
 
 QuTiP is open-source software for simulating the dynamics of closed and open
-quantum systems. The QuTiP library uses the excellent Numpy and Scipy packages
-as numerical backend, and graphical output is provided by Matplotlib. QuTiP
-aims to provide user-friendly and efficient numerical simulations of a wide
+quantum systems. The QuTiP library uses the excellent Numpy, Scipy, and Cython packages as numerical backend, and graphical output is provided by Matplotlib. QuTiP aims to provide user-friendly and efficient numerical simulations of a wide
 variety of quantum mechanical problems, including those with Hamiltonians
 and/or collapse operators with arbitrary time-dependence, commonly found in a
 wide range of physics applications. QuTiP is freely available for use and/or
@@ -46,5 +44,5 @@ section in the documentation.
 
 License
 ----------
-QuTiP is licensed under the [New BSD License](http://en.wikipedia.org/wiki/BSD_licenses#3-clause_license_.28.22Revised_BSD_License.22.2C_.22New_BSD_License.22.2C_or_.22Modified_BSD_License.22.29). You are free to use this software, with or without modification, provided that the conditions lisited in the LICENESE.txt file are satisfied.
+QuTiP is licensed under the [New BSD License](http://en.wikipedia.org/wiki/BSD_licenses#3-clause_license_.28.22Revised_BSD_License.22.2C_.22New_BSD_License.22.2C_or_.22Modified_BSD_License.22.29). You are free to use this software, with or without modification, provided that the conditions listed in the LICENSE.txt file are satisfied.
 
