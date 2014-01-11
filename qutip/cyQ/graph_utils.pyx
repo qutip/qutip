@@ -103,35 +103,40 @@ cpdef _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num
     cdef np.ndarray[np.intp_t] degree = _node_degrees(ind, ptr, num_rows)
     cdef np.ndarray[np.intp_t] inds = np.argsort(degree)
     cdef np.ndarray[np.intp_t] rev_inds = np.argsort(inds)
-    
+    #loop over zz takes into account possible disconnected graph.
     for zz in range(num_rows):
-        if inds[zz] != -1:
-            seed = inds[zz]
-            order[N] = seed
-            N += 1
-            inds[rev_inds[seed]] = -1
+        if inds[zz] != -1: # Do BFS with seed=inds[zz]
+            seed = inds[zz] # seed node for BFS
+            order[N] = seed # add seed to order
+            N += 1          # increase # touched nodes
+            inds[rev_inds[seed]] = -1 #mark touched node inds
             level_start = 0 
             level_end = N
             while level_start < level_end:
                 for ii in range(level_start,level_end):
                     i = order[ii] # node i to consider
-                    N_old=N # keeps track of how many untouched nodes are in level
+                    N_old=N # old # of touched nodes
+                    
                     # add unvisited neighbors
                     for jj in range(ptr[i],ptr[i+1]):   # nodes connected to node i
-                        j = ind[jj]                     # j is node number connected to i
-                        if inds[rev_inds[j]] != -1:     # if node has not been touched
+                        j = ind[jj] # j is node number connected to i
+                        if inds[rev_inds[j]] != -1:     # if node not touched
                             inds[rev_inds[j]] = -1      # touch node
-                            order[N] = j                # add current node to order array
+                            order[N] = j                # add node to order
                             N += 1                      # add to touched count
+                    
                     # Do insertion sort for nodes from lowest to highest degree
                     for kk in range(N_old,N-1):
                         temp = order[kk]
                         while degree[order[kk+1]] < degree[order[kk]]:
                             order[kk] = order[kk+1]
                             order[kk+1] = temp
-                # set level start and end ranges            
+                
+                # set next level start and end ranges            
                 level_start = level_end
                 level_end = N
+        if N==num_rows:
+            break
     # return reveresed order for RCM ordering
     return order[::-1]
 
@@ -167,7 +172,7 @@ cpdef _pseudo_peripheral_node(np.ndarray[int, mode="c"] ind,
         minlastnodesdegree = min(lastnodesdegree)
         node = np.where(lastnodesdegree == minlastnodesdegree)[0][0]
         node = lastnodes[node]
-        # if d(x,y)>delta, set, and do another BFS fro this minimal node
+        # if d(x,y)>delta, set, and do another BFS from this minimal node
         if level[node] > delta:
             start = node
             delta = level[node]
