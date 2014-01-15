@@ -155,16 +155,18 @@ def steadystate( A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
 
     elif method == 'iterative':
         return _steadystate_iterative(A, tol=tol, use_precond=use_precond, M=M,
-                                      use_rcm=use_rcm, sym=sym, fill_factor=fill_factor,
-                                      maxiter=maxiter,
-                                      drop_tol=drop_tol, verbose=verbose,
-                                      diag_pivot_thresh=diag_pivot_thresh)
+                                      use_rcm=use_rcm, sym=sym, maxiter=maxiter, 
+                                      fill_factor=fill_factor, drop_tol=drop_tol, 
+                                      diag_pivot_thresh=diag_pivot_thresh, 
+                                      verbose=verbose)
 
     elif method == 'iterative-bicg':
-        return _steadystate_iterative_bicg(A, tol=tol, use_precond=use_precond,
-                                           M=M, maxiter=maxiter, fill_factor=fill_factor,
-                                           drop_tol=drop_tol, verbose=verbose,
-                                           diag_pivot_thresh=diag_pivot_thresh)
+        return _steadystate_iterative_bicg(A, tol=tol, use_precond=use_precond, 
+                                        M=M, use_rcm=use_rcm, maxiter=maxiter, 
+                                        fill_factor=fill_factor, 
+                                        drop_tol=drop_tol, 
+                                        diag_pivot_thresh=diag_pivot_thresh, 
+                                        verbose=verbose)
 
     elif method == 'lu':
         return _steadystate_lu(A, verbose=verbose)
@@ -190,57 +192,6 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
     warnings.warn(message, DeprecationWarning)
     return steadystate(L, [], maxiter=maxiter, tol=tol,
                        use_umfpack=use_umfpack, use_precond=use_precond)
-
-
-def steadystate_nonlinear(L_func, rho0, args={}, maxiter=10,
-                          random_initial_state=False, tol=1e-6, itertol=1e-5,
-                          use_umfpack=True, verbose=False):
-    """
-    Steady state for the evolution subject to the nonlinear Liouvillian
-    (which depends on the density matrix).
-
-    .. note:: Experimental. Not at all certain that the inverse power method
-              works for state-dependent Liouvillian operators.
-    """
-    use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
-    if random_initial_state:
-        rhoss = rand_dm(rho0.shape[0], 1.0, dims=rho0.dims)
-    elif isket(rho0):
-        rhoss = ket2dm(rho0)
-    else:
-        rhoss = Qobj(rho0)
-
-    v = mat2vec(rhoss.full())
-
-    n = prod(rhoss.shape)
-    tr_vec = sp.eye(rhoss.shape[0], rhoss.shape[0], format='coo')
-    tr_vec = tr_vec.reshape((1, n))
-
-    it = 0
-    while it < maxiter:
-
-        L = L_func(rhoss, args)
-        L = L.data.tocsc() - (tol ** 2) * sp.eye(n, n, format='csc')
-        L.sort_indices()
-
-        v = spsolve(L, v, use_umfpack=use_umfpack)
-        v = v / la.norm(v, np.inf)
-
-        data = v / sum(tr_vec.dot(v))
-        data = reshape(data, (rhoss.shape[0], rhoss.shape[1])).T
-        rhoss.data = sp.csr_matrix(data)
-
-        it += 1
-
-        if la.norm(L * v, np.inf) <= tol:
-            break
-
-    if it >= maxiter:
-        raise ValueError('Failed to find steady state after ' +
-                         str(maxiter) + ' iterations')
-
-    rhoss = 0.5 * (rhoss + rhoss.dag())
-    return rhoss.tidyup() if qset.auto_tidyup else rhoss
 
 
 def _steadystate_direct_sparse(L, verbose=False):
@@ -328,8 +279,8 @@ def _iterative_precondition(A, n, drop_tol, diag_pivot_thresh, fill_factor,
 
 
 def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
-                           use_rcm=False, sym=False, fill_factor=2,
-                           maxiter=5000, drop_tol=1e-2, diag_pivot_thresh=0.33,
+                           use_rcm=True, sym=False, fill_factor=2,
+                           maxiter=1000, drop_tol=1e-2, diag_pivot_thresh=0.33,
                            verbose=False):
     """
     Iterative steady state solver using the LGMRES algorithm
@@ -340,28 +291,29 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
         print('Starting GMRES solver...')
 
     use_solver(assumeSortedIndices=True)
+    dims=L.dims[0]
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2)
     b[0] = 1.0
-    A = L.data.tocsc() + sp.csc_matrix((np.ones(n),
+    L = L.data.tocsc() + sp.csc_matrix((np.ones(n),
             (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
             shape=(n ** 2, n ** 2))
     
     if use_rcm:
         if verbose:
-            print('Original bandwidth ', sparse_bandwidth(A))
-        perm=symrcm(A)
+            print('Original bandwidth ', sparse_bandwidth(L))
+        perm=symrcm(L)
         rev_perm=np.argsort(perm)
-        A=sparse_permute(A,perm,perm,'csc')
+        L=sparse_permute(L,perm,perm,'csc')
         b = b[np.ix_(perm,)]
         if verbose:
-            print('RCM bandwidth ', sparse_bandwidth(A))
+            print('RCM bandwidth ', sparse_bandwidth(L))
     
     use_solver(assumeSortedIndices=True)
-    A.sort_indices()
+    L.sort_indices()
     
     if use_precond and M is None:
-        M = _iterative_precondition(A, n, drop_tol, diag_pivot_thresh, 
+        M = _iterative_precondition(L, n, drop_tol, diag_pivot_thresh, 
                                     fill_factor, verbose)
     
     elif use_precond==False and M is None:
@@ -370,7 +322,7 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
     if verbose:
         start_time = time.time()
 
-    v, check = gmres(A, b, tol=tol, M=M, maxiter=maxiter)
+    v, check = gmres(L, b, tol=tol, M=M, maxiter=maxiter)
     if check > 0:
         raise Exception("Steadystate solver did not reach tolerance after " +
                         str(check) + " steps.")
@@ -387,10 +339,10 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
 
-    return Qobj(data, dims=L.dims[0], isherm=True)
+    return Qobj(data, dims=dims, isherm=True)
 
 
-def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, M=None,
+def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True, M=None,
                                 maxiter=1000, drop_tol=1e-2, diag_pivot_thresh=0.33,
                                 fill_factor=2, verbose=False):
     """
@@ -402,16 +354,27 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, M=None,
         print('Starting BICG solver...')
 
     use_solver(assumeSortedIndices=True)
+    dims=L.dims[0]
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2)
     b[0] = 1.0
-    A = L.data.tocsc() + sp.csc_matrix((np.ones(n),
+    L = L.data.tocsc() + sp.csc_matrix((np.ones(n),
             (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
             shape=(n ** 2, n ** 2))
-    A.sort_indices()
-
+    L.sort_indices()
+    
+    if use_rcm:
+        if verbose:
+            print('Original bandwidth ', sparse_bandwidth(L))
+        perm=symrcm(L)
+        rev_perm=np.argsort(perm)
+        L=sparse_permute(L,perm,perm,'csc')
+        b = b[np.ix_(perm,)]
+        if verbose:
+            print('RCM bandwidth ', sparse_bandwidth(L))
+    
     if use_precond and M is None:
-        M = _iterative_precondition(A, n, drop_tol,
+        M = _iterative_precondition(L, n, drop_tol,
                                     diag_pivot_thresh, fill_factor, verbose)
     
     elif use_precond==False and M is None:
@@ -420,8 +383,11 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, M=None,
     if verbose:
         start_time = time.time()
 
-    v, check = bicgstab(A, b, tol=tol, M=M)
-
+    v, check = bicgstab(L, b, tol=tol, M=M)
+    
+    if use_rcm:
+        v = v[np.ix_(rev_perm,)]
+    
     if check > 0:
         raise Exception("Steadystate solver did not reach tolerance after " +
                         str(check) + " steps.")
@@ -434,8 +400,7 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, M=None,
 
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
-
-    return Qobj(data, dims=L.dims[0], isherm=True)
+    return Qobj(data, dims=dims, isherm=True)
 
 
 def _steadystate_lu(L, verbose=False):
@@ -543,3 +508,54 @@ def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5,
         return rhoss.tidyup()
     else:
         return rhoss
+
+
+def steadystate_nonlinear(L_func, rho0, args={}, maxiter=10,
+                          random_initial_state=False, tol=1e-6, itertol=1e-5,
+                          use_umfpack=True, verbose=False):
+    """
+    Steady state for the evolution subject to the nonlinear Liouvillian
+    (which depends on the density matrix).
+
+    .. note:: Experimental. Not at all certain that the inverse power method
+              works for state-dependent Liouvillian operators.
+    """
+    use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
+    if random_initial_state:
+        rhoss = rand_dm(rho0.shape[0], 1.0, dims=rho0.dims)
+    elif isket(rho0):
+        rhoss = ket2dm(rho0)
+    else:
+        rhoss = Qobj(rho0)
+
+    v = mat2vec(rhoss.full())
+
+    n = prod(rhoss.shape)
+    tr_vec = sp.eye(rhoss.shape[0], rhoss.shape[0], format='coo')
+    tr_vec = tr_vec.reshape((1, n))
+
+    it = 0
+    while it < maxiter:
+
+        L = L_func(rhoss, args)
+        L = L.data.tocsc() - (tol ** 2) * sp.eye(n, n, format='csc')
+        L.sort_indices()
+
+        v = spsolve(L, v, use_umfpack=use_umfpack)
+        v = v / la.norm(v, np.inf)
+
+        data = v / sum(tr_vec.dot(v))
+        data = reshape(data, (rhoss.shape[0], rhoss.shape[1])).T
+        rhoss.data = sp.csr_matrix(data)
+
+        it += 1
+
+        if la.norm(L * v, np.inf) <= tol:
+            break
+
+    if it >= maxiter:
+        raise ValueError('Failed to find steady state after ' +
+                         str(maxiter) + ' iterations')
+
+    rhoss = 0.5 * (rhoss + rhoss.dag())
+    return rhoss.tidyup() if qset.auto_tidyup else rhoss
