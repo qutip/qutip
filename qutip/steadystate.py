@@ -56,13 +56,12 @@ from qutip.states import ket2dm
 import qutip.settings as qset
 
 
-def steadystate(
-    A, c_op_list=[], method='direct', sparse=True, use_rcm=False, sym=False, 
-    maxiter=5000, tol=1e-5, 
-    use_precond=True, M=None, perm_method='AUTO', drop_tol=1e-1, 
-    diag_pivot_thresh=0.33, verbose=False):
+def steadystate( A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
+                 sym=False, use_precond=True, M=None, drop_tol=1e-2, 
+                 fill_factor=2, diag_pivot_thresh=0.33, maxiter=1000, tol=1e-5, 
+                 verbose=False):
 
-    """Calculates the steady state for the evolution subject to the
+    """Calculates the steady state for quantum evolution subject to the
     supplied Hamiltonian or Liouvillian operator and (if given a Hamiltonian) a
     list of collapse operators.
 
@@ -81,19 +80,19 @@ def steadystate(
     method : str {'direct', 'iterative', 'iterative-bicg', 'lu', 'svd', 'power'}
         Method for solving the underlying linear equation. Direct solver
         'direct' (default), iterative GMRES method 'iterative',
-        iterative method BICG 'iterative-bicg', LU decomposition 'lu',
+        iterative method BICGSTAB 'iterative-bicg', LU decomposition 'lu',
         SVD 'svd' (dense), or inverse-power method 'power'.
 
-    sparse : bool default=True
+    sparse : bool, default=True
         Solve for the steady state using sparse algorithms. If set to False,
         the underlying Liouvillian operator will be converted into a dense
         matrix. Use only for 'smaller' systems.
 
-    maxiter : int optional
+    maxiter : int, optional
         Maximum number of iterations to perform if using an iterative method
-        such as 'iterative' (default=5000), or 'power' (default=10).
+        such as 'iterative' (default=1000), or 'power' (default=10).
 
-    tol : float optional, default=1e-5
+    tol : float, optional, default=1e-5
         Tolerance used for terminating solver solution when using iterative
         solvers.
 
@@ -106,20 +105,17 @@ def steadystate(
         Preconditioner for A. The preconditioner should approximate the inverse of A. 
         Effective preconditioning dramatically improves the rate of convergence, 
         for iterative methods.  Does not affect other solvers.
-    
-    perm_method : str {'AUTO', 'AUTO-BREAK', 'COLAMD', 'MMD_ATA', 'NATURAL'}
-        ITERATIVE ONLY. Sets the method for column ordering the incomplete
-        LU preconditioner used by the 'iterative' method.  When set to 'AUTO'
-        (default), the solver will attempt to precondition the system using
-        'COLAMD'. If this fails, the solver will use no preconditioner.  Using
-        'AUTO-BREAK' will cause the solver to issue an exception and stop if
-        the 'COLAMD' method fails.
 
-    drop_tol : float default=1e-1
+    fill_factor : float, default=2
+        ITERATIVE ONLY. Specifies the fill ratio upper bound (>=1) of the iLU
+        preconditioner.  Lower values save memory at the cost of longer
+        execution times.
+    
+    drop_tol : float, default=1e-2
         ITERATIVE ONLY. Sets the threshold for the magnitude of preconditioner
         elements that should be dropped.
 
-    diag_pivot_thresh : float default=0.33
+    diag_pivot_thresh : float, default=0.33
         ITERATIVE ONLY. Sets the threshold for which diagonal elements are
         considered acceptable pivot points when using a preconditioner.
 
@@ -153,21 +149,20 @@ def steadystate(
 
     if method == 'direct':
         if sparse:
-            return _steadystate_direct_sparse(A, use_rcm=use_rcm, sym=sym, verbose=verbose)
+            return _steadystate_direct_sparse(A, verbose=verbose)
         else:
             return _steadystate_direct_dense(A, verbose=verbose)
 
     elif method == 'iterative':
         return _steadystate_iterative(A, tol=tol, use_precond=use_precond, M=M,
-                                      use_rcm=use_rcm, sym=sym,
-                                      maxiter=maxiter, perm_method=perm_method,
+                                      use_rcm=use_rcm, sym=sym, fill_factor=fill_factor,
+                                      maxiter=maxiter,
                                       drop_tol=drop_tol, verbose=verbose,
                                       diag_pivot_thresh=diag_pivot_thresh)
 
     elif method == 'iterative-bicg':
         return _steadystate_iterative_bicg(A, tol=tol, use_precond=use_precond,
-                                           M=M, maxiter=maxiter,
-                                           perm_method=perm_method,
+                                           M=M, maxiter=maxiter, fill_factor=fill_factor,
                                            drop_tol=drop_tol, verbose=verbose,
                                            diag_pivot_thresh=diag_pivot_thresh)
 
@@ -248,7 +243,7 @@ def steadystate_nonlinear(L_func, rho0, args={}, maxiter=10,
     return rhoss.tidyup() if qset.auto_tidyup else rhoss
 
 
-def _steadystate_direct_sparse(L, use_rcm=False, sym=False, verbose=False):
+def _steadystate_direct_sparse(L, verbose=False):
     """
     Direct solver that use scipy sparse matrices
     """
@@ -260,16 +255,6 @@ def _steadystate_direct_sparse(L, use_rcm=False, sym=False, verbose=False):
     M = L.data + sp.csr_matrix((np.ones(n),
             (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
             shape=(n ** 2, n ** 2))
-    # Code for reordering M in RCM order
-    if use_rcm:
-        if verbose:
-            print('Original bandwidth ', sparse_bandwidth(M))
-        perm=symrcm(M)
-        rev_perm=np.argsort(perm)
-        M=sparse_permute(M,perm,perm)
-        b=sparse_permute(b,perm,[0])
-        if verbose:
-            print('RCM bandwidth ', sparse_bandwidth(M))
     
     use_solver(assumeSortedIndices=True)
     M.sort_indices()
@@ -281,8 +266,7 @@ def _steadystate_direct_sparse(L, use_rcm=False, sym=False, verbose=False):
 
     if verbose:
         print('Direct solver time: ', time.time() - start_time)
-    if use_rcm:
-        v = v[np.ix_(rev_perm,)]
+    
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
 
@@ -316,7 +300,7 @@ def _steadystate_direct_dense(L, verbose=False):
     return Qobj(data, dims=L.dims[0], isherm=True)
 
 
-def _iterative_precondition(A, n, perm_method, drop_tol, diag_pivot_thresh,
+def _iterative_precondition(A, n, drop_tol, diag_pivot_thresh, fill_factor,
                             verbose=False):
     """
     Internal function for preconditioning the steadystate problem for use
@@ -326,47 +310,26 @@ def _iterative_precondition(A, n, perm_method, drop_tol, diag_pivot_thresh,
     if verbose:
         start_time = time.time()
 
-    if perm_method in ['AUTO', 'AUTO-BREAK']:
-        try:
-            P = spilu(
-                A, drop_tol=1e-1, permc_spec="COLAMD", diag_pivot_thresh=0.33)
-            P_x = lambda x: P.solve(x)
-            M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
-            if verbose:
-                print('Preconditioned with COLAMD ordering.')
-        except:
-            if perm_method == 'AUTO':
-                warnings.warn("Preconditioning failed. Continuing without.",
-                              UserWarning)
-                M = None
-            else:
-                raise Exception('Preconditioning failed. Halting solver.')
-
-    else:
-
+    try:
+        P = spilu(
+            A, drop_tol=drop_tol, permc_spec="COLAMD", 
+            diag_pivot_thresh=diag_pivot_thresh, fill_factor=fill_factor)
+        
+        P_x = lambda x: P.solve(x)
+        M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
         if verbose:
-            start_time = time.time()
-
-        try:
-            P = spilu(A, drop_tol=drop_tol, permc_spec=perm_method,
-                      diag_pivot_thresh=diag_pivot_thresh)
-            P_x = lambda x: P.solve(x)
-            M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
-        except:
-            warnings.warn("Preconditioning failed. Continuing without.",
-                          UserWarning)
-            M = None
-
-    if verbose:
-        print('Preconditioning time: ', time.time() - start_time)
+            print('Preconditioning time: ', time.time() - start_time)
+    except:
+        warnings.warn("Preconditioning failed. Continuing without.",
+                      UserWarning)
+        M = None
 
     return M
 
 
 def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
-                           use_rcm=False, sym=False, 
-                           maxiter=5000, perm_method='AUTO',
-                           drop_tol=1e-1, diag_pivot_thresh=0.33,
+                           use_rcm=False, sym=False, fill_factor=2,
+                           maxiter=5000, drop_tol=1e-2, diag_pivot_thresh=0.33,
                            verbose=False):
     """
     Iterative steady state solver using the LGMRES algorithm
@@ -398,8 +361,9 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
     A.sort_indices()
     
     if use_precond and M is None:
-        M = _iterative_precondition(A, n, perm_method, drop_tol,
-                                    diag_pivot_thresh, verbose)
+        M = _iterative_precondition(A, n, drop_tol, diag_pivot_thresh, 
+                                    fill_factor, verbose)
+    
     elif use_precond==False and M is None:
         M = None
 
@@ -427,9 +391,8 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
 
 
 def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, M=None,
-                                maxiter=5000, perm_method='AUTO',
-                                drop_tol=1e-1, diag_pivot_thresh=0.33,
-                                verbose=False):
+                                maxiter=1000, drop_tol=1e-2, diag_pivot_thresh=0.33,
+                                fill_factor=2, verbose=False):
     """
     Iterative steady state solver using the BICG algorithm
     and a sparse incomplete LU preconditioner.
@@ -448,8 +411,9 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, M=None,
     A.sort_indices()
 
     if use_precond and M is None:
-        M = _iterative_precondition(A, n, perm_method, drop_tol,
-                                    diag_pivot_thresh, verbose)
+        M = _iterative_precondition(A, n, drop_tol,
+                                    diag_pivot_thresh, fill_factor, verbose)
+    
     elif use_precond==False and M is None:
         M = None
 

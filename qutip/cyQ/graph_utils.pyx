@@ -38,7 +38,7 @@ ctypedef np.float64_t DTYPE_t
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef _node_degrees(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr,
+def _node_degrees(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr,
                             int num_rows):
     #define all parameters
     cdef unsigned int ii, jj
@@ -56,7 +56,7 @@ cpdef _node_degrees(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef _breadth_first_search(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr,
+def _breadth_first_search(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr,
                             int num_rows, int seed):
     """
     Does a breath first search (BSF) of a graph in sparse CSR format matrix form
@@ -92,7 +92,7 @@ cpdef _breadth_first_search(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode=
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num_rows):
+def _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num_rows):
     """
     Reverse Cuthill-McKee ordering of a sparse csr_matrix.
     """
@@ -128,7 +128,7 @@ cpdef _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num
                     # Do insertion sort for nodes from lowest to highest degree
                     for kk in range(N_old,N-1):
                         temp = order[kk]
-                        while degree[order[kk+1]] < degree[order[kk]]:
+                        if degree[order[kk+1]] < degree[order[kk]]:
                             order[kk] = order[kk+1]
                             order[kk+1] = temp
                 
@@ -143,7 +143,7 @@ cpdef _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef _pseudo_peripheral_node(np.ndarray[int, mode="c"] ind, 
+def _pseudo_peripheral_node(np.ndarray[int, mode="c"] ind, 
                         np.ndarray[int, mode="c"] ptr, int num_rows):
     """
     Find a pseudo peripheral node of a graph represented by a sparse csr_matrix.

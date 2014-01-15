@@ -431,9 +431,10 @@ def _padecoeff(m):
 
 def sparse_permute(A,rperm=[],cperm=[], kind='csr'):
     """
-    Permutes the rows and columns of a sparse CSR matrix or Qobj according to the permutation
-    arrays rperm and cperm, respectively.  Here, the permutation arrays specify the 
-    new order of the rows and columns. i.e. [0,1,2,3,4] -> [3,0,4,1,2].
+    Permutes the rows and columns of a sparse CSR or CSC matrix or Qobj 
+    according to the permutation arrays rperm and cperm, respectively.  
+    Here, the permutation arrays specify the new order of the rows and 
+    columns. i.e. [0,1,2,3,4] -> [3,0,4,1,2].
     
     Parameters
     ----------

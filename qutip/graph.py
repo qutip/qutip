@@ -46,14 +46,12 @@ if debug:
 
 def graph_degree(A):
     """
-    Returns the degree for the nodes (rows) of a graph in
-    sparse CSR format.  Takes a qobj or csr_matrix as input.
-    
-    This function requires a matrix with symmetric structure.
+    Returns the degree for the nodes (rows) of a symmetric 
+    graph in sparse CSR or CSC format, or a qobj.
     
     Parameters
     ----------
-    A : qobj, csr_matrix
+    A : qobj, csr_matrix, csc_matrix
         Input quantum object or csr_matrix.
     
     Returns
@@ -63,8 +61,9 @@ def graph_degree(A):
     
     """
     if A.__class__.__name__=='Qobj':
-        A=A.data
-    return _node_degrees(A.indices, A.indptr, A.shape[0])
+        return _node_degrees(A.data.indices, A.data.indptr, A.shape[0])
+    else:
+        return _node_degrees(A.indices, A.indptr, A.shape[0])
 
 
 def breadth_first_search(A,start):
@@ -76,7 +75,7 @@ def breadth_first_search(A,start):
     
     Parameters
     ----------
-    A : qobj / csr_matrix
+    A : qobj, csr_matrix
         Input graph in CSR matrix form
     
     start : int
@@ -132,7 +131,9 @@ def symrcm(A,sym=False):
     """
     nrows = A.shape[0]
     if A.__class__.__name__=='Qobj':
-        A = A.data
-    if not sym:
-        A=A+A.transpose()
+        if not sym:
+            A = A.data+A.data.transpose()
+    else:
+        if not sym:
+            A=A+A.transpose()
     return _rcm(A.indices, A.indptr, nrows)
