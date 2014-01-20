@@ -57,8 +57,8 @@ import qutip.settings as qset
 
 
 def steadystate( A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
-                 sym=False, use_precond=True, M=None, drop_tol=1e-2, 
-                 fill_factor=2, diag_pivot_thresh=0.33, maxiter=1000, tol=1e-5, 
+                 sym=False, use_precond=True, M=None, drop_tol=1e-3, 
+                 fill_factor=12, diag_pivot_thresh=None, maxiter=1000, tol=1e-5, 
                  verbose=False):
 
     """Calculates the steady state for quantum evolution subject to the
@@ -106,18 +106,22 @@ def steadystate( A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
         Effective preconditioning dramatically improves the rate of convergence, 
         for iterative methods.  Does not affect other solvers.
 
-    fill_factor : float, default=2
+    fill_factor : float, default=12
         ITERATIVE ONLY. Specifies the fill ratio upper bound (>=1) of the iLU
         preconditioner.  Lower values save memory at the cost of longer
-        execution times.
+        execution times and a possible singular factorization.
     
-    drop_tol : float, default=1e-2
+    drop_tol : float, default=1e-3
         ITERATIVE ONLY. Sets the threshold for the magnitude of preconditioner
-        elements that should be dropped.
+        elements that should be dropped.  Can be reduced for a courser factorization
+        at the cost of an increased number of iterations, and a possible singular 
+        factorization. 
 
-    diag_pivot_thresh : float, default=0.33
-        ITERATIVE ONLY. Sets the threshold for which diagonal elements are
-        considered acceptable pivot points when using a preconditioner.
+    diag_pivot_thresh : float, default=None
+        ITERATIVE ONLY. Sets the threshold between [0,1] for which diagonal 
+        elements are considered acceptable pivot points when using a 
+        preconditioner.  A value of zero forces the pivot to be the diagonal
+        element.
 
     verbose : bool default=False
         Flag for printing out detailed information on the steady state solver.
@@ -207,7 +211,7 @@ def _steadystate_direct_sparse(L, verbose=False):
             (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
             shape=(n ** 2, n ** 2))
     
-    use_solver(assumeSortedIndices=True)
+    use_solver(assumeSortedIndices=True, useUmfpack=False)
     M.sort_indices()
 
     if verbose:
@@ -262,9 +266,8 @@ def _iterative_precondition(A, n, drop_tol, diag_pivot_thresh, fill_factor,
         start_time = time.time()
 
     try:
-        P = spilu(
-            A, drop_tol=drop_tol, permc_spec="COLAMD", 
-            diag_pivot_thresh=diag_pivot_thresh, fill_factor=fill_factor)
+        P = spilu(A, drop_tol=drop_tol, diag_pivot_thresh=diag_pivot_thresh, 
+                    fill_factor=fill_factor, options=dict(ILU_MILU='SMILU_3'))
         
         P_x = lambda x: P.solve(x)
         M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
@@ -279,8 +282,8 @@ def _iterative_precondition(A, n, drop_tol, diag_pivot_thresh, fill_factor,
 
 
 def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
-                           use_rcm=True, sym=False, fill_factor=2,
-                           maxiter=1000, drop_tol=1e-2, diag_pivot_thresh=0.33,
+                           use_rcm=True, sym=False, fill_factor=12,
+                           maxiter=1000, drop_tol=1e-3, diag_pivot_thresh=None,
                            verbose=False):
     """
     Iterative steady state solver using the LGMRES algorithm
@@ -290,12 +293,11 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
     if verbose:
         print('Starting GMRES solver...')
 
-    use_solver(assumeSortedIndices=True)
     dims=L.dims[0]
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2)
     b[0] = 1.0
-    L = L.data.tocsc() + sp.csc_matrix((np.ones(n),
+    L = L.data.tocsc() + sp.csc_matrix((1e-1*np.ones(n),
             (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
             shape=(n ** 2, n ** 2))
     
@@ -309,16 +311,12 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
         if verbose:
             print('RCM bandwidth ', sparse_bandwidth(L))
     
-    use_solver(assumeSortedIndices=True)
+    use_solver(assumeSortedIndices=True, useUmfpack=False)
     L.sort_indices()
     
-    if use_precond and M is None:
+    if M is None:
         M = _iterative_precondition(L, n, drop_tol, diag_pivot_thresh, 
-                                    fill_factor, verbose)
-    
-    elif use_precond==False and M is None:
-        M = None
-
+                                    fill_factor,verbose)
     if verbose:
         start_time = time.time()
 
@@ -343,8 +341,8 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
 
 
 def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True, M=None,
-                                maxiter=1000, drop_tol=1e-2, diag_pivot_thresh=0.33,
-                                fill_factor=2, verbose=False):
+                                maxiter=1000, drop_tol=1e-3, diag_pivot_thresh=None,
+                                fill_factor=12, verbose=False):
     """
     Iterative steady state solver using the BICG algorithm
     and a sparse incomplete LU preconditioner.
@@ -353,7 +351,7 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True, M=N
     if verbose:
         print('Starting BICG solver...')
 
-    use_solver(assumeSortedIndices=True)
+    use_solver(assumeSortedIndices=True, useUmfpack=False)
     dims=L.dims[0]
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2)
@@ -373,12 +371,9 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True, M=N
         if verbose:
             print('RCM bandwidth ', sparse_bandwidth(L))
     
-    if use_precond and M is None:
+    if M is None:
         M = _iterative_precondition(L, n, drop_tol,
                                     diag_pivot_thresh, fill_factor, verbose)
-    
-    elif use_precond==False and M is None:
-        M = None
 
     if verbose:
         start_time = time.time()
