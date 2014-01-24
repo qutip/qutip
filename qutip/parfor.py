@@ -88,18 +88,17 @@ def parfor(func, *args, **kwargs):
 
     """
     kw = _default_parfor_settings()
-    for keys in kwargs.keys():
-        if keys in kw.keys():
-            kw[keys]=kwargs[keys]
-            del kwargs[keys]
+    if 'num_cpus' in kwargs.keys():
+        kw['num_cpus']=kwargs['num_cpus']
+        del kwargs['num_cpus']
     if len(kwargs) != 0:
         task_func = partial(_task_wrapper_with_args, user_args=kwargs)
     else:
         task_func = _task_wrapper
     
-    if kw['num_cpus'] > cpu_count():
-        print("Requested number of CPUs (%s) " % cpus +
-              "is larger than physical number (%s)." % cpu_count())
+    if kw['num_cpus'] > qset.num_cpus:
+        print("Requested number of CPUs (%s) " % kw['num_cpus'] +
+              "is larger than physical number (%s)." % qset.num_cpus)
         print("Reduce 'num_cpus' for greater performance.")
 
     pool = Pool(processes=kw['num_cpus'])
