@@ -1272,7 +1272,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
 def _mc_dm_avg(psi_list):
     """
     Private function that averages density matrices in parallel
-    over all trajectores for a single time using parfor.
+    over all trajectories for a single time using parfor.
     """
     ln = len(psi_list)
     dims = psi_list[0].dims
