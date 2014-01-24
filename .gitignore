@@ -23,6 +23,7 @@ qutip/version.py
 qutip/__config__.py
 rhs*.pyx
 
+*.c
 
 *.dat
 
