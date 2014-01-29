@@ -198,6 +198,36 @@ class Bloch():
         # Style of points, 'm' for multiple colors, 's' for single color
         self.point_style = []
 
+    def set_label_convention(self, convention):
+        """Set x, y and z labels according to one of conventions.
+
+        Parameters
+        ----------
+        convention : string
+            One of the following:
+            - "original"
+            - "xyz"
+            - "01"
+        """
+        if convention == "original":
+            self.xlabel = ['$x$', '']
+            self.ylabel = ['$y$', '']
+            self.zlabel = ['$\left|0\\right>$', '$\left|1\\right>$']
+        elif convention == "xyz":
+            self.xlabel = ['$x$', '']
+            self.ylabel = ['$y$', '']
+            self.zlabel = ['$z$', '']
+        elif convention == "01":
+            self.xlabel = ['', '']
+            self.ylabel = ['', '']
+            self.zlabel = ['$\left|0\\right>$', '$\left|1\\right>$']
+        # elif convention == "polarization":
+        #     self.xlabel = ['$\left|0\\right>$', '$\left|0\\right>$']
+        #     self.ylabel = ['$\left|0\\right>$', '$\left|0\\right>$']
+        #     self.zlabel = ['$\left|0\\right>$', '$\left|1\\right>$']
+        else:
+            raise Exception("No such convention.")
+
     def __str__(self):
         s = ""
         s += "Bloch data:\n"
