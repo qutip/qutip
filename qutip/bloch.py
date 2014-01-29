@@ -135,7 +135,9 @@ class Bloch():
             self.user_axes = axes
         # use user-supplied figure object if present
         self.input_axes = axes
-        # he size of the figure in inches, default = [7,7].
+        # Background axes, default = False
+        self.background = False
+        # The size of the figure in inches, default = [5,5].
         self.size = [5, 5]
         # Azimuthal and Elvation viewing angles, default = [-60,30].
         self.view = [-60, 30]
@@ -321,14 +323,16 @@ class Bloch():
                 self.fig = figure(figsize=self.size)
             self.axes = Axes3D(self.fig, azim=self.view[0],
                                elev=self.view[1])
-        self.axes.set_xlim3d(-0.7, 0.7)
-        self.axes.set_ylim3d(-0.7, 0.7)
-        self.axes.set_zlim3d(-0.7, 0.7)
-        self.axes.set_axis_off()  # no background
-        # self.axes.clear()
+        if self.background:
+            self.axes.clear()
+            self.plot_axes()
+        else:
+            self.axes.set_xlim3d(-0.7, 0.7)
+            self.axes.set_ylim3d(-0.7, 0.7)
+            self.axes.set_zlim3d(-0.7, 0.7)
+            self.axes.set_axis_off()
         self.axes.grid(False)
         self.plot_back()
-        # self.plot_axes()  # better aspect
         self.plot_points()
         self.plot_vectors()
         self.plot_front()
