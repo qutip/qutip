@@ -136,7 +136,7 @@ class Bloch():
         # use user-supplied figure object if present
         self.input_axes = axes
         # he size of the figure in inches, default = [7,7].
-        self.size = [7, 7]
+        self.size = [5, 5]
         # Azimuthal and Elvation viewing angles, default = [-60,30].
         self.view = [-60, 30]
         # Color of Bloch sphere, default = #FFDDDD
@@ -172,7 +172,7 @@ class Bloch():
         # List of colors for Bloch vectors, default = ['b','g','r','y']
         self.vector_color = ['g', '#CC6600', 'b', 'r']
         #: Width of Bloch vectors, default = 5
-        self.vector_width = 5
+        self.vector_width = 3
         #: Style of Bloch vectors, default = '-|>' (or 'simple')
         self.vector_style = '-|>'
         #: Sets the width of the vectors arrowhead
@@ -321,10 +321,14 @@ class Bloch():
                 self.fig = figure(figsize=self.size)
             self.axes = Axes3D(self.fig, azim=self.view[0],
                                elev=self.view[1])
-        self.axes.clear()
+        self.axes.set_xlim3d(-0.7, 0.7)
+        self.axes.set_ylim3d(-0.7, 0.7)
+        self.axes.set_zlim3d(-0.7, 0.7)
+        self.axes.set_axis_off()  # no background
+        # self.axes.clear()
         self.axes.grid(False)
         self.plot_back()
-        self.plot_axes()
+        # self.plot_axes()  # better aspect
         self.plot_points()
         self.plot_vectors()
         self.plot_front()
