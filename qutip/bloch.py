@@ -207,24 +207,45 @@ class Bloch():
             One of the following:
             - "original"
             - "xyz"
+            - "sx sy sz"
             - "01"
+            - "polarization jones"
+            - "polarization jones letters"
+              see also: http://en.wikipedia.org/wiki/Jones_calculus
+            - "polarization stokes"
+              see also: http://en.wikipedia.org/wiki/Stokes_parameters
         """
+        ketex = "$\\left.|%s\\right\\rangle$"
+        # \left.| is on purpose, so that every ket has the same size
+
         if convention == "original":
             self.xlabel = ['$x$', '']
             self.ylabel = ['$y$', '']
-            self.zlabel = ['$\left|0\\right>$', '$\left|1\\right>$']
+            self.zlabel = ['$\\left|0\\right>$', '$\\left|1\\right>$']
         elif convention == "xyz":
             self.xlabel = ['$x$', '']
             self.ylabel = ['$y$', '']
             self.zlabel = ['$z$', '']
+        elif convention == "sx sy sz":
+            self.xlabel = ['$s_x$', '']
+            self.ylabel = ['$s_y$', '']
+            self.zlabel = ['$s_z$', '']
         elif convention == "01":
             self.xlabel = ['', '']
             self.ylabel = ['', '']
-            self.zlabel = ['$\left|0\\right>$', '$\left|1\\right>$']
-        # elif convention == "polarization":
-        #     self.xlabel = ['$\left|0\\right>$', '$\left|0\\right>$']
-        #     self.ylabel = ['$\left|0\\right>$', '$\left|0\\right>$']
-        #     self.zlabel = ['$\left|0\\right>$', '$\left|1\\right>$']
+            self.zlabel = ['$\\left|0\\right>$', '$\\left|1\\right>$']
+        elif convention == "polarization jones":
+            self.xlabel = [ketex % "\\nearrow\\hspace{-1.46}\\swarrow", ketex % "\\nwarrow\\hspace{-1.46}\\searrow"]
+            self.ylabel = [ketex % "\\circlearrowleft", ketex % "\\circlearrowright"]
+            self.zlabel = [ketex % "\\leftrightarrow", ketex % "\\updownarrow"]
+        elif convention == "polarization jones letters":
+            self.xlabel = [ketex % "D", ketex % "A"]
+            self.ylabel = [ketex % "L", ketex % "R"]
+            self.zlabel = [ketex % "H", ketex % "V"]
+        elif convention == "polarization stokes":
+            self.ylabel = ["$\\nearrow\\hspace{-1.46}\\swarrow$", "$\\nwarrow\\hspace{-1.46}\\searrow$"]
+            self.zlabel = ["$\\circlearrowleft$", "$\\circlearrowright$"]
+            self.xlabel = ["$\\leftrightarrow$", "$\\updownarrow$"]
         else:
             raise Exception("No such convention.")
 
