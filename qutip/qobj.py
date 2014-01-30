@@ -221,7 +221,7 @@ class Qobj():
                 # case where input is not array or sparse, i.e. a list
                 if len(np.array(inpt).shape) == 1:
                     # if list has only one dimension (i.e [5,4])
-                    inpt = np.array([inpt])
+                    inpt = np.array([inpt]).transpose()
                 else:  # if list has two dimensions (i.e [[5,4]])
                     inpt = np.array(inpt)
 
