@@ -61,7 +61,7 @@ from qutip.settings import debug
 import threading
 threading._DummyThread._Thread__stop = lambda x: 42
 
-from qutip.gui.progressbar import BaseProgressBar
+from qutip.gui.progressbar import TextProgressBar
 
 if debug:
     import inspect
@@ -78,7 +78,7 @@ _cy_rhs_func = None
 
 
 def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
-            args={}, options=Odeoptions(), progress_bar=BaseProgressBar()):
+            args={}, options=Odeoptions()):
     """Monte-Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
@@ -172,7 +172,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         e_ops_dict = None
 
     odeconfig.options = options
-    odeconfig.progress_bar = progress_bar
+    odeconfig.progress_bar = TextProgressBar(ntraj)
 
     # set num_cpus to the value given in qutip.settings if none in Odeoptions
     if not odeconfig.options.num_cpus:
@@ -181,7 +181,8 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     if options.tidy:
         odeconfig.psi0 = psi0.tidyup(options.atol).full().ravel()
     else:
-        odeconfig.psi0 = psi0.full()
+        odeconfig.psi0 = psi0.full().ravel()
+    
     odeconfig.psi0_dims = psi0.dims
     odeconfig.psi0_shape = psi0.shape
     # set general items
@@ -461,7 +462,8 @@ class _MC_class():
                                              self.odeconfig.psi0.conj())
                 else:
                     # output is not averaged, so write state vectors
-                    mc_alg_out[0] = self.odeconfig.psi0
+                    mc_alg_out[0] = np.reshape(self.odeconfig.psi0,
+                                            (self.odeconfig.psi0.shape[0],1))
             else:
                 # PRE-GENERATE LIST OF EXPECTATION VALUES
                 mc_alg_out = []
@@ -895,8 +897,9 @@ def _mc_alg_evolve(nt, args, odeconfig):
             #-------------------------------------------------------
 
             ###--after while loop--####
-            out_psi = ODE.y / dznrm2(ODE.y)
+            out_psi=ODE.y / dznrm2(ODE.y)
             if odeconfig.e_num == 0:
+                out_psi = np.reshape(out_psi,(out_psi.shape[0],1))
                 if odeconfig.options.average_states:
                     mc_alg_out[k] = np.outer(out_psi, out_psi.conj())
                 else:
