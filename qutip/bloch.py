@@ -290,6 +290,7 @@ class Bloch():
         self.points = []
         self.vectors = []
         self.point_style = []
+        self.annotations = []
 
     def add_points(self, points, meth='s'):
         """Add a list of data points to bloch sphere.
