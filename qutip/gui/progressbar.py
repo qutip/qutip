@@ -55,7 +55,7 @@ class BaseProgressBar(object):
     def start(self, iterations, chunk_size=10):
         self.N = float(iterations)
         self.p_chunk_size = chunk_size
-        self.p_chunk = 0
+        self.p_chunk = chunk_size
         self.t_start = time.time()
 
     def update(self, n):
@@ -96,11 +96,11 @@ class TextProgressBar(BaseProgressBar):
     def update(self, n):
         p = (n / self.N) * 100.0
         if p >= self.p_chunk:
-            print("Completed: %4.1f%%." % p +
-                  " Elapsed time: %s." % self.time_elapsed() +
-                  " Est. remaining time: %s." % self.time_remaining_est(p))
+            print("%4.1f%%." % p +
+                  " Run time: %s." % self.time_elapsed() +
+                  " Est. time left: %s" % self.time_remaining_est(p))
             self.p_chunk += self.p_chunk_size
 
     def finished(self):
        self.t_done = time.time()
-       print("Elapsed time: %s" % self.time_elapsed())
+       print("Total run time: %s" % self.time_elapsed())
