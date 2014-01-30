@@ -412,12 +412,15 @@ class Bloch():
                                elev=self.view[1])
         if self.background:
             self.axes.clear()
-            self.plot_axes()
+            self.axes.set_xlim3d(-1.3, 1.3)
+            self.axes.set_ylim3d(-1.3, 1.3)
+            self.axes.set_zlim3d(-1.3, 1.3)
         else:
+            self.plot_axes()
+            self.axes.set_axis_off()
             self.axes.set_xlim3d(-0.7, 0.7)
             self.axes.set_ylim3d(-0.7, 0.7)
             self.axes.set_zlim3d(-0.7, 0.7)
-            self.axes.set_axis_off()
         self.axes.grid(False)
         self.plot_back()
         self.plot_points()
@@ -477,9 +480,6 @@ class Bloch():
                        lw=self.frame_width, color=self.frame_color)
         self.axes.plot(0 * span, span, zs=0, zdir='y', label='Z',
                        lw=self.frame_width, color=self.frame_color)
-        self.axes.set_xlim3d(-1.3, 1.3)
-        self.axes.set_ylim3d(-1.3, 1.3)
-        self.axes.set_zlim3d(-1.3, 1.3)
 
     def plot_axes_labels(self):
         # axes labels
