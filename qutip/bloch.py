@@ -193,6 +193,8 @@ class Bloch():
         self.points = []
         # Data for Bloch vectors
         self.vectors = []
+        # Data for annotations
+        self.annotations = []
         # Number of times sphere has been saved
         self.savenum = 0
         # Style of points, 'm' for multiple colors, 's' for single color
@@ -359,6 +361,40 @@ class Bloch():
         else:
             self.vectors.append(vectors)
 
+    def add_annotation(self, state_or_vector, text, **kwargs):
+        """Add a text or LaTeX annotation to Bloch sphere,
+        parametrized by a qubit state or a vector.
+
+        Parameters
+        ----------
+        state_or_vector : Qobj/array/list/tuple
+            Position for the annotaion.
+            Qobj of a qubit or a vector of 3 elements.
+
+        text : str/unicode
+            Annotation text.
+            You can use LaTeX, but remember to use raw string
+            e.g. r"$\langle x \rangle$"
+            or escape backslashes
+            e.g. "$\\langle x \\rangle$". 
+
+        **kwargs :
+            Options as for mplot3d.axes3d.text, including:
+            fontsize, color, horizontalalignment, verticalalignment.
+        """
+        if isinstance(state_or_vector, Qobj):
+            vec = [expect(sigmax(), state_or_vector),
+                   expect(sigmay(), state_or_vector),
+                   expect(sigmaz(), state_or_vector)]
+        elif isinstance(state_or_vector, (list, ndarray, tuple)) \
+              and len(state_or_vector) == 3: 
+            vec = state_or_vector 
+        else:
+            raise Exception("Position needs to be specified by a qubit state or a 3D vector.")
+        self.annotations.append({'position': vec,
+                                 'text': text,
+                                 'opts': kwargs})
+
     def make_sphere(self):
         """
         Plots Bloch sphere and data sets.
@@ -388,6 +424,7 @@ class Bloch():
         self.plot_vectors()
         self.plot_front()
         self.plot_axes_labels()
+        self.plot_annotations()
 
     def plot_back(self):
         #----back half of sphere------------------
@@ -545,6 +582,18 @@ class Bloch():
                                real(self.points[k][2]),
                                alpha=0.75, zdir='z',
                                color=color)
+
+    def plot_annotations(self):
+        # -X and Y data are switched for plotting purposes
+        for annotation in self.annotations:
+            vec = annotation['position']
+            opts = {'fontsize': self.font_size,
+                    'color': self.font_color,
+                    'horizontalalignment': 'center',
+                    'verticalalignment': 'center'}
+            opts.update(annotation['opts'])
+            self.axes.text(vec[1], -vec[0], vec[2],
+                           annotation['text'], **opts)
 
     def show(self):
         """
