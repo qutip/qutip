@@ -158,7 +158,7 @@ class Bloch():
         # Labels for y-axis (in LaTex), default = ['$y$','']
         self.ylabel = ['$y$', '']
         # Position of y-axis labels, default = [1.1,-1.1]
-        self.ylpos = [1.1, -1.1]
+        self.ylpos = [1.2, -1.2]
         # Labels for z-axis (in LaTex),
         # default = ['$\left|0\\right>$','$\left|1\\right>$']
         self.zlabel = ['$\left|0\\right>$', '$\left|1\\right>$']
@@ -483,20 +483,18 @@ class Bloch():
 
     def plot_axes_labels(self):
         # axes labels
-        self.axes.text(0, -self.xlpos[0], 0, self.xlabel[0],
-                       color=self.font_color, fontsize=self.font_size)
-        self.axes.text(0, -self.xlpos[1], 0, self.xlabel[1],
-                       color=self.font_color, fontsize=self.font_size)
+        opts = {'fontsize': self.font_size,
+                'color': self.font_color,
+                'horizontalalignment': 'center',
+                'verticalalignment': 'center'}
+        self.axes.text(0, -self.xlpos[0], 0, self.xlabel[0], **opts)
+        self.axes.text(0, -self.xlpos[1], 0, self.xlabel[1], **opts)
 
-        self.axes.text(self.ylpos[0], 0, 0, self.ylabel[0],
-                       color=self.font_color, fontsize=self.font_size)
-        self.axes.text(self.ylpos[1], 0, 0, self.ylabel[1],
-                       color=self.font_color, fontsize=self.font_size)
+        self.axes.text(self.ylpos[0], 0, 0, self.ylabel[0], **opts)
+        self.axes.text(self.ylpos[1], 0, 0, self.ylabel[1], **opts)
 
-        self.axes.text(0, 0, self.zlpos[0], self.zlabel[0],
-                       color=self.font_color, fontsize=self.font_size)
-        self.axes.text(0, 0, self.zlpos[1], self.zlabel[1],
-                       color=self.font_color, fontsize=self.font_size)
+        self.axes.text(0, 0, self.zlpos[0], self.zlabel[0], **opts)
+        self.axes.text(0, 0, self.zlpos[1], self.zlabel[1], **opts)
 
         for a in (self.axes.w_xaxis.get_ticklines() +
                   self.axes.w_xaxis.get_ticklabels()):
