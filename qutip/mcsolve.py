@@ -43,6 +43,7 @@ from numpy.random import RandomState, random_integers
 from scipy import arange, array, cumsum, mean, ndarray, setdiff1d, sort, zeros
 from scipy.integrate import ode
 from scipy.linalg import norm
+import scipy.sparse as sp
 from scipy.linalg.blas import get_blas_funcs
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
@@ -58,9 +59,6 @@ from qutip.odedata import Odedata
 from qutip.odechecks import _ode_checks
 import qutip.settings
 from qutip.settings import debug
-import threading
-threading._DummyThread._Thread__stop = lambda x: 42
-
 from qutip.gui.progressbar import TextProgressBar
 
 if debug:
@@ -185,6 +183,10 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     
     odeconfig.psi0_dims = psi0.dims
     odeconfig.psi0_shape = psi0.shape
+    # set options on ouput states
+    odeconfig.steady_state_average = odeconfig.options.steady_state_average
+    if odeconfig.steady_state_average:
+        odeconfig.options.average_states = True
     # set general items
     odeconfig.tlist = tlist
     if isinstance(ntraj, (list, ndarray)):
@@ -255,7 +257,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     output.solver = 'mcsolve'
     # state vectors
     if (mc.psi_out is not None and odeconfig.options.average_states
-            and odeconfig.cflag):
+            and odeconfig.cflag and ntraj != 1):
         output.states = parfor(_mc_dm_avg, mc.psi_out.T)
     elif mc.psi_out is not None:
         output.states = mc.psi_out
@@ -375,8 +377,13 @@ class _MC_class():
             if odeconfig.e_num == 0:
                 # if no expectation operators, preallocate #ntraj arrays
                 # for state vectors
-                self.psi_out = array([zeros((self.num_times), dtype=object)
+                if self.odeconfig.steady_state_average:
+                    self.psi_out = array([zeros((1), dtype=object)
                                      for q in range(odeconfig.ntraj)])
+                else:
+                    self.psi_out = array([zeros((self.num_times), dtype=object)
+                                     for q in range(odeconfig.ntraj)])
+            
             else:  # preallocate array of lists for expectation values
                 self.expect_out = [[] for x in range(odeconfig.ntraj)]
 
@@ -455,15 +462,27 @@ class _MC_class():
             #        raise "Incompatible size of seeds vector in Odeconfig."
 
             if self.odeconfig.e_num == 0:
-                mc_alg_out = zeros((self.num_times), dtype=ndarray)
-                if self.odeconfig.options.average_states:
-                    # output is averaged states, so use dm
-                    mc_alg_out[0] = np.outer(self.odeconfig.psi0,
-                                             self.odeconfig.psi0.conj())
+                if odeconfig.steady_state_average:
+                    mc_alg_out = zeros((1), dtype=object)
                 else:
+                    mc_alg_out = zeros((self.num_times), dtype=object)
+                temp=sp.csr_matrix(np.reshape(self.odeconfig.psi0,
+                        (self.odeconfig.psi0.shape[0],1)),dtype=complex)
+                if self.odeconfig.options.average_states and not odeconfig.steady_state_average:
+                    # output is averaged states, so use dm
+                    mc_alg_out[0] = Qobj(temp*temp.conj().transpose(),
+                                            [odeconfig.psi0_dims[0],
+                                             odeconfig.psi0_dims[0]],
+                                            [odeconfig.psi0_shape[0],
+                                             odeconfig.psi0_shape[0]],
+                                         fast='mc-dm')
+                elif not self.odeconfig.options.average_states and not odeconfig.steady_state_average:
                     # output is not averaged, so write state vectors
-                    mc_alg_out[0] = np.reshape(self.odeconfig.psi0,
-                                            (self.odeconfig.psi0.shape[0],1))
+                    mc_alg_out[0] = Qobj(temp, odeconfig.psi0_dims,
+                                         odeconfig.psi0_shape, fast='mc')
+                elif odeconfig.steady_state_average:
+                    mc_alg_out[0]=temp*temp.conj().transpose()
+                    
             else:
                 # PRE-GENERATE LIST OF EXPECTATION VALUES
                 mc_alg_out = []
@@ -636,13 +655,13 @@ def _no_collapse_psi_out(num_times, psi_out, odeconfig):
                        max_step=opt.max_step)
     # set initial conditions
     ODE.set_initial_value(odeconfig.psi0, odeconfig.tlist[0])
-    psi_out[0] = Qobj(
-        odeconfig.psi0, odeconfig.psi0_dims, odeconfig.psi0_shape, 'ket')
+    psi_out[0] = Qobj(odeconfig.psi0, odeconfig.psi0_dims, 
+                        odeconfig.psi0_shape, 'ket')
     for k in range(1, num_times):
         ODE.integrate(odeconfig.tlist[k], step=0)  # integrate up to tlist[k]
         if ODE.successful():
-            psi_out[k] = Qobj(ODE.y / norm(
-                ODE.y, 2), odeconfig.psi0_dims, odeconfig.psi0_shape, 'ket')
+            psi_out[k] = Qobj(ODE.y / dznrm2(ODE.y), odeconfig.psi0_dims, 
+                            odeconfig.psi0_shape, 'ket')
         else:
             raise ValueError('Error in ODE solver')
     return psi_out
@@ -706,7 +725,7 @@ def _no_collapse_expect_out(num_times, expect_out, odeconfig):
     for k in range(1, num_times):
         ODE.integrate(odeconfig.tlist[k], step=0)  # integrate up to tlist[k]
         if ODE.successful():
-            state = ODE.y / norm(ODE.y)
+            state = ODE.y / dznrm2(ODE.y)
             for jj in range(odeconfig.e_num):
                 expect_out[jj][k] = cy_expect_psi_csr(odeconfig.e_ops_data[jj],
                                               odeconfig.e_ops_ind[jj],
@@ -891,7 +910,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                                 spmv_csr(odeconfig.c_ops_data[j],
                                      odeconfig.c_ops_ind[j],
                                      odeconfig.c_ops_ptr[j], ODE.y)
-                    state = state / norm(state, 2)
+                    state = state / dznrm2(state)
                     ODE.set_initial_value(state, ODE.t)
                     rand_vals = prng.rand(2)
             #-------------------------------------------------------
@@ -899,11 +918,21 @@ def _mc_alg_evolve(nt, args, odeconfig):
             ###--after while loop--####
             out_psi=ODE.y / dznrm2(ODE.y)
             if odeconfig.e_num == 0:
-                out_psi = np.reshape(out_psi,(out_psi.shape[0],1))
-                if odeconfig.options.average_states:
-                    mc_alg_out[k] = np.outer(out_psi, out_psi.conj())
+                out_psi = sp.csr_matrix(np.reshape(out_psi,(out_psi.shape[0],1)),dtype=complex)
+                if odeconfig.options.average_states and not odeconfig.steady_state_average:
+                    mc_alg_out[k] = Qobj(out_psi*out_psi.conj().transpose(),
+                                                [odeconfig.psi0_dims[0],
+                                                 odeconfig.psi0_dims[0]],
+                                                [odeconfig.psi0_shape[0],
+                                                 odeconfig.psi0_shape[0]],
+                                             fast='mc-dm')
+                
+                elif odeconfig.steady_state_average:
+                    mc_alg_out[0] = mc_alg_out[0]+(out_psi*out_psi.conj().transpose())
+                
                 else:
-                    mc_alg_out[k] = out_psi
+                    mc_alg_out[k] = Qobj(out_psi, odeconfig.psi0_dims,
+                                        odeconfig.psi0_shape, fast='mc')
             else:
                 for jj in range(odeconfig.e_num):
                     mc_alg_out[jj][k] = cy_expect_psi_csr(odeconfig.e_ops_data[jj],
@@ -911,22 +940,16 @@ def _mc_alg_evolve(nt, args, odeconfig):
                                                   odeconfig.e_ops_ptr[jj],
                                                   out_psi,
                                                   odeconfig.e_ops_isherm[jj])
-
-        # RETURN VALUES
-        if odeconfig.e_num == 0:
-            if odeconfig.options.average_states:
-                mc_alg_out = array([Qobj(k, [odeconfig.psi0_dims[0],
-                                             odeconfig.psi0_dims[0]],
-                                            [odeconfig.psi0_shape[0],
-                                             odeconfig.psi0_shape[0]],
-                                         fast='mc-dm')
-                                    for k in mc_alg_out])
-            else:
-                mc_alg_out = array([Qobj(k, odeconfig.psi0_dims,
-                                         odeconfig.psi0_shape, fast='mc')
-                                    for k in mc_alg_out])
-
-        return nt, copy.deepcopy(mc_alg_out), \
+        #Run at end of mc_alg function
+        #------------------------------
+        if odeconfig.steady_state_average:
+            mc_alg_out=array([Qobj(mc_alg_out[0]/float(len(tlist)),
+                                                    [odeconfig.psi0_dims[0],
+                                                     odeconfig.psi0_dims[0]],
+                                                    [odeconfig.psi0_shape[0],
+                                                     odeconfig.psi0_shape[0]],
+                                                 fast='mc-dm')])
+        return nt, mc_alg_out, \
             collapse_times, which_oper
 
     except Exception as e:

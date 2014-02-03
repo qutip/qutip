@@ -104,10 +104,11 @@ class Odeoptions():
     """
     def __init__(self, atol=1e-8, rtol=1e-6, method='adams', order=12,
                  nsteps=1000, first_step=0, max_step=0, min_step=0,
-                 mc_avg=True, average_states=True, tidy=True, num_cpus=0,
+                 mc_avg=True, average_states=False, tidy=True, num_cpus=0,
                  norm_tol=1e-3, norm_steps=5, rhs_reuse=False,
                  rhs_filename=None, gui=False, ntraj=500, rhs_with_state=False,
-                 store_final_state=False, store_states=False, seeds=None):
+                 store_final_state=False, store_states=False, seeds=None,
+                 steady_state_average=False):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -159,6 +160,8 @@ class Odeoptions():
         self.store_states = store_states
         # extra solver parameters
         self.seeds = seeds
+        # average mcsolver density matricies assuming steady state evolution
+        self.steady_state_average = steady_state_average
 
     def __str__(self):
         s = ""
