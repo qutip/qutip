@@ -88,24 +88,15 @@ def _single_qobj_expect(oper, state):
     Private function used by expect to calculate expectation values of Qobjs.
     """
     if isoper(oper):
+        if oper.dims[1] != state.dims[0]:
+            raise Exception('Operator and state do not have same tensor structure.')
+        
         if state.type == 'oper':
             # calculates expectation value via TR(op*rho)
-            #prod = oper.data * state.data
-            #tr = prod.diagonal().sum()
-            #if oper.isherm and state.isherm:
-            #    return float(np.real(tr))
-            #else:
-            #    return tr
-
             return cy_spmm_tr(oper.data, state.data, oper.isherm and state.isherm)
 
         elif state.type == 'ket':
             # calculates expectation value via <psi|op|psi>
-            #prod = state.data.conj().T.dot(oper.data * state.data)
-            #if oper.isherm:
-            #    return float(np.real(prod[0, 0]))
-            #else:
-            #    return prod[0, 0]
             return cy_expect_psi(oper.data, state.full(squeeze=True), oper.isherm)
     else:
         raise TypeError('Invalid operand types')
