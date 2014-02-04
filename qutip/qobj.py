@@ -1051,7 +1051,7 @@ class Qobj():
             if len(inpt) != max(self.shape):
                 raise TypeError(
                     'Invalid size of ket list for basis transformation')
-            S = np.matrix(np.hstack([psi.full() for psi in inpt]))
+            S = np.matrix(np.hstack([psi.full() for psi in inpt])).H
         elif isinstance(inpt, np.ndarray):
             S = np.matrix(inpt)
         else:
