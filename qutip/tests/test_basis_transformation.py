@@ -95,5 +95,15 @@ def test_Transformation5():
     assert_((rho1 - rho2).norm() < 1e-6)
 
 
+def test_Transformation5():
+    "Check diagonalization via eigenbasis transformation"
+
+    cx, cy, cz = np.random.rand(), np.random.rand(), np.random.rand()
+    H = cx * sigmax() + cy * sigmay() + cz * sigmaz()
+    evals, evecs = H.eigenstates()
+    Heb = H.transform(evecs).tidyup()  # Heb should be diagonal
+    assert_(abs(Heb.full() - np.diag(Heb.full().diagonal())).max() < 1e-6)
+
+
 if __name__ == "__main__":
     run_module_suite()
