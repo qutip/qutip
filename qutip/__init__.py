@@ -45,8 +45,8 @@ from qutip.version import version as __version__
 # if the requirements aren't fulfilled
 #
 def _version2int(version_string):
-    str_list = version_string.split("-dev")[0].split("rc")[0].split("b")[0].split('.')
-    return sum([int(d) * (100 ** (3 - n)) for n, d in enumerate(str_list[:3])])
+    str_list = version_string.split("-dev")[0].split("rc")[0].split("b")[0].split("post")[0].split('.')
+    return sum([int(d if len(d) > 0 else 0) * (100 ** (3 - n)) for n, d in enumerate(str_list[:3])])
 
 numpy_requirement = "1.6.0"
 try:
