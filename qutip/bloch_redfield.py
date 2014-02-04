@@ -183,8 +183,8 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     # transform the initial density matrix and the e_ops opterators to the
     # eigenbasis
     #
-    rho = rho0.transform(ekets, True)
-    e_eb_ops = [e.transform(ekets, True) for e in e_ops]
+    rho = rho0.transform(ekets)
+    e_eb_ops = [e.transform(ekets) for e in e_ops]
 
     #
     # setup integrator
@@ -214,7 +214,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
             for m, e in enumerate(e_eb_ops):
                 result_list[m][t_idx] = expect(e, rho_tmp)
         else:
-            result_list.append(rho.transform(ekets, False))
+            result_list.append(rho.transform(ekets, True))
 
         r.integrate(r.t + dt)
         t_idx += 1
@@ -286,12 +286,12 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, use_secular=True):
 
     for k in range(K):
         #A[k,n,m] = a_ops[k].matrix_element(ekets[n], ekets[m])
-        A[k, :, :] = a_ops[k].transform(ekets, True).full()
+        A[k, :, :] = a_ops[k].transform(ekets).full()
 
     dw_min = abs(W[W.nonzero()]).min()
 
     # unitary part
-    Heb = H.transform(ekets, True)
+    Heb = H.transform(ekets)
     R = -1.0j * (spre(Heb) - spost(Heb))
     R.data = R.data.tolil()
     for I in range(N * N):

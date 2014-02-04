@@ -518,11 +518,11 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
     else:
         raise TypeError("e_ops must be a list Qobj or a callback function")
 
-    psi0_fb = psi0.transform(f_modes_0, True)
+    psi0_fb = psi0.transform(f_modes_0)
     for t_idx, t in enumerate(tlist):
         f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
         f_states_t = floquet_states(f_modes_t, f_energies, t)
-        psi_t = psi0_fb.transform(f_states_t, False)
+        psi_t = psi0_fb.transform(f_states_t, True)
 
         if expt_callback:
             # use callback method
@@ -822,7 +822,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     # computational basis to the floquet basis
     #
     if ekets is not None:
-        rho0 = rho0.transform(ekets, True)
+        rho0 = rho0.transform(ekets)
 
     #
     # setup integrator
@@ -853,7 +853,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
             else:
                 f_modes_table_t, T = f_modes_table
                 f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
-                e_ops(t, Qobj(rho).transform(f_modes_t, False))
+                e_ops(t, Qobj(rho).transform(f_modes_t, True))
         else:
             # calculate all the expectation values, or output rho if
             # no operators
@@ -863,7 +863,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
                 else:
                     f_modes_table_t, T = f_modes_table
                     f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
-                    output.states.append(Qobj(rho).transform(f_modes_t, False))
+                    output.states.append(Qobj(rho).transform(f_modes_t, True))
             else:
                 f_modes_table_t, T = f_modes_table
                 f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T)
