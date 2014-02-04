@@ -32,10 +32,64 @@
 ###############################################################################
 from numpy import sqrt, array, exp, where, prod
 import scipy.sparse as sp
-from qutip.states import basis, qstate, state_number_index, state_number_enumerate
+from qutip.states import (basis, qstate, state_number_index,
+                          state_number_enumerate)
 from qutip.qobj import Qobj
 from qutip.operators import *
 from qutip.tensor import tensor
+
+
+def rotation(op, phi):
+    """Single-qubit rotation for operator op with angle phi.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing the rotation.
+
+    """
+    return (-1j * op * phi / 2).expm()
+
+
+def rx(phi):
+    """Single-qubit rotation for operator sigmax with angle phi.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing the rotation.
+
+    """
+    return Qobj([[cos(phi/2), -1j * sin(phi/2)],
+                [-1j * sin(phi/2), cos(phi/2)]])
+
+
+def ry(phi):
+    """Single-qubit rotation for operator sigmay with angle phi.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing the rotation.
+
+    """
+    return Qobj([[cos(phi/2), -sin(phi/2)],
+                 [sin(phi/2), cos(phi/2)]])
+
+
+def rz(phi):
+    """Single-qubit rotation for operator sigmaz with angle phi.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing the rotation.
+
+    """
+    return Qobj([[exp(-1j * phi / 2), 0],
+                 [0, exp(1j * phi / 2)]])
+
+
 def cnot():
     """
     Quantum object representing the CNOT gate.
@@ -65,7 +119,6 @@ shape = [4, 4], type = oper, isHerm = True
     return Qobj(Q)
 
 
-#------------------
 def fredkin():
     """Quantum object representing the Fredkin gate.
 
@@ -104,7 +157,6 @@ shape = [8, 8], type = oper, isHerm = True
     return Qobj(Q)
 
 
-#------------------
 def toffoli():
     """Quantum object representing the Toffoli gate.
 
@@ -144,7 +196,6 @@ shape = [8, 8], type = oper, isHerm = True
     return Qobj(Q)
 
 
-#------------------
 def swap(mask=None):
     """Quantum object representing the SWAP gate.
 
@@ -326,3 +377,6 @@ shape = [2, 2], type = oper, isHerm = False
     d = basis(2,1)
     Q = u * u.dag() + (exp(1.0j * theta) * d * d.dag())
     return Qobj(Q)
+
+
+
