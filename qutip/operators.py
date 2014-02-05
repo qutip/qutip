@@ -105,7 +105,7 @@ shape = [3, 3], type = oper, isHerm = True
     elif args[0] == 'z':
         A = jz(j)
     else:
-        raise TypeError('Invlaid type')
+        raise TypeError('Invalid type')
     return Qobj(A.tocsr())
 
 
@@ -121,11 +121,10 @@ def jz(j):
     N = len(m)
     return sp.spdiags(m, 0, N, N, format='csr')
 
+
 #
 # Pauli spin 1/2 operators:
 #
-
-
 def sigmap():
     """Creation operator for Pauli spins.
 
@@ -243,12 +242,11 @@ shape = [4, 4], type = oper, isHerm = False
         raise ValueError("Hilbert space dimension must be integer value")
     return Qobj(sp.spdiags(np.sqrt(range(offset, N+offset)), 1, N, N, format='csr'))
 
+
 #
-# CREATE returns creation operator for N dimensional Hilbert space
+# create returns creation operator for N dimensional Hilbert space
 # out = create(N), N is integer value &  N>0
 #
-
-
 def create(N, offset=0):
     '''Creation (raising) operator.
 
@@ -532,9 +530,6 @@ def commutator(A, B, kind="normal"):
         raise TypeError("Unknown commutator kind '%s'" % kind)
 
 
-#
-# Three-level operators (qutrits)
-#
 def qutrit_ops():
     """
     Operators for a three level system (qutrit).
@@ -555,10 +550,6 @@ def qutrit_ops():
     sig23 = two * three.dag()
     sig31 = three * one.dag()
     return np.array([sig11, sig22, sig33, sig12, sig23, sig31])
-
-#
-# Generate operator from diagonals
-#
 
 
 def qdiags(diagonals, offsets, dims=None, shape=None):
@@ -582,7 +573,7 @@ def qdiags(diagonals, offsets, dims=None, shape=None):
 
     See Also
     --------
-    scipy.sparse.diags for useage information.
+    scipy.sparse.diags for usage information.
 
     Notes
     -----
@@ -680,8 +671,7 @@ shape = [4, 4], type = oper, isHerm = False
 
 def zero_oper(N, dims=None):
     """
-    Creates the zero operator with shape NxN and
-    dimensions `dims`.
+    Creates the zero operator with shape NxN and dimensions `dims`.
 
     Parameters
     ----------
