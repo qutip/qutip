@@ -60,8 +60,8 @@ def rx(phi):
         Quantum object for operator describing the rotation.
 
     """
-    return Qobj([[cos(phi/2), -1j * sin(phi/2)],
-                [-1j * sin(phi/2), cos(phi/2)]])
+    return Qobj([[np.cos(phi/2), -1j * np.sin(phi/2)],
+                [-1j * np.sin(phi/2), np.cos(phi/2)]])
 
 
 def ry(phi):
@@ -73,8 +73,8 @@ def ry(phi):
         Quantum object for operator describing the rotation.
 
     """
-    return Qobj([[cos(phi/2), -sin(phi/2)],
-                 [sin(phi/2), cos(phi/2)]])
+    return Qobj([[np.cos(phi/2), -np.sin(phi/2)],
+                 [np.sin(phi/2), np.cos(phi/2)]])
 
 
 def rz(phi):
@@ -86,8 +86,8 @@ def rz(phi):
         Quantum object for operator describing the rotation.
 
     """
-    return Qobj([[exp(-1j * phi / 2), 0],
-                 [0, exp(1j * phi / 2)]])
+    return Qobj([[np.exp(-1j * phi / 2), 0],
+                 [0, np.exp(1j * phi / 2)]])
 
 
 def cnot():
@@ -157,7 +157,7 @@ shape = [8, 8], type = oper, isHerm = True
     return Qobj(Q)
 
 
-def toffoli():
+def toffoli(target=2):
     """Quantum object representing the Toffoli gate.
 
     Returns
@@ -323,6 +323,22 @@ shape = [4, 4], type = oper, isHerm = False
                        [0, 1 / sqrt(2), -1j / sqrt(2), 0],
                        [0, -1j / sqrt(2), 1 / sqrt(2), 0],
                        [0, 0, 0, 1]]), dims=[[2, 2], [2, 2]])
+
+
+def sqrtswap():
+    """Quantum object representing the square root SWAP gate.
+
+    Returns
+    -------
+    sqrtswap_gate : qobj
+        Quantum object representation of square root SWAP gate
+
+    """
+    return Qobj(array([[1, 0, 0, 0],
+                       [0, 0.5 + 0.5j, 0.5 - 0.5j, 0],
+                       [0, 0.5 - 0.5j, 0.5 + 0.5j, 0],
+                       [0, 0, 0, 1]]),
+                  dims=[[2, 2], [2, 2]])
 
 
 def snot():
