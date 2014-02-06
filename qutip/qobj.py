@@ -1003,21 +1003,18 @@ class Qobj():
         out = Qobj(dims=self.dims, shape=self.shape,
                    type=self.type, isherm=self.isherm)
 
-        abs_data = abs(self.data.data.flatten())
-        if np.any(abs_data):
-            mx = max(abs_data)
-            if mx >= atol:
-                data = abs(self.data.data)
-                out.data = self.data.copy()
-                out.data.data[data < (atol * mx + np.finfo(float).eps)] = 0
-            else:
-                out.data = sp.csr_matrix(
-                    (self.shape[0], self.shape[1]), dtype=complex)
-        else:
-            out.data = sp.csr_matrix(
-                (self.shape[0], self.shape[1]), dtype=complex)
+        out.data = self.data.copy()
+
+        data_real = out.data.data.real
+        data_real[abs(data_real) < atol] = 0
+
+        data_imag = out.data.data.imag
+        data_imag[abs(data_imag) < atol] = 0
+
+        out.data.data = data_real + 1j * data_imag            
 
         out.data.eliminate_zeros()
+
         return out
 
     def transform(self, inpt, inverse=False):
