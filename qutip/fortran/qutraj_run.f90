@@ -37,6 +37,7 @@ module qutraj_run
   integer :: n_c_ops = 0
   integer :: n_e_ops = 0
   logical :: average_states = .true.
+  logical :: average_expect = .true.
 
   ! Optional ode options, 0 means use default values
   integer :: order=0,nsteps=0
@@ -347,8 +348,9 @@ module qutraj_run
         allocate(sol(1,ntraj,size(tlist),ode%neq), stat=istat)
         sol = (0.,0.)
       endif
+    
     elseif (n_e_ops>0) then
-      if (average_states) then
+      if (average_expect) then
         allocate(sol(n_e_ops,1,size(tlist),1), stat=istat)
         sol = (0.,0.)
       else
@@ -485,8 +487,9 @@ module qutraj_run
           else
             sol(1,traj,i,:) = y_tmp
           endif
+        
         else
-          if (average_states) then
+          if (average_expect) then
             do l=1,n_e_ops
               sol(l,1,i,1) = sol(l,1,i,1)+braket(y_tmp,e_ops(l)*y_tmp)
             enddo
@@ -515,13 +518,15 @@ module qutraj_run
         do j=1,size(sol_rho)
           sol_rho(j) = (1._wp/ntraj)*sol_rho(j)
         enddo
-      elseif (allocated(sol)) then
-        sol = (1._wp/ntraj)*sol
-      endif
-      if (calc_entropy) then
-        reduced_state_entropy = (1._wp/ntraj)*reduced_state_entropy
       endif
     endif
+    if (allocated(sol) .and. average_expect) then
+        sol = (1._wp/ntraj)*sol
+    endif
+    if (calc_entropy .and. (average_states .or. average_expect)) then
+        reduced_state_entropy = (1._wp/ntraj)*reduced_state_entropy
+    endif
+    
     ! Deallocate
     call finalize(y)
     call finalize(y_tmp)
