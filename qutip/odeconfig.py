@@ -48,8 +48,6 @@ class Odeconfig():
         self.options = None     # options for odesolvers
         self.norm_tol = None    # tolerance for wavefunction norm
         self.norm_steps = None  # max. number of steps to take in finding
-        self.steady_state_average = None #avg. mcsolver states assuming
-                                         #steady state evolution
                                 
         # Initial state stuff
         self.psi0 = None        # initial state

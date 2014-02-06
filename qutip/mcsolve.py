@@ -184,8 +184,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     odeconfig.psi0_dims = psi0.dims
     odeconfig.psi0_shape = psi0.shape
     # set options on ouput states
-    odeconfig.steady_state_average = odeconfig.options.steady_state_average
-    if odeconfig.steady_state_average:
+    if odeconfig.options.steady_state_average:
         odeconfig.options.average_states = True
     # set general items
     odeconfig.tlist = tlist
@@ -263,7 +262,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         output.states = mc.psi_out
     # expectation values
     elif (mc.expect_out is not None and odeconfig.cflag
-            and odeconfig.options.average_states):
+            and odeconfig.options.average_expect):
         # averaging if multiple trajectories
         if isinstance(ntraj, int):
             output.expect = [mean([mc.expect_out[nt][op]
@@ -377,7 +376,7 @@ class _MC_class():
             if odeconfig.e_num == 0:
                 # if no expectation operators, preallocate #ntraj arrays
                 # for state vectors
-                if self.odeconfig.steady_state_average:
+                if self.odeconfig.options.steady_state_average:
                     self.psi_out = array([zeros((1), dtype=object)
                                      for q in range(odeconfig.ntraj)])
                 else:
@@ -417,7 +416,7 @@ class _MC_class():
         if debug:
             print(inspect.stack()[0][3])
 
-        if self.cpus == 1:
+        if self.cpus == 1 or self.odeconfig.ntraj == 1:
             self.serial(args, top)
             return
 
@@ -442,7 +441,7 @@ class _MC_class():
 
         if self.odeconfig.c_num == 0:
             if self.odeconfig.ntraj != 1:
-                # Ntraj != 1 IS pointless for no collapse operators
+                # ntraj != 1 is pointless for no collapse operators
                 self.odeconfig.ntraj = 1
                 print('No collapse operators specified.\n' +
                       'Running a single trajectory only.\n')
@@ -462,13 +461,13 @@ class _MC_class():
             #        raise "Incompatible size of seeds vector in Odeconfig."
 
             if self.odeconfig.e_num == 0:
-                if odeconfig.steady_state_average:
+                if odeconfig.options.steady_state_average:
                     mc_alg_out = zeros((1), dtype=object)
                 else:
                     mc_alg_out = zeros((self.num_times), dtype=object)
                 temp=sp.csr_matrix(np.reshape(self.odeconfig.psi0,
                         (self.odeconfig.psi0.shape[0],1)),dtype=complex)
-                if self.odeconfig.options.average_states and not odeconfig.steady_state_average:
+                if self.odeconfig.options.average_states and not odeconfig.options.steady_state_average:
                     # output is averaged states, so use dm
                     mc_alg_out[0] = Qobj(temp*temp.conj().transpose(),
                                             [odeconfig.psi0_dims[0],
@@ -476,11 +475,11 @@ class _MC_class():
                                             [odeconfig.psi0_shape[0],
                                              odeconfig.psi0_shape[0]],
                                          fast='mc-dm')
-                elif not self.odeconfig.options.average_states and not odeconfig.steady_state_average:
+                elif not self.odeconfig.options.average_states and not odeconfig.options.steady_state_average:
                     # output is not averaged, so write state vectors
                     mc_alg_out[0] = Qobj(temp, odeconfig.psi0_dims,
                                          odeconfig.psi0_shape, fast='mc')
-                elif odeconfig.steady_state_average:
+                elif odeconfig.options.steady_state_average:
                     mc_alg_out[0]=temp*temp.conj().transpose()
                     
             else:
@@ -919,7 +918,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
             out_psi=ODE.y / dznrm2(ODE.y)
             if odeconfig.e_num == 0:
                 out_psi = sp.csr_matrix(np.reshape(out_psi,(out_psi.shape[0],1)),dtype=complex)
-                if odeconfig.options.average_states and not odeconfig.steady_state_average:
+                if odeconfig.options.average_states and not odeconfig.options.steady_state_average:
                     mc_alg_out[k] = Qobj(out_psi*out_psi.conj().transpose(),
                                                 [odeconfig.psi0_dims[0],
                                                  odeconfig.psi0_dims[0]],
@@ -927,7 +926,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                                                  odeconfig.psi0_shape[0]],
                                              fast='mc-dm')
                 
-                elif odeconfig.steady_state_average:
+                elif odeconfig.options.steady_state_average:
                     mc_alg_out[0] = mc_alg_out[0]+(out_psi*out_psi.conj().transpose())
                 
                 else:
@@ -942,7 +941,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                                                   odeconfig.e_ops_isherm[jj])
         #Run at end of mc_alg function
         #------------------------------
-        if odeconfig.steady_state_average:
+        if odeconfig.options.steady_state_average:
             mc_alg_out=array([Qobj(mc_alg_out[0]/float(len(tlist)),
                                                     [odeconfig.psi0_dims[0],
                                                      odeconfig.psi0_dims[0]],

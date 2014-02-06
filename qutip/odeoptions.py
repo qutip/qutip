@@ -104,8 +104,8 @@ class Odeoptions():
     """
     def __init__(self, atol=1e-8, rtol=1e-6, method='adams', order=12,
                  nsteps=1000, first_step=0, max_step=0, min_step=0,
-                 mc_avg=True, average_states=True, tidy=True, num_cpus=0,
-                 norm_tol=1e-3, norm_steps=5, rhs_reuse=False,
+                 average_expect=True, average_states=False, tidy=True,
+                 num_cpus=0, norm_tol=1e-3, norm_steps=5, rhs_reuse=False,
                  rhs_filename=None, gui=False, ntraj=500, rhs_with_state=False,
                  store_final_state=False, store_states=False, seeds=None,
                  steady_state_average=False):
@@ -126,7 +126,9 @@ class Odeoptions():
         # Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
         self.order = order
         # Average expectation values over trajectories (default = True)
-        self.average_states = average_states and mc_avg
+        self.average_states = average_states
+        # average expectation values
+        self.average_expect = average_expect
         # Number of trajectories (default = 500)
         self.ntraj = ntraj
         # tidyup Hamiltonian before calculation (default = True)
@@ -183,6 +185,7 @@ class Odeoptions():
         s += "rhs_reuse:         " + str(self.rhs_reuse) + "\n"
         s += "rhs_with_state:    " + str(self.rhs_with_state) + "\n"
         s += "gui:               " + str(self.gui) + "\n"
+        s += "average_expect:    " + str(self.average_expect) + "\n"
         s += "average_states:    " + str(self.average_states) + "\n"
         s += "ntraj:             " + str(self.ntraj) + "\n"
         s += "store_states:      " + str(self.store_states) + "\n"
