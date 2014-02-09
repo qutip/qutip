@@ -134,9 +134,9 @@ def test_num():
         True)
 
 
-def test_squeez():
+def test_squeeze():
     "Squeezing operator"
-    sq = squeez(4, 0.1 + 0.1j)
+    sq = squeeze(4, 0.1 + 0.1j)
     sqmatrix = array([[0.99500417 + 0.j, 0.00000000 + 0.j,
                        0.07059289 - 0.07059289j, 0.00000000 + 0.j],
                       [0.00000000 + 0.j, 0.98503746 + 0.j,
