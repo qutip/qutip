@@ -631,43 +631,6 @@ def phase(N, phi0=0):
     return Qobj(np.sum(ops, axis=0))
 
 
-def squeez(N, sp):
-    """Single-mode Squeezing operator.
-
-
-    Parameters
-    ----------
-    N : int
-        Dimension of hilbert space.
-
-    sp : float/complex
-        Squeezing parameter.
-
-    Returns
-    -------
-    oper : :class:`qutip.qobj.Qobj`
-        Squeezing operator.
-
-    Notes
-    -----
-    This function is depreciated and will be removed in a future release.
-    Use the function `squeeze` instead.
-
-    Examples
-    --------
-    >>> squeez(4,0.25)
-    Quantum object: dims = [[4], [4]], \
-shape = [4, 4], type = oper, isHerm = False
-    Qobj data =
-    [[ 0.98441565+0.j  0.00000000+0.j  0.17585742+0.j  0.00000000+0.j]
-     [ 0.00000000+0.j  0.95349007+0.j  0.00000000+0.j  0.30142443+0.j]
-     [-0.17585742+0.j  0.00000000+0.j  0.98441565+0.j  0.00000000+0.j]
-     [ 0.00000000+0.j -0.30142443+0.j  0.00000000+0.j  0.95349007+0.j]]
-
-    """
-
-    return squeeze(N, sp)
-
 
 def zero_oper(N, dims=None):
     """
