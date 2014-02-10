@@ -1366,6 +1366,7 @@ class Qobj():
 
         return self.extract_states(keep_indices, normalize=normalize)
 
+
 #------------------------------------------------------------------------------
 # This functions evaluates a time-dependent quantum object on the list-string
 # and list-function formats that are used by the time-dependent solvers.
@@ -1373,8 +1374,6 @@ class Qobj():
 # conventient to be able to evaluate the expressions passed to the solver for
 # arbitrary value of time. This function provides this functionality.
 #
-
-
 def qobj_list_evaluate(qobj_list, t, args):
     """
     Evaluate a time-dependent qobj in list format. For example,
