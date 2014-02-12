@@ -179,3 +179,48 @@ def _pseudo_peripheral_node(np.ndarray[int, mode="c"] ind,
         else:
             flag = 0
     return start, order, level
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _bfs_matching(np.ndarray[int, mode="c"] inds, np.ndarray[int, mode="c"] ptrs, int n):
+    visited = np.zeros(n,dtype=int)     #visited array
+    queue = np.zeros(n,dtype=int)       #queue array
+    previous = np.zeros(n,dtype=int)    #prev visited array
+    match = -1*np.ones(n,dtype=int)     #returned matching
+    row_match = -1*np.ones(n,dtype=int) #row_matching
+    cdef int queue_ptr, queue_col, ptr, next_num, i, j, queue_size, row, col, temp, eptr
+    next_num=1 
+    for i in range(n):
+        if (match[i] == -1 and (ptrs[i] != ptrs[i+1])):
+            queue[0] = i
+            queue_ptr = 0
+            queue_size = 1
+            while (queue_size > queue_ptr):
+                queue_col = queue[queue_ptr]
+                queue_ptr+=1
+                eptr = ptrs[queue_col + 1]
+                for ptr in range(ptrs[queue_col], eptr):
+                    row = inds[ptr]
+                    temp = visited[row]
+                    if (temp != next_num and temp != -1):
+                        previous[row] = queue_col
+                        visited[row] = next_num
+                        col = row_match[row]
+                        if (col == -1):
+                            while (row != -1):
+                                col = previous[row]
+                                temp = match[col]
+                                match[col] = row 
+                                row_match[row] = col
+                                row = temp
+                            next_num+=1
+                            queue_size = 0
+                            break
+                        else:
+                            queue[queue_size] = col
+                            queue_size+=1
+            if (match[i] == -1):
+                for j in range(1,queue_size):
+                    visited[match[queue[j]]] = -1
+    return match
