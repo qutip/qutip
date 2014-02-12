@@ -9,7 +9,7 @@ import os
 def configuration(parent_package='', top_path=None):
     # compiles files during installation
     from numpy.distutils.misc_util import Configuration
-    config = Configuration('cyQ', parent_package, top_path)
+    config = Configuration('cy', parent_package, top_path)
 
     exts = ['spmatfuncs', 'stochastic', 'sparse_utils', 'graph_utils']
 

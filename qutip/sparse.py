@@ -40,7 +40,7 @@ import numpy as np
 import scipy.linalg as la
 from scipy.linalg.blas import get_blas_funcs
 _dznrm2 = get_blas_funcs("znrm2")
-from qutip.cyQ.sparse_utils import (_sparse_permute_int, _sparse_permute_float, _sparse_permute_complex,
+from qutip.cy.sparse_utils import (_sparse_permute_int, _sparse_permute_float, _sparse_permute_complex,
                                     _sparse_reverse_permute_int, _sparse_reverse_permute_float,
                                     _sparse_reverse_permute_complex,
                                     _sparse_bandwidth)

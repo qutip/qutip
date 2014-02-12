@@ -50,10 +50,10 @@ from qutip.odeoptions import Odeoptions
 from qutip.odeconfig import odeconfig
 from qutip.odechecks import _ode_checks
 from qutip.settings import debug
-from qutip.cyQ.spmatfuncs import (cy_ode_rhs,
+from qutip.cy.spmatfuncs import (cy_ode_rhs,
                                   cy_ode_psi_func_td,
                                   cy_ode_psi_func_td_with_state)
-from qutip.cyQ.codegen import Codegen
+from qutip.cy.codegen import Codegen
 
 from qutip.gui.progressbar import BaseProgressBar
 
@@ -378,10 +378,10 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
                        odeconfig=odeconfig)
         cgen.generate(odeconfig.tdname + ".pyx")
 
-        code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
+        code = compile('from ' + odeconfig.tdname + ' import cy_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
-        odeconfig.tdfunc = cyq_td_ode_rhs
+        odeconfig.tdfunc = cy_td_ode_rhs
 
     #
     # setup integrator
@@ -468,10 +468,10 @@ def _sesolve_list_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
                        odeconfig=odeconfig)
         cgen.generate(odeconfig.tdname + ".pyx")
 
-        code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
+        code = compile('from ' + odeconfig.tdname + ' import cy_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
-        odeconfig.tdfunc = cyq_td_ode_rhs
+        odeconfig.tdfunc = cy_td_ode_rhs
     #
     # setup integrator
     #

@@ -37,7 +37,7 @@ to reorder matrices for iterative steady state solvers.
 
 import numpy as np
 import scipy.sparse as sp
-from qutip.cyQ.graph_utils import (_pseudo_peripheral_node, _breadth_first_search,
+from qutip.cy.graph_utils import (_pseudo_peripheral_node, _breadth_first_search,
                                     _node_degrees, _rcm)
 from qutip.settings import debug
 

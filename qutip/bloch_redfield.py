@@ -39,7 +39,7 @@ from qutip.superoperator import *
 from qutip.expect import expect
 from qutip.states import *
 from qutip.odeoptions import Odeoptions
-from qutip.cyQ.spmatfuncs import cy_ode_rhs
+from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.odedata import Odedata
 
 

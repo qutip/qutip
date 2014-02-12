@@ -34,7 +34,7 @@ import os
 import numpy
 from scipy import ndarray, array
 
-from qutip.cyQ.codegen import Codegen
+from qutip.cy.codegen import Codegen
 from qutip.odeoptions import Odeoptions
 from qutip.odechecks import _ode_checks
 from qutip.odeconfig import odeconfig
@@ -165,10 +165,10 @@ def rhs_generate(H, c_ops, args={}, options=Odeoptions(), name=None):
     cgen.generate(odeconfig.tdname + ".pyx")
 
     code = compile('from ' + odeconfig.tdname +
-                   ' import cyq_td_ode_rhs', '<string>', 'exec')
+                   ' import cy_td_ode_rhs', '<string>', 'exec')
     exec(code, globals())
 
-    odeconfig.tdfunc = cyq_td_ode_rhs
+    odeconfig.tdfunc = cy_td_ode_rhs
     try:
         os.remove(odeconfig.tdname + ".pyx")
     except:

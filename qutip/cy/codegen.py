@@ -139,7 +139,7 @@ class Codegen():
 
     def ODE_func_header(self):
         """Creates function header for time-dependent ODE RHS."""
-        func_name = "def cyq_td_ode_rhs("
+        func_name = "def cy_td_ode_rhs("
         # strings for time and vector variables
         input_vars = "double t, np.ndarray[CTYPE_t, ndim=1] vec"
         for k in self.h_terms:
@@ -321,7 +321,7 @@ def cython_preamble():
     line1 = "import numpy as np"
     line2 = "cimport numpy as np"
     line3 = "cimport cython"
-    line4 = "from qutip.cyQ.spmatfuncs import spmv_csr, spmvpy"
+    line4 = "from qutip.cy.spmatfuncs import spmv_csr, spmvpy"
     line5 = ""
     line6 = "ctypedef np.complex128_t CTYPE_t"
     line7 = "ctypedef np.float64_t DTYPE_t"

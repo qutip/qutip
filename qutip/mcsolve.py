@@ -53,8 +53,8 @@ from qutip.states import ket2dm
 from qutip.parfor import parfor
 from qutip.odeoptions import Odeoptions
 from qutip.odeconfig import odeconfig
-from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
-from qutip.cyQ.codegen import Codegen
+from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
+from qutip.cy.codegen import Codegen
 from qutip.odedata import Odedata
 from qutip.odechecks import _ode_checks
 import qutip.settings
@@ -969,17 +969,17 @@ def _mc_func_load(odeconfig):
         # compile time-depdendent RHS code
         if odeconfig.tflag in array([1, 11]):
             code = compile('from ' + odeconfig.tdname +
-                           ' import cyq_td_ode_rhs, col_spmv, col_expect',
+                           ' import cy_td_ode_rhs, col_spmv, col_expect',
                            '<string>', 'exec')
             exec(code, globals())
-            _cy_rhs_func = cyq_td_ode_rhs
+            _cy_rhs_func = cy_td_ode_rhs
             _cy_col_spmv_func = col_spmv
             _cy_col_expect_func = col_expect
         else:
             code = compile('from ' + odeconfig.tdname +
-                           ' import cyq_td_ode_rhs', '<string>', 'exec')
+                           ' import cy_td_ode_rhs', '<string>', 'exec')
             exec(code, globals())
-            _cy_rhs_func = cyq_td_ode_rhs
+            _cy_rhs_func = cy_td_ode_rhs
 
         # compile wrapper functions for calling cython spmv and expect
         if odeconfig.col_spmv_code:

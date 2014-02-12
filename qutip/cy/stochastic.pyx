@@ -35,8 +35,8 @@ cimport numpy as np
 cimport cython
 cimport libc.math
 
-from qutip.cyQ.spmatfuncs cimport (spmv_csr,
-                                   cy_expect_rho_vec_csr, cy_expect_psi_csr)
+from qutip.cy.spmatfuncs cimport (spmv_csr,
+                                  cy_expect_rho_vec_csr, cy_expect_psi_csr)
 
 ctypedef np.complex128_t CTYPE_t
 ctypedef np.float64_t DTYPE_t

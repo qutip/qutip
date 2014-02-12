@@ -48,8 +48,8 @@ from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian_fast, mat2vec, vec2mat
 from qutip.expect import expect, expect_rho_vec
 from qutip.odeoptions import Odeoptions
-from qutip.cyQ.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
-from qutip.cyQ.codegen import Codegen
+from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
+from qutip.cy.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
 from qutip.odedata import Odedata
 from qutip.states import ket2dm
@@ -577,10 +577,10 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
                        odeconfig=odeconfig)
         cgen.generate(odeconfig.tdname + ".pyx")
 
-        code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
+        code = compile('from ' + odeconfig.tdname + ' import cy_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
-        odeconfig.tdfunc = cyq_td_ode_rhs
+        odeconfig.tdfunc = cy_td_ode_rhs
 
     #
     # setup integrator
@@ -737,10 +737,10 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, e_ops, args, opt,
                        odeconfig=odeconfig)
         cgen.generate(odeconfig.tdname + ".pyx")
 
-        code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
+        code = compile('from ' + odeconfig.tdname + ' import cy_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
-        odeconfig.tdfunc = cyq_td_ode_rhs
+        odeconfig.tdfunc = cy_td_ode_rhs
 
     #
     # setup integrator
