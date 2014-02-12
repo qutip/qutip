@@ -184,11 +184,11 @@ def _pseudo_peripheral_node(np.ndarray[int, mode="c"] ind,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def _bfs_matching(np.ndarray[int, mode="c"] inds, np.ndarray[int, mode="c"] ptrs, int n):
-    visited = np.zeros(n,dtype=int)     #visited array
-    queue = np.zeros(n,dtype=int)       #queue array
-    previous = np.zeros(n,dtype=int)    #prev visited array
-    match = -1*np.ones(n,dtype=int)     #returned matching
-    row_match = -1*np.ones(n,dtype=int) #row_matching
+    cdef np.ndarray[np.intp_t] visited = np.zeros(n,dtype=int)     #visited array
+    cdef np.ndarray[np.intp_t] queue = np.zeros(n,dtype=int)       #queue array
+    cdef np.ndarray[np.intp_t] previous = np.zeros(n,dtype=int)    #prev visited array
+    cdef np.ndarray[np.intp_t] match = -1*np.ones(n,dtype=int)     #returned matching
+    cdef np.ndarray[np.intp_t] row_match = -1*np.ones(n,dtype=int) #row_matching
     cdef int queue_ptr, queue_col, ptr, next_num, i, j, queue_size, row, col, temp, eptr
     next_num=1 
     for i in range(n):
