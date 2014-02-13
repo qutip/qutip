@@ -169,14 +169,6 @@ except:
     os.environ['QUTIP_GRAPHICS'] = "NO"
     qutip.settings.qutip_graphics = 'NO'
 
-# Check for picloud parallel for-loop
-try:
-    import cloud
-except:
-    pass
-else:
-    from qutip.picloud import *
-
 #------------------------------------------------------------------------------
 # Load modules
 #
