@@ -107,7 +107,7 @@ html_theme_options = {
     'navbar_title': "QuTiP",
 
     # Tab name for entire site. (Default: "Site")
-    'navbar_site_name': "Site",
+    'navbar_site_name': "Docs",
 
     # A list of tuples containing pages or urls to link to.
     # Valid tuples should be in the following forms:
@@ -116,10 +116,10 @@ html_theme_options = {
     #    (name, "http://example.com", True) # arbitrary absolute url
     # Note the "1" or "True" value above as the third argument to indicate
     # an arbitrary url.
-    # 'navbar_links': [
+    #'navbar_links': [
     #     ("Examples", "examples"),
     #     ("Link", "http://example.com", True),
-    # ],
+    #],
 
     # Global TOC depth for "site" navbar tab. (Default: 1)
     # Switching to -1 shows all levels.

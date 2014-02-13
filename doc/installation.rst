@@ -15,7 +15,7 @@ General Requirements
 QuTiP is based on several open-source packages designed for numerical simulations in the Python
 programming language.  Currently. QuTiP requires the following packages to run:
 
-.. tabularcolumns:: | p{3cm} | p{2.5cm} | L |
+.. cssclass:: table-striped
 
 +----------------+--------------+-----------------------------------------------------+
 | Package        | Version      | Details                                             |
@@ -77,9 +77,7 @@ Using QuTiP's PPA
 
 The easiest way to install QuTiP in Ubuntu (12.04 and later) is to use the QuTiP PPA
 
-.. highlight:: bash
-
-::
+.. code-block:: bash
 
     sudo add-apt-repository ppa:jrjohansson/qutip-releases
     sudo apt-get update
@@ -92,7 +90,9 @@ With this method the most important dependencies are installed automatically, an
 Manual installation
 -------------------
 
-First install the following dependency packages::
+First install the following dependency packages
+
+.. code-block:: bash
 
     sudo apt-get install python-scipy
     sudo apt-get install python-setuptools
@@ -104,16 +104,22 @@ First install the following dependency packages::
     sudo apt-get install libblas-dev         # optional, for Fortran Monte Carlo solver
     sudo apt-get install mayavi2             # optional, for Bloch3d only
 
-For a standard installation, run this command in the QuTiP source code directory::
+For a standard installation, run this command in the QuTiP source code directory
+
+.. code-block:: bash
 
     sudo python setup.py install
 
-To install QuTiP with the optional Fortran Monte Carlo solver use::
+To install QuTiP with the optional Fortran Monte Carlo solver use
+
+.. code-block:: bash
 
     sudo python setup.py install --with-f90mc
 
 However, this additionally requires a Fortran compiler to be installed. For
-example the GNU Fortran compiler, which can be installed using::
+example the GNU Fortran compiler, which can be installed using
+
+.. code-block:: bash
 
     sudo apt-get install gfortran
 
@@ -141,7 +147,9 @@ If you have not done so already, install the Apple Xcode developer tools from th
 Setup Using Macports [*]_
 --------------------------
 
-On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via::
+On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via
+
+.. code-block:: bash
 
     sudo port install py33-scipy
     sudo port install py33-matplotlib +latex
@@ -149,17 +157,23 @@ On the Mac, it is recommended that you install the required libraries via `MacPo
     sudo port install py33-ipython +notebook+parallel
 
 
-Optional, but highly recommended ports include::
+Optional, but highly recommended ports include
+
+.. code-block:: bash
 
     sudo port install vtk5 +python27          #used for the Bloch3d class
     sudo port install py27-mayavi             #used for the Bloch3d class
 
-Now, we want to tell OSX which Python and iPython we are going to use::
-    
+Now, we want to tell OSX which Python and iPython we are going to use
+
+.. code-block:: bash
+
     sudo port select python python33
     sudo port select ipython ipython33
 
-To install QuTiP from Macports, run::
+To install QuTiP from Macports, run
+
+.. code-block:: bash
 
     sudo port install py-qutip
 
