@@ -583,8 +583,6 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
     # prepare output array
     #
     n_tsteps = len(tlist)
-    dt = tlist[1] - tlist[0]
-
     output = Odedata()
     output.solver = "sesolve"
     output.times = tlist
@@ -621,6 +619,7 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
     #
     progress_bar.start(n_tsteps)
 
+    dt = np.diff(tlist)
     for t_idx, t in enumerate(tlist):
         progress_bar.update(t_idx)
 
@@ -641,7 +640,8 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
         for m in range(n_expt_op):
             output.expect[m][t_idx] = expect(e_ops[m], Qobj(r.y)) # optimize
 
-        r.integrate(r.t + dt)
+        if t_idx < n_tsteps - 1:
+            r.integrate(r.t + dt[t_idx])
 
     progress_bar.finished()
 

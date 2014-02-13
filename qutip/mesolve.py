@@ -880,7 +880,6 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
     # prepare output array
     #
     n_tsteps = len(tlist)
-    dt = tlist[1] - tlist[0]
     e_sops_data = []
 
     output = Odedata()
@@ -923,6 +922,7 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
 
     rho = Qobj(rho0)
 
+    dt = np.diff(tlist)
     for t_idx, t in enumerate(tlist):
         progress_bar.update(t_idx)
 
@@ -945,7 +945,8 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
             else:
                 output.expect[m][t_idx] = expect_rho_vec(e_sops_data[m], r.y, 1)
 
-        r.integrate(r.t + dt)
+        if t_idx < n_tsteps - 1:
+            r.integrate(r.t + dt[t_idx])
 
     progress_bar.finished()
 
