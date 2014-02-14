@@ -56,10 +56,10 @@ from qutip.states import ket2dm
 import qutip.settings as qset
 
 
-def steadystate( A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
-                 sym=False, use_precond=True, M=None, drop_tol=1e-3, 
-                 fill_factor=12, diag_pivot_thresh=None, maxiter=1000, tol=1e-5, 
-                 verbose=False):
+def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
+                sym=False, use_precond=True, M=None, drop_tol=1e-3, 
+                fill_factor=12, diag_pivot_thresh=None, maxiter=1000, tol=1e-5, 
+                verbose=False):
 
     """Calculates the steady state for quantum evolution subject to the
     supplied Hamiltonian or Liouvillian operator and (if given a Hamiltonian) a
@@ -166,11 +166,11 @@ def steadystate( A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
 
     elif method == 'iterative-bicg':
         return _steadystate_iterative_bicg(A, tol=tol, use_precond=use_precond, 
-                                        M=M, use_rcm=use_rcm, maxiter=maxiter, 
-                                        fill_factor=fill_factor, 
-                                        drop_tol=drop_tol, 
-                                        diag_pivot_thresh=diag_pivot_thresh, 
-                                        verbose=verbose)
+                                           M=M, use_rcm=use_rcm, maxiter=maxiter, 
+                                           fill_factor=fill_factor, 
+                                           drop_tol=drop_tol, 
+                                           diag_pivot_thresh=diag_pivot_thresh, 
+                                           verbose=verbose)
 
     elif method == 'lu':
         return _steadystate_lu(A, verbose=verbose)
@@ -314,7 +314,7 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
     use_solver(assumeSortedIndices=True, useUmfpack=False)
     L.sort_indices()
     
-    if M is None:
+    if M is None and use_precond:
         M = _iterative_precondition(L, n, drop_tol, diag_pivot_thresh, 
                                     fill_factor,verbose)
     if verbose:
@@ -340,9 +340,10 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
     return Qobj(data, dims=dims, isherm=True)
 
 
-def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True, M=None,
-                                maxiter=1000, drop_tol=1e-3, diag_pivot_thresh=None,
-                                fill_factor=12, verbose=False):
+def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True,
+                                M=None, maxiter=1000, drop_tol=1e-3,
+                                diag_pivot_thresh=None, fill_factor=12,
+                                verbose=False):
     """
     Iterative steady state solver using the BICG algorithm
     and a sparse incomplete LU preconditioner.
@@ -371,7 +372,7 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True, M=N
         if verbose:
             print('RCM bandwidth ', sparse_bandwidth(L))
     
-    if M is None:
+    if M is None and use_precond:
         M = _iterative_precondition(L, n, drop_tol,
                                     diag_pivot_thresh, fill_factor, verbose)
 
