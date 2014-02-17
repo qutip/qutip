@@ -94,7 +94,7 @@ def _breadth_first_search(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c
 @cython.wraparound(False)
 def _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num_rows):
     """
-    Reverse Cuthill-McKee ordering of a sparse csr_matrix.
+    Reverse Cuthill-McKee ordering of a sparse csr or csc matrix.
     """
     # define variables
     cdef unsigned int N=0, N_old, seed, level_start, level_end, temp, zz, i, j, ii, jj, kk
@@ -221,6 +221,113 @@ def _bfs_matching(np.ndarray[int, mode="c"] inds, np.ndarray[int, mode="c"] ptrs
                             queue[queue_size] = col
                             queue_size+=1
             if (match[i] == -1):
+                for j in range(1,queue_size):
+                    visited[match[queue[j]]] = -1
+    return match
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _max_row_weights(np.ndarray[DTYPE_t, mode="c"] data, np.ndarray[int, mode="c"] inds, np.ndarray[int, mode="c"] ptrs, int ncols):
+    """
+    Finds the largest abs value in each matrix column and the max. total number of elements
+    in the cols (given by weights[-1]).
+    
+    Here we assume that the user already took the ABS value of the data.  This keeps us from
+    having to call abs over and over.
+    
+    """
+    #define all parameters
+    cdef np.ndarray[DTYPE_t] weights = np.zeros(ncols+1,dtype=float)
+    cdef int ln, mx, ii, jj
+    cdef DTYPE_t weight, current
+    #---------------------
+    mx=0
+    for jj in range(ncols):
+        ln=(ptrs[jj+1]-ptrs[jj])
+        if ln>mx:
+            mx=ln
+        #weight=np.abs(data[ptrs[jj]])
+        weight=data[ptrs[jj]]
+        for ii in range(ptrs[jj]+1,ptrs[jj+1]):
+            #current=np.abs(data[ii])
+            current=data[ii]
+            if current>weight:
+                weight=current
+        weights[jj]=weight
+    weights[ncols]=mx
+    return weights
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _weighted_bfs_matching(np.ndarray[DTYPE_t, mode="c"] data, np.ndarray[int, mode="c"] inds, np.ndarray[int, mode="c"] ptrs, int n):
+    """
+    Here we assume that the user already took the ABS value of the data.  This keeps us from
+    having to call abs over and over.
+    """
+    #define all parameters
+    cdef np.ndarray[np.intp_t] visited = np.zeros(n,dtype=int)     #visited array
+    cdef np.ndarray[np.intp_t] queue = np.zeros(n,dtype=int)       #queue array
+    cdef np.ndarray[np.intp_t] previous = np.zeros(n,dtype=int)    #prev visited array
+    cdef np.ndarray[np.intp_t] match = -1*np.ones(n,dtype=int)     #returned matching
+    cdef np.ndarray[np.intp_t] row_match = -1*np.ones(n,dtype=int) #row_matching
+    cdef np.ndarray[DTYPE_t] weights = _max_row_weights(data, inds, ptrs, n) #max weights in each column
+    cdef np.ndarray[np.intp_t] order = np.argsort(-weights[0:n])    #order in which cols traversed
+    cdef np.ndarray[np.intp_t] row_order = np.zeros(weights[n],dtype=int)   #temp array to order row
+    cdef np.ndarray[DTYPE_t] temp_weights = np.zeros(weights[n],dtype=float)   #temp array for row weights
+    cdef int queue_ptr, queue_col, queue_size, next_num, i, j, zz, ll, kk, row, col, temp, eptr, temp2
+    #---------------------
+    next_num=1 
+    for i in range(n):
+        zz=order[i] #cols with largest abs values first
+        if (match[zz] == -1 and (ptrs[zz] != ptrs[zz+1])):
+            queue[0] = zz
+            queue_ptr = 0
+            queue_size = 1
+            while (queue_size > queue_ptr):
+                queue_col = queue[queue_ptr]
+                queue_ptr+=1
+                eptr = ptrs[queue_col + 1]
+                #get row inds in current column
+                temp=ptrs[queue_col]
+                for kk in range(eptr-ptrs[queue_col]):
+                    row_order[kk]=inds[temp]
+                    temp_weights[kk]=data[temp]
+                    temp+=1
+                #linear sort by row weight
+                for kk in range(1,(eptr-ptrs[queue_col])):
+                    val = temp_weights[kk]
+                    row_val = row_order[kk]
+                    ll = kk - 1
+                    while (ll>=0) and (temp_weights[ll] > val):
+                        temp_weights[ll+1] = temp_weights[ll]
+                        row_order[ll+1] = row_order[ll]
+                        ll-=1
+                    temp_weights[ll+1] = val
+                    row_order[ll+1] = row_val
+                #go through rows by decending weight
+                temp2=(eptr-ptrs[queue_col])-1
+                for kk in range(eptr-ptrs[queue_col]):
+                    row = row_order[temp2-kk]
+                    temp = visited[row]
+                    if (temp != next_num and temp != -1):
+                        previous[row] = queue_col
+                        visited[row] = next_num
+                        col = row_match[row]
+                        if (col == -1):
+                            while (row != -1):
+                                col = previous[row]
+                                temp = match[col]
+                                match[col] = row 
+                                row_match[row] = col
+                                row = temp
+                            next_num+=1
+                            queue_size = 0
+                            break
+                        else:
+                            queue[queue_size] = col
+                            queue_size+=1
+            if (match[zz] == -1):
                 for j in range(1,queue_size):
                     visited[match[queue[j]]] = -1
     return match
