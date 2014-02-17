@@ -38,7 +38,7 @@ to reorder matrices for iterative steady state solvers.
 import numpy as np
 import scipy.sparse as sp
 from qutip.cy.graph_utils import (_pseudo_peripheral_node, _breadth_first_search,
-                                    _node_degrees, _rcm)
+                                    _node_degrees, _rcm, _bfs_matching)
 from qutip.settings import debug
 
 if debug:
@@ -137,3 +137,13 @@ def symrcm(A,sym=False):
         if not sym:
             A=A+A.transpose()
     return _rcm(A.indices, A.indptr, nrows)
+
+
+def bfs_matching(A):
+    nrows = A.shape[0]
+    if A.__class__.__name__=='Qobj':
+        return _bfs_matching(A.data.indices, A.data.indptr, nrows)
+        
+    else:
+        return _bfs_matching(A.indices, A.indptr, nrows)
+    
