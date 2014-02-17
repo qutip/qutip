@@ -36,6 +36,8 @@ import unittest
 from numpy.testing import assert_, run_module_suite, assert_equal
 from numpy.testing.decorators import skipif
 from scipy.sparse.csgraph import breadth_first_order as BFO
+import os
+pwd = os.path.dirname(__file__)
 from qutip import *
 # find networkx if it exists
 try:
@@ -67,12 +69,10 @@ def test_graph_bfs():
 
 def test_graph_rcm():
     "Graph: Reverse Cuthill-McKee Ordering"
-    A=array([[1,0,0,0,1,0,0,0],[0,1,1,0,0,1,0,1],[0,1,1,0,1,0,0,0],
-            [0,0,0,1,0,0,1,0],[1,0,1,0,1,0,0,0],[0,1,0,0,0,1,0,1],
-            [0,0,0,1,0,0,1,0],[0,1,0,0,0,1,0,1]])
-    A=sp.csr_matrix(A)
-    perm=symrcm(A)
-    ans=array([6,3,7,5,1,2,4,0])
+    B=np.load(pwd+'/bucky.npy')
+    B=sp.csr_matrix(B,dtype=float)
+    perm=symrcm(B)
+    ans=np.load(pwd+'/bucky_perm.npy')
     assert_equal((perm - ans).all(), 0)
 
 
