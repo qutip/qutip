@@ -97,12 +97,13 @@ def _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num_r
     Reverse Cuthill-McKee ordering of a sparse csr or csc matrix.
     """
     # define variables
-    cdef unsigned int N=0, N_old, seed, level_start, level_end, temp, zz, i, j, ii, jj, kk
+    cdef unsigned int N=0, N_old, seed, level_start, level_end, temp, temp2, zz, i, j, ii, jj, kk, ll
     # setup arrays
     cdef np.ndarray[np.intp_t] order = np.zeros(num_rows, dtype=int)
     cdef np.ndarray[np.intp_t] degree = _node_degrees(ind, ptr, num_rows)
     cdef np.ndarray[np.intp_t] inds = np.argsort(degree)
     cdef np.ndarray[np.intp_t] rev_inds = np.argsort(inds)
+    cdef np.ndarray[np.intp_t] temp_degrees = np.zeros(num_rows, dtype=int)
     #loop over zz takes into account possible disconnected graph.
     for zz in range(num_rows):
         if inds[zz] != -1: # Do BFS with seed=inds[zz]
@@ -116,7 +117,7 @@ def _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num_r
                 for ii in range(level_start,level_end):
                     i = order[ii] # node i to consider
                     N_old=N # old # of touched nodes
-                    
+                
                     # add unvisited neighbors
                     for jj in range(ptr[i],ptr[i+1]):   # nodes connected to node i
                         j = ind[jj] # j is node number connected to i
@@ -124,14 +125,23 @@ def _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num_r
                             inds[rev_inds[j]] = -1      # touch node
                             order[N] = j                # add node to order
                             N += 1                      # add to touched count
-                    
+                    #Add values to temp_degrees array for insertion sort
+                    temp=0
+                    for kk in range(N_old,N):
+                        temp_degrees[temp]=degree[order[kk]]
+                        temp+=1
                     # Do insertion sort for nodes from lowest to highest degree
-                    for kk in range(N_old,N-1):
+                    for kk in range(1,(N-N_old)):
                         temp = order[kk]
-                        if degree[order[kk+1]] < degree[order[kk]]:
-                            order[kk] = order[kk+1]
-                            order[kk+1] = temp
-                
+                        temp2 = temp_degrees[kk]
+                        ll = kk - 1
+                        while (ll>=0) and (temp_degrees[ll] > temp2):
+                            temp_degrees[ll+1] = temp_degrees[ll]
+                            order[ll+1] = order[ll]
+                            ll-=1
+                        order[ll+1] = temp
+                        temp_degrees[ll+1] = temp2
+            
                 # set next level start and end ranges            
                 level_start = level_end
                 level_end = N
