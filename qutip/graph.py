@@ -38,7 +38,8 @@ to reorder matrices for iterative steady state solvers.
 import numpy as np
 import scipy.sparse as sp
 from qutip.cy.graph_utils import (_pseudo_peripheral_node, _breadth_first_search,
-                                    _node_degrees, _rcm, _bfs_matching)
+                                    _node_degrees, _rcm, _bfs_matching,
+                                    _weighted_bfs_matching)
 from qutip.settings import debug
 
 if debug:
@@ -68,10 +69,11 @@ def graph_degree(A):
 
 def breadth_first_search(A,start):
     """
-    Breadth-First-Search (BFS) of a graph in CSR matrix format starting
-    from a given node (row).  Takes Qobjs and csr_matrices as inputs.
+    Breadth-First-Search (BFS) of a graph in CSR or CSC matrix format starting
+    from a given node (row).  Takes Qobjs and CSR or CSC matrices as inputs.
     
     This function requires a matrix with symmetric structure.
+    Use A+trans(A) if original matrix is not symmetric or not sure.
     
     Parameters
     ----------
@@ -101,14 +103,14 @@ def breadth_first_search(A,start):
 
 def symrcm(A,sym=False):
     """
-    Returns the permutation array that orders a sparse csr_matrix or Qobj
+    Returns the permutation array that orders a sparse CSR or CSC matrix or Qobj
     in Reverse-Cuthill McKee ordering.  Since the input matrix must be symmetric,
-    this routine works on the matrix A+Trans(A) if the sym flag is set to False.
+    this routine works on the matrix A+Trans(A) if the sym flag is set to False (Default).
     
     It is assumed by default (*sym=False*) that the input matrix is not symmetric.  This
     is because it is faster to do A+Trans(A) than it is to check for symmetry for 
     a generic matrix.  If you are guaranteed that the matrix is symmetric in structure
-    then set *sym=True*
+    (values of matrix element do not matter) then set *sym=True*
     
     Parameters
     ----------
@@ -127,16 +129,24 @@ def symrcm(A,sym=False):
     -----
     This routine is used primarily for internal reordering of Lindblad super-operators
     for use in iterative solver routines.
+     
+    References
+    ----------
+    E. Cuthill and J. McKee, "Reducing the Bandwidth of Sparse Symmetric Matrices",
+    ACM '69 Proceedings of the 1969 24th national conference, (1969).
         
     """
     nrows = A.shape[0]
     if A.__class__.__name__=='Qobj':
         if not sym:
             A = A.data+A.data.transpose()
+            return _rcm(A.indices, A.indptr, nrows)
+        else:
+            return _rcm(A.data.indices, A.data.indptr, nrows)
     else:
         if not sym:
             A=A+A.transpose()
-    return _rcm(A.indices, A.indptr, nrows)
+        return _rcm(A.indices, A.indptr, nrows)
 
 
 def bfs_matching(A):
