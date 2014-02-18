@@ -440,13 +440,10 @@ def sparse_permute(A,rperm=[],cperm=[], kind='csr'):
     ----------
     A : qobj, csr_matrix
         Input quantum object or csr_matrix.
-    
     rperm : list/array
         Array of row permutations.
-    
     cperm : list/array
         Array of column permutations.
-        
     kind : string {'csr', 'csc'}
         Type of return sparse matrix
     
@@ -545,15 +542,16 @@ def sparse_reverse_permute(A,rperm=[],cperm=[], kind='csr'):
 
 def sparse_bandwidth(A):
     """
-    Returns the max(mb), lower(lb), and upper(ub) bandwidths of a qobj or sparse
-    csr_matrix.
+    Returns the max(mb), lower(lb), and upper(ub) bandwidths of a 
+    qobj or sparse CSR/CSC matrix.
     
-    If the matrix is symmetric then the upper and lower bandwidths are identical.
+    If the matrix is symmetric then the upper and lower bandwidths are 
+    identical. Diagonal matrices have a bandwidth equal to one.
     
     Parameters
     ----------
-    A : qobj / csr_matrix
-        Input qobj or csr_matrix
+    A : qobj, csr_matrix, csc_matrix
+        Input matrix
     
     Returns
     -------
@@ -566,12 +564,17 @@ def sparse_bandwidth(A):
     
     """
     nrows = A.shape[0]
-    if A.__class__.__name__=='Qobj':
-        A = A.data
-    
-    mb, lb, ub = _sparse_bandwidth(A.indices, A.indptr, nrows)
-    
-    return mb, lb, ub
+    if A.__class__.__name__ == 'Qobj':
+        return _sparse_bandwidth(A.data.indices, A.data.indptr, nrows)
+    elif A.getformat() == 'csr':
+        return _sparse_bandwidth(A.indices, A.indptr, nrows) 
+    elif A.getformat() == 'csc':
+        # Normal output is mb,lb,ub but since CSC
+        # is transpose of CSR switch lb and ub
+        mb, ub, lb= _sparse_bandwidth(A.indices, A.indptr, nrows)
+        return mb, lb, ub
+    else:
+        raise Exception('Invalid sparse input format.') 
 
     
     
