@@ -429,7 +429,7 @@ def _padecoeff(m):
                          960960, 16380, 182, 1])
 
 
-def sparse_permute(A,rperm=[],cperm=[], kind='csr'):
+def sparse_permute(A,rperm=[],cperm=[]):
     """
     Permutes the rows and columns of a sparse CSR or CSC matrix or Qobj 
     according to the permutation arrays rperm and cperm, respectively.  
@@ -438,53 +438,59 @@ def sparse_permute(A,rperm=[],cperm=[], kind='csr'):
     
     Parameters
     ----------
-    A : qobj, csr_matrix
-        Input quantum object or csr_matrix.
+    A : qobj, csr_matrix, csc_matrix
+        Input matrix.
     rperm : list/array
         Array of row permutations.
     cperm : list/array
         Array of column permutations.
-    kind : string {'csr', 'csc'}
-        Type of return sparse matrix
     
     Returns
     -------
-    perm_csr : {csr_matrix, csc_matrix}
+    perm_csr : csr_matrix, csc_matrix
         CSR or CSC matrix with permuted rows/columns.
     
     """
     rperm = np.asarray(rperm)
     cperm = np.asarray(cperm)
     nrows = A.shape[0]
+    ncols = A.shape[1]
     shp = A.shape
     if A.__class__.__name__=='Qobj':
-        A = A.data
-    
-    val=A.data[0]
-    if val.dtype==np.int_:
-        dt=int
-        data, ind, ptr = _sparse_permute_int(A.data, A.indices, 
-                        A.indptr, nrows, rperm, cperm)
-    elif val.dtype==np.float_:
-        dt=float
-        data, ind, ptr = _sparse_permute_float(A.data, A.indices, 
-                        A.indptr, nrows, rperm, cperm)
-    elif val.dtype==np.complex_:
+        kind='csr'
         dt=complex
-        data, ind, ptr = _sparse_permute_complex(A.data, A.indices, 
-                        A.indptr, nrows, rperm, cperm)
+        data, ind, ptr = _sparse_permute_complex(A.data.data, A.data.indices, 
+                        A.data.indptr, nrows, ncols, rperm, cperm, 0)
     else:
-        raise TypeError('Invalid data type in csr_matrix.')
-
+        kind=A.getformat()
+        if kind=='csr':
+            flag=0
+        elif kind=='csr':
+            flag=1
+        else:
+            raise Exception('Input must be Qobj, CSR, or CSC matrix.')
+        val=A.data[0]
+        if val.dtype==np.int_:
+            dt=int
+            data, ind, ptr = _sparse_permute_int(A.data, A.indices, 
+                            A.indptr, nrows, ncols, rperm, cperm, flag)
+        elif val.dtype==np.float_:
+            dt=float
+            data, ind, ptr = _sparse_permute_float(A.data, A.indices, 
+                            A.indptr, nrows, ncols, rperm, cperm, flag)
+        elif val.dtype==np.complex_:
+            dt=complex
+            data, ind, ptr = _sparse_permute_complex(A.data, A.indices, 
+                            A.indptr, nrows, ncols, rperm, cperm, flag)
+        else:
+            raise TypeError('Invalid data type in matrix.')
     if kind=='csr':
         return sp.csr_matrix((data,ind,ptr),shape=shp,dtype=dt)
     elif kind=='csc':
         return sp.csc_matrix((data,ind,ptr),shape=shp,dtype=dt)
-    else:
-        raise TypeError('Unsupported sparse matrix format.')
 
 
-def sparse_reverse_permute(A,rperm=[],cperm=[], kind='csr'):
+def sparse_reverse_permute(A,rperm=[],cperm=[]):
     """
     Performs a reverse permutations of the rows and columns of a sparse CSR matrix or Qobj 
     according to the permutation arrays rperm and cperm, respectively.  Here, the permutation 
@@ -501,9 +507,6 @@ def sparse_reverse_permute(A,rperm=[],cperm=[], kind='csr'):
     cperm : list/array
         Array of column permutations.
     
-    kind : string {'csr', 'csc'}
-        Type of return sparse matrix
-    
     Returns
     -------
     perm_csr : {csr_matrix, csc_matrix}
@@ -513,31 +516,40 @@ def sparse_reverse_permute(A,rperm=[],cperm=[], kind='csr'):
     rperm = np.asarray(rperm)
     cperm = np.asarray(cperm)
     nrows = A.shape[0]
+    ncols = A.shape[1]
     shp = A.shape
     if A.__class__.__name__=='Qobj':
-        A = A.data
-    
-    val=A.data[0]
-    
-    if val.dtype==np.int_:
-        dt=int
-        data, ind, ptr = _sparse_reverse_permute_int(A.data, A.indices, 
-                    A.indptr, nrows, rperm, cperm)
-    elif val.dtype==np.float_:
-        dt=float
-        data, ind, ptr = _sparse_reverse_permute_float(A.data, A.indices, 
-                    A.indptr, nrows, rperm, cperm)
-    elif val.dtype==np.complex_:
+        kind='csr'
         dt=complex
         data, ind, ptr = _sparse_reverse_permute_complex(A.data, A.indices, 
-                    A.indptr, nrows, rperm, cperm)
-
+                    A.indptr, nrows, ncols, rperm, cperm, 0)
+    else:
+        kind=A.getformat()
+        if kind=='csr':
+            flag=0
+        elif kind=='csr':
+            flag=1
+        else:
+            raise Exception('Input must be Qobj, CSR, or CSC matrix.')        
+        val=A.data[0]
+        if val.dtype==np.int_:
+            dt=int
+            data, ind, ptr = _sparse_reverse_permute_int(A.data, A.indices, 
+                        A.indptr, nrows, ncols, rperm, cperm, flag)
+        elif val.dtype==np.float_:
+            dt=float
+            data, ind, ptr = _sparse_reverse_permute_float(A.data, A.indices, 
+                        A.indptr, nrows, ncols, rperm, cperm, flag)
+        elif val.dtype==np.complex_:
+            dt=complex
+            data, ind, ptr = _sparse_reverse_permute_complex(A.data, A.indices, 
+                        A.indptr, nrows, ncols, rperm, cperm, flag)
+        else:
+            raise TypeError('Invalid data type in matrix.')
     if kind=='csr':
         return sp.csr_matrix((data,ind,ptr),shape=shp,dtype=dt)
     elif kind=='csc':
         return sp.csc_matrix((data,ind,ptr),shape=shp,dtype=dt)
-    else:
-        raise TypeError('Unsupported sparse matrix format.')
 
 
 def sparse_bandwidth(A):
@@ -564,6 +576,7 @@ def sparse_bandwidth(A):
     
     """
     nrows = A.shape[0]
+    ncols = A.shape[1]
     if A.__class__.__name__ == 'Qobj':
         return _sparse_bandwidth(A.data.indices, A.data.indptr, nrows)
     elif A.getformat() == 'csr':
@@ -571,7 +584,7 @@ def sparse_bandwidth(A):
     elif A.getformat() == 'csc':
         # Normal output is mb,lb,ub but since CSC
         # is transpose of CSR switch lb and ub
-        mb, ub, lb= _sparse_bandwidth(A.indices, A.indptr, nrows)
+        mb, ub, lb= _sparse_bandwidth(A.indices, A.indptr, ncols)
         return mb, lb, ub
     else:
         raise Exception('Invalid sparse input format.') 
