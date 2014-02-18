@@ -570,11 +570,11 @@ def wigner_cmap(W, levels=1024, shift=0, invert=False):
     max_color = np.array([0.020, 0.19, 0.38, 1.0])
     mid_color = np.array([1, 1, 1, 1.0])
     if invert:
-        min_color = np.array([0.89, 0.61, 0.82, 1])
+        min_color = np.array([1, 0.70, 0.87, 1])
         neg_color = np.array([0.4, 0.0, 0.12, 1])
     else:
         min_color = np.array([0.4, 0.0, 0.12, 1])
-        neg_color = np.array([0.89, 0.61, 0.82, 1])
+        neg_color = np.array([1, 0.70, 0.87, 1])
     # get min and max values from Wigner function
     bounds = [W.min(), W.max()]
     # create empty array for RGBA colors
