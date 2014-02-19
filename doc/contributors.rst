@@ -72,3 +72,5 @@ Contributors
 
 **Dong Zhou** (Yale University) - Bug hunter
 
+**Piotr Migdał** (ICFO) - Code contributor
+
