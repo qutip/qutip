@@ -457,6 +457,12 @@ def sparse_permute(A, rperm=[], cperm=[], safe=True):
     cperm = np.asarray(cperm, dtype=int)
     nrows = A.shape[0]
     ncols = A.shape[1]
+    #this takes care of case where array is column or row
+    #vector both of which require having a nonzero perm
+    if nrows==1:
+        rperm = np.array([0],dtype=int)
+    if ncols==1:
+        cperm = np.array([0],dtype=int)
     if safe:
         if (len(rperm)!=0 and len(np.setdiff1d(rperm, np.arange(nrows)))!=0):
             raise Exception('Invalid row permutation array.')
@@ -464,29 +470,29 @@ def sparse_permute(A, rperm=[], cperm=[], safe=True):
             raise Exception('Invalid column permutation array.')
     shp = A.shape
     if A.__class__.__name__=='Qobj':
-        kind='csr'
-        dt=complex
+        kind = 'csr'
+        dt = complex
         data, ind, ptr = _sparse_permute_complex(A.data.data, A.data.indices, 
                         A.data.indptr, nrows, ncols, rperm, cperm, 0)
     else:
         kind=A.getformat()
         if kind=='csr':
-            flag=0
+            flag = 0
         elif kind=='csc':
-            flag=1
+            flag = 1
         else:
             raise Exception('Input must be Qobj, CSR, or CSC matrix.')
-        val=A.data[0]
+        val = A.data[0]
         if val.dtype==np.int_:
             dt=int
             data, ind, ptr = _sparse_permute_int(A.data, A.indices, 
                             A.indptr, nrows, ncols, rperm, cperm, flag)
         elif val.dtype==np.float_:
-            dt=float
+            dt = float
             data, ind, ptr = _sparse_permute_float(A.data, A.indices, 
                             A.indptr, nrows, ncols, rperm, cperm, flag)
         elif val.dtype==np.complex_:
-            dt=complex
+            dt = complex
             data, ind, ptr = _sparse_permute_complex(A.data, A.indices, 
                             A.indptr, nrows, ncols, rperm, cperm, flag)
         else:
@@ -524,6 +530,12 @@ def sparse_reverse_permute(A, rperm=[], cperm=[], safe=True):
     cperm = np.asarray(cperm, dtype=int)
     nrows = A.shape[0]
     ncols = A.shape[1]
+    #this takes care of case where array is column or row
+    #vector both of which require having a nonzero perm
+    if nrows==1:
+        rperm = np.array([0],dtype=int)
+    if ncols==1:
+        cperm = np.array([0],dtype=int)
     if safe:
         if (len(rperm)!=0 and len(np.setdiff1d(rperm, np.arange(nrows)))!=0):
             raise Exception('Invalid row permutation array.')
@@ -531,29 +543,29 @@ def sparse_reverse_permute(A, rperm=[], cperm=[], safe=True):
             raise Exception('Invalid column permutation array.')
     shp = A.shape
     if A.__class__.__name__=='Qobj':
-        kind='csr'
-        dt=complex
+        kind = 'csr'
+        dt = complex
         data, ind, ptr = _sparse_reverse_permute_complex(A.data, A.indices, 
                     A.indptr, nrows, ncols, rperm, cperm, 0)
     else:
         kind=A.getformat()
         if kind=='csr':
-            flag=0
+            flag = 0
         elif kind=='csc':
-            flag=1
+            flag = 1
         else:
             raise Exception('Input must be Qobj, CSR, or CSC matrix.')        
-        val=A.data[0]
+        val = A.data[0]
         if val.dtype==np.int_:
-            dt=int
+            dt = int
             data, ind, ptr = _sparse_reverse_permute_int(A.data, A.indices, 
                         A.indptr, nrows, ncols, rperm, cperm, flag)
         elif val.dtype==np.float_:
-            dt=float
+            dt = float
             data, ind, ptr = _sparse_reverse_permute_float(A.data, A.indices, 
                         A.indptr, nrows, ncols, rperm, cperm, flag)
         elif val.dtype==np.complex_:
-            dt=complex
+            dt = complex
             data, ind, ptr = _sparse_reverse_permute_complex(A.data, A.indices, 
                         A.indptr, nrows, ncols, rperm, cperm, flag)
         else:
