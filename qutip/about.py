@@ -50,7 +50,7 @@ def about():
     QuTiP, NumPy, SciPy, Cython, and MatPlotLib.
     """
     print('')
-    print("QuTiP: The Quantum Toolbox in Python")
+    print("QuTiP: Quantum Toolbox in Python")
     print("Copyright (c) 2011 and later.")
     print("Paul D. Nation & Robert J. Johansson")
     print('')
