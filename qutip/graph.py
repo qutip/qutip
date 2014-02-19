@@ -41,7 +41,7 @@ from qutip.cy.graph_utils import (_pseudo_peripheral_node, _breadth_first_search
                                     _node_degrees, _rcm, _bfs_matching,
                                     _weighted_bfs_matching)
 from qutip.settings import debug
-
+from warnings import warn
 if debug:
     import inspect
 
@@ -150,10 +150,96 @@ def symrcm(A,sym=False):
 
 
 def bfs_matching(A):
+    """
+    Returns an array of row permutations that removes nonzero elements
+    from the diagonal of a nonsingular square CSC sparse matrix.  Such
+    a permutation is always possible provided that the matrix is 
+    nonsingular.
+    
+    This function looks at the structure of the matrix only.
+    
+    Parameters
+    ----------
+    A : csc_matrix
+        Input matrix
+    
+    Returns
+    -------
+    perm : array
+        Array of row permutations.
+    
+    Notes
+    -----
+    This function relies on a maximum cardinality bipartite matching algorithm
+    based on a breadth-first search (BFS) of the underlying graph[1]_.
+    
+    References
+    ----------
+    .. [1] I. S. Duff, K. Kaya, and B. Ucar, "Design, Implementation, and 
+    Analysis of Maximum Transversal Algorithms", ACM Trans. Math. Softw.
+    38 (2), 2011.
+    
+    """
     nrows = A.shape[0]
+    if A.shape[0]!=A.shape[1]:
+        raise ValueError('bfs_matching requires a square matrix.')
     if A.__class__.__name__=='Qobj':
-        return _bfs_matching(A.data.indices, A.data.indptr, nrows)
-        
-    else:
-        return _bfs_matching(A.indices, A.indptr, nrows)
+        A = A.data.tocsc()
+    elif not sp.isspmatrix_csc(A):
+        A = sp.csc_matrix(A)
+        warn('bfs_matching requires CSC matrix format.', 
+            sp.SparseEfficiencyWarning)
+    
+    perm = _bfs_matching(A.indices, A.indptr, nrows)
+    if np.any(perm==-1):
+        raise Exception('Possibly singular input matrix.')
+    return perm
+
+
+def weighted_bfs_matching(A):
+    """
+    Returns an array of row permutations that attempts to maximize
+    the product of the ABS values of the diagonal elements in 
+    a nonsingular square CSC sparse matrix. Such a permutation is 
+    always possible provided that the matrix is nonsingular.
+    
+    This function looks at both the structure and ABS values of the 
+    underlying matrix.
+    
+    Parameters
+    ----------
+    A : csc_matrix
+        Input matrix
+    
+    Returns
+    -------
+    perm : array
+        Array of row permutations.
+    
+    Notes
+    -----
+    This function uses a weighted maximum cardinality bipartite matching 
+    algorithm based on breadth-first search (BFS).  The columns are weighted
+    according to the element of max ABS value in the associated rows and 
+    are traversed in descending order by weight.  When performing the BFS 
+    traversal, the row associated to a given column is the one with maximum 
+    weight. This algorithm does not guarantee the product of the diagonal 
+    is maximized, but typically returns the maximal or nearly-maximal product. 
+    
+    """
+    nrows = A.shape[0]
+    if A.shape[0]!=A.shape[1]:
+        raise ValueError('weighted_bfs_matching requires a square matrix.')
+    if A.__class__.__name__=='Qobj':
+        A = A.data.tocsc()
+    elif not sp.isspmatrix_csc(A):
+        A = sp.csc_matrix(A)
+        warn('weighted_bfs_matching requires CSC matrix format', 
+            sp.SparseEfficiencyWarning)
+    
+    perm = _weighted_bfs_matching(np.asarray(np.abs(A.data),dtype=float),
+                                A.indices, A.indptr, nrows)
+    if np.any(perm==-1):
+        raise Exception('Possibly singular input matrix.')
+    return perm
     
