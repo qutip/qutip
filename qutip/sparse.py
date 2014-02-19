@@ -429,9 +429,9 @@ def _padecoeff(m):
                          960960, 16380, 182, 1])
 
 
-def sparse_permute(A,rperm=[],cperm=[]):
+def sparse_permute(A, rperm=[], cperm=[], safe=True):
     """
-    Permutes the rows and columns of a sparse CSR or CSC matrix or Qobj 
+    Permutes the rows and columns of a sparse CSR/CSC matrix or Qobj 
     according to the permutation arrays rperm and cperm, respectively.  
     Here, the permutation arrays specify the new order of the rows and 
     columns. i.e. [0,1,2,3,4] -> [3,0,4,1,2].
@@ -444,6 +444,8 @@ def sparse_permute(A,rperm=[],cperm=[]):
         Array of row permutations.
     cperm : list/array
         Array of column permutations.
+    safe : bool
+        Check structure of permutation arrays.
     
     Returns
     -------
@@ -451,10 +453,15 @@ def sparse_permute(A,rperm=[],cperm=[]):
         CSR or CSC matrix with permuted rows/columns.
     
     """
-    rperm = np.asarray(rperm)
-    cperm = np.asarray(cperm)
+    rperm = np.asarray(rperm, dtype=int)
+    cperm = np.asarray(cperm, dtype=int)
     nrows = A.shape[0]
     ncols = A.shape[1]
+    if safe:
+        if (len(rperm)!=0 and len(np.setdiff1d(rperm, np.arange(nrows)))!=0):
+            raise Exception('Invalid row permutation array.')
+        if (len(cperm)!=0 and len(np.setdiff1d(cperm, np.arange(ncols)))!=0):
+            raise Exception('Invalid column permutation array.')
     shp = A.shape
     if A.__class__.__name__=='Qobj':
         kind='csr'
@@ -490,33 +497,38 @@ def sparse_permute(A,rperm=[],cperm=[]):
         return sp.csc_matrix((data,ind,ptr),shape=shp,dtype=dt)
 
 
-def sparse_reverse_permute(A,rperm=[],cperm=[]):
+def sparse_reverse_permute(A, rperm=[], cperm=[], safe=True):
     """
-    Performs a reverse permutations of the rows and columns of a sparse CSR matrix or Qobj 
+    Performs a reverse permutations of the rows and columns of a sparse CSR/CSC matrix or Qobj 
     according to the permutation arrays rperm and cperm, respectively.  Here, the permutation 
     arrays specify the order of the rows and columns used to permute the original array/Qobj.
     
     Parameters
     ----------
-    A : qobj, csr_matrix
-        Input quantum object or csr_matrix.
-    
+    A : qobj, csr_matrix, csc_matrix
+        Input matrix.
     rperm : list/array
         Array of row permutations.
-    
     cperm : list/array
         Array of column permutations.
+    safe : bool
+        Check structure of permutation arrays.
     
     Returns
     -------
-    perm_csr : {csr_matrix, csc_matrix}
+    perm_csr : csr_matrix, csc_matrix
         CSR or CSC matrix with permuted rows/columns.
     
     """
-    rperm = np.asarray(rperm)
-    cperm = np.asarray(cperm)
+    rperm = np.asarray(rperm, dtype=int)
+    cperm = np.asarray(cperm, dtype=int)
     nrows = A.shape[0]
     ncols = A.shape[1]
+    if safe:
+        if (len(rperm)!=0 and len(np.setdiff1d(rperm, np.arange(nrows)))!=0):
+            raise Exception('Invalid row permutation array.')
+        if (len(cperm)!=0 and len(np.setdiff1d(cperm, np.arange(ncols)))!=0):
+            raise Exception('Invalid column permutation array.')
     shp = A.shape
     if A.__class__.__name__=='Qobj':
         kind='csr'
