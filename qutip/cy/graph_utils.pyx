@@ -135,7 +135,7 @@ def _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num_r
                         temp = temp_degrees[kk-N_old]
                         temp2 = order[kk]
                         ll = kk-1
-                        while (ll>=0) and (temp_degrees[ll] > temp):
+                        while (ll>=N_old) and (temp_degrees[ll] > temp):
                             temp_degrees[ll+1-N_old] = temp_degrees[ll-N_old]
                             order[ll+1] = order[ll]
                             ll-=1
