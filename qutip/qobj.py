@@ -1000,22 +1000,24 @@ class Qobj():
             Quantum object with small elements removed.
 
         """
-        out = Qobj(dims=self.dims, shape=self.shape,
-                   type=self.type, isherm=self.isherm)
+        if self.data.nnz!=0:
+            out = Qobj(dims=self.dims, shape=self.shape,
+                       type=self.type, isherm=self.isherm)
 
-        out.data = self.data.copy()
+            out.data = self.data.copy()
 
-        data_real = out.data.data.real
-        data_real[abs(data_real) < atol] = 0
+            data_real = out.data.data.real
+            data_real[abs(data_real) < atol] = 0
 
-        data_imag = out.data.data.imag
-        data_imag[abs(data_imag) < atol] = 0
+            data_imag = out.data.data.imag
+            data_imag[abs(data_imag) < atol] = 0
 
-        out.data.data = data_real + 1j * data_imag            
+            out.data.data = data_real + 1j * data_imag            
 
-        out.data.eliminate_zeros()
-
-        return out
+            out.data.eliminate_zeros()
+            return out
+        else:
+            return self
 
     def transform(self, inpt, inverse=False):
         """Basis transform defined by input array.
