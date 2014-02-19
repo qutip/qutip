@@ -457,16 +457,14 @@ def sparse_permute(A, rperm=[], cperm=[], safe=True):
     cperm = np.asarray(cperm, dtype=int)
     nrows = A.shape[0]
     ncols = A.shape[1]
-    #this takes care of case where array is column or row
-    #vector both of which require having a nonzero perm
-    if nrows==1:
-        rperm = np.array([0],dtype=int)
-    if ncols==1:
-        cperm = np.array([0],dtype=int)
+    if len(rperm)==0:
+        rperm = np.arange(nrows)
+    if len(cperm)==0:
+        cperm = np.arange(ncols)
     if safe:
-        if (len(rperm)!=0 and len(np.setdiff1d(rperm, np.arange(nrows)))!=0):
+        if len(np.setdiff1d(rperm, np.arange(nrows)))!=0:
             raise Exception('Invalid row permutation array.')
-        if (len(cperm)!=0 and len(np.setdiff1d(cperm, np.arange(ncols)))!=0):
+        if len(np.setdiff1d(cperm, np.arange(ncols)))!=0:
             raise Exception('Invalid column permutation array.')
     shp = A.shape
     if A.__class__.__name__=='Qobj':
@@ -530,16 +528,14 @@ def sparse_reverse_permute(A, rperm=[], cperm=[], safe=True):
     cperm = np.asarray(cperm, dtype=int)
     nrows = A.shape[0]
     ncols = A.shape[1]
-    #this takes care of case where array is column or row
-    #vector both of which require having a nonzero perm
-    if nrows==1:
-        rperm = np.array([0],dtype=int)
-    if ncols==1:
-        cperm = np.array([0],dtype=int)
+    if len(rperm)==0:
+        rperm = np.arange(nrows)
+    if len(cperm)==0:
+        cperm = np.arange(ncols)
     if safe:
-        if (len(rperm)!=0 and len(np.setdiff1d(rperm, np.arange(nrows)))!=0):
+        if len(np.setdiff1d(rperm, np.arange(nrows)))!=0:
             raise Exception('Invalid row permutation array.')
-        if (len(cperm)!=0 and len(np.setdiff1d(cperm, np.arange(ncols)))!=0):
+        if len(np.setdiff1d(cperm, np.arange(ncols)))!=0:
             raise Exception('Invalid column permutation array.')
     shp = A.shape
     if A.__class__.__name__=='Qobj':
