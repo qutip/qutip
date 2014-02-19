@@ -472,7 +472,7 @@ def sparse_permute(A, rperm=[], cperm=[], safe=True):
         kind=A.getformat()
         if kind=='csr':
             flag=0
-        elif kind=='csr':
+        elif kind=='csc':
             flag=1
         else:
             raise Exception('Input must be Qobj, CSR, or CSC matrix.')
@@ -539,7 +539,7 @@ def sparse_reverse_permute(A, rperm=[], cperm=[], safe=True):
         kind=A.getformat()
         if kind=='csr':
             flag=0
-        elif kind=='csr':
+        elif kind=='csc':
             flag=1
         else:
             raise Exception('Input must be Qobj, CSR, or CSC matrix.')        
