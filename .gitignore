@@ -19,9 +19,11 @@ lib
 lib64
 
 
-qutip/_version.py
+qutip/version.py
+qutip/__config__.py
 rhs*.pyx
 
+*.c
 
 *.dat
 

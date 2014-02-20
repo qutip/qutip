@@ -1,21 +1,35 @@
-# This file is part of QuTiP.
+# This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    QuTiP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#    QuTiP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
+#    met:
 #
-#    You should have received a copy of the GNU General Public License
-#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#    1. Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
 #
-# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
-###########################################################################
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 
 from scipy import array
 from multiprocessing import Pool, cpu_count
@@ -25,9 +39,10 @@ import sys
 import signal
 import qutip.settings as qset
 
+
 def _task_wrapper(args):
     try:
-        return args[0](args[1])
+        return args[0](*args[1])
     except KeyboardInterrupt:
         os.kill(args[2], signal.SIGINT)
         sys.exit(1)
@@ -35,67 +50,61 @@ def _task_wrapper(args):
 
 def _task_wrapper_with_args(args, user_args):
     try:
-        return args[0](args[1], user_args)
+        return args[0](*args[1], **user_args)
     except KeyboardInterrupt:
         os.kill(args[2], signal.SIGINT)
         sys.exit(1)
 
 
-def parfor(func, frange, num_cpus=0, args=None):
-    """Executes a single-variable function in parallel.
+def parfor(func, *args, **kwargs):
+    """Executes a multi-variable function in parallel on the local machine.
 
-    Parallel execution of a for-loop over function `func` for a single variable
-    `frange`.
+    Parallel execution of a for-loop over function `func` for multiple input
+    arguments and keyword arguments.
 
     Parameters
     ----------
-    func: function_type
-        A single-variable function.
+    func : function_type
+        A function to run in parallel on the local machine. The function 'func' 
+        accepts a series of arguments that are passed to the function as variables. 
+        In general, the function can have multiple input variables, and these 
+        arguments must be passed in the same order as they are defined in
+        the function definition.  In addition, the user can pass multiple keyword
+        arguments to the function.
 
-    frange: array_type
-        An ``array`` of values to be passed on to `func`.
+    The following keyword argument is reserved:
+    
+    num_cpus : int
+        Number of CPU's to use.  Default uses maximum number of CPU's. 
+        Performance degrades if num_cpus is larger than the physical CPU 
+        count of your machine.
 
-    num_cpus : int {0}
-        Number of CPU's to use.  Default '0' uses max. number
-        of CPU's. Performance degrades if num_cpus is larger
-        than the physical CPU count of your machine.
-
-    args : dictionary
-        Option parameter dictionary that is passed to the user-defined
-        task function.
 
     Returns
     -------
     result : list
         A ``list`` with length equal to number of input parameters
-        containting the output from `func`.  In general, the ordering
-        of the output variables will not be in the same order as `frange`.
-
-    Notes
-    -----
-    Multiple values can be passed into the parfor function using Pythons
-    builtin 'zip' command, or using multidimensional `lists` or `arrays`.
-    Alternatively, the optional argument `args` can be used to pass additional
-    parameters to the task function.
+        containing the output from `func`.
 
     """
-    if args is not None:
-        task_func = partial(_task_wrapper_with_args, user_args=args)
+    kw = _default_parfor_settings()
+    if 'num_cpus' in kwargs.keys():
+        kw['num_cpus']=kwargs['num_cpus']
+        del kwargs['num_cpus']
+    if len(kwargs) != 0:
+        task_func = partial(_task_wrapper_with_args, user_args=kwargs)
     else:
         task_func = _task_wrapper
+    
+    if kw['num_cpus'] > qset.num_cpus:
+        print("Requested number of CPUs (%s) " % kw['num_cpus'] +
+              "is larger than physical number (%s)." % qset.num_cpus)
+        print("Reduce 'num_cpus' for greater performance.")
 
-    if num_cpus == 0:
-        cpus = qset.num_cpus
-    else:
-        cpus = num_cpus
-        if cpus > cpu_count():
-            print("Requested number of CPUs (%s) " % cpus +
-                  "is larger than physical number (%s)." % cpu_count())
-            print("Reduce 'num_cpus' for greater performance.")
-
-    pool = Pool(processes=cpus)
+    pool = Pool(processes=kw['num_cpus'])
+    var = [[args[j][i] for j in range(len(args))] for i in range(len(args[0]))]
     try:
-        map_args = ((func, f, os.getpid()) for f in frange)
+        map_args = ((func, v, os.getpid()) for v in var)
         par_return = list(pool.map(task_func, map_args))
 
         if isinstance(par_return[0], tuple):
@@ -108,3 +117,8 @@ def parfor(func, frange, num_cpus=0, args=None):
 
     except KeyboardInterrupt:
         pool.terminate()
+
+def _default_parfor_settings():
+    settings = {'num_cpus' : qset.num_cpus}
+    return settings
+

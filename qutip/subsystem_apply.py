@@ -81,8 +81,8 @@ def subsystem_apply(state, channel, mask, reference=False):
     # the same dimensions:
     aff_subs_dim_ar = transpose(array(state.dims))[array(mask)]
 
-    assert all([aff_subs_dim_ar[j] == aff_subs_dim_ar[0]
-                   for j in range(len(aff_subs_dim_ar))]), \
+    assert all([(aff_subs_dim_ar[j] == aff_subs_dim_ar[0]).all()
+                for j in range(len(aff_subs_dim_ar))]), \
         "Affected subsystems must have the same dimension. Given:" +\
         repr(aff_subs_dim_ar)
 
@@ -90,12 +90,14 @@ def subsystem_apply(state, channel, mask, reference=False):
     # as the affected subsystem. If it is on the Liouville space, it must
     # exist on a space as large as the square of the Hilbert dimension.
     if issuper(channel):
-        required_shape = map(lambda x: x ** 2, aff_subs_dim_ar[0])
+        required_shape = list(map(lambda x: x ** 2, aff_subs_dim_ar[0]))
     else:
         required_shape = aff_subs_dim_ar[0]
-    assert all(channel.shape == required_shape),\
-    "Superoperator dimension must be the subsystem dimension squared, given: "\
-    + repr(channel.shape)
+
+    assert array([channel.shape == required_shape]).all(), \
+        "Superoperator dimension must be the " + \
+        "subsystem dimension squared, given: " \
+        + repr(channel.shape)
 
     # Ensure mask is an array:
     mask = array(mask)
@@ -145,7 +147,7 @@ def _one_subsystem_apply(state, channel, idx):
     # Apply channel to top subsystem of each block in matrix
     full_data_matrix = state.data.todense()
 
-    if all(isreal(full_data_matrix)):
+    if isreal(full_data_matrix).all():
         full_data_matrix = full_data_matrix.astype(complex)
 
     for blk_r in range(n_blks):
@@ -178,11 +180,12 @@ def _top_apply_U(block, channel):
     the leftmost register in the tensor product, given a unitary matrix
     for a channel.
     """
-    if all(isreal(block)):
+    if isreal(block).all():
         block = block.astype(complex)
+
     split_mat = _block_split(block, *channel.shape)
-    # print split_mat
     temp_split_mat = zeros(shape(split_mat)).astype(complex)
+
     for dm_row_idx in range(channel.shape[0]):
         for dm_col_idx in range(channel.shape[1]):
             for op_row_idx in range(channel.shape[0]):
@@ -199,17 +202,16 @@ def _top_apply_S(block, channel):
     # If the channel is a super-operator,
     # perform second block decomposition; block-size
     # matches Hilbert space of affected subsystem:
-    column = _block_col(block, *map(
-        sqrt, channel.shape))  # FIXME use state shape?
+    column = _block_col(block, *list(map(sqrt, channel.shape)))  # FIXME use state shape?
     chan_mat = channel.data.todense()
     temp_col = zeros(shape(column)).astype(complex)
     # print chan_mat.shape
     for row_idx in range(len(chan_mat)):
         row = chan_mat[row_idx]
         # print [scal[0,0]*mat for (scal,mat) in zip(transpose(row),column)]
-        temp_col[row_idx] = reduce(add, [scal[0, 0] * mat for (
-            scal, mat) in zip(transpose(row), column)])
-    return _block_stack(temp_col, *map(sqrt, channel.shape))
+        temp_col[row_idx] = sum([s[0, 0] * mat
+                                 for (s, mat) in zip(transpose(row), column)])
+    return _block_stack(temp_col, *list(map(sqrt, channel.shape)))
 
 
 def _block_split(mat_in, n_v, n_h):
@@ -217,7 +219,7 @@ def _block_split(mat_in, n_v, n_h):
     Returns a 4D array of matrices, splitting mat_in into
     n_v * n_h square sub-arrays.
     """
-    return map(lambda x: hsplit(x, n_h), vsplit(mat_in, n_v))
+    return list(map(lambda x: hsplit(x, n_h), vsplit(mat_in, n_v)))
 
 
 def _block_join(mat_in):
@@ -231,8 +233,8 @@ def _block_col(mat_in, n_v, n_h):
     """
     rows, cols = shape(mat_in)
     return reshape(
-           array(_block_split(mat_in, n_v, n_h)).transpose(1, 0, 2, 3),
-           (n_v * n_h, rows / n_v, cols / n_h))
+        array(_block_split(mat_in, n_v, n_h)).transpose(1, 0, 2, 3),
+        (n_v * n_h, rows / n_v, cols / n_h))
 
 
 def _block_stack(arr_in, n_v, n_h):
@@ -240,7 +242,7 @@ def _block_stack(arr_in, n_v, n_h):
     Inverse of _block_split
     """
     rs, cs = shape(arr_in)[-2:]
-    temp = map(transpose, arr_in)
+    temp = list(map(transpose, arr_in))
     # print shape(arr_in)
     temp = reshape(temp, (n_v, n_h, rs, cs))
     return hstack(hstack(temp)).T
@@ -257,10 +259,10 @@ def _subsystem_apply_reference(state, channel, mask):
         return full_oper * state * full_oper.dag()
     else:
         # Go to Choi, then Kraus
-        chan_mat = array(channel.data.todense())
-        choi_matrix = super_to_choi(chan_mat)
-        vals, vecs = eig(choi_matrix)
-        vecs = map(array, zip(*vecs))
+        # chan_mat = array(channel.data.todense())
+        choi_matrix = super_to_choi(channel)
+        vals, vecs = eig(choi_matrix.full())
+        vecs = list(map(array, zip(*vecs)))
         kraus_list = [sqrt(vals[j]) * vec2mat(vecs[j])
                       for j in range(len(vals))]
         # Kraus operators to be padded with identities:
@@ -268,128 +270,9 @@ def _subsystem_apply_reference(state, channel, mask):
         rho_out = Qobj(inpt=zeros(state.shape), dims=state.dims)
         for operator_iter in k_qubit_kraus_list:
             operator_iter = iter(operator_iter)
-            op_iter_list = [operator_iter.next() if mask[j]
+            op_iter_list = [next(operator_iter) if mask[j]
                             else qeye(state.dims[0][j])
                             for j in range(len(state.dims[0]))]
-            full_oper = tensor(map(Qobj, op_iter_list))
+            full_oper = tensor(list(map(Qobj, op_iter_list)))
             rho_out = rho_out + full_oper * state * full_oper.dag()
         return Qobj(rho_out)
-"""
-if __name__ == '__main__':
-    # Test, apply lowering operator to 2 out of 5 subsystems, on
-    # multi-dimensional state.
-    set_printoptions(precision=3)
-
-    print "Applying Single Operator to Two Subsystems Out Of Five"
-    print "------------------------------------------------------"
-    state = tensor(
-        [coherent_dm(2, 0.2), coherent_dm(3, 0.3), coherent_dm(5, 0.5),
-         coherent_dm(3, 0.5), coherent_dm(7, 0.7j)])
-    op_1 = create(3) + destroy(3)
-    analytic_output = tensor([coherent_dm(2, 0.2),
-                              op_1 * coherent_dm(3, 0.3) * op_1.dag(),
-                              coherent_dm(5, 0.5),
-                              op_1 * coherent_dm(3, 0.5) * op_1.dag(),
-                              coherent_dm(7, 0.7j)])
-    print "Difference between analytic result and Kraus map: \n"
-    test_output = subsystem_apply(
-        state, op_1, [False, True, False, True, False],
-        reference=True)
-    print norm(test_output.data.todense() - analytic_output.data.todense())
-    print "Difference between analytic result and efficient numerics: \n"
-    efficient_output = subsystem_apply(
-        state, op_1, [False, True, False, True, False])
-    print norm(efficient_output.data.todense() -
-               analytic_output.data.todense())
-
-    print "Applying Superoperator to Two Subsystems Out Of Five"
-    print "------------------------------------------------------"
-    state = tensor(
-        [coherent_dm(2, 0.2), coherent_dm(3, 0.3), coherent_dm(5, 0.5),
-         coherent_dm(3, 0.5), coherent_dm(7, 0.7j)])
-    superop_1 = propagator(Qobj(zeros([3, 3])), 0.2, [
-                           destroy(3), create(3), jmat(1., 'z')])
-    inpt_5 = vec2mat(superop_1.data.todense() * mat2vec(
-        coherent_dm(3, 0.5).data.todense()))
-    inpt_3 = vec2mat(superop_1.data.todense() * mat2vec(
-        coherent_dm(3, 0.3).data.todense()))
-    dm_out_5 = Qobj(inpt=inpt_5, type='oper')
-    dm_out_3 = Qobj(inpt=inpt_3, type='oper')
-    analytic_output = tensor(
-        [coherent_dm(2, 0.2), dm_out_3, coherent_dm(5, 0.5),
-         dm_out_5, coherent_dm(7, 0.7j)])
-    print "Difference between analytic result and Kraus map: \n"
-    test_output = subsystem_apply(
-        state, superop_1, [False, True, False, True, False],
-        reference=True)
-    print norm(test_output.data.todense() - analytic_output.data.todense())
-    print "Difference between analytic result and efficient numerics: \n"
-    efficient_output = subsystem_apply(
-        state, superop_1, [False, True, False, True, False])
-    print norm(efficient_output.data.todense() -
-               analytic_output.data.todense())
-
-    print "Applying Superoperator to One Subsystem Out Of Two"
-    print "------------------------------------------------------"
-    state=tensor([coherent_dm(2,0.2),coherent_dm(2,0.7j)])
-    superop_1 = propagator(Qobj(zeros([2,2])),0.2,
-                           [destroy(2),create(2),jmat(1/2.,'z')])
-    inpt_2=vec2mat(superop_1.data.todense() *
-                   mat2vec(coherent_dm(2,0.2).data.todense()))
-    #inpt_3=vec2mat(superop_1.data.todense() *
-                    mat2vec(coherent_dm(3,0.3).data.todense()))
-    dm_out_2=Qobj(inpt=inpt_2, type='oper')
-    #dm_out_3=Qobj(inpt=inpt_3, type='oper')
-    analytic_output=tensor([dm_out_2,coherent_dm(2,0.7j)])
-    print "Difference between analytic result and Kraus map: \n"
-    test_output=subsystem_apply(state,superop_1,[True,False],\
-    reference=True)
-    print norm(test_output.data.todense()-analytic_output.data.todense())
-    print "Difference between analytic result and efficient numerics: \n"
-    efficient_output=subsystem_apply(state,superop_1,[True,False])
-    print norm(efficient_output.data.todense()-analytic_output.data.todense())
-    print analytic_output
-    print test_output
-    print efficient_output
-
-    print "Single Operator, two subsystems out of four:"
-    state=tensor([coherent_dm(2,0.2),
-                  coherent_dm(3,0.3),
-                  coherent_dm(2,0.5j),
-                  coherent_dm(3,0.3j)])
-    op_1=create(3)
-    analytic_output=tensor([coherent_dm(2,0.2),
-                            op_1*coherent_dm(3,0.3)*op_1.dag(),
-                            coherent_dm(2,0.5j),
-                            op_1*coherent_dm(3,0.3j)*op_1.dag()])
-    print("Explicit Kraus Map Output")
-    print("-----------------------------------------------------")
-    test_output=subsystem_apply(state,op_1,[False,True,False,True],
-                                reference=True)
-    print "Difference between analytic result and Kraus map: \n"
-    print norm(test_output.data.todense()-analytic_output.data.todense())
-    print("Fast Application Output")
-    print("-----------------------------------------------------")
-    efficient_output=subsystem_apply(state,op_1,[False,True,False,True])
-    print "Difference between analytic result and efficient numerics: \n"
-    print norm(efficient_output.data.todense()-analytic_output.data.todense())
-
-    print "Qubit Qutrit Qubit Test"
-    state=tensor([coherent_dm(2,0.4j),coherent_dm(3,0.6j),coherent_dm(2,0.3)])
-    op_1=create(3)+destroy(3)
-    analytic_output=tensor([coherent_dm(2,0.4j),
-                            op_1*coherent_dm(3,0.6j)*op_1.dag(),
-                            coherent_dm(2,0.3)])
-    print("Analytic Output")
-    print("-----------------------------------------------------")
-    print(analytic_output.data.todense())
-    print("Explicit Kraus Map Output")
-    print("-----------------------------------------------------")
-    test_output=subsystem_apply(state,op_1,[False,True,False], reference=True)
-    print(norm((test_output.data.todense()-analytic_output.data.todense())))
-    print("Fast Application Output")
-    print("-----------------------------------------------------")
-    efficient_output=subsystem_apply(state,op_1,[False,True,False])
-    print(norm((efficient_output.data.todense() -
-                analytic_output.data.todense())))
-    """

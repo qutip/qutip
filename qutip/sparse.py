@@ -1,30 +1,49 @@
-# This file is part of QuTiP.
+# This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    QuTiP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#    QuTiP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
+#    met:
 #
-#    You should have received a copy of the GNU General Public License
-#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#    1. Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
 #
-# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
-###########################################################################
-
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 """
 This module contains a collection of sparse routines to get around
 having to use dense matrices.
 """
-
 import scipy.sparse as sp
+import scipy.sparse.linalg as spla
 import numpy as np
 import scipy.linalg as la
+from scipy.linalg.blas import get_blas_funcs
+_dznrm2 = get_blas_funcs("znrm2")
+from qutip.cy.sparse_utils import (_sparse_permute_int, _sparse_permute_float, _sparse_permute_complex,
+                                    _sparse_reverse_permute_int, _sparse_reverse_permute_float,
+                                    _sparse_reverse_permute_complex,
+                                    _sparse_bandwidth)
 from qutip.settings import debug
 
 if debug:
@@ -35,15 +54,15 @@ def _sp_fro_norm(op):
     """
     Frobius norm for Qobj
     """
-    op = op * op.dag()
-    return np.sqrt(op.tr())
+    out=np.sum(np.abs(op.data.data)**2)
+    return np.sqrt(out)
 
 
 def _sp_inf_norm(op):
     """
     Infinity norm for Qobj
     """
-    return np.max([np.sum(np.abs((op.data[k, :]).data))
+    return np.max([np.sum(np.abs(op.data.getrow(k).data))
                    for k in range(op.shape[0])])
 
 
@@ -53,7 +72,7 @@ def _sp_L2_norm(op):
     """
     if op.type == 'super' or op.type == 'oper':
         raise TypeError("Use L2-norm for ket or bra states only.")
-    return la.norm(op.data.data, 2)
+    return _dznrm2(op.data.data)
 
 
 def _sp_max_norm(op):
@@ -71,8 +90,50 @@ def _sp_one_norm(op):
     """
     One norm for Qobj
     """
-    return np.max(np.array([np.sum(np.abs((op.data[:, k]).data))
+    return np.max(np.array([np.sum(np.abs((op.data.getcol(k).data)))
                             for k in range(op.shape[1])]))
+
+
+def sp_reshape(A, shape, format='csr'):
+    """
+    Reshapes a sparse matrix.
+
+    Parameters
+    ----------
+    A : sparse_matrix
+        Input matrix in any format
+    shape : list/tuple
+        Desired shape of new matrix
+    format : string {'csr','coo','csc','lil'}
+        Optional string indicating desired output format
+
+    Returns
+    -------
+    B : csr_matrix
+        Reshaped sparse matrix
+
+    """
+    if not hasattr(shape, '__len__') or len(shape) != 2:
+        raise ValueError('Shape must be a list of two integers')
+    C = A.tocoo()
+    nrows, ncols = C.shape
+    size = nrows * ncols
+    new_size = shape[0] * shape[1]
+    if new_size != size:
+        raise ValueError('Total size of new array must be unchanged.')
+    flat_indices = ncols * C.row + C.col
+    new_row, new_col = divmod(flat_indices, shape[1])
+    B = sp.coo_matrix((C.data, (new_row, new_col)), shape=shape)
+    if format == 'csr':
+        return B.tocsr()
+    elif format == 'coo':
+        return B
+    elif format == 'csc':
+        return B.tocsc()
+    elif format == 'lil':
+        return B.tolil()
+    else:
+        raise ValueError('Return format not valid.')
 
 
 def sp_eigs(op, vecs=True, sparse=False, sort='low',
@@ -286,12 +347,13 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
         return np.array(evals)
 
 
+
 def _sp_expm(qo):
     """
     Sparse matrix exponential of a quantum operator.
     Called by the Qobj expm method.
     """
-    A = qo.data  # extract Qobj data (sparse matrix)
+    A = qo.data.tocsc()  # extract Qobj data (sparse matrix)
     m_vals = np.array([3, 5, 7, 9, 13])
     theta = np.array([0.01495585217958292, 0.2539398330063230,
                       0.9504178996162932, 2.097847961257068,
@@ -318,30 +380,30 @@ def _pade(A, m):
     c = _padecoeff(m)
     if m != 13:
         apows = [[] for jj in range(int(np.ceil((m + 1) / 2)))]
-        apows[0] = sp.eye(n, n, format='csr')
+        apows[0] = sp.eye(n, n, format='csc')
         apows[1] = A * A
         for jj in range(2, int(np.ceil((m + 1) / 2))):
             apows[jj] = apows[jj - 1] * apows[1]
-        U = sp.lil_matrix((n, n)).tocsr()
-        V = sp.lil_matrix((n, n)).tocsr()
+        U = sp.lil_matrix((n, n)).tocsc()
+        V = sp.lil_matrix((n, n)).tocsc()
         for jj in range(m, 0, -2):
             U = U + c[jj] * apows[jj // 2]
         U = A * U
         for jj in range(m - 1, -1, -2):
             V = V + c[jj] * apows[(jj + 1) // 2]
-        F = la.solve((-U + V).todense(), (U + V).todense())
-        return sp.lil_matrix(F).tocsr()
+        F = spla.spsolve((-U + V), (U + V))
+        return F.tocsr()
     elif m == 13:
         A2 = A * A
         A4 = A2 * A2
         A6 = A2 * A4
         U = A * (A6 * (c[13] * A6 + c[11] * A4 + c[9] * A2) +
                  c[7] * A6 + c[5] * A4 + c[3] * A2 +
-                 c[1] * sp.eye(n, n).tocsr())
+                 c[1] * sp.eye(n, n).tocsc())
         V = A6 * (c[12] * A6 + c[10] * A4 + c[8] * A2) + c[6] * A6 + c[4] * \
-            A4 + c[2] * A2 + c[0] * sp.eye(n, n).tocsr()
-        F = la.solve((-U + V).todense(), (U + V).todense())
-        return sp.csr_matrix(F)
+            A4 + c[2] * A2 + c[0] * sp.eye(n, n).tocsc()
+        F = spla.spsolve((-U + V), (U + V))
+        return F.tocsr()
 
 
 def _padecoeff(m):
@@ -365,3 +427,194 @@ def _padecoeff(m):
                          129060195264000, 10559470521600, 670442572800,
                          33522128640, 1323241920, 40840800,
                          960960, 16380, 182, 1])
+
+
+def sparse_permute(A, rperm=[], cperm=[], safe=True):
+    """
+    Permutes the rows and columns of a sparse CSR/CSC matrix or Qobj 
+    according to the permutation arrays rperm and cperm, respectively.  
+    Here, the permutation arrays specify the new order of the rows and 
+    columns. i.e. [0,1,2,3,4] -> [3,0,4,1,2].
+    
+    Parameters
+    ----------
+    A : qobj, csr_matrix, csc_matrix
+        Input matrix.
+    rperm : list/array
+        Array of row permutations.
+    cperm : list/array
+        Array of column permutations.
+    safe : bool
+        Check structure of permutation arrays.
+    
+    Returns
+    -------
+    perm_csr : csr_matrix, csc_matrix
+        CSR or CSC matrix with permuted rows/columns.
+    
+    """
+    rperm = np.asarray(rperm, dtype=int)
+    cperm = np.asarray(cperm, dtype=int)
+    nrows = A.shape[0]
+    ncols = A.shape[1]
+    if len(rperm)==0:
+        rperm = np.arange(nrows)
+    if len(cperm)==0:
+        cperm = np.arange(ncols)
+    if safe:
+        if len(np.setdiff1d(rperm, np.arange(nrows)))!=0:
+            raise Exception('Invalid row permutation array.')
+        if len(np.setdiff1d(cperm, np.arange(ncols)))!=0:
+            raise Exception('Invalid column permutation array.')
+    shp = A.shape
+    if A.__class__.__name__=='Qobj':
+        kind = 'csr'
+        dt = complex
+        data, ind, ptr = _sparse_permute_complex(A.data.data, A.data.indices, 
+                        A.data.indptr, nrows, ncols, rperm, cperm, 0)
+    else:
+        kind=A.getformat()
+        if kind=='csr':
+            flag = 0
+        elif kind=='csc':
+            flag = 1
+        else:
+            raise Exception('Input must be Qobj, CSR, or CSC matrix.')
+        val = A.data[0]
+        if val.dtype==np.int_:
+            dt=int
+            data, ind, ptr = _sparse_permute_int(A.data, A.indices, 
+                            A.indptr, nrows, ncols, rperm, cperm, flag)
+        elif val.dtype==np.float_:
+            dt = float
+            data, ind, ptr = _sparse_permute_float(A.data, A.indices, 
+                            A.indptr, nrows, ncols, rperm, cperm, flag)
+        elif val.dtype==np.complex_:
+            dt = complex
+            data, ind, ptr = _sparse_permute_complex(A.data, A.indices, 
+                            A.indptr, nrows, ncols, rperm, cperm, flag)
+        else:
+            raise TypeError('Invalid data type in matrix.')
+    if kind=='csr':
+        return sp.csr_matrix((data,ind,ptr),shape=shp,dtype=dt)
+    elif kind=='csc':
+        return sp.csc_matrix((data,ind,ptr),shape=shp,dtype=dt)
+
+
+def sparse_reverse_permute(A, rperm=[], cperm=[], safe=True):
+    """
+    Performs a reverse permutations of the rows and columns of a sparse CSR/CSC matrix or Qobj 
+    according to the permutation arrays rperm and cperm, respectively.  Here, the permutation 
+    arrays specify the order of the rows and columns used to permute the original array/Qobj.
+    
+    Parameters
+    ----------
+    A : qobj, csr_matrix, csc_matrix
+        Input matrix.
+    rperm : list/array
+        Array of row permutations.
+    cperm : list/array
+        Array of column permutations.
+    safe : bool
+        Check structure of permutation arrays.
+    
+    Returns
+    -------
+    perm_csr : csr_matrix, csc_matrix
+        CSR or CSC matrix with permuted rows/columns.
+    
+    """
+    rperm = np.asarray(rperm, dtype=int)
+    cperm = np.asarray(cperm, dtype=int)
+    nrows = A.shape[0]
+    ncols = A.shape[1]
+    if len(rperm)==0:
+        rperm = np.arange(nrows)
+    if len(cperm)==0:
+        cperm = np.arange(ncols)
+    if safe:
+        if len(np.setdiff1d(rperm, np.arange(nrows)))!=0:
+            raise Exception('Invalid row permutation array.')
+        if len(np.setdiff1d(cperm, np.arange(ncols)))!=0:
+            raise Exception('Invalid column permutation array.')
+    shp = A.shape
+    if A.__class__.__name__=='Qobj':
+        kind = 'csr'
+        dt = complex
+        data, ind, ptr = _sparse_reverse_permute_complex(A.data, A.indices, 
+                    A.indptr, nrows, ncols, rperm, cperm, 0)
+    else:
+        kind=A.getformat()
+        if kind=='csr':
+            flag = 0
+        elif kind=='csc':
+            flag = 1
+        else:
+            raise Exception('Input must be Qobj, CSR, or CSC matrix.')        
+        val = A.data[0]
+        if val.dtype==np.int_:
+            dt = int
+            data, ind, ptr = _sparse_reverse_permute_int(A.data, A.indices, 
+                        A.indptr, nrows, ncols, rperm, cperm, flag)
+        elif val.dtype==np.float_:
+            dt = float
+            data, ind, ptr = _sparse_reverse_permute_float(A.data, A.indices, 
+                        A.indptr, nrows, ncols, rperm, cperm, flag)
+        elif val.dtype==np.complex_:
+            dt = complex
+            data, ind, ptr = _sparse_reverse_permute_complex(A.data, A.indices, 
+                        A.indptr, nrows, ncols, rperm, cperm, flag)
+        else:
+            raise TypeError('Invalid data type in matrix.')
+    if kind=='csr':
+        return sp.csr_matrix((data,ind,ptr),shape=shp,dtype=dt)
+    elif kind=='csc':
+        return sp.csc_matrix((data,ind,ptr),shape=shp,dtype=dt)
+
+
+def sparse_bandwidth(A):
+    """
+    Returns the max(mb), lower(lb), and upper(ub) bandwidths of a 
+    qobj or sparse CSR/CSC matrix.
+    
+    If the matrix is symmetric then the upper and lower bandwidths are 
+    identical. Diagonal matrices have a bandwidth equal to one.
+    
+    Parameters
+    ----------
+    A : qobj, csr_matrix, csc_matrix
+        Input matrix
+    
+    Returns
+    -------
+    mb : int
+        Maximum bandwidth of matrix.
+    lb : int
+        Lower bandwidth of matrix.
+    ub : int
+        Upper bandwidth of matrix.
+    
+    """
+    nrows = A.shape[0]
+    ncols = A.shape[1]
+    if A.__class__.__name__ == 'Qobj':
+        return _sparse_bandwidth(A.data.indices, A.data.indptr, nrows)
+    elif A.getformat() == 'csr':
+        return _sparse_bandwidth(A.indices, A.indptr, nrows) 
+    elif A.getformat() == 'csc':
+        # Normal output is mb,lb,ub but since CSC
+        # is transpose of CSR switch lb and ub
+        mb, ub, lb= _sparse_bandwidth(A.indices, A.indptr, ncols)
+        return mb, lb, ub
+    else:
+        raise Exception('Invalid sparse input format.') 
+
+    
+    
+    
+    
+    
+    
+    
+    
+    

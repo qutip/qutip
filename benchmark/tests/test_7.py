@@ -2,7 +2,7 @@ from qutip import *
 from numpy import *
 from time import time
 
-def test_7(N=1.0):
+def test_7(runs=1):
     """
     Cavity+qubit monte carlo equation
     """
@@ -14,7 +14,7 @@ def test_7(N=1.0):
     tlist = linspace(0,10,200);
 
     tot_elapsed = 0
-    for n in range(N):
+    for n in range(runs):
         tic=time()
         ida = qeye(N)
         idatom = qeye(2)
@@ -30,7 +30,6 @@ def test_7(N=1.0):
         toc=time()
         tot_elapsed += toc - tic
     
-    return [test_name], [tot_elapsed / N]
- 
+    return [test_name], [tot_elapsed / runs]
 
 

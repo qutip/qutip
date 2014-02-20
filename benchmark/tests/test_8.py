@@ -2,19 +2,24 @@ from qutip import *
 from numpy import *
 from time import time
 
-def test_8(N=1.0):
+def test_8(runs=1):
     """
     Cavity+qubit monte carlo F90 equation
     """
     test_name='JC MC_F90 [20]'
     
-    kappa = 2; gamma = 0.2; g = 1;
-    wc = 0; w0 = 0; wl = 0; E = 0.5;
-    N = 10;
-    tlist = linspace(0,10,200);
+    kappa = 2
+    gamma = 0.2
+    g = 1;
+    wc = 0
+    w0 = 0
+    wl = 0
+    E = 0.5;
+    N = 10
+    tlist = linspace(0,10,200)
 
     tot_elapsed = 0
-    for n in range(N):
+    for n in range(runs):
         tic=time()
         ida = qeye(N)
         idatom = qeye(2)
@@ -30,7 +35,7 @@ def test_8(N=1.0):
         toc=time()
         tot_elapsed += toc - tic
     
-    return [test_name], [tot_elapsed / N]
+    return [test_name], [tot_elapsed / runs]
  
 
 

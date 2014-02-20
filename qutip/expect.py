@@ -1,26 +1,46 @@
-# This file is part of QuTiP.
+# This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    QuTiP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#    QuTiP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
+#    met:
 #
-#    You should have received a copy of the GNU General Public License
-#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#    1. Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
 #
-# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
-###########################################################################
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 
-from qutip.eseries import *
-from qutip.qobj import *
 import numpy as np
 import scipy.sparse as sp
+
+from qutip.qobj import Qobj, issuper, isoper
+from qutip.eseries import eseries
+from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, cy_spmm_tr)
+
+
+expect_rho_vec = cy_expect_rho_vec
+expect_psi = cy_expect_psi
 
 
 def expect(oper, state):
@@ -32,7 +52,7 @@ def expect(oper, state):
         Operator for expectation value.
 
     state : qobj/list
-        A single or `list` of quantum states or density matricies.
+        A single or `list` of quantum states or density matrices..
 
     Returns
     -------
@@ -42,78 +62,76 @@ def expect(oper, state):
 
     Examples
     --------
-    >>> expect(num(4),basis(4,3))
+    >>> expect(num(4), basis(4, 3))
     3
 
     '''
-    if isinstance(state, Qobj) or isinstance(state, eseries):
-        return _single_expect(oper, state)
+    if isinstance(state, Qobj) and isinstance(oper, Qobj):
+        return _single_qobj_expect(oper, state)
+
+    elif isinstance(oper, Qobj) and isinstance(state, eseries):
+        return _single_eseries_expect(oper, state)
+
     elif isinstance(state, np.ndarray) or isinstance(state, list):
         if oper.isherm and all([(op.isherm or op.type == 'ket')
                                 for op in state]):
-            return np.array([_single_expect(oper, x) for x in state])
+            return np.array([_single_qobj_expect(oper, x) for x in state])
         else:
-            return np.array([_single_expect(oper, x) for x in state],
+            return np.array([_single_qobj_expect(oper, x) for x in state],
                             dtype=complex)
-
-
-def _single_expect(oper, state):
-    """
-    Private function used by expect
-    """
-    if isinstance(oper, Qobj) and isinstance(state, Qobj):
-        if isoper(oper):
-            if state.type == 'oper':
-                # calculates expectation value via TR(op*rho)
-                prod = oper.data * state.data
-                tr = sum(prod.diagonal())  # sum of diagonal elements
-                if oper.isherm and state.isherm:  # if hermitian
-                    return float(np.real(tr))
-                else:  # not hermitian
-                    return tr
-            elif state.type == 'ket':
-                # calculates expectation value via <psi|op|psi>
-                # prod = state.data.conj().T * (oper.data * state.data)
-                prod = state.data.conj().T.dot(oper.data * state.data)
-                if oper.isherm:
-                    return float(np.real(prod[0, 0]))
-                else:
-                    return prod[0, 0]
-        else:
-            raise TypeError('Invalid operand types')
-    # eseries
-    #
-    elif isinstance(oper, Qobj) and isinstance(state, eseries):
-        out = eseries()
-
-        if isoper(state.ampl[0]):
-
-            out.rates = state.rates
-            out.ampl = np.array([expect(oper, a) for a in state.ampl])
-
-        else:
-
-            out.rates = np.array([])
-            out.ampl = np.array([])
-
-            for m in range(len(state.rates)):
-
-                op_m = state.ampl[m].data.conj().T * oper.data
-
-                for n in range(len(state.rates)):
-
-                    a = op_m * state.ampl[n].data
-
-                    if isinstance(a, sp.spmatrix):
-                        a = a.todense()
-
-                    out.rates = np.append(out.rates, state.rates[n] -
-                                          state.rates[m])
-                    out.ampl = np.append(out.ampl, a)
-
-        return out
-    else:  # unsupported types
+    else:
         raise TypeError('Arguments must be quantum objects or eseries')
+
+
+def _single_qobj_expect(oper, state):
+    """
+    Private function used by expect to calculate expectation values of Qobjs.
+    """
+    if isoper(oper):
+        if oper.dims[1] != state.dims[0]:
+            raise Exception('Operator and state do not have same tensor structure.')
+        
+        if state.type == 'oper':
+            # calculates expectation value via TR(op*rho)
+            return cy_spmm_tr(oper.data, state.data, oper.isherm and state.isherm)
+
+        elif state.type == 'ket':
+            # calculates expectation value via <psi|op|psi>
+            return cy_expect_psi(oper.data, state.full(squeeze=True), oper.isherm)
+    else:
+        raise TypeError('Invalid operand types')
+
+
+def _single_eseries_expect(oper, state):
+    """
+    Private function used by expect to calculate expectation values for
+    eseries.
+    """
+
+    out = eseries()
+
+    if isoper(state.ampl[0]):
+        out.rates = state.rates
+        out.ampl = np.array([expect(oper, a) for a in state.ampl])
+
+    else:
+        out.rates = np.array([])
+        out.ampl = np.array([])
+
+        for m in range(len(state.rates)):
+            op_m = state.ampl[m].data.conj().T * oper.data
+
+            for n in range(len(state.rates)):
+                a = op_m * state.ampl[n].data
+
+                if isinstance(a, sp.spmatrix):
+                    a = a.todense()
+
+                out.rates = np.append(out.rates, state.rates[n] -
+                                      state.rates[m])
+                out.ampl = np.append(out.ampl, a)
+
+    return out
 
 
 def variance(oper, state):
@@ -126,7 +144,7 @@ def variance(oper, state):
         Operator for expectation value.
 
     state : qobj/list
-        A single or `list` of quantum states or density matricies.
+        A single or `list` of quantum states or density matrices..
 
     Returns
     -------

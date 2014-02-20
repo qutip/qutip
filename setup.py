@@ -2,15 +2,15 @@
 """QuTiP: The Quantum Toolbox in Python
 
 QuTiP is open-source software for simulating the dynamics of closed and open
-quantum systems. The QuTiP library depends on the excellent Numpy and Scipy
-numerical packages. In addition, graphical output is provided by Matplotlib.
-QuTiP aims to provide user-friendly and efficient numerical simulations of a
-wide variety of quantum mechanical problems, including those with Hamiltonians
-and/or collapse operators with arbitrary time-dependence, commonly found in a
-wide range of physics applications. QuTiP is freely available for use and/or
-modification on all Unix-based platforms. Being free of any licensing fees,
-QuTiP is ideal for exploring quantum mechanics in research as well as in the
-classroom.
+quantum systems. The QuTiP library depends on the excellent Numpy, Scipy, and
+Cython numerical packages. In addition, graphical output is provided by 
+Matplotlib.  QuTiP aims to provide user-friendly and efficient numerical 
+simulations of a wide variety of quantum mechanical problems, including those 
+with Hamiltonians and/or collapse operators with arbitrary time-dependence, 
+commonly found in a wide range of physics applications. QuTiP is freely 
+available for use and/or modification on all common platforms. Being free of 
+any licensing fees, QuTiP is ideal for exploring quantum mechanics in research 
+as well as in the classroom.
 """
 
 DOCLINES = __doc__.split('\n')
@@ -18,52 +18,47 @@ DOCLINES = __doc__.split('\n')
 CLASSIFIERS = """\
 Development Status :: 4 - Beta
 Intended Audience :: Science/Research
-License :: OSI Approved :: GNU General Public License (GPL)
+License :: OSI Approved :: BSD License
 Programming Language :: Python
+Programming Language :: Python :: 3
 Topic :: Scientific/Engineering
 Operating System :: MacOS
 Operating System :: POSIX
 Operating System :: Unix
-Operating System :: Windows
+Operating System :: Microsoft :: Windows
 """
 
 # import statements
 import os
 import sys
-import shutil
-import fnmatch
 import re
-import subprocess
-import warnings
-from distutils.core import Extension, Command
-from distutils.command.install import install
+from distutils.core import Command
 from unittest import TextTestRunner, TestLoader
 from glob import glob
 from os.path import splitext, basename, join as pjoin
-from os import walk
 import numpy as np
 from numpy.distutils.core import setup
 from numpy.distutils.system_info import get_info
 
 # all information about QuTiP goes here-------
-MAJOR = 2
-MINOR = 3
+MAJOR = 3
+MINOR = 0
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.9)', 'matplotlib (>=1.1)']
-PACKAGES = ['qutip', 'qutip/gui', 'qutip/examples', 'qutip/cyQ']
-PACKAGE_DATA = {'qutip/gui': ['logo.png', 'icon.png']}
+REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'cython (>=0.15)', 'matplotlib (>=1.1)']
+PACKAGES = ['qutip', 'qutip/gui', 'qutip/examples', 'qutip/cy', 'qutip/quantum_info','qutip/tests']
+PACKAGE_DATA = {'qutip/tests': ['bucky.npy', 'bucky_perm.npy']}
 INCLUDE_DIRS = [np.get_include()]
 EXT_MODULES = []
-NAME = "QuTiP"
+NAME = "qutip"
 AUTHOR = "Paul D. Nation, Robert J. Johansson"
 AUTHOR_EMAIL = "pnation@korea.ac.kr, robert@riken.jp"
-LICENSE = "GPL3"
+LICENSE = "BSD"
 DESCRIPTION = DOCLINES[0]
 LONG_DESCRIPTION = "\n".join(DOCLINES[2:])
 KEYWORDS = "quantum physics dynamics"
-URL = "http://code.google.com/p/qutip/"
+URL = "http://qutip.org"
 CLASSIFIERS = [_f for _f in CLASSIFIERS.split('\n') if _f]
 PLATFORMS = ["Linux", "Mac OSX", "Unix", "Windows"]
 
@@ -76,11 +71,10 @@ def git_short_hash():
 
 FULLVERSION = VERSION
 if not ISRELEASED:
-    FULLVERSION += '.dev'
-    FULLVERSION += git_short_hash()
+    FULLVERSION += '.dev' + git_short_hash()
 
 
-def write_version_py(filename='qutip/_version.py'):
+def write_version_py(filename='qutip/version.py'):
     cnt = """\
 # THIS FILE IS GENERATED FROM QUTIP SETUP.PY
 short_version = '%(version)s'
@@ -99,103 +93,24 @@ os.chdir(local_path)
 sys.path.insert(0, local_path)
 sys.path.insert(0, os.path.join(local_path, 'qutip'))  # to retrive _version
 # always rewrite _version
-if os.path.exists('qutip/_version.py'):
-    os.remove('qutip/_version.py')
+if os.path.exists('qutip/version.py'):
+    os.remove('qutip/version.py')
 write_version_py()
 
-#--------- check for fortran and blas libs -------------------#
+#--------- check for fortran option -------------------#
 if "--with-f90mc" in sys.argv:
     with_f90mc = True
     sys.argv.remove("--with-f90mc")
 else:
     with_f90mc = False
 
-blas_info = get_info('blas')
-if not with_f90mc or len(blas_info) == 0:
+if not with_f90mc:
     os.environ['FORTRAN_LIBS'] = 'FALSE'
-    print("blas development libraries not found.")
     print("Installing without the fortran mcsolver.")
 else:
     os.environ['FORTRAN_LIBS'] = 'TRUE'
 
-
-#--------- test command for running unittests ------------#
-class TestCommand(Command):
-    user_options = []
-
-    def initialize_options(self):
-        self._dir = os.getcwd() + "/test/"
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        '''
-        Finds all the tests modules in tests/, and runs them.
-        '''
-        testfiles = []
-        for t in glob(pjoin(self._dir, 'unittests', 'test_*.py')):
-            if not t.endswith('__init__.py'):
-                testfiles.append('.'.join(
-                    ['test.unittests', splitext(basename(t))[0]])
-                )
-        tests = TestLoader().loadTestsFromNames(testfiles)
-        t = TextTestRunner(verbosity=1)
-        t.run(tests)
-
-
-#--------- devtest command for running unittests-------------#
-class TestHereCommand(Command):
-    user_options = []
-    sys.path.append(os.getcwd())
-
-    def initialize_options(self):
-        self._dir = os.getcwd() + "/test/"
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        '''
-        Finds all the tests modules in tests/, and runs them.
-        '''
-        testfiles = []
-        for t in glob(pjoin(self._dir, 'unittests', 'test_*.py')):
-            if not t.endswith('__init__.py'):
-                testfiles.append('.'.join(
-                    ['test.unittests', splitext(basename(t))[0]])
-                )
-        tests = TestLoader().loadTestsFromNames(testfiles)
-        t = TextTestRunner(verbosity=1)
-        t.run(tests)
-
-
-#------ clean command for removing .pyc files -----------------#
-class CleanCommand(Command):
-    user_options = [("all", "a", "All")]
-
-    def initialize_options(self):
-        self._clean_me = []
-        self.all = None
-        for root, dirs, files in os.walk('.'):
-            for f in files:
-                if f.endswith('.pyc'):
-                    self._clean_me.append(pjoin(root, f))
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        pyc_rm = 0
-        for clean_me in self._clean_me:
-            try:
-                os.unlink(clean_me)
-            except:
-                pyc_rm += 1
-        if pyc_rm > 0:
-            print("Could not remove " + str(pyc_rm) + " pyc files.")
-        else:
-            print("Removed all pyc files.")
+os.environ['QUTIP_RELEASE'] = 'TRUE' if ISRELEASED else 'FALSE'
 
 # remove needless error warnings for released version.
 #if ISRELEASED:
@@ -214,7 +129,7 @@ def configuration(parent_package='', top_path=None):
                        quiet=True)
 
     config.add_subpackage('qutip')
-    config.get_version('qutip/_version.py')  # sets config.version
+    config.get_version('qutip/version.py')  # sets config.version
     config.add_data_dir('qutip/tests')
 
     return config
@@ -237,7 +152,5 @@ setup(
     platforms=PLATFORMS,
     requires=REQUIRES,
     package_data=PACKAGE_DATA,
-    cmdclass={'test': TestCommand, 'devtest': TestHereCommand,
-              'clean': CleanCommand},
     configuration=configuration
 )

@@ -2,7 +2,7 @@ from qutip import *
 from numpy import *
 from time import time
 
-def test_14(N=1.0):
+def test_14(runs=1):
     """
     mcsolve evolution of 8-spin chain
     """
@@ -61,13 +61,13 @@ def test_14(N=1.0):
     opts=Odeoptions(gui=False)
 
     tot_elapsed = 0
-    for n in range(N):
+    for n in range(runs):
         tic=time()
         mcsolve(H, psi0, tlist, c_op_list, sz_list,options=opts)
         toc=time()
         tot_elapsed += toc - tic
 
-    return [test_name], [tot_elapsed / N]
+    return [test_name], [tot_elapsed / runs]
  
 
 if __name__=='__main__':

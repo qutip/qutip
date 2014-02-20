@@ -15,7 +15,8 @@ python module qutraj_run ! in
             integer, optional :: n_e_ops = 0
             integer, optional :: n_c_ops = 0
             integer, optional :: unravel_type = 2
-            logical, optional :: mc_avg = .true.
+            logical, optional :: average_states = .true.
+            logical, optional :: average_expect = .true.
             double precision, allocatable,dimension(:) :: tlist
             integer, optional :: order=0
             integer, optional :: nsteps=0

@@ -1,21 +1,35 @@
-# This file is part of QuTiP.
+# This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    QuTiP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#    QuTiP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
+#    met:
 #
-#    You should have received a copy of the GNU General Public License
-#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#    1. Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
 #
-# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
-##########################################################################
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 
 import scipy
 import scipy.linalg as la
@@ -23,9 +37,10 @@ import scipy.sparse as sp
 from scipy import prod, transpose, reshape
 from qutip.qobj import *
 from qutip.operators import destroy
+from qutip.sparse import sp_reshape
 
 
-def liouvillian(H, c_op_list):
+def liouvillian(H, c_op_list=[]):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators.
 
@@ -35,12 +50,12 @@ def liouvillian(H, c_op_list):
         System Hamiltonian.
 
     c_op_list : array_like
-        A ``list`` or ``array`` of collpase operators.
+        A ``list`` or ``array`` of collapse operators.
 
     Returns
     -------
     L : qobj
-        Louvillian superoperator.
+        Liouvillian superoperator.
 
     """
 
@@ -52,7 +67,7 @@ def liouvillian(H, c_op_list):
         else:
             cdc = c.dag() * c
             L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
-
+    L.type = 'super'
     return L
 
 
@@ -68,12 +83,12 @@ def liouvillian_fast(H, c_op_list, data_only=False):
         System Hamiltonian.
 
     c_op_list : array_like
-        A ``list`` or ``array`` of collpase operators.
+        A ``list`` or ``array`` of collapse operators.
 
     Returns
     -------
     L : qobj
-        Louvillian superoperator.
+        Liouvillian superoperator.
 
     """
 
@@ -134,7 +149,47 @@ def liouvillian_fast(H, c_op_list, data_only=False):
         L.shape = sop_shape
         L.data = data
         L.isherm = False
+        L.type = 'super'
         return L
+
+
+def lindblad_dissipator(c, data_only=False):
+    """
+    Return the Lindblad dissipator for a single collapse operator.
+
+    TODO: optimize like liouvillian_fast
+    """
+
+    cdc = c.dag() * c
+    D = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
+
+    return D.data if data_only else D
+
+
+def operator_to_vector(op):
+    """
+    Create a vector representation of a quantum operator given
+    the matrix representation.
+    """
+    q = Qobj()
+    q.shape = [prod(op.shape), 1]
+    q.dims = [op.dims, [1]]
+    q.data = sp_reshape(op.data.T, tuple(q.shape))
+    q.type = 'operator-vector'
+    return q
+
+
+def vector_to_operator(op):
+    """
+    Create a matrix representation given a quantum operator in
+    vector form.
+    """
+    q = Qobj()
+    q.shape = [op.dims[0][0][0], op.dims[0][1][0]]
+    q.dims = op.dims[0]
+    q.data = sp_reshape(op.data.H, tuple(q.shape))
+    q.type = 'oper'
+    return q
 
 
 def mat2vec(mat):

@@ -1,21 +1,35 @@
-# This file is part of QuTiP.
+# This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    QuTiP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#    QuTiP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
+#    met:
 #
-#    You should have received a copy of the GNU General Public License
-#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#    1. Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
 #
-# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
-###########################################################################
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 """
 Functions for visualizing results of quantum dynamics simulations,
 visualizations of quantum states and processes.
@@ -25,7 +39,7 @@ import numpy as np
 if qutip.settings.qutip_graphics == 'YES':
     from pylab import *
     import matplotlib as mpl
-    from matplotlib import pyplot, cm
+    from matplotlib import cm
     from mpl_toolkits.mplot3d import Axes3D
     import matplotlib.pyplot as plt
 
@@ -163,7 +177,7 @@ def sphereplot(theta, phi, values, save=False):
 
     """
     import matplotlib as mpl
-    from matplotlib import pyplot, cm
+    from matplotlib import cm
     from pylab import plot, show, meshgrid, figure, savefig
     from mpl_toolkits.mplot3d import Axes3D
     thetam, phim = meshgrid(theta, phi)
@@ -254,7 +268,7 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
             z_max += 0.1
 
     norm = mpl.colors.Normalize(z_min, z_max)
-    cmap = get_cmap('jet')  # Spectral
+    cmap = cm.get_cmap('jet')  # Spectral
     colors = cmap(norm(dz))
 
     if ax is None:
@@ -522,7 +536,7 @@ def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
     return fig, ax
 
 
-def wigner_cmap(W, levels=1024, invert=False):
+def wigner_cmap(W, levels=1024, shift=0, invert=False):
     """A custom colormap that emphasizes negative values by creating a
     nonlinear colormap.
 
@@ -534,6 +548,10 @@ def wigner_cmap(W, levels=1024, invert=False):
     levels : int
         Number of color levels to create.
 
+    shift : float
+        Shifts the value at which Wigner elements are emphasized.
+        This parameter should typically be negative and small (i.e -5e-3).
+
     invert : bool
         Invert the color scheme for negative values so that smaller negative
         values have darker color.
@@ -541,20 +559,28 @@ def wigner_cmap(W, levels=1024, invert=False):
     Returns
     -------
     Returns a Matplotlib colormap instance for use in plotting.
+
+    Notes
+    -----
+    The 'shift' parameter allows you to vary where the colormap begins
+    to highlight negative colors. This is beneficial in cases where there
+    are small negative Wigner elements due to numerical round-off and/or
+    truncation.
     """
     max_color = np.array([0.020, 0.19, 0.38, 1.0])
     mid_color = np.array([1, 1, 1, 1.0])
     if invert:
-        min_color = np.array([0.89, 0.61, 0.82, 1])
+        min_color = np.array([1, 0.70, 0.87, 1])
         neg_color = np.array([0.4, 0.0, 0.12, 1])
     else:
         min_color = np.array([0.4, 0.0, 0.12, 1])
-        neg_color = np.array([0.89, 0.61, 0.82, 1])
+        neg_color = np.array([1, 0.70, 0.87, 1])
     # get min and max values from Wigner function
     bounds = [W.min(), W.max()]
     # create empty array for RGBA colors
     adjust_RGBA = np.hstack((np.zeros((levels, 3)), np.ones((levels, 1))))
-    zero_pos = np.round(levels * np.abs(bounds[0]) / (bounds[1] - bounds[0]))
+    zero_pos = np.round(levels * np.abs(shift - bounds[0])
+                        / (bounds[1] - bounds[0]))
     num_pos = levels - zero_pos
     num_neg = zero_pos - 1
     # set zero values to mid_color
@@ -576,7 +602,8 @@ def wigner_cmap(W, levels=1024, invert=False):
     return wig_cmap
 
 
-def fock_distribution(rho, fig=None, ax=None, figsize=(8, 6), title=None):
+def fock_distribution(rho, offset=0, fig=None, ax=None,
+                      figsize=(8, 6), title=None, unit_y_range=True):
     """
     Plot the Fock distribution for a density matrix (or ket) that describes
     an oscillator mode.
@@ -614,10 +641,12 @@ def fock_distribution(rho, fig=None, ax=None, figsize=(8, 6), title=None):
 
     N = rho.shape[0]
 
-    ax.bar(arange(0, N) - .4, real(rho.diag()), color="green", alpha=0.6,
-           width=0.8)
-    ax.set_ylim(0, 1)
-    ax.set_xlim(-.5, N)
+    ax.bar(arange(offset, offset + N) - .4, real(rho.diag()),
+           color="green", alpha=0.6, width=0.8)
+    if unit_y_range:
+        ax.set_ylim(0, 1)
+
+    ax.set_xlim(-.5 + offset, N + offset)
     ax.set_xlabel('Fock number', fontsize=12)
     ax.set_ylabel('Occupation probability', fontsize=12)
 
@@ -628,7 +657,8 @@ def fock_distribution(rho, fig=None, ax=None, figsize=(8, 6), title=None):
 
 
 def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
-                             cmap=None, alpha_max=7.5, colorbar=False):
+                             cmap=None, alpha_max=7.5, colorbar=False,
+                             method='iterative'):
     """
     Plot the Fock distribution and the Wigner function for a density matrix
     (or ket) that describes an oscillator mode.
@@ -658,6 +688,10 @@ def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
         Whether (True) or not (False) a colorbar should be attached to the
         Wigner function graph.
 
+    method : string {'iterative', 'laguerre', 'fft'}
+        The method used for calculating the wigner function. See the
+        documentation for qutip.wigner for details.
+
     Returns
     -------
     fig, ax : tuple
@@ -674,15 +708,20 @@ def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
     fock_distribution(rho, fig=fig, ax=axes[0])
 
     xvec = linspace(-alpha_max, alpha_max, 200)
-    W = wigner(rho, xvec, xvec)
+    W0 = wigner(rho, xvec, xvec, method=method)
+
+    W, yvec = W0 if type(W0) is tuple else (W0, xvec)
+
     wlim = abs(W).max()
 
     if cmap is None:
-        cmap = get_cmap('RdBu')
-        # cmap = wigner_cmap(W)
+        cmap = cm.get_cmap('RdBu')
 
-    cf = axes[1].contourf(xvec, xvec, W, 100,
+    cf = axes[1].contourf(xvec, yvec, W, 100,
                           norm=mpl.colors.Normalize(-wlim, wlim), cmap=cmap)
+
+    if not xvec is yvec:
+        axes[1].set_ylim(xvec.min(), xvec.max())
 
     axes[1].set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
     axes[1].set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
@@ -720,7 +759,7 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
     fig : a matplotlib Figure instance
         The Figure canvas in which the plot will be drawn.
 
-    ax : a matplotlib axes instance
+    axes : a matplotlib axes instance
         The axes context in which the plot will be drawn.
 
     figsize : (width, height)
@@ -760,3 +799,120 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
             axes[n, 0].set_ylabel(ylabels[n], fontsize=12)
 
     return fig, axes
+
+
+def plot_spin_distribution_2d(P, THETA, PHI,
+                              fig=None, ax=None, figsize=(8, 8)):
+    """
+    Plot a spin distribution function (given as meshgrid data) with a 2D
+    projection where the surface of the unit sphere is mapped on the unit disk.
+
+    Parameters
+    ----------
+    P : matrix
+        Distribution values as a meshgrid matrix.
+
+    THETA : matrix
+        Meshgrid matrix for the theta coordinate.
+
+    PHI : matrix
+        Meshgrid matrix for the phi coordinate.
+
+    fig : a matplotlib figure instance
+        The figure canvas on which the plot will be drawn.
+
+    ax : a matplotlib axis instance
+        The axis context in which the plot will be drawn.
+
+    figsize : (width, height)
+        The size of the matplotlib figure (in inches) if it is to be created
+        (that is, if no 'fig' and 'ax' arguments are passed).
+
+    Returns
+    -------
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce
+        the figure.
+    """
+
+    if not fig or not ax:
+        if not figsize:
+            figsize = (8, 8)
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+    Y = (THETA - pi/2)/(pi/2)
+    X = (pi - PHI)/pi * sqrt(cos(THETA - pi/2))
+    
+    if P.min() < -1e12:
+        cmap = cm.RdBu
+    else:
+        cmap = cm.RdYlBu
+
+    ax.pcolor(X, Y, P.real, cmap=cmap)
+    ax.set_xlabel(r'$\varphi$', fontsize=18)
+    ax.set_ylabel(r'$\theta$', fontsize=18)
+    
+    ax.set_xticks([-1, 0, 1])
+    ax.set_xticklabels([r'$0$', r'$\pi$', r'$2\pi$'], fontsize=18)
+    ax.set_yticks([-1, 0, 1])    
+    ax.set_yticklabels([r'$\pi$', r'$\pi/2$', r'$0$'], fontsize=18)
+
+    return fig, ax
+
+
+def plot_spin_distribution_3d(P, THETA, PHI,
+                              fig=None, ax=None, figsize=(8, 6)):
+    """Plots a matrix of values on a sphere
+
+    Parameters
+    ----------
+    P : matrix
+        Distribution values as a meshgrid matrix.
+
+    THETA : matrix
+        Meshgrid matrix for the theta coordinate.
+
+    PHI : matrix
+        Meshgrid matrix for the phi coordinate.
+
+    fig : a matplotlib figure instance
+        The figure canvas on which the plot will be drawn.
+
+    ax : a matplotlib axis instance
+        The axis context in which the plot will be drawn.
+
+    figsize : (width, height)
+        The size of the matplotlib figure (in inches) if it is to be created
+        (that is, if no 'fig' and 'ax' arguments are passed).
+
+    Returns
+    -------
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce
+        the figure.
+
+    """
+
+    if fig is None or ax is None:
+        fig = plt.figure(figsize=figsize)
+        ax = Axes3D(fig, azim=-35, elev=35)
+
+    xx = sin(THETA) * cos(PHI)
+    yy = sin(THETA) * sin(PHI)
+    zz = cos(THETA)
+
+    if P.min() < -1e12:
+        cmap = cm.RdBu
+        norm = mpl.colors.Normalize(-P.max(), P.max())
+    else:
+        cmap = cm.RdYlBu
+        norm = mpl.colors.Normalize(P.min(), P.max())
+
+    surf = ax.plot_surface(xx, yy, zz, rstride=1, cstride=1,
+                           facecolors=cmap(norm(P)), linewidth=0)
+
+    cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
+    cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+    cb1.set_label('magnitude')
+
+    return fig, ax

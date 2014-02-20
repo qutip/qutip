@@ -1,30 +1,45 @@
-# This file is part of QuTiP.
+# This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    QuTiP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#    QuTiP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
+#    met:
 #
-#    You should have received a copy of the GNU General Public License
-#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#    1. Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
 #
-# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
-###########################################################################
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 
 from __future__ import print_function
 import os
+import warnings
 
 
 class Odeoptions():
     """
     Class of options for evolution solvers such as :func:`qutip.mesolve` and
-    :func:`qutip.mcsolve`. Options can be specified either as arguments to the 
+    :func:`qutip.mcsolve`. Options can be specified either as arguments to the
     constructor::
 
         opts = Odeoptions(gui=False, order=10, ...)
@@ -67,10 +82,10 @@ class Odeoptions():
         in mcsolve.
     gui : bool {True,False}
         Use progress bar GUI for mcsolver.
-    mc_avg : bool {True,False}
+    average_states : bool {True, False}
         Avg. expectation values in mcsolver.
     ntraj : int {500}
-        Number of trajectories in mcsolver.
+        Number of trajectories in stochastic solvers.
     rhs_reuse : bool {False,True}
         Reuse Hamiltonian data.
     rhs_with_state : bool {False,True}
@@ -89,10 +104,11 @@ class Odeoptions():
     """
     def __init__(self, atol=1e-8, rtol=1e-6, method='adams', order=12,
                  nsteps=1000, first_step=0, max_step=0, min_step=0,
-                 mc_avg=True, tidy=True, num_cpus=0, norm_tol=1e-3,
-                 norm_steps=5, rhs_reuse=False, rhs_filename=None, gui=True,
-                 ntraj=500, rhs_with_state=False, store_final_state=False,
-                 store_states=False):
+                 average_expect=True, average_states=False, tidy=True,
+                 num_cpus=0, norm_tol=1e-3, norm_steps=5, rhs_reuse=False,
+                 rhs_filename=None, gui=False, ntraj=500, rhs_with_state=False,
+                 store_final_state=False, store_states=False, seeds=None,
+                 steady_state_average=False):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -110,7 +126,9 @@ class Odeoptions():
         # Maximum order used by integrator (<=12 for 'adams', <=5 for 'bdf')
         self.order = order
         # Average expectation values over trajectories (default = True)
-        self.mc_avg = mc_avg
+        self.average_states = average_states
+        # average expectation values
+        self.average_expect = average_expect
         # Number of trajectories (default = 500)
         self.ntraj = ntraj
         # tidyup Hamiltonian before calculation (default = True)
@@ -126,8 +144,9 @@ class Odeoptions():
         if num_cpus:
             self.num_cpus = num_cpus
             if self.num_cpus > int(os.environ['NUM_THREADS']):
-                raise Exception("Requested number of CPU's too large. Max = " +
-                                str(int(os.environ['NUM_THREADS'])))
+                message = ("Requested number of threads larger than number " +
+                           "of CPUs (%s)." % os.environ['NUM_THREADS'])
+                warnings.warn(message)
         else:
             self.num_cpus = 0
         # Tolerance for wavefunction norm (mcsolve only)
@@ -141,6 +160,10 @@ class Odeoptions():
         self.store_final_state = store_final_state
         # store states even if expectation operators are given?
         self.store_states = store_states
+        # extra solver parameters
+        self.seeds = seeds
+        # average mcsolver density matricies assuming steady state evolution
+        self.steady_state_average = steady_state_average
 
     def __str__(self):
         s = ""
@@ -162,7 +185,8 @@ class Odeoptions():
         s += "rhs_reuse:         " + str(self.rhs_reuse) + "\n"
         s += "rhs_with_state:    " + str(self.rhs_with_state) + "\n"
         s += "gui:               " + str(self.gui) + "\n"
-        s += "mc_avg:            " + str(self.mc_avg) + "\n"
+        s += "average_expect:    " + str(self.average_expect) + "\n"
+        s += "average_states:    " + str(self.average_states) + "\n"
         s += "ntraj:             " + str(self.ntraj) + "\n"
         s += "store_states:      " + str(self.store_states) + "\n"
         s += "store_final_state: " + str(self.store_final_state) + "\n"

@@ -2,7 +2,7 @@ from qutip import *
 from numpy import *
 from time import time
 
-def test_13(N=1.0):
+def test_13(runs=1):
     """
     mesolver evolution of 8-spin chain
     """
@@ -59,13 +59,13 @@ def test_13(N=1.0):
         c_op_list.append(sqrt(gamma[n]) * sz_list[n])
     # evolve and calculate expectation values
     tot_elapsed = 0
-    for n in range(N):
+    for n in range(runs):
         tic=time()
         mesolve(H, psi0, tlist, c_op_list, sz_list)
         toc=time()
         tot_elapsed += toc - tic
 
-    return [test_name], [tot_elapsed / N]
+    return [test_name], [tot_elapsed / runs]
  
 
 if __name__=='__main__':

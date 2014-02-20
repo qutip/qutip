@@ -1,37 +1,54 @@
-# This file is part of QuTiP.
+# This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    QuTiP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#    QuTiP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
+#    met:
 #
-#    You should have received a copy of the GNU General Public License
-#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#    1. Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
 #
-# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
-###########################################################################
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 
 import types
 import numpy as np
 import scipy.linalg as la
+import warnings
 
 from qutip.qobj import Qobj
+from qutip.rhs_generate import rhs_clear
 from qutip.superoperator import vec2mat, mat2vec
 from qutip.mesolve import mesolve
+from qutip.sesolve import sesolve
 from qutip.essolve import essolve
-from qutip.steady import steadystate
+from qutip.steadystate import steadystate
 from qutip.states import basis
 from qutip.states import projection
 from qutip.odeoptions import Odeoptions
 
 
-def propagator(H, t, c_op_list, H_args=None, opt=None):
+def propagator(H, t, c_op_list, args=None, options=None):
     """
     Calculate the propagator U(t) for the density matrix or wave function such
     that :math:`\psi(t) = U(t)\psi(0)` or
@@ -45,12 +62,19 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         Hamiltonian as a Qobj instance of a nested list of Qobjs and
         coefficients in the list-string or list-function format for
         time-dependent Hamiltonians (see description in :func:`qutip.mesolve`).
+
     t : float or array-like
         Time or list of times for which to evaluate the propagator.
+
     c_op_list : list
         List of qobj collapse operators.
-    H_args : list/array/dictionary
-        Parameters to callback functions for time-dependent Hamiltonians.
+
+    args : list/array/dictionary
+        Parameters to callback functions for time-dependent Hamiltonians and
+        collapse operators.
+
+    options : :class:`qutip.Odeoptions`
+        with options for the ODE solver.
 
     Returns
     -------
@@ -59,9 +83,14 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
 
     """
 
-    if opt is None:
-        opt = Odeoptions()
-        opt.rhs_reuse = True
+    if options is None:
+        options = Odeoptions()
+        options.rhs_reuse = True
+        rhs_clear()
+    elif options.rhs_reuse:
+        msg = ("propagator is using previously defined rhs " +
+               "function (options.rhs_reuse = True)")
+        warnings.warn(msg)
 
     tlist = [0, t] if isinstance(t, (int, float, np.int64, np.float64)) else t
 
@@ -69,7 +98,7 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         # calculate propagator for the wave function
 
         if isinstance(H, types.FunctionType):
-            H0 = H(0.0, H_args)
+            H0 = H(0.0, args)
             N = H0.shape[0]
             dims = H0.dims
         elif isinstance(H, list):
@@ -84,14 +113,14 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
 
         for n in range(0, N):
             psi0 = basis(N, n)
-            output = mesolve(H, psi0, tlist, [], [], H_args, opt)
+            output = sesolve(H, psi0, tlist, [], args, options)
             for k, t in enumerate(tlist):
                 u[:, n, k] = output.states[k].full().T
 
         # todo: evolving a batch of wave functions:
-        #psi_0_list = [basis(N, n) for n in range(N)]
-        #psi_t_list = mesolve(H, psi_0_list, [0, t], [], [], H_args, opt)
-        #for n in range(0, N):
+        # psi_0_list = [basis(N, n) for n in range(N)]
+        # psi_t_list = mesolve(H, psi_0_list, [0, t], [], [], args, options)
+        # for n in range(0, N):
         #    u[:,n] = psi_t_list[n][1].full().T
 
     else:
@@ -99,7 +128,7 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         # density matrix (a superoperator propagator)
 
         if isinstance(H, types.FunctionType):
-            H0 = H(0.0, H_args)
+            H0 = H(0.0, args)
             N = H0.shape[0]
             dims = [H0.dims, H0.dims]
         elif isinstance(H, list):
@@ -115,7 +144,7 @@ def propagator(H, t, c_op_list, H_args=None, opt=None):
         for n in range(0, N * N):
             psi0 = basis(N * N, n)
             rho0 = Qobj(vec2mat(psi0.full()))
-            output = mesolve(H, rho0, tlist, c_op_list, [], H_args, opt)
+            output = mesolve(H, rho0, tlist, c_op_list, [], args, options)
             for k, t in enumerate(tlist):
                 u[:, n, k] = mat2vec(output.states[k].full()).T
 

@@ -1,20 +1,34 @@
-# This file is part of QuTiP.
+# This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    QuTiP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#    QuTiP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
+#    met:
 #
-#    You should have received a copy of the GNU General Public License
-#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#    1. Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
 #
-# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 """
 This module provides solvers for the unitary Schrodinger equation.
@@ -36,10 +50,10 @@ from qutip.odeoptions import Odeoptions
 from qutip.odeconfig import odeconfig
 from qutip.odechecks import _ode_checks
 from qutip.settings import debug
-from qutip.cyQ.spmatfuncs import (cy_ode_rhs,
+from qutip.cy.spmatfuncs import (cy_ode_rhs,
                                   cy_ode_psi_func_td,
                                   cy_ode_psi_func_td_with_state)
-from qutip.cyQ.codegen import Codegen
+from qutip.cy.codegen import Codegen
 
 from qutip.gui.progressbar import BaseProgressBar
 
@@ -47,7 +61,7 @@ if debug:
     import inspect
 
 
-def sesolve(H, rho0, tlist, expt_ops, args={}, options=None,
+def sesolve(H, rho0, tlist, e_ops, args={}, options=None,
             progress_bar=BaseProgressBar()):
     """
     Schrodinger equation evolution of a state vector for a given Hamiltonian.
@@ -58,7 +72,7 @@ def sesolve(H, rho0, tlist, expt_ops, args={}, options=None,
 
     The output is either the state vector at arbitrary points in time
     (`tlist`), or the expectation values of the supplied operators
-    (`expt_ops`). If expt_ops is a callback function, it is invoked for each
+    (`e_ops`). If e_ops is a callback function, it is invoked for each
     time in `tlist` with time and the state as arguments, and the function
     does not use any return values.
 
@@ -75,7 +89,7 @@ def sesolve(H, rho0, tlist, expt_ops, args={}, options=None,
     tlist : *list* / *array*
         list of times for :math:`t`.
 
-    expt_ops : list of :class:`qutip.qobj` / callback function single
+    e_ops : list of :class:`qutip.qobj` / callback function single
         single operator or list of operators for which to evaluate
         expectation values.
 
@@ -94,14 +108,20 @@ def sesolve(H, rho0, tlist, expt_ops, args={}, options=None,
         An instance of the class :class:`qutip.odedata`, which contains either
         an *array* of expectation values for the times specified by `tlist`, or
         an *array* or state vectors or density matrices corresponding to the
-        times in `tlist` [if `expt_ops` is an empty list], or
+        times in `tlist` [if `e_ops` is an empty list], or
         nothing if a callback function was given inplace of operators for
         which to calculate the expectation values.
 
     """
 
-    if isinstance(expt_ops, Qobj):
-        expt_ops = [expt_ops]
+    if isinstance(e_ops, Qobj):
+        e_ops = [e_ops]
+
+    if isinstance(e_ops, dict):
+        e_ops_dict = e_ops
+        e_ops = [e for e in e_ops.values()]
+    else:
+        e_ops_dict = None
 
     # check for type (if any) of time-dependent inputs
     n_const, n_func, n_str = _ode_checks(H, [])
@@ -114,23 +134,32 @@ def sesolve(H, rho0, tlist, expt_ops, args={}, options=None,
         odeconfig.reset()
 
     if n_func > 0:
-        return _sesolve_list_func_td(H, rho0, tlist, expt_ops, args, options,
-                                     progress_bar)
-    elif n_str > 0:
-        return _sesolve_list_str_td(H, rho0, tlist, expt_ops, args, options,
+        res = _sesolve_list_func_td(H, rho0, tlist, e_ops, args, options,
                                     progress_bar)
-    elif isinstance(H, (types.FunctionType, types.BuiltinFunctionType, partial)):
-        return _sesolve_func_td(H, rho0, tlist, expt_ops, args, options,
-                                progress_bar)
-    else:
-        return _sesolve_const(H, rho0, tlist, expt_ops, args, options,
-                              progress_bar)
 
+    elif n_str > 0:
+        res = _sesolve_list_str_td(H, rho0, tlist, e_ops, args, options,
+                                   progress_bar)
+
+    elif isinstance(H, (types.FunctionType,
+                        types.BuiltinFunctionType,
+                        partial)):
+        res = _sesolve_func_td(H, rho0, tlist, e_ops, args, options,
+                               progress_bar)
+
+    else:
+        res = _sesolve_const(H, rho0, tlist, e_ops, args, options,
+                             progress_bar)
+
+    if e_ops_dict:
+        res.expect = {e: res.expect[n] for n, e in enumerate(e_ops_dict.keys())}
+
+    return res
 
 # -----------------------------------------------------------------------------
 # A time-dependent unitary wavefunction equation on the list-function format
 #
-def _sesolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt,
+def _sesolve_list_func_td(H_list, psi0, tlist, e_ops, args, opt,
                           progress_bar):
     """
     Internal function for solving the master equation. See mesolve for usage.
@@ -149,7 +178,10 @@ def _sesolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt,
     # construct liouvillian in list-function format
     #
     L_list = []
-    constant_func = lambda x, y: 1.0
+    if not opt.rhs_with_state:
+        constant_func = lambda x, y: 1.0
+    else:
+        constant_func = lambda x, y, z: 1.0
 
     # add all hamitonian terms to the lagrangian list
     for h_spec in H_list:
@@ -173,8 +205,11 @@ def _sesolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt,
     #
     # setup integrator
     #
-    initial_vector = psi0.full()
-    r = scipy.integrate.ode(psi_list_td)
+    initial_vector = psi0.full().ravel()
+    if not opt.rhs_with_state:
+        r = scipy.integrate.ode(psi_list_td)
+    else:
+        r = scipy.integrate.ode(psi_list_td_with_state)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -185,7 +220,8 @@ def _sesolve_list_func_td(H_list, psi0, tlist, expt_ops, args, opt,
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar)
+    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, norm,
+                              dims=psi0.dims)
 
 
 #
@@ -208,14 +244,32 @@ def psi_list_td(t, psi, H_list_and_args):
     return H * psi
 
 
+def psi_list_td_with_state(t, psi, H_list_and_args):
+
+    H_list = H_list_and_args[0]
+    args = H_list_and_args[1]
+
+    H = H_list[0][0] * H_list[0][1](t, psi, args)
+    for n in range(1, len(H_list)):
+        #
+        # args[n][0] = the sparse data for a Qobj in operator form
+        # args[n][1] = function callback giving the coefficient
+        #
+        H = H + H_list[n][0] * H_list[n][1](t, psi, args)
+
+    return H * psi
+
+
 # -----------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution) using
 # a constant Hamiltonian.
 #
-def _sesolve_const(H, psi0, tlist, expt_ops, args, opt, progress_bar):
+def _sesolve_const(H, psi0, tlist, e_ops, args, opt, progress_bar):
     """!
     Evolve the wave function using an ODE solver
     """
+    if debug:
+        print(inspect.stack()[0][3])
 
     if not isket(psi0):
         raise TypeError("psi0 must be a ket")
@@ -223,7 +277,7 @@ def _sesolve_const(H, psi0, tlist, expt_ops, args, opt, progress_bar):
     #
     # setup integrator.
     #
-    initial_vector = psi0.full()
+    initial_vector = psi0.full().ravel()
     r = scipy.integrate.ode(cy_ode_rhs)
     L = -1.0j * H
     r.set_f_params(L.data.data, L.data.indices, L.data.indptr)  # cython RHS
@@ -237,8 +291,8 @@ def _sesolve_const(H, psi0, tlist, expt_ops, args, opt, progress_bar):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt,
-                              progress_bar, norm)
+    return _generic_ode_solve(r, psi0, tlist, e_ops, opt,
+                              progress_bar, norm, dims=psi0.dims)
 
 
 #
@@ -252,7 +306,7 @@ def _ode_psi_func(t, psi, H):
 # A time-dependent disipative master equation on the list-string format for
 # cython compilation
 #
-def _sesolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt,
+def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
                          progress_bar):
     """
     Internal function for solving the master equation. See mesolve for usage.
@@ -325,15 +379,15 @@ def _sesolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt,
                        odeconfig=odeconfig)
         cgen.generate(odeconfig.tdname + ".pyx")
 
-        code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
+        code = compile('from ' + odeconfig.tdname + ' import cy_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
-        odeconfig.tdfunc = cyq_td_ode_rhs
+        odeconfig.tdfunc = cy_td_ode_rhs
 
     #
     # setup integrator
     #
-    initial_vector = psi0.full()
+    initial_vector = psi0.full().ravel()
     r = scipy.integrate.ode(odeconfig.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
@@ -347,14 +401,15 @@ def _sesolve_list_str_td(H_list, psi0, tlist, expt_ops, args, opt,
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar)
+    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
+                              norm, dims=psi0.dims)
 
 
 # -----------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
 # time dependent hamiltonians
 #
-def _sesolve_list_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
+def _sesolve_list_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
     """!
     Evolve the wave function using an ODE solver with time-dependent
     Hamiltonian.
@@ -415,14 +470,14 @@ def _sesolve_list_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
                        odeconfig=odeconfig)
         cgen.generate(odeconfig.tdname + ".pyx")
 
-        code = compile('from ' + odeconfig.tdname + ' import cyq_td_ode_rhs',
+        code = compile('from ' + odeconfig.tdname + ' import cy_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
-        odeconfig.tdfunc = cyq_td_ode_rhs
+        odeconfig.tdfunc = cy_td_ode_rhs
     #
     # setup integrator
     #
-    initial_vector = psi0.full()
+    initial_vector = psi0.full().ravel()
     r = scipy.integrate.ode(odeconfig.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
@@ -435,14 +490,15 @@ def _sesolve_list_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar)
+    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
+                              norm, dims=psi0.dims)
 
 
 # -----------------------------------------------------------------------------
 # Wave function evolution using a ODE solver (unitary quantum evolution), for
 # time dependent hamiltonians
 #
-def _sesolve_func_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
+def _sesolve_func_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
     """!
     Evolve the wave function using an ODE solver with time-dependent
     Hamiltonian.
@@ -467,20 +523,23 @@ def _sesolve_func_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
             else:
                 new_args[key] = args[key]
 
-    elif type(args) is list:
+    elif type(args) is list or type(args) is tuple:
         new_args = []
         for arg in args:
             if isinstance(arg, Qobj):
                 new_args.append(arg.data)
             else:
                 new_args.append(arg)
+
+        if type(args) is tuple:
+            new_args = tuple(new_args)
     else:
         if isinstance(args, Qobj):
             new_args = args.data
         else:
             new_args = args
 
-    initial_vector = psi0.full()
+    initial_vector = psi0.full().ravel()
 
     if not opt.rhs_with_state:
         r = scipy.integrate.ode(cy_ode_psi_func_td)
@@ -497,7 +556,8 @@ def _sesolve_func_td(H_func, psi0, tlist, expt_ops, args, opt, progress_bar):
     #
     # call generic ODE code
     #
-    return _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar)
+    return _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar, norm,
+                              dims=psi0.dims)
 
 
 #
@@ -517,8 +577,8 @@ def _ode_psi_func_td_with_state(t, psi, H_func, args):
 # Solve an ODE which solver parameters already setup (r). Calculate the
 # required expectation values or invoke callback function at each time step.
 #
-def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar, 
-                       state_norm_func=None):
+def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
+                       state_norm_func=None, dims=None):
     """
     Internal function for solving ODEs.
     """
@@ -527,8 +587,6 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar,
     # prepare output array
     #
     n_tsteps = len(tlist)
-    dt = tlist[1] - tlist[0]
-
     output = Odedata()
     output.solver = "sesolve"
     output.times = tlist
@@ -536,13 +594,13 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar,
     if opt.store_states:
         output.states = []
 
-    if isinstance(expt_ops, types.FunctionType):
+    if isinstance(e_ops, types.FunctionType):
         n_expt_op = 0
         expt_callback = True
 
-    elif isinstance(expt_ops, list):
+    elif isinstance(e_ops, list):
 
-        n_expt_op = len(expt_ops)
+        n_expt_op = len(e_ops)
         expt_callback = False
 
         if n_expt_op == 0:
@@ -552,8 +610,8 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar,
         else:
             output.expect = []
             output.num_expect = n_expt_op
-            for op in expt_ops:
-                if op.isherm and psi0.isherm:
+            for op in e_ops:
+                if op.isherm:
                     output.expect.append(np.zeros(n_tsteps))
                 else:
                     output.expect.append(np.zeros(n_tsteps, dtype=complex))
@@ -565,8 +623,7 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar,
     #
     progress_bar.start(n_tsteps)
 
-    psi = Qobj(psi0)
-
+    dt = np.diff(tlist)
     for t_idx, t in enumerate(tlist):
         progress_bar.update(t_idx)
 
@@ -574,24 +631,21 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar,
             break
 
         if state_norm_func:
-            psi.data = r.y
-            state_norm = state_norm_func(psi.data)
-            psi.data = psi.data / state_norm
-            r.set_initial_value(r.y / state_norm, r.t)
-        else:
-            psi.data = r.y
+            data = r.y / state_norm_func(r.y)
+            r.set_initial_value(data, r.t)
 
         if opt.store_states:
-            output.states.append(Qobj(psi))
+            output.states.append(Qobj(r.y,dims=dims))
 
         if expt_callback:
             # use callback method
-            expt_ops(t, Qobj(psi))
+            e_ops(t, Qobj(r.y))
 
         for m in range(n_expt_op):
-            output.expect[m][t_idx] = expect(expt_ops[m], psi)
+            output.expect[m][t_idx] = expect(e_ops[m], Qobj(r.y)) # optimize
 
-        r.integrate(r.t + dt)
+        if t_idx < n_tsteps - 1:
+            r.integrate(r.t + dt[t_idx])
 
     progress_bar.finished()
 
@@ -602,6 +656,6 @@ def _generic_ode_solve(r, psi0, tlist, expt_ops, opt, progress_bar,
             pass
 
     if opt.store_final_state:
-        output.final_state = Qobj(psi)
+        output.final_state = Qobj(r.y)
 
     return output

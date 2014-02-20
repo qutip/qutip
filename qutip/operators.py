@@ -1,21 +1,35 @@
-# This file is part of QuTiP.
+# This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    QuTiP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#    QuTiP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
+#    met:
 #
-#    You should have received a copy of the GNU General Public License
-#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#    1. Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
 #
-# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
-###########################################################################
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 
 import numpy as np
 import scipy
@@ -91,7 +105,7 @@ shape = [3, 3], type = oper, isHerm = True
     elif args[0] == 'z':
         A = jz(j)
     else:
-        raise TypeError('Invlaid type')
+        raise TypeError('Invalid type')
     return Qobj(A.tocsr())
 
 
@@ -107,11 +121,10 @@ def jz(j):
     N = len(m)
     return sp.spdiags(m, 0, N, N, format='csr')
 
+
 #
 # Pauli spin 1/2 operators:
 #
-
-
 def sigmap():
     """Creation operator for Pauli spins.
 
@@ -196,13 +209,17 @@ shape = [2, 2], type = oper, isHerm = True
 # DESTROY returns annihilation operator for N dimensional Hilbert space
 # out = destroy(N), N is integer value &  N>0
 #
-def destroy(N):
+def destroy(N, offset=0):
     '''Destruction (lowering) operator.
 
     Parameters
     ----------
     N : int
         Dimension of Hilbert space.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the operator.
 
     Returns
     -------
@@ -221,17 +238,16 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00000000+0.j  0.00000000+0.j  0.00000000+0.j  0.00000000+0.j]]
 
     '''
-    if not isinstance(N, int):  # raise error if N not integer
+    if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
-    return Qobj(sp.spdiags(np.sqrt(range(0, N)), 1, N, N, format='csr'))
+    return Qobj(sp.spdiags(np.sqrt(range(offset, N+offset)), 1, N, N, format='csr'))
+
 
 #
-# CREATE returns creation operator for N dimensional Hilbert space
+# create returns creation operator for N dimensional Hilbert space
 # out = create(N), N is integer value &  N>0
 #
-
-
-def create(N):
+def create(N, offset=0):
     '''Creation (raising) operator.
 
     Parameters
@@ -243,6 +259,10 @@ def create(N):
     -------
     oper : qobj
         Qobj for raising operator.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the operator.
 
     Examples
     --------
@@ -256,11 +276,11 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00000000+0.j  0.00000000+0.j  1.73205081+0.j  0.00000000+0.j]]
 
     '''
-    if not isinstance(N, int):  # raise error if N not integer
+    if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
-    qo = destroy(N)  # create operator using destroy function
-    qo.data = qo.data.T  # transpsoe data in Qobj
-    return Qobj(qo)
+    qo = destroy(N, offset=offset)  # create operator using destroy function
+    qo.data = qo.data.T  # transpose data in Qobj
+    return qo
 
 
 #
@@ -292,7 +312,7 @@ shape = [3, 3], type = oper, isHerm = True
 
     """
     N = int(N)
-    if (not isinstance(N, int)) or N < 0:  # check if N is int and N>0
+    if (not isinstance(N, (int, np.integer))) or N < 0:
         raise ValueError("N must be integer N>=0")
     return Qobj(sp.eye(N, N, dtype=complex, format='csr'))
 
@@ -313,7 +333,7 @@ def identity(N):
     return qeye(N)
 
 
-def position(N):
+def position(N, offset=0):
     """
     Position operator x=1\sqrt(2)*(a+a.dag())
 
@@ -322,32 +342,52 @@ def position(N):
     N : int
         Number of Fock states in Hilbert space.
 
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the operator.
+
+    Returns
+    -------
+    oper : qobj
+        Position operator as Qobj.
     """
-    a = destroy(N)
+    a = destroy(N, offset=offset)
     return 1.0 / np.sqrt(2.0) * (a + a.dag())
 
 
-def momentum(N):
+def momentum(N, offset=0):
     """
-    Momentum operator p=1\sqrt(2)*(a-1.0j*a.dag())
+    Momentum operator p=-1j/sqrt(2)*(a-a.dag())
 
     Parameters
     ----------
     N : int
         Number of Fock states in Hilbert space.
 
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the operator.
+
+    Returns
+    -------
+    oper : qobj
+        Momentum operator as Qobj.
     """
-    a = destroy(N)
-    return 1.0 / np.sqrt(2.0) * (a - 1.0j * a.dag())
+    a = destroy(N, offset=offset)
+    return -1j / np.sqrt(2.0) * (a - a.dag())
 
 
-def num(N):
+def num(N, offset=0):
     """Quantum object for number operator.
 
     Parameters
     ----------
     N : int
         The dimension of the Hilbert space.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the operator.
 
     Returns
     -------
@@ -366,11 +406,11 @@ shape = [4, 4], type = oper, isHerm = True
      [0 0 0 3]]
 
     """
-    data = sp.spdiags(np.arange(N), 0, N, N, format='csr')
+    data = sp.spdiags(np.arange(offset, offset + N), 0, N, N, format='csr')
     return Qobj(data)
 
 
-def squeez(N, sp):
+def squeeze(N, sp, offset=0):
     """Single-mode Squeezing operator.
 
 
@@ -382,6 +422,10 @@ def squeez(N, sp):
     sp : float/complex
         Squeezing parameter.
 
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the operator.
+
     Returns
     -------
     oper : :class:`qutip.qobj.Qobj`
@@ -390,7 +434,7 @@ def squeez(N, sp):
 
     Examples
     --------
-    >>> squeez(4,0.25)
+    >>> squeeze(4,0.25)
     Quantum object: dims = [[4], [4]], \
 shape = [4, 4], type = oper, isHerm = False
     Qobj data =
@@ -399,13 +443,8 @@ shape = [4, 4], type = oper, isHerm = False
      [-0.17585742+0.j  0.00000000+0.j  0.98441565+0.j  0.00000000+0.j]
      [ 0.00000000+0.j -0.30142443+0.j  0.00000000+0.j  0.95349007+0.j]]
 
-
-    .. important::
-
-        There is no ending 'e' for the squeezing operator!
-
     """
-    a = destroy(N)
+    a = destroy(N, offset=offset)
     op = (1 / 2.0) * np.conj(sp) * (a ** 2) - (1 / 2.0) * sp * (a.dag()) ** 2
     return op.expm()
 
@@ -439,7 +478,7 @@ def squeezing(a1, a2, z):
     return b.expm()
 
 
-def displace(N, alpha):
+def displace(N, alpha, offset=0):
     """Single-mode displacement operator.
 
     Parameters
@@ -449,6 +488,10 @@ def displace(N, alpha):
 
     alpha : float/complex
         Displacement amplitude.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the operator.
 
     Returns
     -------
@@ -467,14 +510,14 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00626025+0.j  0.07418172+0.j  0.41083747+0.j  0.90866411+0.j]]
 
     """
-    a = destroy(N)
+    a = destroy(N, offset=offset)
     D = (alpha * a.dag() - np.conj(alpha) * a).expm()
     return D
 
 
 def commutator(A, B, kind="normal"):
     """
-    Return the commutator of kind `kind` (normal, anti) of the 
+    Return the commutator of kind `kind` (normal, anti) of the
     two operators A and B.
     """
     if kind == 'normal':
@@ -487,9 +530,6 @@ def commutator(A, B, kind="normal"):
         raise TypeError("Unknown commutator kind '%s'" % kind)
 
 
-#
-# Three-level operators (qutrits)
-#
 def qutrit_ops():
     """
     Operators for a three level system (qutrit).
@@ -510,10 +550,6 @@ def qutrit_ops():
     sig23 = two * three.dag()
     sig31 = three * one.dag()
     return np.array([sig11, sig22, sig33, sig12, sig23, sig31])
-
-#
-# Generate operator from diagonals
-#
 
 
 def qdiags(diagonals, offsets, dims=None, shape=None):
@@ -537,7 +573,7 @@ def qdiags(diagonals, offsets, dims=None, shape=None):
 
     See Also
     --------
-    scipy.sparse.diags for useage information.
+    scipy.sparse.diags for usage information.
 
     Notes
     -----
@@ -564,3 +600,54 @@ shape = [4, 4], type = oper, isherm = False
     if not shape:
         shape = []
     return Qobj(data, dims, list(shape))
+
+
+def phase(N, phi0=0):
+    """
+    Single-mode Pegg-Barnett phase operator.
+
+    Parameters
+    ----------
+    N : int
+        Number of basis states in Hilbert space.
+    phi0 : float
+        Reference phase.
+
+    Returns
+    -------
+    oper : qobj
+        Phase operator with respect to reference phase.
+
+    Notes
+    -----
+    The Pegg-Barnett phase operator is Hermitian on a truncated Hilbert space.
+
+    """
+    phim = phi0 + (2.0 * np.pi * np.arange(N)) / N  # discrete phase angles
+    n = np.arange(N).reshape((N, 1))
+    states = np.array([np.sqrt(kk) / np.sqrt(N) * np.exp(1.0j * n * kk)
+                       for kk in phim])
+    ops = np.array([np.outer(st, st.conj()) for st in states])
+    return Qobj(np.sum(ops, axis=0))
+
+
+
+def zero_oper(N, dims=None):
+    """
+    Creates the zero operator with shape NxN and dimensions `dims`.
+
+    Parameters
+    ----------
+    N : int
+        Hilbert space dimensionality
+    dims : list
+        Optional dimensions if operator corresponds to
+        a composite Hilbert space.
+
+    Returns
+    -------
+    zero_op : qobj
+        Zero operator on given Hilbert space.
+
+    """
+    return Qobj(sp.csr_matrix((N, N), dtype=complex), dims=dims)

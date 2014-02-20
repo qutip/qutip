@@ -1,53 +1,67 @@
-# This file is part of QuTiP.
+# This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    QuTiP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#    QuTiP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
+#    met:
 #
-#    You should have received a copy of the GNU General Public License
-#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#    1. Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
 #
-# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
-###########################################################################
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 import os
 import sys
 import platform
 import multiprocessing
 
 import qutip.settings
-import qutip._version
-from qutip._version import version as __version__
+import qutip.version 
+from qutip.version import version as __version__
 
 
 #------------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
 # if the requirements aren't fulfilled
 #
-def version2int(version_string):
-    str_list = version_string.split("-dev")[0].split("rc")[0].split("b")[0].split('.')
-    return sum([int(d) * (100 ** (3 - n)) for n, d in enumerate(str_list[:3])])
+def _version2int(version_string):
+    str_list = version_string.split("-dev")[0].split("rc")[0].split("b")[0].split("post")[0].split('.')
+    return sum([int(d if len(d) > 0 else 0) * (100 ** (3 - n)) for n, d in enumerate(str_list[:3])])
 
 numpy_requirement = "1.6.0"
 try:
     import numpy
-    if version2int(numpy.__version__) < version2int(numpy_requirement):
+    if _version2int(numpy.__version__) < _version2int(numpy_requirement):
         print("QuTiP warning: old version of numpy detected " +
               ("(%s), requiring %s." %
                (numpy.__version__, numpy_requirement)))
 except:
     print("QuTiP warning: numpy not found.")
 
-scipy_requirement = "0.9.0"
+scipy_requirement = "0.11.0"
 try:
     import scipy
-    if version2int(scipy.__version__) < version2int(scipy_requirement):
+    if _version2int(scipy.__version__) < _version2int(scipy_requirement):
         print("QuTiP warning: old version of scipy detected " +
               ("(%s), requiring %s." %
                (scipy.__version__, scipy_requirement)))
@@ -63,7 +77,7 @@ try:
 except:
     pass
 else:
-    if ('QuTiP' in setup_file.readlines()[1][3:]) and qutip._version.release:
+    if ('QuTiP' in setup_file.readlines()[1][3:]) and qutip.version.release:
         print("You are in the installation directory. " +
               "Change directories before running QuTiP.")
     setup_file.close()
@@ -75,17 +89,17 @@ else:
 _cython_requirement = "0.15.0"
 try:
     import Cython
-    if version2int(Cython.__version__) < version2int(_cython_requirement):
+    if _version2int(Cython.__version__) < _version2int(_cython_requirement):
         print("QuTiP warning: old version of cython detected " +
               ("(%s), requiring %s." %
                (Cython.__version__, _cython_requirement)))
 
     import pyximport
-    os.environ['CFLAGS'] = '-O3 -w'
+    os.environ['CFLAGS'] = '-O3 -w -ffast-math -march=native -mfpmath=sse'
     pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
 
 except Exception as e:
-    print("QuTiP warning: cython setup failed: " + str(e))
+    print("QuTiP warning: Cython setup failed: " + str(e))
 
 
 #------------------------------------------------------------------------------
@@ -99,7 +113,6 @@ if 'cpus' in info:
     qutip.settings.num_cpus = info['cpus']
 else:
     qutip.settings.num_cpus = multiprocessing.cpu_count()
-
 
 qutip.settings.qutip_graphics = "YES"
 qutip.settings.qutip_gui = "NONE"
@@ -126,22 +139,17 @@ if not ('QUTIP_GRAPHICS' in os.environ):
 else:
     qutip.settings.qutip_graphics = os.environ['QUTIP_GRAPHICS']
 
-if not ('QUTIP_GUI' in os.environ):
-    os.environ['QUTIP_GUI'] = qutip.settings.qutip_gui
-else:
-    qutip.settings.qutip_gui = os.environ['QUTIP_GUI']
-
 # check if being run remotely
 if not sys.platform in ['darwin', 'win32'] and not ('DISPLAY' in os.environ):
     # no graphics if DISPLAY isn't set
     os.environ['QUTIP_GRAPHICS'] = "NO"
     qutip.settings.qutip_graphics = "NO"
-    os.environ['QUTIP_GUI'] = "NONE"
-    qutip.settings.qutip_gui = "NONE"
 
-# automatically set number of threads used by MKL
-os.environ['MKL_NUM_THREADS'] = str(multiprocessing.cpu_count())
-os.environ['NUM_THREADS'] = str(multiprocessing.cpu_count())
+# automatically set number of threads used by MKL and openblas to 1
+# prevents errors when running things in parallel.  Should be set 
+# by user directly in a script or notebook if >1 is needed.
+os.environ['MKL_NUM_THREADS'] = '1'
+os.environ['OMP_NUM_THREADS'] = '1'
 
 try:
     from qutip.fortran import qutraj_run
@@ -161,42 +169,6 @@ except:
     os.environ['QUTIP_GRAPHICS'] = "NO"
     qutip.settings.qutip_graphics = 'NO'
 
-# if being run locally, check for installed gui modules
-if qutip.settings.qutip_graphics == 'YES':
-
-    if qutip.settings.qutip_gui == "NONE":
-        # no preference, try PYSIDE first, the PYQT4
-        try:
-            import PySide
-            os.environ['QUTIP_GUI'] = "PYSIDE"
-            qutip.settings.qutip_gui = "PYSIDE"
-        except:
-            try:
-                import PyQt4
-                os.environ['QUTIP_GUI'] = "PYQT4"
-                qutip.settings.qutip_gui = "PYQT4"
-            except:
-                qutip.settings.qutip_gui = "NONE"
-
-    elif qutip.settings.qutip_gui == "PYSIDE":
-        # PYSIDE was requested
-        try:
-            import PySide
-            os.environ['QUTIP_GUI'] = "PYSIDE"
-            qutip.settings.qutip_gui = "PYSIDE"
-        except:
-            qutip.settings.qutip_gui = "NONE"
-
-    elif qutip.settings.qutip_gui == "PYQT4":
-        # PYQT4 was requested
-        try:
-            import PyQt4
-            os.environ['QUTIP_GUI'] = "PYQT4"
-            qutip.settings.qutip_gui = "PYQT4"
-        except:
-            qutip.settings.qutip_gui = "NONE"
-
-
 #------------------------------------------------------------------------------
 # Load modules
 #
@@ -209,7 +181,7 @@ from qutip.expect import *
 from qutip.superoperator import *
 from qutip.tensor import *
 from qutip.parfor import *
-from qutip.sparse import sp_eigs
+from qutip.sparse import *
 
 # graphics
 if qutip.settings.qutip_graphics == 'YES':
@@ -217,7 +189,9 @@ if qutip.settings.qutip_graphics == 'YES':
     from qutip.visualization import (hinton, energy_level_diagram, wigner_cmap,
                                      sphereplot, fock_distribution,
                                      wigner_fock_distribution,
-                                     plot_expectation_values)
+                                     plot_expectation_values,
+                                     plot_spin_distribution_2d,
+                                     plot_spin_distribution_3d)
     from qutip.orbital import *
     # load mayavi dependent functions if available
     try:
@@ -234,7 +208,6 @@ from qutip.random_objects import *
 from qutip.simdiag import *
 from qutip.entropy import (entropy_vn, entropy_linear, entropy_mutual,
                            concurrence, entropy_conditional)
-from qutip.gates import *
 from qutip.metrics import fidelity, tracedist
 from qutip.partial_transpose import partial_transpose
 from qutip.continuous_variables import *
@@ -248,18 +221,24 @@ from qutip.rhs_generate import rhs_generate, rhs_clear
 from qutip.mesolve import mesolve, odesolve
 from qutip.sesolve import sesolve
 from qutip.mcsolve import mcsolve
+from qutip.stochastic import ssesolve, sepdpsolve, smesolve, smepdpsolve
 from qutip.essolve import *
 from qutip.eseries import *
-from qutip.steady import *
+from qutip.steadystate import *
 from qutip.correlation import *
 from qutip.propagator import *
 from qutip.floquet import *
 from qutip.bloch_redfield import *
 from qutip.superop_reps import *
 from qutip.subsystem_apply import subsystem_apply
+from qutip.sparse import sparse_bandwidth
+from qutip.graph import *
+
+# quantum information
+from qutip.quantum_info import *
 
 # utilities
 from qutip.utilities import *
 from qutip.fileio import *
-from qutip.demos import demos
 from qutip.about import *
+

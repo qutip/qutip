@@ -1,7 +1,7 @@
 from qutip import *
 from time import time
 
-def test_1(N=1.0):
+def test_1(runs=1):
     """
     Construct Jaynes-Cumming Hamiltonian with Nc=10, Na=2.
     """
@@ -11,7 +11,7 @@ def test_1(N=1.0):
     g  = 0.05 * 2 * pi
     Nc=10
     tot_elapsed = 0
-    for n in range(N):
+    for n in range(runs):
         tic = time()
         a = tensor(destroy(Nc),qeye(2))
         sm = tensor(qeye(Nc),sigmam())
@@ -19,7 +19,7 @@ def test_1(N=1.0):
         toc = time()
         tot_elapsed += toc - tic
 
-    return [test_name], [tot_elapsed / N]
+    return [test_name], [tot_elapsed / runs]
  
 
 

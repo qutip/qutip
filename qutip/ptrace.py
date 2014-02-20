@@ -1,25 +1,40 @@
-# This file is part of QuTiP.
+# This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    QuTiP is free software: you can redistribute it and/or np.modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#    QuTiP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
+#    met:
 #
-#    You should have received a copy of the GNU General Public License
-#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#    1. Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
 #
-# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
-###########################################################################
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 
 import numpy as np
 import scipy.sparse as sp
 import scipy.linalg as la
+from qutip.sparse import sp_reshape
 
 
 def _ptrace(rho, sel):
@@ -29,8 +44,12 @@ def _ptrace(rho, sel):
 
     if isinstance(sel, int):
         sel = np.array([sel])
+    else:
+        sel = np.asarray(sel)
 
-    sel = np.asarray(sel)
+    if (sel < 0).any() or (sel >= len(rho.dims[0])).any():
+        raise TypeError("Invalid selection index in ptrace.")
+
     drho = rho.dims[0]
     N = np.prod(drho)
     M = np.prod(np.asarray(drho).take(sel))
@@ -54,7 +73,7 @@ def _ptrace(rho, sel):
     # perm.data = np.ones_like(perm.rows,dtype=int)
     perm.data = np.ones_like(perm.rows)
     perm.tocsr()
-    rhdata = perm * _csr_to_col(rho.data)
+    rhdata = perm * sp_reshape(rho.data, [np.prod(rho.shape), 1])
     rhdata = rhdata.tolil().reshape((M, M))
     rho1_data = rhdata.tocsr()
     dims_kept0 = np.asarray(rho.dims[0]).take(sel)
@@ -90,31 +109,3 @@ def _select(sel, dims):
         ilist[:, sel[k]] = np.remainder(
             np.fix(counter / np.prod(dims[sel[k + 1:]])), dims[sel[k]]) + 1
     return ilist
-
-
-def _csr_to_col(mat):
-    """
-    Private function for reshape density matrix csr_matrix to a column
-    csr_matrix without using lil (reshape) or csc (transpose) matrices
-    which fail for large matricies.
-    """
-    mat.sort_indices()
-    rows = np.array([len(range(mat.indptr[i], mat.indptr[i + 1]))
-                     for i in range(mat.shape[1])])
-    rows = [[k for j in range(rows[k])] for k in range(len(rows))]
-    rows = np.array([item for sublist in rows for item in sublist])
-    datlen = len(mat.data)
-    ptrs = np.zeros((datlen + 2), dtype=int)
-    ptrs[1:-1] = (mat.shape[1] * rows + mat.indices) + 1
-    ptrs[-1] = np.prod(mat.shape)
-    values = np.arange(datlen + 1)  # values to use in ptrs
-    counts = np.diff(ptrs)  # number of times values should be np.repeated
-    ptrs = np.zeros(sum(counts) + 1, dtype=int)
-    ptrs[-1] = datlen
-    # np.append the number of data elems (per csr format)
-    ptrs[:-1] = np.repeat(values, counts)
-    inds = np.zeros(datlen, dtype=int)  # since this is col vec, all inds = 0
-    out = sp.csr_matrix((mat.data, inds, ptrs),
-                        shape=(np.prod(mat.shape), 1),
-                        dtype=complex)
-    return out

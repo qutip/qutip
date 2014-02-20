@@ -1,51 +1,66 @@
-# This file is part of QuTiP.
+# This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    QuTiP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#    QuTiP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
+#    met:
 #
-#    You should have received a copy of the GNU General Public License
-#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#    1. Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
 #
-# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
-###########################################################################
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 
 import numpy as np
 from scipy import arange, conj, prod
 import scipy.sparse as sp
-
-try:  # for scipy v <= 0.90
-    from scipy import factorial
-except:  # for scipy v >= 0.10
-    from scipy.misc import factorial
+from scipy.misc import factorial
 
 from qutip.qobj import Qobj
-from qutip.operators import destroy
+from qutip.operators import destroy, jmat
 from qutip.tensor import tensor
 
 
-def basis(N, *args):
+def basis(N, n=0, offset=0):
     """Generates the vector representation of a Fock state.
 
     Parameters
     ----------
     N : int
         Number of Fock states in Hilbert space.
-    args : int
-        ``int`` corresponding to desired number state, defaults
+
+    n : int
+        Integer corresponding to desired number state, defaults
         to 0 if omitted.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the state.
 
     Returns
     -------
     state : qobj
-      Qobj representing the requested number state ``|args>``.
+      Qobj representing the requested number state ``|n>``.
 
     Examples
     --------
@@ -61,28 +76,28 @@ def basis(N, *args):
     Notes
     -----
 
-    A subtle incompability with the quantum optics toolbox: In QuTiP::
+    A subtle incompatibility with the quantum optics toolbox: In QuTiP::
 
         basis(N, 0) = ground state
 
-    but in qotoolbox::
+    but in the qotoolbox::
 
         basis(N, 1) = ground state
 
     """
-    if (not isinstance(N, int)) or N < 0:
-        raise ValueError("N must be integer N>=0")
-    if not any(args):  # if no args then assume vacuum state
-        args = 0
-    if not isinstance(args, int):  # if input arg!=0
-        if not isinstance(args[0], int):
-            raise ValueError("need integer for basis vector index")
-        args = args[0]
-    if args < 0 or args > (N - 1):  # check if args is within bounds
-        raise ValueError("basis vector index need to be in 0=<indx<=N-1")
+    if (not isinstance(N, (int, np.int64))) or N < 0:
+        raise ValueError("N must be integer N >= 0")
+
+    if (not isinstance(n, (int, np.int64))) or n < offset:
+        raise ValueError("n must be integer n >= 0")
+
+    if n - offset > (N - 1):  # check if n is within bounds
+        raise ValueError("basis vector index need to be in n <= N-1")
+
     bas = sp.lil_matrix((N, 1))  # column vector of zeros
-    bas[args, 0] = 1  # 1 located at position args
+    bas[n-offset, 0] = 1  # 1 located at position n
     bas = bas.tocsr()
+
     return Qobj(bas)
 
 
@@ -103,7 +118,7 @@ def _sqrt_factorial(n_vec):
     return np.array([np.prod(np.sqrt(np.arange(1, n + 1))) for n in n_vec])
 
 
-def coherent(N, alpha, method='operator'):
+def coherent(N, alpha, offset=0, method='operator'):
     """Generates a coherent state with eigenvalue alpha.
 
     Constructed using displacement operator on vacuum state.
@@ -112,8 +127,15 @@ def coherent(N, alpha, method='operator'):
     ----------
     N : int
         Number of Fock states in Hilbert space.
+
     alpha : float/complex
         Eigenvalue of coherent state.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the state. Using a non-zero offset will make the
+        default method 'analytic'.
+
     method : string {'operator', 'analytic'}
         Method for generating coherent state.
 
@@ -146,17 +168,17 @@ def coherent(N, alpha, method='operator'):
     but would in that case give more accurate coefficients.
 
     """
-    if method == "operator":
+    if method == "operator" and offset == 0:
 
         x = basis(N, 0)
         a = destroy(N)
         D = (alpha * a.dag() - conj(alpha) * a).expm()
         return D * x
 
-    elif method == "analytic":
+    elif method == "analytic" or offset > 0:
 
         data = np.zeros([N, 1], dtype=complex)
-        n = arange(N)
+        n = arange(N) + offset
         data[:, 0] = np.exp(-(abs(alpha) ** 2) / 2.0) * (alpha ** (n)) / \
             _sqrt_factorial(n)
         return Qobj(data)
@@ -166,7 +188,7 @@ def coherent(N, alpha, method='operator'):
             "The method option can only take values 'operator' or 'analytic'")
 
 
-def coherent_dm(N, alpha, method='operator'):
+def coherent_dm(N, alpha, offset=0, method='operator'):
     """Density matrix representation of a coherent state.
 
     Constructed via outer product of :func:`qutip.states.coherent`
@@ -175,8 +197,14 @@ def coherent_dm(N, alpha, method='operator'):
     ----------
     N : int
         Number of Fock states in Hilbert space.
+
     alpha : float/complex
         Eigenvalue for coherent state.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the state.
+
     method : string {'operator', 'analytic'}
         Method for generating coherent density matrix.
 
@@ -210,11 +238,11 @@ shape = [3, 3], type = oper, isHerm = True
 
     """
     if method == "operator":
-        psi = coherent(N, alpha)
+        psi = coherent(N, alpha, offset=offset)
         return psi * psi.dag()
 
     elif method == "analytic":
-        psi = coherent(N, alpha, method='analytic')
+        psi = coherent(N, alpha, offset=offset, method='analytic')
         return psi * psi.dag()
 
     else:
@@ -222,7 +250,7 @@ shape = [3, 3], type = oper, isHerm = True
             "The method option can only take values 'operator' or 'analytic'")
 
 
-def fock_dm(N, *args):
+def fock_dm(N, n=0, offset=0):
     """Density matrix representation of a Fock state
 
     Constructed via outer product of :func:`qutip.states.fock`.
@@ -232,7 +260,7 @@ def fock_dm(N, *args):
     N : int
         Number of Fock states in Hilbert space.
 
-    m : int
+    n : int
         ``int`` for desired number state, defaults to 0 if omitted.
 
     Returns
@@ -251,14 +279,12 @@ shape = [3, 3], type = oper, isHerm = True
       [ 0.+0.j  0.+0.j  0.+0.j]]
 
     """
-    if not args:
-        psi = basis(N)
-    else:
-        psi = basis(N, args[0])
+    psi = basis(N, n, offset=offset)
+
     return psi * psi.dag()
 
 
-def fock(N, *args):
+def fock(N, n=0, offset=0):
     """Bosonic Fock (number) state.
 
     Same as :func:`qutip.states.basis`.
@@ -268,12 +294,12 @@ def fock(N, *args):
     N : int
         Number of states in the Hilbert space.
 
-    m : int
+    n : int
         ``int`` for desired number state, defaults to 0 if omitted.
 
     Returns
     -------
-        Requested number state :math:`\left|\mathrm{args}\\right>`.
+        Requested number state :math:`\\left|n\\right>`.
 
     Examples
     --------
@@ -286,10 +312,7 @@ def fock(N, *args):
      [ 1.+0.j]]
 
     """
-    if not args:
-        return basis(N)
-    else:
-        return basis(N, args[0])
+    return basis(N, n, offset=offset)
 
 
 def thermal_dm(N, n, method='operator'):
@@ -342,7 +365,7 @@ shape = [5, 5], type = oper, isHerm = True
     is the method that should be used in computations. The
     'analytic' method uses the analytic coefficients derived in
     an infinite Hilbert space. The analytic form is not necessarily normalized,
-    if truncated too agressively.
+    if truncated too aggressively.
 
     """
     if n == 0:
@@ -403,26 +426,36 @@ shape = [3, 3], type = oper, isHerm = True
 #
 # projection operator
 #
-def projection(N, n, m):
-    ''' The projection operator that projects state |m> on state |n>.
+def projection(N, n, m, offset=0):
+    """The projection operator that projects state |m> on state |n>: |n><m|.
 
-    i.e., |n><m|.
+    Parameters
+    ----------
+
+    N : int
+        Number of basis states in Hilbert space.
+
+    n, m : float
+        The number states in the projection.
+
+    offset : int (default 0)
+        The lowest number state that is included in the finite number state
+        representation of the projector.
 
     Returns
     -------
     oper : qobj
          Requested projection operator.
-    '''
-    ket1 = basis(N, n)
-    ket2 = basis(N, m)
+    """
+    ket1 = basis(N, n, offset=offset)
+    ket2 = basis(N, m, offset=offset)
 
     return ket1 * ket2.dag()
+
 
 #
 # composite qubit states
 #
-
-
 def qstate(string):
     """Creates a tensor product for a set of qubits in either
     the 'up' :math:`|0>` or 'down' :math:`|1>` state.
@@ -436,6 +469,11 @@ def qstate(string):
     -------
     qstate : qobj
         Qobj for tensor product corresponding to input string.
+
+    Notes
+    -----
+    Look at ket and bra for more general functions
+    creating multiparticle states.
 
     Examples
     --------
@@ -466,6 +504,158 @@ def qstate(string):
         else:
             lst.append(dn)
     return tensor(lst)
+
+
+#
+# different qubit notation dictionary
+#
+_qubit_dict = {'g': 0,  # ground state
+               'e': 1,  # excited state
+               'u': 0,  # spin up
+               'd': 1,  # spin down
+               'H': 0,  # horizontal polarization
+               'V': 1}  # vertical polarization
+
+
+def _character_to_qudit(x):
+    """
+    Converts a character representing a one-particle state into int.
+    """
+    if x in _qubit_dict:
+        return _qubit_dict[x]
+    else:
+        return int(x)
+
+
+def ket(seq, dim=2):
+    """
+    Produces a multiparticle ket state for a list or string,
+    where each element stands for state of the respective particle.
+
+    Parameters
+    ----------
+    seq : str / list of ints or characters
+        Each element defines state of the respective particle.
+        (e.g. [1,1,0,1] or a string "1101").
+        For qubits it is also possible to use the following conventions:
+        - 'g'/'e' (ground and excited state)
+        - 'u'/'d' (spin up and down)
+        - 'H'/'V' (horizontal and vertical polarization)
+        Note: for dimension > 9 you need to use a list.
+
+
+    dim : int (default: 2) / list of ints
+        Space dimension for each particle:
+        int if there are the same, list if they are different.
+
+    Returns
+    -------
+    ket : qobj
+
+    Examples
+    --------
+    >>> ket("10")
+    Quantum object: dims = [[2, 2], [1, 1]], shape = [4, 1], type = ket
+    Qobj data =
+    [[ 0.]
+     [ 0.]
+     [ 1.]
+     [ 0.]]
+
+    >>> ket("Hue")
+    Quantum object: dims = [[2, 2, 2], [1, 1, 1]], shape = [8, 1], type = ket
+    Qobj data =
+    [[ 0.]
+     [ 1.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]]
+
+    >>> ket("12", 3)
+    Quantum object: dims = [[3, 3], [1, 1]], shape = [9, 1], type = ket
+    Qobj data =
+    [[ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 1.]
+     [ 0.]
+     [ 0.]
+     [ 0.]]
+
+    >>> ket("31", [5, 2])
+    Quantum object: dims = [[5, 2], [1, 1]], shape = [10, 1], type = ket
+    Qobj data =
+    [[ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 0.]
+     [ 1.]
+     [ 0.]
+     [ 0.]]
+    """
+    if isinstance(dim, int):
+        dim = [dim] * len(seq)
+    return tensor([basis(dim[i], _character_to_qudit(x))
+                   for i, x in enumerate(seq)])
+
+
+def bra(seq, dim=2):
+    """
+    Produces a multiparticle bra state for a list or string,
+    where each element stands for state of the respective particle.
+
+    Parameters
+    ----------
+    seq : str / list of ints or characters
+        Each element defines state of the respective particle.
+        (e.g. [1,1,0,1] or a string "1101").
+        For qubits it is also possible to use the following conventions:
+        - 'g'/'e' (ground and excited state)
+        - 'u'/'d' (spin up and down)
+        - 'H'/'V' (horizontal and vertical polarization)
+        Note: for dimension > 9 you need to use a list.
+
+
+    dim : int (default: 2) / list of ints
+        Space dimension for each particle:
+        int if there are the same, list if they are different.
+
+    Returns
+    -------
+    bra : qobj
+
+    Examples
+    --------
+    >>> bra("10")
+    Quantum object: dims = [[1, 1], [2, 2]], shape = [1, 4], type = bra
+    Qobj data =
+    [[ 0.  0.  1.  0.]]
+
+    >>> bra("Hue")
+    Quantum object: dims = [[1, 1, 1], [2, 2, 2]], shape = [1, 8], type = bra
+    Qobj data =
+    [[ 0.  1.  0.  0.  0.  0.  0.  0.]]
+
+    >>> bra("12", 3)
+    Quantum object: dims = [[1, 1], [3, 3]], shape = [1, 9], type = bra
+    Qobj data =
+    [[ 0.  0.  0.  0.  0.  1.  0.  0.  0.]]
+
+
+    >>> bra("31", [5, 2])
+    Quantum object: dims = [[1, 1], [5, 2]], shape = [1, 10], type = bra
+    Qobj data =
+    [[ 0.  0.  0.  0.  0.  0.  0.  1.  0.  0.]]
+    """
+    return ket(seq, dim=dim).dag()
 
 
 #
@@ -616,3 +806,128 @@ shape = [8, 1], type = ket
 
     """
     return tensor([fock(dims[i], s) for i, s in enumerate(state)])
+
+
+def phase_basis(N, m, phi0=0):
+    """
+    Basis vector for the mth phase of the Pegg-Barnett phase operator.
+
+    Parameters
+    ----------
+    N : int
+        Number of basis vectors in Hilbert space.
+    m : int
+        Integer corresponding to the mth discrete phase phi_m=phi0+2*pi*m/N
+    phi0 : float (default=0)
+        Reference phase angle.
+
+    Returns
+    -------
+    state : qobj
+        Ket vector for mth Pegg-Barnett phase operator basis state.
+
+    Notes
+    -----
+    The Pegg-Barnett basis states form a complete set over the truncated
+    Hilbert space.
+
+    """
+    phim = phi0 + (2.0 * np.pi * m) / N
+    n = np.arange(N).reshape((N, 1))
+    data = 1.0 / np.sqrt(N) * np.exp(1.0j * n * phim)
+    return Qobj(data)
+
+
+def zero_ket(N, dims=None):
+    """
+    Creates the zero ket vector with shape Nx1 and
+    dimensions `dims`.
+
+    Parameters
+    ----------
+    N : int
+        Hilbert space dimensionality
+    dims : list
+        Optional dimensions if ket corresponds to
+        a composite Hilbert space.
+
+    Returns
+    -------
+    zero_ket : qobj
+        Zero ket on given Hilbert space.
+
+    """
+    return Qobj(sp.csr_matrix((N, 1), dtype=complex), dims=dims)
+
+
+def spin_state(j, m, type='ket'):
+    """Generates the spin state |j, m>, i.e.  the eigenstate
+    of the spin-j Sz operator with eigenvalue m.
+
+    Parameters
+    ----------
+    j : float
+        The spin of the state ().
+
+    m : int
+        Eigenvalue of the spin-j Sz operator.
+
+    type : string {'ket', 'bra', 'dm'}
+        Type of state to generate.
+
+    Returns
+    -------
+    state : qobj
+        Qobj quantum object for spin state
+
+    """
+    J = 2 * j + 1
+
+    if type == 'ket':
+        return basis(int(J), int(j - m))
+    elif type == 'bra':
+        return basis(int(J), int(j - m)).dag()
+    elif type == 'dm':
+        return fock_dm(int(J), int(j - m))
+    else:
+        raise ValueError("invalid value keyword argument 'type'")
+
+
+def spin_coherent(j, theta, phi, type='ket'):
+    """Generates the spin state |j, m>, i.e.  the eigenstate
+    of the spin-j Sz operator with eigenvalue m.
+
+    Parameters
+    ----------
+    j : float
+        The spin of the state.
+
+    theta : float
+        Angle from z axis.
+
+    phi : float
+        Angle from x axis.
+
+    type : string {'ket', 'bra', 'dm'}
+        Type of state to generate.
+
+    Returns
+    -------
+    state : qobj
+        Qobj quantum object for spin coherent state
+
+    """
+    Sp = jmat(j, '+')
+    Sm = jmat(j, '-')
+    psi = (0.5 * theta * np.exp(1j * phi) * Sm - 
+           0.5 * theta * np.exp(-1j * phi) * Sp).expm() * spin_state(j, j)
+
+    if type == 'ket':
+        return psi
+    elif type == 'bra':
+        return psi.dag()
+    elif type == 'dm':
+        return ket2dm(psi)
+    else:
+        raise ValueError("invalid value keyword argument 'type'")
+

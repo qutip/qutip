@@ -1,7 +1,7 @@
 from qutip import *
 from time import time
 
-def test_19(N=1.0):
+def test_19(runs=1):
     """
     expectation values
     """
@@ -14,14 +14,14 @@ def test_19(N=1.0):
     n=num(N)
 
     tot_elapsed = 0
-    for m in range(N):
+    for m in range(runs):
         tic=time()
         expect(n,coh)
         expect(n,coh_dm)
         toc=time()
         tot_elapsed += toc - tic
 
-    return [test_name], [tot_elapsed / N]
+    return [test_name], [tot_elapsed / runs]
  
 
 if __name__=='__main__':

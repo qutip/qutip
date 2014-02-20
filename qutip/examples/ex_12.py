@@ -2,11 +2,10 @@
 # 3D Wigner and Q-functions for
 # a squeezed coherent state.
 #
-from qutip import *
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import cm
 from pylab import *
-
+from qutip import *
 
 def run():
     # setup constants:
@@ -15,7 +14,7 @@ def run():
     epsilon = 0.5j  # Squeezing parameter
 
     D = displace(N, alpha)     # Displacement
-    S = squeez(N, epsilon)     # Squeezing
+    S = squeeze(N, epsilon)     # Squeezing
     psi = D * S * basis(N, 0)  # Apply to vacuum state
 
     xvec = linspace(-6, 6, 150)

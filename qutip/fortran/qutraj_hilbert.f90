@@ -774,7 +774,7 @@ subroutine aplb ( nrow, ncol, job, a, ja, ia, b, jb, ib, c, jc, ic, nzmax, &
   end do
 
   return
-end
+end subroutine
 subroutine amub ( nrow, ncol, job, a, ja, ia, b, jb, ib, c, jc, ic, nzmax, &
   iw, ierr )
   ! Aadapted from sparsekit
@@ -916,7 +916,7 @@ subroutine amub ( nrow, ncol, job, a, ja, ia, b, jb, ib, c, jc, ic, nzmax, &
   end do
 
   return
-end
+end subroutine
 
 
 subroutine dnscsr ( nrow, ncol, nzmax, dns, ndns, a, ja, ia, ierr )
@@ -1009,6 +1009,6 @@ subroutine dnscsr ( nrow, ncol, nzmax, dns, ndns, a, ja, ia, ierr )
   end do
 
   return
-end
+end subroutine
 
 end module

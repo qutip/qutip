@@ -2,7 +2,7 @@ from qutip import *
 from numpy import *
 from time import time
 
-def test_17(N=1.0):
+def test_17(runs=1):
     """
     dissipative trilinear hamiltonian
     """
@@ -28,13 +28,13 @@ def test_17(N=1.0):
     psi0=tensor([coherent(N0,alpha),basis(N1,0),basis(N2,0)])
     opts=Odeoptions(gui=False)
     tot_elapsed = 0
-    for n in range(N):
+    for n in range(runs):
         tic=time()
         mcsolve(H, psi0, tlist, [C0,C1,C2],[num0,num1,num2],options=opts)
         toc=time()
         tot_elapsed += toc - tic
 
-    return [test_name], [tot_elapsed / N]
+    return [test_name], [tot_elapsed / runs]
  
 
 if __name__=='__main__':

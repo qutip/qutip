@@ -1,21 +1,35 @@
-# This file is part of QuTiP.
+# This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    QuTiP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#    QuTiP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
+#    met:
 #
-#    You should have received a copy of the GNU General Public License
-#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#    1. Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
 #
-# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
-###########################################################################
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 """
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
@@ -25,6 +39,7 @@ from IPython.parallel import Client
 from IPython.display import HTML, Javascript, display
 
 import matplotlib.pyplot as plt
+from matplotlib import animation
 
 import datetime
 import uuid
@@ -115,18 +130,20 @@ style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
         if p >= self.p_chunk:
             lbl = ("Elapsed time: %s. " % self.time_elapsed() +
                    "Est. remaining time: %s." % self.time_remaining_est(p))
-            js_code = ("$('div#%s').width('%i%%');" % (self.divid, p) + 
+            js_code = ("$('div#%s').width('%i%%');" % (self.divid, p) +
                        "$('p#%s').text('%s');" % (self.textid, lbl))
             display(Javascript(js_code))
-            #display(Javascript("$('div#%s').width('%i%%')" % (self.divid, p)))
+            # display(Javascript("$('div#%s').width('%i%%')" % (self.divid,
+            # p)))
             self.p_chunk += self.p_chunk_size
 
     def finished(self):
         self.t_done = time.time()
         lbl = "Elapsed time: %s" % self.time_elapsed()
-        js_code = ("$('div#%s').width('%i%%');" % (self.divid, 100.0) + 
+        js_code = ("$('div#%s').width('%i%%');" % (self.divid, 100.0) +
                    "$('p#%s').text('%s');" % (self.textid, lbl))
         display(Javascript(js_code))
+
 
 def _visualize_parfor_data(metadata):
     """
@@ -246,3 +263,32 @@ def parfor(task, task_vec, args=None, client=None, view=None,
         _visualize_parfor_data(metadata)
 
     return [ar.get() for ar in ar_list]
+
+
+def plot_animation(plot_setup_func, plot_func, result, name="movie",
+                   verbose=False):
+    """
+    Create an animated plot of a Odedata object, as returned by one of
+    the qutip evolution solvers.
+
+    .. note :: experimental
+    """
+
+    fig, axes = plot_setup_func(result)
+
+    def update(n): 
+        plot_func(result, n, fig=fig, axes=axes)
+
+    anim = animation.FuncAnimation(fig, update, frames=len(result.times), blit=True)
+
+    anim.save(name + '.mp4', fps=10, writer='ffmpeg', codec='libx264')
+
+    plt.close(fig)
+    
+    if verbose:
+        print("Created %s.m4v" % name)
+    
+    video = open(name + '.mp4', "rb").read()
+    video_encoded = video.encode("base64")
+    video_tag = '<video controls src="data:video/x-m4v;base64,{0}">'.format(video_encoded)
+    return HTML(video_tag)

@@ -1,39 +1,55 @@
-# This file is part of QuTiP.
+# This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    QuTiP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#    QuTiP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
+#    met:
 #
-#    You should have received a copy of the GNU General Public License
-#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#    1. Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
 #
-# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
-###########################################################################
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 import numpy as np
 from scipy import (zeros, array, arange, exp, real, imag, conj, pi,
-                   copy, sqrt, meshgrid, size, polyval, fliplr, conjugate)
+                   copy, sqrt, meshgrid, size, polyval, fliplr, conjugate,
+                   cos, sin)
 import scipy.sparse as sp
+import scipy.fftpack as ft
 import scipy.linalg as la
 from scipy.special import genlaguerre
+from scipy.special import binom
+from scipy.special import sph_harm
+
 from qutip.tensor import tensor
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.states import *
 from qutip.parfor import parfor
-
-try:  # for scipy v <= 0.90
-    from scipy import factorial
-except:  # for scipy v >= 0.10
-    from scipy.misc import factorial
+from qutip.utilities import clebsch
+from scipy.misc import factorial
 
 
-def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative', parfor=False):
+def wigner(psi, xvec, yvec, method='iterative', g=sqrt(2), parfor=False):
     """Wigner function for a state vector or density matrix at points
     `xvec + i * yvec`.
 
@@ -47,19 +63,23 @@ def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative', parfor=False):
         x-coordinates at which to calculate the Wigner function.
 
     yvec : array_like
-        y-coordinates at which to calculate the Wigner function.
+        y-coordinates at which to calculate the Wigner function.  Does not
+        apply to the 'fft' method.
 
     g : float
         Scaling factor for `a = 0.5 * g * (x + iy)`, default `g = sqrt(2)`.
 
-    method : string {'iterative', 'laguerre'}
-        Select method 'iterative' or 'laguerre', where 'iterative' use a
-        iterative method to evaluate the Wigner functions for density matrices
-        :math:`|m><n|`, while 'laguerre' uses the Laguerre polynomials in scipy
-        for the same task. The 'iterative' method is default, and in general
-        recommended, but the 'laguerre' method is more efficient for very
-        sparse density matrices (e.g., superpositions of Fock states in a large
-        Hilbert space).
+    method : string {'iterative', 'laguerre', 'fft'}
+        Select method 'iterative', 'laguerre', or 'fft', where 'iterative' uses
+        an iterative method to evaluate the Wigner functions for density
+        matrices :math:`|m><n|`, while 'laguerre' uses the Laguerre polynomials
+        in scipy for the same task. The 'fft' method evaluates the Fourier
+        transform of the density matrix. The 'iterative' method is default, and
+        in general recommended, but the 'laguerre' method is more efficient for
+        very sparse density matrices (e.g., superpositions of Fock states in a
+        large Hilbert space). The 'fft' method is the preferred method for
+        dealing with density matrices that have a large number of excitations
+        (>~50).
 
     parfor : bool {False, True}
         Flag for calculating the Laguerre polynomial based Wigner function
@@ -73,6 +93,14 @@ def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative', parfor=False):
         Values representing the Wigner function calculated over the specified
         range [xvec,yvec].
 
+    yvex : array
+        FFT ONLY. Returns the y-coordinate values calculated via the Fourier
+        transform.
+
+    Notes
+    -----
+    The 'fft' method accepts only an xvec input for the x-coordinate.
+    The y-coordinates are calculated internally.
 
     References
     ----------
@@ -84,6 +112,9 @@ def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative', parfor=False):
 
     if not (psi.type == 'ket' or psi.type == 'oper' or psi.type == 'bra'):
         raise TypeError('Input state is not a valid operator.')
+
+    if method == 'fft':
+        return _wigner_fourier(psi, xvec, g)
 
     if psi.type == 'ket' or psi.type == 'bra':
         rho = ket2dm(psi)
@@ -97,7 +128,8 @@ def wigner(psi, xvec, yvec, g=sqrt(2), method='iterative', parfor=False):
         return _wigner_laguerre(rho, xvec, yvec, g, parfor)
 
     else:
-        raise TypeError("method must be either 'iterative' or 'laguerre'")
+        raise TypeError(
+            "method must be either 'iterative', 'laguerre', or 'fft'.")
 
 
 def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
@@ -105,13 +137,13 @@ def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
     Using an iterative method to evaluate the wigner functions for the Fock
     state :math:`|m><n|`.
 
-    The wigner function is calculated as
-    :math:`W = \sum_{mn} \\rho_{mn} W_{mn}` where :math:`W_{mn}` is the wigner
+    The Wigner function is calculated as
+    :math:`W = \sum_{mn} \\rho_{mn} W_{mn}` where :math:`W_{mn}` is the Wigner
     function for the density matrix :math:`|m><n|`.
 
-    In this implementation, for each row m, Wlist contains the wigner functions
-    Wlist = [0, ..., W_mm, ..., W_mN]. As soon as one W_mn wigner function is
-    calculated, the corresponding contribution is added to the total wigner
+    In this implementation, for each row m, Wlist contains the Wigner functions
+    Wlist = [0, ..., W_mm, ..., W_mN]. As soon as one W_mn Wigner function is
+    calculated, the corresponding contribution is added to the total Wigner
     function, weighted by the corresponding element in the density matrix
     :math:`rho_{mn}`.
     """
@@ -199,8 +231,8 @@ def _wigner_laguerre(rho, xvec, yvec, g, parallel):
 
 def _par_wig_eval(args):
     """
-    Private function for calculating terms of Laguerre Wigner function in
-    parfor.
+    Private function for calculating terms of Laguerre Wigner function
+    using parfor.
     """
     m, rho, A, B = args
     W1 = zeros(np.shape(A))
@@ -218,9 +250,80 @@ def _par_wig_eval(args):
     return W1
 
 
+def _wigner_fourier(psi, xvec, g=np.sqrt(2)):
+    """
+    Evaluate the Wigner function via the Fourier transform.
+    """
+    if psi.type == 'bra':
+        psi = psi.dag()
+    if psi.type == 'ket':
+        return _psi_wigner_fft(psi.full(), xvec, g)
+    elif psi.type == 'oper':
+        eig_vals, eig_vecs = la.eigh(psi.full())
+        W = 0
+        for ii in range(psi.shape[0]):
+            W1, yvec = _psi_wigner_fft(
+                np.reshape(eig_vecs[:, ii], (psi.shape[0], 1)), xvec, g)
+            W += eig_vals[ii] * W1
+        return W, yvec
+
+
+def _psi_wigner_fft(psi, xvec, g=sqrt(2)):
+    """
+    FFT method for a single state vector.  Called multiple times when the
+    input is a density matrix.
+    """
+    n = len(psi)
+    A = _osc_eigen(n, xvec * g / np.sqrt(2))
+    xpsi = np.dot(psi.T, A)
+    W, yvec = _wigner_fft(xpsi, xvec * g / np.sqrt(2))
+    return (0.5 * g ** 2) * np.real(W.T), yvec * np.sqrt(2) / g
+
+
+def _wigner_fft(psi, xvec):
+    """
+    Evaluates the Fourier transformation of a given state vector.
+    Returns the corresponding density matrix and range
+    """
+    n = 2 * len(psi.T)
+    r1 = np.concatenate((np.array([[0]]),
+                        np.fliplr(psi.conj()),
+                        np.zeros((1, n / 2 - 1))), axis=1)
+    r2 = np.concatenate((np.array([[0]]), psi,
+                        np.zeros((1, n / 2 - 1))), axis=1)
+    w = la.toeplitz(np.zeros((n / 2, 1)), r1) * \
+        np.flipud(la.toeplitz(np.zeros((n / 2, 1)), r2))
+    w = np.concatenate((w[:, n / 2:n], w[:, 0:n / 2]), axis=1)
+    w = ft.fft(w)
+    w = np.real(np.concatenate((w[:, 3 * n / 4:n + 1], w[:, 0:n / 4]), axis=1))
+    p = np.arange(-n / 4, n / 4) * np.pi / (n * (xvec[1] - xvec[0]))
+    w = w / (p[1] - p[0]) / n
+    return w, p
+
+
+def _osc_eigen(N, pnts):
+    """
+    Vector of and N-dim oscillator eigenfunctions evaluated
+    at the points in pnts.
+    """
+    pnts = np.asarray(pnts)
+    lpnts = len(pnts)
+    A = np.zeros((N, lpnts))
+    A[0, :] = np.exp(-pnts ** 2 / 2.0) / pi ** 0.25
+    if N == 1:
+        return A
+    else:
+        A[1, :] = np.sqrt(2) * pnts * A[0, :]
+        for k in range(2, N):
+            A[k, :] = np.sqrt(2.0 / k) * pnts * A[k - 1, :] - \
+                np.sqrt((k - 1.0) / k) * A[k - 2, :]
+        return A
+
 #------------------------------------------------------------------------------
 # Q FUNCTION
 #
+
+
 def qfunc(state, xvec, yvec, g=sqrt(2)):
     """Q-function of a given state vector or density matrix
     at points `xvec + i * yvec`.
@@ -290,3 +393,117 @@ def _qfunc_pure(psi, alpha_mat):
                        conjugate(alpha_mat))) ** 2
 
     return real(qmat) * exp(-abs(alpha_mat) ** 2) / pi
+
+
+
+#------------------------------------------------------------------------------
+# PSEUDO DISTRIBUTION FUNCTIONS FOR SPINS
+#
+
+def spin_q_function(rho, theta, phi):
+    """Husimi Q-function for spins.
+
+    Parameters
+    ----------
+
+    state : qobj
+        A state vector or density matrix for a spin-j quantum system.
+
+    theta : array_like
+        theta-coordinates at which to calculate the Q function.
+
+    phi : array_like
+        phi-coordinates at which to calculate the Q function.
+
+    Returns
+    -------
+
+    Q, THETA, PHI : 2d-array
+        Values representing the spin Q function at the values specified
+        by THETA and PHI.
+
+    """
+
+    if rho.type == 'bra':
+        rho = rho.dag()
+
+    if rho.type == 'ket':
+        rho = ket2dm(rho)
+
+    J = rho.shape[0]
+    j = (J - 1) / 2
+
+    THETA, PHI = meshgrid(theta, phi)
+
+    Q = np.zeros_like(THETA, dtype=complex)
+
+    for m1 in arange(-j, j+1):
+
+        Q += binom(2*j, j+m1) * cos(THETA/2) ** (2*(j-m1)) * sin(THETA/2) ** (2*(j+m1)) * \
+             rho.data[int(j-m1), int(j-m1)]
+
+        for m2 in arange(m1+1, j+1):
+
+            Q += (sqrt(binom(2*j, j+m1)) * sqrt(binom(2*j, j+m2)) *
+                  cos(THETA/2) ** (2*j-m1-m2) * sin(THETA/2) ** (2*j+m1+m2)) * \
+                  (exp(1j * (m2-m1) * PHI) * rho.data[int(j-m1), int(j-m2)] + 
+                   exp(1j * (m1-m2) * PHI) * rho.data[int(j-m2), int(j-m1)])
+            
+    return Q.real, THETA, PHI
+
+def _rho_kq(rho, j, k, q):
+    v = 0j
+
+    for m1 in arange(-j, j+1):
+        for m2 in arange(-j, j+1):
+            v += (-1)**(j - m1 - q) * clebsch(j, j, k, m1, -m2, q) * rho.data[m1 + j, m2 + j]
+
+    return v
+
+
+def spin_wigner(rho, theta, phi):
+    """Wigner function for spins.
+
+    Parameters
+    ----------
+
+    state : qobj
+        A state vector or density matrix for a spin-j quantum system.
+
+    theta : array_like
+        theta-coordinates at which to calculate the Q function.
+
+    phi : array_like
+        phi-coordinates at which to calculate the Q function.
+
+    Returns
+    -------
+
+    W, THETA, PHI : 2d-array
+        Values representing the spin Wigner function at the values specified
+        by THETA and PHI.
+
+    .. note::
+
+        Experimental.
+
+    """
+
+    if rho.type == 'bra':
+        rho = rho.dag()
+
+    if rho.type == 'ket':
+        rho = ket2dm(rho)
+
+    J = rho.shape[0]
+    j = (J - 1) / 2
+    
+    THETA, PHI = meshgrid(theta, phi)
+
+    W = np.zeros_like(THETA, dtype=complex)
+    
+    for k in range(int(2 * j)+1):
+        for q in range(-k,k+1):
+            W += _rho_kq(rho, j, k, q) * sph_harm(q, k, PHI, THETA)
+            
+    return W, THETA, PHI

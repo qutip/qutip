@@ -1,23 +1,38 @@
-# This file is part of QuTiP.
+# This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    QuTiP is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
+#    All rights reserved.
 #
-#    QuTiP is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
+#    met:
 #
-#    You should have received a copy of the GNU General Public License
-#    along with QuTiP.  If not, see <http://www.gnu.org/licenses/>.
+#    1. Redistributions of source code must retain the above copyright notice, 
+#       this list of conditions and the following disclaimer.
 #
-# Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
 #
-# Original Code by Arne Grimsmo (2012): github.com/arnelg/qutipf90mc  
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
 #
-###########################################################################
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
+#    Original Code by Arne Grimsmo (2012): github.com/arnelg/qutipf90mc 
+###############################################################################
+
 import numpy as np
 from qutip import *
 from qutip.fortran import qutraj_run as qtf90
@@ -147,7 +162,7 @@ def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     # use sparse density matrices during computation?
     mc.sparse_dms = sparse_dms
     # run in serial?
-    mc.serial_run = serial
+    mc.serial_run = serial or (ntraj == 1)
     # are we doing a partial trace for returned states?
     mc.ptrace_sel = ptrace_sel
     if (ptrace_sel != []):
@@ -301,9 +316,9 @@ class _MC_class():
             self.unravel_type = 1
             if (odeconfig.e_num == 0):
                 # If we are returning states, and there are no
-                # collapse operators, set mc_avg to False to return
+                # collapse operators, set average_states to False to return
                 # ket vectors instead of density matrices
-                odeconfig.options.mc_avg = False
+                odeconfig.options.average_states = False
         # generate a random seed, useful if e.g. running with MPI
         self.seed = random_integers(1e8)
         if (self.serial_run):
@@ -338,7 +353,8 @@ class _MC_class():
         qtf90.qutraj_run.n_e_ops = odeconfig.e_num
         qtf90.qutraj_run.ntraj = ntraj
         qtf90.qutraj_run.unravel_type = self.unravel_type
-        qtf90.qutraj_run.mc_avg = odeconfig.options.mc_avg
+        qtf90.qutraj_run.average_states = odeconfig.options.average_states 
+        qtf90.qutraj_run.average_expect = odeconfig.options.average_expect
         qtf90.qutraj_run.init_odedata(odeconfig.psi0_shape[0],
                                       odeconfig.options.atol,
                                       odeconfig.options.rtol, mf=self.mf,
@@ -414,7 +430,7 @@ class _MC_class():
             print(inspect.stack()[0][3])
 
         from scipy.sparse import csr_matrix
-        if (odeconfig.options.mc_avg):
+        if (odeconfig.options.average_states):
             states = np.array([Qobj()] * nstep)
             if (self.sparse_dms):
                 # averaged sparse density matrices
@@ -455,7 +471,7 @@ class _MC_class():
         if debug:
             print(inspect.stack()[0][3])
 
-        if (odeconfig.options.mc_avg):
+        if (odeconfig.options.average_expect):
             expect = []
             for j in range(odeconfig.e_num):
                 if odeconfig.e_ops_isherm[j]:
@@ -511,7 +527,7 @@ def _gather(sols):
         sol.col_which[sofar:sofar + sols[j].ntraj] = (
             sols[j].col_which)
         if (odeconfig.e_num == 0):
-            if (odeconfig.options.mc_avg):
+            if (odeconfig.options.average_states):
                 # collect states, averaged over trajectories
                 sol.states += np.array(sols[j].states)
             else:
@@ -519,7 +535,7 @@ def _gather(sols):
                 sol.states = np.vstack((sol.states,
                                         np.array(sols[j].states)))
         else:
-            if (odeconfig.options.mc_avg):
+            if (odeconfig.options.average_expect):
                 # collect expectation values, averaged
                 for i in range(odeconfig.e_num):
                     sol.expect[i] += np.array(sols[j].expect[i])
@@ -528,14 +544,14 @@ def _gather(sols):
                 sol.expect = np.vstack((sol.expect,
                                         np.array(sols[j].expect)))
         if (hasattr(sols[j], 'entropy')):
-            if (odeconfig.options.mc_avg):
+            if (odeconfig.options.average_states or odeconfig.options.average_expect):
                 # collect entropy values, averaged
                 sol.entropy += np.array(sols[j].entropy)
             else:
                 # collect entropy values, all trajectories
                 sol.entropy = np.vstack((sol.entropy,
                                          np.array(sols[j].entropy)))
-    if (odeconfig.options.mc_avg):
+    if (odeconfig.options.average_states or odeconfig.options.average_expect):
         if (odeconfig.e_num == 0):
             sol.states = sol.states / len(sols)
         else:
@@ -547,7 +563,7 @@ def _gather(sols):
             sol.entropy = sol.entropy / len(sols)
     
     #convert sol.expect array to list and fix dtypes of arrays
-    if (not odeconfig.options.mc_avg) and odeconfig.e_num!=0:
+    if (not odeconfig.options.average_expect) and odeconfig.e_num!=0:
         temp=[list(sol.expect[ii]) for ii in range(ntraj)]
         for ii in range(ntraj):
             for jj in np.where(odeconfig.e_ops_isherm)[0]:

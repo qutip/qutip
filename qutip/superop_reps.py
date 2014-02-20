@@ -22,10 +22,10 @@ def _dep_super(pe):
     Returns the superoperator corresponding to qubit depolarization for a
     given parameter pe.
 
-    #TODO if this is going into production (hopefully it isn't) then check
+    # TODO if this is going into production (hopefully it isn't) then check
     CPTP, expand to arbitrary dimensional systems, etc.
     """
-    return Qobj(dims=[[2,2],[2,2]],
+    return Qobj(dims=[[2, 2], [2, 2]],
                 inpt=array([[1. - pe / 2., 0., 0., pe / 2.],
                             [0., 1. - pe, 0., 0.],
                             [0., 0., 1. - pe, 0.],
@@ -37,10 +37,10 @@ def _dep_choi(pe):
     Returns the choi matrix corresponding to qubit depolarization for a
     given parameter pe.
 
-    #TODO if this is going into production (hopefully it isn't) then check
+    # TODO if this is going into production (hopefully it isn't) then check
     CPTP, expand to arbitrary dimensional systems, etc.
     """
-    return Qobj(dims=[[2,2],[2,2]],
+    return Qobj(dims=[[2, 2], [2, 2]],
                 inpt=array([[1. - pe / 2., 0., 0., 1. - pe],
                             [0., pe / 2., 0., 0.],
                             [0., 0., pe / 2., 0.],
@@ -50,18 +50,23 @@ def _dep_choi(pe):
 def super_to_choi(q_oper):
     """
     Takes a superoperator to a Choi matrix
-    #TODO Sanitize input, incorporate as method on Qobj if type=='super'
+    # TODO Sanitize input, incorporate as method on Qobj if type=='super'
     """
-    sqrt_shape = sqrt(q_oper.data.todense().shape[0])
+    data = q_oper.data.toarray()
+    sqrt_shape = sqrt(data.shape[0])
     return Qobj(dims=q_oper.dims,
+<<<<<<< HEAD
                 inpt=q_oper.data.todense().reshape([sqrt_shape] * 4).\
+=======
+                inpt=data.reshape([sqrt_shape] * 4).
+>>>>>>> upstream/master
                 transpose(0, 2, 1, 3).reshape(q_oper.data.shape))
 
 
 def choi_to_super(q_oper):
     """
     Takes a Choi matrix to a superoperator
-    #TODO Sanitize input, Abstract-ify application of channels to states
+    # TODO Sanitize input, Abstract-ify application of channels to states
     """
     return super_to_choi(q_oper)
 
@@ -69,29 +74,39 @@ def choi_to_super(q_oper):
 def choi_to_kraus(q_oper):
     """
     Takes a Choi matrix and returns a list of Kraus operators.
-    #TODO Create a new class structure for quantum channels, perhaps as a
+    # TODO Create a new class structure for quantum channels, perhaps as a
     strict sub-class of Qobj.
     """
     vals, vecs = eig(q_oper.data.todense())
-    vecs = map(array, zip(*vecs))
-    return map(lambda x: Qobj(inpt=x),
-               [sqrt(vals[j]) * vec2mat(vecs[j]) for j in range(len(vals))])
+    vecs = list(map(array, zip(*vecs)))
+    return list(map(lambda x: Qobj(inpt=x),
+                    [sqrt(vals[j]) * vec2mat(vecs[j])
+                     for j in range(len(vals))]))
 
 
 def kraus_to_choi(kraus_list):
     """
     Takes a list of Kraus operators and returns the Choi matrix for the channel
-    represented by the Kraus operators in `kraus_list`    
+    represented by the Kraus operators in `kraus_list`
     """
-    kraus_list=map(lambda x: matrix(x.data.todense()),kraus_list)
-    op_len = len(kraus_list[0])
+    kraus_mat_list = list(map(lambda x: matrix(x.data.todense()), kraus_list))
+    op_len = len(kraus_mat_list[0])
     op_rng = range(op_len)
+<<<<<<< HEAD
     choi_blocks = array([[reduce(add,
                            [op[:, c_ix]*array([op.T.conj()[r_ix, :]])
                            for op in kraus_list])
                            for r_ix in op_rng]
                            for c_ix in op_rng])
     return Qobj(inpt=hstack(hstack(choi_blocks)))
+=======
+    choi_blocks = array([[sum([op[:, c_ix] * array([op.H[r_ix, :]])
+                               for op in kraus_mat_list])
+                          for r_ix in op_rng]
+                         for c_ix in op_rng])
+    return Qobj(inpt=hstack(hstack(choi_blocks)),
+                dims=[kraus_list[0].dims, kraus_list[0].dims])
+>>>>>>> upstream/master
 
 
 def kraus_to_super(kraus_list):
