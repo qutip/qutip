@@ -113,7 +113,7 @@ def test_sparse_nonsymmetric_reverse_permute():
     A=coherent(25,1).dag()
     cperm=np.random.permutation(25)
     x=sparse_permute(A,[],cperm)
-    B=sparse_reverse_permute(x,cperm)
+    B=sparse_reverse_permute(x,[],cperm)
     assert_equal((A.full() - B.toarray()).all(), 0)
     #CSC row vector check
     A=coherent(25,1).dag()
