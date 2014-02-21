@@ -177,7 +177,7 @@ def bfs_matching(A):
     ----------
     .. [1] I. S. Duff, K. Kaya, and B. Ucar, "Design, Implementation, and 
     Analysis of Maximum Transversal Algorithms", ACM Trans. Math. Softw.
-    38 (2), 2011.
+    38, no. 2, (2011).
     
     """
     nrows = A.shape[0]
@@ -223,8 +223,15 @@ def weighted_bfs_matching(A):
     according to the element of max ABS value in the associated rows and 
     are traversed in descending order by weight.  When performing the BFS 
     traversal, the row associated to a given column is the one with maximum 
-    weight. This algorithm does not guarantee the product of the diagonal 
-    is maximized, but typically returns the maximal or nearly-maximal product. 
+    weight. Unlike other techniques[1]_, this algorithm does not guarantee the 
+    product of the diagonal is maximized.  However, this limitation is offset
+    by the substantially faster runtime of this method. 
+    
+    References
+    ----------
+    .. [1] I. S. Duff and J. Koster, "The design and use of algorithms for 
+    permuting large entries to the diagonal of sparse matrices", SIAM J. 
+    Matrix Anal. and Applics. 20, no. 4, 889 (1997).
     
     """
     nrows = A.shape[0]
