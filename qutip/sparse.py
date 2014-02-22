@@ -41,9 +41,10 @@ import scipy.linalg as la
 from scipy.linalg.blas import get_blas_funcs
 _dznrm2 = get_blas_funcs("znrm2")
 from qutip.cy.sparse_utils import (
-        _sparse_permute_int, _sparse_permute_float, _sparse_permute_complex,
-        _sparse_reverse_permute_int, _sparse_reverse_permute_float,
-        _sparse_reverse_permute_complex, _sparse_bandwidth)
+        #_sparse_permute_int, _sparse_permute_float, _sparse_permute_complex,
+        #_sparse_reverse_permute_int, _sparse_reverse_permute_float,
+        #_sparse_reverse_permute_complex, 
+        _sparse_permute, _sparse_reverse_permute, _sparse_bandwidth)
 from qutip.settings import debug
 
 if debug:
@@ -474,7 +475,7 @@ def sparse_permute(A, rperm=(), cperm=(), safe=True):
     if A.__class__.__name__=='Qobj':
         kind = 'csr'
         dt = complex
-        data, ind, ptr = _sparse_permute_complex(
+        data, ind, ptr = _sparse_permute(
                 A.data.data, A.data.indices, A.data.indptr,
                 nrows, ncols, rperm, cperm, 0)
     else:
@@ -485,28 +486,32 @@ def sparse_permute(A, rperm=(), cperm=(), safe=True):
             flag = 1
         else:
             raise Exception('Input must be Qobj, CSR, or CSC matrix.')
+        data, ind, ptr = _sparse_permute(A.data, A.indices, A.indptr,
+                nrows, ncols, rperm, cperm, flag)
+        """
         val = A.data[0]
         if val.dtype==np.int_:
             dt=int
-            data, ind, ptr = _sparse_permute_int(
+            data, ind, ptr = _sparse_permute(
                     A.data, A.indices, A.indptr,
                     nrows, ncols, rperm, cperm, flag)
         elif val.dtype==np.float_:
             dt = float
-            data, ind, ptr = _sparse_permute_float(
+            data, ind, ptr = _sparse_permute(
                     A.data, A.indices, A.indptr,
                     nrows, ncols, rperm, cperm, flag)
         elif val.dtype==np.complex_:
             dt = complex
-            data, ind, ptr = _sparse_permute_complex(
+            data, ind, ptr = _sparse_permute(
                     A.data, A.indices, A.indptr,
                     nrows, ncols, rperm, cperm, flag)
         else:
             raise TypeError('Invalid data type in matrix.')
+        """
     if kind=='csr':
-        return sp.csr_matrix((data,ind,ptr),shape=shp,dtype=dt)
+        return sp.csr_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
     elif kind=='csc':
-        return sp.csc_matrix((data,ind,ptr),shape=shp,dtype=dt)
+        return sp.csc_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
 
 
 def sparse_reverse_permute(A, rperm=(), cperm=(), safe=True):
@@ -549,7 +554,7 @@ def sparse_reverse_permute(A, rperm=(), cperm=(), safe=True):
     if A.__class__.__name__=='Qobj':
         kind = 'csr'
         dt = complex
-        data, ind, ptr = _sparse_reverse_permute_complex(
+        data, ind, ptr = _sparse_reverse_permute(
                 A.data, A.indices, A.indptr,
                 nrows, ncols, rperm, cperm, 0)
     else:
@@ -560,15 +565,18 @@ def sparse_reverse_permute(A, rperm=(), cperm=(), safe=True):
             flag = 1
         else:
             raise Exception('Input must be Qobj, CSR, or CSC matrix.')        
+        data, ind, ptr = _sparse_reverse_permute(A.data, A.indices, A.indptr,
+                nrows, ncols, rperm, cperm, flag)
+        """
         val = A.data[0]
         if val.dtype==np.int_:
             dt = int
-            data, ind, ptr = _sparse_reverse_permute_int(
+            data, ind, ptr = _sparse_reverse_permute(
                     A.data, A.indices, A.indptr,
                     nrows, ncols, rperm, cperm, flag)
         elif val.dtype==np.float_:
             dt = float
-            data, ind, ptr = _sparse_reverse_permute_float(
+            data, ind, ptr = _sparse_reverse_permute(
                     A.data, A.indices, A.indptr,
                     nrows, ncols, rperm, cperm, flag)
         elif val.dtype==np.complex_:
@@ -578,10 +586,11 @@ def sparse_reverse_permute(A, rperm=(), cperm=(), safe=True):
                     nrows, ncols, rperm, cperm, flag)
         else:
             raise TypeError('Invalid data type in matrix.')
+        """
     if kind=='csr':
-        return sp.csr_matrix((data,ind,ptr),shape=shp,dtype=dt)
+        return sp.csr_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
     elif kind=='csc':
-        return sp.csc_matrix((data,ind,ptr),shape=shp,dtype=dt)
+        return sp.csc_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
 
 
 def sparse_bandwidth(A):
