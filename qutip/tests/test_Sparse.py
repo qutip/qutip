@@ -83,8 +83,8 @@ def test_sparse_nonsymmetric_reverse_permute():
     "Sparse: Nonsymmetric Reverse Permute"
     #CSR square array check
     A=rand_dm(25,0.5)
-    rperm=np.random.permutation(25)
-    cperm=np.random.permutation(25)
+    rperm=np.random.permutation(25).astype(np.float32)
+    cperm=np.random.permutation(25).astype(np.float32)
     x=sparse_permute(A,rperm,cperm)
     B=sparse_reverse_permute(x,rperm,cperm)
     assert_equal((A.full() - B.toarray()).all(), 0)
@@ -133,7 +133,7 @@ def test_sparse_bandwidth():
     #Bandwidth test 2
     A=array([[1,0,0,0,1,0,0,0],[0,1,1,0,0,1,0,1],[0,1,1,0,1,0,0,0],
             [0,0,0,1,0,0,1,0],[1,0,1,0,1,0,0,0],[0,1,0,0,0,1,0,1],
-            [0,0,0,1,0,0,1,0],[0,1,0,0,0,1,0,1]])
+            [0,0,0,1,0,0,1,0],[0,1,0,0,0,1,0,1]], dtype=np.float32)
     A=sp.csr_matrix(A)
     out1=sparse_bandwidth(A)
     assert_equal(out1[0], 13)

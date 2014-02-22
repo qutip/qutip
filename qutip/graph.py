@@ -37,9 +37,9 @@ to reorder matrices for iterative steady state solvers.
 
 import numpy as np
 import scipy.sparse as sp
-from qutip.cy.graph_utils import (_pseudo_peripheral_node, _breadth_first_search,
-                                    _node_degrees, _rcm, _bfs_matching,
-                                    _weighted_bfs_matching)
+from qutip.cy.graph_utils import (
+        _pseudo_peripheral_node, _breadth_first_search, _node_degrees,
+        _rcm, _bfs_matching, _weighted_bfs_matching)
 from qutip.settings import debug
 from warnings import warn
 if debug:
@@ -101,7 +101,7 @@ def breadth_first_search(A,start):
     return order[order!=-1], levels[levels!=-1]
 
 
-def symrcm(A,sym=False):
+def symrcm(A, sym=False):
     """
     Returns the permutation array that orders a sparse CSR or CSC matrix or Qobj
     in Reverse-Cuthill McKee ordering.  Since the input matrix must be symmetric,
@@ -146,6 +146,7 @@ def symrcm(A,sym=False):
     else:
         if not sym:
             A=A+A.transpose()
+        #raise Exception((A.indices.dtype, A.indptr.dtype))
         return _rcm(A.indices, A.indptr, nrows)
 
 
@@ -244,8 +245,9 @@ def weighted_bfs_matching(A):
         warn('weighted_bfs_matching requires CSC matrix format', 
             sp.SparseEfficiencyWarning)
     
-    perm = _weighted_bfs_matching(np.asarray(np.abs(A.data),dtype=float),
-                                A.indices, A.indptr, nrows)
+    perm = _weighted_bfs_matching(
+            np.asarray(np.abs(A.data), dtype=float),
+            A.indices, A.indptr, nrows)
     if np.any(perm==-1):
         raise Exception('Possibly singular input matrix.')
     return perm

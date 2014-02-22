@@ -34,12 +34,25 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
+###############################################################################
+# see scipy/sparse/csgraph/parameters.pxi
+
 ctypedef np.complex128_t CTYPE_t
+CTYPE = np.complex128
+
 ctypedef np.float64_t DTYPE_t
+DTYPE = np.float64
+
+ctypedef np.int32_t ITYPE_t
+ITYPE = np.int32
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _sparse_bandwidth(np.ndarray[int] idx, np.ndarray[int] ptr, int nrows):
+def _sparse_bandwidth(
+        np.ndarray[ITYPE_t, ndim=1] idx,
+        np.ndarray[ITYPE_t, ndim=1] ptr,
+        int nrows):
     """
     Calculates the max (mb), lower(lb), and upper(ub) bandwidths of a csr_matrix.
     """
@@ -56,22 +69,44 @@ def _sparse_bandwidth(np.ndarray[int] idx, np.ndarray[int] ptr, int nrows):
     return mb, lb, ub
 
 
+#TODO use cython fused types to combine
+#     _sparse_permute_complex
+#     _sparse_permute_float
+#     _sparse_permute_int
+#     into a single function.
+
+#TODO use cython fused types to combine
+#     _sparse_reverse_permute_complex
+#     _sparse_reverse_permute_float
+#     _sparse_reverse_permute_int
+#     into a single function.
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _sparse_permute_complex(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.ndarray[int] ptr, int nrows,
-                    int ncols, np.ndarray[np.intp_t] rperm, np.ndarray[np.intp_t] cperm, int flag):
+def _sparse_permute_complex(
+        np.ndarray[CTYPE_t, ndim=1] data,
+        np.ndarray[ITYPE_t, ndim=1] idx,
+        np.ndarray[ITYPE_t, ndim=1] ptr,
+        int nrows,
+        int ncols,
+        np.ndarray[ITYPE_t, ndim=1] rperm,
+        np.ndarray[ITYPE_t, ndim=1] cperm,
+        int flag):
     """
-    Permutes the rows and columns of a sparse CSR or CSC matrix according to the permutation
-    arrays rperm and cperm, respectively.  Here, the permutation arrays specify the 
-    new order of the rows and columns. i.e. [0,1,2,3,4] -> [3,0,4,1,2].
+    Permutes the rows and columns of a sparse CSR or CSC matrix according to
+    the permutation arrays rperm and cperm, respectively.
+    Here, the permutation arrays specify the new order of the rows and columns.
+    i.e. [0,1,2,3,4] -> [3,0,4,1,2].
+
     """
     cdef int ii, jj, kk, k0, nnz
-    cdef np.ndarray[CTYPE_t, ndim=1] new_data = np.zeros(len(data),dtype=np.complex)
-    cdef np.ndarray[np.intp_t] new_idx = np.zeros(len(idx),dtype=int)
-    cdef np.ndarray[np.intp_t] new_ptr = np.zeros(len(ptr),dtype=int)
-    cdef np.ndarray[np.intp_t] perm_r
-    cdef np.ndarray[np.intp_t] perm_c
-    cdef np.ndarray[np.intp_t] inds
+    cdef np.ndarray[CTYPE_t] new_data = np.zeros_like(data)
+    cdef np.ndarray[ITYPE_t] new_idx = np.zeros_like(idx)
+    cdef np.ndarray[ITYPE_t] new_ptr = np.zeros_like(ptr)
+    cdef np.ndarray[ITYPE_t] perm_r
+    cdef np.ndarray[ITYPE_t] perm_c
+    cdef np.ndarray[ITYPE_t] inds
     if flag==0: #for CSR matricies
         if len(rperm)!=0:
             inds=np.argsort(rperm)
@@ -127,20 +162,29 @@ def _sparse_permute_complex(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, np.nd
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _sparse_permute_float(np.ndarray[DTYPE_t] data, np.ndarray[int] idx, np.ndarray[int] ptr, int nrows,
-                    int ncols, np.ndarray[np.intp_t] rperm, np.ndarray[np.intp_t] cperm, int flag):
+def _sparse_permute_float(
+        np.ndarray[DTYPE_t, ndim=1] data,
+        np.ndarray[ITYPE_t, ndim=1] idx,
+        np.ndarray[ITYPE_t, ndim=1] ptr,
+        int nrows,
+        int ncols,
+        np.ndarray[ITYPE_t, ndim=1] rperm,
+        np.ndarray[ITYPE_t, ndim=1] cperm,
+        int flag):
     """
-    Permutes the rows and columns of a sparse CSR or CSC matrix according to the permutation
-    arrays rperm and cperm, respectively.  Here, the permutation arrays specify the 
-    new order of the rows and columns. i.e. [0,1,2,3,4] -> [3,0,4,1,2].
+    Permutes the rows and columns of a sparse CSR or CSC matrix according to
+    the permutation arrays rperm and cperm, respectively.
+    Here, the permutation arrays specify the new order of the rows and columns.
+    i.e. [0,1,2,3,4] -> [3,0,4,1,2].
+
     """
     cdef int ii, jj, kk, k0, nnz
-    cdef np.ndarray[DTYPE_t, ndim=1] new_data = np.zeros(len(data),dtype=float)
-    cdef np.ndarray[np.intp_t] new_idx = np.zeros(len(idx),dtype=int)
-    cdef np.ndarray[np.intp_t] new_ptr = np.zeros(len(ptr),dtype=int)
-    cdef np.ndarray[np.intp_t] perm_r
-    cdef np.ndarray[np.intp_t] perm_c
-    cdef np.ndarray[np.intp_t] inds
+    cdef np.ndarray[DTYPE_t, ndim=1] new_data = np.zeros_like(data)
+    cdef np.ndarray[ITYPE_t, ndim=1] new_idx = np.zeros_like(idx)
+    cdef np.ndarray[ITYPE_t, ndim=1] new_ptr = np.zeros_like(ptr)
+    cdef np.ndarray[ITYPE_t, ndim=1] perm_r
+    cdef np.ndarray[ITYPE_t, ndim=1] perm_c
+    cdef np.ndarray[ITYPE_t, ndim=1] inds
     if flag==0: #for CSR matricies
         if len(rperm)!=0:
             inds=np.argsort(rperm)
@@ -195,20 +239,29 @@ def _sparse_permute_float(np.ndarray[DTYPE_t] data, np.ndarray[int] idx, np.ndar
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _sparse_permute_int(np.ndarray[np.intp_t] data, np.ndarray[int] idx, np.ndarray[int] ptr, int nrows,
-                    int ncols, np.ndarray[np.intp_t] rperm, np.ndarray[np.intp_t] cperm, int flag):
+def _sparse_permute_int(
+        np.ndarray[ITYPE_t, ndim=1] data,
+        np.ndarray[ITYPE_t, ndim=1] idx,
+        np.ndarray[ITYPE_t, ndim=1] ptr,
+        int nrows,
+        int ncols,
+        np.ndarray[ITYPE_t, ndim=1] rperm,
+        np.ndarray[ITYPE_t, ndim=1] cperm,
+        int flag):
     """
-    Permutes the rows and columns of a sparse CSR or CSC matrix according to the permutation
-    arrays rperm and cperm, respectively.  Here, the permutation arrays specify the 
-    new order of the rows and columns. i.e. [0,1,2,3,4] -> [3,0,4,1,2].
+    Permutes the rows and columns of a sparse CSR or CSC matrix according to
+    the permutation arrays rperm and cperm, respectively.
+    Here, the permutation arrays specify the new order of the rows and columns.
+    i.e. [0,1,2,3,4] -> [3,0,4,1,2].
+
     """
     cdef int ii, jj, kk, k0, nnz
-    cdef np.ndarray[np.intp_t, ndim=1] new_data = np.zeros(len(data),dtype=int)
-    cdef np.ndarray[np.intp_t] new_idx = np.zeros(len(idx),dtype=int)
-    cdef np.ndarray[np.intp_t] new_ptr = np.zeros(len(ptr),dtype=int)
-    cdef np.ndarray[np.intp_t] perm_r
-    cdef np.ndarray[np.intp_t] perm_c
-    cdef np.ndarray[np.intp_t] inds
+    cdef np.ndarray[ITYPE_t, ndim=1] new_data = np.zeros_like(data)
+    cdef np.ndarray[ITYPE_t, ndim=1] new_idx = np.zeros_like(idx)
+    cdef np.ndarray[ITYPE_t, ndim=1] new_ptr = np.zeros_like(ptr)
+    cdef np.ndarray[ITYPE_t, ndim=1] perm_r
+    cdef np.ndarray[ITYPE_t, ndim=1] perm_c
+    cdef np.ndarray[ITYPE_t, ndim=1] inds
     if flag==0: #for CSR matricies
         if len(rperm)!=0:
             inds=np.argsort(rperm)
@@ -263,17 +316,24 @@ def _sparse_permute_int(np.ndarray[np.intp_t] data, np.ndarray[int] idx, np.ndar
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _sparse_reverse_permute_complex(np.ndarray[CTYPE_t] data, np.ndarray[int] idx, 
-                            np.ndarray[int] ptr, int nrows, int ncols, 
-                            np.ndarray[np.intp_t] rperm, np.ndarray[np.intp_t] cperm, int flag):
+def _sparse_reverse_permute_complex(
+        np.ndarray[CTYPE_t, ndim=1] data,
+        np.ndarray[ITYPE_t, ndim=1] idx, 
+        np.ndarray[ITYPE_t, ndim=1] ptr,
+        int nrows,
+        int ncols, 
+        np.ndarray[ITYPE_t, ndim=1] rperm,
+        np.ndarray[ITYPE_t, ndim=1] cperm,
+        int flag):
     """
-    Reverse permutes the rows and columns of a sparse CSR or CSC matrix according to the 
-    original permutation arrays rperm and cperm, respectively.
+    Reverse permutes the rows and columns of a sparse CSR or CSC matrix
+    according to the original permutation arrays rperm and cperm, respectively.
+
     """
     cdef int ii, jj, kk, k0, nnz
-    cdef np.ndarray[CTYPE_t, ndim=1] new_data = np.zeros(len(data),dtype=np.complex)
-    cdef np.ndarray[np.intp_t] new_idx = np.zeros(len(idx),dtype=int)
-    cdef np.ndarray[np.intp_t] new_ptr = np.zeros(len(ptr),dtype=int)
+    cdef np.ndarray[CTYPE_t, ndim=1] new_data = np.zeros_like(data)
+    cdef np.ndarray[ITYPE_t, ndim=1] new_idx = np.zeros_like(idx)
+    cdef np.ndarray[ITYPE_t, ndim=1] new_ptr = np.zeros_like(ptr)
     if flag==0: #CSR matrix
         if len(rperm)!=0:
             for jj in range(nrows):
@@ -317,17 +377,24 @@ def _sparse_reverse_permute_complex(np.ndarray[CTYPE_t] data, np.ndarray[int] id
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _sparse_reverse_permute_float(np.ndarray[DTYPE_t] data, np.ndarray[int] idx, 
-                            np.ndarray[int] ptr, int nrows, int ncols, 
-                            np.ndarray[np.intp_t] rperm, np.ndarray[np.intp_t] cperm, int flag):
+def _sparse_reverse_permute_float(
+        np.ndarray[DTYPE_t, ndim=1] data,
+        np.ndarray[ITYPE_t, ndim=1] idx, 
+        np.ndarray[ITYPE_t, ndim=1] ptr,
+        int nrows,
+        int ncols, 
+        np.ndarray[ITYPE_t, ndim=1] rperm,
+        np.ndarray[ITYPE_t, ndim=1] cperm,
+        int flag):
     """
-    Reverse permutes the rows and columns of a sparse CSR or CSC matrix according to the 
-    original permutation arrays rperm and cperm, respectively.
+    Reverse permutes the rows and columns of a sparse CSR or CSC matrix
+    according to the original permutation arrays rperm and cperm, respectively.
+
     """
     cdef int ii, jj, kk, k0, nnz
-    cdef np.ndarray[DTYPE_t, ndim=1] new_data = np.zeros(len(data),dtype=float)
-    cdef np.ndarray[np.intp_t] new_idx = np.zeros(len(idx),dtype=int)
-    cdef np.ndarray[np.intp_t] new_ptr = np.zeros(len(ptr),dtype=int)
+    cdef np.ndarray[DTYPE_t, ndim=1] new_data = np.zeros_like(data)
+    cdef np.ndarray[ITYPE_t, ndim=1] new_idx = np.zeros_like(idx)
+    cdef np.ndarray[ITYPE_t, ndim=1] new_ptr = np.zeros_like(ptr)
     if flag==0: #CSR matrix
         if len(rperm)!=0:
             for jj in range(nrows):
@@ -371,17 +438,24 @@ def _sparse_reverse_permute_float(np.ndarray[DTYPE_t] data, np.ndarray[int] idx,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _sparse_reverse_permute_int(np.ndarray[np.intp_t] data, np.ndarray[int] idx, 
-                            np.ndarray[int] ptr, int nrows, int ncols, 
-                            np.ndarray[np.intp_t] rperm, np.ndarray[np.intp_t] cperm, int flag):
+def _sparse_reverse_permute_int(
+        np.ndarray[ITYPE_t, ndim=1] data,
+        np.ndarray[ITYPE_t, ndim=1] idx, 
+        np.ndarray[ITYPE_t, ndim=1] ptr,
+        int nrows,
+        int ncols, 
+        np.ndarray[ITYPE_t, ndim=1] rperm,
+        np.ndarray[ITYPE_t, ndim=1] cperm,
+        int flag):
     """
-    Reverse permutes the rows and columns of a sparse CSR or CSC matrix according to the 
-    original permutation arrays rperm and cperm, respectively.
+    Reverse permutes the rows and columns of a sparse CSR or CSC matrix
+    according to the original permutation arrays rperm and cperm, respectively.
+
     """
     cdef int ii, jj, kk, k0, nnz
-    cdef np.ndarray[np.intp_t, ndim=1] new_data = np.zeros(len(data),dtype=int)
-    cdef np.ndarray[np.intp_t] new_idx = np.zeros(len(idx),dtype=int)
-    cdef np.ndarray[np.intp_t] new_ptr = np.zeros(len(ptr),dtype=int)
+    cdef np.ndarray[ITYPE_t, ndim=1] new_data = np.zeros_like(data)
+    cdef np.ndarray[ITYPE_t, ndim=1] new_idx = np.zeros_like(idx)
+    cdef np.ndarray[ITYPE_t, ndim=1] new_ptr = np.zeros_like(ptr)
     if flag==0: #CSR matrix
         if len(rperm)!=0:
             for jj in range(nrows):
