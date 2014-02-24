@@ -475,8 +475,6 @@ def sparse_permute(A, rperm=(), cperm=(), safe=True):
     if A.__class__.__name__=='Qobj':
         kind = 'csr'
         dt = complex
-        print(A.data.data.dtype, A.data.indices.dtype, A.data.indptr.dtype,
-                rperm.dtype, cperm.dtype)
         data, ind, ptr = _sparse_permute(
                 A.data.data, A.data.indices, A.data.indptr,
                 nrows, ncols, rperm, cperm, 0)
@@ -488,30 +486,8 @@ def sparse_permute(A, rperm=(), cperm=(), safe=True):
             flag = 1
         else:
             raise Exception('Input must be Qobj, CSR, or CSC matrix.')
-        print(A.data.dtype, A.indices.dtype, A.indptr.dtype,
-                rperm.dtype, cperm.dtype)
         data, ind, ptr = _sparse_permute(A.data, A.indices, A.indptr,
                 nrows, ncols, rperm, cperm, flag)
-        """
-        val = A.data[0]
-        if val.dtype==np.int_:
-            dt=int
-            data, ind, ptr = _sparse_permute(
-                    A.data, A.indices, A.indptr,
-                    nrows, ncols, rperm, cperm, flag)
-        elif val.dtype==np.float_:
-            dt = float
-            data, ind, ptr = _sparse_permute(
-                    A.data, A.indices, A.indptr,
-                    nrows, ncols, rperm, cperm, flag)
-        elif val.dtype==np.complex_:
-            dt = complex
-            data, ind, ptr = _sparse_permute(
-                    A.data, A.indices, A.indptr,
-                    nrows, ncols, rperm, cperm, flag)
-        else:
-            raise TypeError('Invalid data type in matrix.')
-        """
     if kind=='csr':
         return sp.csr_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
     elif kind=='csc':
@@ -571,26 +547,6 @@ def sparse_reverse_permute(A, rperm=(), cperm=(), safe=True):
             raise Exception('Input must be Qobj, CSR, or CSC matrix.')        
         data, ind, ptr = _sparse_reverse_permute(A.data, A.indices, A.indptr,
                 nrows, ncols, rperm, cperm, flag)
-        """
-        val = A.data[0]
-        if val.dtype==np.int_:
-            dt = int
-            data, ind, ptr = _sparse_reverse_permute(
-                    A.data, A.indices, A.indptr,
-                    nrows, ncols, rperm, cperm, flag)
-        elif val.dtype==np.float_:
-            dt = float
-            data, ind, ptr = _sparse_reverse_permute(
-                    A.data, A.indices, A.indptr,
-                    nrows, ncols, rperm, cperm, flag)
-        elif val.dtype==np.complex_:
-            dt = complex
-            data, ind, ptr = _sparse_reverse_permute_complex(
-                    A.data, A.indices, A.indptr,
-                    nrows, ncols, rperm, cperm, flag)
-        else:
-            raise TypeError('Invalid data type in matrix.')
-        """
     if kind=='csr':
         return sp.csr_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
     elif kind=='csc':
