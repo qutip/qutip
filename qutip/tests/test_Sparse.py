@@ -133,7 +133,7 @@ def test_sparse_bandwidth():
     #Bandwidth test 2
     A=array([[1,0,0,0,1,0,0,0],[0,1,1,0,0,1,0,1],[0,1,1,0,1,0,0,0],
             [0,0,0,1,0,0,1,0],[1,0,1,0,1,0,0,0],[0,1,0,0,0,1,0,1],
-            [0,0,0,1,0,0,1,0],[0,1,0,0,0,1,0,1]], dtype=np.float32)
+            [0,0,0,1,0,0,1,0],[0,1,0,0,0,1,0,1]], dtype=np.int32)
     A=sp.csr_matrix(A)
     out1=sparse_bandwidth(A)
     assert_equal(out1[0], 13)

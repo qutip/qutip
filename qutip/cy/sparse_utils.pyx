@@ -51,7 +51,9 @@ ctypedef fused DATA_t:
     np.int64_t
     np.uint32_t
     np.uint64_t
+    np.float32_t
     np.float64_t
+    np.complex64_t
     np.complex128_t
 
 
@@ -117,8 +119,8 @@ def _sparse_permute(
     cdef np.ndarray[ITYPE_t] inds
     if flag==0: #for CSR matricies
         if len(rperm)!=0:
-            inds=np.argsort(rperm)
-            perm_r=np.arange(len(rperm))[inds]
+            inds = np.argsort(rperm).astype(ITYPE)
+            perm_r=np.arange(len(rperm), dtype=ITYPE)[inds]
     
             for jj in range(nrows):
                ii=perm_r[jj]
@@ -134,16 +136,16 @@ def _sparse_permute(
                     new_data[k0]=data[kk]
                     k0=k0+1
         if len(cperm)!=0:
-            inds =np.argsort(cperm)
-            perm_c=np.arange(len(cperm))[inds]
+            inds =np.argsort(cperm).astype(ITYPE)
+            perm_c=np.arange(len(cperm), dtype=ITYPE)[inds]
             nnz=new_ptr[len(new_ptr)-1]
             for jj in range(nnz):
                 new_idx[jj]=perm_c[new_idx[jj]]
     
     elif flag==1: #for CSC matricies
         if len(cperm)!=0:
-            inds=np.argsort(cperm)
-            perm_c=np.arange(len(cperm))[inds]
+            inds = np.argsort(cperm).astype(ITYPE)
+            perm_c=np.arange(len(cperm), dtype=ITYPE)[inds]
     
             for jj in range(ncols):
                ii=perm_c[jj]
@@ -159,8 +161,8 @@ def _sparse_permute(
                     new_data[k0]=data[kk]
                     k0=k0+1
         if len(rperm)!=0:
-            inds =np.argsort(rperm)
-            perm_r=np.arange(len(rperm))[inds]
+            inds = np.argsort(rperm).astype(ITYPE)
+            perm_r = np.arange(len(rperm), dtype=ITYPE)[inds]
             nnz=new_ptr[len(new_ptr)-1]
             for jj in range(nnz):
                 new_idx[jj]=perm_r[new_idx[jj]]

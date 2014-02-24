@@ -119,7 +119,7 @@ def _rcm(
     cdef unsigned int zz, i, j, ii, jj, kk, ll
     # setup arrays
     cdef np.ndarray[ITYPE_t] order = np.zeros(num_rows, dtype=ITYPE)
-    cdef np.ndarray[ITYPE_t] degree = _node_degrees(ind, ptr, num_rows)
+    cdef np.ndarray[ITYPE_t] degree = _node_degrees(ind, ptr, num_rows).astype(ITYPE)
     cdef np.ndarray[ITYPE_t] inds = np.argsort(degree).astype(ITYPE)
     cdef np.ndarray[ITYPE_t] rev_inds = np.argsort(inds).astype(ITYPE)
     cdef np.ndarray[ITYPE_t] temp_degrees = np.zeros(num_rows, dtype=ITYPE)
@@ -187,7 +187,7 @@ def _pseudo_peripheral_node(
     cdef np.ndarray[np.intp_t] degree = np.zeros(num_rows, dtype=ITYPE)
     #---------------------
     #get degrees of each node (row)
-    degree = _node_degrees(ind, ptr, num_rows)
+    degree = _node_degrees(ind, ptr, num_rows).astype(ITYPE)
     # select an initial starting node
     start = 0
     #set distance delta=0 & flag

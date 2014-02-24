@@ -463,9 +463,9 @@ def sparse_permute(A, rperm=(), cperm=(), safe=True):
     nrows = A.shape[0]
     ncols = A.shape[1]
     if len(rperm)==0:
-        rperm = np.arange(nrows)
+        rperm = np.arange(nrows, dtype=np.int32)
     if len(cperm)==0:
-        cperm = np.arange(ncols)
+        cperm = np.arange(ncols, dtype=np.int32)
     if safe:
         if len(np.setdiff1d(rperm, np.arange(nrows)))!=0:
             raise Exception('Invalid row permutation array.')
@@ -475,6 +475,8 @@ def sparse_permute(A, rperm=(), cperm=(), safe=True):
     if A.__class__.__name__=='Qobj':
         kind = 'csr'
         dt = complex
+        print(A.data.data.dtype, A.data.indices.dtype, A.data.indptr.dtype,
+                rperm.dtype, cperm.dtype)
         data, ind, ptr = _sparse_permute(
                 A.data.data, A.data.indices, A.data.indptr,
                 nrows, ncols, rperm, cperm, 0)
@@ -486,6 +488,8 @@ def sparse_permute(A, rperm=(), cperm=(), safe=True):
             flag = 1
         else:
             raise Exception('Input must be Qobj, CSR, or CSC matrix.')
+        print(A.data.dtype, A.indices.dtype, A.indptr.dtype,
+                rperm.dtype, cperm.dtype)
         data, ind, ptr = _sparse_permute(A.data, A.indices, A.indptr,
                 nrows, ncols, rperm, cperm, flag)
         """
@@ -542,9 +546,9 @@ def sparse_reverse_permute(A, rperm=(), cperm=(), safe=True):
     nrows = A.shape[0]
     ncols = A.shape[1]
     if len(rperm)==0:
-        rperm = np.arange(nrows)
+        rperm = np.arange(nrows, dtype=np.int32)
     if len(cperm)==0:
-        cperm = np.arange(ncols)
+        cperm = np.arange(ncols, dtype=np.int32)
     if safe:
         if len(np.setdiff1d(rperm, np.arange(nrows)))!=0:
             raise Exception('Invalid row permutation array.')
