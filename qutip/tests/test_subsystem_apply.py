@@ -33,7 +33,7 @@
 
 from numpy.linalg import norm
 from numpy.testing import assert_, run_module_suite
-from numpy.testing.decorators import knownfailureif
+from numpy.testing.decorators import skipif
 
 from qutip.random_objects import rand_dm, rand_unitary, rand_kraus_map
 from qutip.subsystem_apply import subsystem_apply
@@ -65,7 +65,7 @@ class TestSubsystemApply(object):
         efficient_diff = (efficient_result - analytic_result).data.todense()
         assert_(norm(naive_diff) < 1e-12 and norm(efficient_diff) < 1e-12)
 
-    @knownfailureif(True)  # until we do something about this
+    @skipif(True)  # until we do something about this
     def test_SimpleSuperApply(self):
         """
         Non-composite system, operator on Liouville space.
@@ -108,7 +108,7 @@ class TestSubsystemApply(object):
         efficient_diff = (efficient_result - analytic_result).data.todense()
         assert_(norm(efficient_diff) < 1e-12)
 
-    @knownfailureif(True)  # until we do something about this
+    @skipif(True)  # until we do something about this
     def test_ComplexSuperApply(self):
         """
         Superoperator: Efficient numerics and reference return same result,
