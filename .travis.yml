@@ -16,8 +16,8 @@ before_install:
   - sudo apt-get install -qq python3-numpy python3-scipy cython3
 
 # command to install dependencies
-#install:
-#  - "pip install cython"
+install:
+  - "python setup.py install --with-f90mc"
 
 # command to run tests
 script: nosetests
