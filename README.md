@@ -12,6 +12,11 @@ modification, and it can be used on all Unix-based platforms and on Windows.
 Being free of any licensing fees, QuTiP is ideal for exploring quantum
 mechanics in research as well as in the classroom.
 
+Build status
+------------
+
+[![build-status](https://secure.travis-ci.org/qutip/qutip.png?branch=master)](http://travis-ci.org/qutip/qutip)
+
 Download
 --------
 
