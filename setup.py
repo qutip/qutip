@@ -47,7 +47,7 @@ MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'cython (>=0.15)', 'matplotlib (>=1.1)']
-PACKAGES = ['qutip', 'qutip/gui', 'qutip/examples', 'qutip/cy', 'qutip/quantum_info','qutip/tests']
+PACKAGES = ['qutip', 'qutip/gui', 'qutip/cy', 'qutip/quantum_info','qutip/tests']
 PACKAGE_DATA = {'qutip/tests': ['bucky.npy', 'bucky_perm.npy']}
 INCLUDE_DIRS = [np.get_include()]
 EXT_MODULES = []
