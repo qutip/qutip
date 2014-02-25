@@ -1,4 +1,5 @@
 language: python
+
 python:
   - "2.7"
   - "3.2"
@@ -11,7 +12,7 @@ before_install:
 
 # command to install dependencies
 install:
-  - "pip install -r requirements.txt"
+  - "pip install -q -r requirements.txt"
 
 # command to run tests
 script: nosetests
