@@ -1,4 +1,5 @@
 language: python
+
 python:
   - "2.7"
   - "3.2"
@@ -8,10 +9,12 @@ before_install:
   - uname -a
   - sudo apt-get update -qq
   - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
+  - pip install --upgrade pip setuptools 
+  - pip install --find-links http://wheels.astropy.org/ --find-links http://wheels2.astropy.org/ --use-wheel --use-mirrors nose numpy Cython scipy
 
 # command to install dependencies
 install:
-  - "pip install -r requirements.txt"
+  - "python setup.py install --with-f90mc"
 
 # command to run tests
-script: nosetests
+script: nosetests qutip
