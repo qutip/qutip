@@ -1,6 +1,6 @@
 python>=2.7
+nose>=1.1.2
+cython>=0.15
 numpy>=1.7
 scipy>=0.13
-cython>=0.15
 matplotlib>=1.2
-nose>=1.1.2
