@@ -12,12 +12,12 @@ before_install:
   - uname -a
   - sudo apt-get update -qq
   - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
-  - sudo apt-get install -qq python-numpy python-scipy 
-  - sudo apt-get install -qq python3-numpy python3-scipy 
+  - sudo apt-get install -qq python-numpy python-scipy cython
+  - sudo apt-get install -qq python3-numpy python3-scipy cython3
 
 # command to install dependencies
-install:
-  - "pip install cython"
+#install:
+#  - "pip install cython"
 
 # command to run tests
 script: nosetests
