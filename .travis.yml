@@ -17,4 +17,4 @@ install:
   - "python setup.py install --with-f90mc"
 
 # command to run tests
-script: nosetests qutip.tests
+script: nosetests qutip
