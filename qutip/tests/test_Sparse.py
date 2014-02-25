@@ -83,8 +83,8 @@ def test_sparse_nonsymmetric_reverse_permute():
     "Sparse: Nonsymmetric Reverse Permute"
     #CSR square array check
     A=rand_dm(25,0.5)
-    rperm=np.random.permutation(25).astype(np.float32)
-    cperm=np.random.permutation(25).astype(np.float32)
+    rperm=np.random.permutation(25)
+    cperm=np.random.permutation(25)
     x=sparse_permute(A,rperm,cperm)
     B=sparse_reverse_permute(x,rperm,cperm)
     assert_equal((A.full() - B.toarray()).all(), 0)

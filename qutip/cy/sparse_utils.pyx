@@ -37,24 +37,8 @@ cimport cython
 ###############################################################################
 # see scipy/sparse/csgraph/parameters.pxi
 
-ctypedef np.complex128_t CTYPE_t
-CTYPE = np.complex128
-
-ctypedef np.float64_t DTYPE_t
-DTYPE = np.float64
-
 ctypedef np.int32_t ITYPE_t
 ITYPE = np.int32
-
-ctypedef fused DATA_t:
-    np.int32_t
-    np.int64_t
-    np.uint32_t
-    np.uint64_t
-    np.float32_t
-    np.float64_t
-    np.complex64_t
-    np.complex128_t
 
 
 @cython.boundscheck(False)
@@ -82,7 +66,7 @@ def _sparse_bandwidth(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def _sparse_permute(
-        np.ndarray[DATA_t, ndim=1] data,
+        np.ndarray[cython.numeric, ndim=1] data,
         np.ndarray[ITYPE_t, ndim=1] idx,
         np.ndarray[ITYPE_t, ndim=1] ptr,
         int nrows,
@@ -98,7 +82,7 @@ def _sparse_permute(
 
     """
     cdef int ii, jj, kk, k0, nnz
-    cdef np.ndarray[DATA_t] new_data = np.zeros_like(data)
+    cdef np.ndarray[cython.numeric] new_data = np.zeros_like(data)
     cdef np.ndarray[ITYPE_t] new_idx = np.zeros_like(idx)
     cdef np.ndarray[ITYPE_t] new_ptr = np.zeros_like(ptr)
     cdef np.ndarray[ITYPE_t] perm_r
@@ -160,7 +144,7 @@ def _sparse_permute(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def _sparse_reverse_permute(
-        np.ndarray[DATA_t, ndim=1] data,
+        np.ndarray[cython.numeric, ndim=1] data,
         np.ndarray[ITYPE_t, ndim=1] idx, 
         np.ndarray[ITYPE_t, ndim=1] ptr,
         int nrows,
@@ -174,7 +158,7 @@ def _sparse_reverse_permute(
 
     """
     cdef int ii, jj, kk, k0, nnz
-    cdef np.ndarray[DATA_t, ndim=1] new_data = np.zeros_like(data)
+    cdef np.ndarray[cython.numeric, ndim=1] new_data = np.zeros_like(data)
     cdef np.ndarray[ITYPE_t, ndim=1] new_idx = np.zeros_like(idx)
     cdef np.ndarray[ITYPE_t, ndim=1] new_ptr = np.zeros_like(ptr)
     if flag==0: #CSR matrix

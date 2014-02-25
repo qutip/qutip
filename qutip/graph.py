@@ -146,7 +146,6 @@ def symrcm(A, sym=False):
     else:
         if not sym:
             A=A+A.transpose()
-        #raise Exception((A.indices.dtype, A.indptr.dtype))
         return _rcm(A.indices, A.indptr, nrows)
 
 

@@ -37,9 +37,6 @@ cimport cython
 ###############################################################################
 # see scipy/sparse/csgraph/parameters.pxi
 
-ctypedef np.complex128_t CTYPE_t
-CTYPE = np.complex128
-
 ctypedef np.float64_t DTYPE_t
 DTYPE = np.float64
 

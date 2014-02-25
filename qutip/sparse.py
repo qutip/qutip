@@ -41,18 +41,11 @@ import scipy.linalg as la
 from scipy.linalg.blas import get_blas_funcs
 _dznrm2 = get_blas_funcs("znrm2")
 from qutip.cy.sparse_utils import (
-        #_sparse_permute_int, _sparse_permute_float, _sparse_permute_complex,
-        #_sparse_reverse_permute_int, _sparse_reverse_permute_float,
-        #_sparse_reverse_permute_complex, 
         _sparse_permute, _sparse_reverse_permute, _sparse_bandwidth)
 from qutip.settings import debug
 
 if debug:
     import inspect
-
-
-ITYPE = np.int32
-
 
 
 def _sp_fro_norm(op):
