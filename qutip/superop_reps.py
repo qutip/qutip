@@ -55,12 +55,9 @@ def super_to_choi(q_oper):
     data = q_oper.data.toarray()
     sqrt_shape = sqrt(data.shape[0])
     return Qobj(dims=q_oper.dims,
-<<<<<<< HEAD
-                inpt=q_oper.data.todense().reshape([sqrt_shape] * 4).\
-=======
+
                 inpt=data.reshape([sqrt_shape] * 4).
->>>>>>> upstream/master
-                transpose(0, 2, 1, 3).reshape(q_oper.data.shape))
+                transpose(3, 1, 2, 0).reshape(q_oper.data.shape))
 
 
 def choi_to_super(q_oper):
@@ -92,21 +89,13 @@ def kraus_to_choi(kraus_list):
     kraus_mat_list = list(map(lambda x: matrix(x.data.todense()), kraus_list))
     op_len = len(kraus_mat_list[0])
     op_rng = range(op_len)
-<<<<<<< HEAD
-    choi_blocks = array([[reduce(add,
-                           [op[:, c_ix]*array([op.T.conj()[r_ix, :]])
-                           for op in kraus_list])
-                           for r_ix in op_rng]
-                           for c_ix in op_rng])
-    return Qobj(inpt=hstack(hstack(choi_blocks)))
-=======
+
     choi_blocks = array([[sum([op[:, c_ix] * array([op.H[r_ix, :]])
                                for op in kraus_mat_list])
                           for r_ix in op_rng]
                          for c_ix in op_rng])
     return Qobj(inpt=hstack(hstack(choi_blocks)),
                 dims=[kraus_list[0].dims, kraus_list[0].dims])
->>>>>>> upstream/master
 
 
 def kraus_to_super(kraus_list):

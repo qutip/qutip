@@ -60,38 +60,19 @@ class TestSuperopReps(object):
         """
         Superoperator: Converting superoperator to Choi matrix and back.
         """
-<<<<<<< HEAD
-        h_5 = scipy.rand(5, 5)
-        h_5 = Qobj(inpt=h_5 * h_5.conj().T)
-        superoperator = propagator(h_5, scipy.rand,
-                                   [create(5), destroy(5), jmat(2,'z')])
-        choi_matrix=super_to_choi(superoperator)
-        test_supe=choi_to_super(choi_matrix)
-        assert_(norm(test_supe - superoperator) == 0.0)
 
-=======
         h_5 = rand_herm(5)
         superoperator = propagator(h_5, scipy.rand(),
                                    [create(5), destroy(5), jmat(2, 'z')])
         choi_matrix = super_to_choi(superoperator)
         test_supe = choi_to_super(choi_matrix)
         assert_((test_supe - superoperator).norm() < 1e-12)
->>>>>>> upstream/master
 
     def test_ChoiKrausChoi(self):
         """
         Superoperator: Converting superoperator to Choi matrix and back.
         """
-<<<<<<< HEAD
-        h_5 = scipy.rand(5, 5)
-        h_5 = Qobj(inpt=h_5 * h_5.conj().T)
-        superoperator = propagator(h_5, scipy.rand,
-                                   [create(5), destroy(5), jmat(2,'z')])
-        choi_matrix=super_to_choi(superoperator)
-        kraus_ops=choi_to_kraus(choi_matrix)
-        test_choi=kraus_to_choi(kraus_ops)
-        assert_(norm(test_choi - choi_matrix) == 0.0)
-=======
+
         h_5 = rand_herm(5)
         superoperator = propagator(h_5, scipy.rand(),
                                    [create(5), destroy(5), jmat(2, 'z')])
@@ -99,8 +80,6 @@ class TestSuperopReps(object):
         kraus_ops = choi_to_kraus(choi_matrix)
         test_choi = kraus_to_choi(kraus_ops)
         assert_((test_choi - choi_matrix).norm() < 1e-12)
-
->>>>>>> upstream/master
 
 if __name__ == "__main__":
     run_module_suite()
