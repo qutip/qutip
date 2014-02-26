@@ -34,7 +34,6 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-###############################################################################
 # see scipy/sparse/csgraph/parameters.pxi
 
 ctypedef np.float64_t DTYPE_t
@@ -50,15 +49,15 @@ def _node_degrees(
         np.ndarray[ITYPE_t, ndim=1, mode="c"] ind,
         np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
         int num_rows):
-    #define all parameters
+
     cdef unsigned int ii, jj
     cdef np.ndarray[ITYPE_t] degree = np.zeros(num_rows, dtype=ITYPE)
-    #---------------------
+
     for ii in range(num_rows):
         degree[ii]=ptr[ii+1]-ptr[ii]
         for jj in range(ptr[ii],ptr[ii+1]):
             if ind[jj]==ii:
-                #add one if the diagonal is in row ii
+                # add one if the diagonal is in row ii
                 degree[ii]+=1
                 break
     return degree
@@ -74,22 +73,22 @@ def _breadth_first_search(
     Does a breath first search (BSF) of a graph in sparse CSR format matrix form
     starting at a given seed node.
     """
-    #define all parameters
+
     cdef unsigned int i, j, ii, jj, N = 1
     cdef unsigned int level_start = 0
     cdef unsigned int level_end   = N
     cdef unsigned int current_level = 1
     cdef np.ndarray[ITYPE_t] order = -1*np.ones(num_rows, dtype=ITYPE)
     cdef np.ndarray[ITYPE_t] level = -1*np.ones(num_rows, dtype=ITYPE)
-    #---------------------
+
     level[seed] = 0
     order[0] = seed
     
     while level_start < level_end:
-        #for nodes of the last level
+        # for nodes of the last level
         for ii in range(level_start,level_end):
-            i = order[ii]    
-            #add unvisited neighbors to queue
+            i = order[ii]
+            # add unvisited neighbors to queue
             for jj in range(ptr[i],ptr[i+1]):
                 j = ind[jj]
                 if level[j] == -1:
@@ -111,41 +110,46 @@ def _rcm(
     """
     Reverse Cuthill-McKee ordering of a sparse csr or csc matrix.
     """
-    # define variables
+
     cdef unsigned int N=0, N_old, seed, level_start, level_end, temp, temp2
     cdef unsigned int zz, i, j, ii, jj, kk, ll
-    # setup arrays
+
     cdef np.ndarray[ITYPE_t] order = np.zeros(num_rows, dtype=ITYPE)
     cdef np.ndarray[ITYPE_t] degree = _node_degrees(ind, ptr, num_rows).astype(ITYPE)
     cdef np.ndarray[ITYPE_t] inds = np.argsort(degree).astype(ITYPE)
     cdef np.ndarray[ITYPE_t] rev_inds = np.argsort(inds).astype(ITYPE)
     cdef np.ndarray[ITYPE_t] temp_degrees = np.zeros(num_rows, dtype=ITYPE)
+
     # loop over zz takes into account possible disconnected graph.
     for zz in range(num_rows):
-        if inds[zz] != -1: # Do BFS with seed=inds[zz]
-            seed = inds[zz] # seed node for BFS
-            order[N] = seed # add seed to order
-            N += 1          # increase # touched nodes
-            inds[rev_inds[seed]] = -1 #mark touched node inds
+        if inds[zz] != -1:   # Do BFS with seed=inds[zz]
+            seed = inds[zz]
+            order[N] = seed
+            N += 1
+            inds[rev_inds[seed]] = -1
             level_start = N-1 
             level_end = N
+
             while level_start < level_end:
                 for ii in range(level_start,level_end):
-                    i = order[ii] # node i to consider
-                    N_old=N # old # of touched nodes
+                    i = order[ii]
+                    N_old=N
                 
                     # add unvisited neighbors
-                    for jj in range(ptr[i],ptr[i+1]):   # nodes connected to node i
-                        j = ind[jj] # j is node number connected to i
-                        if inds[rev_inds[j]] != -1:     # if node not touched
-                            inds[rev_inds[j]] = -1      # touch node
-                            order[N] = j                # add node to order
-                            N += 1                      # add to touched count
-                    #Add values to temp_degrees array for insertion sort
+                    for jj in range(ptr[i],ptr[i+1]):
+                        # j is node number connected to i
+                        j = ind[jj]                     
+                        if inds[rev_inds[j]] != -1:
+                            inds[rev_inds[j]] = -1
+                            order[N] = j
+                            N += 1
+
+                    # Add values to temp_degrees array for insertion sort
                     temp=0
                     for kk in range(N_old,N):
                         temp_degrees[temp]=degree[order[kk]]
                         temp+=1
+
                     # Do insertion sort for nodes from lowest to highest degree
                     for kk in range(N_old,N-1):
                         temp = temp_degrees[kk-N_old]
@@ -161,8 +165,10 @@ def _rcm(
                 # set next level start and end ranges            
                 level_start = level_end
                 level_end = N
+
         if N==num_rows:
             break
+
     # return reveresed order for RCM ordering
     return order[::-1]
 
@@ -176,23 +182,22 @@ def _pseudo_peripheral_node(
     """
     Find a pseudo peripheral node of a graph represented by a sparse csr_matrix.
     """
-    #define all parameters
+
     cdef unsigned int ii, jj, delta, flag, node, start
     cdef int maxlevel, minlevel, minlastnodesdegree
     cdef np.ndarray[np.intp_t] lastnodes
     cdef np.ndarray[np.intp_t] lastnodesdegree
     cdef np.ndarray[np.intp_t] degree = np.zeros(num_rows, dtype=ITYPE)
-    #---------------------
-    #get degrees of each node (row)
+
     degree = _node_degrees(ind, ptr, num_rows).astype(ITYPE)
-    # select an initial starting node
     start = 0
-    #set distance delta=0 & flag
     delta = 0
     flag = 1
+
     while flag:
         # do a level-set traversal from x
         order, level = _breadth_first_search(ind, ptr, num_rows, start)
+
         # select node in last level with min degree
         maxlevel = max(level)
         lastnodes = np.where(level == maxlevel)[0]
@@ -200,6 +205,7 @@ def _pseudo_peripheral_node(
         minlastnodesdegree = min(lastnodesdegree)
         node = np.where(lastnodesdegree == minlastnodesdegree)[0][0]
         node = lastnodes[node]
+
         # if d(x,y)>delta, set, and do another BFS from this minimal node
         if level[node] > delta:
             start = node
@@ -215,6 +221,7 @@ def _bfs_matching(
         np.ndarray[ITYPE_t, ndim=1, mode="c"] inds,
         np.ndarray[ITYPE_t, ndim=1, mode="c"] ptrs,
         int n):
+
     cdef np.ndarray[ITYPE_t] visited = np.zeros(n, dtype=ITYPE)
     cdef np.ndarray[ITYPE_t] queue = np.zeros(n, dtype=ITYPE)
     cdef np.ndarray[ITYPE_t] previous = np.zeros(n, dtype=ITYPE)
@@ -223,6 +230,7 @@ def _bfs_matching(
     cdef int queue_ptr, queue_col, ptr, next_num, i, j, queue_size
     cdef int row, col, temp, eptr
     next_num=1 
+
     for i in range(n):
         if (match[i] == -1 and (ptrs[i] != ptrs[i+1])):
             queue[0] = i
@@ -272,24 +280,24 @@ def _max_row_weights(
     This keeps us from having to call abs over and over.
     
     """
-    #define all parameters
     cdef np.ndarray[DTYPE_t] weights = np.zeros(ncols+1, dtype=DTYPE)
     cdef int ln, mx, ii, jj
     cdef DTYPE_t weight, current
-    #---------------------
+
     mx=0
     for jj in range(ncols):
         ln=(ptrs[jj+1]-ptrs[jj])
         if ln>mx:
             mx=ln
-        #weight=np.abs(data[ptrs[jj]])
+
         weight=data[ptrs[jj]]
         for ii in range(ptrs[jj]+1,ptrs[jj+1]):
-            #current=np.abs(data[ii])
             current=data[ii]
             if current>weight:
                 weight=current
+
         weights[jj]=weight
+
     weights[ncols]=mx
     return weights
 
@@ -306,22 +314,22 @@ def _weighted_bfs_matching(
     This keeps us from having to call abs over and over.
 
     """
-    #define all parameters
-    cdef np.ndarray[ITYPE_t] visited = np.zeros(n,dtype=ITYPE)     #visited array
-    cdef np.ndarray[ITYPE_t] queue = np.zeros(n,dtype=ITYPE)       #queue array
-    cdef np.ndarray[ITYPE_t] previous = np.zeros(n,dtype=ITYPE)    #prev visited array
-    cdef np.ndarray[ITYPE_t] match = -1*np.ones(n,dtype=ITYPE)     #returned matching
-    cdef np.ndarray[ITYPE_t] row_match = -1*np.ones(n,dtype=ITYPE) #row_matching
-    cdef np.ndarray[DTYPE_t] weights = _max_row_weights(data, inds, ptrs, n) #max weights in each column
-    cdef np.ndarray[ITYPE_t] order = np.argsort(-weights[0:n]).astype(ITYPE)    #order in which cols traversed
-    cdef np.ndarray[ITYPE_t] row_order = np.zeros(weights[n],dtype=ITYPE)   #temp array to order row
-    cdef np.ndarray[DTYPE_t] temp_weights = np.zeros(weights[n],dtype=DTYPE)   #temp array for row weights
+
+    cdef np.ndarray[ITYPE_t] visited = np.zeros(n,dtype=ITYPE)
+    cdef np.ndarray[ITYPE_t] queue = np.zeros(n,dtype=ITYPE)
+    cdef np.ndarray[ITYPE_t] previous = np.zeros(n,dtype=ITYPE)
+    cdef np.ndarray[ITYPE_t] match = -1*np.ones(n,dtype=ITYPE)
+    cdef np.ndarray[ITYPE_t] row_match = -1*np.ones(n,dtype=ITYPE)
+    cdef np.ndarray[DTYPE_t] weights = _max_row_weights(data, inds, ptrs, n)
+    cdef np.ndarray[ITYPE_t] order = np.argsort(-weights[0:n]).astype(ITYPE)
+    cdef np.ndarray[ITYPE_t] row_order = np.zeros(weights[n],dtype=ITYPE)
+    cdef np.ndarray[DTYPE_t] temp_weights = np.zeros(weights[n],dtype=DTYPE)
     cdef int queue_ptr, queue_col, queue_size, next_num
     cdef int i, j, zz, ll, kk, row, col, temp, eptr, temp2
-    #---------------------
+
     next_num=1 
     for i in range(n):
-        zz=order[i] #cols with largest abs values first
+        zz=order[i]  # cols with largest abs values first
         if (match[zz] == -1 and (ptrs[zz] != ptrs[zz+1])):
             queue[0] = zz
             queue_ptr = 0
@@ -330,13 +338,15 @@ def _weighted_bfs_matching(
                 queue_col = queue[queue_ptr]
                 queue_ptr+=1
                 eptr = ptrs[queue_col + 1]
-                #get row inds in current column
+
+                # get row inds in current column
                 temp=ptrs[queue_col]
                 for kk in range(eptr-ptrs[queue_col]):
                     row_order[kk]=inds[temp]
                     temp_weights[kk]=data[temp]
                     temp+=1
-                #linear sort by row weight
+
+                # linear sort by row weight
                 for kk in range(1,(eptr-ptrs[queue_col])):
                     val = temp_weights[kk]
                     row_val = row_order[kk]
@@ -347,7 +357,8 @@ def _weighted_bfs_matching(
                         ll-=1
                     temp_weights[ll+1] = val
                     row_order[ll+1] = row_val
-                #go through rows by decending weight
+
+                # go through rows by decending weight
                 temp2=(eptr-ptrs[queue_col])-1
                 for kk in range(eptr-ptrs[queue_col]):
                     row = row_order[temp2-kk]
@@ -369,7 +380,9 @@ def _weighted_bfs_matching(
                         else:
                             queue[queue_size] = col
                             queue_size+=1
+
             if (match[zz] == -1):
                 for j in range(1,queue_size):
                     visited[match[queue[j]]] = -1
+
     return match
