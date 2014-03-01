@@ -33,16 +33,26 @@
 import numpy as np
 cimport numpy as np
 cimport cython
-ctypedef np.complex128_t CTYPE_t
+
+###############################################################################
+# see scipy/sparse/csgraph/parameters.pxi
+
 ctypedef np.float64_t DTYPE_t
+DTYPE = np.float64
+
+ctypedef np.int32_t ITYPE_t
+ITYPE = np.int32
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _node_degrees(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr,
-                            int num_rows):
+def _node_degrees(
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ind,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
+        int num_rows):
     #define all parameters
     cdef unsigned int ii, jj
-    cdef np.ndarray[np.intp_t] degree = np.zeros(num_rows,dtype=int)
+    cdef np.ndarray[ITYPE_t] degree = np.zeros(num_rows, dtype=ITYPE)
     #---------------------
     for ii in range(num_rows):
         degree[ii]=ptr[ii+1]-ptr[ii]
@@ -56,8 +66,10 @@ def _node_degrees(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _breadth_first_search(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr,
-                            int num_rows, int seed):
+def _breadth_first_search(
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ind,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
+        int num_rows, int seed):
     """
     Does a breath first search (BSF) of a graph in sparse CSR format matrix form
     starting at a given seed node.
@@ -67,8 +79,8 @@ def _breadth_first_search(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c
     cdef unsigned int level_start = 0
     cdef unsigned int level_end   = N
     cdef unsigned int current_level = 1
-    cdef np.ndarray[np.intp_t] order = -1*np.ones(num_rows, dtype=int)
-    cdef np.ndarray[np.intp_t] level = -1*np.ones(num_rows, dtype=int)
+    cdef np.ndarray[ITYPE_t] order = -1*np.ones(num_rows, dtype=ITYPE)
+    cdef np.ndarray[ITYPE_t] level = -1*np.ones(num_rows, dtype=ITYPE)
     #---------------------
     level[seed] = 0
     order[0] = seed
@@ -92,19 +104,23 @@ def _breadth_first_search(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num_rows):
+def _rcm(
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ind,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
+        int num_rows):
     """
     Reverse Cuthill-McKee ordering of a sparse csr or csc matrix.
     """
     # define variables
-    cdef unsigned int N=0, N_old, seed, level_start, level_end, temp, temp2, zz, i, j, ii, jj, kk, ll
+    cdef unsigned int N=0, N_old, seed, level_start, level_end, temp, temp2
+    cdef unsigned int zz, i, j, ii, jj, kk, ll
     # setup arrays
-    cdef np.ndarray[np.intp_t] order = np.zeros(num_rows, dtype=int)
-    cdef np.ndarray[np.intp_t] degree = _node_degrees(ind, ptr, num_rows)
-    cdef np.ndarray[np.intp_t] inds = np.argsort(degree)
-    cdef np.ndarray[np.intp_t] rev_inds = np.argsort(inds)
-    cdef np.ndarray[np.intp_t] temp_degrees = np.zeros(num_rows, dtype=int)
-    #loop over zz takes into account possible disconnected graph.
+    cdef np.ndarray[ITYPE_t] order = np.zeros(num_rows, dtype=ITYPE)
+    cdef np.ndarray[ITYPE_t] degree = _node_degrees(ind, ptr, num_rows).astype(ITYPE)
+    cdef np.ndarray[ITYPE_t] inds = np.argsort(degree).astype(ITYPE)
+    cdef np.ndarray[ITYPE_t] rev_inds = np.argsort(inds).astype(ITYPE)
+    cdef np.ndarray[ITYPE_t] temp_degrees = np.zeros(num_rows, dtype=ITYPE)
+    # loop over zz takes into account possible disconnected graph.
     for zz in range(num_rows):
         if inds[zz] != -1: # Do BFS with seed=inds[zz]
             seed = inds[zz] # seed node for BFS
@@ -153,8 +169,10 @@ def _rcm(np.ndarray[int, mode="c"] ind, np.ndarray[int, mode="c"] ptr, int num_r
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _pseudo_peripheral_node(np.ndarray[int, mode="c"] ind, 
-                        np.ndarray[int, mode="c"] ptr, int num_rows):
+def _pseudo_peripheral_node(
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ind, 
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
+        int num_rows):
     """
     Find a pseudo peripheral node of a graph represented by a sparse csr_matrix.
     """
@@ -163,10 +181,10 @@ def _pseudo_peripheral_node(np.ndarray[int, mode="c"] ind,
     cdef int maxlevel, minlevel, minlastnodesdegree
     cdef np.ndarray[np.intp_t] lastnodes
     cdef np.ndarray[np.intp_t] lastnodesdegree
-    cdef np.ndarray[np.intp_t] degree = np.zeros(num_rows,dtype=int)
+    cdef np.ndarray[np.intp_t] degree = np.zeros(num_rows, dtype=ITYPE)
     #---------------------
     #get degrees of each node (row)
-    degree = _node_degrees(ind, ptr, num_rows)
+    degree = _node_degrees(ind, ptr, num_rows).astype(ITYPE)
     # select an initial starting node
     start = 0
     #set distance delta=0 & flag
@@ -193,13 +211,17 @@ def _pseudo_peripheral_node(np.ndarray[int, mode="c"] ind,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _bfs_matching(np.ndarray[int, mode="c"] inds, np.ndarray[int, mode="c"] ptrs, int n):
-    cdef np.ndarray[np.intp_t] visited = np.zeros(n,dtype=int)     #visited array
-    cdef np.ndarray[np.intp_t] queue = np.zeros(n,dtype=int)       #queue array
-    cdef np.ndarray[np.intp_t] previous = np.zeros(n,dtype=int)    #prev visited array
-    cdef np.ndarray[np.intp_t] match = -1*np.ones(n,dtype=int)     #returned matching
-    cdef np.ndarray[np.intp_t] row_match = -1*np.ones(n,dtype=int) #row_matching
-    cdef int queue_ptr, queue_col, ptr, next_num, i, j, queue_size, row, col, temp, eptr
+def _bfs_matching(
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] inds,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptrs,
+        int n):
+    cdef np.ndarray[ITYPE_t] visited = np.zeros(n, dtype=ITYPE)
+    cdef np.ndarray[ITYPE_t] queue = np.zeros(n, dtype=ITYPE)
+    cdef np.ndarray[ITYPE_t] previous = np.zeros(n, dtype=ITYPE)
+    cdef np.ndarray[ITYPE_t] match = -1*np.ones(n, dtype=ITYPE)
+    cdef np.ndarray[ITYPE_t] row_match = -1*np.ones(n, dtype=ITYPE)
+    cdef int queue_ptr, queue_col, ptr, next_num, i, j, queue_size
+    cdef int row, col, temp, eptr
     next_num=1 
     for i in range(n):
         if (match[i] == -1 and (ptrs[i] != ptrs[i+1])):
@@ -237,17 +259,21 @@ def _bfs_matching(np.ndarray[int, mode="c"] inds, np.ndarray[int, mode="c"] ptrs
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _max_row_weights(np.ndarray[DTYPE_t, mode="c"] data, np.ndarray[int, mode="c"] inds, np.ndarray[int, mode="c"] ptrs, int ncols):
+def _max_row_weights(
+        np.ndarray[DTYPE_t, ndim=1, mode="c"] data,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] inds,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptrs,
+        int ncols):
     """
-    Finds the largest abs value in each matrix column and the max. total number of elements
-    in the cols (given by weights[-1]).
+    Finds the largest abs value in each matrix column
+    and the max. total number of elements in the cols (given by weights[-1]).
     
-    Here we assume that the user already took the ABS value of the data.  This keeps us from
-    having to call abs over and over.
+    Here we assume that the user already took the ABS value of the data.
+    This keeps us from having to call abs over and over.
     
     """
     #define all parameters
-    cdef np.ndarray[DTYPE_t] weights = np.zeros(ncols+1,dtype=float)
+    cdef np.ndarray[DTYPE_t] weights = np.zeros(ncols+1, dtype=DTYPE)
     cdef int ln, mx, ii, jj
     cdef DTYPE_t weight, current
     #---------------------
@@ -270,22 +296,28 @@ def _max_row_weights(np.ndarray[DTYPE_t, mode="c"] data, np.ndarray[int, mode="c
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _weighted_bfs_matching(np.ndarray[DTYPE_t, mode="c"] data, np.ndarray[int, mode="c"] inds, np.ndarray[int, mode="c"] ptrs, int n):
+def _weighted_bfs_matching(
+        np.ndarray[DTYPE_t, ndim=1, mode="c"] data,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] inds,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptrs,
+        int n):
     """
-    Here we assume that the user already took the ABS value of the data.  This keeps us from
-    having to call abs over and over.
+    Here we assume that the user already took the ABS value of the data.
+    This keeps us from having to call abs over and over.
+
     """
     #define all parameters
-    cdef np.ndarray[np.intp_t] visited = np.zeros(n,dtype=int)     #visited array
-    cdef np.ndarray[np.intp_t] queue = np.zeros(n,dtype=int)       #queue array
-    cdef np.ndarray[np.intp_t] previous = np.zeros(n,dtype=int)    #prev visited array
-    cdef np.ndarray[np.intp_t] match = -1*np.ones(n,dtype=int)     #returned matching
-    cdef np.ndarray[np.intp_t] row_match = -1*np.ones(n,dtype=int) #row_matching
+    cdef np.ndarray[ITYPE_t] visited = np.zeros(n,dtype=ITYPE)     #visited array
+    cdef np.ndarray[ITYPE_t] queue = np.zeros(n,dtype=ITYPE)       #queue array
+    cdef np.ndarray[ITYPE_t] previous = np.zeros(n,dtype=ITYPE)    #prev visited array
+    cdef np.ndarray[ITYPE_t] match = -1*np.ones(n,dtype=ITYPE)     #returned matching
+    cdef np.ndarray[ITYPE_t] row_match = -1*np.ones(n,dtype=ITYPE) #row_matching
     cdef np.ndarray[DTYPE_t] weights = _max_row_weights(data, inds, ptrs, n) #max weights in each column
-    cdef np.ndarray[np.intp_t] order = np.argsort(-weights[0:n])    #order in which cols traversed
-    cdef np.ndarray[np.intp_t] row_order = np.zeros(weights[n],dtype=int)   #temp array to order row
-    cdef np.ndarray[DTYPE_t] temp_weights = np.zeros(weights[n],dtype=float)   #temp array for row weights
-    cdef int queue_ptr, queue_col, queue_size, next_num, i, j, zz, ll, kk, row, col, temp, eptr, temp2
+    cdef np.ndarray[ITYPE_t] order = np.argsort(-weights[0:n]).astype(ITYPE)    #order in which cols traversed
+    cdef np.ndarray[ITYPE_t] row_order = np.zeros(weights[n],dtype=ITYPE)   #temp array to order row
+    cdef np.ndarray[DTYPE_t] temp_weights = np.zeros(weights[n],dtype=DTYPE)   #temp array for row weights
+    cdef int queue_ptr, queue_col, queue_size, next_num
+    cdef int i, j, zz, ll, kk, row, col, temp, eptr, temp2
     #---------------------
     next_num=1 
     for i in range(n):
