@@ -112,7 +112,7 @@ class TestSubsystemApply(object):
     def test_ComplexSuperApply(self):
         """
         Superoperator: Efficient numerics and reference return same result,
-        acting on non-composite system
+        acting on composite system
         """
         rho_list = list(map(rand_dm, [2, 3, 2, 3, 2]))
         rho_input = tensor(rho_list)

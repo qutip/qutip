@@ -60,6 +60,7 @@ class TestSuperopReps(object):
         """
         Superoperator: Converting superoperator to Choi matrix and back.
         """
+
         h_5 = rand_herm(5)
         superoperator = propagator(h_5, scipy.rand(),
                                    [create(5), destroy(5), jmat(2, 'z')])
@@ -71,6 +72,7 @@ class TestSuperopReps(object):
         """
         Superoperator: Converting superoperator to Choi matrix and back.
         """
+
         h_5 = rand_herm(5)
         superoperator = propagator(h_5, scipy.rand(),
                                    [create(5), destroy(5), jmat(2, 'z')])
@@ -78,7 +80,6 @@ class TestSuperopReps(object):
         kraus_ops = choi_to_kraus(choi_matrix)
         test_choi = kraus_to_choi(kraus_ops)
         assert_((test_choi - choi_matrix).norm() < 1e-12)
-
 
 if __name__ == "__main__":
     run_module_suite()

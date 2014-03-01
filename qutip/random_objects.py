@@ -216,7 +216,6 @@ def rand_kraus_map(N, dims=None):
     -------
     oper_list : list of qobj
         N^2 x N x N qobj operators.
-
     """
 
     if dims:
@@ -225,6 +224,7 @@ def rand_kraus_map(N, dims=None):
     # Random unitary (Stinespring Dilation)
     big_unitary = rand_unitary(N ** 3).data.todense()
     orthog_cols = np.array(big_unitary[:, :N])
+
     oper_list = np.reshape(orthog_cols, (N ** 2, N, N))
     return list(map(lambda x: Qobj(inpt=x, dims=dims), oper_list))
 
