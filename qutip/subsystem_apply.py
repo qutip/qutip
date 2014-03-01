@@ -270,7 +270,7 @@ def _subsystem_apply_reference(state, channel, mask):
         rho_out = Qobj(inpt=zeros(state.shape), dims=state.dims)
         for operator_iter in k_qubit_kraus_list:
             operator_iter = iter(operator_iter)
-            op_iter_list = [next(operator_iter).conj().T if mask[j]
+            op_iter_list = [next(operator_iter) if mask[j]
                             else qeye(state.dims[0][j])
                             for j in range(len(state.dims[0]))]
             full_oper = tensor(list(map(Qobj, op_iter_list)))
