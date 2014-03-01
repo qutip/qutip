@@ -56,7 +56,7 @@ def super_to_choi(q_oper):
     sqrt_shape = sqrt(data.shape[0])
     return Qobj(dims=q_oper.dims,
                 inpt=data.reshape([sqrt_shape] * 4).
-                transpose(0, 2, 1, 3).reshape(q_oper.data.shape))
+                transpose(3, 1, 2, 0).reshape(q_oper.data.shape))
 
 
 def choi_to_super(q_oper):
