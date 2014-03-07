@@ -607,11 +607,16 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
             for m_idx, m in enumerate(m_ops):
                 for dW_idx, dW_factor in enumerate(dW_factors):
                     if m[dW_idx]:
-                        m_expt = norm(spmv(m[dW_idx].data, psi_prev)) ** 2
+                        m_data = m[dW_idx].data
+                        m_expt = cy_expect_psi_csr(m_data.data,
+                                                   m_data.indices,
+                                                   m_data.indptr,
+                                                   psi_t, 0)
                     else:
                         m_expt = 0
                     measurements[t_idx, m_idx, dW_idx] = (m_expt +
-                       dW_factor * dW[m_idx, t_idx, :, dW_idx].sum() / (dt * N_substeps))
+                       dW_factor * dW[m_idx, t_idx, :, dW_idx].sum() /
+                       (dt * N_substeps))
 
     if d2_len == 1:
         measurements = measurements.squeeze(axis=(2))
@@ -1103,7 +1108,7 @@ def d1_psi_homodyne(A, psi):
 
     .. math::
 
-        D_1(\psi, t) = \\frac{1}{2}(\\langle C + C^\\dagger\\rangle\\psi -
+        D_1(C, \psi) = \\frac{1}{2}(\\langle C + C^\\dagger\\rangle\\C psi -
         C^\\dagger C\\psi - \\frac{1}{4}\\langle C + C^\\dagger\\rangle^2\\psi)
 
     """
@@ -1156,9 +1161,9 @@ def d2_psi_heterodyne(A, psi):
 
         Y = \\frac{1}{2}(C - C^\\dagger)
 
-        D_{2,1}(\psi, t) = \\sqrt(1/2) * (C - \\langle X \\rangle) \\psi
+        D_{2,1}(\psi, t) = \\sqrt(1/2) (C - \\langle X \\rangle) \\psi
 
-        D_{2,2}(\psi, t) = -i\\sqrt(1/2) * (C - \\langle Y \\rangle) \\psi
+        D_{2,2}(\psi, t) = -i\\sqrt(1/2) (C - \\langle Y \\rangle) \\psi
 
     """
 
