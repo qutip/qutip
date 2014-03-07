@@ -1195,9 +1195,9 @@ def d2_psi_photocurrent(A, psi):
     psi_1 = spmv(A[0], psi)
     n1 = norm(psi_1)
     if n1 != 0:
-        return psi_1 / n1 - psi
+        return [psi_1 / n1 - psi]
     else:
-        return - psi
+        return [- psi]
 
 
 #
@@ -1603,7 +1603,8 @@ def _rhs_rho_milstein_homodyne_two_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
     e[2:4] -= 2.0 * e[:2] * e[:2]
     e[4] -= 2.0 * e[1] * e[0]
 
-    drho_t = (1.0 - np.inner(e, dW)) * rho_t
+    drho_t = (1.0 - np.inner(e, dW)) * rho_t in np.ndindex(A_len, A_len) if n != m], axis=0)
+
     dW[:2] -= 2.0 * e[:2] * dW[2:4]
 
     drho_t += d_vec[-1]
