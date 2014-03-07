@@ -59,23 +59,28 @@ Todo:
 import numpy as np
 import scipy.sparse as sp
 import scipy
-from scipy.linalg import norm
+from scipy.linalg.blas import get_blas_funcs
+try:
+    norm = get_blas_funcs("znrm2", dtype=np.float64)
+except:
+    from scipy.linalg import norm
+
 from numpy.random import RandomState
 
-from qutip.odedata import Odedata
-from qutip.odeoptions import Odeoptions
-from qutip.expect import expect, expect_rho_vec
 from qutip.qobj import Qobj, isket
+from qutip.states import ket2dm
+from qutip.operators import commutator
+from qutip.odedata import Odedata
+from qutip.expect import expect, expect_rho_vec
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
                                  liouvillian_fast, lindblad_dissipator)
-from qutip.states import ket2dm
 from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv, cy_expect_rho_vec
 from qutip.cy.stochastic import (cy_d1_rho_photocurrent,
-                                  cy_d2_rho_photocurrent)
+                                 cy_d2_rho_photocurrent)
 from qutip.gui.progressbar import TextProgressBar
-
+from qutip.odeoptions import Odeoptions
 from qutip.settings import debug
-from qutip.operators import commutator
+
 
 if debug:
     import inspect
