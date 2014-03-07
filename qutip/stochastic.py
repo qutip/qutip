@@ -552,8 +552,8 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
     if noise is None:
         if homogeneous:
             if distribution == 'normal':
-                dW = np.sqrt(
-                    dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
+                dW = np.sqrt(dt) * \
+                    scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
             else:
                 raise TypeError('Unsupported increment distribution for homogeneous process.')
         else:
@@ -571,7 +571,9 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                s = cy_expect_psi_csr(e.data.data, e.data.indices, e.data.indptr, psi_t, 0)
+                s = cy_expect_psi_csr(e.data.data,
+                                      e.data.indices,
+                                      e.data.indptr, psi_t, 0)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2
         else:
@@ -583,7 +585,10 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
 
             if noise is None and not homogeneous:
                 for a_idx, A in enumerate(A_ops):
-                    dw_expect = norm(spmv(A[0], psi_t)) ** 2 * dt
+                    #dw_expect = norm(spmv(A[0], psi_t)) ** 2 * dt
+                    dw_expect = cy_expect_psi_csr(A[3].data,
+                                                  A[3].indices,
+                                                  A[3].indptr, psi_t, 1) * dt
                     dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
 
             psi_t = rhs(H.data, psi_t, t + dt * j,
@@ -1410,9 +1415,8 @@ def _rhs_psi_euler_maruyama(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
 
     for a_idx, A in enumerate(A_ops):
         d2_vec = d2(A, psi_t)
-        dpsi_t += d1(A, psi_t) * dt + sum([d2_vec[n] * dW[a_idx, n]
-                                           for n in range(dW_len)
-                                           if dW[a_idx, n] != 0])
+        dpsi_t += d1(A, psi_t) * dt + np.sum([d2_vec[n] * dW[a_idx, n]
+                                              for n in range(dW_len)]) #  if dW[a_idx, n] != 0
 
     return psi_t + dpsi_t
 
@@ -1431,8 +1435,8 @@ def _rhs_rho_euler_maruyama(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     for a_idx, A in enumerate(A_ops):
         d2_vec = d2(A, rho_t)
         drho_t += d1(A, rho_t) * dt
-        drho_t += sum([d2_vec[n] * dW[a_idx, n] for n in range(
-            dW_len) if dW[a_idx, n] != 0])
+        drho_t += np.sum([d2_vec[n] * dW[a_idx, n] 
+                          for n in range(dW_len) if dW[a_idx, n] != 0])
 
     return rho_t + drho_t
 
