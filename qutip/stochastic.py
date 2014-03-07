@@ -1218,7 +1218,6 @@ def d2_psi_photocurrent(A, psi):
 #     A[7] = lindblad_dissipator(a)
 
 
-
 def _generate_rho_A_ops(sc, L, dt):
     """
     pre-compute superoperator operator combinations that are commonly needed
@@ -1416,7 +1415,8 @@ def _rhs_psi_euler_maruyama(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
     for a_idx, A in enumerate(A_ops):
         d2_vec = d2(A, psi_t)
         dpsi_t += d1(A, psi_t) * dt + np.sum([d2_vec[n] * dW[a_idx, n]
-                                              for n in range(dW_len)]) #  if dW[a_idx, n] != 0
+                                              for n in range(dW_len)
+                                              if dW[a_idx, n] != 0], axis=0)
 
     return psi_t + dpsi_t
 
@@ -1436,7 +1436,7 @@ def _rhs_rho_euler_maruyama(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
         d2_vec = d2(A, rho_t)
         drho_t += d1(A, rho_t) * dt
         drho_t += np.sum([d2_vec[n] * dW[a_idx, n] 
-                          for n in range(dW_len) if dW[a_idx, n] != 0])
+                          for n in range(dW_len) if dW[a_idx, n] != 0], axis=0)
 
     return rho_t + drho_t
 
@@ -1603,8 +1603,7 @@ def _rhs_rho_milstein_homodyne_two_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
     e[2:4] -= 2.0 * e[:2] * e[:2]
     e[4] -= 2.0 * e[1] * e[0]
 
-    drho_t = (1.0 - np.inner(e, dW)) * rho_t in np.ndindex(A_len, A_len) if n != m], axis=0)
-
+    drho_t = (1.0 - np.inner(e, dW)) * rho_t
     dW[:2] -= 2.0 * e[:2] * dW[2:4]
 
     drho_t += d_vec[-1]
