@@ -102,7 +102,9 @@ def parfor(func, *args, **kwargs):
         print("Reduce 'num_cpus' for greater performance.")
 
     pool = Pool(processes=kw['num_cpus'])
-    var = [[args[j][i] for j in range(len(args))] for i in range(len(args[0]))]
+    args = [list(arg) for arg in args]
+    var = [[args[j][i] for j in range(len(args))]
+           for i in range(len(list(args[0])))]
     try:
         map_args = ((func, v, os.getpid()) for v in var)
         par_return = list(pool.map(task_func, map_args))
