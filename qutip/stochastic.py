@@ -59,23 +59,28 @@ Todo:
 import numpy as np
 import scipy.sparse as sp
 import scipy
-from scipy.linalg import norm
+from scipy.linalg.blas import get_blas_funcs
+try:
+    norm = get_blas_funcs("znrm2", dtype=np.float64)
+except:
+    from scipy.linalg import norm
+
 from numpy.random import RandomState
 
-from qutip.odedata import Odedata
-from qutip.odeoptions import Odeoptions
-from qutip.expect import expect, expect_rho_vec
 from qutip.qobj import Qobj, isket
+from qutip.states import ket2dm
+from qutip.operators import commutator
+from qutip.odedata import Odedata
+from qutip.expect import expect, expect_rho_vec
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
                                  liouvillian_fast, lindblad_dissipator)
-from qutip.states import ket2dm
 from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv, cy_expect_rho_vec
 from qutip.cy.stochastic import (cy_d1_rho_photocurrent,
-                                  cy_d2_rho_photocurrent)
+                                 cy_d2_rho_photocurrent)
 from qutip.gui.progressbar import TextProgressBar
-
+from qutip.odeoptions import Odeoptions
 from qutip.settings import debug
-from qutip.operators import commutator
+
 
 if debug:
     import inspect
@@ -552,8 +557,8 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
     if noise is None:
         if homogeneous:
             if distribution == 'normal':
-                dW = np.sqrt(
-                    dt) * scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
+                dW = np.sqrt(dt) * \
+                    scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
             else:
                 raise TypeError('Unsupported increment distribution for homogeneous process.')
         else:
@@ -571,7 +576,9 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
-                s = cy_expect_psi_csr(e.data.data, e.data.indices, e.data.indptr, psi_t, 0)
+                s = cy_expect_psi_csr(e.data.data,
+                                      e.data.indices,
+                                      e.data.indptr, psi_t, 0)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2
         else:
@@ -583,7 +590,10 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
 
             if noise is None and not homogeneous:
                 for a_idx, A in enumerate(A_ops):
-                    dw_expect = norm(spmv(A[0], psi_t)) ** 2 * dt
+                    #dw_expect = norm(spmv(A[0], psi_t)) ** 2 * dt
+                    dw_expect = cy_expect_psi_csr(A[3].data,
+                                                  A[3].indices,
+                                                  A[3].indptr, psi_t, 1) * dt
                     dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
 
             psi_t = rhs(H.data, psi_t, t + dt * j,
@@ -597,11 +607,16 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
             for m_idx, m in enumerate(m_ops):
                 for dW_idx, dW_factor in enumerate(dW_factors):
                     if m[dW_idx]:
-                        m_expt = norm(spmv(m[dW_idx].data, psi_prev)) ** 2
+                        m_data = m[dW_idx].data
+                        m_expt = cy_expect_psi_csr(m_data.data,
+                                                   m_data.indices,
+                                                   m_data.indptr,
+                                                   psi_t, 0)
                     else:
                         m_expt = 0
                     measurements[t_idx, m_idx, dW_idx] = (m_expt +
-                       dW_factor * dW[m_idx, t_idx, :, dW_idx].sum() / (dt * N_substeps))
+                       dW_factor * dW[m_idx, t_idx, :, dW_idx].sum() /
+                       (dt * N_substeps))
 
     if d2_len == 1:
         measurements = measurements.squeeze(axis=(2))
@@ -870,7 +885,7 @@ def _sepdpsolve_single_trajectory(data, Heff, dt, tlist, N_store, N_substeps,
         if e_ops:
             for e_idx, e in enumerate(e_ops):
                 s = cy_expect_psi_csr(
-                    e.data.data, e.data.indices, e.data.indptr, psi_t)
+                    e.data.data, e.data.indices, e.data.indptr, psi_t, 0)
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2
         else:
@@ -1093,12 +1108,12 @@ def d1_psi_homodyne(A, psi):
 
     .. math::
 
-        D_1(\psi, t) = \\frac{1}{2}(\\langle C + C^\\dagger\\rangle\\psi -
+        D_1(C, \psi) = \\frac{1}{2}(\\langle C + C^\\dagger\\rangle\\C psi -
         C^\\dagger C\\psi - \\frac{1}{4}\\langle C + C^\\dagger\\rangle^2\\psi)
 
     """
 
-    e1 = cy_expect_psi_csr(A[1].data, A[1].indices, A[1].indptr, psi)
+    e1 = cy_expect_psi_csr(A[1].data, A[1].indices, A[1].indptr, psi, 0)
     return 0.5 * (e1 * spmv(A[0], psi) -
                   spmv(A[3], psi) -
                   0.25 * e1 ** 2 * psi)
@@ -1115,7 +1130,7 @@ def d2_psi_homodyne(A, psi):
 
     """
 
-    e1 = cy_expect_psi_csr(A[1].data, A[1].indices, A[1].indptr, psi)
+    e1 = cy_expect_psi_csr(A[1].data, A[1].indices, A[1].indptr, psi, 0)
     return [spmv(A[0], psi) - 0.5 * e1 * psi]
 
 
@@ -1129,9 +1144,9 @@ def d1_psi_heterodyne(A, psi):
                         \\frac{1}{2}\\langle C \\rangle\\langle C^\\dagger \\rangle))\psi
 
     """
-    e_C = cy_expect_psi_csr(A[0].data, A[0].indices, A[0].indptr, psi)  # e_C
+    e_C = cy_expect_psi_csr(A[0].data, A[0].indices, A[0].indptr, psi, 0)
     B = A[0].T.conj()
-    e_Cd = cy_expect_psi_csr(B.data, B.indices, B.indptr, psi)  # e_Cd
+    e_Cd = cy_expect_psi_csr(B.data, B.indices, B.indptr, psi, 0)
 
     return (-0.5 * spmv(A[3], psi) +
             0.5 * e_Cd * spmv(A[0], psi) -
@@ -1146,14 +1161,14 @@ def d2_psi_heterodyne(A, psi):
 
         Y = \\frac{1}{2}(C - C^\\dagger)
 
-        D_{2,1}(\psi, t) = \\sqrt(1/2) * (C - \\langle X \\rangle) \\psi
+        D_{2,1}(\psi, t) = \\sqrt(1/2) (C - \\langle X \\rangle) \\psi
 
-        D_{2,2}(\psi, t) = -i\\sqrt(1/2) * (C - \\langle Y \\rangle) \\psi
+        D_{2,2}(\psi, t) = -i\\sqrt(1/2) (C - \\langle Y \\rangle) \\psi
 
     """
 
-    X = 0.5 * cy_expect_psi_csr(A[1].data, A[1].indices, A[1].indptr, psi)
-    Y = 0.5 * cy_expect_psi_csr(A[2].data, A[2].indices, A[2].indptr, psi)
+    X = 0.5 * cy_expect_psi_csr(A[1].data, A[1].indices, A[1].indptr, psi, 0)
+    Y = 0.5 * cy_expect_psi_csr(A[2].data, A[2].indices, A[2].indptr, psi, 0)
 
     d2_1 = np.sqrt(0.5) * (spmv(A[0], psi) - X * psi)
     d2_2 = -1.0j * np.sqrt(0.5) * (spmv(A[0], psi) - Y * psi)
@@ -1190,9 +1205,9 @@ def d2_psi_photocurrent(A, psi):
     psi_1 = spmv(A[0], psi)
     n1 = norm(psi_1)
     if n1 != 0:
-        return psi_1 / n1 - psi
+        return [psi_1 / n1 - psi]
     else:
-        return - psi
+        return [- psi]
 
 
 #
@@ -1211,7 +1226,6 @@ def d2_psi_photocurrent(A, psi):
 #     A[5] = spost(a.dag() * a) = (Ad A)_R
 #     A[6] = (spre(a) * spost(a.dag()) = A_L * Ad_R
 #     A[7] = lindblad_dissipator(a)
-
 
 
 def _generate_rho_A_ops(sc, L, dt):
@@ -1242,6 +1256,11 @@ def _generate_A_ops_Euler(sc, L, dt):
     out1 = [[sp.vstack(out).tocsr(), sc[0].shape[0]]]
     # the following hack is required for compatibility with old A_ops
     out1 += [[] for n in range(A_len - 1)]
+
+    # XXX: fix this!
+    out1[0][0].indices = np.array(out1[0][0].indices, dtype=np.int32)
+    out1[0][0].indptr = np.array(out1[0][0].indptr, dtype=np.int32)
+
     return out1
 
 
@@ -1261,6 +1280,11 @@ def _generate_A_ops_Milstein(sc, L, dt):
     out1 = [[sp.vstack(out).tocsr(), sc[0].shape[0]]]
     # the following hack is required for compatibility with old A_ops
     out1 += [[] for n in range(A_len - 1)]
+
+    # XXX: fix this!
+    out1[0][0].indices = np.array(out1[0][0].indices, dtype=np.int32)
+    out1[0][0].indptr = np.array(out1[0][0].indptr, dtype=np.int32)
+
     return out1
 
 
@@ -1410,9 +1434,9 @@ def _rhs_psi_euler_maruyama(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
 
     for a_idx, A in enumerate(A_ops):
         d2_vec = d2(A, psi_t)
-        dpsi_t += d1(A, psi_t) * dt + sum([d2_vec[n] * dW[a_idx, n]
-                                           for n in range(dW_len)
-                                           if dW[a_idx, n] != 0])
+        dpsi_t += d1(A, psi_t) * dt + np.sum([d2_vec[n] * dW[a_idx, n]
+                                              for n in range(dW_len)
+                                              if dW[a_idx, n] != 0], axis=0)
 
     return psi_t + dpsi_t
 
@@ -1431,8 +1455,8 @@ def _rhs_rho_euler_maruyama(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     for a_idx, A in enumerate(A_ops):
         d2_vec = d2(A, rho_t)
         drho_t += d1(A, rho_t) * dt
-        drho_t += sum([d2_vec[n] * dW[a_idx, n] for n in range(
-            dW_len) if dW[a_idx, n] != 0])
+        drho_t += np.sum([d2_vec[n] * dW[a_idx, n] 
+                          for n in range(dW_len) if dW[a_idx, n] != 0], axis=0)
 
     return rho_t + drho_t
 

@@ -32,27 +32,31 @@
 ###############################################################################
 
 cimport numpy as np
+cimport cython
 
 ctypedef np.complex128_t CTYPE_t
 ctypedef np.float64_t DTYPE_t
+ctypedef np.int32_t ITYPE_t
+ITYPE = np.int32
 
-cpdef np.ndarray[CTYPE_t, ndim=1] spmv_csr(np.ndarray[CTYPE_t, ndim=1] data,
-                                       np.ndarray[int] idx,
-                                       np.ndarray[int] ptr,
-                                       np.ndarray[CTYPE_t, ndim=1] vec)
+cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv_csr(
+    np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
+    np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
+    np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
+    np.ndarray[CTYPE_t, ndim=1, mode="c"] vec)
 
-cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1] data,
-                             np.ndarray[int] idx,
-                             np.ndarray[int] ptr,
-                             np.ndarray[CTYPE_t, ndim=1] rho_vec,
-                             int herm)
+cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
+                            np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
+                            np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
+                            np.ndarray[CTYPE_t, ndim=1, mode="c"] rho_vec,
+                            int herm)
 
 cpdef cy_expect_psi(object op,
-                    np.ndarray[CTYPE_t, ndim=1] state,
+                    np.ndarray[CTYPE_t, ndim=1, mode="c"] state,
                     int isherm)
 
-cpdef cy_expect_psi_csr(np.ndarray[CTYPE_t, ndim=1] data,
-                        np.ndarray[int] idx,
-                        np.ndarray[int] ptr, 
-                        np.ndarray[CTYPE_t, ndim=1] state,
+cpdef cy_expect_psi_csr(np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
+                        np.ndarray[ITYPE_t, ndim=1, mode="c"] idx,
+                        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr, 
+                        np.ndarray[CTYPE_t, ndim=1, mode="c"] state,
                         int isherm)
