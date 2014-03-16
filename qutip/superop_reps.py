@@ -13,7 +13,7 @@ from numpy.matrixlib.defmatrix import matrix
 from numpy import sqrt
 from scipy.linalg import eig
 
-from qutip.superoperator import vec2mat
+from qutip.superoperator import vec2mat, spre, spost
 from qutip.qobj import Qobj
 
 def _dep_super(pe):
@@ -131,9 +131,9 @@ def to_choi(q_oper):
     if q_oper.type == 'choi':
         return q_oper
     elif q_oper.type == 'super':
-        return choi_to_super(q_oper)
-    elif q_oper.type = 'oper':
-        return choi_to_super(spre(q_oper) * spost(q_oper.dag()))
+        return super_to_choi(q_oper)
+    elif q_oper.type == 'oper':
+        return super_to_choi(spre(q_oper) * spost(q_oper.dag()))
     else:
         raise TypeError("Conversion of Qobj.type = {} to Choi not supported.".format(q_oper.type))
 
