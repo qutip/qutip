@@ -115,7 +115,7 @@ def kraus_to_choi(kraus_list):
                           for r_ix in op_rng]
                          for c_ix in op_rng])
     return Qobj(inpt=hstack(hstack(choi_blocks)),
-                dims=[kraus_list[0].dims, kraus_list[0].dims])
+                dims=[kraus_list[0].dims, kraus_list[0].dims], type='choi')
 
 
 def kraus_to_super(kraus_list):
