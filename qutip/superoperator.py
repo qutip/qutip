@@ -18,7 +18,7 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERsS AND CONTRIBUTORS 
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
 #    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
 #    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
@@ -241,7 +241,7 @@ def spost(A):
     if not isoper(A):
         raise TypeError('Input is not a quantum object')
 
-    S = Qobj(isherm=A.isherm)
+    S = Qobj(isherm=A.isherm, type='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
     S.shape = [prod(S.dims[0]), prod(S.dims[1])]
     S.data = sp.kron(A.data.T, sp.identity(prod(A.dims[0])), format='csr')
@@ -265,7 +265,7 @@ def spre(A):
     if not isoper(A):
         raise TypeError('Input is not a quantum object')
 
-    S = Qobj(isherm=A.isherm)
+    S = Qobj(isherm=A.isherm, type='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
     S.shape = [prod(S.dims[0]), prod(S.dims[1])]
     S.data = sp.kron(sp.identity(prod(A.dims[1])), A.data, format='csr')
