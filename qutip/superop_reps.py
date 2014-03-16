@@ -137,4 +137,14 @@ def to_choi(q_oper):
     else:
         raise TypeError("Conversion of Qobj.type = {} to Choi not supported.".format(q_oper.type))
 
+def to_super(q_oper):
+    # TODO: docstring
+    if q_oper.type == 'super':
+        return q_oper
+    elif q_oper.type == 'choi':
+        return choi_to_super(q_oper)
+    elif q_oper.type == 'oper': # Assume unitary.
+        return spre(q_oper) * spost(q_oper.dag())
+    else:
+        raise TypeError("Conversion of Qobj.type = {} to supermatrix not supported.".format(q_oper.type))
 

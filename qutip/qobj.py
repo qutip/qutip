@@ -53,7 +53,7 @@ from qutip.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, _sp_expm, _sp_fro_norm, _sp_max_norm,
                           _sp_one_norm, _sp_L2_norm, _sp_inf_norm)
-
+                          
 class Qobj():
     """A class for representing quantum objects, such as quantum operators
     and states.
@@ -548,12 +548,16 @@ class Qobj():
 
     def __str__(self):
         s = ""
-        if self.type == 'oper' or self.type == 'super':
+        if self.type in set(['oper', 'super', 'choi']):
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
                   ", shape = " + str(self.shape) +
                   ", type = " + self.type +
-                  ", isherm = " + str(self.isherm) + "\n")
+                  ", isherm = " + str(self.isherm) +
+                  ((
+                      ", iscptp = {0.iscptp}".format(self)
+                  ) if is_qmap(self) else "") +
+                  "\n")
         else:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
@@ -599,7 +603,7 @@ class Qobj():
         formatted output in ipython notebook.
         """
         s = r'$\text{'
-        if self.type == 'oper' or self.type == 'super':
+        if self.type in set(('oper', 'super', 'choi')):
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
                   ", shape = " + str(self.shape) +
@@ -1367,6 +1371,15 @@ class Qobj():
                                  for s in range(self.shape[0])]).nonzero()[0]
 
         return self.extract_states(keep_indices, normalize=normalize)
+        
+    @property    
+    def iscptp(self):
+        # FIXME: this needs to be cached in the same ways as isherm.
+        from qutip.superop_reps import to_choi
+        q_oper = to_choi(self)
+        eigs = q_oper.eigenenergies()
+        return all(eigs >= 0)
+    
 
 
 #------------------------------------------------------------------------------
