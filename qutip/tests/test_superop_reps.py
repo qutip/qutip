@@ -39,7 +39,7 @@ Created on Wed May 29 11:23:46 2013
 ###############################################################################
 
 from numpy.linalg import norm
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_, run_module_suite, assert_raises
 import scipy
 
 from qutip.qobj import Qobj
@@ -47,7 +47,8 @@ from qutip.operators import create, destroy, jmat
 from qutip.propagator import propagator
 from qutip.random_objects import rand_herm
 from qutip.superop_reps import (super_to_choi, choi_to_kraus,
-                                choi_to_super, kraus_to_choi)
+                                choi_to_super, kraus_to_choi,
+                                to_super, to_choi)
 
 
 class TestSuperopReps(object):
@@ -55,30 +56,58 @@ class TestSuperopReps(object):
     A test class for the QuTiP function for applying superoperators to
     subsystems.
     """
+    
+    def rand_super(self):
+        h_5 = rand_herm(5)
+        return propagator(h_5, scipy.rand(), [
+            create(5), destroy(5), jmat(2, 'z')
+        ])
 
     def test_SuperChoiSuper(self):
         """
         Superoperator: Converting superoperator to Choi matrix and back.
         """
-        h_5 = rand_herm(5)
-        superoperator = propagator(h_5, scipy.rand(),
-                                   [create(5), destroy(5), jmat(2, 'z')])
+        superoperator = self.rand_super()
+                               
         choi_matrix = super_to_choi(superoperator)
-        test_supe = choi_to_super(choi_matrix)
+        test_supe = to_super(choi_matrix)
+        
+        # Assert both that the result is close to expected, and has the right
+        # type.
         assert_((test_supe - superoperator).norm() < 1e-12)
+        assert_(choi_matrix.type == "choi")
+        assert_(test_supe.type == "super")
 
     def test_ChoiKrausChoi(self):
         """
         Superoperator: Converting superoperator to Choi matrix and back.
         """
-        h_5 = rand_herm(5)
-        superoperator = propagator(h_5, scipy.rand(),
-                                   [create(5), destroy(5), jmat(2, 'z')])
+        superoperator = self.rand_super()
         choi_matrix = super_to_choi(superoperator)
         kraus_ops = choi_to_kraus(choi_matrix)
         test_choi = kraus_to_choi(kraus_ops)
+        
+        # Assert both that the result is close to expected, and has the right
+        # type.
         assert_((test_choi - choi_matrix).norm() < 1e-12)
-
+        assert_(choi_matrix.type == "choi")
+        assert_(test_choi.type == "choi")
+        
+    def test_SuperPreservesSelf(self):
+        """
+        Superoperator: Test that to_super(q) returns q if q is already a
+        supermatrix.
+        """
+        superop = self.rand_super()
+        assert_(superop is to_super(superop))
+        
+    def test_ChoiPreservesSelf(self):
+        """
+        Superoperator: Test that to_choi(q) returns q if q is already Choi.
+        """
+        superop = self.rand_super()
+        choi = to_choi(superop)
+        assert_(choi is to_choi(choi))
 
 if __name__ == "__main__":
     run_module_suite()
