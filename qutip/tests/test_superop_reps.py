@@ -48,7 +48,7 @@ from qutip.propagator import propagator
 from qutip.random_objects import rand_herm
 from qutip.superop_reps import (super_to_choi, choi_to_kraus,
                                 choi_to_super, kraus_to_choi,
-                                to_super, to_choi)
+                                to_super, to_choi, to_kraus)
 
 
 class TestSuperopReps(object):
@@ -69,7 +69,7 @@ class TestSuperopReps(object):
         """
         superoperator = self.rand_super()
                                
-        choi_matrix = super_to_choi(superoperator)
+        choi_matrix = to_choi(superoperator)
         test_supe = to_super(choi_matrix)
         
         # Assert both that the result is close to expected, and has the right
@@ -83,8 +83,8 @@ class TestSuperopReps(object):
         Superoperator: Converting superoperator to Choi matrix and back.
         """
         superoperator = self.rand_super()
-        choi_matrix = super_to_choi(superoperator)
-        kraus_ops = choi_to_kraus(choi_matrix)
+        choi_matrix = to_choi(superoperator)
+        kraus_ops = to_kraus(choi_matrix)
         test_choi = kraus_to_choi(kraus_ops)
         
         # Assert both that the result is close to expected, and has the right

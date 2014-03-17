@@ -160,3 +160,18 @@ def to_super(q_oper):
             "supported.".format(q_oper)
         )
 
+def to_kraus(q_oper):
+    # TODO: docstring
+    if q_oper.type == 'super':
+        if q_oper.superrep == "super":
+            return to_kraus(to_choi(q_oper))
+        elif q_oper.superrep == 'choi':
+            return choi_to_kraus(q_oper)
+    elif q_oper.type == 'oper': # Assume unitary.
+        return [q_oper]
+    else:
+        raise TypeError(
+            "Conversion of Qobj with type = {0.type} "
+            "and superrep = {0.choi} to Kraus decomposition not "
+            "supported.".format(q_oper)
+        )
