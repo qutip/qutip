@@ -89,7 +89,11 @@ class Qobj():
         Indicates if quantum object represents Hermitian operator.
     type : str
         Type of quantum object: 'bra', 'ket', 'oper', or 'super'.
-
+    superrep : str
+        Representation used if `type` is 'super'. One of 'super'
+        (Liouville form) or 'choi' (Choi matrix with tr = dimension).
+    iscptp : bool
+        Indicates if the quantum object represent a map that is CPTP.
 
     Methods
     -------
@@ -135,7 +139,7 @@ class Qobj():
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
 
     def __init__(self, inpt=None, dims=[[], []], shape=[],
-                 type=None, isherm=None, fast=False):
+                 type=None, isherm=None, fast=False, superrep=None):
         """
         Qobj constructor.
         """
@@ -258,6 +262,11 @@ class Qobj():
             self.type = ischeck(self)
         else:
             self.type = type
+            
+        if self.type == 'super':
+            self.superrep = 'super' if superrep is None else superrep
+        else:
+            self.superrep = None
 
     def __add__(self, other):  # defines left addition for Qobj class
         """
@@ -548,15 +557,16 @@ class Qobj():
 
     def __str__(self):
         s = ""
-        if self.type in set(['oper', 'super', 'choi']):
+        if self.type == 'oper' or self.type == 'super':
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
                   ", shape = " + str(self.shape) +
                   ", type = " + self.type +
                   ", isherm = " + str(self.isherm) +
                   ((
+                      ", superrep = {0.superrep}"
                       ", iscptp = {0.iscptp}".format(self)
-                  ) if is_qmap(self) else "") +
+                  ) if self.type == "super" else "") +
                   "\n")
         else:
             s += ("Quantum object: " +
@@ -603,7 +613,7 @@ class Qobj():
         formatted output in ipython notebook.
         """
         s = r'$\text{'
-        if self.type in set(('oper', 'super', 'choi')):
+        if self.type == 'oper' or self.type == 'super':
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
                   ", shape = " + str(self.shape) +

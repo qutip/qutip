@@ -75,8 +75,8 @@ class TestSuperopReps(object):
         # Assert both that the result is close to expected, and has the right
         # type.
         assert_((test_supe - superoperator).norm() < 1e-12)
-        assert_(choi_matrix.type == "choi")
-        assert_(test_supe.type == "super")
+        assert_(choi_matrix.type == "super" and choi_matrix.superrep == "choi")
+        assert_(test_supe.type == "super" and test_supe.superrep == "super")
 
     def test_ChoiKrausChoi(self):
         """
@@ -90,8 +90,8 @@ class TestSuperopReps(object):
         # Assert both that the result is close to expected, and has the right
         # type.
         assert_((test_choi - choi_matrix).norm() < 1e-12)
-        assert_(choi_matrix.type == "choi")
-        assert_(test_choi.type == "choi")
+        assert_(choi_matrix.type == "super" and choi_matrix.superrep == "choi")
+        assert_(test_choi.type == "super" and test_choi.superrep == "choi")
         
     def test_SuperPreservesSelf(self):
         """

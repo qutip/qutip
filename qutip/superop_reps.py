@@ -76,7 +76,7 @@ def super_to_choi(q_oper):
     # TODO Sanitize input, incorporate as method on Qobj if type=='super'
     """
     q_oper = _super_tofrom_choi(q_oper)
-    q_oper.type = 'choi'
+    q_oper.superrep = 'choi'
     return q_oper
 
 def choi_to_super(q_oper):
@@ -87,7 +87,7 @@ def choi_to_super(q_oper):
     # TODO Sanitize input, Abstract-ify application of channels to states
     """
     q_oper = super_to_choi(q_oper)
-    q_oper.type = 'super'
+    q_oper.superrep = 'super'
     return q_oper
 
 def choi_to_kraus(q_oper):
@@ -115,7 +115,8 @@ def kraus_to_choi(kraus_list):
                           for r_ix in op_rng]
                          for c_ix in op_rng])
     return Qobj(inpt=hstack(hstack(choi_blocks)),
-                dims=[kraus_list[0].dims, kraus_list[0].dims], type='choi')
+                dims=[kraus_list[0].dims, kraus_list[0].dims], type='super',
+                superrep='choi')
 
 
 def kraus_to_super(kraus_list):
@@ -128,23 +129,34 @@ def kraus_to_super(kraus_list):
 
 def to_choi(q_oper):
     # TODO: docstring
-    if q_oper.type == 'choi':
-        return q_oper
-    elif q_oper.type == 'super':
-        return super_to_choi(q_oper)
+    if q_oper.type == 'super':
+        if q_oper.superrep == 'choi':
+            return q_oper
+        if q_oper.superrep == 'super':
+            return super_to_choi(q_oper)
+        else:
+            raise TypeError(q_oper.superrep)
     elif q_oper.type == 'oper':
         return super_to_choi(spre(q_oper) * spost(q_oper.dag()))
     else:
-        raise TypeError("Conversion of Qobj.type = {} to Choi not supported.".format(q_oper.type))
+        raise TypeError(
+            "Conversion of Qobj with type = {0.type} "
+            "and superrep = {0.choi} to Choi not supported.".format(q_oper)
+        )
 
 def to_super(q_oper):
     # TODO: docstring
     if q_oper.type == 'super':
-        return q_oper
-    elif q_oper.type == 'choi':
-        return choi_to_super(q_oper)
+        if q_oper.superrep == "super":
+            return q_oper
+        elif q_oper.superrep == 'choi':
+            return choi_to_super(q_oper)
     elif q_oper.type == 'oper': # Assume unitary.
         return spre(q_oper) * spost(q_oper.dag())
     else:
-        raise TypeError("Conversion of Qobj.type = {} to supermatrix not supported.".format(q_oper.type))
+        raise TypeError(
+            "Conversion of Qobj with type = {0.type} "
+            "and superrep = {0.choi} to supermatrix not "
+            "supported.".format(q_oper)
+        )
 
