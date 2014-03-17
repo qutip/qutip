@@ -128,7 +128,27 @@ def kraus_to_super(kraus_list):
 # the input Qobj.type.
 
 def to_choi(q_oper):
-    # TODO: docstring
+    """
+    Converts a Qobj representing a quantum map to the Choi representation,
+    such that the trace of the returned operator is equal to the dimension
+    of the system.
+    
+    Parameters
+    ----------
+    q_oper : Qobj
+        Superoperator to be converted to Choi representation.
+        
+    Returns
+    -------
+    choi : Qobj
+        A quantum object representing the same map as ``q_oper``, such that
+        ``choi.superrep == "choi"``.
+        
+    Raises
+    ------
+    TypeError: if the given quantum object is not a map, or cannot be converted
+        to Choi representation.
+    """
     if q_oper.type == 'super':
         if q_oper.superrep == 'choi':
             return q_oper
@@ -145,7 +165,26 @@ def to_choi(q_oper):
         )
 
 def to_super(q_oper):
-    # TODO: docstring
+    """
+    Converts a Qobj representing a quantum map to the supermatrix (Liouville)
+    representation.
+    
+    Parameters
+    ----------
+    q_oper : Qobj
+        Superoperator to be converted to supermatrix representation.
+        
+    Returns
+    -------
+    superop : Qobj
+        A quantum object representing the same map as ``q_oper``, such that
+        ``superop.superrep == "super"``.
+        
+    Raises
+    ------
+    TypeError: if the given quantum object is not a map, or cannot be converted
+        to supermatrix representation.
+    """
     if q_oper.type == 'super':
         if q_oper.superrep == "super":
             return q_oper
@@ -156,12 +195,31 @@ def to_super(q_oper):
     else:
         raise TypeError(
             "Conversion of Qobj with type = {0.type} "
-            "and superrep = {0.choi} to supermatrix not "
+            "and superrep = {0.superrep} to supermatrix not "
             "supported.".format(q_oper)
         )
 
 def to_kraus(q_oper):
-    # TODO: docstring
+    """
+    Converts a Qobj representing a quantum map to a list of quantum objects,
+    each representing an operator in the Kraus decomposition of the given map.
+    
+    Parameters
+    ----------
+    q_oper : Qobj
+        Superoperator to be converted to Kraus representation.
+        
+    Returns
+    -------
+    kraus_ops : list of Qobj
+        A list of quantum objects, each representing a Kraus operator in the
+        decomposition of ``q_oper``.
+        
+    Raises
+    ------
+    TypeError: if the given quantum object is not a map, or cannot be
+        decomposed into Kraus operators.
+    """
     if q_oper.type == 'super':
         if q_oper.superrep == "super":
             return to_kraus(to_choi(q_oper))
@@ -172,6 +230,7 @@ def to_kraus(q_oper):
     else:
         raise TypeError(
             "Conversion of Qobj with type = {0.type} "
-            "and superrep = {0.choi} to Kraus decomposition not "
+            "and superrep = {0.superrep} to Kraus decomposition not "
             "supported.".format(q_oper)
         )
+    

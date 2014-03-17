@@ -38,12 +38,14 @@ Created on Wed May 29 11:23:46 2013
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+from numpy import abs
 from numpy.linalg import norm
 from numpy.testing import assert_, run_module_suite, assert_raises
 import scipy
 
 from qutip.qobj import Qobj
-from qutip.operators import create, destroy, jmat
+from qutip.states import basis
+from qutip.operators import create, destroy, jmat, identity
 from qutip.propagator import propagator
 from qutip.random_objects import rand_herm
 from qutip.superop_reps import (super_to_choi, choi_to_kraus,
@@ -108,6 +110,24 @@ class TestSuperopReps(object):
         superop = self.rand_super()
         choi = to_choi(superop)
         assert_(choi is to_choi(choi))
+        
+    def test_iscptp(self):
+        """
+        Superoperator: Checks a few common usecases for Qobj.iscptp.
+        """
+        superop = self.rand_super()
+        assert_(superop.iscptp) 
+        assert_(identity(2).iscptp) # Check that unitaries work, too.
+        assert_(not (basis(2).iscptp))
+        
+    def test_choi_tr(self):
+        """
+        Superoperator: Checks that the trace of matrices returned by to_choi
+        matches that asserted by the docstring for that function.
+        """
+        for dims in xrange(2, 5):
+            assert_(abs(to_choi(identity(dims)).tr() - dims) <= 1e-12)
 
 if __name__ == "__main__":
     run_module_suite()
+    

@@ -102,10 +102,10 @@ def average_gate_fidelity(oper):
             "superoperators.")
     
     return (
-        d + sum(
+        d + np.sum([
             np.abs(A_k.tr())**2
             for A_k in kraus_form
-        )
+        ])
     ) / (d**2 + d)
 
 

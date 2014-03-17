@@ -93,7 +93,7 @@ class Qobj():
         Representation used if `type` is 'super'. One of 'super'
         (Liouville form) or 'choi' (Choi matrix with tr = dimension).
     iscptp : bool
-        Indicates if the quantum object represent a map that is CPTP.
+        Indicates if the quantum object represent a map and if that is CPTP.
 
     Methods
     -------
@@ -264,7 +264,7 @@ class Qobj():
             self.type = type
             
         if self.type == 'super':
-            self.superrep = 'super' if superrep is None else superrep
+            self.superrep = superrep if superrep else 'super'
         else:
             self.superrep = None
 
@@ -618,7 +618,11 @@ class Qobj():
                   "dims = " + str(self.dims) +
                   ", shape = " + str(self.shape) +
                   ", type = " + self.type +
-                  ", isHerm = " + str(self.isherm))
+                  ", isherm = " + str(self.isherm) +
+                  ((
+                      ", superrep = {0.superrep}"
+                      ", iscptp = {0.iscptp}".format(self)
+                  ) if self.type == "super" else ""))
         else:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
@@ -1386,9 +1390,15 @@ class Qobj():
     def iscptp(self):
         # FIXME: this needs to be cached in the same ways as isherm.
         from qutip.superop_reps import to_choi
-        q_oper = to_choi(self)
-        eigs = q_oper.eigenenergies()
-        return all(eigs >= 0)
+        if self.type == "super" or self.type == "oper":
+            try:
+                q_oper = to_choi(self)
+                eigs = q_oper.eigenenergies()
+                return all(eigs >= 0)
+            except:
+                return False
+        else:
+            return False
     
 
 
