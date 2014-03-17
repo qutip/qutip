@@ -53,7 +53,7 @@ from qutip.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, _sp_expm, _sp_fro_norm, _sp_max_norm,
                           _sp_one_norm, _sp_L2_norm, _sp_inf_norm)
-
+                          
 class Qobj():
     """A class for representing quantum objects, such as quantum operators
     and states.
@@ -89,7 +89,11 @@ class Qobj():
         Indicates if quantum object represents Hermitian operator.
     type : str
         Type of quantum object: 'bra', 'ket', 'oper', or 'super'.
-
+    superrep : str
+        Representation used if `type` is 'super'. One of 'super'
+        (Liouville form) or 'choi' (Choi matrix with tr = dimension).
+    iscptp : bool
+        Indicates if the quantum object represent a map and if that is CPTP.
 
     Methods
     -------
@@ -135,7 +139,7 @@ class Qobj():
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
 
     def __init__(self, inpt=None, dims=[[], []], shape=[],
-                 type=None, isherm=None, fast=False):
+                 type=None, isherm=None, fast=False, superrep=None):
         """
         Qobj constructor.
         """
@@ -258,6 +262,11 @@ class Qobj():
             self.type = ischeck(self)
         else:
             self.type = type
+            
+        if self.type == 'super':
+            self.superrep = superrep if superrep else 'super'
+        else:
+            self.superrep = None
 
     def __add__(self, other):  # defines left addition for Qobj class
         """
@@ -553,7 +562,12 @@ class Qobj():
                   "dims = " + str(self.dims) +
                   ", shape = " + str(self.shape) +
                   ", type = " + self.type +
-                  ", isherm = " + str(self.isherm) + "\n")
+                  ", isherm = " + str(self.isherm) +
+                  (
+                      ", superrep = {0.superrep}".format(self)
+                      if self.type == "super" and self.superrep != "super"
+                      else ""
+                  ) + "\n")
         else:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
@@ -604,7 +618,12 @@ class Qobj():
                   "dims = " + str(self.dims) +
                   ", shape = " + str(self.shape) +
                   ", type = " + self.type +
-                  ", isHerm = " + str(self.isherm))
+                  ", isherm = " + str(self.isherm) +
+                  (
+                      ", superrep = {0.superrep}".format(self)
+                      if self.type == "super" and self.superrep != "super"
+                      else ""
+                  ))
         else:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
@@ -1367,6 +1386,21 @@ class Qobj():
                                  for s in range(self.shape[0])]).nonzero()[0]
 
         return self.extract_states(keep_indices, normalize=normalize)
+        
+    @property    
+    def iscptp(self):
+        # FIXME: this needs to be cached in the same ways as isherm.
+        from qutip.superop_reps import to_choi
+        if self.type == "super" or self.type == "oper":
+            try:
+                q_oper = to_choi(self)
+                eigs = q_oper.eigenenergies()
+                return all(eigs >= 0)
+            except:
+                return False
+        else:
+            return False
+    
 
 
 #------------------------------------------------------------------------------

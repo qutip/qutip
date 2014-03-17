@@ -41,6 +41,7 @@ import scipy.linalg as la
 import numpy as np
 from qutip.sparse import sp_eigs
 from qutip.states import ket2dm
+from qutip.superop_reps import to_kraus
 
 
 def fidelity(A, B):
@@ -77,6 +78,35 @@ def fidelity(A, B):
     else:
         A = A.sqrtm()
         return float(np.real((A * (B * A)).sqrtm().tr()))
+        
+def average_gate_fidelity(oper):
+    """
+    Given a Qobj representing the supermatrix form of a map, returns the
+    average gate fidelity (pseudo-metric) of that map.
+    
+    Parameters
+    ----------
+    A : Qobj
+        Quantum object representing a superoperator.
+        
+    Returns
+    -------
+    fid : float
+        Fidelity pseudo-metric between A and the identity superoperator.
+    """
+    kraus_form = to_kraus(oper)
+    d = kraus_form[0].shape[0]
+    
+    if kraus_form[0].shape[1] != d:
+        return TypeError("Average gate fielity only implemented for square "
+            "superoperators.")
+    
+    return (
+        d + np.sum([
+            np.abs(A_k.tr())**2
+            for A_k in kraus_form
+        ])
+    ) / (d**2 + d)
 
 
 def tracedist(A, B, sparse=False, tol=0):
