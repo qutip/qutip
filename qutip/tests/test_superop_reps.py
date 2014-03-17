@@ -125,7 +125,7 @@ class TestSuperopReps(object):
         Superoperator: Checks that the trace of matrices returned by to_choi
         matches that asserted by the docstring for that function.
         """
-        for dims in xrange(2, 5):
+        for dims in range(2, 5):
             assert_(abs(to_choi(identity(dims)).tr() - dims) <= 1e-12)
 
 if __name__ == "__main__":

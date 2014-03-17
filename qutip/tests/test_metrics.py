@@ -66,7 +66,7 @@ class TestMetrics(object):
         Metrics: Checks that average gate fidelities are sensible for random
         maps, and are equal to 1 for identity maps.
         """
-        for dims in xrange(2, 5):
+        for dims in range(2, 5):
             assert_(abs(average_gate_fidelity(identity(dims)) - 1) <= 1e-12)
         assert_(0 <= average_gate_fidelity(self.rand_super()) <= 1)
 

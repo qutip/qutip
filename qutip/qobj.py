@@ -563,11 +563,11 @@ class Qobj():
                   ", shape = " + str(self.shape) +
                   ", type = " + self.type +
                   ", isherm = " + str(self.isherm) +
-                  ((
-                      ", superrep = {0.superrep}"
-                      ", iscptp = {0.iscptp}".format(self)
-                  ) if self.type == "super" else "") +
-                  "\n")
+                  (
+                      ", superrep = {0.superrep}".format(self)
+                      if self.type == "super" and self.superrep != "super"
+                      else ""
+                  ) + "\n")
         else:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
@@ -619,10 +619,11 @@ class Qobj():
                   ", shape = " + str(self.shape) +
                   ", type = " + self.type +
                   ", isherm = " + str(self.isherm) +
-                  ((
-                      ", superrep = {0.superrep}"
-                      ", iscptp = {0.iscptp}".format(self)
-                  ) if self.type == "super" else ""))
+                  (
+                      ", superrep = {0.superrep}".format(self)
+                      if self.type == "super" and self.superrep != "super"
+                      else ""
+                  ))
         else:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
