@@ -36,6 +36,7 @@ import os
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
                    sqrt, real, imag, mod, append, ceil, floor, arange)
 
+import matplotlib.pyplot as plt
 from pylab import figure, plot, show, savefig, close
 from mpl_toolkits.mplot3d import Axes3D
 
@@ -122,25 +123,18 @@ class Bloch():
 
 
     """
-    def __init__(self, fig=None, axes=None):
-        #---sphere options---
-        self.fig = None
-        self.axes = None
-        self.user_fig = None
-        self.user_axes = None
-        # check if user specified figure or axes.
-        if fig:
-            self.user_fig = fig
-        if axes:
-            self.user_axes = axes
-        # use user-supplied figure object if present
-        self.input_axes = axes
+    def __init__(self, fig=None, axes=None, view=[-60, 30], size=[5, 5],
+                 background=False):
+
+        # Figure and axes
+        self.fig = fig
+        self.axes = axes
         # Background axes, default = False
-        self.background = False
+        self.background = background
         # The size of the figure in inches, default = [5,5].
-        self.size = [5, 5]
+        self.size = size
         # Azimuthal and Elvation viewing angles, default = [-60,30].
-        self.view = [-60, 30]
+        self.view = view
         # Color of Bloch sphere, default = #FFDDDD
         self.sphere_color = '#FFDDDD'
         # Transparency of Bloch sphere, default = 0.2
@@ -199,6 +193,9 @@ class Bloch():
         self.savenum = 0
         # Style of points, 'm' for multiple colors, 's' for single color
         self.point_style = []
+
+        # status of rendering
+        self._rendered = False
 
     def set_label_convention(self, convention):
         """Set x, y and z labels according to one of conventions.
@@ -284,6 +281,19 @@ class Bloch():
         s += "zlpos:           " + str(self.zlpos) + "\n"
         return s
 
+    def _repr_png_(self):
+        from IPython.core.pylabtools import print_figure
+        self.render()
+        fig_data = print_figure(self.fig, 'png')
+        plt.close(self.fig)
+        return fig_data
+
+#    def _repr_svg_(self):
+#        from IPython.core.pylabtools import print_figure
+#        if not self._rendered:
+#            self.make_sphere()
+#        return print_figure(self.fig, 'svg').decode('utf-8')
+
     def clear(self):
         """Resets Bloch sphere data sets to empty.
         """
@@ -323,6 +333,7 @@ class Bloch():
             self.points.append(points)
             self.point_style.append('m')
 
+
     def add_states(self, state, kind='vector'):
         """Add a state vector Qobj to Bloch sphere.
 
@@ -337,15 +348,16 @@ class Bloch():
         """
         if isinstance(state, Qobj):
             state = [state]
+
         for st in state:
+            vec = [expect(sigmax(), st), 
+                   expect(sigmay(), st),
+                   expect(sigmaz(), st)]
+
             if kind == 'vector':
-                vec = [expect(sigmax(), st), expect(sigmay(), st),
-                       expect(sigmaz(), st)]
                 self.add_vectors(vec)
             elif kind == 'point':
-                pnt = [expect(sigmax(), st), expect(sigmay(), st),
-                       expect(sigmaz(), st)]
-                self.add_points(pnt)
+                self.add_points(vec)
 
     def add_vectors(self, vectors):
         """Add a list of vectors to Bloch sphere.
@@ -391,7 +403,8 @@ class Bloch():
               and len(state_or_vector) == 3: 
             vec = state_or_vector 
         else:
-            raise Exception("Position needs to be specified by a qubit state or a 3D vector.")
+            raise Exception("Position needs to be specified by a qubit " + 
+                            "state or a 3D vector.")
         self.annotations.append({'position': vec,
                                  'text': text,
                                  'opts': kwargs})
@@ -400,17 +413,24 @@ class Bloch():
         """
         Plots Bloch sphere and data sets.
         """
-        # setup plot
+        self.render(self.fig, self.axes)
+
+    def render(self, fig=None, axes=None):
+        """
+        Render the Bloch sphere and its data sets in on given figure and axes.
+        """
+        if self._rendered:
+            self.axes.clear()
+
+        self._rendered = True
+
         # Figure instance for Bloch sphere plot
-        if self.user_axes:
-            self.axes = self.user_axes
-        else:
-            if self.user_fig:
-                self.fig = self.user_fig
-            else:
-                self.fig = figure(figsize=self.size)
-            self.axes = Axes3D(self.fig, azim=self.view[0],
-                               elev=self.view[1])
+        if not fig:
+            self.fig = plt.figure(figsize=self.size)
+
+        if not fig or not axes:
+            self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1])
+
         if self.background:
             self.axes.clear()
             self.axes.set_xlim3d(-1.3, 1.3)
@@ -422,6 +442,7 @@ class Bloch():
             self.axes.set_xlim3d(-0.7, 0.7)
             self.axes.set_ylim3d(-0.7, 0.7)
             self.axes.set_zlim3d(-0.7, 0.7)
+
         self.axes.grid(False)
         self.plot_back()
         self.plot_points()
@@ -431,7 +452,7 @@ class Bloch():
         self.plot_annotations()
 
     def plot_back(self):
-        #----back half of sphere------------------
+        # back half of sphere
         u = linspace(0, pi, 25)
         v = linspace(0, pi, 25)
         x = outer(cos(u), sin(v))
@@ -451,7 +472,7 @@ class Bloch():
                        lw=self.frame_width, color=self.frame_color)
 
     def plot_front(self):
-        # front half of sphere-----------------------
+        # front half of sphere
         u = linspace(-pi, 0, 25)
         v = linspace(0, pi, 25)
         x = outer(cos(u), sin(v))
@@ -598,9 +619,9 @@ class Bloch():
         """
         Display Bloch sphere and corresponding data sets.
         """
-        self.make_sphere()
+        self.render(self.fig, self.axes)
         if self.fig:
-            show(self.fig)
+            plt.show(self.fig)
 
     def save(self, name=None, format='png', dirc=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
@@ -622,7 +643,7 @@ class Bloch():
         File containing plot of Bloch sphere.
 
         """
-        self.make_sphere()
+        self.render(self.fig, self.axes)
         if dirc:
             if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
                 os.makedirs(os.getcwd() + "/" + str(dirc))
