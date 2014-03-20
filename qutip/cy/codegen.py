@@ -43,9 +43,6 @@ class Codegen():
         import sys
         import os
         sys.path.append(os.getcwd())
-        #--------------------------------------------#
-        #  CLASS PROPERTIES                          #
-        #--------------------------------------------#
 
         #--- Hamiltonian time-depdendent pieces ----#
         self.type = type
@@ -70,10 +67,6 @@ class Codegen():
         self.func_list[self.func_list.index('pi(')] = 'pi'
         # store odeconfig instance
         self.odeconfig = odeconfig
-
-    #--------------------------------------------#
-    #  CLASS METHODS                             #
-    #--------------------------------------------#
 
     def write(self, string):
         """write lines of code to self.code"""
@@ -100,9 +93,6 @@ class Codegen():
             self.write(line)
         self.write(self.func_end())
         self.dedent()
-        #if self.type == 'mc':
-        #    for line in cython_checks() + cython_spmv():
-        #        self.write(line)
 
         # generate collapse operator functions if any c_terms
         if any(self.c_tdterms):
@@ -157,10 +147,9 @@ class Codegen():
             td_len = len(td_consts)
             for jj in range(td_len):
                 kind = type(td_consts[jj][1]).__name__
-                input_vars += ", np." + kind + " " + td_consts[jj][0]
+                input_vars += ", np." + kind + "_t " + td_consts[jj][0]
         func_end = "):"
         return [func_name + input_vars + func_end]
-    #----
 
     def col_spmv_header(self):
         """
@@ -179,7 +168,6 @@ class Codegen():
                 input_vars += ", np." + kind + " " + td_consts[jj][0]
         func_end = "):"
         return [func_name + input_vars + func_end]
-    #----
 
     def col_expect_header(self):
         """
@@ -198,7 +186,6 @@ class Codegen():
                 input_vars += ", np." + kind + "_t" + " " + td_consts[jj][0]
         func_end = "):"
         return [func_name + input_vars + func_end]
-    #----
 
     def time_vars(self):
         """
