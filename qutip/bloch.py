@@ -34,12 +34,10 @@
 import os
 
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
-                   sqrt, real, imag, mod, append, ceil, floor, arange)
+                   sqrt, real, mod, append, ceil, arange)
 
 import matplotlib.pyplot as plt
-from pylab import figure, plot, show, savefig, close
 from mpl_toolkits.mplot3d import Axes3D
-
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
@@ -95,8 +93,8 @@ class Bloch():
         Transparency of Bloch sphere itself.
     sphere_color : str {'#FFDDDD'}
         Color of Bloch sphere.
-    size : list {[7,7]}
-        Size of Bloch sphere plot.  Best to have both numbers the same;
+    figsize : list {[7,7]}
+        Figure size of Bloch sphere plot.  Best to have both numbers the same;
         otherwise you will have a Bloch sphere that looks like a football.
     vector_color : list {["g","#CC6600","b","r"]}
         List of vector colors to cycle through.
@@ -123,7 +121,7 @@ class Bloch():
 
 
     """
-    def __init__(self, fig=None, axes=None, view=[-60, 30], size=[5, 5],
+    def __init__(self, fig=None, axes=None, view=[-60, 30], figsize=[5, 5],
                  background=False):
 
         # Figure and axes
@@ -132,7 +130,7 @@ class Bloch():
         # Background axes, default = False
         self.background = background
         # The size of the figure in inches, default = [5,5].
-        self.size = size
+        self.figsize = figsize
         # Azimuthal and Elvation viewing angles, default = [-60,30].
         self.view = view
         # Color of Bloch sphere, default = #FFDDDD
@@ -267,7 +265,7 @@ class Bloch():
         s += "point_size:      " + str(self.point_size) + "\n"
         s += "sphere_alpha:    " + str(self.sphere_alpha) + "\n"
         s += "sphere_color:    " + str(self.sphere_color) + "\n"
-        s += "size:            " + str(self.size) + "\n"
+        s += "figsize:         " + str(self.figsize) + "\n"
         s += "vector_color:    " + str(self.vector_color) + "\n"
         s += "vector_width:    " + str(self.vector_width) + "\n"
         s += "vector_style:    " + str(self.vector_style) + "\n"
@@ -428,7 +426,7 @@ class Bloch():
 
         # Figure instance for Bloch sphere plot
         if not fig:
-            self.fig = plt.figure(figsize=self.size)
+            self.fig = plt.figure(figsize=self.figsize)
 
         if not axes:
             self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1])
@@ -651,16 +649,16 @@ class Bloch():
                 os.makedirs(os.getcwd() + "/" + str(dirc))
         if name is None:
             if dirc:
-                savefig(os.getcwd() + "/" + str(dirc) + '/bloch_' +
-                        str(self.savenum) + '.' + format)
+                plt.savefig(os.getcwd() + "/" + str(dirc) + '/bloch_' +
+                            str(self.savenum) + '.' + format)
             else:
-                savefig(os.getcwd() + '/bloch_' + str(self.savenum) +
-                        '.' + format)
+                plt.savefig(os.getcwd() + '/bloch_' + str(self.savenum) +
+                            '.' + format)
         else:
-            savefig(name)
+            plt.savefig(name)
         self.savenum += 1
         if self.fig:
-            close(self.fig)
+            plt.close(self.fig)
 
 
 def _hide_tick_lines_and_labels(axis):
