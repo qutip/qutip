@@ -121,7 +121,7 @@ class Bloch():
 
 
     """
-    def __init__(self, fig=None, axes=None, view=[-60, 30], figsize=[5, 5],
+    def __init__(self, fig=None, axes=None, view=None, figsize=None,
                  background=False):
 
         # Figure and axes
@@ -130,9 +130,9 @@ class Bloch():
         # Background axes, default = False
         self.background = background
         # The size of the figure in inches, default = [5,5].
-        self.figsize = figsize
-        # Azimuthal and Elvation viewing angles, default = [-60,30].
-        self.view = view
+        self.figsize = figsize if figsize else [5, 5]
+        # Azimuthal and Elvation viewing angles, default = [-60,30].  
+        self.view = view if view else [-60, 30]
         # Color of Bloch sphere, default = #FFDDDD
         self.sphere_color = '#FFDDDD'
         # Transparency of Bloch sphere, default = 0.2
