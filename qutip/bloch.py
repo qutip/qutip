@@ -288,11 +288,13 @@ class Bloch():
         plt.close(self.fig)
         return fig_data
 
-#    def _repr_svg_(self):
-#        from IPython.core.pylabtools import print_figure
-#        if not self._rendered:
-#            self.make_sphere()
-#        return print_figure(self.fig, 'svg').decode('utf-8')
+    def _repr_svg_(self):
+        from IPython.core.pylabtools import print_figure
+        self.render()
+        fig_data = print_figure(self.fig, 'svg').decode('utf-8')
+        plt.close(self.fig)
+        return fig_data
+
 
     def clear(self):
         """Resets Bloch sphere data sets to empty.
