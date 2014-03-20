@@ -428,7 +428,7 @@ class Bloch():
         if not fig:
             self.fig = plt.figure(figsize=self.size)
 
-        if not fig or not axes:
+        if not axes:
             self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1])
 
         if self.background:
