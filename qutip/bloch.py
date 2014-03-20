@@ -116,7 +116,7 @@ class Bloch():
         List of strings corresponding to +y and -y axes labels, respectively.
     ylpos : list {[1.2,-1.2]}
         Positions of +y and -y labels respectively.
-    zlabel : list {['$\left|0\\right>$','$\left|1\\right>$']}
+    zlabel : list {['$\\left|0\\right>$','$\\left|1\\right>$']}
         List of strings corresponding to +z and -z axes labels, respectively.
     zlpos : list {[1.2,-1.2]}
         Positions of +z and -z labels respectively.
@@ -145,18 +145,18 @@ class Bloch():
         self.frame_width = 1
         # Transparency of wireframe, default = 0.2
         self.frame_alpha = 0.2
-        # Labels for x-axis (in LaTex), default = ['$x$','']
+        # Labels for x-axis (in LaTex), default = ['$x$', '']
         self.xlabel = ['$x$', '']
-        # Position of x-axis labels, default = [1.2,-1.2]
+        # Position of x-axis labels, default = [1.2, -1.2]
         self.xlpos = [1.2, -1.2]
-        # Labels for y-axis (in LaTex), default = ['$y$','']
+        # Labels for y-axis (in LaTex), default = ['$y$', '']
         self.ylabel = ['$y$', '']
-        # Position of y-axis labels, default = [1.1,-1.1]
+        # Position of y-axis labels, default = [1.1, -1.1]
         self.ylpos = [1.2, -1.2]
         # Labels for z-axis (in LaTex),
-        # default = ['$\left|0\\right>$','$\left|1\\right>$']
-        self.zlabel = ['$\left|0\\right>$', '$\left|1\\right>$']
-        # Position of z-axis labels, default = [1.2,-1.2]
+        # default = [r'$\left|0\right>$', r'$\left|1\right>$']
+        self.zlabel = [r'$\left|0\right>$', r'$\left|1\right>$']
+        # Position of z-axis labels, default = [1.2, -1.2]
         self.zlpos = [1.2, -1.2]
         #---font options---
         # Color of fonts, default = 'black'
@@ -389,7 +389,7 @@ class Bloch():
         text : str/unicode
             Annotation text.
             You can use LaTeX, but remember to use raw string
-            e.g. r"$\langle x \rangle$"
+            e.g. r"$\\langle x \\rangle$"
             or escape backslashes
             e.g. "$\\langle x \\rangle$". 
 
