@@ -87,10 +87,6 @@ def propagator(H, t, c_op_list, args=None, options=None):
         options = Odeoptions()
         options.rhs_reuse = True
         rhs_clear()
-    elif options.rhs_reuse:
-        msg = ("propagator is using previously defined rhs " +
-               "function (options.rhs_reuse = True)")
-        warnings.warn(msg)
 
     tlist = [0, t] if isinstance(t, (int, float, np.int64, np.float64)) else t
 
