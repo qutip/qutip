@@ -34,10 +34,9 @@
 import numpy as np
 import scipy.integrate
 
-from qutip.qobj import Qobj
-from qutip.superoperator import *
+from qutip.qobj import Qobj, isket
+from qutip.superoperator import spre, spost, vec2mat, mat2vec, vec2mat_index
 from qutip.expect import expect
-from qutip.states import *
 from qutip.odeoptions import Odeoptions
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.odedata import Odedata
@@ -99,6 +98,7 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
     R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb)
 
     output = Odedata()
+    output.solver = "brmesolve"
     output.times = tlist
 
     results = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops, options)
@@ -168,28 +168,24 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     #
     # prepare output array
     #
-    n_e_ops = len(e_ops)
     n_tsteps = len(tlist)
     dt = tlist[1] - tlist[0]
     result_list = []
-
-    for op in e_ops:
-        if op.isherm and rho0.isherm:
-            result_list.append(np.zeros(n_tsteps))
-        else:
-            result_list.append(np.zeros(n_tsteps, dtype=complex))
 
     #
     # transform the initial density matrix and the e_ops opterators to the
     # eigenbasis
     #
-    rho = rho0.transform(ekets)
+    rho_eb = rho0.transform(ekets)
     e_eb_ops = [e.transform(ekets) for e in e_ops]
+
+    for e_eb in e_eb_ops:
+        result_list.append(np.zeros(n_tsteps, dtype=complex))
 
     #
     # setup integrator
     #
-    initial_vector = mat2vec(rho.full())
+    initial_vector = mat2vec(rho_eb.full())
     r = scipy.integrate.ode(cy_ode_rhs)
     r.set_f_params(R.data.data, R.data.indices, R.data.indptr)
     r.set_integrator('zvode', method=options.method, order=options.order,
@@ -201,23 +197,25 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     #
     # start evolution
     #
-    t_idx = 0
-    for t in tlist:
+    dt = np.diff(tlist)
+    for t_idx, _ in enumerate(tlist):
+
         if not r.successful():
             break
 
-        rho.data = vec2mat(r.y)
+        rho_eb.data = vec2mat(r.y)
 
-        # calculate all the expectation values, or output rho if no operators
+        # calculate all the expectation values, or output rho_eb if no
+        # expectation value operators are given
         if e_ops:
-            rho_tmp = Qobj(rho)
+            rho_eb_tmp = Qobj(rho_eb)
             for m, e in enumerate(e_eb_ops):
-                result_list[m][t_idx] = expect(e, rho_tmp)
+                result_list[m][t_idx] = expect(e, rho_eb_tmp)
         else:
-            result_list.append(rho.transform(ekets, True))
+            result_list.append(rho_eb.transform(ekets, True))
 
-        r.integrate(r.t + dt)
-        t_idx += 1
+        if t_idx < n_tsteps - 1:
+            r.integrate(r.t + dt[t_idx])
 
     return result_list
 
