@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,27 +18,26 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
 import os
 
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
-                   sqrt, real, imag, mod, append, ceil, floor, arange)
+                   sqrt, real, mod, append, ceil, arange)
 
-from pylab import figure, plot, show, savefig, close
+import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
-
 from matplotlib.patches import FancyArrowPatch
 from mpl_toolkits.mplot3d import proj3d
 
@@ -94,8 +93,8 @@ class Bloch():
         Transparency of Bloch sphere itself.
     sphere_color : str {'#FFDDDD'}
         Color of Bloch sphere.
-    size : list {[7,7]}
-        Size of Bloch sphere plot.  Best to have both numbers the same;
+    figsize : list {[7,7]}
+        Figure size of Bloch sphere plot.  Best to have both numbers the same;
         otherwise you will have a Bloch sphere that looks like a football.
     vector_color : list {["g","#CC6600","b","r"]}
         List of vector colors to cycle through.
@@ -115,32 +114,25 @@ class Bloch():
         List of strings corresponding to +y and -y axes labels, respectively.
     ylpos : list {[1.2,-1.2]}
         Positions of +y and -y labels respectively.
-    zlabel : list {['$\left|0\\right>$','$\left|1\\right>$']}
+    zlabel : list {['$\\left|0\\right>$','$\\left|1\\right>$']}
         List of strings corresponding to +z and -z axes labels, respectively.
     zlpos : list {[1.2,-1.2]}
         Positions of +z and -z labels respectively.
 
 
     """
-    def __init__(self, fig=None, axes=None):
-        #---sphere options---
-        self.fig = None
-        self.axes = None
-        self.user_fig = None
-        self.user_axes = None
-        # check if user specified figure or axes.
-        if fig:
-            self.user_fig = fig
-        if axes:
-            self.user_axes = axes
-        # use user-supplied figure object if present
-        self.input_axes = axes
+    def __init__(self, fig=None, axes=None, view=None, figsize=None,
+                 background=False):
+
+        # Figure and axes
+        self.fig = fig
+        self.axes = axes
         # Background axes, default = False
-        self.background = False
+        self.background = background
         # The size of the figure in inches, default = [5,5].
-        self.size = [5, 5]
+        self.figsize = figsize if figsize else [5, 5]
         # Azimuthal and Elvation viewing angles, default = [-60,30].
-        self.view = [-60, 30]
+        self.view = view if view else [-60, 30]
         # Color of Bloch sphere, default = #FFDDDD
         self.sphere_color = '#FFDDDD'
         # Transparency of Bloch sphere, default = 0.2
@@ -151,18 +143,18 @@ class Bloch():
         self.frame_width = 1
         # Transparency of wireframe, default = 0.2
         self.frame_alpha = 0.2
-        # Labels for x-axis (in LaTex), default = ['$x$','']
+        # Labels for x-axis (in LaTex), default = ['$x$', '']
         self.xlabel = ['$x$', '']
-        # Position of x-axis labels, default = [1.2,-1.2]
+        # Position of x-axis labels, default = [1.2, -1.2]
         self.xlpos = [1.2, -1.2]
-        # Labels for y-axis (in LaTex), default = ['$y$','']
+        # Labels for y-axis (in LaTex), default = ['$y$', '']
         self.ylabel = ['$y$', '']
-        # Position of y-axis labels, default = [1.1,-1.1]
+        # Position of y-axis labels, default = [1.1, -1.1]
         self.ylpos = [1.2, -1.2]
         # Labels for z-axis (in LaTex),
-        # default = ['$\left|0\\right>$','$\left|1\\right>$']
-        self.zlabel = ['$\left|0\\right>$', '$\left|1\\right>$']
-        # Position of z-axis labels, default = [1.2,-1.2]
+        # default = [r'$\left|0\right>$', r'$\left|1\right>$']
+        self.zlabel = [r'$\left|0\right>$', r'$\left|1\right>$']
+        # Position of z-axis labels, default = [1.2, -1.2]
         self.zlpos = [1.2, -1.2]
         #---font options---
         # Color of fonts, default = 'black'
@@ -199,6 +191,9 @@ class Bloch():
         self.savenum = 0
         # Style of points, 'm' for multiple colors, 's' for single color
         self.point_style = []
+
+        # status of rendering
+        self._rendered = False
 
     def set_label_convention(self, convention):
         """Set x, y and z labels according to one of conventions.
@@ -237,15 +232,18 @@ class Bloch():
             self.ylabel = ['', '']
             self.zlabel = ['$\\left|0\\right>$', '$\\left|1\\right>$']
         elif convention == "polarization jones":
-            self.xlabel = [ketex % "\\nearrow\\hspace{-1.46}\\swarrow", ketex % "\\nwarrow\\hspace{-1.46}\\searrow"]
-            self.ylabel = [ketex % "\\circlearrowleft", ketex % "\\circlearrowright"]
+            self.xlabel = [ketex % "\\nearrow\\hspace{-1.46}\\swarrow",
+                           ketex % "\\nwarrow\\hspace{-1.46}\\searrow"]
+            self.ylabel = [ketex % "\\circlearrowleft", ketex %
+                           "\\circlearrowright"]
             self.zlabel = [ketex % "\\leftrightarrow", ketex % "\\updownarrow"]
         elif convention == "polarization jones letters":
             self.xlabel = [ketex % "D", ketex % "A"]
             self.ylabel = [ketex % "L", ketex % "R"]
             self.zlabel = [ketex % "H", ketex % "V"]
         elif convention == "polarization stokes":
-            self.ylabel = ["$\\nearrow\\hspace{-1.46}\\swarrow$", "$\\nwarrow\\hspace{-1.46}\\searrow$"]
+            self.ylabel = ["$\\nearrow\\hspace{-1.46}\\swarrow$",
+                           "$\\nwarrow\\hspace{-1.46}\\searrow$"]
             self.zlabel = ["$\\circlearrowleft$", "$\\circlearrowright$"]
             self.xlabel = ["$\\leftrightarrow$", "$\\updownarrow$"]
         else:
@@ -270,7 +268,7 @@ class Bloch():
         s += "point_size:      " + str(self.point_size) + "\n"
         s += "sphere_alpha:    " + str(self.sphere_alpha) + "\n"
         s += "sphere_color:    " + str(self.sphere_color) + "\n"
-        s += "size:            " + str(self.size) + "\n"
+        s += "figsize:         " + str(self.figsize) + "\n"
         s += "vector_color:    " + str(self.vector_color) + "\n"
         s += "vector_width:    " + str(self.vector_width) + "\n"
         s += "vector_style:    " + str(self.vector_style) + "\n"
@@ -283,6 +281,20 @@ class Bloch():
         s += "zlabel:          " + str(self.zlabel) + "\n"
         s += "zlpos:           " + str(self.zlpos) + "\n"
         return s
+
+    def _repr_png_(self):
+        from IPython.core.pylabtools import print_figure
+        self.render()
+        fig_data = print_figure(self.fig, 'png')
+        plt.close(self.fig)
+        return fig_data
+
+    def _repr_svg_(self):
+        from IPython.core.pylabtools import print_figure
+        self.render()
+        fig_data = print_figure(self.fig, 'svg').decode('utf-8')
+        plt.close(self.fig)
+        return fig_data
 
     def clear(self):
         """Resets Bloch sphere data sets to empty.
@@ -337,15 +349,16 @@ class Bloch():
         """
         if isinstance(state, Qobj):
             state = [state]
+
         for st in state:
+            vec = [expect(sigmax(), st),
+                   expect(sigmay(), st),
+                   expect(sigmaz(), st)]
+
             if kind == 'vector':
-                vec = [expect(sigmax(), st), expect(sigmay(), st),
-                       expect(sigmaz(), st)]
                 self.add_vectors(vec)
             elif kind == 'point':
-                pnt = [expect(sigmax(), st), expect(sigmay(), st),
-                       expect(sigmaz(), st)]
-                self.add_points(pnt)
+                self.add_points(vec)
 
     def add_vectors(self, vectors):
         """Add a list of vectors to Bloch sphere.
@@ -375,9 +388,9 @@ class Bloch():
         text : str/unicode
             Annotation text.
             You can use LaTeX, but remember to use raw string
-            e.g. r"$\langle x \rangle$"
+            e.g. r"$\\langle x \\rangle$"
             or escape backslashes
-            e.g. "$\\langle x \\rangle$". 
+            e.g. "$\\langle x \\rangle$".
 
         **kwargs :
             Options as for mplot3d.axes3d.text, including:
@@ -388,10 +401,11 @@ class Bloch():
                    expect(sigmay(), state_or_vector),
                    expect(sigmaz(), state_or_vector)]
         elif isinstance(state_or_vector, (list, ndarray, tuple)) \
-              and len(state_or_vector) == 3: 
-            vec = state_or_vector 
+                and len(state_or_vector) == 3:
+            vec = state_or_vector
         else:
-            raise Exception("Position needs to be specified by a qubit state or a 3D vector.")
+            raise Exception("Position needs to be specified by a qubit " +
+                            "state or a 3D vector.")
         self.annotations.append({'position': vec,
                                  'text': text,
                                  'opts': kwargs})
@@ -400,17 +414,24 @@ class Bloch():
         """
         Plots Bloch sphere and data sets.
         """
-        # setup plot
+        self.render(self.fig, self.axes)
+
+    def render(self, fig=None, axes=None):
+        """
+        Render the Bloch sphere and its data sets in on given figure and axes.
+        """
+        if self._rendered:
+            self.axes.clear()
+
+        self._rendered = True
+
         # Figure instance for Bloch sphere plot
-        if self.user_axes:
-            self.axes = self.user_axes
-        else:
-            if self.user_fig:
-                self.fig = self.user_fig
-            else:
-                self.fig = figure(figsize=self.size)
-            self.axes = Axes3D(self.fig, azim=self.view[0],
-                               elev=self.view[1])
+        if not fig:
+            self.fig = plt.figure(figsize=self.figsize)
+
+        if not axes:
+            self.axes = Axes3D(self.fig, azim=self.view[0], elev=self.view[1])
+
         if self.background:
             self.axes.clear()
             self.axes.set_xlim3d(-1.3, 1.3)
@@ -422,6 +443,7 @@ class Bloch():
             self.axes.set_xlim3d(-0.7, 0.7)
             self.axes.set_ylim3d(-0.7, 0.7)
             self.axes.set_zlim3d(-0.7, 0.7)
+
         self.axes.grid(False)
         self.plot_back()
         self.plot_points()
@@ -431,7 +453,7 @@ class Bloch():
         self.plot_annotations()
 
     def plot_back(self):
-        #----back half of sphere------------------
+        # back half of sphere
         u = linspace(0, pi, 25)
         v = linspace(0, pi, 25)
         x = outer(cos(u), sin(v))
@@ -451,7 +473,7 @@ class Bloch():
                        lw=self.frame_width, color=self.frame_color)
 
     def plot_front(self):
-        # front half of sphere-----------------------
+        # front half of sphere
         u = linspace(-pi, 0, 25)
         v = linspace(0, pi, 25)
         x = outer(cos(u), sin(v))
@@ -561,7 +583,7 @@ class Bloch():
 
             elif self.point_style[k] == 'm':
                 pnt_colors = array(self.point_color *
-                    ceil(num / float(len(self.point_color))))
+                                   ceil(num / float(len(self.point_color))))
 
                 pnt_colors = pnt_colors[0:num]
                 pnt_colors = list(pnt_colors[indperm])
@@ -598,9 +620,9 @@ class Bloch():
         """
         Display Bloch sphere and corresponding data sets.
         """
-        self.make_sphere()
+        self.render(self.fig, self.axes)
         if self.fig:
-            show(self.fig)
+            plt.show(self.fig)
 
     def save(self, name=None, format='png', dirc=None):
         """Saves Bloch sphere to file of type ``format`` in directory ``dirc``.
@@ -622,22 +644,22 @@ class Bloch():
         File containing plot of Bloch sphere.
 
         """
-        self.make_sphere()
+        self.render(self.fig, self.axes)
         if dirc:
             if not os.path.isdir(os.getcwd() + "/" + str(dirc)):
                 os.makedirs(os.getcwd() + "/" + str(dirc))
         if name is None:
             if dirc:
-                savefig(os.getcwd() + "/" + str(dirc) + '/bloch_' +
-                        str(self.savenum) + '.' + format)
+                plt.savefig(os.getcwd() + "/" + str(dirc) + '/bloch_' +
+                            str(self.savenum) + '.' + format)
             else:
-                savefig(os.getcwd() + '/bloch_' + str(self.savenum) +
-                        '.' + format)
+                plt.savefig(os.getcwd() + '/bloch_' + str(self.savenum) +
+                            '.' + format)
         else:
-            savefig(name)
+            plt.savefig(name)
         self.savenum += 1
         if self.fig:
-            close(self.fig)
+            plt.close(self.fig)
 
 
 def _hide_tick_lines_and_labels(axis):
