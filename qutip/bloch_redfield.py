@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,26 +18,25 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
 import numpy as np
 import scipy.integrate
 
-from qutip.qobj import Qobj
-from qutip.superoperator import *
+from qutip.qobj import Qobj, isket
+from qutip.superoperator import spre, spost, vec2mat, mat2vec, vec2mat_index
 from qutip.expect import expect
-from qutip.states import *
 from qutip.odeoptions import Odeoptions
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.odedata import Odedata
@@ -99,8 +98,9 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
     R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb)
 
     output = Odedata()
+    output.solver = "brmesolve"
     output.times = tlist
-    
+
     results = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops, options)
 
     if e_ops:
@@ -168,56 +168,54 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     #
     # prepare output array
     #
-    n_e_ops = len(e_ops)
     n_tsteps = len(tlist)
     dt = tlist[1] - tlist[0]
     result_list = []
-
-    for op in e_ops:
-        if op.isherm and rho0.isherm:
-            result_list.append(np.zeros(n_tsteps))
-        else:
-            result_list.append(np.zeros(n_tsteps, dtype=complex))
 
     #
     # transform the initial density matrix and the e_ops opterators to the
     # eigenbasis
     #
-    rho = rho0.transform(ekets)
+    rho_eb = rho0.transform(ekets)
     e_eb_ops = [e.transform(ekets) for e in e_ops]
+
+    for e_eb in e_eb_ops:
+        result_list.append(np.zeros(n_tsteps, dtype=complex))
 
     #
     # setup integrator
     #
-    initial_vector = mat2vec(rho.full())
+    initial_vector = mat2vec(rho_eb.full())
     r = scipy.integrate.ode(cy_ode_rhs)
     r.set_f_params(R.data.data, R.data.indices, R.data.indptr)
     r.set_integrator('zvode', method=options.method, order=options.order,
-                     atol=options.atol, rtol=options.rtol, nsteps=options.nsteps,
-                     first_step=options.first_step, min_step=options.min_step,
-                     max_step=options.max_step)
+                     atol=options.atol, rtol=options.rtol,
+                     nsteps=options.nsteps, first_step=options.first_step,
+                     min_step=options.min_step, max_step=options.max_step)
     r.set_initial_value(initial_vector, tlist[0])
 
     #
     # start evolution
     #
-    t_idx = 0
-    for t in tlist:
+    dt = np.diff(tlist)
+    for t_idx, _ in enumerate(tlist):
+
         if not r.successful():
             break
 
-        rho.data = vec2mat(r.y)
+        rho_eb.data = vec2mat(r.y)
 
-        # calculate all the expectation values, or output rho if no operators
+        # calculate all the expectation values, or output rho_eb if no
+        # expectation value operators are given
         if e_ops:
-            rho_tmp = Qobj(rho)
+            rho_eb_tmp = Qobj(rho_eb)
             for m, e in enumerate(e_eb_ops):
-                result_list[m][t_idx] = expect(e, rho_tmp)
+                result_list[m][t_idx] = expect(e, rho_eb_tmp)
         else:
-            result_list.append(rho.transform(ekets, True))
+            result_list.append(rho_eb.transform(ekets, True))
 
-        r.integrate(r.t + dt)
-        t_idx += 1
+        if t_idx < n_tsteps - 1:
+            r.integrate(r.t + dt[t_idx])
 
     return result_list
 
@@ -285,7 +283,7 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, use_secular=True):
             W[m, n] = np.real(evals[m] - evals[n])
 
     for k in range(K):
-        #A[k,n,m] = a_ops[k].matrix_element(ekets[n], ekets[m])
+        # A[k,n,m] = a_ops[k].matrix_element(ekets[n], ekets[m])
         A[k, :, :] = a_ops[k].transform(ekets).full()
 
     dw_min = abs(W[W.nonzero()]).min()
@@ -300,7 +298,7 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, use_secular=True):
             c, d = vec2mat_index(N, J)
 
             # unitary part: use spre and spost above, same as this:
-            #R.data[I,J] = -1j * W[a,b] * (a == c) * (b == d)
+            # R.data[I,J] = -1j * W[a,b] * (a == c) * (b == d)
 
             if use_secular is False or abs(W[a, b] - W[c, d]) < dw_min / 10.0:
 
