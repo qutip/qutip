@@ -78,6 +78,7 @@ def rand_herm(N, density=0.75, dims=None):
     Y = X.copy()
     Y.data = 1.0j * np.random.random(len(X.data)) - (0.5 + 0.5j)
     X = X + Y
+    X.sort_indices()
     X = Qobj(X)
     if dims:
         return Qobj((X + X.dag()) / 2.0, dims=dims, shape=[N, N])
@@ -110,6 +111,7 @@ def rand_unitary(N, density=0.75, dims=None):
     if dims:
         _check_dims(dims, N, N)
     U = (-1.0j * rand_herm(N, density)).expm()
+    U.data.sort_indices()
     if dims:
         return Qobj(U, dims=dims, shape=[N, N])
     else:
@@ -142,6 +144,7 @@ def rand_ket(N, density=1, dims=None):
     Y = X.copy()
     Y.data = 1.0j * np.random.random(len(X.data)) - (0.5 + 0.5j)
     X = X + Y
+    X.sort_indices()
     X = Qobj(X)
     if dims:
         return Qobj(X / X.norm(), dims=dims, shape=[N, 1])
@@ -192,6 +195,7 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
         if tries >= 10:
             raise ValueError(
                 "Requested density is too low to generate density matrix.")
+    H.data.sort_indices()
     if dims:
         return Qobj(H / H.tr(), dims=dims, shape=[N, N])
     else:
