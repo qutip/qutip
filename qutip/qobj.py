@@ -1397,10 +1397,9 @@ class Qobj():
     @property
     def iscp(self):
         # FIXME: this needs to be cached in the same ways as isherm.
-        from qutip.superop_reps import to_choi
         if self.type == "super" or self.type == "oper":
             try:
-                q_oper = to_choi(self)
+                q_oper = sr.to_choi(self)
                 eigs = q_oper.eigenenergies()
                 return all(eigs >= 0)
             except:
@@ -1410,16 +1409,14 @@ class Qobj():
             
     @property
     def istp(self):
-        from qutip.superop_reps import to_choi
-        from qutip.operators import identity
         
         if self.type == "super" or self.type == "oper":
             try:
-                q_oper = to_choi(self)
+                q_oper = sr.to_choi(self)
                 # We use the condition from John Watrous' lecture notes,
                 # Tr_1(J(Phi)) = identity_2.
                 tr_oper = ptrace(q_oper, (0,))
-                ident = identity(tr_oper.shape[0])
+                ident = ops.identity(tr_oper.shape[0])
                 
                 return isequal(tr_oper, ident)
             except:
@@ -1858,3 +1855,10 @@ def isherm(Q):
             return True
 
 hermcheck = isherm
+
+
+## TRAILING IMPORTS ##
+# We do a few imports here to avoid circular dependencies.
+import qutip.superop_reps as sr
+import qutip.operators as ops
+
