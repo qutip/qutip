@@ -45,7 +45,8 @@ import scipy
 
 from qutip.qobj import Qobj
 from qutip.states import basis
-from qutip.operators import create, destroy, jmat, identity
+from qutip.operators import create, destroy, jmat, identity, sigmax
+from qutip.quantum_info.gates import swap
 from qutip.propagator import propagator
 from qutip.random_objects import rand_herm
 from qutip.superop_reps import (super_to_choi, choi_to_kraus,
@@ -111,13 +112,40 @@ class TestSuperopReps(object):
         choi = to_choi(superop)
         assert_(choi is to_choi(choi))
         
-    def test_iscptp(self):
+    def test_random_iscptp(self):
         """
-        Superoperator: Checks a few common usecases for Qobj.iscptp.
+        Superoperator: Checks that randomly generated superoperators are
+        correctly reported as cptp.
         """
         superop = self.rand_super()
         assert_(superop.iscptp) 
-        assert_(identity(2).iscptp) # Check that unitaries work, too.
+        
+    def test_known_iscptp(self):
+        """
+        Superoperator: Checks that iscp, istp and iscptp work in a few different
+        known cases.
+        """
+        # Check that unitaries are CPTP.
+        assert_(identity(2).iscptp)
+        assert_(sigmax().iscptp)
+        
+        # The partial transpose map, whose Choi matrix is SWAP, is TP but not
+        # CP.
+        W = Qobj(swap(), type='super', superrep='choi')
+        assert_(W.istp)
+        assert_(not W.iscp)
+        assert_(not W.iscptp)
+        
+        # Subnormalized maps (representing erasure channels, for instance)
+        # can be CP but not TP.
+        subnorm_map = Qobj(identity(4) * 0.9, type='super', superrep='super')
+        assert_(subnorm_map.iscp)
+        assert_(not subnorm_map.istp)
+        assert_(not subnorm_map.iscptp)
+
+        
+        # Check that things which aren't even operators aren't identified as
+        # CPTP.
         assert_(not (basis(2).iscptp))
         
     def test_choi_tr(self):
