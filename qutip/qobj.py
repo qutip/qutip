@@ -569,6 +569,9 @@ class Qobj():
         except:
             raise ValueError('Invalid choice of exponent.')
 
+    def __abs__(self):
+        return abs(self.data)
+
     def __str__(self):
         s = ""
         if self.type == 'oper' or self.type == 'super':
@@ -929,18 +932,17 @@ class Qobj():
 
         """
         if self.dims[0][0] == self.dims[1][0]:
-            evals, evecs = sp_eigs(
-                self, sparse=sparse, tol=tol, maxiter=maxiter)
+            evals, evecs = sp_eigs(self, sparse=sparse, tol=tol,
+                                   maxiter=maxiter)
             numevals = len(evals)
-            dV = sp.spdiags(
-                np.sqrt(np.abs(evals)), 0, numevals, numevals, format='csr')
+            dV = sp.spdiags(np.sqrt(np.abs(evals)), 0, numevals, numevals,
+                            format='csr')
             evecs = sp.hstack(evecs, format='csr')
             spDv = dV.dot(evecs.conj().T)
             out = Qobj(evecs.dot(spDv), dims=self.dims, shape=self.shape)
-            if qset.auto_tidyup:
-                return out.tidyup()
-            else:
-                return out
+
+            return out.tidyup() if qset.auto_tidyup else out
+
         else:
             raise TypeError('Invalid operand for matrix square root')
 
@@ -966,8 +968,8 @@ class Qobj():
             Normalized quantum object.
 
         """
-        out = self / self.norm(
-            norm=norm, sparse=sparse, tol=tol, maxiter=maxiter)
+        out = self / self.norm(norm=norm, sparse=sparse,
+                               tol=tol, maxiter=maxiter)
         if qset.auto_tidyup:
             return out.tidyup()
         else:
