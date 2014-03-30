@@ -171,7 +171,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     odeconfig.options = options
     if isinstance(ntraj, list):
-        odeconfig.progress_bar = TextProgressBar(sum(ntraj))
+        odeconfig.progress_bar = TextProgressBar(max(ntraj))
     else:
         odeconfig.progress_bar = TextProgressBar(ntraj)
 
