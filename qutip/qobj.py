@@ -1032,21 +1032,17 @@ class Qobj():
 
         """
         if self.data.nnz:
-            out = Qobj(dims=self.dims, shape=self.shape,
-                       type=self.type, isherm=self._isherm)
 
-            out.data = self.data.copy()
-
-            data_real = out.data.data.real
+            data_real = self.data.data.real
             data_real[abs(data_real) < atol] = 0
 
-            data_imag = out.data.data.imag
+            data_imag = self.data.data.imag
             data_imag[abs(data_imag) < atol] = 0
 
-            out.data.data = data_real + 1j * data_imag            
+            self.data.data = data_real + 1j * data_imag            
 
-            out.data.eliminate_zeros()
-            return out
+            self.data.eliminate_zeros()
+            return self
         else:
             return self
 
