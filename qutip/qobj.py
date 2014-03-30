@@ -204,56 +204,64 @@ class Qobj():
 
             self.shape = [N, M]
             self.data = sp.csr_matrix((N, M), dtype=complex)
-            
-        else:
-            # if input is int, float, or complex then convert to array
-            if isinstance(inpt, (int, float, complex, np.int64)):
-                inpt = np.array([[inpt]])
 
-            # case where input is array or sparse
-            if (isinstance(inpt, np.ndarray)) or sp.issparse(inpt):
+        elif isinstance(inpt, list) or isinstance(inpt, tuple):
+            # case where input is a list
+            if len(np.array(inpt).shape) == 1:
+                # if list has only one dimension (i.e [5,4])
+                inpt = np.array([inpt]).transpose()
+            else:  # if list has two dimensions (i.e [[5,4]])
+                inpt = np.array(inpt)
 
-                if inpt.ndim == 1:
-                    inpt = inpt[:, np.newaxis]
+            self.data = sp.csr_matrix(inpt, dtype=complex)
 
-                self.data = sp.csr_matrix(inpt, dtype=complex)
- 
-                if not np.any(dims):
-                    self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
-                else:
-                    self.dims = dims
-
-                if not np.any(shape):
-                    self.shape = [int(inpt.shape[0]), int(inpt.shape[1])]
-                else:
-                    self.shape = shape
-
-            elif isinstance(inpt, list):
-                # case where input is not array or sparse, i.e. a list
-                if len(np.array(inpt).shape) == 1:
-                    # if list has only one dimension (i.e [5,4])
-                    inpt = np.array([inpt]).transpose()
-                else:  # if list has two dimensions (i.e [[5,4]])
-                    inpt = np.array(inpt)
-
-                self.data = sp.csr_matrix(inpt, dtype=complex)
-
-                if not np.any(dims):
-                    self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
-                else:
-                    self.dims = dims
-
-                if not np.any(shape):
-                    self.shape = [int(inpt.shape[0]), int(inpt.shape[1])]
-                else:
-                    self.shape = shape
-
-            else:
-                print("Warning: Initializing Qobj from unsupported type")
-                inpt = np.array([[0]])
-                self.data = sp.csr_matrix(inpt, dtype=complex)
+            if not np.any(dims):
                 self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
+            else:
+                self.dims = dims
+
+            if not np.any(shape):
                 self.shape = [int(inpt.shape[0]), int(inpt.shape[1])]
+            else:
+                self.shape = shape
+
+        elif isinstance(inpt, np.ndarray) or sp.issparse(inpt):
+            # case where input is array or sparse
+            if inpt.ndim == 1:
+                inpt = inpt[:, np.newaxis]
+
+            self.data = sp.csr_matrix(inpt, dtype=complex)
+
+            if not np.any(dims):
+                self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
+            else:
+                self.dims = dims
+
+            if not np.any(shape):
+                self.shape = [int(inpt.shape[0]), int(inpt.shape[1])]
+            else:
+                self.shape = shape
+            
+        elif isinstance(inpt, (int, float, complex, np.int64)):
+            # if input is int, float, or complex then convert to array
+            self.data = sp.csr_matrix([[inpt]], dtype=complex)
+
+            if not np.any(dims):
+                self.dims = [[1], [1]]
+            else:
+                self.dims = dims
+
+            if not np.any(shape):
+                self.shape = [1, 1]
+            else:
+                self.shape = shape
+
+        else:
+            print("Warning: Initializing Qobj from unsupported type")
+            inpt = np.array([[0]])
+            self.data = sp.csr_matrix(inpt, dtype=complex)
+            self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
+            self.shape = [int(inpt.shape[0]), int(inpt.shape[1])]
 
         # Signifies if quantum object corresponds to Hermitian operator
         if isherm is None:
