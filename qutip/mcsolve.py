@@ -170,7 +170,10 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         e_ops_dict = None
 
     odeconfig.options = options
-    odeconfig.progress_bar = TextProgressBar(ntraj)
+    if isinstance(ntraj, list):
+        odeconfig.progress_bar = TextProgressBar(sum(ntraj))
+    else:
+        odeconfig.progress_bar = TextProgressBar(ntraj)
 
     # set num_cpus to the value given in qutip.settings if none in Odeoptions
     if not odeconfig.options.num_cpus:
