@@ -276,7 +276,7 @@ class Qobj():
         # Signifies if quantum object corresponds to a ket, bra, operator, or
         # super-operator
         if type is None:
-            self.type = ischeck(self)
+            self.type = _typecheck(self)
         else:
             self.type = type
             
@@ -408,7 +408,7 @@ class Qobj():
                 else:
                     out.dims = dims
                 out.shape = [self.shape[0], other.shape[1]]
-                out.type = ischeck(out)
+                out.type = _typecheck(out)
                 out._isherm = out.isherm
                 return out.tidyup() if qset.auto_tidyup else out
 
@@ -458,7 +458,7 @@ class Qobj():
                 out.data = other.data * self.data
                 out.dims = self.dims
                 out.shape = [self.shape[0], other.shape[1]]
-                out.type = ischeck(out)
+                out.type = _typecheck(out)
                 out._isherm = out.isherm
                 return out.tidyup() if qset.auto_tidyup else out
 
@@ -745,7 +745,7 @@ class Qobj():
         out.dims = [self.dims[1], self.dims[0]]
         out.shape = [self.shape[1], self.shape[0]]
         out._isherm = self._isherm
-        out.type = ischeck(out)
+        out.type = _typecheck(out)
         return out
 
     def conj(self):
@@ -1329,7 +1329,7 @@ class Qobj():
         out.data = self.data.T.tocsr()
         out.dims = [self.dims[1], self.dims[0]]
         out.shape = [self.shape[1], self.shape[0]]
-        out.type = ischeck(out)
+        out.type = _typecheck(out)
         return out
 
     def extract_states(self, states_inds, normalize=False):
@@ -1470,13 +1470,16 @@ class Qobj():
 
     @property
     def isoper(self):
-        pass
+        return (isinstance(self.dims[0], list) and
+                isinstance(self.dims[0][0], int) and
+                self.dims[0] == self.dims[1])
 
     @property
     def issuper(self):
-        pass
-
-
+        return (isinstance(self.dims[0], list) and
+                isinstance(self.dims[0][0], list) and
+                self.dims[0] == self.dims[1] and 
+                self.dims[0][0] == self.dims[1][0])
 
 #------------------------------------------------------------------------------
 # This functions evaluates a time-dependent quantum object on the list-string
@@ -1555,7 +1558,65 @@ def qobj_list_evaluate(qobj_list, t, args):
 
 #------------------------------------------------------------------------------
 #
-# some functions for increased compatibility with quantum optics toolbox:
+# functions for storing and loading Qobj instances to files
+#
+
+def qobj_save(qobj, filename):
+    """
+    Saves the given qobj to file 'filename'
+    Argument qobj input operator
+    Argument filename string for output file name
+
+    Returns file returns qobj as file in current directory
+    """
+    with open(filename, 'wb') as f:
+        pickle.dump(qobj, f, protocol=2)
+
+
+def qobj_load(filename):
+    """
+    Loads a quantum object saved using qobj_save
+    Argument filename filename of request qobject
+
+    Returns Qobj returns quantum object
+    """
+    with open(filename, 'wb') as f:
+        qobj = pickle.load(f)
+
+    return qobj
+
+
+#------------------------------------------------------------------------------
+#
+# type check and check for class type ESERIES
+#
+
+def _checkeseries(inpt):
+    """
+    Checks for ESERIES class types
+    """
+    from qutip.eseries import eseries
+    if isinstance(inpt, eseries):
+        return 'eseries'
+    else:
+        pass
+
+def _typecheck(Q):
+    if isoper(Q):
+        return 'oper'
+    elif isket(Q):
+        return 'ket'
+    elif isbra(Q):
+        return 'bra'
+    elif issuper(Q):
+        return 'super'
+    else:
+        return 'other'
+
+#------------------------------------------------------------------------------
+#
+# A collection of tests used to determine the type of quantum objects, and some
+# functions for increased compatibility with quantum optics toolbox.
 #
 
 def dag(A):
@@ -1659,57 +1720,6 @@ def shape(inpt):
         return np.shape(inpt)
 
 
-#------------------------------------------------------------------------------
-#
-# functions for storing and loading Qobj instances to files
-#
-
-def qobj_save(qobj, filename):
-    """
-    Saves the given qobj to file 'filename'
-    Argument qobj input operator
-    Argument filename string for output file name
-
-    Returns file returns qobj as file in current directory
-    """
-    with open(filename, 'wb') as f:
-        pickle.dump(qobj, f, protocol=2)
-
-
-def qobj_load(filename):
-    """
-    Loads a quantum object saved using qobj_save
-    Argument filename filename of request qobject
-
-    Returns Qobj returns quantum object
-    """
-    with open(filename, 'wb') as f:
-        qobj = pickle.load(f)
-
-    return qobj
-
-
-#------------------------------------------------------------------------------
-#
-# check for class type ESERIES
-#
-
-def _checkeseries(inpt):
-    """
-    Checks for ESERIES class types
-    """
-    from qutip.eseries import eseries
-    if isinstance(inpt, eseries):
-        return 'eseries'
-    else:
-        pass
-
-
-#------------------------------------------------------------------------------
-#
-# A collection of tests used to determine the type of quantum objects.
-#
-
 def isket(Q):
     """
     Determines if given quantum object is a ket-vector.
@@ -1726,16 +1736,12 @@ def isket(Q):
 
     Examples
     --------
-    >>> psi=basis(5,2)
+    >>> psi = basis(5,2)
     >>> isket(psi)
     True
 
     """
-
-    if not isinstance(Q, Qobj):
-            return False
-
-    return isinstance(Q.dims[0], list) and np.prod(Q.dims[1]) == 1
+    return True if isinstance(Q, Qobj) and Q.isket else False
 
 
 def isbra(Q):
@@ -1753,16 +1759,12 @@ def isbra(Q):
 
     Examples
     --------
-    >>> psi=basis(5,2)
+    >>> psi = basis(5,2)
     >>> isket(psi)
     False
 
     """
-
-    if not isinstance(Q, Qobj):
-        return False
-
-    return isinstance(Q.dims[1], list) and np.prod(Q.dims[0]) == 1
+    return True if isinstance(Q, Qobj) and Q.isbra else False
 
 
 def isoper(Q):
@@ -1780,17 +1782,12 @@ def isoper(Q):
 
     Examples
     --------
-    >>> a=destroy(5)
+    >>> a = destroy(5)
     >>> isoper(a)
     True
 
     """
-
-    if not isinstance(Q, Qobj):
-        return False
-
-    return (isinstance(Q.dims[0], list) and
-            isinstance(Q.dims[0][0], int) and (Q.dims[0] == Q.dims[1]))
+    return True if isinstance(Q, Qobj) and Q.isoper else False
 
 
 def issuper(Q):
@@ -1807,14 +1804,7 @@ def issuper(Q):
         True if Qobj is superoperator, False otherwise.
 
     """
-
-    if not isinstance(Q, Qobj):
-        return False
-
-    result = isinstance(Q.dims[0], list) and isinstance(Q.dims[0][0], list)
-    if result:
-        result = (Q.dims[0] == Q.dims[1]) and (Q.dims[0][0] == Q.dims[1][0])
-    return result
+    return True if isinstance(Q, Qobj) and Q.issuper else False
 
 
 def isequal(A, B, tol=1e-12):
@@ -1849,19 +1839,6 @@ def isequal(A, B, tol=1e-12):
         return False
 
     return True
-
-
-def ischeck(Q):
-    if isoper(Q):
-        return 'oper'
-    elif isket(Q):
-        return 'ket'
-    elif isbra(Q):
-        return 'bra'
-    elif issuper(Q):
-        return 'super'
-    else:
-        return 'other'
 
 
 def isherm(Q):
