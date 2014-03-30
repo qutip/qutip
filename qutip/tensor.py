@@ -37,7 +37,7 @@ objects via the tensor product.
 """
 from numpy import ndarray, array
 import scipy.sparse as sp
-from qutip.qobj import Qobj, ischeck
+from qutip.qobj import Qobj, _typecheck
 import qutip.settings
 
 
@@ -123,7 +123,7 @@ shape = [4, 4], type = oper, isHerm = True
     out.data = dat
     out.dims = dim
     out.shape = shp
-    out.type = ischeck(out)
+    out.type = _typecheck(out)
     out.isherm = isherm
     if qutip.settings.auto_tidyup:
         return out.tidyup()  # returns tidy Qobj
