@@ -34,6 +34,7 @@
 
 from scipy import *
 from qutip import *
+from qutip.qobj import _typecheck
 import scipy.sparse as sp
 import scipy.linalg as la
 import numpy as np
@@ -150,7 +151,7 @@ def test_QobjAddition():
 
     q4 = q1 + q2
 
-    assert_equal(q4.type, ischeck(q4))
+    assert_equal(q4.type, _typecheck(q4))
     assert_equal(q4.isherm, isherm(q4))
 
     # check elementwise addition/subtraction

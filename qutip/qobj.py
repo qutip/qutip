@@ -291,103 +291,100 @@ class Qobj():
         """
         if _checkeseries(other) == 'eseries':
             return other.__radd__(self)
+
         if not isinstance(other, Qobj):
             other = Qobj(other)
+
         if np.prod(other.shape) == 1 and np.prod(self.shape) != 1:
             # case for scalar quantum object
             dat = np.array(other.full())[0][0]
-            if dat != 0:
-                out = Qobj(type=self.type)
-                if self.type in ['oper', 'super']:
-                    out.data = self.data + dat * sp.identity(
-                        self.shape[0], dtype=complex, format='csr')
-                else:
-                    out.data = self.data
-                    out.data.data = out.data.data + dat
-                out.dims = self.dims
-                out.shape = self.shape
-                isherm = None
-                if isinstance(dat, (int, float)):
-                    isherm = self._isherm
-                if qset.auto_tidyup:
-                    return Qobj(out, type=self.type, isherm=isherm).tidyup()
-                else:
-                    return Qobj(out, type=self.type, isherm=isherm)
-            else:  # if other qobj is zero object
+            if dat == 0:
                 return self
+
+            out = Qobj(type=self.type)
+
+            if self.type in ['oper', 'super']:
+                out.data = self.data + dat * sp.identity(
+                    self.shape[0], dtype=complex, format='csr')
+            else:
+                out.data = self.data
+                out.data.data = out.data.data + dat
+
+            out.dims = self.dims
+            out.shape = self.shape
+            if isinstance(dat, (int, float)):
+                out._isherm = self._isherm
+            else:
+                out._isherm = out.isherm
+   
+            return out.tidyup() if qset.auto_tidyup else out
+
+
         elif np.prod(self.shape) == 1 and np.prod(other.shape) != 1:
             # case for scalar quantum object
             dat = np.array(self.full())[0][0]
-            if dat != 0:
-                out = Qobj()
-                if other.type in ['oper', 'super']:
-                    out.data = dat * sp.identity(other.shape[0], dtype=complex,
-                                                 format='csr') + other.data
-                else:
-                    out.data = other.data
-                    out.data.data = out.data.data + dat
-                out.dims = other.dims
-                out.shape = other.shape
-                isherm = None
-                if isinstance(dat, (int, float)):
-                    isherm = other._isherm
-                if qset.auto_tidyup:
-                    return Qobj(out, type=other.type, isherm=isherm).tidyup()
-                else:
-                    return Qobj(out, type=other.type, isherm=isherm)
-            else:
+            if dat == 0:
                 return other
+
+            out = Qobj()
+            if other.type in ['oper', 'super']:
+                out.data = dat * sp.identity(other.shape[0], dtype=complex,
+                                             format='csr') + other.data
+            else:
+                out.data = other.data
+                out.data.data = out.data.data + dat
+            out.dims = other.dims
+            out.shape = other.shape
+
+            if isinstance(dat, (int, float)):
+                out._isherm = self._isherm
+            else:
+                out._isherm = out.isherm
+   
+            return out.tidyup() if qset.auto_tidyup else out
+
         elif self.dims != other.dims:
             raise TypeError('Incompatible quantum object dimensions')
+
         elif self.shape != other.shape:
             raise TypeError('Matrix shapes do not match')
+
         else:  # case for matching quantum objects
             out = Qobj(type=self.type)
             out.data = self.data + other.data
             out.dims = self.dims
             out.shape = self.shape
-            isherm = None
-            if self.type in np.array(['ket', 'bra', 'super']):
-                isherm = False
+
+            if self.type in ['ket', 'bra', 'super']:
+                out._isherm = False
             elif self._isherm and self._isherm == other._isherm:
-                isherm = True
-            elif ((self._isherm and not other._isherm) or
-                  (not self._isherm and other._isherm)):
-                isherm = False
-            if qset.auto_tidyup:
-                return Qobj(out, type=self.type, isherm=isherm).tidyup()
+                out._isherm = True
+            elif self._isherm and not other._isherm:
+                out._isherm = False
+            elif not self._isherm and other._isherm:
+                out._isherm = False
             else:
-                return Qobj(out, type=self.type, isherm=isherm)
+                out._isherm = out.isherm
+
+            return out.tidyup() if qset.auto_tidyup else out
 
     def __radd__(self, other):
         """
         ADDITION with Qobj on RIGHT [ ex. 4+Qobj ] (just calls left addition)
         """
-        out = self + other
-        if qset.auto_tidyup:
-            return out.tidyup()
-        else:
-            return out
+        return self + other
 
     def __sub__(self, other):
         """
         SUBTRACTION with Qobj on LEFT [ ex. Qobj-4 ]
         """
-        out = self + (-other)
-        if qset.auto_tidyup:
-            return out.tidyup()
-        else:
-            return out
+        return self + (-other)
 
     def __rsub__(self, other):
         """
         SUBTRACTION with Qobj on RIGHT [ ex. 4-Qobj ]
         """
-        out = (-self) + other
-        if qset.auto_tidyup:
-            return out.tidyup()
-        else:
-            return out
+        return (-self) + other
 
     def __mul__(self, other):
         """
