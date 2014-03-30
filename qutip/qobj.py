@@ -33,6 +33,7 @@
 """Main module for QuTiP, consisting of the Quantum Object (Qobj) class and
 its methods.
 """
+import warnings
 import types
 import pickle
 
@@ -41,8 +42,6 @@ from numpy import (arccos, arccosh, arcsin, arcsinh, arctan, arctan2, arctanh,
                    ceil, copysign, cos, cosh, degrees, e, exp, expm1, fabs,
                    floor, fmod, frexp, hypot, isinf, isnan, ldexp, log, log10,
                    log1p, modf, pi, radians, sin, sinh, sqrt, tan, tanh, trunc)
-
-from numpy import prod, allclose, shape, where
 
 import numpy as np
 import scipy.sparse as sp
@@ -191,7 +190,7 @@ class Qobj():
             # initialize an empty Qobj with correct dimensions and shape
 
             if any(dims):
-                N, M = prod(dims[0]), prod(dims[1])
+                N, M = np.prod(dims[0]), np.prod(dims[1])
                 self.dims = dims
 
             elif shape:
@@ -257,7 +256,7 @@ class Qobj():
                 self.shape = shape
 
         else:
-            print("Warning: Initializing Qobj from unsupported type")
+            warnings.warn("Initializing Qobj from unsupported type")
             inpt = np.array([[0]])
             self.data = sp.csr_matrix(inpt, dtype=complex)
             self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
@@ -794,9 +793,7 @@ class Qobj():
 
         """
         if self.type == 'oper' or self.type == 'super':
-            if norm==None:
-                norm = 'tr'
-            if norm == 'tr':
+            if norm is None or norm == 'tr':
                 vals = sp_eigs(self, vecs=False, sparse=sparse,
                                tol=tol, maxiter=maxiter)
                 return np.sum(sqrt(abs(vals) ** 2))
@@ -1025,7 +1022,7 @@ class Qobj():
         Parameters
         ----------
         atol : float
-            Absolute tolerance used by tidyup.  Default is set
+            Absolute tolerance used by tidyup. Default is set
             via qutip global settings parameters.
 
         Returns
@@ -1034,7 +1031,7 @@ class Qobj():
             Quantum object with small elements removed.
 
         """
-        if self.data.nnz!=0:
+        if self.data.nnz:
             out = Qobj(dims=self.dims, shape=self.shape,
                        type=self.type, isherm=self.isherm)
 
@@ -1326,7 +1323,7 @@ class Qobj():
 
         """
         out = Qobj()
-        out.data = self.data.T
+        out.data = self.data.T.tocsr()
         out.dims = [self.dims[1], self.dims[0]]
         out.shape = [self.shape[1], self.shape[0]]
         out.type = ischeck(out)
@@ -1699,7 +1696,7 @@ def isket(Q):
     if not isinstance(Q, Qobj):
             return False
 
-    return isinstance(Q.dims[0], list) and prod(Q.dims[1]) == 1
+    return isinstance(Q.dims[0], list) and np.prod(Q.dims[1]) == 1
 
 
 def isbra(Q):
@@ -1726,7 +1723,7 @@ def isbra(Q):
     if not isinstance(Q, Qobj):
         return False
 
-    return isinstance(Q.dims[1], list) and (prod(Q.dims[0]) == 1)
+    return isinstance(Q.dims[1], list) and np.prod(Q.dims[0]) == 1
 
 
 def isoper(Q):
