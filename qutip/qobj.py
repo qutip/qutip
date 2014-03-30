@@ -149,12 +149,14 @@ class Qobj():
         """
         Qobj constructor.
         """
+        self._isherm = None
+
         if fast == 'mc':
             # fast Qobj construction for use in mcsolve with ket output
             self.data = sp.csr_matrix(inpt, dtype=complex)
             self.dims = dims
             self.shape = shape
-            self.isherm = False
+            self._isherm = False
             self.type = 'ket'
             return
 
@@ -163,7 +165,7 @@ class Qobj():
             self.data = sp.csr_matrix(inpt, dtype=complex)
             self.dims = dims
             self.shape = shape
-            self.isherm = True
+            self._isherm = True
             self.type = 'oper'
             return
 
@@ -265,11 +267,12 @@ class Qobj():
         # Signifies if quantum object corresponds to Hermitian operator
         if isherm is None:
             if qset.auto_herm:
-                self.isherm = hermcheck(self)
+                self._isherm = self.isherm
             else:
-                self.isherm = None
+                self._isherm = None
         else:
-            self.isherm = isherm
+            self._isherm = isherm
+
         # Signifies if quantum object corresponds to a ket, bra, operator, or
         # super-operator
         if type is None:
@@ -305,7 +308,7 @@ class Qobj():
                 out.shape = self.shape
                 isherm = None
                 if isinstance(dat, (int, float)):
-                    isherm = self.isherm
+                    isherm = self._isherm
                 if qset.auto_tidyup:
                     return Qobj(out, type=self.type, isherm=isherm).tidyup()
                 else:
@@ -327,7 +330,7 @@ class Qobj():
                 out.shape = other.shape
                 isherm = None
                 if isinstance(dat, (int, float)):
-                    isherm = other.isherm
+                    isherm = other._isherm
                 if qset.auto_tidyup:
                     return Qobj(out, type=other.type, isherm=isherm).tidyup()
                 else:
@@ -346,10 +349,10 @@ class Qobj():
             isherm = None
             if self.type in np.array(['ket', 'bra', 'super']):
                 isherm = False
-            elif self.isherm and self.isherm == other.isherm:
+            elif self._isherm and self._isherm == other._isherm:
                 isherm = True
-            elif ((self.isherm and not other.isherm) or
-                  (not self.isherm and other.isherm)):
+            elif ((self._isherm and not other._isherm) or
+                  (not self._isherm and other._isherm)):
                 isherm = False
             if qset.auto_tidyup:
                 return Qobj(out, type=self.type, isherm=isherm).tidyup()
@@ -406,7 +409,7 @@ class Qobj():
                     out.dims = dims
                 out.shape = [self.shape[0], other.shape[1]]
                 out.type = ischeck(out)
-                out.isherm = hermcheck(out)
+                out._isherm = out.isherm
                 return out.tidyup() if qset.auto_tidyup else out
 
             elif (self.shape[0] == 1 and self.shape[1] == 1):
@@ -434,10 +437,10 @@ class Qobj():
             out.data = self.data * other
             out.dims = self.dims
             out.shape = self.shape
-            if isinstance(other, (int, float)):
-                out.isherm = self.isherm
+            if isinstance(other, complex):
+                out._isherm = out.isherm
             else:
-                out.isherm = hermcheck(out)
+                out._isherm = self._isherm
 
             return out.tidyup() if qset.auto_tidyup else out
 
@@ -456,7 +459,7 @@ class Qobj():
                 out.dims = self.dims
                 out.shape = [self.shape[0], other.shape[1]]
                 out.type = ischeck(out)
-                out.isherm = hermcheck(out)
+                out._isherm = out.isherm
                 return out.tidyup() if qset.auto_tidyup else out
 
             else:
@@ -475,9 +478,9 @@ class Qobj():
             out.dims = self.dims
             out.shape = self.shape
             if isinstance(other, (int, float, np.int64)):
-                out.isherm = self.isherm
+                out._isherm = self._isherm
             else:
-                out.isherm = hermcheck(out)
+                out._isherm = out.isherm
 
             return out.tidyup() if qset.auto_tidyup else out
 
@@ -501,9 +504,9 @@ class Qobj():
             out.dims = self.dims
             out.shape = self.shape
             if isinstance(other, (int, float, np.int64)):
-                out.isherm = self.isherm
+                out._isherm = self._isherm
             else:
-                out.isherm = hermcheck(out)
+                out._isherm = out.isherm
 
             return out.tidyup() if qset.auto_tidyup else out
 
@@ -519,7 +522,7 @@ class Qobj():
         out.dims = self.dims
         out.shape = self.shape
         out.type = self.type
-        out.isherm = self.isherm
+        out._isherm = self._isherm
         return out.tidyup() if qset.auto_tidyup else out
 
     def __getitem__(self, ind):
@@ -576,7 +579,7 @@ class Qobj():
                   "dims = " + str(self.dims) +
                   ", shape = " + str(self.shape) +
                   ", type = " + self.type +
-                  ", isherm = " + str(self.isherm) +
+                  ", isherm = " + str(self._isherm) +
                   (
                       ", superrep = {0.superrep}".format(self)
                       if self.type == "super" and self.superrep != "super"
@@ -632,7 +635,7 @@ class Qobj():
                   "dims = " + str(self.dims) +
                   ", shape = " + str(self.shape) +
                   ", type = " + self.type +
-                  ", isherm = " + str(self.isherm) +
+                  ", isherm = " + str(self._isherm) +
                   (
                       ", superrep = {0.superrep}".format(self)
                       if self.type == "super" and self.superrep != "super"
@@ -741,7 +744,7 @@ class Qobj():
         out.data = self.data.T.conj().tocsr()
         out.dims = [self.dims[1], self.dims[0]]
         out.shape = [self.shape[1], self.shape[0]]
-        out.isherm = self.isherm
+        out._isherm = self._isherm
         out.type = ischeck(out)
         return out
 
@@ -827,7 +830,7 @@ class Qobj():
             otherwise.
 
         """
-        if self.isherm:
+        if self._isherm:
             return float(np.real(np.sum(self.data.diagonal())))
         else:
             return complex(np.sum(self.data.diagonal()))
@@ -857,7 +860,7 @@ class Qobj():
 
         """
         out = self.data.diagonal()
-        if np.any(np.imag(out) > 1e-15) or not self.isherm:
+        if np.any(np.imag(out) > 1e-15) or not self._isherm:
             return out
         else:
             return np.real(out)
@@ -893,8 +896,8 @@ class Qobj():
         isherm: bool
             Returns the new value of isherm property.
         """
-        self.isherm = hermcheck(self)
-        return self.isherm
+        self._isherm = self.isherm
+        return self._isherm
 
     def sqrtm(self, sparse=False, tol=0, maxiter=100000):
         """Sqrt of a quantum operator.
@@ -1033,7 +1036,7 @@ class Qobj():
         """
         if self.data.nnz:
             out = Qobj(dims=self.dims, shape=self.shape,
-                       type=self.type, isherm=self.isherm)
+                       type=self.type, isherm=self._isherm)
 
             out.data = self.data.copy()
 
@@ -1091,7 +1094,7 @@ class Qobj():
         # S = S/la.norm(S)
 
         out = Qobj(type=self.type, dims=self.dims, shape=self.shape)
-        out.isherm = self.isherm
+        out._isherm = self._isherm
         out.type = self.type
 
         # transform data
@@ -1431,14 +1434,48 @@ class Qobj():
             
     @property
     def iscptp(self):
-        from qutip.superop_reps import to_choi
+
         if self.type == "super" or self.type == "oper":
-            q_oper = to_choi(self)
+            q_oper = sr.to_choi(self)
             return q_oper.iscp and q_oper.istp
         else:
             return False
         
-    
+    @property
+    def isherm(self):
+
+        if self._isherm:
+            # used previously computed value
+            return True
+
+        if self.dims[0] != self.dims[1]:
+            return False
+
+        data = self.data
+        elems = (data.transpose().conj() - data).data
+        return False if np.any(np.abs(elems) > 1e-12) else True
+
+    @isherm.setter
+    def isherm(self, isherm):
+
+        self._isherm = isherm
+
+    @property
+    def isbra(self):
+        return isinstance(self.dims[1], list) and np.prod(self.dims[0]) == 1
+
+    @property
+    def isket(self):
+        return isinstance(self.dims[0], list) and np.prod(self.dims[1]) == 1
+
+    @property
+    def isoper(self):
+        pass
+
+    @property
+    def issuper(self):
+        pass
+
 
 
 #------------------------------------------------------------------------------
@@ -1542,6 +1579,7 @@ def dag(A):
     """
     if not isinstance(A, Qobj):
         raise TypeError("Input is not a quantum object")
+
     return A.dag()
 
 
@@ -1563,9 +1601,12 @@ def ptrace(Q, sel):
 
     Notes
     -----
-    Depreciated in QuTiP v. 2.0.
+    Deprecated in QuTiP v. 2.0.
 
     """
+    if not isinstance(Q, Qobj):
+        raise TypeError("Input is not a quantum object")
+
     return Q.ptrace(sel)
 
 
@@ -1586,13 +1627,11 @@ def dims(inpt):
     -----
     This function is for compatibility with the qotoolbox only.
     Using the `Qobj.dims` attribute is recommended.
-
-
     """
     if isinstance(inpt, Qobj):
         return inpt.dims
     else:
-        raise TypeError("Incompatible object for dims (not a Qobj)")
+        raise TypeError("Input is not a quantum object")
 
 
 def shape(inpt):
@@ -1840,26 +1879,12 @@ def isherm(Q):
 
     Examples
     --------
-    >>> a=destroy(4)
+    >>> a = destroy(4)
     >>> isherm(a)
     False
 
     """
-
-    if not isinstance(Q, Qobj):
-        return False
-
-    if Q.dims[0] != Q.dims[1]:
-        return False
-    else:
-        dat = Q.data
-        elems = (dat.transpose().conj() - dat).data
-        if np.any(abs(elems) > 1e-12):
-            return False
-        else:
-            return True
-
-hermcheck = isherm
+    return True if isinstance(Q, Qobj) and Q.isherm else False
 
 
 ## TRAILING IMPORTS ##
