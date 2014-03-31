@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 """Main module for QuTiP, consisting of the Quantum Object (Qobj) class and
@@ -52,7 +52,8 @@ from qutip.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, _sp_expm, _sp_fro_norm, _sp_max_norm,
                           _sp_one_norm, _sp_L2_norm, _sp_inf_norm)
-                          
+
+
 class Qobj():
     """A class for representing quantum objects, such as quantum operators
     and states.
@@ -192,7 +193,7 @@ class Qobj():
                 N, M = shape
                 self.dims = [[N], [M]]
 
-            else:                
+            else:
                 N, M = 1, 1
                 self.dims = [[N], [M]]
 
@@ -224,7 +225,7 @@ class Qobj():
                 self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
             else:
                 self.dims = dims
-            
+
         elif isinstance(inpt, (int, float, complex, np.int64)):
             # if input is int, float, or complex then convert to array
             self.data = sp.csr_matrix([[inpt]], dtype=complex)
@@ -290,7 +291,7 @@ class Qobj():
                 out._isherm = self._isherm
             else:
                 out._isherm = out.isherm
-   
+
             return out.tidyup() if qset.auto_tidyup else out
 
         elif np.prod(self.shape) == 1 and np.prod(other.shape) != 1:
@@ -312,7 +313,7 @@ class Qobj():
                 out._isherm = self._isherm
             else:
                 out._isherm = out.isherm
-   
+
             return out.tidyup() if qset.auto_tidyup else out
 
         elif self.dims != other.dims:
@@ -370,12 +371,14 @@ class Qobj():
                 out.data = self.data * other.data
                 dims = [self.dims[0], other.dims[1]]
                 out.dims = dims
-                if (not isinstance(dims[0][0], list) and 
+                if (not isinstance(dims[0][0], list) and
                         not isinstance(dims[1][0], list)):
                     r = range(len(dims[0]))
                     mask = [dims[0][n] == dims[1][n] == 1 for n in r]
-                    out.dims = [max([1], [dims[0][n] for n in r if not mask[n]]),
-                                max([1], [dims[1][n] for n in r if not mask[n]])]
+                    out.dims = [max([1], [dims[0][n]
+                                          for n in r if not mask[n]]),
+                                max([1], [dims[1][n]
+                                          for n in r if not mask[n]])]
                 else:
                     out.dims = dims
 
@@ -554,7 +557,7 @@ class Qobj():
                   ", shape = " + str(shape) +
                   ", type = " + type + "\n")
         s += "Qobj data =\n"
-        
+
         if shape[0] > 10000 or shape[1] > 10000:
             # if the system is huge, don't attempt to convert to a
             # dense matrix and then to string, because it is pointless
@@ -724,15 +727,16 @@ class Qobj():
         """Norm of a quantum object.
 
         Default norm is L2-norm for kets and trace-norm for operators.
-        Other ket and operator norms may be specified using the 
-        `ket_norm` and `oper_norm` arguments.
+        Other ket and operator norms may be specified using the `ket_norm` and
+        `oper_norm` arguments.
 
         Parameters
         ----------
         norm : str
             Which norm to use for ket/bra vectors: L2 'l2', max norm 'max',
-            or for operators: trace 'tr', Frobius 'fro', one 'one', or max 'max'.
-        
+            or for operators: trace 'tr', Frobius 'fro', one 'one', or max
+            'max'.
+
         sparse : bool
             Use sparse eigenvalue solver for trace norm.  Other norms are not
             affected by this parameter.
@@ -772,7 +776,7 @@ class Qobj():
                 raise ValueError(
                     "Operator norm must be 'tr', 'fro', 'one', or 'max'.")
         else:
-            if norm==None:
+            if norm is None:
                 norm = 'l2'
             if norm == 'l2':
                 return _sp_L2_norm(self)
@@ -781,7 +785,7 @@ class Qobj():
             else:
                 raise ValueError(
                     "Ket norm must be 'l2', or 'max'.")
-    
+
     def tr(self):
         """Trace of a quantum object.
 
@@ -1002,7 +1006,7 @@ class Qobj():
             data_imag = self.data.data.imag
             data_imag[abs(data_imag) < atol] = 0
 
-            self.data.data = data_real + 1j * data_imag            
+            self.data.data = data_real + 1j * data_imag
 
             self.data.eliminate_zeros()
             return self
@@ -1197,7 +1201,8 @@ class Qobj():
                       eigvals=0, tol=0, maxiter=100000):
         """Eigenvalues of a quantum object.
 
-        Eigenenergies (Eigenvalues) are defined for operators or superoperators only.
+        Eigenenergies (Eigenvalues) are defined for operators or superoperators
+        only.
 
         Parameters
         ----------
@@ -1352,7 +1357,7 @@ class Qobj():
                                  for s in range(self.shape[0])]).nonzero()[0]
 
         return self.extract_states(keep_indices, normalize=normalize)
-        
+
     @property
     def iscp(self):
         # FIXME: this needs to be cached in the same ways as isherm.
@@ -1365,10 +1370,10 @@ class Qobj():
                 return False
         else:
             return False
-            
+
     @property
     def istp(self):
-        
+
         if self.type in ["super", "oper"]:
             try:
                 q_oper = sr.to_choi(self)
@@ -1376,13 +1381,12 @@ class Qobj():
                 # Tr_1(J(Phi)) = identity_2.
                 tr_oper = ptrace(q_oper, (0,))
                 ident = ops.identity(tr_oper.shape[0])
-                
                 return isequal(tr_oper, ident)
             except:
                 return False
         else:
             return False
-            
+
     @property
     def iscptp(self):
 
@@ -1391,7 +1395,7 @@ class Qobj():
             return q_oper.iscp and q_oper.istp
         else:
             return False
-        
+
     @property
     def isherm(self):
 
@@ -1414,7 +1418,7 @@ class Qobj():
     @property
     def type(self):
 
-        if True: # XXX: use: not self._type:
+        if True:  # XXX: use: not self._type:
             if self.isoper:
                 self._type = 'oper'
             elif self.isket:
@@ -1451,7 +1455,7 @@ class Qobj():
     @property
     def isoperbra(self):
         return (np.prod(self.dims[0]) == 1 and
-                isinstance(self.dims[1], list) and 
+                isinstance(self.dims[1], list) and
                 isinstance(self.dims[1][0], list))
 
     @property
@@ -1470,8 +1474,9 @@ class Qobj():
     def issuper(self):
         return (isinstance(self.dims[0], list) and
                 isinstance(self.dims[0][0], list) and
-                self.dims[0] == self.dims[1] and 
+                self.dims[0] == self.dims[1] and
                 self.dims[0][0] == self.dims[1][0])
+
 
 #------------------------------------------------------------------------------
 # This functions evaluates a time-dependent quantum object on the list-string
@@ -1592,6 +1597,7 @@ def _checkeseries(inpt):
         return 'eseries'
     else:
         pass
+
 
 #------------------------------------------------------------------------------
 #
@@ -1870,4 +1876,3 @@ def isherm(Q):
 # We do a few imports here to avoid circular dependencies.
 import qutip.superop_reps as sr
 import qutip.operators as ops
-
