@@ -18,7 +18,8 @@ Manipulating States and Operators
 Introduction
 =================
 
-In the previous guide section :ref:`basics`, we saw how to create operators and states, using the functions built into QuTiP.  In this portion of the guide, we will look at performing basic operations with states and operators.  For more detailed demonstrations on how to use and manipulate these objects, see the :ref:`examples` section.
+In the previous guide section :ref:`basics`, we saw how to create states,
+operators and superoperators, using the functions built into QuTiP.  In this portion of the guide, we will look at performing basic operations with states and operators.  For more detailed demonstrations on how to use and manipulate these objects, see the :ref:`examples` section.
 
 
 .. _states-vectors:
@@ -403,5 +404,156 @@ as well as the composite objects discussed in the next section :ref:`tensor`:
 	In [6]: expect(sz1, two_spins)
 	
 	In [7]: expect(sz2, two_spins)
+
+.. _states-super:
+
+Superoperators and Vectorized Operators
+=======================================
+
+In addition to state vectors and density operators, QuTiP allows for
+representing maps that act linearly on density operators using the Kraus,
+Liouville supermatrix and Choi matrix formalisms. This support is based on the
+correspondance between linear operators acting on a Hilbert space, and vectors
+in two copies of that Hilbert space,
+:math:`\mathrm{vec} : \mathcal{L}(\mathcal{H}) \to \mathcal{H} \otimes \mathcal{H}`.
+This isomorphism is implemented in QuTiP by the
+:obj:`~qutip.superoperator.operator_to_vector` and 
+:obj:`~qutip.superoperator.vector_to_operator` functions:
+
+.. ipython::
+
+    In [1]: psi = basis(2, 0)
+    
+    In [2]: rho = ket2dm(psi)
+    
+    In [3]: print rho
+    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isherm = True
+    Qobj data =
+    [[ 1.  0.]
+     [ 0.  0.]]
+    
+    In [4]: vec_rho = operator_to_vector(rho)
+
+    In [5]: print vec_rho
+    Quantum object: dims = [[[2], [2]], [1]], shape = [4, 1], type = operator-ket
+    Qobj data =
+    [[ 1.]
+     [ 0.]
+     [ 0.]
+     [ 0.]]
+    
+    In [6]: rho2 = vector_to_operator(vec_rho)
+    
+    In [7]: print (rho - rho2).norm()
+    0.0
+    
+The :attr:`~qutip.Qobj.type` attribute indicates whether a quantum object is
+a vector corresponding to an operator (``operator-ket``), or its Hermitian
+conjugate (``operator-bra``).
+
+Since :math:`\mathcal{H} \otimes \mathcal{H}` is a vector space, linear maps
+on this space can be represented as matrices, often called *supermatrices*.
+Using the :obj:`~qutip.Qobj`, the :obj:`~qutip.superoperator.spre` and :obj:`~qutip.superoperator.spost` functions, supermatrices
+corresponding to left- and right-multiplication respectively can be quickly
+constructed.
+
+.. ipython::
+
+    In [1]: X = sigmax()
+    
+    In [2]: S = spre(X) * spost(X.dag()) # Represents conjugation by X.
+    
+Note that this is done automatically by the :obj:`~qutip.superop_reps.to_super` function when given
+``type='oper'`` input.
+
+.. ipython::
+
+    In [1]: S2 = to_super(X)
+    
+    In [2]: print (S - S2).norm()
+    0.0
+    
+Quantum objects representing superoperators are denoted by ``type='super'``:
+
+.. ipython::
+
+    In [1]: print S
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = [4, 4], type = super, isherm = True
+    Qobj data =
+    [[ 0.  0.  0.  1.]
+     [ 0.  0.  1.  0.]
+     [ 0.  1.  0.  0.]
+     [ 1.  0.  0.  0.]]
+
+Information about superoperators, such as whether they represent completely
+positive maps, is exposed through the :attr:`~qutip.Qobj.iscp`, :attr:`~qutip.Qobj.istp`
+and :attr:`~qutip.Qobj.iscptp` attributes:
+
+.. ipython::
+
+    In [1]: print S.iscp, S.istp, S.iscptp
+    True True True
+    
+In addition, dynamical generators on this extended space, often called
+*Liouvillian superoperators*, can be created using the :func:`~qutip.superoperator.liouvillian` and
+:func:`~qutip.superoperator.liouvillian_fast` functions. Each of these takes a Hamilonian along with
+a list of collapse operators, and returns a ``type="super"`` object that can
+be exponentiated to find the superoperator for that evolution.
+
+.. ipython::
+
+    In [1]: H = 10 * sigmaz()
+
+    In [2]: c1 = destroy(2)
+
+    In [3]: L = liouvillian(H, [c1])
+
+    In [4]: print L
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = [4, 4], type = super, isherm = False, superrep = None
+    Qobj data =
+    [[ 0.0 +0.j  0.0 +0.j  0.0 +0.j  1.0 +0.j]
+     [ 0.0 +0.j -0.5+20.j  0.0 +0.j  0.0 +0.j]
+     [ 0.0 +0.j  0.0 +0.j -0.5-20.j  0.0 +0.j]
+     [ 0.0 +0.j  0.0 +0.j  0.0 +0.j -1.0 +0.j]]
+     
+    In [5]: S = (12 * L).expm()
+
+Once a superoperator has been obtained, it can be converted between the
+supermatrix, Kraus and Choi formalisms by using the :func:`~qutip.superop_reps.to_super`,
+:func:`~qutip.superop_reps.to_kraus` and :func:`~qutip.superop_reps.to_choi` functions. The :attr:`~Qobj.superrep`
+attribute keeps track of what reprsentation is a :obj:`~qutip.Qobj` is currently using.
+
+.. ipython::
+
+    In [1]: J = to_choi(S)
+
+    In [2]: print J
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = [4, 4], type = super, isherm = True, superrep = choi
+    Qobj data =
+    [[  1.00000000e+00+0.j           0.00000000e+00+0.j           0.00000000e+00+0.j
+        8.07531120e-04-0.00234352j]
+     [  0.00000000e+00+0.j           0.00000000e+00+0.j           0.00000000e+00+0.j
+        0.00000000e+00+0.j        ]
+     [  0.00000000e+00+0.j           0.00000000e+00+0.j           9.99993856e-01+0.j
+        0.00000000e+00+0.j        ]
+     [  8.07531120e-04+0.00234352j   0.00000000e+00+0.j           0.00000000e+00+0.j
+        6.14421235e-06+0.j        ]]
+
+    In [3]: K = to_kraus(J)
+    
+    In [4]: print K
+    [Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isherm = False
+    Qobj data =
+    [[  1.00000000e+00 +5.37489696e-22j   0.00000000e+00 +0.00000000e+00j]
+     [  0.00000000e+00 +0.00000000e+00j   8.07531120e-04 +2.34352424e-03j]], Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isherm = False
+    Qobj data =
+    [[ -1.93076357e-13 +5.63930339e-13j   0.00000000e+00 +0.00000000e+00j]
+     [  0.00000000e+00 +0.00000000e+00j   2.40470137e-10 -4.73970807e-13j]], Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isherm = True
+    Qobj data =
+    [[ 0.  0.]
+     [ 0.  0.]], Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isherm = False
+    Qobj data =
+    [[ 0.          0.99999693]
+     [ 0.          0.        ]]]
 
 
