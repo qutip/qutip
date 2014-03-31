@@ -157,7 +157,6 @@ class Qobj():
             # fast Qobj construction for use in mcsolve with ket output
             self.data = sp.csr_matrix(inpt, dtype=complex)
             self.dims = dims
-            self.shape = shape
             self._isherm = False
             return
 
@@ -165,7 +164,6 @@ class Qobj():
             # fast Qobj construction for use in mcsolve with dm output
             self.data = sp.csr_matrix(inpt, dtype=complex)
             self.dims = dims
-            self.shape = shape
             self._isherm = True
             return
 
@@ -181,12 +179,6 @@ class Qobj():
                 self.dims = inpt.dims
             else:
                 self.dims = dims
-
-            if not np.any(shape):
-                # Shape of undelying quantum obejct data matrix
-                self.shape = inpt.shape
-            else:
-                self.shape = shape
 
             self.superrep = inpt.superrep
 
@@ -205,7 +197,6 @@ class Qobj():
                 N, M = 1, 1
                 self.dims = [[N], [M]]
 
-            self.shape = [N, M]
             self.data = sp.csr_matrix((N, M), dtype=complex)
 
         elif isinstance(inpt, list) or isinstance(inpt, tuple):
@@ -223,11 +214,6 @@ class Qobj():
             else:
                 self.dims = dims
 
-            if not np.any(shape):
-                self.shape = [int(inpt.shape[0]), int(inpt.shape[1])]
-            else:
-                self.shape = shape
-
         elif isinstance(inpt, np.ndarray) or sp.issparse(inpt):
             # case where input is array or sparse
             if inpt.ndim == 1:
@@ -239,11 +225,6 @@ class Qobj():
                 self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
             else:
                 self.dims = dims
-
-            if not np.any(shape):
-                self.shape = [int(inpt.shape[0]), int(inpt.shape[1])]
-            else:
-                self.shape = shape
             
         elif isinstance(inpt, (int, float, complex, np.int64)):
             # if input is int, float, or complex then convert to array
@@ -254,17 +235,11 @@ class Qobj():
             else:
                 self.dims = dims
 
-            if not np.any(shape):
-                self.shape = [1, 1]
-            else:
-                self.shape = shape
-
         else:
             warnings.warn("Initializing Qobj from unsupported type")
             inpt = np.array([[0]])
             self.data = sp.csr_matrix(inpt, dtype=complex)
             self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
-            self.shape = [int(inpt.shape[0]), int(inpt.shape[1])]
 
         # Signifies if quantum object corresponds to Hermitian operator
         if isherm is None:
@@ -312,7 +287,6 @@ class Qobj():
                 out.data.data = out.data.data + dat
 
             out.dims = self.dims
-            out.shape = self.shape
             if isinstance(dat, (int, float)):
                 out._isherm = self._isherm
             else:
@@ -335,7 +309,6 @@ class Qobj():
                 out.data = other.data
                 out.data.data = out.data.data + dat
             out.dims = other.dims
-            out.shape = other.shape
 
             if isinstance(dat, (int, float)):
                 out._isherm = self._isherm
@@ -354,7 +327,6 @@ class Qobj():
             out = Qobj()
             out.data = self.data + other.data
             out.dims = self.dims
-            out.shape = self.shape
 
             if self.type in ['ket', 'bra', 'super']:
                 out._isherm = False
@@ -392,8 +364,7 @@ class Qobj():
         MULTIPLICATION with Qobj on LEFT [ ex. Qobj*4 ]
         """
         if isinstance(other, Qobj):
-            if (self.shape[1] == other.shape[0] and
-                    self.dims[1] == other.dims[0]):
+            if self.dims[1] == other.dims[0]:
                 out = Qobj()
                 out.data = self.data * other.data
                 dims = [self.dims[0], other.dims[1]]
@@ -406,7 +377,6 @@ class Qobj():
                                 max([1], [dims[1][n] for n in r if not mask[n]])]
                 else:
                     out.dims = dims
-                out.shape = [self.shape[0], other.shape[1]]
                 out.superrep = self.superrep # XXX
                 out._isherm = out.isherm
                 return out.tidyup() if qset.auto_tidyup else out
@@ -435,7 +405,6 @@ class Qobj():
             out = Qobj()
             out.data = self.data * other
             out.dims = self.dims
-            out.shape = self.shape
             if isinstance(other, complex):
                 out._isherm = out.isherm
             else:
@@ -451,12 +420,10 @@ class Qobj():
         MULTIPLICATION with Qobj on RIGHT [ ex. 4*Qobj ]
         """
         if isinstance(other, Qobj):  # if both are quantum objects
-            if (self.shape[1] == other.shape[0] and
-                    self.dims[1] == other.dims[0]):
+            if self.dims[1] == other.dims[0]:
                 out = Qobj()
                 out.data = other.data * self.data
                 out.dims = self.dims
-                out.shape = [self.shape[0], other.shape[1]]
                 out._isherm = out.isherm
                 return out.tidyup() if qset.auto_tidyup else out
 
@@ -474,7 +441,6 @@ class Qobj():
             out = Qobj()
             out.data = other * self.data
             out.dims = self.dims
-            out.shape = self.shape
             if isinstance(other, (int, float, np.int64)):
                 out._isherm = self._isherm
             else:
@@ -500,7 +466,6 @@ class Qobj():
             out = Qobj()
             out.data = self.data / other
             out.dims = self.dims
-            out.shape = self.shape
             if isinstance(other, (int, float, np.int64)):
                 out._isherm = self._isherm
             else:
@@ -518,7 +483,6 @@ class Qobj():
         out = Qobj()
         out.data = -self.data
         out.dims = self.dims
-        out.shape = self.shape
         out.superrep = self.superrep
         out._isherm = self._isherm
         return out.tidyup() if qset.auto_tidyup else out
@@ -539,7 +503,6 @@ class Qobj():
         """
         if (isinstance(other, Qobj) and
                 self.dims == other.dims and
-                self.shape == other.shape and
                 abs(_sp_max_norm(self - other)) < 1e-14):
             return True
         else:
@@ -564,7 +527,7 @@ class Qobj():
 
         try:
             data = self.data ** n
-            out = Qobj(data, dims=self.dims, shape=self.shape)
+            out = Qobj(data, dims=self.dims)
             return out.tidyup() if qset.auto_tidyup else out
 
         except:
@@ -575,11 +538,13 @@ class Qobj():
 
     def __str__(self):
         s = ""
+        type = self.type
+        shape = self.shape
         if self.type in ['oper', 'super']:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
-                  ", shape = " + str(self.shape) +
-                  ", type = " + self.type +
+                  ", shape = " + str(shape) +
+                  ", type = " + type +
                   ", isherm = " + str(self._isherm) +
                   (
                       ", superrep = {0.superrep}".format(self)
@@ -589,11 +554,11 @@ class Qobj():
         else:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
-                  ", shape = " + str(self.shape) +
-                  ", type = " + self.type + "\n")
+                  ", shape = " + str(shape) +
+                  ", type = " + type + "\n")
         s += "Qobj data =\n"
         
-        if self.shape[0] > 10000 or self.shape[1] > 10000:
+        if shape[0] > 10000 or shape[1] > 10000:
             # if the system is huge, don't attempt to convert to a
             # dense matrix and then to string, because it is pointless
             # and is likely going to produce memory errors. Instead print the
@@ -630,23 +595,25 @@ class Qobj():
         Generate a LaTeX representation of the Qobj instance. Can be used for
         formatted output in ipython notebook.
         """
+        t = self.type
+        shape = self.shape
         s = r'$\text{'
         if self.type in ['oper', 'super']:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
-                  ", shape = " + str(self.shape) +
-                  ", type = " + self.type +
+                  ", shape = " + str(shape) +
+                  ", type = " + t +
                   ", isherm = " + str(self._isherm) +
                   (
                       ", superrep = {0.superrep}".format(self)
-                      if self.type == "super" and self.superrep != "super"
+                      if type == "super" and self.superrep != "super"
                       else ""
                   ))
         else:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
-                  ", shape = " + str(self.shape) +
-                  ", type = " + self.type)
+                  ", shape = " + str(shape) +
+                  ", type = " + t)
 
         s += r'}\\[1em]'
 
@@ -744,7 +711,6 @@ class Qobj():
         out = Qobj()
         out.data = self.data.T.conj().tocsr()
         out.dims = [self.dims[1], self.dims[0]]
-        out.shape = [self.shape[1], self.shape[0]]
         out._isherm = self._isherm
         return out
 
@@ -755,7 +721,6 @@ class Qobj():
         out = Qobj()
         out.data = self.data.conj()
         out.dims = [self.dims[1], self.dims[0]]
-        out.shape = [self.shape[1], self.shape[0]]
         return out
 
     def norm(self, norm=None, sparse=False, tol=0, maxiter=100000):
@@ -883,7 +848,7 @@ class Qobj():
         """
         if self.dims[0][0] == self.dims[1][0]:
             F = _sp_expm(self)
-            out = Qobj(F, dims=self.dims, shape=self.shape)
+            out = Qobj(F, dims=self.dims)
             return out.tidyup() if qset.auto_tidyup else out
         else:
             raise TypeError('Invalid operand for matrix exponential')
@@ -939,7 +904,7 @@ class Qobj():
                             format='csr')
             evecs = sp.hstack(evecs, format='csr')
             spDv = dV.dot(evecs.conj().T)
-            out = Qobj(evecs.dot(spDv), dims=self.dims, shape=self.shape)
+            out = Qobj(evecs.dot(spDv), dims=self.dims)
 
             return out.tidyup() if qset.auto_tidyup else out
 
@@ -997,9 +962,9 @@ class Qobj():
         """
         qdata, qdims, qshape = _ptrace(self, sel)
         if qset.auto_tidyup:
-            return Qobj(qdata, qdims, qshape).tidyup()
+            return Qobj(qdata, qdims).tidyup()
         else:
-            return Qobj(qdata, qdims, qshape)
+            return Qobj(qdata, qdims)
 
     def permute(self, order):
         """Permutes a composite quantum object.
@@ -1016,7 +981,7 @@ class Qobj():
 
         """
         data, dims, shape = _permute(self, order)
-        return Qobj(data, dims=dims, shape=shape)
+        return Qobj(data, dims=dims)
 
     def tidyup(self, atol=qset.auto_tidyup_atol):
         """Removes small elements from Qobj.
@@ -1088,7 +1053,7 @@ class Qobj():
         # normalize S just in case the supplied basis states aren't normalized
         # S = S/la.norm(S)
 
-        out = Qobj(dims=self.dims, shape=self.shape)
+        out = Qobj(dims=self.dims)
         out._isherm = self._isherm
         out.superrep = self.superrep
 
@@ -1228,9 +1193,7 @@ class Qobj():
         evals, evecs = sp_eigs(self, sparse=sparse, sort=sort,
                                eigvals=eigvals, tol=tol, maxiter=maxiter)
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
-        new_shape = [self.shape[0], 1]
-        ekets = np.array(
-            [Qobj(vec, dims=new_dims, shape=new_shape) for vec in evecs])
+        ekets = np.array([Qobj(vec, dims=new_dims) for vec in evecs])
         norms = np.array([ket.norm() for ket in ekets])
         return evals, ekets / norms
 
@@ -1306,8 +1269,7 @@ class Qobj():
         grndval, grndvec = sp_eigs(
             self, sparse=sparse, eigvals=1, tol=tol, maxiter=maxiter)
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
-        new_shape = [self.shape[0], 1]
-        grndvec = Qobj(grndvec[0], dims=new_dims, shape=new_shape)
+        grndvec = Qobj(grndvec[0], dims=new_dims)
         grndvec = grndvec / grndvec.norm()
         return grndval[0], grndvec
 
@@ -1323,7 +1285,6 @@ class Qobj():
         out = Qobj()
         out.data = self.data.T.tocsr()
         out.dims = [self.dims[1], self.dims[0]]
-        out.shape = [self.shape[1], self.shape[0]]
         return out
 
     def extract_states(self, states_inds, normalize=False):
@@ -1474,6 +1435,10 @@ class Qobj():
                 self._type = 'other'
 
         return self._type
+
+    @property
+    def shape(self):
+        return [np.prod(self.dims[0]), np.prod(self.dims[1])]
 
     @property
     def isbra(self):
