@@ -261,6 +261,9 @@ class Qobj():
             if self.type == 'super' and self.superrep is None:
                 self.superrep = 'super'
 
+        # clear type cache
+        self._type = None
+
     def __add__(self, other):
         """
         ADDITION with Qobj on LEFT [ ex. Qobj+4 ]
@@ -296,7 +299,7 @@ class Qobj():
 
         elif np.prod(self.shape) == 1 and np.prod(other.shape) != 1:
             # case for scalar quantum object
-            dat = np.array(self.full())[0][0]
+            dat = np.array(self.full())[0][0] # XXX
             if dat == 0:
                 return other
 
@@ -1418,7 +1421,7 @@ class Qobj():
     @property
     def type(self):
 
-        if True:  # XXX: use: not self._type:
+        if not self._type:
             if self.isoper:
                 self._type = 'oper'
             elif self.isket:
