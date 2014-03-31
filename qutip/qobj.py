@@ -524,7 +524,7 @@ class Qobj():
         try:
             data = self.data ** n
             out = Qobj(data, dims=self.dims)
-            out.superrep = superrep
+            out.superrep = self.superrep
             return out.tidyup() if qset.auto_tidyup else out
 
         except:
@@ -1614,9 +1614,8 @@ def dag(A):
 
     Notes
     -----
-    This function is for compatibility with the qotoolbox only.
-    It is recommended to use the ``dag()`` Qobj method.
-
+    This function is for legacy compatibility only. It is recommended to use
+    the ``dag()`` Qobj method.
     """
     if not isinstance(A, Qobj):
         raise TypeError("Input is not a quantum object")
@@ -1642,8 +1641,8 @@ def ptrace(Q, sel):
 
     Notes
     -----
-    Deprecated in QuTiP v. 2.0.
-
+    This function is for legacy compatibility only. It is recommended to use
+    the ``ptrace()`` Qobj method.
     """
     if not isinstance(Q, Qobj):
         raise TypeError("Input is not a quantum object")
@@ -1666,8 +1665,8 @@ def dims(inpt):
 
     Notes
     -----
-    This function is for compatibility with the qotoolbox only.
-    Using the `Qobj.dims` attribute is recommended.
+    This function is for legacy compatibility only. Using the `Qobj.dims`
+    attribute is recommended.
     """
     if isinstance(inpt, Qobj):
         return inpt.dims
@@ -1690,9 +1689,8 @@ def shape(inpt):
 
     Notes
     -----
-    This function is for compatibility with the qotoolbox only.
-    Using the `Qobj.dims` attribute is recommended.
-
+    This function is for legacy compatibility only. Using the `Qobj.shape`
+    attribute is recommended.
     """
     if isinstance(inpt, Qobj):
         return Qobj.shape
@@ -1720,6 +1718,10 @@ def isket(Q):
     >>> isket(psi)
     True
 
+    Notes
+    -----
+    This function is for legacy compatibility only. Using the `Qobj.isket`
+    attribute is recommended.
     """
     return True if isinstance(Q, Qobj) and Q.isket else False
 
@@ -1743,6 +1745,10 @@ def isbra(Q):
     >>> isket(psi)
     False
 
+    Notes
+    -----
+    This function is for legacy compatibility only. Using the `Qobj.isbra`
+    attribute is recommended.
     """
     return True if isinstance(Q, Qobj) and Q.isbra else False
 
@@ -1766,6 +1772,10 @@ def isoper(Q):
     >>> isoper(a)
     True
 
+    Notes
+    -----
+    This function is for legacy compatibility only. Using the `Qobj.isoper`
+    attribute is recommended.
     """
     return True if isinstance(Q, Qobj) and Q.isoper else False
 
@@ -1783,6 +1793,10 @@ def issuper(Q):
     issuper  : bool
         True if Qobj is superoperator, False otherwise.
 
+    Notes
+    -----
+    This function is for legacy compatibility only. Using the `Qobj.issuper`
+    attribute is recommended.
     """
     return True if isinstance(Q, Qobj) and Q.issuper else False
 
@@ -1804,6 +1818,10 @@ def isequal(A, B, tol=1e-12):
     isequal : bool
         True if qobjs are equal, False otherwise.
 
+    Notes
+    -----
+    This function is for legacy compatibility only. Instead, it is recommended
+    to use the equality operator of Qobj instances instead: A == B.
     """
 
     if not isinstance(A, Qobj) or not isinstance(B, Qobj):
@@ -1840,6 +1858,10 @@ def isherm(Q):
     >>> isherm(a)
     False
 
+    Notes
+    -----
+    This function is for legacy compatibility only. Using the `Qobj.isherm`
+    attribute is recommended.
     """
     return True if isinstance(Q, Qobj) and Q.isherm else False
 
