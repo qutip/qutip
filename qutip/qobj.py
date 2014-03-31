@@ -1402,9 +1402,9 @@ class Qobj():
     @property
     def isherm(self):
 
-        if self._isherm:
+        if not self._isherm is None:
             # used previously computed value
-            return True
+            return self._isherm
 
         if self.dims[0] != self.dims[1]:
             return False
