@@ -960,11 +960,9 @@ class Qobj():
         that has been deprecated.
 
         """
-        qdata, qdims, qshape = _ptrace(self, sel)
-        if qset.auto_tidyup:
-            return Qobj(qdata, qdims).tidyup()
-        else:
-            return Qobj(qdata, qdims)
+        q = Qobj()
+        q.data, q.dims, _ = _ptrace(self, sel)
+        return q.tidyup() if qset.auto_tidyup else q
 
     def permute(self, order):
         """Permutes a composite quantum object.
@@ -980,8 +978,9 @@ class Qobj():
             Permuted quantum object.
 
         """
-        data, dims, shape = _permute(self, order)
-        return Qobj(data, dims=dims)
+        q = Qobj()
+        q.data, q.dims, _ = _permute(self, order)
+        return q.tidyup() if qset.auto_tidyup else q
 
     def tidyup(self, atol=qset.auto_tidyup_atol):
         """Removes small elements from Qobj.
