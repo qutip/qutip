@@ -122,7 +122,6 @@ shape = [4, 4], type = oper, isHerm = True
     out = Qobj()
     out.data = dat
     out.dims = dim
-    out.shape = shp
     out.isherm = isherm
     if qutip.settings.auto_tidyup:
         return out.tidyup()  # returns tidy Qobj

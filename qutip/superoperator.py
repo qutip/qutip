@@ -146,7 +146,6 @@ def liouvillian_fast(H, c_op_list, data_only=False):
     else:
         L = Qobj()
         L.dims = sop_dims
-        L.shape = sop_shape
         L.data = data
         L.isherm = False
         return L
@@ -171,7 +170,6 @@ def operator_to_vector(op):
     the matrix representation.
     """
     q = Qobj()
-    q.shape = [prod(op.shape), 1]
     q.dims = [op.dims, [1]]
     q.data = sp_reshape(op.data.T, tuple(q.shape))
     return q
@@ -183,7 +181,6 @@ def vector_to_operator(op):
     vector form.
     """
     q = Qobj()
-    q.shape = [op.dims[0][0][0], op.dims[0][1][0]]
     q.dims = op.dims[0]
     q.data = sp_reshape(op.data.H, tuple(q.shape))
     return q
@@ -240,7 +237,6 @@ def spost(A):
 
     S = Qobj(isherm=A.isherm, type='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.shape = [prod(S.dims[0]), prod(S.dims[1])]
     S.data = sp.kron(A.data.T, sp.identity(prod(A.dims[0])), format='csr')
     return S
 
@@ -264,6 +260,5 @@ def spre(A):
 
     S = Qobj(isherm=A.isherm, type='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.shape = [prod(S.dims[0]), prod(S.dims[1])]
     S.data = sp.kron(sp.identity(prod(A.dims[1])), A.data, format='csr')
     return S
