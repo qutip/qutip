@@ -67,7 +67,7 @@ def liouvillian(H, c_op_list=[]):
         else:
             cdc = c.dag() * c
             L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
-    L.type = 'super'
+
     return L
 
 
@@ -149,7 +149,6 @@ def liouvillian_fast(H, c_op_list, data_only=False):
         L.shape = sop_shape
         L.data = data
         L.isherm = False
-        L.type = 'super'
         return L
 
 
@@ -175,7 +174,6 @@ def operator_to_vector(op):
     q.shape = [prod(op.shape), 1]
     q.dims = [op.dims, [1]]
     q.data = sp_reshape(op.data.T, tuple(q.shape))
-    q.type = 'operator-vector'
     return q
 
 
@@ -188,7 +186,6 @@ def vector_to_operator(op):
     q.shape = [op.dims[0][0][0], op.dims[0][1][0]]
     q.dims = op.dims[0]
     q.data = sp_reshape(op.data.H, tuple(q.shape))
-    q.type = 'oper'
     return q
 
 
