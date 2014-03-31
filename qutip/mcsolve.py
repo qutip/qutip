@@ -154,7 +154,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     if ntraj is None:
         ntraj = options.ntraj
 
-    if psi0.type != 'ket':
+    if not psi0.isket:
         raise Exception("Initial state must be a state vector.")
 
     if isinstance(c_ops, Qobj):
@@ -657,13 +657,13 @@ def _no_collapse_psi_out(num_times, psi_out, odeconfig):
                        max_step=opt.max_step)
     # set initial conditions
     ODE.set_initial_value(odeconfig.psi0, odeconfig.tlist[0])
-    psi_out[0] = Qobj(odeconfig.psi0, odeconfig.psi0_dims, 
-                        odeconfig.psi0_shape, 'ket')
+    psi_out[0] = Qobj(odeconfig.psi0, odeconfig.psi0_dims,
+                      odeconfig.psi0_shape)
     for k in range(1, num_times):
         ODE.integrate(odeconfig.tlist[k], step=0)  # integrate up to tlist[k]
         if ODE.successful():
             psi_out[k] = Qobj(ODE.y / dznrm2(ODE.y), odeconfig.psi0_dims, 
-                            odeconfig.psi0_shape, 'ket')
+                              odeconfig.psi0_shape)
         else:
             raise ValueError('Error in ODE solver')
     return psi_out
