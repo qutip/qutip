@@ -150,6 +150,8 @@ class Qobj():
         Qobj constructor.
         """
         self._isherm = None
+        self._type = None
+        self.superrep = None
 
         if fast == 'mc':
             # fast Qobj construction for use in mcsolve with ket output
@@ -157,7 +159,6 @@ class Qobj():
             self.dims = dims
             self.shape = shape
             self._isherm = False
-            self.type = 'ket'
             return
 
         if fast == 'mc-dm':
@@ -166,7 +167,6 @@ class Qobj():
             self.dims = dims
             self.shape = shape
             self._isherm = True
-            self.type = 'oper'
             return
 
         if isinstance(inpt, Qobj):
@@ -187,6 +187,8 @@ class Qobj():
                 self.shape = inpt.shape
             else:
                 self.shape = shape
+
+            self.superrep = inpt.superrep
 
         elif inpt is None:
             # initialize an empty Qobj with correct dimensions and shape
@@ -273,17 +275,16 @@ class Qobj():
         else:
             self._isherm = isherm
 
-        # Signifies if quantum object corresponds to a ket, bra, operator, or
-        # super-operator
-        if type is None:
-            self.type = _typecheck(self)
+        if type == 'super':
+            if self.type == 'oper':
+                self.dims = [[[d] for d in self.dims[0]],
+                             [[d] for d in self.dims[1]]]
+
+        if superrep:
+            self.superrep = superrep
         else:
-            self.type = type
-            
-        if self.type == 'super':
-            self.superrep = superrep if superrep else 'super'
-        else:
-            self.superrep = None
+            if self.type == 'super' and self.superrep is None:
+                self.superrep = 'super'
 
     def __add__(self, other):  # defines left addition for Qobj class
         """
@@ -301,7 +302,7 @@ class Qobj():
             if dat == 0:
                 return self
 
-            out = Qobj(type=self.type)
+            out = Qobj()
 
             if self.type in ['oper', 'super']:
                 out.data = self.data + dat * sp.identity(
@@ -350,7 +351,7 @@ class Qobj():
             raise TypeError('Matrix shapes do not match')
 
         else:  # case for matching quantum objects
-            out = Qobj(type=self.type)
+            out = Qobj()
             out.data = self.data + other.data
             out.dims = self.dims
             out.shape = self.shape
@@ -397,7 +398,8 @@ class Qobj():
                 out.data = self.data * other.data
                 dims = [self.dims[0], other.dims[1]]
                 out.dims = dims
-                if not isinstance(dims[0][0], list):
+                if (not isinstance(dims[0][0], list) and 
+                        not isinstance(dims[1][0], list)):
                     r = range(len(dims[0]))
                     mask = [dims[0][n] == dims[1][n] == 1 for n in r]
                     out.dims = [max([1], [dims[0][n] for n in r if not mask[n]]),
@@ -405,18 +407,18 @@ class Qobj():
                 else:
                     out.dims = dims
                 out.shape = [self.shape[0], other.shape[1]]
-                out.type = _typecheck(out)
+                out.superrep = self.superrep # XXX
                 out._isherm = out.isherm
                 return out.tidyup() if qset.auto_tidyup else out
 
-            elif (self.shape[0] == 1 and self.shape[1] == 1):
+            elif np.prod(self.shape) == 1:
                 out = Qobj(other)
-                out.data *= self.data[0,0]
+                out.data *= self.data[0, 0]
                 return out.tidyup() if qset.auto_tidyup else out
 
-            elif (other.shape[0] == 1 and other.shape[1] == 1):
+            elif np.prod(other.shape):
                 out = Qobj(self)
-                out.data *= other.data[0,0]
+                out.data *= other.data[0, 0]
                 return out.tidyup() if qset.auto_tidyup else out
 
             else:
@@ -430,7 +432,7 @@ class Qobj():
             return other.__rmul__(self)
 
         elif isinstance(other, (int, float, complex, np.int64)):
-            out = Qobj(type=self.type)
+            out = Qobj()
             out.data = self.data * other
             out.dims = self.dims
             out.shape = self.shape
@@ -455,7 +457,6 @@ class Qobj():
                 out.data = other.data * self.data
                 out.dims = self.dims
                 out.shape = [self.shape[0], other.shape[1]]
-                out.type = _typecheck(out)
                 out._isherm = out.isherm
                 return out.tidyup() if qset.auto_tidyup else out
 
@@ -470,7 +471,7 @@ class Qobj():
             return other.__mul__(self)
 
         if isinstance(other, (int, float, complex, np.int64)):
-            out = Qobj(type=self.type)
+            out = Qobj()
             out.data = other * self.data
             out.dims = self.dims
             out.shape = self.shape
@@ -496,7 +497,7 @@ class Qobj():
                             "[division with Qobj not implemented]")
 
         if isinstance(other, (int, float, complex, np.int64)):
-            out = Qobj(type=self.type)
+            out = Qobj()
             out.data = self.data / other
             out.dims = self.dims
             out.shape = self.shape
@@ -518,7 +519,7 @@ class Qobj():
         out.data = -self.data
         out.dims = self.dims
         out.shape = self.shape
-        out.type = self.type
+        out.superrep = self.superrep
         out._isherm = self._isherm
         return out.tidyup() if qset.auto_tidyup else out
 
@@ -574,7 +575,7 @@ class Qobj():
 
     def __str__(self):
         s = ""
-        if self.type == 'oper' or self.type == 'super':
+        if self.type in ['oper', 'super']:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
                   ", shape = " + str(self.shape) +
@@ -630,7 +631,7 @@ class Qobj():
         formatted output in ipython notebook.
         """
         s = r'$\text{'
-        if self.type == 'oper' or self.type == 'super':
+        if self.type in ['oper', 'super']:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
                   ", shape = " + str(self.shape) +
@@ -745,14 +746,13 @@ class Qobj():
         out.dims = [self.dims[1], self.dims[0]]
         out.shape = [self.shape[1], self.shape[0]]
         out._isherm = self._isherm
-        out.type = _typecheck(out)
         return out
 
     def conj(self):
         """Conjugate operator of quantum object.
 
         """
-        out = Qobj(type=self.type)
+        out = Qobj()
         out.data = self.data.conj()
         out.dims = [self.dims[1], self.dims[0]]
         out.shape = [self.shape[1], self.shape[0]]
@@ -795,7 +795,7 @@ class Qobj():
         Use sparse only if memory requirements demand it.
 
         """
-        if self.type == 'oper' or self.type == 'super':
+        if self.type in ['oper', 'super']:
             if norm is None or norm == 'tr':
                 vals = sp_eigs(self, vecs=False, sparse=sparse,
                                tol=tol, maxiter=maxiter)
@@ -1088,9 +1088,9 @@ class Qobj():
         # normalize S just in case the supplied basis states aren't normalized
         # S = S/la.norm(S)
 
-        out = Qobj(type=self.type, dims=self.dims, shape=self.shape)
+        out = Qobj(dims=self.dims, shape=self.shape)
         out._isherm = self._isherm
-        out.type = self.type
+        out.superrep = self.superrep
 
         # transform data
         if inverse:
@@ -1324,7 +1324,6 @@ class Qobj():
         out.data = self.data.T.tocsr()
         out.dims = [self.dims[1], self.dims[0]]
         out.shape = [self.shape[1], self.shape[0]]
-        out.type = _typecheck(out)
         return out
 
     def extract_states(self, states_inds, normalize=False):
@@ -1400,7 +1399,7 @@ class Qobj():
     @property
     def iscp(self):
         # FIXME: this needs to be cached in the same ways as isherm.
-        if self.type == "super" or self.type == "oper":
+        if self.type in ["super", "oper"]:
             try:
                 q_oper = sr.to_choi(self)
                 eigs = q_oper.eigenenergies()
@@ -1413,7 +1412,7 @@ class Qobj():
     @property
     def istp(self):
         
-        if self.type == "super" or self.type == "oper":
+        if self.type in ["super", "oper"]:
             try:
                 q_oper = sr.to_choi(self)
                 # We use the condition from John Watrous' lecture notes,
@@ -1430,7 +1429,7 @@ class Qobj():
     @property
     def iscptp(self):
 
-        if self.type == "super" or self.type == "oper":
+        if self.type in ["super", "oper"]:
             q_oper = sr.to_choi(self)
             return q_oper.iscp and q_oper.istp
         else:
@@ -1448,20 +1447,57 @@ class Qobj():
 
         data = self.data
         elems = (data.transpose().conj() - data).data
-        return False if np.any(np.abs(elems) > 1e-12) else True
+        self._isherm = False if np.any(np.abs(elems) > 1e-12) else True
+        return self._isherm
 
     @isherm.setter
     def isherm(self, isherm):
-
         self._isherm = isherm
 
     @property
+    def type(self):
+
+        if True: # XXX: use: not self._type:
+            if self.isoper:
+                self._type = 'oper'
+            elif self.isket:
+                self._type = 'ket'
+            elif self.isbra:
+                self._type = 'bra'
+            elif self.issuper:
+                self._type = 'super'
+            elif self.isoperket:
+                self._type = 'operator-ket'
+            elif self.isoperbra:
+                self._type = 'operator-bra'
+            else:
+                self._type = 'other'
+
+        return self._type
+
+    @property
     def isbra(self):
-        return isinstance(self.dims[1], list) and np.prod(self.dims[0]) == 1
+        return (np.prod(self.dims[0]) == 1 and
+                isinstance(self.dims[1], list) and
+                isinstance(self.dims[1][0], int))
 
     @property
     def isket(self):
-        return isinstance(self.dims[0], list) and np.prod(self.dims[1]) == 1
+        return (np.prod(self.dims[1]) == 1 and
+                isinstance(self.dims[0], list) and
+                isinstance(self.dims[0][0], int))
+
+    @property
+    def isoperbra(self):
+        return (np.prod(self.dims[0]) == 1 and
+                isinstance(self.dims[1], list) and 
+                isinstance(self.dims[1][0], list))
+
+    @property
+    def isoperket(self):
+        return (np.prod(self.dims[1]) == 1 and
+                isinstance(self.dims[0], list) and
+                isinstance(self.dims[0][0], list))
 
     @property
     def isoper(self):
@@ -1595,18 +1631,6 @@ def _checkeseries(inpt):
         return 'eseries'
     else:
         pass
-
-def _typecheck(Q):
-    if isoper(Q):
-        return 'oper'
-    elif isket(Q):
-        return 'ket'
-    elif isbra(Q):
-        return 'bra'
-    elif issuper(Q):
-        return 'super'
-    else:
-        return 'other'
 
 #------------------------------------------------------------------------------
 #
