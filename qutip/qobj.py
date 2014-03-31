@@ -87,7 +87,8 @@ class Qobj():
     isherm : bool
         Indicates if quantum object represents Hermitian operator.
     type : str
-        Type of quantum object: 'bra', 'ket', 'oper', or 'super'.
+        Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
+        'operator-bra', or 'super'.
     superrep : str
         Representation used if `type` is 'super'. One of 'super'
         (Liouville form) or 'choi' (Choi matrix with tr = dimension).
@@ -139,8 +140,6 @@ class Qobj():
         Performs a basis transformation defined by `inpt` matrix.
     unit(oper_norm='tr',sparse=False,tol=0,maxiter=100000)
         Returns normalized quantum object.
-
-
     """
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
 
@@ -261,7 +260,7 @@ class Qobj():
             if self.type == 'super' and self.superrep is None:
                 self.superrep = 'super'
 
-    def __add__(self, other):  # defines left addition for Qobj class
+    def __add__(self, other):
         """
         ADDITION with Qobj on LEFT [ ex. Qobj+4 ]
         """
@@ -293,7 +292,6 @@ class Qobj():
                 out._isherm = out.isherm
    
             return out.tidyup() if qset.auto_tidyup else out
-
 
         elif np.prod(self.shape) == 1 and np.prod(other.shape) != 1:
             # case for scalar quantum object
@@ -339,6 +337,9 @@ class Qobj():
             else:
                 out._isherm = out.isherm
 
+            if self.superrep and other.superrep:
+                out.superrep = self.superrep
+
             return out.tidyup() if qset.auto_tidyup else out
 
     def __radd__(self, other):
@@ -377,8 +378,11 @@ class Qobj():
                                 max([1], [dims[1][n] for n in r if not mask[n]])]
                 else:
                     out.dims = dims
-                out.superrep = self.superrep # XXX
+
                 out._isherm = out.isherm
+                if self.superrep and other.superrep:
+                    out.superrep = self.superrep
+
                 return out.tidyup() if qset.auto_tidyup else out
 
             elif np.prod(self.shape) == 1:
@@ -419,16 +423,6 @@ class Qobj():
         """
         MULTIPLICATION with Qobj on RIGHT [ ex. 4*Qobj ]
         """
-        if isinstance(other, Qobj):  # if both are quantum objects
-            if self.dims[1] == other.dims[0]:
-                out = Qobj()
-                out.data = other.data * self.data
-                out.dims = self.dims
-                out._isherm = out.isherm
-                return out.tidyup() if qset.auto_tidyup else out
-
-            else:
-                raise TypeError("Incompatible Qobj shapes")
 
         if isinstance(other, (list, np.ndarray)):
             # if other is a list, do element-wise multiplication
@@ -470,6 +464,8 @@ class Qobj():
                 out._isherm = self._isherm
             else:
                 out._isherm = out.isherm
+
+            out.superrep = self.superrep
 
             return out.tidyup() if qset.auto_tidyup else out
 
@@ -528,6 +524,7 @@ class Qobj():
         try:
             data = self.data ** n
             out = Qobj(data, dims=self.dims)
+            out.superrep = superrep
             return out.tidyup() if qset.auto_tidyup else out
 
         except:
