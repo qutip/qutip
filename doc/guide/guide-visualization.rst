@@ -331,7 +331,7 @@ Quantum process tomography (QPT) is a useful technique for characterizing experi
 
 The idea is to construct a transformation matrix for a quantum process (for example a quantum gate) that describes how the density matrix of a system is transformed by the process. We can then decompose the transformation in some operator basis that represent well-defined and easily interpreted transformations of the input states. 
 
-To see how this works [see e.g. Mohseni et al., PRA 77, 032322 (2008) for more details], consider a process that is described by quantum map :math:`\epsilon(\rho_{\rm in}) = \rho_{\rm out}`, which can be written
+To see how this works (see e.g. [Moh08]_ for more details), consider a process that is described by quantum map :math:`\epsilon(\rho_{\rm in}) = \rho_{\rm out}`, which can be written
 
 .. math::
     :label: qpt-quantum-map
