@@ -560,7 +560,7 @@ class Qobj():
                   "dims = " + str(self.dims) +
                   ", shape = " + str(shape) +
                   ", type = " + type +
-                  ", isherm = " + str(self._isherm) +
+                  ", isherm = " + str(self.isherm) +
                   (
                       ", superrep = {0.superrep}".format(self)
                       if self.type == "super" and self.superrep != "super"
@@ -618,7 +618,7 @@ class Qobj():
                   "dims = " + str(self.dims) +
                   ", shape = " + str(shape) +
                   ", type = " + t +
-                  ", isherm = " + str(self._isherm) +
+                  ", isherm = " + str(self.isherm) +
                   (
                       ", superrep = {0.superrep}".format(self)
                       if type == "super" and self.superrep != "super"
