@@ -282,7 +282,7 @@ class Qobj():
 
         if np.prod(other.shape) == 1 and np.prod(self.shape) != 1:
             # case for scalar quantum object
-            dat = np.array(other.full())[0][0]
+            dat = other.data[0, 0]
             if dat == 0:
                 return self
 
@@ -318,10 +318,10 @@ class Qobj():
                 out.data.data = out.data.data + dat
             out.dims = other.dims
 
-            if isinstance(dat, (int, float)):
-                out._isherm = self._isherm
-            else:
+            if isinstance(dat, complex):
                 out._isherm = out.isherm
+            else:
+                out._isherm = self._isherm
 
             return out.tidyup() if qset.auto_tidyup else out
 
@@ -447,10 +447,10 @@ class Qobj():
             out = Qobj()
             out.data = other * self.data
             out.dims = self.dims
-            if isinstance(other, (int, float, np.int64)):
-                out._isherm = self._isherm
-            else:
+            if isinstance(other, complex):
                 out._isherm = out.isherm
+            else:
+                out._isherm = self._isherm
 
             return out.tidyup() if qset.auto_tidyup else out
 
@@ -472,10 +472,10 @@ class Qobj():
             out = Qobj()
             out.data = self.data / other
             out.dims = self.dims
-            if isinstance(other, (int, float, np.int64)):
-                out._isherm = self._isherm
-            else:
+            if isinstance(other, complex):
                 out._isherm = out.isherm
+            else:
+                out._isherm = self._isherm
 
             out.superrep = self.superrep
 
