@@ -1769,7 +1769,7 @@ def isbra(Q):
 
 
 def isoperket(Q):
-    """Determines if given quantum object is an operator in column vector for
+    """Determines if given quantum object is an operator in column vector form
     (operator-ket).
 
     Parameters
@@ -1791,7 +1791,7 @@ def isoperket(Q):
 
 
 def isoperbra(Q):
-    """Determines if given quantum object is an operator in row vector for
+    """Determines if given quantum object is an operator in row vector form
     (operator-bra).
 
     Parameters
