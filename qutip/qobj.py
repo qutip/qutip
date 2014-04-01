@@ -36,6 +36,7 @@ its methods.
 import warnings
 import types
 import pickle
+import builtins
 
 # import math functions from numpy.math: required for td string evaluation
 from numpy import (arccos, arccosh, arcsin, arcsinh, arctan, arctan2, arctanh,
@@ -236,7 +237,8 @@ class Qobj():
                 self.dims = dims
 
         else:
-            warnings.warn("Initializing Qobj from unsupported type")
+            warnings.warn("Initializing Qobj from unsupported type: %s" % 
+                          builtins.type(inpt))
             inpt = np.array([[0]])
             self.data = sp.csr_matrix(inpt, dtype=complex)
             self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
