@@ -9,7 +9,7 @@ Visualizing Monte Carlo Collapse Times and Operators
 Example showing which times and operators were responsible for wave function collapse in a Monte Carlo simulation of a dissipative trilinear Hamiltonian.  Operators are color coded for clarity.
 
 
-.. literalinclude:: ex_34.py
+.. literalinclude:: ex-34.py
 
 .. figure:: ex_34.png
 	:width: 4in

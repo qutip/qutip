@@ -8,5 +8,5 @@ Q Function for Schrödinger Cat State
 
 Calculates the Q distribution for a Schrödinger Cat state composed of two coherent states :math:`\alpha_1=-2-2j`, and :math:`\alpha_2=2+2j`.
 
-.. plot:: ../qutip/qutip/examples/ex_11.py
+.. plot:: examples/basic/ex-11.py
     :include-source:

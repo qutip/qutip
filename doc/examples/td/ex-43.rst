@@ -20,5 +20,5 @@ Next, we use the :func:`qutip.propagator` function to find the propagator for th
 
 This examples demonstrates how to use the list-callback format to define a time-dependent Hamiltonian.
 
-.. plot:: ../qutip/qutip/examples/ex_43.py
+.. plot:: examples/td/ex-43.py
 	:include-source:

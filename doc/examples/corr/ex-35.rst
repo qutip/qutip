@@ -8,6 +8,6 @@ Spectrum of cavity coupled to an atom
 
 Calculate the correlation and power spectrum of a cavity,  with and without coupling to a two-level atom.
 
-.. plot:: ../qutip/qutip/examples/ex_35.py
+.. plot:: examples/corr/ex-35.py
 	:include-source:
 

@@ -17,5 +17,5 @@ where :math:`\Delta` is the tunneling rate at :math:`t=0`, :math:`v` is the swee
 In QuTiP it is easy to calculate the time-evolution of the Landau-Zener problem numerically, which is demonstrated here. This example also shows how to use the function-callback format to define a time-dependent Hamiltonian.  
 
 
-.. plot:: ../qutip/qutip/examples/ex_42.py
+.. plot:: examples/td/ex-42.py
 	:include-source:

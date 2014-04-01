@@ -14,5 +14,5 @@ situation can be modelled in different way and simulated with the two solvers.
 
 This example also demonstrates how to stack Bloch spheres in sub figures.
 
-.. plot:: ../qutip/qutip/examples/ex_51.py
+.. plot:: examples/advanced/ex-50.py
 	:include-source:

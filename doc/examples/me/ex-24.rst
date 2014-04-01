@@ -18,5 +18,5 @@ and the initial state used in the example is :math:`\left|\psi_0\right> = \left|
 This example is slightly more complicated than the previous in that it dynamically builds a composite Hamiltonian and initial state for a configurable number of two-level system (parameter ``N=4`` in the program).
     
 
-.. plot:: ../qutip/qutip/examples/ex_24.py
+.. plot:: examples/me/ex-24.py
 	:include-source:

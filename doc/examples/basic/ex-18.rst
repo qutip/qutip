@@ -8,5 +8,5 @@ Binary Entropy
 
 Entropy of a binary system :math:`a\left|0\right>\left<0\right|+(1-a)\left|1\right>\left<1\right|` as probability of being in the excited state :math:`a` is varied.
 
-.. plot:: ../qutip/qutip/examples/ex_18.py
+.. plot:: examples/basic/ex-18.py
     :include-source:

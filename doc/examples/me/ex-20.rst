@@ -13,5 +13,5 @@ dissipation processes for each qubit, and solve for the dynamics of the system
 using the standard Lindblad master equation. It also shows how to obtain expectation
 values of select operators directly from the time-evolution solver.
 
-.. plot:: ../qutip/qutip/examples/ex_20.py
+.. plot:: examples/me/ex-20.py
 	:include-source:

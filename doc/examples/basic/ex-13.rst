@@ -8,5 +8,5 @@ Ground State of Cavity + Qubit
 
 Groundstate properties of an ultra-strongly coupled atom-cavity system as the coupling strength is varied.
 
-.. plot:: ../qutip/qutip/examples/ex_13.py
+.. plot:: examples/basic/ex-13.py
     :include-source:

@@ -6,5 +6,5 @@
 Process tomography matrix for a 2-qubit iSWAP gate
 ==================================================
 
-.. plot:: ../qutip/qutip/examples/ex_53.py
+.. plot:: examples/advanced/ex-53.py
 	:include-source:

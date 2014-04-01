@@ -8,5 +8,5 @@ Decay of a qubit state coupled to a zero-temp. bath shown on a Bloch sphere
 
 This example demonstrates how to visualize the dynamics of a two-level system on the Bloch sphere. 
     
-.. plot:: ../qutip/qutip/examples/ex_27.py
+.. plot:: examples/me/ex-27.py
 	:include-source:
