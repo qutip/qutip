@@ -261,15 +261,6 @@ class Qobj():
             self.data = sp.csr_matrix(inpt, dtype=complex)
             self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
 
-        # Signifies if quantum object corresponds to Hermitian operator
-        if isherm is None:
-            if settings.auto_herm:
-                self._isherm = self.isherm
-            else:
-                self._isherm = None
-        else:
-            self._isherm = isherm
-
         if type == 'super':
             if self.type == 'oper':
                 self.dims = [[[d] for d in self.dims[0]],
