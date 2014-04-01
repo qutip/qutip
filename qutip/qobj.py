@@ -511,7 +511,7 @@ class Qobj():
         """
         if (isinstance(other, Qobj) and
                 self.dims == other.dims and
-                not np.any(np.abs((self.data - other.data).data)) > 1e-14):
+                not np.any(np.abs((self.data - other.data).data)) > qset.atol):
             return True
         else:
             return False
@@ -645,9 +645,9 @@ class Qobj():
             if type(d) == str:
                 return s + d
             else:
-                if abs(np.imag(d)) < 1e-12:
+                if abs(np.imag(d)) < qset.atol:
                     return s + _format_float(np.real(d))
-                elif abs(np.real(d)) < 1e-12:
+                elif abs(np.real(d)) < qset.atol:
                     return s + _format_float(np.imag(d)) + "j"
                 else:
                     s_re = _format_float(np.real(d))
@@ -832,7 +832,7 @@ class Qobj():
 
         """
         out = self.data.diagonal()
-        if np.any(np.imag(out) > 1e-15) or not self._isherm:
+        if np.any(np.imag(out) > qset.atol) or not self._isherm:
             return out
         else:
             return np.real(out)
@@ -1418,7 +1418,7 @@ class Qobj():
         else:
             data = self.data
             elems = (data.transpose().conj() - data).data
-            self._isherm = False if np.any(np.abs(elems) > 1e-12) else True
+            self._isherm = False if np.any(np.abs(elems) > qset.atol) else True
 
         return self._isherm
 
@@ -1846,7 +1846,7 @@ def issuper(Q):
     return True if isinstance(Q, Qobj) and Q.issuper else False
 
 
-def isequal(A, B, tol=1e-12):
+def isequal(A, B, tol=None):
     """Determines if two qobj objects are equal to within given tolerance.
 
     Parameters
@@ -1868,6 +1868,9 @@ def isequal(A, B, tol=1e-12):
     This function is for legacy compatibility only. Instead, it is recommended
     to use the equality operator of Qobj instances instead: A == B.
     """
+    
+    if tol is None:
+        tol = qset.atol
 
     if not isinstance(A, Qobj) or not isinstance(B, Qobj):
         return False
