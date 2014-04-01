@@ -783,17 +783,14 @@ class Qobj():
                 return _sp_max_norm(self)
             else:
                 raise ValueError(
-                    "Operator norm must be 'tr', 'fro', 'one', or 'max'.")
+                    "For matrices, norm must be 'tr', 'fro', 'one', or 'max'.")
         else:
-            if norm is None:
-                norm = 'l2'
-            if norm == 'l2':
+            if norm is None or norm == 'l2':
                 return _sp_L2_norm(self)
             elif norm == 'max':
                 return _sp_max_norm(self)
             else:
-                raise ValueError(
-                    "Ket norm must be 'l2', or 'max'.")
+                raise ValueError("For vectors, norm must be 'l2', or 'max'.")
 
     def tr(self):
         """Trace of a quantum object.
