@@ -1,7 +1,7 @@
 .. _biblo:
     
-Biblography
-===========
+Bibliography
+============
 
 .. [Hav03]
     Havel, T. *Robust procedures for converting among Lindblad, Kraus and matrix representations of quantum dynamical semigroups*. Journal of Mathematical Physics **44** 2, 534 (2003). :doi:`10.1063/1.1518555`.
@@ -11,6 +11,9 @@ Biblography
 
 .. [Moh08]
     M. Mohseni, A. T. Rezakhani, D. A. Lidar, *Quantum-process tomography: Resource analysis of different strategies*, Phys. Rev. A **77**, 032322 (2008). :doi:`10.1103/PhysRevA.77.032322`.
+
+.. [Gri98]
+    M. Grifoni, P. Hänggi, *Driven quantum tunneling*, Physics Reports **304**, 299 (1998). :doi:`10.1016/S0370-1573(98)00022-2`.
 
 ..
     The trick with |text|_ is to get an italic link, and is described in the
