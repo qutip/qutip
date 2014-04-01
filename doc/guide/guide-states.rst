@@ -152,7 +152,7 @@ where we have used the :func:`qutip.Qobj.unit` method to again normalize the sta
     In [1]: n * vec
 
 
-We can also create coherent states and squeezed states by applying the :func:`qutip.operators.displace` and :func:`qutip.operators.squeez` functions to the vacuum state:
+We can also create coherent states and squeezed states by applying the :func:`qutip.operators.displace` and :func:`qutip.operators.squeeze` functions to the vacuum state:
 
 .. ipython::
 
@@ -160,7 +160,7 @@ We can also create coherent states and squeezed states by applying the :func:`qu
   
     In [2]: d = displace(5, 1j)
    
-    In [3]: s = squeez(5, 0.25 + 0.25j)
+    In [3]: s = squeeze(5, 0.25 + 0.25j)
    
     In [4]: d * vec
 
