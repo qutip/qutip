@@ -37,6 +37,27 @@ The Quantum Toolbox in Python, or QuTiP, is a fully open-source implementation o
 
 * Includes the ability to create high-quality plots, and animations, using the excellent `Matplotlib <http://matplotlib.sourceforge.net/>`_ package.
 
+
+.. _about-whatsnew30:
+
+Whats New in QuTiP Version 3.0
+================================
+
+- New module `qutip.stochastic` with stochastic master equation and stochastic
+  Schrödinger equation solvers.
+
+- Improved steady state solver.
+
+- New module `qutip.distributions` with unified API for working with
+  distribution functions.
+
+- New functions for working with different superoperator representations.
+
+- QuTiP no longer contains the demos GUI. The examples are still available in
+  the documentation.
+
+- Improved performance and numerous bug fixes.
+
 .. _about-whatsnew22:
 
 Whats New in QuTiP Version 2.2
