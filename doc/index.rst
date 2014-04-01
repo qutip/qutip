@@ -19,6 +19,7 @@ Version 3.0
    apidoc/apidoc.rst
    changelog.rst
    contributors.rst
+   biblio.rst
    
 
 Indices and tables

@@ -415,7 +415,9 @@ representing maps that act linearly on density operators using the Kraus,
 Liouville supermatrix and Choi matrix formalisms. This support is based on the
 correspondance between linear operators acting on a Hilbert space, and vectors
 in two copies of that Hilbert space,
-:math:`\mathrm{vec} : \mathcal{L}(\mathcal{H}) \to \mathcal{H} \otimes \mathcal{H}`.
+:math:`\mathrm{vec} : \mathcal{L}(\mathcal{H}) \to \mathcal{H} \otimes \mathcal{H}`
+[Hav03]_, [Wat13]_.
+
 This isomorphism is implemented in QuTiP by the
 :obj:`~qutip.superoperator.operator_to_vector` and 
 :obj:`~qutip.superoperator.vector_to_operator` functions:
@@ -450,6 +452,29 @@ This isomorphism is implemented in QuTiP by the
 The :attr:`~qutip.Qobj.type` attribute indicates whether a quantum object is
 a vector corresponding to an operator (``operator-ket``), or its Hermitian
 conjugate (``operator-bra``).
+
+Note that QuTiP uses the *column-stacking* convention for the isomorphism
+between :math:`\mathcal{L}(\mathcal{H})` and :math:`\mathcal{H} \otimes \mathcal{H}`:
+
+.. ipython::
+
+    In [1]: import numpy as np
+    
+    In [2]: A = Qobj(np.arange(4).reshape((2, 2)))
+    
+    In [3]: print A
+    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isherm = False
+    Qobj data =
+    [[ 0.  1.]
+     [ 2.  3.]]
+     
+    In [4]: print operator_to_vector(A)
+    Quantum object: dims = [[[2], [2]], [1]], shape = [4, 1], type = operator-ket
+    Qobj data =
+    [[ 0.]
+     [ 2.]
+     [ 1.]
+     [ 3.]]
 
 Since :math:`\mathcal{H} \otimes \mathcal{H}` is a vector space, linear maps
 on this space can be represented as matrices, often called *supermatrices*.
