@@ -274,7 +274,7 @@ class Qobj():
         """
         ADDITION with Qobj on LEFT [ ex. Qobj+4 ]
         """
-        if _checkeseries(other) == 'eseries':
+        if isinstance(other, eseries):
             return other.__radd__(self)
 
         if not isinstance(other, Qobj):
@@ -414,7 +414,7 @@ class Qobj():
             # if other is a list, do element-wise multiplication
             return np.array([self * item for item in other])
 
-        elif _checkeseries(other) == 'eseries':
+        elif isinstance(other, eseries):
             return other.__rmul__(self)
 
         elif isinstance(other, (int, float, complex, np.int64)):
@@ -440,7 +440,7 @@ class Qobj():
             # if other is a list, do element-wise multiplication
             return np.array([item * self for item in other])
 
-        if _checkeseries(other) == 'eseries':
+        if isinstance(other, eseries):
             return other.__mul__(self)
 
         if isinstance(other, (int, float, complex, np.int64)):
@@ -1591,23 +1591,6 @@ def qobj_load(filename):
 
     return qobj
 
-
-#------------------------------------------------------------------------------
-#
-# type check and check for class type ESERIES
-#
-
-def _checkeseries(inpt):
-    """
-    Checks for ESERIES class types
-    """
-    from qutip.eseries import eseries
-    if isinstance(inpt, eseries):
-        return 'eseries'
-    else:
-        pass
-
-
 #------------------------------------------------------------------------------
 #
 # A collection of tests used to determine the type of quantum objects, and some
@@ -1929,3 +1912,4 @@ def isherm(Q):
 # We do a few imports here to avoid circular dependencies.
 import qutip.superop_reps as sr
 import qutip.operators as ops
+from qutip.eseries import eseries
