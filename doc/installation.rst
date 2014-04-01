@@ -138,10 +138,6 @@ example the GNU Fortran compiler, which can be installed using
 
     sudo apt-get install gfortran
 
-.. note:: 
-
-    On some versions of Ubuntu you might have to configure Matplotlib to use the GTKAgg or Qt4Agg backends instead of the default TkAgg backend. To do change backend, edit /etc/matplotlibrc or ~/.matplotlib/matplotlibrc, and change ``backend: TkAgg`` to ``backend: GTKAgg`` or ``backend: Qt4Agg``.
-
 .. _install-mac:
 
 Installation on Mac OS X (10.6+)
