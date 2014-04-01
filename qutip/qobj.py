@@ -241,7 +241,7 @@ class Qobj():
                 self.dims = dims
 
         else:
-            warnings.warn("Initializing Qobj from unsupported type: %s" % 
+            warnings.warn("Initializing Qobj from unsupported type: %s" %
                           builtins.type(inpt))
             inpt = np.array([[0]])
             self.data = sp.csr_matrix(inpt, dtype=complex)
@@ -305,7 +305,7 @@ class Qobj():
 
         elif np.prod(self.shape) == 1 and np.prod(other.shape) != 1:
             # case for scalar quantum object
-            dat = np.array(self.full())[0][0] # XXX
+            dat = self.data[0, 0]
             if dat == 0:
                 return other
 
@@ -1592,6 +1592,7 @@ def qobj_load(filename):
         qobj = pickle.load(f)
 
     return qobj
+
 
 #------------------------------------------------------------------------------
 #
