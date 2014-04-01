@@ -51,7 +51,7 @@ from numpy import (arccos, arccosh, arcsin, arcsinh, arctan, arctan2, arctanh,
 import numpy as np
 import scipy.sparse as sp
 import scipy.linalg as la
-import qutip.settings as qset
+import qutip.settings as settings
 from qutip import __version__
 from qutip.ptrace import _ptrace
 from qutip.permute import _permute
@@ -249,7 +249,7 @@ class Qobj():
 
         # Signifies if quantum object corresponds to Hermitian operator
         if isherm is None:
-            if qset.auto_herm:
+            if settings.auto_herm:
                 self._isherm = self.isherm
             else:
                 self._isherm = None
@@ -301,7 +301,7 @@ class Qobj():
             else:
                 out._isherm = out.isherm
 
-            return out.tidyup() if qset.auto_tidyup else out
+            return out.tidyup() if settings.auto_tidyup else out
 
         elif np.prod(self.shape) == 1 and np.prod(other.shape) != 1:
             # case for scalar quantum object
@@ -323,7 +323,7 @@ class Qobj():
             else:
                 out._isherm = self._isherm
 
-            return out.tidyup() if qset.auto_tidyup else out
+            return out.tidyup() if settings.auto_tidyup else out
 
         elif self.dims != other.dims:
             raise TypeError('Incompatible quantum object dimensions')
@@ -350,7 +350,7 @@ class Qobj():
             if self.superrep and other.superrep:
                 out.superrep = self.superrep
 
-            return out.tidyup() if qset.auto_tidyup else out
+            return out.tidyup() if settings.auto_tidyup else out
 
     def __radd__(self, other):
         """
@@ -395,17 +395,17 @@ class Qobj():
                 if self.superrep and other.superrep:
                     out.superrep = self.superrep
 
-                return out.tidyup() if qset.auto_tidyup else out
+                return out.tidyup() if settings.auto_tidyup else out
 
             elif np.prod(self.shape) == 1:
                 out = Qobj(other)
                 out.data *= self.data[0, 0]
-                return out.tidyup() if qset.auto_tidyup else out
+                return out.tidyup() if settings.auto_tidyup else out
 
             elif np.prod(other.shape):
                 out = Qobj(self)
                 out.data *= other.data[0, 0]
-                return out.tidyup() if qset.auto_tidyup else out
+                return out.tidyup() if settings.auto_tidyup else out
 
             else:
                 raise TypeError("Incompatible Qobj shapes")
@@ -426,7 +426,7 @@ class Qobj():
             else:
                 out._isherm = self._isherm
 
-            return out.tidyup() if qset.auto_tidyup else out
+            return out.tidyup() if settings.auto_tidyup else out
 
         else:
             raise TypeError("Incompatible object for multiplication")
@@ -452,7 +452,7 @@ class Qobj():
             else:
                 out._isherm = self._isherm
 
-            return out.tidyup() if qset.auto_tidyup else out
+            return out.tidyup() if settings.auto_tidyup else out
 
         else:
             raise TypeError("Incompatible object for multiplication")
@@ -479,7 +479,7 @@ class Qobj():
 
             out.superrep = self.superrep
 
-            return out.tidyup() if qset.auto_tidyup else out
+            return out.tidyup() if settings.auto_tidyup else out
 
         else:
             raise TypeError("Incompatible object for division")
@@ -493,7 +493,7 @@ class Qobj():
         out.dims = self.dims
         out.superrep = self.superrep
         out._isherm = self._isherm
-        return out.tidyup() if qset.auto_tidyup else out
+        return out.tidyup() if settings.auto_tidyup else out
 
     def __getitem__(self, ind):
         """
@@ -511,7 +511,8 @@ class Qobj():
         """
         if (isinstance(other, Qobj) and
                 self.dims == other.dims and
-                not np.any(np.abs((self.data - other.data).data)) > qset.atol):
+                not np.any(np.abs((self.data - other.data).data) >
+                settings.atol)):
             return True
         else:
             return False
@@ -537,7 +538,7 @@ class Qobj():
             data = self.data ** n
             out = Qobj(data, dims=self.dims)
             out.superrep = self.superrep
-            return out.tidyup() if qset.auto_tidyup else out
+            return out.tidyup() if settings.auto_tidyup else out
 
         except:
             raise ValueError('Invalid choice of exponent.')
@@ -645,9 +646,9 @@ class Qobj():
             if type(d) == str:
                 return s + d
             else:
-                if abs(np.imag(d)) < qset.atol:
+                if abs(np.imag(d)) < settings.atol:
                     return s + _format_float(np.real(d))
-                elif abs(np.real(d)) < qset.atol:
+                elif abs(np.real(d)) < settings.atol:
                     return s + _format_float(np.imag(d)) + "j"
                 else:
                     s_re = _format_float(np.real(d))
@@ -832,7 +833,7 @@ class Qobj():
 
         """
         out = self.data.diagonal()
-        if np.any(np.imag(out) > qset.atol) or not self._isherm:
+        if np.any(np.imag(out) > settings.atol) or not self._isherm:
             return out
         else:
             return np.real(out)
@@ -856,7 +857,7 @@ class Qobj():
         if self.dims[0][0] == self.dims[1][0]:
             F = _sp_expm(self)
             out = Qobj(F, dims=self.dims)
-            return out.tidyup() if qset.auto_tidyup else out
+            return out.tidyup() if settings.auto_tidyup else out
         else:
             raise TypeError('Invalid operand for matrix exponential')
 
@@ -913,7 +914,7 @@ class Qobj():
             spDv = dV.dot(evecs.conj().T)
             out = Qobj(evecs.dot(spDv), dims=self.dims)
 
-            return out.tidyup() if qset.auto_tidyup else out
+            return out.tidyup() if settings.auto_tidyup else out
 
         else:
             raise TypeError('Invalid operand for matrix square root')
@@ -942,7 +943,7 @@ class Qobj():
         """
         out = self / self.norm(norm=norm, sparse=sparse,
                                tol=tol, maxiter=maxiter)
-        if qset.auto_tidyup:
+        if settings.auto_tidyup:
             return out.tidyup()
         else:
             return out
@@ -969,7 +970,7 @@ class Qobj():
         """
         q = Qobj()
         q.data, q.dims, _ = _ptrace(self, sel)
-        return q.tidyup() if qset.auto_tidyup else q
+        return q.tidyup() if settings.auto_tidyup else q
 
     def permute(self, order):
         """Permutes a composite quantum object.
@@ -987,9 +988,9 @@ class Qobj():
         """
         q = Qobj()
         q.data, q.dims, _ = _permute(self, order)
-        return q.tidyup() if qset.auto_tidyup else q
+        return q.tidyup() if settings.auto_tidyup else q
 
-    def tidyup(self, atol=qset.auto_tidyup_atol):
+    def tidyup(self, atol=None):
         """Removes small elements from Qobj.
 
         Parameters
@@ -1004,6 +1005,9 @@ class Qobj():
             Quantum object with small elements removed.
 
         """
+        if atol is None:
+            atol = settings.auto_tidyup_atol
+
         if self.data.nnz:
 
             data_real = self.data.data.real
@@ -1417,8 +1421,8 @@ class Qobj():
             self._isherm = False
         else:
             data = self.data
-            elems = (data.transpose().conj() - data).data
-            self._isherm = False if np.any(np.abs(elems) > qset.atol) else True
+            h = np.abs((data.transpose().conj() - data).data)
+            self._isherm = False if np.any(h > settings.atol) else True
 
         return self._isherm
 
@@ -1868,9 +1872,8 @@ def isequal(A, B, tol=None):
     This function is for legacy compatibility only. Instead, it is recommended
     to use the equality operator of Qobj instances instead: A == B.
     """
-    
     if tol is None:
-        tol = qset.atol
+        tol = settings.atol
 
     if not isinstance(A, Qobj) or not isinstance(B, Qobj):
         return False
