@@ -19,7 +19,13 @@ Bibliography
     C. E. Creffield, *Location of crossings in the Floquet spectrum of a driven two-level system*, Phys. Rev. B **67**, 165301 (2003). :doi:`10.1103/PhysRevB.67.165301`.
 
 .. [Gar03]
-    Gardineer and Zoller, *Quantum Noise*, Springer, 2004.
+    Gardineer and Zoller, *Quantum Noise* (Springer, 2004).
+
+.. [Bre02]
+    H.-P. Breuer and F. Petruccione, *The Theory of Open Quantum Systems* (Oxford, 2002).
+
+.. [Coh92]
+    C. Cohen-Tannoudji, J. Dupont-Roc, G. Grynberg, *Atom-Photon Interactions: Basic Processes and Applications*, (Wiley, 1992).
 
 ..
     The trick with |text|_ is to get an italic link, and is described in the
