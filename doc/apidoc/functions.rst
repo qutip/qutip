@@ -4,7 +4,7 @@
 .. _functions:
 
 ***************
-QuTiP Functions
+Functions
 ***************
 
 Manipulation and Creation of States and Operators
