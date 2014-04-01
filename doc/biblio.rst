@@ -9,6 +9,12 @@ Bibliography
 .. [Wat13]
     Watrous, J. |theory-qi|_, lecture notes.
 
+..  The trick with |text|_ is to get an italic link, and is described in the
+    Docutils FAQ at http://docutils.sourceforge.net/FAQ.html#is-nested-inline-markup-possible.
+    
+.. |theory-qi| replace:: *Theory of Quantum Information*
+.. _theory-qi: https://cs.uwaterloo.ca/~watrous/CS766/
+
 .. [Moh08]
     M. Mohseni, A. T. Rezakhani, D. A. Lidar, *Quantum-process tomography: Resource analysis of different strategies*, Phys. Rev. A **77**, 032322 (2008). :doi:`10.1103/PhysRevA.77.032322`.
 
@@ -27,10 +33,4 @@ Bibliography
 .. [Coh92]
     C. Cohen-Tannoudji, J. Dupont-Roc, G. Grynberg, *Atom-Photon Interactions: Basic Processes and Applications*, (Wiley, 1992).
 
-..
-    The trick with |text|_ is to get an italic link, and is described in the
-    Docutils FAQ at http://docutils.sourceforge.net/FAQ.html#is-nested-inline-markup-possible.
-    
-.. |theory-qi| replace:: *Theory of Quantum Information*
-.. _theory-qi: https://cs.uwaterloo.ca/~watrous/CS766/
 
