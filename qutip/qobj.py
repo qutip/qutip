@@ -90,14 +90,14 @@ class Qobj():
         List of dimensions keeping track of the tensor structure.
     shape : list
         Shape of the underlying `data` array.
-    isherm : bool
-        Indicates if quantum object represents Hermitian operator.
     type : str
         Type of quantum object: 'bra', 'ket', 'oper', 'operator-ket',
         'operator-bra', or 'super'.
     superrep : str
         Representation used if `type` is 'super'. One of 'super'
         (Liouville form) or 'choi' (Choi matrix with tr = dimension).
+    isherm : bool
+        Indicates if quantum object represents Hermitian operator.
     iscp : bool
         Indicates if the quantum object represents a map, and if that map is
         completely positive (CP).
@@ -107,6 +107,20 @@ class Qobj():
     iscptp : bool
         Indicates if the quantum object represents a map that is completely
         positive and trace preserving (CPTP).
+    isket : bool
+        Indicates if the quantum object represents a ket.
+    isbra : bool
+        Indicates if the quantum object represents a bra.
+    isoper : bool
+        Indicates if the quantum object represents an operator.
+    issuper : bool
+        Indicates if the quantum object represents a superoperator.
+    isoperket : bool
+        Indicates if the quantum object represents an operator in column vector
+        form.
+    isoperbra : bool
+        Indicates if the quantum object represents an operator in row vector
+        form.
 
     Methods
     -------
@@ -125,10 +139,10 @@ class Qobj():
     groundstate(sparse=False,tol=0,maxiter=100000)
         Returns eigenvalue and eigenket for the groundstate of a quantum
         object.
-    matrix_element(bra,ket)
+    matrix_element(bra, ket)
         Returns the matrix element of operator between `bra` and `ket` vectors.
-    norm(oper_norm='tr',sparse=False,tol=0,maxiter=100000)
-        Returns norm of operator.
+    norm(norm='tr', sparse=False, tol=0, maxiter=100000)
+        Returns norm of a ket or an operator.
     permute(order)
         Returns composite qobj with indices reordered.
     ptrace(sel)
@@ -142,9 +156,9 @@ class Qobj():
         Trace of quantum object.
     trans()
         Transpose of quantum object.
-    transform(inpt,inverse=False)
+    transform(inpt, inverse=False)
         Performs a basis transformation defined by `inpt` matrix.
-    unit(oper_norm='tr',sparse=False,tol=0,maxiter=100000)
+    unit(norm='tr', sparse=False, tol=0, maxiter=100000)
         Returns normalized quantum object.
     """
     __array_priority__ = 100  # sets Qobj priority above numpy arrays
