@@ -1374,7 +1374,7 @@ class Qobj():
             try:
                 q_oper = sr.to_choi(self)
                 eigs = q_oper.eigenenergies()
-                return all(eigs >= 0)
+                return np.all(eigs >= 0)
             except:
                 return False
         else:
@@ -1388,7 +1388,7 @@ class Qobj():
                 q_oper = sr.to_choi(self)
                 # We use the condition from John Watrous' lecture notes,
                 # Tr_1(J(Phi)) = identity_2.
-                tr_oper = ptrace(q_oper, (0,))
+                tr_oper = q_oper.ptrace(0)
                 ident = ops.identity(tr_oper.shape[0])
                 return isequal(tr_oper, ident)
             except:
