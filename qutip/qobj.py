@@ -36,7 +36,11 @@ its methods.
 import warnings
 import types
 import pickle
-import builtins
+
+try:
+    import builtins
+except:
+    import __builtin__ as builtins
 
 # import math functions from numpy.math: required for td string evaluation
 from numpy import (arccos, arccosh, arcsin, arcsinh, arctan, arctan2, arctanh,
