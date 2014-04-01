@@ -11,5 +11,5 @@ dissipation.
 
 This examples introduces the use of bosonic operators (:func:`qutip.operators.destroy`, for the annihilation operator) and how to setup the Jaynes-Cummings model.
 
-.. plot:: ../qutip/qutip/examples/ex_21.py
+.. plot:: examples/me/ex-21.py
 	:include-source:

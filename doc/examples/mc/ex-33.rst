@@ -10,7 +10,7 @@ Demonstrates the deviation from a thermal distribution for a single oscillator m
 
 Adapted from Nation & Blencowe, NJP 12 095013 (2010).
 
-.. literalinclude:: ex_33.py
+.. literalinclude:: ex-33.py
 
 .. figure:: ex-33.png
 	:width: 4in

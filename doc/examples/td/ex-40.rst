@@ -17,5 +17,5 @@ becomes time-independent in the rotating-frame approximation (RWA). The results
 from evolving the system using the RWA Hamiltonian is also plotted.  
 
 
-.. plot:: ../qutip/qutip/examples/ex_40.py
+.. plot:: examples/td/ex-40.py
 	:include-source:

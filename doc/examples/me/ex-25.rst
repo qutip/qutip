@@ -24,5 +24,5 @@ which in the rotating frame that eliminates the time-dependence of the driving t
 
 In the following code we look at the state state of this system as a function of the ambient temperature :math:`T`.
     
-.. plot:: ../qutip/qutip/examples/ex_25.py
+.. plot:: examples/me/ex-25.py
 	:include-source:

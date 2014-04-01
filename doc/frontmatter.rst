@@ -24,7 +24,7 @@ This document contains a user guide and automatically generated API documentatio
           Seongbuk-gu Seoul, 136-713 South Korea
 
 :Author: J.R. Johansson
-:Address: Advanced Science Institute, RIKEN,
+:Address: iTHES Research Group, RIKEN,
 		  Wako-shi Saitama, 351-0198 Japan
 
 :version: 2.2

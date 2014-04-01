@@ -10,7 +10,7 @@ Monte Carlo evoution of a coherently driven cavity with a two-level atom initial
 
 Adapted from qotoolbox example 'probqmc3' by Sze M. Tan.
 
-.. literalinclude:: ex_30.py
+.. literalinclude:: ex-30.py
 
 .. figure:: ex-30.png
 	:width: 4in

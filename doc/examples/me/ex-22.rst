@@ -15,5 +15,5 @@ This examples demonstrates how reversed relaxation processes (note the
 atomic collapse operators) can be used to introduce incoherent pump processes a
 system.
 
-.. plot:: ../qutip/qutip/examples/ex_22.py
+.. plot:: examples/me/ex-22.py
 	:include-source:

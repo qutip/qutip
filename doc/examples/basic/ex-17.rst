@@ -8,7 +8,7 @@ Cavity-Qubit Steadystate
 
 Find the steady state of a cavity-qubit system as a function of the cavity driving frequency.
 
-.. literalinclude:: /../qutip/qutip/examples/ex_17.py
+.. literalinclude:: examples/basic/ex-17.py
 
 .. _ex17-figure0: 
 .. figure:: ex_17_00.png

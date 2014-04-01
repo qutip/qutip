@@ -14,7 +14,7 @@ This example demonstrates how to calculate the Floquet quasienergies for a drive
 
 and we use the QuTiP function :func:`qutip.floquet.floquet_modes` to obtain the Floquet modes and the quasienergies.
 
-.. plot:: ../qutip/qutip/examples/ex_44.py
+.. plot:: examples/td/ex-44.py
 	:include-source:
 
 .. figure:: ex-44.png

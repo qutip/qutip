@@ -8,5 +8,5 @@
 
 Plot the density matrix for the 3-qubit GHZ state :math:`\frac{1}{\sqrt{2}}\left(\left|\uparrow,\uparrow,\uparrow\right>+\left|\downarrow,\downarrow,\downarrow\right>\right)` found by simultaneous diagonalization.
 
-.. plot:: ../qutip/qutip/examples/ex_19.py
+.. plot:: examples/basic/ex-19.py
     :include-source:

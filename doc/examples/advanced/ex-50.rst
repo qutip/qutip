@@ -6,5 +6,5 @@
 Nonadiabatic transformation of a spin-chain Hamiltonian
 =======================================================
 
-.. plot:: ../qutip/qutip/examples/ex_50.py
+.. plot:: examples/advanced/ex-50.py
 	:include-source:
