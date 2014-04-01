@@ -28,7 +28,14 @@ Liouvillian
 -----------
 
 .. automodule:: qutip.superoperator
-    :members: liouvillian, liouvillian_fast, spost, spre
+    :members: operator_to_vector, vector_to_operator, liouvillian, liouvillian_fast, spost, spre
+    
+Superoperator Representations
+-----------------------------
+
+.. automodule:: qutip.superop_reps
+    :members: to_choi, to_super, to_kraus
+    :undoc-members:
 
 Tensor
 -------

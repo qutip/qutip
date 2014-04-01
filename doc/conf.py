@@ -34,6 +34,7 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.doctest',
               'ipython_console_highlighting',
               'numpydoc',
+              'sphinx.ext.extlinks',
               ]
 
 
@@ -297,3 +298,11 @@ texinfo_documents = [
 
 
 autodoc_member_order = 'alphabetical'
+
+## EXTLINKS CONFIGURATION ######################################################
+
+extlinks = {
+    'arxiv': ('http://arxiv.org/abs/%s', 'arXiv:'),
+    'doi': ('http://dx.doi.org/abs/%s', 'doi:'),
+}
+
