@@ -732,8 +732,8 @@ class Qobj():
         """Norm of a quantum object.
 
         Default norm is L2-norm for kets and trace-norm for operators.
-        Other ket and operator norms may be specified using the `ket_norm` and
-        `oper_norm` arguments.
+        Other ket and operator norms may be specified using the `norm` and
+        argument.
 
         Parameters
         ----------
