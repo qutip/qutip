@@ -24,8 +24,8 @@ Quantum Operators
     :members: create, destroy, displace, jmat, num, qeye, identity, qutrit_ops, sigmam, sigmap, sigmax, sigmay, sigmaz, squeeze, squeezing, phase
 
 
-Liouvillian
------------
+Superoperators and Liouvillians
+-------------------------------
 
 .. automodule:: qutip.superoperator
     :members: operator_to_vector, vector_to_operator, liouvillian, liouvillian_fast, spost, spre
@@ -50,7 +50,7 @@ Expectation Values
 .. automodule:: qutip.expect
     :members: expect, variance
 
-Partial transpose
+Partial Transpose
 -----------------
 
 .. automodule:: qutip.partial_transpose
@@ -64,14 +64,14 @@ Pseudoprobability Functions
     :members: qfunc, wigner
 
 
-Three-level atoms
+Three-Level Atoms
 -------------------
 
 .. automodule:: qutip.three_level_atom
     :members: three_level_basis, three_level_ops
     :undoc-members:
 
-Dynamics and time-evolution
+Dynamics and Time-Evolution
 =============================
 
 Master Equation
@@ -135,7 +135,7 @@ Propagators
     :members: propagator, propagator_steadystate
     :undoc-members:
 
-Continous variables
+Continous Variables
 -------------------
 
 .. automodule:: qutip.continuous_variables
@@ -148,7 +148,7 @@ Quantum Process Tomography
     :members: qpt, qpt_plot, qpt_plot_combined
     :undoc-members:
 
-Graphs and visualization
+Graphs and Visualization
 ------------------------
 
 .. automodule:: qutip.visualization
@@ -160,7 +160,7 @@ Other Functions
 
 .. _functions-utilities:
 
-Utility functions
+Utility Functions
 ------------------
 
 .. automodule:: qutip.utilities
@@ -210,7 +210,7 @@ Random Operators and States
 
 .. _functions-misc:
 
-IPython notebook tools
+IPython Notebook Tools
 ----------------------
 
 .. automodule:: qutip.ipynbtools
