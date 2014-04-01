@@ -303,6 +303,6 @@ autodoc_member_order = 'alphabetical'
 
 extlinks = {
     'arxiv': ('http://arxiv.org/abs/%s', 'arXiv:'),
-    'doi': ('http://dx.doi.org/abs/%s', 'doi:'),
+    'doi': ('http://dx.doi.org/%s', 'doi:'),
 }
 
