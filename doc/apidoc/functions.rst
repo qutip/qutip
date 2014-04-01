@@ -109,6 +109,14 @@ Floquet States and Floquet-Markov Master Equation
 .. automodule:: qutip.floquet
     :members: fmmesolve, floquet_modes, floquet_modes_t, floquet_modes_table, floquet_modes_t_lookup, floquet_states_t, floquet_wavefunction_t, floquet_state_decomposition, fsesolve
 
+
+Stochastic Schrödinger Equation and Master Equation
+---------------------------------------------------
+
+.. automodule:: qutip.stochastic
+    :members: smesolve, ssesolve
+
+
 Correlation Functions
 -----------------------
 
