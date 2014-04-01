@@ -138,16 +138,6 @@ example the GNU Fortran compiler, which can be installed using
 
     sudo apt-get install gfortran
 
-.. note::
-
-    Ubuntu 11.04 and lower do not have Matplotlib>=1.0, but we can use the following
-    unofficial matplotlib ppa to install a newer version of matplotlib on these
-    Ubuntu releases::
-
-        sudo add-apt-repository ppa:bgamari/matplotlib-unofficial
-        sudo apt-get update
-        sudo apt-get install python-matplotlib
-
 .. note:: 
 
     On some versions of Ubuntu you might have to configure Matplotlib to use the GTKAgg or Qt4Agg backends instead of the default TkAgg backend. To do change backend, edit /etc/matplotlibrc or ~/.matplotlib/matplotlibrc, and change ``backend: TkAgg`` to ``backend: GTKAgg`` or ``backend: Qt4Agg``.
