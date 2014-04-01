@@ -808,7 +808,7 @@ class Qobj():
             otherwise.
 
         """
-        if self._isherm:
+        if self.isherm:
             return float(np.real(np.sum(self.data.diagonal())))
         else:
             return complex(np.sum(self.data.diagonal()))
@@ -838,7 +838,7 @@ class Qobj():
 
         """
         out = self.data.diagonal()
-        if np.any(np.imag(out) > settings.atol) or not self._isherm:
+        if np.any(np.imag(out) > settings.atol) or not self.isherm:
             return out
         else:
             return np.real(out)
@@ -874,8 +874,8 @@ class Qobj():
         isherm: bool
             Returns the new value of isherm property.
         """
-        self._isherm = self.isherm
-        return self._isherm
+        self._isherm = None
+        return self.isherm
 
     def sqrtm(self, sparse=False, tol=0, maxiter=100000):
         """Sqrt of a quantum operator.
