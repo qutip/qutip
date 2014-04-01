@@ -48,7 +48,7 @@ programming language.  Currently. QuTiP requires the following packages to run:
 +----------------+--------------+-----------------------------------------------------+
 
 |
-On all platforms (Linux, Mac, Windows), QuTiP works "out-of-the-box" using the `Anaconda CE <https://store.continuum.io/cshop/anaconda>`_. This distribution is created by the developers of Numpy, and is free for both commercial and noncommercial use.
+On all platforms (Linux, Mac, Windows), QuTiP works well with `Anaconda CE <https://store.continuum.io/cshop/anaconda>`_. This distribution is created by the developers of Numpy, and is free for both commercial and noncommercial use.
 
 As of version 2.2, QuTiP includes an optional Fortran-based Monte Carlo solver that has a substantial performance benefit when compared with the Python-based solver. In order to install this package you must have a Fortran compiler (for example gfortran) and BLAS development libraries.  At present, these packages are only tested on the Linux and OS X platforms.
 
