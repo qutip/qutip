@@ -4,7 +4,7 @@
 .. _guide:
 
 *******************
-QuTiP Users Guide
+Users Guide
 *******************
 
 .. toctree::

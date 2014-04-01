@@ -4,7 +4,7 @@
 .. _examples:
 
 ***********************
-QuTiP Example Scripts
+Example Scripts
 ***********************
 
 .. _examples-running:
