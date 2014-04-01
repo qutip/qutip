@@ -511,7 +511,7 @@ class Qobj():
         """
         if (isinstance(other, Qobj) and
                 self.dims == other.dims and
-                abs(_sp_max_norm(self - other)) < 1e-14):
+                not np.any(np.abs((self.data - other.data).data)) > 1e-14):
             return True
         else:
             return False
