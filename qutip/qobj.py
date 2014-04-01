@@ -1068,16 +1068,16 @@ class Qobj():
 
         # transform data
         if inverse:
-            if isket(self):
+            if self.isket:
                 out.data = S.H * self.data
-            elif isbra(self):
+            elif self.isbra:
                 out.data = self.data * S
             else:
                 out.data = S.H * self.data * S
         else:
-            if isket(self):
+            if self.isket:
                 out.data = S * self.data
-            elif isbra(self):
+            elif self.isbra:
                 out.data = self.data * S.H
             else:
                 out.data = S * self.data * S.H
@@ -1114,12 +1114,14 @@ class Qobj():
 
         """
 
-        if isoper(self):
-            if isbra(bra) and isket(ket):
-                return (bra.data * self.data * ket.data)[0, 0]
+        if isinstance(bra, Qobj) and isinstance(ket, Qobj):
 
-            if isket(bra) and isket(ket):
-                return (bra.data.T * self.data * ket.data)[0, 0]
+            if self.isoper:
+                if bra.isbra and ket.isket:
+                    return (bra.data * self.data * ket.data)[0, 0]
+
+                if bra.isket and ket.isket:
+                    return (bra.data.T * self.data * ket.data)[0, 0]
 
         raise TypeError("Can only calculate matrix elements for operators " +
                         "and between ket and bra Qobj")
@@ -1145,17 +1147,19 @@ class Qobj():
             Can only calculate overlap between a bra and ket quantum objects.
         """
 
-        if isbra(self):
-            if isket(state):
-                return (self.data * state.data)[0, 0]
-            elif isbra(state):
-                return (self.data * state.data.H)[0, 0]
+        if isinstance(state, Qobj):
 
-        elif isket(self):
-            if isbra(state):
-                return (self.data.H * state.data.H)[0, 0]
-            elif isket(state):
-                return (self.data.H * state.data)[0, 0]
+            if self.isbra:
+                if state.isket:
+                    return (self.data * state.data)[0, 0]
+                elif state.isbra:
+                    return (self.data * state.data.H)[0, 0]
+
+            elif self.isket:
+                if state.isbra:
+                    return (self.data.H * state.data.H)[0, 0]
+                elif state.isket:
+                    return (self.data.H * state.data)[0, 0]
 
         raise TypeError("Can only calculate overlap for state vector Qobjs")
 
@@ -1324,11 +1328,11 @@ class Qobj():
             Experimental.
 
         """
-        if isoper(self):
+        if self.isoper:
             q = Qobj(self.data[states_inds, :][:, states_inds])
-        elif isket(self):
+        elif self.isket:
             q = Qobj(self.data[states_inds, :])
-        elif isbra(self):
+        elif self.isbra:
             q = Qobj(self.data[:, states_inds])
         else:
             raise TypeError("Can only eliminate states from operators or " +
