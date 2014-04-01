@@ -6,7 +6,7 @@
 Floquet quasienergy levels for a driven two-level system
 ========================================================
 
-This example demonstrates how to calculate the Floquet quasienergies for a driven system. The example is taken from Creffield et al., Phys. Rev. B 67, 165301 (2003), see Fig. 1(a) in that paper. The Hamiltonian is
+This example demonstrates how to calculate the Floquet quasienergies for a driven system. The example is taken from [Cre03]_, see Fig. 1(a) in that paper. The Hamiltonian is
 
 .. math::
 
