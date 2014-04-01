@@ -9,7 +9,7 @@ Classes
 
 .. _classes-qobj:
 
-The Qobj class
+Qobj
 --------------
 
 .. autoclass:: qutip.Qobj
@@ -17,7 +17,7 @@ The Qobj class
 
 .. _classes-eseries:
 
-The eseries class
+eseries
 -----------------
 
 .. autoclass:: qutip.eseries
@@ -25,13 +25,13 @@ The eseries class
 
 .. _classes-bloch:
 
-The Bloch class
+Bloch
 ---------------
 
 .. autoclass:: qutip.Bloch
     :members:
 
-The Bloch3d class
+Bloch3d
 -----------------
 
 .. autoclass:: qutip.Bloch3d
@@ -39,15 +39,21 @@ The Bloch3d class
 
 .. _classes-odeoptions:
 
-The Odeoptions class
+Odeoptions
 --------------------
 
 .. autoclass:: qutip.Odeoptions
     :members:
 
 
-The Odedata class
+Odedata
 --------------------
 
 .. autoclass:: qutip.Odedata
     :members:
+
+Stochastic Solver Parameters
+----------------------------
+
+.. autoclass:: qutip.stochastic
+    :members: StochasticSolverData
