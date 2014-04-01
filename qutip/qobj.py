@@ -1768,6 +1768,50 @@ def isbra(Q):
     return True if isinstance(Q, Qobj) and Q.isbra else False
 
 
+def isoperket(Q):
+    """Determines if given quantum object is an operator in column vector for
+    (operator-ket).
+
+    Parameters
+    ----------
+    Q : qobj
+        Quantum object
+
+    Returns
+    -------
+    isoperket : bool
+        True if Qobj is operator-ket, False otherwise.
+
+    Notes
+    -----
+    This function is for legacy compatibility only. Using the `Qobj.isoperket`
+    attribute is recommended.
+    """
+    return True if isinstance(Q, Qobj) and Q.isoperket else False
+
+
+def isoperbra(Q):
+    """Determines if given quantum object is an operator in row vector for
+    (operator-bra).
+
+    Parameters
+    ----------
+    Q : qobj
+        Quantum object
+
+    Returns
+    -------
+    isoperbra : bool
+        True if Qobj is operator-bra, False otherwise.
+
+    Notes
+    -----
+    This function is for legacy compatibility only. Using the `Qobj.isoperbra`
+    attribute is recommended.
+    """
+    return True if isinstance(Q, Qobj) and Q.isoperbra else False
+
+
 def isoper(Q):
     """Determines if given quantum object is a operator.
 
