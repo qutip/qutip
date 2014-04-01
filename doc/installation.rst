@@ -231,11 +231,11 @@ In order to install the Fortran Monte Carlo solver use the following command::
 .. _install-win:
 
 Installation on Windows
-========================
+=======================
 
 QuTiP is primarily developed for Unix-based platforms such as Linux an Mac OS X, but it can also be used on Windows. We have limited experience and ability to help troubleshoot problems on Windows, but the following installation steps have been reported to work:
 
-1. Install the `Python(X,Y) <http://code.google.com/p/pythonxy/>`_ distribution (tested with version 2.7.3.1). Other Python distributions, such as `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ or `Anaconda CE <http://continuum.io/downloads.html>`_ might work too, but this has not been verified.
+1. Install the `Python(X,Y) <http://code.google.com/p/pythonxy/>`_ distribution (tested with version 2.7.3.1). Other Python distributions, such as `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ or `Anaconda CE <http://continuum.io/downloads.html>`_ have also been reported to work.
 
 2. When installing Python(x,y), explicitly select to include the Cython package in the installation. This package is not selected by default.
 
@@ -258,8 +258,8 @@ The directory where the distutils.cfg file should be placed might be different i
 
     In some cases, to get the dynamic compilation of Cython code to work, it
     might be necessary to edit the PATH variable and make sure that
-    `C:\MinGW32-xy\bin` appears either *first* in the PATH list, or possibly
-    *right after* `C:\Python27\Lib\site-packages\PyQt4`. This is to make sure
+    `C:\\MinGW32-xy\\bin` appears either *first* in the PATH list, or possibly
+    *right after* `C:\\Python27\\Lib\\site-packages\\PyQt4`. This is to make sure
     that the right version of the MinGW compiler is used if more than one
     is installed (not uncommon under Windows, since many packages are
     distributed and installed with their own version of all dependencies).
@@ -268,7 +268,7 @@ The directory where the distutils.cfg file should be placed might be different i
 .. _install-verify:
 
 Verifying the Installation
-===========================
+==========================
 
 QuTiP now includes a collection of built-in test scripts to verify that the installation was indeed successful.  To run the suite of tests scripts you must have the nose testing library.  After installing QuTiP, exit the installation directory, run Python (or iPython), and call:
 
