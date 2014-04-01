@@ -16,7 +16,10 @@ Bibliography
     M. Grifoni, P. Hänggi, *Driven quantum tunneling*, Physics Reports **304**, 299 (1998). :doi:`10.1016/S0370-1573(98)00022-2`.
 
 .. [Cre03]
-    Creffield, *Location of crossings in the Floquet spectrum of a driven two-level system*, Phys. Rev. B **67**, 165301 (2003). :doi:`10.1103/PhysRevB.67.165301`.
+    C. E. Creffield, *Location of crossings in the Floquet spectrum of a driven two-level system*, Phys. Rev. B **67**, 165301 (2003). :doi:`10.1103/PhysRevB.67.165301`.
+
+.. [Gar03]
+    Gardineer and Zoller, *Quantum Noise*, Springer, 2004.
 
 ..
     The trick with |text|_ is to get an italic link, and is described in the
