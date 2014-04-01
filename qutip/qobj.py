@@ -1413,11 +1413,12 @@ class Qobj():
             return self._isherm
 
         if self.dims[0] != self.dims[1]:
-            return False
+            self._isherm = False
+        else:
+            data = self.data
+            elems = (data.transpose().conj() - data).data
+            self._isherm = False if np.any(np.abs(elems) > 1e-12) else True
 
-        data = self.data
-        elems = (data.transpose().conj() - data).data
-        self._isherm = False if np.any(np.abs(elems) > 1e-12) else True
         return self._isherm
 
     @isherm.setter
