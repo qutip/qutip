@@ -60,9 +60,9 @@ Platform-independent installation
 
 Often the easiest way is to install QuTiP is to use the Python package manager `pip <http://www.pip-installer.org/>`_.
 
+.. code-block:: bash
 
-    $ sudo pip install qutip
-
+    sudo pip install qutip
 
 However, when installing QuTiP this way the Fortran-based Monte Carlo solver is not included.
 More detailed platform-dependent installation alternatives are given below.
