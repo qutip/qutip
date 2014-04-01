@@ -226,5 +226,5 @@ Miscellaneous
 --------------
 
 .. automodule:: qutip
-    :members: about, demos, orbital, parfor, rhs_generate, rhs_clear, simdiag
+    :members: about, orbital, parfor, rhs_generate, rhs_clear, simdiag
 
