@@ -148,6 +148,7 @@ def liouvillian_fast(H, c_op_list, data_only=False):
         L.dims = sop_dims
         L.data = data
         L.isherm = False
+        L.superrep = 'super'
         return L
 
 
@@ -235,7 +236,7 @@ def spost(A):
     if not isoper(A):
         raise TypeError('Input is not a quantum object')
 
-    S = Qobj(isherm=A.isherm, type='super')
+    S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
     S.data = sp.kron(A.data.T, sp.identity(prod(A.dims[0])), format='csr')
     return S
@@ -258,7 +259,7 @@ def spre(A):
     if not isoper(A):
         raise TypeError('Input is not a quantum object')
 
-    S = Qobj(isherm=A.isherm, type='super')
+    S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
     S.data = sp.kron(sp.identity(prod(A.dims[1])), A.data, format='csr')
     return S
