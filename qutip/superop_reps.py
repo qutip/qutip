@@ -1,20 +1,31 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu May 23 16:35:42 2013
+This module implements transformations between superoperator representations,
+including supermatrix, Kraus, Choi and Chi (process) matrix formalisms.
 
 @author: dcriger
 """
 
-from operator import add
+#- IMPORTS --------------------------------------------------------------------
 
-from numpy.core.multiarray import array
+# Python Standard Library
+from operator import add
+from itertools import starmap, product, imap
+
+# NumPy/SciPy
+from numpy.core.multiarray import array, zeros
 from numpy.core.shape_base import hstack
 from numpy.matrixlib.defmatrix import matrix
 from numpy import sqrt
 from scipy.linalg import eig
 
-from qutip.superoperator import vec2mat, spre, spost
+# Other QuTiP functions and classes
+from qutip.superoperator import vec2mat, spre, spost, operator_to_vector
+from qutip.operators import identity, sigmax, sigmay, sigmaz
+from qutip.tensor import tensor
 from qutip.qobj import Qobj
+
+#- SPECIFIC SUPEROPERATORS ----------------------------------------------------
 
 def _dep_super(pe):
     """
@@ -24,7 +35,7 @@ def _dep_super(pe):
     # TODO if this is going into production (hopefully it isn't) then check
     CPTP, expand to arbitrary dimensional systems, etc.
     """
-    return Qobj(dims=[[2, 2], [2, 2]],
+    return Qobj(dims=[[[2], [2]], [[2], [2]]],
                 inpt=array([[1. - pe / 2., 0., 0., pe / 2.],
                             [0., 1. - pe, 0., 0.],
                             [0., 0., 1. - pe, 0.],
