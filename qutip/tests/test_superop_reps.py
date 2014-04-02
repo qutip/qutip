@@ -37,6 +37,7 @@ Created on Wed May 29 11:23:46 2013
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+from __future__ import division
 
 from numpy import abs
 from numpy.linalg import norm
@@ -49,9 +50,11 @@ from qutip.operators import create, destroy, jmat, identity, sigmax
 from qutip.quantum_info.gates import swap
 from qutip.propagator import propagator
 from qutip.random_objects import rand_herm
+from qutip.tensor import tensor
 from qutip.superop_reps import (super_to_choi, choi_to_kraus,
                                 choi_to_super, kraus_to_choi,
-                                to_super, to_choi, to_kraus)
+                                to_super, to_choi, to_kraus, to_chi,
+                                _dep_choi)
 
 
 class TestSuperopReps(object):
@@ -60,10 +63,10 @@ class TestSuperopReps(object):
     subsystems.
     """
     
-    def rand_super(self):
-        h_5 = rand_herm(5)
+    def rand_super(self, d=5):
+        h_5 = rand_herm(d)
         return propagator(h_5, scipy.rand(), [
-            create(5), destroy(5), jmat(2, 'z')
+            create(d), destroy(d), jmat((d - 1) / 2, 'z')
         ])
 
     def test_SuperChoiSuper(self):
@@ -79,6 +82,24 @@ class TestSuperopReps(object):
         # type.
         assert_((test_supe - superoperator).norm() < 1e-12)
         assert_(choi_matrix.type == "super" and choi_matrix.superrep == "choi")
+        assert_(test_supe.type == "super" and test_supe.superrep == "super")
+
+    def test_SuperChoiChiSuper(self):
+        """
+        Superoperator: Test that converting a two-qubit superoperator through
+        Choi and chi representations takes us back to the right superoperator.
+        """
+        superoperator = tensor(self.rand_super(2), self.rand_super(2))
+                               
+        choi_matrix = to_choi(superoperator)
+        chi_matrix = to_chi(choi_matrix)
+        test_supe = to_super(chi_matrix)
+        
+        # Assert both that the result is close to expected, and has the right
+        # type.
+        assert_((test_supe - superoperator).norm() < 1e-12)
+        assert_(choi_matrix.type == "super" and choi_matrix.superrep == "choi")
+        assert_(chi_matrix.type == "super" and chi_matrix.superrep == "chi")
         assert_(test_supe.type == "super" and test_supe.superrep == "super")
 
     def test_ChoiKrausChoi(self):
