@@ -349,12 +349,15 @@ class Qobj():
                 out._isherm = False
             elif self._isherm is None or other._isherm is None:
                 out._isherm = out.isherm
+            elif not self._isherm and not other._isherm:
+                out._isherm = out.isherm
             else:
                 out._isherm = self._isherm and other._isherm
 
             if self.superrep and other.superrep:
                 if self.superrep != other.superrep:
-                    msg = "Adding superoperators with different representations"
+                    msg = ("Adding superoperators with different " +
+                           "representations")
                     warnings.warn(msg)
 
                 out.superrep = self.superrep
