@@ -40,7 +40,6 @@ import numpy as np
 from numpy.testing import assert_equal, assert_, run_module_suite
 
 
-#-------- test_ the Qobj properties ------------#
 def test_QobjData():
     "Qobj data"
     N = 10
@@ -80,19 +79,28 @@ def test_QobjType():
     ket_data = np.random.random((N, 1))
     ket_qobj = Qobj(ket_data)
     assert_equal(ket_qobj.type, 'ket')
+    assert_(ket_qobj.isket)
 
     bra_data = np.random.random((1, N))
     bra_qobj = Qobj(bra_data)
     assert_equal(bra_qobj.type, 'bra')
+    assert_(bra_qobj.isbra)
 
     oper_data = np.random.random((N, N))
     oper_qobj = Qobj(oper_data)
     assert_equal(oper_qobj.type, 'oper')
+    assert_(oper_qobj.isoper)
 
     N = 9
     super_data = np.random.random((N, N))
     super_qobj = Qobj(super_data, dims=[[[3]], [[3]]])
     assert_equal(super_qobj.type, 'super')
+    assert_(super_qobj.issuper)
+
+    operket_qobj = operator_to_vector(oper_qobj)
+    assert_(operket_qobj.isoperket)
+    operbra_qobj = operket_qobj.dag()
+    assert_(operbra_qobj.isoperbra)
 
 
 def test_QobjHerm():
@@ -100,12 +108,36 @@ def test_QobjHerm():
     N = 10
     data = np.random.random(
         (N, N)) + 1j * np.random.random((N, N)) - (0.5 + 0.5j)
-    q1 = Qobj(data)
-    assert_equal(q1.isherm, False)
+    q = Qobj(data)
+    assert_equal(q.isherm, False)
 
     data = data + data.conj().T
-    q2 = Qobj(data)
-    assert_equal(q2.isherm, True)
+    q = Qobj(data)
+    assert_(q.isherm)
+
+    q_a = destroy(5)
+    assert_(not q_a.isherm)
+
+    q_ad = create(5)
+    assert_(not q_ad.isherm)
+
+    # test addition of two nonhermitian operators adding up to a hermitian one
+    q_x = q_a + q_ad
+    assert_(q_x.isherm)  # isherm use the _isherm cache from q_a + q_ad
+    q_x._isherm = None   # reset _isherm cache
+    assert_(q_x.isherm)  # recalculate _isherm
+
+    # test addition of one hermitan and one nonhermitian operator
+    q = q_x + q_a
+    assert_(not q.isherm)
+    q._isherm = None
+    assert_(not q.isherm)
+
+    # test addition of two hermitan operators
+    q = q_x + q_x
+    assert_(q.isherm)
+    q._isherm = None
+    assert_(q.isherm)
 
 
 def test_QobjDimsShape():
@@ -133,8 +165,6 @@ def test_QobjDimsShape():
     q1 = Qobj(data, dims=[[2, 2], [2, 2]])
     assert_equal(q1.dims, [[2, 2], [2, 2]])
     assert_equal(q1.shape, [4, 4])
-
-#-------- test_ the Qobj math ------------#
 
 
 def test_QobjAddition():
@@ -303,8 +333,6 @@ def test_CheckMulType():
     assert_equal(out.isherm, True)
 
 
-#-------- test_ the Qobj methods ------------#
-
 def test_QobjConjugate():
     "Qobj conjugate"
     data = np.random.random(
@@ -430,8 +458,6 @@ def test_QobjPermute():
         rho2 = rho.permute([1, 0, 2])
         assert_equal(rho2, tensor(B, A, C))
 
-# --- Test types
-
 
 def test_KetType():
     "Qobj ket type"
@@ -500,6 +526,7 @@ def test_SuperType():
     assert_equal(isbra(sop), False)
     assert_equal(isoper(sop), False)
     assert_equal(issuper(sop), True)
+
 
 if __name__ == "__main__":
     run_module_suite()
