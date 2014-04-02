@@ -1476,6 +1476,7 @@ class Qobj():
                 self.dims[0] == self.dims[1] and 
                 self.dims[0][0] == self.dims[1][0])
 
+
 #------------------------------------------------------------------------------
 # This functions evaluates a time-dependent quantum object on the list-string
 # and list-function formats that are used by the time-dependent solvers.
@@ -1549,36 +1550,6 @@ def qobj_list_evaluate(qobj_list, t, args):
             'Unrecongized format for specification of time-dependent Qobj')
 
     return q_sum
-
-
-#------------------------------------------------------------------------------
-#
-# functions for storing and loading Qobj instances to files
-#
-
-def qobj_save(qobj, filename):
-    """
-    Saves the given qobj to file 'filename'
-    Argument qobj input operator
-    Argument filename string for output file name
-
-    Returns file returns qobj as file in current directory
-    """
-    with open(filename, 'wb') as f:
-        pickle.dump(qobj, f, protocol=2)
-
-
-def qobj_load(filename):
-    """
-    Loads a quantum object saved using qobj_save
-    Argument filename filename of request qobject
-
-    Returns Qobj returns quantum object
-    """
-    with open(filename, 'wb') as f:
-        qobj = pickle.load(f)
-
-    return qobj
 
 
 #------------------------------------------------------------------------------
