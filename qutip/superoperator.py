@@ -62,12 +62,12 @@ def liouvillian(H, c_op_list=[]):
     L = -1.0j * (spre(H) - spost(H)) if H else 0
 
     for c in c_op_list:
-        if issuper(c):
+        if c.issuper:
             L += c
         else:
             cdc = c.dag() * c
             L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
-    L.type = 'super'
+
     return L
 
 
@@ -93,10 +93,10 @@ def liouvillian_fast(H, c_op_list, data_only=False):
     """
 
     if H is not None:
-        if isoper(H):
+        if H.isoper:
             op_dims = H.dims
             op_shape = H.shape
-        elif issuper(H):
+        elif H.issuper:
             op_dims = H.dims[0]
             op_shape = [prod(op_dims[0]), prod(op_dims[0])]
         else:
@@ -105,10 +105,10 @@ def liouvillian_fast(H, c_op_list, data_only=False):
         # no hamiltonian given, pick system size from a collapse operator
         if isinstance(c_op_list, list) and len(c_op_list) > 0:
             c = c_op_list[0]
-            if isoper(c):
+            if c.isoper:
                 op_dims = c.dims
                 op_shape = c.shape
-            elif issuper(c):
+            elif c.issuper:
                 op_dims = c.dims[0]
                 op_shape = [prod(op_dims[0]), prod(op_dims[0])]
             else:
@@ -122,7 +122,7 @@ def liouvillian_fast(H, c_op_list, data_only=False):
     spI = sp.identity(op_shape[0])
 
     if H:
-        if isoper(H):
+        if H.isoper:
             data = -1j * (sp.kron(spI, H.data, format='csr')
                           - sp.kron(H.data.T, spI, format='csr'))
         else:
@@ -131,7 +131,7 @@ def liouvillian_fast(H, c_op_list, data_only=False):
         data = sp.csr_matrix((sop_shape[0], sop_shape[1]), dtype=complex)
 
     for c_op in c_op_list:
-        if issuper(c_op):
+        if c_op.issuper:
             data = data + c_op.data
         else:
             cd = c_op.data.T.conj()
@@ -146,10 +146,9 @@ def liouvillian_fast(H, c_op_list, data_only=False):
     else:
         L = Qobj()
         L.dims = sop_dims
-        L.shape = sop_shape
         L.data = data
         L.isherm = False
-        L.type = 'super'
+        L.superrep = 'super'
         return L
 
 
@@ -172,10 +171,8 @@ def operator_to_vector(op):
     the matrix representation.
     """
     q = Qobj()
-    q.shape = [prod(op.shape), 1]
     q.dims = [op.dims, [1]]
     q.data = sp_reshape(op.data.T, tuple(q.shape))
-    q.type = 'operator-vector'
     return q
 
 
@@ -185,10 +182,8 @@ def vector_to_operator(op):
     vector form.
     """
     q = Qobj()
-    q.shape = [op.dims[0][0][0], op.dims[0][1][0]]
     q.dims = op.dims[0]
     q.data = sp_reshape(op.data.H, tuple(q.shape))
-    q.type = 'oper'
     return q
 
 
@@ -238,12 +233,14 @@ def spost(A):
     super : qobj
         Superoperator formed from input qauntum object.
     """
-    if not isoper(A):
+    if not isinstance(A, Qobj):
         raise TypeError('Input is not a quantum object')
 
-    S = Qobj(isherm=A.isherm, type='super')
+    if not A.isoper:
+        raise TypeError('Input is not a quantum operator')
+
+    S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.shape = [prod(S.dims[0]), prod(S.dims[1])]
     S.data = sp.kron(A.data.T, sp.identity(prod(A.dims[0])), format='csr')
     return S
 
@@ -262,11 +259,13 @@ def spre(A):
         Superoperator formed from input quantum object.
 
     """
-    if not isoper(A):
+    if not isinstance(A, Qobj):
         raise TypeError('Input is not a quantum object')
 
-    S = Qobj(isherm=A.isherm, type='super')
+    if not A.isoper:
+        raise TypeError('Input is not a quantum operator')
+
+    S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.shape = [prod(S.dims[0]), prod(S.dims[1])]
     S.data = sp.kron(sp.identity(prod(A.dims[1])), A.data, format='csr')
     return S
