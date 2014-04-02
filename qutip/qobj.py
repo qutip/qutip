@@ -306,6 +306,8 @@ class Qobj():
             else:
                 out._isherm = out.isherm
 
+            out.superrep = self.superrep
+
             return out.tidyup() if settings.auto_tidyup else out
 
         elif np.prod(self.shape) == 1 and np.prod(other.shape) != 1:
@@ -328,6 +330,8 @@ class Qobj():
             else:
                 out._isherm = self._isherm
 
+            out.superrep = self.superrep
+
             return out.tidyup() if settings.auto_tidyup else out
 
         elif self.dims != other.dims:
@@ -341,18 +345,18 @@ class Qobj():
             out.data = self.data + other.data
             out.dims = self.dims
 
-            if self.type in ['ket', 'bra', 'super']:
+            if self.type in ['ket', 'bra', 'operator-ket', 'operator-bra']:
                 out._isherm = False
-            elif self._isherm and self._isherm == other._isherm:
-                out._isherm = True
-            elif self._isherm and not other._isherm:
-                out._isherm = False
-            elif not self._isherm and other._isherm:
-                out._isherm = False
-            else:
+            elif self._isherm is None or other._isherm is None:
                 out._isherm = out.isherm
+            else:
+                out._isherm = self._isherm and other._isherm
 
             if self.superrep and other.superrep:
+                if self.superrep != other.superrep:
+                    msg = "Adding superoperators with different representations"
+                    warnings.warn(msg)
+
                 out.superrep = self.superrep
 
             return out.tidyup() if settings.auto_tidyup else out
@@ -397,7 +401,13 @@ class Qobj():
                     out.dims = dims
 
                 out._isherm = out.isherm
+
                 if self.superrep and other.superrep:
+                    if self.superrep != other.superrep:
+                        msg = ("Multiplying superoperators with different " +
+                               "representations")
+                        warnings.warn(msg)
+
                     out.superrep = self.superrep
 
                 return out.tidyup() if settings.auto_tidyup else out
@@ -405,11 +415,13 @@ class Qobj():
             elif np.prod(self.shape) == 1:
                 out = Qobj(other)
                 out.data *= self.data[0, 0]
+                out.superrep = other.superrep
                 return out.tidyup() if settings.auto_tidyup else out
 
-            elif np.prod(other.shape):
+            elif np.prod(other.shape) == 1:
                 out = Qobj(self)
                 out.data *= other.data[0, 0]
+                out.superrep = self.superrep
                 return out.tidyup() if settings.auto_tidyup else out
 
             else:
@@ -426,6 +438,7 @@ class Qobj():
             out = Qobj()
             out.data = self.data * other
             out.dims = self.dims
+            out.superrep = self.superrep
             if isinstance(other, complex):
                 out._isherm = out.isherm
             else:
@@ -452,6 +465,7 @@ class Qobj():
             out = Qobj()
             out.data = other * self.data
             out.dims = self.dims
+            out.superrep = self.superrep
             if isinstance(other, complex):
                 out._isherm = out.isherm
             else:
@@ -553,24 +567,24 @@ class Qobj():
 
     def __str__(self):
         s = ""
-        type = self.type
+        t = self.type
         shape = self.shape
         if self.type in ['oper', 'super']:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
                   ", shape = " + str(shape) +
-                  ", type = " + type +
+                  ", type = " + t +
                   ", isherm = " + str(self.isherm) +
                   (
                       ", superrep = {0.superrep}".format(self)
-                      if self.type == "super" and self.superrep != "super"
+                      if t == "super" and self.superrep != "super"
                       else ""
                   ) + "\n")
         else:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
                   ", shape = " + str(shape) +
-                  ", type = " + type + "\n")
+                  ", type = " + t + "\n")
         s += "Qobj data =\n"
 
         if shape[0] > 10000 or shape[1] > 10000:
@@ -621,7 +635,7 @@ class Qobj():
                   ", isherm = " + str(self.isherm) +
                   (
                       ", superrep = {0.superrep}".format(self)
-                      if type == "super" and self.superrep != "super"
+                      if t == "super" and self.superrep != "super"
                       else ""
                   ))
         else:
