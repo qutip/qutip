@@ -1399,8 +1399,14 @@ class Qobj():
         # FIXME: this needs to be cached in the same ways as isherm.
         if self.type == "super" or self.type == "oper":
             try:
-                q_oper = sr.to_choi(self)
-                eigs = q_oper.eigenenergies()
+                eigs = (
+                    self
+                    # We can test with either Choi or chi, since the basis
+                    # transformation between them is unitary and hence
+                    # preserves the CP and TP conditions.
+                    if self.superrep in ('choi', 'chi')
+                    else sr.to_choi(self)
+                ).eigenenergies()
                 return all(eigs >= 0)
             except:
                 return False
@@ -1412,10 +1418,16 @@ class Qobj():
         
         if self.type == "super" or self.type == "oper":
             try:
-                q_oper = sr.to_choi(self)
                 # We use the condition from John Watrous' lecture notes,
                 # Tr_1(J(Phi)) = identity_2.
-                tr_oper = ptrace(q_oper, (0,))
+                tr_oper = ptrace((
+                    self
+                    # We can test with either Choi or chi, since the basis
+                    # transformation between them is unitary and hence
+                    # preserves the CP and TP conditions.
+                    if self.superrep in ('choi', 'chi')
+                    else sr.to_choi(self)
+                ), (0,))
                 ident = ops.identity(tr_oper.shape[0])
                 
                 return isequal(tr_oper, ident)
@@ -1428,7 +1440,7 @@ class Qobj():
     def iscptp(self):
         from qutip.superop_reps import to_choi
         if self.type == "super" or self.type == "oper":
-            q_oper = to_choi(self)
+            q_oper = to_choi(self) if self.superrep not in ('choi', 'chi') else self
             return q_oper.iscp and q_oper.istp
         else:
             return False
