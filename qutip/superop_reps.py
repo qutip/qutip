@@ -242,12 +242,15 @@ def to_chi(q_oper):
         to Choi representation.
     """
     if q_oper.type == 'super':
-        if q_oper.superrep == 'choi':
-            return q_oper
-        if q_oper.superrep == 'super':
-            return super_to_choi(q_oper)
+        # Case 1: Already done.
         if q_oper.superrep == 'chi':
-            return chi_to_choi(q_oper)
+            return q_oper
+        # Case 2: Can directly convert.
+        elif q_oper.superrep == 'choi':
+            return choi_to_chi(q_oper)
+        # Case 3: Need to go through Choi.
+        elif q_oper.superrep == 'super':
+            return to_chi(to_choi(q_oper))
         else:
             raise TypeError(q_oper.superrep)
     elif q_oper.type == 'oper':
