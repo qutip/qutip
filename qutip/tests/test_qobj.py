@@ -610,7 +610,7 @@ def test_arithmetic_preserves_superrep():
 
     dimension = 4
     for superrep in ['super', 'choi', 'chi']:
-        for operation in [add, sub, mul, div]:
+        for operation in [add, sub, mul, div, tensor]:
             yield check, superrep, operation
 
 if __name__ == "__main__":
