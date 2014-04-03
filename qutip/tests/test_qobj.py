@@ -44,6 +44,7 @@ from qutip.superoperator import spre, spost, operator_to_vector
 from qutip.superop_reps import to_super
 from qutip.tensor import tensor
 
+from operator import add, mul
 
 def test_QobjData():
     "Qobj data"
@@ -572,6 +573,33 @@ def test_SuperType():
     assert_equal(sop.isoper, False)
     assert_equal(sop.issuper, True)
 
+def test_arithmetic_preserves_superrep():
+    """
+    Superoperator arithmetic: Checks that applying a binary operation between
+    two ``type="super"`` Qobj instances preserves the ``superrep`` metadata.
+        
+    .. note::
+    
+        The random superoperators are not chosen in a way that reflects the
+        structure of that superrep, but are simply random matrices.
+    """
+
+    dims = [[[2], [2]], [[2], [2]]]
+    shape = (4, 4)
+
+    def check( superrep, operation):        
+        S1 = Qobj(np.random.random(shape), superrep=superrep, dims=dims)
+        S2 = Qobj(np.random.random(shape), superrep=superrep, dims=dims)
+        
+        S = S1 + S2
+        
+        assert_equal(S.type, "super")
+        assert_equal(S.superrep, superrep)
+
+    dimension = 4
+    for superrep in ['super', 'choi', 'chi']:
+        for operation in [add, mul]:
+            yield check, superrep, operation
 
 if __name__ == "__main__":
     run_module_suite()
