@@ -44,7 +44,7 @@ from qutip.superoperator import spre, spost, operator_to_vector
 from qutip.superop_reps import to_super
 from qutip.tensor import tensor
 
-from operator import add, mul
+from operator import add, mul, div, sub
 
 def test_QobjData():
     "Qobj data"
@@ -592,11 +592,15 @@ def test_arithmetic_preserves_superrep():
         S2 = Qobj(np.random.random(shape), superrep=superrep, dims=dims)
         x = np.random.random()
         
-        S_mat_mat = operation(S1, S2)
-        S_scalar_mat = operation(x, S2)
         S_mat_scalar = operation(S1, x)
+        if operation is not div:
+            S_mat_mat = operation(S1, S2)
+            S_scalar_mat = operation(x, S2)
+            check_list = (S_mat_mat, S_scalar_mat, S_mat_scalar)
+        else:
+            check_list = (S_mat_scalar, )
                 
-        for S in (S_mat_mat, S_scalar_mat, S_mat_scalar):
+        for S in check_list:
             assert_equal(S.type, "super",
                 "Operator {} did not preserve type='super'.".format(operation)
             )
@@ -606,7 +610,7 @@ def test_arithmetic_preserves_superrep():
 
     dimension = 4
     for superrep in ['super', 'choi', 'chi']:
-        for operation in [add, mul]:
+        for operation in [add, sub, mul, div]:
             yield check, superrep, operation
 
 if __name__ == "__main__":
