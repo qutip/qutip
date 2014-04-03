@@ -53,7 +53,7 @@ from qutip.random_objects import rand_dm
 from qutip.sparse import *
 from qutip.graph import symrcm
 from qutip.states import ket2dm
-import qutip.settings as qset
+import qutip.settings as settings
 
 
 def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
@@ -503,10 +503,8 @@ def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5,
     rhoss.isherm = True
     if verbose:
         print('Power solver time: ', time.time() - start_time)
-    if qset.auto_tidyup:
-        return rhoss.tidyup()
-    else:
-        return rhoss
+    
+    return rhoss.tidyup() if settings.auto_tidyup else rhoss
 
 
 def steadystate_nonlinear(L_func, rho0, args={}, maxiter=10,
@@ -557,4 +555,4 @@ def steadystate_nonlinear(L_func, rho0, args={}, maxiter=10,
                          str(maxiter) + ' iterations')
 
     rhoss = 0.5 * (rhoss + rhoss.dag())
-    return rhoss.tidyup() if qset.auto_tidyup else rhoss
+    return rhoss.tidyup() if settings.auto_tidyup else rhoss
