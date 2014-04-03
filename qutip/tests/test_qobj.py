@@ -208,7 +208,6 @@ def test_QobjAddition():
     assert_(np.all(x1.data.todense() - np.matrix(data) == 0))
     assert_(np.all(x2.data.todense() - np.matrix(data) == 0))
 
-
     data = np.random.random((5, 5))
     q = Qobj(data)
     x3 = q + data
@@ -323,7 +322,7 @@ def test_CheckMulType():
 
     nrm = psi.dag() * psi
     assert_equal(np.prod(nrm.shape), 1)
-    assert_((abs(nrm) == 1)[0,0])
+    assert_((abs(nrm) == 1)[0, 0])
 
     # operator-operator multiplication
     H1 = rand_herm(3)
@@ -357,7 +356,7 @@ def test_CheckMulType():
     bra1 = basis(2).dag()
     bra2 = bra1 * op
     assert_(bra2.isbra)
-    
+
     assert_(bra2.dag() == ket2)
 
     # superoperator-operket and operbra-superoperator multiplication
@@ -383,6 +382,7 @@ def test_QobjConjugate():
     assert_equal(A.isherm, B.isherm)
     assert_equal(A.type, B.type)
     assert_equal(A.superrep, B.superrep)
+
 
 def test_QobjDagger():
     "Qobj adjoint (dagger)"
