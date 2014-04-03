@@ -15,7 +15,6 @@ before_install:
 # command to install dependencies
 install:
   - "python setup.py install --with-f90mc"
-  - ls -lR /home/travis/virtualenv/python2.7/lib/python2.7/site-packages/qutip/fortran
 
 # command to run tests
 script: nosetests qutip
