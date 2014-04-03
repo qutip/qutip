@@ -59,7 +59,7 @@ import qutip.settings as qset
 def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
                 sym=False, use_precond=True, M=None, drop_tol=1e-3, 
                 fill_factor=12, diag_pivot_thresh=None, maxiter=1000, tol=1e-5, 
-                verbose=False):
+                verbose=False, use_umfpack=False):
 
     """Calculates the steady state for quantum evolution subject to the
     supplied Hamiltonian or Liouvillian operator and (if given a Hamiltonian) a
@@ -151,9 +151,13 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
         raise TypeError('Solving for steady states requires ' +
                         'Liouvillian (super) operators')
 
+    if use_umfpack:
+        warnings.warn("The use of use_umfpack is deprecated.")
+
     if method == 'direct':
         if sparse:
-            return _steadystate_direct_sparse(A, verbose=verbose)
+            return _steadystate_direct_sparse(A, verbose=verbose,
+                                              use_umfpack=use_umfpack)
         else:
             return _steadystate_direct_dense(A, verbose=verbose)
 
@@ -181,7 +185,7 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
 
     elif method == 'power':
         return _steadystate_power(A, maxiter=10, tol=tol, itertol=tol,
-                                verbose=verbose)
+                                  verbose=verbose)
 
     else:
         raise ValueError('Invalid method argument for steadystate.')
@@ -198,7 +202,7 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
                        use_umfpack=use_umfpack, use_precond=use_precond)
 
 
-def _steadystate_direct_sparse(L, verbose=False):
+def _steadystate_direct_sparse(L, verbose=False, use_umfpack=False):
     """
     Direct solver that use scipy sparse matrices
     """
@@ -211,7 +215,7 @@ def _steadystate_direct_sparse(L, verbose=False):
             (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
             shape=(n ** 2, n ** 2))
     
-    use_solver(assumeSortedIndices=True, useUmfpack=False)
+    use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
     M.sort_indices()
 
     if verbose:
@@ -284,7 +288,7 @@ def _iterative_precondition(A, n, drop_tol, diag_pivot_thresh, fill_factor,
 def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
                            use_rcm=True, sym=False, fill_factor=12,
                            maxiter=1000, drop_tol=1e-3, diag_pivot_thresh=None,
-                           verbose=False):
+                           verbose=False, use_umfpack=False):
     """
     Iterative steady state solver using the LGMRES algorithm
     and a sparse incomplete LU preconditioner.
@@ -311,7 +315,7 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
         if verbose:
             print('RCM bandwidth ', sparse_bandwidth(L))
     
-    use_solver(assumeSortedIndices=True, useUmfpack=False)
+    use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
     L.sort_indices()
     
     if M is None and use_precond:
@@ -343,7 +347,7 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
 def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True,
                                 M=None, maxiter=1000, drop_tol=1e-3,
                                 diag_pivot_thresh=None, fill_factor=12,
-                                verbose=False):
+                                verbose=False, use_umfpack=False):
     """
     Iterative steady state solver using the BICG algorithm
     and a sparse incomplete LU preconditioner.
@@ -352,7 +356,7 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True,
     if verbose:
         print('Starting BICG solver...')
 
-    use_solver(assumeSortedIndices=True, useUmfpack=False)
+    use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
     dims=L.dims[0]
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2)
@@ -469,10 +473,8 @@ def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5,
     sflag = issuper(L)
     if sflag:
         rhoss.dims = L.dims[0]
-        rhoss.shape = [prod(rhoss.dims[0]), prod(rhoss.dims[1])]
     else:
         rhoss.dims = [L.dims[0], 1]
-        rhoss.shape = [prod(rhoss.dims[0]), 1]
     n = prod(rhoss.shape)
     L = L.data.tocsc() - (tol ** 2) * sp.eye(n, n, format='csc')
     L.sort_indices()
