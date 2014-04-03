@@ -534,7 +534,7 @@ class Qobj():
         if (isinstance(other, Qobj) and
                 self.dims == other.dims and
                 not np.any(np.abs((self.data - other.data).data) >
-                settings.atol)):
+                           settings.atol)):
             return True
         else:
             return False
@@ -845,7 +845,7 @@ class Qobj():
             return self.data.toarray()
 
     def diag(self):
-        """Diagonal elements of Qobj.
+        """Diagonal elements of quantum object.
 
         Returns
         -------
@@ -884,7 +884,7 @@ class Qobj():
             raise TypeError('Invalid operand for matrix exponential')
 
     def checkherm(self):
-        """Check if the Qobj is hermitian.
+        """Check if the quantum object is hermitian.
 
         Returns
         -------
@@ -971,7 +971,7 @@ class Qobj():
             return out
 
     def ptrace(self, sel):
-        """Partial trace of the Qobj.
+        """Partial trace of the quantum object.
 
         Parameters
         ----------
@@ -1013,7 +1013,7 @@ class Qobj():
         return q.tidyup() if settings.auto_tidyup else q
 
     def tidyup(self, atol=None):
-        """Removes small elements from Qobj.
+        """Removes small elements from the quantum object.
 
         Parameters
         ----------
@@ -1113,8 +1113,8 @@ class Qobj():
     def matrix_element(self, bra, ket):
         """Calculates a matrix element.
 
-        Gives matrix for the Qobj sandwiched between a `bra` and `ket`
-        vector.
+        Gives the matrix element for the quantum object sandwiched between a
+        `bra` and `ket` vector.
 
         Parameters
         -----------
@@ -1152,7 +1152,8 @@ class Qobj():
     def overlap(self, state):
         """Overlap between two state vectors.
 
-        Gives overlap (scalar product) for the Qobj and `state` state vector.
+        Gives the overlap (scalar product) for the quantum object and `state`
+        state vector.
 
         Parameters
         -----------
@@ -1364,7 +1365,7 @@ class Qobj():
         return q.unit() if normalize else q
 
     def eliminate_states(self, states_inds, normalize=False):
-        """New Qobj with states in state_inds eliminated.
+        """Creates a new quantum object with states in state_inds eliminated.
 
         Parameters
         ----------
@@ -1514,6 +1515,74 @@ class Qobj():
                 self.dims[0] == self.dims[1] and
                 self.dims[0][0] == self.dims[1][0])
 
+    @staticmethod
+    def evaluate(qobj_list, t, args):
+        """
+        Evaluate a time-dependent quantum object in list format. For example,
+
+            qobj_list = [H0, [H1, func_t]]
+
+        is evaluated to
+
+            Qobj(t) = H0 + H1 * func_t(t, args)
+
+        and
+
+            qobj_list = [H0, [H1, sin(w * t)]]
+
+        is evaluated to
+
+            Qobj(t) = H0 + H1 * sin(args['w'] * t)
+
+        Parameters
+        ----------
+
+        qobj_list : list
+            A nested list of Qobj instances and corresponding time-dependent
+            coefficients.
+
+        t : float
+            The time for which to evaluate the time-dependent Qobj instance.
+
+        args : dictionary
+            A dictionary with parameter values required to evaluate the
+            time-dependent Qobj intance.
+
+        Returns
+        -------
+
+        output : Qobj
+
+            The Qobj that represents the value of qobj_list at time t.
+
+        """
+
+        q_sum = 0
+        if isinstance(qobj_list, Qobj):
+            q_sum = qobj_list
+        elif isinstance(qobj_list, list):
+            for q in qobj_list:
+                if isinstance(q, Qobj):
+                    q_sum += q
+                elif (isinstance(q, list) and len(q) == 2 and
+                      isinstance(q[0], Qobj)):
+                    if isinstance(q[1], types.FunctionType):
+                        q_sum += q[0] * q[1](t, args)
+                    elif isinstance(q[1], str):
+                        args['t'] = t
+                        q_sum += q[0] * float(eval(q[1], globals(), args))
+                    else:
+                        raise TypeError('Unrecognized format for ' +
+                                        'specification of time-dependent Qobj')
+                else:
+                    raise TypeError('Unrecognized format for specification ' +
+                                    'of time-dependent Qobj')
+        else:
+            raise TypeError(
+                'Unrecongized format for specification of time-dependent Qobj')
+
+        return q_sum
+
 
 #------------------------------------------------------------------------------
 # This functions evaluates a time-dependent quantum object on the list-string
@@ -1524,70 +1593,10 @@ class Qobj():
 #
 def qobj_list_evaluate(qobj_list, t, args):
     """
-    Evaluate a time-dependent qobj in list format. For example,
-
-        qobj_list = [H0, [H1, func_t]]
-
-    is evaluated to
-
-        Qobj(t) = H0 + H1 * func_t(t, args)
-
-    and
-
-        qobj_list = [H0, [H1, sin(w * t)]]
-
-    is evaluated to
-
-        Qobj(t) = H0 + H1 * sin(args['w'] * t)
-
-    Parameters
-    ----------
-
-    qobj_list : list
-        A nested list of Qobj instances and corresponding time-dependent
-        coefficients.
-
-    t : float
-        The time for which to evaluate the time-dependent Qobj instance.
-
-    args : dictionary
-        A dictionary with parameter values required to evaluate the
-        time-dependent Qobj intance.
-
-    Returns
-    -------
-
-    output : Qobj
-
-        The Qobj that represents the value of qobj_list at time t.
-
+    Depracated: See Qobj.evaluate
     """
-
-    q_sum = 0
-    if isinstance(qobj_list, Qobj):
-        q_sum = qobj_list
-    elif isinstance(qobj_list, list):
-        for q in qobj_list:
-            if isinstance(q, Qobj):
-                q_sum += q
-            elif (isinstance(q, list) and len(q) == 2 and
-                  isinstance(q[0], Qobj)):
-                if isinstance(q[1], types.FunctionType):
-                    q_sum += q[0] * q[1](t, args)
-                elif isinstance(q[1], str):
-                    args['t'] = t
-                    q_sum += q[0] * float(eval(q[1], globals(), args))
-                else:
-                    raise TypeError('Unrecognized format for specification ' +
-                                    'of time-dependent Qobj')
-            else:
-                raise TypeError('Unrecognized format for specification ' +
-                                'of time-dependent Qobj')
-    else:
-        raise TypeError(
-            'Unrecongized format for specification of time-dependent Qobj')
-
-    return q_sum
+    warnings.warn("Deprecated: Use Qobj.evaluate", DeprecationWarning)
+    return Qobj.evaluate(qobj_list, t, args)
 
 
 #------------------------------------------------------------------------------
