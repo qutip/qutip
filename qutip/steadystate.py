@@ -55,11 +55,13 @@ from qutip.graph import symrcm
 from qutip.states import ket2dm
 import qutip.settings as settings
 
+if settings.debug:
+    import inspect
 
 def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
                 sym=False, use_precond=True, M=None, drop_tol=1e-3,
                 fill_factor=12, diag_pivot_thresh=None, maxiter=1000, tol=1e-5,
-                verbose=False, use_umfpack=False):
+                use_umfpack=False):
 
     """Calculates the steady state for quantum evolution subject to the
     supplied Hamiltonian or Liouvillian operator and (if given a Hamiltonian) a
@@ -123,10 +125,6 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
         preconditioner.  A value of zero forces the pivot to be the diagonal
         element.
 
-    verbose : bool default=False
-        Flag for printing out detailed information on the steady state solver.
-
-
     Returns
     -------
     dm : qobj
@@ -156,18 +154,16 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
 
     if method == 'direct':
         if sparse:
-            return _steadystate_direct_sparse(A, verbose=verbose,
-                                              use_umfpack=use_umfpack)
+            return _steadystate_direct_sparse(A, use_umfpack=use_umfpack)
         else:
-            return _steadystate_direct_dense(A, verbose=verbose)
+            return _steadystate_direct_dense(A,)
 
     elif method == 'iterative':
         return _steadystate_iterative(A, tol=tol, use_precond=use_precond, M=M,
                                       use_rcm=use_rcm, sym=sym,
                                       maxiter=maxiter, fill_factor=fill_factor,
                                       drop_tol=drop_tol,
-                                      diag_pivot_thresh=diag_pivot_thresh,
-                                      verbose=verbose)
+                                      diag_pivot_thresh=diag_pivot_thresh)
 
     elif method == 'iterative-bicg':
         return _steadystate_iterative_bicg(A, tol=tol, use_precond=use_precond,
@@ -175,19 +171,17 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
                                            maxiter=maxiter,
                                            fill_factor=fill_factor,
                                            drop_tol=drop_tol,
-                                           diag_pivot_thresh=diag_pivot_thresh,
-                                           verbose=verbose)
+                                           diag_pivot_thresh=diag_pivot_thresh)
 
     elif method == 'lu':
-        return _steadystate_lu(A, verbose=verbose)
+        return _steadystate_lu(A)
 
     elif method == 'svd':
         return _steadystate_svd_dense(A, atol=1e-12, rtol=0,
-                                      all_steadystates=False, verbose=verbose)
+                                      all_steadystates=False)
 
     elif method == 'power':
-        return _steadystate_power(A, maxiter=10, tol=tol, itertol=tol,
-                                  verbose=verbose)
+        return _steadystate_power(A, maxiter=10, tol=tol, itertol=tol)
 
     else:
         raise ValueError('Invalid method argument for steadystate.')
@@ -204,11 +198,11 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
                        use_umfpack=use_umfpack, use_precond=use_precond)
 
 
-def _steadystate_direct_sparse(L, verbose=False, use_umfpack=False):
+def _steadystate_direct_sparse(L, use_umfpack=False):
     """
     Direct solver that use scipy sparse matrices
     """
-    if verbose:
+    if settings.debug:
         print('Starting direct solver...')
 
     n = prod(L.dims[0][0])
@@ -219,12 +213,12 @@ def _steadystate_direct_sparse(L, verbose=False, use_umfpack=False):
     use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
     M.sort_indices()
 
-    if verbose:
+    if settings.debug:
         start_time = time.time()
 
     v = spsolve(M, b)
 
-    if verbose:
+    if settings.debug:
         print('Direct solver time: ', time.time() - start_time)
 
     data = vec2mat(v)
@@ -233,12 +227,12 @@ def _steadystate_direct_sparse(L, verbose=False, use_umfpack=False):
     return Qobj(data, dims=L.dims[0], isherm=True)
 
 
-def _steadystate_direct_dense(L, verbose=False):
+def _steadystate_direct_dense(L):
     """
     Direct solver that use numpy dense matrices. Suitable for
     small system, with a few states.
     """
-    if verbose:
+    if settings.debug:
         print('Starting direct dense solver...')
 
     n = prod(L.dims[0][0])
@@ -247,11 +241,11 @@ def _steadystate_direct_dense(L, verbose=False):
 
     M = L.data.todense()
     M[0, :] = np.diag(np.ones(n)).reshape((1, n ** 2))
-    if verbose:
+    if settings.debug:
         start_time = time.time()
     v = np.linalg.solve(M, b)
 
-    if verbose:
+    if settings.debug:
         print('Direct dense solver time: ', time.time() - start_time)
 
     data = vec2mat(v)
@@ -260,14 +254,13 @@ def _steadystate_direct_dense(L, verbose=False):
     return Qobj(data, dims=L.dims[0], isherm=True)
 
 
-def _iterative_precondition(A, n, drop_tol, diag_pivot_thresh, fill_factor,
-                            verbose=False):
+def _iterative_precondition(A, n, drop_tol, diag_pivot_thresh, fill_factor):
     """
     Internal function for preconditioning the steadystate problem for use
     with iterative solvers.
     """
 
-    if verbose:
+    if settings.debug:
         start_time = time.time()
 
     try:
@@ -276,7 +269,7 @@ def _iterative_precondition(A, n, drop_tol, diag_pivot_thresh, fill_factor,
 
         P_x = lambda x: P.solve(x)
         M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
-        if verbose:
+        if settings.debug:
             print('Preconditioning time: ', time.time() - start_time)
     except:
         warnings.warn("Preconditioning failed. Continuing without.",
@@ -289,13 +282,13 @@ def _iterative_precondition(A, n, drop_tol, diag_pivot_thresh, fill_factor,
 def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
                            use_rcm=True, sym=False, fill_factor=12,
                            maxiter=1000, drop_tol=1e-3, diag_pivot_thresh=None,
-                           verbose=False, use_umfpack=False):
+                           use_umfpack=False):
     """
     Iterative steady state solver using the LGMRES algorithm
     and a sparse incomplete LU preconditioner.
     """
 
-    if verbose:
+    if settings.debug:
         print('Starting GMRES solver...')
 
     dims = L.dims[0]
@@ -307,13 +300,13 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
         shape=(n ** 2, n ** 2))
 
     if use_rcm:
-        if verbose:
+        if settings.debug:
             print('Original bandwidth ', sparse_bandwidth(L))
         perm = symrcm(L)
         rev_perm = np.argsort(perm)
         L = sparse_permute(L, perm, perm, 'csc')
         b = b[np.ix_(perm,)]
-        if verbose:
+        if settings.debug:
             print('RCM bandwidth ', sparse_bandwidth(L))
 
     use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
@@ -321,8 +314,8 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
 
     if M is None and use_precond:
         M = _iterative_precondition(L, n, drop_tol, diag_pivot_thresh,
-                                    fill_factor, verbose)
-    if verbose:
+                                    fill_factor)
+    if settings.debug:
         start_time = time.time()
 
     v, check = gmres(L, b, tol=tol, M=M, maxiter=maxiter)
@@ -333,7 +326,7 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
         raise Exception(
             "Steadystate solver failed with fatal error: " + str(check) + ".")
 
-    if verbose:
+    if settings.debug:
         print('GMRES solver time: ', time.time() - start_time)
 
     if use_rcm:
@@ -348,13 +341,13 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
 def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True,
                                 M=None, maxiter=1000, drop_tol=1e-3,
                                 diag_pivot_thresh=None, fill_factor=12,
-                                verbose=False, use_umfpack=False):
+                                use_umfpack=False):
     """
     Iterative steady state solver using the BICG algorithm
     and a sparse incomplete LU preconditioner.
     """
 
-    if verbose:
+    if settings.debug:
         print('Starting BICG solver...')
 
     use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
@@ -368,20 +361,20 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True,
     L.sort_indices()
 
     if use_rcm:
-        if verbose:
+        if settings.debug:
             print('Original bandwidth ', sparse_bandwidth(L))
         perm = symrcm(L)
         rev_perm = np.argsort(perm)
         L = sparse_permute(L, perm, perm, 'csc')
         b = b[np.ix_(perm,)]
-        if verbose:
+        if settings.debug:
             print('RCM bandwidth ', sparse_bandwidth(L))
 
     if M is None and use_precond:
         M = _iterative_precondition(L, n, drop_tol,
-                                    diag_pivot_thresh, fill_factor, verbose)
+                                    diag_pivot_thresh, fill_factor)
 
-    if verbose:
+    if settings.debug:
         start_time = time.time()
 
     v, check = bicgstab(L, b, tol=tol, M=M)
@@ -396,7 +389,7 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True,
         raise Exception(
             "Steadystate solver failed with fatal error: " + str(check) + ".")
 
-    if verbose:
+    if settings.debug:
         print('BICG solver time: ', time.time() - start_time)
 
     data = vec2mat(v)
@@ -404,13 +397,13 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True,
     return Qobj(data, dims=dims, isherm=True)
 
 
-def _steadystate_lu(L, verbose=False):
+def _steadystate_lu(L):
     """
     Find the steady state(s) of an open quantum system by computing the
     LU decomposition of the underlying matrix.
     """
     use_solver(assumeSortedIndices=True)
-    if verbose:
+    if settings.debug:
         print('Starting LU solver...')
         start_time = time.time()
     n = prod(L.dims[0][0])
@@ -423,7 +416,7 @@ def _steadystate_lu(L, verbose=False):
     A.sort_indices()
     solve = factorized(A)
     v = solve(b)
-    if verbose:
+    if settings.debug:
         print('LU solver time: ', time.time() - start_time)
 
     data = vec2mat(v)
@@ -432,13 +425,12 @@ def _steadystate_lu(L, verbose=False):
     return Qobj(data, dims=L.dims[0], isherm=True)
 
 
-def _steadystate_svd_dense(L, atol=1e-12, rtol=0, all_steadystates=False,
-                           verbose=False):
+def _steadystate_svd_dense(L, atol=1e-12, rtol=0, all_steadystates=False):
     """
     Find the steady state(s) of an open quantum system by solving for the
     nullspace of the Liouvillian.
     """
-    if verbose:
+    if settings.debug:
         print('Starting SVD solver...')
         start_time = time.time()
 
@@ -447,7 +439,7 @@ def _steadystate_svd_dense(L, atol=1e-12, rtol=0, all_steadystates=False,
     nnz = (s >= tol).sum()
     ns = vh[nnz:].conj().T
 
-    if verbose:
+    if settings.debug:
         print('SVD solver time: ', time.time() - start_time)
 
     if all_steadystates:
@@ -462,12 +454,11 @@ def _steadystate_svd_dense(L, atol=1e-12, rtol=0, all_steadystates=False,
         return rhoss / rhoss.tr()
 
 
-def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5,
-                       verbose=False):
+def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5):
     """
     Inverse power method for steady state solving.
     """
-    if verbose:
+    if settings.debug:
         print('Starting iterative power method Solver...')
     use_solver(assumeSortedIndices=True)
     rhoss = Qobj()
@@ -480,7 +471,7 @@ def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5,
     L = L.data.tocsc() - (tol ** 2) * sp.eye(n, n, format='csc')
     L.sort_indices()
     v = mat2vec(rand_dm(rhoss.shape[0], 0.5 / rhoss.shape[0] + 0.5).full())
-    if verbose:
+    if settings.debug:
         start_time = time.time()
     it = 0
     while (la.norm(L * v, np.inf) > tol) and (it < maxiter):
@@ -501,7 +492,7 @@ def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5,
     data = sp.csr_matrix(vec2mat(data))
     rhoss.data = 0.5 * (data + data.conj().T)
     rhoss.isherm = True
-    if verbose:
+    if settings.debug:
         print('Power solver time: ', time.time() - start_time)
     
     return rhoss.tidyup() if settings.auto_tidyup else rhoss
@@ -509,7 +500,7 @@ def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5,
 
 def steadystate_nonlinear(L_func, rho0, args={}, maxiter=10,
                           random_initial_state=False, tol=1e-6, itertol=1e-5,
-                          use_umfpack=True, verbose=False):
+                          use_umfpack=True):
     """
     Steady state for the evolution subject to the nonlinear Liouvillian
     (which depends on the density matrix).
