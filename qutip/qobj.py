@@ -1930,6 +1930,6 @@ def isherm(Q):
 
 ## TRAILING IMPORTS ##
 # We do a few imports here to avoid circular dependencies.
+from qutip.eseries import eseries
 import qutip.superop_reps as sr
 import qutip.operators as ops
-from qutip.eseries import eseries
