@@ -366,7 +366,7 @@ class Qobj():
 
     def __radd__(self, other):
         """
-        ADDITION with Qobj on RIGHT [ ex. 4+Qobj ] (just calls left addition)
+        ADDITION with Qobj on RIGHT [ ex. 4+Qobj ]
         """
         return self + other
 
@@ -748,7 +748,6 @@ class Qobj():
 
     def conj(self):
         """Conjugate operator of quantum object.
-
         """
         out = Qobj()
         out.data = self.data.conj()
@@ -1059,12 +1058,10 @@ class Qobj():
         inverse : bool
             Whether to return inverse transformation.
 
-
         Returns
         -------
         oper : qobj
             Operator in new basis.
-
 
         Notes
         -----
@@ -1191,7 +1188,7 @@ class Qobj():
                     eigvals=0, tol=0, maxiter=100000):
         """Eigenstates and eigenenergies.
 
-        Eigenstates and Eigenvalues are defined for operators and
+        Eigenstates and eigenenergies are defined for operators and
         superoperators only.
 
         Parameters
@@ -1236,9 +1233,9 @@ class Qobj():
 
     def eigenenergies(self, sparse=False, sort='low',
                       eigvals=0, tol=0, maxiter=100000):
-        """Eigenvalues of a quantum object.
+        """Eigenenergies of a quantum object.
 
-        Eigenenergies (Eigenvalues) are defined for operators or superoperators
+        Eigenenergies (eigenvalues) are defined for operators or superoperators
         only.
 
         Parameters
@@ -1517,8 +1514,8 @@ class Qobj():
 
     @staticmethod
     def evaluate(qobj_list, t, args):
-        """
-        Evaluate a time-dependent quantum object in list format. For example,
+        """Evaluate a time-dependent quantum object in list format. For
+        example,
 
             qobj_list = [H0, [H1, func_t]]
 
@@ -1528,7 +1525,7 @@ class Qobj():
 
         and
 
-            qobj_list = [H0, [H1, sin(w * t)]]
+            qobj_list = [H0, [H1, 'sin(w * t)']]
 
         is evaluated to
 
@@ -1553,7 +1550,7 @@ class Qobj():
 
         output : Qobj
 
-            The Qobj that represents the value of qobj_list at time t.
+            A Qobj instance that represents the value of qobj_list at time t.
 
         """
 
