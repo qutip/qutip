@@ -50,9 +50,9 @@ from qutip.odeoptions import Odeoptions
 from qutip.odeconfig import odeconfig
 from qutip.odechecks import _ode_checks
 from qutip.settings import debug
-from qutip.cy.spmatfuncs import (cy_ode_rhs,
-                                  cy_ode_psi_func_td,
-                                  cy_ode_psi_func_td_with_state)
+from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
+                                 cy_ode_psi_func_td,
+                                 cy_ode_psi_func_td_with_state)
 from qutip.cy.codegen import Codegen
 
 from qutip.gui.progressbar import BaseProgressBar
@@ -639,10 +639,10 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
 
         if expt_callback:
             # use callback method
-            e_ops(t, Qobj(r.y))
+            e_ops(t, Qobj(r.y, dims=psi0.dims))
 
         for m in range(n_expt_op):
-            output.expect[m][t_idx] = expect(e_ops[m], Qobj(r.y)) # optimize
+            output.expect[m][t_idx] = cy_expect_psi(e_ops[m].data, r.y, e_ops[m].isherm)
 
         if t_idx < n_tsteps - 1:
             r.integrate(r.t + dt[t_idx])

@@ -41,6 +41,8 @@ qutip_graphics = None
 auto_tidyup = True
 # detect hermiticity
 auto_herm = True
+# general absolute tolerance
+atol = 1e-12
 # use auto tidyup absolute tolerance
 auto_tidyup_atol = 1e-12
 # number of cpus (set at qutip import)
@@ -62,7 +64,7 @@ def load_rc_file(rc_file):
     directory.
     """
     global qutip_graphics, qutip_gui, auto_tidyup, auto_herm, \
-        auto_tidyup_atol, num_cpus, debug
+        auto_tidyup_atol, num_cpus, debug, atol
 
     with open(rc_file) as f:
         for line in f.readlines():
@@ -77,6 +79,9 @@ def load_rc_file(rc_file):
 
                 elif var == "auto_tidyup_atol":
                     auto_tidyup_atol = float(val)
+
+                elif var == "atol":
+                    atol = float(val)
 
                 elif var == "auto_herm":
                     auto_herm = True if val == "True" else False

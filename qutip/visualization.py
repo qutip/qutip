@@ -107,6 +107,8 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
 
     if ax is None:
         fig, ax = plt.subplots(1, 1, figsize=(8, 6))
+    else:
+        fig = None
 
     if not (xlabels or ylabels):
         ax.axis('off')

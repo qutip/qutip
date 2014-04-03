@@ -252,7 +252,7 @@ def qsave(data, name='qutip_data'):
 
     """
     # open the file for writing
-    fileObject = open(name + '.qu', 'w')
+    fileObject = open(name + '.qu', 'wb')
     # this writes the object a to the file named 'filename.qu'
     pickle.dump(data, fileObject)
     fileObject.close()
@@ -273,7 +273,7 @@ def qload(name):
         Object retrieved from requested file.
 
     """
-    fileObject = open(name + '.qu', 'r')  # open the file for reading
+    fileObject = open(name + '.qu', 'rb')  # open the file for reading
     out = pickle.load(fileObject)  # return the object from the file
     if isinstance(out, Qobj):  # for quantum objects
         print('Loaded Qobj object:')
