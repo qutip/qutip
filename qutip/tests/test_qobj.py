@@ -575,8 +575,7 @@ def test_SuperType():
 
 def test_arithmetic_preserves_superrep():
     """
-    Superoperator arithmetic: Checks that applying a binary operation between
-    two ``type="super"`` Qobj instances preserves the ``superrep`` metadata.
+    Superoperator arithmetic: Checks that binary ops preserve 'superrep'.
         
     .. note::
     
@@ -613,5 +612,15 @@ def test_arithmetic_preserves_superrep():
         for operation in [add, sub, mul, div, tensor]:
             yield check, superrep, operation
 
+def test_isherm_skew():
+    """
+    Checks that mul and tensor of skew-Hermitian operators report ``isherm = True``.
+    """
+    iH = 1j * rand_herm(5)
+    
+    assert_(not iH.isherm)
+    assert_((iH * iH).isherm)
+    assert_(tensor(iH, iH).isherm)
+    
 if __name__ == "__main__":
     run_module_suite()
