@@ -31,8 +31,6 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-
-from scipy import *
 from qutip import *
 import scipy.sparse as sp
 import scipy.linalg as la
@@ -49,7 +47,7 @@ def test_QobjData():
     # check if data is a csr_matrix if originally array
     assert_equal(sp.isspmatrix_csr(q1.data), True)
     # check if dense ouput is equal to original data
-    assert_equal(all(q1.data.todense() - matrix(data1)), 0)
+    assert_(np.all(q1.data.todense() - matrix(data1) == 0))
 
     data2 = np.random.random(
         (N, N)) + 1j * np.random.random((N, N)) - (0.5 + 0.5j)
@@ -69,7 +67,7 @@ def test_QobjData():
     q4 = Qobj(data4)
     # check if data is a csr_matrix if originally csr_matrix
     assert_equal(sp.isspmatrix_csr(q4.data), True)
-    assert_equal(all(q4.data.todense() - matrix(data4)), 0)
+    assert_(np.all(q4.data.todense() - matrix(data4) == 0))
 
 
 def test_QobjType():
@@ -199,9 +197,10 @@ def test_QobjAddition():
     x1 = q + 5
     x2 = 5 + q
 
-    data = data + 5
-    assert_equal(all(x1.data.todense() - (matrix(data))), 0)
-    assert_equal(all(x2.data.todense() - (matrix(data))), 0)
+    data = data + np.eye(5) * 5
+    assert_(np.all(x1.data.todense() - matrix(data) == 0))
+    assert_(np.all(x2.data.todense() - matrix(data) == 0))
+
 
     data = np.random.random((5, 5))
     q = Qobj(data)
@@ -209,8 +208,8 @@ def test_QobjAddition():
     x4 = data + q
 
     data = 2.0 * data
-    assert_equal(all(x3.data.todense() - (matrix(data))), 0)
-    assert_equal(all(x4.data.todense() - (matrix(data))), 0)
+    assert_(np.all(x3.data.todense() - (matrix(data)) == 0))
+    assert_(np.all(x4.data.todense() - (matrix(data)) == 0))
 
 
 def test_QobjSubtraction():
@@ -226,20 +225,20 @@ def test_QobjSubtraction():
     q3 = q1 - q2
     data3 = data1 - data2
 
-    assert_equal(all(q3.data.todense() - matrix(data3)), 0)
+    assert_(np.all(q3.data.todense() - matrix(data3) == 0))
 
     q4 = q2 - q1
     data4 = data2 - data1
 
-    assert_equal(all(q4.data.todense() - matrix(data4)), 0)
+    assert_(np.all(q4.data.todense() - matrix(data4) == 0))
 
 
 def test_QobjMultiplication():
     "Qobj multiplication"
-    data1 = array([[1, 2], [3, 4]])
-    data2 = array([[5, 6], [7, 8]])
+    data1 = np.array([[1, 2], [3, 4]])
+    data2 = np.array([[5, 6], [7, 8]])
 
-    data3 = dot(data1, data2)
+    data3 = np.dot(data1, data2)
 
     q1 = Qobj(data1)
     q2 = Qobj(data2)
@@ -257,7 +256,7 @@ def test_QobjDivision():
     q = Qobj(data)
     randN = 10 * np.random.random()
     q = q / randN
-    assert_equal(all(q.data.todense() - matrix(data) / randN), 0)
+    assert_(np.all(q.data.todense() - matrix(data) / randN == 0))
 
 
 def test_QobjPower():
@@ -279,7 +278,7 @@ def test_QobjNeg():
         (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
     q = Qobj(data)
     x = -q
-    assert_equal(all(x.data.todense() + matrix(data)), 0)
+    assert_(np.all(x.data.todense() + matrix(data) == 0))
     assert_equal(q.isherm, x.isherm)
     assert_equal(q.type, x.type)
 
@@ -373,7 +372,7 @@ def test_QobjConjugate():
         (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
     A = Qobj(data)
     B = A.conj()
-    assert_equal(all(B.data.todense() - matrix(data.conj())), 0)
+    assert_(np.all(B.data.todense() - matrix(data.conj()) == 0))
     assert_equal(A.isherm, B.isherm)
     assert_equal(A.type, B.type)
     assert_equal(A.superrep, B.superrep)
@@ -384,7 +383,7 @@ def test_QobjDagger():
         (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
     A = Qobj(data)
     B = A.dag()
-    assert_equal(all(B.data.todense() - matrix(data.conj().T)), 0)
+    assert_(np.all(B.data.todense() - matrix(data.conj().T) == 0))
     assert_equal(A.isherm, B.isherm)
     assert_equal(A.type, B.type)
     assert_equal(A.superrep, B.superrep)
@@ -396,33 +395,33 @@ def test_QobjDiagonals():
         (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
     A = Qobj(data)
     b = A.diag()
-    assert_equal(all(b - diag(data)), 0)
+    assert_(np.all(b - np.diag(data) == 0))
 
 
 def test_QobjEigenEnergies():
     "Qobj eigenenergies"
-    data = eye(5)
+    data = np.eye(5)
     A = Qobj(data)
     b = A.eigenenergies()
-    assert_equal(all(b - ones(5)), 0)
+    assert_(np.all(b - np.ones(5) == 0))
 
-    data = diag(arange(10))
+    data = np.diag(arange(10))
     A = Qobj(data)
     b = A.eigenenergies()
-    assert_equal(all(b - arange(10)), 0)
+    assert_(np.all(b - arange(10) == 0))
 
-    data = diag(arange(10))
+    data = np.diag(arange(10))
     A = 5 * Qobj(data)
     b = A.eigenenergies()
-    assert_equal(all(b - 5 * arange(10)), 0)
+    assert_(np.all(b - 5 * arange(10) == 0))
 
 
 def test_QobjEigenStates():
     "Qobj eigenstates"
-    data = eye(5)
+    data = np.eye(5)
     A = Qobj(data)
     b, c = A.eigenstates()
-    assert_equal(all(b - ones(5)), 0)
+    assert_(np.all(b - np.ones(5) == 0))
 
     kets = array([basis(5, k) for k in range(5)])
 
@@ -445,7 +444,7 @@ def test_QobjFull():
         (15, 15)) + 1j * np.random.random((15, 15)) - (0.5 + 0.5j)
     A = Qobj(data)
     b = A.full()
-    assert_equal(all(b - data), 0)
+    assert_(np.all(b - data == 0))
 
 
 def test_QobjNorm():
