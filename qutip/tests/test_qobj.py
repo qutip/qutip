@@ -31,11 +31,18 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from qutip import *
 import scipy.sparse as sp
 import scipy.linalg as la
 import numpy as np
 from numpy.testing import assert_equal, assert_, run_module_suite
+
+from qutip.qobj import Qobj
+from qutip.random_objects import rand_ket, rand_dm, rand_herm, rand_unitary
+from qutip.states import basis, fock_dm
+from qutip.operators import create, destroy, num, sigmax
+from qutip.superoperator import spre, spost, operator_to_vector
+from qutip.superop_reps import to_super
+from qutip.tensor import tensor
 
 
 def test_QobjData():
@@ -47,7 +54,7 @@ def test_QobjData():
     # check if data is a csr_matrix if originally array
     assert_equal(sp.isspmatrix_csr(q1.data), True)
     # check if dense ouput is equal to original data
-    assert_(np.all(q1.data.todense() - matrix(data1) == 0))
+    assert_(np.all(q1.data.todense() - np.matrix(data1) == 0))
 
     data2 = np.random.random(
         (N, N)) + 1j * np.random.random((N, N)) - (0.5 + 0.5j)
@@ -63,16 +70,16 @@ def test_QobjData():
 
     data4 = np.random.random(
         (N, N)) + 1j * np.random.random((N, N)) - (0.5 + 0.5j)
-    data4 = matrix(data4)
+    data4 = np.matrix(data4)
     q4 = Qobj(data4)
     # check if data is a csr_matrix if originally csr_matrix
     assert_equal(sp.isspmatrix_csr(q4.data), True)
-    assert_(np.all(q4.data.todense() - matrix(data4) == 0))
+    assert_(np.all(q4.data.todense() - np.matrix(data4) == 0))
 
 
 def test_QobjType():
     "Qobj type"
-    N = int(ceil(10.0 * np.random.random())) + 5
+    N = int(np.ceil(10.0 * np.random.random())) + 5
 
     ket_data = np.random.random((N, 1))
     ket_qobj = Qobj(ket_data)
@@ -167,8 +174,8 @@ def test_QobjDimsShape():
 
 def test_QobjAddition():
     "Qobj addition"
-    data1 = array([[1, 2], [3, 4]])
-    data2 = array([[5, 6], [7, 8]])
+    data1 = np.array([[1, 2], [3, 4]])
+    data2 = np.array([[5, 6], [7, 8]])
 
     data3 = data1 + data2
 
@@ -198,8 +205,8 @@ def test_QobjAddition():
     x2 = 5 + q
 
     data = data + np.eye(5) * 5
-    assert_(np.all(x1.data.todense() - matrix(data) == 0))
-    assert_(np.all(x2.data.todense() - matrix(data) == 0))
+    assert_(np.all(x1.data.todense() - np.matrix(data) == 0))
+    assert_(np.all(x2.data.todense() - np.matrix(data) == 0))
 
 
     data = np.random.random((5, 5))
@@ -208,8 +215,8 @@ def test_QobjAddition():
     x4 = data + q
 
     data = 2.0 * data
-    assert_(np.all(x3.data.todense() - (matrix(data)) == 0))
-    assert_(np.all(x4.data.todense() - (matrix(data)) == 0))
+    assert_(np.all(x3.data.todense() - np.matrix(data) == 0))
+    assert_(np.all(x4.data.todense() - np.matrix(data) == 0))
 
 
 def test_QobjSubtraction():
@@ -225,12 +232,12 @@ def test_QobjSubtraction():
     q3 = q1 - q2
     data3 = data1 - data2
 
-    assert_(np.all(q3.data.todense() - matrix(data3) == 0))
+    assert_(np.all(q3.data.todense() - np.matrix(data3) == 0))
 
     q4 = q2 - q1
     data4 = data2 - data1
 
-    assert_(np.all(q4.data.todense() - matrix(data4) == 0))
+    assert_(np.all(q4.data.todense() - np.matrix(data4) == 0))
 
 
 def test_QobjMultiplication():
@@ -256,7 +263,7 @@ def test_QobjDivision():
     q = Qobj(data)
     randN = 10 * np.random.random()
     q = q / randN
-    assert_(np.all(q.data.todense() - matrix(data) / randN == 0))
+    assert_(np.all(q.data.todense() - np.matrix(data) / randN == 0))
 
 
 def test_QobjPower():
@@ -266,10 +273,10 @@ def test_QobjPower():
     q = Qobj(data)
 
     q2 = q ** 2
-    assert_((q2.data.todense() - matrix(data) ** 2 < 1e-12).all())
+    assert_((q2.data.todense() - np.matrix(data) ** 2 < 1e-12).all())
 
     q3 = q ** 3
-    assert_((q3.data.todense() - matrix(data) ** 3 < 1e-12).all())
+    assert_((q3.data.todense() - np.matrix(data) ** 3 < 1e-12).all())
 
 
 def test_QobjNeg():
@@ -278,7 +285,7 @@ def test_QobjNeg():
         (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
     q = Qobj(data)
     x = -q
-    assert_(np.all(x.data.todense() + matrix(data) == 0))
+    assert_(np.all(x.data.todense() + np.matrix(data) == 0))
     assert_equal(q.isherm, x.isherm)
     assert_equal(q.type, x.type)
 
@@ -372,7 +379,7 @@ def test_QobjConjugate():
         (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
     A = Qobj(data)
     B = A.conj()
-    assert_(np.all(B.data.todense() - matrix(data.conj()) == 0))
+    assert_(np.all(B.data.todense() - np.matrix(data.conj()) == 0))
     assert_equal(A.isherm, B.isherm)
     assert_equal(A.type, B.type)
     assert_equal(A.superrep, B.superrep)
@@ -383,7 +390,7 @@ def test_QobjDagger():
         (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
     A = Qobj(data)
     B = A.dag()
-    assert_(np.all(B.data.todense() - matrix(data.conj().T) == 0))
+    assert_(np.all(B.data.todense() - np.matrix(data.conj().T) == 0))
     assert_equal(A.isherm, B.isherm)
     assert_equal(A.type, B.type)
     assert_equal(A.superrep, B.superrep)
@@ -405,15 +412,15 @@ def test_QobjEigenEnergies():
     b = A.eigenenergies()
     assert_(np.all(b - np.ones(5) == 0))
 
-    data = np.diag(arange(10))
+    data = np.diag(np.arange(10))
     A = Qobj(data)
     b = A.eigenenergies()
-    assert_(np.all(b - arange(10) == 0))
+    assert_(np.all(b - np.arange(10) == 0))
 
-    data = np.diag(arange(10))
+    data = np.diag(np.arange(10))
     A = 5 * Qobj(data)
     b = A.eigenenergies()
-    assert_(np.all(b - 5 * arange(10) == 0))
+    assert_(np.all(b - 5 * np.arange(10) == 0))
 
 
 def test_QobjEigenStates():
@@ -423,7 +430,7 @@ def test_QobjEigenStates():
     b, c = A.eigenstates()
     assert_(np.all(b - np.ones(5) == 0))
 
-    kets = array([basis(5, k) for k in range(5)])
+    kets = np.array([basis(5, k) for k in range(5)])
 
     for k in range(5):
         assert_equal(c[k], kets[k])
@@ -502,17 +509,17 @@ def test_KetType():
 
     psi = basis(2, 1)
 
-    assert_(isket(psi))
-    assert_(not isbra(psi))
-    assert_(not isoper(psi))
-    assert_(not issuper(psi))
+    assert_(psi.isket)
+    assert_(not psi.isbra)
+    assert_(not psi.isoper)
+    assert_(not psi.issuper)
 
     psi = tensor(basis(2, 1), basis(2, 0))
 
-    assert_(isket(psi))
-    assert_(not isbra(psi))
-    assert_(not isoper(psi))
-    assert_(not issuper(psi))
+    assert_(psi.isket)
+    assert_(not psi.isbra)
+    assert_(not psi.isoper)
+    assert_(not psi.issuper)
 
 
 def test_BraType():
@@ -520,17 +527,17 @@ def test_BraType():
 
     psi = basis(2, 1).dag()
 
-    assert_equal(isket(psi), False)
-    assert_equal(isbra(psi), True)
-    assert_equal(isoper(psi), False)
-    assert_equal(issuper(psi), False)
+    assert_equal(psi.isket, False)
+    assert_equal(psi.isbra, True)
+    assert_equal(psi.isoper, False)
+    assert_equal(psi.issuper, False)
 
     psi = tensor(basis(2, 1).dag(), basis(2, 0).dag())
 
-    assert_equal(isket(psi), False)
-    assert_equal(isbra(psi), True)
-    assert_equal(isoper(psi), False)
-    assert_equal(issuper(psi), False)
+    assert_equal(psi.isket, False)
+    assert_equal(psi.isbra, True)
+    assert_equal(psi.isoper, False)
+    assert_equal(psi.issuper, False)
 
 
 def test_OperType():
@@ -539,10 +546,10 @@ def test_OperType():
     psi = basis(2, 1)
     rho = psi * psi.dag()
 
-    assert_equal(isket(rho), False)
-    assert_equal(isbra(rho), False)
-    assert_equal(isoper(rho), True)
-    assert_equal(issuper(rho), False)
+    assert_equal(rho.isket, False)
+    assert_equal(rho.isbra, False)
+    assert_equal(rho.isoper, True)
+    assert_equal(rho.issuper, False)
 
 
 def test_SuperType():
@@ -553,17 +560,17 @@ def test_SuperType():
 
     sop = spre(rho)
 
-    assert_equal(isket(sop), False)
-    assert_equal(isbra(sop), False)
-    assert_equal(isoper(sop), False)
-    assert_equal(issuper(sop), True)
+    assert_equal(sop.isket, False)
+    assert_equal(sop.isbra, False)
+    assert_equal(sop.isoper, False)
+    assert_equal(sop.issuper, True)
 
     sop = spost(rho)
 
-    assert_equal(isket(sop), False)
-    assert_equal(isbra(sop), False)
-    assert_equal(isoper(sop), False)
-    assert_equal(issuper(sop), True)
+    assert_equal(sop.isket, False)
+    assert_equal(sop.isbra, False)
+    assert_equal(sop.isoper, False)
+    assert_equal(sop.issuper, True)
 
 
 if __name__ == "__main__":
