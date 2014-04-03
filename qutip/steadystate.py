@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 """
@@ -57,8 +57,8 @@ import qutip.settings as qset
 
 
 def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
-                sym=False, use_precond=True, M=None, drop_tol=1e-3, 
-                fill_factor=12, diag_pivot_thresh=None, maxiter=1000, tol=1e-5, 
+                sym=False, use_precond=True, M=None, drop_tol=1e-3,
+                fill_factor=12, diag_pivot_thresh=None, maxiter=1000, tol=1e-5,
                 verbose=False, use_umfpack=False):
 
     """Calculates the steady state for quantum evolution subject to the
@@ -102,24 +102,24 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
         Speeds up convergence time by orders of magnitude in many cases.
 
     M : {sparse matrix, dense matrix, LinearOperator}
-        Preconditioner for A. The preconditioner should approximate the inverse of A. 
-        Effective preconditioning dramatically improves the rate of convergence, 
-        for iterative methods.  Does not affect other solvers.
+        Preconditioner for A. The preconditioner should approximate the inverse
+        of A. Effective preconditioning dramatically improves the rate of
+        convergence, for iterative methods.  Does not affect other solvers.
 
     fill_factor : float, default=12
         ITERATIVE ONLY. Specifies the fill ratio upper bound (>=1) of the iLU
         preconditioner.  Lower values save memory at the cost of longer
         execution times and a possible singular factorization.
-    
+
     drop_tol : float, default=1e-3
         ITERATIVE ONLY. Sets the threshold for the magnitude of preconditioner
-        elements that should be dropped.  Can be reduced for a courser factorization
-        at the cost of an increased number of iterations, and a possible singular 
-        factorization. 
+        elements that should be dropped.  Can be reduced for a courser
+        factorization at the cost of an increased number of iterations, and a
+        possible singular factorization.
 
     diag_pivot_thresh : float, default=None
-        ITERATIVE ONLY. Sets the threshold between [0,1] for which diagonal 
-        elements are considered acceptable pivot points when using a 
+        ITERATIVE ONLY. Sets the threshold between [0,1] for which diagonal
+        elements are considered acceptable pivot points when using a
         preconditioner.  A value of zero forces the pivot to be the diagonal
         element.
 
@@ -163,17 +163,19 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
 
     elif method == 'iterative':
         return _steadystate_iterative(A, tol=tol, use_precond=use_precond, M=M,
-                                      use_rcm=use_rcm, sym=sym, maxiter=maxiter, 
-                                      fill_factor=fill_factor, drop_tol=drop_tol, 
-                                      diag_pivot_thresh=diag_pivot_thresh, 
+                                      use_rcm=use_rcm, sym=sym,
+                                      maxiter=maxiter, fill_factor=fill_factor,
+                                      drop_tol=drop_tol,
+                                      diag_pivot_thresh=diag_pivot_thresh,
                                       verbose=verbose)
 
     elif method == 'iterative-bicg':
-        return _steadystate_iterative_bicg(A, tol=tol, use_precond=use_precond, 
-                                           M=M, use_rcm=use_rcm, maxiter=maxiter, 
-                                           fill_factor=fill_factor, 
-                                           drop_tol=drop_tol, 
-                                           diag_pivot_thresh=diag_pivot_thresh, 
+        return _steadystate_iterative_bicg(A, tol=tol, use_precond=use_precond,
+                                           M=M, use_rcm=use_rcm,
+                                           maxiter=maxiter,
+                                           fill_factor=fill_factor,
+                                           drop_tol=drop_tol,
+                                           diag_pivot_thresh=diag_pivot_thresh,
                                            verbose=verbose)
 
     elif method == 'lu':
@@ -211,21 +213,20 @@ def _steadystate_direct_sparse(L, verbose=False, use_umfpack=False):
 
     n = prod(L.dims[0][0])
     b = sp.csr_matrix(([1.0], ([0], [0])), shape=(n ** 2, 1), dtype=complex)
-    M = L.data + sp.csr_matrix((np.ones(n),
-            (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
-            shape=(n ** 2, n ** 2))
-    
+    M = L.data + sp.csr_matrix((np.ones(n), (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
+                               shape=(n ** 2, n ** 2))
+
     use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
     M.sort_indices()
 
     if verbose:
         start_time = time.time()
-    # Do the actual solving here
+
     v = spsolve(M, b)
 
     if verbose:
         print('Direct solver time: ', time.time() - start_time)
-    
+
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
 
@@ -270,9 +271,9 @@ def _iterative_precondition(A, n, drop_tol, diag_pivot_thresh, fill_factor,
         start_time = time.time()
 
     try:
-        P = spilu(A, drop_tol=drop_tol, diag_pivot_thresh=diag_pivot_thresh, 
-                    fill_factor=fill_factor, options=dict(ILU_MILU='SMILU_3'))
-        
+        P = spilu(A, drop_tol=drop_tol, diag_pivot_thresh=diag_pivot_thresh,
+                  fill_factor=fill_factor, options=dict(ILU_MILU='SMILU_3'))
+
         P_x = lambda x: P.solve(x)
         M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
         if verbose:
@@ -297,30 +298,30 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
     if verbose:
         print('Starting GMRES solver...')
 
-    dims=L.dims[0]
+    dims = L.dims[0]
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2)
     b[0] = 1.0
-    L = L.data.tocsc() + sp.csc_matrix((1e-1*np.ones(n),
-            (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
-            shape=(n ** 2, n ** 2))
-    
+    L = L.data.tocsc() + sp.csc_matrix((1e-1 * np.ones(n),
+                    (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
+        shape=(n ** 2, n ** 2))
+
     if use_rcm:
         if verbose:
             print('Original bandwidth ', sparse_bandwidth(L))
-        perm=symrcm(L)
-        rev_perm=np.argsort(perm)
-        L=sparse_permute(L,perm,perm,'csc')
+        perm = symrcm(L)
+        rev_perm = np.argsort(perm)
+        L = sparse_permute(L, perm, perm, 'csc')
         b = b[np.ix_(perm,)]
         if verbose:
             print('RCM bandwidth ', sparse_bandwidth(L))
-    
+
     use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
     L.sort_indices()
-    
+
     if M is None and use_precond:
-        M = _iterative_precondition(L, n, drop_tol, diag_pivot_thresh, 
-                                    fill_factor,verbose)
+        M = _iterative_precondition(L, n, drop_tol, diag_pivot_thresh,
+                                    fill_factor, verbose)
     if verbose:
         start_time = time.time()
 
@@ -334,10 +335,10 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
 
     if verbose:
         print('GMRES solver time: ', time.time() - start_time)
-    
+
     if use_rcm:
         v = v[np.ix_(rev_perm,)]
-    
+
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
 
@@ -357,25 +358,25 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True,
         print('Starting BICG solver...')
 
     use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
-    dims=L.dims[0]
+    dims = L.dims[0]
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2)
     b[0] = 1.0
     L = L.data.tocsc() + sp.csc_matrix((np.ones(n),
-            (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
-            shape=(n ** 2, n ** 2))
+                    (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
+        shape=(n ** 2, n ** 2))
     L.sort_indices()
-    
+
     if use_rcm:
         if verbose:
             print('Original bandwidth ', sparse_bandwidth(L))
-        perm=symrcm(L)
-        rev_perm=np.argsort(perm)
-        L=sparse_permute(L,perm,perm,'csc')
+        perm = symrcm(L)
+        rev_perm = np.argsort(perm)
+        L = sparse_permute(L, perm, perm, 'csc')
         b = b[np.ix_(perm,)]
         if verbose:
             print('RCM bandwidth ', sparse_bandwidth(L))
-    
+
     if M is None and use_precond:
         M = _iterative_precondition(L, n, drop_tol,
                                     diag_pivot_thresh, fill_factor, verbose)
@@ -384,10 +385,10 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True,
         start_time = time.time()
 
     v, check = bicgstab(L, b, tol=tol, M=M)
-    
+
     if use_rcm:
         v = v[np.ix_(rev_perm,)]
-    
+
     if check > 0:
         raise Exception("Steadystate solver did not reach tolerance after " +
                         str(check) + " steps.")
@@ -416,8 +417,8 @@ def _steadystate_lu(L, verbose=False):
     b = np.zeros(n ** 2)
     b[0] = 1.0
     A = L.data.tocsc() + sp.csc_matrix((np.ones(n),
-            (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
-            shape=(n ** 2, n ** 2))
+                    (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
+        shape=(n ** 2, n ** 2))
 
     A.sort_indices()
     solve = factorized(A)
