@@ -35,8 +35,6 @@ Module contains functions for solving for the steady state density matrix of
 open quantum systems defined by a Liouvillian or Hamiltonian and a list of
 collapse operators.
 """
-
-import time
 import warnings
 
 import numpy as np
@@ -156,7 +154,7 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
         if sparse:
             return _steadystate_direct_sparse(A, use_umfpack=use_umfpack)
         else:
-            return _steadystate_direct_dense(A,)
+            return _steadystate_direct_dense(A)
 
     elif method == 'iterative':
         return _steadystate_iterative(A, tol=tol, use_precond=use_precond, M=M,
@@ -213,13 +211,7 @@ def _steadystate_direct_sparse(L, use_umfpack=False):
     use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
     M.sort_indices()
 
-    if settings.debug:
-        start_time = time.time()
-
     v = spsolve(M, b)
-
-    if settings.debug:
-        print('Direct solver time: ', time.time() - start_time)
 
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
@@ -241,12 +233,7 @@ def _steadystate_direct_dense(L):
 
     M = L.data.todense()
     M[0, :] = np.diag(np.ones(n)).reshape((1, n ** 2))
-    if settings.debug:
-        start_time = time.time()
     v = np.linalg.solve(M, b)
-
-    if settings.debug:
-        print('Direct dense solver time: ', time.time() - start_time)
 
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
@@ -259,18 +246,12 @@ def _iterative_precondition(A, n, drop_tol, diag_pivot_thresh, fill_factor):
     Internal function for preconditioning the steadystate problem for use
     with iterative solvers.
     """
-
-    if settings.debug:
-        start_time = time.time()
-
     try:
         P = spilu(A, drop_tol=drop_tol, diag_pivot_thresh=diag_pivot_thresh,
                   fill_factor=fill_factor, options=dict(ILU_MILU='SMILU_3'))
 
         P_x = lambda x: P.solve(x)
         M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
-        if settings.debug:
-            print('Preconditioning time: ', time.time() - start_time)
     except:
         warnings.warn("Preconditioning failed. Continuing without.",
                       UserWarning)
@@ -315,8 +296,6 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
     if M is None and use_precond:
         M = _iterative_precondition(L, n, drop_tol, diag_pivot_thresh,
                                     fill_factor)
-    if settings.debug:
-        start_time = time.time()
 
     v, check = gmres(L, b, tol=tol, M=M, maxiter=maxiter)
     if check > 0:
@@ -325,9 +304,6 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
     elif check < 0:
         raise Exception(
             "Steadystate solver failed with fatal error: " + str(check) + ".")
-
-    if settings.debug:
-        print('GMRES solver time: ', time.time() - start_time)
 
     if use_rcm:
         v = v[np.ix_(rev_perm,)]
@@ -374,9 +350,6 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True,
         M = _iterative_precondition(L, n, drop_tol,
                                     diag_pivot_thresh, fill_factor)
 
-    if settings.debug:
-        start_time = time.time()
-
     v, check = bicgstab(L, b, tol=tol, M=M)
 
     if use_rcm:
@@ -389,9 +362,6 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True,
         raise Exception(
             "Steadystate solver failed with fatal error: " + str(check) + ".")
 
-    if settings.debug:
-        print('BICG solver time: ', time.time() - start_time)
-
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
     return Qobj(data, dims=dims, isherm=True)
@@ -402,10 +372,11 @@ def _steadystate_lu(L):
     Find the steady state(s) of an open quantum system by computing the
     LU decomposition of the underlying matrix.
     """
-    use_solver(assumeSortedIndices=True)
     if settings.debug:
         print('Starting LU solver...')
-        start_time = time.time()
+
+    use_solver(assumeSortedIndices=True)
+
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2)
     b[0] = 1.0
@@ -416,8 +387,6 @@ def _steadystate_lu(L):
     A.sort_indices()
     solve = factorized(A)
     v = solve(b)
-    if settings.debug:
-        print('LU solver time: ', time.time() - start_time)
 
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
@@ -432,15 +401,11 @@ def _steadystate_svd_dense(L, atol=1e-12, rtol=0, all_steadystates=False):
     """
     if settings.debug:
         print('Starting SVD solver...')
-        start_time = time.time()
 
     u, s, vh = svd(L.full(), full_matrices=False)
     tol = max(atol, rtol * s[0])
     nnz = (s >= tol).sum()
     ns = vh[nnz:].conj().T
-
-    if settings.debug:
-        print('SVD solver time: ', time.time() - start_time)
 
     if all_steadystates:
         rhoss_list = []
@@ -460,6 +425,7 @@ def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5):
     """
     if settings.debug:
         print('Starting iterative power method Solver...')
+
     use_solver(assumeSortedIndices=True)
     rhoss = Qobj()
     sflag = issuper(L)
@@ -471,8 +437,7 @@ def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5):
     L = L.data.tocsc() - (tol ** 2) * sp.eye(n, n, format='csc')
     L.sort_indices()
     v = mat2vec(rand_dm(rhoss.shape[0], 0.5 / rhoss.shape[0] + 0.5).full())
-    if settings.debug:
-        start_time = time.time()
+
     it = 0
     while (la.norm(L * v, np.inf) > tol) and (it < maxiter):
         v = spsolve(L, v)
@@ -492,9 +457,7 @@ def _steadystate_power(L, maxiter=10, tol=1e-6, itertol=1e-5):
     data = sp.csr_matrix(vec2mat(data))
     rhoss.data = 0.5 * (data + data.conj().T)
     rhoss.isherm = True
-    if settings.debug:
-        print('Power solver time: ', time.time() - start_time)
-    
+
     return rhoss.tidyup() if settings.auto_tidyup else rhoss
 
 
