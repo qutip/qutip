@@ -587,14 +587,22 @@ def test_arithmetic_preserves_superrep():
     dims = [[[2], [2]], [[2], [2]]]
     shape = (4, 4)
 
-    def check( superrep, operation):        
+    def check(superrep, operation):
         S1 = Qobj(np.random.random(shape), superrep=superrep, dims=dims)
         S2 = Qobj(np.random.random(shape), superrep=superrep, dims=dims)
+        x = np.random.random()
         
-        S = S1 + S2
-        
-        assert_equal(S.type, "super")
-        assert_equal(S.superrep, superrep)
+        S_mat_mat = operation(S1, S2)
+        S_scalar_mat = operation(x, S2)
+        S_mat_scalar = operation(S1, x)
+                
+        for S in (S_mat_mat, S_scalar_mat, S_mat_scalar):
+            assert_equal(S.type, "super",
+                "Operator {} did not preserve type='super'.".format(operation)
+            )
+            assert_equal(S.superrep, superrep,
+                "Operator {} did not preserve superrep={}.".format(operation, superrep)
+            )
 
     dimension = 4
     for superrep in ['super', 'choi', 'chi']:
