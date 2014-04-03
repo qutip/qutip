@@ -280,6 +280,8 @@ def test_QobjNeg():
     q = Qobj(data)
     x = -q
     assert_equal(all(x.data.todense() + matrix(data)), 0)
+    assert_equal(q.isherm, x.isherm)
+    assert_equal(q.type, x.type)
 
 
 def test_QobjEquals():
@@ -306,31 +308,63 @@ def test_QobjGetItem():
 
 def test_CheckMulType():
     "Qobj multiplication type"
+
+    # ket-bra and bra-ket multiplication
     psi = basis(5)
     dm = psi * psi.dag()
-    assert_equal(dm.type, 'oper')
-    assert_equal(dm.isherm, True)
+    assert_(dm.isoper)
+    assert_(dm.isherm)
 
     nrm = psi.dag() * psi
-    assert_equal(dm.type, 'oper')
-    assert_equal(dm.isherm, True)
+    assert_equal(np.prod(nrm.shape), 1)
+    assert_((abs(nrm) == 1)[0,0])
 
+    # operator-operator multiplication
     H1 = rand_herm(3)
     H2 = rand_herm(3)
     out = H1 * H2
-    assert_equal(out.type, 'oper')
-    assert_equal(out.isherm, isherm(out))
+    assert_(out.isoper)
+    out = H1 * H1
+    assert_(out.isoper)
+    assert_(out.isherm)
+    out = H2 * H2
+    assert_(out.isoper)
+    assert_(out.isherm)
 
     U = rand_unitary(5)
     out = U.dag() * U
-    assert_equal(out.type, 'oper')
-    assert_equal(out.isherm, True)
+    assert_(out.isoper)
+    assert_(out.isherm)
 
     N = num(5)
 
     out = N * N
-    assert_equal(out.type, 'oper')
-    assert_equal(out.isherm, True)
+    assert_(out.isoper)
+    assert_(out.isherm)
+
+    # operator-ket and bra-operator multiplication
+    op = sigmax()
+    ket1 = basis(2)
+    ket2 = op * ket1
+    assert_(ket2.isket)
+
+    bra1 = basis(2).dag()
+    bra2 = bra1 * op
+    assert_(bra2.isbra)
+    
+    assert_(bra2.dag() == ket2)
+
+    # superoperator-operket and operbra-superoperator multiplication
+    sop = to_super(sigmax())
+    opket1 = operator_to_vector(fock_dm(2))
+    opket2 = sop * opket1
+    assert(opket2.isoperket)
+
+    opbra1 = operator_to_vector(fock_dm(2)).dag()
+    opbra2 = opbra1 * sop
+    assert(opbra2.isoperbra)
+
+    assert_(opbra2.dag() == opket2)
 
 
 def test_QobjConjugate():
@@ -340,7 +374,9 @@ def test_QobjConjugate():
     A = Qobj(data)
     B = A.conj()
     assert_equal(all(B.data.todense() - matrix(data.conj())), 0)
-
+    assert_equal(A.isherm, B.isherm)
+    assert_equal(A.type, B.type)
+    assert_equal(A.superrep, B.superrep)
 
 def test_QobjDagger():
     "Qobj adjoint (dagger)"
@@ -349,6 +385,9 @@ def test_QobjDagger():
     A = Qobj(data)
     B = A.dag()
     assert_equal(all(B.data.todense() - matrix(data.conj().T)), 0)
+    assert_equal(A.isherm, B.isherm)
+    assert_equal(A.type, B.type)
+    assert_equal(A.superrep, B.superrep)
 
 
 def test_QobjDiagonals():
