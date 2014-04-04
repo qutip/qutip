@@ -67,10 +67,35 @@ def _permute(Q, order):
         dims = [dims_part, dims_part]
         return (perm_matrix * Q.data) * perm_matrix.T, dims, Q.shape
     if Q.type == 'super':
-        raise TypeError('Not implemented yet.')
+        # Get the breakout of the left index into dims.
+        # Since this is a super, the left index itself breaks into left
+        # and right indices, each of which breaks down further.
+        # The best way to deal with that here is to flatten dims.
+        q_dims_left = sum(Q.dims[0], [])
+        dims, perm = _perm_inds(q_dims_left, order)
+        dims = dims.flatten()
+        
+        data = np.ones(Q.shape[0], dtype=int)
+        rows = np.arange(Q.shape[0], dtype=int)
+        
+        perm_matrix = sp.coo_matrix((data, (rows, perm.T[0])),
+                                    shape=(Q.shape[1], Q.shape[1]), dtype=int)
+        
+        perm_matrix = perm_matrix.tocsr()
+        dims_part = list(dims[order])
+        
+        # Finally, we need to restructure the now-decomposed left index
+        # into left and right subindices, so that the overall dims we return
+        # are of the form
+        # [[left_left, left_right], [right_left, right_right]],
+        # with each of the four being a list of Hilbert space dimensions.
+        slice_at = len(dims_part)  / 2
+        dims_part = [dims_part[:slice_at], dims_part[slice_at:]]
+        dims = [dims_part, dims_part]
+        
+        return (perm_matrix * Q.data) * perm_matrix.T, dims, Q.shape
     else:
         raise TypeError('Invalid quantum object for permutation.')
-
 
 def _perm_inds(dims, order):
     """
