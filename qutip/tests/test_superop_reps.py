@@ -48,7 +48,7 @@ from qutip.states import basis
 from qutip.operators import create, destroy, jmat, identity, sigmax
 from qutip.quantum_info.gates import swap
 from qutip.propagator import propagator
-from qutip.random_objects import rand_herm
+from qutip.random_objects import rand_herm, rand_super
 from qutip.superop_reps import (super_to_choi, choi_to_kraus,
                                 choi_to_super, kraus_to_choi,
                                 to_super, to_choi, to_kraus)
@@ -59,18 +59,12 @@ class TestSuperopReps(object):
     A test class for the QuTiP function for applying superoperators to
     subsystems.
     """
-    
-    def rand_super(self):
-        h_5 = rand_herm(5)
-        return propagator(h_5, scipy.rand(), [
-            create(5), destroy(5), jmat(2, 'z')
-        ])
 
     def test_SuperChoiSuper(self):
         """
         Superoperator: Converting superoperator to Choi matrix and back.
         """
-        superoperator = self.rand_super()
+        superoperator = rand_super()
                                
         choi_matrix = to_choi(superoperator)
         test_supe = to_super(choi_matrix)
@@ -85,7 +79,7 @@ class TestSuperopReps(object):
         """
         Superoperator: Converting superoperator to Choi matrix and back.
         """
-        superoperator = self.rand_super()
+        superoperator = rand_super()
         choi_matrix = to_choi(superoperator)
         kraus_ops = to_kraus(choi_matrix)
         test_choi = kraus_to_choi(kraus_ops)
@@ -101,14 +95,14 @@ class TestSuperopReps(object):
         Superoperator: Test that to_super(q) returns q if q is already a
         supermatrix.
         """
-        superop = self.rand_super()
+        superop = rand_super()
         assert_(superop is to_super(superop))
         
     def test_ChoiPreservesSelf(self):
         """
         Superoperator: Test that to_choi(q) returns q if q is already Choi.
         """
-        superop = self.rand_super()
+        superop = rand_super()
         choi = to_choi(superop)
         assert_(choi is to_choi(choi))
         
@@ -117,7 +111,7 @@ class TestSuperopReps(object):
         Superoperator: Checks that randomly generated superoperators are
         correctly reported as cptp.
         """
-        superop = self.rand_super()
+        superop = rand_super()
         assert_(superop.iscptp) 
         
     def test_known_iscptp(self):

@@ -232,6 +232,11 @@ def rand_kraus_map(N, dims=None):
     oper_list = np.reshape(orthog_cols, (N ** 2, N, N))
     return list(map(lambda x: Qobj(inpt=x, dims=dims), oper_list))
 
+def rand_super(self):
+    h_5 = rand_herm(5)
+    return propagator(h_5, scipy.rand(), [
+        create(5), destroy(5), jmat(2, 'z')
+    ])
 
 def _check_dims(dims, N1, N2):
     if len(dims) != 2:
