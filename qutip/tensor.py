@@ -37,8 +37,8 @@ import numpy as np
 import scipy.sparse as sp
 
 from qutip.qobj import Qobj
+from qutip.permute import reshuffle
 import qutip.settings
-
 
 def tensor(*args):
     """Calculates the tensor product of input operators.
@@ -126,4 +126,21 @@ def super_tensor(*args):
         A composite quantum object.
 
     """
-    raise NotImplementedError("This function is a stub.")
+    if isinstance(args[0], list):
+        args = args[0]
+        
+    if not all(arg.type == "super" and arg.superrep == "super" for arg in args):
+        raise TypeError(
+            "super_tensor is only implemented for "
+            "superrep='super'."
+        )
+        
+    # Reshuffle the superoperators.
+    shuffled_ops = map(reshuffle, args)
+    
+    # Tensor the result.
+    shuffled_tensor = tensor(shuffled_ops)
+    
+    # Unshuffle and return.
+    return reshuffle(shuffled_tensor)
+
