@@ -105,4 +105,7 @@ shape = [4, 4], type = oper, isHerm = True
 
         out.isherm = out.isherm and q.isherm
 
+    if not out.isherm:
+        out._isherm = None
+
     return out.tidyup() if qutip.settings.auto_tidyup else out
