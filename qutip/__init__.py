@@ -157,7 +157,6 @@ if not 'MKL_NUM_THREADS' in os.environ:
 if not 'OMP_NUM_THREADS' in os.environ:
     os.environ['OMP_NUM_THREADS'] = '1'
 
-
 try:
     from qutip.fortran import qutraj_run
 except:
