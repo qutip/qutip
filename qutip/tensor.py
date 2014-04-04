@@ -66,64 +66,43 @@ shape = [4, 4], type = oper, isHerm = True
      [ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]]
 
     """
+
     if not args:
         raise TypeError("Requires at least one input argument")
-    num_args = len(args)
+    
+    if len(args) == 1 and isinstance(args[0], (list, ndarray)):
+        # this is the case when tensor is called on the form: 
+        # tensor([q1, q2, q3, ...])
+        qlist = args[0]
+
+    elif len(args) == 1 and isinstance(args[0], Qobj):
+        # tensor is called with a single Qobj as an argument, do nothing
+        return args[0]
+
+    else:
+        # this is the case when tensor is called on the form:
+        # tensor(q1, q2, q3, ...)
+        qlist = args        
+
+    if not all([isinstance(q, Qobj) for q in qlist]):
+        # raise error if one of the inputs is not a quantum object
+        raise TypeError("One of inputs is not a quantum object")
+
     step = 0
     isherm = True
-    for n in range(num_args):
-        if isinstance(args[n], Qobj):
-            qos = args[n]
-            if step == 0:
-                dat = qos.data
-                dim = qos.dims
-                shp = qos.shape
-                isherm = isherm and qos.isherm
-                step = 1
-            else:
-                dat = sp.kron(dat, qos.data, format='csr')
-                isherm = isherm and qos.isherm
-                dim = [dim[0] + qos.dims[0],
-                       dim[1] + qos.dims[1]]  # append dimensions of Qobjs
-                shp = [dat.shape[0], dat.shape[1]]  # new shape of matrix
+    for n, qos in enumerate(qlist):
+        if n == 0:
+            dat = q.data
+            dim = q.dims
+        else:
+            dat = sp.kron(dat, q.data, format='csr')
+            dim = [dim[0] + q.dims[0], dim[1] + q.dims[1]]
 
-        elif isinstance(args[n], (list, ndarray)):
-            qos = args[n]
-            items = len(qos)  # number of inputs
-            if not all([isinstance(k, Qobj) for k in qos]):
-                # raise error if one of the inputs is not a quantum object
-                raise TypeError("One of inputs is not a quantum object")
-            if items == 1:  # if only one Qobj, do nothing
-                if step == 0:
-                    dat = qos[0].data
-                    dim = qos[0].dims
-                    shp = qos[0].shape
-                    isherm = isherm and qos[0].isherm
-                    step = 1
-                else:
-                    dat = sp.kron(dat, qos[0].data, format='csr')
-                    isherm = isherm and qos[0].isherm
-                    dim = [dim[0] + qos[0].dims[0],
-                           dim[1] + qos[0].dims[1]]  # append dimensions of qos
-                    shp = [dat.shape[0], dat.shape[1]]  # new shape of matrix
-            elif items != 1:
-                if step == 0:
-                    dat = qos[0].data
-                    dim = qos[0].dims
-                    shp = qos[0].shape
-                    step = 1
-                    isherm = isherm and qos[0].isherm
-                for k in range(items - 1):  # cycle over all items
-                    dat = sp.kron(dat, qos[k + 1].data, format='csr')
-                    isherm = isherm and qos[k + 1].isherm
-                    dim = [dim[0] + qos[k + 1].dims[0],
-                           dim[1] + qos[k + 1].dims[1]]
-                    shp = [dat.shape[0], dat.shape[1]]  # new shape of matrix
+        isherm = isherm and q.isherm
+
     out = Qobj()
     out.data = dat
     out.dims = dim
     out.isherm = isherm
-    if qutip.settings.auto_tidyup:
-        return out.tidyup()  # returns tidy Qobj
-    else:
-        return out
+
+    return out.tidyup() if qutip.settings.auto_tidyup else out
