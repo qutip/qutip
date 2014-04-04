@@ -88,21 +88,23 @@ shape = [4, 4], type = oper, isHerm = True
         # raise error if one of the inputs is not a quantum object
         raise TypeError("One of inputs is not a quantum object")
 
-    step = 0
-    isherm = True
+    out = Qobj()
+
+    if qlist[0].issuper:
+        out.superrep = qlist[0].superrep
+        if not all([q.superrep == out.superrep for q in qlist]):
+            raise TypeError("In tensor products of superroperators, all must" +
+                            "have the same representation")
+
+    out.isherm = True
     for n, qos in enumerate(qlist):
         if n == 0:
-            dat = q.data
-            dim = q.dims
+            out.data = q.data
+            out.dim = q.dims
         else:
-            dat = sp.kron(dat, q.data, format='csr')
-            dim = [dim[0] + q.dims[0], dim[1] + q.dims[1]]
+            out.data = sp.kron(out.data, q.data, format='csr')
+            out.dim = [out.dim[0] + q.dims[0], out.dim[1] + q.dims[1]]
 
-        isherm = isherm and q.isherm
-
-    out = Qobj()
-    out.data = dat
-    out.dims = dim
-    out.isherm = isherm
+        out.isherm = out.isherm and q.isherm
 
     return out.tidyup() if qutip.settings.auto_tidyup else out
