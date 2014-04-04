@@ -109,3 +109,21 @@ shape = [4, 4], type = oper, isHerm = True
         out._isherm = None
 
     return out.tidyup() if qutip.settings.auto_tidyup else out
+    
+def super_tensor(*args):
+    """Calculates the tensor product of input superoperators, by tensoring
+    together the underlying Hilbert spaces on which each vectorized operator
+    acts.
+
+    Parameters
+    ----------
+    args : array_like
+        ``list`` or ``array`` of quantum objects with ``type="super"``.
+
+    Returns
+    -------
+    obj : qobj
+        A composite quantum object.
+
+    """
+    raise NotImplementedError("This function is a stub.")

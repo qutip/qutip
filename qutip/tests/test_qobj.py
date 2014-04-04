@@ -42,7 +42,7 @@ from qutip.states import basis, fock_dm
 from qutip.operators import create, destroy, num, sigmax
 from qutip.superoperator import spre, spost, operator_to_vector
 from qutip.superop_reps import to_super
-from qutip.tensor import tensor
+from qutip.tensor import tensor, super_tensor
 
 from operator import add, mul, div, sub
 
@@ -621,6 +621,19 @@ def test_isherm_skew():
     assert_(not iH.isherm)
     assert_((iH * iH).isherm)
     assert_(tensor(iH, iH).isherm)
+    
+def test_super_tensor_property():
+    """
+    Tensor: Checks that super_tensor correctly tensors on underlying spaces.
+    """
+    U1 = rand_unitary(3)
+    U2 = rand_unitary(5)
+    
+    U = tensor(U1, U2)
+    S_tens = to_super(U)
+    S_supertens = super_tensor(to_super(U1), to_super(U2))
+    
+    assert_equal(S_tens, S_supertens)
     
 if __name__ == "__main__":
     run_module_suite()
