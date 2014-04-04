@@ -87,13 +87,14 @@ def _permute(Q, order):
         # Finally, we need to restructure the now-decomposed left index
         # into left and right subindices, so that the overall dims we return
         # are of the form
-        # [[left_left, left_right], [right_left, right_right]],
-        # with each of the four being a list of Hilbert space dimensions.
-        slice_at = len(dims_part)  / 2
-        dims_part = [dims_part[:slice_at], dims_part[slice_at:]]
-        dims = [dims_part, dims_part]
+        # [[left_1, right_1], [left_2, right_2], ... [left_n, right_n]] * 2,
+        # with each of the [left_i, right_i] pairs indicating one underlying
+        # factor.
+        dims_part = [
+            dims_part[i:i+2] for i in range(0, len(dims_part), 2)
+        ]
         
-        return (perm_matrix * Q.data) * perm_matrix.T, dims, Q.shape
+        return (perm_matrix * Q.data) * perm_matrix.T, [dims_part, dims_part], Q.shape
     else:
         raise TypeError('Invalid quantum object for permutation.')
 
@@ -112,3 +113,14 @@ def _perm_inds(dims, order):
     fact = fact.reshape(len(fact), 1)
     perm_inds = np.dot(irev, fact)
     return dims, perm_inds
+    
+def reshuffle(q_oper):
+    """
+    Column-reshuffles a ``type="super"`` Qobj.
+    """
+    if not q_oper.type == "super":
+        raise TypeError("Reshuffling is only supported on type='super'.")
+    n_subsystems = len(q_oper.dims[0][0])
+    perm_idxs = np.arange(2 * n_subsystems)[np.arange(n_subsystems * 2).reshape((2, n_subsystems)).T.flatten()]
+    
+    return q_oper.permute(perm_idxs)
