@@ -33,8 +33,9 @@
 """
 Module for the creation of composite quantum objects via the tensor product.
 """
-from numpy import ndarray, array
+import numpy as np
 import scipy.sparse as sp
+
 from qutip.qobj import Qobj
 import qutip.settings
 
@@ -48,7 +49,7 @@ def tensor(*args):
         ``list`` or ``array`` of quantum objects for tensor product.
 
     Returns
-    --------
+    -------
     obj : qobj
         A composite quantum object.
 
@@ -62,13 +63,12 @@ shape = [4, 4], type = oper, isHerm = True
      [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]
      [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
      [ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]]
-
     """
 
     if not args:
         raise TypeError("Requires at least one input argument")
 
-    if len(args) == 1 and isinstance(args[0], (list, ndarray)):
+    if len(args) == 1 and isinstance(args[0], (list, np.ndarray)):
         # this is the case when tensor is called on the form:
         # tensor([q1, q2, q3, ...])
         qlist = args[0]
