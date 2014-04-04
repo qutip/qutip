@@ -97,13 +97,13 @@ shape = [4, 4], type = oper, isHerm = True
                             "have the same representation")
 
     out.isherm = True
-    for n, qos in enumerate(qlist):
+    for n, q in enumerate(qlist):
         if n == 0:
             out.data = q.data
-            out.dim = q.dims
+            out.dims = q.dims
         else:
             out.data = sp.kron(out.data, q.data, format='csr')
-            out.dim = [out.dim[0] + q.dims[0], out.dim[1] + q.dims[1]]
+            out.dims = [out.dims[0] + q.dims[0], out.dims[1] + q.dims[1]]
 
         out.isherm = out.isherm and q.isherm
 
