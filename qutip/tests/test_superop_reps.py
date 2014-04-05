@@ -50,7 +50,7 @@ from qutip.operators import create, destroy, jmat, identity, sigmax
 from qutip.quantum_info.gates import swap
 from qutip.propagator import propagator
 from qutip.random_objects import rand_herm, rand_super
-from qutip.tensor import tensor
+from qutip.tensor import tensor, super_tensor
 from qutip.superop_reps import (super_to_choi, choi_to_kraus,
                                 choi_to_super, kraus_to_choi,
                                 to_super, to_choi, to_kraus, to_chi,
@@ -83,7 +83,7 @@ class TestSuperopReps(object):
         Superoperator: Test that converting a two-qubit superoperator through
         Choi and chi representations takes us back to the right superoperator.
         """
-        superoperator = tensor(rand_super(2), rand_super(2))
+        superoperator = super_tensor(rand_super(2), rand_super(2))
                                
         choi_matrix = to_choi(superoperator)
         chi_matrix = to_chi(choi_matrix)

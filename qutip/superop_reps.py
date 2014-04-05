@@ -173,7 +173,9 @@ def chi_to_choi(q_oper):
     nq = len(q_oper.dims[0][0])
     B  = _pauli_basis(nq)
     
-    return Qobj(B.dag() * q_oper * B, superrep='choi')
+    # The Chi matrix has tr(chi) == d², so we need to divide out
+    # by that to get back to the Choi form.
+    return Qobj((B.dag() * q_oper * B) / q_oper.shape[0], superrep='choi')
 
 #- PUBLIC CONVERSION FUNCTIONS ------------------------------------------------
 # These functions handle superoperator conversions in a way that preserves the
