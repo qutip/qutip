@@ -32,7 +32,7 @@
 ###############################################################################
 
 from numpy.linalg import norm
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_, assert_equal, run_module_suite
 import scipy
 
 from qutip import *
@@ -117,7 +117,21 @@ class TestMatrixVector:
         L2 = liouvillian_fast(H, c_ops)
 
         assert_((L1 - L2).norm() < 1e-8)
+        
 
+    def test_reshuffle(self):
+        U1 = rand_unitary(2)
+        U2 = rand_unitary(3)
+        U3 = rand_unitary(4)
+        
+        U = tensor(U1, U2, U3)
+        S = to_super(U)
+        S_col = reshuffle(S)
+        
+        assert_equal(S_col.dims[0], [[2, 2], [3, 3], [4, 4]])
+        
+        assert_equal(reshuffle(S_col), S)
 
+    
 if __name__ == "__main__":
     run_module_suite()
