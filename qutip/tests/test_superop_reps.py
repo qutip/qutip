@@ -83,7 +83,7 @@ class TestSuperopReps(object):
         Superoperator: Test that converting a two-qubit superoperator through
         Choi and chi representations takes us back to the right superoperator.
         """
-        superoperator = tensor(self.rand_super(2), self.rand_super(2))
+        superoperator = tensor(rand_super(2), rand_super(2))
                                
         choi_matrix = to_choi(superoperator)
         chi_matrix = to_chi(choi_matrix)
