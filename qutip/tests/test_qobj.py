@@ -44,7 +44,7 @@ from qutip.superoperator import spre, spost, operator_to_vector
 from qutip.superop_reps import to_super
 from qutip.tensor import tensor, super_tensor
 
-from operator import add, mul, div, sub
+from operator import add, mul, truediv, sub
 
 def test_QobjData():
     "Qobj data"
@@ -586,19 +586,19 @@ def test_arithmetic_preserves_superrep():
     dims = [[[2], [2]], [[2], [2]]]
     shape = (4, 4)
 
-    def check(superrep, operation):
+    def check(superrep, operation, chk_op, chk_scalar):
         S1 = Qobj(np.random.random(shape), superrep=superrep, dims=dims)
         S2 = Qobj(np.random.random(shape), superrep=superrep, dims=dims)
         x = np.random.random()
         
-        S_mat_scalar = operation(S1, x)
-        if operation is not div:
-            S_mat_mat = operation(S1, S2)
-            S_scalar_mat = operation(x, S2)
-            check_list = (S_mat_mat, S_scalar_mat, S_mat_scalar)
-        else:
-            check_list = (S_mat_scalar, )
-                
+        check_list = []
+        if chk_op:
+            check_list.append(operation(S1, S2))
+        if chk_scalar:
+            check_list.append(operation(S1, x))
+        if chk_op and chk_scalar:
+            check_list.append(operation(x, S2))
+            
         for S in check_list:
             assert_equal(S.type, "super",
                 "Operator {} did not preserve type='super'.".format(operation)
@@ -609,8 +609,14 @@ def test_arithmetic_preserves_superrep():
 
     dimension = 4
     for superrep in ['super', 'choi', 'chi']:
-        for operation in [add, sub, mul, div, tensor]:
-            yield check, superrep, operation
+        for operation, chk_op, chk_scalar in [
+                (add, True, True),
+                (sub, True, True),
+                (mul, True, True),
+                (truediv, False, True), 
+                (tensor, True, False)
+        ]:
+            yield check, superrep, operation, chk_op, chk_scalar
 
 def test_isherm_skew():
     """
@@ -631,6 +637,7 @@ def test_super_tensor_property():
     
     U = tensor(U1, U2)
     S_tens = to_super(U)
+    
     S_supertens = super_tensor(to_super(U1), to_super(U2))
     
     assert_equal(S_tens, S_supertens)

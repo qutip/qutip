@@ -42,6 +42,7 @@ import scipy.linalg as la
 from scipy.linalg.matfuncs import sqrtm
 import scipy.sparse as sp
 from qutip.qobj import *
+from qutip.operators import create, destroy, jmat
 from operator import add
 
 
@@ -232,10 +233,10 @@ def rand_kraus_map(N, dims=None):
     oper_list = np.reshape(orthog_cols, (N ** 2, N, N))
     return list(map(lambda x: Qobj(inpt=x, dims=dims), oper_list))
 
-def rand_super(self):
-    h_5 = rand_herm(5)
-    return propagator(h_5, scipy.rand(), [
-        create(5), destroy(5), jmat(2, 'z')
+def rand_super(dim=5):
+    H = rand_herm(dim)
+    return propagator(H, np.random.rand(), [
+        create(dim), destroy(dim), jmat((dim - 1) / 2, 'z')
     ])
 
 def _check_dims(dims, N1, N2):
@@ -248,3 +249,8 @@ def _check_dims(dims, N1, N2):
         raise ValueError("Qobj dimensions must match matrix shape.")
     if len(dims[0]) != len(dims[1]):
         raise TypeError("Qobj dimension components must have same length.")
+
+## IMPORTS ##
+# qutip.propagator depends on rand_dm, so we need to put this import last.
+from qutip.propagator import propagator
+

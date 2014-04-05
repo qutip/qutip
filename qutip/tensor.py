@@ -136,7 +136,7 @@ def super_tensor(*args):
         )
         
     # Reshuffle the superoperators.
-    shuffled_ops = map(reshuffle, args)
+    shuffled_ops = list(map(reshuffle, args))
     
     # Tensor the result.
     shuffled_tensor = tensor(shuffled_ops)
