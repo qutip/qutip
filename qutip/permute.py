@@ -148,4 +148,4 @@ def reshuffle(q_oper):
         ].reshape((n_subsystems, n_indices))
     )
     
-    return q_oper.permute(perm_idxs)
+    return q_oper.permute(list(perm_idxs))
