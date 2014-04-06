@@ -641,6 +641,7 @@ def test_super_tensor_property():
     S_supertens = super_tensor(to_super(U1), to_super(U2))
     
     assert_equal(S_tens, S_supertens)
+    assert_equal(S_supertens.superrep, 'super')
     
 if __name__ == "__main__":
     run_module_suite()

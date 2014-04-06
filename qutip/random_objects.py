@@ -236,7 +236,7 @@ def rand_kraus_map(N, dims=None):
 def rand_super(dim=5):
     H = rand_herm(dim)
     return propagator(H, np.random.rand(), [
-        create(dim), destroy(dim), jmat((dim - 1) / 2, 'z')
+        create(dim), destroy(dim), jmat(float(dim - 1) / 2.0, 'z')
     ])
 
 def _check_dims(dims, N1, N2):

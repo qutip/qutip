@@ -142,5 +142,7 @@ def super_tensor(*args):
     shuffled_tensor = tensor(shuffled_ops)
     
     # Unshuffle and return.
-    return reshuffle(shuffled_tensor)
+    out = reshuffle(shuffled_tensor)
+    out.superrep = args[0].superrep
+    return out
 
