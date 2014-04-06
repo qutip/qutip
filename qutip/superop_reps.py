@@ -10,7 +10,7 @@ including supermatrix, Kraus, Choi and Chi (process) matrix formalisms.
 
 # Python Standard Library
 from operator import add
-from itertools import starmap, product, imap
+from itertools import starmap, product
 
 # NumPy/SciPy
 from numpy.core.multiarray import array, zeros
