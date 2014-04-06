@@ -59,7 +59,7 @@ from qutip.sparse import (sp_eigs, _sp_expm, _sp_fro_norm, _sp_max_norm,
                           _sp_one_norm, _sp_L2_norm, _sp_inf_norm)
 
 
-class Qobj():
+class Qobj(object):
     """A class for representing quantum objects, such as quantum operators
     and states.
 
@@ -1433,7 +1433,7 @@ class Qobj():
     @property
     def isherm(self):
 
-        if not self._isherm is None:
+        if self._isherm is not None:
             # used previously computed value
             return self._isherm
 

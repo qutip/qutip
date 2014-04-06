@@ -42,8 +42,9 @@ from qutip.states import basis, fock_dm
 from qutip.operators import create, destroy, num, sigmax
 from qutip.superoperator import spre, spost, operator_to_vector
 from qutip.superop_reps import to_super
-from qutip.tensor import tensor
+from qutip.tensor import tensor, super_tensor
 
+from operator import add, mul, truediv, sub
 
 def test_QobjData():
     "Qobj data"
@@ -572,6 +573,74 @@ def test_SuperType():
     assert_equal(sop.isoper, False)
     assert_equal(sop.issuper, True)
 
+def test_arithmetic_preserves_superrep():
+    """
+    Superoperator arithmetic: Checks that binary ops preserve 'superrep'.
+        
+    .. note::
+    
+        The random superoperators are not chosen in a way that reflects the
+        structure of that superrep, but are simply random matrices.
+    """
 
+    dims = [[[2], [2]], [[2], [2]]]
+    shape = (4, 4)
+
+    def check(superrep, operation, chk_op, chk_scalar):
+        S1 = Qobj(np.random.random(shape), superrep=superrep, dims=dims)
+        S2 = Qobj(np.random.random(shape), superrep=superrep, dims=dims)
+        x = np.random.random()
+        
+        check_list = []
+        if chk_op:
+            check_list.append(operation(S1, S2))
+        if chk_scalar:
+            check_list.append(operation(S1, x))
+        if chk_op and chk_scalar:
+            check_list.append(operation(x, S2))
+            
+        for S in check_list:
+            assert_equal(S.type, "super",
+                "Operator {} did not preserve type='super'.".format(operation)
+            )
+            assert_equal(S.superrep, superrep,
+                "Operator {} did not preserve superrep={}.".format(operation, superrep)
+            )
+
+    dimension = 4
+    for superrep in ['super', 'choi', 'chi']:
+        for operation, chk_op, chk_scalar in [
+                (add, True, True),
+                (sub, True, True),
+                (mul, True, True),
+                (truediv, False, True), 
+                (tensor, True, False)
+        ]:
+            yield check, superrep, operation, chk_op, chk_scalar
+
+def test_isherm_skew():
+    """
+    Checks that mul and tensor of skew-Hermitian operators report ``isherm = True``.
+    """
+    iH = 1j * rand_herm(5)
+    
+    assert_(not iH.isherm)
+    assert_((iH * iH).isherm)
+    assert_(tensor(iH, iH).isherm)
+    
+def test_super_tensor_property():
+    """
+    Tensor: Checks that super_tensor correctly tensors on underlying spaces.
+    """
+    U1 = rand_unitary(3)
+    U2 = rand_unitary(5)
+    
+    U = tensor(U1, U2)
+    S_tens = to_super(U)
+    
+    S_supertens = super_tensor(to_super(U1), to_super(U2))
+    
+    assert_equal(S_tens, S_supertens)
+    
 if __name__ == "__main__":
     run_module_suite()

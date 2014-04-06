@@ -216,6 +216,7 @@ from qutip.entropy import (entropy_vn, entropy_linear, entropy_mutual,
                            concurrence, entropy_conditional)
 from qutip.metrics import fidelity, tracedist, average_gate_fidelity
 from qutip.partial_transpose import partial_transpose
+from qutip.permute import reshuffle
 from qutip.continuous_variables import *
 from qutip.distributions import *
 
