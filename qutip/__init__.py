@@ -192,12 +192,14 @@ from qutip.sparse import *
 # graphics
 if qutip.settings.qutip_graphics == 'YES':
     from qutip.bloch import Bloch
-    from qutip.visualization import (hinton, energy_level_diagram, wigner_cmap,
-                                     sphereplot, fock_distribution,
-                                     wigner_fock_distribution,
-                                     plot_expectation_values,
-                                     plot_spin_distribution_2d,
-                                     plot_spin_distribution_3d)
+    from qutip.visualization import (
+        hinton, wigner_cmap, sphereplot,
+        energy_level_diagram, plot_energy_levels,
+        fock_distribution, plot_fock_distribution,
+        wigner_fock_distribution, plot_wigner_fock_distribution,
+        plot_expectation_values, plot_spin_distribution_2d, 
+        plot_spin_distribution_3d)
+
     from qutip.orbital import *
     # load mayavi dependent functions if available
     try:
