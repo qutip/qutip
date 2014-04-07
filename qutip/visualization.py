@@ -47,9 +47,8 @@ from qutip.qobj import Qobj, isket, isbra
 from qutip.states import ket2dm
 from qutip.wigner import wigner
 
+
 # Adopted from the SciPy Cookbook.
-
-
 def _blob(x, y, w, w_max, area):
     """
     Draws a square-shaped blob with the given area (< 1) at
@@ -437,8 +436,8 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
     return fig, ax
 
 
-def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
-                         figsize=(8, 12), fig=None, ax=None):
+def plot_energy_levels(H_list, N=0, labels=None, show_ylabels=False,
+                       figsize=(8, 12), fig=None, ax=None):
     """
     Plot the energy level diagrams for a list of Hamiltonians. Include
     up to N energy levels. For each element in H_list, the energy
@@ -538,6 +537,14 @@ def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
     return fig, ax
 
 
+def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
+                         figsize=(8, 12), fig=None, ax=None):
+    warnings.warn("Deprecated: Use plot_energy_levels")
+    return energy_level_diagram(H_list, N=N, labels=labels,
+                                show_ylabels=show_ylabels,
+                                figsize=figsize, fig=fig, ax=ax)
+
+
 def wigner_cmap(W, levels=1024, shift=0, invert=False):
     """A custom colormap that emphasizes negative values by creating a
     nonlinear colormap.
@@ -604,8 +611,8 @@ def wigner_cmap(W, levels=1024, shift=0, invert=False):
     return wig_cmap
 
 
-def fock_distribution(rho, offset=0, fig=None, ax=None,
-                      figsize=(8, 6), title=None, unit_y_range=True):
+def plot_fock_distribution(rho, offset=0, fig=None, ax=None,
+                           figsize=(8, 6), title=None, unit_y_range=True):
     """
     Plot the Fock distribution for a density matrix (or ket) that describes
     an oscillator mode.
@@ -658,9 +665,17 @@ def fock_distribution(rho, offset=0, fig=None, ax=None,
     return fig, ax
 
 
-def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
-                             cmap=None, alpha_max=7.5, colorbar=False,
-                             method='iterative'):
+def fock_distribution(rho, offset=0, fig=None, ax=None,
+                      figsize=(8, 6), title=None, unit_y_range=True):
+    warnings.warn("Deprecated: Use plot_fock_distribution")
+    return plot_wigner_fock_distribution(rho, offset=offset, fig=fig, ax=ax,
+                                         figsize=figsize, title=title,
+                                         unit_y_range=unit_y_range)
+
+
+def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
+                                  cmap=None, alpha_max=7.5, colorbar=False,
+                                  method='iterative'):
     """
     Plot the Fock distribution and the Wigner function for a density matrix
     (or ket) that describes an oscillator mode.
@@ -735,6 +750,17 @@ def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
     axes[1].set_title("Wigner function", fontsize=12)
 
     return fig, axes
+
+
+def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
+                             cmap=None, alpha_max=7.5, colorbar=False,
+                             method='iterative'):
+    warnings.warn("Deprecated: Use plot_wigner_fock_distribution")
+    return plot_wigner_fock_distribution(rho, fig=fig, axes=axes,
+                                         figsize=figsize, cmap=cmap,
+                                         alpha_max=alpha_max,
+                                         colorbar=colorbar,
+                                         method=method)
 
 
 def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
