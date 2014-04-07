@@ -133,7 +133,7 @@ shape = [4, 4], type = oper, isHerm = True
         return Qobj(Q)
 
 
-def fredkin():
+def fredkin(N=None, control1=None, control2=None, target=None):
     """Quantum object representing the Fredkin gate.
 
     Returns
@@ -157,21 +157,26 @@ shape = [8, 8], type = oper, isHerm = True
          [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
 
     """
-    uuu = qstate('uuu')
-    uud = qstate('uud')
-    udu = qstate('udu')
-    udd = qstate('udd')
-    duu = qstate('duu')
-    dud = qstate('dud')
-    ddu = qstate('ddu')
-    ddd = qstate('ddd')
-    Q = ddd * ddd.dag() + ddu * ddu.dag() + dud * dud.dag() + \
-        duu * duu.dag() + udd * udd.dag() + uud * udu.dag() + \
-        udu * uud.dag() + uuu * uuu.dag()
-    return Qobj(Q)
+    if (not N is None and not control1 is None 
+            and not control2 is None and not target is None):
+        return gate_expand_3toN(fredkin(), N, control1, control2, target)
+
+    else:        
+        uuu = qstate('uuu')
+        uud = qstate('uud')
+        udu = qstate('udu')
+        udd = qstate('udd')
+        duu = qstate('duu')
+        dud = qstate('dud')
+        ddu = qstate('ddu')
+        ddd = qstate('ddd')
+        Q = ddd * ddd.dag() + ddu * ddu.dag() + dud * dud.dag() + \
+            duu * duu.dag() + udd * udd.dag() + uud * udu.dag() + \
+            udu * uud.dag() + uuu * uuu.dag()
+        return Qobj(Q)
 
 
-def toffoli(target=2):
+def toffoli(N=None, control1=None, control2=None, target=None):
     """Quantum object representing the Toffoli gate.
 
     Returns
@@ -196,18 +201,23 @@ shape = [8, 8], type = oper, isHerm = True
 
 
     """
-    uuu = qstate('uuu')
-    uud = qstate('uud')
-    udu = qstate('udu')
-    udd = qstate('udd')
-    duu = qstate('duu')
-    dud = qstate('dud')
-    ddu = qstate('ddu')
-    ddd = qstate('ddd')
-    Q = ddd * ddd.dag() + ddu * ddu.dag() + dud * dud.dag() + \
-        duu * duu.dag() + udd * udd.dag() + udu * udu.dag() + \
-        uuu * uud.dag() + uud * uuu.dag()
-    return Qobj(Q)
+    if (not N is None and not control1 is None 
+            and not control2 is None and not target is None):
+        return gate_expand_3toN(toffoli(), N, control1, control2, target)
+
+    else:
+        uuu = qstate('uuu')
+        uud = qstate('uud')
+        udu = qstate('udu')
+        udd = qstate('udd')
+        duu = qstate('duu')
+        dud = qstate('dud')
+        ddu = qstate('ddu')
+        ddd = qstate('ddd')
+        Q = ddd * ddd.dag() + ddu * ddu.dag() + dud * dud.dag() + \
+            duu * duu.dag() + udd * udd.dag() + udu * udu.dag() + \
+            uuu * uud.dag() + uud * uuu.dag()
+        return Qobj(Q)
 
 
 def swap(N=None, control=None, target=None, mask=None):
@@ -496,14 +506,64 @@ def gate_expand_2toN(U, N, control, target):
         raise ValueError("integer N must be larger or equal to 2")
 
     if control >= N or target >= N:
-        raise ValueError("control and not target is None must be integer < integer N")
+        raise ValueError("control and not target must be integer < integer N")
 
     if control == target:
-        raise ValueError("target and not control is None cannot be equal")
+        raise ValueError("target and not control cannot be equal")
 
     p = list(range(N))
     p[0], p[control] = p[control], p[0]
-    p[1], p[target] = p[target], p[1]
+    if p[1] == 1:
+        p[1], p[target] = p[target], p[1]
+    print(p)
 
     return tensor([U] +[identity(2)] * (N - 2)).permute(p)
+
+
+def gate_expand_3toN(U, N, control1, control2, target):
+    """
+    Create a Qobj representing a three-qubit gate that act on a system with N
+    qubits.
+
+    Parameters
+    ----------
+    U : Qobj
+        The three-qubit gate
+
+    N : integer
+        The number of qubits in the target space.
+
+    control1 : integer
+        The index of the first control qubit.
+
+    control2 : integer
+        The index of the second control qubit.
+    
+    target : integer
+        The index of the target qubit.
+    
+    Returns
+    -------
+    gate : qobj
+        Quantum object representation of N-qubit gate.
+    """
+
+    if N < 3:
+        raise ValueError("integer N must be larger or equal to 3")
+
+    if control1 >= N or control2 >= N or target >= N:
+        raise ValueError("control and not target is None must be integer < integer N")
+
+    if control1 == target or control2 == target or control1 == control2:
+        raise ValueError("control1, control2, and target cannot be equal")
+
+    p = list(range(N))
+    p[0], p[control1] = p[control1], p[0]
+    if p[1] == 1:
+        p[1], p[control2] = p[control2], p[1]
+    if p[2] == 2:
+        p[2], p[target] = p[target], p[2]
+    print(p)
+
+    return tensor([U] +[identity(2)] * (N - 3)).permute(p)
 
