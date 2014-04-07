@@ -191,7 +191,7 @@ def sphereplot(theta, phi, values, save=False):
     ax = Axes3D(fig)
     # plot with facecolors set to cm.jet colormap normalized to nrm
     surf = ax.plot_surface(r * xx, r * yy, r * zz, rstride=1, cstride=1,
-                           facecolors=cm.jet(nrm(ph)), linewidth=0)
+                           facecorhoslors=cm.jet(nrm(ph)), linewidth=0)
     # create new axes on plot for colorbar and shrink it a bit.
     # pad shifts location of bar with repsect to the main plot
     cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
@@ -722,7 +722,7 @@ def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
     if isket(rho):
         rho = ket2dm(rho)
 
-    fock_distribution(rho, fig=fig, ax=axes[0])
+    plot_fock_distribution(rho, fig=fig, ax=axes[0])
 
     xvec = np.linspace(-alpha_max, alpha_max, 200)
     W0 = wigner(rho, xvec, xvec, method=method)
