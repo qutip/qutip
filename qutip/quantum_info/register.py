@@ -48,7 +48,7 @@ class Register(Qobj):
             reg=tensor([basis(2) for k in range(N)])
         if isinstance(state,str):
             state=_reg_str2array(state,N)
-            reg=tensor([basis(2,state[k]) for k in state])
+            reg=tensor([basis(2, k) for k in state])
         Qobj.__init__(self, reg.data, reg.dims, reg.shape,
                  reg.type, reg.isherm, fast=False)
         
