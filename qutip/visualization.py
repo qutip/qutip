@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,49 +18,50 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 """
 Functions for visualizing results of quantum dynamics simulations,
 visualizations of quantum states and processes.
 """
-import qutip.settings
+import warnings
 import numpy as np
+from numpy import pi, array, sin, cos, angle
+
+import qutip.settings
 if qutip.settings.qutip_graphics == 'YES':
-    from pylab import *
+    import matplotlib.pyplot as plt
     import matplotlib as mpl
     from matplotlib import cm
     from mpl_toolkits.mplot3d import Axes3D
-    import matplotlib.pyplot as plt
 
 from qutip.qobj import Qobj, isket, isbra
 from qutip.states import ket2dm
 from qutip.wigner import wigner
 
+
 # Adopted from the SciPy Cookbook.
-
-
 def _blob(x, y, w, w_max, area):
     """
     Draws a square-shaped blob with the given area (< 1) at
     the given coordinates.
     """
-    hs = sqrt(area) / 2
+    hs = np.sqrt(area) / 2
     xcorners = array([x - hs, x + hs, x + hs, x - hs])
     ycorners = array([y - hs, y - hs, y + hs, y + hs])
 
-    fill(xcorners, ycorners,
-         color=cm.RdBu(int((w + w_max) * 256 / (2 * w_max))))
+    plt.fill(xcorners, ycorners,
+             color=cm.RdBu(int((w + w_max) * 256 / (2 * w_max))))
 
 
 # Adopted from the SciPy Cookbook.
@@ -118,18 +119,18 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
 
     height, width = W.shape
 
-    w_max = 1.25 * max(abs(diag(matrix(W))))
+    w_max = 1.25 * max(abs(np.diag(np.matrix(W))))
     if w_max <= 0.0:
         w_max = 1.0
 
     # x axis
-    ax.xaxis.set_major_locator(IndexLocator(1, 0.5))
+    ax.xaxis.set_major_locator(plt.IndexLocator(1, 0.5))
     if xlabels:
         ax.set_xticklabels(xlabels)
     ax.tick_params(axis='x', labelsize=14)
 
     # y axis
-    ax.yaxis.set_major_locator(IndexLocator(1, 0.5))
+    ax.yaxis.set_major_locator(plt.IndexLocator(1, 0.5))
     if ylabels:
         ax.set_yticklabels(list(reversed(ylabels)))
     ax.tick_params(axis='y', labelsize=14)
@@ -140,7 +141,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
         for y in range(height):
             _x = x + 1
             _y = y + 1
-            if real(W[x, y]) > 0.0:
+            if np.real(W[x, y]) > 0.0:
                 _blob(_x - 0.5, height - _y + 0.5, abs(W[x,
                       y]), w_max, min(1, abs(W[x, y]) / w_max))
             else:
@@ -155,7 +156,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
     return fig, ax
 
 
-def sphereplot(theta, phi, values, save=False):
+def sphereplot(theta, phi, values, fig=None, ax=None, save=False):
     """Plots a matrix of values on a sphere
 
     Parameters
@@ -164,25 +165,31 @@ def sphereplot(theta, phi, values, save=False):
         Angle with respect to z-axis
 
     phi : float
-    Angle in x-y plane
+        Angle in x-y plane
 
     values : array
         Data set to be plotted
+
+    fig : a matplotlib Figure instance
+        The Figure canvas in which the plot will be drawn.
+
+    ax : a matplotlib axes instance
+        The axes context in which the plot will be drawn.
 
     save : bool {False , True}
         Whether to save the figure or not
 
     Returns
     -------
-    Plots figure, returns nonthing.
-
-
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce
+        the figure.
     """
-    import matplotlib as mpl
-    from matplotlib import cm
-    from pylab import plot, show, meshgrid, figure, savefig
-    from mpl_toolkits.mplot3d import Axes3D
-    thetam, phim = meshgrid(theta, phi)
+    if fig is None or ax is None:
+        fig = plt.figure()
+        ax = Axes3D(fig)
+
+    thetam, phim = np.meshgrid(theta, phi)
     xx = sin(thetam) * cos(phim)
     yy = sin(thetam) * sin(phim)
     zz = cos(thetam)
@@ -190,23 +197,24 @@ def sphereplot(theta, phi, values, save=False):
     ph = angle(values)
     # normalize color range based on phase angles in list ph
     nrm = mpl.colors.Normalize(ph.min(), ph.max())
-    fig = figure()
-    ax = Axes3D(fig)
+
     # plot with facecolors set to cm.jet colormap normalized to nrm
     surf = ax.plot_surface(r * xx, r * yy, r * zz, rstride=1, cstride=1,
                            facecolors=cm.jet(nrm(ph)), linewidth=0)
     # create new axes on plot for colorbar and shrink it a bit.
     # pad shifts location of bar with repsect to the main plot
     cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
+
     # create new colorbar in axes cax with cm jet and normalized to nrm like
     # our facecolors
     cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cm.jet, norm=nrm)
     # add our colorbar label
     cb1.set_label('Angle')
+
     if save:
-        savefig("sphereplot.png")
-    show()
-    return
+        plt.savefig("sphereplot.png")
+
+    return fig, ax
 
 
 def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
@@ -251,13 +259,13 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         # extract matrix data from Qobj
         M = M.full()
 
-    n = size(M)
-    xpos, ypos = meshgrid(range(M.shape[0]), range(M.shape[1]))
+    n = np.size(M)
+    xpos, ypos = np.meshgrid(range(M.shape[0]), range(M.shape[1]))
     xpos = xpos.T.flatten() - 0.5
     ypos = ypos.T.flatten() - 0.5
-    zpos = zeros(n)
-    dx = dy = 0.8 * ones(n)
-    dz = real(M.flatten())
+    zpos = np.zeros(n)
+    dx = dy = 0.8 * np.ones(n)
+    dz = np.real(M.flatten())
 
     if limits and type(limits) is list and len(limits) == 2:
         z_min = limits[0]
@@ -283,19 +291,19 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
         ax.set_title(title)
 
     # x axis
-    ax.axes.w_xaxis.set_major_locator(IndexLocator(1, -0.5))
+    ax.axes.w_xaxis.set_major_locator(plt.IndexLocator(1, -0.5))
     if xlabels:
         ax.set_xticklabels(xlabels)
     ax.tick_params(axis='x', labelsize=14)
 
     # y axis
-    ax.axes.w_yaxis.set_major_locator(IndexLocator(1, -0.5))
+    ax.axes.w_yaxis.set_major_locator(plt.IndexLocator(1, -0.5))
     if ylabels:
         ax.set_yticklabels(ylabels)
     ax.tick_params(axis='y', labelsize=14)
 
     # z axis
-    ax.axes.w_zaxis.set_major_locator(IndexLocator(1, 0.5))
+    ax.axes.w_zaxis.set_major_locator(plt.IndexLocator(1, 0.5))
     ax.set_zlim3d([min(z_min, 0), z_max])
 
     # color axis
@@ -354,17 +362,17 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
         # extract matrix data from Qobj
         M = M.full()
 
-    n = size(M)
-    xpos, ypos = meshgrid(range(M.shape[0]), range(M.shape[1]))
+    n = np.size(M)
+    xpos, ypos = np.meshgrid(range(M.shape[0]), range(M.shape[1]))
     xpos = xpos.T.flatten() - 0.5
     ypos = ypos.T.flatten() - 0.5
-    zpos = zeros(n)
-    dx = dy = 0.8 * ones(n)
+    zpos = np.zeros(n)
+    dx = dy = 0.8 * np.ones(n)
     Mvec = M.flatten()
     dz = abs(Mvec)
 
     # make small numbers real, to avoid random colors
-    idx, = where(abs(Mvec) < 0.001)
+    idx, = np.where(abs(Mvec) < 0.001)
     Mvec[idx] = abs(Mvec[idx])
 
     if phase_limits:  # check that limits is a list type
@@ -392,8 +400,8 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
                      (0.50, 0.0, 0.0),
                      (0.75, 0.0, 0.0),
                      (1.00, 1.0, 1.0))}
-    cmap = matplotlib.colors.LinearSegmentedColormap(
-        'phase_colormap', cdict, 256)
+
+    cmap = mpl.colors.LinearSegmentedColormap('phase_colormap', cdict, 256)
 
     colors = cmap(norm(angle(Mvec)))
 
@@ -407,13 +415,13 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
         ax.set_title(title)
 
     # x axis
-    ax.axes.w_xaxis.set_major_locator(IndexLocator(1, -0.5))
+    ax.axes.w_xaxis.set_major_locator(plt.IndexLocator(1, -0.5))
     if xlabels:
         ax.set_xticklabels(xlabels)
     ax.tick_params(axis='x', labelsize=12)
 
     # y axis
-    ax.axes.w_yaxis.set_major_locator(IndexLocator(1, -0.5))
+    ax.axes.w_yaxis.set_major_locator(plt.IndexLocator(1, -0.5))
     if ylabels:
         ax.set_yticklabels(ylabels)
     ax.tick_params(axis='y', labelsize=12)
@@ -437,8 +445,8 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
     return fig, ax
 
 
-def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
-                         figsize=(8, 12), fig=None, ax=None):
+def plot_energy_levels(H_list, N=0, labels=None, show_ylabels=False,
+                       figsize=(8, 12), fig=None, ax=None):
     """
     Plot the energy level diagrams for a list of Hamiltonians. Include
     up to N energy levels. For each element in H_list, the energy
@@ -538,6 +546,14 @@ def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
     return fig, ax
 
 
+def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
+                         figsize=(8, 12), fig=None, ax=None):
+    warnings.warn("Deprecated: Use plot_energy_levels")
+    return plot_energy_levels(H_list, N=N, labels=labels, 
+                              show_ylabels=show_ylabels,
+                              figsize=figsize, fig=fig, ax=ax)
+
+
 def wigner_cmap(W, levels=1024, shift=0, invert=False):
     """A custom colormap that emphasizes negative values by creating a
     nonlinear colormap.
@@ -604,8 +620,8 @@ def wigner_cmap(W, levels=1024, shift=0, invert=False):
     return wig_cmap
 
 
-def fock_distribution(rho, offset=0, fig=None, ax=None,
-                      figsize=(8, 6), title=None, unit_y_range=True):
+def plot_fock_distribution(rho, offset=0, fig=None, ax=None,
+                           figsize=(8, 6), title=None, unit_y_range=True):
     """
     Plot the Fock distribution for a density matrix (or ket) that describes
     an oscillator mode.
@@ -643,7 +659,7 @@ def fock_distribution(rho, offset=0, fig=None, ax=None,
 
     N = rho.shape[0]
 
-    ax.bar(arange(offset, offset + N) - .4, real(rho.diag()),
+    ax.bar(np.arange(offset, offset + N) - .4, np.real(rho.diag()),
            color="green", alpha=0.6, width=0.8)
     if unit_y_range:
         ax.set_ylim(0, 1)
@@ -658,9 +674,93 @@ def fock_distribution(rho, offset=0, fig=None, ax=None,
     return fig, ax
 
 
-def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
-                             cmap=None, alpha_max=7.5, colorbar=False,
-                             method='iterative'):
+def fock_distribution(rho, offset=0, fig=None, ax=None,
+                      figsize=(8, 6), title=None, unit_y_range=True):
+    warnings.warn("Deprecated: Use plot_fock_distribution")
+    return plot_fock_distribution(rho, offset=offset, fig=fig, ax=ax,
+                                  figsize=figsize, title=title,
+                                  unit_y_range=unit_y_range)
+
+
+def plot_wigner(rho, fig=None, ax=None, figsize=(8, 4),
+                cmap=None, alpha_max=7.5, colorbar=False,
+                method='iterative'):
+    """
+    Plot the the Wigner function for a density matrix (or ket) that describes
+    an oscillator mode.
+
+    Parameters
+    ----------
+    rho : :class:`qutip.qobj.Qobj`
+        The density matrix (or ket) of the state to visualize.
+
+    fig : a matplotlib Figure instance
+        The Figure canvas in which the plot will be drawn.
+
+    ax : a matplotlib axes instance
+        The axes context in which the plot will be drawn.
+
+    figsize : (width, height)
+        The size of the matplotlib figure (in inches) if it is to be created
+        (that is, if no 'fig' and 'ax' arguments are passed).
+
+    cmap : a matplotlib cmap instance
+        The colormap.
+
+    alpha_max : float
+        The span of the x and y coordinates (both [-alpha_max, alpha_max]).
+
+    colorbar : bool
+        Whether (True) or not (False) a colorbar should be attached to the
+        Wigner function graph.
+
+    method : string {'iterative', 'laguerre', 'fft'}
+        The method used for calculating the wigner function. See the
+        documentation for qutip.wigner for details.
+
+    Returns
+    -------
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce
+        the figure.
+    """
+
+    if not fig and not ax:
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+    if isket(rho):
+        rho = ket2dm(rho)
+
+    xvec = np.linspace(-alpha_max, alpha_max, 200)
+    W0 = wigner(rho, xvec, xvec, method=method)
+
+    W, yvec = W0 if type(W0) is tuple else (W0, xvec)
+
+    wlim = abs(W).max()
+
+    if cmap is None:
+        cmap = cm.get_cmap('RdBu')
+
+    cf = ax.contourf(xvec, yvec, W, 100,
+                     norm=mpl.colors.Normalize(-wlim, wlim), cmap=cmap)
+
+    if not xvec is yvec:
+        ax.set_ylim(xvec.min(), xvec.max())
+
+    ax.set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
+    ax.set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
+
+    if colorbar:
+        cb = fig.colorbar(cf, ax=ax)
+
+    ax.set_title("Wigner function", fontsize=12)
+
+    return fig, ax
+
+
+def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
+                                  cmap=None, alpha_max=7.5, colorbar=False,
+                                  method='iterative'):
     """
     Plot the Fock distribution and the Wigner function for a density matrix
     (or ket) that describes an oscillator mode.
@@ -707,34 +807,22 @@ def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
     if isket(rho):
         rho = ket2dm(rho)
 
-    fock_distribution(rho, fig=fig, ax=axes[0])
-
-    xvec = linspace(-alpha_max, alpha_max, 200)
-    W0 = wigner(rho, xvec, xvec, method=method)
-
-    W, yvec = W0 if type(W0) is tuple else (W0, xvec)
-
-    wlim = abs(W).max()
-
-    if cmap is None:
-        cmap = cm.get_cmap('RdBu')
-
-    cf = axes[1].contourf(xvec, yvec, W, 100,
-                          norm=mpl.colors.Normalize(-wlim, wlim), cmap=cmap)
-
-    if not xvec is yvec:
-        axes[1].set_ylim(xvec.min(), xvec.max())
-
-    axes[1].set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
-    axes[1].set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
-
-    if colorbar:
-        cb = fig.colorbar(cf, ax=axes[1])
-
-    axes[0].set_title("Fock distribution", fontsize=12)
-    axes[1].set_title("Wigner function", fontsize=12)
+    plot_fock_distribution(rho, fig=fig, ax=axes[0])
+    plot_wigner(rho, fig=fig, ax=axes[1], figsize=figsize, cmap=cmap,
+                alpha_max=alpha_max, colorbar=colorbar, method=method)
 
     return fig, axes
+
+
+def wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
+                             cmap=None, alpha_max=7.5, colorbar=False,
+                             method='iterative'):
+    warnings.warn("Deprecated: Use plot_wigner_fock_distribution")
+    return plot_wigner_fock_distribution(rho, fig=fig, axes=axes,
+                                         figsize=figsize, cmap=cmap,
+                                         alpha_max=alpha_max,
+                                         colorbar=colorbar,
+                                         method=method)
 
 
 def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
@@ -842,9 +930,9 @@ def plot_spin_distribution_2d(P, THETA, PHI,
             figsize = (8, 8)
         fig, ax = plt.subplots(1, 1, figsize=figsize)
 
-    Y = (THETA - pi/2)/(pi/2)
-    X = (pi - PHI)/pi * sqrt(cos(THETA - pi/2))
-    
+    Y = (THETA - pi / 2) / (pi / 2)
+    X = (pi - PHI) / pi * np.sqrt(cos(THETA - pi / 2))
+
     if P.min() < -1e12:
         cmap = cm.RdBu
     else:
@@ -853,10 +941,10 @@ def plot_spin_distribution_2d(P, THETA, PHI,
     ax.pcolor(X, Y, P.real, cmap=cmap)
     ax.set_xlabel(r'$\varphi$', fontsize=18)
     ax.set_ylabel(r'$\theta$', fontsize=18)
-    
+
     ax.set_xticks([-1, 0, 1])
     ax.set_xticklabels([r'$0$', r'$\pi$', r'$2\pi$'], fontsize=18)
-    ax.set_yticks([-1, 0, 1])    
+    ax.set_yticks([-1, 0, 1])
     ax.set_yticklabels([r'$\pi$', r'$\pi/2$', r'$0$'], fontsize=18)
 
     return fig, ax

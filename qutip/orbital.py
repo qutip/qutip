@@ -76,7 +76,7 @@ def orbital(theta, phi, *args):
         if nchk != np.floor(nchk):
             raise ValueError(
                 'Kets must have odd number of components in orbital')
-        l = (sk[0] - 1) / 2
+        l = int((sk[0] - 1) / 2)
         if l == 0:
             SPlm = np.sqrt(2) * np.ones((np.size(theta), 1), dtype=complex)
         else:
@@ -119,6 +119,7 @@ def _sch_lpmv(n, x):
 
     '''
     from scipy.special import lpmv
+    n = int(n)
     sch = np.array([1.0])
     sch2 = np.array([(-1.0) ** m * np.sqrt(
         (2.0 * factorial(n - m)) / factorial(n + m)) for m in range(1, n + 1)])

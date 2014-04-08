@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import os
@@ -36,7 +36,7 @@ import platform
 import multiprocessing
 
 import qutip.settings
-import qutip.version 
+import qutip.version
 from qutip.version import version as __version__
 
 
@@ -45,8 +45,10 @@ from qutip.version import version as __version__
 # if the requirements aren't fulfilled
 #
 def _version2int(version_string):
-    str_list = version_string.split("-dev")[0].split("rc")[0].split("b")[0].split("post")[0].split('.')
-    return sum([int(d if len(d) > 0 else 0) * (100 ** (3 - n)) for n, d in enumerate(str_list[:3])])
+    str_list = version_string.split(
+        "-dev")[0].split("rc")[0].split("b")[0].split("post")[0].split('.')
+    return sum([int(d if len(d) > 0 else 0) * (100 ** (3 - n))
+                for n, d in enumerate(str_list[:3])])
 
 numpy_requirement = "1.6.0"
 try:
@@ -106,7 +108,7 @@ except Exception as e:
 # default configuration settings
 #
 
-#load cpus
+# load cpus
 from qutip.hardware_info import hardware_info
 info = hardware_info()
 if 'cpus' in info:
@@ -146,7 +148,7 @@ if not sys.platform in ['darwin', 'win32'] and not ('DISPLAY' in os.environ):
     qutip.settings.qutip_graphics = "NO"
 
 # automatically set number of threads used by MKL and openblas to 1
-# prevents errors when running things in parallel.  Should be set 
+# prevents errors when running things in parallel.  Should be set
 # by user directly in a script or notebook if >1 is needed.
 if not 'NUM_THREADS' in os.environ:
     os.environ['NUM_THREADS'] = '1'
@@ -192,12 +194,14 @@ from qutip.sparse import *
 # graphics
 if qutip.settings.qutip_graphics == 'YES':
     from qutip.bloch import Bloch
-    from qutip.visualization import (hinton, energy_level_diagram, wigner_cmap,
-                                     sphereplot, fock_distribution,
-                                     wigner_fock_distribution,
-                                     plot_expectation_values,
-                                     plot_spin_distribution_2d,
-                                     plot_spin_distribution_3d)
+    from qutip.visualization import (
+        hinton, wigner_cmap, sphereplot,
+        energy_level_diagram, plot_energy_levels,
+        fock_distribution, plot_fock_distribution,
+        wigner_fock_distribution, plot_wigner_fock_distribution, plot_wigner,
+        plot_expectation_values, plot_spin_distribution_2d,
+        plot_spin_distribution_3d)
+
     from qutip.orbital import *
     # load mayavi dependent functions if available
     try:
@@ -248,4 +252,3 @@ from qutip.quantum_info import *
 from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *
-
