@@ -198,7 +198,7 @@ if qutip.settings.qutip_graphics == 'YES':
         hinton, wigner_cmap, sphereplot,
         energy_level_diagram, plot_energy_levels,
         fock_distribution, plot_fock_distribution,
-        wigner_fock_distribution, plot_wigner_fock_distribution,
+        wigner_fock_distribution, plot_wigner_fock_distribution, plot_wigner,
         plot_expectation_values, plot_spin_distribution_2d,
         plot_spin_distribution_3d)
 
