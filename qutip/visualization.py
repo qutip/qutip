@@ -156,7 +156,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
     return fig, ax
 
 
-def sphereplot(theta, phi, values, save=False):
+def sphereplot(theta, phi, values, fig=None, ax=None, save=False):
     """Plots a matrix of values on a sphere
 
     Parameters
@@ -165,10 +165,16 @@ def sphereplot(theta, phi, values, save=False):
         Angle with respect to z-axis
 
     phi : float
-    Angle in x-y plane
+        Angle in x-y plane
 
     values : array
         Data set to be plotted
+
+    fig : a matplotlib Figure instance
+        The Figure canvas in which the plot will be drawn.
+
+    ax : a matplotlib axes instance
+        The axes context in which the plot will be drawn.
 
     save : bool {False , True}
         Whether to save the figure or not
@@ -179,6 +185,10 @@ def sphereplot(theta, phi, values, save=False):
         A tuple of the matplotlib figure and axes instances used to produce
         the figure.
     """
+    if fig is None or ax is None:
+        fig = plt.figure()
+        ax = Axes3D(fig)
+
     thetam, phim = np.meshgrid(theta, phi)
     xx = sin(thetam) * cos(phim)
     yy = sin(thetam) * sin(phim)
@@ -187,11 +197,10 @@ def sphereplot(theta, phi, values, save=False):
     ph = angle(values)
     # normalize color range based on phase angles in list ph
     nrm = mpl.colors.Normalize(ph.min(), ph.max())
-    fig = plt.figure()
-    ax = Axes3D(fig)
+
     # plot with facecolors set to cm.jet colormap normalized to nrm
     surf = ax.plot_surface(r * xx, r * yy, r * zz, rstride=1, cstride=1,
-                           facecorhoslors=cm.jet(nrm(ph)), linewidth=0)
+                           facecolors=cm.jet(nrm(ph)), linewidth=0)
     # create new axes on plot for colorbar and shrink it a bit.
     # pad shifts location of bar with repsect to the main plot
     cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
@@ -673,6 +682,82 @@ def fock_distribution(rho, offset=0, fig=None, ax=None,
                                   unit_y_range=unit_y_range)
 
 
+def plot_wigner(rho, fig=None, ax=None, figsize=(8, 4),
+                cmap=None, alpha_max=7.5, colorbar=False,
+                method='iterative'):
+    """
+    Plot the the Wigner function for a density matrix (or ket) that describes
+    an oscillator mode.
+
+    Parameters
+    ----------
+    rho : :class:`qutip.qobj.Qobj`
+        The density matrix (or ket) of the state to visualize.
+
+    fig : a matplotlib Figure instance
+        The Figure canvas in which the plot will be drawn.
+
+    ax : a matplotlib axes instance
+        The axes context in which the plot will be drawn.
+
+    figsize : (width, height)
+        The size of the matplotlib figure (in inches) if it is to be created
+        (that is, if no 'fig' and 'ax' arguments are passed).
+
+    cmap : a matplotlib cmap instance
+        The colormap.
+
+    alpha_max : float
+        The span of the x and y coordinates (both [-alpha_max, alpha_max]).
+
+    colorbar : bool
+        Whether (True) or not (False) a colorbar should be attached to the
+        Wigner function graph.
+
+    method : string {'iterative', 'laguerre', 'fft'}
+        The method used for calculating the wigner function. See the
+        documentation for qutip.wigner for details.
+
+    Returns
+    -------
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce
+        the figure.
+    """
+
+    if not fig and not ax:
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+
+    if isket(rho):
+        rho = ket2dm(rho)
+
+    xvec = np.linspace(-alpha_max, alpha_max, 200)
+    W0 = wigner(rho, xvec, xvec, method=method)
+
+    W, yvec = W0 if type(W0) is tuple else (W0, xvec)
+
+    wlim = abs(W).max()
+
+    if cmap is None:
+        cmap = cm.get_cmap('RdBu')
+
+    cf = ax.contourf(xvec, yvec, W, 100,
+                     norm=mpl.colors.Normalize(-wlim, wlim), cmap=cmap)
+
+    if not xvec is yvec:
+        ax.set_ylim(xvec.min(), xvec.max())
+
+    ax.set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
+    ax.set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
+
+    if colorbar:
+        cb = fig.colorbar(cf, ax=ax)
+
+    ax.set_title("Wigner function", fontsize=12)
+
+    return fig, ax
+
+
 def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
                                   cmap=None, alpha_max=7.5, colorbar=False,
                                   method='iterative'):
@@ -723,31 +808,8 @@ def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
         rho = ket2dm(rho)
 
     plot_fock_distribution(rho, fig=fig, ax=axes[0])
-
-    xvec = np.linspace(-alpha_max, alpha_max, 200)
-    W0 = wigner(rho, xvec, xvec, method=method)
-
-    W, yvec = W0 if type(W0) is tuple else (W0, xvec)
-
-    wlim = abs(W).max()
-
-    if cmap is None:
-        cmap = cm.get_cmap('RdBu')
-
-    cf = axes[1].contourf(xvec, yvec, W, 100,
-                          norm=mpl.colors.Normalize(-wlim, wlim), cmap=cmap)
-
-    if not xvec is yvec:
-        axes[1].set_ylim(xvec.min(), xvec.max())
-
-    axes[1].set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
-    axes[1].set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
-
-    if colorbar:
-        cb = fig.colorbar(cf, ax=axes[1])
-
-    axes[0].set_title("Fock distribution", fontsize=12)
-    axes[1].set_title("Wigner function", fontsize=12)
+    plot_wigner(rho, fig=fig, ax=axes[1], figsize=figsize, cmap=cmap,
+                alpha_max=alpha_max, colorbar=colorbar, method=method)
 
     return fig, axes
 
