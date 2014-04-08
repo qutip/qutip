@@ -540,9 +540,9 @@ def plot_energy_levels(H_list, N=0, labels=None, show_ylabels=False,
 def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
                          figsize=(8, 12), fig=None, ax=None):
     warnings.warn("Deprecated: Use plot_energy_levels")
-    return energy_level_diagram(H_list, N=N, labels=labels,
-                                show_ylabels=show_ylabels,
-                                figsize=figsize, fig=fig, ax=ax)
+    return plot_energy_levels(H_list, N=N, labels=labels, 
+                              show_ylabels=show_ylabels,
+                              figsize=figsize, fig=fig, ax=ax)
 
 
 def wigner_cmap(W, levels=1024, shift=0, invert=False):
