@@ -751,7 +751,7 @@ class Qobj(object):
         """
         out = Qobj()
         out.data = self.data.conj()
-        out.dims = [self.dims[1], self.dims[0]]
+        out.dims = [self.dims[0], self.dims[1]]
         return out
 
     def norm(self, norm=None, sparse=False, tol=0, maxiter=100000):
@@ -1492,13 +1492,13 @@ class Qobj(object):
     def isbra(self):
         return (np.prod(self.dims[0]) == 1 and
                 isinstance(self.dims[1], list) and
-                isinstance(self.dims[1][0], int))
+                isinstance(self.dims[1][0], (int, np.int32, np.int64)))
 
     @property
     def isket(self):
         return (np.prod(self.dims[1]) == 1 and
                 isinstance(self.dims[0], list) and
-                isinstance(self.dims[0][0], int))
+                isinstance(self.dims[0][0], (int, np.int32, np.int64)))
 
     @property
     def isoperbra(self):
@@ -1515,7 +1515,7 @@ class Qobj(object):
     @property
     def isoper(self):
         return (isinstance(self.dims[0], list) and
-                isinstance(self.dims[0][0], int) and
+                isinstance(self.dims[0][0], (int, np.int32, np.int64)) and
                 self.dims[0] == self.dims[1])
 
     @property
