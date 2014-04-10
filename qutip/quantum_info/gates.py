@@ -243,7 +243,7 @@ shape = [4, 4], type = oper, isHerm = True
     """
     if mask:
         warnings.warn("The mask argument to iswap is deprecated. " +
-                      "Use the N, control and not target is None arguments instead.")
+                      "Use the N, control and target arguments instead.")
 
         if sum(mask) != 2:
             raise ValueError("mask must only have two ones, rest zeros")
@@ -300,7 +300,7 @@ shape = [4, 4], type = oper, isHerm = False
     """
     if mask:
         warnings.warn("The mask argument to iswap is deprecated. " +
-                      "Use the N, control and not target is None arguments instead.")
+                      "Use the N, control and target arguments instead.")
 
         if sum(mask) != 2:
             raise ValueError("mask must only have two ones, rest zeros")
@@ -421,7 +421,7 @@ def _hamming_distance(x, bits=32):
     tot = 0
     while x:
         tot += 1
-        x &= x-1
+        x &= x - 1
     return tot
 
 
@@ -433,9 +433,9 @@ def hadamard(N=1):
     q : qobj
         Quantum object representation of the N-qubit Hadamard gate.
     """
-    data = 2 ** (- N / 2) * np.array([[(-1) ** _hamming_distance(i & j)
-                                       for i in range(2 ** N)]
-                                      for j in range(2 ** N)])
+    data = 2 ** (-N / 2) * np.array([[(-1) ** _hamming_distance(i & j)
+                                      for i in range(2 ** N)]
+                                     for j in range(2 ** N)])
 
     return Qobj(data, dims=[[2] * N, [2] * N])
 
