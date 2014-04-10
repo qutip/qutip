@@ -387,12 +387,12 @@ def sqrtswap(N=None, control=None, target=None):
 
 
 def snot(N=None, target=None):
-    """Quantum object representing the SNOT (Hadamard) gate.
+    """Quantum object representing the SNOT (2-qubit Hadamard) gate.
 
     Returns
     -------
     snot_gate : qobj
-        Quantum object representation of SNOT (Hadamard) gate.
+        Quantum object representation of SNOT gate.
 
     Examples
     --------
@@ -411,6 +411,33 @@ shape = [2, 2], type = oper, isHerm = True
         d = basis(2, 1)
         Q = 1.0 / sqrt(2.0) * (sigmax() + sigmaz())
         return Q
+
+
+def _hamming_distance(x, bits=32):
+    """
+    Calculate the bit-wise Hamming distance of x from 0: That is, the number
+    1s in the integer x.
+    """
+    tot = 0
+    while x:
+        tot += 1
+        x &= x-1
+    return tot
+
+
+def hadamard(N=1):
+    """Quantum object representing the N-qubit Hadamard gate.
+
+    Returns
+    -------
+    q : qobj
+        Quantum object representation of the N-qubit Hadamard gate.
+    """
+    data = 2 ** (- N / 2) * np.array([[(-1) ** _hamming_distance(i & j)
+                                       for i in range(2 ** N)]
+                                      for j in range(2 ** N)])
+
+    return Qobj(data, dims=[[2] * N, [2] * N])
 
 
 def phasegate(theta, N=None, target=None):
