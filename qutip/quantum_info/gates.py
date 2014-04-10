@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,18 +18,19 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
 from numpy import sqrt, array, exp, where, prod
 import scipy.sparse as sp
 from qutip.states import (basis, qstate, state_number_index,
@@ -65,8 +66,8 @@ def rx(phi, N=None, target=None):
     if not N is None and not N is None and not target is None:
         return gate_expand_1toN(rx(phi), N, target)
     else:
-        return Qobj([[np.cos(phi/2), -1j * np.sin(phi/2)],
-                     [-1j * np.sin(phi/2), np.cos(phi/2)]])
+        return Qobj([[np.cos(phi / 2), -1j * np.sin(phi / 2)],
+                     [-1j * np.sin(phi / 2), np.cos(phi / 2)]])
 
 
 def ry(phi, N=None, target=None):
@@ -81,8 +82,8 @@ def ry(phi, N=None, target=None):
     if not N is None and not target is None:
         return gate_expand_1toN(ry(phi), N, target)
     else:
-        return Qobj([[np.cos(phi/2), -np.sin(phi/2)],
-                     [np.sin(phi/2), np.cos(phi/2)]])
+        return Qobj([[np.cos(phi / 2), -np.sin(phi / 2)],
+                     [np.sin(phi / 2), np.cos(phi / 2)]])
 
 
 def rz(phi, N=None, target=None):
@@ -125,10 +126,10 @@ shape = [4, 4], type = oper, isHerm = True
     if not N is None and not control is None and not target is None:
         return gate_expand_2toN(cnot(), N, control, target)
     else:
-        uu = tensor(basis(2),basis(2))
-        ud = tensor(basis(2),basis(2,1))
-        du = tensor(basis(2,1),basis(2))
-        dd = tensor(basis(2,1),basis(2,1))
+        uu = tensor(basis(2), basis(2))
+        ud = tensor(basis(2), basis(2, 1))
+        du = tensor(basis(2, 1), basis(2))
+        dd = tensor(basis(2, 1), basis(2, 1))
         Q = uu * uu.dag() + ud * ud.dag() + dd * du.dag() + du * dd.dag()
         return Qobj(Q)
 
@@ -157,11 +158,11 @@ shape = [8, 8], type = oper, isHerm = True
          [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
 
     """
-    if (not N is None and not control1 is None 
+    if (not N is None and not control1 is None
             and not control2 is None and not target is None):
         return gate_expand_3toN(fredkin(), N, control1, control2, target)
 
-    else:        
+    else:
         uuu = qstate('uuu')
         uud = qstate('uud')
         udu = qstate('udu')
@@ -201,7 +202,7 @@ shape = [8, 8], type = oper, isHerm = True
 
 
     """
-    if (not N is None and not control1 is None 
+    if (not N is None and not control1 is None
             and not control2 is None and not target is None):
         return gate_expand_3toN(toffoli(), N, control1, control2, target)
 
@@ -382,7 +383,7 @@ def sqrtswap(N=None, control=None, target=None):
                            [0, 0.5 + 0.5j, 0.5 - 0.5j, 0],
                            [0, 0.5 - 0.5j, 0.5 + 0.5j, 0],
                            [0, 0, 0, 1]]),
-                      dims=[[2, 2], [2, 2]])
+                    dims=[[2, 2], [2, 2]])
 
 
 def snot(N=None, target=None):
@@ -406,9 +407,9 @@ shape = [2, 2], type = oper, isHerm = True
     if not N is None and not target is None:
         return gate_expand_1toN(snot(), N, target)
     else:
-        u = basis(2,0)
-        d = basis(2,1)
-        Q = 1.0 / sqrt(2.0) * (sigmax()+sigmaz())
+        u = basis(2, 0)
+        d = basis(2, 1)
+        Q = 1.0 / sqrt(2.0) * (sigmax() + sigmaz())
         return Q
 
 
@@ -440,7 +441,7 @@ shape = [2, 2], type = oper, isHerm = False
         return gate_expand_1toN(phasegate(theta), N, target)
     else:
         u = basis(2)
-        d = basis(2,1)
+        d = basis(2, 1)
         Q = u * u.dag() + (exp(1.0j * theta) * d * d.dag())
         return Qobj(Q)
 
@@ -460,7 +461,7 @@ def gate_expand_1toN(U, N, target):
 
     target : integer
         The index of the target qubit.
-    
+
     Returns
     -------
     gate : qobj
@@ -473,7 +474,7 @@ def gate_expand_1toN(U, N, target):
     if target >= N:
         raise ValueError("target must be integer < integer N")
 
-    return tensor([identity(2)] * (target) + [U] + 
+    return tensor([identity(2)] * (target) + [U] +
                   [identity(2)] * (N - target - 1))
 
 
@@ -492,10 +493,10 @@ def gate_expand_2toN(U, N, control, target):
 
     control : integer
         The index of the control qubit.
-    
+
     target : integer
         The index of the target qubit.
-    
+
     Returns
     -------
     gate : qobj
@@ -512,12 +513,19 @@ def gate_expand_2toN(U, N, control, target):
         raise ValueError("target and not control cannot be equal")
 
     p = list(range(N))
-    p[0], p[control] = p[control], p[0]
-    if p[1] == 1:
-        p[1], p[target] = p[target], p[1]
-    print(p)
 
-    return tensor([U] +[identity(2)] * (N - 2)).permute(p)
+    if target == 0 and control == 1:
+        p[control], p[target] = p[target], p[control]
+
+    elif target == 0:
+        p[1], p[target] = p[target], p[1]
+        p[1], p[control] = p[control], p[1]
+
+    else:
+        p[1], p[target] = p[target], p[1]
+        p[0], p[control] = p[control], p[0]
+
+    return tensor([U] + [identity(2)] * (N - 2)).permute(p)
 
 
 def gate_expand_3toN(U, N, control1, control2, target):
@@ -538,10 +546,10 @@ def gate_expand_3toN(U, N, control1, control2, target):
 
     control2 : integer
         The index of the second control qubit.
-    
+
     target : integer
         The index of the target qubit.
-    
+
     Returns
     -------
     gate : qobj
@@ -552,18 +560,127 @@ def gate_expand_3toN(U, N, control1, control2, target):
         raise ValueError("integer N must be larger or equal to 3")
 
     if control1 >= N or control2 >= N or target >= N:
-        raise ValueError("control and not target is None must be integer < integer N")
+        raise ValueError(
+            "control and not target is None must be integer < integer N")
 
     if control1 == target or control2 == target or control1 == control2:
         raise ValueError("control1, control2, and target cannot be equal")
 
     p = list(range(N))
-    p[0], p[control1] = p[control1], p[0]
-    if p[1] == 1:
-        p[1], p[control2] = p[control2], p[1]
-    if p[2] == 2:
+    p1 = list(range(N))
+    p2 = list(range(N))
+
+    if control1 <= 2 and control2 <= 2 and target <= 2:
+        p[0], p[control1] = p[control1], p[0]
+        p1[1], p1[control2] = p1[control2], p1[1]
+        p2[2], p2[target] = p2[target], p2[2]
+        p = [p[p1[p2[k]]] for k in range(N)]
+
+    #
+    # N >= 3 cases
+    #
+
+    elif control1 == 0 and control2 == 1:
         p[2], p[target] = p[target], p[2]
-    print(p)
 
-    return tensor([U] +[identity(2)] * (N - 3)).permute(p)
+    elif control1 == 0 and target == 2:
+        p[1], p[control2] = p[control2], p[1]
 
+    elif control2 == 1 and target == 2:
+        p[0], p[control1] = p[control1], p[0]
+
+    elif control1 == 1 and control2 == 0:
+        p[control2], p[control1] = p[control1], p[control2]
+        p2[2], p2[target] = p2[target], p2[2]
+        p = [p2[p[k]] for k in range(N)]
+
+    elif control1 == 2 and target == 0:
+        p[target], p[control1] = p[control1], p[target]
+        p1[1], p1[control2] = p1[control2], p1[1]
+        p = [p1[p[k]] for k in range(N)]
+
+    elif control2 == 2 and target == 1:
+        p[target], p[control2] = p[control2], p[target]
+        p1[0], p1[control1] = p1[control1], p1[0]
+        p = [p1[p[k]] for k in range(N)]
+
+    elif control1 == 1 and control2 == 2:
+        #  control1 -> control2 -> target -> outside
+        p[0], p[1] = p[1], p[0]
+        p[0], p[2] = p[2], p[0]
+        p[0], p[target] = p[target], p[0]
+
+    elif control1 == 2 and target == 1:
+        #  control1 -> target -> control2 -> outside
+        p[0], p[2] = p[2], p[0]
+        p[0], p[1] = p[1], p[0]
+        p[0], p[control2] = p[control2], p[0]
+
+    elif control2 == 0 and control1 == 2:
+        #  control2 -> control1 -> target -> outside
+        p[1], p[0] = p[0], p[1]
+        p[1], p[2] = p[2], p[1]
+        p[1], p[target] = p[target], p[1]
+
+    elif control2 == 2 and target == 0:
+        #  control2 -> target -> control1 -> outside
+        p[1], p[2] = p[2], p[1]
+        p[1], p[0] = p[0], p[1]
+        p[1], p[control1] = p[control1], p[1]
+
+    elif target == 1 and control2 == 0:
+        #  target -> control2 -> control1 -> outside
+        p[2], p[1] = p[1], p[2]
+        p[2], p[0] = p[0], p[2]
+        p[2], p[control1] = p[control1], p[2]
+
+    elif target == 0 and control1 == 1:
+        #  target -> control1 -> control2 -> outside
+        p[2], p[0] = p[0], p[2]
+        p[2], p[1] = p[1], p[2]
+        p[2], p[control2] = p[control2], p[2]
+
+    elif control1 == 0 and control2 == 2:
+        #  control1 -> self, control2 -> target -> outside
+        p[1], p[2] = p[2], p[1]
+        p[1], p[target] = p[target], p[1]
+
+    elif control2 == 1 and control1 == 2:
+        #  control2 -> self, control1 -> target -> outside
+        p[0], p[2] = p[2], p[0]
+        p[0], p[target] = p[target], p[0]
+
+    elif target == 2 and control1 == 1:
+        #  target -> self, control1 -> control2 -> outside
+        p[0], p[1] = p[1], p[0]
+        p[0], p[control2] = p[control2], p[0]
+
+    #
+    # N >= 4 cases
+    #
+
+    elif control1 == 1 and control2 > 2 and target > 2:
+        #  control1 -> control2 -> outside, target -> outside
+        p[0], p[1] = p[1], p[0]
+        p[0], p[control2] = p[control2], p[0]
+        p[2], p[target] = p[target], p[2]
+
+    elif control1 == 2 and control2 > 2 and target > 2:
+        #  control1 -> target -> outside, control2 -> outside
+        p[0], p[2] = p[2], p[0]
+        p[0], p[target] = p[target], p[0]
+        p[1], p[control2] = p[control2], p[1]
+
+    elif control2 == 2 and control1 > 2 and target > 2:
+        #  control2 -> target -> outside, control1 -> outside
+        p[1], p[2] = p[2], p[1]
+        p[1], p[target] = p[target], p[1]
+        p[0], p[control1] = p[control1], p[0]
+
+    else:
+        p[0], p[control1] = p[control1], p[0]
+        p1[1], p1[control2] = p1[control2], p1[1]
+        p2[2], p2[target] = p2[target], p2[2]
+        p = [p[p1[p2[k]]] for k in range(N)]
+
+    return tensor([U] + [identity(2)] * (N - 3)).permute(p)
