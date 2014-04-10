@@ -70,8 +70,11 @@ def _sp_L2_norm(op):
     """
     if op.type == 'super' or op.type == 'oper':
         raise TypeError("Use L2-norm for ket or bra states only.")
-    return _dznrm2(op.data.data)
 
+    if len(op.data.data):
+        return _dznrm2(op.data.data)
+    else:
+        return 0
 
 def _sp_max_norm(op):
     """
