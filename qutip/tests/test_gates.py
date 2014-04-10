@@ -162,7 +162,7 @@ class TestGates:
 
     def testExpandGate3toN(self):
         """
-        gates: expand 2 to N (using toffoli, fredkin, and random 3 qubit gate)
+        gates: expand 3 to N (using toffoli, fredkin, and random 3 qubit gate)
         """
 
         a, b = np.random.rand(), np.random.rand()
@@ -194,7 +194,7 @@ class TestGates:
                 for n in set(range(N)) - {m}:
                     for k in set(range(N)) - {m, n}:
 
-                        psi_list = [psi_rand_list[k] for k in range(N)]
+                        psi_list = [psi_rand_list[p] for p in range(N)]
                         psi_list[m] = psi1
                         psi_list[n] = psi2
                         psi_list[k] = psi3
