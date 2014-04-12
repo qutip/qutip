@@ -44,21 +44,22 @@ expect_psi = cy_expect_psi
 
 
 def expect(oper, state):
-    '''Calculates the expectation value for operator and state(s).
+    '''Calculates the expectation value for operator(s) and state(s).
 
     Parameters
     ----------
-    oper : qobj
-        Operator for expectation value.
+    oper : qobj/array-like
+        A single or a `list` or operators for expectation value.
 
-    state : qobj/list
-        A single or `list` of quantum states or density matrices..
+    state : qobj/array-like
+        A single or a `list` of quantum states or density matrices.
 
     Returns
     -------
-    expt : float
+    expt : float/complex/array-like
         Expectation value.  ``real`` if `oper` is Hermitian, ``complex``
-        otherwise.
+        otherwise. A (nested) array of expectaction values of state or operator
+        are arrays.
 
     Examples
     --------
@@ -72,7 +73,17 @@ def expect(oper, state):
     elif isinstance(oper, Qobj) and isinstance(state, eseries):
         return _single_eseries_expect(oper, state)
 
-    elif isinstance(state, np.ndarray) or isinstance(state, list):
+    elif isinstance(oper, (list, np.ndarray)):
+        if isinstance(state, Qobj):
+            if all([op.isherm for op in oper]) and (state.isket or state.isherm):
+                return np.array([_single_qobj_expect(o, state) for o in oper])
+            else:
+                return np.array([_single_qobj_expect(o, state) for o in oper],
+                                dtype=complex)
+        else:
+            return [expect(o, state) for o in oper]
+
+    elif isinstance(state, (list, np.ndarray)):
         if oper.isherm and all([(op.isherm or op.type == 'ket')
                                 for op in state]):
             return np.array([_single_qobj_expect(oper, x) for x in state])
