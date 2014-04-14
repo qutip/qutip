@@ -38,6 +38,7 @@ from qutip.operators import (num, destroy,
                              sigmax, sigmay, sigmaz, sigmam, sigmap)
 from qutip.states import fock, fock_dm
 from qutip.expect import expect
+from qutip.mesolve import mesolve
 
 
 class TestExpect:
@@ -133,6 +134,29 @@ class TestExpect:
 
             for s_idx, s in enumerate(states):
                 assert_(r[s_idx] == expect(operators[r_idx], states[s_idx]))
+
+    def testExpectSolverCompatibility(self):
+        """
+        expect: operator list and state list
+        """
+        c_ops = [0.0001 * sigmaz()]
+        e_ops = [sigmax(), sigmay(), sigmaz(), sigmam(), sigmap()]
+        times = np.linspace(0, 10, 100)
+
+        res1 = mesolve(sigmax(), fock(2, 0), times, c_ops, e_ops)
+        res2 = mesolve(sigmax(), fock(2, 0), times, c_ops, [])
+
+        e1 = res1.expect
+        e2 = expect(e_ops, res2.states)
+
+        assert_(len(e1) == len(e2))
+
+        for n in range(len(e1)):
+            assert_(len(e1[n]) == len(e2[n]))
+            assert_(isinstance(e1[n], np.ndarray))
+            assert_(isinstance(e2[n], np.ndarray))
+            assert_(e1[n].dtype == e2[n].dtype)
+            assert_(all(abs(e1[n] - e2[n]) < 1e-12))
 
 
 if __name__ == "__main__":
