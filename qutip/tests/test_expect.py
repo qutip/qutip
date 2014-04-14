@@ -114,7 +114,7 @@ class TestExpect:
 
     def testOperatorListStateList(self):
         """
-        expect: operator list and state
+        expect: operator list and state list
         """
         operators = [sigmax(), sigmay(), sigmaz(), sigmam(), sigmap()]
         states = [fock(2, 0), fock(2, 1), fock_dm(2, 0), fock_dm(2, 1)]
