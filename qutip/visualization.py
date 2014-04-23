@@ -37,6 +37,7 @@ visualizations of quantum states and processes.
 import warnings
 import numpy as np
 from numpy import pi, array, sin, cos, angle
+from math import sqrt
 
 import qutip.settings
 if qutip.settings.qutip_graphics == 'YES':
@@ -48,6 +49,7 @@ if qutip.settings.qutip_graphics == 'YES':
 from qutip.qobj import Qobj, isket, isbra
 from qutip.states import ket2dm
 from qutip.wigner import wigner
+from qutip.tensor import tensor
 
 
 # Adopted from the SciPy Cookbook.
@@ -1054,3 +1056,87 @@ def plot_spin_distribution_3d(P, THETA, PHI,
     cb1.set_label('magnitude')
 
     return fig, ax
+
+
+# Qubism
+
+# Functions for Qubism and Qubism-like visualizations of quantum states
+# (especially spin chains).
+
+def complex_array_to_rgb(X, theme='dark', rmax=None):
+    '''Takes an array of complex number and converts it to an array of [r, g, b],
+    where phase gives hue and saturaton/value are given by the absolute value.
+    Especially for use with imshow for complex plots.'''
+    absmax = rmax or np.abs(X).max()
+    Y = np.zeros(X.shape + (3,), dtype='float')
+    Y[..., 0] = np.angle(X) / (2 * pi) % 1
+    if theme == 'light':
+        Y[..., 1] = np.clip(np.abs(X) / absmax, 0, 1)
+        Y[..., 2] = 1
+    elif theme == 'dark':
+        Y[..., 1] = 1
+        Y[..., 2] = np.clip(np.abs(X) / absmax, 0, 1)
+    Y = matplotlib.colors.hsv_to_rgb(Y)
+    return Y
+
+
+# now d>2 only for some cases
+def _o_qubism_index_pair(k, d=2, n=None, how='pairs', skewed=False):
+    if how == 'pairs':
+        i = 0
+        j = k
+        x = 0
+        y = 0
+        while j:
+            x += d**i * (j % d)
+            j /= d
+            y += d**i * (j % d)
+            j /= d
+            i += 1
+    elif how == 'before_after':
+    # from: http://en.wikipedia.org/wiki/File:Ising-tartan.png 
+        if not n:
+            raise Exception("Number of particles n is required.")
+        t = bin(k)[2:]
+        t = ['0']*(n - len(t)) + list(t)
+        x = t[:n/2]
+        x.reverse()
+        y = t[n/2:]
+        x, y = (int(''.join(x), 2), int(''.join(y), 2))
+    if skewed:
+        return (x, x^y)  # ^ is bitwise XOR
+    else:
+        return (x, y)
+
+
+# now only for dim=2 but will more more
+# maybe I should make it working also for arrays, not only qutip objects
+def qubistic_plot(ket, theme="light", how='pairs', skewed=False, grid_iter=2):
+    
+    n = len(ket.dims[0])
+    d = ket.dims[0][0]  # as of now assuming that all dims are same
+
+    # for odd number of particles - pixels are rectangular
+    if n % 2 == 1:
+        ket = tensor(ket, Qobj([1]*d))
+        n += 1
+
+    ketdata = ket.full()
+    halfsize = sqrt(ketdata.size)
+    
+    qub = np.zeros([halfsize, halfsize], dtype=complex)
+    for i in range(ketdata.size):
+        qub[_to_qubism_index_pair(i, d=d, n=n, how=how, skewed=skewed)] = ketdata[i,0]
+    qub = qub.transpose()
+    
+    quadrants = d**grid_iter
+    ticks = [halfsize/(float(quadrants)) * i for i in range(1, quadrants)]
+    # fig = plt.figure()
+    plt.xticks(ticks, [""]*(quadrants - 1))
+    plt.yticks(ticks, [""]*(quadrants - 1))
+    plt.grid(True)
+    plt.imshow(complex_array_to_rgb(qub, theme=theme),
+               interpolation="none",
+               extent=(0, halfsize, 0, halfsize));
+    # plt.tight_layout()
+    # return fig
