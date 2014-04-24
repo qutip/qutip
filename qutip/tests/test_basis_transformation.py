@@ -81,7 +81,7 @@ def test_Transformation4():
 
 
 def test_Transformation5():
-    "Consistency between transformations of kets and denstity matrices"
+    "Consistency between transformations of kets and density matrices"
 
     N = 4
     psi0 = rand_ket(N)
