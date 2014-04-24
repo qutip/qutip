@@ -1064,9 +1064,29 @@ def plot_spin_distribution_3d(P, THETA, PHI,
 # (especially spin chains).
 
 def complex_array_to_rgb(X, theme='dark', rmax=None):
-    '''Takes an array of complex number and converts it to an array of [r, g, b],
-    where phase gives hue and saturaton/value are given by the absolute value.
-    Especially for use with imshow for complex plots.'''
+    """Makes an array of complex number and converts it to an array of [r, g, b],
+    where phase gives hue and saturation/value are given by the absolute value.
+    Especially for use with imshow for complex plots.
+
+    Parameters
+    ----------
+    X : array
+        Array (of any dimension) of complex numbers. 
+
+    theme : 'dark' (default) or 'light'
+        Set coloring theme for mapping complex values into colors.
+
+    rmax : float
+        Maximal abs value for color normalization.
+        If None (default), uses np.abs(X).max().
+
+    Returns
+    -------
+    Y : array
+        Array of colors (of shape X.shape + (3,)).
+
+    """
+
     absmax = rmax or np.abs(X).max()
     Y = np.zeros(X.shape + (3,), dtype='float')
     Y[..., 0] = np.angle(X) / (2 * pi) % 1
@@ -1076,12 +1096,12 @@ def complex_array_to_rgb(X, theme='dark', rmax=None):
     elif theme == 'dark':
         Y[..., 1] = 1
         Y[..., 2] = np.clip(np.abs(X) / absmax, 0, 1)
-    Y = matplotlib.colors.hsv_to_rgb(Y)
+    Y = mpl.colors.hsv_to_rgb(Y)
     return Y
 
 
 # now d>2 only for some cases
-def _o_qubism_index_pair(k, d=2, n=None, how='pairs', skewed=False):
+def _to_qubism_index_pair(k, d=2, n=None, how='pairs', skewed=False):
     if how == 'pairs':
         i = 0
         j = k
@@ -1110,9 +1130,66 @@ def _o_qubism_index_pair(k, d=2, n=None, how='pairs', skewed=False):
 
 
 # now only for dim=2 but will more more
-# maybe I should make it working also for arrays, not only qutip objects
-def qubistic_plot(ket, theme="light", how='pairs', skewed=False, grid_iter=2):
-    
+def plot_qubism(ket, theme="light", how='pairs', skewed=False, grid_iter=2,
+                fig=None, ax=None, figsize=(6, 6)):
+    """
+    Qubism plot for pure states of many qudits.
+    Works best for 
+
+    More information:
+      J. Rodriguez-Laguna, P. Migdal, M. Ibanez Berganza, M. Lewenstein, G. Sierra,
+      "Qubism: self-similar visualization of many-body wavefunctions",
+      New J. Phys. 14 053028 (2012), arXiv:1112.3560, 
+      http://dx.doi.org/10.1088/1367-2630/14/5/053028 (open access)
+
+
+    As of now only for n particles of the same dimension.
+    Works best for even number of particles.
+
+
+    Parameters
+    ----------
+    ket : Qobj
+        Pure state for plotting.
+
+    theme : 'dark' (default) or 'light'
+        Set coloring theme for mapping complex values into colors.
+        See: complex_array_to_rgb.
+
+    how : 'pairs' (default) or 'before_after'
+        Type of Qubism plotting.
+        (As of now under development, please use default.)
+
+    skewed : boolean (default False):
+        Use alternative plotting scheme,
+        especially for ferromagnetic and antiferromagnetic states.
+        (As of now under development, use only for qubits.)
+
+    grid_iter : int (default 2)
+        Helper lines to be drawn on plot.
+        Show tiles for 2*grid_iter particles vs all others.
+
+    fig : a matplotlib figure instance
+        The figure canvas on which the plot will be drawn.
+
+    ax : a matplotlib axis instance
+        The axis context in which the plot will be drawn.
+
+    figsize : (width, height)
+        The size of the matplotlib figure (in inches) if it is to be created
+        (that is, if no 'fig' and 'ax' arguments are passed).
+
+    Returns
+    -------
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce
+        the figure.
+
+    """
+
+    if not fig and not ax:
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+ 
     n = len(ket.dims[0])
     d = ket.dims[0][0]  # as of now assuming that all dims are same
 
@@ -1131,12 +1208,20 @@ def qubistic_plot(ket, theme="light", how='pairs', skewed=False, grid_iter=2):
     
     quadrants = d**grid_iter
     ticks = [halfsize/(float(quadrants)) * i for i in range(1, quadrants)]
-    # fig = plt.figure()
     plt.xticks(ticks, [""]*(quadrants - 1))
     plt.yticks(ticks, [""]*(quadrants - 1))
     plt.grid(True)
     plt.imshow(complex_array_to_rgb(qub, theme=theme),
                interpolation="none",
                extent=(0, halfsize, 0, halfsize));
-    # plt.tight_layout()
-    # return fig
+    return fig, ax
+
+# TO DO:
+# * For particles of different dim.
+# * Better tick labels or draw plotting scheme?
+# * Also for density matrices?
+# * Add Schmidt plot.
+
+# BTW: 
+# how about such syntax for plotting?
+# Qobj.plot_qubism = plot_qubism
