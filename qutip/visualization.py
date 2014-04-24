@@ -1058,10 +1058,9 @@ def plot_spin_distribution_3d(P, THETA, PHI,
     return fig, ax
 
 
-# Qubism
-
-# Functions for Qubism and Qubism-like visualizations of quantum states
-# (especially spin chains).
+#
+# Qubism and other qubistic visualizations
+#
 
 def complex_array_to_rgb(X, theme='dark', rmax=None):
     """Makes an array of complex number and converts it to an array of [r, g, b],
@@ -1129,12 +1128,12 @@ def _to_qubism_index_pair(k, d=2, n=None, how='pairs', skewed=False):
         return (x, y)
 
 
-# now only for dim=2 but will more more
 def plot_qubism(ket, theme="light", how='pairs', skewed=False, grid_iter=2,
                 fig=None, ax=None, figsize=(6, 6)):
     """
     Qubism plot for pure states of many qudits.
-    Works best for 
+    Works best for spin chains, especially with even number of particles.
+    Allows to see entanglement between first 2*k particles and the rest.
 
     More information:
       J. Rodriguez-Laguna, P. Migdal, M. Ibanez Berganza, M. Lewenstein, G. Sierra,
@@ -1143,8 +1142,7 @@ def plot_qubism(ket, theme="light", how='pairs', skewed=False, grid_iter=2,
       http://dx.doi.org/10.1088/1367-2630/14/5/053028 (open access)
 
 
-    As of now only for n particles of the same dimension.
-    Works best for even number of particles.
+    Note: as of now only for n particles of the same dimension.
 
 
     Parameters
