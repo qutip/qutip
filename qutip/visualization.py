@@ -1210,7 +1210,9 @@ def plot_qubism(ket, theme="light", how='pairs', skewed=False, grid_iter=2,
     ticks = [halfsize/(float(quadrants)) * i for i in range(1, quadrants)]
     plt.xticks(ticks, [""]*(quadrants - 1))
     plt.yticks(ticks, [""]*(quadrants - 1))
-    plt.grid(True)
+    theme2color_of_lines = {'light': '#000000',
+                            'dark': '#FFFFFF'}
+    plt.grid(True, color=theme2color_of_lines[theme])
     plt.imshow(complex_array_to_rgb(qub, theme=theme),
                interpolation="none",
                extent=(0, halfsize, 0, halfsize));
