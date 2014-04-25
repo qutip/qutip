@@ -67,13 +67,42 @@ def test_graph_bfs():
     arr2 = breadth_first_search(A,seed)[0]
     assert_equal((arr1 - arr2).all(), 0)
 
-def test_graph_rcm():
-    "Graph: Reverse Cuthill-McKee Ordering"
+def test_graph_rcm_simple():
+    "Graph: Reverse Cuthill-McKee Ordering (simple)"
+    A=array([[1,0,0,0,1,0,0,0],[0,1,1,0,0,1,0,1],[0,1,1,0,1,0,0,0],
+           [0,0,0,1,0,0,1,0],[1,0,1,0,1,0,0,0],[0,1,0,0,0,1,0,1],
+           [0,0,0,1,0,0,1,0],[0,1,0,0,0,1,0,1]], dtype=np.int32)
+    A=sp.csr_matrix(A)
+    perm=symrcm(A)
+    ans=array([6,3,7,5,1,2,4,0])
+    assert_equal((perm - ans).all(), 0)
+
+def test_graph_rcm_bucky():
+    "Graph: Reverse Cuthill-McKee Ordering (Bucky)"
     B=np.load(pwd+'/bucky.npy')
     B=sp.csr_matrix(B,dtype=float)
     perm=symrcm(B)
     ans=np.load(pwd+'/bucky_perm.npy')
     assert_equal((perm - ans).all(), 0)
+
+def test_graph_rcm_boost():
+    "Graph: Reverse Cuthill-McKee Ordering (boost)"
+    M=np.zeros((10,10))
+    M[0,[3,5]]=1
+    M[1,[2,4,6,9]]=1
+    M[2,[3,4]]=1
+    M[3,[5,8]]=1
+    M[4,6]=1
+    M[5,[6,7]]=1
+    M[6,7]=1
+    M=M+M.T
+    M=sp.csr_matrix(M)
+    perm=symrcm(M,1)
+    ans_perm=array([9,7,6,4,1,5,0,2,3,8])
+    assert_equal((perm - ans_perm).all(), 0)
+    P=sparse_permute(M,perm,perm)
+    bw=sparse_bandwidth(P)
+    assert_equal(bw[2], 4)
 
 
 if __name__ == "__main__":
