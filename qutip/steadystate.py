@@ -83,11 +83,15 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
         iterative method BICGSTAB 'iterative-bicg', LU decomposition 'lu',
         SVD 'svd' (dense), or inverse-power method 'power'.
 
-    sparse : bool, default=True
+    sparse : bool, default = True
         Solve for the steady state using sparse algorithms. If set to False,
         the underlying Liouvillian operator will be converted into a dense
         matrix. Use only for 'smaller' systems.
 
+    use_rcm : bool, default = True
+        Use reverse Cuthill-Mckee reordering to minimize fill-in in the
+        LU factorization of the Liouvillian.
+    
     maxiter : int, optional
         Maximum number of iterations to perform if using an iterative method
         such as 'iterative' (default=1000), or 'power' (default=10).
@@ -152,7 +156,8 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
 
     if method == 'direct':
         if sparse:
-            return _steadystate_direct_sparse(A, use_umfpack=use_umfpack)
+            return _steadystate_direct_sparse(A, use_rcm=use_rcm, 
+                                    use_umfpack=use_umfpack)
         else:
             return _steadystate_direct_dense(A)
 
@@ -172,7 +177,7 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
                                            diag_pivot_thresh=diag_pivot_thresh)
 
     elif method == 'lu':
-        return _steadystate_lu(A)
+        return _steadystate_lu(A, use_umfpack=use_umfpack)
 
     elif method == 'svd':
         return _steadystate_svd_dense(A, atol=1e-12, rtol=0,
@@ -196,27 +201,34 @@ def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
                        use_umfpack=use_umfpack, use_precond=use_precond)
 
 
-def _steadystate_direct_sparse(L, use_umfpack=False):
+def _steadystate_direct_sparse(L, use_rcm=True, use_umfpack=False):
     """
-    Direct solver that use scipy sparse matrices
+    Direct solver that uses scipy sparse matrices
     """
     if settings.debug:
         print('Starting direct solver...')
-
+    dims=L.dims[0]
+    weight=np.abs(L.data.max())
     n = prod(L.dims[0][0])
-    b = sp.csr_matrix(([1.0], ([0], [0])), shape=(n ** 2, 1), dtype=complex)
-    M = L.data + sp.csr_matrix((np.ones(n), (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
+    b = np.zeros((n ** 2, 1), dtype=complex)
+    b[0,0] = weight
+    L = L.data + sp.csr_matrix((weight*np.ones(n), (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
                                shape=(n ** 2, n ** 2))
-
+    L.sort_indices()
     use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
-    M.sort_indices()
-
-    v = spsolve(M, b)
-
+    if use_rcm:
+        perm = symrcm(L)
+        L = sparse_permute(L,perm,perm)
+        b = b[np.ix_(perm,)]
+    
+    v = spsolve(L, b)
+    if use_rcm:
+        rev_perm = np.argsort(perm)
+        v = v[np.ix_(rev_perm,)]
+    
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
-
-    return Qobj(data, dims=L.dims[0], isherm=True)
+    return Qobj(data, dims=dims, isherm=True)
 
 
 def _steadystate_direct_dense(L):
@@ -226,19 +238,19 @@ def _steadystate_direct_dense(L):
     """
     if settings.debug:
         print('Starting direct dense solver...')
-
+    dims=L.dims[0]
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2)
     b[0] = 1.0
 
-    M = L.data.todense()
-    M[0, :] = np.diag(np.ones(n)).reshape((1, n ** 2))
-    v = np.linalg.solve(M, b)
+    L = L.data.todense()
+    L[0, :] = np.diag(np.ones(n)).reshape((1, n ** 2))
+    v = np.linalg.solve(L, b)
 
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
 
-    return Qobj(data, dims=L.dims[0], isherm=True)
+    return Qobj(data, dims=dims, isherm=True)
 
 
 def _iterative_precondition(A, n, drop_tol, diag_pivot_thresh, fill_factor):
@@ -367,31 +379,38 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True,
     return Qobj(data, dims=dims, isherm=True)
 
 
-def _steadystate_lu(L):
+def _steadystate_lu(L, use_rcm=True, use_umfpack=False):
     """
     Find the steady state(s) of an open quantum system by computing the
     LU decomposition of the underlying matrix.
     """
     if settings.debug:
         print('Starting LU solver...')
-
-    use_solver(assumeSortedIndices=True)
-
+    dims=L.dims[0]
+    weight=np.abs(L.data.max())
     n = prod(L.dims[0][0])
-    b = np.zeros(n ** 2)
-    b[0] = 1.0
-    A = L.data.tocsc() + sp.csc_matrix((np.ones(n),
+    b = np.zeros(n ** 2, dtype=complex)
+    b[0] = weight
+    L = L.data.tocsc() + sp.csc_matrix((weight*np.ones(n),
                     (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
         shape=(n ** 2, n ** 2))
-
-    A.sort_indices()
-    solve = factorized(A)
+    
+    L.sort_indices()
+    use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
+    if use_rcm:
+        perm = symrcm(L)
+        L = sparse_permute(L,perm,perm)
+        b = b[np.ix_(perm,)]
+    
+    solve = factorized(L)
     v = solve(b)
-
+    if use_rcm:
+        rev_perm = np.argsort(perm)
+        v = v[np.ix_(rev_perm,)]
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
 
-    return Qobj(data, dims=L.dims[0], isherm=True)
+    return Qobj(data, dims=dims, isherm=True)
 
 
 def _steadystate_svd_dense(L, atol=1e-12, rtol=0, all_steadystates=False):
