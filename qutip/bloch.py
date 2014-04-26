@@ -114,7 +114,7 @@ class Bloch():
         List of strings corresponding to +y and -y axes labels, respectively.
     ylpos : list {[1.2,-1.2]}
         Positions of +y and -y labels respectively.
-    zlabel : list {['$\\left|0\\right>$','$\\left|1\\right>$']}
+    zlabel : list {[r'$\\left|0\\right>$',r'$\\left|1\\right>$']}
         List of strings corresponding to +z and -z axes labels, respectively.
     zlpos : list {[1.2,-1.2]}
         Positions of +z and -z labels respectively.
@@ -390,7 +390,7 @@ class Bloch():
             You can use LaTeX, but remember to use raw string
             e.g. r"$\\langle x \\rangle$"
             or escape backslashes
-            e.g. "$\\langle x \\rangle$".
+            e.g. "$\\\\langle x \\\\rangle$".
 
         **kwargs :
             Options as for mplot3d.axes3d.text, including:
