@@ -354,7 +354,7 @@ class _MC_class():
             if odeconfig.e_num == 0:
                 # Output array of state vectors calculated at times in tlist
                 self.psi_out = array([Qobj()] * self.num_times)
-            elif odeconfig.e_num != 0:  # no collpase expectation values
+            elif odeconfig.e_num != 0:  # no collapse expectation values
                 # List of output expectation values calculated at times in
                 # tlist
                 self.expect_out = []
@@ -823,8 +823,8 @@ def _mc_alg_evolve(nt, args, odeconfig):
                     if not ODE.successful():
                         raise Exception("ZVODE failed!")
                 norm2_psi = dznrm2(ODE.y) ** 2
-                if norm2_psi <= rand_vals[0]:  # <== collpase has occured
-                    # find collpase time to within specified tolerance
+                if norm2_psi <= rand_vals[0]:  # <== collapse has occured
+                    # find collapse time to within specified tolerance
                     #---------------------------------------------------
                     ii = 0
                     t_final = ODE.t
@@ -1127,7 +1127,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             H_inds = arange(len_h)
             # store indicies of time-dependent Hamiltonian terms
             odeconfig.h_td_inds = arange(1, len_h)
-            # if there are any collpase operators
+            # if there are any collapse operators
             if odeconfig.c_num > 0:
                 if odeconfig.tflag == 10:
                     # constant collapse operators
