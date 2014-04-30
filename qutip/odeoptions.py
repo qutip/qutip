@@ -103,7 +103,7 @@ class Odeoptions():
                  nsteps=1000, first_step=0, max_step=0, min_step=0,
                  average_expect=True, average_states=False, tidy=True,
                  num_cpus=0, norm_tol=1e-3, norm_steps=5, rhs_reuse=False,
-                 rhs_filename=None, ntraj=500, rhs_with_state=False,
+                 rhs_filename=None, ntraj=500, gui=False, rhs_with_state=False,
                  store_final_state=False, store_states=False, seeds=None,
                  steady_state_average=False):
         # Absolute tolerance (default = 1e-8)
