@@ -56,6 +56,7 @@ import qutip.settings as settings
 if settings.debug:
     import inspect
 
+
 def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
                 sym=False, use_precond=True, M=None, drop_tol=1e-3,
                 fill_factor=12, diag_pivot_thresh=None, maxiter=1000, tol=1e-5,
@@ -91,7 +92,7 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
     use_rcm : bool, default = True
         Use reverse Cuthill-Mckee reordering to minimize fill-in in the
         LU factorization of the Liouvillian.
-    
+
     maxiter : int, optional
         Maximum number of iterations to perform if using an iterative method
         such as 'iterative' (default=1000), or 'power' (default=10).
@@ -156,8 +157,8 @@ def steadystate(A, c_op_list=[], method='direct', sparse=True, use_rcm=True,
 
     if method == 'direct':
         if sparse:
-            return _steadystate_direct_sparse(A, use_rcm=use_rcm, 
-                                    use_umfpack=use_umfpack)
+            return _steadystate_direct_sparse(A, use_rcm=use_rcm,
+                                              use_umfpack=use_umfpack)
         else:
             return _steadystate_direct_dense(A)
 
@@ -207,25 +208,28 @@ def _steadystate_direct_sparse(L, use_rcm=True, use_umfpack=False):
     """
     if settings.debug:
         print('Starting direct solver...')
-    dims=L.dims[0]
-    weight=np.abs(L.data.max())
+
+    dims = L.dims[0]
+    weight = np.abs(L.data.data.max())
     n = prod(L.dims[0][0])
     b = np.zeros((n ** 2, 1), dtype=complex)
-    b[0,0] = weight
-    L = L.data + sp.csr_matrix((weight*np.ones(n), (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
-                               shape=(n ** 2, n ** 2))
+    b[0, 0] = weight
+    L = L.data + sp.csr_matrix(
+        (weight*np.ones(n), (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
+        shape=(n ** 2, n ** 2))
     L.sort_indices()
     use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
+
     if use_rcm:
         perm = symrcm(L)
-        L = sparse_permute(L,perm,perm)
+        L = sparse_permute(L, perm, perm)
         b = b[np.ix_(perm,)]
-    
+
     v = spsolve(L, b)
     if use_rcm:
         rev_perm = np.argsort(perm)
         v = v[np.ix_(rev_perm,)]
-    
+
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
     return Qobj(data, dims=dims, isherm=True)
@@ -238,7 +242,8 @@ def _steadystate_direct_dense(L):
     """
     if settings.debug:
         print('Starting direct dense solver...')
-    dims=L.dims[0]
+
+    dims = L.dims[0]
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2)
     b[0] = 1.0
@@ -288,8 +293,8 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2)
     b[0] = 1.0
-    L = L.data.tocsc() + sp.csc_matrix((1e-1 * np.ones(n),
-                    (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
+    L = L.data.tocsc() + sp.csc_matrix(
+        (1e-1 * np.ones(n), (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
         shape=(n ** 2, n ** 2))
 
     if use_rcm:
@@ -343,8 +348,8 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True,
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2)
     b[0] = 1.0
-    L = L.data.tocsc() + sp.csc_matrix((np.ones(n),
-                    (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
+    L = L.data.tocsc() + sp.csc_matrix(
+        (np.ones(n), (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
         shape=(n ** 2, n ** 2))
     L.sort_indices()
 
@@ -386,22 +391,24 @@ def _steadystate_lu(L, use_rcm=True, use_umfpack=False):
     """
     if settings.debug:
         print('Starting LU solver...')
-    dims=L.dims[0]
-    weight=np.abs(L.data.max())
+
+    dims = L.dims[0]
+    weight = np.abs(L.data.data.max())
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2, dtype=complex)
     b[0] = weight
-    L = L.data.tocsc() + sp.csc_matrix((weight*np.ones(n),
-                    (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
+    L = L.data.tocsc() + sp.csc_matrix(
+        (weight * np.ones(n),
+         (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
         shape=(n ** 2, n ** 2))
-    
+
     L.sort_indices()
     use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
     if use_rcm:
         perm = symrcm(L)
-        L = sparse_permute(L,perm,perm)
+        L = sparse_permute(L, perm, perm)
         b = b[np.ix_(perm,)]
-    
+
     solve = factorized(L)
     v = solve(b)
     if use_rcm:
