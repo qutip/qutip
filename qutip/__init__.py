@@ -150,6 +150,10 @@ if not sys.platform in ['darwin', 'win32'] and not ('DISPLAY' in os.environ):
 # automatically set number of threads used by MKL and openblas to 1
 # prevents errors when running things in parallel.  Should be set
 # by user directly in a script or notebook if >1 is needed.
+
+# Fix the multiprocessing issue with NumPy compiled against OPENBLAS
+os.environ['OPENBLAS_MAIN_FREE'] = '1'
+
 if not 'NUM_THREADS' in os.environ:
     os.environ['NUM_THREADS'] = '1'
 
