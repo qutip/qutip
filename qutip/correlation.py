@@ -773,8 +773,6 @@ def _correlation_mc_2op_1t(H, psi0, taulist, c_ops, a_op, b_op, reverse=False,
     if psi0 is None or not isket(psi0):
         raise Exception("_correlation_mc_2op_1t requires initial state as ket")
 
-    options.gui = False
-
     b_op_psi0 = b_op * psi0
 
     norm = b_op_psi0.norm()
@@ -801,8 +799,6 @@ def _correlation_mc_2op_2t(H, psi0, tlist, taulist, c_ops, a_op, b_op,
         raise Exception("_correlation_mc_2op_2t requires initial state as ket")
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-
-    options.gui = False
 
     psi_t = mcsolve(
         H, psi0, tlist, c_ops, [], args=args, options=options).states

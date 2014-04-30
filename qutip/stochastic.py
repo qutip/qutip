@@ -77,7 +77,7 @@ from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
 from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv, cy_expect_rho_vec
 from qutip.cy.stochastic import (cy_d1_rho_photocurrent,
                                  cy_d2_rho_photocurrent)
-from qutip.gui.progressbar import TextProgressBar
+from qutip.ui.progressbar import TextProgressBar
 from qutip.odeoptions import Odeoptions
 from qutip.settings import debug
 

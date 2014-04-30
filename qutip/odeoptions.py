@@ -42,12 +42,11 @@ class Odeoptions():
     :func:`qutip.mcsolve`. Options can be specified either as arguments to the
     constructor::
 
-        opts = Odeoptions(gui=False, order=10, ...)
+        opts = Odeoptions(order=10, ...)
 
     or by changing the class attributes after creation::
 
         opts = Odeoptions()
-        opts.gui = False
         opts.order = 10
 
     Returns options class to be used as options in evolution solvers.
@@ -80,8 +79,6 @@ class Odeoptions():
     norm_steps : int
         Max. number of steps used to find wavefunction norm to within norm_tol
         in mcsolve.
-    gui : bool {True,False}
-        Use progress bar GUI for mcsolver.
     average_states : bool {True, False}
         Avg. expectation values in mcsolver.
     ntraj : int {500}
@@ -106,7 +103,7 @@ class Odeoptions():
                  nsteps=1000, first_step=0, max_step=0, min_step=0,
                  average_expect=True, average_states=False, tidy=True,
                  num_cpus=0, norm_tol=1e-3, norm_steps=5, rhs_reuse=False,
-                 rhs_filename=None, gui=False, ntraj=500, rhs_with_state=False,
+                 rhs_filename=None, ntraj=500, rhs_with_state=False,
                  store_final_state=False, store_states=False, seeds=None,
                  steady_state_average=False):
         # Absolute tolerance (default = 1e-8)
@@ -154,8 +151,6 @@ class Odeoptions():
         # Max. number of steps taken to find wavefunction norm to within
         # norm_tol (mcsolve only)
         self.norm_steps = norm_steps
-        # Use Progressbar (mcsolve only)
-        self.gui = gui
         # store final state?
         self.store_final_state = store_final_state
         # store states even if expectation operators are given?
@@ -184,7 +179,6 @@ class Odeoptions():
         s += "rhs_filename:      " + str(self.rhs_filename) + "\n"
         s += "rhs_reuse:         " + str(self.rhs_reuse) + "\n"
         s += "rhs_with_state:    " + str(self.rhs_with_state) + "\n"
-        s += "gui:               " + str(self.gui) + "\n"
         s += "average_expect:    " + str(self.average_expect) + "\n"
         s += "average_states:    " + str(self.average_states) + "\n"
         s += "ntraj:             " + str(self.ntraj) + "\n"
