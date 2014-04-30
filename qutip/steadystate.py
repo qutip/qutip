@@ -207,8 +207,9 @@ def _steadystate_direct_sparse(L, use_rcm=True, use_umfpack=False):
     """
     if settings.debug:
         print('Starting direct solver...')
-    dims=L.dims[0]
-    weight=np.abs(L.data.max())
+
+    dims = L.dims[0]
+    weight = np.abs(L.data.data.max())
     n = prod(L.dims[0][0])
     b = np.zeros((n ** 2, 1), dtype=complex)
     b[0,0] = weight
