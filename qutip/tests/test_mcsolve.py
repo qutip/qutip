@@ -74,8 +74,7 @@ def test_MCNoCollExpt():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list,
-                     [a.dag() * a], options=Odeoptions(gui=False))
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
     expt = mcdata.expect[0]
     actual_answer = 9.0 * ones(len(tlist))
     diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -92,8 +91,7 @@ def test_MCNoCollStates():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(
-        H, psi0, tlist, c_op_list, [], options=Odeoptions(gui=False))
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [])
     states = mcdata.states
     expt = expect(a.dag() * a, states)
     actual_answer = 9.0 * ones(len(tlist))
@@ -111,9 +109,7 @@ def test_MCNoCollStrExpt():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list,
-                     [a.dag() * a], args={'c': 0.0},
-                     options=Odeoptions(gui=False))
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args={'c': 0.0})
     expt = mcdata.expect[0]
     actual_answer = 9.0 * ones(len(tlist))
     diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -130,8 +126,7 @@ def test_MCNoCollFuncExpt():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list,
-                     [a.dag() * a], options=Odeoptions(gui=False))
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
     expt = mcdata.expect[0]
     actual_answer = 9.0 * ones(len(tlist))
     diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -148,8 +143,7 @@ def test_MCNoCollStrStates():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [], args={'c': 0.0},
-                     options=Odeoptions(gui=False))
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [], args={'c': 0.0})
     states = mcdata.states
     expt = expect(a.dag() * a, states)
     actual_answer = 9.0 * ones(len(tlist))
@@ -167,8 +161,7 @@ def test_MCNoCollFuncStates():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(
-        H, psi0, tlist, c_op_list, [], options=Odeoptions(gui=False))
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [])
     states = mcdata.states
     expt = expect(a.dag() * a, states)
     actual_answer = 9.0 * ones(len(tlist))
@@ -185,8 +178,7 @@ def test_MCSimpleConst():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [sqrt(kappa) * a]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list,
-                     [a.dag() * a], options=Odeoptions(gui=False))
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -202,8 +194,7 @@ def test_MCSimpleSingleCollapse():
     kappa = 0.2  # coupling to oscillator
     c_op_list = sqrt(kappa) * a
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list,
-                     [a.dag() * a], options=Odeoptions(gui=False))
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -219,8 +210,7 @@ def test_MCSimpleSingleExpect():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [sqrt(kappa) * a]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(
-        H, psi0, tlist, c_op_list, a.dag() * a, options=Odeoptions(gui=False))
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, a.dag() * a)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -236,8 +226,7 @@ def test_MCSimpleConstFunc():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [[a, sqrt_kappa]]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list,
-                     [a.dag() * a], options=Odeoptions(gui=False))
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -256,8 +245,7 @@ def test_MCSimpleConstStr():
     c_op_list = [[a, 'sqrt(k)']]
     args = {'k': kappa}
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args,
-                     options=Odeoptions(gui=False))
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -274,8 +262,7 @@ def test_MCTDFunc():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [[a, sqrt_kappa2]]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list,
-                     [a.dag() * a], options=Odeoptions(gui=False))
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * (1.0 - exp(-tlist)))
     diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -295,8 +282,7 @@ def test_TDStr():
     c_op_list = [[a, 'sqrt(k*exp(-t))']]
     args = {'k': kappa}
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args,
-                     options=Odeoptions(gui=False))
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args)
     expt = mcdata.expect[0]
     actual = 9.0 * exp(-kappa * (1.0 - exp(-tlist)))
     diff = mean(abs(actual - expt) / actual)
@@ -329,7 +315,7 @@ def test_mc_dtypes1():
     C2dC2 = C2.dag() * C2
     # intial state
     psi0 = tensor(basis(N, 0), basis(2, 1))
-    opts = Odeoptions(gui=False, average_expect=True)
+    opts = Odeoptions(average_expect=True)
     data = mcsolve(
         H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
     assert_equal(isinstance(data.expect[0][1], float), True)
@@ -363,7 +349,7 @@ def test_mc_dtypes2():
     C2dC2 = C2.dag() * C2
     # intial state
     psi0 = tensor(basis(N, 0), basis(2, 1))
-    opts = Odeoptions(gui=False, average_expect=False)
+    opts = Odeoptions(average_expect=False)
     data = mcsolve(
         H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
     assert_equal(isinstance(data.expect[0][0][1], float), True)
