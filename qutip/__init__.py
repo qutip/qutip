@@ -152,7 +152,8 @@ if not sys.platform in ['darwin', 'win32'] and not ('DISPLAY' in os.environ):
 # by user directly in a script or notebook if >1 is needed.
 
 # Fix the multiprocessing issue with NumPy compiled against OPENBLAS
-os.environ['OPENBLAS_MAIN_FREE'] = '1'
+if not 'OPENBLAS_MAIN_FREE' in os.environ:
+    os.environ['OPENBLAS_MAIN_FREE'] = '1'
 
 if not 'NUM_THREADS' in os.environ:
     os.environ['NUM_THREADS'] = '1'
