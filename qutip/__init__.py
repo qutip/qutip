@@ -36,11 +36,20 @@ import platform
 import qutip.settings
 import qutip.version
 from qutip.version import version as __version__
-# Fix the multiprocessing issue with NumPy compiled against OPENBLAS
-# Must be set BEFORE importing multiprocessing
-if not 'OPENBLAS_MAIN_FREE' in os.environ:
-    os.environ['OPENBLAS_MAIN_FREE'] = '1'
-import multiprocessing
+
+# automatically set number of threads used by MKL and openblas to 1
+# prevents errors when running things in parallel.  Should be set
+# by user directly in a script or notebook if >1 is needed.
+# Must be set BEFORE importing NumPy
+
+if not 'NUM_THREADS' in os.environ:
+    os.environ['NUM_THREADS'] = '1'
+
+if not 'MKL_NUM_THREADS' in os.environ:
+    os.environ['MKL_NUM_THREADS'] = '1'
+
+if not 'OPENBLAS_NUM_THREADS' in os.environ:
+    os.environ['OPENBLAS_NUM_THREADS'] = '1'
 #------------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
 # if the requirements aren't fulfilled
@@ -109,6 +118,12 @@ except Exception as e:
 # default configuration settings
 #
 
+# Fix the multiprocessing issue with NumPy compiled against OPENBLAS
+# Must be set BEFORE importing multiprocessing
+if not 'OPENBLAS_MAIN_FREE' in os.environ:
+    os.environ['OPENBLAS_MAIN_FREE'] = '1'
+import multiprocessing
+
 # load cpus
 from qutip.hardware_info import hardware_info
 info = hardware_info()
@@ -147,19 +162,6 @@ if not sys.platform in ['darwin', 'win32'] and not ('DISPLAY' in os.environ):
     # no graphics if DISPLAY isn't set
     os.environ['QUTIP_GRAPHICS'] = "NO"
     qutip.settings.qutip_graphics = "NO"
-
-# automatically set number of threads used by MKL and openblas to 1
-# prevents errors when running things in parallel.  Should be set
-# by user directly in a script or notebook if >1 is needed.
-
-if not 'NUM_THREADS' in os.environ:
-    os.environ['NUM_THREADS'] = '1'
-
-if not 'MKL_NUM_THREADS' in os.environ:
-    os.environ['MKL_NUM_THREADS'] = '1'
-
-if not 'OMP_NUM_THREADS' in os.environ:
-    os.environ['OMP_NUM_THREADS'] = '1'
 
 try:
     from qutip.fortran import qutraj_run
