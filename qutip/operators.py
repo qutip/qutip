@@ -89,38 +89,145 @@ shape = [3, 3], type = oper, isHerm = True
     """
     if (scipy.fix(2 * j) != 2 * j) or (j < 0):
         raise TypeError('j must be a non-negative integer or half-integer')
+
     if not args:
-        a1 = Qobj(0.5 * (jplus(j) + jplus(j).conj().T))
-        a2 = Qobj(0.5 * 1j * (jplus(j) - jplus(j).conj().T))
-        a3 = Qobj(jz(j))
-        return np.array([a1, a2, a3])
+        a1 = Qobj(0.5 * (_jplus(j) + _jplus(j).conj().T))
+        a2 = Qobj(0.5 * 1j * (_jplus(j) - _jplus(j).conj().T))
+        a3 = Qobj(_jz(j))
+        return [a1, a2, a3]
+
     if args[0] == '+':
-        A = jplus(j)
+        A = _jplus(j)
     elif args[0] == '-':
-        A = jplus(j).conj().T
+        A = _jplus(j).conj().T
     elif args[0] == 'x':
-        A = 0.5 * (jplus(j) + jplus(j).conj().T)
+        A = 0.5 * (_jplus(j) + _jplus(j).conj().T)
     elif args[0] == 'y':
-        A = -0.5 * 1j * (jplus(j) - jplus(j).conj().T)
+        A = -0.5 * 1j * (_jplus(j) - _jplus(j).conj().T)
     elif args[0] == 'z':
-        A = jz(j)
+        A = _jz(j)
     else:
         raise TypeError('Invalid type')
+
     return Qobj(A.tocsr())
 
 
-def jplus(j):
+def _jplus(j):
     m = np.arange(j, -j - 1, -1)
     N = len(m)
     return sp.spdiags(np.sqrt(j * (j + 1.0) - (m + 1.0) * m),
                       1, N, N, format='csr')
 
 
-def jz(j):
+def _jz(j):
     m = np.arange(j, -j - 1, -1)
     N = len(m)
     return sp.spdiags(m, 0, N, N, format='csr')
 
+
+#
+# Spin j operators:
+#
+def spin_Jx(j):
+    """Spin-j x operator
+
+    Parameters
+    ----------
+    j : int
+        Spin of operator
+
+    Returns
+    -------
+    op : Qobj
+        ``qobj`` representation of the operator.
+
+    """
+    return jmat(j, 'x')
+
+
+def spin_Jy(j):
+    """Spin-j y operator
+
+    Parameters
+    ----------
+    j : int
+        Spin of operator
+
+    Returns
+    -------
+    op : Qobj
+        ``qobj`` representation of the operator.
+
+    """
+    return jmat(j, 'y')
+
+
+def spin_Jz(j):
+    """Spin-j z operator
+
+    Parameters
+    ----------
+    j : int
+        Spin of operator
+
+    Returns
+    -------
+    op : Qobj
+        ``qobj`` representation of the operator.
+
+    """
+    return jmat(j, 'z')
+
+
+def spin_Jm(j):
+    """Spin-j annihilation operator
+
+    Parameters
+    ----------
+    j : int
+        Spin of operator
+
+    Returns
+    -------
+    op : Qobj
+        ``qobj`` representation of the operator.
+
+    """
+    return jmat(j, '-')
+
+
+def spin_Jp(j):
+    """Spin-j creation operator
+
+    Parameters
+    ----------
+    j : int
+        Spin of operator
+
+    Returns
+    -------
+    op : Qobj
+        ``qobj`` representation of the operator.
+
+    """
+    return jmat(j, '+')
+
+
+def spin_J_set(j):
+    """Set of spin-j operators (x, y, z)
+
+    Parameters
+    ----------
+    j : int
+        Spin of operators
+
+    Returns
+    -------
+    list : list of Qobj
+        list of ``qobj`` representating of the spin operator.
+
+    """
+    return jmat(j)
 
 #
 # Pauli spin 1/2 operators:
