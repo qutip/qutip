@@ -133,7 +133,7 @@ def spin_Jx(j):
 
     Parameters
     ----------
-    j : int
+    j : float
         Spin of operator
 
     Returns
@@ -150,7 +150,7 @@ def spin_Jy(j):
 
     Parameters
     ----------
-    j : int
+    j : float
         Spin of operator
 
     Returns
@@ -167,7 +167,7 @@ def spin_Jz(j):
 
     Parameters
     ----------
-    j : int
+    j : float
         Spin of operator
 
     Returns
@@ -184,7 +184,7 @@ def spin_Jm(j):
 
     Parameters
     ----------
-    j : int
+    j : float
         Spin of operator
 
     Returns
@@ -201,7 +201,7 @@ def spin_Jp(j):
 
     Parameters
     ----------
-    j : int
+    j : float
         Spin of operator
 
     Returns
@@ -218,7 +218,7 @@ def spin_J_set(j):
 
     Parameters
     ----------
-    j : int
+    j : float
         Spin of operators
 
     Returns
