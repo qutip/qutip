@@ -31,9 +31,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 """
-This module contains settings for the QuTiP GUI,multiprocessing, and
-tidyup functionality.
-
+This module contains settings for the QuTiP graphics, multiprocessing, and
+tidyup functionality, etc.
 """
 # QuTiP Graphics (set at qutip import)
 qutip_graphics = None
@@ -63,8 +62,8 @@ def load_rc_file(rc_file):
     Load settings for the qutip RC file, by default .qutiprc in the user's home
     directory.
     """
-    global qutip_graphics, qutip_gui, auto_tidyup, auto_herm, \
-        auto_tidyup_atol, num_cpus, debug, atol
+    global qutip_graphics, auto_tidyup, auto_herm, auto_tidyup_atol, \
+        num_cpus, debug, atol
 
     with open(rc_file) as f:
         for line in f.readlines():

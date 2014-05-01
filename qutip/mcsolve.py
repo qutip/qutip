@@ -59,7 +59,7 @@ from qutip.odedata import Odedata
 from qutip.odechecks import _ode_checks
 import qutip.settings
 from qutip.settings import debug
-from qutip.gui.progressbar import TextProgressBar
+from qutip.ui.progressbar import TextProgressBar
 
 if debug:
     import inspect

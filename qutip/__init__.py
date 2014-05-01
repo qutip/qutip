@@ -133,8 +133,6 @@ else:
     qutip.settings.num_cpus = multiprocessing.cpu_count()
 
 qutip.settings.qutip_graphics = "YES"
-qutip.settings.qutip_gui = "NONE"
-
 
 #------------------------------------------------------------------------------
 # Load user configuration if present: override defaults.

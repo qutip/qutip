@@ -33,7 +33,7 @@
 """
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
-from qutip.gui.progressbar import BaseProgressBar
+from qutip.ui.progressbar import BaseProgressBar
 
 from IPython.parallel import Client
 from IPython.display import HTML, Javascript, display
