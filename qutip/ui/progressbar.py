@@ -35,6 +35,7 @@ import time
 import datetime
 import sys
 
+
 class BaseProgressBar(object):
     """
     An abstract progress bar with some shared functionality.
@@ -76,11 +77,9 @@ class BaseProgressBar(object):
             (dd.day - 1, dd.hour, dd.minute, dd.second)
 
         return time_string
-        #return "%6.2fs" % (t_r_est)
-
 
     def finished(self):
-       pass
+        pass
 
 
 class TextProgressBar(BaseProgressBar):
@@ -104,5 +103,5 @@ class TextProgressBar(BaseProgressBar):
             self.p_chunk += self.p_chunk_size
 
     def finished(self):
-       self.t_done = time.time()
-       print("Total run time: %s" % self.time_elapsed())
+        self.t_done = time.time()
+        print("Total run time: %s" % self.time_elapsed())
