@@ -133,8 +133,6 @@ def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         odeconfig.soft_reset()
         # no time dependence
         odeconfig.tflag = 0
-        # no gui
-        odeconfig.options.gui = False
         # check for collapse operators
         if len(c_ops) > 0:
             odeconfig.cflag = 1
