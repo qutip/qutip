@@ -40,15 +40,10 @@ def _reset():
     import multiprocessing
     import os
     import qutip.settings
-    from qutip.hardware_info import hardware_info
     qutip.settings.qutip_graphics = os.environ['QUTIP_GRAPHICS']
     qutip.settings.auto_herm = True
     qutip.settings.auto_tidyup = True
     qutip.settings.auto_tidyup_atol = 1e-12
     qutip.settings.debug = False
-    # set cpus using hardware_info
-    info = hardware_info()
-    if 'cpus' in info:
-        qutip.settings.num_cpus = info['cpus']
-    else:
-        qutip.settings.num_cpus = multiprocessing.cpu_count()
+    # set cpus using environ flag
+    qutip.settings.num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])

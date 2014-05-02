@@ -41,10 +41,6 @@ from qutip.version import version as __version__
 # prevents errors when running things in parallel.  Should be set
 # by user directly in a script or notebook if >1 is needed.
 # Must be set BEFORE importing NumPy
-
-if not 'NUM_THREADS' in os.environ:
-    os.environ['NUM_THREADS'] = '1'
-
 if not 'MKL_NUM_THREADS' in os.environ:
     os.environ['MKL_NUM_THREADS'] = '1'
 
@@ -144,7 +140,11 @@ try:
 except Exception as e:
     pass
 
-
+# Check if environ flag for qutip processes is set
+if 'QUTIP_NUM_PROCESSES' in os.environ:
+    qutip.settings.num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])
+else:
+    os.environ['QUTIP_NUM_PROCESSES'] = str(qutip.settings.num_cpus)
 #------------------------------------------------------------------------------
 # Load configuration from environment variables: override defaults and
 # configuration file.
