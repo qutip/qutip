@@ -1201,6 +1201,9 @@ def plot_qubism(ket, theme="light", how='pairs', skewed=False,
 
     """
 
+    if not ket.isket:
+        raise Exception("Qubism works only for pure states, i.e. kets.")
+
     if not fig and not ax:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
  
