@@ -1206,12 +1206,14 @@ def plot_qubism(ket, theme="light", how='pairs', skewed=False, grid_iter=2,
     
     quadrants = d**grid_iter
     ticks = [halfsize/(float(quadrants)) * i for i in range(1, quadrants)]
-    plt.xticks(ticks, [""]*(quadrants - 1))
-    plt.yticks(ticks, [""]*(quadrants - 1))
+    ax.set_xticks(ticks)
+    ax.set_xticklabels([""]*(quadrants - 1))
+    ax.set_yticks(ticks)
+    ax.set_yticklabels([""]*(quadrants - 1))
     theme2color_of_lines = {'light': '#000000',
                             'dark': '#FFFFFF'}
-    plt.grid(True, color=theme2color_of_lines[theme])
-    plt.imshow(complex_array_to_rgb(qub, theme=theme),
+    ax.grid(True, color=theme2color_of_lines[theme])
+    ax.imshow(complex_array_to_rgb(qub, theme=theme),
                interpolation="none",
                extent=(0, halfsize, 0, halfsize));
     return fig, ax
