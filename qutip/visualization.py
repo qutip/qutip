@@ -1072,7 +1072,7 @@ def complex_array_to_rgb(X, theme='light', rmax=None):
     X : array
         Array (of any dimension) of complex numbers. 
 
-    theme : 'dark' (default) or 'light'
+    theme : 'light' (default) or 'dark'
         Set coloring theme for mapping complex values into colors.
 
     rmax : float
