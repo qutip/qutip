@@ -1062,7 +1062,7 @@ def plot_spin_distribution_3d(P, THETA, PHI,
 # Qubism and other qubistic visualizations
 #
 
-def complex_array_to_rgb(X, theme='dark', rmax=None):
+def complex_array_to_rgb(X, theme='light', rmax=None):
     """Makes an array of complex number and converts it to an array of [r, g, b],
     where phase gives hue and saturation/value are given by the absolute value.
     Especially for use with imshow for complex plots.
@@ -1137,7 +1137,7 @@ def _to_qubism_index_pair(k, d=2, n=None, how='pairs', skewed=False):
         return (x, y)
 
 
-def plot_qubism(ket, theme="light", how='pairs', skewed=False,
+def plot_qubism(ket, theme='light', how='pairs', skewed=False,
                 grid_iter=2, overlay_legend=0,
                 fig=None, ax=None, figsize=(6, 6)):
     """
