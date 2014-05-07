@@ -1099,6 +1099,15 @@ def complex_array_to_rgb(X, theme='dark', rmax=None):
     return Y
 
 
+def _index_to_sequence(i, dim_list):
+    res = []
+    j = i
+    for d in dim_list:
+        j, s = divmod(j, d)
+        res.append(s)
+    return list(reversed(res))
+
+
 # now d>2 only for some cases
 def _to_qubism_index_pair(k, d=2, n=None, how='pairs', skewed=False):
     if how == 'pairs':
@@ -1128,7 +1137,8 @@ def _to_qubism_index_pair(k, d=2, n=None, how='pairs', skewed=False):
         return (x, y)
 
 
-def plot_qubism(ket, theme="light", how='pairs', skewed=False, grid_iter=2,
+def plot_qubism(ket, theme="light", how='pairs', skewed=False,
+                grid_iter=2, overlay_legend=0,
                 fig=None, ax=None, figsize=(6, 6)):
     """
     Qubism plot for pure states of many qudits.
@@ -1167,6 +1177,12 @@ def plot_qubism(ket, theme="light", how='pairs', skewed=False, grid_iter=2,
         Helper lines to be drawn on plot.
         Show tiles for 2*grid_iter particles vs all others.
 
+    overlay_legend : int (default 0) or 'grid_iter' or 'all'
+        Show labels for first 2*overlay_legend particles.
+        Option 'grid_iter' sets the same number of particles as for grid_iter.
+        Option 'all' makes label for all particles.
+        Typically it should be 0, 1, 2 or perhaps 3. 
+
     fig : a matplotlib figure instance
         The figure canvas on which the plot will be drawn.
 
@@ -1190,6 +1206,7 @@ def plot_qubism(ket, theme="light", how='pairs', skewed=False, grid_iter=2,
  
     n = len(ket.dims[0])
     d = ket.dims[0][0]  # as of now assuming that all dims are same
+    dim = ket.dims[0]
 
     # for odd number of particles - pixels are rectangular
     if n % 2 == 1:
@@ -1215,12 +1232,34 @@ def plot_qubism(ket, theme="light", how='pairs', skewed=False, grid_iter=2,
     ax.grid(True, color=theme2color_of_lines[theme])
     ax.imshow(complex_array_to_rgb(qub, theme=theme),
                interpolation="none",
-               extent=(0, halfsize, 0, halfsize));
+               extent=(0, halfsize, 0, halfsize))
+
+    if overlay_legend == 'all':
+        label_n = n
+    elif overlay_legend == 'grid_iter':
+        label_n = 2*grid_iter
+    else:
+        label_n = 2*overlay_legend
+
+    if label_n:
+        scale = halfsize / sqrt(d**label_n)
+        shift = scale / d
+        opts = {'fontsize': int(scale*10),  # this may need fixing 
+                'color': theme2color_of_lines[theme],
+                'horizontalalignment': 'center',
+                'verticalalignment': 'center'}
+        for i in range(d**label_n):
+            x, y = _to_qubism_index_pair(i, d=d, n=label_n,
+                                         how=how, skewed=skewed)
+            label = "".join(map(str, _index_to_sequence(i, dim_list=dim[:label_n])))
+            ax.text(scale * x + shift,
+                    halfsize - (scale * y + shift),
+                    "$\\left|{0}\\right\\rangle$".format(label),
+                    **opts)
     return fig, ax
 
 # TO DO:
 # * For particles of different dim.
-# * Better tick labels or draw plotting scheme?
 # * Also for density matrices?
 # * Add Schmidt plot.
 
