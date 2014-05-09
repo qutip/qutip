@@ -629,7 +629,7 @@ class Qobj(object):
         """
         t = self.type
         shape = self.shape
-        s = r'$\text{'
+        s = r''
         if self.type in ['oper', 'super']:
             s += ("Quantum object: " +
                   "dims = " + str(self.dims) +
@@ -647,11 +647,9 @@ class Qobj(object):
                   ", shape = " + str(shape) +
                   ", type = " + t)
 
-        s += r'}\\[1em]'
-
         M, N = self.data.shape
 
-        s += r'\begin{pmatrix}'
+        s += r'\begin{equation*}\begin{pmatrix}'
 
         def _format_float(value):
             if value == 0.0:
@@ -734,7 +732,7 @@ class Qobj(object):
                     s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
-        s += r'\end{pmatrix}$'
+        s += r'\end{pmatrix}\end{equation*}'
         return s
 
     def dag(self):
@@ -1416,7 +1414,6 @@ class Qobj(object):
 
         if self.type in ["super", "oper"]:
             try:
-                q_oper = sr.to_choi(self)
                 # We use the condition from John Watrous' lecture notes,
                 # Tr_1(J(Phi)) = identity_2.
                 tr_oper = ptrace((
