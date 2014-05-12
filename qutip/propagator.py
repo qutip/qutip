@@ -35,10 +35,11 @@ import types
 import numpy as np
 import scipy.linalg as la
 import warnings
+import functools
 
 from qutip.qobj import Qobj
 from qutip.rhs_generate import rhs_clear
-from qutip.superoperator import vec2mat, mat2vec
+from qutip.superoperator import vec2mat, mat2vec, vector_to_operator, operator_to_vector
 from qutip.mesolve import mesolve
 from qutip.sesolve import sesolve
 from qutip.essolve import essolve
@@ -48,7 +49,7 @@ from qutip.states import projection
 from qutip.odeoptions import Odeoptions
 
 
-def propagator(H, t, c_op_list, args=None, options=None):
+def propagator(H, t, c_op_list, args=None, options=None, sparse=False):
     """
     Calculate the propagator U(t) for the density matrix or wave function such
     that :math:`\psi(t) = U(t)\psi(0)` or
@@ -90,21 +91,19 @@ def propagator(H, t, c_op_list, args=None, options=None):
 
     tlist = [0, t] if isinstance(t, (int, float, np.int64, np.float64)) else t
 
-    if len(c_op_list) == 0:
+    if isinstance(H, (types.FunctionType, types.BuiltinFunctionType,
+                      functools.partial)):
+        H0 = H(0.0, args)
+    elif isinstance(H, list):
+        H0 = H[0][0] if isinstance(H[0], list) else H[0]
+    else:
+        H0 = H
+
+    if len(c_op_list) == 0 and H0.isoper:
         # calculate propagator for the wave function
 
-        if isinstance(H, types.FunctionType):
-            H0 = H(0.0, args)
-            N = H0.shape[0]
-            dims = H0.dims
-        elif isinstance(H, list):
-            H0 = H[0][0] if isinstance(H[0], list) else H[0]
-            N = H0.shape[0]
-            dims = H0.dims
-        else:
-            N = H.shape[0]
-            dims = H.dims
-
+        N = H0.shape[0]
+        dims = H0.dims
         u = np.zeros([N, N, len(tlist)], dtype=complex)
 
         for n in range(0, N):
@@ -123,26 +122,28 @@ def propagator(H, t, c_op_list, args=None, options=None):
         # calculate the propagator for the vector representation of the
         # density matrix (a superoperator propagator)
 
-        if isinstance(H, types.FunctionType):
-            H0 = H(0.0, args)
-            N = H0.shape[0]
-            dims = [H0.dims, H0.dims]
-        elif isinstance(H, list):
-            H0 = H[0][0] if isinstance(H[0], list) else H[0]
-            N = H0.shape[0]
-            dims = [H0.dims, H0.dims]
-        else:
-            N = H.shape[0]
-            dims = [H.dims, H.dims]
+        N = H0.shape[0]
+        dims = [H0.dims, H0.dims]
 
         u = np.zeros([N * N, N * N, len(tlist)], dtype=complex)
 
-        for n in range(0, N * N):
-            psi0 = basis(N * N, n)
-            rho0 = Qobj(vec2mat(psi0.full()))
-            output = mesolve(H, rho0, tlist, c_op_list, [], args, options)
-            for k, t in enumerate(tlist):
-                u[:, n, k] = mat2vec(output.states[k].full()).T
+        if sparse:
+            for n in range(N * N):
+                psi0 = basis(N * N, n)
+                psi0.dims = [dims[0], 1]
+                rho0 = vector_to_operator(psi0)
+                output = mesolve(H, rho0, tlist, c_op_list, [], args, options)
+                for k, t in enumerate(tlist):
+                    u[:, n, k] = operator_to_vector(output.states[k]).full(squeeze=True)
+
+        else:  
+            for n in range(N * N):
+                psi0 = basis(N * N, n)
+                rho0 = Qobj(vec2mat(psi0.full()))
+                output = mesolve(H, rho0, tlist, c_op_list, [], args, options)
+                for k, t in enumerate(tlist):
+                    u[:, n, k] = mat2vec(output.states[k].full()).T
+
 
     if len(tlist) == 2:
         return Qobj(u[:, :, 1], dims=dims)
