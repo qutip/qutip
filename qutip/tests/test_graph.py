@@ -104,7 +104,7 @@ def test_graph_rcm_boost():
     bw=sparse_bandwidth(P)
     assert_equal(bw[2], 4)
 
-def test_graph_bfs():
+def test_graph_bfs_matching():
     "Graph: BFS Matching"
     A=sp.diags(np.ones(25),offsets=0,format='csc')
     perm=np.random.permutation(25)
