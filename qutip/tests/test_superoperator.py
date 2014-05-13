@@ -45,6 +45,16 @@ class TestMatrixVector:
 
     def testOperatorVector(self):
         """
+        Superoperator: Test operator - vector - operator conversion.
+        """
+        N = 3
+        rho1 = rand_dm(N)
+        rho2 = vector_to_operator(operator_to_vector(rho1))
+
+        assert_((rho1 - rho2).norm() < 1e-8)
+
+    def testOperatorVector(self):
+        """
         Superoperator: Test unitary transformation with operators and superoperators.
         """
         N = 3

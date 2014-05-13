@@ -347,7 +347,7 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
             raise TypeError("Incorrect specification of time-dependent " +
                             "Hamiltonian (expected operator or superoperator)")
 
-    # add all collapse operators to the lagrangian list
+    # add all collapse operators to the liouvillian list
     for c_spec in c_list:
 
         if isinstance(c_spec, Qobj):
