@@ -118,6 +118,23 @@ def propagator(H, t, c_op_list, args=None, options=None, sparse=False):
         # for n in range(0, N):
         #    u[:,n] = psi_t_list[n][1].full().T
 
+
+    elif len(c_op_list) == 0 and H0.issuper:
+        # calculate the propagator for the vector representation of the
+        # density matrix (a superoperator propagator)
+
+        N = H0.shape[0]
+        dims = H0.dims
+
+        u = np.zeros([N, N, len(tlist)], dtype=complex)
+
+        for n in range(0, N):
+            psi0 = basis(N, n)
+            rho0 = Qobj(vec2mat(psi0.full()))
+            output = mesolve(H, rho0, tlist, [], [], args, options)
+            for k, t in enumerate(tlist):
+                u[:, n, k] = mat2vec(output.states[k].full()).T
+
     else:
         # calculate the propagator for the vector representation of the
         # density matrix (a superoperator propagator)

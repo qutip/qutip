@@ -568,7 +568,7 @@ def plot_energy_levels(H_list, N=0, labels=None, show_ylabels=False,
 def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
                          figsize=(8, 12), fig=None, ax=None):
     warnings.warn("Deprecated: Use plot_energy_levels")
-    return plot_energy_levels(H_list, N=N, labels=labels, 
+    return plot_energy_levels(H_list, N=N, labels=labels,
                               show_ylabels=show_ylabels,
                               figsize=figsize, fig=fig, ax=ax)
 
@@ -703,7 +703,7 @@ def fock_distribution(rho, offset=0, fig=None, ax=None,
 
 def plot_wigner(rho, fig=None, ax=None, figsize=(8, 4),
                 cmap=None, alpha_max=7.5, colorbar=False,
-                method='iterative'):
+                method='iterative', projection='2d'):
     """
     Plot the the Wigner function for a density matrix (or ket) that describes
     an oscillator mode.
@@ -737,6 +737,10 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(8, 4),
         The method used for calculating the wigner function. See the
         documentation for qutip.wigner for details.
 
+    projection: string {'2d', '3d'}
+        Specify whether the Wigner function is to be plotted as a
+        contour graph ('2d') or surface plot ('3d').
+
     Returns
     -------
     fig, ax : tuple
@@ -745,7 +749,13 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(8, 4),
     """
 
     if not fig and not ax:
-        fig, ax = plt.subplots(1, 1, figsize=figsize)
+        if projection == '2d':
+            fig, ax = plt.subplots(1, 1, figsize=figsize)
+        elif projection == '3d':
+            fig = plt.figure(figsize=figsize)
+            ax = fig.add_subplot(1, 1, 1, projection='3d')
+        else:
+            raise ValueError('Unexpected value of projection keyword argument')
 
     if isket(rho):
         rho = ket2dm(rho)
@@ -760,10 +770,17 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(8, 4),
     if cmap is None:
         cmap = cm.get_cmap('RdBu')
 
-    cf = ax.contourf(xvec, yvec, W, 100,
-                     norm=mpl.colors.Normalize(-wlim, wlim), cmap=cmap)
+    if projection == '2d':
+        cf = ax.contourf(xvec, yvec, W, 100,
+                         norm=mpl.colors.Normalize(-wlim, wlim), cmap=cmap)
+    elif projection == '3d':
+        X, Y = np.meshgrid(xvec, xvec)
+        cf = ax.plot_surface(X, Y, W0, rstride=5, cstride=5, linewidth=0.5,
+                             norm=mpl.colors.Normalize(-wlim, wlim), cmap=cmap)
+    else:
+        raise ValueError('Unexpected value of projection keyword argument.')
 
-    if not xvec is yvec:
+    if xvec is not yvec:
         ax.set_ylim(xvec.min(), xvec.max())
 
     ax.set_xlabel(r'$\rm{Re}(\alpha)$', fontsize=12)
@@ -779,7 +796,7 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(8, 4),
 
 def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
                                   cmap=None, alpha_max=7.5, colorbar=False,
-                                  method='iterative'):
+                                  method='iterative', projection='2d'):
     """
     Plot the Fock distribution and the Wigner function for a density matrix
     (or ket) that describes an oscillator mode.
@@ -813,6 +830,10 @@ def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
         The method used for calculating the wigner function. See the
         documentation for qutip.wigner for details.
 
+    projection: string {'2d', '3d'}
+        Specify whether the Wigner function is to be plotted as a
+        contour graph ('2d') or surface plot ('3d').
+
     Returns
     -------
     fig, ax : tuple
@@ -821,14 +842,22 @@ def plot_wigner_fock_distribution(rho, fig=None, axes=None, figsize=(8, 4),
     """
 
     if not fig and not axes:
-        fig, axes = plt.subplots(1, 2, figsize=figsize)
+        if projection == '2d':
+            fig, axes = plt.subplots(1, 2, figsize=figsize)
+        elif projection == '3d':
+            fig = plt.figure(figsize=figsize)
+            axes = [fig.add_subplot(1, 2, 1),
+                    fig.add_subplot(1, 2, 2, projection='3d')]
+        else:
+            raise ValueError('Unexpected value of projection keyword argument')
 
     if isket(rho):
         rho = ket2dm(rho)
 
     plot_fock_distribution(rho, fig=fig, ax=axes[0])
     plot_wigner(rho, fig=fig, ax=axes[1], figsize=figsize, cmap=cmap,
-                alpha_max=alpha_max, colorbar=colorbar, method=method)
+                alpha_max=alpha_max, colorbar=colorbar, method=method,
+                projection=projection)
 
     return fig, axes
 
