@@ -104,6 +104,30 @@ def test_graph_rcm_boost():
     bw=sparse_bandwidth(P)
     assert_equal(bw[2], 4)
 
+def test_graph_bfs():
+    "Graph: BFS Matching"
+    A=sp.diags(np.ones(25),offsets=0,format='csc')
+    perm=np.random.permutation(25)
+    perm2=np.random.permutation(25)
+    B=sparse_permute(A,perm,perm2)
+    perm=bfs_matching(B)
+    C=sparse_permute(B,perm,[])
+    assert_equal(any(C.diagonal()==0),False)
+
+def test_graph_weighted_bfs():
+    "Graph: Weighted BFS Matching"
+    A=sp.rand(25,25,density=0.1, format='csc')
+    a_len=len(A.data)
+    A.data=np.ones(a_len)
+    d=np.arange(0,25)+2
+    B=sp.diags(d,offsets=0,format='csc')
+    A=A+B
+    perm=np.random.permutation(25)
+    perm2=np.random.permutation(25)
+    B=sparse_permute(A,perm,perm2)
+    perm=weighted_bfs_matching(B)
+    C=sparse_permute(B,perm,[])
+    assert_equal(np.sum(A.diagonal()),np.sum(C.diagonal()))
 
 if __name__ == "__main__":
     run_module_suite()
