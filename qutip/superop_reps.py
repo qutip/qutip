@@ -159,8 +159,8 @@ def choi_to_chi(q_oper):
     Heisenberg-Weyl for other subsystem dimensions.
     """
     nq = len(q_oper.dims[0][0])
-    B  = _pauli_basis(nq)
-    
+    B = _pauli_basis(nq)
+    B.superrep = 'choi'    
     return Qobj(B * q_oper * B.dag(), superrep='chi')
     
 def chi_to_choi(q_oper):
@@ -171,7 +171,7 @@ def chi_to_choi(q_oper):
     Heisenberg-Weyl for other subsystem dimensions.
     """
     nq = len(q_oper.dims[0][0])
-    B  = _pauli_basis(nq)
+    B = _pauli_basis(nq)
     
     # The Chi matrix has tr(chi) == d², so we need to divide out
     # by that to get back to the Choi form.
