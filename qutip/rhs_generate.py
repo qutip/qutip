@@ -64,7 +64,8 @@ def rhs_clear():
                                 # (used in parallel mc code)
 
 
-def rhs_generate(H, c_ops, args={}, options=Odeoptions(), name=None):
+def rhs_generate(H, c_ops, args={}, options=Odeoptions(), name=None,
+                 cleanup=True):
     """
     Generates the Cython functions needed for solving the dynamics of a
     given system using the mesolve function inside a parfor loop.
@@ -73,14 +74,22 @@ def rhs_generate(H, c_ops, args={}, options=Odeoptions(), name=None):
     ----------
     H : qobj
         System Hamiltonian.
+
     c_ops : list
         ``list`` of collapse operators.
+
     args : dict
         Arguments for time-dependent Hamiltonian and collapse operator terms.
+
     options : Odeoptions
         Instance of ODE solver options.
+
     name: str
         Name of generated RHS
+
+    cleanup: bool
+        Whether the generated cython file should be automatically removed or
+        not.
 
     Notes
     -----
@@ -105,16 +114,36 @@ def rhs_generate(H, c_ops, args={}, options=Odeoptions(), name=None):
 
     # loop over all hamiltonian terms, convert to superoperator form and
     # add the data of sparse matrix represenation to
+
+    msg = "Incorrect specification of time-dependence: "
+
     for h_spec in H:
         if isinstance(h_spec, Qobj):
             h = h_spec
-            Lconst += -1j * (spre(h) - spost(h))
+
+            if not isinstance(h, Qobj):
+                raise TypeError(msg + "expected Qobj")
+
+            if h.isoper:
+                Lconst += -1j * (spre(h) - spost(h))
+            elif h.issuper:
+                Lconst += h
+            else:
+                raise TypeError(msg + "expected operator or superoperator")
 
         elif isinstance(h_spec, list):
             h = h_spec[0]
             h_coeff = h_spec[1]
 
-            L = -1j * (spre(h) - spost(h))
+            if not isinstance(h, Qobj):
+                raise TypeError(msg + "expected Qobj")
+
+            if h.isoper:
+                L = -1j * (spre(h) - spost(h))
+            elif h.issuper:
+                L = h
+            else:
+                raise TypeError(msg + "expected operator or superoperator")
 
             Ldata.append(L.data.data)
             Linds.append(L.data.indices)
@@ -122,32 +151,49 @@ def rhs_generate(H, c_ops, args={}, options=Odeoptions(), name=None):
             Lcoeff.append(h_coeff)
 
         else:
-            raise TypeError("Incorrect specification of time-dependent " +
-                            "Hamiltonian (expected string format)")
+            raise TypeError(msg + "expected string format")
 
     # loop over all collapse operators
     for c_spec in c_ops:
         if isinstance(c_spec, Qobj):
             c = c_spec
-            cdc = c.dag() * c
-            Lconst += spre(
-                c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
+
+            if not isinstance(c, Qobj):
+                raise TypeError(msg + "expected Qobj")
+
+            if c.isoper:
+                cdc = c.dag() * c
+                Lconst += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) \
+                                                   - 0.5 * spost(cdc)
+            elif c.issuper:
+                Lconst += c
+            else:
+                raise TypeError(msg + "expected operator or superoperator")
 
         elif isinstance(c_spec, list):
             c = c_spec[0]
             c_coeff = c_spec[1]
 
-            cdc = c.dag() * c
-            L = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
+            if not isinstance(c, Qobj):
+                raise TypeError(msg + "expected Qobj")
+
+            if c.isoper:
+                cdc = c.dag() * c
+                L = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) \
+                                             - 0.5 * spost(cdc)
+                c_coeff = "(" + c_coeff + ")**2"
+            elif c.issuper:
+                L = c
+            else:
+                raise TypeError(msg + "expected operator or superoperator")
 
             Ldata.append(L.data.data)
             Linds.append(L.data.indices)
             Lptrs.append(L.data.indptr)
-            Lcoeff.append("(" + c_coeff + ")**2")
+            Lcoeff.append(c_coeff)
 
         else:
-            raise TypeError("Incorrect specification of time-dependent " +
-                            "collapse operators (expected string format)")
+            raise TypeError(msg + "expected string format")
 
     # add the constant part of the lagrangian
     if Lconst != 0:
@@ -169,7 +215,9 @@ def rhs_generate(H, c_ops, args={}, options=Odeoptions(), name=None):
     exec(code, globals())
 
     odeconfig.tdfunc = cy_td_ode_rhs
-    try:
-        os.remove(odeconfig.tdname + ".pyx")
-    except:
-        pass
+
+    if cleanup:
+        try:
+            os.remove(odeconfig.tdname + ".pyx")
+        except:
+            pass
