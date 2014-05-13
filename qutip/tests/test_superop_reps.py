@@ -56,6 +56,7 @@ from qutip.superop_reps import (super_to_choi, choi_to_kraus,
                                 to_super, to_choi, to_kraus, to_chi,
                                 _dep_choi)
 
+tol = 1e-10
 
 class TestSuperopReps(object):
     """
@@ -74,7 +75,7 @@ class TestSuperopReps(object):
         
         # Assert both that the result is close to expected, and has the right
         # type.
-        assert_((test_supe - superoperator).norm() < 1e-12)
+        assert_((test_supe - superoperator).norm() < tol)
         assert_(choi_matrix.type == "super" and choi_matrix.superrep == "choi")
         assert_(test_supe.type == "super" and test_supe.superrep == "super")
 
@@ -91,7 +92,7 @@ class TestSuperopReps(object):
         
         # Assert both that the result is close to expected, and has the right
         # type.
-        assert_((test_supe - superoperator).norm() < 1e-12)
+        assert_((test_supe - superoperator).norm() < tol)
         assert_(choi_matrix.type == "super" and choi_matrix.superrep == "choi")
         assert_(chi_matrix.type == "super" and chi_matrix.superrep == "chi")
         assert_(test_supe.type == "super" and test_supe.superrep == "super")
@@ -107,7 +108,7 @@ class TestSuperopReps(object):
         
         # Assert both that the result is close to expected, and has the right
         # type.
-        assert_((test_choi - choi_matrix).norm() < 1e-12)
+        assert_((test_choi - choi_matrix).norm() < tol)
         assert_(choi_matrix.type == "super" and choi_matrix.superrep == "choi")
         assert_(test_choi.type == "super" and test_choi.superrep == "choi")
         
@@ -169,7 +170,7 @@ class TestSuperopReps(object):
         matches that asserted by the docstring for that function.
         """
         for dims in range(2, 5):
-            assert_(abs(to_choi(identity(dims)).tr() - dims) <= 1e-12)
+            assert_(abs(to_choi(identity(dims)).tr() - dims) <= tol)
 
 if __name__ == "__main__":
     run_module_suite()
