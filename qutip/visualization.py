@@ -314,9 +314,40 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     return fig, ax
 
 
+def complex_phase_cmap():
+    """
+    Create a cyclic colormap for representing the phase of complex variables
+
+    Returns
+    -------
+    cmap :
+        A matplotlib linear segmented colormap.
+    """
+    cdict = {'blue': ((0.00, 0.0, 0.0),
+                      (0.25, 0.0, 0.0),
+                      (0.50, 1.0, 1.0),
+                      (0.75, 1.0, 1.0),
+                      (1.00, 0.0, 0.0)),
+             'green': ((0.00, 0.0, 0.0),
+                      (0.25, 1.0, 1.0),
+                      (0.50, 0.0, 0.0),
+                      (0.75, 1.0, 1.0),
+                      (1.00, 0.0, 0.0)),
+             'red': ((0.00, 1.0, 1.0),
+                     (0.25, 0.5, 0.5),
+                     (0.50, 0.0, 0.0),
+                     (0.75, 0.0, 0.0),
+                     (1.00, 1.0, 1.0))}
+
+    cmap = mpl.colors.LinearSegmentedColormap('phase_colormap', cdict, 256)
+
+    return cmap
+
+
 def matrix_histogram_complex(M, xlabels=None, ylabels=None,
                              title=None, limits=None, phase_limits=None,
-                             colorbar=True, fig=None, ax=None):
+                             colorbar=True, fig=None, ax=None,
+                             threshold=None):
     """
     Draw a histogram for the amplitudes of matrix M, using the argument
     of each element for coloring the bars, with the given x and y labels
@@ -344,6 +375,10 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
 
     ax : a matplotlib axes instance
         The axes context in which the plot will be drawn.
+
+    threshold: float (None)
+        Threshold for when bars of smaller height should be transparent. If 
+        not set, all bars are colored according to the color map.
 
     Returns
     -------
@@ -383,27 +418,11 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
         phase_max = pi
 
     norm = mpl.colors.Normalize(phase_min, phase_max)
-
-    # create a cyclic colormap
-    cdict = {'blue': ((0.00, 0.0, 0.0),
-                      (0.25, 0.0, 0.0),
-                      (0.50, 1.0, 1.0),
-                      (0.75, 1.0, 1.0),
-                      (1.00, 0.0, 0.0)),
-             'green': ((0.00, 0.0, 0.0),
-                       (0.25, 1.0, 1.0),
-                       (0.50, 0.0, 0.0),
-                       (0.75, 1.0, 1.0),
-                       (1.00, 0.0, 0.0)),
-             'red': ((0.00, 1.0, 1.0),
-                     (0.25, 0.5, 0.5),
-                     (0.50, 0.0, 0.0),
-                     (0.75, 0.0, 0.0),
-                     (1.00, 1.0, 1.0))}
-
-    cmap = mpl.colors.LinearSegmentedColormap('phase_colormap', cdict, 256)
+    cmap = complex_phase_cmap()
 
     colors = cmap(norm(angle(Mvec)))
+    if not threshold is None:
+        colors[:,3] = 1 * (dz > threshold) 
 
     if ax is None:
         fig = plt.figure()

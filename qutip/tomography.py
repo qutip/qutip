@@ -122,7 +122,8 @@ def qpt_plot(chi, lbls_list, title=None, fig=None, axes=None):
 
 
 def qpt_plot_combined(chi, lbls_list, title=None,
-                      fig=None, ax=None, figsize=(8, 6)):
+                      fig=None, ax=None, figsize=(8, 6),
+                      threshold=None):
     """
     Visualize the quantum process tomography chi matrix. Plot bars with
     height and color corresponding to the absolute value and phase,
@@ -132,15 +133,23 @@ def qpt_plot_combined(chi, lbls_list, title=None,
     ----------
     chi : array
         Input QPT chi matrix.
+ 
     lbls_list : list
         List of labels for QPT plot axes.
+
     title : string
         Plot title.
+
     fig : figure instance
         User defined figure instance used for generating QPT plot.
+
     ax : figure axis instance
         User defined figure axis instance used for generating QPT plot
         (alternative to the fig argument).
+
+    threshold: float (None)
+        Threshold for when bars of smaller height should be transparent. If 
+        not set, all bars are colored according to the color map.
 
     Returns
     -------
@@ -162,7 +171,8 @@ def qpt_plot_combined(chi, lbls_list, title=None,
     if not title:
         title = r"$\chi$"
 
-    matrix_histogram_complex(chi, xlabels, xlabels, title=title, ax=ax)
+    matrix_histogram_complex(chi, xlabels, xlabels, title=title, ax=ax,
+                             threshold=threshold)
 
     return fig, ax
 
