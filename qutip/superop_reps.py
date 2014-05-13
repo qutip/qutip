@@ -6,7 +6,7 @@ including supermatrix, Kraus, Choi and Chi (process) matrix formalisms.
 @author: dcriger
 """
 
-#- IMPORTS --------------------------------------------------------------------
+# IMPORTS ---------------------------------------------------------------------
 
 # Python Standard Library
 from operator import add
@@ -25,7 +25,8 @@ from qutip.operators import identity, sigmax, sigmay, sigmaz
 from qutip.tensor import tensor
 from qutip.qobj import Qobj
 
-#- SPECIFIC SUPEROPERATORS ----------------------------------------------------
+
+# SPECIFIC SUPEROPERATORS -----------------------------------------------------
 
 def _dep_super(pe):
     """
@@ -57,26 +58,31 @@ def _dep_choi(pe):
                             [1. - pe, 0., 0., 1. - pe / 2.]]),
                 superrep='choi')
 
-#- CHANGE OF BASIS FUNCTIONS --------------------------------------------------
+
+# CHANGE OF BASIS FUNCTIONS ---------------------------------------------------
 # These functions find change of basis matrices, and are useful in converting
 # between (for instance) Choi and chi matrices. At some point, these should
 # probably be moved out to another module.
 
 _SINGLE_QUBIT_PAULI_BASIS = (identity(2), sigmax(), sigmay(), sigmaz())
 
+
 def _pauli_basis(nq=1):
     # NOTE: This is slow as can be.
     # TODO: Make this sparse. CSR format was causing problems for the [idx, :]
     #       slicing below.
-    B = zeros((4**nq, 4**nq), dtype=complex)
-    dims = [[[2]*nq]*2]*2
-    
-    for idx, op in enumerate(starmap(tensor, product(_SINGLE_QUBIT_PAULI_BASIS, repeat=nq))):
+    B = zeros((4 ** nq, 4 ** nq), dtype=complex)
+    dims = [[[2] * nq] * 2] * 2
+
+    for idx, op in enumerate(starmap(tensor,
+                                     product(_SINGLE_QUBIT_PAULI_BASIS,
+                                             repeat=nq))):
         B[:, idx] = operator_to_vector(op).dag().data.todense()
-    
+
     return Qobj(B, dims=dims)
 
-#- PRIVATE CONVERSION FUNCTIONS -----------------------------------------------
+
+# PRIVATE CONVERSION FUNCTIONS ------------------------------------------------
 # These functions handle the main work of converting between representations,
 # and are exposed below by other functions that add postconditions about types.
 #
@@ -87,7 +93,7 @@ def _super_tofrom_choi(q_oper):
     We exploit that the basis transformation between Choi and supermatrix
     representations squares to the identity, so that if we munge Qobj.type,
     we can use the same function.
-    
+
     Since this function doesn't respect :attr:`Qobj.type`, we mark it as
     private; only those functions which wrap this in a way so as to preserve
     type should be called externally.
@@ -98,9 +104,10 @@ def _super_tofrom_choi(q_oper):
                 inpt=data.reshape([sqrt_shape] * 4).
                 transpose(3, 1, 2, 0).reshape(q_oper.data.shape))
 
+
 def super_to_choi(q_oper):
     # TODO: deprecate and make private in favor of to_choi,
-    #       which looks at Qobj.type to determine the right conversion function.
+    # which looks at Qobj.type to determine the right conversion function.
     """
     Takes a superoperator to a Choi matrix
     # TODO Sanitize input, incorporate as method on Qobj if type=='super'
@@ -109,9 +116,10 @@ def super_to_choi(q_oper):
     q_oper.superrep = 'choi'
     return q_oper
 
+
 def choi_to_super(q_oper):
     # TODO: deprecate and make private in favor of to_super,
-    #       which looks at Qobj.type to determine the right conversion function.
+    # which looks at Qobj.type to determine the right conversion function.
     """
     Takes a Choi matrix to a superoperator
     # TODO Sanitize input, Abstract-ify application of channels to states
@@ -119,6 +127,7 @@ def choi_to_super(q_oper):
     q_oper = super_to_choi(q_oper)
     q_oper.superrep = 'super'
     return q_oper
+
 
 def choi_to_kraus(q_oper):
     """
@@ -131,6 +140,7 @@ def choi_to_kraus(q_oper):
     return list(map(lambda x: Qobj(inpt=x),
                     [sqrt(vals[j]) * vec2mat(vecs[j])
                      for j in range(len(vals))]))
+
 
 def kraus_to_choi(kraus_list):
     """
@@ -148,36 +158,40 @@ def kraus_to_choi(kraus_list):
                 dims=[kraus_list[0].dims, kraus_list[0].dims], type='super',
                 superrep='choi')
 
+
 def kraus_to_super(kraus_list):
     return choi_to_super(kraus_to_choi(kraus_list))
-    
+
+
 def choi_to_chi(q_oper):
     """
     Converts a Choi matrix to a Chi matrix in the Pauli basis.
-    
+
     NOTE: this is only supported for qubits right now. Need to extend to
     Heisenberg-Weyl for other subsystem dimensions.
     """
     nq = len(q_oper.dims[0][0])
     B = _pauli_basis(nq)
-    B.superrep = 'choi'    
+    B.superrep = 'choi'
     return Qobj(B * q_oper * B.dag(), superrep='chi')
-    
+
+
 def chi_to_choi(q_oper):
     """
     Converts a Choi matrix to a Chi matrix in the Pauli basis.
-    
+
     NOTE: this is only supported for qubits right now. Need to extend to
     Heisenberg-Weyl for other subsystem dimensions.
     """
     nq = len(q_oper.dims[0][0])
     B = _pauli_basis(nq)
-    
+
     # The Chi matrix has tr(chi) == d², so we need to divide out
     # by that to get back to the Choi form.
     return Qobj((B.dag() * q_oper * B) / q_oper.shape[0], superrep='choi')
 
-#- PUBLIC CONVERSION FUNCTIONS ------------------------------------------------
+
+# PUBLIC CONVERSION FUNCTIONS -------------------------------------------------
 # These functions handle superoperator conversions in a way that preserves the
 # correctness of Qobj.type, and in a way that automatically branches based on
 # the input Qobj.type.
@@ -187,18 +201,18 @@ def to_choi(q_oper):
     Converts a Qobj representing a quantum map to the Choi representation,
     such that the trace of the returned operator is equal to the dimension
     of the system.
-    
+
     Parameters
     ----------
     q_oper : Qobj
         Superoperator to be converted to Choi representation.
-        
+
     Returns
     -------
     choi : Qobj
         A quantum object representing the same map as ``q_oper``, such that
         ``choi.superrep == "choi"``.
-        
+
     Raises
     ------
     TypeError: if the given quantum object is not a map, or cannot be converted
@@ -220,24 +234,25 @@ def to_choi(q_oper):
             "Conversion of Qobj with type = {0.type} "
             "and superrep = {0.choi} to Choi not supported.".format(q_oper)
         )
-        
+
+
 def to_chi(q_oper):
     """
     Converts a Qobj representing a quantum map to a representation as a chi
     (process) matrix in the Pauli basis, such that the trace of the returned
     operator is equal to the dimension of the system.
-    
+
     Parameters
     ----------
     q_oper : Qobj
         Superoperator to be converted to Choi representation.
-        
+
     Returns
     -------
     choi : Qobj
         A quantum object representing the same map as ``q_oper``, such that
         ``choi.superrep == "choi"``.
-        
+
     Raises
     ------
     TypeError: if the given quantum object is not a map, or cannot be converted
@@ -263,22 +278,23 @@ def to_chi(q_oper):
             "and superrep = {0.choi} to Choi not supported.".format(q_oper)
         )
 
+
 def to_super(q_oper):
     """
     Converts a Qobj representing a quantum map to the supermatrix (Liouville)
     representation.
-    
+
     Parameters
     ----------
     q_oper : Qobj
         Superoperator to be converted to supermatrix representation.
-        
+
     Returns
     -------
     superop : Qobj
         A quantum object representing the same map as ``q_oper``, such that
         ``superop.superrep == "super"``.
-        
+
     Raises
     ------
     TypeError: if the given quantum object is not a map, or cannot be converted
@@ -294,7 +310,7 @@ def to_super(q_oper):
         # Case 3: Need to go through Choi.
         elif q_oper.superrep == 'chi':
             return to_super(to_choi(q_oper))
-    elif q_oper.type == 'oper': # Assume unitary.
+    elif q_oper.type == 'oper':  # Assume unitary
         return spre(q_oper) * spost(q_oper.dag())
     else:
         raise TypeError(
@@ -303,22 +319,23 @@ def to_super(q_oper):
             "supported.".format(q_oper)
         )
 
+
 def to_kraus(q_oper):
     """
     Converts a Qobj representing a quantum map to a list of quantum objects,
     each representing an operator in the Kraus decomposition of the given map.
-    
+
     Parameters
     ----------
     q_oper : Qobj
         Superoperator to be converted to Kraus representation.
-        
+
     Returns
     -------
     kraus_ops : list of Qobj
         A list of quantum objects, each representing a Kraus operator in the
         decomposition of ``q_oper``.
-        
+
     Raises
     ------
     TypeError: if the given quantum object is not a map, or cannot be
@@ -329,7 +346,7 @@ def to_kraus(q_oper):
             return to_kraus(to_choi(q_oper))
         elif q_oper.superrep == 'choi':
             return choi_to_kraus(q_oper)
-    elif q_oper.type == 'oper': # Assume unitary.
+    elif q_oper.type == 'oper':  # Assume unitary
         return [q_oper]
     else:
         raise TypeError(
@@ -337,4 +354,3 @@ def to_kraus(q_oper):
             "and superrep = {0.superrep} to Kraus decomposition not "
             "supported.".format(q_oper)
         )
-    
