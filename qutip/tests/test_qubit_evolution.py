@@ -58,9 +58,7 @@ def _qubit_integrate(tlist, psi0, epsilon, delta, g1, g2, solver):
     elif solver == "es":
         output = essolve(H, psi0, tlist, c_op_list, e_ops)
     elif solver == "mc":
-        opts = Odeoptions(gui=False)
-        output = mcsolve(H, psi0, tlist, c_op_list, e_ops,
-                         ntraj=750, options=opts)
+        output = mcsolve(H, psi0, tlist, c_op_list, e_ops, ntraj=750)
     else:
         raise ValueError("unknown solver")
 

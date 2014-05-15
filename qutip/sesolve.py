@@ -55,7 +55,7 @@ from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
                                  cy_ode_psi_func_td_with_state)
 from qutip.cy.codegen import Codegen
 
-from qutip.gui.progressbar import BaseProgressBar
+from qutip.ui.progressbar import BaseProgressBar
 
 if debug:
     import inspect

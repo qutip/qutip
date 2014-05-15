@@ -74,8 +74,7 @@ def test_MCNoCollExpt():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve_f90(H, psi0, tlist, c_op_list,
-                         [a.dag() * a], options=Odeoptions(gui=False))
+    mcdata = mcsolve_f90(H, psi0, tlist, c_op_list, [a.dag() * a])
     expt = mcdata.expect[0]
     actual_answer = 9.0 * ones(len(tlist))
     diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -93,8 +92,7 @@ def test_MCNoCollStates():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve_f90(
-        H, psi0, tlist, c_op_list, [], options=Odeoptions(gui=False))
+    mcdata = mcsolve_f90(H, psi0, tlist, c_op_list, [])
     states = mcdata.states
     expt = expect(a.dag() * a, states)
     actual_answer = 9.0 * ones(len(tlist))
@@ -112,8 +110,7 @@ def test_MCSimpleConst():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [sqrt(kappa) * a]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve_f90(H, psi0, tlist, c_op_list,
-                         [a.dag() * a], options=Odeoptions(gui=False))
+    mcdata = mcsolve_f90(H, psi0, tlist, c_op_list, [a.dag() * a])
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -130,8 +127,7 @@ def test_MCSimpleSingleCollapse():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [sqrt(kappa) * a]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve_f90(H, psi0, tlist, c_op_list,
-                         [a.dag() * a], options=Odeoptions(gui=False))
+    mcdata = mcsolve_f90(H, psi0, tlist, c_op_list, [a.dag() * a])
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -148,8 +144,7 @@ def test_MCSimpleSingleExpect():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [sqrt(kappa) * a]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve_f90(H, psi0, tlist, c_op_list,
-                         [a.dag() * a], options=Odeoptions(gui=False))
+    mcdata = mcsolve_f90(H, psi0, tlist, c_op_list, [a.dag() * a])
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -183,7 +178,7 @@ def test_mcf90_dtypes1():
     C2dC2 = C2.dag() * C2
     # intial state
     psi0 = tensor(basis(N, 0), basis(2, 1))
-    opts = Odeoptions(gui=False, average_expect=True)
+    opts = Odeoptions(average_expect=True)
     data = mcsolve_f90(
         H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
     assert_equal(isinstance(data.expect[0][1], float), True)
@@ -218,7 +213,7 @@ def test_mcf90_dtypes2():
     C2dC2 = C2.dag() * C2
     # intial state
     psi0 = tensor(basis(N, 0), basis(2, 1))
-    opts = Odeoptions(gui=False, average_expect=False)
+    opts = Odeoptions(average_expect=False)
     data = mcsolve_f90(
         H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
     assert_equal(isinstance(data.expect[0][0][1], float), True)
