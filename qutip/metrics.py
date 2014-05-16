@@ -30,10 +30,9 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
 """
-A Module containing a collection of metrics
-(distance measures) between density matrices..
+This module contains a collection of functions for calculating metrics
+(distance measures) between states and operators.
 """
 
 from qutip.qobj import *
@@ -46,7 +45,7 @@ from qutip.superop_reps import to_kraus
 
 def fidelity(A, B):
     """
-    Calculates the fidelity (pseudo-metric) between two density matrices..
+    Calculates the fidelity (pseudo-metric) between two density matrices.
     See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
 
     Parameters
@@ -69,16 +68,18 @@ def fidelity(A, B):
     0.24104350624628332
 
     """
-    if A.type != 'oper':
+    if A.isket or A.isbra:
         A = ket2dm(A)
-    if B.type != 'oper':
+    if B.isket or B.isbra:
         B = ket2dm(B)
+
     if A.dims != B.dims:
         raise TypeError('Density matrices do not have same dimensions.')
-    else:
-        A = A.sqrtm()
-        return float(np.real((A * (B * A)).sqrtm().tr()))
-        
+
+    A = A.sqrtm()
+    return float(np.real((A * (B * A)).sqrtm().tr()))
+
+
 def average_gate_fidelity(oper):
     """
     Given a Qobj representing the supermatrix form of a map, returns the
@@ -138,17 +139,18 @@ def tracedist(A, B, sparse=False, tol=0):
     0.9705143161472971
 
     """
-    if A.type != 'oper':
+    if A.isket or A.isbra:
         A = ket2dm(A)
-    if B.type != 'oper':
+    if B.isket or B.isbra:
         B = ket2dm(B)
+
     if A.dims != B.dims:
-        raise TypeError('Density matrices. do not have same dimensions.')
-    else:
-        diff = A - B
-        diff = diff.dag() * diff
-        vals = sp_eigs(diff, vecs=False, sparse=sparse, tol=tol)
-        return float(np.real(0.5 * np.sum(np.sqrt(np.abs(vals)))))
+        raise TypeError("A and B do not have same dimensions.")
+
+    diff = A - B
+    diff = diff.dag() * diff
+    vals = sp_eigs(diff, vecs=False, sparse=sparse, tol=tol)
+    return float(np.real(0.5 * np.sum(np.sqrt(np.abs(vals)))))
 
 
 def hilbert_dist(A, B):
@@ -168,12 +170,14 @@ def hilbert_dist(A, B):
         Hilbert-Schmidt distance between density matrices.
 
     """
-    if A.type != 'oper':
+    if A.isket or A.isbra:
         A = ket2dm(A)
-    if B.type != 'oper':
+    if B.isket or B.isbra:
         B = ket2dm(B)
+
     if A.dims != B.dims:
-        raise TypeError('Density matrices do not have same dimensions.')
+        raise TypeError('A and B do not have same dimensions.')
+
     return (A - B).norm('fro')
 
 
@@ -195,15 +199,15 @@ def bures_dist(A, B):
     -------
     dist : float
         Bures distance between density matrices.
-
     """
-
-    if A.type != 'oper':
+    if A.isket or A.isbra:
         A = ket2dm(A)
-    if B.type != 'oper':
+    if B.isket or B.isbra:
         B = ket2dm(B)
+
     if A.dims != B.dims:
-        raise TypeError('Density matrices do not have same dimensions.')
+        raise TypeError('A and B do not have same dimensions.')
+
     dist = np.sqrt(2.0 * (1.0 - np.sqrt(fidelity(A, B))))
     return dist
 
@@ -225,13 +229,13 @@ def bures_angle(A, B):
     -------
     angle : float
         Bures angle between density matrices.
-
     """
-
-    if A.type != 'oper':
+    if A.isket or A.isbra:
         A = ket2dm(A)
-    if B.type != 'oper':
+    if B.isket or B.isbra:
         B = ket2dm(B)
+
     if A.dims != B.dims:
-        raise TypeError('Density matrices do not have same dimensions.')
+        raise TypeError('A and B do not have same dimensions.')
+
     return np.arccos(np.sqrt(fidelity(A, B)))
