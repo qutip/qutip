@@ -80,6 +80,13 @@ def fidelity(A, B):
     return float(np.real((A * (B * A)).sqrtm().tr()))
 
 
+def process_fidelity(U1, U2, normalize=True):
+    """
+    Calculate the process fidelity given two process operators.
+    """
+    return (U1 * U2).tr() / (U1.tr() * U2.tr())
+
+
 def average_gate_fidelity(oper):
     """
     Given a Qobj representing the supermatrix form of a map, returns the
