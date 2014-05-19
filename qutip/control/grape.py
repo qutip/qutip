@@ -38,7 +38,7 @@ calculating pulse sequences for quantum systems.
 import numpy as np
 from scipy.interpolate import interp1d
 
-from qutip.gui.progressbar import BaseProgressBar, TextProgressBar
+from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
 def plot_grape_control_fields(times, u, labels):
 
@@ -76,7 +76,7 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                   interp_kind='linear', progress_bar=BaseProgressBar()):
     
     if eps is None:
-        eps = 0.1 * (2 * pi) / (times[-1])
+        eps = 0.1 * (2 * np.pi) / (times[-1])
 
     M = len(times)
     J = len(H_ops)
