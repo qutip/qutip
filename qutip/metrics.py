@@ -84,7 +84,7 @@ def process_fidelity(U1, U2, normalize=True):
     """
     Calculate the process fidelity given two process operators.
     """
-    if normalized:
+    if normalize:
         return (U1 * U2).tr() / (U1.tr() * U2.tr())
     else:
         return (U1 * U2).tr()
