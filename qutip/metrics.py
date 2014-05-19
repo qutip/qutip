@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,22 +18,21 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
 """
-A Module containing a collection of metrics
-(distance measures) between density matrices..
+This module contains a collection of functions for calculating metrics
+(distance measures) between states and operators.
 """
 
 from qutip.qobj import *
@@ -46,7 +45,7 @@ from qutip.superop_reps import to_kraus
 
 def fidelity(A, B):
     """
-    Calculates the fidelity (pseudo-metric) between two density matrices..
+    Calculates the fidelity (pseudo-metric) between two density matrices.
     See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
 
     Parameters
@@ -69,26 +68,38 @@ def fidelity(A, B):
     0.24104350624628332
 
     """
-    if A.type != 'oper':
+    if A.isket or A.isbra:
         A = ket2dm(A)
-    if B.type != 'oper':
+    if B.isket or B.isbra:
         B = ket2dm(B)
+
     if A.dims != B.dims:
         raise TypeError('Density matrices do not have same dimensions.')
+
+    A = A.sqrtm()
+    return float(np.real((A * (B * A)).sqrtm().tr()))
+
+
+def process_fidelity(U1, U2, normalize=True):
+    """
+    Calculate the process fidelity given two process operators.
+    """
+    if normalized:
+        return (U1 * U2).tr() / (U1.tr() * U2.tr())
     else:
-        A = A.sqrtm()
-        return float(np.real((A * (B * A)).sqrtm().tr()))
-        
+        return (U1 * U2).tr()
+
+
 def average_gate_fidelity(oper):
     """
     Given a Qobj representing the supermatrix form of a map, returns the
     average gate fidelity (pseudo-metric) of that map.
-    
+
     Parameters
     ----------
     A : Qobj
         Quantum object representing a superoperator.
-        
+
     Returns
     -------
     fid : float
@@ -96,17 +107,13 @@ def average_gate_fidelity(oper):
     """
     kraus_form = to_kraus(oper)
     d = kraus_form[0].shape[0]
-    
+
     if kraus_form[0].shape[1] != d:
         return TypeError("Average gate fielity only implemented for square "
-            "superoperators.")
-    
-    return (
-        d + np.sum([
-            np.abs(A_k.tr())**2
-            for A_k in kraus_form
-        ])
-    ) / (d**2 + d)
+                         "superoperators.")
+
+    return (d + np.sum([np.abs(A_k.tr())**2
+                        for A_k in kraus_form])) / (d**2 + d)
 
 
 def tracedist(A, B, sparse=False, tol=0):
@@ -138,17 +145,18 @@ def tracedist(A, B, sparse=False, tol=0):
     0.9705143161472971
 
     """
-    if A.type != 'oper':
+    if A.isket or A.isbra:
         A = ket2dm(A)
-    if B.type != 'oper':
+    if B.isket or B.isbra:
         B = ket2dm(B)
+
     if A.dims != B.dims:
-        raise TypeError('Density matrices. do not have same dimensions.')
-    else:
-        diff = A - B
-        diff = diff.dag() * diff
-        vals = sp_eigs(diff, vecs=False, sparse=sparse, tol=tol)
-        return float(np.real(0.5 * np.sum(np.sqrt(np.abs(vals)))))
+        raise TypeError("A and B do not have same dimensions.")
+
+    diff = A - B
+    diff = diff.dag() * diff
+    vals = sp_eigs(diff, vecs=False, sparse=sparse, tol=tol)
+    return float(np.real(0.5 * np.sum(np.sqrt(np.abs(vals)))))
 
 
 def hilbert_dist(A, B):
@@ -168,12 +176,14 @@ def hilbert_dist(A, B):
         Hilbert-Schmidt distance between density matrices.
 
     """
-    if A.type != 'oper':
+    if A.isket or A.isbra:
         A = ket2dm(A)
-    if B.type != 'oper':
+    if B.isket or B.isbra:
         B = ket2dm(B)
+
     if A.dims != B.dims:
-        raise TypeError('Density matrices do not have same dimensions.')
+        raise TypeError('A and B do not have same dimensions.')
+
     return (A - B).norm('fro')
 
 
@@ -195,15 +205,15 @@ def bures_dist(A, B):
     -------
     dist : float
         Bures distance between density matrices.
-
     """
-
-    if A.type != 'oper':
+    if A.isket or A.isbra:
         A = ket2dm(A)
-    if B.type != 'oper':
+    if B.isket or B.isbra:
         B = ket2dm(B)
+
     if A.dims != B.dims:
-        raise TypeError('Density matrices do not have same dimensions.')
+        raise TypeError('A and B do not have same dimensions.')
+
     dist = np.sqrt(2.0 * (1.0 - np.sqrt(fidelity(A, B))))
     return dist
 
@@ -225,13 +235,13 @@ def bures_angle(A, B):
     -------
     angle : float
         Bures angle between density matrices.
-
     """
-
-    if A.type != 'oper':
+    if A.isket or A.isbra:
         A = ket2dm(A)
-    if B.type != 'oper':
+    if B.isket or B.isbra:
         B = ket2dm(B)
+
     if A.dims != B.dims:
-        raise TypeError('Density matrices do not have same dimensions.')
+        raise TypeError('A and B do not have same dimensions.')
+
     return np.arccos(np.sqrt(fidelity(A, B)))
