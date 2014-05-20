@@ -1063,7 +1063,8 @@ def plot_spin_distribution_3d(P, THETA, PHI,
 #
 
 def complex_array_to_rgb(X, theme='light', rmax=None):
-    """Makes an array of complex number and converts it to an array of [r, g, b],
+    """
+    Makes an array of complex number and converts it to an array of [r, g, b],
     where phase gives hue and saturation/value are given by the absolute value.
     Especially for use with imshow for complex plots.
 
@@ -1075,7 +1076,7 @@ def complex_array_to_rgb(X, theme='light', rmax=None):
     Parameters
     ----------
     X : array
-        Array (of any dimension) of complex numbers. 
+        Array (of any dimension) of complex numbers.
 
     theme : 'light' (default) or 'dark'
         Set coloring theme for mapping complex values into colors.
@@ -1159,7 +1160,8 @@ def _sequence_to_index(seq, dim_list):
 
 def _to_qubism_index_pair(i, dim_list, how='pairs'):
     """
-    For a matrix entry with index i it returns x, y coordinates in qubism mapping.
+    For a matrix entry with index i
+    it returns x, y coordinates in qubism mapping.
 
     Parameters
     ----------
@@ -1191,8 +1193,9 @@ def _to_qubism_index_pair(i, dim_list, how='pairs'):
     elif how == 'before_after':
         # https://en.wikipedia.org/wiki/File:Ising-tartan.png
         n = len(dim_list)
-        y = _sequence_to_index(reversed(seq[:n/2]), reversed(dim_list[:n/2]))
-        x = _sequence_to_index(seq[n/2:], dim_list[n/2:])
+        y = _sequence_to_index(reversed(seq[:(n / 2)]),
+                               reversed(dim_list[:(n / 2)]))
+        x = _sequence_to_index(seq[(n / 2):], dim_list[(n / 2):])
     else:
         raise Exception("Not such 'how'.")
     return x, y
@@ -1212,9 +1215,10 @@ def plot_qubism(ket, theme='light', how='pairs',
     Allows to see entanglement between first 2*k particles and the rest.
 
     More information:
-        J. Rodriguez-Laguna, P. Migdal, M. Ibanez Berganza, M. Lewenstein, G. Sierra,
+        J. Rodriguez-Laguna, P. Migdal,
+        M. Ibanez Berganza, M. Lewenstein, G. Sierra,
         "Qubism: self-similar visualization of many-body wavefunctions",
-        New J. Phys. 14 053028 (2012), arXiv:1112.3560, 
+        New J. Phys. 14 053028 (2012), arXiv:1112.3560,
         http://dx.doi.org/10.1088/1367-2630/14/5/053028 (open access)
 
     Parameters
@@ -1235,9 +1239,10 @@ def plot_qubism(ket, theme='light', how='pairs',
 
     legend_iteration : int (default 0) or 'grid_iteration' or 'all'
         Show labels for first 2*legend_iteration particles.
-        Option 'grid_iteration' sets the same number of particles as for grid_iteration.
+        Option 'grid_iteration' sets the same number of particles
+            as for grid_iteration.
         Option 'all' makes label for all particles.
-        Typically it should be 0, 1, 2 or perhaps 3. 
+        Typically it should be 0, 1, 2 or perhaps 3.
 
     fig : a matplotlib figure instance
         The figure canvas on which the plot will be drawn.
@@ -1264,13 +1269,13 @@ def plot_qubism(ket, theme='light', how='pairs',
 
     if not fig and not ax:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
- 
+
     dim_list = ket.dims[0]
     n = len(dim_list)
 
     # for odd number of particles - pixels are rectangular
     if n % 2 == 1:
-        ket = tensor(ket, Qobj([1]*dim_list[-1]))
+        ket = tensor(ket, Qobj([1] * dim_list[-1]))
         dim_list = ket.dims[0]
         n += 1
 
@@ -1283,10 +1288,11 @@ def plot_qubism(ket, theme='light', how='pairs',
         dim_list_y = dim_list[::2]
         dim_list_x = dim_list[1::2]
         if dim_list_x != dim_list_y:
-            raise Exception("For 'pairs_skewed' pairs of dimensions need to be the same.")
+            raise Exception("""For 'pairs_skewed' pairs
+                               of dimensions need to be the same.""")
     elif how == 'before_after':
-        dim_list_y = list(reversed(dim_list[:n/2]))
-        dim_list_x = dim_list[n/2:]
+        dim_list_y = list(reversed(dim_list[:(n / 2)]))
+        dim_list_x = dim_list[(n / 2):]
     else:
         raise Exception("Not such 'how'.")
 
@@ -1295,28 +1301,28 @@ def plot_qubism(ket, theme='light', how='pairs',
 
     qub = np.zeros([size_x, size_y], dtype=complex)
     for i in range(ketdata.size):
-        qub[_to_qubism_index_pair(i, dim_list, how=how)] = ketdata[i,0]
+        qub[_to_qubism_index_pair(i, dim_list, how=how)] = ketdata[i, 0]
     qub = qub.transpose()
-    
+
     quadrants_x = _product(dim_list_x[:grid_iteration])
     quadrants_y = _product(dim_list_y[:grid_iteration])
 
-    ticks_x = [size_x/(float(quadrants_x)) * i for i in range(1, quadrants_x)]
-    ticks_y = [size_y/(float(quadrants_y)) * i for i in range(1, quadrants_y)]
+    ticks_x = [size_x / quadrants_x * i for i in range(1, quadrants_x)]
+    ticks_y = [size_y / quadrants_y * i for i in range(1, quadrants_y)]
 
     ax.set_xticks(ticks_x)
-    ax.set_xticklabels([""]*(quadrants_x - 1))
+    ax.set_xticklabels([""] * (quadrants_x - 1))
     ax.set_yticks(ticks_y)
-    ax.set_yticklabels([""]*(quadrants_y - 1))
+    ax.set_yticklabels([""] * (quadrants_y - 1))
     theme2color_of_lines = {'light': '#000000',
                             'dark': '#FFFFFF'}
     ax.grid(True, color=theme2color_of_lines[theme])
     ax.imshow(complex_array_to_rgb(qub, theme=theme),
-               interpolation="none",
-               extent=(0, size_x, 0, size_y))
+              interpolation="none",
+              extent=(0, size_x, 0, size_y))
 
     if legend_iteration == 'all':
-        label_n = n/2
+        label_n = n / 2
     elif legend_iteration == 'grid_iteration':
         label_n = grid_iteration
     else:
@@ -1325,7 +1331,8 @@ def plot_qubism(ket, theme='light', how='pairs',
     if label_n:
 
         if how == 'before_after':
-            dim_list_small = list(reversed(dim_list_y[-label_n:])) + dim_list_x[:label_n]
+            dim_list_small = list(reversed(dim_list_y[-label_n:])) \
+                + dim_list_x[:label_n]
         else:
             dim_list_small = []
             for j in range(label_n):
@@ -1337,13 +1344,15 @@ def plot_qubism(ket, theme='light', how='pairs',
         scale_y = float(size_y) / _product(dim_list_y[:label_n])
         shift_y = 0.5 * scale_y
 
-        opts = {'fontsize': int((30 * figsize[0]) / _product(dim_list_x[:label_n]) / label_n), 
+        fontsize = 30 * figsize[0] / _product(dim_list_x[:label_n]) / label_n
+        opts = {'fontsize': fontsize,
                 'color': theme2color_of_lines[theme],
                 'horizontalalignment': 'center',
                 'verticalalignment': 'center'}
         for i in range(_product(dim_list_small)):
             x, y = _to_qubism_index_pair(i, dim_list_small, how=how)
-            label = "".join(map(str, _index_to_sequence(i, dim_list=dim_list_small)))
+            seq = _index_to_sequence(i, dim_list=dim_list_small)
+            label = "".join(map(str, seq))
             ax.text(scale_x * x + shift_x,
                     size_y - (scale_y * y + shift_y),
                     "$\\left|{0}\\right\\rangle$".format(label),
@@ -1352,9 +1361,9 @@ def plot_qubism(ket, theme='light', how='pairs',
 
 
 def plot_schmidt(ket, splitting=None,
-                labels_iteration=(3,2),
-                theme='light',
-                fig=None, ax=None, figsize=(6, 6)):
+                 labels_iteration=(3, 2),
+                 theme='light',
+                 fig=None, ax=None, figsize=(6, 6)):
     """
     Plotting scheme related to Schmidt decomposition.
 
@@ -1397,7 +1406,7 @@ def plot_schmidt(ket, splitting=None,
 
     if not fig and not ax:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
- 
+
     dim_list = ket.dims[0]
 
     if splitting is None:
@@ -1422,14 +1431,22 @@ def plot_schmidt(ket, splitting=None,
     quadrants_x = _product(dim_list_small_x)
     quadrants_y = _product(dim_list_small_y)
 
-    ticks_x = [size_x/quadrants_x * (i + 0.5) for i in range(quadrants_x)]
-    ticks_y = [size_y/quadrants_y * (quadrants_y - i - 0.5) for i in range(quadrants_y)]
+    ticks_x = [size_x / quadrants_x * (i + 0.5)
+               for i in range(quadrants_x)]
+    ticks_y = [size_y / quadrants_y * (quadrants_y - i - 0.5)
+               for i in range(quadrants_y)]
 
-
-    labels_x = ["$\\left|{0}\\right\\rangle$".format("".join(map(str, _index_to_sequence(i * size_x / quadrants_x, dim_list=dim_list_x))))
+    ket_str = "$\\left|{0}\\right\\rangle$"
+    labels_x = [_index_to_sequence(i * size_x / quadrants_x,
+                                   dim_list=dim_list_x)
                 for i in range(quadrants_x)]
-    labels_y = ["$\\left|{0}\\right\\rangle$".format("".join(map(str, _index_to_sequence(i * size_y / quadrants_y, dim_list=dim_list_y))))
+    labels_x = [ket_str.format("".join(map(str, seq)))
+                for seq in labels_x]
+    labels_y = [_index_to_sequence(i * size_y / quadrants_y,
+                                   dim_list=dim_list_y)
                 for i in range(quadrants_y)]
+    labels_y = [ket_str.format("".join(map(str, seq)))
+                for seq in labels_y]
 
     ax.set_xticks(ticks_x)
     ax.set_xticklabels(labels_x)
@@ -1439,8 +1456,7 @@ def plot_schmidt(ket, splitting=None,
     ax.set_ylabel("first particles")
 
     ax.imshow(complex_array_to_rgb(ketdata, theme=theme),
-               interpolation="none",
-               extent=(0, size_x, 0, size_y))
-    
-    return fig, ax
+              interpolation="none",
+              extent=(0, size_x, 0, size_y))
 
+    return fig, ax
