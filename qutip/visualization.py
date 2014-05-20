@@ -1217,6 +1217,12 @@ def _to_qubism_index_pair(k, d=2, n=None, how='pairs', skewed=False):
         return (x, y)
 
 
+from operator import mul
+
+def _product(li):
+    return reduce(mul, li)
+
+
 def plot_qubism(ket, theme='light', how='pairs', skewed=False,
                 grid_iter=1, overlay_legend=0,
                 fig=None, ax=None, figsize=(6, 6)):
@@ -1290,7 +1296,7 @@ def plot_qubism(ket, theme='light', how='pairs', skewed=False,
  
     n = len(ket.dims[0])
     d = ket.dims[0][0]  # as of now assuming that all dims are same
-    dim = ket.dims[0]
+    dim_list = ket.dims[0]
 
     # for odd number of particles - pixels are rectangular
     if n % 2 == 1:
@@ -1298,46 +1304,78 @@ def plot_qubism(ket, theme='light', how='pairs', skewed=False,
         n += 1
 
     ketdata = ket.full()
-    halfsize = sqrt(ketdata.size)
-    
-    qub = np.zeros([halfsize, halfsize], dtype=complex)
+
+    if how == 'pairs':
+        dim_list_x = dim_list[::2]
+        dim_list_y = dim_list[1::2]
+    elif how == 'pairs_skewed':
+        dim_list_x = dim_list[::2]
+        dim_list_y = dim_list[1::2]
+        if dim_list_x != dim_list_y:
+            raise Exception("For 'pairs_skewed' pairs of dimensions need to be the same.")
+    elif how == 'before_after':
+        dim_list_x = dim_list[:n/2]  # or the other way?
+        dim_list_y = dim_list[n/2:]
+    else:
+        raise Exception("Not such 'how'.")
+
+    size_x = _product(dim_list_x)
+    size_y = _product(dim_list_y)
+
+    qub = np.zeros([size_x, size_y], dtype=complex)
     for i in range(ketdata.size):
         qub[_to_qubism_index_pair(i, d=d, n=n, how=how, skewed=skewed)] = ketdata[i,0]
     qub = qub.transpose()
     
-    quadrants = d**grid_iter
-    ticks = [halfsize/(float(quadrants)) * i for i in range(1, quadrants)]
-    ax.set_xticks(ticks)
-    ax.set_xticklabels([""]*(quadrants - 1))
-    ax.set_yticks(ticks)
-    ax.set_yticklabels([""]*(quadrants - 1))
+    quadrants_x = _product(dim_list_x[:grid_iter])
+    quadrants_y = _product(dim_list_y[:grid_iter])
+
+    ticks_x = [size_x/(float(quadrants_x)) * i for i in range(1, quadrants_x)]
+    ticks_y = [size_y/(float(quadrants_y)) * i for i in range(1, quadrants_y)]
+
+    ax.set_xticks(ticks_x)
+    ax.set_xticklabels([""]*(quadrants_x - 1))
+    ax.set_yticks(ticks_y)
+    ax.set_yticklabels([""]*(quadrants_y - 1))
     theme2color_of_lines = {'light': '#000000',
                             'dark': '#FFFFFF'}
     ax.grid(True, color=theme2color_of_lines[theme])
     ax.imshow(complex_array_to_rgb(qub, theme=theme),
                interpolation="none",
-               extent=(0, halfsize, 0, halfsize))
+               extent=(0, size_x, 0, size_y))
 
     if overlay_legend == 'all':
-        label_n = n
+        label_n = n/2
     elif overlay_legend == 'grid_iter':
-        label_n = 2*grid_iter
+        label_n = grid_iter
     else:
-        label_n = 2*overlay_legend
+        label_n = overlay_legend
 
     if label_n:
-        scale = halfsize / sqrt(d**label_n)
-        shift = scale / d
-        opts = {'fontsize': int((60 * figsize[0]) / (label_n**2)),  # this may need fixing 
+
+        if how == 'before_after':
+            dim_list_small = dim_list_x[-label_n:] + dim_list_y[:label_n]
+        else:
+            dim_list_small = []
+            for j in range(label_n):
+                dim_list_small.append(dim_list_x[j])
+                dim_list_small.append(dim_list_y[j])
+
+        scale_x = float(size_x) / _product(dim_list_x[:label_n])
+        shift_x = 0.5 * scale_x
+        scale_y = float(size_y) / _product(dim_list_y[:label_n])
+        shift_y = 0.5 * scale_y
+
+        opts = {'fontsize': int((30 * figsize[0]) / _product(dim_list_x[:label_n]) / label_n), 
                 'color': theme2color_of_lines[theme],
                 'horizontalalignment': 'center',
                 'verticalalignment': 'center'}
-        for i in range(d**label_n):
-            x, y = _to_qubism_index_pair(i, d=d, n=label_n,
+        for i in range(_product(dim_list_small)):
+            x, y = _to_qubism_index_pair(i, d=d, n=(2*label_n),
                                          how=how, skewed=skewed)
-            label = "".join(map(str, _index_to_sequence(i, dim_list=dim[:label_n])))
-            ax.text(scale * x + shift,
-                    halfsize - (scale * y + shift),
+            label = "".join(map(str, _index_to_sequence(i, dim_list=dim_list_small)))
+            ax.text(scale_x * x + shift_x,
+                    size_y - (scale_y * y + shift_y),
                     "$\\left|{0}\\right\\rangle$".format(label),
                     **opts)
     return fig, ax
