@@ -1067,6 +1067,11 @@ def complex_array_to_rgb(X, theme='light', rmax=None):
     where phase gives hue and saturation/value are given by the absolute value.
     Especially for use with imshow for complex plots.
 
+    For more info on coloring, see:
+        Emilia Petrisor,
+        Visualizing complex-valued functions with Matplotlib and Mayavi
+        http://nbviewer.ipython.org/github/empet/Math/blob/master/DomainColoring.ipynb
+
     Parameters
     ----------
     X : array
@@ -1100,6 +1105,23 @@ def complex_array_to_rgb(X, theme='light', rmax=None):
 
 
 def _index_to_sequence(i, dim_list):
+    """
+    For a matrix entry with index i it returns state it corresponds to.
+
+    Parameters
+    ----------
+    i : int
+        Index in a matrix.
+
+    dim_list : list of int
+        List of dimensions of consecutive particles.
+
+    Returns
+    -------
+    states : list
+        List of coordinates for each particle.
+
+    """
     res = []
     j = i
     for d in dim_list:
@@ -1110,6 +1132,37 @@ def _index_to_sequence(i, dim_list):
 
 # now d>2 only for some cases
 def _to_qubism_index_pair(k, d=2, n=None, how='pairs', skewed=False):
+    """
+    For a matrix entry with index k it returns x, y coordinates in qubism mapping.
+
+    Parameters
+    ----------
+    k : int
+        Index in a matrix.
+
+    d : int
+        Dimension of particles.
+
+    n : int
+        Number of particles (for some mappings it is not required).
+
+    # dim_list : list of int
+    #     List of dimensions of consecutive particles.
+
+    how : 'pairs' ('default') or 'before_after'
+        Type of qubistic plot.
+        (Rename it as 'style'?)
+
+    skewed : boolean
+        If modulo-add pair cooedinates.
+        (Move it into 'how'.)
+
+    Returns
+    -------
+    x, y : tuple of ints
+        List of coordinates for each particle.
+
+    """
     if how == 'pairs':
         i = 0
         j = k
@@ -1146,21 +1199,20 @@ def plot_qubism(ket, theme='light', how='pairs', skewed=False,
     Allows to see entanglement between first 2*k particles and the rest.
 
     More information:
-      J. Rodriguez-Laguna, P. Migdal, M. Ibanez Berganza, M. Lewenstein, G. Sierra,
-      "Qubism: self-similar visualization of many-body wavefunctions",
-      New J. Phys. 14 053028 (2012), arXiv:1112.3560, 
-      http://dx.doi.org/10.1088/1367-2630/14/5/053028 (open access)
-
+        J. Rodriguez-Laguna, P. Migdal, M. Ibanez Berganza, M. Lewenstein, G. Sierra,
+        "Qubism: self-similar visualization of many-body wavefunctions",
+        New J. Phys. 14 053028 (2012), arXiv:1112.3560, 
+        http://dx.doi.org/10.1088/1367-2630/14/5/053028 (open access)
 
     Note: as of now only for n particles of the same dimension.
-
+    (We are changing it!)
 
     Parameters
     ----------
     ket : Qobj
         Pure state for plotting.
 
-    theme : 'dark' (default) or 'light'
+    theme : 'light' (default) or 'dark'
         Set coloring theme for mapping complex values into colors.
         See: complex_array_to_rgb.
 
@@ -1203,6 +1255,8 @@ def plot_qubism(ket, theme='light', how='pairs', skewed=False,
 
     if not ket.isket:
         raise Exception("Qubism works only for pure states, i.e. kets.")
+        # add for bra
+        # add for dm? (perhaps a separate function, plot_qubism_dm)
 
     if not fig and not ax:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
@@ -1261,11 +1315,56 @@ def plot_qubism(ket, theme='light', how='pairs', skewed=False,
                     **opts)
     return fig, ax
 
-# TO DO:
-# * For particles of different dim.
-# * Also for density matrices?
-# * Add Schmidt plot.
 
-# BTW: 
-# how about such syntax for plotting?
-# Qobj.plot_qubism = plot_qubism
+def plot_schmidt(ket, splitting=None,
+                grid_iteration=(1,1), overlay_legend=0,
+                theme='light',
+                fig=None, ax=None, figsize=(6, 6)):
+    """
+    Plotting scheme related to Schmidt decomposition.
+    (Under development.)
+
+
+    Parameters
+    ----------
+    ket : Qobj
+        Pure state for plotting.
+
+    splitting : int
+        Plot for a number of first particles versus the rest.
+        If not given, it is floor(number of particles / 2).
+
+    theme : 'light' (default) or 'dark'
+        Set coloring theme for mapping complex values into colors.
+        See: complex_array_to_rgb.
+
+    grid_iter : pair of ints (default (1,1))
+        Helper lines to be drawn on plot.
+        Show tiles for 2*grid_iter particles vs all others.
+
+    overlay_legend : int (default 0) or 'grid_iter' or 'all'
+        Show labels for first 2*overlay_legend particles.
+        Option 'grid_iter' sets the same number of particles as for grid_iter.
+        Option 'all' makes label for all particles.
+        Typically it should be 0, 1, 2 or perhaps 3. 
+
+    fig : a matplotlib figure instance
+        The figure canvas on which the plot will be drawn.
+
+    ax : a matplotlib axis instance
+        The axis context in which the plot will be drawn.
+
+    figsize : (width, height)
+        The size of the matplotlib figure (in inches) if it is to be created
+        (that is, if no 'fig' and 'ax' arguments are passed).
+
+    Returns
+    -------
+    fig, ax : tuple
+        A tuple of the matplotlib figure and axes instances used to produce
+        the figure.
+
+    """
+
+    raise Exception("Not yet implemented.")
+
