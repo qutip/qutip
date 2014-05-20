@@ -1352,13 +1352,11 @@ def plot_qubism(ket, theme='light', how='pairs',
 
 
 def plot_schmidt(ket, splitting=None,
-                grid_iteration=(1,1), legend_iteration=0,
+                labels_iteration=(3,2),
                 theme='light',
                 fig=None, ax=None, figsize=(6, 6)):
     """
     Plotting scheme related to Schmidt decomposition.
-    (Under development.)
-
 
     Parameters
     ----------
@@ -1373,15 +1371,9 @@ def plot_schmidt(ket, splitting=None,
         Set coloring theme for mapping complex values into colors.
         See: complex_array_to_rgb.
 
-    grid_iteration : pair of ints (default (1,1))
-        Helper lines to be drawn on plot.
-        Show tiles for 2*grid_iteration particles vs all others.
-
-    legend_iteration : int (default 0) or 'grid_iteration' or 'all'
-        Show labels for first 2*legend_iteration particles.
-        Option 'grid_iteration' sets the same number of particles as for grid_iteration.
-        Option 'all' makes label for all particles.
-        Typically it should be 0, 1, 2 or perhaps 3. 
+    labels_iteration : int or pair of ints (default (3,2))
+        Number of particles to be shown as tick labels,
+        for first (vertical) and last (horizontal) particles, respectively.
 
     fig : a matplotlib figure instance
         The figure canvas on which the plot will be drawn.
@@ -1411,8 +1403,8 @@ def plot_schmidt(ket, splitting=None,
     if splitting is None:
         splitting = (len(dim_list) + 1) / 2
 
-    if isinstance(grid_iteration, int):
-        grid_iteration = grid_iteration, grid_iteration
+    if isinstance(labels_iteration, int):
+        labels_iteration = labels_iteration, labels_iteration
 
     ketdata = ket.full()
 
@@ -1424,8 +1416,8 @@ def plot_schmidt(ket, splitting=None,
 
     ketdata = ketdata.reshape((size_y, size_x))
 
-    dim_list_small_x = dim_list_x[:grid_iteration[1]]
-    dim_list_small_y = dim_list_y[:grid_iteration[0]]
+    dim_list_small_x = dim_list_x[:labels_iteration[1]]
+    dim_list_small_y = dim_list_y[:labels_iteration[0]]
 
     quadrants_x = _product(dim_list_small_x)
     quadrants_y = _product(dim_list_small_y)
@@ -1445,9 +1437,6 @@ def plot_schmidt(ket, splitting=None,
     ax.set_yticklabels(labels_y)
     ax.set_xlabel("last particles")
     ax.set_ylabel("first particles")
-
-    theme2color_of_lines = {'light': '#000000',
-                            'dark': '#FFFFFF'}
 
     ax.imshow(complex_array_to_rgb(ketdata, theme=theme),
                interpolation="none",
