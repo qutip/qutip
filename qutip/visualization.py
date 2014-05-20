@@ -1232,6 +1232,10 @@ def plot_qubism(ket, theme='light', how='pairs',
 
     how : 'pairs' (default), 'pairs_skewed' or 'before_after'
         Type of Qubism plotting.
+        Options:
+            'pairs' - typical coordinates,
+            'pairs_skewed' - for ferromagnetic/antriferromagnetic plots,
+            'before_after' - effectively Schmidt plot (see also: plot_schmidt).
 
     grid_iteration : int (default 1)
         Helper lines to be drawn on plot.
@@ -1366,6 +1370,12 @@ def plot_schmidt(ket, splitting=None,
                  fig=None, ax=None, figsize=(6, 6)):
     """
     Plotting scheme related to Schmidt decomposition.
+    Converts a state into a matrix (A_ij -> A_i^j),
+    where rows are first particles and columns - last.
+
+    See also: plot_qubism with how='before_after'
+              for effectively the same plot with different label style
+              and interpretation.
 
     Parameters
     ----------
