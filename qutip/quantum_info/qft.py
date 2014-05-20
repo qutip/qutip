@@ -49,11 +49,11 @@ def qft(N):
         Quantum Fourier transform operator.
     
     """
-    N2=2**N
-    phase=2.0j*np.pi/N2
-    arr=np.arange(N2)
+    N2 = 2**N
+    phase = 2.0j * np.pi/N2
+    arr = np.arange(N2)
     L, M = np.meshgrid(arr, arr)
-    L=phase*(L*M)
-    L=np.exp(L)
-    dims=[[2]*N,[2]*N]
-    return Qobj(1.0/np.sqrt(N2)*L,dims=dims)
+    L = phase * (L * M)
+    L = np.exp(L)
+    dims = [[2] * N, [2] * N]
+    return Qobj(1.0/np.sqrt(N2) * L, dims=dims)
