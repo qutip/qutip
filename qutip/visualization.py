@@ -1107,6 +1107,7 @@ def complex_array_to_rgb(X, theme='light', rmax=None):
 def _index_to_sequence(i, dim_list):
     """
     For a matrix entry with index i it returns state it corresponds to.
+    In particular, for dim_list=[2]*n it returns i written as a binary number.
 
     Parameters
     ----------
@@ -1118,16 +1119,42 @@ def _index_to_sequence(i, dim_list):
 
     Returns
     -------
-    states : list
+    seq : list
         List of coordinates for each particle.
 
     """
     res = []
     j = i
-    for d in dim_list:
+    for d in reversed(dim_list):
         j, s = divmod(j, d)
         res.append(s)
     return list(reversed(res))
+
+
+def _sequence_to_index(seq, dim_list):
+    """
+    Inverse of _index_to_sequence.
+
+    Parameters
+    ----------
+    seq : list of ints
+        List of coordinates for each particle.
+
+    dim_list : list of int
+        List of dimensions of consecutive particles.
+
+    Returns
+    -------
+    i : list
+        Index in a matrix.
+
+    """
+    i = 0
+    for s, d in zip(seq, dim_list):
+        i *= d
+        i += s
+
+    return i
 
 
 # now d>2 only for some cases
