@@ -1510,7 +1510,7 @@ def _rhs_psi_platen(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
         dpsi_t += 0.50 * (d1(A, psi_t_1) + d1(A, psi_t)) * dt + \
             0.25 * (d2(A, psi_t_p)[0] + d2(A, psi_t_m)[0] + 2 * d2(A, psi_t)[0]) * dW[a_idx, 0] + \
             0.25 * (d2(A, psi_t_p)[0] - d2(A, psi_t_m)[0]) * (
-                dW[a_idx, 0] ** 2 - dt) * sqrt_dt
+                dW[a_idx, 0] ** 2 - dt) / sqrt_dt
 
     return dpsi_t
 
