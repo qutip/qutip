@@ -1191,7 +1191,7 @@ def _to_qubism_index_pair(k, d=2, n=None, how='pairs', skewed=False):
 
 
 def plot_qubism(ket, theme='light', how='pairs', skewed=False,
-                grid_iter=2, overlay_legend=0,
+                grid_iter=1, overlay_legend=0,
                 fig=None, ax=None, figsize=(6, 6)):
     """
     Qubism plot for pure states of many qudits.
@@ -1301,7 +1301,7 @@ def plot_qubism(ket, theme='light', how='pairs', skewed=False,
     if label_n:
         scale = halfsize / sqrt(d**label_n)
         shift = scale / d
-        opts = {'fontsize': int(scale*10),  # this may need fixing 
+        opts = {'fontsize': int((60 * figsize[0]) / (label_n**2)),  # this may need fixing 
                 'color': theme2color_of_lines[theme],
                 'horizontalalignment': 'center',
                 'verticalalignment': 'center'}
