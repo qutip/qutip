@@ -1203,7 +1203,7 @@ def _product(li):
 
 
 def plot_qubism(ket, theme='light', how='pairs',
-                grid_iter=1, overlay_legend=0,
+                grid_iteration=1, legend_iteration=0,
                 fig=None, ax=None, figsize=(6, 6)):
     """
     Qubism plot for pure states of many qudits.
@@ -1229,13 +1229,13 @@ def plot_qubism(ket, theme='light', how='pairs',
     how : 'pairs' (default), 'pairs_skewed' or 'before_after'
         Type of Qubism plotting.
 
-    grid_iter : int (default 1)
+    grid_iteration : int (default 1)
         Helper lines to be drawn on plot.
-        Show tiles for 2*grid_iter particles vs all others.
+        Show tiles for 2*grid_iteration particles vs all others.
 
-    overlay_legend : int (default 0) or 'grid_iter' or 'all'
-        Show labels for first 2*overlay_legend particles.
-        Option 'grid_iter' sets the same number of particles as for grid_iter.
+    legend_iteration : int (default 0) or 'grid_iteration' or 'all'
+        Show labels for first 2*legend_iteration particles.
+        Option 'grid_iteration' sets the same number of particles as for grid_iteration.
         Option 'all' makes label for all particles.
         Typically it should be 0, 1, 2 or perhaps 3. 
 
@@ -1298,8 +1298,8 @@ def plot_qubism(ket, theme='light', how='pairs',
         qub[_to_qubism_index_pair(i, dim_list, how=how)] = ketdata[i,0]
     qub = qub.transpose()
     
-    quadrants_x = _product(dim_list_x[:grid_iter])
-    quadrants_y = _product(dim_list_y[:grid_iter])
+    quadrants_x = _product(dim_list_x[:grid_iteration])
+    quadrants_y = _product(dim_list_y[:grid_iteration])
 
     ticks_x = [size_x/(float(quadrants_x)) * i for i in range(1, quadrants_x)]
     ticks_y = [size_y/(float(quadrants_y)) * i for i in range(1, quadrants_y)]
@@ -1315,12 +1315,12 @@ def plot_qubism(ket, theme='light', how='pairs',
                interpolation="none",
                extent=(0, size_x, 0, size_y))
 
-    if overlay_legend == 'all':
+    if legend_iteration == 'all':
         label_n = n/2
-    elif overlay_legend == 'grid_iter':
-        label_n = grid_iter
+    elif legend_iteration == 'grid_iteration':
+        label_n = grid_iteration
     else:
-        label_n = overlay_legend
+        label_n = legend_iteration
 
     if label_n:
 
@@ -1352,7 +1352,7 @@ def plot_qubism(ket, theme='light', how='pairs',
 
 
 def plot_schmidt(ket, splitting=None,
-                grid_iteration=(1,1), overlay_legend=0,
+                grid_iterationation=(1,1), legend_iteration=0,
                 theme='light',
                 fig=None, ax=None, figsize=(6, 6)):
     """
@@ -1373,13 +1373,13 @@ def plot_schmidt(ket, splitting=None,
         Set coloring theme for mapping complex values into colors.
         See: complex_array_to_rgb.
 
-    grid_iter : pair of ints (default (1,1))
+    grid_iteration : pair of ints (default (1,1))
         Helper lines to be drawn on plot.
-        Show tiles for 2*grid_iter particles vs all others.
+        Show tiles for 2*grid_iteration particles vs all others.
 
-    overlay_legend : int (default 0) or 'grid_iter' or 'all'
-        Show labels for first 2*overlay_legend particles.
-        Option 'grid_iter' sets the same number of particles as for grid_iter.
+    legend_iteration : int (default 0) or 'grid_iteration' or 'all'
+        Show labels for first 2*legend_iteration particles.
+        Option 'grid_iteration' sets the same number of particles as for grid_iteration.
         Option 'all' makes label for all particles.
         Typically it should be 0, 1, 2 or perhaps 3. 
 
