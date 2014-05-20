@@ -26,13 +26,13 @@ needs_sphinx = '1.2'
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.mathjax',
-              'ipython_directive',
+              'IPython.sphinxext.ipython_console_highlighting',
+              'IPython.sphinxext.ipython_directive',
               'matplotlib.sphinxext.only_directives',
-              'plot_directive',
+              'matplotlib.sphinxext.plot_directive',
               'sphinx.ext.autodoc',
               'sphinx.ext.todo',
               'sphinx.ext.doctest',
-              'ipython_console_highlighting',
               'numpydoc',
               'sphinx.ext.extlinks',
               ]
