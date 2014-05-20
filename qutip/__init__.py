@@ -203,7 +203,7 @@ if qutip.settings.qutip_graphics == 'YES':
         wigner_fock_distribution, plot_wigner_fock_distribution, plot_wigner,
         plot_expectation_values, plot_spin_distribution_2d,
         plot_spin_distribution_3d,
-        plot_qubism, complex_array_to_rgb)
+        plot_qubism, plot_schmidt, complex_array_to_rgb)
 
     from qutip.orbital import *
     # load mayavi dependent functions if available
