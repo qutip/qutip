@@ -54,8 +54,8 @@ def plot_grape_control_fields(times, u, labels):
             if r == R - 1:
                 lw, lc, alpha = 2.0, 'k', 1.0
 
-                axes[j, 0].set_ylabel(labels[j])
-                axes[j, 0].set_xlabel(r'$t$')
+                axes[j, 0].set_ylabel(labels[j], fontsize=18)
+                axes[j, 0].set_xlabel(r'$t$', fontsize=18)
                 axes[j, 0].set_xlim(0, times[-1])
 
             else:
