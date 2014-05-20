@@ -1183,9 +1183,9 @@ def _to_qubism_index_pair(k, d=2, n=None, how='pairs', skewed=False):
         x = t[:n/2]
         x.reverse()
         y = t[n/2:]
-        x, y = (int(''.join(x), 2), int(''.join(y), 2))
+        x, y = int(''.join(y), 2), int(''.join(x), 2)
     if skewed:
-        return (x, x^y)  # ^ is bitwise XOR
+        return (x^y, y)  # ^ is bitwise XOR
     else:
         return (x, y)
 
