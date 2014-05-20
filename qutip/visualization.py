@@ -1352,7 +1352,7 @@ def plot_qubism(ket, theme='light', how='pairs',
 
 
 def plot_schmidt(ket, splitting=None,
-                grid_iterationation=(1,1), legend_iteration=0,
+                grid_iteration=(1,1), legend_iteration=0,
                 theme='light',
                 fig=None, ax=None, figsize=(6, 6)):
     """
@@ -1367,7 +1367,7 @@ def plot_schmidt(ket, splitting=None,
 
     splitting : int
         Plot for a number of first particles versus the rest.
-        If not given, it is floor(number of particles / 2).
+        If not given, it is (number of particles + 1) / 2.
 
     theme : 'light' (default) or 'dark'
         Set coloring theme for mapping complex values into colors.
@@ -1400,6 +1400,58 @@ def plot_schmidt(ket, splitting=None,
         the figure.
 
     """
+    if not isket(ket):
+        raise Exception("Schmidt plot works only for pure states, i.e. kets.")
 
-    raise Exception("Not yet implemented.")
+    if not fig and not ax:
+        fig, ax = plt.subplots(1, 1, figsize=figsize)
+ 
+    dim_list = ket.dims[0]
+
+    if splitting is None:
+        splitting = (len(dim_list) + 1) / 2
+
+    if isinstance(grid_iteration, int):
+        grid_iteration = grid_iteration, grid_iteration
+
+    ketdata = ket.full()
+
+    dim_list_y = dim_list[:splitting]
+    dim_list_x = dim_list[splitting:]
+
+    size_x = _product(dim_list_x)
+    size_y = _product(dim_list_y)
+
+    ketdata = ketdata.reshape((size_y, size_x))
+
+    dim_list_small_x = dim_list_x[:grid_iteration[1]]
+    dim_list_small_y = dim_list_y[:grid_iteration[0]]
+
+    quadrants_x = _product(dim_list_small_x)
+    quadrants_y = _product(dim_list_small_y)
+
+    ticks_x = [size_x/quadrants_x * (i + 0.5) for i in range(quadrants_x)]
+    ticks_y = [size_y/quadrants_y * (quadrants_y - i - 0.5) for i in range(quadrants_y)]
+
+
+    labels_x = ["$\\left|{0}\\right\\rangle$".format("".join(map(str, _index_to_sequence(i * size_x / quadrants_x, dim_list=dim_list_x))))
+                for i in range(quadrants_x)]
+    labels_y = ["$\\left|{0}\\right\\rangle$".format("".join(map(str, _index_to_sequence(i * size_y / quadrants_y, dim_list=dim_list_y))))
+                for i in range(quadrants_y)]
+
+    ax.set_xticks(ticks_x)
+    ax.set_xticklabels(labels_x)
+    ax.set_yticks(ticks_y)
+    ax.set_yticklabels(labels_y)
+    ax.set_xlabel("last particles")
+    ax.set_ylabel("first particles")
+
+    theme2color_of_lines = {'light': '#000000',
+                            'dark': '#FFFFFF'}
+
+    ax.imshow(complex_array_to_rgb(ketdata, theme=theme),
+               interpolation="none",
+               extent=(0, size_x, 0, size_y))
+    
+    return fig, ax
 
