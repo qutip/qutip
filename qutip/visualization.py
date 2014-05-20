@@ -1225,7 +1225,7 @@ def plot_qubism(ket, theme='light', how='pairs', skewed=False,
         especially for ferromagnetic and antiferromagnetic states.
         (As of now under development, use only for qubits.)
 
-    grid_iter : int (default 2)
+    grid_iter : int (default 1)
         Helper lines to be drawn on plot.
         Show tiles for 2*grid_iter particles vs all others.
 
