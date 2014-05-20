@@ -1257,9 +1257,9 @@ def plot_qubism(ket, theme='light', how='pairs',
 
     """
 
-    if not ket.isket:
+    if not isket(ket):
         raise Exception("Qubism works only for pure states, i.e. kets.")
-        # add for bra
+        # add for bra?
         # add for dm? (perhaps a separate function, plot_qubism_dm)
 
     if not fig and not ax:
