@@ -37,7 +37,7 @@ visualizations of quantum states and processes.
 import warnings
 import numpy as np
 from numpy import pi, array, sin, cos, angle
-from math import sqrt
+from operator import mul
 
 import qutip.settings
 if qutip.settings.qutip_graphics == 'YES':
@@ -1157,32 +1157,20 @@ def _sequence_to_index(seq, dim_list):
     return i
 
 
-# now d>2 only for some cases
-def _to_qubism_index_pair(k, d=2, n=None, how='pairs', skewed=False):
+def _to_qubism_index_pair(i, dim_list, how='pairs'):
     """
-    For a matrix entry with index k it returns x, y coordinates in qubism mapping.
+    For a matrix entry with index i it returns x, y coordinates in qubism mapping.
 
     Parameters
     ----------
-    k : int
+    i : int
         Index in a matrix.
 
-    d : int
-        Dimension of particles.
+    dim_list : list of int
+        List of dimensions of consecutive particles.
 
-    n : int
-        Number of particles (for some mappings it is not required).
-
-    # dim_list : list of int
-    #     List of dimensions of consecutive particles.
-
-    how : 'pairs' ('default') or 'before_after'
+    how : 'pairs' ('default'), 'pairs_skewed' or 'before_after'
         Type of qubistic plot.
-        (Rename it as 'style'?)
-
-    skewed : boolean
-        If modulo-add pair cooedinates.
-        (Move it into 'how'.)
 
     Returns
     -------
@@ -1190,45 +1178,37 @@ def _to_qubism_index_pair(k, d=2, n=None, how='pairs', skewed=False):
         List of coordinates for each particle.
 
     """
+    seq = _index_to_sequence(i, dim_list)
+
     if how == 'pairs':
-        i = 0
-        j = k
-        x = 0
-        y = 0
-        while j:
-            x += d**i * (j % d)
-            j /= d
-            y += d**i * (j % d)
-            j /= d
-            i += 1
+        y = _sequence_to_index(seq[::2], dim_list[::2])
+        x = _sequence_to_index(seq[1::2], dim_list[1::2])
+    elif how == 'pairs_skewed':
+        dim_list2 = dim_list[::2]
+        y = _sequence_to_index(seq[::2], dim_list2)
+        seq2 = [(b - a) % d for a, b, d in zip(seq[::2], seq[1::2], dim_list2)]
+        x = _sequence_to_index(seq2, dim_list2)
     elif how == 'before_after':
-    # from: http://en.wikipedia.org/wiki/File:Ising-tartan.png 
-        if not n:
-            raise Exception("Number of particles n is required.")
-        t = bin(k)[2:]
-        t = ['0']*(n - len(t)) + list(t)
-        x = t[:n/2]
-        x.reverse()
-        y = t[n/2:]
-        x, y = int(''.join(y), 2), int(''.join(x), 2)
-    if skewed:
-        return (x^y, y)  # ^ is bitwise XOR
+        # https://en.wikipedia.org/wiki/File:Ising-tartan.png
+        n = len(dim_list)
+        y = _sequence_to_index(reversed(seq[:n/2]), reversed(dim_list[:n/2]))
+        x = _sequence_to_index(seq[n/2:], dim_list[n/2:])
     else:
-        return (x, y)
+        raise Exception("Not such 'how'.")
+    return x, y
 
-
-from operator import mul
 
 def _product(li):
     return reduce(mul, li)
 
 
-def plot_qubism(ket, theme='light', how='pairs', skewed=False,
+def plot_qubism(ket, theme='light', how='pairs',
                 grid_iter=1, overlay_legend=0,
                 fig=None, ax=None, figsize=(6, 6)):
     """
     Qubism plot for pure states of many qudits.
-    Works best for spin chains, especially with even number of particles.
+    Works best for spin chains, especially with even number of particles
+    of the same dimension.
     Allows to see entanglement between first 2*k particles and the rest.
 
     More information:
@@ -1236,9 +1216,6 @@ def plot_qubism(ket, theme='light', how='pairs', skewed=False,
         "Qubism: self-similar visualization of many-body wavefunctions",
         New J. Phys. 14 053028 (2012), arXiv:1112.3560, 
         http://dx.doi.org/10.1088/1367-2630/14/5/053028 (open access)
-
-    Note: as of now only for n particles of the same dimension.
-    (We are changing it!)
 
     Parameters
     ----------
@@ -1249,14 +1226,8 @@ def plot_qubism(ket, theme='light', how='pairs', skewed=False,
         Set coloring theme for mapping complex values into colors.
         See: complex_array_to_rgb.
 
-    how : 'pairs' (default) or 'before_after'
+    how : 'pairs' (default), 'pairs_skewed' or 'before_after'
         Type of Qubism plotting.
-        (As of now under development, please use default.)
-
-    skewed : boolean (default False):
-        Use alternative plotting scheme,
-        especially for ferromagnetic and antiferromagnetic states.
-        (As of now under development, use only for qubits.)
 
     grid_iter : int (default 1)
         Helper lines to be drawn on plot.
@@ -1294,28 +1265,28 @@ def plot_qubism(ket, theme='light', how='pairs', skewed=False,
     if not fig and not ax:
         fig, ax = plt.subplots(1, 1, figsize=figsize)
  
-    n = len(ket.dims[0])
-    d = ket.dims[0][0]  # as of now assuming that all dims are same
     dim_list = ket.dims[0]
+    n = len(dim_list)
 
     # for odd number of particles - pixels are rectangular
     if n % 2 == 1:
-        ket = tensor(ket, Qobj([1]*d))
+        ket = tensor(ket, Qobj([1]*dim_list[-1]))
+        dim_list = ket.dims[0]
         n += 1
 
     ketdata = ket.full()
 
     if how == 'pairs':
-        dim_list_x = dim_list[::2]
-        dim_list_y = dim_list[1::2]
+        dim_list_y = dim_list[::2]
+        dim_list_x = dim_list[1::2]
     elif how == 'pairs_skewed':
-        dim_list_x = dim_list[::2]
-        dim_list_y = dim_list[1::2]
+        dim_list_y = dim_list[::2]
+        dim_list_x = dim_list[1::2]
         if dim_list_x != dim_list_y:
             raise Exception("For 'pairs_skewed' pairs of dimensions need to be the same.")
     elif how == 'before_after':
-        dim_list_x = dim_list[:n/2]  # or the other way?
-        dim_list_y = dim_list[n/2:]
+        dim_list_y = list(reversed(dim_list[:n/2]))
+        dim_list_x = dim_list[n/2:]
     else:
         raise Exception("Not such 'how'.")
 
@@ -1324,7 +1295,7 @@ def plot_qubism(ket, theme='light', how='pairs', skewed=False,
 
     qub = np.zeros([size_x, size_y], dtype=complex)
     for i in range(ketdata.size):
-        qub[_to_qubism_index_pair(i, d=d, n=n, how=how, skewed=skewed)] = ketdata[i,0]
+        qub[_to_qubism_index_pair(i, dim_list, how=how)] = ketdata[i,0]
     qub = qub.transpose()
     
     quadrants_x = _product(dim_list_x[:grid_iter])
@@ -1354,12 +1325,12 @@ def plot_qubism(ket, theme='light', how='pairs', skewed=False,
     if label_n:
 
         if how == 'before_after':
-            dim_list_small = dim_list_x[-label_n:] + dim_list_y[:label_n]
+            dim_list_small = list(reversed(dim_list_y[-label_n:])) + dim_list_x[:label_n]
         else:
             dim_list_small = []
             for j in range(label_n):
-                dim_list_small.append(dim_list_x[j])
                 dim_list_small.append(dim_list_y[j])
+                dim_list_small.append(dim_list_x[j])
 
         scale_x = float(size_x) / _product(dim_list_x[:label_n])
         shift_x = 0.5 * scale_x
@@ -1371,8 +1342,7 @@ def plot_qubism(ket, theme='light', how='pairs', skewed=False,
                 'horizontalalignment': 'center',
                 'verticalalignment': 'center'}
         for i in range(_product(dim_list_small)):
-            x, y = _to_qubism_index_pair(i, d=d, n=(2*label_n),
-                                         how=how, skewed=skewed)
+            x, y = _to_qubism_index_pair(i, dim_list_small, how=how)
             label = "".join(map(str, _index_to_sequence(i, dim_list=dim_list_small)))
             ax.text(scale_x * x + shift_x,
                     size_y - (scale_y * y + shift_y),
