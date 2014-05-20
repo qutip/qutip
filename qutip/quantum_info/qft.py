@@ -33,8 +33,9 @@
 import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import *
+from qutip.quantum_info.gates import snot, cphase
 
-def qft(N):
+def qft(N=1):
     """
     Quantum Fourier Transform operator on N qubits.
     
@@ -49,6 +50,9 @@ def qft(N):
         Quantum Fourier transform operator.
     
     """
+    if N < 1:
+        raise ValueError("Minimum value of N can be 1")    
+
     N2 = 2**N
     phase = 2.0j * np.pi/N2
     arr = np.arange(N2)
@@ -57,3 +61,35 @@ def qft(N):
     L = np.exp(L)
     dims = [[2] * N, [2] * N]
     return Qobj(1.0/np.sqrt(N2) * L, dims=dims)
+
+
+def qft_steps(N=1):
+    """
+    Quantum Fourier Transform operator on N qubits returning the individual
+    steps as unitary matrices.
+    
+    Parameters
+    ----------
+    N: int
+        Number of qubits.
+    
+    Returns
+    -------
+    U_step_list: list of qobj
+        List of Hadamard and controlled rotation gates implementing QFT.
+    
+    """
+    if N < 1:
+        raise ValueError("Minimum value of N can be 1")
+    
+    U_step_list = []
+    if N == 1:
+        U_step_list.append(snot())
+    else:
+        for i in range(N):
+            for j in range(i):
+                U_step_list.append(cphase(np.pi/(2**(i-j)), N,
+                                   control=i, target=j))
+            U_step_list.append(snot(N, i))
+        
+    return U_step_list
