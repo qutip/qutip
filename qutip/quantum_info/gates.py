@@ -38,6 +38,7 @@ from qutip.states import (basis, qstate, state_number_index,
 from qutip.qobj import Qobj
 from qutip.operators import *
 from qutip.tensor import tensor
+from qutip.states import fock_dm
 
 
 def rotation(op, phi, N=None, target=None):
@@ -52,6 +53,49 @@ def rotation(op, phi, N=None, target=None):
         return gate_expand_1toN(rotation(op, phi), N, target)
     else:
         return (-1j * op * phi / 2).expm()
+
+
+
+def cphase(theta, N=2, control=0, target=1):
+    """
+    Returns quantum object representing the phase shift gate.
+
+    Parameters
+    ----------
+    theta : float
+        Phase rotation angle.
+        
+    N : integer
+        The number of qubits in the target space.
+
+    control : integer
+        The index of the control qubit.
+
+    target : integer
+        The index of the target qubit.
+
+    Returns
+    -------
+    U : qobj
+        Quantum object representation of controlled phase gate.
+    """
+
+    if N < 1 or target < 0 or control < 0:
+        raise ValueError("Minimum value: N=1, control=0 and target=0")
+
+    if control >= N or target >= N:
+        raise ValueError("control and target need to be smaller than N")
+    
+    U_list1 = [identity(2)] * N
+    U_list2 = [identity(2)] * N
+    
+    U_list1[control] = fock_dm(2, 1)
+    U_list1[target] = phasegate(theta)
+
+    U_list2[control] = fock_dm(2, 0)
+
+    U = tensor(U_list1) + tensor(U_list2)
+    return U
 
 
 def rx(phi, N=None, target=None):
@@ -386,7 +430,7 @@ def sqrtswap(N=None, control=None, target=None):
                     dims=[[2, 2], [2, 2]])
 
 
-def snot(N=None, target=None):
+def snot(N=None, target=0):
     """Quantum object representing the SNOT (2-qubit Hadamard) gate.
 
     Returns
@@ -404,7 +448,7 @@ shape = [2, 2], type = oper, isHerm = True
      [ 0.70710678+0.j -0.70710678+0.j]]
 
     """
-    if not N is None and not target is None:
+    if not N is None:
         return gate_expand_1toN(snot(), N, target)
     else:
         u = basis(2, 0)
