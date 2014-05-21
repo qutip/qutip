@@ -43,10 +43,6 @@ _latex_template = r"""
 \end{document}
 """
 
-lt = r"""
-& \gate{X}  & \qw      & \qw \\
-& \ctrl{-1} & \gate{X} & \qw \\
-"""
 
 def _latex_compile(code, filename="qcirc", format="png"):
     """
