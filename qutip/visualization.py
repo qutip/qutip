@@ -1092,6 +1092,8 @@ def complex_array_to_rgb(X, theme='light', rmax=None):
     """
 
     absmax = rmax or np.abs(X).max()
+    if absmax == 0.:
+        absmax = 1.
     Y = np.zeros(X.shape + (3,), dtype='float')
     Y[..., 0] = np.angle(X) / (2 * pi) % 1
     if theme == 'light':
