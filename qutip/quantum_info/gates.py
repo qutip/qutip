@@ -469,7 +469,7 @@ def _hamming_distance(x, bits=32):
     return tot
 
 
-def hadamard(N=1):
+def hadamard_transform(N=1):
     """Quantum object representing the N-qubit Hadamard gate.
 
     Returns
