@@ -34,6 +34,46 @@ import os
 import numpy as np
 import subprocess as sub
 
+_latex_template = r"""
+\documentclass{standalone}
+\input{Qcircuit}
+\begin{document}
+\Qcircuit @C=1cm @R=1cm {
+%s}
+\end{document}
+"""
+
+lt = r"""
+& \gate{X}  & \qw      & \qw \\
+& \ctrl{-1} & \gate{X} & \qw \\
+"""
+
+def _latex_compile(code, filename="qcirc", format="png"):
+    """
+    Requires: pdflatex, pdfcrop, pdf2svg, imagemagick (convert), Qcircuit.tex
+    """
+    os.system("rm -f %s.tex %s.pdf %s.png" % (filename, filename, filename))        
+
+    with open(filename + ".tex", "w") as file:
+        file.write(_latex_template % code)
+
+    os.system("pdflatex -interaction batchmode %s.tex" % filename)
+    os.system("rm -f %s.aux %s.log" % (filename, filename))        
+    os.system("pdfcrop %s.pdf %s-tmp.pdf" % (filename, filename))
+    os.system("mv %s-tmp.pdf %s.pdf" % (filename, filename))        
+
+    if format == 'png':
+        os.system("convert -density %s %s.pdf %s.png" % (100, filename, filename))
+        with open("%s.png" % filename, "rb") as f:
+            result = f.read()
+    else:
+        os.system("pdf2svg %s.pdf %s.svg" % (filename, filename))
+        with open("%s.svg" % filename) as f:
+            result = f.read()
+
+    return result
+
+
 def _latex_write(name):
          header=_latex_preamble()
          ending=_latex_ending()
