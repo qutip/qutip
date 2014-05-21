@@ -34,6 +34,8 @@ import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import *
 from qutip.quantum_info.gates import snot, cphase
+from qutip.quantum_info.circuit import QubitCircuit
+
 
 def qft(N=1):
     """
@@ -93,3 +95,36 @@ def qft_steps(N=1):
             U_step_list.append(snot(N, i))
         
     return U_step_list
+
+
+def qft_gate_sequence(N=1):
+    """
+    Quantum Fourier Transform operator on N qubits returning the gate sequence.
+    
+    Parameters
+    ----------
+    N: int
+        Number of qubits.
+    
+    Returns
+    -------
+    qc: instance of QubitCircuit
+        Gate sequence of Hadamard and controlled rotation gates implementing QFT.
+    
+    """
+    
+    if N < 1:
+        raise ValueError("Minimum value of N can be 1")
+
+    qc = QubitCircuit(N)
+    if N == 1:
+        qc.add_gate("SNOT", targets=[0])
+    else:
+        for i in range(N):
+            for j in range(i):
+                qc.add_gate(r"CPHASE", targets=[j], controls=[i],
+                            arg_label=r"(\pi/2^{%d-%d})" % (i, j),
+                            arg_value=np.pi/(2**(i-j)))
+            qc.add_gate("SNOT", targets=[i])
+        
+    return qc
