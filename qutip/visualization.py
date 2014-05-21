@@ -37,7 +37,6 @@ visualizations of quantum states and processes.
 import warnings
 import numpy as np
 from numpy import pi, array, sin, cos, angle
-from operator import mul
 
 import qutip.settings
 if qutip.settings.qutip_graphics == 'YES':
@@ -1201,10 +1200,6 @@ def _to_qubism_index_pair(i, dim_list, how='pairs'):
     return x, y
 
 
-def _product(li):
-    return reduce(mul, li)
-
-
 def plot_qubism(ket, theme='light', how='pairs',
                 grid_iteration=1, legend_iteration=0,
                 fig=None, ax=None, figsize=(6, 6)):
@@ -1300,16 +1295,16 @@ def plot_qubism(ket, theme='light', how='pairs',
     else:
         raise Exception("Not such 'how'.")
 
-    size_x = _product(dim_list_x)
-    size_y = _product(dim_list_y)
+    size_x = np.prod(dim_list_x)
+    size_y = np.prod(dim_list_y)
 
     qub = np.zeros([size_x, size_y], dtype=complex)
     for i in range(ketdata.size):
         qub[_to_qubism_index_pair(i, dim_list, how=how)] = ketdata[i, 0]
     qub = qub.transpose()
 
-    quadrants_x = _product(dim_list_x[:grid_iteration])
-    quadrants_y = _product(dim_list_y[:grid_iteration])
+    quadrants_x = np.prod(dim_list_x[:grid_iteration])
+    quadrants_y = np.prod(dim_list_y[:grid_iteration])
 
     ticks_x = [size_x / quadrants_x * i for i in range(1, quadrants_x)]
     ticks_y = [size_y / quadrants_y * i for i in range(1, quadrants_y)]
@@ -1343,17 +1338,17 @@ def plot_qubism(ket, theme='light', how='pairs',
                 dim_list_small.append(dim_list_y[j])
                 dim_list_small.append(dim_list_x[j])
 
-        scale_x = float(size_x) / _product(dim_list_x[:label_n])
+        scale_x = float(size_x) / np.prod(dim_list_x[:label_n])
         shift_x = 0.5 * scale_x
-        scale_y = float(size_y) / _product(dim_list_y[:label_n])
+        scale_y = float(size_y) / np.prod(dim_list_y[:label_n])
         shift_y = 0.5 * scale_y
 
-        fontsize = 30 * figsize[0] / _product(dim_list_x[:label_n]) / label_n
+        fontsize = 30 * figsize[0] / np.prod(dim_list_x[:label_n]) / label_n
         opts = {'fontsize': fontsize,
                 'color': theme2color_of_lines[theme],
                 'horizontalalignment': 'center',
                 'verticalalignment': 'center'}
-        for i in range(_product(dim_list_small)):
+        for i in range(np.prod(dim_list_small)):
             x, y = _to_qubism_index_pair(i, dim_list_small, how=how)
             seq = _index_to_sequence(i, dim_list=dim_list_small)
             label = "".join(map(str, seq))
@@ -1428,16 +1423,16 @@ def plot_schmidt(ket, splitting=None,
     dim_list_y = dim_list[:splitting]
     dim_list_x = dim_list[splitting:]
 
-    size_x = _product(dim_list_x)
-    size_y = _product(dim_list_y)
+    size_x = np.prod(dim_list_x)
+    size_y = np.prod(dim_list_y)
 
     ketdata = ketdata.reshape((size_y, size_x))
 
     dim_list_small_x = dim_list_x[:labels_iteration[1]]
     dim_list_small_y = dim_list_y[:labels_iteration[0]]
 
-    quadrants_x = _product(dim_list_small_x)
-    quadrants_y = _product(dim_list_small_y)
+    quadrants_x = np.prod(dim_list_small_x)
+    quadrants_y = np.prod(dim_list_small_y)
 
     ticks_x = [size_x / quadrants_x * (i + 0.5)
                for i in range(quadrants_x)]
