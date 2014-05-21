@@ -1202,6 +1202,35 @@ def _to_qubism_index_pair(i, dim_list, how='pairs'):
     return x, y
 
 
+def sequence_to_latex(seq, style='ket'):
+    """
+    For a sequence of particle states generate LaTeX code.
+
+    Parameters
+    ----------
+    seq : list of ints
+        List of coordinates for each particle.
+
+    style : 'ket' (default), 'bra' or 'bare'
+        Style of LaTeX (i.e. |01> or <01| or 01, respectively).
+
+    Returns
+    -------
+    latex : str
+        LaTeX output.
+
+    """
+    if style == 'ket':
+        latex = "$\\left|{0}\\right\\rangle$"
+    elif style == 'bra':
+        latex = "$\\left\\langle{0}\\right|$"
+    elif style == 'bare':
+        latex = "${0}$"
+    else:
+        raise Exception("No such style.")
+    return latex.format("".join(map(str, seq)))
+
+
 def plot_qubism(ket, theme='light', how='pairs',
                 grid_iteration=1, legend_iteration=0,
                 fig=None, ax=None, figsize=(6, 6)):
@@ -1265,7 +1294,6 @@ def plot_qubism(ket, theme='light', how='pairs',
 
     if not isket(ket):
         raise Exception("Qubism works only for pure states, i.e. kets.")
-        # add for bra?
         # add for dm? (perhaps a separate function, plot_qubism_dm)
 
     if not fig and not ax:
@@ -1353,10 +1381,9 @@ def plot_qubism(ket, theme='light', how='pairs',
         for i in range(np.prod(dim_list_small)):
             x, y = _to_qubism_index_pair(i, dim_list_small, how=how)
             seq = _index_to_sequence(i, dim_list=dim_list_small)
-            label = "".join(map(str, seq))
             ax.text(scale_x * x + shift_x,
                     size_y - (scale_y * y + shift_y),
-                    "$\\left|{0}\\right\\rangle$".format(label),
+                    sequence_to_latex(seq),
                     **opts)
     return fig, ax
 
@@ -1441,17 +1468,12 @@ def plot_schmidt(ket, splitting=None,
     ticks_y = [size_y / quadrants_y * (quadrants_y - i - 0.5)
                for i in range(quadrants_y)]
 
-    ket_str = "$\\left|{0}\\right\\rangle$"
-    labels_x = [_index_to_sequence(i * size_x // quadrants_x,
-                                   dim_list=dim_list_x)
+    labels_x = [sequence_to_latex(_index_to_sequence(i * size_x // quadrants_x,
+                                                     dim_list=dim_list_x))
                 for i in range(quadrants_x)]
-    labels_x = [ket_str.format("".join(map(str, seq)))
-                for seq in labels_x]
-    labels_y = [_index_to_sequence(i * size_y // quadrants_y,
-                                   dim_list=dim_list_y)
+    labels_y = [sequence_to_latex(_index_to_sequence(i * size_y // quadrants_y,
+                                                     dim_list=dim_list_y))
                 for i in range(quadrants_y)]
-    labels_y = [ket_str.format("".join(map(str, seq)))
-                for seq in labels_y]
 
     ax.set_xticks(ticks_x)
     ax.set_xticklabels(labels_x)
