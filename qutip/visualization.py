@@ -1194,9 +1194,9 @@ def _to_qubism_index_pair(i, dim_list, how='pairs'):
     elif how == 'before_after':
         # https://en.wikipedia.org/wiki/File:Ising-tartan.png
         n = len(dim_list)
-        y = _sequence_to_index(reversed(seq[:(n / 2)]),
-                               reversed(dim_list[:(n / 2)]))
-        x = _sequence_to_index(seq[(n / 2):], dim_list[(n / 2):])
+        y = _sequence_to_index(reversed(seq[:(n // 2)]),
+                               reversed(dim_list[:(n // 2)]))
+        x = _sequence_to_index(seq[(n // 2):], dim_list[(n // 2):])
     else:
         raise Exception("Not such 'how'.")
     return x, y
@@ -1292,8 +1292,8 @@ def plot_qubism(ket, theme='light', how='pairs',
             raise Exception("""For 'pairs_skewed' pairs
                                of dimensions need to be the same.""")
     elif how == 'before_after':
-        dim_list_y = list(reversed(dim_list[:(n / 2)]))
-        dim_list_x = dim_list[(n / 2):]
+        dim_list_y = list(reversed(dim_list[:(n // 2)]))
+        dim_list_x = dim_list[(n // 2):]
     else:
         raise Exception("Not such 'how'.")
 
@@ -1308,8 +1308,8 @@ def plot_qubism(ket, theme='light', how='pairs',
     quadrants_x = np.prod(dim_list_x[:grid_iteration])
     quadrants_y = np.prod(dim_list_y[:grid_iteration])
 
-    ticks_x = [size_x / quadrants_x * i for i in range(1, quadrants_x)]
-    ticks_y = [size_y / quadrants_y * i for i in range(1, quadrants_y)]
+    ticks_x = [size_x // quadrants_x * i for i in range(1, quadrants_x)]
+    ticks_y = [size_y // quadrants_y * i for i in range(1, quadrants_y)]
 
     ax.set_xticks(ticks_x)
     ax.set_xticklabels([""] * (quadrants_x - 1))
@@ -1323,7 +1323,7 @@ def plot_qubism(ket, theme='light', how='pairs',
               extent=(0, size_x, 0, size_y))
 
     if legend_iteration == 'all':
-        label_n = n / 2
+        label_n = n // 2
     elif legend_iteration == 'grid_iteration':
         label_n = grid_iteration
     else:
@@ -1379,7 +1379,7 @@ def plot_schmidt(ket, splitting=None,
 
     splitting : int
         Plot for a number of first particles versus the rest.
-        If not given, it is (number of particles + 1) / 2.
+        If not given, it is (number of particles + 1) // 2.
 
     theme : 'light' (default) or 'dark'
         Set coloring theme for mapping complex values into colors.
@@ -1415,7 +1415,7 @@ def plot_schmidt(ket, splitting=None,
     dim_list = ket.dims[0]
 
     if splitting is None:
-        splitting = (len(dim_list) + 1) / 2
+        splitting = (len(dim_list) + 1) // 2
 
     if isinstance(labels_iteration, int):
         labels_iteration = labels_iteration, labels_iteration
@@ -1442,12 +1442,12 @@ def plot_schmidt(ket, splitting=None,
                for i in range(quadrants_y)]
 
     ket_str = "$\\left|{0}\\right\\rangle$"
-    labels_x = [_index_to_sequence(i * size_x / quadrants_x,
+    labels_x = [_index_to_sequence(i * size_x // quadrants_x,
                                    dim_list=dim_list_x)
                 for i in range(quadrants_x)]
     labels_x = [ket_str.format("".join(map(str, seq)))
                 for seq in labels_x]
-    labels_y = [_index_to_sequence(i * size_y / quadrants_y,
+    labels_y = [_index_to_sequence(i * size_y // quadrants_y,
                                    dim_list=dim_list_y)
                 for i in range(quadrants_y)]
     labels_y = [ket_str.format("".join(map(str, seq)))
