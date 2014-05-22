@@ -1,4 +1,3 @@
 numpy
-scipy
 ipython
 -e git+http://github.com/qutip/qutip.git#egg=qutip
