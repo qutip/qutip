@@ -2,4 +2,4 @@ numpy
 scipy
 ipython
 qutip
-[-e] git+https://github.com/qutip/qutip.git#egg=qutip
+-e git+http://github.com/qutip/qutip.git#egg=qutip
