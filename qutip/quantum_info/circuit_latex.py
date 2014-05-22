@@ -33,25 +33,25 @@
 import os
 import numpy as np
 import subprocess as sub
+from qutip.quantum_info.qcircuit_latex import _qcircuit_latex_min
 
 _latex_template = r"""
 \documentclass{standalone}
-\input{Qcircuit}
+%s
 \begin{document}
 \Qcircuit @C=1cm @R=1cm {
 %s}
 \end{document}
 """
 
-
 def _latex_compile(code, filename="qcirc", format="png"):
     """
-    Requires: pdflatex, pdfcrop, pdf2svg, imagemagick (convert), Qcircuit.tex
+    Requires: pdflatex, pdfcrop, pdf2svg, imagemagick (convert)
     """
     os.system("rm -f %s.tex %s.pdf %s.png" % (filename, filename, filename))        
 
     with open(filename + ".tex", "w") as file:
-        file.write(_latex_template % code)
+        file.write(_latex_template % (_qcircuit_latex_min, code))
 
     os.system("pdflatex -interaction batchmode %s.tex" % filename)
     os.system("rm -f %s.aux %s.log" % (filename, filename))        
