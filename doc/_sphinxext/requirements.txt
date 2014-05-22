@@ -1,5 +1,4 @@
 numpy
 scipy
 ipython
-qutip
 -e git+http://github.com/qutip/qutip.git#egg=qutip
