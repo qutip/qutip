@@ -1198,11 +1198,12 @@ def _to_qubism_index_pair(i, dim_list, how='pairs'):
                                reversed(dim_list[:(n // 2)]))
         x = _sequence_to_index(seq[(n // 2):], dim_list[(n // 2):])
     else:
-        raise Exception("Not such 'how'.")
+        raise Exception("No such 'how'.")
+
     return x, y
 
 
-def sequence_to_latex(seq, style='ket'):
+def _sequence_to_latex(seq, style='ket'):
     """
     For a sequence of particle states generate LaTeX code.
 
@@ -1317,13 +1318,13 @@ def plot_qubism(ket, theme='light', how='pairs',
         dim_list_y = dim_list[::2]
         dim_list_x = dim_list[1::2]
         if dim_list_x != dim_list_y:
-            raise Exception("""For 'pairs_skewed' pairs
-                               of dimensions need to be the same.""")
+            raise Exception("For 'pairs_skewed' pairs " +
+                            "of dimensions need to be the same.")
     elif how == 'before_after':
         dim_list_y = list(reversed(dim_list[:(n // 2)]))
         dim_list_x = dim_list[(n // 2):]
     else:
-        raise Exception("Not such 'how'.")
+        raise Exception("No such 'how'.")
 
     size_x = np.prod(dim_list_x)
     size_y = np.prod(dim_list_y)
@@ -1383,7 +1384,7 @@ def plot_qubism(ket, theme='light', how='pairs',
             seq = _index_to_sequence(i, dim_list=dim_list_small)
             ax.text(scale_x * x + shift_x,
                     size_y - (scale_y * y + shift_y),
-                    sequence_to_latex(seq),
+                    _sequence_to_latex(seq),
                     **opts)
     return fig, ax
 
@@ -1468,10 +1469,10 @@ def plot_schmidt(ket, splitting=None,
     ticks_y = [size_y / quadrants_y * (quadrants_y - i - 0.5)
                for i in range(quadrants_y)]
 
-    labels_x = [sequence_to_latex(_index_to_sequence(i * size_x // quadrants_x,
+    labels_x = [_sequence_to_latex(_index_to_sequence(i * size_x // quadrants_x,
                                                      dim_list=dim_list_x))
                 for i in range(quadrants_x)]
-    labels_y = [sequence_to_latex(_index_to_sequence(i * size_y // quadrants_y,
+    labels_y = [_sequence_to_latex(_index_to_sequence(i * size_y // quadrants_y,
                                                      dim_list=dim_list_y))
                 for i in range(quadrants_y)]
 
