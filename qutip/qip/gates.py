@@ -55,7 +55,6 @@ def rotation(op, phi, N=None, target=0):
         return (-1j * op * phi / 2).expm()
 
 
-
 def cphase(theta, N=2, control=0, target=1):
     """
     Returns quantum object representing the phase shift gate.
@@ -64,7 +63,7 @@ def cphase(theta, N=2, control=0, target=1):
     ----------
     theta : float
         Phase rotation angle.
-        
+
     N : integer
         The number of qubits in the target space.
 
@@ -85,10 +84,10 @@ def cphase(theta, N=2, control=0, target=1):
 
     if control >= N or target >= N:
         raise ValueError("control and target need to be smaller than N")
-    
+
     U_list1 = [identity(2)] * N
     U_list2 = [identity(2)] * N
-    
+
     U_list1[control] = fock_dm(2, 1)
     U_list1[target] = phasegate(theta)
 
@@ -146,6 +145,42 @@ def rz(phi, N=None, target=0):
                      [0, np.exp(1j * phi / 2)]])
 
 
+def controlled_gate(U, N=2, control=0, target=1, control_value=1):
+    """
+    Create an N-qubit controlled gate from a single-qubit gate U with the given
+    control and target qubits.
+
+    Parameters
+    ----------
+    U : Qobj
+        Arbitrary single-qubit gate.
+
+    N : integer
+        The number of qubits in the target space.
+
+    control : integer
+        The index of the first control qubit.
+
+    target : integer
+        The index of the target qubit.
+
+    control_value : integer (1)
+        The state of the control qubit that activates the gate U.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object representing the controlled-U gate.
+    """
+
+    if [N, control, target] == [2, 0, 1]:
+        return (tensor(fock_dm(2, control_value), U) +
+                tensor(fock_dm(2, 1 - control_value), identity(2)))
+    else:
+        U2 = controlled_gate(U, control_value=control_value)
+        return gate_expand_2toN(U2, N=N, control=control, target=target)
+
+
 def cnot(N=None, control=0, target=1):
     """
     Quantum object representing the CNOT gate.
@@ -169,7 +204,7 @@ shape = [4, 4], type = oper, isHerm = True
     """
     if (control == 1 and target == 0) and N is None:
         N = 2
-        
+
     if not N is None:
         return gate_expand_2toN(cnot(), N, control, target)
     else:
