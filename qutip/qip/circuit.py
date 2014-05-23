@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-from qutip.quantum_info.circuit_latex import _latex_write, _latex_pdf, _latex_compile
+from qutip.qip.circuit_latex import _latex_write, _latex_pdf, _latex_compile
 
 class Gate(object):
     

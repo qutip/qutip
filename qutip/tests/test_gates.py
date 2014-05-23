@@ -34,8 +34,8 @@
 import numpy as np
 from numpy.testing import assert_, run_module_suite
 from qutip.states import basis, ket2dm
-from qutip.quantum_info import (rx, ry, rz, phasegate, cnot, swap, iswap,
-                                sqrtswap, toffoli, fredkin, gate_expand_3toN)
+from qutip.qip import (rx, ry, rz, phasegate, cnot, swap, iswap,
+                       sqrtswap, toffoli, fredkin, gate_expand_3toN)
 from qutip.random_objects import rand_ket, rand_herm
 from qutip.tensor import tensor
 

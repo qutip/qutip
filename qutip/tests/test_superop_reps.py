@@ -47,7 +47,7 @@ import scipy
 from qutip.qobj import Qobj
 from qutip.states import basis
 from qutip.operators import create, destroy, jmat, identity, sigmax
-from qutip.quantum_info.gates import swap
+from qutip.qip.gates import swap
 from qutip.propagator import propagator
 from qutip.random_objects import rand_herm, rand_super
 from qutip.tensor import tensor, super_tensor

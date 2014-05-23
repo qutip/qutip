@@ -250,7 +250,7 @@ from qutip.sparse import sparse_bandwidth
 from qutip.graph import *
 
 # quantum information
-from qutip.quantum_info import *
+from qutip.qip import *
 
 # utilities
 from qutip.utilities import *
