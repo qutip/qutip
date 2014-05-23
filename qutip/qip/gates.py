@@ -278,7 +278,7 @@ shape = [4, 4], type = oper, isHerm = True
                     dims=[[2, 2], [2, 2]])
 
 
-def fredkin(N=None, control1=0, control2=1, target=2):
+def fredkin(N=None, controls=[0, 1], target=2):
     """Quantum object representing the Fredkin gate.
 
     Returns
@@ -302,11 +302,11 @@ shape = [8, 8], type = oper, isHerm = True
          [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
 
     """
-    if [control1, control2, target] != [0, 1, 2] and N is None:
+    if [controls[0], controls[1], target] != [0, 1, 2] and N is None:
         N = 3
 
     if not N is None:
-        return gate_expand_3toN(fredkin(), N, control1, control2, target)
+        return gate_expand_3toN(fredkin(), N, controls[0], controls[1], target)
 
     else:
         return Qobj([[1, 0, 0, 0, 0, 0, 0, 0],
@@ -320,7 +320,7 @@ shape = [8, 8], type = oper, isHerm = True
                     dims=[[2, 2, 2], [2, 2, 2]])
         
 
-def toffoli(N=None, control1=0, control2=1, target=2):
+def toffoli(N=None, controls=[0, 1], target=2):
     """Quantum object representing the Toffoli gate.
 
     Returns
@@ -345,11 +345,11 @@ shape = [8, 8], type = oper, isHerm = True
 
 
     """
-    if [control1, control2, target] != [0, 1, 2] and N is None:
+    if [controls[0], controls[1], target] != [0, 1, 2] and N is None:
         N = 3
 
     if not N is None:
-        return gate_expand_3toN(toffoli(), N, control1, control2, target)
+        return gate_expand_3toN(toffoli(), N, controls[0], controls[1], target)
 
     else:
         return Qobj([[1, 0, 0, 0, 0, 0, 0, 0],
