@@ -33,7 +33,7 @@
 import os
 import numpy as np
 import subprocess as sub
-from qutip.quantum_info.qcircuit_latex import _qcircuit_latex_min
+from qutip.qip.qcircuit_latex import _qcircuit_latex_min
 
 _latex_template = r"""
 \documentclass{standalone}

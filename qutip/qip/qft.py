@@ -33,8 +33,8 @@
 import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import *
-from qutip.quantum_info.gates import snot, cphase, swap
-from qutip.quantum_info.circuit import QubitCircuit
+from qutip.qip.gates import snot, cphase, swap
+from qutip.qip.circuit import QubitCircuit
 
 
 def qft(N=1):

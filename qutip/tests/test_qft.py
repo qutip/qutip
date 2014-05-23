@@ -33,7 +33,7 @@
 
 import numpy as np
 from numpy.testing import assert_, run_module_suite
-from qutip.quantum_info.qft import qft, qft_steps
+from qutip.qip.qft import qft, qft_steps
 
 
 class TestQFT:
