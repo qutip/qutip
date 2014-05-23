@@ -173,12 +173,109 @@ shape = [4, 4], type = oper, isHerm = True
     if not N is None:
         return gate_expand_2toN(cnot(), N, control, target)
     else:
-        uu = tensor(basis(2), basis(2))
-        ud = tensor(basis(2), basis(2, 1))
-        du = tensor(basis(2, 1), basis(2))
-        dd = tensor(basis(2, 1), basis(2, 1))
-        Q = uu * uu.dag() + ud * ud.dag() + dd * du.dag() + du * dd.dag()
-        return Qobj(Q)
+        return Qobj([[1, 0, 0, 0],
+                     [0, 1, 0, 0],
+                     [0, 0, 0, 1],
+                     [0, 0, 1, 0]],
+                    dims=[[2, 2], [2, 2]])
+
+
+def csign(N=None, control=0, target=1):
+    """
+    Quantum object representing the CSIGN gate.
+
+    Returns
+    -------
+    csign_gate : qobj
+        Quantum object representation of CSIGN gate
+
+    Examples
+    --------
+    >>> csign()
+    Quantum object: dims = [[2, 2], [2, 2]], \
+shape = [4, 4], type = oper, isHerm = True
+    Qobj data =
+        [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]
+         [ 0.+0.j  0.+0.j  0.+0.j  -1.+0.j]]
+
+    """
+    if (control == 1 and target == 0) and N is None:
+        N = 2
+        
+    if not N is None:
+        return gate_expand_2toN(cnot(), N, control, target)
+    else:
+        return Qobj([[1, 0, 0, 0],
+                     [0, 1, 0, 0],
+                     [0, 0, 1, 0],
+                     [0, 0, 0, -1]],
+                    dims=[[2, 2], [2, 2]])
+
+
+def berkeley(N=None, control=0, target=1):
+    """
+    Quantum object representing the Berkeley gate.
+    berkeley()
+    Quantum object: dims = [[2, 2], [2, 2]], \
+shape = [4, 4], type = oper, isHerm = True
+    Qobj data =
+        [[ cos(pi/8).+0.j  0.+0.j           0.+0.j           0.+sin(pi/8).j]
+         [ 0.+0.j          cos(3pi/8).+0.j  0.+sin(3pi/8).j  0.+0.j]
+         [ 0.+0.j          0.+sin(3pi/8).j  cos(3pi/8).+0.j  0.+0.j]
+         [ 0.+sin(pi/8).j  0.+0.j           0.+0.j           cos(pi/8).+0.j]]
+
+    Returns
+    -------
+    berkeley_gate : qobj
+        Quantum object representation of Berkeley gate
+
+    """
+    if (control == 1 and target == 0) and N is None:
+        N = 2
+        
+    if not N is None:
+        return gate_expand_2toN(cnot(), N, control, target)
+    else:
+        return Qobj([[cos(np.pi/8), 0, 0, 1.0j * sin(np.pi/8)],
+                     [0, cos(3*np.pi/8), 1.0j * sin(3*np.pi/8), 0],
+                     [0, 1.0j * sin(3*np.pi/8), cos(3*np.pi/8), 0],
+                     [1.0j * sin(np.pi/8), 0, 0, cos(np.pi/8)]],
+                    dims=[[2, 2], [2, 2]])
+
+
+def swapalpha(alpha, N=None, control=0, target=1):
+    """
+    Quantum object representing the SWAPalpha gate.
+    swapalpha(alpha)
+    Quantum object: dims = [[2, 2], [2, 2]], \
+shape = [4, 4], type = oper, isHerm = True
+    Qobj data =
+        [[ 1.+0.j  0.+0.j                    0.+0.j                    0.+0.j]
+         [ 0.+0.j  0.5*(1 + exp(j*pi*alpha)  0.5*(1 - exp(j*pi*alpha)  0.+0.j]
+         [ 0.+0.j  0.5*(1 - exp(j*pi*alpha)  0.5*(1 + exp(j*pi*alpha)  0.+0.j]
+         [ 0.+0.j  0.+0.j                    0.+0.j                    1.+0.j]]
+
+    Returns
+    -------
+    swapalpha_gate : qobj
+        Quantum object representation of SWAPalpha gate
+
+    """
+    if (control == 1 and target == 0) and N is None:
+        N = 2
+        
+    if not N is None:
+        return gate_expand_2toN(cnot(), N, control, target)
+    else:
+        return Qobj([[1, 0, 0, 0],
+                     [0, 0.5 * (1 + np.exp(1.0j*np.pi*alpha)),
+                      0.5 * (1 - np.exp(1.0j*np.pi*alpha)), 0],
+                     [0, 0.5 * (1 - np.exp(1.0j*np.pi*alpha)),
+                      0.5 * (1 + np.exp(1.0j*np.pi*alpha)), 0],
+                     [0, 0, 0, 1]],
+                    dims=[[2, 2], [2, 2]])
 
 
 def fredkin(N=None, control1=0, control2=1, target=2):
@@ -212,19 +309,16 @@ shape = [8, 8], type = oper, isHerm = True
         return gate_expand_3toN(fredkin(), N, control1, control2, target)
 
     else:
-        uuu = qstate('uuu')
-        uud = qstate('uud')
-        udu = qstate('udu')
-        udd = qstate('udd')
-        duu = qstate('duu')
-        dud = qstate('dud')
-        ddu = qstate('ddu')
-        ddd = qstate('ddd')
-        Q = ddd * ddd.dag() + ddu * ddu.dag() + dud * dud.dag() + \
-            duu * duu.dag() + udd * udd.dag() + uud * udu.dag() + \
-            udu * uud.dag() + uuu * uuu.dag()
-        return Qobj(Q)
-
+        return Qobj([[1, 0, 0, 0, 0, 0, 0, 0],
+                     [0, 1, 0, 0, 0, 0, 0, 0],
+                     [0, 0, 1, 0, 0, 0, 0, 0],
+                     [0, 0, 0, 1, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 1, 0, 0, 0],
+                     [0, 0, 0, 0, 0, 0, 1, 0],
+                     [0, 0, 0, 0, 0, 1, 0, 0],
+                     [0, 0, 0, 0, 0, 0, 0, 1]],
+                    dims=[[2, 2, 2], [2, 2, 2]])
+        
 
 def toffoli(N=None, control1=0, control2=1, target=2):
     """Quantum object representing the Toffoli gate.
@@ -258,18 +352,15 @@ shape = [8, 8], type = oper, isHerm = True
         return gate_expand_3toN(toffoli(), N, control1, control2, target)
 
     else:
-        uuu = qstate('uuu')
-        uud = qstate('uud')
-        udu = qstate('udu')
-        udd = qstate('udd')
-        duu = qstate('duu')
-        dud = qstate('dud')
-        ddu = qstate('ddu')
-        ddd = qstate('ddd')
-        Q = ddd * ddd.dag() + ddu * ddu.dag() + dud * dud.dag() + \
-            duu * duu.dag() + udd * udd.dag() + udu * udu.dag() + \
-            uuu * uud.dag() + uud * uuu.dag()
-        return Qobj(Q)
+        return Qobj([[1, 0, 0, 0, 0, 0, 0, 0],
+                     [0, 1, 0, 0, 0, 0, 0, 0],
+                     [0, 0, 1, 0, 0, 0, 0, 0],
+                     [0, 0, 0, 1, 0, 0, 0, 0],
+                     [0, 0, 0, 0, 1, 0, 0, 0],
+                     [0, 0, 0, 0, 0, 1, 0, 0],
+                     [0, 0, 0, 0, 0, 0, 0, 1],
+                     [0, 0, 0, 0, 0, 0, 1, 0]],
+                    dims=[[2, 2, 2], [2, 2, 2]])
 
 
 def swap(N=None, control=0, target=1):
@@ -299,12 +390,11 @@ shape = [4, 4], type = oper, isHerm = True
         return gate_expand_2toN(swap(), N, control, target)
 
     else:
-        uu = qstate('uu')
-        ud = qstate('ud')
-        du = qstate('du')
-        dd = qstate('dd')
-        Q = uu * uu.dag() + ud * du.dag() + du * ud.dag() + dd * dd.dag()
-        return Q
+        return Qobj([[1, 0, 0, 0],
+                     [0, 0, 1, 0],
+                     [0, 1, 0, 0],
+                     [0, 0, 0, 1]],
+                    dims=[[2, 2], [2, 2]])
 
 
 def iswap(N=None, control=0, target=1):
@@ -333,10 +423,10 @@ shape = [4, 4], type = oper, isHerm = False
         return gate_expand_2toN(iswap(), N, control, target)
 
     else:
-        return Qobj(array([[1, 0, 0, 0],
-                           [0, 0, 1j, 0],
-                           [0, 1j, 0, 0],
-                           [0, 0, 0, 1]]),
+        return Qobj([[1, 0, 0, 0],
+                     [0, 0, 1j, 0],
+                     [0, 1j, 0, 0],
+                     [0, 0, 0, 1]],
                     dims=[[2, 2], [2, 2]])
 
 
@@ -434,10 +524,8 @@ shape = [2, 2], type = oper, isHerm = True
     if not N is None:
         return gate_expand_1toN(snot(), N, target)
     else:
-        u = basis(2, 0)
-        d = basis(2, 1)
-        Q = 1.0 / sqrt(2.0) * (sigmax() + sigmaz())
-        return Q
+        return 1/sqrt(2.0) * Qobj([[1,1],
+                                   [1,-1]])
 
 
 def _hamming_distance(x, bits=32):
@@ -494,11 +582,10 @@ shape = [2, 2], type = oper, isHerm = False
     if not N is None:
         return gate_expand_1toN(phasegate(theta), N, target)
     else:
-        u = basis(2)
-        d = basis(2, 1)
-        Q = u * u.dag() + (exp(1.0j * theta) * d * d.dag())
-        return Qobj(Q)
-
+        return Qobj([[1, 0],
+                     [0, np.exp(1.0j * theta)]],
+                    dims=[[2], [2]])
+        
 
 def gate_expand_1toN(U, N, target):
     """
