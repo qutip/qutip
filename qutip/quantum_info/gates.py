@@ -38,9 +38,10 @@ from qutip.states import (basis, qstate, state_number_index,
 from qutip.qobj import Qobj
 from qutip.operators import *
 from qutip.tensor import tensor
+from qutip.states import fock_dm
 
 
-def rotation(op, phi, N=None, target=None):
+def rotation(op, phi, N=None, target=0):
     """Single-qubit rotation for operator op with angle phi.
 
     Returns
@@ -48,13 +49,56 @@ def rotation(op, phi, N=None, target=None):
     result : qobj
         Quantum object for operator describing the rotation.
     """
-    if not N is None and not target is None:
+    if not N is None:
         return gate_expand_1toN(rotation(op, phi), N, target)
     else:
         return (-1j * op * phi / 2).expm()
 
 
-def rx(phi, N=None, target=None):
+
+def cphase(theta, N=2, control=0, target=1):
+    """
+    Returns quantum object representing the phase shift gate.
+
+    Parameters
+    ----------
+    theta : float
+        Phase rotation angle.
+        
+    N : integer
+        The number of qubits in the target space.
+
+    control : integer
+        The index of the control qubit.
+
+    target : integer
+        The index of the target qubit.
+
+    Returns
+    -------
+    U : qobj
+        Quantum object representation of controlled phase gate.
+    """
+
+    if N < 1 or target < 0 or control < 0:
+        raise ValueError("Minimum value: N=1, control=0 and target=0")
+
+    if control >= N or target >= N:
+        raise ValueError("control and target need to be smaller than N")
+    
+    U_list1 = [identity(2)] * N
+    U_list2 = [identity(2)] * N
+    
+    U_list1[control] = fock_dm(2, 1)
+    U_list1[target] = phasegate(theta)
+
+    U_list2[control] = fock_dm(2, 0)
+
+    U = tensor(U_list1) + tensor(U_list2)
+    return U
+
+
+def rx(phi, N=None, target=0):
     """Single-qubit rotation for operator sigmax with angle phi.
 
     Returns
@@ -63,14 +107,14 @@ def rx(phi, N=None, target=None):
         Quantum object for operator describing the rotation.
 
     """
-    if not N is None and not N is None and not target is None:
+    if not N is None:
         return gate_expand_1toN(rx(phi), N, target)
     else:
         return Qobj([[np.cos(phi / 2), -1j * np.sin(phi / 2)],
                      [-1j * np.sin(phi / 2), np.cos(phi / 2)]])
 
 
-def ry(phi, N=None, target=None):
+def ry(phi, N=None, target=0):
     """Single-qubit rotation for operator sigmay with angle phi.
 
     Returns
@@ -79,14 +123,14 @@ def ry(phi, N=None, target=None):
         Quantum object for operator describing the rotation.
 
     """
-    if not N is None and not target is None:
+    if not N is None:
         return gate_expand_1toN(ry(phi), N, target)
     else:
         return Qobj([[np.cos(phi / 2), -np.sin(phi / 2)],
                      [np.sin(phi / 2), np.cos(phi / 2)]])
 
 
-def rz(phi, N=None, target=None):
+def rz(phi, N=None, target=0):
     """Single-qubit rotation for operator sigmaz with angle phi.
 
     Returns
@@ -95,14 +139,14 @@ def rz(phi, N=None, target=None):
         Quantum object for operator describing the rotation.
 
     """
-    if not N is None and not target is None:
+    if not N is None:
         return gate_expand_1toN(rz(phi), N, target)
     else:
         return Qobj([[np.exp(-1j * phi / 2), 0],
                      [0, np.exp(1j * phi / 2)]])
 
 
-def cnot(N=None, control=None, target=None):
+def cnot(N=None, control=0, target=1):
     """
     Quantum object representing the CNOT gate.
 
@@ -123,7 +167,10 @@ shape = [4, 4], type = oper, isHerm = True
          [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]]
 
     """
-    if not N is None and not control is None and not target is None:
+    if (control == 1 and target == 0) and N is None:
+        N = 2
+        
+    if not N is None:
         return gate_expand_2toN(cnot(), N, control, target)
     else:
         uu = tensor(basis(2), basis(2))
@@ -134,7 +181,7 @@ shape = [4, 4], type = oper, isHerm = True
         return Qobj(Q)
 
 
-def fredkin(N=None, control1=None, control2=None, target=None):
+def fredkin(N=None, control1=0, control2=1, target=2):
     """Quantum object representing the Fredkin gate.
 
     Returns
@@ -158,8 +205,10 @@ shape = [8, 8], type = oper, isHerm = True
          [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
 
     """
-    if (not N is None and not control1 is None
-            and not control2 is None and not target is None):
+    if [control1, control2, target] != [0, 1, 2] and N is None:
+        N = 3
+
+    if not N is None:
         return gate_expand_3toN(fredkin(), N, control1, control2, target)
 
     else:
@@ -177,7 +226,7 @@ shape = [8, 8], type = oper, isHerm = True
         return Qobj(Q)
 
 
-def toffoli(N=None, control1=None, control2=None, target=None):
+def toffoli(N=None, control1=0, control2=1, target=2):
     """Quantum object representing the Toffoli gate.
 
     Returns
@@ -202,8 +251,10 @@ shape = [8, 8], type = oper, isHerm = True
 
 
     """
-    if (not N is None and not control1 is None
-            and not control2 is None and not target is None):
+    if [control1, control2, target] != [0, 1, 2] and N is None:
+        N = 3
+
+    if not N is None:
         return gate_expand_3toN(toffoli(), N, control1, control2, target)
 
     else:
@@ -221,7 +272,7 @@ shape = [8, 8], type = oper, isHerm = True
         return Qobj(Q)
 
 
-def swap(N=None, control=None, target=None, mask=None):
+def swap(N=None, control=0, target=1):
     """Quantum object representing the SWAP gate.
 
     Returns
@@ -241,33 +292,10 @@ shape = [4, 4], type = oper, isHerm = True
      [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
 
     """
-    if mask:
-        warnings.warn("The mask argument to iswap is deprecated. " +
-                      "Use the N, control and target arguments instead.")
+    if [control, target] != [0, 1] and N is None:
+        N = 2
 
-        if sum(mask) != 2:
-            raise ValueError("mask must only have two ones, rest zeros")
-
-        dims = [2] * len(mask)
-        idx, = where(mask)
-        N = prod(dims)
-        data = sp.lil_matrix((N, N))
-
-        for s1 in state_number_enumerate(dims):
-            i1 = state_number_index(dims, s1)
-
-            if s1[idx[0]] == s1[idx[1]]:
-                i2 = i1
-            else:
-                s2 = array(s1).copy()
-                s2[idx[0]], s2[idx[1]] = s2[idx[1]], s2[idx[0]]
-                i2 = state_number_index(dims, s2)
-
-            data[i1, i2] = 1
-
-        return Qobj(data, dims=[dims, dims], shape=[N, N])
-
-    elif not N is None and not control is None and not target is None:
+    if not N is None:
         return gate_expand_2toN(swap(), N, control, target)
 
     else:
@@ -279,7 +307,7 @@ shape = [4, 4], type = oper, isHerm = True
         return Q
 
 
-def iswap(N=None, control=None, target=None, mask=None):
+def iswap(N=None, control=0, target=1):
     """Quantum object representing the iSWAP gate.
 
     Returns
@@ -298,44 +326,21 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.+0.j  0.+1.j  0.+0.j  0.+0.j]
      [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
     """
-    if mask:
-        warnings.warn("The mask argument to iswap is deprecated. " +
-                      "Use the N, control and target arguments instead.")
+    if [control, target] != [0, 1] and N is None:
+        N = 2
 
-        if sum(mask) != 2:
-            raise ValueError("mask must only have two ones, rest zeros")
-
-        dims = [2] * len(mask)
-        idx, = where(mask)
-        N = prod(dims)
-        data = sp.lil_matrix((N, N), dtype=complex)
-
-        for s1 in state_number_enumerate(dims):
-            i1 = state_number_index(dims, s1)
-
-            if s1[idx[0]] == s1[idx[1]]:
-                i2 = i1
-                val = 1.0
-            else:
-                s2 = s1.copy()
-                s2[idx[0]], s2[idx[1]] = s2[idx[1]], s2[idx[0]]
-                i2 = state_number_index(dims, s2)
-                val = 1.0j
-
-            data[i1, i2] = val
-
-        return Qobj(data, dims=[dims, dims], shape=[N, N])
-
-    elif not N is None and not control is None and not target is None:
+    if not N is None:
         return gate_expand_2toN(iswap(), N, control, target)
 
     else:
-        return Qobj(array([[1, 0, 0, 0], [0, 0, 1j, 0], [0, 1j, 0, 0],
+        return Qobj(array([[1, 0, 0, 0],
+                           [0, 0, 1j, 0],
+                           [0, 1j, 0, 0],
                            [0, 0, 0, 1]]),
                     dims=[[2, 2], [2, 2]])
 
 
-def sqrtiswap(N=None, control=None, target=None):
+def sqrtiswap(N=None, control=0, target=1):
     """Quantum object representing the square root iSWAP gate.
 
     Returns
@@ -358,16 +363,19 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00000000+0.j   0.00000000+0.j   \
        0.00000000+0.j          1.00000000+0.j]]
     """
-    if not N is None and not control is None and not target is None:
+    if [control, target] != [0, 1] and N is None:
+        N = 2
+
+    if not N is None:
         return gate_expand_2toN(sqrtiswap(), N, control, target)
     else:
         return Qobj(array([[1, 0, 0, 0],
-                           [0, 1 / sqrt(2), -1j / sqrt(2), 0],
-                           [0, -1j / sqrt(2), 1 / sqrt(2), 0],
+                           [0, 1 / sqrt(2), 1j / sqrt(2), 0],
+                           [0, 1j / sqrt(2), 1 / sqrt(2), 0],
                            [0, 0, 0, 1]]), dims=[[2, 2], [2, 2]])
 
 
-def sqrtswap(N=None, control=None, target=None):
+def sqrtswap(N=None, control=0, target=1):
     """Quantum object representing the square root SWAP gate.
 
     Returns
@@ -376,7 +384,10 @@ def sqrtswap(N=None, control=None, target=None):
         Quantum object representation of square root SWAP gate
 
     """
-    if not N is None and not control is None and not target is None:
+    if [control, target] != [0, 1] and N is None:
+        N = 2
+
+    if not N is None:
         return gate_expand_2toN(sqrtswap(), N, control, target)
     else:
         return Qobj(array([[1, 0, 0, 0],
@@ -386,8 +397,24 @@ def sqrtswap(N=None, control=None, target=None):
                     dims=[[2, 2], [2, 2]])
 
 
-def snot(N=None, target=None):
-    """Quantum object representing the SNOT (2-qubit Hadamard) gate.
+def sqrtnot(N=None, target=0):
+    """Single-qubit square root NOT gate.
+
+    Returns
+    -------
+    result : qobj
+        Quantum object for operator describing the square root NOT gate.
+
+    """
+    if not N is None:
+        return gate_expand_1toN(sqrtnot(), N, target)
+    else:
+        return Qobj([[0.5 + 0.5j, 0.5 - 0.5j],
+                     [0.5 - 0.5j, 0.5 + 0.5j]])
+
+
+def snot(N=None, target=0):
+    """Quantum object representing the SNOT (Hadamard) gate.
 
     Returns
     -------
@@ -404,7 +431,7 @@ shape = [2, 2], type = oper, isHerm = True
      [ 0.70710678+0.j -0.70710678+0.j]]
 
     """
-    if not N is None and not target is None:
+    if not N is None:
         return gate_expand_1toN(snot(), N, target)
     else:
         u = basis(2, 0)
@@ -425,7 +452,7 @@ def _hamming_distance(x, bits=32):
     return tot
 
 
-def hadamard(N=1):
+def hadamard_transform(N=1):
     """Quantum object representing the N-qubit Hadamard gate.
 
     Returns
@@ -440,7 +467,7 @@ def hadamard(N=1):
     return Qobj(data, dims=[[2] * N, [2] * N])
 
 
-def phasegate(theta, N=None, target=None):
+def phasegate(theta, N=None, target=0):
     """
     Returns quantum object representing the phase shift gate.
 
@@ -464,7 +491,7 @@ shape = [2, 2], type = oper, isHerm = False
      [ 0.00000000+0.j          0.70710678+0.70710678j]]
 
     """
-    if not N is None and not target is None:
+    if not N is None:
         return gate_expand_1toN(phasegate(theta), N, target)
     else:
         u = basis(2)
