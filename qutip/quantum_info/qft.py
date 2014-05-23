@@ -33,7 +33,7 @@
 import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import *
-from qutip.quantum_info.gates import snot, cphase
+from qutip.quantum_info.gates import snot, cphase, swap
 from qutip.quantum_info.circuit import QubitCircuit
 
 
@@ -65,15 +65,17 @@ def qft(N=1):
     return Qobj(1.0/np.sqrt(N2) * L, dims=dims)
 
 
-def qft_steps(N=1):
+def qft_steps(N=1, swapping=True):
     """
     Quantum Fourier Transform operator on N qubits returning the individual
-    steps as unitary matrices.
+    steps as unitary matrices operating from left to right.
     
     Parameters
     ----------
     N: int
         Number of qubits.
+    swap: boolean
+        Flag indicating sequence of swap gates to be applied at the end or not.
     
     Returns
     -------
@@ -93,11 +95,14 @@ def qft_steps(N=1):
                 U_step_list.append(cphase(np.pi/(2**(i-j)), N,
                                    control=i, target=j))
             U_step_list.append(snot(N, i))
-        
+        if swapping == True:
+            for i in range(N//2):
+                U_step_list.append(swap(N, target=i, control=N-1-i))
+
     return U_step_list
 
 
-def qft_gate_sequence(N=1):
+def qft_gate_sequence(N=1, swapping=True):
     """
     Quantum Fourier Transform operator on N qubits returning the gate sequence.
     
@@ -105,11 +110,13 @@ def qft_gate_sequence(N=1):
     ----------
     N: int
         Number of qubits.
-    
+    swap: boolean
+        Flag indicating sequence of swap gates to be applied at the end or not.
+
     Returns
     -------
     qc: instance of QubitCircuit
-        Gate sequence of Hadamard and controlled rotation gates implementing QFT.
+        Gate sequence of Hadamard and controlled rotation gates implementing QFT
     
     """
     
@@ -126,5 +133,11 @@ def qft_gate_sequence(N=1):
                             arg_label=r"(\pi/2^{%d-%d})" % (i, j),
                             arg_value=np.pi/(2**(i-j)))
             qc.add_gate("SNOT", targets=[i])
+        if swapping == True:
+            for i in range(N//2):
+                qc.add_gate(r"SWAP", targets=[i], controls=[N-1-i])
         
     return qc
+
+
+
