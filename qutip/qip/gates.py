@@ -306,7 +306,7 @@ shape = [8, 8], type = oper, isHerm = True
         N = 3
 
     if not N is None:
-        return gate_expand_3toN(fredkin(), N, controls[0], controls[1], target)
+        return gate_expand_3toN(fredkin(), N, controls, target)
 
     else:
         return Qobj([[1, 0, 0, 0, 0, 0, 0, 0],
@@ -349,7 +349,7 @@ shape = [8, 8], type = oper, isHerm = True
         N = 3
 
     if not N is None:
-        return gate_expand_3toN(toffoli(), N, controls[0], controls[1], target)
+        return gate_expand_3toN(toffoli(), N, controls, target)
 
     else:
         return Qobj([[1, 0, 0, 0, 0, 0, 0, 0],
@@ -669,7 +669,7 @@ def gate_expand_2toN(U, N, control, target):
     return tensor([U] + [identity(2)] * (N - 2)).permute(p)
 
 
-def gate_expand_3toN(U, N, control1, control2, target):
+def gate_expand_3toN(U, N, controls=[0, 1], target):
     """
     Create a Qobj representing a three-qubit gate that act on a system with N
     qubits.
@@ -682,11 +682,8 @@ def gate_expand_3toN(U, N, control1, control2, target):
     N : integer
         The number of qubits in the target space.
 
-    control1 : integer
-        The index of the first control qubit.
-
-    control2 : integer
-        The index of the second control qubit.
+    controls : list
+        The list of the control qubits.
 
     target : integer
         The index of the target qubit.
@@ -700,20 +697,21 @@ def gate_expand_3toN(U, N, control1, control2, target):
     if N < 3:
         raise ValueError("integer N must be larger or equal to 3")
 
-    if control1 >= N or control2 >= N or target >= N:
+    if controls[0] >= N or controls[1] >= N or target >= N:
         raise ValueError(
             "control and not target is None must be integer < integer N")
 
-    if control1 == target or control2 == target or control1 == control2:
-        raise ValueError("control1, control2, and target cannot be equal")
+    if controls[0] == target or controls[1] == target
+       or controls[0] == controls[1]:
+        raise ValueError("controls[0], controls[1], and target cannot be equal")
 
     p = list(range(N))
     p1 = list(range(N))
     p2 = list(range(N))
 
-    if control1 <= 2 and control2 <= 2 and target <= 2:
-        p[0], p[control1] = p[control1], p[0]
-        p1[1], p1[control2] = p1[control2], p1[1]
+    if controls[0] <= 2 and controls[1] <= 2 and target <= 2:
+        p[0], p[controls[0]] = p[controls[0]], p[0]
+        p1[1], p1[controls[1]] = p1[controls[1]], p1[1]
         p2[2], p2[target] = p2[target], p2[2]
         p = [p[p1[p2[k]]] for k in range(N)]
 
@@ -721,106 +719,106 @@ def gate_expand_3toN(U, N, control1, control2, target):
     # N >= 3 cases
     #
 
-    elif control1 == 0 and control2 == 1:
+    elif controls[0] == 0 and controls[1] == 1:
         p[2], p[target] = p[target], p[2]
 
-    elif control1 == 0 and target == 2:
-        p[1], p[control2] = p[control2], p[1]
+    elif controls[0] == 0 and target == 2:
+        p[1], p[controls[1]] = p[controls[1]], p[1]
 
-    elif control2 == 1 and target == 2:
-        p[0], p[control1] = p[control1], p[0]
+    elif controls[1] == 1 and target == 2:
+        p[0], p[controls[0]] = p[controls[0]], p[0]
 
-    elif control1 == 1 and control2 == 0:
-        p[control2], p[control1] = p[control1], p[control2]
+    elif controls[0] == 1 and controls[1] == 0:
+        p[controls[1]], p[controls[0]] = p[controls[0]], p[controls[1]]
         p2[2], p2[target] = p2[target], p2[2]
         p = [p2[p[k]] for k in range(N)]
 
-    elif control1 == 2 and target == 0:
-        p[target], p[control1] = p[control1], p[target]
-        p1[1], p1[control2] = p1[control2], p1[1]
+    elif controls[0] == 2 and target == 0:
+        p[target], p[controls[0]] = p[controls[0]], p[target]
+        p1[1], p1[controls[1]] = p1[controls[1]], p1[1]
         p = [p1[p[k]] for k in range(N)]
 
-    elif control2 == 2 and target == 1:
-        p[target], p[control2] = p[control2], p[target]
-        p1[0], p1[control1] = p1[control1], p1[0]
+    elif controls[1] == 2 and target == 1:
+        p[target], p[controls[1]] = p[controls[1]], p[target]
+        p1[0], p1[controls[0]] = p1[controls[0]], p1[0]
         p = [p1[p[k]] for k in range(N)]
 
-    elif control1 == 1 and control2 == 2:
-        #  control1 -> control2 -> target -> outside
+    elif controls[0] == 1 and controls[1] == 2:
+        #  controls[0] -> controls[1] -> target -> outside
         p[0], p[1] = p[1], p[0]
         p[0], p[2] = p[2], p[0]
         p[0], p[target] = p[target], p[0]
 
-    elif control1 == 2 and target == 1:
-        #  control1 -> target -> control2 -> outside
+    elif controls[0] == 2 and target == 1:
+        #  controls[0] -> target -> controls[1] -> outside
         p[0], p[2] = p[2], p[0]
         p[0], p[1] = p[1], p[0]
-        p[0], p[control2] = p[control2], p[0]
+        p[0], p[controls[1]] = p[controls[1]], p[0]
 
-    elif control2 == 0 and control1 == 2:
-        #  control2 -> control1 -> target -> outside
+    elif controls[1] == 0 and controls[0] == 2:
+        #  controls[1] -> controls[0] -> target -> outside
         p[1], p[0] = p[0], p[1]
         p[1], p[2] = p[2], p[1]
         p[1], p[target] = p[target], p[1]
 
-    elif control2 == 2 and target == 0:
-        #  control2 -> target -> control1 -> outside
+    elif controls[1] == 2 and target == 0:
+        #  controls[1] -> target -> controls[0] -> outside
         p[1], p[2] = p[2], p[1]
         p[1], p[0] = p[0], p[1]
-        p[1], p[control1] = p[control1], p[1]
+        p[1], p[controls[0]] = p[controls[0]], p[1]
 
-    elif target == 1 and control2 == 0:
-        #  target -> control2 -> control1 -> outside
+    elif target == 1 and controls[1] == 0:
+        #  target -> controls[1] -> controls[0] -> outside
         p[2], p[1] = p[1], p[2]
         p[2], p[0] = p[0], p[2]
-        p[2], p[control1] = p[control1], p[2]
+        p[2], p[controls[0]] = p[controls[0]], p[2]
 
-    elif target == 0 and control1 == 1:
-        #  target -> control1 -> control2 -> outside
+    elif target == 0 and controls[0] == 1:
+        #  target -> controls[0] -> controls[1] -> outside
         p[2], p[0] = p[0], p[2]
         p[2], p[1] = p[1], p[2]
-        p[2], p[control2] = p[control2], p[2]
+        p[2], p[controls[1]] = p[controls[1]], p[2]
 
-    elif control1 == 0 and control2 == 2:
-        #  control1 -> self, control2 -> target -> outside
+    elif controls[0] == 0 and controls[1] == 2:
+        #  controls[0] -> self, controls[1] -> target -> outside
         p[1], p[2] = p[2], p[1]
         p[1], p[target] = p[target], p[1]
 
-    elif control2 == 1 and control1 == 2:
-        #  control2 -> self, control1 -> target -> outside
+    elif controls[1] == 1 and controls[0] == 2:
+        #  controls[1] -> self, controls[0] -> target -> outside
         p[0], p[2] = p[2], p[0]
         p[0], p[target] = p[target], p[0]
 
-    elif target == 2 and control1 == 1:
-        #  target -> self, control1 -> control2 -> outside
+    elif target == 2 and controls[0] == 1:
+        #  target -> self, controls[0] -> controls[1] -> outside
         p[0], p[1] = p[1], p[0]
-        p[0], p[control2] = p[control2], p[0]
+        p[0], p[controls[1]] = p[controls[1]], p[0]
 
     #
     # N >= 4 cases
     #
 
-    elif control1 == 1 and control2 > 2 and target > 2:
-        #  control1 -> control2 -> outside, target -> outside
+    elif controls[0] == 1 and controls[1] > 2 and target > 2:
+        #  controls[0] -> controls[1] -> outside, target -> outside
         p[0], p[1] = p[1], p[0]
-        p[0], p[control2] = p[control2], p[0]
+        p[0], p[controls[1]] = p[controls[1]], p[0]
         p[2], p[target] = p[target], p[2]
 
-    elif control1 == 2 and control2 > 2 and target > 2:
-        #  control1 -> target -> outside, control2 -> outside
+    elif controls[0] == 2 and controls[1] > 2 and target > 2:
+        #  controls[0] -> target -> outside, controls[1] -> outside
         p[0], p[2] = p[2], p[0]
         p[0], p[target] = p[target], p[0]
-        p[1], p[control2] = p[control2], p[1]
+        p[1], p[controls[1]] = p[controls[1]], p[1]
 
-    elif control2 == 2 and control1 > 2 and target > 2:
-        #  control2 -> target -> outside, control1 -> outside
+    elif controls[1] == 2 and controls[0] > 2 and target > 2:
+        #  controls[1] -> target -> outside, controls[0] -> outside
         p[1], p[2] = p[2], p[1]
         p[1], p[target] = p[target], p[1]
-        p[0], p[control1] = p[control1], p[0]
+        p[0], p[controls[0]] = p[controls[0]], p[0]
 
     else:
-        p[0], p[control1] = p[control1], p[0]
-        p1[1], p1[control2] = p1[control2], p1[1]
+        p[0], p[controls[0]] = p[controls[0]], p[0]
+        p1[1], p1[controls[1]] = p1[controls[1]], p1[1]
         p2[2], p2[target] = p2[target], p2[2]
         p = [p[p1[p2[k]]] for k in range(N)]
 
