@@ -179,7 +179,7 @@ class TestGates:
 
         _rand_gate_U = tensor([rand_herm(2, density=1) for k in range(3)])
 
-        def _rand_3qubit_gate(N=None, controls=[None, None], k=None):
+        def _rand_3qubit_gate(N=None, controls=None, k=None):
             if N is None:
                 return _rand_gate_U
             else:
