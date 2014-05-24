@@ -179,11 +179,11 @@ class TestGates:
 
         _rand_gate_U = tensor([rand_herm(2, density=1) for k in range(3)])
 
-        def _rand_3qubit_gate(N=None, m=None, n=None, k=None):
+        def _rand_3qubit_gate(N=None, controls=[None, None], k=None):
             if N is None:
                 return _rand_gate_U
             else:
-                return gate_expand_3toN(_rand_gate_U, N, m, n, k)
+                return gate_expand_3toN(_rand_gate_U, N, controls, k)
 
         for g in [fredkin, toffoli, _rand_3qubit_gate]:
 
@@ -200,7 +200,8 @@ class TestGates:
                         psi_list[k] = psi3
                         psi_in = tensor(psi_list)
 
-                        G = g(N, m, n, k)
+                        controls = [m, n]
+                        G = g(N, controls, k)
                         psi_out = G * psi_in
 
                         o1 = psi_out.overlap(psi_in)
