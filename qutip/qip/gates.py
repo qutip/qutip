@@ -669,7 +669,7 @@ def gate_expand_2toN(U, N, control, target):
     return tensor([U] + [identity(2)] * (N - 2)).permute(p)
 
 
-def gate_expand_3toN(U, N, controls=[0, 1], target):
+def gate_expand_3toN(U, N, controls=[0, 1], target=2):
     """
     Create a Qobj representing a three-qubit gate that act on a system with N
     qubits.
