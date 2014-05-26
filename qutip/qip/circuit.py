@@ -71,11 +71,16 @@ class QubitCircuit(object):
                 if gate.targets and n in gate.targets:
                     if gate.name == "CNOT":
                         col.append(r" \targ ")
+                    elif gate.name == "SWAP":
+                        col.append(r" \qswap ")
                     else:
                         col.append(r" \gate{%s} " % gate.name)
                         
                 elif gate.controls and n in gate.controls:
-                    col.append(r" \ctrl{%d} " % (gate.targets[0] - n))
+                    if gate.name == "SWAP":
+                        col.append(r" \qswap \qwx ")
+                    else:
+                        col.append(r" \ctrl{%d} " % (gate.targets[0] - n))
 
                 else:
                     col.append(r" \qw ")
