@@ -31,6 +31,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
+import warnings
+
 from qutip.qip.circuit_latex import _latex_write, _latex_pdf, _latex_compile
 
 class Gate(object):
@@ -45,7 +47,26 @@ class Gate(object):
         self.arg_label = arg_label
 
 
-        
+
+_gate_name_to_label = {
+    'SNOT': 'H',
+    'CPHASE': 'R'
+    }
+    
+def _gate_label(name, arg_label):
+
+    if name in _gate_name_to_label:
+        gate_label = _gate_name_to_label[name]
+    else:
+        warnings.warn("Unknown gate %s" % name)
+        gate_label = name
+    
+    if arg_label:
+        return r'{\rm %s}(%s)' % (gate_label, arg_label)
+    else:
+        return r'{\rm %s}' % gate_label
+
+
 class QubitCircuit(object):
     """
     Representation of a quantum program/algorithm. It needs to maintain a list
@@ -74,11 +95,12 @@ class QubitCircuit(object):
                     elif gate.name == "SWAP":
                         col.append(r" \qswap ")
                     else:
-                        col.append(r" \gate{%s} " % gate.name)
+                        col.append(r" \gate{%s} " %
+                                   _gate_label(gate.name, gate.arg_label))
                         
                 elif gate.controls and n in gate.controls:
                     if gate.name == "SWAP":
-                        col.append(r" \qswap \qwx ")
+                        col.append(r" \qswap \ctrl{%d} " % (gate.targets[0] - n))
                     else:
                         col.append(r" \ctrl{%d} " % (gate.targets[0] - n))
 
