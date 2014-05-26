@@ -45,14 +45,22 @@ class Gate(object):
 
         self.arg_value = arg_value
         self.arg_label = arg_label
-
-
+        
 
 _gate_name_to_label = {
-    'SNOT': 'H',
-    'CPHASE': 'R'
+    'SNOT': r'{\rm H}',
+    'CPHASE': r'{\rm R}',
+    'CSIGN': r'{\rm Z}',
+    'SWAP': r'{\rm SWAP}',
+    'SQRTSWAP': r'\sqrt{\rm SWAP}',
+    'ISWAP': r'{i}{\rm SWAP}',
+    'SQRTISWAP': r'\sqrt{{i}\rm SWAP}',
+    'RX': r'R_x',
+    'RY': r'R_y',
+    'RZ': r'R_z',
     }
-    
+
+
 def _gate_label(name, arg_label):
 
     if name in _gate_name_to_label:
@@ -62,9 +70,9 @@ def _gate_label(name, arg_label):
         gate_label = name
     
     if arg_label:
-        return r'{\rm %s}(%s)' % (gate_label, arg_label)
+        return r'%s(%s)' % (gate_label, arg_label)
     else:
-        return r'{\rm %s}' % gate_label
+        return r'%s' % gate_label
 
 
 class QubitCircuit(object):
@@ -72,11 +80,12 @@ class QubitCircuit(object):
     Representation of a quantum program/algorithm. It needs to maintain a list
     of gates (with target and source and time
     """
-    def __init__(self, N):
+    def __init__(self, N, reverse_states=True):
         
         # number of qubits in the register
         self.N = N        
         self.gates = []
+        self.reverse_states = reverse_states
 
     def add_gate(self, name, targets=None, controls=None, arg_value=None,
                  arg_label=None):
@@ -84,14 +93,23 @@ class QubitCircuit(object):
                                arg_value=arg_value, arg_label=arg_label))
     
     def latex_code(self):
-        
         rows = []
         for gate in self.gates:
-            col = []         
+            col = []
             for n in range(self.N):
                 if gate.targets and n in gate.targets:
-                    if gate.name == "CNOT":
-                        col.append(r" \targ ")
+                    
+                    if len(gate.targets) > 1:
+                        if (self.reverse_states and n == max(gate.targets)) or (not self.reverse_states and n == min(gate.targets)):
+                            col.append(r" \multigate{%d}{%s} " %
+                                       (len(gate.targets) - 1,
+                                        _gate_label(gate.name, gate.arg_label)))
+                        else:
+                            col.append(r" \ghost{%s} " %
+                                       (_gate_label(gate.name, gate.arg_label)))
+                    
+                    elif gate.name == "CNOT":
+                            col.append(r" \targ ")
                     elif gate.name == "SWAP":
                         col.append(r" \qswap ")
                     else:
@@ -99,10 +117,11 @@ class QubitCircuit(object):
                                    _gate_label(gate.name, gate.arg_label))
                         
                 elif gate.controls and n in gate.controls:
+                    m = (gate.targets[0] - n) * (-1 if self.reverse_states else 1)
                     if gate.name == "SWAP":
-                        col.append(r" \qswap \ctrl{%d} " % (gate.targets[0] - n))
+                        col.append(r" \qswap \ctrl{%d} " % m)
                     else:
-                        col.append(r" \ctrl{%d} " % (gate.targets[0] - n))
+                        col.append(r" \ctrl{%d} " % m)
 
                 else:
                     col.append(r" \qw ")
@@ -111,7 +130,8 @@ class QubitCircuit(object):
             rows.append(col)
 
         code = ""
-        for n in range(self.N):
+        n_iter = reversed(range(self.N)) if self.reverse_states else range(self.N)
+        for n in n_iter:
             for m in range(len(self.gates)):
                 code += r" & %s" % rows[m][n]
             code += r" & \qw \\ " + "\n"
