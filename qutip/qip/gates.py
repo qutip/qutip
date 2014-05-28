@@ -271,7 +271,7 @@ shape = [4, 4], type = oper, isHerm = True
         N = 2
         
     if not N is None:
-        return gate_expand_2toN(cnot(), N, targets)
+        return gate_expand_2toN(cnot(), N, targets=targets)
     else:
         return Qobj([[np.cos(np.pi/8), 0, 0, 1.0j * np.sin(np.pi/8)],
                      [0, np.cos(3*np.pi/8), 1.0j * np.sin(3*np.pi/8), 0],
@@ -302,7 +302,7 @@ shape = [4, 4], type = oper, isHerm = True
         N = 2
         
     if not N is None:
-        return gate_expand_2toN(cnot(), N, targets)
+        return gate_expand_2toN(cnot(), N, targets=targets)
     else:
         return Qobj([[1, 0, 0, 0],
                      [0, 0.5 * (1 + np.exp(1.0j*np.pi*alpha)),
@@ -422,7 +422,7 @@ shape = [4, 4], type = oper, isHerm = True
         N = 2
 
     if not N is None:
-        return gate_expand_2toN(swap(), N, targets)
+        return gate_expand_2toN(swap(), N, targets=targets)
 
     else:
         return Qobj([[1, 0, 0, 0],
@@ -455,7 +455,7 @@ shape = [4, 4], type = oper, isHerm = False
         N = 2
 
     if not N is None:
-        return gate_expand_2toN(iswap(), N, targets)
+        return gate_expand_2toN(iswap(), N, targets=targets)
 
     else:
         return Qobj([[1, 0, 0, 0],
@@ -492,7 +492,7 @@ shape = [4, 4], type = oper, isHerm = False
         N = 2
 
     if not N is None:
-        return gate_expand_2toN(sqrtiswap(), N, targets)
+        return gate_expand_2toN(sqrtiswap(), N, targets=targets)
     else:
         return Qobj(array([[1, 0, 0, 0],
                            [0, 1 / sqrt(2), 1j / sqrt(2), 0],
@@ -513,7 +513,7 @@ def sqrtswap(N=None, targets=[0, 1]):
         N = 2
 
     if not N is None:
-        return gate_expand_2toN(sqrtswap(), N, targets)
+        return gate_expand_2toN(sqrtswap(), N, targets=targets)
     else:
         return Qobj(array([[1, 0, 0, 0],
                            [0, 0.5 + 0.5j, 0.5 - 0.5j, 0],
