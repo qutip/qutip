@@ -622,7 +622,7 @@ shape = [2, 2], type = oper, isHerm = False
                     dims=[[2], [2]])
 
 
-def gate_sequence_product(U_list, left_to_right=True)
+def gate_sequence_product(U_list, left_to_right=True):
     """
     Calculate the overall unitary matrix for a given list of unitary operations 
     
