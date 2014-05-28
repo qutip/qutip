@@ -273,10 +273,10 @@ shape = [4, 4], type = oper, isHerm = True
     if not N is None:
         return gate_expand_2toN(cnot(), N, control, target)
     else:
-        return Qobj([[cos(np.pi/8), 0, 0, 1.0j * sin(np.pi/8)],
-                     [0, cos(3*np.pi/8), 1.0j * sin(3*np.pi/8), 0],
-                     [0, 1.0j * sin(3*np.pi/8), cos(3*np.pi/8), 0],
-                     [1.0j * sin(np.pi/8), 0, 0, cos(np.pi/8)]],
+        return Qobj([[np.cos(np.pi/8), 0, 0, 1.0j * np.sin(np.pi/8)],
+                     [0, np.cos(3*np.pi/8), 1.0j * np.sin(3*np.pi/8), 0],
+                     [0, 1.0j * np.sin(3*np.pi/8), np.cos(3*np.pi/8), 0],
+                     [1.0j * np.sin(np.pi/8), 0, 0, np.cos(np.pi/8)]],
                     dims=[[2, 2], [2, 2]])
 
 
