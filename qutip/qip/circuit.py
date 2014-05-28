@@ -34,6 +34,7 @@ import numpy as np
 import warnings
 
 from qutip.qip.circuit_latex import _latex_write, _latex_pdf, _latex_compile
+from qutip.qip.gates import *
 
 class Gate(object):
     
