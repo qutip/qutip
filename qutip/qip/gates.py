@@ -682,7 +682,7 @@ def gate_expand_1toN(U, N, target):
                   [identity(2)] * (N - target - 1))
 
 
-def gate_expand_2toN(U, N, control, target):
+def gate_expand_2toN(U, N, control=None, target=None, targets=None):
     """
     Create a Qobj representing a two-qubit gate that act on a system with N
     qubits.
@@ -701,11 +701,20 @@ def gate_expand_2toN(U, N, control, target):
     target : integer
         The index of the target qubit.
 
+    targets : list
+        List of target qubits.
+
     Returns
     -------
     gate : qobj
         Quantum object representation of N-qubit gate.
     """
+
+    if targets is not None:
+        control, target = targets
+
+    if control is None or target is None:
+        raise ValueError("Specify value of control and target")
 
     if N < 2:
         raise ValueError("integer N must be larger or equal to 2")
