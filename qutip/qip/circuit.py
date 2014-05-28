@@ -48,16 +48,23 @@ class Gate(object):
         
 
 _gate_name_to_label = {
-    'SNOT': r'{\rm H}',
     'CPHASE': r'{\rm R}',
-    'CSIGN': r'{\rm Z}',
-    'SWAP': r'{\rm SWAP}',
-    'SQRTSWAP': r'\sqrt{\rm SWAP}',
-    'ISWAP': r'{i}{\rm SWAP}',
-    'SQRTISWAP': r'\sqrt{{i}\rm SWAP}',
     'RX': r'R_x',
     'RY': r'R_y',
     'RZ': r'R_z',
+    'BERKELEY': r'{\rm BERKELEY}',
+    'SWAPalpha': r'{\rm SWAPalpha}',
+    'CNOT': r'{\rm CNOT}',
+    'CSIGN': r'{\rm Z}',
+    'FREDKIN': r'{\rm FREDKIN}',
+    'TOFFOLI': r'{\rm TOFFOLI}',
+    'SWAP': r'{\rm SWAP}',
+    'ISWAP': r'{i}{\rm SWAP}',
+    'SQRTISWAP': r'\sqrt{{i}\rm SWAP}',
+    'SQRTSWAP': r'\sqrt{\rm SWAP}',
+    'SQRTNOT': r'\sqrt{{i}\rm NOT}',
+    'SNOT': r'{\rm H}',
+    'PHASEGATE': r'{\rm PHASE}',
     }
 
 
