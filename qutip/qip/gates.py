@@ -313,12 +313,12 @@ shape = [4, 4], type = oper, isHerm = True
                     dims=[[2, 2], [2, 2]])
 
 
-def fredkin(N=None, controls=[0, 1], target=2):
+def fredkin(N=None, control=0, targets=[1, 2]):
     """Quantum object representing the Fredkin gate.
 
     Returns
     -------
-    fred_gate : qobj
+    fredkin_gate : qobj
         Quantum object representation of Fredkin gate.
 
     Examples
@@ -337,11 +337,11 @@ shape = [8, 8], type = oper, isHerm = True
          [ 0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
 
     """
-    if [controls[0], controls[1], target] != [0, 1, 2] and N is None:
+    if [control, targets[0], targets[1]] != [0, 1, 2] and N is None:
         N = 3
 
     if not N is None:
-        return gate_expand_3toN(fredkin(), N, controls, target)
+        return gate_expand_3toN(fredkin(), N, [control, targets[0]], targets[1])
 
     else:
         return Qobj([[1, 0, 0, 0, 0, 0, 0, 0],
