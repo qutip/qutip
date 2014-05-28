@@ -113,7 +113,8 @@ class TestGates:
                 psi_out = tensor([k2 if k == m else k1 if k == n else kets[k]
                                   for k in range(N)])
 
-                G = swap(N, m, n)
+                targets = [m, n]
+                G = swap(N, targets)
 
                 psi_res = G * psi_in
 
@@ -148,7 +149,11 @@ class TestGates:
                     psi_list[n] = k2
                     psi_in = tensor(psi_list)
 
-                    G = g(N, m, n)
+                    if g == cnot:
+                        G = g(N, m, n)
+                    else:
+                        G= g(N, [m, n])
+
                     psi_out = G * psi_in
 
                     o1 = psi_out.overlap(psi_in)
@@ -200,8 +205,13 @@ class TestGates:
                         psi_list[k] = psi3
                         psi_in = tensor(psi_list)
 
-                        controls = [m, n]
-                        G = g(N, controls, k)
+                        if g == fredkin:
+                            targets = [n,k]
+                            G = g(N, control=m, targets=targets)
+                        else:
+                            controls = [m, n]
+                            G = g(N, controls, k)
+    
                         psi_out = G * psi_in
 
                         o1 = psi_out.overlap(psi_in)

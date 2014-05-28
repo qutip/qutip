@@ -97,7 +97,7 @@ def qft_steps(N=1, swapping=True):
             U_step_list.append(snot(N, i))
         if swapping == True:
             for i in range(N//2):
-                U_step_list.append(swap(N, target=i, control=N-1-i))
+                U_step_list.append(swap(N, [N-i-1, i]))
 
     return U_step_list
 
