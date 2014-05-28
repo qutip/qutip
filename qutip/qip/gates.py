@@ -620,6 +620,34 @@ shape = [2, 2], type = oper, isHerm = False
         return Qobj([[1, 0],
                      [0, np.exp(1.0j * theta)]],
                     dims=[[2], [2]])
+
+
+def gate_sequence_product(U_list, left_to_right=True)
+    """
+    Calculate the overall unitary matrix for a given list of unitary operations 
+    
+    Parameters
+    ----------
+    U_list : list
+        List of gates implementing the quantum circuit.
+    
+    left_to_right: Boolean
+        Check if multiplication is to be done from left to right.
+
+    Returns
+    -------
+    U_overall: qobj
+        Overall unitary matrix of a given quantum circuit.
+
+    """
+    U_overall = 1
+    for U in U_list:
+        if left_to_right:
+            U_overall = U * U_overall 
+        else:
+            U_overall = U_overall * U
+
+    return U_overall        
         
 
 def gate_expand_1toN(U, N, target):
