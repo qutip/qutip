@@ -92,6 +92,47 @@ class QubitCircuit(object):
         self.gates.append(Gate(name, targets=targets, controls=controls,
                                arg_value=arg_value, arg_label=arg_label))
     
+    def unitary_matrix(self):
+        U_list = []
+        for gate in self.gates:    
+            if gate.name == "CPHASE":
+                U_list.append(cphase(gate.arg_value, N, gate.controls[0], gate.targets[0]))
+            elif gate.name == "RX":
+                U_list.append(rx(gate.arg_value, N, gate.targets[0]))
+            elif gate.name == "RY":
+                U_list.append(ry(gate.arg_value, N, gate.targets[0]))
+            elif gate.name == "RZ":
+                U_list.append(rz(gate.arg_value, N, gate.targets[0]))
+            elif gate.name == "CNOT":
+                U_list.append(cnot(N, gate.controls[0], gate.targets[0]))
+            elif gate.name == "CSIGN":
+                U_list.append(csign(N, gate.controls[0], gate.targets[0]))
+            elif gate.name == "BERKELEY":
+                U_list.append(berkeley(N, gate.controls[0], gate.targets[0]))
+            elif gate.name == "SWAPalpha":
+                U_list.append(swapalpha(gate.arg_value, N, gate.controls[0], gate.targets[0]))
+            elif gate.name == "FREDKIN":
+                U_list.append(fredkin(N, gate.controls, gate.targets[0]))
+            elif gate.name == "TOFFOLI":
+                U_list.append(toffoli(N, gate.controls, gate.targets[0]))
+            elif gate.name == "SWAP":
+                U_list.append(swap(N, gate.controls[0], gate.targets[0]))
+            elif gate.name == "ISWAP":
+                U_list.append(iswap(N, gate.controls[0], gate.targets[0]))
+            elif gate.name == "SQRTISWAP":
+                U_list.append(sqrtiswap(N, gate.controls[0], gate.targets[0]))
+                elif gate.name == "SQRTSWAP":
+                U_list.append(sqrtswap(N, gate.controls[0], gate.targets[0]))
+            elif gate.name == "SQRTNOT":
+                U_list.append(sqrtnot(N, gate.targets[0]))
+            elif gate.name == "SNOT":
+                U_list.append(snot(N, gate.targets[0]))
+            elif gate.name == "PHASEGATE":
+                U_list.append(phasegatesqrtnot(gate.arg_value, N, gate.targets[0]))
+            
+        return U_list
+
+
     def latex_code(self):
         rows = []
         for gate in self.gates:
