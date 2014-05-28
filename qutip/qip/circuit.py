@@ -100,6 +100,20 @@ class QubitCircuit(object):
                                arg_value=arg_value, arg_label=arg_label))
     
     def unitary_matrix(self):
+        """
+        Unitary matrix calculator for N qubits returning the individual
+        steps as unitary matrices operating from left to right.
+        
+        Parameters
+        ----------
+        None.
+        
+        Returns
+        -------
+        U_list: list of qobj
+            List of gates implementing the quantum circuit.
+        
+        """  
         U_list = []
         for gate in self.gates:    
             if gate.name == "CPHASE":
@@ -128,14 +142,14 @@ class QubitCircuit(object):
                 U_list.append(iswap(N, gate.controls[0], gate.targets[0]))
             elif gate.name == "SQRTISWAP":
                 U_list.append(sqrtiswap(N, gate.controls[0], gate.targets[0]))
-                elif gate.name == "SQRTSWAP":
+            elif gate.name == "SQRTSWAP":
                 U_list.append(sqrtswap(N, gate.controls[0], gate.targets[0]))
             elif gate.name == "SQRTNOT":
                 U_list.append(sqrtnot(N, gate.targets[0]))
             elif gate.name == "SNOT":
                 U_list.append(snot(N, gate.targets[0]))
             elif gate.name == "PHASEGATE":
-                U_list.append(phasegatesqrtnot(gate.arg_value, N, gate.targets[0]))
+                U_list.append(phasegate(gate.arg_value, N, gate.targets[0]))
             
         return U_list
 
