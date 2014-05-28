@@ -418,7 +418,7 @@ shape = [4, 4], type = oper, isHerm = True
      [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
 
     """
-    if [targets[0] and targets[1]] != [0, 1] and N is None:
+    if targets != [0, 1] and N is None:
         N = 2
 
     if not N is None:
@@ -451,7 +451,7 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.+0.j  0.+1.j  0.+0.j  0.+0.j]
      [ 0.+0.j  0.+0.j  0.+0.j  1.+0.j]]
     """
-    if [targets[0] and targets[1]] != [0, 1] and N is None:
+    if targets != [0, 1] and N is None:
         N = 2
 
     if not N is None:
@@ -488,7 +488,7 @@ shape = [4, 4], type = oper, isHerm = False
      [ 0.00000000+0.j   0.00000000+0.j   \
        0.00000000+0.j          1.00000000+0.j]]
     """
-    if [targets[0] and targets[1]] != [0, 1] and N is None:
+    if targets != [0, 1] and N is None:
         N = 2
 
     if not N is None:
@@ -509,7 +509,7 @@ def sqrtswap(N=None, targets=[0, 1]):
         Quantum object representation of square root SWAP gate
 
     """
-    if [targets[0], targets[1]] != [0, 1] and N is None:
+    if targets != [0, 1] and N is None:
         N = 2
 
     if not N is None:
