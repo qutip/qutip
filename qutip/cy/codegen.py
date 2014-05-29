@@ -127,6 +127,20 @@ class Codegen():
             raise SyntaxError("Error in code generator")
         self.level -= 1
 
+    def _get_arg_str(self, args):
+        if len(args) == 0:
+            return ''
+
+        ret = ''
+        for name, value in self.args.iteritems():
+            if isinstance(value, np.ndarray):
+                ret += ", np.ndarray[np.%s_t, ndim=%d] %s" % \
+                    (value.dtype.name, len(value.shape), name)
+            else:
+                kind = type(value).__name__
+                ret += ", np." + kind + "_t " + name
+        return ret
+
     def ODE_func_header(self):
         """Creates function header for time-dependent ODE RHS."""
         func_name = "def cy_td_ode_rhs("
@@ -142,12 +156,7 @@ class Codegen():
                 input_vars += (", np.ndarray[CTYPE_t, ndim=1] data" + str(k) +
                                ", np.ndarray[int, ndim=1] idx" + str(k) +
                                ", np.ndarray[int, ndim=1] ptr" + str(k))
-        if self.args:
-            td_consts = list(self.args.items())
-            td_len = len(td_consts)
-            for jj in range(td_len):
-                kind = type(td_consts[jj][1]).__name__
-                input_vars += ", np." + kind + "_t " + td_consts[jj][0]
+        input_vars += self._get_arg_str(self.args)
         func_end = "):"
         return [func_name + input_vars + func_end]
 
@@ -160,12 +169,7 @@ class Codegen():
         input_vars = ("int which, double t, np.ndarray[CTYPE_t, ndim=1] " +
                       "data, np.ndarray[int] idx,np.ndarray[int] " +
                       "ptr,np.ndarray[CTYPE_t, ndim=1] vec")
-        if len(self.args) > 0:
-            td_consts = list(self.args.items())
-            td_len = len(td_consts)
-            for jj in range(td_len):
-                kind = type(td_consts[jj][1]).__name__
-                input_vars += ", np." + kind + " " + td_consts[jj][0]
+        input_vars += self._get_arg_str(self.args)
         func_end = "):"
         return [func_name + input_vars + func_end]
 
@@ -178,12 +182,7 @@ class Codegen():
         input_vars = ("int which, double t, np.ndarray[CTYPE_t, ndim=1] " +
                       "data, np.ndarray[int] idx,np.ndarray[int] " +
                       "ptr,np.ndarray[CTYPE_t, ndim=1] vec")
-        if len(self.args) > 0:
-            td_consts = list(self.args.items())
-            td_len = len(td_consts)
-            for jj in range(td_len):
-                kind = type(td_consts[jj][1]).__name__
-                input_vars += ", np." + kind + "_t" + " " + td_consts[jj][0]
+        input_vars += self._get_arg_str(self.args)
         func_end = "):"
         return [func_name + input_vars + func_end]
 
