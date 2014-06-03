@@ -94,6 +94,8 @@ class QubitCircuit(object):
         self.N = N        
         self.gates = []
         self.gates_resolved = []
+        self.U_list = []
+        self.U_list_resolved = []
         self.reverse_states = reverse_states
 
     def add_gate(self, name, targets=None, controls=None, arg_value=None,
@@ -116,7 +118,6 @@ class QubitCircuit(object):
             List of gates implementing the quantum circuit.
         
         """  
-        U_list = []
         for gate in self.gates:    
             if gate.name == "CPHASE":
                 U_list.append(cphase(gate.arg_value, self.N, gate.controls[0], gate.targets[0]))
@@ -152,8 +153,6 @@ class QubitCircuit(object):
                 U_list.append(snot(self.N, gate.targets[0]))
             elif gate.name == "PHASEGATE":
                 U_list.append(phasegate(gate.arg_value, self.N, gate.targets[0]))
-            
-        return U_list
 
 
     def latex_code(self):
