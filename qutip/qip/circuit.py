@@ -114,9 +114,8 @@ class QubitCircuit(object):
         
         Returns
         -------
-        U_list: list of qobj
-            List of gates implementing the quantum circuit.
-        
+        None.
+
         """          
         for gatelist in [self.gates, self.gates_resolved]:
             temp_list = []        
