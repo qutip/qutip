@@ -103,7 +103,7 @@ class QubitCircuit(object):
         self.gates.append(Gate(name, targets=targets, controls=controls,
                                arg_value=arg_value, arg_label=arg_label))
     
-    def unitary_matrix(self):
+    def unitary_matrix(self, resolved=False):
         """
         Unitary matrix calculator for N qubits returning the individual
         steps as unitary matrices operating from left to right.
@@ -114,51 +114,54 @@ class QubitCircuit(object):
         
         Returns
         -------
-        None.
+        unitary_list = list
+            Returns list of unitary matrices for the qubit circuit.
 
         """          
-        for gatelist in [self.gates, self.gates_resolved]:
-            temp_list = []        
-            for gate in gatelist:    
-                if gate.name == "CPHASE":
-                    temp_list.append(cphase(gate.arg_value, self.N, gate.controls[0], gate.targets[0]))
-                elif gate.name == "RX":
-                    temp_list.append(rx(gate.arg_value, self.N, gate.targets[0]))
-                elif gate.name == "RY":
-                    temp_list.append(ry(gate.arg_value, self.N, gate.targets[0]))
-                elif gate.name == "RZ":
-                    temp_list.append(rz(gate.arg_value, self.N, gate.targets[0]))
-                elif gate.name == "CNOT":
-                    temp_list.append(cnot(self.N, gate.controls[0], gate.targets[0]))
-                elif gate.name == "CSIGN":
-                    temp_list.append(csign(self.N, gate.controls[0], gate.targets[0]))
-                elif gate.name == "BERKELEY":
-                    temp_list.append(berkeley(self.N, gate.targets))
-                elif gate.name == "SWAPalpha":
-                    temp_list.append(swapalpha(gate.arg_value, self.N, gate.targets))
-                elif gate.name == "FREDKIN":
-                    temp_list.append(fredkin(self.N, gate.controls, gate.targets[0]))
-                elif gate.name == "TOFFOLI":
-                    temp_list.append(toffoli(self.N, gate.controls, gate.targets[0]))
-                elif gate.name == "SWAP":
-                    temp_list.append(swap(self.N, gate.targets))
-                elif gate.name == "ISWAP":
-                    temp_list.append(iswap(self.N, gate.targets))
-                elif gate.name == "SQRTISWAP":
-                    temp_list.append(sqrtiswap(self.N, gate.targets))
-                elif gate.name == "SQRTSWAP":
-                    temp_list.append(sqrtswap(self.N, gate.targets))
-                elif gate.name == "SQRTNOT":
-                    temp_list.append(sqrtnot(self.N, gate.targets[0]))
-                elif gate.name == "SNOT":
-                    temp_list.append(snot(self.N, gate.targets[0]))
-                elif gate.name == "PHASEGATE":
-                    temp_list.append(phasegate(gate.arg_value, self.N, gate.targets[0]))
+        if resolved:
+            gatelist = self.gates_resolved
+            unitary_list = self.U_list_resolved = []
+        else:
+            gatelist = self.gates
+            unitary_list = self.U_list = []
 
-            if gatelist == self.gates:
-                U_list = temp_list
-            else:
-                U_list_resolved = temp_list
+        for gate in gatelist:    
+            if gate.name == "CPHASE":
+                unitary_list.append(cphase(gate.arg_value, self.N, gate.controls[0], gate.targets[0]))
+            elif gate.name == "RX":
+                unitary_list.append(rx(gate.arg_value, self.N, gate.targets[0]))
+            elif gate.name == "RY":
+                unitary_list.append(ry(gate.arg_value, self.N, gate.targets[0]))
+            elif gate.name == "RZ":
+                unitary_list.append(rz(gate.arg_value, self.N, gate.targets[0]))
+            elif gate.name == "CNOT":
+                unitary_list.append(cnot(self.N, gate.controls[0], gate.targets[0]))
+            elif gate.name == "CSIGN":
+                unitary_list.append(csign(self.N, gate.controls[0], gate.targets[0]))
+            elif gate.name == "BERKELEY":
+                unitary_list.append(berkeley(self.N, gate.targets))
+            elif gate.name == "SWAPalpha":
+                unitary_list.append(swapalpha(gate.arg_value, self.N, gate.targets))
+            elif gate.name == "FREDKIN":
+                unitary_list.append(fredkin(self.N, gate.controls, gate.targets[0]))
+            elif gate.name == "TOFFOLI":
+                unitary_list.append(toffoli(self.N, gate.controls, gate.targets[0]))
+            elif gate.name == "SWAP":
+                unitary_list.append(swap(self.N, gate.targets))
+            elif gate.name == "ISWAP":
+                unitary_list.append(iswap(self.N, gate.targets))
+            elif gate.name == "SQRTISWAP":
+                unitary_list.append(sqrtiswap(self.N, gate.targets))
+            elif gate.name == "SQRTSWAP":
+                unitary_list.append(sqrtswap(self.N, gate.targets))
+            elif gate.name == "SQRTNOT":
+                unitary_list.append(sqrtnot(self.N, gate.targets[0]))
+            elif gate.name == "SNOT":
+                unitary_list.append(snot(self.N, gate.targets[0]))
+            elif gate.name == "PHASEGATE":
+                unitary_list.append(phasegate(gate.arg_value, self.N, gate.targets[0]))
+
+          return unitary_list
 
 
     def latex_code(self):
