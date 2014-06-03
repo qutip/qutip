@@ -161,7 +161,7 @@ class QubitCircuit(object):
             elif gate.name == "PHASEGATE":
                 unitary_list.append(phasegate(gate.arg_value, self.N, gate.targets[0]))
 
-          return unitary_list
+         return unitary_list
 
 
     def latex_code(self):
