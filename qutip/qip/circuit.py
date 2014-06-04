@@ -66,6 +66,7 @@ _gate_name_to_label = {
     'SQRTNOT': r'\sqrt{{i}\rm NOT}',
     'SNOT': r'{\rm H}',
     'PHASEGATE': r'{\rm PHASE}',
+    'GLOBALPHASE': r'{\rm Ph}',
     }
 
 
