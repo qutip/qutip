@@ -621,6 +621,38 @@ shape = [2, 2], type = oper, isHerm = False
                      [0, np.exp(1.0j * theta)]],
                     dims=[[2], [2]])
 
+def globalphase(theta, N=None, target=0):
+    """
+    Returns quantum object representing the global phase shift gate.
+
+    Parameters
+    ----------
+    theta : float
+        Phase rotation angle.
+
+    Returns
+    -------
+    phase_gate : qobj
+        Quantum object representation of global phase shift gate.
+
+    Examples
+    --------
+    >>> phasegate(pi/4)
+    Quantum object: dims = [[2], [2]], \
+shape = [2, 2], type = oper, isHerm = False
+    Qobj data =
+    [[ 0.70710678+0.70710678j          0.00000000+0.j]
+     [ 0.00000000+0.j          0.70710678+0.70710678j]]
+
+    """
+    if not N is None:
+        return gate_expand_1toN(phasegate(theta), N, target)
+    else:
+        return Qobj([[np.exp(1.0j * theta), 0],
+                     [0, np.exp(1.0j * theta)]],
+                    dims=[[2], [2]])
+
+
 
 def gate_sequence_product(U_list, left_to_right=True):
     """
