@@ -104,7 +104,7 @@ class QubitCircuit(object):
                                arg_value=arg_value, arg_label=arg_label))
  
    
-    def qubit_circuit_resolved(self, basis="CNOT"):
+    def resolved_gates(self, basis="CNOT"):
         """
         Unitary matrix calculator for N qubits returning the individual
         steps as unitary matrices operating from left to right in the specified basis.
