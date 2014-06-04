@@ -368,6 +368,8 @@ class QubitCircuit(object):
                 unitary_list.append(snot(self.N, gate.targets[0]))
             elif gate.name == "PHASEGATE":
                 unitary_list.append(phasegate(gate.arg_value, self.N, gate.targets[0]))
+            elif gate.name == "GLOBALPHASE":
+                unitary_list.append(globalphase(gate.arg_value, self.N, gate.targets[0]))
 
         return unitary_list
 
