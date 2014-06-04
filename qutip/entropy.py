@@ -38,6 +38,7 @@ from qutip.states import ket2dm
 from qutip.tensor import tensor
 from qutip.operators import sigmay
 from qutip.sparse import sp_eigs
+from qutip.qip.gates import swap
 
 
 def entropy_vn(rho, base=e, sparse=False):
