@@ -34,8 +34,8 @@
 import numpy as np
 from numpy.testing import assert_, run_module_suite
 from qutip.states import basis, ket2dm
-from qutip.quantum_info import (rx, ry, rz, phasegate, cnot, swap, iswap,
-                                sqrtswap, toffoli, fredkin, gate_expand_3toN)
+from qutip.qip import (rx, ry, rz, phasegate, cnot, swap, iswap,
+                       sqrtswap, toffoli, fredkin, gate_expand_3toN)
 from qutip.random_objects import rand_ket, rand_herm
 from qutip.tensor import tensor
 
@@ -113,7 +113,8 @@ class TestGates:
                 psi_out = tensor([k2 if k == m else k1 if k == n else kets[k]
                                   for k in range(N)])
 
-                G = swap(N, m, n)
+                targets = [m, n]
+                G = swap(N, targets)
 
                 psi_res = G * psi_in
 
@@ -148,7 +149,11 @@ class TestGates:
                     psi_list[n] = k2
                     psi_in = tensor(psi_list)
 
-                    G = g(N, m, n)
+                    if g == cnot:
+                        G = g(N, m, n)
+                    else:
+                        G= g(N, [m, n])
+
                     psi_out = G * psi_in
 
                     o1 = psi_out.overlap(psi_in)
@@ -179,11 +184,11 @@ class TestGates:
 
         _rand_gate_U = tensor([rand_herm(2, density=1) for k in range(3)])
 
-        def _rand_3qubit_gate(N=None, m=None, n=None, k=None):
+        def _rand_3qubit_gate(N=None, controls=None, k=None):
             if N is None:
                 return _rand_gate_U
             else:
-                return gate_expand_3toN(_rand_gate_U, N, m, n, k)
+                return gate_expand_3toN(_rand_gate_U, N, controls, k)
 
         for g in [fredkin, toffoli, _rand_3qubit_gate]:
 
@@ -200,7 +205,13 @@ class TestGates:
                         psi_list[k] = psi3
                         psi_in = tensor(psi_list)
 
-                        G = g(N, m, n, k)
+                        if g == fredkin:
+                            targets = [n,k]
+                            G = g(N, control=m, targets=targets)
+                        else:
+                            controls = [m, n]
+                            G = g(N, controls, k)
+    
                         psi_out = G * psi_in
 
                         o1 = psi_out.overlap(psi_in)

@@ -3,13 +3,13 @@
 
 QuTiP is open-source software for simulating the dynamics of closed and open
 quantum systems. The QuTiP library depends on the excellent Numpy, Scipy, and
-Cython numerical packages. In addition, graphical output is provided by 
-Matplotlib.  QuTiP aims to provide user-friendly and efficient numerical 
-simulations of a wide variety of quantum mechanical problems, including those 
-with Hamiltonians and/or collapse operators with arbitrary time-dependence, 
-commonly found in a wide range of physics applications. QuTiP is freely 
-available for use and/or modification on all common platforms. Being free of 
-any licensing fees, QuTiP is ideal for exploring quantum mechanics in research 
+Cython numerical packages. In addition, graphical output is provided by
+Matplotlib.  QuTiP aims to provide user-friendly and efficient numerical
+simulations of a wide variety of quantum mechanical problems, including those
+with Hamiltonians and/or collapse operators with arbitrary time-dependence,
+commonly found in a wide range of physics applications. QuTiP is freely
+available for use and/or modification on all common platforms. Being free of
+any licensing fees, QuTiP is ideal for exploring quantum mechanics in research
 as well as in the classroom.
 """
 
@@ -40,7 +40,7 @@ import numpy as np
 from numpy.distutils.core import setup
 from numpy.distutils.system_info import get_info
 
-# all information about QuTiP goes here-------
+# all information about QuTiP goes here
 MAJOR = 3
 MINOR = 0
 MICRO = 0
@@ -48,8 +48,8 @@ ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'cython (>=0.15)',
             'matplotlib (>=1.1)']
-PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/quantum_info',
-            'qutip/control', 'qutip/tests']
+PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/control',
+            'qutip/tests']
 PACKAGE_DATA = {'qutip/tests': ['bucky.npy', 'bucky_perm.npy']}
 INCLUDE_DIRS = [np.get_include()]
 EXT_MODULES = []
@@ -99,7 +99,7 @@ if os.path.exists('qutip/version.py'):
     os.remove('qutip/version.py')
 write_version_py()
 
-#--------- check for fortran option -------------------#
+# check for fortran option
 if "--with-f90mc" in sys.argv:
     with_f90mc = True
     sys.argv.remove("--with-f90mc")
@@ -115,7 +115,7 @@ else:
 os.environ['QUTIP_RELEASE'] = 'TRUE' if ISRELEASED else 'FALSE'
 
 # remove needless error warnings for released version.
-#if ISRELEASED:
+# if ISRELEASED:
 #    os.environ['CFLAGS'] = '-w'
 #    os.environ['FFLAGS'] = '-w'
 
@@ -137,7 +137,7 @@ def configuration(parent_package='', top_path=None):
     return config
 
 
-#--------- Setup commands go here ----------------#
+# Setup commands go here
 setup(
     name=NAME,
     packages=PACKAGES,

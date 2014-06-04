@@ -40,13 +40,18 @@ from scipy.interpolate import interp1d
 
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
-def plot_grape_control_fields(times, u, labels):
-
+def plot_grape_control_fields(times, u, labels, uniform_axes=False):
+    """
+    Plot a series of plots shoing the GRAPE control fields given in the
+    matrix u.
+    """
     import matplotlib.pyplot as plt
 
     R, J, M = u.shape
     
     fig, axes = plt.subplots(J, 1, figsize=(8, 2 * J), squeeze=False)
+
+    y_max = abs(u).max()
     
     for r in range(R):
         for j in range(J):
@@ -62,6 +67,9 @@ def plot_grape_control_fields(times, u, labels):
                 lw, lc, alpha = 0.5, 'b', 0.25 
                 
             axes[j, 0].step(times, u[r, j, :], lw=lw, color=lc, alpha=alpha)
+
+            if uniform_axes:
+                axes[j, 0].set_ylim(-y_max, y_max)
     
     fig.tight_layout()
     
@@ -74,7 +82,13 @@ def _overlap(A, B):
 
 def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                   interp_kind='linear', progress_bar=BaseProgressBar()):
-    
+    """
+    Calculate control pulses for the Hamitonian operators in H_ops so that the
+    unitary U is realized.
+
+    Work in progress.
+    """
+
     if eps is None:
         eps = 0.1 * (2 * np.pi) / (times[-1])
 
@@ -96,8 +110,8 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                     for j in range(J)]
 
         def H_func(t, args=None):
-            return sum([H0] + [float(ip_funcs[j](t)) * H_ops[j]
-                       for j in range(J)])    
+            return H0 + sum([float(ip_funcs[j](t)) * H_ops[j]
+                             for j in range(J)])    
 
         dt = np.diff(times)[0]
 
