@@ -304,6 +304,10 @@ def entangling_power(U):
     -------
     ep : float
         The entanglement power of U (real number between 0 and 1)
+
+    References:
+
+        Explorations in Quantum Computing, Colin P. Williams (Springer, 2011)
     """
 
     if not U.isoper:
