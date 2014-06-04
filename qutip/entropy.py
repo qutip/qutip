@@ -287,3 +287,34 @@ def participation_ratio(rho):
         return 1.0
     else:
         return 1.0 / (rho ** 2).tr()
+
+
+def entangling_power(U):
+    """
+    Calculate the entangling power of a two-qubit gate U, which
+    is zero of nonentangling gates and 1 and 2/9 for maximally
+    entangling gates.
+
+    Parameters
+    ----------
+    U : qobj
+        Qobj instance representing a two-qubit gate.
+
+    Returns
+    -------
+    ep : float
+        The entanglement power of U (real number between 0 and 1)
+    """
+
+    if not U.isoper:
+        raise Exception("U must be an operator.")
+
+    if U.dims != [[2, 2], [2, 2]]:
+        raise Exception("U must be a two-qubit gate.")
+
+    a = (tensor(U, U).dag() * swap(N=4, targets=[1, 3]) *
+         tensor(U, U) * swap(N=4, targets=[1, 3]))
+    b = (tensor(swap() * U, swap() * U).dag() * swap(N=4, targets=[1, 3]) *
+         tensor(swap() * U, swap() * U) * swap(N=4, targets=[1, 3]))
+
+    return 5.0/9 - 1.0/36 * (a.tr() + b.tr()).real
