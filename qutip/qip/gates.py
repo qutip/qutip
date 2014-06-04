@@ -621,7 +621,7 @@ shape = [2, 2], type = oper, isHerm = False
                      [0, np.exp(1.0j * theta)]],
                     dims=[[2], [2]])
 
-def globalphase(theta, N=None, target=0):
+def globalphase(theta, N=None):
     """
     Returns quantum object representing the global phase shift gate.
 
@@ -645,12 +645,8 @@ shape = [2, 2], type = oper, isHerm = False
      [ 0.00000000+0.j          0.70710678+0.70710678j]]
 
     """
-    if not N is None:
-        return gate_expand_1toN(phasegate(theta), N, target)
-    else:
-        return Qobj([[np.exp(1.0j * theta), 0],
-                     [0, np.exp(1.0j * theta)]],
-                    dims=[[2], [2]])
+    data = np.exp(1.0j * theta) * np.mat(np.eye(2 ** N)) 
+    return Qobj(data, dims=[[2 ** N], [2 ** N]])
 
 
 
