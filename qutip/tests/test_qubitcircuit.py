@@ -79,5 +79,17 @@ class TestQubitCircuit:
         U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
         assert_((U0 - U1).norm() < 1e-12)
    
+    def testCNOTtoISWAP(self):
+        """
+        CNOT to ISWAP: compare unitary matrix for CNOT and product of 
+        resolved matrices in terms of ISWAP
+        """
+        qc = QubitCircuit(2)
+        qc.add_gate("CNOT", targets=[0], controls=[1])
+        U0 = gate_sequence_product(qc.unitary_matrix())
+        qc.resolved_gates(basis="ISWAP")
+        U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
+        assert_((U0 - U1).norm() < 1e-12)
+   
 if __name__ == "__main__":
     run_module_suite()
