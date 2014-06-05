@@ -646,7 +646,7 @@ shape = [2, 2], type = oper, isHerm = False
 
     """
     data = np.exp(1.0j * theta) * sp.eye(2**N, 2**N, dtype=complex, format="csr") 
-    return Qobj(data, dims=[[[2] * N], [[2] * N]])
+    return Qobj(data, dims=[[2] * N, [2] * N])
 
 
 
