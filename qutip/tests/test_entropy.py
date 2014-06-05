@@ -31,6 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+from __future__ import division
 from qutip import *
 from numpy import allclose, linspace, log2
 from numpy.testing import assert_, assert_equal, run_module_suite
@@ -127,14 +128,14 @@ def test_EntropyConditional():
 
 def test_EntanglingPower():
     "Entangling power"
-    assert_(abs(entangling_power(cnot()) - 2/9) < 1e-8)
-    assert_(abs(entangling_power(iswap()) - 2/9) < 1e-8)
-    assert_(abs(entangling_power(berkeley()) - 2/9) < 1e-8)
-    assert_(abs(entangling_power(sqrtswap()) - 1/6) < 1e-8)
+    assert_(abs(entangling_power(cnot()) - 2/9) < 1e-12)
+    assert_(abs(entangling_power(iswap()) - 2/9) < 1e-12)
+    assert_(abs(entangling_power(berkeley()) - 2/9) < 1e-12)
+    assert_(abs(entangling_power(sqrtswap()) - 1/6) < 1e-12)
     alpha = 2 * pi * np.random.rand()
     assert_(abs(entangling_power(swapalpha(alpha))
-                - 1/6 * sin(pi * alpha) ** 2) < 1e-8)
-    assert_(abs(entangling_power(swap()) - 0) < 1e-8)
+                - 1/6 * sin(pi * alpha) ** 2) < 1e-12)
+    assert_(abs(entangling_power(swap()) - 0) < 1e-12)
 
 
 if __name__ == "__main__":
