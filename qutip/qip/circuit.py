@@ -156,7 +156,7 @@ class QubitCircuit(object):
                 temp_resolved.append(Gate("RZ", gate.controls, None,
                                           arg_value=np.pi/8, arg_label=r"\pi/8"))
                 temp_resolved.append(Gate("RZ", [gate.targets[0]], None,
-                                          arg_value=-np.pi/8, arg_label=r"\-pi/8"))
+                                          arg_value=-np.pi/8, arg_label=r"-\pi/8"))
                 temp_resolved.append(Gate("CNOT", [gate.targets[0]], gate.controls))
                 temp_resolved.append(Gate("RY", [gate.targets[1]], None,
                                           arg_value=np.pi/2, arg_label=r"\pi/2"))
@@ -168,13 +168,13 @@ class QubitCircuit(object):
                                           arg_value=np.pi/8, arg_label=r"\pi/8"))
                 temp_resolved.append(Gate("CNOT", [gate.targets[1]], gate.controls))
                 temp_resolved.append(Gate("RZ", [gate.targets[1]], None,
-                                          arg_value=-np.pi/8, arg_label=r"\-pi/8"))
+                                          arg_value=-np.pi/8, arg_label=r"-\pi/8"))
                 temp_resolved.append(Gate("CNOT", [gate.targets[1]], [gate.targets[0]]))
                 temp_resolved.append(Gate("RZ", [gate.targets[1]], None,
                                           arg_value=np.pi/8, arg_label=r"\pi/8"))
                 temp_resolved.append(Gate("CNOT", [gate.targets[1]], gate.controls))
                 temp_resolved.append(Gate("RZ", [gate.targets[1]], None,
-                                          arg_value=-np.pi/8, arg_label=r"\-pi/8"))
+                                          arg_value=-np.pi/8, arg_label=r"-\pi/8"))
                 temp_resolved.append(Gate("CNOT", [gate.targets[1]], [gate.targets[0]]))
                 temp_resolved.append(Gate("RY", [gate.targets[1]], None,
                                           arg_value=np.pi/2, arg_label=r"\pi/2"))
@@ -186,7 +186,7 @@ class QubitCircuit(object):
                 temp_resolved.append(Gate("RZ", [gate.controls[0]], None,
                                           arg_value=np.pi/8, arg_label=r"\pi/8"))
                 temp_resolved.append(Gate("RZ", [gate.controls[1]], None,
-                                          arg_value=-np.pi/8, arg_label=r"\-pi/8"))
+                                          arg_value=-np.pi/8, arg_label=r"-\pi/8"))
                 temp_resolved.append(Gate("CNOT", [gate.controls[1]], [gate.controls[0]]))
                 temp_resolved.append(Gate("RY", gate.targets, None,
                                           arg_value=np.pi/2, arg_label=r"\pi/2"))
@@ -198,13 +198,13 @@ class QubitCircuit(object):
                                           arg_value=np.pi/8, arg_label=r"\pi/8"))
                 temp_resolved.append(Gate("CNOT", gate.targets, [gate.controls[0]]))
                 temp_resolved.append(Gate("RZ", gate.targets, None,
-                                          arg_value=-np.pi/8, arg_label=r"\-pi/8"))
+                                          arg_value=-np.pi/8, arg_label=r"-\pi/8"))
                 temp_resolved.append(Gate("CNOT", gate.targets, [gate.controls[1]]))
                 temp_resolved.append(Gate("RZ", gate.targets, None,
                                           arg_value=np.pi/8, arg_label=r"\pi/8"))
                 temp_resolved.append(Gate("CNOT", gate.targets, [gate.controls[0]]))
                 temp_resolved.append(Gate("RZ", gate.targets, None,
-                                          arg_value=-np.pi/8, arg_label=r"\-pi/8"))
+                                          arg_value=-np.pi/8, arg_label=r"-\pi/8"))
                 temp_resolved.append(Gate("CNOT", gate.targets, [gate.controls[1]]))
                 temp_resolved.append(Gate("RY", gate.targets, None,
                                           arg_value=np.pi/2, arg_label=r"\pi/2"))
@@ -258,7 +258,7 @@ class QubitCircuit(object):
             for gate in temp_resolved:
                 if gate.name == "CNOT":
                     self.gates_resolved.append(Gate("RY", gate.targets, None,
-                                                    arg_value=-np.pi/2, arg_label=r"\-pi/2"))        
+                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))        
                     self.gates_resolved.append(Gate("CSIGN", gate.targets, gate.controls))
                     self.gates_resolved.append(Gate("RY", gate.targets, None,
                                                     arg_value=np.pi/2, arg_label=r"\pi/2"))
@@ -271,14 +271,14 @@ class QubitCircuit(object):
                                                     arg_value=np.pi/4, arg_label=r"\pi/4"))
                     self.gates_resolved.append(Gate("ISWAP", [gate.controls[0], gate.targets[0]], None))
                     self.gates_resolved.append(Gate("RZ", gate.targets, None,
-                                                    arg_value=-np.pi/2, arg_label=r"\-pi/2"))
+                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                     self.gates_resolved.append(Gate("RY", gate.controls, None,
-                                                    arg_value=-np.pi/2, arg_label=r"\-pi/2"))
+                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                     self.gates_resolved.append(Gate("RZ", gate.controls, None,
                                                     arg_value=np.pi/2, arg_label=r"\pi/2"))
                     self.gates_resolved.append(Gate("ISWAP", [gate.controls[0], gate.targets[0]], None))
                     self.gates_resolved.append(Gate("RY", gate.targets, None,
-                                                    arg_value=-np.pi/2, arg_label=r"\-pi/2"))
+                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                     self.gates_resolved.append(Gate("RZ", gate.targets, None,
                                                     arg_value=np.pi/2, arg_label=r"\pi/2"))
                 else:
@@ -293,11 +293,11 @@ class QubitCircuit(object):
                                                     arg_value=np.pi, arg_label=r"\pi"))
                     self.gates_resolved.append(Gate("SQRTISWAP", [gate.controls[0], gate.targets[0]], None))
                     self.gates_resolved.append(Gate("RX", gate.targets, None,
-                                                    arg_value=-np.pi/2, arg_label=r"\-pi/2"))
+                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                     self.gates_resolved.append(Gate("RX", gate.controls, None,
                                                     arg_value=np.pi/2, arg_label=r"\pi/2"))
                     self.gates_resolved.append(Gate("RY", gate.controls, None,
-                                                    arg_value=-np.pi/2, arg_label=r"\-pi/2"))
+                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                 else:
                     self.gates_resolved.append(gate)
         elif basis == "SQRTSWAP":
@@ -310,11 +310,11 @@ class QubitCircuit(object):
                                                     arg_value=np.pi, arg_label=r"\pi"))
                     self.gates_resolved.append(Gate("SQRTSWAP", [gate.controls[0], gate.targets[0]], None))
                     self.gates_resolved.append(Gate("RZ", gate.targets, None,
-                                                    arg_value=-np.pi/2, arg_label=r"\-pi/2"))
+                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                     self.gates_resolved.append(Gate("RY", gate.targets, None,
-                                                    arg_value=-np.pi/2, arg_label=r"\-pi/2"))
+                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                     self.gates_resolved.append(Gate("RZ", gate.controls, None,
-                                                    arg_value=-np.pi/2, arg_label=r"\-pi/2"))
+                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                 else:
                     self.gates_resolved.append(gate)
         else:
