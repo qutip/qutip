@@ -645,7 +645,7 @@ shape = [2, 2], type = oper, isHerm = False
      [ 0.00000000+0.j          0.70710678+0.70710678j]]
 
     """
-    data = np.exp(1.0j * theta) * np.mat(np.eye(2 ** N)) 
+    data = np.exp(1.0j * theta) * sp.eye(2**N, 2**N, dtype=complex, format="csr") 
     return Qobj(data, dims=[[2 ** N], [2 ** N]])
 
 
