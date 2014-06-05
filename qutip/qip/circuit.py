@@ -421,6 +421,16 @@ class QubitCircuit(object):
                         col.append(r" \qswap \ctrl{%d} " % m)
                     else:
                         col.append(r" \ctrl{%d} " % m)
+                
+                elif (not gate.controls and not gate.targets):
+                    # global gate
+                    if (self.reverse_states and n == self.N - 1) or (not self.reverse_states and n == 0):
+                        col.append(r" \multigate{%d}{%s} " %
+                                   (self.N - 1,
+                                    _gate_label(gate.name, gate.arg_label)))
+                    else:
+                        col.append(r" \ghost{%s} " %
+                                   (_gate_label(gate.name, gate.arg_label)))
 
                 else:
                     col.append(r" \qw ")
