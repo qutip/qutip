@@ -387,26 +387,26 @@ class QubitCircuit(object):
         else:
             self.gates_resolved = temp_resolved              
 
-        
+
         if len(basis_1q) == 2:
             temp_resolved = self.gates_resolved
             self.gates_resolved = []
             for gate in temp_resolved:            
-                if gate == "RX" and "RX" not in basis_1q:
+                if gate.name == "RX" and "RX" not in basis_1q:
                     self.gates_resolved.append(Gate("RY", gate.targets, None,
                                                     arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                     self.gates_resolved.append(Gate("RZ", gate.targets, None,
                                                     gate.arg_value, gate.arg_label))
                     self.gates_resolved.append(Gate("RY", gate.targets, None,
                                                     arg_value=np.pi/2, arg_label=r"\pi/2"))
-                elif gate == "RY" and "RY" not in basis_1q:
+                elif gate.name == "RY" and "RY" not in basis_1q:
                     self.gates_resolved.append(Gate("RZ", gate.targets, None,
                                                     arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                     self.gates_resolved.append(Gate("RX", gate.targets, None,
                                                     gate.arg_value, gate.arg_label))
                     self.gates_resolved.append(Gate("RZ", gate.targets, None,
                                                     arg_value=np.pi/2, arg_label=r"\pi/2"))
-                elif gate == "RZ" and "RZ" not in basis_1q:
+                elif gate.name == "RZ" and "RZ" not in basis_1q:
                     self.gates_resolved.append(Gate("RX", gate.targets, None,
                                                     arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                     self.gates_resolved.append(Gate("RY", gate.targets, None,
