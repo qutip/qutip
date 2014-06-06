@@ -291,17 +291,17 @@ class QubitCircuit(object):
             for gate in temp_resolved:
                 if gate.name == "CNOT":
                     self.gates_resolved.append(Gate("RY", gate.controls, None,
+                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))
+                    self.gates_resolved.append(Gate("RX", gate.controls, None,
                                                     arg_value=np.pi/2, arg_label=r"\pi/2"))
+                    self.gates_resolved.append(Gate("RX", gate.targets, None,
+                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                     self.gates_resolved.append(Gate("SQRTISWAP", [gate.controls[0], gate.targets[0]], None))
                     self.gates_resolved.append(Gate("RX", gate.controls, None,
                                                     arg_value=np.pi, arg_label=r"\pi"))
                     self.gates_resolved.append(Gate("SQRTISWAP", [gate.controls[0], gate.targets[0]], None))
-                    self.gates_resolved.append(Gate("RX", gate.targets, None,
-                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))
-                    self.gates_resolved.append(Gate("RX", gate.controls, None,
-                                                    arg_value=np.pi/2, arg_label=r"\pi/2"))
                     self.gates_resolved.append(Gate("RY", gate.controls, None,
-                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))
+                                                    arg_value=np.pi/2, arg_label=r"\pi/2"))
                 else:
                     self.gates_resolved.append(gate)
         elif basis == "SQRTSWAP":
