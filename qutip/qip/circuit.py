@@ -99,13 +99,21 @@ class QubitCircuit(object):
         self.U_list_resolved = []
         self.reverse_states = reverse_states
 
+
+    def get_gates(self):
+        if self.gates_resolved:
+            return self.gates_resolved
+        else:
+            return self.gates
+
+
     def add_gate(self, name, targets=None, controls=None, arg_value=None,
                  arg_label=None):
         self.gates.append(Gate(name, targets=targets, controls=controls,
                                arg_value=arg_value, arg_label=arg_label))
  
    
-    def resolved_gates(self, basis="CNOT"):
+    def resolve_gates(self, basis="CNOT"):
         """
         Unitary matrix calculator for N qubits returning the individual
         steps as unitary matrices operating from left to right in the specified basis.
@@ -126,7 +134,7 @@ class QubitCircuit(object):
                 temp_resolved.append(Gate("RY", gate.targets, None,
                                           arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                 temp_resolved.append(Gate("RZ", gate.targets, None,
-                                          arg_value, arg_label))
+                                          gate.arg_value, gate.arg_label))
                 temp_resolved.append(Gate("RY", gate.targets, None,
                                           arg_value=np.pi/2, arg_label=r"\pi/2"))
             elif gate.name == "RY":
@@ -305,6 +313,9 @@ class QubitCircuit(object):
             elif gate.name == "GLOBALPHASE":
                 temp_resolved.append(Gate(gate.name, gate.targets, gate.controls,
                                           gate.arg_value, gate.arg_label))
+            else:
+                temp_resolved.append(gate)
+
 
         if basis == "CSIGN":
             for gate in temp_resolved:
@@ -389,7 +400,8 @@ class QubitCircuit(object):
                     self.gates_resolved.append(gate)
         else:
             self.gates_resolved = temp_resolved              
-                
+        
+        return self.gates_resolved
                 
     def unitary_matrix(self, resolved=False):
         """
