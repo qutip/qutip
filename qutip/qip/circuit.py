@@ -335,7 +335,7 @@ class QubitCircuit(object):
                                                     arg_value=np.pi/2, arg_label=r"\pi/2"))
                 else:
                     self.gates_resolved.append(gate)
-elif basis == "SQRTISWAP":
+        elif basis == "SQRTISWAP":
             for gate in temp_resolved:
                 if gate.name == "CNOT":
                     self.gates_resolved.append(Gate("RY", gate.controls, None,
