@@ -158,6 +158,8 @@ class QubitCircuit(object):
                 temp_resolved.append(Gate("RZ", [gate.targets[0]], None,
                                           arg_value=-np.pi/8, arg_label=r"-\pi/8"))
                 temp_resolved.append(Gate("CNOT", [gate.targets[0]], gate.controls))
+                temp_resolved.append(Gate("GLOBALPHASE", None, None,
+                                          arg_value=np.pi/2, arg_label=r"\pi/2"))
                 temp_resolved.append(Gate("RY", [gate.targets[1]], None,
                                           arg_value=np.pi/2, arg_label=r"\pi/2"))
                 temp_resolved.append(Gate("RX", [gate.targets[1]], None,
@@ -176,6 +178,8 @@ class QubitCircuit(object):
                 temp_resolved.append(Gate("RZ", [gate.targets[1]], None,
                                           arg_value=-np.pi/8, arg_label=r"-\pi/8"))
                 temp_resolved.append(Gate("CNOT", [gate.targets[1]], [gate.targets[0]]))
+                temp_resolved.append(Gate("GLOBALPHASE", None, None,
+                                          arg_value=np.pi/2, arg_label=r"\pi/2"))
                 temp_resolved.append(Gate("RY", [gate.targets[1]], None,
                                           arg_value=np.pi/2, arg_label=r"\pi/2"))
                 temp_resolved.append(Gate("RX", [gate.targets[1]], None,
