@@ -113,19 +113,49 @@ class QubitCircuit(object):
                                arg_value=arg_value, arg_label=arg_label))
  
    
-    def resolve_gates(self, basis="CNOT"):
+    def resolve_gates(self, basis=["CNOT", "RX", "RY", "RZ"]):
         """
         Unitary matrix calculator for N qubits returning the individual
         steps as unitary matrices operating from left to right in the specified basis.
             
         Parameters
         ----------
-        basis: string.
+        basis: list.
             Basis of the resolved circuit.
             
         """  
         temp_resolved = []
         self.gates_resolved = []
+
+        basis_1q = []
+        basis_2q = None
+
+        basis_1q_valid = ["RX", "RY", "RZ"]
+        basis_2q_valid = ["CNOT", "CSIGN", "ISWAP", "SQRTISWAP", "SQRTSWAP"]
+
+        if isinstance(basis, list):
+            for gate in basis:
+                if gate not in (basis_1q_valid + basis_2q_valid):
+                    raise ValueError("%s is not a valid basis gate" % gate)
+
+                if gate in basis_2q_valid:
+                    if basis_2q is not None:
+                        raise ValueError("At most one two-qubit gate allowed")
+                    basis_2q = gate
+
+                else:                    
+                    basis_1q.append(gate)
+
+            if len(basis_1q) < 2:
+                raise ValueError("Not sufficient single-qubit gates in basis")
+
+        else:
+            basis_1q = ["RX", "RY", "RZ"]
+            if basis in basis_2q_valid:
+                basis_2q = basis
+            else:
+                raise ValueError("%s is not a valid two-qubit basis gate" % basis)
+
         
         for gate in self.gates:    
             if gate.name == "CPHASE":
@@ -356,7 +386,36 @@ class QubitCircuit(object):
                     self.gates_resolved.append(gate)
         else:
             self.gates_resolved = temp_resolved              
+
         
+        if len(basis_1q) == 2:
+            temp_resolved = self.gates_resolved
+            self.gates_resolved = []
+            for gate in temp_resolved:            
+                if gate == "RX" and "RX" not in basis_1q:
+                    self.gates_resolved.append(Gate("RY", gate.targets, None,
+                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))
+                    self.gates_resolved.append(Gate("RZ", gate.targets, None,
+                                                    gate.arg_value, gate.arg_label))
+                    self.gates_resolved.append(Gate("RY", gate.targets, None,
+                                                    arg_value=np.pi/2, arg_label=r"\pi/2"))
+                elif gate == "RY" and "RY" not in basis_1q:
+                    self.gates_resolved.append(Gate("RZ", gate.targets, None,
+                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))
+                    self.gates_resolved.append(Gate("RX", gate.targets, None,
+                                                    gate.arg_value, gate.arg_label))
+                    self.gates_resolved.append(Gate("RZ", gate.targets, None,
+                                                    arg_value=np.pi/2, arg_label=r"\pi/2"))
+                elif gate == "RZ" and "RZ" not in basis_1q:
+                    self.gates_resolved.append(Gate("RX", gate.targets, None,
+                                                    arg_value=-np.pi/2, arg_label=r"-\pi/2"))
+                    self.gates_resolved.append(Gate("RY", gate.targets, None,
+                                                    gate.arg_value, gate.arg_label))
+                    self.gates_resolved.append(Gate("RX", gate.targets, None,
+                                                    arg_value=np.pi/2, arg_label=r"\pi/2"))            
+                else:
+                    self.gates_resolved.append(gate)            
+
         return self.gates_resolved
                 
     def unitary_matrix(self, resolved=False):
