@@ -51,7 +51,7 @@ class TestQubitCircuit:
         qc = QubitCircuit(2)
         qc.add_gate("SWAP", targets=[0, 1])
         U0 = gate_sequence_product(qc.unitary_matrix())
-        qc.resolved_gates(basis="CNOT")
+        qc.resolve_gates(basis="CNOT")
         U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
         assert_((U0 - U1).norm() < 1e-12)
         
@@ -63,7 +63,7 @@ class TestQubitCircuit:
         qc = QubitCircuit(2)
         qc.add_gate("ISWAP", targets=[0, 1])
         U0 = gate_sequence_product(qc.unitary_matrix())
-        qc.resolved_gates(basis="CNOT")
+        qc.resolve_gates(basis="CNOT")
         U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
         assert_((U0 - U1).norm() < 1e-12)
         
@@ -75,7 +75,7 @@ class TestQubitCircuit:
         qc = QubitCircuit(2)
         qc.add_gate("CSIGN", targets=[1], controls=[0])
         U0 = gate_sequence_product(qc.unitary_matrix())
-        qc.resolved_gates(basis="CNOT")
+        qc.resolve_gates(basis="CNOT")
         U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
         assert_((U0 - U1).norm() < 1e-12)
         
@@ -87,7 +87,7 @@ class TestQubitCircuit:
         qc = QubitCircuit(2)
         qc.add_gate("CNOT", targets=[0], controls=[1])
         U0 = gate_sequence_product(qc.unitary_matrix())
-        qc.resolved_gates(basis="CSIGN")
+        qc.resolve_gates(basis="CSIGN")
         U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
         assert_((U0 - U1).norm() < 1e-12)
     
@@ -99,7 +99,7 @@ class TestQubitCircuit:
         qc = QubitCircuit(2)
         qc.add_gate("CNOT", targets=[0], controls=[1])
         U0 = gate_sequence_product(qc.unitary_matrix())
-        qc.resolved_gates(basis="SQRTSWAP")
+        qc.resolve_gates(basis="SQRTSWAP")
         U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
         assert_((U0 - U1).norm() < 1e-12)
    
@@ -111,7 +111,7 @@ class TestQubitCircuit:
         qc = QubitCircuit(2)
         qc.add_gate("CNOT", targets=[0], controls=[1])
         U0 = gate_sequence_product(qc.unitary_matrix())
-        qc.resolved_gates(basis="SQRTISWAP")
+        qc.resolve_gates(basis="SQRTISWAP")
         U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
         assert_((U0 - U1).norm() < 1e-12)
    
@@ -123,7 +123,7 @@ class TestQubitCircuit:
         qc = QubitCircuit(2)
         qc.add_gate("CNOT", targets=[0], controls=[1])
         U0 = gate_sequence_product(qc.unitary_matrix())
-        qc.resolved_gates(basis="ISWAP")
+        qc.resolve_gates(basis="ISWAP")
         U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
         assert_((U0 - U1).norm() < 1e-12)
    
