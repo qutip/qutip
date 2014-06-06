@@ -291,8 +291,8 @@ class QubitCircuit(object):
                     self.gates_resolved.append(Gate("ISWAP", [gate.controls[0], gate.targets[0]], None))
                     self.gates_resolved.append(Gate("RY", gate.targets, None,
                                                     arg_value=-np.pi/2, arg_label=r"-\pi/2"))
-                    ##self.gates_resolved.append(Gate("RZ", gate.targets, None,
-                    ##                                arg_value=np.pi, arg_label=r"\pi"))
+                    self.gates_resolved.append(Gate("RZ", gate.targets, None,
+                                                    arg_value=np.pi, arg_label=r"\pi"))
                 else:
                     self.gates_resolved.append(gate)
         elif basis == "SQRTISWAP":
@@ -312,8 +312,8 @@ class QubitCircuit(object):
                                                     arg_value=np.pi/2, arg_label=r"\pi/2"))
                     self.gates_resolved.append(Gate("GLOBALPHASE", None, None,
                                                     arg_value=np.pi/4, arg_label=r"\pi/4"))
-                    self.gates_resolved.append(Gate("RZ", gate.controls, None,
-                                                    arg_value=np.pi/2, arg_label=r"\pi/2"))
+                    ##self.gates_resolved.append(Gate("RZ", gate.controls, None,
+                    ##                                arg_value=np.pi/2, arg_label=r"\pi/2"))
                 else:
                     self.gates_resolved.append(gate)
         elif basis == "SQRTSWAP":
