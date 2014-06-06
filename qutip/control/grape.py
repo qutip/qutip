@@ -86,7 +86,7 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
     Calculate control pulses for the Hamitonian operators in H_ops so that the
     unitary U is realized.
 
-    Work in progress.
+    Experimental: Work in progress.
     """
 
     if eps is None:
@@ -132,7 +132,9 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
 
         for j in range(J):
             for k in range(M-1):
-                u[r + 1, j, k] = u[r, j, k] - eps * _overlap(U_b_list[k] * U, 1j * dt * H_ops[j] * U_f_list[k]).real
+                du = _overlap(U_b_list[k] * U,
+                              1j * dt * H_ops[j] * U_f_list[k])
+                u[r + 1, j, k] = u[r, j, k] - eps * du.real
 
             u[r + 1, j, -1] = u[r + 1, j, -2]
             
