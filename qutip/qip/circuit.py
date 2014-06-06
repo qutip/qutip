@@ -313,7 +313,7 @@ class QubitCircuit(object):
                     self.gates_resolved.append(Gate("GLOBALPHASE", None, None,
                                                     arg_value=np.pi/4, arg_label=r"\pi/4"))
                     self.gates_resolved.append(Gate("RZ", gate.controls, None,
-                                                    arg_value=np.pi, arg_label=r"\pi"))
+                                                    arg_value=2*np.pi, arg_label=r"\2pi"))
                 else:
                     self.gates_resolved.append(gate)
         elif basis == "SQRTSWAP":
