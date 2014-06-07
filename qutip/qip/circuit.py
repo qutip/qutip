@@ -93,7 +93,7 @@ class QubitCircuit(object):
         
         # number of qubits in the register
         self.N = N
-        self.reverse_states = reverse_state        
+        self.reverse_states = reverse_states        
         self.gates = []
         self.U_list = []
         
