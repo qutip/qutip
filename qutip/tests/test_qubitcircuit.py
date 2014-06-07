@@ -48,84 +48,84 @@ class TestQubitCircuit:
         SWAP to CNOT: compare unitary matrix for SWAP and product of 
         resolved matrices in terms of CNOT
         """
-        qc = QubitCircuit(2)
-        qc.add_gate("SWAP", targets=[0, 1])
-        U0 = gate_sequence_product(qc.unitary_matrix())
-        qc.resolve_gates(basis="CNOT")
-        U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
-        assert_((U0 - U1).norm() < 1e-12)
+        qc1 = QubitCircuit(2)
+        qc1.add_gate("SWAP", targets=[0, 1])
+        U1 = gate_sequence_product(qc1.unitary_matrix())
+        qc2 = qc1.resolve_gates(basis="CNOT")
+        U2 = gate_sequence_product(qc2.unitary_matrix())
+        assert_((U1 - U2).norm() < 1e-12)
         
     def testISWAPtoCNOT(self):
         """
         ISWAP to CNOT: compare unitary matrix for ISWAP and product of 
         resolved matrices in terms of CNOT
         """
-        qc = QubitCircuit(2)
-        qc.add_gate("ISWAP", targets=[0, 1])
-        U0 = gate_sequence_product(qc.unitary_matrix())
-        qc.resolve_gates(basis="CNOT")
-        U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
-        assert_((U0 - U1).norm() < 1e-12)
+        qc1 = QubitCircuit(2)
+        qc1.add_gate("ISWAP", targets=[0, 1])
+        U1 = gate_sequence_product(qc1.unitary_matrix())
+        qc2 = qc1.resolve_gates(basis="CNOT")
+        U2 = gate_sequence_product(qc2.unitary_matrix())
+        assert_((U1 - U2).norm() < 1e-12)
         
     def testCSIGNtoCNOT(self):
         """
         CSIGN to CNOT: compare unitary matrix for CSIGN and product of 
         resolved matrices in terms of CNOT
         """
-        qc = QubitCircuit(2)
-        qc.add_gate("CSIGN", targets=[1], controls=[0])
-        U0 = gate_sequence_product(qc.unitary_matrix())
-        qc.resolve_gates(basis="CNOT")
-        U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
-        assert_((U0 - U1).norm() < 1e-12)
+        qc1 = QubitCircuit(2)
+        qc1.add_gate("CSIGN", targets=[1], controls=[0])
+        U1 = gate_sequence_product(qc1.unitary_matrix())
+        qc2 = qc1.resolve_gates(basis="CNOT")
+        U2 = gate_sequence_product(qc2.unitary_matrix())
+        assert_((U1 - U2).norm() < 1e-12)
         
     def testCNOTtoCSIGN(self):
         """
         CNOT to CSIGN: compare unitary matrix for CNOT and product of 
         resolved matrices in terms of CSIGN
         """
-        qc = QubitCircuit(2)
-        qc.add_gate("CNOT", targets=[0], controls=[1])
-        U0 = gate_sequence_product(qc.unitary_matrix())
-        qc.resolve_gates(basis="CSIGN")
-        U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
-        assert_((U0 - U1).norm() < 1e-12)
+        qc1 = QubitCircuit(2)
+        qc1.add_gate("CNOT", targets=[0], controls=[1])
+        U1 = gate_sequence_product(qc1.unitary_matrix())
+        qc2 = qc1.resolve_gates(basis="CSIGN")
+        U2 = gate_sequence_product(qc2.unitary_matrix())
+        assert_((U1 - U2).norm() < 1e-12)
     
     def testCNOTtoSQRTSWAP(self):
         """
         CNOT to SQRTSWAP: compare unitary matrix for CNOT and product of 
         resolved matrices in terms of SQRTSWAP
         """
-        qc = QubitCircuit(2)
-        qc.add_gate("CNOT", targets=[0], controls=[1])
-        U0 = gate_sequence_product(qc.unitary_matrix())
-        qc.resolve_gates(basis="SQRTSWAP")
-        U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
-        assert_((U0 - U1).norm() < 1e-12)
+        qc1 = QubitCircuit(2)
+        qc1.add_gate("CNOT", targets=[0], controls=[1])
+        U1 = gate_sequence_product(qc1.unitary_matrix())
+        qc2 = qc1.resolve_gates(basis="SQRTSWAP")
+        U2 = gate_sequence_product(qc2.unitary_matrix())
+        assert_((U1 - U2).norm() < 1e-12)
    
     def testCNOTtoSQRTISWAP(self):
         """
         CNOT to SQRTISWAP: compare unitary matrix for CNOT and product of 
         resolved matrices in terms of SQRTISWAP
         """
-        qc = QubitCircuit(2)
-        qc.add_gate("CNOT", targets=[0], controls=[1])
-        U0 = gate_sequence_product(qc.unitary_matrix())
-        qc.resolve_gates(basis="SQRTISWAP")
-        U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
-        assert_((U0 - U1).norm() < 1e-12)
+        qc1 = QubitCircuit(2)
+        qc1.add_gate("CNOT", targets=[0], controls=[1])
+        U1 = gate_sequence_product(qc1.unitary_matrix())
+        qc2 = qc1.resolve_gates(basis="SQRTISWAP")
+        U2 = gate_sequence_product(qc2.unitary_matrix())
+        assert_((U1 - U2).norm() < 1e-12)
    
     def testCNOTtoISWAP(self):
         """
         CNOT to ISWAP: compare unitary matrix for CNOT and product of 
         resolved matrices in terms of ISWAP
         """
-        qc = QubitCircuit(2)
-        qc.add_gate("CNOT", targets=[0], controls=[1])
-        U0 = gate_sequence_product(qc.unitary_matrix())
-        qc.resolve_gates(basis="ISWAP")
-        U1 = gate_sequence_product(qc.unitary_matrix(resolved=True))
-        assert_((U0 - U1).norm() < 1e-12)
+        qc1 = QubitCircuit(2)
+        qc1.add_gate("CNOT", targets=[0], controls=[1])
+        U1 = gate_sequence_product(qc1.unitary_matrix())
+        qc2 = qc1.resolve_gates(basis="ISWAP")
+        U2 = gate_sequence_product(qc2.unitary_matrix())
+        assert_((U1 - U2).norm() < 1e-12)
    
 if __name__ == "__main__":
     run_module_suite()
