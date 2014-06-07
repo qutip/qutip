@@ -316,7 +316,7 @@ class QubitCircuit(object):
                     self.gates.append(Gate("RY", gate.targets, None,
                                            arg_value=np.pi/2, arg_label=r"\pi/2"))
                 else:
-                    self.gates_resolved.append(gate)
+                    self.gates.append(gate)
         elif basis_2q == "ISWAP":
             for gate in temp_resolved:
                 if gate.name == "CNOT":
@@ -426,14 +426,9 @@ class QubitCircuit(object):
             Returns list of unitary matrices for the qubit circuit.
 
         """          
-        if resolved:
-            gatelist = self.gates_resolved
-            unitary_list = self.U_list_resolved = []
-        else:
-            gatelist = self.gates
-            unitary_list = self.U_list = []
+        unitary_list = self.U_list = []
 
-        for gate in gatelist:    
+        for gate in self.gates:    
             if gate.name == "CPHASE":
                 unitary_list.append(cphase(gate.arg_value, self.N, gate.controls[0], gate.targets[0]))
             elif gate.name == "RX":
