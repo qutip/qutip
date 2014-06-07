@@ -343,7 +343,7 @@ class QubitCircuit(object):
                     self.gates.append(Gate("RZ", gate.targets, None,
                                            arg_value=np.pi/2, arg_label=r"\pi/2"))
                 else:
-                    self.gates_resolved.append(gate)
+                    self.gates.append(gate)
         elif basis_2q == "SQRTISWAP":
             for gate in temp_resolved:
                 if gate.name == "CNOT":
@@ -366,7 +366,7 @@ class QubitCircuit(object):
                     self.gates.append(Gate("GLOBALPHASE", None, None,
                                            arg_value=3*np.pi/2, arg_label=r"3\pi/2"))
                 else:
-                    self.gates_resolved.append(gate)
+                    self.gates.append(gate)
         elif basis_2q == "SQRTSWAP":
             for gate in temp_resolved:
                 if gate.name == "CNOT":
@@ -383,14 +383,14 @@ class QubitCircuit(object):
                     self.gates.append(Gate("RZ", gate.controls, None,
                                            arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                 else:
-                    self.gates_resolved.append(gate)
+                    self.gates.append(gate)
         else:
-            self.gates_resolved = temp_resolved              
+            self.gates = temp_resolved              
 
 
         if len(basis_1q) == 2:
-            temp_resolved = self.gates_resolved
-            self.gates_resolved = []
+            temp_resolved = self.gates
+            self.gates = []
             for gate in temp_resolved:            
                 if gate.name == "RX" and "RX" not in basis_1q:
                     self.gates.append(Gate("RY", gate.targets, None,
@@ -414,9 +414,9 @@ class QubitCircuit(object):
                     self.gates.append(Gate("RX", gate.targets, None,
                                            arg_value=np.pi/2, arg_label=r"\pi/2"))            
                 else:
-                    self.gates_resolved.append(gate)            
+                    self.gates.append(gate)            
 
-        return self.gates_resolved
+        return self.gates
                 
     def unitary_matrix(self, resolved=False):
         """
