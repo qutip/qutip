@@ -92,11 +92,11 @@ class QubitCircuit(object):
     def __init__(self, N, reverse_states=True):
         
         # number of qubits in the register
-        self.N = N        
+        self.N = N
+        self.reverse_states = reverse_state        
         self.gates = []
         self.U_list = []
-        self.reverse_states = reverse_state
-
+        
     def add_gate(self, name, targets=None, controls=None, arg_value=None,
                  arg_label=None):
         self.gates.append(Gate(name, targets=targets, controls=controls,
