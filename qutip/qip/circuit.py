@@ -146,8 +146,10 @@ class QubitCircuit(object):
                 else:                    
                     basis_1q.append(gate)
 
-            if len(basis_1q) < 2:
+            if len(basis_1q) == 1:
                 raise ValueError("Not sufficient single-qubit gates in basis")
+            elif len(basis_1q) == 0:
+                basis_1q = ["RX", "RY", "RZ"]    
 
         else:
             basis_1q = ["RX", "RY", "RZ"]
