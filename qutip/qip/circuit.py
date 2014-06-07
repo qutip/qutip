@@ -291,7 +291,7 @@ class QubitCircuit(object):
                 raise NotImplementedError("Cannot be resolved by the program")
             elif gate.name == "SQRTNOT":
                 temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                                   arg_value=np.pi/4, arg_label=r"\pi/4"))
+                                          arg_value=np.pi/4, arg_label=r"\pi/4"))
                 temp_resolved.append(Gate("RX", gate.targets, None,
                                           arg_value=np.pi/2, arg_label=r"\pi/2"))
             elif gate.name == "SNOT":
