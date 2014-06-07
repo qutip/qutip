@@ -95,15 +95,7 @@ class QubitCircuit(object):
         self.N = N        
         self.gates = []
         self.U_list = []
-        self.reverse_states = reverse_states
-
-
-    def get_gates(self):
-        if self.gates_resolved:
-            return self.gates_resolved
-        else:
-            return self.gates
-
+        self.reverse_states = reverse_state
 
     def add_gate(self, name, targets=None, controls=None, arg_value=None,
                  arg_label=None):
