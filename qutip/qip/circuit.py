@@ -433,7 +433,7 @@ class QubitCircuit(object):
         
         Returns
         -------
-        self.U_list: list
+        U_list: list
             Returns list of unitary matrices for the qubit circuit.
 
         """          
