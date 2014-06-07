@@ -420,11 +420,6 @@ class QubitCircuit(object):
         Unitary matrix calculator for N qubits returning the individual
         steps as unitary matrices operating from left to right.
         
-        Parameters
-        ----------
-        resolved: Boolean.
-            Checks if matrix is for resolved circuit or not.
-        
         Returns
         -------
         self.U_list: list
