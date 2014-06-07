@@ -112,7 +112,11 @@ class QubitCircuit(object):
         ----------
         basis: list.
             Basis of the resolved circuit.
-            
+
+        Returns
+        -------
+        self.gates: list
+            Returns list of gates for the qubit circuit in the desired basis.    
         """  
         temp_resolved = []
         self.gates = []
