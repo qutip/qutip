@@ -118,7 +118,7 @@ class QubitCircuit(object):
         qc_temp: Qobj
             Returns Qobj of resolved gates for the qubit circuit in the desired basis.    
         """  
-        qc_temp = QubitCircuit(self.N)
+        qc_temp = QubitCircuit(self.N, self.reverse_states)
         temp_resolved = []
         qc_temp.gates = []
 
