@@ -431,47 +431,47 @@ class QubitCircuit(object):
             Returns list of unitary matrices for the qubit circuit.
 
         """          
-        unitary_list = self.U_list = []
+        self.U_list = []
 
         for gate in self.gates:    
             if gate.name == "CPHASE":
-                unitary_list.append(cphase(gate.arg_value, self.N, gate.controls[0], gate.targets[0]))
+                self.U_list.append(cphase(gate.arg_value, self.N, gate.controls[0], gate.targets[0]))
             elif gate.name == "RX":
-                unitary_list.append(rx(gate.arg_value, self.N, gate.targets[0]))
+                self.U_list.append(rx(gate.arg_value, self.N, gate.targets[0]))
             elif gate.name == "RY":
-                unitary_list.append(ry(gate.arg_value, self.N, gate.targets[0]))
+                self.U_list.append(ry(gate.arg_value, self.N, gate.targets[0]))
             elif gate.name == "RZ":
-                unitary_list.append(rz(gate.arg_value, self.N, gate.targets[0]))
+                self.U_list.append(rz(gate.arg_value, self.N, gate.targets[0]))
             elif gate.name == "CNOT":
-                unitary_list.append(cnot(self.N, gate.controls[0], gate.targets[0]))
+                self.U_list.append(cnot(self.N, gate.controls[0], gate.targets[0]))
             elif gate.name == "CSIGN":
-                unitary_list.append(csign(self.N, gate.controls[0], gate.targets[0]))
+                self.U_list.append(csign(self.N, gate.controls[0], gate.targets[0]))
             elif gate.name == "BERKELEY":
-                unitary_list.append(berkeley(self.N, gate.targets))
+                self.U_list.append(berkeley(self.N, gate.targets))
             elif gate.name == "SWAPalpha":
-                unitary_list.append(swapalpha(gate.arg_value, self.N, gate.targets))
+                self.U_list.append(swapalpha(gate.arg_value, self.N, gate.targets))
             elif gate.name == "FREDKIN":
-                unitary_list.append(fredkin(self.N, gate.controls, gate.targets[0]))
+                self.U_list.append(fredkin(self.N, gate.controls, gate.targets[0]))
             elif gate.name == "TOFFOLI":
-                unitary_list.append(toffoli(self.N, gate.controls, gate.targets[0]))
+                self.U_list.append(toffoli(self.N, gate.controls, gate.targets[0]))
             elif gate.name == "SWAP":
-                unitary_list.append(swap(self.N, gate.targets))
+                self.U_list.append(swap(self.N, gate.targets))
             elif gate.name == "ISWAP":
-                unitary_list.append(iswap(self.N, gate.targets))
+                self.U_list.append(iswap(self.N, gate.targets))
             elif gate.name == "SQRTISWAP":
-                unitary_list.append(sqrtiswap(self.N, gate.targets))
+                self.U_list.append(sqrtiswap(self.N, gate.targets))
             elif gate.name == "SQRTSWAP":
-                unitary_list.append(sqrtswap(self.N, gate.targets))
+                self.U_list.append(sqrtswap(self.N, gate.targets))
             elif gate.name == "SQRTNOT":
-                unitary_list.append(sqrtnot(self.N, gate.targets[0]))
+                self.U_list.append(sqrtnot(self.N, gate.targets[0]))
             elif gate.name == "SNOT":
-                unitary_list.append(snot(self.N, gate.targets[0]))
+                self.U_list.append(snot(self.N, gate.targets[0]))
             elif gate.name == "PHASEGATE":
-                unitary_list.append(phasegate(gate.arg_value, self.N, gate.targets[0]))
+                self.U_list.append(phasegate(gate.arg_value, self.N, gate.targets[0]))
             elif gate.name == "GLOBALPHASE":
-                unitary_list.append(globalphase(gate.arg_value, self.N))
+                self.U_list.append(globalphase(gate.arg_value, self.N))
 
-        return unitary_list
+        return self.U_list
 
 
     def latex_code(self):
