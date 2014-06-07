@@ -62,9 +62,10 @@ class TestQubitCircuit:
         resolved matrices in terms of CNOT
         """
         qc1 = QubitCircuit(2)
+        qc2 = QubitCircuit(2)
         qc1.add_gate("ISWAP", targets=[0, 1])
         U1 = gate_sequence_product(qc1.unitary_matrix())
-        qc2 = qc1.resolve_gates(basis="CNOT")
+        qc2.gates = qc1.resolve_gates(basis="CNOT")
         U2 = gate_sequence_product(qc2.unitary_matrix())
         assert_((U1 - U2).norm() < 1e-12)
         
