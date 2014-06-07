@@ -261,7 +261,7 @@ class QubitCircuit(object):
                                           arg_value=np.pi/2, arg_label=r"\pi/2"))
                 temp_resolved.append(Gate("RX", gate.targets, None,
                                           arg_value=np.pi, arg_label=r"\pi"))
-            elif gate.name == "SWAP":
+            elif gate.name == "SWAP" and not basis_2q is "ISWAP":
                 temp_resolved.append(Gate("CNOT", [gate.targets[0]], [gate.targets[1]]))
                 temp_resolved.append(Gate("CNOT", [gate.targets[1]], [gate.targets[0]]))
                 temp_resolved.append(Gate("CNOT", [gate.targets[0]], [gate.targets[1]]))
@@ -339,6 +339,16 @@ class QubitCircuit(object):
                                               arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                     qc_temp.gates.append(Gate("RZ", gate.targets, None,
                                               arg_value=np.pi/2, arg_label=r"\pi/2"))
+                elif gate.name == "SWAP":
+                    qc_temp.gates.append(Gate("ISWAP", [gate.controls[0], gate.targets[0]], None))
+                    qc_temp.gates.append(Gate("RX", gate.targets, None,
+                                              arg_value=-np.pi/2, arg_label=r"-\pi/2"))
+                    qc_temp.gates.append(Gate("ISWAP", [gate.controls[0], gate.targets[0]], None))
+                    qc_temp.gates.append(Gate("RZ", gate.controls, None,
+                                              arg_value=-np.pi/2, arg_label=r"-\pi/2"))
+                    qc_temp.gates.append(Gate("ISWAP", [gate.controls[0], gate.targets[0]], None))
+                    qc_temp.gates.append(Gate("RZ", gate.targets, None,
+                                              arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                 else:
                     qc_temp.gates.append(gate)
         elif basis_2q == "SQRTISWAP":
