@@ -414,6 +414,7 @@ class QubitCircuit(object):
 
         return self.gates
                 
+
     def unitary_matrix(self, resolved=False):
         """
         Unitary matrix calculator for N qubits returning the individual
