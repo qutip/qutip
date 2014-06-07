@@ -115,8 +115,8 @@ class QubitCircuit(object):
 
         Returns
         -------
-        self.gates: list
-            Returns list of gates for the qubit circuit in the desired basis.    
+        qc_temp: Qobj
+            Returns Qobj of resolved gates for the qubit circuit in the desired basis.    
         """  
         qc_temp = QubitCircuit(self.N)
         temp_resolved = []
