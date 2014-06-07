@@ -120,7 +120,6 @@ class QubitCircuit(object):
         """  
         qc_temp = QubitCircuit(self.N, self.reverse_states)
         temp_resolved = []
-        qc_temp.gates = []
 
         basis_1q = []
         basis_2q = None
