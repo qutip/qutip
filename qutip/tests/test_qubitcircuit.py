@@ -112,7 +112,7 @@ class TestQubitCircuit:
         qc1.add_gate("CNOT", targets=[0], controls=[1])
         U1 = gate_sequence_product(qc1.unitary_matrix())
         qc2 = qc1.resolve_gates(basis="SQRTISWAP")
-        U2 = gate_sequence_product(qc2.unitary_matrix(resolved=True))
+        U2 = gate_sequence_product(qc2.unitary_matrix())
         assert_((U1 - U2).norm() < 1e-12)
    
     def testCNOTtoISWAP(self):
