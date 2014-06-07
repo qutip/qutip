@@ -477,10 +477,7 @@ class QubitCircuit(object):
     def latex_code(self):
         rows = []
 
-        if len(self.gates_resolved) > 0:
-            gates = self.gates_resolved
-        else:
-            gates = self.gates
+        gates = self.gates
 
         for gate in gates:
             col = []
