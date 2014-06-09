@@ -425,7 +425,7 @@ class QubitCircuit(object):
         return qc_temp
 
 
-    def resolve_interactions(self):
+    def adjacent_interactions(self):
         """
         Method to resolve 2 qubit gates with non-adjacent control/s or target/s 
         in terms of gates with adjacent interactions.
