@@ -339,14 +339,14 @@ class QubitCircuit(object):
                     qc_temp.gates.append(Gate("RZ", gate.targets, None,
                                               arg_value=np.pi/2, arg_label=r"\pi/2"))
                 elif gate.name == "SWAP":
-                    qc_temp.gates.append(Gate("ISWAP", [gate.controls[0], gate.targets[0]], None))
-                    qc_temp.gates.append(Gate("RX", gate.targets, None,
+                    qc_temp.gates.append(Gate("ISWAP", gate.targets, None))
+                    qc_temp.gates.append(Gate("RX", [gate.targets[0]], None,
                                               arg_value=-np.pi/2, arg_label=r"-\pi/2"))
-                    qc_temp.gates.append(Gate("ISWAP", [gate.controls[0], gate.targets[0]], None))
-                    qc_temp.gates.append(Gate("RZ", gate.controls, None,
+                    qc_temp.gates.append(Gate("ISWAP", gate.targets, None))
+                    qc_temp.gates.append(Gate("RZ", [gate.targets[1]], None,
                                               arg_value=-np.pi/2, arg_label=r"-\pi/2"))
-                    qc_temp.gates.append(Gate("ISWAP", [gate.controls[0], gate.targets[0]], None))
-                    qc_temp.gates.append(Gate("RZ", gate.targets, None,
+                    qc_temp.gates.append(Gate("ISWAP", [gate.targets[1], gate.targets[0]], None))
+                    qc_temp.gates.append(Gate("RZ", [gate.targets[0]], None,
                                               arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                 else:
                     qc_temp.gates.append(gate)
@@ -423,7 +423,76 @@ class QubitCircuit(object):
                     qc_temp.gates.append(gate)            
 
         return qc_temp
-                
+
+
+    def adjacent_gates(self):
+        """
+        Method to resolve 2 qubit gates with non-adjacent control/s or target/s 
+        in terms of gates with adjacent interactions.
+            
+        Returns
+        ----------
+        qc_temp: Qobj
+                Returns Qobj of resolved gates for the qubit circuit in the desired basis.    
+        
+        """  
+        qc_temp = QubitCircuit(self.N, self.reverse_states)
+        swap_gates = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY", "SWAPalpha"]
+
+        for gate in self.gates:    
+            if gate.name == "CNOT" or gate.name == "CSIGN":
+                start = min([gate.targets[0], gate.controls[0]])
+                end = max([gate.targets[0], gate.controls[0]])
+                i = start
+                while i < end:
+                    if start+end-i-i == 1 and (end-start+1)%2 == 0:
+                        #Apply required gate if control and target are adjacent
+                        #to each other, provided |control-target| is even.
+                        if end == gate.controls[0]:
+                            qc_temp.gates.append(Gate(gate.name, targets=[i], controls=[i+1]))
+                        else:
+                            qc_temp.gates.append(Gate(gate.name, targets=[i+1], controls=[i]))
+                    elif start+end-i-i == 2 and (end-start+1)%2 == 1:
+                        #Apply a swap between i and its adjacent gate, then the
+                        #required gate if and then another swap if control and
+                        #target have one qubit between them, provided
+                        #|control-target| is odd.
+                        qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                        if end == gate.controls[0]:
+                            qc_temp.gates.append(Gate(gate.name, targets=[i+1], controls=[i+2]))
+                        else:
+                            qc_temp.gates.append(Gate(gate.name, targets=[i+2], controls=[i+1]))
+                        qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                        i += 1
+                    else:
+                        #Swap the target/s and/or control with their adjacent
+                        #qubit to bring them closer.
+                        qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                        qc_temp.gates.append(Gate("SWAP", targets=[start+end-i-1, start+end-i]))
+                    i += 1
+
+            elif gate.name in swap_gates:
+                start = min([gate.targets[0], gate.targets[1]])
+                end = max([gate.targets[0], gate.targets[1]])
+                i = start
+                while i < end:
+                    if start+end-i-i == 1 and (end-start+1)%2 == 0:
+                        qc_temp.gates.append(Gate(gate.name, targets=[i, i+1]))
+                    elif (start+end-i-i) == 2 and (end-start+1)%2 == 1:
+                        qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                        qc_temp.gates.append(Gate(gate.name, targets=[i+1, i+2]))
+                        qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                        i += 1
+                    else:    
+                        qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                        qc_temp.gates.append(Gate("SWAP", targets=[start+end-i-1, start+end-i]))        
+                    i += 1
+            
+            else:
+                qc_temp.gates.append(gate)
+        
+        return qc_temp
+
 
     def unitary_matrix(self):
         """
