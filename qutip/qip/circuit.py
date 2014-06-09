@@ -446,17 +446,17 @@ class QubitCircuit(object):
                 i = start
                 while i < end:
                     if start+end-i-i == 1 and (end-start+1)%2 == 0:
-                        #
-                        #
-                        #
+                        #Apply required gate if control and target are adjacent
+                        #to each other, provided |control-target| is even.
                         if end == gate.controls[0]:
                             qc_temp.gates.append(Gate(gate.name, targets=[i], controls=[i+1]))
                         else:
                             qc_temp.gates.append(Gate(gate.name, targets=[i+1], controls=[i]))
                     elif start+end-i-i == 2 and (end-start+1)%2 == 1:
-                        #
-                        #
-                        #
+                        #Apply a swap between i and its adjacent gate, then the
+                        #required gate if and then another swap if control and
+                        #target have one qubit between them, provided
+                        #|control-target| is odd.
                         qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
                         if end == gate.controls[0]:
                             qc_temp.gates.append(Gate(gate.name, targets=[i+1], controls=[i+2]))
@@ -465,9 +465,8 @@ class QubitCircuit(object):
                         qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
                         i += 1
                     else:
-                        #
-                        #
-                        #
+                        #Swap the target/s and/or control with their adjacent
+                        #qubit to bring them closer.
                         qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
                         qc_temp.gates.append(Gate("SWAP", targets=[start+end-i-1, start+end-i]))
                     i += 1
