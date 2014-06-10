@@ -62,7 +62,7 @@ class Gate(object):
         if name in ["RX", "RY", "RZ", "CPHASE", "SWAPalpha", "PHASEGATE", "GLOBALPHASE"]:
             if arg_value is None:
                 raise ValueError("Gate %s requires an argument value" % name)
-            if controls is not None:
+            if controls is not None and name is not "CPHASE":
                 raise ValueError("Gate %s does not take controls" % name)
         
         self.arg_value = arg_value
