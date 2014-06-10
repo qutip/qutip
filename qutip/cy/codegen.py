@@ -277,29 +277,30 @@ class Codegen():
 
 def cython_preamble():
     """
-    Returns list of strings for standard Cython file preamble.
+    Returns list of code segments for Cython preamble.
     """
-    line0 = ("# This file is generated automatically by QuTiP. " +
-             "(C) 2011-2013 Paul D. Nation & J. R. Johansson")
-    line1 = "import numpy as np\nfrom numpy import *"
-    line2 = "cimport numpy as np"
-    line3 = "cimport cython"
-    line4 = "from qutip.cy.spmatfuncs import spmv_csr, spmvpy"
-    line5 = ""
-    line6 = "ctypedef np.complex128_t CTYPE_t"
-    line7 = "ctypedef np.float64_t DTYPE_t"
-    return [line0, line1, line2, line3, line4, line5, line6, line7]
+    return ["""\
+# This file is generated automatically by QuTiP. (C) 2011-2013 Paul D. Nation & J. R. Johansson
+import numpy as np
+from numpy import *
+cimport numpy as np
+cimport cython
+from qutip.cy.spmatfuncs import spmv_csr, spmvpy
+
+ctypedef np.complex128_t CTYPE_t
+ctypedef np.float64_t DTYPE_t
+"""]
 
 
 def cython_checks():
     """
     List of strings that turn off Cython checks.
     """
-    line0 = ""
-    line1 = ""
-    line2 = "@cython.boundscheck(False)"
-    line3 = "@cython.wraparound(False)"
-    return [line0, line1, line2, line3]
+    return ["""
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+"""]
 
 
 def cython_col_spmv():
