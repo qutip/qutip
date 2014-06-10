@@ -46,6 +46,39 @@ class Gate(object):
 
         self.arg_value = arg_value
         self.arg_label = arg_label
+
+        if name in ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY", "SWAPalpha"]:
+            if len(targets) != 2:
+                raise ValueError("Gate %s requires two target" % name)        
+            if controls is not None:
+                raise ValueError("Gate %s does not have a control" % name)        
+
+        if name in ["CNOT", "CSIGN"]:
+            if targets is None or len(targets) != 1:
+                raise ValueError("Gate %s requires one target" % name)        
+            if controls is None or len(controls) != 1:
+                raise ValueError("Gate %s requires one control" % name)        
+
+        if name in ["RX", "RY", "RZ", "CPHASE", "SWAPalpha", "PHASEGATE", "GLOBALPHASE"]:
+            if arg_value is None:
+                raise ValueError("Gate %s requires an argument value" % name)
+            if controls is not None:
+                raise ValueError("Gate %s does not take controls" % name)
+        
+        self.arg_value = arg_value
+        self.arg_label = arg_label
+       
+    def __str__(self):
+        s = "Gate(%s, targets=%s, controls=%s)" % (self.name,
+                                                   self.targets,
+                                                   self.controls)
+        return s
+
+    def __repr__(self):
+        return str(self)
+
+    def _repr_latex_(self):
+        return str(self)
         
 
 _gate_name_to_label = {
