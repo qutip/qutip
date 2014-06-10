@@ -339,14 +339,16 @@ class QubitCircuit(object):
                     qc_temp.gates.append(Gate("RZ", gate.targets, None,
                                               arg_value=np.pi/2, arg_label=r"\pi/2"))
                 elif gate.name == "SWAP":
+                    qc_temp.gates.append(Gate("GLOBALPHASE", None, None,
+                                              arg_value=np.pi/4, arg_label=r"\pi/4"))
                     qc_temp.gates.append(Gate("ISWAP", gate.targets, None))
                     qc_temp.gates.append(Gate("RX", [gate.targets[0]], None,
                                               arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                     qc_temp.gates.append(Gate("ISWAP", gate.targets, None))
-                    qc_temp.gates.append(Gate("RZ", [gate.targets[1]], None,
+                    qc_temp.gates.append(Gate("RX", [gate.targets[1]], None,
                                               arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                     qc_temp.gates.append(Gate("ISWAP", [gate.targets[1], gate.targets[0]], None))
-                    qc_temp.gates.append(Gate("RZ", [gate.targets[0]], None,
+                    qc_temp.gates.append(Gate("RX", [gate.targets[0]], None,
                                               arg_value=-np.pi/2, arg_label=r"-\pi/2"))
                 else:
                     qc_temp.gates.append(gate)
