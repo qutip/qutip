@@ -78,7 +78,6 @@ class Codegen():
 
     def generate(self, filename="rhs.pyx"):
         """generate the file"""
-        self.time_vars()
         for line in cython_preamble():
             self.write(line)
 
@@ -187,29 +186,6 @@ class Codegen():
         func_end = "):"
         return [func_name + input_vars + func_end]
 
-    def time_vars(self):
-        """
-        Rewrites time-dependent parts to include np.
-        """
-        if self.h_tdterms:
-            for jj in range(len(self.h_tdterms)):
-                text = self.h_tdterms[jj]
-                any_np = np.array([text.find(x) for x in self.func_list])
-                ind = np.nonzero(any_np > -1)[0]
-                for kk in ind:
-                    new_text = 'np.' + self.func_list[kk]
-                    text = text.replace(self.func_list[kk], new_text)
-                self.h_tdterms[jj] = text
-        if len(self.c_tdterms) > 0:
-            for jj in range(len(self.c_tdterms)):
-                text = self.c_tdterms[jj]
-                any_np = np.array([text.find(x) for x in self.func_list])
-                ind = np.nonzero(any_np > -1)[0]
-                for kk in ind:
-                    new_text = 'np.' + self.func_list[kk]
-                    text = text.replace(self.func_list[kk], new_text)
-                self.c_tdterms[jj] = text
-
     def func_vars(self):
         """Writes the variables and their types & spmv parts"""
         func_vars = ["", 'cdef Py_ssize_t row', 'cdef int num_rows = len(vec)',
@@ -305,7 +281,7 @@ def cython_preamble():
     """
     line0 = ("# This file is generated automatically by QuTiP. " +
              "(C) 2011-2013 Paul D. Nation & J. R. Johansson")
-    line1 = "import numpy as np"
+    line1 = "import numpy as np\nfrom numpy import *"
     line2 = "cimport numpy as np"
     line3 = "cimport cython"
     line4 = "from qutip.cy.spmatfuncs import spmv_csr, spmvpy"
