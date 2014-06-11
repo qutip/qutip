@@ -1067,7 +1067,7 @@ class Qobj(object):
 
 
         """
-        if isinstance(inpt, list) or isinstance(inpt, np.ndarray):
+        if isinstance(inpt, list) or (isinstance(inpt, np.ndarray) and len(inpt.shape) == 1):
             if len(inpt) != max(self.shape):
                 raise TypeError(
                     'Invalid size of ket list for basis transformation')
