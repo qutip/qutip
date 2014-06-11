@@ -278,9 +278,12 @@ def cython_preamble():
     """
     return ["""\
 # This file is generated automatically by QuTiP.
-# (C) 2011-2013 Paul D. Nation & J. R. Johansson
+# (C) Paul D. Nation & J. R. Johansson
+
+from numpy import *
+cimport libc.math as cmath
+
 import numpy as np
-from math import *
 cimport numpy as np
 cimport cython
 from qutip.cy.spmatfuncs import spmv_csr, spmvpy
