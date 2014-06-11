@@ -529,7 +529,7 @@ class QubitCircuit(object):
         return qc_temp
 
 
-def resonator_qubit(self):
+    def resonator_qubit(self):
         """
         Method to execute 2 qubit gates using resonators.
             
