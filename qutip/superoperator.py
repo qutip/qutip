@@ -152,15 +152,18 @@ def liouvillian_fast(H, c_op_list, data_only=False):
         return L
 
 
-def lindblad_dissipator(c, data_only=False):
+def lindblad_dissipator(a, b=None, data_only=False):
     """
     Return the Lindblad dissipator for a single collapse operator.
 
     TODO: optimize like liouvillian_fast
     """
+    
+    if b is None:
+        b = a
 
-    cdc = c.dag() * c
-    D = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
+    ad_b = a.dag() * b
+    D = spre(a) * spost(b.dag()) - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
 
     return D.data if data_only else D
 
