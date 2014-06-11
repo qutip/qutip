@@ -48,20 +48,20 @@ class Codegen():
         self.type = type
         if isinstance(h_terms, int):
             h_terms = range(h_terms)
+
         self.h_terms = h_terms  # number of H pieces
         self.h_tdterms = h_tdterms  # list of time-dependent strings
         self.h_td_inds = h_td_inds  # indicies of time-dependnt terms
         self.args = args  # args for strings
+
         #--- Collapse operator time-depdendent pieces ----#
         self.c_terms = c_terms  # number of C pieces
         self.c_tdterms = c_tdterms  # list of time-dependent strings
-        self.c_td_inds = c_td_inds  # indicies of time-dependnt terms
+        self.c_td_inds = c_td_inds  # indicies of time-dependent terms
+
         #--- Code generator properties----#
         self.code = []  # strings to be written to file
         self.level = 0  # indent level
-        # math functions available from numpy
-        # add a '(' on the end to guarentee function is selected
-        # store odeconfig instance
         self.odeconfig = odeconfig
 
     def write(self, string):
@@ -235,7 +235,7 @@ class Codegen():
         func_terms = []
         if self.type == 'mc':
             func_terms.append("for row in range(num_rows):")
-            sum_string = "\tout[row] = Hvec0[row]"
+            sum_string = "    out[row] = Hvec0[row]"
             for ht in range(1, len(self.h_terms)):
                 sum_string += " + Hvec" + str(ht) + "[row]"
             if any(self.c_tdterms):
