@@ -39,7 +39,7 @@ class Codegen():
     """
     def __init__(self, h_terms=None, h_tdterms=None, h_td_inds=None,
                  args=None, c_terms=None, c_tdterms=[], c_td_inds=None,
-                 tab="\t", type='me', odeconfig=None):
+                 type='me', odeconfig=None):
         import sys
         import os
         sys.path.append(os.getcwd())
@@ -58,19 +58,15 @@ class Codegen():
         self.c_td_inds = c_td_inds  # indicies of time-dependnt terms
         #--- Code generator properties----#
         self.code = []  # strings to be written to file
-        self.tab = tab  # type of tab to use
         self.level = 0  # indent level
         # math functions available from numpy
         # add a '(' on the end to guarentee function is selected
-        self.func_list = [func + '(' for func in dir(np.math)[4:-1]]
-        # fix pi and e strings since they are constants and not functions
-        self.func_list[self.func_list.index('pi(')] = 'pi'
         # store odeconfig instance
         self.odeconfig = odeconfig
 
     def write(self, string):
         """write lines of code to self.code"""
-        self.code.append(self.tab * self.level + string + "\n")
+        self.code.append("    " * self.level + string + "\n")
 
     def file(self, filename):
         """open file called filename for writing"""
@@ -111,6 +107,7 @@ class Codegen():
                 self.write(line)
             self.write(self.func_end_real())
             self.dedent()
+
         self.file(filename)
         self.file.writelines(self.code)
         self.file.close()
@@ -307,39 +304,38 @@ def cython_col_spmv():
     """
     Writes col_SPMV vars.
     """
-    line1 = "\tcdef Py_ssize_t row"
-    line2 = "\tcdef int jj,row_start,row_end"
-    line3 = "\tcdef int num_rows=len(vec)"
-    line4 = "\tcdef CTYPE_t dot"
-    line5 = ("\tcdef np.ndarray[CTYPE_t, ndim=1] out = " +
-             "np.zeros((num_rows),dtype=np.complex)")
-    line6 = "\tfor row in range(num_rows):"
-    line7 = "\t\tdot=0.0"
-    line8 = "\t\trow_start = ptr[row]"
-    line9 = "\t\trow_end = ptr[row+1]"
-    lineA = "\t\tfor jj in range(row_start,row_end):"
-    lineB = "\t\t\tdot=dot+data[jj]*vec[idx[jj]]"
-    lineC = "\t\tout[row]=dot"
-    return [line1, line2, line3, line4, line5, line6, line7, line8,
-            line9, lineA, lineB, lineC]
+    return ["""\
+    cdef Py_ssize_t row
+    cdef int jj, row_start, row_end
+    cdef int num_rows = len(vec)
+    cdef CTYPE_t dot
+    cdef np.ndarray[CTYPE_t, ndim=1] out = np.zeros(num_rows, dtype=np.complex)
+
+    for row in range(num_rows):
+        dot = 0.0
+        row_start = ptr[row]
+        row_end = ptr[row+1]
+        for jj in range(row_start,row_end):
+            dot = dot + data[jj] * vec[idx[jj]]
+        out[row] = dot
+    """]
 
 
 def cython_col_expect(args):
     """
     Writes col_expect vars.
     """
-    line1 = "\tcdef Py_ssize_t row"
-    line2 = "\tcdef int num_rows=len(vec)"
-    line3 = "\tcdef CTYPE_t out = 0.0"
-    line4 = "\tcdef np.ndarray[CTYPE_t, ndim=1] vec_ct = vec.conj()"
-    line5 = ("\tcdef np.ndarray[CTYPE_t, ndim=1] dot = " +
-             "col_spmv(which,t,data,idx,ptr,vec")
+    return ["""\
+    cdef Py_ssize_t row
+    cdef int num_rows=len(vec)
+    cdef CTYPE_t out = 0.0
+    cdef np.ndarray[CTYPE_t, ndim=1] vec_ct = vec.conj()
+    cdef np.ndarray[CTYPE_t, ndim=1] dot = col_spmv(which, t, data, idx, ptr,
+                                                    vec%s)
 
-    if args:
-        for td_const in args.items():
-            line5 += "," + td_const[0]
-    line5 += ")"
-    line6 = "\tfor row in range(num_rows):"
-    line7 = "\t\tout+=vec_ct[row]*dot[row]"
-    return [line1, line2, line3, line4, line5, line6, line7]
+    for row in range(num_rows):
+        out += vec_ct[row] * dot[row]
+    """ %
+    "".join(["," + str(td_const[0]) for td_const in args.items()]) if args else ""
+    ]
 
