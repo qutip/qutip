@@ -250,7 +250,7 @@ class Codegen():
         ind = 0
         for k in self.c_td_inds:
             out_string.append("if which == " + str(k) + ":")
-            out_string.append("\tout*= " + self.c_tdterms[ind])
+            out_string.append("    out *= " + self.c_tdterms[ind])
             ind += 1
         return out_string
 
@@ -261,7 +261,7 @@ class Codegen():
         ind = 0
         for k in self.c_td_inds:
             out_string.append("if which == " + str(k) + ":")
-            out_string.append("\tout*= np.conj(" + self.c_tdterms[ind] + ")")
+            out_string.append("    out *= np.conj(" + self.c_tdterms[ind] + ")")
             ind += 1
         return out_string
 
@@ -277,9 +277,10 @@ def cython_preamble():
     Returns list of code segments for Cython preamble.
     """
     return ["""\
-# This file is generated automatically by QuTiP. (C) 2011-2013 Paul D. Nation & J. R. Johansson
+# This file is generated automatically by QuTiP.
+# (C) 2011-2013 Paul D. Nation & J. R. Johansson
 import numpy as np
-from numpy import *
+from math import *
 cimport numpy as np
 cimport cython
 from qutip.cy.spmatfuncs import spmv_csr, spmvpy
