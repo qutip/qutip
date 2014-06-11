@@ -280,8 +280,7 @@ def cython_preamble():
 # This file is generated automatically by QuTiP.
 # (C) Paul D. Nation & J. R. Johansson
 
-from numpy cimport *
-from libc.math cimport *
+from numpy import *
 cimport libc.math as cmath
 
 import numpy as np
