@@ -542,7 +542,7 @@ def resonator_qubit(self):
         qc_temp = QubitCircuit(self.N + 1, self.reverse_states)
         
         for gate in self.gates:    
-            if gate.name in ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY", "SWAPalpha"]::
+            if gate.name in ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY", "SWAPalpha"]:
                 qc_temp.gates.append(Gate("SWAP", targets=[targets[0], self.N])
                 qc_temp.gates.append(Gate(gate.name, targets=[self.N, targets[1]])
                 qc_temp.gates.append(Gate("SWAP", targets=[targets[0], self.N])
