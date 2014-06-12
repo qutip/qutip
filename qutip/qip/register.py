@@ -36,7 +36,6 @@ from qutip.states import *
 from qutip.operators import *
 from qutip.tensor import tensor
 from qutip.qip.gates import *
-from qutip.qip.utils import _reg_str2array
 
 
 class Register(Qobj):
@@ -48,8 +47,7 @@ class Register(Qobj):
         if state is None:
             reg = tensor([basis(2) for k in range(N)])
         elif isinstance(state, str):
-            state = _reg_str2array(state, N)
-            reg = tensor([basis(2, k) for k in state])
+            reg = ket(state)
         else:
             raise ValueError("state must be a string")
 

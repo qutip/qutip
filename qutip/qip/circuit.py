@@ -79,7 +79,7 @@ class Gate(object):
 
     def _repr_latex_(self):
         return str(self)
-        
+
 
 _gate_name_to_label = {
     'CPHASE': r'{\rm R}',
@@ -184,8 +184,7 @@ class QubitCircuit(object):
                 basis_2q = basis
             else:
                 raise ValueError("%s is not a valid two-qubit basis gate" % basis)
-        
-        
+
         for gate in self.gates:    
             if gate.name == "CPHASE":
                 raise NotImplementedError("Cannot be resolved by the program")
@@ -527,7 +526,6 @@ class QubitCircuit(object):
                 qc_temp.gates.append(gate)
         
         return qc_temp
-
 
     def unitary_matrix(self):
         """
