@@ -931,3 +931,111 @@ def spin_coherent(j, theta, phi, type='ket'):
     else:
         raise ValueError("invalid value keyword argument 'type'")
 
+
+def bell_state(state='00'):
+    """
+    Returns the Bell state:
+    
+        |B00> = 1 / sqrt(2)*[|0>|0>+|1>|1>]
+        |B01> = 1 / sqrt(2)*[|0>|0>-|1>|1>]
+        |B10> = 1 / sqrt(2)*[|0>|1>+|1>|0>]
+        |B11> = 1 / sqrt(2)*[|0>|1>-|1>|0>]
+    
+    Returns
+    -------
+    Bell_state : qobj
+        Bell state
+    
+    """
+    if state == '00':
+        Bell_state=tensor(basis(2),basis(2))+tensor(basis(2,1),basis(2,1))
+    elif state == '01':
+        Bell_state=tensor(basis(2),basis(2))-tensor(basis(2,1),basis(2,1))
+    elif state == '10':
+        Bell_state=tensor(basis(2),basis(2,1))+tensor(basis(2,1),basis(2))
+    elif state == '11':
+        Bell_state=tensor(basis(2),basis(2,1))-tensor(basis(2,1),basis(2))
+
+    return Bell_state.unit()
+
+
+def singlet_state():
+    """
+    Returns the two particle singlet-state:
+    
+        |S>=1/sqrt(2)*[|0>|1>-|1>|0>]
+    
+    that is identical to the fourth bell state.
+    
+    Returns
+    -------
+    Bell_state : qobj
+        |B11> Bell state
+    
+    """
+    return bell_state('11')
+
+
+def triplet_states():
+    """
+    Returns the two particle triplet-states:
+    
+        |T>= |1>|1>
+           = 1 / sqrt(2)*[|0>|1>-|1>|0>]
+           = |0>|0> 
+    that is identical to the fourth bell state.
+    
+    Returns
+    -------
+    trip_states : list
+        2 particle triplet states
+    
+    """
+    trip_states = []
+    trip_states.append(tensor(basis(2,1),basis(2,1))
+    trip_states.appendtensor(basis(2),basis(2,1))+tensor(basis(2,1),basis(2))
+    trip_states.append(tensor(basis(2),basis(2)))
+    return trip_states
+
+
+def w_state(N=3):
+    """
+    Returns the N-qubit W-state.
+    
+    Parameters
+    ----------
+    N : int (default=3)
+        Number of qubits in state
+    
+    Returns
+    -------
+    W : qobj
+        N-qubit W-state
+    
+    """
+    inds=np.zeros(N,dtype=int)
+    inds[0]=1
+    state=tensor([basis(2,x) for x in inds])
+    for kk in range(1,N):
+        perm_inds=np.roll(inds,kk)
+        state+=tensor([basis(2,x) for x in perm_inds])
+    return state.unit()
+
+
+def ghz_state(N=3):
+    """
+    Returns the N-qubit GHZ-state.
+    
+    Parameters
+    ----------
+    N : int (default=3)
+        Number of qubits in state
+    
+    Returns
+    -------
+    G : qobj
+        N-qubit GHZ-state
+    
+    """
+    state=tensor([basis(2) for k in range(N)])+tensor([basis(2,1) for k in range(N)])
+    return state/np.sqrt(2)
