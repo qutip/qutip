@@ -46,6 +46,8 @@ if not 'MKL_NUM_THREADS' in os.environ:
 
 if not 'OPENBLAS_NUM_THREADS' in os.environ:
     os.environ['OPENBLAS_NUM_THREADS'] = '1'
+
+
 #------------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
 # if the requirements aren't fulfilled
@@ -220,7 +222,7 @@ from qutip.wigner import *
 from qutip.random_objects import *
 from qutip.simdiag import *
 from qutip.entropy import (entropy_vn, entropy_linear, entropy_mutual,
-                           concurrence, entropy_conditional)
+                           concurrence, entropy_conditional, entangling_power)
 from qutip.metrics import (fidelity, tracedist, average_gate_fidelity,
                            process_fidelity)
 from qutip.partial_transpose import partial_transpose

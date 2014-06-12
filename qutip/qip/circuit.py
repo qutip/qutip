@@ -79,7 +79,7 @@ class Gate(object):
 
     def _repr_latex_(self):
         return str(self)
-        
+
 
 _gate_name_to_label = {
     'CPHASE': r'{\rm R}',
@@ -184,8 +184,7 @@ class QubitCircuit(object):
                 basis_2q = basis
             else:
                 raise ValueError("%s is not a valid two-qubit basis gate" % basis)
-        
-        
+
         for gate in self.gates:    
             if gate.name == "CPHASE":
                 raise NotImplementedError("Cannot be resolved by the program")
@@ -527,31 +526,6 @@ class QubitCircuit(object):
                 qc_temp.gates.append(gate)
         
         return qc_temp
-
-
-    def resonator_qubit(self):
-        """
-        Method to execute 2 qubit gates using resonators.
-            
-        Returns
-        ----------
-        qc_temp: Qobj
-                Returns Qobj of resolved gates for the qubit circuit using resonator.    
-        
-        """  
-        qc_temp = QubitCircuit(self.N + 1, self.reverse_states)
-        
-        for gate in self.gates:    
-            if gate.name in ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY", "SWAPalpha"]:
-                qc_temp.gates.append(Gate("SWAP", targets=[targets[0], self.N]))
-                qc_temp.gates.append(Gate(gate.name, targets=[self.N, targets[1]]))
-                qc_temp.gates.append(Gate("SWAP", targets=[targets[0], self.N]))
-            
-            else:
-                qc_temp.gates.append(gate)
-        
-        return qc_temp
-
 
     def unitary_matrix(self):
         """

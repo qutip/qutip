@@ -34,6 +34,7 @@
 import numpy as np
 from numpy.testing import assert_, run_module_suite
 from qutip.qip.qft import qft, qft_steps
+from qutip.qip.gates import gate_sequence_product
 
 
 class TestQFT:
@@ -46,7 +47,9 @@ class TestQFT:
         qft: compare qft and product of qft steps
         """
         for N in range(1, 5):
-            assert_((qft(N) - np.prod(qft_steps(N))).norm() < 1e-12)
+            U1 = qft(N)
+            U2 = gate_sequence_product(qft_steps(N))
+            assert_((U1 - U2).norm() < 1e-12)
 
 
 if __name__ == "__main__":
