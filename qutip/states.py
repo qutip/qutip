@@ -993,7 +993,7 @@ def triplet_states():
     """
     trip_states = []
     trip_states.append(tensor(basis(2,1),basis(2,1))
-    trip_states.appendtensor(basis(2),basis(2,1))+tensor(basis(2,1),basis(2))
+    trip_states.append(tensor(basis(2),basis(2,1))+tensor(basis(2,1),basis(2)))
     trip_states.append(tensor(basis(2),basis(2)))
     return trip_states
 
