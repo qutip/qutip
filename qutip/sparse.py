@@ -31,8 +31,9 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 """
-This module contains a collection of sparse routines to get around
-having to use dense matrices.
+This module contains a collection of routines for operating on sparse
+matrices on the scipy.sparse formats, for use internally by other modules
+throughout QuTiP.
 """
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
@@ -44,55 +45,53 @@ from qutip.cy.sparse_utils import (
         _sparse_permute, _sparse_reverse_permute, _sparse_bandwidth)
 from qutip.settings import debug
 
+
 if debug:
     import inspect
 
 
-def _sp_fro_norm(op):
+def sp_fro_norm(data):
     """
-    Frobius norm for Qobj
+    Frobius norm for sparse matrix
     """
-    out=np.sum(np.abs(op.data.data)**2)
+    out = np.sum(np.abs(data.data)**2)
     return np.sqrt(out)
 
 
-def _sp_inf_norm(op):
+def sp_inf_norm(data):
     """
-    Infinity norm for Qobj
+    Infinity norm for sparse matrix
     """
-    return np.max([np.sum(np.abs(op.data.getrow(k).data))
-                   for k in range(op.shape[0])])
+    return np.max([np.sum(np.abs(data.getrow(k).data))
+                   for k in range(data.shape[0])])
 
 
-def _sp_L2_norm(op):
+def sp_L2_norm(data):
     """
-    L2 norm for ket or bra Qobjs
+    L2 norm sparse vector
     """
-    if op.type == 'super' or op.type == 'oper':
-        raise TypeError("Use L2-norm for ket or bra states only.")
+    if 1 not in data.shape:
+        raise TypeError("Use L2-norm only for vectors.")
 
-    if len(op.data.data):
-        return _dznrm2(op.data.data)
+    if len(data.data):
+        return _dznrm2(data.data)
     else:
         return 0
 
-def _sp_max_norm(op):
+
+def sp_max_norm(data):
     """
-    Max norm for Qobj
+    Max norm for sparse matrix
     """
-    if any(op.data.data):
-        max_nrm = np.max(np.abs(op.data.data))
-    else:
-        max_nrm = 0
-    return max_nrm
+    return np.max(np.abs(data.data)) if any(data.data) else 0
 
 
-def _sp_one_norm(op):
+def sp_one_norm(data):
     """
-    One norm for Qobj
+    One norm for sparse matrix
     """
-    return np.max(np.array([np.sum(np.abs((op.data.getcol(k).data)))
-                            for k in range(op.shape[1])]))
+    return np.max(np.array([np.sum(np.abs((data.getcol(k).data)))
+                            for k in range(data.shape[1])]))
 
 
 def sp_reshape(A, shape, format='csr'):
@@ -109,22 +108,31 @@ def sp_reshape(A, shape, format='csr'):
         Optional string indicating desired output format
 
     Returns
-    -------
+    -------/home/rob/py-envs/py3-devel/lib/python3.4/site-packages/qutip/tests/test_Sparse.py
     B : csr_matrix
         Reshaped sparse matrix
+
+    References
+    ----------
+
+        http://stackoverflow.com/questions/16511879/reshape-sparse-matrix-efficiently-python-scipy-0-12
 
     """
     if not hasattr(shape, '__len__') or len(shape) != 2:
         raise ValueError('Shape must be a list of two integers')
+
     C = A.tocoo()
     nrows, ncols = C.shape
     size = nrows * ncols
     new_size = shape[0] * shape[1]
+
     if new_size != size:
         raise ValueError('Total size of new array must be unchanged.')
+
     flat_indices = ncols * C.row + C.col
     new_row, new_col = divmod(flat_indices, shape[1])
     B = sp.coo_matrix((C.data, (new_row, new_col)), shape=shape)
+
     if format == 'csr':
         return B.tocsr()
     elif format == 'coo':
@@ -137,15 +145,17 @@ def sp_reshape(A, shape, format='csr'):
         raise ValueError('Return format not valid.')
 
 
-def sp_eigs(op, vecs=True, sparse=False, sort='low',
+def sp_eigs(data, isherm, vecs=True, sparse=False, sort='low',
             eigvals=0, tol=0, maxiter=100000):
-    """Returns Eigenvalues and Eigenvectors for Qobj.
+    """Returns Eigenvalues and Eigenvectors for a sparse matrix.
     Uses dense eigen-solver unless user sets sparse=True.
 
     Parameters
     ----------
-    op : qobj
-        Input quantum operator
+    data : csr_matrix
+        Input matrix
+    isherm : bool
+        Indicate whether the matrix is hermitian or not 
     vecs : bool {True , False}
         Flag for requesting eigenvectors
     sparse : bool {False , True}
@@ -168,11 +178,13 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
     if debug:
         print(inspect.stack()[0][3])
 
-    if op.type == 'ket' or op.type == 'bra':
-        raise TypeError("Can only diagonalize operators and superoperators")
-    N = op.shape[0]
+    if data.shape[0] != data.shape[1]:
+        raise TypeError("Can only diagonalize square matrices")
+
+    N = data.shape[0]
     if eigvals == N:
         eigvals = 0
+
     if eigvals > N:
         raise ValueError("Number of requested eigen vals/vecs must be <= N.")
 
@@ -208,27 +220,27 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
             if debug:
                 print(inspect.stack()[0][3] + ": sparse -> vectors")
 
-            if op.isherm:
+            if isherm:
                 if num_large > 0:
-                    big_vals, big_vecs = sp.linalg.eigsh(op.data, k=num_large,
+                    big_vals, big_vecs = sp.linalg.eigsh(data, k=num_large,
                                                          which='LA', tol=tol,
                                                          maxiter=maxiter)
                     big_vecs = sp.csr_matrix(big_vecs, dtype=complex)
                 if num_small > 0:
                     small_vals, small_vecs = sp.linalg.eigsh(
-                        op.data, k=num_small, which='SA',
+                        data, k=num_small, which='SA',
                         tol=tol, maxiter=maxiter)
                     small_vecs = sp.csr_matrix(small_vecs, dtype=complex)
 
             else:  # nonhermitian
                 if num_large > 0:
-                    big_vals, big_vecs = sp.linalg.eigs(op.data, k=num_large,
+                    big_vals, big_vecs = sp.linalg.eigs(data, k=num_large,
                                                         which='LR', tol=tol,
                                                         maxiter=maxiter)
                     big_vecs = sp.csr_matrix(big_vecs, dtype=complex)
                 if num_small > 0:
                     small_vals, small_vecs = sp.linalg.eigs(
-                        op.data, k=num_small, which='SR',
+                        data, k=num_small, which='SR',
                         tol=tol, maxiter=maxiter)
                     small_vecs = sp.csr_matrix(small_vecs, dtype=complex)
 
@@ -242,30 +254,30 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
             if debug:
                 print(inspect.stack()[0][3] + ": sparse -> values")
 
-            if op.isherm:
+            if isherm:
                 if num_large > 0:
                     big_vals = sp.linalg.eigsh(
-                        op.data, k=num_large, which='LA',
+                        data, k=num_large, which='LA',
                         return_eigenvectors=False, tol=tol, maxiter=maxiter)
                 if num_small > 0:
                     small_vals = sp.linalg.eigsh(
-                        op.data, k=num_small, which='SA',
+                        data, k=num_small, which='SA',
                         return_eigenvectors=False, tol=tol, maxiter=maxiter)
             else:
                 if num_large > 0:
                     big_vals = sp.linalg.eigs(
-                        op.data, k=num_large, which='LR',
+                        data, k=num_large, which='LR',
                         return_eigenvectors=False, tol=tol, maxiter=maxiter)
                 if num_small > 0:
                     small_vals = sp.linalg.eigs(
-                        op.data, k=num_small, which='SR',
+                        data, k=num_small, which='SR',
                         return_eigenvectors=False, tol=tol, maxiter=maxiter)
 
         evals = np.hstack((small_vals, big_vals))
         _zipped = list(zip(evals, range(len(evals))))
         _zipped.sort()
         evals, perm = list(zip(*_zipped))
-        if op.isherm:
+        if isherm:
             evals = np.real(evals)
         perm = np.array(perm)
 
@@ -276,42 +288,42 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
             if debug:
                 print(inspect.stack()[0][3] + ": dense -> vectors")
 
-            if op.isherm:
+            if isherm:
                 if eigvals == 0:
-                    evals, evecs = la.eigh(op.full())
+                    evals, evecs = la.eigh(data.todense())
                 else:
                     if num_small > 0:
                         evals, evecs = la.eigh(
-                            op.full(), eigvals=[0, num_small - 1])
+                            data.todense(), eigvals=[0, num_small - 1])
                     if num_large > 0:
                         evals, evecs = la.eigh(
-                            op.full(), eigvals=[N - num_large, N - 1])
+                            data.todense(), eigvals=[N - num_large, N - 1])
             else:
-                evals, evecs = la.eig(op.full())
+                evals, evecs = la.eig(data.todense())
 
             evecs = sp.csr_matrix(evecs, dtype=complex)
         else:
             if debug:
                 print(inspect.stack()[0][3] + ": dense -> values")
 
-            if op.isherm:
+            if isherm:
                 if eigvals == 0:
-                    evals = la.eigvalsh(op.full())
+                    evals = la.eigvalsh(data.todense())
                 else:
                     if num_small > 0:
                         evals = la.eigvalsh(
-                            op.full(), eigvals=[0, num_small - 1])
+                            data.todense(), eigvals=[0, num_small - 1])
                     if num_large > 0:
                         evals = la.eigvalsh(
-                            op.full(), eigvals=[N - num_large, N - 1])
+                            data.todense(), eigvals=[N - num_large, N - 1])
             else:
-                evals = la.eigvals(op.full())
+                evals = la.eigvals(data.todense())
 
         # sort return values
         _zipped = list(zip(evals, range(len(evals))))
         _zipped.sort()
         evals, perm = list(zip(*_zipped))
-        if op.isherm:
+        if isherm:
             evals = np.real(evals)
         perm = np.array(perm)
 
@@ -348,18 +360,16 @@ def sp_eigs(op, vecs=True, sparse=False, sort='low',
         return np.array(evals)
 
 
-
-def _sp_expm(qo):
+def sp_expm(data):
     """
-    Sparse matrix exponential of a quantum operator.
-    Called by the Qobj expm method.
+    Sparse matrix exponential.
     """
-    A = qo.data.tocsc()  # extract Qobj data (sparse matrix)
+    A = data.tocsc()  # extract Qobj data (sparse matrix)
     m_vals = np.array([3, 5, 7, 9, 13])
     theta = np.array([0.01495585217958292, 0.2539398330063230,
                       0.9504178996162932, 2.097847961257068,
                       5.371920351148152], dtype=float)
-    normA = _sp_one_norm(qo)
+    normA = sp_one_norm(data)
     if normA <= theta[-1]:
         for ii in range(len(m_vals)):
             if normA <= theta[ii]:
@@ -379,6 +389,7 @@ def _sp_expm(qo):
 def _pade(A, m):
     n = np.shape(A)[0]
     c = _padecoeff(m)
+
     if m != 13:
         apows = [[] for jj in range(int(np.ceil((m + 1) / 2)))]
         apows[0] = sp.eye(n, n, format='csc')
@@ -394,6 +405,7 @@ def _pade(A, m):
             V = V + c[jj] * apows[(jj + 1) // 2]
         F = spla.spsolve((-U + V), (U + V))
         return F.tocsr()
+
     elif m == 13:
         A2 = A * A
         A4 = A2 * A2
@@ -430,16 +442,16 @@ def _padecoeff(m):
                          960960, 16380, 182, 1])
 
 
-def sparse_permute(A, rperm=(), cperm=(), safe=True):
+def sp_permute(A, rperm=(), cperm=(), safe=True):
     """
-    Permutes the rows and columns of a sparse CSR/CSC matrix or Qobj 
+    Permutes the rows and columns of a sparse CSR/CSC matrix
     according to the permutation arrays rperm and cperm, respectively.  
     Here, the permutation arrays specify the new order of the rows and 
     columns. i.e. [0,1,2,3,4] -> [3,0,4,1,2].
     
     Parameters
     ----------
-    A : qobj, csr_matrix, csc_matrix
+    A : csr_matrix, csc_matrix
         Input matrix.
     rperm : array_like of integers
         Array of row permutations.
@@ -467,38 +479,34 @@ def sparse_permute(A, rperm=(), cperm=(), safe=True):
             raise Exception('Invalid row permutation array.')
         if len(np.setdiff1d(cperm, np.arange(ncols)))!=0:
             raise Exception('Invalid column permutation array.')
+
     shp = A.shape
-    if A.__class__.__name__=='Qobj':
-        kind = 'csr'
-        dt = complex
-        data, ind, ptr = _sparse_permute(
-                A.data.data, A.data.indices, A.data.indptr,
-                nrows, ncols, rperm, cperm, 0)
+    kind=A.getformat()
+    if kind=='csr':
+        flag = 0
+    elif kind=='csc':
+        flag = 1
     else:
-        kind=A.getformat()
-        if kind=='csr':
-            flag = 0
-        elif kind=='csc':
-            flag = 1
-        else:
-            raise Exception('Input must be Qobj, CSR, or CSC matrix.')
-        data, ind, ptr = _sparse_permute(A.data, A.indices, A.indptr,
-                nrows, ncols, rperm, cperm, flag)
+        raise Exception('Input must be Qobj, CSR, or CSC matrix.')
+
+    data, ind, ptr = _sparse_permute(A.data, A.indices, A.indptr,
+                                     nrows, ncols, rperm, cperm, flag)
     if kind=='csr':
         return sp.csr_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
     elif kind=='csc':
         return sp.csc_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
 
 
-def sparse_reverse_permute(A, rperm=(), cperm=(), safe=True):
+def sp_reverse_permute(A, rperm=(), cperm=(), safe=True):
     """
-    Performs a reverse permutations of the rows and columns of a sparse CSR/CSC matrix or Qobj 
-    according to the permutation arrays rperm and cperm, respectively.  Here, the permutation 
-    arrays specify the order of the rows and columns used to permute the original array/Qobj.
+    Performs a reverse permutations of the rows and columns of a sparse CSR/CSC
+    matrix according to the permutation arrays rperm and cperm, respectively.
+    Here, the permutation arrays specify the order of the rows and columns used
+    to permute the original array.
     
     Parameters
     ----------
-    A : qobj, csr_matrix, csc_matrix
+    A : csr_matrix, csc_matrix
         Input matrix.
     rperm : array_like of integers
         Array of row permutations.
@@ -526,40 +534,36 @@ def sparse_reverse_permute(A, rperm=(), cperm=(), safe=True):
             raise Exception('Invalid row permutation array.')
         if len(np.setdiff1d(cperm, np.arange(ncols)))!=0:
             raise Exception('Invalid column permutation array.')
+
     shp = A.shape
-    if A.__class__.__name__=='Qobj':
-        kind = 'csr'
-        dt = complex
-        data, ind, ptr = _sparse_reverse_permute(
-                A.data, A.indices, A.indptr,
-                nrows, ncols, rperm, cperm, 0)
+    kind=A.getformat()
+    if kind=='csr':
+        flag = 0
+    elif kind=='csc':
+        flag = 1
     else:
-        kind=A.getformat()
-        if kind=='csr':
-            flag = 0
-        elif kind=='csc':
-            flag = 1
-        else:
-            raise Exception('Input must be Qobj, CSR, or CSC matrix.')        
-        data, ind, ptr = _sparse_reverse_permute(A.data, A.indices, A.indptr,
-                nrows, ncols, rperm, cperm, flag)
+        raise Exception('Input must be Qobj, CSR, or CSC matrix.')        
+
+    data, ind, ptr = _sparse_reverse_permute(A.data, A.indices, A.indptr,
+                                             nrows, ncols, rperm, cperm, flag)
+
     if kind=='csr':
         return sp.csr_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
     elif kind=='csc':
         return sp.csc_matrix((data, ind, ptr), shape=shp, dtype=data.dtype)
 
 
-def sparse_bandwidth(A):
+def sp_bandwidth(A):
     """
     Returns the max(mb), lower(lb), and upper(ub) bandwidths of a 
-    qobj or sparse CSR/CSC matrix.
+    sparse CSR/CSC matrix.
     
     If the matrix is symmetric then the upper and lower bandwidths are 
     identical. Diagonal matrices have a bandwidth equal to one.
     
     Parameters
     ----------
-    A : qobj, csr_matrix, csc_matrix
+    A : csr_matrix, csc_matrix
         Input matrix
     
     Returns
@@ -574,9 +578,8 @@ def sparse_bandwidth(A):
     """
     nrows = A.shape[0]
     ncols = A.shape[1]
-    if A.__class__.__name__ == 'Qobj':
-        return _sparse_bandwidth(A.data.indices, A.data.indptr, nrows)
-    elif A.getformat() == 'csr':
+    
+    if A.getformat() == 'csr':
         return _sparse_bandwidth(A.indices, A.indptr, nrows) 
     elif A.getformat() == 'csc':
         # Normal output is mb,lb,ub but since CSC
@@ -584,14 +587,5 @@ def sparse_bandwidth(A):
         mb, ub, lb= _sparse_bandwidth(A.indices, A.indptr, ncols)
         return mb, lb, ub
     else:
-        raise Exception('Invalid sparse input format.') 
+        raise Exception('Invalid sparse input format.')
 
-    
-    
-    
-    
-    
-    
-    
-    
-    
