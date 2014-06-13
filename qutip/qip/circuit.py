@@ -335,7 +335,7 @@ class QubitCircuit(object):
                                           arg_value=np.pi, arg_label=r"\pi"))
             elif gate.name == "PHASEGATE":
                 temp_resolved.append(Gate("GLOBALPHASE", None, None,
-                                          arg_value=gate.arg_value/2, gate.arg_label))
+                                          arg_value=gate.arg_value/2, arg_label=gate.arg_label))
                 temp_resolved.append(Gate("RZ", gate.targets, None,
                                           gate.arg_value, gate.arg_label))
             elif gate.name == "GLOBALPHASE":
