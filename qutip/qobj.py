@@ -55,8 +55,8 @@ import qutip.settings as settings
 from qutip import __version__
 from qutip.ptrace import _ptrace
 from qutip.permute import _permute
-from qutip.sparse import (sp_eigs, _sp_expm, _sp_fro_norm, _sp_max_norm,
-                          _sp_one_norm, _sp_L2_norm, _sp_inf_norm)
+from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
+                          sp_one_norm, sp_L2_norm, sp_inf_norm)
 
 
 class Qobj(object):
@@ -792,23 +792,23 @@ class Qobj(object):
         """
         if self.type in ['oper', 'super']:
             if norm is None or norm == 'tr':
-                vals = sp_eigs(self, vecs=False, sparse=sparse,
-                               tol=tol, maxiter=maxiter)
+                vals = sp_eigs(self.data, self.isherm, vecs=False,
+                               sparse=sparse, tol=tol, maxiter=maxiter)
                 return np.sum(sqrt(abs(vals) ** 2))
             elif norm == 'fro':
-                return _sp_fro_norm(self)
+                return sp_fro_norm(self.data)
             elif norm == 'one':
-                return _sp_one_norm(self)
+                return sp_one_norm(self.data)
             elif norm == 'max':
-                return _sp_max_norm(self)
+                return sp_max_norm(self.data)
             else:
                 raise ValueError(
                     "For matrices, norm must be 'tr', 'fro', 'one', or 'max'.")
         else:
             if norm is None or norm == 'l2':
-                return _sp_L2_norm(self)
+                return sp_L2_norm(self.data)
             elif norm == 'max':
-                return _sp_max_norm(self)
+                return sp_max_norm(self.data)
             else:
                 raise ValueError("For vectors, norm must be 'l2', or 'max'.")
 
@@ -874,7 +874,7 @@ class Qobj(object):
 
         """
         if self.dims[0][0] == self.dims[1][0]:
-            F = _sp_expm(self)
+            F = sp_expm(self.data)
             out = Qobj(F, dims=self.dims)
             return out.tidyup() if settings.auto_tidyup else out
         else:
@@ -924,8 +924,8 @@ class Qobj(object):
 
         """
         if self.dims[0][0] == self.dims[1][0]:
-            evals, evecs = sp_eigs(self, sparse=sparse, tol=tol,
-                                   maxiter=maxiter)
+            evals, evecs = sp_eigs(self.data, self.isherm, sparse=sparse,
+                                   tol=tol, maxiter=maxiter)
             numevals = len(evals)
             dV = sp.spdiags(np.sqrt(np.abs(evals)), 0, numevals, numevals,
                             format='csr')
@@ -1225,8 +1225,9 @@ class Qobj(object):
         Use sparse only if memory requirements demand it.
 
         """
-        evals, evecs = sp_eigs(self, sparse=sparse, sort=sort,
-                               eigvals=eigvals, tol=tol, maxiter=maxiter)
+        evals, evecs = sp_eigs(self.data, self.isherm, sparse=sparse,
+                               sort=sort, eigvals=eigvals, tol=tol,
+                               maxiter=maxiter)
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
         ekets = np.array([Qobj(vec, dims=new_dims) for vec in evecs])
         norms = np.array([ket.norm() for ket in ekets])
@@ -1268,8 +1269,8 @@ class Qobj(object):
         Use sparse only if memory requirements demand it.
 
         """
-        return sp_eigs(self, vecs=False, sparse=sparse, sort=sort,
-                       eigvals=eigvals, tol=tol, maxiter=maxiter)
+        return sp_eigs(self.data, self.isherm, vecs=False, sparse=sparse,
+                       sort=sort, eigvals=eigvals, tol=tol, maxiter=maxiter)
 
     def groundstate(self, sparse=False, tol=0, maxiter=100000):
         """Ground state Eigenvalue and Eigenvector.
@@ -1302,8 +1303,8 @@ class Qobj(object):
         Use sparse only if memory requirements demand it.
 
         """
-        grndval, grndvec = sp_eigs(
-            self, sparse=sparse, eigvals=1, tol=tol, maxiter=maxiter)
+        grndval, grndvec = sp_eigs(self.data, self.isherm, sparse=sparse,
+                                   eigvals=1, tol=tol, maxiter=maxiter)
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
         grndvec = Qobj(grndvec[0], dims=new_dims)
         grndvec = grndvec / grndvec.norm()
