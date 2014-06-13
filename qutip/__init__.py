@@ -193,7 +193,7 @@ from qutip.expect import *
 from qutip.superoperator import *
 from qutip.tensor import *
 from qutip.parfor import *
-from qutip.sparse import *
+#from qutip.sparse import *
 
 # graphics
 if qutip.settings.qutip_graphics == 'YES':
@@ -248,7 +248,7 @@ from qutip.floquet import *
 from qutip.bloch_redfield import *
 from qutip.superop_reps import *
 from qutip.subsystem_apply import subsystem_apply
-from qutip.sparse import sparse_bandwidth
+#from qutip.sparse import sparse_bandwidth
 from qutip.graph import *
 
 # quantum information
