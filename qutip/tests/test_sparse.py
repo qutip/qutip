@@ -32,10 +32,13 @@
 ###############################################################################
 import numpy as np
 from numpy.testing import assert_, run_module_suite, assert_equal
+import scipy.sparse as sp
 
 from qutip.random_objects import rand_dm
 from qutip.operators import create, destroy, qeye
-from qutip.sparse import sp_bandwidth, sp_permute
+from qutip.states import coherent
+from qutip.sparse import sp_bandwidth, sp_permute, sp_reverse_permute
+from qutip.graph import symrcm
 
 
 def _permutateIndexes(array, row_perm, col_perm):
@@ -107,7 +110,7 @@ def test_sparse_nonsymmetric_reverse_permute():
     #CSR column vector check
     A=coherent(25,1)
     rperm=np.random.permutation(25)
-    x=sp_permute(A,rperm,[])
+    x = sp_permute(A.data, rperm, [])
     B=sp_reverse_permute(x,rperm,[])
     assert_equal((A.full() - B.toarray()).all(), 0)
     #CSC column vector check
@@ -120,7 +123,7 @@ def test_sparse_nonsymmetric_reverse_permute():
     #CSR row vector check
     A=coherent(25,1).dag()
     cperm=np.random.permutation(25)
-    x=sp_permute(A,[],cperm)
+    x = sp_permute(A.data, [], cperm)
     B=sp_reverse_permute(x,[],cperm)
     assert_equal((A.full() - B.toarray()).all(), 0)
     #CSC row vector check
@@ -136,13 +139,18 @@ def test_sp_bandwidth():
     "Sparse: Bandwidth"
     #Bandwidth test 1
     A=create(25)+destroy(25)+qeye(25)
-    band=sp_bandwidth(A)
+    band = sp_bandwidth(A.data)
     assert_equal(band[0], 3)
     assert_equal(band[1]==band[2]==1, 1)
     #Bandwidth test 2
-    A=array([[1,0,0,0,1,0,0,0],[0,1,1,0,0,1,0,1],[0,1,1,0,1,0,0,0],
-            [0,0,0,1,0,0,1,0],[1,0,1,0,1,0,0,0],[0,1,0,0,0,1,0,1],
-            [0,0,0,1,0,0,1,0],[0,1,0,0,0,1,0,1]], dtype=np.int32)
+    A = np.array([[1,0,0,0,1,0,0,0],
+                  [0,1,1,0,0,1,0,1],
+                  [0,1,1,0,1,0,0,0],
+                  [0,0,0,1,0,0,1,0],
+                  [1,0,1,0,1,0,0,0],
+                  [0,1,0,0,0,1,0,1],
+                  [0,0,0,1,0,0,1,0],
+                  [0,1,0,0,0,1,0,1]], dtype=np.int32)
     A=sp.csr_matrix(A)
     out1=sp_bandwidth(A)
     assert_equal(out1[0], 13)
@@ -155,7 +163,7 @@ def test_sp_bandwidth():
     assert_equal(out2[1]==out2[2]==2, 1)
     #Asymmetric bandwidth test
     A=destroy(25)+qeye(25)
-    out1=sp_bandwidth(A)
+    out1 = sp_bandwidth(A.data)
     assert_equal(out1[0], 2)
     assert_equal(out1[1], 0)
     assert_equal(out1[2], 1)
