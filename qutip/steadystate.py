@@ -45,10 +45,10 @@ import scipy.linalg as la
 from scipy.sparse.linalg import *
 
 from qutip.qobj import Qobj, issuper, isoper
-from qutip.superoperator import *
+from qutip.superoperator import liouvillian_fast, vec2mat
 from qutip.operators import qeye
 from qutip.random_objects import rand_dm
-from qutip.sparse import *
+from qutip.sparse import sp_permute, sp_bandwidth, sp_reshape
 from qutip.graph import symrcm
 from qutip.states import ket2dm
 import qutip.settings as settings
@@ -222,7 +222,7 @@ def _steadystate_direct_sparse(L, use_rcm=True, use_umfpack=False):
 
     if use_rcm:
         perm = symrcm(L)
-        L = sparse_permute(L, perm, perm)
+        L = sp_permute(L, perm, perm)
         b = b[np.ix_(perm,)]
 
     v = spsolve(L, b)
@@ -299,13 +299,13 @@ def _steadystate_iterative(L, tol=1e-5, use_precond=True, M=None,
 
     if use_rcm:
         if settings.debug:
-            print('Original bandwidth ', sparse_bandwidth(L))
+            print('Original bandwidth ', sp_bandwidth(L))
         perm = symrcm(L)
         rev_perm = np.argsort(perm)
-        L = sparse_permute(L, perm, perm, 'csc')
+        L = sp_permute(L, perm, perm, 'csc')
         b = b[np.ix_(perm,)]
         if settings.debug:
-            print('RCM bandwidth ', sparse_bandwidth(L))
+            print('RCM bandwidth ', sp_bandwidth(L))
 
     use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
     L.sort_indices()
@@ -355,13 +355,13 @@ def _steadystate_iterative_bicg(L, tol=1e-5, use_precond=True, use_rcm=True,
 
     if use_rcm:
         if settings.debug:
-            print('Original bandwidth ', sparse_bandwidth(L))
+            print('Original bandwidth ', sp_bandwidth(L))
         perm = symrcm(L)
         rev_perm = np.argsort(perm)
-        L = sparse_permute(L, perm, perm, 'csc')
+        L = sp_permute(L, perm, perm, 'csc')
         b = b[np.ix_(perm,)]
         if settings.debug:
-            print('RCM bandwidth ', sparse_bandwidth(L))
+            print('RCM bandwidth ', sp_bandwidth(L))
 
     if M is None and use_precond:
         M = _iterative_precondition(L, n, drop_tol,
@@ -406,7 +406,7 @@ def _steadystate_lu(L, use_rcm=True, use_umfpack=False):
     use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
     if use_rcm:
         perm = symrcm(L)
-        L = sparse_permute(L, perm, perm)
+        L = sp_permute(L, perm, perm)
         b = b[np.ix_(perm,)]
 
     solve = factorized(L)
