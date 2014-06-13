@@ -39,6 +39,8 @@ from scipy.sparse.csgraph import breadth_first_order as BFO
 import os
 pwd = os.path.dirname(__file__)
 from qutip import *
+from qutip.sparse import sp_permute, sp_bandwidth
+
 # find networkx if it exists
 try:
     import networkx as nx
@@ -100,8 +102,8 @@ def test_graph_rcm_boost():
     perm=symrcm(M,1)
     ans_perm=array([9,7,6,4,1,5,0,2,3,8])
     assert_equal((perm - ans_perm).all(), 0)
-    P=sparse_permute(M,perm,perm)
-    bw=sparse_bandwidth(P)
+    P=sp_permute(M,perm,perm)
+    bw=sp_bandwidth(P)
     assert_equal(bw[2], 4)
 
 def test_graph_bfs_matching():
@@ -109,9 +111,9 @@ def test_graph_bfs_matching():
     A=sp.diags(np.ones(25),offsets=0,format='csc')
     perm=np.random.permutation(25)
     perm2=np.random.permutation(25)
-    B=sparse_permute(A,perm,perm2)
+    B=sp_permute(A,perm,perm2)
     perm=bfs_matching(B)
-    C=sparse_permute(B,perm,[])
+    C=sp_permute(B,perm,[])
     assert_equal(any(C.diagonal()==0),False)
 
 def test_graph_weighted_bfs():
@@ -124,9 +126,9 @@ def test_graph_weighted_bfs():
     A=A+B
     perm=np.random.permutation(25)
     perm2=np.random.permutation(25)
-    B=sparse_permute(A,perm,perm2)
+    B=sp_permute(A,perm,perm2)
     perm=weighted_bfs_matching(B)
-    C=sparse_permute(B,perm,[])
+    C=sp_permute(B,perm,[])
     assert_equal(np.sum(A.diagonal()),np.sum(C.diagonal()))
 
 if __name__ == "__main__":

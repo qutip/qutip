@@ -62,7 +62,7 @@ class TestRand:
         for k in range(5):
             assert_equal(R[k].tr() - 1.0 < 1e-15, True)
             # verify all eigvals are >=0
-            assert_(not any(sp_eigs(R[k], vecs=False)) < 0)
+            assert_(not any(sp_eigs(R[k].data, R[k].isherm, vecs=False)) < 0)
             # verify hermitian
             assert_(R[k].isherm)
 

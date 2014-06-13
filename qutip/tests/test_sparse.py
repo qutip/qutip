@@ -47,7 +47,7 @@ def test_sparse_symmetric_permute():
     #CSR version
     A=rand_dm(25,0.5)
     perm=np.random.permutation(25)
-    x = sp_permute(A,perm,perm).toarray()
+    x = sp_permute(A.data, perm, perm).toarray()
     z=_permutateIndexes(A.full(), perm, perm)
     assert_equal((x - z).all(), 0)
     #CSC version
@@ -62,7 +62,7 @@ def test_sparse_nonsymmetric_permute():
     A=rand_dm(25,0.5)
     rperm=np.random.permutation(25)
     cperm=np.random.permutation(25)
-    x=sp_permute(A,rperm,cperm).toarray()
+    x = sp_permute(A.data, rperm, cperm).toarray()
     z=_permutateIndexes(A.full(),rperm, cperm)
     assert_equal((x - z).all(), 0)
     #CSC version
@@ -76,14 +76,14 @@ def test_sparse_symmetric_reverse_permute():
     #CSR version
     A=rand_dm(25,0.5)
     perm=np.random.permutation(25)
-    x=sp_permute(A,perm,perm)
-    B=sparse_reverse_permute(x,perm,perm)
+    x = sp_permute(A.data, perm, perm)
+    B=sp_reverse_permute(x,perm,perm)
     assert_equal((A.full() - B.toarray()).all(), 0)
     #CSC version
     B=A.data.tocsc()
     perm=np.random.permutation(25)
     x=sp_permute(B,perm,perm)
-    B=sparse_reverse_permute(x,perm,perm)
+    B=sp_reverse_permute(x,perm,perm)
     assert_equal((A.full() - B.toarray()).all(), 0)
 
 
@@ -94,7 +94,7 @@ def test_sparse_nonsymmetric_reverse_permute():
     rperm=np.random.permutation(25)
     cperm=np.random.permutation(25)
     x=sp_permute(A.data, rperm, cperm)
-    B=sparse_reverse_permute(x,rperm,cperm)
+    B=sp_reverse_permute(x,rperm,cperm)
     assert_equal((A.full() - B.toarray()).all(), 0)
     #CSC square array check
     A=rand_dm(25,0.5)
@@ -102,41 +102,41 @@ def test_sparse_nonsymmetric_reverse_permute():
     cperm=np.random.permutation(25)
     B=A.data.tocsc()
     x=sp_permute(B,rperm,cperm)
-    B=sparse_reverse_permute(x,rperm,cperm)
+    B=sp_reverse_permute(x,rperm,cperm)
     assert_equal((A.full() - B.toarray()).all(), 0)
     #CSR column vector check
     A=coherent(25,1)
     rperm=np.random.permutation(25)
     x=sp_permute(A,rperm,[])
-    B=sparse_reverse_permute(x,rperm,[])
+    B=sp_reverse_permute(x,rperm,[])
     assert_equal((A.full() - B.toarray()).all(), 0)
     #CSC column vector check
     A=coherent(25,1)
     rperm=np.random.permutation(25)
     B=A.data.tocsc()
     x=sp_permute(B,rperm,[])
-    B=sparse_reverse_permute(x,rperm,[])
+    B=sp_reverse_permute(x,rperm,[])
     assert_equal((A.full() - B.toarray()).all(), 0)
     #CSR row vector check
     A=coherent(25,1).dag()
     cperm=np.random.permutation(25)
     x=sp_permute(A,[],cperm)
-    B=sparse_reverse_permute(x,[],cperm)
+    B=sp_reverse_permute(x,[],cperm)
     assert_equal((A.full() - B.toarray()).all(), 0)
     #CSC row vector check
     A=coherent(25,1).dag()
     cperm=np.random.permutation(25)
     B=A.data.tocsc()
     x=sp_permute(B,[],cperm)
-    B=sparse_reverse_permute(x,[],cperm)
+    B=sp_reverse_permute(x,[],cperm)
     assert_equal((A.full() - B.toarray()).all(), 0)
 
 
-def test_sp_bandwitdth():
+def test_sp_bandwidth():
     "Sparse: Bandwidth"
     #Bandwidth test 1
     A=create(25)+destroy(25)+qeye(25)
-    band=sp_bandwitdth(A)
+    band=sp_bandwidth(A)
     assert_equal(band[0], 3)
     assert_equal(band[1]==band[2]==1, 1)
     #Bandwidth test 2
@@ -144,18 +144,18 @@ def test_sp_bandwitdth():
             [0,0,0,1,0,0,1,0],[1,0,1,0,1,0,0,0],[0,1,0,0,0,1,0,1],
             [0,0,0,1,0,0,1,0],[0,1,0,0,0,1,0,1]], dtype=np.int32)
     A=sp.csr_matrix(A)
-    out1=sp_bandwitdth(A)
+    out1=sp_bandwidth(A)
     assert_equal(out1[0], 13)
     assert_equal(out1[1]==out1[2]==6, 1)
     #Bandwidth test 3
     perm=symrcm(A)
     B=sp_permute(A,perm,perm)
-    out2=sp_bandwitdth(B)
+    out2=sp_bandwidth(B)
     assert_equal(out2[0], 5)
     assert_equal(out2[1]==out2[2]==2, 1)
     #Asymmetric bandwidth test
     A=destroy(25)+qeye(25)
-    out1=sp_bandwitdth(A)
+    out1=sp_bandwidth(A)
     assert_equal(out1[0], 2)
     assert_equal(out1[1], 0)
     assert_equal(out1[2], 1)
