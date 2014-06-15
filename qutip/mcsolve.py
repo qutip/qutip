@@ -250,8 +250,8 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     if not options.rhs_reuse and odeconfig.tdname:
         try:
             os.remove(odeconfig.tdname + ".pyx")
-        except Exception as e:
-            print("Error removing pyx file: " + str(e))
+        except:
+            print("Error removing pyx file:",odeconfig.tdname)
 
     # AFTER MCSOLVER IS DONE --------------------------------------
     #-------COLLECT AND RETURN OUTPUT DATA IN ODEDATA OBJECT --------------#
