@@ -45,7 +45,7 @@ class TestMatrixVector:
 
     def testOperatorVector(self):
         """
-        Superoperator: Test operator - vector - operator conversion.
+        Superoperator: Operator - vector - operator conversion.
         """
         N = 3
         rho1 = rand_dm(N)
@@ -55,7 +55,7 @@ class TestMatrixVector:
 
     def testOperatorVector(self):
         """
-        Superoperator: Test unitary transformation with operators and superoperators.
+        Superoperator: Unitary transformation with operators and superoperators.
         """
         N = 3
         rho = rand_dm(N)
@@ -97,8 +97,8 @@ class TestMatrixVector:
 
     def testVectorMatrixIndexCompability(self):
         """
-        Superoperator: Test compability between matrix/vector conversion and
-        the corresponding index conversion.
+        Superoperator: Compatibility between matrix/vector and
+        corresponding index conversions.
         """
         N = 10
         M = scipy.rand(N, N)
@@ -110,7 +110,7 @@ class TestMatrixVector:
     def testLiouvillianImplementations(self):
         """
         Superoperator: Randomized comparison of standard and optimized
-        liouvillian.
+        Liouvillian.
         """
         N1 = 3
         N2 = 4
