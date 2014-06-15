@@ -54,7 +54,7 @@ else:
 def test_graph_degree():
     "Graph: Graph Degree"
     A = rand_dm(25, 0.5)
-    deg = graph_degree(A)
+    deg = graph_degree(A.data)
     G = nx.from_scipy_sparse_matrix(A.data)
     nx_deg = G.degree()
     nx_deg = array([nx_deg[k] for k in range(25)])
