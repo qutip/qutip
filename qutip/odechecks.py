@@ -49,17 +49,19 @@ def _ode_checks(H, c_ops, solver='me'):
     elif isinstance(H, (FunctionType, BuiltinFunctionType, partial)):
         pass  # n_func += 1
     elif isinstance(H, list):
-        for k in range(len(H)):
-            if isinstance(H[k], Qobj):
+        for k, H_k in enumerate(H):
+            if isinstance(H_k, Qobj):
                 h_const.append(k)
-            elif isinstance(H[k], list):
-                if len(H[k]) != 2 or not isinstance(H[k][0], Qobj):
+            elif isinstance(H_k, list):
+                if len(H_k) != 2 or not isinstance(H_k[0], Qobj):
                     raise TypeError("Incorrect hamiltonian specification")
                 else:
-                    if isinstance(H[k][1], (FunctionType,
+                    if isinstance(H_k[1], (FunctionType,
                                             BuiltinFunctionType, partial)):
                         h_func.append(k)
-                    elif isinstance(H[k][1], str):
+                    elif isinstance(H_k[1], str):
+                        h_str.append(k)
+                    elif isinstance(H_k[1], np.ndarray):
                         h_str.append(k)
                     else:
                         raise TypeError("Incorrect hamiltonian specification")
@@ -83,6 +85,8 @@ def _ode_checks(H, c_ops, solver='me'):
                                                 BuiltinFunctionType, partial)):
                         c_func.append(k)
                     elif isinstance(c_ops[k][1], str):
+                        c_str.append(k)
+                    elif isinstance(c_ops[k][1], np.ndarray):
                         c_str.append(k)
                     else:
                         raise TypeError(
@@ -165,3 +169,48 @@ def _ode_checks(H, c_ops, solver='me'):
                 raise Exception("Error determining time-dependence.")
 
         return time_type, [h_const, h_func, h_str], [c_const, c_func, c_str]
+
+
+def _td_wrap_array_str(H, c_ops, args, times):
+    """
+    Wrap numpy-array based time-dependence in the string-based time dependence
+    format
+    """
+    n = 0
+    H_new = []
+    c_ops_new = []
+    args_new = {}
+
+    if not isinstance(H, list):
+        H_new = H
+    else:
+        for Hk in H:
+            if isinstance(Hk, list) and isinstance(Hk[1], np.ndarray):
+                H_op, H_td = Hk
+                td_array_name = "_td_array_%d" % n
+                H_td_str = '(0 if (t > %f) else %s[np.round(%d * (t/%f))])' %\
+                    (times[-1], td_array_name, len(times) - 1, times[-1])
+                args_new[td_array_name] = H_td
+                H_new.append([H_op, H_td_str])
+                n += 1
+            else:
+                H_new.append(Hk)
+
+    if not isinstance(c_ops, list):
+        c_ops_new = c_ops
+    else:
+        for ck in c_ops:
+            if isinstance(ck, list) and isinstance(ck[1], np.ndarray):
+                c_op, c_td = ck
+                td_array_name = "_td_array_%d" % n
+                c_td_str = '(0 if (t > %f) else %s[np.round(%d * (t/%f))])' %\
+                    (times[-1], td_array_name, len(times) - 1, times[-1])
+                args_new[td_array_name] = c_td
+                c_ops_new.append([c_op, c_td_str])
+                n += 1
+            else:
+                c_ops_new.append(ck)
+
+    args_new.update(args)
+
+    return H_new, c_ops_new, args_new
