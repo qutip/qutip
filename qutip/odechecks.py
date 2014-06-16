@@ -211,6 +211,7 @@ def _td_wrap_array_str(H, c_ops, args, times):
             else:
                 c_ops_new.append(ck)
 
-    args_new.update(args)
+    if args:
+        args_new.update(args)
 
     return H_new, c_ops_new, args_new
