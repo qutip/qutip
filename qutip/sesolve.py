@@ -48,7 +48,7 @@ from qutip.rhs_generate import rhs_generate
 from qutip.odedata import Odedata
 from qutip.odeoptions import Odeoptions
 from qutip.odeconfig import odeconfig
-from qutip.odechecks import _ode_checks
+from qutip.odechecks import _ode_checks, _td_wrap_array_str
 from qutip.settings import debug
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
                                  cy_ode_psi_func_td,
@@ -122,6 +122,9 @@ def sesolve(H, rho0, tlist, e_ops, args={}, options=None,
         e_ops = [e for e in e_ops.values()]
     else:
         e_ops_dict = None
+
+    # convert array based time-dependence to string format
+    H, _, args = _td_wrap_array_str(H, [], args, tlist)
 
     # check for type (if any) of time-dependent inputs
     n_const, n_func, n_str = _ode_checks(H, [])
@@ -365,8 +368,7 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
         string_list.append("Ldata[%d], Linds[%d], Lptrs[%d]" % (k, k, k))
     for name, value in args.items():
         if isinstance(value, np.ndarray):
-            globals()['var_%s'%name] = value
-            string_list.append('var_%s'%name)
+            string_list.append(name)
         else:
             string_list.append(str(value))
     parameter_string = ",".join(string_list)
@@ -400,7 +402,8 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
     r.set_initial_value(initial_vector, tlist[0])
     code = compile('r.set_f_params(' + parameter_string + ')',
                    '<string>', 'exec')
-    exec(code)
+
+    exec(code, locals().update(args))
 
     #
     # call generic ODE code
