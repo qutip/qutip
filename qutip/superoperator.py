@@ -40,38 +40,7 @@ from qutip.operators import destroy
 from qutip.sparse import sp_reshape
 
 
-def liouvillian(H, c_op_list=[]):
-    """Assembles the Liouvillian superoperator from a Hamiltonian
-    and a ``list`` of collapse operators.
-
-    Parameters
-    ----------
-    H : qobj
-        System Hamiltonian.
-
-    c_op_list : array_like
-        A ``list`` or ``array`` of collapse operators.
-
-    Returns
-    -------
-    L : qobj
-        Liouvillian superoperator.
-
-    """
-
-    L = -1.0j * (spre(H) - spost(H)) if H else 0
-
-    for c in c_op_list:
-        if c.issuper:
-            L += c
-        else:
-            cdc = c.dag() * c
-            L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
-
-    return L
-
-
-def liouvillian_fast(H, c_op_list, data_only=False):
+def liouvillian(H, c_op_list, data_only=False):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators. Like liouvillian, but with an
     experimental implementation which avoids creating extra Qobj instances,
@@ -119,7 +88,7 @@ def liouvillian_fast(H, c_op_list, data_only=False):
     sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
     sop_shape = [prod(op_dims), prod(op_dims)]
 
-    spI = sp.identity(op_shape[0])
+    spI = sp.identity(op_shape[0], format='csr')
 
     if H:
         if H.isoper:

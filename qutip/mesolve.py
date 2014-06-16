@@ -45,7 +45,7 @@ from scipy.linalg import norm
 import warnings
 
 from qutip.qobj import Qobj, isket, isoper, issuper
-from qutip.superoperator import spre, spost, liouvillian_fast, mat2vec, vec2mat
+from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
 from qutip.expect import expect, expect_rho_vec
 from qutip.odeoptions import Odeoptions
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
@@ -366,7 +366,7 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
 
         if isoper(c):
             cdc = c.dag() * c
-            L_list.append([liouvillian_fast(None, [c], data_only=True),
+            L_list.append([liouvillian(None, [c], data_only=True),
                            c_coeff, c_square])
 
         elif issuper(c):
@@ -633,7 +633,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
     if opt.tidy:
         H = H.tidyup(opt.atol)
 
-    L = liouvillian_fast(H, c_op_list)
+    L = liouvillian(H, c_op_list)
 
     #
     # setup integrator
@@ -707,9 +707,9 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, e_ops, args, opt,
     lenh = len(H_func[0])
     if opt.tidy:
         H_func[0] = [(H_func[0][k]).tidyup() for k in range(lenh)]
-    L_func = [[liouvillian_fast(H_func[0][0], c_op_list)], H_func[1]]
+    L_func = [[liouvillian(H_func[0][0], c_op_list)], H_func[1]]
     for m in range(1, lenh):
-        L_func[0].append(liouvillian_fast(H_func[0][m], []))
+        L_func[0].append(liouvillian(H_func[0][m], []))
 
     # create data arrays for time-dependent RHS function
     Ldata = [L_func[0][k].data.data for k in range(lenh)]
@@ -786,7 +786,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
     new_args = None
 
     if len(c_op_list) > 0:
-        L_data = liouvillian_fast(None, c_op_list).data
+        L_data = liouvillian(None, c_op_list).data
     else:
         n, m = rho0.shape
         L_data = sp.csr_matrix((n ** 2, m ** 2), dtype=complex)
