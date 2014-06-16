@@ -71,7 +71,7 @@ shape = [4, 4], type = oper, isHerm = True
     if len(args) == 1 and isinstance(args[0], (list, np.ndarray)):
         # this is the case when tensor is called on the form:
         # tensor([q1, q2, q3, ...])
-        qlist = list(args[0])
+        qlist = args[0]
 
     elif len(args) == 1 and isinstance(args[0], Qobj):
         # tensor is called with a single Qobj as an argument, do nothing
@@ -80,16 +80,7 @@ shape = [4, 4], type = oper, isHerm = True
     else:
         # this is the case when tensor is called on the form:
         # tensor(q1, q2, q3, ...)
-        qlist = list(args)
-
-    # Grab constants from qlist
-    i = 0
-    scale = 1
-    while i < len(qlist):
-        if isinstance(qlist[i], (int, float, complex, np.int64)):
-            scale *= qlist.pop(i)
-        else:
-            i += 1
+        qlist = args
 
     if not all([isinstance(q, Qobj) for q in qlist]):
         # raise error if one of the inputs is not a quantum object
@@ -113,9 +104,6 @@ shape = [4, 4], type = oper, isHerm = True
             out.dims = [out.dims[0] + q.dims[0], out.dims[1] + q.dims[1]]
 
         out.isherm = out.isherm and q.isherm
-
-    # Apply scaling factor due to constants
-    out.data *= scale
 
     if not out.isherm:
         out._isherm = None
