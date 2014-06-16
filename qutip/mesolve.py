@@ -562,7 +562,11 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
     for k in range(n_L_terms):
         string_list.append("Ldata[%d], Linds[%d], Lptrs[%d]" % (k, k, k))
     for name, value in args.items():
-        string_list.append(str(value))
+        if isinstance(value, np.ndarray):
+            globals()['var_%s'%name] = value
+            string_list.append('var_%s'%name)
+        else:
+            string_list.append(str(value))
     parameter_string = ",".join(string_list)
 
     #
@@ -721,11 +725,12 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, e_ops, args, opt,
         string += ("Ldata[%d], Linds[%d], Lptrs[%d]," % (k, k, k))
 
     if args:
-        td_consts = args.items()
-        for elem in td_consts:
-            string += str(elem[1])
-            if elem != td_consts[-1]:
-                string += (",")
+        for name, value in args.items():
+            if isinstance(value, np.ndarray):
+                globals()['var_%s'%name] = value
+                string += 'var_%s,'%name
+            else:
+                string += str(value) + ','
 
     # run code generator
     if not opt.rhs_reuse or odeconfig.tdfunc is None:
