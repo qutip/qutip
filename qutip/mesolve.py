@@ -601,7 +601,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
     code = compile('r.set_f_params(' + parameter_string + ')',
                    '<string>', 'exec')
 
-    exec(code, locals().update(args))
+    exec(code, locals(), args)
 
     #
     # call generic ODE code

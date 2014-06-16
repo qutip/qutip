@@ -403,7 +403,7 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
     code = compile('r.set_f_params(' + parameter_string + ')',
                    '<string>', 'exec')
 
-    exec(code, locals().update(args))
+    exec(code, locals(), args)
 
     #
     # call generic ODE code
