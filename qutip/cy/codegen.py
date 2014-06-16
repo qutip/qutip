@@ -128,7 +128,7 @@ class Codegen():
             return ''
 
         ret = ''
-        for name, value in self.args.iteritems():
+        for name, value in self.args.items():
             if isinstance(value, np.ndarray):
                 ret += ", np.ndarray[np.%s_t, ndim=%d] %s" % \
                     (value.dtype.name, len(value.shape), name)
