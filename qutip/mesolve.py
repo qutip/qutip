@@ -97,13 +97,17 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     Alternatively, `H` and `c_ops` can be a specified in a nested-list format
     where each element in the list is a list of length 2, containing an
     operator (:class:`qutip.qobj`) at the first element and where the
-    second element is either a string (*list string format*) or a callback
+    second element is either a string (*list string format*), a callback
     function (*list callback format*) that evaluates to the time-dependent
-    coefficient for the corresponding operator.
+    coefficient for the corresponding operator, or a numpy array (*list
+    array format*) which specifies the value of the coefficient to the
+    corresponding operator for each value of t in tlist.
 
     *Examples*
 
         H = [[H0, 'sin(w*t)'], [H1, 'sin(2*w*t)']]
+
+        H = [[H0, sin(w*tlist)], [H1, sin(2*w*tlist)]]
 
         H = [[H0, f0_t], [H1, f1_t]]
 
