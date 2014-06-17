@@ -56,7 +56,7 @@ from qutip.odeconfig import odeconfig
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
 from qutip.odedata import Odedata
-from qutip.odechecks import _ode_checks
+from qutip.odechecks import _ode_checks, _td_wrap_array_str
 import qutip.settings
 from qutip.settings import debug
 from qutip.ui.progressbar import TextProgressBar
@@ -178,6 +178,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     # set num_cpus to the value given in qutip.settings if none in Odeoptions
     if not odeconfig.options.num_cpus:
         odeconfig.options.num_cpus = qutip.settings.num_cpus
+
     # set initial value data
     if options.tidy:
         odeconfig.psi0 = psi0.tidyup(options.atol).full().ravel()
@@ -186,19 +187,24 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     
     odeconfig.psi0_dims = psi0.dims
     odeconfig.psi0_shape = psi0.shape
+
     # set options on ouput states
     if odeconfig.options.steady_state_average:
         odeconfig.options.average_states = True
+
     # set general items
     odeconfig.tlist = tlist
     if isinstance(ntraj, (list, ndarray)):
         odeconfig.ntraj = sort(ntraj)[-1]
     else:
         odeconfig.ntraj = ntraj
+
     # set norm finding constants
     odeconfig.norm_tol = options.norm_tol
     odeconfig.norm_steps = options.norm_steps
-    #----
+
+    # convert array based time-dependence to string format
+    H, c_ops, args = _td_wrap_array_str(H, c_ops, args, tlist)
 
     #----------------------------------------------
     # SETUP ODE DATA IF NONE EXISTS OR NOT REUSING
