@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
@@ -39,6 +39,8 @@ from scipy.sparse.csgraph import breadth_first_order as BFO
 import os
 pwd = os.path.dirname(__file__)
 from qutip import *
+from qutip.sparse import sp_permute, sp_bandwidth
+
 # find networkx if it exists
 try:
     import networkx as nx
@@ -47,87 +49,100 @@ except:
 else:
     nx_found = 1
 
+
 @unittest.skipIf(nx_found == 0, 'Networkx not installed.')
 def test_graph_degree():
     "Graph: Graph Degree"
-    A = rand_dm(25,0.5)
-    deg = graph_degree(A)
+    A = rand_dm(25, 0.5)
+    deg = graph_degree(A.data)
     G = nx.from_scipy_sparse_matrix(A.data)
     nx_deg = G.degree()
     nx_deg = array([nx_deg[k] for k in range(25)])
     assert_equal((deg - nx_deg).all(), 0)
 
+
 def test_graph_bfs():
     "Graph: Breadth-First Search"
-    A = rand_dm(25,0.5)
+    A = rand_dm(25, 0.5)
     A = A.data
-    A.data=np.real(A.data)
-    seed=np.random.randint(24)
-    arr1 = BFO(A,seed)[0]
-    arr2 = breadth_first_search(A,seed)[0]
+    A.data = np.real(A.data)
+    seed = np.random.randint(24)
+    arr1 = BFO(A, seed)[0]
+    arr2 = breadth_first_search(A, seed)[0]
     assert_equal((arr1 - arr2).all(), 0)
+
 
 def test_graph_rcm_simple():
     "Graph: Reverse Cuthill-McKee Ordering (simple)"
-    A=array([[1,0,0,0,1,0,0,0],[0,1,1,0,0,1,0,1],[0,1,1,0,1,0,0,0],
-           [0,0,0,1,0,0,1,0],[1,0,1,0,1,0,0,0],[0,1,0,0,0,1,0,1],
-           [0,0,0,1,0,0,1,0],[0,1,0,0,0,1,0,1]], dtype=np.int32)
-    A=sp.csr_matrix(A)
-    perm=symrcm(A)
-    ans=array([6,3,7,5,1,2,4,0])
+    A = array([[1, 0, 0, 0, 1, 0, 0, 0],
+               [0, 1, 1, 0, 0, 1, 0, 1],
+               [0, 1, 1, 0, 1, 0, 0, 0],
+               [0, 0, 0, 1, 0, 0, 1, 0],
+               [1, 0, 1, 0, 1, 0, 0, 0],
+               [0, 1, 0, 0, 0, 1, 0, 1],
+               [0, 0, 0, 1, 0, 0, 1, 0],
+               [0, 1, 0, 0, 0, 1, 0, 1]], dtype=np.int32)
+    A = sp.csr_matrix(A)
+    perm = symrcm(A)
+    ans = array([6, 3, 7, 5, 1, 2, 4, 0])
     assert_equal((perm - ans).all(), 0)
+
 
 def test_graph_rcm_bucky():
     "Graph: Reverse Cuthill-McKee Ordering (Bucky)"
-    B=np.load(pwd+'/bucky.npy')
-    B=sp.csr_matrix(B,dtype=float)
-    perm=symrcm(B)
-    ans=np.load(pwd+'/bucky_perm.npy')
+    B = np.load(pwd+'/bucky.npy')
+    B = sp.csr_matrix(B, dtype=float)
+    perm = symrcm(B)
+    ans = np.load(pwd+'/bucky_perm.npy')
     assert_equal((perm - ans).all(), 0)
+
 
 def test_graph_rcm_boost():
     "Graph: Reverse Cuthill-McKee Ordering (boost)"
-    M=np.zeros((10,10))
-    M[0,[3,5]]=1
-    M[1,[2,4,6,9]]=1
-    M[2,[3,4]]=1
-    M[3,[5,8]]=1
-    M[4,6]=1
-    M[5,[6,7]]=1
-    M[6,7]=1
-    M=M+M.T
-    M=sp.csr_matrix(M)
-    perm=symrcm(M,1)
-    ans_perm=array([9,7,6,4,1,5,0,2,3,8])
+    M = np.zeros((10, 10))
+    M[0, [3, 5]] = 1
+    M[1, [2, 4, 6, 9]] = 1
+    M[2, [3, 4]] = 1
+    M[3, [5, 8]] = 1
+    M[4, 6] = 1
+    M[5, [6, 7]] = 1
+    M[6, 7] = 1
+    M = M+M.T
+    M = sp.csr_matrix(M)
+    perm = symrcm(M, 1)
+    ans_perm = array([9, 7, 6, 4, 1, 5, 0, 2, 3, 8])
     assert_equal((perm - ans_perm).all(), 0)
-    P=sparse_permute(M,perm,perm)
-    bw=sparse_bandwidth(P)
+    P = sp_permute(M, perm, perm)
+    bw = sp_bandwidth(P)
     assert_equal(bw[2], 4)
+
 
 def test_graph_bfs_matching():
     "Graph: BFS Matching"
-    A=sp.diags(np.ones(25),offsets=0,format='csc')
-    perm=np.random.permutation(25)
-    perm2=np.random.permutation(25)
-    B=sparse_permute(A,perm,perm2)
-    perm=bfs_matching(B)
-    C=sparse_permute(B,perm,[])
-    assert_equal(any(C.diagonal()==0),False)
+    A = sp.diags(np.ones(25), offsets=0, format='csc')
+    perm = np.random.permutation(25)
+    perm2 = np.random.permutation(25)
+    B = sp_permute(A, perm, perm2)
+    perm = bfs_matching(B)
+    C = sp_permute(B, perm, [])
+    assert_equal(any(C.diagonal() == 0), False)
+
 
 def test_graph_weighted_bfs():
     "Graph: Weighted BFS Matching"
-    A=sp.rand(25,25,density=0.1, format='csc')
-    a_len=len(A.data)
-    A.data=np.ones(a_len)
-    d=np.arange(0,25)+2
-    B=sp.diags(d,offsets=0,format='csc')
-    A=A+B
-    perm=np.random.permutation(25)
-    perm2=np.random.permutation(25)
-    B=sparse_permute(A,perm,perm2)
-    perm=weighted_bfs_matching(B)
-    C=sparse_permute(B,perm,[])
-    assert_equal(np.sum(A.diagonal()),np.sum(C.diagonal()))
+    A = sp.rand(25, 25, density=0.1, format='csc')
+    a_len = len(A.data)
+    A.data = np.ones(a_len)
+    d = np.arange(0, 25) + 2
+    B = sp.diags(d, offsets=0, format='csc')
+    A = A+B
+    perm = np.random.permutation(25)
+    perm2 = np.random.permutation(25)
+    B = sp_permute(A, perm, perm2)
+    perm = weighted_bfs_matching(B)
+    C = sp_permute(B, perm, [])
+    assert_equal(np.sum(A.diagonal()), np.sum(C.diagonal()))
+
 
 if __name__ == "__main__":
     run_module_suite()

@@ -962,7 +962,7 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 
     """
 
-    L = H if issuper(H) else liouvillian_fast(H, c_ops)
+    L = H if issuper(H) else liouvillian(H, c_ops)
 
     tr_mat = tensor([qeye(n) for n in L.dims[0][0]])
     N = prod(L.dims[0][0])

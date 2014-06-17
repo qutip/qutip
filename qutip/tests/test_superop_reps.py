@@ -81,8 +81,8 @@ class TestSuperopReps(object):
 
     def test_SuperChoiChiSuper(self):
         """
-        Superoperator: Test that converting a two-qubit superoperator through
-        Choi and chi representations takes us back to the right superoperator.
+        Superoperator: Converting two-qubit superoperator through
+        Choi and chi representations goes back to right superoperator.
         """
         superoperator = super_tensor(rand_super(2), rand_super(2))
                                
@@ -99,7 +99,7 @@ class TestSuperopReps(object):
 
     def test_ChoiKrausChoi(self):
         """
-        Superoperator: Converting superoperator to Choi matrix and back.
+        Superoperator: Convert superoperator to Choi matrix and back.
         """
         superoperator = rand_super()
         choi_matrix = to_choi(superoperator)
@@ -114,7 +114,7 @@ class TestSuperopReps(object):
         
     def test_SuperPreservesSelf(self):
         """
-        Superoperator: Test that to_super(q) returns q if q is already a
+        Superoperator: to_super(q) returns q if q is already a
         supermatrix.
         """
         superop = rand_super()
@@ -122,7 +122,7 @@ class TestSuperopReps(object):
         
     def test_ChoiPreservesSelf(self):
         """
-        Superoperator: Test that to_choi(q) returns q if q is already Choi.
+        Superoperator: to_choi(q) returns q if q is already Choi.
         """
         superop = rand_super()
         choi = to_choi(superop)
@@ -130,7 +130,7 @@ class TestSuperopReps(object):
         
     def test_random_iscptp(self):
         """
-        Superoperator: Checks that randomly generated superoperators are
+        Superoperator: Randomly generated superoperators are
         correctly reported as cptp.
         """
         superop = rand_super()
@@ -138,8 +138,7 @@ class TestSuperopReps(object):
         
     def test_known_iscptp(self):
         """
-        Superoperator: Checks that iscp, istp and iscptp work in a few different
-        known cases.
+        Superoperator: iscp, istp and iscptp known cases.
         """
         # Check that unitaries are CPTP.
         assert_(identity(2).iscptp)
@@ -166,8 +165,7 @@ class TestSuperopReps(object):
         
     def test_choi_tr(self):
         """
-        Superoperator: Checks that the trace of matrices returned by to_choi
-        matches that asserted by the docstring for that function.
+        Superoperator: Trace returned by to_choi matches docstring.
         """
         for dims in range(2, 5):
             assert_(abs(to_choi(identity(dims)).tr() - dims) <= tol)
