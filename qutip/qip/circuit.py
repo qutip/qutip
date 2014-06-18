@@ -693,8 +693,7 @@ class QubitCircuit(object):
             rows.append(col)
 
         code = ""
-        n_iter = reversed(range(self.N)) if self.reverse_states 
-                                         else range(self.N)
+        n_iter = reversed(range(self.N)) if self.reverse_states else range(self.N)
         for n in n_iter:
             for m in range(len(gates)):
                 code += r" & %s" % rows[m][n]
@@ -730,8 +729,7 @@ class QubitCircuit(object):
         for gate in self.gates:
             code += "\t%s\t" % gate.name
             qtargets = ["q%d" % t for t in gate.targets] if gate.targets else []
-            qcontrols = ["q%d" % c for c in gate.controls] if gate.controls 
-                                                           else []
+            qcontrols = ["q%d" % c for c in gate.controls] if gate.controls else []
             code += ",".join(qtargets + qcontrols)
             code += "\n"
             
