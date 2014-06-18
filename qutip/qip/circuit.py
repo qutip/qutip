@@ -678,8 +678,7 @@ class QubitCircuit(object):
                 
                 elif (not gate.controls and not gate.targets):
                     # global gate
-                    if (self.reverse_states and n == self.N - 1) or 
-                       (not self.reverse_states and n == 0):
+                    if (self.reverse_states and n == self.N - 1) or (not self.reverse_states and n == 0):
                         col.append(r" \multigate{%d}{%s} " %
                                    (self.N - 1,
                                     _gate_label(gate.name, gate.arg_label)))
