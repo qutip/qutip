@@ -37,9 +37,29 @@ from qutip.qip.circuit_latex import _latex_write, _latex_pdf, _latex_compile
 from qutip.qip.gates import *
 
 class Gate(object):
+    """
+    Representation of a quantum gate. It needs to maintain a list
+    of a gate's target and source and time.
+    """
     
     def __init__(self, name, targets=None, controls=None, arg_value=None,
                  arg_label=None):
+        """
+        Creates a gate with specified parameters.
+            
+        Parameters
+        ----------
+        name: String
+            Gate name.
+        targets: List
+            Gate targets.
+        controls: List
+            Gate controls.
+        arg_value: Float
+            Argument value(phi).
+        arg_label: String
+            Label for gate representation.
+        """  
         self.name = name
         self.targets = targets
         self.controls = controls
@@ -132,6 +152,22 @@ class QubitCircuit(object):
         
     def add_gate(self, name, targets=None, controls=None, arg_value=None,
                  arg_label=None):
+        """
+        Adds a gate with specified parameters to the circuit.
+            
+        Parameters
+        ----------
+        name: String
+            Gate name.
+        targets: List
+            Gate targets.
+        controls: List
+            Gate controls.
+        arg_value: Float
+            Argument value(phi).
+        arg_label: String
+            Label for gate representation.
+        """  
         self.gates.append(Gate(name, targets=targets, controls=controls,
                                arg_value=arg_value, arg_label=arg_label))
  
