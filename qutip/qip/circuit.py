@@ -67,7 +67,8 @@ class Gate(object):
         self.arg_value = arg_value
         self.arg_label = arg_label
 
-        if name in ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY", "SWAPalpha"]:
+        if name in ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY", 
+                    "SWAPalpha"]:
             if len(targets) != 2:
                 raise ValueError("Gate %s requires two target" % name)        
             if controls is not None:
@@ -79,7 +80,8 @@ class Gate(object):
             if controls is None or len(controls) != 1:
                 raise ValueError("Gate %s requires one control" % name)        
 
-        if name in ["RX", "RY", "RZ", "CPHASE", "SWAPalpha", "PHASEGATE", "GLOBALPHASE"]:
+        if name in ["RX", "RY", "RZ", "CPHASE", "SWAPalpha", "PHASEGATE", 
+                    "GLOBALPHASE"]:
             if arg_value is None:
                 raise ValueError("Gate %s requires an argument value" % name)
             if controls is not None and name is not "CPHASE":
@@ -175,7 +177,8 @@ class QubitCircuit(object):
     def resolve_gates(self, basis=["CNOT", "RX", "RY", "RZ"]):
         """
         Unitary matrix calculator for N qubits returning the individual
-        steps as unitary matrices operating from left to right in the specified basis.
+        steps as unitary matrices operating from left to right in the specified 
+        basis.
             
         Parameters
         ----------
@@ -185,7 +188,8 @@ class QubitCircuit(object):
         Returns
         -------
         qc_temp: Qobj
-            Returns Qobj of resolved gates for the qubit circuit in the desired basis.    
+            Returns Qobj of resolved gates for the qubit circuit in the desired 
+            basis.    
         """  
         qc_temp = QubitCircuit(self.N, self.reverse_states)
         temp_resolved = []
@@ -219,7 +223,8 @@ class QubitCircuit(object):
             if basis in basis_2q_valid:
                 basis_2q = basis
             else:
-                raise ValueError("%s is not a valid two-qubit basis gate" % basis)
+                raise ValueError("%s is not a valid two-qubit basis gate" 
+                                 % basis)
 
         for gate in self.gates:    
             if gate.name == "CPHASE":
@@ -505,12 +510,14 @@ class QubitCircuit(object):
             
         Returns
         ----------
-        qc_temp: Qobj
-                Returns Qobj of resolved gates for the qubit circuit in the desired basis.    
+        temp: Qobj
+                Returns Qobj of resolved gates for the qubit circuit in the 
+                desired basis.    
         
         """  
-        qc_temp = QubitCircuit(self.N, self.reverse_states)
-        swap_gates = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY", "SWAPalpha"]
+        temp = QubitCircuit(self.N, self.reverse_states)
+        swap_gates = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY", 
+                      "SWAPalpha"]
 
         for gate in self.gates:    
             if gate.name == "CNOT" or gate.name == "CSIGN":
@@ -522,26 +529,31 @@ class QubitCircuit(object):
                         #Apply required gate if control and target are adjacent
                         #to each other, provided |control-target| is even.
                         if end == gate.controls[0]:
-                            qc_temp.gates.append(Gate(gate.name, targets=[i], controls=[i+1]))
+                            temp.gates.append(Gate(gate.name, targets=[i], 
+                                                   controls=[i+1]))
                         else:
-                            qc_temp.gates.append(Gate(gate.name, targets=[i+1], controls=[i]))
+                            temp.gates.append(Gate(gate.name, targets=[i+1], 
+                                                   controls=[i]))
                     elif start+end-i-i == 2 and (end-start+1)%2 == 1:
                         #Apply a swap between i and its adjacent gate, then the
                         #required gate if and then another swap if control and
                         #target have one qubit between them, provided
                         #|control-target| is odd.
-                        qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                        temp.gates.append(Gate("SWAP", targets=[i, i+1]))
                         if end == gate.controls[0]:
-                            qc_temp.gates.append(Gate(gate.name, targets=[i+1], controls=[i+2]))
+                            temp.gates.append(Gate(gate.name, targets=[i+1], 
+                                                   controls=[i+2]))
                         else:
-                            qc_temp.gates.append(Gate(gate.name, targets=[i+2], controls=[i+1]))
-                        qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                            temp.gates.append(Gate(gate.name, targets=[i+2], 
+                                                   controls=[i+1]))
+                        temp.gates.append(Gate("SWAP", targets=[i, i+1]))
                         i += 1
                     else:
                         #Swap the target/s and/or control with their adjacent
                         #qubit to bring them closer.
-                        qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
-                        qc_temp.gates.append(Gate("SWAP", targets=[start+end-i-1, start+end-i]))
+                        temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                        temp.gates.append(Gate("SWAP", targets=[start+end-i-1, 
+                                                                start+end-i]))
                     i += 1
 
             elif gate.name in swap_gates:
@@ -550,21 +562,22 @@ class QubitCircuit(object):
                 i = start
                 while i < end:
                     if start+end-i-i == 1 and (end-start+1)%2 == 0:
-                        qc_temp.gates.append(Gate(gate.name, targets=[i, i+1]))
+                        temp.gates.append(Gate(gate.name, targets=[i, i+1]))
                     elif (start+end-i-i) == 2 and (end-start+1)%2 == 1:
-                        qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
-                        qc_temp.gates.append(Gate(gate.name, targets=[i+1, i+2]))
-                        qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                        temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                        temp.gates.append(Gate(gate.name, targets=[i+1, i+2]))
+                        temp.gates.append(Gate("SWAP", targets=[i, i+1]))
                         i += 1
                     else:    
-                        qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
-                        qc_temp.gates.append(Gate("SWAP", targets=[start+end-i-1, start+end-i]))        
+                        temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                        temp.gates.append(Gate("SWAP", targets=[start+end-i-1, 
+                                                                start+end-i]))        
                     i += 1
             
             else:
-                qc_temp.gates.append(gate)
+                temp.gates.append(gate)
         
-        return qc_temp
+        return temp
 
 
     def unitary_matrix(self):
@@ -582,7 +595,8 @@ class QubitCircuit(object):
 
         for gate in self.gates:    
             if gate.name == "CPHASE":
-                self.U_list.append(cphase(gate.arg_value, self.N, gate.controls[0], gate.targets[0]))
+                self.U_list.append(cphase(gate.arg_value, self.N, 
+                                          gate.controls[0], gate.targets[0]))
             elif gate.name == "RX":
                 self.U_list.append(rx(gate.arg_value, self.N, gate.targets[0]))
             elif gate.name == "RY":
@@ -590,17 +604,22 @@ class QubitCircuit(object):
             elif gate.name == "RZ":
                 self.U_list.append(rz(gate.arg_value, self.N, gate.targets[0]))
             elif gate.name == "CNOT":
-                self.U_list.append(cnot(self.N, gate.controls[0], gate.targets[0]))
+                self.U_list.append(cnot(self.N, 
+                                        gate.controls[0], gate.targets[0]))
             elif gate.name == "CSIGN":
-                self.U_list.append(csign(self.N, gate.controls[0], gate.targets[0]))
+                self.U_list.append(csign(self.N, 
+                                         gate.controls[0], gate.targets[0]))
             elif gate.name == "BERKELEY":
                 self.U_list.append(berkeley(self.N, gate.targets))
             elif gate.name == "SWAPalpha":
-                self.U_list.append(swapalpha(gate.arg_value, self.N, gate.targets))
+                self.U_list.append(swapalpha(gate.arg_value, self.N, 
+                                             gate.targets))
             elif gate.name == "FREDKIN":
-                self.U_list.append(fredkin(self.N, gate.controls, gate.targets[0]))
+                self.U_list.append(fredkin(self.N, gate.controls, 
+                                           gate.targets[0]))
             elif gate.name == "TOFFOLI":
-                self.U_list.append(toffoli(self.N, gate.controls, gate.targets[0]))
+                self.U_list.append(toffoli(self.N, gate.controls, 
+                                           gate.targets[0]))
             elif gate.name == "SWAP":
                 self.U_list.append(swap(self.N, gate.targets))
             elif gate.name == "ISWAP":
@@ -614,7 +633,8 @@ class QubitCircuit(object):
             elif gate.name == "SNOT":
                 self.U_list.append(snot(self.N, gate.targets[0]))
             elif gate.name == "PHASEGATE":
-                self.U_list.append(phasegate(gate.arg_value, self.N, gate.targets[0]))
+                self.U_list.append(phasegate(gate.arg_value, self.N, 
+                                             gate.targets[0]))
             elif gate.name == "GLOBALPHASE":
                 self.U_list.append(globalphase(gate.arg_value, self.N))
 
@@ -632,7 +652,8 @@ class QubitCircuit(object):
                 if gate.targets and n in gate.targets:
                     
                     if len(gate.targets) > 1:
-                        if (self.reverse_states and n == max(gate.targets)) or (not self.reverse_states and n == min(gate.targets)):
+                        if (self.reverse_states and n == max(gate.targets)) or 
+                           (not self.reverse_states and n == min(gate.targets)):
                             col.append(r" \multigate{%d}{%s} " %
                                        (len(gate.targets) - 1,
                                         _gate_label(gate.name, gate.arg_label)))
@@ -649,7 +670,8 @@ class QubitCircuit(object):
                                    _gate_label(gate.name, gate.arg_label))
                         
                 elif gate.controls and n in gate.controls:
-                    m = (gate.targets[0] - n) * (-1 if self.reverse_states else 1)
+                    m = (gate.targets[0] - n) * (-1 if self.reverse_states 
+                                                    else 1)
                     if gate.name == "SWAP":
                         col.append(r" \qswap \ctrl{%d} " % m)
                     else:
@@ -657,7 +679,8 @@ class QubitCircuit(object):
                 
                 elif (not gate.controls and not gate.targets):
                     # global gate
-                    if (self.reverse_states and n == self.N - 1) or (not self.reverse_states and n == 0):
+                    if (self.reverse_states and n == self.N - 1) or 
+                       (not self.reverse_states and n == 0):
                         col.append(r" \multigate{%d}{%s} " %
                                    (self.N - 1,
                                     _gate_label(gate.name, gate.arg_label)))
@@ -672,7 +695,8 @@ class QubitCircuit(object):
             rows.append(col)
 
         code = ""
-        n_iter = reversed(range(self.N)) if self.reverse_states else range(self.N)
+        n_iter = reversed(range(self.N)) if self.reverse_states 
+                                         else range(self.N)
         for n in n_iter:
             for m in range(len(gates)):
                 code += r" & %s" % rows[m][n]
@@ -708,7 +732,8 @@ class QubitCircuit(object):
         for gate in self.gates:
             code += "\t%s\t" % gate.name
             qtargets = ["q%d" % t for t in gate.targets] if gate.targets else []
-            qcontrols = ["q%d" % c for c in gate.controls] if gate.controls else []
+            qcontrols = ["q%d" % c for c in gate.controls] if gate.controls 
+                                                           else []
             code += ",".join(qtargets + qcontrols)
             code += "\n"
             
@@ -720,24 +745,28 @@ class Circuit():
     any combination of oscillator, qubit, and qudit components.
     
     """
-    def __init__(self,num,name=None):
+    def __init__(self, num, name=None):
         # check for circuit name
-        if name==None:
-            name='QuTiP_Circuit'
-        self.name=name
+        if name == None:
+            name = 'QuTiP_Circuit'
+        self.name = name
         
-        self.record={'name': name, "elements" : num, 'element_order': ['']*num,'oscillator_components': {},
-            'qubit_components': {}, 'qudit_components' : {}}
+        self.record = {'name': name, "elements" : num, 
+                       'element_order': ['']*num, 'oscillator_components': {}, 
+                       'qubit_components': {}, 'qudit_components' : {}}
 
 
     def __str__(self):
         s = ""
 
         s += "Quantum Circuit: "
-        s += "Number of elements : "+str(self.record['elements'])+"\n"
-        s += "Num. of oscillators : "+str(len(self.record['oscillator_components']))+ ", "
-        s += "Num. of qubits : "+str(len(self.record['qubit_components']))+ ", "
-        s += "Num. of qudits : "+str(len(self.record['qudit_components']))+"\n"
+        s += "Number of elements : " + str(self.record['elements'])+"\n"
+        s += "Num. of oscillators : " + 
+             str(len(self.record['oscillator_components']))+ ", "
+        s += "Num. of qubits : " + 
+             str(len(self.record['qubit_components']))+ ", "
+        s += "Num. of qudits : " + 
+             str(len(self.record['qudit_components']))+"\n"
         return s
     
     def __repr__(self):
@@ -752,7 +781,8 @@ class Circuit():
         N : int
             Number of Fock states in oscillator Hilbert space
         element_order : int {optional}
-            The element_order of the oscillator component in the tensor product structure
+            The element_order of the oscillator component in the tensor product 
+            structure
         label : str {optional}
             Custom label for the oscillator component
         
@@ -772,70 +802,71 @@ class Circuit():
             else:
                 element_order=ind[0]
         if element_order>self.record['elements']-1:
-            raise ValueError('Oscillator element_order is higher than the total number of components.')
+            raise ValueError('Oscillator element_order > number of components.')
         self.record['element_order'][element_order]=label
         
     
     def add_qubit(self,element_order=None,label=None):
-         """
-         Adds a qubit to the quantum circuit.
+        """
+        Adds a qubit to the quantum circuit.
         
-         Parameters
-         ----------
-         element_order : int {optional}
-             The element_order of the qubit component in the tensor product structure
-         label : str {optional}
-             Custom label for the qubit component
+        Parameters
+        ----------
+        element_order : int {optional}
+            The element_order of the qubit component in the tensor product 
+            structure
+        label : str {optional}
+            Custom label for the qubit component
         
-         """
-         #add qubit to list of qubit components with label
-         if label==None:
-             num_of_qubit=len(self.record['qubit_components'])
-             label='q'+str(num_of_qubit)
-         self.record['qubit_components'][label]=2
-         #add qubit to circuit in given element_order
-         if element_order==None:
-             ind=np.where(np.array(self.record['element_order'])=='')[0]
-         if len(ind)==0:
-             print('Circuit has no empty components.')
-         else:
-             element_order=ind[0]
-         if element_order>self.record['elements']-1:
-             raise ValueError('Qubit element_order is higher than the total number of components.')
-         self.record['element_order'][element_order]=label
+        """
+        #add qubit to list of qubit components with label
+        if label==None:
+            num_of_qubit=len(self.record['qubit_components'])
+            label='q'+str(num_of_qubit)
+        self.record['qubit_components'][label]=2
+        #add qubit to circuit in given element_order
+        if element_order==None:
+            ind=np.where(np.array(self.record['element_order'])=='')[0]
+        if len(ind)==0:
+            print('Circuit has no empty components.')
+        else:
+            element_order=ind[0]
+        if element_order>self.record['elements']-1:
+            raise ValueError('Qubit element_order is > number of components.')
+        self.record['element_order'][element_order]=label
     
     def add_qudit(self,N,element_order=None,label=None):
-         """
-         Adds a qudit to the quantum circuit.
+        """
+        Adds a qudit to the quantum circuit.
         
-         Parameters
-         ----------
-         N : int
-             Number of Fock states in qudit Hilbert space
-         element_order : int {optional}
-             The element_order of the qudit component in the tensor product structure
-         label : str {optional}
-             Custom label for the qudit component
+        Parameters
+        ----------
+        N : int
+            Number of Fock states in qudit Hilbert space
+        element_order : int {optional}
+            The element_order of the qudit component in the tensor product 
+               structure
+        label : str {optional}
+            Custom label for the qudit component
         
-         """
-         #add qubit to list of qubit components with label
-         if label==None:
-             num_of_qubit=len(self.record['qudit_components'])
-             label='q'+str(num_of_qubit)
-         self.record['qudit_components'][label]=N
-         #add qubit to circuit in given element_order
-         if element_order==None:
-             ind=np.where(np.array(self.record['element_order'])=='')[0]
-         if len(ind)==0:
-             print('Circuit has no empty components.')
-         else:
-             element_order=ind[0]
-         if element_order>self.record['elements']-1:
-             raise ValueError('Qudit element_order is higher than the total number of components.')
-         self.record['element_order'][element_order]=label
+        """
+        #add qubit to list of qubit components with label
+        if label==None:
+            num_of_qubit=len(self.record['qudit_components'])
+            label='q'+str(num_of_qubit)
+        self.record['qudit_components'][label]=N
+        #add qubit to circuit in given element_order
+        if element_order==None:
+            ind=np.where(np.array(self.record['element_order'])=='')[0]
+        if len(ind)==0:
+            print('Circuit has no empty components.')
+        else:
+            element_order=ind[0]
+        if element_order>self.record['elements']-1:
+            raise ValueError('Qudit element_order is > number of components.')
+        self.record['element_order'][element_order]=label
     
                 
-    
     def output_latex(self):
         """
         Takes circuit description and outputs a latex file
