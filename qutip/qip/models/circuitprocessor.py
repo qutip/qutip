@@ -33,7 +33,7 @@
 import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import *
-from qutip.qip.gates import snot, cphase, swap
+from qutip.qip.gates import *
 from qutip.qip.circuit import QubitCircuit
 
 
