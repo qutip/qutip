@@ -213,9 +213,9 @@ class QubitCircuit(object):
                 temp_resolved.append(Gate("GLOBALPHASE", None, None,
                                           arg_value=np.pi, arg_label=r"\pi"))
             elif gate.name == "BERKELEY":
-                raise NotImplementedError("Cannot be resolved by the program")
+                temp_resolved.append(gate)
             elif gate.name == "SWAPalpha":
-                raise NotImplementedError("Cannot be resolved by the program")
+                temp_resolved.append(gate)
             elif gate.name == "FREDKIN":
                 temp_resolved.append(Gate("CNOT", [gate.targets[0]], [gate.targets[1]]))
                 temp_resolved.append(Gate("CNOT", [gate.targets[0]], [gate.controls]))
@@ -276,7 +276,8 @@ class QubitCircuit(object):
                                           arg_value=np.pi/8, arg_label=r"\pi/8"))
                 temp_resolved.append(Gate("RZ", gate.targets, None,
                                           arg_value=np.pi/8, arg_label=r"\pi/8"))
-                temp_resolved.append(Gate("CNOT", gate.targets, [gate.controls[0]]))
+                temp_resolved.append(Gate("CNOT", gate.targets,
+                                          [gate.controls[0]]))
                 temp_resolved.append(Gate("RZ", gate.targets, None,
                                           arg_value=-np.pi/8, arg_label=r"-\pi/8"))
                 temp_resolved.append(Gate("CNOT", gate.targets, [gate.controls[1]]))
