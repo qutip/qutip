@@ -652,8 +652,9 @@ class QubitCircuit(object):
                 if gate.targets and n in gate.targets:
                     
                     if len(gate.targets) > 1:
-                        if (self.reverse_states and n == max(gate.targets)) or 
-                           (not self.reverse_states and n == min(gate.targets)):
+                        if (self.reverse_states and n == max(gate.targets)) 
+                           or (not self.reverse_states 
+                               and n == min(gate.targets)):
                             col.append(r" \multigate{%d}{%s} " %
                                        (len(gate.targets) - 1,
                                         _gate_label(gate.name, gate.arg_label)))
