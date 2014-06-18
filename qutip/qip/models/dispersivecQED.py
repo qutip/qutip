@@ -38,7 +38,7 @@ from qutip.qip.circuit import QubitCircuit
 from qutip.qip.models.circuitprocessor import CircuitProcessor
 
 
-class DispersiveCQED(CircuitProcessor):
+class DispersivecQED(CircuitProcessor):
     """
     Representation of the physical implementation of a quantum program/algorithm
     on a dispersive cavity-QED system.
