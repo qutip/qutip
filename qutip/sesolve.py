@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 """
@@ -155,9 +155,11 @@ def sesolve(H, rho0, tlist, e_ops, args={}, options=None,
                              progress_bar)
 
     if e_ops_dict:
-        res.expect = {e: res.expect[n] for n, e in enumerate(e_ops_dict.keys())}
+        res.expect = {e: res.expect[n]
+                      for n, e in enumerate(e_ops_dict.keys())}
 
     return res
+
 
 # -----------------------------------------------------------------------------
 # A time-dependent unitary wavefunction equation on the list-function format
@@ -457,16 +459,15 @@ def _sesolve_list_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
     # setup ode args string
     string = ""
     for k in range(lenh):
-        string += ("Hdata[" + str(k) + "],Hinds[" + str(k) +
-                   "],Hptrs[" + str(k) + "],")
+        string += ("Hdata[" + str(k) + "], Hinds[" + str(k) +
+                   "], Hptrs[" + str(k) + "],")
 
     if args:
-        for name, value in args.items():
-            if isinstance(value, np.ndarray):
-                globals()['var_%s'%name] = value
-                string += 'var_%s,'%name
-            else:
-                string += str(value) + ','
+        td_consts = args.items()
+        for elem in td_consts:
+            string += str(elem[1])
+            if elem != td_consts[-1]:
+                string += (",")
 
     # run code generator
     if not opt.rhs_reuse or odeconfig.tdfunc is None:
@@ -643,14 +644,15 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
             r.set_initial_value(data, r.t)
 
         if opt.store_states:
-            output.states.append(Qobj(r.y,dims=dims))
+            output.states.append(Qobj(r.y, dims=dims))
 
         if expt_callback:
             # use callback method
             e_ops(t, Qobj(r.y, dims=psi0.dims))
 
         for m in range(n_expt_op):
-            output.expect[m][t_idx] = cy_expect_psi(e_ops[m].data, r.y, e_ops[m].isherm)
+            output.expect[m][t_idx] = cy_expect_psi(e_ops[m].data,
+                                                    r.y, e_ops[m].isherm)
 
         if t_idx < n_tsteps - 1:
             r.integrate(r.t + dt[t_idx])
