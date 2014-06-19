@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
@@ -36,6 +36,7 @@ import os
 import time
 import copy
 import numpy as np
+import warnings
 from types import FunctionType
 from multiprocessing import Pool, cpu_count
 from numpy.random import RandomState, random_integers
@@ -56,7 +57,7 @@ from qutip.odeconfig import odeconfig
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
 from qutip.odedata import Odedata
-from qutip.odechecks import _ode_checks
+from qutip.odechecks import _ode_checks, _td_wrap_array_str
 import qutip.settings
 from qutip.settings import debug
 from qutip.ui.progressbar import TextProgressBar
@@ -178,31 +179,37 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     # set num_cpus to the value given in qutip.settings if none in Odeoptions
     if not odeconfig.options.num_cpus:
         odeconfig.options.num_cpus = qutip.settings.num_cpus
+
     # set initial value data
     if options.tidy:
         odeconfig.psi0 = psi0.tidyup(options.atol).full().ravel()
     else:
         odeconfig.psi0 = psi0.full().ravel()
-    
+
     odeconfig.psi0_dims = psi0.dims
     odeconfig.psi0_shape = psi0.shape
+
     # set options on ouput states
     if odeconfig.options.steady_state_average:
         odeconfig.options.average_states = True
+
     # set general items
     odeconfig.tlist = tlist
     if isinstance(ntraj, (list, ndarray)):
         odeconfig.ntraj = sort(ntraj)[-1]
     else:
         odeconfig.ntraj = ntraj
+
     # set norm finding constants
     odeconfig.norm_tol = options.norm_tol
     odeconfig.norm_steps = options.norm_steps
-    #----
 
-    #----------------------------------------------
+    # convert array based time-dependence to string format
+    H, c_ops, args = _td_wrap_array_str(H, c_ops, args, tlist)
+
+    # ----------------------------------------------
     # SETUP ODE DATA IF NONE EXISTS OR NOT REUSING
-    #----------------------------------------------
+    # ----------------------------------------------
     if (not options.rhs_reuse) or (not odeconfig.tdfunc):
         # reset odeconfig collapse and time-dependence flags to default values
         odeconfig.soft_reset()
@@ -251,10 +258,10 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         try:
             os.remove(odeconfig.tdname + ".pyx")
         except:
-            print("Error removing pyx file:",odeconfig.tdname)
+            warnings.warn("Failed to remove pyx file: " + odeconfig.tdname)
 
     # AFTER MCSOLVER IS DONE --------------------------------------
-    #-------COLLECT AND RETURN OUTPUT DATA IN ODEDATA OBJECT --------------#
+    # ------- COLLECT AND RETURN OUTPUT DATA IN ODEDATA OBJECT --------------
     output = Odedata()
     output.solver = 'mcsolve'
     # state vectors
@@ -306,9 +313,9 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     return output
 
 
-#--------------------------------------------------------------
-# MONTE-CARLO CLASS                                           #
-#--------------------------------------------------------------
+# --------------------------------------------------------------
+# MONTE-CARLO CLASS
+# --------------------------------------------------------------
 class _MC_class():
     """
     Private class for solving Monte-Carlo evolution from mcsolve
@@ -316,13 +323,13 @@ class _MC_class():
 
     def __init__(self, odeconfig):
 
-        #-----------------------------------#
+        # -----------------------------------
         # INIT MC CLASS
-        #-----------------------------------#
+        # -----------------------------------
 
         self.odeconfig = odeconfig
 
-        #----MAIN OBJECT PROPERTIES--------------------#
+        # ----MAIN OBJECT PROPERTIES--------------------
         # holds instance of the ProgressBar class
         self.bar = None
         # holds instance of the Pthread class
@@ -381,17 +388,17 @@ class _MC_class():
                 # for state vectors
                 if self.odeconfig.options.steady_state_average:
                     self.psi_out = array([zeros((1), dtype=object)
-                                     for q in range(odeconfig.ntraj)])
+                                          for q in range(odeconfig.ntraj)])
                 else:
                     self.psi_out = array([zeros((self.num_times), dtype=object)
-                                     for q in range(odeconfig.ntraj)])
-            
+                                          for q in range(odeconfig.ntraj)])
+
             else:  # preallocate array of lists for expectation values
                 self.expect_out = [[] for x in range(odeconfig.ntraj)]
 
-    #-------------------------------------------------#
+    # -------------------------------------------------
     # CLASS METHODS
-    #-------------------------------------------------#
+    # -------------------------------------------------
     def callback(self, results):
         r = results[0]
         if self.odeconfig.e_num == 0:  # output state-vector
@@ -446,8 +453,9 @@ class _MC_class():
             if self.odeconfig.ntraj != 1:
                 # ntraj != 1 is pointless for no collapse operators
                 self.odeconfig.ntraj = 1
-                print('No collapse operators specified.\n' +
-                      'Running a single trajectory only.\n')
+                msg = ('No collapse operators specified. ' +
+                       'Running a single trajectory only.')
+                warnings.warn(msg)
             if self.odeconfig.e_num == 0:  # return psi at each requested time
                 self.psi_out = _no_collapse_psi_out(
                     self.num_times, self.psi_out, self.odeconfig)
@@ -468,23 +476,27 @@ class _MC_class():
                     mc_alg_out = zeros((1), dtype=object)
                 else:
                     mc_alg_out = zeros((self.num_times), dtype=object)
-                temp=sp.csr_matrix(np.reshape(self.odeconfig.psi0,
-                        (self.odeconfig.psi0.shape[0],1)),dtype=complex)
-                if self.odeconfig.options.average_states and not odeconfig.options.steady_state_average:
+                temp = sp.csr_matrix(
+                    np.reshape(self.odeconfig.psi0,
+                               (self.odeconfig.psi0.shape[0], 1)),
+                    dtype=complex)
+                if (self.odeconfig.options.average_states and
+                        not odeconfig.options.steady_state_average):
                     # output is averaged states, so use dm
                     mc_alg_out[0] = Qobj(temp*temp.conj().transpose(),
-                                            [odeconfig.psi0_dims[0],
-                                             odeconfig.psi0_dims[0]],
-                                            [odeconfig.psi0_shape[0],
-                                             odeconfig.psi0_shape[0]],
+                                         [odeconfig.psi0_dims[0],
+                                          odeconfig.psi0_dims[0]],
+                                         [odeconfig.psi0_shape[0],
+                                          odeconfig.psi0_shape[0]],
                                          fast='mc-dm')
-                elif not self.odeconfig.options.average_states and not odeconfig.options.steady_state_average:
+                elif (not self.odeconfig.options.average_states and
+                      not odeconfig.options.steady_state_average):
                     # output is not averaged, so write state vectors
                     mc_alg_out[0] = Qobj(temp, odeconfig.psi0_dims,
                                          odeconfig.psi0_shape, fast='mc')
                 elif odeconfig.options.steady_state_average:
-                    mc_alg_out[0]=temp*temp.conj().transpose()
-                    
+                    mc_alg_out[0] = temp * temp.conj().transpose()
+
             else:
                 # PRE-GENERATE LIST OF EXPECTATION VALUES
                 mc_alg_out = []
@@ -498,10 +510,10 @@ class _MC_class():
 
                     mc_alg_out[i][0] = \
                         cy_expect_psi_csr(self.odeconfig.e_ops_data[i],
-                                  self.odeconfig.e_ops_ind[i],
-                                  self.odeconfig.e_ops_ptr[i],
-                                  self.odeconfig.psi0,
-                                  self.odeconfig.e_ops_isherm[i])
+                                          self.odeconfig.e_ops_ind[i],
+                                          self.odeconfig.e_ops_ptr[i],
+                                          self.odeconfig.psi0,
+                                          self.odeconfig.e_ops_isherm[i])
 
             # set arguments for input to monte-carlo
             args = (mc_alg_out, self.odeconfig.options,
@@ -512,10 +524,9 @@ class _MC_class():
             self.odeconfig.progress_bar.finished()
 
 
-
-#----------------------------------------------------
+# ----------------------------------------------------
 # CODES FOR PYTHON FUNCTION BASED TIME-DEPENDENT RHS
-#----------------------------------------------------
+# ----------------------------------------------------
 
 # RHS of ODE for time-dependent systems with no collapse operators
 def _tdRHS(t, psi, odeconfig):
@@ -530,8 +541,8 @@ def _cRHStd(t, psi, odeconfig):
                      odeconfig.h_ind, odeconfig.h_ptr)
     col = array([np.abs(odeconfig.c_funcs[j](t, odeconfig.c_func_args)) ** 2 *
                  spmv_csr(odeconfig.n_ops_data[j],
-                        odeconfig.n_ops_ind[j],
-                        odeconfig.n_ops_ptr[j], psi)
+                          odeconfig.n_ops_ind[j],
+                          odeconfig.n_ops_ptr[j], psi)
                 for j in odeconfig.c_td_inds])
     return sys - 0.5 * np.sum(col, 0)
 
@@ -539,19 +550,19 @@ def _cRHStd(t, psi, odeconfig):
 # RHS of ODE for list-function based Hamiltonian
 def _tdRHStd(t, psi, odeconfig):
     const_term = spmv_csr(odeconfig.h_data,
-                        odeconfig.h_ind,
-                        odeconfig.h_ptr, psi)
+                          odeconfig.h_ind,
+                          odeconfig.h_ptr, psi)
     h_func_term = array([odeconfig.h_funcs[j](t, odeconfig.h_func_args) *
                          spmv_csr(odeconfig.h_td_data[j],
-                                odeconfig.h_td_ind[j],
-                                odeconfig.h_td_ptr[j], psi)
+                                  odeconfig.h_td_ind[j],
+                                  odeconfig.h_td_ptr[j], psi)
                          for j in odeconfig.h_td_inds])
     col_func_terms = array([np.abs(
         odeconfig.c_funcs[j](t, odeconfig.c_func_args)) ** 2 *
         spmv_csr(odeconfig.n_ops_data[j],
-               odeconfig.n_ops_ind[j],
-               odeconfig.n_ops_ptr[j],
-               psi)
+                 odeconfig.n_ops_ind[j],
+                 odeconfig.n_ops_ptr[j],
+                 psi)
         for j in odeconfig.c_td_inds])
     return (const_term - np.sum(h_func_term, 0)
             - 0.5 * np.sum(col_func_terms, 0))
@@ -560,21 +571,21 @@ def _tdRHStd(t, psi, odeconfig):
 def _tdRHStd_with_state(t, psi, odeconfig):
 
     const_term = spmv_csr(odeconfig.h_data,
-                        odeconfig.h_ind,
-                        odeconfig.h_ptr, psi)
+                          odeconfig.h_ind,
+                          odeconfig.h_ptr, psi)
 
     h_func_term = array([
         odeconfig.h_funcs[j](t, psi, odeconfig.h_func_args) *
         spmv_csr(odeconfig.h_td_data[j],
-               odeconfig.h_td_ind[j],
-               odeconfig.h_td_ptr[j], psi)
+                 odeconfig.h_td_ind[j],
+                 odeconfig.h_td_ptr[j], psi)
         for j in odeconfig.h_td_inds])
 
     col_func_terms = array([
         np.abs(odeconfig.c_funcs[j](t, odeconfig.c_func_args)) ** 2 *
         spmv_csr(odeconfig.n_ops_data[j],
-               odeconfig.n_ops_ind[j],
-               odeconfig.n_ops_ptr[j], psi)
+                 odeconfig.n_ops_ind[j],
+                 odeconfig.n_ops_ptr[j], psi)
         for j in odeconfig.c_td_inds])
 
     return (const_term - np.sum(h_func_term, 0)
@@ -588,7 +599,7 @@ def _pyRHSc(t, psi, odeconfig):
     const_col_term = 0
     if len(odeconfig.c_const_inds) > 0:
         const_col_term = spmv_csr(odeconfig.h_data, odeconfig.h_ind,
-                                odeconfig.h_ptr, psi)
+                                  odeconfig.h_ptr, psi)
 
     return h_func_term + const_col_term
 
@@ -599,16 +610,16 @@ def _pyRHSc_with_state(t, psi, odeconfig):
     const_col_term = 0
     if len(odeconfig.c_const_inds) > 0:
         const_col_term = spmv_csr(odeconfig.h_data, odeconfig.h_ind,
-                                odeconfig.h_ptr, psi)
+                                  odeconfig.h_ptr, psi)
 
     return h_func_term + const_col_term
 
 
-#----------------------------------------------------
+# ----------------------------------------------------
 # END PYTHON FUNCTION RHS
-#----------------------------------------------------
+# ----------------------------------------------------
 
-######---return psi at requested times for no collapse operators---######
+# --- return psi at requested times for no collapse operators
 def _no_collapse_psi_out(num_times, psi_out, odeconfig):
     """
     Calculates state vectors at times tlist if no collapse AND no
@@ -662,15 +673,14 @@ def _no_collapse_psi_out(num_times, psi_out, odeconfig):
     for k in range(1, num_times):
         ODE.integrate(odeconfig.tlist[k], step=0)  # integrate up to tlist[k]
         if ODE.successful():
-            psi_out[k] = Qobj(ODE.y / dznrm2(ODE.y), odeconfig.psi0_dims, 
+            psi_out[k] = Qobj(ODE.y / dznrm2(ODE.y), odeconfig.psi0_dims,
                               odeconfig.psi0_shape)
         else:
             raise ValueError('Error in ODE solver')
     return psi_out
-#------------------------------------------------------------------------
 
 
-######---return expectation values at requested times for no collapse oper
+# ---- return expectation values at requested times for no collapse oper
 def _no_collapse_expect_out(num_times, expect_out, odeconfig):
     """
     Calculates expect.values at times tlist if no collapse ops. given
@@ -714,33 +724,30 @@ def _no_collapse_expect_out(num_times, expect_out, odeconfig):
     ODE.set_integrator('zvode', method=opt.method, order=opt.order,
                        atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                        first_step=opt.first_step, min_step=opt.min_step,
-                       max_step=opt.max_step)  # initialize ODE solver for RHS
-    ODE.set_initial_value(
-        odeconfig.psi0, odeconfig.tlist[0])  # set initial conditions
+                       max_step=opt.max_step)
+    ODE.set_initial_value(odeconfig.psi0, odeconfig.tlist[0])
     for jj in range(odeconfig.e_num):
-        expect_out[jj][0] = cy_expect_psi_csr(odeconfig.e_ops_data[jj],
-                                      odeconfig.e_ops_ind[jj],
-                                      odeconfig.e_ops_ptr[jj],
-                                      odeconfig.psi0,
-                                      odeconfig.e_ops_isherm[jj])
+        expect_out[jj][0] = cy_expect_psi_csr(
+            odeconfig.e_ops_data[jj], odeconfig.e_ops_ind[jj],
+            odeconfig.e_ops_ptr[jj], odeconfig.psi0,
+            odeconfig.e_ops_isherm[jj])
 
     for k in range(1, num_times):
         ODE.integrate(odeconfig.tlist[k], step=0)  # integrate up to tlist[k]
         if ODE.successful():
             state = ODE.y / dznrm2(ODE.y)
             for jj in range(odeconfig.e_num):
-                expect_out[jj][k] = cy_expect_psi_csr(odeconfig.e_ops_data[jj],
-                                              odeconfig.e_ops_ind[jj],
-                                              odeconfig.e_ops_ptr[jj],
-                                              state,
-                                              odeconfig.e_ops_isherm[jj])
+                expect_out[jj][k] = cy_expect_psi_csr(
+                    odeconfig.e_ops_data[jj], odeconfig.e_ops_ind[jj],
+                    odeconfig.e_ops_ptr[jj], state,
+                    odeconfig.e_ops_isherm[jj])
         else:
             raise ValueError('Error in ODE solver')
 
     return expect_out
 
 
-#---single-trajectory for monte-carlo---
+# ---single-trajectory for monte-carlo---
 def _mc_alg_evolve(nt, args, odeconfig):
     """
     Monte-Carlo algorithm returning state-vector or expectation values
@@ -758,13 +765,13 @@ def _mc_alg_evolve(nt, args, odeconfig):
         # get input data
         mc_alg_out, opt, tlist, num_times, seeds = args
 
-        collapse_times = np.array([],dtype=float)  # times at which collapse occurs
-        which_oper = array([],dtype=float)  # which operator did the collapse
+        collapse_times = np.array([], dtype=float)  # times of collapses
+        which_oper = array([], dtype=float)  # which operator did the collapse
 
         # SEED AND RNG AND GENERATE
         prng = RandomState(seeds[nt])
-        rand_vals = prng.rand(2)  # first rand is collapse norm,
-                                  # second is which operator
+        # first rand is collapse norm, second is which operator
+        rand_vals = prng.rand(2)
 
         # CREATE ODE OBJECT CORRESPONDING TO DESIRED TIME-DEPENDENCE
         if odeconfig.tflag in array([1, 10, 11]):
@@ -825,7 +832,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                 norm2_psi = dznrm2(ODE.y) ** 2
                 if norm2_psi <= rand_vals[0]:  # <== collapse has occured
                     # find collapse time to within specified tolerance
-                    #---------------------------------------------------
+                    # ---------------------------------------------------
                     ii = 0
                     t_final = ODE.t
                     while ii < odeconfig.norm_steps:
@@ -854,13 +861,14 @@ def _mc_alg_evolve(nt, args, odeconfig):
                         raise Exception("Norm tolerance not reached. " +
                                         "Increase accuracy of ODE solver or " +
                                         "Odeoptions.norm_steps.")
-                    #---------------------------------------------------
-                    np.append(collapse_times,ODE.t)
+                    # ---------------------------------------------------
+                    np.append(collapse_times, ODE.t)
                     # some string based collapse operators
                     if odeconfig.tflag in array([1, 11]):
                         n_dp = [cy_expect_psi_csr(odeconfig.n_ops_data[i],
-                                          odeconfig.n_ops_ind[i],
-                                          odeconfig.n_ops_ptr[i], ODE.y, 1)
+                                                  odeconfig.n_ops_ind[i],
+                                                  odeconfig.n_ops_ptr[i],
+                                                  ODE.y, 1)
                                 for i in odeconfig.c_const_inds]
 
                         _locals = locals()
@@ -872,32 +880,35 @@ def _mc_alg_evolve(nt, args, odeconfig):
                     # some Python function based collapse operators
                     elif odeconfig.tflag in array([2, 20, 22]):
                         n_dp = [cy_expect_psi_csr(odeconfig.n_ops_data[i],
-                                          odeconfig.n_ops_ind[i],
-                                          odeconfig.n_ops_ptr[i], ODE.y, 1)
+                                                  odeconfig.n_ops_ind[i],
+                                                  odeconfig.n_ops_ptr[i],
+                                                  ODE.y, 1)
                                 for i in odeconfig.c_const_inds]
                         n_dp += [abs(odeconfig.c_funcs[i](
                                      ODE.t, odeconfig.c_func_args)) ** 2 *
                                  cy_expect_psi_csr(odeconfig.n_ops_data[i],
-                                           odeconfig.n_ops_ind[i],
-                                           odeconfig.n_ops_ptr[i], ODE.y, 1)
+                                                   odeconfig.n_ops_ind[i],
+                                                   odeconfig.n_ops_ptr[i],
+                                                   ODE.y, 1)
                                  for i in odeconfig.c_td_inds]
                         n_dp = array(n_dp)
                     # all constant collapse operators.
                     else:
-                        n_dp = array([cy_expect_psi_csr(odeconfig.n_ops_data[i],
-                                                odeconfig.n_ops_ind[i],
-                                                odeconfig.n_ops_ptr[i],
-                                                ODE.y, 1)
-                                      for i in range(odeconfig.c_num)])
+                        n_dp = array(
+                            [cy_expect_psi_csr(odeconfig.n_ops_data[i],
+                                               odeconfig.n_ops_ind[i],
+                                               odeconfig.n_ops_ptr[i],
+                                               ODE.y, 1)
+                             for i in range(odeconfig.c_num)])
 
-                    # determine which operator does collapse
+                    # determine which operator does collapse and store it
                     kk = cumsum(n_dp / sum(n_dp))
                     j = cinds[kk >= rand_vals[1]][0]
-                    np.append(which_oper,j)  # record which operator did collapse
+                    np.append(which_oper, j)
                     if j in odeconfig.c_const_inds:
                         state = spmv_csr(odeconfig.c_ops_data[j],
-                                     odeconfig.c_ops_ind[j],
-                                     odeconfig.c_ops_ptr[j], ODE.y)
+                                         odeconfig.c_ops_ind[j],
+                                         odeconfig.c_ops_ptr[j], ODE.y)
                     else:
                         if odeconfig.tflag in array([1, 11]):
                             _locals = locals()
@@ -910,49 +921,53 @@ def _mc_alg_evolve(nt, args, odeconfig):
                                 odeconfig.c_funcs[j](ODE.t,
                                                      odeconfig.c_func_args) * \
                                 spmv_csr(odeconfig.c_ops_data[j],
-                                     odeconfig.c_ops_ind[j],
-                                     odeconfig.c_ops_ptr[j], ODE.y)
+                                         odeconfig.c_ops_ind[j],
+                                         odeconfig.c_ops_ptr[j], ODE.y)
                     state = state / dznrm2(state)
                     ODE.set_initial_value(state, ODE.t)
                     rand_vals = prng.rand(2)
-            #-------------------------------------------------------
+            # -------------------------------------------------------
 
-            ###--after while loop--####
-            out_psi=ODE.y / dznrm2(ODE.y)
+            # -- after while loop --
+            out_psi = ODE.y / dznrm2(ODE.y)
             if odeconfig.e_num == 0:
-                out_psi = sp.csr_matrix(np.reshape(out_psi,(out_psi.shape[0],1)),dtype=complex)
-                if odeconfig.options.average_states and not odeconfig.options.steady_state_average:
-                    mc_alg_out[k] = Qobj(out_psi*out_psi.conj().transpose(),
-                                                [odeconfig.psi0_dims[0],
-                                                 odeconfig.psi0_dims[0]],
-                                                [odeconfig.psi0_shape[0],
-                                                 odeconfig.psi0_shape[0]],
-                                             fast='mc-dm')
-                
+                out_psi = sp.csr_matrix(np.reshape(out_psi,
+                                                   (out_psi.shape[0], 1)),
+                                        dtype=complex)
+                if (odeconfig.options.average_states and
+                        not odeconfig.options.steady_state_average):
+                    mc_alg_out[k] = Qobj(out_psi * out_psi.conj().transpose(),
+                                         [odeconfig.psi0_dims[0],
+                                          odeconfig.psi0_dims[0]],
+                                         [odeconfig.psi0_shape[0],
+                                          odeconfig.psi0_shape[0]],
+                                         fast='mc-dm')
+
                 elif odeconfig.options.steady_state_average:
-                    mc_alg_out[0] = mc_alg_out[0]+(out_psi*out_psi.conj().transpose())
-                
+                    mc_alg_out[0] = (mc_alg_out[0] +
+                                     (out_psi * out_psi.conj().transpose()))
+
                 else:
                     mc_alg_out[k] = Qobj(out_psi, odeconfig.psi0_dims,
-                                        odeconfig.psi0_shape, fast='mc')
+                                         odeconfig.psi0_shape, fast='mc')
             else:
                 for jj in range(odeconfig.e_num):
-                    mc_alg_out[jj][k] = cy_expect_psi_csr(odeconfig.e_ops_data[jj],
-                                                  odeconfig.e_ops_ind[jj],
-                                                  odeconfig.e_ops_ptr[jj],
-                                                  out_psi,
-                                                  odeconfig.e_ops_isherm[jj])
-        #Run at end of mc_alg function
-        #------------------------------
+                    mc_alg_out[jj][k] = cy_expect_psi_csr(
+                        odeconfig.e_ops_data[jj], odeconfig.e_ops_ind[jj],
+                        odeconfig.e_ops_ptr[jj], out_psi,
+                        odeconfig.e_ops_isherm[jj])
+
+        # Run at end of mc_alg function
+        # ------------------------------
         if odeconfig.options.steady_state_average:
-            mc_alg_out=array([Qobj(mc_alg_out[0]/float(len(tlist)),
-                                                    [odeconfig.psi0_dims[0],
-                                                     odeconfig.psi0_dims[0]],
-                                                    [odeconfig.psi0_shape[0],
-                                                     odeconfig.psi0_shape[0]],
-                                                 fast='mc-dm')])
-        return nt, mc_alg_out, \
-            collapse_times, which_oper
+            mc_alg_out = array([Qobj(mc_alg_out[0] / float(len(tlist)),
+                                [odeconfig.psi0_dims[0],
+                                 odeconfig.psi0_dims[0]],
+                                [odeconfig.psi0_shape[0],
+                                 odeconfig.psi0_shape[0]],
+                                fast='mc-dm')])
+
+        return nt, mc_alg_out, collapse_times, which_oper
 
     except Exception as e:
         print("failed to run _mc_alg_evolve: " + str(e))
@@ -1023,7 +1038,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
         odeconfig.e_ops_ind = array(odeconfig.e_ops_ind)
         odeconfig.e_ops_ptr = array(odeconfig.e_ops_ptr)
         odeconfig.e_ops_isherm = array(odeconfig.e_ops_isherm)
-    #----
+    # ----
 
     # take care of collapse operators, if any
     if any(c_ops):
@@ -1047,11 +1062,11 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
         odeconfig.n_ops_data = array(odeconfig.n_ops_data)
         odeconfig.n_ops_ind = array(odeconfig.n_ops_ind)
         odeconfig.n_ops_ptr = array(odeconfig.n_ops_ptr)
-    #----
+    # ----
 
-    #--------------------------------------------
+    # --------------------------------------------
     # START CONSTANT H & C_OPS CODE
-    #--------------------------------------------
+    # --------------------------------------------
     if odeconfig.tflag == 0:
         if odeconfig.cflag:
             odeconfig.c_const_inds = arange(len(c_ops))
@@ -1065,11 +1080,11 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
         odeconfig.h_data = -1.0j * H.data.data
         odeconfig.h_ind = H.data.indices
         odeconfig.h_ptr = H.data.indptr
-    #----
+    # ----
 
-    #--------------------------------------------
+    # --------------------------------------------
     # START STRING BASED TIME-DEPENDENCE
-    #--------------------------------------------
+    # --------------------------------------------
     elif odeconfig.tflag in array([1, 10, 11]):
         # take care of arguments for collapse operators, if any
         if any(args):
@@ -1107,9 +1122,9 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             odeconfig.h_data = -1.0j * array(odeconfig.h_data)
             odeconfig.h_ind = array(odeconfig.h_ind)
             odeconfig.h_ptr = array(odeconfig.h_ptr)
-            #--------------------------------------------
+            # --------------------------------------------
             # END OF IF STATEMENT
-            #--------------------------------------------
+            # --------------------------------------------
 
         # string-type Hamiltonian & at least one string-type collapse operator
         else:
@@ -1173,9 +1188,9 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             odeconfig.h_data = -1.0j * array(odeconfig.h_data)
             odeconfig.h_ind = array(odeconfig.h_ind)
             odeconfig.h_ptr = array(odeconfig.h_ptr)
-            #--------------------------------------------
+            # --------------------------------------------
             # END OF ELSE STATEMENT
-            #--------------------------------------------
+            # --------------------------------------------
 
         # set execuatble code for collapse expectation values and spmv
         col_spmv_code = ("state = _cy_col_spmv_func(j, ODE.t, " +
@@ -1208,7 +1223,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
         if len(odeconfig.c_args) > 0:
             for kk in range(len(odeconfig.c_args)):
                 odeconfig.string += "," + "odeconfig.c_args[" + str(kk) + "]"
-        #----
+        # ----
 
         name = "rhs" + str(odeconfig.cgen_num)
         odeconfig.tdname = name
@@ -1217,9 +1232,9 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
                        odeconfig=odeconfig)
         cgen.generate(name + ".pyx")
 
-    #-------------------------------------------------
+    # -------------------------------------------------
     # START PYTHON LIST-FUNCTION BASED TIME-DEPENDENCE
-    #-------------------------------------------------
+    # -------------------------------------------------
     elif odeconfig.tflag in array([2, 20, 22]):
 
         # take care of Hamiltonian
@@ -1275,9 +1290,9 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
         odeconfig.h_td_ptr = array(
             [Htd[k].data.indptr for k in odeconfig.h_td_inds])
 
-    #--------------------------------------------
+    # --------------------------------------------
     # START PYTHON FUNCTION BASED HAMILTONIAN
-    #--------------------------------------------
+    # --------------------------------------------
     elif odeconfig.tflag == 3:
         # take care of Hamiltonian
         odeconfig.h_funcs = H
