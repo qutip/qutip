@@ -45,7 +45,7 @@ from scipy.linalg import norm
 import warnings
 
 from qutip.qobj import Qobj, isket, isoper, issuper
-from qutip.superoperator import spre, spost, liouvillian_fast, mat2vec, vec2mat
+from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
 from qutip.expect import expect, expect_rho_vec
 from qutip.odeoptions import Odeoptions
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
@@ -375,7 +375,7 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
 
         if isoper(c):
             cdc = c.dag() * c
-            L_list.append([liouvillian_fast(None, [c], data_only=True),
+            L_list.append([liouvillian(None, [c], data_only=True),
                            c_coeff, c_square])
 
         elif issuper(c):
@@ -646,7 +646,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
     if opt.tidy:
         H = H.tidyup(opt.atol)
 
-    L = liouvillian_fast(H, c_op_list)
+    L = liouvillian(H, c_op_list)
 
     #
     # setup integrator
@@ -699,7 +699,7 @@ def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
     new_args = None
 
     if len(c_op_list) > 0:
-        L_data = liouvillian_fast(None, c_op_list).data
+        L_data = liouvillian(None, c_op_list).data
     else:
         n, m = rho0.shape
         L_data = sp.csr_matrix((n ** 2, m ** 2), dtype=complex)
@@ -851,9 +851,11 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
 
         for m in range(n_expt_op):
             if output.expect[m].dtype == complex:
-                output.expect[m][t_idx] = expect_rho_vec(e_sops_data[m], r.y, 0)
+                output.expect[m][t_idx] = expect_rho_vec(e_sops_data[m],
+                                                         r.y, 0)
             else:
-                output.expect[m][t_idx] = expect_rho_vec(e_sops_data[m], r.y, 1)
+                output.expect[m][t_idx] = expect_rho_vec(e_sops_data[m],
+                                                         r.y, 1)
 
         if t_idx < n_tsteps - 1:
             r.integrate(r.t + dt[t_idx])
@@ -876,7 +878,6 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
 # -----------------------------------------------------------------------------
 # Old style API below.
 # -----------------------------------------------------------------------------
-
 
 # -----------------------------------------------------------------------------
 # Master equation solver: deprecated in 2.0.0. No support for time-dependent

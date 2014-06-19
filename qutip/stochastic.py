@@ -73,7 +73,7 @@ from qutip.operators import commutator
 from qutip.odedata import Odedata
 from qutip.expect import expect, expect_rho_vec
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
-                                 liouvillian_fast, lindblad_dissipator)
+                                 liouvillian, lindblad_dissipator)
 from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv, cy_expect_rho_vec
 from qutip.cy.stochastic import (cy_d1_rho_photocurrent,
                                  cy_d2_rho_photocurrent)
@@ -655,7 +655,7 @@ def smesolve_generic(ssdata, options, progress_bar):
 
     # Liouvillian for the deterministic part.
     # needs to be modified for TD systems
-    L = liouvillian_fast(ssdata.H, ssdata.c_ops)
+    L = liouvillian(ssdata.H, ssdata.c_ops)
 
     # pre-compute suporoperator operator combinations that are commonly needed
     # when evaluating the RHS of stochastic master equations
@@ -960,7 +960,7 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
 
     # Liouvillian for the deterministic part.
     # needs to be modified for TD systems
-    L = liouvillian_fast(ssdata.H, ssdata.c_ops)
+    L = liouvillian(ssdata.H, ssdata.c_ops)
 
     progress_bar.start(ssdata.ntraj)
 

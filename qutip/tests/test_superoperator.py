@@ -106,27 +106,6 @@ class TestMatrixVector:
         for I in range(N * N):
             i, j = vec2mat_index(N, I)
             assert_(V[I][0] == M[i, j])
-
-    def testLiouvillianImplementations(self):
-        """
-        Superoperator: Randomized comparison of standard and optimized
-        Liouvillian.
-        """
-        N1 = 3
-        N2 = 4
-        N3 = 5
-
-        a1 = tensor(rand_dm(N1, density=0.75), identity(N2), identity(N3))
-        a2 = tensor(identity(N1), rand_dm(N2, density=0.75), identity(N3))
-        a3 = tensor(identity(N1), identity(N2), rand_dm(N3, density=0.75))
-        H = a1.dag() * a1 + a2.dag() * a2 + a3.dag() * a3
-
-        c_ops = [sqrt(0.01) * a1, sqrt(0.025) * a2, sqrt(0.05) * a3]
-
-        L1 = liouvillian(H, c_ops)
-        L2 = liouvillian_fast(H, c_ops)
-
-        assert_((L1 - L2).norm() < 1e-8)
         
 
     def test_reshuffle(self):
