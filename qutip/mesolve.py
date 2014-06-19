@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 """
@@ -210,7 +210,7 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
         odeconfig.reset()
 
     res = None
-    
+
     #
     # dispatch the appropriate solver
     #
@@ -285,10 +285,10 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
         #
         if n_func > 0:
             res = _sesolve_list_func_td(H, rho0, tlist,
-                                         e_ops, args, options, progress_bar)
+                                        e_ops, args, options, progress_bar)
         elif n_str > 0:
             res = _sesolve_list_str_td(H, rho0, tlist,
-                                        e_ops, args, options, progress_bar)
+                                       e_ops, args, options, progress_bar)
         elif isinstance(H, (types.FunctionType,
                             types.BuiltinFunctionType, partial)):
             res = _sesolve_func_td(H, rho0, tlist,
@@ -298,9 +298,11 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
                                  e_ops, args, options, progress_bar)
 
     if e_ops_dict:
-        res.expect = {e: res.expect[n] for n, e in enumerate(e_ops_dict.keys())}
+        res.expect = {e: res.expect[n]
+                      for n, e in enumerate(e_ops_dict.keys())}
 
     return res
+
 
 # -----------------------------------------------------------------------------
 # A time-dependent dissipative master equation on the list-function format
@@ -618,7 +620,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
 #
 def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
                    progress_bar):
-    """!
+    """
     Evolve the density matrix using an ODE solver, for constant hamiltonian
     and collapse operators.
     """
@@ -673,112 +675,11 @@ def _ode_rho_func(t, rho, L):
 
 
 # -----------------------------------------------------------------------------
-# Master equation solver: deprecated in 2.0.0. No support for time-dependent
-# collapse operators. Only used by the deprecated odesolve function.
-#
-def _mesolve_list_td(H_func, rho0, tlist, c_op_list, e_ops, args, opt,
-                     progress_bar):
-    """!
-    Evolve the density matrix using an ODE solver with time dependent
-    Hamiltonian.
-    """
-
-    if debug:
-        print(inspect.stack()[0][3])
-
-    #
-    # check initial state
-    #
-    if isket(rho0):
-        # if initial state is a ket and no collapse operator where given,
-        # fall back on the unitary schrodinger equation solver
-        if len(c_op_list) == 0:
-            return _sesolve_list_td(H_func, rho0, tlist, e_ops, args, opt)
-
-        # Got a wave function as initial state: convert to density matrix.
-        rho0 = ket2dm(rho0)
-
-    #
-    # construct liouvillian
-    #
-    if len(H_func) != 2:
-        raise TypeError('Time-dependent Hamiltonian list must have two terms.')
-    if not isinstance(H_func[0], (list, np.ndarray)) or len(H_func[0]) <= 1:
-        raise TypeError('Time-dependent Hamiltonians must be a list ' +
-                        'with two or more terms')
-    if (not isinstance(H_func[1], (list, np.ndarray))) or \
-       (len(H_func[1]) != (len(H_func[0]) - 1)):
-        raise TypeError('Time-dependent coefficients must be list with ' +
-                        'length N-1 where N is the number of ' +
-                        'Hamiltonian terms.')
-
-    if opt.rhs_reuse and odeconfig.tdfunc is None:
-        rhs_generate(H_func, args)
-
-    lenh = len(H_func[0])
-    if opt.tidy:
-        H_func[0] = [(H_func[0][k]).tidyup() for k in range(lenh)]
-    L_func = [[liouvillian_fast(H_func[0][0], c_op_list)], H_func[1]]
-    for m in range(1, lenh):
-        L_func[0].append(liouvillian_fast(H_func[0][m], []))
-
-    # create data arrays for time-dependent RHS function
-    Ldata = [L_func[0][k].data.data for k in range(lenh)]
-    Linds = [L_func[0][k].data.indices for k in range(lenh)]
-    Lptrs = [L_func[0][k].data.indptr for k in range(lenh)]
-    # setup ode args string
-    string = ""
-    for k in range(lenh):
-        string += ("Ldata[%d], Linds[%d], Lptrs[%d]," % (k, k, k))
-
-    if args:
-        for name, value in args.items():
-            if isinstance(value, np.ndarray):
-                globals()['var_%s'%name] = value
-                string += 'var_%s,'%name
-            else:
-                string += str(value) + ','
-
-    # run code generator
-    if not opt.rhs_reuse or odeconfig.tdfunc is None:
-        if opt.rhs_filename is None:
-            odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
-        else:
-            odeconfig.tdname = opt.rhs_filename
-        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                       odeconfig=odeconfig)
-        cgen.generate(odeconfig.tdname + ".pyx")
-
-        code = compile('from ' + odeconfig.tdname + ' import cy_td_ode_rhs',
-                       '<string>', 'exec')
-        exec(code, globals())
-        odeconfig.tdfunc = cy_td_ode_rhs
-
-    #
-    # setup integrator
-    #
-    initial_vector = mat2vec(rho0.full()).ravel()
-    r = scipy.integrate.ode(odeconfig.tdfunc)
-    r.set_integrator('zvode', method=opt.method, order=opt.order,
-                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
-                     first_step=opt.first_step, min_step=opt.min_step,
-                     max_step=opt.max_step)
-    r.set_initial_value(initial_vector, tlist[0])
-    code = compile('r.set_f_params(' + string + ')', '<string>', 'exec')
-    exec(code)
-
-    #
-    # call generic ODE code
-    #
-    return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar)
-
-
-# -----------------------------------------------------------------------------
-# Master equation solver
+# Master equation solver for python-function time-dependence.
 #
 def _mesolve_func_td(L_func, rho0, tlist, c_op_list, e_ops, args, opt,
                      progress_bar):
-    """!
+    """
     Evolve the density matrix using an ODE solver with time dependent
     Hamiltonian.
     """
@@ -878,14 +779,11 @@ def _ode_rho_func_td_with_state(t, rho, L0, L_func, args):
 # Generic ODE solver: shared code among the various ODE solver
 # -----------------------------------------------------------------------------
 
-
-# -----------------------------------------------------------------------------
-# Solve an ODE which solver parameters already setup (r). Calculate the
-# required expectation values or invoke callback function at each time step.
-#
 def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
     """
-    Internal function for solving ME.
+    Internal function for solving ME. Solve an ODE which solver parameters
+    already setup (r). Calculate the required expectation values or invoke
+    callback function at each time step.
     """
 
     #
@@ -978,6 +876,107 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
 # -----------------------------------------------------------------------------
 # Old style API below.
 # -----------------------------------------------------------------------------
+
+
+# -----------------------------------------------------------------------------
+# Master equation solver: deprecated in 2.0.0. No support for time-dependent
+# collapse operators. Only used by the deprecated odesolve function.
+#
+def _mesolve_list_td(H_func, rho0, tlist, c_op_list, e_ops, args, opt,
+                     progress_bar):
+    """
+    Evolve the density matrix using an ODE solver with time dependent
+    Hamiltonian.
+    """
+
+    if debug:
+        print(inspect.stack()[0][3])
+
+    #
+    # check initial state
+    #
+    if isket(rho0):
+        # if initial state is a ket and no collapse operator where given,
+        # fall back on the unitary schrodinger equation solver
+        if len(c_op_list) == 0:
+            return _sesolve_list_td(H_func, rho0, tlist, e_ops, args, opt)
+
+        # Got a wave function as initial state: convert to density matrix.
+        rho0 = ket2dm(rho0)
+
+    #
+    # construct liouvillian
+    #
+    if len(H_func) != 2:
+        raise TypeError('Time-dependent Hamiltonian list must have two terms.')
+    if not isinstance(H_func[0], (list, np.ndarray)) or len(H_func[0]) <= 1:
+        raise TypeError('Time-dependent Hamiltonians must be a list ' +
+                        'with two or more terms')
+    if (not isinstance(H_func[1], (list, np.ndarray))) or \
+       (len(H_func[1]) != (len(H_func[0]) - 1)):
+        raise TypeError('Time-dependent coefficients must be list with ' +
+                        'length N-1 where N is the number of ' +
+                        'Hamiltonian terms.')
+
+    if opt.rhs_reuse and odeconfig.tdfunc is None:
+        rhs_generate(H_func, args)
+
+    lenh = len(H_func[0])
+    if opt.tidy:
+        H_func[0] = [(H_func[0][k]).tidyup() for k in range(lenh)]
+    L_func = [[liouvillian_fast(H_func[0][0], c_op_list)], H_func[1]]
+    for m in range(1, lenh):
+        L_func[0].append(liouvillian_fast(H_func[0][m], []))
+
+    # create data arrays for time-dependent RHS function
+    Ldata = [L_func[0][k].data.data for k in range(lenh)]
+    Linds = [L_func[0][k].data.indices for k in range(lenh)]
+    Lptrs = [L_func[0][k].data.indptr for k in range(lenh)]
+    # setup ode args string
+    string = ""
+    for k in range(lenh):
+        string += ("Ldata[%d], Linds[%d], Lptrs[%d]," % (k, k, k))
+
+    if args:
+        td_consts = args.items()
+        for elem in td_consts:
+            string += str(elem[1])
+            if elem != td_consts[-1]:
+                string += (",")
+
+    # run code generator
+    if not opt.rhs_reuse or odeconfig.tdfunc is None:
+        if opt.rhs_filename is None:
+            odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
+        else:
+            odeconfig.tdname = opt.rhs_filename
+        cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
+                       odeconfig=odeconfig)
+        cgen.generate(odeconfig.tdname + ".pyx")
+
+        code = compile('from ' + odeconfig.tdname + ' import cy_td_ode_rhs',
+                       '<string>', 'exec')
+        exec(code, globals())
+        odeconfig.tdfunc = cy_td_ode_rhs
+
+    #
+    # setup integrator
+    #
+    initial_vector = mat2vec(rho0.full()).ravel()
+    r = scipy.integrate.ode(odeconfig.tdfunc)
+    r.set_integrator('zvode', method=opt.method, order=opt.order,
+                     atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                     first_step=opt.first_step, min_step=opt.min_step,
+                     max_step=opt.max_step)
+    r.set_initial_value(initial_vector, tlist[0])
+    code = compile('r.set_f_params(' + string + ')', '<string>', 'exec')
+    exec(code)
+
+    #
+    # call generic ODE code
+    #
+    return _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar)
+
 
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
