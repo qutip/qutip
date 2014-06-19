@@ -155,7 +155,7 @@ def tracedist(A, B, sparse=False, tol=0):
 
     diff = A - B
     diff = diff.dag() * diff
-    vals = sp_eigs(diff, vecs=False, sparse=sparse, tol=tol)
+    vals = sp_eigs(diff.data, diff.isherm, vecs=False, sparse=sparse, tol=tol)
     return float(np.real(0.5 * np.sum(np.sqrt(np.abs(vals)))))
 
 
@@ -214,7 +214,7 @@ def bures_dist(A, B):
     if A.dims != B.dims:
         raise TypeError('A and B do not have same dimensions.')
 
-    dist = np.sqrt(2.0 * (1.0 - np.sqrt(fidelity(A, B))))
+    dist = np.sqrt(2.0 * (1.0 - fidelity(A, B)))
     return dist
 
 
@@ -244,4 +244,4 @@ def bures_angle(A, B):
     if A.dims != B.dims:
         raise TypeError('A and B do not have same dimensions.')
 
-    return np.arccos(np.sqrt(fidelity(A, B)))
+    return np.arccos(fidelity(A, B))

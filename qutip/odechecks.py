@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
@@ -49,17 +49,19 @@ def _ode_checks(H, c_ops, solver='me'):
     elif isinstance(H, (FunctionType, BuiltinFunctionType, partial)):
         pass  # n_func += 1
     elif isinstance(H, list):
-        for k in range(len(H)):
-            if isinstance(H[k], Qobj):
+        for k, H_k in enumerate(H):
+            if isinstance(H_k, Qobj):
                 h_const.append(k)
-            elif isinstance(H[k], list):
-                if len(H[k]) != 2 or not isinstance(H[k][0], Qobj):
+            elif isinstance(H_k, list):
+                if len(H_k) != 2 or not isinstance(H_k[0], Qobj):
                     raise TypeError("Incorrect hamiltonian specification")
                 else:
-                    if isinstance(H[k][1], (FunctionType,
-                                            BuiltinFunctionType, partial)):
+                    if isinstance(H_k[1], (FunctionType,
+                                           BuiltinFunctionType, partial)):
                         h_func.append(k)
-                    elif isinstance(H[k][1], str):
+                    elif isinstance(H_k[1], str):
+                        h_str.append(k)
+                    elif isinstance(H_k[1], np.ndarray):
                         h_str.append(k)
                     else:
                         raise TypeError("Incorrect hamiltonian specification")
@@ -83,6 +85,8 @@ def _ode_checks(H, c_ops, solver='me'):
                                                 BuiltinFunctionType, partial)):
                         c_func.append(k)
                     elif isinstance(c_ops[k][1], str):
+                        c_str.append(k)
+                    elif isinstance(c_ops[k][1], np.ndarray):
                         c_str.append(k)
                     else:
                         raise TypeError(
@@ -165,3 +169,49 @@ def _ode_checks(H, c_ops, solver='me'):
                 raise Exception("Error determining time-dependence.")
 
         return time_type, [h_const, h_func, h_str], [c_const, c_func, c_str]
+
+
+def _td_wrap_array_str(H, c_ops, args, times):
+    """
+    Wrap numpy-array based time-dependence in the string-based time dependence
+    format
+    """
+    n = 0
+    H_new = []
+    c_ops_new = []
+    args_new = {}
+
+    if not isinstance(H, list):
+        H_new = H
+    else:
+        for Hk in H:
+            if isinstance(Hk, list) and isinstance(Hk[1], np.ndarray):
+                H_op, H_td = Hk
+                td_array_name = "_td_array_%d" % n
+                H_td_str = '(0 if (t > %f) else %s[round(%d * (t/%f))])' %\
+                    (times[-1], td_array_name, len(times) - 1, times[-1])
+                args_new[td_array_name] = H_td
+                H_new.append([H_op, H_td_str])
+                n += 1
+            else:
+                H_new.append(Hk)
+
+    if not isinstance(c_ops, list):
+        c_ops_new = c_ops
+    else:
+        for ck in c_ops:
+            if isinstance(ck, list) and isinstance(ck[1], np.ndarray):
+                c_op, c_td = ck
+                td_array_name = "_td_array_%d" % n
+                c_td_str = '(0 if (t > %f) else %s[round(%d * (t/%f))])' %\
+                    (times[-1], td_array_name, len(times) - 1, times[-1])
+                args_new[td_array_name] = c_td
+                c_ops_new.append([c_op, c_td_str])
+                n += 1
+            else:
+                c_ops_new.append(ck)
+
+    if args:
+        args_new.update(args)
+
+    return H_new, c_ops_new, args_new

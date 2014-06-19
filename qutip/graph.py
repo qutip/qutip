@@ -61,10 +61,9 @@ def graph_degree(A):
         Array of integers giving the degree for each node (row).
     
     """
-    if A.__class__.__name__=='Qobj':
-        return _node_degrees(A.data.indices, A.data.indptr, A.shape[0])
-    else:
-        return _node_degrees(A.indices, A.indptr, A.shape[0])
+    if not (sp.isspmatrix_csc(A) or sp.isspmatrix_csr(A)):
+        raise TypeError('Input must be CSC or CSR sparse matrix.')
+    return _node_degrees(A.indices, A.indptr, A.shape[0])
 
 
 def breadth_first_search(A,start):
@@ -77,9 +76,8 @@ def breadth_first_search(A,start):
     
     Parameters
     ----------
-    A : qobj, csr_matrix
-        Input graph in CSR matrix form
-    
+    A : csc_matrix, csr_matrix
+        Input graph in CSC or CSR matrix format
     start : int
         Staring node for BFS traversal.
     
@@ -87,13 +85,12 @@ def breadth_first_search(A,start):
     -------
     order : array
         Order in which nodes are traversed from starting node.
-    
     levels : array
         Level of the nodes in the order that they are traversed.
     
     """
-    if A.__class__.__name__=='Qobj':
-        A=A.data
+    if not (sp.isspmatrix_csc(A) or sp.isspmatrix_csr(A)):
+        raise TypeError('Input must be CSC or CSR sparse matrix.')
     num_rows=A.shape[0]
     start=int(start)
     order, levels = _breadth_first_search(A.indices,A.indptr, num_rows, start)
@@ -103,7 +100,7 @@ def breadth_first_search(A,start):
 
 def symrcm(A, sym=False):
     """
-    Returns the permutation array that orders a sparse CSR or CSC matrix or Qobj
+    Returns the permutation array that orders a sparse CSR or CSC matrix
     in Reverse-Cuthill McKee ordering.  Since the input matrix must be symmetric,
     this routine works on the matrix A+Trans(A) if the sym flag is set to False (Default).
     
@@ -114,9 +111,8 @@ def symrcm(A, sym=False):
     
     Parameters
     ----------
-    A : csr_matrix, qobj
-        Input sparse csr_matrix or Qobj.
-    
+    A : csc_matrix, csr_matrix
+        Input sparse CSC or CSR sparse matrix format.
     sym : bool {False, True}
         Flag to set whether input matrix is symmetric.
     
@@ -136,17 +132,12 @@ def symrcm(A, sym=False):
     ACM '69 Proceedings of the 1969 24th national conference, (1969).
         
     """
+    if not (sp.isspmatrix_csc(A) or sp.isspmatrix_csr(A)):
+        raise TypeError('Input must be CSC or CSR sparse matrix.')
     nrows = A.shape[0]
-    if A.__class__.__name__=='Qobj':
-        if not sym:
-            A = A.data+A.data.transpose()
-            return _rcm(A.indices, A.indptr, nrows)
-        else:
-            return _rcm(A.data.indices, A.data.indptr, nrows)
-    else:
-        if not sym:
-            A=A+A.transpose()
-        return _rcm(A.indices, A.indptr, nrows)
+    if not sym:
+        A=A+A.transpose()
+    return _rcm(A.indices, A.indptr, nrows)
 
 
 def bfs_matching(A):
@@ -237,13 +228,10 @@ def weighted_bfs_matching(A):
     nrows = A.shape[0]
     if A.shape[0]!=A.shape[1]:
         raise ValueError('weighted_bfs_matching requires a square matrix.')
-    if A.__class__.__name__=='Qobj':
-        A = A.data.tocsc()
-    elif not sp.isspmatrix_csc(A):
+    if not sp.isspmatrix_csc(A):
         A = sp.csc_matrix(A)
         warn('weighted_bfs_matching requires CSC matrix format', 
             sp.SparseEfficiencyWarning)
-    
     perm = _weighted_bfs_matching(
             np.asarray(np.abs(A.data), dtype=float),
             A.indices, A.indptr, nrows)

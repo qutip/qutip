@@ -575,7 +575,7 @@ def test_SuperType():
 
 def test_arithmetic_preserves_superrep():
     """
-    Superoperator arithmetic: Checks that binary ops preserve 'superrep'.
+    Checks that binary ops preserve 'superrep'.
         
     .. note::
     
@@ -620,7 +620,7 @@ def test_arithmetic_preserves_superrep():
 
 def test_isherm_skew():
     """
-    Checks that mul and tensor of skew-Hermitian operators report ``isherm = True``.
+    mul and tensor of skew-Hermitian operators report ``isherm = True``.
     """
     iH = 1j * rand_herm(5)
     
@@ -630,7 +630,7 @@ def test_isherm_skew():
     
 def test_super_tensor_property():
     """
-    Tensor: Checks that super_tensor correctly tensors on underlying spaces.
+    Tensor: Super_tensor correctly tensors on underlying spaces.
     """
     U1 = rand_unitary(3)
     U2 = rand_unitary(5)
