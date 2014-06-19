@@ -652,7 +652,9 @@ class QubitCircuit(object):
                 if gate.targets and n in gate.targets:
                     
                     if len(gate.targets) > 1:
-                        if (self.reverse_states and n == max(gate.targets)) or (not self.reverse_states and n == min(gate.targets)):
+                        if ((self.reverse_states and n == max(gate.targets)) or 
+                            (not self.reverse_states 
+                             and n == min(gate.targets))):
                             col.append(r" \multigate{%d}{%s} " %
                                        (len(gate.targets) - 1,
                                         _gate_label(gate.name, gate.arg_label)))
@@ -678,7 +680,8 @@ class QubitCircuit(object):
                 
                 elif (not gate.controls and not gate.targets):
                     # global gate
-                    if (self.reverse_states and n == self.N - 1) or (not self.reverse_states and n == 0):
+                    if ((self.reverse_states and n == self.N - 1) 
+                        or (not self.reverse_states and n == 0)):
                         col.append(r" \multigate{%d}{%s} " %
                                    (self.N - 1,
                                     _gate_label(gate.name, gate.arg_label)))
@@ -693,7 +696,8 @@ class QubitCircuit(object):
             rows.append(col)
 
         code = ""
-        n_iter = reversed(range(self.N)) if self.reverse_states else range(self.N)
+        n_iter = reversed(range(self.N)) (if self.reverse_states 
+                                          else range(self.N))
         for n in n_iter:
             for m in range(len(gates)):
                 code += r" & %s" % rows[m][n]
@@ -729,7 +733,8 @@ class QubitCircuit(object):
         for gate in self.gates:
             code += "\t%s\t" % gate.name
             qtargets = ["q%d" % t for t in gate.targets] if gate.targets else []
-            qcontrols = ["q%d" % c for c in gate.controls] if gate.controls else []
+            qcontrols = ["q%d" % c for c in gate.controls] (if gate.controls 
+                                                            else [])
             code += ",".join(qtargets + qcontrols)
             code += "\n"
             
@@ -757,12 +762,12 @@ class Circuit():
 
         s += "Quantum Circuit: "
         s += "Number of elements : " + str(self.record['elements'])+"\n"
-        s += "Num. of oscillators : " + 
-             str(len(self.record['oscillator_components']))+ ", "
-        s += "Num. of qubits : " + 
-             str(len(self.record['qubit_components']))+ ", "
-        s += "Num. of qudits : " + 
-             str(len(self.record['qudit_components']))+"\n"
+        s += ("Num. of oscillators : " + 
+              str(len(self.record['oscillator_components']))+ ", ")
+        s += ("Num. of qubits : " + 
+              str(len(self.record['qubit_components']))+ ", ")
+        s += ("Num. of qudits : " + 
+              str(len(self.record['qudit_components']))+"\n")
         return s
     
     def __repr__(self):
