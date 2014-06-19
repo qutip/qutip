@@ -835,7 +835,7 @@ class QubitCircuit(object):
         for gate in self.gates:
             code += "\t%s\t" % gate.name
             qtargets = ["q%d" % t for t in gate.targets] if gate.targets else []
-            qcontrols = ["q%d" % c for c in gate.controls] (if gate.controls 
+            qcontrols = (["q%d" % c for c in gate.controls] if gate.controls 
                                                             else [])
             code += ",".join(qtargets + qcontrols)
             code += "\n"
