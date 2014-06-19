@@ -78,7 +78,7 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     Evolve the state vector or density matrix (`rho0`) using a given
     Hamiltonian (`H`) and an [optional] set of collapse operators
     (`c_op_list`), by integrating the set of ordinary differential equations
-    that define the system. In the absense of collase operators the system is
+    that define the system. In the absence of collapse operators the system is
     evolved according to the unitary evolution of the Hamiltonian.
 
     The output is either the state vector at arbitrary points in time
@@ -91,7 +91,7 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
 
     For problems with time-dependent problems `H` and `c_ops` can be callback
     functions that takes two arguments, time and `args`, and returns the
-    Hamiltonian or Liuovillian for the system at that point in time
+    Hamiltonian or Liouvillian for the system at that point in time
     (*callback format*).
 
     Alternatively, `H` and `c_ops` can be a specified in a nested-list format
@@ -135,10 +135,10 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
         objects to sparse matrices before handing the problem to the integrator
         function. In order for your callback function to work correctly, pass
         all :class:`qutip.qobj` objects that are used in constructing the
-        Hamiltonian via args. odesolve will check for :class:`qutip.qobj` in
+        Hamiltonian via args. mesolve will check for :class:`qutip.qobj` in
         `args` and handle the conversion to sparse matrices. All other
         :class:`qutip.qobj` objects that are not passed via `args` will be
-        passed on to the integrator to scipy who will raise an NotImplemented
+        passed on to the integrator in scipy which will raise an NotImplemented
         exception.
 
     Parameters
@@ -177,7 +177,7 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
         an *array* of expectation values for the times specified by `tlist`, or
         an *array* or state vectors or density matrices corresponding to the
         times in `tlist` [if `e_ops` is an empty list], or
-        nothing if a callback function was given inplace of operators for
+        nothing if a callback function was given in place of operators for
         which to calculate the expectation values.
 
     """
