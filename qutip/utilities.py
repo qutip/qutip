@@ -386,3 +386,20 @@ def view_methods(Q):
         pub_len=len(pub_meth[ii]+': ')
         print(pub_meth[ii]+':'+' '*(ml+3-pub_len)+ meth_str[:ind])
 
+
+def version2tuple(v):
+    """
+    Converts version strings in the format X.X.X to a tuple for 
+    comparing version numbers.
+    
+    Parameters
+    ----------
+    v : str
+        Version string
+    
+    Returns
+    -------
+    Tuple with version information
+    
+    """
+    return tuple(map(int, (v.split("."))[:3]))
