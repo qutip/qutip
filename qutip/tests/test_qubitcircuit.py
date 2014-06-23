@@ -127,7 +127,7 @@ class TestQubitCircuit:
         U2 = gate_sequence_product(qc2.unitary_matrix())
         assert_((U1 - U2).norm() < 1e-12)
    
-    def testadjacent gates(self):
+    def testadjacentgates(self):
         """
         Adjacent Gates: compare unitary matrix for ISWAP and product of 
         resolved matrices in terms of adjacent gates interaction.
