@@ -82,7 +82,7 @@ class Gate(object):
             if len(self.targets) != 2:
                 raise ValueError("Gate %s requires two target" % name)        
             if self.controls is not None:
-                raise ValueError("Gate %s does not have a control" % name)        
+                raise ValueError("Gate %s does not require a control" % name)        
 
         if name in ["CNOT", "CSIGN"]:
             if self.targets is None or len(self.targets) != 1:
