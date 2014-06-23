@@ -77,22 +77,22 @@ class Gate(object):
 
         if name in ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY", 
                     "SWAPalpha"]:
-            if len(targets) != 2:
+            if len(self.targets) != 2:
                 raise ValueError("Gate %s requires two target" % name)        
-            if controls is not None:
+            if self.controls is not None:
                 raise ValueError("Gate %s does not have a control" % name)        
 
         if name in ["CNOT", "CSIGN"]:
-            if targets is None or len(targets) != 1:
+            if self.targets is None or len(self.targets) != 1:
                 raise ValueError("Gate %s requires one target" % name)        
-            if controls is None or len(controls) != 1:
+            if self.controls is None or len(self.controls) != 1:
                 raise ValueError("Gate %s requires one control" % name)        
 
         if name in ["RX", "RY", "RZ", "CPHASE", "SWAPalpha", "PHASEGATE", 
                     "GLOBALPHASE"]:
             if arg_value is None:
                 raise ValueError("Gate %s requires an argument value" % name)
-            if controls is not None and name is not "CPHASE":
+            if self.controls is not None and name is not "CPHASE":
                 raise ValueError("Gate %s does not take controls" % name)
         
         self.arg_value = arg_value
