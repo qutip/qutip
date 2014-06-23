@@ -1356,7 +1356,10 @@ def plot_qubism(ket, theme='light', how='pairs',
     elif legend_iteration == 'grid_iteration':
         label_n = grid_iteration
     else:
-        label_n = legend_iteration
+        try:
+            label_n = int(legend_iteration)
+        except:
+            raise Exception("No such option for legend_iteration keyword argument. Use 'all', 'grid_iteration' or an integer.")
 
     if label_n:
 
