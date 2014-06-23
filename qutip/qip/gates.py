@@ -398,7 +398,7 @@ shape = [8, 8], type = oper, isHerm = True
                     dims=[[2, 2, 2], [2, 2, 2]])
 
 
-def swap(N=None, targets=[0 ,1]):
+def swap(N=None, targets=[0, 1]):
     """Quantum object representing the SWAP gate.
 
     Returns
