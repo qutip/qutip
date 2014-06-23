@@ -61,6 +61,8 @@ class Gate(object):
             Label for gate representation.
         """  
         self.name = name
+        self.targets = None
+        self.controls = None
 
         if not isinstance(targets, list):
             self.targets = [targets]
