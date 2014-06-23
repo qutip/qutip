@@ -1377,7 +1377,8 @@ def plot_qubism(ket, theme='light', how='pairs',
         scale_y = float(size_y) / np.prod(dim_list_y[:label_n])
         shift_y = 0.5 * scale_y
 
-        fontsize = 30 * figsize[0] / np.prod(dim_list_x[:label_n]) / label_n
+        bbox = ax.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+        fontsize = 35 * bbox.width / np.prod(dim_list_x[:label_n]) / label_n
         opts = {'fontsize': fontsize,
                 'color': theme2color_of_lines[theme],
                 'horizontalalignment': 'center',
