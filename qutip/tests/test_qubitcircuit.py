@@ -40,13 +40,13 @@ from qutip.qip.circuit import *
 
 class TestQubitCircuit:
     """
-    A test class for the QuTiP functions for Circuit resolution
+    A test class for the QuTiP functions for Circuit resolution.
     """
 
     def testSWAPtoCNOT(self):
         """
         SWAP to CNOT: compare unitary matrix for SWAP and product of 
-        resolved matrices in terms of CNOT
+        resolved matrices in terms of CNOT.
         """
         qc1 = QubitCircuit(2)
         qc1.add_gate("SWAP", targets=[0, 1])
@@ -58,7 +58,7 @@ class TestQubitCircuit:
     def testISWAPtoCNOT(self):
         """
         ISWAP to CNOT: compare unitary matrix for ISWAP and product of 
-        resolved matrices in terms of CNOT
+        resolved matrices in terms of CNOT.
         """
         qc1 = QubitCircuit(2)
         qc1.add_gate("ISWAP", targets=[0, 1])
@@ -70,7 +70,7 @@ class TestQubitCircuit:
     def testCSIGNtoCNOT(self):
         """
         CSIGN to CNOT: compare unitary matrix for CSIGN and product of 
-        resolved matrices in terms of CNOT
+        resolved matrices in terms of CNOT.
         """
         qc1 = QubitCircuit(2)
         qc1.add_gate("CSIGN", targets=[1], controls=[0])
@@ -82,7 +82,7 @@ class TestQubitCircuit:
     def testCNOTtoCSIGN(self):
         """
         CNOT to CSIGN: compare unitary matrix for CNOT and product of 
-        resolved matrices in terms of CSIGN
+        resolved matrices in terms of CSIGN.
         """
         qc1 = QubitCircuit(2)
         qc1.add_gate("CNOT", targets=[0], controls=[1])
@@ -94,7 +94,7 @@ class TestQubitCircuit:
     def testCNOTtoSQRTSWAP(self):
         """
         CNOT to SQRTSWAP: compare unitary matrix for CNOT and product of 
-        resolved matrices in terms of SQRTSWAP
+        resolved matrices in terms of SQRTSWAP.
         """
         qc1 = QubitCircuit(2)
         qc1.add_gate("CNOT", targets=[0], controls=[1])
@@ -106,7 +106,7 @@ class TestQubitCircuit:
     def testCNOTtoSQRTISWAP(self):
         """
         CNOT to SQRTISWAP: compare unitary matrix for CNOT and product of 
-        resolved matrices in terms of SQRTISWAP
+        resolved matrices in terms of SQRTISWAP.
         """
         qc1 = QubitCircuit(2)
         qc1.add_gate("CNOT", targets=[0], controls=[1])
@@ -118,7 +118,7 @@ class TestQubitCircuit:
     def testCNOTtoISWAP(self):
         """
         CNOT to ISWAP: compare unitary matrix for CNOT and product of 
-        resolved matrices in terms of ISWAP
+        resolved matrices in terms of ISWAP.
         """
         qc1 = QubitCircuit(2)
         qc1.add_gate("CNOT", targets=[0], controls=[1])
@@ -126,6 +126,20 @@ class TestQubitCircuit:
         qc2 = qc1.resolve_gates(basis="ISWAP")
         U2 = gate_sequence_product(qc2.unitary_matrix())
         assert_((U1 - U2).norm() < 1e-12)
+   
+    def testadjacent gates(self):
+        """
+        Adjacent Gates: compare unitary matrix for ISWAP and product of 
+        resolved matrices in terms of adjacent gates interaction.
+        """
+        qc1 = QubitCircuit(3)
+        qc1.add_gate("ISWAP", targets=[0, 2])
+        U1 = gate_sequence_product(qc1.unitary_matrix())
+        qc0 = qc1.adjacent_gates()
+        qc2 = qc0.resolve_gates(basis="ISWAP")
+        U2 = gate_sequence_product(qc2.unitary_matrix())
+        assert_((U1 - U2).norm() < 1e-12)
+        
    
 if __name__ == "__main__":
     run_module_suite()
