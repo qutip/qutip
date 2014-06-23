@@ -238,21 +238,13 @@ class QubitCircuit(object):
             if gate.name == "CPHASE":
                 raise NotImplementedError("Cannot be resolved by the program")
             elif gate.name == "RX":
-                temp_resolved.append(Gate(gate.name, gate.targets, 
-                                          gate.controls,
-                                          gate.arg_value, gate.arg_label))
+                temp_resolved.append(gate)
             elif gate.name == "RY":
-                temp_resolved.append(Gate(gate.name, gate.targets, 
-                                          gate.controls,
-                                          gate.arg_value, gate.arg_label))
+                temp_resolved.append(gate)
             elif gate.name == "RZ":
-                temp_resolved.append(Gate(gate.name, gate.targets, 
-                                          gate.controls,
-                                          gate.arg_value, gate.arg_label))
+                temp_resolved.append(gate)
             elif gate.name == "CNOT":
-                temp_resolved.append(Gate(gate.name, gate.targets, 
-                                          gate.controls,
-                                          gate.arg_value, gate.arg_label))
+                temp_resolved.append(gate)
             elif gate.name == "CSIGN" and not basis_2q is "CSIGN":
                 temp_resolved.append(Gate("RY", gate.targets, None,
                                           arg_value=np.pi/2, 
