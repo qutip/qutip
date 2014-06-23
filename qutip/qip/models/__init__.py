@@ -31,7 +31,3 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 from qutip.qip.models.circuitprocessor import CircuitProcessor
-from qutip.qip.models.spinchain import SpinChain
-from qutip.qip.models.spinchain import LinearSpinChain, CircularSpinChain
-from qutip.qip.models.dispersivecQED import DispersivecQED
-
