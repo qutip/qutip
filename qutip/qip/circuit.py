@@ -128,7 +128,7 @@ _gate_name_to_label = {
     'ISWAP': r'{i}{\rm SWAP}',
     'SQRTISWAP': r'\sqrt{{i}\rm SWAP}',
     'SQRTSWAP': r'\sqrt{\rm SWAP}',
-    'SQRTNOT': r'\sqrt{{i}\rm NOT}',
+    'SQRTNOT': r'\sqrt{\rm NOT}',
     'SNOT': r'{\rm H}',
     'PHASEGATE': r'{\rm PHASE}',
     'GLOBALPHASE': r'{\rm Ph}',
