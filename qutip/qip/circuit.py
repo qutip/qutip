@@ -64,7 +64,7 @@ class Gate(object):
         self.targets = None
         self.controls = None
 
-        if not isinstance(targets, list):
+        if not isinstance(targets, list) and not targets is None:
             self.targets = [targets]
         else:
             self.targets = targets
