@@ -61,8 +61,16 @@ class Gate(object):
             Label for gate representation.
         """  
         self.name = name
-        self.targets = targets
-        self.controls = controls
+
+        if not isinstance(targets, list):
+            self.targets = [targets]
+        else:
+            self.targets = targets
+
+        if not isinstance(controls, list):
+            self.controls = [controls]
+        else:
+            self.controls = controls
 
         self.arg_value = arg_value
         self.arg_label = arg_label
