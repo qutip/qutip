@@ -381,7 +381,7 @@ class TestMESolveTDDecay:
     """
 
     def testMESimpleTDDecayAsFuncList(self):
-        "mesolve: simple time-dependence as function list"
+        "mesolve: time-dependence as function list"
 
         N = 10  # number of basis states to consider
         a = destroy(N)
@@ -400,7 +400,7 @@ class TestMESolveTDDecay:
         assert_(avg_diff < me_error)
 
     def testMESimpleTDDecayAsPartialFuncList(self):
-        "mesolve: simple time-dependence as partial function list"
+        "mesolve: time-dependence as partial function list"
 
         N = 10
         a = destroy(N)
@@ -417,7 +417,7 @@ class TestMESolveTDDecay:
             assert_(avg_diff < me_error)
 
     def testMESimpleTDDecayAsStrList(self):
-        "mesolve: simple time-dependence as string list"
+        "mesolve: time-dependence as string list"
 
         N = 10  # number of basis states to consider
         a = destroy(N)
@@ -433,6 +433,21 @@ class TestMESolveTDDecay:
         avg_diff = mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < me_error)
 
+    def testMESimpleTDDecayAsArray(self):
+        "mesolve: time-dependence as array"
+
+        N = 10
+        a = destroy(N)
+        H = a.dag() * a
+        psi0 = basis(N, 9)
+        kappa = 0.2
+        tlist = linspace(0, 10, 1000)
+        c_op_list = [[a, sqrt(kappa * exp(-tlist))]]
+        medata = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+        expt = medata.expect[0]
+        actual_answer = 9.0 * exp(-kappa * (1.0 - exp(-tlist)))
+        avg_diff = mean(abs(actual_answer - expt) / actual_answer)
+        assert_(avg_diff < 100 * me_error)
 
 if __name__ == "__main__":
     run_module_suite()

@@ -645,7 +645,8 @@ shape = [2, 2], type = oper, isHerm = False
      [ 0.00000000+0.j          0.70710678+0.70710678j]]
 
     """
-    data = np.exp(1.0j * theta) * sp.eye(2**N, 2**N, dtype=complex, format="csr") 
+    data = (np.exp(1.0j * theta) 
+            * sp.eye(2**N, 2**N, dtype=complex, format="csr")) 
     return Qobj(data, dims=[[2] * N, [2] * N])
 
 
@@ -801,7 +802,8 @@ def gate_expand_3toN(U, N, controls=[0, 1], target=2):
         raise ValueError(
             "control and not target is None must be integer < integer N")
 
-    if controls[0] == target or controls[1] == target or controls[0] == controls[1]:
+    if (controls[0] == target or controls[1] == target 
+        or controls[0] == controls[1]):
         raise ValueError("controls[0], controls[1], and target cannot be equal")
 
     p = list(range(N))
