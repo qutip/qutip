@@ -208,7 +208,7 @@ class CircuitProcessor(object):
             Maps the physical interaction between the circuit components.
         """
         t, u, u_labels = self.pulse_matrix()        
-        fig, ax = plt.subplots(1, 1, figsize=(12, 6))
+        fig, ax = plot.subplots(1, 1, figsize=(12, 6))
 
         for n, uu in enumerate(u):
             ax.plot(t, u[n], label=u_labels[n])

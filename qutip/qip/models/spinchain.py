@@ -64,7 +64,7 @@ class SpinChain(CircuitProcessor):
             y[n] = y[(n+1) % N] = sigmay()
             self.sxsy_ops.append(tensor(x) + tensor(y))
         
-        if sx === None:
+        if sx == None:
             self.sx_coeff = [0.25 * 2 * pi] * N
         else:
             self.sx_coeff = sx
@@ -365,7 +365,7 @@ class LinearSpinChain(SpinChain):
     sub-class of SpinChain.
     """
     
-    def __init__(self, N, correct_global_phase=True
+    def __init__(self, N, correct_global_phase=True,
                  sx=None, sz=None, sxsy=None):
 
         super(LinearSpinChain, self).__init__(N, correct_global_phase, 
@@ -395,7 +395,7 @@ class CircularSpinChain(SpinChain):
     sub-class of SpinChain.
     """
     
-    def __init__(self, N, correct_global_phase=True
+    def __init__(self, N, correct_global_phase=True,
                  sx=None, sz=None, sxsy=None):
 
         super(CircularSpinChain, self).__init__(N, correct_global_phase,
@@ -406,7 +406,7 @@ class CircularSpinChain(SpinChain):
         return ([r"$\sigma_x^%d$" % n for n in range(self.N)] + 
                 [r"$\sigma_z^%d$" % n for n in range(self.N)] + 
                 [r"$\sigma_x^%d\sigma_x^{%d} + \sigma_y^%d\sigma_y^{%d}$"
-                 % (n, n, (n+1) % N, (n+1) % N) for n in range(self.N)])
+                 % (n, n, (n+1)%self.N, (n+1)%self.N) for n in range(self.N)])
 
 
     def optimize_circuit(self, qc):    
