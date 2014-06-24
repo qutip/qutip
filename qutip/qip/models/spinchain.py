@@ -56,13 +56,12 @@ class SpinChain(CircuitProcessor):
                        for m in range(N)]
 
         self.sxsy_ops = []
-        for n in range(N-1):
+        for n in range(N):
             x = [identity(2)] * N
-            x[n] = x[n+1] = sigmax()
+            x[n] = x[(n+1) % N] = sigmax()
             y = [identity(2)] * N
-            y[n] = y[n+1] = sigmay()
+            y[n] = y[(n+1) % N] = sigmay()
             self.sxsy_ops.append(tensor(x) + tensor(y))
-        
         
         self.sx_coeff = [0.25 * 2 * pi] * N
         self.sz_coeff = [1.0 * 2 * pi] * N
@@ -74,13 +73,6 @@ class SpinChain(CircuitProcessor):
                 np.hstack((self.sx_u, self.sz_u, self.sxsy_u)))
 
     
-    def get_ops_labels(self):
-        return ([r"$\sigma_x^%d$" % n for n in range(self.N)] + 
-                [r"$\sigma_z^%d$" % n for n in range(self.N)] + 
-                [r"$\sigma_x^%d\sigma_x^{%d} + \sigma_y^%d\sigma_y^{%d}$"
-                 % (n, n, n, n) for n in range(self.N-1)])
-
-
     def load_circuit(self, qc):
         
         gates = self.optimize_circuit(qc).gates
@@ -96,14 +88,20 @@ class SpinChain(CircuitProcessor):
             
             if gate.name == "ISWAP":
                 g = self.sxsy_coeff[min(gate.targets)]
-                self.sxsy_u[n, min(gate.targets)] = -g
+                if min(gate.targets) == 0 and max(gate.targets) == self.N - 1:
+                    self.sxsy_u[n, self.N - 1] = -g
+                else:
+                    self.sxsy_u[n, min(gate.targets)] = -g
                 T = pi / (4 * g)
                 self.T_list.append(T)
                 n += 1
 
             elif gate.name == "SQRTISWAP":
                 g = self.sxsy_coeff[min(gate.targets)]
-                self.sxsy_u[n, min(gate.targets)] = -g
+                if min(gate.targets) == 0 and max(gate.targets) == self.N - 1:
+                    self.sxsy_u[n, self.N - 1] = -g
+                else:
+                    self.sxsy_u[n, min(gate.targets)] = -g
                 T = pi / (8 * g)
                 self.T_list.append(T)
                 n += 1
@@ -213,7 +211,7 @@ class SpinChain(CircuitProcessor):
                     i = 0
                     while i < (N-end+start):
                                         
-                        if N+start-end-i-i == 1 and (N-end+start)%2 == 0:
+                        if N+start-end-i-i == 1 and (N-end+start+1)%2 == 0:
                             if end == gate.controls[0]:
                                 temp.gates.append(Gate(gate.name, targets=[i], 
                                                        controls=[i+1]))
@@ -221,14 +219,14 @@ class SpinChain(CircuitProcessor):
                                 temp.gates.append(Gate(gate.name, targets=[i+1], 
                                                        controls=[i]))
                                 
-                        elif N+start-end-i-i == 2 and (N-end+start)%2 == 1:
+                        elif N+start-end-i-i == 2 and (N-end+start+1)%2 == 1:
                             temp.gates.append(Gate("SWAP", targets=[i, i+1]))
                             if end == gate.controls[0]:
-                                temp.gates.append(Gate(gate.name, targets=[i+1], 
-                                                       controls=[i+2]))
-                            else:
                                 temp.gates.append(Gate(gate.name, targets=[i+2], 
                                                        controls=[i+1]))
+                            else:
+                                temp.gates.append(Gate(gate.name, targets=[i+1], 
+                                                       controls=[i+2]))
                             temp.gates.append(Gate("SWAP", targets=[i, i+1]))
                             i += 1
                             
@@ -243,31 +241,38 @@ class SpinChain(CircuitProcessor):
                     for gate in temp.gates:
                         if (j < N-end-2):
                             if gate.name in ["CNOT", "CSIGN"]:
-                                qc_temp.append(Gate(gate.name, 
-                                                    end+gate.targets[0], 
-                                                    end+gate.targets[1]))
+                                qc_temp.gates.append(Gate(gate.name, 
+                                                          end+gate.targets[0], 
+                                                          end+gate.controls[0]))
                             else:
-                                qc_temp.append(Gate(gate.name, 
-                                                    [end+gate.targets[0], 
-                                                     end+gate.targets[1]]))
+                                qc_temp.gates.append(Gate(gate.name, 
+                                                          [end+gate.targets[0], 
+                                                           (end+
+                                                            gate.targets[1])]))
                         elif (j == N-end-2):
                             if gate.name in ["CNOT", "CSIGN"]:
-                                qc_temp.append(Gate(gate.name, 
-                                                    end+gate.targets[0], 
-                                                    (end+gate.targets[1])%N))
+                                qc_temp.gates.append(Gate(gate.name, 
+                                                          end+gate.targets[0], 
+                                                          (end+
+                                                           gate.controls[0])%N))
                             else:
-                                qc_temp.append(Gate(gate.name, 
-                                                    [end+gate.targets[0], 
-                                                     (end+gate.targets[1])%N]))
+                                qc_temp.gates.append(Gate(gate.name, 
+                                                          [end+gate.targets[0], 
+                                                          (end+
+                                                           gate.targets[1])%N]))
                         else:
                             if gate.name in ["CNOT", "CSIGN"]:
-                                qc_temp.append(Gate(gate.name, 
-                                                    (end+gate.targets[0])%N, 
-                                                    (end+gate.targets[1])%N))
+                                qc_temp.gates.append(Gate(gate.name, 
+                                                          (end+
+                                                           gate.targets[0])%N, 
+                                                          (end+
+                                                           gate.controls[0])%N))
                             else:
-                                qc_temp.append(Gate(gate.name, 
-                                               [(end+gate.targets[0]%N), 
-                                                (end+gate.targets[1])%N]))
+                                qc_temp.gates.append(Gate(gate.name, 
+                                                          [(end+
+                                                           gate.targets[0])%N, 
+                                                           (end+
+                                                           gate.targets[1])%N]))
                         j = j + 1
 
                 elif (end-start) == N-1:               
@@ -298,7 +303,7 @@ class SpinChain(CircuitProcessor):
                                                                start+end-i]))        
                         i += 1
 
-                elif (end-start) < N-1:
+                else:
                     temp = QubitCircuit(N-end+start)
                     i = 0
                     while i < (N-end+start):
@@ -320,7 +325,7 @@ class SpinChain(CircuitProcessor):
                                                    targets=[N+start-end-i-1, 
                                                             N+start-end-i]))
                         i += 1
-                    self.temp = temp    
+                    
                     j = 0
                     for gate in temp.gates:
                         if(j < N-end-2):
@@ -329,16 +334,13 @@ class SpinChain(CircuitProcessor):
                                                        end+gate.targets[1]]))
                         elif(j == N-end-2):
                             qc_temp.gates.append(Gate(gate.name, 
-                                                [end+gate.targets[0], 
-                                                 (end+gate.targets[1])%N]))
+                                                      [end+gate.targets[0], 
+                                                      (end+gate.targets[1])%N]))
                         else:
                             qc_temp.gates.append(Gate(gate.name, 
-                                                [(end+gate.targets[0]%N), 
-                                                 (end+gate.targets[1])%N]))
+                                                      [(end+gate.targets[0])%N, 
+                                                      (end+gate.targets[1])%N]))
                         j = j + 1 
-
-                elif (end-start) == N-1:               
-                    qc_temp.gates.append(gate)
         
             else:
                 qc_temp.gates.append(gate)
@@ -356,6 +358,13 @@ class LinearSpinChain(SpinChain):
     def __init__(self, N, correct_global_phase=True):
 
         super(LinearSpinChain, self).__init__(N, correct_global_phase)
+
+
+    def get_ops_labels(self):
+        return ([r"$\sigma_x^%d$" % n for n in range(self.N)] + 
+                [r"$\sigma_z^%d$" % n for n in range(self.N)] + 
+                [r"$\sigma_x^%d\sigma_x^{%d} + \sigma_y^%d\sigma_y^{%d}$"
+                 % (n, n, n+1, n+1) for n in range(self.N-1)])
 
 
     def optimize_circuit(self, qc):    
@@ -377,6 +386,13 @@ class CircularSpinChain(SpinChain):
     def __init__(self, N, correct_global_phase=True):
 
         super(CircularSpinChain, self).__init__(N, correct_global_phase)
+
+
+    def get_ops_labels(self):
+        return ([r"$\sigma_x^%d$" % n for n in range(self.N)] + 
+                [r"$\sigma_z^%d$" % n for n in range(self.N)] + 
+                [r"$\sigma_x^%d\sigma_x^{%d} + \sigma_y^%d\sigma_y^{%d}$"
+                 % (n, n, (n+1) % N, (n+1) % N) for n in range(self.N)])
 
 
     def optimize_circuit(self, qc):    
