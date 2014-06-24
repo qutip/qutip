@@ -66,14 +66,20 @@ class SpinChain(CircuitProcessor):
         
         if sx == None:
             self.sx_coeff = [0.25 * 2 * pi] * N
+        elif not isinstance(sx, list):
+            self.sx_coeff = [sx * 2 * pi] * N
         else:
             self.sx_coeff = sx
         if sz == None:
             self.sz_coeff = [1.0 * 2 * pi] * N
+        elif not isinstance(sz, list):
+            self.sz_coeff = [sz * 2 * pi] * N
         else:
             self.sz_coeff = sz
         if sxsy == None:
             self.sxsy_coeff = [0.1 * 2 * pi] * (N - 1)
+        elif not isinstance(sxsy, list):
+            self.sxsy_coeff = [sxsy * 2 * pi] * (N - 1)
         else:
             self.sxsy_coeff = sxsy
 
