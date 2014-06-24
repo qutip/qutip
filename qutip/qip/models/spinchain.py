@@ -200,7 +200,10 @@ def adjacent_gates(self, qc, setup="linear"):
                                                       targets=[start+end-i-1, 
                                                                start+end-i]))
                         i += 1
-                                                
+        """
+        If the resolving has to go backwards, the path is first mapped to a 
+        separate circuit and then copied back to the original circuit.
+        """                                        
                 else:
                     temp = QubitCircuit(N-end+start)
                     i = 0
