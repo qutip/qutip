@@ -34,7 +34,7 @@ import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import *
 from qutip.qip.gates import *
-from qutip.qip.circuit import QubitCircuit
+from qutip.qip.circuit import QubitCircuit, Gate
 from qutip.qip.models.circuitprocessor import CircuitProcessor
 
 
@@ -71,7 +71,7 @@ class SpinChain(CircuitProcessor):
         
     def get_ops_and_u(self):
         return (self.sx_ops + self.sz_ops + self.sxsy_ops,
-                hstack((self.sx_u, self.sz_u, self.sxsy_u)))
+                np.hstack((self.sx_u, self.sz_u, self.sxsy_u)))
 
     
     def get_ops_labels(self):
@@ -129,7 +129,7 @@ class SpinChain(CircuitProcessor):
                 raise ValueError("Unsupported gate %s" % gate.name)
 
 
-def adjacent_gates(self, qc, setup="linear"):
+    def adjacent_gates(self, qc, setup="linear"):
         """
         Method to resolve 2 qubit gates with non-adjacent control/s or target/s 
         in terms of gates with adjacent interactions for linear/circular spin 
@@ -152,6 +152,7 @@ def adjacent_gates(self, qc, setup="linear"):
         qc_temp = QubitCircuit(qc.N, qc.reverse_states)
         swap_gates = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY", 
                       "SWAPalpha"]
+        N = qc.N
 
         for gate in qc.gates:       
             if gate.name == "CNOT" or gate.name == "CSIGN":                
@@ -200,11 +201,14 @@ def adjacent_gates(self, qc, setup="linear"):
                                                       targets=[start+end-i-1, 
                                                                start+end-i]))
                         i += 1
-        """
-        If the resolving has to go backwards, the path is first mapped to a 
-        separate circuit and then copied back to the original circuit.
-        """                                        
-                else:
+
+                elif (end-start) < N-1:
+                    """
+                    If the resolving has to go backwards, the path is first 
+                    mapped to a separate circuit and then copied back to the 
+                    original circuit.
+                    """                                        
+
                     temp = QubitCircuit(N-end+start)
                     i = 0
                     while i < (N-end+start):
@@ -237,7 +241,7 @@ def adjacent_gates(self, qc, setup="linear"):
                         
                     j = 0
                     for gate in temp.gates:
-                        if(j<N-end+2):
+                        if (j < N-end-2):
                             if gate.name in ["CNOT", "CSIGN"]:
                                 qc_temp.append(Gate(gate.name, 
                                                     end+gate.targets[0], 
@@ -246,7 +250,7 @@ def adjacent_gates(self, qc, setup="linear"):
                                 qc_temp.append(Gate(gate.name, 
                                                     [end+gate.targets[0], 
                                                      end+gate.targets[1]]))
-                        elif(j==N-end+2):
+                        elif (j == N-end-2):
                             if gate.name in ["CNOT", "CSIGN"]:
                                 qc_temp.append(Gate(gate.name, 
                                                     end+gate.targets[0], 
@@ -265,6 +269,10 @@ def adjacent_gates(self, qc, setup="linear"):
                                                [(end+gate.targets[0]%N), 
                                                 (end+gate.targets[1])%N]))
                         j = j + 1
+
+                elif (end-start) == N-1:               
+                    qc_temp.gates.append(gate)
+
                                             
             elif gate.name in swap_gates:
                 start = min([gate.targets[0], gate.targets[1]])
@@ -282,6 +290,7 @@ def adjacent_gates(self, qc, setup="linear"):
                             qc_temp.gates.append(Gate(gate.name, 
                                                       targets=[i+1, i+2]))
                             qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                            i += 1
                         else:    
                             qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
                             qc_temp.gates.append(Gate("SWAP", 
@@ -289,52 +298,48 @@ def adjacent_gates(self, qc, setup="linear"):
                                                                start+end-i]))        
                         i += 1
 
-                else:
+                elif (end-start) < N-1:
                     temp = QubitCircuit(N-end+start)
                     i = 0
                     while i < (N-end+start):
                                         
-                        if N+start-end-i-i == 1 and (N-end+start)%2 == 0:
-                            if end == gate.controls[0]:
-                                temp.gates.append(Gate(gate.name, targets=[i], 
-                                                       controls=[i+1]))
-                            else:
-                                temp.gates.append(Gate(gate.name, targets=[i+1], 
-                                                       controls=[i]))
-                                
-                        elif N+start-end-i-i == 2 and (N-end+start)%2 == 1:
+                        if N+start-end-i-i == 1 and (N-end+start+1)%2 == 0:
+                            temp.gates.append(Gate(gate.name, 
+                                                   targets=[i, i+1]))
+                            
+                        elif N+start-end-i-i == 2 and (N-end+start+1)%2 == 1:
                             temp.gates.append(Gate("SWAP", targets=[i, i+1]))
-                            if end == gate.controls[0]:
-                                temp.gates.append(Gate(gate.name, targets=[i+1], 
-                                                       controls=[i+2]))
-                            else:
-                                temp.gates.append(Gate(gate.name, targets=[i+2], 
-                                                       controls=[i+1]))
+                            temp.gates.append(Gate(gate.name, 
+                                                   targets=[i+1, i+2]))
                             temp.gates.append(Gate("SWAP", targets=[i, i+1]))
                             i += 1
-                            
+                        
                         else:
                             temp.gates.append(Gate("SWAP", targets=[i, i+1]))
                             temp.gates.append(Gate("SWAP", 
                                                    targets=[N+start-end-i-1, 
                                                             N+start-end-i]))
                         i += 1
-                        
+                    self.temp = temp    
                     j = 0
                     for gate in temp.gates:
-                        if(j<N-end+2):
-                            qc_temp.append(Gate(gate.name, [end+gate.targets[0], 
-                                                end+gate.targets[1]]))
-                        elif(j==N-end+2):
-                            qc_temp.append(Gate(gate.name, 
+                        if(j < N-end-2):
+                            qc_temp.gates.append(Gate(gate.name, 
+                                                      [end+gate.targets[0], 
+                                                       end+gate.targets[1]]))
+                        elif(j == N-end-2):
+                            qc_temp.gates.append(Gate(gate.name, 
                                                 [end+gate.targets[0], 
                                                  (end+gate.targets[1])%N]))
                         else:
-                            qc_temp.append(Gate(gate.name, 
+                            qc_temp.gates.append(Gate(gate.name, 
                                                 [(end+gate.targets[0]%N), 
                                                  (end+gate.targets[1])%N]))
-                        j = j + 1                
-            
+                        j = j + 1 
+
+                elif (end-start) == N-1:               
+                    qc_temp.gates.append(gate)
+        
             else:
                 qc_temp.gates.append(gate)
         
@@ -355,7 +360,7 @@ class LinearSpinChain(SpinChain):
 
     def optimize_circuit(self, qc):    
         self.qc0 = qc
-        qc_temp = SpinChain.adjacent_gates(qc, "linear")
+        qc_temp = self.adjacent_gates(qc, "linear")
         self.qc1 = qc_temp
         qc = qc_temp.resolve_gates(basis=["ISWAP", "RX", "RZ"])
         self.qc2 = qc
@@ -376,7 +381,7 @@ class CircularSpinChain(SpinChain):
 
     def optimize_circuit(self, qc):    
         self.qc0 = qc
-        qc_temp = SpinChain.adjacent_gates(qc, setup="circular")
+        qc_temp = self.adjacent_gates(qc, "circular")
         self.qc1 = qc_temp
         qc = qc_temp.resolve_gates(basis=["ISWAP", "RX", "RZ"])
         self.qc2 = qc
