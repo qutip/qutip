@@ -352,7 +352,7 @@ class LinearSpinChain(SpinChain):
 
     def optimize_circuit(self, qc):    
         self.qc0 = qc
-        qc_temp = SpinChain.adjacent_gates(qc, setup="linear")
+        qc_temp = SpinChain.adjacent_gates(qc, "linear")
         self.qc1 = qc_temp
         qc = qc_temp.resolve_gates(basis=["ISWAP", "RX", "RZ"])
         self.qc2 = qc
