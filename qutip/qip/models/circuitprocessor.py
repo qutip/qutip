@@ -32,7 +32,6 @@
 ###############################################################################
 import numpy as np
 import scipy.sparse as sp
-import matplotlib.pyplot as plt
 from qutip.qobj import *
 from qutip.qip.gates import *
 from qutip.qip.circuit import QubitCircuit
@@ -209,6 +208,7 @@ class CircuitProcessor(object):
         fig, ax: Graph
             Maps the physical interaction between the circuit components.
         """
+        import matplotlib.pyplot as plt
         t, u, u_labels = self.pulse_matrix()        
         fig, ax = plt.subplots(1, 1, figsize=(12, 6))
 
