@@ -249,18 +249,18 @@ def adjacent_gates(qc, setup="linear"):
                                                     end+gate.targets[0], 
                                                     (end+gate.targets[1])%N))
                             else:
-                            qc_temp.append(Gate(gate.name, 
-                                                [end+gate.targets[0], 
-                                                 (end+gate.targets[1])%N]))
+                                qc_temp.append(Gate(gate.name, 
+                                                    [end+gate.targets[0], 
+                                                     (end+gate.targets[1])%N]))
                         else:
                             if gate.name in ["CNOT", "CSIGN"]:
                                 qc_temp.append(Gate(gate.name, 
                                                     (end+gate.targets[0])%N, 
                                                     (end+gate.targets[1])%N))
                             else:
-                            qc_temp.append(Gate(gate.name, 
-                                           [(end+gate.targets[0]%N), 
-                                            (end+gate.targets[1])%N]))
+                                qc_temp.append(Gate(gate.name, 
+                                               [(end+gate.targets[0]%N), 
+                                                (end+gate.targets[1])%N]))
                         j = j + 1
                                             
             elif gate.name in swap_gates:
@@ -352,7 +352,7 @@ class LinearSpinChain(SpinChain):
 
     def optimize_circuit(self, qc):    
         self.qc0 = qc
-        qc_temp = SpinChain.adjacent_gates(qc, "linear")
+        qc_temp = SpinChain.adjacent_gates(qc, setup="linear")
         self.qc1 = qc_temp
         qc = qc_temp.resolve_gates(basis=["ISWAP", "RX", "RZ"])
         self.qc2 = qc
@@ -373,7 +373,7 @@ class CircularSpinChain(SpinChain):
 
     def optimize_circuit(self, qc):    
         self.qc0 = qc
-        qc_temp = SpinChain.adjacent_gates(qc, "circular")
+        qc_temp = SpinChain.adjacent_gates(qc, setup="circular")
         self.qc1 = qc_temp
         qc = qc_temp.resolve_gates(basis=["ISWAP", "RX", "RZ"])
         self.qc2 = qc
