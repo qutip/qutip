@@ -129,6 +129,215 @@ class SpinChain(CircuitProcessor):
                 raise ValueError("Unsupported gate %s" % gate.name)
 
 
+def adjacent_gates(qc, setup="linear"):
+        """
+        Method to resolve 2 qubit gates with non-adjacent control/s or target/s 
+        in terms of gates with adjacent interactions for linear/circular spin 
+        chain system.
+        
+        Parameters
+        ----------
+        qc: Qobj
+            The circular spin chain circuit to be resolved
+        
+        setup: Boolean
+            Linear of Circular spin chain setup
+            
+        Returns
+        ----------
+        qc_temp: Qobj
+            Returns Qobj of resolved gates for the qubit circuit in the desired 
+            basis.            
+        """  
+        qc_temp = QubitCircuit(qc.N, qc.reverse_states)
+        swap_gates = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY", 
+                      "SWAPalpha"]
+
+        for gate in qc.gates:       
+            if gate.name == "CNOT" or gate.name == "CSIGN":                
+                start = min([gate.targets[0], gate.controls[0]])
+                end = max([gate.targets[0], gate.controls[0]])
+                
+                if (setup == "linear" or 
+                    (setup == "circular" and (end - start) <= N//2)):                  
+                    i = start
+                    while i < end:
+                        if start+end-i-i == 1 and (end-start+1)%2 == 0:
+                            #Apply required gate if control and target are 
+                            #adjacent to each other, provided |control-target| 
+                            #is even.
+                            if end == gate.controls[0]:
+                                qc_temp.gates.append(Gate(gate.name, 
+                                                          targets=[i], 
+                                                          controls=[i+1]))
+                            else:
+                                qc_temp.gates.append(Gate(gate.name, 
+                                                          targets=[i+1], 
+                                                          controls=[i]))
+                                
+                        elif start+end-i-i == 2 and (end-start+1)%2 == 1:
+                            #Apply a swap between i and its adjacent gate, then 
+                            #the required gate if and then another swap if 
+                            #control and target have one qubit between them, 
+                            #provided |control-target| is odd.
+                            qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                            if end == gate.controls[0]:
+                                qc_temp.gates.append(Gate(gate.name, 
+                                                          targets=[i+1], 
+                                                          controls=[i+2]))
+                            else:
+                                qc_temp.gates.append(Gate(gate.name, 
+                                                          targets=[i+2], 
+                                                          controls=[i+1]))
+                            qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                            i += 1
+                            
+                        else:
+                            #Swap the target/s and/or control with their 
+                            #adjacent qubit to bring them closer.
+                            qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                            qc_temp.gates.append(Gate("SWAP", 
+                                                      targets=[start+end-i-1, 
+                                                               start+end-i]))
+                        i += 1
+                                                
+                else:
+                    temp = QubitCircuit(N-end+start)
+                    i = 0
+                    while i < (N-end+start):
+                                        
+                        if N+start-end-i-i == 1 and (N-end+start)%2 == 0:
+                            if end == gate.controls[0]:
+                                temp.gates.append(Gate(gate.name, targets=[i], 
+                                                       controls=[i+1]))
+                            else:
+                                temp.gates.append(Gate(gate.name, targets=[i+1], 
+                                                       controls=[i]))
+                                
+                        elif N+start-end-i-i == 2 and (N-end+start)%2 == 1:
+                            temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                            if end == gate.controls[0]:
+                                temp.gates.append(Gate(gate.name, targets=[i+1], 
+                                                       controls=[i+2]))
+                            else:
+                                temp.gates.append(Gate(gate.name, targets=[i+2], 
+                                                       controls=[i+1]))
+                            temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                            i += 1
+                            
+                        else:
+                            temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                            temp.gates.append(Gate("SWAP", 
+                                                   targets=[N+start-end-i-1, 
+                                                            N+start-end-i]))
+                        i += 1
+                        
+                    j = 0
+                    for gate in temp.gates:
+                        if(j<N-end+2):
+                            if gate.name in ["CNOT", "CSIGN"]:
+                                qc_temp.append(Gate(gate.name, 
+                                                    end+gate.targets[0], 
+                                                    end+gate.targets[1]))
+                            else:
+                                qc_temp.append(Gate(gate.name, 
+                                                    [end+gate.targets[0], 
+                                                     end+gate.targets[1]]))
+                        elif(j==N-end+2):
+                            if gate.name in ["CNOT", "CSIGN"]:
+                                qc_temp.append(Gate(gate.name, 
+                                                    end+gate.targets[0], 
+                                                    (end+gate.targets[1])%N))
+                            else:
+                            qc_temp.append(Gate(gate.name, 
+                                                [end+gate.targets[0], 
+                                                 (end+gate.targets[1])%N]))
+                        else:
+                            if gate.name in ["CNOT", "CSIGN"]:
+                                qc_temp.append(Gate(gate.name, 
+                                                    (end+gate.targets[0])%N, 
+                                                    (end+gate.targets[1])%N))
+                            else:
+                            qc_temp.append(Gate(gate.name, 
+                                           [(end+gate.targets[0]%N), 
+                                            (end+gate.targets[1])%N]))
+                        j = j + 1
+                                            
+            elif gate.name in swap_gates:
+                start = min([gate.targets[0], gate.targets[1]])
+                end = max([gate.targets[0], gate.targets[1]])                
+
+                if (setup == "linear" or 
+                    (setup == "circular" and (end - start) <= N//2)):            
+                    i = start
+                    while i < end:
+                        if start+end-i-i == 1 and (end-start+1)%2 == 0:
+                            qc_temp.gates.append(Gate(gate.name, 
+                                                      targets=[i, i+1]))
+                        elif (start+end-i-i) == 2 and (end-start+1)%2 == 1:
+                            qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                            qc_temp.gates.append(Gate(gate.name, 
+                                                      targets=[i+1, i+2]))
+                            qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                        else:    
+                            qc_temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                            qc_temp.gates.append(Gate("SWAP", 
+                                                      targets=[start+end-i-1, 
+                                                               start+end-i]))        
+                        i += 1
+
+                else:
+                    temp = QubitCircuit(N-end+start)
+                    i = 0
+                    while i < (N-end+start):
+                                        
+                        if N+start-end-i-i == 1 and (N-end+start)%2 == 0:
+                            if end == gate.controls[0]:
+                                temp.gates.append(Gate(gate.name, targets=[i], 
+                                                       controls=[i+1]))
+                            else:
+                                temp.gates.append(Gate(gate.name, targets=[i+1], 
+                                                       controls=[i]))
+                                
+                        elif N+start-end-i-i == 2 and (N-end+start)%2 == 1:
+                            temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                            if end == gate.controls[0]:
+                                temp.gates.append(Gate(gate.name, targets=[i+1], 
+                                                       controls=[i+2]))
+                            else:
+                                temp.gates.append(Gate(gate.name, targets=[i+2], 
+                                                       controls=[i+1]))
+                            temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                            i += 1
+                            
+                        else:
+                            temp.gates.append(Gate("SWAP", targets=[i, i+1]))
+                            temp.gates.append(Gate("SWAP", 
+                                                   targets=[N+start-end-i-1, 
+                                                            N+start-end-i]))
+                        i += 1
+                        
+                    j = 0
+                    for gate in temp.gates:
+                        if(j<N-end+2):
+                            qc_temp.append(Gate(gate.name, [end+gate.targets[0], 
+                                                end+gate.targets[1]]))
+                        elif(j==N-end+2):
+                            qc_temp.append(Gate(gate.name, 
+                                                [end+gate.targets[0], 
+                                                 (end+gate.targets[1])%N]))
+                        else:
+                            qc_temp.append(Gate(gate.name, 
+                                                [(end+gate.targets[0]%N), 
+                                                 (end+gate.targets[1])%N]))
+                        j = j + 1                
+            
+            else:
+                qc_temp.gates.append(gate)
+        
+        return qc_temp
+
+
 class LinearSpinChain(SpinChain):
     """
     Representation of the physical implementation of a quantum program/algorithm
