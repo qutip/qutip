@@ -32,6 +32,7 @@
 ###############################################################################
 import numpy as np
 import scipy.sparse as sp
+import matplotlib.pyplot as plt
 from qutip.qobj import *
 from qutip.qip.gates import *
 from qutip.qip.circuit import QubitCircuit
@@ -189,7 +190,8 @@ class CircuitProcessor(object):
 
             mm = 0
             for m in range(len(H_ops)):
-                u[mm, t_start:(t_start+t_idx_len)] = np.ones(t_idx_len) * H_u[n,m]
+                u[mm, t_start:(t_start+t_idx_len)] = (np.ones(t_idx_len) * 
+                                                      H_u[n,m])
                 mm += 1
 
             t_start += t_idx_len
@@ -208,7 +210,7 @@ class CircuitProcessor(object):
             Maps the physical interaction between the circuit components.
         """
         t, u, u_labels = self.pulse_matrix()        
-        fig, ax = plot.subplots(1, 1, figsize=(12, 6))
+        fig, ax = plt.subplots(1, 1, figsize=(12, 6))
 
         for n, uu in enumerate(u):
             ax.plot(t, u[n], label=u_labels[n])
