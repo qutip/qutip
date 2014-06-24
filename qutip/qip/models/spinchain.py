@@ -44,7 +44,8 @@ class SpinChain(CircuitProcessor):
     on a spin chain qubit system.
     """
     
-    def __init__(self, N, correct_global_phase=True):
+    def __init__(self, N, correct_global_phase=True, 
+                 sx=None, sz=None, sxsy=None):
 
         super(SpinChain, self).__init__(N, correct_global_phase)
         
@@ -63,9 +64,18 @@ class SpinChain(CircuitProcessor):
             y[n] = y[(n+1) % N] = sigmay()
             self.sxsy_ops.append(tensor(x) + tensor(y))
         
-        self.sx_coeff = [0.25 * 2 * pi] * N
-        self.sz_coeff = [1.0 * 2 * pi] * N
-        self.sxsy_coeff = [0.1 * 2 * pi] * (N - 1)
+        if sx === None:
+            self.sx_coeff = [0.25 * 2 * pi] * N
+        else:
+            self.sx_coeff = sx
+        if sz == None:
+            self.sz_coeff = [1.0 * 2 * pi] * N
+        else:
+            self.sz_coeff = sz
+        if sxsy == None:
+            self.sxsy_coeff = [0.1 * 2 * pi] * (N - 1)
+        else:
+            self.sxsy_coeff = sxsy
 
         
     def get_ops_and_u(self):
@@ -355,9 +365,11 @@ class LinearSpinChain(SpinChain):
     sub-class of SpinChain.
     """
     
-    def __init__(self, N, correct_global_phase=True):
+    def __init__(self, N, correct_global_phase=True
+                 sx=None, sz=None, sxsy=None):
 
-        super(LinearSpinChain, self).__init__(N, correct_global_phase)
+        super(LinearSpinChain, self).__init__(N, correct_global_phase, 
+                                              sx, sz, sxsy)
 
 
     def get_ops_labels(self):
@@ -383,9 +395,11 @@ class CircularSpinChain(SpinChain):
     sub-class of SpinChain.
     """
     
-    def __init__(self, N, correct_global_phase=True):
+    def __init__(self, N, correct_global_phase=True
+                 sx=None, sz=None, sxsy=None):
 
-        super(CircularSpinChain, self).__init__(N, correct_global_phase)
+        super(CircularSpinChain, self).__init__(N, correct_global_phase,
+                                                sx, sz, sxsy)
 
 
     def get_ops_labels(self):
