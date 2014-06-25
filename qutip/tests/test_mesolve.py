@@ -40,7 +40,6 @@ import os
 os.environ['QUTIP_GRAPHICS'] = "NO"
 
 from qutip import *
-from qutip.odechecks import _ode_checks
 
 
 class TestJCModelEvolution:
