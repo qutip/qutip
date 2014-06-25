@@ -97,33 +97,33 @@ New Features
 Bug Fixes:
 ----------
 
- - mesolver now correctly uses the user defined rhs_filename in Odeoptions().
+- mesolver now correctly uses the user defined rhs_filename in Odeoptions().
 
- - rhs_generate() now handles user defined filenames properly.
+- rhs_generate() now handles user defined filenames properly.
 
- - Density matrix returned by propagator_steadystate is now Hermitian.
+- Density matrix returned by propagator_steadystate is now Hermitian.
 
- - eseries_value returns real list if all imag parts are zero.
+- eseries_value returns real list if all imag parts are zero.
 
- - mcsolver now gives correct results for strong damping rates.
+- mcsolver now gives correct results for strong damping rates.
 
- - Odeoptions now prints mc_avg correctly.
+- Odeoptions now prints mc_avg correctly.
 
- - Do not check for PyObj in mcsolve when gui=False. 
+- Do not check for PyObj in mcsolve when gui=False. 
 
- - Eseries now correctly handles purely complex rates.
+- Eseries now correctly handles purely complex rates.
 
- - thermal_dm() function now uses truncated operator method.
+- thermal_dm() function now uses truncated operator method.
 
- - Cython based time-dependence now Python 3 compatible.
+- Cython based time-dependence now Python 3 compatible.
 
- - Removed call to NSAutoPool on mac systems.
+- Removed call to NSAutoPool on mac systems.
 
- - Progress bar now displays the correct number of CPU's used.
+- Progress bar now displays the correct number of CPU's used.
 
- - Qobj.diag() returns reals if operator is Hermitian.
+- Qobj.diag() returns reals if operator is Hermitian.
 
- - Text for progress bar on Linux systems is no longer cutoff.
+- Text for progress bar on Linux systems is no longer cutoff.
 
 
 Version 2.0.0 (June 01, 2012):
@@ -185,11 +185,11 @@ Version 1.1.4 (May 28, 2012):
 Bug Fixes:
 ----------
 
- - Fixed bug pointed out by Brendan Abolins.
+- Fixed bug pointed out by Brendan Abolins.
 
- - Qobj.tr() returns zero-dim ndarray instead of float or complex.
+- Qobj.tr() returns zero-dim ndarray instead of float or complex.
 
- - Updated factorial import for scipy version 0.10+
+- Updated factorial import for scipy version 0.10+
 
 
 Version 1.1.3 (November 21, 2011):
@@ -198,23 +198,23 @@ Version 1.1.3 (November 21, 2011):
 New Functions:
 --------------
 
- - Allow custom naming of Bloch sphere.
+- Allow custom naming of Bloch sphere.
 
 Bug Fixes:
 ----------
- - Fixed text alignment issues in AboutBox.
+- Fixed text alignment issues in AboutBox.
 
- - Added fix for SciPy V>0.10 where factorial was moved to scipy.misc module.
+- Added fix for SciPy V>0.10 where factorial was moved to scipy.misc module.
 
- - Added tidyup function to tensor function output.
+- Added tidyup function to tensor function output.
 
- - Removed openmp flags from setup.py as new Mac Xcode compiler does not recognize them.
+- Removed openmp flags from setup.py as new Mac Xcode compiler does not recognize them.
 
- - Qobj diag method now returns real array if all imaginary parts are zero.
+- Qobj diag method now returns real array if all imaginary parts are zero.
 
- - Examples GUI now links to new documentation.
+- Examples GUI now links to new documentation.
 
- - Fixed zero-dimensional array output from metrics module.
+- Fixed zero-dimensional array output from metrics module.
 
 
 Version 1.1.2 (October 27, 2011)
@@ -223,7 +223,7 @@ Version 1.1.2 (October 27, 2011)
 Bug Fixes
 ---------
 
- - Fixed issue where Monte Carlo states were not output properly.
+- Fixed issue where Monte Carlo states were not output properly.
 
 
 Version 1.1.1 (October 25, 2011)
@@ -234,20 +234,20 @@ Version 1.1.1 (October 25, 2011)
 New Functions
 ---------------
 
- - Added linear entropy function.
+- Added linear entropy function.
 
- - Number of CPU's can now be changed.
+- Number of CPU's can now be changed.
 
 Bug Fixes
 ---------
 
- - Metrics no longer use dense matrices.
+- Metrics no longer use dense matrices.
 
- - Fixed Bloch sphere grid issue with matplotlib 1.1.
+- Fixed Bloch sphere grid issue with matplotlib 1.1.
 
- - Qobj trace operation uses only sparse matrices.
+- Qobj trace operation uses only sparse matrices.
 
- - Fixed issue where GUI windows do not raise to front.
+- Fixed issue where GUI windows do not raise to front.
 
 
 Version 1.1.0 (October 04, 2011)
@@ -258,41 +258,41 @@ Version 1.1.0 (October 04, 2011)
 New Functions
 ---------------
 
- - tidyup function to remove small elements from a Qobj.
+- tidyup function to remove small elements from a Qobj.
 
- - Added concurrence function.
+- Added concurrence function.
 
- - Added simdiag for simultaneous diagonalization of operators.
+- Added simdiag for simultaneous diagonalization of operators.
 
- - Added eigenstates method returning eigenstates and eigenvalues to Qobj class.
+- Added eigenstates method returning eigenstates and eigenvalues to Qobj class.
 
- - Added fileio for saving and loading data sets and/or Qobj's.
+- Added fileio for saving and loading data sets and/or Qobj's.
 
- - Added hinton function for visualizing density matrices.
+- Added hinton function for visualizing density matrices.
 
 Bug Fixes
 ---------
 
- - Switched Examples to new Signals method used in PySide 1.0.6+.
+- Switched Examples to new Signals method used in PySide 1.0.6+.
 
- - Switched ProgressBar to new Signals method.
+- Switched ProgressBar to new Signals method.
 
- - Fixed memory issue in expm functions.
+- Fixed memory issue in expm functions.
 
- - Fixed memory bug in isherm.
+- Fixed memory bug in isherm.
 
- - Made all Qobj data complex by default.
+- Made all Qobj data complex by default.
 
- - Reduced ODE tolerance levels in Odeoptions.
+- Reduced ODE tolerance levels in Odeoptions.
 
- - Fixed bug in ptrace where dense matrix was used instead of sparse.
+- Fixed bug in ptrace where dense matrix was used instead of sparse.
 
- - Fixed issue where PyQt4 version would not be displayed in about box.
+- Fixed issue where PyQt4 version would not be displayed in about box.
 
- - Fixed issue in Wigner where xvec was used twice (in place of yvec).
+- Fixed issue in Wigner where xvec was used twice (in place of yvec).
 
 
 Version 1.0.0 (July 29, 2011)
 +++++++++++++++++++++++++++++++++++++++++
 
-**Initial release.**
+- **Initial release.**
