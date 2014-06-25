@@ -580,7 +580,7 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
     #
     if not opt.rhs_reuse or config.tdfunc is None:
         if opt.rhs_filename is None:
-            config.tdname = "rhs" + str(config.cgen_num)
+            config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
         else:
             config.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
@@ -946,7 +946,7 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, e_ops, args, opt,
     # run code generator
     if not opt.rhs_reuse or config.tdfunc is None:
         if opt.rhs_filename is None:
-            config.tdname = "rhs" + str(config.cgen_num)
+            config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
         else:
             config.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,

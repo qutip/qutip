@@ -1224,7 +1224,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
                 config.string += "," + "config.c_args[" + str(kk) + "]"
         # ----
 
-        name = "rhs" + str(config.cgen_num)
+        name = "rhs" + str(os.getpid()) + str(config.cgen_num)
         config.tdname = name
         cgen = Codegen(H_inds, H_tdterms, config.h_td_inds, args,
                        C_inds, C_tdterms, config.c_td_inds, type='mc',

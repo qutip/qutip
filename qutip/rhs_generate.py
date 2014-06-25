@@ -31,8 +31,9 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import os
-import numpy
-from scipy import ndarray, array
+import numpy as np
+from types import FunctionType, BuiltinFunctionType
+from functools import partial
 
 from qutip.cy.codegen import Codegen
 from qutip.solver import Options, config
@@ -101,7 +102,7 @@ def rhs_generate(H, c_ops, args={}, options=Options(), name=None,
     if name:
         config.tdname = name
     else:
-        config.tdname = "rhs" + str(config.cgen_num)
+        config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
 
     Lconst = 0
 
