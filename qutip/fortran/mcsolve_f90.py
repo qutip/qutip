@@ -34,11 +34,11 @@
 ###############################################################################
 
 import numpy as np
-from qutip import *
+
 from qutip.fortran import qutraj_run as qtf90
-from qutip.solver import Options, SolverResult, config
 from qutip.qobj import Qobj
 from qutip.mcsolve import _mc_data_config
+from qutip.solver import Options, SolverResult, config
 from qutip.settings import debug
 
 if debug:
@@ -106,7 +106,7 @@ def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         raise Exception("Initial state must be a state vector.")
     config.options = options
     # set num_cpus to the value given in qutip.settings
-    # if none in Odeoptions
+    # if none in Options
     if not config.options.num_cpus:
         config.options.num_cpus = qutip.settings.num_cpus
     # set initial value data
@@ -180,8 +180,8 @@ def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=None,
             calc_entropy = False
         mc.calc_entropy = calc_entropy
 
-    # construct output Odedata object
-    output = Odedata()
+    # construct output SolverResult object
+    output = SolverResult()
 
     # Run
     mc.run()
@@ -206,7 +206,7 @@ class _MC_class():
     def __init__(self):
         self.cpus = config.options.num_cpus
         self.nprocs = self.cpus
-        self.sol = Odedata()
+        self.sol = SolverResult()
         self.mf = 10
         # If returning density matrices, return as sparse or dense?
         self.sparse_dms = True
@@ -351,7 +351,7 @@ class _MC_class():
         qtf90.qutraj_run.unravel_type = self.unravel_type
         qtf90.qutraj_run.average_states = config.options.average_states 
         qtf90.qutraj_run.average_expect = config.options.average_expect
-        qtf90.qutraj_run.init_odedata(config.psi0_shape[0],
+        qtf90.qutraj_run.init_SolverResult(config.psi0_shape[0],
                                       config.options.atol,
                                       config.options.rtol, mf=self.mf,
                                       norm_steps=config.norm_steps,
@@ -373,8 +373,8 @@ class _MC_class():
         qtf90.qutraj_run.evolve(instanceno, rngseed, show_progress)
     
 
-        # construct Odedata instance
-        sol = Odedata()
+        # construct SolverResult instance
+        sol = SolverResult()
         sol.ntraj = ntraj
         # sol.col_times = qtf90.qutraj_run.col_times
         # sol.col_which = qtf90.qutraj_run.col_which-1
@@ -503,8 +503,8 @@ class _MC_class():
 
 
 def _gather(sols):
-    # gather list of Odedata objects, sols, into one.
-    sol = Odedata()
+    # gather list of SolverResult objects, sols, into one.
+    sol = SolverResult()
     # sol = sols[0]
     ntraj = sum([a.ntraj for a in sols])
     sol.col_times = np.zeros((ntraj), dtype=np.ndarray)
