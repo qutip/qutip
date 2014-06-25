@@ -1,24 +1,51 @@
 .. QuTiP 
    Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
 
+.. _changelog:
+
 **********
 Change Log
 **********
 
+Version 3.0.0 (July X, 2014):
+++++++++++++++++++++++++++++++++++++++++++++++
+
+- New module `qutip.stochastic` with stochastic master equation and stochastic
+  Schrödinger equation solvers.
+
+- Improved steady state solver.
+
+- New module `qutip.distributions` with unified API for working with
+  distribution functions.
+
+- New module `qutip.qip` with utilities for quantum information processing problems, including pre-defined quantum gates for N-qubit systems, circuit representations, and basic physical models for some common QIP architectures.
+
+- New functions for working with different superoperator representations.
+
+- New format for defining time-dependent Hamiltonians and collapse operators, using a precalculated numpy array that specifies the values of the Qobj-coefficients for each time step.
+
+- QuTiP no longer contains the demos GUI. The examples are still available in
+  the documentation.
+
+- Improved performance and numerous bug fixes.
+
+
 Version 2.2.0 (March 01, 2013):
 ++++++++++++++++++++++++++++++++++++++++++++++
 
+
 New Features
 -------------
+
 - **Added Support for Windows**
 
 - New Bloch3d class for plotting 3D Bloch spheres using Mayavi.
 
 - Bloch sphere vectors now look like arrows.
 
-- Added partial transpose function.
+- Partial transpose function.
 
-- Added continous variable functions for calculating correlation and covariance
+- Continuos variable functions for calculating correlation and covariance
   matrices, the Wigner covariance matrix and the logarithmic negativity for
   for multimode fields in Fock basis.
 
@@ -32,6 +59,11 @@ New Features
 
 - Increased performance of the steady state solver.
 
+- New Wigner colormap for highlighting negative values.
+
+- More graph styles to the visualization module.
+
+
 Bug Fixes:
 ----------
 
@@ -40,8 +72,9 @@ Bug Fixes:
 - mcsolve no longer prints to the command line if ntraj=1.
 
 
-Version 2.1.0 [SVN-2683] (October 05, 2012):
+Version 2.1.0 (October 05, 2012):
 ++++++++++++++++++++++++++++++++++++++++++++++
+
 
 New Features
 -------------
@@ -94,7 +127,7 @@ SVN-2376: Text for progress bar on Linux systems is no longer cutoff.
 
 
 
-Version 2.0.0 [SVN-2354] (June 01, 2012):
+Version 2.0.0 (June 01, 2012):
 +++++++++++++++++++++++++++++++++++++++++
 
 New Features
@@ -143,8 +176,7 @@ New Features
 - Demos window now lets you copy and paste code from each example.
 
 
-
-Version 1.1.4 [fixes backported to SVN-1450] (May 28, 2012):
+Version 1.1.4 (May 28, 2012):
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Bug Fixes:
@@ -157,7 +189,7 @@ SVN-1796: Qobj.tr() returns zero-dim ndarray instead of float or complex.
 SVN-1463: Updated factorial import for scipy version 0.10+
 
 
-Version 1.1.3 [svn-1450] (November 21, 2011):
+Version 1.1.3 (November 21, 2011):
 +++++++++++++++++++++++++++++++++++++++++++++
 
 New Functions:
@@ -182,7 +214,7 @@ SVN-1434: Examples GUI now links to new documentation.
 SVN-1415: Fixed zero-dimensional array output from metrics module.
 
 
-Version 1.1.2 [svn-1218] (October 27, 2011)
+Version 1.1.2 (October 27, 2011)
 +++++++++++++++++++++++++++++++++++++++++++
 
 Bug Fixes
@@ -191,7 +223,7 @@ Bug Fixes
 SVN-1218: Fixed issue where Monte Carlo states were not output properly.
 
 
-Version 1.1.1 [svn-1210] (October 25, 2011)
+Version 1.1.1 (October 25, 2011)
 +++++++++++++++++++++++++++++++++++++++++++
 
 **THIS POINT-RELEASE INCLUDES VASTLY IMPROVED TIME-INDEPENDENT MCSOLVE AND ODESOLVE PERFORMANCE**
@@ -215,7 +247,7 @@ SVN-1183: Qobj trace operation uses only sparse matrices.
 SVN-1168: Fixed issue where GUI windows do not raise to front.
 
 
-Version 1.1.0 [svn-1097] (October 04, 2011)
+Version 1.1.0 (October 04, 2011)
 +++++++++++++++++++++++++++++++++++++++++++
 
 **THIS RELEASE NOW REQUIRES THE GCC COMPILER TO BE INSTALLED**
@@ -257,7 +289,7 @@ SVN-1047: Fixed issue where PyQt4 version would not be displayed in about box.
 SVN-1041: Fixed issue in Wigner where xvec was used twice (in place of yvec).
 
 
-Version 1.0.0 [svn-1021] (July 29, 2011)
+Version 1.0.0 (July 29, 2011)
 +++++++++++++++++++++++++++++++++++++++++
 
 **Initial release.**
