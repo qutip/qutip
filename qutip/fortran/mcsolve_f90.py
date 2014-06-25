@@ -40,6 +40,7 @@ from qutip.qobj import Qobj
 from qutip.mcsolve import _mc_data_config
 from qutip.solver import Options, SolverResult, config
 from qutip.settings import debug
+import qutip.settings
 
 if debug:
     import inspect
