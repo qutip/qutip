@@ -35,7 +35,7 @@ import numpy
 from scipy import ndarray, array
 
 from qutip.cy.codegen import Codegen
-from qutip.odeoptions import Odeoptions
+from qutip.solver import Options
 from qutip.odeconfig import odeconfig
 from qutip.qobj import Qobj
 from qutip.superoperator import spre, spost
@@ -63,7 +63,7 @@ def rhs_clear():
                                 # (used in parallel mc code)
 
 
-def rhs_generate(H, c_ops, args={}, options=Odeoptions(), name=None,
+def rhs_generate(H, c_ops, args={}, options=Options(), name=None,
                  cleanup=True):
     """
     Generates the Cython functions needed for solving the dynamics of a
@@ -80,7 +80,7 @@ def rhs_generate(H, c_ops, args={}, options=Odeoptions(), name=None,
     args : dict
         Arguments for time-dependent Hamiltonian and collapse operator terms.
 
-    options : Odeoptions
+    options : Options
         Instance of ODE solver options.
 
     name: str

@@ -45,8 +45,8 @@ from scipy.linalg import norm
 from qutip.qobj import Qobj, isket
 from qutip.expect import expect
 from qutip.rhs_generate import rhs_generate
-from qutip.odedata import Odedata
-from qutip.odeoptions import Odeoptions
+from qutip.solver import SolverResult
+from qutip.solver import Options
 from qutip.odeconfig import odeconfig
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.settings import debug
@@ -103,9 +103,9 @@ def sesolve(H, rho0, tlist, e_ops, args={}, options=None,
     Returns
     -------
 
-    output: :class:`qutip.odedata`
+    output: :class:`qutip.solver`
 
-        An instance of the class :class:`qutip.odedata`, which contains either
+        An instance of the class :class:`qutip.solver`, which contains either
         an *array* of expectation values for the times specified by `tlist`, or
         an *array* or state vectors or density matrices corresponding to the
         times in `tlist` [if `e_ops` is an empty list], or
@@ -130,7 +130,7 @@ def sesolve(H, rho0, tlist, e_ops, args={}, options=None,
     n_const, n_func, n_str = _td_format_check(H, [])
 
     if options is None:
-        options = Odeoptions()
+        options = Options()
 
     if (not options.rhs_reuse) or (not odeconfig.tdfunc):
         # reset odeconfig time-dependence flags to default values
@@ -596,7 +596,7 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
     # prepare output array
     #
     n_tsteps = len(tlist)
-    output = Odedata()
+    output = SolverResult()
     output.solver = "sesolve"
     output.times = tlist
 

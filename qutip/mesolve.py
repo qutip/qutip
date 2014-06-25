@@ -47,11 +47,11 @@ import warnings
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
 from qutip.expect import expect, expect_rho_vec
-from qutip.odeoptions import Odeoptions
+from qutip.solver import Options
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
 from qutip.cy.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
-from qutip.odedata import Odedata
+from qutip.solver import SolverResult
 from qutip.states import ket2dm
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.odeconfig import odeconfig
@@ -165,15 +165,15 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : :class:`qutip.Odeoptions`
+    options : :class:`qutip.Options`
         with options for the ODE solver.
 
     Returns
     -------
 
-    output: :class:`qutip.odedata`
+    output: :class:`qutip.solver`
 
-        An instance of the class :class:`qutip.odedata`, which contains either
+        An instance of the class :class:`qutip.solver`, which contains either
         an *array* of expectation values for the times specified by `tlist`, or
         an *array* or state vectors or density matrices corresponding to the
         times in `tlist` [if `e_ops` is an empty list], or
@@ -203,7 +203,7 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     n_const, n_func, n_str = _td_format_check(H, c_ops)
 
     if options is None:
-        options = Odeoptions()
+        options = Options()
 
     if (not options.rhs_reuse) or (not odeconfig.tdfunc):
         # reset odeconfig collapse and time-dependence flags to default values
@@ -792,7 +792,7 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
     n_tsteps = len(tlist)
     e_sops_data = []
 
-    output = Odedata()
+    output = SolverResult()
     output.solver = "mesolve"
     output.times = tlist
 
@@ -1023,7 +1023,7 @@ def odesolve(H, rho0, tlist, c_op_list, e_ops, args=None, options=None):
         dictionary of parameters for time-dependent Hamiltonians and
         collapse operators.
 
-    options : :class:`qutip.Odeoptions`
+    options : :class:`qutip.Options`
         with options for the ODE solver.
 
 
@@ -1056,7 +1056,7 @@ def odesolve(H, rho0, tlist, c_op_list, e_ops, args=None, options=None):
         print(inspect.stack()[0][3])
 
     if options is None:
-        options = Odeoptions()
+        options = Options()
 
     if (c_op_list and len(c_op_list) > 0) or not isket(rho0):
         if isinstance(H, list):

@@ -37,7 +37,7 @@ from qutip.qobj import Qobj
 from qutip.eseries import eseries, estidy, esval
 from qutip.expect import expect
 from qutip.superoperator import *
-from qutip.odedata import Odedata
+from qutip.solver import SolverResult
 
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
@@ -100,7 +100,7 @@ def essolve(H, rho0, tlist, c_op_list, e_ops):
     for n, e in enumerate(e_ops):
         result_list[n, :] = expect(e, esval(es, tlist))
 
-    data = Odedata()
+    data = SolverResult()
     data.solver = "essolve"
     data.times = tlist
     data.expect = [np.real(result_list[n, :]) if e.isherm else result_list[n, :]

@@ -52,11 +52,11 @@ from qutip.qobj import *
 from qutip.expect import *
 from qutip.states import ket2dm
 from qutip.parfor import parfor
-from qutip.odeoptions import Odeoptions
+from qutip.solver import Options
 from qutip.odeconfig import odeconfig
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
-from qutip.odedata import Odedata
+from qutip.solver import SolverResult
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 import qutip.settings
 from qutip.settings import debug
@@ -77,11 +77,11 @@ _cy_rhs_func = None
 
 
 def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
-            args={}, options=Odeoptions()):
+            args={}, options=Options()):
     """Monte-Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
-    are given by the Odeoptions class.
+    are given by the Options class.
 
     mcsolve supports time-dependent Hamiltonians and collapse operators using
     either Python functions of strings to represent time-dependent
@@ -139,12 +139,12 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         expectation values.
     args : dict
         Arguments for time-dependent Hamiltonian and collapse operator terms.
-    options : Odeoptions
+    options : Options
         Instance of ODE solver options.
 
     Returns
     -------
-    results : Odedata
+    results : SolverResult
         Object storing all results from simulation.
 
     """
@@ -176,7 +176,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     else:
         odeconfig.progress_bar = TextProgressBar(ntraj)
 
-    # set num_cpus to the value given in qutip.settings if none in Odeoptions
+    # set num_cpus to the value given in qutip.settings if none in Options
     if not odeconfig.options.num_cpus:
         odeconfig.options.num_cpus = qutip.settings.num_cpus
 
@@ -262,7 +262,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     # AFTER MCSOLVER IS DONE --------------------------------------
     # ------- COLLECT AND RETURN OUTPUT DATA IN ODEDATA OBJECT --------------
-    output = Odedata()
+    output = SolverResult()
     output.solver = 'mcsolve'
     # state vectors
     if (mc.psi_out is not None and odeconfig.options.average_states
@@ -294,7 +294,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
                 output.expect.append(data_list)
     else:
         # no averaging for single trajectory or if average_states flag
-        # (Odeoptions) is off
+        # (Options) is off
         if mc.expect_out is not None:
             output.expect = mc.expect_out
 
@@ -860,7 +860,7 @@ def _mc_alg_evolve(nt, args, odeconfig):
                     if ii > odeconfig.norm_steps:
                         raise Exception("Norm tolerance not reached. " +
                                         "Increase accuracy of ODE solver or " +
-                                        "Odeoptions.norm_steps.")
+                                        "Options.norm_steps.")
                     # ---------------------------------------------------
                     np.append(collapse_times, ODE.t)
                     # some string based collapse operators

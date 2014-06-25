@@ -44,7 +44,7 @@ from qutip.essolve import ode2es
 from qutip.mcsolve import mcsolve
 from qutip.steadystate import steadystate
 from qutip.states import ket2dm
-from qutip.odeoptions import Odeoptions
+from qutip.solver import Options
 from qutip.settings import debug
 
 if debug:
@@ -56,7 +56,7 @@ if debug:
 #------------------------------------------------------------------------------
 
 def correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver="me",
-                       reverse=False, args=None, options=Odeoptions()):
+                       reverse=False, args=None, options=Options()):
     """
     Calculate a two-operator two-time correlation function
     :math:`\left<A(\\tau)B(0)\\right>` or
@@ -119,7 +119,7 @@ def correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver="me",
 
 
 def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
-                       reverse=False, args=None, options=Odeoptions()):
+                       reverse=False, args=None, options=Options()):
     """
     Calculate a two-operator two-time correlation function on the form
     :math:`\left<A(t+\\tau)B(t)\\right>` or
@@ -199,7 +199,7 @@ def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
 
 
 def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
-                       solver="me", args=None, options=Odeoptions()):
+                       solver="me", args=None, options=Options()):
     """
     Calculate the four-operator two-time correlation function on the from
     :math:`\left<A(0)B(\\tau)C(\\tau)D(0)\\right>` using the quantum regression
@@ -262,7 +262,7 @@ def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
 
 
 def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
-                       solver="me", args=None, options=Odeoptions()):
+                       solver="me", args=None, options=Options()):
     """
     Calculate the four-operator two-time correlation function on the from
     :math:`\left<A(t)B(t+\\tau)C(t+\\tau)D(t)\\right>` using the quantum
@@ -334,7 +334,7 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
 #------------------------------------------------------------------------------
 
 def coherence_function_g1(H, rho0, taulist, c_ops, a_op, solver="me",
-                          args=None, options=Odeoptions()):
+                          args=None, options=Options()):
     """
     Calculate the first-order quantum coherence function:
 
@@ -391,7 +391,7 @@ def coherence_function_g1(H, rho0, taulist, c_ops, a_op, solver="me",
 
 
 def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me",
-                          args=None, options=Odeoptions()):
+                          args=None, options=Options()):
     """
     Calculate the second-order quantum coherence function:
 
@@ -455,7 +455,7 @@ def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me",
 #------------------------------------------------------------------------------
 
 def correlation_ss(H, taulist, c_ops, a_op, b_op, rho0=None, solver="me",
-                   reverse=False, args=None, options=Odeoptions()):
+                   reverse=False, args=None, options=Options()):
     """
     Calculate a two-operator two-time correlation function
     :math:`\left<A(\\tau)B(0)\\right>` or
@@ -510,7 +510,7 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op, rho0=None, solver="me",
 
 
 def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
-                reverse=False, args=None, options=Odeoptions()):
+                reverse=False, args=None, options=Options()):
     """
     Calculate a two-operator two-time correlation function on the form
     :math:`\left<A(t+\\tau)B(t)\\right>` or
@@ -571,7 +571,7 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
 # EXPONENTIAL SERIES SOLVERS
 # -----------------------------------------------------------------------------
 def _correlation_es_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False,
-                           args=None, options=Odeoptions()):
+                           args=None, options=Options()):
     """
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation_ss` usage.
@@ -601,7 +601,7 @@ def _correlation_es_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False,
 
 
 def _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
-                           reverse=False, args=None, options=Odeoptions()):
+                           reverse=False, args=None, options=Options()):
     """
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation` usage.
@@ -645,7 +645,7 @@ def _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 # -----------------------------------------------------------------------------
 
 def _correlation_me_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False,
-                           args=None, options=Odeoptions()):
+                           args=None, options=Options()):
     """
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation_ss` for usage.
@@ -670,7 +670,7 @@ def _correlation_me_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False,
 
 
 def _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
-                           reverse=False, args=None, options=Odeoptions()):
+                           reverse=False, args=None, options=Options()):
     """
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation` for usage.
@@ -706,7 +706,7 @@ def _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 
 
 def _correlation_me_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op,
-                           args=None, options=Odeoptions()):
+                           args=None, options=Options()):
     """
     Calculate the four-operator two-time correlation function on the form
     <A(0)B(tau)C(tau)D(0)>.
@@ -728,7 +728,7 @@ def _correlation_me_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op,
 
 def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
                            a_op, b_op, c_op, d_op, reverse=False,
-                           args=None, options=Odeoptions()):
+                           args=None, options=Options()):
     """
     Calculate the four-operator two-time correlation function on the form
     <A(t)B(t+tau)C(t+tau)D(t)>.
@@ -761,7 +761,7 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
 # MONTE CARLO SOLVERS
 # -----------------------------------------------------------------------------
 def _correlation_mc_2op_1t(H, psi0, taulist, c_ops, a_op, b_op, reverse=False,
-                           args=None, options=Odeoptions()):
+                           args=None, options=Options()):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation_ss` for usage.
@@ -782,7 +782,7 @@ def _correlation_mc_2op_1t(H, psi0, taulist, c_ops, a_op, b_op, reverse=False,
 
 
 def _correlation_mc_2op_2t(H, psi0, tlist, taulist, c_ops, a_op, b_op,
-                           reverse=False, args=None, options=Odeoptions()):
+                           reverse=False, args=None, options=Options()):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation` usage.
