@@ -217,7 +217,7 @@ class CircuitProcessor(object):
 
         ax.axis('tight')
         ax.set_ylim(-1.5 * 2 * pi, 1.5 * 2 * pi)
-        ax.legend()
+        ax.legend(loc='center left', bbox_to_anchor=(1, 0.5), ncol=(1 + len(u) // 16))
         fig.tight_layout()
         
         return fig, ax
