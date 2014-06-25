@@ -649,7 +649,7 @@ class Qobj(object):
 
         M, N = self.data.shape
 
-        s += r'\begin{equation*}\begin{pmatrix}'
+        s += r'\begin{equation*}\left(\begin{array}{*{11}c}'
 
         def _format_float(value):
             if value == 0.0:
@@ -678,50 +678,50 @@ class Qobj(object):
                     else:
                         return (s + "(" + s_re + s_im + "j)")
 
-        if M > 8 and N > 8:
+        if M > 10 and N > 10:
             # truncated matrix output
-            for m in range(4):
-                for n in range(4):
+            for m in range(5):
+                for n in range(5):
                     s += _format_element(m, n, self.data[m, n])
                 s += r' & \cdots'
-                for n in range(N - 4, N):
+                for n in range(N - 5, N):
                     s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
-            for n in range(4):
+            for n in range(5):
                 s += _format_element(m, n, r'\vdots')
             s += r' & \ddots'
-            for n in range(N - 4, N):
+            for n in range(N - 5, N):
                 s += _format_element(m, n, r'\vdots')
             s += r'\\'
 
-            for m in range(M - 4, M):
-                for n in range(4):
+            for m in range(M - 5, M):
+                for n in range(5):
                     s += _format_element(m, n, self.data[m, n])
                 s += r' & \cdots'
-                for n in range(N - 4, N):
+                for n in range(N - 5, N):
                     s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
-        elif M > 8 and N == 1:
+        elif M > 10 and N == 1:
             # truncated column vector output
-            for m in range(4):
+            for m in range(5):
                 s += _format_element(m, 0, self.data[m, 0])
                 s += r'\\'
 
             s += _format_element(m, 0, r'\vdots')
             s += r'\\'
 
-            for m in range(M - 4, M):
+            for m in range(M - 5, M):
                 s += _format_element(m, 0, self.data[m, 0])
                 s += r'\\'
 
-        elif M == 1 and N > 8:
+        elif M == 1 and N > 10:
             # truncated row vector output
-            for n in range(4):
+            for n in range(5):
                 s += _format_element(0, n, self.data[0, n])
             s += r' & \cdots'
-            for n in range(N - 4, N):
+            for n in range(N - 5, N):
                 s += _format_element(0, n, self.data[0, n])
             s += r'\\'
 
@@ -732,7 +732,7 @@ class Qobj(object):
                     s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
-        s += r'\end{pmatrix}\end{equation*}'
+        s += r'\end{array}\right)\end{equation*}'
         return s
 
     def dag(self):
