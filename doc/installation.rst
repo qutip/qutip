@@ -145,17 +145,17 @@ Installation on Mac OS X (10.6+)
 
 If you have not done so already, install the Apple Xcode developer tools from the Apple App Store.  After installation, open Xcode and go to: Preferences -> Downloads, and install the 'Command Line Tools'.
 
-Setup Using Macports [*]_
---------------------------
+Setup Using Macports
+---------------------
 
 On the Mac, it is recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via
 
 .. code-block:: bash
 
-    sudo port install py33-scipy
-    sudo port install py33-matplotlib +latex
-    sudo port install py33-cython
-    sudo port install py33-ipython +notebook+parallel
+    sudo port install py34-scipy
+    sudo port install py34-matplotlib +latex
+    sudo port install py34-cython
+    sudo port install py34-ipython +notebook+parallel
 
 
 Optional, but highly recommended ports include
@@ -169,8 +169,8 @@ Now, we want to tell OSX which Python and iPython we are going to use
 
 .. code-block:: bash
 
-    sudo port select python python33
-    sudo port select ipython ipython33
+    sudo port select python python34
+    sudo port select ipython ipython34
 
 To install QuTiP from Macports, run
 
@@ -205,6 +205,10 @@ Running port select again should give::
 	 	llvm-gcc42
 	 	mp-gcc47 (active)
 	 	none
+
+
+Installing QuTiP via Macports will take a long time as each of the QuTiP dependencies is build from source code. The advantage is that all dependencies are resolved automatically, and the result should be a consistent build.
+
 
 Setup via SciPy Superpack
 -------------------------
@@ -288,6 +292,3 @@ QuTiP includes an "about" function for viewing information about QuTiP and the i
 
 >>> from qutip import *
 >>> about()
-
-
-.. [*] Installing QuTiP via Macports will take a long time as each of the QuTiP dependencies is build from source code.  The advantage is that, after installation, everything is more or less guaranteed to work.  However, if you have a hot date waiting for you, then we do not recommend this path.  Or course, if you are reading this guide, this may not be the case. 
