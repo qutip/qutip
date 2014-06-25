@@ -47,14 +47,12 @@ import warnings
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
 from qutip.expect import expect, expect_rho_vec
-from qutip.solver import Options
+from qutip.solver import Options, SolverResult, config
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
 from qutip.cy.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
-from qutip.solver import SolverResult
 from qutip.states import ket2dm
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
-from qutip.odeconfig import odeconfig
 from qutip.settings import debug
 
 from qutip.sesolve import (_sesolve_list_func_td, _sesolve_list_str_td,
@@ -205,9 +203,9 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     if options is None:
         options = Options()
 
-    if (not options.rhs_reuse) or (not odeconfig.tdfunc):
-        # reset odeconfig collapse and time-dependence flags to default values
-        odeconfig.reset()
+    if (not options.rhs_reuse) or (not config.tdfunc):
+        # reset config collapse and time-dependence flags to default values
+        config.reset()
 
     res = None
 
@@ -580,25 +578,25 @@ def _mesolve_list_str_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
     #
     # generate and compile new cython code if necessary
     #
-    if not opt.rhs_reuse or odeconfig.tdfunc is None:
+    if not opt.rhs_reuse or config.tdfunc is None:
         if opt.rhs_filename is None:
-            odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
+            config.tdname = "rhs" + str(config.cgen_num)
         else:
-            odeconfig.tdname = opt.rhs_filename
+            config.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                       odeconfig=odeconfig)
-        cgen.generate(odeconfig.tdname + ".pyx")
+                       config=config)
+        cgen.generate(config.tdname + ".pyx")
 
-        code = compile('from ' + odeconfig.tdname + ' import cy_td_ode_rhs',
+        code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
-        odeconfig.tdfunc = cy_td_ode_rhs
+        config.tdfunc = cy_td_ode_rhs
 
     #
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full()).ravel()
-    r = scipy.integrate.ode(odeconfig.tdfunc)
+    r = scipy.integrate.ode(config.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -862,9 +860,9 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
 
     progress_bar.finished()
 
-    if not opt.rhs_reuse and odeconfig.tdname is not None:
+    if not opt.rhs_reuse and config.tdname is not None:
         try:
-            os.remove(odeconfig.tdname + ".pyx")
+            os.remove(config.tdname + ".pyx")
         except:
             pass
 
@@ -919,7 +917,7 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, e_ops, args, opt,
                         'length N-1 where N is the number of ' +
                         'Hamiltonian terms.')
 
-    if opt.rhs_reuse and odeconfig.tdfunc is None:
+    if opt.rhs_reuse and config.tdfunc is None:
         rhs_generate(H_func, args)
 
     lenh = len(H_func[0])
@@ -946,25 +944,25 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, e_ops, args, opt,
                 string += (",")
 
     # run code generator
-    if not opt.rhs_reuse or odeconfig.tdfunc is None:
+    if not opt.rhs_reuse or config.tdfunc is None:
         if opt.rhs_filename is None:
-            odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
+            config.tdname = "rhs" + str(config.cgen_num)
         else:
-            odeconfig.tdname = opt.rhs_filename
+            config.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                       odeconfig=odeconfig)
-        cgen.generate(odeconfig.tdname + ".pyx")
+                       config=config)
+        cgen.generate(config.tdname + ".pyx")
 
-        code = compile('from ' + odeconfig.tdname + ' import cy_td_ode_rhs',
+        code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
-        odeconfig.tdfunc = cy_td_ode_rhs
+        config.tdfunc = cy_td_ode_rhs
 
     #
     # setup integrator
     #
     initial_vector = mat2vec(rho0.full()).ravel()
-    r = scipy.integrate.ode(odeconfig.tdfunc)
+    r = scipy.integrate.ode(config.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,

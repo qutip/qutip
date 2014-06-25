@@ -230,7 +230,6 @@ from qutip.continuous_variables import *
 from qutip.distributions import *
 
 # evolution
-from qutip.odeconfig import odeconfig
 from qutip.solver import Options, SolverResult
 from qutip.rhs_generate import rhs_generate, rhs_clear
 from qutip.mesolve import mesolve, odesolve

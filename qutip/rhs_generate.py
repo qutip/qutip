@@ -35,8 +35,7 @@ import numpy
 from scipy import ndarray, array
 
 from qutip.cy.codegen import Codegen
-from qutip.solver import Options
-from qutip.odeconfig import odeconfig
+from qutip.solver import Options, config
 from qutip.qobj import Qobj
 from qutip.superoperator import spre, spost
 
@@ -50,17 +49,17 @@ def rhs_clear():
 
     Returns
     -------
-    Nothing, just clears data from internal odeconfig module.
+    Nothing, just clears data from internal config module.
 
     """
     # time-dependent (TD) function stuff
-    odeconfig.tdfunc = None     # Placeholder for TD RHS function.
-    odeconfig.colspmv = None    # Placeholder for TD col-spmv function.
-    odeconfig.colexpect = None  # Placeholder for TD col_expect function.
-    odeconfig.string = None     # Holds string of variables to be passed onto
-                                # time-depdendent ODE solver.
-    odeconfig.tdname = None     # Name of td .pyx file
-                                # (used in parallel mc code)
+    config.tdfunc = None     # Placeholder for TD RHS function.
+    config.colspmv = None    # Placeholder for TD col-spmv function.
+    config.colexpect = None  # Placeholder for TD col_expect function.
+    config.string = None     # Holds string of variables to be passed onto
+                             # time-depdendent ODE solver.
+    config.tdname = None     # Name of td .pyx file
+                             # (used in parallel mc code)
 
 
 def rhs_generate(H, c_ops, args={}, options=Options(), name=None,
@@ -96,13 +95,13 @@ def rhs_generate(H, c_ops, args={}, options=Options(), name=None,
     will result in an error.
 
     """
-    odeconfig.reset()
-    odeconfig.options = options
+    config.reset()
+    config.options = options
 
     if name:
-        odeconfig.tdname = name
+        config.tdname = name
     else:
-        odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
+        config.tdname = "rhs" + str(config.cgen_num)
 
     Lconst = 0
 
@@ -206,18 +205,18 @@ def rhs_generate(H, c_ops, args={}, options=Options(), name=None,
     n_L_terms = len(Ldata)
 
     cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                   odeconfig=odeconfig)
-    cgen.generate(odeconfig.tdname + ".pyx")
+                   config=config)
+    cgen.generate(config.tdname + ".pyx")
 
-    code = compile('from ' + odeconfig.tdname +
+    code = compile('from ' + config.tdname +
                    ' import cy_td_ode_rhs', '<string>', 'exec')
     exec(code, globals())
 
-    odeconfig.tdfunc = cy_td_ode_rhs
+    config.tdfunc = cy_td_ode_rhs
 
     if cleanup:
         try:
-            os.remove(odeconfig.tdname + ".pyx")
+            os.remove(config.tdname + ".pyx")
         except:
             pass
 
