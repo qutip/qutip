@@ -97,38 +97,39 @@ New Features
 Bug Fixes:
 ----------
 
-SVN-2571: mesolver now correctly uses the user defined rhs_filename in Odeoptions().
+ - mesolver now correctly uses the user defined rhs_filename in Odeoptions().
 
-SVN-2566: rhs_generate() now handles user defined filenames properly.
+ - rhs_generate() now handles user defined filenames properly.
 
-SVN-2565: Density matrix returned by propagator_steadystate is now Hermitian.
+ - Density matrix returned by propagator_steadystate is now Hermitian.
 
-SVN-2548: eseries_value returns real list if all imag parts are zero.
+ - eseries_value returns real list if all imag parts are zero.
 
-SVN-2518: mcsolver now gives correct results for strong damping rates.
+ - mcsolver now gives correct results for strong damping rates.
 
-SVN-2513: Odeoptions now prints mc_avg correctly.
+ - Odeoptions now prints mc_avg correctly.
 
-SVN-2516: Do not check for PyObj in mcsolve when gui=False. 
+ - Do not check for PyObj in mcsolve when gui=False. 
 
-SVN-2514: Eseries now correctly handles purely complex rates.
+ - Eseries now correctly handles purely complex rates.
 
-SVN-2485: thermal_dm() function now uses truncated operator method.
+ - thermal_dm() function now uses truncated operator method.
 
-SVN-2428: Cython based time-dependence now Python 3 compatible.
+ - Cython based time-dependence now Python 3 compatible.
 
-SVN-2391: Removed call to NSAutoPool on mac systems.
+ - Removed call to NSAutoPool on mac systems.
 
-SVN-2389: Progress bar now displays the correct number of CPU's used.
+ - Progress bar now displays the correct number of CPU's used.
 
-SVN-2385: Qobj.diag() returns reals if operator is Hermitian.
+ - Qobj.diag() returns reals if operator is Hermitian.
 
-SVN-2376: Text for progress bar on Linux systems is no longer cutoff.
-
+ - Text for progress bar on Linux systems is no longer cutoff.
 
 
 Version 2.0.0 (June 01, 2012):
 +++++++++++++++++++++++++++++++++++++++++
+
+The second version of QuTiP has seen many improvements in the performance of the original code base, as well as the addition of several new routines supporting a wide range of functionality.  Some of the highlights of this release include:
 
 New Features
 -------------
@@ -142,6 +143,8 @@ New Features
 - Python functions can be used to create arbitrary time-dependent Hamiltonians and collapse operators.
 
 - Solvers now return Odedata objects containing all simulation results and parameters, simplifying the saving of simulation results.
+
+.. important:: This breaks compatibility with QuTiP version 1.x.  See :ref:`odedata` for further details.
 
 - mesolve and mcsolve can reuse Hamiltonian data when only the initial state, or time-dependent arguments, need to be changed.
 
@@ -182,11 +185,11 @@ Version 1.1.4 (May 28, 2012):
 Bug Fixes:
 ----------
 
-SVN-2101: Fixed bug pointed out by Brendan Abolins.
+ - Fixed bug pointed out by Brendan Abolins.
 
-SVN-1796: Qobj.tr() returns zero-dim ndarray instead of float or complex.
+ - Qobj.tr() returns zero-dim ndarray instead of float or complex.
 
-SVN-1463: Updated factorial import for scipy version 0.10+
+ - Updated factorial import for scipy version 0.10+
 
 
 Version 1.1.3 (November 21, 2011):
@@ -195,23 +198,23 @@ Version 1.1.3 (November 21, 2011):
 New Functions:
 --------------
 
-SVN-1347: Allow custom naming of Bloch sphere.
+ - Allow custom naming of Bloch sphere.
 
 Bug Fixes:
 ----------
-SVN-1450: Fixed text alignment issues in AboutBox.
+ - Fixed text alignment issues in AboutBox.
 
-SVN-1448: Added fix for SciPy V>0.10 where factorial was moved to scipy.misc module.
+ - Added fix for SciPy V>0.10 where factorial was moved to scipy.misc module.
 
-SVN-1447: Added tidyup function to tensor function output.
+ - Added tidyup function to tensor function output.
 
-SVN-1442: Removed openmp flags from setup.py as new Mac Xcode compiler does not recognize them.
+ - Removed openmp flags from setup.py as new Mac Xcode compiler does not recognize them.
 
-SVN-1435: Qobj diag method now returns real array if all imaginary parts are zero.
+ - Qobj diag method now returns real array if all imaginary parts are zero.
 
-SVN-1434: Examples GUI now links to new documentation.
+ - Examples GUI now links to new documentation.
 
-SVN-1415: Fixed zero-dimensional array output from metrics module.
+ - Fixed zero-dimensional array output from metrics module.
 
 
 Version 1.1.2 (October 27, 2011)
@@ -220,7 +223,7 @@ Version 1.1.2 (October 27, 2011)
 Bug Fixes
 ---------
 
-SVN-1218: Fixed issue where Monte Carlo states were not output properly.
+ - Fixed issue where Monte Carlo states were not output properly.
 
 
 Version 1.1.1 (October 25, 2011)
@@ -231,20 +234,20 @@ Version 1.1.1 (October 25, 2011)
 New Functions
 ---------------
 
-SVN-1183: Added linear entropy function.
+ - Added linear entropy function.
 
-SVN-1179: Number of CPU's can now be changed.
+ - Number of CPU's can now be changed.
 
 Bug Fixes
 ---------
 
-SVN-1184: Metrics no longer use dense matrices.
+ - Metrics no longer use dense matrices.
 
-SVN-1184: Fixed Bloch sphere grid issue with matplotlib 1.1.
+ - Fixed Bloch sphere grid issue with matplotlib 1.1.
 
-SVN-1183: Qobj trace operation uses only sparse matrices.
+ - Qobj trace operation uses only sparse matrices.
 
-SVN-1168: Fixed issue where GUI windows do not raise to front.
+ - Fixed issue where GUI windows do not raise to front.
 
 
 Version 1.1.0 (October 04, 2011)
@@ -255,38 +258,38 @@ Version 1.1.0 (October 04, 2011)
 New Functions
 ---------------
 
-SVN-1054: tidyup function to remove small elements from a Qobj.
+ - tidyup function to remove small elements from a Qobj.
 
-SVN-1051: Added concurrence function.
+ - Added concurrence function.
 
-SVN-1036: Added simdiag for simultaneous diagonalization of operators.
+ - Added simdiag for simultaneous diagonalization of operators.
 
-SVN-1032: Added eigenstates method returning eigenstates and eigenvalues to Qobj class.
+ - Added eigenstates method returning eigenstates and eigenvalues to Qobj class.
 
-SVN-1030: Added fileio for saving and loading data sets and/or Qobj's.
+ - Added fileio for saving and loading data sets and/or Qobj's.
 
-SVN-1029: Added hinton function for visualizing density matrices.
+ - Added hinton function for visualizing density matrices.
 
 Bug Fixes
 ---------
 
-SVN-1091: Switched Examples to new Signals method used in PySide 1.0.6+.
+ - Switched Examples to new Signals method used in PySide 1.0.6+.
 
-SVN-1090: Switched ProgressBar to new Signals method.
+ - Switched ProgressBar to new Signals method.
 
-SVN-1075: Fixed memory issue in expm functions.
+ - Fixed memory issue in expm functions.
 
-SVN-1069: Fixed memory bug in isherm.
+ - Fixed memory bug in isherm.
 
-SVN-1059: Made all Qobj data complex by default.
+ - Made all Qobj data complex by default.
 
-SVN-1053: Reduced ODE tolerance levels in Odeoptions.
+ - Reduced ODE tolerance levels in Odeoptions.
 
-SVN-1050: Fixed bug in ptrace where dense matrix was used instead of sparse.
+ - Fixed bug in ptrace where dense matrix was used instead of sparse.
 
-SVN-1047: Fixed issue where PyQt4 version would not be displayed in about box.
+ - Fixed issue where PyQt4 version would not be displayed in about box.
 
-SVN-1041: Fixed issue in Wigner where xvec was used twice (in place of yvec).
+ - Fixed issue in Wigner where xvec was used twice (in place of yvec).
 
 
 Version 1.0.0 (July 29, 2011)
