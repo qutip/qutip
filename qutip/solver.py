@@ -34,7 +34,7 @@
 from __future__ import print_function
 import os
 import warnings
-
+from qutip import __version__
 
 class Options():
     """

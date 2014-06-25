@@ -352,11 +352,11 @@ class _MC_class():
         qtf90.qutraj_run.unravel_type = self.unravel_type
         qtf90.qutraj_run.average_states = config.options.average_states 
         qtf90.qutraj_run.average_expect = config.options.average_expect
-        qtf90.qutraj_run.init_SolverResult(config.psi0_shape[0],
-                                      config.options.atol,
-                                      config.options.rtol, mf=self.mf,
-                                      norm_steps=config.norm_steps,
-                                      norm_tol=config.norm_tol)
+        qtf90.qutraj_run.init_result(config.psi0_shape[0],
+                                     config.options.atol,
+                                     config.options.rtol, mf=self.mf,
+                                     norm_steps=config.norm_steps,
+                                     norm_tol=config.norm_tol)
         # set optional arguments
         qtf90.qutraj_run.order = config.options.order
         qtf90.qutraj_run.nsteps = config.options.nsteps
@@ -451,14 +451,14 @@ class _MC_class():
             if (ntraj == 1):
                 states = np.array([Qobj()] * nstep)
                 for i in range(nstep):
-                    states[i] = Qobj(numpy.matrix(
+                    states[i] = Qobj(np.matrix(
                         qtf90.qutraj_run.sol[0, 0, i, :]).transpose(),
                         dims=self.psi0_dims, shape=self.psi0_shape)
             else:
                 states = np.array([np.array([Qobj()] * nstep)] * ntraj)
                 for traj in range(ntraj):
                     for i in range(nstep):
-                        states[traj][i] = Qobj(numpy.matrix(
+                        states[traj][i] = Qobj(np.matrix(
                             qtf90.qutraj_run.sol[0, traj, i, :]).transpose(),
                             dims=self.psi0_dims, shape=self.psi0_shape)
         return states
