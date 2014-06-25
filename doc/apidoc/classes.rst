@@ -39,17 +39,17 @@ Bloch3d
 
 .. _classes-odeoptions:
 
-Odeoptions
+Options
 --------------------
 
-.. autoclass:: qutip.Odeoptions
+.. autoclass:: qutip.solver.Options
     :members:
 
 
-Odedata
+SolverResult
 --------------------
 
-.. autoclass:: qutip.Odedata
+.. autoclass:: qutip.solver.SolverResult
     :members:
 
 Stochastic Solver Parameters
