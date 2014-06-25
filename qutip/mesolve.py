@@ -53,7 +53,7 @@ from qutip.cy.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
 from qutip.odedata import Odedata
 from qutip.states import ket2dm
-from qutip.odechecks import _ode_checks, _td_wrap_array_str
+from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.odeconfig import odeconfig
 from qutip.settings import debug
 
@@ -200,7 +200,7 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     H, c_ops, args = _td_wrap_array_str(H, c_ops, args, tlist)
 
     # check for type (if any) of time-dependent inputs
-    n_const, n_func, n_str = _ode_checks(H, c_ops)
+    n_const, n_func, n_str = _td_format_check(H, c_ops)
 
     if options is None:
         options = Odeoptions()

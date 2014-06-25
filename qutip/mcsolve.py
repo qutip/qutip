@@ -57,7 +57,7 @@ from qutip.odeconfig import odeconfig
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
 from qutip.odedata import Odedata
-from qutip.odechecks import _ode_checks, _td_wrap_array_str
+from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 import qutip.settings
 from qutip.settings import debug
 from qutip.ui.progressbar import TextProgressBar
@@ -215,7 +215,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         odeconfig.soft_reset()
 
         # check for type of time-dependence (if any)
-        time_type, h_stuff, c_stuff = _ode_checks(H, c_ops, 'mc')
+        time_type, h_stuff, c_stuff = _td_format_check(H, c_ops, 'mc')
         h_terms = len(h_stuff[0]) + len(h_stuff[1]) + len(h_stuff[2])
         c_terms = len(c_stuff[0]) + len(c_stuff[1]) + len(c_stuff[2])
         # set time_type for use in multiprocessing

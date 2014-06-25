@@ -48,7 +48,7 @@ from qutip.rhs_generate import rhs_generate
 from qutip.odedata import Odedata
 from qutip.odeoptions import Odeoptions
 from qutip.odeconfig import odeconfig
-from qutip.odechecks import _ode_checks, _td_wrap_array_str
+from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.settings import debug
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
                                  cy_ode_psi_func_td,
@@ -127,7 +127,7 @@ def sesolve(H, rho0, tlist, e_ops, args={}, options=None,
     H, _, args = _td_wrap_array_str(H, [], args, tlist)
 
     # check for type (if any) of time-dependent inputs
-    n_const, n_func, n_str = _ode_checks(H, [])
+    n_const, n_func, n_str = _td_format_check(H, [])
 
     if options is None:
         options = Odeoptions()
