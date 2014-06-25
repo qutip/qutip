@@ -48,7 +48,7 @@ Contributors
 
 **Hwajung Kang** (Systems Biology Institute, Tokyo) - Suggestions for improving Bloch class
 
-**Neill Lambert** (RIKEN) - Windows support
+**Neill Lambert** (RIKEN) - Code contributor, Windows support
 
 **Anders Lund** (Technical University of Denmark) - Bug hunting for the Monte-Carlo solver.
 
@@ -62,7 +62,7 @@ Contributors
 
 **Frank Schima** - Macports packaging
 
-**Denis Vasilyev** (St. Petersburg State University) - Bug hunter
+**Denis Vasilyev** (St. Petersburg State University) -  Code contributor
 
 **Simon Whalen** - Code contributor
 
@@ -74,3 +74,20 @@ Contributors
 
 **Piotr Migdał** (ICFO) - Code contributor
 
+**Chris Granadeł** - Code contributor
+
+**Anubhav Vardhan** (IIT) - Code contributor
+
+**Reinier Heeres** (Yale University) - Code contributor
+
+**alexbrc** (github user) - Code contributor
+
+**Johannes Feist** - Code contributor
+
+**Jonas Hörsch** - Code contributor
+
+**Laurence Stant** - Documentation
+
+**Dawid Crivelli** - Bug hunter
+
+**Amit Jamadagni** - Bug fix
