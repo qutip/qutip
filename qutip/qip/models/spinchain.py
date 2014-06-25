@@ -57,25 +57,27 @@ class SpinChain(CircuitProcessor):
                        for m in range(N)]
 
         self.sxsy_ops = []
-        for n in range(N):
+        for n in range(N-1):
             x = [identity(2)] * N
-            x[n] = x[(n+1) % N] = sigmax()
+            x[n] = x[n + 1] = sigmax()
             y = [identity(2)] * N
-            y[n] = y[(n+1) % N] = sigmay()
+            y[n] = y[n + 1] = sigmay()
             self.sxsy_ops.append(tensor(x) + tensor(y))
-        
+
         if sx == None:
             self.sx_coeff = [0.25 * 2 * pi] * N
         elif not isinstance(sx, list):
             self.sx_coeff = [sx * 2 * pi] * N
         else:
             self.sx_coeff = sx
+
         if sz == None:
             self.sz_coeff = [1.0 * 2 * pi] * N
         elif not isinstance(sz, list):
             self.sz_coeff = [sz * 2 * pi] * N
         else:
             self.sz_coeff = sz
+
         if sxsy == None:
             self.sxsy_coeff = [0.1 * 2 * pi] * (N - 1)
         elif not isinstance(sxsy, list):
@@ -377,7 +379,6 @@ class LinearSpinChain(SpinChain):
         super(LinearSpinChain, self).__init__(N, correct_global_phase, 
                                               sx, sz, sxsy)
 
-
     def get_ops_labels(self):
         return ([r"$\sigma_x^%d$" % n for n in range(self.N)] + 
                 [r"$\sigma_z^%d$" % n for n in range(self.N)] + 
@@ -407,6 +408,18 @@ class CircularSpinChain(SpinChain):
         super(CircularSpinChain, self).__init__(N, correct_global_phase,
                                                 sx, sz, sxsy)
 
+        x = [identity(2)] * N
+        x[0] = x[N - 1] = sigmax()
+        y = [identity(2)] * N
+        y[0] = y[N - 1] = sigmay()
+        self.sxsy_ops.append(tensor(x) + tensor(y))
+
+        if sxsy == None:
+            self.sxsy_coeff = [0.1 * 2 * pi] * N
+        elif not isinstance(sxsy, list):
+            self.sxsy_coeff = [sxsy * 2 * pi] * N
+        else:
+            self.sxsy_coeff = sxsy
 
     def get_ops_labels(self):
         return ([r"$\sigma_x^%d$" % n for n in range(self.N)] + 
