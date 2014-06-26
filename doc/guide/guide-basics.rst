@@ -23,13 +23,14 @@ To load the qutip modules, we must first call the import statement:
 
 
 
-that will load all of the user available functions.  We will also need to import the SciPy library with:
+that will load all of the user available functions. We will also need to import the Numpy and Matplotlib libraries with:
 
 .. ipython::
 
-	In [1]: from scipy import *
+	In [1]: import numpy as np
+            import matplotlib.pyplot as plt
 
-Note that, in the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`.  However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the command line or a Python script.
+Note that, in the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`. However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the command line or a Python script.
 
 .. _basics-qobj:
 
