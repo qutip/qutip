@@ -28,14 +28,14 @@ eseries
 Bloch
 ---------------
 
-.. autoclass:: qutip.Bloch
-    :members:
+.. autoclass:: qutip.bloch.Bloch
+    :members: 
 
 Bloch3d
 -----------------
 
-.. autoclass:: qutip.Bloch3d
-    :members:
+.. autoclass:: qutip.bloch3d.Bloch3d
+    :members: 
 
 .. _classes-odeoptions:
 
@@ -57,3 +57,48 @@ Stochastic Solver Parameters
 
 .. autoclass:: qutip.stochastic
     :members: StochasticSolverData
+
+
+Distribution functions
+----------------------------
+
+.. autoclass:: qutip.distributions.Distribution
+    :members:
+
+.. autoclass:: qutip.distributions.WignerDistribution
+    :members:
+
+.. autoclass:: qutip.distributions.QDistribution
+    :members:
+
+.. autoclass:: qutip.distributions.TwoModeQuadratureCorrelation
+    :members:
+
+.. autoclass:: qutip.distributions.HarmonicOscillatorWaveFunction
+    :members:
+
+.. autoclass:: qutip.distributions.HarmonicOscillatorProbabilityFunction
+    :members:
+
+
+Quantum information processing
+------------------------------
+
+.. autoclass:: qutip.qip.circuit.Gate
+    :members:
+
+.. autoclass:: qutip.qip.circuit.QubitCircuit
+    :members:
+
+.. autoclass:: qutip.qip.models.CircuitProcessor
+    :members:
+
+.. autoclass:: qutip.qip.models.SpinChain
+    :members:
+
+.. autoclass:: qutip.qip.models.LinearSpinChain
+    :members:
+
+.. autoclass:: qutip.qip.models.CircularSpinChain
+    :members:
+
