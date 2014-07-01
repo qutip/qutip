@@ -81,8 +81,57 @@ if debug:
 class StochasticSolverOptions:
     """
     Internal class for passing data between stochastic solver functions.
+
+    Class of options for stochastic solvers such as :func:`qutip.ssesolve`,
+    :func:`qutip.smesolve`, etc. Options can be specified either as arguments
+    to the constructor::
+
+        sso = StochasticSolverOptions(nsubsteps=100, ...)
+
+    or by changing the class attributes after creation::
+
+        sso = StochasticSolverOptions()
+        sso.nsubsteps = 1000
+
+    Attributes
+    ----------
+
+    H : :class:`qutip.Qobj`
+        System Hamiltonian.
+
+    state0 : :class:`qutip.Qobj`
+        Initial state vector (ket) or density matrix.
+ 
+    times : *list* / *array*
+        List of times for :math:`t`. Must be uniformly spaced.
+
+    c_ops : list of :class:`qutip.Qobj`
+        List of deterministic collapse operators. 
+
+    sc_ops : list of :class:`qutip.Qobj`
+        List of stochastic collapse operators. Each stochastic collapse
+        operator will give a deterministic and stochastic contribution
+        to the equation of motion according to how the d1 and d2 functions
+        are defined.
+
+    e_ops : list of :class:`qutip.Qobj`
+        Single operator or list of operators for which to evaluate
+        expectation values.
+
+    m_ops : list of :class:`qutip.Qobj`
+        List of operators representing the measurement operators.
+
+    args : dict / list
+        List of dictionary of additional problem-specific parameters.
+
+    ntraj : int
+        Number of trajectors.
+
+    nsubstes : int
+        Number of sub steps between each time-spep given in `times`.
+
     """
-    def __init__(self, H=None, state0=None, tlist=None, c_ops=[], sc_ops=[],
+    def __init__(self, H=None, state0=None, times=None, c_ops=[], sc_ops=[],
                  e_ops=[], m_ops=None, args=None, ntraj=1, nsubsteps=1,
                  d1=None, d2=None, d2_len=1, dW_factors=None, rhs=None,
                  gen_A_ops=None, gen_noise=None, homogeneous=True, solver=None,
@@ -96,7 +145,7 @@ class StochasticSolverOptions:
         self.d2_len = d2_len
         self.dW_factors = dW_factors if dW_factors else np.ones(d2_len)
         self.state0 = state0
-        self.tlist = tlist
+        self.times = times
         self.c_ops = c_ops
         self.sc_ops = sc_ops
         self.e_ops = e_ops
@@ -125,21 +174,21 @@ class StochasticSolverOptions:
         self.gen_A_ops = gen_A_ops
 
 
-def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
+def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
     """
     Solve stochastic Schrödinger equation. Dispatch to specific solvers
-    depending on the value of the `method` keyword argument.
+    depending on the value of the `solver` keyword argument.
 
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`
+    H : :class:`qutip.Qobj`
         System Hamiltonian.
 
     psi0 : :class:`qutip.qobj`
         Initial state vector (ket).
 
-    tlist : *list* / *array*
+    times : *list* / *array*
         List of times for :math:`t`. Must be uniformly spaced.
 
     sc_ops : list of :class:`qutip.qobj`
@@ -171,7 +220,7 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
     else:
         e_ops_dict = None
 
-    sso = StochasticSolverOptions(H=H, state0=psi0, tlist=tlist,
+    sso = StochasticSolverOptions(H=H, state0=psi0, times=times,
                                   sc_ops=sc_ops, e_ops=e_ops, **kwargs)
 
     if sso.gen_A_ops is None:
@@ -238,10 +287,10 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
     return res
 
 
-def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
+def smesolve(H, rho0, times, c_ops, sc_ops, e_ops, **kwargs):
     """
     Solve stochastic master equation. Dispatch to specific solvers
-    depending on the value of the `method` keyword argument.
+    depending on the value of the `solver` keyword argument.
 
     Parameters
     ----------
@@ -252,7 +301,7 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
     rho0 : :class:`qutip.qobj`
         Initial density matrix of state vector (ket).
 
-    tlist : *list* / *array*
+    times : *list* / *array*
         List of times for :math:`t`. Must be uniformly spaced.
 
     c_ops : list of :class:`qutip.qobj`
@@ -296,7 +345,7 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
     else:
         e_ops_dict = None
 
-    sso = StochasticSolverOptions(H=H, state0=rho0, tlist=tlist, c_ops=c_ops,
+    sso = StochasticSolverOptions(H=H, state0=rho0, times=times, c_ops=c_ops,
                                   sc_ops=sc_ops, e_ops=e_ops, **kwargs)
 
     if (sso.d1 is None) or (sso.d2 is None):
@@ -399,7 +448,7 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
     return res
 
 
-def sepdpsolve(H, psi0, tlist, c_ops, e_ops, **kwargs):
+def sepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
     """
     A stochastic PDP solver for wavefunction evolution. For most purposes,
     use mcsolve instead for quantum trajectory simulations.
@@ -413,7 +462,7 @@ def sepdpsolve(H, psi0, tlist, c_ops, e_ops, **kwargs):
     else:
         e_ops_dict = None
 
-    sso = StochasticSolverOptions(H=H, state0=psi0, tlist=tlist, c_ops=c_ops,
+    sso = StochasticSolverOptions(H=H, state0=psi0, times=times, c_ops=c_ops,
                                   e_ops=e_ops, **kwargs)
 
     res = _sepdpsolve_generic(sso, options, progress_bar)
@@ -424,7 +473,7 @@ def sepdpsolve(H, psi0, tlist, c_ops, e_ops, **kwargs):
     return res
 
 
-def smepdpsolve(H, rho0, tlist, c_ops, e_ops, **kwargs):
+def smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
     """
     A stochastic PDP solver for density matrix evolution.
     """
@@ -438,7 +487,7 @@ def smepdpsolve(H, rho0, tlist, c_ops, e_ops, **kwargs):
         e_ops_dict = None
 
 
-    sso = StochasticSolverOptions(H=H, state0=rho0, tlist=tlist, c_ops=c_ops,
+    sso = StochasticSolverOptions(H=H, state0=rho0, times=times, c_ops=c_ops,
                                   e_ops=e_ops, **kwargs)
 
     res = _smepdpsolve_generic(sso, options, progress_bar)
@@ -459,15 +508,15 @@ def _ssesolve_generic(sso, options, progress_bar):
     if debug:
         print(inspect.stack()[0][3])
 
-    N_store = len(sso.tlist)
+    N_store = len(sso.times)
     N_substeps = sso.nsubsteps
     N = N_store * N_substeps
-    dt = (sso.tlist[1] - sso.tlist[0]) / N_substeps
+    dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
     data = SolverResult()
     data.solver = "ssesolve"
-    data.times = sso.tlist
+    data.times = sso.times
     data.expect = np.zeros((len(sso.e_ops), N_store), dtype=complex)
     data.ss = np.zeros((len(sso.e_ops), N_store), dtype=complex)
     data.noise = []
@@ -487,7 +536,7 @@ def _ssesolve_generic(sso, options, progress_bar):
         noise = sso.noise[n] if sso.noise else None
 
         states_list, dW, m = _ssesolve_single_trajectory(data,
-             sso.H, dt, sso.tlist, N_store, N_substeps, psi_t, A_ops,
+             sso.H, dt, sso.times, N_store, N_substeps, psi_t, A_ops,
              sso.e_ops, sso.m_ops, sso.rhs_func, sso.d1, sso.d2,
              sso.d2_len, sso.dW_factors, sso.homogeneous, sso.distribution, sso.args,
              store_measurement=sso.store_measurement, noise=noise,
@@ -520,7 +569,7 @@ def _ssesolve_generic(sso, options, progress_bar):
     return data
 
 
-def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
+def _ssesolve_single_trajectory(data, H, dt, times, N_store, N_substeps, psi_t,
                                 A_ops, e_ops, m_ops, rhs, d1, d2, d2_len,
                                 dW_factors, homogeneous, distribution, args,
                                 store_measurement=False, noise=None,
@@ -545,9 +594,9 @@ def _ssesolve_single_trajectory(data, H, dt, tlist, N_store, N_substeps, psi_t,
         dW = noise
 
     states_list = []
-    measurements = np.zeros((len(tlist), len(m_ops), d2_len), dtype=complex)
+    measurements = np.zeros((len(times), len(m_ops), d2_len), dtype=complex)
 
-    for t_idx, t in enumerate(tlist):
+    for t_idx, t in enumerate(times):
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
@@ -609,15 +658,15 @@ def _smesolve_generic(sso, options, progress_bar):
     if debug:
         print(inspect.stack()[0][3])
 
-    N_store = len(sso.tlist)
+    N_store = len(sso.times)
     N_substeps = sso.nsubsteps
     N = N_store * N_substeps
-    dt = (sso.tlist[1] - sso.tlist[0]) / N_substeps
+    dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
     data = SolverResult()
     data.solver = "smesolve"
-    data.times = sso.tlist
+    data.times = sso.times
     data.expect = np.zeros((len(sso.e_ops), N_store), dtype=complex)
     data.ss = np.zeros((len(sso.e_ops), N_store), dtype=complex)
     data.noise = []
@@ -658,7 +707,7 @@ def _smesolve_generic(sso, options, progress_bar):
             noise = None
 
         states_list, dW, m = _smesolve_single_trajectory(data,
-                                 L, dt, sso.tlist, N_store, N_substeps,
+                                 L, dt, sso.times, N_store, N_substeps,
                                  rho_t, A_ops, s_e_ops, s_m_ops, sso.rhs,
                                  sso.d1, sso.d2, sso.d2_len,
                                  sso.dW_factors, sso.homogeneous,
@@ -693,7 +742,7 @@ def _smesolve_generic(sso, options, progress_bar):
     return data
 
 
-def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
+def _smesolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_t,
                                 A_ops, e_ops, m_ops, rhs, d1, d2, d2_len,
                                 dW_factors, homogeneous, distribution, args,
                                 store_measurement=False,
@@ -718,9 +767,9 @@ def _smesolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps, rho_t,
         dW = noise
 
     states_list = []
-    measurements = np.zeros((len(tlist), len(m_ops), d2_len), dtype=complex)
+    measurements = np.zeros((len(times), len(m_ops), d2_len), dtype=complex)
 
-    for t_idx, t in enumerate(tlist):
+    for t_idx, t in enumerate(times):
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
@@ -773,15 +822,15 @@ def _sepdpsolve_generic(sso, options, progress_bar):
     if debug:
         print(inspect.stack()[0][3])
 
-    N_store = len(sso.tlist)
+    N_store = len(sso.times)
     N_substeps = sso.nsubsteps
     N = N_store * N_substeps
-    dt = (sso.tlist[1] - sso.tlist[0]) / N_substeps
+    dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
     data = SolverResult()
     data.solver = "sepdpsolve"
-    data.times = sso.tlist
+    data.times = sso.times
     data.expect = np.zeros((len(sso.e_ops), N_store), dtype=complex)
     data.ss = np.zeros((len(sso.e_ops), N_store), dtype=complex)
     data.jump_times = []
@@ -799,7 +848,7 @@ def _sepdpsolve_generic(sso, options, progress_bar):
         psi_t = sso.psi0.full().ravel()
 
         states_list, jump_times, jump_op_idx = \
-            _sepdpsolve_single_trajectory(data, Heff, dt, sso.tlist,
+            _sepdpsolve_single_trajectory(data, Heff, dt, sso.times,
                                           N_store, N_substeps,
                                           psi_t, sso.c_ops, sso.e_ops)
 
@@ -830,7 +879,7 @@ def _sepdpsolve_generic(sso, options, progress_bar):
     return data
 
 
-def _sepdpsolve_single_trajectory(data, Heff, dt, tlist, N_store, N_substeps,
+def _sepdpsolve_single_trajectory(data, Heff, dt, times, N_store, N_substeps,
                                   psi_t, c_ops, e_ops):
     """
     Internal function. See sepdpsolve.
@@ -845,7 +894,7 @@ def _sepdpsolve_single_trajectory(data, Heff, dt, tlist, N_store, N_substeps,
     jump_times = []
     jump_op_idx = []
 
-    for t_idx, t in enumerate(tlist):
+    for t_idx, t in enumerate(times):
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
@@ -870,7 +919,7 @@ def _sepdpsolve_single_trajectory(data, Heff, dt, tlist, N_store, N_substeps,
                 phi_t = np.copy(psi_t)
 
                 # store info about jump
-                jump_times.append(tlist[t_idx] + dt * j)
+                jump_times.append(times[t_idx] + dt * j)
                 jump_op_idx.append(n)
 
                 # get new random numbers for next jump
@@ -905,15 +954,15 @@ def _smepdpsolve_generic(sso, options, progress_bar):
     if debug:
         print(inspect.stack()[0][3])
 
-    N_store = len(sso.tlist)
+    N_store = len(sso.times)
     N_substeps = sso.nsubsteps
     N = N_store * N_substeps
-    dt = (sso.tlist[1] - sso.tlist[0]) / N_substeps
+    dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
     data = SolverResult()
     data.solver = "smepdpsolve"
-    data.times = sso.tlist
+    data.times = sso.times
     data.expect = np.zeros((len(sso.e_ops), N_store), dtype=complex)
     data.jump_times = []
     data.jump_op_idx = []
@@ -929,7 +978,7 @@ def _smepdpsolve_generic(sso, options, progress_bar):
         rho_t = mat2vec(sso.rho0.full()).ravel()
 
         states_list, jump_times, jump_op_idx = \
-            _smepdpsolve_single_trajectory(data, L, dt, sso.tlist,
+            _smepdpsolve_single_trajectory(data, L, dt, sso.times,
                                            N_store, N_substeps,
                                            rho_t, sso.c_ops, sso.e_ops)
 
@@ -956,7 +1005,7 @@ def _smepdpsolve_generic(sso, options, progress_bar):
     return data
 
 
-def _smepdpsolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps,
+def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps,
                                    rho_t, c_ops, e_ops):
     """
     Internal function. See smepdpsolve.
@@ -971,7 +1020,7 @@ def _smepdpsolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps,
     jump_times = []
     jump_op_idx = []
 
-    for t_idx, t in enumerate(tlist):
+    for t_idx, t in enumerate(times):
 
         if e_ops:
             for e_idx, e in enumerate(e_ops):
@@ -993,7 +1042,7 @@ def _smepdpsolve_single_trajectory(data, L, dt, tlist, N_store, N_substeps,
                 rho_t = np.copy(rho_t)
 
                 # store info about jump
-                jump_times.append(tlist[t_idx] + dt * j)
+                jump_times.append(times[t_idx] + dt * j)
                 jump_op_idx.append(n)
 
                 # get new random numbers for next jump
@@ -1178,15 +1227,23 @@ def d2_psi_photocurrent(A, psi):
 #
 #     rho = density operator in vector form at the current time stemp
 #
-#     A[0] = spre(a) = A_L
-#     A[1] = spost(a) = A_R
-#     A[2] = spre(a.dag()) = Ad_L
-#     A[3] = spost(a.dag()) = Ad_R
-#     A[4] = spre(a.dag() * a) = (Ad A)_L
-#     A[5] = spost(a.dag() * a) = (Ad A)_R
-#     A[6] = (spre(a) * spost(a.dag()) = A_L * Ad_R
-#     A[7] = lindblad_dissipator(a)
+#     A[_idx_A_L] = spre(a) = A_L
+#     A[_idx_A_R] = spost(a) = A_R
+#     A[_idx_Ad_L] = spre(a.dag()) = Ad_L
+#     A[_idx_Ad_R] = spost(a.dag()) = Ad_R
+#     A[_idx_AdA_L] = spre(a.dag() * a) = (Ad A)_L
+#     A[_idx_AdA_R] = spost(a.dag() * a) = (Ad A)_R
+#     A[_idx_A_LxAd_R] = (spre(a) * spost(a.dag()) = A_L * Ad_R
+#     A[_idx_LD] = lindblad_dissipator(a)
 
+_idx_A_L = 0
+_idx_A_R = 1
+_idx_Ad_L = 2
+_idx_Ad_R = 3
+_idx_AdA_L = 4
+_idx_AdA_R = 5
+_idx_A_LxAd_R = 6
+_idx_LD = 7
 
 def _generate_rho_A_ops(sc, L, dt):
     """
@@ -1196,9 +1253,13 @@ def _generate_rho_A_ops(sc, L, dt):
     out = []
     for c_idx, c in enumerate(sc):
         n = c.dag() * c
-        out.append([spre(c).data, spost(c).data,
-                    spre(c.dag()).data, spost(c.dag()).data,
-                    spre(n).data, spost(n).data, (spre(c) * spost(c.dag())).data,
+        out.append([spre(c).data,
+                    spost(c).data,
+                    spre(c.dag()).data,
+                    spost(c.dag()).data,
+                    spre(n).data,
+                    spost(n).data,
+                    (spre(c) * spost(c.dag())).data,
                     lindblad_dissipator(c, data_only=True)])
 
     return out
@@ -1382,10 +1443,7 @@ def _rhs_rho_deterministic(L, rho_t, t, dt, args):
 
 def _rhs_psi_euler_maruyama(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
     """
-    .. note::
-
-        Experimental.
-
+    Euler-Maruyama rhs function for wave function solver.
     """
     dW_len = len(dW[0, :])
     dpsi_t = _rhs_psi_deterministic(H, psi_t, t, dt, args)
@@ -1401,10 +1459,7 @@ def _rhs_psi_euler_maruyama(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
 
 def _rhs_rho_euler_maruyama(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     """
-    .. note::
-
-        Experimental.
-
+    Euler-Maruyama rhs function for density matrix solver.
     """
     dW_len = len(dW[0, :])
 
@@ -1421,14 +1476,13 @@ def _rhs_rho_euler_maruyama(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
 
 def _rhs_rho_euler_homodyne_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
     """
-    fast Euler-Maruyama for homodyne detection
+    Fast Euler-Maruyama for homodyne detection.
     """
 
     dW = ddW[:, 0]
 
     d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
-    e = np.real(
-        d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1, axis2=2))
+    e = np.real(d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1, axis2=2))
 
     drho_t = d_vec[-1]
     drho_t += np.dot(dW, d_vec[:-1])
