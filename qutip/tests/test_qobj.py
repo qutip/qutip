@@ -445,6 +445,13 @@ def test_QobjExpm():
     B = A.expm()
     assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
 
+def test_Qobj_sqrtm():
+    "Qobj sqrtm"
+    data = np.random.random(
+        (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
+    A = Qobj(data)
+    B = A.sqrtm()
+    assert_(A == B * B)
 
 def test_QobjFull():
     "Qobj full"

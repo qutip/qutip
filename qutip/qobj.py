@@ -649,7 +649,7 @@ class Qobj(object):
 
         M, N = self.data.shape
 
-        s += r'\begin{equation*}\begin{pmatrix}'
+        s += r'\begin{equation*}\left(\begin{array}{*{11}c}'
 
         def _format_float(value):
             if value == 0.0:
@@ -732,7 +732,7 @@ class Qobj(object):
                     s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
-        s += r'\end{pmatrix}\end{equation*}'
+        s += r'\end{array}\right)\end{equation*}'
         return s
 
     def dag(self):
@@ -927,12 +927,14 @@ class Qobj(object):
             evals, evecs = sp_eigs(self.data, self.isherm, sparse=sparse,
                                    tol=tol, maxiter=maxiter)
             numevals = len(evals)
-            dV = sp.spdiags(np.sqrt(np.abs(evals)), 0, numevals, numevals,
-                            format='csr')
-            evecs = sp.hstack(evecs, format='csr')
-            spDv = dV.dot(evecs.conj().T)
-            out = Qobj(evecs.dot(spDv), dims=self.dims)
+            dV = sp.spdiags(np.sqrt(evals, dtype=complex), 0, numevals,
+                            numevals, format='csr')
+            if self.isherm:
+                spDv = dV.dot(evecs.T.conj().T)
+            else:
+                spDv = dV.dot(np.linalg.inv(evecs.T))
 
+            out = Qobj(evecs.T.dot(spDv), dims=self.dims)
             return out.tidyup() if settings.auto_tidyup else out
 
         else:
