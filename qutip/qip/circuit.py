@@ -182,7 +182,35 @@ class QubitCircuit(object):
         """  
         self.gates.append(Gate(name, targets=targets, controls=controls,
                                arg_value=arg_value, arg_label=arg_label))
+
  
+    def remove_gate(self, index=None, name=None, remove="first"):
+        """
+        Removes a gate with from a specific index or the first or all 
+        instances of a particular gate.
+            
+        Parameters
+        ----------
+        index: Integer
+            Location of gate to be removed.
+        name: String
+            Gate name to be removed.
+        remove: String
+            If first or all gate are to be removed.
+        """  
+        if not index is None and index <= i:
+                    self.gates.pop(index)
+
+        elif not name is None:                  
+            for gate in self.gates:
+                if name == gate.name:
+                    self.gates.remove(gate)
+                    if remove == "first":
+                        break
+
+        else:
+            self.gates.pop()
+
    
     def resolve_gates(self, basis=["CNOT", "RX", "RY", "RZ"]):
         """
