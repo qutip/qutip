@@ -398,6 +398,12 @@ def _td_wrap_array_str(H, c_ops, args, times):
                 c_ops_new.append(ck)
 
     if args:
-        args_new.update(args)
+        if isinstance(args, dict):
+            args_new.update(args)
+        elif not args_new:
+            args_new = args
+        else:
+            raise ValueError("Time-dependent array format requires args to " +
+                             "be a dictionary")
 
     return H_new, c_ops_new, args_new
