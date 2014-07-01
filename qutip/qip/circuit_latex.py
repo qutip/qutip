@@ -96,17 +96,3 @@ def _latex_pdf(name):
         except:
             pass
 
-
-
-def _latex_preamble():
-    string = "\\documentclass[class=minimal,border=0pt]{standalone}\n"
-    string += "\\usepackage{tikz}\n"
-    string += "\\usetikzlibrary{backgrounds,fit,decorations.pathreplacing}\n"
-    string += "\\newcommand{\\ket}[1]{\\ensuremath{\left|#1\\right\\rangle}}\n"
-    string += '\\begin{document}\n'
-    return string
-
-def _latex_ending():
-    return '\end{document}'
-
-
