@@ -39,7 +39,7 @@ class Codegen():
     """
     def __init__(self, h_terms=None, h_tdterms=None, h_td_inds=None,
                  args=None, c_terms=None, c_tdterms=[], c_td_inds=None,
-                 type='me', odeconfig=None):
+                 type='me', config=None):
         import sys
         import os
         sys.path.append(os.getcwd())
@@ -62,7 +62,7 @@ class Codegen():
         # Code generator properties
         self.code = []  # strings to be written to file
         self.level = 0  # indent level
-        self.odeconfig = odeconfig
+        self.config = config
 
     def write(self, string):
         """write lines of code to self.code"""
@@ -111,7 +111,7 @@ class Codegen():
         self.file(filename)
         self.file.writelines(self.code)
         self.file.close()
-        self.odeconfig.cgen_num += 1
+        self.config.cgen_num += 1
 
     def indent(self):
         """increase indention level by one"""

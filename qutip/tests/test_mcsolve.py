@@ -33,7 +33,6 @@
 
 from qutip import *
 from qutip import _version2int
-from qutip.odechecks import _ode_checks
 from numpy import allclose, linspace, mean, ones
 from numpy.testing import assert_equal, run_module_suite
 from numpy.testing.decorators import skipif
@@ -315,7 +314,7 @@ def test_mc_dtypes1():
     C2dC2 = C2.dag() * C2
     # intial state
     psi0 = tensor(basis(N, 0), basis(2, 1))
-    opts = Odeoptions(average_expect=True)
+    opts = Options(average_expect=True)
     data = mcsolve(
         H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
     assert_equal(isinstance(data.expect[0][1], float), True)
@@ -349,7 +348,7 @@ def test_mc_dtypes2():
     C2dC2 = C2.dag() * C2
     # intial state
     psi0 = tensor(basis(N, 0), basis(2, 1))
-    opts = Odeoptions(average_expect=False)
+    opts = Options(average_expect=False)
     data = mcsolve(
         H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
     assert_equal(isinstance(data.expect[0][0][1], float), True)
