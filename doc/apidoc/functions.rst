@@ -133,7 +133,7 @@ Steady-state Solvers
 --------------------
 
 .. automodule:: qutip.steadystate
-    :members: steady, steadystate
+    :members: steadystate
     :undoc-members:
 
 Propagators
