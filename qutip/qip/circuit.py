@@ -198,10 +198,10 @@ class QubitCircuit(object):
         remove: String
             If first or all gate are to be removed.
         """  
-        if not index is None and index <= i:
-                    self.gates.pop(index)
+        if not index is None and index <= len(self.gates):
+            self.gates.pop(index)
 
-        elif not name is None:                  
+        elif name is not None:                  
             for gate in self.gates:
                 if name == gate.name:
                     self.gates.remove(gate)
