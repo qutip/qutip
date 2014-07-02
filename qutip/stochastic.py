@@ -259,19 +259,19 @@ def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
     H : :class:`qutip.Qobj`
         System Hamiltonian.
 
-    psi0 : :class:`qutip.qobj`
+    psi0 : :class:`qutip.Qobj`
         Initial state vector (ket).
 
     times : *list* / *array*
         List of times for :math:`t`. Must be uniformly spaced.
 
-    sc_ops : list of :class:`qutip.qobj`
+    sc_ops : list of :class:`qutip.Qobj`
         List of stochastic collapse operators. Each stochastic collapse
         operator will give a deterministic and stochastic contribution
         to the equation of motion according to how the d1 and d2 functions
         are defined.
 
-    e_ops : list of :class:`qutip.qobj`
+    e_ops : list of :class:`qutip.Qobj`
         Single operator or list of operators for which to evaluate
         expectation values.
 
@@ -368,26 +368,26 @@ def smesolve(H, rho0, times, c_ops, sc_ops, e_ops, **kwargs):
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`
+    H : :class:`qutip.Qobj`
         System Hamiltonian.
 
-    rho0 : :class:`qutip.qobj`
-        Initial density matrix of state vector (ket).
+    rho0 : :class:`qutip.Qobj`
+        Initial density matrix or state vector (ket).
 
     times : *list* / *array*
         List of times for :math:`t`. Must be uniformly spaced.
 
-    c_ops : list of :class:`qutip.qobj`
+    c_ops : list of :class:`qutip.Qobj`
         Deterministic collapse operator which will contribute with a standard
         Lindblad type of dissipation.
 
-    sc_ops : list of :class:`qutip.qobj`
+    sc_ops : list of :class:`qutip.Qobj`
         List of stochastic collapse operators. Each stochastic collapse
         operator will give a deterministic and stochastic contribution
         to the eqaution of motion according to how the d1 and d2 functions
         are defined.
 
-    e_ops : list of :class:`qutip.qobj` / callback function single
+    e_ops : list of :class:`qutip.Qobj` / callback function single
         single operator or list of operators for which to evaluate
         expectation values.
 
@@ -521,10 +521,42 @@ def smesolve(H, rho0, times, c_ops, sc_ops, e_ops, **kwargs):
     return res
 
 
-def sepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
+def ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
     """
-    A stochastic PDP solver for wavefunction evolution. For most purposes,
-    use mcsolve instead for quantum trajectory simulations.
+    A stochastic (piecewse deterministic process) PDP solver for wavefunction
+    evolution. For most purposes, use :func:`qutip.mcsolve` instead for quantum
+    trajectory simulations.
+
+    Parameters
+    ----------
+
+    H : :class:`qutip.Qobj`
+        System Hamiltonian.
+
+    psi0 : :class:`qutip.Qobj`
+        Initial state vector (ket).
+
+    times : *list* / *array*
+        List of times for :math:`t`. Must be uniformly spaced.
+
+    c_ops : list of :class:`qutip.Qobj`
+        Deterministic collapse operator which will contribute with a standard
+        Lindblad type of dissipation.
+
+    e_ops : list of :class:`qutip.Qobj` / callback function single
+        single operator or list of operators for which to evaluate
+        expectation values.
+
+    kwargs : *dictionary*
+        Optional keyword arguments. See StochasticSolverOptions.
+
+    Returns
+    -------
+
+    output: :class:`qutip.solver.SolverResult`
+
+        An instance of the class :class:`qutip.solver.SolverResult`.
+
     """
     if debug:
         print(inspect.stack()[0][3])
@@ -548,7 +580,45 @@ def sepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
 
 def smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
     """
-    A stochastic PDP solver for density matrix evolution.
+    A stochastic (piecewse deterministic process) PDP solver for density matrix
+    evolution.
+
+    Parameters
+    ----------
+
+    H : :class:`qutip.Qobj`
+        System Hamiltonian.
+
+    rho0 : :class:`qutip.Qobj`
+        Initial density matrix.
+
+    times : *list* / *array*
+        List of times for :math:`t`. Must be uniformly spaced.
+
+    c_ops : list of :class:`qutip.Qobj`
+        Deterministic collapse operator which will contribute with a standard
+        Lindblad type of dissipation.
+
+    sc_ops : list of :class:`qutip.Qobj`
+        List of stochastic collapse operators. Each stochastic collapse
+        operator will give a deterministic and stochastic contribution
+        to the eqaution of motion according to how the d1 and d2 functions
+        are defined.
+
+    e_ops : list of :class:`qutip.Qobj` / callback function single
+        single operator or list of operators for which to evaluate
+        expectation values.
+
+    kwargs : *dictionary*
+        Optional keyword arguments. See StochasticSolverOptions.
+
+    Returns
+    -------
+
+    output: :class:`qutip.solver.SolverResult`
+
+        An instance of the class :class:`qutip.solver.SolverResult`.
+
     """
     if debug:
         print(inspect.stack()[0][3])
