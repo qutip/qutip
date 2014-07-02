@@ -45,7 +45,7 @@ from scipy.linalg import norm
 from qutip.qobj import Qobj, isket
 from qutip.expect import expect
 from qutip.rhs_generate import rhs_generate
-from qutip.solver import SolverResult, Options, config
+from qutip.solver import Result, Options, config
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.settings import debug
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
@@ -594,7 +594,7 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
     # prepare output array
     #
     n_tsteps = len(tlist)
-    output = SolverResult()
+    output = Result()
     output.solver = "sesolve"
     output.times = tlist
 

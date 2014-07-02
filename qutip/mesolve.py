@@ -47,7 +47,7 @@ import warnings
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
 from qutip.expect import expect, expect_rho_vec
-from qutip.solver import Options, SolverResult, config
+from qutip.solver import Options, Result, config
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
 from qutip.cy.codegen import Codegen
 from qutip.rhs_generate import rhs_generate
@@ -790,7 +790,7 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
     n_tsteps = len(tlist)
     e_sops_data = []
 
-    output = SolverResult()
+    output = Result()
     output.solver = "mesolve"
     output.times = tlist
 

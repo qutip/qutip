@@ -268,7 +268,7 @@ def parfor(task, task_vec, args=None, client=None, view=None,
 def plot_animation(plot_setup_func, plot_func, result, name="movie",
                    verbose=False):
     """
-    Create an animated plot of a SolverResult object, as returned by one of
+    Create an animated plot of a Result object, as returned by one of
     the qutip evolution solvers.
 
     .. note :: experimental

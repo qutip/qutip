@@ -44,7 +44,7 @@ from qutip.states import ket2dm
 from qutip.states import projection
 from qutip.solver import Options
 from qutip.propagator import propagator
-from qutip.solver import SolverResult
+from qutip.solver import Result
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.expect import expect
 from qutip.utilities import n_thermal
@@ -472,9 +472,9 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
     Returns
     -------
 
-    output : :class:`qutip.solver.SolverResult`
+    output : :class:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.solver.SolverResult`, which
+        An instance of the class :class:`qutip.solver.Result`, which
         contains either an *array* of expectation values or an array of
         state vectors, for the times specified by `tlist`.
     """
@@ -491,8 +491,8 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
                                           np.linspace(0, T, Tsteps + 1),
                                           H, T, args)
 
-    # setup SolverResult for storing the results
-    output = SolverResult()
+    # setup Result for storing the results
+    output = Result()
     output.times = tlist
     output.solver = "fsesolve"
 
@@ -786,7 +786,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     n_tsteps = len(tlist)
     dt = tlist[1] - tlist[0]
 
-    output = SolverResult()
+    output = Result()
     output.solver = "fmmesolve"
     output.times = tlist
 

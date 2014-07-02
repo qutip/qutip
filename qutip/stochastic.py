@@ -70,7 +70,7 @@ from numpy.random import RandomState
 from qutip.qobj import Qobj, isket
 from qutip.states import ket2dm
 from qutip.operators import commutator
-from qutip.solver import SolverResult
+from qutip.solver import Result
 from qutip.expect import expect, expect_rho_vec
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
                                  liouvillian, lindblad_dissipator)
@@ -490,7 +490,7 @@ def ssesolve_generic(ssdata, options, progress_bar):
     dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
     NT = ssdata.ntraj
 
-    data = SolverResult()
+    data = Result()
     data.solver = "ssesolve"
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
@@ -645,7 +645,7 @@ def smesolve_generic(ssdata, options, progress_bar):
     dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
     NT = ssdata.ntraj
 
-    data = SolverResult()
+    data = Result()
     data.solver = "smesolve"
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
@@ -814,7 +814,7 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
     dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
     NT = ssdata.ntraj
 
-    data = SolverResult()
+    data = Result()
     data.solver = "sepdpsolve"
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
@@ -951,7 +951,7 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
     dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
     NT = ssdata.ntraj
 
-    data = SolverResult()
+    data = Result()
     data.solver = "smepdpsolve"
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
