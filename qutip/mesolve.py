@@ -142,20 +142,20 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`
+    H : :class:`qutip.Qobj`
         system Hamiltonian, or a callback function for time-dependent
         Hamiltonians.
 
-    rho0 : :class:`qutip.qobj`
+    rho0 : :class:`qutip.Qobj`
         initial density matrix or state vector (ket).
 
     tlist : *list* / *array*
         list of times for :math:`t`.
 
-    c_ops : list of :class:`qutip.qobj`
+    c_ops : list of :class:`qutip.Qobj`
         single collapse operator, or list of collapse operators.
 
-    e_ops : list of :class:`qutip.qobj` / callback function single
+    e_ops : list of :class:`qutip.Qobj` / callback function single
         single operator or list of operators for which to evaluate
         expectation values.
 

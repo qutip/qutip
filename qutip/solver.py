@@ -74,7 +74,7 @@ class Options():
         Tidyup Hamiltonian and initial state by removing small terms.
     num_cpus : int
         Number of cpus used by mcsolver (default = # of cpus).
-    norm_tol :float
+    norm_tol : float
         Tolerance used when finding wavefunction norm in mcsolve.
     norm_steps : int
         Max. number of steps used to find wavefunction norm to within norm_tol
@@ -195,7 +195,7 @@ class SolverResult():
     ----------
 
     solver : str
-        Which solver was used ['mesolve', 'mcsolve', 'brmesolve', 'floquet']
+        Which solver was used [e.g., 'mesolve', 'mcsolve', 'brmesolve', ...]
     times : list/array
         Times at which simulation data was collected.
     expect : list/array
