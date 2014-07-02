@@ -91,7 +91,7 @@ class StochasticSolverOptions:
         sso.nsubsteps = 1000
 
     The stochastic solvers :func:`qutip.stochastic.ssesolve`,
-    :func:`qutip.stochastic.smesolve`, :func:`qutip.stochastic.sepdpsolve` and
+    :func:`qutip.stochastic.smesolve`, :func:`qutip.stochastic.ssepdpsolve` and
     :func:`qutip.stochastic.smepdpsolve` all take the same keyword arguments as
     the constructor of these class, and internally they use these arguments to
     construct an instance of this class, so it is rarely needed to explicitly
@@ -195,7 +195,7 @@ class StochasticSolverOptions:
     options : :class:`qutip.solver.Options`
         Generic solver options. 
 
-    progress_bar : :class:`qutip.ui.ProgressBar`
+    progress_bar : :class:`qutip.ui.BaseProgressBar`
         Optional progress bar class instance. 
 
     """
@@ -573,7 +573,7 @@ def ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
     sso = StochasticSolverOptions(H=H, state0=psi0, times=times, c_ops=c_ops,
                                   e_ops=e_ops, **kwargs)
 
-    res = _sepdpsolve_generic(sso, options, progress_bar)
+    res = _ssepdpsolve_generic(sso, options, progress_bar)
 
     if e_ops_dict:
         res.expect = {e: res.expect[n]
@@ -961,9 +961,9 @@ def _smesolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_t,
 #------------------------------------------------------------------------------
 # Generic parameterized stochastic SE PDP solver
 #
-def _sepdpsolve_generic(sso, options, progress_bar):
+def _ssepdpsolve_generic(sso, options, progress_bar):
     """
-    For internal use. See sepdpsolve.
+    For internal use. See ssepdpsolve.
     """
     if debug:
         print(inspect.stack()[0][3])
@@ -975,7 +975,7 @@ def _sepdpsolve_generic(sso, options, progress_bar):
     NT = sso.ntraj
 
     data = SolverResult()
-    data.solver = "sepdpsolve"
+    data.solver = "ssepdpsolve"
     data.times = sso.times
     data.expect = np.zeros((len(sso.e_ops), N_store), dtype=complex)
     data.ss = np.zeros((len(sso.e_ops), N_store), dtype=complex)
@@ -994,7 +994,7 @@ def _sepdpsolve_generic(sso, options, progress_bar):
         psi_t = sso.psi0.full().ravel()
 
         states_list, jump_times, jump_op_idx = \
-            _sepdpsolve_single_trajectory(data, Heff, dt, sso.times,
+            _ssepdpsolve_single_trajectory(data, Heff, dt, sso.times,
                                           N_store, N_substeps,
                                           psi_t, sso.c_ops, sso.e_ops)
 
@@ -1025,10 +1025,10 @@ def _sepdpsolve_generic(sso, options, progress_bar):
     return data
 
 
-def _sepdpsolve_single_trajectory(data, Heff, dt, times, N_store, N_substeps,
-                                  psi_t, c_ops, e_ops):
+def _ssepdpsolve_single_trajectory(data, Heff, dt, times, N_store, N_substeps,
+                                   psi_t, c_ops, e_ops):
     """
-    Internal function. See sepdpsolve.
+    Internal function. See ssepdpsolve.
     """
     states_list = []
 
