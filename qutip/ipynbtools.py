@@ -281,7 +281,7 @@ def plot_animation(plot_setup_func, plot_func, result, name="movie",
 
     anim = animation.FuncAnimation(fig, update, frames=len(result.times), blit=True)
 
-    anim.save(name + '.mp4', fps=10, writer='ffmpeg', codec='libx264')
+    anim.save(name + '.mp4', fps=10, writer="avconv", codec="libx264")
 
     plt.close(fig)
     
