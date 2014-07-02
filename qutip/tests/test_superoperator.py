@@ -122,7 +122,7 @@ class TestMatrixVector:
         
         assert_equal(reshuffle(S_col), S)
 
-   def testLiouvillianImplementations(self):
+    def testLiouvillianImplementations(self):
         """
         Superoperator: Randomized comparison of standard and reference
         Liouvillian functions.
@@ -142,6 +142,7 @@ class TestMatrixVector:
         L2 = liouvillian_ref(H, c_ops)
 
         assert_((L1 - L2).norm() < 1e-8)
+
     
 if __name__ == "__main__":
     run_module_suite()
