@@ -121,6 +121,37 @@ def liouvillian(H, c_op_list, data_only=False):
         return L
 
 
+def liouvillian_ref(H, c_op_list=[]):
+    """Assembles the Liouvillian superoperator from a Hamiltonian
+    and a ``list`` of collapse operators.
+
+    Parameters
+    ----------
+    H : qobj
+        System Hamiltonian.
+
+    c_op_list : array_like
+        A ``list`` or ``array`` of collapse operators.
+
+    Returns
+    -------
+    L : qobj
+        Liouvillian superoperator.
+
+    """
+
+    L = -1.0j * (spre(H) - spost(H)) if H else 0
+
+    for c in c_op_list:
+        if c.issuper:
+            L += c
+        else:
+            cdc = c.dag() * c
+            L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
+
+    return L
+
+
 def lindblad_dissipator(a, b=None, data_only=False):
     """
     Return the Lindblad dissipator for a single collapse operator.
