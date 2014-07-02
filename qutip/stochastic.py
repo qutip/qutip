@@ -276,7 +276,8 @@ def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
         expectation values.
 
     kwargs : *dictionary*
-        Optional keyword arguments. See StochasticSolverOptions.
+        Optional keyword arguments. See
+        :class:`qutip.stochastic.StochasticSolverOptions`.
 
     Returns
     -------
@@ -392,7 +393,8 @@ def smesolve(H, rho0, times, c_ops, sc_ops, e_ops, **kwargs):
         expectation values.
 
     kwargs : *dictionary*
-        Optional keyword arguments. See StochasticSolverOptions.
+        Optional keyword arguments. See
+        :class:`qutip.stochastic.StochasticSolverOptions`.
 
     Returns
     -------
@@ -548,7 +550,8 @@ def ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
         expectation values.
 
     kwargs : *dictionary*
-        Optional keyword arguments. See StochasticSolverOptions.
+        Optional keyword arguments. See
+        :class:`qutip.stochastic.StochasticSolverOptions`.
 
     Returns
     -------
@@ -610,7 +613,8 @@ def smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
         expectation values.
 
     kwargs : *dictionary*
-        Optional keyword arguments. See StochasticSolverOptions.
+        Optional keyword arguments. See
+        :class:`qutip.stochastic.StochasticSolverOptions`.
 
     Returns
     -------
