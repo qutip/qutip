@@ -79,9 +79,9 @@ if debug:
 
 
 class StochasticSolverOptions:
-    """Class of options for stochastic solvers such as :func:`qutip.ssesolve`,
-    :func:`qutip.smesolve`, etc. Options can be specified either as arguments
-    to the constructor::
+    """Class of options for stochastic solvers such as
+    :func:`qutip.stochastic.ssesolve`, :func:`qutip.stochastic.smesolve`, etc.
+    Options can be specified either as arguments to the constructor::
 
         sso = StochasticSolverOptions(nsubsteps=100, ...)
 
@@ -90,10 +90,12 @@ class StochasticSolverOptions:
         sso = StochasticSolverOptions()
         sso.nsubsteps = 1000
 
-    The stochastic solvers :func:`qutip.stochastic.ssesolve`, :func:`qutip.smesolve`,
-    :func:`qutip.stochastic.sepdpsolve` and :func:`qutip.smepdpsolve` all take the same
-    keyword arguments as the constructor of these class, and internally they
-    use these arguments to construct an instance of this class. 
+    The stochastic solvers :func:`qutip.stochastic.ssesolve`,
+    :func:`qutip.stochastic.smesolve`, :func:`qutip.stochastic.sepdpsolve` and
+    :func:`qutip.stochastic.smepdpsolve` all take the same keyword arguments as
+    the constructor of these class, and internally they use these arguments to
+    construct an instance of this class, so it is rarely needed to explicitly
+    create an instance of this class.
 
     Attributes
     ----------
@@ -131,8 +133,28 @@ class StochasticSolverOptions:
     ntraj : int
         Number of trajectors.
 
-    nsubstes : int
+    nsubsteps : int
         Number of sub steps between each time-spep given in `times`.
+
+    d1 : function
+        Function for calculating the operator-valued coefficient to the 
+        deterministic increment dt.
+
+    d2 : function
+        Function for calculating the operator-valued coefficient to the
+        stochastic increment(s) dW_n, where n is in [0, d2_len[.
+
+    d2_len : int (default 1)
+        The number of stochastic increments in the process.
+
+    dW_factors : array
+        Array of length d2_len, containing scaling factors for each
+        measurement operator in m_ops.
+
+    rhs : function
+        Function for calculating the deterministic and stochastic contributions
+        to the right-hand side of the stochastic differential equation. This
+        only needs to be specified when implementing a custom SDE solver.
 
     generate_A_ops : function
         Function that generates a list of pre-computed operators or super-
@@ -183,8 +205,14 @@ class StochasticSolverOptions:
                  generate_A_ops=None, generate_noise=None, homogeneous=True,
                  solver=None, method=None, distribution='normal',
                  store_measurement=False, noise=None, normalize=True,
-                 options=Options(), progress_bar=TextProgressBar()):
+                 options=None, progress_bar=None):
 
+        if options is None:
+            options = Options()
+
+        if progress_bar is None:
+            progress_bar = TextProgressBar()
+    
         self.H = H
         self.d1 = d1
         self.d2 = d2
