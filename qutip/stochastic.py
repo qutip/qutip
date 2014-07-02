@@ -42,11 +42,9 @@ and master equations. The API should not be considered stable, and is subject
 to change when we work more on optimizing this module for performance and
 features.
 
-Release target: 3.0.0
-
 Todo:
 
-*) parallelize
+ * parallelize
 
 """
 
@@ -81,10 +79,7 @@ if debug:
 
 
 class StochasticSolverOptions:
-    """
-    Internal class for passing data between stochastic solver functions.
-
-    Class of options for stochastic solvers such as :func:`qutip.ssesolve`,
+    """Class of options for stochastic solvers such as :func:`qutip.ssesolve`,
     :func:`qutip.smesolve`, etc. Options can be specified either as arguments
     to the constructor::
 
@@ -94,6 +89,11 @@ class StochasticSolverOptions:
 
         sso = StochasticSolverOptions()
         sso.nsubsteps = 1000
+
+    The stochastic solvers :func:`qutip.stochastic.ssesolve`, :func:`qutip.smesolve`,
+    :func:`qutip.stochastic.sepdpsolve` and :func:`qutip.smepdpsolve` all take the same
+    keyword arguments as the constructor of these class, and internally they
+    use these arguments to construct an instance of this class. 
 
     Attributes
     ----------
@@ -121,7 +121,9 @@ class StochasticSolverOptions:
         expectation values.
 
     m_ops : list of :class:`qutip.Qobj`
-        List of operators representing the measurement operators.
+        List of operators representing the measurement operators. The expected
+        format is a nested list with one measurement operator for each
+        stochastic increament, for each stochastic collapse operator.
 
     args : dict / list
         List of dictionary of additional problem-specific parameters.
@@ -132,13 +134,55 @@ class StochasticSolverOptions:
     nsubstes : int
         Number of sub steps between each time-spep given in `times`.
 
+    generate_A_ops : function
+        Function that generates a list of pre-computed operators or super-
+        operators. These precomputed operators are used in some d1 and d2
+        functions.
+
+    generate_noise : function
+        Function for generate an array of pre-computed noise signal.
+
+    homogeneous : bool (True)
+        Wheter or not the stochastic process is homogenous. Inhomogenous
+        processes are only supported for poisson distributions.
+
+    solver : string
+        Name of the solver method to use for solving the stochastic
+        equations. Valid values are: 'euler-maruyama', 'fast-euler-maruyama',
+        'milstein', 'fast-milstein', 'platen'.
+
+    method : string ('homodyne', 'heterodyne', 'photocurrent')
+        The name of the type of measurement process that give rise to the 
+        stochastic equation to solve. Specifying a method with this keyword
+        argument is a short-hand notation for using pre-defined d1 and d2
+        functions for the corresponding stochastic processes.
+
+    distribution : string ('normal', 'poission')
+        The name of the distribution used for the stochastic increments. 
+
+    store_measurements : bool (default False)
+        Whether or not to store the measurement results in the 
+        :class:`qutip.solver.SolverResult` instance returned by the solver.
+
+    noise : array
+        Vector specifying the noise. 
+
+    normalize : bool (default True)
+        Whether or not to normalize the wave function during the evolution.
+
+    options : :class:`qutip.solver.Options`
+        Generic solver options. 
+
+    progress_bar : :class:`qutip.ui.ProgressBar`
+        Optional progress bar class instance. 
+
     """
     def __init__(self, H=None, state0=None, times=None, c_ops=[], sc_ops=[],
                  e_ops=[], m_ops=None, args=None, ntraj=1, nsubsteps=1,
                  d1=None, d2=None, d2_len=1, dW_factors=None, rhs=None,
-                 gen_A_ops=None, gen_noise=None, homogeneous=True, solver=None,
-                 method=None, distribution='normal', store_measurement=False,
-                 noise=None, normalize=True,
+                 generate_A_ops=None, generate_noise=None, homogeneous=True,
+                 solver=None, method=None, distribution='normal',
+                 store_measurement=False, noise=None, normalize=True,
                  options=Options(), progress_bar=TextProgressBar()):
 
         self.H = H
@@ -172,8 +216,8 @@ class StochasticSolverOptions:
         self.args = args
         self.normalize = normalize
 
-        self.gen_noise = gen_noise
-        self.gen_A_ops = gen_A_ops
+        self.generate_noise = generate_noise
+        self.generate_A_ops = generate_A_ops
 
 
 def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
@@ -210,7 +254,6 @@ def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
     -------
 
     output: :class:`qutip.solver.SolverResult`
-
         An instance of the class :class:`qutip.solver.SolverResult`.
     """
     if debug:
@@ -225,8 +268,8 @@ def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
     sso = StochasticSolverOptions(H=H, state0=psi0, times=times,
                                   sc_ops=sc_ops, e_ops=e_ops, **kwargs)
 
-    if sso.gen_A_ops is None:
-        sso.gen_A_ops = _generate_psi_A_ops
+    if sso.generate_A_ops is None:
+        sso.generate_A_ops = _generate_psi_A_ops
 
     if (sso.d1 is None) or (sso.d2 is None):
 
@@ -392,8 +435,8 @@ def smesolve(H, rho0, times, c_ops, sc_ops, e_ops, **kwargs):
     if sso.distribution == 'poisson':
         sso.homogeneous = False
 
-    if sso.gen_A_ops is None:
-        sso.gen_A_ops = _generate_rho_A_ops
+    if sso.generate_A_ops is None:
+        sso.generate_A_ops = _generate_rho_A_ops
 
     if sso.rhs is None:
         if sso.solver == 'euler-maruyama' or sso.solver == None:
@@ -413,13 +456,13 @@ def smesolve(H, rho0, times, c_ops, sc_ops, e_ops, **kwargs):
                 for sc in iter(sc_ops):
                     sso.sc_ops += [sc / sqrt(2), -1.0j * sc / sqrt(2)]
 
-        elif sso.solver == 'euler-maruyama_fast' and sso.method == 'homodyne':
+        elif sso.solver == 'fast-euler-maruyama' and sso.method == 'homodyne':
             sso.rhs = _rhs_rho_euler_homodyne_fast
-            sso.gen_A_ops = _generate_A_ops_Euler
+            sso.generate_A_ops = _generate_A_ops_Euler
 
-        elif sso.solver == 'milstein_fast':
-            sso.gen_A_ops = _generate_A_ops_Milstein
-            sso.gen_noise = _generate_noise_Milstein
+        elif sso.solver == 'fast-milstein':
+            sso.generate_A_ops = _generate_A_ops_Milstein
+            sso.generate_noise = _generate_noise_Milstein
             if sso.method == 'homodyne' or sso.method is None:
                 if len(sc_ops) == 1:
                     sso.rhs = _rhs_rho_milstein_homodyne_single_fast
@@ -526,7 +569,7 @@ def _ssesolve_generic(sso, options, progress_bar):
 
     # pre-compute collapse operator combinations that are commonly needed
     # when evaluating the RHS of stochastic Schrodinger equations
-    A_ops = sso.gen_A_ops(sso.sc_ops, sso.H)
+    A_ops = sso.generate_A_ops(sso.sc_ops, sso.H)
 
     progress_bar.start(sso.ntraj)
 
@@ -680,7 +723,7 @@ def _smesolve_generic(sso, options, progress_bar):
 
     # pre-compute suporoperator operator combinations that are commonly needed
     # when evaluating the RHS of stochastic master equations
-    A_ops = sso.gen_A_ops(sso.sc_ops, L.data, dt)
+    A_ops = sso.generate_A_ops(sso.sc_ops, L.data, dt)
 
     # use .data instead of Qobj ?
     s_e_ops = [spre(e) for e in sso.e_ops]
@@ -702,9 +745,8 @@ def _smesolve_generic(sso, options, progress_bar):
         # noise = sso.noise[n] if sso.noise else None
         if sso.noise:
             noise = sso.noise[n]
-        elif sso.gen_noise:
-            noise = sso.gen_noise(
-                len(A_ops), N_store, N_substeps, sso.d2_len, dt)
+        elif sso.generate_noise:
+            noise = sso.generate_noise(len(A_ops), N_store, N_substeps, sso.d2_len, dt)
         else:
             noise = None
 
