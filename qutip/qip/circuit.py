@@ -198,7 +198,7 @@ class QubitCircuit(object):
         remove: String
             If first or all gate are to be removed.
         """  
-        if not index is None and index <= len(self.gates):
+        if not index is None and index <= self.N:
             self.gates.pop(index)
 
         elif name is not None:                  
@@ -643,8 +643,8 @@ class QubitCircuit(object):
         Returns
         ----------
         temp: Qobj
-                Returns Qobj of resolved gates for the qubit circuit in the 
-                desired basis.    
+            Returns Qobj of resolved gates for the qubit circuit in the 
+            desired basis.    
         
         """  
         temp = QubitCircuit(self.N, self.reverse_states)
