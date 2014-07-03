@@ -226,7 +226,7 @@ class QubitCircuit(object):
  
     def remove_gate(self, index=None, name=None, remove="first"):
         """
-        Removes a gate with from a specific index or the first or all 
+        Removes a gate with from a specific index or the first, last or all 
         instances of a particular gate.
             
         Parameters
@@ -241,12 +241,17 @@ class QubitCircuit(object):
         if not index is None and index <= self.N:
             self.gates.pop(index)
 
-        elif name is not None:                  
+        elif name is not None and remove == "first":                  
             for gate in self.gates:
                 if name == gate.name:
                     self.gates.remove(gate)
-                    if remove == "first":
-                        break
+                    break
+
+        elif name is not None and remove == "last":                  
+            for i in range(self.N):
+                if name == self.gates[self.N-i-1].name:
+                    self.gates.remove(gate)
+                    break
 
         else:
             self.gates.pop()
