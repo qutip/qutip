@@ -265,7 +265,7 @@ class QubitCircuit(object):
                                  % basis)
 
         for gate in self.gates:    
-            elif gate.name == "RX":
+            if gate.name == "RX":
                 temp_resolved.append(gate)
             elif gate.name == "RY":
                 temp_resolved.append(gate)
@@ -293,7 +293,7 @@ class QubitCircuit(object):
                                           arg_label=gate.arg_label))
                 temp_resolved.append(Gate("RZ", gate.targets, None,
                                           gate.arg_value, gate.arg_label))
-            if gate.name == "CPHASE":
+            elif gate.name == "CPHASE":
                 raise NotImplementedError("Cannot be resolved in this basis")
             elif gate.name == "CNOT":
                 temp_resolved.append(gate)
