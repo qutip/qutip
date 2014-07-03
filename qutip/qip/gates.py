@@ -121,7 +121,7 @@ def snot(N=None, target=0):
     --------
     >>> snot()
     Quantum object: dims = [[2], [2]], \
-    shape = [2, 2], type = oper, isHerm = True
+shape = [2, 2], type = oper, isHerm = True
     Qobj data =
     [[ 0.70710678+0.j  0.70710678+0.j]
      [ 0.70710678+0.j -0.70710678+0.j]]
@@ -152,7 +152,7 @@ def phasegate(theta, N=None, target=0):
     --------
     >>> phasegate(pi/4)
     Quantum object: dims = [[2], [2]], \
-    shape = [2, 2], type = oper, isHerm = False
+shape = [2, 2], type = oper, isHerm = False
     Qobj data =
     [[ 1.00000000+0.j          0.00000000+0.j        ]
      [ 0.00000000+0.j          0.70710678+0.70710678j]]
@@ -225,7 +225,7 @@ def cnot(N=None, control=0, target=1):
     --------
     >>> cnot()
     Quantum object: dims = [[2, 2], [2, 2]], \
-    shape = [4, 4], type = oper, isHerm = True
+shape = [4, 4], type = oper, isHerm = True
     Qobj data =
         [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
          [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
@@ -259,7 +259,7 @@ def csign(N=None, control=0, target=1):
     --------
     >>> csign()
     Quantum object: dims = [[2, 2], [2, 2]], \
-    shape = [4, 4], type = oper, isHerm = True
+shape = [4, 4], type = oper, isHerm = True
     Qobj data =
         [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
          [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j]
@@ -285,7 +285,7 @@ def berkeley(N=None, targets=[0, 1]):
     Quantum object representing the Berkeley gate.
     berkeley()
     Quantum object: dims = [[2, 2], [2, 2]], \
-    shape = [4, 4], type = oper, isHerm = True
+shape = [4, 4], type = oper, isHerm = True
     Qobj data =
         [[ cos(pi/8).+0.j  0.+0.j           0.+0.j           0.+sin(pi/8).j]
          [ 0.+0.j          cos(3pi/8).+0.j  0.+sin(3pi/8).j  0.+0.j]
@@ -316,7 +316,7 @@ def swapalpha(alpha, N=None, targets=[0, 1]):
     Quantum object representing the SWAPalpha gate.
     swapalpha(alpha)
     Quantum object: dims = [[2, 2], [2, 2]], \
-    shape = [4, 4], type = oper, isHerm = True
+shape = [4, 4], type = oper, isHerm = True
     Qobj data =
         [[ 1.+0.j  0.+0.j                    0.+0.j                    0.+0.j]
          [ 0.+0.j  0.5*(1 + exp(j*pi*alpha)  0.5*(1 - exp(j*pi*alpha)  0.+0.j]
@@ -356,7 +356,7 @@ def swap(N=None, targets=[0, 1]):
     --------
     >>> swap()
     Quantum object: dims = [[2, 2], [2, 2]], \
-    shape = [4, 4], type = oper, isHerm = True
+shape = [4, 4], type = oper, isHerm = True
     Qobj data =
     [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
      [ 0.+0.j  0.+0.j  1.+0.j  0.+0.j]
@@ -390,7 +390,7 @@ def iswap(N=None, targets=[0, 1]):
     --------
     >>> iswap()
     Quantum object: dims = [[2, 2], [2, 2]], \
-    shape = [4, 4], type = oper, isHerm = False
+shape = [4, 4], type = oper, isHerm = False
     Qobj data =
     [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j]
      [ 0.+0.j  0.+0.j  0.+1.j  0.+0.j]
@@ -445,7 +445,7 @@ def sqrtiswap(N=None, targets=[0, 1]):
     --------
     >>> sqrtiswap()
     Quantum object: dims = [[2, 2], [2, 2]], \
-    shape = [4, 4], type = oper, isHerm = False
+shape = [4, 4], type = oper, isHerm = False
     Qobj data =
     [[ 1.00000000+0.j   0.00000000+0.j   \
        0.00000000+0.j          0.00000000+0.j]
@@ -484,7 +484,7 @@ def fredkin(N=None, control=0, targets=[1, 2]):
     --------
     >>> fredkin()
     Quantum object: dims = [[2, 2, 2], [2, 2, 2]], \
-    shape = [8, 8], type = oper, isHerm = True
+shape = [8, 8], type = oper, isHerm = True
     Qobj data =
         [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
          [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
@@ -526,7 +526,7 @@ def toffoli(N=None, controls=[0, 1], target=2):
     --------
     >>> toffoli()
     Quantum object: dims = [[2, 2, 2], [2, 2, 2]], \
-    shape = [8, 8], type = oper, isHerm = True
+shape = [8, 8], type = oper, isHerm = True
     Qobj data =
         [[ 1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
          [ 0.+0.j  1.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j  0.+0.j]
@@ -629,7 +629,7 @@ def globalphase(theta, N=1):
     --------
     >>> phasegate(pi/4)
     Quantum object: dims = [[2], [2]], \
-    shape = [2, 2], type = oper, isHerm = False
+shape = [2, 2], type = oper, isHerm = False
     Qobj data =
     [[ 0.70710678+0.70710678j          0.00000000+0.j]
      [ 0.00000000+0.j          0.70710678+0.70710678j]]
