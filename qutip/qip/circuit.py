@@ -294,7 +294,7 @@ class QubitCircuit(object):
                 temp_resolved.append(Gate("RZ", gate.targets, None,
                                           gate.arg_value, gate.arg_label))
             if gate.name == "CPHASE":
-                raise NotImplementedError("Cannot be resolved by the program")
+                raise NotImplementedError("Cannot be resolved in this basis")
             elif gate.name == "CNOT":
                 temp_resolved.append(gate)
             elif gate.name == "CSIGN" and not basis_2q is "CSIGN":
@@ -312,9 +312,9 @@ class QubitCircuit(object):
                 temp_resolved.append(Gate("GLOBALPHASE", None, None,
                                           arg_value=np.pi, arg_label=r"\pi"))
             elif gate.name == "BERKELEY":
-                raise NotImplementedError("Cannot be resolved by the program")
+                raise NotImplementedError("Cannot be resolved in this basis")
             elif gate.name == "SWAPalpha":
-                raise NotImplementedError("Cannot be resolved by the program")
+                raise NotImplementedError("Cannot be resolved in this basis")
             elif gate.name == "SWAP" and not basis_2q is "ISWAP":
                 temp_resolved.append(Gate("CNOT", gate.targets[0], 
                                           gate.targets[1]))
@@ -353,9 +353,9 @@ class QubitCircuit(object):
                                           arg_value=np.pi/2, 
                                           arg_label=r"\pi/2"))
             elif gate.name == "SQRTSWAP" and not basis_2q is "SQRTSWAP":
-                temp_resolved.append(gate)
+                raise NotImplementedError("Cannot be resolved in this basis")
             elif gate.name == "SQRTISWAP" and not basis_2q is "SQRTISWAP":
-                temp_resolved.append(gate)
+                raise NotImplementedError("Cannot be resolved in this basis")
             elif gate.name == "FREDKIN":
                 temp_resolved.append(Gate("CNOT", gate.targets[0], 
                                           gate.targets[1]))
