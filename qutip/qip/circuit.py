@@ -224,7 +224,7 @@ class QubitCircuit(object):
         """  
         temp = QubitCircuit(self.N, self.reverse_states)
 
-        for i in range (self.N)):
+        for i in range(self.N)):
             temp.append(self.gates[self.N-i-1])
 
         return temp
