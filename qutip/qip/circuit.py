@@ -184,7 +184,7 @@ class QubitCircuit(object):
                                arg_value=arg_value, arg_label=arg_label))
 
  
-    def add_1q_gate(self, name, start=0, end=None, 
+    def add_1q_gate(self, name, start=0, end=None, qubits=None, 
                     arg_value=None, arg_label=None):
         """
         Adds a single qubit gate with specified parameters on a variable 
@@ -198,6 +198,8 @@ class QubitCircuit(object):
             Starting location of qubits.
         end: Integer
             Last qubit for the gate.
+        qubits: List
+            Specific qubits for applying gates.
         arg_value: Float
             Argument value(phi).
         arg_label: String
@@ -206,12 +208,19 @@ class QubitCircuit(object):
         if name not in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE"]:
             raise ValueError("%s is not a single qubit gate" % gate)
 
-        if end == None:
-            end = self.N - 1
-
-        for i in range(start, end):
-            self.gates.append(Gate(name, targets=i, controls=None,
-                                   arg_value=arg_value, arg_label=arg_label))
+        if len(qubits) > 0:
+            for i in range(len(qubits)):
+                self.gates.append(Gate(name, targets=qubits[i], controls=None,
+                                       arg_value=arg_value, 
+                                       arg_label=arg_label))
+                
+        else:
+            if end == None:
+                end = self.N - 1
+            for i in range(start, end):
+                self.gates.append(Gate(name, targets=i, controls=None,
+                                       arg_value=arg_value, 
+                                       arg_label=arg_label))
 
  
     def remove_gate(self, index=None, name=None, remove="first"):
