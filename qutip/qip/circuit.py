@@ -212,6 +212,24 @@ class QubitCircuit(object):
             self.gates.pop()
 
    
+    def reverse_circuit(self):
+        """
+        Reverses an entire circuit of unitary gates.
+    
+        Returns
+        ----------
+        temp: Qobj
+            Returns Qobj of resolved gates for the qubit circuit in the 
+            desired basis.    
+        """  
+        temp = QubitCircuit(self.N, self.reverse_states)
+
+        for i in range (self.N)):
+            temp.append(self.gates[self.N-i-1])
+
+        return temp
+
+   
     def resolve_gates(self, basis=["CNOT", "RX", "RY", "RZ"]):
         """
         Unitary matrix calculator for N qubits returning the individual
