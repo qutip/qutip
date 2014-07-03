@@ -188,7 +188,8 @@ class QubitCircuit(object):
                     arg_value=None, arg_label=None):
         """
         Adds a single qubit gate with specified parameters on a variable 
-        number of qubits in the circuit.
+        number of qubits in the circuit. By default, it applies the given gate
+        to all the qubits in the register.
             
         Parameters
         ----------
