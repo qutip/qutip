@@ -191,13 +191,16 @@ Entropy Functions
 .. automodule:: qutip.entropy
     :members: concurrence, entropy_conditional, entropy_linear, entropy_mutual, entropy_vn
 
-.. _functions-gates:
+.. _functions-qip:
 
-Quantum Computing Gates
------------------------
+Quantum Information Processing
+------------------------------
 
-.. automodule:: qutip.quantum_info.gates
-    :members: cnot, fredkin, phasegate, snot, swap, toffoli 
+.. automodule:: qutip.qip.gates
+    :members: rx, ry, rz, sqrtnot, snot, phasegate, cphase, cnot, csign, berkeley, swapalpha, swap, iswap, sqrtswap, sqrtiswap, fredkin, toffoli, rotation, controlled_gate, globalphase, _hamming_distance, hadamard_transform, gate_sequence_product, gate_expand_1toN, gate_expand_2toN, gate_expand_3toN
+
+.. automodule:: qutip.qip.algorithms.qft
+    :members: qft, qft_steps, qft_gate_sequence
 
 .. _functions-metrics:
 
