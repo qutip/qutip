@@ -61,7 +61,8 @@ def const_H1_coeff(t, args):
     return 0.0
 
 # average error for failure
-mc_error = 5e-2  # 5% for ntraj=500
+mc_error = 5e-2  # 5%
+ntraj = 750
 
 
 def test_MCNoCollExpt():
@@ -245,7 +246,8 @@ def test_MCSimpleConstStr():
     c_op_list = [[a, 'sqrt(k)']]
     args = {'k': kappa}
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args)
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args,
+                     ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
