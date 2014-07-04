@@ -252,7 +252,12 @@ class QubitCircuit(object):
                 if name == self.gates[self.N-i-1].name:
                     self.gates.remove(gate)
                     break
-
+        
+        elif name is not None and remove == "all":                  
+            for gate in self.gates:
+                if name == gate.name:
+                    self.gates.remove(gate)
+        
         else:
             self.gates.pop()
 
