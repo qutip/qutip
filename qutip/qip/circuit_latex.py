@@ -71,28 +71,3 @@ def _latex_compile(code, filename="qcirc", format="png"):
     return result
 
 
-def _latex_write(name):
-         header=_latex_preamble()
-         ending=_latex_ending()
-         texfile = open(name+".tex", "w")
-         texfile.writelines(header+ending)
-         texfile.close()
-
-
-def _latex_pdf(name):
-    CWD=os.getcwd()
-    _latex_write(name)
-    try:
-        process = sub.Popen(['pdflatex', CWD+'/'+name+'.tex'], stdout=sub.PIPE)
-        stdout, stderr = process.communicate()
-        success=1
-    except:
-        print('pdflatex binary not found.')
-        success=0
-    if success:
-        try:
-            os.remove(name+".log")
-            os.remove(name+".aux")
-        except:
-            pass
-
