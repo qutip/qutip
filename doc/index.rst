@@ -15,7 +15,6 @@ Version 3.0
    introduction.rst
    installation.rst
    guide/guide.rst
-   examples/examples.rst
    apidoc/apidoc.rst
    changelog.rst
    contributors.rst

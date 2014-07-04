@@ -12,11 +12,11 @@ Frontmatter
 About This Documentation
 ==========================
 
-This document contains a user guide and automatically generated API documentation for QuTiP. A PDF version of this text is available at the `download page <http://code.google.com/p/qutip/downloads/list>`_. 
+This document contains a user guide and automatically generated API documentation for QuTiP. A PDF version of this text is available at the `documentation page <http://www.qutip.org/documentation.html>`_. 
 
 **For more information see the** `QuTiP project web page`_.
 
-.. _QuTiP project web page: http://code.google.com/p/qutip
+.. _QuTiP project web page: http://www.qutip.org
 
 
 :Author: P.D. Nation
@@ -27,10 +27,9 @@ This document contains a user guide and automatically generated API documentatio
 :Address: iTHES Research Group, RIKEN,
 		  Wako-shi Saitama, 351-0198 Japan
 
-:version: 2.2
-:status: In Development
-:copyright: This documentation is in the public domain.
-			You may do with it as your heart desires.
+:version: 3.0
+:status: Released
+:copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
 
 .. _citing-qutip:
 
@@ -78,7 +77,7 @@ The development of QuTiP has been partially supported by the Japanese Society fo
 
 Contributing to QuTiP
 =====================
-Like any open-source project, we welcome anyone who is interested in helping us make QuTiP the best package for simulating quantum optics-like systems.  Anyone who contributes will be duly recognized.  Even small contributions are noted.  See :ref:`developers-contributors` for a list of people who have helped in one way or another.  If you are interested, please drop us a line at the `QuTiP discussion group webpage`_. 
+We welcome anyone who is interested in helping us make QuTiP the best package for simulating quantum systems. Anyone who contributes will be duly recognized.  Even small contributions are noted. See :ref:`developers-contributors` for a list of people who have helped in one way or another. If you are interested, please drop us a line at the `QuTiP discussion group webpage`_. 
 
 
 .. _QuTiP discussion group webpage: http://groups.google.com/group/qutip.

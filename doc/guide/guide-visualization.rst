@@ -61,7 +61,7 @@ Next, we plot histograms of the diagonals of the density matrices:
 
 .. ipython::
 
-    In [1]: fig, axes = subplots(1, 3, figsize=(12,3))
+    In [1]: fig, axes = plt.subplots(1, 3, figsize=(12,3))
 
     In [1]: bar0 = axes[0].bar(arange(0, N)-.5, rho_coherent.diag())
 
@@ -82,7 +82,7 @@ Next, we plot histograms of the diagonals of the density matrices:
     In [1]: lim2 = axes[2].set_xlim([-.5, N])
 
 	@savefig visualization-distribution.png width=8.0in align=center
-    In [1]: show()
+    In [1]: plt.show()
 
 
 All these states correspond to an average of two photons, but by visualizing
@@ -95,7 +95,7 @@ above, so QuTiP provides a convenience function for doing this, see
 
 .. ipython::
 
-    In [1]: fig, axes = subplots(1, 3, figsize=(12,3))
+    In [1]: fig, axes = plt.subplots(1, 3, figsize=(12,3))
 
     In [1]: fock_distribution(rho_coherent, fig=fig, ax=axes[0], title="Coherent state");
 
@@ -106,7 +106,7 @@ above, so QuTiP provides a convenience function for doing this, see
     In [1]: fig.tight_layout()
 
 	@savefig visualization-distribution-2.png width=8.0in align=center
-    In [1]: show()
+    In [1]: plt.show()
 
 .. _visual-dist:
 
@@ -137,7 +137,7 @@ are calculated and plotted for the same three states as in the previous section.
 
 .. ipython::
 
-    In [1]: xvec = linspace(-5,5,200)
+    In [1]: xvec = np.linspace(-5,5,200)
 
     In [1]: W_coherent = wigner(rho_coherent, xvec, xvec)
 
@@ -147,7 +147,7 @@ are calculated and plotted for the same three states as in the previous section.
 
     In [1]: # plot the results
 
-    In [1]: fig, axes = subplots(1, 3, figsize=(12,3))
+    In [1]: fig, axes = plt.subplots(1, 3, figsize=(12,3))
 
     In [1]: cont0 = axes[0].contourf(xvec, xvec, W_coherent, 100)
 
@@ -162,7 +162,7 @@ are calculated and plotted for the same three states as in the previous section.
     In [1]: lbl2 = axes[2].set_title("Fock state")
 
 	@savefig visualization-wigner.png width=8.0in align=center
-    In [1]: show()
+    In [1]: plt.show()
 
 .. _visual-cmap:
 
@@ -181,13 +181,13 @@ this function in your Wigner figures:
 .. ipython::
    :suppress:
 
-   In [1]: clf()
+   In [1]: plt.clf()
 
 .. ipython::
     
     In [1]: psi = (basis(10, 0) + basis(10, 3) + basis(10, 9)).unit()
     
-    In [1]: xvec = linspace(-5, 5, 500)
+    In [1]: xvec = np.linspace(-5, 5, 500)
     
     In [1]: W = wigner(psi, xvec, xvec)
     
@@ -195,13 +195,15 @@ this function in your Wigner figures:
     
     In [1]: nrm = mpl.colors.Normalize(-W.max(), W.max())
     
-    In [1]: fig, axes = subplots(1, 2, figsize=(10, 4))
+    In [1]: fig, axes = plt.subplots(1, 2, figsize=(10, 4))
     
+    In [1]: from matplotlib import cm
+
     In [1]: plt1 = axes[0].contourf(xvec, xvec, W, 100, cmap=cm.RdBu, norm=nrm)
     
     In [1]: axes[0].set_title("Standard Colormap");
     
-    In [1]: cb1 = colorbar(plt1, ax=axes[0])
+    In [1]: cb1 = fig.colorbar(plt1, ax=axes[0])
     
     In [1]: plt2 = axes[1].contourf(xvec, xvec, W, 100, cmap=wmap)  # Apply Wigner colormap
     
@@ -212,7 +214,7 @@ this function in your Wigner figures:
     In [1]: fig.tight_layout()
     
     @savefig wigner_cmap.png width=8.0in align=center
-    In [10]: show()
+    In [10]: plt.show()
 
 
 
@@ -239,7 +241,7 @@ demonstrated below.
 
     In [1]: Q_fock = qfunc(rho_fock, xvec, xvec)
 
-    In [1]: fig, axes = subplots(1, 3, figsize=(12,3))
+    In [1]: fig, axes = plt.subplots(1, 3, figsize=(12,3))
 
     In [1]: cont0 = axes[0].contourf(xvec, xvec, Q_coherent, 100)
 
@@ -254,7 +256,7 @@ demonstrated below.
     In [1]: lbl2 = axes[2].set_title("Fock state")
 
 	@savefig visualization-q-func.png width=8.0in align=center
-    In [1]: show()
+    In [1]: plt.show()
 
 
 .. _visual-oper:
@@ -300,12 +302,12 @@ let's visualize of the Jaynes-Cummings Hamiltonian:
     In [1]: for inds in tomography._index_permutations([len(lbls) for lbls in lbls_list]):
        ...:     xlabels.append("".join([lbls_list[k][inds[k]] for k in range(len(lbls_list))]))
 
-    In [1]: ax = matrix_histogram(H, xlabels, xlabels, limits=[-4,4])
+    In [1]: fig, ax = matrix_histogram(H, xlabels, xlabels, limits=[-4,4])
 
     In [1]: ax.view_init(azim=-55, elev=45)
 
 	@savefig visualization-H.png width=5.0in align=center
-    In [1]: show()
+    In [1]: plt.show()
 
 
 Similarly, we can use the function :func:`qutip.visualization.hinton`, which is
@@ -315,10 +317,10 @@ used below to visualize the corresponding steadystate density matrix:
 
     In [1]: rho_ss = steadystate(H, [sqrt(0.1) * a, sqrt(0.4) * b.dag()])
 
-    In [1]: ax = hinton(rho_ss, xlabels=xlabels, ylabels=xlabels)
+    In [1]: fig, ax = hinton(rho_ss) #, xlabels=xlabels, ylabels=xlabels)
 
 	@savefig visualization-rho-ss.png width=5.0in align=center
-    In [1]: show()
+    In [1]: plt.show()
 
 
 
@@ -411,7 +413,7 @@ We are now ready to compute :math:`\chi` using :func:`qutip.tomography.qpt`, and
     In [1]: fig = qpt_plot_combined(chi, op_label, r'$i$SWAP')
 
     @savefig visualization-chi-iswap.png width=5.0in align=center
-    In [1]: show()
+    In [1]: plt.show()
 
 
 For a slightly more advanced example, where the density matrix propagator is calculated from the dynamics of a system defined by its Hamiltonian and collapse operators using the function :func:`qutip.propagator.propagator`, see :ref:`exadvanced53`.
