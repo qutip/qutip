@@ -329,10 +329,10 @@ def swapalpha(alpha, N=None, targets=[0, 1]):
     Quantum object: dims = [[2, 2], [2, 2]], \
 shape = [4, 4], type = oper, isHerm = True
     Qobj data =
-        [[ 1.+0.j  0.+0.j                    0.+0.j                    0.+0.j]
-         [ 0.+0.j  0.5*(1 + exp(j*pi*alpha)  0.5*(1 - exp(j*pi*alpha)  0.+0.j]
-         [ 0.+0.j  0.5*(1 - exp(j*pi*alpha)  0.5*(1 + exp(j*pi*alpha)  0.+0.j]
-         [ 0.+0.j  0.+0.j                    0.+0.j                    1.+0.j]]
+    [[ 1.+0.j  0.+0.j                    0.+0.j                    0.+0.j]
+     [ 0.+0.j  0.5*(1 + exp(j*pi*alpha)  0.5*(1 - exp(j*pi*alpha)  0.+0.j]
+     [ 0.+0.j  0.5*(1 - exp(j*pi*alpha)  0.5*(1 + exp(j*pi*alpha)  0.+0.j]
+     [ 0.+0.j  0.+0.j                    0.+0.j                    1.+0.j]]
 
     """
     if (targets[0] == 1 and targets[1] == 0) and N is None:
