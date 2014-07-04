@@ -878,12 +878,12 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
                             fig=None, axes=None, figsize=(8, 4)):
     """
     Visualize the results (expectation values) for an evolution solver.
-    `results` is assumed to be an instance of Odedata, or a list of Odedata
+    `results` is assumed to be an instance of Result, or a list of Result
     instances.
 
     Parameters
     ----------
-    results : (list of) :class:`qutip.Odedata`
+    results : (list of) :class:`qutip.solver.Result`
         List of results objects returned by any of the QuTiP evolution solvers.
 
     ylabels : list of strings

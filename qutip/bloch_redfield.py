@@ -37,9 +37,9 @@ import scipy.integrate
 from qutip.qobj import Qobj, isket
 from qutip.superoperator import spre, spost, vec2mat, mat2vec, vec2mat_index
 from qutip.expect import expect
-from qutip.odeoptions import Odeoptions
+from qutip.solver import Options
 from qutip.cy.spmatfuncs import cy_ode_rhs
-from qutip.odedata import Odedata
+from qutip.solver import Result
 
 
 #------------------------------------------------------------------------------
@@ -47,7 +47,7 @@ from qutip.odedata import Odedata
 #
 #
 def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
-              args={}, options=Odeoptions()):
+              args={}, options=Options()):
     """
     Solve the dynamics for the system using the Bloch-Redfeild master equation.
 
@@ -84,9 +84,9 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
     Returns
     -------
 
-    output: :class:`qutip.odedata`
+    output: :class:`qutip.solver`
 
-        An instance of the class :class:`qutip.odedata`, which contains either
+        An instance of the class :class:`qutip.solver`, which contains either
         a list of expectation values, for operators given in e_ops, or a list
         of states for the times specified by `tlist`.
     """
@@ -97,7 +97,7 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
 
     R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb)
 
-    output = Odedata()
+    output = Result()
     output.solver = "brmesolve"
     output.times = tlist
 
@@ -145,15 +145,15 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     Returns
     -------
 
-    output: :class:`qutip.odedata`
+    output: :class:`qutip.solver`
 
-        An instance of the class :class:`qutip.odedata`, which contains either
+        An instance of the class :class:`qutip.solver`, which contains either
         an *array* of expectation values for the times specified by `tlist`.
 
     """
 
     if options is None:
-        options = Odeoptions()
+        options = Options()
 
     if options.tidy:
         R.tidyup()

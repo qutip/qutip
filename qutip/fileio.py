@@ -34,7 +34,7 @@ import pickle
 import numpy as np
 
 from qutip.qobj import Qobj
-from qutip.odedata import Odedata
+from qutip.solver import Result
 
 
 # -----------------------------------------------------------------------------
@@ -284,8 +284,8 @@ def qload(name):
         else:
             str1 += "\n"
         print(str1)
-    elif isinstance(out, Odedata):
-        print('Loaded Odedata object:')
+    elif isinstance(out, Result):
+        print('Loaded Result object:')
         print(out)
     else:
         print("Loaded " + str(type(out).__name__) + " object.")

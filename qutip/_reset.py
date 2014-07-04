@@ -32,7 +32,7 @@
 ###############################################################################
 """
 This module resets the global properties in qutip.settings and the
-odeconfig parameters.
+solver config parameters.
 """
 
 

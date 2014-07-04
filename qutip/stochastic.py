@@ -70,7 +70,7 @@ from numpy.random import RandomState
 from qutip.qobj import Qobj, isket
 from qutip.states import ket2dm
 from qutip.operators import commutator
-from qutip.odedata import Odedata
+from qutip.solver import Result
 from qutip.expect import expect, expect_rho_vec
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
                                  liouvillian, lindblad_dissipator)
@@ -78,7 +78,7 @@ from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv, cy_expect_rho_vec
 from qutip.cy.stochastic import (cy_d1_rho_photocurrent,
                                  cy_d2_rho_photocurrent)
 from qutip.ui.progressbar import TextProgressBar
-from qutip.odeoptions import Odeoptions
+from qutip.solver import Options
 from qutip.settings import debug
 
 
@@ -96,7 +96,7 @@ class _StochasticSolverData:
                  gen_A_ops=None, gen_noise=None, homogeneous=True, solver=None,
                  method=None, distribution='normal', store_measurement=False,
                  noise=None, normalize=True,
-                 options=Odeoptions(), progress_bar=TextProgressBar()):
+                 options=Options(), progress_bar=TextProgressBar()):
 
         self.H = H
         self.d1 = d1
@@ -165,9 +165,9 @@ def ssesolve(H, psi0, tlist, sc_ops, e_ops, **kwargs):
     Returns
     -------
 
-    output: :class:`qutip.odedata`
+    output: :class:`qutip.solver`
 
-        An instance of the class :class:`qutip.odedata`.
+        An instance of the class :class:`qutip.solver`.
     """
     if debug:
         print(inspect.stack()[0][3])
@@ -282,9 +282,9 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
     Returns
     -------
 
-    output: :class:`qutip.odedata`
+    output: :class:`qutip.solver`
 
-        An instance of the class :class:`qutip.odedata`.
+        An instance of the class :class:`qutip.solver`.
 
 
     TODO: add check for commuting jump operators in Milstein.
@@ -406,7 +406,7 @@ def smesolve(H, rho0, tlist, c_ops, sc_ops, e_ops, **kwargs):
 
 
 def sepdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
-               options=Odeoptions(), progress_bar=TextProgressBar()):
+               options=Options(), progress_bar=TextProgressBar()):
     """
     A stochastic PDP solver for experimental/development and comparison to the
     stochastic DE solvers. Use mcsolve for real quantum trajectory
@@ -439,7 +439,7 @@ def sepdpsolve(H, psi0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
 
 
 def smepdpsolve(H, rho0, tlist, c_ops=[], e_ops=[], ntraj=1, nsubsteps=10,
-                options=Odeoptions(), progress_bar=TextProgressBar()):
+                options=Options(), progress_bar=TextProgressBar()):
     """
     A stochastic PDP solver for density matrix evolution.
     """
@@ -490,7 +490,7 @@ def ssesolve_generic(ssdata, options, progress_bar):
     dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
     NT = ssdata.ntraj
 
-    data = Odedata()
+    data = Result()
     data.solver = "ssesolve"
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
@@ -645,7 +645,7 @@ def smesolve_generic(ssdata, options, progress_bar):
     dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
     NT = ssdata.ntraj
 
-    data = Odedata()
+    data = Result()
     data.solver = "smesolve"
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
@@ -814,7 +814,7 @@ def sepdpsolve_generic(ssdata, options, progress_bar):
     dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
     NT = ssdata.ntraj
 
-    data = Odedata()
+    data = Result()
     data.solver = "sepdpsolve"
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
@@ -951,7 +951,7 @@ def smepdpsolve_generic(ssdata, options, progress_bar):
     dt = (ssdata.tlist[1] - ssdata.tlist[0]) / N_substeps
     NT = ssdata.ntraj
 
-    data = Odedata()
+    data = Result()
     data.solver = "smepdpsolve"
     data.times = ssdata.tlist
     data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)

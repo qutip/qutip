@@ -42,9 +42,9 @@ from qutip.mesolve import mesolve
 from qutip.steadystate import steadystate
 from qutip.states import ket2dm
 from qutip.states import projection
-from qutip.odeoptions import Odeoptions
+from qutip.solver import Options
 from qutip.propagator import propagator
-from qutip.odedata import Odedata
+from qutip.solver import Result
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.expect import expect
 from qutip.utilities import n_thermal
@@ -212,7 +212,7 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
 
     f_modes_table_t = [[] for t in tlist_period]
 
-    opt = Odeoptions()
+    opt = Options()
     opt.rhs_reuse = True
 
     for n, f_mode in enumerate(f_modes_0):
@@ -472,9 +472,9 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
     Returns
     -------
 
-    output : :class:`qutip.odedata.Odedata`
+    output : :class:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.odedata.Odedata`, which
+        An instance of the class :class:`qutip.solver.Result`, which
         contains either an *array* of expectation values or an array of
         state vectors, for the times specified by `tlist`.
     """
@@ -491,8 +491,8 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
                                           np.linspace(0, T, Tsteps + 1),
                                           H, T, args)
 
-    # setup Odedata for storing the results
-    output = Odedata()
+    # setup Result for storing the results
+    output = Result()
     output.times = tlist
     output.solver = "fsesolve"
 
@@ -766,7 +766,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     """
 
     if options is None:
-        opt = Odeoptions()
+        opt = Options()
     else:
         opt = options
 
@@ -786,7 +786,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     n_tsteps = len(tlist)
     dt = tlist[1] - tlist[0]
 
-    output = Odedata()
+    output = Result()
     output.solver = "fmmesolve"
     output.times = tlist
 
@@ -882,7 +882,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
 #
 #
 def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
-              args={}, options=Odeoptions(), floquet_basis=True, kmax=5):
+              args={}, options=Options(), floquet_basis=True, kmax=5):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
 
@@ -931,7 +931,7 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
         >>> kB = 1.38e-23
         >>> args['w_th'] = temperature * (kB / h) * 2 * pi * 1e-9
 
-    options : :class:`qutip.odeoptions`
+    options : :class:`qutip.solver`
         options for the ODE solver.
 
     k_max : int
@@ -940,9 +940,9 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
     Returns
     -------
 
-    output : :class:`qutip.odedata`
+    output : :class:`qutip.solver`
 
-        An instance of the class :class:`qutip.odedata`, which contains either
+        An instance of the class :class:`qutip.solver`, which contains either
         an *array* of expectation values for the times specified by `tlist`.
     """
 

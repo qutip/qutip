@@ -45,10 +45,8 @@ from scipy.linalg import norm
 from qutip.qobj import Qobj, isket
 from qutip.expect import expect
 from qutip.rhs_generate import rhs_generate
-from qutip.odedata import Odedata
-from qutip.odeoptions import Odeoptions
-from qutip.odeconfig import odeconfig
-from qutip.odechecks import _ode_checks, _td_wrap_array_str
+from qutip.solver import Result, Options, config
+from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.settings import debug
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
                                  cy_ode_psi_func_td,
@@ -103,9 +101,9 @@ def sesolve(H, rho0, tlist, e_ops, args={}, options=None,
     Returns
     -------
 
-    output: :class:`qutip.odedata`
+    output: :class:`qutip.solver`
 
-        An instance of the class :class:`qutip.odedata`, which contains either
+        An instance of the class :class:`qutip.solver`, which contains either
         an *array* of expectation values for the times specified by `tlist`, or
         an *array* or state vectors or density matrices corresponding to the
         times in `tlist` [if `e_ops` is an empty list], or
@@ -127,14 +125,14 @@ def sesolve(H, rho0, tlist, e_ops, args={}, options=None,
     H, _, args = _td_wrap_array_str(H, [], args, tlist)
 
     # check for type (if any) of time-dependent inputs
-    n_const, n_func, n_str = _ode_checks(H, [])
+    n_const, n_func, n_str = _td_format_check(H, [])
 
     if options is None:
-        options = Odeoptions()
+        options = Options()
 
-    if (not options.rhs_reuse) or (not odeconfig.tdfunc):
-        # reset odeconfig time-dependence flags to default values
-        odeconfig.reset()
+    if (not options.rhs_reuse) or (not config.tdfunc):
+        # reset config time-dependence flags to default values
+        config.reset()
 
     if n_func > 0:
         res = _sesolve_list_func_td(H, rho0, tlist, e_ops, args, options,
@@ -378,25 +376,25 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
     #
     # generate and compile new cython code if necessary
     #
-    if not opt.rhs_reuse or odeconfig.tdfunc is None:
+    if not opt.rhs_reuse or config.tdfunc is None:
         if opt.rhs_filename is None:
-            odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
+            config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
         else:
-            odeconfig.tdname = opt.rhs_filename
+            config.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                       odeconfig=odeconfig)
-        cgen.generate(odeconfig.tdname + ".pyx")
+                       config=config)
+        cgen.generate(config.tdname + ".pyx")
 
-        code = compile('from ' + odeconfig.tdname + ' import cy_td_ode_rhs',
+        code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
-        odeconfig.tdfunc = cy_td_ode_rhs
+        config.tdfunc = cy_td_ode_rhs
 
     #
     # setup integrator
     #
     initial_vector = psi0.full().ravel()
-    r = scipy.integrate.ode(odeconfig.tdfunc)
+    r = scipy.integrate.ode(config.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -445,7 +443,7 @@ def _sesolve_list_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
                         'length N-1 where N is the number of ' +
                         'Hamiltonian terms.')
     tflag = 1
-    if opt.rhs_reuse and odeconfig.tdfunc is None:
+    if opt.rhs_reuse and config.tdfunc is None:
         print("No previous time-dependent RHS found.")
         print("Generating one for you...")
         rhs_generate(H_func, args)
@@ -470,24 +468,24 @@ def _sesolve_list_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
                 string += (",")
 
     # run code generator
-    if not opt.rhs_reuse or odeconfig.tdfunc is None:
+    if not opt.rhs_reuse or config.tdfunc is None:
         if opt.rhs_filename is None:
-            odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
+            config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
         else:
-            odeconfig.tdname = opt.rhs_filename
+            config.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                       odeconfig=odeconfig)
-        cgen.generate(odeconfig.tdname + ".pyx")
+                       config=config)
+        cgen.generate(config.tdname + ".pyx")
 
-        code = compile('from ' + odeconfig.tdname + ' import cy_td_ode_rhs',
+        code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
-        odeconfig.tdfunc = cy_td_ode_rhs
+        config.tdfunc = cy_td_ode_rhs
     #
     # setup integrator
     #
     initial_vector = psi0.full().ravel()
-    r = scipy.integrate.ode(odeconfig.tdfunc)
+    r = scipy.integrate.ode(config.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -596,7 +594,7 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
     # prepare output array
     #
     n_tsteps = len(tlist)
-    output = Odedata()
+    output = Result()
     output.solver = "sesolve"
     output.times = tlist
 
@@ -659,9 +657,9 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
 
     progress_bar.finished()
 
-    if not opt.rhs_reuse and odeconfig.tdname is not None:
+    if not opt.rhs_reuse and config.tdname is not None:
         try:
-            os.remove(odeconfig.tdname + ".pyx")
+            os.remove(config.tdname + ".pyx")
         except:
             pass
 

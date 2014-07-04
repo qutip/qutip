@@ -46,7 +46,7 @@ from qutip.essolve import essolve
 from qutip.steadystate import steadystate
 from qutip.states import basis
 from qutip.states import projection
-from qutip.odeoptions import Odeoptions
+from qutip.solver import Options
 
 
 def propagator(H, t, c_op_list, args=None, options=None, sparse=False):
@@ -74,7 +74,7 @@ def propagator(H, t, c_op_list, args=None, options=None, sparse=False):
         Parameters to callback functions for time-dependent Hamiltonians and
         collapse operators.
 
-    options : :class:`qutip.Odeoptions`
+    options : :class:`qutip.Options`
         with options for the ODE solver.
 
     Returns
@@ -85,7 +85,7 @@ def propagator(H, t, c_op_list, args=None, options=None, sparse=False):
     """
 
     if options is None:
-        options = Odeoptions()
+        options = Options()
         options.rhs_reuse = True
         rhs_clear()
 
