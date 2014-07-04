@@ -53,7 +53,7 @@ class TestSpinChain:
 
         qc1 = QubitCircuit(N)
         qc1.add_gate("ISWAP", targets=[0, 1])
-        U_ideal = gate_sequence_product(qc1.unitary_matrix())
+        U_ideal = gate_sequence_product(qc1.propagators())
 
         p = LinearSpinChain(N, correct_global_phase=True)
         U_list = p.run(qc)
@@ -71,7 +71,7 @@ class TestSpinChain:
 
         qc1 = QubitCircuit(N)
         qc1.add_gate("SQRTISWAP", targets=[0, 1])
-        U_ideal = gate_sequence_product(qc1.unitary_matrix())
+        U_ideal = gate_sequence_product(qc1.propagators())
 
         p = LinearSpinChain(N, correct_global_phase=True)
         U_list = p.run(qc)
@@ -92,7 +92,7 @@ class TestSpinChain:
         qc1.add_gate("SQRTISWAP", targets=[0, 1])
         qc1.add_gate("RZ", arg_value=pi/2, arg_label=r"\pi/2", targets=[1])
         qc1.add_gate("RX", arg_value=pi/2, arg_label=r"\pi/2", targets=[0])
-        U_ideal = gate_sequence_product(qc1.unitary_matrix())
+        U_ideal = gate_sequence_product(qc1.propagators())
 
         p = LinearSpinChain(N, correct_global_phase=True)
         U_list = p.run(qc)
@@ -110,7 +110,7 @@ class TestSpinChain:
 
         qc1 = QubitCircuit(N)
         qc1.add_gate("ISWAP", targets=[0, 1])
-        U_ideal = gate_sequence_product(qc1.unitary_matrix())
+        U_ideal = gate_sequence_product(qc1.propagators())
 
         p = CircularSpinChain(N, correct_global_phase=True)
         U_list = p.run(qc)
@@ -128,7 +128,7 @@ class TestSpinChain:
 
         qc1 = QubitCircuit(N)
         qc1.add_gate("SQRTISWAP", targets=[0, 1])
-        U_ideal = gate_sequence_product(qc1.unitary_matrix())
+        U_ideal = gate_sequence_product(qc1.propagators())
 
         p = CircularSpinChain(N, correct_global_phase=True)
         U_list = p.run(qc)
@@ -150,7 +150,7 @@ class TestSpinChain:
         qc1.add_gate("SQRTISWAP", targets=[0, 1])
         qc1.add_gate("RZ", arg_value=pi/2, arg_label=r"\pi/2", targets=[1])
         qc1.add_gate("RX", arg_value=pi/2, arg_label=r"\pi/2", targets=[0])
-        U_ideal = gate_sequence_product(qc1.unitary_matrix())
+        U_ideal = gate_sequence_product(qc1.propagators())
 
         p = CircularSpinChain(N, correct_global_phase=True)
         U_list = p.run(qc)
