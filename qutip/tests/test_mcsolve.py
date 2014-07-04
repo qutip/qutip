@@ -210,7 +210,7 @@ def test_MCSimpleSingleExpect():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [sqrt(kappa) * a]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, a.dag() * a)
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, a.dag() * a, ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
