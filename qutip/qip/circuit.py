@@ -152,7 +152,7 @@ def _gate_label(name, arg_label):
 class QubitCircuit(object):
     """
     Representation of a quantum program/algorithm. It needs to maintain a list
-    of gates (with target and source and time
+    of gates (with target and source and time).
     """
     def __init__(self, N, reverse_states=True):
         
