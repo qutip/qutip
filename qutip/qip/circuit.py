@@ -780,9 +780,9 @@ class QubitCircuit(object):
         return temp
 
 
-    def unitary_matrix(self):
+    def propagators(self):
         """
-        Unitary matrix calculator for N qubits returning the individual
+        Propagator matrix calculator for N qubits returning the individual
         steps as unitary matrices operating from left to right.
         
         Returns
