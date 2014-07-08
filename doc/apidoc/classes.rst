@@ -52,11 +52,11 @@ SolverResult
 .. autoclass:: qutip.solver.SolverResult
     :members:
 
-Stochastic Solver Parameters
+Stochastic Solver Options
 ----------------------------
 
-.. autoclass:: qutip.stochastic
-    :members: StochasticSolverData
+.. autoclass:: qutip.stochastic.StochasticSolverOptions
+    :members:
 
 
 Distribution functions

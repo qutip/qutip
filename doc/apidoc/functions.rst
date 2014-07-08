@@ -28,7 +28,7 @@ Superoperators and Liouvillians
 -------------------------------
 
 .. automodule:: qutip.superoperator
-    :members: operator_to_vector, vector_to_operator, liouvillian, liouvillian_fast, spost, spre
+    :members: operator_to_vector, vector_to_operator, liouvillian, spost, spre
     
 Superoperator Representations
 -----------------------------
@@ -133,7 +133,7 @@ Steady-state Solvers
 --------------------
 
 .. automodule:: qutip.steadystate
-    :members: steady, steadystate
+    :members: steadystate
     :undoc-members:
 
 Propagators

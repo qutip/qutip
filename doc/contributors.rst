@@ -27,6 +27,7 @@ Contributors
 	
 	Anyone is welcome to contribute to QuTiP.  If you are interested in helping, please let us know!
 
+**alexbrc** (github user) - Code contributor
 
 **Bredan Abolins** (Berkeley) - Bug hunter
 
@@ -36,13 +37,25 @@ Contributors
 
 **Ben Criger** (Waterloo IQC) - Code contributor
 
+**Dawid Crivelli** - Bug hunter
+
 **Claudia Degrandi** (Yale University) - Documentation
+
+**Johannes Feist** - Code contributor
+
+**Chris Granadeł** - Code contributor
 
 **Arne Grimsmo** (University of Auckland) - Code contributor, Bug hunter
 
 **JP Hadden** (University of Bristol) - Code contributor, improved Bloch sphere visualization
 
+**Reinier Heeres** (Yale University) - Code contributor
+
+**Jonas Hörsch** - Code contributor
+
 **Myung-Joong Hwang** (Pohang University of Science and Technology) - Bug hunter
+
+**Amit Jamadagni** - Bug fix
 
 **Robert Jördens** (NIST) - Linux packaging
 
@@ -51,6 +64,8 @@ Contributors
 **Neill Lambert** (RIKEN) - Code contributor, Windows support
 
 **Anders Lund** (Technical University of Denmark) - Bug hunting for the Monte-Carlo solver.
+
+**Piotr Migdał** (ICFO) - Code contributor
 
 **Jonas Neergaard-Nielsen** (Technical University of Denmark) - Bug hunter, Code contributor, Windows support
 
@@ -62,6 +77,10 @@ Contributors
 
 **Frank Schima** - Macports packaging
 
+**Laurence Stant** - Documentation
+
+**Anubhav Vardhan** (IIT) - Code contributor
+
 **Denis Vasilyev** (St. Petersburg State University) -  Code contributor
 
 **Simon Whalen** - Code contributor
@@ -72,22 +91,3 @@ Contributors
 
 **Dong Zhou** (Yale University) - Bug hunter
 
-**Piotr Migdał** (ICFO) - Code contributor
-
-**Chris Granadeł** - Code contributor
-
-**Anubhav Vardhan** (IIT) - Code contributor
-
-**Reinier Heeres** (Yale University) - Code contributor
-
-**alexbrc** (github user) - Code contributor
-
-**Johannes Feist** - Code contributor
-
-**Jonas Hörsch** - Code contributor
-
-**Laurence Stant** - Documentation
-
-**Dawid Crivelli** - Bug hunter
-
-**Amit Jamadagni** - Bug fix
