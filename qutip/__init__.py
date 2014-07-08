@@ -235,7 +235,7 @@ from qutip.rhs_generate import rhs_generate, rhs_clear
 from qutip.mesolve import mesolve, odesolve
 from qutip.sesolve import sesolve
 from qutip.mcsolve import mcsolve
-from qutip.stochastic import ssesolve, sepdpsolve, smesolve, smepdpsolve
+from qutip.stochastic import ssesolve, ssepdpsolve, smesolve, smepdpsolve
 from qutip.essolve import *
 from qutip.eseries import *
 from qutip.steadystate import *
