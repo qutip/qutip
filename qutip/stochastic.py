@@ -633,7 +633,6 @@ def smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
     else:
         e_ops_dict = None
 
-
     sso = StochasticSolverOptions(H=H, state0=rho0, times=times, c_ops=c_ops,
                                   e_ops=e_ops, **kwargs)
 
@@ -685,8 +684,8 @@ def _ssesolve_generic(sso, options, progress_bar):
         states_list, dW, m = _ssesolve_single_trajectory(data,
              sso.H, dt, sso.times, N_store, N_substeps, psi_t, A_ops,
              sso.e_ops, sso.m_ops, sso.rhs_func, sso.d1, sso.d2,
-             sso.d2_len, sso.dW_factors, sso.homogeneous, sso.distribution, sso.args,
-             store_measurement=sso.store_measurement, noise=noise,
+             sso.d2_len, sso.dW_factors, sso.homogeneous, sso.distribution,
+             sso.args, store_measurement=sso.store_measurement, noise=noise,
              normalize=sso.normalize)
 
         data.states.append(states_list)
@@ -697,7 +696,8 @@ def _ssesolve_generic(sso, options, progress_bar):
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum([ket2dm(data.states[m][n]) for m in range(NT)]).unit()
+        data.states = [sum([ket2dm(data.states[m][n])
+                            for m in range(NT)]).unit()
                        for n in range(len(data.times))]
 
     # average
@@ -731,10 +731,12 @@ def _ssesolve_single_trajectory(data, H, dt, times, N_store, N_substeps, psi_t,
                 dW = np.sqrt(dt) * \
                     scipy.randn(len(A_ops), N_store, N_substeps, d2_len)
             else:
-                raise TypeError('Unsupported increment distribution for homogeneous process.')
+                raise TypeError('Unsupported increment distribution for ' +
+                                'homogeneous process.')
         else:
             if distribution != 'poisson':
-                raise TypeError('Unsupported increment distribution for inhomogeneous process.')
+                raise TypeError('Unsupported increment distribution for ' +
+                                'inhomogeneous process.')
 
             dW = np.zeros((len(A_ops), N_store, N_substeps, d2_len))
     else:
@@ -765,7 +767,8 @@ def _ssesolve_single_trajectory(data, H, dt, times, N_store, N_substeps, psi_t,
                     dw_expect = cy_expect_psi_csr(A[3].data,
                                                   A[3].indices,
                                                   A[3].indptr, psi_t, 1) * dt
-                    dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
+                    dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect,
+                                                               d2_len)
 
             psi_t = rhs(H.data, psi_t, t + dt * j,
                         A_ops, dt, dW[:, t_idx, j, :], d1, d2, args)
@@ -848,7 +851,8 @@ def _smesolve_generic(sso, options, progress_bar):
         if sso.noise:
             noise = sso.noise[n]
         elif sso.generate_noise:
-            noise = sso.generate_noise(len(A_ops), N_store, N_substeps, sso.d2_len, dt)
+            noise = sso.generate_noise(len(A_ops), N_store, N_substeps,
+                                       sso.d2_len, dt)
         else:
             noise = None
 
@@ -903,10 +907,12 @@ def _smesolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_t,
                 dW = np.sqrt(dt) * scipy.randn(len(A_ops),
                                                N_store, N_substeps, d2_len)
             else:
-                raise TypeError('Unsupported increment distribution for homogeneous process.')
+                raise TypeError('Unsupported increment distribution for ' +
+                                'homogeneous process.')
         else:
             if distribution != 'poisson':
-                raise TypeError('Unsupported increment distribution for inhomogeneous process.')
+                raise TypeError('Unsupported increment distribution for ' +
+                                'inhomogeneous process.')
 
             dW = np.zeros((len(A_ops), N_store, N_substeps, d2_len))
     else:
@@ -935,7 +941,8 @@ def _smesolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_t,
                 for a_idx, A in enumerate(A_ops):
                     dw_expect = cy_expect_rho_vec(A[4], rho_t, 1) * dt
                     if dw_expect > 0:
-                        dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect, d2_len)
+                        dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect,
+                                                                   d2_len)
                     else:
                         dW[a_idx, t_idx, j, :] = np.zeros(d2_len)
 
@@ -1685,7 +1692,6 @@ def _rhs_rho_milstein_homodyne_single(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
         Milstein scheme for homodyne detection with single jump operator.
 
     """
-
     A = A_ops[0]
     M = A[0] + A[3]
     e1 = cy_expect_rho_vec(M, rho_t, 0)
