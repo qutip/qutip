@@ -25,35 +25,26 @@ eseries
 
 .. _classes-bloch:
 
-Bloch
+Bloch sphere
 ---------------
 
 .. autoclass:: qutip.bloch.Bloch
     :members: 
-
-Bloch3d
------------------
 
 .. autoclass:: qutip.bloch3d.Bloch3d
     :members: 
 
 .. _classes-odeoptions:
 
-Options
---------------------
+
+Solver Options and Results
+---------------------------
 
 .. autoclass:: qutip.solver.Options
     :members:
 
-
-Result
---------------------
-
 .. autoclass:: qutip.solver.Result
     :members:
-
-Stochastic Solver Options
-----------------------------
 
 .. autoclass:: qutip.stochastic.StochasticSolverOptions
     :members:
