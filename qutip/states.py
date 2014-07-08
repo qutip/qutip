@@ -1037,5 +1037,6 @@ def ghz_state(N=3):
         N-qubit GHZ-state
     
     """
-    state=tensor([basis(2) for k in range(N)])+tensor([basis(2,1) for k in range(N)])
+    state = (tensor([basis(2) for k in range(N)]) + 
+             tensor([basis(2,1) for k in range(N)]))
     return state/np.sqrt(2)
