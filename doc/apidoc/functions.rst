@@ -160,7 +160,7 @@ Graphs and Visualization
 ------------------------
 
 .. automodule:: qutip.visualization
-    :members: hinton, matrix_histogram, matrix_histogram_complex, energy_level_diagram, wigner_cmap, fock_distribution, wigner_fock_distribution, sphereplot
+    :members: hinton, matrix_histogram, matrix_histogram_complex, plot_energy_levels, wigner_cmap, plot_fock_distribution, plot_wigner_fock_distribution, plot_wigner, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values
     :undoc-members:
 
 Other Functions

@@ -46,10 +46,10 @@ Options
     :members:
 
 
-SolverResult
+Result
 --------------------
 
-.. autoclass:: qutip.solver.SolverResult
+.. autoclass:: qutip.solver.Result
     :members:
 
 Stochastic Solver Options
