@@ -43,7 +43,7 @@ class DispersivecQED(CircuitProcessor):
     Representation of the physical implementation of a quantum program/algorithm
     on a dispersive cavity-QED system.
     """
-    
+
     def __init__(self, N, Nres=5, correct_global_phase=True):
         """
         
@@ -52,31 +52,48 @@ class DispersivecQED(CircuitProcessor):
         """
         super(DispersiveCQED, self).__init__(N, correct_global_phase)
 
+        # user definable
         self.Nres = Nres
-        self.w0 = 2 # 2 * pi * 2
-        self.Delta = 0.8 #2 * pi * 0.8
+        self.sx_coeff = np.array([1.0] * N)
+        self.sz_coeff = np.array([1.0] * N)
+
+        self.w0 = 10 * 2 * pi
+        self.eps =   np.array([9.0 * 2 * pi] * N)
+        self.delta = np.array([0.0 * 2 * pi] * N)
+        self.g = np.array([0.01 * 2 * pi] * N)
+
+        # computed
+        self.wq = sqrt(self.eps ** 2 + self.delta ** 2)
+        self.Delta = self.wq - self.w0
         
-        self.sx_ops = [tensor([identity(Nres)] + [sigmax() if m == n 
-                              else identity(2) for n in range(N)])
+        # rwa/dispersive regime tests
+        if any(self.g / (self.w0 - self.wq)) > 0.025:
+            warnings.warn("Not in the dispersive regime")
+        
+        if any((self.w0 - self.wq) / (self.w0 + self.wq)) > 0.025:
+            warnings.warn("The rotating-wave approximation might not be valid.")
+        
+        
+        self.sx_ops = [tensor([identity(Nres)] + 
+                              [sigmax() if m == n else identity(2)
+                               for n in range(N)])
                        for m in range(N)]
-        self.sz_ops = [tensor([identity(Nres)] + [sigmaz() if m == n 
-                              else identity(2) for n in range(N)])
+        self.sz_ops = [tensor([identity(Nres)] + 
+                              [sigmaz() if m == n else identity(2)
+                               for n in range(N)])
                        for m in range(N)]
 
         self.a = tensor([destroy(Nres)] + [identity(2) for n in range(N)])
 
         self.cavityqubit_ops = []
         for n in range(N):
-            sm = tensor([identity(Nres)] + [destroy(2) if m == n 
-                                            else identity(2) for m in range(N)])
+            sm = tensor([identity(Nres)] + 
+                        [destroy(2) if m == n else identity(2) 
+                         for m in range(N)])
             self.cavityqubit_ops.append(self.a.dag() * sm + self.a * sm.dag())
 
-        self.psi_proj = tensor([basis(Nres, 0)] 
-                        + [identity(2) for n in range(N)])
-
-        self.sx_coeff = [1.0] * N
-        self.sz_coeff = [1.0] * N
-        self.g = [0.001 ] * N #* 2 * pi
+        self.psi_proj = tensor([basis(Nres, 0)] + 
+                               [identity(2) for n in range(N)])
  
         
     def get_ops_and_u(self):
@@ -101,6 +118,10 @@ class DispersivecQED(CircuitProcessor):
         self.qc2 = qc
 
         return qc
+
+    
+    def eliminate_auxillary_modes(self, U):
+        return self.psi_proj.dag() * U * self.psi_proj
 
     
     def dispersive_gate_correction(self, qc, rwa=True):
@@ -149,10 +170,8 @@ class DispersivecQED(CircuitProcessor):
                                               arg_label=r"-\pi/2"))
             
         return qc_temp
-    
-    def eliminate_auxillary_modes(self, U):
-        return self.psi_proj.dag() * U * self.psi_proj
-    
+ 
+   
     def load_circuit(self, qc):
         
         gates = self.optimize_circuit(qc).gates
@@ -167,22 +186,28 @@ class DispersivecQED(CircuitProcessor):
         for gate in gates:
             
             if gate.name == "ISWAP":
-                self.sz_u[n, gate.targets[0]] = self.w0 - self.Delta            
-                self.sz_u[n, gate.targets[1]] = self.w0 - self.Delta            
-                self.g_u[n, gate.targets[0]] = self.g[gate.targets[0]] 
-                self.g_u[n, gate.targets[1]] = self.g[gate.targets[1]]
-                T = self.Delta / (4 * self.g[gate.targets[0]] * 
-                                  self.g[gate.targets[1]])
+                t0, t1 = gate.targets[0], gate.targets[1]
+                self.sz_u[n, t0] = self.wq[t0] - self.w0            
+                self.sz_u[n, t1] = self.wq[t1] - self.w0
+                self.g_u[n, t0] = self.g[t0] 
+                self.g_u[n, t1] = self.g[t1]
+                
+                J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] + 
+                                               1 / self.Delta[t1]) / 2
+                T = (4 * pi / J) / 4
                 self.T_list.append(T)
                 n += 1
                 
             elif gate.name == "SQRTISWAP":
-                self.sz_u[n, gate.targets[0]] = self.w0 - self.Delta            
-                self.sz_u[n, gate.targets[1]] = self.w0 - self.Delta            
-                self.g_u[n, gate.targets[0]] = self.g[gate.targets[0]] 
-                self.g_u[n, gate.targets[1]] = self.g[gate.targets[1]]
-                T = self.Delta / (8 * self.g[gate.targets[0]] * 
-                                  self.g[gate.targets[1]])
+                t0, t1 = gate.targets[0], gate.targets[1]
+                self.sz_u[n, t0] = self.wq[t0] - self.w0            
+                self.sz_u[n, t1] = self.wq[t1] - self.w0
+                self.g_u[n, t0] = self.g[t0] 
+                self.g_u[n, t1] = self.g[t1]
+                
+                J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] + 
+                                               1 / self.Delta[t1]) / 2
+                T = (4 * pi / J) / 8
                 self.T_list.append(T)
                 n += 1
 
@@ -205,4 +230,5 @@ class DispersivecQED(CircuitProcessor):
                 
             else:
                 raise ValueError("Unsupported gate %s" % gate.name)
-
+    
+    
