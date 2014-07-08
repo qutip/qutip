@@ -24,8 +24,8 @@ Version 3.0.0 (July X, 2014):
 
 - New format for defining time-dependent Hamiltonians and collapse operators, using a precalculated numpy array that specifies the values of the Qobj-coefficients for each time step.
 
-- QuTiP no longer contains the demos GUI. The examples are still available in
-  the documentation.
+- QuTiP no longer contains the demos GUI. The examples are now available on the
+  QuTiP web site.
 
 - Improved performance and numerous bug fixes.
 
