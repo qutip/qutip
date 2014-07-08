@@ -18,7 +18,7 @@ Version 3.0.0 (July X, 2014):
 - New module `qutip.distributions` with unified API for working with
   distribution functions.
 
-- New module `qutip.qip` with utilities for quantum information processing problems, including pre-defined quantum gates for N-qubit systems, circuit representations, and basic physical models for some common QIP architectures.
+- New module `qutip.qip` with utilities for quantum information processing problems, including pre-defined quantum gates for N-qubit systems, circuit representations, library of quantum algorithms, and basic physical models for some common QIP architectures.
 
 - New functions for working with different superoperator representations.
 

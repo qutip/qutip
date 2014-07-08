@@ -29,65 +29,65 @@ Contributors
 
 **alexbrc** (github user) - Code contributor
 
-**Bredan Abolins** (Berkeley) - Bug hunter
+**Amit Jamadagni** - Bug fix
 
-**Markus Baden** (Centre for Quantum Technologies, Singapore) - Code contributor, documentation
+**Anders Lund** (Technical University of Denmark) - Bug hunting for the Monte-Carlo solver
 
-**James Clemens** (Miami University - Ohio) - Bug hunter
+**André Xuereb** (University of Hannover) - Bug hunter
+
+**Anubhav Vardhan** (IIT, Kanpur) - Bug hunter, Code contributor, Documentation
+
+**Arne Grimsmo** (University of Auckland) - Bug hunter, Code contributor 
 
 **Ben Criger** (Waterloo IQC) - Code contributor
 
-**Dawid Crivelli** - Bug hunter
-
-**Claudia Degrandi** (Yale University) - Documentation
-
-**Johannes Feist** - Code contributor
+**Bredan Abolins** (Berkeley) - Bug hunter
 
 **Chris Granadeł** - Code contributor
 
-**Arne Grimsmo** (University of Auckland) - Code contributor, Bug hunter
+**Claudia Degrandi** (Yale University) - Documentation
 
-**JP Hadden** (University of Bristol) - Code contributor, improved Bloch sphere visualization
+**Dawid Crivelli** - Bug hunter
 
-**Reinier Heeres** (Yale University) - Code contributor
+**Denis Vasilyev** (St. Petersburg State University) -  Code contributor
 
-**Jonas Hörsch** - Code contributor
-
-**Myung-Joong Hwang** (Pohang University of Science and Technology) - Bug hunter
-
-**Amit Jamadagni** - Bug fix
-
-**Robert Jördens** (NIST) - Linux packaging
-
-**Hwajung Kang** (Systems Biology Institute, Tokyo) - Suggestions for improving Bloch class
-
-**Neill Lambert** (RIKEN) - Code contributor, Windows support
-
-**Anders Lund** (Technical University of Denmark) - Bug hunting for the Monte-Carlo solver.
-
-**Piotr Migdał** (ICFO) - Code contributor
-
-**Jonas Neergaard-Nielsen** (Technical University of Denmark) - Bug hunter, Code contributor, Windows support
-
-**Henri Nielsen** (Technical University of Denmark) - Bug hunter
-
-**Per Nielsen** (Technical University of Denmark) - Code contributor, Bug hunter
+**Dong Zhou** (Yale University) - Bug hunter
 
 **Florian Ong** (Institute for Quantum Computation) - Bug hunter
 
 **Frank Schima** - Macports packaging
 
+**Henri Nielsen** (Technical University of Denmark) - Bug hunter
+
+**Hwajung Kang** (Systems Biology Institute, Tokyo) - Suggestions for improving Bloch class
+
+**James Clemens** (Miami University - Ohio) - Bug hunter
+
+**Johannes Feist** - Code contributor
+
+**Jonas Hörsch** - Code contributor
+
+**Jonas Neergaard-Nielsen** (Technical University of Denmark) - Bug hunter, Code contributor, Windows support
+
+**JP Hadden** (University of Bristol) - Code contributor, improved Bloch sphere visualization
+
 **Laurence Stant** - Documentation
 
-**Anubhav Vardhan** (IIT) - Code contributor
+**Markus Baden** (Centre for Quantum Technologies, Singapore) - Code contributor, Documentation
 
-**Denis Vasilyev** (St. Petersburg State University) -  Code contributor
+**Myung-Joong Hwang** (Pohang University of Science and Technology) - Bug hunter
+
+**Neill Lambert** (RIKEN) - Code contributor, Windows support
+
+**Per Nielsen** (Technical University of Denmark) - Bug hunter, Code contributor 
+
+**Piotr Migdał** (ICFO) - Code contributor
+
+**Reinier Heeres** (Yale University) - Code contributor
+
+**Robert Jördens** (NIST) - Linux packaging
 
 **Simon Whalen** - Code contributor
 
 **W.M. Witzel** - Bug hunter
-
-**André Xuereb** (University of Hannover) - Bug hunter
-
-**Dong Zhou** (Yale University) - Bug hunter
 
