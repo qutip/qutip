@@ -48,7 +48,7 @@ class CircuitProcessor(object):
         Parameters
         ----------
         N: Integer
-            The numer of qubits in the system.
+            The number of qubits in the system.
 
         correct_global_phase: Boolean
             Check if the global phases should be included in the final result.
