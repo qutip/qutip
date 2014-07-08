@@ -224,6 +224,43 @@ class QubitCircuit(object):
                                        arg_label=arg_label))
 
  
+    def add_circuit(self, qc, start):
+        """
+        Adds a block of a qubit circuit to the main circuit. 
+        Globalphase gates are not added.
+
+        Parameters
+        ----------
+        qc: List
+            The circuit block to be added to the main circuit.
+        start: Integer
+            The qubit on which the first gate is applied.
+        """
+
+        if self.N-start < len(qc):
+            raise NotImplementedError("Targets exceed number of qubits.")    
+        
+        for gate in qc.gates:
+            if gate in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE"]:
+                self.add_gate(gate.name, gate.targets+start, None,
+                              gate.arg_value, gate.arg_label)        
+            elif gate in ["CPHASE", "CNOT", "CSIGN"]:
+                self.add_gate(gate.name, gate.targets+start, 
+                              gate.controls+start, gate.arg_value,
+                              gate.arg_label)        
+            elif gate in ["BERKELEY", "SWAPalpha", "SWAP", "ISWAP", "SQRTSWAP",
+                        "SQRTISWAP"]:
+                self.add_gate(gate.name, None, 
+                              [gate.controls[0]+start, gate.controls[1]+start])        
+            elif gate in ["TOFFOLI"]:
+                self.add_gate(gate.name, gate.target+start, 
+                              [gate.controls[0]+start, gate.controls[1]+start])        
+            elif gate in ["FREDKIN"]:
+                self.add_gate(gate.name, 
+                              [gate.target[0]+start,gate.target[1]+start], 
+                              gate.controls+start)
+        
+                
     def remove_gate(self, index=None, name=None, remove="first"):
         """
         Removes a gate with from a specific index or the first, last or all 
@@ -832,8 +869,8 @@ class QubitCircuit(object):
             elif gate.name == "SQRTISWAP":
                 self.U_list.append(sqrtiswap(self.N, gate.targets))
             elif gate.name == "FREDKIN":
-                self.U_list.append(fredkin(self.N, gate.controls, 
-                                           gate.targets[0]))
+                self.U_list.append(fredkin(self.N, gate.controls[0], 
+                                           gate.targets))
             elif gate.name == "TOFFOLI":
                 self.U_list.append(toffoli(self.N, gate.controls, 
                                            gate.targets[0]))
