@@ -283,7 +283,15 @@ shape = [4, 4], type = oper, isHerm = True
 def berkeley(N=None, targets=[0, 1]):
     """
     Quantum object representing the Berkeley gate.
-    berkeley()
+    
+    Returns
+    -------
+    berkeley_gate : qobj
+        Quantum object representation of Berkeley gate
+
+    Examples
+    --------
+    >>> berkeley()
     Quantum object: dims = [[2, 2], [2, 2]], \
 shape = [4, 4], type = oper, isHerm = True
     Qobj data =
@@ -291,11 +299,6 @@ shape = [4, 4], type = oper, isHerm = True
          [ 0.+0.j          cos(3pi/8).+0.j  0.+sin(3pi/8).j  0.+0.j]
          [ 0.+0.j          0.+sin(3pi/8).j  cos(3pi/8).+0.j  0.+0.j]
          [ 0.+sin(pi/8).j  0.+0.j           0.+0.j           cos(pi/8).+0.j]]
-
-    Returns
-    -------
-    berkeley_gate : qobj
-        Quantum object representation of Berkeley gate
 
     """
     if (targets[0] == 1 and targets[1] == 0) and N is None:
@@ -314,19 +317,22 @@ shape = [4, 4], type = oper, isHerm = True
 def swapalpha(alpha, N=None, targets=[0, 1]):
     """
     Quantum object representing the SWAPalpha gate.
-    swapalpha(alpha)
-    Quantum object: dims = [[2, 2], [2, 2]], \
-shape = [4, 4], type = oper, isHerm = True
-    Qobj data =
-        [[ 1.+0.j  0.+0.j                    0.+0.j                    0.+0.j]
-         [ 0.+0.j  0.5*(1 + exp(j*pi*alpha)  0.5*(1 - exp(j*pi*alpha)  0.+0.j]
-         [ 0.+0.j  0.5*(1 - exp(j*pi*alpha)  0.5*(1 + exp(j*pi*alpha)  0.+0.j]
-         [ 0.+0.j  0.+0.j                    0.+0.j                    1.+0.j]]
-
+    
     Returns
     -------
     swapalpha_gate : qobj
         Quantum object representation of SWAPalpha gate
+
+    Examples
+    --------
+    >>> swapalpha(alpha)
+    Quantum object: dims = [[2, 2], [2, 2]], \
+shape = [4, 4], type = oper, isHerm = True
+    Qobj data =
+    [[ 1.+0.j  0.+0.j                    0.+0.j                    0.+0.j]
+     [ 0.+0.j  0.5*(1 + exp(j*pi*alpha)  0.5*(1 - exp(j*pi*alpha)  0.+0.j]
+     [ 0.+0.j  0.5*(1 - exp(j*pi*alpha)  0.5*(1 + exp(j*pi*alpha)  0.+0.j]
+     [ 0.+0.j  0.+0.j                    0.+0.j                    1.+0.j]]
 
     """
     if (targets[0] == 1 and targets[1] == 0) and N is None:

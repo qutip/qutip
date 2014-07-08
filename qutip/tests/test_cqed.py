@@ -36,52 +36,54 @@ from numpy.testing import assert_, run_module_suite
 from qutip.qip.gates import *
 from qutip.qip.circuit import *
 from qutip.qip.models.circuitprocessor import CircuitProcessor
-from qutip.qip.models.spinchain import *
+from qutip.qip.models.cqed import *
 
-class TestSpinChain:
+
+class Testcqed:
     """
     A test class for the QuTiP functions for physical implementation of 
-    linear and circular spin chain models.
+    resonator-qubit models.
     """
 
-    def linear_ISWAP(self):
+    def dispersivecqed_ISWAP(self):
         """
-        Linear Spin Chain Setup: compare unitary matrix for ISWAP and propogator
+        Dispersive cQED Setup: compare unitary matrix for ISWAP and propogator
         matrix of the implemented physical model.
         """
         N = 3
 
         qc1 = QubitCircuit(N)
         qc1.add_gate("ISWAP", targets=[0, 1])
-        U_ideal = gate_sequence_product(qc1.propagators())
+        U_ideal = gate_sequence_product(qc1.unitary_matrix())
 
-        p = LinearSpinChain(N, correct_global_phase=True)
+        p = DispersivecQED(N, correct_global_phase=True)
         U_list = p.run(qc)
         U_physical = gate_sequence_product(U_list)
         
-        assert_((U_ideal - U_physical).norm() < 1e-12)
- 
+        assert_((U_ideal - U_physical).norm() < 1e-4)
+
        
-    def linear_SQRTISWAP(self):
+    def dispersivecqed_SQRTISWAP(self):
         """
-        Linear Spin Chain Setup: compare unitary matrix for SQRTISWAP and
+        Dispersive cQED Setup: compare unitary matrix for SQRTISWAP and
         propogator matrix of the implemented physical model.
         """
         N = 3
 
         qc1 = QubitCircuit(N)
         qc1.add_gate("SQRTISWAP", targets=[0, 1])
-        U_ideal = gate_sequence_product(qc1.propagators())
+        U_ideal = gate_sequence_product(qc1.unitary_matrix())
 
-        p = LinearSpinChain(N, correct_global_phase=True)
+        p = DispersivecQED(N, correct_global_phase=True)
         U_list = p.run(qc)
         U_physical = gate_sequence_product(U_list)
         
-        assert_((U_ideal - U_physical).norm() < 1e-12)
+        assert_((U_ideal - U_physical).norm() < 1e-4)
+
         
-    def linear_combination(self):
+    def dispersivecqed_combination(self):
         """
-        Linear Spin Chain Setup: compare unitary matrix for ISWAP, SQRTISWAP,
+        Dispersive cQED Setup: compare unitary matrix for ISWAP, SQRTISWAP,
         RX and RY gates and the propogator matrix of the implemented physical 
         model.
         """
@@ -92,72 +94,14 @@ class TestSpinChain:
         qc1.add_gate("SQRTISWAP", targets=[0, 1])
         qc1.add_gate("RZ", arg_value=pi/2, arg_label=r"\pi/2", targets=[1])
         qc1.add_gate("RX", arg_value=pi/2, arg_label=r"\pi/2", targets=[0])
-        U_ideal = gate_sequence_product(qc1.propagators())
+        U_ideal = gate_sequence_product(qc1.unitary_matrix())
 
-        p = LinearSpinChain(N, correct_global_phase=True)
+        p = DispersivecQED(N, correct_global_phase=True)
         U_list = p.run(qc)
         U_physical = gate_sequence_product(U_list)
         
-        assert_((U_ideal - U_physical).norm() < 1e-12)
- 
+        assert_((U_ideal - U_physical).norm() < 1e-4)
 
-    def circular_ISWAP(self):
-        """
-        Circular Spin Chain Setup: compare unitary matrix for ISWAP and 
-        propogator matrix of the implemented physical model.
-        """
-        N = 3
 
-        qc1 = QubitCircuit(N)
-        qc1.add_gate("ISWAP", targets=[0, 1])
-        U_ideal = gate_sequence_product(qc1.propagators())
-
-        p = CircularSpinChain(N, correct_global_phase=True)
-        U_list = p.run(qc)
-        U_physical = gate_sequence_product(U_list)
-        
-        assert_((U_ideal - U_physical).norm() < 1e-12)
- 
-       
-    def circular_SQRTISWAP(self):
-        """
-        Circular Spin Chain Setup: compare unitary matrix for SQRTISWAP and
-        propogator matrix of the implemented physical model.
-        """
-        N = 3
-
-        qc1 = QubitCircuit(N)
-        qc1.add_gate("SQRTISWAP", targets=[0, 1])
-        U_ideal = gate_sequence_product(qc1.propagators())
-
-        p = CircularSpinChain(N, correct_global_phase=True)
-        U_list = p.run(qc)
-        U_physical = gate_sequence_product(U_list)
-        
-        assert_((U_ideal - U_physical).norm() < 1e-12)
-
-        
-    def circular_combination(self):
-        """
-        Linear Spin Chain Setup: compare unitary matrix for ISWAP, SQRTISWAP,
-        RX and RY gates and the propogator matrix of the implemented physical 
-        model.
-        """
-        N = 3
-
-        qc1 = QubitCircuit(N)
-        qc1.add_gate("ISWAP", targets=[0, 1])
-        qc1.add_gate("SQRTISWAP", targets=[0, 1])
-        qc1.add_gate("RZ", arg_value=pi/2, arg_label=r"\pi/2", targets=[1])
-        qc1.add_gate("RX", arg_value=pi/2, arg_label=r"\pi/2", targets=[0])
-        U_ideal = gate_sequence_product(qc1.propagators())
-
-        p = CircularSpinChain(N, correct_global_phase=True)
-        U_list = p.run(qc)
-        U_physical = gate_sequence_product(U_list)
-        
-        assert_((U_ideal - U_physical).norm() < 1e-12)
-        
-       
 if __name__ == "__main__":
     run_module_suite()
