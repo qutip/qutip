@@ -196,8 +196,20 @@ Entropy Functions
 Quantum Information Processing
 ------------------------------
 
+Gates
+^^^^^
+
 .. automodule:: qutip.qip.gates
-    :members: rx, ry, rz, sqrtnot, snot, phasegate, cphase, cnot, csign, berkeley, swapalpha, swap, iswap, sqrtswap, sqrtiswap, fredkin, toffoli, rotation, controlled_gate, globalphase, _hamming_distance, hadamard_transform, gate_sequence_product, gate_expand_1toN, gate_expand_2toN, gate_expand_3toN
+    :members: rx, ry, rz, sqrtnot, snot, phasegate, cphase, cnot, csign, berkeley, swapalpha, swap, iswap, sqrtswap, sqrtiswap, fredkin, toffoli, rotation, controlled_gate, globalphase, hadamard_transform, gate_sequence_product, gate_expand_1toN, gate_expand_2toN, gate_expand_3toN
+
+Qubits
+^^^^^^
+
+.. automodule:: qutip.qip.qubits
+    :members: qubit_states
+
+Algorithms
+^^^^^^^^^^
 
 .. automodule:: qutip.qip.algorithms.qft
     :members: qft, qft_steps, qft_gate_sequence

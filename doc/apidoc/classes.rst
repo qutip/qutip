@@ -93,12 +93,13 @@ Quantum information processing
 .. autoclass:: qutip.qip.models.CircuitProcessor
     :members:
 
-.. autoclass:: qutip.qip.models.SpinChain
+.. autoclass:: qutip.qip.models.spinchain.SpinChain
     :members:
 
-.. autoclass:: qutip.qip.models.LinearSpinChain
-    :members:
+.. autoclass:: qutip.qip.models.spinchain.LinearSpinChain
 
-.. autoclass:: qutip.qip.models.CircularSpinChain
+.. autoclass:: qutip.qip.models.spinchain.CircularSpinChain
+
+.. autoclass:: qutip.qip.models.cqed.DispersivecQED
     :members:
 
