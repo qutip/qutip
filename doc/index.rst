@@ -2,17 +2,13 @@
    Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
 
 
-QuTiP: Quantum Toolbox in Python
-======================================
-
-Version 3.0
------------
+QuTiP: Quantum Toolbox in Python (3.0.0)
+========================================
 
 .. toctree::
    :maxdepth: 3
    
    frontmatter.rst
-   introduction.rst
    installation.rst
    guide/guide.rst
    apidoc/apidoc.rst
