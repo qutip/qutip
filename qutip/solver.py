@@ -188,7 +188,7 @@ class Options():
         return s
 
 
-class SolverResult():
+class Result():
     """Class for storing simulation results from any of the dynamics solvers.
 
     Attributes
@@ -229,7 +229,7 @@ class SolverResult():
         self.col_which = None
 
     def __str__(self):
-        s = "SolverResult object "
+        s = "Result object "
         if self.solver:
             s += "with " + self.solver + " data.\n"
         else:
@@ -350,4 +350,4 @@ config = SolverConfiguration()
 
 # for backwards compatibility
 Odeoptions = Options
-Odedata = SolverResult
+Odedata = Result

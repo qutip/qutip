@@ -30,27 +30,4 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
-import numpy as np
-from numpy.testing import assert_, run_module_suite
-from qutip.qip.algorithms.qft import qft, qft_steps
-from qutip.qip.gates import gate_sequence_product
-
-
-class TestQFT:
-    """
-    A test class for the QuTiP functions for QFT
-    """
-
-    def testQFTComparison(self):
-        """
-        qft: compare qft and product of qft steps
-        """
-        for N in range(1, 5):
-            U1 = qft(N)
-            U2 = gate_sequence_product(qft_steps(N))
-            assert_((U1 - U2).norm() < 1e-12)
-
-
-if __name__ == "__main__":
-    run_module_suite()
+from qutip.qip.models.circuitprocessor import CircuitProcessor

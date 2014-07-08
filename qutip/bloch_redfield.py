@@ -39,7 +39,7 @@ from qutip.superoperator import spre, spost, vec2mat, mat2vec, vec2mat_index
 from qutip.expect import expect
 from qutip.solver import Options
 from qutip.cy.spmatfuncs import cy_ode_rhs
-from qutip.solver import SolverResult
+from qutip.solver import Result
 
 
 #------------------------------------------------------------------------------
@@ -97,7 +97,7 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
 
     R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb)
 
-    output = SolverResult()
+    output = Result()
     output.solver = "brmesolve"
     output.times = tlist
 

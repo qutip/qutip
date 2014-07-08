@@ -38,7 +38,7 @@ import numpy as np
 from qutip.fortran import qutraj_run as qtf90
 from qutip.qobj import Qobj
 from qutip.mcsolve import _mc_data_config
-from qutip.solver import Options, SolverResult, config
+from qutip.solver import Options, Result, config
 from qutip.settings import debug
 import qutip.settings
 
@@ -96,7 +96,7 @@ def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     Returns
     -------
-    results : SolverResult
+    results : Result
         Object storing all results from simulation.
 
     """
@@ -181,8 +181,8 @@ def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=None,
             calc_entropy = False
         mc.calc_entropy = calc_entropy
 
-    # construct output SolverResult object
-    output = SolverResult()
+    # construct output Result object
+    output = Result()
 
     # Run
     mc.run()
@@ -207,7 +207,7 @@ class _MC_class():
     def __init__(self):
         self.cpus = config.options.num_cpus
         self.nprocs = self.cpus
-        self.sol = SolverResult()
+        self.sol = Result()
         self.mf = 10
         # If returning density matrices, return as sparse or dense?
         self.sparse_dms = True
@@ -374,8 +374,8 @@ class _MC_class():
         qtf90.qutraj_run.evolve(instanceno, rngseed, show_progress)
     
 
-        # construct SolverResult instance
-        sol = SolverResult()
+        # construct Result instance
+        sol = Result()
         sol.ntraj = ntraj
         # sol.col_times = qtf90.qutraj_run.col_times
         # sol.col_which = qtf90.qutraj_run.col_which-1
@@ -504,8 +504,8 @@ class _MC_class():
 
 
 def _gather(sols):
-    # gather list of SolverResult objects, sols, into one.
-    sol = SolverResult()
+    # gather list of Result objects, sols, into one.
+    sol = Result()
     # sol = sols[0]
     ntraj = sum([a.ntraj for a in sols])
     sol.col_times = np.zeros((ntraj), dtype=np.ndarray)

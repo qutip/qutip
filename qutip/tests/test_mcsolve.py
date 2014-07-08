@@ -60,7 +60,8 @@ def const_H1_coeff(t, args):
     return 0.0
 
 # average error for failure
-mc_error = 5e-2  # 5% for ntraj=500
+mc_error = 5e-2  # 5%
+ntraj = 750
 
 
 def test_MCNoCollExpt():
@@ -73,7 +74,7 @@ def test_MCNoCollExpt():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * ones(len(tlist))
     diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -90,7 +91,7 @@ def test_MCNoCollStates():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [], ntraj=ntraj)
     states = mcdata.states
     expt = expect(a.dag() * a, states)
     actual_answer = 9.0 * ones(len(tlist))
@@ -108,7 +109,8 @@ def test_MCNoCollStrExpt():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args={'c': 0.0})
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args={'c': 0.0}, 
+                     ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * ones(len(tlist))
     diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -125,7 +127,7 @@ def test_MCNoCollFuncExpt():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * ones(len(tlist))
     diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -160,7 +162,7 @@ def test_MCNoCollFuncStates():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [], ntraj=ntraj)
     states = mcdata.states
     expt = expect(a.dag() * a, states)
     actual_answer = 9.0 * ones(len(tlist))
@@ -177,7 +179,7 @@ def test_MCSimpleConst():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [sqrt(kappa) * a]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -193,7 +195,7 @@ def test_MCSimpleSingleCollapse():
     kappa = 0.2  # coupling to oscillator
     c_op_list = sqrt(kappa) * a
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -209,7 +211,7 @@ def test_MCSimpleSingleExpect():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [sqrt(kappa) * a]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, a.dag() * a)
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, a.dag() * a, ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -225,7 +227,7 @@ def test_MCSimpleConstFunc():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [[a, sqrt_kappa]]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -244,7 +246,8 @@ def test_MCSimpleConstStr():
     c_op_list = [[a, 'sqrt(k)']]
     args = {'k': kappa}
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args)
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args,
+                     ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -261,7 +264,7 @@ def test_MCTDFunc():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [[a, sqrt_kappa2]]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * (1.0 - exp(-tlist)))
     diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -281,7 +284,8 @@ def test_TDStr():
     c_op_list = [[a, 'sqrt(k*exp(-t))']]
     args = {'k': kappa}
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args)
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args, 
+                     ntraj=ntraj)
     expt = mcdata.expect[0]
     actual = 9.0 * exp(-kappa * (1.0 - exp(-tlist)))
     diff = mean(abs(actual - expt) / actual)

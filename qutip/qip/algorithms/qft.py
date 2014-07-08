@@ -138,6 +138,3 @@ def qft_gate_sequence(N=1, swapping=True):
                 qc.add_gate(r"SWAP", targets=[i], controls=[N-1-i])
         
     return qc
-
-
-

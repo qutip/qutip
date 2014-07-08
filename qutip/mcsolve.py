@@ -55,7 +55,7 @@ from qutip.states import ket2dm
 from qutip.parfor import parfor
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
-from qutip.solver import Options, SolverResult, config
+from qutip.solver import Options, Result, config
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 import qutip.settings
 from qutip.settings import debug
@@ -143,7 +143,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     Returns
     -------
-    results : SolverResult
+    results : Result
         Object storing all results from simulation.
 
     """
@@ -261,7 +261,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     # AFTER MCSOLVER IS DONE --------------------------------------
     # ------- COLLECT AND RETURN OUTPUT DATA IN ODEDATA OBJECT --------------
-    output = SolverResult()
+    output = Result()
     output.solver = 'mcsolve'
     # state vectors
     if (mc.psi_out is not None and config.options.average_states

@@ -62,7 +62,7 @@ from numpy.random import RandomState
 from qutip.qobj import Qobj, isket
 from qutip.states import ket2dm
 from qutip.operators import commutator
-from qutip.solver import SolverResult
+from qutip.solver import Result
 from qutip.expect import expect, expect_rho_vec
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
                                  liouvillian, lindblad_dissipator)
@@ -661,7 +661,7 @@ def _ssesolve_generic(sso, options, progress_bar):
     dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
-    data = SolverResult()
+    data = Result()
     data.solver = "ssesolve"
     data.times = sso.times
     data.expect = np.zeros((len(sso.e_ops), N_store), dtype=complex)
@@ -811,7 +811,7 @@ def _smesolve_generic(sso, options, progress_bar):
     dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
-    data = SolverResult()
+    data = Result()
     data.solver = "smesolve"
     data.times = sso.times
     data.expect = np.zeros((len(sso.e_ops), N_store), dtype=complex)
@@ -974,11 +974,11 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
     dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
-    data = SolverResult()
-    data.solver = "ssepdpsolve"
-    data.times = sso.times
-    data.expect = np.zeros((len(sso.e_ops), N_store), dtype=complex)
-    data.ss = np.zeros((len(sso.e_ops), N_store), dtype=complex)
+    data = Result()
+    data.solver = "sepdpsolve"
+    data.times = ssdata.tlist
+    data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
+    data.ss = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
     data.jump_times = []
     data.jump_op_idx = []
 
@@ -1106,7 +1106,7 @@ def _smepdpsolve_generic(sso, options, progress_bar):
     dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
-    data = SolverResult()
+    data = Result()
     data.solver = "smepdpsolve"
     data.times = sso.times
     data.expect = np.zeros((len(sso.e_ops), N_store), dtype=complex)
