@@ -420,9 +420,11 @@ class QubitCircuit(object):
                 temp_resolved.append(Gate("GLOBALPHASE", None, None,
                                           arg_value=np.pi/2, 
                                           arg_label=r"\pi/2"))
-            elif gate.name == "SQRTSWAP" and not basis_2q is "SQRTSWAP":
+            elif gate.name == "SQRTSWAP" and not basis_2q in ["SQRTSWAP", 
+                                                              "ISWAP"]:
                 raise NotImplementedError("Cannot be resolved in this basis")
-            elif gate.name == "SQRTISWAP" and not basis_2q is "SQRTISWAP":
+            elif gate.name == "SQRTISWAP" and not basis_2q in ["SQRTISWAP", 
+                                                               "ISWAP"]:
                 raise NotImplementedError("Cannot be resolved in this basis")
             elif gate.name == "FREDKIN":
                 temp_resolved.append(Gate("CNOT", gate.targets[0], 
