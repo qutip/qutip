@@ -38,7 +38,7 @@ from qutip.tensor import tensor
 from qutip.states import ket
 
 
-def qubit_states(N=2, states=00):
+def qubit_states(N=1, states=[0]):
     """
     Function to define initial state of the qubits.
 
@@ -46,7 +46,7 @@ def qubit_states(N=2, states=00):
     ----------
     N: Integer
         Number of qubits in the register.
-    states: Integer
+    states: List
         Initial state of each qubit.
 
     Returns
@@ -54,5 +54,13 @@ def qubit_states(N=2, states=00):
     qstates: Qobj
         List of qubits.  
     """
+    state_list = []
+    for i in range(N):
+        if N > len(states) and i >= len(states):
+            state_list.append(0)
+        else:
+            state_list.append(states[i])
 
-    
+    return ket(state_list)
+
+
