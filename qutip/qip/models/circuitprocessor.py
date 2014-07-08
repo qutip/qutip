@@ -180,6 +180,8 @@ class CircuitProcessor(object):
         U_list: List
             The propagator matrix obtained from the physical implementation.
         """
+        if states is None:
+            raise NotImplementedError("Qubit state not defined.")
         if qc:
             self.load_circuit(qc)
         U_list = [states]
