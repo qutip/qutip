@@ -36,6 +36,7 @@ from numpy.testing import assert_, assert_equal, run_module_suite
 import scipy
 
 from qutip import *
+from qutip.superoperator import liouvillian_ref
 
 
 class TestMatrixVector:
@@ -120,6 +121,27 @@ class TestMatrixVector:
         assert_equal(S_col.dims[0], [[2, 2], [3, 3], [4, 4]])
         
         assert_equal(reshuffle(S_col), S)
+
+    def testLiouvillianImplementations(self):
+        """
+        Superoperator: Randomized comparison of standard and reference
+        Liouvillian functions.
+        """
+        N1 = 3
+        N2 = 4
+        N3 = 5
+
+        a1 = tensor(rand_dm(N1, density=0.75), identity(N2), identity(N3))
+        a2 = tensor(identity(N1), rand_dm(N2, density=0.75), identity(N3))
+        a3 = tensor(identity(N1), identity(N2), rand_dm(N3, density=0.75))
+        H = a1.dag() * a1 + a2.dag() * a2 + a3.dag() * a3
+
+        c_ops = [sqrt(0.01) * a1, sqrt(0.025) * a2, sqrt(0.05) * a3]
+
+        L1 = liouvillian(H, c_ops)
+        L2 = liouvillian_ref(H, c_ops)
+
+        assert_((L1 - L2).norm() < 1e-8)
 
     
 if __name__ == "__main__":
