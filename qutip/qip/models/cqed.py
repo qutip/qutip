@@ -44,18 +44,18 @@ class DispersivecQED(CircuitProcessor):
     on a dispersive cavity-QED system.
     """
 
-    def __init__(self, N, correct_global_phase=True, Nres=None, sx=None, 
-                 sz=None, wo=None, eps=None, delta=None, g=None):
+    def __init__(self, N, correct_global_phase=True, Nres=None, deltamax=None, 
+                 epsmax=None, wo=None, eps=None, delta=None, g=None):
         """
         Parameters
         ----------
         Nres: Integer
             The number of energy levels in the resonator.
 
-        sx: Integer/List
+        deltamax: Integer/List
             The sigma-x coefficient for each of the qubits in the system.
 
-        sz: Integer/List
+        epsmax: Integer/List
             The sigma-z coefficient for each of the qubits in the system.
 
         wo: Integer
@@ -79,19 +79,19 @@ class DispersivecQED(CircuitProcessor):
         else:
             self.Nres = Nres
         
-        if sx == None:
+        if deltamax == None:
             self.sx_coeff = np.array([1.0 * 2 * pi] * N)
         elif not isinstance(sx, list):
-            self.sx_coeff = np.array([sx * 2 * pi] * N)
+            self.sx_coeff = np.array([deltamax * 2 * pi] * N)
         else:
-            self.sx_coeff = np.array(sx)
+            self.sx_coeff = np.array(deltamax)
         
-        if sz == None:
+        if epsmax == None:
             self.sz_coeff = np.array([1.0 * 2 * pi] * N)
         elif not isinstance(sx, list):
-            self.sz_coeff = np.array([sz * 2 * pi] * N)
+            self.sz_coeff = np.array([epsmax * 2 * pi] * N)
         else:
-            self.sz_coeff = np.array(sz)
+            self.sz_coeff = np.array(epsmax)
 
         if w0 == None:        
             self.w0 = 10 * 2 * pi
