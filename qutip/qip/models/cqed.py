@@ -120,10 +120,9 @@ class DispersivecQED(CircuitProcessor):
             self.g = np.array(g)
         
         # computed
-        for i in range(N):
-            self.wq.append(sqrt(self.eps[i] ** 2 + self.delta[i] ** 2))
-            self.Delta.append(self.wq[i] - self.w0)
-        
+        self.wq = sqrt(self.eps ** 2 + self.delta ** 2)
+        self.Delta = self.wq - self.w0
+    
         # rwa/dispersive regime tests
         if any(self.g / (self.w0 - self.wq)) > 0.025:
             warnings.warn("Not in the dispersive regime")
