@@ -27,7 +27,17 @@ Version 3.0.0 (July X, 2014):
 - QuTiP no longer contains the demos GUI. The examples are now available on the
   QuTiP web site.
 
+- New functions for visualizing quantum states using Qubism and Schimdt plots.
+
+- Public plotting functions from the `qutip.visualization` module are now 
+  prefixed with `plot_` (e.g., `plot_fock_distribution`).
+
+- The classes `OdeData`, 'Odeoptions', 'Odeconfig' are now called 
+  'Result', 'Options', and 'Config', respectively, and are available in the 
+  module `qutip.solver`.
+
 - Improved performance and numerous bug fixes.
+
 
 
 Version 2.2.0 (March 01, 2013):
