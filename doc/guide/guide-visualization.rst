@@ -91,17 +91,17 @@ easily appreciated.
 
 One frequently need to visualize the Fock-distribution in the way described
 above, so QuTiP provides a convenience function for doing this, see
-:func:`qutip.visualization.fock_distribution`, and the following example:
+:func:`qutip.visualization.plot_fock_distribution`, and the following example:
 
 .. ipython::
 
     In [1]: fig, axes = plt.subplots(1, 3, figsize=(12,3))
 
-    In [1]: fock_distribution(rho_coherent, fig=fig, ax=axes[0], title="Coherent state");
+    In [1]: plot_fock_distribution(rho_coherent, fig=fig, ax=axes[0], title="Coherent state");
 
-    In [1]: fock_distribution(rho_thermal, fig=fig, ax=axes[1], title="Thermal state");
+    In [1]: plot_fock_distribution(rho_thermal, fig=fig, ax=axes[1], title="Thermal state");
 
-    In [1]: fock_distribution(rho_fock, fig=fig, ax=axes[2], title="Fock state");
+    In [1]: plot_fock_distribution(rho_fock, fig=fig, ax=axes[2], title="Fock state");
 
     In [1]: fig.tight_layout()
 

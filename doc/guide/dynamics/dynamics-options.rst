@@ -1,20 +1,20 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-.. _odeoptions:
+.. _Options:
 
 *********************************************
-Setting Options for the Dynamics ODE Solvers
+Setting Options for the Dynamics Solvers
 *********************************************
 
-Occasionally it is necessary to change the built in parameters of the ODE solvers used by both the :func:`qutip.mesolve` and :func:`qutip.mcsolve` functions.  The ODE options for either of these functions may be changed by calling the Odeoptions class :class:`qutip.Odeoptions`
+Occasionally it is necessary to change the built in parameters of the dynamics solvers used by for example the :func:`qutip.mesolve` and :func:`qutip.mcsolve` functions.  The options for all dynamics solvers may be changed by using the Options class :class:`qutip.Options`.
 
->>> opts = Odeoptions()
+>>> opts = Options()
 
 the properties and default values of this class can be view via the `print` function::
 
     >>> print(opts)
-	Odeoptions properties:
+	Options properties:
 	----------------------
 	atol:          1e-08
 	rtol:          1e-06
@@ -31,7 +31,7 @@ the properties and default values of this class can be view via the `print` func
 	gui:           True
 	mc_avg:    	   True
 
-These properties are detailed in the following table.  Assuming ``opts = Odeoptions()``:
+These properties are detailed in the following table.  Assuming ``opts = Options()``:
 
 +-------------------+-----------------+----------------------------------------------------------------+
 | Property          | Default setting | Description                                                    |
@@ -67,21 +67,21 @@ These properties are detailed in the following table.  Assuming ``opts = Odeopti
 +-------------------+-----------------+----------------------------------------------------------------+
 
 
-As an example, let us consider changing the number of processors used, turn the GUI off, and strengthen the absolute tolerance.  There are two equivalent ways to do this using the Odeoptions class.  First way,
+As an example, let us consider changing the number of processors used, turn the GUI off, and strengthen the absolute tolerance.  There are two equivalent ways to do this using the Options class.  First way,
 
-    >>> opts = Odeoptions()
+    >>> opts = Options()
     >>> opts.num_cpus = 3
     >>> opts.gui = False
     >>> opts.atol = 1e-10
 
 or one can use an inline method,
 
-	>>> opts = Odeoptions(num_cpus=3, gui=False, atol=1e-10)
+	>>> opts = Options(num_cpus=3, gui=False, atol=1e-10)
 
 Note that the order in which you input the options does not matter.  Using either method, the resulting `opts` variable is now::
 
 	>>> print opts
-	Odeoptions properties:
+	Options properties:
 	----------------------
 	atol:          1e-10
 	rtol:          1e-06

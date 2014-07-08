@@ -428,7 +428,7 @@ This isomorphism is implemented in QuTiP by the
     
     In [2]: rho = ket2dm(psi)
     
-    In [3]: print rho
+    In [3]: rho
     Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isherm = True
     Qobj data =
     [[ 1.  0.]
@@ -436,7 +436,7 @@ This isomorphism is implemented in QuTiP by the
     
     In [4]: vec_rho = operator_to_vector(rho)
 
-    In [5]: print vec_rho
+    In [5]: vec_rho
     Quantum object: dims = [[[2], [2]], [1]], shape = [4, 1], type = operator-ket
     Qobj data =
     [[ 1.]
@@ -446,7 +446,7 @@ This isomorphism is implemented in QuTiP by the
     
     In [6]: rho2 = vector_to_operator(vec_rho)
     
-    In [7]: print (rho - rho2).norm()
+    In [7]: (rho - rho2).norm()
     0.0
     
 The :attr:`~qutip.Qobj.type` attribute indicates whether a quantum object is
@@ -462,13 +462,13 @@ between :math:`\mathcal{L}(\mathcal{H})` and :math:`\mathcal{H} \otimes \mathcal
     
     In [2]: A = Qobj(np.arange(4).reshape((2, 2)))
     
-    In [3]: print A
+    In [3]: A
     Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isherm = False
     Qobj data =
     [[ 0.  1.]
      [ 2.  3.]]
      
-    In [4]: print operator_to_vector(A)
+    In [4]: operator_to_vector(A)
     Quantum object: dims = [[[2], [2]], [1]], shape = [4, 1], type = operator-ket
     Qobj data =
     [[ 0.]
@@ -495,14 +495,14 @@ Note that this is done automatically by the :obj:`~qutip.superop_reps.to_super` 
 
     In [1]: S2 = to_super(X)
     
-    In [2]: print (S - S2).norm()
+    In [2]: (S - S2).norm()
     0.0
     
 Quantum objects representing superoperators are denoted by ``type='super'``:
 
 .. ipython::
 
-    In [1]: print S
+    In [1]: S
     Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = [4, 4], type = super, isherm = True
     Qobj data =
     [[ 0.  0.  0.  1.]
@@ -516,7 +516,7 @@ and :attr:`~qutip.Qobj.iscptp` attributes:
 
 .. ipython::
 
-    In [1]: print S.iscp, S.istp, S.iscptp
+    In [1]: S.iscp, S.istp, S.iscptp
     True True True
     
 In addition, dynamical generators on this extended space, often called
@@ -533,7 +533,7 @@ be exponentiated to find the superoperator for that evolution.
 
     In [3]: L = liouvillian(H, [c1])
 
-    In [4]: print L
+    In [4]: L
     Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = [4, 4], type = super, isherm = False, superrep = None
     Qobj data =
     [[ 0.0 +0.j  0.0 +0.j  0.0 +0.j  1.0 +0.j]
@@ -552,7 +552,7 @@ attribute keeps track of what reprsentation is a :obj:`~qutip.Qobj` is currently
 
     In [1]: J = to_choi(S)
 
-    In [2]: print J
+    In [2]: J
     Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = [4, 4], type = super, isherm = True, superrep = choi
     Qobj data =
     [[  1.00000000e+00+0.j           0.00000000e+00+0.j           0.00000000e+00+0.j
@@ -566,7 +566,7 @@ attribute keeps track of what reprsentation is a :obj:`~qutip.Qobj` is currently
 
     In [3]: K = to_kraus(J)
     
-    In [4]: print K
+    In [4]: K
     [Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isherm = False
     Qobj data =
     [[  1.00000000e+00 +5.37489696e-22j   0.00000000e+00 +0.00000000e+00j]

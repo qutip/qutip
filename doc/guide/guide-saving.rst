@@ -11,6 +11,7 @@ Saving QuTiP Objects and Data Sets
    :suppress:
 
    In [1]: from qutip import *
+           import numpy as np
 
 
 With time-consuming calculations it is often necessary to store the results to files on disk, so it can be post-processed and archived. In QuTiP there are two facilities for storing data: Quantum objects can be stored to files and later read back as python pickles, and numerical data (vectors and matrices) can be exported as plain text files in for example CSV (comma-separated values), TSV (tab-separated values), etc. The former method is preferred when further calculations will be performed with the data, and the latter when the calculations are completed and data is to be imported into a post-processing tool (e.g. for generating figures).
@@ -18,7 +19,7 @@ With time-consuming calculations it is often necessary to store the results to f
 Storing and loading QuTiP objects
 =================================
 
-To store and load arbitrary QuTiP related objects (:class:`qutip.Qobj`, :class:`qutip.Odedata`, etc.) there are two functions: :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload`. The function :func:`qutip.fileio.qsave` takes an arbitrary object as first parameter and an optional filename as second parameter (default filename is `qutip_data.qu`). The filename extension is always `.qu`. The function :func:`qutip.fileio.qload` takes a mandatory filename as first argument and loads and returns the objects in the file.
+To store and load arbitrary QuTiP related objects (:class:`qutip.Qobj`, :class:`qutip.solver.Result`, etc.) there are two functions: :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload`. The function :func:`qutip.fileio.qsave` takes an arbitrary object as first parameter and an optional filename as second parameter (default filename is `qutip_data.qu`). The filename extension is always `.qu`. The function :func:`qutip.fileio.qload` takes a mandatory filename as first argument and loads and returns the objects in the file.
 
 To illustrate how these functions can be used, consider a simple calculation of the steadystate of the harmonic oscillator:
 
@@ -55,7 +56,7 @@ The nice thing about the :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qloa
    
    	In [2]: psi0 = rand_ket(10)
 	
-	In [3]: tlist = linspace(0, 10, 10)
+	In [3]: tlist = np.linspace(0, 10, 10)
 	
 	In [4]: dm_list = mesolve(H, psi0, tlist, c_ops, [])
 	
@@ -91,7 +92,7 @@ A common use for the :func:`qutip.file_data_store` function is to store the expe
    
    	In [2]: psi0 = rand_ket(10)
 	
-	In [3]: tlist = linspace(0, 100, 100)
+	In [3]: tlist = np.linspace(0, 100, 100)
 	
 	In [4]: medata = mesolve(H, psi0, tlist, c_ops, [a.dag() * a, a + a.dag(), -1j * (a - a.dag())])
 	
@@ -99,7 +100,7 @@ A common use for the :func:`qutip.file_data_store` function is to store the expe
 	
 	In [6]: shape(tlist)
 	
-	In [7]: output_data = vstack((tlist, medata.expect))   # join time and expt data
+	In [7]: output_data = np.vstack((tlist, medata.expect))   # join time and expt data
 	
 	In [8]: file_data_store('expect.dat', output_data.T) # Note the .T for transpose!
 	

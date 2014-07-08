@@ -242,12 +242,12 @@ Reusing Time-Dependent Hamiltonian Data
 
 .. note:: This section covers a specialized topic and may be skipped if you are new to QuTiP.
 
-When repeatedly simulating a system where only the time-dependent variables, or initial state change, it is possible to reuse the Hamiltonian data stored in QuTiP and there by avoid spending time needlessly preparing the Hamiltonian and collapse terms for simulation.  To turn on the the reuse features, we must pass a :class:`qutip.Odeoptions` object with the ``rhs_reuse`` flag turned on.  Instructions on setting flags are found in :ref:`odeoptions`.  For example, we can do::
+When repeatedly simulating a system where only the time-dependent variables, or initial state change, it is possible to reuse the Hamiltonian data stored in QuTiP and there by avoid spending time needlessly preparing the Hamiltonian and collapse terms for simulation.  To turn on the the reuse features, we must pass a :class:`qutip.Options` object with the ``rhs_reuse`` flag turned on.  Instructions on setting flags are found in :ref:`Options`.  For example, we can do::
 
     H = [H0, [H1, 'A * exp(-(t / sig) ** 2)']]
     args = {'A': 9, 'sig': 5}
     output = mcsolve(H, psi0, tlist, c_op_list, [a.dag()*a], args=args)
-    opts = Odeoptions(rhs_reuse=True)
+    opts = Options(rhs_reuse=True)
     args = {'A': 10, 'sig': 3}
     output = mcsolve(H, psi0, tlist, c_op_list, [a.dag()*a], args=args, options=opts)
 	
@@ -262,7 +262,7 @@ Running String-Based Time-Dependent Problems using Parfor
 
 .. note:: This section covers a specialized topic and may be skipped if you are new to QuTiP.
 
-In this section we discuss running string-based time-dependent problems using the :func:`qutip.parfor` function.  As the :func:`qutip.mcsolve` function is already parallelized, running string-based time dependent problems inside of parfor loops should be restricted to the :func:`qutip.mesolve` function only. When using the string-based format, the system Hamiltonian and collapse operators are converted into C code with a specific file name that is automatically genrated, or supplied by the user via the ``rhs_filename`` property of the :class:`qutip.Odeoptions` class. Because the :func:`qutip.parfor` function uses the built-in Python multiprocessing functionality, in calling the solver inside a parfor loop, each thread will try to generate compiled code with the same file name, leading to a crash.  To get around this problem you can call the :func:`qutip.rhs_generate` function to compile simulation into C code before calling parfor.  You **must** then set the :class:`qutip.Odedata` object ``rhs_reuse=True`` for all solver calls inside the parfor loop that indicates that a valid C code file already exists and a new one should not be generated.  As an example, we will look at the Landau-Zener-Stuckelberg interferometry example that can be found in the :ref:`exadvanced` section.
+In this section we discuss running string-based time-dependent problems using the :func:`qutip.parfor` function.  As the :func:`qutip.mcsolve` function is already parallelized, running string-based time dependent problems inside of parfor loops should be restricted to the :func:`qutip.mesolve` function only. When using the string-based format, the system Hamiltonian and collapse operators are converted into C code with a specific file name that is automatically genrated, or supplied by the user via the ``rhs_filename`` property of the :class:`qutip.Options` class. Because the :func:`qutip.parfor` function uses the built-in Python multiprocessing functionality, in calling the solver inside a parfor loop, each thread will try to generate compiled code with the same file name, leading to a crash.  To get around this problem you can call the :func:`qutip.rhs_generate` function to compile simulation into C code before calling parfor.  You **must** then set the :class:`qutip.Odedata` object ``rhs_reuse=True`` for all solver calls inside the parfor loop that indicates that a valid C code file already exists and a new one should not be generated.  As an example, we will look at the Landau-Zener-Stuckelberg interferometry example that can be found in the :ref:`exadvanced` section.
 
 To set up the problem, we run the following code::
 
@@ -297,7 +297,7 @@ We must now tell the :func:`qutip.mesolve` function, that is called by :func:`qu
 pre-generated Hamiltonian constructed using the :func:`qutip.rhs_generate` command::
 
 	# ODE settings (for reusing list-str format Hamiltonian)
-	opts = Odeoptions(rhs_reuse=True)
+	opts = Options(rhs_reuse=True)
 	# pre-generate RHS so we can use parfor
 	rhs_generate(H_td, c_op_list, Hargs, name='lz_func')
 
@@ -316,6 +316,6 @@ Here, we have given the generated file a custom name ``lz_func``, however this i
 	        p_mat_m[n] = expect(sn, rho_ss)
 	    return [m, p_mat_m]
 
-Notice the Odeoptions ``opts`` in the call to the :func:`qutip.propagator` function.  This is tells the :func:`qutip.mesolve` function used in the propagator to call the pre-generated file ``lz_func``. If this were missing then the routine would fail.
+Notice the Options ``opts`` in the call to the :func:`qutip.propagator` function.  This is tells the :func:`qutip.mesolve` function used in the propagator to call the pre-generated file ``lz_func``. If this were missing then the routine would fail.
 
 
