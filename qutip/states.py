@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
@@ -919,7 +919,7 @@ def spin_coherent(j, theta, phi, type='ket'):
     """
     Sp = jmat(j, '+')
     Sm = jmat(j, '-')
-    psi = (0.5 * theta * np.exp(1j * phi) * Sm - 
+    psi = (0.5 * theta * np.exp(1j * phi) * Sm -
            0.5 * theta * np.exp(-1j * phi) * Sp).expm() * spin_state(j, j)
 
     if type == 'ket':
@@ -935,26 +935,30 @@ def spin_coherent(j, theta, phi, type='ket'):
 def bell_state(state='00'):
     """
     Returns the Bell state:
-    
+
         |B00> = 1 / sqrt(2)*[|0>|0>+|1>|1>]
         |B01> = 1 / sqrt(2)*[|0>|0>-|1>|1>]
         |B10> = 1 / sqrt(2)*[|0>|1>+|1>|0>]
         |B11> = 1 / sqrt(2)*[|0>|1>-|1>|0>]
-    
+
     Returns
     -------
     Bell_state : qobj
         Bell state
-    
+
     """
     if state == '00':
-        Bell_state=tensor(basis(2),basis(2))+tensor(basis(2,1),basis(2,1))
+        Bell_state = tensor(
+            basis(2), basis(2))+tensor(basis(2, 1), basis(2, 1))
     elif state == '01':
-        Bell_state=tensor(basis(2),basis(2))-tensor(basis(2,1),basis(2,1))
+        Bell_state = tensor(
+            basis(2), basis(2))-tensor(basis(2, 1), basis(2, 1))
     elif state == '10':
-        Bell_state=tensor(basis(2),basis(2,1))+tensor(basis(2,1),basis(2))
+        Bell_state = tensor(
+            basis(2), basis(2, 1))+tensor(basis(2, 1), basis(2))
     elif state == '11':
-        Bell_state=tensor(basis(2),basis(2,1))-tensor(basis(2,1),basis(2))
+        Bell_state = tensor(
+            basis(2), basis(2, 1))-tensor(basis(2, 1), basis(2))
 
     return Bell_state.unit()
 
@@ -962,16 +966,16 @@ def bell_state(state='00'):
 def singlet_state():
     """
     Returns the two particle singlet-state:
-    
+
         |S>=1/sqrt(2)*[|0>|1>-|1>|0>]
-    
+
     that is identical to the fourth bell state.
-    
+
     Returns
     -------
     Bell_state : qobj
         |B11> Bell state
-    
+
     """
     return bell_state('11')
 
@@ -979,64 +983,65 @@ def singlet_state():
 def triplet_states():
     """
     Returns the two particle triplet-states:
-    
+
         |T>= |1>|1>
            = 1 / sqrt(2)*[|0>|1>-|1>|0>]
-           = |0>|0> 
+           = |0>|0>
     that is identical to the fourth bell state.
-    
+
     Returns
     -------
     trip_states : list
         2 particle triplet states
-    
+
     """
     trip_states = []
-    trip_states.append(tensor(basis(2,1),basis(2,1)))
-    trip_states.append(tensor(basis(2),basis(2,1))+tensor(basis(2,1),basis(2)))
-    trip_states.append(tensor(basis(2),basis(2)))
+    trip_states.append(tensor(basis(2, 1), basis(2, 1)))
+    trip_states.append(
+        tensor(basis(2), basis(2, 1))+tensor(basis(2, 1), basis(2)))
+    trip_states.append(tensor(basis(2), basis(2)))
     return trip_states
 
 
 def w_state(N=3):
     """
     Returns the N-qubit W-state.
-    
+
     Parameters
     ----------
     N : int (default=3)
         Number of qubits in state
-    
+
     Returns
     -------
     W : qobj
         N-qubit W-state
-    
+
     """
-    inds=np.zeros(N,dtype=int)
-    inds[0]=1
-    state=tensor([basis(2,x) for x in inds])
-    for kk in range(1,N):
-        perm_inds=np.roll(inds,kk)
-        state+=tensor([basis(2,x) for x in perm_inds])
+    inds = np.zeros(N, dtype=int)
+    inds[0] = 1
+    state = tensor([basis(2, x) for x in inds])
+    for kk in range(1, N):
+        perm_inds = np.roll(inds, kk)
+        state += tensor([basis(2, x) for x in perm_inds])
     return state.unit()
 
 
 def ghz_state(N=3):
     """
     Returns the N-qubit GHZ-state.
-    
+
     Parameters
     ----------
     N : int (default=3)
         Number of qubits in state
-    
+
     Returns
     -------
     G : qobj
         N-qubit GHZ-state
-    
+
     """
-    state = (tensor([basis(2) for k in range(N)]) + 
-             tensor([basis(2,1) for k in range(N)]))
+    state = (tensor([basis(2) for k in range(N)]) +
+             tensor([basis(2, 1) for k in range(N)]))
     return state/np.sqrt(2)

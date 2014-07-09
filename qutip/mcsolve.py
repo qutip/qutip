@@ -918,7 +918,7 @@ def _mc_alg_evolve(nt, args, config):
                         else:
                             state = \
                                 config.c_funcs[j](ODE.t,
-                                                     config.c_func_args) * \
+                                                  config.c_func_args) * \
                                 spmv_csr(config.c_ops_data[j],
                                          config.c_ops_ind[j],
                                          config.c_ops_ptr[j], ODE.y)
@@ -1214,8 +1214,8 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
         data_range = range(len(config.h_data))
         for k in data_range:
             config.string += ("config.h_data[" + str(k) +
-                                 "],config.h_ind[" + str(k) +
-                                 "],config.h_ptr[" + str(k) + "]")
+                              "], config.h_ind[" + str(k) +
+                              "], config.h_ptr[" + str(k) + "]")
             if k != data_range[-1]:
                 config.string += ","
         # attach args to ode args string

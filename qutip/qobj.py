@@ -1005,10 +1005,10 @@ class Qobj(object):
         -------
         P : qobj
             Permuted quantum object.
-
+i
         """
         q = Qobj()
-        q.data, q.dims, _ = _permute(self, order)
+        q.data, q.dims = _permute(self, order)
         return q.tidyup() if settings.auto_tidyup else q
 
     def tidyup(self, atol=None):
@@ -1441,7 +1441,8 @@ class Qobj(object):
     def iscptp(self):
         from qutip.superop_reps import to_choi
         if self.type == "super" or self.type == "oper":
-            q_oper = to_choi(self) if self.superrep not in ('choi', 'chi') else self
+            reps = ('choi', 'chi')
+            q_oper = to_choi(self) if self.superrep not in reps else self
             return q_oper.iscp and q_oper.istp
         else:
             return False
@@ -1597,7 +1598,7 @@ class Qobj(object):
         return q_sum
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # This functions evaluates a time-dependent quantum object on the list-string
 # and list-function formats that are used by the time-dependent solvers.
 # Although not used directly in by those solvers, it can for test purposes be
@@ -1612,7 +1613,7 @@ def qobj_list_evaluate(qobj_list, t, args):
     return Qobj.evaluate(qobj_list, t, args)
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # A collection of tests used to determine the type of quantum objects, and some
 # functions for increased compatibility with quantum optics toolbox.
@@ -1931,7 +1932,7 @@ def isherm(Q):
     return True if isinstance(Q, Qobj) and Q.isherm else False
 
 
-## TRAILING IMPORTS ##
+# TRAILING IMPORTS
 # We do a few imports here to avoid circular dependencies.
 from qutip.eseries import eseries
 import qutip.superop_reps as sr

@@ -5,11 +5,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -20,16 +20,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
 #    Significant parts of this code were contributed by Denis Vasilyev.
@@ -105,12 +105,12 @@ class StochasticSolverOptions:
 
     state0 : :class:`qutip.Qobj`
         Initial state vector (ket) or density matrix.
- 
+
     times : *list* / *array*
         List of times for :math:`t`. Must be uniformly spaced.
 
     c_ops : list of :class:`qutip.Qobj`
-        List of deterministic collapse operators. 
+        List of deterministic collapse operators.
 
     sc_ops : list of :class:`qutip.Qobj`
         List of stochastic collapse operators. Each stochastic collapse
@@ -137,7 +137,7 @@ class StochasticSolverOptions:
         Number of sub steps between each time-spep given in `times`.
 
     d1 : function
-        Function for calculating the operator-valued coefficient to the 
+        Function for calculating the operator-valued coefficient to the
         deterministic increment dt.
 
     d2 : function
@@ -174,29 +174,29 @@ class StochasticSolverOptions:
         'milstein', 'fast-milstein', 'platen'.
 
     method : string ('homodyne', 'heterodyne', 'photocurrent')
-        The name of the type of measurement process that give rise to the 
+        The name of the type of measurement process that give rise to the
         stochastic equation to solve. Specifying a method with this keyword
         argument is a short-hand notation for using pre-defined d1 and d2
         functions for the corresponding stochastic processes.
 
     distribution : string ('normal', 'poission')
-        The name of the distribution used for the stochastic increments. 
+        The name of the distribution used for the stochastic increments.
 
     store_measurements : bool (default False)
-        Whether or not to store the measurement results in the 
+        Whether or not to store the measurement results in the
         :class:`qutip.solver.SolverResult` instance returned by the solver.
 
     noise : array
-        Vector specifying the noise. 
+        Vector specifying the noise.
 
     normalize : bool (default True)
         Whether or not to normalize the wave function during the evolution.
 
     options : :class:`qutip.solver.Options`
-        Generic solver options. 
+        Generic solver options.
 
     progress_bar : :class:`qutip.ui.BaseProgressBar`
-        Optional progress bar class instance. 
+        Optional progress bar class instance.
 
     """
     def __init__(self, H=None, state0=None, times=None, c_ops=[], sc_ops=[],
@@ -212,7 +212,7 @@ class StochasticSolverOptions:
 
         if progress_bar is None:
             progress_bar = TextProgressBar()
-    
+
         self.H = H
         self.d1 = d1
         self.d2 = d2
@@ -308,9 +308,9 @@ def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
             sso.d2_len = 1
             sso.homogeneous = True
             sso.distribution = 'normal'
-            if not "dW_factors" in kwargs:
+            if "dW_factors" not in kwargs:
                 sso.dW_factors = np.array([1])
-            if not "m_ops" in kwargs:
+            if "m_ops" not in kwargs:
                 sso.m_ops = [[c + c.dag()] for c in sso.sc_ops]
 
         elif sso.method == 'heterodyne':
@@ -319,11 +319,11 @@ def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
             sso.d2_len = 2
             sso.homogeneous = True
             sso.distribution = 'normal'
-            if not "dW_factors" in kwargs:
+            if "dW_factors" not in kwargs:
                 sso.dW_factors = np.array([np.sqrt(2), np.sqrt(2)])
-            if not "m_ops" in kwargs:
+            if "m_ops" not in kwargs:
                 sso.m_ops = [[(c + c.dag()), (-1j) * (c - c.dag())]
-                                for idx, c in enumerate(sso.sc_ops)]
+                             for idx, c in enumerate(sso.sc_ops)]
 
         elif sso.method == 'photocurrent':
             sso.d1 = d1_psi_photocurrent
@@ -332,18 +332,18 @@ def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
             sso.homogeneous = False
             sso.distribution = 'poisson'
 
-            if not "dW_factors" in kwargs:
+            if "dW_factors" not in kwargs:
                 sso.dW_factors = np.array([1])
-            if not "m_ops" in kwargs:
+            if "m_ops" not in kwargs:
                 sso.m_ops = [[None] for c in sso.sc_ops]
- 
+
         else:
             raise Exception("Unrecognized method '%s'." % sso.method)
 
     if sso.distribution == 'poisson':
         sso.homogeneous = False
 
-    if sso.solver == 'euler-maruyama' or sso.solver == None:
+    if sso.solver == 'euler-maruyama' or sso.solver is None:
         sso.rhs_func = _rhs_psi_euler_maruyama
 
     elif sso.solver == 'platen':
@@ -431,22 +431,22 @@ def smesolve(H, rho0, times, c_ops, sc_ops, e_ops, **kwargs):
             sso.d2_len = 1
             sso.homogeneous = True
             sso.distribution = 'normal'
-            if not "dW_factors" in kwargs:
+            if "dW_factors" not in kwargs:
                 sso.dW_factors = np.array([np.sqrt(1)])
-            if not "m_ops" in kwargs:
+            if "m_ops" not in kwargs:
                 sso.m_ops = [[c + c.dag()] for c in sso.sc_ops]
-    
+
         elif sso.method == 'heterodyne':
             sso.d1 = d1_rho_heterodyne
             sso.d2 = d2_rho_heterodyne
             sso.d2_len = 2
             sso.homogeneous = True
             sso.distribution = 'normal'
-            if not "dW_factors" in kwargs:
+            if "dW_factors" not in kwargs:
                 sso.dW_factors = np.array([np.sqrt(2), np.sqrt(2)])
-            if not "m_ops" in kwargs:
+            if "m_ops" not in kwargs:
                 sso.m_ops = [[(c + c.dag()), -1j * (c - c.dag())]
-                                for c in sso.sc_ops]
+                             for c in sso.sc_ops]
 
         elif sso.method == 'photocurrent':
             sso.d1 = cy_d1_rho_photocurrent
@@ -455,9 +455,9 @@ def smesolve(H, rho0, times, c_ops, sc_ops, e_ops, **kwargs):
             sso.homogeneous = False
             sso.distribution = 'poisson'
 
-            if not "dW_factors" in kwargs:
+            if "dW_factors" not in kwargs:
                 sso.dW_factors = np.array([1])
-            if not "m_ops" in kwargs:
+            if "m_ops" not in kwargs:
                 sso.m_ops = [[None] for c in sso.sc_ops]
         else:
             raise Exception("Unrecognized method '%s'." % sso.method)
@@ -469,7 +469,7 @@ def smesolve(H, rho0, times, c_ops, sc_ops, e_ops, **kwargs):
         sso.generate_A_ops = _generate_rho_A_ops
 
     if sso.rhs is None:
-        if sso.solver == 'euler-maruyama' or sso.solver == None:
+        if sso.solver == 'euler-maruyama' or sso.solver is None:
             sso.rhs = _rhs_rho_euler_maruyama
 
         elif sso.solver == 'milstein':
@@ -644,7 +644,7 @@ def smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
     return res
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Generic parameterized stochastic Schrodinger equation solver
 #
 def _ssesolve_generic(sso, options, progress_bar):
@@ -681,12 +681,12 @@ def _ssesolve_generic(sso, options, progress_bar):
 
         noise = sso.noise[n] if sso.noise else None
 
-        states_list, dW, m = _ssesolve_single_trajectory(data,
-             sso.H, dt, sso.times, N_store, N_substeps, psi_t, A_ops,
-             sso.e_ops, sso.m_ops, sso.rhs_func, sso.d1, sso.d2,
-             sso.d2_len, sso.dW_factors, sso.homogeneous, sso.distribution,
-             sso.args, store_measurement=sso.store_measurement, noise=noise,
-             normalize=sso.normalize)
+        states_list, dW, m = _ssesolve_single_trajectory(
+            data, sso.H, dt, sso.times, N_store, N_substeps, psi_t, A_ops,
+            sso.e_ops, sso.m_ops, sso.rhs_func, sso.d1, sso.d2, sso.d2_len,
+            sso.dW_factors, sso.homogeneous, sso.distribution, sso.args,
+            store_measurement=sso.store_measurement, noise=noise,
+            normalize=sso.normalize)
 
         data.states.append(states_list)
         data.noise.append(dW)
@@ -763,7 +763,7 @@ def _ssesolve_single_trajectory(data, H, dt, times, N_store, N_substeps, psi_t,
 
             if noise is None and not homogeneous:
                 for a_idx, A in enumerate(A_ops):
-                    #dw_expect = norm(spmv(A[0], psi_t)) ** 2 * dt
+                    # dw_expect = norm(spmv(A[0], psi_t)) ** 2 * dt
                     dw_expect = cy_expect_psi_csr(A[3].data,
                                                   A[3].indices,
                                                   A[3].indptr, psi_t, 1) * dt
@@ -789,8 +789,8 @@ def _ssesolve_single_trajectory(data, H, dt, times, N_store, N_substeps, psi_t,
                     else:
                         m_expt = 0
                     measurements[t_idx, m_idx, dW_idx] = (m_expt +
-                       dW_factor * dW[m_idx, t_idx, :, dW_idx].sum() /
-                       (dt * N_substeps))
+                                                          dW_factor * dW[m_idx, t_idx, :, dW_idx].sum() /
+                                                          (dt * N_substeps))
 
     if d2_len == 1:
         measurements = measurements.squeeze(axis=(2))
@@ -798,7 +798,7 @@ def _ssesolve_single_trajectory(data, H, dt, times, N_store, N_substeps, psi_t,
     return states_list, dW, measurements
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Generic parameterized stochastic master equation solver
 #
 def _smesolve_generic(sso, options, progress_bar):
@@ -856,14 +856,12 @@ def _smesolve_generic(sso, options, progress_bar):
         else:
             noise = None
 
-        states_list, dW, m = _smesolve_single_trajectory(data,
-                                 L, dt, sso.times, N_store, N_substeps,
-                                 rho_t, A_ops, s_e_ops, s_m_ops, sso.rhs,
-                                 sso.d1, sso.d2, sso.d2_len,
-                                 sso.dW_factors, sso.homogeneous,
-                                 sso.distribution, sso.args,
-                                 store_measurement=sso.store_measurement,
-                                 store_states=sso.store_states, noise=noise)
+        states_list, dW, m = _smesolve_single_trajectory(
+            data, L, dt, sso.times, N_store, N_substeps, rho_t,
+            A_ops, s_e_ops, s_m_ops, sso.rhs, sso.d1, sso.d2, sso.d2_len,
+            sso.dW_factors, sso.homogeneous, sso.distribution, sso.args,
+            store_measurement=sso.store_measurement,
+            store_states=sso.store_states, noise=noise)
 
         data.states.append(states_list)
         data.noise.append(dW)
@@ -965,7 +963,7 @@ def _smesolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_t,
     return states_list, dW, measurements
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Generic parameterized stochastic SE PDP solver
 #
 def _ssepdpsolve_generic(sso, options, progress_bar):
@@ -1002,8 +1000,8 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
 
         states_list, jump_times, jump_op_idx = \
             _ssepdpsolve_single_trajectory(data, Heff, dt, sso.times,
-                                          N_store, N_substeps,
-                                          psi_t, sso.c_ops, sso.e_ops)
+                                           N_store, N_substeps,
+                                           psi_t, sso.c_ops, sso.e_ops)
 
         data.states.append(states_list)
         data.jump_times.append(jump_times)
@@ -1097,7 +1095,7 @@ def _ssepdpsolve_single_trajectory(data, Heff, dt, times, N_store, N_substeps,
     return states_list, jump_times, jump_op_idx
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Generic parameterized stochastic ME PDP solver
 #
 def _smepdpsolve_generic(sso, options, progress_bar):
@@ -1216,7 +1214,7 @@ def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps,
     return states_list, jump_times, jump_op_idx
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Helper-functions for stochastic DE
 #
 # d1 = deterministic part of the contribution to the DE RHS function, to be
@@ -1259,7 +1257,7 @@ def _generate_psi_A_ops(sc_ops, H):
                       (c + c.dag()).data,
                       (c - c.dag()).data,
                       (c.dag() * c).data])
- 
+
     return A_ops
 
 
@@ -1302,8 +1300,9 @@ def d1_psi_heterodyne(A, psi):
 
     .. math::
 
-        D_1(\psi, t) = -\\frac{1}{2}(C^\\dagger C - \\langle C^\\dagger \\rangle C +
-                        \\frac{1}{2}\\langle C \\rangle\\langle C^\\dagger \\rangle))\psi
+        D_1(\psi, t) = -\\frac{1}{2}(C^\\dagger C -
+        \\langle C^\\dagger \\rangle C +
+        \\frac{1}{2}\\langle C \\rangle\\langle C^\\dagger \\rangle))\psi
 
     """
     e_C = cy_expect_psi_csr(A[0].data, A[0].indices, A[0].indptr, psi, 0)
@@ -1398,6 +1397,7 @@ _idx_AdA_R = 5
 _idx_A_LxAd_R = 6
 _idx_LD = 7
 
+
 def _generate_rho_A_ops(sc, L, dt):
     """
     pre-compute superoperator operator combinations that are commonly needed
@@ -1468,7 +1468,8 @@ def _generate_noise_Milstein(sc_len, N_store, N_substeps, d2_len, dt):
     """
     dW_temp = np.sqrt(dt) * scipy.randn(sc_len, N_store, N_substeps, 1)
     if sc_len == 1:
-        noise = np.vstack([dW_temp, 0.5 * (dW_temp * dW_temp - dt * np.ones((sc_len, N_store, N_substeps, 1)))])
+        noise = np.vstack([dW_temp, 0.5 * (dW_temp * dW_temp - dt *
+                          np.ones((sc_len, N_store, N_substeps, 1)))])
     else:
         noise = np.vstack([dW_temp, 0.5 * (dW_temp * dW_temp - dt * np.ones((sc_len, N_store, N_substeps, 1)))] +
                           [[dW_temp[n] * dW_temp[m] for (n, m) in np.ndindex(sc_len, sc_len) if n > m]])
@@ -1564,10 +1565,13 @@ def d2_rho_photocurrent(A, rho_vec):
     Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
     e1 = cy_expect_rho_vec(A[6], rho_vec, 0)
-    return [spmv(A[6], rho_vec) / e1 - rho_vec] if e1.real > 1e-15 else [-rho_vec]
+    if e1.real > 1e-15:
+        return [spmv(A[6], rho_vec) / e1 - rho_vec]
+    else:
+        return [-rho_vec]
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Deterministic part of the rho/psi update functions. TODO: Make these
 # compatible with qutip's time-dependent hamiltonian and collapse operators
 #
@@ -1589,7 +1593,7 @@ def _rhs_rho_deterministic(L, rho_t, t, dt, args):
     return drho_t
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Euler-Maruyama rhs functions for the stochastic Schrodinger and master
 # equations
 #
@@ -1621,7 +1625,7 @@ def _rhs_rho_euler_maruyama(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     for a_idx, A in enumerate(A_ops):
         d2_vec = d2(A, rho_t)
         drho_t += d1(A, rho_t) * dt
-        drho_t += np.sum([d2_vec[n] * dW[a_idx, n] 
+        drho_t += np.sum([d2_vec[n] * dW[a_idx, n]
                           for n in range(dW_len) if dW[a_idx, n] != 0], axis=0)
 
     return rho_t + drho_t
@@ -1635,7 +1639,8 @@ def _rhs_rho_euler_homodyne_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
     dW = ddW[:, 0]
 
     d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
-    e = np.real(d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1, axis2=2))
+    e = np.real(
+        d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1, axis2=2))
 
     drho_t = d_vec[-1]
     drho_t += np.dot(dW, d_vec[:-1])
@@ -1643,7 +1648,7 @@ def _rhs_rho_euler_homodyne_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
     return drho_t
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Platen method
 #
 def _rhs_psi_platen(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
@@ -1674,13 +1679,12 @@ def _rhs_psi_platen(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
 
         dpsi_t += 0.50 * (d1(A, psi_t_1) + d1(A, psi_t)) * dt + \
             0.25 * (d2(A, psi_t_p)[0] + d2(A, psi_t_m)[0] + 2 * d2(A, psi_t)[0]) * dW[a_idx, 0] + \
-            0.25 * (d2(A, psi_t_p)[0] - d2(A, psi_t_m)[0]) * (
-                dW[a_idx, 0] ** 2 - dt) / sqrt_dt
+            0.25 * (d2(A, psi_t_p)[0] - d2(A, psi_t_m)[0]) * (dW[a_idx, 0] ** 2 - dt) / sqrt_dt
 
     return dpsi_t
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Milstein rhs functions for the stochastic master equation
 #
 #
@@ -1703,7 +1707,8 @@ def _rhs_rho_milstein_homodyne_single(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     drho_t = _rhs_rho_deterministic(L, rho_t, t, dt, args)
     drho_t += spmv(A[7], rho_t) * dt
     drho_t += (d2_vec - e1 * rho_t) * dW[0, 0]
-    drho_t += 0.5 * (d2_vec2 - 2 * e1 * d2_vec + (-e2 + 2 * e1 * e1) * rho_t) * (dW[0, 0] * dW[0, 0] - dt)
+    drho_t += 0.5 * (d2_vec2 - 2 * e1 * d2_vec + (-e2 + 2 * e1 * e1) *
+                     rho_t) * (dW[0, 0] * dW[0, 0] - dt)
     return rho_t + drho_t
 
 
@@ -1746,13 +1751,14 @@ def _rhs_rho_milstein_homodyne(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     # This calculation is suboptimal. We need only values for m>n in case of
     # commuting jump operators.
     drho_t += 0.5 * np.sum([(d2_vec2[n, m] - e1[m] * d2_vec[n] - e1[n] * d2_vec[m] +
-                          (-e2[n, m] + 2.0 * e1[n] * e1[m]) * rho_t) * (dW[n, 0] * dW[m, 0])
+                             (-e2[n, m] + 2.0 * e1[n] * e1[m]) * rho_t) * (dW[n, 0] * dW[m, 0])
                             for (n, m) in np.ndindex(A_len, A_len) if n != m], axis=0)
 
     return rho_t + drho_t
 
 
-def _rhs_rho_milstein_homodyne_single_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
+def _rhs_rho_milstein_homodyne_single_fast(L, rho_t, t, A, dt, ddW, d1, d2,
+                                           args):
     """
     fast Milstein for homodyne detection with 1 stochastic operator
     """
@@ -1806,11 +1812,13 @@ def _rhs_rho_milstein_homodyne_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
 
     d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
     e = np.real(d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1, axis2=2))
-    d_vec[sc2_len:-1] -= np.array([e[m] * d_vec[n] + e[n] * d_vec[m] 
-                                   for (n, m) in np.ndindex(sc_len, sc_len) if n > m])
+    d_vec[sc2_len:-1] -= np.array(
+        [e[m] * d_vec[n] + e[n] * d_vec[m]
+         for (n, m) in np.ndindex(sc_len, sc_len) if n > m])
 
     e[sc_len:sc2_len] -= 2.0 * e[:sc_len] * e[:sc_len]
-    e[sc2_len:] -= 2.0 * np.array([e[n] * e[m] for (n, m) in np.ndindex(sc_len, sc_len) if n > m])
+    e[sc2_len:] -= 2.0 * np.array(
+        [e[n] * e[m] for (n, m) in np.ndindex(sc_len, sc_len) if n > m])
 
     drho_t = (1.0 - np.inner(e, dW)) * rho_t
     dW[:sc_len] -= 2.0 * e[:sc_len] * dW[sc_len:sc2_len]

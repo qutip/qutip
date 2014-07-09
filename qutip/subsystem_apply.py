@@ -202,7 +202,8 @@ def _top_apply_S(block, channel):
     # If the channel is a super-operator,
     # perform second block decomposition; block-size
     # matches Hilbert space of affected subsystem:
-    column = _block_col(block, *list(map(sqrt, channel.shape)))  # FIXME use state shape?
+    # FIXME use state shape?
+    column = _block_col(block, *list(map(sqrt, channel.shape)))
     chan_mat = channel.data.todense()
     temp_col = zeros(shape(column)).astype(complex)
     # print chan_mat.shape
