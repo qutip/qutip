@@ -28,7 +28,7 @@ Superoperators and Liouvillians
 -------------------------------
 
 .. automodule:: qutip.superoperator
-    :members: operator_to_vector, vector_to_operator, liouvillian, spost, spre
+    :members: operator_to_vector, vector_to_operator, liouvillian, spost, spre, lindblad_dissipator
     
 Superoperator Representations
 -----------------------------
@@ -78,7 +78,7 @@ Master Equation
 -----------------
 
 .. automodule:: qutip.mesolve
-    :members: mesolve, odesolve
+    :members: mesolve
 
 Monte Carlo Evolution
 -----------------------
