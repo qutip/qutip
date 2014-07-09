@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
@@ -40,7 +40,7 @@ from qutip.operators import destroy
 from qutip.sparse import sp_reshape
 
 
-def liouvillian(H, c_op_list, data_only=False):
+def liouvillian(H, c_ops=[], data_only=False):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators. Like liouvillian, but with an
     experimental implementation which avoids creating extra Qobj instances,
@@ -51,7 +51,7 @@ def liouvillian(H, c_op_list, data_only=False):
     H : qobj
         System Hamiltonian.
 
-    c_op_list : array_like
+    c_ops : array_like
         A ``list`` or ``array`` of collapse operators.
 
     Returns
@@ -72,8 +72,8 @@ def liouvillian(H, c_op_list, data_only=False):
             raise TypeError("Invalid type for Hamiltonian.")
     else:
         # no hamiltonian given, pick system size from a collapse operator
-        if isinstance(c_op_list, list) and len(c_op_list) > 0:
-            c = c_op_list[0]
+        if isinstance(c_ops, list) and len(c_ops) > 0:
+            c = c_ops[0]
             if c.isoper:
                 op_dims = c.dims
                 op_shape = c.shape
@@ -83,7 +83,7 @@ def liouvillian(H, c_op_list, data_only=False):
             else:
                 raise TypeError("Invalid type for collapse operator.")
         else:
-            raise TypeError("Either H or c_op_list must be given.")
+            raise TypeError("Either H or c_ops must be given.")
 
     sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
     sop_shape = [prod(op_dims), prod(op_dims)]
@@ -99,7 +99,7 @@ def liouvillian(H, c_op_list, data_only=False):
     else:
         data = sp.csr_matrix((sop_shape[0], sop_shape[1]), dtype=complex)
 
-    for c_op in c_op_list:
+    for c_op in c_ops:
         if c_op.issuper:
             data = data + c_op.data
         else:
@@ -121,7 +121,7 @@ def liouvillian(H, c_op_list, data_only=False):
         return L
 
 
-def liouvillian_ref(H, c_op_list=[]):
+def liouvillian_ref(H, c_ops=[]):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators.
 
@@ -130,19 +130,18 @@ def liouvillian_ref(H, c_op_list=[]):
     H : qobj
         System Hamiltonian.
 
-    c_op_list : array_like
+    c_ops : array_like
         A ``list`` or ``array`` of collapse operators.
 
     Returns
     -------
     L : qobj
         Liouvillian superoperator.
-
     """
 
     L = -1.0j * (spre(H) - spost(H)) if H else 0
 
-    for c in c_op_list:
+    for c in c_ops:
         if c.issuper:
             L += c
         else:
@@ -154,11 +153,28 @@ def liouvillian_ref(H, c_op_list=[]):
 
 def lindblad_dissipator(a, b=None, data_only=False):
     """
-    Return the Lindblad dissipator for a single collapse operator.
+    Lindblad dissipator (generalized) for a single pair of collapse operators
+    (a, b), or for a single collapse operator (a) when b is not specified:
 
-    TODO: optimize like liouvillian_fast
+    .. math::
+
+        \\mathcal{D}[a,b]\\rho = a \\rho b^\\dagger -
+        \\frac{1}{2}a^\\dagger b\\rho - \\frac{1}{2}\\rho a^\\dagger b
+
+    Parameters
+    ----------
+    a : qobj
+        Left part of collapse operator.
+
+    b : qobj (optional)
+        Right part of collapse operator. If not specified, b defaults to a.
+
+    Returns
+    -------
+    D : qobj
+        Lindblad dissipator superoperator.
     """
-    
+
     if b is None:
         b = a
 
@@ -260,7 +276,6 @@ def spre(A):
     --------
     super :qobj
         Superoperator formed from input quantum object.
-
     """
     if not isinstance(A, Qobj):
         raise TypeError('Input is not a quantum object')
