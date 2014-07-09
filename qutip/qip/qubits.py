@@ -61,6 +61,7 @@ def qubit_states(N=1, states=[0]):
         else:
             state_list.append(states[i])
 
-    return ket(state_list)
+    return tensor(alpha * basis(2,0) + sqrt(1 - alpha**2) * basis(2,1) 
+                  for alpha in state_list)
 
 

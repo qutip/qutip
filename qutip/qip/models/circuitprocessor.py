@@ -48,7 +48,7 @@ class CircuitProcessor(object):
         Parameters
         ----------
         N: Integer
-            The numer of qubits in the system.
+            The number of qubits in the system.
 
         correct_global_phase: Boolean
             Check if the global phases should be included in the final result.
@@ -152,7 +152,43 @@ class CircuitProcessor(object):
         
         for n in range(len(self.T_list)):
             H = sum([H_u[n,m] * H_ops[m] for m in range(len(H_ops))])                
-            #U = propagator(H,self.T_list[n],[],options=Odeoptions(nsteps=5000))
+            U = (-1j * H * self.T_list[n]).expm()
+            U = self.eliminate_auxillary_modes(U)            
+            U_list.append(U)
+
+        if self.correct_global_phase and self.global_phase != 0:
+            U_list.append(globalphase(self.global_phase, N=self.N))
+
+        return U_list
+    
+    
+    def run_state(self, qc=None, states=None):
+        """
+        Generates the propagator matrix by running the Hamiltonian for the
+        appropriate time duration for the desired physical system with the given
+        initial state of the qubit register. 
+
+        Parameters
+        ----------
+        qc: Qobj
+            Takes the quantum circuit to be implemented.
+        states: Qobj
+            Initial state of the qubits in the register.
+
+        Returns
+        --------
+        U_list: List
+            The propagator matrix obtained from the physical implementation.
+        """
+        if states is None:
+            raise NotImplementedError("Qubit state not defined.")
+        if qc:
+            self.load_circuit(qc)
+        U_list = [states]
+        H_ops, H_u = self.get_ops_and_u()
+        
+        for n in range(len(self.T_list)):
+            H = sum([H_u[n,m] * H_ops[m] for m in range(len(H_ops))])                
             U = (-1j * H * self.T_list[n]).expm()
             U = self.eliminate_auxillary_modes(U)            
             U_list.append(U)

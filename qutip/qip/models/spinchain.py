@@ -46,7 +46,19 @@ class SpinChain(CircuitProcessor):
     
     def __init__(self, N, correct_global_phase=True, 
                  sx=None, sz=None, sxsy=None):
+        """
+        Parameters
+        ----------
+        sx: Integer/List
+            The delta for each of the qubits in the system.
 
+        sz: Integer/List
+            The epsilon for each of the qubits in the system.
+
+        sxsy: Integer/List
+            The interaction strength for each of the qubit pair in the system.
+        """
+        
         super(SpinChain, self).__init__(N, correct_global_phase)
         
         self.sx_ops = [tensor([sigmax() if m == n else identity(2)

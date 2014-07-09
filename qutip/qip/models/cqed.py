@@ -44,28 +44,85 @@ class DispersivecQED(CircuitProcessor):
     on a dispersive cavity-QED system.
     """
 
-    def __init__(self, N, Nres=5, correct_global_phase=True):
+    def __init__(self, N, correct_global_phase=True, Nres=None, deltamax=None, 
+                 epsmax=None, wo=None, eps=None, delta=None, g=None):
         """
-        
-        H = .... + g_n * (a^\dagger \sigma_- + a \sigma_+)
-        
+        Parameters
+        ----------
+        Nres: Integer
+            The number of energy levels in the resonator.
+
+        deltamax: Integer/List
+            The sigma-x coefficient for each of the qubits in the system.
+
+        epsmax: Integer/List
+            The sigma-z coefficient for each of the qubits in the system.
+
+        wo: Integer
+            The base frequency of the resonator.
+
+        eps: Integer/List
+            The epsilon for each of the qubits in the system.
+
+        delta: Integer/List
+            The epsilon for each of the qubits in the system.
+
+        g: Integer/List
+            The interaction strength for each of the qubit with the resonator.
         """
+
         super(DispersiveCQED, self).__init__(N, correct_global_phase)
 
         # user definable
-        self.Nres = Nres
-        self.sx_coeff = np.array([1.0] * N)
-        self.sz_coeff = np.array([1.0] * N)
+        if Nres == None:
+            self.Nres = 10
+        else:
+            self.Nres = Nres
+        
+        if deltamax == None:
+            self.sx_coeff = np.array([1.0 * 2 * pi] * N)
+        elif not isinstance(sx, list):
+            self.sx_coeff = np.array([deltamax * 2 * pi] * N)
+        else:
+            self.sx_coeff = np.array(deltamax)
+        
+        if epsmax == None:
+            self.sz_coeff = np.array([1.0 * 2 * pi] * N)
+        elif not isinstance(sx, list):
+            self.sz_coeff = np.array([epsmax * 2 * pi] * N)
+        else:
+            self.sz_coeff = np.array(epsmax)
 
-        self.w0 = 10 * 2 * pi
-        self.eps =   np.array([9.0 * 2 * pi] * N)
-        self.delta = np.array([0.0 * 2 * pi] * N)
-        self.g = np.array([0.01 * 2 * pi] * N)
+        if w0 == None:        
+            self.w0 = 10 * 2 * pi
+        else: 
+            self.w0 = w0
 
+        if eps == None:
+            self.eps = np.array([9.0 * 2 * pi] * N)
+        elif not isinstance(sx, list):
+            self.eps = np.array([eps * 2 * pi] * N)
+        else:
+            self.eps = np.array(eps)
+
+        if delta == None:
+            self.delta = np.array([0.0 * 2 * pi] * N)
+        elif not isinstance(sx, list):
+            self.delta = np.array([delta * 2 * pi] * N)
+        else:
+            self.delta = np.array(delta)
+
+        if g == None:
+            self.g = np.array([0.01 * 2 * pi] * N)
+        elif not isinstance(sx, list):
+            self.g = np.array([g * 2 * pi] * N)
+        else:
+            self.g = np.array(g)
+        
         # computed
         self.wq = sqrt(self.eps ** 2 + self.delta ** 2)
         self.Delta = self.wq - self.w0
-        
+    
         # rwa/dispersive regime tests
         if any(self.g / (self.w0 - self.wq)) > 0.025:
             warnings.warn("Not in the dispersive regime")
