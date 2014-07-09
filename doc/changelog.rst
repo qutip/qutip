@@ -25,7 +25,8 @@ Version 3.0.0 (July X, 2014):
 - New format for defining time-dependent Hamiltonians and collapse operators, using a precalculated numpy array that specifies the values of the Qobj-coefficients for each time step.
 
 - QuTiP no longer contains the demos GUI. The examples are now available on the
-  QuTiP web site.
+  QuTiP web site. The ``qutip.gui`` module has been renamed to ``qutip.ui`` and
+  does no longer contain graphical UI elements.
 
 - New functions for visualizing quantum states using Qubism and Schimdt plots:
   ``plot_qubism`` and ``plot_schmidt``.
@@ -36,6 +37,8 @@ Version 3.0.0 (July X, 2014):
 - The classes ``OdeData``, ``Odeoptions``, ``Odeconfig`` are now called 
   ``Result``, ``Options``, and ``Config``, respectively, and are available in
   the module `qutip.solver`.
+
+- The ``squeez`` function has been renamed to ``squeeze``.
 
 - Improved performance and numerous bug fixes.
 
