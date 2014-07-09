@@ -64,7 +64,7 @@ We can create a Qobj with a user defined data set by passing a list or array of 
 	
 	In [3]: Qobj(x)
 
-	In [4]: r = rand(4, 4)
+	In [4]: r = np.random.rand(4, 4)
 	
 	In [5]: Qobj(r)
 
