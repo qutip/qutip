@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
@@ -105,13 +105,13 @@ class Bloch3d():
 
     """
     def __init__(self, fig=None):
-        #----check for mayavi-----
+        # ----check for mayavi-----
         try:
             from mayavi import mlab
         except:
             raise Exception("This function requires the mayavi module.")
 
-        #---Image options---
+        # ---Image options---
         self.fig = None
         self.user_fig = None
         # check if user specified figure or axes.
@@ -126,13 +126,13 @@ class Bloch3d():
         # Image foreground color. Other options can override.
         self.fgcolor = 'black'
 
-        #---Sphere options---
+        # ---Sphere options---
         # Color of Bloch sphere, default = #808080
         self.sphere_color = '#808080'
         # Transparency of Bloch sphere, default = 0.1
         self.sphere_alpha = 0.1
 
-        #---Frame options---
+        # ---Frame options---
         # Draw frame?
         self.frame = True
         # number of lines to draw for frame
@@ -144,7 +144,7 @@ class Bloch3d():
         # Radius of frame lines
         self.frame_radius = 0.005
 
-        #--Axes---
+        # --Axes---
         # Axes color
         self.axes_color = 'black'
         # Transparency of axes
@@ -152,7 +152,7 @@ class Bloch3d():
         # Radius of axes lines
         self.axes_radius = 0.005
 
-        #---Labels---
+        # ---Labels---
         # Labels for x-axis (in LaTex), default = ['$x$','']
         self.xlabel = ['|x>', '']
         # Position of x-axis labels, default = [1.2,-1.2]
@@ -166,13 +166,13 @@ class Bloch3d():
         # Position of z-axis labels, default = [1.05,-1.05]
         self.zlpos = [1.07, -1.07]
 
-        #---Font options---
+        # ---Font options---
         # Color of fonts, default = 'black'
         self.font_color = 'black'
         # Size of fonts, default = 20
         self.font_scale = 0.08
 
-        #---Vector options---
+        # ---Vector options---
         # Object used for representing vectors on Bloch sphere.
         # List of colors for Bloch vectors, default = ['b','g','r','y']
         self.vector_color = ['r', 'g', 'b', 'y']
@@ -185,7 +185,7 @@ class Bloch3d():
         # Radius of vector head
         self.vector_head_radius = 0.075
 
-        #---Point options---
+        # ---Point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_color = ['r', 'g', 'b', 'y']
         # Size of point markers
@@ -195,7 +195,7 @@ class Bloch3d():
         # Default = 'sphere'
         self.point_mode = 'sphere'
 
-        #---Data lists---
+        # ---Data lists---
         # Data for point markers
         self.points = []
         # Data for Bloch vectors
@@ -333,9 +333,9 @@ class Bloch3d():
             norm = np.linalg.norm(vec)
             theta = np.arccos(vec[2] / norm)
             phi = np.arctan2(vec[1], vec[0])
-            vec -= 0.5 * self.vector_head_height *\
-                 np.array([np.sin(theta) * np.cos(phi),
-                           np.sin(theta) * np.sin(phi), np.cos(theta)])
+            vec -= 0.5 * self.vector_head_height * \
+                np.array([np.sin(theta) * np.cos(phi),
+                          np.sin(theta) * np.sin(phi), np.cos(theta)])
 
             color = colors.colorConverter.to_rgb(
                 self.vector_color[np.mod(k, len(self.vector_color))])
@@ -354,9 +354,8 @@ class Bloch3d():
             cc = tvtk.Actor(mapper=cone_mapper, property=prop)
             cc.rotate_z(np.degrees(phi))
             cc.rotate_y(-90 + np.degrees(theta))
-            cc.position = vec 
+            cc.position = vec
             self.fig.scene.add_actor(cc)
-
 
     def plot_points(self):
         """
@@ -382,9 +381,9 @@ class Bloch3d():
                     self.point_color[np.mod(k, len(self.point_color))])
                 mlab.points3d(
                     self.points[k][0][indperm], self.points[k][1][indperm],
-                    self.points[k][2][indperm], figure=self.fig, resolution=100,
-                    scale_factor=self.point_size, mode=self.point_mode,
-                    color=color)
+                    self.points[k][2][indperm], figure=self.fig,
+                    resolution=100, scale_factor=self.point_size,
+                    mode=self.point_mode, color=color)
 
             elif self.point_style[k] == 'm':
                 pnt_colors = np.array(self.point_color * np.ceil(
@@ -399,7 +398,6 @@ class Bloch3d():
                             indperm[kk]], figure=self.fig, resolution=100,
                         scale_factor=self.point_size, mode=self.point_mode,
                         color=colors.colorConverter.to_rgb(pnt_colors[kk]))
-
 
     def make_sphere(self):
         """
@@ -437,16 +435,14 @@ class Bloch3d():
                 xlon = np.sin(angle) * np.sin(theta)
                 ylon = np.cos(angle) * np.sin(theta)
                 zlon = np.cos(theta)
-                mlab.plot3d(xlat, ylat, zlat,
-                            color=colors.colorConverter.to_rgb(
-                            self.frame_color),
-                            opacity=self.frame_alpha,
-                            tube_radius=self.frame_radius)
-                mlab.plot3d(xlon, ylon, zlon,
-                            color=colors.colorConverter.to_rgb(
-                            self.frame_color),
-                            opacity=self.frame_alpha,
-                            tube_radius=self.frame_radius)
+                mlab.plot3d(
+                    xlat, ylat, zlat,
+                    color=colors.colorConverter.to_rgb(self.frame_color),
+                    opacity=self.frame_alpha, tube_radius=self.frame_radius)
+                mlab.plot3d(
+                    xlon, ylon, zlon,
+                    color=colors.colorConverter.to_rgb(self.frame_color),
+                    opacity=self.frame_alpha, tube_radius=self.frame_radius)
 
         # add axes
         axis = np.linspace(-1.0, 1.0, 10)

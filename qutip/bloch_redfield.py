@@ -42,7 +42,7 @@ from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.solver import Result
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Solve the Bloch-Redfield master equation
 #
 #
@@ -111,7 +111,7 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
     return output
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Evolution of the Bloch-Redfield master equation given the Bloch-Redfield
 # tensor.
 #
@@ -307,8 +307,8 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, use_secular=True):
                     # for each operator coupling the system to the environment
 
                     R.data[I, J] += ((A[k, a, c] * A[k, d, b] / 2) *
-                                    (spectra_cb[k](W[c, a]) +
-                                     spectra_cb[k](W[d, b])))
+                                     (spectra_cb[k](W[c, a]) +
+                                      spectra_cb[k](W[d, b])))
                     s1 = s2 = 0
                     for n in range(N):
                         s1 += A[k, a, n] * A[k, n, c] * spectra_cb[k](W[c, n])
