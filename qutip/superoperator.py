@@ -40,7 +40,7 @@ from qutip.operators import destroy
 from qutip.sparse import sp_reshape
 
 
-def liouvillian(H, c_op_list, data_only=False):
+def liouvillian(H, c_op_list=[], data_only=False):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators. Like liouvillian, but with an
     experimental implementation which avoids creating extra Qobj instances,
