@@ -41,14 +41,14 @@ from qutip.version import version as __version__
 # prevents errors when running things in parallel.  Should be set
 # by user directly in a script or notebook if >1 is needed.
 # Must be set BEFORE importing NumPy
-if not 'MKL_NUM_THREADS' in os.environ:
+if 'MKL_NUM_THREADS' not in os.environ:
     os.environ['MKL_NUM_THREADS'] = '1'
 
-if not 'OPENBLAS_NUM_THREADS' in os.environ:
+if 'OPENBLAS_NUM_THREADS' not in os.environ:
     os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
 # if the requirements aren't fulfilled
 #
@@ -78,7 +78,7 @@ try:
 except:
     print("QuTiP warning: scipy not found.")
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # check to see if running from install directory for released versions.
 #
 top_path = os.path.dirname(os.path.dirname(__file__))
@@ -93,7 +93,7 @@ else:
     setup_file.close()
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # setup the cython environment
 #
 _cython_requirement = "0.15.0"
@@ -112,13 +112,13 @@ except Exception as e:
     print("QuTiP warning: Cython setup failed: " + str(e))
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # default configuration settings
 #
 
 # Fix the multiprocessing issue with NumPy compiled against OPENBLAS
 # Must be set BEFORE importing multiprocessing
-if not 'OPENBLAS_MAIN_FREE' in os.environ:
+if 'OPENBLAS_MAIN_FREE' not in os.environ:
     os.environ['OPENBLAS_MAIN_FREE'] = '1'
 import multiprocessing
 
@@ -132,7 +132,7 @@ else:
 
 qutip.settings.qutip_graphics = "YES"
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.
 #
 try:
@@ -147,18 +147,19 @@ if 'QUTIP_NUM_PROCESSES' in os.environ:
     qutip.settings.num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])
 else:
     os.environ['QUTIP_NUM_PROCESSES'] = str(qutip.settings.num_cpus)
-#------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 # Load configuration from environment variables: override defaults and
 # configuration file.
 #
 
-if not ('QUTIP_GRAPHICS' in os.environ):
+if 'QUTIP_GRAPHICS' not in os.environ:
     os.environ['QUTIP_GRAPHICS'] = qutip.settings.qutip_graphics
 else:
     qutip.settings.qutip_graphics = os.environ['QUTIP_GRAPHICS']
 
 # check if being run remotely
-if not sys.platform in ['darwin', 'win32'] and not ('DISPLAY' in os.environ):
+if sys.platform not in ['darwin', 'win32'] and 'DISPLAY' not in os.environ:
     # no graphics if DISPLAY isn't set
     os.environ['QUTIP_GRAPHICS'] = "NO"
     qutip.settings.qutip_graphics = "NO"
@@ -170,7 +171,8 @@ except:
 else:
     qutip.settings.fortran = True
     from qutip.fortran import *
-#------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 # Check that import modules are compatible with requested configuration
 #
 
@@ -181,7 +183,7 @@ except:
     os.environ['QUTIP_GRAPHICS'] = "NO"
     qutip.settings.qutip_graphics = 'NO'
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Load modules
 #
 
