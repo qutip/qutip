@@ -2,10 +2,11 @@
 from os.path import join
 import sys
 
+
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
     from numpy.distutils.system_info import get_info, NotFoundError
-    
+
     config = Configuration('fortran', parent_package, top_path)
 
     sources = [
@@ -22,16 +23,15 @@ def configuration(parent_package='', top_path=None):
 
     config.add_library('zvode', sources=[join('zvode', '*.f')])
 
-   
-    if sys.platform=='darwin':
-        blas_opt=get_info('blas_opt')
-        extra_compile_args=blas_opt['extra_compile_args']
-        extra_link_args=blas_opt['extra_link_args']
+    if sys.platform == 'darwin':
+        blas_opt = get_info('blas_opt')
+        extra_compile_args = blas_opt['extra_compile_args']
+        extra_link_args = blas_opt['extra_link_args']
         newblas = {}
         sources.append('qutraj_linalg.f90')
     else:
-        extra_compile_args=[]
-        extra_link_args=[]
+        extra_compile_args = []
+        extra_link_args = []
         #
         # LAPACK?
         #

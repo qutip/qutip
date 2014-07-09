@@ -6,6 +6,7 @@ from Cython.Build import cythonize
 import numpy as np
 import os
 
+
 def configuration(parent_package='', top_path=None):
     # compiles files during installation
     from numpy.distutils.misc_util import Configuration
@@ -29,7 +30,7 @@ def configuration(parent_package='', top_path=None):
                                  extra_compile_args=['-w -ffast-math -O3 -march=native -mfpmath=sse'],
                                  extra_link_args=[])
         config.ext_modules = cythonize(config.ext_modules)
-   
+
     return config
 
 
