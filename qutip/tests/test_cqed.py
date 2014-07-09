@@ -41,7 +41,7 @@ from qutip.qip.models.cqed import *
 
 class Testcqed:
     """
-    A test class for the QuTiP functions for physical implementation of 
+    A test class for the QuTiP functions for physical implementation of
     resonator-qubit models.
     """
 
@@ -59,10 +59,9 @@ class Testcqed:
         p = DispersivecQED(N, correct_global_phase=True)
         U_list = p.run(qc)
         U_physical = gate_sequence_product(U_list)
-        
+
         assert_((U_ideal - U_physical).norm() < 1e-4)
 
-       
     def dispersivecqed_SQRTISWAP(self):
         """
         Dispersive cQED Setup: compare unitary matrix for SQRTISWAP and
@@ -77,14 +76,13 @@ class Testcqed:
         p = DispersivecQED(N, correct_global_phase=True)
         U_list = p.run(qc)
         U_physical = gate_sequence_product(U_list)
-        
+
         assert_((U_ideal - U_physical).norm() < 1e-4)
 
-        
     def dispersivecqed_combination(self):
         """
         Dispersive cQED Setup: compare unitary matrix for ISWAP, SQRTISWAP,
-        RX and RY gates and the propogator matrix of the implemented physical 
+        RX and RY gates and the propogator matrix of the implemented physical
         model.
         """
         N = 3
@@ -99,7 +97,7 @@ class Testcqed:
         p = DispersivecQED(N, correct_global_phase=True)
         U_list = p.run(qc)
         U_physical = gate_sequence_product(U_list)
-        
+
         assert_((U_ideal - U_physical).norm() < 1e-4)
 
 

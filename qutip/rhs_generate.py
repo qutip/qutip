@@ -57,10 +57,8 @@ def rhs_clear():
     config.tdfunc = None     # Placeholder for TD RHS function.
     config.colspmv = None    # Placeholder for TD col-spmv function.
     config.colexpect = None  # Placeholder for TD col_expect function.
-    config.string = None     # Holds string of variables to be passed onto
-                             # time-depdendent ODE solver.
-    config.tdname = None     # Name of td .pyx file
-                             # (used in parallel mc code)
+    config.string = None     # Holds string of variables to be passed to solver
+    config.tdname = None     # Name of td .pyx file (used in parallel mc code)
 
 
 def rhs_generate(H, c_ops, args={}, options=Options(), name=None,

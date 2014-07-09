@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
@@ -51,9 +51,9 @@ if debug:
     import inspect
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # PUBLIC API
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 def correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver="me",
                        reverse=False, args=None, options=Options()):
@@ -329,9 +329,9 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
         raise NotImplementedError("Unrecognized choice of solver %s." % solver)
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # high-level correlation function
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 def coherence_function_g1(H, rho0, taulist, c_ops, a_op, solver="me",
                           args=None, options=Options()):
@@ -438,7 +438,7 @@ def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me",
         n = np.array([expect(rho0, a_op.dag() * a_op)])
     else:
         n = mesolve(
-            H, rho0, taulist, c_ops, [a_op.dag() * a_op], 
+            H, rho0, taulist, c_ops, [a_op.dag() * a_op],
             args=args, options=options).expect[0]
 
     # calculate the correlation function G2 and normalize with n to obtain g2
@@ -450,9 +450,9 @@ def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me",
     return g2, G2
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # LEGACY API
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 def correlation_ss(H, taulist, c_ops, a_op, b_op, rho0=None, solver="me",
                    reverse=False, args=None, options=Options()):
