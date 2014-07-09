@@ -10,29 +10,79 @@ Change Log
 Version 3.0.0 (July X, 2014):
 ++++++++++++++++++++++++++++++++++++++++++++++
 
+New Features
+-------------
+
 - New module `qutip.stochastic` with stochastic master equation and stochastic
   Schrödinger equation solvers.
 
-- Improved steady state solver.
+- Expanded steady state solvers. The function ``steady`` has been deprecated in
+  favor of ``steadystate``. The steadystate solver no longer use umfpack by 
+  default.
+
+- New module `qutip.qip` with utilities for quantum information processing,
+  including pre-defined quantum gates along with functions for expanding
+  arbitrary 1, 2, and 3 qubit gates to N qubit registers, circuit
+  representations, library of quantum algorithms, and basic physical models for
+  some common QIP architectures. 
 
 - New module `qutip.distributions` with unified API for working with
   distribution functions.
 
-- New module `qutip.qip` with utilities for quantum information processing problems, including pre-defined quantum gates for N-qubit systems, circuit representations, library of quantum algorithms, and basic physical models for some common QIP architectures.
+- New format for defining time-dependent Hamiltonians and collapse operators,
+  using a precalculated numpy array that specifies the values of the
+  Qobj-coefficients for each time step.
 
-- New functions for working with different superoperator representations.
-
-- New format for defining time-dependent Hamiltonians and collapse operators, using a precalculated numpy array that specifies the values of the Qobj-coefficients for each time step.
-
-- QuTiP no longer contains the demos GUI. The examples are now available on the
-  QuTiP web site. The ``qutip.gui`` module has been renamed to ``qutip.ui`` and
-  does no longer contain graphical UI elements.
+- New functions for working with different superoperator representations,
+  including Kraus and Chi representation.
 
 - New functions for visualizing quantum states using Qubism and Schimdt plots:
   ``plot_qubism`` and ``plot_schmidt``.
 
+- Dynamics solver now support taking argument ``e_ops`` (expectation value
+  operators) in dictionary form.
+
 - Public plotting functions from the ``qutip.visualization`` module are now 
-  prefixed with ``plot_`` (e.g., ``plot_fock_distribution``).
+  prefixed with ``plot_`` (e.g., ``plot_fock_distribution``). The
+  ``plot_wigner`` and ``plot_wigner_fock_distribution`` now supports 3D views
+  in addition to contour views.
+
+- New API and new functions for working with spin operators and states,
+  including for example ``spin_Jx``, ``spin_Jy``, ``spin_Jz`` and
+  ``spin_state``, ``spin_coherent``.
+
+- The ``expect`` function now supports a list of operators, in addition to the
+  previously supported list of states.
+
+- Simplified creation of qubit states using ``ket`` function.
+
+- The module ``qutip.cyQ`` has been renamed to ``qutip.cy`` and the sparse
+  matrix-vector functions ``spmv`` and ``spmv1d`` has been combined into one
+  function ``spmv``. New functions for operating directly on the underlaying
+  sparse CSR data have been added (e.g., ``spmv_csr``). Performance
+  improvements. New and improved Cython functions for calculating expectation
+  values for state vectors, density matrices in matrix and vector form.
+
+- The ``concurrence`` function now supports both pure and mixed states. Added
+  function for calculating the entangling power of a two-qubit gate.
+ 
+- Added function for generating (generalized) Lindblad dissipator
+  superoperators.
+
+- New functions for generating Bell states, and singlet and triplet states.
+
+- QuTiP no longer contains the demos GUI. The examples are now available on the
+  QuTiP web site. The ``qutip.gui`` module has been renamed to ``qutip.ui`` and
+  does no longer contain graphical UI elements. New text-based and HTML-based
+  progressbar classes.
+
+
+Improvements
+-------------
+
+- Restructured and optimized implementation of Qobj, which now has
+  significantly lower memory footprint due to avoiding excessive copying of
+  internal matrix data.
 
 - The classes ``OdeData``, ``Odeoptions``, ``Odeconfig`` are now called 
   ``Result``, ``Options``, and ``Config``, respectively, and are available in
@@ -40,9 +90,22 @@ Version 3.0.0 (July X, 2014):
 
 - The ``squeez`` function has been renamed to ``squeeze``.
 
-- Improved performance and numerous bug fixes.
+- Better support for sparse matrices when calculating propagators using the 
+  ``propagator`` function.
 
+- Improved Bloch sphere.
 
+- Restructured and improved the module ``qutip.sparse``, which now only
+  operates directly on sparse matrices (not on Qobj instances).
+
+- Improved and simplified implement of the ``tensor`` function.
+
+- Improved performance, major code cleanup (including namespace changes),
+  and numerous bug fixes.
+
+- Benchmark scripts improved and restructued.
+
+- QuTiP is now using continous integration tests (TravisCI).
 
 Version 2.2.0 (March 01, 2013):
 ++++++++++++++++++++++++++++++++++++++++++++++
