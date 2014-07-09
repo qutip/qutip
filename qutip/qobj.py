@@ -857,10 +857,15 @@ class Qobj(object):
         else:
             return np.real(out)
 
-    def expm(self):
+    def expm(self, sparse=None):
         """Matrix exponential of quantum operator.
 
         Input operator must be square.
+
+        Parameters
+        ----------
+        sparse : bool
+            Use sparse eigenvalue/vector solver.
 
         Returns
         -------
@@ -873,8 +878,16 @@ class Qobj(object):
             Quantum operator is not square.
 
         """
+        if sparse is None:
+            # if sparse is not explicitly given, try to make a good choice
+            # between sparse and dense solver by considering the size of the
+            # system and the number of non-zero elements.
+            N = self.data.shape[0]
+            n = self.data.nnz
+            sparse = N > 250 and N ** 2 < 8 * n
+
         if self.dims[0][0] == self.dims[1][0]:
-            F = sp_expm(self.data)
+            F = sp_expm(self.data, sparse=sparse)
             out = Qobj(F, dims=self.dims)
             return out.tidyup() if settings.auto_tidyup else out
         else:
