@@ -56,11 +56,12 @@ import qutip.settings as settings
 if settings.debug:
     import inspect
 
+
 def _default_steadystate_args():
-    def_args={'method' : 'direct', 'sparse' : True, 'use_rcm' : True, 
-            'use_umfpack' : False, 'use_precond' : True, 'all_states' : False,
-            'M' : None, 'drop_tol': 1e-3 , 'fill_factor' : 12, 
-            'diag_pivot_thresh' : None, 'maxiter' : 1000, 'tol' : 1e-5}
+    def_args = {'method': 'direct', 'sparse': True, 'use_rcm': True,
+                'use_umfpack': False, 'use_precond': True, 'all_states': False,
+                'M': None, 'drop_tol': 1e-3, 'fill_factor': 12,
+                'diag_pivot_thresh': None, 'maxiter': 1000, 'tol': 1e-5}
     return def_args
 
 
@@ -85,7 +86,7 @@ def steadystate(A, c_op_list=[], **kwargs):
     method : str {'direct', 'iterative', 'iterative-bicg', 'svd', 'power'}
         Method for solving the underlying linear equation. Direct solver
         'direct' (default), iterative GMRES method 'iterative',
-        iterative method BICGSTAB 'iterative-bicg', SVD 'svd' (dense), 
+        iterative method BICGSTAB 'iterative-bicg', SVD 'svd' (dense),
         or inverse-power method 'power'.
 
     sparse : bool, {True, False}
@@ -96,7 +97,7 @@ def steadystate(A, c_op_list=[], **kwargs):
     use_rcm : bool, {True, False}
         Use reverse Cuthill-Mckee reordering to minimize fill-in in the
         LU factorization of the Liouvillian.
-    
+
     use_umfpack : bool {False, True}
         Use umfpack solver instead of SuperLU.  For SciPy 0.14+, this option
         requires installing scikits.umfpack.
@@ -150,10 +151,10 @@ def steadystate(A, c_op_list=[], **kwargs):
     ss_args = _default_steadystate_args()
     for key in kwargs.keys():
         if key in ss_args.keys():
-            ss_args[key]=kwargs[key]
+            ss_args[key] = kwargs[key]
         else:
             raise Exception('Invalid keyword argument passed to steadystate.')
-        
+
     n_op = len(c_op_list)
 
     if isoper(A):
@@ -301,15 +302,16 @@ def _steadystate_iterative(L, ss_args):
         b = b[np.ix_(perm,)]
         if settings.debug:
             print('RCM bandwidth ', sp_bandwidth(L))
-    
+
     L.sort_indices()
 
     if ss_args['M'] is None and ss_args['use_precond']:
-        M = _iterative_precondition(L, n, ss_args['drop_tol'], 
+        M = _iterative_precondition(L, n, ss_args['drop_tol'],
                                     ss_args['diag_pivot_thresh'],
                                     ss_args['fill_factor'])
 
-    v, check = gmres(L, b, tol=ss_args['tol'], M=ss_args['M'], maxiter=ss_args['maxiter'])
+    v, check = gmres(
+        L, b, tol=ss_args['tol'], M=ss_args['M'], maxiter=ss_args['maxiter'])
     if check > 0:
         raise Exception("Steadystate solver did not reach tolerance after " +
                         str(check) + " steps.")
@@ -356,7 +358,7 @@ def _steadystate_iterative_bicg(L, ss_args):
 
     if M is None and use_precond:
         M = _iterative_precondition(L, n, ss_args['drop_tol'],
-                                    ss_args['diag_pivot_thresh'], 
+                                    ss_args['diag_pivot_thresh'],
                                     ss_args['fill_factor'])
 
     v, check = bicgstab(L, b, tol=ss_args['tol'], M=ss_args['M'])
@@ -381,7 +383,8 @@ def _steadystate_svd_dense(L, ss_args):
     Find the steady state(s) of an open quantum system by solving for the
     nullspace of the Liouvillian.
     """
-    atol=1e-12; rtol=1e-12
+    atol = 1e-12
+    rtol = 1e-12
     if settings.debug:
         print('Starting SVD solver...')
 
@@ -408,8 +411,8 @@ def _steadystate_power(L, ss_args):
     """
     if settings.debug:
         print('Starting iterative power method Solver...')
-    tol=ss_args['tol']
-    maxiter=ss_args['maxiter']
+    tol = ss_args['tol']
+    maxiter = ss_args['maxiter']
     use_solver(assumeSortedIndices=True)
     rhoss = Qobj()
     sflag = issuper(L)

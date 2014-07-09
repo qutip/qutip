@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,19 +18,19 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-#    Original Code by Arne Grimsmo (2012): github.com/arnelg/qutipf90mc 
+#    Original Code by Arne Grimsmo (2012): github.com/arnelg/qutipf90mc
 ###############################################################################
 
 import numpy as np
@@ -45,7 +45,7 @@ import qutip.settings
 if debug:
     import inspect
     import os
- 
+
 # Working precision
 wpr = np.dtype(np.float64)
 wpc = np.dtype(np.complex128)
@@ -175,9 +175,9 @@ def mcsolve_f90(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         if (ptrace_sel == []):
             if debug:
                 print("calc_entropy = True, but ptrace_sel = []. Please set " +
-                     "a list of components to keep when calculating average " +
-                     "entropy of reduced density matrix in ptrace_sel. " +
-                     "Setting calc_entropy = False.")
+                      "a list of components to keep when calculating average" +
+                      " entropy of reduced density matrix in ptrace_sel. " +
+                      "Setting calc_entropy = False.")
             calc_entropy = False
         mc.calc_entropy = calc_entropy
 
@@ -229,11 +229,11 @@ class _MC_class():
 
         if debug:
             print(inspect.stack()[0][3])
-    
+
         self.ntrajs = []
         for i in range(self.cpus):
             self.ntrajs.append(min(int(np.floor(float(self.ntraj)
-                                             / self.cpus)),
+                                                / self.cpus)),
                                    self.ntraj - sum(self.ntrajs)))
         cnt = sum(self.ntrajs)
         while cnt < self.ntraj:
@@ -253,7 +253,8 @@ class _MC_class():
         if debug:
             print("Number of cpus: " + str(self.cpus))
             print("Trying to start " + str(self.nprocs) + " process(es).")
-            print("Number of trajectories for each process: " + str(self.ntrajs))
+            print("Number of trajectories for each process: " +
+                  str(self.ntrajs))
 
         for i in range(self.nprocs):
             p = Process(target=self.evolve_serial,
@@ -350,7 +351,7 @@ class _MC_class():
         qtf90.qutraj_run.n_e_ops = config.e_num
         qtf90.qutraj_run.ntraj = ntraj
         qtf90.qutraj_run.unravel_type = self.unravel_type
-        qtf90.qutraj_run.average_states = config.options.average_states 
+        qtf90.qutraj_run.average_states = config.options.average_states
         qtf90.qutraj_run.average_expect = config.options.average_expect
         qtf90.qutraj_run.init_result(config.psi0_shape[0],
                                      config.options.atol,
@@ -372,7 +373,6 @@ class _MC_class():
         # run
         show_progress = 1 if debug else 0
         qtf90.qutraj_run.evolve(instanceno, rngseed, show_progress)
-    
 
         # construct Result instance
         sol = Result()
@@ -387,7 +387,7 @@ class _MC_class():
         if (self.calc_entropy):
             sol.entropy = self.get_entropy(len(config.tlist))
 
-        if (not self.serial_run):            
+        if (not self.serial_run):
             # put to queue
             queue.put(sol)
             queue.join()
@@ -439,8 +439,8 @@ class _MC_class():
                     m = qtf90.qutraj_run.csr_nrows
                     k = qtf90.qutraj_run.csr_ncols
                     states[i] = Qobj(csr_matrix((val, col, ptr),
-                                    (m, k)).toarray(),
-                        dims=self.dm_dims, shape=self.dm_shape)
+                                                (m, k)).toarray(),
+                                     dims=self.dm_dims, shape=self.dm_shape)
             else:
                 # averaged dense density matrices
                 for i in range(nstep):
@@ -472,9 +472,9 @@ class _MC_class():
             expect = []
             for j in range(config.e_num):
                 if config.e_ops_isherm[j]:
-                    expect+= [np.real(qtf90.qutraj_run.sol[j, 0, :, 0])]
+                    expect += [np.real(qtf90.qutraj_run.sol[j, 0, :, 0])]
                 else:
-                    expect+= [qtf90.qutraj_run.sol[j, 0, :, 0]]
+                    expect += [qtf90.qutraj_run.sol[j, 0, :, 0]]
         else:
             expect = np.array([[np.array([0. + 0.j] * nstep)] *
                                config.e_num] * ntraj)
@@ -541,7 +541,8 @@ def _gather(sols):
                 sol.expect = np.vstack((sol.expect,
                                         np.array(sols[j].expect)))
         if (hasattr(sols[j], 'entropy')):
-            if (config.options.average_states or config.options.average_expect):
+            if (config.options.average_states or
+                    config.options.average_expect):
                 # collect entropy values, averaged
                 sol.entropy += np.array(sols[j].entropy)
             else:
@@ -553,28 +554,27 @@ def _gather(sols):
             sol.states = sol.states / len(sols)
         else:
             sol.expect = list(sol.expect / len(sols))
-            inds=np.where(config.e_ops_isherm)[0]
+            inds = np.where(config.e_ops_isherm)[0]
             for jj in inds:
-                sol.expect[jj]=np.real(sol.expect[jj])
+                sol.expect[jj] = np.real(sol.expect[jj])
         if (hasattr(sols[0], 'entropy')):
             sol.entropy = sol.entropy / len(sols)
-    
-    #convert sol.expect array to list and fix dtypes of arrays
-    if (not config.options.average_expect) and config.e_num!=0:
-        temp=[list(sol.expect[ii]) for ii in range(ntraj)]
+
+    # convert sol.expect array to list and fix dtypes of arrays
+    if (not config.options.average_expect) and config.e_num != 0:
+        temp = [list(sol.expect[ii]) for ii in range(ntraj)]
         for ii in range(ntraj):
             for jj in np.where(config.e_ops_isherm)[0]:
-                temp[ii][jj]=np.real(temp[ii][jj])
-        sol.expect=temp
+                temp[ii][jj] = np.real(temp[ii][jj])
+        sol.expect = temp
     # convert to list/array to be consistent with qutip mcsolve
     sol.states = list(sol.states)
     return sol
 
+
 #
 # Functions to initialize the problem in fortran
 #
-
-
 def _init_tlist():
     Of = _realarray_to_fortran(config.tlist)
     qtf90.qutraj_run.init_tlist(Of, np.size(Of))
@@ -616,12 +616,9 @@ def _init_c_ops():
         # Of = _qobj_to_fortrancsr(c_ops[i])
         # qtf90.qutraj_run.init_c_ops(i+1,n,Of[0],Of[1],
         #        Of[2],Of[3],Of[4],first)
-        qtf90.qutraj_run.init_c_ops(i + 1, n,
-                                    _complexarray_to_fortran(
-                                    config.c_ops_data[i]),
-                                    config.c_ops_ind[i] +
-                                    1, config.c_ops_ptr[i] + 1, d, d,
-                                    first)
+        qtf90.qutraj_run.init_c_ops(
+            i + 1, n, _complexarray_to_fortran(config.c_ops_data[i]),
+            config.c_ops_ind[i] + 1, config.c_ops_ptr[i] + 1, d, d, first)
         first = False
 
 
@@ -634,12 +631,9 @@ def _init_e_ops():
         # Of = _qobj_to_fortrancsr(e_ops[i])
         # qtf90.qutraj_run.init_e_ops(i+1,n,Of[0],Of[1],
         #        Of[2],Of[3],Of[4],first)
-        qtf90.qutraj_run.init_e_ops(i + 1, n,
-                                    _complexarray_to_fortran(
-                                    config.e_ops_data[i]),
-                                    config.e_ops_ind[i] +
-                                    1, config.e_ops_ptr[i] + 1, d, d,
-                                    first)
+        qtf90.qutraj_run.init_e_ops(
+            i + 1, n, _complexarray_to_fortran(config.e_ops_data[i]),
+            config.e_ops_ind[i] + 1, config.e_ops_ptr[i] + 1, d, d, first)
         first = False
 
 
