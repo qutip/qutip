@@ -884,7 +884,7 @@ class Qobj(object):
             # system and the number of non-zero elements.
             N = self.data.shape[0]
             n = self.data.nnz
-            sparse = N > 250 and N ** 2 < 8 * n
+            sparse = N > 250 and N ** 2 > 8 * n
 
         if self.dims[0][0] == self.dims[1][0]:
             F = sp_expm(self.data, sparse=sparse)
