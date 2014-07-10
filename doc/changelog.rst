@@ -80,7 +80,10 @@ New Features
   does not start from zero (e.g., in the range [M,N+1]). Support for
   eliminating and extracting states from Qobj instances (e.g., removing one
   state from a two-qubit system to obtain a three-level system).
-  
+
+- Support for time-dependent Hamiltonian and Liouvillian callback functions that
+  depend on the instantaneous state, which for example can be used for solving
+  master eqautions with mean field terms.
 
 Improvements
 -------------
