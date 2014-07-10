@@ -878,20 +878,20 @@ class Qobj(object):
             Quantum operator is not square.
 
         """
+        if self.dims[0][0] != self.dims[1][0]:
+            raise TypeError('Invalid operand for matrix exponential')
+
         if sparse is None:
             # if sparse is not explicitly given, try to make a good choice
             # between sparse and dense solver by considering the size of the
             # system and the number of non-zero elements.
             N = self.data.shape[0]
             n = self.data.nnz
-            sparse = N > 250 and N ** 2 > 8 * n
+            sparse = N > 400 and N ** 2 > 10 * n
 
-        if self.dims[0][0] == self.dims[1][0]:
-            F = sp_expm(self.data, sparse=sparse)
-            out = Qobj(F, dims=self.dims)
-            return out.tidyup() if settings.auto_tidyup else out
-        else:
-            raise TypeError('Invalid operand for matrix exponential')
+        F = sp_expm(self.data, sparse=sparse)
+        out = Qobj(F, dims=self.dims)
+        return out.tidyup() if settings.auto_tidyup else out
 
     def checkherm(self):
         """Check if the quantum object is hermitian.
