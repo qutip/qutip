@@ -295,7 +295,6 @@ class QubitCircuit(object):
 
         elif name is not None and remove == "all":
             for j in range(self.N + 1):
-                print(j)
                 if name == self.gates[self.N - j].name:
                     self.gates.remove(self.gates[self.N - j])
 
