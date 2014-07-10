@@ -447,6 +447,24 @@ def test_QobjExpm():
     assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
 
 
+def test_QobjExpmExplicitlySparse():
+    "Qobj expm (explicit sparse)"
+    data = np.random.random(
+        (15, 15)) + 1j * np.random.random((15, 15)) - (0.5 + 0.5j)
+    A = Qobj(data)
+    B = A.expm(sparse=True)
+    assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
+
+
+def test_QobjExpmExplicitDense():
+    "Qobj expm (explicit dense)"
+    data = np.random.random(
+        (15, 15)) + 1j * np.random.random((15, 15)) - (0.5 + 0.5j)
+    A = Qobj(data)
+    B = A.expm(sparse=False)
+    assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
+
+
 def test_Qobj_sqrtm():
     "Qobj sqrtm"
     data = np.random.random(
