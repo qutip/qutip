@@ -186,11 +186,11 @@ class SpinChain(CircuitProcessor):
                 end = max([gate.targets[0], gate.controls[0]])
 
                 if (setup == "linear" or
-                   (setup == "circular" and (end - start) <= N // 2)):
+                        (setup == "circular" and (end - start) <= N // 2)):
                     i = start
                     while i < end:
                         if (start + end - i - i == 1 and
-                           (end - start + 1) % 2 == 0):
+                                (end - start + 1) % 2 == 0):
                             # Apply required gate if control and target are
                             # adjacent to each other, provided |control-target|
                             # is even.
@@ -237,7 +237,7 @@ class SpinChain(CircuitProcessor):
                     while i < (N - end + start):
 
                         if (N + start - end - i - i == 1 and
-                           (N - end + start + 1) % 2 == 0):
+                                (N - end + start + 1) % 2 == 0):
                             if end == gate.controls[0]:
                                 temp.add_gate(gate.name, targets=[i],
                                               controls=[i + 1])
@@ -305,7 +305,7 @@ class SpinChain(CircuitProcessor):
                     i = start
                     while i < end:
                         if (start + end - i - i == 1 and
-                           (end - start + 1) % 2 == 0):
+                                (end - start + 1) % 2 == 0):
                             qc_t.add_gate(gate.name, [i, i + 1])
                         elif ((start + end - i - i) == 2 and
                               (end - start + 1) % 2 == 1):
@@ -325,7 +325,7 @@ class SpinChain(CircuitProcessor):
                     while i < (N - end + start):
 
                         if (N + start - end - i - i == 1 and
-                           (N - end + start + 1) % 2 == 0):
+                                (N - end + start + 1) % 2 == 0):
                             temp.add_gate(gate.name, [i, i + 1])
 
                         elif (N + start - end - i - i == 2 and
