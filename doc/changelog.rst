@@ -76,6 +76,11 @@ New Features
   does no longer contain graphical UI elements. New text-based and HTML-based
   progressbar classes.
 
+- Support for harmonic oscillator operators/states in a Fock state basis that
+  does not start from zero (e.g., in the range [M,N+1]). Support for
+  eliminating and extracting states from Qobj instances (e.g., removing one
+  state from a two-qubit system to obtain a three-level system).
+  
 
 Improvements
 -------------
