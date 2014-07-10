@@ -281,7 +281,7 @@ class SpinChain(CircuitProcessor):
                             else:
                                 qc_t.add_gate(gate.name,
                                               [end + gate.targets[0],
-                                               end + gate.targets[1]) % N])
+                                               (end + gate.targets[1]) % N])
                         else:
                             if gate.name in ["CNOT", "CSIGN"]:
                                 qc_t.add_gate(gate.name,
