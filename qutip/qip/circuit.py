@@ -243,25 +243,26 @@ class QubitCircuit(object):
             raise NotImplementedError("Targets exceed number of qubits.")
 
         for gate in qc.gates:
-            if gate in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE"]:
-                self.add_gate(gate.name, gate.targets + start, None,
+            if gate.name in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE"]:
+                self.add_gate(gate.name, gate.targets[0] + start, None,
                               gate.arg_value, gate.arg_label)
-            elif gate in ["CPHASE", "CNOT", "CSIGN"]:
-                self.add_gate(gate.name, gate.targets + start,
-                              gate.controls + start, gate.arg_value,
+            elif gate.name in ["CPHASE", "CNOT", "CSIGN"]:
+                self.add_gate(gate.name, gate.targets[0] + start,
+                              gate.controls[0] + start, gate.arg_value,
                               gate.arg_label)
-            elif gate in ["BERKELEY", "SWAPalpha", "SWAP", "ISWAP", "SQRTSWAP",
-                          "SQRTISWAP"]:
+            elif gate.name in ["BERKELEY", "SWAPalpha", "SWAP", "ISWAP",
+                               "SQRTSWAP", "SQRTISWAP"]:
                 self.add_gate(gate.name, None,
                               [gate.controls[0] + start,
                                gate.controls[1] + start], None, None)
-            elif gate in ["TOFFOLI"]:
-                self.add_gate(gate.name, gate.target + start,
+            elif gate.name in ["TOFFOLI"]:
+                self.add_gate(gate.name, gate.targets[0] + start,
                               [gate.controls[0] + start,
                                gate.controls[1] + start], None, None)
-            elif gate in ["FREDKIN"]:
+            elif gate.name in ["FREDKIN"]:
                 self.add_gate(gate.name,
-                              [gate.target[0] + start, gate.target[1] + start],
+                              [gate.targets[0] + start, 
+                               gate.targets[1] + start],
                               gate.controls + start, None, None)
 
     def remove_gate(self, index=None, name=None, remove="first"):
