@@ -254,15 +254,15 @@ class QubitCircuit(object):
                           "SQRTISWAP"]:
                 self.add_gate(gate.name, None,
                               [gate.controls[0] + start,
-                               gate.controls[1] + start])
+                               gate.controls[1] + start], None, None)
             elif gate in ["TOFFOLI"]:
                 self.add_gate(gate.name, gate.target + start,
                               [gate.controls[0] + start,
-                               gate.controls[1] + start])
+                               gate.controls[1] + start], None, None)
             elif gate in ["FREDKIN"]:
                 self.add_gate(gate.name,
                               [gate.target[0] + start, gate.target[1] + start],
-                              gate.controls + start)
+                              gate.controls + start, None, None)
 
     def remove_gate(self, index=None, name=None, remove="first"):
         """
@@ -288,15 +288,16 @@ class QubitCircuit(object):
                     break
 
         elif name is not None and remove == "last":
-            for i in range(self.N):
-                if name == self.gates[self.N - i - 1].name:
-                    self.gates.remove(gate)
+            for i in range(self.N + 1):
+                if name == self.gates[self.N - i].name:
+                    self.gates.remove(self.gates[self.N - i])
                     break
 
         elif name is not None and remove == "all":
-            for gate in self.gates:
-                if name == gate.name:
-                    self.gates.remove(gate)
+            for j in range(self.N + 1):
+                print(j)
+                if name == self.gates[self.N - j].name:
+                    self.gates.remove(self.gates[self.N - j])
 
         else:
             self.gates.pop()
