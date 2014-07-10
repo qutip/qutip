@@ -97,7 +97,7 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
     
     u = np.zeros((R, J, M))
 
-    if u_start:
+    if u_start is not None:
         for idx, u0 in enumerate(u_start):
             u[0, idx, :] = u0
 
