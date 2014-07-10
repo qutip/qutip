@@ -370,7 +370,7 @@ def sp_eigs(data, isherm, vecs=True, sparse=False, sort='low',
     return (evals, evecs) if vecs else evals
 
 
-def sp_expm(data):
+def sp_expm(data, sparse=True):
     """
     Sparse matrix exponential.
     """
@@ -383,20 +383,20 @@ def sp_expm(data):
     if normA <= theta[-1]:
         for ii in range(len(m_vals)):
             if normA <= theta[ii]:
-                F = _pade(A, m_vals[ii])
+                F = _pade(A, m_vals[ii], sparse)
                 break
     else:
         t, s = np.frexp(normA / theta[-1])
         s = s - (t == 0.5)
         A = A / 2.0 ** s
-        F = _pade(A, m_vals[-1])
+        F = _pade(A, m_vals[-1], sparse)
         for i in range(s):
             F = F * F
 
     return F
 
 
-def _pade(A, m):
+def _pade(A, m, sparse):
     n = np.shape(A)[0]
     c = _padecoeff(m)
 
@@ -413,8 +413,13 @@ def _pade(A, m):
         U = A * U
         for jj in range(m - 1, -1, -2):
             V = V + c[jj] * apows[(jj + 1) // 2]
-        F = spla.spsolve((-U + V), (U + V))
-        return F.tocsr()
+
+        if sparse:
+            F = spla.spsolve((-U + V), (U + V))
+            return F.tocsr()
+        else:
+            F = la.solve((-U + V).todense(), (U + V).todense())
+            return sp.lil_matrix(F).tocsr()
 
     elif m == 13:
         A2 = A * A
@@ -425,9 +430,13 @@ def _pade(A, m):
                  c[1] * sp.eye(n, n).tocsc())
         V = A6 * (c[12] * A6 + c[10] * A4 + c[8] * A2) + c[6] * A6 + c[4] * \
             A4 + c[2] * A2 + c[0] * sp.eye(n, n).tocsc()
-        F = spla.spsolve((-U + V), (U + V))
-        return F.tocsr()
 
+        if sparse:
+            F = spla.spsolve((-U + V), (U + V))
+            return F.tocsr()
+        else:
+            F = la.solve((-U + V).todense(), (U + V).todense())
+            return sp.csr_matrix(F)
 
 def _padecoeff(m):
     """

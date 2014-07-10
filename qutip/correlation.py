@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
@@ -44,19 +44,19 @@ from qutip.essolve import ode2es
 from qutip.mcsolve import mcsolve
 from qutip.steadystate import steadystate
 from qutip.states import ket2dm
-from qutip.odeoptions import Odeoptions
+from qutip.solver import Options
 from qutip.settings import debug
 
 if debug:
     import inspect
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # PUBLIC API
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 def correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver="me",
-                       reverse=False, args=None, options=Odeoptions()):
+                       reverse=False, args=None, options=Options()):
     """
     Calculate a two-operator two-time correlation function
     :math:`\left<A(\\tau)B(0)\\right>` or
@@ -119,7 +119,7 @@ def correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver="me",
 
 
 def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
-                       reverse=False, args=None, options=Odeoptions()):
+                       reverse=False, args=None, options=Options()):
     """
     Calculate a two-operator two-time correlation function on the form
     :math:`\left<A(t+\\tau)B(t)\\right>` or
@@ -199,7 +199,7 @@ def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
 
 
 def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
-                       solver="me", args=None, options=Odeoptions()):
+                       solver="me", args=None, options=Options()):
     """
     Calculate the four-operator two-time correlation function on the from
     :math:`\left<A(0)B(\\tau)C(\\tau)D(0)\\right>` using the quantum regression
@@ -262,7 +262,7 @@ def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
 
 
 def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
-                       solver="me", args=None, options=Odeoptions()):
+                       solver="me", args=None, options=Options()):
     """
     Calculate the four-operator two-time correlation function on the from
     :math:`\left<A(t)B(t+\\tau)C(t+\\tau)D(t)\\right>` using the quantum
@@ -329,12 +329,12 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
         raise NotImplementedError("Unrecognized choice of solver %s." % solver)
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # high-level correlation function
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 def coherence_function_g1(H, rho0, taulist, c_ops, a_op, solver="me",
-                          args=None, options=Odeoptions()):
+                          args=None, options=Options()):
     """
     Calculate the first-order quantum coherence function:
 
@@ -391,7 +391,7 @@ def coherence_function_g1(H, rho0, taulist, c_ops, a_op, solver="me",
 
 
 def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me",
-                          args=None, options=Odeoptions()):
+                          args=None, options=Options()):
     """
     Calculate the second-order quantum coherence function:
 
@@ -438,7 +438,7 @@ def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me",
         n = np.array([expect(rho0, a_op.dag() * a_op)])
     else:
         n = mesolve(
-            H, rho0, taulist, c_ops, [a_op.dag() * a_op], 
+            H, rho0, taulist, c_ops, [a_op.dag() * a_op],
             args=args, options=options).expect[0]
 
     # calculate the correlation function G2 and normalize with n to obtain g2
@@ -450,12 +450,12 @@ def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me",
     return g2, G2
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # LEGACY API
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 def correlation_ss(H, taulist, c_ops, a_op, b_op, rho0=None, solver="me",
-                   reverse=False, args=None, options=Odeoptions()):
+                   reverse=False, args=None, options=Options()):
     """
     Calculate a two-operator two-time correlation function
     :math:`\left<A(\\tau)B(0)\\right>` or
@@ -510,7 +510,7 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op, rho0=None, solver="me",
 
 
 def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
-                reverse=False, args=None, options=Odeoptions()):
+                reverse=False, args=None, options=Options()):
     """
     Calculate a two-operator two-time correlation function on the form
     :math:`\left<A(t+\\tau)B(t)\\right>` or
@@ -571,7 +571,7 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
 # EXPONENTIAL SERIES SOLVERS
 # -----------------------------------------------------------------------------
 def _correlation_es_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False,
-                           args=None, options=Odeoptions()):
+                           args=None, options=Options()):
     """
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation_ss` usage.
@@ -601,7 +601,7 @@ def _correlation_es_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False,
 
 
 def _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
-                           reverse=False, args=None, options=Odeoptions()):
+                           reverse=False, args=None, options=Options()):
     """
     Internal function for calculating correlation functions using the
     exponential series solver. See :func:`correlation` usage.
@@ -645,7 +645,7 @@ def _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 # -----------------------------------------------------------------------------
 
 def _correlation_me_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False,
-                           args=None, options=Odeoptions()):
+                           args=None, options=Options()):
     """
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation_ss` for usage.
@@ -670,7 +670,7 @@ def _correlation_me_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False,
 
 
 def _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
-                           reverse=False, args=None, options=Odeoptions()):
+                           reverse=False, args=None, options=Options()):
     """
     Internal function for calculating correlation functions using the master
     equation solver. See :func:`correlation` for usage.
@@ -706,7 +706,7 @@ def _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 
 
 def _correlation_me_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op,
-                           args=None, options=Odeoptions()):
+                           args=None, options=Options()):
     """
     Calculate the four-operator two-time correlation function on the form
     <A(0)B(tau)C(tau)D(0)>.
@@ -728,7 +728,7 @@ def _correlation_me_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op,
 
 def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
                            a_op, b_op, c_op, d_op, reverse=False,
-                           args=None, options=Odeoptions()):
+                           args=None, options=Options()):
     """
     Calculate the four-operator two-time correlation function on the form
     <A(t)B(t+tau)C(t+tau)D(t)>.
@@ -761,7 +761,7 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
 # MONTE CARLO SOLVERS
 # -----------------------------------------------------------------------------
 def _correlation_mc_2op_1t(H, psi0, taulist, c_ops, a_op, b_op, reverse=False,
-                           args=None, options=Odeoptions()):
+                           args=None, options=Options()):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation_ss` for usage.
@@ -782,7 +782,7 @@ def _correlation_mc_2op_1t(H, psi0, taulist, c_ops, a_op, b_op, reverse=False,
 
 
 def _correlation_mc_2op_2t(H, psi0, tlist, taulist, c_ops, a_op, b_op,
-                           reverse=False, args=None, options=Odeoptions()):
+                           reverse=False, args=None, options=Options()):
     """
     Internal function for calculating correlation functions using the Monte
     Carlo solver. See :func:`correlation` usage.

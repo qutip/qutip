@@ -179,7 +179,7 @@ module qutraj_run
     call new(e_ops(i),val,col,ptr,m,k)
   end subroutine
 
-  subroutine init_odedata(neq,atol,rtol,mf,norm_steps,norm_tol,&
+  subroutine init_result(neq,atol,rtol,mf,norm_steps,norm_tol,&
       lzw,lrw,liw,ml,mu,natol,nrtol)
     use qutraj_precision
     integer, intent(in) :: neq

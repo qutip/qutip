@@ -31,47 +31,35 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from numpy.testing import assert_, run_module_suite
-from qutip import *
+import numpy as np
+
+from qutip.qobj import Qobj
+from qutip.tensor import tensor
+from qutip.states import ket
 
 
-class TestStates:
+def qubit_states(N=1, states=[0]):
     """
-    A test class for the QuTiP functions for generating quantum states
+    Function to define initial state of the qubits.
+
+    Parameters
+    ----------
+    N: Integer
+        Number of qubits in the register.
+    states: List
+        Initial state of each qubit.
+
+    Returns
+    ----------
+    qstates: Qobj
+        List of qubits.
     """
+    state_list = []
+    for i in range(N):
+        if N > len(states) and i >= len(states):
+            state_list.append(0)
+        else:
+            state_list.append(states[i])
 
-    def testCoherentDensityMatrix(self):
-        """
-        states: coherent density matrix
-        """
-        N = 10
-
-        rho = coherent_dm(N, 1)
-
-        # make sure rho has trace close to 1.0
-        assert_(abs(rho.tr() - 1.0) < 1e-12)
-
-    def testThermalDensityMatrix(self):
-        """
-        states: thermal density matrix
-        """
-        N = 40
-
-        rho = thermal_dm(N, 1)
-
-        # make sure rho has trace close to 1.0
-        assert_(abs(rho.tr() - 1.0) < 1e-12)
-
-    def testFockDensityMatrix(self):
-        """
-        states: Fock density matrix
-        """
-        N = 10
-        for i in range(N):
-            rho = fock_dm(N, i)
-            # make sure rho has trace close to 1.0
-            assert_(abs(rho.tr() - 1.0) < 1e-12)
-            assert_(rho.data[i, i] == 1.0)
-
-if __name__ == "__main__":
-    run_module_suite()
+    return tensor(alpha * basis(2, 0) + sqrt(1 - alpha**2) * basis(2, 1)
+                  for alpha in state_list)

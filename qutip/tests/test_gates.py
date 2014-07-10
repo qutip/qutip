@@ -152,7 +152,7 @@ class TestGates:
                     if g == cnot:
                         G = g(N, m, n)
                     else:
-                        G= g(N, [m, n])
+                        G = g(N, [m, n])
 
                     psi_out = G * psi_in
 
@@ -206,12 +206,12 @@ class TestGates:
                         psi_in = tensor(psi_list)
 
                         if g == fredkin:
-                            targets = [n,k]
+                            targets = [n, k]
                             G = g(N, control=m, targets=targets)
                         else:
                             controls = [m, n]
                             G = g(N, controls, k)
-    
+
                         psi_out = G * psi_in
 
                         o1 = psi_out.overlap(psi_in)

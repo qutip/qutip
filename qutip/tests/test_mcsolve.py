@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,22 +18,21 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
 from qutip import *
 from qutip import _version2int
-from qutip.odechecks import _ode_checks
 from numpy import allclose, linspace, mean, ones
 from numpy.testing import assert_equal, run_module_suite
 from numpy.testing.decorators import skipif
@@ -61,7 +60,8 @@ def const_H1_coeff(t, args):
     return 0.0
 
 # average error for failure
-mc_error = 5e-2  # 5% for ntraj=500
+mc_error = 5e-2  # 5%
+ntraj = 750
 
 
 def test_MCNoCollExpt():
@@ -74,7 +74,7 @@ def test_MCNoCollExpt():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * ones(len(tlist))
     diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -91,7 +91,7 @@ def test_MCNoCollStates():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [], ntraj=ntraj)
     states = mcdata.states
     expt = expect(a.dag() * a, states)
     actual_answer = 9.0 * ones(len(tlist))
@@ -109,7 +109,8 @@ def test_MCNoCollStrExpt():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args={'c': 0.0})
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args={'c': 0.0},
+                     ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * ones(len(tlist))
     diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -126,7 +127,7 @@ def test_MCNoCollFuncExpt():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * ones(len(tlist))
     diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -161,7 +162,7 @@ def test_MCNoCollFuncStates():
     kappa = 0.2  # coupling to oscillator
     c_op_list = []
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [], ntraj=ntraj)
     states = mcdata.states
     expt = expect(a.dag() * a, states)
     actual_answer = 9.0 * ones(len(tlist))
@@ -178,7 +179,7 @@ def test_MCSimpleConst():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [sqrt(kappa) * a]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -194,7 +195,7 @@ def test_MCSimpleSingleCollapse():
     kappa = 0.2  # coupling to oscillator
     c_op_list = sqrt(kappa) * a
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -210,7 +211,7 @@ def test_MCSimpleSingleExpect():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [sqrt(kappa) * a]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, a.dag() * a)
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, a.dag() * a, ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -226,7 +227,7 @@ def test_MCSimpleConstFunc():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [[a, sqrt_kappa]]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -245,7 +246,8 @@ def test_MCSimpleConstStr():
     c_op_list = [[a, 'sqrt(k)']]
     args = {'k': kappa}
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args)
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args,
+                     ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * tlist)
     avg_diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -262,7 +264,7 @@ def test_MCTDFunc():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [[a, sqrt_kappa2]]
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
     actual_answer = 9.0 * exp(-kappa * (1.0 - exp(-tlist)))
     diff = mean(abs(actual_answer - expt) / actual_answer)
@@ -282,7 +284,8 @@ def test_TDStr():
     c_op_list = [[a, 'sqrt(k*exp(-t))']]
     args = {'k': kappa}
     tlist = linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args)
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args,
+                     ntraj=ntraj)
     expt = mcdata.expect[0]
     actual = 9.0 * exp(-kappa * (1.0 - exp(-tlist)))
     diff = mean(abs(actual - expt) / actual)
@@ -315,7 +318,7 @@ def test_mc_dtypes1():
     C2dC2 = C2.dag() * C2
     # intial state
     psi0 = tensor(basis(N, 0), basis(2, 1))
-    opts = Odeoptions(average_expect=True)
+    opts = Options(average_expect=True)
     data = mcsolve(
         H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
     assert_equal(isinstance(data.expect[0][1], float), True)
@@ -349,7 +352,7 @@ def test_mc_dtypes2():
     C2dC2 = C2.dag() * C2
     # intial state
     psi0 = tensor(basis(N, 0), basis(2, 1))
-    opts = Odeoptions(average_expect=False)
+    opts = Options(average_expect=False)
     data = mcsolve(
         H, psi0, tlist, [C1, C2], [C1dC1, C2dC2, a], ntraj=5, options=opts)
     assert_equal(isinstance(data.expect[0][0][1], float), True)
