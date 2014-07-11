@@ -452,9 +452,6 @@ class _MC_class():
             if self.config.ntraj != 1:
                 # ntraj != 1 is pointless for no collapse operators
                 self.config.ntraj = 1
-                msg = ('No collapse operators specified. ' +
-                       'Running a single trajectory only.')
-                warnings.warn(msg)
             if self.config.e_num == 0:  # return psi at each requested time
                 self.psi_out = _no_collapse_psi_out(
                     self.num_times, self.psi_out, self.config)
