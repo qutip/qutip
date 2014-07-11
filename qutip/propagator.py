@@ -90,7 +90,10 @@ def propagator(H, t, c_op_list, args=None, options=None, sparse=False):
         options.rhs_reuse = True
         rhs_clear()
 
-    tlist = [0, t] if isinstance(t, (int, float, np.int64, np.float64)) else t
+    if isinstance(t, (int, float, np.integer, np.floating)):
+        tlist = [0, t] 
+    else:
+        tlist = t
 
     if isinstance(H, (types.FunctionType, types.BuiltinFunctionType,
                       functools.partial)):
