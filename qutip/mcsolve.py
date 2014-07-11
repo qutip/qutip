@@ -36,7 +36,6 @@ import os
 import time
 import copy
 import numpy as np
-import warnings
 from types import FunctionType
 from multiprocessing import Pool, cpu_count
 
@@ -257,7 +256,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         try:
             os.remove(config.tdname + ".pyx")
         except:
-            warnings.warn("Failed to remove pyx file: " + config.tdname)
+            pass
 
     # AFTER MCSOLVER IS DONE --------------------------------------
     # ------- COLLECT AND RETURN OUTPUT DATA IN ODEDATA OBJECT --------------
