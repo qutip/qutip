@@ -452,7 +452,9 @@ def test_QobjExpmExplicitlySparse():
     data = np.random.random(
         (15, 15)) + 1j * np.random.random((15, 15)) - (0.5 + 0.5j)
     A = Qobj(data)
-    B = A.expm(sparse=True)
+    B = A.expm(method='sparse')
+    assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
+    B = A.expm(method='scipy-sparse')
     assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
 
 
@@ -461,7 +463,9 @@ def test_QobjExpmExplicitDense():
     data = np.random.random(
         (15, 15)) + 1j * np.random.random((15, 15)) - (0.5 + 0.5j)
     A = Qobj(data)
-    B = A.expm(sparse=False)
+    B = A.expm(method='dense')
+    assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
+    B = A.expm(method='scipy-delse')
     assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
 
 
