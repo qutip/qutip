@@ -94,11 +94,11 @@ Parallel picloud Computations
 
 New to QuTiP version 3 is the option to run computations in parallel on the cloud computing platform provided by PiCloud. You must have their software installed on your machine, and an active account, for this function to work. Note that, at present, the picloud software is **only available for Python version 2.7**. Using the picloud function is very similar to using parfor, however the picloud function does not accept any keyword arguments:
 
-.. ipython::
     
-    In [1]: def add(x,y): return x+y
-    
-    In [2]: picloud(add,[10,20,30],[5,6,7])
+    >>> from qutip.picloud import *
+    >>> def add(x,y): return x+y    
+    >>> picloud(add,[10,20,30],[5,6,7])
+    [15,26,37]
 
 
  
