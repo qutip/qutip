@@ -36,7 +36,6 @@ import os
 import time
 import copy
 import numpy as np
-import warnings
 from types import FunctionType
 from multiprocessing import Pool, cpu_count
 
@@ -257,7 +256,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         try:
             os.remove(config.tdname + ".pyx")
         except:
-            warnings.warn("Failed to remove pyx file: " + config.tdname)
+            pass
 
     # AFTER MCSOLVER IS DONE --------------------------------------
     # ------- COLLECT AND RETURN OUTPUT DATA IN ODEDATA OBJECT --------------
@@ -452,9 +451,6 @@ class _MC_class():
             if self.config.ntraj != 1:
                 # ntraj != 1 is pointless for no collapse operators
                 self.config.ntraj = 1
-                msg = ('No collapse operators specified. ' +
-                       'Running a single trajectory only.')
-                warnings.warn(msg)
             if self.config.e_num == 0:  # return psi at each requested time
                 self.psi_out = _no_collapse_psi_out(
                     self.num_times, self.psi_out, self.config)

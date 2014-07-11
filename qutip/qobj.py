@@ -245,7 +245,8 @@ class Qobj(object):
             else:
                 self.dims = dims
 
-        elif isinstance(inpt, (int, float, complex, np.int64)):
+        elif isinstance(inpt, (int, float, complex,
+                               np.integer, np.floating, np.complexfloating)):
             # if input is int, float, or complex then convert to array
             self.data = sp.csr_matrix([[inpt]], dtype=complex)
 
@@ -437,7 +438,8 @@ class Qobj(object):
         elif isinstance(other, eseries):
             return other.__rmul__(self)
 
-        elif isinstance(other, (int, float, complex, np.int64)):
+        elif isinstance(other, (int, float, complex,
+                                np.integer, np.floating, np.complexfloating)):
             out = Qobj()
             out.data = self.data * other
             out.dims = self.dims
@@ -464,7 +466,8 @@ class Qobj(object):
         if isinstance(other, eseries):
             return other.__mul__(self)
 
-        if isinstance(other, (int, float, complex, np.int64)):
+        if isinstance(other, (int, float, complex,
+                              np.integer, np.floating, np.complexfloating)):
             out = Qobj()
             out.data = other * self.data
             out.dims = self.dims
@@ -490,7 +493,8 @@ class Qobj(object):
             raise TypeError("Incompatible Qobj shapes " +
                             "[division with Qobj not implemented]")
 
-        if isinstance(other, (int, float, complex, np.int64)):
+        if isinstance(other, (int, float, complex,
+                              np.integer, np.floating, np.complexfloating)):
             out = Qobj()
             out.data = self.data / other
             out.dims = self.dims
@@ -1535,13 +1539,13 @@ i
     def isbra(self):
         return (np.prod(self.dims[0]) == 1 and
                 isinstance(self.dims[1], list) and
-                isinstance(self.dims[1][0], (int, np.int32, np.int64)))
+                isinstance(self.dims[1][0], (int, np.integer)))
 
     @property
     def isket(self):
         return (np.prod(self.dims[1]) == 1 and
                 isinstance(self.dims[0], list) and
-                isinstance(self.dims[0][0], (int, np.int32, np.int64)))
+                isinstance(self.dims[0][0], (int, np.integer)))
 
     @property
     def isoperbra(self):
@@ -1558,7 +1562,7 @@ i
     @property
     def isoper(self):
         return (isinstance(self.dims[0], list) and
-                isinstance(self.dims[0][0], (int, np.int32, np.int64)) and
+                isinstance(self.dims[0][0], (int, np.integer)) and
                 self.dims[0] == self.dims[1])
 
     @property
