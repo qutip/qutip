@@ -857,15 +857,21 @@ class Qobj(object):
         else:
             return np.real(out)
 
-    def expm(self, sparse=None):
+    def expm(self, method=None):
         """Matrix exponential of quantum operator.
 
         Input operator must be square.
 
         Parameters
         ----------
-        sparse : bool
-            Use sparse eigenvalue/vector solver.
+        method : str {'dense', 'sparse', 'scipy-dense', 'scipy-sparse'}
+            Use set method to use to calculate the matrix exponentiation. The
+            available choices includes 'dense' and 'sparse' for using QuTiP's
+            implementation of expm using dense and sparse matrices, 
+            respectively, and 'scipy-dense' and 'scipy-sparse' for using the
+            scipy.linalg.expm (dense) and scipy.sparse.linalg.expm (sparse).
+            If no method is explicitly given a heuristic will be used to try
+            and automatically select the most appropriate solver.
 
         Returns
         -------
@@ -881,15 +887,35 @@ class Qobj(object):
         if self.dims[0][0] != self.dims[1][0]:
             raise TypeError('Invalid operand for matrix exponential')
 
-        if sparse is None:
+        if method == 'dense':
+            F = sp_expm(self.data, sparse=False)
+
+        elif method == 'sparse':
+            F = sp_expm(self.data, sparse=True)
+
+        elif method == 'scipy-dense':
+            F = la.expm(self.data.todense())
+
+        elif method == 'scipy-sparse':
+            F = sp.linalg.expm(self.data.tocsc())
+
+        else:
             # if sparse is not explicitly given, try to make a good choice
             # between sparse and dense solver by considering the size of the
             # system and the number of non-zero elements.
             N = self.data.shape[0]
             n = self.data.nnz
-            sparse = N > 400 and N ** 2 > 10 * n
 
-        F = sp_expm(self.data, sparse=sparse)
+            if N ** 2 < 100 * n: 
+                # large number of nonzero elements 
+                F = la.expm(self.data.todense())
+            elif N > 400:
+                # large system
+                F = sp_expm(self.data, sparse=True)
+            else:
+                # small system
+                F = sp_expm(self.data, sparse=False)
+
         out = Qobj(F, dims=self.dims)
         return out.tidyup() if settings.auto_tidyup else out
 
