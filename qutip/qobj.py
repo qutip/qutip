@@ -900,20 +900,20 @@ class Qobj(object):
             F = sp.linalg.expm(self.data.tocsc())
 
         else:
-            # if sparse is not explicitly given, try to make a good choice
-            # between sparse and dense solver by considering the size of the
+            # if method is not explicitly given, try to make a good choice
+            # between sparse and dense solvers by considering the size of the
             # system and the number of non-zero elements.
             N = self.data.shape[0]
             n = self.data.nnz
 
             if N ** 2 < 100 * n: 
-                # large number of nonzero elements 
+                # large number of nonzero elements, revert to dense solver
                 F = la.expm(self.data.todense())
             elif N > 400:
-                # large system
+                # large system, and quite sparse -> qutips sparse method
                 F = sp_expm(self.data, sparse=True)
             else:
-                # small system
+                # small system, but quite sparse -> qutips sparse/dense method
                 F = sp_expm(self.data, sparse=False)
 
         out = Qobj(F, dims=self.dims)
