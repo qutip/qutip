@@ -22,15 +22,14 @@ To load the qutip modules, we must first call the import statement:
 	In [1]: from qutip import *
 
 
-
-that will load all of the user available functions. We will also need to import the Numpy and Matplotlib libraries with:
+that will load all of the user available functions. Often, we also need to import the Numpy and Matplotlib libraries with:
 
 .. ipython::
 
 	In [1]: import numpy as np
             import matplotlib.pyplot as plt
 
-Note that, in the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`. However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the command line or a Python script.
+Note that, in the rest of the documentation, functions are written using `qutip.module.function()` notation which links to the corresponding function in the QuTiP API: :ref:`functions`. However, in calling `import *`, we have already loaded all of the QuTiP modules. Therefore, we will only need the function name and not the complete path when calling the function from the interpreter prompt or a Python script.
 
 .. _basics-qobj:
 
@@ -42,25 +41,25 @@ The quantum object class
 Introduction
 ---------------
 
-The key difference between classical and quantum mechanics lies in the use of operators instead of numbers as variables.  Moreover, we need to specify state vectors and their properties. Therefore, in computing the dynamics of quantum systems we need a data structure that is capable of encapsulating the properties of a quantum operator and ket/bra vectors.  The quantum object class, :func:`qutip.Qobj`, accomplishes this using matrix representation.
+The key difference between classical and quantum mechanics lies in the use of operators instead of numbers as variables. Moreover, we need to specify state vectors and their properties. Therefore, in computing the dynamics of quantum systems we need a data structure that is capable of encapsulating the properties of a quantum operator and ket/bra vectors. The quantum object class, :func:`qutip.Qobj`, accomplishes this using matrix representation.
 
-To begin, let us create a blank Qobj:
+To begin, let us create a blank ``Qobj``:
 
 .. ipython::
 
 	In [1]: Qobj()
 
-where we see the blank Qobj object with dimensions, shape, and data.  Here the data corresponds to a 1x1-dimensional matrix consisting of a single zero entry.  
+where we see the blank ```Qobj``` object with dimensions, shape, and data. Here the data corresponds to a 1x1-dimensional matrix consisting of a single zero entry.  
 
-.. Hint:: By convention, Class objects in Python such as `Qobj()` differ from functions in the use of a beginning capital letter.
+.. Hint:: By convention, Class objects in Python such as ``Qobj()`` differ from functions in the use of a beginning capital letter.
 
-We can create a Qobj with a user defined data set by passing a list or array of data into the Qobj:
+We can create a ``Qobj`` with a user defined data set by passing a list or array of data into the ``Qobj``:
 
 .. ipython::
 
 	In [1]: Qobj([1,2,3,4,5])
 
-	In [2]: x = array([[1],[2],[3],[4],[5]])
+	In [2]: x = array([[1, 2, 3, 4, 5]])
 	
 	In [3]: Qobj(x)
 
@@ -77,7 +76,7 @@ Notice how both the dims and shape change according to the input data.  Although
 States and operators
 ---------------------
 
-Now, unless you have lots of free time, specifying the data for each object is inefficient.  Even more so when most objects correspond to commonly used types such as the ladder operators of a harmonic oscillator, the Pauli spin operators for a two-level system, or state vectors such as Fock states.  Therefore, QuTiP includes predefined objects for a variety of states:
+Manually specifying the data for each quantum object is inefficient. Even more so when most objects correspond to commonly used types such as the ladder operators of a harmonic oscillator, the Pauli spin operators for a two-level system, or state vectors such as Fock states. Therefore, QuTiP includes predefined objects for a variety of states:
 
 +--------------------------+----------------------------+----------------------------------------+
 | States                   | Command (# means optional) | Inputs                                 |
@@ -166,7 +165,7 @@ We have seen that a quantum object has several internal attributes, such as data
 
 	In [3]: q.shape 
 
-In general, the attributes (properties) of a Qobj object (or any Python class) can be retrieved using the `Q.attribute` notation.  In addition to the attributes shown with the `print` function, the Qobj class also has the following:
+In general, the attributes (properties) of a ``Qobj`` object (or any Python class) can be retrieved using the `Q.attribute` notation.  In addition to the attributes shown with the ``print`` function, the ``Qobj`` class also has the following:
 
 .. tabularcolumns:: | p{4cm} | L | L |
 
@@ -193,7 +192,7 @@ In general, the attributes (properties) of a Qobj object (or any Python class) c
    :align: center
    :width: 3.5in
    
-   The `Qobj` Class viewed as a container for the properties need to characterize a quantum operator or state vector.
+   The ``Qobj`` Class viewed as a container for the properties need to characterize a quantum operator or state vector.
 
 
 For the destruction operator above:
@@ -207,14 +206,14 @@ For the destruction operator above:
 	In [3]: q.data
 
 
-The data attribute returns a message stating that the data is a sparse matrix.  All Qobjs store their data as a sparse matrix to save memory.  To access the underlying matrix one needs to use the :func:`qutip.Qobj.full` function as described in the functions section.
+The data attribute returns a message stating that the data is a sparse matrix. All ``Qobj`` instances store their data as a sparse matrix to save memory. To access the underlying dense matrix one needs to use the :func:`qutip.Qobj.full` function as described below.
 
 .. _basics-qobj-math:
 
 Qobj Math
 ----------
 
-The rules for mathematical operations on Qobj's are similar to standard matrix arithmetic:
+The rules for mathematical operations on ``Qobj`` instances are similar to standard matrix arithmetic:
 
 .. ipython::
 
@@ -244,7 +243,7 @@ In addition, the logic operators is equal `==` and is not equal `!=` are also su
 Functions operating on Qobj class
 ==================================
 
-Like attributes, the quantum object class has defined functions (methods) that operate on Qobj class instances. For a general quantum object `Q`:
+Like attributes, the quantum object class has defined functions (methods) that operate on ``Qobj`` class instances. For a general quantum object ``Q``:
 
 +-----------------+--------------------------+----------------------------------------+
 | Function        | Command                  | Description                            |
