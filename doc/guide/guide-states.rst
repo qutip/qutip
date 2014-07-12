@@ -18,8 +18,7 @@ Manipulating States and Operators
 Introduction
 =================
 
-In the previous guide section :ref:`basics`, we saw how to create states,
-operators and superoperators, using the functions built into QuTiP.  In this portion of the guide, we will look at performing basic operations with states and operators.  For more detailed demonstrations on how to use and manipulate these objects, see the :ref:`examples` section.
+In the previous guide section :ref:`basics`, we saw how to create states and operators, using the functions built into QuTiP. In this portion of the guide, we will look at performing basic operations with states and operators.  For more detailed demonstrations on how to use and manipulate these objects, see the examples on the `tutorials <http://qutip.org/tutorials.html>`_ web page.
 
 
 .. _states-vectors:
@@ -31,9 +30,9 @@ Here we begin by creating a Fock :func:`qutip.states.basis` vacuum state vector 
 
 .. ipython::
  
-    In [1]: vec = basis(5, 0)
+    In [1]: vac = basis(5, 0)
     
-    In [2]: print(vec)
+    In [2]: print(vac)
 
 
 and then create a lowering operator :math:`\left(\hat{a}\right)` corresponding to 5 number states using the :func:`qutip.operators.destroy` function:
@@ -45,19 +44,19 @@ and then create a lowering operator :math:`\left(\hat{a}\right)` corresponding t
     In [2]: print(a)
 
 
-Now lets apply the destruction operator to our vacuum state ``vec``,
+Now lets apply the destruction operator to our vacuum state ``vac``,
 
 
 .. ipython::
 
-    In [1]: a * vec
+    In [1]: a * vac
 
 
 We see that, as expected, the vacuum is transformed to the zero vector.  A more interesting example comes from using the adjoint of the lowering operator, the raising operator :math:`\hat{a}^\dagger`:
 
 .. ipython::
 
-    In [1]: a.dag() * vec
+    In [1]: a.dag() * vac
 
 
 The raising operator has in indeed raised the state `vec` from the vacuum to the :math:`\left| 1\right>` state.  Instead of using the dagger ``Qobj.dag()`` method to raise the state, we could have also used the built in :func:`qutip.operators.create` function to make a raising operator:
@@ -66,58 +65,58 @@ The raising operator has in indeed raised the state `vec` from the vacuum to the
 
     In [1]: c = create(5)
 	
-    In [2]: c * vec
+    In [2]: c * vac
 
 
-which obviously does the same thing.  We can of course raise the vacuum state more than once:
+which does the same thing.  We can raise the vacuum state more than once by successively apply the raising operator:
 
 .. ipython::
 
-    In [1]: c * c * vec
+    In [1]: c * c * vac
 
 
 or just taking the square of the raising operator :math:`\left(\hat{a}^\dagger\right)^{2}`:
 
 .. ipython::
 
-    In [1]: c**2 * vec
+    In [1]: c ** 2 * vac
 
 
-Applying the raising operator twice gives the expected :math:`\sqrt{n+1}` dependence.  We can use the product of :math:`c*a` to also apply the number operator to the state vector ``vec``:
+Applying the raising operator twice gives the expected :math:`\sqrt{n + 1}` dependence.  We can use the product of :math:`c * a` to also apply the number operator to the state vector ``vac``:
 
 .. ipython::
 
-    In [1]: c * a * vec
+    In [1]: c * a * vac
 
 
 or on the :math:`\left| 1\right>` state:
 
 .. ipython::
 
-    In [1]: c * a * (c * vec)
+    In [1]: c * a * (c * vac)
 
 
 or the :math:`\left| 2\right>` state:
 
 .. ipython::
 
-    In [1]: c * a * (c**2 * vec)
+    In [1]: c * a * (c**2 * vac)
 
 
-Notice how in this last example, application of the number operator does not give the expected value :math:`n=2`, but rather :math:`2\sqrt{2}`.  This is because this last state is not normalized to unity as :math:`c\left| n\right>=\sqrt{n+1}\left| n+1\right>`.  Therefore, we should normalize our vector first:
+Notice how in this last example, application of the number operator does not give the expected value :math:`n=2`, but rather :math:`2\sqrt{2}`.  This is because this last state is not normalized to unity as :math:`c\left| n\right> = \sqrt{n+1}\left| n+1\right>`.  Therefore, we should normalize our vector first:
 
 .. ipython::
 
-    In [1]: c * a * (c**2 * vec).unit()
+    In [1]: c * a * (c**2 * vac).unit()
 
 
 Since we are giving a demonstration of using states and operators, we have done a lot more work than we should have.  For example, we do not need to operate on the vacuum state to generate a higher number Fock state.  Instead we can use the :func:`qutip.states.basis` (or :func:`qutip.states.fock`) function to directly obtain the required state:
 
 .. ipython::
 
-    In [1]: vec = basis(5, 2)
+    In [1]: ket = basis(5, 2)
    
-    In [2]: print(vec)
+    In [2]: print(ket)
 
 
 Notice how it is automatically normalized.  We can also use the built in :func:`qutip.operators.num` operator:
@@ -129,45 +128,45 @@ Notice how it is automatically normalized.  We can also use the built in :func:`
     In [2]: print(n)
 
 
-Therefore, instead of ``c * a * (c**2 * vec).unit()`` we have:
+Therefore, instead of ``c * a * (c ** 2 * vac).unit()`` we have:
 
 .. ipython::
 
-    In [1]: n * vec
+    In [1]: n * ket
 
 
 We can also create superpositions of states:
 
 .. ipython::
 
-    In [1]: vec = (basis(5, 0) + basis(5, 1)).unit()
+    In [1]: ket = (basis(5, 0) + basis(5, 1)).unit()
    
-    In [2]: print(vec)
+    In [2]: print(ket)
 
 
 where we have used the :func:`qutip.Qobj.unit` method to again normalize the state. Operating with the number function again:
 
 .. ipython::
 
-    In [1]: n * vec
+    In [1]: n * ket
 
 
 We can also create coherent states and squeezed states by applying the :func:`qutip.operators.displace` and :func:`qutip.operators.squeeze` functions to the vacuum state:
 
 .. ipython::
 
-    In [1]: vec = basis(5, 0)
+    In [1]: vac = basis(5, 0)
   
     In [2]: d = displace(5, 1j)
    
     In [3]: s = squeeze(5, 0.25 + 0.25j)
    
-    In [4]: d * vec
+    In [4]: d * vac
 
 
 .. ipython::
 
-    In [1]: d * s * vec
+    In [1]: d * s * vac
 
 
 Of course, displacing the vacuum gives a coherent state, which can also be generated using the built in :func:`qutip.states.coherent` function.
@@ -184,9 +183,9 @@ The simplest density matrix is created by forming the outer-product :math:`\left
 
 .. ipython::
 
-    In [1]: vec = basis(5, 2)
+    In [1]: ket = basis(5, 2)
    
-    In [2]: vec * vec.dag()
+    In [2]: ket * ket.dag()
 
 A similar task can also be accomplished via the :func:`qutip.states.fock_dm` or :func:`qutip.states.ket2dm` functions:
 
@@ -197,7 +196,7 @@ A similar task can also be accomplished via the :func:`qutip.states.fock_dm` or 
 
 .. ipython::
 
-    In [1]: ket2dm(vec)
+    In [1]: ket2dm(ket)
 
 
 If we want to create a density matrix with equal classical probability of being found in the :math:`\left|2\right>` or :math:`\left|4\right>` number states we can do the following:
@@ -235,7 +234,7 @@ QuTiP also provides a set of distance metrics for determining how close two dens
     In [5]: tracedist(y, y)
 
 
-We also know that for two pure states, the trace distance (T) and the fidelity (F) are related by :math:`T=\sqrt{1-F^{2}}`.
+We also know that for two pure states, the trace distance (T) and the fidelity (F) are related by :math:`T = \sqrt{1 - F^{2}}`.
 
 .. ipython::
 
@@ -246,11 +245,11 @@ We also know that for two pure states, the trace distance (T) and the fidelity (
 	In [1]: sqrt(1 - fidelity(y, x) ** 2)
 
 
-For a pure state and a mixed state, :math:`1-F^{2}\le T` which can also be verified:
+For a pure state and a mixed state, :math:`1 - F^{2} \le T` which can also be verified:
 
 .. ipython::
 
-    In [1]: 1 - fidelity(x,z) ** 2
+    In [1]: 1 - fidelity(x, z) ** 2
 
 .. ipython::
 
@@ -273,19 +272,19 @@ Now at this point one may ask how this state is different than that of a harmoni
 
 .. ipython::
     
-	In [1]: vec = basis(2, 0)
+	In [1]: vac = basis(2, 0)
 
-At this stage, there is no difference.  This should not be surprising as we called the exact same function twice.  The difference between the two comes from the action of the spin operators :func:`qutip.operators.sigmax`, :func:`qutip.operators.sigmay`, :func:`qutip.operators.sigmaz`, :func:`qutip.operators.sigmap`, and :func:`qutip.operators.sigmam` on these two-level states.  For example, if ``vec`` corresponds to the vacuum state of a harmonic oscillator, then, as we have already seen, we can use the raising operator to get the :math:`\left|1\right>` state:
+At this stage, there is no difference.  This should not be surprising as we called the exact same function twice.  The difference between the two comes from the action of the spin operators :func:`qutip.operators.sigmax`, :func:`qutip.operators.sigmay`, :func:`qutip.operators.sigmaz`, :func:`qutip.operators.sigmap`, and :func:`qutip.operators.sigmam` on these two-level states.  For example, if ``vac`` corresponds to the vacuum state of a harmonic oscillator, then, as we have already seen, we can use the raising operator to get the :math:`\left|1\right>` state:
 
 .. ipython::
     
-	In [1]: vec
+	In [1]: vac
 
 .. ipython::
     
 	In [1]: c = create(2)
 	
-	In [2]: c * vec
+	In [2]: c * vac
 
 
 For a spin system, the operator analogous to the raising operator is the sigma-plus operator :func:`qutip.operators.sigmap`.  Operating on the ``spin`` state gives:
@@ -311,15 +310,15 @@ Now we see the difference!  The :func:`qutip.operators.sigmap` operator acting o
 	In [5]: sigmaz() * spin2
 
 
-The answer is now apparent.  Since the QuTiP :func:`qutip.operators.sigmaz` function uses the standard z-basis representation of the sigma-z spin operator, the ``spin`` state corresponds to the :math:`\left|\mathrm{up}\right>` state of a two-level spin system while ``spin2`` gives the :math:`\left|\mathrm{down}\right>` state.  Therefore, in our previous example ``sigmap()*spin``, we raised the qubit state out of the truncated two-level Hilbert space resulting in the zero state.  
+The answer is now apparent.  Since the QuTiP :func:`qutip.operators.sigmaz` function uses the standard z-basis representation of the sigma-z spin operator, the ``spin`` state corresponds to the :math:`\left|\mathrm{up}\right>` state of a two-level spin system while ``spin2`` gives the :math:`\left|\mathrm{down}\right>` state.  Therefore, in our previous example ``sigmap() * spin``, we raised the qubit state out of the truncated two-level Hilbert space resulting in the zero state.  
 
-While at first glance this convention might seem somewhat odd, it is in fact quite handy.  For one, the spin operators remain in the conventional form.  Second, when the spin system is in the :math:`\left|\mathrm{up}\right>` state:
+While at first glance this convention might seem somewhat odd, it is in fact quite handy. For one, the spin operators remain in the conventional form. Second, when the spin system is in the :math:`\left|\mathrm{up}\right>` state:
 
 .. ipython::
     
 	In [1]: sigmaz() * spin
 
-the non-zero component is the zeroth-element of the underlying matrix (remember that python uses c-indexing, and matrices start with the zeroth element).  The :math:`\left|\mathrm{down}\right>` state therefore has a non-zero entry in the first index position.  This corresponds nicely with the quantum information definitions of qubit states, where the excited :math:`\left|\mathrm{up}\right>` state is label as :math:`\left|0\right>`, and the :math:`\left|\mathrm{down}\right>` state by :math:`\left|1\right>`.
+the non-zero component is the zeroth-element of the underlying matrix (remember that python uses c-indexing, and matrices start with the zeroth element).  The :math:`\left|\mathrm{down}\right>` state therefore has a non-zero entry in the first index position. This corresponds nicely with the quantum information definitions of qubit states, where the excited :math:`\left|\mathrm{up}\right>` state is label as :math:`\left|0\right>`, and the :math:`\left|\mathrm{down}\right>` state by :math:`\left|1\right>`.
 
 If one wants to create spin operators for higher spin systems, then the :func:`qutip.operators.jmat` function comes in handy. 
 
