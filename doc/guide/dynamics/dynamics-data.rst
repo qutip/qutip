@@ -3,53 +3,55 @@
 
 .. _odedata:
 
-**************************************************
-The Odedata Class and Dynamical Simulation Results
-**************************************************
+********************************************************
+The solver.Result Class and Dynamical Simulation Results
+********************************************************
 
-.. important::  In QuTiP 2, the results from all of the dynamics solvers are returned as Odedata objects.  This significantly simplifies the storage and saving of simulation data.  However, this change also results in the loss of backward compatibility with QuTiP version 1.x.  Therefore, please read this section to avoid running into any issues.
+.. important::  In QuTiP 2, the results from all of the dynamics solvers are returned as Result objects.  This significantly simplifies the storage and saving of simulation data.  However, this change also results in the loss of backward compatibility with QuTiP version 1.x.  Therefore, please read this section to avoid running into any issues. In QuTiP 3, the Result class has been renamed to Result, but for backwards compatibility an alias between Result and Result is provided.
 
 .. _odedata-class:
 
-The Odedata Class
+The Result Class
 =================
-Before embarking on simulating the dynamics of quantum systems, we will first look at the data structure used for returning the simulation results to the user.  This object is a :func:`qutip.Odedata` class that stores all the crucial data needed for analyzing and plotting the results of a simulation.  Like the :func:`qutip.Qobj` class, the ``Odedata`` class has a collection of properties for storing information.  However, in contrast to the Qobj class, this structure contains no methods, and is therefore nothing but a container object.  A generic Odedata object ``odedata`` contains the following properties for storing simulation data:
+
+Before embarking on simulating the dynamics of quantum systems, we will first look at the data structure used for returning the simulation results to the user.  This object is a :func:`qutip.solver.Result` class that stores all the crucial data needed for analyzing and plotting the results of a simulation.  Like the :func:`qutip.Qobj` class, the ``Result`` class has a collection of properties for storing information.  However, in contrast to the Qobj class, this structure contains no methods, and is therefore nothing but a container object.  A generic ``Result`` object ``result`` contains the following properties for storing simulation data:
 
 .. tabularcolumns:: | p{4cm} | p{10cm} |
 
 +------------------------+-----------------------------------------------------------------------+
 | Property               | Description                                                           |
 +========================+=======================================================================+
-| odedata.solver         | String indicating which solver was used to generate the data.         |
+| result.solver          | String indicating which solver was used to generate the data.         |
 +------------------------+-----------------------------------------------------------------------+
-| odedata.times          | List/array of times at which simulation data is calculated.           |
+| result.times           | List/array of times at which simulation data is calculated.           |
 +------------------------+-----------------------------------------------------------------------+
-| odedata.expect         | List/array of expectation values, if requested.                       |
+| result.expect          | List/array of expectation values, if requested.                       |
 +------------------------+-----------------------------------------------------------------------+
-| odedata.states         | List/array of state vectors/density matrices calculated at ``times``, |
+| result.states          | List/array of state vectors/density matrices calculated at ``times``, |
 |                        | if requested.                                                         |
 +------------------------+-----------------------------------------------------------------------+
-| odedata.num_expect     | The number of expectation value operators in the simulation.          |
+| result.num_expect      | The number of expectation value operators in the simulation.          |
 +------------------------+-----------------------------------------------------------------------+
-| odedata.num_collapse   | The number of collapse operators in the simulation.                   |
+| result.num_collapse    | The number of collapse operators in the simulation.                   |
 +------------------------+-----------------------------------------------------------------------+
-| odedata.ntraj          | Number of Monte Carlo trajectories run.                               |
+| result.ntraj           | Number of Monte Carlo trajectories run.                               |
 +------------------------+-----------------------------------------------------------------------+
-| odedata.col_times      | Times at which state collapse occurred. Only for Monte Carlo solver.  |
+| result.col_times       | Times at which state collapse occurred. Only for Monte Carlo solver.  |
 +------------------------+-----------------------------------------------------------------------+
-| odedata.col_which      | Which collapse operator was responsible for each collapse in          |
+| result.col_which       | Which collapse operator was responsible for each collapse in          |
 |                        | in ``col_times``. Only used by Monte Carlo solver.                    |
 +------------------------+-----------------------------------------------------------------------+
 
 
 .. _odedata-access:
 
-Accessing Odedata Data
+Accessing Result Data
 ======================
-To understand how to access the data in a Odedata object we will use the :ref:`exmc30` example as a guide, although we do not worry about the simulation details at this stage.  Like all solvers, the Monte Carlo solver used in this example returns an Odedata object, here called simply ``data``.  To see what is contained inside ``data`` we can use the print function:
 
->>> print(data)
-    Odedata object with mcsolve data.
+To understand how to access the data in a Result object we will use an example as a guide, although we do not worry about the simulation details at this stage.  Like all solvers, the Monte Carlo solver used in this example returns an Result object, here called simply ``result``.  To see what is contained inside ``result`` we can use the print function:
+
+>>> print(result)
+    Result object with mcsolve data.
     ---------------------------------
     expect = True
     num_expect = 2, num_collapse = 2, ntraj = 500
@@ -58,12 +60,12 @@ The first line tells us that this data object was generated from the Monte Carlo
 
 Now we have all the information needed to analyze the simulation results. To access the data for the two expectation values one can do:
 
->>> expt0 = data.expect[0]
->>> expt1 = data.expect[1]
+>>> expt0 = result.expect[0]
+>>> expt1 = result.expect[1]
 
-Recall that Python uses C-style indexing that begins with zero ( i.e. [0] => 1st collapse operator data).  Together with the array of times at which these expectation values are calculated:
+Recall that Python uses C-style indexing that begins with zero (i.e., [0] => 1st collapse operator data). Together with the array of times at which these expectation values are calculated:
 
->>> times = data.times
+>>> times = result.times
 
 we can plot the resulting expectation values:
 
@@ -76,34 +78,34 @@ we can plot the resulting expectation values:
    :align: center
    :width: 4in
    
-   Data for expectation values extracted from the ``data`` Odedata object.
+   Data for expectation values extracted from the ``result`` Result object.
 
 
 State vectors, or density matrices, as well as ``col_times`` and ``col_which``, are accessed in a similar manner, although typically one does not need an index (i.e [0]) since there is only one list for each of these components.  The one exception to this rule is if you choose to output state vectors from the Monte Carlo solver, in which case there are ``ntraj`` number of state vector arrays.
 
 .. _odedata-saving:
 
-Saving and Loading Odedata Objects
+Saving and Loading Result Objects
 ==================================
 
-The main advantage in using the Odedata class as a data storage object comes from the simplicity in which simulation data can be stored and later retrieved. The :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload` functions are designed for this task.  To begin, let us save the ``data`` object from the previous section into a file called "cavity+qubit-data" in the current working directory by calling:
+The main advantage in using the Result class as a data storage object comes from the simplicity in which simulation data can be stored and later retrieved. The :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload` functions are designed for this task.  To begin, let us save the ``data`` object from the previous section into a file called "cavity+qubit-data" in the current working directory by calling:
 
->>> qsave(data, 'cavity+qubit-data')
+>>> qsave(result, 'cavity+qubit-data')
 
 All of the data results are then stored in a single file of the same name with a ".qu" extension.  Therefore, everything needed to later this data is stored in a single file.  Loading the file is just as easy as saving:
 
->>> chicken = qload('cavity+qubit-data')
-    Loaded Odedata object:
-    Odedata object with mcsolve data.
+>>> stored_result = qload('cavity+qubit-data')
+    Loaded Result object:
+    Result object with mcsolve data.
     ---------------------------------
     expect = True
     num_expect = 2, num_collapse = 2, ntraj = 500
 
-where ``chicken`` is the new name of the Odedata object.  We can then extract the data and plot in the same manner as before::
+where ``stored_result`` is the new name of the Result object.  We can then extract the data and plot in the same manner as before::
 
-	expt0 = chicken.expect[0]
-	expt1 = chicken.expect[1]
-	times = chicken.times
+	expt0 = stored_result.expect[0]
+	expt1 = stored_result.expect[1]
+	times = stored_result.times
 	plot(times, expt0, times, expt1)
 	show()
 
@@ -114,6 +116,6 @@ where ``chicken`` is the new name of the Odedata object.  We can then extract th
    :align: center
    :width: 4in
    
-   Data for expectation values from the ``chicken`` object loaded from the ``data`` object stored with :func:`qutip.fileio.qsave`
+   Data for expectation values from the ``stored_result`` object loaded from the ``result`` object stored with :func:`qutip.fileio.qsave`
 
 Also see :ref:`saving` for more information on saving quantum objects, as well as arrays for use in other programs.
