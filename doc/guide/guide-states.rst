@@ -519,8 +519,7 @@ and :attr:`~qutip.Qobj.iscptp` attributes:
     True True True
     
 In addition, dynamical generators on this extended space, often called
-*Liouvillian superoperators*, can be created using the :func:`~qutip.superoperator.liouvillian` and
-:func:`~qutip.superoperator.liouvillian_fast` functions. Each of these takes a Hamilonian along with
+*Liouvillian superoperators*, can be created using the :func:`~qutip.superoperator.liouvillian` function. Each of these takes a Hamilonian along with
 a list of collapse operators, and returns a ``type="super"`` object that can
 be exponentiated to find the superoperator for that evolution.
 
