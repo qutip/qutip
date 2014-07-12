@@ -62,7 +62,7 @@ To create operators in a combined Hilbert space that only act only on a single c
 
 .. ipython::
 
-   In [1]: tensor(sigmaz(), qeye(2))
+   In [1]: tensor(sigmaz(), identity(2))
     
 
 .. _tensor-product-example:
@@ -81,7 +81,7 @@ First, let's consider a system of two coupled qubits. Assume that both qubit has
 
 .. ipython::
 
-   In [1]: H = tensor(sigmaz(), qeye(2)) + tensor(qeye(2), sigmaz()) + 0.05 * tensor(sigmax(), sigmax())
+   In [1]: H = tensor(sigmaz(), identity(2)) + tensor(identity(2), sigmaz()) + 0.05 * tensor(sigmax(), sigmax())
    
    In [2]: H
 
@@ -94,7 +94,7 @@ The two-qubit example is easily generalized to three coupled qubits:
 
 .. ipython::
 	
-	In [1]:	H = tensor(sigmaz(), qeye(2), qeye(2)) + tensor(qeye(2), sigmaz(), qeye(2)) + tensor(qeye(2), qeye(2), sigmaz()) + 0.5 * tensor(sigmax(), sigmax(), qeye(2)) +  0.25 * tensor(qeye(2), sigmax(), sigmax())
+	In [1]:	H = tensor(sigmaz(), identity(2), identity(2)) + tensor(identity(2), sigmaz(), identity(2)) + tensor(identity(2), identity(2), sigmaz()) + 0.5 * tensor(sigmax(), sigmax(), identity(2)) +  0.25 * tensor(identity(2), sigmax(), sigmax())
 	
 	In [2]:	H    
 
@@ -110,9 +110,9 @@ The simplest possible quantum mechanical description for light-matter interactio
     >>> omega_a = 1.0
     >>> omega_c = 1.25
     >>> g = 0.05
-    >>> a = tensor(qeye(2), destroy(N))
-    >>> sm = tensor(destroy(2), qeye(N))
-    >>> sz = tensor(sigmaz(), qeye(N))
+    >>> a = tensor(identity(2), destroy(N))
+    >>> sm = tensor(destroy(2), identity(N))
+    >>> sz = tensor(sigmaz(), identity(N))
     >>> H = 0.5 * omega_a * sz + omega_c * a.dag() * a + g * (a.dag() * sm + a * sm.dag())
 
 Here ``N`` is the number of Fock states included in the cavity mode. 
