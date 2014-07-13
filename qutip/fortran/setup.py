@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from os.path import join
 import sys
+import numpy as np
 
 def configuration(parent_package='', top_path=None):
     from numpy.distutils.misc_util import Configuration
@@ -24,7 +25,7 @@ def configuration(parent_package='', top_path=None):
 
    
     if sys.platform=='darwin':
-        blas_opt=get_info('blas_opt')
+        blas_opt=np.__config__.blas_opt_info
         extra_compile_args=blas_opt['extra_compile_args']
         extra_link_args=blas_opt['extra_link_args']
         newblas = {}
@@ -35,7 +36,7 @@ def configuration(parent_package='', top_path=None):
         #
         # LAPACK?
         #
-        lapack_opt = get_info('lapack_opt', notfound_action=1)
+        lapack_opt = np.__config__.lapack_opt_info
 
         if not lapack_opt:
             # raise NotFoundError,'no lapack resources found'
@@ -50,7 +51,7 @@ def configuration(parent_package='', top_path=None):
         # BLAS
         #
         if not lapack_opt:
-            blas_opt = get_info('blas_opt', notfound_action=2)
+            blas_opt = np.__config__.blas_opt_info
         else:
             blas_opt = lapack_opt
 
