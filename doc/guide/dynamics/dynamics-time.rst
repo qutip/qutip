@@ -10,7 +10,7 @@ Solving Problems with Time-dependent Hamiltonians
 Methods for Writing Time-Dependent Operators
 ============================================
 
-In the previous examples of quantum evolution, we assumed that the systems under consideration were described by time-independent Hamiltonians.  However, many systems have explicit time dependence in either the Hamiltonian, or the collapse operators describing coupling to the environment, and sometimes both components might depend on time.  The two main evolution solvers in QuTiP, :func:`qutip.mesolve` and :func:`qutip.mcsolve`, discussed in :ref:`master` and :ref:`monte` respectively, are capable of handling time-dependent Hamiltonians and collapse terms.  There are, in general, three different ways to implement time-dependent problems in QuTiP 2:
+In the previous examples of quantum evolution, we assumed that the systems under consideration were described by time-independent Hamiltonians.  However, many systems have explicit time dependence in either the Hamiltonian, or the collapse operators describing coupling to the environment, and sometimes both components might depend on time.  The two main evolution solvers in QuTiP, :func:`qutip.mesolve` and :func:`qutip.mcsolve`, discussed in :ref:`master` and :ref:`monte` respectively, are capable of handling time-dependent Hamiltonians and collapse terms.  There are, in general, three different ways to implement time-dependent problems in QuTiP:
 
 
 1. **Function based**: Hamiltonian / collapse operators expressed using [qobj, func] pairs, where the time-dependent coefficients of the Hamiltonian (or collapse operators) are expressed in the Python functions.
@@ -30,8 +30,7 @@ Give the multiple choices of input style, the first question that arrises is whi
 
 Finally option #3, expressing the Hamiltonian as a Python function, is the original method for time dependence in QuTiP 1.x.  However, this method is somewhat less efficient then the previously mentioned methods, and does not allow for time-dependent collapse operators. However, in contrast to options #1 and #2, this method can be used in implementing time-dependent Hamiltonians that cannot be expressed as a function of constant operators with time-dependent coefficients.
 
-A collection of examples demonstrating the simulation of time-dependent problems can be found here: :ref:`extd`.
-
+A collection of examples demonstrating the simulation of time-dependent problems can be found on the `tutorials <http://qutip.org/tutorials.html>`_ web page.
 
 .. _time-function:
 
@@ -44,13 +43,13 @@ A very general way to write a time-dependent Hamiltonian or collapse operator is
 
 where ``H0`` is a time-independent Hamiltonian, while ``H1``,``H2``, are time dependent. The same format can be used for collapse operators:
 
->>> c_op_list = [[C0, py_coeff0], C1, [C2, py_coeff2], ...]
+>>> c_ops = [[C0, py_coeff0], C1, [C2, py_coeff2], ...]
 
 Here we have demonstrated that the ordering of time-dependent and time-independent terms does not matter.  In addition, any or all of the collapse operators may be time dependent.  
 
 .. note:: While, in general, you can arrange time-dependent and time-independent terms in any order you like, it is best to place all time-independent terms first.
 
-As an example, we will look at :ref:`exme41` that has a time-dependent Hamiltonian of the form :math:`H=H_{0}-f(t)H_{1}` where :math:`f(t)` is the time-dependent driving strength given as :math:`f(t)=A\exp\left[-\left( t/\sigma \right)^{2}\right]`.  The follow code sets up the problem::
+As an example, we will look at an example that has a time-dependent Hamiltonian of the form :math:`H=H_{0}-f(t)H_{1}` where :math:`f(t)` is the time-dependent driving strength given as :math:`f(t)=A\exp\left[-\left( t/\sigma \right)^{2}\right]`.  The follow code sets up the problem::
 
     from qutip import *
     from scipy import *
@@ -71,16 +70,16 @@ As an example, we will look at :ref:`exme41` that has a time-dependent Hamiltoni
     ada = tensor(num(N), qeye(3))
     
     # Define collapse operators
-    c_op_list = []
+    c_ops = []
     # Cavity decay rate
     kappa = 1.5
-    c_op_list.append(sqrt(kappa) * a)
+    c_ops.append(sqrt(kappa) * a)
     
     # Atomic decay rate
     gamma = 6  # decay rate
     # Use Rb branching ratio of 5/9 e->u, 4/9 e->g
-    c_op_list.append(sqrt(5*gamma/9) * sigma_ue)
-    c_op_list.append(sqrt(4*gamma/9) * sigma_ge)
+    c_ops.append(sqrt(5*gamma/9) * sigma_ue)
+    c_ops.append(sqrt(4*gamma/9) * sigma_ge)
     
     # Define time vector
     t = linspace(-15, 15, 100)
@@ -102,16 +101,16 @@ As an example, we will look at :ref:`exme41` that has a time-dependent Hamiltoni
 Given that we have a single time-dependent Hamiltonian term, and constant collapse terms, we need to specify a single Python function for the coefficient :math:`f(t)`.  In this case, one can simply do::
 
 	def H1_coeff(t, args):
-	        return 9 * exp(-(t / 5.) ** 2)
+        return 9 * exp(-(t / 5.) ** 2)
 
 In this case, the return value dependents only on time.  However, when specifying Python functions for coefficients, **the function must have (t,args) as the input variables, in that order**.  Having specified our coefficient function, we can now specify the Hamiltonian in list format and call the solver (in this case :func:`qutip.mesolve`)::
 
-    H=[H0,[H1,H1_coeff]]
-    output = mesolve(H, psi0, t, c_op_list,[ada, sigma_UU, sigma_GG])
+    H = [H0,[H1,H1_coeff]]
+    output = mesolve(H, psi0, t, c_ops, [ada, sigma_UU, sigma_GG])
 
 We can call the Monte Carlo solver in the exact same way (if using the default ``ntraj=500``):
 
->>> output = mcsolve(H, psi0, t, c_op_list,[ada, sigma_UU, sigma_GG])
+>>> output = mcsolve(H, psi0, t, c_ops, [ada, sigma_UU, sigma_GG])
 
 The output from the master equation solver is identical to that shown in the examples, the Monte Carlo however will be noticeably off, suggesting we should increase the number of trajectories for this example.  In addition, we can also consider the decay of a simple Harmonic oscillator with time-varying decay rate::
 
@@ -123,9 +122,9 @@ The output from the master equation solver is identical to that shown in the exa
     a = destroy(N)
     H = a.dag() * a  # simple HO
     psi0 = basis(N, 9)  # initial state
-    c_op_list = [[a, col_coeff]]  # time-dependent collapse term
-    tlist = linspace(0, 10, 100)
-    output = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+    c_ops = [[a, col_coeff]]  # time-dependent collapse term
+    times = linspace(0, 10, 100)
+    output = mesolve(H, psi0, times, c_ops, [a.dag() * a])
 
 A comparison of this time-dependent damping, with that of a constant decay term is presented below.
 
@@ -151,12 +150,12 @@ or equivalently::
 
 where args is a Python dictionary of ``key: value`` pairs ``args = {'A': a, 'sigma': b}`` where ``a`` and ``b`` are the two parameters for the amplitude and width, respectively.  Of course, we can always hardcode the values in the dictionary as well ``args = {'A': 9, 'sigma': 5}``, but there is much more flexibility by using variables in ``args``.  To let the solvers know that we have a set of args to pass we append the ``args`` to the end of the solver input:
 
->>> output = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a], args={'A': 9, 'sigma': 5})
+>>> output = mesolve(H, psi0, times, c_ops, [a.dag() * a], args={'A': 9, 'sigma': 5})
 
 or to keep things looking pretty::
 
     args = {'A': 9, 'sigma': 5}
-    output = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args)
+    output = mesolve(H, psi0, times, c_ops, [a.dag() * a], args=args)
 
 Once again, the Monte Carlo solver :func:`qutip.mcsolve` works in an identical manner.
 
@@ -182,13 +181,13 @@ Like the previous method, the string-based format uses a list pair format ``[Op,
 
 Notice that this is a valid Hamiltonian for the string-based format as ``exp`` is included in the above list of suitable functions. Calling the solvers is the same as before:
 
->>> output = mesolve(H, psi0, tlist, c_op_list, [a.dag() * a])
+>>> output = mesolve(H, psi0, times, c_ops, [a.dag() * a])
 
 We can also use the ``args`` variable in the same manner as before, however we must rewrite our string term to read: ``'A * exp(-(t / sig) ** 2)'``::
 
     H = [H0, [H1, 'A * exp(-(t / sig) ** 2)']]
     args = {'A': 9, 'sig': 5}
-    output = mesolve(H, psi0, tlist, c_op_list, [a.dag()*a], args=args)
+    output = mesolve(H, psi0, times, c_ops, [a.dag()*a], args=args)
 
 .. important:: Naming your ``args`` variables ``e`` or ``pi`` will mess things up when using the string-based format.
 
@@ -210,7 +209,7 @@ In the previous version of QuTiP, the simulation of time-dependent problems requ
 
 where the ``args`` variable **must always be given**, and is now a ``list`` of Hamiltonian terms: ``args=[H0, H1]``.  In this format, our call to the master equation is now:
 
->>> output = mesolve(Hfunc, psi0, tlist, c_op_list, [a.dag() * a], args=[H0, H1])
+>>> output = mesolve(Hfunc, psi0, times, c_ops, [a.dag() * a], args=[H0, H1])
 
 We cannot evaluate time-dependent collapse operators in this format, so we can not simulate the previous harmonic oscillator decay example.
 
@@ -246,10 +245,10 @@ When repeatedly simulating a system where only the time-dependent variables, or 
 
     H = [H0, [H1, 'A * exp(-(t / sig) ** 2)']]
     args = {'A': 9, 'sig': 5}
-    output = mcsolve(H, psi0, tlist, c_op_list, [a.dag()*a], args=args)
+    output = mcsolve(H, psi0, times, c_ops, [a.dag()*a], args=args)
     opts = Options(rhs_reuse=True)
     args = {'A': 10, 'sig': 3}
-    output = mcsolve(H, psi0, tlist, c_op_list, [a.dag()*a], args=args, options=opts)
+    output = mcsolve(H, psi0, times, c_ops, [a.dag()*a], args=args, options=opts)
 	
 
 In this case, the second call to :func:`qutip.mcsolve` takes 3 seconds less than the first.  Of course our parameters are different, but this also shows how much time one can save by not reorganizing the data, and in the case of the string format, not recompiling the code.  If you need to call the solvers many times for different parameters, this savings will obviously start to add up.
@@ -280,7 +279,7 @@ To set up the problem, we run the following code::
 	# pre-calculate the necessary operators
 	sx = sigmax(); sz = sigmaz(); sm = destroy(2); sn = num(2)
 	# collapse operators
-	c_op_list = [sqrt(gamma1) * sm, sqrt(gamma2) * sz]  # relaxation and dephasing
+	c_ops = [sqrt(gamma1) * sm, sqrt(gamma2) * sz]  # relaxation and dephasing
 
 	# setup time-dependent Hamiltonian (list-string format)
 	H0 = -delta / 2.0 * sx
@@ -299,7 +298,7 @@ pre-generated Hamiltonian constructed using the :func:`qutip.rhs_generate` comma
 	# ODE settings (for reusing list-str format Hamiltonian)
 	opts = Options(rhs_reuse=True)
 	# pre-generate RHS so we can use parfor
-	rhs_generate(H_td, c_op_list, Hargs, name='lz_func')
+	rhs_generate(H_td, c_ops, Hargs, name='lz_func')
 
 Here, we have given the generated file a custom name ``lz_func``, however this is not necessary as a generic name will automatically be given.  Now we define the function ``task`` that is called by parfor::
 
@@ -311,7 +310,7 @@ Here, we have given the generated file a custom name ``lz_func``, however this i
 	    for n, A in enumerate(A_list):
 	        # change args sent to solver, w is really a constant though.
 	        Hargs = {'w': w, 'eps': eps,'A': A} 
-	        U = propagator(H_td, T, c_op_list, Hargs, opts) #<- IMPORTANT LINE
+	        U = propagator(H_td, T, c_ops, Hargs, opts) #<- IMPORTANT LINE
 	        rho_ss = propagator_steadystate(U)
 	        p_mat_m[n] = expect(sn, rho_ss)
 	    return [m, p_mat_m]

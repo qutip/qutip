@@ -185,7 +185,7 @@ In performing time-independent Monte Carlo simulations with QuTiP, systems with 
 
     data1 = mcsolve_f90(H, psi0, times, [sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
 
-In using the Fortran solver, there are a few limitations that must be kept in mind.  First, this solver only works for time-independent systems.  Second, you can not pass a list of trajectories to ``ntraj``.  Finally, at present, this solver does not give any output has to how far along the simulation has progressed, nor how much time is remaining.  These issues will be fixed in a later QuTiP release.
+In using the Fortran solver, there are a few limitations that must be kept in mind.  First, this solver only works for time-independent systems.  Second, you can not pass a list of trajectories to ``ntraj``.
 
 
 
