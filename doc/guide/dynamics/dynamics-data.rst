@@ -7,14 +7,14 @@
 The solver.Result Class and Dynamical Simulation Results
 ********************************************************
 
-.. important::  In QuTiP 2, the results from all of the dynamics solvers are returned as Result objects.  This significantly simplifies the storage and saving of simulation data.  However, this change also results in the loss of backward compatibility with QuTiP version 1.x.  Therefore, please read this section to avoid running into any issues. In QuTiP 3, the Result class has been renamed to Result, but for backwards compatibility an alias between Result and Result is provided.
+.. important::  In QuTiP 2, the results from all of the dynamics solvers are returned as Odedata objects. This unified and significantly simplified postprocessing of simulation results from different solvers, compared to QuTiP 1. However, this change also results in the loss of backward compatibility with QuTiP version 1.x. In QuTiP 3, the Result class has been renamed to Result, but for backwards compatibility an alias between Result and Odedata is provided.
 
 .. _odedata-class:
 
 The Result Class
 =================
 
-Before embarking on simulating the dynamics of quantum systems, we will first look at the data structure used for returning the simulation results to the user.  This object is a :func:`qutip.solver.Result` class that stores all the crucial data needed for analyzing and plotting the results of a simulation.  Like the :func:`qutip.Qobj` class, the ``Result`` class has a collection of properties for storing information.  However, in contrast to the Qobj class, this structure contains no methods, and is therefore nothing but a container object.  A generic ``Result`` object ``result`` contains the following properties for storing simulation data:
+Before embarking on simulating the dynamics of quantum systems, we will first look at the data structure used for returning the simulation results to the user. This object is a :func:`qutip.solver.Result` class that stores all the crucial data needed for analyzing and plotting the results of a simulation.  Like the :func:`qutip.Qobj` class, the ``Result`` class has a collection of properties for storing information.  However, in contrast to the Qobj class, this structure contains no methods, and is therefore nothing but a container object.  A generic ``Result`` object ``result`` contains the following properties for storing simulation data:
 
 .. tabularcolumns:: | p{4cm} | p{10cm} |
 
