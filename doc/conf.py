@@ -33,7 +33,7 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.autodoc',
               'sphinx.ext.todo',
               'sphinx.ext.doctest',
-              'sphinx.ext.autosummary',
+              #'sphinx.ext.autosummary',
               'numpydoc',
               'sphinx.ext.extlinks',
               ]
