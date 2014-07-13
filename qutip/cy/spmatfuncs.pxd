@@ -34,10 +34,7 @@
 cimport numpy as np
 cimport cython
 
-ctypedef np.complex128_t CTYPE_t
-ctypedef np.float64_t DTYPE_t
-ctypedef np.int32_t ITYPE_t
-ITYPE = np.int32
+include "parameters.pxi"
 
 cpdef np.ndarray[CTYPE_t, ndim=1, mode="c"] spmv_csr(
     np.ndarray[CTYPE_t, ndim=1, mode="c"] data,

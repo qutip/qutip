@@ -34,13 +34,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-# see scipy/sparse/csgraph/parameters.pxi
-
-ctypedef np.float64_t DTYPE_t
-DTYPE = np.float64
-
-ctypedef np.int32_t ITYPE_t
-ITYPE = np.int32
+include "parameters.pxi"
 
 
 @cython.boundscheck(False)
@@ -106,7 +100,7 @@ def _breadth_first_search(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _rcm(
+def _reverse_cuthill_mckee(
         np.ndarray[ITYPE_t, ndim=1, mode="c"] ind,
         np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
         int num_rows):
@@ -222,7 +216,7 @@ def _pseudo_peripheral_node(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _bfs_matching(
+def _maximum_bipartite_matching(
         np.ndarray[ITYPE_t, ndim=1, mode="c"] inds,
         np.ndarray[ITYPE_t, ndim=1, mode="c"] ptrs,
         int n):
@@ -311,7 +305,7 @@ def _max_row_weights(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _weighted_bfs_matching(
+def _weighted_bipartite_matching(
         np.ndarray[DTYPE_t, ndim=1, mode="c"] data,
         np.ndarray[ITYPE_t, ndim=1, mode="c"] inds,
         np.ndarray[ITYPE_t, ndim=1, mode="c"] ptrs,

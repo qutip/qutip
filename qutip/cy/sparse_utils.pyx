@@ -34,11 +34,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-# see scipy/sparse/csgraph/parameters.pxi
-
-ctypedef np.int32_t ITYPE_t
-ITYPE = np.int32
-
+include "parameters.pxi"
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
