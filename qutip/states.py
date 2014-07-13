@@ -388,6 +388,26 @@ shape = [5, 5], type = oper, isHerm = True
     return Qobj(rm)
 
 
+def maximally_mixed_dm(N):
+    """
+    Returns the maximally mixed density matrix for a Hilbert space of 
+    dimension N.
+    
+    Parameters
+    ----------
+    N : int
+        Number of basis states in Hilbert space.
+
+    Returns
+    -------
+    dm : qobj
+        Thermal state density matrix.
+    
+    """
+    dm = sp.spdiags(np.ones(N,dtype=complex)/N, 0, N, N, format='csr')
+    return Qobj(dm, isherm=True)
+
+
 def ket2dm(Q):
     """Takes input ket or bra vector and returns density matrix
     formed by outer product.
