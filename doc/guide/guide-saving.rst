@@ -56,9 +56,9 @@ The nice thing about the :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qloa
    
    	In [2]: psi0 = rand_ket(10)
 	
-	In [3]: tlist = np.linspace(0, 10, 10)
+	In [3]: times = np.linspace(0, 10, 10)
 	
-	In [4]: dm_list = mesolve(H, psi0, tlist, c_ops, [])
+	In [4]: dm_list = mesolve(H, psi0, times, c_ops, [])
 	
 	In [5]: qsave(dm_list, 'density_matrix_vs_time')
 
@@ -76,15 +76,15 @@ And it can then be loaded and used again, for example in an other program:
 Storing and loading datasets
 ============================
 
-The :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload` are great, but the file format used is only understood by QuTiP (python) programs. When data must be exported to other programs the preferred method is to store the data in the commonly used plain-text file formats. With the QuTiP functions :func:`qutip.file_data_store` and :func:`qutip.file_data_read` we can store and load **numpy** arrays and matrices to files on disk using a deliminator-separated value format (for example comma-separated values CSV). Almost any program can handle this file format.
+The :func:`qutip.fileio.qsave` and :func:`qutip.fileio.qload` are great, but the file format used is only understood by QuTiP (python) programs. When data must be exported to other programs the preferred method is to store the data in the commonly used plain-text file formats. With the QuTiP functions :func:`qutip.fileio.file_data_store` and :func:`qutip.fileio.file_data_read` we can store and load **numpy** arrays and matrices to files on disk using a deliminator-separated value format (for example comma-separated values CSV). Almost any program can handle this file format.
 
-The :func:`qutip.file_data_store` takes two mandatory and three optional arguments: 
+The :func:`qutip.fileio.file_data_store` takes two mandatory and three optional arguments: 
 
 >>> file_data_store(filename, data, numtype="complex", numformat="decimal", sep=",")
 
 where `filename` is the name of the file, `data` is the data to be written to the file (must be a *numpy* array), `numtype` (optional) is a flag indicating numerical type that can take values `complex` or `real`, `numformat` (optional) specifies the numerical format that can take the values `exp` for the format `1.0e1` and `decimal` for the format `10.0`, and `sep` (optional) is an arbitrary single-character field separator (usually a tab, space, comma, semicolon, etc.). 
 
-A common use for the :func:`qutip.file_data_store` function is to store the expectation values of a set of operators for a sequence of times, e.g., as returned by the :func:`qutip.mesolve` function, which is what the following example does:
+A common use for the :func:`qutip.fileio.file_data_store` function is to store the expectation values of a set of operators for a sequence of times, e.g., as returned by the :func:`qutip.mesolve` function, which is what the following example does:
 
 .. ipython::
 
@@ -92,15 +92,15 @@ A common use for the :func:`qutip.file_data_store` function is to store the expe
    
    	In [2]: psi0 = rand_ket(10)
 	
-	In [3]: tlist = np.linspace(0, 100, 100)
+	In [3]: times = np.linspace(0, 100, 100)
 	
-	In [4]: medata = mesolve(H, psi0, tlist, c_ops, [a.dag() * a, a + a.dag(), -1j * (a - a.dag())])
+	In [4]: medata = mesolve(H, psi0, times, c_ops, [a.dag() * a, a + a.dag(), -1j * (a - a.dag())])
 	
 	In [5]:	shape(medata.expect)
 	
-	In [6]: shape(tlist)
+	In [6]: shape(times)
 	
-	In [7]: output_data = np.vstack((tlist, medata.expect))   # join time and expt data
+	In [7]: output_data = np.vstack((times, medata.expect))   # join time and expt data
 	
 	In [8]: file_data_store('expect.dat', output_data.T) # Note the .T for transpose!
 	
@@ -126,7 +126,7 @@ and if we prefer scientific notation we can request that using the `numformat="e
    
    	In [2]: !head -n 5 expect.dat
 
-Loading data previously stored using :func:`qutip.file_data_store` (or some other software) is a even easier. Regardless of which deliminator was used, if data was stored as complex or real numbers, if it is in decimal or exponential form, the data can be loaded using the :func:`qutip.file_data_read`, which only takes the filename as mandatory argument.
+Loading data previously stored using :func:`qutip.fileio.file_data_store` (or some other software) is a even easier. Regardless of which deliminator was used, if data was stored as complex or real numbers, if it is in decimal or exponential form, the data can be loaded using the :func:`qutip.fileio.file_data_read`, which only takes the filename as mandatory argument.
 
 .. ipython::
 

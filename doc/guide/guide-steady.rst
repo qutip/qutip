@@ -24,7 +24,7 @@ For many these systems, solving for the asymptotic density matrix :math:`\rho_{s
 Using the Steadystate Solver
 =============================
 
-Solving for the steady state of a general system with :func:`qutip.steady.steadystate` can be accomplished using::
+Solving for the steady state of a general system with :func:`qutip.steadystate.steadystate` can be accomplished using::
 
 >>> rho_ss = steadystate(H, c_ops)
 

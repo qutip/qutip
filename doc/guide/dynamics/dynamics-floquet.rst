@@ -172,7 +172,7 @@ Note that the parameters and the Hamiltonian used in this example is not the sam
 
 For convenience, all the steps described above for calculating the evolution of a quantum system using the Floquet formalisms are encapsulated in the function :func:`qutip.floquet.fsesolve`. Using this function, we could have achieved the same results as in the examples above using::
 
-    output = fsesolve(H, psi0, tlist, [num(2)], args)
+    output = fsesolve(H, psi0, times, [num(2)], args)
     p_ex = output.expect[0]
 
 .. _floquet-dissipative:
@@ -206,5 +206,5 @@ The other parameters are similar to the :func:`qutip.mesolve` and :func:`qutip.m
 
 Alternatively, we can let the :func:`qutip.floquet.fmmesolve` function transform the density matrix at each time step back to the computational basis, and calculating the expectation values for us, but using::
 
-    output = fmmesolve(H, psi0, tlist, [sigmax()], [num(2)], [noise_spectrum], T, args)
+    output = fmmesolve(H, psi0, times, [sigmax()], [num(2)], [noise_spectrum], T, args)
     p_ex = output.expect[0]
