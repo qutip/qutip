@@ -31,7 +31,7 @@ output = fmmesolve(H, psi0, tlist, [sigmax()], [], [noise_spectrum], T, args)
 p_ex = zeros(shape(tlist), dtype=complex)
 for idx, t in enumerate(tlist):
     f_modes_t = floquet_modes_t_lookup(f_modes_table_t, t, T) 
-    p_ex[idx] = expect(num(2), output.states[idx].transform(f_modes_t, False))
+    p_ex[idx] = expect(num(2), output.states[idx].transform(f_modes_t, True))
 
 # For reference: calculate the same thing with mesolve
 output = mesolve(H, psi0, tlist, [sqrt(gamma1) * sigmax()], [num(2)], args)
