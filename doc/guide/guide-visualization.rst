@@ -416,7 +416,7 @@ We are now ready to compute :math:`\chi` using :func:`qutip.tomography.qpt`, and
     In [1]: plt.show()
 
 
-For a slightly more advanced example, where the density matrix propagator is calculated from the dynamics of a system defined by its Hamiltonian and collapse operators using the function :func:`qutip.propagator.propagator`, see :ref:`exadvanced53`.
+For a slightly more advanced example, where the density matrix propagator is calculated from the dynamics of a system defined by its Hamiltonian and collapse operators using the function :func:`qutip.propagator.propagator`, see notebook "Time-dependent master equation: Landau-Zener transitions" on the tutorials section on the QuTiP web site.
 
 
 

@@ -230,7 +230,7 @@ New Features
 
 - Solvers now return Odedata objects containing all simulation results and parameters, simplifying the saving of simulation results.
 
-.. important:: This breaks compatibility with QuTiP version 1.x.  See :ref:`odedata` for further details.
+.. important:: This breaks compatibility with QuTiP version 1.x.
 
 - mesolve and mcsolve can reuse Hamiltonian data when only the initial state, or time-dependent arguments, need to be changed.
 

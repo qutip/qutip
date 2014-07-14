@@ -121,7 +121,7 @@ we can extract the relevant expectation values using::
 	expt100 = data.expect[2]   # <- expectation  values avg. over 100 trajectories
 	expt1000 = data.expect[3]  # <- expectation values avg. over 1000 trajectories
 
-The Monte Carlo solver also has many available options that can be set using the :func:`qutip.solver.Options` class as discussed in :ref:`odeoptions`.
+The Monte Carlo solver also has many available options that can be set using the :func:`qutip.solver.Options` class as discussed in :ref:`options`.
 
 
 .. _monte-reuse:
@@ -137,7 +137,7 @@ To turn on the "reuse" functionality we must set the ``rhs_reuse=True`` flag in 
 
 >>> options = Options(rhs_reuse=True)
 
-A full account of this feature is given in :ref:`odeoptions`.  Using the previous example, we will calculate the dynamics for two different initial states, with the Hamiltonian data being reused on the second call::  
+A full account of this feature is given in :ref:`options`.  Using the previous example, we will calculate the dynamics for two different initial states, with the Hamiltonian data being reused on the second call::  
 
 	from qutip import *
 	from pylab import *
