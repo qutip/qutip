@@ -912,7 +912,7 @@ class Qobj(object):
 
             if N ** 2 < 100 * n:
                 # large number of nonzero elements, revert to dense solver
-                F = la.expm(self.data.todense())
+                F = la.expm(self.full())
             elif N > 400:
                 # large system, and quite sparse -> qutips sparse method
                 F = sp_expm(self.data, sparse=True)
