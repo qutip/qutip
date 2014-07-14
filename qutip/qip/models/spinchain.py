@@ -39,7 +39,6 @@ from qutip.qip.models.circuitprocessor import CircuitProcessor
 
 
 class SpinChain(CircuitProcessor):
-
     """
     Representation of the physical implementation of a quantum
     program/algorithm on a spin chain qubit system.
@@ -163,7 +162,7 @@ class SpinChain(CircuitProcessor):
 
         Parameters
         ----------
-        qc: Qobj
+        qc: QubitCircuit
             The circular spin chain circuit to be resolved
 
         setup: Boolean
@@ -171,9 +170,9 @@ class SpinChain(CircuitProcessor):
 
         Returns
         ----------
-        qc_t: Qobj
-            Returns Qobj of resolved gates for the qubit circuit in the desired
-            basis.
+        qc: QubitCircuit
+            Returns QubitCircuit of resolved gates for the qubit circuit in the
+            desired basis.
         """
         qc_t = QubitCircuit(qc.N, qc.reverse_states)
         swap_gates = ["SWAP", "ISWAP", "SQRTISWAP", "SQRTSWAP", "BERKELEY",
@@ -364,7 +363,6 @@ class SpinChain(CircuitProcessor):
 
 
 class LinearSpinChain(SpinChain):
-
     """
     Representation of the physical implementation of a quantum
     program/algorithm on a spin chain qubit system arranged in a linear
@@ -385,15 +383,12 @@ class LinearSpinChain(SpinChain):
 
     def optimize_circuit(self, qc):
         self.qc0 = qc
-        qc_temp = self.adjacent_gates(qc, "linear")
-        self.qc1 = qc_temp
-        qc = qc_temp.resolve_gates(basis=["ISWAP", "RX", "RZ"])
-        self.qc2 = qc
-        return qc
+        self.qc1 = self.adjacent_gates(self.qc0, "linear")
+        self.qc2 = self.qc1.resolve_gates(basis=["ISWAP", "RX", "RZ"])
+        return self.qc2
 
 
 class CircularSpinChain(SpinChain):
-
     """
     Representation of the physical implementation of a quantum
     program/algorithm on a spin chain qubit system arranged in a circular
@@ -428,8 +423,6 @@ class CircularSpinChain(SpinChain):
 
     def optimize_circuit(self, qc):
         self.qc0 = qc
-        qc_temp = self.adjacent_gates(qc, "circular")
-        self.qc1 = qc_temp
-        qc = qc_temp.resolve_gates(basis=["ISWAP", "RX", "RZ"])
-        self.qc2 = qc
-        return qc
+        self.qc1 = self.adjacent_gates(self.qc0, "circular")
+        self.qc2 = self.qc1.resolve_gates(basis=["ISWAP", "RX", "RZ"])
+        return self.qc2

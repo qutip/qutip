@@ -34,19 +34,18 @@ import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import *
 from qutip.qip.gates import *
-from qutip.qip.circuit import QubitCircuit
+from qutip.qip.circuit import QubitCircuit, Gate
 from qutip.qip.models.circuitprocessor import CircuitProcessor
 
 
 class DispersivecQED(CircuitProcessor):
-
     """
     Representation of the physical implementation of a quantum
     program/algorithm on a dispersive cavity-QED system.
     """
 
     def __init__(self, N, correct_global_phase=True, Nres=None, deltamax=None,
-                 epsmax=None, wo=None, eps=None, delta=None, g=None):
+                 epsmax=None, w0=None, eps=None, delta=None, g=None):
         """
         Parameters
         ----------
@@ -72,7 +71,7 @@ class DispersivecQED(CircuitProcessor):
             The interaction strength for each of the qubit with the resonator.
         """
 
-        super(DispersiveCQED, self).__init__(N, correct_global_phase)
+        super(DispersivecQED, self).__init__(N, correct_global_phase)
 
         # user definable
         if Nres is None:
@@ -88,7 +87,7 @@ class DispersivecQED(CircuitProcessor):
             self.sx_coeff = np.array(deltamax)
 
         if epsmax is None:
-            self.sz_coeff = np.array([1.0 * 2 * pi] * N)
+            self.sz_coeff = np.array([9.5 * 2 * pi] * N)
         elif not isinstance(sx, list):
             self.sz_coeff = np.array([epsmax * 2 * pi] * N)
         else:
@@ -100,7 +99,7 @@ class DispersivecQED(CircuitProcessor):
             self.w0 = w0
 
         if eps is None:
-            self.eps = np.array([9.0 * 2 * pi] * N)
+            self.eps = np.array([9.5 * 2 * pi] * N)
         elif not isinstance(sx, list):
             self.eps = np.array([eps * 2 * pi] * N)
         else:
@@ -125,54 +124,52 @@ class DispersivecQED(CircuitProcessor):
         self.Delta = self.wq - self.w0
 
         # rwa/dispersive regime tests
-        if any(self.g / (self.w0 - self.wq)) > 0.025:
+        if any(self.g / (self.w0 - self.wq) > 0.05):
             warnings.warn("Not in the dispersive regime")
 
-        if any((self.w0 - self.wq) / (self.w0 + self.wq)) > 0.025:
+        if any((self.w0 - self.wq) / (self.w0 + self.wq) > 0.05):
             warnings.warn(
                 "The rotating-wave approximation might not be valid.")
 
-        self.sx_ops = [tensor([identity(Nres)] +
+        self.sx_ops = [tensor([identity(self.Nres)] +
                               [sigmax() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
-        self.sz_ops = [tensor([identity(Nres)] +
+        self.sz_ops = [tensor([identity(self.Nres)] +
                               [sigmaz() if m == n else identity(2)
                                for n in range(N)])
                        for m in range(N)]
 
-        self.a = tensor([destroy(Nres)] + [identity(2) for n in range(N)])
+        self.a = tensor([destroy(self.Nres)] + [identity(2) for n in range(N)])
 
         self.cavityqubit_ops = []
         for n in range(N):
-            sm = tensor([identity(Nres)] +
+            sm = tensor([identity(self.Nres)] +
                         [destroy(2) if m == n else identity(2)
                          for m in range(N)])
             self.cavityqubit_ops.append(self.a.dag() * sm + self.a * sm.dag())
 
-        self.psi_proj = tensor([basis(Nres, 0)] +
+        self.psi_proj = tensor([basis(self.Nres, 0)] +
                                [identity(2) for n in range(N)])
 
     def get_ops_and_u(self):
         H0 = self.a.dag() * self.a
         return ([H0] + self.sx_ops + self.sz_ops + self.cavityqubit_ops,
-                hstack((self.w0 * np.zeros((self.sx_u.shape[0], 1)),
-                        self.sx_u, self.sz_u, self.g_u)))
+                np.hstack((self.w0 * np.zeros((self.sx_u.shape[0], 1)),
+                          self.sx_u, self.sz_u, self.g_u)))
 
     def get_ops_labels(self):
-        return ([r"$a^\dagger a$"] + [r"$\sigma_x^%d$" % n
-                                      for n in range(self.N)] +
+        return ([r"$a^\dagger a$"] +
+                [r"$\sigma_x^%d$" % n for n in range(self.N)] +
                 [r"$\sigma_z^%d$" % n for n in range(self.N)] +
-                [r"$\g{%d}$" % (n) for n in range(self.N)])
+                [r"$g_{%d}$" % (n) for n in range(self.N)])
 
     def optimize_circuit(self, qc):
         self.qc0 = qc
-        qc_temp = qc.resolve_gates(basis=["ISWAP", "RX", "RZ"])
-        self.qc1 = qc_temp
-        qc = self.dispersive_gate_correction(qc_temp)
-        self.qc2 = qc
+        self.qc1 = qc.resolve_gates(basis=["ISWAP", "RX", "RZ"])
+        self.qc2 = self.dispersive_gate_correction(self.qc1)
 
-        return qc
+        return self.qc2
 
     def eliminate_auxillary_modes(self, U):
         return self.psi_proj.dag() * U * self.psi_proj
@@ -192,37 +189,37 @@ class DispersivecQED(CircuitProcessor):
 
         Returns
         ----------
-        qc_temp: Qobj
-            Returns Qobj of resolved gates for the qubit circuit in the desired
-            basis.
+        qc: QubitCircuit
+            Returns QubitCircuit of resolved gates for the qubit circuit in the
+            desired basis.
         """
-        qc_temp = QubitCircuit(qc.N, qc.reverse_states)
+        qc = QubitCircuit(qc.N, qc.reverse_states)
 
         for gate in qc.gates:
-            qc_temp.gates.append(gate)
+            qc.gates.append(gate)
             if rwa:
                 if gate.name == "SQRTISWAP":
-                    qc_temp.gates.append(Gate("RZ", [gate.targets[0]], None,
-                                              arg_value=-np.pi / 4,
-                                              arg_label=r"-\pi/4"))
-                    qc_temp.gates.append(Gate("RZ", [gate.targets[1]], None,
-                                              arg_value=-np.pi / 4,
-                                              arg_label=r"-\pi/4"))
-                    qc_temp.gates.append(Gate("GLOBALPHASE", None, None,
-                                              arg_value=-np.pi / 4,
-                                              arg_label=r"-\pi/4"))
+                    qc.gates.append(Gate("RZ", [gate.targets[0]], None,
+                                         arg_value=-np.pi / 4,
+                                         arg_label=r"-\pi/4"))
+                    qc.gates.append(Gate("RZ", [gate.targets[1]], None,
+                                         arg_value=-np.pi / 4,
+                                         arg_label=r"-\pi/4"))
+                    qc.gates.append(Gate("GLOBALPHASE", None, None,
+                                         arg_value=-np.pi / 4,
+                                         arg_label=r"-\pi/4"))
                 elif gate.name == "ISWAP":
-                    qc_temp.gates.append(Gate("RZ", [gate.targets[0]], None,
-                                              arg_value=-np.pi / 2,
-                                              arg_label=r"-\pi/2"))
-                    qc_temp.gates.append(Gate("RZ", [gate.targets[1]], None,
-                                              arg_value=-np.pi / 2,
-                                              arg_label=r"-\pi/2"))
-                    qc_temp.gates.append(Gate("GLOBALPHASE", None, None,
-                                              arg_value=-np.pi / 2,
-                                              arg_label=r"-\pi/2"))
+                    qc.gates.append(Gate("RZ", [gate.targets[0]], None,
+                                         arg_value=-np.pi / 2,
+                                         arg_label=r"-\pi/2"))
+                    qc.gates.append(Gate("RZ", [gate.targets[1]], None,
+                                         arg_value=-np.pi / 2,
+                                         arg_label=r"-\pi/2"))
+                    qc.gates.append(Gate("GLOBALPHASE", None, None,
+                                         arg_value=-np.pi / 2,
+                                         arg_label=r"-\pi/2"))
 
-        return qc_temp
+        return qc
 
     def load_circuit(self, qc):
 
@@ -246,7 +243,7 @@ class DispersivecQED(CircuitProcessor):
 
                 J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] +
                                                1 / self.Delta[t1]) / 2
-                T = (4 * pi / J) / 4
+                T = (4 * pi / abs(J)) / 4
                 self.T_list.append(T)
                 n += 1
 
@@ -259,7 +256,7 @@ class DispersivecQED(CircuitProcessor):
 
                 J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] +
                                                1 / self.Delta[t1]) / 2
-                T = (4 * pi / J) / 8
+                T = (4 * pi / abs(J)) / 8
                 self.T_list.append(T)
                 n += 1
 
