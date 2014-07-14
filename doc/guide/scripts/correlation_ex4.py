@@ -3,7 +3,7 @@ from qutip import *
 from scipy import *
 
 N = 25
-taulist = linspace(0, 25.0, 200)
+taus = linspace(0, 25.0, 200)
 a = destroy(N)
 H = 2 * pi * a.dag() * a
 
@@ -21,14 +21,14 @@ for state in states:
     rho0 = state['state']
 
     # first calculate the occupation number as a function of time
-    n = mesolve(H, rho0, taulist, c_ops, [a.dag() * a]).expect[0]
+    n = mesolve(H, rho0, taus, c_ops, [a.dag() * a]).expect[0]
 
     # calculate the correlation function G2 and normalize with n(0)n(t) to
     # obtain g2
-    G2 = correlation_4op_1t(H, rho0, taulist, c_ops, a.dag(), a.dag(), a, a)
+    G2 = correlation_4op_1t(H, rho0, taus, c_ops, a.dag(), a.dag(), a, a)
     g2 = G2 / (n[0] * n)
 
-    ax.plot(taulist, real(g2), label=state['label'])
+    ax.plot(taus, real(g2), label=state['label'])
 
 ax.legend(loc=0)
 ax.set_xlabel(r'$\tau$')

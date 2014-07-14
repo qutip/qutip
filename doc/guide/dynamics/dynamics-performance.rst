@@ -7,9 +7,9 @@
 Performance (QuTiP vs. qotoolbox)
 **********************************
 
-Here we compare the performance of the master-equation and Monte Carlo solvers to their quantum optics toolbox counterparts.
+Here we compare the performance of the master equation and Monte Carlo solvers to their quantum optics toolbox counterparts.
 
-In this example, we calculate the time-evolution of the density matrix for a coupled oscillator system using the :func:`qutip.mesolve` function, and compare it to the quantum optics toolbox (qotoolbox).  Here, we see that the QuTiP solver out performs its qotoolbox counterpart by a substantial margin as the system size increases.
+In this example, we calculate the time evolution of the density matrix for a coupled oscillator system using the :func:`qutip.mesolve` function, and compare it to the quantum optics toolbox (qotoolbox).  Here, we see that the QuTiP solver out performs its qotoolbox counterpart by a substantial margin as the system size increases.
 
 .. figure:: guide-dynamics-odesolve-performance.png
    :align: center

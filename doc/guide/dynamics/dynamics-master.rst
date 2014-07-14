@@ -26,16 +26,16 @@ where :math:`\Psi` is the wave function, :math:`\hat H` the Hamiltonian, and :ma
 
 where :math:`\left|\psi\right>` is the state vector and :math:`H` is the matrix representation of the Hamiltonian. This matrix equation can, in principle, be solved by diagonalizing the Hamiltonian matrix :math:`H`. In practice, however, it is difficult to perform this diagonalization unless the size of the Hilbert space (dimension of the matrix :math:`H`) is small. Analytically, it is a formidable task to calculate the dynamics for systems with more than two states. If, in addition, we consider dissipation due to the inevitable interaction with a surrounding environment, the computational complexity grows even larger, and we have to resort to numerical calculations in all realistic situations. This illustrates the importance of numerical calculations in describing the dynamics of open quantum systems, and the need for efficient and accessible tools for this task.
 
-The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, :ref:`tensor`, we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector :math:`\left|\psi_0\right>` (``psi0``) using the QuTiP function :func:`qutip.mesolve`. It evolves the state vector and evaluates the expectation values for a set of operators ``expt_op_list`` at the points in time in the list ``tlist``, using an ordinary differential equation solver. Alternatively, we can use the function :func:`qutip.essolve`, which uses the exponential-series technique to calculate the time evolution of a system. The :func:`qutip.mesolve` and :func:`qutip.essolve` functions take the same arguments and it is therefore easy switch between the two solvers. 
+The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, :ref:`tensor`, we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector :math:`\left|\psi_0\right>` (``psi0``) using the QuTiP function :func:`qutip.mesolve`. It evolves the state vector and evaluates the expectation values for a set of operators ``expt_ops`` at the points in time in the list ``times``, using an ordinary differential equation solver. Alternatively, we can use the function :func:`qutip.essolve`, which uses the exponential-series technique to calculate the time evolution of a system. The :func:`qutip.mesolve` and :func:`qutip.essolve` functions take the same arguments and it is therefore easy switch between the two solvers. 
 
 For example, the time evolution of a quantum spin-1/2 system with tunneling rate 0.1 that initially is in the up state is calculated, and the  expectation values of the :math:`\sigma_z` operator evaluated, with the following code::
 
     >>> H = 2 * pi * 0.1 * sigmax()
     >>> psi0 = basis(2, 0)
-    >>> tlist = linspace(0.0, 10.0, 20.0)
-    >>> result = mesolve(H, psi0, tlist, [], [sigmaz()])
+    >>> times = linspace(0.0, 10.0, 20.0)
+    >>> result = mesolve(H, psi0, times, [], [sigmaz()])
     >>> result
-    Odedata object with mesolve data.
+    Result object with mesolve data.
     ---------------------------------
     expect = True
     num_expect = 1, num_collapse = 0
@@ -48,9 +48,9 @@ For example, the time evolution of a quantum spin-1/2 system with tunneling rate
 
 The brackets in the fourth argument is an empty list of collapse operators, since we consider unitary evolution in this example. See the next section for examples on how dissipation is included by defining a list of collapse operators.
 
-The function returns an instance of :class:`qutip.Odedata`, as described in the previous section :ref:`odedata`. The attribute ``expect`` in ``result`` is a list of expectation values for the operators that are included in the list in the fifth argument. Adding operators to this list results in a larger output list returned by the function (one array of numbers, corresponding to the times in tlist, for each operator)::
+The function returns an instance of :class:`qutip.solver.Result`, as described in the previous section :ref:`solver_result`. The attribute ``expect`` in ``result`` is a list of expectation values for the operators that are included in the list in the fifth argument. Adding operators to this list results in a larger output list returned by the function (one array of numbers, corresponding to the times in times, for each operator)::
 
-    >>> result = mesolve(H, psi0, tlist, [], [sigmaz(), sigmay()])
+    >>> result = mesolve(H, psi0, times, [], [sigmaz(), sigmay()])
     >>> result.expect
     [array([  1.00000000e+00+0.j,   7.89142292e-01+0.j,   2.45485961e-01+0.j,
              -4.01696962e-01+0.j,  -8.79476686e-01+0.j,  -9.86363558e-01+0.j,
@@ -69,8 +69,8 @@ The function returns an instance of :class:`qutip.Odedata`, as described in the 
   
 The resulting list of expectation values can easily be visualized using matplotlib's plotting functions::
 
-    >>> tlist = linspace(0.0, 10.0, 100)
-    >>> result = mesolve(H, psi0, tlist, [], [sigmaz(), sigmay()])
+    >>> times = linspace(0.0, 10.0, 100)
+    >>> result = mesolve(H, psi0, times, [], [sigmaz(), sigmay()])
     >>> 
     >>> from pylab import *
     >>> plot(result.times, result.expect[0])
@@ -86,10 +86,10 @@ The resulting list of expectation values can easily be visualized using matplotl
    :width: 4in
 
 
-If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a :class:`qutip.Odedata` instance that contains a list of state vectors for the times specified in ``tlist``::
+If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a :class:`qutip.solver.Result` instance that contains a list of state vectors for the times specified in ``times``::
 
-    >>> tlist = [0.0, 1.0]
-    >>> result = mesolve(H, psi0, tlist, [], [])
+    >>> times = [0.0, 1.0]
+    >>> result = mesolve(H, psi0, times, [], [])
     >>> result.states
     [
     Quantum object: dims = [[2], [1]], shape = [2, 1], type = ket
@@ -176,9 +176,9 @@ describe the strength of the processes.
 
 In QuTiP, the product of the square root of the rate and the operator that 
 describe the dissipation process is called a collapse operator. A list of 
-collapse operators (``c_op_list``) is passed as the fourth argument to the 
+collapse operators (``c_ops``) is passed as the fourth argument to the 
 :func:`qutip.mesolve` function in order to define the dissipation processes in the master
-equation. When the ``c_op_list`` isn't empty, the :func:`qutip.mesolve` function will use
+equation. When the ``c_ops`` isn't empty, the :func:`qutip.mesolve` function will use
 the master equation instead of the unitary Schrödinger equation.
 
 Using the example with the spin dynamics from the previous section, we can
@@ -186,11 +186,11 @@ easily add a relaxation process (describing the dissipation of energy from the
 spin to its environment), by adding ``sqrt(0.05) * sigmax()`` to
 the previously empty list in the fourth parameter to the :func:`qutip.mesolve` function::
 
-    >>> tlist = linspace(0.0, 10.0, 100)
-    >>> result = mesolve(H, psi0, tlist, [sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
+    >>> times = linspace(0.0, 10.0, 100)
+    >>> result = mesolve(H, psi0, times, [sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
     >>> from pylab import *
-    >>> plot(tlist, result.expect[0])
-    >>> plot(tlist, result.expect[1])
+    >>> plot(times, result.expect[0])
+    >>> plot(times, result.expect[1])
     >>> xlabel('Time')
     >>> ylabel('Expectation values')
     >>> legend(("Sigma-Z", "Sigma-Y"))
@@ -206,15 +206,15 @@ process.
 
 Now a slightly more complex example: Consider a two-level atom coupled to a leaky single-mode cavity through a dipole-type interaction, which supports a coherent exchange of quanta between the two systems. If the atom initially is in its groundstate and the cavity in a 5-photon Fock state, the dynamics is calculated with the lines following code::
 
-    >>> tlist = linspace(0.0, 10.0, 200)
+    >>> times = linspace(0.0, 10.0, 200)
     >>> psi0 = tensor(fock(2,0), fock(10, 5))
     >>> a  = tensor(qeye(2), destroy(10))
     >>> sm = tensor(destroy(2), qeye(10))
     >>> H = 2 * pi * a.dag() * a + 2 * pi * sm.dag() * sm + 2 * pi * 0.25 * (sm * a.dag() + sm.dag() * a)
-    >>> result = mesolve(H, psi0, tlist, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
+    >>> result = mesolve(H, psi0, times, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
     >>> from pylab import *
-    >>> plot(tlist, result.expect[0])
-    >>> plot(tlist, result.expect[1])
+    >>> plot(times, result.expect[0])
+    >>> plot(times, result.expect[1])
     >>> xlabel('Time')
     >>> ylabel('Expectation values')
     >>> legend(("cavity photon number", "atom excitation probability"))

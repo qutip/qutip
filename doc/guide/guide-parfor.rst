@@ -67,9 +67,9 @@ One can also define functions with **multiple** input arguments and even keyword
 
 .. ipython::
     
-    In [1]: def sum_diff(x,y,hello=0): return x+y,x-y,hello
+    In [1]: def sum_diff(x , y, z=0): return x + y, x - y, z
     
-    In [2]: parfor(sum_diff,[1,2,3],[4,5,6],hello=5)
+    In [2]: parfor(sum_diff, [1, 2, 3], [4, 5, 6], z=5)
     
 Note that the keyword arguments can be anything you like, but the keyword values are **not** iterated over. The keyword argument *num_cpus* is reserved as it sets the number of CPU's used by parfor. By default, this value is set to the total number of physical processors on your system. You can change this number to a lower value, however setting it higher than the number of CPU's will cause a drop in performance.
 
@@ -94,11 +94,11 @@ Parallel picloud Computations
 
 New to QuTiP version 3 is the option to run computations in parallel on the cloud computing platform provided by PiCloud. You must have their software installed on your machine, and an active account, for this function to work. Note that, at present, the picloud software is **only available for Python version 2.7**. Using the picloud function is very similar to using parfor, however the picloud function does not accept any keyword arguments:
 
-.. ipython::
     
-    In [1]: def add(x,y): return x+y
-    
-    In [2]: picloud(add,[10,20,30],[5,6,7])
+    >>> from qutip.picloud import *
+    >>> def add(x, y): return x + y    
+    >>> picloud(add, [10, 20, 30], [5, 6, 7])
+    [15, 26, 37]
 
 
  

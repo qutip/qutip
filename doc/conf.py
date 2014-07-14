@@ -33,6 +33,7 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.autodoc',
               'sphinx.ext.todo',
               'sphinx.ext.doctest',
+              #'sphinx.ext.autosummary',
               'numpydoc',
               'sphinx.ext.extlinks',
               ]
@@ -239,13 +240,13 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'QuTiP.tex', u'QuTiP: Quantum Toolbox in Python',
+  ('index', 'qutip.tex', u'QuTiP: Quantum Toolbox in Python',
    u'P.D. Nation and J.R. Johansson', 'memoir'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
 # the title page.
-latex_logo = 'figures/qutip_logo.png'
+latex_logo = 'figures/logo.png'
 
 # For "manual" documents, if this is true, then toplevel headings are parts,
 # not chapters.
@@ -283,7 +284,7 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'QuTiP', u'QuTiP: Quantum Toolbox in Python', u'P.D. Nation and J.R. Johansson',
+  ('index', 'qutip', u'QuTiP: Quantum Toolbox in Python', u'P.D. Nation and J.R. Johansson',
    'QuTiP', 'Quantum Toolbox in Python', 'Miscellaneous'),
 ]
 

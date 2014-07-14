@@ -65,9 +65,9 @@ or for a list of times ``[0.0, 1.0 * pi, 2.0 * pi]``:
 
 .. ipython::
 
-   In [1]: tlist = [0.0, 1.0 * pi, 2.0 * pi]
+   In [1]: times = [0.0, 1.0 * pi, 2.0 * pi]
    
-   In [2]: esval(es2, tlist)	# equivalent to es2.value(tlist)
+   In [2]: esval(es2, times)	# equivalent to es2.value(times)
 
 To calculate the expectation value of an time-dependent operator represented by an :class:`qutip.eseries`, we use the :func:`qutip.expect` function. For example, consider the operator :math:`\sigma_x \cos(\omega t) + \sigma_z\sin(\omega t)`, and say we would like to know the expectation value of this operator for a spin in its excited state (``rho = fock_dm(2,1)`` produce this state):
 
@@ -83,7 +83,7 @@ To calculate the expectation value of an time-dependent operator represented by 
    
    In [5]: es3_expect.value([0.0, pi/2])
     
-Note the expectation value of the :class:`qutip.eseries` object, ``expect(rho, es3)``, itself is an :class:`qutip.eseries`, but with amplitude coefficients that are C-numbers instead of quantum operators. To evaluate the C-number :class:`qutip.eseries` at the times `tlist` we use ``esval(es3_expect, tlist)``, or, equivalently, ``es3_expect.value(tlist)``.
+Note the expectation value of the :class:`qutip.eseries` object, ``expect(rho, es3)``, itself is an :class:`qutip.eseries`, but with amplitude coefficients that are C-numbers instead of quantum operators. To evaluate the C-number :class:`qutip.eseries` at the times `times` we use ``esval(es3_expect, times)``, or, equivalently, ``es3_expect.value(times)``.
 
 .. _eseries-applications:
 
@@ -134,13 +134,13 @@ The result `es_expect` is now an exponential series with c-numbers as amplitudes
 
 .. ipython::
 
-	In [1]: tlist = linspace(0.0, 10.0, 100)
+	In [1]: times = linspace(0.0, 10.0, 100)
 	
-	In [2]: sz_expect = es_expect.value(tlist)
+	In [2]: sz_expect = es_expect.value(times)
 
 	In [3]: from pylab import *	
 	
-	In [4]: plot(tlist, sz_expect, lw=2);
+	In [4]: plot(times, sz_expect, lw=2);
 	
 	In [5]: xlabel("Time", fontsize=16); ylabel("Expectation value of sigma-z", fontsize=16);
 	

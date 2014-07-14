@@ -1,3 +1,20 @@
 .navbar-text {
-    color:#FB12FF !important;
+    color: #e8e8e8 !important;
+}
+
+a {
+  color: #1E90B3;
+  text-decoration: none;
+}
+
+a:hover,
+a:focus {
+  color: #1E90B3;
+  text-decoration: underline;
+}
+
+a:focus {
+  outline: thin dotted #333;
+  outline: 5px auto -webkit-focus-ring-color;
+  outline-offset: -2px;
 }
