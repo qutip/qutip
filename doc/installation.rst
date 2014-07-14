@@ -127,7 +127,8 @@ First install the required dependencies using:
 
 .. code-block:: bash
 
-    sudo apt-get install cython python-dev python-scipy python-setuptools python-matplotlib python-nose
+    sudo apt-get install python-dev cython python-setuptoolspython-nose
+    sudo apt-get install python-numpy python-scipy python-matplotlib
 
 Then install QuTiP from source following the instructions given above.
 
@@ -135,7 +136,8 @@ Alternatively (or additionally), to install a Python 3 environment, use:
 
 .. code-block:: bash
 
-    sudo apt-get install cython python3-dev python3-scipy python3-setuptools python3-matplotlib python3-nose
+    sudo apt-get install python3-dev cython python3-setuptools python3-nose
+    sudo apt-get install python3-numpy python3-scipy python3-matplotlib
 
 and then do the installation from source using ``python3`` instead of ``python``.
 
