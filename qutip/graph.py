@@ -39,7 +39,8 @@ import numpy as np
 import scipy.sparse as sp
 from qutip.cy.graph_utils import (
     _pseudo_peripheral_node, _breadth_first_search, _node_degrees,
-    _rcm, _bfs_matching, _weighted_bfs_matching)
+    _reverse_cuthill_mckee, _maximum_bipartite_matching,
+    _weighted_bipartite_matching)
 from qutip.settings import debug
 from warnings import warn
 
@@ -102,7 +103,7 @@ def breadth_first_search(A, start):
     return order[order != -1], levels[levels != -1]
 
 
-def symrcm(A, sym=False):
+def reverse_cuthill_mckee(A, sym=False):
     """
     Returns the permutation array that orders a sparse CSR or CSC matrix
     in Reverse-Cuthill McKee ordering. Since the input matrix must be
@@ -144,29 +145,33 @@ def symrcm(A, sym=False):
     nrows = A.shape[0]
 
     if not sym:
-        A = A+A.transpose()
+        A = A + A.transpose()
 
-    return _rcm(A.indices, A.indptr, nrows)
+    return _reverse_cuthill_mckee(A.indices, A.indptr, nrows)
 
 
-def bfs_matching(A):
+def maximum_bipartite_matching(A, perm_type='row'):
     """
-    Returns an array of row permutations that removes nonzero elements
-    from the diagonal of a nonsingular square CSC sparse matrix.  Such
-    a permutation is always possible provided that the matrix is
-    nonsingular.
-
+    Returns an array of row or column permutations that removes nonzero
+    elements from the diagonal of a nonsingular square CSC sparse matrix. Such
+    a permutation is always possible provided that the matrix is nonsingular.
     This function looks at the structure of the matrix only.
+
+    The input matrix will be converted to CSC matrix format if
+    necessary.
 
     Parameters
     ----------
-    A : csc_matrix
+    A : sparse matrix
         Input matrix
+
+    perm_type : str {'row', 'column'}
+        Type of permutation to generate.
 
     Returns
     -------
     perm : array
-        Array of row permutations.
+        Array of row or column permutations.
 
     Notes
     -----
@@ -182,23 +187,26 @@ def bfs_matching(A):
     """
     nrows = A.shape[0]
     if A.shape[0] != A.shape[1]:
-        raise ValueError('bfs_matching requires a square matrix.')
+        raise ValueError(
+            'Maximum bipartite matching requires a square matrix.')
 
-    if A.__class__.__name__ == 'Qobj':
-        A = A.data.tocsc()
+    if sp.isspmatrix_csr(A) or sp.isspmatrix_coo(A):
+        A = A.tocsc()
     elif not sp.isspmatrix_csc(A):
-        A = sp.csc_matrix(A)
-        warn('bfs_matching requires CSC matrix format.',
-             sp.SparseEfficiencyWarning)
+        raise TypeError("matrix must be in CSC, CSR, or COO format.")
 
-    perm = _bfs_matching(A.indices, A.indptr, nrows)
+    if perm_type == 'column':
+        A = A.transpose().tocsc()
+
+    perm = _maximum_bipartite_matching(A.indices, A.indptr, nrows)
+
     if np.any(perm == -1):
         raise Exception('Possibly singular input matrix.')
 
     return perm
 
 
-def weighted_bfs_matching(A):
+def weighted_bipartite_matching(A, perm_type='row'):
     """
     Returns an array of row permutations that attempts to maximize
     the product of the ABS values of the diagonal elements in
@@ -213,10 +221,13 @@ def weighted_bfs_matching(A):
     A : csc_matrix
         Input matrix
 
+    perm_type : str {'row', 'column'}
+        Type of permutation to generate.
+
     Returns
     -------
     perm : array
-        Array of row permutations.
+        Array of row or column permutations.
 
     Notes
     -----
@@ -240,13 +251,17 @@ def weighted_bfs_matching(A):
     if A.shape[0] != A.shape[1]:
         raise ValueError('weighted_bfs_matching requires a square matrix.')
 
-    if not sp.isspmatrix_csc(A):
-        A = sp.csc_matrix(A)
-        warn('weighted_bfs_matching requires CSC matrix format',
-             sp.SparseEfficiencyWarning)
+    if sp.isspmatrix_csr(A) or sp.isspmatrix_coo(A):
+        A = A.tocsc()
+    elif not sp.isspmatrix_csc(A):
+        raise TypeError("matrix must be in CSC, CSR, or COO format.")
 
-    perm = _weighted_bfs_matching(np.asarray(np.abs(A.data), dtype=float),
-                                  A.indices, A.indptr, nrows)
+    if perm_type == 'column':
+        A = A.transpose().tocsc()
+
+    perm = _weighted_bipartite_matching(
+        np.asarray(np.abs(A.data), dtype=float),
+        A.indices, A.indptr, nrows)
 
     if np.any(perm == -1):
         raise Exception('Possibly singular input matrix.')

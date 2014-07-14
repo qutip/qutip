@@ -83,7 +83,7 @@ def test_graph_rcm_simple():
                [0, 0, 0, 1, 0, 0, 1, 0],
                [0, 1, 0, 0, 0, 1, 0, 1]], dtype=np.int32)
     A = sp.csr_matrix(A)
-    perm = symrcm(A)
+    perm = reverse_cuthill_mckee(A)
     ans = array([6, 3, 7, 5, 1, 2, 4, 0])
     assert_equal((perm - ans).all(), 0)
 
@@ -92,7 +92,7 @@ def test_graph_rcm_bucky():
     "Graph: Reverse Cuthill-McKee Ordering (Bucky)"
     B = np.load(pwd+'/bucky.npy')
     B = sp.csr_matrix(B, dtype=float)
-    perm = symrcm(B)
+    perm = reverse_cuthill_mckee(B)
     ans = np.load(pwd+'/bucky_perm.npy')
     assert_equal((perm - ans).all(), 0)
 
@@ -109,7 +109,7 @@ def test_graph_rcm_boost():
     M[6, 7] = 1
     M = M+M.T
     M = sp.csr_matrix(M)
-    perm = symrcm(M, 1)
+    perm = reverse_cuthill_mckee(M, 1)
     ans_perm = array([9, 7, 6, 4, 1, 5, 0, 2, 3, 8])
     assert_equal((perm - ans_perm).all(), 0)
     P = sp_permute(M, perm, perm)
@@ -117,19 +117,19 @@ def test_graph_rcm_boost():
     assert_equal(bw[2], 4)
 
 
-def test_graph_bfs_matching():
-    "Graph: BFS Matching"
+def test_graph_maximum_bipartite_matching():
+    "Graph: Maximum Bipartite Matching"
     A = sp.diags(np.ones(25), offsets=0, format='csc')
     perm = np.random.permutation(25)
     perm2 = np.random.permutation(25)
     B = sp_permute(A, perm, perm2)
-    perm = bfs_matching(B)
+    perm = maximum_bipartite_matching(B)
     C = sp_permute(B, perm, [])
     assert_equal(any(C.diagonal() == 0), False)
 
 
-def test_graph_weighted_bfs():
-    "Graph: Weighted BFS Matching"
+def test_graph_weighted_matching():
+    "Graph: Weighted Bipartite Matching"
     A = sp.rand(25, 25, density=0.1, format='csc')
     a_len = len(A.data)
     A.data = np.ones(a_len)
@@ -139,7 +139,7 @@ def test_graph_weighted_bfs():
     perm = np.random.permutation(25)
     perm2 = np.random.permutation(25)
     B = sp_permute(A, perm, perm2)
-    perm = weighted_bfs_matching(B)
+    perm = weighted_bipartite_matching(B)
     C = sp_permute(B, perm, [])
     assert_equal(np.sum(A.diagonal()), np.sum(C.diagonal()))
 

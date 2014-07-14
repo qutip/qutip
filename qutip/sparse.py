@@ -438,6 +438,7 @@ def _pade(A, m, sparse):
             F = la.solve((-U + V).todense(), (U + V).todense())
             return sp.csr_matrix(F)
 
+
 def _padecoeff(m):
     """
     Private function returning coefficients for Pade approximation.
