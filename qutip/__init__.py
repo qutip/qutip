@@ -31,6 +31,9 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import os
+# Fix the multiprocessing issue with NumPy compiled against OPENBLAS
+if 'OPENBLAS_MAIN_FREE' not in os.environ:
+    os.environ['OPENBLAS_MAIN_FREE'] = '1'
 import sys
 import platform
 import qutip.settings
@@ -116,10 +119,6 @@ except Exception as e:
 # default configuration settings
 #
 
-# Fix the multiprocessing issue with NumPy compiled against OPENBLAS
-# Must be set BEFORE importing multiprocessing
-if 'OPENBLAS_MAIN_FREE' not in os.environ:
-    os.environ['OPENBLAS_MAIN_FREE'] = '1'
 import multiprocessing
 
 # load cpus
