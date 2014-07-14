@@ -380,7 +380,7 @@ def view_methods(Q):
     print(Q.__class__.__name__ + ' Class Methods:')
     print('-' * nl)
     for ii in range(len(pub_meth)):
-        m = getattr(Q,pub_meth[ii])
+        m = getattr(Q, pub_meth[ii])
         meth_str = m.__doc__
         ind = meth_str.find('\n')
         pub_len = len(pub_meth[ii] + ': ')
@@ -392,4 +392,3 @@ def _version2int(version_string):
         "-dev")[0].split("rc")[0].split("b")[0].split("post")[0].split('.')
     return sum([int(d if len(d) > 0 else 0) * (100 ** (3 - n))
                 for n, d in enumerate(str_list[:3])])
-

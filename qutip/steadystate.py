@@ -56,29 +56,27 @@ from qutip.utilities import _version2int
 if settings.debug:
     import inspect
 
-#test if scipy is recent enought to get L & U factors from superLU
+# test if scipy is recent enought to get L & U factors from superLU
 _scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
 
 
 def _default_steadystate_args():
-    def_args = {'method': 'direct', 'sparse': True, 'use_rcm': True, 
+    def_args = {'method': 'direct', 'sparse': True, 'use_rcm': True,
                 'use_wbm': False, 'use_umfpack': False, 'weight': None,
                 'use_precond': True, 'all_states': False,
-                'M': None, 'drop_tol': 1e-3 , 'fill_factor': 10, 
+                'M': None, 'drop_tol': 1e-3, 'fill_factor': 10,
                 'diag_pivot_thresh': None, 'maxiter': 10000, 'tol': 1e-9,
                 'permc_spec': 'NATURAL', 'ILU_MILU': 'smilu_2'}
     return def_args
 
 
 def steadystate(A, c_op_list=[], **kwargs):
-
     """Calculates the steady state for quantum evolution subject to the
     supplied Hamiltonian or Liouvillian operator and (if given a Hamiltonian) a
     list of collapse operators.
 
     If the user passes a Hamiltonian then it, along with the list of collapse
     operators, will be converted into a Liouvillian operator in Lindblad form.
-
 
     Parameters
     ----------
@@ -90,8 +88,8 @@ def steadystate(A, c_op_list=[], **kwargs):
 
     method : str {'direct', 'eigen', 'iterative-bicg', 'iterative-gmres', 'svd', 'power'}
         Method for solving the underlying linear equation. Direct LU solver
-        'direct' (default), sparse eigenvalue problem 'eigen', 
-        iterative GMRES method 'iterative-gmres', iterative LGMRES method 
+        'direct' (default), sparse eigenvalue problem 'eigen',
+        iterative GMRES method 'iterative-gmres', iterative LGMRES method
         'iterative-lgmres', SVD 'svd' (dense), or inverse-power method 'power'.
 
     sparse : bool, optional, default=True
@@ -102,17 +100,17 @@ def steadystate(A, c_op_list=[], **kwargs):
     use_rcm : bool, optional, default=True
         Use reverse Cuthill-Mckee reordering to minimize fill-in in the
         LU factorization of the Liouvillian.
-    
+
     use_wbm : bool, optional, default=False
         Use Weighted Bipartite Matching reordering to make the Liouvillian
         diagonally dominant.  This is useful for iterative preconditioners
         only, and is set to ``True`` by default when finding a preconditioner.
-    
+
     weight : float, optional
         Sets the size of the elements used for adding the unity trace condition
         to the linear solvers.  This is set to the average abs value of the
         Liouvillian elements if not specified by the user.
-    
+
     use_umfpack : bool {False, True}
         Use umfpack solver instead of SuperLU.  For SciPy 0.14+, this option
         requires installing scikits.umfpack.
@@ -125,11 +123,11 @@ def steadystate(A, c_op_list=[], **kwargs):
         solvers.
 
     permc_spec : str, optional, default='NATURAL'
-        Column ordering used internally by superLU for the 'direct' LU 
-        decomposition method. Options include 'NATURAL and 'COLAMD'. 
-        If not using RCM then this is set to 'COLAMD' automatically unless 
+        Column ordering used internally by superLU for the 'direct' LU
+        decomposition method. Options include 'NATURAL and 'COLAMD'.
+        If not using RCM then this is set to 'COLAMD' automatically unless
         explicitly specified.
-    
+
     use_precond : bool optional, default = True
         ITERATIVE ONLY. Use an incomplete sparse LU decomposition as a
         preconditioner for the 'iterative' GMRES and BICG solvers.
@@ -138,8 +136,8 @@ def steadystate(A, c_op_list=[], **kwargs):
     M : {sparse matrix, dense matrix, LinearOperator}, optional
         Preconditioner for A. The preconditioner should approximate the inverse
         of A. Effective preconditioning dramatically improves the rate of
-        convergence, for iterative methods only .  If no preconditioner is 
-        given and ``use_precond=True``, then one is generated automatically. 
+        convergence, for iterative methods only .  If no preconditioner is
+        given and ``use_precond=True``, then one is generated automatically.
 
     fill_factor : float, optional, default=10
         ITERATIVE ONLY. Specifies the fill ratio upper bound (>=1) of the iLU
@@ -157,11 +155,11 @@ def steadystate(A, c_op_list=[], **kwargs):
         elements are considered acceptable pivot points when using a
         preconditioner.  A value of zero forces the pivot to be the diagonal
         element.
-    
+
     ILU_MILU : str, optional, default='smilu_2'
-        Selects the incomplete LU decomposition method algoithm used in 
+        Selects the incomplete LU decomposition method algoithm used in
         creating the preconditoner. Should only be used by advanced users.
-        
+
 
     Returns
     -------
@@ -178,19 +176,19 @@ def steadystate(A, c_op_list=[], **kwargs):
         if key in ss_args.keys():
             ss_args[key] = kwargs[key]
         else:
-            raise Exception("Invalid keyword argument '" + key + 
+            raise Exception("Invalid keyword argument '" + key +
                             "' passed to steadystate.")
-    
+
     # Set column perm to COLAMD if not using RCM and not specified by user
-    if (ss_args['use_rcm']==False and ('permc_spec' not in kwargs.keys())):
+    if (ss_args['use_rcm'] is False and ('permc_spec' not in kwargs.keys())):
         ss_args['permc_spec'] = 'COLAMD'
-    
-    # Set use_wbm=True if using iterative solver with preconditioner and 
+
+    # Set use_wbm=True if using iterative solver with preconditioner and
     # not explicitly set to False by user
-    if (ss_args['method'] in ['iterative-lgmres','iterative-gmres']) \
+    if (ss_args['method'] in ['iterative-lgmres', 'iterative-gmres']) \
             and ('use_wbm' not in kwargs.keys()):
         ss_args['use_wbm'] = True
-    
+
     n_op = len(c_op_list)
 
     if isoper(A):
@@ -204,20 +202,19 @@ def steadystate(A, c_op_list=[], **kwargs):
         raise TypeError('Solving for steady states requires ' +
                         'Liouvillian (super) operators')
 
-    # Set weight parameter to avg abs val in L if not set explicitly  
+    # Set weight parameter to avg abs val in L if not set explicitly
     if 'weight' not in kwargs.keys():
         ss_args['weight'] = np.mean(np.abs(A.data.data.max()))
-    
-    
+
     if ss_args['method'] == 'direct':
         if ss_args['sparse']:
             return _steadystate_direct_sparse(A, ss_args)
         else:
             return _steadystate_direct_dense(A)
-    
+
     elif ss_args['method'] == 'eigen':
         return _steadystate_eigen(A, ss_args)
-    
+
     elif ss_args['method'] in ['iterative-gmres', 'iterative-lgmres']:
         return _steadystate_iterative(A, ss_args)
 
@@ -254,23 +251,24 @@ def _steadystate_direct_sparse(L, ss_args):
     b = np.zeros((n ** 2, 1), dtype=complex)
     b[0, 0] = ss_args['weight']
     L = L.data.tocsc() + sp.csc_matrix(
-        (ss_args['weight']*np.ones(n), (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
+        (ss_args['weight']*np.ones(n), (np.zeros(n), [nn * (n + 1)
+         for nn in range(n)])),
         shape=(n ** 2, n ** 2))
     L.sort_indices()
     use_solver(assumeSortedIndices=True, useUmfpack=ss_args['use_umfpack'])
-    
-    orig_nnz=L.nnz
+
+    orig_nnz = L.nnz
     if settings.debug:
         old_band = sp_bandwidth(L)[0]
-        print('Original NNZ:',orig_nnz)
+        print('Original NNZ:', orig_nnz)
         if ss_args['use_rcm']:
-            print('Original bandwidth:',old_band)
-    
+            print('Original bandwidth:', old_band)
+
     if ss_args['use_wbm']:
         perm = weighted_bipartite_matching(L)
         L = sp_permute(L, perm, [], 'csc')
         b = b[np.ix_(perm,)]
-        
+
     if ss_args['use_rcm']:
         perm2 = reverse_cuthill_mckee(L)
         rev_perm = np.argsort(perm2)
@@ -278,23 +276,23 @@ def _steadystate_direct_sparse(L, ss_args):
         b = b[np.ix_(perm2,)]
         if settings.debug:
             rcm_band = sp_bandwidth(L)[0]
-            print('RCM bandwidth:',rcm_band)
-            print('Bandwidth reduction factor:',round(old_band/rcm_band,1))
-    
+            print('RCM bandwidth:', rcm_band)
+            print('Bandwidth reduction factor:', round(old_band/rcm_band, 1))
+
     if not ss_args['use_umfpack']:
-        lu = splu(L, permc_spec=ss_args['permc_spec'], 
-                    diag_pivot_thresh=ss_args['diag_pivot_thresh'],
-                    options=dict(ILU_MILU=ss_args['ILU_MILU']))
+        lu = splu(L, permc_spec=ss_args['permc_spec'],
+                  diag_pivot_thresh=ss_args['diag_pivot_thresh'],
+                  options=dict(ILU_MILU=ss_args['ILU_MILU']))
         v = lu.solve(b)
         if settings.debug and _scipy_check:
             L_nnz = lu.L.nnz
             U_nnz = lu.U.nnz
-            print('L NNZ:',L_nnz,';','U NNZ:',U_nnz)
+            print('L NNZ:', L_nnz, ';', 'U NNZ:', U_nnz)
             print('Fill factor:', (L_nnz+U_nnz)/orig_nnz)
-            
+
     else:
         v = spsolve(L, b)
-    
+
     if ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
 
@@ -336,9 +334,9 @@ def _steadystate_eigen(L, ss_args):
         print('Starting Eigen solver...')
 
     dims = L.dims[0]
-    shape=prod(dims[0])
-    L=L.data.tocsc()
-    
+    shape = prod(dims[0])
+    L = L.data.tocsc()
+
     if ss_args['use_rcm']:
         if settings.debug:
             old_band = sp_bandwidth(L)[0]
@@ -349,14 +347,14 @@ def _steadystate_eigen(L, ss_args):
         if settings.debug:
             rcm_band = sp_bandwidth(L)[0]
             print('RCM bandwidth:', rcm_band)
-            print('Bandwidth reduction factor:',round(old_band/rcm_band,1))
-    
+            print('Bandwidth reduction factor:', round(old_band/rcm_band, 1))
+
     eigval, eigvec = eigs(L, k=1, sigma=1e-15, tol=ss_args['tol'],
-                    which='LM', maxiter=ss_args['maxiter'])
-    
+                          which='LM', maxiter=ss_args['maxiter'])
+
     if ss_args['use_rcm']:
         eigvec = eigvec[np.ix_(rev_perm,)]
-    
+
     data = vec2mat(eigvec)
     data = 0.5 * (data + data.conj().T)
     out = Qobj(data, dims=dims, isherm=True)
@@ -371,11 +369,11 @@ def _iterative_precondition(A, n, ss_args):
     if settings.debug:
         print('Starting preconditioner...',)
     try:
-        P = spilu(A, permc_spec=ss_args['permc_spec'], 
-                    drop_tol=ss_args['drop_tol'], 
-                    diag_pivot_thresh=ss_args['diag_pivot_thresh'],
-                    fill_factor=ss_args['fill_factor'], 
-                    options=dict(ILU_MILU=ss_args['ILU_MILU']))
+        P = spilu(A, permc_spec=ss_args['permc_spec'],
+                  drop_tol=ss_args['drop_tol'],
+                  diag_pivot_thresh=ss_args['diag_pivot_thresh'],
+                  fill_factor=ss_args['fill_factor'],
+                  options=dict(ILU_MILU=ss_args['ILU_MILU']))
 
         P_x = lambda x: P.solve(x)
         M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
@@ -403,14 +401,15 @@ def _steadystate_iterative(L, ss_args):
     b = np.zeros(n ** 2)
     b[0] = ss_args['weight']
     L = L.data.tocsc() + sp.csc_matrix(
-        (ss_args['weight']*np.ones(n), (np.zeros(n), [nn * (n + 1) for nn in range(n)])),
+        (ss_args['weight']*np.ones(n), (np.zeros(n), [nn * (n + 1)
+         for nn in range(n)])),
         shape=(n ** 2, n ** 2))
 
     if ss_args['use_wbm']:
         perm = weighted_bipartite_matching(L)
         L = sp_permute(L, perm, [], 'csc')
         b = b[np.ix_(perm,)]
-    
+
     if ss_args['use_rcm']:
         if settings.debug:
             old_band = sp_bandwidth(L)[0]
@@ -422,7 +421,7 @@ def _steadystate_iterative(L, ss_args):
         if settings.debug:
             rcm_band = sp_bandwidth(L)[0]
             print('RCM bandwidth ', rcm_band)
-            print('Bandwidth reduction factor:',round(old_band/rcm_band,1))
+            print('Bandwidth reduction factor:', round(old_band/rcm_band, 1))
 
     L.sort_indices()
     if ss_args['M'] is None and ss_args['use_precond']:
@@ -430,15 +429,15 @@ def _steadystate_iterative(L, ss_args):
 
     # Select iterative solver type
     if ss_args['method'] == 'iterative-gmres':
-        v, check = gmres(L, b, tol=ss_args['tol'], M=ss_args['M'], 
+        v, check = gmres(L, b, tol=ss_args['tol'], M=ss_args['M'],
                             maxiter=ss_args['maxiter'])
-    
+
     elif ss_args['method'] == 'iterative-lgmres':
-        v, check = lgmres(L, b, tol=ss_args['tol'], M=ss_args['M'], 
-                            maxiter=ss_args['maxiter'])
+        v, check = lgmres(L, b, tol=ss_args['tol'], M=ss_args['M'],
+                          maxiter=ss_args['maxiter'])
     else:
         raise Exception("Invalid iterative solver method.")
-        
+
     if check > 0:
         raise Exception("Steadystate solver did not reach tolerance after " +
                         str(check) + " steps.")
@@ -488,8 +487,8 @@ def _steadystate_power(L, ss_args):
     """
     if settings.debug:
         print('Starting iterative inverse-power method solver...')
-    tol=ss_args['tol']
-    maxiter=ss_args['maxiter']
+    tol = ss_args['tol']
+    maxiter = ss_args['maxiter']
 
     use_solver(assumeSortedIndices=True)
     rhoss = Qobj()
@@ -502,10 +501,10 @@ def _steadystate_power(L, ss_args):
     L = L.data.tocsc() - (1e-15) * sp.eye(n, n, format='csc')
     L.sort_indices()
     orig_nnz = L.nnz
-    
-    #start with maximally mixed state.
+
+    # start with maximally mixed state.
     v = mat2vec(maximally_mixed_dm(n).full())
-    
+
     if ss_args['use_rcm']:
         if settings.debug:
             old_band = sp_bandwidth(L)[0]
@@ -517,19 +516,19 @@ def _steadystate_power(L, ss_args):
         if settings.debug:
             new_band = sp_bandwidth(L)[0]
             print('RCM bandwidth:', new_band)
-            print('Bandwidth reduction factor:',round(old_band/new_band,2))
-    
-    #Get LU factors
-    lu = splu(L, permc_spec=ss_args['permc_spec'], 
-                diag_pivot_thresh=ss_args['diag_pivot_thresh'],
-                options=dict(ILU_MILU=ss_args['ILU_MILU']))
-    
+            print('Bandwidth reduction factor:', round(old_band/new_band, 2))
+
+    # Get LU factors
+    lu = splu(L, permc_spec=ss_args['permc_spec'],
+              diag_pivot_thresh=ss_args['diag_pivot_thresh'],
+              options=dict(ILU_MILU=ss_args['ILU_MILU']))
+
     if settings.debug and _scipy_check:
         L_nnz = lu.L.nnz
         U_nnz = lu.U.nnz
-        print('L NNZ:',L_nnz,';','U NNZ:',U_nnz)
+        print('L NNZ:', L_nnz, ';', 'U NNZ:', U_nnz)
         print('Fill factor:', (L_nnz+U_nnz)/orig_nnz)
-    
+
     it = 0
     while (la.norm(L * v, np.inf) > tol) and (it < maxiter):
         v = lu.solve(v)
@@ -538,13 +537,13 @@ def _steadystate_power(L, ss_args):
     if it >= maxiter:
         raise Exception('Failed to find steady state after ' +
                         str(maxiter) + ' iterations')
-    
+
     if settings.debug:
-        print('Number of iterations:',it)
-    
+        print('Number of iterations:', it)
+
     if ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
-    
+
     # normalise according to type of problem
     if sflag:
         trow = sp.eye(rhoss.shape[0], rhoss.shape[0], format='coo')
