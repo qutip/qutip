@@ -38,7 +38,7 @@ from qutip.random_objects import rand_dm
 from qutip.operators import create, destroy, qeye
 from qutip.states import coherent
 from qutip.sparse import sp_bandwidth, sp_permute, sp_reverse_permute
-from qutip.graph import symrcm
+from qutip.graph import reverse_cuthill_mckee
 
 
 def _permutateIndexes(array, row_perm, col_perm):
@@ -156,7 +156,7 @@ def test_sp_bandwidth():
     assert_equal(out1[0], 13)
     assert_equal(out1[1] == out1[2] == 6, 1)
     # Bandwidth test 3
-    perm = symrcm(A)
+    perm = reverse_cuthill_mckee(A)
     B = sp_permute(A, perm, perm)
     out2 = sp_bandwidth(B)
     assert_equal(out2[0], 5)

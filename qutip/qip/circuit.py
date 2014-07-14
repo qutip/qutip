@@ -38,10 +38,9 @@ from qutip.qip.gates import *
 
 
 class Gate(object):
-
     """
-    Representation of a quantum gate. It needs to maintain a list
-    of a gate's target and source and time.
+    Representation of a quantum gate, with its required parametrs, and target
+    and control qubits.  
     """
 
     def __init__(self, name, targets=None, controls=None, arg_value=None,
@@ -152,10 +151,9 @@ def _gate_label(name, arg_label):
 
 
 class QubitCircuit(object):
-
     """
-    Representation of a quantum program/algorithm. It needs to maintain a list
-    of gates (with target and source and time).
+    Representation of a quantum program/algorithm, maintaining a sequence
+    of gates.
     """
 
     def __init__(self, N, reverse_states=True):
@@ -233,7 +231,7 @@ class QubitCircuit(object):
 
         Parameters
         ----------
-        qc: List
+        qc: QubitCircuit
             The circuit block to be added to the main circuit.
         start: Integer
             The qubit on which the first gate is applied.
@@ -308,8 +306,8 @@ class QubitCircuit(object):
 
         Returns
         ----------
-        temp: Qobj
-            Returns Qobj of resolved gates for the qubit circuit in the
+        qc: QubitCircuit
+            Returns QubitCircuit of resolved gates for the qubit circuit in the
             desired basis.
         """
         temp = QubitCircuit(self.N, self.reverse_states)
@@ -332,9 +330,9 @@ class QubitCircuit(object):
 
         Returns
         -------
-        qc_temp: Qobj
-            Returns Qobj of resolved gates for the qubit circuit in the desired
-            basis.
+        qc: QubitCircuit
+            Returns QubitCircuit of resolved gates for the qubit circuit in the
+            desired basis.
         """
         qc_temp = QubitCircuit(self.N, self.reverse_states)
         temp_resolved = []
@@ -747,13 +745,13 @@ class QubitCircuit(object):
 
     def adjacent_gates(self):
         """
-        Method to resolve 2 qubit gates with non-adjacent control/s or target/s
-        in terms of gates with adjacent interactions.
+        Method to resolve two qubit gates with non-adjacent control/s or
+        target/s in terms of gates with adjacent interactions.
 
         Returns
         ----------
-        temp: Qobj
-            Returns Qobj of resolved gates for the qubit circuit in the
+        qc: QubitCircuit
+            Returns QubitCircuit of resolved gates for the qubit circuit in the
             desired basis.
 
         """
