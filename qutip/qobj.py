@@ -871,7 +871,7 @@ class Qobj(object):
         method : str {'dense', 'sparse', 'scipy-dense', 'scipy-sparse'}
             Use set method to use to calculate the matrix exponentiation. The
             available choices includes 'dense' and 'sparse' for using QuTiP's
-            implementation of expm using dense and sparse matrices, 
+            implementation of expm using dense and sparse matrices,
             respectively, and 'scipy-dense' and 'scipy-sparse' for using the
             scipy.linalg.expm (dense) and scipy.sparse.linalg.expm (sparse).
             If no method is explicitly given a heuristic will be used to try
@@ -910,7 +910,7 @@ class Qobj(object):
             N = self.data.shape[0]
             n = self.data.nnz
 
-            if N ** 2 < 100 * n: 
+            if N ** 2 < 100 * n:
                 # large number of nonzero elements, revert to dense solver
                 F = la.expm(self.data.todense())
             elif N > 400:

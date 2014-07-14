@@ -39,7 +39,7 @@ import numpy as np
 import scipy.sparse as sp
 from qutip.cy.graph_utils import (
     _pseudo_peripheral_node, _breadth_first_search, _node_degrees,
-    _reverse_cuthill_mckee, _maximum_bipartite_matching, 
+    _reverse_cuthill_mckee, _maximum_bipartite_matching,
     _weighted_bipartite_matching)
 from qutip.settings import debug
 from warnings import warn
@@ -156,10 +156,10 @@ def maximum_bipartite_matching(A, perm_type='row'):
     elements from the diagonal of a nonsingular square CSC sparse matrix. Such
     a permutation is always possible provided that the matrix is nonsingular.
     This function looks at the structure of the matrix only.
-    
+
     The input matrix will be converted to CSC matrix format if
     necessary.
-    
+
     Parameters
     ----------
     A : sparse matrix
@@ -167,12 +167,12 @@ def maximum_bipartite_matching(A, perm_type='row'):
 
     perm_type : str {'row', 'column'}
         Type of permutation to generate.
-    
+
     Returns
     -------
     perm : array
         Array of row or column permutations.
-    
+
     Notes
     -----
     This function relies on a maximum cardinality bipartite matching algorithm
@@ -186,8 +186,9 @@ def maximum_bipartite_matching(A, perm_type='row'):
 
     """
     nrows = A.shape[0]
-    if A.shape[0]!=A.shape[1]:
-        raise ValueError('Maximum bipartite matching requires a square matrix.')
+    if A.shape[0] != A.shape[1]:
+        raise ValueError(
+            'Maximum bipartite matching requires a square matrix.')
 
     if sp.isspmatrix_csr(A) or sp.isspmatrix_coo(A):
         A = A.tocsc()
@@ -199,7 +200,7 @@ def maximum_bipartite_matching(A, perm_type='row'):
 
     perm = _maximum_bipartite_matching(A.indices, A.indptr, nrows)
 
-    if np.any(perm==-1):
+    if np.any(perm == -1):
         raise Exception('Possibly singular input matrix.')
 
     return perm
@@ -222,12 +223,12 @@ def weighted_bipartite_matching(A, perm_type='row'):
 
     perm_type : str {'row', 'column'}
         Type of permutation to generate.
-    
+
     Returns
     -------
     perm : array
         Array of row or column permutations.
-    
+
     Notes
     -----
     This function uses a weighted maximum cardinality bipartite matching
@@ -259,10 +260,10 @@ def weighted_bipartite_matching(A, perm_type='row'):
         A = A.transpose().tocsc()
 
     perm = _weighted_bipartite_matching(
-            np.asarray(np.abs(A.data), dtype=float),
-            A.indices, A.indptr, nrows)
+        np.asarray(np.abs(A.data), dtype=float),
+        A.indices, A.indptr, nrows)
 
-    if np.any(perm==-1):
+    if np.any(perm == -1):
         raise Exception('Possibly singular input matrix.')
 
     return perm

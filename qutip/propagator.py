@@ -91,7 +91,7 @@ def propagator(H, t, c_op_list, args=None, options=None, sparse=False):
         rhs_clear()
 
     if isinstance(t, (int, float, np.integer, np.floating)):
-        tlist = [0, t] 
+        tlist = [0, t]
     else:
         tlist = t
 
