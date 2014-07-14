@@ -163,7 +163,7 @@ class DispersivecQED(CircuitProcessor):
         return ([r"$a^\dagger a$"] + [r"$\sigma_x^%d$" % n
                                       for n in range(self.N)] +
                 [r"$\sigma_z^%d$" % n for n in range(self.N)] +
-                [r"$\g{%d}$" % (n) for n in range(self.N)])
+                [r"$g_{%d}$" % (n) for n in range(self.N)])
 
     def optimize_circuit(self, qc):
         self.qc0 = qc
