@@ -39,6 +39,7 @@ import platform
 import qutip.settings
 import qutip.version
 from qutip.version import version as __version__
+from qutip.utilities import _version2int
 
 # automatically set number of threads used by MKL and openblas to 1
 # prevents errors when running things in parallel.  Should be set
@@ -50,16 +51,10 @@ if 'MKL_NUM_THREADS' not in os.environ:
 if 'OPENBLAS_NUM_THREADS' not in os.environ:
     os.environ['OPENBLAS_NUM_THREADS'] = '1'
 
-
 # -----------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
 # if the requirements aren't fulfilled
 #
-def _version2int(version_string):
-    str_list = version_string.split(
-        "-dev")[0].split("rc")[0].split("b")[0].split("post")[0].split('.')
-    return sum([int(d if len(d) > 0 else 0) * (100 ** (3 - n))
-                for n, d in enumerate(str_list[:3])])
 
 numpy_requirement = "1.6.0"
 try:
