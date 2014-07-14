@@ -8,7 +8,7 @@ Change Log
 **********
 
 Version 3.0.0 (July X, 2014):
-++++++++++++++++++++++++++++++++++++++++++++++
++++++++++++++++++++++++++++++
 
 New Features
 -------------
@@ -18,7 +18,8 @@ New Features
 
 - Expanded steady state solvers. The function ``steady`` has been deprecated in
   favor of ``steadystate``. The steadystate solver no longer use umfpack by 
-  default.
+  default. New pre-processing methods for reordering and balancing the linear
+  equation system used in direct solution of the steady state.
 
 - New module `qutip.qip` with utilities for quantum information processing,
   including pre-defined quantum gates along with functions for expanding
