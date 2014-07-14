@@ -898,7 +898,7 @@ class Qobj(object):
             F = sp_expm(self.data, sparse=True)
 
         elif method == 'scipy-dense':
-            F = la.expm(self.data.todense())
+            F = la.expm(self.full())
 
         elif method == 'scipy-sparse':
             F = sp.linalg.expm(self.data.tocsc())
