@@ -167,12 +167,10 @@ class DispersivecQED(CircuitProcessor):
 
     def optimize_circuit(self, qc):
         self.qc0 = qc
-        qc_temp = qc.resolve_gates(basis=["ISWAP", "RX", "RZ"])
-        self.qc1 = qc_temp
-        qc = self.dispersive_gate_correction(qc_temp)
-        self.qc2 = qc
+        self.qc1 = qc.resolve_gates(basis=["ISWAP", "RX", "RZ"])
+        self.qc2 = self.dispersive_gate_correction(self.qc1)
 
-        return qc
+        return self.qc2
 
     def eliminate_auxillary_modes(self, U):
         return self.psi_proj.dag() * U * self.psi_proj
@@ -246,7 +244,7 @@ class DispersivecQED(CircuitProcessor):
 
                 J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] +
                                                1 / self.Delta[t1]) / 2
-                T = (4 * pi / J) / 4
+                T = (4 * pi / abs(J)) / 4
                 self.T_list.append(T)
                 n += 1
 
@@ -259,7 +257,7 @@ class DispersivecQED(CircuitProcessor):
 
                 J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] +
                                                1 / self.Delta[t1]) / 2
-                T = (4 * pi / J) / 8
+                T = (4 * pi / abs(J)) / 8
                 self.T_list.append(T)
                 n += 1
 
