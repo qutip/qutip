@@ -166,7 +166,7 @@ class DispersivecQED(CircuitProcessor):
 
     def optimize_circuit(self, qc):
         self.qc0 = qc
-        self.qc1 = qc.resolve_gates(basis=["ISWAP", "RX", "RZ"])
+        self.qc1 = self.qc0.resolve_gates(basis=["ISWAP", "RX", "RZ"])
         self.qc2 = self.dispersive_gate_correction(self.qc1)
 
         return self.qc2
@@ -174,7 +174,7 @@ class DispersivecQED(CircuitProcessor):
     def eliminate_auxillary_modes(self, U):
         return self.psi_proj.dag() * U * self.psi_proj
 
-    def dispersive_gate_correction(self, qc, rwa=True):
+    def dispersive_gate_correction(self, qc1, rwa=True):
         """
         Method to resolve ISWAP and SQRTISWAP gates in a cQED system by adding
         single qubit gates to get the correct output matrix.
@@ -193,9 +193,9 @@ class DispersivecQED(CircuitProcessor):
             Returns QubitCircuit of resolved gates for the qubit circuit in the
             desired basis.
         """
-        qc = QubitCircuit(qc.N, qc.reverse_states)
+        qc = QubitCircuit(qc1.N, qc1.reverse_states)
 
-        for gate in qc.gates:
+        for gate in qc1.gates:
             qc.gates.append(gate)
             if rwa:
                 if gate.name == "SQRTISWAP":
