@@ -39,7 +39,6 @@ from qutip.qip.models.circuitprocessor import CircuitProcessor
 
 
 class DispersivecQED(CircuitProcessor):
-
     """
     Representation of the physical implementation of a quantum
     program/algorithm on a dispersive cavity-QED system.
@@ -160,8 +159,8 @@ class DispersivecQED(CircuitProcessor):
                           self.sx_u, self.sz_u, self.g_u)))
 
     def get_ops_labels(self):
-        return ([r"$a^\dagger a$"] + [r"$\sigma_x^%d$" % n
-                                      for n in range(self.N)] +
+        return ([r"$a^\dagger a$"] +
+                [r"$\sigma_x^%d$" % n for n in range(self.N)] +
                 [r"$\sigma_z^%d$" % n for n in range(self.N)] +
                 [r"$g_{%d}$" % (n) for n in range(self.N)])
 
@@ -190,37 +189,37 @@ class DispersivecQED(CircuitProcessor):
 
         Returns
         ----------
-        qc_temp: Qobj
-            Returns Qobj of resolved gates for the qubit circuit in the desired
-            basis.
+        qc: QubitCircuit
+            Returns QubitCircuit of resolved gates for the qubit circuit in the
+            desired basis.
         """
-        qc_temp = QubitCircuit(qc.N, qc.reverse_states)
+        qc = QubitCircuit(qc.N, qc.reverse_states)
 
         for gate in qc.gates:
-            qc_temp.gates.append(gate)
+            qc.gates.append(gate)
             if rwa:
                 if gate.name == "SQRTISWAP":
-                    qc_temp.gates.append(Gate("RZ", [gate.targets[0]], None,
-                                              arg_value=-np.pi / 4,
-                                              arg_label=r"-\pi/4"))
-                    qc_temp.gates.append(Gate("RZ", [gate.targets[1]], None,
-                                              arg_value=-np.pi / 4,
-                                              arg_label=r"-\pi/4"))
-                    qc_temp.gates.append(Gate("GLOBALPHASE", None, None,
-                                              arg_value=-np.pi / 4,
-                                              arg_label=r"-\pi/4"))
+                    qc.gates.append(Gate("RZ", [gate.targets[0]], None,
+                                         arg_value=-np.pi / 4,
+                                         arg_label=r"-\pi/4"))
+                    qc.gates.append(Gate("RZ", [gate.targets[1]], None,
+                                         arg_value=-np.pi / 4,
+                                         arg_label=r"-\pi/4"))
+                    qc.gates.append(Gate("GLOBALPHASE", None, None,
+                                         arg_value=-np.pi / 4,
+                                         arg_label=r"-\pi/4"))
                 elif gate.name == "ISWAP":
-                    qc_temp.gates.append(Gate("RZ", [gate.targets[0]], None,
-                                              arg_value=-np.pi / 2,
-                                              arg_label=r"-\pi/2"))
-                    qc_temp.gates.append(Gate("RZ", [gate.targets[1]], None,
-                                              arg_value=-np.pi / 2,
-                                              arg_label=r"-\pi/2"))
-                    qc_temp.gates.append(Gate("GLOBALPHASE", None, None,
-                                              arg_value=-np.pi / 2,
-                                              arg_label=r"-\pi/2"))
+                    qc.gates.append(Gate("RZ", [gate.targets[0]], None,
+                                         arg_value=-np.pi / 2,
+                                         arg_label=r"-\pi/2"))
+                    qc.gates.append(Gate("RZ", [gate.targets[1]], None,
+                                         arg_value=-np.pi / 2,
+                                         arg_label=r"-\pi/2"))
+                    qc.gates.append(Gate("GLOBALPHASE", None, None,
+                                         arg_value=-np.pi / 2,
+                                         arg_label=r"-\pi/2"))
 
-        return qc_temp
+        return qc
 
     def load_circuit(self, qc):
 
