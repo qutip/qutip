@@ -67,7 +67,7 @@ Contributors
 
 **Jonas Hörsch** - Code contributor
 
-**Jonas Neergaard-Nielsen** (Technical University of Denmark) - Bug hunter, Code contributor, Windows support
+**Jonas Neergaard-Nielsen** (Technical University of Denmark) - Code contributor, Windows support
 
 **JP Hadden** (University of Bristol) - Code contributor, improved Bloch sphere visualization
 
