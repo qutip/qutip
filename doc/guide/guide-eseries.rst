@@ -29,7 +29,6 @@ In QuTiP, an exponential series object is constructed by creating an instance of
 
    In [1]: es1 = eseries(sigmax(), 1j)
 
-
 where the first argument is the amplitude coefficient (here, the sigma-X operator), and the second argument is the rate. The eseries in this example represents the time-dependent operator :math:`\sigma_x e^{i t}`. 
 
 To add more terms to an :class:`qutip.eseries` object we simply add objects using the ``+`` operator:

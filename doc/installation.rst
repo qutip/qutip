@@ -127,7 +127,7 @@ First install the required dependencies using:
 
 .. code-block:: bash
 
-    sudo apt-get install python-dev cython python-setuptoolspython-nose
+    sudo apt-get install python-dev cython python-setuptools python-nose
     sudo apt-get install python-numpy python-scipy python-matplotlib
 
 Then install QuTiP from source following the instructions given above.

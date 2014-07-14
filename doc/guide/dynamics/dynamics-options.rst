@@ -1,7 +1,7 @@
 .. QuTiP 
    Copyright (C) 2011-2012, Paul D. Nation & Robert J. Johansson
 
-.. _Options:
+.. _options:
 
 *********************************************
 Setting Options for the Dynamics Solvers

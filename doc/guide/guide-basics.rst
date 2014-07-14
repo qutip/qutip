@@ -187,7 +187,6 @@ In general, the attributes (properties) of a ``Qobj`` object (or any Python clas
 |               |               | 'oper', or 'super'?                    |
 +---------------+---------------+----------------------------------------+
 
-.. _about: 
 .. figure:: quide-basics-qobj-box.png
    :align: center
    :width: 3.5in
