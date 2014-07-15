@@ -33,6 +33,8 @@ Contributors
 
 **Anders Lund** (Technical University of Denmark) - Bug hunting for the Monte-Carlo solver
 
+**Andre Carvalho** - Bug hunter
+
 **André Xuereb** (University of Hannover) - Bug hunter
 
 **Anubhav Vardhan** (IIT, Kanpur) - Bug hunter, Code contributor, Documentation
