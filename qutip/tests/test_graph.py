@@ -94,7 +94,7 @@ def test_graph_rcm_bucky():
     B = sp.csr_matrix(B, dtype=float)
     perm = reverse_cuthill_mckee(B)
     ans = np.load(pwd+'/bucky_perm.npy')
-    assert_equal((perm - ans).all(), 0)
+    assert_equal(perm, ans)
 
 
 def test_graph_rcm_boost():
@@ -115,6 +115,23 @@ def test_graph_rcm_boost():
     P = sp_permute(M, perm, perm)
     bw = sp_bandwidth(P)
     assert_equal(bw[2], 4)
+
+def test_graph_rcm_qutip():
+    "Graph: Reverse Cuthill-McKee Ordering (qutip)"
+    kappa = 1
+    gamma = 0.01
+    g = 1
+    wc = w0 = wl = 0
+    N = 2
+    E = 1.5
+    a = tensor(destroy(N), qeye(2))
+    sm = tensor(qeye(N), sigmam())
+    H = (w0-wl)*sm.dag()*sm+(wc-wl)*a.dag()*a+1j*g*(a.dag()*sm-sm.dag()*a)+E*(a.dag()+a)
+    c_ops = [sqrt(2*kappa)*a, sqrt(gamma)*sm]
+    L = liouvillian(H,c_ops)
+    perm = reverse_cuthill_mckee(L.data)
+    ans = np.array([12,14,4,6,10,8,2,15,0,13,7,5,9,11,1,3])
+    assert_equal(perm, ans)
 
 
 def test_graph_maximum_bipartite_matching():
