@@ -682,9 +682,10 @@ def _ssesolve_generic(sso, options, progress_bar):
         noise = sso.noise[n] if sso.noise else None
 
         states_list, dW, m = _ssesolve_single_trajectory(
-            data, sso.H, dt, sso.times, N_store, N_substeps, psi_t, A_ops,
-            sso.e_ops, sso.m_ops, sso.rhs_func, sso.d1, sso.d2, sso.d2_len,
-            sso.dW_factors, sso.homogeneous, sso.distribution, sso.args,
+            data, sso.H, dt, sso.times, N_store, N_substeps, psi_t,
+            sso.state0.dims, A_ops, sso.e_ops, sso.m_ops, sso.rhs_func, sso.d1,
+            sso.d2, sso.d2_len, sso.dW_factors, sso.homogeneous,
+            sso.distribution, sso.args,
             store_measurement=sso.store_measurement, noise=noise,
             normalize=sso.normalize)
 
@@ -717,7 +718,7 @@ def _ssesolve_generic(sso, options, progress_bar):
 
 
 def _ssesolve_single_trajectory(data, H, dt, times, N_store, N_substeps, psi_t,
-                                A_ops, e_ops, m_ops, rhs, d1, d2, d2_len,
+                                dims, A_ops, e_ops, m_ops, rhs, d1, d2, d2_len,
                                 dW_factors, homogeneous, distribution, args,
                                 store_measurement=False, noise=None,
                                 normalize=True):
@@ -755,7 +756,7 @@ def _ssesolve_single_trajectory(data, H, dt, times, N_store, N_substeps, psi_t,
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2
         else:
-            states_list.append(Qobj(psi_t))
+            states_list.append(Qobj(psi_t, dims=dims))
 
         psi_prev = np.copy(psi_t)
 
@@ -857,7 +858,7 @@ def _smesolve_generic(sso, options, progress_bar):
             noise = None
 
         states_list, dW, m = _smesolve_single_trajectory(
-            data, L, dt, sso.times, N_store, N_substeps, rho_t,
+            data, L, dt, sso.times, N_store, N_substeps, rho_t, sso.state0.dims,
             A_ops, s_e_ops, s_m_ops, sso.rhs, sso.d1, sso.d2, sso.d2_len,
             sso.dW_factors, sso.homogeneous, sso.distribution, sso.args,
             store_measurement=sso.store_measurement,
@@ -891,7 +892,7 @@ def _smesolve_generic(sso, options, progress_bar):
 
 
 def _smesolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_t,
-                                A_ops, e_ops, m_ops, rhs, d1, d2, d2_len,
+                                dims, A_ops, e_ops, m_ops, rhs, d1, d2, d2_len,
                                 dW_factors, homogeneous, distribution, args,
                                 store_measurement=False,
                                 store_states=False, noise=None):
@@ -929,7 +930,7 @@ def _smesolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_t,
 
         if store_states or not e_ops:
             # XXX: need to keep hilbert space structure
-            states_list.append(Qobj(vec2mat(rho_t)))
+            states_list.append(Qobj(vec2mat(rho_t), dims=dims))
 
         rho_prev = np.copy(rho_t)
 
@@ -996,12 +997,13 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
 
     for n in range(sso.ntraj):
         progress_bar.update(n)
-        psi_t = sso.psi0.full().ravel()
+        psi_t = sso.state0.full().ravel()
 
         states_list, jump_times, jump_op_idx = \
             _ssepdpsolve_single_trajectory(data, Heff, dt, sso.times,
                                            N_store, N_substeps,
-                                           psi_t, sso.c_ops, sso.e_ops)
+                                           psi_t, sso.state0.dims,
+                                           sso.c_ops, sso.e_ops)
 
         data.states.append(states_list)
         data.jump_times.append(jump_times)
@@ -1031,7 +1033,7 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
 
 
 def _ssepdpsolve_single_trajectory(data, Heff, dt, times, N_store, N_substeps,
-                                   psi_t, c_ops, e_ops):
+                                   psi_t, dims, c_ops, e_ops):
     """
     Internal function. See ssepdpsolve.
     """
@@ -1054,7 +1056,7 @@ def _ssepdpsolve_single_trajectory(data, Heff, dt, times, N_store, N_substeps,
                 data.expect[e_idx, t_idx] += s
                 data.ss[e_idx, t_idx] += s ** 2
         else:
-            states_list.append(Qobj(psi_t))
+            states_list.append(Qobj(psi_t, dims=dims))
 
         for j in range(N_substeps):
 
@@ -1131,7 +1133,8 @@ def _smepdpsolve_generic(sso, options, progress_bar):
         states_list, jump_times, jump_op_idx = \
             _smepdpsolve_single_trajectory(data, L, dt, sso.times,
                                            N_store, N_substeps,
-                                           rho_t, sso.c_ops, sso.e_ops)
+                                           rho_t, sso.rho0.dims,
+                                           sso.c_ops, sso.e_ops)
 
         data.states.append(states_list)
         data.jump_times.append(jump_times)
@@ -1157,7 +1160,7 @@ def _smepdpsolve_generic(sso, options, progress_bar):
 
 
 def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps,
-                                   rho_t, c_ops, e_ops):
+                                   rho_t, dims, c_ops, e_ops):
     """
     Internal function. See smepdpsolve.
     """
@@ -1177,7 +1180,7 @@ def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps,
             for e_idx, e in enumerate(e_ops):
                 data.expect[e_idx, t_idx] += expect_rho_vec(e, rho_t)
         else:
-            states_list.append(Qobj(vec2mat(rho_t)))
+            states_list.append(Qobj(vec2mat(rho_t), dims=dims))
 
         for j in range(N_substeps):
 
