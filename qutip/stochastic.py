@@ -858,7 +858,7 @@ def _smesolve_generic(sso, options, progress_bar):
             noise = None
 
         states_list, dW, m = _smesolve_single_trajectory(
-            data, L, dt, sso.times, N_store, N_substeps, rho_t, sso.state0.dims
+            data, L, dt, sso.times, N_store, N_substeps, rho_t, sso.state0.dims,
             A_ops, s_e_ops, s_m_ops, sso.rhs, sso.d1, sso.d2, sso.d2_len,
             sso.dW_factors, sso.homogeneous, sso.distribution, sso.args,
             store_measurement=sso.store_measurement,
