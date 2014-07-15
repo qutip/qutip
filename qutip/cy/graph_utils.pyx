@@ -101,20 +101,22 @@ def _breadth_first_search(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def _reverse_cuthill_mckee(
-    np.ndarray[ITYPE_t, ndim=1, mode="c"] ind,
-    np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
-    int num_rows):
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ind,
+        np.ndarray[ITYPE_t, ndim=1, mode="c"] ptr,
+        int num_rows):
     """
     Reverse Cuthill-McKee ordering of a sparse csr or csc matrix.
     """
-    cdef unsigned int N = 0, N_old, seed, level_start, level_end, level_len, temp, temp2
-    cdef unsigned int zz, i, j, ii, jj, kk, ll
+    cdef unsigned int N = 0, N_old, seed, level_start, level_end
+    cdef unsigned int zz, i, j, ii, jj, kk, ll, level_len, temp, temp2
 
     cdef np.ndarray[ITYPE_t] order = np.zeros(num_rows, dtype=ITYPE)
-    cdef np.ndarray[ITYPE_t] degree = _node_degrees(ind, ptr, num_rows).astype(ITYPE)
+    cdef np.ndarray[ITYPE_t] degree = _node_degrees(ind, ptr,
+                                            num_rows).astype(ITYPE)
     cdef np.ndarray[ITYPE_t] inds = np.argsort(degree).astype(ITYPE)
     cdef np.ndarray[ITYPE_t] rev_inds = np.argsort(inds).astype(ITYPE)
-    cdef np.ndarray[ITYPE_t] temp_degrees = np.zeros(max(degree), dtype=ITYPE)
+    cdef np.ndarray[ITYPE_t] temp_degrees = np.zeros(np.max(degree),
+                                            dtype=ITYPE)
 
     # loop over zz takes into account possible disconnected graph.
     for zz in range(num_rows):
@@ -145,9 +147,9 @@ def _reverse_cuthill_mckee(
                     for kk in range(N_old, N):
                         temp_degrees[level_len] = degree[order[kk]]
                         level_len += 1
-                
+
                     # Do insertion sort for nodes from lowest to highest degree
-                    for kk in range(1,level_len):
+                    for kk in range(1, level_len):
                         temp = temp_degrees[kk]
                         temp2 = order[N_old+kk]
                         ll = kk
@@ -157,7 +159,7 @@ def _reverse_cuthill_mckee(
                             ll -= 1
                         temp_degrees[ll] = temp
                         order[N_old+ll] = temp2
-                
+
                 # set next level start and end ranges
                 level_start = level_end
                 level_end = N
