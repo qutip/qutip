@@ -108,5 +108,6 @@ for root, dirs, files in os.walk(qutip_root):
 module_list_sorted = sorted(module_list, key=lambda x: x["idx"])
 qutip_struct = {"name": "QuTiP", "children": module_list_sorted, "size": 2000}
 
-print json.dumps(qutip_struct, sort_keys=True, indent=4)
+with open('d3_data/qutip.json', 'w') as outfile:
+    json.dump(qutip_struct, outfile, sort_keys=True, indent=4)
 
