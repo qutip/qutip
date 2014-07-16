@@ -543,7 +543,7 @@ module qutraj_run
   ! Deallocate stuff
 
   subroutine options_finalize(this)
-    type(odeoptions), intent(inout) :: this
+    type(options), intent(inout) :: this
     integer :: istat
     if (allocated(this%zwork)) then
       deallocate(this%zwork,stat=istat)
