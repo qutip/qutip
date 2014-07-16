@@ -101,11 +101,13 @@ Note that the order in which you input the options does not matter.  Using eithe
 To use these new settings we can use the keyword argument ``options`` in either the func:`qutip.mesolve` and :func:`qutip.mcsolve` function.  We can modify the last example as::
 
     >>> mesolve(H0, psi0, tlist, c_op_list, [sigmaz()], options=options)
-    >>> mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sigmaz()], H_args, options=options)
+    >>> mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sigmaz()], H_args,
+    >>>         options=options)
 
 or::
     
     >>> mcsolve(H0, psi0, tlist, ntraj,c_op_list, [sigmaz()], options=options)
-    >>> mcsolve(hamiltonian_t, psi0, tlist, ntraj, c_op_list, [sigmaz()], H_args, options=options)
+    >>> mcsolve(hamiltonian_t, psi0, tlist, ntraj, c_op_list, [sigmaz()], H_args,
+    >>>         options=options)
 
 

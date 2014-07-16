@@ -210,7 +210,8 @@ Now a slightly more complex example: Consider a two-level atom coupled to a leak
     >>> psi0 = tensor(fock(2,0), fock(10, 5))
     >>> a  = tensor(qeye(2), destroy(10))
     >>> sm = tensor(destroy(2), qeye(10))
-    >>> H = 2 * pi * a.dag() * a + 2 * pi * sm.dag() * sm + 2 * pi * 0.25 * (sm * a.dag() + sm.dag() * a)
+    >>> H = 2 * pi * a.dag() * a + 2 * pi * sm.dag() * sm + \
+    >>>     2 * pi * 0.25 * (sm * a.dag() + sm.dag() * a)
     >>> result = mesolve(H, psi0, times, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
     >>> from pylab import *
     >>> plot(times, result.expect[0])
