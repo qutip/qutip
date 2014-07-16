@@ -1,7 +1,7 @@
 var r = 1000 / 2;
 
 var tree = d3.layout.tree()
-    .size([360, r - 210])
+    .size([360, r - 175])
     .separation(function(a, b) { return (a.parent == b.parent ? 1 : 2) / a.depth; });
 
 var diagonal = d3.svg.diagonal.radial()
@@ -29,7 +29,8 @@ d3.json("d3_data/qutip.json", function(json) {
       .attr("transform", function(d) { return "rotate(" + (d.x - 90) + ")translate(" + d.y + ")"; })
 
   node.append("circle")
-      .attr("r", 4.5)
+      .attr("r", 2.5)
+      /*.style("fill", function(d) { return d.color; })*/
 	  .style("stroke", function(d) { return d.color; });
 
   node.append("text")
