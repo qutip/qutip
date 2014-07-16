@@ -17,7 +17,7 @@ Plotting on the Bloch Sphere
 .. _bloch-intro:
 
 .. important:: 
-	Updated in QuTiP version 2.2.
+	Updated in QuTiP version 3.0.
 
 Introduction
 ============
