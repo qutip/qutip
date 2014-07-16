@@ -494,7 +494,7 @@ def _steadystate_power(L, ss_args):
     orig_nnz = L.nnz
     
     #start with maximally mixed state.
-    v = mat2vec(maximally_mixed_dm(np.sqrt(n)).full())
+    v = mat2vec(maximally_mixed_dm(int(np.sqrt(n))).full())
     
     if ss_args['use_rcm']:
         if settings.debug:
