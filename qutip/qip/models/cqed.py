@@ -81,14 +81,14 @@ class DispersivecQED(CircuitProcessor):
 
         if deltamax is None:
             self.sx_coeff = np.array([1.0 * 2 * pi] * N)
-        elif not isinstance(sx, list):
+        elif not isinstance(deltamax, list):
             self.sx_coeff = np.array([deltamax * 2 * pi] * N)
         else:
             self.sx_coeff = np.array(deltamax)
 
         if epsmax is None:
             self.sz_coeff = np.array([9.5 * 2 * pi] * N)
-        elif not isinstance(sx, list):
+        elif not isinstance(epsmax, list):
             self.sz_coeff = np.array([epsmax * 2 * pi] * N)
         else:
             self.sz_coeff = np.array(epsmax)
@@ -100,21 +100,21 @@ class DispersivecQED(CircuitProcessor):
 
         if eps is None:
             self.eps = np.array([9.5 * 2 * pi] * N)
-        elif not isinstance(sx, list):
+        elif not isinstance(eps, list):
             self.eps = np.array([eps * 2 * pi] * N)
         else:
             self.eps = np.array(eps)
 
         if delta is None:
             self.delta = np.array([0.0 * 2 * pi] * N)
-        elif not isinstance(sx, list):
+        elif not isinstance(delta, list):
             self.delta = np.array([delta * 2 * pi] * N)
         else:
             self.delta = np.array(delta)
 
         if g is None:
             self.g = np.array([0.01 * 2 * pi] * N)
-        elif not isinstance(sx, list):
+        elif not isinstance(g, list):
             self.g = np.array([g * 2 * pi] * N)
         else:
             self.g = np.array(g)

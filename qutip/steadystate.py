@@ -61,12 +61,13 @@ _scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
 
 
 def _default_steadystate_args():
-    def_args = {'method': 'direct', 'sparse': True, 'use_rcm': True,
+    def_args = {'method': 'direct', 'sparse': True, 'use_rcm': False,
                 'use_wbm': False, 'use_umfpack': False, 'weight': None,
                 'use_precond': True, 'all_states': False,
                 'M': None, 'drop_tol': 1e-3, 'fill_factor': 10,
                 'diag_pivot_thresh': None, 'maxiter': 10000, 'tol': 1e-9,
-                'permc_spec': 'NATURAL', 'ILU_MILU': 'smilu_2'}
+                'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2'}
+
     return def_args
 
 
@@ -86,7 +87,8 @@ def steadystate(A, c_op_list=[], **kwargs):
     c_op_list : list
         A list of collapse operators.
 
-    method : str {'direct', 'eigen', 'iterative-bicg', 'iterative-gmres', 'svd', 'power'}
+    method : str {'direct', 'eigen', 'iterative-bicg',
+                  'iterative-gmres', 'svd', 'power'}
         Method for solving the underlying linear equation. Direct LU solver
         'direct' (default), sparse eigenvalue problem 'eigen',
         iterative GMRES method 'iterative-gmres', iterative LGMRES method
@@ -122,10 +124,10 @@ def steadystate(A, c_op_list=[], **kwargs):
         Tolerance used for terminating solver solution when using iterative
         solvers.
 
-    permc_spec : str, optional, default='NATURAL'
+    permc_spec : str, optional, default='COLAMD'
         Column ordering used internally by superLU for the 'direct' LU
-        decomposition method. Options include 'NATURAL and 'COLAMD'.
-        If not using RCM then this is set to 'COLAMD' automatically unless
+        decomposition method. Options include 'COLAMD' and 'NATURAL'.
+        If using RCM then this is set to 'NATURAL' automatically unless
         explicitly specified.
 
     use_precond : bool optional, default = True
@@ -176,12 +178,12 @@ def steadystate(A, c_op_list=[], **kwargs):
         if key in ss_args.keys():
             ss_args[key] = kwargs[key]
         else:
-            raise Exception("Invalid keyword argument '" + key +
-                            "' passed to steadystate.")
+            raise Exception(
+                "Invalid keyword argument '"+key+"' passed to steadystate.")
 
-    # Set column perm to COLAMD if not using RCM and not specified by user
-    if (ss_args['use_rcm'] is False and ('permc_spec' not in kwargs.keys())):
-        ss_args['permc_spec'] = 'COLAMD'
+    # Set column perm to NATURAL if using RCM and not specified by user
+    if ss_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):
+        ss_args['permc_spec'] = 'NATURAL'
 
     # Set use_wbm=True if using iterative solver with preconditioner and
     # not explicitly set to False by user
@@ -248,8 +250,8 @@ def _steadystate_direct_sparse(L, ss_args):
 
     dims = L.dims[0]
     n = prod(L.dims[0][0])
-    b = np.zeros((n ** 2, 1), dtype=complex)
-    b[0, 0] = ss_args['weight']
+    b = np.zeros(n ** 2, dtype=complex)
+    b[0] = ss_args['weight']
     L = L.data.tocsc() + sp.csc_matrix(
         (ss_args['weight']*np.ones(n), (np.zeros(n), [nn * (n + 1)
          for nn in range(n)])),
@@ -257,33 +259,36 @@ def _steadystate_direct_sparse(L, ss_args):
     L.sort_indices()
     use_solver(assumeSortedIndices=True, useUmfpack=ss_args['use_umfpack'])
 
-    orig_nnz = L.nnz
-    if settings.debug:
-        old_band = sp_bandwidth(L)[0]
-        print('Original NNZ:', orig_nnz)
-        if ss_args['use_rcm']:
-            print('Original bandwidth:', old_band)
-
-    if ss_args['use_wbm']:
-        perm = weighted_bipartite_matching(L)
-        L = sp_permute(L, perm, [], 'csc')
-        b = b[np.ix_(perm,)]
-
-    if ss_args['use_rcm']:
-        perm2 = reverse_cuthill_mckee(L)
-        rev_perm = np.argsort(perm2)
-        L = sp_permute(L, perm2, perm2, 'csc')
-        b = b[np.ix_(perm2,)]
-        if settings.debug:
-            rcm_band = sp_bandwidth(L)[0]
-            print('RCM bandwidth:', rcm_band)
-            print('Bandwidth reduction factor:', round(old_band/rcm_band, 1))
-
     if not ss_args['use_umfpack']:
+        # Use superLU solver
+        orig_nnz = L.nnz
+        if settings.debug:
+            old_band = sp_bandwidth(L)[0]
+            print('Original NNZ:', orig_nnz)
+            if ss_args['use_rcm']:
+                print('Original bandwidth:', old_band)
+
+        if ss_args['use_wbm']:
+            perm = weighted_bipartite_matching(L)
+            L = sp_permute(L, perm, [], 'csc')
+            b = b[np.ix_(perm,)]
+
+        if ss_args['use_rcm']:
+            perm2 = reverse_cuthill_mckee(L)
+            rev_perm = np.argsort(perm2)
+            L = sp_permute(L, perm2, perm2, 'csc')
+            b = b[np.ix_(perm2,)]
+            if settings.debug:
+                rcm_band = sp_bandwidth(L)[0]
+                print('RCM bandwidth:', rcm_band)
+                print('Bandwidth reduction factor:', round(
+                    old_band/rcm_band, 1))
+
         lu = splu(L, permc_spec=ss_args['permc_spec'],
                   diag_pivot_thresh=ss_args['diag_pivot_thresh'],
                   options=dict(ILU_MILU=ss_args['ILU_MILU']))
-        v = lu.solve(b.flatten())
+        v = lu.solve(b)
+
         if settings.debug and _scipy_check:
             L_nnz = lu.L.nnz
             U_nnz = lu.U.nnz
@@ -291,9 +296,10 @@ def _steadystate_direct_sparse(L, ss_args):
             print('Fill factor:', (L_nnz+U_nnz)/orig_nnz)
 
     else:
+        # Use umfpack solver
         v = spsolve(L, b)
 
-    if ss_args['use_rcm']:
+    if (not ss_args['use_umfpack']) and ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
 
     data = vec2mat(v)
@@ -503,7 +509,7 @@ def _steadystate_power(L, ss_args):
     orig_nnz = L.nnz
 
     # start with maximally mixed state.
-    v = mat2vec(maximally_mixed_dm(n).full()).flatten()
+    v = mat2vec(maximally_mixed_dm(int(np.sqrt(n))).full()).ravel()
 
     if ss_args['use_rcm']:
         if settings.debug:
