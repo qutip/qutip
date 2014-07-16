@@ -47,7 +47,8 @@ This is straightforward to generalize to more qubits by adding more component st
 
 .. ipython::
 
-   In [1]: tensor((basis(2, 0) + basis(2, 1)).unit(), (basis(2, 0) + basis(2, 1)).unit(), basis(2, 0))
+   In [1]: tensor((basis(2, 0) + basis(2, 1)).unit(),
+      ...:       (basis(2, 0) + basis(2, 1)).unit(), basis(2, 0))
 
 
 This state is slightly more complicated, describing two qubits in a superposition between the up and down states, while the third qubit is in its ground state.
@@ -81,7 +82,8 @@ First, let's consider a system of two coupled qubits. Assume that both qubit has
 
 .. ipython::
 
-   In [1]: H = tensor(sigmaz(), identity(2)) + tensor(identity(2), sigmaz()) + 0.05 * tensor(sigmax(), sigmax())
+   In [1]: H = tensor(sigmaz(), identity(2)) + tensor(identity(2),
+      ...:           sigmaz()) + 0.05 * tensor(sigmax(), sigmax())
    
    In [2]: H
 
@@ -93,10 +95,14 @@ Three coupled qubits
 The two-qubit example is easily generalized to three coupled qubits:
 
 .. ipython::
-	
-	In [1]:	H = tensor(sigmaz(), identity(2), identity(2)) + tensor(identity(2), sigmaz(), identity(2)) + tensor(identity(2), identity(2), sigmaz()) + 0.5 * tensor(sigmax(), sigmax(), identity(2)) +  0.25 * tensor(identity(2), sigmax(), sigmax())
-	
-	In [2]:	H    
+    
+    In [1]: H = (tensor(sigmaz(), identity(2), identity(2)) + 
+       ...:     tensor(identity(2), sigmaz(), identity(2)) + 
+       ...:     tensor(identity(2), identity(2), sigmaz()) + 
+       ...:     0.5 * tensor(sigmax(), sigmax(), identity(2)) + 
+       ...:     0.25 * tensor(identity(2), sigmax(), sigmax()))
+    
+    In [2]: H    
 
 
 .. _tensor-product-example-jcmodel:
@@ -127,26 +133,26 @@ The partial trace is an operation that reduces the dimension of a Hilbert space 
 For example, the density matrix describing a single qubit obtained from a coupled two-qubit system is obtained via:
 
 .. ipython::
-	
-	In [1]:	psi = tensor(basis(2, 0), basis(2, 1))
-	
-	In [2]:	psi.ptrace(0)
-	
-	In [3]:	psi.ptrace(1)
+    
+    In [1]:    psi = tensor(basis(2, 0), basis(2, 1))
+    
+    In [2]:    psi.ptrace(0)
+    
+    In [3]:    psi.ptrace(1)
 
 Note that the partial trace always results in a density matrix (mixed state), regardless of whether the composite system is a pure state (described by a state vector) or a mixed state (described by a density matrix):
 
 .. ipython::
 
-	In [1]:	psi = tensor((basis(2, 0) + basis(2, 1)).unit(), basis(2, 0))
+    In [1]:    psi = tensor((basis(2, 0) + basis(2, 1)).unit(), basis(2, 0))
    
-   	In [2]:	psi
+       In [2]:    psi
    
-   	In [3]:	psi.ptrace(0)
+       In [3]:    psi.ptrace(0)
    
-   	In [4]:	rho = tensor(ket2dm((basis(2, 0) + basis(2, 1)).unit()), fock_dm(2, 0))
+       In [4]:    rho = tensor(ket2dm((basis(2, 0) + basis(2, 1)).unit()), fock_dm(2, 0))
    
-   	In [5]:	rho
+       In [5]:    rho
    
-   	In [6]:	rho.ptrace(0)
+       In [6]:    rho.ptrace(0)
 

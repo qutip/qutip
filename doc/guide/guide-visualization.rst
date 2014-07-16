@@ -14,7 +14,7 @@ Visualization of quantum states and processes
 
 
 Visualization is often an important complement to a simulation of a quantum
-mechanical system. The first method of visualization that comes to mind might be
+mechanical system. The first method of visualization that come to mind might be
 to plot the expectation values of a few selected operators. But on top of that,
 it can often be instructive to visualize for example the state vectors or
 density matices that describe the state of the system, or how the state is
@@ -81,7 +81,7 @@ Next, we plot histograms of the diagonals of the density matrices:
 
     In [1]: lim2 = axes[2].set_xlim([-.5, N])
 
-	@savefig visualization-distribution.png width=8.0in align=center
+	@savefig visualization-distribution.png width=7.0in align=center
     In [1]: plt.show()
 
 
@@ -105,7 +105,7 @@ above, so QuTiP provides a convenience function for doing this, see
 
     In [1]: fig.tight_layout()
 
-	@savefig visualization-distribution-2.png width=8.0in align=center
+	@savefig visualization-distribution-2.png width=7.0in align=center
     In [1]: plt.show()
 
 .. _visual-dist:
@@ -161,7 +161,7 @@ are calculated and plotted for the same three states as in the previous section.
 
     In [1]: lbl2 = axes[2].set_title("Fock state")
 
-	@savefig visualization-wigner.png width=8.0in align=center
+	@savefig visualization-wigner.png width=7.0in align=center
     In [1]: plt.show()
 
 .. _visual-cmap:
@@ -213,7 +213,7 @@ this function in your Wigner figures:
 
     In [1]: fig.tight_layout()
     
-    @savefig wigner_cmap.png width=8.0in align=center
+    @savefig wigner_cmap.png width=7.0in align=center
     In [10]: plt.show()
 
 
@@ -255,7 +255,7 @@ demonstrated below.
 
     In [1]: lbl2 = axes[2].set_title("Fock state")
 
-	@savefig visualization-q-func.png width=8.0in align=center
+	@savefig visualization-q-func.png width=7.0in align=center
     In [1]: plt.show()
 
 
@@ -300,7 +300,8 @@ let's visualize of the Jaynes-Cummings Hamiltonian:
     In [1]: xlabels = []
 
     In [1]: for inds in tomography._index_permutations([len(lbls) for lbls in lbls_list]):
-       ...:     xlabels.append("".join([lbls_list[k][inds[k]] for k in range(len(lbls_list))]))
+       ...:     xlabels.append("".join([lbls_list[k][inds[k]]
+       ...:                            for k in range(len(lbls_list))]))
 
     In [1]: fig, ax = matrix_histogram(H, xlabels, xlabels, limits=[-4,4])
 

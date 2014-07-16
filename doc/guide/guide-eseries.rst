@@ -37,7 +37,8 @@ To add more terms to an :class:`qutip.eseries` object we simply add objects usin
 
    In [1]: omega=1.0
    
-   In [2]: es2 = eseries(0.5 * sigmax(), 1j * omega) + eseries(0.5 * sigmax(), -1j * omega)
+   In [2]: es2 = (eseries(0.5 * sigmax(), 1j * omega) +
+      ...:       eseries(0.5 * sigmax(), -1j * omega))
 
 The :class:`qutip.eseries` in this example represents the operator :math:`0.5 \sigma_x e^{i\omega t} + 0.5 \sigma_x e^{-i\omega t}`, which is the exponential series representation of :math:`\sigma_x \cos(\omega t)`. Alternatively, we can also specify a list of amplitudes and rates when the :class:`qutip.eseries` is created:
 
@@ -57,7 +58,7 @@ and we can evaluate it at time `t` by using the :func:`qutip.eseries.esval` func
 
 .. ipython::
 
-   In [1]: esval(es2, 0.0)	 # equivalent to es2.value(0.0)
+   In [1]: esval(es2, 0.0)     # equivalent to es2.value(0.0)
 
     
 or for a list of times ``[0.0, 1.0 * pi, 2.0 * pi]``:
@@ -66,13 +67,14 @@ or for a list of times ``[0.0, 1.0 * pi, 2.0 * pi]``:
 
    In [1]: times = [0.0, 1.0 * pi, 2.0 * pi]
    
-   In [2]: esval(es2, times)	# equivalent to es2.value(times)
+   In [2]: esval(es2, times)    # equivalent to es2.value(times)
 
 To calculate the expectation value of an time-dependent operator represented by an :class:`qutip.eseries`, we use the :func:`qutip.expect` function. For example, consider the operator :math:`\sigma_x \cos(\omega t) + \sigma_z\sin(\omega t)`, and say we would like to know the expectation value of this operator for a spin in its excited state (``rho = fock_dm(2,1)`` produce this state):
 
 .. ipython::
 
-   In [1]: es3 = eseries([0.5*sigmaz(), 0.5*sigmaz()], [1j, -1j]) + eseries([-0.5j*sigmax(), 0.5j*sigmax()], [1j, -1j])
+   In [1]: es3 = (eseries([0.5*sigmaz(), 0.5*sigmaz()], [1j, -1j]) +
+      ...:       eseries([-0.5j*sigmax(), 0.5j*sigmax()], [1j, -1j]))
    
    In [2]: rho = fock_dm(2, 1)
 
@@ -133,16 +135,17 @@ The result `es_expect` is now an exponential series with c-numbers as amplitudes
 
 .. ipython::
 
-	In [1]: times = linspace(0.0, 10.0, 100)
-	
-	In [2]: sz_expect = es_expect.value(times)
+    In [1]: times = linspace(0.0, 10.0, 100)
+    
+    In [2]: sz_expect = es_expect.value(times)
 
-	In [3]: from pylab import *	
-	
-	In [4]: plot(times, sz_expect, lw=2);
-	
-	In [5]: xlabel("Time", fontsize=16); ylabel("Expectation value of sigma-z", fontsize=16);
-	
-	@savefig eseries_example.png width=4in align=center
-	In [6]: title("The expectation value of the $\sigma_{z}$ operator", fontsize=16);
+    In [3]: from pylab import *    
+    
+    In [4]: plot(times, sz_expect, lw=2);
+    
+    In [5]: xlabel("Time", fontsize=16)
+       ...:ylabel("Expectation value of sigma-z", fontsize=16);
+    
+    @savefig eseries_example.png width=4in align=center
+    In [6]: title("The expectation value of the $\sigma_{z}$ operator", fontsize=16);
 
