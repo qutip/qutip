@@ -33,6 +33,8 @@ Contributors
 
 **Anders Lund** (Technical University of Denmark) - Bug hunting for the Monte-Carlo solver
 
+**Andre Carvalho** - Bug hunter
+
 **André Xuereb** (University of Hannover) - Bug hunter
 
 **Anubhav Vardhan** (IIT, Kanpur) - Bug hunter, Code contributor, Documentation
@@ -67,7 +69,7 @@ Contributors
 
 **Jonas Hörsch** - Code contributor
 
-**Jonas Neergaard-Nielsen** (Technical University of Denmark) - Bug hunter, Code contributor, Windows support
+**Jonas Neergaard-Nielsen** (Technical University of Denmark) - Code contributor, Windows support
 
 **JP Hadden** (University of Bristol) - Code contributor, improved Bloch sphere visualization
 
