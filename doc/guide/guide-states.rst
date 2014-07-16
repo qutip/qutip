@@ -40,7 +40,7 @@ and then create a lowering operator :math:`\left(\hat{a}\right)` corresponding t
 .. ipython::
 
     In [1]: a = destroy(5)
-	
+    
     In [2]: print(a)
 
 
@@ -64,7 +64,7 @@ The raising operator has in indeed raised the state `vec` from the vacuum to the
 .. ipython::
 
     In [1]: c = create(5)
-	
+    
     In [2]: c * vac
 
 
@@ -224,13 +224,13 @@ QuTiP also provides a set of distance metrics for determining how close two dens
 .. ipython::
 
     In [1]: x = coherent_dm(5, 1.25)
-	
+    
     In [2]: y = coherent_dm(5, 1.25j)  # <-- note the 'j'
-	
+    
     In [3]: z = thermal_dm(5, 0.125)
-	
+    
     In [4]: fidelity(x, x)
-	
+    
     In [5]: tracedist(y, y)
 
 
@@ -242,7 +242,7 @@ We also know that for two pure states, the trace distance (T) and the fidelity (
 
 .. ipython::
 
-	In [1]: sqrt(1 - fidelity(y, x) ** 2)
+    In [1]: sqrt(1 - fidelity(y, x) ** 2)
 
 
 For a pure state and a mixed state, :math:`1 - F^{2} \le T` which can also be verified:
@@ -272,42 +272,42 @@ Now at this point one may ask how this state is different than that of a harmoni
 
 .. ipython::
     
-	In [1]: vac = basis(2, 0)
+    In [1]: vac = basis(2, 0)
 
 At this stage, there is no difference.  This should not be surprising as we called the exact same function twice.  The difference between the two comes from the action of the spin operators :func:`qutip.operators.sigmax`, :func:`qutip.operators.sigmay`, :func:`qutip.operators.sigmaz`, :func:`qutip.operators.sigmap`, and :func:`qutip.operators.sigmam` on these two-level states.  For example, if ``vac`` corresponds to the vacuum state of a harmonic oscillator, then, as we have already seen, we can use the raising operator to get the :math:`\left|1\right>` state:
 
 .. ipython::
     
-	In [1]: vac
+    In [1]: vac
 
 .. ipython::
     
-	In [1]: c = create(2)
-	
-	In [2]: c * vac
+    In [1]: c = create(2)
+    
+    In [2]: c * vac
 
 
 For a spin system, the operator analogous to the raising operator is the sigma-plus operator :func:`qutip.operators.sigmap`.  Operating on the ``spin`` state gives:
 
 .. ipython::
     
-	In [1]: spin
+    In [1]: spin
     
-	In [2]: sigmap() * spin
+    In [2]: sigmap() * spin
 
 Now we see the difference!  The :func:`qutip.operators.sigmap` operator acting on the ``spin`` state returns the zero vector.  Why is this?  To see what happened, let us use the :func:`qutip.operators.sigmaz` operator:
 
 .. ipython::
     
-	In [1]: sigmaz()
-	
-	In [2]: sigmaz() * spin
-	
-	In [3]: spin2 = basis(2, 1)
-	
-	In [4]: spin2
-	
-	In [5]: sigmaz() * spin2
+    In [1]: sigmaz()
+    
+    In [2]: sigmaz() * spin
+    
+    In [3]: spin2 = basis(2, 1)
+    
+    In [4]: spin2
+    
+    In [5]: sigmaz() * spin2
 
 
 The answer is now apparent.  Since the QuTiP :func:`qutip.operators.sigmaz` function uses the standard z-basis representation of the sigma-z spin operator, the ``spin`` state corresponds to the :math:`\left|\mathrm{up}\right>` state of a two-level spin system while ``spin2`` gives the :math:`\left|\mathrm{down}\right>` state.  Therefore, in our previous example ``sigmap() * spin``, we raised the qubit state out of the truncated two-level Hilbert space resulting in the zero state.  
@@ -316,7 +316,7 @@ While at first glance this convention might seem somewhat odd, it is in fact qui
 
 .. ipython::
     
-	In [1]: sigmaz() * spin
+    In [1]: sigmaz() * spin
 
 the non-zero component is the zeroth-element of the underlying matrix (remember that python uses c-indexing, and matrices start with the zeroth element).  The :math:`\left|\mathrm{down}\right>` state therefore has a non-zero entry in the first index position. This corresponds nicely with the quantum information definitions of qubit states, where the excited :math:`\left|\mathrm{up}\right>` state is label as :math:`\left|0\right>`, and the :math:`\left|\mathrm{down}\right>` state by :math:`\left|1\right>`.
 
@@ -331,44 +331,45 @@ Some of the most important information about quantum systems comes from calculat
 
 .. ipython::
     
-	In [1]: vac = basis(5, 0)
-	
-	In [2]: one = basis(5, 1)
-	
-	In [3]: c = create(5)
-	
-	In [4]: N = num(5)
-	
-	In [5]: expect(N, vac)
-	
-	In [6]: expect(N, one)
+    In [1]: vac = basis(5, 0)
+    
+    In [2]: one = basis(5, 1)
+    
+    In [3]: c = create(5)
+    
+    In [4]: N = num(5)
+    
+    In [5]: expect(N, vac)
+    
+    In [6]: expect(N, one)
 
 
 .. ipython::
     
-	In [1]: coh = coherent_dm(5, 1.0j)
-	
-	In [2]: expect(N, coh)
+    In [1]: coh = coherent_dm(5, 1.0j)
+    
+    In [2]: expect(N, coh)
 
 .. ipython::
     
-	In [1]: cat = (basis(5, 4) + 1.0j * basis(5, 3)).unit()
-	
-	In [2]: expect(c, cat)
+    In [1]: cat = (basis(5, 4) + 1.0j * basis(5, 3)).unit()
+    
+    In [2]: expect(c, cat)
 
 The :func:`qutip.expect` function also accepts lists or arrays of state vectors or density matrices for the second input:
 
 .. ipython::
     
-	In [1]: states = [(c**k * vac).unit() for k in range(5)]  # must normalize
-	
-	In [2]: expect(N, states)
+    In [1]: states = [(c**k * vac).unit() for k in range(5)]  # must normalize
+
+    In [2]: expect(N, states)
 
 .. ipython::
     
-	In [1]: cat_list = [(basis(5, 4) + x * basis(5, 3)).unit() for x in [0, 1.0j, -1.0, -1.0j]]
-	
-	In [2]: expect(c, cat_list)
+    In [1]: cat_list = [(basis(5, 4) + x * basis(5, 3)).unit()
+       ...:             for x in [0, 1.0j, -1.0, -1.0j]]
+    
+    In [2]: expect(c, cat_list)
 
 Notice how in this last example, all of the return values are complex numbers.  This is because the :func:`qutip.expect` function looks to see whether the operator is Hermitian or not.  If the operator is Hermitian, than the output will always be real.  In the case of non-Hermitian operators, the return values may be complex.  Therefore, the :func:`qutip.expect` function will return an array of complex values for non-Hermitian operators when the input is a list/array of states or density matrices.
 
@@ -377,32 +378,32 @@ Of course, the :func:`qutip.expect` function works for spin states and operators
 
 .. ipython::
     
-	In [1]: up = basis(2, 0)
-	
-	In [2]: down = basis(2, 1)
-	
-	In [3]: expect(sigmaz(), up)
-	
-	In [4]: expect(sigmaz(), down)
+    In [1]: up = basis(2, 0)
+    
+    In [2]: down = basis(2, 1)
+    
+    In [3]: expect(sigmaz(), up)
+    
+    In [4]: expect(sigmaz(), down)
 
 
 as well as the composite objects discussed in the next section :ref:`tensor`:
 
 .. ipython::
     
-	In [1]: spin1 = basis(2, 0)
-	
-	In [2]: spin2 = basis(2, 1)
-	
-	In [3]: two_spins = tensor(spin1, spin2)
-	
-	In [4]: sz1 = tensor(sigmaz(), qeye(2))
-	
-	In [5]: sz2 = tensor(qeye(2), sigmaz())
-	
-	In [6]: expect(sz1, two_spins)
-	
-	In [7]: expect(sz2, two_spins)
+    In [1]: spin1 = basis(2, 0)
+    
+    In [2]: spin2 = basis(2, 1)
+    
+    In [3]: two_spins = tensor(spin1, spin2)
+    
+    In [4]: sz1 = tensor(sigmaz(), qeye(2))
+    
+    In [5]: sz2 = tensor(qeye(2), sigmaz())
+    
+    In [6]: expect(sz1, two_spins)
+    
+    In [7]: expect(sz2, two_spins)
 
 .. _states-super:
 
