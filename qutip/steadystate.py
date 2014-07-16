@@ -283,7 +283,7 @@ def _steadystate_direct_sparse(L, ss_args):
         lu = splu(L, permc_spec=ss_args['permc_spec'],
                   diag_pivot_thresh=ss_args['diag_pivot_thresh'],
                   options=dict(ILU_MILU=ss_args['ILU_MILU']))
-        v = lu.solve(b)
+        v = lu.solve(b.flatten())
         if settings.debug and _scipy_check:
             L_nnz = lu.L.nnz
             U_nnz = lu.U.nnz
@@ -503,7 +503,7 @@ def _steadystate_power(L, ss_args):
     orig_nnz = L.nnz
 
     # start with maximally mixed state.
-    v = mat2vec(maximally_mixed_dm(n).full())
+    v = mat2vec(maximally_mixed_dm(n).full()).flatten()
 
     if ss_args['use_rcm']:
         if settings.debug:
