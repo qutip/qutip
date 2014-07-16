@@ -404,7 +404,9 @@ def maximally_mixed_dm(N):
         Thermal state density matrix.
     
     """
-    dm = sp.spdiags(np.ones(N,dtype=complex)/N, 0, N, N, format='csr')
+    if (not isinstance(N, (int, np.int64))) or N <= 0:
+        raise ValueError("N must be integer N > 0")
+    dm = sp.spdiags(np.ones(N,dtype=complex)/float(N), 0, N, N, format='csr')
     return Qobj(dm, isherm=True)
 
 
