@@ -250,8 +250,8 @@ def _steadystate_direct_sparse(L, ss_args):
 
     dims = L.dims[0]
     n = prod(L.dims[0][0])
-    b = np.zeros((n ** 2, 1), dtype=complex)
-    b[0, 0] = ss_args['weight']
+    b = np.zeros(n ** 2, dtype=complex)
+    b[0] = ss_args['weight']
     L = L.data.tocsc() + sp.csc_matrix(
         (ss_args['weight']*np.ones(n), (np.zeros(n), [nn * (n + 1)
          for nn in range(n)])),
@@ -509,7 +509,7 @@ def _steadystate_power(L, ss_args):
     orig_nnz = L.nnz
 
     # start with maximally mixed state.
-    v = mat2vec(maximally_mixed_dm(int(np.sqrt(n))).full())
+    v = mat2vec(maximally_mixed_dm(int(np.sqrt(n))).full()).ravel()
 
     if ss_args['use_rcm']:
         if settings.debug:
