@@ -75,6 +75,7 @@ FULLVERSION = VERSION
 if not ISRELEASED:
     FULLVERSION += '.dev' + git_short_hash()
 
+os.environ['QUTIP_RELEASE'] = 'TRUE' if ISRELEASED else 'FALSE'
 
 def write_version_py(filename='qutip/version.py'):
     cnt = """\
