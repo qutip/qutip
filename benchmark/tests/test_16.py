@@ -29,7 +29,7 @@ def test_16(runs=1):
     tot_elapsed = 0
     for n in range(runs):
         tic=time()
-        steadystate(H,c_op_list)
+        steadystate(H,c_op_list,use_rcm=True)
         toc=time()
         tot_elapsed += toc - tic
 
