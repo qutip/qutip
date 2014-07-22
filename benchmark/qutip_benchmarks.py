@@ -81,4 +81,4 @@ else:
     qutip_bm = {"info": qutip_info, "data": data}
 
     with open(args.output_file, "w") as outfile:
-        json.dump(qutip_bm, outfile, sort_keys=True, indent=4)
+        json.dump(qutip_bm, outfile, sort_keys=True, indent=4, ensure_ascii=True)

@@ -385,3 +385,10 @@ def view_methods(Q):
         ind = meth_str.find('\n')
         pub_len = len(pub_meth[ii] + ': ')
         print(pub_meth[ii] + ':' + ' ' * (ml+3-pub_len) + meth_str[:ind])
+
+
+def _version2int(version_string):
+    str_list = version_string.split(
+        "-dev")[0].split("rc")[0].split("b")[0].split("post")[0].split('.')
+    return sum([int(d if len(d) > 0 else 0) * (100 ** (3 - n))
+                for n, d in enumerate(str_list[:3])])

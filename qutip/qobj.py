@@ -245,7 +245,8 @@ class Qobj(object):
             else:
                 self.dims = dims
 
-        elif isinstance(inpt, (int, float, complex, np.int64)):
+        elif isinstance(inpt, (int, float, complex,
+                               np.integer, np.floating, np.complexfloating)):
             # if input is int, float, or complex then convert to array
             self.data = sp.csr_matrix([[inpt]], dtype=complex)
 
@@ -437,7 +438,8 @@ class Qobj(object):
         elif isinstance(other, eseries):
             return other.__rmul__(self)
 
-        elif isinstance(other, (int, float, complex, np.int64)):
+        elif isinstance(other, (int, float, complex,
+                                np.integer, np.floating, np.complexfloating)):
             out = Qobj()
             out.data = self.data * other
             out.dims = self.dims
@@ -464,7 +466,8 @@ class Qobj(object):
         if isinstance(other, eseries):
             return other.__mul__(self)
 
-        if isinstance(other, (int, float, complex, np.int64)):
+        if isinstance(other, (int, float, complex,
+                              np.integer, np.floating, np.complexfloating)):
             out = Qobj()
             out.data = other * self.data
             out.dims = self.dims
@@ -490,7 +493,8 @@ class Qobj(object):
             raise TypeError("Incompatible Qobj shapes " +
                             "[division with Qobj not implemented]")
 
-        if isinstance(other, (int, float, complex, np.int64)):
+        if isinstance(other, (int, float, complex,
+                              np.integer, np.floating, np.complexfloating)):
             out = Qobj()
             out.data = self.data / other
             out.dims = self.dims
@@ -857,15 +861,21 @@ class Qobj(object):
         else:
             return np.real(out)
 
-    def expm(self, sparse=None):
+    def expm(self, method=None):
         """Matrix exponential of quantum operator.
 
         Input operator must be square.
 
         Parameters
         ----------
-        sparse : bool
-            Use sparse eigenvalue/vector solver.
+        method : str {'dense', 'sparse', 'scipy-dense', 'scipy-sparse'}
+            Use set method to use to calculate the matrix exponentiation. The
+            available choices includes 'dense' and 'sparse' for using QuTiP's
+            implementation of expm using dense and sparse matrices,
+            respectively, and 'scipy-dense' and 'scipy-sparse' for using the
+            scipy.linalg.expm (dense) and scipy.sparse.linalg.expm (sparse).
+            If no method is explicitly given a heuristic will be used to try
+            and automatically select the most appropriate solver.
 
         Returns
         -------
@@ -881,15 +891,35 @@ class Qobj(object):
         if self.dims[0][0] != self.dims[1][0]:
             raise TypeError('Invalid operand for matrix exponential')
 
-        if sparse is None:
-            # if sparse is not explicitly given, try to make a good choice
-            # between sparse and dense solver by considering the size of the
+        if method == 'dense':
+            F = sp_expm(self.data, sparse=False)
+
+        elif method == 'sparse':
+            F = sp_expm(self.data, sparse=True)
+
+        elif method == 'scipy-dense':
+            F = la.expm(self.full())
+
+        elif method == 'scipy-sparse':
+            F = sp.linalg.expm(self.data.tocsc())
+
+        else:
+            # if method is not explicitly given, try to make a good choice
+            # between sparse and dense solvers by considering the size of the
             # system and the number of non-zero elements.
             N = self.data.shape[0]
             n = self.data.nnz
-            sparse = N > 400 and N ** 2 > 10 * n
 
-        F = sp_expm(self.data, sparse=sparse)
+            if N ** 2 < 100 * n:
+                # large number of nonzero elements, revert to dense solver
+                F = la.expm(self.full())
+            elif N > 400:
+                # large system, and quite sparse -> qutips sparse method
+                F = sp_expm(self.data, sparse=True)
+            else:
+                # small system, but quite sparse -> qutips sparse/dense method
+                F = sp_expm(self.data, sparse=False)
+
         out = Qobj(F, dims=self.dims)
         return out.tidyup() if settings.auto_tidyup else out
 
@@ -1509,13 +1539,13 @@ i
     def isbra(self):
         return (np.prod(self.dims[0]) == 1 and
                 isinstance(self.dims[1], list) and
-                isinstance(self.dims[1][0], (int, np.int32, np.int64)))
+                isinstance(self.dims[1][0], (int, np.integer)))
 
     @property
     def isket(self):
         return (np.prod(self.dims[1]) == 1 and
                 isinstance(self.dims[0], list) and
-                isinstance(self.dims[0][0], (int, np.int32, np.int64)))
+                isinstance(self.dims[0][0], (int, np.integer)))
 
     @property
     def isoperbra(self):
@@ -1532,7 +1562,7 @@ i
     @property
     def isoper(self):
         return (isinstance(self.dims[0], list) and
-                isinstance(self.dims[0][0], (int, np.int32, np.int64)) and
+                isinstance(self.dims[0][0], (int, np.integer)) and
                 self.dims[0] == self.dims[1])
 
     @property

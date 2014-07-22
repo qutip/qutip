@@ -42,11 +42,11 @@ from numpy.distutils.system_info import get_info
 
 # all information about QuTiP goes here
 MAJOR = 3
-MINOR = 0
+MINOR = 1
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
-REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'cython (>=0.15)', 
+REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'cython (>=0.15)',
             'matplotlib (>=1.1)']
 PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip','qutip/qip/models',
             'qutip/qip/algorithms', 'qutip/control', 'qutip/tests']
@@ -75,6 +75,7 @@ FULLVERSION = VERSION
 if not ISRELEASED:
     FULLVERSION += '.dev' + git_short_hash()
 
+os.environ['QUTIP_RELEASE'] = 'TRUE' if ISRELEASED else 'FALSE'
 
 def write_version_py(filename='qutip/version.py'):
     cnt = """\
@@ -94,9 +95,11 @@ local_path = os.path.dirname(os.path.abspath(sys.argv[0]))
 os.chdir(local_path)
 sys.path.insert(0, local_path)
 sys.path.insert(0, os.path.join(local_path, 'qutip'))  # to retrive _version
+
 # always rewrite _version
 if os.path.exists('qutip/version.py'):
     os.remove('qutip/version.py')
+
 write_version_py()
 
 # check for fortran option
@@ -111,14 +114,6 @@ if not with_f90mc:
     print("Installing without the fortran mcsolver.")
 else:
     os.environ['FORTRAN_LIBS'] = 'TRUE'
-
-os.environ['QUTIP_RELEASE'] = 'TRUE' if ISRELEASED else 'FALSE'
-
-# remove needless error warnings for released version.
-# if ISRELEASED:
-#    os.environ['CFLAGS'] = '-w'
-#    os.environ['FFLAGS'] = '-w'
-
 
 # using numpy distutils to simplify install of data directory for testing
 def configuration(parent_package='', top_path=None):

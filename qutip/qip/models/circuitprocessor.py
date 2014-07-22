@@ -38,7 +38,6 @@ from qutip.qip.circuit import QubitCircuit
 
 
 class CircuitProcessor(object):
-
     """
     Base class for representation of the physical implementation of a quantum
     program/algorithm on a specified qubit system.
@@ -56,7 +55,6 @@ class CircuitProcessor(object):
         """
         self.N = N
         self.correct_global_phase = correct_global_phase
-        pass
 
     def optimize_circuit(self, qc):
         """
@@ -65,12 +63,12 @@ class CircuitProcessor(object):
 
         Parameters
         ----------
-        qc: Qobj
+        qc: QubitCircuit
             Takes the quantum circuit to be implemented.
 
         Returns
         --------
-        qc: Qobj
+        qc: QubitCircuit
             The optimal circuit representation.
         """
         raise NotImplemented("Use the function in the sub-class")
@@ -82,7 +80,7 @@ class CircuitProcessor(object):
 
         Parameters
         ----------
-        qc: Qobj
+        qc: QubitCircuit
             Takes the quantum circuit to be implemented.
 
         setup: String
@@ -90,7 +88,7 @@ class CircuitProcessor(object):
 
         Returns
         --------
-        qc: Qobj
+        qc: QubitCircuit
             The resolved circuit representation.
         """
         raise NotImplemented("Use the function in the sub-class")
@@ -102,7 +100,7 @@ class CircuitProcessor(object):
 
         Parameters
         ----------
-        qc: Qobj
+        qc: QubitCircuit
             Takes the quantum circuit to be implemented.
         """
         raise NotImplemented("Use the function in the sub-class")
@@ -131,12 +129,12 @@ class CircuitProcessor(object):
 
         Parameters
         ----------
-        qc: Qobj
+        qc: QubitCircuit
             Takes the quantum circuit to be implemented.
 
         Returns
         --------
-        U_list: List
+        U_list: list
             The propagator matrix obtained from the physical implementation.
         """
         if qc:
@@ -163,14 +161,15 @@ class CircuitProcessor(object):
 
         Parameters
         ----------
-        qc: Qobj
+        qc: QubitCircuit
             Takes the quantum circuit to be implemented.
+
         states: Qobj
             Initial state of the qubits in the register.
 
         Returns
         --------
-        U_list: List
+        U_list: list
             The propagator matrix obtained from the physical implementation.
         """
         if states is None:
@@ -232,7 +231,7 @@ class CircuitProcessor(object):
 
         Returns
         --------
-        fig, ax: Graph
+        fig, ax: Figure
             Maps the physical interaction between the circuit components.
         """
         import matplotlib.pyplot as plt
@@ -244,8 +243,8 @@ class CircuitProcessor(object):
 
         ax.axis('tight')
         ax.set_ylim(-1.5 * 2 * pi, 1.5 * 2 * pi)
-        ax.legend(loc='center left', bbox_to_anchor=(
-            1, 0.5), ncol=(1 + len(u) // 16))
+        ax.legend(loc='center left',
+                  bbox_to_anchor=(1, 0.5), ncol=(1 + len(u) // 16))
         fig.tight_layout()
 
         return fig, ax

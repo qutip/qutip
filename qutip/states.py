@@ -85,17 +85,17 @@ def basis(N, n=0, offset=0):
         basis(N, 1) = ground state
 
     """
-    if (not isinstance(N, (int, np.int64))) or N < 0:
+    if (not isinstance(N, (int, np.integer))) or N < 0:
         raise ValueError("N must be integer N >= 0")
 
-    if (not isinstance(n, (int, np.int64))) or n < offset:
+    if (not isinstance(n, (int, np.integer))) or n < offset:
         raise ValueError("n must be integer n >= 0")
 
     if n - offset > (N - 1):  # check if n is within bounds
         raise ValueError("basis vector index need to be in n <= N-1")
 
     bas = sp.lil_matrix((N, 1))  # column vector of zeros
-    bas[n-offset, 0] = 1  # 1 located at position n
+    bas[n - offset, 0] = 1  # 1 located at position n
     bas = bas.tocsr()
 
     return Qobj(bas)
@@ -386,6 +386,29 @@ shape = [5, 5], type = oper, isHerm = True
             raise ValueError(
                 "'method' keyword argument must be 'operator' or 'analytic'")
     return Qobj(rm)
+
+
+def maximally_mixed_dm(N):
+    """
+    Returns the maximally mixed density matrix for a Hilbert space of
+    dimension N.
+
+    Parameters
+    ----------
+    N : int
+        Number of basis states in Hilbert space.
+
+    Returns
+    -------
+    dm : qobj
+        Thermal state density matrix.
+    """
+    if (not isinstance(N, (int, np.int64))) or N <= 0:
+        raise ValueError("N must be integer N > 0")
+
+    dm = sp.spdiags(np.ones(N, dtype=complex)/float(N), 0, N, N, format='csr')
+
+    return Qobj(dm, isherm=True)
 
 
 def ket2dm(Q):
