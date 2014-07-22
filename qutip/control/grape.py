@@ -81,7 +81,8 @@ def _overlap(A, B):
 
 
 def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
-                  interp_kind='linear', progress_bar=BaseProgressBar()):
+                  u_limits=None, interp_kind='linear',
+                  progress_bar=BaseProgressBar()):
     """
     Calculate control pulses for the Hamitonian operators in H_ops so that the
     unitary U is realized.
@@ -96,6 +97,15 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
     J = len(H_ops)
     
     u = np.zeros((R, J, M))
+
+    if u_limits and len(u_limits) != 2:
+        raise ValueError("u_limits must be a list with two values")
+
+    if u_limits and u_start:
+        # make sure that no values in u0 violates the u_limits conditions
+        u_start = np.array(u_start)
+        u_start[u_start < u_limits[0]] = u_limits[0]
+        u_start[u_start > u_limits[1]] = u_limits[1]
 
     if u_start is not None:
         for idx, u0 in enumerate(u_start):
@@ -134,7 +144,16 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
             for k in range(M-1):
                 du = _overlap(U_b_list[k] * U,
                               1j * dt * H_ops[j] * U_f_list[k])
+
                 u[r + 1, j, k] = u[r, j, k] - eps * du.real
+
+                if u_limits:
+                    if u_limits[0] > u[r + 1, j, k]:
+                        u[r + 1, j, k] = u_limits[0]
+
+                    elif u_limits[1] < u[r + 1, j, k]:
+                        u[r + 1, j, k] = u_limits[1]
+
 
             u[r + 1, j, -1] = u[r + 1, j, -2]
             
