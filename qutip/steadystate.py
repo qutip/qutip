@@ -508,8 +508,8 @@ def _steadystate_power(L, ss_args):
     L.sort_indices()
     orig_nnz = L.nnz
 
-    # start with maximally mixed state.
-    v = mat2vec(maximally_mixed_dm(int(np.sqrt(n))).full()).ravel()
+    # start with all ones as RHS
+    v = np.ones(n,dtype=complex)
 
     if ss_args['use_rcm']:
         if settings.debug:
