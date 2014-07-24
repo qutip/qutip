@@ -45,7 +45,7 @@ class DispersivecQED(CircuitProcessor):
     """
 
     def __init__(self, N, correct_global_phase=True, Nres=None, deltamax=None,
-                 epsmax=None, w0=None, eps=None, delta=None, g=None):
+                 epsmax=None, w0=None, wq=None, eps=None, delta=None, g=None):
         """
         Parameters
         ----------
@@ -60,6 +60,9 @@ class DispersivecQED(CircuitProcessor):
 
         wo: Integer
             The base frequency of the resonator.
+
+        wq: Integer/List
+            The frequency of the qubits.
 
         eps: Integer/List
             The epsilon for each of the qubits in the system.
@@ -82,14 +85,14 @@ class DispersivecQED(CircuitProcessor):
         if deltamax is None:
             self.sx_coeff = np.array([1.0 * 2 * pi] * N)
         elif not isinstance(deltamax, list):
-            self.sx_coeff = np.array([deltamax * 2 * pi] * N)
+            self.sx_coeff = np.array([deltamax] * N)
         else:
             self.sx_coeff = np.array(deltamax)
 
         if epsmax is None:
             self.sz_coeff = np.array([9.5 * 2 * pi] * N)
         elif not isinstance(epsmax, list):
-            self.sz_coeff = np.array([epsmax * 2 * pi] * N)
+            self.sz_coeff = np.array([epsmax] * N)
         else:
             self.sz_coeff = np.array(epsmax)
 
@@ -98,29 +101,37 @@ class DispersivecQED(CircuitProcessor):
         else:
             self.w0 = w0
 
-        if eps is None:
-            self.eps = np.array([9.5 * 2 * pi] * N)
-        elif not isinstance(eps, list):
-            self.eps = np.array([eps * 2 * pi] * N)
-        else:
-            self.eps = np.array(eps)
-
-        if delta is None:
-            self.delta = np.array([0.0 * 2 * pi] * N)
-        elif not isinstance(delta, list):
-            self.delta = np.array([delta * 2 * pi] * N)
-        else:
-            self.delta = np.array(delta)
-
         if g is None:
             self.g = np.array([0.01 * 2 * pi] * N)
         elif not isinstance(g, list):
-            self.g = np.array([g * 2 * pi] * N)
+            self.g = np.array([g] * N)
         else:
             self.g = np.array(g)
 
+        if wq is not None:
+        	if not isinstance(wq, list):
+        		self.wq = np.array([wq] * N)
+        	else:
+        		self.wq = np.array(wq)
+        
+        if wq is None:
+        	if eps is None:
+        		self.eps = np.array([9.5 * 2 * pi] * N)
+        	elif not isinstance(eps, list):
+        		self.eps = np.array([eps] * N)
+        	else:
+        		self.eps = np.array(eps)
+
+        	if delta is None:
+        		self.delta = np.array([0.0 * 2 * pi] * N)
+        	elif not isinstance(delta, list):
+        		self.delta = np.array([delta] * N)
+        	else:
+        		self.delta = np.array(delta)
+
+        	self.wq = sqrt(self.eps ** 2 + self.delta ** 2)
+        
         # computed
-        self.wq = sqrt(self.eps ** 2 + self.delta ** 2)
         self.Delta = self.wq - self.w0
 
         # rwa/dispersive regime tests
