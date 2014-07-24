@@ -37,7 +37,7 @@ parser.add_argument("-o", "--output-file",
                     default="qutip-benchmarks.json", type=str)
 parser.add_argument("-N", "--runs",
                     help="number of times to perform each benchmark",
-                    default=1, type=int)
+                    default=3, type=int)
 args = parser.parse_args()
 
 qutip_info = [{'label': 'QuTiP', 'value': qutip.__version__},
