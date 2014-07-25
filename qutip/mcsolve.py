@@ -760,8 +760,8 @@ def _mc_alg_evolve(nt, args, config):
         # get input data
         mc_alg_out, opt, tlist, num_times, seeds = args
 
-        collapse_times = np.array([], dtype=float)  # times of collapses
-        which_oper = array([], dtype=float)  # which operator did the collapse
+        collapse_times = []  # times of collapses
+        which_oper = [] # which operator did the collapse
 
         # SEED AND RNG AND GENERATE
         prng = RandomState(seeds[nt])
@@ -857,7 +857,8 @@ def _mc_alg_evolve(nt, args, config):
                                         "Increase accuracy of ODE solver or " +
                                         "Options.norm_steps.")
                     # ---------------------------------------------------
-                    np.append(collapse_times, ODE.t)
+                    collapse_times.append(ODE.t)
+
                     # some string based collapse operators
                     if config.tflag in array([1, 11]):
                         n_dp = [cy_expect_psi_csr(config.n_ops_data[i],
@@ -899,7 +900,7 @@ def _mc_alg_evolve(nt, args, config):
                     # determine which operator does collapse and store it
                     kk = cumsum(n_dp / sum(n_dp))
                     j = cinds[kk >= rand_vals[1]][0]
-                    np.append(which_oper, j)
+                    which_oper.append(j)
                     if j in config.c_const_inds:
                         state = spmv_csr(config.c_ops_data[j],
                                          config.c_ops_ind[j],
@@ -962,7 +963,8 @@ def _mc_alg_evolve(nt, args, config):
                                  config.psi0_shape[0]],
                                 fast='mc-dm')])
 
-        return nt, mc_alg_out, collapse_times, which_oper
+        return (nt, mc_alg_out, np.array(collapse_times, dtype=float),
+                np.array(which_oper, dtype=int))
 
     except Exception as e:
         print("failed to run _mc_alg_evolve: " + str(e))
