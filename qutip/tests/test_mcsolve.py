@@ -170,6 +170,21 @@ def test_MCNoCollFuncStates():
     assert_equal(diff < error, True)
 
 
+def test_MCCollapseTimesOperators():
+    "Monte-carlo: Check for stored collapse operators and times"
+    N = 10
+    kappa = 5.0
+    times = linspace(0, 10, 100)
+    a = destroy(N)
+    H = a.dag() * a
+    psi0 = basis(N, 9)
+    c_ops = [sqrt(kappa) * a, sqrt(kappa) * a]
+    result = mcsolve(H, psi0, times, c_ops, [], ntraj=1)
+    assert_(len(result.col_times[0]) > 0)
+    assert_(len(result.col_which) == len(result.col_times))
+    assert_(set(result.col_which[0]) == {0, 1})
+
+
 def test_MCSimpleConst():
     "Monte-carlo: Constant H with constant collapse"
     N = 10  # number of basis states to consider
