@@ -34,7 +34,7 @@
 from qutip import *
 from qutip import _version2int
 from numpy import allclose, linspace, mean, ones
-from numpy.testing import assert_equal, run_module_suite
+from numpy.testing import assert_equal, run_module_suite, assert_
 from numpy.testing.decorators import skipif
 import unittest
 # find Cython if it exists
