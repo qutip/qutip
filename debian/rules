@@ -7,6 +7,7 @@ export PYBUILD_BUILD_ARGS_python2=--with-f90mc
 export PYBUILD_BUILD_ARGS_python3=--with-f90mc
 export PYBUILD_INSTALL_ARGS_python2=--with-f90mc
 export PYBUILD_INSTALL_ARGS_python3=--with-f90mc
+export PYBUILD_DISABLE=test
 
 %:
 	dh $@ --with python2,python3 --buildsystem=pybuild
