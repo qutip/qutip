@@ -12,7 +12,7 @@ Homepage: http://www.qutip.org
 
 
 Package: python-qutip
-Architecture: all
+Architecture: any
 Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}, python-numpy, python-scipy, python-matplotlib, cython
 Recommends: ipython, ipython-notebook
 Description: QuTiP: Quantum toolbox in Python (Python 2)
@@ -26,7 +26,7 @@ Description: QuTiP: Quantum toolbox in Python (Python 2)
 
 
 Package: python3-qutip
-Architecture: all
+Architecture: any
 Depends: ${misc:Depends}, ${python3:Depends}, ${shlibs:Depends}, python3-numpy, python3-scipy, python3-matplotlib, cython3
 Recommends: ipython3, ipython3-notebook
 Description: QuTiP: Quantum toolbox in Python (Python 3)
