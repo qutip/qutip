@@ -16,7 +16,6 @@ Architecture: all
 Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}, python-numpy, python-scipy, cython
 Recommends: ipython, ipython-notebook, python-matplotlib
 Description: QuTiP: Quantum toolbox in Python (Python 2)
- Python framework for solving the dynamics of quantum systems.
  QuTiP is an open-source framework for solving the dynamics of open and closed
  quantum systems written in Python. The focus of QuTiP is on systems with
  Hamiltonians that are composed of harmonic oscillator modes and multi-level
@@ -31,7 +30,6 @@ Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends}, ${shlibs:Depends}, python3-numpy, python3-scipy, cython3
 Recommends: ipython3, ipython3-notebook, python3-matplotlib
 Description: QuTiP: Quantum toolbox in Python (Python 3)
- Python framework for solving the dynamics of quantum systems.
  QuTiP is an open-source framework for solving the dynamics of open and closed
  quantum systems written in Python. The focus of QuTiP is on systems with
  Hamiltonians that are composed of harmonic oscillator modes and multi-level
