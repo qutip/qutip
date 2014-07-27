@@ -2,7 +2,9 @@
 
 export DH_VERBOSE=1
 export PYBUILD_NAME=qutip
-export PYBUILD_TEST_ARGS_python2=cd {build_dir}; nosetests qutip
+#export PYBUILD_TEST_ARGS_python2=cd {build_dir}; nosetests qutip
+export PYBUILD_BUILD_ARGS_python2=--with-f90mc
+export PYBUILD_BUILD_ARGS_python3=--with-f90mc
 export PYBUILD_INSTALL_ARGS_python2=--with-f90mc
 export PYBUILD_INSTALL_ARGS_python3=--with-f90mc
 
