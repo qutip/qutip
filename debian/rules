@@ -1,5 +1,7 @@
+#!/usr/bin/make -f
+
 export DH_VERBOSE=1
 export PYBUILD_NAME=qutip
 
 %:
-        dh $@ --with python2,python3 --buildsystem=pybuild
+	dh $@ --with python2,python3 --buildsystem=pybuild
