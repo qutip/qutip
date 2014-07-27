@@ -2,18 +2,19 @@ Source: qutip
 Section: python
 Priority: optional
 Maintainer: Robert Johansson <jrjohansson@gmail.com>
-Build-Depends: debhelper (>= 8), dh-python, python-all, python-all-dev, python-setuptools, python-numpy, python3-all, python3-all-dev, python3-setuptools, python3-numpy, cython
+Build-Depends: debhelper (>= 8), dh-python,
+			   python-all (>= 2.7), python-all-dev, python-setuptools, python-numpy, cython
+			   python3-all (>= 3.2), python3-all-dev, python3-setuptools, python3-numpy, cython3
 X-Python-Version: >= 2.7
 X-Python3-Version: >= 3.2
-Standards-Version: 3.9.3
+Standards-Version: 3.9.5
+Homepage: http://www.qutip.org
 
 
 Package: python-qutip
-Architecture: any
+Architecture: all
 Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}, python-numpy, python-scipy, cython
-Recommends: ipython (>= 0.12), ipython-notebook, python-matplotlib
-Provides: ${python:Provides}
-Homepage: http://www.qutip.org
+Recommends: ipython, ipython-notebook, python-matplotlib
 Description: QuTiP: Quantum toolbox in Python (Python 2)
  Python framework for solving the dynamics of quantum systems.
  QuTiP is an open-source framework for solving the dynamics of open and closed
@@ -26,11 +27,9 @@ Description: QuTiP: Quantum toolbox in Python (Python 2)
 
 
 Package: python3-qutip
-Architecture: any
+Architecture: all
 Depends: ${misc:Depends}, ${python3:Depends}, ${shlibs:Depends}, python3-numpy, python3-scipy, cython
-Recommends: ipython3 (>= 0.12), ipython3-notebook, python3-matplotlib
-Provides: ${python:Provides}
-Homepage: http://www.qutip.org
+Recommends: ipython3, ipython3-notebook, python3-matplotlib
 Description: QuTiP: Quantum toolbox in Python (Python 3)
  Python framework for solving the dynamics of quantum systems.
  QuTiP is an open-source framework for solving the dynamics of open and closed
