@@ -46,6 +46,7 @@ from qutip.steadystate import steadystate
 from qutip.states import ket2dm
 from qutip.solver import Options
 from qutip.settings import debug
+from re import sub
 
 if debug:
     import inspect
@@ -272,7 +273,7 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
+        system Hamiltonian, or a callback function for time-dependent Hamiltonians.
 
     rho0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix (or state vector). If 'rho0' is
@@ -285,7 +286,7 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
         list of times for :math:`\\tau`.
 
     c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators.
+        list of collapse operators. (does not accept time dependence)
 
     a_op : :class:`qutip.qobj.Qobj`
         operator A.
@@ -317,6 +318,11 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
     See, Gardiner, Quantum Noise, Section 5.2.1.
 
     """
+
+    if rho0 is None and not isinstance(H, list):
+        rho0 = steadystate(H, c_ops)
+    elif rho0 and isket(rho0):
+        rho0 = ket2dm(rho0)
 
     if debug:
         print(inspect.stack()[0][3])
@@ -740,19 +746,23 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
         print(inspect.stack()[0][3])
 
     if rho0 is None:
-        rho0 = steadystate(H, c_ops)
+        raise TypeError("Missing initial state")
     elif rho0 and isket(rho0):
         rho0 = ket2dm(rho0)
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
-    rho_t = mesolve(
-        H, rho0, tlist, c_ops, [], args=args, options=options).states
+    rho_t = mesolve(H, rho0, tlist, c_ops, [], args=args, options=options).states
+
+    H_new, args_new = _transform_H_me_4op_2t(H, args)
 
     for t_idx, rho in enumerate(rho_t):
-        C_mat[t_idx, :] = mesolve(H, d_op * rho * a_op, taulist,
-                                  c_ops, [b_op * c_op],
-                                  args=args, options=options).expect[0]
+        args_new["t0_correlation"] = tlist[t_idx]
+        C_mat[t_idx, :] = mesolve(H_new, d_op * rho * a_op, taulist,
+                                  c_ops, [b_op * c_op], args=args_new,
+                                  options=options).expect[0]
+        if t_idx == 1:
+            options.rhs_reuse = True
 
     return C_mat
 
@@ -993,3 +1003,45 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
         s_vec[idx] = -2 * np.real(s[0, 0])
 
     return s_vec
+
+
+# -----------------------------------------------------------------------------
+# AUXILIARY
+# -----------------------------------------------------------------------------
+def _transform_H_me_4op_2t(H, args={}):
+    """
+    Time shift the hamiltonian, as required for the quantum regression theorem
+    """
+
+    args_new = args.copy()
+    args_new["t0_correlation"] = 0
+
+    if isinstance(H, Qobj):
+        # constant hamiltonian
+        return H, args
+
+    if isinstance(H, types.FunctionType):
+        # old style time-dependence
+        raise TypeError("This style of specifying time-dependence is deprecated")
+
+    if isinstance(H, list):
+        # determine if we are dealing with list of [Qobj, string] or
+        # [Qobj, function] style time-dependences (for pure python and
+        # cython, respectively)
+        H_new = []
+
+        for i in range(len(H)):
+            if isinstance(H[i],list):
+                # modify hamiltonian time depence in accordance with the quantum
+                # regression theorem
+                if isinstance(H[i][1], types.FunctionType):
+                    fn = lambda t,args: H[i][1](t+args["t0_correlation"],args)
+                else:
+                    fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",\
+                             "t + t0_correlation",H[i][1])
+
+                H_new.append([H[i][0],fn])
+            else:
+                H_new.append(H[i])
+
+        return H_new, args_new
