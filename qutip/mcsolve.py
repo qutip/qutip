@@ -366,7 +366,8 @@ class _MC_class():
                 for i in range(config.e_num):
                     if config.e_ops_isherm[i]:
                         # preallocate real array of zeros
-                        self.expect_out.append(zeros(self.num_times))
+                        self.expect_out.append(zeros(self.num_times,
+                                                     dtype=float))
                     else:  # preallocate complex array of zeros
                         self.expect_out.append(
                             zeros(self.num_times, dtype=complex))
@@ -402,7 +403,10 @@ class _MC_class():
         if self.config.e_num == 0:  # output state-vector
             self.psi_out[r] = results[1]
         else:  # output expectation values
-            self.expect_out[r] = results[1]
+            if self.cpus == 1 or self.config.ntraj == 1:
+                self.expect_out[r] = copy.deepcopy(results[1])
+            else:
+                self.expect_out[r] = results[1]
 
         self.collapse_times_out[r] = results[2]
         self.which_op_out[r] = results[3]
@@ -498,7 +502,7 @@ class _MC_class():
                 for i in range(self.config.e_num):
                     if self.config.e_ops_isherm[i]:
                         # preallocate real array of zeros
-                        mc_alg_out.append(zeros(self.num_times))
+                        mc_alg_out.append(zeros(self.num_times, dtype=float))
                     else:
                         # preallocate complex array of zeros
                         mc_alg_out.append(zeros(self.num_times, dtype=complex))
@@ -761,7 +765,7 @@ def _mc_alg_evolve(nt, args, config):
         mc_alg_out, opt, tlist, num_times, seeds = args
 
         collapse_times = []  # times of collapses
-        which_oper = [] # which operator did the collapse
+        which_oper = []  # which operator did the collapse
 
         # SEED AND RNG AND GENERATE
         prng = RandomState(seeds[nt])
@@ -963,7 +967,8 @@ def _mc_alg_evolve(nt, args, config):
                                  config.psi0_shape[0]],
                                 fast='mc-dm')])
 
-        return (nt, mc_alg_out, np.array(collapse_times, dtype=float),
+        return (nt, mc_alg_out,
+                np.array(collapse_times, dtype=float),
                 np.array(which_oper, dtype=int))
 
     except Exception as e:
