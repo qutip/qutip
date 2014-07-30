@@ -1317,5 +1317,5 @@ def _mc_dm_avg(psi_list):
     ln = len(psi_list)
     dims = psi_list[0].dims
     shape = psi_list[0].shape
-    out_data = mean([psi.data for psi in psi_list])
+    out_data = np.sum([psi.data for psi in psi_list]) / ln
     return Qobj(out_data, dims=dims, shape=shape, fast='mc-dm')
