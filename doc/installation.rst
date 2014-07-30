@@ -49,6 +49,8 @@ programming language.  The following packages are currently required:
 +----------------+--------------+-----------------------------------------------------+
 | nose           | 1.1.2+       | Optional. For running tests.                        |
 +----------------+--------------+-----------------------------------------------------+
+| scikits.umfpack| 5.2.0+       | Optional. Faster (~2-5x) steady state calculations. |
++----------------+--------------+-----------------------------------------------------+
 
 
 As of version 2.2, QuTiP includes an optional Fortran-based Monte Carlo solver that has a substantial performance benefit when compared with the Python-based solver. In order to install this package you must have a Fortran compiler (for example gfortran) and BLAS development libraries.  At present, these packages are only tested on the Linux and OS X platforms.
@@ -190,8 +192,6 @@ To install QuTiP from Macports, run
 
     sudo port install py-qutip
 
-.. note:: The next step is optional, but is necessary if you plan to use the string (Cython) based time-dependent format.  See :ref:`time`.
-
 Finally, we want to set the macports compiler to the vanilla GCC version.  From the command line type::
 
     port select gcc
@@ -199,27 +199,20 @@ Finally, we want to set the macports compiler to the vanilla GCC version.  From 
 which will bring up a list of installed compilers, such as::
 
 	Available versions for gcc:
-		apple-gcc42
-		gcc42
-		llvm-gcc42
-		mp-gcc47
+		mp-gcc48
 		none (active)
 
-We want to set the the compiler to the gcc4x compiler, where x is the highest number available, in this case ``mp-gcc47`` (the "mp-" does not matter).  To do this type::
+We want to set the the compiler to the gcc4x compiler, where x is the highest number available, in this case ``mp-gcc48`` (the "mp-" does not matter).  To do this type::
 
-    sudo port select gcc mp-gcc47
+    sudo port select gcc mp-gcc48
 
 Running port select again should give::
 
 	 Available versions for gcc:
-	 	apple-gcc42
-	 	gcc42
-	 	llvm-gcc42
-	 	mp-gcc47 (active)
+	 	mp-gcc48 (active)
 	 	none
 
-
-Installing QuTiP via Macports will take a long time as each of the QuTiP dependencies is build from source code. The advantage is that all dependencies are resolved automatically, and the result should be a consistent build.
+Installing QuTiP via Macports may take a long time as some or all of the QuTiP dependencies are build from source code. The advantage is that all dependencies are resolved automatically, and the result should be a consistent build.
 
 
 Setup via SciPy Superpack
@@ -268,6 +261,32 @@ The directory where the distutils.cfg file should be placed might be different i
     distributed and installed with their own version of all dependencies).
 
 
+.. _install-optional:
+
+Optional Installation Options
+=============================
+
+.. _install-umfpack:
+
+UMFPACK Linear Solver
+---------------------
+
+As of SciPy 0.14+, the `umfpack <http://www.cise.ufl.edu/research/sparse/umfpack/>`_ linear solver routines for solving large-scale sparse linear systems have been replaced due to licensing restrictions.  The default method for all sparse linear problems is now the `SuperLU <http://crd-legacy.lbl.gov/~xiaoye/SuperLU/>`_ library.  However, scipy still includes the ability to call the umfpack library via the scikits.umfpack module.  In our experience, the umfpack solver is 2-5x faster than the SuperLU routines, which is a very noticeable performance increase when used for solving steady state solutions.  We have an updated scikits.umfpack module available at `http://github.com/nonhermitian/umfpack <https://github.com/nonhermitian/umfpack>`_ that can be installed to have SciPy find and use the umfpack library.
+
+
+.. _install-blas:
+
+Optimized BLAS Libraries
+------------------------
+
+QuTiP is designed to take advantage of some of the optimized BLAS libraries that are available for NumPy.  At present, this includes the `OPENBLAS <http://www.openblas.net/>`_ and `MKL <http://software.intel.com/en-us/intel-mkl>`_ libraries.  If NumPy is built against these libraries, then QuTiP will take advantage of the performance gained by using these optimized tools.  As these libraries are multi-threaded, you can change the number of threads used in these packages by adding: 
+
+>>> import os
+>>> os.environ['OPENBLAS_NUM_THREADS'] = '4'
+>>> os.environ['MKL_NUM_THREADS'] = '4'
+
+**at the top of your Python script files**, or iPython notebooks, and then loading the QuTiP framework. If these commands are not present, then QuTiP automatically sets the number of threads to one.
+
 .. _install-verify:
 
 Verifying the Installation
@@ -287,5 +306,8 @@ Checking Version Information using the About Function
 
 QuTiP includes an "about" function for viewing information about QuTiP and the important dependencies installed on your system.  To view this information:
 
->>> from qutip import *
->>> about()
+.. ipython::
+
+   In [1]: from qutip import *
+
+   In [2]: about()
