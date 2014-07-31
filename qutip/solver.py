@@ -80,8 +80,10 @@ class Options():
     norm_steps : int
         Max. number of steps used to find wavefunction norm to within norm_tol
         in mcsolve.
-    average_states : bool {True, False}
-        Avg. expectation values in mcsolver.
+    average_states : bool {False}
+        Average states values over trajectories in stochastic solvers.
+    average_expect : bool {True}
+        Avgerage expectation values over trajectories for stochastic solvers.
     ntraj : int {500}
         Number of trajectories in stochastic solvers.
     rhs_reuse : bool {False,True}
@@ -141,9 +143,9 @@ class Options():
         # Number of processors to use (mcsolve only)
         if num_cpus:
             self.num_cpus = num_cpus
-            if self.num_cpus > int(os.environ['NUM_THREADS']):
+            if self.num_cpus > int(os.environ['QUTIP_NUM_PROCESSES']):
                 message = ("Requested number of threads larger than number " +
-                           "of CPUs (%s)." % os.environ['NUM_THREADS'])
+                           "of CPUs (%s)." % os.environ['QUTIP_NUM_PROCESSES'])
                 warnings.warn(message)
         else:
             self.num_cpus = 0
@@ -208,7 +210,7 @@ class Result():
     num_collapse : int
         Number of collapse operators in simualation.
     ntraj : int/list
-        Number of monte-carlo trajectories (if using mcsolve).  List indicates
+        Number of trajectories (for stochastic solvers). A list indicates
         that averaging of expectation values was done over a subset of total
         number of trajectories.
     col_times : list

@@ -366,7 +366,8 @@ class _MC_class():
                 for i in range(config.e_num):
                     if config.e_ops_isherm[i]:
                         # preallocate real array of zeros
-                        self.expect_out.append(zeros(self.num_times))
+                        self.expect_out.append(zeros(self.num_times,
+                                                     dtype=float))
                     else:  # preallocate complex array of zeros
                         self.expect_out.append(
                             zeros(self.num_times, dtype=complex))
@@ -402,7 +403,10 @@ class _MC_class():
         if self.config.e_num == 0:  # output state-vector
             self.psi_out[r] = results[1]
         else:  # output expectation values
-            self.expect_out[r] = results[1]
+            if self.cpus == 1 or self.config.ntraj == 1:
+                self.expect_out[r] = copy.deepcopy(results[1])
+            else:
+                self.expect_out[r] = results[1]
 
         self.collapse_times_out[r] = results[2]
         self.which_op_out[r] = results[3]
@@ -498,7 +502,7 @@ class _MC_class():
                 for i in range(self.config.e_num):
                     if self.config.e_ops_isherm[i]:
                         # preallocate real array of zeros
-                        mc_alg_out.append(zeros(self.num_times))
+                        mc_alg_out.append(zeros(self.num_times, dtype=float))
                     else:
                         # preallocate complex array of zeros
                         mc_alg_out.append(zeros(self.num_times, dtype=complex))
@@ -760,8 +764,8 @@ def _mc_alg_evolve(nt, args, config):
         # get input data
         mc_alg_out, opt, tlist, num_times, seeds = args
 
-        collapse_times = np.array([], dtype=float)  # times of collapses
-        which_oper = array([], dtype=float)  # which operator did the collapse
+        collapse_times = []  # times of collapses
+        which_oper = []  # which operator did the collapse
 
         # SEED AND RNG AND GENERATE
         prng = RandomState(seeds[nt])
@@ -857,7 +861,8 @@ def _mc_alg_evolve(nt, args, config):
                                         "Increase accuracy of ODE solver or " +
                                         "Options.norm_steps.")
                     # ---------------------------------------------------
-                    np.append(collapse_times, ODE.t)
+                    collapse_times.append(ODE.t)
+
                     # some string based collapse operators
                     if config.tflag in array([1, 11]):
                         n_dp = [cy_expect_psi_csr(config.n_ops_data[i],
@@ -899,7 +904,7 @@ def _mc_alg_evolve(nt, args, config):
                     # determine which operator does collapse and store it
                     kk = cumsum(n_dp / sum(n_dp))
                     j = cinds[kk >= rand_vals[1]][0]
-                    np.append(which_oper, j)
+                    which_oper.append(j)
                     if j in config.c_const_inds:
                         state = spmv_csr(config.c_ops_data[j],
                                          config.c_ops_ind[j],
@@ -962,7 +967,9 @@ def _mc_alg_evolve(nt, args, config):
                                  config.psi0_shape[0]],
                                 fast='mc-dm')])
 
-        return nt, mc_alg_out, collapse_times, which_oper
+        return (nt, mc_alg_out,
+                np.array(collapse_times, dtype=float),
+                np.array(which_oper, dtype=int))
 
     except Exception as e:
         print("failed to run _mc_alg_evolve: " + str(e))
@@ -1315,5 +1322,5 @@ def _mc_dm_avg(psi_list):
     ln = len(psi_list)
     dims = psi_list[0].dims
     shape = psi_list[0].shape
-    out_data = mean([psi.data for psi in psi_list])
+    out_data = np.sum([psi.data for psi in psi_list]) / ln
     return Qobj(out_data, dims=dims, shape=shape, fast='mc-dm')
