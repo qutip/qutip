@@ -31,8 +31,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from numpy import trapz, linspace
 from qutip import _version2int
+from numpy import trapz, linspace
 from numpy.testing import run_module_suite, assert_
 import unittest
 
@@ -134,93 +134,109 @@ def test_spectrum():
 
     assert_(max(abs(spec1 - spec2)) < 1e-3)
 
+
 @unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
                  Cython_found == 0, 'Cython not found or version too low.')
 def test_cython_td_corr():
     "correlation: comparing TLS emission correlations (cython td format)"
 
-    # calculate emission zero-delay second order correlation, g2(0), directly from the photocount distribution
-    # using mcsolve and make sure this equals the result expected from calculated integrating
-    # the field flux correlations
+    # calculate emission zero-delay second order correlation, g2(0), for TLS
+    # with following parameters:
+    #   gamma = 1, omega = 2, tp = 0.5
+    # Then: g2(0)~0.57
+    sm = destroy(2)
+    args = {"t_off": 1, "tp": 0.5}
+    H = [[2 * (sm+sm.dag()), "exp(-(t-t_off)**2 / (2*tp**2))"]]
+    tlist = linspace(0, 5, 50)
+    corr = correlation_4op_2t(H, fock(2, 0), tlist, tlist, [sm],
+                              sm.dag(), sm.dag(), sm, sm, args=args)
+    # integrate w/ 2D trapezoidal rule
+    dt = (tlist[-1]-tlist[0]) / (shape(tlist)[0]-1)
+    s1 = corr[0, 0] + corr[-1, 0] + corr[0, -1] + corr[-1, -1]
+    s2 = sum(corr[1:-1, 0]) + sum(corr[1:-1, -1]) + \
+        sum(corr[0, 1:-1]) + sum(corr[-1, 1:-1])
+    s3 = sum(corr[1:-1, 1:-1])
 
-    # generate TLS with following system parameters
-    gamma, tp, E0, npts = 1, 0.5, 2, 50
-    t_offset = 2*tp
-    tmax = 2*t_offset + 3/gamma
+    exp_n_in = trapz(
+        mesolve(
+            H, fock(2, 0), tlist, [sm], [sm.dag()*sm], args=args
+        ).expect[0], tlist
+    )
+    # factor of 2 from negative time correlations
+    g20 = abs(
+        sum(0.5*dt**2*(s1 + 2*s2 + 4*s3)) / exp_n_in**2
+    )
 
+    assert_(abs(g20-0.57) < 1e-1)
+
+
+def test_old_fn_td_corr():
+    "correlation: comparing TLS emission correlations (old td format)"
+
+    # calculate emission zero-delay second order correlation, g2(0), for TLS
+    # with following parameters:
+    #   gamma = 1, omega = 2, tp = 0.5
+    # Then: g2(0)~0.57
     sm = destroy(2)
 
-    args = {"t_off":t_offset,"tp":tp}
-    H = [[E0*(sm + sm.dag()),"exp(-(t-t_off)**2/(2*tp**2))"]]
+    def H_func(t, args):
+        return 2 * args[0] * exp(-2 * (t-1)**2)
 
-    tlist = linspace(0,tmax,npts)
-    corr = correlation_4op_2t(H, fock(2,0), tlist, tlist, [sqrt(gamma)*sm], sm.dag(), sm.dag(), sm, sm, args=args)
-
+    tlist = linspace(0, 5, 50)
+    corr = correlation_4op_2t(H_func, fock(2, 0), tlist, tlist, [sm],
+                              sm.dag(), sm.dag(), sm, sm, args=[sm+sm.dag()])
     # integrate w/ 2D trapezoidal rule
-    dt = (tlist[-1]-tlist[0])/(shape(tlist)[0]-1)
-    s1 = corr[0,0] + corr[-1,0] + corr[0,-1] + corr[-1,-1]
-    s2 = sum(corr[1:-1,0]) + sum(corr[1:-1,-1]) + sum(corr[0,1:-1]) + sum(corr[-1,1:-1])
-    s3 = sum(corr[1:-1,1:-1])
+    dt = (tlist[-1]-tlist[0]) / (shape(tlist)[0]-1)
+    s1 = corr[0, 0] + corr[-1, 0] + corr[0, -1] + corr[-1, -1]
+    s2 = sum(corr[1:-1, 0]) + sum(corr[1:-1, -1]) +\
+        sum(corr[0, 1:-1]) + sum(corr[-1, 1:-1])
+    s3 = sum(corr[1:-1, 1:-1])
 
-    # calculate zero delay correlation from QRT
-    exp_n_in = trapz(mesolve(H, fock(2,0), tlist, [sqrt(gamma)*sm], [sm.dag()*sm], args=args).expect[0],tlist)
-    g20_corr = abs(sum(0.5*dt**2*(s1 + 2*s2 + 4*s3))/exp_n_in**2) # factor of 2 from negative time correlations
+    exp_n_in = trapz(
+        mesolve(
+            H_func, fock(2, 0), tlist, [sm], [sm.dag()*sm], args=[sm+sm.dag()]
+        ).expect[0], tlist
+    )
+    # factor of 2 from negative time correlations
+    g20 = abs(
+        sum(0.5*dt**2*(s1 + 2*s2 + 4*s3)) / exp_n_in**2
+    )
 
-    tlist_mc = linspace(0,tmax,2)
-    result_mc = mcsolve(H, fock(2,0), tlist_mc, [sqrt(gamma)*sm], [], ntraj=10000, args=args)
+    assert_(abs(g20-0.57) < 1e-1)
 
-    # bin the collapse events to generate Pm
-    ncollapse = [result_mc.col_times[i].size for i in range(result_mc.col_times.size)]
-    Pm = numpy.histogram(ncollapse, bins=range(60), density=True)[0]
-
-    # calculate zero delay correlation from mcsolve
-    g20_mc = sum([p*m*(m-1) for m,p in enumerate(Pm)])/sum([p*m for m,p in enumerate(Pm)])**2
-
-    assert_(abs(g20_mc - g20_corr) < 2e-1)
 
 def test_fn_td_corr():
     "correlation: comparing TLS emission correlations (fn td format)"
 
-    # calculate emission zero-delay second order correlation, g2(0), directly from the photocount distribution
-    # using mcsolve and make sure this equals the result expected from calculated integrating
-    # the field flux correlations
-
-    # generate TLS with following system parameters
-    gamma, tp, E0, npts = 1, 0.5, 2, 50
-    t_offset = 2*tp
-    tmax = 2*t_offset + 3/gamma
-
+    # calculate emission zero-delay second order correlation, g2(0), for TLS
+    # with following parameters:
+    #   gamma = 1, omega = 2, tp = 0.5
+    # Then: g2(0)~0.57
     sm = destroy(2)
-
-    args = {"t_off":t_offset,"tp":tp}
-    H = [[E0*(sm + sm.dag()),lambda t,args: exp(-(t-args["t_off"])**2/(2*args["tp"]**2))]]
-
-    tlist = linspace(0,tmax,npts)
-    corr = correlation_4op_2t(H, fock(2,0), tlist, tlist, [sqrt(gamma)*sm], sm.dag(), sm.dag(), sm, sm, args=args)
-
+    args = {"t_off": 1, "tp": 0.5}
+    H = [[2 * (sm+sm.dag()),
+          lambda t, args: exp(-(t-args["t_off"])**2 / (2*args["tp"]**2))]]
+    tlist = linspace(0, 5, 50)
+    corr = correlation_4op_2t(H, fock(2, 0), tlist, tlist, [sm],
+                              sm.dag(), sm.dag(), sm, sm, args=args)
     # integrate w/ 2D trapezoidal rule
-    dt = (tlist[-1]-tlist[0])/(shape(tlist)[0]-1)
-    s1 = corr[0,0] + corr[-1,0] + corr[0,-1] + corr[-1,-1]
-    s2 = sum(corr[1:-1,0]) + sum(corr[1:-1,-1]) + sum(corr[0,1:-1]) + sum(corr[-1,1:-1])
-    s3 = sum(corr[1:-1,1:-1])
+    dt = (tlist[-1]-tlist[0]) / (shape(tlist)[0]-1)
+    s1 = corr[0, 0] + corr[-1, 0] + corr[0, -1] + corr[-1, -1]
+    s2 = sum(corr[1:-1, 0]) + sum(corr[1:-1, -1]) + \
+        sum(corr[0, 1:-1]) + sum(corr[-1, 1:-1])
+    s3 = sum(corr[1:-1, 1:-1])
 
-    # calculate zero delay correlation from QRT
-    exp_n_in = trapz(mesolve(H, fock(2,0), tlist, [sqrt(gamma)*sm], [sm.dag()*sm], args=args).expect[0],tlist)
-    g20_corr = abs(sum(0.5*dt**2*(s1 + 2*s2 + 4*s3))/exp_n_in**2) # factor of 2 from negative time correlations
+    exp_n_in = trapz(
+        mesolve(
+            H, fock(2, 0), tlist, [sm], [sm.dag()*sm], args=args
+        ).expect[0], tlist
+    )
+    # factor of 2 from negative time correlations
+    g20 = abs(
+        sum(0.5*dt**2*(s1 + 2*s2 + 4*s3)) / exp_n_in**2
+    )
 
-    tlist_mc = linspace(0,tmax,2)
-    H = [[E0*(sm + sm.dag()),"exp(-(t-t_off)**2/(2*tp**2))"]] # mcsolve doesn't seem to like function references when
-                                                              # called in this test format
-    result_mc = mcsolve(H, fock(2,0), tlist_mc, [sqrt(gamma)*sm], [], ntraj=10000, args=args)
-
-    # bin the collapse events to generate Pm
-    ncollapse = [result_mc.col_times[i].size for i in range(result_mc.col_times.size)]
-    Pm = numpy.histogram(ncollapse, bins=range(60), density=True)[0]
-
-    # calculate zero delay correlation from mcsolve
-    g20_mc = sum([p*m*(m-1) for m,p in enumerate(Pm)])/sum([p*m for m,p in enumerate(Pm)])**2
-
-    assert_(abs(g20_mc - g20_corr) < 2e-1)
+    assert_(abs(g20-0.57) < 1e-1)
 
 if __name__ == "__main__":
     run_module_suite()

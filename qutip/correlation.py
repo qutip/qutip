@@ -714,7 +714,8 @@ def _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
 def _correlation_me_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op,
                            args=None, options=Options()):
     """
-    Calculate the four-operator two-time correlation function on the form
+    Internal function for calculating the four-operator two-time
+    correlation function on the form
     <A(0)B(tau)C(tau)D(0)>.
 
     See, Gardiner, Quantum Noise, Section 5.2.1
@@ -736,7 +737,8 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
                            a_op, b_op, c_op, d_op, reverse=False,
                            args=None, options=Options()):
     """
-    Calculate the four-operator two-time correlation function on the form
+    Internal function for calculating the four-operator two-time
+    correlation function on the form
     <A(t)B(t+tau)C(t+tau)D(t)>.
 
     See, Gardiner, Quantum Noise, Section 5.2.1
@@ -751,15 +753,27 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
         rho0 = ket2dm(rho0)
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-
-    rho_t = mesolve(H, rho0, tlist, c_ops, [], args=args, options=options).states
-
-    H_new, args_new = _transform_H_me_4op_2t(H, args)
+    rho_t = mesolve(H, rho0, tlist, c_ops, [],
+                    args=args, options=options).states
+    H_shifted, _args = _transform_H_t_shift(H, args)
 
     for t_idx, rho in enumerate(rho_t):
-        args_new["t0_correlation"] = tlist[t_idx]
-        C_mat[t_idx, :] = mesolve(H_new, d_op * rho * a_op, taulist,
-                                  c_ops, [b_op * c_op], args=args_new,
+        if isinstance(H_shifted, types.FunctionType):
+            _args[-1] = tlist[t_idx]
+        else:
+            _args["_t0"] = tlist[t_idx]
+
+        if reverse is False:
+            # <A(t)B(t+tau)C(t+tau)D(t)>
+            correlator_ic = d_op * rho * a_op
+            correlator_exp = b_op * c_op
+        else:
+            # <D(t)C(t+tau)B(t+tau)A(t)>
+            correlator_ic = a_op * rho * d_op
+            correlator_exp = c_op * b_op
+
+        C_mat[t_idx, :] = mesolve(H_shifted, correlator_ic, taulist,
+                                  c_ops, [correlator_exp], args=_args,
                                   options=options).expect[0]
         if t_idx == 1:
             options.rhs_reuse = True
@@ -1008,40 +1022,42 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 # -----------------------------------------------------------------------------
 # AUXILIARY
 # -----------------------------------------------------------------------------
-def _transform_H_me_4op_2t(H, args={}):
+def _transform_H_t_shift(H, args=None):
     """
-    Time shift the hamiltonian, as required for the quantum regression theorem
+    Time shift the hamiltonian with private time-shift variable _t0
     """
-
-    args_new = args.copy()
-    args_new["t0_correlation"] = 0
 
     if isinstance(H, Qobj):
         # constant hamiltonian
         return H, args
 
     if isinstance(H, types.FunctionType):
-        # old style time-dependence
-        raise TypeError("This style of specifying time-dependence is deprecated")
+        # old style function-based time-dependence
+        _args = args
+        _args.append(0)
+        H_shifted = lambda t, args_i: H(t+args_i[-1], args_i)
+        return H_shifted, _args
 
     if isinstance(H, list):
         # determine if we are dealing with list of [Qobj, string] or
-        # [Qobj, function] style time-dependences (for pure python and
+        # [Qobj, function] style time-dependencies (for pure python and
         # cython, respectively)
-        H_new = []
+        H_shifted = []
+        _args = args.copy()
+        _args["_t0"] = 0
 
         for i in range(len(H)):
-            if isinstance(H[i],list):
-                # modify hamiltonian time depence in accordance with the quantum
-                # regression theorem
+            if isinstance(H[i], list):
+                # modify hamiltonian time depence in accordance with the
+                # quantum regression theorem
                 if isinstance(H[i][1], types.FunctionType):
-                    fn = lambda t,args: H[i][1](t+args["t0_correlation"],args)
+                    fn = lambda t, args_i: H[i][1](t+args_i["_t0"], args_i)
                 else:
-                    fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",\
-                             "t + t0_correlation",H[i][1])
+                    fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
+                             "(t+_t0)", H[i][1])
 
-                H_new.append([H[i][0],fn])
+                H_shifted.append([H[i][0], fn])
             else:
-                H_new.append(H[i])
+                H_shifted.append(H[i])
 
-        return H_new, args_new
+        return H_shifted, _args
