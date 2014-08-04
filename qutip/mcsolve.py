@@ -1031,6 +1031,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
         for op in e_ops:
             if isinstance(op, list):
                 op = op[0]
+            op.data = op.data.tocsr()
             config.e_ops_data.append(op.data.data)
             config.e_ops_ind.append(op.data.indices)
             config.e_ops_ptr.append(op.data.indptr)
@@ -1048,6 +1049,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
         for c_op in c_ops:
             if isinstance(c_op, list):
                 c_op = c_op[0]
+            c_op.data = c_op.data.tocsr()
             n_op = c_op.dag() * c_op
             config.c_ops_data.append(c_op.data.data)
             config.c_ops_ind.append(c_op.data.indices)
@@ -1079,6 +1081,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
         # construct Hamiltonian data structures
         if options.tidy:
             H = H.tidyup(options.atol)
+        H.data = H.data.tocsr()
         config.h_data = -1.0j * H.data.data
         config.h_ind = H.data.indices
         config.h_ptr = H.data.indptr
@@ -1113,10 +1116,13 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
                 H -= 0.5j * (c_ops[k].dag() * c_ops[k])
             if options.tidy:
                 H = H.tidyup(options.atol)
+            H.data = H.data.tocsr()
             config.h_data = [H.data.data]
             config.h_ind = [H.data.indices]
             config.h_ptr = [H.data.indptr]
             for k in config.c_td_inds:
+                c_ops[k][0].data = c_ops[k][0].data.tocsr()
+                
                 op = c_ops[k][0].dag() * c_ops[k][0]
                 config.h_data.append(-0.5j * op.data.data)
                 config.h_ind.append(op.data.indices)
@@ -1180,6 +1186,9 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             if options.tidy:
                 H = array([H[k].tidyup(options.atol) for k in range(len_h)])
             # construct data sets
+            for k in range(len_h):
+                H[k].data = H[k].data.tocsr()
+                
             config.h_data = [H[k].data.data for k in range(len_h)]
             config.h_ind = [H[k].data.indices for k in range(len_h)]
             config.h_ptr = [H[k].data.indptr for k in range(len_h)]
@@ -1279,6 +1288,8 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             H = H.tidyup(options.atol)
             Htd = array([Htd[j].tidyup(options.atol)
                          for j in config.h_td_inds])
+
+        H.data = H.data.tocsr()
         # setup constant H terms data
         config.h_data = -1.0j * H.data.data
         config.h_ind = H.data.indices
@@ -1309,6 +1320,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
                 H -= 0.5j * (c_ops[k].dag() * c_ops[k])
             if options.tidy:
                 H = H.tidyup(options.atol)
+            H.data = H.data.tocsr()
             config.h_data = -1.0j * H.data.data
             config.h_ind = H.data.indices
             config.h_ptr = H.data.indptr
