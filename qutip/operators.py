@@ -388,7 +388,7 @@ shape = [4, 4], type = oper, isHerm = False
     if not isinstance(N, (int, np.integer)):  # raise error if N not integer
         raise ValueError("Hilbert space dimension must be integer value")
     qo = destroy(N, offset=offset)  # create operator using destroy function
-    qo.data = qo.data.T  # transpose data in Qobj
+    qo.data = qo.data.T.tocsr()  # transpose data in Qobj and convert to csr
     return qo
 
 
