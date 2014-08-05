@@ -7,6 +7,22 @@
 Change Log
 **********
 
+Version 3.0.1 (Aug 5, 2014):
+++++++++++++++++++++++++++++
+
+Bug Fixes
+---------
+
+- Fix bug in create(), which returned a Qobj with CSC data instead of CSR.
+- Fix several bugs in mcsolve: Incorrect storing of collapse times and collapse
+  operator records. Incorrect averaging of expectation values for different
+  trajectories when using only 1 CPU.
+- Fix bug in parsing of time-dependent Hamiltonian/collapse operator arguments
+  that occured when the args argument is not a dictionary.
+- Fix bug in internal _version2int function that cause a failure when parsing
+  the version number of the Cython package.
+
+
 Version 3.0.0 (July 17, 2014):
 ++++++++++++++++++++++++++++++
 
