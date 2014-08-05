@@ -34,3 +34,5 @@ def test_6(runs=1):
     return [test_name], [tot_elapsed / runs]
 
 
+if __name__=='__main__':
+    test_6()

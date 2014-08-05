@@ -30,10 +30,10 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("-i", "--benchmark-input",
                     help="file name for benchmark input",
-                    default="qutip-benchmark.json", type=str)
+                    default="qutip-benchmarks.json", type=str)
 parser.add_argument("-r", "--benchmark-reference",
                     help="file name for benchmark refernce",
-                    default="matlab-benchmark.json", type=str)
+                    default="matlab-benchmarks.json", type=str)
 parser.add_argument("-o", "--output-file",
                     help="file name for benchmark comparison output",
                     default="benchmark_data.json", type=str)
@@ -43,7 +43,7 @@ args = parser.parse_args()
 # get hardware info
 #
 platform = [{'label': label, 'value': value}
-            for label, value in hardware_info().iteritems()]
+            for label, value in hardware_info().items()]
 
 #
 # read in benchmark files

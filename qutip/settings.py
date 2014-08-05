@@ -48,6 +48,8 @@ auto_tidyup_atol = 1e-12
 num_cpus = 1
 # flag indicating if fortran module is installed
 fortran = False
+# flag indicating if scikits.umfpack is installed
+umfpack = False
 # debug mode for development
 debug = False
 

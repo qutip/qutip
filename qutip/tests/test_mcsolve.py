@@ -34,7 +34,7 @@
 from qutip import *
 from qutip import _version2int
 from numpy import allclose, linspace, mean, ones
-from numpy.testing import assert_equal, run_module_suite
+from numpy.testing import assert_equal, run_module_suite, assert_
 from numpy.testing.decorators import skipif
 import unittest
 # find Cython if it exists
@@ -168,6 +168,21 @@ def test_MCNoCollFuncStates():
     actual_answer = 9.0 * ones(len(tlist))
     diff = mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(diff < error, True)
+
+
+def test_MCCollapseTimesOperators():
+    "Monte-carlo: Check for stored collapse operators and times"
+    N = 10
+    kappa = 5.0
+    times = linspace(0, 10, 100)
+    a = destroy(N)
+    H = a.dag() * a
+    psi0 = basis(N, 9)
+    c_ops = [sqrt(kappa) * a, sqrt(kappa) * a]
+    result = mcsolve(H, psi0, times, c_ops, [], ntraj=1)
+    assert_(len(result.col_times[0]) > 0)
+    assert_(len(result.col_which) == len(result.col_times))
+    assert_(set(result.col_which[0]) == {0, 1})
 
 
 def test_MCSimpleConst():
