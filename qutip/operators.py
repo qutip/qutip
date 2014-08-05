@@ -690,7 +690,7 @@ def qdiags(diagonals, offsets, dims=None, shape=None):
 
     Examples
     --------
-    >>> qdiag(sqrt(range(1,4)),1)
+    >>> qdiags(sqrt(range(1,4)),1)
     Quantum object: dims = [[4], [4]], \
 shape = [4, 4], type = oper, isherm = False
     Qobj data =
