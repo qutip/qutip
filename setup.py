@@ -42,8 +42,8 @@ from numpy.distutils.system_info import get_info
 
 # all information about QuTiP goes here-------
 MAJOR = 3
-MINOR = 1
-MICRO = 0
+MINOR = 0
+MICRO = 1
 ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'cython (>=0.15)',
