@@ -110,13 +110,19 @@ Installation on Ubuntu Linux
 Using QuTiP's PPA
 -------------------
 
-The easiest way to install QuTiP in Ubuntu (12.04 and later) is to use the QuTiP PPA
+The easiest way to install QuTiP in Ubuntu (14.04 and later) is to use the QuTiP PPA
 
 .. code-block:: bash
 
     sudo add-apt-repository ppa:jrjohansson/qutip-releases
     sudo apt-get update
     sudo apt-get install python-qutip
+
+A Python 3 version is also available, and can be installed using:
+
+.. code-block:: bash
+
+    sudo apt-get install python3-qutip
 
 With this method the most important dependencies are installed automatically, and when a new version of QuTiP is released it can be upgraded through the standard package management system. In addition to the required dependencies, it is also strongly recommended that you install the ``texlive-latex-extra`` package::
 
