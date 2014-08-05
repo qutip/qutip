@@ -9,6 +9,11 @@ Lindblad Master Equation Solver
 
 .. _master-unitary:
 
+.. ipython::
+   :suppress:
+
+   In [1]: from qutip import *
+
 Unitary evolution
 ====================
 The dynamics of a closed (pure) quantum system is governed by the Schrödinger equation
@@ -67,24 +72,34 @@ The function returns an instance of :class:`qutip.solver.Result`, as described i
               4.75953748e-01+0.j,   9.15776736e-01+0.j,   9.69398541e-01+0.j,
               6.14206262e-01+0.j,  -8.13905967e-06+0.j])]
   
-The resulting list of expectation values can easily be visualized using matplotlib's plotting functions::
+The resulting list of expectation values can easily be visualized using matplotlib's plotting functions:
 
-    >>> times = linspace(0.0, 10.0, 100)
-    >>> result = mesolve(H, psi0, times, [], [sigmaz(), sigmay()])
-    >>> 
-    >>> from pylab import *
-    >>> plot(result.times, result.expect[0])
-    >>> plot(result.times, result.expect[1])
-    >>> xlabel('Time')
-    >>> ylabel('Expectation values')
-    >>> legend(("Sigma-Z", "Sigma-Y"))
-    >>> show()
+.. ipython::
 
+    In [1]: H = 2 * pi * 0.1 * sigmax()
 
-.. figure:: guide-dynamics-qubit.png
-   :align: center
-   :width: 4in
+    In [1]: psi0 = basis(2, 0)
 
+    In [1]: times = np.linspace(0.0, 10.0, 100)
+
+    In [1]: result = mesolve(H, psi0, times, [], [sigmaz(), sigmay()])
+
+    In [1]: import matplotlib.pyplot as plt
+
+    In [1]: fig, ax = plt.subplots()
+
+    In [1]: ax.plot(result.times, result.expect[0]);
+
+    In [1]: ax.plot(result.times, result.expect[1]);
+
+    In [1]: ax.set_xlabel('Time');
+
+    In [1]: ax.set_ylabel('Expectation values');
+
+    In [1]: ax.legend(("Sigma-Z", "Sigma-Y"));
+
+	@savefig guide-dynamics-qubit.png width=5.0in align=center
+    In [1]: plt.show()
 
 If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a :class:`qutip.solver.Result` instance that contains a list of state vectors for the times specified in ``times``::
 
@@ -184,25 +199,35 @@ the master equation instead of the unitary Schrödinger equation.
 Using the example with the spin dynamics from the previous section, we can
 easily add a relaxation process (describing the dissipation of energy from the
 spin to its environment), by adding ``sqrt(0.05) * sigmax()`` to
-the previously empty list in the fourth parameter to the :func:`qutip.mesolve` function::
+the previously empty list in the fourth parameter to the :func:`qutip.mesolve` function:
 
-    >>> times = linspace(0.0, 10.0, 100)
-    >>> result = mesolve(H, psi0, times, [sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
-    >>> from pylab import *
-    >>> plot(times, result.expect[0])
-    >>> plot(times, result.expect[1])
-    >>> xlabel('Time')
-    >>> ylabel('Expectation values')
-    >>> legend(("Sigma-Z", "Sigma-Y"))
-    >>> show()
+
+.. ipython::
+
+    In [1]: times = np.linspace(0.0, 10.0, 100)
+
+    In [1]: result = mesolve(H, psi0, times, [sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
+
+    In [1]: import matplotlib.pyplot as plt
+
+    In [1]: fig, ax = plt.subplots()
+
+    In [1]: ax.plot(times, result.expect[0]);
+
+    In [1]: ax.plot(times, result.expect[1]);
+
+    In [1]: ax.set_xlabel('Time');
+
+    In [1]: ax.set_ylabel('Expectation values');
+
+    In [1]: ax.legend(("Sigma-Z", "Sigma-Y"));
+
+	@savefig guide-qubit-dynamics-dissip.png width=5.0in align=center
+    In [1]: plt.show(fig)
+
 
 Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.operators.sigmax`) describes the dissipation 
 process.
-
-.. figure:: guide-qubit-dynamics-dissip.png
-   :align: center
-   :width: 4in
-
 
 Now a slightly more complex example: Consider a two-level atom coupled to a leaky single-mode cavity through a dipole-type interaction, which supports a coherent exchange of quanta between the two systems. If the atom initially is in its groundstate and the cavity in a 5-photon Fock state, the dynamics is calculated with the lines following code::
 
