@@ -385,6 +385,11 @@ def _iterative_precondition(A, n, ss_args):
         M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
         if settings.debug:
             print('Preconditioning succeeded.')
+            if _scipy_check:
+                L_nnz = P.L.nnz
+                U_nnz = P.U.nnz
+                print('L NNZ:', L_nnz, ';', 'U NNZ:', U_nnz)
+                print('Fill factor:', (L_nnz+U_nnz)/A.nnz)
     except:
         warnings.warn("Preconditioning failed. Continuing without.",
                       UserWarning)
