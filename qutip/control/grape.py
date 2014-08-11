@@ -81,7 +81,8 @@ def _overlap(A, B):
 
 
 def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
-                  u_limits=None, interp_kind='linear',
+                  u_limits=None, interp_kind='linear', use_interp=False,
+                  alpha=None, phase_sensitive=True,
                   progress_bar=BaseProgressBar()):
     """
     Calculate control pulses for the Hamitonian operators in H_ops so that the
@@ -114,18 +115,24 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
     progress_bar.start(R)
     for r in range(R - 1):
         progress_bar.update(r)
+
+        dt = times[1] - times[0]
         
-        ip_funcs = [interp1d(times, u[r, j, :], kind=interp_kind,
-                             bounds_error=False, fill_value=u[r, j, -1])
-                    for j in range(J)]
+        if use_interp:
+            ip_funcs = [interp1d(times, u[r, j, :], kind=interp_kind,
+                                 bounds_error=False, fill_value=u[r, j, -1])
+                        for j in range(J)]
+            def _H_t(t, args=None):
+                return H0 + sum([float(ip_funcs[j](t)) * H_ops[j]
+                                 for j in range(J)])    
 
-        def H_func(t, args=None):
-            return H0 + sum([float(ip_funcs[j](t)) * H_ops[j]
-                             for j in range(J)])    
+            U_list = [(-1j * _H_t(times[idx]) * dt).expm() for idx in range(M-1)]
 
-        dt = np.diff(times)[0]
+        else:
+            def _H_idx(idx):
+                return H0 + sum([u[r, j, idx] * H_ops[j] for j in range(J)])    
 
-        U_list = [(-1j * H_func(times[idx]) * dt).expm() for idx in range(M-1)]
+            U_list = [(-1j * _H_idx(idx) * dt).expm() for idx in range(M-1)]
 
         U_f_list = []
         U_b_list = []
@@ -142,28 +149,39 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
 
         for j in range(J):
             for k in range(M-1):
-                du = _overlap(U_b_list[k] * U,
-                              1j * dt * H_ops[j] * U_f_list[k])
+                P = U_b_list[k] * U
+                Q = 1j * dt * H_ops[j] * U_f_list[k]
 
-                u[r + 1, j, k] = u[r, j, k] - eps * du.real
+                if phase_sensitive:
+                    du = - 2 * _overlap(P, Q) * _overlap(H_ops[j], P) 
+                else:
+                    du = - _overlap(P, Q)
+
+                if alpha:
+                    # penalty term for high power control signals u
+                    du += -2 * alpha * u[r, j, k] * dt
+
+                u[r + 1, j, k] = u[r, j, k] + eps * du.real
 
                 if u_limits:
-                    if u_limits[0] > u[r + 1, j, k]:
+                    if u_limits[0] < u[r + 1, j, k]:
                         u[r + 1, j, k] = u_limits[0]
 
-                    elif u_limits[1] < u[r + 1, j, k]:
+                    elif u_limits[1] > u[r + 1, j, k]:
                         u[r + 1, j, k] = u_limits[1]
-
 
             u[r + 1, j, -1] = u[r + 1, j, -2]
             
-    ip_funcs = [interp1d(times, u[R - 1, j, :], kind=interp_kind,
-                         bounds_error=False, fill_value=u[R - 1, j, -1])
-                for j in range(J)]
+    if use_interp:
+        ip_funcs = [interp1d(times, u[R - 1, j, :], kind=interp_kind,
+                             bounds_error=False, fill_value=u[R - 1, j, -1])
+                    for j in range(J)]
 
-    H_list_func = [H0] + [[H_ops[j], lambda t, args, j=j: ip_funcs[j](t)]
-                          for j in range(J)]    
+        H_td_func = [H0] + [[H_ops[j], lambda t, args, j=j: ip_funcs[j](t)]
+                              for j in range(J)]    
+    else:
+        H_td_func = [H0] + [[H_ops[j], u[-1, j, :]] for j in range(J)]    
 
     progress_bar.finished()
     
-    return U_f_list[-1], H_list_func, u
+    return U_f_list[-1], H_td_func, u
