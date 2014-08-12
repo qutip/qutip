@@ -36,6 +36,7 @@ open quantum systems defined by a Liouvillian or Hamiltonian and a list of
 collapse operators.
 """
 import warnings
+import time
 import scipy
 import numpy as np
 from numpy.linalg import svd
@@ -374,6 +375,7 @@ def _iterative_precondition(A, n, ss_args):
     """
     if settings.debug:
         print('Starting preconditioner...',)
+        _precond_start=time.time()
     try:
         P = spilu(A, permc_spec=ss_args['permc_spec'],
                   drop_tol=ss_args['drop_tol'],
@@ -385,6 +387,7 @@ def _iterative_precondition(A, n, ss_args):
         M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
         if settings.debug:
             print('Preconditioning succeeded.')
+            print('Precond. time:',time.time()-_precond_start)
             if _scipy_check:
                 L_nnz = P.L.nnz
                 U_nnz = P.U.nnz
