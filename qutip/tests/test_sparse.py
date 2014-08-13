@@ -137,37 +137,13 @@ def test_sparse_nonsymmetric_reverse_permute():
 
 def test_sp_bandwidth():
     "Sparse: Bandwidth"
-    # Bandwidth test 1
-    A = create(25)+destroy(25)+qeye(25)
-    band = sp_bandwidth(A.data)
-    assert_equal(band[0], 3)
-    assert_equal(band[1] == band[2] == 1, 1)
-    # Bandwidth test 2
-    A = np.array([[1, 0, 0, 0, 1, 0, 0, 0],
-                  [0, 1, 1, 0, 0, 1, 0, 1],
-                  [0, 1, 1, 0, 1, 0, 0, 0],
-                  [0, 0, 0, 1, 0, 0, 1, 0],
-                  [1, 0, 1, 0, 1, 0, 0, 0],
-                  [0, 1, 0, 0, 0, 1, 0, 1],
-                  [0, 0, 0, 1, 0, 0, 1, 0],
-                  [0, 1, 0, 0, 0, 1, 0, 1]], dtype=np.int32)
-    A = sp.csr_matrix(A)
-    out1 = sp_bandwidth(A)
-    assert_equal(out1[0], 13)
-    assert_equal(out1[1] == out1[2] == 6, 1)
-    # Bandwidth test 3
-    perm = reverse_cuthill_mckee(A)
-    B = sp_permute(A, perm, perm)
-    out2 = sp_bandwidth(B)
-    assert_equal(out2[0], 5)
-    assert_equal(out2[1] == out2[2] == 2, 1)
-    # Asymmetric bandwidth test
-    A = destroy(25)+qeye(25)
-    out1 = sp_bandwidth(A.data)
-    assert_equal(out1[0], 2)
-    assert_equal(out1[1], 0)
-    assert_equal(out1[2], 1)
-
+    A = sp.rand(10,10,density=0.3,format='csr')
+    ans1 = sp_bandwidth(A)
+    A = A.toarray()
+    i,j = np.nonzero(A)
+    ans2 = ((j-i).max()+(i-j).max()+1,(i-j).max(),(j-i).max())
+    assert_equal(ans1, ans2)
+    
 
 if __name__ == "__main__":
     run_module_suite()
