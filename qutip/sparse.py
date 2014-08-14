@@ -41,7 +41,7 @@ import numpy as np
 import scipy.linalg as la
 from scipy.linalg.blas import get_blas_funcs
 _dznrm2 = get_blas_funcs("znrm2")
-from qutip.cy.sparse_utils import (
+from qutip.cy.sparse_utils import (_sparse_profile,
     _sparse_permute, _sparse_reverse_permute, _sparse_bandwidth)
 from qutip.settings import debug
 
@@ -608,3 +608,28 @@ def sp_bandwidth(A):
         return mb, lb, ub
     else:
         raise Exception('Invalid sparse input format.')
+
+def sp_profile(A):
+    """Returns the total, lower, and upper profiles of a 
+    sparse matrix.
+    
+    If the matrix is symmetric then the upper and lower profiles are
+    identical. Diagonal matrices have zero profile.
+    
+    Parameters
+    ----------
+    A : csr_matrix, csc_matrix
+        Input matrix
+    
+    """
+    if sp.isspmatrix_csr(A):
+        up = _sparse_profile(A.indices,A.indptr,A.shape[0])
+        A = A.tocsc()
+        lp = _sparse_profile(A.indices,A.indptr,A.shape[0])
+    elif sp.isspmatrix_csc(A):
+        lp = _sparse_profile(A.indices,A.indptr,A.shape[0])
+        A = A.tocsr()
+        up = _sparse_profile(A.indices,A.indptr,A.shape[0])
+    else:
+        raise TypeError('Input sparse matrix must be in CSR or CSC format.')
+    return up+lp, lp, up
