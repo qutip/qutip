@@ -66,7 +66,8 @@ def _sparse_bandwidth(
 def _sparse_profile(np.ndarray[ITYPE_t, ndim=1] idx,
         np.ndarray[ITYPE_t, ndim=1] ptr,
         int nrows):
-    cdef int ii, jj, temp, ldist=0, pro=0
+    cdef int ii, jj, temp, ldist=0
+    cdef LTYPE_t pro=0
     for ii in range(nrows):
         temp = 0
         for jj in range(ptr[ii], ptr[ii + 1]):
