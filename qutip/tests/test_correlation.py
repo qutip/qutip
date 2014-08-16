@@ -170,41 +170,6 @@ def test_cython_td_corr():
     assert_(abs(g20-0.57) < 1e-1)
 
 
-def test_old_fn_td_corr():
-    "correlation: comparing TLS emission correlations (old td format)"
-
-    # calculate emission zero-delay second order correlation, g2(0), for TLS
-    # with following parameters:
-    #   gamma = 1, omega = 2, tp = 0.5
-    # Then: g2(0)~0.57
-    sm = destroy(2)
-
-    def H_func(t, args):
-        return 2 * args[0] * exp(-2 * (t-1)**2)
-
-    tlist = linspace(0, 5, 50)
-    corr = correlation_4op_2t(H_func, fock(2, 0), tlist, tlist, [sm],
-                              sm.dag(), sm.dag(), sm, sm, args=[sm+sm.dag()])
-    # integrate w/ 2D trapezoidal rule
-    dt = (tlist[-1]-tlist[0]) / (shape(tlist)[0]-1)
-    s1 = corr[0, 0] + corr[-1, 0] + corr[0, -1] + corr[-1, -1]
-    s2 = sum(corr[1:-1, 0]) + sum(corr[1:-1, -1]) +\
-        sum(corr[0, 1:-1]) + sum(corr[-1, 1:-1])
-    s3 = sum(corr[1:-1, 1:-1])
-
-    exp_n_in = trapz(
-        mesolve(
-            H_func, fock(2, 0), tlist, [sm], [sm.dag()*sm], args=[sm+sm.dag()]
-        ).expect[0], tlist
-    )
-    # factor of 2 from negative time correlations
-    g20 = abs(
-        sum(0.5*dt**2*(s1 + 2*s2 + 4*s3)) / exp_n_in**2
-    )
-
-    assert_(abs(g20-0.57) < 1e-1)
-
-
 def test_fn_td_corr():
     "correlation: comparing TLS emission correlations (fn td format)"
 
