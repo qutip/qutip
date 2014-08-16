@@ -762,7 +762,7 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
             if isinstance(_args, dict):
                 _args["_t0"] = tlist[t_idx]
             else:
-                _args[1] = tlist[t_idx]
+                _args[-1] = tlist[t_idx]
 
         if reverse is False:
             # <A(t)B(t+tau)C(t+tau)D(t)>
