@@ -1032,7 +1032,15 @@ def _transform_H_t_shift(H, args=None):
 
     if isinstance(H, types.FunctionType):
         # old style function-based time-dependence
-        raise NotImplementedError("Old style time-dependence not supported")
+        if isinstance(args, dict):
+            _args = args.copy()
+            _args["_t0"] = 0
+            H_shifted = lambda t, args_i: H(t+args_i["_t0"], args_i)
+        else:
+            raise TypeError("Old style time-dependence only" +
+                            "supports args as a dictionary")
+
+        return H_shifted, _args
 
     if isinstance(H, list):
         # determine if we are dealing with list of [Qobj, string] or
