@@ -758,10 +758,11 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
     H_shifted, _args = _transform_H_t_shift(H, args)
 
     for t_idx, rho in enumerate(rho_t):
-        if isinstance(H_shifted, types.FunctionType):
-            _args[-1] = tlist[t_idx]
-        else:
-            _args["_t0"] = tlist[t_idx]
+        if not isinstance(H, Qobj):
+            if isinstance(_args, dict):
+                _args["_t0"] = tlist[t_idx]
+            else:
+                _args[1] = tlist[t_idx]
 
         if reverse is False:
             # <A(t)B(t+tau)C(t+tau)D(t)>
@@ -1033,9 +1034,17 @@ def _transform_H_t_shift(H, args=None):
 
     if isinstance(H, types.FunctionType):
         # old style function-based time-dependence
-        _args = args
-        _args.append(0)
-        H_shifted = lambda t, args_i: H(t+args_i[-1], args_i)
+        if isinstance(args, dict):
+            _args = args.copy()
+            _args["_t0"] = 0
+            H_shifted = lambda t, args_i: H(t+args_i["_t0"], args_i)
+        elif isinstance(args, list):
+            _args = args
+            _args.append(0)
+            H_shifted = lambda t, args_i: H(t+args_i[-1], args_i)
+        else:
+            raise TypeError("If using old style time dependent Hamiltonian," +
+                            "args must be a list or a dictionary")
         return H_shifted, _args
 
     if isinstance(H, list):
@@ -1043,19 +1052,32 @@ def _transform_H_t_shift(H, args=None):
         # [Qobj, function] style time-dependencies (for pure python and
         # cython, respectively)
         H_shifted = []
-        _args = args.copy()
-        _args["_t0"] = 0
+        if isinstance(args, dict):
+            _args = args.copy()
+            _args["_t0"] = 0
+        else:
+            _args = [args, 0]
 
         for i in range(len(H)):
             if isinstance(H[i], list):
-                # modify hamiltonian time depence in accordance with the
+                # modify hamiltonian time dependence in accordance with the
                 # quantum regression theorem
-                if isinstance(H[i][1], types.FunctionType):
-                    fn = lambda t, args_i: H[i][1](t+args_i["_t0"], args_i)
+                if isinstance(args, dict):
+                    if isinstance(H[i][1], types.FunctionType):
+                        fn = lambda t, args_i: \
+                            H[i][1](t+args_i["_t0"], args_i)
+                    else:
+                        fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
+                                 "(t+_t0)", H[i][1])
                 else:
-                    fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
-                             "(t+_t0)", H[i][1])
-
+                    if isinstance(H[i][1], types.FunctionType):
+                        # if args is not a dict then there are no cython
+                        # td strings
+                        fn = lambda t, args_i: H[i][1](t+args_i[1], args_i[0])
+                    else:
+                        raise TypeError("If using cython time dependent" +
+                                        "Hamiltonian format, args must be" +
+                                        "a dictionary")
                 H_shifted.append([H[i][0], fn])
             else:
                 H_shifted.append(H[i])
