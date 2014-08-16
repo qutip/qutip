@@ -1022,8 +1022,7 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 # -----------------------------------------------------------------------------
 def _transform_H_t_shift(H, args=None):
     """
-    Time shift the hamiltonian with private time-shift variable _t0 for new
-    style time dependence. The old style time-dependence is not supported
+    Time shift the hamiltonian with private time-shift variable _t0
     """
 
     if isinstance(H, Qobj):
