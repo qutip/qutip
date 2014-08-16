@@ -759,10 +759,7 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
 
     for t_idx, rho in enumerate(rho_t):
         if not isinstance(H, Qobj):
-            if isinstance(_args, dict):
-                _args["_t0"] = tlist[t_idx]
-            else:
-                _args[-1] = tlist[t_idx]
+            _args["_t0"] = tlist[t_idx]
 
         if reverse is False:
             # <A(t)B(t+tau)C(t+tau)D(t)>
@@ -1025,7 +1022,8 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 # -----------------------------------------------------------------------------
 def _transform_H_t_shift(H, args=None):
     """
-    Time shift the hamiltonian with private time-shift variable _t0
+    Time shift the hamiltonian with private time-shift variable _t0 for new
+    style time dependence. The old style time-dependence is not supported
     """
 
     if isinstance(H, Qobj):
@@ -1034,18 +1032,7 @@ def _transform_H_t_shift(H, args=None):
 
     if isinstance(H, types.FunctionType):
         # old style function-based time-dependence
-        if isinstance(args, dict):
-            _args = args.copy()
-            _args["_t0"] = 0
-            H_shifted = lambda t, args_i: H(t+args_i["_t0"], args_i)
-        elif isinstance(args, list):
-            _args = args
-            _args.append(0)
-            H_shifted = lambda t, args_i: H(t+args_i[-1], args_i)
-        else:
-            raise TypeError("If using old style time dependent Hamiltonian," +
-                            "args must be a list or a dictionary")
-        return H_shifted, _args
+        raise NotImplementedError("Old style time-dependence not supported")
 
     if isinstance(H, list):
         # determine if we are dealing with list of [Qobj, string] or
@@ -1056,7 +1043,7 @@ def _transform_H_t_shift(H, args=None):
             _args = args.copy()
             _args["_t0"] = 0
         else:
-            _args = [args, 0]
+            _args = {"_user_args": args, "_t0": 0}
 
         for i in range(len(H)):
             if isinstance(H[i], list):
@@ -1071,9 +1058,8 @@ def _transform_H_t_shift(H, args=None):
                                  "(t+_t0)", H[i][1])
                 else:
                     if isinstance(H[i][1], types.FunctionType):
-                        # if args is not a dict then there are no cython
-                        # td strings
-                        fn = lambda t, args_i: H[i][1](t+args_i[1], args_i[0])
+                        fn = lambda t, args_i: \
+                            H[i][1](t+args_i["_t0"], args_i["_user_args"])
                     else:
                         raise TypeError("If using cython time dependent" +
                                         "Hamiltonian format, args must be" +
