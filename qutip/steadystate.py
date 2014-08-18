@@ -65,7 +65,7 @@ def _default_steadystate_args():
     def_args = {'method': 'direct', 'sparse': True, 'use_rcm': False,
                 'use_wbm': False, 'use_umfpack': False, 'weight': None,
                 'use_precond': True, 'all_states': False,
-                'M': None, 'drop_tol': 1e-3, 'fill_factor': 10,
+                'M': None, 'x0' : None, 'drop_tol': 1e-4, 'fill_factor': 100,
                 'diag_pivot_thresh': None, 'maxiter': 10000, 'tol': 1e-9,
                 'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2'}
 
@@ -393,6 +393,9 @@ def _iterative_precondition(A, n, ss_args):
                 U_nnz = P.U.nnz
                 print('L NNZ:', L_nnz, ';', 'U NNZ:', U_nnz)
                 print('Fill factor:', (L_nnz+U_nnz)/A.nnz)
+                e = np.ones(n ** 2,dtype=int)
+                condest = la.norm(M*e,np.inf)
+                print('iLU Condest:', condest)
     except:
         warnings.warn("Preconditioning failed. Continuing without.",
                       UserWarning)
@@ -444,11 +447,13 @@ def _steadystate_iterative(L, ss_args):
     # Select iterative solver type
     if ss_args['method'] == 'iterative-gmres':
         v, check = gmres(L, b, tol=ss_args['tol'], M=ss_args['M'],
+                            x0=ss_args['x0'],
                             maxiter=ss_args['maxiter'])
 
     elif ss_args['method'] == 'iterative-lgmres':
         v, check = lgmres(L, b, tol=ss_args['tol'], M=ss_args['M'],
-                          maxiter=ss_args['maxiter'])
+                            x0=ss_args['x0'],
+                            maxiter=ss_args['maxiter'])
     else:
         raise Exception("Invalid iterative solver method.")
 
