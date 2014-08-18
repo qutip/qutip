@@ -343,7 +343,9 @@ class SolverConfiguration():
         self.h_func_args = None
         self.c_funcs = None
         self.c_func_args = None
-
+        
+        # Steady state preconditioner
+        self.steady_precond = None
 #
 # create a global instance of the SolverConfiguration class
 #

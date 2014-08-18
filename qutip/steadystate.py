@@ -53,6 +53,7 @@ from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
 from qutip.states import ket2dm, maximally_mixed_dm
 import qutip.settings as settings
 from qutip.utilities import _version2int
+from qutip.solver import config
 
 if settings.debug:
     import inspect
@@ -67,8 +68,8 @@ def _default_steadystate_args():
                 'use_precond': True, 'all_states': False,
                 'M': None, 'x0' : None, 'drop_tol': 1e-4, 'fill_factor': 100,
                 'diag_pivot_thresh': None, 'maxiter': 10000, 'tol': 1e-9,
-                'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2'}
-
+                'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2',
+                'reuse_precond': False}
     return def_args
 
 
@@ -185,13 +186,20 @@ def steadystate(A, c_op_list=[], **kwargs):
     # Set column perm to NATURAL if using RCM and not specified by user
     if ss_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):
         ss_args['permc_spec'] = 'NATURAL'
-
-    # Set use_wbm=True if using iterative solver with preconditioner and
-    # not explicitly set to False by user
-    if (ss_args['method'] in ['iterative-lgmres', 'iterative-gmres']) \
-            and ('use_wbm' not in kwargs.keys()):
-        ss_args['use_wbm'] = True
-
+    
+    # Check if preconditioner is both explicitly set and reused
+    if ss_args['M'] and ss_args['reuse_precond']:
+        raise Exception('Cannot explicity pass and reuse a preconditioner.')
+    
+    # Set user specified preconditioner
+    if ss_args['M']:
+        config.steady_precond = ss_args['M']
+    
+    # Check if reusing preconditioner, but nothing there
+    if ss_args['reuse_precond'] and not config.steady_precond:
+        print('No predefined preconditioner found, generating one...')
+        ss_args['reuse_precond'] = False
+    
     n_op = len(c_op_list)
 
     if isoper(A):
@@ -384,7 +392,7 @@ def _iterative_precondition(A, n, ss_args):
                   options=dict(ILU_MILU=ss_args['ILU_MILU']))
 
         P_x = lambda x: P.solve(x)
-        M = LinearOperator((n ** 2, n ** 2), matvec=P_x)
+        config.steady_precond = LinearOperator((n ** 2, n ** 2), matvec=P_x)
         if settings.debug:
             print('Preconditioning succeeded.')
             print('Precond. time:',time.time()-_precond_start)
@@ -394,14 +402,14 @@ def _iterative_precondition(A, n, ss_args):
                 print('L NNZ:', L_nnz, ';', 'U NNZ:', U_nnz)
                 print('Fill factor:', (L_nnz+U_nnz)/A.nnz)
                 e = np.ones(n ** 2,dtype=int)
-                condest = la.norm(M*e,np.inf)
+                condest = la.norm(config.steady_precond*e,np.inf)
                 print('iLU Condest:', condest)
     except:
         warnings.warn("Preconditioning failed. Continuing without.",
                       UserWarning)
-        M = None
+        config.steady_precond = None
 
-    return M
+    return
 
 
 def _steadystate_iterative(L, ss_args):
@@ -441,17 +449,19 @@ def _steadystate_iterative(L, ss_args):
             print('Bandwidth reduction factor:', round(old_band/rcm_band, 1))
 
     L.sort_indices()
-    if ss_args['M'] is None and ss_args['use_precond']:
-        ss_args['M'] = _iterative_precondition(L, n, ss_args)
+    
+    if not ss_args['M'] and ss_args['use_precond'] \
+                and not ss_args['reuse_precond']:
+        _iterative_precondition(L, n, ss_args)
 
     # Select iterative solver type
     if ss_args['method'] == 'iterative-gmres':
-        v, check = gmres(L, b, tol=ss_args['tol'], M=ss_args['M'],
+        v, check = gmres(L, b, tol=ss_args['tol'], M=config.steady_precond,
                             x0=ss_args['x0'],
                             maxiter=ss_args['maxiter'])
 
     elif ss_args['method'] == 'iterative-lgmres':
-        v, check = lgmres(L, b, tol=ss_args['tol'], M=ss_args['M'],
+        v, check = lgmres(L, b, tol=ss_args['tol'], M=config.steady_precond,
                             x0=ss_args['x0'],
                             maxiter=ss_args['maxiter'])
     else:
