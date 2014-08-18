@@ -375,7 +375,7 @@ def _iterative_precondition(A, n, ss_args):
     """
     if settings.debug:
         print('Starting preconditioner...',)
-        _precond_start=time.time()
+        _precond_start = time.time()
     try:
         P = spilu(A, permc_spec=ss_args['permc_spec'],
                   drop_tol=ss_args['drop_tol'],
@@ -445,6 +445,7 @@ def _steadystate_iterative(L, ss_args):
         ss_args['M'] = _iterative_precondition(L, n, ss_args)
 
     # Select iterative solver type
+    _iter_start = time.time()
     if ss_args['method'] == 'iterative-gmres':
         v, check = gmres(L, b, tol=ss_args['tol'], M=ss_args['M'],
                             x0=ss_args['x0'],
@@ -456,7 +457,9 @@ def _steadystate_iterative(L, ss_args):
                             maxiter=ss_args['maxiter'])
     else:
         raise Exception("Invalid iterative solver method.")
-
+    _iter_end = time.time()
+    if settings.debug:
+        print('Iteration. time:',_iter_end-_iter_start)
     if check > 0:
         raise Exception("Steadystate solver did not reach tolerance after " +
                         str(check) + " steps.")
