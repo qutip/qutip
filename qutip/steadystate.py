@@ -88,7 +88,7 @@ def steadystate(A, c_op_list=[], **kwargs):
     c_op_list : list
         A list of collapse operators.
 
-    method : str {'direct', 'eigen', 'iterative-bicg',
+    method : str {'direct', 'eigen', 'iterative-bicg', 'iterative-bicgstab',
                   'iterative-gmres', 'iterative-lgmres', 'svd', 'power'}
         Method for solving the underlying linear equation. Direct LU solver
         'direct' (default), sparse eigenvalue problem 'eigen',
