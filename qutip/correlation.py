@@ -133,7 +133,8 @@ def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
+        system Hamiltonian, or a callback function for time dependent
+        Hamiltonians IF using the me solver.
 
     rho0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho(t_0)` (or state vector). If
@@ -318,11 +319,6 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
     See, Gardiner, Quantum Noise, Section 5.2.1.
 
     """
-
-    if rho0 is None and not isinstance(H, list):
-        rho0 = steadystate(H, c_ops)
-    elif rho0 and isket(rho0):
-        rho0 = ket2dm(rho0)
 
     if debug:
         print(inspect.stack()[0][3])
@@ -685,28 +681,36 @@ def _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
     if debug:
         print(inspect.stack()[0][3])
 
-    if rho0 is None:
+    if rho0 is None and not isinstance(H, list):
         rho0 = steadystate(H, c_ops)
+    elif rho0 is None:
+        raise TypeError("Missing initial condition")
     elif rho0 and isket(rho0):
         rho0 = ket2dm(rho0)
 
     C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
+    rho_t = mesolve(H, rho0, tlist, c_ops, [],
+                    args=args, options=options).states
+    H_shifted, _args = _transform_H_t_shift(H, args)
 
-    rho_t_list = mesolve(
-        H, rho0, tlist, c_ops, [], args=args, options=options).states
+    for t_idx, rho in enumerate(rho_t):
+        if not isinstance(H, Qobj):
+            _args["_t0"] = tlist[t_idx]
 
-    if reverse:
-        # <A(t)B(t+tau)>
-        for t_idx, rho_t in enumerate(rho_t_list):
-            C_mat[t_idx, :] = mesolve(H, rho_t * a_op, taulist,
-                                      c_ops, [b_op], args=args,
-                                      options=options).expect[0]
-    else:
-        # <A(t+tau)B(t)>
-        for t_idx, rho_t in enumerate(rho_t_list):
-            C_mat[t_idx, :] = mesolve(H, b_op * rho_t, taulist,
-                                      c_ops, [a_op], args=args,
-                                      options=options).expect[0]
+        if reverse is False:
+            # <A(t)B(t+tau)>
+            correlator_ic = b_op * rho
+            correlator_exp = a_op
+        else:
+            # <A(t)B(t+tau)>
+            correlator_ic = rho * a_op
+            correlator_exp = b_op
+
+        C_mat[t_idx, :] = mesolve(H_shifted, correlator_ic, taulist,
+                                  c_ops, [correlator_exp], args=_args,
+                                  options=options).expect[0]
+        if t_idx == 1:
+            options.rhs_reuse = True
 
     return C_mat
 
@@ -747,8 +751,10 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
     if debug:
         print(inspect.stack()[0][3])
 
-    if rho0 is None:
-        raise TypeError("Missing initial state")
+    if rho0 is None and not isinstance(H, list):
+        rho0 = steadystate(H, c_ops)
+    elif rho0 is None:
+        raise TypeError("Missing initial condition")
     elif rho0 and isket(rho0):
         rho0 = ket2dm(rho0)
 
@@ -1024,27 +1030,28 @@ def _transform_H_t_shift(H, args=None):
     """
     Time shift the hamiltonian with private time-shift variable _t0
     """
+    # it's important that args be a blank dictionary in none is passed
 
     if isinstance(H, Qobj):
         # constant hamiltonian
         return H, args
 
     if isinstance(H, types.FunctionType):
-        # old style function-based time-dependence
-        if isinstance(args, dict):
-            _args = args.copy()
-            _args["_t0"] = 0
+        # function-callback based time-dependence
+        if isinstance(args, dict) or args is None:
+            if args is None:
+                _args = {"_t0": 0}
+            else:
+                _args = args.copy()
+                _args["_t0"] = 0
             H_shifted = lambda t, args_i: H(t+args_i["_t0"], args_i)
         else:
-            raise TypeError("Old style time-dependence only" +
-                            "supports args as a dictionary")
-
+            raise TypeError("If using function-callback based Hamiltonian" +
+                            "time-dependence, args must be a dictionary")
         return H_shifted, _args
 
     if isinstance(H, list):
-        # determine if we are dealing with list of [Qobj, string] or
-        # [Qobj, function] style time-dependencies (for pure python and
-        # cython, respectively)
+        # string/function-list based time-dependence
         H_shifted = []
         if isinstance(args, dict):
             _args = args.copy()
@@ -1056,21 +1063,26 @@ def _transform_H_t_shift(H, args=None):
             if isinstance(H[i], list):
                 # modify hamiltonian time dependence in accordance with the
                 # quantum regression theorem
-                if isinstance(args, dict):
+                if isinstance(args, dict) or args is None:
                     if isinstance(H[i][1], types.FunctionType):
+                        # function-list based time-dependence
                         fn = lambda t, args_i: \
                             H[i][1](t+args_i["_t0"], args_i)
                     else:
+                        # string-list based time-dependence
+                        # note: other functions already raise errors for mixed
+                        # td formatting
                         fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
                                  "(t+_t0)", H[i][1])
                 else:
                     if isinstance(H[i][1], types.FunctionType):
+                        # function-list based time-dependence
                         fn = lambda t, args_i: \
                             H[i][1](t+args_i["_t0"], args_i["_user_args"])
                     else:
-                        raise TypeError("If using cython time dependent" +
-                                        "Hamiltonian format, args must be" +
-                                        "a dictionary")
+                        raise TypeError("If using string-list based" +
+                                        "Hamiltonian time-dependence, args" +
+                                        "must be a dictionary")
                 H_shifted.append([H[i][0], fn])
             else:
                 H_shifted.append(H[i])

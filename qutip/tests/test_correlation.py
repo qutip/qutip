@@ -48,7 +48,9 @@ else:
 
 
 def test_compare_solvers_coherent_state():
-    "correlation: comparing me and es for oscillator in coherent initial state"
+    """
+    correlation: comparing me and es for oscillator in coherent initial state
+    """
 
     N = 20
     a = destroy(N)
@@ -66,7 +68,9 @@ def test_compare_solvers_coherent_state():
 
 
 def test_compare_solvers_steadystate():
-    "correlation: comparing me and es for oscillator in steady state"
+    """
+    correlation: comparing me and es for oscillator in steady state
+    """
 
     N = 20
     a = destroy(N)
@@ -83,7 +87,9 @@ def test_compare_solvers_steadystate():
 
 
 def test_spectrum():
-    "correlation: comparing spectrum from eseries and fft methods"
+    """
+    correlation: comparing spectrum from eseries and fft methods
+    """
 
     # use JC model
     N = 4
@@ -110,7 +116,9 @@ def test_spectrum():
 
 
 def test_spectrum():
-    "correlation: comparing spectrum from eseries and pseudo-inverse methods"
+    """
+    correlation: comparing spectrum from eseries and pseudo-inverse methods
+    """
 
     # use JC model
     N = 4
@@ -137,8 +145,10 @@ def test_spectrum():
 
 @unittest.skipIf(_version2int(Cython.__version__) < _version2int('0.14') or
                  Cython_found == 0, 'Cython not found or version too low.')
-def test_cython_td_corr():
-    "correlation: comparing TLS emission correlations (cython td format)"
+def test_str_list_td_corr():
+    """
+    correlation: comparing TLS emission correlations (str-list td format)
+    """
 
     # calculate emission zero-delay second order correlation, g2(0), for TLS
     # with following parameters:
@@ -170,8 +180,46 @@ def test_cython_td_corr():
     assert_(abs(g20-0.57) < 1e-1)
 
 
-def test_old_fn_td_corr():
-    "correlation: comparing TLS emission correlations (old td format)"
+def test_fn_list_td_corr():
+    """
+    correlation: comparing TLS emission correlations (fn-list td format)
+    """
+
+    # calculate emission zero-delay second order correlation, g2(0), for TLS
+    # with following parameters:
+    #   gamma = 1, omega = 2, tp = 0.5
+    # Then: g2(0)~0.57
+    sm = destroy(2)
+    args = {"t_off": 1, "tp": 0.5}
+    H = [[2 * (sm+sm.dag()),
+          lambda t, args: exp(-(t-args["t_off"])**2 / (2*args["tp"]**2))]]
+    tlist = linspace(0, 5, 50)
+    corr = correlation_4op_2t(H, fock(2, 0), tlist, tlist, [sm],
+                              sm.dag(), sm.dag(), sm, sm, args=args)
+    # integrate w/ 2D trapezoidal rule
+    dt = (tlist[-1]-tlist[0]) / (shape(tlist)[0]-1)
+    s1 = corr[0, 0] + corr[-1, 0] + corr[0, -1] + corr[-1, -1]
+    s2 = sum(corr[1:-1, 0]) + sum(corr[1:-1, -1]) + \
+        sum(corr[0, 1:-1]) + sum(corr[-1, 1:-1])
+    s3 = sum(corr[1:-1, 1:-1])
+
+    exp_n_in = trapz(
+        mesolve(
+            H, fock(2, 0), tlist, [sm], [sm.dag()*sm], args=args
+        ).expect[0], tlist
+    )
+    # factor of 2 from negative time correlations
+    g20 = abs(
+        sum(0.5*dt**2*(s1 + 2*s2 + 4*s3)) / exp_n_in**2
+    )
+
+    assert_(abs(g20-0.57) < 1e-1)
+
+
+def test_fn_td_corr():
+    """
+    correlation: comparing TLS emission correlations (fn td format)
+    """
 
     # calculate emission zero-delay second order correlation, g2(0), for TLS
     # with following parameters:
@@ -206,39 +254,6 @@ def test_old_fn_td_corr():
 
     assert_(abs(g20-0.57) < 1e-1)
 
-
-def test_fn_td_corr():
-    "correlation: comparing TLS emission correlations (fn td format)"
-
-    # calculate emission zero-delay second order correlation, g2(0), for TLS
-    # with following parameters:
-    #   gamma = 1, omega = 2, tp = 0.5
-    # Then: g2(0)~0.57
-    sm = destroy(2)
-    args = {"t_off": 1, "tp": 0.5}
-    H = [[2 * (sm+sm.dag()),
-          lambda t, args: exp(-(t-args["t_off"])**2 / (2*args["tp"]**2))]]
-    tlist = linspace(0, 5, 50)
-    corr = correlation_4op_2t(H, fock(2, 0), tlist, tlist, [sm],
-                              sm.dag(), sm.dag(), sm, sm, args=args)
-    # integrate w/ 2D trapezoidal rule
-    dt = (tlist[-1]-tlist[0]) / (shape(tlist)[0]-1)
-    s1 = corr[0, 0] + corr[-1, 0] + corr[0, -1] + corr[-1, -1]
-    s2 = sum(corr[1:-1, 0]) + sum(corr[1:-1, -1]) + \
-        sum(corr[0, 1:-1]) + sum(corr[-1, 1:-1])
-    s3 = sum(corr[1:-1, 1:-1])
-
-    exp_n_in = trapz(
-        mesolve(
-            H, fock(2, 0), tlist, [sm], [sm.dag()*sm], args=args
-        ).expect[0], tlist
-    )
-    # factor of 2 from negative time correlations
-    g20 = abs(
-        sum(0.5*dt**2*(s1 + 2*s2 + 4*s3)) / exp_n_in**2
-    )
-
-    assert_(abs(g20-0.57) < 1e-1)
 
 if __name__ == "__main__":
     run_module_suite()
