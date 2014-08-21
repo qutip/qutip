@@ -89,7 +89,7 @@ def steadystate(A, c_op_list=[], **kwargs):
         A list of collapse operators.
 
     method : str {'direct', 'eigen', 'iterative-bicg',
-                  'iterative-gmres', 'svd', 'power'}
+                  'iterative-gmres', 'iterative-lgmres', 'svd', 'power'}
         Method for solving the underlying linear equation. Direct LU solver
         'direct' (default), sparse eigenvalue problem 'eigen',
         iterative GMRES method 'iterative-gmres', iterative LGMRES method
@@ -218,7 +218,8 @@ def steadystate(A, c_op_list=[], **kwargs):
     elif ss_args['method'] == 'eigen':
         return _steadystate_eigen(A, ss_args)
 
-    elif ss_args['method'] in ['iterative-gmres', 'iterative-lgmres']:
+    elif ss_args['method'] in ['iterative-gmres', 'iterative-lgmres',
+                               'iterative-bicg', 'iterative-bicgstab']:
         return _steadystate_iterative(A, ss_args)
 
     elif ss_args['method'] == 'svd':
@@ -445,21 +446,35 @@ def _steadystate_iterative(L, ss_args):
         ss_args['M'] = _iterative_precondition(L, n, ss_args)
 
     # Select iterative solver type
-    _iter_start = time.time()
+    if settings.debug:
+        _iter_start = time.time()
+
     if ss_args['method'] == 'iterative-gmres':
         v, check = gmres(L, b, tol=ss_args['tol'], M=ss_args['M'],
-                            x0=ss_args['x0'],
-                            maxiter=ss_args['maxiter'])
+                         x0=ss_args['x0'],
+                         maxiter=ss_args['maxiter'])
 
     elif ss_args['method'] == 'iterative-lgmres':
         v, check = lgmres(L, b, tol=ss_args['tol'], M=ss_args['M'],
+                          x0=ss_args['x0'],
+                          maxiter=ss_args['maxiter'])
+
+    elif ss_args['method'] == 'iterative-bicg':
+        v, check = bicg(L, b, tol=ss_args['tol'], M=ss_args['M'],
+                        x0=ss_args['x0'],
+                        maxiter=ss_args['maxiter'])
+
+    elif ss_args['method'] == 'iterative-bicgstab':
+        v, check = bicgstab(L, b, tol=ss_args['tol'], M=ss_args['M'],
                             x0=ss_args['x0'],
                             maxiter=ss_args['maxiter'])
     else:
         raise Exception("Invalid iterative solver method.")
-    _iter_end = time.time()
+
     if settings.debug:
+        _iter_end = time.time()
         print('Iteration. time:',_iter_end-_iter_start)
+
     if check > 0:
         raise Exception("Steadystate solver did not reach tolerance after " +
                         str(check) + " steps.")
