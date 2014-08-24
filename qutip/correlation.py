@@ -1053,7 +1053,9 @@ def _transform_H_t_shift(H, args=None):
     if isinstance(H, list):
         # string/function-list based time-dependence
         H_shifted = []
-        if isinstance(args, dict):
+        if args is None:
+            _args = {"_t0": 0}
+        elif isinstance(args, dict):
             _args = args.copy()
             _args["_t0"] = 0
         else:
