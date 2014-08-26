@@ -113,8 +113,11 @@ def correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver="me",
     elif solver == "es":
         return _correlation_es_2op_1t(H, rho0, taulist, c_ops, a_op, b_op,
                                       reverse)
+    elif solver == "mc":
+        return _correlation_mc_2op_1t(H, rho0, taulist, c_ops, a_op, b_op,
+                                      reverse, args=args, options=options)
     else:
-        raise "Unrecognized choice of solver %s (use me or es)." % solver
+        raise "Unrecognized choice of solver %s (me, es or mc)." % solver
 
 
 def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
@@ -826,8 +829,26 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
 # MONTE CARLO SOLVERS
 # -----------------------------------------------------------------------------
 
-# Will be implemented in the future - cannot directly use the quantum
-# regression theorem
+def _correlation_mc_2op_1t(H, psi0, taulist, c_ops, a_op, b_op,
+                           reverse=False, args=None, options=Options()):
+    """
+    Internal function for calculating a two-operator single-time
+    correlation function on the form
+    <A(0)B(tau)>/<A(tau)B(0)>
+    using a Monte Carlo based solver.
+    """
+
+    if debug:
+        print(inspect.stack()[0][3])
+
+    if psi0 is None or not isket(psi0):
+        raise Exception("correlation_mc_2op_1t requires initial state as ket")
+
+    b_op_psi0 = b_op * psi0
+    norm = b_op_psi0.norm()
+
+    return norm * mcsolve(H, b_op_psi0 / norm, taulist, c_ops, [a_op],
+                          args=args, options=options).expect[0]
 
 
 # -----------------------------------------------------------------------------
@@ -916,7 +937,7 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     if debug:
         print(inspect.stack()[0][3])
 
-    # contruct the Liouvillian
+    # construct the Liouvillian
     L = liouvillian(H, c_ops)
 
     # find the steady state density matrix and a_op and b_op expecation values
@@ -931,7 +952,7 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     # correlation
     corr_es = expect(a_op, es)
 
-    # covarience
+    # covariance
     cov_es = corr_es - np.real(np.conjugate(a_op_ss) * b_op_ss)
 
     # spectrum
