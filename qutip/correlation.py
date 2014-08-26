@@ -204,6 +204,10 @@ def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
     H : :class:`qutip.qobj.Qobj`
         system Hamiltonian.
 
+    rho0 : :class:`qutip.qobj.Qobj`
+        Initial state density matrix (or state vector). If 'rho0' is
+        'None', then the steady state will be used as initial state.
+
     taulist : *list* / *array*
         list of times for :math:`\\tau`.
 
