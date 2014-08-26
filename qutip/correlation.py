@@ -226,10 +226,6 @@ def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
     d_op : :class:`qutip.qobj.Qobj`
         operator D.
 
-    reverse : bool
-        If `True`, calculate :math:`\left<D(t)C(t+\\tau)B(t+\\tau)A(t)\\right>`
-        instead of :math:`\left<A(t)B(t+\\tau)C(t+\\tau)D(t)\\right>`.
-
     solver : str
         choice of solver (currently only `me` for master-equation)
 
@@ -302,10 +298,6 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
 
     d_op : :class:`qutip.qobj.Qobj`
         operator D.
-
-    reverse : bool
-        If `True`, calculate :math:`\left<D(t)C(t+\\tau)B(t+\\tau)A(t)\\right>`
-        instead of :math:`\left<A(t)B(t+\\tau)C(t+\\tau)D(t)\\right>`.
 
     solver : str
         choice of solver (currently only `me` for master-equation)
@@ -548,6 +540,10 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
 
     b_op : :class:`qutip.qobj`
         operator B.
+
+    reverse : bool
+        If `True`, calculate :math:`\left<A(t)B(t+\\tau)\\right>` instead of
+        :math:`\left<A(t+\\tau)B(t)\\right>`.
 
     solver : str
         choice of solver (`me` for master-equation and
