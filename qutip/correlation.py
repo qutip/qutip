@@ -341,119 +341,6 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
 
 
 # -----------------------------------------------------------------------------
-# high-level correlation function
-# -----------------------------------------------------------------------------
-
-def coherence_function_g1(H, taulist, c_ops, a_op, solver="me",
-                          args=None, options=Options()):
-    """
-    Calculate the normalized first-order quantum coherence function:
-
-    .. math::
-
-        g^{(1)}(\\tau) = \\frac{\\langle a^\\dagger(\\tau)a(0)\\rangle}
-        {\sqrt{\langle a^\dagger(\\tau)a(\\tau)\\rangle
-        \\langle a^\\dagger(0)a(0)\\rangle}}
-
-    using the quantum regression theorem and the evolution solver indicated by
-    the *solver* parameter. Note: g1 is only defined for stationary
-    statistics (uses steady state rho0)
-
-    Parameters
-    ----------
-
-    H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
-
-    taulist : *list* / *array*
-        list of times for :math:`\\tau`.
-
-    c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators.
-
-    a_op : :class:`qutip.qobj.Qobj`
-        The annihilation operator of the mode.
-
-    solver : str
-        choice of solver (`me` for master-equation and
-        `es` for exponential series)
-
-    Returns
-    -------
-
-    g1, G2: tuble of *array*
-        The normalized first-order coherence function.
-
-    """
-
-    # first calculate the photon number
-    rho0 = steadystate(H, c_ops)
-    n = np.array([expect(rho0, a_op.dag() * a_op)])
-
-    # calculate the correlation function G1 and normalize with n to obtain g1
-    G1 = correlation_2op_1t(H, None, taulist, c_ops, a_op.dag(), a_op,
-                            args=args, solver=solver, options=options)
-    g1 = G1 / sqrt(n[0] * n)
-
-    return g1, G1
-
-
-def coherence_function_g2(H, taulist, c_ops, a_op, solver="me",
-                          args=None, options=Options()):
-    """
-    Calculate the normalized second-order quantum coherence function:
-
-    .. math::
-
-        g^{(2)}(\\tau) =
-        \\frac{\\langle a^\\dagger(0)a^\\dagger(\\tau)a(\\tau)a(0)\\rangle}
-        {\\langle a^\\dagger(\\tau)a(\\tau)\\rangle
-         \\langle a^\\dagger(0)a(0)\\rangle}
-
-    using the quantum regression theorem and the evolution solver indicated by
-    the *solver* parameter. Note: g2 is only defined for stationary
-    statistics (uses steady state rho0)
-
-    Parameters
-    ----------
-
-    H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
-
-    taulist : *list* / *array*
-        list of times for :math:`\\tau`.
-
-    c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators.
-
-    a_op : :class:`qutip.qobj.Qobj`
-        The annihilation operator of the mode.
-
-    solver : str
-        choice of solver (currently only `me` for master-equation)
-
-    Returns
-    -------
-
-    g2, G2: tuble of *array*
-        The normalized and unnormalized second-order coherence function.
-
-    """
-
-    # first calculate the photon number
-    rho0 = steadystate(H, c_ops)
-    n = np.array([expect(rho0, a_op.dag() * a_op)])
-
-    # calculate the correlation function G2 and normalize with n to obtain g2
-    G2 = correlation_4op_1t(H, None, taulist, c_ops,
-                            a_op.dag(), a_op.dag(), a_op, a_op,
-                            solver=solver, args=args, options=options)
-    g2 = G2 / (n[0] * n)
-
-    return g2, G2
-
-
-# -----------------------------------------------------------------------------
 # LEGACY API
 # -----------------------------------------------------------------------------
 
@@ -569,6 +456,223 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
 
 
 # -----------------------------------------------------------------------------
+# HIGH-LEVEL CORRELATION FUNCTIONS
+# -----------------------------------------------------------------------------
+
+def coherence_function_g1(H, taulist, c_ops, a_op, solver="me",
+                          args=None, options=Options()):
+    """
+    Calculate the normalized first-order quantum coherence function:
+
+    .. math::
+
+        g^{(1)}(\\tau) = \\frac{\\langle a^\\dagger(\\tau)a(0)\\rangle}
+        {\sqrt{\langle a^\dagger(\\tau)a(\\tau)\\rangle
+        \\langle a^\\dagger(0)a(0)\\rangle}}
+
+    using the quantum regression theorem and the evolution solver indicated by
+    the *solver* parameter. Note: g1 is only defined for stationary
+    statistics (uses steady state rho0)
+
+    Parameters
+    ----------
+
+    H : :class:`qutip.qobj.Qobj`
+        system Hamiltonian.
+
+    taulist : *list* / *array*
+        list of times for :math:`\\tau`.
+
+    c_ops : list of :class:`qutip.qobj.Qobj`
+        list of collapse operators.
+
+    a_op : :class:`qutip.qobj.Qobj`
+        The annihilation operator of the mode.
+
+    solver : str
+        choice of solver (`me` for master-equation and
+        `es` for exponential series)
+
+    Returns
+    -------
+
+    g1, G2: tuble of *array*
+        The normalized first-order coherence function.
+
+    """
+
+    # first calculate the photon number
+    rho0 = steadystate(H, c_ops)
+    n = np.array([expect(rho0, a_op.dag() * a_op)])
+
+    # calculate the correlation function G1 and normalize with n to obtain g1
+    G1 = correlation_2op_1t(H, None, taulist, c_ops, a_op.dag(), a_op,
+                            args=args, solver=solver, options=options)
+    g1 = G1 / sqrt(n[0] * n)
+
+    return g1, G1
+
+
+def coherence_function_g2(H, taulist, c_ops, a_op, solver="me",
+                          args=None, options=Options()):
+    """
+    Calculate the normalized second-order quantum coherence function:
+
+    .. math::
+
+        g^{(2)}(\\tau) =
+        \\frac{\\langle a^\\dagger(0)a^\\dagger(\\tau)a(\\tau)a(0)\\rangle}
+        {\\langle a^\\dagger(\\tau)a(\\tau)\\rangle
+         \\langle a^\\dagger(0)a(0)\\rangle}
+
+    using the quantum regression theorem and the evolution solver indicated by
+    the *solver* parameter. Note: g2 is only defined for stationary
+    statistics (uses steady state rho0)
+
+    Parameters
+    ----------
+
+    H : :class:`qutip.qobj.Qobj`
+        system Hamiltonian.
+
+    taulist : *list* / *array*
+        list of times for :math:`\\tau`.
+
+    c_ops : list of :class:`qutip.qobj.Qobj`
+        list of collapse operators.
+
+    a_op : :class:`qutip.qobj.Qobj`
+        The annihilation operator of the mode.
+
+    solver : str
+        choice of solver (currently only `me` for master-equation)
+
+    Returns
+    -------
+
+    g2, G2: tuble of *array*
+        The normalized and unnormalized second-order coherence function.
+
+    """
+
+    # first calculate the photon number
+    rho0 = steadystate(H, c_ops)
+    n = np.array([expect(rho0, a_op.dag() * a_op)])
+
+    # calculate the correlation function G2 and normalize with n to obtain g2
+    G2 = correlation_4op_1t(H, None, taulist, c_ops,
+                            a_op.dag(), a_op.dag(), a_op, a_op,
+                            solver=solver, args=args, options=options)
+    g2 = G2 / (n[0] * n)
+
+    return g2, G2
+
+
+# -----------------------------------------------------------------------------
+# SPECTRUM
+# -----------------------------------------------------------------------------
+
+def spectrum(H, wlist, c_ops, a_op, b_op, solver='es', use_pinv=False):
+    """
+    Calculate the spectrum corresponding to the correlation function
+    :math:`\left<A(\\tau)B(0)\\right>`, i.e., the Fourier transform of the
+    correlation function:
+
+    .. math::
+
+        S(\omega) = \int_{-\infty}^{\infty} \left<A(\\tau)B(0)\\right>
+        e^{-i\omega\\tau} d\\tau.
+
+    using the solver indicated by the *solver* parameter. Note: this spectrum
+    is only defined for stationary statistics (uses steady state rho0)
+
+    Parameters
+    ----------
+
+    H : :class:`qutip.qobj`
+        system Hamiltonian.
+
+    wlist : *list* / *array*
+        list of frequencies for :math:`\\omega`.
+
+    c_ops : list of :class:`qutip.qobj`
+        list of collapse operators.
+
+    a_op : :class:`qutip.qobj`
+        operator A.
+
+    b_op : :class:`qutip.qobj`
+        operator B.
+
+    solver : str
+        choice of solver (`es` for exponential series and
+        `pi` for psuedo-inverse)
+
+    use_pinv : bool
+        If `True` use numpy's pinv method, otherwise use a generic solver
+
+    Returns
+    -------
+
+    spectrum: *array*
+        An *array* with spectrum :math:`S(\omega)` for the frequencies
+        specified in `wlist`.
+
+    """
+
+    if debug:
+        print(inspect.stack()[0][3])
+
+    if solver == "es":
+        return _spectrum_es(H, wlist, c_ops, a_op, b_op)
+    elif solver == "pi":
+        return _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv)
+    else:
+        raise NotImplementedError("Unrecognized choice of solver %s." % solver)
+
+
+def spectrum_correlation_fft(taulist, y):
+    """
+    Calculate the power spectrum corresponding to a two-time correlation
+    function using FFT.
+
+    Parameters
+    ----------
+
+    tlist : *list* / *array*
+        list/array of times :math:`t` which the correlation function is given.
+
+    y : *list* / *array*
+        list/array of correlations corresponding to time delays :math:`t`.
+
+    Returns
+    -------
+
+    w, S : *tuple*
+        Returns an array of angular frequencies 'w' and the corresponding
+        one-sided power spectrum 'S(w)'.
+
+    """
+
+    if debug:
+        print(inspect.stack()[0][3])
+
+    N = len(taulist)
+    dt = taulist[1] - taulist[0]
+
+    F = scipy.fftpack.fft(y)
+
+    # calculate the frequencies for the components in F
+    f = scipy.fftpack.fftfreq(N, dt)
+
+    # select only indices for elements that corresponds
+    # to positive frequencies
+    indices = np.where(f > 0.0)
+
+    return 2 * pi * f[indices], 2 * dt * np.real(F[indices])
+
+
+# -----------------------------------------------------------------------------
 # EXPONENTIAL SERIES SOLVERS
 # -----------------------------------------------------------------------------
 
@@ -647,6 +751,38 @@ def _correlation_es_2op_2t(H, rho0, tlist, taulist,
             corr_mat[t_idx, :] = esval(expect(a_op, solES_tau), taulist)
 
     return corr_mat
+
+
+def _spectrum_es(H, wlist, c_ops, a_op, b_op):
+    """
+    Internal function for calculating the spectrum of the correlation function
+    :math:`\left<A(\\tau)B(0)\\right>`.
+    """
+    if debug:
+        print(inspect.stack()[0][3])
+
+    # construct the Liouvillian
+    L = liouvillian(H, c_ops)
+
+    # find the steady state density matrix and a_op and b_op expecation values
+    rho0 = steadystate(L)
+
+    a_op_ss = expect(a_op, rho0)
+    b_op_ss = expect(b_op, rho0)
+
+    # eseries solution for (b * rho0)(t)
+    es = ode2es(L, b_op * rho0)
+
+    # correlation
+    corr_es = expect(a_op, es)
+
+    # covariance
+    cov_es = corr_es - np.real(np.conjugate(a_op_ss) * b_op_ss)
+
+    # spectrum
+    spectrum = esspec(cov_es, wlist)
+
+    return spectrum
 
 
 # -----------------------------------------------------------------------------
@@ -820,153 +956,13 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
 
 
 # -----------------------------------------------------------------------------
-# SPECTRUM
+# PSUEDO-INVERSE SOLVERS
 # -----------------------------------------------------------------------------
 
-def spectrum_correlation_fft(tlist, y):
+def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
     """
-    Calculate the power spectrum corresponding to a two-time correlation
-    function using FFT.
-
-    Parameters
-    ----------
-
-    tlist : *list* / *array*
-        list/array of times :math:`t` which the correlation function is given.
-
-    y : *list* / *array*
-        list/array of correlations corresponding to time delays :math:`t`.
-
-    Returns
-    -------
-
-    w, S : *tuple*
-
-        Returns an array of angular frequencies 'w' and the corresponding
-        one-sided power spectrum 'S(w)'.
-
-    """
-
-    if debug:
-        print(inspect.stack()[0][3])
-
-    N = len(tlist)
-    dt = tlist[1] - tlist[0]
-
-    F = scipy.fftpack.fft(y)
-
-    # calculate the frequencies for the components in F
-    f = scipy.fftpack.fftfreq(N, dt)
-
-    # select only indices for elements that corresponds
-    # to positive frequencies
-    indices = np.where(f > 0.0)
-
-    return 2 * pi * f[indices], 2 * dt * np.real(F[indices])
-
-
-def spectrum_ss(H, wlist, c_ops, a_op, b_op):
-    """
-    Calculate the spectrum corresponding to a correlation function
-    :math:`\left<A(\\tau)B(0)\\right>`, i.e., the Fourier transform of the
-    correlation function:
-
-    .. math::
-
-        S(\omega) = \int_{-\infty}^{\infty} \left<A(\\tau)B(0)\\right>
-        e^{-i\omega\\tau} d\\tau.
-
-    Parameters
-    ----------
-
-    H : :class:`qutip.qobj`
-        system Hamiltonian.
-
-    wlist : *list* / *array*
-        list of frequencies for :math:`\\omega`.
-
-    c_ops : list of :class:`qutip.qobj`
-        list of collapse operators.
-
-    a_op : :class:`qutip.qobj`
-        operator A.
-
-    b_op : :class:`qutip.qobj`
-        operator B.
-
-    Returns
-    -------
-
-    spectrum: *array*
-        An *array* with spectrum :math:`S(\omega)` for the frequencies
-        specified in `wlist`.
-
-    """
-
-    if debug:
-        print(inspect.stack()[0][3])
-
-    # construct the Liouvillian
-    L = liouvillian(H, c_ops)
-
-    # find the steady state density matrix and a_op and b_op expecation values
-    rho0 = steadystate(L)
-
-    a_op_ss = expect(a_op, rho0)
-    b_op_ss = expect(b_op, rho0)
-
-    # eseries solution for (b * rho0)(t)
-    es = ode2es(L, b_op * rho0)
-
-    # correlation
-    corr_es = expect(a_op, es)
-
-    # covariance
-    cov_es = corr_es - np.real(np.conjugate(a_op_ss) * b_op_ss)
-
-    # spectrum
-    spectrum = esspec(cov_es, wlist)
-
-    return spectrum
-
-
-def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
-    """
-    Calculate the spectrum corresponding to a correlation function
-    :math:`\left<A(\\tau)B(0)\\right>`, i.e., the Fourier transform of the
-    correlation function:
-
-    .. math::
-
-        S(\omega) = \int_{-\infty}^{\infty} \left<A(\\tau)B(0)\\right>
-        e^{-i\omega\\tau} d\\tau.
-
-    Parameters
-    ----------
-
-    H : :class:`qutip.qobj`
-        system Hamiltonian.
-
-    wlist : *list* / *array*
-        list of frequencies for :math:`\\omega`.
-
-    c_ops : list of :class:`qutip.qobj`
-        list of collapse operators.
-
-
-    a_op : :class:`qutip.qobj`
-        operator A.
-
-    b_op : :class:`qutip.qobj`
-        operator B.
-
-    Returns
-    -------
-
-    s_vec: *array*
-        An *array* with spectrum :math:`S(\omega)` for the frequencies
-        specified in `wlist`.
-
+    Internal function for calculating the spectrum of the correlation function
+    :math:`\left<A(\\tau)B(0)\\right>`.
     """
 
     L = H if issuper(H) else liouvillian(H, c_ops)
@@ -987,19 +983,18 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
     P = np.kron(transpose(rho), tr_vec)
     Q = I - P
 
-    s_vec = np.zeros(len(wlist))
+    spectrum = np.zeros(len(wlist))
 
     for idx, w in enumerate(wlist):
-
         if use_pinv:
             MMR = numpy.linalg.pinv(-1.0j * w * I + A)
         else:
             MMR = np.dot(Q, np.linalg.solve(-1.0j * w * I + A, Q))
 
         s = np.dot(tr_vec, np.dot(a, np.dot(MMR, np.dot(b, transpose(rho)))))
-        s_vec[idx] = -2 * np.real(s[0, 0])
+        spectrum[idx] = -2 * np.real(s[0, 0])
 
-    return s_vec
+    return spectrum
 
 
 # -----------------------------------------------------------------------------

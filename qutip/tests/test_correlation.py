@@ -110,7 +110,7 @@ def test_spectrum():
     tlist = np.linspace(0, 100, 2500)
     corr = correlation_ss(H, tlist, c_ops, a.dag(), a)
     wlist1, spec1 = spectrum_correlation_fft(tlist, corr)
-    spec2 = spectrum_ss(H, wlist1, c_ops, a.dag(), a)
+    spec2 = spectrum(H, wlist1, c_ops, a.dag(), a, solver='es')
 
     assert_(max(abs(spec1 - spec2)) < 1e-3)
 
@@ -137,8 +137,8 @@ def test_spectrum():
              sqrt(gamma) * sm]
 
     wlist = 2 * pi * np.linspace(0.5, 1.5, 100)
-    spec1 = spectrum_ss(H, wlist, c_ops, a.dag(), a)
-    spec2 = spectrum_pi(H, wlist, c_ops, a.dag(), a)
+    spec1 = spectrum(H, wlist, c_ops, a.dag(), a, solver='es')
+    spec2 = spectrum(H, wlist, c_ops, a.dag(), a, solver='pi')
 
     assert_(max(abs(spec1 - spec2)) < 1e-3)
 
