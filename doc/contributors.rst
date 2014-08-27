@@ -45,7 +45,7 @@ Contributors
 
 **Bredan Abolins** (Berkeley) - Bug hunter
 
-**Chris Granadeł** - Code contributor
+**Chris Granade** - Code contributor
 
 **Claudia Degrandi** (Yale University) - Documentation
 
@@ -73,6 +73,8 @@ Contributors
 
 **JP Hadden** (University of Bristol) - Code contributor, improved Bloch sphere visualization
 
+**Kevin Fischer** (Stanford) - Code contributor
+
 **Laurence Stant** - Documentation
 
 **Markus Baden** (Centre for Quantum Technologies, Singapore) - Code contributor, Documentation
@@ -80,6 +82,8 @@ Contributors
 **Myung-Joong Hwang** (Pohang University of Science and Technology) - Bug hunter
 
 **Neill Lambert** (RIKEN) - Code contributor, Windows support
+
+**Nikolas Tezak** (Stanford) - Code contributor
 
 **Per Nielsen** (Technical University of Denmark) - Bug hunter, Code contributor 
 
