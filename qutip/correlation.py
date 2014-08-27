@@ -34,6 +34,7 @@
 import numpy as np
 import scipy.fftpack
 import scipy.interpolate
+import os, sys
 
 from qutip.superoperator import *
 from qutip.expect import expect
@@ -950,9 +951,152 @@ def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
 # MONTE CARLO SOLVERS
 # -----------------------------------------------------------------------------
 
-# Will be implemented in the future, the quantum regression theorem cannot
-# be directly applied to the MC solvers in the same way as the ME solvers
-# since they require an initial condition as a state vector
+def corr_mc_2op_1t_single_evolve(H, psi_t, taulist, c_ops, a_op, b_op,
+                                 reverse=False, args=None, n2traj=25):
+    # <A(t+tau)B(t)>/<A(t)B(t+tau)>
+    # insert reference!!!
+
+    # the mcsolve output is not very informative here
+    devnull = open(os.devnull, 'w')
+    sys.stdout, sys.stderr = devnull, devnull  # suppress mcsolve output
+
+    if not isket(psi_t):
+        raise TypeError("The initial condition must be a state vector.")
+
+    if reverse:
+        A_op = b_op
+        B_op = a_op
+        r_sgn = -1
+    else:
+        A_op = a_op
+        B_op = b_op
+        r_sgn = 1
+
+    # generate states (1+B)*psi_t, (1+iB)*psi_t, (1-B)*psi_t, (1-iB)*psi_t
+    chi_0 = [(1 + exp(1j*x*pi/2)*B_op) * psi_t for x in range(4)]
+
+    # evolve these states and calculate expectation value of A
+    c_tau = [
+        chi.norm()**2 * mcsolve(
+            H, chi/chi.norm(), taulist, c_ops, [A_op], args=args, ntraj=n2traj
+        ).expect[0]
+        for chi in chi_0
+    ]
+
+    # final correlation vector computed by combining the averages
+    corr_vec = 1/4 * (c_tau[0] - c_tau[2] - r_sgn*1j*c_tau[1] + r_sgn*1j*c_tau[3])
+
+    sys.stdout = sys.__stdout__  # return system output pointers
+    sys.stderr = sys.__stderr__  # return system output pointers
+
+    return corr_vec
+
+
+def corr_mc_2op_1t_double_evolve(H, psi0, t_corr, taulist, c_ops, a_op, b_op,
+                                 reverse=False, args=None, n1traj=5, n2traj=25):
+    # <A(t+tau)B(t)>/<A(t)B(t+tau)>
+    # insert reference!!!
+
+    if not isket(psi0):
+        raise TypeError("The initial condition must be a state vector.")
+
+    # the mcsolve output is not very informative here
+    devnull = open(os.devnull, 'w')
+    sys.stdout, sys.stderr = devnull, devnull  # suppress mcsolve output
+
+    psi_t_list = mcsolve(
+        H, psi0, [0, t_corr], c_ops, [], args=args, ntraj=n1traj
+    ).states[:, 1]
+
+    corr_vec = np.zeros([np.size(taulist)], dtype=complex)
+
+    for trial_idx in range(n1traj):
+        # calculation of <A(t+tau)B(t)>/<A(t)B(t+tau)> from only knowledge of
+        # phi0 requires averaging over both t and tau
+        if reverse:
+            A_op = b_op
+            B_op = a_op
+            r_sgn = -1
+        else:
+            A_op = a_op
+            B_op = b_op
+            r_sgn = 1
+
+        # generate states (1+B)*psi_t, (1+iB)*psi_t, (1-B)*psi_t, (1-iB)*psi_t
+        chi_0 = [(1 + exp(1j*x*pi/2)*B_op) * psi_t_list[trial_idx]
+                 for x in range(4)]
+
+        # evolve these states and calculate expectation value of A
+        c_tau = [
+            chi.norm()**2 * mcsolve(
+                H, chi/chi.norm(), taulist, c_ops, [A_op],
+                args=args, ntraj=n2traj
+            ).expect[0]
+            for chi in chi_0
+        ]
+
+        # final correlation vector computed by combining the averages
+        corr_vec += 1/(4*n1traj) * (c_tau[0] - c_tau[2] -
+                                    r_sgn*1j*c_tau[1] + r_sgn*1j*c_tau[3])
+
+    sys.stdout = sys.__stdout__  # return system output pointers
+    sys.stderr = sys.__stderr__  # return system output pointers
+
+    return corr_vec
+
+
+def corr_mc_2op_2t(H, psi0, tlist, taulist, c_ops, a_op, b_op,
+                                 reverse=False, args=None, n1traj=3, n2traj=15):
+    # <A(t+tau)B(t)>/<A(t)B(t+tau)>
+    # insert reference!!!
+
+    if not isket(psi0):
+        raise TypeError("The initial condition must be a state vector.")
+
+    # the mcsolve output is not very informative here
+    devnull = open(os.devnull, 'w')
+    sys.stdout, sys.stderr = devnull, devnull  # suppress mcsolve output
+
+    psi_t_mat = mcsolve(
+        H, psi0, tlist, c_ops, [], args=args, ntraj=n1traj
+    ).states
+
+    corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
+
+    for t_idx in range(np.size(tlist)):
+        for trial_idx in range(n1traj):
+            # calculation of <A(t+tau)B(t)>/<A(t)B(t+tau)> from only knowledge of
+            # phi0 requires averaging over both t and tau
+            if reverse:
+                A_op = b_op
+                B_op = a_op
+                r_sgn = -1
+            else:
+                A_op = a_op
+                B_op = b_op
+                r_sgn = 1
+
+            # generate states (1+B)*psi_t, (1+iB)*psi_t, (1-B)*psi_t, (1-iB)*psi_t
+            chi_0 = [(1 + exp(1j*x*pi/2)*B_op) * psi_t_mat[trial_idx, t_idx]
+                     for x in range(4)]
+
+            # evolve these states and calculate expectation value of A
+            c_tau = [
+                chi.norm()**2 * mcsolve(
+                    H, chi/chi.norm(), taulist, c_ops, [A_op],
+                    args=args, ntraj=n2traj
+                ).expect[0]
+                for chi in chi_0
+            ]
+
+            # final correlation vector computed by combining the averages
+            corr_mat[t_idx,:] += 1/(4*n1traj) * (c_tau[0] - c_tau[2] -
+                                        r_sgn*1j*c_tau[1] + r_sgn*1j*c_tau[3])
+
+    sys.stdout = sys.__stdout__  # return system output pointers
+    sys.stderr = sys.__stderr__  # return system output pointers
+
+    return corr_mat
 
 
 # -----------------------------------------------------------------------------
