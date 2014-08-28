@@ -166,6 +166,10 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     options : :class:`qutip.Options`
         with options for the ODE solver.
 
+    progress_bar: TextProgressBar
+        Optional instance of BaseProgressBar, or a subclass thereof, for
+        showing the progress of the simulation.
+
     Returns
     -------
 
