@@ -144,7 +144,7 @@ Alternatively (or additionally), to install a Python 3 environment, use:
 
 .. code-block:: bash
 
-    sudo apt-get install python3-dev cython python3-setuptools python3-nose
+    sudo apt-get install python3-dev cython3 python3-setuptools python3-nose
     sudo apt-get install python3-numpy python3-scipy python3-matplotlib
 
 and then do the installation from source using ``python3`` instead of ``python``.
