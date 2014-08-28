@@ -58,7 +58,7 @@ from qutip.solver import Options, Result, config
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 import qutip.settings
 from qutip.settings import debug
-from qutip.ui.progressbar import TextProgressBar
+from qutip.ui.progressbar import TextProgressBar, BaseProgressBar
 
 if debug:
     import inspect
@@ -75,7 +75,7 @@ _cy_rhs_func = None
 
 
 def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
-            args={}, options=Options()):
+            args={}, options=Options(), progress_bar=TextProgressBar()):
     """Monte-Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
@@ -139,6 +139,10 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         Arguments for time-dependent Hamiltonian and collapse operator terms.
     options : Options
         Instance of ODE solver options.
+    progress_bar: TextProgressBar
+        Optional instance of BaseProgressBar, or a subclass thereof, for
+        showing the progress of the simulation. Set to None to disable the
+        progress bar.
 
     Returns
     -------
@@ -169,10 +173,10 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         e_ops_dict = None
 
     config.options = options
-    if isinstance(ntraj, list):
-        config.progress_bar = TextProgressBar(max(ntraj))
+    if progress_bar:
+        config.progress_bar = progress_bar
     else:
-        config.progress_bar = TextProgressBar(ntraj)
+        config.progress_bar = BaseProgressBar()
 
     # set num_cpus to the value given in qutip.settings if none in Options
     if not config.options.num_cpus:
@@ -518,7 +522,10 @@ class _MC_class():
             args = (mc_alg_out, self.config.options,
                     self.config.tlist, self.num_times, self.seeds)
 
-            self.config.progress_bar.start(self.config.ntraj)
+            if isinstance(self.config.ntraj, list):
+                self.config.progress_bar.start(max(self.config.ntraj))
+            else:
+                self.config.progress_bar.start(self.config.ntraj)
             self.parallel(args, self)
             self.config.progress_bar.finished()
 
