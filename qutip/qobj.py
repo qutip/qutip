@@ -245,7 +245,8 @@ class Qobj(object):
             else:
                 self.dims = dims
 
-        elif isinstance(inpt, (int, float, complex, np.int64)):
+        elif isinstance(inpt, (int, float, complex,
+                               np.integer, np.floating, np.complexfloating)):
             # if input is int, float, or complex then convert to array
             self.data = sp.csr_matrix([[inpt]], dtype=complex)
 
@@ -437,7 +438,8 @@ class Qobj(object):
         elif isinstance(other, eseries):
             return other.__rmul__(self)
 
-        elif isinstance(other, (int, float, complex, np.int64)):
+        elif isinstance(other, (int, float, complex,
+                                np.integer, np.floating, np.complexfloating)):
             out = Qobj()
             out.data = self.data * other
             out.dims = self.dims
@@ -464,7 +466,8 @@ class Qobj(object):
         if isinstance(other, eseries):
             return other.__mul__(self)
 
-        if isinstance(other, (int, float, complex, np.int64)):
+        if isinstance(other, (int, float, complex,
+                              np.integer, np.floating, np.complexfloating)):
             out = Qobj()
             out.data = other * self.data
             out.dims = self.dims
@@ -490,7 +493,8 @@ class Qobj(object):
             raise TypeError("Incompatible Qobj shapes " +
                             "[division with Qobj not implemented]")
 
-        if isinstance(other, (int, float, complex, np.int64)):
+        if isinstance(other, (int, float, complex,
+                              np.integer, np.floating, np.complexfloating)):
             out = Qobj()
             out.data = self.data / other
             out.dims = self.dims
@@ -649,7 +653,7 @@ class Qobj(object):
 
         M, N = self.data.shape
 
-        s += r'\begin{equation*}\begin{pmatrix}'
+        s += r'\begin{equation*}\left(\begin{array}{*{11}c}'
 
         def _format_float(value):
             if value == 0.0:
@@ -732,7 +736,7 @@ class Qobj(object):
                     s += _format_element(m, n, self.data[m, n])
                 s += r'\\'
 
-        s += r'\end{pmatrix}\end{equation*}'
+        s += r'\end{array}\right)\end{equation*}'
         return s
 
     def dag(self):
@@ -857,10 +861,21 @@ class Qobj(object):
         else:
             return np.real(out)
 
-    def expm(self):
+    def expm(self, method=None):
         """Matrix exponential of quantum operator.
 
         Input operator must be square.
+
+        Parameters
+        ----------
+        method : str {'dense', 'sparse', 'scipy-dense', 'scipy-sparse'}
+            Use set method to use to calculate the matrix exponentiation. The
+            available choices includes 'dense' and 'sparse' for using QuTiP's
+            implementation of expm using dense and sparse matrices,
+            respectively, and 'scipy-dense' and 'scipy-sparse' for using the
+            scipy.linalg.expm (dense) and scipy.sparse.linalg.expm (sparse).
+            If no method is explicitly given a heuristic will be used to try
+            and automatically select the most appropriate solver.
 
         Returns
         -------
@@ -873,12 +888,40 @@ class Qobj(object):
             Quantum operator is not square.
 
         """
-        if self.dims[0][0] == self.dims[1][0]:
-            F = sp_expm(self.data)
-            out = Qobj(F, dims=self.dims)
-            return out.tidyup() if settings.auto_tidyup else out
-        else:
+        if self.dims[0][0] != self.dims[1][0]:
             raise TypeError('Invalid operand for matrix exponential')
+
+        if method == 'dense':
+            F = sp_expm(self.data, sparse=False)
+
+        elif method == 'sparse':
+            F = sp_expm(self.data, sparse=True)
+
+        elif method == 'scipy-dense':
+            F = la.expm(self.full())
+
+        elif method == 'scipy-sparse':
+            F = sp.linalg.expm(self.data.tocsc())
+
+        else:
+            # if method is not explicitly given, try to make a good choice
+            # between sparse and dense solvers by considering the size of the
+            # system and the number of non-zero elements.
+            N = self.data.shape[0]
+            n = self.data.nnz
+
+            if N ** 2 < 100 * n:
+                # large number of nonzero elements, revert to dense solver
+                F = la.expm(self.full())
+            elif N > 400:
+                # large system, and quite sparse -> qutips sparse method
+                F = sp_expm(self.data, sparse=True)
+            else:
+                # small system, but quite sparse -> qutips sparse/dense method
+                F = sp_expm(self.data, sparse=False)
+
+        out = Qobj(F, dims=self.dims)
+        return out.tidyup() if settings.auto_tidyup else out
 
     def checkherm(self):
         """Check if the quantum object is hermitian.
@@ -927,12 +970,14 @@ class Qobj(object):
             evals, evecs = sp_eigs(self.data, self.isherm, sparse=sparse,
                                    tol=tol, maxiter=maxiter)
             numevals = len(evals)
-            dV = sp.spdiags(np.sqrt(np.abs(evals)), 0, numevals, numevals,
-                            format='csr')
-            evecs = sp.hstack(evecs, format='csr')
-            spDv = dV.dot(evecs.conj().T)
-            out = Qobj(evecs.dot(spDv), dims=self.dims)
+            dV = sp.spdiags(np.sqrt(evals, dtype=complex), 0, numevals,
+                            numevals, format='csr')
+            if self.isherm:
+                spDv = dV.dot(evecs.T.conj().T)
+            else:
+                spDv = dV.dot(np.linalg.inv(evecs.T))
 
+            out = Qobj(evecs.T.dot(spDv), dims=self.dims)
             return out.tidyup() if settings.auto_tidyup else out
 
         else:
@@ -1003,10 +1048,10 @@ class Qobj(object):
         -------
         P : qobj
             Permuted quantum object.
-
+i
         """
         q = Qobj()
-        q.data, q.dims, _ = _permute(self, order)
+        q.data, q.dims = _permute(self, order)
         return q.tidyup() if settings.auto_tidyup else q
 
     def tidyup(self, atol=None):
@@ -1439,7 +1484,8 @@ class Qobj(object):
     def iscptp(self):
         from qutip.superop_reps import to_choi
         if self.type == "super" or self.type == "oper":
-            q_oper = to_choi(self) if self.superrep not in ('choi', 'chi') else self
+            reps = ('choi', 'chi')
+            q_oper = to_choi(self) if self.superrep not in reps else self
             return q_oper.iscp and q_oper.istp
         else:
             return False
@@ -1493,13 +1539,13 @@ class Qobj(object):
     def isbra(self):
         return (np.prod(self.dims[0]) == 1 and
                 isinstance(self.dims[1], list) and
-                isinstance(self.dims[1][0], (int, np.int32, np.int64)))
+                isinstance(self.dims[1][0], (int, np.integer)))
 
     @property
     def isket(self):
         return (np.prod(self.dims[1]) == 1 and
                 isinstance(self.dims[0], list) and
-                isinstance(self.dims[0][0], (int, np.int32, np.int64)))
+                isinstance(self.dims[0][0], (int, np.integer)))
 
     @property
     def isoperbra(self):
@@ -1516,7 +1562,7 @@ class Qobj(object):
     @property
     def isoper(self):
         return (isinstance(self.dims[0], list) and
-                isinstance(self.dims[0][0], (int, np.int32, np.int64)) and
+                isinstance(self.dims[0][0], (int, np.integer)) and
                 self.dims[0] == self.dims[1])
 
     @property
@@ -1595,7 +1641,7 @@ class Qobj(object):
         return q_sum
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # This functions evaluates a time-dependent quantum object on the list-string
 # and list-function formats that are used by the time-dependent solvers.
 # Although not used directly in by those solvers, it can for test purposes be
@@ -1610,7 +1656,7 @@ def qobj_list_evaluate(qobj_list, t, args):
     return Qobj.evaluate(qobj_list, t, args)
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 #
 # A collection of tests used to determine the type of quantum objects, and some
 # functions for increased compatibility with quantum optics toolbox.
@@ -1929,7 +1975,7 @@ def isherm(Q):
     return True if isinstance(Q, Qobj) and Q.isherm else False
 
 
-## TRAILING IMPORTS ##
+# TRAILING IMPORTS
 # We do a few imports here to avoid circular dependencies.
 from qutip.eseries import eseries
 import qutip.superop_reps as sr

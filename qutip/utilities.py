@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
@@ -148,7 +148,7 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     C = np.sqrt((2.0 * j3 + 1.0) * factorial(j3 + j1 - j2) *
                 factorial(j3 - j1 + j2) * factorial(j1 + j2 - j3) *
                 factorial(j3 + m3) * factorial(j3 - m3) /
-               (factorial(j1 + j2 + j3 + 1) *
+                (factorial(j1 + j2 + j3 + 1) *
                 factorial(j1 - m1) * factorial(j1 + m1) *
                 factorial(j2 - m2) * factorial(j2 + m2)))
     S = 0
@@ -161,7 +161,7 @@ def clebsch(j1, j2, j3, m1, m2, m3):
     return C
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Functions for unit conversions
 #
 _e = 1.602176565e-19  # C
@@ -198,10 +198,10 @@ def convert_unit(value, orig="meV", to="GHz"):
     value_new_unit : float / array
         The energy in the new unit.
     """
-    if not orig in _unit_factor_tbl:
+    if orig not in _unit_factor_tbl:
         raise TypeError("Unsupported unit %s" % orig)
 
-    if not to in _unit_factor_tbl:
+    if to not in _unit_factor_tbl:
         raise TypeError("Unsupported unit %s" % to)
 
     return value * (_unit_factor_tbl[orig] / _unit_factor_tbl[to])
@@ -365,30 +365,30 @@ def view_methods(Q):
     """
     View the methods and corresponding doc strings
     for a Qobj class.
-    
+
     Parameters
     ----------
     Q : Qobj
         Input Quantum object.
-    
+
     """
-    meth=dir(Q)
-    qobj_props=['data','dims','isherm','shape','type']
-    pub_meth=[x for x in meth if x.find('_') and x not in qobj_props]
-    ml=max([len(x) for x in pub_meth])
-    nl=len(Q.__class__.__name__+ 'Class Methods:')
-    print(Q.__class__.__name__+' Class Methods:')
-    print('-'*nl)
+    meth = dir(Q)
+    qobj_props = ['data', 'dims', 'isherm', 'shape', 'type']
+    pub_meth = [x for x in meth if x.find('_') and x not in qobj_props]
+    ml = max([len(x) for x in pub_meth])
+    nl = len(Q.__class__.__name__ + 'Class Methods:')
+    print(Q.__class__.__name__ + ' Class Methods:')
+    print('-' * nl)
     for ii in range(len(pub_meth)):
-        m=getattr(Q,pub_meth[ii])
-        meth_str=m.__doc__
-        ind=meth_str.find('\n')
-        pub_len=len(pub_meth[ii]+': ')
-        print(pub_meth[ii]+':'+' '*(ml+3-pub_len)+ meth_str[:ind])
+        m = getattr(Q, pub_meth[ii])
+        meth_str = m.__doc__
+        ind = meth_str.find('\n')
+        pub_len = len(pub_meth[ii] + ': ')
+        print(pub_meth[ii] + ':' + ' ' * (ml+3-pub_len) + meth_str[:ind])
 
 
 def _version2int(version_string):
     str_list = version_string.split(
-        "-dev")[0].split("rc")[0].split("b")[0].split("post")[0].split('.')
+        "-dev")[0].split("rc")[0].split("a")[0].split("b")[0].split("post")[0].split('.')
     return sum([int(d if len(d) > 0 else 0) * (100 ** (3 - n))
                 for n, d in enumerate(str_list[:3])])

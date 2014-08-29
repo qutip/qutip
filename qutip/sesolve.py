@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 """
@@ -45,10 +45,8 @@ from scipy.linalg import norm
 from qutip.qobj import Qobj, isket
 from qutip.expect import expect
 from qutip.rhs_generate import rhs_generate
-from qutip.odedata import Odedata
-from qutip.odeoptions import Odeoptions
-from qutip.odeconfig import odeconfig
-from qutip.odechecks import _ode_checks
+from qutip.solver import Result, Options, config
+from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.settings import debug
 from qutip.cy.spmatfuncs import (cy_expect_psi, cy_ode_rhs,
                                  cy_ode_psi_func_td,
@@ -103,9 +101,9 @@ def sesolve(H, rho0, tlist, e_ops, args={}, options=None,
     Returns
     -------
 
-    output: :class:`qutip.odedata`
+    output: :class:`qutip.solver`
 
-        An instance of the class :class:`qutip.odedata`, which contains either
+        An instance of the class :class:`qutip.solver`, which contains either
         an *array* of expectation values for the times specified by `tlist`, or
         an *array* or state vectors or density matrices corresponding to the
         times in `tlist` [if `e_ops` is an empty list], or
@@ -123,15 +121,18 @@ def sesolve(H, rho0, tlist, e_ops, args={}, options=None,
     else:
         e_ops_dict = None
 
+    # convert array based time-dependence to string format
+    H, _, args = _td_wrap_array_str(H, [], args, tlist)
+
     # check for type (if any) of time-dependent inputs
-    n_const, n_func, n_str = _ode_checks(H, [])
+    n_const, n_func, n_str = _td_format_check(H, [])
 
     if options is None:
-        options = Odeoptions()
+        options = Options()
 
-    if (not options.rhs_reuse) or (not odeconfig.tdfunc):
-        # reset odeconfig time-dependence flags to default values
-        odeconfig.reset()
+    if (not options.rhs_reuse) or (not config.tdfunc):
+        # reset config time-dependence flags to default values
+        config.reset()
 
     if n_func > 0:
         res = _sesolve_list_func_td(H, rho0, tlist, e_ops, args, options,
@@ -152,9 +153,11 @@ def sesolve(H, rho0, tlist, e_ops, args={}, options=None,
                              progress_bar)
 
     if e_ops_dict:
-        res.expect = {e: res.expect[n] for n, e in enumerate(e_ops_dict.keys())}
+        res.expect = {e: res.expect[n]
+                      for n, e in enumerate(e_ops_dict.keys())}
 
     return res
+
 
 # -----------------------------------------------------------------------------
 # A time-dependent unitary wavefunction equation on the list-function format
@@ -364,31 +367,34 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
     for k in range(n_L_terms):
         string_list.append("Ldata[%d], Linds[%d], Lptrs[%d]" % (k, k, k))
     for name, value in args.items():
-        string_list.append(str(value))
+        if isinstance(value, np.ndarray):
+            string_list.append(name)
+        else:
+            string_list.append(str(value))
     parameter_string = ",".join(string_list)
 
     #
     # generate and compile new cython code if necessary
     #
-    if not opt.rhs_reuse or odeconfig.tdfunc is None:
+    if not opt.rhs_reuse or config.tdfunc is None:
         if opt.rhs_filename is None:
-            odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
+            config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
         else:
-            odeconfig.tdname = opt.rhs_filename
+            config.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                       odeconfig=odeconfig)
-        cgen.generate(odeconfig.tdname + ".pyx")
+                       config=config)
+        cgen.generate(config.tdname + ".pyx")
 
-        code = compile('from ' + odeconfig.tdname + ' import cy_td_ode_rhs',
+        code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
-        odeconfig.tdfunc = cy_td_ode_rhs
+        config.tdfunc = cy_td_ode_rhs
 
     #
     # setup integrator
     #
     initial_vector = psi0.full().ravel()
-    r = scipy.integrate.ode(odeconfig.tdfunc)
+    r = scipy.integrate.ode(config.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -396,7 +402,8 @@ def _sesolve_list_str_td(H_list, psi0, tlist, e_ops, args, opt,
     r.set_initial_value(initial_vector, tlist[0])
     code = compile('r.set_f_params(' + parameter_string + ')',
                    '<string>', 'exec')
-    exec(code)
+
+    exec(code, locals(), args)
 
     #
     # call generic ODE code
@@ -436,7 +443,7 @@ def _sesolve_list_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
                         'length N-1 where N is the number of ' +
                         'Hamiltonian terms.')
     tflag = 1
-    if opt.rhs_reuse and odeconfig.tdfunc is None:
+    if opt.rhs_reuse and config.tdfunc is None:
         print("No previous time-dependent RHS found.")
         print("Generating one for you...")
         rhs_generate(H_func, args)
@@ -450,8 +457,8 @@ def _sesolve_list_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
     # setup ode args string
     string = ""
     for k in range(lenh):
-        string += ("Hdata[" + str(k) + "],Hinds[" + str(k) +
-                   "],Hptrs[" + str(k) + "],")
+        string += ("Hdata[" + str(k) + "], Hinds[" + str(k) +
+                   "], Hptrs[" + str(k) + "],")
 
     if args:
         td_consts = args.items()
@@ -461,24 +468,24 @@ def _sesolve_list_td(H_func, psi0, tlist, e_ops, args, opt, progress_bar):
                 string += (",")
 
     # run code generator
-    if not opt.rhs_reuse or odeconfig.tdfunc is None:
+    if not opt.rhs_reuse or config.tdfunc is None:
         if opt.rhs_filename is None:
-            odeconfig.tdname = "rhs" + str(odeconfig.cgen_num)
+            config.tdname = "rhs" + str(os.getpid()) + str(config.cgen_num)
         else:
-            odeconfig.tdname = opt.rhs_filename
+            config.tdname = opt.rhs_filename
         cgen = Codegen(h_terms=n_L_terms, h_tdterms=Lcoeff, args=args,
-                       odeconfig=odeconfig)
-        cgen.generate(odeconfig.tdname + ".pyx")
+                       config=config)
+        cgen.generate(config.tdname + ".pyx")
 
-        code = compile('from ' + odeconfig.tdname + ' import cy_td_ode_rhs',
+        code = compile('from ' + config.tdname + ' import cy_td_ode_rhs',
                        '<string>', 'exec')
         exec(code, globals())
-        odeconfig.tdfunc = cy_td_ode_rhs
+        config.tdfunc = cy_td_ode_rhs
     #
     # setup integrator
     #
     initial_vector = psi0.full().ravel()
-    r = scipy.integrate.ode(odeconfig.tdfunc)
+    r = scipy.integrate.ode(config.tdfunc)
     r.set_integrator('zvode', method=opt.method, order=opt.order,
                      atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                      first_step=opt.first_step, min_step=opt.min_step,
@@ -587,7 +594,7 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
     # prepare output array
     #
     n_tsteps = len(tlist)
-    output = Odedata()
+    output = Result()
     output.solver = "sesolve"
     output.times = tlist
 
@@ -635,23 +642,24 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
             r.set_initial_value(data, r.t)
 
         if opt.store_states:
-            output.states.append(Qobj(r.y,dims=dims))
+            output.states.append(Qobj(r.y, dims=dims))
 
         if expt_callback:
             # use callback method
             e_ops(t, Qobj(r.y, dims=psi0.dims))
 
         for m in range(n_expt_op):
-            output.expect[m][t_idx] = cy_expect_psi(e_ops[m].data, r.y, e_ops[m].isherm)
+            output.expect[m][t_idx] = cy_expect_psi(e_ops[m].data,
+                                                    r.y, e_ops[m].isherm)
 
         if t_idx < n_tsteps - 1:
             r.integrate(r.t + dt[t_idx])
 
     progress_bar.finished()
 
-    if not opt.rhs_reuse and odeconfig.tdname is not None:
+    if not opt.rhs_reuse and config.tdname is not None:
         try:
-            os.remove(odeconfig.tdname + ".pyx")
+            os.remove(config.tdname + ".pyx")
         except:
             pass
 

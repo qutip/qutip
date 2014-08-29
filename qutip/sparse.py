@@ -41,7 +41,7 @@ import numpy as np
 import scipy.linalg as la
 from scipy.linalg.blas import get_blas_funcs
 _dznrm2 = get_blas_funcs("znrm2")
-from qutip.cy.sparse_utils import (
+from qutip.cy.sparse_utils import (_sparse_profile,
     _sparse_permute, _sparse_reverse_permute, _sparse_bandwidth)
 from qutip.settings import debug
 
@@ -370,7 +370,7 @@ def sp_eigs(data, isherm, vecs=True, sparse=False, sort='low',
     return (evals, evecs) if vecs else evals
 
 
-def sp_expm(data):
+def sp_expm(data, sparse=True):
     """
     Sparse matrix exponential.
     """
@@ -383,20 +383,20 @@ def sp_expm(data):
     if normA <= theta[-1]:
         for ii in range(len(m_vals)):
             if normA <= theta[ii]:
-                F = _pade(A, m_vals[ii])
+                F = _pade(A, m_vals[ii], sparse)
                 break
     else:
         t, s = np.frexp(normA / theta[-1])
         s = s - (t == 0.5)
         A = A / 2.0 ** s
-        F = _pade(A, m_vals[-1])
+        F = _pade(A, m_vals[-1], sparse)
         for i in range(s):
             F = F * F
 
     return F
 
 
-def _pade(A, m):
+def _pade(A, m, sparse):
     n = np.shape(A)[0]
     c = _padecoeff(m)
 
@@ -413,8 +413,13 @@ def _pade(A, m):
         U = A * U
         for jj in range(m - 1, -1, -2):
             V = V + c[jj] * apows[(jj + 1) // 2]
-        F = spla.spsolve((-U + V), (U + V))
-        return F.tocsr()
+
+        if sparse:
+            F = spla.spsolve((-U + V), (U + V))
+            return F.tocsr()
+        else:
+            F = la.solve((-U + V).todense(), (U + V).todense())
+            return sp.lil_matrix(F).tocsr()
 
     elif m == 13:
         A2 = A * A
@@ -425,8 +430,13 @@ def _pade(A, m):
                  c[1] * sp.eye(n, n).tocsc())
         V = A6 * (c[12] * A6 + c[10] * A4 + c[8] * A2) + c[6] * A6 + c[4] * \
             A4 + c[2] * A2 + c[0] * sp.eye(n, n).tocsc()
-        F = spla.spsolve((-U + V), (U + V))
-        return F.tocsr()
+
+        if sparse:
+            F = spla.spsolve((-U + V), (U + V))
+            return F.tocsr()
+        else:
+            F = la.solve((-U + V).todense(), (U + V).todense())
+            return sp.csr_matrix(F)
 
 
 def _padecoeff(m):
@@ -598,3 +608,28 @@ def sp_bandwidth(A):
         return mb, lb, ub
     else:
         raise Exception('Invalid sparse input format.')
+
+def sp_profile(A):
+    """Returns the total, lower, and upper profiles of a 
+    sparse matrix.
+    
+    If the matrix is symmetric then the upper and lower profiles are
+    identical. Diagonal matrices have zero profile.
+    
+    Parameters
+    ----------
+    A : csr_matrix, csc_matrix
+        Input matrix
+    
+    """
+    if sp.isspmatrix_csr(A):
+        up = _sparse_profile(A.indices,A.indptr,A.shape[0])
+        A = A.tocsc()
+        lp = _sparse_profile(A.indices,A.indptr,A.shape[0])
+    elif sp.isspmatrix_csc(A):
+        lp = _sparse_profile(A.indices,A.indptr,A.shape[0])
+        A = A.tocsr()
+        up = _sparse_profile(A.indices,A.indptr,A.shape[0])
+    else:
+        raise TypeError('Input sparse matrix must be in CSR or CSC format.')
+    return up+lp, lp, up
