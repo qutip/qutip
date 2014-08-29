@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice,
+#    1. Redistributions of source code must retain the above copyright notice, 
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
@@ -39,12 +39,12 @@ class Codegen():
     """
     def __init__(self, h_terms=None, h_tdterms=None, h_td_inds=None,
                  args=None, c_terms=None, c_tdterms=[], c_td_inds=None,
-                 type='me', config=None):
+                 type='me', odeconfig=None):
         import sys
         import os
         sys.path.append(os.getcwd())
 
-        # Hamiltonian time-depdendent pieces
+        #--- Hamiltonian time-depdendent pieces ----#
         self.type = type
         if isinstance(h_terms, int):
             h_terms = range(h_terms)
@@ -54,15 +54,15 @@ class Codegen():
         self.h_td_inds = h_td_inds  # indicies of time-dependnt terms
         self.args = args  # args for strings
 
-        # Collapse operator time-depdendent pieces
+        #--- Collapse operator time-depdendent pieces ----#
         self.c_terms = c_terms  # number of C pieces
         self.c_tdterms = c_tdterms  # list of time-dependent strings
         self.c_td_inds = c_td_inds  # indicies of time-dependent terms
 
-        # Code generator properties
+        #--- Code generator properties----#
         self.code = []  # strings to be written to file
         self.level = 0  # indent level
-        self.config = config
+        self.odeconfig = odeconfig
 
     def write(self, string):
         """write lines of code to self.code"""
@@ -111,7 +111,7 @@ class Codegen():
         self.file(filename)
         self.file.writelines(self.code)
         self.file.close()
-        self.config.cgen_num += 1
+        self.odeconfig.cgen_num += 1
 
     def indent(self):
         """increase indention level by one"""
@@ -122,20 +122,6 @@ class Codegen():
         if self.level == 0:
             raise SyntaxError("Error in code generator")
         self.level -= 1
-
-    def _get_arg_str(self, args):
-        if len(args) == 0:
-            return ''
-
-        ret = ''
-        for name, value in self.args.items():
-            if isinstance(value, np.ndarray):
-                ret += ", np.ndarray[np.%s_t, ndim=1] %s" % \
-                    (value.dtype.name, name)
-            else:
-                kind = type(value).__name__
-                ret += ", np." + kind + "_t " + name
-        return ret
 
     def ODE_func_header(self):
         """Creates function header for time-dependent ODE RHS."""
@@ -152,7 +138,12 @@ class Codegen():
                 input_vars += (", np.ndarray[CTYPE_t, ndim=1] data" + str(k) +
                                ", np.ndarray[int, ndim=1] idx" + str(k) +
                                ", np.ndarray[int, ndim=1] ptr" + str(k))
-        input_vars += self._get_arg_str(self.args)
+        if self.args:
+            td_consts = list(self.args.items())
+            td_len = len(td_consts)
+            for jj in range(td_len):
+                kind = type(td_consts[jj][1]).__name__
+                input_vars += ", np." + kind + "_t " + td_consts[jj][0]
         func_end = "):"
         return [func_name + input_vars + func_end]
 
@@ -165,7 +156,12 @@ class Codegen():
         input_vars = ("int which, double t, np.ndarray[CTYPE_t, ndim=1] " +
                       "data, np.ndarray[int] idx,np.ndarray[int] " +
                       "ptr,np.ndarray[CTYPE_t, ndim=1] vec")
-        input_vars += self._get_arg_str(self.args)
+        if len(self.args) > 0:
+            td_consts = list(self.args.items())
+            td_len = len(td_consts)
+            for jj in range(td_len):
+                kind = type(td_consts[jj][1]).__name__
+                input_vars += ", np." + kind + " " + td_consts[jj][0]
         func_end = "):"
         return [func_name + input_vars + func_end]
 
@@ -178,7 +174,12 @@ class Codegen():
         input_vars = ("int which, double t, np.ndarray[CTYPE_t, ndim=1] " +
                       "data, np.ndarray[int] idx,np.ndarray[int] " +
                       "ptr,np.ndarray[CTYPE_t, ndim=1] vec")
-        input_vars += self._get_arg_str(self.args)
+        if len(self.args) > 0:
+            td_consts = list(self.args.items())
+            td_len = len(td_consts)
+            for jj in range(td_len):
+                kind = type(td_consts[jj][1]).__name__
+                input_vars += ", np." + kind + "_t" + " " + td_consts[jj][0]
         func_end = "):"
         return [func_name + input_vars + func_end]
 
@@ -198,7 +199,7 @@ class Codegen():
                            "idx" + hstr + "," + "ptr" + hstr +
                            "," + "vec" + ")")
                 if ht in self.h_td_inds:
-                    str_out += " * (" + tdterms[hinds] + ")"
+                    str_out += " * " + tdterms[hinds]
                     hinds += 1
                 func_vars.append(str_out)
             else:
@@ -260,8 +261,7 @@ class Codegen():
         ind = 0
         for k in self.c_td_inds:
             out_string.append("if which == " + str(k) + ":")
-            out_string.append("    out *= np.conj(" +
-                              self.c_tdterms[ind] + ")")
+            out_string.append("    out *= np.conj(" + self.c_tdterms[ind] + ")")
             ind += 1
         return out_string
 
@@ -339,5 +339,7 @@ def cython_col_expect(args):
 
     for row in range(num_rows):
         out += vec_ct[row] * dot[row]
-    """ % "".join(["," + str(td_const[0])
-                   for td_const in args.items()]) if args else ""]
+    """ %
+    "".join(["," + str(td_const[0]) for td_const in args.items()]) if args else ""
+    ]
+

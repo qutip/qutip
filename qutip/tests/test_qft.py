@@ -33,7 +33,7 @@
 
 import numpy as np
 from numpy.testing import assert_, run_module_suite
-from qutip.qip.algorithms.qft import qft, qft_steps
+from qutip.qip.qft import qft, qft_steps
 from qutip.qip.gates import gate_sequence_product
 
 

@@ -95,7 +95,7 @@ python module qutraj_run ! in
                 integer, optional,intent(in),check(len(ptr)>=nptr),depend(ptr) :: nptr=len(ptr)
                 logical, optional :: first
             end subroutine init_e_ops
-            subroutine init_result(neq,atol,rtol,mf,norm_steps,norm_tol,lzw,lrw,liw,ml,mu,natol,nrtol) ! in :qutraj_run:qutraj_run.f90:qutraj_run
+            subroutine init_odedata(neq,atol,rtol,mf,norm_steps,norm_tol,lzw,lrw,liw,ml,mu,natol,nrtol) ! in :qutraj_run:qutraj_run.f90:qutraj_run
                 use qutraj_precision
                 integer intent(in) :: neq
                 double precision dimension(natol),intent(in) :: atol
@@ -110,7 +110,7 @@ python module qutraj_run ! in
                 integer, optional,intent(in) :: mu = 0
                 integer, optional,intent(in),check(len(atol)>=natol),depend(atol) :: natol=len(atol)
                 integer, optional,intent(in),check(len(rtol)>=nrtol),depend(rtol) :: nrtol=len(rtol)
-            end subroutine init_result
+            end subroutine init_odedata
             subroutine get_rho_sparse(i)
                 integer intent(in) :: i
             end subroutine get_rho_sparse

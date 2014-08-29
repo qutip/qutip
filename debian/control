@@ -11,7 +11,7 @@ Architecture: any
 Depends: ${misc:Depends}, ${python:Depends}, ${shlibs:Depends}, python-scipy
 Recommends: ipython (>= 0.12), ipython-notebook, python-matplotlib, python-pyside, cython
 Provides: ${python:Provides}
-Homepage: http://www.qutip.org
+Homepage: http://code.google.com/p/qutip
 Description: Python framework for solving the dynamics of quantum systems.
  QuTiP is an open-source framework for solving the dynamics of open and closed
  quantum systems written in Python. The focus of QuTiP is on systems with

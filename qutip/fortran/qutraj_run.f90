@@ -26,7 +26,7 @@ module qutraj_run
 
   !type(operat) :: hamilt
   !type(operat), allocatable :: c_ops(:), e_ops(:)
-  !type(options) :: ode
+  !type(odeoptions) :: ode
 
   real(wp), allocatable :: tlist(:)
   complex(wp), allocatable :: psi0(:)
@@ -91,7 +91,7 @@ module qutraj_run
   !
 
   interface finalize
-    module procedure options_finalize
+    module procedure odeoptions_finalize
   end interface
 
   contains
@@ -179,7 +179,7 @@ module qutraj_run
     call new(e_ops(i),val,col,ptr,m,k)
   end subroutine
 
-  subroutine init_result(neq,atol,rtol,mf,norm_steps,norm_tol,&
+  subroutine init_odedata(neq,atol,rtol,mf,norm_steps,norm_tol,&
       lzw,lrw,liw,ml,mu,natol,nrtol)
     use qutraj_precision
     integer, intent(in) :: neq
@@ -542,37 +542,37 @@ module qutraj_run
 
   ! Deallocate stuff
 
-  subroutine options_finalize(this)
-    type(options), intent(inout) :: this
+  subroutine odeoptions_finalize(this)
+    type(odeoptions), intent(inout) :: this
     integer :: istat
     if (allocated(this%zwork)) then
       deallocate(this%zwork,stat=istat)
       if (istat.ne.0) then
-        call error("options_finalize: could not deallocate.",istat)
+        call error("odeoptions_finalize: could not deallocate.",istat)
       endif
     endif
     if (allocated(this%rwork)) then
       deallocate(this%rwork,stat=istat)
       if (istat.ne.0) then
-        call error("options_finalize: could not deallocate.",istat)
+        call error("odeoptions_finalize: could not deallocate.",istat)
       endif
     endif
     if (allocated(this%iwork)) then
       deallocate(this%iwork,stat=istat)
       if (istat.ne.0) then
-        call error("options_finalize: could not deallocate.",istat)
+        call error("odeoptions_finalize: could not deallocate.",istat)
       endif
     endif
     if (allocated(this%atol)) then
       deallocate(this%atol,stat=istat)
       if (istat.ne.0) then
-        call error("options_finalize: could not deallocate.",istat)
+        call error("odeoptions_finalize: could not deallocate.",istat)
       endif
     endif
     if (allocated(this%rtol)) then
       deallocate(this%rtol,stat=istat)
       if (istat.ne.0) then
-        call error("options_finalize: could not deallocate.",istat)
+        call error("odeoptions_finalize: could not deallocate.",istat)
       endif
     endif
   end subroutine

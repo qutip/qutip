@@ -330,10 +330,10 @@ def complex_phase_cmap():
                       (0.75, 1.0, 1.0),
                       (1.00, 0.0, 0.0)),
              'green': ((0.00, 0.0, 0.0),
-                       (0.25, 1.0, 1.0),
-                       (0.50, 0.0, 0.0),
-                       (0.75, 1.0, 1.0),
-                       (1.00, 0.0, 0.0)),
+                      (0.25, 1.0, 1.0),
+                      (0.50, 0.0, 0.0),
+                      (0.75, 1.0, 1.0),
+                      (1.00, 0.0, 0.0)),
              'red': ((0.00, 1.0, 1.0),
                      (0.25, 0.5, 0.5),
                      (0.50, 0.0, 0.0),
@@ -378,7 +378,7 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
         The axes context in which the plot will be drawn.
 
     threshold: float (None)
-        Threshold for when bars of smaller height should be transparent. If
+        Threshold for when bars of smaller height should be transparent. If 
         not set, all bars are colored according to the color map.
 
     Returns
@@ -422,8 +422,8 @@ def matrix_histogram_complex(M, xlabels=None, ylabels=None,
     cmap = complex_phase_cmap()
 
     colors = cmap(norm(angle(Mvec)))
-    if threshold is not None:
-        colors[:, 3] = 1 * (dz > threshold)
+    if not threshold is None:
+        colors[:,3] = 1 * (dz > threshold) 
 
     if ax is None:
         fig = plt.figure()
@@ -878,12 +878,12 @@ def plot_expectation_values(results, ylabels=[], title=None, show_legend=False,
                             fig=None, axes=None, figsize=(8, 4)):
     """
     Visualize the results (expectation values) for an evolution solver.
-    `results` is assumed to be an instance of Result, or a list of Result
+    `results` is assumed to be an instance of Odedata, or a list of Odedata
     instances.
 
     Parameters
     ----------
-    results : (list of) :class:`qutip.solver.Result`
+    results : (list of) :class:`qutip.Odedata`
         List of results objects returned by any of the QuTiP evolution solvers.
 
     ylabels : list of strings
@@ -1356,12 +1356,7 @@ def plot_qubism(ket, theme='light', how='pairs',
     elif legend_iteration == 'grid_iteration':
         label_n = grid_iteration
     else:
-        try:
-            label_n = int(legend_iteration)
-        except:
-            raise Exception("No such option for legend_iteration keyword " +
-                            "argument. Use 'all', 'grid_iteration' or an " +
-                            "integer.")
+        label_n = legend_iteration
 
     if label_n:
 
@@ -1379,9 +1374,7 @@ def plot_qubism(ket, theme='light', how='pairs',
         scale_y = float(size_y) / np.prod(dim_list_y[:label_n])
         shift_y = 0.5 * scale_y
 
-        bbox = ax.get_window_extent().transformed(
-            fig.dpi_scale_trans.inverted())
-        fontsize = 35 * bbox.width / np.prod(dim_list_x[:label_n]) / label_n
+        fontsize = 30 * figsize[0] / np.prod(dim_list_x[:label_n]) / label_n
         opts = {'fontsize': fontsize,
                 'color': theme2color_of_lines[theme],
                 'horizontalalignment': 'center',
@@ -1476,11 +1469,11 @@ def plot_schmidt(ket, splitting=None,
     ticks_y = [size_y / quadrants_y * (quadrants_y - i - 0.5)
                for i in range(quadrants_y)]
 
-    labels_x = [_sequence_to_latex(_index_to_sequence(i*size_x // quadrants_x,
-                                                      dim_list=dim_list_x))
+    labels_x = [_sequence_to_latex(_index_to_sequence(i * size_x // quadrants_x,
+                                                     dim_list=dim_list_x))
                 for i in range(quadrants_x)]
-    labels_y = [_sequence_to_latex(_index_to_sequence(i*size_y // quadrants_y,
-                                                      dim_list=dim_list_y))
+    labels_y = [_sequence_to_latex(_index_to_sequence(i * size_y // quadrants_y,
+                                                     dim_list=dim_list_y))
                 for i in range(quadrants_y)]
 
     ax.set_xticks(ticks_x)
