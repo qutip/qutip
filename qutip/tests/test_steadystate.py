@@ -153,6 +153,35 @@ def test_qubit_gmres():
     assert_equal(delta < 1e-5, True)
 
 
+def test_qubit_bicgstab():
+    "Steady state: Thermal qubit - iterative-bicgstab solver"
+    # thermal steadystate of a qubit: compare numerics with analytical formula
+    sx = sigmax()
+    sz = sigmaz()
+    sm = destroy(2)
+
+    H = 0.5 * 2 * pi * sz
+    gamma1 = 0.05
+
+    wth_vec = linspace(0.1, 3, 20)
+    p_ss = zeros(shape(wth_vec))
+
+    for idx, wth in enumerate(wth_vec):
+
+        n_th = 1.0 / (exp(1.0 / wth) - 1)  # bath temperature
+        c_op_list = []
+        rate = gamma1 * (1 + n_th)
+        c_op_list.append(sqrt(rate) * sm)
+        rate = gamma1 * n_th
+        c_op_list.append(sqrt(rate) * sm.dag())
+        rho_ss = steadystate(H, c_op_list, method='iterative-bicgstab')
+        p_ss[idx] = expect(sm.dag() * sm, rho_ss)
+
+    p_ss_analytic = exp(-1.0 / wth_vec) / (1 + exp(-1.0 / wth_vec))
+    delta = sum(abs(p_ss_analytic - p_ss))
+    assert_equal(delta < 1e-5, True)
+    
+
 def test_qubit_lgmres():
     "Steady state: Thermal qubit - iterative-lgmres solver"
     # thermal steadystate of a qubit: compare numerics with analytical formula
@@ -290,6 +319,33 @@ def test_ho_gmres():
     assert_equal(delta < 1e-3, True)
 
 
+def test_ho_bicgstab():
+    "Steady state: Thermal HO - iterative-bicgstab solver"
+    # thermal steadystate of an oscillator: compare numerics with analytical
+    # formula
+    a = destroy(40)
+    H = 0.5 * 2 * pi * a.dag() * a
+    gamma1 = 0.05
+
+    wth_vec = linspace(0.1, 3, 20)
+    p_ss = zeros(shape(wth_vec))
+
+    for idx, wth in enumerate(wth_vec):
+
+        n_th = 1.0 / (exp(1.0 / wth) - 1)  # bath temperature
+        c_op_list = []
+        rate = gamma1 * (1 + n_th)
+        c_op_list.append(sqrt(rate) * a)
+        rate = gamma1 * n_th
+        c_op_list.append(sqrt(rate) * a.dag())
+        rho_ss = steadystate(H, c_op_list, method='iterative-bicgstab')
+        p_ss[idx] = real(expect(a.dag() * a, rho_ss))
+
+    p_ss_analytic = 1.0 / (exp(1.0 / wth_vec) - 1)
+    delta = sum(abs(p_ss_analytic - p_ss))
+    assert_equal(delta < 1e-3, True)
+
+
 def test_ho_lgmres():
     "Steady state: Thermal HO - iterative-lgmres solver"
     # thermal steadystate of an oscillator: compare numerics with analytical
@@ -380,6 +436,23 @@ def test_driven_cavity_gmres():
     c_ops = [sqrt(Gamma) * a]
 
     rho_ss = steadystate(H, c_ops, method='iterative-gmres')
+    rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
+
+    assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
+
+
+def test_driven_cavity_bicgstab():
+    "Steady state: Driven cavity - iterative-bicgstab solver"
+
+    N = 30
+    Omega = 0.01 * 2 * pi
+    Gamma = 0.05
+
+    a = destroy(N)
+    H = Omega * (a.dag() + a)
+    c_ops = [sqrt(Gamma) * a]
+
+    rho_ss = steadystate(H, c_ops, method='iterative-bicgstab')
     rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
 
     assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
