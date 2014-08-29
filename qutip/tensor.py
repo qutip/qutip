@@ -40,7 +40,6 @@ from qutip.qobj import Qobj
 from qutip.permute import reshuffle
 import qutip.settings
 
-
 def tensor(*args):
     """Calculates the tensor product of input operators.
 
@@ -110,8 +109,7 @@ shape = [4, 4], type = oper, isHerm = True
         out._isherm = None
 
     return out.tidyup() if qutip.settings.auto_tidyup else out
-
-
+    
 def super_tensor(*args):
     """Calculates the tensor product of input superoperators, by tensoring
     together the underlying Hilbert spaces on which each vectorized operator
@@ -130,21 +128,21 @@ def super_tensor(*args):
     """
     if isinstance(args[0], list):
         args = args[0]
-
-    if not all(arg.type == "super" and arg.superrep == "super"
-               for arg in args):
+        
+    if not all(arg.type == "super" and arg.superrep == "super" for arg in args):
         raise TypeError(
             "super_tensor is only implemented for "
             "superrep='super'."
         )
-
+        
     # Reshuffle the superoperators.
     shuffled_ops = list(map(reshuffle, args))
-
+    
     # Tensor the result.
     shuffled_tensor = tensor(shuffled_ops)
-
+    
     # Unshuffle and return.
     out = reshuffle(shuffled_tensor)
     out.superrep = args[0].superrep
     return out
+

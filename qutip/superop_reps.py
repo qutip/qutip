@@ -1,43 +1,12 @@
 # -*- coding: utf-8 -*-
-# This file is part of QuTiP: Quantum Toolbox in Python.
-#
-#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
-#    All rights reserved.
-#
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
-#    met:
-#
-#    1. Redistributions of source code must retain the above copyright notice,
-#       this list of conditions and the following disclaimer.
-#
-#    2. Redistributions in binary form must reproduce the above copyright
-#       notice, this list of conditions and the following disclaimer in the
-#       documentation and/or other materials provided with the distribution.
-#
-#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
-#       of its contributors may be used to endorse or promote products derived
-#       from this software without specific prior written permission.
-#
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-###############################################################################
-#
-# This module was initially contributed by Ben Criger.
-#
 """
 This module implements transformations between superoperator representations,
 including supermatrix, Kraus, Choi and Chi (process) matrix formalisms.
+
+@author: dcriger
 """
+
+# IMPORTS ---------------------------------------------------------------------
 
 # Python Standard Library
 from operator import add
@@ -64,7 +33,7 @@ def _dep_super(pe):
     Returns the superoperator corresponding to qubit depolarization for a
     given parameter pe.
 
-    TODO: if this is going into production (hopefully it isn't) then check
+    # TODO if this is going into production (hopefully it isn't) then check
     CPTP, expand to arbitrary dimensional systems, etc.
     """
     return Qobj(dims=[[[2], [2]], [[2], [2]]],
@@ -79,7 +48,7 @@ def _dep_choi(pe):
     Returns the choi matrix corresponding to qubit depolarization for a
     given parameter pe.
 
-    TODO: if this is going into production (hopefully it isn't) then check
+    # TODO if this is going into production (hopefully it isn't) then check
     CPTP, expand to arbitrary dimensional systems, etc.
     """
     return Qobj(dims=[[[2], [2]], [[2], [2]]],
@@ -141,7 +110,7 @@ def super_to_choi(q_oper):
     # which looks at Qobj.type to determine the right conversion function.
     """
     Takes a superoperator to a Choi matrix
-    TODO: Sanitize input, incorporate as method on Qobj if type=='super'
+    # TODO Sanitize input, incorporate as method on Qobj if type=='super'
     """
     q_oper = _super_tofrom_choi(q_oper)
     q_oper.superrep = 'choi'
@@ -153,7 +122,7 @@ def choi_to_super(q_oper):
     # which looks at Qobj.type to determine the right conversion function.
     """
     Takes a Choi matrix to a superoperator
-    TODO: Sanitize input, Abstract-ify application of channels to states
+    # TODO Sanitize input, Abstract-ify application of channels to states
     """
     q_oper = super_to_choi(q_oper)
     q_oper.superrep = 'super'
@@ -163,7 +132,7 @@ def choi_to_super(q_oper):
 def choi_to_kraus(q_oper):
     """
     Takes a Choi matrix and returns a list of Kraus operators.
-    TODO: Create a new class structure for quantum channels, perhaps as a
+    # TODO Create a new class structure for quantum channels, perhaps as a
     strict sub-class of Qobj.
     """
     vals, vecs = eig(q_oper.data.todense())
@@ -191,9 +160,6 @@ def kraus_to_choi(kraus_list):
 
 
 def kraus_to_super(kraus_list):
-    """
-    Converts a list of Kraus operators and returns a super operator.
-    """
     return choi_to_super(kraus_to_choi(kraus_list))
 
 

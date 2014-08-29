@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice,
+#    1. Redistributions of source code must retain the above copyright notice, 
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,26 +18,26 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
 
 import numpy as np
 from qutip.qobj import Qobj
 from qutip.eseries import eseries, estidy, esval
 from qutip.expect import expect
 from qutip.superoperator import *
-from qutip.solver import Result
-
+from qutip.odedata import Odedata
 
 # -----------------------------------------------------------------------------
 # pass on to wavefunction solver or master equation solver depending on whether
@@ -93,17 +93,17 @@ def essolve(H, rho0, tlist, c_op_list, e_ops):
 
     # evaluate the expectation values
     if n_expt_op == 0:
-        results = [Qobj()] * n_tsteps
+        result_list = [Qobj()] * n_tsteps # XXX
     else:
-        results = np.zeros([n_expt_op, n_tsteps], dtype=complex)
+        result_list = np.zeros([n_expt_op, n_tsteps], dtype=complex)
 
     for n, e in enumerate(e_ops):
-        results[n, :] = expect(e, esval(es, tlist))
+        result_list[n, :] = expect(e, esval(es, tlist))
 
-    data = Result()
+    data = Odedata()
     data.solver = "essolve"
     data.times = tlist
-    data.expect = [np.real(results[n, :]) if e.isherm else results[n, :]
+    data.expect = [np.real(result_list[n, :]) if e.isherm else result_list[n, :]
                    for n, e in enumerate(e_ops)]
 
     return data

@@ -122,8 +122,7 @@ def concurrence(rho):
     References
     ----------
 
-    .. [1] http://en.wikipedia.org/wiki/Concurrence_(quantum_computing)
-
+        http://en.wikipedia.org/wiki/Concurrence_(quantum_computing)
     """
     if rho.isket and rho.dims != [[2, 2], [1, 1]]:
         raise Exception("Ket must be tensor product of two qubits.")

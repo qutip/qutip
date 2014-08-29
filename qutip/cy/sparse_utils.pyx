@@ -63,22 +63,6 @@ def _sparse_bandwidth(
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def _sparse_profile(np.ndarray[ITYPE_t, ndim=1] idx,
-        np.ndarray[ITYPE_t, ndim=1] ptr,
-        int nrows):
-    cdef int ii, jj, temp, ldist=0
-    cdef LTYPE_t pro=0
-    for ii in range(nrows):
-        temp = 0
-        for jj in range(ptr[ii], ptr[ii + 1]):
-            ldist = idx[jj] - ii
-            temp = max(temp, ldist)
-        pro += temp
-    return pro
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
 def _sparse_permute(
         np.ndarray[cython.numeric, ndim=1] data,
         np.ndarray[ITYPE_t, ndim=1] idx,

@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice,
+#    1. Redistributions of source code must retain the above copyright notice, 
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
@@ -319,10 +319,11 @@ def _osc_eigen(N, pnts):
                 np.sqrt((k - 1.0) / k) * A[k - 2, :]
         return A
 
-
-# -----------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Q FUNCTION
 #
+
+
 def qfunc(state, xvec, yvec, g=sqrt(2)):
     """Q-function of a given state vector or density matrix
     at points `xvec + i * yvec`.
@@ -394,9 +395,11 @@ def _qfunc_pure(psi, alpha_mat):
     return real(qmat) * exp(-abs(alpha_mat) ** 2) / pi
 
 
-# -----------------------------------------------------------------------------
+
+#------------------------------------------------------------------------------
 # PSEUDO DISTRIBUTION FUNCTIONS FOR SPINS
 #
+
 def spin_q_function(rho, theta, phi):
     """Husimi Q-function for spins.
 
@@ -437,25 +440,23 @@ def spin_q_function(rho, theta, phi):
     for m1 in arange(-j, j+1):
 
         Q += binom(2*j, j+m1) * cos(THETA/2) ** (2*(j-m1)) * sin(THETA/2) ** (2*(j+m1)) * \
-            rho.data[int(j-m1), int(j-m1)]
+             rho.data[int(j-m1), int(j-m1)]
 
         for m2 in arange(m1+1, j+1):
 
             Q += (sqrt(binom(2*j, j+m1)) * sqrt(binom(2*j, j+m2)) *
                   cos(THETA/2) ** (2*j-m1-m2) * sin(THETA/2) ** (2*j+m1+m2)) * \
-                (exp(1j * (m2-m1) * PHI) * rho.data[int(j-m1), int(j-m2)] +
-                 exp(1j * (m1-m2) * PHI) * rho.data[int(j-m2), int(j-m1)])
-
+                  (exp(1j * (m2-m1) * PHI) * rho.data[int(j-m1), int(j-m2)] + 
+                   exp(1j * (m1-m2) * PHI) * rho.data[int(j-m2), int(j-m1)])
+            
     return Q.real, THETA, PHI
-
 
 def _rho_kq(rho, j, k, q):
     v = 0j
 
     for m1 in arange(-j, j+1):
         for m2 in arange(-j, j+1):
-            v += (-1)**(j - m1 - q) * clebsch(j, j, k, m1, -m2,
-                                              q) * rho.data[m1 + j, m2 + j]
+            v += (-1)**(j - m1 - q) * clebsch(j, j, k, m1, -m2, q) * rho.data[m1 + j, m2 + j]
 
     return v
 
@@ -496,13 +497,13 @@ def spin_wigner(rho, theta, phi):
 
     J = rho.shape[0]
     j = (J - 1) / 2
-
+    
     THETA, PHI = meshgrid(theta, phi)
 
     W = np.zeros_like(THETA, dtype=complex)
-
+    
     for k in range(int(2 * j)+1):
-        for q in range(-k, k+1):
+        for q in range(-k,k+1):
             W += _rho_kq(rho, j, k, q) * sph_harm(q, k, PHI, THETA)
-
+            
     return W, THETA, PHI

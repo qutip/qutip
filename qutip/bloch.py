@@ -156,13 +156,13 @@ class Bloch():
         self.zlabel = [r'$\left|0\right>$', r'$\left|1\right>$']
         # Position of z-axis labels, default = [1.2, -1.2]
         self.zlpos = [1.2, -1.2]
-        # ---font options---
+        #---font options---
         # Color of fonts, default = 'black'
         self.font_color = 'black'
         # Size of fonts, default = 20
         self.font_size = 20
 
-        # ---vector options---
+        #---vector options---
         # List of colors for Bloch vectors, default = ['b','g','r','y']
         self.vector_color = ['g', '#CC6600', 'b', 'r']
         #: Width of Bloch vectors, default = 5
@@ -172,7 +172,7 @@ class Bloch():
         #: Sets the width of the vectors arrowhead
         self.vector_mutation = 20
 
-        # ---point options---
+        #---point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_color = ['b', 'r', 'g', '#CC6600']
         # Size of point markers, default = 25
@@ -180,7 +180,7 @@ class Bloch():
         # Shape of point markers, default = ['o','^','d','s']
         self.point_marker = ['o', 's', 'd', '^']
 
-        # ---data lists---
+        #---data lists---
         # Data for point markers
         self.points = []
         # Data for Bloch vectors

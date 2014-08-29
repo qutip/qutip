@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without
-#    modification, are permitted provided that the following conditions are
+#    Redistribution and use in source and binary forms, with or without 
+#    modification, are permitted provided that the following conditions are 
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice,
+#    1. Redistributions of source code must retain the above copyright notice, 
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
@@ -42,9 +42,9 @@ from qutip.mesolve import mesolve
 from qutip.steadystate import steadystate
 from qutip.states import ket2dm
 from qutip.states import projection
-from qutip.solver import Options
+from qutip.odeoptions import Odeoptions
 from qutip.propagator import propagator
-from qutip.solver import Result
+from qutip.odedata import Odedata
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.expect import expect
 from qutip.utilities import n_thermal
@@ -212,7 +212,7 @@ def floquet_modes_table(f_modes_0, f_energies, tlist, H, T, args=None):
 
     f_modes_table_t = [[] for t in tlist_period]
 
-    opt = Options()
+    opt = Odeoptions()
     opt.rhs_reuse = True
 
     for n, f_mode in enumerate(f_modes_0):
@@ -472,9 +472,9 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
     Returns
     -------
 
-    output : :class:`qutip.solver.Result`
+    output : :class:`qutip.odedata.Odedata`
 
-        An instance of the class :class:`qutip.solver.Result`, which
+        An instance of the class :class:`qutip.odedata.Odedata`, which
         contains either an *array* of expectation values or an array of
         state vectors, for the times specified by `tlist`.
     """
@@ -491,8 +491,8 @@ def fsesolve(H, psi0, tlist, e_ops=[], T=None, args={}, Tsteps=100):
                                           np.linspace(0, T, Tsteps + 1),
                                           H, T, args)
 
-    # setup Result for storing the results
-    output = Result()
+    # setup Odedata for storing the results
+    output = Odedata()
     output.times = tlist
     output.solver = "fsesolve"
 
@@ -755,7 +755,7 @@ def floquet_basis_transform(f_modes, f_energies, rho0):
     return rho0.transform(f_modes, True)
 
 
-# -----------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Floquet-Markov master equation
 #
 #
@@ -766,7 +766,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     """
 
     if options is None:
-        opt = Options()
+        opt = Odeoptions()
     else:
         opt = options
 
@@ -786,7 +786,7 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     n_tsteps = len(tlist)
     dt = tlist[1] - tlist[0]
 
-    output = Result()
+    output = Odedata()
     output.solver = "fmmesolve"
     output.times = tlist
 
@@ -877,12 +877,12 @@ def floquet_markov_mesolve(R, ekets, rho0, tlist, e_ops, f_modes_table=None,
     return output
 
 
-# -----------------------------------------------------------------------------
+#------------------------------------------------------------------------------
 # Solve the Floquet-Markov master equation
 #
 #
 def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
-              args={}, options=Options(), floquet_basis=True, kmax=5):
+              args={}, options=Odeoptions(), floquet_basis=True, kmax=5):
     """
     Solve the dynamics for the system using the Floquet-Markov master equation.
 
@@ -931,7 +931,7 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
         >>> kB = 1.38e-23
         >>> args['w_th'] = temperature * (kB / h) * 2 * pi * 1e-9
 
-    options : :class:`qutip.solver`
+    options : :class:`qutip.odeoptions`
         options for the ODE solver.
 
     k_max : int
@@ -940,9 +940,9 @@ def fmmesolve(H, rho0, tlist, c_ops, e_ops=[], spectra_cb=[], T=None,
     Returns
     -------
 
-    output : :class:`qutip.solver`
+    output : :class:`qutip.odedata`
 
-        An instance of the class :class:`qutip.solver`, which contains either
+        An instance of the class :class:`qutip.odedata`, which contains either
         an *array* of expectation values for the times specified by `tlist`.
     """
 

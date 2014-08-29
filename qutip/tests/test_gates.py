@@ -31,11 +31,9 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import itertools
 import numpy as np
 from numpy.testing import assert_, run_module_suite
 from qutip.states import basis, ket2dm
-from qutip.operators import identity, sigmax
 from qutip.qip import (rx, ry, rz, phasegate, cnot, swap, iswap,
                        sqrtswap, toffoli, fredkin, gate_expand_3toN)
 from qutip.random_objects import rand_ket, rand_herm
@@ -154,7 +152,7 @@ class TestGates:
                     if g == cnot:
                         G = g(N, m, n)
                     else:
-                        G = g(N, [m, n])
+                        G= g(N, [m, n])
 
                     psi_out = G * psi_in
 
@@ -166,39 +164,6 @@ class TestGates:
                     rho_out = psi_out.ptrace([m, n]).permute(p)
 
                     assert_((rho_ref_out - rho_out).norm() < 1e-12)
-
-    def testExpandGate3toN_permutation(self):
-        """
-        gates: expand 3 to 3 with permuTation (using toffoli)
-        """
-        for _p in itertools.permutations([0, 1, 2]):
-            controls, target = [_p[0], _p[1]], _p[2]
-            
-            controls = [1, 2]
-            target = 0
-
-            p = [1, 2, 3]
-            p[controls[0]] = 0
-            p[controls[1]] = 1
-            p[target] = 2
-
-            U = toffoli(N=3, controls=controls, target=target)
-            
-            ops = [basis(2, 0).dag(),  basis(2, 0).dag(), identity(2)]
-            P = tensor(ops[p[0]], ops[p[1]], ops[p[2]])
-            assert_(P * U * P.dag() == identity(2))
-
-            ops = [basis(2, 1).dag(),  basis(2, 0).dag(), identity(2)]
-            P = tensor(ops[p[0]], ops[p[1]], ops[p[2]])
-            assert_(P * U * P.dag() == identity(2))
-
-            ops = [basis(2, 0).dag(),  basis(2, 1).dag(), identity(2)]
-            P = tensor(ops[p[0]], ops[p[1]], ops[p[2]])
-            assert_(P * U * P.dag() == identity(2))
-
-            ops = [basis(2, 1).dag(),  basis(2, 1).dag(), identity(2)]
-            P = tensor(ops[p[0]], ops[p[1]], ops[p[2]])
-            assert_(P * U * P.dag() == sigmax())
 
     def testExpandGate3toN(self):
         """
@@ -241,12 +206,12 @@ class TestGates:
                         psi_in = tensor(psi_list)
 
                         if g == fredkin:
-                            targets = [n, k]
+                            targets = [n,k]
                             G = g(N, control=m, targets=targets)
                         else:
                             controls = [m, n]
                             G = g(N, controls, k)
-
+    
                         psi_out = G * psi_in
 
                         o1 = psi_out.overlap(psi_in)

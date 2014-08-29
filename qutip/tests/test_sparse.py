@@ -37,29 +37,13 @@ import scipy.sparse as sp
 from qutip.random_objects import rand_dm
 from qutip.operators import create, destroy, qeye
 from qutip.states import coherent
-from qutip.sparse import (sp_bandwidth, sp_permute, sp_reverse_permute,
-                        sp_profile)
+from qutip.sparse import sp_bandwidth, sp_permute, sp_reverse_permute
 from qutip.graph import reverse_cuthill_mckee
 
 
 def _permutateIndexes(array, row_perm, col_perm):
     return array[np.ix_(row_perm, col_perm)]
 
-def _dense_profile(B):
-    row_pro = 0
-    for i in range(B.shape[0]):
-        j = np.where(B[i,:]!=0)[0]
-        if np.any(j):
-            if j[-1] > i:
-                row_pro += (j[-1]-i)
-    col_pro = 0
-    for j in range(B.shape[0]):
-        i = np.where(B[:,j]!=0)[0]
-        if np.any(i):
-            if i[-1] > j:
-                col_pro += i[-1]-j
-    ans = (row_pro+col_pro,col_pro,row_pro)
-    return ans
 
 def test_sparse_symmetric_permute():
     "Sparse: Symmetric Permute"
@@ -153,37 +137,36 @@ def test_sparse_nonsymmetric_reverse_permute():
 
 def test_sp_bandwidth():
     "Sparse: Bandwidth"
-    for kk in range(10):
-        A = sp.rand(100,100,density=0.1,format='csr')
-        ans1 = sp_bandwidth(A)
-        A = A.toarray()
-        i,j = np.nonzero(A)
-        ans2 = ((j-i).max()+(i-j).max()+1,(i-j).max(),(j-i).max())
-        assert_equal(ans1, ans2)
-    
-    for kk in range(10):
-        A = sp.rand(100,100,density=0.1,format='csc')
-        ans1 = sp_bandwidth(A)
-        A = A.toarray()
-        i,j = np.nonzero(A)
-        ans2 = ((j-i).max()+(i-j).max()+1,(i-j).max(),(j-i).max())
-        assert_equal(ans1, ans2)
-    
-def test_sp_profile():
-    "Sparse: Profile"
-    for kk in range(10):
-        A = sp.rand(1000,1000,0.1,format='csr')
-        pro = sp_profile(A)
-        B = A.toarray()
-        ans = _dense_profile(B)
-        assert_equal(pro, ans)
-        
-    for kk in range(10):
-        A = sp.rand(1000,1000,0.1,format='csc')
-        pro = sp_profile(A)
-        B = A.toarray()
-        ans = _dense_profile(B)
-        assert_equal(pro, ans)
+    # Bandwidth test 1
+    A = create(25)+destroy(25)+qeye(25)
+    band = sp_bandwidth(A.data)
+    assert_equal(band[0], 3)
+    assert_equal(band[1] == band[2] == 1, 1)
+    # Bandwidth test 2
+    A = np.array([[1, 0, 0, 0, 1, 0, 0, 0],
+                  [0, 1, 1, 0, 0, 1, 0, 1],
+                  [0, 1, 1, 0, 1, 0, 0, 0],
+                  [0, 0, 0, 1, 0, 0, 1, 0],
+                  [1, 0, 1, 0, 1, 0, 0, 0],
+                  [0, 1, 0, 0, 0, 1, 0, 1],
+                  [0, 0, 0, 1, 0, 0, 1, 0],
+                  [0, 1, 0, 0, 0, 1, 0, 1]], dtype=np.int32)
+    A = sp.csr_matrix(A)
+    out1 = sp_bandwidth(A)
+    assert_equal(out1[0], 13)
+    assert_equal(out1[1] == out1[2] == 6, 1)
+    # Bandwidth test 3
+    perm = reverse_cuthill_mckee(A)
+    B = sp_permute(A, perm, perm)
+    out2 = sp_bandwidth(B)
+    assert_equal(out2[0], 5)
+    assert_equal(out2[1] == out2[2] == 2, 1)
+    # Asymmetric bandwidth test
+    A = destroy(25)+qeye(25)
+    out1 = sp_bandwidth(A.data)
+    assert_equal(out1[0], 2)
+    assert_equal(out1[1], 0)
+    assert_equal(out1[2], 1)
 
 
 if __name__ == "__main__":
