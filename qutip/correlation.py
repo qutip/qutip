@@ -1208,7 +1208,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     psi_t_mat = mcsolve(
         H, psi0, tlist, c_ops, [],
-        args=args, ntraj=options.ntraj[0], options=options
+        args=args, ntraj=options.ntraj[0], options=options, progress_bar=None
     ).states
 
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
@@ -1230,7 +1230,8 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     # evolve these states and calculate expectation value of B
                     c_tau = chi_0.norm()**2 * mcsolve(
                         H_shifted, chi_0/chi_0.norm(), taulist, c_ops, [b_op],
-                        args=_args, ntraj=options.ntraj[1], options=options
+                        args=_args, ntraj=options.ntraj[1], options=options,
+                        progress_bar=None
                     ).expect[0]
 
                     # final correlation vector computed by combining the
@@ -1254,7 +1255,8 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                 c_tau = [
                     chi.norm()**2 * mcsolve(
                         H_shifted, chi/chi.norm(), taulist, c_ops, [b_op],
-                        args=_args, ntraj=options.ntraj[1], options=options
+                        args=_args, ntraj=options.ntraj[1], options=options,
+                        progress_bar=None
                     ).expect[0]
                     for chi in chi_0
                 ]

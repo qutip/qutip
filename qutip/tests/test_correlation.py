@@ -111,11 +111,11 @@ def test_compare_solvers_coherent_state_memc():
 
     taulist = np.linspace(0, 1.0, 5)
     corr1 = correlation_2op_2t(H, psi0, [0], taulist, c_ops, a.dag(), a,
-                               solver="me")
+                               solver="me")[0]
     corr2 = correlation_2op_2t(H, psi0, [0], taulist, c_ops, a.dag(), a,
-                               solver="mc")
+                               solver="mc")[0]
 
-    assert_(max(abs(corr1 - corr2)) < 1e-1)
+    assert_(max(abs(corr1 - corr2)) < 1e-2)
 
 
 def test_compare_solvers_steadystate_legacy():
