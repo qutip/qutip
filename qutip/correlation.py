@@ -1043,7 +1043,6 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     if min(tlist) != 0:
         raise TypeError("tlist must be positive and contain the element 0.")
-             FutureWarning)
     if min(taulist) != 0:
         raise TypeError("taulist must be positive and contain the element 0.")
 
