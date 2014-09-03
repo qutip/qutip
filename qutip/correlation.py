@@ -215,8 +215,13 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
         A_op = 1
         B_op = a_op
         C_op = b_op
-
-    return _correlation_2t(H, state0, tlist, taulist, c_ops, A_op, B_op, C_op,
+    
+    if tlist is None:
+        return correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
+                                  solver=solver, reverse=reverse, args=args,
+                                  options=options):
+    else:
+        return _correlation_2t(H, state0, tlist, taulist, c_ops, A_op, B_op, C_op,
                            solver=solver, args=args, options=options)
 
 
@@ -363,9 +368,14 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     if debug:
         print(inspect.stack()[0][3])
-
-    return _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                           solver=solver, args=args, options=options)
+    
+    if tlist is None:
+        return correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
+                                  solver=solver, reverse=reverse, args=args,
+                                  options=options):
+    else:
+        return _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
+                               solver=solver, args=args, options=options)
 
 
 # high level correlation
@@ -743,10 +753,15 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
 
     if debug:
         print(inspect.stack()[0][3])
-
-    return correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
-                              solver=solver, reverse=reverse, args=args,
-                              options=options)
+        
+    if tlist is None:
+        return correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
+                                  solver=solver, reverse=reverse, args=args,
+                                  options=options):
+    else:
+        return correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
+                                  solver=solver, reverse=reverse, args=args,
+                                  options=options)
 
 
 def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
@@ -904,9 +919,14 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     if debug:
         print(inspect.stack()[0][3])
 
-    return correlation_3op_2t(H, state0, tlist, taulist, c_ops,
-                              a_op, b_op, c_op, d_op,
-                              solver=solver, args=args, options=options)
+    if tlist is None:
+        return correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
+                                  solver=solver, reverse=reverse, args=args,
+                                  options=options):
+    else:
+        return correlation_3op_2t(H, state0, tlist, taulist, c_ops,
+                                  a_op, b_op, c_op, d_op,
+                                  solver=solver, args=args, options=options)
 
 
 # spectrum
