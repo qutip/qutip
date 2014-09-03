@@ -1032,16 +1032,8 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     if debug:
         print(inspect.stack()[0][3])
 
-    # temporary until next release cycle
-    _noneFlag = False
-    if tlist is None:
-        tlist = [0]
-        _noneFlag = True
-
     if min(tlist) != 0:
-        #raise TypeError("tlist must be positive and contain the element 0.")
-        warn("please always make sure tlist contains the element 0. None" +
-             "will not be accepted as an argument to tlist in the future",
+        raise TypeError("tlist must be positive and contain the element 0.")
              FutureWarning)
     if min(taulist) != 0:
         raise TypeError("taulist must be positive and contain the element 0.")
@@ -1049,14 +1041,14 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     if solver == "me":
         return _correlation_me_2t(H, state0, tlist, taulist,
                                   c_ops, a_op, b_op, c_op,
-                                  args=args, options=options, flag=_noneFlag)
+                                  args=args, options=options)
     elif solver == "mc":
         return _correlation_mc_2t(H, state0, tlist, taulist,
                                   c_ops, a_op, b_op, c_op,
-                                  args=args, options=options, flag=_noneFlag)
+                                  args=args, options=options)
     elif solver == "es":
         return _correlation_es_2t(H, state0, tlist, taulist,
-                                  c_ops, a_op, b_op, c_op, flag=_noneFlag)
+                                  c_ops, a_op, b_op, c_op)
     else:
         raise ValueError("Unrecognized choice of solver" +
                          "%s (use me, mc, or es)." % solver)
@@ -1065,7 +1057,7 @@ def _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 # master equation solvers
 
 def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                       args=None, options=Options(), flag=False):
+                       args=None, options=Options()):
     """
     Internal function for calculating the three-operator two-time
     correlation function:
@@ -1111,8 +1103,7 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
 # exponential series solvers
 
-def _correlation_es_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                       flag=False):
+def _correlation_es_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op):
     """
     Internal function for calculating the three-operator two-time
     correlation function:
@@ -1145,10 +1136,7 @@ def _correlation_es_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         solES_tau = ode2es(L, c_op * rho_t * a_op)
         corr_mat[t_idx, :] = esval(expect(b_op, solES_tau), taulist)
 
-    if flag:
-        return corr_mat[0]
-    else:
-        return corr_mat
+    return corr_mat
 
 
 def _spectrum_es(H, wlist, c_ops, a_op, b_op):
@@ -1186,7 +1174,7 @@ def _spectrum_es(H, wlist, c_ops, a_op, b_op):
 # Monte Carlo solvers
 
 def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
-                       args=None, options=Options(), flag=False):
+                       args=None, options=Options()):
     """
     Internal function for calculating the three-operator two-time
     correlation function:
@@ -1268,10 +1256,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         if t_idx == 1:
             options.rhs_reuse = True
 
-    if flag:
-        return corr_mat[0]
-    else:
-        return corr_mat
+    return corr_mat
 
 
 # psuedo-inverse solvers
