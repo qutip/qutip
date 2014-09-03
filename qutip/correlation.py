@@ -1103,10 +1103,7 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         if t_idx == 1:
             options.rhs_reuse = True
 
-    if flag:
-        return corr_mat[0]
-    else:
-        return corr_mat
+    return corr_mat
 
 
 # exponential series solvers
