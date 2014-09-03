@@ -104,7 +104,9 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively.
+        the `mc` correlator calls `mcsolve()` recursively; by default,
+        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
+        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
@@ -186,7 +188,9 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively.
+        the `mc` correlator calls `mcsolve()` recursively; by default,
+        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
+        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
@@ -272,7 +276,9 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively.
+        the `mc` correlator calls `mcsolve()` recursively; by default,
+        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
+        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
@@ -348,7 +354,9 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively.
+        the `mc` correlator calls `mcsolve()` recursively; by default,
+        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
+        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
@@ -387,7 +395,7 @@ def coherence_function_g1(H, taulist, c_ops, a_op, solver="me", args=None,
 
     .. math::
 
-        g^{()}(\\tau) = \lim_{t \to \infty}
+        g^{(1)}(\\tau) = \lim_{t \to \infty}
         \\frac{\\langle a^\\dagger(t+\\tau)a(t)\\rangle}
         {\\langle a^\\dagger(t)a(t)\\rangle}
 
@@ -414,6 +422,12 @@ def coherence_function_g1(H, taulist, c_ops, a_op, solver="me", args=None,
     solver : str
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series)
+
+    options : :class:`qutip.solver.Options`
+        solver options class. `ntraj` is taken as a two-element list because
+        the `mc` correlator calls `mcsolve()` recursively; by default,
+        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
+        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
@@ -474,6 +488,12 @@ def coherence_function_g2(H, taulist, c_ops, a_op, solver="me", args=None,
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series)
 
+    options : :class:`qutip.solver.Options`
+        solver options class. `ntraj` is taken as a two-element list because
+        the `mc` correlator calls `mcsolve()` recursively; by default,
+        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
+        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
+
     Returns
     -------
 
@@ -502,9 +522,9 @@ def coherence_function_g2(H, taulist, c_ops, a_op, solver="me", args=None,
 
 def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
     """
-    Calculate the spectrum corresponding to the correlation function
-    :math:`\left<A(\\tau)B(0)\\right>`, i.e., the Fourier transform of the
-    correlation function:
+    Calculate the spectrum of the correlation function
+    :math:`\lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>`,
+    i.e., the Fourier transform of the correlation function:
 
     .. math::
 
@@ -655,7 +675,9 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively.
+        the `mc` correlator calls `mcsolve()` recursively; by default,
+        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
+        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
@@ -732,7 +754,9 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively.
+        the `mc` correlator calls `mcsolve()` recursively; by default,
+        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
+        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
@@ -811,7 +835,9 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively.
+        the `mc` correlator calls `mcsolve()` recursively; by default,
+        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
+        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
@@ -896,7 +922,9 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
 
     options : :class:`qutip.solver.Options`
         solver options class. `ntraj` is taken as a two-element list because
-        the `mc` correlator calls `mcsolve()` recursively.
+        the `mc` correlator calls `mcsolve()` recursively; by default,
+        `ntraj=[20, 100]`. `mc_corr_eps` prevents divide-by-zero errors in
+        the `mc` correlator; by default, `mc_corr_eps=1e-10`.
 
     Returns
     -------
@@ -931,9 +959,9 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
 
 def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     """
-    Calculate the spectrum corresponding to the correlation function
-    :math:`\left<A(\\tau)B(0)\\right>`, i.e., the Fourier transform of the
-    correlation function:
+    Calculate the spectrum of the correlation function
+    :math:`\lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>`,
+    i.e., the Fourier transform of the correlation function:
 
     .. math::
 
@@ -981,9 +1009,9 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
 
 def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
     """
-    Calculate the spectrum corresponding to the correlation function
-    :math:`\left<A(\\tau)B(0)\\right>`, i.e., the Fourier transform of the
-    correlation function:
+    Calculate the spectrum of the correlation function
+    :math:`\lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>`,
+    i.e., the Fourier transform of the correlation function:
 
     .. math::
 
