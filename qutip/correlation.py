@@ -208,7 +208,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
         print(inspect.stack()[0][3])
     
     if tlist is None:
-        return correlation_2op_1t(H, state0, taulist, c_ops, A_op, B_op,
+        return correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
                                   solver=solver, reverse=reverse, args=args,
                                   options=options):
     else:
