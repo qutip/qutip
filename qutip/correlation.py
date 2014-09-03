@@ -66,7 +66,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     Calculate the two-operator two-time correlation function:
     :math: `\left<A(t+\\tau)B(t)\\right>`
     along one time axis using the quantum regression theorem and the evolution
-    solver indicated by the *solver* parameter
+    solver indicated by the `solver` parameter
 
     Parameters
     ----------
@@ -103,8 +103,8 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
         `es` for exponential series)
 
     options : :class:`qutip.solver.Options`
-        solver options class. *ntraj* is taken as a two-element list because
-        the `mc` correlator calls *mcsolve()* twice.
+        solver options class. `ntraj` is taken as a two-element list because
+        the `mc` correlator calls `mcsolve()` recursively.
 
     Returns
     -------
@@ -142,7 +142,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     Calculate the two-operator two-time correlation function:
     :math:`\left<A(t+\\tau)B(t)\\right>`
     along two time axes using the quantum regression theorem and the
-    evolution solver indicated by the *solver* parameter.
+    evolution solver indicated by the `solver` parameter.
 
     Parameters
     ----------
@@ -160,7 +160,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. :math: `t \rightarrow \infty`; here tlist is
+        value is necessary, i.e. :math:`t \rightarrow \infty`; here tlist is
         automatically set, ignoring user input.
 
     taulist : *list* / *array*
@@ -185,8 +185,8 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
         `es` for exponential series)
 
     options : :class:`qutip.solver.Options`
-        solver options class. *ntraj* is taken as a two-element list because
-        the `mc` correlator calls *mcsolve()* twice.
+        solver options class. `ntraj` is taken as a two-element list because
+        the `mc` correlator calls `mcsolve()` recursively.
 
     Returns
     -------
@@ -220,6 +220,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
             A_op = 1
             B_op = a_op
             C_op = b_op
+        
         return _correlation_2t(H, state0, tlist, taulist, c_ops, A_op, B_op, C_op,
                            solver=solver, args=args, options=options)
 
@@ -228,10 +229,10 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
                        solver="me", args=None,
                        options=Options(ntraj=[20, 100])):
     """
-    Calculate the four-operator two-time correlation function:
+    Calculate the three-operator two-time correlation function:
     :math:`\left<A(t)B(t+\\tau)C(t)\\right>`
     along one time axis using the quantum regression theorem and the
-    evolution solver indicated by the *solver* parameter.
+    evolution solver indicated by the `solver` parameter.
 
     Note: it is not possibly to calculate a physically meaningful correlation
     of this form where :math: `\\tau<0`.
@@ -270,8 +271,8 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
         `es` for exponential series)
 
     options : :class:`qutip.solver.Options`
-        solver options class. *ntraj* is taken as a two-element list because
-        the `mc` correlator calls *mcsolve()* twice.
+        solver options class. `ntraj` is taken as a two-element list because
+        the `mc` correlator calls `mcsolve()` recursively.
 
     Returns
     -------
@@ -297,10 +298,10 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                        solver="me", args=None,
                        options=Options(ntraj=[20, 100])):
     """
-    Calculate the four-operator two-time correlation function:
+    Calculate the three-operator two-time correlation function:
     :math:`\left<A(t)B(t+\\tau)C(t)\\right>`
     along two time axes using the quantum regression theorem and the
-    evolution solver indicated by the *solver* parameter.
+    evolution solver indicated by the `solver` parameter.
 
     Note: it is not possibly to calculate a physically meaningful correlation
     of this form where :math: `\\tau<0`.
@@ -322,7 +323,7 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. :math: `t \rightarrow \infty`; here tlist is
+        value is necessary, i.e. :math:`t \rightarrow \infty`; here tlist is
         automatically set, ignoring user input.
 
     taulist : *list* / *array*
@@ -346,8 +347,8 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
         `es` for exponential series)
 
     options : :class:`qutip.solver.Options`
-        solver options class. *ntraj* is taken as a two-element list because
-        the `mc` correlator calls *mcsolve()* twice.
+        solver options class. `ntraj` is taken as a two-element list because
+        the `mc` correlator calls `mcsolve()` recursively.
 
     Returns
     -------
@@ -386,13 +387,13 @@ def coherence_function_g1(H, taulist, c_ops, a_op, solver="me", args=None,
 
     .. math::
 
-        g^{()}(\\tau) = \\frac{\\langle a^\\dagger(\\tau)a(0)\\rangle}
-        {\sqrt{\langle a^\dagger(\\tau)a(\\tau)\\rangle
-        \\langle a^\\dagger(0)a(0)\\rangle}}
+        g^{()}(\\tau) = \lim_{t \to \infty}
+        \\frac{\\langle a^\\dagger(t+\\tau)a(t)\\rangle}
+        {\\langle a^\\dagger(t)a(t)\\rangle}
 
     using the quantum regression theorem and the evolution solver indicated by
-    the *solver* parameter. Note: g1 is only defined for stationary
-    statistics (uses steady state)
+    the `solver` parameter. Note: g1 is only defined for stationary
+    statistics (uses steady state).
 
     Parameters
     ----------
@@ -444,14 +445,14 @@ def coherence_function_g2(H, taulist, c_ops, a_op, solver="me", args=None,
 
     .. math::
 
-        g^{(2)}(\\tau) =
-        \\frac{\\langle a^\\dagger(0)a^\\dagger(\\tau)a(\\tau)a(0)\\rangle}
-        {\\langle a^\\dagger(\\tau)a(\\tau)\\rangle
-         \\langle a^\\dagger(0)a(0)\\rangle}
+        g^{(2)}(\\tau) = \lim_{t \to \infty}
+        \\frac{\\langle a^\\dagger(t)a^\\dagger(t+\\tau)
+        a(t+\\tau)a(t)\\rangle}
+        {\\langle a^\\dagger(t)a(t)\\rangle^2}
 
     using the quantum regression theorem and the evolution solver indicated by
-    the *solver* parameter. Note: g2 is only defined for stationary
-    statistics (uses steady state rho0)
+    the `solver` parameter. Note: g2 is only defined for stationary
+    statistics (uses steady state rho0).
 
     Parameters
     ----------
@@ -507,10 +508,11 @@ def spectrum(H, wlist, c_ops, a_op, b_op, solver="es", use_pinv=False):
 
     .. math::
 
-        S(\omega) = \int_{-\infty}^{\infty} \left<A(\\tau)B(0)\\right>
+        S(\omega) = \int_{-\infty}^{\infty}
+        \lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>
         e^{-i\omega\\tau} d\\tau.
 
-    using the solver indicated by the *solver* parameter. Note: this spectrum
+    using the solver indicated by the `solver` parameter. Note: this spectrum
     is only defined for stationary statistics (uses steady state rho0)
 
     Parameters
@@ -619,7 +621,7 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
 
     along one time axis (given steady-state initial conditions) using the
     quantum regression theorem and the evolution solver indicated by the
-    *solver* parameter. The 'steady-state' in mcsolve is taken after several
+    `solver` parameter. The 'steady-state' in mcsolve is taken after several
     collapse events from each operator have occurred that remove the state's
     knowledge of the initial condition.
 
@@ -643,16 +645,17 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
         operator B.
 
     reverse : bool
-        If `True`, calculate :math:`\left<A(0)B(\\tau)\\right>` instead of
-        :math:`\left<A(\\tau)B(0)\\right>`.
+        If `True`, calculate
+        :math:`\lim_{t \to \infty} \left<A(t)B(t+\\tau)\\right>` instead of
+        :math:`\lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>`.
 
     solver : str
         choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
         `es` for exponential series)
 
     options : :class:`qutip.solver.Options`
-        solver options class. *ntraj* is taken as a two-element list because
-        the `mc` correlator calls *mcsolve()* twice.
+        solver options class. `ntraj` is taken as a two-element list because
+        the `mc` correlator calls `mcsolve()` recursively.
 
     Returns
     -------
@@ -685,7 +688,7 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
     Calculate the two-operator two-time correlation function:
     :math:`\left<A(t+\\tau)B(t)\\right>`
     along two time axes using the quantum regression theorem and the
-    evolution solver indicated by the *solver* parameter.
+    evolution solver indicated by the `solver` parameter.
 
     Parameters
     ----------
@@ -703,7 +706,7 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. :math: `t \rightarrow \infty`; here tlist is
+        value is necessary, i.e. :math:`t \rightarrow \infty`; here tlist is
         automatically set, ignoring user input.
 
     taulist : *list* / *array*
@@ -728,8 +731,8 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
         `es` for exponential series)
 
     options : :class:`qutip.solver.Options`
-        solver options class. *ntraj* is taken as a two-element list because
-        the `mc` correlator calls *mcsolve()* twice.
+        solver options class. `ntraj` is taken as a two-element list because
+        the `mc` correlator calls `mcsolve()` recursively.
 
     Returns
     -------
@@ -765,7 +768,10 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
     Calculate the four-operator two-time correlation function:
     :math:`\left<A(t)B(t+\\tau)C(t+\\tau)D(t)\\right>`
     along one time axis using the quantum regression theorem and the
-    evolution solver indicated by the *solver* parameter.
+    evolution solver indicated by the `solver` parameter.
+
+    Note: it is not possibly to calculate a physically meaningful correlation
+    of this form where :math: `\\tau<0`.
 
     Parameters
     ----------
@@ -804,8 +810,8 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
         `es` for exponential series)
 
     options : :class:`qutip.solver.Options`
-        solver options class. *ntraj* is taken as a two-element list because
-        the `mc` correlator calls *mcsolve()* twice.
+        solver options class. `ntraj` is taken as a two-element list because
+        the `mc` correlator calls `mcsolve()` recursively.
 
     Returns
     -------
@@ -840,7 +846,10 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     Calculate the four-operator two-time correlation function:
     :math:`\left<A(t)B(t+\\tau)C(t+\\tau)D(t)\\right>`
     along two time axes using the quantum regression theorem and the
-    evolution solver indicated by the *solver* parameter.
+    evolution solver indicated by the `solver` parameter.
+
+    Note: it is not possibly to calculate a physically meaningful correlation
+    of this form where :math: `\\tau<0`.
 
     Parameters
     ----------
@@ -859,7 +868,7 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
         element `0`. When taking steady-steady correlations only one tlist
-        value is necessary, i.e. :math: `t \rightarrow \infty`; here tlist is
+        value is necessary, i.e. :math:`t \rightarrow \infty`; here tlist is
         automatically set, ignoring user input.
 
     taulist : *list* / *array*
@@ -886,8 +895,8 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
         `es` for exponential series)
 
     options : :class:`qutip.solver.Options`
-        solver options class. *ntraj* is taken as a two-element list because
-        the `mc` correlator calls *mcsolve()* twice.
+        solver options class. `ntraj` is taken as a two-element list because
+        the `mc` correlator calls `mcsolve()` recursively.
 
     Returns
     -------
@@ -928,11 +937,12 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
 
     .. math::
 
-        S(\omega) = \int_{-\infty}^{\infty} \left<A(\\tau)B(0)\\right>
+        S(\omega) = \int_{-\infty}^{\infty}
+        \lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>
         e^{-i\omega\\tau} d\\tau.
 
     using an eseries based solver Note: this spectrum is only defined for
-    stationary statistics (uses steady state rho0)
+    stationary statistics (uses steady state rho0).
 
     Parameters
     ----------
@@ -953,7 +963,7 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
         operator B.
 
     use_pinv : bool
-        If `True` use numpy's pinv method, otherwise use a generic solver
+        If `True` use numpy's `pinv` method, otherwise use a generic solver
 
     Returns
     -------
@@ -977,7 +987,8 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 
     .. math::
 
-        S(\omega) = \int_{-\infty}^{\infty} \left<A(\\tau)B(0)\\right>
+        S(\omega) = \int_{-\infty}^{\infty}
+        \lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>
         e^{-i\omega\\tau} d\\tau.
 
     using a psuedo-inverse method. Note: this spectrum is only defined for
