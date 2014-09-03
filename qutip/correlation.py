@@ -66,7 +66,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     Calculate the two-operator two-time correlation function:
     :math: `\left<A(t+\\tau)B(t)\\right>`
     along one time axis using the quantum regression theorem and the evolution
-    solver indicated by the `solver` parameter
+    solver indicated by the `solver` parameter.
 
     Parameters
     ----------
@@ -77,9 +77,8 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     state0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho(t_0)` or state vector
         :math:`\\psi(t_0)`. If 'state0' is 'None', then the steady state will
-        be used as the initial state. The 'steady-state' in mcsolve is taken
-        after several collapse events from each operator have occurred that
-        remove the state's knowledge of the initial condition.
+        be used as the initial state. The 'steady-state' is only implemented
+        for the `me` and `es` solvers.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`. taulist must be positive and contain
@@ -112,7 +111,7 @@ def correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
     -------
 
     corr_vec: *array*
-        An *array* of correlation values for the times specified by `tlist`
+        An *array* of correlation values for the times specified by `tlist`.
 
     References
     ----------
@@ -155,9 +154,8 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     state0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho_0` or state vector
         :math:`\\psi_0`. If 'state0' is 'None', then the steady state will
-        be used as the initial state. The 'steady-state' in mcsolve is taken
-        after several collapse events from each operator have occurred that
-        remove the state's knowledge of the initial condition.
+        be used as the initial state. The 'steady-state' is only implemented
+        for the `me` and `es` solvers.
 
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
@@ -225,8 +223,9 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
             B_op = a_op
             C_op = b_op
         
-        return _correlation_2t(H, state0, tlist, taulist, c_ops, A_op, B_op, C_op,
-                           solver=solver, args=args, options=options)
+        return _correlation_2t(H, state0, tlist, taulist,
+                               c_ops, A_op, B_op, C_op,
+                               solver=solver, args=args, options=options)
 
 
 def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
@@ -250,9 +249,8 @@ def correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
     rho0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho(t_0)` or state vector
         :math:`\\psi(t_0)`. If 'state0' is 'None', then the steady state will
-        be used as the initial state. The 'steady-state' in mcsolve is taken
-        after several collapse events from each operator have occurred that
-        remove the state's knowledge of the initial condition.
+        be used as the initial state. The 'steady-state' is only implemented
+        for the `me` and `es` solvers.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`. taulist must be positive and contain
@@ -322,9 +320,8 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     rho0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho_0` or state vector
         :math:`\\psi_0`. If 'state0' is 'None', then the steady state will
-        be used as the initial state. The 'steady-state' in mcsolve is taken
-        after several collapse events from each operator have occurred that
-        remove the state's knowledge of the initial condition.
+        be used as the initial state. The 'steady-state' is only implemented
+        for the `me` and `es` solvers.
 
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
@@ -379,10 +376,10 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     
     if tlist is None:
         return correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
-                                  solver=solver, reverse=reverse, args=args,
-                                  options=options)
+                                  solver=solver, args=args, options=options)
     else:
-        return _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
+        return _correlation_2t(H, state0, tlist, taulist,
+                               c_ops, a_op, b_op, c_op,
                                solver=solver, args=args, options=options)
 
 
@@ -420,7 +417,7 @@ def coherence_function_g1(H, taulist, c_ops, a_op, solver="me", args=None,
         The annihilation operator of the mode.
 
     solver : str
-        choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
+        choice of solver (`me` for master-equation and
         `es` for exponential series)
 
     options : :class:`qutip.solver.Options`
@@ -438,11 +435,8 @@ def coherence_function_g1(H, taulist, c_ops, a_op, solver="me", args=None,
     """
 
     # first calculate the steady state photon number
-    if solver == "me" or solver == "es":
-        rho0 = steadystate(H, c_ops)
-        n = np.array([expect(rho0, a_op.dag() * a_op)])
-    else:
-        raise NotImplementedError
+    rho0 = steadystate(H, c_ops)
+    n = np.array([expect(rho0, a_op.dag() * a_op)])
 
     # calculate the correlation function G1 and normalize with n to obtain g1
     G1 = correlation_2op_1t(H, None, taulist, c_ops, a_op.dag(), a_op,
@@ -485,7 +479,7 @@ def coherence_function_g2(H, taulist, c_ops, a_op, solver="me", args=None,
         The annihilation operator of the mode.
 
     solver : str
-        choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
+        choice of solver (`me` for master-equation and
         `es` for exponential series)
 
     options : :class:`qutip.solver.Options`
@@ -503,11 +497,8 @@ def coherence_function_g2(H, taulist, c_ops, a_op, solver="me", args=None,
     """
 
     # first calculate the the steady state photon number
-    if solver == "me" or solver == "es":
-        rho0 = steadystate(H, c_ops)
-        n = np.array([expect(rho0, a_op.dag() * a_op)])
-    else:
-        raise NotImplementedError
+    rho0 = steadystate(H, c_ops)
+    n = np.array([expect(rho0, a_op.dag() * a_op)])
 
     # calculate the correlation function G2 and normalize with n to obtain g2
     G2 = correlation_3op_1t(H, None, taulist, c_ops,
@@ -641,9 +632,7 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
 
     along one time axis (given steady-state initial conditions) using the
     quantum regression theorem and the evolution solver indicated by the
-    `solver` parameter. The 'steady-state' in mcsolve is taken after several
-    collapse events from each operator have occurred that remove the state's
-    knowledge of the initial condition.
+    `solver` parameter.
 
     Parameters
     ----------
@@ -670,7 +659,7 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
         :math:`\lim_{t \to \infty} \left<A(t+\\tau)B(t)\\right>`.
 
     solver : str
-        choice of solver (`me` for master-equation, `mc` for Monte Carlo, and
+        choice of solver (`me` for master-equation and
         `es` for exponential series)
 
     options : :class:`qutip.solver.Options`
@@ -683,7 +672,7 @@ def correlation_ss(H, taulist, c_ops, a_op, b_op,
     -------
 
     corr_vec: *array*
-        An *array* of correlation values for the times specified by `tlist`
+        An *array* of correlation values for the times specified by `tlist`.
 
     References
     ----------
@@ -721,9 +710,8 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
     state0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho(t_0)` or state vector
         :math:`\\psi(t_0)`. If 'state0' is 'None', then the steady state will
-        be used as the initial state. The 'steady-state' in mcsolve is taken
-        after several collapse events from each operator have occurred that
-        remove the state's knowledge of the initial condition.
+        be used as the initial state. The 'steady-state' is only implemented
+        for the `me` and `es` solvers.
 
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
@@ -795,7 +783,7 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
     evolution solver indicated by the `solver` parameter.
 
     Note: it is not possibly to calculate a physically meaningful correlation
-    of this form where :math: `\\tau<0`.
+    of this form where :math:`\\tau<0`.
 
     Parameters
     ----------
@@ -806,9 +794,8 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
     rho0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho(t_0)` or state vector
         :math:`\\psi(t_0)`. If 'state0' is 'None', then the steady state will
-        be used as the initial state. The 'steady-state' in mcsolve is taken
-        after several collapse events from each operator have occurred that
-        remove the state's knowledge of the initial condition.
+        be used as the initial state. The 'steady-state' is only implemented
+        for the `me` and `es` solvers.
 
     taulist : *list* / *array*
         list of times for :math:`\\tau`. taulist must be positive and contain
@@ -861,7 +848,7 @@ def correlation_4op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op, d_op,
         print(inspect.stack()[0][3])
 
     return correlation_3op_1t(H, state0, taulist, c_ops,
-                              a_op, b_op, c_op, d_op,
+                              a_op, b_op * c_op, d_op,
                               solver=solver, args=args, options=options)
 
 
@@ -875,7 +862,7 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     evolution solver indicated by the `solver` parameter.
 
     Note: it is not possibly to calculate a physically meaningful correlation
-    of this form where :math: `\\tau<0`.
+    of this form where :math:`\\tau<0`.
 
     Parameters
     ----------
@@ -887,9 +874,8 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
     rho0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho_0` or state vector
         :math:`\\psi_0`. If 'state0' is 'None', then the steady state will
-        be used as the initial state. The 'steady-state' in mcsolve is taken
-        after several collapse events from each operator have occurred that
-        remove the state's knowledge of the initial condition.
+        be used as the initial state. The 'steady-state' is only implemented
+        for the `me` and `es` solvers.
 
     tlist : *list* / *array*
         list of times for :math:`t`. tlist must be positive and contain the
@@ -951,7 +937,7 @@ def correlation_4op_2t(H, state0, tlist, taulist, c_ops,
         print(inspect.stack()[0][3])
 
     return correlation_3op_2t(H, state0, tlist, taulist, c_ops,
-                              a_op, b_op, c_op, d_op,
+                              a_op, b_op * c_op, d_op,
                               solver=solver, args=args, options=options)
 
 
@@ -1229,8 +1215,8 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     # the solvers only work for positive time differences and the correlators
     # require positive tau
     if state0 is None:
-        raise NotImplementedError("steady state not yet implemented for " +
-                                  "mc solver")
+        raise NotImplementedError("steady state not implemented for " +
+                                  "mc solver, please use `es` or `me`")
     elif not isket(state0):
         raise TypeError("state0 must be a state vector.")
     psi0 = state0
@@ -1279,7 +1265,8 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     # if this is not correct, the over-loaded addition
                     # operation will raise errors
                     a_op_dag = a_op
-                chi_0 = [(options.mc_corr_eps + a_op_dag + exp(1j*x*pi/2)*c_op) *
+                chi_0 = [(options.mc_corr_eps + a_op_dag +
+                          exp(1j*x*pi/2)*c_op) *
                          psi_t_mat[trial_idx, t_idx]
                          for x in range(4)]
 
@@ -1303,7 +1290,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     return corr_mat
 
 
-# psuedo-inverse solvers
+# pseudo-inverse solvers
 
 def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
     """
