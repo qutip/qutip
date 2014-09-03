@@ -210,7 +210,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
     if tlist is None:
         return correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
                                   solver=solver, reverse=reverse, args=args,
-                                  options=options):
+                                  options=options)
     else:
         if reverse:
             A_op = a_op
@@ -371,7 +371,7 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
     if tlist is None:
         return correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
                                   solver=solver, reverse=reverse, args=args,
-                                  options=options):
+                                  options=options)
     else:
         return _correlation_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                                solver=solver, args=args, options=options)
