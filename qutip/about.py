@@ -44,37 +44,37 @@ import scipy
 import qutip.settings
 from qutip import __version__ as qutip_version
 
-
 def about():
     """
     About box for qutip. Gives version numbers for
     QuTiP, NumPy, SciPy, Cython, and MatPlotLib.
     """
-    print('')
+    print("")
     print("QuTiP: Quantum Toolbox in Python")
     print("Copyright (c) 2011 and later.")
     print("Paul D. Nation & Robert J. Johansson")
-    print('')
-    print("QuTiP Version:      ", qutip.__version__)
-    print("Numpy Version:      ", numpy.__version__)
-    print("Scipy Version:      ", scipy.__version__)
+    print("")
+    print("QuTiP Version:      %s" % qutip.__version__)
+    print("Numpy Version:      %s" % numpy.__version__)
+    print("Scipy Version:      %s" % scipy.__version__)
     try:
         import Cython
         cython_ver = Cython.__version__
     except:
         cython_ver = 'None'
-    print("Cython Version:     ", cython_ver)
+    print("Cython Version:     %s" % cython_ver)
     try:
         import matplotlib
         matplotlib_ver = matplotlib.__version__
     except:
         matplotlib_ver = 'None'
-    print("Matplotlib Version: ", matplotlib_ver)
-    print("Fortran mcsolver:   ", str(qutip.settings.fortran))
-    print("scikits.umfpack:    ", str(qutip.settings.umfpack))
-    print("Python Version:     ", '.'.join(map(str, sys.version_info[0:3])))
-    print("Platform Info:      ", platform.system(), "("+platform.machine()+")")
-    print()
+    print("Matplotlib Version: %s" % matplotlib_ver)
+    print("Fortran mcsolver:   %s" % str(qutip.settings.fortran))
+    print("scikits.umfpack:    %s" % str(qutip.settings.umfpack))
+    print("Python Version:     %d.%d.%d" % sys.version_info[0:3])
+    print("Platform Info:      %s (%s)" % (platform.system(),
+                                           platform.machine()))
+    print("")
 
 if __name__ == "__main__":
     about()
