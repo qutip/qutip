@@ -41,12 +41,11 @@ from functools import partial
 import numpy as np
 import scipy.sparse as sp
 import scipy.integrate
-from scipy.linalg import norm
 import warnings
 
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
-from qutip.expect import expect, expect_rho_vec
+from qutip.expect import expect_rho_vec
 from qutip.solver import Options, Result, config
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
 from qutip.cy.codegen import Codegen
