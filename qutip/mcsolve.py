@@ -31,26 +31,21 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import sys
 import os
-import time
 import copy
 import numpy as np
 from types import FunctionType
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
 
 from numpy.random import RandomState, random_integers
 from numpy import arange, array, cumsum, mean, ndarray, setdiff1d, sort, zeros
 
 from scipy.integrate import ode
-from scipy.linalg import norm
 import scipy.sparse as sp
 from scipy.linalg.blas import get_blas_funcs
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
-from qutip.qobj import *
-from qutip.expect import *
-from qutip.states import ket2dm
+from qutip.qobj import Qobj
 from qutip.parfor import parfor
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
@@ -218,7 +213,6 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
         # check for type of time-dependence (if any)
         time_type, h_stuff, c_stuff = _td_format_check(H, c_ops, 'mc')
-        h_terms = len(h_stuff[0]) + len(h_stuff[1]) + len(h_stuff[2])
         c_terms = len(c_stuff[0]) + len(c_stuff[1]) + len(c_stuff[2])
         # set time_type for use in multiprocessing
         config.tflag = time_type
