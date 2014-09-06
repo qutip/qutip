@@ -121,6 +121,15 @@ class TestMatrixVector:
 
         assert_equal(reshuffle(S_col), S)
 
+    def test_sprepost(self):
+        U1 = rand_unitary(3)
+        U2 = rand_unitary(3)
+
+        S1 = spre(U1) * spost(U2)
+        S2 = sprepost(U1, U2)
+
+        assert_equal(S1, S2)
+
     def testLiouvillianImplementations(self):
         """
         Superoperator: Randomized comparison of standard and reference

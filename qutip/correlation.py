@@ -33,6 +33,7 @@
 
 import numpy as np
 import scipy.fftpack
+import scipy.interpolate
 
 from qutip.superoperator import *
 from qutip.expect import expect
@@ -46,6 +47,7 @@ from qutip.steadystate import steadystate
 from qutip.states import ket2dm
 from qutip.solver import Options
 from qutip.settings import debug
+from re import sub
 
 if debug:
     import inspect
@@ -58,7 +60,7 @@ if debug:
 def correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver="me",
                        reverse=False, args=None, options=Options()):
     """
-    Calculate a two-operator two-time correlation function
+    Calculate a two-operator single-time correlation function
     :math:`\left<A(\\tau)B(0)\\right>` or
     :math:`\left<A(0)B(\\tau)\\right>` (if `reverse=True`),
     using the quantum regression theorem and the evolution solver indicated by
@@ -110,12 +112,12 @@ def correlation_2op_1t(H, rho0, taulist, c_ops, a_op, b_op, solver="me",
                                       reverse, args=args, options=options)
     elif solver == "es":
         return _correlation_es_2op_1t(H, rho0, taulist, c_ops, a_op, b_op,
-                                      reverse, args=args, options=options)
+                                      reverse)
     elif solver == "mc":
         return _correlation_mc_2op_1t(H, rho0, taulist, c_ops, a_op, b_op,
                                       reverse, args=args, options=options)
     else:
-        raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
+        raise "Unrecognized choice of solver %s (me, es or mc)." % solver
 
 
 def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
@@ -132,7 +134,8 @@ def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
+        system Hamiltonian, or a callback function for time dependent
+        Hamiltonian IF using the me solver.
 
     rho0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix :math:`\\rho(t_0)` (or state vector). If
@@ -188,22 +191,17 @@ def correlation_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
                                       options=options)
     elif solver == "es":
         return _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops,
-                                      a_op, b_op, reverse, args=args,
-                                      options=options)
-    elif solver == "mc":
-        return _correlation_mc_2op_2t(H, rho0, tlist, taulist, c_ops,
-                                      a_op, b_op, reverse, args=args,
-                                      options=options)
+                                      a_op, b_op, reverse)
     else:
-        raise "Unrecognized choice of solver %s (use me, es or mc)." % solver
+        raise "Unrecognized choice of solver %s (use me or es)." % solver
 
 
 def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
                        solver="me", args=None, options=Options()):
     """
-    Calculate the four-operator two-time correlation function on the from
+    Calculate a four-operator single-time correlation function on the from
     :math:`\left<A(0)B(\\tau)C(\\tau)D(0)\\right>` using the quantum regression
-    theorem and the solver indicated by the 'solver' parameter.
+    theorem and the solver indicated by the *solver* parameter.
 
     Parameters
     ----------
@@ -233,6 +231,10 @@ def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
     d_op : :class:`qutip.qobj.Qobj`
         operator D.
 
+    reverse : bool
+        If `True`, calculate :math:`\left<D(t)C(t+\\tau)B(t+\\tau)A(t)\\right>` instead of
+        :math:`\left<A(t)B(t+\\tau)C(t+\\tau)D(t)\\right>`.
+
     solver : str
         choice of solver (currently only `me` for master-equation)
 
@@ -242,13 +244,17 @@ def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
     corr_vec: *array*
         An *array* of correlation values for the times specified by `taulist`
 
-
     References
     ----------
 
     See, Gardiner, Quantum Noise, Section 5.2.1.
 
     """
+
+    # Note: reverse is not sufficient for all possible normal and correctly
+    # time ordered version of the 4 operators. It seems least cluttered to
+    # leave such an argument out and simply have the user input the correct
+    # orderings when needed.
 
     if debug:
         print(inspect.stack()[0][3])
@@ -264,15 +270,16 @@ def correlation_4op_1t(H, rho0, taulist, c_ops, a_op, b_op, c_op, d_op,
 def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
                        solver="me", args=None, options=Options()):
     """
-    Calculate the four-operator two-time correlation function on the from
+    Calculate a four-operator two-time correlation function on the from
     :math:`\left<A(t)B(t+\\tau)C(t+\\tau)D(t)\\right>` using the quantum
-    regression theorem and the solver indicated by the 'solver' parameter.
+    regression theorem and the solver indicated by the *solver* parameter.
 
     Parameters
     ----------
 
     H : :class:`qutip.qobj.Qobj`
-        system Hamiltonian.
+        system Hamiltonian, or a callback function for time-dependent
+        Hamiltonians.
 
     rho0 : :class:`qutip.qobj.Qobj`
         Initial state density matrix (or state vector). If 'rho0' is
@@ -282,10 +289,11 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
         list of times for :math:`t`.
 
     taulist : *list* / *array*
-        list of times for :math:`\\tau`.
+        list of times for :math:`\\tau`. This list can include negative
+        values.
 
     c_ops : list of :class:`qutip.qobj.Qobj`
-        list of collapse operators.
+        list of collapse operators. (does not accept time dependence)
 
     a_op : :class:`qutip.qobj.Qobj`
         operator A.
@@ -298,6 +306,10 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
 
     d_op : :class:`qutip.qobj.Qobj`
         operator D.
+
+    reverse : bool
+        If `True`, calculate :math:`\left<D(t)C(t+\\tau)B(t+\\tau)A(t)\\right>` instead of
+        :math:`\left<A(t)B(t+\\tau)C(t+\\tau)D(t)\\right>`.
 
     solver : str
         choice of solver (currently only `me` for master-equation)
@@ -317,6 +329,11 @@ def correlation_4op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op, c_op, d_op,
     See, Gardiner, Quantum Noise, Section 5.2.1.
 
     """
+
+    # Note: reverse is not sufficient for all possible normal and correctly
+    # time ordered version of the 4 operators. It seems least cluttered to
+    # leave such an argument out and simply have the user input the correct
+    # orderings when needed.
 
     if debug:
         print(inspect.stack()[0][3])
@@ -394,13 +411,13 @@ def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me",
                           args=None, options=Options()):
     """
     Calculate the second-order quantum coherence function:
-
     .. math::
-
         g^{(2)}(\\tau) =
         \\frac{\\langle a^\\dagger(0)a^\\dagger(\\tau)a(\\tau)a(0)\\rangle}
         {\\langle a^\\dagger(\\tau)a(\\tau)\\rangle
          \\langle a^\\dagger(0)a(0)\\rangle}
+    using the quantum regression theorem and the evolution solver indicated by
+    the *solver* parameter.
 
     Parameters
     ----------
@@ -457,7 +474,7 @@ def coherence_function_g2(H, rho0, taulist, c_ops, a_op, solver="me",
 def correlation_ss(H, taulist, c_ops, a_op, b_op, rho0=None, solver="me",
                    reverse=False, args=None, options=Options()):
     """
-    Calculate a two-operator two-time correlation function
+    Calculate a two-operator single-time correlation function
     :math:`\left<A(\\tau)B(0)\\right>` or
     :math:`\left<A(0)B(\\tau)\\right>` (if `reverse=True`),
     using the quantum regression theorem and the evolution solver indicated by
@@ -570,11 +587,12 @@ def correlation(H, rho0, tlist, taulist, c_ops, a_op, b_op, solver="me",
 # -----------------------------------------------------------------------------
 # EXPONENTIAL SERIES SOLVERS
 # -----------------------------------------------------------------------------
-def _correlation_es_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False,
-                           args=None, options=Options()):
+def _correlation_es_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False):
     """
-    Internal function for calculating correlation functions using the
-    exponential series solver. See :func:`correlation_ss` usage.
+    Internal function for calculating a two-operator single-time
+    correlation function on the form
+    <A(0)B(tau)>/<A(tau)B(0)>
+    using an exponential series solver.
     """
 
     if debug:
@@ -600,13 +618,19 @@ def _correlation_es_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False,
         return esval(expect(a_op, solC_tau), tlist)
 
 
-def _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
-                           reverse=False, args=None, options=Options()):
+def _correlation_es_2op_2t(H, rho0, tlist, taulist,
+                           c_ops, a_op, b_op, reverse=False):
     """
-    Internal function for calculating correlation functions using the
-    exponential series solver. See :func:`correlation` usage.
+    Internal function for calculating a two-operator two-time
+    correlation function on the form
+    <A(t)B(t+tau)>/<A(t+tau)B(t)>
+    using an exponential series solver.
     """
 
+    if min(taulist) < 0:
+        raise TypeError("The quantum regression theorem can only be used" +
+                        "in calculating correlations with a positive time" +
+                        "difference, tau")
     if debug:
         print(inspect.stack()[0][3])
 
@@ -618,7 +642,7 @@ def _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
     elif rho0 and isket(rho0):
         rho0 = ket2dm(rho0)
 
-    C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
+    corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
 
     solES_t = ode2es(L, rho0)
 
@@ -628,29 +652,37 @@ def _correlation_es_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
         for t_idx in range(len(tlist)):
             rho_t = esval(solES_t, [tlist[t_idx]])
             solES_tau = ode2es(L, rho_t * a_op)
-            C_mat[t_idx, :] = esval(expect(b_op, solES_tau), taulist)
+            corr_mat[t_idx, :] = esval(expect(b_op, solES_tau), taulist)
 
     else:
-        # default: <A(t+tau)B(t)>
+        # <A(t+tau)B(t)>
         for t_idx in range(len(tlist)):
             rho_t = esval(solES_t, [tlist[t_idx]])
             solES_tau = ode2es(L, b_op * rho_t)
-            C_mat[t_idx, :] = esval(expect(a_op, solES_tau), taulist)
+            corr_mat[t_idx, :] = esval(expect(a_op, solES_tau), taulist)
 
-    return C_mat
+    return corr_mat
 
 
 # -----------------------------------------------------------------------------
 # MASTER EQUATION SOLVERS
 # -----------------------------------------------------------------------------
 
-def _correlation_me_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False,
-                           args=None, options=Options()):
+# See, Gardiner, Quantum Noise, Section 5.2.1
+
+def _correlation_me_2op_1t(H, rho0, taulist, c_ops, a_op, b_op,
+                           reverse=False, args=None, options=Options()):
     """
-    Internal function for calculating correlation functions using the master
-    equation solver. See :func:`correlation_ss` for usage.
+    Internal function for calculating a two-operator single-time
+    correlation function on the form
+    <A(0)B(tau)>/<A(tau)B(0)>
+    using a master equation based solver.
     """
 
+    if min(taulist) < 0:
+        raise TypeError("The quantum regression theorem can only be used" +
+                        "in calculating correlations with a positive time" +
+                        "difference, tau")
     if debug:
         print(inspect.stack()[0][3])
 
@@ -660,60 +692,83 @@ def _correlation_me_2op_1t(H, rho0, tlist, c_ops, a_op, b_op, reverse=False,
         rho0 = ket2dm(rho0)
 
     if reverse:
-        # <A(t)B(t+tau)>
-        return mesolve(H, rho0 * a_op, tlist, c_ops, [b_op],
-                       args=args, options=options).expect[0]
+        # <A(0)B(tau)>
+        correlator_ic = rho0 * a_op
+        correlator_exp = b_op
     else:
-        # <A(t+tau)B(t)>
-        return mesolve(H, b_op * rho0, tlist, c_ops, [a_op],
+        # <A(tau)B(0)>
+        correlator_ic = b_op * rho0
+        correlator_exp = a_op
+
+    return mesolve(H, correlator_ic, taulist, c_ops, [correlator_exp],
                        args=args, options=options).expect[0]
 
 
 def _correlation_me_2op_2t(H, rho0, tlist, taulist, c_ops, a_op, b_op,
                            reverse=False, args=None, options=Options()):
     """
-    Internal function for calculating correlation functions using the master
-    equation solver. See :func:`correlation` for usage.
+    Internal function for calculating a two-operator two-time
+    correlation function on the form
+    <A(t)B(t+tau)>/<A(t+tau)B(t)>
+    using a master equation based solver.
     """
 
+    if min(taulist) < 0:
+        raise TypeError("The quantum regression theorem can only be used" +
+                        "in calculating correlations with a positive time" +
+                        "difference, tau")
     if debug:
         print(inspect.stack()[0][3])
 
-    if rho0 is None:
+    if rho0 is None and not isinstance(H, list):
         rho0 = steadystate(H, c_ops)
+    elif rho0 is None:
+        raise TypeError("Missing initial condition")
     elif rho0 and isket(rho0):
         rho0 = ket2dm(rho0)
 
-    C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
+    rho_t = mesolve(H, rho0, tlist, c_ops, [],
+                    args=args, options=options).states
+    corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
+    H_shifted, _args = _transform_H_t_shift(H, args)
 
-    rho_t_list = mesolve(
-        H, rho0, tlist, c_ops, [], args=args, options=options).states
+    for t_idx, rho in enumerate(rho_t):
+        if not isinstance(H, Qobj):
+            _args["_t0"] = tlist[t_idx]
 
-    if reverse:
-        # <A(t)B(t+tau)>
-        for t_idx, rho_t in enumerate(rho_t_list):
-            C_mat[t_idx, :] = mesolve(H, rho_t * a_op, taulist,
-                                      c_ops, [b_op], args=args,
-                                      options=options).expect[0]
-    else:
-        # <A(t+tau)B(t)>
-        for t_idx, rho_t in enumerate(rho_t_list):
-            C_mat[t_idx, :] = mesolve(H, b_op * rho_t, taulist,
-                                      c_ops, [a_op], args=args,
-                                      options=options).expect[0]
+        if reverse:
+            # <A(t)B(t+tau)>
+            correlator_ic = rho * a_op
+            correlator_exp = b_op
+        else:
+            # <A(t+tau)B(t)>
+            correlator_ic = b_op * rho
+            correlator_exp = a_op
 
-    return C_mat
+        corr_mat[t_idx, :] = mesolve(
+            H_shifted, correlator_ic, taulist, c_ops,
+            [correlator_exp], args=_args, options=options
+        ).expect[0]
+
+        if t_idx == 1:
+            options.rhs_reuse = True
+
+    return corr_mat
 
 
 def _correlation_me_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op,
                            args=None, options=Options()):
     """
-    Calculate the four-operator two-time correlation function on the form
-    <A(0)B(tau)C(tau)D(0)>.
-
-    See, Gardiner, Quantum Noise, Section 5.2.1
+    Internal function for calculating a four-operator single-time
+    correlation function on the form
+    <A(0)B(tau)C(tau)D(0)>
+    using a master equation based solver.
     """
 
+    if min(taulist) < 0:
+        raise TypeError("The quantum regression theorem can only be used" +
+                        "in calculating correlations with a positive time" +
+                        "difference, tau")
     if debug:
         print(inspect.stack()[0][3])
 
@@ -722,95 +777,78 @@ def _correlation_me_4op_1t(H, rho0, tlist, c_ops, a_op, b_op, c_op, d_op,
     elif rho0 and isket(rho0):
         rho0 = ket2dm(rho0)
 
-    return mesolve(H, d_op * rho0 * a_op, tlist,
-                   c_ops, [b_op * c_op], args=args, options=options).expect[0]
+    return mesolve(H, d_op * rho0 * a_op, tlist, c_ops, [b_op * c_op],
+                   args=args, options=options).expect[0]
 
 
 def _correlation_me_4op_2t(H, rho0, tlist, taulist, c_ops,
-                           a_op, b_op, c_op, d_op, reverse=False,
+                           a_op, b_op, c_op, d_op,
                            args=None, options=Options()):
     """
-    Calculate the four-operator two-time correlation function on the form
-    <A(t)B(t+tau)C(t+tau)D(t)>.
-
-    See, Gardiner, Quantum Noise, Section 5.2.1
+    Internal function for calculating a four-operator two-time
+    correlation function on the form
+    <A(t)B(t+tau)C(t+tau)D(t)>
+    using a master equation based solver.
     """
 
+    if min(taulist) < 0:
+        raise TypeError("The quantum regression theorem can only be used" +
+                        "in calculating correlations with a positive time" +
+                        "difference, tau")
     if debug:
         print(inspect.stack()[0][3])
 
-    if rho0 is None:
+    if rho0 is None and not isinstance(H, list):
         rho0 = steadystate(H, c_ops)
+    elif rho0 is None:
+        raise TypeError("Missing initial condition")
     elif rho0 and isket(rho0):
         rho0 = ket2dm(rho0)
 
-    C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-
-    rho_t = mesolve(
-        H, rho0, tlist, c_ops, [], args=args, options=options).states
+    rho_t = mesolve(H, rho0, tlist, c_ops, [],
+                    args=args, options=options).states
+    corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
+    H_shifted, _args = _transform_H_t_shift(H, args)
 
     for t_idx, rho in enumerate(rho_t):
-        C_mat[t_idx, :] = mesolve(H, d_op * rho * a_op, taulist,
-                                  c_ops, [b_op * c_op],
-                                  args=args, options=options).expect[0]
+        if not isinstance(H, Qobj):
+            _args["_t0"] = tlist[t_idx]
 
-    return C_mat
+        corr_mat[t_idx, :] = mesolve(
+            H_shifted, d_op * rho * a_op, taulist, c_ops,
+            [b_op * c_op], args=_args, options=options
+        ).expect[0]
+
+        if t_idx == 1:
+            options.rhs_reuse = True
+
+    return corr_mat
 
 
 # -----------------------------------------------------------------------------
 # MONTE CARLO SOLVERS
 # -----------------------------------------------------------------------------
-def _correlation_mc_2op_1t(H, psi0, taulist, c_ops, a_op, b_op, reverse=False,
-                           args=None, options=Options()):
+
+def _correlation_mc_2op_1t(H, psi0, taulist, c_ops, a_op, b_op,
+                           reverse=False, args=None, options=Options()):
     """
-    Internal function for calculating correlation functions using the Monte
-    Carlo solver. See :func:`correlation_ss` for usage.
+    Internal function for calculating a two-operator single-time
+    correlation function on the form
+    <A(0)B(tau)>/<A(tau)B(0)>
+    using a Monte Carlo based solver.
     """
 
     if debug:
         print(inspect.stack()[0][3])
 
     if psi0 is None or not isket(psi0):
-        raise Exception("_correlation_mc_2op_1t requires initial state as ket")
+        raise Exception("correlation_mc_2op_1t requires initial state as ket")
 
     b_op_psi0 = b_op * psi0
-
     norm = b_op_psi0.norm()
 
     return norm * mcsolve(H, b_op_psi0 / norm, taulist, c_ops, [a_op],
                           args=args, options=options).expect[0]
-
-
-def _correlation_mc_2op_2t(H, psi0, tlist, taulist, c_ops, a_op, b_op,
-                           reverse=False, args=None, options=Options()):
-    """
-    Internal function for calculating correlation functions using the Monte
-    Carlo solver. See :func:`correlation` usage.
-    """
-
-    if debug:
-        print(inspect.stack()[0][3])
-
-    raise NotImplementedError("The Monte-Carlo solver currently cannot be " +
-                              "used for correlation functions on the form " +
-                              "<A(t)B(t+tau)>")
-
-    if psi0 is None or not isket(psi0):
-        raise Exception("_correlation_mc_2op_2t requires initial state as ket")
-
-    C_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
-
-    psi_t = mcsolve(
-        H, psi0, tlist, c_ops, [], args=args, options=options).states
-
-    for t_idx in range(len(tlist)):
-
-        psi0_t = psi_t[0][t_idx]
-
-        C_mat[t_idx, :] = mcsolve(H, b_op * psi0_t, tlist, c_ops, [a_op],
-                                  args=args, options=options).expect[0]
-
-    return C_mat
 
 
 # -----------------------------------------------------------------------------
@@ -899,7 +937,7 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     if debug:
         print(inspect.stack()[0][3])
 
-    # contruct the Liouvillian
+    # construct the Liouvillian
     L = liouvillian(H, c_ops)
 
     # find the steady state density matrix and a_op and b_op expecation values
@@ -914,7 +952,7 @@ def spectrum_ss(H, wlist, c_ops, a_op, b_op):
     # correlation
     corr_es = expect(a_op, es)
 
-    # covarience
+    # covariance
     cov_es = corr_es - np.real(np.conjugate(a_op_ss) * b_op_ss)
 
     # spectrum
@@ -993,3 +1031,71 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
         s_vec[idx] = -2 * np.real(s[0, 0])
 
     return s_vec
+
+
+# -----------------------------------------------------------------------------
+# AUXILIARY
+# -----------------------------------------------------------------------------
+def _transform_H_t_shift(H, args=None):
+    """
+    Time shift the Hamiltonian with private time-shift variable _t0
+    """
+
+    if isinstance(H, Qobj):
+        # constant hamiltonian
+        return H, args
+
+    if isinstance(H, types.FunctionType):
+        # function-callback based time-dependence
+        if isinstance(args, dict) or args is None:
+            if args is None:
+                _args = {"_t0": 0}
+            else:
+                _args = args.copy()
+                _args["_t0"] = 0
+            H_shifted = lambda t, args_i: H(t+args_i["_t0"], args_i)
+        else:
+            raise TypeError("If using function-callback based Hamiltonian" +
+                            "time-dependence, args must be a dictionary")
+        return H_shifted, _args
+
+    if isinstance(H, list):
+        # string/function-list based time-dependence
+        H_shifted = []
+        if args is None:
+            _args = {"_t0": 0}
+        elif isinstance(args, dict):
+            _args = args.copy()
+            _args["_t0"] = 0
+        else:
+            _args = {"_user_args": args, "_t0": 0}
+
+        for i in range(len(H)):
+            if isinstance(H[i], list):
+                # modify hamiltonian time dependence in accordance with the
+                # quantum regression theorem
+                if isinstance(args, dict) or args is None:
+                    if isinstance(H[i][1], types.FunctionType):
+                        # function-list based time-dependence
+                        fn = lambda t, args_i: \
+                            H[i][1](t+args_i["_t0"], args_i)
+                    else:
+                        # string-list based time-dependence
+                        # Note: other functions already raise errors for mixed
+                        # td formatting
+                        fn = sub("(?<=[^0-9a-zA-Z_])t(?=[^0-9a-zA-Z_])",
+                                 "(t+_t0)", H[i][1])
+                else:
+                    if isinstance(H[i][1], types.FunctionType):
+                        # function-list based time-dependence
+                        fn = lambda t, args_i: \
+                            H[i][1](t+args_i["_t0"], args_i["_user_args"])
+                    else:
+                        raise TypeError("If using string-list based" +
+                                        "Hamiltonian time-dependence, args" +
+                                        "must be a dictionary")
+                H_shifted.append([H[i][0], fn])
+            else:
+                H_shifted.append(H[i])
+
+        return H_shifted, _args

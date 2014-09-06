@@ -845,13 +845,12 @@ def gate_expand_3toN(U, N, controls=[0, 1], target=2):
     p2 = list(range(N))
 
     if controls[0] <= 2 and controls[1] <= 2 and target <= 2:
-        p[0], p[controls[0]] = p[controls[0]], p[0]
-        p1[1], p1[controls[1]] = p1[controls[1]], p1[1]
-        p2[2], p2[target] = p2[target], p2[2]
-        p = [p[p1[p2[k]]] for k in range(N)]
+        p[controls[0]] = 0
+        p[controls[1]] = 1
+        p[target] = 2
 
     #
-    # N >= 3 cases
+    # N > 3 cases
     #
 
     elif controls[0] == 0 and controls[1] == 1:
@@ -930,7 +929,7 @@ def gate_expand_3toN(U, N, controls=[0, 1], target=2):
         p[0], p[controls[1]] = p[controls[1]], p[0]
 
     #
-    # N >= 4 cases
+    # N > 4 cases
     #
 
     elif controls[0] == 1 and controls[1] > 2 and target > 2:

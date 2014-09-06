@@ -198,7 +198,7 @@ class Codegen():
                            "idx" + hstr + "," + "ptr" + hstr +
                            "," + "vec" + ")")
                 if ht in self.h_td_inds:
-                    str_out += " * " + tdterms[hinds]
+                    str_out += " * (" + tdterms[hinds] + ")"
                     hinds += 1
                 func_vars.append(str_out)
             else:

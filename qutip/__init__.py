@@ -30,17 +30,11 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+from __future__ import division, print_function, absolute_import
 import os
 # Fix the multiprocessing issue with NumPy compiled against OPENBLAS
 if 'OPENBLAS_MAIN_FREE' not in os.environ:
     os.environ['OPENBLAS_MAIN_FREE'] = '1'
-import sys
-import platform
-import qutip.settings
-import qutip.version
-from qutip.version import version as __version__
-from qutip.utilities import _version2int
-
 # automatically set number of threads used by MKL and openblas to 1
 # prevents errors when running things in parallel.  Should be set
 # by user directly in a script or notebook if >1 is needed.
@@ -50,6 +44,12 @@ if 'MKL_NUM_THREADS' not in os.environ:
 
 if 'OPENBLAS_NUM_THREADS' not in os.environ:
     os.environ['OPENBLAS_NUM_THREADS'] = '1'
+import sys
+import platform
+import qutip.settings
+import qutip.version
+from qutip.version import version as __version__
+from qutip.utilities import _version2int
 
 # -----------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
@@ -158,6 +158,7 @@ if sys.platform not in ['darwin', 'win32'] and 'DISPLAY' not in os.environ:
     os.environ['QUTIP_GRAPHICS'] = "NO"
     qutip.settings.qutip_graphics = "NO"
 
+# check for fortran mcsolver files
 try:
     from qutip.fortran import qutraj_run
 except:
@@ -166,6 +167,13 @@ else:
     qutip.settings.fortran = True
     from qutip.fortran import *
 
+# check for scikits.umfpack
+try:
+    import scikits.umfpack as umfpack
+except:
+    qutip.settings.umfpack = False
+else:
+    qutip.settings.umfpack = True
 # -----------------------------------------------------------------------------
 # Check that import modules are compatible with requested configuration
 #

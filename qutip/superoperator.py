@@ -287,3 +287,35 @@ def spre(A):
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
     S.data = sp.kron(sp.identity(prod(A.dims[1])), A.data, format='csr')
     return S
+
+
+def _drop_projected_dims(dims):
+    """
+    Eliminate subsystems that has been collapsed to only one state due to
+    a projection.
+    """
+    return [d for d in dims if d != 1]
+
+
+def sprepost(A, B):
+    """Superoperator formed from pre-multiplication by operator A and post-
+    multiplication of operator B.
+
+    Parameters
+    ----------
+    A : Qobj
+        Quantum operator for pre-multiplication.
+
+    B : Qobj
+        Quantum operator for post-multiplication.
+
+    Returns
+    --------
+    super : Qobj
+        Superoperator formed from input quantum objects.
+    """
+
+    dims = [[_drop_projected_dims(A.dims[0]), _drop_projected_dims(B.dims[1])],
+            [_drop_projected_dims(A.dims[1]), _drop_projected_dims(B.dims[0])]]
+    data = sp.kron(B.data.T, A.data, format='csr')
+    return Qobj(data, dims=dims, superrep='super')

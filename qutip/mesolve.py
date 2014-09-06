@@ -166,6 +166,10 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     options : :class:`qutip.Options`
         with options for the ODE solver.
 
+    progress_bar: TextProgressBar
+        Optional instance of BaseProgressBar, or a subclass thereof, for
+        showing the progress of the simulation.
+
     Returns
     -------
 
@@ -250,7 +254,8 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
 
         elif isinstance(H, (types.FunctionType,
                             types.BuiltinFunctionType, partial)):
-            # old style time-dependence: must have constant collapse operators
+            # function-callback style time-dependence: must have constant
+            # collapse operators
             if n_str > 0:  # or n_func > 0:
                 raise TypeError("Incorrect format: function-format " +
                                 "Hamiltonian cannot be mixed with " +
