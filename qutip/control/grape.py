@@ -95,7 +95,7 @@ def _overlap(A, B):
 
 def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                   u_limits=None, interp_kind='linear', use_interp=False,
-                  alpha=None, phase_sensitive=True,
+                  alpha=None, beta=None, phase_sensitive=True,
                   progress_bar=BaseProgressBar()):
     """
     Calculate control pulses for the Hamiltonian operators in H_ops so that the
@@ -173,6 +173,10 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                 if alpha:
                     # penalty term for high power control signals u
                     du += -2 * alpha * u[r, j, k] * dt
+
+                if beta:
+                    # penalty term for late control signals u
+                    du += -2 * beta * k * u[r, j, k] * dt
 
                 u[r + 1, j, k] = u[r, j, k] + eps * du.real
 
