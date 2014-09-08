@@ -39,7 +39,8 @@ import numpy as np
 from scipy.interpolate import interp1d
 import scipy.sparse as sp
 
-from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+from qutip.qobj import Qobj
+from qutip.ui.progressbar import BaseProgressBar
 from qutip.control.cy_grape import cy_overlap, cy_grape_inner
 from qutip.qip.gates import gate_sequence_product
 
@@ -312,16 +313,19 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
     progress_bar.finished()
     
     #return U_f_list[-1], H_td_func, u
-    return GRAPEResult(u=u, U_f=U_f_list[-1], H_t=H_td_func)
+    return GRAPEResult(u=u,
+                       U_f=Qobj(U_f_list[-1], dims=U.dims),
+                       H_t=H_td_func)
 
 
 def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
-                  u_limits=None, interp_kind='linear', use_interp=False,
-                  alpha=None, phase_sensitive=False, overlap_terminate=1.0, debug=False,
-                  progress_bar=BaseProgressBar()):
+                           u_limits=None, interp_kind='linear',
+                           use_interp=False, alpha=None,
+                           phase_sensitive=False, overlap_terminate=1.0,
+                           debug=False, progress_bar=BaseProgressBar()):
     """
-    Calculate control pulses for the Hamiltonian operators in H_ops so that the
-    unitary U is realized.
+    Calculate control pulses for the Hamiltonian operators in H_ops so that
+    the unitary U is realized.
 
     Experimental: Work in progress.
     """
@@ -429,7 +433,8 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
                 if phase_sensitive:
                     du = - cy_overlap(P.data, Q.data)
                 else:
-                    du = - 2 * cy_overlap(P.data, Q.data) * cy_overlap(U_f_list[m].data, P.data) 
+                    du = (- 2 * cy_overlap(P.data, Q.data) *
+                          cy_overlap(U_f_list[m].data, P.data))
 
                 if alpha:
                     # penalty term for high power control signals u
