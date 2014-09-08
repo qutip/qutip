@@ -42,6 +42,14 @@ from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 from qutip.control.cy_grape import cy_overlap
 from qutip.qip.gates import gate_sequence_product
 
+class GRAPEResult:
+    
+    def __init__(self, u=None, H_t=None, U_f=None):
+        
+        self.u = u
+        self.H_t = H_t
+        self.U_f = U_f
+
 def plot_grape_control_fields(times, u, labels, uniform_axes=False):
     """
     Plot a series of plots shoing the GRAPE control fields given in the
@@ -158,7 +166,7 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                 if phase_sensitive:
                     du = - _overlap(P, Q)
                 else:
-                    du = - 2 * _overlap(P, Q) * _overlap(H_ops[j], P) 
+                    du = - 2 * _overlap(P, Q) * _overlap(U_f_list[k], P) 
 
                 if alpha:
                     # penalty term for high power control signals u
@@ -187,7 +195,8 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
 
     progress_bar.finished()
     
-    return U_f_list[-1], H_td_func, u
+    #return U_f_list[-1], H_td_func, u
+    return GRAPEResult(u=u, U_f=U_f_list[-1], H_t=H_td_func)
 
 
 def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
@@ -262,10 +271,10 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                 P = U_b_list[k] * U
                 Q = 1j * dt * H_ops[j] * U_f_list[k]
 
-                #if phase_sensitive:
-                #    du = - 2 * cy_overlap(P.data, Q.data) * cy_overlap(H_ops[j].data, P.data) 
-                #else:
-                du = - cy_overlap(P.data, Q.data)
+                if phase_sensitive:
+                    du = - cy_overlap(P.data, Q.data)
+                else:
+                    du = - 2 * cy_overlap(P.data, Q.data) * cy_overlap(U_f_list[k].data, P.data) 
 
                 if alpha:
                     # penalty term for high power control signals u
@@ -294,12 +303,13 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
 
     progress_bar.finished()
     
-    return U_f_list[-1], H_td_func, u
+    #return U_f_list[-1], H_td_func, u
+    return GRAPEResult(u=u, U_f=U_f_list[-1], H_t=H_td_func)
 
 
 def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
                   u_limits=None, interp_kind='linear', use_interp=False,
-                  alpha=None, phase_sensitive=True, overlap_terminate=1.0, debug=False,
+                  alpha=None, phase_sensitive=False, overlap_terminate=1.0, debug=False,
                   progress_bar=BaseProgressBar()):
     """
     Calculate control pulses for the Hamiltonian operators in H_ops so that the
@@ -337,6 +347,12 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
         for idx, u0 in enumerate(u_start):
             for k in range(K):
                 u[0, idx, :, k] = u0
+
+    if phase_sensitive:
+        _fidelity_function = lambda x : x
+    else:
+        _fidelity_function = lambda x : abs(x) ** 2
+
 
     best_k = 1
     _r = 0
@@ -399,16 +415,16 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
                 P = U_b_list[m] * U
                 Q = 1j * dt * H_ops[j] * U_f_list[m]
 
-                #if phase_sensitive:
-                #    du = - 2 * _overlap(P, Q) * _overlap(H_ops[j], P) 
-                #else:
-                du = - cy_overlap(P.data, Q.data)
+                #du = - cy_overlap(P.data, Q.data)
+
+                if phase_sensitive:
+                    du = - cy_overlap(P.data, Q.data)
+                else:
+                    du = - 2 * cy_overlap(P.data, Q.data) * cy_overlap(U_f_list[m].data, P.data) 
 
                 if alpha:
                     # penalty term for high power control signals u
                     du += -2 * alpha * u[r, j, m, best_k] * dt
-
-                #print("du", du)
 
                 for k, eps_val in enumerate(eps_vec):
                     u[r + 1, j, m, k] = u[r, j, m, k] + eps_val * du.real
@@ -434,7 +450,7 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
             U_list = [(-1j * _H_idx(idx) * dt).expm() for idx in range(M-1)]
             
             Uf[k] = gate_sequence_product(U_list)
-            _k_overlap[k] = cy_overlap(Uf[k].data, U.data).real
+            _k_overlap[k] = _fidelity_function(cy_overlap(Uf[k].data, U.data)).real
 
         best_k = np.argmax(_k_overlap)
         if debug:
@@ -477,5 +493,7 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
 
     progress_bar.finished()
     
-    return Uf[best_k], H_td_func, u[:_r,:,:,best_k]
+    #return Uf[best_k], H_td_func, u[:_r,:,:,best_k]
+    result = GRAPEResult(u=u[:_r,:,:,best_k], U_f=Uf[best_k], H_t=H_td_func)
 
+    return result
