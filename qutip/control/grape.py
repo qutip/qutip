@@ -322,6 +322,9 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
         eps = 0.1 * (2 * np.pi) / (times[-1])
 
     eps_vec = np.array([eps / 2, eps, 2 * eps])
+    eps_log = np.zeros(R)
+    overlap_log = np.zeros(R)
+    
     #eps_vec = [eps]
     best_k = 0
     _k_overlap = np.array([0.0, 0.0, 0.0])
@@ -363,7 +366,8 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
         progress_bar.update(r)
 
         _r = r
-
+        eps_log[r] = eps_vec[best_k]
+        
         if debug:
             print("="  * 80)
             print("eps_vec: ", eps_vec)
@@ -415,8 +419,6 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
                 P = U_b_list[m] * U
                 Q = 1j * dt * H_ops[j] * U_f_list[m]
 
-                #du = - cy_overlap(P.data, Q.data)
-
                 if phase_sensitive:
                     du = - cy_overlap(P.data, Q.data)
                 else:
@@ -445,12 +447,14 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
         for k, eps_val in enumerate(eps_vec):
                              
             def _H_idx(idx):
-                return H0 + sum([u[r + 1, j, idx, k] * H_ops[j] for j in range(J)])    
+                return H0 + sum([u[r + 1, j, idx, k] * H_ops[j]
+                                 for j in range(J)])    
 
             U_list = [(-1j * _H_idx(idx) * dt).expm() for idx in range(M-1)]
             
             Uf[k] = gate_sequence_product(U_list)
-            _k_overlap[k] = _fidelity_function(cy_overlap(Uf[k].data, U.data)).real
+            _k_overlap[k] = _fidelity_function(cy_overlap(Uf[k].data, 
+                                                          U.data)).real
 
         best_k = np.argmax(_k_overlap)
         if debug:
@@ -472,6 +476,8 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
         
             _prev_overlap = _k_overlap[best_k]
             
+        overlap_log[r] = _k_overlap[best_k] 
+
         if overlap_terminate < 1.0:
             if _k_overlap[best_k] > overlap_terminate:
                 print("Reached target fidelity, terminating.")
@@ -480,7 +486,7 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
         if debug:
             print("Time 4: %fs" % (time.time() - _t0))
             _t0 = time.time()
-                
+
     if use_interp:
         ip_funcs = [interp1d(times, u[_r, j, :, best_k], kind=interp_kind,
                              bounds_error=False, fill_value=u[R - 1, j, -1])
@@ -495,5 +501,8 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
     
     #return Uf[best_k], H_td_func, u[:_r,:,:,best_k]
     result = GRAPEResult(u=u[:_r,:,:,best_k], U_f=Uf[best_k], H_t=H_td_func)
+
+    result.eps = eps_log
+    result.overlap = overlap_log
 
     return result
