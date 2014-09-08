@@ -37,9 +37,10 @@ calculating pulse sequences for quantum systems.
 import time
 import numpy as np
 from scipy.interpolate import interp1d
+import scipy.sparse as sp
 
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
-from qutip.control.cy_grape import cy_overlap
+from qutip.control.cy_grape import cy_overlap, cy_grape_inner
 from qutip.qip.gates import gate_sequence_product
 
 class GRAPEResult:
@@ -217,6 +218,8 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
     J = len(H_ops)
     
     u = np.zeros((R, J, M))
+    
+    H_ops_data = [H_op.data for H_op in H_ops] 
 
     if u_limits and len(u_limits) != 2:
         raise ValueError("u_limits must be a list with two values")
@@ -251,45 +254,50 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
             def _H_idx(idx):
                 return H0 + sum([u[r, j, idx] * H_ops[j] for j in range(J)])    
 
-            U_list = [(-1j * _H_idx(idx) * dt).expm() for idx in range(M-1)]
+            U_list = [(-1j * _H_idx(idx) * dt).expm().data for idx in range(M-1)]
 
         U_f_list = []
         U_b_list = []
 
         U_f = 1
-        U_b = 1
+        U_b = sp.eye(*(U.shape))
         for n in range(M - 1):
 
             U_f = U_list[n] * U_f
             U_f_list.append(U_f)
 
             U_b_list.insert(0, U_b)
-            U_b = U_list[M - 2 - n].dag() * U_b
+            U_b = U_list[M - 2 - n].T.conj().tocsr() * U_b
 
-        for j in range(J):
-            for k in range(M-1):
-                P = U_b_list[k] * U
-                Q = 1j * dt * H_ops[j] * U_f_list[k]
-
-                if phase_sensitive:
-                    du = - cy_overlap(P.data, Q.data)
-                else:
-                    du = - 2 * cy_overlap(P.data, Q.data) * cy_overlap(U_f_list[k].data, P.data) 
-
-                if alpha:
-                    # penalty term for high power control signals u
-                    du += -2 * alpha * u[r, j, k] * dt
-
-                u[r + 1, j, k] = u[r, j, k] + eps * du.real
-
-                if u_limits:
-                    if u_limits[0] < u[r + 1, j, k]:
-                        u[r + 1, j, k] = u_limits[0]
-
-                    elif u_limits[1] > u[r + 1, j, k]:
-                        u[r + 1, j, k] = u_limits[1]
-
-            u[r + 1, j, -1] = u[r + 1, j, -2]
+        if True:
+            alpha_val = alpha if alpha else 0.0
+            cy_grape_inner(U.data, u, r, J, M, U_b_list, U_f_list, H_ops_data,
+                           dt, eps, alpha_val, phase_sensitive)
+        else:
+            for j in range(J):
+                for k in range(M-1):
+                    P = U_b_list[k] * U.data
+                    Q = 1j * dt * H_ops_data[j] * U_f_list[k]
+    
+                    if phase_sensitive:
+                        du = - cy_overlap(P, Q)
+                    else:
+                        du = - 2 * cy_overlap(P, Q) * cy_overlap(U_f_list[k], P) 
+    
+                    if alpha:
+                        # penalty term for high power control signals u
+                        du += -2 * alpha * u[r, j, k] * dt
+    
+                    u[r + 1, j, k] = u[r, j, k] + eps * du.real
+    
+                    if u_limits:
+                        if u_limits[0] < u[r + 1, j, k]:
+                            u[r + 1, j, k] = u_limits[0]
+    
+                        elif u_limits[1] > u[r + 1, j, k]:
+                            u[r + 1, j, k] = u_limits[1]
+    
+                u[r + 1, j, -1] = u[r + 1, j, -2]
             
     if use_interp:
         ip_funcs = [interp1d(times, u[R - 1, j, :], kind=interp_kind,
@@ -325,7 +333,6 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
     eps_log = np.zeros(R)
     overlap_log = np.zeros(R)
     
-    #eps_vec = [eps]
     best_k = 0
     _k_overlap = np.array([0.0, 0.0, 0.0])
 
