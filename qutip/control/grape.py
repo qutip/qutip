@@ -176,16 +176,16 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
 
                 if beta:
                     # penalty term for late control signals u
-                    du += -2 * beta * k * u[r, j, k] * dt
+                    du += -2 * beta * (k ** 2) * u[r, j, k] * dt
 
                 u[r + 1, j, k] = u[r, j, k] + eps * du.real
 
                 if u_limits:
-                    if u_limits[0] < u[r + 1, j, k]:
+                    if u[r + 1, j, k] < u_limits[0]:
                         u[r + 1, j, k] = u_limits[0]
-
-                    elif u_limits[1] > u[r + 1, j, k]:
+                    elif u[r + 1, j, k] > u_limits[1]:
                         u[r + 1, j, k] = u_limits[1]
+
 
             u[r + 1, j, -1] = u[r + 1, j, -2]
             
@@ -294,12 +294,11 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                         du += -2 * alpha * u[r, j, k] * dt
     
                     u[r + 1, j, k] = u[r, j, k] + eps * du.real
-    
+                                
                     if u_limits:
-                        if u_limits[0] < u[r + 1, j, k]:
+                        if u[r + 1, j, k] < u_limits[0]:
                             u[r + 1, j, k] = u_limits[0]
-    
-                        elif u_limits[1] > u[r + 1, j, k]:
+                        elif u[r + 1, j, k] > u_limits[1]:
                             u[r + 1, j, k] = u_limits[1]
     
                 u[r + 1, j, -1] = u[r + 1, j, -2]
@@ -448,9 +447,9 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
                     u[r + 1, j, m, k] = u[r, j, m, k] + eps_val * du.real
                     
                     if u_limits:
-                        if u_limits[0] < u[r + 1, j, m, k]:
+                        if u[r + 1, j, m, k] < u_limits[0]:
                             u[r + 1, j, m, k] = u_limits[0]
-                        elif u_limits[1] > u[r + 1, j, m, k]:
+                        elif u[r + 1, j, m, k] > u_limits[1]:
                             u[r + 1, j, m, k] = u_limits[1]
 
             u[r + 1, j, -1, :] = u[r + 1, j, -2, :]
