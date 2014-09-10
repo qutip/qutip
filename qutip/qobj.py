@@ -1273,7 +1273,8 @@ i
                                sort=sort, eigvals=eigvals, tol=tol,
                                maxiter=maxiter)
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
-        ekets = np.array([Qobj(vec, dims=new_dims) for vec in evecs])
+        ekets = np.array([Qobj(vec, dims=new_dims) for vec in evecs],
+                         dtype=object)
         norms = np.array([ket.norm() for ket in ekets])
         return evals, ekets / norms
 
