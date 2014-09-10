@@ -207,7 +207,7 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
 
 def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                   u_limits=None, interp_kind='linear', use_interp=False,
-                  alpha=None, phase_sensitive=True,
+                  alpha=None, beta=None, phase_sensitive=True,
                   progress_bar=BaseProgressBar()):
     """
     Calculate control pulses for the Hamitonian operators in H_ops so that the
@@ -235,9 +235,21 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
         u_start[u_start < u_limits[0]] = u_limits[0]
         u_start[u_start > u_limits[1]] = u_limits[1]
 
+    if u_limits:
+        use_u_limits = 1
+        u_min = u_limits[0]
+        u_max = u_limits[1]
+    else:
+        use_u_limits = 0
+        u_min = 0.0
+        u_max = 0.0
+
     if u_start is not None:
         for idx, u0 in enumerate(u_start):
             u[0, idx, :] = u0
+
+    alpha_val = alpha if alpha else 0.0
+    beta_val = beta if beta else 0.0
 
     progress_bar.start(R)
     for r in range(R - 1):
@@ -275,9 +287,9 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
             U_b = U_list[M - 2 - n].T.conj().tocsr() * U_b
 
         if True:
-            alpha_val = alpha if alpha else 0.0
             cy_grape_inner(U.data, u, r, J, M, U_b_list, U_f_list, H_ops_data,
-                           dt, eps, alpha_val, phase_sensitive)
+                           dt, eps, alpha_val, beta_val, phase_sensitive,
+                           use_u_limits, u_min, u_max)
         else:
             for j in range(J):
                 for k in range(M-1):
@@ -292,7 +304,11 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                     if alpha:
                         # penalty term for high power control signals u
                         du += -2 * alpha * u[r, j, k] * dt
-    
+
+                    if beta:
+                        # penalty term for late control signals u
+                        du += -2 * beta * k * u[r, j, k] * dt
+                    
                     u[r + 1, j, k] = u[r, j, k] + eps * du.real
                                 
                     if u_limits:
