@@ -668,7 +668,7 @@ def qutrit_ops():
     sig12 = one * two.dag()
     sig23 = two * three.dag()
     sig31 = three * one.dag()
-    return np.array([sig11, sig22, sig33, sig12, sig23, sig31])
+    return [sig11, sig22, sig33, sig12, sig23, sig31]
 
 
 def qdiags(diagonals, offsets, dims=None, shape=None):
