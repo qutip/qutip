@@ -110,7 +110,7 @@ def qutrit_basis():
         Array of qutrit basis vectors
 
     """
-    return [basis(3, 0), basis(3, 1), basis(3, 2)]
+    return np.array([basis(3, 0), basis(3, 1), basis(3, 2)], dtype=object)
 
 
 def _sqrt_factorial(n_vec):
