@@ -262,6 +262,7 @@ class eseries():
 
                 val_list.append(val)
 
+            val_list = np.array(val_list, dtype=object)
         else:
             # the amplitude vector contains c numbers
             val_list = np.zeros(np.size(tlist), dtype=complex)
