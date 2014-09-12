@@ -449,13 +449,14 @@ class _MC_class():
         else:
             # all trajectories as kets
             if (ntraj == 1):
-                states = np.array([Qobj()] * nstep)
+                states = np.array([Qobj()] * nstep, dtype=object)
                 for i in range(nstep):
                     states[i] = Qobj(np.matrix(
                         qtf90.qutraj_run.sol[0, 0, i, :]).transpose(),
                         dims=self.psi0_dims, shape=self.psi0_shape)
             else:
-                states = np.array([np.array([Qobj()] * nstep)] * ntraj)
+                states = np.array([np.array([Qobj()] * nstep, dtype=object)] *
+                                  ntraj)
                 for traj in range(ntraj):
                     for i in range(nstep):
                         states[traj][i] = Qobj(np.matrix(
@@ -512,7 +513,7 @@ def _gather(sols):
     sol.col_which = np.zeros((ntraj), dtype=np.ndarray)
     sol.col_times[0:sols[0].ntraj] = sols[0].col_times
     sol.col_which[0:sols[0].ntraj] = sols[0].col_which
-    sol.states = np.array(sols[0].states)
+    sol.states = np.array(sols[0].states, dtype=object)
     sol.expect = np.array(sols[0].expect)
     if (hasattr(sols[0], 'entropy')):
         sol.entropy = np.array(sols[0].entropy)
