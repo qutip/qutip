@@ -61,7 +61,6 @@ from numpy.random import RandomState
 
 from qutip.qobj import Qobj, isket
 from qutip.states import ket2dm
-from qutip.operators import commutator
 from qutip.solver import Result
 from qutip.expect import expect, expect_rho_vec
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
@@ -484,7 +483,7 @@ def smesolve(H, rho0, times, c_ops, sc_ops, e_ops, **kwargs):
                 sso.d2_len = 1
                 sso.sc_ops = []
                 for sc in iter(sc_ops):
-                    sso.sc_ops += [sc / sqrt(2), -1.0j * sc / sqrt(2)]
+                    sso.sc_ops += [sc / np.sqrt(2), -1.0j * sc / np.sqrt(2)]
 
         elif sso.solver == 'fast-euler-maruyama' and sso.method == 'homodyne':
             sso.rhs = _rhs_rho_euler_homodyne_fast
@@ -505,7 +504,7 @@ def smesolve(H, rho0, times, c_ops, sc_ops, e_ops, **kwargs):
                 sso.d2_len = 1
                 sso.sc_ops = []
                 for sc in iter(sc_ops):
-                    sso.sc_ops += [sc / sqrt(2), -1.0j * sc / sqrt(2)]
+                    sso.sc_ops += [sc / np.sqrt(2), -1.0j * sc / np.sqrt(2)]
                 if len(sc_ops) == 1:
                     sso.rhs = _rhs_rho_milstein_homodyne_two_fast
                 else:
@@ -573,7 +572,7 @@ def ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
     sso = StochasticSolverOptions(H=H, state0=psi0, times=times, c_ops=c_ops,
                                   e_ops=e_ops, **kwargs)
 
-    res = _ssepdpsolve_generic(sso, options, progress_bar)
+    res = _ssepdpsolve_generic(sso, sso.options, sso.progress_bar)
 
     if e_ops_dict:
         res.expect = {e: res.expect[n]
@@ -636,7 +635,7 @@ def smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
     sso = StochasticSolverOptions(H=H, state0=rho0, times=times, c_ops=c_ops,
                                   e_ops=e_ops, **kwargs)
 
-    res = _smepdpsolve_generic(sso, options, progress_bar)
+    res = _smepdpsolve_generic(sso, sso.options, sso.progress_bar)
 
     if e_ops_dict:
         res.expect = {e: res.expect[n]
@@ -656,7 +655,6 @@ def _ssesolve_generic(sso, options, progress_bar):
 
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
-    N = N_store * N_substeps
     dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
@@ -758,8 +756,6 @@ def _ssesolve_single_trajectory(data, H, dt, times, N_store, N_substeps, psi_t,
         else:
             states_list.append(Qobj(psi_t, dims=dims))
 
-        psi_prev = np.copy(psi_t)
-
         for j in range(N_substeps):
 
             if noise is None and not homogeneous:
@@ -811,7 +807,6 @@ def _smesolve_generic(sso, options, progress_bar):
 
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
-    N = N_store * N_substeps
     dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
@@ -929,7 +924,6 @@ def _smesolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_t,
                 data.ss[e_idx, t_idx] += s ** 2
 
         if store_states or not e_ops:
-            # XXX: need to keep hilbert space structure
             states_list.append(Qobj(vec2mat(rho_t), dims=dims))
 
         rho_prev = np.copy(rho_t)
@@ -976,15 +970,14 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
 
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
-    N = N_store * N_substeps
     dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
     data = Result()
     data.solver = "sepdpsolve"
-    data.times = ssdata.tlist
-    data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
-    data.ss = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
+    data.times = sso.tlist
+    data.expect = np.zeros((len(sso.e_ops), N_store), dtype=complex)
+    data.ss = np.zeros((len(sso.e_ops), N_store), dtype=complex)
     data.jump_times = []
     data.jump_op_idx = []
 
@@ -1109,7 +1102,6 @@ def _smepdpsolve_generic(sso, options, progress_bar):
 
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
-    N = N_store * N_substeps
     dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
@@ -1167,6 +1159,7 @@ def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps,
     states_list = []
 
     rho_t = np.copy(rho_t)
+    sigma_t = np.copy(rho_t)
 
     prng = RandomState()  # todo: seed it
     r_jump, r_op = prng.rand(2)
@@ -1186,7 +1179,7 @@ def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps,
 
             if expect_rho_vec(d_op, sigma_t) < r_jump:
                 # jump occurs
-                p = np.array([rho_expect(c.dag() * c, rho_t) for c in c_ops])
+                p = np.array([expect(c.dag() * c, rho_t) for c in c_ops])
                 p = np.cumsum(p / np.sum(p))
                 n = np.where(p >= r_op)[0][0]
 
@@ -1666,7 +1659,7 @@ def _rhs_psi_platen(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
 
     sqrt_dt = np.sqrt(dt)
 
-    dW_len = len(dW[0, :])
+    #dW_len = len(dW[0, :])
     dpsi_t = _rhs_psi_deterministic(H, psi_t, t, dt, args)
 
     for a_idx, A in enumerate(A_ops):
