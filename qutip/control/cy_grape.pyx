@@ -113,7 +113,7 @@ cpdef cy_grape_inner(U,
 
             if beta:
                 # penalty term for late control signals u
-                du += -2 * beta * k * u[r, j, k] * dt
+                du += -2 * beta * k ** 2 * u[r, j, k] * dt
                         
             u[r + 1, j, k] = u[r, j, k] + eps * du.real
 

@@ -161,30 +161,30 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
             U_b = U_list[M - 2 - n].dag() * U_b
 
         for j in range(J):
-            for k in range(M-1):
-                P = U_b_list[k] * U
-                Q = 1j * dt * H_ops[j] * U_f_list[k]
+            for m in range(M-1):
+                P = U_b_list[m] * U
+                Q = 1j * dt * H_ops[j] * U_f_list[m]
 
                 if phase_sensitive:
                     du = - _overlap(P, Q)
                 else:
-                    du = - 2 * _overlap(P, Q) * _overlap(U_f_list[k], P) 
+                    du = - 2 * _overlap(P, Q) * _overlap(U_f_list[m], P) 
 
                 if alpha:
                     # penalty term for high power control signals u
-                    du += -2 * alpha * u[r, j, k] * dt
+                    du += -2 * alpha * u[r, j, m] * dt
 
                 if beta:
                     # penalty term for late control signals u
-                    du += -2 * beta * (k ** 2) * u[r, j, k] * dt
+                    du += -2 * beta * m * u[r, j, m] * dt
 
-                u[r + 1, j, k] = u[r, j, k] + eps * du.real
+                u[r + 1, j, m] = u[r, j, m] + eps * du.real
 
                 if u_limits:
-                    if u[r + 1, j, k] < u_limits[0]:
-                        u[r + 1, j, k] = u_limits[0]
-                    elif u[r + 1, j, k] > u_limits[1]:
-                        u[r + 1, j, k] = u_limits[1]
+                    if u[r + 1, j, m] < u_limits[0]:
+                        u[r + 1, j, m] = u_limits[0]
+                    elif u[r + 1, j, m] > u_limits[1]:
+                        u[r + 1, j, m] = u_limits[1]
 
 
             u[r + 1, j, -1] = u[r + 1, j, -2]
@@ -265,13 +265,15 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                 return H0 + sum([float(ip_funcs[j](t)) * H_ops[j]
                                  for j in range(J)])    
 
-            U_list = [(-1j * _H_t(times[idx]) * dt).expm() for idx in range(M-1)]
+            U_list = [(-1j * _H_t(times[idx]) * dt).expm().data
+                      for idx in range(M-1)]
 
         else:
             def _H_idx(idx):
                 return H0 + sum([u[r, j, idx] * H_ops[j] for j in range(J)])    
 
-            U_list = [(-1j * _H_idx(idx) * dt).expm().data for idx in range(M-1)]
+            U_list = [(-1j * _H_idx(idx) * dt).expm().data
+                      for idx in range(M-1)]
 
         U_f_list = []
         U_b_list = []
@@ -307,7 +309,7 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
 
                     if beta:
                         # penalty term for late control signals u
-                        du += -2 * beta * k * u[r, j, k] * dt
+                        du += -2 * beta * k**2 * u[r, j, k] * dt
                     
                     u[r + 1, j, k] = u[r, j, k] + eps * du.real
                                 
@@ -339,7 +341,7 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
 
 def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
                            u_limits=None, interp_kind='linear',
-                           use_interp=False, alpha=None,
+                           use_interp=False, alpha=None, beta=None,
                            phase_sensitive=False, overlap_terminate=1.0,
                            debug=False, progress_bar=BaseProgressBar()):
     """
@@ -443,7 +445,6 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
             print("Time 2: %fs" % (time.time() - _t0))
             _t0 = time.time()
 
-        
         for j in range(J):
             for m in range(M-1):
                 P = U_b_list[m] * U
@@ -459,6 +460,10 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
                     # penalty term for high power control signals u
                     du += -2 * alpha * u[r, j, m, best_k] * dt
 
+                if beta:
+                    # penalty term for late control signals u
+                    du += -2 * beta * k ** 2 * u[r, j, k] * dt
+                        
                 for k, eps_val in enumerate(eps_vec):
                     u[r + 1, j, m, k] = u[r, j, m, k] + eps_val * du.real
                     
