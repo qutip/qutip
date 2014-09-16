@@ -1257,7 +1257,7 @@ def _generate_psi_A_ops(sc_ops, H):
     return A_ops
 
 
-def d1_psi_homodyne(A, psi):
+def d1_psi_homodyne(t, psi, A, args):
     """
     OK
     Todo: cythonize
@@ -1275,7 +1275,7 @@ def d1_psi_homodyne(A, psi):
                   0.25 * e1 ** 2 * psi)
 
 
-def d2_psi_homodyne(A, psi):
+def d2_psi_homodyne(t, psi, A, args):
     """
     OK
     Todo: cythonize
@@ -1290,7 +1290,7 @@ def d2_psi_homodyne(A, psi):
     return [spmv(A[0], psi) - 0.5 * e1 * psi]
 
 
-def d1_psi_heterodyne(A, psi):
+def d1_psi_heterodyne(t, psi, A, args):
     """
     Todo: cythonize
 
@@ -1310,7 +1310,7 @@ def d1_psi_heterodyne(A, psi):
             0.25 * e_C * e_Cd * psi)
 
 
-def d2_psi_heterodyne(A, psi):
+def d2_psi_heterodyne(t, psi, A, args):
     """
     Todo: cythonize
 
@@ -1333,7 +1333,7 @@ def d2_psi_heterodyne(A, psi):
     return [d2_1, d2_2]
 
 
-def d1_psi_photocurrent(A, psi):
+def d1_psi_photocurrent(t, psi, A, args):
     """
     Todo: cythonize.
 
@@ -1348,7 +1348,7 @@ def d1_psi_photocurrent(A, psi):
             - norm(spmv(A[0], psi)) ** 2 * psi))
 
 
-def d2_psi_photocurrent(A, psi):
+def d2_psi_photocurrent(t, psi, A, args):
     """
     Todo: cythonize
 
@@ -1505,7 +1505,7 @@ def sop_G(A, rho_vec):
         return -rho_vec
 
 
-def d1_rho_homodyne(A, rho_vec):
+def d1_rho_homodyne(t, rho_vec, A, args):
     """
     D1[a] rho = lindblad_dissipator(a) * rho
 
@@ -1514,7 +1514,7 @@ def d1_rho_homodyne(A, rho_vec):
     return spmv(A[7], rho_vec)
 
 
-def d2_rho_homodyne(A, rho_vec):
+def d2_rho_homodyne(t, rho_vec, A, args):
     """
     D2[a] rho = a rho + rho a^\dagger - Tr[a rho + rho a^\dagger]
               = (A_L + Ad_R) rho_vec - E[(A_L + Ad_R) rho_vec]
@@ -1527,14 +1527,14 @@ def d2_rho_homodyne(A, rho_vec):
     return [spmv(M, rho_vec) - e1 * rho_vec]
 
 
-def d1_rho_heterodyne(A, rho_vec):
+def d1_rho_heterodyne(t, rho_vec, A, args):
     """
     todo: cythonize, docstrings
     """
     return spmv(A[7], rho_vec)
 
 
-def d2_rho_heterodyne(A, rho_vec):
+def d2_rho_heterodyne(t, rho_vec, A, args):
     """
     todo: cythonize, docstrings
     """
@@ -1547,7 +1547,7 @@ def d2_rho_heterodyne(A, rho_vec):
     return [1.0 / np.sqrt(2) * d1, -1.0j / np.sqrt(2) * d2]
 
 
-def d1_rho_photocurrent(A, rho_vec):
+def d1_rho_photocurrent(t, rho_vec, A, args):
     """
     Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
@@ -1556,7 +1556,7 @@ def d1_rho_photocurrent(A, rho_vec):
     return 0.5 * (e1 * rho_vec - spmv(n_sum, rho_vec))
 
 
-def d2_rho_photocurrent(A, rho_vec):
+def d2_rho_photocurrent(t, rho_vec, A, args):
     """
     Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
@@ -1602,10 +1602,10 @@ def _rhs_psi_euler_maruyama(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
     dpsi_t = _rhs_psi_deterministic(H, psi_t, t, dt, args)
 
     for a_idx, A in enumerate(A_ops):
-        d2_vec = d2(A, psi_t)
-        dpsi_t += d1(A, psi_t) * dt + np.sum([d2_vec[n] * dW[a_idx, n]
-                                              for n in range(dW_len)
-                                              if dW[a_idx, n] != 0], axis=0)
+        d2_vec = d2(t, psi_t, A, args)
+        dpsi_t += d1(t, psi_t, A, args) * dt + \
+            np.sum([d2_vec[n] * dW[a_idx, n]
+                    for n in range(dW_len) if dW[a_idx, n] != 0], axis=0)
 
     return psi_t + dpsi_t
 
@@ -1619,8 +1619,8 @@ def _rhs_rho_euler_maruyama(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     drho_t = _rhs_rho_deterministic(L, rho_t, t, dt, args)
 
     for a_idx, A in enumerate(A_ops):
-        d2_vec = d2(A, rho_t)
-        drho_t += d1(A, rho_t) * dt
+        d2_vec = d2(t, rho_t, A, args)
+        drho_t += d1(t, rho_t, A, args) * dt
         drho_t += np.sum([d2_vec[n] * dW[a_idx, n]
                           for n in range(dW_len) if dW[a_idx, n] != 0], axis=0)
 
@@ -1635,12 +1635,11 @@ def _rhs_rho_euler_homodyne_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
     dW = ddW[:, 0]
 
     d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
-    e = np.real(
-        d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1, axis2=2))
+    e = d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1, axis2=2)
 
     drho_t = d_vec[-1]
     drho_t += np.dot(dW, d_vec[:-1])
-    drho_t += (1.0 - np.inner(e, dW)) * rho_t
+    drho_t += (1.0 - np.inner(np.real(e), dW)) * rho_t
     return drho_t
 
 
