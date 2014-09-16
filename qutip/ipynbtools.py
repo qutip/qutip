@@ -46,6 +46,7 @@ import uuid
 import sys
 import os
 import time
+import inspect
 
 import qutip
 import numpy
@@ -55,7 +56,7 @@ import matplotlib
 import IPython
 
 
-def version_table():
+def version_table(verbose=False):
     """
     Print an HTML-formatted table with version numbers for QuTiP and its
     dependencies. Use it in a IPython notebook to show which versions of
@@ -86,6 +87,18 @@ def version_table():
 
     for name in packages:
         html += "<tr><td>%s</td><td>%s</td></tr>" % (name, packages[name])
+
+    if verbose:
+        html += "<tr><th colspan='2'>Additional information</th></tr>"
+        qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
+        html += ("<tr><td>Installation path</td><td>%s</td></tr>" %
+                 qutip_install_path)
+        try:
+            import getpass
+            html += ("<tr><td>User</td><td>%s</td></tr>" %
+                     getpass.getuser())
+        except:
+            pass
 
     html += "<tr><td colspan='2'>%s</td></tr>" % time.strftime(
         '%a %b %d %H:%M:%S %Y %Z')

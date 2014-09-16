@@ -30,12 +30,11 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-"""Main module for QuTiP, consisting of the Quantum Object (Qobj) class and
-its methods.
+"""The Quantum Object (Qobj) class, for representing quantum states and
+operators, and related functions.
 """
 import warnings
 import types
-import pickle
 
 try:
     import builtins
@@ -56,7 +55,7 @@ from qutip import __version__
 from qutip.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
-                          sp_one_norm, sp_L2_norm, sp_inf_norm)
+                          sp_one_norm, sp_L2_norm)
 
 
 class Qobj(object):
@@ -1274,7 +1273,8 @@ i
                                sort=sort, eigvals=eigvals, tol=tol,
                                maxiter=maxiter)
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
-        ekets = np.array([Qobj(vec, dims=new_dims) for vec in evecs])
+        ekets = np.array([Qobj(vec, dims=new_dims) for vec in evecs],
+                         dtype=object)
         norms = np.array([ket.norm() for ket in ekets])
         return evals, ekets / norms
 

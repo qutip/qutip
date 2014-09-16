@@ -64,15 +64,18 @@ class eseries():
     """
     __array_priority__ = 101
 
-    def __init__(self, q=np.array([]), s=np.array([])):
+    def __init__(self, q=np.array([], dtype=object), s=np.array([])):
+
         if isinstance(s, (int, float, complex)):
             s = np.array([s])
-        if (not np.any(q)) and (len(s) == 0):
+
+        if (not np.any(np.asarray(q, dtype=object))) and (len(s) == 0):
             self.ampl = np.array([])
             self.rates = np.array([])
             self.dims = [[1, 1]]
             self.shape = [1, 1]
-        if np.any(q) and (len(s) == 0):
+        
+        elif np.any(np.asarray(q, dtype=object)) and (len(s) == 0):
             if isinstance(q, eseries):
                 self.ampl = q.ampl
                 self.rates = q.rates
@@ -100,7 +103,7 @@ class eseries():
                 self.dims = [[1, 1]]
                 self.shape = [1, 1]
 
-        if np.any(q) and len(s) != 0:
+        elif np.any(np.asarray(q, dtype=object)) and len(s) != 0:
             if isinstance(q, (np.ndarray, list)):
                 ind = np.shape(q)
                 num = ind[0]
@@ -112,7 +115,7 @@ class eseries():
                 self.shape = self.ampl[0].shape
             else:
                 num = 1
-                self.ampl = np.array([Qobj(q)])
+                self.ampl = np.array([Qobj(q)], dtype=object)
                 self.dims = self.ampl[0].dims
                 self.shape = self.ampl[0].shape
             if isinstance(s, (int, complex, float)):
@@ -125,12 +128,13 @@ class eseries():
                     raise TypeError('Number of rates must match number ' +
                                     ' of members in object array.')
                 self.rates = np.array(s)
+                
         if len(self.ampl) != 0:
             # combine arrays so that they can be sorted together
             zipped = list(zip(self.rates, self.ampl))
             zipped.sort()  # sort rates from lowest to highest
             rates, ampl = list(zip(*zipped))  # get back rates and ampl
-            self.ampl = np.array(ampl)
+            self.ampl = np.array(ampl, dtype=object)
             self.rates = np.array(rates)
 
     def __str__(self):  # string of ESERIES information
@@ -258,6 +262,7 @@ class eseries():
 
                 val_list.append(val)
 
+            val_list = np.array(val_list, dtype=object)
         else:
             # the amplitude vector contains c numbers
             val_list = np.zeros(np.size(tlist), dtype=complex)
@@ -333,7 +338,7 @@ class eseries():
         self.rates = np.array([])
         self.ampl = np.array([])
         for ur_key in unique_rates.keys():
-            total_ampl = np.sum(ampl_dict[ur_key])
+            total_ampl = np.sum(np.asarray(ampl_dict[ur_key], dtype=object))
 
             if (isinstance(total_ampl, float) or
                     isinstance(total_ampl, complex)):
@@ -343,7 +348,9 @@ class eseries():
             else:
                 if abs(total_ampl.full()).max() > ampl_tol:
                     self.rates = np.append(self.rates, unique_rates[ur_key])
-                    self.ampl = np.append(self.ampl, total_ampl)
+                    self.ampl = np.append(self.ampl,
+                                          np.asarray(total_ampl,
+                                                     dtype=object))
 
         return self
 

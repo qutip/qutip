@@ -119,7 +119,7 @@ class TestMatrixVector:
 
         assert_equal(S_col.dims[0], [[2, 2], [3, 3], [4, 4]])
 
-        assert_equal(reshuffle(S_col), S)
+        assert_(reshuffle(S_col) == S)
 
     def test_sprepost(self):
         U1 = rand_unitary(3)
@@ -128,7 +128,7 @@ class TestMatrixVector:
         S1 = spre(U1) * spost(U2)
         S2 = sprepost(U1, U2)
 
-        assert_equal(S1, S2)
+        assert_(S1 == S2)
 
     def testLiouvillianImplementations(self):
         """

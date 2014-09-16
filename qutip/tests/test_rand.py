@@ -44,33 +44,33 @@ class TestRand:
     def testRandUnitary(self):
         "random Unitary"
 
-        U = array([rand_unitary(5) for k in range(5)])
-        for k in range(5):
-            assert_equal(U[k] * U[k].dag() == qeye(5), True)
+        U = [rand_unitary(5) for k in range(5)]
+        for u in U:
+            assert_(u * u.dag() == qeye(5))
 
     def testRandherm(self):
         "random hermitian"
 
-        H = array([rand_herm(5) for k in range(5)])
-        for k in range(5):
-            assert_equal(H[k].isherm, True)
+        H = [rand_herm(5) for k in range(5)]
+        for h in H:
+            assert_equal(h.isherm, True)
 
     def testRanddm(self):
         "random density matrix"
 
-        R = array([rand_dm(5) for k in range(5)])
-        for k in range(5):
-            assert_equal(R[k].tr() - 1.0 < 1e-15, True)
+        R = [rand_dm(5) for k in range(5)]
+        for r in R:
+            assert_(r.tr() - 1.0 < 1e-15)
             # verify all eigvals are >=0
-            assert_(not any(sp_eigs(R[k].data, R[k].isherm, vecs=False)) < 0)
+            assert_(not any(sp_eigs(r.data, r.isherm, vecs=False)) < 0)
             # verify hermitian
-            assert_(R[k].isherm)
+            assert_(r.isherm)
 
     def testRandket(self):
         "random ket"
-        P = array([rand_ket(5) for k in range(5)])
-        for k in range(5):
-            assert_equal(P[k].type == 'ket', True)
+        P = [rand_ket(5) for k in range(5)]
+        for p in P:
+            assert_equal(p.type == 'ket', True)
 
 if __name__ == "__main__":
     run_module_suite()

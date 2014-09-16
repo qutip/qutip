@@ -31,26 +31,21 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import sys
 import os
-import time
 import copy
 import numpy as np
 from types import FunctionType
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
 
 from numpy.random import RandomState, random_integers
 from numpy import arange, array, cumsum, mean, ndarray, setdiff1d, sort, zeros
 
 from scipy.integrate import ode
-from scipy.linalg import norm
 import scipy.sparse as sp
 from scipy.linalg.blas import get_blas_funcs
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
-from qutip.qobj import *
-from qutip.expect import *
-from qutip.states import ket2dm
+from qutip.qobj import Qobj
 from qutip.parfor import parfor
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
@@ -218,7 +213,6 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
         # check for type of time-dependence (if any)
         time_type, h_stuff, c_stuff = _td_format_check(H, c_ops, 'mc')
-        h_terms = len(h_stuff[0]) + len(h_stuff[1]) + len(h_stuff[2])
         c_terms = len(c_stuff[0]) + len(c_stuff[1]) + len(c_stuff[2])
         # set time_type for use in multiprocessing
         config.tflag = time_type
@@ -277,8 +271,10 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
             and config.options.average_expect):
         # averaging if multiple trajectories
         if isinstance(ntraj, int):
-            output.expect = [mean([mc.expect_out[nt][op]
-                                   for nt in range(ntraj)], axis=0)
+            output.expect = [mean(np.array([mc.expect_out[nt][op]
+                                            for nt in range(ntraj)],
+                                           dtype=object),
+                                  axis=0)
                              for op in range(config.e_num)]
         elif isinstance(ntraj, (list, ndarray)):
             output.expect = []
@@ -362,7 +358,7 @@ class _MC_class():
         if config.c_num == 0:
             if config.e_num == 0:
                 # Output array of state vectors calculated at times in tlist
-                self.psi_out = array([Qobj()] * self.num_times)
+                self.psi_out = array([Qobj()] * self.num_times, dtype=object)
             elif config.e_num != 0:  # no collapse expectation values
                 # List of output expectation values calculated at times in
                 # tlist
@@ -643,7 +639,7 @@ def _no_collapse_psi_out(num_times, psi_out, config):
         _mc_func_load(config)
 
     opt = config.options
-    if config.tflag in array([1, 10, 11]):
+    if config.tflag in [1, 10, 11]:
         ODE = ode(_cy_rhs_func)
         code = compile('ODE.set_f_params(' + config.string + ')',
                        '<string>', 'exec')
@@ -651,7 +647,7 @@ def _no_collapse_psi_out(num_times, psi_out, config):
     elif config.tflag == 2:
         ODE = ode(_cRHStd)
         ODE.set_f_params(config)
-    elif config.tflag in array([20, 22]):
+    elif config.tflag in [20, 22]:
         if config.options.rhs_with_state:
             ODE = ode(_tdRHStd_with_state)
         else:
@@ -703,7 +699,7 @@ def _no_collapse_expect_out(num_times, expect_out, config):
         _mc_func_load(config)
 
     opt = config.options
-    if config.tflag in array([1, 10, 11]):
+    if config.tflag in [1, 10, 11]:
         ODE = ode(_cy_rhs_func)
         code = compile('ODE.set_f_params(' + config.string + ')',
                        '<string>', 'exec')
@@ -711,7 +707,7 @@ def _no_collapse_expect_out(num_times, expect_out, config):
     elif config.tflag == 2:
         ODE = ode(_cRHStd)
         ODE.set_f_params(config)
-    elif config.tflag in array([20, 22]):
+    elif config.tflag in [20, 22]:
         if config.options.rhs_with_state:
             ODE = ode(_tdRHStd_with_state)
         else:
@@ -1146,7 +1142,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             H_tdterms = [H[k][1] for k in H_td_inds]
             # combine time-INDEPENDENT terms into one.
             H = array([sum(H[k] for k in H_const_inds)] +
-                      [H[k][0] for k in H_td_inds])
+                      [H[k][0] for k in H_td_inds], dtype=object)
             len_h = len(H)
             H_inds = arange(len_h)
             # store indicies of time-dependent Hamiltonian terms
@@ -1185,7 +1181,8 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
 
             # tidyup
             if options.tidy:
-                H = array([H[k].tidyup(options.atol) for k in range(len_h)])
+                H = array([H[k].tidyup(options.atol)
+                           for k in range(len_h)], dtype=object)
             # construct data sets
             config.h_data = [H[k].data.data for k in range(len_h)]
             config.h_ind = [H[k].data.indices for k in range(len_h)]
@@ -1244,7 +1241,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
     # -------------------------------------------------
     # START PYTHON LIST-FUNCTION BASED TIME-DEPENDENCE
     # -------------------------------------------------
-    elif config.tflag in array([2, 20, 22]):
+    elif config.tflag in [2, 20, 22]:
 
         # take care of Hamiltonian
         if config.tflag == 2:
@@ -1260,7 +1257,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             H_const_inds = setdiff1d(H_inds, H_td_inds)  # inds of const. terms
             config.h_funcs = array([H[k][1] for k in H_td_inds])
             config.h_func_args = args
-            Htd = array([H[k][0] for k in H_td_inds])
+            Htd = array([H[k][0] for k in H_td_inds], dtype=object)
             config.h_td_inds = arange(len(Htd))
             H = sum(H[k] for k in H_const_inds)
 
@@ -1285,7 +1282,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
         if options.tidy:
             H = H.tidyup(options.atol)
             Htd = array([Htd[j].tidyup(options.atol)
-                         for j in config.h_td_inds])
+                         for j in config.h_td_inds], dtype=object)
         # setup constant H terms data
         config.h_data = -1.0j * H.data.data
         config.h_ind = H.data.indices
