@@ -38,11 +38,10 @@ from numpy.testing import assert_equal, run_module_suite
 import unittest
 # find fortran files if they exist
 
-from qutip import (destroy, basis, expect, mcsolve_f90, tensor, Options,
-                   sigmam, qeye)
+from qutip import destroy, basis, expect, tensor, Options, sigmam, qeye
 
 try:
-    from qutip.fortran import qutraj_run
+    from qutip.fortran import mcsolve_f90
 except:
     fortran_found = 0
 else:
