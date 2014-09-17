@@ -89,6 +89,7 @@ else:
               "Change directories before running QuTiP.")
     setup_file.close()
 
+del top_path
 
 # -----------------------------------------------------------------------------
 # setup the cython environment
