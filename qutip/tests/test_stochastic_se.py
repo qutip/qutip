@@ -30,10 +30,10 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+import numpy as np
+from numpy.testing import assert_,  run_module_suite
 
 from qutip import *
-import numpy as np
-from numpy.testing import assert_, assert_equal, run_module_suite
 
 
 def test_ssesolve_photocurrent():

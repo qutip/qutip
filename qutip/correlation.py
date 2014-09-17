@@ -37,10 +37,14 @@ __all__ = ['correlation_2op_1t', 'correlation_2op_2t', 'correlation_3op_1t',
            'correlation_ss', 'correlation', 'correlation_4op_1t',
            'correlation_4op_2t', 'spectrum_ss', 'spectrum_pi']
 
+from re import sub
+from warnings import warn
+import types
+
 import numpy as np
 import scipy.fftpack
 
-#from qutip.superoperator import *
+from qutip.superoperator import liouvillian, spre, mat2vec
 from qutip.expect import expect
 from qutip.tensor import tensor
 from qutip.operators import qeye
@@ -52,8 +56,7 @@ from qutip.steadystate import steadystate
 from qutip.states import ket2dm
 from qutip.solver import Options
 from qutip.settings import debug
-from re import sub
-from warnings import warn
+from qutip.qobj import Qobj, isket, issuper
 
 if debug:
     import inspect
@@ -617,7 +620,7 @@ def spectrum_correlation_fft(taulist, y):
     # to positive frequencies
     indices = np.where(f > 0.0)
 
-    return 2 * pi * f[indices], 2 * dt * np.real(F[indices])
+    return 2 * np.pi * f[indices], 2 * dt * np.real(F[indices])
 
 
 # -----------------------------------------------------------------------------
@@ -1272,7 +1275,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     # operation will raise errors
                     a_op_dag = a_op
                 chi_0 = [(options.mc_corr_eps + a_op_dag +
-                          exp(1j*x*pi/2)*c_op) *
+                          np.exp(1j*x*np.pi/2)*c_op) *
                          psi_t_mat[trial_idx, t_idx]
                          for x in range(4)]
 
@@ -1307,30 +1310,30 @@ def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
     L = H if issuper(H) else liouvillian(H, c_ops)
 
     tr_mat = tensor([qeye(n) for n in L.dims[0][0]])
-    N = prod(L.dims[0][0])
+    N = np.prod(L.dims[0][0])
 
     A = L.full()
     b = spre(b_op).full()
     a = spre(a_op).full()
 
-    tr_vec = transpose(mat2vec(tr_mat.full()))
+    tr_vec = np.transpose(mat2vec(tr_mat.full()))
 
     rho_ss = steadystate(L)
-    rho = transpose(mat2vec(rho_ss.full()))
+    rho = np.transpose(mat2vec(rho_ss.full()))
 
     I = np.identity(N * N)
-    P = np.kron(transpose(rho), tr_vec)
+    P = np.kron(np.transpose(rho), tr_vec)
     Q = I - P
 
     spectrum = np.zeros(len(wlist))
 
     for idx, w in enumerate(wlist):
         if use_pinv:
-            MMR = numpy.linalg.pinv(-1.0j * w * I + A)
+            MMR = np.linalg.pinv(-1.0j * w * I + A)
         else:
             MMR = np.dot(Q, np.linalg.solve(-1.0j * w * I + A, Q))
 
-        s = np.dot(tr_vec, np.dot(a, np.dot(MMR, np.dot(b, transpose(rho)))))
+        s = np.dot(tr_vec, np.dot(a, np.dot(MMR, np.dot(b, np.transpose(rho)))))
         spectrum[idx] = -2 * np.real(s[0, 0])
 
     return spectrum

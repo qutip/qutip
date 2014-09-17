@@ -31,9 +31,10 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from qutip import *
 import numpy as np
-from numpy.testing import assert_, assert_equal, run_module_suite
+from numpy.testing import assert_, run_module_suite
+
+from qutip import *
 
 
 def test_ssesolve_photocurrent():

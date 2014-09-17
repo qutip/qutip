@@ -31,19 +31,22 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from numpy import linspace, sum, abs
-from numpy.testing import assert_, run_module_suite, assert_equal
-from qutip import *
+import numpy as np
 from scipy.special import laguerre
 from numpy.random import rand
+from numpy.testing import assert_, run_module_suite, assert_equal
+
+from qutip.states import coherent, fock
+from qutip.wigner import wigner
+from qutip.random_objects import rand_dm, rand_ket
 
 
 def test_wigner_coherent():
     "wigner: test wigner function calculation for coherent states"
-    xvec = linspace(-5.0, 5.0, 100)
+    xvec = np.linspace(-5.0, 5.0, 100)
     yvec = xvec
 
-    X, Y = meshgrid(xvec, yvec)
+    X, Y = np.meshgrid(xvec, yvec)
 
     a = X + 1j * Y  # consistent with g=2 option to wigner function
 
@@ -56,7 +59,7 @@ def test_wigner_coherent():
 
     # calculate the wigner function using qutip and analytic formula
     W_qutip = wigner(psi, xvec, yvec, g=2)
-    W_analytic = 2 / pi * exp(-2 * abs(a - beta) ** 2)
+    W_analytic = 2 / np.pi * np.exp(-2 * abs(a - beta) ** 2)
 
     # check difference
     assert_(sum(abs(W_qutip - W_analytic) ** 2) < 1e-4)
@@ -69,10 +72,10 @@ def test_wigner_coherent():
 def test_wigner_fock():
     "wigner: test wigner function calculation for Fock states"
 
-    xvec = linspace(-5.0, 5.0, 100)
+    xvec = np.linspace(-5.0, 5.0, 100)
     yvec = xvec
 
-    X, Y = meshgrid(xvec, yvec)
+    X, Y = np.meshgrid(xvec, yvec)
 
     a = X + 1j * Y  # consistent with g=2 option to wigner function
 
@@ -87,7 +90,7 @@ def test_wigner_fock():
 
         # calculate the wigner function using qutip and analytic formula
         W_qutip = wigner(psi, xvec, yvec, g=2)
-        W_analytic = 2 / pi * (-1) ** n * exp(-2 * abs(a) ** 2) * polyval(
+        W_analytic = 2 / np.pi * (-1) ** n * np.exp(-2 * abs(a) ** 2) * np.polyval(
             laguerre(n), 4 * abs(a) ** 2)
 
         # check difference
@@ -101,12 +104,12 @@ def test_wigner_fock():
 def test_wigner_compare_methods_dm():
     "wigner: compare wigner methods for random density matrices"
 
-    xvec = linspace(-5.0, 5.0, 100)
+    xvec = np.linspace(-5.0, 5.0, 100)
     yvec = xvec
 
-    X, Y = meshgrid(xvec, yvec)
+    X, Y = np.meshgrid(xvec, yvec)
 
-    a = X + 1j * Y  # consistent with g=2 option to wigner function
+    #a = X + 1j * Y  # consistent with g=2 option to wigner function
 
     dx = xvec[1] - xvec[0]
     dy = yvec[1] - yvec[0]
@@ -133,12 +136,12 @@ def test_wigner_compare_methods_dm():
 def test_wigner_compare_methods_ket():
     "wigner: compare wigner methods for random state vectors"
 
-    xvec = linspace(-5.0, 5.0, 100)
+    xvec = np.linspace(-5.0, 5.0, 100)
     yvec = xvec
 
-    X, Y = meshgrid(xvec, yvec)
+    X, Y = np.meshgrid(xvec, yvec)
 
-    a = X + 1j * Y  # consistent with g=2 option to wigner function
+    #a = X + 1j * Y  # consistent with g=2 option to wigner function
 
     dx = xvec[1] - xvec[0]
     dy = yvec[1] - yvec[0]
@@ -165,7 +168,7 @@ def test_wigner_compare_methods_ket():
 def test_wigner_fft_comparse_ket():
     "Wigner: Compare Wigner fft and iterative for rand. ket"
     N = 20
-    xvec = linspace(-10, 10, 128)
+    xvec = np.linspace(-10, 10, 128)
     for i in range(3):
         rho = rand_ket(N)
 
@@ -179,7 +182,7 @@ def test_wigner_fft_comparse_ket():
 def test_wigner_fft_comparse_dm():
     "Wigner: Compare Wigner fft and iterative for rand. dm"
     N = 20
-    xvec = linspace(-10, 10, 128)
+    xvec = np.linspace(-10, 10, 128)
     for i in range(3):
         rho = rand_dm(N)
 

@@ -31,10 +31,11 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import sys
-from qutip import *
+import numpy as np
 from numpy.testing import assert_equal, assert_, run_module_suite
 import scipy
+
+from qutip import sigmax, sigmay, sigmaz, Qobj, rand_ket, rand_dm, ket2dm
 
 
 def test_Transformation1():
@@ -95,7 +96,7 @@ def test_Transformation5():
     assert_((rho1 - rho2).norm() < 1e-6)
 
 
-def test_Transformation5():
+def test_Transformation6():
     "Check diagonalization via eigenbasis transformation"
 
     cx, cy, cz = np.random.rand(), np.random.rand(), np.random.rand()
