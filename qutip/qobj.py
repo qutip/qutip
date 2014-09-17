@@ -432,7 +432,8 @@ class Qobj(object):
 
         elif isinstance(other, (list, np.ndarray)):
             # if other is a list, do element-wise multiplication
-            return np.array([self * item for item in other])
+            return np.array([self * item for item in other],
+                            dtype=object)
 
         elif isinstance(other, eseries):
             return other.__rmul__(self)
@@ -460,7 +461,8 @@ class Qobj(object):
 
         if isinstance(other, (list, np.ndarray)):
             # if other is a list, do element-wise multiplication
-            return np.array([item * self for item in other])
+            return np.array([item * self for item in other],
+                            dtype=object)
 
         if isinstance(other, eseries):
             return other.__mul__(self)
