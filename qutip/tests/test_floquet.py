@@ -33,7 +33,7 @@
 
 import numpy as np
 from numpy.testing import assert_, run_module_suite
-from qutip import *
+from qutip import fsesolve, sigmax, sigmaz, rand_ket, num, mesolve
 
 
 class TestFloquet:
@@ -46,17 +46,17 @@ class TestFloquet:
         Floquet: test unitary evolution of time-dependent two-level system
         """
 
-        delta = 1.0 * 2 * pi
-        eps0 = 1.0 * 2 * pi
-        A = 0.5 * 2 * pi
-        omega = sqrt(delta ** 2 + eps0 ** 2)
-        T = (2 * pi) / omega
+        delta = 1.0 * 2 * np.pi
+        eps0 = 1.0 * 2 * np.pi
+        A = 0.5 * 2 * np.pi
+        omega = np.sqrt(delta ** 2 + eps0 ** 2)
+        T = (2 * np.pi) / omega
         tlist = np.linspace(0.0, 2 * T, 101)
         psi0 = rand_ket(2)
         H0 = - eps0 / 2.0 * sigmaz() - delta / 2.0 * sigmax()
         H1 = A / 2.0 * sigmax()
         args = {'w': omega}
-        H = [H0, [H1, lambda t, args: sin(args['w'] * t)]]
+        H = [H0, [H1, lambda t, args: np.sin(args['w'] * t)]]
         e_ops = [num(2)]
 
         # solve schrodinger equation with floquet solver

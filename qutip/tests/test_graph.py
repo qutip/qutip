@@ -30,15 +30,19 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-import numpy as np
-import scipy.sparse as sp
-import unittest
-from numpy.testing import assert_, run_module_suite, assert_equal
-from numpy.testing.decorators import skipif
-from scipy.sparse.csgraph import breadth_first_order as BFO
 import os
+import numpy as np
+from numpy.testing import run_module_suite, assert_equal
+import unittest
+import scipy.sparse as sp
+from scipy.sparse.csgraph import breadth_first_order as BFO
+
 pwd = os.path.dirname(__file__)
-from qutip import *
+
+from qutip import (rand_dm, graph_degree, breadth_first_search,
+                   reverse_cuthill_mckee, tensor, destroy, qeye, sigmam,
+                   liouvillian, maximum_bipartite_matching,
+                   weighted_bipartite_matching)
 from qutip.sparse import sp_permute, sp_bandwidth
 
 # find networkx if it exists
@@ -57,7 +61,7 @@ def test_graph_degree():
     deg = graph_degree(A.data)
     G = nx.from_scipy_sparse_matrix(A.data)
     nx_deg = G.degree()
-    nx_deg = array([nx_deg[k] for k in range(25)])
+    nx_deg = np.array([nx_deg[k] for k in range(25)])
     assert_equal((deg - nx_deg).all(), 0)
 
 
@@ -74,17 +78,17 @@ def test_graph_bfs():
 
 def test_graph_rcm_simple():
     "Graph: Reverse Cuthill-McKee Ordering (simple)"
-    A = array([[1, 0, 0, 0, 1, 0, 0, 0],
-               [0, 1, 1, 0, 0, 1, 0, 1],
-               [0, 1, 1, 0, 1, 0, 0, 0],
-               [0, 0, 0, 1, 0, 0, 1, 0],
-               [1, 0, 1, 0, 1, 0, 0, 0],
-               [0, 1, 0, 0, 0, 1, 0, 1],
-               [0, 0, 0, 1, 0, 0, 1, 0],
-               [0, 1, 0, 0, 0, 1, 0, 1]], dtype=np.int32)
+    A = np.array([[1, 0, 0, 0, 1, 0, 0, 0],
+                  [0, 1, 1, 0, 0, 1, 0, 1],
+                  [0, 1, 1, 0, 1, 0, 0, 0],
+                  [0, 0, 0, 1, 0, 0, 1, 0],
+                  [1, 0, 1, 0, 1, 0, 0, 0],
+                  [0, 1, 0, 0, 0, 1, 0, 1],
+                  [0, 0, 0, 1, 0, 0, 1, 0],
+                  [0, 1, 0, 0, 0, 1, 0, 1]], dtype=np.int32)
     A = sp.csr_matrix(A)
     perm = reverse_cuthill_mckee(A)
-    ans = array([6, 3, 7, 5, 1, 2, 4, 0])
+    ans = np.array([6, 3, 7, 5, 1, 2, 4, 0])
     assert_equal((perm - ans).all(), 0)
 
 
@@ -110,7 +114,7 @@ def test_graph_rcm_boost():
     M = M+M.T
     M = sp.csr_matrix(M)
     perm = reverse_cuthill_mckee(M, 1)
-    ans_perm = array([9, 7, 6, 4, 1, 5, 0, 2, 3, 8])
+    ans_perm = np.array([9, 7, 6, 4, 1, 5, 0, 2, 3, 8])
     assert_equal((perm - ans_perm).all(), 0)
     P = sp_permute(M, perm, perm)
     bw = sp_bandwidth(P)
@@ -127,7 +131,7 @@ def test_graph_rcm_qutip():
     a = tensor(destroy(N), qeye(2))
     sm = tensor(qeye(N), sigmam())
     H = (w0-wl)*sm.dag()*sm+(wc-wl)*a.dag()*a+1j*g*(a.dag()*sm-sm.dag()*a)+E*(a.dag()+a)
-    c_ops = [sqrt(2*kappa)*a, sqrt(gamma)*sm]
+    c_ops = [np.sqrt(2*kappa)*a, np.sqrt(gamma)*sm]
     L = liouvillian(H,c_ops)
     perm = reverse_cuthill_mckee(L.data)
     ans = np.array([12,14,4,6,10,8,2,15,0,13,7,5,9,11,1,3])

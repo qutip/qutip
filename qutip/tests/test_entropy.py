@@ -32,15 +32,20 @@
 ###############################################################################
 
 from __future__ import division
-from qutip import *
-from numpy import allclose, linspace, log2
+
+import numpy as np
 from numpy.testing import assert_, assert_equal, run_module_suite
+
+from qutip import (basis, ket2dm, cnot, entropy_vn, entropy_linear, rand_ket,
+                   rand_dm, tensor, concurrence, entropy_mutual, ptrace,
+                   entropy_conditional, entangling_power, iswap, swap,
+                   berkeley, sqrtswap, swapalpha)
 
 
 def test_EntropyVN():
     "von-Neumann entropy"
     # verify that entropy_vn gives correct binary entropy
-    a = linspace(0, 1, 20)
+    a = np.linspace(0, 1, 20)
     for k in range(len(a)):
         # a*|0><0|
         x = a[k] * ket2dm(basis(2, 0))
@@ -52,8 +57,8 @@ def test_EntropyVN():
         if k == 0 or k == 19:
             assert_equal(out, -0.0)
         else:
-            assert_(abs(-out - a[k] * log2(a[k])
-                        - (1. - a[k]) * log2((1. - a[k]))) < 1e-12)
+            assert_(abs(-out - a[k] * np.log2(a[k])
+                        - (1. - a[k]) * np.log2((1. - a[k]))) < 1e-12)
 
     # test_ entropy_vn = 0 for pure state
     psi = rand_ket(10)
@@ -132,9 +137,9 @@ def test_EntanglingPower():
     assert_(abs(entangling_power(iswap()) - 2/9) < 1e-12)
     assert_(abs(entangling_power(berkeley()) - 2/9) < 1e-12)
     assert_(abs(entangling_power(sqrtswap()) - 1/6) < 1e-12)
-    alpha = 2 * pi * np.random.rand()
+    alpha = 2 * np.pi * np.random.rand()
     assert_(abs(entangling_power(swapalpha(alpha))
-                - 1/6 * sin(pi * alpha) ** 2) < 1e-12)
+                - 1/6 * np.sin(np.pi * alpha) ** 2) < 1e-12)
     assert_(abs(entangling_power(swap()) - 0) < 1e-12)
 
 
