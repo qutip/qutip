@@ -107,6 +107,8 @@ try:
 
 except Exception as e:
     print("QuTiP warning: Cython setup failed: " + str(e))
+else:
+    del Cython, pyximport
 
 
 # -----------------------------------------------------------------------------
@@ -184,11 +186,13 @@ try:
 except:
     os.environ['QUTIP_GRAPHICS'] = "NO"
     qutip.settings.qutip_graphics = 'NO'
+else:
+    del matplotlib
 
 # -----------------------------------------------------------------------------
 # Clean name space
 #
-del os, sys, numpy, scipy, matplotlib, multiprocessing, Cython, pyximport
+del os, sys, numpy, scipy, multiprocessing
 
 # -----------------------------------------------------------------------------
 # Load modules
