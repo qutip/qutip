@@ -31,6 +31,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+__all__ = ['Bloch']
+
 import os
 
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,

@@ -30,6 +30,9 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
+__all__ = ['rhs_generate', 'rhs_clear']
+
 import os
 import numpy as np
 from types import FunctionType, BuiltinFunctionType

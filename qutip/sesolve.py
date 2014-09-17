@@ -34,6 +34,8 @@
 This module provides solvers for the unitary Schrodinger equation.
 """
 
+__all__ = ['sesolve']
+
 import os
 import types
 from functools import partial

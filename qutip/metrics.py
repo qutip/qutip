@@ -35,8 +35,8 @@ This module contains a collection of functions for calculating metrics
 (distance measures) between states and operators.
 """
 
-from qutip.qobj import *
-import scipy.linalg as la
+__all__= ['fidelity', 'tracedist', 'average_gate_fidelity', 'process_fidelity']
+
 import numpy as np
 from qutip.sparse import sp_eigs
 from qutip.states import ket2dm
@@ -62,8 +62,8 @@ def fidelity(A, B):
 
     Examples
     --------
-    >>> x=fock_dm(5,3)
-    >>> y=coherent_dm(5,1)
+    >>> x = fock_dm(5,3)
+    >>> y = coherent_dm(5,1)
     >>> fidelity(x,y)
     0.24104350624628332
 
