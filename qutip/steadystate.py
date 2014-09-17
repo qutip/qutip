@@ -35,27 +35,24 @@ Module contains functions for solving for the steady state density matrix of
 open quantum systems defined by a Liouvillian or Hamiltonian and a list of
 collapse operators.
 """
+
+__all__ = ['steadystate', 'steady', 'build_preconditioner']
+
 import warnings
 import time
 import scipy
 import numpy as np
 from numpy.linalg import svd
-from scipy import prod, randn
+from scipy import prod
 import scipy.sparse as sp
 import scipy.linalg as la
 from scipy.sparse.linalg import *
 from qutip.qobj import Qobj, issuper, isoper
-from qutip.superoperator import liouvillian, vec2mat, mat2vec
-from qutip.operators import qeye
-from qutip.random_objects import rand_dm
+from qutip.superoperator import liouvillian, vec2mat
 from qutip.sparse import sp_permute, sp_bandwidth, sp_reshape
 from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
-from qutip.states import ket2dm, maximally_mixed_dm
 import qutip.settings as settings
 from qutip.utilities import _version2int
-
-if settings.debug:
-    import inspect
 
 # test if scipy is recent enought to get L & U factors from superLU
 _scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
@@ -252,7 +249,6 @@ def _steadystate_LU_liouvillian(L, ss_args):
     perm = None
     perm2 = None
     rev_perm = None 
-    dims = L.dims[0]
     n = prod(L.dims[0][0])
     L = L.data.tocsc() + sp.csc_matrix(
         (ss_args['weight']*np.ones(n), (np.zeros(n), [nn * (n + 1)

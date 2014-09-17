@@ -173,6 +173,7 @@ except:
     qutip.settings.umfpack = False
 else:
     qutip.settings.umfpack = True
+    del umfpack
 # -----------------------------------------------------------------------------
 # Check that import modules are compatible with requested configuration
 #
