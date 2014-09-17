@@ -31,14 +31,14 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-
-from qutip import *
-from qutip import _version2int
-from qutip.sparse import *
-from numpy import allclose, isreal, iscomplex
-from numpy.testing import assert_equal, run_module_suite
 import scipy
+import numpy as np
+from numpy.testing import assert_equal, run_module_suite
 import unittest
+
+from qutip import num, rand_herm, expect, rand_unitary
+from qutip import _version2int
+#from qutip.sparse import *
 
 
 @unittest.skipIf(_version2int(scipy.__version__) < _version2int('0.10'),
@@ -67,7 +67,7 @@ def test_SparseHermValsVecs():
     spvals, spvecs = N.eigenstates(sparse=True, sort='high', eigvals=5)
     assert_equal(len(spvals), 5)
     assert_equal(spvals[0] >= spvals[-1], True)
-    vals = arange(9, 4, -1)
+    vals = np.arange(9, 4, -1)
     for k in range(5):
         # check that eigvals are ordered from high to low
         assert_equal(abs(spvals[k] - vals[k]) < 5e-14, True)
@@ -81,7 +81,7 @@ def test_SparseHermValsVecs():
     for k in range(10):
         assert_equal(abs(expect(H, spvecs[k]) - spvals[k]) < 5e-14, True)
         # check that ouput is real for Hermitian operator
-        assert_equal(isreal(spvals[k]), True)
+        assert_equal(np.isreal(spvals[k]), True)
 
 
 def test_SparseValsVecs():
@@ -90,15 +90,15 @@ def test_SparseValsVecs():
     """
     U = rand_unitary(10)
     spvals, spvecs = U.eigenstates(sparse=True)
-    assert_equal(real(spvals[0]) <= real(spvals[-1]), True)
+    assert_equal(np.real(spvals[0]) <= np.real(spvals[-1]), True)
     for k in range(10):
         # check that eigenvectors are right and in right order
         assert_equal(abs(expect(U, spvecs[k]) - spvals[k]) < 5e-14, True)
-        assert_equal(iscomplex(spvals[k]), True)
+        assert_equal(np.iscomplex(spvals[k]), True)
 
     # check sorting
     spvals, spvecs = U.eigenstates(sparse=True, sort='high')
-    assert_equal(real(spvals[0]) >= real(spvals[-1]), True)
+    assert_equal(np.real(spvals[0]) >= np.real(spvals[-1]), True)
 
     # check for N-1 eigenvals
     U = rand_unitary(10)
@@ -120,7 +120,7 @@ def test_SparseValsOnly():
     # check that spvals equal expect vals
     for k in range(10):
         # check that ouput is real for Hermitian operator
-        assert_equal(isreal(spvals[k]), True)
+        assert_equal(np.isreal(spvals[k]), True)
     spvals = H.eigenenergies(sparse=True, sort='high')
     # check that sorting is lowest eigval first
     assert_equal(spvals[0] >= spvals[-1], True)
@@ -135,7 +135,7 @@ def test_SparseValsOnly():
     # check that spvals equal expect vals
     for k in range(10):
         # check that ouput is real for Hermitian operator
-        assert_equal(iscomplex(spvals[k]), True)
+        assert_equal(np.iscomplex(spvals[k]), True)
     spvals = U.eigenenergies(sparse=True, sort='high')
     # check that sorting is lowest eigval first
     assert_equal(spvals[0] >= spvals[-1], True)
@@ -166,7 +166,7 @@ def test_DenseHermValsVecs():
     spvals, spvecs = N.eigenstates(sparse=False, sort='high', eigvals=5)
     assert_equal(len(spvals), 5)
     assert_equal(spvals[0] >= spvals[-1], True)
-    vals = arange(9, 4, -1)
+    vals = np.arange(9, 4, -1)
     for k in range(5):
         # check that eigvals are ordered from high to low
         assert_equal(abs(spvals[k] - vals[k]) < 5e-14, True)
@@ -180,7 +180,7 @@ def test_DenseHermValsVecs():
     for k in range(10):
         assert_equal(abs(expect(H, spvecs[k]) - spvals[k]) < 5e-14, True)
         # check that ouput is real for Hermitian operator
-        assert_equal(isreal(spvals[k]), True)
+        assert_equal(np.isreal(spvals[k]), True)
 
 
 def test_DenseValsVecs():
@@ -189,15 +189,15 @@ def test_DenseValsVecs():
     """
     U = rand_unitary(10)
     spvals, spvecs = U.eigenstates(sparse=False)
-    assert_equal(real(spvals[0]) <= real(spvals[-1]), True)
+    assert_equal(np.real(spvals[0]) <= np.real(spvals[-1]), True)
     for k in range(10):
         # check that eigenvectors are right and in right order
         assert_equal(abs(expect(U, spvecs[k]) - spvals[k]) < 1e-14, True)
-        assert_equal(iscomplex(spvals[k]), True)
+        assert_equal(np.iscomplex(spvals[k]), True)
 
     # check sorting
     spvals, spvecs = U.eigenstates(sparse=False, sort='high')
-    assert_equal(real(spvals[0]) >= real(spvals[-1]), True)
+    assert_equal(np.real(spvals[0]) >= np.real(spvals[-1]), True)
 
     # check for N-1 eigenvals
     U = rand_unitary(10)
@@ -217,7 +217,7 @@ def test_DenseValsOnly():
     # check that spvals equal expect vals
     for k in range(10):
         # check that ouput is real for Hermitian operator
-        assert_equal(isreal(spvals[k]), True)
+        assert_equal(np.isreal(spvals[k]), True)
     spvals = H.eigenenergies(sparse=False, sort='high')
     # check that sorting is lowest eigval first
     assert_equal(spvals[0] >= spvals[-1], True)
@@ -232,7 +232,7 @@ def test_DenseValsOnly():
     # check that spvals equal expect vals
     for k in range(10):
         # check that ouput is real for Hermitian operator
-        assert_equal(iscomplex(spvals[k]), True)
+        assert_equal(np.iscomplex(spvals[k]), True)
     spvals = U.eigenenergies(sparse=False, sort='high')
     # check that sorting is lowest eigval first
     assert_equal(spvals[0] >= spvals[-1], True)

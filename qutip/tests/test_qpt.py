@@ -31,12 +31,12 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import os
+import numpy as np
 from numpy.testing import assert_, run_module_suite
 from numpy.linalg import norm
 
-from qutip import *
-from qutip.qip.gates import *
+from qutip import (spre, spost, qeye, sigmax, sigmay, sigmaz, qpt)
+from qutip.qip.gates import snot, cnot
 
 
 def test_qpt_snot():
@@ -46,10 +46,10 @@ def test_qpt_snot():
     U_rho = spre(U_psi) * spost(U_psi.dag())
     N = 1
     op_basis = [[qeye(2), sigmax(), 1j * sigmay(), sigmaz()] for i in range(N)]
-    op_label = [["i", "x", "y", "z"] for i in range(N)]
+    #op_label = [["i", "x", "y", "z"] for i in range(N)]
     chi1 = qpt(U_rho, op_basis)
 
-    chi2 = zeros((2 ** (2 * N), 2 ** (2 * N)), dtype=complex)
+    chi2 = np.zeros((2 ** (2 * N), 2 ** (2 * N)), dtype=complex)
     chi2[1, 1] = chi2[1, 3] = chi2[3, 1] = chi2[3, 3] = 0.5
 
     assert_(norm(chi2 - chi1) < 1e-8)
@@ -62,10 +62,10 @@ def test_qpt_cnot():
     U_rho = spre(U_psi) * spost(U_psi.dag())
     N = 2
     op_basis = [[qeye(2), sigmax(), 1j * sigmay(), sigmaz()] for i in range(N)]
-    op_label = [["i", "x", "y", "z"] for i in range(N)]
+    #op_label = [["i", "x", "y", "z"] for i in range(N)]
     chi1 = qpt(U_rho, op_basis)
 
-    chi2 = zeros((2 ** (2 * N), 2 ** (2 * N)), dtype=complex)
+    chi2 = np.zeros((2 ** (2 * N), 2 ** (2 * N)), dtype=complex)
     chi2[0, 0] = chi2[0, 1] = chi2[1, 0] = chi2[1, 1] = 0.25
 
     chi2[12, 0] = chi2[12, 1] = 0.25
