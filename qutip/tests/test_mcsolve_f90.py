@@ -31,12 +31,16 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from qutip import *
-from numpy import allclose, linspace, mean, ones
+
+import numpy as np
+
 from numpy.testing import assert_equal, run_module_suite
-from numpy.testing.decorators import skipif
 import unittest
 # find fortran files if they exist
+
+from qutip import (destroy, basis, expect, mcsolve_f90, tensor, Options,
+                   sigmam, qeye)
+
 try:
     from qutip.fortran import qutraj_run
 except:
@@ -48,11 +52,11 @@ kappa = 0.2
 
 
 def sqrt_kappa(t, args):
-    return sqrt(kappa)
+    return np.sqrt(kappa)
 
 
 def sqrt_kappa2(t, args):
-    return sqrt(kappa * exp(-t))
+    return np.sqrt(kappa * np.exp(-t))
 
 
 def const_H1_coeff(t, args):
@@ -70,13 +74,12 @@ def test_MCNoCollExpt():
     a = destroy(N)
     H = a.dag() * a
     psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
     c_op_list = []
-    tlist = linspace(0, 10, 100)
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve_f90(H, psi0, tlist, c_op_list, [a.dag() * a])
     expt = mcdata.expect[0]
-    actual_answer = 9.0 * ones(len(tlist))
-    diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.ones(len(tlist))
+    diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(diff < error, True)
 
 
@@ -88,14 +91,13 @@ def test_MCNoCollStates():
     a = destroy(N)
     H = a.dag() * a
     psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
     c_op_list = []
-    tlist = linspace(0, 10, 100)
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve_f90(H, psi0, tlist, c_op_list, [])
     states = mcdata.states
     expt = expect(a.dag() * a, states)
-    actual_answer = 9.0 * ones(len(tlist))
-    diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.ones(len(tlist))
+    diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(diff < error, True)
 
 
@@ -107,12 +109,12 @@ def test_MCSimpleConst():
     H = a.dag() * a
     psi0 = basis(N, 9)  # initial state
     kappa = 0.2  # coupling to oscillator
-    c_op_list = [sqrt(kappa) * a]
-    tlist = linspace(0, 10, 100)
+    c_op_list = [np.sqrt(kappa) * a]
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve_f90(H, psi0, tlist, c_op_list, [a.dag() * a])
     expt = mcdata.expect[0]
-    actual_answer = 9.0 * exp(-kappa * tlist)
-    avg_diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.exp(-kappa * tlist)
+    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(avg_diff < mc_error, True)
 
 
@@ -124,12 +126,12 @@ def test_MCSimpleSingleCollapse():
     H = a.dag() * a
     psi0 = basis(N, 9)  # initial state
     kappa = 0.2  # coupling to oscillator
-    c_op_list = [sqrt(kappa) * a]
-    tlist = linspace(0, 10, 100)
+    c_op_list = [np.sqrt(kappa) * a]
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve_f90(H, psi0, tlist, c_op_list, [a.dag() * a])
     expt = mcdata.expect[0]
-    actual_answer = 9.0 * exp(-kappa * tlist)
-    avg_diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.exp(-kappa * tlist)
+    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(avg_diff < mc_error, True)
 
 
@@ -141,12 +143,12 @@ def test_MCSimpleSingleExpect():
     H = a.dag() * a
     psi0 = basis(N, 9)  # initial state
     kappa = 0.2  # coupling to oscillator
-    c_op_list = [sqrt(kappa) * a]
-    tlist = linspace(0, 10, 100)
+    c_op_list = [np.sqrt(kappa) * a]
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve_f90(H, psi0, tlist, c_op_list, [a.dag() * a])
     expt = mcdata.expect[0]
-    actual_answer = 9.0 * exp(-kappa * tlist)
-    avg_diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.exp(-kappa * tlist)
+    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(avg_diff < mc_error, True)
 
 
@@ -162,7 +164,7 @@ def test_mcf90_dtypes1():
     wl = 0  # driving frequency
     E = 0.5  # driving amplitude
     N = 5  # number of cavity energy levels (0->3 Fock states)
-    tlist = linspace(0, 10, 5)  # times for expectation values
+    tlist = np.linspace(0, 10, 5)  # times for expectation values
     # construct Hamiltonian
     ida = qeye(N)
     idatom = qeye(2)
@@ -171,8 +173,8 @@ def test_mcf90_dtypes1():
     H = (w0 - wl) * sm.dag() * sm + (wc - wl) * a.dag() * a + \
         1j * g * (a.dag() * sm - sm.dag() * a) + E * (a.dag() + a)
     # collapse operators
-    C1 = sqrt(2 * kappa) * a
-    C2 = sqrt(gamma) * sm
+    C1 = np.sqrt(2 * kappa) * a
+    C2 = np.sqrt(gamma) * sm
     C1dC1 = C1.dag() * C1
     C2dC2 = C2.dag() * C2
     # intial state
@@ -197,7 +199,7 @@ def test_mcf90_dtypes2():
     wl = 0  # driving frequency
     E = 0.5  # driving amplitude
     N = 5  # number of cavity energy levels (0->3 Fock states)
-    tlist = linspace(0, 10, 5)  # times for expectation values
+    tlist = np.linspace(0, 10, 5)  # times for expectation values
     # construct Hamiltonian
     ida = qeye(N)
     idatom = qeye(2)
@@ -206,8 +208,8 @@ def test_mcf90_dtypes2():
     H = (w0 - wl) * sm.dag() * sm + (wc - wl) * a.dag() * a + \
         1j * g * (a.dag() * sm - sm.dag() * a) + E * (a.dag() + a)
     # collapse operators
-    C1 = sqrt(2 * kappa) * a
-    C2 = sqrt(gamma) * sm
+    C1 = np.sqrt(2 * kappa) * a
+    C2 = np.sqrt(gamma) * sm
     C1dC1 = C1.dag() * C1
     C2dC2 = C2.dag() * C2
     # intial state

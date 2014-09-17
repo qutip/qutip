@@ -31,26 +31,26 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import scipy
+import numpy as np
 import time
 from numpy.testing import assert_, run_module_suite
 
-from qutip import *
+from qutip import parfor
 
 
 def _func(x):
-    time.sleep(scipy.rand() * 0.25)  # random delay
+    time.sleep(np.random.rand() * 0.25)  # random delay
     return x**2
 
 
 def test_parfor1():
     "parfor"
 
-    x = arange(10)
+    x = np.arange(10)
     y1 = list(map(_func, x))
     y2 = parfor(_func, x)
 
-    assert_((array(y1) == array(y2)).all())
+    assert_((np.array(y1) == np.array(y2)).all())
 
 
 if __name__ == "__main__":
