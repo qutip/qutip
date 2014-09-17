@@ -36,7 +36,7 @@ __all__ = ['liouvillian', 'liouvillian_ref', 'lindblad_dissipator',
            'vec2mat_index', 'mat2vec_index', 'spost', 'spre', 'sprepost']
 
 import scipy.sparse as sp
-from numpy import prod
+import numpy as np
 from qutip.qobj import Qobj
 from qutip.sparse import sp_reshape
 
@@ -68,7 +68,7 @@ def liouvillian(H, c_ops=[], data_only=False):
             op_shape = H.shape
         elif H.issuper:
             op_dims = H.dims[0]
-            op_shape = [prod(op_dims[0]), prod(op_dims[0])]
+            op_shape = [np.prod(op_dims[0]), np.prod(op_dims[0])]
         else:
             raise TypeError("Invalid type for Hamiltonian.")
     else:
@@ -80,14 +80,14 @@ def liouvillian(H, c_ops=[], data_only=False):
                 op_shape = c.shape
             elif c.issuper:
                 op_dims = c.dims[0]
-                op_shape = [prod(op_dims[0]), prod(op_dims[0])]
+                op_shape = [np.prod(op_dims[0]), np.prod(op_dims[0])]
             else:
                 raise TypeError("Invalid type for collapse operator.")
         else:
             raise TypeError("Either H or c_ops must be given.")
 
     sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
-    sop_shape = [prod(op_dims), prod(op_dims)]
+    sop_shape = [np.prod(op_dims), np.prod(op_dims)]
 
     spI = sp.identity(op_shape[0], format='csr')
 
@@ -211,14 +211,14 @@ def mat2vec(mat):
     """
     Private function reshaping matrix to vector.
     """
-    return mat.T.reshape(prod(shape(mat)), 1)
+    return mat.T.reshape(np.prod(np.shape(mat)), 1)
 
 
 def vec2mat(vec):
     """
     Private function reshaping vector to matrix.
     """
-    n = int(sqrt(len(vec)))
+    n = int(np.sqrt(len(vec)))
     return vec.reshape((n, n)).T
 
 
@@ -261,7 +261,7 @@ def spost(A):
 
     S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.data = sp.kron(A.data.T, sp.identity(prod(A.dims[0])), format='csr')
+    S.data = sp.kron(A.data.T, sp.identity(np.prod(A.dims[0])), format='csr')
     return S
 
 
@@ -286,7 +286,7 @@ def spre(A):
 
     S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.data = sp.kron(sp.identity(prod(A.dims[1])), A.data, format='csr')
+    S.data = sp.kron(sp.identity(np.prod(A.dims[1])), A.data, format='csr')
     return S
 
 
