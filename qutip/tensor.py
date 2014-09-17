@@ -33,6 +33,9 @@
 """
 Module for the creation of composite quantum objects via the tensor product.
 """
+
+__all__ = ['tensor', 'super_tensor']
+
 import numpy as np
 import scipy.sparse as sp
 

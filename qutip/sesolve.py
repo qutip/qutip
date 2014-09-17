@@ -40,12 +40,10 @@ import os
 import types
 from functools import partial
 import numpy as np
-import scipy.sparse as sp
 import scipy.integrate
 from scipy.linalg import norm
 
 from qutip.qobj import Qobj, isket
-from qutip.expect import expect
 from qutip.rhs_generate import rhs_generate
 from qutip.solver import Result, Options, config
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str

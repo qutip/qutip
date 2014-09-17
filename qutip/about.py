@@ -30,11 +30,10 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
 """
-Command line output of information on QuTiP and
-dependencies.
+Command line output of information on QuTiP and dependencies.
 """
+__all__ = ['about']
 
 import sys
 import os
@@ -43,7 +42,6 @@ import numpy
 import scipy
 import inspect
 import qutip.settings
-from qutip import __version__ as qutip_version
 
 def about():
     """

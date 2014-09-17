@@ -35,14 +35,14 @@ This module is a collection of random state and operator generators.
 The sparsity of the ouput Qobj's is controlled by varing the
 `density` parameter.
 """
+
+__all__ = ['rand_herm', 'rand_unitary', 'rand_ket', 'rand_dm', 
+
 from scipy import arcsin, sqrt, pi
 import numpy as np
-import scipy.linalg as la
-from scipy.linalg.matfuncs import sqrtm
 import scipy.sparse as sp
-from qutip.qobj import *
+from qutip.qobj import Qobj
 from qutip.operators import create, destroy, jmat
-from operator import add
 
 
 def rand_herm(N, density=0.75, dims=None):

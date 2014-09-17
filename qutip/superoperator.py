@@ -31,12 +31,13 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import scipy
-import scipy.linalg as la
+__all__ = ['liouvillian', 'liouvillian_ref', 'lindblad_dissipator',
+           'operator_to_vector', 'vector_to_operator', 'mat2vec', 'vec2mat',
+           'vec2mat_index', 'mat2vec_index', 'spost', 'spre', 'sprepost']
+
 import scipy.sparse as sp
-from scipy import prod, transpose, reshape
-from qutip.qobj import *
-from qutip.operators import destroy
+from numpy import prod
+from qutip.qobj import Qobj
 from qutip.sparse import sp_reshape
 
 

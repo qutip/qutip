@@ -31,6 +31,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+__all__ = ['essolve', 'ode2es']
+
 import numpy as np
 from qutip.qobj import Qobj
 from qutip.eseries import eseries, estidy, esval

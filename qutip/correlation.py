@@ -31,10 +31,16 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+__all__ = ['correlation_2op_1t', 'correlation_2op_2t', 'correlation_3op_1t',
+           'correlation_3op_2t', 'coherence_function_g1',
+           'coherence_function_g2', 'spectrum', 'spectrum_correlation_fft',
+           'correlation_ss', 'correlation', 'correlation_4op_1t',
+           'correlation_4op_2t', 'spectrum_ss', 'spectrum_pi']
+
 import numpy as np
 import scipy.fftpack
 
-from qutip.superoperator import *
+#from qutip.superoperator import *
 from qutip.expect import expect
 from qutip.tensor import tensor
 from qutip.operators import qeye
