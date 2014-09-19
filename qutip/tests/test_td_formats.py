@@ -33,7 +33,7 @@
 
 from numpy.testing import assert_, run_module_suite
 
-from qutip import *
+from qutip import rand_herm, qeye
 from qutip.rhs_generate import _td_format_check
 
 

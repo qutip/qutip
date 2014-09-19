@@ -36,8 +36,11 @@ from numpy.linalg import norm
 from numpy.testing import assert_, assert_equal, run_module_suite
 import scipy
 
-from qutip import *
-from qutip.superoperator import liouvillian_ref
+from qutip import (rand_dm, rand_unitary, spre, spost, vector_to_operator,
+                   operator_to_vector, mat2vec, vec2mat, vec2mat_index,
+                   mat2vec_index, tensor, sprepost, to_super, reshuffle,
+                   identity)
+from qutip.superoperator import liouvillian, liouvillian_ref
 
 
 class TestMatrixVector:

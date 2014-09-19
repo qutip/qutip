@@ -33,7 +33,6 @@
 
 from numpy.linalg import norm
 from numpy.testing import assert_, run_module_suite
-from numpy.testing.decorators import skipif
 
 from qutip.random_objects import rand_dm, rand_unitary, rand_kraus_map
 from qutip.subsystem_apply import subsystem_apply
