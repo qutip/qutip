@@ -36,7 +36,7 @@ from numpy import amax
 from numpy.testing import assert_, run_module_suite
 import scipy
 
-from qutip import *
+from qutip import file_data_store, file_data_read
 
 
 class TestFileIO:

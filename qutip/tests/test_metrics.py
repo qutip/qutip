@@ -38,16 +38,12 @@ the qutip.metrics module.
 ###############################################################################
 
 from numpy import abs
-from numpy.linalg import norm
-from numpy.testing import assert_, run_module_suite, assert_raises
+from numpy.testing import assert_, run_module_suite
 import scipy
 
-from qutip.qobj import Qobj
-from qutip.states import basis
 from qutip.operators import create, destroy, jmat, identity
 from qutip.propagator import propagator
 from qutip.random_objects import rand_herm
-from qutip.superop_reps import (to_super, to_choi, to_kraus)
 from qutip.metrics import average_gate_fidelity
 
 

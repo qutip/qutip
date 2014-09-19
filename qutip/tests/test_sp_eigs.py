@@ -38,7 +38,6 @@ import unittest
 
 from qutip import num, rand_herm, expect, rand_unitary
 from qutip import _version2int
-#from qutip.sparse import *
 
 
 @unittest.skipIf(_version2int(scipy.__version__) < _version2int('0.10'),
