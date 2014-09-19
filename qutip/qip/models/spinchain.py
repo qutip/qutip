@@ -31,10 +31,9 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-import scipy.sparse as sp
-from qutip.qobj import *
-from qutip.qip.gates import *
-from qutip.qip.circuit import QubitCircuit, Gate
+from qutip.operators import sigmax, sigmay, sigmaz, identity
+from qutip.tensor import tensor
+from qutip.qip.circuit import QubitCircuit
 from qutip.qip.models.circuitprocessor import CircuitProcessor
 
 
@@ -77,23 +76,23 @@ class SpinChain(CircuitProcessor):
             self.sxsy_ops.append(tensor(x) + tensor(y))
 
         if sx is None:
-            self.sx_coeff = [0.25 * 2 * pi] * N
+            self.sx_coeff = [0.25 * 2 * np.pi] * N
         elif not isinstance(sx, list):
-            self.sx_coeff = [sx * 2 * pi] * N
+            self.sx_coeff = [sx * 2 * np.pi] * N
         else:
             self.sx_coeff = sx
 
         if sz is None:
-            self.sz_coeff = [1.0 * 2 * pi] * N
+            self.sz_coeff = [1.0 * 2 * np.pi] * N
         elif not isinstance(sz, list):
-            self.sz_coeff = [sz * 2 * pi] * N
+            self.sz_coeff = [sz * 2 * np.pi] * N
         else:
             self.sz_coeff = sz
 
         if sxsy is None:
-            self.sxsy_coeff = [0.1 * 2 * pi] * (N - 1)
+            self.sxsy_coeff = [0.1 * 2 * np.pi] * (N - 1)
         elif not isinstance(sxsy, list):
-            self.sxsy_coeff = [sxsy * 2 * pi] * (N - 1)
+            self.sxsy_coeff = [sxsy * 2 * np.pi] * (N - 1)
         else:
             self.sxsy_coeff = sxsy
 
@@ -120,7 +119,7 @@ class SpinChain(CircuitProcessor):
                     self.sxsy_u[n, self.N - 1] = -g
                 else:
                     self.sxsy_u[n, min(gate.targets)] = -g
-                T = pi / (4 * g)
+                T = np.pi / (4 * g)
                 self.T_list.append(T)
                 n += 1
 
@@ -130,7 +129,7 @@ class SpinChain(CircuitProcessor):
                     self.sxsy_u[n, self.N - 1] = -g
                 else:
                     self.sxsy_u[n, min(gate.targets)] = -g
-                T = pi / (8 * g)
+                T = np.pi / (8 * g)
                 self.T_list.append(T)
                 n += 1
 
@@ -408,9 +407,9 @@ class CircularSpinChain(SpinChain):
         self.sxsy_ops.append(tensor(x) + tensor(y))
 
         if sxsy is None:
-            self.sxsy_coeff = [0.1 * 2 * pi] * N
+            self.sxsy_coeff = [0.1 * 2 * np.pi] * N
         elif not isinstance(sxsy, list):
-            self.sxsy_coeff = [sxsy * 2 * pi] * N
+            self.sxsy_coeff = [sxsy * 2 * np.pi] * N
         else:
             self.sxsy_coeff = sxsy
 

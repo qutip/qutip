@@ -31,10 +31,9 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import numpy as np
 from numpy.testing import assert_, run_module_suite
-from qutip.qip.gates import *
-from qutip.qip.circuit import *
+from qutip.qip.gates import gate_sequence_product
+from qutip.qip.circuit import QubitCircuit
 
 
 class TestQubitCircuit:
