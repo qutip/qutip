@@ -62,11 +62,11 @@ def test_wigner_coherent():
     W_analytic = 2 / np.pi * np.exp(-2 * abs(a - beta) ** 2)
 
     # check difference
-    assert_(sum(abs(W_qutip - W_analytic) ** 2) < 1e-4)
+    assert_(np.sum(abs(W_qutip - W_analytic) ** 2) < 1e-4)
 
     # check normalization
-    assert_(sum(W_qutip) * dx * dy - 1.0 < 1e-8)
-    assert_(sum(W_analytic) * dx * dy - 1.0 < 1e-8)
+    assert_(np.sum(W_qutip) * dx * dy - 1.0 < 1e-8)
+    assert_(np.sum(W_analytic) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_fock():
@@ -94,11 +94,11 @@ def test_wigner_fock():
             laguerre(n), 4 * abs(a) ** 2)
 
         # check difference
-        assert_(sum(abs(W_qutip - W_analytic)) < 1e-4)
+        assert_(np.sum(abs(W_qutip - W_analytic)) < 1e-4)
 
         # check normalization
-        assert_(sum(W_qutip) * dx * dy - 1.0 < 1e-8)
-        assert_(sum(W_analytic) * dx * dy - 1.0 < 1e-8)
+        assert_(np.sum(W_qutip) * dx * dy - 1.0 < 1e-8)
+        assert_(np.sum(W_analytic) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_compare_methods_dm():
@@ -126,11 +126,11 @@ def test_wigner_compare_methods_dm():
         W_qutip2 = wigner(rho, xvec, yvec, g=2, method='laguerre')
 
         # check difference
-        assert_(sum(abs(W_qutip1 - W_qutip1)) < 1e-4)
+        assert_(np.sum(abs(W_qutip1 - W_qutip1)) < 1e-4)
 
         # check normalization
-        assert_(sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
-        assert_(sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
+        assert_(np.sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
+        assert_(np.sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_compare_methods_ket():
@@ -158,11 +158,11 @@ def test_wigner_compare_methods_ket():
         W_qutip2 = wigner(psi, xvec, yvec, g=2, method='laguerre')
 
         # check difference
-        assert_(sum(abs(W_qutip1 - W_qutip1)) < 1e-4)
+        assert_(np.sum(abs(W_qutip1 - W_qutip1)) < 1e-4)
 
         # check normalization
-        assert_(sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
-        assert_(sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
+        assert_(np.sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
+        assert_(np.sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_fft_comparse_ket():
@@ -176,7 +176,7 @@ def test_wigner_fft_comparse_ket():
         W = wigner(rho, xvec, yvec, method='iterative')
 
         Wdiff = abs(W - Wfft)
-        assert_equal(sum(abs(Wdiff)) < 1e-7, True)
+        assert_equal(np.sum(abs(Wdiff)) < 1e-7, True)
 
 
 def test_wigner_fft_comparse_dm():
@@ -190,7 +190,7 @@ def test_wigner_fft_comparse_dm():
         W = wigner(rho, xvec, yvec, method='iterative')
 
         Wdiff = abs(W - Wfft)
-        assert_equal(sum(abs(Wdiff)) < 1e-7, True)
+        assert_equal(np.sum(abs(Wdiff)) < 1e-7, True)
 
 if __name__ == "__main__":
     run_module_suite()

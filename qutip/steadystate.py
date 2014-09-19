@@ -46,7 +46,8 @@ from numpy.linalg import svd
 from scipy import prod
 import scipy.sparse as sp
 import scipy.linalg as la
-from scipy.sparse.linalg import *
+from scipy.sparse.linalg import (use_solver, splu, spilu, spsolve, eigs,
+                                 LinearOperator, gmres, lgmres, bicgstab)
 from qutip.qobj import Qobj, issuper, isoper
 from qutip.superoperator import liouvillian, vec2mat
 from qutip.sparse import sp_permute, sp_bandwidth, sp_reshape
@@ -206,7 +207,7 @@ def steadystate(A, c_op_list=[], **kwargs):
         if ss_args['sparse']:
             return _steadystate_direct_sparse(A, ss_args)
         else:
-            return _steadystate_direct_dense(A)
+            return _steadystate_direct_dense(A, ss_args)
 
     elif ss_args['method'] == 'eigen':
         return _steadystate_eigen(A, ss_args)
@@ -367,7 +368,7 @@ def _steadystate_direct_sparse(L, ss_args):
         return Qobj(data, dims=dims, isherm=True)
 
 
-def _steadystate_direct_dense(L):
+def _steadystate_direct_dense(L, ss_args):
     """
     Direct solver that use numpy dense matrices. Suitable for
     small system, with a few states.
@@ -403,7 +404,6 @@ def _steadystate_eigen(L, ss_args):
         print('Starting Eigen solver...')
 
     dims = L.dims[0]
-    shape = prod(dims[0])
     L = L.data.tocsc()
 
     if ss_args['use_rcm']:

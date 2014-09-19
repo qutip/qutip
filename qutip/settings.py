@@ -54,11 +54,6 @@ umfpack = False
 debug = False
 
 
-def reset():
-    from qutip._reset import _reset
-    _reset()
-
-
 def load_rc_file(rc_file):
     """
     Load settings for the qutip RC file, by default .qutiprc in the user's home
