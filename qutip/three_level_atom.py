@@ -64,8 +64,10 @@ Contributed by Markus Baden, Oct. 07, 2011
 
 '''
 
+__all__ = ['three_level_basis', 'three_level_ops']
+
 from qutip.states import qutrit_basis
-from scipy import array
+from numpy import array
 
 
 def three_level_basis():

@@ -31,12 +31,15 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from qutip import *
-from qutip import _version2int
-from numpy import allclose, linspace, mean, ones
+import numpy as np
 from numpy.testing import assert_equal, run_module_suite, assert_
-from numpy.testing.decorators import skipif
+#from numpy.testing.decorators import skipif
 import unittest
+
+from qutip import (mcsolve, destroy, basis, qeye, Options, tensor, sigmam,
+                   expect)
+from qutip import _version2int
+
 # find Cython if it exists
 try:
     import Cython
@@ -49,11 +52,11 @@ kappa = 0.2
 
 
 def sqrt_kappa(t, args):
-    return sqrt(kappa)
+    return np.sqrt(kappa)
 
 
 def sqrt_kappa2(t, args):
-    return sqrt(kappa * exp(-t))
+    return np.sqrt(kappa * np.exp(-t))
 
 
 def const_H1_coeff(t, args):
@@ -71,13 +74,12 @@ def test_MCNoCollExpt():
     a = destroy(N)
     H = a.dag() * a
     psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
     c_op_list = []
-    tlist = linspace(0, 10, 100)
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
-    actual_answer = 9.0 * ones(len(tlist))
-    diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.ones(len(tlist))
+    diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(diff < error, True)
 
 
@@ -88,14 +90,13 @@ def test_MCNoCollStates():
     a = destroy(N)
     H = a.dag() * a
     psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
     c_op_list = []
-    tlist = linspace(0, 10, 100)
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve(H, psi0, tlist, c_op_list, [], ntraj=ntraj)
     states = mcdata.states
     expt = expect(a.dag() * a, states)
-    actual_answer = 9.0 * ones(len(tlist))
-    diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.ones(len(tlist))
+    diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(diff < error, True)
 
 
@@ -106,14 +107,13 @@ def test_MCNoCollStrExpt():
     a = destroy(N)
     H = [a.dag() * a, [a.dag() * a, 'c']]
     psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
     c_op_list = []
-    tlist = linspace(0, 10, 100)
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args={'c': 0.0},
                      ntraj=ntraj)
     expt = mcdata.expect[0]
-    actual_answer = 9.0 * ones(len(tlist))
-    diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.ones(len(tlist))
+    diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(diff < error, True)
 
 
@@ -124,13 +124,12 @@ def test_MCNoCollFuncExpt():
     a = destroy(N)
     H = [a.dag() * a, [a.dag() * a, const_H1_coeff]]
     psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
     c_op_list = []
-    tlist = linspace(0, 10, 100)
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
-    actual_answer = 9.0 * ones(len(tlist))
-    diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.ones(len(tlist))
+    diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(diff < error, True)
 
 
@@ -141,14 +140,13 @@ def test_MCNoCollStrStates():
     a = destroy(N)
     H = [a.dag() * a, [a.dag() * a, 'c']]
     psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
     c_op_list = []
-    tlist = linspace(0, 10, 100)
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve(H, psi0, tlist, c_op_list, [], args={'c': 0.0})
     states = mcdata.states
     expt = expect(a.dag() * a, states)
-    actual_answer = 9.0 * ones(len(tlist))
-    diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.ones(len(tlist))
+    diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(diff < error, True)
 
 
@@ -159,14 +157,13 @@ def test_MCNoCollFuncStates():
     a = destroy(N)
     H = [a.dag() * a, [a.dag() * a, const_H1_coeff]]
     psi0 = basis(N, 9)  # initial state
-    kappa = 0.2  # coupling to oscillator
     c_op_list = []
-    tlist = linspace(0, 10, 100)
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve(H, psi0, tlist, c_op_list, [], ntraj=ntraj)
     states = mcdata.states
     expt = expect(a.dag() * a, states)
-    actual_answer = 9.0 * ones(len(tlist))
-    diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.ones(len(tlist))
+    diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(diff < error, True)
 
 
@@ -174,11 +171,11 @@ def test_MCCollapseTimesOperators():
     "Monte-carlo: Check for stored collapse operators and times"
     N = 10
     kappa = 5.0
-    times = linspace(0, 10, 100)
+    times = np.linspace(0, 10, 100)
     a = destroy(N)
     H = a.dag() * a
     psi0 = basis(N, 9)
-    c_ops = [sqrt(kappa) * a, sqrt(kappa) * a]
+    c_ops = [np.sqrt(kappa) * a, np.sqrt(kappa) * a]
     result = mcsolve(H, psi0, times, c_ops, [], ntraj=1)
     assert_(len(result.col_times[0]) > 0)
     assert_(len(result.col_which) == len(result.col_times))
@@ -192,12 +189,12 @@ def test_MCSimpleConst():
     H = a.dag() * a
     psi0 = basis(N, 9)  # initial state
     kappa = 0.2  # coupling to oscillator
-    c_op_list = [sqrt(kappa) * a]
-    tlist = linspace(0, 10, 100)
+    c_op_list = [np.sqrt(kappa) * a]
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
-    actual_answer = 9.0 * exp(-kappa * tlist)
-    avg_diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.exp(-kappa * tlist)
+    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(avg_diff < mc_error, True)
 
 
@@ -208,12 +205,12 @@ def test_MCSimpleSingleCollapse():
     H = a.dag() * a
     psi0 = basis(N, 9)  # initial state
     kappa = 0.2  # coupling to oscillator
-    c_op_list = sqrt(kappa) * a
-    tlist = linspace(0, 10, 100)
+    c_op_list = np.sqrt(kappa) * a
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
-    actual_answer = 9.0 * exp(-kappa * tlist)
-    avg_diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.exp(-kappa * tlist)
+    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(avg_diff < mc_error, True)
 
 
@@ -224,12 +221,12 @@ def test_MCSimpleSingleExpect():
     H = a.dag() * a
     psi0 = basis(N, 9)  # initial state
     kappa = 0.2  # coupling to oscillator
-    c_op_list = [sqrt(kappa) * a]
-    tlist = linspace(0, 10, 100)
+    c_op_list = [np.sqrt(kappa) * a]
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve(H, psi0, tlist, c_op_list, a.dag() * a, ntraj=ntraj)
     expt = mcdata.expect[0]
-    actual_answer = 9.0 * exp(-kappa * tlist)
-    avg_diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.exp(-kappa * tlist)
+    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(avg_diff < mc_error, True)
 
 
@@ -241,11 +238,11 @@ def test_MCSimpleConstFunc():
     psi0 = basis(N, 9)  # initial state
     kappa = 0.2  # coupling to oscillator
     c_op_list = [[a, sqrt_kappa]]
-    tlist = linspace(0, 10, 100)
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
-    actual_answer = 9.0 * exp(-kappa * tlist)
-    avg_diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.exp(-kappa * tlist)
+    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(avg_diff < mc_error, True)
 
 
@@ -260,12 +257,12 @@ def test_MCSimpleConstStr():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [[a, 'sqrt(k)']]
     args = {'k': kappa}
-    tlist = linspace(0, 10, 100)
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args,
                      ntraj=ntraj)
     expt = mcdata.expect[0]
-    actual_answer = 9.0 * exp(-kappa * tlist)
-    avg_diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.exp(-kappa * tlist)
+    avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(avg_diff < mc_error, True)
 
 
@@ -278,11 +275,11 @@ def test_MCTDFunc():
     psi0 = basis(N, 9)  # initial state
     kappa = 0.2  # coupling to oscillator
     c_op_list = [[a, sqrt_kappa2]]
-    tlist = linspace(0, 10, 100)
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj)
     expt = mcdata.expect[0]
-    actual_answer = 9.0 * exp(-kappa * (1.0 - exp(-tlist)))
-    diff = mean(abs(actual_answer - expt) / actual_answer)
+    actual_answer = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+    diff = np.mean(abs(actual_answer - expt) / actual_answer)
     assert_equal(diff < error, True)
 
 
@@ -298,12 +295,12 @@ def test_TDStr():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [[a, 'sqrt(k*exp(-t))']]
     args = {'k': kappa}
-    tlist = linspace(0, 10, 100)
+    tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], args=args,
                      ntraj=ntraj)
     expt = mcdata.expect[0]
-    actual = 9.0 * exp(-kappa * (1.0 - exp(-tlist)))
-    diff = mean(abs(actual - expt) / actual)
+    actual = 9.0 * np.exp(-kappa * (1.0 - np.exp(-tlist)))
+    diff = np.mean(abs(actual - expt) / actual)
     assert_equal(diff < error, True)
 
 
@@ -318,7 +315,7 @@ def test_mc_dtypes1():
     wl = 0  # driving frequency
     E = 0.5  # driving amplitude
     N = 5  # number of cavity energy levels (0->3 Fock states)
-    tlist = linspace(0, 10, 5)  # times for expectation values
+    tlist = np.linspace(0, 10, 5)  # times for expectation values
     # construct Hamiltonian
     ida = qeye(N)
     idatom = qeye(2)
@@ -327,8 +324,8 @@ def test_mc_dtypes1():
     H = (w0 - wl) * sm.dag() * sm + (wc - wl) * a.dag() * a + \
         1j * g * (a.dag() * sm - sm.dag() * a) + E * (a.dag() + a)
     # collapse operators
-    C1 = sqrt(2 * kappa) * a
-    C2 = sqrt(gamma) * sm
+    C1 = np.sqrt(2 * kappa) * a
+    C2 = np.sqrt(gamma) * sm
     C1dC1 = C1.dag() * C1
     C2dC2 = C2.dag() * C2
     # intial state
@@ -352,7 +349,7 @@ def test_mc_dtypes2():
     wl = 0  # driving frequency
     E = 0.5  # driving amplitude
     N = 5  # number of cavity energy levels (0->3 Fock states)
-    tlist = linspace(0, 10, 5)  # times for expectation values
+    tlist = np.linspace(0, 10, 5)  # times for expectation values
     # construct Hamiltonian
     ida = qeye(N)
     idatom = qeye(2)
@@ -361,8 +358,8 @@ def test_mc_dtypes2():
     H = (w0 - wl) * sm.dag() * sm + (wc - wl) * a.dag() * a + \
         1j * g * (a.dag() * sm - sm.dag() * a) + E * (a.dag() + a)
     # collapse operators
-    C1 = sqrt(2 * kappa) * a
-    C2 = sqrt(gamma) * sm
+    C1 = np.sqrt(2 * kappa) * a
+    C2 = np.sqrt(gamma) * sm
     C1dC1 = C1.dag() * C1
     C2dC2 = C2.dag() * C2
     # intial state

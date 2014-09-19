@@ -34,6 +34,13 @@
 This module contains functions for generating Qobj representation of a variety
 of commonly occuring quantum operators.
 """
+
+__all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp', 
+           'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz', 
+           'destroy', 'create', 'qeye', 'identity', 'position', 'momentum', 
+           'num', 'squeeze', 'squeezing', 'displace', 'commutator', 
+           'qutrit_ops', 'qdiags', 'phase', 'zero_oper']
+
 import numpy as np
 import scipy
 import scipy.sparse as sp

@@ -31,13 +31,19 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+
+import numpy as np
+
 from qutip import _version2int
-from numpy import trapz, linspace
+from numpy import trapz, linspace, pi
 from numpy.testing import run_module_suite, assert_
 import unittest
 import warnings
 
-from qutip import *
+from qutip import (correlation, destroy, coherent_dm, correlation_2op_2t,
+                   fock, correlation_2op_1t, tensor, qeye, spectrum_ss,
+                   spectrum_pi, correlation_ss, spectrum_correlation_fft,
+                   spectrum, correlation_3op_2t, mesolve)
 
 # find Cython if it exists
 try:
@@ -58,8 +64,8 @@ def test_compare_solvers_coherent_state_legacy():
     H = a.dag() * a
     G1 = 0.75
     n_th = 2.00
-    c_ops = [sqrt(G1 * (1 + n_th)) * a, sqrt(G1 * n_th) * a.dag()]
-    rho0 = coherent_dm(N, sqrt(4.0))
+    c_ops = [np.sqrt(G1 * (1 + n_th)) * a, np.sqrt(G1 * n_th) * a.dag()]
+    rho0 = coherent_dm(N, np.sqrt(4.0))
     taulist = np.linspace(0, 5.0, 100)
 
     with warnings.catch_warnings():
@@ -82,8 +88,8 @@ def test_compare_solvers_coherent_state_mees():
     H = a.dag() * a
     G1 = 0.75
     n_th = 2.00
-    c_ops = [sqrt(G1 * (1 + n_th)) * a, sqrt(G1 * n_th) * a.dag()]
-    rho0 = coherent_dm(N, sqrt(4.0))
+    c_ops = [np.sqrt(G1 * (1 + n_th)) * a, np.sqrt(G1 * n_th) * a.dag()]
+    rho0 = coherent_dm(N, np.sqrt(4.0))
 
     taulist = np.linspace(0, 5.0, 100)
     with warnings.catch_warnings():
@@ -106,7 +112,7 @@ def test_compare_solvers_coherent_state_memc():
     H = a.dag() * a + a + a.dag()
     G1 = 0.75
     n_th = 2.00
-    c_ops = [sqrt(G1 * (1 + n_th)) * a, sqrt(G1 * n_th) * a.dag()]
+    c_ops = [np.sqrt(G1 * (1 + n_th)) * a, np.sqrt(G1 * n_th) * a.dag()]
     psi0 = fock(N, 0)
 
     taulist = np.linspace(0, 1.0, 5)
@@ -128,7 +134,7 @@ def test_compare_solvers_steadystate_legacy():
     H = a.dag() * a
     G1 = 0.75
     n_th = 2.00
-    c_ops = [sqrt(G1 * (1 + n_th)) * a, sqrt(G1 * n_th) * a.dag()]
+    c_ops = [np.sqrt(G1 * (1 + n_th)) * a, np.sqrt(G1 * n_th) * a.dag()]
 
     taulist = np.linspace(0, 5.0, 100)
     with warnings.catch_warnings():
@@ -151,7 +157,7 @@ def test_compare_solvers_steadystate():
     H = a.dag() * a
     G1 = 0.75
     n_th = 2.00
-    c_ops = [sqrt(G1 * (1 + n_th)) * a, sqrt(G1 * n_th) * a.dag()]
+    c_ops = [np.sqrt(G1 * (1 + n_th)) * a, np.sqrt(G1 * n_th) * a.dag()]
 
     taulist = np.linspace(0, 5.0, 100)
     with warnings.catch_warnings():
@@ -171,8 +177,8 @@ def test_spectrum_espi_legacy():
 
     # use JC model
     N = 4
-    wc = wa = 1.0 * 2 * pi
-    g = 0.1 * 2 * pi
+    wc = wa = 1.0 * 2 * np.pi
+    g = 0.1 * 2 * np.pi
     kappa = 0.75
     gamma = 0.25
     n_th = 0.01
@@ -181,11 +187,11 @@ def test_spectrum_espi_legacy():
     sm = tensor(qeye(N), destroy(2))
     H = wc * a.dag() * a + wa * sm.dag() * sm + \
         g * (a.dag() * sm + a * sm.dag())
-    c_ops = [sqrt(kappa * (1 + n_th)) * a,
-             sqrt(kappa * n_th) * a.dag(),
-             sqrt(gamma) * sm]
+    c_ops = [np.sqrt(kappa * (1 + n_th)) * a,
+             np.sqrt(kappa * n_th) * a.dag(),
+             np.sqrt(gamma) * sm]
 
-    wlist = 2 * pi * np.linspace(0.5, 1.5, 100)
+    wlist = 2 * np.pi * np.linspace(0.5, 1.5, 100)
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         spec1 = spectrum_ss(H, wlist, c_ops, a.dag(), a)
@@ -201,8 +207,8 @@ def test_spectrum_esfft():
 
     # use JC model
     N = 4
-    wc = wa = 1.0 * 2 * pi
-    g = 0.1 * 2 * pi
+    wc = wa = 1.0 * 2 * np.pi
+    g = 0.1 * 2 * np.pi
     kappa = 0.75
     gamma = 0.25
     n_th = 0.01
@@ -211,9 +217,9 @@ def test_spectrum_esfft():
     sm = tensor(qeye(N), destroy(2))
     H = wc * a.dag() * a + wa * sm.dag() * sm + \
         g * (a.dag() * sm + a * sm.dag())
-    c_ops = [sqrt(kappa * (1 + n_th)) * a,
-             sqrt(kappa * n_th) * a.dag(),
-             sqrt(gamma) * sm]
+    c_ops = [np.sqrt(kappa * (1 + n_th)) * a,
+             np.sqrt(kappa * n_th) * a.dag(),
+             np.sqrt(gamma) * sm]
 
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -232,8 +238,8 @@ def test_spectrum_espi():
 
     # use JC model
     N = 4
-    wc = wa = 1.0 * 2 * pi
-    g = 0.1 * 2 * pi
+    wc = wa = 1.0 * 2 * np.pi
+    g = 0.1 * 2 * np.pi
     kappa = 0.75
     gamma = 0.25
     n_th = 0.01
@@ -242,9 +248,9 @@ def test_spectrum_espi():
     sm = tensor(qeye(N), destroy(2))
     H = wc * a.dag() * a + wa * sm.dag() * sm + \
         g * (a.dag() * sm + a * sm.dag())
-    c_ops = [sqrt(kappa * (1 + n_th)) * a,
-             sqrt(kappa * n_th) * a.dag(),
-             sqrt(gamma) * sm]
+    c_ops = [np.sqrt(kappa * (1 + n_th)) * a,
+             np.sqrt(kappa * n_th) * a.dag(),
+             np.sqrt(gamma) * sm]
 
     wlist = 2 * pi * np.linspace(0.5, 1.5, 100)
     spec1 = spectrum(H, wlist, c_ops, a.dag(), a, solver='es')
@@ -267,17 +273,17 @@ def test_str_list_td_corr():
     sm = destroy(2)
     args = {"t_off": 1, "tp": 0.5}
     H = [[2 * (sm+sm.dag()), "exp(-(t-t_off)**2 / (2*tp**2))"]]
-    tlist = linspace(0, 5, 50)
+    tlist = np.linspace(0, 5, 50)
     corr = correlation_3op_2t(H, fock(2, 0), tlist, tlist, [sm],
                               sm.dag(), sm.dag() * sm, sm, args=args)
     # integrate w/ 2D trapezoidal rule
-    dt = (tlist[-1]-tlist[0]) / (shape(tlist)[0]-1)
+    dt = (tlist[-1]-tlist[0]) / (np.shape(tlist)[0]-1)
     s1 = corr[0, 0] + corr[-1, 0] + corr[0, -1] + corr[-1, -1]
     s2 = sum(corr[1:-1, 0]) + sum(corr[1:-1, -1]) + \
         sum(corr[0, 1:-1]) + sum(corr[-1, 1:-1])
     s3 = sum(corr[1:-1, 1:-1])
 
-    exp_n_in = trapz(
+    exp_n_in = np.trapz(
         mesolve(
             H, fock(2, 0), tlist, [sm], [sm.dag()*sm], args=args
         ).expect[0], tlist
@@ -302,18 +308,18 @@ def test_fn_list_td_corr():
     sm = destroy(2)
     args = {"t_off": 1, "tp": 0.5}
     H = [[2 * (sm+sm.dag()),
-          lambda t, args: exp(-(t-args["t_off"])**2 / (2*args["tp"]**2))]]
+          lambda t, args: np.exp(-(t-args["t_off"])**2 / (2*args["tp"]**2))]]
     tlist = linspace(0, 5, 50)
     corr = correlation_3op_2t(H, fock(2, 0), tlist, tlist, [sm],
                               sm.dag(), sm.dag() * sm, sm, args=args)
     # integrate w/ 2D trapezoidal rule
-    dt = (tlist[-1]-tlist[0]) / (shape(tlist)[0]-1)
+    dt = (tlist[-1]-tlist[0]) / (np.shape(tlist)[0]-1)
     s1 = corr[0, 0] + corr[-1, 0] + corr[0, -1] + corr[-1, -1]
     s2 = sum(corr[1:-1, 0]) + sum(corr[1:-1, -1]) + \
         sum(corr[0, 1:-1]) + sum(corr[-1, 1:-1])
     s3 = sum(corr[1:-1, 1:-1])
 
-    exp_n_in = trapz(
+    exp_n_in = np.trapz(
         mesolve(
             H, fock(2, 0), tlist, [sm], [sm.dag()*sm], args=args
         ).expect[0], tlist
@@ -338,14 +344,14 @@ def test_fn_td_corr():
     sm = destroy(2)
 
     def H_func(t, args):
-        return 2 * args["H0"] * exp(-2 * (t-1)**2)
+        return 2 * args["H0"] * np.exp(-2 * (t-1)**2)
 
     tlist = linspace(0, 5, 50)
     corr = correlation_3op_2t(H_func, fock(2, 0), tlist, tlist,
                               [sm], sm.dag(), sm.dag() * sm, sm,
                               args={"H0": sm+sm.dag()})
     # integrate w/ 2D trapezoidal rule
-    dt = (tlist[-1]-tlist[0]) / (shape(tlist)[0]-1)
+    dt = (tlist[-1]-tlist[0]) / (np.shape(tlist)[0]-1)
     s1 = corr[0, 0] + corr[-1, 0] + corr[0, -1] + corr[-1, -1]
     s2 = sum(corr[1:-1, 0]) + sum(corr[1:-1, -1]) +\
         sum(corr[0, 1:-1]) + sum(corr[-1, 1:-1])

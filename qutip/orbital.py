@@ -31,10 +31,10 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+__all__ = ['orbital']
+
 import numpy as np
-import scipy.sparse as sp
 from scipy.misc import factorial
-from qutip.qobj import Qobj, isket
 
 
 def orbital(theta, phi, *args):

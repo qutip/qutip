@@ -31,12 +31,16 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+import numpy as np
 from numpy.linalg import norm
 from numpy.testing import assert_, assert_equal, run_module_suite
 import scipy
 
-from qutip import *
-from qutip.superoperator import liouvillian_ref
+from qutip import (rand_dm, rand_unitary, spre, spost, vector_to_operator,
+                   operator_to_vector, mat2vec, vec2mat, vec2mat_index,
+                   mat2vec_index, tensor, sprepost, to_super, reshuffle,
+                   identity)
+from qutip.superoperator import liouvillian, liouvillian_ref
 
 
 class TestMatrixVector:
@@ -54,7 +58,7 @@ class TestMatrixVector:
 
         assert_((rho1 - rho2).norm() < 1e-8)
 
-    def testOperatorVector(self):
+    def testOperatorUnitaryTransformation(self):
         """
         Superoperator: Unitary transformation with operators and superoperators
         """
@@ -144,7 +148,7 @@ class TestMatrixVector:
         a3 = tensor(identity(N1), identity(N2), rand_dm(N3, density=0.75))
         H = a1.dag() * a1 + a2.dag() * a2 + a3.dag() * a3
 
-        c_ops = [sqrt(0.01) * a1, sqrt(0.025) * a2, sqrt(0.05) * a3]
+        c_ops = [np.sqrt(0.01) * a1, np.sqrt(0.025) * a2, np.sqrt(0.05) * a3]
 
         L1 = liouvillian(H, c_ops)
         L2 = liouvillian_ref(H, c_ops)

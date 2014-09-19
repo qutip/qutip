@@ -35,6 +35,11 @@ This module contains a collection of routines for operating on sparse
 matrices on the scipy.sparse formats, for use internally by other modules
 throughout QuTiP.
 """
+
+__all__ = ['sp_fro_norm', 'sp_inf_norm', 'sp_L2_norm', 'sp_max_norm',
+           'sp_one_norm', 'sp_reshape', 'sp_eigs', 'sp_expm', 'sp_permute',
+           'sp_reverse_permute', 'sp_bandwidth', 'sp_profile']
+
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 import numpy as np

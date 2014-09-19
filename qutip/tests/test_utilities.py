@@ -31,11 +31,10 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import scipy
-import time
+import numpy as np
 from numpy.testing import assert_, run_module_suite
 
-from qutip import *
+from qutip import convert_unit
 
 
 def test_unit_conversions():

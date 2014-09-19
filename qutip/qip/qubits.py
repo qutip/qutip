@@ -31,11 +31,9 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import numpy as np
+__all__ = ['qubit_states']
 
-from qutip.qobj import Qobj
 from qutip.tensor import tensor
-from qutip.states import ket
 
 
 def qubit_states(N=1, states=[0]):

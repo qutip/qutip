@@ -30,8 +30,11 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
+__all__ = ['wigner', 'qfunc', 'spin_q_function', 'spin_wigner']
+
 import numpy as np
-from scipy import (zeros, array, arange, exp, real, imag, conj, pi,
+from scipy import (zeros, array, arange, exp, real, conj, pi,
                    copy, sqrt, meshgrid, size, polyval, fliplr, conjugate,
                    cos, sin)
 import scipy.sparse as sp
@@ -41,9 +44,8 @@ from scipy.special import genlaguerre
 from scipy.special import binom
 from scipy.special import sph_harm
 
-from qutip.tensor import tensor
-from qutip.qobj import Qobj, isket, isoper, issuper
-from qutip.states import *
+from qutip.qobj import Qobj, isket, isoper
+from qutip.states import ket2dm
 from qutip.parfor import parfor
 from qutip.utilities import clebsch
 from scipy.misc import factorial
@@ -148,7 +150,7 @@ def _wigner_iterative(rho, xvec, yvec, g=sqrt(2)):
     :math:`rho_{mn}`.
     """
 
-    M = prod(rho.shape[0])
+    M = np.prod(rho.shape[0])
     X, Y = meshgrid(xvec, yvec)
     A = 0.5 * g * (X + 1.0j * Y)
 
@@ -185,7 +187,7 @@ def _wigner_laguerre(rho, xvec, yvec, g, parallel):
     function is calculated as :math:`W = \sum_{mn} \\rho_{mn} W_{mn}`.
     """
 
-    M = prod(rho.shape[0])
+    M = np.prod(rho.shape[0])
     X, Y = meshgrid(xvec, yvec)
     A = 0.5 * g * (X + 1.0j * Y)
     W = zeros(np.shape(A))
@@ -382,7 +384,7 @@ def _qfunc_pure(psi, alpha_mat):
     """
     Calculate the Q-function for a pure state.
     """
-    n = prod(psi.shape)
+    n = np.prod(psi.shape)
     if isinstance(psi, Qobj):
         psi = psi.full().flatten()
     else:

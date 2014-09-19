@@ -31,10 +31,11 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+__all__ = ['propagator', 'propagator_steadystate']
+
 import types
 import numpy as np
 import scipy.linalg as la
-import warnings
 import functools
 
 from qutip.qobj import Qobj
@@ -43,10 +44,7 @@ from qutip.superoperator import (vec2mat, mat2vec,
                                  vector_to_operator, operator_to_vector)
 from qutip.mesolve import mesolve
 from qutip.sesolve import sesolve
-from qutip.essolve import essolve
-from qutip.steadystate import steadystate
 from qutip.states import basis
-from qutip.states import projection
 from qutip.solver import Options
 
 

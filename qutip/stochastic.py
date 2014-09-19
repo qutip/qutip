@@ -48,6 +48,8 @@ Todo:
 
 """
 
+__all__ = ['ssesolve', 'ssepdpsolve', 'smesolve', 'smepdpsolve']
+
 import numpy as np
 import scipy.sparse as sp
 import scipy

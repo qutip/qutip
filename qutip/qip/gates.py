@@ -31,12 +31,17 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from numpy import sqrt, array, exp, where, prod
+
+__all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'cphase', 'cnot',
+           'csign', 'berkeley', 'swapalpha', 'swap', 'iswap', 'sqrtswap',
+           'sqrtiswap', 'fredkin', 'toffoli', 'rotation', 'controlled_gate',
+           'globalphase', 'hadamard_transform', 'gate_sequence_product',
+           'gate_expand_1toN', 'gate_expand_2toN', 'gate_expand_3toN']
+
+import numpy as np
 import scipy.sparse as sp
-from qutip.states import (basis, qstate, state_number_index,
-                          state_number_enumerate)
 from qutip.qobj import Qobj
-from qutip.operators import *
+from qutip.operators import identity
 from qutip.tensor import tensor
 from qutip.states import fock_dm
 
@@ -130,8 +135,8 @@ shape = [2, 2], type = oper, isHerm = True
     if N is not None:
         return gate_expand_1toN(snot(), N, target)
     else:
-        return 1 / sqrt(2.0) * Qobj([[1, 1],
-                                     [1, -1]])
+        return 1 / np.sqrt(2.0) * Qobj([[1, 1],
+                                        [1, -1]])
 
 
 def phasegate(theta, N=None, target=0):
@@ -434,10 +439,10 @@ def sqrtswap(N=None, targets=[0, 1]):
     if N is not None:
         return gate_expand_2toN(sqrtswap(), N, targets=targets)
     else:
-        return Qobj(array([[1, 0, 0, 0],
-                           [0, 0.5 + 0.5j, 0.5 - 0.5j, 0],
-                           [0, 0.5 - 0.5j, 0.5 + 0.5j, 0],
-                           [0, 0, 0, 1]]),
+        return Qobj(np.array([[1, 0, 0, 0],
+                              [0, 0.5 + 0.5j, 0.5 - 0.5j, 0],
+                              [0, 0.5 - 0.5j, 0.5 + 0.5j, 0],
+                              [0, 0, 0, 1]]),
                     dims=[[2, 2], [2, 2]])
 
 
@@ -470,10 +475,10 @@ shape = [4, 4], type = oper, isHerm = False
     if N is not None:
         return gate_expand_2toN(sqrtiswap(), N, targets=targets)
     else:
-        return Qobj(array([[1, 0, 0, 0],
-                           [0, 1 / sqrt(2), 1j / sqrt(2), 0],
-                           [0, 1j / sqrt(2), 1 / sqrt(2), 0],
-                           [0, 0, 0, 1]]), dims=[[2, 2], [2, 2]])
+        return Qobj(np.array([[1, 0, 0, 0],
+                              [0, 1 / np.sqrt(2), 1j / np.sqrt(2), 0],
+                              [0, 1j / np.sqrt(2), 1 / np.sqrt(2), 0],
+                              [0, 0, 0, 1]]), dims=[[2, 2], [2, 2]])
 
 
 #

@@ -31,8 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import sys
-from qutip import *
+from qutip import sigmax, sigmay, sigmaz, tensor, destroy, qeye
 from numpy import amax
 from numpy.testing import assert_equal, run_module_suite
 import scipy

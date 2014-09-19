@@ -30,8 +30,10 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from qutip import *
-from numpy import allclose, diag, eye, pi
+import numpy as np
+from qutip import (basis, bell_state, bra, ket, coherent, coherent_dm, fock,
+                   fock_dm, ghz_state, w_state, ket2dm, maximally_mixed_dm,
+                   thermal_dm, spin_state, spin_coherent)
 from numpy.testing import assert_equal, run_module_suite
 from scipy.sparse import isspmatrix_csr
 
@@ -107,7 +109,7 @@ def test_maxmixed_type():
 
 def test_spincoherent_type():
     "State CSR Type: spin_coherent"
-    st = spin_coherent(5,pi/4,pi/4)
+    st = spin_coherent(5, np.pi/4, np.pi/4)
     assert_equal(isspmatrix_csr(st.data), True)
 
 

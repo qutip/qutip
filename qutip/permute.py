@@ -30,6 +30,9 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
+__all__ = ['reshuffle']
+
 import numpy as np
 import scipy.sparse as sp
 from qutip.ptrace import _select

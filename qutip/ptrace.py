@@ -31,9 +31,10 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+__all__ = []
+
 import numpy as np
 import scipy.sparse as sp
-import scipy.linalg as la
 from qutip.sparse import sp_reshape
 
 

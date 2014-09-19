@@ -30,6 +30,9 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
+__all__ = ['Bloch3d']
+
 import numpy as np
 from qutip.qobj import Qobj
 from qutip.expect import expect

@@ -30,15 +30,18 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from qutip import *
-from numpy import allclose, diag, eye, pi
+
+import numpy as np
 from numpy.testing import assert_equal, run_module_suite
 from scipy.sparse import isspmatrix_csr
+from qutip import (commutator, position, momentum, create, destroy, displace,
+                   jmat, num, phase, qdiags, qeye, identity, qutrit_ops,
+                   squeeze, squeezing, zero_oper)
 
 
 def test_commutator_type():
     "Operator CSR Type: commutator"
-    op = commutator(position(5),momentum(5))
+    op = commutator(position(5), momentum(5))
     assert_equal(isspmatrix_csr(op.data), True)
 
 
@@ -81,7 +84,7 @@ def test_num_type():
 
 def test_phase_type():
     "Operator CSR Type: phase"
-    op = phase(5, pi)
+    op = phase(5, np.pi)
     assert_equal(isspmatrix_csr(op.data), True)
 
 
@@ -93,7 +96,7 @@ def test_position_type():
 
 def test_qdiags_type():
     "Operator CSR Type: qdiags"
-    op = qdiags(sqrt(range(1,4)),1)
+    op = qdiags(np.sqrt(range(1,4)),1)
     assert_equal(isspmatrix_csr(op.data), True)
 
 
@@ -120,7 +123,7 @@ def test_squeeze_type():
 
 def test_squeezing_type():
     "Operator CSR Type: squeezing"
-    op = squeezing(destroy(5),qeye(5),-0.1j)
+    op = squeezing(destroy(5), qeye(5), -0.1j)
     assert_equal(isspmatrix_csr(op.data), True)
 
 

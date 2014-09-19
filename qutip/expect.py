@@ -31,10 +31,12 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+__all__ = ['expect', 'variance']
+
 import numpy as np
 import scipy.sparse as sp
 
-from qutip.qobj import Qobj, issuper, isoper
+from qutip.qobj import Qobj, isoper
 from qutip.eseries import eseries
 from qutip.cy.spmatfuncs import (cy_expect_rho_vec, cy_expect_psi, cy_spmm_tr)
 
