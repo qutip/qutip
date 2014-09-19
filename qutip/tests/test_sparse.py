@@ -31,15 +31,13 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-from numpy.testing import assert_, run_module_suite, assert_equal
+from numpy.testing import run_module_suite, assert_equal
 import scipy.sparse as sp
 
 from qutip.random_objects import rand_dm
-from qutip.operators import create, destroy, qeye
 from qutip.states import coherent
 from qutip.sparse import (sp_bandwidth, sp_permute, sp_reverse_permute,
                         sp_profile)
-from qutip.graph import reverse_cuthill_mckee
 
 
 def _permutateIndexes(array, row_perm, col_perm):
