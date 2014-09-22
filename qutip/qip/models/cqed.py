@@ -31,9 +31,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-import scipy.sparse as sp
-from qutip.qobj import *
-from qutip.qip.gates import *
+import warnings
+from qutip import tensor, identity, destroy, sigmax, sigmaz, basis
 from qutip.qip.circuit import QubitCircuit, Gate
 from qutip.qip.models.circuitprocessor import CircuitProcessor
 
@@ -80,47 +79,47 @@ class DispersivecQED(CircuitProcessor):
             self.Nres = Nres
 
         if deltamax is None:
-            self.sx_coeff = np.array([1.0 * 2 * pi] * N)
+            self.sx_coeff = np.array([1.0 * 2 * np.pi] * N)
         elif not isinstance(deltamax, list):
-            self.sx_coeff = np.array([deltamax * 2 * pi] * N)
+            self.sx_coeff = np.array([deltamax * 2 * np.pi] * N)
         else:
             self.sx_coeff = np.array(deltamax)
 
         if epsmax is None:
-            self.sz_coeff = np.array([9.5 * 2 * pi] * N)
+            self.sz_coeff = np.array([9.5 * 2 * np.pi] * N)
         elif not isinstance(epsmax, list):
-            self.sz_coeff = np.array([epsmax * 2 * pi] * N)
+            self.sz_coeff = np.array([epsmax * 2 * np.pi] * N)
         else:
             self.sz_coeff = np.array(epsmax)
 
         if w0 is None:
-            self.w0 = 10 * 2 * pi
+            self.w0 = 10 * 2 * np.pi
         else:
             self.w0 = w0
 
         if eps is None:
-            self.eps = np.array([9.5 * 2 * pi] * N)
+            self.eps = np.array([9.5 * 2 * np.pi] * N)
         elif not isinstance(eps, list):
-            self.eps = np.array([eps * 2 * pi] * N)
+            self.eps = np.array([eps * 2 * np.pi] * N)
         else:
             self.eps = np.array(eps)
 
         if delta is None:
-            self.delta = np.array([0.0 * 2 * pi] * N)
+            self.delta = np.array([0.0 * 2 * np.pi] * N)
         elif not isinstance(delta, list):
-            self.delta = np.array([delta * 2 * pi] * N)
+            self.delta = np.array([delta * 2 * np.pi] * N)
         else:
             self.delta = np.array(delta)
 
         if g is None:
-            self.g = np.array([0.01 * 2 * pi] * N)
+            self.g = np.array([0.01 * 2 * np.pi] * N)
         elif not isinstance(g, list):
-            self.g = np.array([g * 2 * pi] * N)
+            self.g = np.array([g * 2 * np.pi] * N)
         else:
             self.g = np.array(g)
 
         # computed
-        self.wq = sqrt(self.eps ** 2 + self.delta ** 2)
+        self.wq = np.sqrt(self.eps ** 2 + self.delta ** 2)
         self.Delta = self.wq - self.w0
 
         # rwa/dispersive regime tests
@@ -243,7 +242,7 @@ class DispersivecQED(CircuitProcessor):
 
                 J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] +
                                                1 / self.Delta[t1]) / 2
-                T = (4 * pi / abs(J)) / 4
+                T = (4 * np.pi / abs(J)) / 4
                 self.T_list.append(T)
                 n += 1
 
@@ -256,7 +255,7 @@ class DispersivecQED(CircuitProcessor):
 
                 J = self.g[t0] * self.g[t1] * (1 / self.Delta[t0] +
                                                1 / self.Delta[t1]) / 2
-                T = (4 * pi / abs(J)) / 8
+                T = (4 * np.pi / abs(J)) / 8
                 self.T_list.append(T)
                 n += 1
 

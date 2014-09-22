@@ -30,6 +30,16 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+"""
+This module contains functions for generating Qobj representation of a variety
+of commonly occuring quantum operators.
+"""
+
+__all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp', 
+           'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz', 
+           'destroy', 'create', 'qeye', 'identity', 'position', 'momentum', 
+           'num', 'squeeze', 'squeezing', 'displace', 'commutator', 
+           'qutrit_ops', 'qdiags', 'phase', 'zero_oper']
 
 import numpy as np
 import scipy
@@ -113,6 +123,10 @@ shape = [3, 3], type = oper, isHerm = True
 
 
 def _jplus(j):
+    """
+    Internal functions for generating the data representing the J-plus
+    operator.
+    """
     m = np.arange(j, -j - 1, -1)
     N = len(m)
     return sp.spdiags(np.sqrt(j * (j + 1.0) - (m + 1.0) * m),
@@ -120,6 +134,9 @@ def _jplus(j):
 
 
 def _jz(j):
+    """
+    Internal functions for generating the data representing the J-z operator.
+    """
     m = np.arange(j, -j - 1, -1)
     N = len(m)
     return sp.spdiags(m, 0, N, N, format='csr')
@@ -444,7 +461,7 @@ def identity(N):
 
 def position(N, offset=0):
     """
-    Position operator x=1\sqrt(2)*(a+a.dag())
+    Position operator x=1/sqrt(2)*(a+a.dag())
 
     Parameters
     ----------
@@ -519,7 +536,7 @@ shape = [4, 4], type = oper, isHerm = True
     return Qobj(data)
 
 
-def squeeze(N, sp, offset=0):
+def squeeze(N, z, offset=0):
     """Single-mode Squeezing operator.
 
 
@@ -528,7 +545,7 @@ def squeeze(N, sp, offset=0):
     N : int
         Dimension of hilbert space.
 
-    sp : float/complex
+    z : float/complex
         Squeezing parameter.
 
     offset : int (default 0)
@@ -543,7 +560,7 @@ def squeeze(N, sp, offset=0):
 
     Examples
     --------
-    >>> squeeze(4,0.25)
+    >>> squeeze(4, 0.25)
     Quantum object: dims = [[4], [4]], \
 shape = [4, 4], type = oper, isHerm = False
     Qobj data =
@@ -554,7 +571,7 @@ shape = [4, 4], type = oper, isHerm = False
 
     """
     a = destroy(N, offset=offset)
-    op = (1 / 2.0) * np.conj(sp) * (a ** 2) - (1 / 2.0) * sp * (a.dag()) ** 2
+    op = (1 / 2.0) * np.conj(z) * (a ** 2) - (1 / 2.0) * z * (a.dag()) ** 2
     return op.expm()
 
 
@@ -564,7 +581,7 @@ def squeezing(a1, a2, z):
     .. math::
 
         S(z) = \\exp\\left(\\frac{1}{2}\\left(z^*a_1a_2
-        - za_1^\dagger a_2^\dagger\\right)\\right)
+        - za_1^\\dagger a_2^\\dagger\\right)\\right)
 
     Parameters
     ----------
@@ -658,7 +675,8 @@ def qutrit_ops():
     sig12 = one * two.dag()
     sig23 = two * three.dag()
     sig31 = three * one.dag()
-    return np.array([sig11, sig22, sig33, sig12, sig23, sig31])
+    return np.array([sig11, sig22, sig33, sig12, sig23, sig31],
+                    dtype=object)
 
 
 def qdiags(diagonals, offsets, dims=None, shape=None):
@@ -703,7 +721,7 @@ shape = [4, 4], type = oper, isherm = False
     try:
         data = sp.diags(diagonals, offsets, shape, format='csr', dtype=complex)
     except:
-        raise NotImplemented("This function required SciPy 0.11+.")
+        raise NotImplementedError("This function requires SciPy 0.11+.")
     if not dims:
         dims = [[], []]
     if not shape:

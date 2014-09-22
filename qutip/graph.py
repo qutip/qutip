@@ -35,18 +35,15 @@ This module contains a collection of graph theory routines used mainly
 to reorder matrices for iterative steady state solvers.
 """
 
+__all__ = ['graph_degree', 'breadth_first_search', 'reverse_cuthill_mckee',
+           'maximum_bipartite_matching', 'weighted_bipartite_matching']
+
 import numpy as np
 import scipy.sparse as sp
 from qutip.cy.graph_utils import (
-    _pseudo_peripheral_node, _breadth_first_search, _node_degrees,
+    _breadth_first_search, _node_degrees,
     _reverse_cuthill_mckee, _maximum_bipartite_matching,
     _weighted_bipartite_matching)
-from qutip.settings import debug
-from warnings import warn
-
-if debug:
-    import inspect
-
 
 def graph_degree(A):
     """

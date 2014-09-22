@@ -55,7 +55,7 @@ class TestGates:
         psi1 = (a * basis(2, 0) + b * basis(2, 1)).unit()
 
         c, d = np.random.rand(), np.random.rand()
-        psi2 = (c * basis(2, 0) + b * basis(2, 1)).unit()
+        psi2 = (c * basis(2, 0) + d * basis(2, 1)).unit()
 
         psi_in = tensor(psi1, psi2)
         psi_out = tensor(psi2, psi1)
@@ -76,7 +76,7 @@ class TestGates:
 
             theta = np.random.rand() * 2 * 3.1415
             a, b = np.random.rand(), np.random.rand()
-            psi1 = (basis(2, 0) + b * basis(2, 1)).unit()
+            psi1 = (a * basis(2, 0) + b * basis(2, 1)).unit()
             psi2 = g(theta) * psi1
 
             psi_rand_list = [rand_ket(2) for k in range(N)]
@@ -102,7 +102,7 @@ class TestGates:
         k1 = (a * basis(2, 0) + b * basis(2, 1)).unit()
 
         c, d = np.random.rand(), np.random.rand()
-        k2 = (c * basis(2, 0) + b * basis(2, 1)).unit()
+        k2 = (c * basis(2, 0) + d * basis(2, 1)).unit()
 
         N = 6
         kets = [rand_ket(2) for k in range(N)]
@@ -118,7 +118,7 @@ class TestGates:
                 targets = [m, n]
                 G = swap(N, targets)
 
-                psi_res = G * psi_in
+                psi_out = G * psi_in
 
                 assert_((psi_out - G * psi_in).norm() < 1e-12)
 
@@ -206,13 +206,13 @@ class TestGates:
         """
 
         a, b = np.random.rand(), np.random.rand()
-        psi1 = (basis(2, 0) + b * basis(2, 1)).unit()
+        psi1 = (a * basis(2, 0) + b * basis(2, 1)).unit()
 
         c, d = np.random.rand(), np.random.rand()
-        psi2 = (basis(2, 0) + b * basis(2, 1)).unit()
+        psi2 = (c * basis(2, 0) + d * basis(2, 1)).unit()
 
         e, f = np.random.rand(), np.random.rand()
-        psi3 = (basis(2, 0) + b * basis(2, 1)).unit()
+        psi3 = (e * basis(2, 0) + f * basis(2, 1)).unit()
 
         N = 4
         psi_rand_list = [rand_ket(2) for k in range(N)]

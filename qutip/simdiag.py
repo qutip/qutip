@@ -30,9 +30,12 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-from qutip.qobj import *
+
+__all__= ['simdiag']
+
 import numpy as np
 import scipy.linalg as la
+from qutip.qobj import Qobj
 
 
 def simdiag(ops, evals=True):

@@ -30,6 +30,9 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
+__all__ = ['Gate', 'QubitCircuit']
+
 import numpy as np
 import warnings
 
@@ -213,7 +216,7 @@ class QubitCircuit(object):
             Label for gate representation.
         """
         if name not in ["RX", "RY", "RZ", "SNOT", "SQRTNOT", "PHASEGATE"]:
-            raise ValueError("%s is not a single qubit gate" % gate)
+            raise ValueError("%s is not a single qubit gate" % name)
 
         if qubits is not None:
             for i in range(len(qubits)):

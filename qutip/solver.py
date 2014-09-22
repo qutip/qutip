@@ -30,8 +30,10 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
 from __future__ import print_function
+
+__all__ = ['Options', 'Odeoptions', 'Odedata']
+
 import os
 import warnings
 from qutip import __version__
@@ -83,7 +85,10 @@ class Options():
     average_states : bool {False}
         Average states values over trajectories in stochastic solvers.
     average_expect : bool {True}
-        Avgerage expectation values over trajectories for stochastic solvers.
+        Average expectation values over trajectories for stochastic solvers.
+    mc_corr_eps : float {1e-10}
+        Arbitrarily small value for eliminating any divide-by-zero errors in
+        correlation calculations when using mcsolve.
     ntraj : int {500}
         Number of trajectories in stochastic solvers.
     rhs_reuse : bool {False,True}
@@ -101,7 +106,9 @@ class Options():
         result class, even if expectation values operators are given. If no
         expectation are provided, then states are stored by default and this
         option has no effect.
+
     """
+
     def __init__(self, atol=1e-8, rtol=1e-6, method='adams', order=12,
                  nsteps=1000, first_step=0, max_step=0, min_step=0,
                  average_expect=True, average_states=False, tidy=True,
@@ -140,6 +147,8 @@ class Options():
         # Use filename for preexisting RHS function (will default to last
         # compiled function if None & rhs_exists=True)
         self.rhs_filename = rhs_filename
+        # small value in mc solver for computing correlations
+        self.mc_corr_eps = 1e-10
         # Number of processors to use (mcsolve only)
         if num_cpus:
             self.num_cpus = num_cpus

@@ -31,9 +31,10 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from qutip import *
 import numpy as np
-from numpy.testing import assert_, assert_equal, run_module_suite
+from numpy.testing import assert_, run_module_suite
+
+from qutip import (smesolve, mesolve, destroy, coherent, )
 
 
 def test_ssesolve_photocurrent():
@@ -48,7 +49,7 @@ def test_ssesolve_photocurrent():
 
     H = a.dag() * a
     psi0 = coherent(N, 0.5)
-    sc_ops = [sqrt(gamma) * a]
+    sc_ops = [np.sqrt(gamma) * a]
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 2.5, 50)
@@ -77,7 +78,7 @@ def test_ssesolve_homodyne():
 
     H = a.dag() * a
     psi0 = coherent(N, 0.5)
-    sc_ops = [sqrt(gamma) * a]
+    sc_ops = [np.sqrt(gamma) * a]
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 2.5, 50)
@@ -106,7 +107,7 @@ def test_ssesolve_heterodyne():
 
     H = a.dag() * a
     psi0 = coherent(N, 0.5)
-    sc_ops = [sqrt(gamma) * a]
+    sc_ops = [np.sqrt(gamma) * a]
     e_ops = [a.dag() * a, a + a.dag(), (-1j)*(a - a.dag())]
 
     times = np.linspace(0, 2.5, 50)

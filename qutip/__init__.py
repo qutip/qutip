@@ -45,7 +45,6 @@ if 'MKL_NUM_THREADS' not in os.environ:
 if 'OPENBLAS_NUM_THREADS' not in os.environ:
     os.environ['OPENBLAS_NUM_THREADS'] = '1'
 import sys
-import platform
 import qutip.settings
 import qutip.version
 from qutip.version import version as __version__
@@ -90,6 +89,7 @@ else:
               "Change directories before running QuTiP.")
     setup_file.close()
 
+del top_path
 
 # -----------------------------------------------------------------------------
 # setup the cython environment
@@ -108,6 +108,8 @@ try:
 
 except Exception as e:
     print("QuTiP warning: Cython setup failed: " + str(e))
+else:
+    del Cython, pyximport
 
 
 # -----------------------------------------------------------------------------
@@ -174,6 +176,7 @@ except:
     qutip.settings.umfpack = False
 else:
     qutip.settings.umfpack = True
+    del umfpack
 # -----------------------------------------------------------------------------
 # Check that import modules are compatible with requested configuration
 #
@@ -184,6 +187,13 @@ try:
 except:
     os.environ['QUTIP_GRAPHICS'] = "NO"
     qutip.settings.qutip_graphics = 'NO'
+else:
+    del matplotlib
+
+# -----------------------------------------------------------------------------
+# Clean name space
+#
+del os, sys, numpy, scipy, multiprocessing
 
 # -----------------------------------------------------------------------------
 # Load modules
@@ -200,46 +210,30 @@ from qutip.parfor import *
 
 # graphics
 if qutip.settings.qutip_graphics == 'YES':
-    from qutip.bloch import Bloch
-    from qutip.visualization import (
-        hinton, wigner_cmap, sphereplot,
-        energy_level_diagram, plot_energy_levels,
-        fock_distribution, plot_fock_distribution,
-        wigner_fock_distribution, plot_wigner_fock_distribution, plot_wigner,
-        plot_expectation_values, plot_spin_distribution_2d,
-        plot_spin_distribution_3d,
-        plot_qubism, plot_schmidt, complex_array_to_rgb)
-
+    from qutip.bloch import *
+    from qutip.visualization import *
     from qutip.orbital import *
-    # load mayavi dependent functions if available
-    try:
-        import mayavi
-    except:
-        pass
-    else:
-        from qutip.bloch3d import Bloch3d
+    from qutip.bloch3d import *
 
 # library functions
 from qutip.tomography import *
 from qutip.wigner import *
 from qutip.random_objects import *
 from qutip.simdiag import *
-from qutip.entropy import (entropy_vn, entropy_linear, entropy_mutual,
-                           concurrence, entropy_conditional, entangling_power)
-from qutip.metrics import (fidelity, tracedist, average_gate_fidelity,
-                           process_fidelity)
-from qutip.partial_transpose import partial_transpose
-from qutip.permute import reshuffle
+from qutip.entropy import *
+from qutip.metrics import *
+from qutip.partial_transpose import *
+from qutip.permute import *
 from qutip.continuous_variables import *
 from qutip.distributions import *
 
 # evolution
-from qutip.solver import Options, Odeoptions, Odedata
-from qutip.rhs_generate import rhs_generate, rhs_clear
-from qutip.mesolve import mesolve, odesolve
-from qutip.sesolve import sesolve
-from qutip.mcsolve import mcsolve
-from qutip.stochastic import ssesolve, ssepdpsolve, smesolve, smepdpsolve
+from qutip.solver import *
+from qutip.rhs_generate import *
+from qutip.mesolve import *
+from qutip.sesolve import *
+from qutip.mcsolve import *
+from qutip.stochastic import *
 from qutip.essolve import *
 from qutip.eseries import *
 from qutip.steadystate import *
@@ -248,7 +242,7 @@ from qutip.propagator import *
 from qutip.floquet import *
 from qutip.bloch_redfield import *
 from qutip.superop_reps import *
-from qutip.subsystem_apply import subsystem_apply
+from qutip.subsystem_apply import *
 from qutip.graph import *
 
 # quantum information

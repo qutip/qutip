@@ -30,12 +30,16 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-"""Main module for QuTiP, consisting of the Quantum Object (Qobj) class and
-its methods.
+"""The Quantum Object (Qobj) class, for representing quantum states and
+operators, and related functions.
 """
+
+__all__ = ['Qobj', 'qobj_list_evaluate', 'ptrace', 'dag', 'isequal',
+           'issuper', 'isoper', 'isoperket', 'isoperbra', 'isket', 'isbra',
+           'isherm', 'shape', 'dims']
+           
 import warnings
 import types
-import pickle
 
 try:
     import builtins
@@ -56,7 +60,7 @@ from qutip import __version__
 from qutip.ptrace import _ptrace
 from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
-                          sp_one_norm, sp_L2_norm, sp_inf_norm)
+                          sp_one_norm, sp_L2_norm)
 
 
 class Qobj(object):
@@ -433,7 +437,8 @@ class Qobj(object):
 
         elif isinstance(other, (list, np.ndarray)):
             # if other is a list, do element-wise multiplication
-            return np.array([self * item for item in other])
+            return np.array([self * item for item in other],
+                            dtype=object)
 
         elif isinstance(other, eseries):
             return other.__rmul__(self)
@@ -461,7 +466,8 @@ class Qobj(object):
 
         if isinstance(other, (list, np.ndarray)):
             # if other is a list, do element-wise multiplication
-            return np.array([item * self for item in other])
+            return np.array([item * self for item in other],
+                            dtype=object)
 
         if isinstance(other, eseries):
             return other.__mul__(self)
@@ -1274,7 +1280,8 @@ class Qobj(object):
                                sort=sort, eigvals=eigvals, tol=tol,
                                maxiter=maxiter)
         new_dims = [self.dims[0], [1] * len(self.dims[0])]
-        ekets = np.array([Qobj(vec, dims=new_dims) for vec in evecs])
+        ekets = np.array([Qobj(vec, dims=new_dims) for vec in evecs],
+                         dtype=object)
         norms = np.array([ket.norm() for ket in ekets])
         return evals, ekets / norms
 

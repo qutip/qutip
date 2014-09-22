@@ -31,8 +31,10 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+__all__ = ['parfor']
+
 from scipy import array
-from multiprocessing import Pool, cpu_count
+from multiprocessing import Pool
 from functools import partial
 import os
 import sys

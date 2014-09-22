@@ -31,11 +31,16 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+__all__ = ['essolve', 'ode2es']
+
 import numpy as np
-from qutip.qobj import Qobj
+import scipy.linalg as la
+import scipy.sparse as sp
+
+from qutip.qobj import Qobj, issuper, isket, isoper
 from qutip.eseries import eseries, estidy, esval
 from qutip.expect import expect
-from qutip.superoperator import *
+from qutip.superoperator import liouvillian, mat2vec, vec2mat
 from qutip.solver import Result
 
 
@@ -144,7 +149,7 @@ def ode2es(L, rho0):
         # w[i]   = eigenvalue i
         # v[:,i] = eigenvector i
 
-        rlen = prod(rho0.shape)
+        rlen = np.prod(rho0.shape)
         r0 = mat2vec(rho0.full())
         v0 = la.solve(v, r0)
         vv = v * sp.spdiags(v0.T, 0, rlen, rlen)
@@ -168,7 +173,7 @@ def ode2es(L, rho0):
         # w[i]   = eigenvalue i
         # v[:,i] = eigenvector i
 
-        rlen = prod(rho0.shape)
+        rlen = np.prod(rho0.shape)
         r0 = rho0.full()
         v0 = la.solve(v, r0)
         vv = v * sp.spdiags(v0.T, 0, rlen, rlen)

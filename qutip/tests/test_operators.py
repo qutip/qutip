@@ -31,53 +31,53 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-
-from qutip import *
-from numpy import allclose, diag, eye
+import numpy as np
 from numpy.testing import assert_equal, run_module_suite
+
+from qutip import (jmat, basis, destroy, create, displace, qeye, num, squeeze)
 
 
 def test_jmat_12():
     "Spin 1/2 operators"
     spinhalf = jmat(1 / 2.)
 
-    paulix = array([[0.0 + 0.j, 0.5 + 0.j], [0.5 + 0.j, 0.0 + 0.j]])
-    pauliy = array([[0. + 0.j, 0. + 0.5j], [0. - 0.5j, 0. + 0.j]])
-    pauliz = array([[0.5 + 0.j, 0.0 + 0.j], [0.0 + 0.j, -0.5 + 0.j]])
-    sigmap = array([[0. + 0.j, 1. + 0.j], [0. + 0.j, 0. + 0.j]])
-    sigmam = array([[0. + 0.j, 0. + 0.j], [1. + 0.j, 0. + 0.j]])
+    paulix = np.array([[0.0 + 0.j, 0.5 + 0.j], [0.5 + 0.j, 0.0 + 0.j]])
+    pauliy = np.array([[0. + 0.j, 0. + 0.5j], [0. - 0.5j, 0. + 0.j]])
+    pauliz = np.array([[0.5 + 0.j, 0.0 + 0.j], [0.0 + 0.j, -0.5 + 0.j]])
+    sigmap = np.array([[0. + 0.j, 1. + 0.j], [0. + 0.j, 0. + 0.j]])
+    sigmam = np.array([[0. + 0.j, 0. + 0.j], [1. + 0.j, 0. + 0.j]])
 
-    assert_equal(allclose(spinhalf[0].full(), paulix), True)
-    assert_equal(allclose(spinhalf[1].full(), pauliy), True)
-    assert_equal(allclose(spinhalf[2].full(), pauliz), True)
-    assert_equal(allclose(jmat(1 / 2., '+').full(), sigmap), True)
-    assert_equal(allclose(jmat(1 / 2., '-').full(), sigmam), True)
+    assert_equal(np.allclose(spinhalf[0].full(), paulix), True)
+    assert_equal(np.allclose(spinhalf[1].full(), pauliy), True)
+    assert_equal(np.allclose(spinhalf[2].full(), pauliz), True)
+    assert_equal(np.allclose(jmat(1 / 2., '+').full(), sigmap), True)
+    assert_equal(np.allclose(jmat(1 / 2., '-').full(), sigmam), True)
 
 
 def test_jmat_32():
     "Spin 3/2 operators"
     spin32 = jmat(3 / 2.)
 
-    paulix32 = array(
+    paulix32 = np.array(
         [[0.0000000 + 0.j, 0.8660254 + 0.j, 0.0000000 + 0.j, 0.0000000 + 0.j],
          [0.8660254 + 0.j, 0.0000000 + 0.j, 1.0000000 + 0.j, 0.0000000 + 0.j],
          [0.0000000 + 0.j, 1.0000000 + 0.j, 0.0000000 + 0.j, 0.8660254 + 0.j],
          [0.0000000 + 0.j, 0.0000000 + 0.j, 0.8660254 + 0.j, 0.0000000 + 0.j]])
 
-    pauliy32 = array(
+    pauliy32 = np.array(
         [[0. + 0.j, 0. + 0.8660254j, 0. + 0.j, 0. + 0.j],
          [0. - 0.8660254j, 0. + 0.j, 0. + 1.j, 0. + 0.j],
          [0. + 0.j, 0. - 1.j, 0. + 0.j, 0. + 0.8660254j],
          [0. + 0.j, 0. + 0.j, 0. - 0.8660254j, 0. + 0.j]])
 
-    pauliz32 = array([[1.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
-                      [0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
-                      [0.0 + 0.j, 0.0 + 0.j, -0.5 + 0.j, 0.0 + 0.j],
-                      [0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j, -1.5 + 0.j]])
+    pauliz32 = np.array([[1.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
+                         [0.0 + 0.j, 0.5 + 0.j, 0.0 + 0.j, 0.0 + 0.j],
+                         [0.0 + 0.j, 0.0 + 0.j, -0.5 + 0.j, 0.0 + 0.j],
+                         [0.0 + 0.j, 0.0 + 0.j, 0.0 + 0.j, -1.5 + 0.j]])
 
-    assert_equal(allclose(spin32[0].full(), paulix32), True)
-    assert_equal(allclose(spin32[1].full(), pauliy32), True)
-    assert_equal(allclose(spin32[2].full(), pauliz32), True)
+    assert_equal(np.allclose(spin32[0].full(), paulix32), True)
+    assert_equal(np.allclose(spin32[1].full(), pauliy32), True)
+    assert_equal(np.allclose(spin32[2].full(), pauliz32), True)
 
 
 def test_jmat_42():
@@ -97,13 +97,13 @@ def test_destroy():
     b4 = basis(5, 4)
     d5 = destroy(5)
     test1 = d5 * b4
-    assert_equal(allclose(test1.full(), 2.0 * basis(5, 3).full()), True)
+    assert_equal(np.allclose(test1.full(), 2.0 * basis(5, 3).full()), True)
     d3 = destroy(3)
-    matrix3 = array([[0.00000000 + 0.j, 1.00000000 + 0.j, 0.00000000 + 0.j],
-                     [0.00000000 + 0.j, 0.00000000 + 0.j, 1.41421356 + 0.j],
-                     [0.00000000 + 0.j, 0.00000000 + 0.j, 0.00000000 + 0.j]])
+    matrix3 = np.array([[0.00000000 + 0.j, 1.00000000 + 0.j, 0.00000000 + 0.j],
+                        [0.00000000 + 0.j, 0.00000000 + 0.j, 1.41421356 + 0.j],
+                        [0.00000000 + 0.j, 0.00000000 + 0.j, 0.00000000 + 0.j]])
 
-    assert_equal(allclose(matrix3, d3.full()), True)
+    assert_equal(np.allclose(matrix3, d3.full()), True)
 
 
 def test_create():
@@ -111,48 +111,49 @@ def test_create():
     b3 = basis(5, 3)
     c5 = create(5)
     test1 = c5 * b3
-    assert_equal(allclose(test1.full(), 2.0 * basis(5, 4).full()), True)
+    assert_equal(np.allclose(test1.full(), 2.0 * basis(5, 4).full()), True)
     c3 = create(3)
-    matrix3 = array([[0.00000000 + 0.j, 0.00000000 + 0.j, 0.00000000 + 0.j],
-                     [1.00000000 + 0.j, 0.00000000 + 0.j, 0.00000000 + 0.j],
-                     [0.00000000 + 0.j, 1.41421356 + 0.j, 0.00000000 + 0.j]])
+    matrix3 = np.array([[0.00000000 + 0.j, 0.00000000 + 0.j, 0.00000000 + 0.j],
+                        [1.00000000 + 0.j, 0.00000000 + 0.j, 0.00000000 + 0.j],
+                        [0.00000000 + 0.j, 1.41421356 + 0.j, 0.00000000 + 0.j]])
 
-    assert_equal(allclose(matrix3, c3.full()), True)
+    assert_equal(np.allclose(matrix3, c3.full()), True)
 
 
 def test_qeye():
     "Identity operator"
     eye3 = qeye(5)
-    assert_equal(allclose(eye3.full(), eye(5, dtype=complex)), True)
+    assert_equal(np.allclose(eye3.full(), np.eye(5, dtype=complex)), True)
 
 
 def test_num():
     "Number operator"
     n5 = num(5)
     assert_equal(
-        allclose(n5.full(), diag([0 + 0j, 1 + 0j, 2 + 0j, 3 + 0j, 4 + 0j])),
+        np.allclose(n5.full(),
+                    np.diag([0 + 0j, 1 + 0j, 2 + 0j, 3 + 0j, 4 + 0j])),
         True)
 
 
 def test_squeeze():
     "Squeezing operator"
     sq = squeeze(4, 0.1 + 0.1j)
-    sqmatrix = array([[0.99500417 + 0.j, 0.00000000 + 0.j,
-                       0.07059289 - 0.07059289j, 0.00000000 + 0.j],
-                      [0.00000000 + 0.j, 0.98503746 + 0.j,
-                       0.00000000 + 0.j, 0.12186303 - 0.12186303j],
-                      [-0.07059289 - 0.07059289j, 0.00000000 + 0.j,
-                       0.99500417 + 0.j, 0.00000000 + 0.j],
-                      [0.00000000 + 0.j, -0.12186303 - 0.12186303j,
-                       0.00000000 + 0.j, 0.98503746 + 0.j]])
+    sqmatrix = np.array([[0.99500417 + 0.j, 0.00000000 + 0.j,
+                          0.07059289 - 0.07059289j, 0.00000000 + 0.j],
+                         [0.00000000 + 0.j, 0.98503746 + 0.j,
+                          0.00000000 + 0.j, 0.12186303 - 0.12186303j],
+                         [-0.07059289 - 0.07059289j, 0.00000000 + 0.j,
+                          0.99500417 + 0.j, 0.00000000 + 0.j],
+                         [0.00000000 + 0.j, -0.12186303 - 0.12186303j,
+                          0.00000000 + 0.j, 0.98503746 + 0.j]])
 
-    assert_equal(allclose(sq.full(), sqmatrix), True)
+    assert_equal(np.allclose(sq.full(), sqmatrix), True)
 
 
 def test_displace():
     "Displacement operator"
     dp = displace(4, 0.25)
-    dpmatrix = array(
+    dpmatrix = np.array(
         [[0.96923323 + 0.j, -0.24230859 + 0.j, 0.04282883 + 0.j, -
           0.00626025 + 0.j],
          [0.24230859 + 0.j, 0.90866411 + 0.j, -0.33183303 +
@@ -162,7 +163,7 @@ def test_displace():
          [0.00626025 + 0.j, 0.07418172 + 0.j, 0.41083747 + 0.j,
           0.90866411 + 0.j]])
 
-    assert_equal(allclose(dp.full(), dpmatrix), True)
+    assert_equal(np.allclose(dp.full(), dpmatrix), True)
 
 
 if __name__ == "__main__":

@@ -40,21 +40,16 @@ Created on Wed May 29 11:23:46 2013
 from __future__ import division
 
 from numpy import abs
-from numpy.linalg import norm
-from numpy.testing import assert_, run_module_suite, assert_raises
-import scipy
+from numpy.testing import assert_, run_module_suite
 
 from qutip.qobj import Qobj
 from qutip.states import basis
-from qutip.operators import create, destroy, jmat, identity, sigmax
+from qutip.operators import identity, sigmax
 from qutip.qip.gates import swap
-from qutip.propagator import propagator
-from qutip.random_objects import rand_herm, rand_super
-from qutip.tensor import tensor, super_tensor
-from qutip.superop_reps import (super_to_choi, choi_to_kraus,
-                                choi_to_super, kraus_to_choi,
-                                to_super, to_choi, to_kraus, to_chi,
-                                _dep_choi)
+from qutip.random_objects import rand_super
+from qutip.tensor import super_tensor
+from qutip.superop_reps import (kraus_to_choi, to_super, to_choi, to_kraus,
+                                to_chi)
 
 tol = 1e-10
 

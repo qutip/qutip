@@ -35,18 +35,19 @@ This module provides solvers for the Lindblad master equation and von Neumann
 equation.
 """
 
+__all__ = ['mesolve', 'odesolve']
+
 import os
 import types
 from functools import partial
 import numpy as np
 import scipy.sparse as sp
 import scipy.integrate
-from scipy.linalg import norm
 import warnings
 
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
-from qutip.expect import expect, expect_rho_vec
+from qutip.expect import expect_rho_vec
 from qutip.solver import Options, Result, config
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
 from qutip.cy.codegen import Codegen
@@ -202,7 +203,7 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     H, c_ops, args = _td_wrap_array_str(H, c_ops, args, tlist)
 
     # check for type (if any) of time-dependent inputs
-    n_const, n_func, n_str = _td_format_check(H, c_ops)
+    _, n_func, n_str = _td_format_check(H, c_ops)
 
     if options is None:
         options = Options()
@@ -377,7 +378,6 @@ def _mesolve_list_func_td(H_list, rho0, tlist, c_list, e_ops, args, opt,
                             "collapse operators (expected callback function)")
 
         if isoper(c):
-            cdc = c.dag() * c
             L_list.append([liouvillian(None, [c], data_only=True),
                            c_coeff, c_square])
 
@@ -638,7 +638,8 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
         # if initial state is a ket and no collapse operator where given,
         # fall back on the unitary schrodinger equation solver
         if len(c_op_list) == 0 and isoper(H):
-            return _sesolve_const(H, rho0, tlist, e_ops, args, opt)
+            return _sesolve_const(H, rho0, tlist, e_ops, args, opt,
+                                  progress_bar)
 
         # Got a wave function as initial state: convert to density matrix.
         rho0 = rho0 * rho0.dag()
@@ -903,7 +904,8 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, e_ops, args, opt,
         # if initial state is a ket and no collapse operator where given,
         # fall back on the unitary schrodinger equation solver
         if len(c_op_list) == 0:
-            return _sesolve_list_td(H_func, rho0, tlist, e_ops, args, opt)
+            return _sesolve_list_td(H_func, rho0, tlist, e_ops, args, opt,
+                                    progress_bar)
 
         # Got a wave function as initial state: convert to density matrix.
         rho0 = ket2dm(rho0)
@@ -928,9 +930,9 @@ def _mesolve_list_td(H_func, rho0, tlist, c_op_list, e_ops, args, opt,
     lenh = len(H_func[0])
     if opt.tidy:
         H_func[0] = [(H_func[0][k]).tidyup() for k in range(lenh)]
-    L_func = [[liouvillian_fast(H_func[0][0], c_op_list)], H_func[1]]
+    L_func = [[liouvillian(H_func[0][0], c_op_list)], H_func[1]]
     for m in range(1, lenh):
-        L_func[0].append(liouvillian_fast(H_func[0][m], []))
+        L_func[0].append(liouvillian(H_func[0][m], []))
 
     # create data arrays for time-dependent RHS function
     Ldata = [L_func[0][k].data.data for k in range(lenh)]

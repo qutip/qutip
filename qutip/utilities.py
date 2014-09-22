@@ -36,6 +36,9 @@ This module contains utility functions that are commonly needed in other
 qutip modules.
 """
 
+__all__ = ['n_thermal', 'linspace_with', 'clebsch', 'convert_unit', 
+           'view_methods']
+
 import numpy as np
 from scipy.misc import factorial
 

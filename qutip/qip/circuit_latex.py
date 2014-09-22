@@ -31,8 +31,6 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import os
-import numpy as np
-import subprocess as sub
 
 _latex_template = r"""
 \documentclass{standalone}

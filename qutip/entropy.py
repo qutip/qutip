@@ -31,6 +31,9 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+__all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual',
+           'concurrence', 'entropy_conditional', 'entangling_power']
+
 from numpy import e, real, sort, sqrt
 from scipy import log, log2
 from qutip.qobj import ptrace

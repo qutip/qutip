@@ -48,6 +48,8 @@ Todo:
 
 """
 
+__all__ = ['ssesolve', 'ssepdpsolve', 'smesolve', 'smepdpsolve']
+
 import numpy as np
 import scipy.sparse as sp
 import scipy
@@ -61,7 +63,6 @@ from numpy.random import RandomState
 
 from qutip.qobj import Qobj, isket
 from qutip.states import ket2dm
-from qutip.operators import commutator
 from qutip.solver import Result
 from qutip.expect import expect, expect_rho_vec
 from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
@@ -484,7 +485,7 @@ def smesolve(H, rho0, times, c_ops, sc_ops, e_ops, **kwargs):
                 sso.d2_len = 1
                 sso.sc_ops = []
                 for sc in iter(sc_ops):
-                    sso.sc_ops += [sc / sqrt(2), -1.0j * sc / sqrt(2)]
+                    sso.sc_ops += [sc / np.sqrt(2), -1.0j * sc / np.sqrt(2)]
 
         elif sso.solver == 'fast-euler-maruyama' and sso.method == 'homodyne':
             sso.rhs = _rhs_rho_euler_homodyne_fast
@@ -505,7 +506,7 @@ def smesolve(H, rho0, times, c_ops, sc_ops, e_ops, **kwargs):
                 sso.d2_len = 1
                 sso.sc_ops = []
                 for sc in iter(sc_ops):
-                    sso.sc_ops += [sc / sqrt(2), -1.0j * sc / sqrt(2)]
+                    sso.sc_ops += [sc / np.sqrt(2), -1.0j * sc / np.sqrt(2)]
                 if len(sc_ops) == 1:
                     sso.rhs = _rhs_rho_milstein_homodyne_two_fast
                 else:
@@ -573,7 +574,7 @@ def ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
     sso = StochasticSolverOptions(H=H, state0=psi0, times=times, c_ops=c_ops,
                                   e_ops=e_ops, **kwargs)
 
-    res = _ssepdpsolve_generic(sso, options, progress_bar)
+    res = _ssepdpsolve_generic(sso, sso.options, sso.progress_bar)
 
     if e_ops_dict:
         res.expect = {e: res.expect[n]
@@ -636,7 +637,7 @@ def smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
     sso = StochasticSolverOptions(H=H, state0=rho0, times=times, c_ops=c_ops,
                                   e_ops=e_ops, **kwargs)
 
-    res = _smepdpsolve_generic(sso, options, progress_bar)
+    res = _smepdpsolve_generic(sso, sso.options, sso.progress_bar)
 
     if e_ops_dict:
         res.expect = {e: res.expect[n]
@@ -656,7 +657,6 @@ def _ssesolve_generic(sso, options, progress_bar):
 
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
-    N = N_store * N_substeps
     dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
@@ -758,8 +758,6 @@ def _ssesolve_single_trajectory(data, H, dt, times, N_store, N_substeps, psi_t,
         else:
             states_list.append(Qobj(psi_t, dims=dims))
 
-        psi_prev = np.copy(psi_t)
-
         for j in range(N_substeps):
 
             if noise is None and not homogeneous:
@@ -811,7 +809,6 @@ def _smesolve_generic(sso, options, progress_bar):
 
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
-    N = N_store * N_substeps
     dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
@@ -929,7 +926,6 @@ def _smesolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_t,
                 data.ss[e_idx, t_idx] += s ** 2
 
         if store_states or not e_ops:
-            # XXX: need to keep hilbert space structure
             states_list.append(Qobj(vec2mat(rho_t), dims=dims))
 
         rho_prev = np.copy(rho_t)
@@ -976,15 +972,14 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
 
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
-    N = N_store * N_substeps
     dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
     data = Result()
     data.solver = "sepdpsolve"
-    data.times = ssdata.tlist
-    data.expect = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
-    data.ss = np.zeros((len(ssdata.e_ops), N_store), dtype=complex)
+    data.times = sso.tlist
+    data.expect = np.zeros((len(sso.e_ops), N_store), dtype=complex)
+    data.ss = np.zeros((len(sso.e_ops), N_store), dtype=complex)
     data.jump_times = []
     data.jump_op_idx = []
 
@@ -1109,7 +1104,6 @@ def _smepdpsolve_generic(sso, options, progress_bar):
 
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
-    N = N_store * N_substeps
     dt = (sso.times[1] - sso.times[0]) / N_substeps
     NT = sso.ntraj
 
@@ -1167,6 +1161,7 @@ def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps,
     states_list = []
 
     rho_t = np.copy(rho_t)
+    sigma_t = np.copy(rho_t)
 
     prng = RandomState()  # todo: seed it
     r_jump, r_op = prng.rand(2)
@@ -1186,7 +1181,7 @@ def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps,
 
             if expect_rho_vec(d_op, sigma_t) < r_jump:
                 # jump occurs
-                p = np.array([rho_expect(c.dag() * c, rho_t) for c in c_ops])
+                p = np.array([expect(c.dag() * c, rho_t) for c in c_ops])
                 p = np.cumsum(p / np.sum(p))
                 n = np.where(p >= r_op)[0][0]
 
@@ -1264,7 +1259,7 @@ def _generate_psi_A_ops(sc_ops, H):
     return A_ops
 
 
-def d1_psi_homodyne(A, psi):
+def d1_psi_homodyne(t, psi, A, args):
     """
     OK
     Todo: cythonize
@@ -1282,7 +1277,7 @@ def d1_psi_homodyne(A, psi):
                   0.25 * e1 ** 2 * psi)
 
 
-def d2_psi_homodyne(A, psi):
+def d2_psi_homodyne(t, psi, A, args):
     """
     OK
     Todo: cythonize
@@ -1297,7 +1292,7 @@ def d2_psi_homodyne(A, psi):
     return [spmv(A[0], psi) - 0.5 * e1 * psi]
 
 
-def d1_psi_heterodyne(A, psi):
+def d1_psi_heterodyne(t, psi, A, args):
     """
     Todo: cythonize
 
@@ -1317,7 +1312,7 @@ def d1_psi_heterodyne(A, psi):
             0.25 * e_C * e_Cd * psi)
 
 
-def d2_psi_heterodyne(A, psi):
+def d2_psi_heterodyne(t, psi, A, args):
     """
     Todo: cythonize
 
@@ -1340,7 +1335,7 @@ def d2_psi_heterodyne(A, psi):
     return [d2_1, d2_2]
 
 
-def d1_psi_photocurrent(A, psi):
+def d1_psi_photocurrent(t, psi, A, args):
     """
     Todo: cythonize.
 
@@ -1355,7 +1350,7 @@ def d1_psi_photocurrent(A, psi):
             - norm(spmv(A[0], psi)) ** 2 * psi))
 
 
-def d2_psi_photocurrent(A, psi):
+def d2_psi_photocurrent(t, psi, A, args):
     """
     Todo: cythonize
 
@@ -1512,7 +1507,7 @@ def sop_G(A, rho_vec):
         return -rho_vec
 
 
-def d1_rho_homodyne(A, rho_vec):
+def d1_rho_homodyne(t, rho_vec, A, args):
     """
     D1[a] rho = lindblad_dissipator(a) * rho
 
@@ -1521,7 +1516,7 @@ def d1_rho_homodyne(A, rho_vec):
     return spmv(A[7], rho_vec)
 
 
-def d2_rho_homodyne(A, rho_vec):
+def d2_rho_homodyne(t, rho_vec, A, args):
     """
     D2[a] rho = a rho + rho a^\dagger - Tr[a rho + rho a^\dagger]
               = (A_L + Ad_R) rho_vec - E[(A_L + Ad_R) rho_vec]
@@ -1534,14 +1529,14 @@ def d2_rho_homodyne(A, rho_vec):
     return [spmv(M, rho_vec) - e1 * rho_vec]
 
 
-def d1_rho_heterodyne(A, rho_vec):
+def d1_rho_heterodyne(t, rho_vec, A, args):
     """
     todo: cythonize, docstrings
     """
     return spmv(A[7], rho_vec)
 
 
-def d2_rho_heterodyne(A, rho_vec):
+def d2_rho_heterodyne(t, rho_vec, A, args):
     """
     todo: cythonize, docstrings
     """
@@ -1554,7 +1549,7 @@ def d2_rho_heterodyne(A, rho_vec):
     return [1.0 / np.sqrt(2) * d1, -1.0j / np.sqrt(2) * d2]
 
 
-def d1_rho_photocurrent(A, rho_vec):
+def d1_rho_photocurrent(t, rho_vec, A, args):
     """
     Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
@@ -1563,7 +1558,7 @@ def d1_rho_photocurrent(A, rho_vec):
     return 0.5 * (e1 * rho_vec - spmv(n_sum, rho_vec))
 
 
-def d2_rho_photocurrent(A, rho_vec):
+def d2_rho_photocurrent(t, rho_vec, A, args):
     """
     Todo: cythonize, add (AdA)_L + AdA_R to precomputed operators
     """
@@ -1609,10 +1604,10 @@ def _rhs_psi_euler_maruyama(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
     dpsi_t = _rhs_psi_deterministic(H, psi_t, t, dt, args)
 
     for a_idx, A in enumerate(A_ops):
-        d2_vec = d2(A, psi_t)
-        dpsi_t += d1(A, psi_t) * dt + np.sum([d2_vec[n] * dW[a_idx, n]
-                                              for n in range(dW_len)
-                                              if dW[a_idx, n] != 0], axis=0)
+        d2_vec = d2(t, psi_t, A, args)
+        dpsi_t += d1(t, psi_t, A, args) * dt + \
+            np.sum([d2_vec[n] * dW[a_idx, n]
+                    for n in range(dW_len) if dW[a_idx, n] != 0], axis=0)
 
     return psi_t + dpsi_t
 
@@ -1626,8 +1621,8 @@ def _rhs_rho_euler_maruyama(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     drho_t = _rhs_rho_deterministic(L, rho_t, t, dt, args)
 
     for a_idx, A in enumerate(A_ops):
-        d2_vec = d2(A, rho_t)
-        drho_t += d1(A, rho_t) * dt
+        d2_vec = d2(t, rho_t, A, args)
+        drho_t += d1(t, rho_t, A, args) * dt
         drho_t += np.sum([d2_vec[n] * dW[a_idx, n]
                           for n in range(dW_len) if dW[a_idx, n] != 0], axis=0)
 
@@ -1642,12 +1637,11 @@ def _rhs_rho_euler_homodyne_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
     dW = ddW[:, 0]
 
     d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
-    e = np.real(
-        d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1, axis2=2))
+    e = d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1, axis2=2)
 
     drho_t = d_vec[-1]
     drho_t += np.dot(dW, d_vec[:-1])
-    drho_t += (1.0 - np.inner(e, dW)) * rho_t
+    drho_t += (1.0 - np.inner(np.real(e), dW)) * rho_t
     return drho_t
 
 
@@ -1666,7 +1660,7 @@ def _rhs_psi_platen(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
 
     sqrt_dt = np.sqrt(dt)
 
-    dW_len = len(dW[0, :])
+    #dW_len = len(dW[0, :])
     dpsi_t = _rhs_psi_deterministic(H, psi_t, t, dt, args)
 
     for a_idx, A in enumerate(A_ops):

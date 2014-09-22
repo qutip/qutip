@@ -31,11 +31,13 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from functools import partial
-from numpy import allclose, linspace, mean, ones
+import numpy as np
+
+#from numpy import allclose, linspace, mean, ones
 from numpy.testing import assert_, run_module_suite
 
-from qutip import *
+from qutip import (sigmax, sigmay, sigmaz, sigmam, identity, basis,
+                   mesolve, brmesolve, destroy, ket2dm, expect, tensor)
 
 
 class TestBRMESolve:
@@ -46,13 +48,13 @@ class TestBRMESolve:
     def testTLS(self):
         "brmesolve: qubit"
 
-        delta = 0.0 * 2 * pi
-        epsilon = 0.5 * 2 * pi
+        delta = 0.0 * 2 * np.pi
+        epsilon = 0.5 * 2 * np.pi
         gamma = 0.25
-        times = linspace(0, 10, 100)
+        times = np.linspace(0, 10, 100)
         H = delta/2 * sigmax() + epsilon/2 * sigmaz()
         psi0 = (2 * basis(2, 0) + basis(2, 1)).unit()
-        c_ops = [sqrt(gamma) * sigmam()]
+        c_ops = [np.sqrt(gamma) * sigmam()]
         a_ops = [sigmax()]
         e_ops = [sigmax(), sigmay(), sigmaz()]
         res_me = mesolve(H, psi0, times, c_ops, e_ops)
@@ -67,16 +69,16 @@ class TestBRMESolve:
         "brmesolve: harmonic oscillator, zero temperature"
 
         N = 10
-        w0 = 1.0 * 2 * pi
+        w0 = 1.0 * 2 * np.pi
         g = 0.05 * w0
         kappa = 0.15
 
-        times = linspace(0, 25, 1000)
+        times = np.linspace(0, 25, 1000)
         a = destroy(N)
         H = w0 * a.dag() * a + g * (a + a.dag())
         psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
 
-        c_ops = [sqrt(kappa) * a]
+        c_ops = [np.sqrt(kappa) * a]
         a_ops = [a + a.dag()]
         e_ops = [a.dag() * a, a + a.dag()]
 
@@ -92,24 +94,24 @@ class TestBRMESolve:
         "brmesolve: harmonic oscillator, finite temperature"
 
         N = 10
-        w0 = 1.0 * 2 * pi
+        w0 = 1.0 * 2 * np.pi
         g = 0.05 * w0
         kappa = 0.15
-        times = linspace(0, 25, 1000)
+        times = np.linspace(0, 25, 1000)
         a = destroy(N)
         H = w0 * a.dag() * a + g * (a + a.dag())
         psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
 
         n_th = 1.5
-        w_th = w0/log(1 + 1/n_th)
+        w_th = w0/np.log(1 + 1/n_th)
 
         def S_w(w):
             if w >= 0:
                 return (n_th + 1) * kappa
             else:
-                return (n_th + 1) * kappa * exp(w / w_th)
+                return (n_th + 1) * kappa * np.exp(w / w_th)
 
-        c_ops = [sqrt(kappa * (n_th + 1)) * a, sqrt(kappa * n_th) * a.dag()]
+        c_ops = [np.sqrt(kappa * (n_th + 1)) * a, np.sqrt(kappa * n_th) * a.dag()]
         a_ops = [a + a.dag()]
         e_ops = [a.dag() * a, a + a.dag()]
 
@@ -124,24 +126,24 @@ class TestBRMESolve:
         "brmesolve: harmonic oscillator, finite temperature, states"
 
         N = 10
-        w0 = 1.0 * 2 * pi
+        w0 = 1.0 * 2 * np.pi
         g = 0.05 * w0
         kappa = 0.25
-        times = linspace(0, 25, 1000)
+        times = np.linspace(0, 25, 1000)
         a = destroy(N)
         H = w0 * a.dag() * a + g * (a + a.dag())
         psi0 = ket2dm((basis(N, 4) + basis(N, 2) + basis(N, 0)).unit())
 
         n_th = 1.5
-        w_th = w0/log(1 + 1/n_th)
+        w_th = w0/np.log(1 + 1/n_th)
 
         def S_w(w):
             if w >= 0:
                 return (n_th + 1) * kappa
             else:
-                return (n_th + 1) * kappa * exp(w / w_th)
+                return (n_th + 1) * kappa * np.exp(w / w_th)
 
-        c_ops = [sqrt(kappa * (n_th + 1)) * a, sqrt(kappa * n_th) * a.dag()]
+        c_ops = [np.sqrt(kappa * (n_th + 1)) * a, np.sqrt(kappa * n_th) * a.dag()]
         a_ops = [a + a.dag()]
         e_ops = []
 
@@ -164,12 +166,12 @@ class TestBRMESolve:
         a_ops = [(a + a.dag())]
         e_ops = [a.dag() * a, sm.dag() * sm]
 
-        w0 = 1.0 * 2 * pi
-        g = 0.05 * 2 * pi
+        w0 = 1.0 * 2 * np.pi
+        g = 0.05 * 2 * np.pi
         kappa = 0.05
-        times = linspace(0, 2 * 2 * pi / g, 1000)
+        times = np.linspace(0, 2 * 2 * np.pi / g, 1000)
 
-        c_ops = [sqrt(kappa) * a]
+        c_ops = [np.sqrt(kappa) * a]
         H = w0 * a.dag() * a + w0 * sm.dag() * sm + \
             g * (a + a.dag()) * (sm + sm.dag())
 

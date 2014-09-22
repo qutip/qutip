@@ -31,10 +31,17 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+__all__ = ['basis', 'qutrit_basis', 'coherent', 'coherent_dm', 'fock_dm', 
+           'fock', 'thermal_dm', 'maximally_mixed_dm', 'ket2dm', 'projection', 
+           'qstate', 'ket', 'bra', 'state_number_enumerate',
+           'state_number_index', 'state_index_number', 'state_number_qobj', 
+           'phase_basis', 'zero_ket', 'spin_state', 'spin_coherent', 
+           'bell_state', 'singlet_state', 'triplet_states', 'w_state', 
+           'ghz_state']
+
 import numpy as np
 from scipy import arange, conj, prod
 import scipy.sparse as sp
-from scipy.misc import factorial
 
 from qutip.qobj import Qobj
 from qutip.operators import destroy, jmat
@@ -110,7 +117,7 @@ def qutrit_basis():
         Array of qutrit basis vectors
 
     """
-    return np.array([basis(3, 0), basis(3, 1), basis(3, 2)])
+    return np.array([basis(3, 0), basis(3, 1), basis(3, 2)], dtype=object)
 
 
 def _sqrt_factorial(n_vec):
