@@ -44,13 +44,15 @@ from qutip.ui.progressbar import BaseProgressBar
 from qutip.control.cy_grape import cy_overlap, cy_grape_inner
 from qutip.qip.gates import gate_sequence_product
 
+
 class GRAPEResult:
-    
+
     def __init__(self, u=None, H_t=None, U_f=None):
-        
+
         self.u = u
         self.H_t = H_t
         self.U_f = U_f
+
 
 def plot_grape_control_fields(times, u, labels, uniform_axes=False):
     """
@@ -60,14 +62,14 @@ def plot_grape_control_fields(times, u, labels, uniform_axes=False):
     import matplotlib.pyplot as plt
 
     R, J, M = u.shape
-    
+
     fig, axes = plt.subplots(J, 1, figsize=(8, 2 * J), squeeze=False)
 
     y_max = abs(u).max()
-    
+
     for r in range(R):
         for j in range(J):
-    
+
             if r == R - 1:
                 lw, lc, alpha = 2.0, 'k', 1.0
 
@@ -76,21 +78,21 @@ def plot_grape_control_fields(times, u, labels, uniform_axes=False):
                 axes[j, 0].set_xlim(0, times[-1])
 
             else:
-                lw, lc, alpha = 0.5, 'b', 0.25 
-                
+                lw, lc, alpha = 0.5, 'b', 0.25
+
             axes[j, 0].step(times, u[r, j, :], lw=lw, color=lc, alpha=alpha)
 
             if uniform_axes:
                 axes[j, 0].set_ylim(-y_max, y_max)
-    
+
     fig.tight_layout()
-    
+
     return fig, axes
 
 
 def _overlap(A, B):
     return (A.dag() * B).tr() / A.shape[0]
-    #return cy_overlap(A.data, B.data)
+    # return cy_overlap(A.data, B.data)
 
 
 def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
@@ -109,7 +111,7 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
 
     M = len(times)
     J = len(H_ops)
-    
+
     u = np.zeros((R, J, M))
 
     if u_limits and len(u_limits) != 2:
@@ -130,20 +132,22 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
         progress_bar.update(r)
 
         dt = times[1] - times[0]
-        
+
         if use_interp:
             ip_funcs = [interp1d(times, u[r, j, :], kind=interp_kind,
                                  bounds_error=False, fill_value=u[r, j, -1])
                         for j in range(J)]
+
             def _H_t(t, args=None):
                 return H0 + sum([float(ip_funcs[j](t)) * H_ops[j]
-                                 for j in range(J)])    
+                                 for j in range(J)])
 
-            U_list = [(-1j * _H_t(times[idx]) * dt).expm() for idx in range(M-1)]
+            U_list = [(-1j * _H_t(times[idx]) * dt).expm()
+                      for idx in range(M-1)]
 
         else:
             def _H_idx(idx):
-                return H0 + sum([u[r, j, idx] * H_ops[j] for j in range(J)])    
+                return H0 + sum([u[r, j, idx] * H_ops[j] for j in range(J)])
 
             U_list = [(-1j * _H_idx(idx) * dt).expm() for idx in range(M-1)]
 
@@ -168,7 +172,7 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                 if phase_sensitive:
                     du = - _overlap(P, Q)
                 else:
-                    du = - 2 * _overlap(P, Q) * _overlap(U_f_list[m], P) 
+                    du = - 2 * _overlap(P, Q) * _overlap(U_f_list[m], P)
 
                 if alpha:
                     # penalty term for high power control signals u
@@ -186,29 +190,28 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                     elif u[r + 1, j, m] > u_limits[1]:
                         u[r + 1, j, m] = u_limits[1]
 
-
             u[r + 1, j, -1] = u[r + 1, j, -2]
-            
+
     if use_interp:
         ip_funcs = [interp1d(times, u[R - 1, j, :], kind=interp_kind,
                              bounds_error=False, fill_value=u[R - 1, j, -1])
                     for j in range(J)]
 
         H_td_func = [H0] + [[H_ops[j], lambda t, args, j=j: ip_funcs[j](t)]
-                              for j in range(J)]    
+                            for j in range(J)]
     else:
-        H_td_func = [H0] + [[H_ops[j], u[-1, j, :]] for j in range(J)]    
+        H_td_func = [H0] + [[H_ops[j], u[-1, j, :]] for j in range(J)]
 
     progress_bar.finished()
-    
-    #return U_f_list[-1], H_td_func, u
+
+    # return U_f_list[-1], H_td_func, u
     return GRAPEResult(u=u, U_f=U_f_list[-1], H_t=H_td_func)
 
 
 def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
-                  u_limits=None, interp_kind='linear', use_interp=False,
-                  alpha=None, beta=None, phase_sensitive=True,
-                  progress_bar=BaseProgressBar()):
+                     u_limits=None, interp_kind='linear', use_interp=False,
+                     alpha=None, beta=None, phase_sensitive=True,
+                     progress_bar=BaseProgressBar()):
     """
     Calculate control pulses for the Hamitonian operators in H_ops so that the
     unitary U is realized.
@@ -221,10 +224,10 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
 
     M = len(times)
     J = len(H_ops)
-    
+
     u = np.zeros((R, J, M))
-    
-    H_ops_data = [H_op.data for H_op in H_ops] 
+
+    H_ops_data = [H_op.data for H_op in H_ops]
 
     if u_limits and len(u_limits) != 2:
         raise ValueError("u_limits must be a list with two values")
@@ -256,21 +259,22 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
         progress_bar.update(r)
 
         dt = times[1] - times[0]
-        
+
         if use_interp:
             ip_funcs = [interp1d(times, u[r, j, :], kind=interp_kind,
                                  bounds_error=False, fill_value=u[r, j, -1])
                         for j in range(J)]
+
             def _H_t(t, args=None):
                 return H0 + sum([float(ip_funcs[j](t)) * H_ops[j]
-                                 for j in range(J)])    
+                                 for j in range(J)])
 
             U_list = [(-1j * _H_t(times[idx]) * dt).expm().data
                       for idx in range(M-1)]
 
         else:
             def _H_idx(idx):
-                return H0 + sum([u[r, j, idx] * H_ops[j] for j in range(J)])    
+                return H0 + sum([u[r, j, idx] * H_ops[j] for j in range(J)])
 
             U_list = [(-1j * _H_idx(idx) * dt).expm().data
                       for idx in range(M-1)]
@@ -297,12 +301,13 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                 for k in range(M-1):
                     P = U_b_list[k] * U.data
                     Q = 1j * dt * H_ops_data[j] * U_f_list[k]
-    
+
                     if phase_sensitive:
                         du = - cy_overlap(P, Q)
                     else:
-                        du = - 2 * cy_overlap(P, Q) * cy_overlap(U_f_list[k], P) 
-    
+                        du = (- 2 * cy_overlap(P, Q) *
+                              cy_overlap(U_f_list[k], P))
+
                     if alpha:
                         # penalty term for high power control signals u
                         du += -2 * alpha * u[r, j, k] * dt
@@ -310,30 +315,30 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
                     if beta:
                         # penalty term for late control signals u
                         du += -2 * beta * k**2 * u[r, j, k] * dt
-                    
+
                     u[r + 1, j, k] = u[r, j, k] + eps * du.real
-                                
+
                     if u_limits:
                         if u[r + 1, j, k] < u_limits[0]:
                             u[r + 1, j, k] = u_limits[0]
                         elif u[r + 1, j, k] > u_limits[1]:
                             u[r + 1, j, k] = u_limits[1]
-    
+
                 u[r + 1, j, -1] = u[r + 1, j, -2]
-            
+
     if use_interp:
         ip_funcs = [interp1d(times, u[R - 1, j, :], kind=interp_kind,
                              bounds_error=False, fill_value=u[R - 1, j, -1])
                     for j in range(J)]
 
         H_td_func = [H0] + [[H_ops[j], lambda t, args, j=j: ip_funcs[j](t)]
-                              for j in range(J)]    
+                            for j in range(J)]
     else:
-        H_td_func = [H0] + [[H_ops[j], u[-1, j, :]] for j in range(J)]    
+        H_td_func = [H0] + [[H_ops[j], u[-1, j, :]] for j in range(J)]
 
     progress_bar.finished()
-    
-    #return U_f_list[-1], H_td_func, u
+
+    # return U_f_list[-1], H_td_func, u
     return GRAPEResult(u=u,
                        U_f=Qobj(U_f_list[-1], dims=U.dims),
                        H_t=H_td_func)
@@ -357,17 +362,16 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
     eps_vec = np.array([eps / 2, eps, 2 * eps])
     eps_log = np.zeros(R)
     overlap_log = np.zeros(R)
-    
+
     best_k = 0
     _k_overlap = np.array([0.0, 0.0, 0.0])
 
-    
     M = len(times)
     J = len(H_ops)
     K = len(eps_vec)
     Uf = [None for _ in range(K)]
-    
-    u = np.zeros((R, J, M, K))        
+
+    u = np.zeros((R, J, M, K))
 
     if u_limits and len(u_limits) != 2:
         raise ValueError("u_limits must be a list with two values")
@@ -384,50 +388,53 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
                 u[0, idx, :, k] = u0
 
     if phase_sensitive:
-        _fidelity_function = lambda x : x
+        _fidelity_function = lambda x: x
     else:
-        _fidelity_function = lambda x : abs(x) ** 2
-
+        _fidelity_function = lambda x: abs(x) ** 2
 
     best_k = 1
     _r = 0
     _prev_overlap = 0
-    
+
     progress_bar.start(R)
     for r in range(R - 1):
         progress_bar.update(r)
 
         _r = r
         eps_log[r] = eps_vec[best_k]
-        
+
         if debug:
-            print("="  * 80)
+            print("=" * 80)
             print("eps_vec: ", eps_vec)
-        
+
         _t0 = time.time()
 
         dt = times[1] - times[0]
-        
+
         if use_interp:
             ip_funcs = [interp1d(times, u[r, j, :, best_k], kind=interp_kind,
-                                 bounds_error=False, fill_value=u[r, j, -1, best_k])
+                                 bounds_error=False,
+                                 fill_value=u[r, j, -1, best_k])
                         for j in range(J)]
+
             def _H_t(t, args=None):
                 return H0 + sum([float(ip_funcs[j](t)) * H_ops[j]
-                                 for j in range(J)])    
+                                 for j in range(J)])
 
-            U_list = [(-1j * _H_t(times[idx]) * dt).expm() for idx in range(M-1)]
+            U_list = [(-1j * _H_t(times[idx]) * dt).expm()
+                      for idx in range(M-1)]
 
         else:
             def _H_idx(idx):
-                return H0 + sum([u[r, j, idx, best_k] * H_ops[j] for j in range(J)])    
+                return H0 + sum([u[r, j, idx, best_k] * H_ops[j]
+                                 for j in range(J)])
 
             U_list = [(-1j * _H_idx(idx) * dt).expm() for idx in range(M-1)]
 
         if debug:
             print("Time 1: %fs" % (time.time() - _t0))
             _t0 = time.time()
-        
+
         U_f_list = []
         U_b_list = []
 
@@ -463,10 +470,10 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
                 if beta:
                     # penalty term for late control signals u
                     du += -2 * beta * k ** 2 * u[r, j, k] * dt
-                        
+
                 for k, eps_val in enumerate(eps_vec):
                     u[r + 1, j, m, k] = u[r, j, m, k] + eps_val * du.real
-                    
+
                     if u_limits:
                         if u[r + 1, j, m, k] < u_limits[0]:
                             u[r + 1, j, m, k] = u_limits[0]
@@ -475,44 +482,43 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
 
             u[r + 1, j, -1, :] = u[r + 1, j, -2, :]
 
-
         if debug:
             print("Time 3: %fs" % (time.time() - _t0))
             _t0 = time.time()
 
         for k, eps_val in enumerate(eps_vec):
-                             
+
             def _H_idx(idx):
                 return H0 + sum([u[r + 1, j, idx, k] * H_ops[j]
-                                 for j in range(J)])    
+                                 for j in range(J)])
 
             U_list = [(-1j * _H_idx(idx) * dt).expm() for idx in range(M-1)]
-            
+
             Uf[k] = gate_sequence_product(U_list)
-            _k_overlap[k] = _fidelity_function(cy_overlap(Uf[k].data, 
+            _k_overlap[k] = _fidelity_function(cy_overlap(Uf[k].data,
                                                           U.data)).real
 
         best_k = np.argmax(_k_overlap)
         if debug:
             print("k_overlap: ", _k_overlap, best_k)
-            
+
         if _prev_overlap > _k_overlap[best_k]:
             if debug:
                 print("Regression, stepping back with smaller eps.")
-                
+
             u[r + 1, :, :, :] = u[r, :, :, :]
             eps_vec /= 2
         else:
-                
+
             if best_k == 0:
                 eps_vec /= 2
-            
+
             elif best_k == 2:
                 eps_vec *= 2
-        
+
             _prev_overlap = _k_overlap[best_k]
-            
-        overlap_log[r] = _k_overlap[best_k] 
+
+        overlap_log[r] = _k_overlap[best_k]
 
         if overlap_terminate < 1.0:
             if _k_overlap[best_k] > overlap_terminate:
@@ -529,14 +535,15 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
                     for j in range(J)]
 
         H_td_func = [H0] + [[H_ops[j], lambda t, args, j=j: ip_funcs[j](t)]
-                              for j in range(J)]    
+                            for j in range(J)]
     else:
-        H_td_func = [H0] + [[H_ops[j], u[_r, j, :, best_k]] for j in range(J)]    
+        H_td_func = [H0] + [[H_ops[j], u[_r, j, :, best_k]] for j in range(J)]
 
     progress_bar.finished()
-    
-    #return Uf[best_k], H_td_func, u[:_r,:,:,best_k]
-    result = GRAPEResult(u=u[:_r,:,:,best_k], U_f=Uf[best_k], H_t=H_td_func)
+
+    # return Uf[best_k], H_td_func, u[:_r,:,:,best_k]
+    result = GRAPEResult(u=u[:_r, :, :, best_k], U_f=Uf[best_k],
+                         H_t=H_td_func)
 
     result.eps = eps_log
     result.overlap = overlap_log
