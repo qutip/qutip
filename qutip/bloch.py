@@ -38,10 +38,13 @@ import os
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
                    sqrt, real, mod, append, ceil, arange)
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d import proj3d
+try:
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib.patches import FancyArrowPatch
+    from mpl_toolkits.mplot3d import proj3d
+except:
+    pass
 
 from qutip.qobj import Qobj
 from qutip.expect import expect
