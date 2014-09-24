@@ -97,31 +97,31 @@ cpdef cy_grape_inner(U,
 	
     cdef int j, k 
  
-    for k in range(M-1):
-        P = U_b_list[k] * U
+    for m in range(M-1):
+        P = U_b_list[m] * U
         for j in range(J):
-            Q = 1j * dt * H_ops[j] * U_f_list[k]
+            Q = 1j * dt * H_ops[j] * U_f_list[m]
 
             if phase_sensitive:
                 du = - cy_overlap(P, Q)
             else:
-                du = - 2 * cy_overlap(P, Q) * cy_overlap(U_f_list[k], P) 
+                du = - 2 * cy_overlap(P, Q) * cy_overlap(U_f_list[m], P) 
 
             if alpha > 0.0:
                 # penalty term for high power control signals u
-                du += -2 * alpha * u[r, j, k] * dt
+                du += -2 * alpha * u[r, j, m] * dt
 
             if beta:
                 # penalty term for late control signals u
-                du += -2 * beta * k ** 2 * u[r, j, k] * dt
-                        
-            u[r + 1, j, k] = u[r, j, k] + eps * du.real
+                du += -2 * beta * m ** 2 * u[r, j, m] * dt
+
+            u[r + 1, j, m] = u[r, j, m] + eps * du.real
 
             if use_u_limits:
-                if u[r + 1, j, k] < u_min:
-                    u[r + 1, j, k] = u_min
-                elif u[r + 1, j, k] > u_max:
-                    u[r + 1, j, k] = u_max
+                if u[r + 1, j, m] < u_min:
+                    u[r + 1, j, m] = u_min
+                elif u[r + 1, j, m] > u_max:
+                    u[r + 1, j, m] = u_max
 
     for j in range(J):
         u[r + 1, j, -1] = u[r + 1, j, -2]
