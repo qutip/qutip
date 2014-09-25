@@ -42,17 +42,17 @@ __all__ = ['hinton', 'wigner_cmap', 'sphereplot', 'energy_level_diagram',
            'plot_expectation_values', 'plot_spin_distribution_2d',
            'plot_spin_distribution_3d', 'plot_qubism', 'plot_schmidt',
            'complex_array_to_rgb']
-           
-import warnings
+
 import numpy as np
 from numpy import pi, array, sin, cos, angle
 
-import qutip.settings
-if qutip.settings.qutip_graphics == 'YES':
+try:
     import matplotlib.pyplot as plt
     import matplotlib as mpl
     from matplotlib import cm
     from mpl_toolkits.mplot3d import Axes3D
+except:
+    pass
 
 from qutip.qobj import Qobj, isket, isbra
 from qutip.states import ket2dm

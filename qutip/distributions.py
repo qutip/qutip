@@ -41,10 +41,10 @@ distributions, such as Wigner distributions, etc.
 
 """
 
-__all__  = ['Distribution', 'WignerDistribution', 'QDistribution',
-            'TwoModeQuadratureCorrelation',
-            'HarmonicOscillatorWaveFunction',
-            'HarmonicOscillatorProbabilityFunction']
+__all__ = ['Distribution', 'WignerDistribution', 'QDistribution',
+           'TwoModeQuadratureCorrelation',
+           'HarmonicOscillatorWaveFunction',
+           'HarmonicOscillatorProbabilityFunction']
 
 import numpy as np
 from numpy import pi, exp, sqrt
@@ -55,12 +55,13 @@ from scipy.special import hermite
 from qutip.qobj import isket
 from qutip.wigner import wigner, qfunc
 from qutip.states import ket2dm, state_number_index
-import qutip.settings
 
-if qutip.settings.qutip_graphics == 'YES':
+try:
     import matplotlib as mpl
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
+except:
+    pass
 
 
 class Distribution:
