@@ -43,6 +43,7 @@ __all__ = ['hinton', 'wigner_cmap', 'sphereplot', 'energy_level_diagram',
            'plot_spin_distribution_3d', 'plot_qubism', 'plot_schmidt',
            'complex_array_to_rgb']
 
+import warnings
 import numpy as np
 from numpy import pi, array, sin, cos, angle
 
