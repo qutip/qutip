@@ -31,33 +31,37 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+__all__ = ['Bloch']
+
 import os
 
 from numpy import (ndarray, array, linspace, pi, outer, cos, sin, ones, size,
                    sqrt, real, mod, append, ceil, arange)
 
-import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d import Axes3D
-from matplotlib.patches import FancyArrowPatch
-from mpl_toolkits.mplot3d import proj3d
-
 from qutip.qobj import Qobj
 from qutip.expect import expect
 from qutip.operators import sigmax, sigmay, sigmaz
 
+try:
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib.patches import FancyArrowPatch
+    from mpl_toolkits.mplot3d import proj3d
 
-class Arrow3D(FancyArrowPatch):
-    def __init__(self, xs, ys, zs, *args, **kwargs):
-        FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
+    class Arrow3D(FancyArrowPatch):
+        def __init__(self, xs, ys, zs, *args, **kwargs):
+            FancyArrowPatch.__init__(self, (0, 0), (0, 0), *args, **kwargs)
 
-        self._verts3d = xs, ys, zs
+            self._verts3d = xs, ys, zs
 
-    def draw(self, renderer):
-        xs3d, ys3d, zs3d = self._verts3d
-        xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
+        def draw(self, renderer):
+            xs3d, ys3d, zs3d = self._verts3d
+            xs, ys, zs = proj3d.proj_transform(xs3d, ys3d, zs3d, renderer.M)
 
-        self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
-        FancyArrowPatch.draw(self, renderer)
+            self.set_positions((xs[0], ys[0]), (xs[1], ys[1]))
+            FancyArrowPatch.draw(self, renderer)
+except:
+    pass
 
 
 class Bloch():
@@ -156,13 +160,13 @@ class Bloch():
         self.zlabel = [r'$\left|0\right>$', r'$\left|1\right>$']
         # Position of z-axis labels, default = [1.2, -1.2]
         self.zlpos = [1.2, -1.2]
-        #---font options---
+        # ---font options---
         # Color of fonts, default = 'black'
         self.font_color = 'black'
         # Size of fonts, default = 20
         self.font_size = 20
 
-        #---vector options---
+        # ---vector options---
         # List of colors for Bloch vectors, default = ['b','g','r','y']
         self.vector_color = ['g', '#CC6600', 'b', 'r']
         #: Width of Bloch vectors, default = 5
@@ -172,7 +176,7 @@ class Bloch():
         #: Sets the width of the vectors arrowhead
         self.vector_mutation = 20
 
-        #---point options---
+        # ---point options---
         # List of colors for Bloch point markers, default = ['b','g','r','y']
         self.point_color = ['b', 'r', 'g', '#CC6600']
         # Size of point markers, default = 25
@@ -180,7 +184,7 @@ class Bloch():
         # Shape of point markers, default = ['o','^','d','s']
         self.point_marker = ['o', 's', 'd', '^']
 
-        #---data lists---
+        # ---data lists---
         # Data for point markers
         self.points = []
         # Data for Bloch vectors

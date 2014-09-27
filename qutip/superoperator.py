@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,60 +18,30 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import scipy
-import scipy.linalg as la
+__all__ = ['liouvillian', 'liouvillian_ref', 'lindblad_dissipator',
+           'operator_to_vector', 'vector_to_operator', 'mat2vec', 'vec2mat',
+           'vec2mat_index', 'mat2vec_index', 'spost', 'spre', 'sprepost']
+
 import scipy.sparse as sp
-from scipy import prod, transpose, reshape
-from qutip.qobj import *
-from qutip.operators import destroy
+import numpy as np
+from qutip.qobj import Qobj
 from qutip.sparse import sp_reshape
 
 
-def liouvillian(H, c_op_list=[]):
-    """Assembles the Liouvillian superoperator from a Hamiltonian
-    and a ``list`` of collapse operators.
-
-    Parameters
-    ----------
-    H : qobj
-        System Hamiltonian.
-
-    c_op_list : array_like
-        A ``list`` or ``array`` of collapse operators.
-
-    Returns
-    -------
-    L : qobj
-        Liouvillian superoperator.
-
-    """
-
-    L = -1.0j * (spre(H) - spost(H)) if H else 0
-
-    for c in c_op_list:
-        if c.issuper:
-            L += c
-        else:
-            cdc = c.dag() * c
-            L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
-
-    return L
-
-
-def liouvillian_fast(H, c_op_list, data_only=False):
+def liouvillian(H, c_ops=[], data_only=False):
     """Assembles the Liouvillian superoperator from a Hamiltonian
     and a ``list`` of collapse operators. Like liouvillian, but with an
     experimental implementation which avoids creating extra Qobj instances,
@@ -82,7 +52,7 @@ def liouvillian_fast(H, c_op_list, data_only=False):
     H : qobj
         System Hamiltonian.
 
-    c_op_list : array_like
+    c_ops : array_like
         A ``list`` or ``array`` of collapse operators.
 
     Returns
@@ -98,28 +68,28 @@ def liouvillian_fast(H, c_op_list, data_only=False):
             op_shape = H.shape
         elif H.issuper:
             op_dims = H.dims[0]
-            op_shape = [prod(op_dims[0]), prod(op_dims[0])]
+            op_shape = [np.prod(op_dims[0]), np.prod(op_dims[0])]
         else:
             raise TypeError("Invalid type for Hamiltonian.")
     else:
         # no hamiltonian given, pick system size from a collapse operator
-        if isinstance(c_op_list, list) and len(c_op_list) > 0:
-            c = c_op_list[0]
+        if isinstance(c_ops, list) and len(c_ops) > 0:
+            c = c_ops[0]
             if c.isoper:
                 op_dims = c.dims
                 op_shape = c.shape
             elif c.issuper:
                 op_dims = c.dims[0]
-                op_shape = [prod(op_dims[0]), prod(op_dims[0])]
+                op_shape = [np.prod(op_dims[0]), np.prod(op_dims[0])]
             else:
                 raise TypeError("Invalid type for collapse operator.")
         else:
-            raise TypeError("Either H or c_op_list must be given.")
+            raise TypeError("Either H or c_ops must be given.")
 
     sop_dims = [[op_dims[0], op_dims[0]], [op_dims[1], op_dims[1]]]
-    sop_shape = [prod(op_dims), prod(op_dims)]
+    sop_shape = [np.prod(op_dims), np.prod(op_dims)]
 
-    spI = sp.identity(op_shape[0])
+    spI = sp.identity(op_shape[0], format='csr')
 
     if H:
         if H.isoper:
@@ -130,7 +100,7 @@ def liouvillian_fast(H, c_op_list, data_only=False):
     else:
         data = sp.csr_matrix((sop_shape[0], sop_shape[1]), dtype=complex)
 
-    for c_op in c_op_list:
+    for c_op in c_ops:
         if c_op.issuper:
             data = data + c_op.data
         else:
@@ -152,15 +122,65 @@ def liouvillian_fast(H, c_op_list, data_only=False):
         return L
 
 
-def lindblad_dissipator(c, data_only=False):
-    """
-    Return the Lindblad dissipator for a single collapse operator.
+def liouvillian_ref(H, c_ops=[]):
+    """Assembles the Liouvillian superoperator from a Hamiltonian
+    and a ``list`` of collapse operators.
 
-    TODO: optimize like liouvillian_fast
+    Parameters
+    ----------
+    H : qobj
+        System Hamiltonian.
+
+    c_ops : array_like
+        A ``list`` or ``array`` of collapse operators.
+
+    Returns
+    -------
+    L : qobj
+        Liouvillian superoperator.
     """
 
-    cdc = c.dag() * c
-    D = spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
+    L = -1.0j * (spre(H) - spost(H)) if H else 0
+
+    for c in c_ops:
+        if c.issuper:
+            L += c
+        else:
+            cdc = c.dag() * c
+            L += spre(c) * spost(c.dag()) - 0.5 * spre(cdc) - 0.5 * spost(cdc)
+
+    return L
+
+
+def lindblad_dissipator(a, b=None, data_only=False):
+    """
+    Lindblad dissipator (generalized) for a single pair of collapse operators
+    (a, b), or for a single collapse operator (a) when b is not specified:
+
+    .. math::
+
+        \\mathcal{D}[a,b]\\rho = a \\rho b^\\dagger -
+        \\frac{1}{2}a^\\dagger b\\rho - \\frac{1}{2}\\rho a^\\dagger b
+
+    Parameters
+    ----------
+    a : qobj
+        Left part of collapse operator.
+
+    b : qobj (optional)
+        Right part of collapse operator. If not specified, b defaults to a.
+
+    Returns
+    -------
+    D : qobj
+        Lindblad dissipator superoperator.
+    """
+
+    if b is None:
+        b = a
+
+    ad_b = a.dag() * b
+    D = spre(a) * spost(b.dag()) - 0.5 * spre(ad_b) - 0.5 * spost(ad_b)
 
     return D.data if data_only else D
 
@@ -191,14 +211,14 @@ def mat2vec(mat):
     """
     Private function reshaping matrix to vector.
     """
-    return mat.T.reshape(prod(shape(mat)), 1)
+    return mat.T.reshape(np.prod(np.shape(mat)), 1)
 
 
 def vec2mat(vec):
     """
     Private function reshaping vector to matrix.
     """
-    n = int(sqrt(len(vec)))
+    n = int(np.sqrt(len(vec)))
     return vec.reshape((n, n)).T
 
 
@@ -241,7 +261,7 @@ def spost(A):
 
     S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.data = sp.kron(A.data.T, sp.identity(prod(A.dims[0])), format='csr')
+    S.data = sp.kron(A.data.T, sp.identity(np.prod(A.dims[0])), format='csr')
     return S
 
 
@@ -257,7 +277,6 @@ def spre(A):
     --------
     super :qobj
         Superoperator formed from input quantum object.
-
     """
     if not isinstance(A, Qobj):
         raise TypeError('Input is not a quantum object')
@@ -267,5 +286,37 @@ def spre(A):
 
     S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.data = sp.kron(sp.identity(prod(A.dims[1])), A.data, format='csr')
+    S.data = sp.kron(sp.identity(np.prod(A.dims[1])), A.data, format='csr')
     return S
+
+
+def _drop_projected_dims(dims):
+    """
+    Eliminate subsystems that has been collapsed to only one state due to
+    a projection.
+    """
+    return [d for d in dims if d != 1]
+
+
+def sprepost(A, B):
+    """Superoperator formed from pre-multiplication by operator A and post-
+    multiplication of operator B.
+
+    Parameters
+    ----------
+    A : Qobj
+        Quantum operator for pre-multiplication.
+
+    B : Qobj
+        Quantum operator for post-multiplication.
+
+    Returns
+    --------
+    super : Qobj
+        Superoperator formed from input quantum objects.
+    """
+
+    dims = [[_drop_projected_dims(A.dims[0]), _drop_projected_dims(B.dims[1])],
+            [_drop_projected_dims(A.dims[1]), _drop_projected_dims(B.dims[0])]]
+    data = sp.kron(B.data.T, A.data, format='csr')
+    return Qobj(data, dims=dims, superrep='super')

@@ -35,8 +35,8 @@ This module contains a collection of functions for calculating metrics
 (distance measures) between states and operators.
 """
 
-from qutip.qobj import *
-import scipy.linalg as la
+__all__= ['fidelity', 'tracedist', 'average_gate_fidelity', 'process_fidelity']
+
 import numpy as np
 from qutip.sparse import sp_eigs
 from qutip.states import ket2dm
@@ -62,8 +62,8 @@ def fidelity(A, B):
 
     Examples
     --------
-    >>> x=fock_dm(5,3)
-    >>> y=coherent_dm(5,1)
+    >>> x = fock_dm(5,3)
+    >>> y = coherent_dm(5,1)
     >>> fidelity(x,y)
     0.24104350624628332
 
@@ -155,7 +155,7 @@ def tracedist(A, B, sparse=False, tol=0):
 
     diff = A - B
     diff = diff.dag() * diff
-    vals = sp_eigs(diff, vecs=False, sparse=sparse, tol=tol)
+    vals = sp_eigs(diff.data, diff.isherm, vecs=False, sparse=sparse, tol=tol)
     return float(np.real(0.5 * np.sum(np.sqrt(np.abs(vals)))))
 
 
@@ -214,7 +214,7 @@ def bures_dist(A, B):
     if A.dims != B.dims:
         raise TypeError('A and B do not have same dimensions.')
 
-    dist = np.sqrt(2.0 * (1.0 - np.sqrt(fidelity(A, B))))
+    dist = np.sqrt(2.0 * (1.0 - fidelity(A, B)))
     return dist
 
 
@@ -244,4 +244,4 @@ def bures_angle(A, B):
     if A.dims != B.dims:
         raise TypeError('A and B do not have same dimensions.')
 
-    return np.arccos(np.sqrt(fidelity(A, B)))
+    return np.arccos(fidelity(A, B))

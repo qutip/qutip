@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,18 +18,21 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
+__all__ = ['entropy_vn', 'entropy_linear', 'entropy_mutual',
+           'concurrence', 'entropy_conditional', 'entangling_power']
 
 from numpy import e, real, sort, sqrt
 from scipy import log, log2
@@ -38,6 +41,7 @@ from qutip.states import ket2dm
 from qutip.tensor import tensor
 from qutip.operators import sigmay
 from qutip.sparse import sp_eigs
+from qutip.qip.gates import swap
 
 
 def entropy_vn(rho, base=e, sparse=False):
@@ -67,7 +71,7 @@ def entropy_vn(rho, base=e, sparse=False):
     """
     if rho.type == 'ket' or rho.type == 'bra':
         rho = ket2dm(rho)
-    vals = sp_eigs(rho, vecs=False, sparse=sparse)
+    vals = sp_eigs(rho.data, rho.isherm, vecs=False, sparse=sparse)
     nzvals = vals[vals != 0]
     if base == 2:
         logvals = log2(nzvals)
@@ -106,22 +110,35 @@ def entropy_linear(rho):
 
 def concurrence(rho):
     """
-    Calculate the concurrence entanglement measure for
-    a two-qubit state.
+    Calculate the concurrence entanglement measure for a two-qubit state.
 
     Parameters
     ----------
-    rho : qobj
-        Density matrix for two-qubits.
+    state : qobj
+        Ket, bra, or density matrix for a two-qubit state.
 
     Returns
     -------
     concur : float
         Concurrence
 
+    References
+    ----------
+
+    .. [1] http://en.wikipedia.org/wiki/Concurrence_(quantum_computing)
+
     """
-    if rho.dims != [[2, 2], [2, 2]]:
+    if rho.isket and rho.dims != [[2, 2], [1, 1]]:
+        raise Exception("Ket must be tensor product of two qubits.")
+
+    elif rho.isbra and rho.dims != [[1, 1], [2, 2]]:
+        raise Exception("Bra must be tensor product of two qubits.")
+
+    elif rho.isoper and rho.dims != [[2, 2], [2, 2]]:
         raise Exception("Density matrix must be tensor product of two qubits.")
+
+    if rho.isket or rho.isbra:
+        rho = ket2dm(rho)
 
     sysy = tensor(sigmay(), sigmay())
 
@@ -204,7 +221,7 @@ def _entropy_relative(rho, sigma, base=e, sparse=False):
     if rho.type != 'oper' or sigma.type != 'oper':
         raise TypeError("Inputs must be density matrices..")
     # sigma terms
-    svals = sp_eigs(sigma, vecs=False, sparse=sparse)
+    svals = sp_eigs(sigma.data, sigma.isherm, vecs=False, sparse=sparse)
     snzvals = svals[svals != 0]
     if base == 2:
         slogvals = log2(snzvals)
@@ -213,7 +230,7 @@ def _entropy_relative(rho, sigma, base=e, sparse=False):
     else:
         raise ValueError("Base must be 2 or e.")
     # rho terms
-    rvals = sp_eigs(rho, vecs=False, sparse=sparse)
+    rvals = sp_eigs(rho.data, rho.isherm, vecs=False, sparse=sparse)
     rnzvals = rvals[rvals != 0]
     # calculate tr(rho*log sigma)
     rel_trace = float(real(sum(rnzvals * slogvals)))
@@ -275,3 +292,38 @@ def participation_ratio(rho):
         return 1.0
     else:
         return 1.0 / (rho ** 2).tr()
+
+
+def entangling_power(U):
+    """
+    Calculate the entangling power of a two-qubit gate U, which
+    is zero of nonentangling gates and 1 and 2/9 for maximally
+    entangling gates.
+
+    Parameters
+    ----------
+    U : qobj
+        Qobj instance representing a two-qubit gate.
+
+    Returns
+    -------
+    ep : float
+        The entanglement power of U (real number between 0 and 1)
+
+    References:
+
+        Explorations in Quantum Computing, Colin P. Williams (Springer, 2011)
+    """
+
+    if not U.isoper:
+        raise Exception("U must be an operator.")
+
+    if U.dims != [[2, 2], [2, 2]]:
+        raise Exception("U must be a two-qubit gate.")
+
+    a = (tensor(U, U).dag() * swap(N=4, targets=[1, 3]) *
+         tensor(U, U) * swap(N=4, targets=[1, 3]))
+    b = (tensor(swap() * U, swap() * U).dag() * swap(N=4, targets=[1, 3]) *
+         tensor(swap() * U, swap() * U) * swap(N=4, targets=[1, 3]))
+
+    return 5.0/9 - 1.0/36 * (a.tr() + b.tr()).real

@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,32 +18,35 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from numpy import linspace, sum, abs
-from numpy.testing import assert_, run_module_suite, assert_equal
-from qutip import *
+import numpy as np
 from scipy.special import laguerre
 from numpy.random import rand
+from numpy.testing import assert_, run_module_suite, assert_equal
+
+from qutip.states import coherent, fock
+from qutip.wigner import wigner
+from qutip.random_objects import rand_dm, rand_ket
 
 
 def test_wigner_coherent():
     "wigner: test wigner function calculation for coherent states"
-    xvec = linspace(-5.0, 5.0, 100)
+    xvec = np.linspace(-5.0, 5.0, 100)
     yvec = xvec
 
-    X, Y = meshgrid(xvec, yvec)
+    X, Y = np.meshgrid(xvec, yvec)
 
     a = X + 1j * Y  # consistent with g=2 option to wigner function
 
@@ -56,23 +59,23 @@ def test_wigner_coherent():
 
     # calculate the wigner function using qutip and analytic formula
     W_qutip = wigner(psi, xvec, yvec, g=2)
-    W_analytic = 2 / pi * exp(-2 * abs(a - beta) ** 2)
+    W_analytic = 2 / np.pi * np.exp(-2 * abs(a - beta) ** 2)
 
     # check difference
-    assert_(sum(abs(W_qutip - W_analytic) ** 2) < 1e-4)
+    assert_(np.sum(abs(W_qutip - W_analytic) ** 2) < 1e-4)
 
     # check normalization
-    assert_(sum(W_qutip) * dx * dy - 1.0 < 1e-8)
-    assert_(sum(W_analytic) * dx * dy - 1.0 < 1e-8)
+    assert_(np.sum(W_qutip) * dx * dy - 1.0 < 1e-8)
+    assert_(np.sum(W_analytic) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_fock():
     "wigner: test wigner function calculation for Fock states"
 
-    xvec = linspace(-5.0, 5.0, 100)
+    xvec = np.linspace(-5.0, 5.0, 100)
     yvec = xvec
 
-    X, Y = meshgrid(xvec, yvec)
+    X, Y = np.meshgrid(xvec, yvec)
 
     a = X + 1j * Y  # consistent with g=2 option to wigner function
 
@@ -87,26 +90,26 @@ def test_wigner_fock():
 
         # calculate the wigner function using qutip and analytic formula
         W_qutip = wigner(psi, xvec, yvec, g=2)
-        W_analytic = 2 / pi * (-1) ** n * exp(-2 * abs(a) ** 2) * polyval(
+        W_analytic = 2 / np.pi * (-1) ** n * np.exp(-2 * abs(a) ** 2) * np.polyval(
             laguerre(n), 4 * abs(a) ** 2)
 
         # check difference
-        assert_(sum(abs(W_qutip - W_analytic)) < 1e-4)
+        assert_(np.sum(abs(W_qutip - W_analytic)) < 1e-4)
 
         # check normalization
-        assert_(sum(W_qutip) * dx * dy - 1.0 < 1e-8)
-        assert_(sum(W_analytic) * dx * dy - 1.0 < 1e-8)
+        assert_(np.sum(W_qutip) * dx * dy - 1.0 < 1e-8)
+        assert_(np.sum(W_analytic) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_compare_methods_dm():
     "wigner: compare wigner methods for random density matrices"
 
-    xvec = linspace(-5.0, 5.0, 100)
+    xvec = np.linspace(-5.0, 5.0, 100)
     yvec = xvec
 
-    X, Y = meshgrid(xvec, yvec)
+    X, Y = np.meshgrid(xvec, yvec)
 
-    a = X + 1j * Y  # consistent with g=2 option to wigner function
+    #a = X + 1j * Y  # consistent with g=2 option to wigner function
 
     dx = xvec[1] - xvec[0]
     dy = yvec[1] - yvec[0]
@@ -123,22 +126,22 @@ def test_wigner_compare_methods_dm():
         W_qutip2 = wigner(rho, xvec, yvec, g=2, method='laguerre')
 
         # check difference
-        assert_(sum(abs(W_qutip1 - W_qutip1)) < 1e-4)
+        assert_(np.sum(abs(W_qutip1 - W_qutip1)) < 1e-4)
 
         # check normalization
-        assert_(sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
-        assert_(sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
+        assert_(np.sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
+        assert_(np.sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_compare_methods_ket():
     "wigner: compare wigner methods for random state vectors"
 
-    xvec = linspace(-5.0, 5.0, 100)
+    xvec = np.linspace(-5.0, 5.0, 100)
     yvec = xvec
 
-    X, Y = meshgrid(xvec, yvec)
+    X, Y = np.meshgrid(xvec, yvec)
 
-    a = X + 1j * Y  # consistent with g=2 option to wigner function
+    #a = X + 1j * Y  # consistent with g=2 option to wigner function
 
     dx = xvec[1] - xvec[0]
     dy = yvec[1] - yvec[0]
@@ -155,17 +158,17 @@ def test_wigner_compare_methods_ket():
         W_qutip2 = wigner(psi, xvec, yvec, g=2, method='laguerre')
 
         # check difference
-        assert_(sum(abs(W_qutip1 - W_qutip1)) < 1e-4)
+        assert_(np.sum(abs(W_qutip1 - W_qutip1)) < 1e-4)
 
         # check normalization
-        assert_(sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
-        assert_(sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
+        assert_(np.sum(W_qutip1) * dx * dy - 1.0 < 1e-8)
+        assert_(np.sum(W_qutip2) * dx * dy - 1.0 < 1e-8)
 
 
 def test_wigner_fft_comparse_ket():
     "Wigner: Compare Wigner fft and iterative for rand. ket"
     N = 20
-    xvec = linspace(-10, 10, 128)
+    xvec = np.linspace(-10, 10, 128)
     for i in range(3):
         rho = rand_ket(N)
 
@@ -173,13 +176,13 @@ def test_wigner_fft_comparse_ket():
         W = wigner(rho, xvec, yvec, method='iterative')
 
         Wdiff = abs(W - Wfft)
-        assert_equal(sum(abs(Wdiff)) < 1e-7, True)
+        assert_equal(np.sum(abs(Wdiff)) < 1e-7, True)
 
 
 def test_wigner_fft_comparse_dm():
     "Wigner: Compare Wigner fft and iterative for rand. dm"
     N = 20
-    xvec = linspace(-10, 10, 128)
+    xvec = np.linspace(-10, 10, 128)
     for i in range(3):
         rho = rand_dm(N)
 
@@ -187,7 +190,7 @@ def test_wigner_fft_comparse_dm():
         W = wigner(rho, xvec, yvec, method='iterative')
 
         Wdiff = abs(W - Wfft)
-        assert_equal(sum(abs(Wdiff)) < 1e-7, True)
+        assert_equal(np.sum(abs(Wdiff)) < 1e-7, True)
 
 if __name__ == "__main__":
     run_module_suite()

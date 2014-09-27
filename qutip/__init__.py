@@ -30,31 +30,33 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+from __future__ import division, print_function, absolute_import
 import os
-import sys
-import platform
-import qutip.settings
-import qutip.version
-from qutip.version import version as __version__
-
+# Fix the multiprocessing issue with NumPy compiled against OPENBLAS
+if 'OPENBLAS_MAIN_FREE' not in os.environ:
+    os.environ['OPENBLAS_MAIN_FREE'] = '1'
 # automatically set number of threads used by MKL and openblas to 1
 # prevents errors when running things in parallel.  Should be set
 # by user directly in a script or notebook if >1 is needed.
 # Must be set BEFORE importing NumPy
-if not 'MKL_NUM_THREADS' in os.environ:
+if 'MKL_NUM_THREADS' not in os.environ:
     os.environ['MKL_NUM_THREADS'] = '1'
 
-if not 'OPENBLAS_NUM_THREADS' in os.environ:
+if 'OPENBLAS_NUM_THREADS' not in os.environ:
     os.environ['OPENBLAS_NUM_THREADS'] = '1'
-#------------------------------------------------------------------------------
+
+import sys
+import warnings
+
+import qutip.settings
+import qutip.version
+from qutip.version import version as __version__
+from qutip.utilities import _version2int
+
+# -----------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
 # if the requirements aren't fulfilled
 #
-def _version2int(version_string):
-    str_list = version_string.split(
-        "-dev")[0].split("rc")[0].split("b")[0].split("post")[0].split('.')
-    return sum([int(d if len(d) > 0 else 0) * (100 ** (3 - n))
-                for n, d in enumerate(str_list[:3])])
 
 numpy_requirement = "1.6.0"
 try:
@@ -64,7 +66,7 @@ try:
               ("(%s), requiring %s." %
                (numpy.__version__, numpy_requirement)))
 except:
-    print("QuTiP warning: numpy not found.")
+    warnings.warn("numpy not found.")
 
 scipy_requirement = "0.11.0"
 try:
@@ -74,9 +76,9 @@ try:
               ("(%s), requiring %s." %
                (scipy.__version__, scipy_requirement)))
 except:
-    print("QuTiP warning: scipy not found.")
+    warnings.warn("scipy not found.")
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # check to see if running from install directory for released versions.
 #
 top_path = os.path.dirname(os.path.dirname(__file__))
@@ -90,8 +92,9 @@ else:
               "Change directories before running QuTiP.")
     setup_file.close()
 
+del top_path
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # setup the cython environment
 #
 _cython_requirement = "0.15.0"
@@ -108,16 +111,14 @@ try:
 
 except Exception as e:
     print("QuTiP warning: Cython setup failed: " + str(e))
+else:
+    del Cython, pyximport
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # default configuration settings
 #
 
-# Fix the multiprocessing issue with NumPy compiled against OPENBLAS
-# Must be set BEFORE importing multiprocessing
-if not 'OPENBLAS_MAIN_FREE' in os.environ:
-    os.environ['OPENBLAS_MAIN_FREE'] = '1'
 import multiprocessing
 
 # load cpus
@@ -128,9 +129,8 @@ if 'cpus' in info:
 else:
     qutip.settings.num_cpus = multiprocessing.cpu_count()
 
-qutip.settings.qutip_graphics = "YES"
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.
 #
 try:
@@ -145,30 +145,29 @@ if 'QUTIP_NUM_PROCESSES' in os.environ:
     qutip.settings.num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])
 else:
     os.environ['QUTIP_NUM_PROCESSES'] = str(qutip.settings.num_cpus)
-#------------------------------------------------------------------------------
+
+# -----------------------------------------------------------------------------
 # Load configuration from environment variables: override defaults and
 # configuration file.
 #
 
-if not ('QUTIP_GRAPHICS' in os.environ):
-    os.environ['QUTIP_GRAPHICS'] = qutip.settings.qutip_graphics
-else:
-    qutip.settings.qutip_graphics = os.environ['QUTIP_GRAPHICS']
-
-# check if being run remotely
-if not sys.platform in ['darwin', 'win32'] and not ('DISPLAY' in os.environ):
-    # no graphics if DISPLAY isn't set
-    os.environ['QUTIP_GRAPHICS'] = "NO"
-    qutip.settings.qutip_graphics = "NO"
-
+# check for fortran mcsolver files
 try:
-    from qutip.fortran import qutraj_run
+    from qutip.fortran import mcsolve_f90
 except:
     qutip.settings.fortran = False
 else:
     qutip.settings.fortran = True
-    from qutip.fortran import *
-#------------------------------------------------------------------------------
+
+# check for scikits.umfpack
+try:
+    import scikits.umfpack as umfpack
+except:
+    qutip.settings.umfpack = False
+else:
+    qutip.settings.umfpack = True
+    del umfpack
+# -----------------------------------------------------------------------------
 # Check that import modules are compatible with requested configuration
 #
 
@@ -176,10 +175,16 @@ else:
 try:
     import matplotlib
 except:
-    os.environ['QUTIP_GRAPHICS'] = "NO"
-    qutip.settings.qutip_graphics = 'NO'
+    warnings.warn("matplotlib not found: Graphics will not work.")
+else:
+    del matplotlib
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Clean name space
+#
+del os, sys, numpy, scipy, multiprocessing
+
+# -----------------------------------------------------------------------------
 # Load modules
 #
 
@@ -187,56 +192,36 @@ except:
 from qutip.qobj import *
 from qutip.states import *
 from qutip.operators import *
-from qutip.expect import *
 from qutip.superoperator import *
+from qutip.expect import *
 from qutip.tensor import *
 from qutip.parfor import *
-from qutip.sparse import *
 
 # graphics
-if qutip.settings.qutip_graphics == 'YES':
-    from qutip.bloch import Bloch
-    from qutip.visualization import (
-        hinton, wigner_cmap, sphereplot,
-        energy_level_diagram, plot_energy_levels,
-        fock_distribution, plot_fock_distribution,
-        wigner_fock_distribution, plot_wigner_fock_distribution, plot_wigner,
-        plot_expectation_values, plot_spin_distribution_2d,
-        plot_spin_distribution_3d,
-        plot_qubism, plot_schmidt, complex_array_to_rgb)
-
-    from qutip.orbital import *
-    # load mayavi dependent functions if available
-    try:
-        import mayavi
-    except:
-        pass
-    else:
-        from qutip.bloch3d import Bloch3d
+from qutip.bloch import *
+from qutip.visualization import *
+from qutip.orbital import *
+from qutip.bloch3d import *
 
 # library functions
 from qutip.tomography import *
 from qutip.wigner import *
 from qutip.random_objects import *
 from qutip.simdiag import *
-from qutip.entropy import (entropy_vn, entropy_linear, entropy_mutual,
-                           concurrence, entropy_conditional)
-from qutip.metrics import (fidelity, tracedist, average_gate_fidelity,
-                           process_fidelity)
-from qutip.partial_transpose import partial_transpose
-from qutip.permute import reshuffle
+from qutip.entropy import *
+from qutip.metrics import *
+from qutip.partial_transpose import *
+from qutip.permute import *
 from qutip.continuous_variables import *
 from qutip.distributions import *
 
 # evolution
-from qutip.odeconfig import odeconfig
-from qutip.odeoptions import Odeoptions
-from qutip.odedata import Odedata
-from qutip.rhs_generate import rhs_generate, rhs_clear
-from qutip.mesolve import mesolve, odesolve
-from qutip.sesolve import sesolve
-from qutip.mcsolve import mcsolve
-from qutip.stochastic import ssesolve, sepdpsolve, smesolve, smepdpsolve
+from qutip.solver import *
+from qutip.rhs_generate import *
+from qutip.mesolve import *
+from qutip.sesolve import *
+from qutip.mcsolve import *
+from qutip.stochastic import *
 from qutip.essolve import *
 from qutip.eseries import *
 from qutip.steadystate import *
@@ -245,8 +230,7 @@ from qutip.propagator import *
 from qutip.floquet import *
 from qutip.bloch_redfield import *
 from qutip.superop_reps import *
-from qutip.subsystem_apply import subsystem_apply
-from qutip.sparse import sparse_bandwidth
+from qutip.subsystem_apply import *
 from qutip.graph import *
 
 # quantum information
