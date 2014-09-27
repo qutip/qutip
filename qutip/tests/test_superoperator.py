@@ -58,6 +58,34 @@ class TestMatrixVector:
 
         assert_((rho1 - rho2).norm() < 1e-8)
 
+    def testOperatorSpreApplication(self):
+        """
+        Superoperator: apply operator and superoperator from left (spre)
+        """
+        N = 3
+        rho = rand_dm(N)
+        U = rand_unitary(N)
+
+        rho1 = U * rho
+        rho2_vec = spre(U) * operator_to_vector(rho)
+        rho2 = vector_to_operator(rho2_vec)
+
+        assert_((rho1 - rho2).norm() < 1e-8)
+        
+    def testOperatorSpostApplication(self):
+        """
+        Superoperator: apply operator and superoperator from right (spost)
+        """
+        N = 3
+        rho = rand_dm(N)
+        U = rand_unitary(N)
+
+        rho1 = rho * U
+        rho2_vec = spost(U) * operator_to_vector(rho)
+        rho2 = vector_to_operator(rho2_vec)
+
+        assert_((rho1 - rho2).norm() < 1e-8)
+        
     def testOperatorUnitaryTransformation(self):
         """
         Superoperator: Unitary transformation with operators and superoperators
