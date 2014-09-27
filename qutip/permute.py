@@ -78,7 +78,7 @@ def _permute(Q, order):
         perm_matrix = perm_matrix.tocsr()
         dims_part = list(dims[order])
         dims = [dims_part, dims_part]
-        return (perm_matrix * Q.data) * perm_matrix.T, dims, Q.shape
+        return (perm_matrix * Q.data) * perm_matrix.T, dims
     
     elif Q.type == 'super' or Q.type == 'operator-ket':
         # For superoperators, we expect order to be something like
@@ -114,9 +114,9 @@ def _permute(Q, order):
         dims_part = list(_chunk_dims(dims_part, order))
         perm_left = (perm_matrix * Q.data)
         if Q.type == 'operator-ket':
-            return perm_left, [dims_part, [1]], Q.shape
+            return perm_left, [dims_part, [1]]
         elif Q.type == 'super':
-            return perm_left * perm_matrix.T, [dims_part, dims_part], Q.shape
+            return perm_left * perm_matrix.T, [dims_part, dims_part]
     else:
         raise TypeError('Invalid quantum object for permutation.')
 
