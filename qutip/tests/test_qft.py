@@ -31,9 +31,8 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-import numpy as np
 from numpy.testing import assert_, run_module_suite
-from qutip.qip.qft import qft, qft_steps
+from qutip.qip.algorithms.qft import qft, qft_steps
 from qutip.qip.gates import gate_sequence_product
 
 

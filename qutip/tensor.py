@@ -33,12 +33,16 @@
 """
 Module for the creation of composite quantum objects via the tensor product.
 """
+
+__all__ = ['tensor', 'super_tensor']
+
 import numpy as np
 import scipy.sparse as sp
 
 from qutip.qobj import Qobj
 from qutip.permute import reshuffle
 import qutip.settings
+
 
 def tensor(*args):
     """Calculates the tensor product of input operators.
@@ -109,7 +113,8 @@ shape = [4, 4], type = oper, isHerm = True
         out._isherm = None
 
     return out.tidyup() if qutip.settings.auto_tidyup else out
-    
+
+
 def super_tensor(*args):
     """Calculates the tensor product of input superoperators, by tensoring
     together the underlying Hilbert spaces on which each vectorized operator

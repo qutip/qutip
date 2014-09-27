@@ -31,23 +31,25 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+__all__ = ['brmesolve', 'bloch_redfield_solve', 'bloch_redfield_tensor']
+
 import numpy as np
 import scipy.integrate
 
 from qutip.qobj import Qobj, isket
 from qutip.superoperator import spre, spost, vec2mat, mat2vec, vec2mat_index
 from qutip.expect import expect
-from qutip.odeoptions import Odeoptions
+from qutip.solver import Options
 from qutip.cy.spmatfuncs import cy_ode_rhs
-from qutip.odedata import Odedata
+from qutip.solver import Result
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Solve the Bloch-Redfield master equation
 #
 #
 def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
-              args={}, options=Odeoptions()):
+              args={}, options=Options()):
     """
     Solve the dynamics for the system using the Bloch-Redfeild master equation.
 
@@ -84,9 +86,9 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
     Returns
     -------
 
-    output: :class:`qutip.odedata`
+    output: :class:`qutip.solver`
 
-        An instance of the class :class:`qutip.odedata`, which contains either
+        An instance of the class :class:`qutip.solver`, which contains either
         a list of expectation values, for operators given in e_ops, or a list
         of states for the times specified by `tlist`.
     """
@@ -97,7 +99,7 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
 
     R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb)
 
-    output = Odedata()
+    output = Result()
     output.solver = "brmesolve"
     output.times = tlist
 
@@ -111,7 +113,7 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
     return output
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Evolution of the Bloch-Redfield master equation given the Bloch-Redfield
 # tensor.
 #
@@ -145,15 +147,15 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
     Returns
     -------
 
-    output: :class:`qutip.odedata`
+    output: :class:`qutip.solver`
 
-        An instance of the class :class:`qutip.odedata`, which contains either
+        An instance of the class :class:`qutip.solver`, which contains either
         an *array* of expectation values for the times specified by `tlist`.
 
     """
 
     if options is None:
-        options = Odeoptions()
+        options = Options()
 
     if options.tidy:
         R.tidyup()
@@ -307,8 +309,8 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, use_secular=True):
                     # for each operator coupling the system to the environment
 
                     R.data[I, J] += ((A[k, a, c] * A[k, d, b] / 2) *
-                                    (spectra_cb[k](W[c, a]) +
-                                     spectra_cb[k](W[d, b])))
+                                     (spectra_cb[k](W[c, a]) +
+                                      spectra_cb[k](W[d, b])))
                     s1 = s2 = 0
                     for n in range(N):
                         s1 += A[k, a, n] * A[k, n, c] * spectra_cb[k](W[c, n])

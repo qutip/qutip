@@ -34,11 +34,7 @@ import numpy as np
 cimport numpy as np
 cimport cython
 
-# see scipy/sparse/csgraph/parameters.pxi
-
-ctypedef np.int32_t ITYPE_t
-ITYPE = np.int32
-
+include "parameters.pxi"
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -63,6 +59,22 @@ def _sparse_bandwidth(
             mb = max(mb, ub + lb + 1)
 
     return mb, lb, ub
+
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+def _sparse_profile(np.ndarray[ITYPE_t, ndim=1] idx,
+        np.ndarray[ITYPE_t, ndim=1] ptr,
+        int nrows):
+    cdef int ii, jj, temp, ldist=0
+    cdef LTYPE_t pro=0
+    for ii in range(nrows):
+        temp = 0
+        for jj in range(ptr[ii], ptr[ii + 1]):
+            ldist = idx[jj] - ii
+            temp = max(temp, ldist)
+        pro += temp
+    return pro
 
 
 @cython.boundscheck(False)

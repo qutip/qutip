@@ -46,6 +46,7 @@ from qutip.tensor import tensor, super_tensor
 
 from operator import add, mul, truediv, sub
 
+
 def test_QobjData():
     "Qobj data"
     N = 10
@@ -194,10 +195,10 @@ def test_QobjAddition():
     assert_equal(q4_isherm, q4.isherm)
 
     # check elementwise addition/subtraction
-    assert_equal(q3, q4)
+    assert_(q3 == q4)
 
     # check that addition is commutative
-    assert_equal(q1 + q2, q2 + q1)
+    assert_(q1 + q2 == q2 + q1)
 
     data = np.random.random((5, 5))
     q = Qobj(data)
@@ -253,7 +254,7 @@ def test_QobjMultiplication():
 
     q4 = q1 * q2
 
-    assert_equal(q3, q4)
+    assert_(q3 == q4)
 
 
 def test_QobjDivision():
@@ -296,11 +297,11 @@ def test_QobjEquals():
         (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
     q1 = Qobj(data)
     q2 = Qobj(data)
-    assert_equal(q1, q2)
+    assert_(q1 == q2)
 
     q1 = Qobj(data)
     q2 = Qobj(-data)
-    assert_equal(q1 != q2, True)
+    assert_(q1 != q2)
 
 
 def test_QobjGetItem():
@@ -431,10 +432,10 @@ def test_QobjEigenStates():
     b, c = A.eigenstates()
     assert_(np.all(b - np.ones(5) == 0))
 
-    kets = np.array([basis(5, k) for k in range(5)])
+    kets = [basis(5, k) for k in range(5)]
 
     for k in range(5):
-        assert_equal(c[k], kets[k])
+        assert_(c[k] == kets[k])
 
 
 def test_QobjExpm():
@@ -444,6 +445,37 @@ def test_QobjExpm():
     A = Qobj(data)
     B = A.expm()
     assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
+
+
+def test_QobjExpmExplicitlySparse():
+    "Qobj expm (explicit sparse)"
+    data = np.random.random(
+        (15, 15)) + 1j * np.random.random((15, 15)) - (0.5 + 0.5j)
+    A = Qobj(data)
+    B = A.expm(method='sparse')
+    assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
+    B = A.expm(method='scipy-sparse')
+    assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
+
+
+def test_QobjExpmExplicitDense():
+    "Qobj expm (explicit dense)"
+    data = np.random.random(
+        (15, 15)) + 1j * np.random.random((15, 15)) - (0.5 + 0.5j)
+    A = Qobj(data)
+    B = A.expm(method='dense')
+    assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
+    B = A.expm(method='scipy-delse')
+    assert_((B.data.todense() - np.matrix(la.expm(data)) < 1e-10).all())
+
+
+def test_Qobj_sqrtm():
+    "Qobj sqrtm"
+    data = np.random.random(
+        (5, 5)) + 1j * np.random.random((5, 5)) - (0.5 + 0.5j)
+    A = Qobj(data)
+    B = A.sqrtm()
+    assert_(A == B * B)
 
 
 def test_QobjFull():
@@ -479,14 +511,14 @@ def test_QobjPermute():
     C = basis(5, 2)
     psi = tensor(A, B, C)
     psi2 = psi.permute([2, 0, 1])
-    assert_equal(psi2, tensor(C, A, B))
+    assert_(psi2 == tensor(C, A, B))
 
     A = fock_dm(5, 0)
     B = fock_dm(5, 4)
     C = fock_dm(5, 2)
     rho = tensor(A, B, C)
     rho2 = rho.permute([2, 0, 1])
-    assert_equal(rho2, tensor(C, A, B))
+    assert_(rho2 == tensor(C, A, B))
 
     for ii in range(3):
         A = rand_ket(5)
@@ -494,7 +526,7 @@ def test_QobjPermute():
         C = rand_ket(5)
         psi = tensor(A, B, C)
         psi2 = psi.permute([1, 0, 2])
-        assert_equal(psi2, tensor(B, A, C))
+        assert_(psi2 == tensor(B, A, C))
 
     for ii in range(3):
         A = rand_dm(5)
@@ -502,7 +534,7 @@ def test_QobjPermute():
         C = rand_dm(5)
         rho = tensor(A, B, C)
         rho2 = rho.permute([1, 0, 2])
-        assert_equal(rho2, tensor(B, A, C))
+        assert_(rho2 == tensor(B, A, C))
 
 
 def test_KetType():
@@ -573,12 +605,13 @@ def test_SuperType():
     assert_equal(sop.isoper, False)
     assert_equal(sop.issuper, True)
 
+
 def test_arithmetic_preserves_superrep():
     """
-    Superoperator arithmetic: Checks that binary ops preserve 'superrep'.
-        
+    Checks that binary ops preserve 'superrep'.
+
     .. note::
-    
+
         The random superoperators are not chosen in a way that reflects the
         structure of that superrep, but are simply random matrices.
     """
@@ -590,7 +623,7 @@ def test_arithmetic_preserves_superrep():
         S1 = Qobj(np.random.random(shape), superrep=superrep, dims=dims)
         S2 = Qobj(np.random.random(shape), superrep=superrep, dims=dims)
         x = np.random.random()
-        
+
         check_list = []
         if chk_op:
             check_list.append(operation(S1, S2))
@@ -598,14 +631,16 @@ def test_arithmetic_preserves_superrep():
             check_list.append(operation(S1, x))
         if chk_op and chk_scalar:
             check_list.append(operation(x, S2))
-            
+
         for S in check_list:
             assert_equal(S.type, "super",
-                "Operator {} did not preserve type='super'.".format(operation)
-            )
+                         "Operator {} did not preserve type='super'.".format(
+                             operation)
+                         )
             assert_equal(S.superrep, superrep,
-                "Operator {} did not preserve superrep={}.".format(operation, superrep)
-            )
+                         "Operator {} did not preserve superrep={}.".format(
+                             operation, superrep)
+                         )
 
     dimension = 4
     for superrep in ['super', 'choi', 'chi']:
@@ -613,17 +648,18 @@ def test_arithmetic_preserves_superrep():
                 (add, True, True),
                 (sub, True, True),
                 (mul, True, True),
-                (truediv, False, True), 
+                (truediv, False, True),
                 (tensor, True, False)
         ]:
             yield check, superrep, operation, chk_op, chk_scalar
 
+
 def test_isherm_skew():
     """
-    Checks that mul and tensor of skew-Hermitian operators report ``isherm = True``.
+    mul and tensor of skew-Hermitian operators report ``isherm = True``.
     """
     iH = 1j * rand_herm(5)
-    
+
     assert_(not iH.isherm)
     assert_((iH * iH).isherm)
     assert_(tensor(iH, iH).isherm)
@@ -636,27 +672,21 @@ def test_super_tensor_operket():
     rhoket1 = operator_to_vector(rho1)
     rhoket2 = operator_to_vector(rho2)
 
-    assert_equal(
-        super_tensor(rhoket1, rhoket2),
-        operator_to_vector(tensor(
-            vector_to_operator(rhoket1), vector_to_operator(rhoket2))
-        )
-    )
 
 def test_super_tensor_property():
     """
-    Tensor: Checks that super_tensor correctly tensors on underlying spaces.
+    Tensor: Super_tensor correctly tensors on underlying spaces.
     """
     U1 = rand_unitary(3)
     U2 = rand_unitary(5)
-    
+
     U = tensor(U1, U2)
     S_tens = to_super(U)
-    
+
     S_supertens = super_tensor(to_super(U1), to_super(U2))
-    
-    assert_equal(S_tens, S_supertens)
+
+    assert_(S_tens == S_supertens)
     assert_equal(S_supertens.superrep, 'super')
-    
+
 if __name__ == "__main__":
     run_module_suite()

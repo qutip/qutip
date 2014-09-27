@@ -34,12 +34,10 @@ import numpy as np
 cimport numpy as np
 cimport cython
 cimport libc.math
-
 from qutip.cy.spmatfuncs cimport (spmv_csr,
                                   cy_expect_rho_vec_csr, cy_expect_psi_csr)
 
-ctypedef np.complex128_t CTYPE_t
-ctypedef np.float64_t DTYPE_t
+include "parameters.pxi"
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -79,7 +77,8 @@ cpdef np.ndarray[CTYPE_t, ndim=1] cy_rhs_rho_deterministic(object L,
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_d1_psi_photocurrent(object A, np.ndarray[CTYPE_t, ndim=1] psi):
+cpdef cy_d1_psi_photocurrent(double t, np.ndarray[CTYPE_t, ndim=1] psi,
+                             object A, object args):
     """
     Cython version of d1_psi_photocurrent. See d1_psi_photocurrent for docs.
     """
@@ -91,7 +90,8 @@ cpdef cy_d1_psi_photocurrent(object A, np.ndarray[CTYPE_t, ndim=1] psi):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_d2_psi_photocurrent(object A, np.ndarray[CTYPE_t, ndim=1] psi):
+cpdef cy_d2_psi_photocurrent(double t, np.ndarray[CTYPE_t, ndim=1] psi,
+                             object A, object args):
     """
     Cython version of d2_psi_photocurrent. See d2_psi_photocurrent for docs.
     """
@@ -107,7 +107,7 @@ cpdef cy_d2_psi_photocurrent(object A, np.ndarray[CTYPE_t, ndim=1] psi):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef d1_psi_homodyne(A, psi):
+cpdef d1_psi_homodyne(t, psi, A, args):
     """
     Cython version of d2_psi_homodyne. See d2_psi_homodyne for docs.
     """
@@ -119,7 +119,7 @@ cpdef d1_psi_homodyne(A, psi):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef d2_psi_homodyne(A, psi):
+cpdef d2_psi_homodyne(t, psi, A, args):
     """
     Cython version of d2_psi_homodyne. See d2_psi_homodyne for docs.
     """
@@ -132,7 +132,8 @@ cpdef d2_psi_homodyne(A, psi):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_d1_rho_photocurrent(object A, np.ndarray[CTYPE_t, ndim=1] rho_vec):
+cpdef cy_d1_rho_photocurrent(double t, np.ndarray[CTYPE_t, ndim=1] rho_vec,
+                             object A, object args):
     """
     Photo-current D1 function
     """
@@ -143,7 +144,8 @@ cpdef cy_d1_rho_photocurrent(object A, np.ndarray[CTYPE_t, ndim=1] rho_vec):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_d2_rho_photocurrent(object A, np.ndarray[CTYPE_t, ndim=1] rho_vec):
+cpdef cy_d2_rho_photocurrent(double t, np.ndarray[CTYPE_t, ndim=1] rho_vec,
+                             object A, object args):
     """
     Photo-current D2 function
     """
