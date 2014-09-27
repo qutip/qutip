@@ -40,7 +40,7 @@ from qutip.qobj import Qobj
 from qutip.random_objects import rand_ket, rand_dm, rand_herm, rand_unitary
 from qutip.states import basis, fock_dm
 from qutip.operators import create, destroy, num, sigmax
-from qutip.superoperator import spre, spost, operator_to_vector
+from qutip.superoperator import spre, spost, operator_to_vector, vector_to_operator
 from qutip.superop_reps import to_super
 from qutip.tensor import tensor, super_tensor
 
