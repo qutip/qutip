@@ -628,6 +628,21 @@ def test_isherm_skew():
     assert_((iH * iH).isherm)
     assert_(tensor(iH, iH).isherm)
     
+def test_super_tensor_operket():
+    """
+    Tensor: Checks that super_tensor respects states.
+    """
+    rho1, rho2 = rand_dm(5), rand_dm(7)
+    rhoket1 = operator_to_vector(rho1)
+    rhoket2 = operator_to_vector(rho2)
+
+    assert_equal(
+        super_tensor(rhoket1, rhoket2),
+        operator_to_vector(tensor(
+            vector_to_operator(rhoket1), vector_to_operator(rhoket2))
+        )
+    )
+
 def test_super_tensor_property():
     """
     Tensor: Checks that super_tensor correctly tensors on underlying spaces.

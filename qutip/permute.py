@@ -52,7 +52,7 @@ def _permute(Q, order):
                                     shape=(Q.shape[0], Q.shape[0]), dtype=int)
         perm_matrix = perm_matrix.tocsr()
         return perm_matrix * Q.data, Q.dims, Q.shape
-    if Q.type == 'bra':
+    elif Q.type == 'bra':
         dims, perm = _perm_inds(A.dims[0], order)
         nzs = Q.data.nonzero()[1]
         wh = np.where(perm == nzs)[0]
@@ -62,7 +62,7 @@ def _permute(Q, order):
                                     shape=(Q.shape[1], Q.shape[1]), dtype=int)
         perm_matrix = perm_matrix.tocsr()
         return Q.data * perm_matrix, Q.dims, Q.shape
-    if Q.type == 'oper':
+    elif Q.type == 'oper':
         dims, perm = _perm_inds(Q.dims[0], order)
         data = np.ones(Q.shape[0], dtype=int)
         rows = np.arange(Q.shape[0], dtype=int)
@@ -72,7 +72,7 @@ def _permute(Q, order):
         dims_part = list(dims[order])
         dims = [dims_part, dims_part]
         return (perm_matrix * Q.data) * perm_matrix.T, dims, Q.shape
-    if Q.type == 'super':
+    elif Q.type == 'super' or Q.type == 'operator-ket':
         # For superoperators, we expect order to be something like
         # [[0, 2], [1, 3]], which tells us to permute according to
         # [0, 2, 1 ,3], and then group indices according to the length
@@ -95,7 +95,7 @@ def _permute(Q, order):
         rows = np.arange(Q.shape[0], dtype=int)
         
         perm_matrix = sp.coo_matrix((data, (rows, perm.T[0])),
-                                    shape=(Q.shape[1], Q.shape[1]), dtype=int)
+                                    shape=(Q.shape[0], Q.shape[0]), dtype=int)
         
         perm_matrix = perm_matrix.tocsr()
         dims_part = list(dims[flat_order])
@@ -104,8 +104,11 @@ def _permute(Q, order):
         # into left and right subindices, so that the overall dims we return
         # are of the form specified by order.
         dims_part = list(_chunk_dims(dims_part, order))
-        return (perm_matrix * Q.data) * perm_matrix.T, [dims_part, dims_part], Q.shape
-        
+        perm_left = (perm_matrix * Q.data)
+        if Q.type == 'operator-ket':
+            return perm_left, [dims_part, [1]], Q.shape
+        elif Q.type == 'super':
+            return perm_left * perm_matrix.T, [dims_part, dims_part], Q.shape
     else:
         raise TypeError('Invalid quantum object for permutation.')
 
@@ -129,8 +132,8 @@ def reshuffle(q_oper):
     """
     Column-reshuffles a ``type="super"`` Qobj.
     """
-    if not q_oper.type == "super":
-        raise TypeError("Reshuffling is only supported on type='super'.")
+    #if not q_oper.type == "super":
+    #    raise TypeError("Reshuffling is only supported on type='super'.")
         
     # How many indices are there, and how many subsystems can we decompose
     # each index into?

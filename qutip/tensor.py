@@ -128,21 +128,44 @@ def super_tensor(*args):
     """
     if isinstance(args[0], list):
         args = args[0]
-        
-    if not all(arg.type == "super" and arg.superrep == "super" for arg in args):
-        raise TypeError(
-            "super_tensor is only implemented for "
-            "superrep='super'."
-        )
-        
-    # Reshuffle the superoperators.
-    shuffled_ops = list(map(reshuffle, args))
     
-    # Tensor the result.
-    shuffled_tensor = tensor(shuffled_ops)
-    
-    # Unshuffle and return.
-    out = reshuffle(shuffled_tensor)
-    out.superrep = args[0].superrep
-    return out
+    # Check if we're tensoring vectors or superoperators.
+    if all(arg.type == "super" for arg in args):    
+        if not all(arg.superrep == "super" for arg in args):
+            raise TypeError(
+                "super_tensor on type='super' is only implemented for "
+                "superrep='super'."
+            )
+            
+        # Reshuffle the superoperators.
+        shuffled_ops = list(map(reshuffle, args))
+        
+        # Tensor the result.
+        shuffled_tensor = tensor(shuffled_ops)
+        
+        # Unshuffle and return.
+        out = reshuffle(shuffled_tensor)
+        out.superrep = args[0].superrep
+        return out
 
+    elif all(arg.type == "operator-ket" for arg in args):
+
+            
+        # Reshuffle the superoperators.
+        shuffled_ops = list(map(reshuffle, args))
+        
+        # Tensor the result.
+        shuffled_tensor = tensor(shuffled_ops)
+        
+        # Unshuffle and return.
+        out = reshuffle(shuffled_tensor)
+        return out
+
+    elif all(arg.type == "operator-bra" for arg in args):
+        return super_tensor(*(arg.dag() for arg in args)).dag()
+
+    else:
+        raise TypeError(
+            "All arguments must be the same type, "
+            "either super, operator-ket or operator-bra."
+        )
