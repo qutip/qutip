@@ -34,15 +34,17 @@
 Module for the creation of composite quantum objects via the tensor product.
 """
 
-__all__ = ['tensor', 'super_tensor']
+__all__ = ['tensor', 'super_tensor', 'composite']
 
 import numpy as np
 import scipy.sparse as sp
 
 from qutip.qobj import Qobj
 from qutip.permute import reshuffle
-import qutip.settings
+from qutip.superoperator import operator_to_vector
 
+import qutip.settings
+import qutip.superop_reps # Avoid circular dependency here.
 
 def tensor(*args):
     """Calculates the tensor product of input operators.
@@ -174,3 +176,68 @@ def super_tensor(*args):
             "All arguments must be the same type, "
             "either super, operator-ket or operator-bra."
         )
+
+def _isoperlike(q):
+    return q.isoper or q.issuper
+def _isketlike(q):
+    return q.isket  or q.isoperket
+def _isbralike(q):
+    return q.isbra  or q.isoperbra
+
+def composite(*args):
+    """
+    Given two or more operators, kets or bras, returns the Qobj
+    corresponding to a composite system over each argument.
+    For ordinary operators and vectors, this is the tensor product,
+    while for superoperators and vectorized operators, this is
+    the column-reshuffled tensor product.
+
+    If a mix of Qobjs supported on Hilbert and Liouville spaces
+    are passed in, the former are promoted. Ordinary operators
+    are assumed to be unitaries, and are promoted using ``to_super``,
+    while kets and bras are promoted by taking their projectors and
+    using ``operator_to_vector(ket2dm(arg))``.
+    """
+    # First step will be to ensure everything is a Qobj at all.
+    if not all(isinstance(arg, Qobj) for arg in args):
+        raise TypeError("All arguments must be Qobjs.")
+
+    # Next, figure out if we have something oper-like (isoper or issuper),
+    # or something ket-like (isket or isoperket). Bra-like we'll deal with
+    # by turning things into ket-likes and back.
+    if all(map(_isoperlike, args)):
+        # OK, we have oper/supers.
+        if any(arg.issuper for arg in args):
+            # Note that to_super does nothing to things
+            # that are already type=super, while it will
+            # promote unitaries to superunitaries.
+            return super_tensor(*map(qutip.superop_reps.to_super, args))
+
+        else:
+            # Everything's just an oper, so ordinary tensor products work.
+            return tensor(*args)
+
+    elif all(map(_isketlike, args)):
+        # Ket-likes.
+        if any(arg.isoperket for arg in args):
+            # We have a vectorized operator, we we may need to promote
+            # something.
+            return super_tensor(*(
+                arg if arg.isoperket else operator_to_vector(qutip.states.ket2dm(arg))
+                for arg in args
+            ))
+
+        else:
+            # Everything's ordinary, so we can use the tensor product here.
+            return tensor(*args)
+
+    elif all(map(_isbralike, args)):
+        # Turn into ket-likes and recurse.
+        return composite(*(arg.dag() for arg in args)).dag()
+
+    else:
+        raise TypeError("Unsupported Qobj types [{}].".format(
+            ", ".join(arg.type for arg in args)
+        ))
+
+import qutip.states
