@@ -47,7 +47,7 @@ def _chunk_dims(dims, order):
 
 
 def _permute(Q, order):
-    if Q.type == 'ket':
+    if Q.isket:
         dims, perm = _perm_inds(Q.dims[0], order)
         nzs = Q.data.nonzero()[0]
         wh = np.where(perm == nzs)[0]
@@ -58,7 +58,7 @@ def _permute(Q, order):
         perm_matrix = perm_matrix.tocsr()
         return perm_matrix * Q.data, Q.dims
 
-    elif Q.type == 'bra':
+    elif Q.isbra:
         dims, perm = _perm_inds(A.dims[0], order)
         nzs = Q.data.nonzero()[1]
         wh = np.where(perm == nzs)[0]
@@ -69,7 +69,7 @@ def _permute(Q, order):
         perm_matrix = perm_matrix.tocsr()
         return Q.data * perm_matrix, Q.dims
 
-    elif Q.type == 'oper':
+    elif Q.isoper:
         dims, perm = _perm_inds(Q.dims[0], order)
         data = np.ones(Q.shape[0], dtype=int)
         rows = np.arange(Q.shape[0], dtype=int)
@@ -80,7 +80,7 @@ def _permute(Q, order):
         dims = [dims_part, dims_part]
         return (perm_matrix * Q.data) * perm_matrix.T, dims
     
-    elif Q.type == 'super' or Q.type == 'operator-ket':
+    elif Q.issuper or Q.isoperket:
         # For superoperators, we expect order to be something like
         # [[0, 2], [1, 3]], which tells us to permute according to
         # [0, 2, 1 ,3], and then group indices according to the length

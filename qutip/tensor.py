@@ -135,7 +135,7 @@ def super_tensor(*args):
         args = args[0]
     
     # Check if we're tensoring vectors or superoperators.
-    if all(arg.type == "super" for arg in args):    
+    if all(arg.issuper for arg in args):    
         if not all(arg.superrep == "super" for arg in args):
             raise TypeError(
                 "super_tensor on type='super' is only implemented for "
@@ -153,7 +153,7 @@ def super_tensor(*args):
         out.superrep = args[0].superrep
         return out
 
-    elif all(arg.type == "operator-ket" for arg in args):
+    elif all(arg.isoperket for arg in args):
 
             
         # Reshuffle the superoperators.
@@ -166,7 +166,7 @@ def super_tensor(*args):
         out = reshuffle(shuffled_tensor)
         return out
 
-    elif all(arg.type == "operator-bra" for arg in args):
+    elif all(arg.isoperbra for arg in args):
         return super_tensor(*(arg.dag() for arg in args)).dag()
 
     else:
