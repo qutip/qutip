@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__= ['simdiag']
+__all__ = ['simdiag']
 
 import numpy as np
 import scipy.linalg as la

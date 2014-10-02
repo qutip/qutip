@@ -35,7 +35,8 @@ This module contains a collection of functions for calculating metrics
 (distance measures) between states and operators.
 """
 
-__all__= ['fidelity', 'tracedist', 'average_gate_fidelity', 'process_fidelity']
+__all__ = ['fidelity', 'tracedist', 'average_gate_fidelity',
+           'process_fidelity']
 
 import numpy as np
 from qutip.sparse import sp_eigs
