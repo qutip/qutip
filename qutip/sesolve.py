@@ -635,7 +635,9 @@ def _generic_ode_solve(r, psi0, tlist, e_ops, opt, progress_bar,
         progress_bar.update(t_idx)
 
         if not r.successful():
-            break
+            raise Exception("ODE integration error: Try to increase "
+                            "the allowed number of substeps by increasing "
+                            "the nsteps parameter in the Options class.")
 
         if state_norm_func:
             data = r.y / state_norm_func(r.y)
