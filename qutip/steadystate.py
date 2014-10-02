@@ -96,9 +96,9 @@ def steadystate(A, c_op_list=[], **kwargs):
          SVD 'svd' (dense), or inverse-power method 'power'.
 
     return_info : bool, optional, default = False
-        Return a dictionary of solver-specific infomation about the 
+        Return a dictionary of solver-specific infomation about the
         solution and how it was obtained.
-    
+
     sparse : bool, optional, default = True
         Solve for the steady state using sparse algorithms. If set to False,
         the underlying Liouvillian operator will be converted into a dense
@@ -124,7 +124,7 @@ def steadystate(A, c_op_list=[], **kwargs):
 
     x0 : ndarray, optional
         ITERATIVE ONLY. Initial guess for solution vector.
-    
+
     maxiter : int, optional, default=1000
         ITERATIVE ONLY. Maximum number of iterations to perform.
 
@@ -132,9 +132,9 @@ def steadystate(A, c_op_list=[], **kwargs):
         ITERATIVE ONLY. Tolerance used for terminating solver.
 
     permc_spec : str, optional, default='COLAMD'
-        ITERATIVE ONLY. Column ordering used internally by superLU for the 
-        'direct' LU decomposition method. Options include 'COLAMD' and 
-        'NATURAL'. If using RCM then this is set to 'NATURAL' automatically 
+        ITERATIVE ONLY. Column ordering used internally by superLU for the
+        'direct' LU decomposition method. Options include 'COLAMD' and
+        'NATURAL'. If using RCM then this is set to 'NATURAL' automatically
         unless explicitly specified.
 
     use_precond : bool optional, default = True
@@ -143,10 +143,10 @@ def steadystate(A, c_op_list=[], **kwargs):
         Speeds up convergence time by orders of magnitude in many cases.
 
     M : {sparse matrix, dense matrix, LinearOperator}, optional
-        ITERATIVE ONLY. Preconditioner for A. The preconditioner should 
-        approximate the inverse of A. Effective preconditioning can 
+        ITERATIVE ONLY. Preconditioner for A. The preconditioner should
+        approximate the inverse of A. Effective preconditioning can
         dramatically improve the rate of convergence for iterative methods.
-        If no preconditioner is given and ``use_precond = True``, then one 
+        If no preconditioner is given and ``use_precond = True``, then one
         is generated automatically.
 
     fill_factor : float, optional, default = 100
@@ -167,14 +167,15 @@ def steadystate(A, c_op_list=[], **kwargs):
         element.
 
     ILU_MILU : str, optional, default = 'smilu_2'
-        ITERATIVE ONLY. Selects the incomplete LU decomposition method algoithm 
-        used in creating the preconditoner. Should only be used by advanced users.
+        ITERATIVE ONLY. Selects the incomplete LU decomposition method
+        algoithm used in creating the preconditoner. Should only be used by
+        advanced users.
 
     Returns
     -------
     dm : qobj
         Steady state density matrix.
-    
+
     info : dict, optional
         Dictionary containing solver-specific information about the solution.
 
@@ -190,11 +191,11 @@ def steadystate(A, c_op_list=[], **kwargs):
         else:
             raise Exception(
                 "Invalid keyword argument '"+key+"' passed to steadystate.")
-    
+
     # Set column perm to NATURAL if using RCM and not specified by user
     if ss_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):
         ss_args['permc_spec'] = 'NATURAL'
-    
+
     # Create & check Liouvillian
     A = _steadystate_setup(A, c_op_list)
 
@@ -212,8 +213,8 @@ def steadystate(A, c_op_list=[], **kwargs):
     elif ss_args['method'] == 'eigen':
         return _steadystate_eigen(A, ss_args)
 
-    elif ss_args['method'] in ['iterative-gmres', 
-                    'iterative-lgmres', 'iterative-bicgstab']:
+    elif ss_args['method'] in ['iterative-gmres',
+                               'iterative-lgmres', 'iterative-bicgstab']:
         return _steadystate_iterative(A, ss_args)
 
     elif ss_args['method'] == 'svd':
@@ -249,19 +250,19 @@ def _steadystate_LU_liouvillian(L, ss_args):
     """
     perm = None
     perm2 = None
-    rev_perm = None 
+    rev_perm = None
     n = prod(L.dims[0][0])
     L = L.data.tocsc() + sp.csc_matrix(
         (ss_args['weight']*np.ones(n), (np.zeros(n), [nn * (n + 1)
          for nn in range(n)])),
         shape=(n ** 2, n ** 2))
-    
+
     if settings.debug:
         old_band = sp_bandwidth(L)[0]
         print('NNZ:', L.nnz)
         if ss_args['use_rcm']:
             print('Original bandwidth:', old_band)
-    
+
     if ss_args['use_wbm']:
         if settings.debug:
             print('Calculating Weighted Bipartite Matching ordering...')
@@ -316,7 +317,7 @@ def _steadystate_direct_sparse(L, ss_args):
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2, dtype=complex)
     b[0] = ss_args['weight']
-    
+
     L, perm, perm2, rev_perm, ss_args = _steadystate_LU_liouvillian(L, ss_args)
     if np.any(perm):
         b = b[np.ix_(perm,)]
@@ -329,16 +330,16 @@ def _steadystate_direct_sparse(L, ss_args):
     ss_args['info']['diag_pivot_thresh'] = ss_args['diag_pivot_thresh']
     ss_args['info']['fill_factor'] = ss_args['fill_factor']
     ss_args['info']['ILU_MILU'] = ss_args['ILU_MILU']
-    
+
     if not ss_args['use_umfpack']:
         # Use superLU solver
         orig_nnz = L.nnz
-        _direct_start=time.time()
+        _direct_start = time.time()
         lu = splu(L, permc_spec=ss_args['permc_spec'],
                   diag_pivot_thresh=ss_args['diag_pivot_thresh'],
                   options=dict(ILU_MILU=ss_args['ILU_MILU']))
         v = lu.solve(b)
-        _direct_end=time.time()
+        _direct_end = time.time()
         ss_args['info']['solution_time'] = _direct_end-_direct_start
         if (settings.debug or ss_args['return_info']) and _scipy_check:
             L_nnz = lu.L.nnz
@@ -352,9 +353,9 @@ def _steadystate_direct_sparse(L, ss_args):
 
     else:
         # Use umfpack solver
-        _direct_start=time.time()
+        _direct_start = time.time()
         v = spsolve(L, b)
-        _direct_end=time.time()
+        _direct_end = time.time()
         ss_args['info']['solution_time'] = _direct_end-_direct_start
 
     if (not ss_args['use_umfpack']) and ss_args['use_rcm']:
@@ -435,6 +436,7 @@ def _steadystate_eigen(L, ss_args):
     else:
         return out/out.tr()
 
+
 def _iterative_precondition(A, n, ss_args):
     """
     Internal function for preconditioning the steadystate problem for use
@@ -459,8 +461,7 @@ def _iterative_precondition(A, n, ss_args):
         ss_args['info']['fill_factor'] = ss_args['fill_factor']
         ss_args['info']['ILU_MILU'] = ss_args['ILU_MILU']
         ss_args['info']['precond_time'] = _precond_end-_precond_start
-        
-        
+
         if settings.debug or ss_args['return_info']:
             if settings.debug:
                 print('Preconditioning succeeded.')
@@ -471,29 +472,31 @@ def _iterative_precondition(A, n, ss_args):
                 ss_args['info']['l_nnz'] = L_nnz
                 ss_args['info']['u_nnz'] = U_nnz
                 ss_args['info']['ilu_fill_factor'] = (L_nnz+U_nnz)/A.nnz
-                e = np.ones(n ** 2,dtype=int)
-                condest = la.norm(M*e,np.inf)
+                e = np.ones(n ** 2, dtype=int)
+                condest = la.norm(M*e, np.inf)
                 ss_args['info']['ilu_condest'] = condest
                 if settings.debug:
                     print('L NNZ:', L_nnz, ';', 'U NNZ:', U_nnz)
                     print('Fill factor:', (L_nnz+U_nnz)/A.nnz)
                     print('iLU condest:', condest)
-    
+
     except:
         M = None
-    
+
     return M, ss_args
+
 
 def _steadystate_iterative(L, ss_args):
     """
-    Iterative steady state solver using the GMRES, LGMRES, or BICGSTAB 
+    Iterative steady state solver using the GMRES, LGMRES, or BICGSTAB
     algorithm and a sparse incomplete LU preconditioner.
     """
     ss_iters = {'iter': 0}
+
     def _iter_count(r):
         ss_iters['iter'] += 1
         return
-    
+
     if settings.debug:
         print('Starting '+ss_args['method']+' solver...')
 
@@ -501,20 +504,20 @@ def _steadystate_iterative(L, ss_args):
     n = prod(L.dims[0][0])
     b = np.zeros(n ** 2)
     b[0] = ss_args['weight']
-    
+
     L, perm, perm2, rev_perm, ss_args = _steadystate_LU_liouvillian(L, ss_args)
     if np.any(perm):
         b = b[np.ix_(perm,)]
     if np.any(perm2):
         b = b[np.ix_(perm2,)]
-    
+
     use_solver(assumeSortedIndices=True, useUmfpack=ss_args['use_umfpack'])
-    
+
     if ss_args['M'] is None and ss_args['use_precond']:
         ss_args['M'], ss_args = _iterative_precondition(L, n, ss_args)
-        if ss_args['M'] == None:
+        if ss_args['M'] is None:
             warnings.warn("Preconditioning failed. Continuing without.",
-                      UserWarning)
+                          UserWarning)
 
     # Select iterative solver type
     _iter_start = time.time()
@@ -522,11 +525,11 @@ def _steadystate_iterative(L, ss_args):
         v, check = gmres(L, b, tol=ss_args['tol'], M=ss_args['M'],
                             x0=ss_args['x0'], restart=ss_args['restart'],
                             maxiter=ss_args['maxiter'], callback=_iter_count)
-    
+
     elif ss_args['method'] == 'iterative-lgmres':
         v, check = lgmres(L, b, tol=ss_args['tol'], M=ss_args['M'],
-                            x0=ss_args['x0'], maxiter=ss_args['maxiter'], 
-                            callback=_iter_count)
+                          x0=ss_args['x0'], maxiter=ss_args['maxiter'],
+                          callback=_iter_count)
 
     elif ss_args['method'] == 'iterative-bicgstab':
         v, check = bicgstab(L, b, tol=ss_args['tol'], M=ss_args['M'],
@@ -535,26 +538,28 @@ def _steadystate_iterative(L, ss_args):
     else:
         raise Exception("Invalid iterative solver method.")
     _iter_end = time.time()
-    
+
     ss_args['info']['iter_time'] = _iter_end - _iter_start
     if 'precond_time' in ss_args['info'].keys():
-        ss_args['info']['solution_time'] = ss_args['info']['iter_time']+\
-                                        ss_args['info']['precond_time']
+        ss_args['info']['solution_time'] = (ss_args['info']['iter_time'] +
+                                            ss_args['info']['precond_time'])
     ss_args['info']['iterations'] = ss_iters['iter']
-    ss_args['info']['residual_norm'] = la.norm(b-L*v,np.inf)
-    
+    ss_args['info']['residual_norm'] = la.norm(b - L*v, np.inf)
+
     if settings.debug:
-        print('Number of Iterations:',ss_iters['iter'])
-        print('Iteration. time:',_iter_end-_iter_start)
+        print('Number of Iterations:', ss_iters['iter'])
+        print('Iteration. time:', _iter_end - _iter_start)
 
     if check > 0:
         raise Exception("Steadystate error: Did not reach tolerance after " +
-                    str(ss_args['maxiter']) + " steps." +
-                    "\nResidual norm: "+str(ss_args['info']['residual_norm']))
+                        str(ss_args['maxiter']) + " steps." +
+                        "\nResidual norm: " +
+                        str(ss_args['info']['residual_norm']))
+
     elif check < 0:
         raise Exception(
             "Steadystate error: Failed with fatal error: " + str(check) + ".")
-    
+
     if ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
 
@@ -623,7 +628,7 @@ def _steadystate_power(L, ss_args):
     orig_nnz = L.nnz
 
     # start with all ones as RHS
-    v = np.ones(n,dtype=complex)
+    v = np.ones(n, dtype=complex)
 
     if ss_args['use_rcm']:
         if settings.debug:
@@ -658,7 +663,7 @@ def _steadystate_power(L, ss_args):
     if it >= maxiter:
         raise Exception('Failed to find steady state after ' +
                         str(maxiter) + ' iterations')
-    
+
     _power_end = time.time()
     ss_args['info']['solution_time'] = _power_end-_power_start
     ss_args['info']['iterations'] = it
@@ -689,7 +694,7 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
     """Constructs a iLU preconditioner necessary for solving for
     the steady state density matrix using the iterative linear solvers
     in the 'steadystate' function.
-    
+
     Parameters
     ----------
     A : qobj
@@ -699,7 +704,7 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         A list of collapse operators.
 
     return_info : bool, optional, default = False
-        Return a dictionary of solver-specific infomation about the 
+        Return a dictionary of solver-specific infomation about the
         solution and how it was obtained.
 
     use_rcm : bool, optional, default = False
@@ -717,9 +722,9 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         Liouvillian elements if not specified by the user.
 
     permc_spec : str, optional, default='COLAMD'
-        Column ordering used internally by superLU for the 
-        'direct' LU decomposition method. Options include 'COLAMD' and 
-        'NATURAL'. If using RCM then this is set to 'NATURAL' automatically 
+        Column ordering used internally by superLU for the
+        'direct' LU decomposition method. Options include 'COLAMD' and
+        'NATURAL'. If using RCM then this is set to 'NATURAL' automatically
         unless explicitly specified.
 
     fill_factor : float, optional, default = 100
@@ -740,46 +745,44 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         element.
 
     ILU_MILU : str, optional, default = 'smilu_2'
-        Selects the incomplete LU decomposition method algoithm 
-        used in creating the preconditoner. Should only be used by advanced users.
-    
+        Selects the incomplete LU decomposition method algoithm used in
+        creating the preconditoner. Should only be used by advanced users.
+
     Returns
     -------
     lu : object
         Returns a SuperLU object representing iLU preconditioner.
-    
+
     info : dict, optional
         Dictionary containing solver-specific information.
-    
     """
     ss_args = _default_steadystate_args()
     for key in kwargs.keys():
         if key in ss_args.keys():
             ss_args[key] = kwargs[key]
         else:
-            raise Exception(
-                "Invalid keyword argument '"+key+"' passed to steadystate.")
-    
+            raise Exception("Invalid keyword argument '" + key +
+                            "' passed to steadystate.")
+
     # Set column perm to NATURAL if using RCM and not specified by user
     if ss_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):
         ss_args['permc_spec'] = 'NATURAL'
-    
+
     L = _steadystate_setup(A, c_op_list)
     # Set weight parameter to avg abs val in L if not set explicitly
     if 'weight' not in kwargs.keys():
         ss_args['weight'] = np.mean(np.abs(L.data.data.max()))
         ss_args['info']['weight'] = ss_args['weight']
-    
+
     n = prod(L.dims[0][0])
     L, perm, perm2, rev_perm, ss_args = _steadystate_LU_liouvillian(L, ss_args)
     M, ss_args = _iterative_precondition(L, n, ss_args)
-    if M == None:
-        raise Exception("Failed to build preconditioner. Try increasing fill_factor and/or drop_tol.")
+
+    if M is None:
+        raise Exception("Failed to build preconditioner. Try increasing " +
+                        "fill_factor and/or drop_tol.")
+
     if ss_args['return_info']:
         return M, ss_args['info']
     else:
         return M
-    
-    
-    
-    
