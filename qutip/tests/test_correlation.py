@@ -113,7 +113,7 @@ def test_compare_solvers_coherent_state_memc():
     G1 = 0.75
     n_th = 2.00
     c_ops = [np.sqrt(G1 * (1 + n_th)) * a, np.sqrt(G1 * n_th) * a.dag()]
-    psi0 = fock(N, 1)
+    psi0 = fock(N, 0)
 
     taulist = np.linspace(0, 1.0, 5)
     corr1 = correlation_2op_2t(H, psi0, [0], taulist, c_ops, a.dag(), a,
