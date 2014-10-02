@@ -679,7 +679,7 @@ def _ssesolve_generic(sso, options, progress_bar):
 
         psi_t = sso.state0.full().ravel()
 
-        noise = sso.noise[n] if sso.noise else None
+        noise = sso.noise[n] if sso.noise is not None else None
 
         states_list, dW, m = _ssesolve_single_trajectory(
             data, sso.H, dt, sso.times, N_store, N_substeps, psi_t,
@@ -697,8 +697,8 @@ def _ssesolve_generic(sso, options, progress_bar):
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum([ket2dm(data.states[m][n])
-                            for m in range(NT)]).unit()
+        data.states = [sum([ket2dm(data.states[mm][n])
+                            for mm in range(NT)]).unit()
                        for n in range(len(data.times))]
 
     # average
@@ -711,7 +711,8 @@ def _ssesolve_generic(sso, options, progress_bar):
         data.se = None
 
     # convert complex data to real if hermitian
-    data.expect = [np.real(data.expect[n, :]) if e.isherm else data.expect[n, :]
+    data.expect = [np.real(data.expect[n, :])
+                   if e.isherm else data.expect[n, :]
                    for n, e in enumerate(sso.e_ops)]
 
     return data
@@ -787,9 +788,10 @@ def _ssesolve_single_trajectory(data, H, dt, times, N_store, N_substeps, psi_t,
                                                    psi_t, 0)
                     else:
                         m_expt = 0
-                    measurements[t_idx, m_idx, dW_idx] = (m_expt +
-                                                          dW_factor * dW[m_idx, t_idx, :, dW_idx].sum() /
-                                                          (dt * N_substeps))
+                    mm = (m_expt + dW_factor *
+                          dW[m_idx, t_idx, :, dW_idx].sum() /
+                          (dt * N_substeps))
+                    measurements[t_idx, m_idx, dW_idx] = mm
 
     if d2_len == 1:
         measurements = measurements.squeeze(axis=(2))
@@ -846,7 +848,7 @@ def _smesolve_generic(sso, options, progress_bar):
         rho_t = mat2vec(sso.state0.full()).ravel()
 
         # noise = sso.noise[n] if sso.noise else None
-        if sso.noise:
+        if sso.noise is not None:
             noise = sso.noise[n]
         elif sso.generate_noise:
             noise = sso.generate_noise(len(A_ops), N_store, N_substeps,
@@ -855,10 +857,10 @@ def _smesolve_generic(sso, options, progress_bar):
             noise = None
 
         states_list, dW, m = _smesolve_single_trajectory(
-            data, L, dt, sso.times, N_store, N_substeps, rho_t, sso.state0.dims,
-            A_ops, s_e_ops, s_m_ops, sso.rhs, sso.d1, sso.d2, sso.d2_len,
-            sso.dW_factors, sso.homogeneous, sso.distribution, sso.args,
-            store_measurement=sso.store_measurement,
+            data, L, dt, sso.times, N_store, N_substeps, rho_t,
+            sso.state0.dims, A_ops, s_e_ops, s_m_ops, sso.rhs, sso.d1, sso.d2,
+            sso.d2_len, sso.dW_factors, sso.homogeneous, sso.distribution,
+            sso.args, store_measurement=sso.store_measurement,
             store_states=sso.store_states, noise=noise)
 
         data.states.append(states_list)
@@ -869,7 +871,7 @@ def _smesolve_generic(sso, options, progress_bar):
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum([data.states[m][n] for m in range(NT)]).unit()
+        data.states = [sum([data.states[mm][n] for mm in range(NT)]).unit()
                        for n in range(len(data.times))]
 
     # average
@@ -882,17 +884,17 @@ def _smesolve_generic(sso, options, progress_bar):
         data.se = None
 
     # convert complex data to real if hermitian
-    data.expect = [np.real(data.expect[n, :]) if e.isherm else data.expect[n, :]
+    data.expect = [np.real(data.expect[n, :])
+                   if e.isherm else data.expect[n, :]
                    for n, e in enumerate(sso.e_ops)]
 
     return data
 
 
-def _smesolve_single_trajectory(data, L, dt, times, N_store, N_substeps, rho_t,
-                                dims, A_ops, e_ops, m_ops, rhs, d1, d2, d2_len,
-                                dW_factors, homogeneous, distribution, args,
-                                store_measurement=False,
-                                store_states=False, noise=None):
+def _smesolve_single_trajectory(
+        data, L, dt, times, N_store, N_substeps, rho_t, dims, A_ops, e_ops,
+        m_ops, rhs, d1, d2, d2_len, dW_factors, homogeneous, distribution,
+        args, store_measurement=False, store_states=False, noise=None):
     """
     Internal function. See smesolve.
     """
@@ -1021,7 +1023,8 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
         data.se = None
 
     # convert complex data to real if hermitian
-    data.expect = [np.real(data.expect[n, :]) if e.isherm else data.expect[n, :]
+    data.expect = [np.real(data.expect[n, :])
+                   if e.isherm else data.expect[n, :]
                    for n, e in enumerate(sso.e_ops)]
 
     return data
@@ -1660,7 +1663,6 @@ def _rhs_psi_platen(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
 
     sqrt_dt = np.sqrt(dt)
 
-    #dW_len = len(dW[0, :])
     dpsi_t = _rhs_psi_deterministic(H, psi_t, t, dt, args)
 
     for a_idx, A in enumerate(A_ops):
@@ -1670,13 +1672,23 @@ def _rhs_psi_platen(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
         # TODO: needs to be updated to support mutiple Weiner increments
         dpsi_t_H = (-1.0j * dt) * spmv(H, psi_t)
 
-        psi_t_1 = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t)[0] * dW[a_idx, 0]
-        psi_t_p = psi_t + dpsi_t_H + d1(A, psi_t) * dt + d2(A, psi_t)[0] * sqrt_dt
-        psi_t_m = psi_t + dpsi_t_H + d1(A, psi_t) * dt - d2(A, psi_t)[0] * sqrt_dt
+        psi_t_1 = (psi_t + dpsi_t_H +
+                   d1(A, psi_t) * dt +
+                   d2(A, psi_t)[0] * dW[a_idx, 0])
+        psi_t_p = (psi_t + dpsi_t_H +
+                   d1(A, psi_t) * dt +
+                   d2(A, psi_t)[0] * sqrt_dt)
+        psi_t_m = (psi_t + dpsi_t_H +
+                   d1(A, psi_t) * dt -
+                   d2(A, psi_t)[0] * sqrt_dt)
 
-        dpsi_t += 0.50 * (d1(A, psi_t_1) + d1(A, psi_t)) * dt + \
-            0.25 * (d2(A, psi_t_p)[0] + d2(A, psi_t_m)[0] + 2 * d2(A, psi_t)[0]) * dW[a_idx, 0] + \
-            0.25 * (d2(A, psi_t_p)[0] - d2(A, psi_t_m)[0]) * (dW[a_idx, 0] ** 2 - dt) / sqrt_dt
+        dpsi_t += (
+            0.50 * (d1(A, psi_t_1) + d1(A, psi_t)) * dt +
+            0.25 * (d2(A, psi_t_p)[0] + d2(A, psi_t_m)[0] +
+                    2 * d2(A, psi_t)[0]) * dW[a_idx, 0] +
+            0.25 * (d2(A, psi_t_p)[0] - d2(A, psi_t_m)[0]) *
+            (dW[a_idx, 0] ** 2 - dt) / sqrt_dt
+            )
 
     return dpsi_t
 
@@ -1684,8 +1696,8 @@ def _rhs_psi_platen(H, psi_t, t, A_ops, dt, dW, d1, d2, args):
 # -----------------------------------------------------------------------------
 # Milstein rhs functions for the stochastic master equation
 #
-#
-def _rhs_rho_milstein_homodyne_single(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
+def _rhs_rho_milstein_homodyne_single(L, rho_t, t, A_ops, dt, dW, d1, d2,
+                                      args):
     """
     .. note::
 
