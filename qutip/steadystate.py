@@ -480,6 +480,8 @@ def _iterative_precondition(A, n, ss_args):
                     print('iLU condest:', condest)
     
     except:
+        warnings.warn("Preconditioning failed. Continuing without.",
+                      UserWarning)
         M = None
     
     return M, ss_args
@@ -512,9 +514,6 @@ def _steadystate_iterative(L, ss_args):
     
     if ss_args['M'] is None and ss_args['use_precond']:
         ss_args['M'], ss_args = _iterative_precondition(L, n, ss_args)
-        if ss_args['M'] == None:
-            warnings.warn("Preconditioning failed. Continuing without.",
-                      UserWarning)
 
     # Select iterative solver type
     _iter_start = time.time()
@@ -773,12 +772,9 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
     n = prod(L.dims[0][0])
     L, perm, perm2, rev_perm, ss_args = _steadystate_LU_liouvillian(L, ss_args)
     M, ss_args = _iterative_precondition(L, n, ss_args)
-    if M == None:
-        raise Exception("Failed to build preconditioner. Try increasing fill_factor and/or drop_tol.")
     if ss_args['return_info']:
         return M, ss_args['info']
-    else:
-        return M
+    return M
     
     
     
