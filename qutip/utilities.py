@@ -36,7 +36,7 @@ This module contains utility functions that are commonly needed in other
 qutip modules.
 """
 
-__all__ = ['n_thermal', 'linspace_with', 'clebsch', 'convert_unit', 
+__all__ = ['n_thermal', 'linspace_with', 'clebsch', 'convert_unit',
            'view_methods']
 
 import numpy as np
@@ -392,6 +392,7 @@ def view_methods(Q):
 
 def _version2int(version_string):
     str_list = version_string.split(
-        "-dev")[0].split("rc")[0].split("a")[0].split("b")[0].split("post")[0].split('.')
+        "-dev")[0].split("rc")[0].split("a")[0].split("b")[0].split(
+        "post")[0].split('.')
     return sum([int(d if len(d) > 0 else 0) * (100 ** (3 - n))
                 for n, d in enumerate(str_list[:3])])

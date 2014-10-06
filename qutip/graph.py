@@ -45,6 +45,7 @@ from qutip.cy.graph_utils import (
     _reverse_cuthill_mckee, _maximum_bipartite_matching,
     _weighted_bipartite_matching)
 
+
 def graph_degree(A):
     """
     Returns the degree for the nodes (rows) of a symmetric

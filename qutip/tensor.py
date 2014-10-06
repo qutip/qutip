@@ -44,7 +44,8 @@ from qutip.permute import reshuffle
 from qutip.superoperator import operator_to_vector
 
 import qutip.settings
-import qutip.superop_reps # Avoid circular dependency here.
+import qutip.superop_reps  # Avoid circular dependency here.
+
 
 def tensor(*args):
     """Calculates the tensor product of input operators.
@@ -135,21 +136,21 @@ def super_tensor(*args):
     """
     if isinstance(args[0], list):
         args = args[0]
-    
+
     # Check if we're tensoring vectors or superoperators.
-    if all(arg.issuper for arg in args):    
+    if all(arg.issuper for arg in args):
         if not all(arg.superrep == "super" for arg in args):
             raise TypeError(
                 "super_tensor on type='super' is only implemented for "
                 "superrep='super'."
             )
-            
+
         # Reshuffle the superoperators.
         shuffled_ops = list(map(reshuffle, args))
-        
+
         # Tensor the result.
         shuffled_tensor = tensor(shuffled_ops)
-        
+
         # Unshuffle and return.
         out = reshuffle(shuffled_tensor)
         out.superrep = args[0].superrep
@@ -157,13 +158,12 @@ def super_tensor(*args):
 
     elif all(arg.isoperket for arg in args):
 
-            
         # Reshuffle the superoperators.
         shuffled_ops = list(map(reshuffle, args))
-        
+
         # Tensor the result.
         shuffled_tensor = tensor(shuffled_ops)
-        
+
         # Unshuffle and return.
         out = reshuffle(shuffled_tensor)
         return out
@@ -177,12 +177,18 @@ def super_tensor(*args):
             "either super, operator-ket or operator-bra."
         )
 
+
 def _isoperlike(q):
     return q.isoper or q.issuper
+
+
 def _isketlike(q):
-    return q.isket  or q.isoperket
+    return q.isket or q.isoperket
+
+
 def _isbralike(q):
-    return q.isbra  or q.isoperbra
+    return q.isbra or q.isoperbra
+
 
 def composite(*args):
     """

@@ -59,7 +59,7 @@ def _permute(Q, order):
         return perm_matrix * Q.data, Q.dims
 
     elif Q.isbra:
-        dims, perm = _perm_inds(A.dims[0], order)
+        dims, perm = _perm_inds(Q.dims[0], order)
         nzs = Q.data.nonzero()[1]
         wh = np.where(perm == nzs)[0]
         data = np.ones(len(wh), dtype=int)
@@ -79,7 +79,7 @@ def _permute(Q, order):
         dims_part = list(dims[order])
         dims = [dims_part, dims_part]
         return (perm_matrix * Q.data) * perm_matrix.T, dims
-    
+
     elif Q.issuper or Q.isoperket:
         # For superoperators, we expect order to be something like
         # [[0, 2], [1, 3]], which tells us to permute according to
@@ -89,7 +89,7 @@ def _permute(Q, order):
         # permuting [[[1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3]]] by
         # [[0, 3], [1, 4], [2, 6]] should give
         # [[[1, 1], [2, 2], [3, 3]], [[1, 1], [2, 2], [3, 3]]].
-        
+        #
         # Get the breakout of the left index into dims.
         # Since this is a super, the left index itself breaks into left
         # and right indices, each of which breaks down further.
@@ -98,16 +98,16 @@ def _permute(Q, order):
         q_dims_left = sum(Q.dims[0], [])
         dims, perm = _perm_inds(q_dims_left, flat_order)
         dims = dims.flatten()
-        
+
         data = np.ones(Q.shape[0], dtype=int)
         rows = np.arange(Q.shape[0], dtype=int)
-        
+
         perm_matrix = sp.coo_matrix((data, (rows, perm.T[0])),
                                     shape=(Q.shape[0], Q.shape[0]), dtype=int)
-        
+
         perm_matrix = perm_matrix.tocsr()
         dims_part = list(dims[flat_order])
-        
+
         # Finally, we need to restructure the now-decomposed left index
         # into left and right subindices, so that the overall dims we return
         # are of the form specified by order.
@@ -143,8 +143,9 @@ def reshuffle(q_oper):
     Column-reshuffles a ``type="super"`` Qobj.
     """
     if q_oper.type not in ('super', 'operator-ket'):
-        raise TypeError("Reshuffling is only supported on type='super' or type='operator-ket'.")
-        
+        raise TypeError("Reshuffling is only supported on type='super' "
+                        "or type='operator-ket'.")
+
     # How many indices are there, and how many subsystems can we decompose
     # each index into?
     n_indices = len(q_oper.dims[0])

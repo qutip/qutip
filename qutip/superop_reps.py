@@ -39,9 +39,9 @@ This module implements transformations between superoperator representations,
 including supermatrix, Kraus, Choi and Chi (process) matrix formalisms.
 """
 
-__all__= ['super_to_choi', 'choi_to_super', 'choi_to_kraus', 'kraus_to_choi',
-          'kraus_to_super', 'choi_to_chi', 'chi_to_choi', 'to_choi', 'to_chi',
-          'to_super', 'to_kraus']
+__all__ = ['super_to_choi', 'choi_to_super', 'choi_to_kraus', 'kraus_to_choi',
+           'kraus_to_super', 'choi_to_chi', 'chi_to_choi', 'to_choi',
+           'to_chi', 'to_super', 'to_kraus']
 
 # Python Standard Library
 from itertools import starmap, product

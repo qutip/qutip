@@ -76,7 +76,7 @@ class eseries():
             self.rates = np.array([])
             self.dims = [[1, 1]]
             self.shape = [1, 1]
-        
+
         elif np.any(np.asarray(q, dtype=object)) and (len(s) == 0):
             if isinstance(q, eseries):
                 self.ampl = q.ampl
@@ -130,7 +130,7 @@ class eseries():
                     raise TypeError('Number of rates must match number ' +
                                     ' of members in object array.')
                 self.rates = np.array(s)
-                
+
         if len(self.ampl) != 0:
             # combine arrays so that they can be sorted together
             zipped = list(zip(self.rates, self.ampl))
