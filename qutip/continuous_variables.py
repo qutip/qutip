@@ -75,11 +75,12 @@ def correlation_matrix(basis, rho=None):
 
     if rho is None:
         # return array of operators
-        return np.array([[op1 * op2 for op1 in basis] for op2 in basis])
+        return np.array([[op1 * op2 for op1 in basis]
+                         for op2 in basis], dtype=object)
     else:
         # return array of expectation values
         return np.array([[expect(op1 * op2, rho)
-                          for op1 in basis] for op2 in basis])
+                          for op1 in basis] for op2 in basis], dtype=object)
 
 
 def covariance_matrix(basis, rho, symmetrized=True):
