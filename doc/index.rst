@@ -1,5 +1,5 @@
 .. QuTiP 
-   Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
+   Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
 
 
 QuTiP: Quantum Toolbox in Python (3.0.1)

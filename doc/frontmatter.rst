@@ -1,5 +1,5 @@
 .. QuTiP 
-   Copyright (C) 2011-2013, Paul D. Nation & Robert J. Johansson
+   Copyright (C) 2011 and later, Paul D. Nation & Robert J. Johansson
 
 .. _frontmatter:
 
@@ -27,7 +27,7 @@ This document contains a user guide and automatically generated API documentatio
 :Address: iTHES Research Group, RIKEN,
 		  Wako-shi Saitama, 351-0198 Japan
 
-:version: 3.0
+:version: 3.1.0
 :status: Released
 :copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
 
@@ -82,11 +82,11 @@ About QuTiP
 
 Every quantum system encountered in the real world is an open quantum system. For although much care is taken experimentally to eliminate the unwanted influence of external interactions, there remains, if ever so slight, a coupling between the system of interest and the external world. In addition, any measurement performed on the system necessarily involves coupling to the measuring device, therefore introducing an additional source of external influence. Consequently, developing the necessary tools, both theoretical and numerical, to account for the interactions between a system and its environment is an essential step in understanding the dynamics of quantum systems.
 
-In general, for all but the most basic of Hamiltonians, an analytical description of the system dynamics is not possible, and one must resort to numerical simulations of the equations of motion. In absence of a quantum computer, these simulations must be carried out using classical computing techniques, where the exponentially increasing dimensionality of the underlying Hilbert space severely limits the size of system that can be efficiently simulated. However, in many fields such as quantum optics, trapped ions, superconducting circuit devices, and most recently nanomechanical systems, it is possible to design systems using a small number of effective oscillator and spin components, excited by a small number of quanta, that are amenable to classical simulation in a truncated Hilbert space.
+In general, for all but the most basic of Hamiltonians, an analytical description of the system dynamics is not possible, and one must resort to numerical simulations of the equations of motion. In absence of a quantum computer, these simulations must be carried out using classical computing techniques, where the exponentially increasing dimensionality of the underlying Hilbert space severely limits the size of system that can be efficiently simulated. However, in many fields such as quantum optics, trapped ions, superconducting circuit devices, and most recently nanomechanical systems, it is possible to design systems using a small number of effective oscillator and spin components, excited by a limited number of quanta, that are amenable to classical simulation in a truncated Hilbert space.
 
 The Quantum Toolbox in Python, or QuTiP, is a fully open-source implementation of a framework written in the Python programming language designed for simulating the open quantum dynamics for systems such as those listed above. This framework distinguishes itself from the other available software solutions by providing the following advantages:
 
-* QuTiP relies on completely open-source software.  You are free to modify and use it as you wish with no licensing fees.
+* QuTiP relies entirely on open-source software.  You are free to modify and use it as you wish with no licensing fees or limitations.
 
 * QuTiP is based on the Python scripting language, providing easy to read, fast code generation without the need to compile after modification.
 
