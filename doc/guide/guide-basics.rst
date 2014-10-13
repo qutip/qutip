@@ -12,8 +12,7 @@ Basic Operations on Quantum Objects
 First things first
 ==================
 
-.. important::
-   Do not run QuTiP from the installation directory.
+.. note:: Do not run QuTiP from the installation directory.
 
 To load the qutip modules, we must first call the import statement:
 
@@ -247,6 +246,8 @@ Like attributes, the quantum object class has defined functions (methods) that o
 +-----------------+--------------------------+----------------------------------------+
 | Function        | Command                  | Description                            |
 +=================+==========================+========================================+
+| Check Hermicity | Q.check_herm()           | Check if quantum object is Hermitian   |
++-----------------+--------------------------+----------------------------------------+
 | Conjugate       | Q.conj()                 | Conjugate of quantum object.           |
 +-----------------+--------------------------+----------------------------------------+
 | Dagger (adjoint)| Q.dag()                  | Returns adjoint (dagger) of object.    |
@@ -257,7 +258,12 @@ Like attributes, the quantum object class has defined functions (methods) that o
 +-----------------+--------------------------+----------------------------------------+
 | Eigenstates     | Q.eigenstates()          | Returns eigenvalues and eigenvectors.  |
 +-----------------+--------------------------+----------------------------------------+
+| Eliminate States| Q.eliminate_states(inds) | Returns quantum object with states in  |
+|                 |                          | list inds removed.                     |
++-----------------+--------------------------+----------------------------------------+
 | Exponential     | Q.expm()                 | Matrix exponential of operator.        |
++-----------------+--------------------------+----------------------------------------+
+| Extract States  | Q.extract_states(inds)   | Qobj with states listed in inds only.  |
 +-----------------+--------------------------+----------------------------------------+
 | Full            | Q.full()                 | Returns full (not sparse) array of     |
 |                 |                          | Q's data.                              |
@@ -268,6 +274,9 @@ Like attributes, the quantum object class has defined functions (methods) that o
 +-----------------+--------------------------+----------------------------------------+
 | Norm            | Q.norm()                 | Returns L2 norm for states,            |
 |                 |                          | trace norm for operators.              |
++-----------------+--------------------------+----------------------------------------+
+| Overlap         | Q.overlap(state)         | Overlap between current Qobj and a     |
+|                 |                          | given state.                           |
 +-----------------+--------------------------+----------------------------------------+
 | Partial Trace   | Q.ptrace(sel)            | Partial trace returning components     |
 |                 |                          | selected using 'sel' parameter.        |
