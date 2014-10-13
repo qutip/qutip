@@ -76,7 +76,7 @@ The resulting list of expectation values can easily be visualized using matplotl
 
 .. ipython::
 
-    In [1]: H = 2 * pi * 0.1 * sigmax()
+    In [1]: H = 2 * np.pi * 0.1 * sigmax()
 
     In [1]: psi0 = basis(2, 0)
 
@@ -206,7 +206,7 @@ the previously empty list in the fourth parameter to the :func:`qutip.mesolve` f
 
     In [1]: times = np.linspace(0.0, 10.0, 100)
 
-    In [1]: result = mesolve(H, psi0, times, [sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
+    In [1]: result = mesolve(H, psi0, times, [np.sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
 
     In [1]: import matplotlib.pyplot as plt
 
@@ -235,9 +235,9 @@ Now a slightly more complex example: Consider a two-level atom coupled to a leak
     >>> psi0 = tensor(fock(2,0), fock(10, 5))
     >>> a  = tensor(qeye(2), destroy(10))
     >>> sm = tensor(destroy(2), qeye(10))
-    >>> H = 2 * pi * a.dag() * a + 2 * pi * sm.dag() * sm + \
-    >>>     2 * pi * 0.25 * (sm * a.dag() + sm.dag() * a)
-    >>> result = mesolve(H, psi0, times, ntraj, [sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
+    >>> H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + \
+    >>>     2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
+    >>> result = mesolve(H, psi0, times, ntraj, [np.sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
     >>> from pylab import *
     >>> plot(times, result.expect[0])
     >>> plot(times, result.expect[1])

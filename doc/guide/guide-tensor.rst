@@ -146,13 +146,13 @@ Note that the partial trace always results in a density matrix (mixed state), re
 
     In [1]:    psi = tensor((basis(2, 0) + basis(2, 1)).unit(), basis(2, 0))
    
-       In [2]:    psi
+    In [2]:    psi
    
-       In [3]:    psi.ptrace(0)
+    In [3]:    psi.ptrace(0)
    
-       In [4]:    rho = tensor(ket2dm((basis(2, 0) + basis(2, 1)).unit()), fock_dm(2, 0))
+    In [4]:    rho = tensor(ket2dm((basis(2, 0) + basis(2, 1)).unit()), fock_dm(2, 0))
    
-       In [5]:    rho
+    In [5]:    rho
    
-       In [6]:    rho.ptrace(0)
+    In [6]:    rho.ptrace(0)
 

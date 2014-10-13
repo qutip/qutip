@@ -88,8 +88,10 @@ Quantum information processing
     :members:
 
 .. autoclass:: qutip.qip.models.spinchain.LinearSpinChain
+    :members:
 
 .. autoclass:: qutip.qip.models.spinchain.CircularSpinChain
+    :members:
 
 .. autoclass:: qutip.qip.models.cqed.DispersivecQED
     :members:

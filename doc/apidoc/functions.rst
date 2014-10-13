@@ -236,6 +236,7 @@ Algorithms
 .. automodule:: qutip.qip.algorithms.qft
     :members: qft, qft_steps, qft_gate_sequence
 
+
 .. _functions-metrics:
 
 
@@ -248,7 +249,7 @@ Graph Theory Routines
 ----------------------
 
 .. automodule:: qutip.graph
-    :members: breadth_first_search, graph_degree, symrcm
+    :members: breadth_first_search, graph_degree, reverse_cuthill_mckee, maximum_bipartite_matching, weighted_bipartite_matching
 
 
 .. _functions-utilities:

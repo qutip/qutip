@@ -50,7 +50,7 @@ First we generate the density matrices for the coherent, thermal and fock states
 
     In [1]: N = 20
 
-    In [1]: rho_coherent = coherent_dm(N, sqrt(2))
+    In [1]: rho_coherent = coherent_dm(N, np.sqrt(2))
 
     In [1]: rho_thermal = thermal_dm(N, 2)
 
@@ -63,19 +63,19 @@ Next, we plot histograms of the diagonals of the density matrices:
 
     In [1]: fig, axes = plt.subplots(1, 3, figsize=(12,3))
 
-    In [1]: bar0 = axes[0].bar(arange(0, N)-.5, rho_coherent.diag())
+    In [1]: bar0 = axes[0].bar(np.arange(0, N)-.5, rho_coherent.diag())
 
     In [1]: lbl0 = axes[0].set_title("Coherent state")
 
     In [1]: lim0 = axes[0].set_xlim([-.5, N])
 
-    In [1]: bar1 = axes[1].bar(arange(0, N)-.5, rho_thermal.diag())
+    In [1]: bar1 = axes[1].bar(np.arange(0, N)-.5, rho_thermal.diag())
 
     In [1]: lbl1 = axes[1].set_title("Thermal state")
 
     In [1]: lim1 = axes[1].set_xlim([-.5, N])
 
-    In [1]: bar2 = axes[2].bar(arange(0, N)-.5, rho_fock.diag())
+    In [1]: bar2 = axes[2].bar(np.arange(0, N)-.5, rho_fock.diag())
 
     In [1]: lbl2 = axes[2].set_title("Fock state")
 
@@ -184,6 +184,10 @@ this function in your Wigner figures:
    In [1]: plt.clf()
 
 .. ipython::
+
+    In [1]: import matplotlib as mpl
+    
+    In [1]: from matplotlib import cm
     
     In [1]: psi = (basis(10, 0) + basis(10, 3) + basis(10, 9)).unit()
     
@@ -196,8 +200,6 @@ this function in your Wigner figures:
     In [1]: nrm = mpl.colors.Normalize(-W.max(), W.max())
     
     In [1]: fig, axes = plt.subplots(1, 2, figsize=(10, 4))
-    
-    In [1]: from matplotlib import cm
 
     In [1]: plt1 = axes[0].contourf(xvec, xvec, W, 100, cmap=cm.RdBu, norm=nrm)
     
@@ -316,7 +318,7 @@ used below to visualize the corresponding steadystate density matrix:
 
 .. ipython::
 
-    In [1]: rho_ss = steadystate(H, [sqrt(0.1) * a, sqrt(0.4) * b.dag()])
+    In [1]: rho_ss = steadystate(H, [np.sqrt(0.1) * a, np.sqrt(0.4) * b.dag()])
 
     In [1]: fig, ax = hinton(rho_ss) #, xlabels=xlabels, ylabels=xlabels)
 

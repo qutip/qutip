@@ -59,7 +59,7 @@ We can create a ``Qobj`` with a user defined data set by passing a list or array
 
 	In [1]: Qobj([1,2,3,4,5])
 
-	In [2]: x = array([[1, 2, 3, 4, 5]])
+	In [2]: x = np.array([[1, 2, 3, 4, 5]])
 	
 	In [3]: Qobj(x)
 
@@ -226,7 +226,7 @@ The rules for mathematical operations on ``Qobj`` instances are similar to stand
 	
 	In [5]: q ** 3 
 	
-	In [6]: x / sqrt(2)
+	In [6]: x / np.sqrt(2)
 
 
 Of course, like matrices, multiplying two objects of incompatible shape throws an error:

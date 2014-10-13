@@ -71,14 +71,14 @@ To illustrate the use of the Monte Carlo evolution of quantum systems in QuTiP, 
 	from qutip import *
 	from pylab import *
 
-	times = linspace(0.0, 10.0, 200)
+	times = np.linspace(0.0, 10.0, 200)
 	psi0 = tensor(fock(2, 0), fock(10, 5))
 	a  = tensor(qeye(2), destroy(10))
 	sm = tensor(destroy(2), qeye(10))
-	H = 2 * pi * a.dag() * a + 2 * pi * sm.dag() * sm + \
-        2 * pi * 0.25 * (sm * a.dag() + sm.dag() * a)
+	H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + \
+        2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
 	# run Monte Carlo solver
-	data = mcsolve(H, psi0, times, [sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
+	data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
 	plot(times, data.expect[0], times, data.expect[1])
 	title('Monte Carlo time evolution')
 	xlabel('Time')
@@ -105,7 +105,7 @@ Changing the Number of Trajectories
 
 As mentioned earlier, by default, the ``mcsolve`` function runs 500 trajectories.  This value was chosen because it gives good accuracy, Monte Carlo errors scale as :math:`1/n` where :math:`n` is the number of trajectories, and simultaneously does not take an excessive amount of time to run.  However, like many other options in QuTiP you are free to change the number of trajectories to fit your needs.  If we want to run 1000 trajectories in the above example, we can simply modify the call to ``mcsolve`` like:
 
->>> data = mcsolve(H, psi0, times, [sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm],
+>>> data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm],
 >>>                ntraj=1000)
 
 where we have added the keyword argument ``ntraj=1000`` at the end of the inputs.  Now, the Monte Carlo solver will calculate expectation values for both operators, ``a.dag() * a, sm.dag() * sm`` averaging over 1000 trajectories.  Sometimes one is also interested in seeing how the Monte Carlo trajectories converge to the master equation solution by calculating expectation values over a range of trajectory numbers.  If, for example, we want to average over 1, 10, 100, and 1000 trajectories, then we can input this into the solver using:
@@ -114,7 +114,7 @@ where we have added the keyword argument ``ntraj=1000`` at the end of the inputs
 
 Keep in mind that the input list must be in ascending order since the total number of trajectories run by ``mcsolve`` will be calculated using the last element of ``ntraj``.  In this case, we need to use an extra index when getting the expectation values from the :class:`qutip.solver.Result` object returned by ``mcsolve``.  In the above example using:
 
->>> data = mcsolve(H, psi0, times, [sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm],
+>>> data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm],
 >>>                ntraj=[1, 10, 100, 1000])
 
 we can extract the relevant expectation values using::
@@ -145,22 +145,22 @@ A full account of this feature is given in :ref:`options`.  Using the previous e
 	from qutip import *
 	from pylab import *
     
-	times = linspace(0.0, 10.0, 200)
+	times = np.linspace(0.0, 10.0, 200)
 	psi0 = tensor(fock(2, 0), fock(10, 5))
 	a  = tensor(qeye(2), destroy(10))
 	sm = tensor(destroy(2), qeye(10))
-	H = 2 * pi * a.dag() * a + 2 * pi * sm.dag() * sm + \
-        2 * pi * 0.25 * (sm * a.dag() + sm.dag() * a)
+	H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + \
+        2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
 	
 	# first run
-	data1 = mcsolve(H, psi0, times, [sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
+	data1 = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
 	
 	# change initial state
 	psi1 = tensor(fock(2, 0), coherent(10, 2 - 1j))
 	
 	# run again, reusing data
 	options = Options(rhs_reuse=True)
-	data2 = mcsolve(H, psi1, times, [sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm],
+	data2 = mcsolve(H, psi1, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm],
                     options=options)
 	
 	# plot both results
@@ -186,7 +186,7 @@ Fortran Based Monte Carlo Solver
 
 In performing time-independent Monte Carlo simulations with QuTiP, systems with small Hilbert spaces suffer from poor performance as the ODE solver must exit the ODE solver at each time step and check for the state vector norm.  To correct this, QuTiP now includes an optional Fortran based Monte Carlo solver that has markedly enhanced performance for smaller systems.  Using the Fortran based solver is extremely simple; one just needs to replace ``mcsolve`` with ``mcsolve_f90``.  For example, from our previous demonstation::
 
-    data1 = mcsolve_f90(H, psi0, times, [sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
+    data1 = mcsolve_f90(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
 
 In using the Fortran solver, there are a few limitations that must be kept in mind.  First, this solver only works for time-independent systems.  Second, you can not pass a list of trajectories to ``ntraj``.
 

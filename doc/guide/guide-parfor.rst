@@ -69,7 +69,7 @@ One can also define functions with **multiple** input arguments and even keyword
     
     In [1]: def sum_diff(x , y, z=0): return x + y, x - y, z
     
-    In [2]: parfor(sum_diff, [1, 2, 3], [4, 5, 6], z=5)
+    In [2]: parfor(sum_diff, [1, 2, 3], [4, 5, 6], z=5.0)
     
 Note that the keyword arguments can be anything you like, but the keyword values are **not** iterated over. The keyword argument *num_cpus* is reserved as it sets the number of CPU's used by parfor. By default, this value is set to the total number of physical processors on your system. You can change this number to a lower value, however setting it higher than the number of CPU's will cause a drop in performance.
 
