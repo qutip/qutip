@@ -91,7 +91,7 @@ Density Matrix Metrics
 ----------------------
 
 .. automodule:: qutip.metrics
-    :members: fidelity, tracedist
+    :members: fidelity, tracedist, bures_dist, bures_angle, hilbert_dist
 
 
 Continous Variables
