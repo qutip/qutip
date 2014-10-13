@@ -219,7 +219,7 @@ or use ``0.5 * fock_dm(5, 2) + 0.5 * fock_dm(5, 4)``. There are also several oth
     In [1]: thermal_dm(5, 1.25)
 
 
-QuTiP also provides a set of distance metrics for determining how close two density matrix distributions are to each other. Included are the trace distance :func:`qutip.metrics.tracedist` and the fidelity :func:`qutip.metrics.fidelity`.
+QuTiP also provides a set of distance metrics for determining how close two density matrix distributions are to each other. Included are the trace distance :func:`qutip.metrics.tracedist`, fidelity :func:`qutip.metrics.fidelity`, Hilbert-Schmidt distance :func:`qutip.metrics.hilbert_dist`, Bures distance :func:`qutip.metrics.bures_dist`, and Bures angle :func:`qutip.metrics.bures_angle`.
 
 .. ipython::
 
@@ -242,7 +242,7 @@ We also know that for two pure states, the trace distance (T) and the fidelity (
 
 .. ipython::
 
-    In [1]: sqrt(1 - fidelity(y, x) ** 2)
+    In [1]: np.sqrt(1 - fidelity(y, x) ** 2)
 
 
 For a pure state and a mixed state, :math:`1 - F^{2} \le T` which can also be verified:
