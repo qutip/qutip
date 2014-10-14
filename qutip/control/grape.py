@@ -38,6 +38,7 @@ calculating pulse sequences for quantum systems.
 __all__ = ['plot_grape_control_fields',
            'grape_unitary', 'cy_grape_unitary', 'grape_unitary_adaptive']
 
+import warnings
 import time
 import numpy as np
 from scipy.interpolate import interp1d
@@ -177,6 +178,9 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
     if u_limits and len(u_limits) != 2:
         raise ValueError("u_limits must be a list with two values")
 
+    if u_limits:
+        warnings.warn("Causion: Using experimental feature u_limits")
+
     if u_limits and u_start:
         # make sure that no values in u0 violates the u_limits conditions
         u_start = np.array(u_start)
@@ -186,6 +190,9 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
     if u_start is not None:
         for idx, u0 in enumerate(u_start):
             u[0, idx, :] = u0
+
+    if beta:
+        warnings.warn("Causion: Using experimental feature time-penalty")
 
     progress_bar.start(R)
     for r in range(R - 1):
@@ -319,6 +326,9 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
     if u_limits and len(u_limits) != 2:
         raise ValueError("u_limits must be a list with two values")
 
+    if u_limits:
+        warnings.warn("Causion: Using experimental feature u_limits")
+
     if u_limits and u_start:
         # make sure that no values in u0 violates the u_limits conditions
         u_start = np.array(u_start)
@@ -337,6 +347,9 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
     if u_start is not None:
         for idx, u0 in enumerate(u_start):
             u[0, idx, :] = u0
+
+    if beta:
+        warnings.warn("Causion: Using experimental feature time-penalty")
 
     alpha_val = alpha if alpha else 0.0
     beta_val = beta if beta else 0.0
@@ -458,6 +471,9 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
     if u_limits and len(u_limits) != 2:
         raise ValueError("u_limits must be a list with two values")
 
+    if u_limits:
+        warnings.warn("Causion: Using experimental feature u_limits")
+
     if u_limits and u_start:
         # make sure that no values in u0 violates the u_limits conditions
         u_start = np.array(u_start)
@@ -468,6 +484,9 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
         for idx, u0 in enumerate(u_start):
             for k in range(K):
                 u[0, idx, :, k] = u0
+
+    if beta:
+        warnings.warn("Causion: Using experimental feature time-penalty")
 
     if phase_sensitive:
         _fidelity_function = lambda x: x
