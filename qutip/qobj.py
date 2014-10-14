@@ -1054,7 +1054,7 @@ class Qobj(object):
         -------
         P : qobj
             Permuted quantum object.
-i
+
         """
         q = Qobj()
         q.data, q.dims = _permute(self, order)

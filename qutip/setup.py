@@ -6,6 +6,7 @@ def configuration(parent_package='', top_path=None):
     config = Configuration('qutip', parent_package, top_path)
     # Add all QuTiP subpackages here:
     config.add_subpackage('cy')
+    config.add_subpackage('control')
     if os.environ['FORTRAN_LIBS'] == 'TRUE':
         config.add_subpackage('fortran')
 
