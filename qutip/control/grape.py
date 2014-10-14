@@ -34,6 +34,10 @@
 This module contains functions that implement the GRAPE algorithm for
 calculating pulse sequences for quantum systems.
 """
+
+__all__ = ['plot_grape_control_fields',
+           'grape_unitary', 'cy_grape_unitary', 'grape_unitary_adaptive']
+
 import time
 import numpy as np
 from scipy.interpolate import interp1d
@@ -56,8 +60,23 @@ class GRAPEResult:
 
 def plot_grape_control_fields(times, u, labels, uniform_axes=False):
     """
-    Plot a series of plots shoing the GRAPE control fields given in the
-    matrix u.
+    Plot a series of plots showing the GRAPE control fields given in the
+    given control pulse matrix u.
+
+    Parameters
+    ----------
+    times : array
+        Time coordinate array.
+
+    u : array
+        Control pulse matrix.
+
+    labels : list
+        List of labels for each control pulse sequence in the control pulse
+        matrix.
+
+    uniform_axes : bool
+        Whether or not to plot all pulse sequences using the same y-axis scale.
     """
     import matplotlib.pyplot as plt
 
@@ -104,6 +123,33 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
     unitary U is realized.
 
     Experimental: Work in progress.
+
+    Parameters
+    ----------
+    U : Qobj
+        Target unitary evolution operator.
+
+    H0 : Qobj
+        Static Hamiltonian (that cannot be tuned by the control fields).
+
+    H_ops: list of Qobj
+        A list of operators that can be tuned in the Hamiltonian via the
+        control fields.
+
+    R : int
+        Number of GRAPE iterations.
+
+    time : array / list
+        Array of time coordinates for control pulse evalutation.
+
+    u_start : array
+        Optional array with initial control pulse values.
+
+    Returns
+    -------
+        Instance of GRAPEResult, which contains the control pulses calculated
+        with GRAPE, a time-dependent Hamiltonian that is defined by the
+        control pulses, as well as the resulting propagator.
     """
 
     if eps is None:
@@ -217,6 +263,33 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
     unitary U is realized.
 
     Experimental: Work in progress.
+
+    Parameters
+    ----------
+    U : Qobj
+        Target unitary evolution operator.
+
+    H0 : Qobj
+        Static Hamiltonian (that cannot be tuned by the control fields).
+
+    H_ops: list of Qobj
+        A list of operators that can be tuned in the Hamiltonian via the
+        control fields.
+
+    R : int
+        Number of GRAPE iterations.
+
+    time : array / list
+        Array of time coordinates for control pulse evalutation.
+
+    u_start : array
+        Optional array with initial control pulse values.
+
+    Returns
+    -------
+        Instance of GRAPEResult, which contains the control pulses calculated
+        with GRAPE, a time-dependent Hamiltonian that is defined by the
+        control pulses, as well as the resulting propagator.
     """
 
     if eps is None:
@@ -292,39 +365,9 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
             U_b_list.insert(0, U_b)
             U_b = U_list[M - 2 - n].T.conj().tocsr() * U_b
 
-        if True:
-            cy_grape_inner(U.data, u, r, J, M, U_b_list, U_f_list, H_ops_data,
-                           dt, eps, alpha_val, beta_val, phase_sensitive,
-                           use_u_limits, u_min, u_max)
-        else:
-            for j in range(J):
-                for k in range(M-1):
-                    P = U_b_list[k] * U.data
-                    Q = 1j * dt * H_ops_data[j] * U_f_list[k]
-
-                    if phase_sensitive:
-                        du = - cy_overlap(P, Q)
-                    else:
-                        du = (- 2 * cy_overlap(P, Q) *
-                              cy_overlap(U_f_list[k], P))
-
-                    if alpha:
-                        # penalty term for high power control signals u
-                        du += -2 * alpha * u[r, j, k] * dt
-
-                    if beta:
-                        # penalty term for late control signals u
-                        du += -2 * beta * k**2 * u[r, j, k] * dt
-
-                    u[r + 1, j, k] = u[r, j, k] + eps * du.real
-
-                    if u_limits:
-                        if u[r + 1, j, k] < u_limits[0]:
-                            u[r + 1, j, k] = u_limits[0]
-                        elif u[r + 1, j, k] > u_limits[1]:
-                            u[r + 1, j, k] = u_limits[1]
-
-                u[r + 1, j, -1] = u[r + 1, j, -2]
+        cy_grape_inner(U.data, u, r, J, M, U_b_list, U_f_list, H_ops_data,
+                       dt, eps, alpha_val, beta_val, phase_sensitive,
+                       use_u_limits, u_min, u_max)
 
     if use_interp:
         ip_funcs = [interp1d(times, u[R - 1, j, :], kind=interp_kind,
@@ -338,9 +381,7 @@ def cy_grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
 
     progress_bar.finished()
 
-    # return U_f_list[-1], H_td_func, u
-    return GRAPEResult(u=u,
-                       U_f=Qobj(U_f_list[-1], dims=U.dims),
+    return GRAPEResult(u=u, U_f=Qobj(U_f_list[-1], dims=U.dims),
                        H_t=H_td_func)
 
 
@@ -354,6 +395,33 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
     the unitary U is realized.
 
     Experimental: Work in progress.
+
+    Parameters
+    ----------
+    U : Qobj
+        Target unitary evolution operator.
+
+    H0 : Qobj
+        Static Hamiltonian (that cannot be tuned by the control fields).
+
+    H_ops: list of Qobj
+        A list of operators that can be tuned in the Hamiltonian via the
+        control fields.
+
+    R : int
+        Number of GRAPE iterations.
+
+    time : array / list
+        Array of time coordinates for control pulse evalutation.
+
+    u_start : array
+        Optional array with initial control pulse values.
+
+    Returns
+    -------
+        Instance of GRAPEResult, which contains the control pulses calculated
+        with GRAPE, a time-dependent Hamiltonian that is defined by the
+        control pulses, as well as the resulting propagator.
     """
 
     if eps is None:
@@ -541,7 +609,6 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
 
     progress_bar.finished()
 
-    # return Uf[best_k], H_td_func, u[:_r,:,:,best_k]
     result = GRAPEResult(u=u[:_r, :, :, best_k], U_f=Uf[best_k],
                          H_t=H_td_func)
 
