@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__= ['file_data_store', 'file_data_read', 'qsave', 'qload']
+__all__ = ['file_data_store', 'file_data_read', 'qsave', 'qload']
 
 import pickle
 import numpy as np

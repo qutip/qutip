@@ -75,11 +75,12 @@ def correlation_matrix(basis, rho=None):
 
     if rho is None:
         # return array of operators
-        return np.array([[op1 * op2 for op1 in basis] for op2 in basis])
+        return np.array([[op1 * op2 for op1 in basis]
+                         for op2 in basis], dtype=object)
     else:
         # return array of expectation values
         return np.array([[expect(op1 * op2, rho)
-                          for op1 in basis] for op2 in basis])
+                          for op1 in basis] for op2 in basis], dtype=object)
 
 
 def covariance_matrix(basis, rho, symmetrized=True):
@@ -123,11 +124,11 @@ def covariance_matrix(basis, rho, symmetrized=True):
     if symmetrized:
         return np.array([[0.5 * expect(op1 * op2 + op2 * op1, rho) -
                           expect(op1, rho) * expect(op2, rho)
-                          for op1 in basis] for op2 in basis])
+                          for op1 in basis] for op2 in basis], dtype=object)
     else:
         return np.array([[expect(op1 * op2, rho) -
                           expect(op1, rho) * expect(op2, rho)
-                          for op1 in basis] for op2 in basis])
+                          for op1 in basis] for op2 in basis], dtype=object)
 
 
 def correlation_matrix_field(a1, a2, rho=None):
@@ -239,11 +240,11 @@ def wigner_covariance_matrix(a1=None, a2=None, R=None, rho=None):
         if rho is None:
             return np.array([[0.5 * np.real(R[i, j] + R[j, i])
                               for i in range(4)]
-                             for j in range(4)])
+                             for j in range(4)], dtype=object)
         else:
             return np.array([[0.5 * np.real(expect(R[i, j] + R[j, i], rho))
                               for i in range(4)]
-                             for j in range(4)])
+                             for j in range(4)], dtype=object)
 
     elif a1 is not None and a2 is not None:
 

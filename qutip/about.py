@@ -43,6 +43,7 @@ import scipy
 import inspect
 import qutip.settings
 
+
 def about():
     """
     About box for qutip. Gives version numbers for
@@ -72,7 +73,7 @@ def about():
     print("scikits.umfpack:    %s" % str(qutip.settings.umfpack))
     print("Python Version:     %d.%d.%d" % sys.version_info[0:3])
     print("Platform Info:      %s (%s)" % (platform.system(),
-                                           platform.machine()))      
+                                           platform.machine()))
     qutip_install_path = os.path.dirname(inspect.getsourcefile(qutip))
     print("Installation path:  %s" % qutip_install_path)
     print("")

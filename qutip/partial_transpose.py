@@ -33,7 +33,7 @@
 #    Significant parts of this code was contributed by Jonas Neergaard-Nielsen
 ###############################################################################
 
-__all__ = ['partial_transpose'] 
+__all__ = ['partial_transpose']
 
 import numpy as np
 import scipy.sparse as sp

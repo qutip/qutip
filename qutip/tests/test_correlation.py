@@ -121,7 +121,7 @@ def test_compare_solvers_coherent_state_memc():
     corr2 = correlation_2op_2t(H, psi0, [0], taulist, c_ops, a.dag(), a,
                                solver="mc")[0]
 
-    assert_(max(abs(corr1 - corr2)) < 1e-2)
+    assert_(max(abs(corr1 - corr2)) < 5e-2)
 
 
 def test_compare_solvers_steadystate_legacy():

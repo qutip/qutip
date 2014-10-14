@@ -114,7 +114,8 @@ def parfor(func, *args, **kwargs):
         if isinstance(par_return[0], tuple):
             par_return = [elem for elem in par_return]
             num_elems = len(par_return[0])
-            return [array([elem[ii] for elem in par_return])
+            dt=[type(ii) for ii in par_return[0]]
+            return [array([elem[ii] for elem in par_return],dtype=dt[ii])
                     for ii in range(num_elems)]
         else:
             return list(par_return)

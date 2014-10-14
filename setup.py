@@ -31,14 +31,8 @@ Operating System :: Microsoft :: Windows
 # import statements
 import os
 import sys
-import re
-from distutils.core import Command
-from unittest import TextTestRunner, TestLoader
-from glob import glob
-from os.path import splitext, basename, join as pjoin
 import numpy as np
 from numpy.distutils.core import setup
-from numpy.distutils.system_info import get_info
 
 # all information about QuTiP goes here
 MAJOR = 3
@@ -76,6 +70,7 @@ if not ISRELEASED:
     FULLVERSION += '.dev' + git_short_hash()
 
 os.environ['QUTIP_RELEASE'] = 'TRUE' if ISRELEASED else 'FALSE'
+
 
 def write_version_py(filename='qutip/version.py'):
     cnt = """\

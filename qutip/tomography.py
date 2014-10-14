@@ -38,10 +38,11 @@ from qutip.superoperator import spre, spost, mat2vec, vec2mat
 from numpy import hstack, real, imag
 import scipy.linalg as la
 from qutip.visualization import matrix_histogram, matrix_histogram_complex
-import qutip.settings
 
-if qutip.settings.qutip_graphics == 'YES':
+try:
     import matplotlib.pyplot as plt
+except:
+    pass
 
 
 def _index_permutations(size_list, perm=[]):

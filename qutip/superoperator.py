@@ -203,7 +203,7 @@ def vector_to_operator(op):
     """
     q = Qobj()
     q.dims = op.dims[0]
-    q.data = sp_reshape(op.data.H, q.shape)
+    q.data = sp_reshape(op.data.T, q.shape).T
     return q
 
 

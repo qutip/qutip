@@ -841,7 +841,9 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
         progress_bar.update(t_idx)
 
         if not r.successful():
-            break
+            raise Exception("ODE integration error: Try to increase "
+                            "the allowed number of substeps by increasing "
+                            "the nsteps parameter in the Options class.")
 
         if opt.store_states or expt_callback:
             rho.data = vec2mat(r.y)

@@ -34,8 +34,6 @@
 This module contains settings for the QuTiP graphics, multiprocessing, and
 tidyup functionality, etc.
 """
-# QuTiP Graphics (set at qutip import)
-qutip_graphics = None
 # use auto tidyup
 auto_tidyup = True
 # detect hermiticity
@@ -59,18 +57,14 @@ def load_rc_file(rc_file):
     Load settings for the qutip RC file, by default .qutiprc in the user's home
     directory.
     """
-    global qutip_graphics, auto_tidyup, auto_herm, auto_tidyup_atol, \
-        num_cpus, debug, atol
+    global auto_tidyup, auto_herm, auto_tidyup_atol, num_cpus, debug, atol
 
     with open(rc_file) as f:
         for line in f.readlines():
             if line[0] != "#":
                 var, val = line.strip().split("=")
 
-                if var == "qutip_graphics":
-                    qutip_graphics = "NO" if val == "NO" else "YES"
-
-                elif var == "auto_tidyup":
+                if var == "auto_tidyup":
                     auto_tidyup = True if val == "True" else False
 
                 elif var == "auto_tidyup_atol":

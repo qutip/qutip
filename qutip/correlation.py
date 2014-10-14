@@ -217,7 +217,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
 
     if debug:
         print(inspect.stack()[0][3])
-    
+
     if tlist is None:
         return correlation_2op_1t(H, state0, taulist, c_ops, a_op, b_op,
                                   solver=solver, reverse=reverse, args=args,
@@ -231,7 +231,7 @@ def correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
             A_op = 1
             B_op = a_op
             C_op = b_op
-        
+
         return _correlation_2t(H, state0, tlist, taulist,
                                c_ops, A_op, B_op, C_op,
                                solver=solver, args=args, options=options)
@@ -382,7 +382,7 @@ def correlation_3op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
 
     if debug:
         print(inspect.stack()[0][3])
-    
+
     if tlist is None:
         return correlation_3op_1t(H, state0, taulist, c_ops, a_op, b_op, c_op,
                                   solver=solver, args=args, options=options)
@@ -776,7 +776,7 @@ def correlation(H, state0, tlist, taulist, c_ops, a_op, b_op,
 
     if debug:
         print(inspect.stack()[0][3])
-        
+
     return correlation_2op_2t(H, state0, tlist, taulist, c_ops, a_op, b_op,
                               solver=solver, reverse=reverse, args=args,
                               options=options)
@@ -1252,7 +1252,7 @@ def _correlation_mc_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                 if a_op.dag() == c_op:
                     # A shortcut here, requires only 1/4 the trials
                     chi_0 = (options.mc_corr_eps + c_op) * \
-                            psi_t_mat[trial_idx, t_idx]
+                        psi_t_mat[trial_idx, t_idx]
 
                     # evolve these states and calculate expectation value of B
                     c_tau = chi_0.norm()**2 * mcsolve(
@@ -1333,7 +1333,8 @@ def _spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
         else:
             MMR = np.dot(Q, np.linalg.solve(-1.0j * w * I + A, Q))
 
-        s = np.dot(tr_vec, np.dot(a, np.dot(MMR, np.dot(b, np.transpose(rho)))))
+        s = np.dot(tr_vec,
+                   np.dot(a, np.dot(MMR, np.dot(b, np.transpose(rho)))))
         spectrum[idx] = -2 * np.real(s[0, 0])
 
     return spectrum

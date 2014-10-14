@@ -44,7 +44,10 @@ if 'MKL_NUM_THREADS' not in os.environ:
 
 if 'OPENBLAS_NUM_THREADS' not in os.environ:
     os.environ['OPENBLAS_NUM_THREADS'] = '1'
+
 import sys
+import warnings
+
 import qutip.settings
 import qutip.version
 from qutip.version import version as __version__
@@ -63,7 +66,7 @@ try:
               ("(%s), requiring %s." %
                (numpy.__version__, numpy_requirement)))
 except:
-    print("QuTiP warning: numpy not found.")
+    warnings.warn("numpy not found.")
 
 scipy_requirement = "0.11.0"
 try:
@@ -73,7 +76,7 @@ try:
               ("(%s), requiring %s." %
                (scipy.__version__, scipy_requirement)))
 except:
-    print("QuTiP warning: scipy not found.")
+    warnings.warn("scipy not found.")
 
 # -----------------------------------------------------------------------------
 # check to see if running from install directory for released versions.
@@ -126,7 +129,6 @@ if 'cpus' in info:
 else:
     qutip.settings.num_cpus = multiprocessing.cpu_count()
 
-qutip.settings.qutip_graphics = "YES"
 
 # -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.
@@ -149,25 +151,13 @@ else:
 # configuration file.
 #
 
-if 'QUTIP_GRAPHICS' not in os.environ:
-    os.environ['QUTIP_GRAPHICS'] = qutip.settings.qutip_graphics
-else:
-    qutip.settings.qutip_graphics = os.environ['QUTIP_GRAPHICS']
-
-# check if being run remotely
-if sys.platform not in ['darwin', 'win32'] and 'DISPLAY' not in os.environ:
-    # no graphics if DISPLAY isn't set
-    os.environ['QUTIP_GRAPHICS'] = "NO"
-    qutip.settings.qutip_graphics = "NO"
-
 # check for fortran mcsolver files
 try:
-    from qutip.fortran import qutraj_run
+    from qutip.fortran import mcsolve_f90
 except:
     qutip.settings.fortran = False
 else:
     qutip.settings.fortran = True
-    from qutip.fortran import *
 
 # check for scikits.umfpack
 try:
@@ -185,8 +175,7 @@ else:
 try:
     import matplotlib
 except:
-    os.environ['QUTIP_GRAPHICS'] = "NO"
-    qutip.settings.qutip_graphics = 'NO'
+    warnings.warn("matplotlib not found: Graphics will not work.")
 else:
     del matplotlib
 
@@ -209,11 +198,10 @@ from qutip.tensor import *
 from qutip.parfor import *
 
 # graphics
-if qutip.settings.qutip_graphics == 'YES':
-    from qutip.bloch import *
-    from qutip.visualization import *
-    from qutip.orbital import *
-    from qutip.bloch3d import *
+from qutip.bloch import *
+from qutip.visualization import *
+from qutip.orbital import *
+from qutip.bloch3d import *
 
 # library functions
 from qutip.tomography import *

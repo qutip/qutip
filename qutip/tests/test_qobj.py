@@ -37,12 +37,12 @@ import numpy as np
 from numpy.testing import assert_equal, assert_, run_module_suite
 
 from qutip.qobj import Qobj
-from qutip.random_objects import rand_ket, rand_dm, rand_herm, rand_unitary
-from qutip.states import basis, fock_dm
+from qutip.random_objects import rand_ket, rand_dm, rand_herm, rand_unitary, rand_super
+from qutip.states import basis, fock_dm, ket2dm
 from qutip.operators import create, destroy, num, sigmax
-from qutip.superoperator import spre, spost, operator_to_vector
+from qutip.superoperator import spre, spost, operator_to_vector, vector_to_operator
 from qutip.superop_reps import to_super
-from qutip.tensor import tensor, super_tensor
+from qutip.tensor import tensor, super_tensor, composite
 
 from operator import add, mul, truediv, sub
 
@@ -663,6 +663,14 @@ def test_isherm_skew():
     assert_(not iH.isherm)
     assert_((iH * iH).isherm)
     assert_(tensor(iH, iH).isherm)
+    
+def test_super_tensor_operket():
+    """
+    Tensor: Checks that super_tensor respects states.
+    """
+    rho1, rho2 = rand_dm(5), rand_dm(7)
+    rhoket1 = operator_to_vector(rho1)
+    rhoket2 = operator_to_vector(rho2)
 
 
 def test_super_tensor_property():
@@ -679,6 +687,40 @@ def test_super_tensor_property():
 
     assert_(S_tens == S_supertens)
     assert_equal(S_supertens.superrep, 'super')
+
+def test_composite_oper():
+    """
+    Composite: Tests compositing unitaries and superoperators.
+    """
+    U1 = rand_unitary(3)
+    U2 = rand_unitary(5)
+    S1 = to_super(U1)
+    S2 = to_super(U2)
+
+    S3 = rand_super(4)
+    S4 = rand_super(7)
+
+    assert_(composite(U1, U2) == tensor(U1, U2))
+    assert_(composite(S3, S4) == super_tensor(S3, S4))
+    assert_(composite(U1, S4) == super_tensor(S1, S4))
+    assert_(composite(S3, U2) == super_tensor(S3, S2))
+
+def test_composite_vec():
+    """
+    Composite: Tests compositing states and density operators.
+    """
+    k1 = rand_ket(5)
+    k2 = rand_ket(7)
+    r1 = operator_to_vector(ket2dm(k1))
+    r2 = operator_to_vector(ket2dm(k2))
+
+    r3 = operator_to_vector(rand_dm(3))
+    r4 = operator_to_vector(rand_dm(4))
+
+    assert_(composite(k1, k2) == tensor(k1, k2))
+    assert_(composite(r3, r4) == super_tensor(r3, r4))
+    assert_(composite(k1, r4) == super_tensor(r1, r4))
+    assert_(composite(r3, k2) == super_tensor(r3, r2))
 
 if __name__ == "__main__":
     run_module_suite()
