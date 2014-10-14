@@ -50,7 +50,21 @@ from qutip.qip.gates import gate_sequence_product
 
 
 class GRAPEResult:
+    """
+    Class for representing the result of a GRAPE simulation.
 
+    Attributes
+    ----------
+    u : array
+        GRAPE control pulse matrix.
+
+    H_t : time-dependent Hamiltonian
+        The time-dependent Hamiltonian that realize the GRAPE pulse sequence.
+
+    U_f : Qobj
+        The final unitary transformation that is realized by the evolution
+        of the system with the GRAPE generated pulse sequences.
+    """
     def __init__(self, u=None, H_t=None, U_f=None):
 
         self.u = u
