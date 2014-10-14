@@ -88,8 +88,7 @@ cpdef CTYPE_t cy_overlap(object op1, object op2):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cpdef cy_grape_inner(U, 
-                     np.ndarray[DTYPE_t, ndim=3, mode="c"] u,
+cpdef cy_grape_inner(U, np.ndarray[DTYPE_t, ndim=3, mode="c"] u,
                      int r, int J, int M, U_b_list, U_f_list, H_ops,
                      float dt, float eps, float alpha, float beta,
                      int phase_sensitive,
@@ -124,4 +123,4 @@ cpdef cy_grape_inner(U,
                     u[r + 1, j, m] = u_max
 
     for j in range(J):
-        u[r + 1, j, -1] = u[r + 1, j, -2]
+        u[r + 1, j, M-1] = u[r + 1, j, M-2]
