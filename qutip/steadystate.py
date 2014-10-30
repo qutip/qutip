@@ -481,7 +481,8 @@ def _iterative_precondition(A, n, ss_args):
                     print('iLU condest:', condest)
 
     except:
-        M = None
+        raise Exception("Failed to build preconditioner. Try increasing " +
+                        "fill_factor and/or drop_tol.")
 
     return M, ss_args
 
@@ -777,10 +778,6 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
     n = prod(L.dims[0][0])
     L, perm, perm2, rev_perm, ss_args = _steadystate_LU_liouvillian(L, ss_args)
     M, ss_args = _iterative_precondition(L, n, ss_args)
-
-    if M is None:
-        raise Exception("Failed to build preconditioner. Try increasing " +
-                        "fill_factor and/or drop_tol.")
 
     if ss_args['return_info']:
         return M, ss_args['info']
