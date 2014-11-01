@@ -49,6 +49,9 @@ from qutip.ui.progressbar import BaseProgressBar
 from qutip.control.cy_grape import cy_overlap, cy_grape_inner
 from qutip.qip.gates import gate_sequence_product
 
+import qutip._logging
+logger = qutip._logging.get_logger()
+
 
 class GRAPEResult:
     """
@@ -416,7 +419,7 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
                            u_limits=None, interp_kind='linear',
                            use_interp=False, alpha=None, beta=None,
                            phase_sensitive=False, overlap_terminate=1.0,
-                           debug=False, progress_bar=BaseProgressBar()):
+                           progress_bar=BaseProgressBar()):
     """
     Calculate control pulses for the Hamiltonian operators in H_ops so that
     the unitary U is realized.
@@ -504,9 +507,7 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
         _r = r
         eps_log[r] = eps_vec[best_k]
 
-        if debug:
-            print("=" * 80)
-            print("eps_vec: ", eps_vec)
+        logger.debug("eps_vec: {}".format(eps_vec))
 
         _t0 = time.time()
 
@@ -532,9 +533,8 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
 
             U_list = [(-1j * _H_idx(idx) * dt).expm() for idx in range(M-1)]
 
-        if debug:
-            print("Time 1: %fs" % (time.time() - _t0))
-            _t0 = time.time()
+        logger.debug("Time 1: %fs" % (time.time() - _t0))
+        _t0 = time.time()
 
         U_f_list = []
         U_b_list = []
@@ -549,9 +549,8 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
             U_b_list.insert(0, U_b)
             U_b = U_list[M - 2 - m].dag() * U_b
 
-        if debug:
-            print("Time 2: %fs" % (time.time() - _t0))
-            _t0 = time.time()
+        logger.debug("Time 2: %fs" % (time.time() - _t0))
+        _t0 = time.time()
 
         for j in range(J):
             for m in range(M-1):
@@ -583,9 +582,8 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
 
             u[r + 1, j, -1, :] = u[r + 1, j, -2, :]
 
-        if debug:
-            print("Time 3: %fs" % (time.time() - _t0))
-            _t0 = time.time()
+        logger.debug("Time 3: %fs" % (time.time() - _t0))
+        _t0 = time.time()
 
         for k, eps_val in enumerate(eps_vec):
 
@@ -600,12 +598,10 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
                                                           U.data)).real
 
         best_k = np.argmax(_k_overlap)
-        if debug:
-            print("k_overlap: ", _k_overlap, best_k)
+        logger.debug("k_overlap: ", _k_overlap, best_k)
 
         if _prev_overlap > _k_overlap[best_k]:
-            if debug:
-                print("Regression, stepping back with smaller eps.")
+            logger.debug("Regression, stepping back with smaller eps.")
 
             u[r + 1, :, :, :] = u[r, :, :, :]
             eps_vec /= 2
@@ -623,12 +619,11 @@ def grape_unitary_adaptive(U, H0, H_ops, R, times, eps=None, u_start=None,
 
         if overlap_terminate < 1.0:
             if _k_overlap[best_k] > overlap_terminate:
-                print("Reached target fidelity, terminating.")
+                logger.info("Reached target fidelity, terminating.")
                 break
 
-        if debug:
-            print("Time 4: %fs" % (time.time() - _t0))
-            _t0 = time.time()
+        logger.debug("Time 4: %fs" % (time.time() - _t0))
+        _t0 = time.time()
 
     if use_interp:
         ip_funcs = [interp1d(times, u[_r, j, :, best_k], kind=interp_kind,
