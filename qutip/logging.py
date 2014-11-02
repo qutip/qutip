@@ -42,6 +42,10 @@ import logging
 
 import qutip.settings
 
+## EXPORTS ##
+
+__all__ = ['get_logger']
+
 ## META-LOGGING ##
 
 metalogger = logging.getLogger(__name__)
