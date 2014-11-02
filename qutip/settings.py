@@ -74,7 +74,7 @@ del logging # Don't leak names!
 try:
     import configobj as _cobj
 except ImportError:
-    _logger.warn("configobj missing; parsing RC file ourselves.", exc_info=1)
+    _logger.warn("configobj missing.", exc_info=1)
     _cobj = None
 
 
@@ -86,62 +86,35 @@ def load_rc_file(rc_file):
     global auto_tidyup, auto_herm, auto_tidyup_atol, num_cpus, debug, atol
     global log_handler
 
-    if _cobj is not None:
-        import pkg_resources
-        import validate
-        config = _cobj.ConfigObj(rc_file,
-            configspec=pkg_resources.resource_filename('qutip', 'configspec.ini')
-        )
-        validator = validate.Validator()
-        result = config.validate(validator)
+    if _cobj is None:
+        raise ImportError("Config file parsing requires configobj. Skipping.")
 
-        if result != True: # this is un-Pythonic, but how the result gets
-                           # returned...
-            # OK, find which keys are bad.
-            bad_keys = {key for key, val in result.iteritems() if not val}
-            _logger.warn('Invalid configuration options in {}: {}'.format(
-                rc_file, bad_keys
-            ))
-        else:
-            bad_keys = {}
+    import pkg_resources
+    import validate
+    config = _cobj.ConfigObj(rc_file,
+        configspec=pkg_resources.resource_filename('qutip', 'configspec.ini')
+    )
+    validator = validate.Validator()
+    result = config.validate(validator)
 
-        for config_key in (
-            'auto_tidyup', 'auto_herm', 'atol', 'auto_tidyup_atol',
-            'num_cpus', 'debug', 'log_handler'
-        ):
-            if config_key in config and config_key not in bad_keys:
-                _logger.debug(
-                    "Applying configuration setting {} = {}.".format(
-                        config_key, config[config_key]
-                    )
-                )
-                globals()[config_key] = config[config_key]
-
+    if result != True: # this is un-Pythonic, but how the result gets
+                       # returned...
+        # OK, find which keys are bad.
+        bad_keys = {key for key, val in result.iteritems() if not val}
+        _logger.warn('Invalid configuration options in {}: {}'.format(
+            rc_file, bad_keys
+        ))
     else:
+        bad_keys = {}
 
-
-        with open(rc_file) as f:
-            for line in f.readlines():
-                if line[0] != "#":
-                    var, val = line.strip().split("=")
-
-                    if var == "auto_tidyup":
-                        auto_tidyup = True if val == "True" else False
-
-                    elif var == "auto_tidyup_atol":
-                        auto_tidyup_atol = float(val)
-
-                    elif var == "atol":
-                        atol = float(val)
-
-                    elif var == "auto_herm":
-                        auto_herm = True if val == "True" else False
-
-                    elif var == "num_cpus":
-                        num_cpus = int(val)
-
-                    elif var == "debug":
-                        debug = True if val == "True" else False
-
-                    elif var == 'log_handler':
-                        log_handler = val
+    for config_key in (
+        'auto_tidyup', 'auto_herm', 'atol', 'auto_tidyup_atol',
+        'num_cpus', 'debug', 'log_handler'
+    ):
+        if config_key in config and config_key not in bad_keys:
+            _logger.debug(
+                "Applying configuration setting {} = {}.".format(
+                    config_key, config[config_key]
+                )
+            )
+            globals()[config_key] = config[config_key]

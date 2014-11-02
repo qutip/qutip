@@ -55,9 +55,11 @@ from qutip.utilities import _version2int
 
 # -----------------------------------------------------------------------------
 # Check if we're in IPython.
-import __builtin__
-qutip.settings.ipython = '__IPYTHON__' in dir(__builtin__)
-del __builtin__
+try:
+    __IPYTHON__
+    qutip.settings.ipython = True
+except:
+    qutip.settings.ipython = False
 
 # -----------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
