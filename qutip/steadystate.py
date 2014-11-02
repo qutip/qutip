@@ -62,7 +62,7 @@ _scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
 def _default_steadystate_args():
     def_args = {'method': 'direct', 'sparse': True, 'use_rcm': False,
                 'use_wbm': False, 'use_umfpack': False, 'weight': None,
-                'use_precond': True, 'all_states': False,
+                'use_precond': False, 'all_states': False,
                 'M': None, 'x0': None, 'drop_tol': 1e-4, 'fill_factor': 100,
                 'diag_pivot_thresh': None, 'maxiter': 1000, 'tol': 1e-9,
                 'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2', 'restart': 20,
@@ -137,7 +137,7 @@ def steadystate(A, c_op_list=[], **kwargs):
         'NATURAL'. If using RCM then this is set to 'NATURAL' automatically
         unless explicitly specified.
 
-    use_precond : bool optional, default = True
+    use_precond : bool optional, default = False
         ITERATIVE ONLY. Use an incomplete sparse LU decomposition as a
         preconditioner for the 'iterative' GMRES and BICG solvers.
         Speeds up convergence time by orders of magnitude in many cases.
