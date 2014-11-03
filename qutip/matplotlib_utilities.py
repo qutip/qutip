@@ -39,9 +39,13 @@ in one way or another.
 __all__ = ['wigner_cmap', 'MidpointNorm', 'complex_phase_cmap']
 
 import numpy as np
-import matplotlib as mpl
-from matplotlib import cm
-from matplotlib.colors import (Normalize, ColorConverter)
+
+try:
+    import matplotlib as mpl
+    from matplotlib import cm
+    from matplotlib.colors import (Normalize, ColorConverter)
+except:
+    pass
 
 
 def wigner_cmap(W, levels=1024, shift=0, max_color='#09224F',
