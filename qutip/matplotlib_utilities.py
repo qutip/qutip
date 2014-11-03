@@ -45,7 +45,10 @@ try:
     from matplotlib import cm
     from matplotlib.colors import (Normalize, ColorConverter)
 except:
-    pass
+    class Normalize(object):
+        def __init__(self, vmin=None, vmax=None, clip=False):
+            pass
+        
 
 
 def wigner_cmap(W, levels=1024, shift=0, max_color='#09224F',
