@@ -42,7 +42,7 @@ __all__ = ['hinton', 'wigner_cmap', 'sphereplot', 'energy_level_diagram',
            'plot_expectation_values', 'plot_spin_distribution_2d',
            'plot_spin_distribution_3d', 'plot_qubism', 'plot_schmidt',
            'complex_array_to_rgb', 'matrix_histogram', 
-           'matrix_histogram_complex', 'sphereplot', 'WignerNorm']
+           'matrix_histogram_complex', 'sphereplot', 'MidpointNorm']
 
 import warnings
 import numpy as np
@@ -53,7 +53,6 @@ try:
     import matplotlib as mpl
     from matplotlib import cm
     from mpl_toolkits.mplot3d import Axes3D
-    from matplotlib.colors import Normalize
 except:
     pass
 
@@ -1509,20 +1508,25 @@ def plot_schmidt(ket, splitting=None,
     return fig, ax
 
 
-class WignerNorm(Normalize):
-    """Normalization for a nonlinear colormap centered about zero.
-    
-    Returns
-    -------
-    Returns a Matplotlib colormap normalization that can be used
-    with any colormap.
+try:
+    from matplotlib.colors import Normalize
 
-    """
+    class MidpointNorm(Normalize):
+        """Normalization for a colormap centered about a given midpoint.
     
-    def __init__(self, vmin=None, vmax=None, midpoint=0, clip=False):
-        self.midpoint = midpoint
-        Normalize.__init__(self, vmin, vmax, clip)
+        Returns
+        -------
+        Returns a Matplotlib colormap normalization that can be used
+        with any colormap.
 
-    def __call__(self, value, clip=None):
-        x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
-        return np.ma.masked_array(np.interp(value, x, y))
+        """
+    
+        def __init__(self, vmin=None, vmax=None, midpoint=0, clip=False):
+            self.midpoint = midpoint
+            Normalize.__init__(self, vmin, vmax, clip)
+
+        def __call__(self, value, clip=None):
+            x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
+            return np.ma.masked_array(np.interp(value, x, y))
+except:
+    pass
