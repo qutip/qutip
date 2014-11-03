@@ -240,3 +240,9 @@ from qutip.qip import *
 from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *
+# try to load utilities dependent on Matplotlib
+try:
+    from qutip.matplotlib_utilities import *
+except:
+    pass
+
