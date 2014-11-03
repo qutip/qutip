@@ -1506,27 +1506,3 @@ def plot_schmidt(ket, splitting=None,
               extent=(0, size_x, 0, size_y))
 
     return fig, ax
-
-
-try:
-    from matplotlib.colors import Normalize
-
-    class MidpointNorm(Normalize):
-        """Normalization for a colormap centered about a given midpoint.
-    
-        Returns
-        -------
-        Returns a Matplotlib colormap normalization that can be used
-        with any colormap.
-
-        """
-    
-        def __init__(self, vmin=None, vmax=None, midpoint=0, clip=False):
-            self.midpoint = midpoint
-            Normalize.__init__(self, vmin, vmax, clip)
-
-        def __call__(self, value, clip=None):
-            x, y = [self.vmin, self.midpoint, self.vmax], [0, 0.5, 1]
-            return np.ma.masked_array(np.interp(value, x, y))
-except:
-    pass
