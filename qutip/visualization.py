@@ -42,7 +42,7 @@ __all__ = ['hinton', 'wigner_cmap', 'sphereplot', 'energy_level_diagram',
            'plot_expectation_values', 'plot_spin_distribution_2d',
            'plot_spin_distribution_3d', 'plot_qubism', 'plot_schmidt',
            'complex_array_to_rgb', 'matrix_histogram', 
-           'matrix_histogram_complex', 'sphereplot', 'MidpointNorm']
+           'matrix_histogram_complex', 'sphereplot']
 
 import warnings
 import numpy as np
