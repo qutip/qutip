@@ -283,7 +283,6 @@ def cython_preamble():
 # This file is generated automatically by QuTiP.
 # (C) 2011 and later, P. D. Nation & J. R. Johansson
 
-from numpy import *
 import numpy as np
 cimport numpy as np
 cimport cython
