@@ -50,7 +50,7 @@ from scipy.sparse.linalg import (use_solver, splu, spilu, spsolve, eigs,
                                  LinearOperator, gmres, lgmres, bicgstab)
 from qutip.qobj import Qobj, issuper, isoper
 from qutip.superoperator import liouvillian, vec2mat
-from qutip.sparse import sp_permute, sp_bandwidth, sp_reshape
+from qutip.sparse import sp_permute, sp_bandwidth, sp_reshape, sp_profile
 from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
 import qutip.settings as settings
 from qutip.utilities import _version2int
@@ -259,6 +259,7 @@ def _steadystate_LU_liouvillian(L, ss_args):
 
     if settings.debug:
         old_band = sp_bandwidth(L)[0]
+        old_pro = sp_profile(L)[0]
         print('NNZ:', L.nnz)
         if ss_args['use_rcm']:
             print('Original bandwidth:', old_band)
@@ -288,9 +289,12 @@ def _steadystate_LU_liouvillian(L, ss_args):
         ss_args['info']['rcm_time'] = _rcm_end-_rcm_start
         if settings.debug:
             rcm_band = sp_bandwidth(L)[0]
+            rcm_pro = sp_profile(L)[0]
             print('RCM bandwidth:', rcm_band)
             print('Bandwidth reduction factor:', round(
                 old_band/rcm_band, 1))
+            print('Profile reduction factor:', round(
+                old_pro/rcm_pro, 1))
     L.sort_indices()
     return L, perm, perm2, rev_perm, ss_args
 
