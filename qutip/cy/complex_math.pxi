@@ -23,45 +23,45 @@ cdef extern from "complex.h":
     double complex ctanh(double complex x)
 
 
-cdef double abs(double complex x):
+cdef inline double abs(double complex x):
     return cabs(x)
-cdef double complex acos(double complex x):
+cdef inline double complex acos(double complex x):
     return cacos(x)
-cdef double complex acosh(double complex x):
+cdef inline double complex acosh(double complex x):
     return cacosh(x)
-cdef double arg(double complex x):
+cdef inline double arg(double complex x):
     return carg(x)
-cdef double complex asin(double complex x):
+cdef inline double complex asin(double complex x):
     return casin(x)
-cdef double complex asinh(double complex x):
+cdef inline double complex asinh(double complex x):
     return casinh(x)
-cdef double complex atan(double complex x):
+cdef inline double complex atan(double complex x):
     return catan(x)
-cdef double complex atanh(double complex x):
+cdef inline double complex atanh(double complex x):
     return catanh(x)
-cdef double complex cos(double complex x):
+cdef inline double complex cos(double complex x):
     return ccos(x)
-cdef double complex cosh(double complex x):
+cdef inline double complex cosh(double complex x):
     return ccosh(x)
-cdef double complex exp(double complex x):
+cdef inline double complex exp(double complex x):
     return cexp(x)
-cdef double imag(double complex x):
+cdef inline double imag(double complex x):
     return cimag(x)
-cdef double complex log(double complex x):
+cdef inline double complex log(double complex x):
     return clog(x)
-cdef double complex pow(double complex x, double complex y):
+cdef inline double complex pow(double complex x, double complex y):
     return cpow(x,y)
-cdef double complex proj(double complex x):
+cdef inline double complex proj(double complex x):
     return cproj(x)
-cdef double real(double complex x):
+cdef inline double real(double complex x):
     return creal(x)
-cdef double complex sin(double complex x):
+cdef inline double complex sin(double complex x):
     return csin(x)
-cdef double complex sinh(double complex x):
+cdef inline double complex sinh(double complex x):
     return csinh(x)
-cdef double complex sqrt(double complex x):
+cdef inline double complex sqrt(double complex x):
     return csqrt(x)
-cdef double complex tan(double complex x):
+cdef inline double complex tan(double complex x):
     return ctan(x)
-cdef double complex tanh(double complex x):
+cdef inline double complex tanh(double complex x):
     return ctanh(x)
