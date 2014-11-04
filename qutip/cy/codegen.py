@@ -30,12 +30,12 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+import os
+import numpy as np
+_cython_path = os.path.dirname(os.path.abspath(__file__))
+_include_string="'"+_cython_path+"/complex_math.pxi'"
 
 __all__ = ['Codegen']
-
-import numpy as np
-
-
 class Codegen():
     """
     Class for generating cython code files at runtime.
@@ -227,7 +227,7 @@ class Codegen():
                            "idx" + cstr + "," +
                            "ptr" + cstr + "," + "vec" + ")")
                 if ct in range(len(self.c_td_inds)):
-                    str_out += " * np.abs(" + tdterms[ct] + ")**2"
+                    str_out += " * abs(" + tdterms[ct] + ")**2"
                     cinds += 1
                 func_vars.append(str_out)
         return func_vars
@@ -263,7 +263,7 @@ class Codegen():
         ind = 0
         for k in self.c_td_inds:
             out_string.append("if which == " + str(k) + ":")
-            out_string.append("    out *= np.conj(" +
+            out_string.append("    out *= conj(" +
                               self.c_tdterms[ind] + ")")
             ind += 1
         return out_string
@@ -281,15 +281,15 @@ def cython_preamble():
     """
     return ["""\
 # This file is generated automatically by QuTiP.
-# (C) Paul D. Nation & J. R. Johansson
+# (C) 2011 and later, P. D. Nation & J. R. Johansson
 
 from numpy import *
-cimport libc.math as cmath
-
 import numpy as np
 cimport numpy as np
 cimport cython
 from qutip.cy.spmatfuncs import spmv_csr, spmvpy
+
+include """+str(_include_string)+"""
 
 ctypedef np.complex128_t CTYPE_t
 ctypedef np.float64_t DTYPE_t
@@ -301,10 +301,8 @@ def cython_checks():
     List of strings that turn off Cython checks.
     """
     return ["""
-
 @cython.boundscheck(False)
-@cython.wraparound(False)
-"""]
+@cython.wraparound(False)"""]
 
 
 def cython_col_spmv():
