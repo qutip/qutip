@@ -288,7 +288,7 @@ cimport numpy as np
 cimport cython
 from qutip.cy.spmatfuncs import spmv_csr, spmvpy
 
-include """+str(_include_string)+"""
+include """+_include_string+"""
 
 ctypedef np.complex128_t CTYPE_t
 ctypedef np.float64_t DTYPE_t
