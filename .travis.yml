@@ -18,7 +18,8 @@ install:
     - "python setup.py install --with-f90mc"
 
 # command to run tests
-script: nosetests qutip
+script: 
+    - nosetests --with-coverage qutip
 
 after_success:
     - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then
