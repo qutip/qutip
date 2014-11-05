@@ -3,7 +3,7 @@ language: python
 python:
   - "2.7"
   - "3.2"
-  - "3.3"
+  - "3.4"
 
 before_install:
   - uname -a
@@ -18,3 +18,8 @@ install:
 
 # command to run tests
 script: nosetests qutip
+
+after_success:
+   - if [[ $ENV == python=3.4* ]]; then
+       coveralls;
+   fi
