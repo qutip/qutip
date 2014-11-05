@@ -19,7 +19,7 @@ install:
 
 # command to run tests
 script: 
-    - nosetests --with-coverage qutip
+    - nosetests --cover-package=qutip qutip
 
 after_success:
     - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then
