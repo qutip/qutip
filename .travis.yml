@@ -21,6 +21,6 @@ install:
 script: nosetests qutip
 
 after_success:
-  - if [[ $ENV == python=3.4* ]]; then
-      coveralls;
-  fi
+    - if [[ $ENV == python=3.4* ]]; then
+          coveralls;
+      fi
