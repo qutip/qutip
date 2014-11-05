@@ -288,6 +288,8 @@ cimport numpy as np
 cimport cython
 from qutip.cy.spmatfuncs import spmv_csr, spmvpy
 
+cdef double pi = 3.14159265358979323
+
 include """+_include_string+"""
 
 ctypedef np.complex128_t CTYPE_t
