@@ -15,7 +15,7 @@ mechanics in research as well as in the classroom.
 Build status
 ------------
 
-[![build-status](https://secure.travis-ci.org/qutip/qutip.png?branch=master)](http://travis-ci.org/qutip/qutip)
+[![build-status](https://secure.travis-ci.org/qutip/qutip.svg?branch=master)](http://travis-ci.org/qutip/qutip)
 [![Coverage Status](https://img.shields.io/coveralls/qutip/qutip.svg)](https://coveralls.io/r/qutip/qutip)
 
 Download
