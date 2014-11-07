@@ -53,7 +53,6 @@ try:
     import matplotlib as mpl
     from matplotlib import cm
     from mpl_toolkits.mplot3d import Axes3D
-    from qutip.matplotlib_utilities import complex_phase_cmap
 except:
     pass
 
@@ -61,7 +60,7 @@ from qutip.qobj import Qobj, isket, isbra
 from qutip.states import ket2dm
 from qutip.wigner import wigner
 from qutip.tensor import tensor
-
+from qutip.matplotlib_utilities import complex_phase_cmap
 
 # Adopted from the SciPy Cookbook.
 def _blob(x, y, w, w_max, area):
