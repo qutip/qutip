@@ -1,4 +1,36 @@
 # -*- coding: utf-8 -*-
+# This file is part of QuTiP: Quantum Toolbox in Python.
+#
+#    Copyright (c) 2014 and later, Alexander J G Pitchford
+#    All rights reserved.
+#
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
+#    met:
+#
+#    1. Redistributions of source code must retain the above copyright notice,
+#       this list of conditions and the following disclaimer.
+#
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 """
 Created on Fri Oct 24 11:18:12 2014
 
@@ -7,10 +39,6 @@ Created on Fri Oct 24 11:18:12 2014
 @email2: alex.pitchford@gmail.com
 @organization: Aberystwyth University
 @supervisor: Daniel Burgarth
-
-The code in this file was is intended for use in not-for-profit research,
-teaching, and learning. Any other applications may require additional
-licensing
 
 Propagator Computer
 Classes used to calculate the propagators, 
@@ -24,8 +52,9 @@ See Machnes et.al., arXiv.1011.4874
 #import os
 import numpy as np
 import scipy.linalg as la
+import errors
 
-# [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
+
 class PropagatorComputer:
     """
     Base for all  Propagator Computer classes 
@@ -35,6 +64,16 @@ class PropagatorComputer:
     container for the data that the functions operate on
     This base class cannot be used directly. See subclass descriptions
     and choose the appropriate one for the application
+    
+    Attributes
+    ----------
+    msg_level : integer
+        Determines the level of messaging issued
+        
+    grad_exact : boolean
+        indicates whether the computer class instance is capable
+        of computing propagator gradients. It is used to determine
+        whether to create the Dynamics prop_grad array
     """
     def __init__(self, dynamics):
         self.parent = dynamics
@@ -55,10 +94,8 @@ class PropagatorComputer:
         i.e. drift and ctrls combined
         Return the propagator
         """
-        dyn = self.parent
-        dgt = dyn.get_dyn_gen(k)*dyn.tau[k]
-        prop = la.expm(dgt)
-        return prop
+        raise errors.UsageError("Not implemented in the baseclass."
+                                " Choose a subclass")
         
     def compute_diff_prop(self, k, j, epsilon):
         """
@@ -67,15 +104,19 @@ class PropagatorComputer:
         in the direction the given control j in timeslot k
         Returns the propagator
         """
-        dyn = self.parent
-        dgt_eps = np.asarray(dyn.get_dyn_gen(k) + \
-                        epsilon*dyn.get_ctrl_dyn_gen(j))
-        prop_eps = la.expm(dgt_eps*dyn.tau[k])
-        return prop_eps
-# ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+        raise errors.UsageError("Not implemented in the baseclass."
+                                " Choose a subclass")
 
-# [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
-class PropComp_ApproxGrad(PropagatorComputer):
+    def compute_prop_grad(self, k, j, compute_prop=True):
+        """
+        Calculate the gradient of propagator wrt the control amplitude 
+        in the timeslot. 
+        """
+        raise errors.UsageError("Not implemented in the baseclass."
+                                " Choose a subclass")
+                                
+                                
+class PropCompApproxGrad(PropagatorComputer):
     """
     This subclass can be used when the propagator is calculated simply
     by expm of the dynamics generator, i.e. when gradients will be calculated
@@ -113,14 +154,14 @@ class PropComp_ApproxGrad(PropagatorComputer):
         Returns the propagator
         """
         dyn = self.parent
-        dgt_eps = np.asarray(dyn.get_dyn_gen(k) + \
+        dgt_eps = np.asarray(dyn.get_dyn_gen(k) + 
                         epsilon*dyn.get_ctrl_dyn_gen(j))
         prop_eps = la.expm(dgt_eps*dyn.tau[k])
         return prop_eps
 # ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
         
 # [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
-class PropComp_Diag(PropagatorComputer):
+class PropCompDiag(PropagatorComputer):
     """
     Coumputes the propagator exponentiation using diagonalisation of
     of the dynamics generator
@@ -141,8 +182,8 @@ class PropComp_Diag(PropagatorComputer):
         dyn = self.parent
         dyn.ensure_decomp_curr(k)
         
-        eig_vec = dyn.Dyn_gen_eigenvectors[k]
-        prop_eig_diag = np.diagflat(dyn.Prop_eigen[k])
+        eig_vec = dyn.dyn_gen_eigenvectors[k]
+        prop_eig_diag = np.diagflat(dyn.prop_eigen[k])
         prop = eig_vec.dot(prop_eig_diag).dot(eig_vec.conj().T)
         return prop
         
@@ -157,10 +198,10 @@ class PropComp_Diag(PropagatorComputer):
         dyn = self.parent
         dyn.ensure_decomp_curr(k)
         
-        if (compute_prop):
+        if compute_prop:
             prop = self.compute_propagator(k)
         
-        eig_vec = dyn.Dyn_gen_eigenvectors[k]
+        eig_vec = dyn.dyn_gen_eigenvectors[k]
         eig_vec_adj = eig_vec.conj().T
         
         # compute ctrl dyn gen in diagonalised basis
@@ -168,21 +209,21 @@ class PropComp_Diag(PropagatorComputer):
         dg_diag = eig_vec_adj.dot(dyn.get_ctrl_dyn_gen(j)).dot(eig_vec)
 
         # multiply by factor matrix
-        factors = dyn.Dyn_gen_factormatrix[k]
+        factors = dyn.dyn_gen_factormatrix[k]
         # note have to use multiply method as .dot returns matrix
         # and hence * implies inner product i.e. dot
         dg_diag_fact = np.multiply(dg_diag, factors)
         # Return to canonical basis
         prop_grad = eig_vec.dot(dg_diag_fact).dot(eig_vec_adj)
                 
-        if (compute_prop):
+        if compute_prop:
             return prop, prop_grad
         else:
             return prop_grad
 # ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
             
 # [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
-class PropComp_AugMat(PropagatorComputer):
+class PropCompAugMat(PropagatorComputer):
     """
     Augmented Matrix (deprecated - see _Frechet)
     
@@ -234,7 +275,7 @@ class PropComp_AugMat(PropagatorComputer):
         aug = self.get_aug_mat(k, j)
         aug_exp = la.expm(aug)
         prop_grad = aug_exp[:dyn_gen_shp[0], dyn_gen_shp[1]:]
-        if (compute_prop):
+        if compute_prop:
             prop = aug_exp[:dyn_gen_shp[0], :dyn_gen_shp[1]]
             return prop, prop_grad
         else:
@@ -243,7 +284,7 @@ class PropComp_AugMat(PropagatorComputer):
 # ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
             
 # [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
-class PropComp_Frechet(PropagatorComputer):
+class PropCompFrechet(PropagatorComputer):
     """
     Frechet method for calculating the propagator:
         exponentiating the combined dynamics generator
@@ -268,7 +309,7 @@ class PropComp_Frechet(PropagatorComputer):
         A = dyn.get_dyn_gen(k)*dyn.tau[k]
         E = dyn.get_ctrl_dyn_gen(j)*dyn.tau[k]
         
-        if (compute_prop):
+        if compute_prop:
             prop, propGrad = la.expm_frechet(A, E)
             return prop, propGrad
         else:

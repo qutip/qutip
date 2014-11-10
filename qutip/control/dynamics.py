@@ -1,4 +1,36 @@
 # -*- coding: utf-8 -*-
+# This file is part of QuTiP: Quantum Toolbox in Python.
+#
+#    Copyright (c) 2014 and later, Alexander J G Pitchford
+#    All rights reserved.
+#
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
+#    met:
+#
+#    1. Redistributions of source code must retain the above copyright notice,
+#       this list of conditions and the following disclaimer.
+#
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 """
 Created on Mon Feb 17 16:40:45 2014
 @author: Alexander Pitchford
@@ -6,10 +38,6 @@ Created on Mon Feb 17 16:40:45 2014
 @email2: alex.pitchford@gmail.com
 @organization: Aberystwyth University
 @supervisor: Daniel Burgarth
-
-The code in this file was is intended for use in not-for-profit research,
-teaching, and learning. Any other applications may require additional
-licensing
 
 Classes that define the dynamics of the (quantum) system and target evolution
 to be optimised. 
@@ -31,128 +59,207 @@ See Machnes et.al., arXiv.1011.4874
 import os
 import numpy as np
 import scipy.linalg as la
-import errors as errors
+import errors
 import tslotcomp
 import fidcomp
 import propcomp
 import symplectic as sympl
 
-# [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
 class Dynamics:
     """
     This is a base class only. See subclass descriptions and choose an
     appropriate one for the application.
-    Container for:
-        Drift or system dynamics generator: drift_dyn_gen (drift_ham)
-            Matrix defining the underlying dynamics of the system
-            (This is the drift Hamiltonian for unitary dynamics)
-            
-        Control dynamics generator: Ctrl_dyn_gen (Ctrl_ham)
-            List of matrices defining the control dynamics
-            (These is the control Hamiltonians for unitary dynamics)
-        
-        Starting state / gate: initial
-            The matrix giving the initial state / gate, i.e. at time 0
-            Typically the identity
-            
-        Target state / gate: target
-            The matrix giving the desired state / gate for the evolution        
-        
-        Control amplitudes:
-            The amplitude (scale factor) for each control in each timeslot
-            
-        Dynamics generators: Dyn_gen (H)
-            the combined drift and control generators for each timeslot
-            
-        Propagators: Prop
-            List of propagators 
-            used to calculate time evolution from one timeslot to the next
-            
-        Propagator gradient (exact gradients only): Prop_grad
-            Array(N timeslots x N ctrls) of matrices that give the gradient
-            with respect to the ctrl amplitudes in a timeslot
-                    
-        Forward propagation: Evo_init2t
-            the time evolution operator from the initial to the 
-            specified timeslot
-                    
-        Onward propagation: Evo_t2end
-            the time evolution operator from the specified timeslot to
-            end of the evolution time
-            
-        'Backward' propagation: Evo_t2targ
-            the overlap of the onward propagation with the inverse of the 
-            target
-            
-        NOTE: that the Dyn_gen attributes are mapped to H/ham attributes
-            for systems with unitary dynamics (see _map_dyn_gen_to_ham)
     
     Note that initialize_controls must be called before any of the methods
     can be used.
+    
+    Attributes
+    ----------
+    msg_level : integer
+        Determines the level of messaging issued
+        
+    test_out_files : integer
+        Determines whether test / debug output files will be generated
+        0 implies no test / debug output files
+        Higher values will produce increasingly more output files
+        Note that the sub directory 'test_out' must exist for values > 0
+        
+    stats : Stats
+        Attributes of which give performance stats for the optimisation
+        set to None to reduce overhead of calculating stats.
+        Note it is (usually) shared with the Optimizer object
+    
+    tslot_computer : TimeslotComputer (subclass instance)
+        Used to manage when the timeslot dynamics
+        generators, propagators, gradients etc are updated
+    
+    prop_computer : PropagatorComputer (subclass instance)
+        Used to compute the propagators and their gradients
+
+    fid_computer : FidelityComputer (subclass instance)
+        Used to computer the fidelity error and the fidelity error 
+        gradient.
+        
+    num_tslots : integer
+        Number of timeslots, aka timeslices
+        
+    num_ctrls : integer
+        Number of controls.
+        Note this is set when get_num_ctrls is called based on the
+        length of ctrl_dyn_gen
+        
+    evo_time : float
+        Total time for the evolution
+        
+    tau : array[num_tslots] of float
+        Duration of each timeslot
+        Note that if this is set before initialize_controls is called
+        then num_tslots and evo_time are calculated from tau, otherwise
+        tau is generated from num_tslots and evo_time, that is
+        equal size time slices
+    
+    time : array[num_tslots+1] of float
+        Cumulative time for the evolution, that is the time at the start
+        of each time slice
+        
+    drift_dyn_gen : Qobj
+        Drift or system dynamics generator
+        Matrix defining the underlying dynamics of the system
+    
+    ctrl_dyn_gen : List of Qobj
+        Control dynamics generator: ctrl_dyn_gen ()
+        List of matrices defining the control dynamics
+
+    initial : Qobj        
+        Starting state / gate
+        The matrix giving the initial state / gate, i.e. at time 0
+        Typically the identity
+        
+    target : Qobj
+        Target state / gate: 
+        The matrix giving the desired state / gate for the evolution        
+    
+    ctrl_amps : array[num_tslots, num_ctrls] of float
+        Control amplitudes
+        The amplitude (scale factor) for each control in each timeslot
+        
+    initial_ctrl_scaling : float
+        Scale factor applied to be applied the control amplitudes
+        when they are initialised
+        This is used by the PulseGens rather than in any fucntions in
+        this class
+        
+    self.initial_ctrl_offset = 0.0
+        Linear offset applied to be applied the control amplitudes
+        when they are initialised
+        This is used by the PulseGens rather than in any fucntions in
+        this class
+        
+    dyn_gen : List of Qobj
+        Dynamics generators
+        the combined drift and control dynamics generators 
+        for each timeslot
+    
+    prop : list of Qobj
+        Propagators - used to calculate time evolution from one 
+        timeslot to the next
+    
+    prop_grad : array[num_tslots, num_ctrls] of Qobj
+        Propagator gradient (exact gradients only)
+        Array  of matrices that give the gradient
+        with respect to the control amplitudes in a timeslot
+        Note this attribute is only created when the selected
+        PropagatorComputer is an exact gradient type.
+                
+    evo_init2t : List of Qobj
+        Forward evolution (or propagation) 
+        the time evolution operator from the initial state / gate to the 
+        specified timeslot as generated by the dyn_gen
+                
+    evo_t2end : List of Qobj
+        Onward evolution (or propagation)
+        the time evolution operator from the specified timeslot to
+        end of the evolution time as generated by the dyn_gen
+    
+    evo_t2targ : List of Qobj
+        'Backward' List of Qobj propagation
+        the overlap of the onward propagation with the inverse of the 
+        target.
+        Note this is only used (so far) by the unitary dynamics fidelity
+        
+    evo_current : Boolean
+        Used to flag that the dynamics used to calculate the evolution
+        operators is current. It is set to False when the amplitudes
+        change
+    
+    decomp_curr : List of boolean
+        Indicates whether the diagonalisation for the timeslot is fresh,
+        it is set to false when the dyn_gen for the timeslot is changed
+        Only used when the PropagatorComputer uses diagonalisation
+
+    dyn_gen_eigenvectors : List of array[drift_dyn_gen.shape]
+        Eigenvectors of the dynamics generators
+        Used for calculating the propagators and their gradients
+        Only used when the PropagatorComputer uses diagonalisation
+        
+    prop_eigen : List of array[drift_dyn_gen.shape]
+        Propagator in diagonalised basis of the combined dynamics generator
+        Used for calculating the propagators and their gradients
+        Only used when the PropagatorComputer uses diagonalisation
+    
+    dyn_gen_factormatrix : List of array[drift_dyn_gen.shape]
+        Matrix of scaling factors calculated duing the decomposition
+        Used for calculating the propagator gradients
+        Only used when the PropagatorComputer uses diagonalisation
+    
+    fact_mat_round_prec : float
+        Rounding precision used when calculating the factor matrix
+        to determine if two eigenvalues are equivalent
+        Only used when the PropagatorComputer uses diagonalisation
+    
+    def_amps_fname : string
+        Default name for the output used when save_amps is called
+            
     """ 
     def __init__(self, optimconfig):
         self.config = optimconfig
         self.reset()
         
     def reset(self):
-        self.msg_level = self.config.msg_level
-        self.test_out_files = self.config.test_out_files
-        # Total time for the evolution
+        # Main functional attributes
         self.evo_time = 0
-        # Number of time slots (slices)
         self.num_tslots = 0
-        # Duration of each timeslot
         self.tau = None
-        # Cumulative time
         self.time = None
-        # Initial state / gate
         self.initial = None
-        # Target state / gate
         self.target = None
-        # Control amplitudes
         self.ctrl_amps = None
-        # Drift or system dynamics generator, e.g. Hamiltonian, Limbladian
-        self.drift_dyn_gen = None
-        # List of dynamics generators for the controls
-        self.Ctrl_dyn_gen = None
-        # Dyn_gen are the dynamics generators, e.g. Hamiltonian, Limbladian 
-        self.Dyn_gen = None
-        # Progators from time slot k to k+1
-        self.Prop = None
-        # Gradient of propagator wrt the control amplitude in the timeslot
-        self.Prop_grad = None
-        # Evolution from initial (k=0) to given time slice
-        self.Evo_init2t = None
-        # Evolution from given time slice to end of evolution time
-        self.Evo_t2end = None
-        # Evolution from given time slice overlapped with inverse target
-        self.Evo_t2targ = None
-        # List to indicate whether the diagonisation for the timeslot is fresh
-        self.Decomp_curr = None
-        # List of propagators in the diagonalised basis
-        self.Prop_eigen = None
-        # Eigenvectors of the dynamics generators
-        self.Dyn_gen_eigenvectors = None
-        # Factor matrix used to calculate the propagotor gradient
-        # calculated duing the decomposition
-        self.Dyn_gen_factormatrix = None
-        # Rounding precision used when calculating the factor matrix
-        self.fact_mat_round_prec = 1e-10
-        # Initial amplitude scaling and offset (from 0)
         self.initial_ctrl_scaling = 1.0
         self.initial_ctrl_offset = 0.0
+        self.drift_dyn_gen = None
+        self.ctrl_dyn_gen = None
+        self.dyn_gen = None
+        self.prop = None
+        self.prop_grad = None
+        self.evo_init2t = None
+        self.evo_t2end = None
+        self.evo_t2targ = None
+        # Atrributes used in diagonalisation
+        self.decomp_curr = None
+        self.prop_eigen = None
+        self.dyn_gen_eigenvectors = None
+        self.dyn_gen_factormatrix = None
+        self.fact_mat_round_prec = 1e-10 
         
-        self._create_computers()
-        
+        # Debug and information attribs
         self.def_amps_fname = "ctrl_amps.txt"
-    
-        # This is the object used to collect stats for the optimisation
-        # If it is not set, then stats are not collected, other than
-        # those defined as properties of this object
-        # Note it is (usually) shared with the optimiser object
-        self.stats = None
-        
+        self.msg_level = self.config.msg_level
+        self.test_out_files = self.config.test_out_files
+        # Internal flags
         self._dyn_gen_mapped = False
+        
+        # Create the computing objects
+        self._create_computers()
         
         self.clear()
         
@@ -160,21 +267,21 @@ class Dynamics:
         """
         Create the default timeslot, fidelity and propagator computers
         """
-        # The time slot computer. By default it is set to _UpdateAll
-        # can be set to _DynUpdate in the configuration
+        # The time slot computer. By default it is set to UpdateAll
+        # can be set to DynUpdate in the configuration
         # (see class file for details)
-        if (self.config.amp_update_mode == 'DYNAMIC'):
-            self.tslot_computer = tslotcomp.TSlotComp_DynUpdate(self)
+        if self.config.amp_update_mode == 'DYNAMIC':
+            self.tslot_computer = tslotcomp.TSlotCompDynUpdate(self)
         else:
-            self.tslot_computer = tslotcomp.TSlotComp_UpdateAll(self)
+            self.tslot_computer = tslotcomp.TSlotCompUpdateAll(self)
         
-        self.prop_computer = propcomp.PropComp_Frechet(self)
-        self.fid_computer = fidcomp.FidComp_TraceDiff(self)
+        self.prop_computer = propcomp.PropCompFrechet(self)
+        self.fid_computer = fidcomp.FidCompTraceDiff(self)
         
         
     def clear(self):
         self.evo_current = False
-        if (self.fid_computer != None):
+        if self.fid_computer is not None:
             self.fid_computer.clear()
         
     def _init_lists(self):
@@ -186,7 +293,7 @@ class Dynamics:
 
         # set the time intervals to be equal timeslices of the total if 
         # the have not been set already (as part of user config)
-        if (self.tau == None):
+        if self.tau is None:
             self.tau =  np.ones(self.num_tslots, dtype = 'f') * \
                             self.evo_time/self.num_tslots
         self.time = np.zeros(self.num_tslots+1, dtype=float)
@@ -196,48 +303,46 @@ class Dynamics:
         # Create containers for control Hamiltonian etc
         shp = self.drift_dyn_gen.shape
         # set H to be just empty float arrays with the shape of H
-        self.Dyn_gen = [np.empty(shp, dtype=complex) \
+        self.dyn_gen = [np.empty(shp, dtype=complex) 
                         for x in xrange(self.num_tslots)]
         # the exponetiation of H. Just empty float arrays with the shape of H
-        self.Prop = [np.empty(shp, dtype=complex) \
+        self.prop = [np.empty(shp, dtype=complex) 
                         for x in xrange(self.num_tslots)]
-        if (self.prop_computer.grad_exact):
-            self.Prop_grad = np.empty([self.num_tslots, self.get_num_ctrls()],\
+        if self.prop_computer.grad_exact:
+            self.prop_grad = np.empty([self.num_tslots, self.get_num_ctrls()],
                         dtype = np.ndarray)   
         # Time evolution operator (forward propagation)
-        self.Evo_init2t = [np.empty(shp, dtype=complex) \
+        self.evo_init2t = [np.empty(shp, dtype=complex) 
                         for x in xrange(self.num_tslots + 1)]
-        self.Evo_init2t[0] = self.initial
-        if (self.fid_computer.uses_evo_t2end):
+        self.evo_init2t[0] = self.initial
+        if self.fid_computer.uses_evo_t2end:
             # Time evolution operator (onward propagation)
-            self.Evo_t2end = [np.empty(shp, dtype=complex) \
+            self.evo_t2end = [np.empty(shp, dtype=complex) 
                             for x in xrange(self.num_tslots)]
-        if (self.fid_computer.uses_evo_t2targ):
+        if self.fid_computer.uses_evo_t2targ:
             # Onward propagation overlap with inverse target
-            self.Evo_t2targ = [np.empty(shp, dtype=complex) \
+            self.evo_t2targ = [np.empty(shp, dtype=complex) 
                             for x in xrange(self.num_tslots + 1)]
-            self.Evo_t2targ[-1] = self.get_owd_evo_target()
+            self.evo_t2targ[-1] = self.get_owd_evo_target()
 
-        if (isinstance(self.prop_computer, propcomp.PropComp_Diag)):
+        if isinstance(self.prop_computer, propcomp.PropCompDiag):
             self._create_decomp_lists()
             
     def _create_decomp_lists(self):
         """
         Create lists that will hold the eigen decomposition
         used in calculating propagators and gradients
-        Note used with PropComp_Diag propagator calcs
+        Note: used with PropCompDiag propagator calcs
         """
         shp = self.drift_dyn_gen.shape
-        nTS = self.num_tslots
-        self.Decomp_curr = \
-            [False for x in xrange(nTS)]
-        # Propagators in diagonalised basis
-        self.Prop_eigen = \
-            [np.empty(shp[0], dtype=complex) for x in xrange(nTS)]
-        self.Dyn_gen_eigenvectors = \
-            [np.empty(shp, dtype=complex) for x in xrange(nTS)]
-        self.Dyn_gen_factormatrix = \
-            [np.empty(shp, dtype=complex) for x in xrange(nTS)]
+        n_ts = self.num_tslots
+        self.decomp_curr = [False for x in xrange(n_ts)]
+        self.prop_eigen = \
+            [np.empty(shp[0], dtype=complex) for x in xrange(n_ts)]
+        self.dyn_gen_eigenvectors = \
+            [np.empty(shp, dtype=complex) for x in xrange(n_ts)]
+        self.dyn_gen_factormatrix = \
+            [np.empty(shp, dtype=complex) for x in xrange(n_ts)]
              
     def initialize_controls(self, amps):
         """
@@ -246,31 +351,24 @@ class Dynamics:
         before any dynamics can be calculated
         """
         
-        if (self.test_out_files >= 1 and self.stats == None):
-            f = self.__class__.__name__ + ".initialize_controls"
-            m = "Cannot output test files when stats object is not set"
-            raise errors.UsageError(funcname=f, msg=m)
+        if self.test_out_files >= 1 and self.stats is None:
+            raise errors.UsageError("Cannot output test files"
+                                " when stats object is not set")
             
-        if (not isinstance(self.prop_computer, propcomp.PropagatorComputer)):
-            f = self.__class__.__name__ + ".initialize_controls"
-            m = "No prop_computer (propagator computer) set." + \
-                " A default should be assigned by the Dynamics subclass"
-            raise errors.UsageError(funcname=f, msg=m)
+        if not isinstance(self.prop_computer, propcomp.PropagatorComputer):
+            raise errors.UsageError("No prop_computer (propagator computer) "
+                "set. A default should be assigned by the Dynamics subclass")
             
-        if (not isinstance(self.tslot_computer, tslotcomp.TimeslotComputer)):
-            f = self.__class__.__name__ + ".initialize_controls"
-            m = "No tslot_computer (Timeslot computer) set." + \
-                " A default should be assigned by the Dynamics class"
-            raise errors.UsageError(funcname=f, msg=m)
+        if not isinstance(self.tslot_computer, tslotcomp.TimeslotComputer):
+            raise errors.UsageError("No tslot_computer (Timeslot computer)"
+                " set. A default should be assigned by the Dynamics class")
                 
-        if (not isinstance(self.fid_computer, fidcomp.FideliyComputer)):
-            f = self.__class__.__name__ + ".initialize_controls"
-            m = "No fid_computer (Fidelity computer) set." + \
-                " A default should be assigned by the Dynamics subclass"
-            raise errors.UsageError(funcname=f, msg=m)
+        if not isinstance(self.fid_computer, fidcomp.FideliyComputer):
+            raise errors.UsageError("No fid_computer (Fidelity computer)"
+                " set. A default should be assigned by the Dynamics subclass")
         
         # Note this call is made just to initialise the num_ctrls attrib
-        n_ctrls = self.get_num_ctrls()
+        self.get_num_ctrls()
         
         self._init_lists()
         self.tslot_computer.init_comp()
@@ -285,11 +383,11 @@ class Dynamics:
         Save a file with the current control amplitudes in each timeslot
         The first column in the file will be the start time of the slot
         """
-        if (file_name == None):
+        if file_name is None:
             file_name = self.def_amps_fname
-        if (amps == None):
+        if amps is None:
             amps = self.ctrl_amps
-        if (times == None):
+        if times is None:
             times = self.get_amp_times()
             
         shp = amps.shape
@@ -297,7 +395,7 @@ class Dynamics:
         data[:, 0] = times
         data[:, 1:] = amps
         np.savetxt(file_name, data, delimiter='\t')
-        if (self.msg_level >= 2):
+        if self.msg_level >= 2:
             print "Amplitudes saved to file: " + file_name
             
     def update_ctrl_amps(self, new_amps):
@@ -308,17 +406,17 @@ class Dynamics:
         timeslot computer
         """
         
-        if (not self.tslot_computer.compare_amps(new_amps)):
-            if (self.msg_level >= 3):
+        if not self.tslot_computer.compare_amps(new_amps):
+            if self.msg_level >= 3:
                 print "self.ctrl_amps"
                 print self.ctrl_amps
                 print "New_amps"
                 print new_amps
                 
-            if (self.test_out_files >= 1):
-                fname = os.path.join("test_out", \
-                        "amps_{}_{}_call{}.txt".format(self.config.dyn_type, \
-                            self.config.fid_type, \
+            if self.test_out_files >= 1:
+                fname = os.path.join("test_out", 
+                        "amps_{}_{}_call{}.txt".format(self.config.dyn_type, 
+                            self.config.fid_type, 
                             self.stats.num_ctrl_amp_updates))
                 self.save_amps(fname)
         
@@ -335,7 +433,7 @@ class Dynamics:
         sets the num_ctrls property, which can be used alternatively 
         subsequently
         """
-        self.num_ctrls = len(self.Ctrl_dyn_gen)
+        self.num_ctrls = len(self.ctrl_dyn_gen)
         return self.num_ctrls
         
     def get_owd_evo_target(self):
@@ -352,38 +450,37 @@ class Dynamics:
         """
         dg = np.asarray(self.drift_dyn_gen)
         for j in range(self.get_num_ctrls()):
-            dg = dg + self.ctrl_amps[k, j]*np.asarray(self.Ctrl_dyn_gen[j])
+            dg = dg + self.ctrl_amps[k, j]*np.asarray(self.ctrl_dyn_gen[j])
         return dg
         
     def get_dyn_gen(self, k):
         """
         Get the combined dynamics generator for the timeslot
         Not implemented in the base class. Choose a subclass
-        subclass methods will include some factor
         """
-        return self.Dyn_gen[k]
+        raise errors.UsageError("Not implemented in the baseclass."
+                                " Choose a subclass")
         
     def get_ctrl_dyn_gen(self, j):
         """
         Get the dynamics generator for the control
         Not implemented in the base class. Choose a subclass
         """
-        f = self.__class__.__name__ + ".get_ctrl_dyn_gen"
-        m = "Not implemented in the baseclass. Choose a subclass"
-        raise errors.UsageError(funcname=f, msg=m)
+        raise errors.UsageError("Not implemented in the baseclass."
+                                " Choose a subclass")
             
     def compute_evolution(self):
         """
         Recalculate the time evolution operators
         Dynamics generators (e.g. Hamiltonian) and 
-        Prop (propagators) are calculated as necessary
+        prop (propagators) are calculated as necessary
         Actual work is completed by the recompute_evolution method
         of the timeslot computer
         """
 
         # Check if values are already current, otherwise calculate all values
-        if (not self.evo_current):
-            if (self.msg_level >= 2):
+        if not self.evo_current:
+            if self.msg_level >= 2:
                 print "Computing evolution"
             self.tslot_computer.recompute_evolution()
             self.evo_current = True
@@ -398,11 +495,9 @@ class Dynamics:
         (after the amplitude update)
         If not then the diagonlisation is completed
         """
-        if (self.Decomp_curr is None):
-            f = self.__class__.__name__ + ".ensure_decomp_curr"
-            m = "Decomp lists have not been created"
-            raise errors.UsageError(funcname=f, msg=m)
-        if (not self.Decomp_curr[k]):
+        if self.decomp_curr is None:
+            raise errors.UsageError("Decomp lists have not been created")
+        if not self.decomp_curr[k]:
             self.spectral_decomp(k)
         
     def spectral_decomp(self, k):
@@ -414,15 +509,11 @@ class Dynamics:
         Not implemented in this base class, because the method is specific
         to the matrix type
         """
-        f = self.__class__.__name__ + ".spectral_decomp"
-        m = "Decomposition cannot be completed by this class. Try a subclass"
-        raise errors.UsageError(funcname=f, msg=m)
+        raise errors.UsageError("Decomposition cannot be completed by " 
+                            "this class. Try a(nother) subclass")
             
 
-
-# ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
-
-class Dynamics_GenMat(Dynamics):
+class DynamicsGenMat(Dynamics):
     """
     This sub class can be used for any system where no additional
     operator is applied to the dynamics generator before calculating
@@ -431,33 +522,48 @@ class Dynamics_GenMat(Dynamics):
     def get_dyn_gen(self, k):
         """
         Get the combined dynamics generator for the timeslot
-        This base class method simply returns Dyn_gen[k]
+        This base class method simply returns dyn_gen[k]
         other subclass methods will include some factor
         """
-        return self.Dyn_gen[k]
+        return self.dyn_gen[k]
         
     def get_ctrl_dyn_gen(self, j):
         """
         Get the dynamics generator for the control
-        This base class method simply returns Ctrl_dyn_gen[j]
+        This base class method simply returns ctrl_dyn_gen[j]
         other subclass methods will include some factor
         """
-        return self.Ctrl_dyn_gen[j]
+        return self.ctrl_dyn_gen[j]
         
-# [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
-class Dynamics_Unitary(Dynamics):
+
+class DynamicsUnitary(Dynamics):
     """
     This is the subclass to use for systems with dynamics described by 
     unitary matrices. E.g. closed systems with Hermitian Hamiltonians
     Note a matrix diagonalisation is used to compute the exponent
     The eigen decomposition is also used to calculate the propagator gradient.
     The method is taken from DYNAMO (see file header)
+    
+    Attributes
+    ----------
+    drift_ham : Qobj
+        This is the drift Hamiltonian for unitary dynamics
+        It is mapped to drift_dyn_gen during initialize_controls
+        
+    ctrl_ham : List of Qobj
+        These are the control Hamiltonians for unitary dynamics
+        It is mapped to ctrl_dyn_gen during initialize_controls
+
+    H : List of Qobj
+        The combined drift and control Hamiltonians for each timeslot
+        These are the dynamics generators for unitary dynamics.
+        It is mapped to dyn_gen during initialize_controls   
     """
             
     def reset(self):
         Dynamics.reset(self)
         self.drift_ham = None
-        self.Ctrl_ham = None
+        self.ctrl_ham = None
         self.H = None
 
     def _create_computers(self):
@@ -467,15 +573,15 @@ class Dynamics_Unitary(Dynamics):
         # The time slot computer. By default it is set to _UpdateAll
         # can be set to _DynUpdate in the configuration
         # (see class file for details)
-        if (self.config.amp_update_mode == 'DYNAMIC'):
-            self.tslot_computer = tslotcomp.TSlotComp_DynUpdate(self)
+        if self.config.amp_update_mode == 'DYNAMIC':
+            self.tslot_computer = tslotcomp.TSlotCompDynUpdate(self)
         else:
-            self.tslot_computer = tslotcomp.TSlotComp_UpdateAll(self)
+            self.tslot_computer = tslotcomp.TSlotCompUpdateAll(self)
         
         # set the default fidelity computer
-        self.fid_computer = fidcomp.FidComp_Unitary(self)
+        self.fid_computer = fidcomp.FidCompUnitary(self)
         # set the default propagator computer
-        self.prop_computer = propcomp.PropComp_Diag(self)
+        self.prop_computer = propcomp.PropCompDiag(self)
         
     def initialize_controls(self, amplitudes):
         # Either the _dyn_gen or _ham names can be used
@@ -483,17 +589,18 @@ class Dynamics_Unitary(Dynamics):
 
         self._map_dyn_gen_to_ham()
         Dynamics.initialize_controls(self, amplitudes)
-        self.H = self.Dyn_gen
+        self.H = self.dyn_gen
 
     def _map_dyn_gen_to_ham(self):
-        if (self.drift_dyn_gen == None):
+        if self.drift_dyn_gen is None:
             self.drift_dyn_gen = self.drift_ham
         else:
             self.drift_ham = self.drift_dyn_gen
-        if (self.Ctrl_dyn_gen == None):
-            self.Ctrl_dyn_gen = self.Ctrl_ham
+            
+        if self.ctrl_dyn_gen is None:
+            self.ctrl_dyn_gen = self.ctrl_ham
         else:
-            self.Ctrl_ham = self.Ctrl_dyn_gen
+            self.ctrl_ham = self.ctrl_dyn_gen
         
         self._dyn_gen_mapped = True
         
@@ -502,17 +609,17 @@ class Dynamics_Unitary(Dynamics):
         Get the combined dynamics generator for the timeslot
         including the -i factor
         """
-        return -1j*self.Dyn_gen[k]
+        return -1j*self.dyn_gen[k]
         
     def get_ctrl_dyn_gen(self, j):
         """
         Get the dynamics generator for the control
         including the -i factor
         """
-        return -1j*self.Ctrl_dyn_gen[j]
+        return -1j*self.ctrl_dyn_gen[j]
         
     def get_num_ctrls(self):
-        if (not self._dyn_gen_mapped):
+        if not self._dyn_gen_mapped:
             self._map_dyn_gen_to_ham()
         return Dynamics.get_num_ctrls(self)
 
@@ -561,19 +668,23 @@ class Dynamics_Unitary(Dynamics):
         
         # Store eigenvals and eigenvectors for use by other functions, e.g.
         # gradient_exact
-        self.Decomp_curr[k] = True
-        self.Prop_eigen[k] = prop_eig
-        self.Dyn_gen_eigenvectors[k] = eig_vec
-        self.Dyn_gen_factormatrix[k] = factors
+        self.decomp_curr[k] = True
+        self.prop_eigen[k] = prop_eig
+        self.dyn_gen_eigenvectors[k] = eig_vec
+        self.dyn_gen_factormatrix[k] = factors
               
-# ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
-            
-# [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
-class Dynamics_Sympl(Dynamics):
+
+class DynamicsSymplectic(Dynamics):
     """
     Symplectic systems
     This is the subclass to use for systems where the dynamics is described
     by symplectic matrices, e.g. coupled oscillators, quantum optics
+    
+    Attributes
+    ----------
+    omega : array[drift_dyn_gen.shape]
+        matrix used in the calculation of propagators (time evolution)
+        with symplectic systems. 
     """
         
     def reset(self):
@@ -588,16 +699,16 @@ class Dynamics_Sympl(Dynamics):
         # The time slot computer. By default it is set to _UpdateAll
         # can be set to _DynUpdate in the configuration
         # (see class file for details)
-        if (self.config.amp_update_mode == 'DYNAMIC'):
-            self.tslot_computer = tslotcomp.TSlotComp_DynUpdate(self)
+        if self.config.amp_update_mode == 'DYNAMIC':
+            self.tslot_computer = tslotcomp.TSlotCompDynUpdate(self)
         else:
-            self.tslot_computer = tslotcomp.TSlotComp_UpdateAll(self)
+            self.tslot_computer = tslotcomp.TSlotCompUpdateAll(self)
         
-        self.prop_computer = propcomp.PropComp_Frechet(self)
-        self.fid_computer = fidcomp.FidComp_TraceDiff(self)
+        self.prop_computer = propcomp.PropCompFrechet(self)
+        self.fid_computer = fidcomp.FidCompTraceDiff(self)
         
     def get_omega(self):
-        if (self.omega == None):
+        if self.omega is None:
             n = self.drift_dyn_gen.shape[0]/2
             self.omega = sympl.calc_omega(n)
         
@@ -609,7 +720,7 @@ class Dynamics_Sympl(Dynamics):
         multiplied by omega
         """
         o = self.get_omega()
-        return self.Dyn_gen[k].dot(o)
+        return self.dyn_gen[k].dot(o)
         
     def get_ctrl_dyn_gen(self, j):
         """
@@ -617,8 +728,5 @@ class Dynamics_Sympl(Dynamics):
         multiplied by omega
         """
         o = self.get_omega()
-        return self.Ctrl_dyn_gen[j].dot(o)
+        return self.ctrl_dyn_gen[j].dot(o)
         
-# ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
-
-

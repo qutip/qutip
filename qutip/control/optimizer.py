@@ -1,4 +1,36 @@
 # -*- coding: utf-8 -*-
+# This file is part of QuTiP: Quantum Toolbox in Python.
+#
+#    Copyright (c) 2014 and later, Alexander J G Pitchford
+#    All rights reserved.
+#
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
+#    met:
+#
+#    1. Redistributions of source code must retain the above copyright notice,
+#       this list of conditions and the following disclaimer.
+#
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 """
 Created on Mon Mar 03 12:37:21 2014
 @author: Alexander Pitchford
@@ -6,10 +38,6 @@ Created on Mon Mar 03 12:37:21 2014
 @email2: alex.pitchford@gmail.com
 @organization: Aberystwyth University
 @supervisor: Daniel Burgarth
-
-The code in this file was is intended for use in not-for-profit research,
-teaching, and learning. Any other applications may require additional
-licensing
 
 Classes here are expected to implement a run_optimization function
 that will use some method for optimising the control pulse, as defined
@@ -35,7 +63,7 @@ The two methods implemented are:
         and hence direct its search for the function minima
         The SciPy implementation is pure Python and hance is execution speed is
         not high
-        use subclass: Optimizer_BFGS
+        use subclass: OptimizerBFGS
         
     L-BFGS-B - Bounded, limited memory BFGS
         This a version of the BFGS method where the Hessian approximation is
@@ -46,13 +74,12 @@ The two methods implemented are:
         Its is therefore very fast.
         # See SciPy documentation for credit and details on the 
         # scipy.optimize.fmin_l_bfgs_b function
-        use subclass: Optimizer_LBFGSB
+        use subclass: OptimizerLBFGSB
 
 The baseclass Optimizer implements the function wrappers to the 
 fidelity error, gradient, and iteration callback functions. 
 These are called from the within the SciPy optimisation functions.
 The subclasses implement the algorithm specific pulse optimisation function.
-
 """
 
 import os
@@ -67,7 +94,6 @@ import utility as util
 import dynamics as dynamics
 
 
-# [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
 class Optimizer:
     """
     Base class for all control pulse optimisers. This class should not be
@@ -75,10 +101,42 @@ class Optimizer:
     This class implements the fidelity, gradient and interation callback
     functions.
     All subclass objects must be initialised with a 
-        QtrlConfig object - various configuration options
-        Dynamics object - describes the dynamics of the (quantum) system
+        OptimConfig instance - various configuration options
+        Dynamics instance - describes the dynamics of the (quantum) system
                             to be control optimised
+    
+    Attributes
+    ----------
+    msg_level : integer
+        Determines the level of messaging issued
+        
+    test_out_files : integer
+        Determines whether test / debug output files will be generated
+        0 implies no test / debug output files
+        Higher values will produce increasingly more output files
+        Note that the sub directory 'test_out' must exist for values > 0
+        
+    dynamics : Dynamics (subclass instance)
+        describes the dynamics of the (quantum) system to be control optimised
+        (see Dynamics classes for details)
+    
+    config : OptimConfig instance
+        various configuration options
+        (see OptimConfig for details)
+    
+    termination_conditions : TerminationCondition instance
+        attributes determine when the optimisation will end
+    
+    pulse_generator : PulseGen (subclass instance)
+        (can be) used to create initial pulses
+        not used by the class, but set by pulseoptim.create_pulse_optimizer
+    
+    stats : Stats
+        attributes of which give performance stats for the optimisation
+        set to None to reduce overhead of calculating stats.
+        Note it is (usually) shared with the Dynamics instance
     """
+    
     def __init__(self, config, dyn):
         self.dynamics = dyn
         self.config = config
@@ -90,28 +148,25 @@ class Optimizer:
         self.termination_conditions = None
         self.pulse_generator = None
         self.num_iter = 0
-        
-        # This is the object used to collect stats for the optimisation
-        # If it is not set, then stats are not callected, other than
-        # those defined as properties of this object
-        # Note it is (usually) shared with the dyn object
         self.stats = None
         self.wall_time_optim_start = 0.0
 
         
     def run_optimization(self, term_conds=None):
         """
+        Run the pulse optimisation algorithm        
+        
         This class does not implement a method for running the optimisation
-        A subclass should be used, e.g. Optimizer_LBFGSB
+        A subclass should be used, e.g. OptimizerLBFGSB
         
         If the parameter term_conds=None, then the termination_conditions
         attribute must already be set. It will be overwritten if the
         parameter is not None
         """
-        f = self.__class__.__name__ + ".run_optimization"
-        m = "No method defined for running optimisation." + \
-                " Suspect base class was used where sub class should have been"
-        raise errors.UsageError(funcname=f, msg=m)
+#        m = ("No method defined for running optimisation."
+#            " Suspect base class was used where sub class should have been")
+        raise errors.UsageError("No method defined for running optimisation."
+            " Suspect base class was used where sub class should have been")
 
     def _create_result(self):
         """
@@ -128,34 +183,29 @@ class Optimizer:
         Check optimiser attribute status and passed parameters before
         running the optimisation.
         """
-        if (self.test_out_files >= 1 and self.stats == None):
-            f = self.__class__.__name__ + "._pre_run_check"
-            m = "Cannot output test files when stats object is not set"
-            raise errors.UsageError(funcname=f, msg=m)
+        if self.test_out_files >= 1 and self.stats is None:
+            raise errors.UsageError("Cannot output test files when stats"
+                                    " attribute is not set.")
             
-        if (term_conds is not None):
+        if term_conds is not None:
             self.termination_conditions = term_conds
         term_conds = self.termination_conditions
             
-        if (not isinstance(term_conds, termcond.TerminationConditions)):
-            f = self.__class__.__name__ + "._pre_run_check"
-            m = "No termination conditions for the optimisation function"
-            raise errors.UsageError(funcname=f, msg=m)
+        if not isinstance(term_conds, termcond.TerminationConditions):
+            raise errors.UsageError("No termination conditions for the "
+                                    "optimisation function")
                 
-        if (not isinstance(self.dynamics, dynamics.Dynamics)):
-            f = self.__class__.__name__ + "._pre_run_check"
-            m = "No dynamics object attribute set"
-            raise errors.UsageError(funcname=f, msg=m)
+        if not isinstance(self.dynamics, dynamics.Dynamics):
+            raise errors.UsageError("No dynamics object attribute set")
             
-        if (term_conds.fid_err_targ == None and term_conds.fid_goal == None):
-            f = self.__class__.__name__ + "._pre_run_check"
-            m = "Either the goal or the fidelity error tolerance must be set"
-            raise errors.UsageError(funcname=f, msg=m)
+        if term_conds.fid_err_targ is None and term_conds.fid_goal is None:
+            raise errors.UsageError("Either the goal or the fidelity "
+                                    "error tolerance must be set")
         
-        if (term_conds.fid_err_targ == None):
+        if term_conds.fid_err_targ is None:
             term_conds.fid_err_targ = np.abs(1 - term_conds.fid_goal)
         
-        if (term_conds.fid_goal == None):
+        if term_conds.fid_goal is None:
             term_conds.fid_goal = 1 - term_conds.fid_err_targ
 
 
@@ -174,9 +224,9 @@ class Optimizer:
         terminated if the target has been achieved.
         """
         # *** update stats ***
-        if (self.stats != None):
+        if self.stats is not None:
             self.stats.num_fidelity_func_calls += 1
-            if (self.msg_level > 0):
+            if self.msg_level > 0:
                 print "Computing fidelity error {}".\
                         format(self.stats.num_fidelity_func_calls)
         amps = args[0].copy().reshape(self.dynamics.ctrl_amps.shape)
@@ -184,7 +234,7 @@ class Optimizer:
         
         tc = self.termination_conditions
         err = self.dynamics.fid_computer.get_fid_err()
-        if (err <= tc.fid_err_targ):
+        if err <= tc.fid_err_targ:
             raise errors.GoalAchievedTerminate(err)
         
         return err
@@ -207,9 +257,9 @@ class Optimizer:
         condition
         """
         # *** update stats ***
-        if (self.stats != None):
+        if self.stats is not None:
             self.stats.num_grad_func_calls += 1
-            if (self.msg_level > 0):
+            if self.msg_level > 0:
                 print "Computing gradient normal {}".\
                         format(self.stats.num_grad_func_calls)
         amps = args[0].copy().reshape(self.dynamics.ctrl_amps.shape)
@@ -218,16 +268,16 @@ class Optimizer:
         # gradient_norm_func is a pointer to the function set in the config
         # that returns the normalised gradients
         grad = fidComp.get_fid_err_gradient()
-        if (self.test_out_files >= 1):
+        if self.test_out_files >= 1:
             # save gradients to file
-            fname = os.path.join("test_out", \
-                    "grad_{}_{}_call{}.txt".format(self.config.dyn_type, \
-                            self.config.fid_type, \
+            fname = os.path.join("test_out", 
+                    "grad_{}_{}_call{}.txt".format(self.config.dyn_type, 
+                            self.config.fid_type, 
                             self.stats.num_grad_func_calls))
             util.write_array_to_file(grad, fname, dtype=float)
         
         tc = self.termination_conditions
-        if (fidComp.norm_grad_sq_sum < tc.min_gradient_norm):
+        if fidComp.norm_grad_sq_sum < tc.min_gradient_norm:
             raise errors.GradMinReachedTerminate(fidComp.norm_grad_sq_sum)
         return grad.flatten()
         
@@ -236,7 +286,7 @@ class Optimizer:
         Check the elapsed wall time for the optimisation run so far.
         Terminate if this has exceeded the maximum allowed time
         """
-        if (self.msg_level > 0):
+        if self.msg_level > 0:
             print "Iteration callback {}".format(self.num_iter)
             
         tc = self.termination_conditions
@@ -246,7 +296,7 @@ class Optimizer:
                 
         self.num_iter += 1
         # *** update stats ***
-        if (self.stats != None):
+        if self.stats is not None:
             self.stats.num_iter = self.num_iter
             
     def _interpret_term_exception(self, except_term, result):
@@ -255,11 +305,11 @@ class Optimizer:
         during the optimisation
         """
         result.termination_reason = except_term.reason
-        if (isinstance(except_term, errors.GoalAchievedTerminate)):
+        if isinstance(except_term, errors.GoalAchievedTerminate):
             result.goal_achieved = True
-        elif (isinstance(except_term, errors.MaxWallTimeTerminate)):
+        elif isinstance(except_term, errors.MaxWallTimeTerminate):
             result.wall_time_limit_exceeded = True
-        elif (isinstance(except_term, errors.GradMinReachedTerminate)):
+        elif isinstance(except_term, errors.GradMinReachedTerminate):
             result.grad_norm_min_reached = True
             
     def _add_common_result_attribs(self, result, st_time, end_time):
@@ -273,16 +323,16 @@ class Optimizer:
         result.fid_err = dyn.fid_computer.get_fid_err()
         result.grad_norm_final = dyn.fid_computer.norm_grad_sq_sum
         result.final_amps = dyn.ctrl_amps
-        result.evo_full_final = dyn.Evo_init2t[dyn.num_tslots]
+        result.evo_full_final = dyn.evo_init2t[dyn.num_tslots]
         # *** update stats ***
-        if (self.stats is not None):
+        if self.stats is not None:
             self.stats.wall_time_optim_end = end_time
             self.stats.calculate()
             result.stats = self.stats
 #]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]    
 
 # [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
-class Optimizer_BFGS(Optimizer):
+class OptimizerBFGS(Optimizer):
     """
     Implements the run_optimization method using the BFGS algorithm
     """
@@ -314,33 +364,33 @@ class Optimizer_BFGS(Optimizer):
         st_time = timeit.default_timer()
         self.wall_time_optimize_start = st_time
         
-        if (self.stats != None):
+        if self.stats is not None:
             self.stats.wall_time_optim_start = st_time
             self.stats.wall_time_optim_end = 0.0
             self.stats.num_iter = 1
         
-        if (self.msg_level > 0):
+        if self.msg_level > 0:
             print "Optimising using BFGS"
         result = self._create_result()
         try:
             amps, cost, grad, invHess, nFCalls, nGCalls, warn = \
-                spopt.fmin_bfgs(self.fid_err_func_wrapper, x0, \
-                                fprime=self.fid_err_grad_wrapper, \
-                                callback=self.iter_step_callback_func, \
-                                gtol=term_conds.min_gradient_norm, \
-                                maxiter=term_conds.max_iterations, \
+                spopt.fmin_bfgs(self.fid_err_func_wrapper, x0, 
+                                fprime=self.fid_err_grad_wrapper, 
+                                callback=self.iter_step_callback_func, 
+                                gtol=term_conds.min_gradient_norm, 
+                                maxiter=term_conds.max_iterations, 
                                 full_output=True, disp=True)
         
             amps = amps.reshape([dyn.num_tslots, self.config.num_ctrls])
             dyn.update_ctrl_amps(amps)
-            if (warn == 1):
+            if warn == 1:
                 result.max_iter_exceeded = True
                 result.termination_reason = "Iteration count limit reached"
-            elif (warn == 2):
-                result.grad_static = True
+            elif warn == 2:
+                result.grad_norm_min_reached = True
                 result.termination_reason = "Gradient normal minimum reached"
             
-        except errors.OptimisationTerminate as except_term:
+        except errors.OptimizationTerminate as except_term:
             self._interpret_term_exception(except_term, result)
         
         end_time = timeit.default_timer()
@@ -348,11 +398,11 @@ class Optimizer_BFGS(Optimizer):
         
         return result
         
-#]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]    
 
-# [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
-
-class Optimizer_LBFGSB(Optimizer):
+class OptimizerLBFGSB(Optimizer):
+    """
+    Implements the run_optimization method using the L-BFGS-B algorithm
+    """
     def _build_bounds_list(self):
         cfg = self.config
         dyn = self.dynamics
@@ -360,11 +410,11 @@ class Optimizer_LBFGSB(Optimizer):
         bounds = []
         for t in range(dyn.num_tslots):
             for c in range(n_ctrls):
-                if (isinstance(cfg.amp_lbound, list)):
+                if isinstance(cfg.amp_lbound, list):
                     lb = cfg.amp_lbound[c]
                 else:
                     lb = cfg.amp_lbound
-                if (isinstance(cfg.amp_ubound, list)):
+                if isinstance(cfg.amp_ubound, list):
                     ub = cfg.amp_ubound[c]
                 else:
                     ub = cfg.amp_ubound
@@ -406,43 +456,43 @@ class Optimizer_LBFGSB(Optimizer):
         st_time = timeit.default_timer()
         self.wall_time_optimize_start = st_time
         
-        if (self.stats != None):
+        if self.stats is not None:
             self.stats.wall_time_optim_start = st_time
             self.stats.wall_time_optim_end = 0.0
             self.stats.num_iter = 1
         
         bounds = self._build_bounds_list();
         result = self._create_result()
-        if (self.msg_level > 0):
+        if self.msg_level > 0:
             print "Optimising using L-BFGS-B"
         try:
-            amps, fid, res_dict = \
-                spopt.fmin_l_bfgs_b(self.fid_err_func_wrapper, x0, \
-                                fprime=self.fid_err_grad_wrapper, \
-                                callback=self.iter_step_callback_func, \
-                                bounds=bounds, \
-                                m=cfg.max_metric_corr, \
-                                factr=cfg.optim_alg_acc_fact, \
-                                pgtol=term_conds.min_gradient_norm, \
-                                iprint=self.msg_level - 1, \
-                                maxfun=term_conds.max_fid_func_calls, \
+            amps, fid, res_dict = spopt.fmin_l_bfgs_b(
+                                self.fid_err_func_wrapper, x0, 
+                                fprime=self.fid_err_grad_wrapper, 
+                                callback=self.iter_step_callback_func, 
+                                bounds=bounds, 
+                                m=cfg.max_metric_corr, 
+                                factr=cfg.optim_alg_acc_fact, 
+                                pgtol=term_conds.min_gradient_norm, 
+                                iprint=self.msg_level - 1, 
+                                maxfun=term_conds.max_fid_func_calls, 
                                 maxiter=term_conds.max_iterations)
         
             amps = amps.reshape([dyn.num_tslots, dyn.num_ctrls])
             dyn.update_ctrl_amps(amps)
             warn = res_dict['warnflag']
-            if (warn == 0):
-                result.grad_static = True
+            if warn == 0:
+                result.grad_norm_min_reached = True
                 result.termination_reason = "function converged"
-            elif (warn == 1):
+            elif warn == 1:
                 result.max_iter_exceeded = True
-                result.termination_reason = \
-                    "Iteration or fidelity function call limit reached"
-            elif (warn == 2):
+                result.termination_reason = ("Iteration or fidelity "
+                                    "function call limit reached")
+            elif warn == 2:
                 result.termination_reason = res_dict['task']
 
             result.num_iter = res_dict['nit']           
-        except errors.OptimisationTerminate as except_term:
+        except errors.OptimizationTerminate as except_term:
             self._interpret_term_exception(except_term, result)
         
         end_time = timeit.default_timer()

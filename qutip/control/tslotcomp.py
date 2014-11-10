@@ -1,4 +1,36 @@
 # -*- coding: utf-8 -*-
+# This file is part of QuTiP: Quantum Toolbox in Python.
+#
+#    Copyright (c) 2014 and later, Alexander J G Pitchford
+#    All rights reserved.
+#
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
+#    met:
+#
+#    1. Redistributions of source code must retain the above copyright notice,
+#       this list of conditions and the following disclaimer.
+#
+#    2. Redistributions in binary form must reproduce the above copyright
+#       notice, this list of conditions and the following disclaimer in the
+#       documentation and/or other materials provided with the distribution.
+#
+#    3. Neither the name of the QuTiP: Quantum Toolbox in Python nor the names
+#       of its contributors may be used to endorse or promote products derived
+#       from this software without specific prior written permission.
+#
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+#    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+#    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+###############################################################################
 """
 Created on Mon Jun 09 21:42:15 2014
 
@@ -8,20 +40,16 @@ Created on Mon Jun 09 21:42:15 2014
 @organization: Aberystwyth University
 @supervisor: Daniel Burgarth
 
-The code in this file was is intended for use in not-for-profit research,
-teaching, and learning. Any other applications may require additional
-licensing
-
 Timeslot Computer
 These classes determine which dynamics generators, propagators and evolutions
 are recalculated when there is a control amplitude update. 
 The timeslot computer processes the lists held by the dynamics object
 
-The default (_UpdateAll) updates all of these each amp update, on the 
+The default (UpdateAll) updates all of these each amp update, on the 
 assumption that all amplitudes are changed each iteration. This is typical
 when using optimisation methods like BFGS in the GRAPE algorithm
 
-The alternative (_DynUpdate) assumes that only a subset of amplitudes 
+The alternative (DynUpdate) assumes that only a subset of amplitudes 
 are updated each iteration and attempts to minimise the number of expensive
 calculations accordingly. This would be the appropriate class for Krotov type
 methods. Note that the Stats_DynTsUpdate class must be used for stats
@@ -41,7 +69,7 @@ See Machnes et.al., arXiv.1011.4874
 import os
 import numpy as np
 import timeit
-import errors as errors
+import errors
 import utility as util
 
 # [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
@@ -50,6 +78,11 @@ class TimeslotComputer:
     Base class for all Timeslot Computers
     Note: this must be instantiated with a Dynamics object, that is the
     container for the data that the methods operate on
+    
+    Attributes
+    ----------
+    msg_level : integer
+        Determines the level of messaging issued
     """
     def __init__(self, dynamics):
         self.parent = dynamics
@@ -63,10 +96,8 @@ class TimeslotComputer:
         
     def init_comp(self):
         pass
-# ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
 
-# [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
-class TSlotComp_UpdateAll(TimeslotComputer):
+class TSlotCompUpdateAll(TimeslotComputer):
     """
     Timeslot Computer - Update All
     Updates all dynamics generators, propagators and evolutions when
@@ -81,30 +112,30 @@ class TSlotComp_UpdateAll(TimeslotComputer):
         """
         changed = False
         dyn = self.parent
-        if (dyn.ctrl_amps == None):
+        if dyn.ctrl_amps is None:
             # Flag fidelity and gradients as needing recalculation
             changed = True
-            if (dyn.stats != None):
+            if dyn.stats is not None:
                 dyn.stats.num_ctrl_amp_updates = 1
                 dyn.stats.num_ctrl_amp_changes = len(new_amps.flat)
                 dyn.stats.num_timeslot_changes = new_amps.shape[0]
         else:
             # create boolean array with same shape as ctrl_amps
-            # True where value in New_amps differs, otherwise false
-            changedAmps = dyn.ctrl_amps != new_amps
-            if (np.any(changedAmps)):
+            # True where value in new_amps differs, otherwise false
+            changed_amps = dyn.ctrl_amps != new_amps
+            if np.any(changed_amps):
                 # Flag fidelity and gradients as needing recalculation
                 changed = True
-                if (self.msg_level >= 2):
-                    print "{} amplitudes changed".format(changedAmps.sum())
+                if self.msg_level >= 2:
+                    print "{} amplitudes changed".format(changed_amps.sum())
                 # *** update stats ***
-                if (dyn.stats != None):
+                if dyn.stats is not None:
                     dyn.stats.num_ctrl_amp_updates += 1
-                    dyn.stats.num_ctrl_amp_changes += changedAmps.sum()
-                    changedTSmask = np.any(changedAmps, 1)
-                    dyn.stats.num_timeslot_changes += changedTSmask.sum()
+                    dyn.stats.num_ctrl_amp_changes += changed_amps.sum()
+                    changed_ts_mask = np.any(changed_amps, 1)
+                    dyn.stats.num_timeslot_changes += changed_ts_mask.sum()
     
-        if (changed):
+        if changed:
             dyn.ctrl_amps = new_amps
             dyn.flag_system_changed()
             return False
@@ -115,78 +146,78 @@ class TSlotComp_UpdateAll(TimeslotComputer):
         """
         Recalculates the evolution operators.
         Dynamics generators (e.g. Hamiltonian) and 
-        Prop (propagators) are calculated as necessary 
+        prop (propagators) are calculated as necessary 
         """
         
-        if (self.msg_level >= 2):
+        if self.msg_level >= 2:
             print "recomputing evolution (UpdateAll)"
 
         dyn = self.parent
         prop_comp = dyn.prop_computer
-        nTS = dyn.num_tslots
-        nCtrls = dyn.get_num_ctrls()
+        n_ts = dyn.num_tslots
+        n_ctrls = dyn.get_num_ctrls()
         # calculate the Hamiltonians
         timeStart = timeit.default_timer()
-        for k in range(nTS):
-            dyn.Dyn_gen[k] = dyn.combine_dyn_gen(k)
-            if (dyn.Decomp_curr is not None):
-                dyn.Decomp_curr[k] = False
-        if (dyn.stats != None):
+        for k in range(n_ts):
+            dyn.dyn_gen[k] = dyn.combine_dyn_gen(k)
+            if dyn.decomp_curr is not None:
+                dyn.decomp_curr[k] = False
+        if dyn.stats is not None:
             dyn.stats.wall_time_dyn_gen_compute += \
                                 timeit.default_timer() - timeStart
         
         # calculate the propagators and the propagotor gradients
         timeStart = timeit.default_timer()
-        for k in range(nTS):
-            if (prop_comp.grad_exact):
-                for j in range(nCtrls):
-                    if (j == 0):
+        for k in range(n_ts):
+            if prop_comp.grad_exact:
+                for j in range(n_ctrls):
+                    if j == 0:
                         prop, propGrad = prop_comp.compute_prop_grad(k, j)
-                        dyn.Prop[k] = prop
-                        dyn.Prop_grad[k, j] = propGrad
-                        if (self.msg_level >= 5):
+                        dyn.prop[k] = prop
+                        dyn.prop_grad[k, j] = propGrad
+                        if self.msg_level >= 5:
                             print "propagator {}:".format(k)
                             print prop
-                        if (dyn.test_out_files >= 3):
-                            fname = os.path.join("test_out", \
-                                    "propGrad_{}_j{}_k{}.txt".\
+                        if dyn.test_out_files >= 3:
+                            fname = os.path.join("test_out", 
+                                    "propGrad_{}_j{}_k{}.txt".
                                     format(dyn.config.dyn_type, j, k))
-                            util.write_array_to_file(self.Prop_grad[k, j], \
+                            util.write_array_to_file(self.prop_grad[k, j], 
                                     fname, dtype=complex)
                     else:
-                        propGrad = prop_comp.compute_prop_grad(k, j, \
+                        propGrad = prop_comp.compute_prop_grad(k, j, 
                                                     compute_prop=False)
-                        dyn.Prop_grad[k, j] = propGrad
+                        dyn.prop_grad[k, j] = propGrad
             else:
-                dyn.Prop[k] = prop_comp.compute_propagator(k)
+                dyn.prop[k] = prop_comp.compute_propagator(k)
                 
-        if (dyn.stats != None):
+        if dyn.stats is not None:
             dyn.stats.wall_time_prop_compute += \
                                 timeit.default_timer() - timeStart
     
         # compute the forward propagation
         timeStart = timeit.default_timer()
-        R = range(1, nTS + 1)
+        R = range(1, n_ts+1)
         for k in R:
-            dyn.Evo_init2t[k] = dyn.Prop[k-1].dot(dyn.Evo_init2t[k-1])
+            dyn.evo_init2t[k] = dyn.prop[k-1].dot(dyn.evo_init2t[k-1])
 
-        if (dyn.stats != None):
+        if dyn.stats is not None:
             dyn.stats.wall_time_fwd_prop_compute += \
                                 timeit.default_timer() - timeStart
             
         timeStart = timeit.default_timer()  
         # compute the onward propagation
-        if (dyn.fid_computer.uses_evo_t2end):
-            dyn.Evo_t2end[nTS - 1] = dyn.Prop[nTS - 1]
-            R = range(nTS-2, -1, -1)
+        if dyn.fid_computer.uses_evo_t2end:
+            dyn.evo_t2end[n_ts - 1] = dyn.prop[n_ts - 1]
+            R = range(n_ts-2, -1, -1)
             for k in R:
-                dyn.Evo_t2end[k] = dyn.Evo_t2end[k+1].dot(dyn.Prop[k])
+                dyn.evo_t2end[k] = dyn.evo_t2end[k+1].dot(dyn.prop[k])
                 
-        if (dyn.fid_computer.uses_evo_t2targ):
-            R = range(nTS-1, -1, -1)
+        if dyn.fid_computer.uses_evo_t2targ:
+            R = range(n_ts-1, -1, -1)
             for k in R:
-                dyn.Evo_t2targ[k] = dyn.Evo_t2targ[k+1].dot(dyn.Prop[k])
-            if (dyn.stats != None):
+                dyn.evo_t2targ[k] = dyn.evo_t2targ[k+1].dot(dyn.prop[k])
+            if dyn.stats is not None:
                 dyn.stats.wall_time_onwd_prop_compute += \
                                     timeit.default_timer() - timeStart
                                     
@@ -197,10 +228,9 @@ class TSlotComp_UpdateAll(TimeslotComputer):
         This (default) method simply returns the last timeslot
         """
         return self.parent.num_tslots - 1
-# ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
 
-# [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
-class TSlotComp_DynUpdate(TimeslotComputer):
+
+class TSlotCompDynUpdate(TimeslotComputer):
     """
     Timeslot Computer - Dynamic Update
     ********************************
@@ -215,14 +245,14 @@ class TSlotComp_DynUpdate(TimeslotComputer):
     """
         
     def reset(self):
-        self.Dyn_gen_recalc = None
-        self.Prop_recalc = None
-        self.Evo_init2t_recalc = None
-        self.Evo_t2targ_recalc = None
-        self.Dyn_gen_calc_now = None
-        self.Prop_calc_now = None
-        self.Evo_init2t_calc_now = None
-        self.Evo_t2targ_calc_now = None
+        self.dyn_gen_recalc = None
+        self.prop_recalc = None
+        self.evo_init2t_recalc = None
+        self.evo_t2targ_recalc = None
+        self.dyn_gen_calc_now = None
+        self.prop_calc_now = None
+        self.evo_init2t_calc_now = None
+        self.evo_t2targ_calc_now = None
         TimeslotComputer.reset(self)
         
     def init_comp(self):
@@ -236,21 +266,21 @@ class TSlotComp_DynUpdate(TimeslotComputer):
         # e.g. here no values have been set, except the initial and final
         # evolution operator vals (which never change) and hence all other
         # values are set as requiring calculation.
-        nTS = self.parent.num_tslots
-        self.Dyn_gen_recalc = np.ones(nTS, dtype=bool)
-        #np.ones(nTS, dtype=bool)
-        self.Prop_recalc = np.ones(nTS, dtype=bool)
-        self.Evo_init2t_recalc = np.ones(nTS + 1, dtype=bool)
-        self.Evo_init2t_recalc[0] = False
-        self.Evo_t2targ_recalc = np.ones(nTS + 1, dtype=bool)
-        self.Evo_t2targ_recalc[-1] = False
+        n_ts = self.parent.num_tslots
+        self.dyn_gen_recalc = np.ones(n_ts, dtype=bool)
+        #np.ones(n_ts, dtype=bool)
+        self.prop_recalc = np.ones(n_ts, dtype=bool)
+        self.evo_init2t_recalc = np.ones(n_ts + 1, dtype=bool)
+        self.evo_init2t_recalc[0] = False
+        self.evo_t2targ_recalc = np.ones(n_ts + 1, dtype=bool)
+        self.evo_t2targ_recalc[-1] = False
         
         # The _calc_now map is used to during the calcs to specify
         # which values need updating immediately
-        self.Dyn_gen_calc_now = np.zeros(nTS, dtype=bool)
-        self.Prop_calc_now = np.zeros(nTS, dtype=bool)
-        self.Evo_init2t_calc_now = np.zeros(nTS + 1, dtype=bool)
-        self.Evo_t2targ_calc_now = np.zeros(nTS + 1, dtype=bool)
+        self.dyn_gen_calc_now = np.zeros(n_ts, dtype=bool)
+        self.prop_calc_now = np.zeros(n_ts, dtype=bool)
+        self.evo_init2t_calc_now = np.zeros(n_ts + 1, dtype=bool)
+        self.evo_t2targ_calc_now = np.zeros(n_ts + 1, dtype=bool)
         
     def compare_amps(self, new_amps):
         """
@@ -261,50 +291,50 @@ class TSlotComp_DynUpdate(TimeslotComputer):
         Returns: True if amplitudes are the same, False if they have changed
         """
         dyn = self.parent
-        nTS = dyn.num_tslots
+        n_ts = dyn.num_tslots
         # create boolean array with same shape as ctrl_amps
         # True where value in New_amps differs, otherwise false
-        if (self.parent.ctrl_amps == None):
-            changedAmps = np.ones(new_amps.shape, dtype=bool)
+        if self.parent.ctrl_amps is None:
+            changed_amps = np.ones(new_amps.shape, dtype=bool)
         else:
-            changedAmps = self.parent.ctrl_amps != new_amps
+            changed_amps = self.parent.ctrl_amps != new_amps
             
-        if (self.msg_level >= 3):
-            print "changedAmps"
-            print changedAmps
+        if self.msg_level >= 3:
+            print "changed_amps"
+            print changed_amps
         # create Boolean vector with same length as number of timeslots
         # True where any of the amplitudes have changed, otherwise false
-        changedTSmask = np.any(changedAmps, 1)
-        #print "changedTSmask"
-        #print changedTSmask
+        changed_ts_mask = np.any(changed_amps, 1)
+        #print "changed_ts_mask"
+        #print changed_ts_mask
         #if any of the amplidudes have changed then mark for recalc
-        if (np.any(changedTSmask)):
-            self.Dyn_gen_recalc[changedTSmask] = True
-            self.Prop_recalc[changedTSmask] = True
+        if np.any(changed_ts_mask):
+            self.dyn_gen_recalc[changed_ts_mask] = True
+            self.prop_recalc[changed_ts_mask] = True
             dyn.ctrl_amps = new_amps
-            if (self.msg_level > 1):
+            if self.msg_level > 1:
                 print "Control amplitudes updated"
-            # find first and last changed Hamiltonians
-            firstChangedHidx = None
-            for i in range(nTS):
-                if (changedTSmask[i]):
-                    lastChangedHidx = i
-                    if (firstChangedHidx == None):
-                        firstChangedHidx = i
+            # find first and last changed dynamics generators
+            first_changed = None
+            for i in range(n_ts):
+                if changed_ts_mask[i]:
+                    last_changed = i
+                    if first_changed is None:
+                        first_changed = i
                     
             #set all fwd evo ops after first changed Ham to be recalculated
-            self.Evo_init2t_recalc[firstChangedHidx + 1:] = True
+            self.evo_init2t_recalc[first_changed + 1:] = True
             #set all bkwd evo ops up to (incl) last changed Ham to be recalculated
-            self.Evo_t2targ_recalc[:lastChangedHidx + 1] = True
+            self.evo_t2targ_recalc[:last_changed + 1] = True
             
             # Flag fidelity and gradients as needing recalculation
             dyn.flag_system_changed()
             
             # *** update stats ***
-            if (dyn.stats != None):
+            if dyn.stats is not None:
                 dyn.stats.num_ctrl_amp_updates += 1
-                dyn.stats.num_ctrl_amp_changes += changedAmps.sum()
-                dyn.stats.num_timeslot_changes += changedTSmask.sum()
+                dyn.stats.num_ctrl_amp_changes += changed_amps.sum()
+                dyn.stats.num_timeslot_changes += changed_ts_mask.sum()
                 
             return False
         else:
@@ -316,111 +346,111 @@ class TSlotComp_DynUpdate(TimeslotComputer):
         calculated now
         """
         # set flags for calculations
-        self.Dyn_gen_calc_now[:] = True
-        self.Prop_calc_now[:] = True
-        self.Evo_init2t_calc_now[:-1] = True
-        self.Evo_t2targ_calc_now[1:] = True
+        self.dyn_gen_calc_now[:] = True
+        self.prop_calc_now[:] = True
+        self.evo_init2t_calc_now[:-1] = True
+        self.evo_t2targ_calc_now[1:] = True
           
     def recompute_evolution(self):
         """
-        Recalculates the Evo_init2t (forward) and Evo_t2targ (onward) time 
+        Recalculates the evo_init2t (forward) and evo_t2targ (onward) time 
         evolution operators
-        DynGen (Hamiltonians etc) and Prop (propagator) are calculated 
+        DynGen (Hamiltonians etc) and prop (propagator) are calculated 
         as necessary 
         """
-        if (self.msg_level >= 2):
+        if self.msg_level >= 2:
             print "recomputing evolution (DynUpdate)"
             
         dyn = self.parent
-        nTS = dyn.num_tslots
+        n_ts = dyn.num_tslots
         # find the op slots that have been marked for update now
         # and need recalculation
-        Evo_init2t_recomp_now = self.Evo_init2t_calc_now & \
-                                            self.Evo_init2t_recalc
-        Evo_t2targ_recomp_now = self.Evo_t2targ_calc_now & \
-                                            self.Evo_t2targ_recalc
+        evo_init2t_recomp_now = self.evo_init2t_calc_now & \
+                                            self.evo_init2t_recalc
+        evo_t2targ_recomp_now = self.evo_t2targ_calc_now & \
+                                            self.evo_t2targ_recalc
         
-        # to recomupte Evo_init2t, will need to start
+        # to recomupte evo_init2t, will need to start
         #  at a cell that has been computed
-        if (np.any(Evo_init2t_recomp_now)):
-            for k in range(nTS, 0, -1):
-                if Evo_init2t_recomp_now[k] and self.Evo_init2t_recalc[k-1]:
-                    Evo_init2t_recomp_now[k-1] = True
+        if np.any(evo_init2t_recomp_now):
+            for k in range(n_ts, 0, -1):
+                if evo_init2t_recomp_now[k] and self.evo_init2t_recalc[k-1]:
+                    evo_init2t_recomp_now[k-1] = True
                 
-        # for Evo_t2targ, will also need to start 
+        # for evo_t2targ, will also need to start 
         #  at a cell that has been computed
-        if (np.any(Evo_t2targ_recomp_now)):
-            for k in range(0, nTS):
-                if Evo_t2targ_recomp_now[k] and self.Evo_t2targ_recalc[k+1]:
-                    Evo_t2targ_recomp_now[k+1] = True
+        if np.any(evo_t2targ_recomp_now):
+            for k in range(0, n_ts):
+                if evo_t2targ_recomp_now[k] and self.evo_t2targ_recalc[k+1]:
+                    evo_t2targ_recomp_now[k+1] = True
                 
-        # determine which dyn gen and Prop need recalculating now in order to 
+        # determine which dyn gen and prop need recalculating now in order to 
         # calculate the forwrd and onward evolutions
-        Prop_recomp_now = (Evo_init2t_recomp_now[1:] \
-                        | Evo_t2targ_recomp_now[:-1] \
-                        | self.Prop_calc_now[:]) & self.Prop_recalc[:]
-        Dyn_gen_recomp_now = (Prop_recomp_now[:] | self.Dyn_gen_calc_now[:]) \
-                        & self.Dyn_gen_recalc[:]
+        prop_recomp_now = (evo_init2t_recomp_now[1:] 
+                        | evo_t2targ_recomp_now[:-1] 
+                        | self.prop_calc_now[:]) & self.prop_recalc[:]
+        dyn_gen_recomp_now = (prop_recomp_now[:] | self.dyn_gen_calc_now[:]) \
+                        & self.dyn_gen_recalc[:]
                         
-        if np.any(Dyn_gen_recomp_now):
+        if np.any(dyn_gen_recomp_now):
             timeStart = timeit.default_timer()
-            for k in range(nTS):
-                if (Dyn_gen_recomp_now[k]):
+            for k in range(n_ts):
+                if dyn_gen_recomp_now[k]:
                     # calculate the dynamics generators
-                    dyn.Dyn_gen[k] = dyn.compute_dyn_gen(k)
-                    self.Dyn_gen_recalc[k] = False
-            if (dyn.stats != None):
-                dyn.stats.num_dyn_gen_computes += Dyn_gen_recomp_now.sum()
+                    dyn.dyn_gen[k] = dyn.compute_dyn_gen(k)
+                    self.dyn_gen_recalc[k] = False
+            if dyn.stats is not None:
+                dyn.stats.num_dyn_gen_computes += dyn_gen_recomp_now.sum()
                 dyn.stats.wall_time_dyn_gen_compute += \
                                 timeit.default_timer() - timeStart
                 
-        if np.any(Prop_recomp_now):
+        if np.any(prop_recomp_now):
             timeStart = timeit.default_timer()
-            for k in range(nTS):
-                if (Prop_recomp_now[k]):
+            for k in range(n_ts):
+                if prop_recomp_now[k]:
                     # calculate exp(H) and other per H computations needed for 
                     # the gradient function
-                    dyn.Prop[k] = dyn.compute_propagator(k)
-                    self.Prop_recalc[k] = False
-            if (dyn.stats != None):
-                dyn.stats.num_prop_computes += Prop_recomp_now.sum()
+                    dyn.prop[k] = dyn.compute_propagator(k)
+                    self.prop_recalc[k] = False
+            if dyn.stats is not None:
+                dyn.stats.num_prop_computes += prop_recomp_now.sum()
                 dyn.stats.wall_time_prop_compute += \
                                     timeit.default_timer() - timeStart
         
         # compute the forward propagation
-        if np.any(Evo_init2t_recomp_now):
+        if np.any(evo_init2t_recomp_now):
             timeStart = timeit.default_timer()
-            R = range(1, nTS + 1)
+            R = range(1, n_ts + 1)
             for k in R:
-                if (Evo_init2t_recomp_now[k]):
-                    dyn.Evo_init2t[k] = \
-                                    dyn.Prop[k-1].dot(dyn.Evo_init2t[k-1])
-                    self.Evo_init2t_recalc[k] = False
-            if (dyn.stats != None):
+                if evo_init2t_recomp_now[k]:
+                    dyn.evo_init2t[k] = \
+                                    dyn.prop[k-1].dot(dyn.evo_init2t[k-1])
+                    self.evo_init2t_recalc[k] = False
+            if dyn.stats is not None:
                 dyn.stats.num_fwd_prop_step_computes += \
-                                                    Evo_init2t_recomp_now.sum()
+                                                    evo_init2t_recomp_now.sum()
                 dyn.stats.wall_time_fwd_prop_compute += \
                                             timeit.default_timer() - timeStart
                 
-        if np.any(Evo_t2targ_recomp_now):
+        if np.any(evo_t2targ_recomp_now):
             timeStart = timeit.default_timer()  
             # compute the onward propagation
-            R = range(nTS-1, -1, -1)
+            R = range(n_ts-1, -1, -1)
             for k in R:
-                if (Evo_t2targ_recomp_now[k]):
-                    dyn.Evo_t2targ[k] = dyn.Evo_t2targ[k+1].dot(dyn.Prop[k])
-                    self.Evo_t2targ_recalc[k] = False
-            if (dyn.stats != None):
+                if evo_t2targ_recomp_now[k]:
+                    dyn.evo_t2targ[k] = dyn.evo_t2targ[k+1].dot(dyn.prop[k])
+                    self.evo_t2targ_recalc[k] = False
+            if dyn.stats is not None:
                 dyn.stats.num_onwd_prop_step_computes += \
-                                                Evo_t2targ_recomp_now.sum()
+                                                evo_t2targ_recomp_now.sum()
                 dyn.stats.wall_time_onwd_prop_compute += \
                                             timeit.default_timer() - timeStart
                                                 
         # Clear calc now flags
-        self.Dyn_gen_calc_now[:] = False
-        self.Prop_calc_now[:] = False
-        self.Evo_init2t_calc_now[:] = False
-        self.Evo_t2targ_calc_now[:] = False
+        self.dyn_gen_calc_now[:] = False
+        self.prop_calc_now[:] = False
+        self.evo_init2t_calc_now[:] = False
+        self.evo_t2targ_calc_now[:] = False
         
     def get_timeslot_for_fidelity_calc(self):
         """
@@ -430,32 +460,31 @@ class TSlotComp_DynUpdate(TimeslotComputer):
         Flags the associated evolution operators for calculation now
         """
         dyn = self.parent
-        nTS = dyn.num_tslots
+        n_ts = dyn.num_tslots
         kBothEvoCurrent = -1
         kFwdEvoCurrent = -1
         kUse = -1
         # If no specific timeslot set in config, then determine dynamically
-        if (kUse < 0):
-            for k in range(nTS):
-                # find first timeslot where both Evo_init2t and 
-                # Evo_t2targ are current
-                if (not self.Evo_init2t_recalc[k]):
+        if kUse < 0:
+            for k in range(n_ts):
+                # find first timeslot where both evo_init2t and 
+                # evo_t2targ are current
+                if not self.evo_init2t_recalc[k]:
                     kFwdEvoCurrent = k
-                    if (not self.Evo_t2targ_recalc[k]):
+                    if not self.evo_t2targ_recalc[k]:
                         kBothEvoCurrent = k
                         break
             
-            if (kBothEvoCurrent >= 0):
+            if kBothEvoCurrent >= 0:
                 kUse = kBothEvoCurrent
-            elif (kFwdEvoCurrent >= 0):
+            elif kFwdEvoCurrent >= 0:
                 kUse = kFwdEvoCurrent
             else:
-                raise errors.FunctionalError(self.__class__.__name__ + \
-                        ".get_current_value_setup_recalc", \
-                        "No timeslot found matching criteria")
+                raise errors.FunctionalError("No timeslot found matching "
+                                            "criteria")
         
-        self.Evo_init2t_calc_now[kUse] = True
-        self.Evo_t2targ_calc_now[kUse] = True
+        self.evo_init2t_calc_now[kUse] = True
+        self.evo_t2targ_calc_now[kUse] = True
         return kUse
 
 # ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
