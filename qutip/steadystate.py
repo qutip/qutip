@@ -648,6 +648,7 @@ def _steadystate_power(L, ss_args):
             print('RCM bandwidth:', new_band)
             print('Bandwidth reduction factor:', round(old_band/new_band, 2))
 
+    _power_start = time.time()
     # Get LU factors
     lu = splu(L, permc_spec=ss_args['permc_spec'],
               diag_pivot_thresh=ss_args['diag_pivot_thresh'],
@@ -659,7 +660,6 @@ def _steadystate_power(L, ss_args):
         print('L NNZ:', L_nnz, ';', 'U NNZ:', U_nnz)
         print('Fill factor:', (L_nnz+U_nnz)/orig_nnz)
 
-    _power_start = time.time()
     it = 0
     while (la.norm(L * v, np.inf) > tol) and (it < maxiter):
         v = lu.solve(v)
