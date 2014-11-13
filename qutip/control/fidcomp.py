@@ -63,6 +63,10 @@ import os
 import numpy as np
 #import scipy.linalg as la
 import timeit
+#QuTiP logging
+import qutip.logging as logging
+logger = logging.get_logger()
+#QuTiP control modules
 import errors as errors
 import utility as util
 
@@ -77,8 +81,16 @@ class FideliyComputer:
     
     Attributes
     ----------
-    msg_level : integer
-        Determines the level of messaging issued
+    log_level : integer
+        level of messaging output from the logger.
+        Options are attributes of qutip.logging, 
+        in decreasing levels of messaging, are:
+        DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
+        Anything WARN or above is effectively 'quiet' execution, 
+        assuming everything runs as expected.
+        The default NOTSET implies that the level will be taken from
+        the QuTiP settings file, which by default is WARN
+        Note value should be set using set_log_level
     
     dimensional_norm : float
         Normalisation constant
@@ -130,7 +142,7 @@ class FideliyComputer:
         reset any configuration data and
         clear any temporarily held status data
         """
-        self.msg_level = self.parent.msg_level
+        self.set_log_level(self.parent.log_level)
         self.dimensional_norm = 1.0
         self.fid_norm_func = None
         self.grad_norm_func = None
@@ -149,7 +161,15 @@ class FideliyComputer:
         self.fidelity_current = False
         self.fid_err_grad_current = False
         self.norm_grad_sq_sum = 0.0
-                
+
+    def set_log_level(self, lvl):
+        """
+        Set the log_level attribute and set the level of the logger
+        that is call logger.setLevel(lvl)
+        """
+        self.log_level = lvl
+        logger.setLevel(lvl)
+               
     def init_comp(self):
         """
         initialises the computer based on the configuration of the Dynamics
@@ -326,10 +346,9 @@ class FidCompUnitary(FideliyComputer):
             self.fidelity = \
                 self.fid_norm_func(self.get_fidelity_prenorm())
             self.fidelity_current = True
-            if self.msg_level >= 2:
-                print "Fidelity (normalised): " + \
-                        str(self.fidelity) 
-
+            if self.log_level <= logging.DEBUG:
+                logger.debug("Fidelity (normalised): {}".format(self.fidelity))
+                        
         return self.fidelity
         
     def get_fidelity_prenorm(self):
@@ -347,9 +366,9 @@ class FidCompUnitary(FideliyComputer):
             self.fidelity_prenorm_current = True
             if dyn.stats is not None:
                     dyn.stats.num_fidelity_computes += 1
-            if self.msg_level >= 2:
-                print "Fidelity (pre normalisation): " + \
-                        str(self.fidelity_prenorm) 
+            if self.log_level <= logging.DEBUG:
+                logger.debug("Fidelity (pre normalisation): {}".format(
+                                    self.fidelity_prenorm))
         return self.fidelity_prenorm
                  
     def get_fid_err_gradient(self):
@@ -362,29 +381,30 @@ class FidCompUnitary(FideliyComputer):
         """
         if not self.fid_err_grad_current:
             dyn = self.parent
-            gradPreNorm = self.compute_fid_grad()
-            if self.msg_level >= 5:
-                print "pre-normalised fidelity gradients:"
-                print gradPreNorm
+            grad_prenorm = self.compute_fid_grad()
+            if self.log_level <= logging.DEBUG_INTENSE:
+                logger.log(logging.DEBUG_INTENSE, "pre-normalised fidelity "
+                            "gradients:\n{}".format(grad_prenorm))
             # AJGP: Note this check should not be necessary if dynamics are
             #       unitary. However, if they are not then this gradient
             #       can still be used, however the interpretation is dubious
             if self.get_fidelity() >= 1:
-                self.fid_err_grad = self.grad_norm_func(gradPreNorm)
+                self.fid_err_grad = self.grad_norm_func(grad_prenorm)
             else:
-                self.fid_err_grad = -self.grad_norm_func(gradPreNorm)
+                self.fid_err_grad = -self.grad_norm_func(grad_prenorm)
                 
             self.fid_err_grad_current = True
             if dyn.stats is not None:
                 dyn.stats.num_grad_computes += 1
 
             self.norm_grad_sq_sum = np.sum(self.fid_err_grad**2)
-            if self.msg_level >= 4:
-                print "Normalised fidelity error gradients:"
-                print self.fid_err_grad
-            if self.msg_level >= 2:
-                print("Grad (sum sq norm): " + 
-                        str(self.norm_grad_sq_sum))
+            if self.log_level <= logging.DEBUG_INTENSE:
+                logger.log(logging.DEBUG_INTENSE, "Normalised fidelity error "
+                            "gradients:\n{}".format(self.fid_err_grad))
+
+            if self.log_level <= logging.DEBUG:
+                logger.debug("Gradient (sum sq norm): "
+                            "{} ".format(self.norm_grad_sq_sum))
                 
         return self.fid_err_grad
         
@@ -463,14 +483,12 @@ class FidCompTraceDiff(FideliyComputer):
             n_ts = dyn.num_tslots
             evo_final = dyn.evo_init2t[n_ts]
             evo_f_diff = dyn.target - evo_final
-            if self.msg_level >= 4:
-                print "Target:"
-                print dyn.target
-                print "evo final:"
-                print evo_final
-                print "evo final diff:"
-                print evo_f_diff
-                
+            if self.log_level <= logging.DEBUG_VERBOSE:
+                logger.log(logging.DEBUG_VERBOSE, "Calculating TraceDiff "
+                        "fidelity...\n Target:\n{}\n Evo final:\n{}\n"
+                        "Evo final diff:\n{}".format(dyn.target, evo_final,
+                                                    evo_f_diff))
+                                                    
             # Calculate the fidelity error using the trace difference norm
             # Note that the value should have not imagnary part, so using
             # np.real, just avoids the complex casting warning
@@ -480,9 +498,8 @@ class FidCompTraceDiff(FideliyComputer):
                     dyn.stats.num_fidelity_computes += 1
                     
             self.fidelity_current = True
-            if self.msg_level >= 2:
-                print "Fidelity error: " + \
-                        str(self.fid_err) 
+            if self.log_level <= logging.DEBUG:
+                logger.debug("Fidelity error: {}".format(self.fid_err))
 
         return self.fid_err
         
@@ -502,12 +519,13 @@ class FidCompTraceDiff(FideliyComputer):
                 dyn.stats.num_grad_computes += 1
 
             self.norm_grad_sq_sum = np.sum(self.fid_err_grad**2)
-            if self.msg_level >= 4:
-                print "Normalised fidelity error gradients:"
-                print self.fid_err_grad
-            if self.msg_level >= 2:
-                print "Grad (sum sq norm): " + \
-                        str(self.norm_grad_sq_sum)
+            if self.log_level <= logging.DEBUG_INTENSE:
+                logger.log(logging.DEBUG_INTENSE, "fidelity error gradients:\n"
+                            "{}".format(self.fid_err_grad))
+
+            if self.log_level <= logging.DEBUG:
+                logger.debug("Gradient (sum sq norm): "
+                            "{} ".format(self.norm_grad_sq_sum))
                 
         return self.fid_err_grad
         
@@ -582,9 +600,8 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
         n_ctrls = dyn.get_num_ctrls()
         n_ts = dyn.num_tslots
         
-        if self.msg_level >= 2:
-            print "Computing fidelity error gradient using " + \
-                        self.__class__.__name__
+        if self.log_level >= logging.DEBUG:
+            logger.debug("Computing fidelity error gradient")
         # create n_ts x n_ctrls zero array for grad start point
         grad = np.zeros([n_ts, n_ctrls])
         
