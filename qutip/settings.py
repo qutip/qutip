@@ -34,6 +34,7 @@
 This module contains settings for the QuTiP graphics, multiprocessing, and
 tidyup functionality, etc.
 """
+from __future__ import absolute_import
 # use auto tidyup
 auto_tidyup = True
 # detect hermiticity
@@ -50,6 +51,33 @@ fortran = False
 umfpack = False
 # debug mode for development
 debug = False
+# are we in IPython? Note that this cannot be
+# set by the RC file.
+ipython = False
+# define whether log handler should be
+#   - default: switch based on IPython detection
+#   - stream: set up non-propagating StreamHandler
+#   - basic: call basicConfig
+#   - null: leave logging to the user
+log_handler = 'default'
+
+
+# Note that since logging depends on settings,
+# if we want to do any logging here, it must be manually
+# configured, rather than through _logging.getlogger().
+
+import logging
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())
+del logging # Don't leak names!
+
+# Try to pull in configobj to do nicer handling of
+# config files instead of doing manual parsing.
+try:
+    import configobj as _cobj
+except ImportError:
+    logger.warn("configobj missing.", exc_info=1)
+    _cobj = None
 
 
 def load_rc_file(rc_file):
@@ -58,26 +86,37 @@ def load_rc_file(rc_file):
     directory.
     """
     global auto_tidyup, auto_herm, auto_tidyup_atol, num_cpus, debug, atol
+    global log_handler
 
-    with open(rc_file) as f:
-        for line in f.readlines():
-            if line[0] != "#":
-                var, val = line.strip().split("=")
+    if _cobj is None:
+        raise ImportError("Config file parsing requires configobj. Skipping.")
 
-                if var == "auto_tidyup":
-                    auto_tidyup = True if val == "True" else False
+    import pkg_resources
+    import validate
+    config = _cobj.ConfigObj(rc_file,
+        configspec=pkg_resources.resource_filename('qutip', 'configspec.ini')
+    )
+    validator = validate.Validator()
+    result = config.validate(validator)
 
-                elif var == "auto_tidyup_atol":
-                    auto_tidyup_atol = float(val)
+    if result != True: # this is un-Pythonic, but how the result gets
+                       # returned...
+        # OK, find which keys are bad.
+        bad_keys = {key for key, val in result.iteritems() if not val}
+        logger.warn('Invalid configuration options in {}: {}'.format(
+            rc_file, bad_keys
+        ))
+    else:
+        bad_keys = {}
 
-                elif var == "atol":
-                    atol = float(val)
-
-                elif var == "auto_herm":
-                    auto_herm = True if val == "True" else False
-
-                elif var == "num_cpus":
-                    num_cpus = int(val)
-
-                elif var == "debug":
-                    debug = True if val == "True" else False
+    for config_key in (
+        'auto_tidyup', 'auto_herm', 'atol', 'auto_tidyup_atol',
+        'num_cpus', 'debug', 'log_handler'
+    ):
+        if config_key in config and config_key not in bad_keys:
+            logger.debug(
+                "Applying configuration setting {} = {}.".format(
+                    config_key, config[config_key]
+                )
+            )
+            globals()[config_key] = config[config_key]

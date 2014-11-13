@@ -59,6 +59,10 @@ See Machnes et.al., arXiv.1011.4874
 import os
 import numpy as np
 import scipy.linalg as la
+#QuTiP logging
+import qutip.logging as logging
+logger = logging.get_logger()
+#QuTiP control modules
 import errors
 import tslotcomp
 import fidcomp
@@ -75,8 +79,16 @@ class Dynamics:
     
     Attributes
     ----------
-    msg_level : integer
-        Determines the level of messaging issued
+    log_level : integer
+        level of messaging output from the logger.
+        Options are attributes of qutip.logging, 
+        in decreasing levels of messaging, are:
+        DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
+        Anything WARN or above is effectively 'quiet' execution, 
+        assuming everything runs as expected.
+        The default NOTSET implies that the level will be taken from
+        the QuTiP settings file, which by default is WARN
+        Note value should be set using set_log_level
         
     test_out_files : integer
         Determines whether test / debug output files will be generated
@@ -253,7 +265,7 @@ class Dynamics:
         
         # Debug and information attribs
         self.def_amps_fname = "ctrl_amps.txt"
-        self.msg_level = self.config.msg_level
+        self.set_log_level(self.config.log_level)
         self.test_out_files = self.config.test_out_files
         # Internal flags
         self._dyn_gen_mapped = False
@@ -262,6 +274,14 @@ class Dynamics:
         self._create_computers()
         
         self.clear()
+        
+    def set_log_level(self, lvl):
+        """
+        Set the log_level attribute and set the level of the logger
+        that is call logger.setLevel(lvl)
+        """
+        self.log_level = lvl
+        logger.setLevel(lvl)
         
     def _create_computers(self):
         """
@@ -378,7 +398,7 @@ class Dynamics:
     def get_amp_times(self):
         return self.time[:self.num_tslots]
     
-    def save_amps(self, file_name=None, times=None, amps=None):
+    def save_amps(self, file_name=None, times=None, amps=None, verbose=False):
         """
         Save a file with the current control amplitudes in each timeslot
         The first column in the file will be the start time of the slot
@@ -395,8 +415,9 @@ class Dynamics:
         data[:, 0] = times
         data[:, 1:] = amps
         np.savetxt(file_name, data, delimiter='\t')
-        if self.msg_level >= 2:
-            print "Amplitudes saved to file: " + file_name
+        if verbose:
+            logger.info(self.log_level, 
+                        "Amplitudes saved to file: " + file_name)
             
     def update_ctrl_amps(self, new_amps):
         """
@@ -406,19 +427,18 @@ class Dynamics:
         timeslot computer
         """
         
+        if self.log_level <= logging.DEBUG_INTENSE:
+            logger.log(logging.DEBUG_INTENSE, "Updating amplitudes...\n"
+                "Current control amplitudes:\n" + str(self.ctrl_amps) +
+                "\n(potenially) new amplitudes:\n" + str(new_amps))
+
         if not self.tslot_computer.compare_amps(new_amps):
-            if self.msg_level >= 3:
-                print "self.ctrl_amps"
-                print self.ctrl_amps
-                print "New_amps"
-                print new_amps
-                
             if self.test_out_files >= 1:
                 fname = os.path.join("test_out", 
                         "amps_{}_{}_call{}.txt".format(self.config.dyn_type, 
                             self.config.fid_type, 
                             self.stats.num_ctrl_amp_updates))
-                self.save_amps(fname)
+                self.save_amps(fname, verbose=True)
         
     def flag_system_changed(self):
         """
@@ -480,8 +500,8 @@ class Dynamics:
 
         # Check if values are already current, otherwise calculate all values
         if not self.evo_current:
-            if self.msg_level >= 2:
-                print "Computing evolution"
+            if self.log_level <= logging.DEBUG_VERBOSE:
+                logger.log(logging.DEBUG_VERBOSE, "Computing evolution")
             self.tslot_computer.recompute_evolution()
             self.evo_current = True
             return True

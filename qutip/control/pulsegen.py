@@ -99,10 +99,7 @@ class PulseGen:
     num_tslots and pulse_time for equally spaced timeslots
     
     Attributes
-    ----------
-    msg_level : integer
-        Determines the level of messaging issued
-        
+    ----------        
     num_tslots : integer
         Number of timeslots, aka timeslices
         (copied from Dynamics if given)
@@ -136,14 +133,12 @@ class PulseGen:
         """
         if isinstance(self.parent, dynamics.Dynamics):
             dyn = self.parent
-            self.msg_level = dyn.msg_level
             self.num_tslots = dyn.num_tslots
             self.pulse_time = dyn.evo_time
             self.scaling = dyn.initial_ctrl_scaling
             self.offset = dyn.initial_ctrl_offset
             self.tau = dyn.tau
         else:
-            self.msg_level = 0
             self.num_tslots = 100
             self.pulse_time = 1.0
             self.scaling = 1.0

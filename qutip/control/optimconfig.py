@@ -43,6 +43,9 @@ Configuration parameters for control pulse optimisation
 """
 
 import numpy as np
+#QuTiP logging
+import qutip.logging
+logger = qutip.logging.get_logger()
 
 class OptimConfig:
     """
@@ -50,8 +53,16 @@ class OptimConfig:
     
     Attributes
     ----------
-    msg_level : integer
-        Determines the level of messaging issued
+    log_level : integer
+        level of messaging output from the logger.
+        Options are attributes of qutip.logging, 
+        in decreasing levels of messaging, are:
+        DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
+        Anything WARN or above is effectively 'quiet' execution, 
+        assuming everything runs as expected.
+        The default NOTSET implies that the level will be taken from
+        the QuTiP settings file, which by default is WARN
+        Note value should be set using set_log_level
         
     test_out_files : integer
         Determines whether test / debug output files will be generated
@@ -115,8 +126,7 @@ class OptimConfig:
         self.reset()
         
     def reset(self):
-        # Level of messaging. Higher number means more messages
-        self.msg_level = 0
+        self.log_level = logger.getEffectiveLevel()
         # Level of test ouptut files generated
         # NOTE: If >0 then sub directory 'test_out' must exist
         self.test_out_files = 0
@@ -134,6 +144,14 @@ class OptimConfig:
         self.max_metric_corr = 10
         self.optim_alg_acc_fact = 1e7
         # ####################
+        
+    def set_log_level(self, lvl):
+        """
+        Set the log_level attribute and set the level of the logger
+        that is call logger.setLevel(lvl)
+        """
+        self.log_level = lvl
+        logger.setLevel(lvl)
         
 # create global instance
 optimconfig = OptimConfig()
