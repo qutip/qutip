@@ -34,6 +34,7 @@
 This module contains settings for the QuTiP graphics, multiprocessing, and
 tidyup functionality, etc.
 """
+from __future__ import absolute_import
 # use auto tidyup
 auto_tidyup = True
 # detect hermiticity

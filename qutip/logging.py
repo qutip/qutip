@@ -36,13 +36,21 @@ debug logs, using Python's internal logging functionality by default.
 """
 
 ## IMPORTS ##
-
+from __future__ import absolute_import
 import inspect
 import logging
 
 import qutip.settings
 
 ## EXPORTS ##
+NOTSET = logging.NOTSET
+DEBUG_INTENSE = logging.DEBUG - 4
+DEBUG_VERBOSE = logging.DEBUG - 2
+DEBUG = logging.DEBUG
+INFO = logging.INFO
+WARN = logging.WARN
+ERROR = logging.ERROR
+CRITICAL = logging.CRITICAL
 
 __all__ = ['get_logger']
 
