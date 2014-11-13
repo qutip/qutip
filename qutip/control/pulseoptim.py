@@ -48,12 +48,8 @@ from the given target evolution in the time allowed for the evolution.
 The functions minimise this fidelity error wrt the piecewise control
 amplitudes in the timeslots
 """
-import os
 import numpy as np
-#QuTiP
-import qutip.logging as logging
-logger = logging.get_logger()
-#QuTiP control modules
+
 import optimconfig
 import dynamics
 import termcond
@@ -73,7 +69,7 @@ def optimize_pulse(
             optim_alg='LBFGSB', dyn_type='GEN_MAT', prop_type='DEF', 
             fid_type='DEF', phase_option=None, amp_update_mode='ALL', 
             init_pulse_type='RND', 
-            log_level=logging.NOTSET, out_file_ext=None, gen_stats=False):
+            msg_level=0, out_file_ext=None, gen_stats=False):
     """
     Optimise a control pulse to minimise the fidelity error.
     The dynamics of the system in any given timeslot are governed 
@@ -102,7 +98,7 @@ def optimize_pulse(
         target : Qobj
             target transformation, e.g. gate or state, for the time evolution
                 
-        num_tslots : integer or None
+        num_tslots : int or None
             number of timeslots. 
             None implies that timeslots will be given in the tau array
             
@@ -136,7 +132,7 @@ def optimize_pulse(
             gradients wrt to the control amplitudes falls below this
             value, the optimisation terminates, assuming local minima
             
-        max_iter : integer
+        max_iter : int
             Maximum number of iterations of the optimisation algorithm
             
         max_wall_time : float
@@ -183,15 +179,9 @@ def optimize_pulse(
                 RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
             (see PulseGen classes for details)
             
-        log_level : integer
-            level of messaging output from the logger.
-            Options are attributes of qutip.logging, 
-            in decreasing levels of messaging, are:
-            DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
-            Anything WARN or above is effectively 'quiet' execution, 
-            assuming everything runs as expected.
-            The default NOTSET implies that the level will be taken from
-            the QuTiP settings file, which by default is WARN
+        msg_level : int
+            level of messaging output to the stdout.
+            0 -> no messaging, up to about 5 for lots of debug messages
             
         out_file_ext : string or None
             files containing the initial and final control pulse
@@ -210,12 +200,6 @@ def optimize_pulse(
         reason for termination, final fidelity error, final evolution
         final amplitudes, statistics etc
     """
-    
-    if log_level == logging.NOTSET: 
-        log_level = logger.getEffectiveLevel()
-    else:
-        logger.setLevel(log_level)
-        
     optim = create_pulse_optimizer(
             drift, ctrls, initial, target, 
             num_tslots=num_tslots, evo_time=evo_time, tau=tau, 
@@ -225,26 +209,25 @@ def optimize_pulse(
             optim_alg=optim_alg, dyn_type=dyn_type, prop_type=prop_type, 
             fid_type=fid_type, phase_option=phase_option, 
             amp_update_mode=amp_update_mode, init_pulse_type=init_pulse_type, 
-            log_level=log_level, gen_stats=gen_stats)
+            msg_level=msg_level, gen_stats=gen_stats)
     
     dyn = optim.dynamics
     p_gen = optim.pulse_generator
     
-    if log_level <= logging.INFO:
-        msg = "System configuration:\n"
+    if msg_level >= 1:
+        print "System configuration:"
         dg_name = "dynamics generator"
         if dyn_type == 'UNIT':
             dg_name = "Hamiltonian"
-        msg += "Drift {}:\n".format(dg_name) 
-        msg += str(dyn.drift_dyn_gen)
+        print "    Drift {}:".format(dg_name) 
+        print dyn.drift_dyn_gen
         for j in range(dyn.num_ctrls):
-            msg += "\nControl {} {}:\n".format(j+1, dg_name)
-            msg += str(dyn.ctrl_dyn_gen[j])
-        msg += "\nInitial operator:\n"
-        msg += str(dyn.initial)
-        msg += "\nTarget operator:\n"
-        msg += str(dyn.target)
-        logger.info(msg)
+            print "    Control {} {}:".format(j+1, dg_name)
+            print dyn.ctrl_dyn_gen[j]
+        print "    Initial operator:"
+        print dyn.initial
+        print "    Target operator:"
+        print dyn.target
     
     # Generate pulses for each control
     init_amps = np.zeros([num_tslots, dyn.num_ctrls])
@@ -258,8 +241,8 @@ def optimize_pulse(
         # Save initial amplitudes to a text file
         pulsefile = "ctrl_amps_initial_" + out_file_ext
         dyn.save_amps(pulsefile)
-        if log_level <= logging.INFO:
-            logger.info("Initial amplitudes output to file: " + pulsefile)
+        if msg_level >= 1:
+            print "Initial amplitudes output to file: " + pulsefile
         
     # Start the optimisation
     result = optim.run_optimization()
@@ -268,8 +251,8 @@ def optimize_pulse(
         # Save final amplitudes to a text file
         pulsefile = "ctrl_amps_final_" + out_file_ext
         dyn.save_amps(pulsefile)
-        if log_level <= logging.INFO:
-            logger.info("Final amplitudes output to file: " + pulsefile)
+        if msg_level >= 1:
+            print "Final amplitudes output to file: " + pulsefile
         
     return result
 
@@ -282,7 +265,7 @@ def optimize_pulse_unitary(
             max_iter=500, max_wall_time=180, 
             optim_alg='LBFGSB', phase_option='PSU', amp_update_mode='ALL', 
             init_pulse_type='RND', 
-            log_level=logging.NOTSET, out_file_ext='.txt', gen_stats=False):
+            msg_level=0, out_file_ext='.txt', gen_stats=False):
                 
     """
     Optimise a control pulse to minimise the fidelity error, assuming that
@@ -316,7 +299,7 @@ def optimize_pulse_unitary(
         U_targ : Qobj
             target transformation, e.g. gate or state, for the time evolution
                 
-        num_tslots : integer or None
+        num_tslots : int or None
             number of timeslots. 
             None implies that timeslots will be given in the tau array
             
@@ -350,7 +333,7 @@ def optimize_pulse_unitary(
             gradients wrt to the control amplitudes falls below this
             value, the optimisation terminates, assuming local minima
             
-        max_iter : integer
+        max_iter : int
             Maximum number of iterations of the optimisation algorithm
             
         max_wall_time : float
@@ -379,15 +362,9 @@ def optimize_pulse_unitary(
                 RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
             (see PulseGen classes for details)
             
-        log_level : integer
-            level of messaging output from the logger.
-            Options are attributes of qutip.logging, 
-            in decreasing levels of messaging, are:
-            DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
-            Anything WARN or above is effectively 'quiet' execution, 
-            assuming everything runs as expected.
-            The default NOTSET implies that the level will be taken from
-            the QuTiP settings file, which by default is WARN
+        msg_level : int
+            level of messaging output to the stdout.
+            0 -> no messaging, up to about 5 for lots of debug messages
             
         out_file_ext : string or None
             files containing the initial and final control pulse
@@ -413,7 +390,7 @@ def optimize_pulse_unitary(
             max_iter=max_iter, max_wall_time=max_wall_time, 
             optim_alg=optim_alg, dyn_type='UNIT', phase_option=phase_option, 
             amp_update_mode=amp_update_mode, init_pulse_type=init_pulse_type, 
-            log_level=log_level, out_file_ext=out_file_ext, 
+            msg_level=msg_level, out_file_ext=out_file_ext, 
             gen_stats=gen_stats)
             
             
@@ -426,7 +403,7 @@ def create_pulse_optimizer(
             optim_alg='LBFGSB', dyn_type='GEN_MAT', prop_type='DEF', 
             fid_type='DEF', phase_option=None, amp_update_mode='ALL', 
             init_pulse_type='RND', 
-            log_level=logging.NOTSET, gen_stats=False):
+            msg_level=0, gen_stats=False):
                 
     """
     Generate the objects of the appropriate subclasses 
@@ -454,7 +431,7 @@ def create_pulse_optimizer(
         target : Qobj
             target transformation, e.g. gate or state, for the time evolution
                 
-        num_tslots : integer or None
+        num_tslots : int or None
             number of timeslots. 
             None implies that timeslots will be given in the tau array
             
@@ -488,7 +465,7 @@ def create_pulse_optimizer(
             gradients wrt to the control amplitudes falls below this
             value, the optimisation terminates, assuming local minima
             
-        max_iter : integer
+        max_iter : int
             Maximum number of iterations of the optimisation algorithm
             
         max_wall_time : float
@@ -535,16 +512,9 @@ def create_pulse_optimizer(
                 RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
             (see PulseGen classes for details)
             
-        log_level : integer
-            level of messaging output from the logger.
-            Options are attributes of qutip.logging, 
-            in decreasing levels of messaging, are:
-            DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
-            Anything WARN or above is effectively 'quiet' execution, 
-            assuming everything runs as expected.
-            The default NOTSET implies that the level will be taken from
-            the QuTiP settings file, which by default is WARN
-            Note value should be set using set_log_level
+        msg_level : int
+            level of messaging output to the stdout.
+            0 -> no messaging, up to about 5 for lots of debug messages
             
         gen_stats : boolean
             if set to True then statistics for the optimisation
@@ -562,6 +532,7 @@ def create_pulse_optimizer(
         The optimisation can be run through the optimizer.run_optimization
     """
     cfg = optimconfig.OptimConfig()
+    cfg.msg_level = msg_level
     cfg.optim_alg = optim_alg
     cfg.amp_update_mode = amp_update_mode
     cfg.dyn_type = dyn_type
@@ -569,13 +540,6 @@ def create_pulse_optimizer(
     cfg.fid_type = fid_type
     cfg.pulse_type = init_pulse_type
     cfg.phase_option = phase_option
-    
-    if log_level == logging.NOTSET: 
-        log_level = logger.getEffectiveLevel()
-    else:
-        logger.setLevel(log_level)
-    
-    cfg.log_level = log_level
     
     # Create the Dynamics instance
     if dyn_type == 'GEN_MAT' or dyn_type is None  or dyn_type == '':
@@ -693,14 +657,15 @@ def create_pulse_optimizer(
         p_gen.num_waves = 1.0
     optim.pulse_generator = p_gen
     
-    if log_level <= logging.DEBUG:
-        logger.debug("Optimisation config summary...\n"
-            "  object classes:\n"
-            "    optimizer: " + optim.__class__.__name__ +
-            "\n    dynamics: " + dyn.__class__.__name__ +
-            "\n    tslotcomp: " + dyn.tslot_computer.__class__.__name__ + 
-            "\n    fidcomp: " + dyn.fid_computer.__class__.__name__ +            "\n    propcomp: " + dyn.prop_computer.__class__.__name__ +
-            "\n    pulsegen: " + p_gen.__class__.__name__)
+    if msg_level >= 2:
+        print "Optimisation config summary..."
+        print "  object classes:"
+        print "    optimizer: " + optim.__class__.__name__
+        print "    dynamics: " + dyn.__class__.__name__
+        print "    tslotcomp: " + dyn.tslot_computer.__class__.__name__
+        print "    fidcomp: " + dyn.fid_computer.__class__.__name__
+        print "    propcomp: " + dyn.prop_computer.__class__.__name__
+        print "    pulsegen: " + p_gen.__class__.__name__
     
     return optim
     

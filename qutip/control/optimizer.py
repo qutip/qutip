@@ -86,10 +86,7 @@ import os
 import numpy as np
 import timeit
 import scipy.optimize as spopt
-#QuTiP
-import qutip.logging as logging
-logger = logging.get_logger()
-#QuTiP control modules
+
 import optimresult as optimresult
 import termcond as termcond
 import errors as errors
@@ -110,16 +107,8 @@ class Optimizer:
     
     Attributes
     ----------
-    log_level : integer
-        level of messaging output from the logger.
-        Options are attributes of qutip.logging, 
-        in decreasing levels of messaging, are:
-        DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
-        Anything WARN or above is effectively 'quiet' execution, 
-        assuming everything runs as expected.
-        The default NOTSET implies that the level will be taken from
-        the QuTiP settings file, which by default is WARN
-        Note value should be set using set_log_level
+    msg_level : integer
+        Determines the level of messaging issued
         
     test_out_files : integer
         Determines whether test / debug output files will be generated
@@ -151,24 +140,17 @@ class Optimizer:
     def __init__(self, config, dyn):
         self.dynamics = dyn
         self.config = config
+        self.msg_level = config.msg_level
+        self.test_out_files = self.config.test_out_files
         self.reset()
         
     def reset(self):
-        self.set_log_level(self.config.log_level)
-        self.test_out_files = self.config.test_out_files
         self.termination_conditions = None
         self.pulse_generator = None
         self.num_iter = 0
         self.stats = None
         self.wall_time_optim_start = 0.0
 
-    def set_log_level(self, lvl):
-        """
-        Set the log_level attribute and set the level of the logger
-        that is call logger.setLevel(lvl)
-        """
-        self.log_level = lvl
-        logger.setLevel(lvl)
         
     def run_optimization(self, term_conds=None):
         """
@@ -244,9 +226,9 @@ class Optimizer:
         # *** update stats ***
         if self.stats is not None:
             self.stats.num_fidelity_func_calls += 1
-            if self.log_level <= logging.DEBUG:
-                logger.debug("fidelity error call {}".format(
-                        self.stats.num_fidelity_func_calls))
+            if self.msg_level > 0:
+                print "Computing fidelity error {}".\
+                        format(self.stats.num_fidelity_func_calls)
         amps = args[0].copy().reshape(self.dynamics.ctrl_amps.shape)
         self.dynamics.update_ctrl_amps(amps)
         
@@ -277,9 +259,9 @@ class Optimizer:
         # *** update stats ***
         if self.stats is not None:
             self.stats.num_grad_func_calls += 1
-            if self.log_level <= logging.DEBUG:
-                logger.debug("gradient call {}".format(
-                        self.stats.num_grad_func_calls))
+            if self.msg_level > 0:
+                print "Computing gradient normal {}".\
+                        format(self.stats.num_grad_func_calls)
         amps = args[0].copy().reshape(self.dynamics.ctrl_amps.shape)
         self.dynamics.update_ctrl_amps(amps)
         fidComp = self.dynamics.fid_computer
@@ -304,9 +286,9 @@ class Optimizer:
         Check the elapsed wall time for the optimisation run so far.
         Terminate if this has exceeded the maximum allowed time
         """
-        if self.log_level <= logging.DEBUG:
-            logger.debug("Iteration callback {}".format(self.num_iter))
-
+        if self.msg_level > 0:
+            print "Iteration callback {}".format(self.num_iter)
+            
         tc = self.termination_conditions
         if (timeit.default_timer() - self.wall_time_optimize_start > 
                 tc.max_wall_time):
@@ -347,8 +329,9 @@ class Optimizer:
             self.stats.wall_time_optim_end = end_time
             self.stats.calculate()
             result.stats = self.stats
+#]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]    
 
-
+# [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
 class OptimizerBFGS(Optimizer):
     """
     Implements the run_optimization method using the BFGS algorithm
@@ -386,9 +369,8 @@ class OptimizerBFGS(Optimizer):
             self.stats.wall_time_optim_end = 0.0
             self.stats.num_iter = 1
         
-        if self.log_level <= logging.INFO:
-            logger.info("Optimising pulse using BFGS")
-            
+        if self.msg_level > 0:
+            print "Optimising using BFGS"
         result = self._create_result()
         try:
             amps, cost, grad, invHess, nFCalls, nGCalls, warn = \
@@ -481,16 +463,8 @@ class OptimizerLBFGSB(Optimizer):
         
         bounds = self._build_bounds_list();
         result = self._create_result()
-        if self.log_level < logging.DEBUG:
-            alg_msg_lvl = 1
-        elif self.log_level == logging.DEBUG:
-            alg_msg_lvl = 0
-        else:
-            alg_msg_lvl = -1
-            
-        if self.log_level <= logging.INFO:
-            logger.info("Optimising pulse using L-BFGS-B")
-
+        if self.msg_level > 0:
+            print "Optimising using L-BFGS-B"
         try:
             amps, fid, res_dict = spopt.fmin_l_bfgs_b(
                                 self.fid_err_func_wrapper, x0, 
@@ -500,7 +474,7 @@ class OptimizerLBFGSB(Optimizer):
                                 m=cfg.max_metric_corr, 
                                 factr=cfg.optim_alg_acc_fact, 
                                 pgtol=term_conds.min_gradient_norm, 
-                                iprint=alg_msg_lvl, 
+                                iprint=self.msg_level - 1, 
                                 maxfun=term_conds.max_fid_func_calls, 
                                 maxiter=term_conds.max_iterations)
         
@@ -526,3 +500,5 @@ class OptimizerLBFGSB(Optimizer):
         
         return result
     
+#]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]    
+

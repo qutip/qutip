@@ -52,10 +52,6 @@ See Machnes et.al., arXiv.1011.4874
 #import os
 import numpy as np
 import scipy.linalg as la
-#QuTiP logging
-import qutip.logging as logging
-logger = logging.get_logger()
-#QuTiP control modules
 import errors
 
 
@@ -71,16 +67,8 @@ class PropagatorComputer:
     
     Attributes
     ----------
-    log_level : integer
-        level of messaging output from the logger.
-        Options are attributes of qutip.logging, 
-        in decreasing levels of messaging, are:
-        DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
-        Anything WARN or above is effectively 'quiet' execution, 
-        assuming everything runs as expected.
-        The default NOTSET implies that the level will be taken from
-        the QuTiP settings file, which by default is WARN
-        Note value should be set using set_log_level
+    msg_level : integer
+        Determines the level of messaging issued
         
     grad_exact : boolean
         indicates whether the computer class instance is capable
@@ -95,17 +83,9 @@ class PropagatorComputer:
         """
         reset any configuration data
         """
-        self.set_log_level(self.parent.log_level)
+        self.msg_level = self.parent.msg_level
         self.grad_exact = False
 
-    def set_log_level(self, lvl):
-        """
-        Set the log_level attribute and set the level of the logger
-        that is call logger.setLevel(lvl)
-        """
-        self.log_level = lvl
-        logger.setLevel(lvl)
-        
     def compute_propagator(self, k):
         """
         calculate the progator between X(k) and X(k+1)
@@ -178,8 +158,9 @@ class PropCompApproxGrad(PropagatorComputer):
                         epsilon*dyn.get_ctrl_dyn_gen(j))
         prop_eps = la.expm(dgt_eps*dyn.tau[k])
         return prop_eps
-
-
+# ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+        
+# [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
 class PropCompDiag(PropagatorComputer):
     """
     Coumputes the propagator exponentiation using diagonalisation of
@@ -239,8 +220,9 @@ class PropCompDiag(PropagatorComputer):
             return prop, prop_grad
         else:
             return prop_grad
-
-
+# ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+            
+# [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
 class PropCompAugMat(PropagatorComputer):
     """
     Augmented Matrix (deprecated - see _Frechet)
@@ -299,7 +281,9 @@ class PropCompAugMat(PropagatorComputer):
         else:
             return prop_grad
             
-
+# ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+            
+# [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
 class PropCompFrechet(PropagatorComputer):
     """
     Frechet method for calculating the propagator:
@@ -332,3 +316,4 @@ class PropCompFrechet(PropagatorComputer):
             propGrad = la.expm_frechet(A, E, compute_expm=False)
             return propGrad
         
+# ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]

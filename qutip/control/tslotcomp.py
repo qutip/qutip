@@ -69,14 +69,10 @@ See Machnes et.al., arXiv.1011.4874
 import os
 import numpy as np
 import timeit
-#QuTiP logging
-import qutip.logging as logging
-logger = logging.get_logger()
-#QuTiP control modules
 import errors
 import utility as util
 
-
+# [[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[
 class TimeslotComputer:
     """
     Base class for all Timeslot Computers
@@ -85,23 +81,15 @@ class TimeslotComputer:
     
     Attributes
     ----------
-    log_level : integer
-        level of messaging output from the logger.
-        Options are attributes of qutip.logging, 
-        in decreasing levels of messaging, are:
-        DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
-        Anything WARN or above is effectively 'quiet' execution, 
-        assuming everything runs as expected.
-        The default NOTSET implies that the level will be taken from
-        the QuTiP settings file, which by default is WARN
-        Note value should be set using set_log_level
+    msg_level : integer
+        Determines the level of messaging issued
     """
     def __init__(self, dynamics):
         self.parent = dynamics
         self.reset()
         
     def reset(self):
-        self.set_log_level(self.parent.log_level)
+        self.msg_level = self.parent.msg_level
         
     def flag_all_calc_now(self):
         pass
@@ -109,14 +97,6 @@ class TimeslotComputer:
     def init_comp(self):
         pass
 
-    def set_log_level(self, lvl):
-        """
-        Set the log_level attribute and set the level of the logger
-        that is call logger.setLevel(lvl)
-        """
-        self.log_level = lvl
-        logger.setLevel(lvl)
-        
 class TSlotCompUpdateAll(TimeslotComputer):
     """
     Timeslot Computer - Update All
@@ -146,10 +126,8 @@ class TSlotCompUpdateAll(TimeslotComputer):
             if np.any(changed_amps):
                 # Flag fidelity and gradients as needing recalculation
                 changed = True
-                if self.log_level <= logging.DEBUG:
-                    logger.debug("{} amplitudes changed".format(
-                                        changed_amps.sum()))
-
+                if self.msg_level >= 2:
+                    print "{} amplitudes changed".format(changed_amps.sum())
                 # *** update stats ***
                 if dyn.stats is not None:
                     dyn.stats.num_ctrl_amp_updates += 1
@@ -170,9 +148,10 @@ class TSlotCompUpdateAll(TimeslotComputer):
         Dynamics generators (e.g. Hamiltonian) and 
         prop (propagators) are calculated as necessary 
         """
-        if self.log_level <= logging.DEBUG_VERBOSE:
-            logger.log(logging.DEBUG_VERBOSE, "recomputing evolution "
-                                            "(UpdateAll)")
+        
+        if self.msg_level >= 2:
+            print "recomputing evolution (UpdateAll)"
+
         dyn = self.parent
         prop_comp = dyn.prop_computer
         n_ts = dyn.num_tslots
@@ -196,9 +175,9 @@ class TSlotCompUpdateAll(TimeslotComputer):
                         prop, propGrad = prop_comp.compute_prop_grad(k, j)
                         dyn.prop[k] = prop
                         dyn.prop_grad[k, j] = propGrad
-                        if self.log_level <= logging.DEBUG_INTENSE:
-                            logger.log(logging.DEBUG_INTENSE, 
-                                       "propagator {}:\n{}".format(k, prop))
+                        if self.msg_level >= 5:
+                            print "propagator {}:".format(k)
+                            print prop
                         if dyn.test_out_files >= 3:
                             fname = os.path.join("test_out", 
                                     "propGrad_{}_j{}_k{}.txt".
@@ -320,19 +299,21 @@ class TSlotCompDynUpdate(TimeslotComputer):
         else:
             changed_amps = self.parent.ctrl_amps != new_amps
             
-        if self.log_level <= logging.DEBUG_VERBOSE:
-            logger.log(logging.DEBUG_VERBOSE, "changed_amps:\n{}".format(
-                                           changed_amps))
+        if self.msg_level >= 3:
+            print "changed_amps"
+            print changed_amps
         # create Boolean vector with same length as number of timeslots
         # True where any of the amplitudes have changed, otherwise false
         changed_ts_mask = np.any(changed_amps, 1)
+        #print "changed_ts_mask"
+        #print changed_ts_mask
         #if any of the amplidudes have changed then mark for recalc
         if np.any(changed_ts_mask):
             self.dyn_gen_recalc[changed_ts_mask] = True
             self.prop_recalc[changed_ts_mask] = True
             dyn.ctrl_amps = new_amps
-            if self.log_level <= logging.DEBUG:
-                logger.debug("Control amplitudes updated")
+            if self.msg_level > 1:
+                print "Control amplitudes updated"
             # find first and last changed dynamics generators
             first_changed = None
             for i in range(n_ts):
@@ -377,10 +358,9 @@ class TSlotCompDynUpdate(TimeslotComputer):
         DynGen (Hamiltonians etc) and prop (propagator) are calculated 
         as necessary 
         """
-        if self.log_level <= logging.DEBUG_VERBOSE:
-            logger.log(logging.DEBUG_VERBOSE, "recomputing evolution "
-                                            "(DynUpdate)")
-                                            
+        if self.msg_level >= 2:
+            print "recomputing evolution (DynUpdate)"
+            
         dyn = self.parent
         n_ts = dyn.num_tslots
         # find the op slots that have been marked for update now
@@ -506,4 +486,8 @@ class TSlotCompDynUpdate(TimeslotComputer):
         self.evo_init2t_calc_now[kUse] = True
         self.evo_t2targ_calc_now[kUse] = True
         return kUse
+
+# ]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]
+
+
 
