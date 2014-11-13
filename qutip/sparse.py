@@ -50,6 +50,8 @@ from qutip.cy.sparse_utils import (_sparse_profile, _sparse_permute,
                                    _sparse_reverse_permute, _sparse_bandwidth)
 from qutip.settings import debug
 
+import qutip.logging
+logger = qutip.logging.get_logger()
 
 if debug:
     import inspect
@@ -156,7 +158,7 @@ def _dense_eigs(data, isherm, vecs, N, eigvals, num_large, num_small):
     matrix.
     """
     if debug:
-        print(inspect.stack()[0][3] + ": vectors = " + str(vecs))
+        logger.debug(inspect.stack()[0][3] + ": vectors = " + str(vecs))
 
     evecs = None
 
