@@ -345,10 +345,10 @@ def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
         sso.homogeneous = False
 
     if sso.solver == 'euler-maruyama' or sso.solver is None:
-        sso.rhs_func = _rhs_psi_euler_maruyama
+        sso.rhs = _rhs_psi_euler_maruyama
 
     elif sso.solver == 'platen':
-        sso.rhs_func = _rhs_psi_platen
+        sso.rhs = _rhs_psi_platen
 
     else:
         raise Exception("Unrecognized solver '%s'." % sso.solver)
@@ -693,13 +693,6 @@ def _ssesolve_generic(sso, options, progress_bar):
 
         states_list, dW, m = _ssesolve_single_trajectory(
             n, psi_t, sso.state0.dims, data, sso, A_ops)
-        #(
-        #    data, sso.H, dt, sso.times, N_store, N_substeps, psi_t,
-        #    sso.state0.dims, A_ops, sso.e_ops, sso.m_ops, sso.rhs_func, sso.d1,
-        #    sso.d2, sso.d2_len, sso.dW_factors, sso.homogeneous,
-        #    sso.distribution, sso.args,
-        #    store_measurement=sso.store_measurement, noise=noise,
-        #    normalize=sso.normalize)
 
         data.states.append(states_list)
         data.noise.append(dW)
@@ -787,7 +780,7 @@ def _ssesolve_single_trajectory(n, psi_t, dims, data, sso, A_ops):
                     dW[a_idx, t_idx, j, :] = np.random.poisson(dw_expect,
                                                                d2_len)
 
-            psi_t = sso.rhs_func(H_data, psi_t, t + dt * j,
+            psi_t = sso.rhs(H_data, psi_t, t + dt * j,
                             A_ops, dt, dW[:, t_idx, j, :], d1, d2, sso.args)
 
             # optionally renormalize the wave function
@@ -857,8 +850,7 @@ def _smesolve_generic(sso, options, progress_bar):
         sso.s_m_ops = [[spre(c) for _ in range(sso.d2_len)]
                        for c in sso.sc_ops]
 
-    #sso.rho_vec_t = mat2vec(sso.state0.full()).ravel()
-
+    # sso.rho_vec_t = mat2vec(sso.state0.full()).ravel()
     progress_bar.start(sso.ntraj)
     for n in range(sso.ntraj):
         progress_bar.update(n)
@@ -905,7 +897,7 @@ def _smesolve_single_trajectory(n, data, sso):
     N_substeps = sso.N_substeps
     N_store = sso.N_store
     A_ops = sso.A_ops
-    
+
     rho_t = mat2vec(sso.state0.full()).ravel()
     dims = sso.state0.dims
 
@@ -975,6 +967,7 @@ def _smesolve_single_trajectory(n, data, sso):
         measurements = measurements.squeeze(axis=(2))
 
     return states_list, dW, measurements
+
 
 # -----------------------------------------------------------------------------
 # Generic parameterized stochastic SE PDP solver
