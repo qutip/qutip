@@ -212,6 +212,31 @@ def optimize_pulse(
         final amplitudes, statistics etc
     """
     
+    # check parameters
+    if not isinstance(drift, Qobj):
+        raise TypeError("drift must be a Qobj")
+    else:
+        drift = drift.full()
+        
+    if not isinstance(ctrls, (list, tuple)):
+        raise TypeError("ctrls should be a list of Qobj")
+    else:
+        for ctrl in ctrls:
+            if not isinstance(ctrl, Qobj):
+                raise TypeError("ctrls should be a list of Qobj")
+            else:
+                ctrl = ctrl.full()
+                
+    if not isinstance(initial, Qobj):
+        raise TypeError("initial must be a Qobj")
+    else:
+        initial = initial.full()
+        
+    if not isinstance(target, Qobj):
+        raise TypeError("target must be a Qobj")
+    else:
+        target = target.full()
+        
     if log_level == logging.NOTSET: 
         log_level = logger.getEffectiveLevel()
     else:
@@ -407,6 +432,32 @@ def optimize_pulse_unitary(
         reason for termination, final fidelity error, final evolution
         final amplitudes, statistics etc
     """
+    
+    # check parameters
+    if not isinstance(H_d, Qobj):
+        raise TypeError("H_d must be a Qobj")
+    else:
+        H_d = H_d.full()
+        
+    if not isinstance(H_c, (list, tuple)):
+        raise TypeError("H_c should be a list of Qobj")
+    else:
+        for ctrl in H_c:
+            if not isinstance(ctrl, Qobj):
+                raise TypeError("H_c should be a list of Qobj")
+            else:
+                ctrl = ctrl.full()
+                
+    if not isinstance(U_0, Qobj):
+        raise TypeError("U_0 must be a Qobj")
+    else:
+        U_0 = U_0.full()
+        
+    if not isinstance(U_targ, Qobj):
+        raise TypeError("U_targ must be a Qobj")
+    else:
+        target = target.full()
+        
     return optimize_pulse(drift=H_d, ctrls=H_c, initial=U_0, target=U_targ, 
             num_tslots=num_tslots, evo_time=evo_time, tau=tau, 
             amp_lbound=amp_lbound, amp_ubound=amp_ubound, 
@@ -568,6 +619,25 @@ def create_pulse_optimizer(
         raise TypeError("drift must be a Qobj")
     else:
         drift = drift.full()
+        
+    if not isinstance(ctrls, (list, tuple)):
+        raise TypeError("ctrls should be a list of Qobj")
+    else:
+        for ctrl in ctrls:
+            if not isinstance(ctrl, Qobj):
+                raise TypeError("ctrls should be a list of Qobj")
+            else:
+                ctrl = ctrl.full()
+                
+    if not isinstance(initial, Qobj):
+        raise TypeError("initial must be a Qobj")
+    else:
+        initial = initial.full()
+        
+    if not isinstance(target, Qobj):
+        raise TypeError("target must be a Qobj")
+    else:
+        target = target.full()
         
     cfg = optimconfig.OptimConfig()
     cfg.optim_alg = optim_alg
