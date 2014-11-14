@@ -670,33 +670,19 @@ def _ssesolve_generic(sso, options, progress_bar):
 
     # pre-compute collapse operator combinations that are commonly needed
     # when evaluating the RHS of stochastic Schrodinger equations
-    A_ops = sso.generate_A_ops(sso.sc_ops, sso.H)
+    sso.A_ops = sso.generate_A_ops(sso.sc_ops, sso.H)
 
     progress_bar.start(sso.ntraj)
-
-    #parfor_kwargs = {'show_scheduling': True,
-    #                 'show_progressbar': True}
-
-    #task = _ssesolve_single_trajectory
-    #task_args = (data, sso, A_ops)
-    #task_kwargs = {}
-    
-    #res = parmap(task, 
-    #             list(range(sso.ntraj)),
-    #             task_args,
-    #             task_kwargs,
-    #             **parmap_kwargs)    
-
-    psi_t = sso.state0.full().ravel()
     for n in range(sso.ntraj):
         progress_bar.update(n)
 
-        states_list, dW, m = _ssesolve_single_trajectory(
-            n, psi_t, sso.state0.dims, data, sso, A_ops)
+        states_list, dW, m, expect, ss = _ssesolve_single_trajectory(n, sso)
 
         data.states.append(states_list)
         data.noise.append(dW)
         data.measurement.append(m)
+        data.expect += expect
+        data.ss += ss
 
     progress_bar.finished()
 
@@ -723,7 +709,7 @@ def _ssesolve_generic(sso, options, progress_bar):
     return data
 
 
-def _ssesolve_single_trajectory(n, psi_t, dims, data, sso, A_ops):
+def _ssesolve_single_trajectory(n, sso):
     """
     Internal function. See ssesolve.
     """
@@ -733,6 +719,13 @@ def _ssesolve_single_trajectory(n, psi_t, dims, data, sso, A_ops):
     d2_len = sso.d2_len
     e_ops = sso.e_ops
     H_data = sso.H.data
+    A_ops = sso.A_ops
+
+    expect = np.zeros((len(sso.e_ops), sso.N_store), dtype=complex)
+    ss = np.zeros((len(sso.e_ops), sso.N_store), dtype=complex)
+
+    psi_t = sso.state0.full().ravel()
+    dims = sso.state0.dims
 
     # noise = sso.noise[n] if sso.noise is not None else None
     if sso.noise is None:
@@ -764,8 +757,8 @@ def _ssesolve_single_trajectory(n, psi_t, dims, data, sso, A_ops):
                 s = cy_expect_psi_csr(e.data.data,
                                       e.data.indices,
                                       e.data.indptr, psi_t, 0)
-                data.expect[e_idx, t_idx] += s
-                data.ss[e_idx, t_idx] += s ** 2
+                expect[e_idx, t_idx] += s
+                ss[e_idx, t_idx] += s ** 2
         else:
             states_list.append(Qobj(psi_t, dims=dims))
 
@@ -806,7 +799,7 @@ def _ssesolve_single_trajectory(n, psi_t, dims, data, sso, A_ops):
     if d2_len == 1:
         measurements = measurements.squeeze(axis=(2))
 
-    return states_list, dW, measurements
+    return states_list, dW, measurements, expect, ss
 
 
 # -----------------------------------------------------------------------------
@@ -855,11 +848,13 @@ def _smesolve_generic(sso, options, progress_bar):
     for n in range(sso.ntraj):
         progress_bar.update(n)
 
-        states_list, dW, m = _smesolve_single_trajectory(n, data, sso)
+        states_list, dW, m, expect, ss = _smesolve_single_trajectory(n, sso)
 
         data.states.append(states_list)
         data.noise.append(dW)
         data.measurement.append(m)
+        data.expect += expect
+        data.ss += ss
 
     progress_bar.finished()
 
@@ -885,7 +880,7 @@ def _smesolve_generic(sso, options, progress_bar):
     return data
 
 
-def _smesolve_single_trajectory(n, data, sso):
+def _smesolve_single_trajectory(n, sso):
     """
     Internal function. See smesolve.
     """
@@ -900,6 +895,9 @@ def _smesolve_single_trajectory(n, data, sso):
 
     rho_t = mat2vec(sso.state0.full()).ravel()
     dims = sso.state0.dims
+
+    expect = np.zeros((len(sso.e_ops), sso.N_store), dtype=complex)
+    ss = np.zeros((len(sso.e_ops), sso.N_store), dtype=complex)
 
     if sso.noise is None:
         if sso.generate_noise:
@@ -930,9 +928,8 @@ def _smesolve_single_trajectory(n, data, sso):
         if sso.s_e_ops:
             for e_idx, e in enumerate(sso.s_e_ops):
                 s = cy_expect_rho_vec(e.data, rho_t, 0)
-                # XXX fix
-                data.expect[e_idx, t_idx] += s
-                data.ss[e_idx, t_idx] += s ** 2
+                expect[e_idx, t_idx] += s
+                ss[e_idx, t_idx] += s ** 2
 
         if sso.store_states or not sso.s_e_ops:
             states_list.append(Qobj(vec2mat(rho_t), dims=dims))
@@ -966,7 +963,7 @@ def _smesolve_single_trajectory(n, data, sso):
     if d2_len == 1:
         measurements = measurements.squeeze(axis=(2))
 
-    return states_list, dW, measurements
+    return states_list, dW, measurements, expect, ss
 
 
 # -----------------------------------------------------------------------------
