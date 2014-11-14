@@ -51,18 +51,19 @@ amplitudes in the timeslots
 import os
 import numpy as np
 #QuTiP
+from qutip import Qobj
 import qutip.logging as logging
 logger = logging.get_logger()
 #QuTiP control modules
-import optimconfig
-import dynamics
-import termcond
-import optimizer
-import stats
-import errors
-import fidcomp
-import propcomp
-import pulsegen
+import qutip.control.optimconfig as optimconfig
+import qutip.control.dynamics as dynamics
+import qutip.control.termcond as termcond
+import qutip.control.optimizer as optimizer
+import qutip.control.stats as stats
+import qutip.control.errors as errors
+import qutip.control.fidcomp as fidcomp
+import qutip.control.propcomp as propcomp
+import qutip.control.pulsegen as pulsegen
 
 def optimize_pulse(
             drift, ctrls, initial, target, 
@@ -561,6 +562,13 @@ def create_pulse_optimizer(
             optimizer.dynamics.fid_computer
         The optimisation can be run through the optimizer.run_optimization
     """
+    
+    # check parameters
+    if not isinstance(drift, Qobj):
+        raise TypeError("drift must be a Qobj")
+    else:
+        drift = drift.full()
+        
     cfg = optimconfig.OptimConfig()
     cfg.optim_alg = optim_alg
     cfg.amp_update_mode = amp_update_mode
