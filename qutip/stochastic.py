@@ -52,7 +52,6 @@ __all__ = ['ssesolve', 'ssepdpsolve', 'smesolve', 'smepdpsolve']
 
 import numpy as np
 import scipy.sparse as sp
-#import scipy
 from scipy.linalg.blas import get_blas_funcs
 try:
     norm = get_blas_funcs("znrm2", dtype=np.float64)
@@ -196,6 +195,9 @@ class StochasticSolverOptions:
     options : :class:`qutip.solver.Options`
         Generic solver options.
 
+    map_func: function
+        A map function or managing the calls to single-trajactory solvers.
+
     progress_bar : :class:`qutip.ui.BaseProgressBar`
         Optional progress bar class instance.
 
@@ -206,7 +208,7 @@ class StochasticSolverOptions:
                  generate_A_ops=None, generate_noise=None, homogeneous=True,
                  solver=None, method=None, distribution='normal',
                  store_measurement=False, noise=None, normalize=True,
-                 options=None, progress_bar=None):
+                 options=None, progress_bar=None, map_func=None):
 
         if options is None:
             options = Options()
@@ -247,6 +249,32 @@ class StochasticSolverOptions:
 
         self.generate_noise = generate_noise
         self.generate_A_ops = generate_A_ops
+
+        if self.ntraj > 1 and map_func:
+            self.map_func = map_func
+        else:
+            self.map_func = _serial_map
+
+
+def _serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
+    """
+    Call task function task for each value in values. Collect the results
+    in a list and return it.
+    """
+    try:
+        progress_bar = kwargs['progress_bar']
+    except:
+        progress_bar = TextProgressBar()
+
+    progress_bar.start(len(values))
+    results = []
+    for n, value in enumerate(values):
+        progress_bar.update(n)
+        result = task(n, *task_args, **task_kwargs)
+        results.append(result)
+    progress_bar.finished()
+
+    return results
 
 
 def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
@@ -658,7 +686,7 @@ def _ssesolve_generic(sso, options, progress_bar):
     sso.N_store = len(sso.times)
     sso.N_substeps = sso.nsubsteps
     sso.dt = (sso.times[1] - sso.times[0]) / sso.N_substeps
-    NT = sso.ntraj
+    nt = sso.ntraj
 
     data = Result()
     data.solver = "ssesolve"
@@ -672,32 +700,48 @@ def _ssesolve_generic(sso, options, progress_bar):
     # when evaluating the RHS of stochastic Schrodinger equations
     sso.A_ops = sso.generate_A_ops(sso.sc_ops, sso.H)
 
-    progress_bar.start(sso.ntraj)
-    for n in range(sso.ntraj):
-        progress_bar.update(n)
+    map_kwargs = {'progress_bar': progress_bar,
+                  'show_scheduling': True,
+                  'show_progressbar': True}
 
-        states_list, dW, m, expect, ss = _ssesolve_single_trajectory(n, sso)
+    task = _ssesolve_single_trajectory
+    task_args = (sso,)
+    task_kwargs = {}
 
+    results = sso.map_func(task, list(range(sso.ntraj)),
+                           task_args, task_kwargs, **map_kwargs)
+
+    for result in results:
+        states_list, dW, m, expect, ss = result
         data.states.append(states_list)
         data.noise.append(dW)
         data.measurement.append(m)
         data.expect += expect
         data.ss += ss
 
-    progress_bar.finished()
+#    progress_bar.start(sso.ntraj)
+#    for n in range(sso.ntraj):
+#        progress_bar.update(n)
+#        states_list, dW, m, expect, ss = _ssesolve_single_trajectory(n, sso)
+#        data.states.append(states_list)
+#        data.noise.append(dW)
+#        data.measurement.append(m)
+#        data.expect += expect
+#        data.ss += ss
+#    progress_bar.finished()
 
     # average density matrices
     if options.average_states and np.any(data.states):
         data.states = [sum([ket2dm(data.states[mm][n])
-                            for mm in range(NT)]).unit()
+                            for mm in range(nt)]).unit()
                        for n in range(len(data.times))]
 
     # average
-    data.expect = data.expect / NT
+    data.expect = data.expect / nt
 
     # standard error
-    if NT > 1:
-        data.se = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
+    if nt > 1:
+        data.se = (data.ss - nt * (data.expect ** 2)) / (nt * (nt - 1))
     else:
         data.se = None
 
@@ -727,7 +771,6 @@ def _ssesolve_single_trajectory(n, sso):
     psi_t = sso.state0.full().ravel()
     dims = sso.state0.dims
 
-    # noise = sso.noise[n] if sso.noise is not None else None
     if sso.noise is None:
         if sso.homogeneous:
             if sso.distribution == 'normal':
@@ -815,7 +858,7 @@ def _smesolve_generic(sso, options, progress_bar):
     sso.N_store = len(sso.times)
     sso.N_substeps = sso.nsubsteps
     sso.dt = (sso.times[1] - sso.times[0]) / sso.N_substeps
-    NT = sso.ntraj
+    nt = sso.ntraj
 
     data = Result()
     data.solver = "smesolve"
@@ -843,32 +886,36 @@ def _smesolve_generic(sso, options, progress_bar):
         sso.s_m_ops = [[spre(c) for _ in range(sso.d2_len)]
                        for c in sso.sc_ops]
 
-    # sso.rho_vec_t = mat2vec(sso.state0.full()).ravel()
-    progress_bar.start(sso.ntraj)
-    for n in range(sso.ntraj):
-        progress_bar.update(n)
+    map_kwargs = {'progress_bar': progress_bar,
+                  'show_scheduling': True,
+                  'show_progressbar': True}
 
-        states_list, dW, m, expect, ss = _smesolve_single_trajectory(n, sso)
+    task = _smesolve_single_trajectory
+    task_args = (sso,)
+    task_kwargs = {}
 
+    results = sso.map_func(task, list(range(sso.ntraj)),
+                           task_args, task_kwargs, **map_kwargs)
+
+    for result in results:
+        states_list, dW, m, expect, ss = result
         data.states.append(states_list)
         data.noise.append(dW)
         data.measurement.append(m)
         data.expect += expect
         data.ss += ss
 
-    progress_bar.finished()
-
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum([data.states[mm][n] for mm in range(NT)]).unit()
+        data.states = [sum([data.states[mm][n] for mm in range(nt)]).unit()
                        for n in range(len(data.times))]
 
     # average
-    data.expect = data.expect / NT
+    data.expect = data.expect / nt
 
     # standard error
-    if NT > 1:
-        data.se = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
+    if nt > 1:
+        data.se = (data.ss - nt * (data.expect ** 2)) / (nt * (nt - 1))
     else:
         data.se = None
 
@@ -979,7 +1026,7 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
     dt = (sso.times[1] - sso.times[0]) / N_substeps
-    NT = sso.ntraj
+    nt = sso.ntraj
 
     data = Result()
     data.solver = "sepdpsolve"
@@ -995,7 +1042,6 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
         Heff += -0.5j * c.dag() * c
 
     progress_bar.start(sso.ntraj)
-
     for n in range(sso.ntraj):
         progress_bar.update(n)
         psi_t = sso.state0.full().ravel()
@@ -1014,15 +1060,15 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum([data.states[m][n] for m in range(NT)]).unit()
+        data.states = [sum([data.states[m][n] for m in range(nt)]).unit()
                        for n in range(len(data.times))]
 
     # average
-    data.expect = data.expect / NT
+    data.expect = data.expect / nt
 
     # standard error
-    if NT > 1:
-        data.se = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
+    if nt > 1:
+        data.se = (data.ss - nt * (data.expect ** 2)) / (nt * (nt - 1))
     else:
         data.se = None
 
@@ -1112,7 +1158,7 @@ def _smepdpsolve_generic(sso, options, progress_bar):
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
     dt = (sso.times[1] - sso.times[0]) / N_substeps
-    NT = sso.ntraj
+    nt = sso.ntraj
 
     data = Result()
     data.solver = "smepdpsolve"
@@ -1145,15 +1191,15 @@ def _smepdpsolve_generic(sso, options, progress_bar):
 
     # average density matrices
     if options.average_states and np.any(data.states):
-        data.states = [sum([data.states[m][n] for m in range(NT)]).unit()
+        data.states = [sum([data.states[m][n] for m in range(nt)]).unit()
                        for n in range(len(data.times))]
 
     # average
     data.expect = data.expect / sso.ntraj
 
     # standard error
-    if NT > 1:
-        data.se = (data.ss - NT * (data.expect ** 2)) / (NT * (NT - 1))
+    if nt > 1:
+        data.se = (data.ss - nt * (data.expect ** 2)) / (nt * (nt - 1))
     else:
         data.se = None
 
