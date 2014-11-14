@@ -34,7 +34,7 @@
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
 
-__all__ = ['version_table', 'parfor', 'plot_animation', 'paralell_map']
+__all__ = ['version_table', 'parfor', 'plot_animation', 'parallel_map']
 
 from qutip.ui.progressbar import BaseProgressBar
 
