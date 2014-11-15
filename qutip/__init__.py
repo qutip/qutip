@@ -240,3 +240,6 @@ from qutip.qip import *
 from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *
+from qutip.matplotlib_utilities import *
+
+
