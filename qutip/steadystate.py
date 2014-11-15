@@ -361,7 +361,9 @@ def _steadystate_direct_sparse(L, ss_args):
         v = spsolve(L, b)
         _direct_end = time.time()
         ss_args['info']['solution_time'] = _direct_end-_direct_start
-
+    
+    ss_args['info']['residual_norm'] = la.norm(b - L*v, np.inf)
+    
     if (not ss_args['use_umfpack']) and ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
 
@@ -392,6 +394,7 @@ def _steadystate_direct_dense(L, ss_args):
     v = np.linalg.solve(L, b)
     _dense_end = time.time()
     ss_args['info']['solution_time'] = _dense_end-_dense_start
+    ss_args['info']['residual_norm'] = la.norm(b - L*v, np.inf)
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
 
@@ -429,6 +432,7 @@ def _steadystate_eigen(L, ss_args):
                           which='LM', maxiter=ss_args['maxiter'])
     _eigen_end = time.time()
     ss_args['info']['solution_time'] = _eigen_end - _eigen_start
+    ss_args['info']['residual_norm'] = la.norm(L*eigvec, np.inf)
     if ss_args['use_rcm']:
         eigvec = eigvec[np.ix_(rev_perm,)]
 
@@ -672,6 +676,7 @@ def _steadystate_power(L, ss_args):
     _power_end = time.time()
     ss_args['info']['solution_time'] = _power_end-_power_start
     ss_args['info']['iterations'] = it
+    ss_args['info']['residual_norm'] = la.norm(L*v, np.inf)
     if settings.debug:
         print('Number of iterations:', it)
 
