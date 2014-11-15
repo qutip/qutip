@@ -237,8 +237,6 @@ def parfor(task, task_vec, args=None, client=None, view=None,
         The result list contains the value of ``task(value, args)`` for each
         value in ``task_vec``, that is, it should be equivalent to
         ``[task(v, args) for v in task_vec]``.
-
-    ar_list = [view.apply_async(
     """
 
     submitted = datetime.datetime.now()
