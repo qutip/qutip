@@ -84,17 +84,17 @@ def load_rc_file(rc_file):
     # We pull it in here to avoid throwing an error if configobj is missing.
     try:
         import configobj as _cobj
+        import pkg_resources
+        import validate
     except ImportError:
         # Don't bother warning unless the rc_file exists.
         import os
         if os.path.exists(rc_file):
             _logger.warn("configobj missing, not loading rc_file.", exc_info=1)
-            return
+        return
 
     # Try to find the specification for the config file, then
     # use it to load the actual config.
-    import pkg_resources
-    import validate
     config = _cobj.ConfigObj(rc_file,
         configspec=pkg_resources.resource_filename('qutip', 'configspec.ini'),
         # doesn't throw an error if qutiprc is missing.
