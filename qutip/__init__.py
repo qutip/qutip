@@ -54,6 +54,14 @@ from qutip.version import version as __version__
 from qutip.utilities import _version2int
 
 # -----------------------------------------------------------------------------
+# Check if we're in IPython.
+try:
+    __IPYTHON__
+    qutip.settings.ipython = True
+except:
+    qutip.settings.ipython = False
+
+# -----------------------------------------------------------------------------
 # Check for minimum requirements of dependencies, give the user a warning
 # if the requirements aren't fulfilled
 #
@@ -134,11 +142,24 @@ else:
 # Load user configuration if present: override defaults.
 #
 try:
-    qutip_rc_file = os.environ['HOME'] + "/.qutiprc"
+    if os.name == "nt":
+        qutip_rc_file = os.path.join(
+            os.getenv('APPDATA'), 'qutip', "qutiprc"
+        )
+    else:
+        qutip_rc_file = os.path.join(
+            # This should possibly be changed to ~/.config/qutiprc,
+            # to follow XDG specs. Also, OS X uses a different naming
+            # convention as well.
+            os.environ['HOME'], ".qutiprc"
+        )
     qutip.settings.load_rc_file(qutip_rc_file)
 
 except Exception as e:
-    pass
+    try:
+        qutip.settings._logger.warning("Error loading RC file.", exc_info=1)
+    except:
+        pass
 
 # Check if environ flag for qutip processes is set
 if 'QUTIP_NUM_PROCESSES' in os.environ:
