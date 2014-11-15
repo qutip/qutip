@@ -157,7 +157,7 @@ try:
 
 except Exception as e:
     try:
-        qutip.settings._logger.error("Error loading RC file.", exc_info=1)
+        qutip.settings._logger.warning("Error loading RC file.", exc_info=1)
     except:
         pass
 
