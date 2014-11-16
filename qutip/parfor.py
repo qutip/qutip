@@ -40,7 +40,8 @@ import os
 import sys
 import signal
 import qutip.settings as qset
-from qutip.ui.progressbar import BaseProgressBar
+from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
+
 
 def _task_wrapper(args):
     try:
@@ -161,6 +162,8 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
 
     try:
         progress_bar = kwargs['progress_bar']
+        if progress_bar is True:
+            progress_bar = TextProgressBar()
     except:
         progress_bar = BaseProgressBar()
 
