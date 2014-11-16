@@ -178,7 +178,8 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
                  for value in values]
 
     while not all([ar.ready() for ar in async_res]):
-        pass
+        for ar in async_res:
+            ar.wait(timeout=0.1)
 
     return [ar.get() for ar in async_res]
 
