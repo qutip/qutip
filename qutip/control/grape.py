@@ -179,7 +179,7 @@ def grape_unitary(U, H0, H_ops, R, times, eps=None, u_start=None,
         raise ValueError("u_limits must be a list with two values")
 
     if u_limits:
-        warnings.warn("Causion: Using experimental feature u_limits")
+        warnings.warn("Caution: Using experimental feature u_limits")
 
     if u_limits and u_start:
         # make sure that no values in u0 violates the u_limits conditions
