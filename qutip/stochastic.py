@@ -719,17 +719,6 @@ def _ssesolve_generic(sso, options, progress_bar):
         data.expect += expect
         data.ss += ss
 
-#    progress_bar.start(sso.ntraj)
-#    for n in range(sso.ntraj):
-#        progress_bar.update(n)
-#        states_list, dW, m, expect, ss = _ssesolve_single_trajectory(n, sso)
-#        data.states.append(states_list)
-#        data.noise.append(dW)
-#        data.measurement.append(m)
-#        data.expect += expect
-#        data.ss += ss
-#    progress_bar.finished()
-
     # average density matrices
     if options.average_states and np.any(data.states):
         data.states = [sum([ket2dm(data.states[mm][n])
@@ -770,6 +759,10 @@ def _ssesolve_single_trajectory(n, sso):
 
     psi_t = sso.state0.full().ravel()
     dims = sso.state0.dims
+
+    # reseed the random number generator so that forked
+    # processes do not get the same sequence of random numbers
+    np.random.seed((n+1) * np.random.randint(0, 4294967295 // (sso.ntraj+1)))
 
     if sso.noise is None:
         if sso.homogeneous:
@@ -945,6 +938,10 @@ def _smesolve_single_trajectory(n, sso):
 
     expect = np.zeros((len(sso.e_ops), sso.N_store), dtype=complex)
     ss = np.zeros((len(sso.e_ops), sso.N_store), dtype=complex)
+
+    # reseed the random number generator so that forked
+    # processes do not get the same sequence of random numbers
+    np.random.seed((n+1) * np.random.randint(0, 4294967295 // (sso.ntraj+1)))
 
     if sso.noise is None:
         if sso.generate_noise:
