@@ -35,7 +35,7 @@ Functions for visualizing results of quantum dynamics simulations,
 visualizations of quantum states and processes.
 """
 
-__all__ = ['hinton', 'wigner_cmap', 'sphereplot', 'energy_level_diagram',
+__all__ = ['hinton', 'sphereplot', 'energy_level_diagram',
            'plot_energy_levels', 'fock_distribution',
            'plot_fock_distribution', 'wigner_fock_distribution',
            'plot_wigner_fock_distribution', 'plot_wigner',
@@ -60,7 +60,7 @@ from qutip.qobj import Qobj, isket, isbra
 from qutip.states import ket2dm
 from qutip.wigner import wigner
 from qutip.tensor import tensor
-
+from qutip.matplotlib_utilities import complex_phase_cmap
 
 # Adopted from the SciPy Cookbook.
 def _blob(x, y, w, w_max, area):
@@ -326,35 +326,6 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     return fig, ax
 
 
-def complex_phase_cmap():
-    """
-    Create a cyclic colormap for representing the phase of complex variables
-
-    Returns
-    -------
-    cmap :
-        A matplotlib linear segmented colormap.
-    """
-    cdict = {'blue': ((0.00, 0.0, 0.0),
-                      (0.25, 0.0, 0.0),
-                      (0.50, 1.0, 1.0),
-                      (0.75, 1.0, 1.0),
-                      (1.00, 0.0, 0.0)),
-             'green': ((0.00, 0.0, 0.0),
-                       (0.25, 1.0, 1.0),
-                       (0.50, 0.0, 0.0),
-                       (0.75, 1.0, 1.0),
-                       (1.00, 0.0, 0.0)),
-             'red': ((0.00, 1.0, 1.0),
-                     (0.25, 0.5, 0.5),
-                     (0.50, 0.0, 0.0),
-                     (0.75, 0.0, 0.0),
-                     (1.00, 1.0, 1.0))}
-
-    cmap = mpl.colors.LinearSegmentedColormap('phase_colormap', cdict, 256)
-
-    return cmap
-
 
 def matrix_histogram_complex(M, xlabels=None, ylabels=None,
                              title=None, limits=None, phase_limits=None,
@@ -584,71 +555,6 @@ def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
                               show_ylabels=show_ylabels,
                               figsize=figsize, fig=fig, ax=ax)
 
-
-def wigner_cmap(W, levels=1024, shift=0, invert=False):
-    """A custom colormap that emphasizes negative values by creating a
-    nonlinear colormap.
-
-    Parameters
-    ----------
-    W : array
-        Wigner function array, or any array.
-
-    levels : int
-        Number of color levels to create.
-
-    shift : float
-        Shifts the value at which Wigner elements are emphasized.
-        This parameter should typically be negative and small (i.e -5e-3).
-
-    invert : bool
-        Invert the color scheme for negative values so that smaller negative
-        values have darker color.
-
-    Returns
-    -------
-    Returns a Matplotlib colormap instance for use in plotting.
-
-    Notes
-    -----
-    The 'shift' parameter allows you to vary where the colormap begins
-    to highlight negative colors. This is beneficial in cases where there
-    are small negative Wigner elements due to numerical round-off and/or
-    truncation.
-    """
-    max_color = np.array([0.020, 0.19, 0.38, 1.0])
-    mid_color = np.array([1, 1, 1, 1.0])
-    if invert:
-        min_color = np.array([1, 0.70, 0.87, 1])
-        neg_color = np.array([0.4, 0.0, 0.12, 1])
-    else:
-        min_color = np.array([0.4, 0.0, 0.12, 1])
-        neg_color = np.array([1, 0.70, 0.87, 1])
-    # get min and max values from Wigner function
-    bounds = [W.min(), W.max()]
-    # create empty array for RGBA colors
-    adjust_RGBA = np.hstack((np.zeros((levels, 3)), np.ones((levels, 1))))
-    zero_pos = np.round(levels * np.abs(shift - bounds[0])
-                        / (bounds[1] - bounds[0]))
-    num_pos = levels - zero_pos
-    num_neg = zero_pos - 1
-    # set zero values to mid_color
-    adjust_RGBA[zero_pos] = mid_color
-    # interpolate colors
-    for k in range(0, levels):
-        if k < zero_pos:
-            interp = k / (num_neg + 1.0)
-            adjust_RGBA[k][0:3] = (1.0 - interp) * \
-                min_color[0:3] + interp * neg_color[0:3]
-        elif k > zero_pos:
-            interp = (k - zero_pos) / (num_pos + 1.0)
-            adjust_RGBA[k][0:3] = (1.0 - interp) * \
-                mid_color[0:3] + interp * max_color[0:3]
-    # create colormap
-    wig_cmap = mpl.colors.LinearSegmentedColormap.from_list('wigner_cmap',
-                                                            adjust_RGBA,
-                                                            N=levels)
-    return wig_cmap
 
 
 def plot_fock_distribution(rho, offset=0, fig=None, ax=None,
