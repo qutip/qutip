@@ -34,7 +34,7 @@
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
 
-__all__ = ['version_table', 'parfor', 'plot_animation']
+__all__ = ['version_table', 'parfor', 'plot_animation', 'parallel_map']
 
 from qutip.ui.progressbar import BaseProgressBar
 
@@ -237,7 +237,6 @@ def parfor(task, task_vec, args=None, client=None, view=None,
         The result list contains the value of ``task(value, args)`` for each
         value in ``task_vec``, that is, it should be equivalent to
         ``[task(v, args) for v in task_vec]``.
-
     """
 
     submitted = datetime.datetime.now()
@@ -257,6 +256,101 @@ def parfor(task, task_vec, args=None, client=None, view=None,
         ar_list = [view.apply_async(task, x) for x in task_vec]
     else:
         ar_list = [view.apply_async(task, x, args) for x in task_vec]
+
+    if show_progressbar:
+        n = len(ar_list)
+        pbar = HTMLProgressBar(n)
+        while True:
+            n_finished = sum([ar.progress for ar in ar_list])
+            pbar.update(n_finished)
+
+            if view.wait(ar_list, timeout=0.5):
+                pbar.update(n)
+                break
+    else:
+        view.wait(ar_list)
+
+    if show_scheduling:
+        metadata = [[ar.engine_id,
+                     (ar.started - submitted).total_seconds(),
+                     (ar.completed - submitted).total_seconds()]
+                    for ar in ar_list]
+        _visualize_parfor_data(metadata)
+
+    return [ar.get() for ar in ar_list]
+
+
+def parallel_map(task, values, task_args=tuple(), task_kwargs={},
+                 client=None, view=None,
+                 show_scheduling=False, show_progressbar=False, **kwargs):
+    """
+    Call the function ``tast`` for each value in ``values`` using a cluster
+    of IPython engines. The function ``task`` should have the signature
+    ``task(value, *args, **kwargs)``.
+
+    The ``client`` and ``view`` are the IPython.parallel client and
+    load-balanced view that will be used in the parfor execution. If these
+    are ``None``, new instances will be created.
+
+    Parameters
+    ----------
+
+    task: a Python function
+        The function that is to be called for each value in ``task_vec``.
+
+    values: array / list
+        The list or array of values for which the ``task`` function is to be
+        evaluated.
+
+    task_args: list / dictionary
+        The optional additional argument to the ``task`` function.
+
+    task_kwargs: list / dictionary
+        The optional additional keyword argument to the ``task`` function.
+
+    client: IPython.parallel.Client
+        The IPython.parallel Client instance that will be used in the
+        parfor execution.
+
+    view: a IPython.parallel.Client view
+        The view that is to be used in scheduling the tasks on the IPython
+        cluster. Preferably a load-balanced view, which is obtained from the
+        IPython.parallel.Client instance client by calling,
+        view = client.load_balanced_view().
+
+    show_scheduling: bool {False, True}, default False
+        Display a graph showing how the tasks (the evaluation of ``task`` for
+        for the value in ``task_vec1``) was scheduled on the IPython engine
+        cluster.
+
+    show_progressbar: bool {False, True}, default False
+        Display a HTML-based progress bar duing the execution of the parfor
+        loop.
+
+    Returns
+    --------
+    result : list
+        The result list contains the value of
+        ``task(value, task_args, task_kwargs)`` for each
+        value in ``values``.
+
+    """
+
+    submitted = datetime.datetime.now()
+
+    if client is None:
+        client = Client()
+
+        # make sure qutip is available at engines
+        dview = client[:]
+        dview.block = True
+        dview.execute("from qutip import *")
+
+    if view is None:
+        view = client.load_balanced_view()
+
+    ar_list = [view.apply_async(task, value, *task_args, **task_kwargs)
+               for value in values]
 
     if show_progressbar:
         n = len(ar_list)
