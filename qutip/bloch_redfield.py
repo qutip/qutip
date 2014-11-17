@@ -48,16 +48,14 @@ from qutip.superoperator import liouvillian
 # -----------------------------------------------------------------------------
 # Solve the Bloch-Redfield master equation
 #
-#
-def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
-              args={}, options=Options()):
+def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=None,
+              options=Options()):
     """
     Solve the dynamics for the system using the Bloch-Redfeild master equation.
 
     .. note::
 
-        This solver does not currently support time-dependent Hamiltonian or
-        collapse operators.
+        This solver does not currently support time-dependent Hamiltonians.
 
     Parameters
     ----------
@@ -77,10 +75,6 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
     e_ops : list of :class:`qutip.qobj` / callback function
         List of operators for which to evaluate expectation values.
 
-    args : *dictionary*
-        Dictionary of parameters for time-dependent Hamiltonians and collapse
-        operators.
-
     options : :class:`qutip.Qdeoptions`
         Options for the ODE solver.
 
@@ -98,7 +92,7 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
         # default to infinite temperature white noise
         spectra_cb = [lambda w: 1.0 for _ in a_ops]
 
-    R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb)
+    R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops)
 
     output = Result()
     output.solver = "brmesolve"
@@ -233,6 +227,10 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=None, use_secular=True):
     and corresponding spectral functions that describes the system's coupling
     to its environment.
 
+    .. note::
+
+        This tensor generation requires a time-independent Hamiltonian.
+
     Parameters
     ----------
 
@@ -297,7 +295,8 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=None, use_secular=True):
     # unitary part
     Heb = H.transform(ekets)
     if c_ops is not None:
-        R = -1.0j * (spre(Heb) - spost(Heb)) + liouvillian(None, c_ops=c_ops)
+        R = -1.0j * (spre(Heb) - spost(Heb)) + \
+            liouvillian(None, c_ops=[c_op.transform(ekets) for c_op in c_ops])
     else:
         R = -1.0j * (spre(Heb) - spost(Heb))
     R.data = R.data.tolil()
