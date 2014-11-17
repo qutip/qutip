@@ -35,7 +35,14 @@ from __future__ import print_function
 import time
 import datetime
 import sys
+import threading
 
+import qutip.settings
+
+try:
+    import tskmon
+except ImportError:
+    tskmon = None
 
 class BaseProgressBar(object):
     """
@@ -111,3 +118,81 @@ class TextProgressBar(BaseProgressBar):
     def finished(self):
         self.t_done = time.time()
         print("\r","Total run time: %s" % self.time_elapsed())
+
+
+class CompoundProgressBar(BaseProgressBar):
+
+    def __init__(self, *bars):
+        self._bars = bars
+
+    def start(self, iterations, chunk_size=10):
+        for bar in self._bars:
+            bar.start(iterations, chunk_size)
+
+    def update(self, n):
+        for bar in self._bars:
+            bar.update(n)
+
+    def finished(self):
+        for bar in self._bars:
+            bar.finished()
+
+class WebProgressBar(BaseProgressBar):
+    def __init__(self, iterations=0, chunk_size=10, task_name="QuTiP Task"):
+        super(WebProgressBar, self).__init__(iterations, chunk_size)
+        self._client = tskmon.TskmonClient(qutip.settings.tskmon_token, app_name='QuTiP 3')
+        self._wake_event = threading.Event()
+        self._done = threading.Event()
+
+        try:
+            self._task = self._client.new_task(
+                description=task_name,
+                status=' ',
+                max_progress=iterations, progress=0)
+            self._thread = WebProgressThread(self._task, self._wake_event)
+        except Exception as ex:
+            print(ex)
+
+    def start(self, iterations, chunk_size=10):
+        try:
+            self._task.update(progress=0, max_progress=iterations)
+            self._thread.start()
+        except Exception as ex:
+            print(ex)
+
+    def update(self, n):
+        self._thread.dirty = True
+        self._thread.progress = n
+        self._wake_event.set()
+
+    def finished(self):
+        try:
+            self._thread.done = True
+            self._wake_event.set()
+            self._task.delete()
+        except Exception as ex:
+            print(ex)
+
+class WebProgressThread(threading.Thread):
+    done = False
+    dirty = False
+    progress = 0
+
+    def __init__(self, task, wake_event):
+        super(WebProgressThread, self).__init__()
+        self._task = task
+        self._wake_event = wake_event
+
+    def run(self):
+        while True:
+            if self.done:
+                return
+            if self.dirty:
+                try:
+                    self._task.update(progress=self.progress)
+                    self.dirty = False
+                    self._wake_event.clear()
+                except Exception as ex:
+                    print(ex)
+            self._wake_event.wait()
+
