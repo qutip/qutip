@@ -42,6 +42,7 @@ from qutip.expect import expect
 from qutip.solver import Options
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.solver import Result
+from qutip.superoperator import liouvillian
 
 
 # -----------------------------------------------------------------------------
@@ -226,7 +227,7 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
 # Functions for calculting the Bloch-Redfield tensor for a time-independent
 # system.
 #
-def bloch_redfield_tensor(H, a_ops, spectra_cb, use_secular=True):
+def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=None, use_secular=True):
     """
     Calculate the Bloch-Redfield tensor for a system given a set of operators
     and corresponding spectral functions that describes the system's coupling
@@ -244,6 +245,9 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, use_secular=True):
     spectra_cb : list of callback functions
         List of callback functions that evaluate the noise power spectrum
         at a given frequency.
+
+    c_ops : list of :class:`qutip.qobj`
+        List of system collapse operators.
 
     use_secular : bool
         Flag (True of False) that indicates if the secular approximation should
@@ -292,7 +296,10 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, use_secular=True):
 
     # unitary part
     Heb = H.transform(ekets)
-    R = -1.0j * (spre(Heb) - spost(Heb))
+    if c_ops is not None:
+        R = -1.0j * (spre(Heb) - spost(Heb)) + liouvillian(None, c_ops=c_ops)
+    else:
+        R = -1.0j * (spre(Heb) - spost(Heb))
     R.data = R.data.tolil()
     for I in range(N * N):
         a, b = vec2mat_index(N, I)
