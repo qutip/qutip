@@ -70,14 +70,6 @@ _logger = logging.getLogger(__name__)
 _logger.addHandler(logging.NullHandler())
 del logging # Don't leak names!
 
-# Try to pull in configobj to do nicer handling of
-# config files instead of doing manual parsing.
-try:
-    import configobj as _cobj
-except ImportError:
-    _logger.warn("configobj missing.", exc_info=1)
-    _cobj = None
-
 
 def load_rc_file(rc_file):
     """
@@ -87,19 +79,37 @@ def load_rc_file(rc_file):
     global auto_tidyup, auto_herm, auto_tidyup_atol, num_cpus, debug, atol
     global log_handler
 
-    if _cobj is None:
-        raise ImportError("Config file parsing requires configobj. Skipping.")
+    # Try to pull in configobj to do nicer handling of
+    # config files instead of doing manual parsing.
+    # We pull it in here to avoid throwing an error if configobj is missing.
+    try:
+        import configobj as _cobj
+        import pkg_resources
+        import validate
+    except ImportError:
+        # Don't bother warning unless the rc_file exists.
+        import os
+        if os.path.exists(rc_file):
+            _logger.warn("configobj missing, not loading rc_file.", exc_info=1)
+        return
 
-    import pkg_resources
-    import validate
+    # Try to find the specification for the config file, then
+    # use it to load the actual config.
     config = _cobj.ConfigObj(rc_file,
-        configspec=pkg_resources.resource_filename('qutip', 'configspec.ini')
+        configspec=pkg_resources.resource_filename('qutip', 'configspec.ini'),
+        # doesn't throw an error if qutiprc is missing.
+        file_error=False
     )
+
+    # Next, validate the loaded config file against the specs.
     validator = validate.Validator()
     result = config.validate(validator)
 
-    if result != True: # this is un-Pythonic, but how the result gets
-                       # returned...
+    # configobj's validator returns the literal True if everything
+    # worked, and returns a dictionary of which keys fails otherwise.
+    # This motivates a very un-Pythonic way of checking for results,
+    # but it's the configobj idiom.
+    if result != True:
         # OK, find which keys are bad.
         bad_keys = {key for key, val in result.iteritems() if not val}
         _logger.warn('Invalid configuration options in {}: {}'.format(
@@ -108,6 +118,8 @@ def load_rc_file(rc_file):
     else:
         bad_keys = {}
 
+    # Now that everything's been validated, we apply the config
+    # file to the global settings.
     for config_key in (
         'auto_tidyup', 'auto_herm', 'atol', 'auto_tidyup_atol',
         'num_cpus', 'debug', 'log_handler'

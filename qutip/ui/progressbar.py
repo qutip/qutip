@@ -31,6 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+from __future__ import print_function
 import time
 import datetime
 import sys
@@ -92,16 +93,21 @@ class TextProgressBar(BaseProgressBar):
 
     def start(self, iterations, chunk_size=10):
         super(TextProgressBar, self).start(iterations, chunk_size)
+        self.fill_char = '*'
+        self.width = 25
 
     def update(self, n):
-        p = (n / self.N) * 100.0
-        if p >= self.p_chunk:
-            print("%4.1f%%." % p +
-                  " Run time: %s." % self.time_elapsed() +
-                  " Est. time left: %s" % self.time_remaining_est(p))
-            sys.stdout.flush()
-            self.p_chunk += self.p_chunk_size
+        percent_done = int(round(n / self.N * 100.0))
+        all_full = self.width - 2
+        num_hashes = int(round((percent_done / 100.0) * all_full))
+        prog_bar = '[' + self.fill_char * num_hashes + ' ' * (all_full - num_hashes) + ']'
+        pct_place = (len(prog_bar) // 2) - len(str(percent_done))
+        pct_string = '%d%%' % percent_done
+        prog_bar = prog_bar[0:pct_place] + (pct_string + prog_bar[pct_place + len(pct_string):])
+        prog_bar += ' Elapsed %s / Remaining %s' % (self.time_elapsed().strip(), self.time_remaining_est(percent_done))
+        print ('\r', prog_bar, end='')
+        sys.stdout.flush()
 
     def finished(self):
         self.t_done = time.time()
-        print("Total run time: %s" % self.time_elapsed())
+        print("\r","Total run time: %s" % self.time_elapsed())
