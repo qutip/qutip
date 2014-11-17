@@ -700,9 +700,7 @@ def _ssesolve_generic(sso, options, progress_bar):
     # when evaluating the RHS of stochastic Schrodinger equations
     sso.A_ops = sso.generate_A_ops(sso.sc_ops, sso.H)
 
-    map_kwargs = {'progress_bar': progress_bar,
-                  'show_scheduling': True,
-                  'show_progressbar': True}
+    map_kwargs = {'progress_bar': progress_bar}
 
     task = _ssesolve_single_trajectory
     task_args = (sso,)
@@ -879,9 +877,7 @@ def _smesolve_generic(sso, options, progress_bar):
         sso.s_m_ops = [[spre(c) for _ in range(sso.d2_len)]
                        for c in sso.sc_ops]
 
-    map_kwargs = {'progress_bar': progress_bar,
-                  'show_scheduling': True,
-                  'show_progressbar': True}
+    map_kwargs = {'progress_bar': progress_bar}
 
     task = _smesolve_single_trajectory
     task_args = (sso,)
