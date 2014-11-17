@@ -47,8 +47,8 @@ See the class and gen_pulse function descriptions for details
 """
 
 import numpy as np
-import dynamics as dynamics
-import errors as errors
+import qutip.control.dynamics as dynamics
+import qutip.control.errors as errors
 
 
 def create_pulse_gen(pulse_type='RND', dyn=None):

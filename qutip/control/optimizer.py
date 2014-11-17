@@ -87,14 +87,15 @@ import numpy as np
 import timeit
 import scipy.optimize as spopt
 #QuTiP
+from qutip import Qobj
 import qutip.logging as logging
 logger = logging.get_logger()
 #QuTiP control modules
-import optimresult as optimresult
-import termcond as termcond
-import errors as errors
-import utility as util
-import dynamics as dynamics
+import qutip.control.optimresult as optimresult
+import qutip.control.termcond as termcond
+import qutip.control.errors as errors
+import qutip.control.utility as util
+import qutip.control.dynamics as dynamics
 
 
 class Optimizer:
@@ -341,7 +342,7 @@ class Optimizer:
         result.fid_err = dyn.fid_computer.get_fid_err()
         result.grad_norm_final = dyn.fid_computer.norm_grad_sq_sum
         result.final_amps = dyn.ctrl_amps
-        result.evo_full_final = dyn.evo_init2t[dyn.num_tslots]
+        result.evo_full_final = Qobj(dyn.evo_init2t[dyn.num_tslots])
         # *** update stats ***
         if self.stats is not None:
             self.stats.wall_time_optim_end = end_time

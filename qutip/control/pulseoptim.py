@@ -51,18 +51,19 @@ amplitudes in the timeslots
 import os
 import numpy as np
 #QuTiP
+from qutip import Qobj
 import qutip.logging as logging
 logger = logging.get_logger()
 #QuTiP control modules
-import optimconfig
-import dynamics
-import termcond
-import optimizer
-import stats
-import errors
-import fidcomp
-import propcomp
-import pulsegen
+import qutip.control.optimconfig as optimconfig
+import qutip.control.dynamics as dynamics
+import qutip.control.termcond as termcond
+import qutip.control.optimizer as optimizer
+import qutip.control.stats as stats
+import qutip.control.errors as errors
+import qutip.control.fidcomp as fidcomp
+import qutip.control.propcomp as propcomp
+import qutip.control.pulsegen as pulsegen
 
 def optimize_pulse(
             drift, ctrls, initial, target, 
@@ -211,6 +212,9 @@ def optimize_pulse(
         final amplitudes, statistics etc
     """
     
+    # The parameters are checked in create_pulse_optimizer
+    # so no need to do so here
+        
     if log_level == logging.NOTSET: 
         log_level = logger.getEffectiveLevel()
     else:
@@ -406,6 +410,26 @@ def optimize_pulse_unitary(
         reason for termination, final fidelity error, final evolution
         final amplitudes, statistics etc
     """
+    
+    # check parameters here, as names are different than in
+    # create_pulse_optimizer, so TypeErrors would be confusing
+    
+    if not isinstance(H_d, Qobj):
+        raise TypeError("H_d must be a Qobj")
+        
+    if not isinstance(H_c, (list, tuple)):
+        raise TypeError("H_c should be a list of Qobj")
+    else:
+        for ctrl in H_c:
+            if not isinstance(ctrl, Qobj):
+                raise TypeError("H_c should be a list of Qobj")
+                
+    if not isinstance(U_0, Qobj):
+        raise TypeError("U_0 must be a Qobj")
+        
+    if not isinstance(U_targ, Qobj):
+        raise TypeError("U_targ must be a Qobj")
+        
     return optimize_pulse(drift=H_d, ctrls=H_c, initial=U_0, target=U_targ, 
             num_tslots=num_tslots, evo_time=evo_time, tau=tau, 
             amp_lbound=amp_lbound, amp_ubound=amp_ubound, 
@@ -561,6 +585,34 @@ def create_pulse_optimizer(
             optimizer.dynamics.fid_computer
         The optimisation can be run through the optimizer.run_optimization
     """
+    
+    # check parameters
+    if not isinstance(drift, Qobj):
+        raise TypeError("drift must be a Qobj")
+    else:
+        drift = drift.full()
+        
+    if not isinstance(ctrls, (list, tuple)):
+        raise TypeError("ctrls should be a list of Qobj")
+    else:
+        j = 0
+        for ctrl in ctrls:
+            if not isinstance(ctrl, Qobj):
+                raise TypeError("ctrls should be a list of Qobj")
+            else:
+                ctrls[j] = ctrl.full()
+                j += 1
+                
+    if not isinstance(initial, Qobj):
+        raise TypeError("initial must be a Qobj")
+    else:
+        initial = initial.full()
+        
+    if not isinstance(target, Qobj):
+        raise TypeError("target must be a Qobj")
+    else:
+        target = target.full()
+        
     cfg = optimconfig.OptimConfig()
     cfg.optim_alg = optim_alg
     cfg.amp_update_mode = amp_update_mode

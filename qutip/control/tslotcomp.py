@@ -73,8 +73,8 @@ import timeit
 import qutip.logging as logging
 logger = logging.get_logger()
 #QuTiP control modules
-import errors
-import utility as util
+import qutip.control.errors
+import qutip.control.utility as util
 
 
 class TimeslotComputer:

@@ -56,7 +56,7 @@ import scipy.linalg as la
 import qutip.logging as logging
 logger = logging.get_logger()
 #QuTiP control modules
-import errors
+import qutip.control.errors
 
 
 class PropagatorComputer:
