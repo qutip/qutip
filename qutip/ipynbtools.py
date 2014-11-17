@@ -281,8 +281,8 @@ def parfor(task, task_vec, args=None, client=None, view=None,
 
 
 def parallel_map(task, values, task_args=tuple(), task_kwargs={},
-                 client=None, view=None,
-                 show_scheduling=False, show_progressbar=False, **kwargs):
+                 client=None, view=None, progress_bar=None,
+                 show_scheduling=False, **kwargs):
     """
     Call the function ``tast`` for each value in ``values`` using a cluster
     of IPython engines. The function ``task`` should have the signature
@@ -352,18 +352,22 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},
     ar_list = [view.apply_async(task, value, *task_args, **task_kwargs)
                for value in values]
 
-    if show_progressbar:
+    if progress_bar is None:
+        view.wait(ar_list)
+    else:
+        if progress_bar is True:
+            progress_bar = HTMLProgressBar()
+
         n = len(ar_list)
-        pbar = HTMLProgressBar(n)
+        progress_bar.start(n)
         while True:
             n_finished = sum([ar.progress for ar in ar_list])
-            pbar.update(n_finished)
+            progress_bar.update(n_finished)
 
             if view.wait(ar_list, timeout=0.5):
-                pbar.update(n)
+                progress_bar.update(n)
                 break
-    else:
-        view.wait(ar_list)
+        progress_bar.finished()
 
     if show_scheduling:
         metadata = [[ar.engine_id,
