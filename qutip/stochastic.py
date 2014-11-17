@@ -198,6 +198,9 @@ class StochasticSolverOptions:
     map_func: function
         A map function or managing the calls to single-trajactory solvers.
 
+    map_kwargs: dictionary
+        Optional keyword arguments to the map_func function function.
+
     progress_bar : :class:`qutip.ui.BaseProgressBar`
         Optional progress bar class instance.
 
@@ -208,7 +211,8 @@ class StochasticSolverOptions:
                  generate_A_ops=None, generate_noise=None, homogeneous=True,
                  solver=None, method=None, distribution='normal',
                  store_measurement=False, noise=None, normalize=True,
-                 options=None, progress_bar=None, map_func=None):
+                 options=None, progress_bar=None, map_func=None,
+                 map_kwargs=None):
 
         if options is None:
             options = Options()
@@ -254,6 +258,8 @@ class StochasticSolverOptions:
             self.map_func = map_func
         else:
             self.map_func = _serial_map
+
+        self.map_kwargs = map_kwargs if map_kwargs is not None else {}
 
 
 def _serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
@@ -701,6 +707,7 @@ def _ssesolve_generic(sso, options, progress_bar):
     sso.A_ops = sso.generate_A_ops(sso.sc_ops, sso.H)
 
     map_kwargs = {'progress_bar': progress_bar}
+    map_kwargs.update(sso.map_kwargs)
 
     task = _ssesolve_single_trajectory
     task_args = (sso,)
@@ -878,6 +885,7 @@ def _smesolve_generic(sso, options, progress_bar):
                        for c in sso.sc_ops]
 
     map_kwargs = {'progress_bar': progress_bar}
+    map_kwargs.update(sso.map_kwargs)
 
     task = _smesolve_single_trajectory
     task_args = (sso,)
