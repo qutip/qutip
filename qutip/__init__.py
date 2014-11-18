@@ -216,7 +216,7 @@ from qutip.operators import *
 from qutip.superoperator import *
 from qutip.expect import *
 from qutip.tensor import *
-from qutip.parfor import *
+from qutip.parallel import *
 
 # graphics
 from qutip.bloch import *
