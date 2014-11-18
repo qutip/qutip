@@ -62,3 +62,4 @@ def write_array(a, f, dtype=float):
                 f.write(",")
                 
         f.write("\n")
+        

@@ -63,11 +63,11 @@ import scipy.linalg as la
 import qutip.logging as logging
 logger = logging.get_logger()
 #QuTiP control modules
-import errors
-import tslotcomp
-import fidcomp
-import propcomp
-import symplectic as sympl
+import qutip.control.errors as errors
+import qutip.control.tslotcomp as tslotcomp
+import qutip.control.fidcomp as fidcomp
+import qutip.control.propcomp as propcomp
+import qutip.control.symplectic as sympl
 
 class Dynamics:
     """
