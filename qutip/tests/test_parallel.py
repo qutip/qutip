@@ -35,7 +35,7 @@ import numpy as np
 import time
 from numpy.testing import assert_, run_module_suite
 
-from qutip.parfor import parfor, parallel_map
+from qutip.parallel import parfor, parallel_map
 
 
 def _func1(x):
