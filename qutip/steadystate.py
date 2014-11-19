@@ -357,7 +357,7 @@ def _steadystate_direct_sparse(L, ss_args):
             ss_args['info']['lu_fill_factor'] = (L_nnz+U_nnz)/L.nnz
             if settings.debug:
                 logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz,U_nnz))
-                logger.debug('Fill factor: %f' % (L_nnz+U_nnz)/orig_nnz)
+                logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
 
     else:
         # Use umfpack solver
@@ -481,7 +481,7 @@ def _iterative_precondition(A, n, ss_args):
         if settings.debug or ss_args['return_info']:
             if settings.debug:
                 logger.debug('Preconditioning succeeded.')
-                logger.debug('Precond. time: %f' % _precond_end-_precond_start)
+                logger.debug('Precond. time: %f' % (_precond_end-_precond_start))
             if _scipy_check:
                 L_nnz = P.L.nnz
                 U_nnz = P.U.nnz
@@ -493,7 +493,7 @@ def _iterative_precondition(A, n, ss_args):
                 ss_args['info']['ilu_condest'] = condest
                 if settings.debug:
                     logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz,U_nnz))
-                    logger.debug('Fill factor: %f' % (L_nnz+U_nnz)/A.nnz)
+                    logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/A.nnz))
                     logger.debug('iLU condest: %f' % condest)
 
     except:
@@ -566,7 +566,7 @@ def _steadystate_iterative(L, ss_args):
 
     if settings.debug:
         logger.debug('Number of Iterations: %i' % ss_iters['iter'])
-        logger.debug('Iteration. time: %f' %  _iter_end - _iter_start)
+        logger.debug('Iteration. time: %f' %  (_iter_end - _iter_start))
 
     if check > 0:
         raise Exception("Steadystate error: Did not reach tolerance after " +
@@ -672,7 +672,7 @@ def _steadystate_power(L, ss_args):
         L_nnz = lu.L.nnz
         U_nnz = lu.U.nnz
         logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz,U_nnz))
-        logger.debug('Fill factor: %f' % (L_nnz+U_nnz)/orig_nnz)
+        logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
 
     it = 0
     while (la.norm(L * v, np.inf) > tol) and (it < maxiter):
