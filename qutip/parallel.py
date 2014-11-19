@@ -185,6 +185,9 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
             ar.wait(timeout=0.1)
 
     progress_bar.finished()
+    
+    pool.close()
+    pool.join()
 
     return [ar.get() for ar in async_res]
 
