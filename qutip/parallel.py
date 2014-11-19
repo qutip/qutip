@@ -112,6 +112,9 @@ def parfor(func, *args, **kwargs):
         map_args = ((func, v, os.getpid()) for v in var)
         par_return = list(pool.map(task_func, map_args))
 
+        pool.close()
+        pool.join()
+
         if isinstance(par_return[0], tuple):
             par_return = [elem for elem in par_return]
             num_elems = len(par_return[0])
