@@ -215,7 +215,7 @@ def parfor(task, task_vec, args=None, client=None, view=None,
     client: IPython.parallel.Client
         The IPython.parallel Client instance that will be used in the
         parfor execution.
-
+s={}
     view: a IPython.parallel.Client view
         The view that is to be used in scheduling the tasks on the IPython
         cluster. Preferably a load-balanced view, which is obtained from the
@@ -239,48 +239,17 @@ def parfor(task, task_vec, args=None, client=None, view=None,
         ``[task(v, args) for v in task_vec]``.
     """
 
-    submitted = datetime.datetime.now()
-
-    if client is None:
-        client = Client()
-
-        # make sure qutip is available at engines
-        dview = client[:]
-        dview.block = True
-        dview.execute("from qutip import *")
-
-    if view is None:
-        view = client.load_balanced_view()
-
-    if args is None:
-        ar_list = [view.apply_async(task, x) for x in task_vec]
-    else:
-        ar_list = [view.apply_async(task, x, args) for x in task_vec]
-
     if show_progressbar:
-        n = len(ar_list)
-        pbar = HTMLProgressBar(n)
-        while True:
-            n_finished = sum([ar.progress for ar in ar_list])
-            pbar.update(n_finished)
-
-            if view.wait(ar_list, timeout=0.5):
-                pbar.update(n)
-                break
+        progress_bar = HTMLProgressBar()
     else:
-        view.wait(ar_list)
+        progress_bar = None
 
-    if show_scheduling:
-        metadata = [[ar.engine_id,
-                     (ar.started - submitted).total_seconds(),
-                     (ar.completed - submitted).total_seconds()]
-                    for ar in ar_list]
-        _visualize_parfor_data(metadata)
-
-    return [ar.get() for ar in ar_list]
+    return parallel_map(task, task_vec, task_args=args,
+                        client=client, view=view, progress_bar=progress_bar,
+                        show_scheduling=show_scheduling)
 
 
-def parallel_map(task, values, task_args=tuple(), task_kwargs={},
+def parallel_map(task, values, task_args=None, task_kwargs=None,
                  client=None, view=None, progress_bar=None,
                  show_scheduling=False, **kwargs):
     """
@@ -335,8 +304,13 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={},
         value in ``values``.
 
     """
-
     submitted = datetime.datetime.now()
+
+    if task_args is None:
+        task_args = tuple()
+
+    if task_kwargs is None:
+        task_kwargs = {}
 
     if client is None:
         client = Client()
