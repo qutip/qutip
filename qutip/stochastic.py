@@ -662,7 +662,7 @@ def smepdpsolve(H, rho0, times, c_ops, e_ops, **kwargs):
 
     """
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
