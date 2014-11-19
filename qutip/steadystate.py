@@ -55,6 +55,12 @@ from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
 import qutip.settings as settings
 from qutip.utilities import _version2int
 
+if settings.debug:
+    import qutip.logging
+    import inspect
+    logger = qutip.logging.get_logger('steady_state')
+    logger.setLevel('DEBUG')
+
 # test if scipy is recent enought to get L & U factors from superLU
 _scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
 
@@ -248,6 +254,8 @@ def _steadystate_setup(A, c_op_list):
 def _steadystate_LU_liouvillian(L, ss_args):
     """Creates modified Liouvillian for LU based SS methods.
     """
+    if settings.debug:
+        logger.debug(inspect.stack()[0][3])
     perm = None
     perm2 = None
     rev_perm = None
@@ -260,13 +268,13 @@ def _steadystate_LU_liouvillian(L, ss_args):
     if settings.debug:
         old_band = sp_bandwidth(L)[0]
         old_pro = sp_profile(L)[0]
-        print('NNZ:', L.nnz)
+        logger.debug('Orig. NNZ: %i' % L.nnz)
         if ss_args['use_rcm']:
-            print('Original bandwidth:', old_band)
+            logger.debug('Original bandwidth: %i' % old_band)
 
     if ss_args['use_wbm']:
         if settings.debug:
-            print('Calculating Weighted Bipartite Matching ordering...')
+            logger.debug('Calculating Weighted Bipartite Matching ordering...')
         _wbm_start = time.time()
         perm = weighted_bipartite_matching(L)
         _wbm_end = time.time()
@@ -275,11 +283,11 @@ def _steadystate_LU_liouvillian(L, ss_args):
         ss_args['info']['wbm_time'] = _wbm_end-_wbm_start
         if settings.debug:
             wbm_band = sp_bandwidth(L)[0]
-            print('WBM bandwidth:', wbm_band)
+            logger.debug('WBM bandwidth: %i' % wbm_band)
 
     if ss_args['use_rcm']:
         if settings.debug:
-            print('Calculating Reverse Cuthill-Mckee ordering...')
+            logger.debug('Calculating Reverse Cuthill-Mckee ordering...')
         _rcm_start = time.time()
         perm2 = reverse_cuthill_mckee(L)
         _rcm_end = time.time()
@@ -290,10 +298,10 @@ def _steadystate_LU_liouvillian(L, ss_args):
         if settings.debug:
             rcm_band = sp_bandwidth(L)[0]
             rcm_pro = sp_profile(L)[0]
-            print('RCM bandwidth:', rcm_band)
-            print('Bandwidth reduction factor:', round(
+            logger.debug('RCM bandwidth: %i' % rcm_band)
+            logger.debug('Bandwidth reduction factor: %f' % round(
                 old_band/rcm_band, 1))
-            print('Profile reduction factor:', round(
+            logger.debug('Profile reduction factor: %f' % round(
                 old_pro/rcm_pro, 1))
     L.sort_indices()
     return L, perm, perm2, rev_perm, ss_args
@@ -315,7 +323,8 @@ def _steadystate_direct_sparse(L, ss_args):
     Direct solver that uses scipy sparse matrices
     """
     if settings.debug:
-        print('Starting direct LU solver...')
+        logger.debug(inspect.stack()[0][3])
+        logger.debug('Starting direct LU solver.')
 
     dims = L.dims[0]
     n = prod(L.dims[0][0])
@@ -352,8 +361,8 @@ def _steadystate_direct_sparse(L, ss_args):
             ss_args['info']['u_nnz'] = U_nnz
             ss_args['info']['lu_fill_factor'] = (L_nnz+U_nnz)/L.nnz
             if settings.debug:
-                print('L NNZ:', L_nnz, ';', 'U NNZ:', U_nnz)
-                print('Fill factor:', (L_nnz+U_nnz)/orig_nnz)
+                logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz,U_nnz))
+                logger.debug('Fill factor: %f' % (L_nnz+U_nnz)/orig_nnz)
 
     else:
         # Use umfpack solver
@@ -382,7 +391,8 @@ def _steadystate_direct_dense(L, ss_args):
     small system, with a few states.
     """
     if settings.debug:
-        print('Starting direct dense solver...')
+        logger.debug(inspect.stack()[0][3])
+        logger.debug('Starting direct dense solver.')
 
     dims = L.dims[0]
     n = prod(L.dims[0][0])
@@ -411,7 +421,8 @@ def _steadystate_eigen(L, ss_args):
     """
     ss_args['info'].pop('weight', None)
     if settings.debug:
-        print('Starting Eigen solver...')
+        logger.debug(inspect.stack()[0][3])
+        logger.debug('Starting Eigen solver.')
 
     dims = L.dims[0]
     L = L.data.tocsc()
@@ -420,14 +431,15 @@ def _steadystate_eigen(L, ss_args):
         ss_args['info']['perm'].append('rcm')
         if settings.debug:
             old_band = sp_bandwidth(L)[0]
-            print('Original bandwidth:', old_band)
+            logger.debug('Original bandwidth: %i' % old_band)
         perm = reverse_cuthill_mckee(L)
         rev_perm = np.argsort(perm)
         L = sp_permute(L, perm, perm, 'csc')
         if settings.debug:
             rcm_band = sp_bandwidth(L)[0]
-            print('RCM bandwidth:', rcm_band)
-            print('Bandwidth reduction factor:', round(old_band/rcm_band, 1))
+            logger.debug('RCM bandwidth: %i' % rcm_band)
+            logger.debug('Bandwidth reduction factor: %f' 
+                            % round(old_band/rcm_band, 1))
 
     _eigen_start = time.time()
     eigval, eigvec = eigs(L, k=1, sigma=1e-15, tol=ss_args['tol'],
@@ -454,7 +466,8 @@ def _iterative_precondition(A, n, ss_args):
     with iterative solvers.
     """
     if settings.debug:
-        print('Starting preconditioner...',)
+        logger.debug(inspect.stack()[0][3])
+        logger.debug('Starting preconditioner.')
     _precond_start = time.time()
     try:
         P = spilu(A, permc_spec=ss_args['permc_spec'],
@@ -475,8 +488,8 @@ def _iterative_precondition(A, n, ss_args):
 
         if settings.debug or ss_args['return_info']:
             if settings.debug:
-                print('Preconditioning succeeded.')
-                print('Precond. time:', _precond_end-_precond_start)
+                logger.debug('Preconditioning succeeded.')
+                logger.debug('Precond. time: %f' % _precond_end-_precond_start)
             if _scipy_check:
                 L_nnz = P.L.nnz
                 U_nnz = P.U.nnz
@@ -487,9 +500,9 @@ def _iterative_precondition(A, n, ss_args):
                 condest = la.norm(M*e, np.inf)
                 ss_args['info']['ilu_condest'] = condest
                 if settings.debug:
-                    print('L NNZ:', L_nnz, ';', 'U NNZ:', U_nnz)
-                    print('Fill factor:', (L_nnz+U_nnz)/A.nnz)
-                    print('iLU condest:', condest)
+                    logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz,U_nnz))
+                    logger.debug('Fill factor: %f' % (L_nnz+U_nnz)/A.nnz)
+                    logger.debug('iLU condest: %f' % condest)
 
     except:
         raise Exception("Failed to build preconditioner. Try increasing " +
@@ -510,7 +523,8 @@ def _steadystate_iterative(L, ss_args):
         return
 
     if settings.debug:
-        print('Starting '+ss_args['method']+' solver...')
+        logger.debug(inspect.stack()[0][3])
+        logger.debug('Starting %s solver.' % ss_args['method'])
 
     dims = L.dims[0]
     n = prod(L.dims[0][0])
@@ -560,8 +574,8 @@ def _steadystate_iterative(L, ss_args):
         ss_args['info']['residual_norm'] = la.norm(b - L*v, np.inf)
 
     if settings.debug:
-        print('Number of Iterations:', ss_iters['iter'])
-        print('Iteration. time:', _iter_end - _iter_start)
+        logger.debug('Number of Iterations: %i' % ss_iters['iter'])
+        logger.debug('Iteration. time: %f' %  _iter_end - _iter_start)
 
     if check > 0:
         raise Exception("Steadystate error: Did not reach tolerance after " +
@@ -593,7 +607,8 @@ def _steadystate_svd_dense(L, ss_args):
     atol = 1e-12
     rtol = 1e-12
     if settings.debug:
-        print('Starting SVD solver...')
+        logger.debug(inspect.stack()[0][3])
+        logger.debug('Starting SVD solver.')
     _svd_start = time.time()
     u, s, vh = svd(L.full(), full_matrices=False)
     tol = max(atol, rtol * s[0])
@@ -624,7 +639,8 @@ def _steadystate_power(L, ss_args):
     """
     ss_args['info'].pop('weight', None)
     if settings.debug:
-        print('Starting iterative inverse-power method solver...')
+        logger.debug(inspect.stack()[0][3])
+        logger.debug('Starting iterative inverse-power method solver.')
     tol = ss_args['tol']
     maxiter = ss_args['maxiter']
 
@@ -646,15 +662,16 @@ def _steadystate_power(L, ss_args):
     if ss_args['use_rcm']:
         if settings.debug:
             old_band = sp_bandwidth(L)[0]
-            print('Original bandwidth:', old_band)
+            logger.debug('Original bandwidth: %i' % old_band)
         perm = reverse_cuthill_mckee(L)
         rev_perm = np.argsort(perm)
         L = sp_permute(L, perm, perm, 'csc')
         v = v[np.ix_(perm,)]
         if settings.debug:
             new_band = sp_bandwidth(L)[0]
-            print('RCM bandwidth:', new_band)
-            print('Bandwidth reduction factor:', round(old_band/new_band, 2))
+            logger.debug('RCM bandwidth: %i' % new_band)
+            logger.debug('Bandwidth reduction factor: %f' 
+                            % round(old_band/new_band, 2))
 
     _power_start = time.time()
     # Get LU factors
@@ -665,8 +682,8 @@ def _steadystate_power(L, ss_args):
     if settings.debug and _scipy_check:
         L_nnz = lu.L.nnz
         U_nnz = lu.U.nnz
-        print('L NNZ:', L_nnz, ';', 'U NNZ:', U_nnz)
-        print('Fill factor:', (L_nnz+U_nnz)/orig_nnz)
+        logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz,U_nnz))
+        logger.debug('Fill factor: %f' % (L_nnz+U_nnz)/orig_nnz)
 
     it = 0
     while (la.norm(L * v, np.inf) > tol) and (it < maxiter):
@@ -683,7 +700,7 @@ def _steadystate_power(L, ss_args):
     if ss_args['return_info']:
         ss_args['info']['residual_norm'] = la.norm(L*v, np.inf)
     if settings.debug:
-        print('Number of iterations:', it)
+        logger.debug('Number of iterations: %i' % it)
 
     if ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
