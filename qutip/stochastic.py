@@ -75,7 +75,9 @@ from qutip.settings import debug
 
 
 if debug:
+    import qutip.logging
     import inspect
+    logger = qutip.logging.get_logger()
 
 
 class StochasticSolverOptions:
@@ -321,7 +323,7 @@ def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
         An instance of the class :class:`qutip.solver.SolverResult`.
     """
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
@@ -444,7 +446,7 @@ def smesolve(H, rho0, times, c_ops, sc_ops, e_ops, **kwargs):
     """
 
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
     if isket(rho0):
         rho0 = ket2dm(rho0)
@@ -597,7 +599,7 @@ def ssepdpsolve(H, psi0, times, c_ops, e_ops, **kwargs):
 
     """
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
     if isinstance(e_ops, dict):
         e_ops_dict = e_ops
@@ -687,7 +689,7 @@ def _ssesolve_generic(sso, options, progress_bar):
     Internal function for carrying out a sse integration. Used by ssesolve.
     """
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
     sso.N_store = len(sso.times)
     sso.N_substeps = sso.nsubsteps
@@ -851,7 +853,7 @@ def _smesolve_generic(sso, options, progress_bar):
     Internal function. See smesolve.
     """
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
     sso.N_store = len(sso.times)
     sso.N_substeps = sso.nsubsteps
@@ -1022,7 +1024,7 @@ def _ssepdpsolve_generic(sso, options, progress_bar):
     For internal use. See ssepdpsolve.
     """
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
@@ -1154,7 +1156,7 @@ def _smepdpsolve_generic(sso, options, progress_bar):
     For internal use. See smepdpsolve.
     """
     if debug:
-        print(inspect.stack()[0][3])
+        logger.debug(inspect.stack()[0][3])
 
     N_store = len(sso.times)
     N_substeps = sso.nsubsteps
