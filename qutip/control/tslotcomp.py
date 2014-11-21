@@ -74,8 +74,6 @@ import qutip.logging as logging
 logger = logging.get_logger()
 #QuTiP control modules
 import qutip.control.errors
-import qutip.control.utility as util
-
 
 class TimeslotComputer:
     """
@@ -193,22 +191,30 @@ class TSlotCompUpdateAll(TimeslotComputer):
             if prop_comp.grad_exact:
                 for j in range(n_ctrls):
                     if j == 0:
-                        prop, propGrad = prop_comp.compute_prop_grad(k, j)
+                        prop, prop_grad = prop_comp.compute_prop_grad(k, j)
                         dyn.prop[k] = prop
-                        dyn.prop_grad[k, j] = propGrad
+                        dyn.prop_grad[k, j] = prop_grad
                         if self.log_level <= logging.DEBUG_INTENSE:
                             logger.log(logging.DEBUG_INTENSE, 
                                        "propagator {}:\n{}".format(k, prop))
-                        if dyn.test_out_files >= 3:
+                        if dyn.test_out_files >= 2:
                             fname = os.path.join("test_out", 
-                                    "propGrad_{}_j{}_k{}.txt".
+                                    "prop_{}_k{}.txt".
+                                    format(dyn.config.dyn_type, k))
+                            np.savetxt(fname, prop, fmt='%17.4f')
+                            fname = os.path.join("test_out", 
+                                    "prop_grad_{}_j{}_k{}.txt".
                                     format(dyn.config.dyn_type, j, k))
-                            util.write_array_to_file(self.prop_grad[k, j], 
-                                    fname, dtype=complex)
+                            np.savetxt(fname, prop_grad, fmt='%17.4f')
                     else:
-                        propGrad = prop_comp.compute_prop_grad(k, j, 
+                        prop_grad = prop_comp.compute_prop_grad(k, j, 
                                                     compute_prop=False)
-                        dyn.prop_grad[k, j] = propGrad
+                        dyn.prop_grad[k, j] = prop_grad
+                    if dyn.test_out_files >= 2:
+                        fname = os.path.join("test_out", 
+                                "prop_grad_{}_j{}_k{}.txt".
+                                format(dyn.config.dyn_type, j, k))
+                        np.savetxt(fname, prop_grad, fmt='%17.4f')
             else:
                 dyn.prop[k] = prop_comp.compute_propagator(k)
                 

@@ -42,10 +42,13 @@ Created on Tue Feb 11 11:48:20 2014
 Configuration parameters for control pulse optimisation
 """
 
+import os
 import numpy as np
 #QuTiP logging
 import qutip.logging
 logger = qutip.logging.get_logger()
+
+TEST_OUT_DIR = "test_out"
 
 class OptimConfig:
     """
@@ -130,6 +133,7 @@ class OptimConfig:
         # Level of test ouptut files generated
         # NOTE: If >0 then sub directory 'test_out' must exist
         self.test_out_files = 0
+        self.test_out_dir = None
         self.optim_alg = 'LBFGSB'
         self.dyn_type = ''
         self.fid_type = ''
@@ -152,6 +156,35 @@ class OptimConfig:
         """
         self.log_level = lvl
         logger.setLevel(lvl)
+        
+    def check_create_test_out_dir(self):
+        """
+        Checks test_out folder exists, creates it if not
+        """
+        dir_ok = True
+        self.test_out_dir = os.path.join(os.getcwd(), TEST_OUT_DIR)
+        msg = "Failed to create test output file directory:\n{}\n".format(
+                                                self.test_out_dir)
+        if os.path.exists(self.test_out_dir):
+            if os.path.isfile(self.test_out_dir):
+                dir_ok = False
+                msg += "A file already exists with same name"
+        else:
+            try:
+                os.mkdir(TEST_OUT_DIR)
+                logger.info("Test out files directory {} created".format(\
+                                TEST_OUT_DIR))
+            except Exception as err:
+                dir_ok = False
+                msg += "Either turn off test_out_files or check permissions.\n"
+                msg += "Underling error: {}".format(err)
+
+        if not dir_ok:
+            msg += "\ntest_out_files will be suppressed."
+            logger.error(msg)
+            self.test_out_files = 0         
+        
+        return dir_ok
         
 # create global instance
 optimconfig = OptimConfig()

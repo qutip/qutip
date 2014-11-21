@@ -68,8 +68,6 @@ import qutip.logging as logging
 logger = logging.get_logger()
 #QuTiP control modules
 import qutip.control.errors as errors
-import qutip.control.utility as util
-
 
 class FideliyComputer:
     """
@@ -430,12 +428,11 @@ class FidCompUnitary(FideliyComputer):
             for k in range(n_ts):
                 owd_evo = dyn.evo_t2targ[k+1]
                 fwd_evo = dyn.evo_init2t[k]
-                if dyn.test_out_files >= 1:
+                if dyn.test_out_files >= 3:
                     fname = os.path.join("test_out", 
                                 "prop_grad_UNIT_j{}_k{}.txt".format(j, k))
-                                
-                    util.write_array_to_file(dyn.prop_grad[k, j], 
-                                                       fname, dtype=complex)
+                    
+                    np.savetxt(fname, dyn.prop_grad[k, j], fmt='%17.4f')
                 
                 g = np.trace(owd_evo.dot(dyn.prop_grad[k, j]).dot(fwd_evo))
                 grad[k, j] = g

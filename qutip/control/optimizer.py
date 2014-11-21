@@ -94,7 +94,6 @@ logger = logging.get_logger()
 import qutip.control.optimresult as optimresult
 import qutip.control.termcond as termcond
 import qutip.control.errors as errors
-import qutip.control.utility as util
 import qutip.control.dynamics as dynamics
 
 
@@ -202,6 +201,10 @@ class Optimizer:
         Check optimiser attribute status and passed parameters before
         running the optimisation.
         """
+        if self.test_out_files > 0:
+            if not self.config.check_create_test_out_dir():
+                self.test_out_files = 0
+                
         if self.test_out_files >= 1 and self.stats is None:
             raise errors.UsageError("Cannot output test files when stats"
                                     " attribute is not set.")
@@ -293,7 +296,7 @@ class Optimizer:
                     "grad_{}_{}_call{}.txt".format(self.config.dyn_type, 
                             self.config.fid_type, 
                             self.stats.num_grad_func_calls))
-            util.write_array_to_file(grad, fname, dtype=float)
+            np.savetxt(fname, grad, fmt='%11.4f')
         
         tc = self.termination_conditions
         if fidComp.norm_grad_sq_sum < tc.min_gradient_norm:

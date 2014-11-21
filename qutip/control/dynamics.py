@@ -363,6 +363,7 @@ class Dynamics:
             [np.empty(shp, dtype=complex) for x in xrange(n_ts)]
         self.dyn_gen_factormatrix = \
             [np.empty(shp, dtype=complex) for x in xrange(n_ts)]
+        
              
     def initialize_controls(self, amps):
         """
@@ -370,10 +371,13 @@ class Dynamics:
         Note this must be called after the configuration is complete
         before any dynamics can be calculated
         """
+        if self.test_out_files > 0:
+            if not self.config.check_create_test_out_dir():
+                self.test_out_files = 0
         
-        if self.test_out_files >= 1 and self.stats is None:
+        if self.test_out_files > 0 and self.stats is None:
             raise errors.UsageError("Cannot output test files"
-                                " when stats object is not set")
+                                    " when stats object is not set")
             
         if not isinstance(self.prop_computer, propcomp.PropagatorComputer):
             raise errors.UsageError("No prop_computer (propagator computer) "
@@ -416,8 +420,7 @@ class Dynamics:
         data[:, 1:] = amps
         np.savetxt(file_name, data, delimiter='\t')
         if verbose:
-            logger.info(self.log_level, 
-                        "Amplitudes saved to file: " + file_name)
+            logger.info("Amplitudes saved to file: " + file_name)
             
     def update_ctrl_amps(self, new_amps):
         """
