@@ -34,7 +34,7 @@
 This module contains utility functions for using QuTiP with IPython notebooks.
 """
 
-__all__ = ['version_table', 'parfor', 'plot_animation']
+__all__ = ['version_table', 'parfor', 'plot_animation', 'parallel_map']
 
 from qutip.ui.progressbar import BaseProgressBar
 
@@ -237,10 +237,80 @@ def parfor(task, task_vec, args=None, client=None, view=None,
         The result list contains the value of ``task(value, args)`` for each
         value in ``task_vec``, that is, it should be equivalent to
         ``[task(v, args) for v in task_vec]``.
-
     """
 
+    if show_progressbar:
+        progress_bar = HTMLProgressBar()
+    else:
+        progress_bar = None
+
+    return parallel_map(task, task_vec, task_args=args,
+                        client=client, view=view, progress_bar=progress_bar,
+                        show_scheduling=show_scheduling)
+
+
+def parallel_map(task, values, task_args=None, task_kwargs=None,
+                 client=None, view=None, progress_bar=None,
+                 show_scheduling=False, **kwargs):
+    """
+    Call the function ``tast`` for each value in ``values`` using a cluster
+    of IPython engines. The function ``task`` should have the signature
+    ``task(value, *args, **kwargs)``.
+
+    The ``client`` and ``view`` are the IPython.parallel client and
+    load-balanced view that will be used in the parfor execution. If these
+    are ``None``, new instances will be created.
+
+    Parameters
+    ----------
+
+    task: a Python function
+        The function that is to be called for each value in ``task_vec``.
+
+    values: array / list
+        The list or array of values for which the ``task`` function is to be
+        evaluated.
+
+    task_args: list / dictionary
+        The optional additional argument to the ``task`` function.
+
+    task_kwargs: list / dictionary
+        The optional additional keyword argument to the ``task`` function.
+
+    client: IPython.parallel.Client
+        The IPython.parallel Client instance that will be used in the
+        parfor execution.
+
+    view: a IPython.parallel.Client view
+        The view that is to be used in scheduling the tasks on the IPython
+        cluster. Preferably a load-balanced view, which is obtained from the
+        IPython.parallel.Client instance client by calling,
+        view = client.load_balanced_view().
+
+    show_scheduling: bool {False, True}, default False
+        Display a graph showing how the tasks (the evaluation of ``task`` for
+        for the value in ``task_vec1``) was scheduled on the IPython engine
+        cluster.
+
+    show_progressbar: bool {False, True}, default False
+        Display a HTML-based progress bar duing the execution of the parfor
+        loop.
+
+    Returns
+    --------
+    result : list
+        The result list contains the value of
+        ``task(value, task_args, task_kwargs)`` for each
+        value in ``values``.
+
+    """
     submitted = datetime.datetime.now()
+
+    if task_args is None:
+        task_args = tuple()
+
+    if task_kwargs is None:
+        task_kwargs = {}
 
     if client is None:
         client = Client()
@@ -253,23 +323,25 @@ def parfor(task, task_vec, args=None, client=None, view=None,
     if view is None:
         view = client.load_balanced_view()
 
-    if args is None:
-        ar_list = [view.apply_async(task, x) for x in task_vec]
-    else:
-        ar_list = [view.apply_async(task, x, args) for x in task_vec]
+    ar_list = [view.apply_async(task, value, *task_args, **task_kwargs)
+               for value in values]
 
-    if show_progressbar:
+    if progress_bar is None:
+        view.wait(ar_list)
+    else:
+        if progress_bar is True:
+            progress_bar = HTMLProgressBar()
+
         n = len(ar_list)
-        pbar = HTMLProgressBar(n)
+        progress_bar.start(n)
         while True:
             n_finished = sum([ar.progress for ar in ar_list])
-            pbar.update(n_finished)
+            progress_bar.update(n_finished)
 
             if view.wait(ar_list, timeout=0.5):
-                pbar.update(n)
+                progress_bar.update(n)
                 break
-    else:
-        view.wait(ar_list)
+        progress_bar.finished()
 
     if show_scheduling:
         metadata = [[ar.engine_id,

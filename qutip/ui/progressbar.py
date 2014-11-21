@@ -136,7 +136,7 @@ class EnhancedTextProgressBar(BaseProgressBar):
         prog_bar += ' Elapsed %s / Remaining %s' % (
             self.time_elapsed().strip(),
             self.time_remaining_est(percent_done))
-        print ('\r', prog_bar, end='')
+        print('\r', prog_bar, end='')
         sys.stdout.flush()
 
     def finished(self):
