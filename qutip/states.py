@@ -37,7 +37,7 @@ __all__ = ['basis', 'qutrit_basis', 'coherent', 'coherent_dm', 'fock_dm',
            'state_number_index', 'state_index_number', 'state_number_qobj',
            'phase_basis', 'zero_ket', 'spin_state', 'spin_coherent',
            'bell_state', 'singlet_state', 'triplet_states', 'w_state',
-           'ghz_state']
+           'ghz_state', 'enr_state_dictionaries', 'enr_fock']
 
 import numpy as np
 from scipy import arange, conj, prod
@@ -691,7 +691,7 @@ def bra(seq, dim=2):
 #
 # quantum state number helper functions
 #
-def state_number_enumerate(dims, state=None, idx=0):
+def state_number_enumerate(dims, excitations=None, state=None, idx=0):
     """
     An iterator that enumerate all the state number arrays (quantum numbers on
     the form [n1, n2, n3, ...]) for a system with dimensions given by dims.
@@ -699,7 +699,7 @@ def state_number_enumerate(dims, state=None, idx=0):
     Example:
 
         >>> for state in state_number_enumerate([2,2]):
-        >>>     print state
+        >>>     print(state)
         [ 0.  0.]
         [ 0.  1.]
         [ 1.  0.]
@@ -712,6 +712,10 @@ def state_number_enumerate(dims, state=None, idx=0):
 
     state : list
         Current state in the iteration. Used internally.
+
+    excitations : integer (None)
+        Restrict state space to states with excitation numbers below or
+        equal to this value.
 
     idx : integer
         Current index in the iteration. Used internally.
@@ -728,11 +732,14 @@ def state_number_enumerate(dims, state=None, idx=0):
         state = np.zeros(len(dims))
 
     if idx == len(dims):
-        yield np.array(state)
+        if excitations is None:
+            yield np.array(state)
+        elif sum(state) <= excitations:
+            yield tuple(state)
     else:
         for n in range(dims[idx]):
             state[idx] = n
-            for s in state_number_enumerate(dims, state, idx + 1):
+            for s in state_number_enumerate(dims, excitations, state, idx + 1):
                 yield s
 
 
@@ -836,6 +843,60 @@ shape = [8, 1], type = ket
 
     """
     return tensor([fock(dims[i], s) for i, s in enumerate(state)])
+
+
+#
+# Excitation-number restricted (enr) states
+#
+def enr_state_dictionaries(dims, excitations):
+    """
+    Return the number of states, and lookup-dictionaries for translating
+    a state tuple to a state index, and vice versa, for a system with a given
+    number of components and maximum number of excitations.
+
+    Parameters
+    ----------
+    dims: list
+        A list with the number of states in each sub-system.
+
+    excitations : integer
+        The maximum numbers of dimension
+
+    Returns
+    -------
+    nstates, state2idx, idx2state: integer, dict, dict
+        The number of states `nstates`, a dictionary for looking up state
+        indices from a state tuple, and a dictionary for looking up state
+        state tuples from state indices.
+    """
+    nstates = 0
+    state2idx = {}
+    idx2state = {}
+
+    for state in state_number_enumerate(dims, excitations):
+        state2idx[state] = nstates
+        idx2state[nstates] = state
+        nstates += 1
+
+    return nstates, state2idx, idx2state
+
+
+def enr_fock(dims, excitations, state):
+    """
+    Generate the Fock state representation in a excitation-number restricted
+    state space.
+    """
+    nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
+
+    data = sp.lil_matrix((nstates, 1), dtype=np.complex)
+
+    try:
+        data[state2idx[tuple(state)], 0] = 1
+    except:
+        raise ValueError("The state tuple %s is not in the restricted "
+                         "state space" % str(tuple(state)))
+
+    return Qobj(data, dims=[dims, 1])
 
 
 def phase_basis(N, m, phi0=0):
