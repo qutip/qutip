@@ -39,7 +39,7 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
            'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
            'num', 'squeeze', 'squeezing', 'displace', 'commutator',
-           'qutrit_ops', 'qdiags', 'phase', 'zero_oper']
+           'qutrit_ops', 'qdiags', 'phase', 'zero_oper', 'enr_destroy']
 
 import numpy as np
 import scipy
@@ -777,3 +777,26 @@ def zero_oper(N, dims=None):
 
     """
     return Qobj(sp.csr_matrix((N, N), dtype=complex), dims=dims)
+
+
+def enr_destroy(dims, excitations):
+    """
+    Generate annilation operators for modes in a excitation-number restricted
+    state space.
+    """
+    from qutip.states import enr_state_dictionaries
+
+    nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
+
+    a_ops = [sp.lil_matrix((nstates, nstates), dtype=np.complex)
+             for _ in range(len(dims))]
+
+    for n1, state1 in idx2state.items():
+        for n2, state2 in idx2state.items():
+            for idx, a in enumerate(a_ops):
+                s1 = [s for idx2, s in enumerate(state1) if idx != idx2]
+                s2 = [s for idx2, s in enumerate(state2) if idx != idx2]
+                if (state1[idx] == state2[idx] - 1) and (s1 == s2):
+                    a_ops[idx][n1, n2] = np.sqrt(state2[idx])
+
+    return [Qobj(a, dims=[dims, dims]) for a in a_ops]
