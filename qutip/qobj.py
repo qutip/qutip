@@ -1540,7 +1540,7 @@ class Qobj(object):
 
     @property
     def shape(self):
-        return [np.prod(self.dims[0]), np.prod(self.dims[1])]
+        return self.data.shape
 
     @property
     def isbra(self):
