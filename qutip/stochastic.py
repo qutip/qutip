@@ -42,10 +42,6 @@ and master equations. The API should not be considered stable, and is subject
 to change when we work more on optimizing this module for performance and
 features.
 
-Todo:
-
- * parallelize
-
 """
 
 __all__ = ['ssesolve', 'ssepdpsolve', 'smesolve', 'smepdpsolve']
