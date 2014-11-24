@@ -269,6 +269,7 @@ class Dynamics:
         self.test_out_files = self.config.test_out_files
         # Internal flags
         self._dyn_gen_mapped = False
+        self._ctrls_initialized = False
         
         # Create the computing objects
         self._create_computers()
@@ -397,7 +398,14 @@ class Dynamics:
         self._init_lists()
         self.tslot_computer.init_comp()
         self.fid_computer.init_comp()
+        self._ctrls_initialized = True
         self.update_ctrl_amps(amps)
+                
+    def check_ctrls_initialized(self):
+        if not self._ctrls_initialized:
+            raise errors.UsageError("Controls not initialised. "
+                    "Ensure Dynamics.initialize_controls has been "
+                    "executed with the initial control amplitudes.")
         
     def get_amp_times(self):
         return self.time[:self.num_tslots]
@@ -407,6 +415,8 @@ class Dynamics:
         Save a file with the current control amplitudes in each timeslot
         The first column in the file will be the start time of the slot
         """
+        self.check_ctrls_initialized()
+        
         if file_name is None:
             file_name = self.def_amps_fname
         if amps is None:

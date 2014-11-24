@@ -219,6 +219,7 @@ class Optimizer:
                 
         if not isinstance(self.dynamics, dynamics.Dynamics):
             raise errors.UsageError("No dynamics object attribute set")
+        self.dynamics.check_ctrls_initialized()
             
         if term_conds.fid_err_targ is None and term_conds.fid_goal is None:
             raise errors.UsageError("Either the goal or the fidelity "
