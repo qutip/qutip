@@ -54,12 +54,10 @@ from qutip.sparse import sp_permute, sp_bandwidth, sp_reshape, sp_profile
 from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
 import qutip.settings as settings
 from qutip.utilities import _version2int
-
-if settings.debug:
-    import qutip.logging
-    import inspect
-    logger = qutip.logging.get_logger('steady_state')
-    logger.setLevel('DEBUG')
+import qutip.logging
+import inspect
+logger = qutip.logging.get_logger()
+logger.setLevel('DEBUG')
 
 # test if scipy is recent enought to get L & U factors from superLU
 _scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
@@ -254,8 +252,6 @@ def _steadystate_setup(A, c_op_list):
 def _steadystate_LU_liouvillian(L, ss_args):
     """Creates modified Liouvillian for LU based SS methods.
     """
-    if settings.debug:
-        logger.debug(inspect.stack()[0][3])
     perm = None
     perm2 = None
     rev_perm = None
@@ -323,7 +319,6 @@ def _steadystate_direct_sparse(L, ss_args):
     Direct solver that uses scipy sparse matrices
     """
     if settings.debug:
-        logger.debug(inspect.stack()[0][3])
         logger.debug('Starting direct LU solver.')
 
     dims = L.dims[0]
@@ -362,7 +357,7 @@ def _steadystate_direct_sparse(L, ss_args):
             ss_args['info']['lu_fill_factor'] = (L_nnz+U_nnz)/L.nnz
             if settings.debug:
                 logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz,U_nnz))
-                logger.debug('Fill factor: %f' % (L_nnz+U_nnz)/orig_nnz)
+                logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
 
     else:
         # Use umfpack solver
@@ -391,7 +386,6 @@ def _steadystate_direct_dense(L, ss_args):
     small system, with a few states.
     """
     if settings.debug:
-        logger.debug(inspect.stack()[0][3])
         logger.debug('Starting direct dense solver.')
 
     dims = L.dims[0]
@@ -421,7 +415,6 @@ def _steadystate_eigen(L, ss_args):
     """
     ss_args['info'].pop('weight', None)
     if settings.debug:
-        logger.debug(inspect.stack()[0][3])
         logger.debug('Starting Eigen solver.')
 
     dims = L.dims[0]
@@ -466,7 +459,6 @@ def _iterative_precondition(A, n, ss_args):
     with iterative solvers.
     """
     if settings.debug:
-        logger.debug(inspect.stack()[0][3])
         logger.debug('Starting preconditioner.')
     _precond_start = time.time()
     try:
@@ -489,7 +481,7 @@ def _iterative_precondition(A, n, ss_args):
         if settings.debug or ss_args['return_info']:
             if settings.debug:
                 logger.debug('Preconditioning succeeded.')
-                logger.debug('Precond. time: %f' % _precond_end-_precond_start)
+                logger.debug('Precond. time: %f' % (_precond_end-_precond_start))
             if _scipy_check:
                 L_nnz = P.L.nnz
                 U_nnz = P.U.nnz
@@ -501,7 +493,7 @@ def _iterative_precondition(A, n, ss_args):
                 ss_args['info']['ilu_condest'] = condest
                 if settings.debug:
                     logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz,U_nnz))
-                    logger.debug('Fill factor: %f' % (L_nnz+U_nnz)/A.nnz)
+                    logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/A.nnz))
                     logger.debug('iLU condest: %f' % condest)
 
     except:
@@ -523,7 +515,6 @@ def _steadystate_iterative(L, ss_args):
         return
 
     if settings.debug:
-        logger.debug(inspect.stack()[0][3])
         logger.debug('Starting %s solver.' % ss_args['method'])
 
     dims = L.dims[0]
@@ -575,7 +566,7 @@ def _steadystate_iterative(L, ss_args):
 
     if settings.debug:
         logger.debug('Number of Iterations: %i' % ss_iters['iter'])
-        logger.debug('Iteration. time: %f' %  _iter_end - _iter_start)
+        logger.debug('Iteration. time: %f' %  (_iter_end - _iter_start))
 
     if check > 0:
         raise Exception("Steadystate error: Did not reach tolerance after " +
@@ -607,7 +598,6 @@ def _steadystate_svd_dense(L, ss_args):
     atol = 1e-12
     rtol = 1e-12
     if settings.debug:
-        logger.debug(inspect.stack()[0][3])
         logger.debug('Starting SVD solver.')
     _svd_start = time.time()
     u, s, vh = svd(L.full(), full_matrices=False)
@@ -639,7 +629,6 @@ def _steadystate_power(L, ss_args):
     """
     ss_args['info'].pop('weight', None)
     if settings.debug:
-        logger.debug(inspect.stack()[0][3])
         logger.debug('Starting iterative inverse-power method solver.')
     tol = ss_args['tol']
     maxiter = ss_args['maxiter']
@@ -683,7 +672,7 @@ def _steadystate_power(L, ss_args):
         L_nnz = lu.L.nnz
         U_nnz = lu.U.nnz
         logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz,U_nnz))
-        logger.debug('Fill factor: %f' % (L_nnz+U_nnz)/orig_nnz)
+        logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
 
     it = 0
     while (la.norm(L * v, np.inf) > tol) and (it < maxiter):
