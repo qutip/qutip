@@ -49,8 +49,7 @@ dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 from qutip.qobj import Qobj
 from qutip.parfor import parfor
-from qutip.cy.spmatfuncs import (cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr,
-                                cy_expect_rho_vec_csr)
+from qutip.cy.spmatfuncs import (cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr)
 from qutip.cy.codegen import Codegen
 from qutip.solver import Options, Result, config
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
@@ -958,7 +957,7 @@ def _mc_alg_evolve(nt, args, config):
                                          config.psi0_shape, fast='mc')
             else:
                 for jj in range(config.e_num):
-                    mc_alg_out[jj][k] = cy_expect_rho_vec_csr(
+                    mc_alg_out[jj][k] = cy_expect_psi_csr(
                         config.e_ops_data[jj], config.e_ops_ind[jj],
                         config.e_ops_ptr[jj], out_psi,
                         config.e_ops_isherm[jj])
