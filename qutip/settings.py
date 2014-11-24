@@ -44,7 +44,7 @@ atol = 1e-12
 # use auto tidyup absolute tolerance
 auto_tidyup_atol = 1e-12
 # number of cpus (set at qutip import)
-num_cpus = 1
+num_cpus = 0
 # flag indicating if fortran module is installed
 fortran = False
 # flag indicating if scikits.umfpack is installed
