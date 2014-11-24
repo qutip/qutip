@@ -464,12 +464,24 @@ class FidCompTraceDiff(FideliyComputer):
     
     def reset(self):
         FideliyComputer.reset(self)
-        self.scale_factor = 1.0
+        self.scale_factor = None
         self.uses_evo_t2end = True
         if not self.parent.prop_computer.grad_exact:
             raise errors.UsageError("This FideliyComputer can only be"
                         " used with an exact gradient PropagatorComputer.")   
         
+    
+    def init_comp(self):
+        """
+        initialises the computer based on the configuration of the Dynamics
+        Calculates the scale_factor is not already set
+        """
+        if self.scale_factor is None:
+            self.scale_factor = 1.0 / (2.0*self.parent.get_drift_dim())
+            if self.log_level <= logging.DEBUG:
+                logger.debug("Scale factor calculated as {}".format(
+                                            self.scale_factor))
+            
     def get_fid_err(self):
         """
         Gets the absolute error in the fidelity
@@ -582,7 +594,7 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
     def reset(self):
         FideliyComputer.reset(self)
         self.uses_evo_t2end = True
-        self.scale_factor = 1.0
+        self.scale_factor = None
         self.epsilon = 0.001
         
     def compute_fid_err_grad(self):

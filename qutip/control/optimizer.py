@@ -503,7 +503,7 @@ class OptimizerLBFGSB(Optimizer):
                                 callback=self.iter_step_callback_func, 
                                 bounds=bounds, 
                                 m=cfg.max_metric_corr, 
-                                factr=cfg.optim_alg_acc_fact, 
+                                factr=cfg.accuracy_factor, 
                                 pgtol=term_conds.min_gradient_norm, 
                                 iprint=alg_msg_lvl, 
                                 maxfun=term_conds.max_fid_func_calls, 

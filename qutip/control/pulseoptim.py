@@ -71,9 +71,11 @@ def optimize_pulse(
             amp_lbound=-np.Inf, amp_ubound=np.Inf, 
             fid_err_targ=1e-10, min_grad = 1e-10, 
             max_iter=500, max_wall_time=180, 
-            optim_alg='LBFGSB', dyn_type='GEN_MAT', prop_type='DEF', 
-            fid_type='DEF', phase_option=None, amp_update_mode='ALL', 
-            init_pulse_type='RND', 
+            optim_alg='LBFGSB', max_metric_corr=10, accuracy_factor=1e7,
+            dyn_type='GEN_MAT', prop_type='DEF', 
+            fid_type='DEF', phase_option=None, fid_err_scale_factor=None,
+            amp_update_mode='ALL', 
+            init_pulse_type='RND', pulse_scaling=1.0, pulse_offset=0.0, 
             log_level=logging.NOTSET, out_file_ext=None, gen_stats=False):
     """
     Optimise a control pulse to minimise the fidelity error.
@@ -148,6 +150,21 @@ def optimize_pulse(
             options are BFGS, LBFGSB
             (see Optimizer classes for details)
             
+        max_metric_corr : integer
+            The maximum number of variable metric corrections used to define
+            the limited memory matrix. That is the number of previous
+            gradient values that are used to approximate the Hessian
+            see the scipy.optimize.fmin_l_bfgs_b documentation for description
+            of m argument
+            (used only in L-BFGS-B)
+        
+        accuracy_factor : float
+            Determines the accuracy of the result.
+            Typical values for accuracy_factor are: 1e12 for low accuracy; 
+            1e7 for moderate accuracy; 10.0 for extremely high accuracy
+            scipy.optimize.fmin_l_bfgs_b factr argument.
+            (used only in L-BFGS-B)
+            
         dyn_type : string
             Dynamics type, i.e. the type of matrix used to describe
             the dynamics. Options are UNIT, GEN_MAT, SYMPL
@@ -172,6 +189,14 @@ def optimize_pulse(
                 PSU - global phase ignored
                 SU - global phase included
                 
+        fid_err_scale_factor : float
+            (used in TRACEDIFF FidelityComputer and subclasses only)
+            The fidelity error calculated is of some arbitary scale. This
+            factor can be used to scale the fidelity error such that it may
+            represent some physical measure
+            If None is given then it is caculated as 1/2N, where N
+            is the dimension of the drift.
+                
         amp_update_mode : string
             determines whether propagators are calculated
             Options: DEF, ALL, DYNAMIC (needs work)
@@ -183,6 +208,15 @@ def optimize_pulse(
             the control amplitudes. Options include:
                 RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
             (see PulseGen classes for details)
+            
+        pulse_scaling : float
+            Linear scale factor for generated pulses
+            By default initial pulses are generated with amplitudes in the 
+            range (-1.0, 1.0). These will be scaled by this parameter
+            
+        pulse_offset : float
+            Line offset for the pulse. That is this value will be added
+            to any initial pulses generated.
             
         log_level : integer
             level of messaging output from the logger.
@@ -219,16 +253,20 @@ def optimize_pulse(
         log_level = logger.getEffectiveLevel()
     else:
         logger.setLevel(log_level)
-        
+
     optim = create_pulse_optimizer(
             drift, ctrls, initial, target, 
             num_tslots=num_tslots, evo_time=evo_time, tau=tau, 
             amp_lbound=amp_lbound, amp_ubound=amp_ubound, 
             fid_err_targ=fid_err_targ, min_grad=min_grad, 
             max_iter=max_iter, max_wall_time=max_wall_time, 
-            optim_alg=optim_alg, dyn_type=dyn_type, prop_type=prop_type, 
+            optim_alg=optim_alg, max_metric_corr=max_metric_corr,
+            accuracy_factor=accuracy_factor,
+            dyn_type=dyn_type, prop_type=prop_type, 
             fid_type=fid_type, phase_option=phase_option, 
+            fid_err_scale_factor=fid_err_scale_factor,
             amp_update_mode=amp_update_mode, init_pulse_type=init_pulse_type, 
+            pulse_scaling=pulse_scaling, pulse_offset=pulse_offset,
             log_level=log_level, gen_stats=gen_stats)
     
     dyn = optim.dynamics
@@ -283,9 +321,11 @@ def optimize_pulse_unitary(
             num_tslots=None, evo_time=None, tau=None, 
             amp_lbound=-np.Inf, amp_ubound=np.Inf, 
             fid_err_targ=1e-10, min_grad=1e-10, 
-            max_iter=500, max_wall_time=180, 
-            optim_alg='LBFGSB', phase_option='PSU', amp_update_mode='ALL', 
-            init_pulse_type='RND', 
+            max_iter=500, max_wall_time=180,            
+            optim_alg='LBFGSB', max_metric_corr=10, accuracy_factor=1e7,
+            phase_option='PSU', 
+            amp_update_mode='ALL', 
+            init_pulse_type='RND', pulse_scaling=1.0, pulse_offset=0.0, 
             log_level=logging.NOTSET, out_file_ext='.txt', gen_stats=False):
                 
     """
@@ -365,6 +405,21 @@ def optimize_pulse_unitary(
             options are BFGS, LBFGSB
             (see Optimizer classes for details)
             
+        max_metric_corr : integer
+            The maximum number of variable metric corrections used to define
+            the limited memory matrix. That is the number of previous
+            gradient values that are used to approximate the Hessian
+            see the scipy.optimize.fmin_l_bfgs_b documentation for description
+            of m argument
+            (used only in L-BFGS-B)
+        
+        accuracy_factor : float
+            Determines the accuracy of the result.
+            Typical values for accuracy_factor are: 1e12 for low accuracy; 
+            1e7 for moderate accuracy; 10.0 for extremely high accuracy
+            scipy.optimize.fmin_l_bfgs_b factr argument.
+            (used only in L-BFGS-B)
+            
         phase_option : string
             determines how global phase is treated in fidelity
             calculations (fid_type='UNIT' only). Options:
@@ -382,6 +437,15 @@ def optimize_pulse_unitary(
             the control amplitudes. Options include:
                 RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
             (see PulseGen classes for details)
+            
+        pulse_scaling : float
+            Linear scale factor for generated pulses
+            By default initial pulses are generated with amplitudes in the 
+            range (-1.0, 1.0). These will be scaled by this parameter
+            
+        pulse_offset : float
+            Line offset for the pulse. That is this value will be added
+            to any initial pulses generated.
             
         log_level : integer
             level of messaging output from the logger.
@@ -429,14 +493,17 @@ def optimize_pulse_unitary(
         
     if not isinstance(U_targ, Qobj):
         raise TypeError("U_targ must be a Qobj")
-        
+            
     return optimize_pulse(drift=H_d, ctrls=H_c, initial=U_0, target=U_targ, 
             num_tslots=num_tslots, evo_time=evo_time, tau=tau, 
             amp_lbound=amp_lbound, amp_ubound=amp_ubound, 
             fid_err_targ=fid_err_targ, min_grad=min_grad, 
             max_iter=max_iter, max_wall_time=max_wall_time, 
-            optim_alg=optim_alg, dyn_type='UNIT', phase_option=phase_option, 
-            amp_update_mode=amp_update_mode, init_pulse_type=init_pulse_type, 
+            optim_alg=optim_alg, max_metric_corr=max_metric_corr,
+            accuracy_factor=accuracy_factor,
+            dyn_type='UNIT', phase_option=phase_option, 
+            amp_update_mode=amp_update_mode, init_pulse_type=init_pulse_type,
+            pulse_scaling=pulse_scaling, pulse_offset=pulse_offset,
             log_level=log_level, out_file_ext=out_file_ext, 
             gen_stats=gen_stats)
             
@@ -447,9 +514,11 @@ def create_pulse_optimizer(
             amp_lbound=-np.Inf, amp_ubound=np.Inf, 
             fid_err_targ=1e-10, min_grad=1e-10, 
             max_iter=500, max_wall_time=180, 
-            optim_alg='LBFGSB', dyn_type='GEN_MAT', prop_type='DEF', 
-            fid_type='DEF', phase_option=None, amp_update_mode='ALL', 
-            init_pulse_type='RND', 
+            optim_alg='LBFGSB', max_metric_corr=10, accuracy_factor=1e7,
+            dyn_type='GEN_MAT', prop_type='DEF', 
+            fid_type='DEF', phase_option=None, fid_err_scale_factor=None,
+            amp_update_mode='ALL', 
+            init_pulse_type='RND', pulse_scaling=1.0, pulse_offset=0.0, 
             log_level=logging.NOTSET, gen_stats=False):
                 
     """
@@ -523,6 +592,21 @@ def create_pulse_optimizer(
             options are BFGS, LBFGSB
             (see Optimizer classes for details)
             
+        max_metric_corr : integer
+            The maximum number of variable metric corrections used to define
+            the limited memory matrix. That is the number of previous
+            gradient values that are used to approximate the Hessian
+            see the scipy.optimize.fmin_l_bfgs_b documentation for description
+            of m argument
+            (used only in L-BFGS-B)
+        
+        accuracy_factor : float
+            Determines the accuracy of the result.
+            Typical values for accuracy_factor are: 1e12 for low accuracy; 
+            1e7 for moderate accuracy; 10.0 for extremely high accuracy
+            scipy.optimize.fmin_l_bfgs_b factr argument.
+            (used only in L-BFGS-B)
+            
         dyn_type : string
             Dynamics type, i.e. the type of matrix used to describe
             the dynamics. Options are UNIT, GEN_MAT, SYMPL
@@ -547,6 +631,14 @@ def create_pulse_optimizer(
                 PSU - global phase ignored
                 SU - global phase included
                 
+        fid_err_scale_factor : float
+            (used in TRACEDIFF FidelityComputer and subclasses only)
+            The fidelity error calculated is of some arbitary scale. This
+            factor can be used to scale the fidelity error such that it may
+            represent some physical measure
+            If None is given then it is caculated as 1/2N, where N
+            is the dimension of the drift.
+                
         amp_update_mode : string
             determines whether propagators are calculated
             Options: DEF, ALL, DYNAMIC (needs work)
@@ -558,6 +650,15 @@ def create_pulse_optimizer(
             the control amplitudes. Options include:
                 RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
             (see PulseGen classes for details)
+            
+        pulse_scaling : float
+            Linear scale factor for generated pulses
+            By default initial pulses are generated with amplitudes in the 
+            range (-1.0, 1.0). These will be scaled by this parameter
+            
+        pulse_offset : float
+            Line offset for the pulse. That is this value will be added
+            to any initial pulses generated.
             
         log_level : integer
             level of messaging output from the logger.
@@ -615,6 +716,8 @@ def create_pulse_optimizer(
         
     cfg = optimconfig.OptimConfig()
     cfg.optim_alg = optim_alg
+    cfg.max_metric_corr = max_metric_corr
+    cfg.accuracy_factor = accuracy_factor
     cfg.amp_update_mode = amp_update_mode
     cfg.dyn_type = dyn_type
     cfg.prop_type = prop_type
@@ -661,15 +764,17 @@ def create_pulse_optimizer(
                                         
     # Create the FideliyComputer instance
     # The default will be typically be the best option
+    # Note: the FidCompTraceDiffApprox is a subclass of FidCompTraceDiff
+    # so need to check this type first
     if fid_type == 'DEF' or fid_type is None or fid_type == '':
         # None given, use the default for the Dynamics
         pass
+    elif fid_type == 'TDAPPROX':
+        if not isinstance(dyn.fid_computer, fidcomp.FidCompTraceDiffApprox):
+            dyn.fid_computer = fidcomp.FidCompTraceDiffApprox(dyn)
     elif fid_type == 'TRACEDIFF':
         if not isinstance(dyn.fid_computer, fidcomp.FidCompTraceDiff):
             dyn.fid_computer = fidcomp.FidCompTraceDiff(dyn)
-    elif fid_type == 'TDAPPROX':
-        if not isinstance(dyn.fid_computer, fidcomp.FidCompTraceDiffApprox):
-            dyn.fid_computer = fidcomp.FidCompTraceDiff_ApproxGrad(dyn)
     elif fid_type == 'UNIT':
         if not isinstance(dyn.fid_computer, fidcomp.FidCompUnitary):
             dyn.fid_computer = fidcomp.FidCompUnitary(dyn)
@@ -678,6 +783,9 @@ def create_pulse_optimizer(
     
     if isinstance(dyn.fid_computer, fidcomp.FidCompUnitary):
         dyn.fid_computer.set_phase_option(phase_option)
+        
+    if isinstance(dyn.fid_computer, fidcomp.FidCompTraceDiff):
+        dyn.fid_computer.scale_factor = fid_err_scale_factor
     
     # Create the Optimiser instance
     # The class of the object will determine which multivar optimisation
@@ -739,6 +847,8 @@ def create_pulse_optimizer(
     
     # Create a pulse generator of the type specified
     p_gen = pulsegen.create_pulse_gen(pulse_type=init_pulse_type, dyn=dyn)
+    p_gen.scaling = pulse_scaling
+    p_gen.offset = pulse_offset
     # If the pulse is a periodic type, then set the pulse to be one complete
     # wave
     if isinstance(p_gen, pulsegen.PulseGenPeriodic):

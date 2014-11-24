@@ -117,7 +117,7 @@ class OptimConfig:
         of m argument
         (used only in L-BFGS-B)
     
-    optim_alg_acc_fact : float
+    accuracy_factor : float
         Determines the accuracy of the result.
         Typical values for accuracy_factor are: 1e12 for low accuracy; 
         1e7 for moderate accuracy; 10.0 for extremely high accuracy
@@ -146,7 +146,7 @@ class OptimConfig:
         self.amp_lbound = -np.Inf
         self.amp_ubound = np.Inf
         self.max_metric_corr = 10
-        self.optim_alg_acc_fact = 1e7
+        self.accuracy_factor = 1e7
         # ####################
         
     def set_log_level(self, lvl):

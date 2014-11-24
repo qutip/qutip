@@ -459,6 +459,16 @@ class Dynamics:
         """
         self.evo_current = False
         self.fid_computer.flag_system_changed()
+        
+    def get_drift_dim(self):
+        """
+        Returns the size of the matrix that defines the drift dynamics
+        that is assuming the drift is NxN, then this returns N
+        """
+        if not isinstance(self.drift_dyn_gen, np.ndarray):
+            raise TypeError("Cannot get drift dimension, "
+                        "as drift not set (correctly).")
+        return self.drift_dyn_gen.shape[0]
 
     def get_num_ctrls(self):
         """
