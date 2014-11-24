@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__ = ['parfor']
+__all__ = ['parfor', 'parallel_map']
 
 from scipy import array
 from multiprocessing import Pool
@@ -40,6 +40,7 @@ import os
 import sys
 import signal
 import qutip.settings as qset
+from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
 
 def _task_wrapper(args):
@@ -89,7 +90,7 @@ def parfor(func, *args, **kwargs):
         containing the output from `func`.
 
     """
-    kw = _default_parfor_settings()
+    kw = _default_kwargs()
     if 'num_cpus' in kwargs.keys():
         kw['num_cpus'] = kwargs['num_cpus']
         del kwargs['num_cpus']
@@ -111,11 +112,14 @@ def parfor(func, *args, **kwargs):
         map_args = ((func, v, os.getpid()) for v in var)
         par_return = list(pool.map(task_func, map_args))
 
+        pool.close()
+        pool.join()
+
         if isinstance(par_return[0], tuple):
             par_return = [elem for elem in par_return]
             num_elems = len(par_return[0])
-            dt=[type(ii) for ii in par_return[0]]
-            return [array([elem[ii] for elem in par_return],dtype=dt[ii])
+            dt = [type(ii) for ii in par_return[0]]
+            return [array([elem[ii] for elem in par_return], dtype=dt[ii])
                     for ii in range(num_elems)]
         else:
             return list(par_return)
@@ -124,6 +128,73 @@ def parfor(func, *args, **kwargs):
         pool.terminate()
 
 
-def _default_parfor_settings():
+def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
+    """
+    Parallel execution of a mapping of `values` to the function `task`.
+
+    Parameters
+    ----------
+
+    task: a Python function
+        The function that is to be called for each value in ``task_vec``.
+
+    values: array / list
+        The list or array of values for which the ``task`` function is to be
+        evaluated.
+
+    task_args: list / dictionary
+        The optional additional argument to the ``task`` function.
+
+    task_kwargs: list / dictionary
+        The optional additional keyword argument to the ``task`` function.
+
+    progress_bar: ProgressBar
+        Progress bar class instance for showing progress.
+
+    Returns
+    --------
+    result : list
+        The result list contains the value of
+        ``task(value, task_args, task_kwargs)`` for each
+        value in ``values``.
+
+    """
+    kw = _default_kwargs()
+    if 'num_cpus' in kwargs:
+        kw['num_cpus'] = kwargs['num_cpus']
+
+    try:
+        progress_bar = kwargs['progress_bar']
+        if progress_bar is True:
+            progress_bar = TextProgressBar()
+    except:
+        progress_bar = BaseProgressBar()
+
+    progress_bar.start(len(values))
+    nfinished = [0]
+
+    def _update_progress_bar(x):
+        nfinished[0] += 1
+        progress_bar.update(nfinished[0])
+
+    pool = Pool(processes=kw['num_cpus'])
+
+    async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs,
+                                  _update_progress_bar)
+                 for value in values]
+
+    while not all([ar.ready() for ar in async_res]):
+        for ar in async_res:
+            ar.wait(timeout=0.1)
+
+    progress_bar.finished()
+    
+    pool.close()
+    pool.join()
+
+    return [ar.get() for ar in async_res]
+
+
+def _default_kwargs():
     settings = {'num_cpus': qset.num_cpus}
     return settings
