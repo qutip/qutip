@@ -781,8 +781,44 @@ def zero_oper(N, dims=None):
 
 def enr_destroy(dims, excitations):
     """
-    Generate annilation operators for modes in a excitation-number restricted
-    state space.
+    Generate annilation operators for modes in a excitation-number-restricted
+    state space. For example, consider a system consisting of 4 modes, each
+    with 5 states. The total hilbert space size is 5**4 = 625. If we are
+    only interested in states that contain up to 2 excitations, we only need
+    to include states such as
+
+        (0, 0, 0, 0)
+        (0, 0, 0, 1)
+        (0, 0, 0, 2)
+        (0, 0, 1, 0)
+        (0, 0, 1, 1)
+        (0, 0, 2, 0)
+        ...
+
+    This function creates annihilation operators for the 4 modes that act
+    within this state space:
+
+        a1, a2, a3, a4 = enr_destroy([5, 5, 5, 5], excitations=2)
+
+    From this point onwards, the annihiltion operators a1, ..., a4 can be
+    used to setup a Hamiltonian, collapse operatrors and expectation value
+    operators following the usual pattern.
+
+    Parameters
+    ----------
+    dims : list
+        A list of the dimensions of each subsystem of a composite quantum
+        system.
+
+    excitations : integer
+        The maximum number of excitations that are to be included in the
+        state space.
+
+    Returns
+    -------
+    a_ops : list of qobj
+        A list of annihilation operators for each mode in the composite
+        quantum system described by dims.
     """
     from qutip.states import enr_state_dictionaries
 

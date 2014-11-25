@@ -884,7 +884,32 @@ def enr_state_dictionaries(dims, excitations):
 def enr_fock(dims, excitations, state):
     """
     Generate the Fock state representation in a excitation-number restricted
-    state space.
+    state space. The `dims` argument is a list of integers that define the
+    number of quantums states of each component of a composite quantum system,
+    and the `excitations` specifies the maximum number of excitations for
+    the basis states that are to be included in the state space. The `state`
+    argument is a tuple of integers that specifies the state (in the number
+    basis representation) for which to generate the Fock state representation.
+
+    Parameters
+    ----------
+    dims : list
+        A list of the dimensions of each subsystem of a composite quantum
+        system.
+
+    excitations : integer
+        The maximum number of excitations that are to be included in the
+        state space.
+
+    state : list of integers
+        The state in the number basis representation.
+
+    Returns
+    -------
+    ket : Qobj
+        A Qobj instance that represent a Fock state in the exication-number-
+        restricted state space defined by `dims` and `exciations`.
+
     """
     nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
 

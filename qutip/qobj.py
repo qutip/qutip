@@ -1518,7 +1518,6 @@ class Qobj(object):
 
     @property
     def type(self):
-
         if not self._type:
             if self.isoper:
                 self._type = 'oper'
