@@ -142,7 +142,6 @@ class WebProgressBar(BaseProgressBar):
         super(WebProgressBar, self).__init__(iterations, chunk_size)
         self._client = tskmon.TskmonClient(qutip.settings.tskmon_token, app_name='QuTiP 3')
         self._wake_event = threading.Event()
-        self._done = threading.Event()
 
         try:
             self._task = self._client.new_task(
