@@ -122,22 +122,6 @@ except Exception as e:
 else:
     del Cython, pyximport
 
-
-# -----------------------------------------------------------------------------
-# default configuration settings
-#
-
-import multiprocessing
-
-# load cpus
-from qutip.hardware_info import hardware_info
-info = hardware_info()
-if 'cpus' in info:
-    qutip.settings.num_cpus = info['cpus']
-else:
-    qutip.settings.num_cpus = multiprocessing.cpu_count()
-
-
 # -----------------------------------------------------------------------------
 # Load user configuration if present: override defaults.
 #
@@ -161,11 +145,26 @@ except Exception as e:
     except:
         pass
 
+# -----------------------------------------------------------------------------
+# cpu/process configuration
+#
+import multiprocessing
+
 # Check if environ flag for qutip processes is set
 if 'QUTIP_NUM_PROCESSES' in os.environ:
     qutip.settings.num_cpus = int(os.environ['QUTIP_NUM_PROCESSES'])
 else:
     os.environ['QUTIP_NUM_PROCESSES'] = str(qutip.settings.num_cpus)
+
+if qutip.settings.num_cpus == 0:
+    # if num_cpu is 0 set it to the available number of cores
+    from qutip.hardware_info import hardware_info
+    info = hardware_info()
+    if 'cpus' in info:
+        qutip.settings.num_cpus = info['cpus']
+    else:
+        qutip.settings.num_cpus = multiprocessing.cpu_count()
+
 
 # -----------------------------------------------------------------------------
 # Load configuration from environment variables: override defaults and
@@ -192,6 +191,7 @@ else:
 # Check that import modules are compatible with requested configuration
 #
 
+
 # Check for Matplotlib
 try:
     import matplotlib
@@ -216,13 +216,14 @@ from qutip.operators import *
 from qutip.superoperator import *
 from qutip.expect import *
 from qutip.tensor import *
-from qutip.parfor import *
+from qutip.parallel import *
 
 # graphics
 from qutip.bloch import *
 from qutip.visualization import *
 from qutip.orbital import *
 from qutip.bloch3d import *
+from qutip.matplotlib_utilities import *
 
 # library functions
 from qutip.tomography import *
@@ -261,6 +262,3 @@ from qutip.qip import *
 from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *
-from qutip.matplotlib_utilities import *
-
-
