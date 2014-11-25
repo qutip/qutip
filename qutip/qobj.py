@@ -232,7 +232,7 @@ class Qobj(object):
             self.data = sp.csr_matrix(data, dtype=complex)
 
             if not np.any(dims):
-                self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
+                self.dims = [[int(data.shape[0])], [int(data.shape[1])]]
             else:
                 self.dims = dims
 
@@ -1542,7 +1542,7 @@ class Qobj(object):
         if self.data.shape == (1, 1):
             return [np.prod(self.dims[0]), np.prod(self.dims[1])]
         else:
-            return self.data.shape
+            return list(self.data.shape)
 
     @property
     def isbra(self):
