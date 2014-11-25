@@ -325,25 +325,25 @@ class Dynamics:
         shp = self.drift_dyn_gen.shape
         # set H to be just empty float arrays with the shape of H
         self.dyn_gen = [np.empty(shp, dtype=complex) 
-                        for x in xrange(self.num_tslots)]
+                        for x in range(self.num_tslots)]
         # the exponetiation of H. Just empty float arrays with the shape of H
         self.prop = [np.empty(shp, dtype=complex) 
-                        for x in xrange(self.num_tslots)]
+                        for x in range(self.num_tslots)]
         if self.prop_computer.grad_exact:
             self.prop_grad = np.empty([self.num_tslots, self.get_num_ctrls()],
                         dtype = np.ndarray)   
         # Time evolution operator (forward propagation)
         self.evo_init2t = [np.empty(shp, dtype=complex) 
-                        for x in xrange(self.num_tslots + 1)]
+                        for x in range(self.num_tslots + 1)]
         self.evo_init2t[0] = self.initial
         if self.fid_computer.uses_evo_t2end:
             # Time evolution operator (onward propagation)
             self.evo_t2end = [np.empty(shp, dtype=complex) 
-                            for x in xrange(self.num_tslots)]
+                            for x in range(self.num_tslots)]
         if self.fid_computer.uses_evo_t2targ:
             # Onward propagation overlap with inverse target
             self.evo_t2targ = [np.empty(shp, dtype=complex) 
-                            for x in xrange(self.num_tslots + 1)]
+                            for x in range(self.num_tslots + 1)]
             self.evo_t2targ[-1] = self.get_owd_evo_target()
 
         if isinstance(self.prop_computer, propcomp.PropCompDiag):
@@ -357,13 +357,13 @@ class Dynamics:
         """
         shp = self.drift_dyn_gen.shape
         n_ts = self.num_tslots
-        self.decomp_curr = [False for x in xrange(n_ts)]
+        self.decomp_curr = [False for x in range(n_ts)]
         self.prop_eigen = \
-            [np.empty(shp[0], dtype=complex) for x in xrange(n_ts)]
+            [np.empty(shp[0], dtype=complex) for x in range(n_ts)]
         self.dyn_gen_eigenvectors = \
-            [np.empty(shp, dtype=complex) for x in xrange(n_ts)]
+            [np.empty(shp, dtype=complex) for x in range(n_ts)]
         self.dyn_gen_factormatrix = \
-            [np.empty(shp, dtype=complex) for x in xrange(n_ts)]
+            [np.empty(shp, dtype=complex) for x in range(n_ts)]
         
              
     def initialize_controls(self, amps):
@@ -752,7 +752,7 @@ class DynamicsSymplectic(Dynamics):
         
     def get_omega(self):
         if self.omega is None:
-            n = self.drift_dyn_gen.shape[0]/2
+            n = self.drift_dyn_gen.shape[0] // 2
             self.omega = sympl.calc_omega(n)
         
         return self.omega
