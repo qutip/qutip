@@ -801,8 +801,8 @@ def enr_destroy(dims, excitations):
         a1, a2, a3, a4 = enr_destroy([5, 5, 5, 5], excitations=2)
 
     From this point onwards, the annihiltion operators a1, ..., a4 can be
-    used to setup a Hamiltonian, collapse operatrors and expectation value
-    operators following the usual pattern.
+    used to setup a Hamiltonian, collapse operators and expectation-value
+    operators, etc., following the usual pattern.
 
     Parameters
     ----------
