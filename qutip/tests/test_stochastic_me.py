@@ -34,7 +34,7 @@
 import numpy as np
 from numpy.testing import assert_, run_module_suite
 
-from qutip import (smesolve, mesolve, destroy, coherent, )
+from qutip import (smesolve, mesolve, destroy, coherent, parallel_map)
 
 
 def test_ssesolve_photocurrent():
@@ -56,7 +56,8 @@ def test_ssesolve_photocurrent():
     res_ref = mesolve(H, psi0, times, sc_ops, e_ops)
     res = smesolve(H, psi0, times, [], sc_ops, e_ops,
                    ntraj=ntraj, nsubsteps=nsubsteps,
-                   method='photocurrent', store_measurement=True)
+                   method='photocurrent', store_measurement=True,
+                   map_func=parallel_map)
 
     assert_(all([np.mean(abs(res.expect[idx] - res_ref.expect[idx])) < tol
                  for idx in range(len(e_ops))]))
@@ -85,7 +86,8 @@ def test_ssesolve_homodyne():
     res_ref = mesolve(H, psi0, times, sc_ops, e_ops)
     res = smesolve(H, psi0, times, [], sc_ops, e_ops,
                    ntraj=ntraj, nsubsteps=nsubsteps,
-                   method='homodyne', store_measurement=True)
+                   method='homodyne', store_measurement=True,
+                   map_func=parallel_map)
 
     assert_(all([np.mean(abs(res.expect[idx] - res_ref.expect[idx])) < tol
                  for idx in range(len(e_ops))]))
@@ -114,7 +116,8 @@ def test_ssesolve_heterodyne():
     res_ref = mesolve(H, psi0, times, sc_ops, e_ops)
     res = smesolve(H, psi0, times, [], sc_ops, e_ops,
                    ntraj=ntraj, nsubsteps=nsubsteps,
-                   method='heterodyne', store_measurement=True)
+                   method='heterodyne', store_measurement=True,
+                   map_func=parallel_map)
 
     assert_(all([np.mean(abs(res.expect[idx] - res_ref.expect[idx])) < tol
                  for idx in range(len(e_ops))]))
