@@ -115,7 +115,7 @@ class Options():
                  num_cpus=0, norm_tol=1e-3, norm_steps=5, rhs_reuse=False,
                  rhs_filename=None, ntraj=500, gui=False, rhs_with_state=False,
                  store_final_state=False, store_states=False, seeds=None,
-                 steady_state_average=False, seed_reuse=False):
+                 steady_state_average=False):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -138,14 +138,14 @@ class Options():
         self.average_expect = average_expect
         # Number of trajectories (default = 500)
         self.ntraj = ntraj
+        # Holds seeds for rand num gen
+        self.seeds = seeds
         # tidyup Hamiltonian before calculation (default = True)
         self.tidy = tidy
         # include the state in the function callback signature
         self.rhs_with_state = rhs_with_state
         # Use preexisting RHS function for time-dependent solvers
         self.rhs_reuse = rhs_reuse
-        # reuse seeds for monte-carlo solver
-        self.seed_reuse = seed_reuse
         # Use filename for preexisting RHS function (will default to last
         # compiled function if None & rhs_exists=True)
         self.rhs_filename = rhs_filename
@@ -238,6 +238,7 @@ class Result():
         self.num_expect = 0
         self.num_collapse = 0
         self.ntraj = None
+        self.seeds = None
         self.col_times = None
         self.col_which = None
 
@@ -291,7 +292,6 @@ class SolverConfiguration():
         self.options = None     # options for solvers
         self.norm_tol = None    # tolerance for wavefunction norm
         self.norm_steps = None  # max. number of steps to take in finding
-        self.seeds = None       # store seeds for rand num generator
         # Initial state stuff
         self.psi0 = None        # initial state
         self.psi0_dims = None   # initial state dims

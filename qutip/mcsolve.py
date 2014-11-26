@@ -142,7 +142,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         Object storing all results from simulation.
 
     """
-
+    
     if debug:
         print(inspect.stack()[0][3])
 
@@ -193,7 +193,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         config.ntraj = np.sort(ntraj)[-1]
     else:
         config.ntraj = ntraj
-
+ 
     # set norm finding constants
     config.norm_tol = options.norm_tol
     config.norm_steps = options.norm_steps
@@ -257,6 +257,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     # ------- COLLECT AND RETURN OUTPUT DATA IN ODEDATA OBJECT --------------
     output = Result()
     output.solver = 'mcsolve'
+    output.seeds = config.options.seeds
     # state vectors
     if (mc.psi_out is not None and config.options.average_states
             and config.cflag and ntraj != 1):
@@ -340,8 +341,6 @@ class _MC_class():
         # times at which to output state vectors or expectation values
         # number of time steps in tlist
         self.num_times = len(self.config.tlist)
-        # holds seed for random number generator
-        self.seeds = self.config.seeds
         # number of cpus to be used
         self.cpus = self.config.options.num_cpus
         # set output variables, even if they are not used to simplify output
@@ -459,16 +458,16 @@ class _MC_class():
                 self.expect_out = _no_collapse_expect_out(
                     self.num_times, self.expect_out, self.config)
         elif self.config.c_num != 0:
-            if not config.options.seed_reuse or (self.config.seeds is None):
-                self.config.seeds = random_integers(1e8, size=self.config.ntraj)
+            if self.config.options.seeds is None:
+                self.config.options.seeds = random_integers(1e8, size=self.config.ntraj)
             else:
                 # if ntraj was reduced but reusing seeds
-                seed_length = len(self.config.seeds)
+                seed_length = len(self.config.options.seeds)
                 if seed_length > self.config.ntraj:
-                    self.config.seeds = self.config.seeds[0:self.config.ntraj]
+                    self.config.options.seeds = self.config.options.seeds[0:self.config.ntraj]
                 # if ntraj was increased but reusing seeds
                 elif seed_length < self.config.ntraj:
-                    self.config.seeds = np.hstack((self.config.seeds,
+                    self.config.options.seeds = np.hstack((self.config.options.seeds,
                                 random_integers(1e8, size=(self.config.ntraj-seed_length))))      
             # else:
             #    if len(self.seeds) != self.config.ntraj:
@@ -520,7 +519,7 @@ class _MC_class():
 
             # set arguments for input to monte-carlo
             args = (mc_alg_out, self.config.options,
-                    self.config.tlist, self.num_times,  self.config.seeds)
+                    self.config.tlist, self.num_times,  config.options.seeds)
 
             if isinstance(self.config.ntraj, list):
                 self.config.progress_bar.start(max(self.config.ntraj))
