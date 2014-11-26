@@ -38,7 +38,7 @@ import copy
 import numpy as np
 from types import FunctionType
 from multiprocessing import Pool
-
+from qutip.parallel import parfor
 from numpy.random import RandomState, random_integers
 from numpy import arange, array, cumsum, mean, ndarray, setdiff1d, sort, zeros
 
@@ -48,7 +48,6 @@ from scipy.linalg.blas import get_blas_funcs
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 from qutip.qobj import Qobj
-from qutip.parallel import parfor
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
 from qutip.solver import Options, Result, config
@@ -244,7 +243,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         # function based
         elif config.tflag in array([2, 3, 20, 22]):
             config.h_func_args = args
-
+    
     # load monte-carlo class
     mc = _MC_class(config)
 
@@ -346,7 +345,7 @@ class _MC_class():
         # number of time steps in tlist
         self.num_times = len(self.config.tlist)
         # holds seed for random number generator
-        self.seeds = self.config.options.seeds
+        self.seeds = self.config.seeds
         # number of cpus to be used
         self.cpus = self.config.options.num_cpus
         # set output variables, even if they are not used to simplify output
@@ -463,11 +462,19 @@ class _MC_class():
             else:  # return expectation values of requested operators
                 self.expect_out = _no_collapse_expect_out(
                     self.num_times, self.expect_out, self.config)
-
         elif self.config.c_num != 0:
-
-            if self.seeds is None:
-                self.seeds = random_integers(1e8, size=self.config.ntraj)
+            if not config.options.seed_reuse or (self.config.seeds is None):
+                self.config.seeds = random_integers(1e8, size=self.config.ntraj)
+            else:
+                # if ntraj was reduced but reusing seeds
+                seed_length = len(self.config.seeds)
+                if seed_length > self.config.ntraj:
+                    self.config.seeds = self.config.seeds[0:self.config.ntraj]
+                # if ntraj was increased but reusing seeds
+                elif seed_length < self.config.ntraj:
+                    self.config.seeds = np.hstack((self.config.seeds,
+                                random_integers(1e8, size=(self.config.ntraj-seed_length))))
+            print(self.config.seeds)       
             # else:
             #    if len(self.seeds) != self.config.ntraj:
             #        raise "Incompatible size of seeds vector in config."
@@ -518,7 +525,7 @@ class _MC_class():
 
             # set arguments for input to monte-carlo
             args = (mc_alg_out, self.config.options,
-                    self.config.tlist, self.num_times, self.seeds)
+                    self.config.tlist, self.num_times,  self.config.seeds)
 
             if isinstance(self.config.ntraj, list):
                 self.config.progress_bar.start(max(self.config.ntraj))

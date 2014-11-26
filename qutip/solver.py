@@ -115,7 +115,7 @@ class Options():
                  num_cpus=0, norm_tol=1e-3, norm_steps=5, rhs_reuse=False,
                  rhs_filename=None, ntraj=500, gui=False, rhs_with_state=False,
                  store_final_state=False, store_states=False, seeds=None,
-                 steady_state_average=False):
+                 steady_state_average=False, seed_reuse=False):
         # Absolute tolerance (default = 1e-8)
         self.atol = atol
         # Relative tolerance (default = 1e-6)
@@ -144,6 +144,8 @@ class Options():
         self.rhs_with_state = rhs_with_state
         # Use preexisting RHS function for time-dependent solvers
         self.rhs_reuse = rhs_reuse
+        # reuse seeds for monte-carlo solver
+        self.seed_reuse = seed_reuse
         # Use filename for preexisting RHS function (will default to last
         # compiled function if None & rhs_exists=True)
         self.rhs_filename = rhs_filename
@@ -167,8 +169,6 @@ class Options():
         self.store_final_state = store_final_state
         # store states even if expectation operators are given?
         self.store_states = store_states
-        # extra solver parameters
-        self.seeds = seeds
         # average mcsolver density matricies assuming steady state evolution
         self.steady_state_average = steady_state_average
 
@@ -190,6 +190,7 @@ class Options():
         s += "norm_steps:        " + str(self.norm_steps) + "\n"
         s += "rhs_filename:      " + str(self.rhs_filename) + "\n"
         s += "rhs_reuse:         " + str(self.rhs_reuse) + "\n"
+        s += "seed_reuse:        " + str(self.seed_reuse) + "\n"
         s += "rhs_with_state:    " + str(self.rhs_with_state) + "\n"
         s += "average_expect:    " + str(self.average_expect) + "\n"
         s += "average_states:    " + str(self.average_states) + "\n"
@@ -290,7 +291,7 @@ class SolverConfiguration():
         self.options = None     # options for solvers
         self.norm_tol = None    # tolerance for wavefunction norm
         self.norm_steps = None  # max. number of steps to take in finding
-
+        self.seeds = None       # store seeds for rand num generator
         # Initial state stuff
         self.psi0 = None        # initial state
         self.psi0_dims = None   # initial state dims
