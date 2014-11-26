@@ -831,7 +831,7 @@ def _mc_alg_evolve(nt, args, config):
                 # integrate until tlist exactly
                 if ODE.t > tlist[k]:
                     ODE.set_initial_value(y_prev, t_prev)
-                    ODE.integrate(tlist[k], step=0)
+                    ODE.integrate(tlist[k])
                     if not ODE.successful():
                         raise Exception("ZVODE failed!")
                 norm2_psi = dznrm2(ODE.y) ** 2
