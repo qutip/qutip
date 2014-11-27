@@ -54,7 +54,7 @@ from qutip.ui.progressbar import TextProgressBar, BaseProgressBar
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 if debug:
     import inspect
-
+from scipy.integrate._ode import zvode
 #
 # Internal, global variables for storing references to dynamically loaded
 # cython functions
@@ -64,6 +64,16 @@ _cy_col_expect_func = None
 _cy_col_spmv_call_func = None
 _cy_col_expect_call_func = None
 _cy_rhs_func = None
+
+
+class qutip_zvode(zvode):
+    def step(self, *args):
+        itask = self.call_args[2]
+        self.rwork[0] = args[4]
+        self.call_args[2] = 5
+        r = self.run(*args)
+        self.call_args[2] = itask
+        return r
 
 
 def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
@@ -730,6 +740,7 @@ def _no_collapse_expect_out(num_times, expect_out, config):
                        atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                        first_step=opt.first_step, min_step=opt.min_step,
                        max_step=opt.max_step)
+    
     ODE.set_initial_value(config.psi0, config.tlist[0])
     for jj in range(config.e_num):
         expect_out[jj][0] = cy_expect_psi_csr(
@@ -805,11 +816,19 @@ def _mc_alg_evolve(nt, args, config):
                              config.h_ptr)
 
         # initialize ODE solver for RHS
-        ODE.set_integrator('zvode', method=opt.method, order=opt.order,
+        #ODE.set_integrator('zvode', method=opt.method, order=opt.order,
+                           #atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
+                           #first_step=opt.first_step, min_step=opt.min_step,
+                           #max_step=opt.max_step)
+
+        ODE._integrator = qutip_zvode(method=opt.method, order=opt.order,
                            atol=opt.atol, rtol=opt.rtol, nsteps=opt.nsteps,
                            first_step=opt.first_step, min_step=opt.min_step,
                            max_step=opt.max_step)
-
+        if not len(ODE._y):
+            ODE.t = 0.0
+            ODE._y = np.array([0.0], complex)
+        ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
         # set initial conditions
         ODE.set_initial_value(config.psi0, tlist[0])
 
@@ -818,28 +837,17 @@ def _mc_alg_evolve(nt, args, config):
 
         # ODE WHILE LOOP FOR INTEGRATION
         k = 1
-        hit_tlist = 0
-        break_out = 0
         while ODE.t < tlist[k]:
             t_prev = ODE.t
-            y_prev = ODE.y
-            norm2_prev = dznrm2(ODE.y) ** 2
+            y_prev = ODE._y
+            norm2_prev = dznrm2(ODE._y) ** 2
             # integrate up to tlist[k], one step at a time.
             ODE.integrate(tlist[k], step=1)
             if not ODE.successful():
                 raise Exception("ZVODE failed!")
             # check if ODE jumped over tlist[k], if so,
             # integrate until tlist exactly
-            if ODE.t > tlist[k]:
-                ODE.set_initial_value(y_prev, t_prev)
-                ODE.integrate(tlist[k], step=0)
-                if not ODE.successful():
-                    raise Exception("ZVODE failed!")
-                hit_tlist = 1
-                k += 1
-                if k == num_times:
-                    break_out = 1
-            norm2_psi = dznrm2(ODE.y) ** 2
+            norm2_psi = dznrm2(ODE._y) ** 2
             if norm2_psi <= rand_vals[0]:  # <== collapse has occured
                 # find collapse time to within specified tolerance
                 # ---------------------------------------------------
@@ -849,12 +857,15 @@ def _mc_alg_evolve(nt, args, config):
                     ii += 1
                     t_guess = t_prev + np.log(norm2_prev / rand_vals[0]) / \
                         np.log(norm2_prev / norm2_psi) * (t_final - t_prev)
-                    ODE.set_initial_value(y_prev, t_prev)
+                    #ODE.set_initial_value(y_prev, t_prev)
+                    ODE._y = y_prev
+                    ODE.t = t_prev
+                    ODE._integrator.call_args[3] = 1
                     ODE.integrate(t_guess, step=0)
                     if not ODE.successful():
                         raise Exception(
                             "ZVODE failed after adjusting step size!")
-                    norm2_guess = dznrm2(ODE.y)**2
+                    norm2_guess = dznrm2(ODE._y)**2
                     if (np.abs(rand_vals[0] - norm2_guess) <
                             config.norm_tol * rand_vals[0]):
                         break
@@ -879,7 +890,7 @@ def _mc_alg_evolve(nt, args, config):
                     n_dp = [cy_expect_psi_csr(config.n_ops_data[i],
                                               config.n_ops_ind[i],
                                               config.n_ops_ptr[i],
-                                              ODE.y, 1)
+                                              ODE._y, 1)
                             for i in config.c_const_inds]
 
                     _locals = locals()
@@ -893,14 +904,14 @@ def _mc_alg_evolve(nt, args, config):
                     n_dp = [cy_expect_psi_csr(config.n_ops_data[i],
                                               config.n_ops_ind[i],
                                               config.n_ops_ptr[i],
-                                              ODE.y, 1)
+                                              ODE._y, 1)
                             for i in config.c_const_inds]
                     n_dp += [abs(config.c_funcs[i](
                                  ODE.t, config.c_func_args)) ** 2 *
                              cy_expect_psi_csr(config.n_ops_data[i],
                                                config.n_ops_ind[i],
                                                config.n_ops_ptr[i],
-                                               ODE.y, 1)
+                                               ODE._y, 1)
                              for i in config.c_td_inds]
                     n_dp = np.array(n_dp)
                 # all constant collapse operators.
@@ -909,7 +920,7 @@ def _mc_alg_evolve(nt, args, config):
                         [cy_expect_psi_csr(config.n_ops_data[i],
                                            config.n_ops_ind[i],
                                            config.n_ops_ptr[i],
-                                           ODE.y, 1)
+                                           ODE._y, 1)
                          for i in range(config.c_num)])
 
                 # determine which operator does collapse and store it
@@ -919,7 +930,7 @@ def _mc_alg_evolve(nt, args, config):
                 if j in config.c_const_inds:
                     state = spmv_csr(config.c_ops_data[j],
                                      config.c_ops_ind[j],
-                                     config.c_ops_ptr[j], ODE.y)
+                                     config.c_ops_ptr[j], ODE._y)
                 else:
                     if config.tflag in (1, 11):
                         _locals = locals()
@@ -933,21 +944,22 @@ def _mc_alg_evolve(nt, args, config):
                                               config.c_func_args) * \
                             spmv_csr(config.c_ops_data[j],
                                      config.c_ops_ind[j],
-                                     config.c_ops_ptr[j], ODE.y)
+                                     config.c_ops_ptr[j], ODE._y)
                 state = state / dznrm2(state)
-                ODE.set_initial_value(state, ODE.t)
+                #ODE.set_initial_value(state, ODE.t)
+                ODE._y = state
+                ODE._integrator.call_args[3] = 1
                 rand_vals = prng.rand(2)
             # -- if hit a time in tlist --
-            if hit_tlist:
-                kk=k-1
-                out_psi = ODE.y / dznrm2(ODE.y)
+            if ODE.t == tlist[k]:
+                out_psi = ODE._y / dznrm2(ODE._y)
                 if config.e_num == 0:
                     out_psi = sp.csr_matrix(np.reshape(out_psi,
                                                        (out_psi.shape[0], 1)),
                                             dtype=complex)
                     if (config.options.average_states and
                             not config.options.steady_state_average):
-                        mc_alg_out[kk] = Qobj(out_psi * out_psi.conj().transpose(),
+                        mc_alg_out[k] = Qobj(out_psi * out_psi.conj().transpose(),
                                              [config.psi0_dims[0],
                                               config.psi0_dims[0]],
                                              [config.psi0_shape[0],
@@ -959,18 +971,17 @@ def _mc_alg_evolve(nt, args, config):
                                          (out_psi * out_psi.conj().transpose()))
 
                     else:
-                        mc_alg_out[kk] = Qobj(out_psi, config.psi0_dims,
+                        mc_alg_out[k] = Qobj(out_psi, config.psi0_dims,
                                              config.psi0_shape, fast='mc')
                 else:
                     for jj in range(config.e_num):
-                        mc_alg_out[jj][kk] = cy_expect_psi_csr(
+                        mc_alg_out[jj][k] = cy_expect_psi_csr(
                             config.e_ops_data[jj], config.e_ops_ind[jj],
                             config.e_ops_ptr[jj], out_psi,
                             config.e_ops_isherm[jj])
-                hit_tlist = 0
-            if break_out:
-                break
-
+                k += 1
+                if k == num_times:
+                   break
         # Run at end of mc_alg function
         # ------------------------------
         if config.options.steady_state_average:
