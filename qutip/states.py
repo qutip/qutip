@@ -731,10 +731,12 @@ def state_number_enumerate(dims, excitations=None, state=None, idx=0):
     if state is None:
         state = np.zeros(len(dims))
 
-    if idx == len(dims):
+    if excitations and sum(state[0:idx]) > excitations:
+        pass
+    elif idx == len(dims):
         if excitations is None:
             yield np.array(state)
-        elif sum(state) <= excitations:
+        else:
             yield tuple(state)
     else:
         for n in range(dims[idx]):
