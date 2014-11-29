@@ -926,6 +926,81 @@ def enr_fock(dims, excitations, state):
     return Qobj(data, dims=[dims, 1])
 
 
+def enr_identity(dims, excitations):
+    """
+    Generate the identity operator for the excitation-number restricted
+    state space defined by the `dims` and `exciations` arguments. See the
+    docstring for enr_fock for a more detailed description of these arguments.
+
+    Parameters
+    ----------
+    dims : list
+        A list of the dimensions of each subsystem of a composite quantum
+        system.
+
+    excitations : integer
+        The maximum number of excitations that are to be included in the
+        state space.
+
+    state : list of integers
+        The state in the number basis representation.
+
+    Returns
+    -------
+    op : Qobj
+        A Qobj instance that represent the identity operator in the
+        exication-number-restricted state space defined by `dims` and
+        `exciations`.
+    """
+    nstates, _, _ = enr_state_dictionaries(dims, excitations)
+    data = sp.eye(nstates, nstates, dtype=np.complex)
+    return Qobj(data, dims=[dims, dims])
+
+
+def enr_thermal_dm(dims, excitations, n):
+    """
+    Generate the density operator for a thermal state in the excitation-number-
+    restricted state space defined by the `dims` and `exciations` arguments.
+    See the documentation for enr_fock for a more detailed description of
+    these arguments. The temperature of each mode in dims is specified by
+    the average number of excitatons `n`.
+
+    Parameters
+    ----------
+    dims : list
+        A list of the dimensions of each subsystem of a composite quantum
+        system.
+
+    excitations : integer
+        The maximum number of excitations that are to be included in the
+        state space.
+
+    n : integer
+        The average number of exciations in the thermal state. `n` can be
+        a float (which then applies to each mode), or a list/array of the same
+        length as dims, in which each element corresponds specifies the
+        temperature of the corresponding mode.
+
+    Returns
+    -------
+    dm : Qobj
+        Thermal state density matrix.
+    """
+    nstates, state2idx, idx2state = enr_state_dictionaries(dims, excitations)
+
+    if not isinstance(n, (list, np.ndarray)):
+        n = np.ones(len(dims)) * n
+    else:
+        n = np.asarray(n)
+
+    diags = [np.prod((n / (n + 1)) ** np.array(state))
+             for idx, state in idx2state.items()]
+    diags /= np.sum(diags)
+    data = sp.spdiags(diags, 0, nstates, nstates, format='csr')
+
+    return Qobj(data, dims=[dims, dims])
+
+
 def phase_basis(N, m, phi0=0):
     """
     Basis vector for the mth phase of the Pegg-Barnett phase operator.
