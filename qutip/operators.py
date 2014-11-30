@@ -448,14 +448,18 @@ def identity(N):
 
     Parameters
     ----------
-    N : int
-        Dimension of Hilbert space.
+    N : int or list of ints
+        Dimension of Hilbert space. If provided as a list of ints,
+        then the dimension is the product over this list, but the
+        ``dims`` property of the new Qobj are set to this list.
 
     Returns
     -------
     oper : qobj
         Identity operator Qobj.
     """
+    if isinstance(N, list):
+        return tensor(*[identity(n) for n in N])
     return qeye(N)
 
 
@@ -777,3 +781,5 @@ def zero_oper(N, dims=None):
 
     """
     return Qobj(sp.csr_matrix((N, N), dtype=complex), dims=dims)
+
+from .tensor import tensor
