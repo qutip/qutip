@@ -37,7 +37,8 @@ __all__ = ['basis', 'qutrit_basis', 'coherent', 'coherent_dm', 'fock_dm',
            'state_number_index', 'state_index_number', 'state_number_qobj',
            'phase_basis', 'zero_ket', 'spin_state', 'spin_coherent',
            'bell_state', 'singlet_state', 'triplet_states', 'w_state',
-           'ghz_state', 'enr_state_dictionaries', 'enr_fock']
+           'ghz_state', 'enr_state_dictionaries', 'enr_fock',
+           'enr_thermal_dm']
 
 import numpy as np
 from scipy import arange, conj, prod
@@ -924,37 +925,6 @@ def enr_fock(dims, excitations, state):
                          "state space" % str(tuple(state)))
 
     return Qobj(data, dims=[dims, 1])
-
-
-def enr_identity(dims, excitations):
-    """
-    Generate the identity operator for the excitation-number restricted
-    state space defined by the `dims` and `exciations` arguments. See the
-    docstring for enr_fock for a more detailed description of these arguments.
-
-    Parameters
-    ----------
-    dims : list
-        A list of the dimensions of each subsystem of a composite quantum
-        system.
-
-    excitations : integer
-        The maximum number of excitations that are to be included in the
-        state space.
-
-    state : list of integers
-        The state in the number basis representation.
-
-    Returns
-    -------
-    op : Qobj
-        A Qobj instance that represent the identity operator in the
-        exication-number-restricted state space defined by `dims` and
-        `exciations`.
-    """
-    nstates, _, _ = enr_state_dictionaries(dims, excitations)
-    data = sp.eye(nstates, nstates, dtype=np.complex)
-    return Qobj(data, dims=[dims, dims])
 
 
 def enr_thermal_dm(dims, excitations, n):

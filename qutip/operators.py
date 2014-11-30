@@ -39,7 +39,8 @@ __all__ = ['jmat', 'spin_Jx', 'spin_Jy', 'spin_Jz', 'spin_Jm', 'spin_Jp',
            'spin_J_set', 'sigmap', 'sigmam', 'sigmax', 'sigmay', 'sigmaz',
            'destroy', 'create', 'qeye', 'identity', 'position', 'momentum',
            'num', 'squeeze', 'squeezing', 'displace', 'commutator',
-           'qutrit_ops', 'qdiags', 'phase', 'zero_oper', 'enr_destroy']
+           'qutrit_ops', 'qdiags', 'phase', 'zero_oper', 'enr_destroy',
+           'enr_identity']
 
 import numpy as np
 import scipy
@@ -836,3 +837,36 @@ def enr_destroy(dims, excitations):
                     a_ops[idx][n1, n2] = np.sqrt(state2[idx])
 
     return [Qobj(a, dims=[dims, dims]) for a in a_ops]
+
+
+def enr_identity(dims, excitations):
+    """
+    Generate the identity operator for the excitation-number restricted
+    state space defined by the `dims` and `exciations` arguments. See the
+    docstring for enr_fock for a more detailed description of these arguments.
+
+    Parameters
+    ----------
+    dims : list
+        A list of the dimensions of each subsystem of a composite quantum
+        system.
+
+    excitations : integer
+        The maximum number of excitations that are to be included in the
+        state space.
+
+    state : list of integers
+        The state in the number basis representation.
+
+    Returns
+    -------
+    op : Qobj
+        A Qobj instance that represent the identity operator in the
+        exication-number-restricted state space defined by `dims` and
+        `exciations`.
+    """
+    from qutip.states import enr_state_dictionaries
+
+    nstates, _, _ = enr_state_dictionaries(dims, excitations)
+    data = sp.eye(nstates, nstates, dtype=np.complex)
+    return Qobj(data, dims=[dims, dims])
