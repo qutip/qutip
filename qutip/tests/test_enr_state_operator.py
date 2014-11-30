@@ -33,7 +33,9 @@
 
 from numpy.testing import assert_, run_module_suite
 
-from qutip import (destroy, enr_destroy, identity, tensor, enr_fock)
+from qutip import (destroy, enr_destroy, identity, tensor, enr_fock,
+                   enr_identity, enr_thermal_dm, thermal_dm,
+                   state_number_enumerate)
 
 
 def test_enr_destory_full():
@@ -46,7 +48,7 @@ def test_enr_destory_full():
 
 
 def test_enr_destory_single():
-    "Excitation-number-restricted state-space: single excitations"
+    "Excitation-number-restricted state space: single excitations"
     a1, a2 = enr_destroy([4, 4], 1)
     assert_(a1.shape == [3, 3])
 
@@ -58,7 +60,7 @@ def test_enr_destory_single():
 
 
 def test_enr_destory_double():
-    "Excitation-number-restricted state-space: two excitations"
+    "Excitation-number-restricted state space: two excitations"
     a1, a2 = enr_destroy([4, 4], 2)
     assert_(a1.shape == [6, 6])
 
@@ -70,7 +72,7 @@ def test_enr_destory_double():
 
 
 def test_enr_fock_state():
-    "Excitation-number-restricted state-space: fock states"
+    "Excitation-number-restricted state space: fock states"
     dims, excitations = [4, 4], 2
 
     a1, a2 = enr_destroy(dims, excitations)
@@ -86,6 +88,51 @@ def test_enr_fock_state():
     psi = enr_fock(dims, excitations, [1, 1])
     assert_(abs((a1.dag()*a1).matrix_element(psi.dag(), psi) - 1) < 1e-10)
     assert_(abs((a2.dag()*a2).matrix_element(psi.dag(), psi) - 1) < 1e-10)
+
+
+def test_enr_identity():
+    "Excitation-number-restricted state space: identity operator"
+    dims, excitations = [4, 4], 2
+
+    i = enr_identity(dims, excitations)
+    assert_((i.diag() == 1).all())
+    assert_(i.dims[0] == dims)
+    assert_(i.dims[1] == dims)
+
+
+def test_enr_thermal_dm1():
+    "Excitation-number-restricted state space: thermal density operator (I)"
+    dims, excitations = [3, 4, 5, 6], 3
+
+    n_vec = [0.01, 0.05, 0.1, 0.15]
+
+    rho = enr_thermal_dm(dims, excitations, n_vec)
+
+    rho_ref = tensor([thermal_dm(d, n_vec[idx])
+                      for idx, d in enumerate(dims)])
+    gonners = [idx for idx, state in enumerate(state_number_enumerate(dims))
+               if sum(state) > excitations]
+    rho_ref = rho_ref.eliminate_states(gonners)
+    rho_ref = rho_ref / rho_ref.tr()
+
+    assert_(abs((rho.data - rho_ref.data).data).max() < 1e-12)
+
+
+def test_enr_thermal_dm2():
+    "Excitation-number-restricted state space: thermal density operator (II)"
+    dims, excitations = [3, 4, 5], 2
+
+    n_vec = 0.1
+
+    rho = enr_thermal_dm(dims, excitations, n_vec)
+
+    rho_ref = tensor([thermal_dm(d, n_vec) for idx, d in enumerate(dims)])
+    gonners = [idx for idx, state in enumerate(state_number_enumerate(dims))
+               if sum(state) > excitations]
+    rho_ref = rho_ref.eliminate_states(gonners)
+    rho_ref = rho_ref / rho_ref.tr()
+
+    assert_(abs((rho.data - rho_ref.data).data).max() < 1e-12)
 
 
 if __name__ == "__main__":
