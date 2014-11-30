@@ -46,17 +46,17 @@ from qutip.tensor import (
 
 def test_flatten():
     l = [[[0], 1], 2]
-    assert flatten(l) == [0, 1, 2]
+    assert_equal(flatten(l), [0, 1, 2])
 
 def test_enumerate_flat():
     l = [[[10], [20, 30]], 40]
     labels = enumerate_flat(l)
-    assert labels == [[[0], [1, 2]], 3]
+    assert_equal(labels, [[[0], [1, 2]], 3])
 
 def test_deep_remove():
     l = [[[0], 1], 2]
     l = deep_remove(l, 1)
-    assert l == [[[0]], 2]
+    assert_equal(l, [[[0]], 2])
 
     # Harder case...
     l = [[[[0, 1, 2]], [3, 4], [5], [6, 7]]]
@@ -72,7 +72,7 @@ def test_tensor_contract():
     qobj = identity([2, 3, 4])
     ans = 3 * identity([2, 4])
 
-    assert_equal(ans, tensor_contract(qobj, (1, 4)))
+    assert_(ans == tensor_contract(qobj, (1, 4)))
 
     # Now try for superoperators.
     # For now, we just ensure the dims are correct.

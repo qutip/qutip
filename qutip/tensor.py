@@ -316,7 +316,7 @@ def deep_remove(l, *what):
             if to_remove in l:
                 l.remove(to_remove)
             else:
-                l = map(lambda elem: deep_remove(elem, to_remove), l)
+                l = list(map(lambda elem: deep_remove(elem, to_remove), l))
     return l
 
 def unflatten(l, idxs):
@@ -350,7 +350,7 @@ def _tensor_contract_single(arr, i, j):
     if arr.shape[i] != arr.shape[j]:
         raise ValueError("Cannot contract over indices of different length.")
     idxs = np.arange(arr.shape[i])
-    sl = tuple(slice(None, None, None) if idx not in (i, j) else idxs for idx in xrange(arr.ndim))
+    sl = tuple(slice(None, None, None) if idx not in (i, j) else idxs for idx in range(arr.ndim))
     return np.sum(arr[sl], axis=0)
 
 def _tensor_contract_dense(arr, *pairs):
@@ -359,12 +359,12 @@ def _tensor_contract_dense(arr, *pairs):
     keeping track of how the indices are relabeled by the removal
     of other indices.
     """
-    axis_idxs = range(arr.ndim)
+    axis_idxs = list(range(arr.ndim))
     for pair in pairs:
         # axis_idxs.index effectively evaluates the mapping from
         # original index labels to the labels after contraction.
         arr = _tensor_contract_single(arr, *map(axis_idxs.index, pair))
-        map(axis_idxs.remove, pair)
+        list(map(axis_idxs.remove, pair))
     return arr
 
 def tensor_contract(qobj, *pairs):
@@ -404,8 +404,9 @@ def tensor_contract(qobj, *pairs):
 
     # Remove the contracted indexes from dims so we know how to
     # reshape back.
-    contracted_idxs = deep_remove(dims_idxs, *flatten(map(list, pairs)))
+    contracted_idxs = deep_remove(dims_idxs, *flatten(list(map(list, pairs))))
     contracted_dims = unflatten(flat_dims, contracted_idxs)
+
     l_mtx_dims, r_mtx_dims = map(np.product, contracted_dims)
 
     # Reshape back into a 2D matrix.
