@@ -98,6 +98,8 @@ class Options():
         callback signature.
     rhs_filename : str
         Name for compiled Cython file.
+    seeds : ndarray
+        Array containing random number seeds for mcsolver.
     store_final_state : bool {False, True}
         Whether or not to store the final state of the evolution in the
         result class.
@@ -190,7 +192,7 @@ class Options():
         s += "norm_steps:        " + str(self.norm_steps) + "\n"
         s += "rhs_filename:      " + str(self.rhs_filename) + "\n"
         s += "rhs_reuse:         " + str(self.rhs_reuse) + "\n"
-        s += "seed_reuse:        " + str(self.seed_reuse) + "\n"
+        s += "seeds:             " + str(len(self.seeds)) + "\n"
         s += "rhs_with_state:    " + str(self.rhs_with_state) + "\n"
         s += "average_expect:    " + str(self.average_expect) + "\n"
         s += "average_states:    " + str(self.average_states) + "\n"

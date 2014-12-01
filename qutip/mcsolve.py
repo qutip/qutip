@@ -150,6 +150,12 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     -------
     results : Result
         Object storing all results from simulation.
+        
+    Notes
+    -----
+    It is possible to reuse the random number seeds from a previous run
+    of the mcsolver by passing the output Result object seeds via the
+    Options class, i.e. Options(seeds=prev_result.seeds).
 
     """
 
