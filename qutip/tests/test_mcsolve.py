@@ -37,7 +37,7 @@ from numpy.testing import assert_equal, run_module_suite, assert_
 import unittest
 
 from qutip import (mcsolve, destroy, basis, qeye, Options, tensor, sigmam,
-                   expect)
+                   expect, coherent)
 from qutip import _version2int
 
 # find Cython if it exists
@@ -370,6 +370,43 @@ def test_mc_dtypes2():
     assert_equal(isinstance(data.expect[0][0][1], float), True)
     assert_equal(isinstance(data.expect[0][1][1], float), True)
     assert_equal(isinstance(data.expect[0][2][1], complex), True)
+
+def test_mc_seed_reuse():
+    "Monte-carlo: check reusing seeds"
+    N0 = 6
+    N1 = 6
+    N2 = 6
+    # damping rates
+    gamma0 = 0.1
+    gamma1 = 0.4
+    gamma2 = 0.1
+    alpha = np.sqrt(2)  # initial coherent state param for mode 0
+    tlist = np.linspace(0, 10, 2)
+    ntraj = 500  # number of trajectories
+    # define operators
+    a0 = tensor(destroy(N0), qeye(N1), qeye(N2))
+    a1 = tensor(qeye(N0), destroy(N1), qeye(N2))
+    a2 = tensor(qeye(N0), qeye(N1), destroy(N2))
+    # number operators for each mode
+    num0 = a0.dag() * a0
+    num1 = a1.dag() * a1
+    num2 = a2.dag() * a2
+    # dissipative operators for zero-temp. baths
+    C0 = np.sqrt(2.0 * gamma0) * a0
+    C1 = np.sqrt(2.0 * gamma1) * a1
+    C2 = np.sqrt(2.0 * gamma2) * a2
+    # initial state: coherent mode 0 & vacuum for modes #1 & #2
+    psi0 = tensor(coherent(N0, alpha), basis(N1, 0), basis(N2, 0))
+    # trilinear Hamiltonian
+    H = 1j * (a0 * a1.dag() * a2.dag() - a0.dag() * a1 * a2)
+    # run Monte-Carlo
+    data1 = mcsolve(H, psi0, tlist, [C0, C1, C2], [num0, num1, num2], ntraj=ntraj)
+    data2 = mcsolve(H, psi0, tlist, [C0, C1, C2], [num0, num1, num2], ntraj=ntraj,
+                    options=Options(seeds=data1.seeds))
+    for k in range(ntraj):
+        assert_equal(np.all(data1.col_times[k]-data2.col_times[k]==0),True)
+        assert_equal(np.all(data1.col_which[k]-data2.col_which[k]==0),True)
+
 
 if __name__ == "__main__":
     run_module_suite()

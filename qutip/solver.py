@@ -98,6 +98,8 @@ class Options():
         callback signature.
     rhs_filename : str
         Name for compiled Cython file.
+    seeds : ndarray
+        Array containing random number seeds for mcsolver.
     store_final_state : bool {False, True}
         Whether or not to store the final state of the evolution in the
         result class.
@@ -138,6 +140,8 @@ class Options():
         self.average_expect = average_expect
         # Number of trajectories (default = 500)
         self.ntraj = ntraj
+        # Holds seeds for rand num gen
+        self.seeds = seeds
         # tidyup Hamiltonian before calculation (default = True)
         self.tidy = tidy
         # include the state in the function callback signature
@@ -167,8 +171,6 @@ class Options():
         self.store_final_state = store_final_state
         # store states even if expectation operators are given?
         self.store_states = store_states
-        # extra solver parameters
-        self.seeds = seeds
         # average mcsolver density matricies assuming steady state evolution
         self.steady_state_average = steady_state_average
 
@@ -190,6 +192,7 @@ class Options():
         s += "norm_steps:        " + str(self.norm_steps) + "\n"
         s += "rhs_filename:      " + str(self.rhs_filename) + "\n"
         s += "rhs_reuse:         " + str(self.rhs_reuse) + "\n"
+        s += "seeds:             " + str(len(self.seeds)) + "\n"
         s += "rhs_with_state:    " + str(self.rhs_with_state) + "\n"
         s += "average_expect:    " + str(self.average_expect) + "\n"
         s += "average_states:    " + str(self.average_states) + "\n"
@@ -237,6 +240,7 @@ class Result():
         self.num_expect = 0
         self.num_collapse = 0
         self.ntraj = None
+        self.seeds = None
         self.col_times = None
         self.col_which = None
 
@@ -290,7 +294,6 @@ class SolverConfiguration():
         self.options = None     # options for solvers
         self.norm_tol = None    # tolerance for wavefunction norm
         self.norm_steps = None  # max. number of steps to take in finding
-
         # Initial state stuff
         self.psi0 = None        # initial state
         self.psi0_dims = None   # initial state dims
