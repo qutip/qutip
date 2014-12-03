@@ -61,6 +61,11 @@ from qutip.states import ket2dm
 from qutip.wigner import wigner
 from qutip.tensor import tensor
 from qutip.matplotlib_utilities import complex_phase_cmap
+from qutip.superoperator import vector_to_operator
+from qutip.superop_reps import _pauli_basis, to_super
+from qutip.tensor import flatten
+
+from qutip import settings
 
 # Adopted from the SciPy Cookbook.
 def _blob(x, y, w, w_max, area, cmap=cm.RdBu):
@@ -75,15 +80,20 @@ def _blob(x, y, w, w_max, area, cmap=cm.RdBu):
     plt.fill(xcorners, ycorners,
              color=cmap(int((w + w_max) * 256 / (2 * w_max))))
 
+def _isqubitdims(dims):
+    return all([
+        2**np.floor(np.log2(dim)) == dim
+        for dim in flatten(dims)
+    ])
 
 # Adopted from the SciPy Cookbook.
 def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None):
-    """Draws a Hinton diagram for visualizing a density matrix.
+    """Draws a Hinton diagram for visualizing a density matrix or superoperator.
 
     Parameters
     ----------
     rho : qobj
-        Input density matrix.
+        Input density matrix or superoperator.
 
     xlabels : list of strings
         list of x labels
@@ -113,11 +123,41 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None):
 
     """
 
-    if isinstance(rho, Qobj):
-        if isket(rho) or isbra(rho):
-            raise ValueError("argument must be a quantum operator")
+    # Apply default colormaps.
+    # TODO: abstract this away into something that makes default
+    #       colormaps.
+    cmap = (
+        (cm.Greys_r if settings.colorblind_safe else cm.RdBu)
+        if cmap is None else cmap
+    )
 
-        W = rho.full()
+    # Extract plotting data W from the input.
+    if isinstance(rho, Qobj):
+        if rho.isoper:
+            W = rho.full()
+        elif rho.isoperket:
+            W = vector_to_operator(rho).full()
+        elif rho.isoperbra:
+            W = vector_to_operator(rho.dag()).full()
+        elif rho.issuper:
+            if not _isqubitdims(rho.dims):
+                raise ValueError("Hinton plots of superoperators are currently only supported for qubits.")
+            # Convert to a superoperator in the Pauli basis,
+            # so that all the elements are real.
+            sqobj = to_super(rho)
+            nq = int(np.log2(sqobj.shape[0]) / 2)
+            B = _pauli_basis(nq) / np.sqrt(2**nq)
+            # To do this, we have to hack a bit and force the dims to match,
+            # since the _pauli_basis function makes different assumptions
+            # about indices than we need here.
+            B.dims = sqobj.dims
+            sqobj = B.dag() * sqobj * B
+            W = sqobj.full()
+        else:
+            raise ValueError(
+                "Input quantum object must be an operator or superoperator."
+            )
+
     else:
         W = rho
 
@@ -154,7 +194,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None):
     # color axis
     norm = mpl.colors.Normalize(-abs(W).max(), abs(W).max())
     cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
-    cb = mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cm.RdBu if cmap is None else cmap)
+    cb = mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
 
     # x axis
     ax.xaxis.set_major_locator(plt.IndexLocator(1, 0.5))
