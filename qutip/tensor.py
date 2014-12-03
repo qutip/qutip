@@ -394,7 +394,7 @@ def tensor_contract(qobj, *pairs):
     flat_dims = flatten(dims)
 
     # Convert to dense first, since sparse won't support the reshaping we need.
-    qtens = qobj.data.todense().view(np.ndarray)
+    qtens = qobj.data.toarray()
 
     # Reshape by the flattened dims.
     qtens = qtens.reshape(flat_dims)
@@ -413,6 +413,6 @@ def tensor_contract(qobj, *pairs):
     qmtx = qtens.reshape((l_mtx_dims, r_mtx_dims))
 
     # Return back as a qobj.
-    return Qobj(qmtx, dims=contracted_dims)
+    return Qobj(qmtx, dims=contracted_dims, superrep=qobj.superrep)
 
 import qutip.states
