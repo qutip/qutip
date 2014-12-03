@@ -82,16 +82,43 @@ def _blob(x, y, w, w_max, area, cmap=cm.RdBu):
              color=cmap(int((w + w_max) * 256 / (2 * w_max))))
 
 def _isqubitdims(dims):
+    """Checks whether all entries in a dims list are integer powers of 2.
+
+    Parameters
+    ----------
+    dims : nested list of ints
+        Dimensions to be checked.
+
+    Returns
+    -------
+    isqubitdims : bool
+        True if and only if every member of the flattened dims
+        list is an integer power of 2.
+    """
     return all([
         2**np.floor(np.log2(dim)) == dim
         for dim in flatten(dims)
     ])
 
-def _cb_labels(dims):
-    # FIXME: assumes square dims.
+def _cb_labels(left_dims):
+    """Creates plot labels for matrix elements in the computational basis.
+
+    Parameters
+    ----------
+    left_dims : flat list of ints
+        Dimensions of the left index of a density operator. E. g.
+        [2, 3] for a qubit tensored with a qutrit.
+
+    Returns
+    -------
+    left_labels, right_labels : lists of strings
+        Labels for the left and right indices of a density operator
+        (kets and bras, respectively).
+    """
+    # FIXME: assumes dims, such that we only need left_dims == dims[0].
     basis_labels = list(map(",".join, it.product(*[
         map(str, range(dim))
-        for dim in dims
+        for dim in left_dims
     ])))
     return [
         map(fmt.format, basis_labels) for fmt in 
