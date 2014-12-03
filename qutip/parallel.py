@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__ = ['parfor', 'parallel_map']
+__all__ = ['parfor', 'parallel_map', 'serial_map']
 
 from scipy import array
 from multiprocessing import Pool
@@ -126,6 +126,55 @@ def parfor(func, *args, **kwargs):
 
     except KeyboardInterrupt:
         pool.terminate()
+
+
+def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
+    """
+    Serial mapping function with the same call signature as parallel_map, for
+    easy switching between serial and parallel execution.
+
+    Parameters
+    ----------
+
+    task: a Python function
+        The function that is to be called for each value in ``task_vec``.
+
+    values: array / list
+        The list or array of values for which the ``task`` function is to be
+        evaluated.
+
+    task_args: list / dictionary
+        The optional additional argument to the ``task`` function.
+
+    task_kwargs: list / dictionary
+        The optional additional keyword argument to the ``task`` function.
+
+    progress_bar: ProgressBar
+        Progress bar class instance for showing progress.
+
+    Returns
+    --------
+    result : list
+        The result list contains the value of
+        ``task(value, task_args, task_kwargs)`` for each
+        value in ``values``.
+    """
+    try:
+        progress_bar = kwargs['progress_bar']
+        if progress_bar is True:
+            progress_bar = TextProgressBar()
+    except:
+        progress_bar = BaseProgressBar()
+
+    progress_bar.start(len(values))
+    results = []
+    for n, value in enumerate(values):
+        progress_bar.update(n)
+        result = task(n, *task_args, **task_kwargs)
+        results.append(result)
+    progress_bar.finished()
+
+    return results
 
 
 def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
