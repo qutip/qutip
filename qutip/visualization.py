@@ -45,6 +45,7 @@ __all__ = ['hinton', 'sphereplot', 'energy_level_diagram',
            'matrix_histogram_complex', 'sphereplot']
 
 import warnings
+import itertools as it
 import numpy as np
 from numpy import pi, array, sin, cos, angle
 
@@ -86,8 +87,22 @@ def _isqubitdims(dims):
         for dim in flatten(dims)
     ])
 
+def _cb_labels(dims):
+    # FIXME: assumes square dims.
+    basis_labels = list(map(",".join, it.product(*[
+        map(str, range(dim))
+        for dim in dims
+    ])))
+    return [
+        map(fmt.format, basis_labels) for fmt in 
+        (
+            r"$|{}\rangle$",
+            r"$\langle{}|$"
+        )
+    ]
+
 # Adopted from the SciPy Cookbook.
-def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None):
+def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None, label_top=True):
     """Draws a Hinton diagram for visualizing a density matrix or superoperator.
 
     Parameters
@@ -95,10 +110,10 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None):
     rho : qobj
         Input density matrix or superoperator.
 
-    xlabels : list of strings
+    xlabels : list of strings or False
         list of x labels
 
-    ylabels : list of strings
+    ylabels : list of strings or False
         list of y labels
 
     title : string
@@ -109,6 +124,10 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None):
 
     cmap : a matplotlib colormap instance
         Color map to use when plotting.
+
+    label_top : bool
+        If True, x-axis labels will be placed on top, otherwise
+        they will appear below the plot.
 
     Returns
     -------
@@ -135,6 +154,13 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None):
     if isinstance(rho, Qobj):
         if rho.isoper:
             W = rho.full()
+
+            # Create default labels if none are given.
+            if xlabels is None or ylabels is None:
+                labels = _cb_labels(rho.dims[0])
+                xlabels = xlabels if xlabels is not None else labels[0]
+                ylabels = ylabels if ylabels is not None else labels[1]
+
         elif rho.isoperket:
             W = vector_to_operator(rho).full()
         elif rho.isoperbra:
@@ -153,6 +179,13 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None):
             B.dims = sqobj.dims
             sqobj = B.dag() * sqobj * B
             W = sqobj.full()
+
+            # Create default labels, too.
+            if xlabels is None or ylabels is None:
+                labels = list(map("".join, it.product("IXYZ", repeat=nq)))
+                xlabels = xlabels if xlabels is not None else labels
+                ylabels = ylabels if ylabels is not None else labels
+
         else:
             raise ValueError(
                 "Input quantum object must be an operator or superoperator."
@@ -200,6 +233,8 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None):
     ax.xaxis.set_major_locator(plt.IndexLocator(1, 0.5))
     if xlabels:
         ax.set_xticklabels(xlabels)
+        if label_top:
+            ax.xaxis.tick_top()
     ax.tick_params(axis='x', labelsize=14)
 
     # y axis
