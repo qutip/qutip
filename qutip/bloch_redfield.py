@@ -49,9 +49,9 @@ from qutip.superoperator import liouvillian
 # Solve the Bloch-Redfield master equation
 #
 def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=None,
-              options=Options()):
+              args={}, options=Options()):
     """
-    Solve the dynamics for the system using the Bloch-Redfeild master equation.
+    Solve the dynamics for the system using the Bloch-Redfield master equation.
 
     .. note::
 
@@ -74,6 +74,12 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=None,
 
     e_ops : list of :class:`qutip.qobj` / callback function
         List of operators for which to evaluate expectation values.
+
+    c_ops : list of :class:`qutip.qobj`
+        List of system collapse operators.
+
+    args : *dictionary*
+        Placeholder for future implementation, kept for API consistency.
 
     options : :class:`qutip.Qdeoptions`
         Options for the ODE solver.
@@ -295,8 +301,7 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=None, use_secular=True):
     # unitary part
     Heb = H.transform(ekets)
     if c_ops is not None:
-        R = -1.0j * (spre(Heb) - spost(Heb)) + \
-            liouvillian(None, c_ops=[c_op.transform(ekets) for c_op in c_ops])
+        R = liouvillian(Heb, c_ops=[c_op.transform(ekets) for c_op in c_ops])
     else:
         R = -1.0j * (spre(Heb) - spost(Heb))
     R.data = R.data.tolil()
