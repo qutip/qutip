@@ -42,21 +42,20 @@ from qutip.expect import expect
 from qutip.solver import Options
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip.solver import Result
+from qutip.superoperator import liouvillian
 
 
 # -----------------------------------------------------------------------------
 # Solve the Bloch-Redfield master equation
 #
-#
-def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
+def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=None,
               args={}, options=Options()):
     """
-    Solve the dynamics for the system using the Bloch-Redfeild master equation.
+    Solve the dynamics for the system using the Bloch-Redfield master equation.
 
     .. note::
 
-        This solver does not currently support time-dependent Hamiltonian or
-        collapse operators.
+        This solver does not currently support time-dependent Hamiltonians.
 
     Parameters
     ----------
@@ -76,9 +75,11 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
     e_ops : list of :class:`qutip.qobj` / callback function
         List of operators for which to evaluate expectation values.
 
+    c_ops : list of :class:`qutip.qobj`
+        List of system collapse operators.
+
     args : *dictionary*
-        Dictionary of parameters for time-dependent Hamiltonians and collapse
-        operators.
+        Placeholder for future implementation, kept for API consistency.
 
     options : :class:`qutip.Qdeoptions`
         Options for the ODE solver.
@@ -97,7 +98,7 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[],
         # default to infinite temperature white noise
         spectra_cb = [lambda w: 1.0 for _ in a_ops]
 
-    R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb)
+    R, ekets = bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops)
 
     output = Result()
     output.solver = "brmesolve"
@@ -226,11 +227,15 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
 # Functions for calculting the Bloch-Redfield tensor for a time-independent
 # system.
 #
-def bloch_redfield_tensor(H, a_ops, spectra_cb, use_secular=True):
+def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=None, use_secular=True):
     """
     Calculate the Bloch-Redfield tensor for a system given a set of operators
     and corresponding spectral functions that describes the system's coupling
     to its environment.
+
+    .. note::
+
+        This tensor generation requires a time-independent Hamiltonian.
 
     Parameters
     ----------
@@ -244,6 +249,9 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, use_secular=True):
     spectra_cb : list of callback functions
         List of callback functions that evaluate the noise power spectrum
         at a given frequency.
+
+    c_ops : list of :class:`qutip.qobj`
+        List of system collapse operators.
 
     use_secular : bool
         Flag (True of False) that indicates if the secular approximation should
@@ -292,7 +300,10 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, use_secular=True):
 
     # unitary part
     Heb = H.transform(ekets)
-    R = -1.0j * (spre(Heb) - spost(Heb))
+    if c_ops is not None:
+        R = liouvillian(Heb, c_ops=[c_op.transform(ekets) for c_op in c_ops])
+    else:
+        R = -1.0j * (spre(Heb) - spost(Heb))
     R.data = R.data.tolil()
     for I in range(N * N):
         a, b = vec2mat_index(N, I)

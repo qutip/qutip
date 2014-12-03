@@ -35,6 +35,7 @@ cimport numpy as np
 cimport cython
 cimport libc.math
 
+include "complex_math.pxi"
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -259,18 +260,17 @@ cpdef cy_expect_psi_csr(np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
                         np.ndarray[CTYPE_t, ndim=1, mode="c"] state,
                         int isherm):
 
-    cdef np.ndarray[CTYPE_t, ndim=1, mode="c"] y = spmv_csr(data,idx,ptr,state)
-    cdef np.ndarray[CTYPE_t, ndim=1, mode="c"] x = state.conj()
+    cdef complex [:] y = spmv_csr(data,idx,ptr,state)
     cdef int row, num_rows = state.shape[0]
     cdef CTYPE_t dot = 0.0j
 
     for row from 0 <= row < num_rows:
-        dot+=x[row]*y[row]
+        dot+=conj(state[row])*y[row]
 
     if isherm:
-        return float(dot.real)
+        return <double>dot
     else:
-        return complex(dot)
+        return dot
 
 
 @cython.boundscheck(False)
@@ -309,7 +309,7 @@ cpdef cy_expect_rho_vec_csr(np.ndarray[CTYPE_t, ndim=1, mode="c"] data,
     if herm == 0:
         return dot
     else:
-        return float(dot.real)
+        return <double>dot
 
 
 
@@ -350,7 +350,7 @@ cpdef cy_spmm_tr(object op1, object op2, int herm):
     if herm == 0:
         return tr
     else:
-        return float(tr.real)
+        return <double>tr
 
 
 
