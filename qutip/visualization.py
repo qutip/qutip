@@ -63,7 +63,7 @@ from qutip.tensor import tensor
 from qutip.matplotlib_utilities import complex_phase_cmap
 
 # Adopted from the SciPy Cookbook.
-def _blob(x, y, w, w_max, area):
+def _blob(x, y, w, w_max, area, cmap=cm.RdBu):
     """
     Draws a square-shaped blob with the given area (< 1) at
     the given coordinates.
@@ -73,11 +73,11 @@ def _blob(x, y, w, w_max, area):
     ycorners = array([y - hs, y - hs, y + hs, y + hs])
 
     plt.fill(xcorners, ycorners,
-             color=cm.RdBu(int((w + w_max) * 256 / (2 * w_max))))
+             color=cmap(int((w + w_max) * 256 / (2 * w_max))))
 
 
 # Adopted from the SciPy Cookbook.
-def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
+def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None):
     """Draws a Hinton diagram for visualizing a density matrix.
 
     Parameters
@@ -96,6 +96,9 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
 
     ax : a matplotlib axes instance
         The axes context in which the plot will be drawn.
+
+    cmap : a matplotlib colormap instance
+        Color map to use when plotting.
 
     Returns
     -------
@@ -133,7 +136,25 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
 
     w_max = 1.25 * max(abs(np.diag(np.matrix(W))))
     if w_max <= 0.0:
-        w_max = 1.0
+        w_max = 1.0    
+
+    ax.fill(array([0, width, width, 0]), array([0, 0, height, height]),
+            color=cmap(128))
+    for x in range(width):
+        for y in range(height):
+            _x = x + 1
+            _y = y + 1
+            if np.real(W[x, y]) > 0.0:
+                _blob(_x - 0.5, height - _y + 0.5, abs(W[x,
+                      y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap)
+            else:
+                _blob(_x - 0.5, height - _y + 0.5, -abs(W[
+                      x, y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap)
+
+    # color axis
+    norm = mpl.colors.Normalize(-abs(W).max(), abs(W).max())
+    cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
+    cb = mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cm.RdBu if cmap is None else cmap)
 
     # x axis
     ax.xaxis.set_major_locator(plt.IndexLocator(1, 0.5))
@@ -146,24 +167,6 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
     if ylabels:
         ax.set_yticklabels(list(reversed(ylabels)))
     ax.tick_params(axis='y', labelsize=14)
-
-    ax.fill(array([0, width, width, 0]), array([0, 0, height, height]),
-            color=cm.RdBu(128))
-    for x in range(width):
-        for y in range(height):
-            _x = x + 1
-            _y = y + 1
-            if np.real(W[x, y]) > 0.0:
-                _blob(_x - 0.5, height - _y + 0.5, abs(W[x,
-                      y]), w_max, min(1, abs(W[x, y]) / w_max))
-            else:
-                _blob(_x - 0.5, height - _y + 0.5, -abs(W[
-                      x, y]), w_max, min(1, abs(W[x, y]) / w_max))
-
-    # color axis
-    norm = mpl.colors.Normalize(-abs(W).max(), abs(W).max())
-    cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
-    cb = mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cm.RdBu)
 
     return fig, ax
 
