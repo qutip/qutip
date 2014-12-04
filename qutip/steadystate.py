@@ -36,7 +36,8 @@ open quantum systems defined by a Liouvillian or Hamiltonian and a list of
 collapse operators.
 """
 
-__all__ = ['steadystate', 'steady', 'build_preconditioner']
+__all__ = ['steadystate', 'steady', 'build_preconditioner',
+           'pseudo_inverse']
 
 import warnings
 import time
@@ -234,19 +235,18 @@ def steadystate(A, c_op_list=[], **kwargs):
 def _steadystate_setup(A, c_op_list):
     """Build Liouvillian (if necessary) and check input.
     """
-    n_op = len(c_op_list)
-
     if isoper(A):
-        if n_op == 0:
-            raise TypeError('Cannot calculate the steady state for a ' +
-                            'non-dissipative system ' +
-                            '(no collapse operators given)')
-        else:
-            A = liouvillian(A, c_op_list)
-    if not issuper(A):
+        if len(c_op_list) > 0:
+            return liouvillian(A, c_op_list)
+
+        raise TypeError('Cannot calculate the steady state for a ' +
+                        'non-dissipative system ' +
+                        '(no collapse operators given)')
+    elif issuper(A):
+        return A
+    else:
         raise TypeError('Solving for steady states requires ' +
                         'Liouvillian (super) operators')
-    return A
 
 
 def _steadystate_LU_liouvillian(L, ss_args):
@@ -803,3 +803,91 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         return M, ss_args['info']
     else:
         return M
+
+
+from qutip import (mat2vec, tensor, identity, operator_to_vector)
+
+
+def _psuedo_inverse_dense(L, rhoss, method='direct'):
+    """
+    Compute the pseudo inverse for a Liouvillian superoperator.
+    """
+    if method == 'direct':
+        rho_vec = np.transpose(mat2vec(rhoss.full()))
+
+        tr_mat = tensor([identity(n) for n in L.dims[0][0]])
+        tr_vec = np.transpose(mat2vec(tr_mat.full()))
+
+        N = np.prod(L.dims[0][0])
+        I = np.identity(N * N)
+        P = np.kron(np.transpose(rho_vec), tr_vec)
+        Q = I - P
+        LIQ = np.linalg.solve(L.full(), Q)
+        R = np.dot(Q, LIQ)
+
+        return Qobj(R, dims=L.dims)
+
+    elif method == 'numpy':
+        return Qobj(np.linalg.pinv(L.full()), dims=L.dims)
+
+    else:
+        raise ValueError("Unsupported method '%s'. Use 'direct' or 'numpy'" %
+                         method)
+
+
+def _psuedo_inverse_sparse(L, rhoss, method='splu'):
+    """
+    Compute the pseudo inverse for a Liouvillian superoperator.
+    """
+
+    N = np.prod(L.dims[0][0])
+
+    rhoss_vec = operator_to_vector(rhoss)
+
+    tr_op = tensor([identity(n) for n in L.dims[0][0]])
+    tr_op_vec = operator_to_vector(tr_op)
+
+    P = sp.kron(rhoss_vec.data, tr_op_vec.data.T, format='csc')
+    I = sp.eye(N*N, N*N, format='csc')
+    Q = I - P
+
+    if method == 'spsolve':
+        sp.linalg.use_solver(assumeSortedIndices=True, useUmfpack=True)
+        A = L.data.tocsc()
+        A.sort_indices()
+        LIQ = sp.linalg.spsolve(A, Q)
+
+    elif method == 'splu':
+        lu = sp.linalg.splu(L.data.tocsc(),
+                            permc_spec='COLAMD',
+                            diag_pivot_thresh=None,
+                            options={'ILU_MILU': 'smilu_2'})
+        LIQ = lu.solve(Q.toarray())
+
+    elif method == 'spilu':
+        lu = sp.linalg.spilu(L.data.tocsc(),
+                             permc_spec='COLAMD',
+                             diag_pivot_thresh=None,
+                             options={'ILU_MILU': 'smilu_2'})
+        LIQ = lu.solve(Q.toarray())
+
+    else:
+        raise ValueError("unsupported method '%s'" % method)
+
+    R = Q * LIQ
+
+    return Qobj(R, dims=L.dims)
+
+
+def psuedo_inverse(L, rhoss=None, sparse=True, method='splu'):
+    """
+    Compute the pseudo inverse for a Liouvillian superoperator.
+    """
+
+    if rhoss is None:
+        rhoss = steadystate(L)
+
+    if sparse:
+        return _psuedo_inverse_sparse(L, rhoss, method=method)
+    else:
+        return _psuedo_inverse_dense(L, rhoss, method=method)
