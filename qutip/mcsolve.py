@@ -206,7 +206,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     # set general items
     config.tlist = tlist
     if isinstance(ntraj, (list, np.ndarray)):
-        config.ntraj = sort(ntraj)[-1]
+        config.ntraj = np.sort(ntraj)[-1]
     else:
         config.ntraj = ntraj
 
