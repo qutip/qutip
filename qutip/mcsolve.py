@@ -376,7 +376,8 @@ class _MC_class():
         if config.c_num == 0:
             if config.e_num == 0:
                 # Output array of state vectors calculated at times in tlist
-                self.psi_out = np.array([Qobj()] * self.num_times, dtype=object)
+                self.psi_out = np.array([Qobj()] * self.num_times,
+                                         dtype=object)
             elif config.e_num != 0:  # no collapse expectation values
                 # List of output expectation values calculated at times in
                 # tlist
@@ -385,7 +386,7 @@ class _MC_class():
                     if config.e_ops_isherm[i]:
                         # preallocate real array of zeros
                         self.expect_out.append(np.zeros(self.num_times,
-                                                     dtype=float))
+                                                        dtype=float))
                     else:  # preallocate complex array of zeros
                         self.expect_out.append(
                             np.zeros(self.num_times, dtype=complex))
@@ -398,17 +399,19 @@ class _MC_class():
         elif config.c_num != 0:
             # preallocate #ntraj arrays for state vectors, collapse times, and
             # which operator
-            self.collapse_times_out = np.zeros((config.ntraj), dtype=np.ndarray)
+            self.collapse_times_out = np.zeros((config.ntraj),
+                                               dtype=np.ndarray)
             self.which_op_out = np.zeros((config.ntraj), dtype=np.ndarray)
             if config.e_num == 0:
                 # if no expectation operators, preallocate #ntraj arrays
                 # for state vectors
                 if self.config.options.steady_state_average:
                     self.psi_out = np.array([np.zeros((1), dtype=object)
-                                          for q in range(config.ntraj)])
+                                             for q in range(config.ntraj)])
                 else:
-                    self.psi_out = np.array([np.zeros((self.num_times), dtype=object)
-                                          for q in range(config.ntraj)])
+                    self.psi_out = np.array([np.zeros((self.num_times),
+                                                      dtype=object)
+                                             for q in range(config.ntraj)])
 
             else:  # preallocate array of lists for expectation values
                 self.expect_out = [[] for x in range(config.ntraj)]
@@ -435,63 +438,20 @@ class _MC_class():
 
         elif self.config.c_num != 0:
             if self.config.options.seeds is None:
-                self.config.options.seeds = random_integers(1e8, size=self.config.ntraj)
+                self.config.options.seeds = \
+                    random_integers(1e8, size=self.config.ntraj)
             else:
                 # if ntraj was reduced but reusing seeds
                 seed_length = len(self.config.options.seeds)
                 if seed_length > self.config.ntraj:
-                    self.config.options.seeds = self.config.options.seeds[0:self.config.ntraj]
+                    self.config.options.seeds = \
+                        self.config.options.seeds[0:self.config.ntraj]
                 # if ntraj was increased but reusing seeds
                 elif seed_length < self.config.ntraj:
-                    self.config.options.seeds = np.hstack((self.config.options.seeds,
-                                random_integers(1e8, size=(self.config.ntraj-seed_length))))  
-
-#            if self.config.e_num == 0:
-#                if config.options.steady_state_average:
-#                    mc_alg_out = np.zeros((1), dtype=object)
-#                else:
-#                    mc_alg_out = np.zeros((self.num_times), dtype=object)
-#                temp = sp.csr_matrix(
-#                    np.reshape(self.config.psi0,
-#                               (self.config.psi0.shape[0], 1)),
-#                    dtype=complex)
-#                if (self.config.options.average_states and
-#                        not config.options.steady_state_average):
-#                    # output is averaged states, so use dm
-#                    mc_alg_out[0] = Qobj(temp*temp.conj().transpose(),
-#                                         [config.psi0_dims[0],
-#                                          config.psi0_dims[0]],
-#                                         [config.psi0_shape[0],
-#                                          config.psi0_shape[0]],
-#                                         fast='mc-dm')
-#                elif (not self.config.options.average_states and
-#                      not config.options.steady_state_average):
-#                    # output is not averaged, so write state vectors
-#                    mc_alg_out[0] = Qobj(temp, config.psi0_dims,
-#                                         config.psi0_shape, fast='mc')
-#                elif config.options.steady_state_average:
-#                    mc_alg_out[0] = temp * temp.conj().transpose()
-#
-#            else:
-#                # PRE-GENERATE LIST OF EXPECTATION VALUES
-#                mc_alg_out = []
-#                for i in range(self.config.e_num):
-#                    if self.config.e_ops_isherm[i]:
-#                        # preallocate real array of zeros
-#                        mc_alg_out.append(np.zeros(self.num_times,
-#                                                   dtype=float))
-#                    else:
-#                        # preallocate complex array of zeros
-#                        mc_alg_out.append(np.zeros(self.num_times,
-#                                                   dtype=complex))
-#
-#                    mc_alg_out[i][0] = \
-#                        cy_expect_psi_csr(self.config.e_ops_data[i],
-#                                          self.config.e_ops_ind[i],
-#                                          self.config.e_ops_ptr[i],
-#                                          self.config.psi0,
-#                                          self.config.e_ops_isherm[i])
-
+                    self.config.options.seeds = np.hstack(
+                        (self.config.options.seeds,
+                         random_integers(
+                             1e8, size=(self.config.ntraj-seed_length))))
 
             # set arguments for input to monte-carlo
             task_args = (self.config.options,
