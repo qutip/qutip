@@ -45,7 +45,7 @@ from scipy.integrate._ode import zvode
 from scipy.linalg.blas import get_blas_funcs
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 from qutip.qobj import Qobj
-from qutip.parallel import parfor
+from qutip.parallel import parfor, parallel_map
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
 from qutip.solver import Options, Result, config
@@ -77,7 +77,8 @@ class qutip_zvode(zvode):
         return r
 
 def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
-            args={}, options=Options(), progress_bar=TextProgressBar()):
+            args={}, options=Options(), progress_bar=TextProgressBar(),
+            map_func=None):
     """Monte-Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
@@ -164,6 +165,11 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     if ntraj is None:
         ntraj = options.ntraj
+        
+    if map_func is None:
+        config.map_func = parallel_map
+    else:
+        config.map_func = map_func
 
     if not psi0.isket:
         raise Exception("Initial state must be a state vector.")
@@ -286,9 +292,9 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         # averaging if multiple trajectories
         if isinstance(ntraj, int):
             output.expect = [np.mean(np.array([mc.expect_out[nt][op]
-                                            for nt in range(ntraj)],
-                                           dtype=object),
-                                  axis=0)
+                                               for nt in range(ntraj)],
+                                               dtype=object),
+                                     axis=0)
                              for op in range(config.e_num)]
         elif isinstance(ntraj, (list, np.ndarray)):
             output.expect = []
@@ -410,53 +416,6 @@ class _MC_class():
     # -------------------------------------------------
     # CLASS METHODS
     # -------------------------------------------------
-    def callback(self, results):
-        r = results[0]
-        if self.config.e_num == 0:  # output state-vector
-            self.psi_out[r] = results[1]
-        else:  # output expectation values
-            if self.cpus == 1 or self.config.ntraj == 1:
-                self.expect_out[r] = copy.deepcopy(results[1])
-            else:
-                self.expect_out[r] = results[1]
-
-        self.collapse_times_out[r] = results[2]
-        self.which_op_out[r] = results[3]
-        self.count += self.step
-
-        if self.config.ntraj != 1:
-            self.config.progress_bar.update(self.count)
-
-    def serial(self, args, top):
-
-        if debug:
-            print(inspect.stack()[0][3])
-
-        for nt in range(self.config.ntraj):
-            top.callback(_mc_alg_evolve(nt, args, self.config))
-
-    def parallel(self, args, top):
-
-        if debug:
-            print(inspect.stack()[0][3])
-
-        if self.cpus == 1 or self.config.ntraj == 1:
-            self.serial(args, top)
-            return
-
-        pl = Pool(processes=self.cpus)
-        for nt in range(self.config.ntraj):
-            pl.apply_async(_mc_alg_evolve, args=(nt, args, self.config),
-                           callback=top.callback)
-        pl.close()
-
-        try:
-            pl.join()
-        except KeyboardInterrupt:
-            print("Cancel all MC threads on keyboard interrupt")
-            pl.terminate()
-            pl.join()
-        return
 
     def run(self):
 
@@ -486,64 +445,78 @@ class _MC_class():
                 elif seed_length < self.config.ntraj:
                     self.config.options.seeds = np.hstack((self.config.options.seeds,
                                 random_integers(1e8, size=(self.config.ntraj-seed_length))))  
-            # else:
-            #    if len(self.seeds) != self.config.ntraj:
-            #        raise "Incompatible size of seeds vector in config."
 
-            if self.config.e_num == 0:
-                if config.options.steady_state_average:
-                    mc_alg_out = np.zeros((1), dtype=object)
-                else:
-                    mc_alg_out = np.zeros((self.num_times), dtype=object)
-                temp = sp.csr_matrix(
-                    np.reshape(self.config.psi0,
-                               (self.config.psi0.shape[0], 1)),
-                    dtype=complex)
-                if (self.config.options.average_states and
-                        not config.options.steady_state_average):
-                    # output is averaged states, so use dm
-                    mc_alg_out[0] = Qobj(temp*temp.conj().transpose(),
-                                         [config.psi0_dims[0],
-                                          config.psi0_dims[0]],
-                                         [config.psi0_shape[0],
-                                          config.psi0_shape[0]],
-                                         fast='mc-dm')
-                elif (not self.config.options.average_states and
-                      not config.options.steady_state_average):
-                    # output is not averaged, so write state vectors
-                    mc_alg_out[0] = Qobj(temp, config.psi0_dims,
-                                         config.psi0_shape, fast='mc')
-                elif config.options.steady_state_average:
-                    mc_alg_out[0] = temp * temp.conj().transpose()
+#            if self.config.e_num == 0:
+#                if config.options.steady_state_average:
+#                    mc_alg_out = np.zeros((1), dtype=object)
+#                else:
+#                    mc_alg_out = np.zeros((self.num_times), dtype=object)
+#                temp = sp.csr_matrix(
+#                    np.reshape(self.config.psi0,
+#                               (self.config.psi0.shape[0], 1)),
+#                    dtype=complex)
+#                if (self.config.options.average_states and
+#                        not config.options.steady_state_average):
+#                    # output is averaged states, so use dm
+#                    mc_alg_out[0] = Qobj(temp*temp.conj().transpose(),
+#                                         [config.psi0_dims[0],
+#                                          config.psi0_dims[0]],
+#                                         [config.psi0_shape[0],
+#                                          config.psi0_shape[0]],
+#                                         fast='mc-dm')
+#                elif (not self.config.options.average_states and
+#                      not config.options.steady_state_average):
+#                    # output is not averaged, so write state vectors
+#                    mc_alg_out[0] = Qobj(temp, config.psi0_dims,
+#                                         config.psi0_shape, fast='mc')
+#                elif config.options.steady_state_average:
+#                    mc_alg_out[0] = temp * temp.conj().transpose()
+#
+#            else:
+#                # PRE-GENERATE LIST OF EXPECTATION VALUES
+#                mc_alg_out = []
+#                for i in range(self.config.e_num):
+#                    if self.config.e_ops_isherm[i]:
+#                        # preallocate real array of zeros
+#                        mc_alg_out.append(np.zeros(self.num_times,
+#                                                   dtype=float))
+#                    else:
+#                        # preallocate complex array of zeros
+#                        mc_alg_out.append(np.zeros(self.num_times,
+#                                                   dtype=complex))
+#
+#                    mc_alg_out[i][0] = \
+#                        cy_expect_psi_csr(self.config.e_ops_data[i],
+#                                          self.config.e_ops_ind[i],
+#                                          self.config.e_ops_ptr[i],
+#                                          self.config.psi0,
+#                                          self.config.e_ops_isherm[i])
 
-            else:
-                # PRE-GENERATE LIST OF EXPECTATION VALUES
-                mc_alg_out = []
-                for i in range(self.config.e_num):
-                    if self.config.e_ops_isherm[i]:
-                        # preallocate real array of zeros
-                        mc_alg_out.append(np.zeros(self.num_times, dtype=float))
-                    else:
-                        # preallocate complex array of zeros
-                        mc_alg_out.append(np.zeros(self.num_times, dtype=complex))
-
-                    mc_alg_out[i][0] = \
-                        cy_expect_psi_csr(self.config.e_ops_data[i],
-                                          self.config.e_ops_ind[i],
-                                          self.config.e_ops_ptr[i],
-                                          self.config.psi0,
-                                          self.config.e_ops_isherm[i])
 
             # set arguments for input to monte-carlo
-            args = (mc_alg_out, self.config.options,
-                    self.config.tlist, self.num_times, config.options.seeds)
+            task_args = (self.config.options,
+                         self.config.tlist, self.num_times,
+                         config.options.seeds,
+                         self.config)
 
-            if isinstance(self.config.ntraj, list):
-                self.config.progress_bar.start(max(self.config.ntraj))
-            else:
-                self.config.progress_bar.start(self.config.ntraj)
-            self.parallel(args, self)
-            self.config.progress_bar.finished()
+            results = config.map_func(_mc_alg_evolve,
+                                      list(range(config.ntraj)),
+                                      task_args)
+
+            for n, result in enumerate(results):
+                state_out, expect_out, collapse_times, which_oper = result
+
+                if self.config.e_num == 0:
+                    self.psi_out[n] = state_out
+                else:
+                    if self.cpus == 1 or self.config.ntraj == 1:
+                        self.expect_out[n] = copy.deepcopy(expect_out)
+                    else:
+                        self.expect_out[n] = expect_out
+
+                self.collapse_times_out[n] = collapse_times
+                self.which_op_out[n] = which_oper
+                self.count += self.step
 
 
 # ----------------------------------------------------
@@ -770,7 +743,7 @@ def _no_collapse_expect_out(num_times, expect_out, config):
 
 
 # ---single-trajectory for monte-carlo---
-def _mc_alg_evolve(nt, args, config):
+def _mc_alg_evolve(nt, opt, tlist, num_times, seeds, config):
     """
     Monte-Carlo algorithm returning state-vector or expectation values
     at times tlist for a single trajectory.
@@ -784,8 +757,48 @@ def _mc_alg_evolve(nt, args, config):
         _mc_func_load(config)
 
     try:
-        # get input data
-        mc_alg_out, opt, tlist, num_times, seeds = args
+
+        if config.options.steady_state_average:
+            states_out = np.zeros((1), dtype=object)
+        else:
+            states_out = np.zeros((num_times), dtype=object)
+            
+        temp = sp.csr_matrix(
+            np.reshape(config.psi0, (config.psi0.shape[0], 1)),
+            dtype=complex)
+        if (config.options.average_states and
+                not config.options.steady_state_average):
+            # output is averaged states, so use dm
+            states_out[0] = Qobj(temp*temp.conj().transpose(),
+                                 [config.psi0_dims[0],
+                                  config.psi0_dims[0]],
+                                 [config.psi0_shape[0],
+                                  config.psi0_shape[0]],
+                                 fast='mc-dm')
+        elif (not config.options.average_states and
+              not config.options.steady_state_average):
+            # output is not averaged, so write state vectors
+            states_out[0] = Qobj(temp, config.psi0_dims,
+                                 config.psi0_shape, fast='mc')
+        elif config.options.steady_state_average:
+            states_out[0] = temp * temp.conj().transpose()
+
+        # PRE-GENERATE LIST OF EXPECTATION VALUES
+        expect_out = []
+        for i in range(config.e_num):
+            if config.e_ops_isherm[i]:
+                # preallocate real array of zeros
+                expect_out.append(np.zeros(num_times, dtype=float))
+            else:
+                # preallocate complex array of zeros
+                expect_out.append(np.zeros(num_times, dtype=complex))
+
+            expect_out[i][0] = \
+                cy_expect_psi_csr(config.e_ops_data[i],
+                                  config.e_ops_ind[i],
+                                  config.e_ops_ptr[i],
+                                  config.psi0,
+                                  config.e_ops_isherm[i])
 
         collapse_times = []  # times of collapses
         which_oper = []  # which operator did the collapse
@@ -822,9 +835,11 @@ def _mc_alg_evolve(nt, args, config):
                              config.h_ptr)
 
         # initialize ODE solver for RHS
-        ODE._integrator = qutip_zvode(method=opt.method, order=opt.order,atol=opt.atol, 
-                            rtol=opt.rtol, nsteps=opt.nsteps,first_step=opt.first_step, 
-                            min_step=opt.min_step,max_step=opt.max_step)
+        ODE._integrator = qutip_zvode(
+            method=opt.method, order=opt.order, atol=opt.atol, 
+            rtol=opt.rtol, nsteps=opt.nsteps, first_step=opt.first_step, 
+            min_step=opt.min_step, max_step=opt.max_step)
+
         if not len(ODE._y):
             ODE.t = 0.0
             ODE._y = np.array([0.0], complex)
@@ -958,7 +973,7 @@ def _mc_alg_evolve(nt, args, config):
                                         dtype=complex)
                 if (config.options.average_states and
                         not config.options.steady_state_average):
-                    mc_alg_out[k] = Qobj(out_psi * out_psi.conj().transpose(),
+                    states_out[k] = Qobj(out_psi * out_psi.conj().transpose(),
                                          [config.psi0_dims[0],
                                           config.psi0_dims[0]],
                                          [config.psi0_shape[0],
@@ -966,15 +981,15 @@ def _mc_alg_evolve(nt, args, config):
                                          fast='mc-dm')
 
                 elif config.options.steady_state_average:
-                    mc_alg_out[0] = (mc_alg_out[0] +
+                    states_out[0] = (states_out[0] +
                                      (out_psi * out_psi.conj().transpose()))
 
                 else:
-                    mc_alg_out[k] = Qobj(out_psi, config.psi0_dims,
+                    states_out[k] = Qobj(out_psi, config.psi0_dims,
                                          config.psi0_shape, fast='mc')
             else:
                 for jj in range(config.e_num):
-                    mc_alg_out[jj][k] = cy_expect_psi_csr(
+                    expect_out[jj][k] = cy_expect_psi_csr(
                         config.e_ops_data[jj], config.e_ops_ind[jj],
                         config.e_ops_ptr[jj], out_psi,
                         config.e_ops_isherm[jj])
@@ -982,14 +997,14 @@ def _mc_alg_evolve(nt, args, config):
         # Run at end of mc_alg function
         # ------------------------------
         if config.options.steady_state_average:
-            mc_alg_out = np.array([Qobj(mc_alg_out[0] / float(len(tlist)),
-                                [config.psi0_dims[0],
-                                 config.psi0_dims[0]],
-                                [config.psi0_shape[0],
-                                 config.psi0_shape[0]],
-                                fast='mc-dm')])
+            states_out = np.array([Qobj(states_out[0] / float(len(tlist)),
+                                  [config.psi0_dims[0],
+                                   config.psi0_dims[0]],
+                                  [config.psi0_shape[0],
+                                   config.psi0_shape[0]],
+                                  fast='mc-dm')])
 
-        return (nt, mc_alg_out,
+        return (states_out, expect_out,
                 np.array(collapse_times, dtype=float),
                 np.array(which_oper, dtype=int))
 
