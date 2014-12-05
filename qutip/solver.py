@@ -156,10 +156,6 @@ class Options():
         # Number of processors to use (mcsolve only)
         if num_cpus:
             self.num_cpus = num_cpus
-            if self.num_cpus > int(os.environ['QUTIP_NUM_PROCESSES']):
-                message = ("Requested number of threads larger than number " +
-                           "of CPUs (%s)." % os.environ['QUTIP_NUM_PROCESSES'])
-                warnings.warn(message)
         else:
             self.num_cpus = 0
         # Tolerance for wavefunction norm (mcsolve only)
