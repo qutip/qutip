@@ -67,6 +67,7 @@ _cy_col_spmv_call_func = None
 _cy_col_expect_call_func = None
 _cy_rhs_func = None
 
+
 class qutip_zvode(zvode):
     def step(self, *args):
         itask = self.call_args[2]
@@ -76,9 +77,10 @@ class qutip_zvode(zvode):
         self.call_args[2] = itask
         return r
 
+
 def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
-            args={}, options=Options(), progress_bar=TextProgressBar(),
-            map_func=None):
+            args={}, options=Options(), progress_bar=None,
+            map_func=None, map_kwargs=None):
     """Monte-Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
@@ -166,10 +168,8 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     if ntraj is None:
         ntraj = options.ntraj
         
-    if map_func is None:
-        config.map_func = parallel_map
-    else:
-        config.map_func = map_func
+    config.map_func = map_func if map_func is not None else parallel_map
+    config.map_kwargs = map_kwargs if map_kwargs is not None else {}
 
     if not psi0.isket:
         raise Exception("Initial state must be a state vector.")
@@ -190,7 +190,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     if progress_bar:
         config.progress_bar = progress_bar
     else:
-        config.progress_bar = BaseProgressBar()
+        config.progress_bar = TextProgressBar()
 
     # set num_cpus to the value given in qutip.settings if none in Options
     if not config.options.num_cpus:
@@ -455,21 +455,27 @@ class _MC_class():
                              1e8, size=(self.config.ntraj-seed_length))))
 
             # set arguments for input to monte-carlo
+            map_kwargs = {'progress_bar': self.config.progress_bar}
+            map_kwargs.update(self.config.map_kwargs)
+
             task_args = (self.config.options,
                          self.config.tlist, self.num_times,
                          config.options.seeds,
                          self.config)
+            task_kwargs = {}
 
             results = config.map_func(_mc_alg_evolve,
                                       list(range(config.ntraj)),
-                                      task_args)
+                                      task_args, task_kwargs,
+                                      **map_kwargs
+                                      )
 
             for n, result in enumerate(results):
                 state_out, expect_out, collapse_times, which_oper = result
 
                 if self.config.e_num == 0 or self.config.options.store_states:
                     self.psi_out[n] = state_out
-                
+
                 if self.config.e_num > 0:
                     if self.cpus == 1 or self.config.ntraj == 1:
                         self.expect_out[n] = copy.deepcopy(expect_out)
@@ -510,10 +516,10 @@ def _tdRHStd(t, psi, config):
                           config.h_ind,
                           config.h_ptr, psi)
     h_func_term = np.array([config.h_funcs[j](t, config.h_func_args) *
-                         spmv_csr(config.h_td_data[j],
-                                  config.h_td_ind[j],
-                                  config.h_td_ptr[j], psi)
-                         for j in config.h_td_inds])
+                            spmv_csr(config.h_td_data[j],
+                                     config.h_td_ind[j],
+                                     config.h_td_ptr[j], psi)
+                            for j in config.h_td_inds])
     col_func_terms = np.array([np.abs(
         config.c_funcs[j](t, config.c_func_args)) ** 2 *
         spmv_csr(config.n_ops_data[j],
