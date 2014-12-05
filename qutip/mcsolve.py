@@ -79,7 +79,7 @@ class qutip_zvode(zvode):
 
 
 def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
-            args={}, options=Options(), progress_bar=None,
+            args={}, options=None, progress_bar=None,
             map_func=None, map_kwargs=None):
     """Monte-Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
@@ -165,6 +165,9 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     if debug:
         print(inspect.stack()[0][3])
 
+    if options is None:
+        options=Options()
+    
     if ntraj is None:
         ntraj = options.ntraj
         
