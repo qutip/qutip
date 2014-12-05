@@ -286,8 +286,9 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         output.states = parfor(_mc_dm_avg, mc.psi_out.T)
     elif mc.psi_out is not None:
         output.states = mc.psi_out
+
     # expectation values
-    elif (mc.expect_out is not None and config.cflag
+    if (mc.expect_out is not None and config.cflag
             and config.options.average_expect):
         # averaging if multiple trajectories
         if isinstance(ntraj, int):
@@ -402,7 +403,7 @@ class _MC_class():
             self.collapse_times_out = np.zeros((config.ntraj),
                                                dtype=np.ndarray)
             self.which_op_out = np.zeros((config.ntraj), dtype=np.ndarray)
-            if config.e_num == 0:
+            if config.e_num == 0 or config.options.store_states:
                 # if no expectation operators, preallocate #ntraj arrays
                 # for state vectors
                 if self.config.options.steady_state_average:
@@ -413,7 +414,7 @@ class _MC_class():
                                                       dtype=object)
                                              for q in range(config.ntraj)])
 
-            else:  # preallocate array of lists for expectation values
+            if config.e_num > 0:  # preallocate array of lists for expectation values
                 self.expect_out = [[] for x in range(config.ntraj)]
 
     # -------------------------------------------------
@@ -466,9 +467,10 @@ class _MC_class():
             for n, result in enumerate(results):
                 state_out, expect_out, collapse_times, which_oper = result
 
-                if self.config.e_num == 0:
+                if self.config.e_num == 0 or self.config.options.store_states:
                     self.psi_out[n] = state_out
-                else:
+                
+                if self.config.e_num > 0:
                     if self.cpus == 1 or self.config.ntraj == 1:
                         self.expect_out[n] = copy.deepcopy(expect_out)
                     else:
@@ -716,260 +718,261 @@ def _mc_alg_evolve(nt, opt, tlist, num_times, seeds, config):
     if not _cy_rhs_func:
         _mc_func_load(config)
 
-    try:
+    #try:
 
-        if config.options.steady_state_average:
-            states_out = np.zeros((1), dtype=object)
+    if config.options.steady_state_average:
+        states_out = np.zeros((1), dtype=object)
+    else:
+        states_out = np.zeros((num_times), dtype=object)
+        
+    temp = sp.csr_matrix(
+        np.reshape(config.psi0, (config.psi0.shape[0], 1)),
+        dtype=complex)
+    if (config.options.average_states and
+            not config.options.steady_state_average):
+        # output is averaged states, so use dm
+        states_out[0] = Qobj(temp*temp.conj().transpose(),
+                             [config.psi0_dims[0],
+                              config.psi0_dims[0]],
+                             [config.psi0_shape[0],
+                              config.psi0_shape[0]],
+                             fast='mc-dm')
+    elif (not config.options.average_states and
+          not config.options.steady_state_average):
+        # output is not averaged, so write state vectors
+        states_out[0] = Qobj(temp, config.psi0_dims,
+                             config.psi0_shape, fast='mc')
+    elif config.options.steady_state_average:
+        states_out[0] = temp * temp.conj().transpose()
+
+    # PRE-GENERATE LIST OF EXPECTATION VALUES
+    expect_out = []
+    for i in range(config.e_num):
+        if config.e_ops_isherm[i]:
+            # preallocate real array of zeros
+            expect_out.append(np.zeros(num_times, dtype=float))
         else:
-            states_out = np.zeros((num_times), dtype=object)
-            
-        temp = sp.csr_matrix(
-            np.reshape(config.psi0, (config.psi0.shape[0], 1)),
-            dtype=complex)
-        if (config.options.average_states and
-                not config.options.steady_state_average):
-            # output is averaged states, so use dm
-            states_out[0] = Qobj(temp*temp.conj().transpose(),
-                                 [config.psi0_dims[0],
-                                  config.psi0_dims[0]],
-                                 [config.psi0_shape[0],
-                                  config.psi0_shape[0]],
-                                 fast='mc-dm')
-        elif (not config.options.average_states and
-              not config.options.steady_state_average):
-            # output is not averaged, so write state vectors
-            states_out[0] = Qobj(temp, config.psi0_dims,
-                                 config.psi0_shape, fast='mc')
-        elif config.options.steady_state_average:
-            states_out[0] = temp * temp.conj().transpose()
+            # preallocate complex array of zeros
+            expect_out.append(np.zeros(num_times, dtype=complex))
 
-        # PRE-GENERATE LIST OF EXPECTATION VALUES
-        expect_out = []
-        for i in range(config.e_num):
-            if config.e_ops_isherm[i]:
-                # preallocate real array of zeros
-                expect_out.append(np.zeros(num_times, dtype=float))
-            else:
-                # preallocate complex array of zeros
-                expect_out.append(np.zeros(num_times, dtype=complex))
+        expect_out[i][0] = \
+            cy_expect_psi_csr(config.e_ops_data[i],
+                              config.e_ops_ind[i],
+                              config.e_ops_ptr[i],
+                              config.psi0,
+                              config.e_ops_isherm[i])
 
-            expect_out[i][0] = \
-                cy_expect_psi_csr(config.e_ops_data[i],
-                                  config.e_ops_ind[i],
-                                  config.e_ops_ptr[i],
-                                  config.psi0,
-                                  config.e_ops_isherm[i])
+    collapse_times = []  # times of collapses
+    which_oper = []  # which operator did the collapse
 
-        collapse_times = []  # times of collapses
-        which_oper = []  # which operator did the collapse
+    # SEED AND RNG AND GENERATE
+    prng = RandomState(seeds[nt])
+    # first rand is collapse norm, second is which operator
+    rand_vals = prng.rand(2)
 
-        # SEED AND RNG AND GENERATE
-        prng = RandomState(seeds[nt])
-        # first rand is collapse norm, second is which operator
-        rand_vals = prng.rand(2)
-
-        # CREATE ODE OBJECT CORRESPONDING TO DESIRED TIME-DEPENDENCE
-        if config.tflag in [1, 10, 11]:
-            ODE = ode(_cy_rhs_func)
-            code = compile('ODE.set_f_params(' + config.string + ')',
-                           '<string>', 'exec')
-            exec(code)
-        elif config.tflag == 2:
-            ODE = ode(_cRHStd)
-            ODE.set_f_params(config)
-        elif config.tflag in [20, 22]:
-            if config.options.rhs_with_state:
-                ODE = ode(_tdRHStd_with_state)
-            else:
-                ODE = ode(_tdRHStd)
-            ODE.set_f_params(config)
-        elif config.tflag == 3:
-            if config.options.rhs_with_state:
-                ODE = ode(_pyRHSc_with_state)
-            else:
-                ODE = ode(_pyRHSc)
-            ODE.set_f_params(config)
+    # CREATE ODE OBJECT CORRESPONDING TO DESIRED TIME-DEPENDENCE
+    if config.tflag in [1, 10, 11]:
+        ODE = ode(_cy_rhs_func)
+        code = compile('ODE.set_f_params(' + config.string + ')',
+                       '<string>', 'exec')
+        exec(code)
+    elif config.tflag == 2:
+        ODE = ode(_cRHStd)
+        ODE.set_f_params(config)
+    elif config.tflag in [20, 22]:
+        if config.options.rhs_with_state:
+            ODE = ode(_tdRHStd_with_state)
         else:
-            ODE = ode(_cy_rhs_func)
-            ODE.set_f_params(config.h_data, config.h_ind,
-                             config.h_ptr)
+            ODE = ode(_tdRHStd)
+        ODE.set_f_params(config)
+    elif config.tflag == 3:
+        if config.options.rhs_with_state:
+            ODE = ode(_pyRHSc_with_state)
+        else:
+            ODE = ode(_pyRHSc)
+        ODE.set_f_params(config)
+    else:
+        ODE = ode(_cy_rhs_func)
+        ODE.set_f_params(config.h_data, config.h_ind,
+                         config.h_ptr)
 
-        # initialize ODE solver for RHS
-        ODE._integrator = qutip_zvode(
-            method=opt.method, order=opt.order, atol=opt.atol, 
-            rtol=opt.rtol, nsteps=opt.nsteps, first_step=opt.first_step, 
-            min_step=opt.min_step, max_step=opt.max_step)
+    # initialize ODE solver for RHS
+    ODE._integrator = qutip_zvode(
+        method=opt.method, order=opt.order, atol=opt.atol, 
+        rtol=opt.rtol, nsteps=opt.nsteps, first_step=opt.first_step, 
+        min_step=opt.min_step, max_step=opt.max_step)
 
-        if not len(ODE._y):
-            ODE.t = 0.0
-            ODE._y = np.array([0.0], complex)
-        ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
+    if not len(ODE._y):
+        ODE.t = 0.0
+        ODE._y = np.array([0.0], complex)
+    ODE._integrator.reset(len(ODE._y), ODE.jac is not None)
 
-        # set initial conditions
-        ODE.set_initial_value(config.psi0, tlist[0])
+    # set initial conditions
+    ODE.set_initial_value(config.psi0, tlist[0])
 
-        # make array for collapse operator inds
-        cinds = np.arange(config.c_num)
+    # make array for collapse operator inds
+    cinds = np.arange(config.c_num)
 
-        # RUN ODE UNTIL EACH TIME IN TLIST
-        for k in range(1, num_times):
-            # ODE WHILE LOOP FOR INTEGRATE UP TO TIME TLIST[k]
-            while ODE.t < tlist[k]:
-                t_prev = ODE.t
-                y_prev = ODE.y
-                norm2_prev = dznrm2(ODE._y) ** 2
-                # integrate up to tlist[k], one step at a time.
-                ODE.integrate(tlist[k], step=1)
-                if not ODE.successful():
-                    raise Exception("ZVODE failed!")
-                norm2_psi = dznrm2(ODE._y) ** 2
-                if norm2_psi <= rand_vals[0]:  # <== collapse has occured
-                    # find collapse time to within specified tolerance
-                    # ---------------------------------------------------
-                    ii = 0
-                    t_final = ODE.t
-                    while ii < config.norm_steps:
-                        ii += 1
-                        t_guess = t_prev + np.log(norm2_prev / rand_vals[0]) / \
-                            np.log(norm2_prev / norm2_psi) * (t_final - t_prev)
-                        ODE._y = y_prev
-                        ODE.t = t_prev
-                        ODE._integrator.call_args[3] = 1
-                        ODE.integrate(t_guess, step=0)
-                        if not ODE.successful():
-                            raise Exception(
-                                "ZVODE failed after adjusting step size!")
-                        norm2_guess = dznrm2(ODE._y)**2
-                        if (np.abs(rand_vals[0] - norm2_guess) <
-                                config.norm_tol * rand_vals[0]):
-                            break
-                        elif (norm2_guess < rand_vals[0]):
-                            # t_guess is still > t_jump
-                            t_final = t_guess
-                            norm2_psi = norm2_guess
-                        else:
-                            # t_guess < t_jump
-                            t_prev = t_guess
-                            y_prev = ODE.y
-                            norm2_prev = norm2_guess
-                    if ii > config.norm_steps:
-                        raise Exception("Norm tolerance not reached. " +
-                                        "Increase accuracy of ODE solver or " +
-                                        "Options.norm_steps.")
-                    # ---------------------------------------------------
-                    collapse_times.append(ODE.t)
-
-                    # some string based collapse operators
-                    if config.tflag in [1, 11]:
-                        n_dp = [cy_expect_psi_csr(config.n_ops_data[i],
-                                                  config.n_ops_ind[i],
-                                                  config.n_ops_ptr[i],
-                                                  ODE._y, 1)
-                                for i in config.c_const_inds]
-
-                        _locals = locals()
-                        # calculates the expectation values for time-dependent
-                        # norm collapse operators
-                        exec(_cy_col_expect_call_func, globals(), _locals)
-                        n_dp = np.array(_locals['n_dp'])
-
-                    # some Python function based collapse operators
-                    elif config.tflag in [2, 20, 22]:
-                        n_dp = [cy_expect_psi_csr(config.n_ops_data[i],
-                                                  config.n_ops_ind[i],
-                                                  config.n_ops_ptr[i],
-                                                  ODE._y, 1)
-                                for i in config.c_const_inds]
-                        n_dp += [abs(config.c_funcs[i](
-                                     ODE.t, config.c_func_args)) ** 2 *
-                                 cy_expect_psi_csr(config.n_ops_data[i],
-                                                   config.n_ops_ind[i],
-                                                   config.n_ops_ptr[i],
-                                                   ODE._y, 1)
-                                 for i in config.c_td_inds]
-                        n_dp = np.array(n_dp)
-                    # all constant collapse operators.
+    # RUN ODE UNTIL EACH TIME IN TLIST
+    for k in range(1, num_times):
+        # ODE WHILE LOOP FOR INTEGRATE UP TO TIME TLIST[k]
+        while ODE.t < tlist[k]:
+            t_prev = ODE.t
+            y_prev = ODE.y
+            norm2_prev = dznrm2(ODE._y) ** 2
+            # integrate up to tlist[k], one step at a time.
+            ODE.integrate(tlist[k], step=1)
+            if not ODE.successful():
+                raise Exception("ZVODE failed!")
+            norm2_psi = dznrm2(ODE._y) ** 2
+            if norm2_psi <= rand_vals[0]:  # <== collapse has occured
+                # find collapse time to within specified tolerance
+                # ---------------------------------------------------
+                ii = 0
+                t_final = ODE.t
+                while ii < config.norm_steps:
+                    ii += 1
+                    t_guess = t_prev + \
+                        np.log(norm2_prev / rand_vals[0]) / \
+                        np.log(norm2_prev / norm2_psi) * (t_final - t_prev)
+                    ODE._y = y_prev
+                    ODE.t = t_prev
+                    ODE._integrator.call_args[3] = 1
+                    ODE.integrate(t_guess, step=0)
+                    if not ODE.successful():
+                        raise Exception(
+                            "ZVODE failed after adjusting step size!")
+                    norm2_guess = dznrm2(ODE._y)**2
+                    if (np.abs(rand_vals[0] - norm2_guess) <
+                            config.norm_tol * rand_vals[0]):
+                        break
+                    elif (norm2_guess < rand_vals[0]):
+                        # t_guess is still > t_jump
+                        t_final = t_guess
+                        norm2_psi = norm2_guess
                     else:
-                        n_dp = np.array(
-                            [cy_expect_psi_csr(config.n_ops_data[i],
+                        # t_guess < t_jump
+                        t_prev = t_guess
+                        y_prev = ODE.y
+                        norm2_prev = norm2_guess
+                if ii > config.norm_steps:
+                    raise Exception("Norm tolerance not reached. " +
+                                    "Increase accuracy of ODE solver or " +
+                                    "Options.norm_steps.")
+                # ---------------------------------------------------
+                collapse_times.append(ODE.t)
+
+                # some string based collapse operators
+                if config.tflag in [1, 11]:
+                    n_dp = [cy_expect_psi_csr(config.n_ops_data[i],
+                                              config.n_ops_ind[i],
+                                              config.n_ops_ptr[i],
+                                              ODE._y, 1)
+                            for i in config.c_const_inds]
+
+                    _locals = locals()
+                    # calculates the expectation values for time-dependent
+                    # norm collapse operators
+                    exec(_cy_col_expect_call_func, globals(), _locals)
+                    n_dp = np.array(_locals['n_dp'])
+
+                # some Python function based collapse operators
+                elif config.tflag in [2, 20, 22]:
+                    n_dp = [cy_expect_psi_csr(config.n_ops_data[i],
+                                              config.n_ops_ind[i],
+                                              config.n_ops_ptr[i],
+                                              ODE._y, 1)
+                            for i in config.c_const_inds]
+                    n_dp += [abs(config.c_funcs[i](
+                                 ODE.t, config.c_func_args)) ** 2 *
+                             cy_expect_psi_csr(config.n_ops_data[i],
                                                config.n_ops_ind[i],
                                                config.n_ops_ptr[i],
                                                ODE._y, 1)
-                             for i in range(config.c_num)])
-
-                    # determine which operator does collapse and store it
-                    kk = np.cumsum(n_dp / np.sum(n_dp))
-                    j = cinds[kk >= rand_vals[1]][0]
-                    which_oper.append(j)
-                    if j in config.c_const_inds:
-                        state = spmv_csr(config.c_ops_data[j],
-                                         config.c_ops_ind[j],
-                                         config.c_ops_ptr[j], ODE._y)
-                    else:
-                        if config.tflag in [1, 11]:
-                            _locals = locals()
-                            # calculates the state vector for collapse by a
-                            # time-dependent collapse operator
-                            exec(_cy_col_spmv_call_func, globals(), _locals)
-                            state = _locals['state']
-                        else:
-                            state = \
-                                config.c_funcs[j](ODE.t,
-                                                  config.c_func_args) * \
-                                spmv_csr(config.c_ops_data[j],
-                                         config.c_ops_ind[j],
-                                         config.c_ops_ptr[j], ODE._y)
-                    state = state / dznrm2(state)
-                    ODE._y = state
-                    ODE._integrator.call_args[3] = 1
-                    rand_vals = prng.rand(2)
-            # -------------------------------------------------------
-
-            # -- after while loop --
-            out_psi = ODE._y / dznrm2(ODE._y)
-            if config.e_num == 0:
-                out_psi = sp.csr_matrix(np.reshape(out_psi,
-                                                   (out_psi.shape[0], 1)),
-                                        dtype=complex)
-                if (config.options.average_states and
-                        not config.options.steady_state_average):
-                    states_out[k] = Qobj(out_psi * out_psi.conj().transpose(),
-                                         [config.psi0_dims[0],
-                                          config.psi0_dims[0]],
-                                         [config.psi0_shape[0],
-                                          config.psi0_shape[0]],
-                                         fast='mc-dm')
-
-                elif config.options.steady_state_average:
-                    states_out[0] = (states_out[0] +
-                                     (out_psi * out_psi.conj().transpose()))
-
+                             for i in config.c_td_inds]
+                    n_dp = np.array(n_dp)
+                # all constant collapse operators.
                 else:
-                    states_out[k] = Qobj(out_psi, config.psi0_dims,
-                                         config.psi0_shape, fast='mc')
+                    n_dp = np.array(
+                        [cy_expect_psi_csr(config.n_ops_data[i],
+                                           config.n_ops_ind[i],
+                                           config.n_ops_ptr[i],
+                                           ODE._y, 1)
+                         for i in range(config.c_num)])
+
+                # determine which operator does collapse and store it
+                kk = np.cumsum(n_dp / np.sum(n_dp))
+                j = cinds[kk >= rand_vals[1]][0]
+                which_oper.append(j)
+                if j in config.c_const_inds:
+                    state = spmv_csr(config.c_ops_data[j],
+                                     config.c_ops_ind[j],
+                                     config.c_ops_ptr[j], ODE._y)
+                else:
+                    if config.tflag in [1, 11]:
+                        _locals = locals()
+                        # calculates the state vector for collapse by a
+                        # time-dependent collapse operator
+                        exec(_cy_col_spmv_call_func, globals(), _locals)
+                        state = _locals['state']
+                    else:
+                        state = \
+                            config.c_funcs[j](ODE.t,
+                                              config.c_func_args) * \
+                            spmv_csr(config.c_ops_data[j],
+                                     config.c_ops_ind[j],
+                                     config.c_ops_ptr[j], ODE._y)
+                state = state / dznrm2(state)
+                ODE._y = state
+                ODE._integrator.call_args[3] = 1
+                rand_vals = prng.rand(2)
+        # -------------------------------------------------------
+
+        # -- after while loop --
+        out_psi = ODE._y / dznrm2(ODE._y)
+        if config.e_num == 0 or config.options.store_states:
+            out_psi_csr = sp.csr_matrix(np.reshape(out_psi,
+                                               (out_psi.shape[0], 1)),
+                                    dtype=complex)
+            if (config.options.average_states and
+                    not config.options.steady_state_average):
+                states_out[k] = Qobj(out_psi_csr * out_psi_csr.conj().transpose(),
+                                     [config.psi0_dims[0],
+                                      config.psi0_dims[0]],
+                                     [config.psi0_shape[0],
+                                      config.psi0_shape[0]],
+                                     fast='mc-dm')
+
+            elif config.options.steady_state_average:
+                states_out[0] = (states_out[0] +
+                                 (out_psi_csr * out_psi_csr.conj().transpose()))
+
             else:
-                for jj in range(config.e_num):
-                    expect_out[jj][k] = cy_expect_psi_csr(
-                        config.e_ops_data[jj], config.e_ops_ind[jj],
-                        config.e_ops_ptr[jj], out_psi,
-                        config.e_ops_isherm[jj])
+                states_out[k] = Qobj(out_psi_csr, config.psi0_dims,
+                                     config.psi0_shape, fast='mc')
 
-        # Run at end of mc_alg function
-        # ------------------------------
-        if config.options.steady_state_average:
-            states_out = np.array([Qobj(states_out[0] / float(len(tlist)),
-                                  [config.psi0_dims[0],
-                                   config.psi0_dims[0]],
-                                  [config.psi0_shape[0],
-                                   config.psi0_shape[0]],
-                                  fast='mc-dm')])
+        for jj in range(config.e_num):
+            expect_out[jj][k] = cy_expect_psi_csr(
+                config.e_ops_data[jj], config.e_ops_ind[jj],
+                config.e_ops_ptr[jj], out_psi,
+                config.e_ops_isherm[jj])
 
-        return (states_out, expect_out,
-                np.array(collapse_times, dtype=float),
-                np.array(which_oper, dtype=int))
+    # Run at end of mc_alg function
+    # ------------------------------
+    if config.options.steady_state_average:
+        states_out = np.array([Qobj(states_out[0] / float(len(tlist)),
+                              [config.psi0_dims[0],
+                               config.psi0_dims[0]],
+                              [config.psi0_shape[0],
+                               config.psi0_shape[0]],
+                              fast='mc-dm')])
 
-    except Exception as e:
-        print("failed to run _mc_alg_evolve: " + str(e))
+    return (states_out, expect_out,
+            np.array(collapse_times, dtype=float),
+            np.array(which_oper, dtype=int))
+
+    #except Exception as e:
+    #    print("failed to run _mc_alg_evolve: " + str(e))
 
 
 def _mc_func_load(config):
