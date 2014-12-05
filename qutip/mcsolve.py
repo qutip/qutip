@@ -36,7 +36,6 @@ __all__ = ['mcsolve']
 import os
 import copy
 from types import FunctionType
-from multiprocessing import Pool
 import numpy as np
 from numpy.random import RandomState, random_integers
 from scipy.integrate import ode
@@ -45,14 +44,14 @@ from scipy.integrate._ode import zvode
 from scipy.linalg.blas import get_blas_funcs
 dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 from qutip.qobj import Qobj
-from qutip.parallel import parfor, parallel_map
+from qutip.parallel import parfor, parallel_map, serial_map
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
 from qutip.solver import Options, Result, config
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 import qutip.settings
 from qutip.settings import debug
-from qutip.ui.progressbar import TextProgressBar, BaseProgressBar
+from qutip.ui.progressbar import TextProgressBar
 
 if debug:
     import inspect
@@ -153,7 +152,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     -------
     results : Result
         Object storing all results from simulation.
-        
+
     Notes
     -----
     It is possible to reuse the random number seeds from a previous run
@@ -166,11 +165,11 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         print(inspect.stack()[0][3])
 
     if options is None:
-        options=Options()
-    
+        options = Options()
+
     if ntraj is None:
         ntraj = options.ntraj
-        
+
     config.map_func = map_func if map_func is not None else parallel_map
     config.map_kwargs = map_kwargs if map_kwargs is not None else {}
 
@@ -198,6 +197,8 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     # set num_cpus to the value given in qutip.settings if none in Options
     if not config.options.num_cpus:
         config.options.num_cpus = qutip.settings.num_cpus
+        if config.options.num_cpus == 1:
+            config.map_func = serial_map
 
     # set initial value data
     if options.tidy:
@@ -297,7 +298,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         if isinstance(ntraj, int):
             output.expect = [np.mean(np.array([mc.expect_out[nt][op]
                                                for nt in range(ntraj)],
-                                               dtype=object),
+                                              dtype=object),
                                      axis=0)
                              for op in range(config.e_num)]
         elif isinstance(ntraj, (list, np.ndarray)):
@@ -381,7 +382,7 @@ class _MC_class():
             if config.e_num == 0:
                 # Output array of state vectors calculated at times in tlist
                 self.psi_out = np.array([Qobj()] * self.num_times,
-                                         dtype=object)
+                                        dtype=object)
             elif config.e_num != 0:  # no collapse expectation values
                 # List of output expectation values calculated at times in
                 # tlist
@@ -417,7 +418,8 @@ class _MC_class():
                                                       dtype=object)
                                              for q in range(config.ntraj)])
 
-            if config.e_num > 0:  # preallocate array of lists for expectation values
+            if config.e_num > 0:
+                # preallocate array of lists for expectation values
                 self.expect_out = [[] for x in range(config.ntraj)]
 
     # -------------------------------------------------
@@ -458,7 +460,8 @@ class _MC_class():
                              1e8, size=(self.config.ntraj-seed_length))))
 
             # set arguments for input to monte-carlo
-            map_kwargs = {'progress_bar': self.config.progress_bar}
+            map_kwargs = {'progress_bar': self.config.progress_bar,
+                          'num_cpus': self.cpus}
             map_kwargs.update(self.config.map_kwargs)
 
             task_args = (self.config.options,
@@ -506,10 +509,10 @@ def _cRHStd(t, psi, config):
     sys = cy_ode_rhs(t, psi, config.h_data,
                      config.h_ind, config.h_ptr)
     col = np.array([np.abs(config.c_funcs[j](t, config.c_func_args)) ** 2 *
-                 spmv_csr(config.n_ops_data[j],
-                          config.n_ops_ind[j],
-                          config.n_ops_ptr[j], psi)
-                for j in config.c_td_inds])
+                    spmv_csr(config.n_ops_data[j],
+                             config.n_ops_ind[j],
+                             config.n_ops_ptr[j], psi)
+                    for j in config.c_td_inds])
     return sys - 0.5 * np.sum(col, 0)
 
 
@@ -727,13 +730,11 @@ def _mc_alg_evolve(nt, opt, tlist, num_times, seeds, config):
     if not _cy_rhs_func:
         _mc_func_load(config)
 
-    #try:
-
     if config.options.steady_state_average:
         states_out = np.zeros((1), dtype=object)
     else:
         states_out = np.zeros((num_times), dtype=object)
-        
+
     temp = sp.csr_matrix(
         np.reshape(config.psi0, (config.psi0.shape[0], 1)),
         dtype=complex)
@@ -807,8 +808,8 @@ def _mc_alg_evolve(nt, opt, tlist, num_times, seeds, config):
 
     # initialize ODE solver for RHS
     ODE._integrator = qutip_zvode(
-        method=opt.method, order=opt.order, atol=opt.atol, 
-        rtol=opt.rtol, nsteps=opt.nsteps, first_step=opt.first_step, 
+        method=opt.method, order=opt.order, atol=opt.atol,
+        rtol=opt.rtol, nsteps=opt.nsteps, first_step=opt.first_step,
         min_step=opt.min_step, max_step=opt.max_step)
 
     if not len(ODE._y):
@@ -941,20 +942,20 @@ def _mc_alg_evolve(nt, opt, tlist, num_times, seeds, config):
         out_psi = ODE._y / dznrm2(ODE._y)
         if config.e_num == 0 or config.options.store_states:
             out_psi_csr = sp.csr_matrix(np.reshape(out_psi,
-                                               (out_psi.shape[0], 1)),
-                                    dtype=complex)
+                                                   (out_psi.shape[0], 1)),
+                                        dtype=complex)
             if (config.options.average_states and
                     not config.options.steady_state_average):
-                states_out[k] = Qobj(out_psi_csr * out_psi_csr.conj().transpose(),
-                                     [config.psi0_dims[0],
-                                      config.psi0_dims[0]],
-                                     [config.psi0_shape[0],
-                                      config.psi0_shape[0]],
-                                     fast='mc-dm')
+                states_out[k] = Qobj(
+                    out_psi_csr * out_psi_csr.conj().transpose(),
+                    [config.psi0_dims[0], config.psi0_dims[0]],
+                    [config.psi0_shape[0], config.psi0_shape[0]],
+                    fast='mc-dm')
 
             elif config.options.steady_state_average:
-                states_out[0] = (states_out[0] +
-                                 (out_psi_csr * out_psi_csr.conj().transpose()))
+                states_out[0] = (
+                    states_out[0] +
+                    (out_psi_csr * out_psi_csr.conj().transpose()))
 
             else:
                 states_out[k] = Qobj(out_psi_csr, config.psi0_dims,
@@ -979,9 +980,6 @@ def _mc_alg_evolve(nt, opt, tlist, num_times, seeds, config):
     return (states_out, expect_out,
             np.array(collapse_times, dtype=float),
             np.array(which_oper, dtype=int))
-
-    #except Exception as e:
-    #    print("failed to run _mc_alg_evolve: " + str(e))
 
 
 def _mc_func_load(config):
@@ -1148,7 +1146,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
             H_tdterms = [H[k][1] for k in H_td_inds]
             # combine time-INDEPENDENT terms into one.
             H = np.array([np.sum(H[k] for k in H_const_inds)] +
-                      [H[k][0] for k in H_td_inds], dtype=object)
+                         [H[k][0] for k in H_td_inds], dtype=object)
             len_h = len(H)
             H_inds = np.arange(len_h)
             # store indicies of time-dependent Hamiltonian terms
@@ -1288,7 +1286,7 @@ def _mc_data_config(H, psi0, h_stuff, c_ops, c_stuff, args, e_ops,
         if options.tidy:
             H = H.tidyup(options.atol)
             Htd = np.array([Htd[j].tidyup(options.atol)
-                         for j in config.h_td_inds], dtype=object)
+                            for j in config.h_td_inds], dtype=object)
         # setup constant H terms data
         config.h_data = -1.0j * H.data.data
         config.h_ind = H.data.indices
