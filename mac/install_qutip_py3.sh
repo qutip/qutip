@@ -35,23 +35,23 @@ brew install freetype
 #export LAPACK=/usr/local/opt/openblas/lib/libopenblas.a
 
 # General
-sudo pip3 install -U nose
-sudo pip3 install -U six
-sudo pip3 install -U patsy
-sudo pip3 install -U pygments
-sudo pip3 install -U sphinx
-sudo pip3 install -U cython
+pip3 install -U nose
+pip3 install -U six
+pip3 install -U patsy
+pip3 install -U pygments
+pip3 install -U sphinx
+pip3 install -U cython
 # IPython
-sudo pip3 install -U jinja2
-sudo pip3 install -U tornado
-sudo pip3 install -U pyzmq
-sudo pip3 install -U jsonschema
-sudo pip3 install -U ipython
+pip3 install -U jinja2
+pip3 install -U tornado
+pip3 install -U pyzmq
+pip3 install -U jsonschema
+pip3 install -U ipython
 # NumPy
-sudo pip3 install -U numpy
+pip3 install -U numpy
 # SciPy
-sudo pip3 install -U scipy
+pip3 install -U scipy
 # Matplotlib
-sudo pip3 install -U matplotlib
+pip3 install -U matplotlib
 # QuTiP
-sudo pip3 install -U https://github.com/qutip/qutip/archive/master.tar.gz --install-option=--with-f90mc
+pip3 install -U https://github.com/qutip/qutip/archive/master.tar.gz --install-option=--with-f90mc
