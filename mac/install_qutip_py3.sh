@@ -55,3 +55,7 @@ pip3 install -U scipy
 pip3 install -U matplotlib
 # QuTiP
 pip3 install -U https://github.com/qutip/qutip/archive/master.tar.gz --install-option=--with-f90mc
+
+#run QuTiP tests from shell
+echo "Running QuTiP unit tests"
+python3 -c "import qutip.testing as qt; qt.run()"
