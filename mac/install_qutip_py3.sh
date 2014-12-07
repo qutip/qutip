@@ -29,33 +29,32 @@ brew install python3
 brew install gcc # This includes gfortran
 brew install zeromq
 brew install freetype
-# OpenBLAS for NumPy/SciPy
-#brew install openblas
-#export BLAS=/usr/local/opt/openblas/lib/libopenblas.a
-#export LAPACK=/usr/local/opt/openblas/lib/libopenblas.a
 
 # General
-pip3 install -U nose
-pip3 install -U six
-pip3 install -U patsy
-pip3 install -U pygments
-pip3 install -U sphinx
-pip3 install -U cython
+/usr/local/bin/pip3 install -U nose
+/usr/local/bin/pip3 install -U six
+/usr/local/bin/pip3 install -U patsy
+/usr/local/bin/pip3 install -U pygments
+/usr/local/bin/pip3 install -U sphinx
+/usr/local/bin/pip3 install -U cython
 # IPython
-pip3 install -U jinja2
-pip3 install -U tornado
-pip3 install -U pyzmq
-pip3 install -U jsonschema
-pip3 install -U ipython
+/usr/local/bin/pip3 install -U jinja2
+/usr/local/bin/pip3 install -U tornado
+/usr/local/bin/pip3 install -U pyzmq
+/usr/local/bin/pip3 install -U jsonschema
+/usr/local/bin/pip3 install -U ipython
 # NumPy
-pip3 install -U numpy
+/usr/local/bin/pip3 install -U numpy
 # SciPy
-pip3 install -U scipy
+/usr/local/bin/pip3 install -U scipy
 # Matplotlib
-pip3 install -U matplotlib
+/usr/local/bin/pip3 install -U matplotlib
 # QuTiP
-pip3 install -U https://github.com/qutip/qutip/archive/master.tar.gz --install-option=--with-f90mc
+/usr/local/bin/pip3 install -U https://github.com/qutip/qutip/archive/master.tar.gz --install-option=--with-f90mc
 
 #run QuTiP tests from shell
 echo "Running QuTiP unit tests"
-python3 -c "import qutip.testing as qt; qt.run()"
+/usr/local/bin/python3 -c "import qutip.testing as qt; qt.run()"
+
+#check brew installation
+brew doctor
