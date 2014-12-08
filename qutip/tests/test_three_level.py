@@ -38,7 +38,7 @@ from qutip.three_level_atom import *
 
 
 three_states = three_level_basis()
-three_check = np.array([basis(3),basis(3,1),basis(3,2)])
+three_check = np.array([basis(3),basis(3,1),basis(3,2)],dtype=object)
 three_ops = three_level_ops()
 
 def testThreeStates():
