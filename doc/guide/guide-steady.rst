@@ -15,11 +15,16 @@ Introduction
 For time-independent open quantum systems with decay rates larger than the corresponding excitation rates, the system will tend toward a steady state as :math:`t\rightarrow\infty` that satisfies the equation
 
 .. math::
-    \frac{\partial\rho_{ss}}{\partial t}=\mathcal{L}\rho_{ss}=0.
+    \frac{d\hat{\rho}_{ss}}{dt}=\mathcal{L}\hat{\rho}_{ss}=0.
 
-Although the requirement for time-independence seems quite resitrictive, one can often employ a transformation to the interaction picture that yields a time-independent Hamiltonian.  For many these systems, solving for the asymptotic density matrix :math:`\rho_{ss}` can be achieved using direct or iterative solution methods faster than using master equation or Monte Carlo simulations. Although the steady state equation has a simple mathematical form, the properties of the Liouvillian operator are such that the solutions to this equation are anything but straightforward to find.
+Although the requirement for time-independence seems quite resitrictive, one can often employ a transformation to the interaction picture that yields a time-independent Hamiltonian.  For many these systems, solving for the asymptotic density matrix :math:`\hat{\rho_{ss}}` can be achieved using direct or iterative solution methods faster than using master equation or Monte Carlo simulations.  Although the steady state equation has a simple mathematical form, the properties of the Liouvillian operator are such that the solutions to this equation are anything but straightforward to find.
+
+Steady State Solutions for Arbitrary Systems
+============================================
 
 
+Steady State solvers in QuTiP
+============================= 
 In QuTiP, the steady-state solution for a system Hamiltonian or Liouvillian is given by :func:`qutip.steadystate.steadystate`.  This function implements a number of different methods for finding the steady state, each with their own pros and cons, where the method used can be chosen using the ``method`` keyword argument. 
 
 Available Steady-State Methods:
@@ -46,6 +51,9 @@ Available Steady-State Methods:
    * - LGMRES
      - 'iterative-lgmres'
      - Iteratively solve for the steady-state solution using the LGMRES method and optional preconditioner.
+   * - BICGSTAB
+     - 'iterative-bicgstab'
+     - Iteratively solve for the steady-state solution using the BICGSTAB method and optional preconditioner.
    * - SVD
      - 'svd'
      - Steady-state solution via the SVD of the Liouvillian represented by a **dense** matrix.
@@ -70,8 +78,7 @@ where ``H`` is a quantum object representing the system Hamiltonian, and ``c_ops
 where ``method='power'`` indicates that we are using the inverse-power solution method, and ``use_rcm=True`` turns on the bandwidth minimization routine.  
 
 
-Although it is not obvious, the ``'direct'``, ``eigen``, and ``'power'`` methods all use an LU decomposition internally and thus suffer from a large memory overhead.  In contrast, iterative methods such as the ``'GMRES'`` and ``'LGMRES'`` methods do not factor the matrix and thus take less memory than these previous methods and allowing, in principle, for extremely large system sizes. The downside is that these methods can take much longer than the direct method as the condition number of the Liouvillian matrix is large, indicating that these iterative methods require a large number of iterations for convergence.  To overcome this, one can use a preconditioner :math:`M` that solves for an approximate inverse for the (modified) Liouvillian, thus better conditioning the problem, leading to faster convergence.  The use of a preconditioner can actually make thee iterative methods faster than the other solution methods.  The problem with precondioning is that it is only well defined for symmetric (or Hermitian), positive-definite matrices.  Since the Liouvillian has none of these properties, the ability to find a good preconditioner is not guaranteed.  And moreover, if a preconditioner is found, it is not guaranteed to be good. QuTiP makes use of an incomplete LU preconditioner is invoked automatically when using the iterative ``'GMRES'`` and ``'LGMRES'`` solvers that uses a combination of symmetric and antisymmetric matrix permutations that attempts to improve the preconditioning process.  These features are discussed in the :ref:`steady-args` section.  Even with these state-of-the-art permutations, the generation of a successful preconditoner for non-symmetric matrices is currently a trial-and-error process due to the lack of mathematical work done in this area.  It is always recommended to begin with the direct solver with no additional arguments before selecting a different method.
-
+Although it is not obvious, the ``'direct'``, ``eigen``, and ``'power'`` methods all use an LU decomposition internally and thus suffer from a large memory overhead.  In contrast, iterative methods such as the ``'iterative-gmres'``, ``'iterative-lgmres'``, and ``'iterative-bicgstab'`` methods do not factor the matrix and thus take less memory than these previous methods and allowing, in principle, for extremely large system sizes. The downside is that these methods can take much longer than the direct method as the condition number of the Liouvillian matrix is large, indicating that these iterative methods require a large number of iterations for convergence.  To overcome this, one can use a preconditioner :math:`M` that solves for an approximate inverse for the (modified) Liouvillian, thus better conditioning the problem, leading to faster convergence.  The use of a preconditioner can actually make these iterative methods faster than the other solution methods.  The problem with precondioning is that it is only well defined for Hermitian matrices.  Since the Liouvillian is non-Hermitian, the ability to find a good preconditioner is not guaranteed.  And moreover, if a preconditioner is found, it is not guaranteed to have a good condition number. QuTiP makes use of an incomplete LU preconditioner that is invoked automatically when using the iterative ``'gmres'``, ``'lgmres'``, and ``'bicgstab'`` solvers that that can make use of a combination of symmetric and anti-symmetric matrix permutations that attempt to improve the preconditioning process.  These features are discussed in the :ref:`steady-args` section.  Even with these state-of-the-art permutations, the generation of a successful preconditoner for non-symmetric matrices is currently a trial-and-error process due to the lack of mathematical work done in this area.  It is always recommended to begin with the direct solver with no additional arguments before selecting a different method.
 
 Finding the steady-state solution is not limited to the Lindblad form of the master equation. Any time-independent Liouvillian constructed from a Hamiltonian and collapse operators can be used as an input::
 
@@ -113,7 +120,7 @@ The following additional solver arguments are available for the steady-state sol
      - False, True
      - Use the umfpack solver rather than the default superLU.  on SciPy 0.14+, this option requires installing the scikits.umfpack extension.
    * - use_precond
-     - True, False
+     - False, True
      - Attempt to generate a preconditioner when using the ``'iterative-gmres'`` and ``'iterative-lgmres'`` methods.
    * - M
      - None, sparse_matrix, LinearOperator

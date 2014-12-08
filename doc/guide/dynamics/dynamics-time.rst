@@ -7,6 +7,11 @@
 Solving Problems with Time-dependent Hamiltonians
 *************************************************
 
+.. ipython::
+   :suppress:
+
+   In [1]: from qutip import *
+
 Methods for Writing Time-Dependent Operators
 ============================================
 
@@ -20,13 +25,20 @@ In the previous examples of quantum evolution, we assumed that the systems under
 3. **Hamiltonian function (outdated)**: The Hamiltonian is itself a Python function with time-dependence.  Collapse operators must be time independent using this input format. 
 
 
-Give the multiple choices of input style, the first question that arrises is which option to choose?  In short, the function based method (option #1) is the most general, allowing for essentially arbitrary coefficients expressed via user defined functions.  However, by automatically compiling your system into C code, the second option (string based) tends to be more efficient and will run faster.  Of course, for small system sizes and evolution times, the difference will be minor.  Although this method does not support all time-dependent coefficients that one can think of, it does support essentially all problems that one would typically encounter.  If you can write you time-dependent coefficients using any of the following functions, or combinations thereof (including constants) then you may use this method::
+Give the multiple choices of input style, the first question that arrises is which option to choose?  In short, the function based method (option #1) is the most general, allowing for essentially arbitrary coefficients expressed via user defined functions.  However, by automatically compiling your system into C code, the second option (string based) tends to be more efficient and will run faster.  Of course, for small system sizes and evolution times, the difference will be minor.  Although this method does not support all time-dependent coefficients that one can think of, it does support essentially all problems that one would typically encounter.  Time-dependent coefficients using any of the following functions, or combinations thereof (including constants) can be compiled directly into C-code::
 
-   'acos', 'acosh', 'asin', 'asinh', 'atan', 'atan2', 'atanh', 'ceil',
-   'copysign', 'cos', 'cosh', 'degrees', 'erf', 'erfc', 'exp', 'expm1',
-   'fabs', 'factorial', 'floor', 'fmod', 'frexp', 'fsum', 'gamma',
-   'hypot', 'isinf', 'isnan', 'ldexp', 'lgamma', 'log', 'log10', 'log1p',
-   'modf', 'pow', 'radians', 'sin', 'sinh', 'sqrt', 'tan', 'tanh', 'trunc'
+   'abs', 'acos', 'acosh', 'arg', 'asin', 'asinh', 'atan', 'atan2', 'atanh', 'conj', 
+   'cos', 'cosh','exp', 'imag', 'log', 'pow', 'proj, 'real', 'sin', 'sinh', 'sqrt',
+   'tan', 'tanh'
+
+If you require mathematical functions other than those listed above, than it is possible to call any of the functions in the numpy math library using the prefix ``np.`` before the function name in the string, i.e ``'np.sin(t)'``.  The available functions can be found using
+
+.. ipython::
+
+    In [1]: import numpy as np
+    
+    In [1]: np.array(dir(np.math)[6:])
+
 
 Finally option #3, expressing the Hamiltonian as a Python function, is the original method for time dependence in QuTiP 1.x.  However, this method is somewhat less efficient then the previously mentioned methods, and does not allow for time-dependent collapse operators. However, in contrast to options #1 and #2, this method can be used in implementing time-dependent Hamiltonians that cannot be expressed as a function of constant operators with time-dependent coefficients.
 
@@ -166,14 +178,7 @@ String Format Method
 
 .. note:: You must have Cython installed on your computer to use this format.  See :ref:`install` for instructions on installing Cython.
 
-The string-based time-dependent format works in a similar manner as the previously discussed Python function method.  That being said, the underlying code does something completely different.  When using this format, the strings used to represent the time-dependent coefficients, as well as Hamiltonian and collapse operators, are rewritten as Cython code using a code generator class and then compiled into C code.  The details of this meta-programming will be published in due course.  however, in short, this can lead to a substantial reduction in time for complex time-dependent problems, or when simulating over long intervals.  We remind the reader that the types of functions that can be used with this method is limited to::
-
-   ['acos', 'acosh', 'asin', 'asinh', 'atan', 'atan2', 'atanh', 'ceil'
-   , 'copysign', 'cos', 'cosh', 'degrees', 'erf', 'erfc', 'exp', 'expm1'
-   , 'fabs', 'factorial', 'floor', 'fmod', 'frexp', 'fsum', 'gamma'
-   , 'hypot', 'isinf', 'isnan', 'ldexp', 'lgamma', 'log', 'log10', 'log1p'
-   , 'modf', 'pow', 'radians', 'sin', 'sinh', 'sqrt', 'tan', 'tanh', 'trunc']
-
+The string-based time-dependent format works in a similar manner as the previously discussed Python function method.  That being said, the underlying code does something completely different.  When using this format, the strings used to represent the time-dependent coefficients, as well as Hamiltonian and collapse operators, are rewritten as Cython code using a code generator class and then compiled into C code.  The details of this meta-programming will be published in due course.  however, in short, this can lead to a substantial reduction in time for complex time-dependent problems, or when simulating over long intervals.
 
 Like the previous method, the string-based format uses a list pair format ``[Op, str]`` where ``str`` is now a string representing the time-dependent coefficient.  For our first example, this string would be ``'9 * exp(-(t / 5.) ** 2)'``.  The Hamiltonian in this format would take the form:
 
@@ -189,7 +194,7 @@ We can also use the ``args`` variable in the same manner as before, however we m
     args = {'A': 9, 'sig': 5}
     output = mesolve(H, psi0, times, c_ops, [a.dag()*a], args=args)
 
-.. important:: Naming your ``args`` variables ``e`` or ``pi`` will mess things up when using the string-based format.
+.. important:: Naming your ``args`` variables ``e``, ``j`` or ``pi`` will cause errors when using the string-based format.
 
 Collapse operators are handled in the exact same way.
 

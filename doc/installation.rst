@@ -24,7 +24,7 @@ programming language.  The following packages are currently required:
 +----------------+--------------+-----------------------------------------------------+
 | **Numpy**      | 1.7+         | Not tested on lower versions.                       |
 +----------------+--------------+-----------------------------------------------------+
-| **Scipy**      | 0.13+        | Lower versions have missing features.               |
+| **Scipy**      | 0.14+        | Lower versions have missing features.               |
 +----------------+--------------+-----------------------------------------------------+
 | **Matplotlib** | 1.2.0+       | Some plotting does not work on lower versions.      |
 +----------------+--------------+-----------------------------------------------------+
@@ -53,7 +53,7 @@ programming language.  The following packages are currently required:
 +----------------+--------------+-----------------------------------------------------+
 
 
-As of version 2.2, QuTiP includes an optional Fortran-based Monte Carlo solver that has a substantial performance benefit when compared with the Python-based solver. In order to install this package you must have a Fortran compiler (for example gfortran) and BLAS development libraries.  At present, these packages are only tested on the Linux and OS X platforms.
+As of version 2.2, QuTiP includes an optional Fortran-based Monte Carlo solver that has a performance benefit when compared with the Python-based solver for small system sizes. In order to install this package you must have a Fortran compiler (for example gfortran) and BLAS development libraries.  At present, these packages are only tested on the Linux and OS X platforms.
 
 
 .. _install-platform-independent:
@@ -160,15 +160,36 @@ Optional, but recommended, dependencies can be installed using:
 
 .. _install-mac:
 
-Installation on Mac OS X (10.6+)
+Installation on Mac OS X (10.8+)
 =================================
 
-If you have not done so already, install the Apple Xcode developer tools from the Apple App Store.  After installation, open Xcode and go to: Preferences -> Downloads, and install the 'Command Line Tools'.
+Setup Using Homebrew
+---------------------
+
+The latest version of QuTiP can be quickly installed on OS X using `Homebrew <http://brew.sh/>`_ and the automated installation shell scripts:
+
+- `Python 2.7 installation script <https://raw.github.com/qutip/qutip/master/mac/install_qutip_py2.sh>`_
+
+- `Python 3.4 installation script <https://raw.github.com/qutip/qutip/master/mac/install_qutip_py3.sh>`_
+
+Having downloaded the script corresponding to the version of Python you want to use, the installation script can be run from the terminal using (replacing X with 2 or 3)
+
+.. code-block:: bash
+
+    sh install_qutip_pyX.sh
+
+The script will then install Homebrew and the required QuTiP dependencies before installing QuTiP itself and running the built in test suite.  Any errors in the homebrew configuration will be displayed at the end.  Using Python 2.7 or 3.4, the python commend-line and IPython interpreter can be run by calling ``python`` and ``ipython`` or ``python3`` and ``ipython3``, respectively.
+
+
+If you have installed other packages in the ``\usr\local\`` directory, or have varied the permissions of any sub-folders in this directory, then this script may fail to install all the necessary tools automatically.
+
 
 Setup Using Macports
 ---------------------
 
-On the Mac OS, we recommended that you install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via
+If you have not done so already, install the Apple Xcode developer tools from the Apple App Store.  After installation, open Xcode and go to: Preferences -> Downloads, and install the 'Command Line Tools'.
+
+On the Mac OS, you can install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via
 
 .. code-block:: bash
 
@@ -176,14 +197,6 @@ On the Mac OS, we recommended that you install the required libraries via `MacPo
     sudo port install py34-matplotlib +latex
     sudo port install py34-cython
     sudo port install py34-ipython +notebook+parallel
-
-
-Optional, but highly recommended ports include
-
-.. code-block:: bash
-
-    sudo port install vtk5 +python27          #used for the Bloch3d class
-    sudo port install py27-mayavi             #used for the Bloch3d class
 
 Now, we want to tell OSX which Python and iPython we are going to use
 
@@ -218,19 +231,23 @@ Running port select again should give::
 	 	mp-gcc48 (active)
 	 	none
 
-Installing QuTiP via Macports may take a long time as some or all of the QuTiP dependencies are build from source code. The advantage is that all dependencies are resolved automatically, and the result should be a consistent build.
+.. note::
+    
+    Having both macports and homebrew installations on the same machine is not recommended, and can lead to 
+    QuTiP installation problems.
+
 
 
 Setup via SciPy Superpack
 -------------------------
 
-A second option is to install the required Python packages using the `SciPy Superpack <http://fonnesbeck.github.com/ScipySuperpack/>`_.  Further information on installing the superpack can be found on the `SciPy Downloads page <http://www.scipy.org/Download>`_. 
+A third option is to install the required Python packages using the `SciPy Superpack <http://fonnesbeck.github.com/ScipySuperpack/>`_.  Further information on installing the superpack can be found on the `SciPy Downloads page <http://www.scipy.org/Download>`_. 
 
 
 Anaconda CE Distribution
 ------------------------
 
-Finally, one can also use the `Anaconda CE <https://store.continuum.io/cshop/anaconda>`_ package to install all of the QuTiP 
+Finally, one can also use the `Anaconda CE <https://store.continuum.io/cshop/anaconda>`_ package to install all of QuTiP. 
 
 
 .. _install-win:
