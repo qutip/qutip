@@ -50,7 +50,7 @@ brew install freetype
 # Matplotlib
 /usr/local/bin/pip3 install -U matplotlib
 # QuTiP
-/usr/local/bin/pip3 install -U https://github.com/qutip/qutip/archive/master.tar.gz --install-option=--with-f90mc
+/usr/local/bin/pip3 install -U https://github.com/qutip/qutip/archive/qutip-3.0.1.tar.gz --install-option=--with-f90mc
 
 #run QuTiP tests from shell
 echo "Running QuTiP unit tests"
