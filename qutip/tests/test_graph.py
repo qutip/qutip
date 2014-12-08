@@ -45,24 +45,23 @@ from qutip import (rand_dm, graph_degree, breadth_first_search,
                    weighted_bipartite_matching)
 from qutip.sparse import sp_permute, sp_bandwidth
 
-# find networkx if it exists
-try:
-    import networkx as nx
-except:
-    nx_found = 0
-else:
-    nx_found = 1
 
 
-@unittest.skipIf(nx_found == 0, 'Networkx not installed.')
 def test_graph_degree():
     "Graph: Graph Degree"
-    A = rand_dm(25, 0.5)
+    A = rand_dm(25, 0.1)
     deg = graph_degree(A.data)
-    G = nx.from_scipy_sparse_matrix(A.data)
-    nx_deg = G.degree()
-    nx_deg = np.array([nx_deg[k] for k in range(25)])
-    assert_equal((deg - nx_deg).all(), 0)
+    A = A.full()
+    np_deg = []
+    for k in range(25):
+        num = 0
+        inds = A[k,:].nonzero()[0]
+        num = len(inds)
+        if k in inds:
+            num += 1
+        np_deg.append(num)
+    np.asarray(np_deg,dtype=int)
+    assert_equal((deg - np_deg).all(), 0)
 
 
 def test_graph_bfs():

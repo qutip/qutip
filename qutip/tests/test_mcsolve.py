@@ -449,5 +449,25 @@ def test_mc_seed_noreuse():
                 break
     assert_equal(diff_flag, 1)
 
+
+def test_mc_ntraj_list():
+    "Monte-carlo: list of trajectories"
+    N=5
+    a=destroy(N) 
+    H=a.dag()*a     # Simple oscillator Hamiltonian
+    psi0=basis(N,1) # Initial Fock state with one photon
+    kappa=1.0/0.129 # Coupling rate to heat bath
+    nth= 0.063      # Temperature with <n>=0.063
+    # Build collapse operators for the thermal bath
+    c_ops = []
+    c_ops.append(np.sqrt(kappa * (1 + nth)) * a)
+    c_ops.append(np.sqrt(kappa * nth) * a.dag())
+    ntraj=[1,5,15,904] # number of MC trajectories
+    tlist=np.linspace(0,0.8,100)
+    mc = mcsolve(H,psi0,tlist,c_ops,[a.dag()*a],ntraj)
+    assert_equal(len(mc.expect), 4)
+
+
+
 if __name__ == "__main__":
     run_module_suite()
