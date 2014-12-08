@@ -37,35 +37,78 @@ the qutip.metrics module.
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from numpy import abs
+from numpy import abs, sqrt
 from numpy.testing import assert_, run_module_suite
 import scipy
 
 from qutip.operators import create, destroy, jmat, identity
 from qutip.propagator import propagator
-from qutip.random_objects import rand_herm
-from qutip.metrics import average_gate_fidelity
+from qutip.random_objects import rand_herm, rand_dm, rand_unitary
+from qutip.metrics import *
 
+"""
+A test class for the metrics and pseudo-metrics included with QuTiP.
+"""
 
-class TestMetrics(object):
+def test_fidelity1():
     """
-    A test class for the metrics and pseudo-metrics included with QuTiP.
+    Metrics: Fidelity, mixed state inequality
     """
+    for k in range(10):
+        rho1 = rand_dm(25,0.25)
+        rho2 = rand_dm(25,0.25)
+        F = fidelity(rho1,rho2)
+        assert_(1-F <= sqrt(1-F**2))
 
-    def rand_super(self):
-        h_5 = rand_herm(5)
-        return propagator(h_5, scipy.rand(), [
-            create(5), destroy(5), jmat(2, 'z')
-        ])
+def test_fidelity2():
+    """
+    Metrics: Fidelity, invariance under unitary trans.
+    """
+    for k in range(10):
+        rho1 = rand_dm(25,0.25)
+        rho2 = rand_dm(25,0.25)
+        U = rand_unitary(25,0.25)
+        F = fidelity(rho1,rho2)
+        FU = fidelity(U*rho1*U.dag(),U*rho2*U.dag())
+        assert_(abs((F-FU)/F) < 1e-5)
 
-    def test_average_gate_fidelity(self):
-        """
-        Metrics: Checks that average gate fidelities are sensible for random
-        maps, and are equal to 1 for identity maps.
-        """
-        for dims in range(2, 5):
-            assert_(abs(average_gate_fidelity(identity(dims)) - 1) <= 1e-12)
-        assert_(0 <= average_gate_fidelity(self.rand_super()) <= 1)
+def test_tracedist1():
+    """
+    Metrics: Trace dist., invariance under unitary trans.
+    """
+    for k in range(10):
+        rho1 = rand_dm(25,0.25)
+        rho2 = rand_dm(25,0.25)
+        U = rand_unitary(25,0.25)
+        D = tracedist(rho1,rho2)
+        DU = tracedist(U*rho1*U.dag(),U*rho2*U.dag())
+        assert_(abs((D-DU)/D) < 1e-5)
+
+def test_tracedist2():
+    """
+    Metrics: Trace dist. & Fidelity inequality
+    """
+    for k in range(10):
+        rho1 = rand_dm(25,0.25)
+        rho2 = rand_dm(25,0.25)
+        F = fidelity(rho1,rho2)
+        D = tracedist(rho1,rho2)
+        assert_(1-F**2 <= D)
+
+def rand_super():
+    h_5 = rand_herm(5)
+    return propagator(h_5, scipy.rand(), [
+        create(5), destroy(5), jmat(2, 'z')
+    ])
+
+def test_average_gate_fidelity():
+    """
+    Metrics: Check avg gate fidelities for random
+    maps (equal to 1 for id maps).
+    """
+    for dims in range(2, 5):
+        assert_(abs(average_gate_fidelity(identity(dims)) - 1) <= 1e-12)
+    assert_(0 <= average_gate_fidelity(rand_super()) <= 1)
 
 if __name__ == "__main__":
     run_module_suite()
