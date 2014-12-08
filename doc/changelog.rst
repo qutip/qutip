@@ -7,6 +7,21 @@
 Change Log
 **********
 
+Version 3.1.0 (January 1, 2015):
+++++++++++++++++++++++++++++++++
+
+New Features
+-------------
+
+- Much faster Python based monte carlo solver (mcsolve).
+- Time-dependent Cython code now calls complex cmath functions.
+
+Bug Fixes
+---------
+
+- Fixed incorrect solution time results from inverse-power steady state solver.
+
+
 Version 3.0.1 (Aug 5, 2014):
 ++++++++++++++++++++++++++++
 
