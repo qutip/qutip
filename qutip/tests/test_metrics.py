@@ -36,12 +36,12 @@ the qutip.metrics module.
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
+import numpy as np
 from numpy import abs, sqrt
 from numpy.testing import assert_, run_module_suite
 import scipy
 
-from qutip.operators import create, destroy, jmat, identity
+from qutip.operators import create, destroy, jmat, identity, qdiags
 from qutip.states import fock_dm
 from qutip.propagator import propagator
 from qutip.random_objects import rand_herm, rand_dm, rand_unitary, rand_ket
@@ -134,6 +134,16 @@ def test_average_gate_fidelity():
     for dims in range(2, 5):
         assert_(abs(average_gate_fidelity(identity(dims)) - 1) <= 1e-12)
     assert_(0 <= average_gate_fidelity(rand_super()) <= 1)
+
+def test_hilbert_dist():
+    """
+    Metrics: Hilbert distance.
+    """
+    diag1=np.array([0.5,0.5,0,0])
+    diag2=np.array([0,0,0.5,0.5])
+    r1=qdiags(diag1,0)
+    r2=qdiags(diag2,0)
+    assert_(abs(hilbert_dist(r1,r2)-1) <= 1e-8)
 
 if __name__ == "__main__":
     run_module_suite()
