@@ -47,11 +47,11 @@ def testThreeStates():
 
 def testThreeOps():
     "Three-level atom: Operators"
-    assert_equal(three_ops[0]*three_states[0], three_check[0])
-    assert_equal(three_ops[1]*three_states[1], three_check[1])
-    assert_equal(three_ops[2]*three_states[2], three_check[2])
-    assert_equal(three_ops[3]*three_states[1], three_check[0])
-    assert_equal(three_ops[4]*three_states[1], three_check[2])
+    assert_equal((three_ops[0]*three_states[0]).full(), three_check[0].full())
+    assert_equal((three_ops[1]*three_states[1]).full(), three_check[1].full())
+    assert_equal((three_ops[2]*three_states[2]).full(), three_check[2].full())
+    assert_equal((three_ops[3]*three_states[1]).full(), three_check[0].full())
+    assert_equal((three_ops[4]*three_states[1]).full(), three_check[2].full())
 
 if __name__ == "__main__":
     run_module_suite()
