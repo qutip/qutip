@@ -400,7 +400,7 @@ class TestMESolveTDDecay:
         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < me_error)
 
-    def testMETDDecayAsPartialFuncList(self):
+    def testMETDDecayAsPartFuncList(self):
         "mesolve: time-dependence as partial function list"
 
         N = 10
