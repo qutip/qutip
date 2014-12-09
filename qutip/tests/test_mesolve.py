@@ -284,7 +284,7 @@ class TestMESolverConstDecay:
     A test class for the time-dependent ode check function.
     """
 
-    def testMEConstDecay(self):
+    def testMEDecay(self):
         "mesolve: simple constant decay"
 
         N = 10  # number of basis states to consider
@@ -300,7 +300,7 @@ class TestMESolverConstDecay:
         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < me_error)
 
-    def testMEConstDecaySingleCollapse(self):
+    def testMEDecaySingleCollapse(self):
         "mesolve: simple constant decay"
 
         N = 10  # number of basis states to consider
@@ -316,7 +316,7 @@ class TestMESolverConstDecay:
         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < me_error)
 
-    def testMEConstDecaySingleExpect(self):
+    def testMEDecaySingleExpect(self):
         "mesolve: simple constant decay"
 
         N = 10  # number of basis states to consider
@@ -332,7 +332,7 @@ class TestMESolverConstDecay:
         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < me_error)
 
-    def testMEConstDecayAsFuncList(self):
+    def testMEDecayAsFuncList(self):
         "mesolve: constant decay as function list"
 
         N = 10  # number of basis states to consider
@@ -351,7 +351,7 @@ class TestMESolverConstDecay:
         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < me_error)
 
-    def testMEConstDecayAsStrList(self):
+    def testMEDecayAsStrList(self):
         "mesolve: constant decay as string list"
 
         N = 10  # number of basis states to consider
