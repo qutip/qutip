@@ -103,4 +103,4 @@ def three_level_ops():
     sig33 = three * three.dag()
     sig12 = one * two.dag()
     sig32 = three * two.dag()
-    return array([sig11, sig22, sig33, sig12, sig32])
+    return array([sig11, sig22, sig33, sig12, sig32],dtype=object)

@@ -175,6 +175,10 @@ def hilbert_dist(A, B):
     -------
     dist : float
         Hilbert-Schmidt distance between density matrices.
+    
+    Notes
+    -----
+    See V. Vedral and M. B. Plenio, Phys. Rev. A 57, 1619 (1998).
 
     """
     if A.isket or A.isbra:
@@ -185,7 +189,7 @@ def hilbert_dist(A, B):
     if A.dims != B.dims:
         raise TypeError('A and B do not have same dimensions.')
 
-    return (A - B).norm('fro')
+    return ((A - B)**2).tr()
 
 
 def bures_dist(A, B):
