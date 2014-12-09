@@ -42,13 +42,26 @@ from numpy.testing import assert_, run_module_suite
 import scipy
 
 from qutip.operators import create, destroy, jmat, identity
+from qutip.states import fock_dm
 from qutip.propagator import propagator
-from qutip.random_objects import rand_herm, rand_dm, rand_unitary
+from qutip.random_objects import rand_herm, rand_dm, rand_unitary, rand_ket
 from qutip.metrics import *
 
 """
 A test class for the metrics and pseudo-metrics included with QuTiP.
 """
+
+def test_fid_trdist_limits():
+    """
+    Metrics: Fidelity / trace distance limiting cases
+    """
+    rho = rand_dm(25,0.25)
+    assert_(abs(fidelity(rho,rho)-1) < 1e-8)
+    assert_(tracedist(rho,rho) < 1e-8)
+    rho1 = fock_dm(5,1)
+    rho2 = fock_dm(5,2)
+    assert_(fidelity(rho1,rho2) < 1e-8)
+    assert_(abs(tracedist(rho1,rho2)-1) < 1e-8)
 
 def test_fidelity1():
     """
@@ -86,10 +99,22 @@ def test_tracedist1():
 
 def test_tracedist2():
     """
-    Metrics: Trace dist. & Fidelity inequality
+    Metrics: Trace dist. & Fidelity mixed/mixed inequality
     """
     for k in range(10):
         rho1 = rand_dm(25,0.25)
+        rho2 = rand_dm(25,0.25)
+        F = fidelity(rho1,rho2)
+        D = tracedist(rho1,rho2)
+        assert_(1-F <= D)
+
+def test_tracedist3():
+    """
+    Metrics: Trace dist. & Fidelity mixed/pure inequality
+    """
+    for k in range(10):
+        ket = rand_ket(25,0.25)
+        rho1 = ket*ket.dag()
         rho2 = rand_dm(25,0.25)
         F = fidelity(rho1,rho2)
         D = tracedist(rho1,rho2)
