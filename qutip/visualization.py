@@ -69,7 +69,7 @@ from qutip.tensor import flatten
 from qutip import settings
 
 # Adopted from the SciPy Cookbook.
-def _blob(x, y, w, w_max, area, cmap=cm.RdBu):
+def _blob(x, y, w, w_max, area, cmap=None):
     """
     Draws a square-shaped blob with the given area (< 1) at
     the given coordinates.
