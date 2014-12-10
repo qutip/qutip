@@ -65,9 +65,14 @@ Often the easiest way is to install QuTiP is to use the Python package manager `
 
 .. code-block:: bash
 
-    sudo pip install qutip
+    pip install qutip
 
-However, when installing QuTiP this way the Fortran-based Monte Carlo solver is not included.
+Or, optionally, to also incldue the Fortran-based Monte Carlo solver:
+
+.. code-block:: bash
+
+    pip install qutip --install-option=--with-f90mc
+
 More detailed platform-dependent installation alternatives are given below.
 
 .. _install-get-it:
@@ -181,7 +186,7 @@ Having downloaded the script corresponding to the version of Python you want to 
 The script will then install Homebrew and the required QuTiP dependencies before installing QuTiP itself and running the built in test suite.  Any errors in the homebrew configuration will be displayed at the end.  Using Python 2.7 or 3.4, the python commend-line and IPython interpreter can be run by calling ``python`` and ``ipython`` or ``python3`` and ``ipython3``, respectively.
 
 
-If you have installed other packages in the ``\usr\local\`` directory, or have varied the permissions of any sub-folders in this directory, then this script may fail to install all the necessary tools automatically.
+If you have installed other packages in the ``/usr/local/`` directory, or have changed the permissions of any of its sub-directories, then this script may fail to install all the necessary tools automatically.
 
 
 Setup Using Macports
@@ -198,18 +203,19 @@ On the Mac OS, you can install the required libraries via `MacPorts <http://www.
     sudo port install py34-cython
     sudo port install py34-ipython +notebook+parallel
 
-Now, we want to tell OSX which Python and iPython we are going to use
+Now, we want to tell OS X which Python and iPython we are going to use
 
 .. code-block:: bash
 
     sudo port select python python34
     sudo port select ipython ipython34
+    sudo port select pip pip34
 
-To install QuTiP from Macports, run
+To install QuTiP, run
 
 .. code-block:: bash
 
-    sudo port install py-qutip
+    sudo pip install qutip --install-option=--with-f90mc
 
 Finally, we want to set the macports compiler to the vanilla GCC version.  From the command line type::
 
@@ -320,7 +326,7 @@ QuTiP includes a collection of built-in test scripts to verify that an installat
 >>> import qutip.testing as qt
 >>> qt.run()
 
-If successful, these tests indicate that all of the QuTiP functions are working properly.  If any errors occur, please check that your have installed all of the required modules.  See the next section on how to check the installed versions of the QuTiP dependencies. If these tests still fail, then head on over to the `QuTiP Discussion Board <http://groups.google.com/group/qutip>`_ and post a message detailing your particular issue.
+If successful, these tests indicate that all of the QuTiP functions are working properly.  If any errors occur, please check that you have installed all of the required modules.  See the next section on how to check the installed versions of the QuTiP dependencies. If these tests still fail, then head on over to the `QuTiP Discussion Board <http://groups.google.com/group/qutip>`_ and post a message detailing your particular issue.
 
 .. _install-about:
 
