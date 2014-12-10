@@ -38,7 +38,7 @@ from numpy.distutils.core import setup
 MAJOR = 3
 MINOR = 1
 MICRO = 0
-ISRELEASED = False
+ISRELEASED = True
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
 REQUIRES = ['numpy (>=1.6)', 'scipy (>=0.11)', 'cython (>=0.15)',
             'matplotlib (>=1.1)']
