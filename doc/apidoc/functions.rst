@@ -14,14 +14,14 @@ Quantum States
 ----------------
 
 .. automodule:: qutip.states
-    :members: basis, coherent, coherent_dm, fock, fock_dm, ket2dm, qutrit_basis, thermal_dm, state_number_enumerate, state_number_index, state_index_number, state_number_qobj, phase_basis
+    :members: basis, coherent, coherent_dm, fock, fock_dm, ket2dm, qutrit_basis, thermal_dm, phase_basis, state_number_enumerate, state_number_index, state_index_number, state_number_qobj, enr_state_dictionaries, enr_thermal_dm, enr_fock
 
 
 Quantum Operators
 ---------------------
 
 .. automodule:: qutip.operators
-    :members: create, destroy, displace, jmat, num, qeye, identity, qutrit_ops, sigmam, sigmap, sigmax, sigmay, sigmaz, squeeze, squeezing, phase
+    :members: create, destroy, displace, jmat, num, qeye, identity, qutrit_ops, sigmam, sigmap, sigmax, sigmay, sigmaz, squeeze, squeezing, phase, enr_destroy, enr_identity
 
 
 .. _functions-rand:
@@ -45,7 +45,7 @@ Superoperators and Liouvillians
 -------------------------------
 
 .. automodule:: qutip.superoperator
-    :members: operator_to_vector, vector_to_operator, liouvillian, spost, spre, lindblad_dissipator
+    :members: operator_to_vector, vector_to_operator, liouvillian, spost, spre, sprepost, lindblad_dissipator
     
 Superoperator Representations
 -----------------------------
@@ -56,20 +56,20 @@ Superoperator Representations
 
 
 Functions acting on states and operators
-=================================================
+========================================
 
 Tensor
 -------
 
 .. automodule:: qutip.tensor
-    :members: tensor
+    :members: tensor, super_tensor, composite, tensor_contract
 
 
 Expectation Values
 --------------------
 
 .. automodule:: qutip.expect
-    :members: expect, variance
+    :members: expect, variance, expect_rho_vec, expect_psi
 
 Partial Transpose
 -----------------
@@ -91,7 +91,7 @@ Density Matrix Metrics
 ----------------------
 
 .. automodule:: qutip.metrics
-    :members: fidelity, tracedist, bures_dist, bures_angle, hilbert_dist
+    :members: fidelity, tracedist, bures_dist, bures_angle, hilbert_dist, average_gate_fidelity, process_fidelity
 
 
 Continous Variables
@@ -102,7 +102,7 @@ Continous Variables
 
 
 Dynamics and Time-Evolution
-=============================
+===========================
 
 Schrödinger Equation
 --------------------
@@ -158,14 +158,14 @@ Correlation Functions
 -----------------------
 
 .. automodule:: qutip.correlation
-    :members: correlation, correlation_ss, correlation_2op_1t, correlation_2op_2t, correlation_4op_1t, correlation_4op_2t, spectrum_ss, spectrum_pi, spectrum_correlation_fft, coherence_function_g1, coherence_function_g2
+    :members: correlation, correlation_ss, correlation_2op_1t, correlation_2op_2t, correlation_3op_1t, correlation_3op_2t, correlation_4op_1t, correlation_4op_2t, spectrum, spectrum_ss, spectrum_pi, spectrum_correlation_fft, coherence_function_g1, coherence_function_g2
 
 
 Steady-state Solvers
 --------------------
 
 .. automodule:: qutip.steadystate
-    :members: steadystate
+    :members: steadystate, build_preconditioner
     :undoc-members:
 
 Propagators
@@ -197,7 +197,7 @@ Graphs and Visualization
 ------------------------
 
 .. automodule:: qutip.visualization
-    :members: hinton, matrix_histogram, matrix_histogram_complex, plot_energy_levels, wigner_cmap, plot_fock_distribution, plot_wigner_fock_distribution, plot_wigner, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values
+    :members: hinton, matrix_histogram, matrix_histogram_complex, plot_energy_levels, wigner_cmap, plot_fock_distribution, plot_wigner_fock_distribution, plot_wigner, sphereplot, plot_schmidt, plot_qubism, plot_expectation_values, plot_spin_distribution_2d, plot_spin_distribution_3d
     :undoc-members:
 
 .. automodule:: qutip
@@ -239,6 +239,14 @@ Algorithms
 
 .. _functions-metrics:
 
+Optimal control
+===============
+
+.. automodule:: qutip.control.grape
+    :members: plot_grape_control_fields, grape_unitary, grape_unitary_adaptive
+
+.. automodule:: qutip.control.pulseoptim
+    :members: optimize_pulse, optimize_pulse_unitary, create_pulse_optimizer
 
 
 Utilitiy Functions
@@ -269,16 +277,28 @@ File I/O Functions
 .. automodule:: qutip.fileio
     :members: file_data_read, file_data_store, qload, qsave
 
-.. _functions-misc:
+
+.. _functions-parallel:
+
+Parallelization
+---------------
+
+.. automodule:: qutip.parallel
+    :members: parfor, parallel_map, serial_map
+
+
+.. _functions-ipython:
 
 IPython Notebook Tools
 ----------------------
 
 .. automodule:: qutip.ipynbtools
-    :members: parfor, version_table
+    :members: parfor, parallel_map, version_table
+
+.. _functions-misc:
 
 Miscellaneous
 --------------
 
 .. automodule:: qutip
-    :members: parfor, about, simdiag
+    :members: about, simdiag
