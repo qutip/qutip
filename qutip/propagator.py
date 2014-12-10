@@ -46,9 +46,10 @@ from qutip.mesolve import mesolve
 from qutip.sesolve import sesolve
 from qutip.states import basis
 from qutip.solver import Options
+from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
-
-def propagator(H, t, c_op_list, args=None, options=None, sparse=False):
+def propagator(H, t, c_op_list, args=None, options=None, sparse=False,
+               progress_bar=None):
     """
     Calculate the propagator U(t) for the density matrix or wave function such
     that :math:`\psi(t) = U(t)\psi(0)` or
@@ -76,12 +77,22 @@ def propagator(H, t, c_op_list, args=None, options=None, sparse=False):
     options : :class:`qutip.Options`
         with options for the ODE solver.
 
+    progress_bar: BaseProgressBar
+        Optional instance of BaseProgressBar, or a subclass thereof, for
+        showing the progress of the simulation. By default no progress bar
+        is used, and if set to True a TextProgressBar will be used.
+
     Returns
     -------
      a : qobj
         Instance representing the propagator :math:`U(t)`.
 
     """
+
+    if progress_bar is None:
+        progress_bar = BaseProgressBar()
+    elif progress_bar is True:
+        progress_bar = TextProgressBar()
 
     if options is None:
         options = Options()
@@ -108,11 +119,14 @@ def propagator(H, t, c_op_list, args=None, options=None, sparse=False):
         dims = H0.dims
         u = np.zeros([N, N, len(tlist)], dtype=complex)
 
+        progress_bar.start(N)
         for n in range(0, N):
+            progress_bar.update(n)
             psi0 = basis(N, n)
             output = sesolve(H, psi0, tlist, [], args, options)
             for k, t in enumerate(tlist):
                 u[:, n, k] = output.states[k].full().T
+        progress_bar.finished()
 
         # todo: evolving a batch of wave functions:
         # psi_0_list = [basis(N, n) for n in range(N)]
@@ -129,12 +143,15 @@ def propagator(H, t, c_op_list, args=None, options=None, sparse=False):
 
         u = np.zeros([N, N, len(tlist)], dtype=complex)
 
+        progress_bar.start(N)
         for n in range(0, N):
+            progress_bar.update(n)
             psi0 = basis(N, n)
             rho0 = Qobj(vec2mat(psi0.full()))
             output = mesolve(H, rho0, tlist, [], [], args, options)
             for k, t in enumerate(tlist):
                 u[:, n, k] = mat2vec(output.states[k].full()).T
+        progress_bar.finished()
 
     else:
         # calculate the propagator for the vector representation of the
@@ -146,7 +163,9 @@ def propagator(H, t, c_op_list, args=None, options=None, sparse=False):
         u = np.zeros([N * N, N * N, len(tlist)], dtype=complex)
 
         if sparse:
+            progress_bar.start(N * N)
             for n in range(N * N):
+                progress_bar.update(n)
                 psi0 = basis(N * N, n)
                 psi0.dims = [dims[0], 1]
                 rho0 = vector_to_operator(psi0)
@@ -154,14 +173,18 @@ def propagator(H, t, c_op_list, args=None, options=None, sparse=False):
                 for k, t in enumerate(tlist):
                     u[:, n, k] = operator_to_vector(
                         output.states[k]).full(squeeze=True)
+            progress_bar.finished()
 
         else:
+            progress_bar.start(N * N)
             for n in range(N * N):
+                progress_bar.update(n)
                 psi0 = basis(N * N, n)
                 rho0 = Qobj(vec2mat(psi0.full()))
                 output = mesolve(H, rho0, tlist, c_op_list, [], args, options)
                 for k, t in enumerate(tlist):
                     u[:, n, k] = mat2vec(output.states[k].full()).T
+            progress_bar.finished()
 
     if len(tlist) == 2:
         return Qobj(u[:, :, 1], dims=dims)
