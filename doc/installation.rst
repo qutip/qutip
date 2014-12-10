@@ -186,7 +186,7 @@ Having downloaded the script corresponding to the version of Python you want to 
 The script will then install Homebrew and the required QuTiP dependencies before installing QuTiP itself and running the built in test suite.  Any errors in the homebrew configuration will be displayed at the end.  Using Python 2.7 or 3.4, the python commend-line and IPython interpreter can be run by calling ``python`` and ``ipython`` or ``python3`` and ``ipython3``, respectively.
 
 
-If you have installed other packages in the ``\usr\local\`` directory, or have varied the permissions of any sub-folders in this directory, then this script may fail to install all the necessary tools automatically.
+If you have installed other packages in the ``/usr/local/`` directory, or have changed the permissions of any of its sub-directories, then this script may fail to install all the necessary tools automatically.
 
 
 Setup Using Macports
