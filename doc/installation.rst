@@ -203,18 +203,19 @@ On the Mac OS, you can install the required libraries via `MacPorts <http://www.
     sudo port install py34-cython
     sudo port install py34-ipython +notebook+parallel
 
-Now, we want to tell OSX which Python and iPython we are going to use
+Now, we want to tell OS X which Python and iPython we are going to use
 
 .. code-block:: bash
 
     sudo port select python python34
     sudo port select ipython ipython34
+    sudo port select pip pip34
 
-To install QuTiP from Macports, run
+To install QuTiP, run
 
 .. code-block:: bash
 
-    sudo port install py-qutip
+    sudo pip install qutip --install-option=--with-f90mc
 
 Finally, we want to set the macports compiler to the vanilla GCC version.  From the command line type::
 
