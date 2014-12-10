@@ -59,6 +59,7 @@ See Machnes et.al., arXiv.1011.4874
 import os
 import numpy as np
 import scipy.linalg as la
+from six import string_types
 #QuTiP logging
 import qutip.logging as logging
 logger = logging.get_logger()
@@ -301,17 +302,18 @@ class Dynamics:
         
         
     def clear(self):
+        self.ctrl_amps = None
         self.evo_current = False
         if self.fid_computer is not None:
             self.fid_computer.clear()
-        
-    def _init_lists(self):
+            
+    def init_time_slots(self):
         """
-        Create the container lists / arrays for the:
-        dynamics generations, propagators, and evolutions etc
-        Set the time slices and cumulative time
+        Generate the timeslot duration array 'tau' based on the evo_time
+        and num_tslots attributes, unless the tau attribute is already set
+        in which case this step in ignored
+        Generate the cumulative time array 'time' based on the tau values
         """
-
         # set the time intervals to be equal timeslices of the total if 
         # the have not been set already (as part of user config)
         if self.tau is None:
@@ -321,6 +323,15 @@ class Dynamics:
         # set the cumulative time by summing the time intervals
         for t in range(self.num_tslots):
             self.time[t+1] = self.time[t] + self.tau[t]
+            
+    def _init_lists(self):
+        """
+        Create the container lists / arrays for the:
+        dynamics generations, propagators, and evolutions etc
+        Set the time slices and cumulative time
+        """
+
+
         # Create containers for control Hamiltonian etc
         shp = self.drift_dyn_gen.shape
         # set H to be just empty float arrays with the shape of H
@@ -366,7 +377,7 @@ class Dynamics:
             [np.empty(shp, dtype=complex) for x in range(n_ts)]
         
              
-    def initialize_controls(self, amps):
+    def initialize_controls(self, amps, init_tslots=True):
         """
         Set the initial control amplitudes and time slices
         Note this must be called after the configuration is complete
@@ -392,9 +403,12 @@ class Dynamics:
             raise errors.UsageError("No fid_computer (Fidelity computer)"
                 " set. A default should be assigned by the Dynamics subclass")
         
+        self.ctrl_amps = None
         # Note this call is made just to initialise the num_ctrls attrib
         self.get_num_ctrls()
         
+        if init_tslots:
+            self.init_time_slots()
         self._init_lists()
         self.tslot_computer.init_comp()
         self.fid_computer.init_comp()
@@ -414,24 +428,60 @@ class Dynamics:
         """
         Save a file with the current control amplitudes in each timeslot
         The first column in the file will be the start time of the slot
+        
+        Parameters
+        ----------
+        file_name : string
+            Name of the file
+            If None given the def_amps_fname attribuite will be used
+            
+        times : List type (or string)
+            List / array of the start times for each slot
+            If None given this will be retrieved through get_amp_times()
+            If 'exclude' then times will not be saved in the file, just
+            the amplitudes
+        
+        amps : Array[num_tslots, num_ctrls]
+            Amplitudes to be saved
+            If None given the ctrl_amps attribute will be used
+            
+        verbose : Boolean
+            If True then an info message will be logged
         """
         self.check_ctrls_initialized()
         
+        inctimes = True
         if file_name is None:
             file_name = self.def_amps_fname
         if amps is None:
             amps = self.ctrl_amps
         if times is None:
             times = self.get_amp_times()
+        else:
+            if isinstance(times, string_types):
+                if times.lower() == 'exclude':
+                    inctimes = False
+                else:
+                    logger.warn("Unknown option for times '{}' "
+                                "when saving amplitudes".format(times))
+                    times = self.get_amp_times()
+        
+        try:
+            if inctimes:
+                shp = amps.shape
+                data = np.empty([shp[0], shp[1] + 1], dtype=float)
+                data[:, 0] = times
+                data[:, 1:] = amps
+            else:
+                data = amps
             
-        shp = amps.shape
-        data = np.empty([shp[0], shp[1] + 1], dtype=float)
-        data[:, 0] = times
-        data[:, 1:] = amps
-        np.savetxt(file_name, data, delimiter='\t')
-        if verbose:
-            logger.info("Amplitudes saved to file: " + file_name)
-            
+            np.savetxt(file_name, data, delimiter='\t')
+            if verbose:
+                logger.info("Amplitudes saved to file: " + file_name)
+        except Exception as e:
+            logger.error("Failed to save amplitudes due to underling "
+                        "error: {}".format(e))
+           
     def update_ctrl_amps(self, new_amps):
         """
         Determine if any amplitudes have changed. If so, then mark the
@@ -626,12 +676,12 @@ class DynamicsUnitary(Dynamics):
         # set the default propagator computer
         self.prop_computer = propcomp.PropCompDiag(self)
         
-    def initialize_controls(self, amplitudes):
+    def initialize_controls(self, amplitudes, init_tslots=True):
         # Either the _dyn_gen or _ham names can be used
         # This assumes that one or other has been set in the configuration
 
         self._map_dyn_gen_to_ham()
-        Dynamics.initialize_controls(self, amplitudes)
+        Dynamics.initialize_controls(self, amplitudes, init_tslots=init_tslots)
         self.H = self.dyn_gen
 
     def _map_dyn_gen_to_ham(self):
