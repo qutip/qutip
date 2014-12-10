@@ -45,6 +45,7 @@ __all__ = ['hinton', 'sphereplot', 'energy_level_diagram',
            'matrix_histogram_complex', 'sphereplot']
 
 import warnings
+import itertools as it
 import numpy as np
 from numpy import pi, array, sin, cos, angle
 
@@ -61,9 +62,14 @@ from qutip.states import ket2dm
 from qutip.wigner import wigner
 from qutip.tensor import tensor
 from qutip.matplotlib_utilities import complex_phase_cmap
+from qutip.superoperator import vector_to_operator
+from qutip.superop_reps import _pauli_basis, to_super
+from qutip.tensor import flatten
+
+from qutip import settings
 
 # Adopted from the SciPy Cookbook.
-def _blob(x, y, w, w_max, area):
+def _blob(x, y, w, w_max, area, cmap=None):
     """
     Draws a square-shaped blob with the given area (< 1) at
     the given coordinates.
@@ -73,22 +79,68 @@ def _blob(x, y, w, w_max, area):
     ycorners = array([y - hs, y - hs, y + hs, y + hs])
 
     plt.fill(xcorners, ycorners,
-             color=cm.RdBu(int((w + w_max) * 256 / (2 * w_max))))
+             color=cmap(int((w + w_max) * 256 / (2 * w_max))))
 
+def _isqubitdims(dims):
+    """Checks whether all entries in a dims list are integer powers of 2.
+
+    Parameters
+    ----------
+    dims : nested list of ints
+        Dimensions to be checked.
+
+    Returns
+    -------
+    isqubitdims : bool
+        True if and only if every member of the flattened dims
+        list is an integer power of 2.
+    """
+    return all([
+        2**np.floor(np.log2(dim)) == dim
+        for dim in flatten(dims)
+    ])
+
+def _cb_labels(left_dims):
+    """Creates plot labels for matrix elements in the computational basis.
+
+    Parameters
+    ----------
+    left_dims : flat list of ints
+        Dimensions of the left index of a density operator. E. g.
+        [2, 3] for a qubit tensored with a qutrit.
+
+    Returns
+    -------
+    left_labels, right_labels : lists of strings
+        Labels for the left and right indices of a density operator
+        (kets and bras, respectively).
+    """
+    # FIXME: assumes dims, such that we only need left_dims == dims[0].
+    basis_labels = list(map(",".join, it.product(*[
+        map(str, range(dim))
+        for dim in left_dims
+    ])))
+    return [
+        map(fmt.format, basis_labels) for fmt in 
+        (
+            r"$|{}\rangle$",
+            r"$\langle{}|$"
+        )
+    ]
 
 # Adopted from the SciPy Cookbook.
-def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
-    """Draws a Hinton diagram for visualizing a density matrix.
+def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None, label_top=True):
+    """Draws a Hinton diagram for visualizing a density matrix or superoperator.
 
     Parameters
     ----------
     rho : qobj
-        Input density matrix.
+        Input density matrix or superoperator.
 
-    xlabels : list of strings
+    xlabels : list of strings or False
         list of x labels
 
-    ylabels : list of strings
+    ylabels : list of strings or False
         list of y labels
 
     title : string
@@ -96,6 +148,13 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
 
     ax : a matplotlib axes instance
         The axes context in which the plot will be drawn.
+
+    cmap : a matplotlib colormap instance
+        Color map to use when plotting.
+
+    label_top : bool
+        If True, x-axis labels will be placed on top, otherwise
+        they will appear below the plot.
 
     Returns
     -------
@@ -110,11 +169,55 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
 
     """
 
-    if isinstance(rho, Qobj):
-        if isket(rho) or isbra(rho):
-            raise ValueError("argument must be a quantum operator")
+    # Apply default colormaps.
+    # TODO: abstract this away into something that makes default
+    #       colormaps.
+    cmap = (
+        (cm.Greys_r if settings.colorblind_safe else cm.RdBu)
+        if cmap is None else cmap
+    )
 
-        W = rho.full()
+    # Extract plotting data W from the input.
+    if isinstance(rho, Qobj):
+        if rho.isoper:
+            W = rho.full()
+
+            # Create default labels if none are given.
+            if xlabels is None or ylabels is None:
+                labels = _cb_labels(rho.dims[0])
+                xlabels = xlabels if xlabels is not None else labels[0]
+                ylabels = ylabels if ylabels is not None else labels[1]
+
+        elif rho.isoperket:
+            W = vector_to_operator(rho).full()
+        elif rho.isoperbra:
+            W = vector_to_operator(rho.dag()).full()
+        elif rho.issuper:
+            if not _isqubitdims(rho.dims):
+                raise ValueError("Hinton plots of superoperators are currently only supported for qubits.")
+            # Convert to a superoperator in the Pauli basis,
+            # so that all the elements are real.
+            sqobj = to_super(rho)
+            nq = int(np.log2(sqobj.shape[0]) / 2)
+            B = _pauli_basis(nq) / np.sqrt(2**nq)
+            # To do this, we have to hack a bit and force the dims to match,
+            # since the _pauli_basis function makes different assumptions
+            # about indices than we need here.
+            B.dims = sqobj.dims
+            sqobj = B.dag() * sqobj * B
+            W = sqobj.full()
+
+            # Create default labels, too.
+            if xlabels is None or ylabels is None:
+                labels = list(map("".join, it.product("IXYZ", repeat=nq)))
+                xlabels = xlabels if xlabels is not None else labels
+                ylabels = ylabels if ylabels is not None else labels
+
+        else:
+            raise ValueError(
+                "Input quantum object must be an operator or superoperator."
+            )
+
     else:
         W = rho
 
@@ -133,12 +236,32 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
 
     w_max = 1.25 * max(abs(np.diag(np.matrix(W))))
     if w_max <= 0.0:
-        w_max = 1.0
+        w_max = 1.0    
+
+    ax.fill(array([0, width, width, 0]), array([0, 0, height, height]),
+            color=cmap(128))
+    for x in range(width):
+        for y in range(height):
+            _x = x + 1
+            _y = y + 1
+            if np.real(W[x, y]) > 0.0:
+                _blob(_x - 0.5, height - _y + 0.5, abs(W[x,
+                      y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap)
+            else:
+                _blob(_x - 0.5, height - _y + 0.5, -abs(W[
+                      x, y]), w_max, min(1, abs(W[x, y]) / w_max), cmap=cmap)
+
+    # color axis
+    norm = mpl.colors.Normalize(-abs(W).max(), abs(W).max())
+    cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
+    cb = mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
 
     # x axis
     ax.xaxis.set_major_locator(plt.IndexLocator(1, 0.5))
     if xlabels:
         ax.set_xticklabels(xlabels)
+        if label_top:
+            ax.xaxis.tick_top()
     ax.tick_params(axis='x', labelsize=14)
 
     # y axis
@@ -146,24 +269,6 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None):
     if ylabels:
         ax.set_yticklabels(list(reversed(ylabels)))
     ax.tick_params(axis='y', labelsize=14)
-
-    ax.fill(array([0, width, width, 0]), array([0, 0, height, height]),
-            color=cm.RdBu(128))
-    for x in range(width):
-        for y in range(height):
-            _x = x + 1
-            _y = y + 1
-            if np.real(W[x, y]) > 0.0:
-                _blob(_x - 0.5, height - _y + 0.5, abs(W[x,
-                      y]), w_max, min(1, abs(W[x, y]) / w_max))
-            else:
-                _blob(_x - 0.5, height - _y + 0.5, -abs(W[
-                      x, y]), w_max, min(1, abs(W[x, y]) / w_max))
-
-    # color axis
-    norm = mpl.colors.Normalize(-abs(W).max(), abs(W).max())
-    cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
-    cb = mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cm.RdBu)
 
     return fig, ax
 

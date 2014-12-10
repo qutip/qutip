@@ -48,7 +48,6 @@ import scipy.sparse as sp
 
 from qutip.qobj import Qobj
 
-
 #
 # Spin operators
 #
@@ -419,8 +418,10 @@ def qeye(N):
 
     Parameters
     ----------
-    N : int
-        Dimension of Hilbert space.
+    N : int or list of ints
+        Dimension of Hilbert space. If provided as a list of ints,
+        then the dimension is the product over this list, but the
+        ``dims`` property of the new Qobj are set to this list.
 
     Returns
     -------
@@ -438,6 +439,8 @@ shape = [3, 3], type = oper, isHerm = True
      [ 0.  0.  1.]]
 
     """
+    if isinstance(N, list):
+        return tensor.tensor(*[identity(n) for n in N])
     N = int(N)
     if (not isinstance(N, (int, np.integer))) or N < 0:
         raise ValueError("N must be integer N>=0")
@@ -449,8 +452,10 @@ def identity(N):
 
     Parameters
     ----------
-    N : int
-        Dimension of Hilbert space.
+    N : int or list of ints
+        Dimension of Hilbert space. If provided as a list of ints,
+        then the dimension is the product over this list, but the
+        ``dims`` property of the new Qobj are set to this list.
 
     Returns
     -------
@@ -870,3 +875,8 @@ def enr_identity(dims, excitations):
     nstates, _, _ = enr_state_dictionaries(dims, excitations)
     data = sp.eye(nstates, nstates, dtype=np.complex)
     return Qobj(data, dims=[dims, dims])
+
+# Break circular dependencies by a trailing import.
+# Note that we use a relative import here to deal with that
+# qutip.tensor is the *function* tensor, not the module.
+from . import tensor
