@@ -208,14 +208,33 @@ def test_MCSimpleConstStates():
     tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve(H, psi0, tlist, c_op_list, [], ntraj=ntraj,
                      options=Options(average_states=True))
-
-    print(len(tlist))
-    print(len(mcdata.states))
     assert_(len(mcdata.states) == len(tlist))
     assert_(isinstance(mcdata.states[0], Qobj))
     expt = expect(a.dag() * a, mcdata.states)
     actual_answer = 9.0 * np.exp(-kappa * tlist)
     avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
+    assert_equal(avg_diff < mc_error, True)
+
+
+def test_MCSimpleConstExptStates():
+    "Monte-carlo: Constant H with constant collapse (states)"
+    N = 10  # number of basis states to consider
+    a = destroy(N)
+    H = a.dag() * a
+    psi0 = basis(N, 9)  # initial state
+    kappa = 0.2  # coupling to oscillator
+    c_op_list = [np.sqrt(kappa) * a]
+    tlist = np.linspace(0, 10, 100)
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj,
+                     options=Options(average_states=True, store_states=True))
+    actual_answer = 9.0 * np.exp(-kappa * tlist)
+    expt1 = mcdata.expect[0]
+    avg_diff = np.mean(abs(actual_answer - expt1) / actual_answer)
+    assert_equal(avg_diff < mc_error, True)
+    assert_(len(mcdata.states) == len(tlist))
+    assert_(isinstance(mcdata.states[0], Qobj))
+    expt2 = expect(a.dag() * a, mcdata.states)
+    avg_diff = np.mean(abs(actual_answer - expt2) / actual_answer)
     assert_equal(avg_diff < mc_error, True)
 
 
