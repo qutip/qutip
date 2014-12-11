@@ -60,7 +60,9 @@ ipython = False
 #   - basic: call basicConfig
 #   - null: leave logging to the user
 log_handler = 'default'
-
+# Allow for a colorblind mode that uses different colormaps
+# and plotting options by default.
+colorblind_safe = False
 
 # Note that since logging depends on settings,
 # if we want to do any logging here, it must be manually
@@ -77,7 +79,7 @@ def load_rc_file(rc_file):
     directory.
     """
     global auto_tidyup, auto_herm, auto_tidyup_atol, num_cpus, debug, atol
-    global log_handler
+    global log_handler, colorblind_safe
 
     # Try to pull in configobj to do nicer handling of
     # config files instead of doing manual parsing.
@@ -122,7 +124,7 @@ def load_rc_file(rc_file):
     # file to the global settings.
     for config_key in (
         'auto_tidyup', 'auto_herm', 'atol', 'auto_tidyup_atol',
-        'num_cpus', 'debug', 'log_handler'
+        'num_cpus', 'debug', 'log_handler', 'colorblind_safe'
     ):
         if config_key in config and config_key not in bad_keys:
             _logger.debug(

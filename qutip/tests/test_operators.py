@@ -125,6 +125,11 @@ def test_qeye():
     eye3 = qeye(5)
     assert_equal(np.allclose(eye3.full(), np.eye(5, dtype=complex)), True)
 
+def test_qeye_dims():
+    "Identity operator"
+    eye24 = qeye([2, 3, 4])
+    assert_equal(np.allclose(eye24.full(), np.eye(24, dtype=complex)), True)
+    assert_equal(eye24.dims, [[2, 3, 4], [2, 3, 4]])
 
 def test_num():
     "Number operator"
