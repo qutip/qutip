@@ -418,25 +418,14 @@ class _MC():
 
             if config.e_num > 0:
                 # preallocate array of lists for expectation values
-                self.expect_out = [[] for x in range(config.ntraj)]
+                self.expect_out = [[] for _ in range(config.ntraj)]
 
     def run(self):
 
         if debug:
             print(inspect.stack()[0][3])
 
-        if self.config.c_num == 0:
-            if self.config.ntraj != 1:
-                # ntraj != 1 is pointless for no collapse operators
-                self.config.ntraj = 1
-            if self.config.e_num == 0:  # return psi at each requested time
-                self.psi_out = _no_collapse_psi_out(
-                    self.num_times, self.psi_out, self.config)
-            else:  # return expectation values of requested operators
-                self.expect_out = _no_collapse_expect_out(
-                    self.num_times, self.expect_out, self.config)
-
-        elif self.config.c_num != 0:
+        if self.config.c_num != 0:
             if self.config.options.seeds is None:
                 self.config.options.seeds = \
                     random_integers(1e8, size=self.config.ntraj)
@@ -452,6 +441,17 @@ class _MC():
                         (self.config.options.seeds,
                          random_integers(
                              1e8, size=(self.config.ntraj-seed_length))))
+
+        if self.config.c_num == 0:
+            self.config.ntraj = 1
+            if self.config.e_num == 0 or self.config.options.store_states:
+                self.expect_out, self.psi_out = \
+                    _no_collapse_psi_out(self.num_times, self.config)
+            else:
+                self.expect_out = _no_collapse_expect_out(self.num_times,
+                                                          self.config)
+
+        else:
 
             # set arguments for input to monte-carlo
             map_kwargs = {'progress_bar': self.config.progress_bar,
@@ -577,7 +577,7 @@ def _pyRHSc_with_state(t, psi, config):
 
 # return psi at requested times for no collapse operators
 # -------------------------------------------------------
-def _no_collapse_psi_out(num_times, psi_out, config):
+def _no_collapse_psi_out(num_times, config):
     """
     Calculates state vectors at times tlist if no collapse AND no
     expectation values are given.
@@ -586,6 +586,24 @@ def _no_collapse_psi_out(num_times, psi_out, config):
     global _cy_rhs_func
     global _cy_col_spmv_func, _cy_col_expect_func
     global _cy_col_spmv_call_func, _cy_col_expect_call_func
+
+    psi_out = np.array([None] * num_times)
+
+    expect_out = []
+    for i in range(config.e_num):
+        if config.e_ops_isherm[i]:
+            # preallocate real array of zeros
+            expect_out.append(np.zeros(num_times, dtype=float))
+        else:
+            # preallocate complex array of zeros
+            expect_out.append(np.zeros(num_times, dtype=complex))
+
+        expect_out[i][0] = \
+            cy_expect_psi_csr(config.e_ops_data[i],
+                              config.e_ops_ind[i],
+                              config.e_ops_ptr[i],
+                              config.psi0,
+                              config.e_ops_isherm[i])
 
     if debug:
         print(inspect.stack()[0][3])
@@ -630,16 +648,22 @@ def _no_collapse_psi_out(num_times, psi_out, config):
     for k in range(1, num_times):
         ODE.integrate(config.tlist[k], step=0)  # integrate up to tlist[k]
         if ODE.successful():
-            psi_out[k] = Qobj(ODE.y / dznrm2(ODE.y), config.psi0_dims,
-                              config.psi0_shape)
+            state = ODE.y / dznrm2(ODE.y)
+            psi_out[k] = Qobj(state, config.psi0_dims, config.psi0_shape)
+            for jj in range(config.e_num):
+                expect_out[jj][k] = cy_expect_psi_csr(
+                    config.e_ops_data[jj], config.e_ops_ind[jj],
+                    config.e_ops_ptr[jj], state,
+                    config.e_ops_isherm[jj])
         else:
             raise ValueError('Error in ODE solver')
-    return psi_out
+
+    return expect_out, psi_out
 
 
 # return expectation values at requested times for no collapse oper
 # -----------------------------------------------------------------
-def _no_collapse_expect_out(num_times, expect_out, config):
+def _no_collapse_expect_out(num_times, config):
     """
     Calculates expect.values at times tlist if no collapse ops. given
     """
@@ -650,6 +674,22 @@ def _no_collapse_expect_out(num_times, expect_out, config):
 
     if debug:
         print(inspect.stack()[0][3])
+
+    expect_out = []
+    for i in range(config.e_num):
+        if config.e_ops_isherm[i]:
+            # preallocate real array of zeros
+            expect_out.append(np.zeros(num_times, dtype=float))
+        else:
+            # preallocate complex array of zeros
+            expect_out.append(np.zeros(num_times, dtype=complex))
+
+        expect_out[i][0] = \
+            cy_expect_psi_csr(config.e_ops_data[i],
+                              config.e_ops_ind[i],
+                              config.e_ops_ptr[i],
+                              config.psi0,
+                              config.e_ops_isherm[i])
 
     if not _cy_rhs_func:
         _mc_func_load(config)
