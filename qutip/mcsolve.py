@@ -374,30 +374,7 @@ class _MC():
         self.expect_out = []
         self.collapse_times_out = None
         self.which_op_out = None
-
-        # FOR EVOLUTION FOR NO COLLAPSE OPERATORS
-        if config.c_num == 0:
-            if config.e_num == 0:
-                # Output array of state vectors calculated at times in tlist
-                self.psi_out = np.array([Qobj()] * self.num_times,
-                                        dtype=object)
-            elif config.e_num != 0:  # no collapse expectation values
-                # List of output expectation values calculated at times in
-                # tlist
-                self.expect_out = []
-                for i in range(config.e_num):
-                    if config.e_ops_isherm[i]:
-                        # preallocate real array of zeros
-                        self.expect_out.append(np.zeros(self.num_times,
-                                                        dtype=float))
-                    else:  # preallocate complex array of zeros
-                        self.expect_out.append(
-                            np.zeros(self.num_times, dtype=complex))
-                    self.expect_out[i][0] = cy_expect_psi_csr(
-                        config.e_ops_data[i], config.e_ops_ind[i],
-                        config.e_ops_ptr[i], config.psi0,
-                        config.e_ops_isherm[i])
-
+        
         # FOR EVOLUTION WITH COLLAPSE OPERATORS
         elif config.c_num != 0:
             # preallocate #ntraj arrays for state vectors, collapse times, and
@@ -455,7 +432,7 @@ class _MC():
 
             # set arguments for input to monte-carlo
             map_kwargs = {'progress_bar': self.config.progress_bar,
-                          'num_cpus': self.cpus}
+                          'num_cpus': self.config.options.num_cpus}
             map_kwargs.update(self.config.map_kwargs)
 
             task_args = (self.config.options,
