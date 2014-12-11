@@ -362,10 +362,6 @@ class _MC():
     def __init__(self, config):
 
         self.config = config
-        # times at which to output state vectors or expectation values
-        # number of time steps in tlist
-        self.num_times = len(config.tlist)
-
         # set output variables, even if they are not used to simplify output
         # code.
         self.psi_out = None
