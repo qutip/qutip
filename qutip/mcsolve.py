@@ -351,7 +351,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     return output
 
-
+# -----------------------------------------------------------------------------
 # MONTE CARLO CLASS
 # -----------------------------------------------------------------------------
 class _MC():
@@ -364,9 +364,8 @@ class _MC():
         self.config = config
         # times at which to output state vectors or expectation values
         # number of time steps in tlist
-        self.num_times = len(self.config.tlist)
-        # number of cpus to be used
-        self.cpus = self.config.options.num_cpus
+        self.num_times = len(config.tlist)
+
         # set output variables, even if they are not used to simplify output
         # code.
         self.psi_out = None
@@ -378,56 +377,51 @@ class _MC():
         if config.c_num:
             # preallocate ntraj arrays for state vectors, collapse times, and
             # which operator
-            self.collapse_times_out = np.zeros(config.ntraj,dtype=np.ndarray)
+            self.collapse_times_out = np.zeros(config.ntraj, dtype=np.ndarray)
             self.which_op_out = np.zeros(config.ntraj, dtype=np.ndarray)
             if config.e_num == 0 or config.options.store_states:
                 self.psi_out = [None] * config.ntraj
-
             if config.e_num > 0:
                 self.expect_out = [None] * config.ntraj
+
+            # setup seeds array
+            if self.config.options.seeds is None:
+                self.config.options.seeds = \
+                    random_integers(1e8, size=config.ntraj)
+            else:
+                # if ntraj was reduced but reusing seeds
+                seed_length = len(config.options.seeds)
+                if seed_length > config.ntraj:
+                    self.config.options.seeds = \
+                        config.options.seeds[0:config.ntraj]
+                # if ntraj was increased but reusing seeds
+                elif seed_length < config.ntraj:
+                    newseeds = random_integers(
+                        1e8, size=(config.ntraj - seed_length))
+                    self.config.options.seeds = np.hstack(
+                        (config.options.seeds, newseeds))
 
     def run(self):
 
         if debug:
             print(inspect.stack()[0][3])
 
-        if self.config.c_num != 0:
-            if self.config.options.seeds is None:
-                self.config.options.seeds = \
-                    random_integers(1e8, size=self.config.ntraj)
-            else:
-                # if ntraj was reduced but reusing seeds
-                seed_length = len(self.config.options.seeds)
-                if seed_length > self.config.ntraj:
-                    self.config.options.seeds = \
-                        self.config.options.seeds[0:self.config.ntraj]
-                # if ntraj was increased but reusing seeds
-                elif seed_length < self.config.ntraj:
-                    newseeds = random_integers(
-                        1e8, size=(self.config.ntraj - seed_length))
-                    self.config.options.seeds = np.hstack(
-                        (self.config.options.seeds, newseeds))
-
         if self.config.c_num == 0:
             self.config.ntraj = 1
             if self.config.e_num == 0 or self.config.options.store_states:
                 self.expect_out, self.psi_out = \
-                    _no_collapse_psi_out(self.num_times, self.config)
+                    _evolve_no_collapse_psi_out(self.config)
             else:
-                self.expect_out = _no_collapse_expect_out(self.num_times,
-                                                          self.config)
+                self.expect_out = _evolve_no_collapse_expect_out(self.config)
 
         else:
-
             # set arguments for input to monte carlo
             map_kwargs = {'progress_bar': self.config.progress_bar,
                           'num_cpus': self.config.options.num_cpus}
             map_kwargs.update(self.config.map_kwargs)
 
-            task_args = (self.config.options,
-                         self.config.tlist, self.num_times,
-                         self.config.options.seeds,
-                         self.config)
+            task_args = (self.config, self.config.options,
+                         self.config.options.seeds)
             task_kwargs = {}
 
             results = config.map_func(_mc_alg_evolve,
@@ -449,8 +443,10 @@ class _MC():
 
             self.psi_out = np.asarray(self.psi_out, dtype=object)
 
+
+# -----------------------------------------------------------------------------
 # CODES FOR PYTHON FUNCTION BASED TIME-DEPENDENT RHS
-# --------------------------------------------------
+# -----------------------------------------------------------------------------
 
 # RHS of ODE for time-dependent systems with no collapse operators
 def _tdRHS(t, psi, config):
@@ -539,9 +535,10 @@ def _pyRHSc_with_state(t, psi, config):
     return h_func_term + const_col_term
 
 
-# return psi at requested times for no collapse operators
-# -------------------------------------------------------
-def _no_collapse_psi_out(num_times, config):
+# -----------------------------------------------------------------------------
+# evolution solver: return psi at requested times for no collapse operators
+# -----------------------------------------------------------------------------
+def _evolve_no_collapse_psi_out(config):
     """
     Calculates state vectors at times tlist if no collapse AND no
     expectation values are given.
@@ -551,6 +548,7 @@ def _no_collapse_psi_out(num_times, config):
     global _cy_col_spmv_func, _cy_col_expect_func
     global _cy_col_spmv_call_func, _cy_col_expect_call_func
 
+    num_times = len(config.tlist)
     psi_out = np.array([None] * num_times)
 
     expect_out = []
@@ -624,10 +622,11 @@ def _no_collapse_psi_out(num_times, config):
 
     return expect_out, psi_out
 
-
-# return expectation values at requested times for no collapse oper
-# -----------------------------------------------------------------
-def _no_collapse_expect_out(num_times, config):
+# -----------------------------------------------------------------------------
+# evolution solver: return expectation values at requested times for no
+# collapse oper
+# -----------------------------------------------------------------------------
+def _evolve_no_collapse_expect_out(config):
     """
     Calculates expect.values at times tlist if no collapse ops. given
     """
@@ -639,6 +638,7 @@ def _no_collapse_expect_out(num_times, config):
     if debug:
         print(inspect.stack()[0][3])
 
+    num_times = len(config.tlist)
     expect_out = []
     for i in range(config.e_num):
         if config.e_ops_isherm[i]:
@@ -708,10 +708,10 @@ def _no_collapse_expect_out(num_times, config):
 
     return expect_out
 
-
+# -----------------------------------------------------------------------------
 # single-trajectory for monte carlo
 # -----------------------------------------------------------------------------
-def _mc_alg_evolve(nt, opt, tlist, num_times, seeds, config):
+def _mc_alg_evolve(nt, config, opt, seeds):
     """
     Monte Carlo algorithm returning state-vector or expectation values
     at times tlist for a single trajectory.
@@ -720,6 +720,9 @@ def _mc_alg_evolve(nt, opt, tlist, num_times, seeds, config):
     global _cy_rhs_func
     global _cy_col_spmv_func, _cy_col_expect_func
     global _cy_col_spmv_call_func, _cy_col_expect_call_func
+
+    tlist = config.tlist
+    num_times = len(tlist)
 
     if not _cy_rhs_func:
         _mc_func_load(config)
@@ -963,7 +966,7 @@ def _mc_alg_evolve(nt, opt, tlist, num_times, seeds, config):
                 config.e_ops_isherm[jj])
 
     # Run at end of mc_alg function
-    # ------------------------------
+    # -----------------------------
     if config.options.steady_state_average:
         states_out = np.array([Qobj(states_out[0] / float(len(tlist)),
                               [config.psi0_dims[0],
