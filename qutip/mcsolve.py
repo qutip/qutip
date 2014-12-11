@@ -41,16 +41,18 @@ from scipy.integrate import ode
 import scipy.sparse as sp
 from scipy.integrate._ode import zvode
 from scipy.linalg.blas import get_blas_funcs
-dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 from qutip.qobj import Qobj
 from qutip.parallel import parfor, parallel_map, serial_map
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
 from qutip.solver import Options, Result, config
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
-import qutip.settings
 from qutip.settings import debug
-from qutip.ui.progressbar import TextProgressBar
+from qutip.ui.progressbar import TextProgressBar, BaseProgressBar
+import qutip.settings
+
+
+dznrm2 = get_blas_funcs("znrm2", dtype=np.float64)
 
 if debug:
     import inspect
@@ -77,7 +79,7 @@ class qutip_zvode(zvode):
 
 
 def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
-            args={}, options=None, progress_bar=None,
+            args={}, options=None, progress_bar=True,
             map_func=None, map_kwargs=None):
     """Monte Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
@@ -156,7 +158,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         progress bar.
 
     map_func: function
-        A map function or managing the calls to the single-trajactory solver.
+        A map function for managing the calls to the single-trajactory solver.
 
     map_kwargs: dictionary
         Optional keyword arguments to the map_func function.
@@ -164,7 +166,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     Returns
     -------
     results : Result
-        Object storing all results from simulation.
+        Object storing all results from the simulation.
 
     Notes
     -----
@@ -201,10 +203,14 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         e_ops_dict = None
 
     config.options = options
+
     if progress_bar:
-        config.progress_bar = progress_bar
+        if progress_bar is True:
+            config.progress_bar = TextProgressBar()
+        else:
+            config.progress_bar = progress_bar
     else:
-        config.progress_bar = TextProgressBar()
+       config.progress_bar = BaseProgressBar()
 
     # set num_cpus to the value given in qutip.settings if none in Options
     if not config.options.num_cpus:
