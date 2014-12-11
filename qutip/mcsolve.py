@@ -80,7 +80,7 @@ class qutip_zvode(zvode):
 def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
             args={}, options=None, progress_bar=None,
             map_func=None, map_kwargs=None):
-    """Monte-Carlo evolution of a state vector :math:`|\psi \\rangle` for a
+    """Monte Carlo evolution of a state vector :math:`|\psi \\rangle` for a
     given Hamiltonian and sets of collapse operators, and possibly, operators
     for calculating expectation values. Options for the underlying ODE solver
     are given by the Options class.
@@ -280,7 +280,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         elif config.tflag in [2, 3, 20, 22]:
             config.h_func_args = args
 
-    # load monte-carlo class
+    # load monte carlo class
     mc = _MC(config)
 
     # Run the simulation
@@ -352,12 +352,11 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     return output
 
 
-# --------------------------------------------------------------
-# MONTE-CARLO CLASS
-# --------------------------------------------------------------
+# MONTE CARLO CLASS
+# -----------------------------------------------------------------------------
 class _MC():
     """
-    Private class for solving Monte-Carlo evolution from mcsolve
+    Private class for solving Monte Carlo evolution from mcsolve
     """
 
     def __init__(self, config):
@@ -374,28 +373,18 @@ class _MC():
         self.expect_out = []
         self.collapse_times_out = None
         self.which_op_out = None
-        
+
         # FOR EVOLUTION WITH COLLAPSE OPERATORS
-        elif config.c_num != 0:
-            # preallocate #ntraj arrays for state vectors, collapse times, and
+        if config.c_num:
+            # preallocate ntraj arrays for state vectors, collapse times, and
             # which operator
-            self.collapse_times_out = np.zeros((config.ntraj),
-                                               dtype=np.ndarray)
-            self.which_op_out = np.zeros((config.ntraj), dtype=np.ndarray)
+            self.collapse_times_out = np.zeros(config.ntraj,dtype=np.ndarray)
+            self.which_op_out = np.zeros(config.ntraj, dtype=np.ndarray)
             if config.e_num == 0 or config.options.store_states:
-                # if no expectation operators, preallocate #ntraj arrays
-                # for state vectors
-                if self.config.options.steady_state_average:
-                    self.psi_out = np.array([np.zeros((1), dtype=object)
-                                             for q in range(config.ntraj)])
-                else:
-                    self.psi_out = np.array([np.zeros((self.num_times),
-                                                      dtype=object)
-                                             for q in range(config.ntraj)])
+                self.psi_out = [None] * config.ntraj
 
             if config.e_num > 0:
-                # preallocate array of lists for expectation values
-                self.expect_out = [[] for _ in range(config.ntraj)]
+                self.expect_out = [None] * config.ntraj
 
     def run(self):
 
@@ -414,10 +403,10 @@ class _MC():
                         self.config.options.seeds[0:self.config.ntraj]
                 # if ntraj was increased but reusing seeds
                 elif seed_length < self.config.ntraj:
+                    newseeds = random_integers(
+                        1e8, size=(self.config.ntraj - seed_length))
                     self.config.options.seeds = np.hstack(
-                        (self.config.options.seeds,
-                         random_integers(
-                             1e8, size=(self.config.ntraj-seed_length))))
+                        (self.config.options.seeds, newseeds))
 
         if self.config.c_num == 0:
             self.config.ntraj = 1
@@ -430,14 +419,14 @@ class _MC():
 
         else:
 
-            # set arguments for input to monte-carlo
+            # set arguments for input to monte carlo
             map_kwargs = {'progress_bar': self.config.progress_bar,
                           'num_cpus': self.config.options.num_cpus}
             map_kwargs.update(self.config.map_kwargs)
 
             task_args = (self.config.options,
                          self.config.tlist, self.num_times,
-                         config.options.seeds,
+                         self.config.options.seeds,
                          self.config)
             task_kwargs = {}
 
@@ -453,14 +442,12 @@ class _MC():
                     self.psi_out[n] = state_out
 
                 if self.config.e_num > 0:
-                    if self.cpus == 1 or self.config.ntraj == 1:
-                        self.expect_out[n] = copy.deepcopy(expect_out)
-                    else:
-                        self.expect_out[n] = expect_out
+                    self.expect_out[n] = expect_out
 
                 self.collapse_times_out[n] = collapse_times
                 self.which_op_out[n] = which_oper
 
+            self.psi_out = np.asarray(self.psi_out, dtype=object)
 
 # CODES FOR PYTHON FUNCTION BASED TIME-DEPENDENT RHS
 # --------------------------------------------------
@@ -722,10 +709,11 @@ def _no_collapse_expect_out(num_times, config):
     return expect_out
 
 
-# ---single-trajectory for monte-carlo---
+# single-trajectory for monte carlo
+# -----------------------------------------------------------------------------
 def _mc_alg_evolve(nt, opt, tlist, num_times, seeds, config):
     """
-    Monte-Carlo algorithm returning state-vector or expectation values
+    Monte Carlo algorithm returning state-vector or expectation values
     at times tlist for a single trajectory.
     """
 
