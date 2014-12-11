@@ -99,6 +99,28 @@ def test_MCNoCollStates():
     assert_equal(diff < error, True)
 
 
+def test_MCNoCollExpectStates():
+    "Monte-carlo: Constant H with no collapse ops (expect and states)"
+    error = 1e-8
+    N = 10  # number of basis states to consider
+    a = destroy(N)
+    H = a.dag() * a
+    psi0 = basis(N, 9)  # initial state
+    c_op_list = []
+    tlist = np.linspace(0, 10, 100)
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [a.dag() * a], ntraj=ntraj,
+                     options=Options(store_states=True))
+    actual_answer = 9.0 * np.ones(len(tlist))
+    expt = mcdata.expect[0]
+    diff = np.mean(abs(actual_answer - expt) / actual_answer)
+    assert_equal(diff < error, True)
+    assert_(len(mcdata.states) == len(tlist))
+    assert_(isinstance(mcdata.states[0], Qobj))
+    expt = expect(a.dag() * a, mcdata.states)
+    diff = np.mean(abs(actual_answer - expt) / actual_answer)
+    assert_equal(diff < error, True)
+
+
 def test_MCNoCollStrExpt():
     "Monte-carlo: Constant H (str format) with no collapse ops (expect)"
     error = 1e-8
