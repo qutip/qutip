@@ -244,7 +244,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     # SETUP ODE DATA IF NONE EXISTS OR NOT REUSING
     # --------------------------------------------
-    if (not options.rhs_reuse) or (not config.tdfunc):
+    if not options.rhs_reuse or not config.tdfunc:
         # reset config collapse and time-dependence flags to default values
         config.soft_reset()
 
@@ -332,7 +332,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
                     data_list = [data for data in expt_data]
                 output.expect.append(data_list)
     else:
-        # no averaging for single trajectory or if average_states flag
+        # no averaging for single trajectory or if average_expect flag
         # (Options) is off
         if mc.expect_out is not None:
             output.expect = mc.expect_out
@@ -363,19 +363,6 @@ class _MC():
     def __init__(self, config):
 
         self.config = config
-
-        # holds instance of the ProgressBar class
-        self.bar = None
-        # holds instance of the Pthread class
-        self.thread = None
-        # Number of completed trajectories
-        self.count = 0
-        # step-size for count attribute
-        self.step = 1
-        # Percent of trajectories completed
-        self.percent = 0.0
-        # used in implimenting the command line progress ouput
-        self.level = 0.1
         # times at which to output state vectors or expectation values
         # number of time steps in tlist
         self.num_times = len(self.config.tlist)
@@ -496,7 +483,6 @@ class _MC():
 
                 self.collapse_times_out[n] = collapse_times
                 self.which_op_out[n] = which_oper
-                self.count += self.step
 
 
 # CODES FOR PYTHON FUNCTION BASED TIME-DEPENDENT RHS
