@@ -33,7 +33,6 @@
 
 import numpy as np
 from numpy.testing import assert_equal, run_module_suite, assert_
-#from numpy.testing.decorators import skipif
 import unittest
 
 from qutip import (mcsolve, destroy, basis, qeye, Options, tensor, sigmam,
@@ -371,6 +370,7 @@ def test_mc_dtypes2():
     assert_equal(isinstance(data.expect[0][1][1], float), True)
     assert_equal(isinstance(data.expect[0][2][1], complex), True)
 
+
 def test_mc_seed_reuse():
     "Monte-carlo: check reusing seeds"
     N0 = 6
@@ -400,13 +400,15 @@ def test_mc_seed_reuse():
     # trilinear Hamiltonian
     H = 1j * (a0 * a1.dag() * a2.dag() - a0.dag() * a1 * a2)
     # run Monte-Carlo
-    data1 = mcsolve(H, psi0, tlist, [C0, C1, C2], [num0, num1, num2], ntraj=ntraj)
-    data2 = mcsolve(H, psi0, tlist, [C0, C1, C2], [num0, num1, num2], ntraj=ntraj,
-                    options=Options(seeds=data1.seeds))
+    data1 = mcsolve(H, psi0, tlist, [C0, C1, C2], [num0, num1, num2],
+                    ntraj=ntraj)
+    data2 = mcsolve(H, psi0, tlist, [C0, C1, C2], [num0, num1, num2],
+                    ntraj=ntraj, options=Options(seeds=data1.seeds))
     for k in range(ntraj):
-        assert_equal(np.all(data1.col_times[k]-data2.col_times[k]==0),True)
-        assert_equal(np.all(data1.col_which[k]-data2.col_which[k]==0),True)
-    
+        assert_equal(np.all(data1.col_times[k]-data2.col_times[k] == 0), True)
+        assert_equal(np.all(data1.col_which[k]-data2.col_which[k] == 0), True)
+
+
 def test_mc_seed_noreuse():
     "Monte-carlo: check not reusing seeds"
     N0 = 6
@@ -436,15 +438,17 @@ def test_mc_seed_noreuse():
     # trilinear Hamiltonian
     H = 1j * (a0 * a1.dag() * a2.dag() - a0.dag() * a1 * a2)
     # run Monte-Carlo
-    data1 = mcsolve(H, psi0, tlist, [C0, C1, C2], [num0, num1, num2], ntraj=ntraj)
-    data2 = mcsolve(H, psi0, tlist, [C0, C1, C2], [num0, num1, num2], ntraj=ntraj)
+    data1 = mcsolve(H, psi0, tlist, [C0, C1, C2], [num0, num1, num2],
+                    ntraj=ntraj)
+    data2 = mcsolve(H, psi0, tlist, [C0, C1, C2], [num0, num1, num2],
+                    ntraj=ntraj)
     diff_flag = False
     for k in range(ntraj):
         if len(data1.col_times[k]) != len(data2.col_times[k]):
             diff_flag = 1
             break
         else:
-            if not np.all((data1.col_which[k]-data2.col_which[k])==0):
+            if not np.all((data1.col_which[k]-data2.col_which[k]) == 0):
                 diff_flag = 1
                 break
     assert_equal(diff_flag, 1)
@@ -452,21 +456,20 @@ def test_mc_seed_noreuse():
 
 def test_mc_ntraj_list():
     "Monte-carlo: list of trajectories"
-    N=5
-    a=destroy(N) 
-    H=a.dag()*a     # Simple oscillator Hamiltonian
-    psi0=basis(N,1) # Initial Fock state with one photon
-    kappa=1.0/0.129 # Coupling rate to heat bath
-    nth= 0.063      # Temperature with <n>=0.063
+    N = 5
+    a = destroy(N)
+    H = a.dag()*a       # Simple oscillator Hamiltonian
+    psi0 = basis(N, 1)  # Initial Fock state with one photon
+    kappa = 1.0/0.129   # Coupling rate to heat bath
+    nth = 0.063         # Temperature with <n>=0.063
     # Build collapse operators for the thermal bath
     c_ops = []
     c_ops.append(np.sqrt(kappa * (1 + nth)) * a)
     c_ops.append(np.sqrt(kappa * nth) * a.dag())
-    ntraj=[1,5,15,904] # number of MC trajectories
-    tlist=np.linspace(0,0.8,100)
-    mc = mcsolve(H,psi0,tlist,c_ops,[a.dag()*a],ntraj)
+    ntraj = [1, 5, 15, 904]  # number of MC trajectories
+    tlist = np.linspace(0, 0.8, 100)
+    mc = mcsolve(H, psi0, tlist, c_ops, [a.dag()*a], ntraj)
     assert_equal(len(mc.expect), 4)
-
 
 
 if __name__ == "__main__":
