@@ -34,7 +34,6 @@
 __all__ = ['mcsolve']
 
 import os
-import copy
 from types import FunctionType
 import numpy as np
 from numpy.random import RandomState, random_integers
@@ -351,6 +350,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     return output
 
+
 # -----------------------------------------------------------------------------
 # MONTE CARLO CLASS
 # -----------------------------------------------------------------------------
@@ -622,6 +622,7 @@ def _evolve_no_collapse_psi_out(config):
 
     return expect_out, psi_out
 
+
 # -----------------------------------------------------------------------------
 # evolution solver: return expectation values at requested times for no
 # collapse oper
@@ -707,6 +708,7 @@ def _evolve_no_collapse_expect_out(config):
             raise ValueError('Error in ODE solver')
 
     return expect_out
+
 
 # -----------------------------------------------------------------------------
 # single-trajectory for monte carlo
