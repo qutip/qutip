@@ -206,7 +206,11 @@ def test_MCSimpleConstStates():
     kappa = 0.2  # coupling to oscillator
     c_op_list = [np.sqrt(kappa) * a]
     tlist = np.linspace(0, 10, 100)
-    mcdata = mcsolve(H, psi0, tlist, c_op_list, [], ntraj=ntraj)
+    mcdata = mcsolve(H, psi0, tlist, c_op_list, [], ntraj=ntraj,
+                     options=Options(average_states=True))
+
+    print(len(tlist))
+    print(len(mcdata.states))
     assert_(len(mcdata.states) == len(tlist))
     assert_(isinstance(mcdata.states[0], Qobj))
     expt = expect(a.dag() * a, mcdata.states)
