@@ -226,18 +226,25 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
         nfinished[0] += 1
         progress_bar.update(nfinished[0])
 
-    pool = Pool(processes=kw['num_cpus'])
+    try:
+        pool = Pool(processes=kw['num_cpus'])
 
-    async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs,
-                                  _update_progress_bar)
-                 for value in values]
+        async_res = [pool.apply_async(task, (value,) + task_args, task_kwargs,
+                                      _update_progress_bar)
+                     for value in values]
 
-    while not all([ar.ready() for ar in async_res]):
-        for ar in async_res:
-            ar.wait(timeout=0.1)
+        while not all([ar.ready() for ar in async_res]):
+            for ar in async_res:
+                ar.wait(timeout=0.1)
 
-    pool.terminate()
-    pool.join()
+        pool.terminate()
+        pool.join()
+
+    except KeyboardInterrupt as e:
+        pool.terminate()
+        pool.join()
+        raise e
+
     progress_bar.finished()
 
     return [ar.get() for ar in async_res]
