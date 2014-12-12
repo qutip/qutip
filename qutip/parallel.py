@@ -112,7 +112,7 @@ def parfor(func, *args, **kwargs):
         map_args = ((func, v, os.getpid()) for v in var)
         par_return = list(pool.map(task_func, map_args))
 
-        pool.close()
+        pool.terminate()
         pool.join()
 
         if isinstance(par_return[0], tuple):
@@ -236,7 +236,7 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
         for ar in async_res:
             ar.wait(timeout=0.1)
 
-    pool.close()
+    pool.terminate()
     pool.join()
     progress_bar.finished()
 
