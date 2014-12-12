@@ -65,6 +65,7 @@ from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
 from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv, cy_expect_rho_vec
 from qutip.cy.stochastic import (cy_d1_rho_photocurrent,
                                  cy_d2_rho_photocurrent)
+from qutip.parallel import serial_map
 from qutip.ui.progressbar import TextProgressBar
 from qutip.solver import Options
 from qutip.settings import debug
@@ -255,30 +256,9 @@ class StochasticSolverOptions:
         if self.ntraj > 1 and map_func:
             self.map_func = map_func
         else:
-            self.map_func = _serial_map
+            self.map_func = serial_map
 
         self.map_kwargs = map_kwargs if map_kwargs is not None else {}
-
-
-def _serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
-    """
-    Call task function task for each value in values. Collect the results
-    in a list and return it.
-    """
-    try:
-        progress_bar = kwargs['progress_bar']
-    except:
-        progress_bar = TextProgressBar()
-
-    progress_bar.start(len(values))
-    results = []
-    for n, value in enumerate(values):
-        progress_bar.update(n)
-        result = task(n, *task_args, **task_kwargs)
-        results.append(result)
-    progress_bar.finished()
-
-    return results
 
 
 def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
