@@ -45,6 +45,7 @@ from qutip.qobj import Qobj
 from qutip.parallel import parfor, parallel_map, serial_map
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
+from qutip.cy.utilities import _cython_build_cleanup
 from qutip.solver import Options, Result, config
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 from qutip.settings import debug
@@ -293,10 +294,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     # Remove RHS cython file if necessary
     if not options.rhs_reuse and config.tdname:
-        try:
-            os.remove(config.tdname + ".pyx")
-        except:
-            pass
+        _cython_build_cleanup(config.tdname)
 
     # AFTER MCSOLVER IS DONE
     # ----------------------
