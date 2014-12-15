@@ -36,6 +36,7 @@ __all__ = ['Options', 'Odeoptions', 'Odedata']
 
 import os
 import warnings
+import sysconfig
 from distutils.util import get_platform
 from distutils.sysconfig import get_python_version
 from qutip import __version__
@@ -361,16 +362,22 @@ class SolverConfiguration():
 
 def cython_build_cleanup(tdname, build_dir=None):
     plat_and_py = get_platform()+'-'+get_python_version()+'/'
-    lib_dir = '/lib.' + plat_and_py
-    temp_dir = '/temp.' + plat_and_py + 'pyrex/'
+    sys_so_var = sysconfig.get_config_var('SO')
     if build_dir is None:
         build_dir = os.path.join(os.path.expanduser('~'), '.pyxbld')
-    try:
-        os.remove(config.tdname + ".pyx")
-        os.remove(build_dir+lib_dir+config.tdname + ".so")
-        os.remove(build_dir+temp_dir+config.tdname + ".c")
-    except:
-        pass
+    lib_dir = '/lib.' + plat_and_py
+    temp_dir = '/temp.' + plat_and_py
+    pyx_file = config.tdname + ".pyx"
+    lib_file = build_dir + lib_dir + config.tdname + sys_so_var
+    temp_c_file = build_dir + temp_dir + 'pyrex/' + config.tdname + ".c"
+    temp_o_file = build_dir + temp_dir + build_dir + temp_dir \
+                + 'pyrex/' + config.tdname + ".o"
+    
+    for file in [pyx_file, lib_file, temp_c_file, temp_o_file]:
+        try:
+            os.remove(file)
+        except:
+            pass
     return
 
 
