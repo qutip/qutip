@@ -56,12 +56,12 @@ def test_fid_trdist_limits():
     Metrics: Fidelity / trace distance limiting cases
     """
     rho = rand_dm(25,0.25)
-    assert_(abs(fidelity(rho,rho)-1) < 1e-8)
-    assert_(tracedist(rho,rho) < 1e-8)
+    assert_(abs(fidelity(rho,rho)-1) < 1e-6)
+    assert_(tracedist(rho,rho) < 1e-6)
     rho1 = fock_dm(5,1)
     rho2 = fock_dm(5,2)
-    assert_(fidelity(rho1,rho2) < 1e-8)
-    assert_(abs(tracedist(rho1,rho2)-1) < 1e-8)
+    assert_(fidelity(rho1,rho2) < 1e-6)
+    assert_(abs(tracedist(rho1,rho2)-1) < 1e-6)
 
 def test_fidelity1():
     """
@@ -143,7 +143,7 @@ def test_hilbert_dist():
     diag2=np.array([0,0,0.5,0.5])
     r1=qdiags(diag1,0)
     r2=qdiags(diag2,0)
-    assert_(abs(hilbert_dist(r1,r2)-1) <= 1e-8)
+    assert_(abs(hilbert_dist(r1,r2)-1) <= 1e-6)
 
 if __name__ == "__main__":
     run_module_suite()
