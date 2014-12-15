@@ -36,6 +36,8 @@ __all__ = ['Options', 'Odeoptions', 'Odedata']
 
 import os
 import warnings
+from distutils.util import get_platform
+from distutils.sysconfig import get_python_version
 from qutip import __version__
 
 
@@ -355,6 +357,22 @@ class SolverConfiguration():
         self.h_func_args = None
         self.c_funcs = None
         self.c_func_args = None
+
+
+def cython_build_cleanup(tdname, build_dir=None):
+    plat_and_py = get_platform()+'-'+get_python_version()+'/'
+    lib_dir = '/lib.' + plat_and_py
+    temp_dir = '/temp.' + plat_and_py + 'pyrex/'
+    if build_dir is None:
+        build_dir = os.path.join(os.path.expanduser('~'), '.pyxbld')
+    try:
+        os.remove(config.tdname + ".pyx")
+        os.remove(build_dir+lib_dir+config.tdname + ".so")
+        os.remove(build_dir+temp_dir+config.tdname + ".c")
+    except:
+        pass
+    return
+
 
 #
 # create a global instance of the SolverConfiguration class
