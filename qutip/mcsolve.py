@@ -48,7 +48,8 @@ from qutip.qobj import Qobj
 from qutip.parallel import parfor
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_expect_psi_csr, spmv, spmv_csr
 from qutip.cy.codegen import Codegen
-from qutip.solver import Options, Result, config, cython_build_cleanup
+from qutip.cy.utilities import _cython_build_cleanup
+from qutip.solver import Options, Result, config
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
 import qutip.settings
 from qutip.settings import debug
@@ -267,7 +268,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     # remove RHS cython file if necessary
     if not options.rhs_reuse and config.tdname:
-        cython_build_cleanup(config.tdname)
+        _cython_build_cleanup(config.tdname)
 
     # AFTER MCSOLVER IS DONE --------------------------------------
     # ------- COLLECT AND RETURN OUTPUT DATA IN ODEDATA OBJECT --------------

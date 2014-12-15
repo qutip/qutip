@@ -48,9 +48,10 @@ import warnings
 from qutip.qobj import Qobj, isket, isoper, issuper
 from qutip.superoperator import spre, spost, liouvillian, mat2vec, vec2mat
 from qutip.expect import expect_rho_vec
-from qutip.solver import Options, Result, config, cython_build_cleanup
+from qutip.solver import Options, Result, config
 from qutip.cy.spmatfuncs import cy_ode_rhs, cy_ode_rho_func_td
 from qutip.cy.codegen import Codegen
+from qutip.cy.utilities import _cython_build_cleanup
 from qutip.rhs_generate import rhs_generate
 from qutip.states import ket2dm
 from qutip.rhs_generate import _td_format_check, _td_wrap_array_str
@@ -885,7 +886,7 @@ def _generic_ode_solve(r, rho0, tlist, e_ops, opt, progress_bar):
     progress_bar.finished()
 
     if not opt.rhs_reuse and config.tdname is not None:
-        cython_build_cleanup(config.tdname)
+        _cython_build_cleanup(config.tdname)
 
     if opt.store_final_state:
         rho.data = vec2mat(r.y)
