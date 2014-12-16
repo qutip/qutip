@@ -431,8 +431,8 @@ def _steadystate_eigen(L, ss_args):
         if settings.debug:
             rcm_band = sp_bandwidth(L)[0]
             logger.debug('RCM bandwidth: %i' % rcm_band)
-            logger.debug('Bandwidth reduction factor: %f' 
-                            % round(old_band/rcm_band, 1))
+            logger.debug('Bandwidth reduction factor: %f' %
+                         round(old_band/rcm_band, 1))
 
     _eigen_start = time.time()
     eigval, eigvec = eigs(L, k=1, sigma=1e-15, tol=ss_args['tol'],
