@@ -53,10 +53,11 @@ from qutip.qobj import Qobj, issuper, isoper
 from qutip.superoperator import liouvillian, vec2mat
 from qutip.sparse import sp_permute, sp_bandwidth, sp_reshape, sp_profile
 from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
+from qutip import (mat2vec, tensor, identity, operator_to_vector)
 import qutip.settings as settings
 from qutip.utilities import _version2int
 import qutip.logging
-import inspect
+
 logger = qutip.logging.get_logger()
 logger.setLevel('DEBUG')
 
@@ -805,12 +806,10 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         return M
 
 
-from qutip import (mat2vec, tensor, identity, operator_to_vector)
-
-
-def _psuedo_inverse_dense(L, rhoss, method='direct'):
+def _pseudo_inverse_dense(L, rhoss, method='direct'):
     """
-    Compute the pseudo inverse for a Liouvillian superoperator.
+    Internal function for computing the pseudo inverse of an Liouvillian using
+    dense matrix methods. See pseudo_inverse for details.
     """
     if method == 'direct':
         rho_vec = np.transpose(mat2vec(rhoss.full()))
@@ -830,14 +829,22 @@ def _psuedo_inverse_dense(L, rhoss, method='direct'):
     elif method == 'numpy':
         return Qobj(np.linalg.pinv(L.full()), dims=L.dims)
 
+    elif method == 'scipy':
+        return Qobj(la.pinv(L.full()), dims=L.dims)
+
+    elif method == 'scipy2':
+        return Qobj(la.pinv2(L.full()), dims=L.dims)
+
     else:
         raise ValueError("Unsupported method '%s'. Use 'direct' or 'numpy'" %
                          method)
 
 
-def _psuedo_inverse_sparse(L, rhoss, method='splu'):
+def _pseudo_inverse_sparse(L, rhoss, method='splu', use_umfpack=False,
+                           use_rcm=False):
     """
-    Compute the pseudo inverse for a Liouvillian superoperator.
+    Internal function for computing the pseudo inverse of an Liouvillian using
+    sparse matrix methods. See pseudo_inverse for details.
     """
 
     N = np.prod(L.dims[0][0])
@@ -851,43 +858,79 @@ def _psuedo_inverse_sparse(L, rhoss, method='splu'):
     I = sp.eye(N*N, N*N, format='csc')
     Q = I - P
 
-    if method == 'spsolve':
-        sp.linalg.use_solver(assumeSortedIndices=True, useUmfpack=True)
+    if use_rcm:
+        perm = reverse_cuthill_mckee(L.data)
+        A = sp_permute(L.data, perm, perm, 'csc').tocsc()
+        Q = sp_permute(Q, perm, perm, 'csc')
+        permc_spec = 'NATURAL'
+    else:
         A = L.data.tocsc()
         A.sort_indices()
+        permc_spec = 'COLAMD'
+
+    if method == 'spsolve':
+        sp.linalg.use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
         LIQ = sp.linalg.spsolve(A, Q)
 
     elif method == 'splu':
-        lu = sp.linalg.splu(L.data.tocsc(),
-                            permc_spec='COLAMD',
-                            diag_pivot_thresh=None,
-                            options={'ILU_MILU': 'smilu_2'})
+        lu = sp.linalg.splu(A, permc_spec=permc_spec)
         LIQ = lu.solve(Q.toarray())
 
     elif method == 'spilu':
-        lu = sp.linalg.spilu(L.data.tocsc(),
-                             permc_spec='COLAMD',
-                             diag_pivot_thresh=None,
-                             options={'ILU_MILU': 'smilu_2'})
+        lu = sp.linalg.spilu(A, permc_spec=permc_spec,
+                             fill_factor=10, drop_tol=1e-8)
         LIQ = lu.solve(Q.toarray())
 
     else:
         raise ValueError("unsupported method '%s'" % method)
 
-    R = Q * LIQ
+    R = sp.csc_matrix(Q * LIQ)
+
+    if use_rcm:
+        rev_perm = np.argsort(perm)
+        R = sp_permute(R, rev_perm, rev_perm, 'csc')
 
     return Qobj(R, dims=L.dims)
 
 
-def psuedo_inverse(L, rhoss=None, sparse=True, method='splu'):
+def pseudo_inverse(L, rhoss=None, sparse=True, method='splu', **kwargs):
     """
-    Compute the pseudo inverse for a Liouvillian superoperator.
-    """
+    Compute the pseudo inverse for a Liouvillian superoperator, optionally
+    given its steadystate density matrix (which will be computed if not given).
 
+    Returns
+    -------
+    L : Qobj
+        A Liouvillian superoperator for which to compute the pseudo inverse.
+
+    rhoss : Qobj
+        A steadystate density matrix as Qobj instance, for the Liouvillian
+        superoperator L.
+
+    sparse : bool
+        Flag that indicate whether to use sparse or dense matrix methods when
+        computing the pseudo inverse.
+
+    method : string
+        Name of method to use. For sparse=True, allowed values are 'spsolve',
+        'splu' and 'spilu'. For sprase=False, allowed values are 'direct' and
+        'numpy'.
+
+    kwargs : dictionary
+        Additional keyword arguments for setting paramters for solver methods.
+        Currently supported arguments are use_rcm (for sparse=True),
+        use_umfpack (for sparse=True and method='spsolve').
+
+    Returns
+    -------
+    R : Qobj
+        Returns Qobj instance representing the pseudo inverse of L.   
+    """
     if rhoss is None:
         rhoss = steadystate(L)
 
     if sparse:
-        return _psuedo_inverse_sparse(L, rhoss, method=method)
+        return _pseudo_inverse_sparse(L, rhoss, method=method, **kwargs)
     else:
-        return _psuedo_inverse_dense(L, rhoss, method=method)
+        method = method if method != 'splu' else 'direct'
+        return _pseudo_inverse_dense(L, rhoss, method=method, **kwargs)
