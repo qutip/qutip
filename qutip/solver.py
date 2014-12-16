@@ -352,6 +352,7 @@ class SolverConfiguration():
         self.c_funcs = None
         self.c_func_args = None
 
+
 #
 # create a global instance of the SolverConfiguration class
 #
