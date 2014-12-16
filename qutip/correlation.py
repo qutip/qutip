@@ -44,19 +44,20 @@ import types
 import numpy as np
 import scipy.fftpack
 
-from qutip.superoperator import liouvillian, spre, mat2vec
-from qutip.expect import expect
-from qutip.tensor import tensor
-from qutip.operators import qeye
-from qutip.mesolve import mesolve
 from qutip.eseries import esval, esspec
 from qutip.essolve import ode2es
+from qutip.expect import expect
+from qutip.mesolve import mesolve
 from qutip.mcsolve import mcsolve
+from qutip.operators import qeye
+from qutip.qobj import Qobj, isket, issuper
+from qutip.rhs_generate import rhs_clear
+from qutip.settings import debug
+from qutip.solver import Options
 from qutip.steadystate import steadystate
 from qutip.states import ket2dm
-from qutip.solver import Options
-from qutip.settings import debug
-from qutip.qobj import Qobj, isket, issuper
+from qutip.superoperator import liouvillian, spre, mat2vec
+from qutip.tensor import tensor
 
 if debug:
     import inspect
@@ -1124,6 +1125,7 @@ def _correlation_me_2t(H, state0, tlist, taulist, c_ops, a_op, b_op, c_op,
                     args=args, options=options).states
     corr_mat = np.zeros([np.size(tlist), np.size(taulist)], dtype=complex)
     H_shifted, _args = _transform_H_t_shift(H, args)
+    rhs_clear()
 
     for t_idx, rho in enumerate(rho_t):
         if not isinstance(H, Qobj):

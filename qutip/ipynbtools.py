@@ -129,9 +129,9 @@ class HTMLProgressBar(BaseProgressBar):
         self.divid = str(uuid.uuid4())
         self.textid = str(uuid.uuid4())
         self.pb = HTML("""\
-<div style="border: 1px solid grey; width: 600px">
+<div style="border: 2px solid grey; width: 600px">
   <div id="%s" \
-style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
+style="background-color: rgba(121,195,106,0.75); width:0%%">&nbsp;</div>
 </div>
 <p id="%s"></p>
 """ % (self.divid, self.textid))
@@ -163,7 +163,7 @@ style="background-color: rgba(0,200,0,0.35); width:0%%">&nbsp;</div>
 
 def _visualize_parfor_data(metadata):
     """
-    Visalizing the task scheduling meta data collected from AsyncResults.
+    Visualizing the task scheduling meta data collected from AsyncResults.
     """
     res = numpy.array(metadata)
     fig, ax = plt.subplots(figsize=(10, res.shape[1]))
@@ -253,7 +253,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
                  client=None, view=None, progress_bar=None,
                  show_scheduling=False, **kwargs):
     """
-    Call the function ``tast`` for each value in ``values`` using a cluster
+    Call the function ``task`` for each value in ``values`` using a cluster
     of IPython engines. The function ``task`` should have the signature
     ``task(value, *args, **kwargs)``.
 
@@ -293,7 +293,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
         cluster.
 
     show_progressbar: bool {False, True}, default False
-        Display a HTML-based progress bar duing the execution of the parfor
+        Display a HTML-based progress bar during the execution of the parfor
         loop.
 
     Returns

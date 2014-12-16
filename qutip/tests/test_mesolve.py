@@ -284,7 +284,7 @@ class TestMESolverConstDecay:
     A test class for the time-dependent ode check function.
     """
 
-    def testMESimpleConstDecay(self):
+    def testMEDecay(self):
         "mesolve: simple constant decay"
 
         N = 10  # number of basis states to consider
@@ -300,7 +300,7 @@ class TestMESolverConstDecay:
         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < me_error)
 
-    def testMESimpleConstDecaySingleCollapse(self):
+    def testMEDecaySingleCollapse(self):
         "mesolve: simple constant decay"
 
         N = 10  # number of basis states to consider
@@ -316,7 +316,7 @@ class TestMESolverConstDecay:
         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < me_error)
 
-    def testMESimpleConstDecaySingleExpect(self):
+    def testMEDecaySingleExpect(self):
         "mesolve: simple constant decay"
 
         N = 10  # number of basis states to consider
@@ -332,7 +332,7 @@ class TestMESolverConstDecay:
         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < me_error)
 
-    def testMESimpleConstDecayAsFuncList(self):
+    def testMEDecayAsFuncList(self):
         "mesolve: constant decay as function list"
 
         N = 10  # number of basis states to consider
@@ -351,7 +351,7 @@ class TestMESolverConstDecay:
         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < me_error)
 
-    def testMESimpleConstDecayAsStrList(self):
+    def testMEDecayAsStrList(self):
         "mesolve: constant decay as string list"
 
         N = 10  # number of basis states to consider
@@ -381,7 +381,7 @@ class TestMESolveTDDecay:
 
     """
 
-    def testMESimpleTDDecayAsFuncList(self):
+    def testMETDDecayAsFuncList(self):
         "mesolve: time-dependence as function list"
 
         N = 10  # number of basis states to consider
@@ -400,7 +400,7 @@ class TestMESolveTDDecay:
         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < me_error)
 
-    def testMESimpleTDDecayAsPartialFuncList(self):
+    def testMETDDecayAsPartFuncList(self):
         "mesolve: time-dependence as partial function list"
 
         N = 10
@@ -417,7 +417,7 @@ class TestMESolveTDDecay:
             avg_diff = np.mean(abs(ref - medata.expect[0]) / ref)
             assert_(avg_diff < me_error)
 
-    def testMESimpleTDDecayAsStrList(self):
+    def testMETDDecayAsStrList(self):
         "mesolve: time-dependence as string list"
 
         N = 10  # number of basis states to consider
@@ -434,7 +434,7 @@ class TestMESolveTDDecay:
         avg_diff = np.mean(abs(actual_answer - expt) / actual_answer)
         assert_(avg_diff < me_error)
 
-    def testMESimpleTDDecayAsArray(self):
+    def testMETDDecayAsArray(self):
         "mesolve: time-dependence as array"
 
         N = 10

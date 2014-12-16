@@ -59,7 +59,7 @@ from qutip.settings import debug
 from qutip.sesolve import (_sesolve_list_func_td, _sesolve_list_str_td,
                            _sesolve_list_td, _sesolve_func_td, _sesolve_const)
 
-from qutip.ui.progressbar import BaseProgressBar
+from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
 if debug:
     import inspect
@@ -70,13 +70,14 @@ if debug:
 # any collapse operators were given.
 #
 def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
-            progress_bar=BaseProgressBar()):
+            progress_bar=None):
     """
-    Master equation evolution of a density matrix for a given Hamiltonian.
+    Master equation evolution of a density matrix for a given Hamiltonian and
+    set of collapse operators, or a Liouvillian.
 
     Evolve the state vector or density matrix (`rho0`) using a given
     Hamiltonian (`H`) and an [optional] set of collapse operators
-    (`c_op_list`), by integrating the set of ordinary differential equations
+    (`c_ops`), by integrating the set of ordinary differential equations
     that define the system. In the absence of collapse operators the system is
     evolved according to the unitary evolution of the Hamiltonian.
 
@@ -85,6 +86,12 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     (`e_ops`). If e_ops is a callback function, it is invoked for each
     time in `tlist` with time and the state as arguments, and the function
     does not use any return values.
+
+    If either `H` or the Qobj elements in `c_ops` are superoperators, they
+    will be treated as direct contributions to the total system Liouvillian.
+    This allows to solve master equations that are not on standard Lindblad
+    for by passing a custom Liouvillian in place of either `H` or `c_ops`
+    elements.
 
     **Time-dependent operators**
 
@@ -102,15 +109,18 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     array format*) which specifies the value of the coefficient to the
     corresponding operator for each value of t in tlist.
 
+    Yet another alternative is to specify the time dependence using NumPy
+    arrays with the same length as the `tlist` array (*list array format*).
+
     *Examples*
 
         H = [[H0, 'sin(w*t)'], [H1, 'sin(2*w*t)']]
 
-        H = [[H0, sin(w*tlist)], [H1, sin(2*w*tlist)]]
-
         H = [[H0, f0_t], [H1, f1_t]]
 
         where f0_t and f1_t are python functions with signature f_t(t, args).
+
+        H = [[H0, np.sin(w*tlist)], [H1, np.sin(2*w*tlist)]]
 
     In the *list string format* and *list callback format*, the string
     expression and the callback function must evaluate to a real or complex
@@ -118,7 +128,7 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
 
     In all cases of time-dependent operators, `args` is a dictionary of
     parameters that is used when evaluating operators. It is passed to the
-    callback functions as second argument
+    callback functions as second argument.
 
     .. note::
 
@@ -144,8 +154,8 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     ----------
 
     H : :class:`qutip.Qobj`
-        system Hamiltonian, or a callback function for time-dependent
-        Hamiltonians.
+        System Hamiltonian, or a callback function for time-dependent
+        Hamiltonians, or alternatively a system Liouvillian.
 
     rho0 : :class:`qutip.Qobj`
         initial density matrix or state vector (ket).
@@ -154,7 +164,8 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
         list of times for :math:`t`.
 
     c_ops : list of :class:`qutip.Qobj`
-        single collapse operator, or list of collapse operators.
+        single collapse operator, or list of collapse operators, or a list
+        of Liouvillian superoperators.
 
     e_ops : list of :class:`qutip.Qobj` / callback function single
         single operator or list of operators for which to evaluate
@@ -165,25 +176,30 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
         collapse operators.
 
     options : :class:`qutip.Options`
-        with options for the ODE solver.
+        with options for the solver.
 
-    progress_bar: TextProgressBar
+    progress_bar: BaseProgressBar
         Optional instance of BaseProgressBar, or a subclass thereof, for
         showing the progress of the simulation.
 
     Returns
     -------
 
-    output: :class:`qutip.solver`
+    result: :class:`qutip.Result`
 
-        An instance of the class :class:`qutip.solver`, which contains either
-        an *array* of expectation values for the times specified by `tlist`, or
-        an *array* or state vectors or density matrices corresponding to the
-        times in `tlist` [if `e_ops` is an empty list], or
-        nothing if a callback function was given in place of operators for
-        which to calculate the expectation values.
+        An instance of the class :class:`qutip.Result`, which contains
+        either an *array* `result.expect` of expectation values for the times
+        specified by `tlist`, or an *array* `result.states` of state vectors or
+        density matrices corresponding to the times in `tlist` [if `e_ops` is
+        an empty list], or nothing if a callback function was given in place of
+        operators for which to calculate the expectation values.
 
     """
+
+    if progress_bar is None:
+        progress_bar = BaseProgressBar()
+    elif progress_bar is True:
+        progress_bar = TextProgressBar()
 
     # check whether c_ops or e_ops is is a single operator
     # if so convert it to a list containing only that operator
@@ -642,7 +658,7 @@ def _mesolve_const(H, rho0, tlist, c_op_list, e_ops, args, opt,
                                   progress_bar)
 
         # Got a wave function as initial state: convert to density matrix.
-        rho0 = rho0 * rho0.dag()
+        rho0 = ket2dm(rho0)
 
     #
     # construct liouvillian

@@ -224,16 +224,15 @@ class Qobj(object):
 
         elif isinstance(inpt, list) or isinstance(inpt, tuple):
             # case where input is a list
-            if len(np.array(inpt).shape) == 1:
+            data = np.array(inpt)
+            if len(data.shape) == 1:
                 # if list has only one dimension (i.e [5,4])
-                inpt = np.array([inpt]).transpose()
-            else:  # if list has two dimensions (i.e [[5,4]])
-                inpt = np.array(inpt)
+                data = data.transpose()
 
-            self.data = sp.csr_matrix(inpt, dtype=complex)
+            self.data = sp.csr_matrix(data, dtype=complex)
 
             if not np.any(dims):
-                self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
+                self.dims = [[int(data.shape[0])], [int(data.shape[1])]]
             else:
                 self.dims = dims
 
@@ -1519,7 +1518,6 @@ class Qobj(object):
 
     @property
     def type(self):
-
         if not self._type:
             if self.isoper:
                 self._type = 'oper'
@@ -1540,7 +1538,10 @@ class Qobj(object):
 
     @property
     def shape(self):
-        return [np.prod(self.dims[0]), np.prod(self.dims[1])]
+        if self.data.shape == (1, 1):
+            return [np.prod(self.dims[0]), np.prod(self.dims[1])]
+        else:
+            return list(self.data.shape)
 
     @property
     def isbra(self):

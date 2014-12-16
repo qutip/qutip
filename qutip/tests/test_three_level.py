@@ -32,64 +32,26 @@
 ###############################################################################
 
 import numpy as np
-import time
-from numpy.testing import assert_, run_module_suite
-
-from qutip.parallel import parfor, parallel_map, serial_map
-
-
-def _func1(x):
-    time.sleep(np.random.rand() * 0.25)  # random delay
-    return x**2
+from numpy.testing import assert_, assert_equal, run_module_suite
+from qutip.states import basis
+from qutip.three_level_atom import *
 
 
-def _func2(x, a, b, c, d=0, e=0, f=0):
-    time.sleep(np.random.rand() * 0.25)  # random delay
-    return x**2
+three_states = three_level_basis()
+three_check = np.array([basis(3),basis(3,1),basis(3,2)],dtype=object)
+three_ops = three_level_ops()
 
+def testThreeStates():
+    "Three-level atom: States"
+    assert_equal(np.all(three_states==three_check), True)
 
-def test_parfor1():
-    "parfor"
-
-    x = np.arange(10)
-    y1 = list(map(_func1, x))
-    y2 = parfor(_func1, x)
-
-    assert_((np.array(y1) == np.array(y2)).all())
-
-
-def test_parallel_map():
-    "parallel_map"
-
-    args = (1, 2, 3)
-    kwargs = {'d': 4, 'e': 5, 'f': 6}
-
-    x = np.arange(10)
-    y1 = list(map(_func1, x))
-    y1 = [_func2(xx, *args, **kwargs)for xx in x]
-
-    y2 = parallel_map(_func2, x, args, kwargs, num_cpus=1)
-    assert_((np.array(y1) == np.array(y2)).all())
-
-    y2 = parallel_map(_func2, x, args, kwargs, num_cpus=2)
-    assert_((np.array(y1) == np.array(y2)).all())
-
-
-def test_serial_map():
-    "serial_map"
-
-    args = (1, 2, 3)
-    kwargs = {'d': 4, 'e': 5, 'f': 6}
-
-    x = np.arange(10)
-    y1 = list(map(_func1, x))
-    y1 = [_func2(xx, *args, **kwargs)for xx in x]
-
-    y2 = serial_map(_func2, x, args, kwargs, num_cpus=1)
-    assert_((np.array(y1) == np.array(y2)).all())
-
-    y2 = serial_map(_func2, x, args, kwargs, num_cpus=2)
-    assert_((np.array(y1) == np.array(y2)).all())
+def testThreeOps():
+    "Three-level atom: Operators"
+    assert_equal((three_ops[0]*three_states[0]).full(), three_check[0].full())
+    assert_equal((three_ops[1]*three_states[1]).full(), three_check[1].full())
+    assert_equal((three_ops[2]*three_states[2]).full(), three_check[2].full())
+    assert_equal((three_ops[3]*three_states[1]).full(), three_check[0].full())
+    assert_equal((three_ops[4]*three_states[1]).full(), three_check[2].full())
 
 if __name__ == "__main__":
     run_module_suite()

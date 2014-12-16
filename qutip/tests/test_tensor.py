@@ -31,65 +31,51 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
+import scipy.sparse as sp
+import scipy.linalg as la
 import numpy as np
-import time
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_equal, assert_, run_module_suite
 
-from qutip.parallel import parfor, parallel_map, serial_map
+from qutip.qobj import Qobj
+from qutip.operators import identity
+from qutip.random_objects import rand_ket, rand_dm, rand_herm, rand_unitary, rand_super
+from qutip.superop_reps import to_super
+from qutip.tensor import (
+    tensor_contract, flatten, enumerate_flat, deep_remove, unflatten
+)
 
+def test_flatten():
+    l = [[[0], 1], 2]
+    assert_equal(flatten(l), [0, 1, 2])
 
-def _func1(x):
-    time.sleep(np.random.rand() * 0.25)  # random delay
-    return x**2
+def test_enumerate_flat():
+    l = [[[10], [20, 30]], 40]
+    labels = enumerate_flat(l)
+    assert_equal(labels, [[[0], [1, 2]], 3])
 
+def test_deep_remove():
+    l = [[[0], 1], 2]
+    l = deep_remove(l, 1)
+    assert_equal(l, [[[0]], 2])
 
-def _func2(x, a, b, c, d=0, e=0, f=0):
-    time.sleep(np.random.rand() * 0.25)  # random delay
-    return x**2
+    # Harder case...
+    l = [[[[0, 1, 2]], [3, 4], [5], [6, 7]]]
+    l = deep_remove(l, 0, 5)
+    assert l == [[[[1, 2]], [3, 4], [], [6, 7]]]
 
+def test_unflatten():
+    l = [[[10, 20, 30], [40, 50, 60]], [[70, 80, 90], [100, 110, 120]]]
+    labels = enumerate_flat(l)
+    assert unflatten(flatten(l), labels) == l
 
-def test_parfor1():
-    "parfor"
+def test_tensor_contract():
+    qobj = identity([2, 3, 4])
+    ans = 3 * identity([2, 4])
 
-    x = np.arange(10)
-    y1 = list(map(_func1, x))
-    y2 = parfor(_func1, x)
+    assert_(ans == tensor_contract(qobj, (1, 4)))
 
-    assert_((np.array(y1) == np.array(y2)).all())
-
-
-def test_parallel_map():
-    "parallel_map"
-
-    args = (1, 2, 3)
-    kwargs = {'d': 4, 'e': 5, 'f': 6}
-
-    x = np.arange(10)
-    y1 = list(map(_func1, x))
-    y1 = [_func2(xx, *args, **kwargs)for xx in x]
-
-    y2 = parallel_map(_func2, x, args, kwargs, num_cpus=1)
-    assert_((np.array(y1) == np.array(y2)).all())
-
-    y2 = parallel_map(_func2, x, args, kwargs, num_cpus=2)
-    assert_((np.array(y1) == np.array(y2)).all())
-
-
-def test_serial_map():
-    "serial_map"
-
-    args = (1, 2, 3)
-    kwargs = {'d': 4, 'e': 5, 'f': 6}
-
-    x = np.arange(10)
-    y1 = list(map(_func1, x))
-    y1 = [_func2(xx, *args, **kwargs)for xx in x]
-
-    y2 = serial_map(_func2, x, args, kwargs, num_cpus=1)
-    assert_((np.array(y1) == np.array(y2)).all())
-
-    y2 = serial_map(_func2, x, args, kwargs, num_cpus=2)
-    assert_((np.array(y1) == np.array(y2)).all())
-
-if __name__ == "__main__":
-    run_module_suite()
+    # Now try for superoperators.
+    # For now, we just ensure the dims are correct.
+    sqobj = to_super(qobj)
+    correct_dims = [[[2, 4], [2, 4]], [[2, 4], [2, 4]]]
+    assert_equal(correct_dims, tensor_contract(sqobj, (1, 4), (7, 10)).dims)

@@ -199,7 +199,7 @@ def operator_to_vector(op):
     """
     q = Qobj()
     q.dims = [op.dims, [1]]
-    q.data = sp_reshape(op.data.T, q.shape)
+    q.data = sp_reshape(op.data.T, (np.prod(op.shape), 1))
     return q
 
 
@@ -210,7 +210,8 @@ def vector_to_operator(op):
     """
     q = Qobj()
     q.dims = op.dims[0]
-    q.data = sp_reshape(op.data.T, q.shape).T
+    n = int(np.sqrt(op.shape[0]))
+    q.data = sp_reshape(op.data.T, (n, n)).T
     return q
 
 
@@ -268,7 +269,7 @@ def spost(A):
 
     S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.data = sp.kron(A.data.T, sp.identity(np.prod(A.dims[0])), format='csr')
+    S.data = sp.kron(A.data.T, sp.identity(np.prod(A.shape[0])), format='csr')
     return S
 
 
@@ -293,7 +294,7 @@ def spre(A):
 
     S = Qobj(isherm=A.isherm, superrep='super')
     S.dims = [[A.dims[0], A.dims[1]], [A.dims[0], A.dims[1]]]
-    S.data = sp.kron(sp.identity(np.prod(A.dims[1])), A.data, format='csr')
+    S.data = sp.kron(sp.identity(np.prod(A.shape[1])), A.data, format='csr')
     return S
 
 
