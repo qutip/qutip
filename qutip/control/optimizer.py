@@ -86,6 +86,7 @@ import os
 import numpy as np
 import timeit
 import scipy.optimize as spopt
+import copy
 #QuTiP
 from qutip import Qobj
 import qutip.logging as logging
@@ -231,6 +232,8 @@ class Optimizer:
         if term_conds.fid_goal is None:
             term_conds.fid_goal = 1 - term_conds.fid_err_targ
 
+        if self.stats is not None:
+            self.stats.clear()
 
     def fid_err_func_wrapper(self, *args):
         """
@@ -246,17 +249,19 @@ class Optimizer:
         The error is checked against the target, and the optimisation is
         terminated if the target has been achieved.
         """
-        # *** update stats ***
+        # *** update stats ***       
         if self.stats is not None:
             self.stats.num_fidelity_func_calls += 1
             if self.log_level <= logging.DEBUG:
                 logger.debug("fidelity error call {}".format(
                         self.stats.num_fidelity_func_calls))
+                        
         amps = args[0].copy().reshape(self.dynamics.ctrl_amps.shape)
         self.dynamics.update_ctrl_amps(amps)
         
         tc = self.termination_conditions
         err = self.dynamics.fid_computer.get_fid_err()
+               
         if err <= tc.fid_err_targ:
             raise errors.GoalAchievedTerminate(err)
         
@@ -287,10 +292,10 @@ class Optimizer:
                         self.stats.num_grad_func_calls))
         amps = args[0].copy().reshape(self.dynamics.ctrl_amps.shape)
         self.dynamics.update_ctrl_amps(amps)
-        fidComp = self.dynamics.fid_computer
+        fid_comp = self.dynamics.fid_computer
         # gradient_norm_func is a pointer to the function set in the config
         # that returns the normalised gradients
-        grad = fidComp.get_fid_err_gradient()
+        grad = fid_comp.get_fid_err_gradient()
         if self.test_out_files >= 1:
             # save gradients to file
             fname = os.path.join("test_out", 
@@ -300,8 +305,8 @@ class Optimizer:
             np.savetxt(fname, grad, fmt='%11.4f')
         
         tc = self.termination_conditions
-        if fidComp.norm_grad_sq_sum < tc.min_gradient_norm:
-            raise errors.GradMinReachedTerminate(fidComp.norm_grad_sq_sum)
+        if fid_comp.norm_grad_sq_sum < tc.min_gradient_norm:
+            raise errors.GradMinReachedTerminate(fid_comp.norm_grad_sq_sum)
         return grad.flatten()
         
     def iter_step_callback_func(self, *args):
@@ -351,7 +356,7 @@ class Optimizer:
         if self.stats is not None:
             self.stats.wall_time_optim_end = end_time
             self.stats.calculate()
-            result.stats = self.stats
+            result.stats = copy.copy(self.stats)
 
 
 class OptimizerBFGS(Optimizer):
@@ -484,7 +489,7 @@ class OptimizerLBFGSB(Optimizer):
             self.stats.wall_time_optim_end = 0.0
             self.stats.num_iter = 1
         
-        bounds = self._build_bounds_list();
+        bounds = self._build_bounds_list()        
         result = self._create_result()
         if self.log_level < logging.DEBUG:
             alg_msg_lvl = 1

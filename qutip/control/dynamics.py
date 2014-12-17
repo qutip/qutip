@@ -268,6 +268,9 @@ class Dynamics:
         self.def_amps_fname = "ctrl_amps.txt"
         self.set_log_level(self.config.log_level)
         self.test_out_files = self.config.test_out_files
+        self.trace_evo = 0
+        self.fwd_evo_trace_fh = 0
+        self.owd_evo_trace_fh = 0
         # Internal flags
         self._dyn_gen_mapped = False
         self._ctrls_initialized = False
@@ -390,6 +393,10 @@ class Dynamics:
         if self.test_out_files > 0 and self.stats is None:
             raise errors.UsageError("Cannot output test files"
                                     " when stats object is not set")
+                                    
+        if self.trace_evo and self.stats is None:
+            raise errors.UsageError("Cannot trace evolution"
+                                    " when stats object is not set")
             
         if not isinstance(self.prop_computer, propcomp.PropagatorComputer):
             raise errors.UsageError("No prop_computer (propagator computer) "
@@ -414,7 +421,19 @@ class Dynamics:
         self.fid_computer.init_comp()
         self._ctrls_initialized = True
         self.update_ctrl_amps(amps)
-                
+        
+        # The initial fidelities and gradients are calculated here mainly
+        # for information purposes. However, assuming no change in the 
+        # amplitudes for the first iteration, then this will result
+        # in no extra processing
+        fid_comp = self.fid_computer
+        init_fid_err = fid_comp.get_fid_err()
+        init_grad = fid_comp.get_fid_err_gradient()
+        if self.log_level <= logging.INFO:
+            logger.info("Initial fidelity: {}".format(fid_comp.fid_err))
+            logger.info("Initial gradient norm: {}".format(
+                            fid_comp.norm_grad_sq_sum))
+                            
     def check_ctrls_initialized(self):
         if not self._ctrls_initialized:
             raise errors.UsageError("Controls not initialised. "

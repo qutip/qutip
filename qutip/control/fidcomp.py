@@ -503,6 +503,10 @@ class FidCompTraceDiff(FideliyComputer):
             # np.real, just avoids the complex casting warning
             self.fid_err = self.scale_factor*np.real(
                         np.trace(evo_f_diff.conj().T.dot(evo_f_diff)))
+                        
+            if np.isnan(self.fid_err):
+                self.fid_err = np.Inf
+                
             if dyn.stats is not None:
                     dyn.stats.num_fidelity_computes += 1
                     
@@ -573,6 +577,8 @@ class FidCompTraceDiff(FideliyComputer):
                 # np.real, just avoids the complex casting warning                    
                 g = -2*self.scale_factor*np.real(
                         np.trace(evo_f_diff.conj().T.dot(evo_grad)))
+                if np.isnan(g):
+                    g = np.Inf
                 grad[k, j] = g
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += \

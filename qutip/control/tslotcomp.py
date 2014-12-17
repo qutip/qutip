@@ -154,7 +154,9 @@ class TSlotCompUpdateAll(TimeslotComputer):
                     dyn.stats.num_ctrl_amp_changes += changed_amps.sum()
                     changed_ts_mask = np.any(changed_amps, 1)
                     dyn.stats.num_timeslot_changes += changed_ts_mask.sum()
-    
+            else:
+                if self.log_level <= logging.DEBUG:
+                    logger.debug("No amplitudes changed")
         if changed:
             dyn.ctrl_amps = new_amps
             dyn.flag_system_changed()
@@ -168,13 +170,18 @@ class TSlotCompUpdateAll(TimeslotComputer):
         Dynamics generators (e.g. Hamiltonian) and 
         prop (propagators) are calculated as necessary 
         """
-        if self.log_level <= logging.DEBUG_VERBOSE:
-            logger.log(logging.DEBUG_VERBOSE, "recomputing evolution "
-                                            "(UpdateAll)")
         dyn = self.parent
         prop_comp = dyn.prop_computer
         n_ts = dyn.num_tslots
         n_ctrls = dyn.get_num_ctrls()
+        
+        if dyn.stats is not None:
+            dyn.stats.num_tslot_recompute += 1
+            if self.log_level <= logging.DEBUG:
+                logger.log(logging.DEBUG, "recomputing evolution {} "
+                                                "(UpdateAll)".format( 
+                                            dyn.stats.num_tslot_recompute))
+                                            
         # calculate the Hamiltonians
         timeStart = timeit.default_timer()
         for k in range(n_ts):
@@ -222,12 +229,31 @@ class TSlotCompUpdateAll(TimeslotComputer):
             dyn.stats.wall_time_prop_compute += \
                                 timeit.default_timer() - timeStart
     
+        if dyn.trace_evo:
+            fname = os.path.join("test_out", 
+                "fwdevo_{}_{}_call{}.txt".format(dyn.config.dyn_type, 
+                        dyn.config.fid_type, 
+                        dyn.stats.num_tslot_recompute))
+            dyn.fwd_evo_trace_fh = open(fname, 'w')
+            
+            fname = os.path.join("test_out", 
+                "owdevo_{}_{}_call{}.txt".format(dyn.config.dyn_type, 
+                        dyn.config.fid_type, 
+                        dyn.stats.num_tslot_recompute))
+            dyn.owd_evo_trace_fh = open(fname, 'w')
+        else:
+            dyn.fwd_evo_trace_fh = 0
+            dyn.owd_evo_trace_fh = 0
+            
         # compute the forward propagation
         timeStart = timeit.default_timer()
         R = range(1, n_ts+1)
         for k in R:
             dyn.evo_init2t[k] = dyn.prop[k-1].dot(dyn.evo_init2t[k-1])
-
+            if dyn.fwd_evo_trace_fh != 0:
+                dyn.fwd_evo_trace_fh.write("Evo start to k={}\n".format(k))
+                np.savetxt(dyn.fwd_evo_trace_fh, dyn.evo_init2t[k])
+                
         if dyn.stats is not None:
             dyn.stats.wall_time_fwd_prop_compute += \
                                 timeit.default_timer() - timeStart
@@ -239,14 +265,28 @@ class TSlotCompUpdateAll(TimeslotComputer):
             R = range(n_ts-2, -1, -1)
             for k in R:
                 dyn.evo_t2end[k] = dyn.evo_t2end[k+1].dot(dyn.prop[k])
+                if dyn.fwd_evo_trace_fh != 0:
+                    dyn.owd_evo_trace_fh.write("Evo k={} to end:\n".format(k))
+                    np.savetxt(dyn.owd_evo_trace_fh, dyn.evo_t2end[k])
                 
         if dyn.fid_computer.uses_evo_t2targ:
             R = range(n_ts-1, -1, -1)
             for k in R:
                 dyn.evo_t2targ[k] = dyn.evo_t2targ[k+1].dot(dyn.prop[k])
-            if dyn.stats is not None:
-                dyn.stats.wall_time_onwd_prop_compute += \
-                                    timeit.default_timer() - timeStart
+                if dyn.fwd_evo_trace_fh != 0:
+                    dyn.owd_evo_trace_fh.write("Evo k={} to targ:\n".format(k))
+                    np.savetxt(dyn.owd_evo_trace_fh, dyn.evo_t2targ[k])
+                    
+        if dyn.stats is not None:
+            dyn.stats.wall_time_onwd_prop_compute += \
+                                timeit.default_timer() - timeStart
+                                
+        if dyn.fwd_evo_trace_fh != 0:
+            dyn.fwd_evo_trace_fh.close()
+            dyn.fwd_evo_trace_fh = 0
+        if dyn.owd_evo_trace_fh != 0:
+            dyn.owd_evo_trace_fh.close()
+            dyn.owd_evo_trace_fh = 0
                                     
     def get_timeslot_for_fidelity_calc(self):
         """

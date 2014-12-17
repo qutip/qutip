@@ -724,6 +724,8 @@ def create_pulse_optimizer(
     cfg.fid_type = fid_type
     cfg.pulse_type = init_pulse_type
     cfg.phase_option = phase_option
+    cfg.amp_lbound = amp_lbound
+    cfg.amp_ubound = amp_ubound
     
     if log_level == logging.NOTSET: 
         log_level = logger.getEffectiveLevel()
