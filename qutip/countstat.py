@@ -34,8 +34,9 @@
 __all__ = ['countstat_current', 'countstat_current_noise']
 
 import numpy as np
-from qutip.expect import (expect_rho_vec, pseudo_inverse, mat2vec, sprepost,
-                          steadystate)
+from qutip.expect import expect_rho_vec
+from qutip.steadystate import pseudo_inverse, steadystate
+from qutip.superoperator import mat2vec, sprepost
 
 
 def countstat_current(L, c_ops, rhoss=None, J_ops=None):
