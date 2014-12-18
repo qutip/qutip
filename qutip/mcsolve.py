@@ -211,7 +211,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         else:
             config.progress_bar = progress_bar
     else:
-       config.progress_bar = BaseProgressBar()
+        config.progress_bar = BaseProgressBar()
 
     # set num_cpus to the value given in qutip.settings if none in Options
     if not config.options.num_cpus:
