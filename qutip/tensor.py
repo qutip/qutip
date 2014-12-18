@@ -119,7 +119,7 @@ shape = [4, 4], type = oper, isHerm = True
 
 
 def super_tensor(*args):
-    """Calculates the tensor product of input superoperators, by tensoring
+    """Calculates the tensor product of input superopesurf = rators, by tensoring
     together the underlying Hilbert spaces on which each vectorized operator
     acts.
 
@@ -229,7 +229,8 @@ def composite(*args):
             # We have a vectorized operator, we we may need to promote
             # something.
             return super_tensor(*(
-                arg if arg.isoperket else operator_to_vector(qutip.states.ket2dm(arg))
+                arg if arg.isoperket
+                else operator_to_vector(qutip.states.ket2dm(arg))
                 for arg in args
             ))
 
@@ -245,6 +246,7 @@ def composite(*args):
         raise TypeError("Unsupported Qobj types [{}].".format(
             ", ".join(arg.type for arg in args)
         ))
+
 
 def flatten(l):
     """Flattens a list of lists to the first level.
@@ -265,6 +267,7 @@ def flatten(l):
     else:
         return sum(map(flatten, l), [])
 
+
 def _enumerate_flat(l, idx=0):
     if not isinstance(l, list):
         # Found a scalar, so return and increment.
@@ -278,6 +281,7 @@ def _enumerate_flat(l, idx=0):
             labels, idx = _enumerate_flat(elem, idx)
             acc.append(labels)
         return acc, idx
+
 
 def enumerate_flat(l):
     """Labels the indices at which scalars occur in a flattened list.
@@ -294,6 +298,7 @@ def enumerate_flat(l):
 
     """
     return _enumerate_flat(l)[0]
+
 
 def deep_remove(l, *what):
     """Removes scalars from all levels of a nested list.
@@ -343,6 +348,7 @@ def unflatten(l, idxs):
             acc.append(l[idx])
     return acc
 
+
 def _tensor_contract_single(arr, i, j):
     """
     Contracts a dense tensor along a single index pair.
@@ -350,8 +356,10 @@ def _tensor_contract_single(arr, i, j):
     if arr.shape[i] != arr.shape[j]:
         raise ValueError("Cannot contract over indices of different length.")
     idxs = np.arange(arr.shape[i])
-    sl = tuple(slice(None, None, None) if idx not in (i, j) else idxs for idx in range(arr.ndim))
+    sl = tuple(slice(None, None, None)
+               if idx not in (i, j) else idxs for idx in range(arr.ndim))
     return np.sum(arr[sl], axis=0)
+
 
 def _tensor_contract_dense(arr, *pairs):
     """
@@ -366,6 +374,7 @@ def _tensor_contract_dense(arr, *pairs):
         arr = _tensor_contract_single(arr, *map(axis_idxs.index, pair))
         list(map(axis_idxs.remove, pair))
     return arr
+
 
 def tensor_contract(qobj, *pairs):
     """Contracts a qobj along one or more index pairs.
