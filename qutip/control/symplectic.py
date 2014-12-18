@@ -45,6 +45,7 @@ Utility functions for symplectic matrices
 
 import numpy as np
 
+
 def calc_omega(n):
     """
     Calculate the 2n x 2n omega matrix
@@ -52,7 +53,7 @@ def calc_omega(n):
     matrices
     returns omega
     """
-    
+
     omg = np.zeros((2*n, 2*n))
     for j in range(2*n):
         for k in range(2*n):
@@ -60,7 +61,5 @@ def calc_omega(n):
                 omg[j, k] = (1 + (-1)**j)/2
             if k == j-1:
                 omg[j, k] = -(1 - (-1)**j)/2
-                
+
     return omg
-    
-    

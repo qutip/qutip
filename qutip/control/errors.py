@@ -43,12 +43,14 @@ Created on Mon Mar 10 00:05:34 2014
 Exception classes for the Quantum Control library
 """
 
+
 class Error(Exception):
     """Base class for all qutip control exceptions"""
-      
+
     def __str__(self):
         return repr(self.message)
-    
+
+
 class UsageError(Error):
     """
     A function has been used incorrectly. Most likely when a base class
@@ -58,7 +60,8 @@ class UsageError(Error):
     """
     def __init__(self, msg):
         self.message = msg
-    
+
+
 class FunctionalError(Error):
     """
     A function behaved in an unexpected way
@@ -68,12 +71,14 @@ class FunctionalError(Error):
     """
     def __init__(self, msg):
         self.message = msg
-        
+
+
 class OptimizationTerminate(Error):
     """
     Superclass for all early terminations from the optimisation algorithm
     """
     pass
+
 
 class GoalAchievedTerminate(OptimizationTerminate):
     """
@@ -83,7 +88,8 @@ class GoalAchievedTerminate(OptimizationTerminate):
     def __init__(self, fid_err):
         self.reason = "Goal achieved"
         self.fid_err = fid_err
-        
+
+
 class MaxWallTimeTerminate(OptimizationTerminate):
     """
     Exception raised to terminate execution when the optimisation time has
@@ -91,7 +97,8 @@ class MaxWallTimeTerminate(OptimizationTerminate):
     """
     def __init__(self):
         self.reason = "Max wall time exceeded"
-        
+
+
 class GradMinReachedTerminate(OptimizationTerminate):
     """
     Exception raised to terminate execution when the minimum gradient normal
