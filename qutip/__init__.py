@@ -213,9 +213,9 @@ del os, sys, numpy, scipy, multiprocessing
 from qutip.qobj import *
 from qutip.states import *
 from qutip.operators import *
-from qutip.superoperator import *
 from qutip.expect import *
 from qutip.tensor import *
+from qutip.superoperator import *
 from qutip.superop_reps import *
 from qutip.subsystem_apply import *
 from qutip.graph import *
@@ -252,9 +252,9 @@ from qutip.eseries import *
 from qutip.propagator import *
 from qutip.floquet import *
 from qutip.bloch_redfield import *
-
 from qutip.steadystate import *
 from qutip.correlation import *
+from qutip.countstat import *
 
 # quantum information
 from qutip.qip import *
