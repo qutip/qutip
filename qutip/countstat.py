@@ -35,6 +35,7 @@
 __all__ = ['countstat_current', 'countstat_current_noise']
 
 import numpy as np
+#import scipy
 import scipy.sparse as sp
 
 from qutip.expect import expect_rho_vec
@@ -100,8 +101,9 @@ def countstat_current_noise(L, c_ops, rhoss=None, J_ops=None, R=False):
     in the Liouvillian. Optionally, the steadystate density matrix `rhoss`
     and/or the pseudo inverse `R` of the Liouvillian `L`, and the current
     operators `J_ops` correpsonding to the current collapse operators `c_ops`
-    can also be specified. If either of these are omitted, they will be
-    computed internally.
+    can also be specified. If `R` is not given, the cross-current correlations
+    will be computed directly without computing `R` explicitly. If either of
+    `rhoss` and `J_ops` are omitted, they will be computed internally.
 
     Parameters
     ----------
@@ -165,11 +167,7 @@ def countstat_current_noise(L, c_ops, rhoss=None, J_ops=None, R=False):
         Pop = sp.kron(rhoss_vec.data, tr_op_vec.data.T, format='csc')
         Iop = sp.eye(N*N, N*N, format='csc')
         Q = Iop - Pop
-
-        #scipy.sparse.linalg.use_solver(assumeSortedIndices=True)
         A = L.data.tocsc()
-        A.sort_indices()
-
         rhoss_vec = mat2vec(rhoss.full()).ravel()
 
         for j, Jj in enumerate(J_ops):
