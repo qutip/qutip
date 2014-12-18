@@ -38,12 +38,14 @@ from qutip.three_level_atom import *
 
 
 three_states = three_level_basis()
-three_check = np.array([basis(3),basis(3,1),basis(3,2)],dtype=object)
+three_check = np.array([basis(3), basis(3, 1), basis(3, 2)], dtype=object)
 three_ops = three_level_ops()
+
 
 def testThreeStates():
     "Three-level atom: States"
-    assert_equal(np.all(three_states==three_check), True)
+    assert_equal(np.all(three_states == three_check), True)
+
 
 def testThreeOps():
     "Three-level atom: Operators"

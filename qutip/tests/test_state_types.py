@@ -40,7 +40,7 @@ from scipy.sparse import isspmatrix_csr
 
 def test_basis_type():
     "State CSR Type: basis"
-    st = basis(5,1)
+    st = basis(5, 1)
     assert_equal(isspmatrix_csr(st.data), True)
 
 
@@ -59,27 +59,27 @@ def test_bra_type():
 
 def test_coherent_type():
     "State CSR Type: coherent"
-    st = coherent(25,2+2j)
+    st = coherent(25, 2+2j)
     assert_equal(isspmatrix_csr(st.data), True)
-    st = coherent(25,2+2j, method='analytic')
+    st = coherent(25, 2+2j, method='analytic')
     assert_equal(isspmatrix_csr(st.data), True)
-    
+
 
 def test_coherentdm_type():
     "State CSR Type: coherent_dm"
-    st = coherent_dm(25,2+2j)
+    st = coherent_dm(25, 2+2j)
     assert_equal(isspmatrix_csr(st.data), True)
 
 
 def test_fock_type():
     "State CSR Type: fock"
-    st = fock(5,1)
+    st = fock(5, 1)
     assert_equal(isspmatrix_csr(st.data), True)
 
 
 def test_fockdm_type():
     "State CSR Type: fock_dm"
-    st = fock_dm(5,3)
+    st = fock_dm(5, 3)
     assert_equal(isspmatrix_csr(st.data), True)
 
 
@@ -97,7 +97,7 @@ def test_ket_type():
 
 def test_ket2dm_type():
     "State CSR Type: ket2dm"
-    st = ket2dm(basis(5,1))
+    st = ket2dm(basis(5, 1))
     assert_equal(isspmatrix_csr(st.data), True)
 
 
@@ -115,15 +115,15 @@ def test_spincoherent_type():
 
 def test_spinstate_type():
     "State CSR Type: spin_state"
-    st = spin_state(5,3)
+    st = spin_state(5, 3)
     assert_equal(isspmatrix_csr(st.data), True)
 
 
 def test_thermal_type():
     "State CSR Type: thermal_dm"
-    st = thermal_dm(25,5)
+    st = thermal_dm(25, 5)
     assert_equal(isspmatrix_csr(st.data), True)
-    st = thermal_dm(25,5, method='analytic')
+    st = thermal_dm(25, 5, method='analytic')
     assert_equal(isspmatrix_csr(st.data), True)
 
 

@@ -33,9 +33,11 @@
 import os
 import numpy as np
 _cython_path = os.path.dirname(os.path.abspath(__file__))
-_include_string="'"+_cython_path+"/complex_math.pxi'"
+_include_string = "'"+_cython_path+"/complex_math.pxi'"
 
 __all__ = ['Codegen']
+
+
 class Codegen():
     """
     Class for generating cython code files at runtime.

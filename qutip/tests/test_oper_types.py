@@ -59,14 +59,14 @@ def test_destroy_type():
 
 def test_displace_type():
     "Operator CSR Type: displace"
-    op = displace(5,0.1)
+    op = displace(5, 0.1)
     assert_equal(isspmatrix_csr(op.data), True)
 
 
 def test_jmat_type():
     "Operator CSR Type: spin ops"
     for k in ['x', 'y', 'z', '+', '-']:
-        op = jmat(1/2,k)
+        op = jmat(1/2, k)
         assert_equal(isspmatrix_csr(op.data), True)
 
 
@@ -96,7 +96,7 @@ def test_position_type():
 
 def test_qdiags_type():
     "Operator CSR Type: qdiags"
-    op = qdiags(np.sqrt(range(1,4)),1)
+    op = qdiags(np.sqrt(range(1, 4)), 1)
     assert_equal(isspmatrix_csr(op.data), True)
 
 
@@ -117,7 +117,7 @@ def test_qtrit_type():
 
 def test_squeeze_type():
     "Operator CSR Type: squeeze"
-    op = squeeze(5,0.1j)
+    op = squeeze(5, 0.1j)
     assert_equal(isspmatrix_csr(op.data), True)
 
 
@@ -129,7 +129,7 @@ def test_squeezing_type():
 
 def test_zero_type():
     "Operator CSR Type: zero_oper"
-    op = zero_oper(5,[[5],[5]])
+    op = zero_oper(5, [[5], [5]])
     assert_equal(isspmatrix_csr(op.data), True)
 
 
