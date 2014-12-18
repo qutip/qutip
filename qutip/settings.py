@@ -60,7 +60,9 @@ ipython = False
 #   - basic: call basicConfig
 #   - null: leave logging to the user
 log_handler = 'default'
-
+# Allow for a colorblind mode that uses different colormaps
+# and plotting options by default.
+colorblind_safe = False
 
 # Note that since logging depends on settings,
 # if we want to do any logging here, it must be manually
@@ -68,7 +70,7 @@ log_handler = 'default'
 import logging
 _logger = logging.getLogger(__name__)
 _logger.addHandler(logging.NullHandler())
-del logging # Don't leak names!
+del logging  # Don't leak names!
 
 
 def load_rc_file(rc_file):
@@ -77,7 +79,7 @@ def load_rc_file(rc_file):
     directory.
     """
     global auto_tidyup, auto_herm, auto_tidyup_atol, num_cpus, debug, atol
-    global log_handler
+    global log_handler, colorblind_safe
 
     # Try to pull in configobj to do nicer handling of
     # config files instead of doing manual parsing.
@@ -95,7 +97,8 @@ def load_rc_file(rc_file):
 
     # Try to find the specification for the config file, then
     # use it to load the actual config.
-    config = _cobj.ConfigObj(rc_file,
+    config = _cobj.ConfigObj(
+        rc_file,
         configspec=pkg_resources.resource_filename('qutip', 'configspec.ini'),
         # doesn't throw an error if qutiprc is missing.
         file_error=False
@@ -109,7 +112,7 @@ def load_rc_file(rc_file):
     # worked, and returns a dictionary of which keys fails otherwise.
     # This motivates a very un-Pythonic way of checking for results,
     # but it's the configobj idiom.
-    if result != True:
+    if result is not True:
         # OK, find which keys are bad.
         bad_keys = {key for key, val in result.iteritems() if not val}
         _logger.warn('Invalid configuration options in {}: {}'.format(
@@ -122,7 +125,7 @@ def load_rc_file(rc_file):
     # file to the global settings.
     for config_key in (
         'auto_tidyup', 'auto_herm', 'atol', 'auto_tidyup_atol',
-        'num_cpus', 'debug', 'log_handler'
+        'num_cpus', 'debug', 'log_handler', 'colorblind_safe'
     ):
         if config_key in config and config_key not in bad_keys:
             _logger.debug(

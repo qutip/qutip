@@ -25,9 +25,9 @@ def configuration(parent_package='', top_path=None):
     config.add_library('zvode', sources=[join('zvode', '*.f')])
 
     if sys.platform == 'darwin':
-        blas_opt=np.__config__.blas_opt_info
-        extra_compile_args=blas_opt['extra_compile_args']
-        extra_link_args=blas_opt['extra_link_args']
+        blas_opt = np.__config__.blas_opt_info
+        extra_compile_args = blas_opt['extra_compile_args']
+        extra_link_args = blas_opt['extra_link_args']
         newblas = {}
         sources.append('qutraj_linalg.f90')
     else:

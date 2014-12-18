@@ -90,8 +90,8 @@ def test_wigner_fock():
 
         # calculate the wigner function using qutip and analytic formula
         W_qutip = wigner(psi, xvec, yvec, g=2)
-        W_analytic = 2 / np.pi * (-1) ** n * np.exp(-2 * abs(a) ** 2) * np.polyval(
-            laguerre(n), 4 * abs(a) ** 2)
+        W_analytic = 2 / np.pi * (-1) ** n * \
+            np.exp(-2 * abs(a) ** 2) * np.polyval(laguerre(n), 4 * abs(a) ** 2)
 
         # check difference
         assert_(np.sum(abs(W_qutip - W_analytic)) < 1e-4)
@@ -109,7 +109,7 @@ def test_wigner_compare_methods_dm():
 
     X, Y = np.meshgrid(xvec, yvec)
 
-    #a = X + 1j * Y  # consistent with g=2 option to wigner function
+    # a = X + 1j * Y  # consistent with g=2 option to wigner function
 
     dx = xvec[1] - xvec[0]
     dy = yvec[1] - yvec[0]
@@ -141,7 +141,7 @@ def test_wigner_compare_methods_ket():
 
     X, Y = np.meshgrid(xvec, yvec)
 
-    #a = X + 1j * Y  # consistent with g=2 option to wigner function
+    # a = X + 1j * Y  # consistent with g=2 option to wigner function
 
     dx = xvec[1] - xvec[0]
     dy = yvec[1] - yvec[0]

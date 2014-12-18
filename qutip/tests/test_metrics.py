@@ -36,36 +36,123 @@ the qutip.metrics module.
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
-from numpy import abs
+import numpy as np
+from numpy import abs, sqrt
 from numpy.testing import assert_, run_module_suite
 import scipy
 
-from qutip.operators import create, destroy, jmat, identity
+from qutip.operators import create, destroy, jmat, identity, qdiags
+from qutip.states import fock_dm
 from qutip.propagator import propagator
-from qutip.random_objects import rand_herm
-from qutip.metrics import average_gate_fidelity
+from qutip.random_objects import rand_herm, rand_dm, rand_unitary, rand_ket
+from qutip.metrics import *
+
+"""
+A test class for the metrics and pseudo-metrics included with QuTiP.
+"""
 
 
-class TestMetrics(object):
+def test_fid_trdist_limits():
     """
-    A test class for the metrics and pseudo-metrics included with QuTiP.
+    Metrics: Fidelity / trace distance limiting cases
     """
+    rho = rand_dm(25, 0.25)
+    assert_(abs(fidelity(rho, rho)-1) < 1e-6)
+    assert_(tracedist(rho, rho) < 1e-6)
+    rho1 = fock_dm(5, 1)
+    rho2 = fock_dm(5, 2)
+    assert_(fidelity(rho1, rho2) < 1e-6)
+    assert_(abs(tracedist(rho1, rho2)-1) < 1e-6)
 
-    def rand_super(self):
-        h_5 = rand_herm(5)
-        return propagator(h_5, scipy.rand(), [
-            create(5), destroy(5), jmat(2, 'z')
-        ])
 
-    def test_average_gate_fidelity(self):
-        """
-        Metrics: Checks that average gate fidelities are sensible for random
-        maps, and are equal to 1 for identity maps.
-        """
-        for dims in range(2, 5):
-            assert_(abs(average_gate_fidelity(identity(dims)) - 1) <= 1e-12)
-        assert_(0 <= average_gate_fidelity(self.rand_super()) <= 1)
+def test_fidelity1():
+    """
+    Metrics: Fidelity, mixed state inequality
+    """
+    for k in range(10):
+        rho1 = rand_dm(25, 0.25)
+        rho2 = rand_dm(25, 0.25)
+        F = fidelity(rho1, rho2)
+        assert_(1-F <= sqrt(1-F**2))
+
+
+def test_fidelity2():
+    """
+    Metrics: Fidelity, invariance under unitary trans.
+    """
+    for k in range(10):
+        rho1 = rand_dm(25, 0.25)
+        rho2 = rand_dm(25, 0.25)
+        U = rand_unitary(25, 0.25)
+        F = fidelity(rho1, rho2)
+        FU = fidelity(U*rho1*U.dag(), U*rho2*U.dag())
+        assert_(abs((F-FU)/F) < 1e-5)
+
+
+def test_tracedist1():
+    """
+    Metrics: Trace dist., invariance under unitary trans.
+    """
+    for k in range(10):
+        rho1 = rand_dm(25, 0.25)
+        rho2 = rand_dm(25, 0.25)
+        U = rand_unitary(25, 0.25)
+        D = tracedist(rho1, rho2)
+        DU = tracedist(U*rho1*U.dag(), U*rho2*U.dag())
+        assert_(abs((D-DU)/D) < 1e-5)
+
+
+def test_tracedist2():
+    """
+    Metrics: Trace dist. & Fidelity mixed/mixed inequality
+    """
+    for k in range(10):
+        rho1 = rand_dm(25, 0.25)
+        rho2 = rand_dm(25, 0.25)
+        F = fidelity(rho1, rho2)
+        D = tracedist(rho1, rho2)
+        assert_(1-F <= D)
+
+
+def test_tracedist3():
+    """
+    Metrics: Trace dist. & Fidelity mixed/pure inequality
+    """
+    for k in range(10):
+        ket = rand_ket(25, 0.25)
+        rho1 = ket*ket.dag()
+        rho2 = rand_dm(25, 0.25)
+        F = fidelity(rho1, rho2)
+        D = tracedist(rho1, rho2)
+        assert_(1-F**2 <= D)
+
+
+def rand_super():
+    h_5 = rand_herm(5)
+    return propagator(h_5, scipy.rand(), [
+        create(5), destroy(5), jmat(2, 'z')
+    ])
+
+
+def test_average_gate_fidelity():
+    """
+    Metrics: Check avg gate fidelities for random
+    maps (equal to 1 for id maps).
+    """
+    for dims in range(2, 5):
+        assert_(abs(average_gate_fidelity(identity(dims)) - 1) <= 1e-12)
+    assert_(0 <= average_gate_fidelity(rand_super()) <= 1)
+
+
+def test_hilbert_dist():
+    """
+    Metrics: Hilbert distance.
+    """
+    diag1 = np.array([0.5, 0.5, 0, 0])
+    diag2 = np.array([0, 0, 0.5, 0.5])
+    r1 = qdiags(diag1, 0)
+    r2 = qdiags(diag2, 0)
+    assert_(abs(hilbert_dist(r1, r2)-1) <= 1e-6)
 
 if __name__ == "__main__":
     run_module_suite()

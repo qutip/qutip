@@ -36,7 +36,7 @@ This module contains a collection of functions for calculating metrics
 """
 
 __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
-            'hilbert_dist', 'average_gate_fidelity', 'process_fidelity']
+           'hilbert_dist', 'average_gate_fidelity', 'process_fidelity']
 
 import numpy as np
 from qutip.sparse import sp_eigs
@@ -123,7 +123,7 @@ def tracedist(A, B, sparse=False, tol=0):
     See: Nielsen & Chuang, "Quantum Computation and Quantum Information"
 
     Parameters
-    ----------
+    ----------!=
     A : qobj
         Density matrix or state vector.
     B : qobj
@@ -176,6 +176,10 @@ def hilbert_dist(A, B):
     dist : float
         Hilbert-Schmidt distance between density matrices.
 
+    Notes
+    -----
+    See V. Vedral and M. B. Plenio, Phys. Rev. A 57, 1619 (1998).
+
     """
     if A.isket or A.isbra:
         A = ket2dm(A)
@@ -185,7 +189,7 @@ def hilbert_dist(A, B):
     if A.dims != B.dims:
         raise TypeError('A and B do not have same dimensions.')
 
-    return (A - B).norm('fro')
+    return ((A - B)**2).tr()
 
 
 def bures_dist(A, B):

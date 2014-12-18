@@ -43,7 +43,7 @@ from qutip import (rand_dm, rand_unitary, spre, spost, vector_to_operator,
 from qutip.superoperator import liouvillian, liouvillian_ref
 
 
-class TestMatrixVector:
+class TestMatVec:
     """
     A test class for the QuTiP function for matrix/vector conversion.
     """
@@ -58,7 +58,7 @@ class TestMatrixVector:
 
         assert_((rho1 - rho2).norm() < 1e-8)
 
-    def testOperatorSpreApplication(self):
+    def testOperatorSpreAppl(self):
         """
         Superoperator: apply operator and superoperator from left (spre)
         """
@@ -71,8 +71,8 @@ class TestMatrixVector:
         rho2 = vector_to_operator(rho2_vec)
 
         assert_((rho1 - rho2).norm() < 1e-8)
-        
-    def testOperatorSpostApplication(self):
+
+    def testOperatorSpostAppl(self):
         """
         Superoperator: apply operator and superoperator from right (spost)
         """
@@ -85,8 +85,8 @@ class TestMatrixVector:
         rho2 = vector_to_operator(rho2_vec)
 
         assert_((rho1 - rho2).norm() < 1e-8)
-        
-    def testOperatorUnitaryTransformation(self):
+
+    def testOperatorUnitaryTransform(self):
         """
         Superoperator: Unitary transformation with operators and superoperators
         """
@@ -100,7 +100,7 @@ class TestMatrixVector:
 
         assert_((rho1 - rho2).norm() < 1e-8)
 
-    def testMatrixVectorMatrix(self):
+    def testMatrixVecMat(self):
         """
         Superoperator: Conversion matrix to vector to matrix
         """
@@ -109,7 +109,7 @@ class TestMatrixVector:
         M2 = vec2mat(V)
         assert_(norm(M - M2) == 0.0)
 
-    def testVectorMatrixVector(self):
+    def testVecMatVec(self):
         """
         Superoperator: Conversion vector to matrix to vector
         """
@@ -118,7 +118,7 @@ class TestMatrixVector:
         V2 = mat2vec(M).T  # mat2vec returns a column vector
         assert_(norm(V - V2) == 0.0)
 
-    def testVectorMatrixIndexConversion(self):
+    def testVecMatIndexConversion(self):
         """
         Superoperator: Conversion between matrix and vector indices
         """
@@ -128,7 +128,7 @@ class TestMatrixVector:
             I2 = mat2vec_index(N, i, j)
             assert_(I == I2)
 
-    def testVectorMatrixIndexCompability(self):
+    def testVecMatIndexCompability(self):
         """
         Superoperator: Compatibility between matrix/vector and
         corresponding index conversions.
@@ -162,7 +162,7 @@ class TestMatrixVector:
 
         assert_(S1 == S2)
 
-    def testLiouvillianImplementations(self):
+    def testLiouvillianImplem(self):
         """
         Superoperator: Randomized comparison of standard and reference
         Liouvillian functions.

@@ -236,6 +236,7 @@ from qutip.partial_transpose import *
 from qutip.permute import *
 from qutip.continuous_variables import *
 from qutip.distributions import *
+from qutip.three_level_atom import *
 
 # evolution
 from qutip.solver import *

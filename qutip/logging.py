@@ -35,14 +35,14 @@ This module contains internal-use functions for configuring and writing to
 debug logs, using Python's internal logging functionality by default.
 """
 
-## IMPORTS ##
+# IMPORTS
 from __future__ import absolute_import
 import inspect
 import logging
 
 import qutip.settings
 
-## EXPORTS ##
+# EXPORTS
 NOTSET = logging.NOTSET
 DEBUG_INTENSE = logging.DEBUG - 4
 DEBUG_VERBOSE = logging.DEBUG - 2
@@ -54,12 +54,13 @@ CRITICAL = logging.CRITICAL
 
 __all__ = ['get_logger']
 
-## META-LOGGING ##
+# META-LOGGING
 
 metalogger = logging.getLogger(__name__)
 metalogger.addHandler(logging.NullHandler())
 
-## FUNCTIONS ##
+
+# FUNCTIONS
 
 def get_logger(name=None):
     """
@@ -84,9 +85,10 @@ def get_logger(name=None):
         try:
             calling_frame = inspect.stack()[1][0]
             calling_module = inspect.getmodule(calling_frame)
-            name = calling_module.__name__ if calling_module is not None else '<none>'
+            name = (calling_module.__name__
+                    if calling_module is not None else '<none>')
 
-        except Exception as e:
+        except Exception:
             metalogger.warn('Error creating logger.', exc_info=1)
             name = '<unknown>'
 
@@ -131,12 +133,9 @@ def get_logger(name=None):
         # for capturing to logfiles.
         logger.addHandler(logging.NullHandler())
 
-
     if qutip.settings.debug:
         logger.setLevel(logging.DEBUG)
     else:
         logger.setLevel(logging.WARN)
-
-
 
     return logger

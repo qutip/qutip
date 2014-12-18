@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2014 and later, Alexander J G Pitchford
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -32,33 +31,29 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-# @author: Alexander Pitchford
-# @email1: agp1@aber.ac.uk
-# @email2: alex.pitchford@gmail.com
-# @organization: Aberystwyth University
-# @supervisor: Daniel Burgarth
-
-"""
-Utility functions for symplectic matrices
-"""
-
 import numpy as np
+from numpy.testing import assert_, assert_equal, run_module_suite
+from qutip.states import basis
+from qutip.three_level_atom import *
 
 
-def calc_omega(n):
-    """
-    Calculate the 2n x 2n omega matrix
-    Used in calcualating the propagators in systems described by symplectic
-    matrices
-    returns omega
-    """
+three_states = three_level_basis()
+three_check = np.array([basis(3), basis(3, 1), basis(3, 2)], dtype=object)
+three_ops = three_level_ops()
 
-    omg = np.zeros((2*n, 2*n))
-    for j in range(2*n):
-        for k in range(2*n):
-            if k == j+1:
-                omg[j, k] = (1 + (-1)**j)/2
-            if k == j-1:
-                omg[j, k] = -(1 - (-1)**j)/2
 
-    return omg
+def testThreeStates():
+    "Three-level atom: States"
+    assert_equal(np.all(three_states == three_check), True)
+
+
+def testThreeOps():
+    "Three-level atom: Operators"
+    assert_equal((three_ops[0]*three_states[0]).full(), three_check[0].full())
+    assert_equal((three_ops[1]*three_states[1]).full(), three_check[1].full())
+    assert_equal((three_ops[2]*three_states[2]).full(), three_check[2].full())
+    assert_equal((three_ops[3]*three_states[1]).full(), three_check[0].full())
+    assert_equal((three_ops[4]*three_states[1]).full(), three_check[2].full())
+
+if __name__ == "__main__":
+    run_module_suite()
