@@ -34,13 +34,17 @@
 __all__ = ['countstat_current', 'countstat_current_noise']
 
 import numpy as np
-from qutip.expect import expect_rho_vec, pseudo_inverse, mat2vec, sprepost
+from qutip.expect import (expect_rho_vec, pseudo_inverse, mat2vec, sprepost,
+                          steadystate)
 
 
-def countstat_current(L, rhoss, c_ops, J_ops=None):
+def countstat_current(L, c_ops, rhoss=None, J_ops=None):
     """
     Calculate the current 
     """
+
+    if rhoss is None:
+        rhoss = steadystate(L, c_ops)
 
     if J_ops is None:
         J_ops = [sprepost(c, c.dag()) for c in c_ops]
@@ -56,15 +60,28 @@ def countstat_current(L, rhoss, c_ops, J_ops=None):
     return I
 
 
-def countstat_current_noise(L, rhoss, c_ops, R=None):
+def countstat_current_noise(L, c_ops, rhoss=None, J_ops=None, R=None):
     """
-    Compute the cross-current noise spectrum.
+    Compute the cross-current noise spectrum for a list of collapse operators
+    `c_ops` corresponding to monitored currents, given the system
+    Liouvillian `L`. The current collapse operators `c_ops` should be part
+    of the dissipative processes in `L`, but the `c_ops` given here does not
+    necessarily need to be all collapse operators contributing to dissipation
+    in the Liouvillian. Optionally, the steadystate density matrix `rhoss`
+    and/or the pseudo inverse `R` of the Liouvillian `L`, and the current
+    operators `J_ops` correpsonding to the current collapse operators `c_ops`
+    can also be specified. If either of these are omitted, they will be
+    computed internally.
     """
+
+    if rhoss is None:
+        rhoss = steadystate(L, c_ops)
 
     if R is None:
         R = pseudo_inverse(L, rhoss)
 
-    J_ops = [sprepost(c, c.dag()) for c in c_ops]
+    if J_ops is None:
+        J_ops = [sprepost(c, c.dag()) for c in c_ops]
 
     rhoss_vec = mat2vec(rhoss.full()).ravel()
 
