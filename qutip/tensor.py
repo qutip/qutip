@@ -324,6 +324,7 @@ def deep_remove(l, *what):
                 l = list(map(lambda elem: deep_remove(elem, to_remove), l))
     return l
 
+
 def unflatten(l, idxs):
     """Unflattens a list by a given structure.
 
