@@ -40,7 +40,32 @@ from qutip.expect import (expect_rho_vec, pseudo_inverse, mat2vec, sprepost,
 
 def countstat_current(L, c_ops, rhoss=None, J_ops=None):
     """
-    Calculate the current 
+    Calculate the current corresponding to list of given current collapse
+    operators `c_ops` and a system Liouvillian `L`. Optionally the steadystate
+    density matrix `rhoss` and a list of current superoperators `J_ops` can be
+    specified. If either of these are omitted they are computed internally.
+
+    Parameters
+    ----------
+
+    L : :class:`qutip.Qobj`
+        Qobj representing the system Liouvillian.
+
+    c_ops : array / list
+        List of current collapse operators.
+
+    rhoss : :class:`qutip.Qobj` (optional)
+        The steadystate density matrix corresponding the system Liouvillian
+        `L`.
+
+    J_ops : array / list (optional)
+        List of current superoperators.
+
+    Returns
+    --------
+    I : array
+        The currents `I` corresponding to each current collapse operator
+        `c_ops` (or, equivalently, each current superopeator `J_ops`).
     """
 
     if rhoss is None:
@@ -72,6 +97,32 @@ def countstat_current_noise(L, c_ops, rhoss=None, J_ops=None, R=None):
     operators `J_ops` correpsonding to the current collapse operators `c_ops`
     can also be specified. If either of these are omitted, they will be
     computed internally.
+
+    Parameters
+    ----------
+
+    L : :class:`qutip.Qobj`
+        Qobj representing the system Liouvillian.
+
+    c_ops : array / list
+        List of current collapse operators.
+
+    rhoss : :class:`qutip.Qobj` (optional)
+        The steadystate density matrix corresponding the system Liouvillian
+        `L`.
+
+    J_ops : array / list (optional)
+        List of current superoperators.
+
+    R : :class:`qutip.Qobj` (optional)
+        Qobj representing the pseudo inverse of the system Liouvillian `L`.
+
+    Returns
+    --------
+    I, S : tuple of arrays
+        The currents `I` corresponding to each current collapse operator
+        `c_ops` (or, equivalently, each current superopeator `J_ops`) and the
+        zero-frequency cross-current correlation `S`.
     """
 
     if rhoss is None:
