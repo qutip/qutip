@@ -119,7 +119,7 @@ shape = [4, 4], type = oper, isHerm = True
 
 
 def super_tensor(*args):
-    """Calculates the tensor product of input superopesurf = rators, by tensoring
+    """Calculates the tensor product of input superoperators, by tensoring
     together the underlying Hilbert spaces on which each vectorized operator
     acts.
 
