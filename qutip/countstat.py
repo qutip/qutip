@@ -1,3 +1,4 @@
+
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
@@ -40,7 +41,6 @@ from qutip.expect import expect_rho_vec
 from qutip.steadystate import pseudo_inverse, steadystate
 from qutip.superoperator import mat2vec, sprepost
 from qutip import operator_to_vector, identity, tensor
-from qutip.expect import expect_rho_vec
 
 
 def countstat_current(L, c_ops, rhoss=None, J_ops=None):
@@ -160,27 +160,26 @@ def countstat_current_noise(L, c_ops, rhoss=None, J_ops=None, R=False):
         rhoss_vec = operator_to_vector(rhoss)
 
         tr_op = tensor([identity(n) for n in L.dims[0][0]])
-        tr_op_vec = operator_to_vector(tr_op)    
-        
+        tr_op_vec = operator_to_vector(tr_op)
+
         Pop = sp.kron(rhoss_vec.data, tr_op_vec.data.T, format='csc')
         Iop = sp.eye(N*N, N*N, format='csc')
         Q = Iop - Pop
-        
+
         #scipy.sparse.linalg.use_solver(assumeSortedIndices=True)
         A = L.data.tocsc()
         A.sort_indices()
-        
+
         rhoss_vec = mat2vec(rhoss.full()).ravel()
- 
-        for j, Jj in enumerate(J_ops):       
+
+        for j, Jj in enumerate(J_ops):
             Qj = Q * Jj.data * rhoss_vec
             X_rho_vec = sp.linalg.splu(A, permc_spec='COLAMD').solve(Qj)
             for i, Ji in enumerate(J_ops):
-
                 if i == j:
                     I[i] = expect_rho_vec(Ji.data, rhoss_vec, 1)
                     S[i, i] = I[i]
-    
+
                 S[i, j] -= expect_rho_vec(Ji.data * Q, X_rho_vec, 1)
 
     return I, S
