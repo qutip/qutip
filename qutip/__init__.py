@@ -216,7 +216,9 @@ from qutip.operators import *
 from qutip.superoperator import *
 from qutip.expect import *
 from qutip.tensor import *
-from qutip.parallel import *
+from qutip.superop_reps import *
+from qutip.subsystem_apply import *
+from qutip.graph import *
 
 # graphics
 from qutip.bloch import *
@@ -247,19 +249,18 @@ from qutip.mcsolve import *
 from qutip.stochastic import *
 from qutip.essolve import *
 from qutip.eseries import *
-from qutip.steadystate import *
-from qutip.correlation import *
 from qutip.propagator import *
 from qutip.floquet import *
 from qutip.bloch_redfield import *
-from qutip.superop_reps import *
-from qutip.subsystem_apply import *
-from qutip.graph import *
+
+from qutip.steadystate import *
+from qutip.correlation import *
 
 # quantum information
 from qutip.qip import *
 
 # utilities
+from qutip.parallel import *
 from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *
