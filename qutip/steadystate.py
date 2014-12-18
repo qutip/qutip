@@ -925,7 +925,7 @@ def pseudo_inverse(L, rhoss=None, sparse=True, method='splu', **kwargs):
     Returns
     -------
     R : Qobj
-        Returns Qobj instance representing the pseudo inverse of L.
+        Returns a Qobj instance representing the pseudo inverse of L.
     """
     if rhoss is None:
         rhoss = steadystate(L)
