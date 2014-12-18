@@ -90,153 +90,154 @@ def optimize_pulse(
 
     Parameters
     ----------
-        drift : Qobj
-            the underlying dynamics generator of the system
 
-        ctrls : List of Qobj
-            a list of control dynamics generators. These are scaled by
-            the amplitudes to alter the overall dynamics
+    drift : Qobj
+        the underlying dynamics generator of the system
 
-        initial : Qobj
-            starting point for the evolution.
-            Typically the identity matrix
+    ctrls : List of Qobj
+        a list of control dynamics generators. These are scaled by
+        the amplitudes to alter the overall dynamics
 
-        target : Qobj
-            target transformation, e.g. gate or state, for the time evolution
+    initial : Qobj
+        starting point for the evolution.
+        Typically the identity matrix
 
-        num_tslots : integer or None
-            number of timeslots.
-            None implies that timeslots will be given in the tau array
+    target : Qobj
+        target transformation, e.g. gate or state, for the time evolution
 
-        evo_time : float or None
-            total time for the evolution
-            None implies that timeslots will be given in the tau array
+    num_tslots : integer or None
+        number of timeslots.
+        None implies that timeslots will be given in the tau array
 
-        tau : array[num_tslots] of floats or None
-            durations for the timeslots.
-            if this is given then num_tslots and evo_time are dervived
-            from it
-            None implies that timeslot durations will be equal and
-            calculated as evo_time/num_tslots
+    evo_time : float or None
+        total time for the evolution
+        None implies that timeslots will be given in the tau array
 
-        amp_lbound : float or list of floats
-            lower boundaries for the control amplitudes
-            Can be a scalar value applied to all controls
-            or a list of bounds for each control
+    tau : array[num_tslots] of floats or None
+        durations for the timeslots.
+        if this is given then num_tslots and evo_time are dervived
+        from it
+        None implies that timeslot durations will be equal and
+        calculated as evo_time/num_tslots
 
-        amp_ubound : float or list of floats
-            upper boundaries for the control amplitudes
-            Can be a scalar value applied to all controls
-            or a list of bounds for each control
+    amp_lbound : float or list of floats
+        lower boundaries for the control amplitudes
+        Can be a scalar value applied to all controls
+        or a list of bounds for each control
 
-        fid_err_targ : float
-            Fidelity error target. Pulse optimisation will
-            terminate when the fidelity error falls below this value
+    amp_ubound : float or list of floats
+        upper boundaries for the control amplitudes
+        Can be a scalar value applied to all controls
+        or a list of bounds for each control
 
-        mim_grad : float
-            Minimum gradient. When the sum of the squares of the
-            gradients wrt to the control amplitudes falls below this
-            value, the optimisation terminates, assuming local minima
+    fid_err_targ : float
+        Fidelity error target. Pulse optimisation will
+        terminate when the fidelity error falls below this value
 
-        max_iter : integer
-            Maximum number of iterations of the optimisation algorithm
+    mim_grad : float
+        Minimum gradient. When the sum of the squares of the
+        gradients wrt to the control amplitudes falls below this
+        value, the optimisation terminates, assuming local minima
 
-        max_wall_time : float
-            Maximum allowed elapsed time for the  optimisation algorithm
+    max_iter : integer
+        Maximum number of iterations of the optimisation algorithm
 
-        optim_alg : string
-            Multi-variable optimisation algorithm
-            options are BFGS, LBFGSB
-            (see Optimizer classes for details)
+    max_wall_time : float
+        Maximum allowed elapsed time for the  optimisation algorithm
 
-        max_metric_corr : integer
-            The maximum number of variable metric corrections used to define
-            the limited memory matrix. That is the number of previous
-            gradient values that are used to approximate the Hessian
-            see the scipy.optimize.fmin_l_bfgs_b documentation for description
-            of m argument
-            (used only in L-BFGS-B)
+    optim_alg : string
+        Multi-variable optimisation algorithm
+        options are BFGS, LBFGSB
+        (see Optimizer classes for details)
 
-        accuracy_factor : float
-            Determines the accuracy of the result.
-            Typical values for accuracy_factor are: 1e12 for low accuracy;
-            1e7 for moderate accuracy; 10.0 for extremely high accuracy
-            scipy.optimize.fmin_l_bfgs_b factr argument.
-            (used only in L-BFGS-B)
+    max_metric_corr : integer
+        The maximum number of variable metric corrections used to define
+        the limited memory matrix. That is the number of previous
+        gradient values that are used to approximate the Hessian
+        see the scipy.optimize.fmin_l_bfgs_b documentation for description
+        of m argument
+        (used only in L-BFGS-B)
 
-        dyn_type : string
-            Dynamics type, i.e. the type of matrix used to describe
-            the dynamics. Options are UNIT, GEN_MAT, SYMPL
-            (see Dynamics classes for details)
+    accuracy_factor : float
+        Determines the accuracy of the result.
+        Typical values for accuracy_factor are: 1e12 for low accuracy;
+        1e7 for moderate accuracy; 10.0 for extremely high accuracy
+        scipy.optimize.fmin_l_bfgs_b factr argument.
+        (used only in L-BFGS-B)
 
-        prop_type : string
-            Propagator type i.e. the method used to calculate the
-            propagtors and propagtor gradient for each timeslot
-            options are DEF, APPROX, DIAG, FRECHET, AUG_MAT
-            DEF will use the default for the specific dyn_type
-            (see PropagatorComputer classes for details)
+    dyn_type : string
+        Dynamics type, i.e. the type of matrix used to describe
+        the dynamics. Options are UNIT, GEN_MAT, SYMPL
+        (see Dynamics classes for details)
 
-        fid_type : string
-            Fidelity error (and fidelity error gradient) computation method
-            Options are DEF, UNIT, TRACEDIFF, TD_APPROX
-            DEF will use the default for the specific dyn_type
-            (See FideliyComputer classes for details)
+    prop_type : string
+        Propagator type i.e. the method used to calculate the
+        propagtors and propagtor gradient for each timeslot
+        options are DEF, APPROX, DIAG, FRECHET, AUG_MAT
+        DEF will use the default for the specific dyn_type
+        (see PropagatorComputer classes for details)
 
-        phase_option : string
-            determines how global phase is treated in fidelity
-            calculations (fid_type='UNIT' only). Options:
-                PSU - global phase ignored
-                SU - global phase included
+    fid_type : string
+        Fidelity error (and fidelity error gradient) computation method
+        Options are DEF, UNIT, TRACEDIFF, TD_APPROX
+        DEF will use the default for the specific dyn_type
+        (See FideliyComputer classes for details)
 
-        fid_err_scale_factor : float
-            (used in TRACEDIFF FidelityComputer and subclasses only)
-            The fidelity error calculated is of some arbitary scale. This
-            factor can be used to scale the fidelity error such that it may
-            represent some physical measure
-            If None is given then it is caculated as 1/2N, where N
-            is the dimension of the drift.
+    phase_option : string
+        determines how global phase is treated in fidelity
+        calculations (fid_type='UNIT' only). Options:
+            PSU - global phase ignored
+            SU - global phase included
 
-        amp_update_mode : string
-            determines whether propagators are calculated
-            Options: DEF, ALL, DYNAMIC (needs work)
-            DEF will use the default for the specific dyn_type
-            (See TimeslotComputer classes for details)
+    fid_err_scale_factor : float
+        (used in TRACEDIFF FidelityComputer and subclasses only)
+        The fidelity error calculated is of some arbitary scale. This
+        factor can be used to scale the fidelity error such that it may
+        represent some physical measure
+        If None is given then it is caculated as 1/2N, where N
+        is the dimension of the drift.
 
-        init_pulse_type : string
-            type / shape of pulse(s) used to initialise the
-            the control amplitudes. Options include:
-                RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
-            (see PulseGen classes for details)
+    amp_update_mode : string
+        determines whether propagators are calculated
+        Options: DEF, ALL, DYNAMIC (needs work)
+        DEF will use the default for the specific dyn_type
+        (See TimeslotComputer classes for details)
 
-        pulse_scaling : float
-            Linear scale factor for generated pulses
-            By default initial pulses are generated with amplitudes in the
-            range (-1.0, 1.0). These will be scaled by this parameter
+    init_pulse_type : string
+        type / shape of pulse(s) used to initialise the
+        the control amplitudes. Options include:
+            RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
+        (see PulseGen classes for details)
 
-        pulse_offset : float
-            Line offset for the pulse. That is this value will be added
-            to any initial pulses generated.
+    pulse_scaling : float
+        Linear scale factor for generated pulses
+        By default initial pulses are generated with amplitudes in the
+        range (-1.0, 1.0). These will be scaled by this parameter
 
-        log_level : integer
-            level of messaging output from the logger.
-            Options are attributes of qutip.logging,
-            in decreasing levels of messaging, are:
-            DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
-            Anything WARN or above is effectively 'quiet' execution,
-            assuming everything runs as expected.
-            The default NOTSET implies that the level will be taken from
-            the QuTiP settings file, which by default is WARN
+    pulse_offset : float
+        Line offset for the pulse. That is this value will be added
+        to any initial pulses generated.
 
-        out_file_ext : string or None
-            files containing the initial and final control pulse
-            amplitudes are saved to the current directory.
-            The default name will be postfixed with this extension
-            Setting this to None will suppress the output of files
+    log_level : integer
+        level of messaging output from the logger.
+        Options are attributes of qutip.logging,
+        in decreasing levels of messaging, are:
+        DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
+        Anything WARN or above is effectively 'quiet' execution,
+        assuming everything runs as expected.
+        The default NOTSET implies that the level will be taken from
+        the QuTiP settings file, which by default is WARN
 
-        gen_stats : boolean
-            if set to True then statistics for the optimisation
-            run will be generated - accessible through attributes
-            of the stats object
+    out_file_ext : string or None
+        files containing the initial and final control pulse
+        amplitudes are saved to the current directory.
+        The default name will be postfixed with this extension
+        Setting this to None will suppress the output of files
+
+    gen_stats : boolean
+        if set to True then statistics for the optimisation
+        run will be generated - accessible through attributes
+        of the stats object
 
     Returns
     -------
@@ -344,128 +345,130 @@ def optimize_pulse_unitary(
     time evolution resulting from the pulse is equivalent to the target.
     And therefore the fidelity error is 1 - fidelity
 
-    Parameters:
-        H_d : Qobj
-            Drift (aka system) the underlying Hamiltonian of the system
+    Parameters
+    ----------
 
-        H_c : Qobj
-            a list of control Hamiltonians. These are scaled by
-            the amplitudes to alter the overall dynamics
+    H_d : Qobj
+        Drift (aka system) the underlying Hamiltonian of the system
 
-        U_0 : Qobj
-            starting point for the evolution.
-            Typically the identity matrix
+    H_c : Qobj
+        a list of control Hamiltonians. These are scaled by
+        the amplitudes to alter the overall dynamics
 
-        U_targ : Qobj
-            target transformation, e.g. gate or state, for the time evolution
+    U_0 : Qobj
+        starting point for the evolution.
+        Typically the identity matrix
 
-        num_tslots : integer or None
-            number of timeslots.
-            None implies that timeslots will be given in the tau array
+    U_targ : Qobj
+        target transformation, e.g. gate or state, for the time evolution
 
-        evo_time : float or None
-            total time for the evolution
-            None implies that timeslots will be given in the tau array
+    num_tslots : integer or None
+        number of timeslots.
+        None implies that timeslots will be given in the tau array
 
-        tau : array[num_tslots] of floats or None
-            durations for the timeslots.
-            if this is given then num_tslots and evo_time are dervived
-            from it
-            None implies that timeslot durations will be equal and
-            calculated as evo_time/num_tslots
+    evo_time : float or None
+        total time for the evolution
+        None implies that timeslots will be given in the tau array
 
-        amp_lbound : float or list of floats
-            lower boundaries for the control amplitudes
-            Can be a scalar value applied to all controls
-            or a list of bounds for each control
+    tau : array[num_tslots] of floats or None
+        durations for the timeslots.
+        if this is given then num_tslots and evo_time are dervived
+        from it
+        None implies that timeslot durations will be equal and
+        calculated as evo_time/num_tslots
 
-        amp_ubound : float or list of floats
-            upper boundaries for the control amplitudes
-            Can be a scalar value applied to all controls
-            or a list of bounds for each control
+    amp_lbound : float or list of floats
+        lower boundaries for the control amplitudes
+        Can be a scalar value applied to all controls
+        or a list of bounds for each control
 
-        fid_err_targ : float
-            Fidelity error target. Pulse optimisation will
-            terminate when the fidelity error falls below this value
+    amp_ubound : float or list of floats
+        upper boundaries for the control amplitudes
+        Can be a scalar value applied to all controls
+        or a list of bounds for each control
 
-        mim_grad : float
-            Minimum gradient. When the sum of the squares of the
-            gradients wrt to the control amplitudes falls below this
-            value, the optimisation terminates, assuming local minima
+    fid_err_targ : float
+        Fidelity error target. Pulse optimisation will
+        terminate when the fidelity error falls below this value
 
-        max_iter : integer
-            Maximum number of iterations of the optimisation algorithm
+    mim_grad : float
+        Minimum gradient. When the sum of the squares of the
+        gradients wrt to the control amplitudes falls below this
+        value, the optimisation terminates, assuming local minima
 
-        max_wall_time : float
-            Maximum allowed elapsed time for the  optimisation algorithm
+    max_iter : integer
+        Maximum number of iterations of the optimisation algorithm
 
-        optim_alg : string
-            Multi-variable optimisation algorithm
-            options are BFGS, LBFGSB
-            (see Optimizer classes for details)
+    max_wall_time : float
+        Maximum allowed elapsed time for the  optimisation algorithm
 
-        max_metric_corr : integer
-            The maximum number of variable metric corrections used to define
-            the limited memory matrix. That is the number of previous
-            gradient values that are used to approximate the Hessian
-            see the scipy.optimize.fmin_l_bfgs_b documentation for description
-            of m argument
-            (used only in L-BFGS-B)
+    optim_alg : string
+        Multi-variable optimisation algorithm
+        options are BFGS, LBFGSB
+        (see Optimizer classes for details)
 
-        accuracy_factor : float
-            Determines the accuracy of the result.
-            Typical values for accuracy_factor are: 1e12 for low accuracy;
-            1e7 for moderate accuracy; 10.0 for extremely high accuracy
-            scipy.optimize.fmin_l_bfgs_b factr argument.
-            (used only in L-BFGS-B)
+    max_metric_corr : integer
+        The maximum number of variable metric corrections used to define
+        the limited memory matrix. That is the number of previous
+        gradient values that are used to approximate the Hessian
+        see the scipy.optimize.fmin_l_bfgs_b documentation for description
+        of m argument
+        (used only in L-BFGS-B)
 
-        phase_option : string
-            determines how global phase is treated in fidelity
-            calculations (fid_type='UNIT' only). Options:
-                PSU - global phase ignored
-                SU - global phase included
+    accuracy_factor : float
+        Determines the accuracy of the result.
+        Typical values for accuracy_factor are: 1e12 for low accuracy;
+        1e7 for moderate accuracy; 10.0 for extremely high accuracy
+        scipy.optimize.fmin_l_bfgs_b factr argument.
+        (used only in L-BFGS-B)
 
-        amp_update_mode : string
-            determines whether propagators are calculated
-            Options: DEF, ALL, DYNAMIC (needs work)
-            DEF will use the default for the specific dyn_type
-            (See TimeslotComputer classes for details)
+    phase_option : string
+        determines how global phase is treated in fidelity
+        calculations (fid_type='UNIT' only). Options:
+            PSU - global phase ignored
+            SU - global phase included
 
-        init_pulse_type : string
-            type / shape of pulse(s) used to initialise the
-            the control amplitudes. Options include:
-                RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
-            (see PulseGen classes for details)
+    amp_update_mode : string
+        determines whether propagators are calculated
+        Options: DEF, ALL, DYNAMIC (needs work)
+        DEF will use the default for the specific dyn_type
+        (See TimeslotComputer classes for details)
 
-        pulse_scaling : float
-            Linear scale factor for generated pulses
-            By default initial pulses are generated with amplitudes in the
-            range (-1.0, 1.0). These will be scaled by this parameter
+    init_pulse_type : string
+        type / shape of pulse(s) used to initialise the
+        the control amplitudes. Options include:
+            RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
+        (see PulseGen classes for details)
 
-        pulse_offset : float
-            Line offset for the pulse. That is this value will be added
-            to any initial pulses generated.
+    pulse_scaling : float
+        Linear scale factor for generated pulses
+        By default initial pulses are generated with amplitudes in the
+        range (-1.0, 1.0). These will be scaled by this parameter
 
-        log_level : integer
-            level of messaging output from the logger.
-            Options are attributes of qutip.logging,
-            in decreasing levels of messaging, are:
-            DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
-            Anything WARN or above is effectively 'quiet' execution,
-            assuming everything runs as expected.
-            The default NOTSET implies that the level will be taken from
-            the QuTiP settings file, which by default is WARN
+    pulse_offset : float
+        Line offset for the pulse. That is this value will be added
+        to any initial pulses generated.
 
-        out_file_ext : string or None
-            files containing the initial and final control pulse
-            amplitudes are saved to the current directory.
-            The default name will be postfixed with this extension
-            Setting this to None will suppress the output of files
+    log_level : integer
+        level of messaging output from the logger.
+        Options are attributes of qutip.logging,
+        in decreasing levels of messaging, are:
+        DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
+        Anything WARN or above is effectively 'quiet' execution,
+        assuming everything runs as expected.
+        The default NOTSET implies that the level will be taken from
+        the QuTiP settings file, which by default is WARN
 
-        gen_stats : boolean
-            if set to True then statistics for the optimisation
-            run will be generated - accessible through attributes
-            of the stats object
+    out_file_ext : string or None
+        files containing the initial and final control pulse
+        amplitudes are saved to the current directory.
+        The default name will be postfixed with this extension
+        Setting this to None will suppress the output of files
+
+    gen_stats : boolean
+        if set to True then statistics for the optimisation
+        run will be generated - accessible through attributes
+        of the stats object
 
     Returns
     -------
@@ -531,154 +534,155 @@ def create_pulse_optimizer(
     for instances when trying to finding global the optimum or
     minimum time optimisation
 
-    Parameters:
     Parameters
     ----------
-        drift : Qobj
-            the underlying dynamics generator of the system
 
-        ctrls : List of Qobj
-            a list of control dynamics generators. These are scaled by
-            the amplitudes to alter the overall dynamics
+    drift : Qobj
+        the underlying dynamics generator of the system
 
-        initial : Qobj
-            starting point for the evolution.
-            Typically the identity matrix
+    ctrls : List of Qobj
+        a list of control dynamics generators. These are scaled by
+        the amplitudes to alter the overall dynamics
 
-        target : Qobj
-            target transformation, e.g. gate or state, for the time evolution
+    initial : Qobj
+        starting point for the evolution.
+        Typically the identity matrix
 
-        num_tslots : integer or None
-            number of timeslots.
-            None implies that timeslots will be given in the tau array
+    target : Qobj
+        target transformation, e.g. gate or state, for the time evolution
 
-        evo_time : float or None
-            total time for the evolution
-            None implies that timeslots will be given in the tau array
+    num_tslots : integer or None
+        number of timeslots.
+        None implies that timeslots will be given in the tau array
 
-        tau : array[num_tslots] of floats or None
-            durations for the timeslots.
-            if this is given then num_tslots and evo_time are dervived
-            from it
-            None implies that timeslot durations will be equal and
-            calculated as evo_time/num_tslots
+    evo_time : float or None
+        total time for the evolution
+        None implies that timeslots will be given in the tau array
 
-        amp_lbound : float or list of floats
-            lower boundaries for the control amplitudes
-            Can be a scalar value applied to all controls
-            or a list of bounds for each control
+    tau : array[num_tslots] of floats or None
+        durations for the timeslots.
+        if this is given then num_tslots and evo_time are dervived
+        from it
+        None implies that timeslot durations will be equal and
+        calculated as evo_time/num_tslots
 
-        amp_ubound : float or list of floats
-            upper boundaries for the control amplitudes
-            Can be a scalar value applied to all controls
-            or a list of bounds for each control
+    amp_lbound : float or list of floats
+        lower boundaries for the control amplitudes
+        Can be a scalar value applied to all controls
+        or a list of bounds for each control
 
-        fid_err_targ : float
-            Fidelity error target. Pulse optimisation will
-            terminate when the fidelity error falls below this value
+    amp_ubound : float or list of floats
+        upper boundaries for the control amplitudes
+        Can be a scalar value applied to all controls
+        or a list of bounds for each control
 
-        mim_grad : float
-            Minimum gradient. When the sum of the squares of the
-            gradients wrt to the control amplitudes falls below this
-            value, the optimisation terminates, assuming local minima
+    fid_err_targ : float
+        Fidelity error target. Pulse optimisation will
+        terminate when the fidelity error falls below this value
 
-        max_iter : integer
-            Maximum number of iterations of the optimisation algorithm
+    mim_grad : float
+        Minimum gradient. When the sum of the squares of the
+        gradients wrt to the control amplitudes falls below this
+        value, the optimisation terminates, assuming local minima
 
-        max_wall_time : float
-            Maximum allowed elapsed time for the  optimisation algorithm
+    max_iter : integer
+        Maximum number of iterations of the optimisation algorithm
 
-        optim_alg : string
-            Multi-variable optimisation algorithm
-            options are BFGS, LBFGSB
-            (see Optimizer classes for details)
+    max_wall_time : float
+        Maximum allowed elapsed time for the  optimisation algorithm
 
-        max_metric_corr : integer
-            The maximum number of variable metric corrections used to define
-            the limited memory matrix. That is the number of previous
-            gradient values that are used to approximate the Hessian
-            see the scipy.optimize.fmin_l_bfgs_b documentation for description
-            of m argument
-            (used only in L-BFGS-B)
+    optim_alg : string
+        Multi-variable optimisation algorithm
+        options are BFGS, LBFGSB
+        (see Optimizer classes for details)
 
-        accuracy_factor : float
-            Determines the accuracy of the result.
-            Typical values for accuracy_factor are: 1e12 for low accuracy;
-            1e7 for moderate accuracy; 10.0 for extremely high accuracy
-            scipy.optimize.fmin_l_bfgs_b factr argument.
-            (used only in L-BFGS-B)
+    max_metric_corr : integer
+        The maximum number of variable metric corrections used to define
+        the limited memory matrix. That is the number of previous
+        gradient values that are used to approximate the Hessian
+        see the scipy.optimize.fmin_l_bfgs_b documentation for description
+        of m argument
+        (used only in L-BFGS-B)
 
-        dyn_type : string
-            Dynamics type, i.e. the type of matrix used to describe
-            the dynamics. Options are UNIT, GEN_MAT, SYMPL
-            (see Dynamics classes for details)
+    accuracy_factor : float
+        Determines the accuracy of the result.
+        Typical values for accuracy_factor are: 1e12 for low accuracy;
+        1e7 for moderate accuracy; 10.0 for extremely high accuracy
+        scipy.optimize.fmin_l_bfgs_b factr argument.
+        (used only in L-BFGS-B)
 
-        prop_type : string
-            Propagator type i.e. the method used to calculate the
-            propagtors and propagtor gradient for each timeslot
-            options are DEF, APPROX, DIAG, FRECHET, AUG_MAT
-            DEF will use the default for the specific dyn_type
-            (see PropagatorComputer classes for details)
+    dyn_type : string
+        Dynamics type, i.e. the type of matrix used to describe
+        the dynamics. Options are UNIT, GEN_MAT, SYMPL
+        (see Dynamics classes for details)
 
-        fid_type : string
-            Fidelity error (and fidelity error gradient) computation method
-            Options are DEF, UNIT, TRACEDIFF, TD_APPROX
-            DEF will use the default for the specific dyn_type
-            (See FideliyComputer classes for details)
+    prop_type : string
+        Propagator type i.e. the method used to calculate the
+        propagtors and propagtor gradient for each timeslot
+        options are DEF, APPROX, DIAG, FRECHET, AUG_MAT
+        DEF will use the default for the specific dyn_type
+        (see PropagatorComputer classes for details)
 
-        phase_option : string
-            determines how global phase is treated in fidelity
-            calculations (fid_type='UNIT' only). Options:
-                PSU - global phase ignored
-                SU - global phase included
+    fid_type : string
+        Fidelity error (and fidelity error gradient) computation method
+        Options are DEF, UNIT, TRACEDIFF, TD_APPROX
+        DEF will use the default for the specific dyn_type
+        (See FideliyComputer classes for details)
 
-        fid_err_scale_factor : float
-            (used in TRACEDIFF FidelityComputer and subclasses only)
-            The fidelity error calculated is of some arbitary scale. This
-            factor can be used to scale the fidelity error such that it may
-            represent some physical measure
-            If None is given then it is caculated as 1/2N, where N
-            is the dimension of the drift.
+    phase_option : string
+        determines how global phase is treated in fidelity
+        calculations (fid_type='UNIT' only). Options:
+            PSU - global phase ignored
+            SU - global phase included
 
-        amp_update_mode : string
-            determines whether propagators are calculated
-            Options: DEF, ALL, DYNAMIC (needs work)
-            DEF will use the default for the specific dyn_type
-            (See TimeslotComputer classes for details)
+    fid_err_scale_factor : float
+        (used in TRACEDIFF FidelityComputer and subclasses only)
+        The fidelity error calculated is of some arbitary scale. This
+        factor can be used to scale the fidelity error such that it may
+        represent some physical measure
+        If None is given then it is caculated as 1/2N, where N
+        is the dimension of the drift.
 
-        init_pulse_type : string
-            type / shape of pulse(s) used to initialise the
-            the control amplitudes. Options include:
-                RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
-            (see PulseGen classes for details)
+    amp_update_mode : string
+        determines whether propagators are calculated
+        Options: DEF, ALL, DYNAMIC (needs work)
+        DEF will use the default for the specific dyn_type
+        (See TimeslotComputer classes for details)
 
-        pulse_scaling : float
-            Linear scale factor for generated pulses
-            By default initial pulses are generated with amplitudes in the
-            range (-1.0, 1.0). These will be scaled by this parameter
+    init_pulse_type : string
+        type / shape of pulse(s) used to initialise the
+        the control amplitudes. Options include:
+            RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
+        (see PulseGen classes for details)
 
-        pulse_offset : float
-            Line offset for the pulse. That is this value will be added
-            to any initial pulses generated.
+    pulse_scaling : float
+        Linear scale factor for generated pulses
+        By default initial pulses are generated with amplitudes in the
+        range (-1.0, 1.0). These will be scaled by this parameter
 
-        log_level : integer
-            level of messaging output from the logger.
-            Options are attributes of qutip.logging,
-            in decreasing levels of messaging, are:
-            DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
-            Anything WARN or above is effectively 'quiet' execution,
-            assuming everything runs as expected.
-            The default NOTSET implies that the level will be taken from
-            the QuTiP settings file, which by default is WARN
-            Note value should be set using set_log_level
+    pulse_offset : float
+        Line offset for the pulse. That is this value will be added
+        to any initial pulses generated.
 
-        gen_stats : boolean
-            if set to True then statistics for the optimisation
-            run will be generated - accessible through attributes
-            of the stats object
+    log_level : integer
+        level of messaging output from the logger.
+        Options are attributes of qutip.logging,
+        in decreasing levels of messaging, are:
+        DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
+        Anything WARN or above is effectively 'quiet' execution,
+        assuming everything runs as expected.
+        The default NOTSET implies that the level will be taken from
+        the QuTiP settings file, which by default is WARN
+        Note value should be set using set_log_level
+
+    gen_stats : boolean
+        if set to True then statistics for the optimisation
+        run will be generated - accessible through attributes
+        of the stats object
 
     Returns
     -------
+
         Instance of an Optimizer, through which the
         Config, Dynamics, PulseGen, and TerminationConditions objects
         can be accessed as attributes.

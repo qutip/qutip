@@ -181,8 +181,6 @@ class Optimizer:
         attribute must already be set. It will be overwritten if the
         parameter is not None
         """
-#        m = ("No method defined for running optimisation."
-#            " Suspect base class was used where sub class should have been")
         raise errors.UsageError(
             "No method defined for running optimisation."
             " Suspect base class was used where sub class should have been")

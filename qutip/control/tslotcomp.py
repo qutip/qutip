@@ -68,6 +68,8 @@ See Machnes et.al., arXiv.1011.4874
 import os
 import numpy as np
 import timeit
+# QuTiP control modules
+import qutip.control.errors as errors
 # QuTiP logging
 import qutip.logging as logging
 logger = logging.get_logger()
