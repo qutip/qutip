@@ -34,9 +34,13 @@
 __all__ = ['countstat_current', 'countstat_current_noise']
 
 import numpy as np
+import scipy.sparse as sp
+
 from qutip.expect import expect_rho_vec
 from qutip.steadystate import pseudo_inverse, steadystate
 from qutip.superoperator import mat2vec, sprepost
+from qutip import operator_to_vector, identity, tensor
+from qutip.expect import expect_rho_vec
 
 
 def countstat_current(L, c_ops, rhoss=None, J_ops=None):
@@ -86,7 +90,7 @@ def countstat_current(L, c_ops, rhoss=None, J_ops=None):
     return I
 
 
-def countstat_current_noise(L, c_ops, rhoss=None, J_ops=None, R=None):
+def countstat_current_noise(L, c_ops, rhoss=None, J_ops=None, R=False):
     """
     Compute the cross-current noise spectrum for a list of collapse operators
     `c_ops` corresponding to monitored currents, given the system
@@ -129,9 +133,6 @@ def countstat_current_noise(L, c_ops, rhoss=None, J_ops=None, R=None):
     if rhoss is None:
         rhoss = steadystate(L, c_ops)
 
-    if R is None:
-        R = pseudo_inverse(L, rhoss)
-
     if J_ops is None:
         J_ops = [sprepost(c, c.dag()) for c in c_ops]
 
@@ -139,15 +140,47 @@ def countstat_current_noise(L, c_ops, rhoss=None, J_ops=None, R=None):
 
     N = len(J_ops)
     I = np.zeros(N)
-    S = np.zeros(N, N)
+    S = np.zeros((N, N))
 
-    for i, Ji in enumerate(J_ops):
-        for j, Jj in enumerate(J_ops):
-            if i == j:
-                I[i] = expect_rho_vec(Ji.data, rhoss_vec, 1)
-                S[i, j] = I[i]
+    if R:
+        if R is True:
+            R = pseudo_inverse(L, rhoss)
 
-            S[i, j] -= expect_rho_vec((Ji * R * Jj + Jj * R * Ji).data,
-                                      rhoss_vec, 1)
+        for i, Ji in enumerate(J_ops):
+            for j, Jj in enumerate(J_ops):
+                if i == j:
+                    I[i] = expect_rho_vec(Ji.data, rhoss_vec, 1)
+                    S[i, j] = I[i]
+
+                S[i, j] -= expect_rho_vec((Ji * R * Jj + Jj * R * Ji).data,
+                                          rhoss_vec, 1)
+    else:
+        N = np.prod(L.dims[0][0])
+
+        rhoss_vec = operator_to_vector(rhoss)
+
+        tr_op = tensor([identity(n) for n in L.dims[0][0]])
+        tr_op_vec = operator_to_vector(tr_op)    
+        
+        Pop = sp.kron(rhoss_vec.data, tr_op_vec.data.T, format='csc')
+        Iop = sp.eye(N*N, N*N, format='csc')
+        Q = Iop - Pop
+        
+        #scipy.sparse.linalg.use_solver(assumeSortedIndices=True)
+        A = L.data.tocsc()
+        A.sort_indices()
+        
+        rhoss_vec = mat2vec(rhoss.full()).ravel()
+ 
+        for j, Jj in enumerate(J_ops):       
+            Qj = Q * Jj.data * rhoss_vec
+            X_rho_vec = sp.linalg.splu(A, permc_spec='COLAMD').solve(Qj)
+            for i, Ji in enumerate(J_ops):
+
+                if i == j:
+                    I[i] = expect_rho_vec(Ji.data, rhoss_vec, 1)
+                    S[i, i] = I[i]
+    
+                S[i, j] -= expect_rho_vec(Ji.data * Q, X_rho_vec, 1)
 
     return I, S
