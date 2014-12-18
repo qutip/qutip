@@ -43,7 +43,7 @@ from qutip.qip.gates import *
 class Gate(object):
     """
     Representation of a quantum gate, with its required parametrs, and target
-    and control qubits.  
+    and control qubits.
     """
 
     def __init__(self, name, targets=None, controls=None, arg_value=None,
@@ -267,7 +267,7 @@ class QubitCircuit(object):
                                gate.controls[1] + start], None, None)
             elif gate.name in ["FREDKIN"]:
                 self.add_gate(gate.name,
-                              [gate.targets[0] + start, 
+                              [gate.targets[0] + start,
                                gate.targets[1] + start],
                               gate.controls + start, None, None)
 
@@ -622,7 +622,8 @@ class QubitCircuit(object):
                                               arg_value=np.pi / 4,
                                               arg_label=r"\pi/4"))
                     qc_temp.gates.append(Gate("ISWAP", [gate.controls[0],
-                                                        gate.targets[0]], None))
+                                                        gate.targets[0]],
+                                              None))
                     qc_temp.gates.append(Gate("RZ", gate.targets, None,
                                               arg_value=-np.pi / 2,
                                               arg_label=r"-\pi/2"))
@@ -633,7 +634,8 @@ class QubitCircuit(object):
                                               arg_value=np.pi / 2,
                                               arg_label=r"\pi/2"))
                     qc_temp.gates.append(Gate("ISWAP", [gate.controls[0],
-                                                        gate.targets[0]], None))
+                                                        gate.targets[0]],
+                                              None))
                     qc_temp.gates.append(Gate("RY", gate.targets, None,
                                               arg_value=-np.pi / 2,
                                               arg_label=r"-\pi/2"))
@@ -653,7 +655,8 @@ class QubitCircuit(object):
                                               arg_value=-np.pi / 2,
                                               arg_label=r"-\pi/2"))
                     qc_temp.gates.append(Gate("ISWAP", [gate.targets[1],
-                                                        gate.targets[0]], None))
+                                                        gate.targets[0]],
+                                              None))
                     qc_temp.gates.append(Gate("RX", gate.targets[0], None,
                                               arg_value=-np.pi / 2,
                                               arg_label=r"-\pi/2"))
@@ -931,10 +934,12 @@ class QubitCircuit(object):
                              and n == min(gate.targets))):
                             col.append(r" \multigate{%d}{%s} " %
                                        (len(gate.targets) - 1,
-                                        _gate_label(gate.name, gate.arg_label)))
+                                        _gate_label(gate.name,
+                                                    gate.arg_label)))
                         else:
                             col.append(r" \ghost{%s} " %
-                                       (_gate_label(gate.name, gate.arg_label)))
+                                       (_gate_label(gate.name,
+                                                    gate.arg_label)))
 
                     elif gate.name == "CNOT":
                         col.append(r" \targ ")

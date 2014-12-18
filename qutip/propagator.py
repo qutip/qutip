@@ -48,6 +48,7 @@ from qutip.states import basis
 from qutip.solver import Options
 from qutip.ui.progressbar import BaseProgressBar, TextProgressBar
 
+
 def propagator(H, t, c_op_list, args=None, options=None, sparse=False,
                progress_bar=None):
     """

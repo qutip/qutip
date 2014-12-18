@@ -37,10 +37,11 @@ import numpy as np
 from numpy.testing import assert_equal, assert_, run_module_suite
 
 from qutip.qobj import Qobj
-from qutip.random_objects import rand_ket, rand_dm, rand_herm, rand_unitary, rand_super
+from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
+                                  rand_super)
 from qutip.states import basis, fock_dm, ket2dm
 from qutip.operators import create, destroy, num, sigmax
-from qutip.superoperator import spre, spost, operator_to_vector, vector_to_operator
+from qutip.superoperator import spre, spost, operator_to_vector
 from qutip.superop_reps import to_super
 from qutip.tensor import tensor, super_tensor, composite
 
@@ -642,7 +643,6 @@ def test_arithmetic_preserves_superrep():
                              operation, superrep)
                          )
 
-    dimension = 4
     for superrep in ['super', 'choi', 'chi']:
         for operation, chk_op, chk_scalar in [
                 (add, True, True),
@@ -663,14 +663,15 @@ def test_isherm_skew():
     assert_(not iH.isherm)
     assert_((iH * iH).isherm)
     assert_(tensor(iH, iH).isherm)
-    
+
+
 def test_super_tensor_operket():
     """
     Tensor: Checks that super_tensor respects states.
     """
     rho1, rho2 = rand_dm(5), rand_dm(7)
-    rhoket1 = operator_to_vector(rho1)
-    rhoket2 = operator_to_vector(rho2)
+    operator_to_vector(rho1)
+    operator_to_vector(rho2)
 
 
 def test_super_tensor_property():
@@ -688,6 +689,7 @@ def test_super_tensor_property():
     assert_(S_tens == S_supertens)
     assert_equal(S_supertens.superrep, 'super')
 
+
 def test_composite_oper():
     """
     Composite: Tests compositing unitaries and superoperators.
@@ -704,6 +706,7 @@ def test_composite_oper():
     assert_(composite(S3, S4) == super_tensor(S3, S4))
     assert_(composite(U1, S4) == super_tensor(S1, S4))
     assert_(composite(S3, U2) == super_tensor(S3, S2))
+
 
 def test_composite_vec():
     """

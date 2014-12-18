@@ -31,15 +31,14 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
+# @author: Alexander Pitchford
+# @email1: agp1@aber.ac.uk
+# @email2: alex.pitchford@gmail.com
+# @organization: Aberystwyth University
+# @supervisor: Daniel Burgarth
+
 """
-Created on Wed Sep 24 14:46:26 2014
-
-@author: Alexander Pitchford
-@email1: agp1@aber.ac.uk
-@email2: alex.pitchford@gmail.com
-@organization: Aberystwyth University
-@supervisor: Daniel Burgarth
-
 Pulse generator - Generate pulses for the timeslots
 Each class defines a gen_pulse function that produces a float array of
 size num_tslots. Each class produces a differ type of pulse.
@@ -69,7 +68,7 @@ def create_pulse_gen(pulse_type='RND', dyn=None):
     the PulseGen, meaning that some timeslot and amplitude properties
     are copied over.
     """
-    
+
     if pulse_type == 'RND':
         return PulseGenRandom(dyn)
     elif pulse_type == 'LIN':
@@ -91,42 +90,42 @@ class PulseGen:
     Pulse generator
     Base class for all Pulse generators
     The object can optionally be instantiated with a Dynamics object,
-    in which case the timeslots and amplitude scaling and offset 
+    in which case the timeslots and amplitude scaling and offset
     are copied from that.
     Otherwise the class can be used independently by setting:
-    tau (array of timeslot durations) 
+    tau (array of timeslot durations)
     or
     num_tslots and pulse_time for equally spaced timeslots
-    
+
     Attributes
-    ----------        
+    ----------
     num_tslots : integer
         Number of timeslots, aka timeslices
         (copied from Dynamics if given)
-        
+
     pulse_time : float
         total duration of the pulse
         (copied from Dynamics.evo_time if given)
-        
+
     scaling : float
         linear scaling applied to the pulse
         (copied from Dynamics.initial_ctrl_scaling if given)
-        
+
     offset : float
         linear offset applied to the pulse
         (copied from Dynamics.initial_ctrl_offset if given)
-    
+
     tau : array[num_tslots] of float
         Duration of each timeslot
         (copied from Dynamics if given)
-    
+
     periodic : boolean
         True if the pulse generator produces periodic pulses
     """
     def __init__(self, dyn=None):
         self.parent = dyn
         self.reset()
-        
+
     def reset(self):
         """
         reset any configuration data
@@ -144,26 +143,27 @@ class PulseGen:
             self.scaling = 1.0
             self.tau = None
             self.offset = 0.0
-        
+
         self._pulse_initialised = False
         self.periodic = False
-        
+
     def gen_pulse(self):
         """
         returns the pulse as an array of vales for each timeslot
         Must be implemented by subclass
         """
         # must be implemented by subclass
-        raise errors.UsageError("No method defined for generating a pulse. "
+        raise errors.UsageError(
+            "No method defined for generating a pulse. "
             " Suspect base class was used where sub class should have been")
-        
+
     def init_pulse(self):
         """
         Initialise the pulse parameters
         """
         if self.tau is None:
-            self.tau =  np.ones(self.num_tslots, dtype = 'f') * \
-                            self.pulse_time/self.num_tslots
+            self.tau = np.ones(self.num_tslots, dtype='f') * \
+                self.pulse_time/self.num_tslots
         self._pulse_initialised = True
 
 
@@ -179,8 +179,8 @@ class PulseGenZero(PulseGen):
         """
         pulse = np.zeros(self.num_tslots) + self.offset
         return pulse
-        
-        
+
+
 class PulseGenRandom(PulseGen):
     """
     Generates random pulses
@@ -192,8 +192,8 @@ class PulseGenRandom(PulseGen):
         and shifted using the offset property
         Returns the pulse as an array of vales for each timeslot
         """
-        pulse = (2*np.random.random(self.num_tslots) - 1)* \
-                        self.scaling + self.offset
+        pulse = (2*np.random.random(self.num_tslots) - 1) * \
+            self.scaling + self.offset
         return pulse
 
 
@@ -210,7 +210,7 @@ class PulseGenLinear(PulseGen):
         self.gradient = None
         self.start_val = -1.0
         self.end_val = 1.0
-    
+
     def init_pulse(self, gradient=None, start_val=None, end_val=None):
         """
         Calulate the gradient if pulse is defined by start and end point values
@@ -219,11 +219,11 @@ class PulseGenLinear(PulseGen):
         if start_val is not None and end_val is not None:
             self.start_val = start_val
             self.end_val = end_val
-            
+
         if self.start_val is not None and self.end_val is not None:
             self.gradient = float(self.end_val - self.start_val) / \
-                            (self.pulse_time - self.tau[-1])
-        
+                (self.pulse_time - self.tau[-1])
+
     def gen_pulse(self, gradient=None, start_val=None, end_val=None):
         """
         Generate a linear pulse using either the gradient and start value
@@ -233,12 +233,12 @@ class PulseGenLinear(PulseGen):
         actual gradient etc will be different
         Returns the pulse as an array of vales for each timeslot
         """
-        if (gradient is not None or 
+        if (gradient is not None or
                 start_val is not None or end_val is not None):
             self.init_pulse(gradient, start_val, end_val)
         if not self._pulse_initialised:
             self.init_pulse()
-            
+
         pulse = np.empty(self.num_tslots)
         t = 0.0
         for k in range(self.num_tslots):
@@ -246,7 +246,7 @@ class PulseGenLinear(PulseGen):
             pulse[k] = self.scaling*y + self.offset
             t = t + self.tau[k]
         return pulse
-        
+
 
 class PulseGenPeriodic(PulseGen):
     """
@@ -264,26 +264,26 @@ class PulseGenPeriodic(PulseGen):
         self.freq = 1.0
         self.wavelen = None
         self.start_phase = 0.0
-        
-    def init_pulse(self, num_waves=None, wavelen=None, 
-                    freq=None, start_phase=None):
+
+    def init_pulse(self, num_waves=None, wavelen=None,
+                   freq=None, start_phase=None):
         """
-        Calculate the wavelength, frequency, number of waves etc 
+        Calculate the wavelength, frequency, number of waves etc
         from the each other and the other parameters
         If num_waves is given then the other parameters are worked from this
         Otherwise if the wavelength is given then it is the driver
         Otherwise the frequency is used to calculate wavelength and num_waves
         """
         PulseGen.init_pulse(self)
-        
+
         if start_phase is not None:
             self.start_phase = start_phase
-            
+
         if num_waves is not None or wavelen is not None or freq is not None:
             self.num_waves = num_waves
             self.wavelen = wavelen
             self.freq = freq
-            
+
         if self.num_waves is not None:
             self.freq = float(self.num_waves) / self.pulse_time
             self.wavelen = 1.0/self.freq
@@ -293,14 +293,14 @@ class PulseGenPeriodic(PulseGen):
         else:
             self.wavelen = 1.0/self.freq
             self.num_waves = self.wavelen*self.pulse_time
-            
+
 
 class PulseGenSine(PulseGenPeriodic):
     """
     Generates sine wave pulses
     """
-    def gen_pulse(self, num_waves=None, wavelen=None, 
-                    freq=None, start_phase=None):
+    def gen_pulse(self, num_waves=None, wavelen=None,
+                  freq=None, start_phase=None):
         """
         Generate a sine wave pulse
         If no params are provided then the class object attributes are used.
@@ -309,13 +309,13 @@ class PulseGenSine(PulseGenPeriodic):
         """
         if start_phase is not None:
             self.start_phase = start_phase
-            
+
         if num_waves is not None or wavelen is not None or freq is not None:
             self.init_pulse(num_waves, wavelen, freq, start_phase)
-            
+
         if not self._pulse_initialised:
             self.init_pulse()
-        
+
         pulse = np.empty(self.num_tslots)
         t = 0.0
         for k in range(self.num_tslots):
@@ -323,14 +323,14 @@ class PulseGenSine(PulseGenPeriodic):
             pulse[k] = self.scaling*np.sin(phase) + self.offset
             t = t + self.tau[k]
         return pulse
-        
+
 
 class PulseGenSquare(PulseGenPeriodic):
     """
     Generates square wave pulses
     """
-    def gen_pulse(self, num_waves=None, wavelen=None, 
-                    freq=None, start_phase=None):
+    def gen_pulse(self, num_waves=None, wavelen=None,
+                  freq=None, start_phase=None):
         """
         Generate a square wave pulse
         If no parameters are pavided then the class object attributes are used.
@@ -338,13 +338,13 @@ class PulseGenSquare(PulseGenPeriodic):
         """
         if start_phase is not None:
             self.start_phase = start_phase
-            
+
         if num_waves is not None or wavelen is not None or freq is not None:
             self.init_pulse(num_waves, wavelen, freq, start_phase)
-            
+
         if not self._pulse_initialised:
             self.init_pulse()
-        
+
         pulse = np.empty(self.num_tslots)
         t = 0.0
         for k in range(self.num_tslots):
@@ -354,14 +354,14 @@ class PulseGenSquare(PulseGenPeriodic):
             pulse[k] = self.scaling*y + self.offset
             t = t + self.tau[k]
         return pulse
-        
+
 
 class PulseGenSaw(PulseGenPeriodic):
     """
     Generates saw tooth wave pulses
     """
-    def gen_pulse(self, num_waves=None, wavelen=None, 
-                    freq=None, start_phase=None):
+    def gen_pulse(self, num_waves=None, wavelen=None,
+                  freq=None, start_phase=None):
         """
         Generate a saw tooth wave pulse
         If no parameters are pavided then the class object attributes are used.
@@ -369,13 +369,13 @@ class PulseGenSaw(PulseGenPeriodic):
         """
         if start_phase is not None:
             self.start_phase = start_phase
-            
+
         if num_waves is not None or wavelen is not None or freq is not None:
             self.init_pulse(num_waves, wavelen, freq, start_phase)
-            
+
         if not self._pulse_initialised:
             self.init_pulse()
-        
+
         pulse = np.empty(self.num_tslots)
         t = 0.0
         for k in range(self.num_tslots):
@@ -385,14 +385,14 @@ class PulseGenSaw(PulseGenPeriodic):
             pulse[k] = self.scaling*y + self.offset
             t = t + self.tau[k]
         return pulse
-        
+
 
 class PulseGenTriangle(PulseGenPeriodic):
     """
     Generates triangular wave pulses
     """
-    def gen_pulse(self, num_waves=None, wavelen=None, 
-                    freq=None, start_phase=None):
+    def gen_pulse(self, num_waves=None, wavelen=None,
+                  freq=None, start_phase=None):
         """
         Generate a sine wave pulse
         If no parameters are pavided then the class object attributes are used.
@@ -400,13 +400,13 @@ class PulseGenTriangle(PulseGenPeriodic):
         """
         if start_phase is not None:
             self.start_phase = start_phase
-            
+
         if num_waves is not None or wavelen is not None or freq is not None:
             self.init_pulse(num_waves, wavelen, freq, start_phase)
-            
+
         if not self._pulse_initialised:
             self.init_pulse()
-        
+
         pulse = np.empty(self.num_tslots)
         t = 0.0
         for k in range(self.num_tslots):
@@ -415,6 +415,5 @@ class PulseGenTriangle(PulseGenPeriodic):
             y = 2*np.abs(2*(x - np.floor(0.5 + x))) - 1
             pulse[k] = self.scaling*y + self.offset
             t = t + self.tau[k]
-            
+
         return pulse
-        

@@ -46,7 +46,7 @@ def test_qpt_snot():
     U_rho = spre(U_psi) * spost(U_psi.dag())
     N = 1
     op_basis = [[qeye(2), sigmax(), 1j * sigmay(), sigmaz()] for i in range(N)]
-    #op_label = [["i", "x", "y", "z"] for i in range(N)]
+    # op_label = [["i", "x", "y", "z"] for i in range(N)]
     chi1 = qpt(U_rho, op_basis)
 
     chi2 = np.zeros((2 ** (2 * N), 2 ** (2 * N)), dtype=complex)
@@ -62,7 +62,7 @@ def test_qpt_cnot():
     U_rho = spre(U_psi) * spost(U_psi.dag())
     N = 2
     op_basis = [[qeye(2), sigmax(), 1j * sigmay(), sigmaz()] for i in range(N)]
-    #op_label = [["i", "x", "y", "z"] for i in range(N)]
+    # op_label = [["i", "x", "y", "z"] for i in range(N)]
     chi1 = qpt(U_rho, op_basis)
 
     chi2 = np.zeros((2 ** (2 * N), 2 ** (2 * N)), dtype=complex)

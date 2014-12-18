@@ -31,19 +31,19 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
+# @author: Alexander Pitchford
+# @email1: agp1@aber.ac.uk
+# @email2: alex.pitchford@gmail.com
+# @organization: Aberystwyth University
+# @supervisor: Daniel Burgarth
+
 """
-Created on Mon Jul 07 21:07:03 2014
-
-@author: Alexander Pitchford
-@email1: agp1@aber.ac.uk
-@email2: alex.pitchford@gmail.com
-@organization: Aberystwyth University
-@supervisor: Daniel Burgarth
-
 Utility functions for symplectic matrices
 """
 
 import numpy as np
+
 
 def calc_omega(n):
     """
@@ -52,7 +52,7 @@ def calc_omega(n):
     matrices
     returns omega
     """
-    
+
     omg = np.zeros((2*n, 2*n))
     for j in range(2*n):
         for k in range(2*n):
@@ -60,7 +60,5 @@ def calc_omega(n):
                 omg[j, k] = (1 + (-1)**j)/2
             if k == j-1:
                 omg[j, k] = -(1 - (-1)**j)/2
-                
+
     return omg
-    
-    

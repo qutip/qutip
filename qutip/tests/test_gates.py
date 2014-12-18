@@ -173,7 +173,7 @@ class TestGates:
         """
         for _p in itertools.permutations([0, 1, 2]):
             controls, target = [_p[0], _p[1]], _p[2]
-            
+
             controls = [1, 2]
             target = 0
 
@@ -183,7 +183,7 @@ class TestGates:
             p[target] = 2
 
             U = toffoli(N=3, controls=controls, target=target)
-            
+
             ops = [basis(2, 0).dag(),  basis(2, 0).dag(), identity(2)]
             P = tensor(ops[p[0]], ops[p[1]], ops[p[2]])
             assert_(P * U * P.dag() == identity(2))
