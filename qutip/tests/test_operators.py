@@ -99,9 +99,10 @@ def test_destroy():
     test1 = d5 * b4
     assert_equal(np.allclose(test1.full(), 2.0 * basis(5, 3).full()), True)
     d3 = destroy(3)
-    matrix3 = np.array([[0.00000000 + 0.j, 1.00000000 + 0.j, 0.00000000 + 0.j],
-                        [0.00000000 + 0.j, 0.00000000 + 0.j, 1.41421356 + 0.j],
-                        [0.00000000 + 0.j, 0.00000000 + 0.j, 0.00000000 + 0.j]])
+    matrix3 = np.array(
+        [[0.00000000 + 0.j, 1.00000000 + 0.j, 0.00000000 + 0.j],
+         [0.00000000 + 0.j, 0.00000000 + 0.j, 1.41421356 + 0.j],
+         [0.00000000 + 0.j, 0.00000000 + 0.j, 0.00000000 + 0.j]])
 
     assert_equal(np.allclose(matrix3, d3.full()), True)
 
@@ -113,9 +114,10 @@ def test_create():
     test1 = c5 * b3
     assert_equal(np.allclose(test1.full(), 2.0 * basis(5, 4).full()), True)
     c3 = create(3)
-    matrix3 = np.array([[0.00000000 + 0.j, 0.00000000 + 0.j, 0.00000000 + 0.j],
-                        [1.00000000 + 0.j, 0.00000000 + 0.j, 0.00000000 + 0.j],
-                        [0.00000000 + 0.j, 1.41421356 + 0.j, 0.00000000 + 0.j]])
+    matrix3 = np.array(
+        [[0.00000000 + 0.j, 0.00000000 + 0.j, 0.00000000 + 0.j],
+         [1.00000000 + 0.j, 0.00000000 + 0.j, 0.00000000 + 0.j],
+         [0.00000000 + 0.j, 1.41421356 + 0.j, 0.00000000 + 0.j]])
 
     assert_equal(np.allclose(matrix3, c3.full()), True)
 
@@ -125,11 +127,13 @@ def test_qeye():
     eye3 = qeye(5)
     assert_equal(np.allclose(eye3.full(), np.eye(5, dtype=complex)), True)
 
+
 def test_qeye_dims():
     "Identity operator"
     eye24 = qeye([2, 3, 4])
     assert_equal(np.allclose(eye24.full(), np.eye(24, dtype=complex)), True)
     assert_equal(eye24.dims, [[2, 3, 4], [2, 3, 4]])
+
 
 def test_num():
     "Number operator"
