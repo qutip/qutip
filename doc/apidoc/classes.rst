@@ -49,7 +49,6 @@ Solver Options and Results
 .. autoclass:: qutip.stochastic.StochasticSolverOptions
     :members:
 
-
 Distribution functions
 ----------------------------
 
@@ -96,3 +95,51 @@ Quantum information processing
 .. autoclass:: qutip.qip.models.cqed.DispersivecQED
     :members:
 
+
+Optimal control
+---------------
+
+.. autoclass:: qutip.control.grape.GRAPEResult
+    :members:
+
+.. autoclass:: qutip.control.optimizer.GRAPEResult
+    :members:
+
+.. autoclass:: qutip.control.dynamics.Dynamics
+    :members:
+
+.. autoclass:: qutip.control.dynamics.DynamicsUnitary
+    :members:
+
+.. autoclass:: qutip.control.dynamics.DynamicsSymplectic
+    :members:
+
+.. autoclass:: qutip.control.pulsegen.PulseGen
+    :members:
+
+.. autoclass:: qutip.control.pulsegen.PulseGenRandom
+    :members:
+
+.. autoclass:: qutip.control.pulsegen.PulseGenZero
+    :members:
+
+.. autoclass:: qutip.control.pulsegen.PulseGenLinear
+    :members:
+
+.. autoclass:: qutip.control.pulsegen.PulseGenLinear
+    :members:
+
+.. autoclass:: qutip.control.pulsegen.PulseGenPeriodic
+    :members:
+
+.. autoclass:: qutip.control.pulsegen.PulseGenSine
+    :members:
+
+.. autoclass:: qutip.control.pulsegen.PulseGenSquare
+    :members:
+
+.. autoclass:: qutip.control.pulsegen.PulseGenSaw
+    :members:
+
+.. autoclass:: qutip.control.pulsegen.PulseGenTriangle
+    :members:

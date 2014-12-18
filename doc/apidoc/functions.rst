@@ -248,6 +248,12 @@ Optimal control
 .. automodule:: qutip.control.pulseoptim
     :members: optimize_pulse, optimize_pulse_unitary, create_pulse_optimizer
 
+.. automodule:: qutip.control.pulsegen
+    :members: create_pulse_gen
+
+.. automodule:: qutip.control.pulsegen
+    :members: initialize_controls
+
 
 Utilitiy Functions
 ==================
