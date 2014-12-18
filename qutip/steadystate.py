@@ -55,7 +55,6 @@ from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
 import qutip.settings as settings
 from qutip.utilities import _version2int
 import qutip.logging
-import inspect
 logger = qutip.logging.get_logger()
 logger.setLevel('DEBUG')
 
@@ -356,7 +355,7 @@ def _steadystate_direct_sparse(L, ss_args):
             ss_args['info']['u_nnz'] = U_nnz
             ss_args['info']['lu_fill_factor'] = (L_nnz+U_nnz)/L.nnz
             if settings.debug:
-                logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz,U_nnz))
+                logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
                 logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
 
     else:
@@ -365,10 +364,10 @@ def _steadystate_direct_sparse(L, ss_args):
         v = spsolve(L, b)
         _direct_end = time.time()
         ss_args['info']['solution_time'] = _direct_end-_direct_start
-    
+
     if ss_args['return_info']:
         ss_args['info']['residual_norm'] = la.norm(b - L*v, np.inf)
-    
+
     if (not ss_args['use_umfpack']) and ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
 
@@ -431,8 +430,8 @@ def _steadystate_eigen(L, ss_args):
         if settings.debug:
             rcm_band = sp_bandwidth(L)[0]
             logger.debug('RCM bandwidth: %i' % rcm_band)
-            logger.debug('Bandwidth reduction factor: %f' 
-                            % round(old_band/rcm_band, 1))
+            logger.debug('Bandwidth reduction factor: %f' %
+                         round(old_band/rcm_band, 1))
 
     _eigen_start = time.time()
     eigval, eigvec = eigs(L, k=1, sigma=1e-15, tol=ss_args['tol'],
@@ -481,7 +480,8 @@ def _iterative_precondition(A, n, ss_args):
         if settings.debug or ss_args['return_info']:
             if settings.debug:
                 logger.debug('Preconditioning succeeded.')
-                logger.debug('Precond. time: %f' % (_precond_end-_precond_start))
+                logger.debug('Precond. time: %f' %
+                             (_precond_end-_precond_start))
             if _scipy_check:
                 L_nnz = P.L.nnz
                 U_nnz = P.U.nnz
@@ -492,7 +492,7 @@ def _iterative_precondition(A, n, ss_args):
                 condest = la.norm(M*e, np.inf)
                 ss_args['info']['ilu_condest'] = condest
                 if settings.debug:
-                    logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz,U_nnz))
+                    logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
                     logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/A.nnz))
                     logger.debug('iLU condest: %f' % condest)
 
@@ -566,7 +566,7 @@ def _steadystate_iterative(L, ss_args):
 
     if settings.debug:
         logger.debug('Number of Iterations: %i' % ss_iters['iter'])
-        logger.debug('Iteration. time: %f' %  (_iter_end - _iter_start))
+        logger.debug('Iteration. time: %f' % (_iter_end - _iter_start))
 
     if check > 0:
         raise Exception("Steadystate error: Did not reach tolerance after " +
@@ -659,8 +659,8 @@ def _steadystate_power(L, ss_args):
         if settings.debug:
             new_band = sp_bandwidth(L)[0]
             logger.debug('RCM bandwidth: %i' % new_band)
-            logger.debug('Bandwidth reduction factor: %f' 
-                            % round(old_band/new_band, 2))
+            logger.debug('Bandwidth reduction factor: %f' %
+                         round(old_band/new_band, 2))
 
     _power_start = time.time()
     # Get LU factors
@@ -671,7 +671,7 @@ def _steadystate_power(L, ss_args):
     if settings.debug and _scipy_check:
         L_nnz = lu.L.nnz
         U_nnz = lu.U.nnz
-        logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz,U_nnz))
+        logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
         logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
 
     it = 0
