@@ -121,13 +121,7 @@ class Optimizer:
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
         Note value should be set using set_log_level
-        
-    test_out_files : integer
-        Determines whether test / debug output files will be generated
-        0 implies no test / debug output files
-        Higher values will produce increasingly more output files
-        Note that the sub directory 'test_out' must exist for values > 0
-        
+                
     dynamics : Dynamics (subclass instance)
         describes the dynamics of the (quantum) system to be control optimised
         (see Dynamics classes for details)
@@ -156,13 +150,18 @@ class Optimizer:
         
     def reset(self):
         self.set_log_level(self.config.log_level)
-        self.test_out_files = self.config.test_out_files
+        self.id_text = 'OPTIM_BASE'
         self.termination_conditions = None
         self.pulse_generator = None
         self.num_iter = 0
         self.stats = None
         self.wall_time_optim_start = 0.0
 
+        # test out file stream handles
+        self._iter_tofh = 0
+        self._fid_err_tofh = 0
+        self._grad_norm_tofh = 0
+        
     def set_log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
@@ -201,15 +200,10 @@ class Optimizer:
         """
         Check optimiser attribute status and passed parameters before
         running the optimisation.
-        """
-        if self.test_out_files > 0:
-            if not self.config.check_create_test_out_dir():
-                self.test_out_files = 0
-                
-        if self.test_out_files >= 1 and self.stats is None:
-            raise errors.UsageError("Cannot output test files when stats"
-                                    " attribute is not set.")
-            
+        """           
+        
+        self._check_prepare_test_out_files()
+        
         if term_conds is not None:
             self.termination_conditions = term_conds
         term_conds = self.termination_conditions
@@ -234,7 +228,74 @@ class Optimizer:
 
         if self.stats is not None:
             self.stats.clear()
-
+            
+    def _check_prepare_test_out_files(self):
+        cfg = self.config
+        if cfg.any_test_files():
+            if not cfg.check_create_test_out_dir():
+                cfg.reset_test_out_files()
+            else:
+                if self.stats is None:
+                    logger.warn("Cannot output test files when stats"
+                                    " attribute is not set.")
+                    cfg.test_out_iter = False
+                    cfg.test_out_fid_err = False
+                    cfg.test_out_grad_norm = False
+                    cfg.test_out_grad = False
+        
+        if cfg.any_test_files():
+            dyn = self.dynamics
+            f_ext = "_{}_{}_{}_{}{}".format(
+                        self.id_text,
+                        dyn.id_text, 
+                        dyn.prop_computer.id_text,
+                        dyn.fid_computer.id_text,
+                        cfg.test_out_f_ext)
+            # Prepare the files that will remain open throughout the run
+            if cfg.test_out_iter:
+                fname = "iteration_log" + f_ext
+                fpath = os.path.join(cfg.test_out_dir, fname)
+                self._iter_tofh = open(fpath, 'w')
+                self._iter_tofh.write("iter           wall_time       "
+                                        "fid_err     grad_norm\n")
+                logger.info("Iteration log will be saved to:\n{}".format(
+                                                                    fpath))
+            else:
+                self._iter_tofh = 0
+                
+            if cfg.test_out_fid_err:
+                fname = "fid_err" + f_ext
+                fpath = os.path.join(cfg.test_out_dir, fname)
+                self._fid_err_tofh = open(fpath, 'w')
+                self._fid_err_tofh.write("call             fid_err\n")
+                logger.info("Fidelity error log will be saved to:\n{}".format(
+                                                                    fpath))
+            else:
+                self._fid_err_tofh = 0
+                
+            if cfg.test_out_grad_norm:
+                fname = "grad_norm" + f_ext
+                fpath = os.path.join(cfg.test_out_dir, fname)
+                self._grad_norm_tofh = open(fpath, 'w')
+                self._grad_norm_tofh.write("call           grad_norm\n")
+                logger.info("Gradient norm log will be saved to:\n{}".format(
+                                                                    fpath))
+            else:
+                self._grad_norm_tofh = 0
+                
+    def _check_close_test_out_files(self):
+        if self._iter_tofh != 0:
+            self._iter_tofh.close()
+            self._iter_tofh = 0
+            
+        if self._fid_err_tofh != 0:
+            self._fid_err_tofh.close()
+            self._fid_err_tofh = 0
+            
+        if self._grad_norm_tofh != 0:
+            self._grad_norm_tofh.close()
+            self._grad_norm_tofh = 0
+            
     def fid_err_func_wrapper(self, *args):
         """
         Get the fidelity error achieved using the ctrl amplitudes passed
@@ -255,13 +316,17 @@ class Optimizer:
             if self.log_level <= logging.DEBUG:
                 logger.debug("fidelity error call {}".format(
                         self.stats.num_fidelity_func_calls))
-                        
+
         amps = args[0].copy().reshape(self.dynamics.ctrl_amps.shape)
         self.dynamics.update_ctrl_amps(amps)
         
         tc = self.termination_conditions
         err = self.dynamics.fid_computer.get_fid_err()
-               
+
+        if self._fid_err_tofh != 0:
+            self._fid_err_tofh.write("{:<10n}{:14.6g}\n".format(
+                        self.stats.num_fidelity_func_calls, err))
+                
         if err <= tc.fid_err_targ:
             raise errors.GoalAchievedTerminate(err)
         
@@ -296,17 +361,28 @@ class Optimizer:
         # gradient_norm_func is a pointer to the function set in the config
         # that returns the normalised gradients
         grad = fid_comp.get_fid_err_gradient()
-        if self.test_out_files >= 1:
+        
+        if self._grad_norm_tofh != 0:
+            self._grad_norm_tofh.write("{:<10n}{:14.6g}\n".format(
+                        self.stats.num_grad_func_calls, fid_comp.grad_norm))
+                        
+        if self.config.test_out_grad:
             # save gradients to file
-            fname = os.path.join("test_out", 
-                    "grad_{}_{}_call{}.txt".format(self.config.dyn_type, 
-                            self.config.fid_type, 
-                            self.stats.num_grad_func_calls))
-            np.savetxt(fname, grad, fmt='%11.4f')
+            dyn = self.dynamics
+            fname = "grad_{}_{}_{}_{}_call{}{}".format(
+                        self.id_text,
+                        dyn.id_text, 
+                        dyn.prop_computer.id_text,
+                        dyn.fid_computer.id_text, 
+                        self.stats.num_grad_func_calls,
+                        self.config.test_out_f_ext)
+                        
+            fpath = os.path.join(self.config.test_out_dir, fname)
+            np.savetxt(fpath, grad, fmt='%11.4g')
         
         tc = self.termination_conditions
-        if fid_comp.norm_grad_sq_sum < tc.min_gradient_norm:
-            raise errors.GradMinReachedTerminate(fid_comp.norm_grad_sq_sum)
+        if fid_comp.grad_norm < tc.min_gradient_norm:
+            raise errors.GradMinReachedTerminate(fid_comp.grad_norm)
         return grad.flatten()
         
     def iter_step_callback_func(self, *args):
@@ -316,16 +392,24 @@ class Optimizer:
         """
         if self.log_level <= logging.DEBUG:
             logger.debug("Iteration callback {}".format(self.num_iter))
+        
+        wall_time = timeit.default_timer() - self.wall_time_optimize_start
+        if self._iter_tofh != 0:
+            # write out: iter wall_time fid_err grad_norm
+            fid_comp = self.dynamics.fid_computer
+            self._iter_tofh.write("{:<10n}{:14.6g}{:14.6g}{:14.6g}\n".format(
+                    self.num_iter, wall_time, 
+                    fid_comp.fid_err, fid_comp.grad_norm))
 
         tc = self.termination_conditions
-        if (timeit.default_timer() - self.wall_time_optimize_start > 
-                tc.max_wall_time):
+        if wall_time > tc.max_wall_time:
             raise errors.MaxWallTimeTerminate()
                 
         self.num_iter += 1
         # *** update stats ***
         if self.stats is not None:
             self.stats.num_iter = self.num_iter
+            
             
     def _interpret_term_exception(self, except_term, result):
         """
@@ -349,7 +433,7 @@ class Optimizer:
         result.num_iter = self.num_iter
         result.wall_time = end_time - st_time
         result.fid_err = dyn.fid_computer.get_fid_err()
-        result.grad_norm_final = dyn.fid_computer.norm_grad_sq_sum
+        result.grad_norm_final = dyn.fid_computer.grad_norm
         result.final_amps = dyn.ctrl_amps
         result.evo_full_final = Qobj(dyn.evo_init2t[dyn.num_tslots])
         # *** update stats ***
@@ -363,7 +447,11 @@ class OptimizerBFGS(Optimizer):
     """
     Implements the run_optimization method using the BFGS algorithm
     """
-    
+
+    def reset(self):
+        Optimizer.reset(self)
+        self.id_text = 'BFGS'
+        
     def run_optimization(self, term_conds=None):
         """
         Optimise the control pulse amplitudes to minimise the fidelity error
@@ -423,6 +511,7 @@ class OptimizerBFGS(Optimizer):
         
         end_time = timeit.default_timer()
         self._add_common_result_attribs(result, st_time, end_time)
+        self._check_close_test_out_files()
         
         return result
         
@@ -431,6 +520,11 @@ class OptimizerLBFGSB(Optimizer):
     """
     Implements the run_optimization method using the L-BFGS-B algorithm
     """
+    
+    def reset(self):
+        Optimizer.reset(self)
+        self.id_text = 'LBFGSB'
+        
     def _build_bounds_list(self):
         cfg = self.config
         dyn = self.dynamics
@@ -533,6 +627,7 @@ class OptimizerLBFGSB(Optimizer):
         
         end_time = timeit.default_timer()
         self._add_common_result_attribs(result, st_time, end_time)
+        self._check_close_test_out_files()
         
         return result
     

@@ -91,12 +91,6 @@ class Dynamics:
         the QuTiP settings file, which by default is WARN
         Note value should be set using set_log_level
         
-    test_out_files : integer
-        Determines whether test / debug output files will be generated
-        0 implies no test / debug output files
-        Higher values will produce increasingly more output files
-        Note that the sub directory 'test_out' must exist for values > 0
-        
     stats : Stats
         Attributes of which give performance stats for the optimisation
         set to None to reduce overhead of calculating stats.
@@ -265,12 +259,9 @@ class Dynamics:
         self.fact_mat_round_prec = 1e-10 
         
         # Debug and information attribs
+        self.id_text = 'DYN_BASE'
         self.def_amps_fname = "ctrl_amps.txt"
         self.set_log_level(self.config.log_level)
-        self.test_out_files = self.config.test_out_files
-        self.trace_evo = 0
-        self.fwd_evo_trace_fh = 0
-        self.owd_evo_trace_fh = 0
         # Internal flags
         self._dyn_gen_mapped = False
         self._ctrls_initialized = False
@@ -379,24 +370,26 @@ class Dynamics:
         self.dyn_gen_factormatrix = \
             [np.empty(shp, dtype=complex) for x in range(n_ts)]
         
-             
+    def _check_test_out_files(self):
+        cfg = self.config
+        if cfg.any_test_files():
+            if not cfg.check_create_test_out_dir():
+                cfg.reset_test_out_files()
+            else:
+                if self.stats is None:
+                    logger.warn("Cannot output test files when stats"
+                                    " attribute is not set.")
+                self.test_out_prop = False
+                self.test_out_prop_grad = False
+                self.test_out_evo = False
+                    
     def initialize_controls(self, amps, init_tslots=True):
         """
         Set the initial control amplitudes and time slices
         Note this must be called after the configuration is complete
         before any dynamics can be calculated
         """
-        if self.test_out_files > 0:
-            if not self.config.check_create_test_out_dir():
-                self.test_out_files = 0
-        
-        if self.test_out_files > 0 and self.stats is None:
-            raise errors.UsageError("Cannot output test files"
-                                    " when stats object is not set")
-                                    
-        if self.trace_evo and self.stats is None:
-            raise errors.UsageError("Cannot trace evolution"
-                                    " when stats object is not set")
+        self._check_test_out_files()
             
         if not isinstance(self.prop_computer, propcomp.PropagatorComputer):
             raise errors.UsageError("No prop_computer (propagator computer) "
@@ -421,18 +414,6 @@ class Dynamics:
         self.fid_computer.init_comp()
         self._ctrls_initialized = True
         self.update_ctrl_amps(amps)
-        
-        # The initial fidelities and gradients are calculated here mainly
-        # for information purposes. However, assuming no change in the 
-        # amplitudes for the first iteration, then this will result
-        # in no extra processing
-        fid_comp = self.fid_computer
-        init_fid_err = fid_comp.get_fid_err()
-        init_grad = fid_comp.get_fid_err_gradient()
-        if self.log_level <= logging.INFO:
-            logger.info("Initial fidelity: {}".format(fid_comp.fid_err))
-            logger.info("Initial gradient norm: {}".format(
-                            fid_comp.norm_grad_sq_sum))
                             
     def check_ctrls_initialized(self):
         if not self._ctrls_initialized:
@@ -494,7 +475,7 @@ class Dynamics:
             else:
                 data = amps
             
-            np.savetxt(file_name, data, delimiter='\t')
+            np.savetxt(file_name, data, delimiter='\t', fmt='%14.6g')
             if verbose:
                 logger.info("Amplitudes saved to file: " + file_name)
         except Exception as e:
@@ -515,12 +496,16 @@ class Dynamics:
                 "\n(potenially) new amplitudes:\n" + str(new_amps))
 
         if not self.tslot_computer.compare_amps(new_amps):
-            if self.test_out_files >= 1:
-                fname = os.path.join("test_out", 
-                        "amps_{}_{}_call{}.txt".format(self.config.dyn_type, 
-                            self.config.fid_type, 
-                            self.stats.num_ctrl_amp_updates))
-                self.save_amps(fname, verbose=True)
+            if self.config.test_out_amps:
+                fname = "amps_{}_{}_{}_call{}{}".format(
+                            self.id_text, 
+                            self.prop_computer.id_text,
+                            self.fid_computer.id_text, 
+                            self.stats.num_ctrl_amp_updates,
+                            self.config.test_out_f_ext)
+                            
+                fpath = os.path.join(self.config.test_out_dir, fname)
+                self.save_amps(fpath, verbose=True)
         
     def flag_system_changed(self):
         """
@@ -631,6 +616,10 @@ class DynamicsGenMat(Dynamics):
     operator is applied to the dynamics generator before calculating
     the propagator, e.g. classical dynamics, Limbladian
     """
+    def reset(self):
+        Dynamics.reset(self)
+        self.id_text = 'GEN_MAT'
+        
     def get_dyn_gen(self, k):
         """
         Get the combined dynamics generator for the timeslot
@@ -674,6 +663,7 @@ class DynamicsUnitary(Dynamics):
             
     def reset(self):
         Dynamics.reset(self)
+        self.id_text = 'UNIT'
         self.drift_ham = None
         self.ctrl_ham = None
         self.H = None
@@ -801,6 +791,7 @@ class DynamicsSymplectic(Dynamics):
         
     def reset(self):
         Dynamics.reset(self)
+        self.id_text = 'SYMPL'
         self.omega = None
         self.grad_exact = True
 

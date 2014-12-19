@@ -530,7 +530,6 @@ def create_pulse_optimizer(
     for instances when trying to finding global the optimum or 
     minimum time optimisation
     
-    Parameters:
     Parameters
     ----------
         drift : Qobj

@@ -95,6 +95,7 @@ class PropagatorComputer:
         """
         reset any configuration data
         """
+        self.id_text = 'PROP_COMP_BASE'
         self.set_log_level(self.parent.log_level)
         self.grad_exact = False
 
@@ -151,6 +152,7 @@ class PropCompApproxGrad(PropagatorComputer):
         reset any configuration data
         """
         PropagatorComputer.reset(self)
+        self.id_text = 'APPROX'
         self.grad_exact = False
 
     def compute_propagator(self, k):
@@ -190,6 +192,7 @@ class PropCompDiag(PropagatorComputer):
         reset any configuration data
         """
         PropagatorComputer.reset(self)
+        self.id_text = 'DIAG'
         self.grad_exact = True
         
     def compute_propagator(self, k):
@@ -258,6 +261,7 @@ class PropCompAugMat(PropagatorComputer):
     """
     def reset(self):
         PropagatorComputer.reset(self)
+        self.id_text = 'AUG_MAT'
         self.grad_exact = True
         
     def get_aug_mat(self, k, j):
@@ -310,6 +314,7 @@ class PropCompFrechet(PropagatorComputer):
     """
     def reset(self):
         PropagatorComputer.reset(self)
+        self.id_text = 'FRECHET'
         self.grad_exact = True
         
     def compute_prop_grad(self, k, j, compute_prop=True):
