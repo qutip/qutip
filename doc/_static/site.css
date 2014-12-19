@@ -6,6 +6,10 @@ html {
     font-family: "Source Sans Pro", Helvetica, Arial, Verdana, sans-serif;
 }
 
+body {
+    -webkit-font-smoothing: antialiased;
+    font-family: "Source Sans Pro", Helvetica, Arial, Verdana, sans-serif;
+}
 
 .navbar-text {
     color: #e8e8e8 !important;

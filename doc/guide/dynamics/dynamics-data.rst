@@ -16,30 +16,32 @@ The solver.Result Class
 
 Before embarking on simulating the dynamics of quantum systems, we will first look at the data structure used for returning the simulation results to the user. This object is a :func:`qutip.solver.Result` class that stores all the crucial data needed for analyzing and plotting the results of a simulation.  Like the :func:`qutip.Qobj` class, the ``Result`` class has a collection of properties for storing information.  However, in contrast to the ``Qobj`` class, this structure contains no methods, and is therefore nothing but a container object.  A generic ``Result`` object ``result`` contains the following properties for storing simulation data:
 
-.. tabularcolumns:: | p{4cm} | p{10cm} |
+.. cssclass:: table-striped
 
 +------------------------+-----------------------------------------------------------------------+
 | Property               | Description                                                           |
 +========================+=======================================================================+
-| result.solver          | String indicating which solver was used to generate the data.         |
+| ``result.solver``      | String indicating which solver was used to generate the data.         |
 +------------------------+-----------------------------------------------------------------------+
-| result.times           | List/array of times at which simulation data is calculated.           |
+| ``result.times``       | List/array of times at which simulation data is calculated.           |
 +------------------------+-----------------------------------------------------------------------+
-| result.expect          | List/array of expectation values, if requested.                       |
+| ``result.expect``      | List/array of expectation values, if requested.                       |
 +------------------------+-----------------------------------------------------------------------+
-| result.states          | List/array of state vectors/density matrices calculated at ``times``, |
+| ``result.states``      | List/array of state vectors/density matrices calculated at ``times``, |
 |                        | if requested.                                                         |
 +------------------------+-----------------------------------------------------------------------+
-| result.num_expect      | The number of expectation value operators in the simulation.          |
+| ``result.num_expect``  | The number of expectation value operators in the simulation.          |
 +------------------------+-----------------------------------------------------------------------+
-| result.num_collapse    | The number of collapse operators in the simulation.                   |
+| ``result.num_collapse``| The number of collapse operators in the simulation.                   |
 +------------------------+-----------------------------------------------------------------------+
-| result.ntraj           | Number of Monte Carlo trajectories run.                               |
+| ``result.ntraj``       | Number of Monte Carlo trajectories run.                               |
 +------------------------+-----------------------------------------------------------------------+
-| result.col_times       | Times at which state collapse occurred. Only for Monte Carlo solver.  |
+| ``result.col_times``   | Times at which state collapse occurred. Only for Monte Carlo solver.  |
 +------------------------+-----------------------------------------------------------------------+
-| result.col_which       | Which collapse operator was responsible for each collapse in          |
+| ``result.col_which``   | Which collapse operator was responsible for each collapse in          |
 |                        | in ``col_times``. Only used by Monte Carlo solver.                    |
++------------------------+-----------------------------------------------------------------------+
+| ``result.seeds``       | Seeds used in generating random numbers for Monte Carlo solver.       |
 +------------------------+-----------------------------------------------------------------------+
 
 

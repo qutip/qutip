@@ -7,6 +7,12 @@
 Bloch-Redfield master equation
 ******************************
 
+.. ipython::
+   :suppress:
+
+   In [1]: from qutip import *
+           import numpy as np
+
 .. _bloch-redfield-intro:
 
 Introduction
@@ -170,47 +176,59 @@ To illustrate how to calculate the Bloch-Redfield tensor, let's consider a two-l
 
     H = -\frac{1}{2}\Delta\sigma_x - \frac{1}{2}\epsilon_0\sigma_z
 
-that couples to an Ohmic bath through the :math:`\sigma_x` operator. The corresponding Bloch-Redfield tensor can be calculated in QuTiP using the following code:
+that couples to an Ohmic bath through the :math:`\sigma_x` operator. The corresponding Bloch-Redfield tensor can be calculated in QuTiP using the following code
 
->>> delta = 0.2 * 2*pi; eps0 = 1.0 * 2*pi; gamma1 = 0.5
->>> H = - delta/2.0 * sigmax() - eps0/2.0 * sigmaz()
->>> def ohmic_spectrum(w):
->>>     if w == 0.0: # dephasing inducing noise
->>>         return gamma1 
->>>     else: # relaxation inducing noise
->>>         return gamma1 / 2 * (w / (2 * pi)) * (w > 0.0)
->>>         
->>> R, ekets = bloch_redfield_tensor(H, [sigmax()], [ohmic_spectrum])
->>> real(R.full())
-array([[ 0.        ,  0.        ,  0.        ,  0.04902903],
-       [ 0.        , -0.03220682,  0.        ,  0.        ],
-       [ 0.        ,  0.        , -0.03220682,  0.        ],
-       [ 0.        ,  0.        ,  0.        , -0.04902903]])
+.. ipython::
+    
+    In [1]: delta = 0.2 * 2*np.pi; eps0 = 1.0 * 2*np.pi; gamma1 = 0.5
+    
+    In [2]: H = - delta/2.0 * sigmax() - eps0/2.0 * sigmaz()
+    
+    In [3]: def ohmic_spectrum(w):
+       ...:     if w == 0.0: # dephasing inducing noise
+       ...:         return gamma1 
+       ...:     else: # relaxation inducing noise
+       ...:         return gamma1 / 2 * (w / (2 * np.pi)) * (w > 0.0)
+    
+    In [4]: R, ekets = bloch_redfield_tensor(H, [sigmax()], [ohmic_spectrum])
+    
+    In [5]: np.real(R.full())
 
 For convenience, the function :func:`qutip.bloch_redfield.bloch_redfield_tensor` also returns a list of eigenkets `ekets`, since they are calculated in the process of calculating the Bloch-Redfield tensor `R`, and the `ekets` are usually needed again later when transforming operators between the computational basis and the eigenbasis.
 
 The evolution of a wavefunction or density matrix, according to the Bloch-Redfield master equation :eq:`br-final`, can be calculated using the QuTiP function :func:`qutip.bloch_redfield.bloch_redfield_solve`. It takes five mandatory arguments: the Bloch-Redfield tensor ``R``, the list of eigenkets ``ekets``, the initial state ``psi0`` (as a ket or density matrix), a list of times ``tlist`` for which to evaluate the expectation values, and a list of operators ``e_ops`` for which to evaluate the expectation values at each time step defined by `tlist`. For example, to evaluate the expectation values of the :math:`\sigma_x`, :math:`\sigma_y`, and :math:`\sigma_z` operators for the example above, we can use the following code:
 
->>> tlist = linspace(0, 15.0, 1000)
->>> psi0 = rand_ket(2)
->>> e_ops = [sigmax(), sigmay(), sigmaz()]
->>> expt_list = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops) 
->>>
->>> sphere = Bloch()
->>> sphere.add_points([expt_list[0], expt_list[1], expt_list[2]])
->>> sphere.vector_color = ['r']
->>> # Hamiltonian axis
->>> sphere.add_vectors(array([delta, 0, eps0]) / sqrt(delta ** 2 + eps0 ** 2)) 
->>> sphere.make_sphere()
->>> show()
+.. ipython::
+    
+    In [1]: import matplotlib.pyplot as plt
+    
+    In [1]: tlist = np.linspace(0, 15.0, 1000)
+    
+    In [1]: psi0 = rand_ket(2)
+    
+    In [1]: e_ops = [sigmax(), sigmay(), sigmaz()]
+    
+    In [1]: expt_list = bloch_redfield_solve(R, ekets, psi0, tlist, e_ops) 
+    
+    In [1]: sphere = Bloch()
+    
+    In [1]: sphere.add_points([expt_list[0], expt_list[1], expt_list[2]])
+    
+    In [1]: sphere.vector_color = ['r']
+    
+    In [1]: sphere.add_vectors(np.array([delta, 0, eps0]) / np.sqrt(delta ** 2 + eps0 ** 2)) 
+    
+    In [1]: sphere.make_sphere()
+    
+    @savefig guide-brmesolve-dynamics.png width=4.0in align=center
+    In [1]: plt.show()
 
-.. figure:: guide-bloch-redfield-1.png
-   :align:  center
-   :width: 4in
 
 The two steps of calculating the Bloch-Redfield tensor and evolve the corresponding master equation can be combined into one by using the function :func:`qutip.bloch_redfield.brmesolve`, which takes same arguments as :func:`qutip.mesolve` and :func:`qutip.mcsolve`, expect for the additional list of spectral callback functions.
 
->>> output = brmesolve(H, psi0, tlist, [sigmax()], e_ops, [ohmic_spectrum])
+.. ipython::
 
-where the resulting `output` is an instance of the class :class:`qutip.Odedata`.
+    In [1]: output = brmesolve(H, psi0, tlist, [sigmax()], e_ops, [ohmic_spectrum])
+
+where the resulting `output` is an instance of the class :class:`qutip.solver.Result`.
 

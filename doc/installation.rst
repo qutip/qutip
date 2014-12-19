@@ -247,7 +247,7 @@ To install QuTiP, run
     sudo pip install qutip --install-option=--with-f90mc
 
 
-.. note::
+.. warning::
     
     Having both macports and homebrew installations on the same machine is not recommended, and can lead to QuTiP installation problems.
 

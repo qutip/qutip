@@ -48,7 +48,7 @@ To begin, let us create a blank ``Qobj``:
 
 	In [1]: Qobj()
 
-where we see the blank ```Qobj``` object with dimensions, shape, and data. Here the data corresponds to a 1x1-dimensional matrix consisting of a single zero entry.  
+where we see the blank ``Qobj`` object with dimensions, shape, and data. Here the data corresponds to a 1x1-dimensional matrix consisting of a single zero entry.  
 
 .. Hint:: By convention, Class objects in Python such as ``Qobj()`` differ from functions in the use of a beginning capital letter.
 
@@ -56,7 +56,7 @@ We can create a ``Qobj`` with a user defined data set by passing a list or array
 
 .. ipython::
 
-	In [1]: Qobj([1,2,3,4,5])
+	In [1]: Qobj([[1],[2],[3],[4],[5]])
 
 	In [2]: x = np.array([[1, 2, 3, 4, 5]])
 	
@@ -77,58 +77,62 @@ States and operators
 
 Manually specifying the data for each quantum object is inefficient. Even more so when most objects correspond to commonly used types such as the ladder operators of a harmonic oscillator, the Pauli spin operators for a two-level system, or state vectors such as Fock states. Therefore, QuTiP includes predefined objects for a variety of states:
 
-+--------------------------+----------------------------+----------------------------------------+
-| States                   | Command (# means optional) | Inputs                                 |
-+==========================+============================+========================================+
-| Fock state ket vector    | basis(N,#m) / fock(N,#m)   | N = number of levels in Hilbert space, |
-|                          |                            | m = level containing excitation        |
-|                          |                            | (0 if no m given)                      | 
-+--------------------------+----------------------------+----------------------------------------+
-| Fock density matrix      | fock_dm(N,#p)              | same as basis(N,m) / fock(N,m)         |
-| (outer product of basis) |                            |                                        |
-+--------------------------+----------------------------+----------------------------------------+
-| Coherent state           | coherent(N,alpha)          | alpha = complex number (eigenvalue)    |
-|                          |                            | for requested coherent state           |
-+--------------------------+----------------------------+----------------------------------------+
-| Coherent density matrix  | coherent_dm(N,alpha)       | same as coherent(N,alpha)              |
-| (outer product)          |                            |                                        |
-+--------------------------+----------------------------+----------------------------------------+
-| Thermal density matrix   | thermal_dm(N,n)            | n = particle number expectation value  |
-| (for n particles)        |                            |                                        |
-+--------------------------+----------------------------+----------------------------------------+
+.. cssclass:: table-striped
+
++--------------------------+----------------------------------+----------------------------------------+
+| States                   | Command (# means optional)       | Inputs                                 |
++==========================+==================================+========================================+
+| Fock state ket vector    | ``basis(N,#m)``/``fock(N,#m)``   | N = number of levels in Hilbert space, |
+|                          |                                  | m = level containing excitation        |
+|                          |                                  | (0 if no m given)                      | 
++--------------------------+----------------------------------+----------------------------------------+
+| Fock density matrix      | ``fock_dm(N,#p)``                | same as basis(N,m) / fock(N,m)         |
+| (outer product of basis) |                                  |                                        |
++--------------------------+----------------------------------+----------------------------------------+
+| Coherent state           | ``coherent(N,alpha)``            | alpha = complex number (eigenvalue)    |
+|                          |                                  | for requested coherent state           |
++--------------------------+----------------------------------+----------------------------------------+
+| Coherent density matrix  | ``coherent_dm(N,alpha)``         | same as coherent(N,alpha)              |
+| (outer product)          |                                  |                                        |
++--------------------------+----------------------------------+----------------------------------------+
+| Thermal density matrix   | ``thermal_dm(N,n)``              | n = particle number expectation value  |
+| (for n particles)        |                                  |                                        |
++--------------------------+----------------------------------+----------------------------------------+
 
 and operators:
+
+.. cssclass:: table-striped
 
 +--------------------------+----------------------------+----------------------------------------+
 | Operators                | Command (# means optional) | Inputs                                 |
 +==========================+============================+========================================+
-| Identity                 | qeye(N)                    | N = number of levels in Hilbert space. |
+| Identity                 | ``qeye(N)``                | N = number of levels in Hilbert space. |
 +--------------------------+----------------------------+----------------------------------------+
-| Lowering (destruction)   | destroy(N)                 | same as above                          |
+| Lowering (destruction)   | ``destroy(N)``             | same as above                          |
 | operator                 |                            |                                        |
 +--------------------------+----------------------------+----------------------------------------+
-| Raising (creation)       | create(N)                  | same as above                          |
+| Raising (creation)       | ``create(N)``              | same as above                          |
 | operator                 |                            |                                        |
 +--------------------------+----------------------------+----------------------------------------+
-| Number operator          | num(N)                     | same as above                          |
+| Number operator          | ``num(N)``                 | same as above                          |
 +--------------------------+----------------------------+----------------------------------------+
-| Single-mode              | displace(N,alpha)          | N=number of levels in Hilbert space,   |
+| Single-mode              | ``displace(N,alpha)``      | N=number of levels in Hilbert space,   |
 | displacement operator    |                            | alpha = complex displacement amplitude.|
 +--------------------------+----------------------------+----------------------------------------+
-| Single-mode              | squeez(N,sp)               | N=number of levels in Hilbert space,   |
+| Single-mode              | ``squeeze(N,sp)``          | N=number of levels in Hilbert space,   |
 | squeezing operator       |                            | sp = squeezing parameter.              |
 +--------------------------+----------------------------+----------------------------------------+
-| Sigma-X                  | sigmax()                   |                                        |
+| Sigma-X                  | ``sigmax()``               |                                        |
 +--------------------------+----------------------------+----------------------------------------+
-| Sigma-Y                  | sigmay()                   |                                        |
+| Sigma-Y                  | ``sigmay()``               |                                        |
 +--------------------------+----------------------------+----------------------------------------+
-| Sigma-Z                  | sigmaz()                   |                                        |
+| Sigma-Z                  | ``sigmaz()``               |                                        |
 +--------------------------+----------------------------+----------------------------------------+
-| Sigma plus               | sigmap()                   |                                        |
+| Sigma plus               | ``sigmap()``               |                                        |
 +--------------------------+----------------------------+----------------------------------------+
-| Sigma minus              | sigmam()                   |                                        |
+| Sigma minus              | ``sigmam()``               |                                        |
 +--------------------------+----------------------------+----------------------------------------+
-| Higher spin operators    | jmat(j,#s)                 | j = integer or half-integer            |
+| Higher spin operators    | ``jmat(j,#s)``             | j = integer or half-integer            |
 |                          |                            | representing spin, s = 'x', 'y', 'z',  |
 |                          |                            | '+', or '-'                            |
 +--------------------------+----------------------------+----------------------------------------+
@@ -166,23 +170,23 @@ We have seen that a quantum object has several internal attributes, such as data
 
 In general, the attributes (properties) of a ``Qobj`` object (or any Python class) can be retrieved using the `Q.attribute` notation.  In addition to the attributes shown with the ``print`` function, the ``Qobj`` class also has the following:
 
-.. tabularcolumns:: | p{4cm} | L | L |
+.. cssclass:: table-striped
 
 +---------------+---------------+----------------------------------------+
 | Property      | Attribute     | Description                            |
 +===============+===============+========================================+
-| Data          | Q.data        | Matrix representing state or operator  |
+| Data          | ``Q.data``    | Matrix representing state or operator  |
 +---------------+---------------+----------------------------------------+
-| Dimensions    | Q.dims        | List keeping track of shapes for       |
+| Dimensions    | ``Q.dims``    | List keeping track of shapes for       |
 |               |               | individual components of a             |
 |               |               | multipartite system (for tensor        |
 |               |               | products and partial traces).          |
 +---------------+---------------+----------------------------------------+
-| Shape         | Q.shape       | Dimensions of underlying data matrix.  |
+| Shape         | ``Q.shape``   | Dimensions of underlying data matrix.  |
 +---------------+---------------+----------------------------------------+
-| is Hermitian? | Q.isherm      | Is the operator Hermitian or not?      |
+| is Hermitian? | ``Q.isherm``  | Is the operator Hermitian or not?      |
 +---------------+---------------+----------------------------------------+
-| Type          | Q.type        | Is object of type 'ket, 'bra',         |
+| Type          | ``Q.type``    | Is object of type 'ket, 'bra',         |
 |               |               | 'oper', or 'super'?                    |
 +---------------+---------------+----------------------------------------+
 
@@ -243,61 +247,63 @@ Functions operating on Qobj class
 
 Like attributes, the quantum object class has defined functions (methods) that operate on ``Qobj`` class instances. For a general quantum object ``Q``:
 
-+-----------------+--------------------------+----------------------------------------+
-| Function        | Command                  | Description                            |
-+=================+==========================+========================================+
-| Check Hermicity | Q.check_herm()           | Check if quantum object is Hermitian   |
-+-----------------+--------------------------+----------------------------------------+
-| Conjugate       | Q.conj()                 | Conjugate of quantum object.           |
-+-----------------+--------------------------+----------------------------------------+
-| Dagger (adjoint)| Q.dag()                  | Returns adjoint (dagger) of object.    |
-+-----------------+--------------------------+----------------------------------------+
-| Diagonal        | Q.diag()                 | Returns the diagonal elements.         |
-+-----------------+--------------------------+----------------------------------------+
-| Eigenenergies   | Q.eigenenergies()        | Eigenenergies (values) of operator.    |
-+-----------------+--------------------------+----------------------------------------+
-| Eigenstates     | Q.eigenstates()          | Returns eigenvalues and eigenvectors.  |
-+-----------------+--------------------------+----------------------------------------+
-| Eliminate States| Q.eliminate_states(inds) | Returns quantum object with states in  |
-|                 |                          | list inds removed.                     |
-+-----------------+--------------------------+----------------------------------------+
-| Exponential     | Q.expm()                 | Matrix exponential of operator.        |
-+-----------------+--------------------------+----------------------------------------+
-| Extract States  | Q.extract_states(inds)   | Qobj with states listed in inds only.  |
-+-----------------+--------------------------+----------------------------------------+
-| Full            | Q.full()                 | Returns full (not sparse) array of     |
-|                 |                          | Q's data.                              |
-+-----------------+--------------------------+----------------------------------------+
-| Groundstate     | Q.groundstate()          | Eigenval & eigket of Qobj groundstate. |
-+-----------------+--------------------------+----------------------------------------+
-| Matrix Element  | Q.matrix_element(bra,ket)| Matrix element <bra|Q|ket>             |
-+-----------------+--------------------------+----------------------------------------+
-| Norm            | Q.norm()                 | Returns L2 norm for states,            |
-|                 |                          | trace norm for operators.              |
-+-----------------+--------------------------+----------------------------------------+
-| Overlap         | Q.overlap(state)         | Overlap between current Qobj and a     |
-|                 |                          | given state.                           |
-+-----------------+--------------------------+----------------------------------------+
-| Partial Trace   | Q.ptrace(sel)            | Partial trace returning components     |
-|                 |                          | selected using 'sel' parameter.        |
-+-----------------+--------------------------+----------------------------------------+
-| Permute         | Q.permute(order)         | Permutes the tensor structure of a     | 
-|                 |                          | composite object in the given order.   |
-+-----------------+--------------------------+----------------------------------------+
-| Sqrt            | Q.sqrtm()                | Matrix sqrt of operator.               |
-+-----------------+--------------------------+----------------------------------------+
-| Tidyup          | Q.tidyup()               | Removes small elements from Qobj.      |
-+-----------------+--------------------------+----------------------------------------+
-| Trace           | Q.tr()                   | Returns trace of quantum object.       |
-+-----------------+--------------------------+----------------------------------------+
-| Transform       | Q.transform(inpt)        | A basis transformation defined by      |
-|                 |                          | matrix or list of kets 'inpt' .        |
-+-----------------+--------------------------+----------------------------------------+
-| Transpose       | Q.trans()                | Transpose of quantum object.           |
-+-----------------+--------------------------+----------------------------------------+
-| Unit            | Q.unit()                 | Returns normalized (unit)              |
-|                 |                          | vector Q/Q.norm().                     |  
-+-----------------+--------------------------+----------------------------------------+
+.. cssclass:: table-striped
+
++-----------------+-------------------------------+----------------------------------------+
+| Function        | Command                       | Description                            |
++=================+===============================+========================================+
+| Check Hermicity | ``Q.check_herm()``            | Check if quantum object is Hermitian   |
++-----------------+-------------------------------+----------------------------------------+
+| Conjugate       | ``Q.conj()``                  | Conjugate of quantum object.           |
++-----------------+-------------------------------+----------------------------------------+
+| Dagger (adjoint)| ``Q.dag()``                   | Returns adjoint (dagger) of object.    |
++-----------------+-------------------------------+----------------------------------------+
+| Diagonal        | ``Q.diag()``                  | Returns the diagonal elements.         |
++-----------------+-------------------------------+----------------------------------------+
+| Eigenenergies   | ``Q.eigenenergies()``         | Eigenenergies (values) of operator.    |
++-----------------+-------------------------------+----------------------------------------+
+| Eigenstates     | ``Q.eigenstates()``           | Returns eigenvalues and eigenvectors.  |
++-----------------+-------------------------------+----------------------------------------+
+| Eliminate States| ``Q.eliminate_states(inds)``  | Returns quantum object with states in  |
+|                 |                               | list inds removed.                     |
++-----------------+-------------------------------+----------------------------------------+
+| Exponential     | ``Q.expm()``                  | Matrix exponential of operator.        |
++-----------------+-------------------------------+----------------------------------------+
+| Extract States  | ``Q.extract_states(inds)``    | Qobj with states listed in inds only.  |
++-----------------+-------------------------------+----------------------------------------+
+| Full            | ``Q.full()``                  | Returns full (not sparse) array of     |
+|                 |                               | Q's data.                              |
++-----------------+-------------------------------+----------------------------------------+
+| Groundstate     | ``Q.groundstate()``           | Eigenval & eigket of Qobj groundstate. |
++-----------------+-------------------------------+----------------------------------------+
+| Matrix Element  | ``Q.matrix_element(bra,ket)`` | Matrix element <bra|Q|ket>             |
++-----------------+-------------------------------+----------------------------------------+
+| Norm            | ``Q.norm()``                  | Returns L2 norm for states,            |
+|                 |                               | trace norm for operators.              |
++-----------------+-------------------------------+----------------------------------------+
+| Overlap         | ``Q.overlap(state)``          | Overlap between current Qobj and a     |
+|                 |                               | given state.                           |
++-----------------+-------------------------------+----------------------------------------+
+| Partial Trace   | ``Q.ptrace(sel)``             | Partial trace returning components     |
+|                 |                               | selected using 'sel' parameter.        |
++-----------------+-------------------------------+----------------------------------------+
+| Permute         | ``Q.permute(order)``          | Permutes the tensor structure of a     | 
+|                 |                               | composite object in the given order.   |
++-----------------+-------------------------------+----------------------------------------+
+| Sqrt            | ``Q.sqrtm()``                 | Matrix sqrt of operator.               |
++-----------------+-------------------------------+----------------------------------------+
+| Tidyup          | ``Q.tidyup()``                | Removes small elements from Qobj.      |
++-----------------+-------------------------------+----------------------------------------+
+| Trace           | ``Q.tr()``                    | Returns trace of quantum object.       |
++-----------------+-------------------------------+----------------------------------------+
+| Transform       | ``Q.transform(inpt)``         | A basis transformation defined by      |
+|                 |                               | matrix or list of kets 'inpt' .        |
++-----------------+-------------------------------+----------------------------------------+
+| Transpose       | ``Q.trans()``                 | Transpose of quantum object.           |
++-----------------+-------------------------------+----------------------------------------+
+| Unit            | ``Q.unit()``                  | Returns normalized (unit)              |
+|                 |                               | vector Q/Q.norm().                     |  
++-----------------+-------------------------------+----------------------------------------+
 
 .. ipython::
 

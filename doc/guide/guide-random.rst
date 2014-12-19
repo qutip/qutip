@@ -51,7 +51,9 @@ In this previous example, we see that the generated Hermitian operator contains 
 
 has rougly half nonzero elements, or equivalently a density of 0.5.
 
-.. important::  In the case of a density matrix, setting the density too low will result in not enough diagonal elements to satisfy :math:`Tr(\rho)=1`.
+.. warning::  
+
+    In the case of a density matrix, setting the density too low will result in     not enough diagonal elements to satisfy :math:`Tr(\rho)=1`.
 
 Composite random objects
 ========================

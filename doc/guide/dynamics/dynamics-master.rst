@@ -13,6 +13,10 @@ Lindblad Master Equation Solver
    :suppress:
 
    In [1]: from qutip import *
+   
+   In [1]: import numpy as np
+   
+   In [1]: from pylab import *
 
 Unitary evolution
 ====================
@@ -33,44 +37,27 @@ where :math:`\left|\psi\right>` is the state vector and :math:`H` is the matrix 
 
 The Schrödinger equation, which governs the time-evolution of closed quantum systems, is defined by its Hamiltonian and state vector. In the previous section, :ref:`tensor`, we showed how Hamiltonians and state vectors are constructed in QuTiP. Given a Hamiltonian, we can calculate the unitary (non-dissipative) time-evolution of an arbitrary state vector :math:`\left|\psi_0\right>` (``psi0``) using the QuTiP function :func:`qutip.mesolve`. It evolves the state vector and evaluates the expectation values for a set of operators ``expt_ops`` at the points in time in the list ``times``, using an ordinary differential equation solver. Alternatively, we can use the function :func:`qutip.essolve`, which uses the exponential-series technique to calculate the time evolution of a system. The :func:`qutip.mesolve` and :func:`qutip.essolve` functions take the same arguments and it is therefore easy switch between the two solvers. 
 
-For example, the time evolution of a quantum spin-1/2 system with tunneling rate 0.1 that initially is in the up state is calculated, and the  expectation values of the :math:`\sigma_z` operator evaluated, with the following code::
+For example, the time evolution of a quantum spin-1/2 system with tunneling rate 0.1 that initially is in the up state is calculated, and the  expectation values of the :math:`\sigma_z` operator evaluated, with the following code
 
-    >>> H = 2 * pi * 0.1 * sigmax()
-    >>> psi0 = basis(2, 0)
-    >>> times = linspace(0.0, 10.0, 20.0)
-    >>> result = mesolve(H, psi0, times, [], [sigmaz()])
-    >>> result
-    Result object with mesolve data.
-    ---------------------------------
-    expect = True
-    num_expect = 1, num_collapse = 0
-    >>> result.expect[0]
-    array([ 1.00000000+0.j,  0.78914229+0.j,  0.24548596+0.j, -0.40169696+0.j,
-           -0.87947669+0.j, -0.98636356+0.j, -0.67728166+0.j, -0.08257676+0.j,
-            0.54695235+0.j,  0.94582040+0.j,  0.94581706+0.j,  0.54694422+0.j,
-           -0.08258520+0.j, -0.67728673+0.j, -0.98636329+0.j, -0.87947111+0.j,
-           -0.40168898+0.j,  0.24549302+0.j,  0.78914528+0.j,  0.99999927+0.j])
+.. ipython::
+
+    In [1]: H = 2 * np.pi * 0.1 * sigmax()
+    
+    In [1]: psi0 = basis(2, 0)
+    
+    In [1]: times = np.linspace(0.0, 10.0, 20.0)
+    
+    In [1]: result = mesolve(H, psi0, times, [], [sigmaz()])
 
 The brackets in the fourth argument is an empty list of collapse operators, since we consider unitary evolution in this example. See the next section for examples on how dissipation is included by defining a list of collapse operators.
 
-The function returns an instance of :class:`qutip.solver.Result`, as described in the previous section :ref:`solver_result`. The attribute ``expect`` in ``result`` is a list of expectation values for the operators that are included in the list in the fifth argument. Adding operators to this list results in a larger output list returned by the function (one array of numbers, corresponding to the times in times, for each operator)::
+The function returns an instance of :class:`qutip.solver.Result`, as described in the previous section :ref:`solver_result`. The attribute ``expect`` in ``result`` is a list of expectation values for the operators that are included in the list in the fifth argument. Adding operators to this list results in a larger output list returned by the function (one array of numbers, corresponding to the times in times, for each operator)
 
-    >>> result = mesolve(H, psi0, times, [], [sigmaz(), sigmay()])
-    >>> result.expect
-    [array([  1.00000000e+00+0.j,   7.89142292e-01+0.j,   2.45485961e-01+0.j,
-             -4.01696962e-01+0.j,  -8.79476686e-01+0.j,  -9.86363558e-01+0.j,
-             -6.77281655e-01+0.j,  -8.25767574e-02+0.j,   5.46952346e-01+0.j,
-              9.45820404e-01+0.j,   9.45817056e-01+0.j,   5.46944216e-01+0.j,
-             -8.25852032e-02+0.j,  -6.77286734e-01+0.j,  -9.86363287e-01+0.j,
-             -8.79471112e-01+0.j,  -4.01688979e-01+0.j,   2.45493023e-01+0.j,
-              7.89145284e-01+0.j,   9.99999271e-01+0.j]),
-     array([  0.00000000e+00+0.j,  -6.14214010e-01+0.j,  -9.69403055e-01+0.j,
-             -9.15775807e-01+0.j,  -4.75947716e-01+0.j,   1.64596791e-01+0.j,
-              7.35726839e-01+0.j,   9.96586861e-01+0.j,   8.37166184e-01+0.j,
-              3.24695883e-01+0.j,  -3.24704840e-01+0.j,  -8.37170685e-01+0.j,
-             -9.96585195e-01+0.j,  -7.35720619e-01+0.j,  -1.64588257e-01+0.j,
-              4.75953748e-01+0.j,   9.15776736e-01+0.j,   9.69398541e-01+0.j,
-              6.14206262e-01+0.j,  -8.13905967e-06+0.j])]
+.. ipython::
+    
+    In [1]: result = mesolve(H, psi0, times, [], [sigmaz(), sigmay()])
+    
+    In [1]: result.expect
   
 The resulting list of expectation values can easily be visualized using matplotlib's plotting functions:
 
@@ -101,29 +88,15 @@ The resulting list of expectation values can easily be visualized using matplotl
 	@savefig guide-dynamics-qubit.png width=5.0in align=center
     In [1]: plt.show()
 
-If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a :class:`qutip.solver.Result` instance that contains a list of state vectors for the times specified in ``times``::
+If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a :class:`qutip.solver.Result` instance that contains a list of state vectors for the times specified in ``times``
 
-    >>> times = [0.0, 1.0]
-    >>> result = mesolve(H, psi0, times, [], [])
-    >>> result.states
-    [
-    Quantum object: dims = [[2], [1]], shape = [2, 1], type = ket
-    Qobj data = 
-    [[ 1.+0.j]
-     [ 0.+0.j]]
-    , Quantum object: dims = [[2], [1]], shape = [2, 1], type = ket
-    Qobj data = 
-    [[ 0.80901765+0.j        ]
-     [ 0.00000000-0.58778584j]]
-    , Quantum object: dims = [[2], [1]], shape = [2, 1], type = ket
-    Qobj data = 
-    [[ 0.3090168+0.j        ]
-     [ 0.0000000-0.95105751j]]
-    , Quantum object: dims = [[2], [1]], shape = [2, 1], type = ket
-    Qobj data = 
-    [[-0.30901806+0.j        ]
-     [ 0.00000000-0.95105684j]]
-    ]
+.. ipython::
+
+    In [1]: times = [0.0, 1.0]
+    
+    In [1]: result = mesolve(H, psi0, times, [], [])
+    
+    In [1]: result.states
 
 .. _master-nonunitary:
 
@@ -198,7 +171,7 @@ the master equation instead of the unitary Schrödinger equation.
 
 Using the example with the spin dynamics from the previous section, we can
 easily add a relaxation process (describing the dissipation of energy from the
-spin to its environment), by adding ``sqrt(0.05) * sigmax()`` to
+spin to its environment), by adding ``np.sqrt(0.05) * sigmax()`` to
 the previously empty list in the fourth parameter to the :func:`qutip.mesolve` function:
 
 
@@ -223,33 +196,45 @@ the previously empty list in the fourth parameter to the :func:`qutip.mesolve` f
     In [1]: ax.legend(("Sigma-Z", "Sigma-Y"));
 
 	@savefig guide-qubit-dynamics-dissip.png width=5.0in align=center
-    In [1]: plt.show(fig)
+    In [1]: show(fig)
 
 
 Here, 0.05 is the rate and the operator :math:`\sigma_x` (:func:`qutip.operators.sigmax`) describes the dissipation 
 process.
 
-Now a slightly more complex example: Consider a two-level atom coupled to a leaky single-mode cavity through a dipole-type interaction, which supports a coherent exchange of quanta between the two systems. If the atom initially is in its groundstate and the cavity in a 5-photon Fock state, the dynamics is calculated with the lines following code::
+Now a slightly more complex example: Consider a two-level atom coupled to a leaky single-mode cavity through a dipole-type interaction, which supports a coherent exchange of quanta between the two systems. If the atom initially is in its groundstate and the cavity in a 5-photon Fock state, the dynamics is calculated with the lines following code
 
-    >>> times = linspace(0.0, 10.0, 200)
-    >>> psi0 = tensor(fock(2,0), fock(10, 5))
-    >>> a  = tensor(qeye(2), destroy(10))
-    >>> sm = tensor(destroy(2), qeye(10))
-    >>> H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + \
-    >>>     2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
-    >>> result = mesolve(H, psi0, times, ntraj, [np.sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
-    >>> from pylab import *
-    >>> plot(times, result.expect[0])
-    >>> plot(times, result.expect[1])
-    >>> xlabel('Time')
-    >>> ylabel('Expectation values')
-    >>> legend(("cavity photon number", "atom excitation probability"))
-    >>> show()
+.. ipython::
+    
+    In [1]: times = np.linspace(0.0, 10.0, 200)
+    
+    In [1]: psi0 = tensor(fock(2,0), fock(10, 5))
+    
+    In [1]: a  = tensor(qeye(2), destroy(10))
+    
+    In [1]: sm = tensor(destroy(2), qeye(10))
+    
+    In [1]: H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + \
+    
+    In [1]:    2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
+    
+    In [1]: result = mesolve(H, psi0, times, [np.sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
+    
+    In [1]: from pylab import *
+    
+    In [1]: plot(times, result.expect[0])
+    
+    In [1]: plot(times, result.expect[1])
+    
+    In [1]: xlabel('Time')
+    
+    In [1]: ylabel('Expectation values')
+    
+    In [1]: legend(("cavity photon number", "atom excitation probability"))
+    
+    @savefig guide-dynamics-jc.png width=5.0in align=center
+    In [1]: show()
 
-
-.. figure:: guide-dynamics-jc.png
-   :align: center
-   :width: 4in
 
 
 
