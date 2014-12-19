@@ -194,7 +194,7 @@ Setup Using Macports
 
 If you have not done so already, install the Apple Xcode developer tools from the Apple App Store.  After installation, open Xcode and go to: Preferences -> Downloads, and install the 'Command Line Tools'.
 
-On the Mac OS, you can install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via
+On the Mac OS, you can install the required libraries via `MacPorts <http://www.macports.org/ MacPorts>`_.  After installation, the necessary "ports" for QuTiP may be installed via (Replace '34' with '27' if you want Python 2.7)
 
 .. code-block:: bash
 
@@ -202,6 +202,7 @@ On the Mac OS, you can install the required libraries via `MacPorts <http://www.
     sudo port install py34-matplotlib +latex
     sudo port install py34-cython
     sudo port install py34-ipython +notebook+parallel
+    sudo port install py34-pip
 
 Now, we want to tell OS X which Python and iPython we are going to use
 
@@ -211,36 +212,44 @@ Now, we want to tell OS X which Python and iPython we are going to use
     sudo port select ipython ipython34
     sudo port select pip pip34
 
+We now want to set the macports compiler to the vanilla GCC version.  From the command line type
+
+.. code-block:: bash
+
+    port select gcc
+
+which will bring up a list of installed compilers, such as
+
+.. code-block:: bash
+
+	Available versions for gcc:
+		mp-gcc48
+		none (active)
+
+We want to set the the compiler to the gcc4x compiler, where x is the highest number available, in this case ``mp-gcc48`` (the "mp-" does not matter).  To do this type
+
+.. code-block:: bash
+
+    sudo port select gcc mp-gcc48
+
+Running port select again should give
+
+.. code-block:: bash
+
+	 Available versions for gcc:
+	 	mp-gcc48 (active)
+	 	none
+
 To install QuTiP, run
 
 .. code-block:: bash
 
     sudo pip install qutip --install-option=--with-f90mc
 
-Finally, we want to set the macports compiler to the vanilla GCC version.  From the command line type::
-
-    port select gcc
-
-which will bring up a list of installed compilers, such as::
-
-	Available versions for gcc:
-		mp-gcc48
-		none (active)
-
-We want to set the the compiler to the gcc4x compiler, where x is the highest number available, in this case ``mp-gcc48`` (the "mp-" does not matter).  To do this type::
-
-    sudo port select gcc mp-gcc48
-
-Running port select again should give::
-
-	 Available versions for gcc:
-	 	mp-gcc48 (active)
-	 	none
 
 .. note::
     
-    Having both macports and homebrew installations on the same machine is not recommended, and can lead to 
-    QuTiP installation problems.
+    Having both macports and homebrew installations on the same machine is not recommended, and can lead to QuTiP installation problems.
 
 
 
