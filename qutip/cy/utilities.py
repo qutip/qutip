@@ -36,6 +36,7 @@ from distutils.util import get_platform
 from distutils.sysconfig import get_python_version
 from qutip.solver import config
 
+
 def _cython_build_cleanup(tdname, build_dir=None):
     plat_and_py = get_platform()+'-'+get_python_version()+'/'
     sys_so_var = sysconfig.get_config_var('SO')
@@ -47,7 +48,7 @@ def _cython_build_cleanup(tdname, build_dir=None):
     lib_file = build_dir + lib_dir + tdname + sys_so_var
     temp_c_file = build_dir + temp_dir + 'pyrex/' + tdname + ".c"
     temp_o_file = build_dir + temp_dir + build_dir + temp_dir \
-                + 'pyrex/' + tdname + ".o"
+        + 'pyrex/' + tdname + ".o"
     for file in [pyx_file, lib_file, temp_c_file, temp_o_file]:
         try:
             os.remove(file)

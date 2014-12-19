@@ -408,7 +408,8 @@ class TestMESolveTDDecay:
         H = num(N)
         psi0 = basis(N, 9)
         tlist = np.linspace(0, 10, 100)
-        c_ops = [[[a, partial(lambda t, args, k: np.sqrt(k * np.exp(-t)), k=kappa)]]
+        c_ops = [[[a, partial(lambda t, args, k:
+                              np.sqrt(k * np.exp(-t)), k=kappa)]]
                  for kappa in [0.05, 0.1, 0.2]]
 
         for idx, kappa in enumerate([0.05, 0.1, 0.2]):

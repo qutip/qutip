@@ -349,7 +349,8 @@ def to_super(q_oper):
             return to_super(to_choi(q_oper))
         # Case 4: Something went wrong.
         else:
-            raise ValueError("Unrecognized superrep '{}'.".format(q_oper.superrep))
+            raise ValueError(
+                "Unrecognized superrep '{}'.".format(q_oper.superrep))
     elif q_oper.type == 'oper':  # Assume unitary
         return spre(q_oper) * spost(q_oper.dag())
     else:

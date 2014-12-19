@@ -41,7 +41,7 @@ __all__ = ['hinton', 'sphereplot', 'energy_level_diagram',
            'plot_wigner_fock_distribution', 'plot_wigner',
            'plot_expectation_values', 'plot_spin_distribution_2d',
            'plot_spin_distribution_3d', 'plot_qubism', 'plot_schmidt',
-           'complex_array_to_rgb', 'matrix_histogram', 
+           'complex_array_to_rgb', 'matrix_histogram',
            'matrix_histogram_complex', 'sphereplot']
 
 import warnings
@@ -57,7 +57,7 @@ try:
 except:
     pass
 
-from qutip.qobj import Qobj, isket, isbra
+from qutip.qobj import Qobj, isket
 from qutip.states import ket2dm
 from qutip.wigner import wigner
 from qutip.tensor import tensor
@@ -67,6 +67,7 @@ from qutip.superop_reps import _pauli_basis, to_super
 from qutip.tensor import flatten
 
 from qutip import settings
+
 
 # Adopted from the SciPy Cookbook.
 def _blob(x, y, w, w_max, area, cmap=None):
@@ -80,6 +81,7 @@ def _blob(x, y, w, w_max, area, cmap=None):
 
     plt.fill(xcorners, ycorners,
              color=cmap(int((w + w_max) * 256 / (2 * w_max))))
+
 
 def _isqubitdims(dims):
     """Checks whether all entries in a dims list are integer powers of 2.
@@ -99,6 +101,7 @@ def _isqubitdims(dims):
         2**np.floor(np.log2(dim)) == dim
         for dim in flatten(dims)
     ])
+
 
 def _cb_labels(left_dims):
     """Creates plot labels for matrix elements in the computational basis.
@@ -121,15 +124,17 @@ def _cb_labels(left_dims):
         for dim in left_dims
     ])))
     return [
-        map(fmt.format, basis_labels) for fmt in 
+        map(fmt.format, basis_labels) for fmt in
         (
             r"$|{}\rangle$",
             r"$\langle{}|$"
         )
     ]
 
+
 # Adopted from the SciPy Cookbook.
-def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None, label_top=True):
+def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
+           label_top=True):
     """Draws a Hinton diagram for visualizing a density matrix or superoperator.
 
     Parameters
@@ -194,7 +199,8 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None, labe
             W = vector_to_operator(rho.dag()).full()
         elif rho.issuper:
             if not _isqubitdims(rho.dims):
-                raise ValueError("Hinton plots of superoperators are currently only supported for qubits.")
+                raise ValueError("Hinton plots of superoperators are "
+                                 "currently only supported for qubits.")
             # Convert to a superoperator in the Pauli basis,
             # so that all the elements are real.
             sqobj = to_super(rho)
@@ -236,7 +242,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None, labe
 
     w_max = 1.25 * max(abs(np.diag(np.matrix(W))))
     if w_max <= 0.0:
-        w_max = 1.0    
+        w_max = 1.0
 
     ax.fill(array([0, width, width, 0]), array([0, 0, height, height]),
             color=cmap(128))
@@ -254,7 +260,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None, labe
     # color axis
     norm = mpl.colors.Normalize(-abs(W).max(), abs(W).max())
     cax, kw = mpl.colorbar.make_axes(ax, shrink=0.75, pad=.1)
-    cb = mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
+    mpl.colorbar.ColorbarBase(cax, norm=norm, cmap=cmap)
 
     # x axis
     ax.xaxis.set_major_locator(plt.IndexLocator(1, 0.5))
@@ -316,8 +322,8 @@ def sphereplot(theta, phi, values, fig=None, ax=None, save=False):
     nrm = mpl.colors.Normalize(ph.min(), ph.max())
 
     # plot with facecolors set to cm.jet colormap normalized to nrm
-    surf = ax.plot_surface(r * xx, r * yy, r * zz, rstride=1, cstride=1,
-                           facecolors=cm.jet(nrm(ph)), linewidth=0)
+    ax.plot_surface(r * xx, r * yy, r * zz, rstride=1, cstride=1,
+                    facecolors=cm.jet(nrm(ph)), linewidth=0)
     # create new axes on plot for colorbar and shrink it a bit.
     # pad shifts location of bar with repsect to the main plot
     cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
@@ -426,10 +432,9 @@ def matrix_histogram(M, xlabels=None, ylabels=None, title=None, limits=None,
     # color axis
     if colorbar:
         cax, kw = mpl.colorbar.make_axes(ax, shrink=.75, pad=.0)
-        cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
+        mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
 
     return fig, ax
-
 
 
 def matrix_histogram_complex(M, xlabels=None, ylabels=None,
@@ -661,7 +666,6 @@ def energy_level_diagram(H_list, N=0, labels=None, show_ylabels=False,
                               figsize=figsize, fig=fig, ax=ax)
 
 
-
 def plot_fock_distribution(rho, offset=0, fig=None, ax=None,
                            figsize=(8, 6), title=None, unit_y_range=True):
     """
@@ -810,7 +814,7 @@ def plot_wigner(rho, fig=None, ax=None, figsize=(8, 4),
     ax.set_ylabel(r'$\rm{Im}(\alpha)$', fontsize=12)
 
     if colorbar:
-        cb = fig.colorbar(cf, ax=ax)
+        fig.colorbar(cf, ax=ax)
 
     ax.set_title("Wigner function", fontsize=12)
 
@@ -1069,8 +1073,8 @@ def plot_spin_distribution_3d(P, THETA, PHI,
         cmap = cm.RdYlBu
         norm = mpl.colors.Normalize(P.min(), P.max())
 
-    surf = ax.plot_surface(xx, yy, zz, rstride=1, cstride=1,
-                           facecolors=cmap(norm(P)), linewidth=0)
+    ax.plot_surface(xx, yy, zz, rstride=1, cstride=1,
+                    facecolors=cmap(norm(P)), linewidth=0)
 
     cax, kw = mpl.colorbar.make_axes(ax, shrink=.66, pad=.02)
     cb1 = mpl.colorbar.ColorbarBase(cax, cmap=cmap, norm=norm)
@@ -1082,7 +1086,6 @@ def plot_spin_distribution_3d(P, THETA, PHI,
 #
 # Qubism and other qubistic visualizations
 #
-
 def complex_array_to_rgb(X, theme='light', rmax=None):
     """
     Makes an array of complex number and converts it to an array of [r, g, b],

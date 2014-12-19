@@ -46,7 +46,7 @@ def _latex_compile(code, filename="qcirc", format="png"):
     """
     Requires: pdflatex, pdfcrop, pdf2svg, imagemagick (convert)
     """
-    os.system("rm -f %s.tex %s.pdf %s.png" % (filename, filename, filename))       
+    os.system("rm -f %s.tex %s.pdf %s.png" % (filename, filename, filename))
 
     with open(filename + ".tex", "w") as file:
         file.write(_latex_template % (_qcircuit_latex_min, code))
@@ -54,7 +54,7 @@ def _latex_compile(code, filename="qcirc", format="png"):
     os.system("pdflatex -interaction batchmode %s.tex" % filename)
     os.system("rm -f %s.aux %s.log" % (filename, filename))
     os.system("pdfcrop %s.pdf %s-tmp.pdf" % (filename, filename))
-    os.system("mv %s-tmp.pdf %s.pdf" % (filename, filename))       
+    os.system("mv %s-tmp.pdf %s.pdf" % (filename, filename))
 
     if format == 'png':
         os.system("convert -density %s %s.pdf %s.png" % (100, filename,
