@@ -156,3 +156,77 @@ Note that the partial trace always results in a density matrix (mixed state), re
    
     In [6]:    rho.ptrace(0)
 
+Superoperators and Tensor Manipulations
+=======================================
+
+As described in :ref:`states-super`, *superoperators* are operators
+that act on Liouville space, the vectorspace of linear operators.
+Superoperators can be represented
+using the isomorphism
+:math:`\mathrm{vec} : \mathcal{L}(\mathcal{H}) \to \mathcal{H} \otimes \mathcal{H}` [Hav03]_, [Wat13]_.
+To represent superoperators acting on :math:`\mathcal{L}(\mathcal{H}_1 \otimes \mathcal{H}_2)` thus takes some tensor rearrangement to get the desired ordering
+:math:`\mathcal{H}_1 \otimes \mathcal{H}_2 \otimes \mathcal{H}_1 \otimes \mathcal{H}_2`.
+
+In particular, this means that :func:`qutip.tensor` does not act as
+one might expect on the results of :func:`qutip.to_super`:
+
+.. ipython::
+
+    In [1]: A = qeye([2])
+
+    In [2]: B = qeye([3])
+
+
+    In [3]: to_super(tensor(A, B)).dims
+    Out[3]: [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
+
+    In [4]: tensor(to_super(A), to_super(B)).dims
+    Out[4]: [[[2], [2], [3], [3]], [[2], [2], [3], [3]]]
+
+In the former case, the result correctly has four copies
+of the compound index with dims ``[2, 3]``. In the latter
+case, however, each of the Hilbert space indices is listed
+independently and in the wrong order.
+
+The :func:`qutip.super_tensor` function performs the needed
+rearrangement, providing the most direct analog to :func:`qutip.tensor` on
+the underlying Hilbert space. In particular, for any two ``type="oper"``
+Qobjs ``A`` and ``B``, ``to_super(tensor(A, B)) == super_tensor(to_super(A), to_super(B))`` and
+``operator_to_vector(tensor(A, B)) == super_tensor(operator_to_vector(A), operator_to_vector(B))``. Returning to the previous example:
+
+.. ipython::
+
+    In [5]: super_tensor(to_super(A), to_super(B)).dims
+    Out[5]: [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
+
+The :func:`qutip.composite` function automatically switches between
+:func:`qutip.tensor` and :func:`qutip.super_tensor` based on the ``type``
+of its arguments, such that ``composite(A, B)`` returns an appropriate Qobj to
+represent the composition of two systems.
+
+.. ipython::
+
+    In [6]: composite(A, B).dims
+    Out[6]: [[2, 3], [2, 3]]
+
+    In [7]: composite(to_super(A), to_super(B)).dims
+    Out[7]: [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
+
+QuTiP also allows more general tensor manipulations that are
+useful for converting between superoperator representations [WBC11]_.
+In particular, the :func:`tensor_contract` function allows for
+contracting one or more pairs of indices. As detailed in
+the `channel contraction tutorial`_, this can be used to find
+superoperators that represent partial trace maps.
+Using this functionality, we can construct some quite exotic maps,
+such as a map from :math:`3 \times 3` operators to :math:`2 \times 2`
+operators:
+
+.. ipython::
+
+    In [8]: tensor_contract(composite(to_super(A), to_super(B)), (1, 3), (4, 6)).dims
+    Out[8]: [[[2], [2]], [[3], [3]]]
+
+
+
+.. _channel contraction tutorial: http://nbviewer.ipython.org/github/qutip/qutip-notebooks/blob/master/examples/example-superop-contract.ipynb

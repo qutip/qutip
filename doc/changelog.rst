@@ -16,6 +16,8 @@ New Features
 - Much faster Python based monte carlo solver (mcsolve).
 - Stochastic solvers now run trajectories in parallel.
 - Time-dependent Cython code now calls complex cmath functions.
+- New superoperator and tensor manipulation functions
+  (super_tensor, composite, tensor_contract).
 
 Bug Fixes
 ---------

@@ -33,4 +33,6 @@ Bibliography
 .. [Coh92]
     C. Cohen-Tannoudji, J. Dupont-Roc, G. Grynberg, *Atom-Photon Interactions: Basic Processes and Applications*, (Wiley, 1992).
 
-
+.. [WBC11]
+    C. Wood, J. Biamonte, D. G. Cory, *Tensor networks and graphical calculus for
+    open quantum systems*. :arxiv:`1111.6950`
