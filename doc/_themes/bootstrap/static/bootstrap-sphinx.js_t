@@ -54,7 +54,7 @@
   $(window).load(function () {
     /*
      * Scroll the window to avoid the topnav bar
-     * https://github.com/twitter/bootstrap/issues/1768
+     * https://github.com/twbs/bootstrap/issues/1768
      */
     if ($("#navbar.navbar-fixed-top").length > 0) {
       var navHeight = $("#navbar").height(),
@@ -89,7 +89,7 @@
     $(".bs-sidenav ul").addClass("nav nav-list");
     $(".bs-sidenav > ul > li > a").addClass("nav-header");
 
-    {% if theme_bootstrap_version == "3" %}
+    {% if theme_navbar_fixed_top|tobool and theme_bootstrap_version == "3" %}
     // back to top
     setTimeout(function () {
       var $sideBar = $('.bs-sidenav');
@@ -149,8 +149,13 @@
     patchTables();
 
     // Add Note, Warning styles. (BS v2,3 compatible).
-    $('div.note').addClass('alert alert-info');
-    $('div.warning').addClass('alert alert-danger alert-error');
+    $('.admonition').addClass('alert alert-info')
+      .filter('.warning, .caution')
+        .removeClass('alert-info')
+        .addClass('alert-warning').end()
+      .filter('.error, .danger')
+        .removeClass('alert-info')
+        .addClass('alert-danger alert-error').end();
 
     // Inline code styles to Bootstrap style.
     $('tt.docutils.literal').not(".xref").each(function (i, e) {

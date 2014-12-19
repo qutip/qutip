@@ -36,6 +36,8 @@ extensions = ['sphinx.ext.mathjax',
               'sphinx.ext.autosummary',
               'numpydoc',
               'sphinx.ext.extlinks',
+              'sphinx.ext.viewcode',
+              'sphinx.ext.ifconfig',
               ]
 
 
@@ -97,7 +99,7 @@ pygments_style = 'sphinx'
 
 # A list of ignored prefixes for module index sorting.
 #modindex_common_prefix = []
-
+todo_include_todos = True
 
 # -- Options for HTML output ---------------------------------------------------
 
@@ -118,10 +120,9 @@ html_theme_options = {
     #    (name, "http://example.com", True) # arbitrary absolute url
     # Note the "1" or "True" value above as the third argument to indicate
     # an arbitrary url.
-    #'navbar_links': [
-    #     ("Examples", "examples"),
-    #     ("Link", "http://example.com", True),
-    #],
+    'navbar_links': [
+         ("qutip.org", "http://qutip.org", True),
+    ],
 
     # Global TOC depth for "site" navbar tab. (Default: 1)
     # Switching to -1 shows all levels.
@@ -155,7 +156,7 @@ html_theme_options = {
 # further.  For a list of options available for each theme, see the
 # documentation.
 # Add any paths that contain custom themes here, relative to this directory.
-html_theme_path = ['_themes',]
+html_theme_path = ['_themes']
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
@@ -187,7 +188,7 @@ html_last_updated_fmt = '%b %d, %Y'
 #html_use_smartypants = True
 
 # Custom sidebar templates, maps document names to template names.
-#html_sidebars = {}
+html_sidebars = {'sidebar': ['localtoc.html', 'sourcelink.html', 'searchbox.html']}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.

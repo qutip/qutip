@@ -1,4 +1,4 @@
-  <div id="navbar" class="{{ theme_navbar_class }} {% if theme_navbar_fixed_top == 'true' -%} navbar-fixed-top{%- endif -%}">
+  <div id="navbar" class="{{ theme_navbar_class }} {% if theme_navbar_fixed_top|tobool -%} navbar-fixed-top{%- endif -%}">
     <div class="navbar-inner">
       <div class="container">
         <!-- .btn-navbar is used as the toggle for collapsed navbar content -->

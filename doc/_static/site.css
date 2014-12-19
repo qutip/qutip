@@ -1,15 +1,24 @@
+@import url('http://fonts.googleapis.com/css?family=Source+Sans+Pro');
+@import url('http://fonts.googleapis.com/css?family=Source+Code+Pro');
+
+html {
+    -webkit-font-smoothing: antialiased;
+    font-family: "Source Sans Pro", Helvetica, Arial, Verdana, sans-serif;
+}
+
+
 .navbar-text {
     color: #e8e8e8 !important;
 }
 
 a {
-  color: #1E90B3;
+  color: #599AD3;
   text-decoration: none;
 }
 
 a:hover,
 a:focus {
-  color: #1E90B3;
+  color: #8C0028;
   text-decoration: underline;
 }
 
@@ -17,4 +26,76 @@ a:focus {
   outline: thin dotted #333;
   outline: 5px auto -webkit-focus-ring-color;
   outline-offset: -2px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin: 20px 0;
+  font-family: "Source Sans Pro", Helvetica, Arial, Verdana, sans-serif;
+  font-weight: bold;
+  line-height: 40px;
+  color: inherit;
+  text-rendering: optimizelegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+
+code,
+pre {
+  padding: 0 3px 2px;
+  font-family: "Source Code Pro", Monaco, Menlo, Consolas, "Courier New", monospace;
+  font-size: 12px;
+  color: #333333;
+  -webkit-border-radius: 3px;
+     -moz-border-radius: 3px;
+          border-radius: 3px;
+}
+
+.alert-success {
+  background-color: #B9E0B0;
+  border-color: #79C36A;
+  border-width: 2px;
+  color: #09224F;
+  font-weight: bold;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+       border-radius: 3px;
+}
+
+
+.alert-info {
+  background-color: #A6CBE9;
+  border-color: #599AD3;
+  border-width: 2px;
+  color: #09224F;
+  font-weight: bold;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+       border-radius: 3px;
+}
+
+.alert-warning {
+ background-color: #FBD1A7;
+   border-color: #F9A65A;
+   border-width: 2px;
+   color: #09224F;
+   font-weight: bold;
+   -webkit-border-radius: 3px;
+   -moz-border-radius: 3px;
+        border-radius: 3px;
+ }
+
+.alert-danger {
+background-color: #F7A7AA;
+  border-color: #F1595F;
+  border-width: 2px;
+  color: #09224F;
+  font-weight: bold;
+  -webkit-border-radius: 3px;
+  -moz-border-radius: 3px;
+       border-radius: 3px;
 }

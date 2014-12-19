@@ -171,11 +171,11 @@ Installation on Mac OS X (10.8+)
 Setup Using Homebrew
 ---------------------
 
-The latest version of QuTiP can be quickly installed on OS X using `Homebrew <http://brew.sh/>`_ and the automated installation shell scripts:
+The latest version of QuTiP can be quickly installed on OS X using `Homebrew <http://brew.sh/>`_ and the automated installation shell scripts
 
-- `Python 2.7 installation script <https://raw.github.com/qutip/qutip/master/mac/install_qutip_py2.sh>`_
+    `Python 2.7 installation script <https://raw.github.com/qutip/qutip/master/mac/install_qutip_py2.sh>`_
 
-- `Python 3.4 installation script <https://raw.github.com/qutip/qutip/master/mac/install_qutip_py3.sh>`_
+    `Python 3.4 installation script <https://raw.github.com/qutip/qutip/master/mac/install_qutip_py3.sh>`_
 
 Having downloaded the script corresponding to the version of Python you want to use, the installation script can be run from the terminal using (replacing X with 2 or 3)
 

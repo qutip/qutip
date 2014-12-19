@@ -14,12 +14,14 @@ New Features
 -------------
 
 - Much faster Python based monte carlo solver (mcsolve).
+- Stochastic solvers now run trajectories in parallel.
 - Time-dependent Cython code now calls complex cmath functions.
 
 Bug Fixes
 ---------
 
-- Fixed incorrect solution time results from inverse-power steady state solver.
+- Cython build files for time-dependent string format now removed automatically.
+- Fixed incorrect solution time from inverse-power method steady state solver.
 
 
 Version 3.0.1 (Aug 5, 2014):
@@ -33,7 +35,7 @@ Bug Fixes
   operator records. Incorrect averaging of expectation values for different
   trajectories when using only 1 CPU.
 - Fix bug in parsing of time-dependent Hamiltonian/collapse operator arguments
-  that occured when the args argument is not a dictionary.
+  that occurred when the args argument is not a dictionary.
 - Fix bug in internal _version2int function that cause a failure when parsing
   the version number of the Cython package.
 
