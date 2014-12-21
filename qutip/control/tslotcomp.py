@@ -93,6 +93,8 @@ class TimeslotComputer:
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
         Note value should be set using set_log_level
+        
+    
     """
     def __init__(self, dynamics):
         self.parent = dynamics
@@ -100,7 +102,12 @@ class TimeslotComputer:
 
     def reset(self):
         self.set_log_level(self.parent.log_level)
-
+        self.id_text = 'TS_COMP_BASE'
+        self._fwd_evo_tofh = 0
+        self._owd_evo_tofh = 0
+        self._prop_tofh = 0
+        self._prop_grad_tofh = 0
+        
     def flag_all_calc_now(self):
         pass
 
@@ -122,7 +129,10 @@ class TSlotCompUpdateAll(TimeslotComputer):
     Updates all dynamics generators, propagators and evolutions when
     ctrl amplitudes are updated
     """
-
+    def reset(self):
+        TimeslotComputer.reset(self)
+        self.id_text = 'ALL'
+    
     def compare_amps(self, new_amps):
         """
         Determine if any amplitudes have changed. If so, then mark the
@@ -155,6 +165,9 @@ class TSlotCompUpdateAll(TimeslotComputer):
                     dyn.stats.num_ctrl_amp_changes += changed_amps.sum()
                     changed_ts_mask = np.any(changed_amps, 1)
                     dyn.stats.num_timeslot_changes += changed_ts_mask.sum()
+            else:
+                if self.log_level <= logging.DEBUG:
+                    logger.debug("No amplitudes changed")
 
         if changed:
             dyn.ctrl_amps = new_amps
@@ -169,25 +182,54 @@ class TSlotCompUpdateAll(TimeslotComputer):
         Dynamics generators (e.g. Hamiltonian) and
         prop (propagators) are calculated as necessary
         """
-        if self.log_level <= logging.DEBUG_VERBOSE:
-            logger.log(logging.DEBUG_VERBOSE, "recomputing evolution "
-                       "(UpdateAll)")
+
         dyn = self.parent
         prop_comp = dyn.prop_computer
         n_ts = dyn.num_tslots
         n_ctrls = dyn.get_num_ctrls()
+        
+        if dyn.stats is not None:
+            dyn.stats.num_tslot_recompute += 1
+            if self.log_level <= logging.DEBUG:
+                logger.log(logging.DEBUG, "recomputing evolution {} "
+                                                "(UpdateAll)".format( 
+                                            dyn.stats.num_tslot_recompute))
+                                            
         # calculate the Hamiltonians
-        timeStart = timeit.default_timer()
+        time_start = timeit.default_timer()
         for k in range(n_ts):
             dyn.dyn_gen[k] = dyn.combine_dyn_gen(k)
             if dyn.decomp_curr is not None:
                 dyn.decomp_curr[k] = False
         if dyn.stats is not None:
             dyn.stats.wall_time_dyn_gen_compute += \
-                timeit.default_timer() - timeStart
+                                timeit.default_timer() - time_start
+        
+        if (dyn.config.test_out_prop or 
+            dyn.config.test_out_prop_grad or 
+            dyn.config.test_out_evo):
+            f_ext = "_{}_{}_{}_call{}{}".format(dyn.id_text, 
+                        dyn.prop_computer.id_text,
+                        dyn.fid_computer.id_text, 
+                        dyn.stats.num_tslot_recompute, 
+                        dyn.config.test_out_f_ext)
 
         # calculate the propagators and the propagotor gradients
-        timeStart = timeit.default_timer()
+        if dyn.config.test_out_prop:
+            fname = "prop" + f_ext
+            fpath = os.path.join(dyn.config.test_out_dir, fname)
+            self._prop_tofh = open(fpath, 'w')
+        else:
+            self._prop_tofh = 0
+        
+        if dyn.config.test_out_prop_grad:
+            fname = "prop_grad" + f_ext
+            fpath = os.path.join(dyn.config.test_out_dir, fname)
+            self._prop_grad_tofh = open(fpath, 'w')
+        else:
+            self._prop_grad_tofh = 0
+            
+        time_start = timeit.default_timer()
         for k in range(n_ts):
             if prop_comp.grad_exact:
                 for j in range(n_ctrls):
@@ -196,61 +238,100 @@ class TSlotCompUpdateAll(TimeslotComputer):
                         dyn.prop[k] = prop
                         dyn.prop_grad[k, j] = prop_grad
                         if self.log_level <= logging.DEBUG_INTENSE:
-                            logger.log(logging.DEBUG_INTENSE,
-                                       "propagator {}:\n{}".format(k, prop))
-                        if dyn.test_out_files >= 2:
-                            fname = os.path.join(
-                                "test_out",
-                                "prop_{}_k{}.txt".
-                                format(dyn.config.dyn_type, k))
-                            np.savetxt(fname, prop, fmt='%17.4f')
-                            fname = os.path.join(
-                                "test_out",
-                                "prop_grad_{}_j{}_k{}.txt".
-                                format(dyn.config.dyn_type, j, k))
-                            np.savetxt(fname, prop_grad, fmt='%17.4f')
+                            logger.log(logging.DEBUG_INTENSE, 
+                                       "propagator {}:\n{:10.3g}".format(
+                                                                   k, prop))
+                        if self._prop_tofh != 0:
+                            self._prop_tofh.write(
+                                    "propagator k={}\n".format(k))
+                            np.savetxt(self._prop_tofh, prop, fmt='%10.3g')
+
                     else:
                         prop_grad = prop_comp.compute_prop_grad(
                             k, j, compute_prop=False)
                         dyn.prop_grad[k, j] = prop_grad
-                    if dyn.test_out_files >= 2:
-                        fname = os.path.join("test_out",
-                                             "prop_grad_{}_j{}_k{}.txt".
-                                             format(dyn.config.dyn_type, j, k))
-                        np.savetxt(fname, prop_grad, fmt='%17.4f')
+                        
+                    if self._prop_grad_tofh != 0:
+                        self._prop_grad_tofh.write(
+                                "prop grad k={}, j={}\n".format(k, j))
+                        np.savetxt(self._prop_grad_tofh, prop_grad, 
+                                           fmt='%10.3g')
             else:
                 dyn.prop[k] = prop_comp.compute_propagator(k)
-
+                if self._prop_tofh != 0:
+                    self._prop_tofh.write(
+                            "propagator k={}\n".format(k))
+                    np.savetxt(self._prop_tofh, prop, fmt='%10.3g')
+                
         if dyn.stats is not None:
             dyn.stats.wall_time_prop_compute += \
-                timeit.default_timer() - timeStart
-
+                                timeit.default_timer() - time_start
+                                
+        if self._prop_tofh != 0:
+            self._prop_tofh.close()
+            self._prop_tofh = 0
+        if self._prop_grad_tofh != 0:
+            self._prop_grad_tofh.close()
+            self._prop_grad_tofh = 0
+    
         # compute the forward propagation
-        timeStart = timeit.default_timer()
+        if dyn.config.test_out_evo:
+            fname = "fwd_evo" + f_ext
+            fpath = os.path.join(dyn.config.test_out_dir, fname)
+            self._fwd_evo_tofh = open(fpath, 'w')
+            
+            fname = "owd_evo" + f_ext
+            fpath = os.path.join(dyn.config.test_out_dir, fname)
+            self._owd_evo_tofh = open(fpath, 'w')
+        else:
+            self._fwd_evo_tofh = 0
+            self._owd_evo_tofh = 0
+            
+        time_start = timeit.default_timer()
         R = range(1, n_ts+1)
         for k in R:
             dyn.evo_init2t[k] = dyn.prop[k-1].dot(dyn.evo_init2t[k-1])
-
+            if self._fwd_evo_tofh != 0:
+                self._fwd_evo_tofh.write("Evo start to k={}\n".format(k))
+                np.savetxt(self._fwd_evo_tofh, dyn.evo_init2t[k], 
+                               fmt='%10.3g')
+                
         if dyn.stats is not None:
             dyn.stats.wall_time_fwd_prop_compute += \
-                timeit.default_timer() - timeStart
+                timeit.default_timer() - time_start
 
-        timeStart = timeit.default_timer()
+        time_start = timeit.default_timer()
         # compute the onward propagation
         if dyn.fid_computer.uses_evo_t2end:
             dyn.evo_t2end[n_ts - 1] = dyn.prop[n_ts - 1]
             R = range(n_ts-2, -1, -1)
             for k in R:
                 dyn.evo_t2end[k] = dyn.evo_t2end[k+1].dot(dyn.prop[k])
+                if self._fwd_evo_tofh != 0:
+                    self._owd_evo_tofh.write("Evo k={} to end:\n".format(k))
+                    np.savetxt(self._owd_evo_tofh, dyn.evo_t2end[k], 
+                               fmt='%14.6g')
 
         if dyn.fid_computer.uses_evo_t2targ:
             R = range(n_ts-1, -1, -1)
             for k in R:
                 dyn.evo_t2targ[k] = dyn.evo_t2targ[k+1].dot(dyn.prop[k])
-            if dyn.stats is not None:
-                dyn.stats.wall_time_onwd_prop_compute += \
-                    timeit.default_timer() - timeStart
-
+                if self._fwd_evo_tofh != 0:
+                    self._owd_evo_tofh.write("Evo k={} to targ:\n".format(k))
+                    np.savetxt(self._owd_evo_tofh, dyn.evo_t2targ[k], 
+                               fmt='%14.6g')
+                    
+        if dyn.stats is not None:
+            dyn.stats.wall_time_onwd_prop_compute += \
+                                timeit.default_timer() - time_start
+                                
+        if self._fwd_evo_tofh != 0:
+            self._fwd_evo_tofh.close()
+            self._fwd_evo_tofh = 0
+        if self._owd_evo_tofh != 0:
+            self._owd_evo_tofh.close()
+            self._owd_evo_tofh = 0
+                                    
     def get_timeslot_for_fidelity_calc(self):
         """
         Returns the timeslot index that will be used calculate current fidelity
@@ -284,7 +365,8 @@ class TSlotCompDynUpdate(TimeslotComputer):
         self.evo_init2t_calc_now = None
         self.evo_t2targ_calc_now = None
         TimeslotComputer.reset(self)
-
+        self.id_text = 'DYNAMIC'
+        
     def init_comp(self):
         """
         Initialise the flags
@@ -423,7 +505,7 @@ class TSlotCompDynUpdate(TimeslotComputer):
             & self.dyn_gen_recalc[:]
 
         if np.any(dyn_gen_recomp_now):
-            timeStart = timeit.default_timer()
+            time_start = timeit.default_timer()
             for k in range(n_ts):
                 if dyn_gen_recomp_now[k]:
                     # calculate the dynamics generators
@@ -432,10 +514,10 @@ class TSlotCompDynUpdate(TimeslotComputer):
             if dyn.stats is not None:
                 dyn.stats.num_dyn_gen_computes += dyn_gen_recomp_now.sum()
                 dyn.stats.wall_time_dyn_gen_compute += \
-                    timeit.default_timer() - timeStart
+                    timeit.default_timer() - time_start
 
         if np.any(prop_recomp_now):
-            timeStart = timeit.default_timer()
+            time_start = timeit.default_timer()
             for k in range(n_ts):
                 if prop_recomp_now[k]:
                     # calculate exp(H) and other per H computations needed for
@@ -445,11 +527,11 @@ class TSlotCompDynUpdate(TimeslotComputer):
             if dyn.stats is not None:
                 dyn.stats.num_prop_computes += prop_recomp_now.sum()
                 dyn.stats.wall_time_prop_compute += \
-                    timeit.default_timer() - timeStart
+                    timeit.default_timer() - time_start
 
         # compute the forward propagation
         if np.any(evo_init2t_recomp_now):
-            timeStart = timeit.default_timer()
+            time_start = timeit.default_timer()
             R = range(1, n_ts + 1)
             for k in R:
                 if evo_init2t_recomp_now[k]:
@@ -460,10 +542,10 @@ class TSlotCompDynUpdate(TimeslotComputer):
                 dyn.stats.num_fwd_prop_step_computes += \
                     evo_init2t_recomp_now.sum()
                 dyn.stats.wall_time_fwd_prop_compute += \
-                    timeit.default_timer() - timeStart
+                    timeit.default_timer() - time_start
 
         if np.any(evo_t2targ_recomp_now):
-            timeStart = timeit.default_timer()
+            time_start = timeit.default_timer()
             # compute the onward propagation
             R = range(n_ts-1, -1, -1)
             for k in R:
@@ -474,7 +556,7 @@ class TSlotCompDynUpdate(TimeslotComputer):
                 dyn.stats.num_onwd_prop_step_computes += \
                     evo_t2targ_recomp_now.sum()
                 dyn.stats.wall_time_onwd_prop_compute += \
-                    timeit.default_timer() - timeStart
+                    timeit.default_timer() - time_start
 
         # Clear calc now flags
         self.dyn_gen_calc_now[:] = False

@@ -68,12 +68,6 @@ class OptimConfig:
         the QuTiP settings file, which by default is WARN
         Note value should be set using set_log_level
 
-    test_out_files : integer
-        Determines whether test / debug output files will be generated
-        0 implies no test / debug output files
-        Higher values will produce increasingly more output files
-        Note that the sub directory 'test_out' must exist for values > 0
-
     dyn_type : string
         Dynamics type, i.e. the type of matrix used to describe
         the dynamics. Options are UNIT, GEN_MAT, SYMPL
@@ -124,6 +118,45 @@ class OptimConfig:
         1e7 for moderate accuracy; 10.0 for extremely high accuracy
         scipy.optimize.fmin_l_bfgs_b factr argument.
         (used only in L-BFGS-B)
+        
+    test_out_dir : string
+        Directory where test output files will be saved
+        By default this is a sub directory called 'test_out'
+        It will be created in the working directory if it does not exist
+        
+    test_out_f_ext : string
+        File extension that will be applied to all test output file names
+
+    test_out_iter : Boolean
+        When True a file will be created that records the wall time, 
+        fidelity error and gradient norm for each iteration of the algorithm
+
+    test_out_fid_err : Boolean
+        When True a file will be created that records the fidelity error
+        each time the Optimizer.fid_err_wrapper method is called
+        
+    test_out_grad_norm : Boolean
+        When True a file will be created that records the gradient norm
+        each time the Optimizer.fid_err_grad_wrapper method is called
+        
+    test_out_grad : Boolean
+        When True a file will be created each time the 
+        Optimizer.fid_err_grad_wrapper method is called containing
+        the gradients with respect to each control in each timeslot
+
+    test_out_prop : Boolean
+        When True a file will be created each time the timeslot evolution
+        is recomputed recording propagators for each timeslot
+        
+    test_out_prop_grad : Boolean
+        When True a file will be created each time the timeslot evolution
+        is recomputed recording the propagator gradient
+        wrt each control in each timeslot
+        
+    test_out_evo : Boolean
+        When True a file will be created each time the timeslot evolution
+        is recomputed recording the operators (matrices) for the forward
+        and onward evolution in each timeslot
     """
 
     def __init__(self):
@@ -131,10 +164,6 @@ class OptimConfig:
 
     def reset(self):
         self.log_level = logger.getEffectiveLevel()
-        # Level of test ouptut files generated
-        # NOTE: If >0 then sub directory 'test_out' must exist
-        self.test_out_files = 0
-        self.test_out_dir = None
         self.optim_alg = 'LBFGSB'
         self.dyn_type = ''
         self.fid_type = ''
@@ -149,7 +178,21 @@ class OptimConfig:
         self.max_metric_corr = 10
         self.accuracy_factor = 1e7
         # ####################
-
+        self.reset_test_out_files()
+        
+    def reset_test_out_files(self):
+        # Test output file flags
+        self.test_out_dir = None
+        self.test_out_f_ext = ".txt"
+        self.test_out_iter = False
+        self.test_out_fid_err = False
+        self.test_out_grad_norm = False
+        self.test_out_amps = False
+        self.test_out_grad = False
+        self.test_out_prop = False
+        self.test_out_prop_grad = False
+        self.test_out_evo = False
+        
     def set_log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
@@ -157,6 +200,23 @@ class OptimConfig:
         """
         self.log_level = lvl
         logger.setLevel(lvl)
+        
+    def any_test_files(self):
+        """
+        Returns True if any test_out_files are to be produced
+        That is debug files written to the test_out directory        
+        """
+        if (self.test_out_iter or
+            self.test_out_fid_err or
+            self.test_out_grad_norm or
+            self.test_out_grad or
+            self.test_out_amps or
+            self.test_out_prop or
+            self.test_out_prop_grad or
+            self.test_out_evo):
+            return True
+        else:
+            return False
 
     def check_create_test_out_dir(self):
         """

@@ -46,8 +46,7 @@ used here for calculations
 # import numpy as np
 import datetime
 
-
-class Stats:
+class Stats(object):
     """
     Base class for all optimisation statistics
     Used for configurations where all timeslots are updated each iteration
@@ -104,6 +103,10 @@ class Stats:
     num_grad_func_calls : integer
         Number of calls to gradient function by the optimisation algorithm
 
+    num_tslot_recompute : integer
+        Number of time the timeslot evolution is recomputed
+        (It is only computed if any amplitudes changed since the last call)
+        
     num_fidelity_computes : integer
         Number of time the fidelity is computed
         (It is only computed if any amplitudes changed since the last call)
@@ -135,6 +138,9 @@ class Stats:
 
     def reset(self):
         self.dyn_gen_name = "dynamics generator"
+        self.clear()
+        
+    def clear(self):
         self.num_iter = 0
         # Duration attributes
         self.wall_time_optim_start = 0.0
@@ -148,6 +154,7 @@ class Stats:
         # Fidelity and gradient function calls and computes
         self.num_fidelity_func_calls = 0
         self.num_grad_func_calls = 0
+        self.num_tslot_recompute = 0
         self.num_fidelity_computes = 0
         self.num_grad_computes = 0
         # Control amplitudes
@@ -223,7 +230,9 @@ class Stats:
         print("Number of gradient function calls: "
               "{}".format(self.num_grad_func_calls))
         print("Number of times gradients are computed: "
-              "{}".format(self.num_grad_computes))
+                "{}".format(self.num_grad_computes))
+        print("Number of times timeslot evolution is recomputed: "
+                "{}".format(self.num_tslot_recompute))
         print("")
 
     def report_amp_updates(self):

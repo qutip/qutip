@@ -122,10 +122,10 @@ class FideliyComputer:
     fid_err_grad: array[num_tslot, num_ctrls] of float
         Last computed values for the fidelity error gradients wrt the
         control in the timeslot
-
-    norm_grad_sq_sum : float
-        Last computed value for the sum of the squares of the
-        fidelity error gradients
+        
+    grad_norm : float
+        Last computed value for the norm of the fidelity error gradients
+        (sqrt of the sum of the squares)
 
     fid_err_grad_current : boolean
         flag to specify whether the fidelity / fid_err are based on the
@@ -141,6 +141,7 @@ class FideliyComputer:
         clear any temporarily held status data
         """
         self.set_log_level(self.parent.log_level)
+        self.id_text = 'FID_COMP_BASE'
         self.dimensional_norm = 1.0
         self.fid_norm_func = None
         self.grad_norm_func = None
@@ -155,10 +156,10 @@ class FideliyComputer:
         self.fid_err = None
         self.fidelity = None
         self.fid_err_grad = None
-        self.norm_grad_sq_sum = np.inf
+        self.grad_norm = np.inf
         self.fidelity_current = False
         self.fid_err_grad_current = False
-        self.norm_grad_sq_sum = 0.0
+        self.grad_norm = 0.0
 
     def set_log_level(self, lvl):
         """
@@ -223,6 +224,7 @@ class FidCompUnitary(FideliyComputer):
 
     def reset(self):
         FideliyComputer.reset(self)
+        self.id_text = 'UNIT'
         self.uses_evo_t2targ = True
 
     def clear(self):
@@ -396,15 +398,15 @@ class FidCompUnitary(FideliyComputer):
             if dyn.stats is not None:
                 dyn.stats.num_grad_computes += 1
 
-            self.norm_grad_sq_sum = np.sum(self.fid_err_grad**2)
+            self.grad_norm = np.sqrt(np.sum(self.fid_err_grad**2))
             if self.log_level <= logging.DEBUG_INTENSE:
                 logger.log(logging.DEBUG_INTENSE, "Normalised fidelity error "
                            "gradients:\n{}".format(self.fid_err_grad))
 
             if self.log_level <= logging.DEBUG:
                 logger.debug("Gradient (sum sq norm): "
-                             "{} ".format(self.norm_grad_sq_sum))
-
+                            "{} ".format(self.grad_norm))
+                
         return self.fid_err_grad
 
     def compute_fid_grad(self):
@@ -428,14 +430,7 @@ class FidCompUnitary(FideliyComputer):
         for j in range(n_ctrls):
             for k in range(n_ts):
                 owd_evo = dyn.evo_t2targ[k+1]
-                fwd_evo = dyn.evo_init2t[k]
-                if dyn.test_out_files >= 3:
-                    fname = os.path.join("test_out",
-                                         "prop_grad_UNIT_j{}_k{}.txt".
-                                         format(j, k))
-
-                    np.savetxt(fname, dyn.prop_grad[k, j], fmt='%17.4f')
-
+                fwd_evo = dyn.evo_init2t[k]               
                 g = np.trace(owd_evo.dot(dyn.prop_grad[k, j]).dot(fwd_evo))
                 grad[k, j] = g
         if dyn.stats is not None:
@@ -466,6 +461,7 @@ class FidCompTraceDiff(FideliyComputer):
 
     def reset(self):
         FideliyComputer.reset(self)
+        self.id_text = 'TRACEDIFF'
         self.scale_factor = None
         self.uses_evo_t2end = True
         if not self.parent.prop_computer.grad_exact:
@@ -504,7 +500,11 @@ class FidCompTraceDiff(FideliyComputer):
             # Note that the value should have not imagnary part, so using
             # np.real, just avoids the complex casting warning
             self.fid_err = self.scale_factor*np.real(
-                np.trace(evo_f_diff.conj().T.dot(evo_f_diff)))
+                        np.trace(evo_f_diff.conj().T.dot(evo_f_diff)))
+                        
+            if np.isnan(self.fid_err):
+                self.fid_err = np.Inf
+                
             if dyn.stats is not None:
                     dyn.stats.num_fidelity_computes += 1
 
@@ -529,15 +529,15 @@ class FidCompTraceDiff(FideliyComputer):
             if dyn.stats is not None:
                 dyn.stats.num_grad_computes += 1
 
-            self.norm_grad_sq_sum = np.sum(self.fid_err_grad**2)
+            self.grad_norm = np.sqrt(np.sum(self.fid_err_grad**2))
             if self.log_level <= logging.DEBUG_INTENSE:
                 logger.log(logging.DEBUG_INTENSE, "fidelity error gradients:\n"
                            "{}".format(self.fid_err_grad))
 
             if self.log_level <= logging.DEBUG:
-                logger.debug("Gradient (sum sq norm): "
-                             "{} ".format(self.norm_grad_sq_sum))
-
+                logger.debug("Gradient norm: "
+                            "{} ".format(self.grad_norm))
+                
         return self.fid_err_grad
 
     def compute_fid_err_grad(self):
@@ -574,7 +574,10 @@ class FidCompTraceDiff(FideliyComputer):
                 # Note that the value should have not imagnary part, so using
                 # np.real, just avoids the complex casting warning
                 g = -2*self.scale_factor*np.real(
-                    np.trace(evo_f_diff.conj().T.dot(evo_grad)))
+                        np.trace(evo_f_diff.conj().T.dot(evo_grad)))
+                if np.isnan(g):
+                    g = np.Inf
+                    
                 grad[k, j] = g
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += \
@@ -595,6 +598,7 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
     """
     def reset(self):
         FideliyComputer.reset(self)
+        self.id_text = 'TDAPPROX'
         self.uses_evo_t2end = True
         self.scale_factor = None
         self.epsilon = 0.001
