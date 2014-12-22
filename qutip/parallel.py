@@ -170,7 +170,7 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
     results = []
     for n, value in enumerate(values):
         progress_bar.update(n)
-        result = task(n, *task_args, **task_kwargs)
+        result = task(value, *task_args, **task_kwargs)
         results.append(result)
     progress_bar.finished()
 
