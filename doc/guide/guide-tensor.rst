@@ -110,16 +110,26 @@ The two-qubit example is easily generalized to three coupled qubits:
 A two-level system coupled to a cavity: The Jaynes-Cummings model
 -------------------------------------------------------------------
 
-The simplest possible quantum mechanical description for light-matter interaction is encapsulated in the Jaynes-Cummings model, which describes the coupling between a two-level atom and a single-mode electromagnetic field (a cavity mode). Denoting the energy splitting of the atom and cavity ``omega_a`` and ``omega_c``, respectively, and the atom-cavity interaction strength ``g``, the Jaynes-Cumming Hamiltonian can be constructed as::
+The simplest possible quantum mechanical description for light-matter interaction is encapsulated in the Jaynes-Cummings model, which describes the coupling between a two-level atom and a single-mode electromagnetic field (a cavity mode). Denoting the energy splitting of the atom and cavity ``omega_a`` and ``omega_c``, respectively, and the atom-cavity interaction strength ``g``, the Jaynes-Cumming Hamiltonian can be constructed as:
 
-    >>> N = 10
-    >>> omega_a = 1.0
-    >>> omega_c = 1.25
-    >>> g = 0.05
-    >>> a = tensor(identity(2), destroy(N))
-    >>> sm = tensor(destroy(2), identity(N))
-    >>> sz = tensor(sigmaz(), identity(N))
-    >>> H = 0.5 * omega_a * sz + omega_c * a.dag() * a + g * (a.dag() * sm + a * sm.dag())
+.. ipython::
+
+    In [1]: N = 10
+    
+    In [1]: omega_a = 1.0
+    
+    In [1]: omega_c = 1.25
+    
+    In [1]: g = 0.05
+    
+    In [1]: a = tensor(identity(2), destroy(N))
+    
+    In [1]: sm = tensor(destroy(2), identity(N))
+    
+    In [1]: sz = tensor(sigmaz(), identity(N))
+    
+    In [1]: H = 0.5 * omega_a * sz + omega_c * a.dag() * a + g * (a.dag() * sm + a * sm.dag())
+
 
 Here ``N`` is the number of Fock states included in the cavity mode. 
 

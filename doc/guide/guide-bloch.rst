@@ -33,13 +33,11 @@ In QuTiP, creating a Bloch sphere is accomplished by calling either:
 
 .. ipython::
  
-    In [1]: b=Bloch()
+    In [1]: b = Bloch()
 
-which will load an instance of the :class:`qutip.Bloch` class, or using:
+which will load an instance of the :class:`qutip.Bloch` class, or using::
 
-.. ipython::
- 
-    In [1]: b3d=Bloch3d()
+ >>> b3d = Bloch3d()
 
 that loads the :class:`qutip.Bloch3d` version.  Before getting into the details of these objects, we can simply plot the blank Bloch sphere associated with these instances via:
 
@@ -59,6 +57,8 @@ or
 In addition to the show() command, the Bloch class has the following functions:
 
 .. tabularcolumns:: | p{3.5cm} | p{7cm} | p{6cm} |
+
+.. cssclass:: table-striped
 
 +--------------------------+--------------------------------------+------------------------------------------+
 | Name                     | Input Parameters (#=optional)        | Description                              |
@@ -94,7 +94,7 @@ As an example, we can add a single data point:
 
 .. ipython::
 	
-	In [1]: pnt=[1/sqrt(3),1/sqrt(3),1/sqrt(3)]
+	In [1]: pnt = [1/np.sqrt(3),1/np.sqrt(3),1/np.sqrt(3)]
 	
 	In [2]: b.add_points(pnt)
 	
@@ -105,7 +105,7 @@ and then a single vector:
 
 .. ipython::
 	
-	In [1]: vec=[0,1,0]
+	In [1]: vec = [0,1,0]
 	
 	In [2]: b.add_vectors(vec)
 	
@@ -117,7 +117,7 @@ and then add another vector corresponding to the :math:`\left|\rm up \right>` st
 
 .. ipython::
 	
-	In [1]: up=basis(2,0)
+	In [1]: up = basis(2,0)
 	
 	In [2]: b.add_states(up)
 	
@@ -126,18 +126,26 @@ and then add another vector corresponding to the :math:`\left|\rm up \right>` st
 
 Notice that when we add more than a single vector (or data point), a different color will automatically be applied to the later data set (mod 4).  In total, the code for constructing our Bloch sphere with one vector, one state, and a single data point is:
 
->>> b=Bloch()
->>> pnt=[1/sqrt(3),1/sqrt(3),1/sqrt(3)]
->>> b.add_points(pnt)
->>> #b.show()
->>> vec=[0,1,0]
->>> b.add_vectors(vec)
->>> #b.show()
->>> up=basis(2,0)
->>> b.add_states(up)
->>> b.show()
+.. ipython::
 
-where we have commented out the extra `show()` commands.  Replacing ``b=Bloch()`` with ``b=Bloch3d()`` in the above code generates the following 3D Bloch sphere.   
+	In [1]: b = Bloch()
+	
+    In [1]: pnt = [1/np.sqrt(3),1/np.sqrt(3),1/np.sqrt(3)]
+	
+    In [1]: b.add_points(pnt)
+
+	In [1]: vec = [0,1,0]
+	
+    In [1]: b.add_vectors(vec)
+
+	In [1]: up = basis(2,0)
+	
+    In [1]: b.add_states(up)
+	
+    @savefig bloch-pnt-vec-state.png width=3.5in align=center
+    In [1]: b.show()
+
+where we have removed the extra ``show()`` commands.  Replacing ``b=Bloch()`` with ``b=Bloch3d()`` in the above code generates the following 3D Bloch sphere.   
 
 .. _image-bloch3ddata:
 
@@ -160,11 +168,11 @@ Now on the same Bloch sphere, we can plot the three states associated with the x
 
 .. ipython::
 	
-	In [1]: x=(basis(2,0)+(1+0j)*basis(2,1)).unit()
+	In [1]: x = (basis(2,0)+(1+0j)*basis(2,1)).unit()
 	
-	In [2]: y=(basis(2,0)+(0+1j)*basis(2,1)).unit()
+	In [2]: y = (basis(2,0)+(0+1j)*basis(2,1)).unit()
 	
-	In [3]: z=(basis(2,0)+(0+0j)*basis(2,1)).unit()
+	In [3]: z = (basis(2,0)+(0+0j)*basis(2,1)).unit()
 	
 	In [4]: b.add_states([x,y,z])
 	
@@ -177,7 +185,7 @@ a similar method works for adding vectors:
 	
 	In [1]: b.clear()
 	
-	In [2]: vec=[[1,0,0],[0,1,0],[0,0,1]]
+	In [2]: vec = [[1,0,0],[0,1,0],[0,0,1]]
 	
 	In [3]: b.add_vectors(vec)
 	
@@ -194,13 +202,13 @@ Adding multiple points to the Bloch sphere works slightly differently than addin
 
 .. ipython::
 	
-	In [1]: xp=[cos(th) for th in linspace(0,2*pi,20)]
+	In [1]: xp = [np.cos(th) for th in np.linspace(0,2*pi,20)]
 	
-	In [2]: yp=[sin(th) for th in linspace(0,2*pi,20)]
+	In [2]: yp=[np.sin(th) for th in np.linspace(0,2*pi,20)]
 	
-	In [3]: zp=zeros(20)
+	In [3]: zp = np.zeros(20)
 	
-	In [4]: pnts=[xp,yp,zp]
+	In [4]: pnts = [xp,yp,zp]
 	
 	In [5]: b.add_points(pnts)
 	
@@ -211,11 +219,11 @@ Notice that, in contrast to states or vectors, each point remains the same color
 
 .. ipython::
 	
-	In [1]: xz=zeros(20)
+	In [1]: xz = np.zeros(20)
 	
-	In [2]: yz=[sin(th) for th in linspace(0,pi,20)]
+	In [2]: yz = [np.sin(th) for th in np.linspace(0,pi,20)]
 	
-	In [3]: zz=[cos(th) for th in linspace(0,pi,20)]
+	In [3]: zz = [np.cos(th) for th in np.linspace(0,pi,20)]
 	
 	In [4]: b.add_points([xz,yz,zz])
 	
@@ -233,13 +241,13 @@ What if we want to vary the color of our points.  We can tell the :class:`qutip.
 
 .. ipython::
 	
-	In [1]: xp=[cos(th) for th in linspace(0,2*pi,20)]
+	In [1]: xp = [np.cos(th) for th in np.linspace(0,2*pi,20)]
 	
-	In [2]: yp=[sin(th) for th in linspace(0,2*pi,20)]
+	In [2]: yp = [sin(th) for th in np.linspace(0,2*pi,20)]
 	
-	In [3]: zp=zeros(20)
+	In [3]: zp = np.zeros(20)
 	
-	In [4]: pnts=[xp,yp,zp]
+	In [4]: pnts = [xp,yp,zp]
 	
 	In [5]: b.add_points(pnts,'m') # <-- add a 'm' string to signify 'multi' colored points
 	
@@ -251,11 +259,11 @@ Now, the data points cycle through a variety of predefined colors.  Now lets add
 
 .. ipython::
 	
-	In [1]: xz=zeros(20)
+	In [1]: xz = np.zeros(20)
 	
-	In [2]: yz=[sin(th) for th in linspace(0,pi,20)]
+	In [2]: yz = [np.sin(th) for th in np.linspace(0,pi,20)]
 	
-	In [3]: zz=[cos(th) for th in linspace(0,pi,20)]
+	In [3]: zz = [np.cos(th) for th in np.linspace(0,pi,20)]
 	
 	In [4]: b.add_points([xz,yz,zz]) # no 'm'
 	
@@ -292,8 +300,10 @@ Bloch Class Options
 --------------------
 
 At the end of the last section we saw that the colors and marker shapes of the data plotted on the Bloch sphere are automatically varied according to the number of points and vectors added.  But what if you want a different choice of color, or you want your sphere to be purple with different axes labels? Well then you are in luck as the Bloch class has 22 attributes which one can control.  Assuming ``b=Bloch()``:
-   
+
 .. tabularcolumns:: | p{3cm} | p{7cm} |  p{7cm} |
+
+.. cssclass:: table-striped
 
 +---------------+---------------------------------------------------------+---------------------------------------------+
 | Attribute     | Function                                                | Default Setting                             | 
@@ -355,6 +365,8 @@ correspondence to those of the ``Bloch`` class due to the different underlying r
 
 .. tabularcolumns:: | p{3cm} | p{7cm} |  p{7cm} |
 
+.. cssclass:: table-striped
+
 +---------------+---------------------------------------------------------+---------------------------------------------+
 | Attribute     | Function                                                | Default Setting                             | 
 +===============+=========================================================+=============================================+
@@ -410,7 +422,7 @@ These properties can also be accessed via the print command:
 
 .. ipython::
 	
-	In [1]: b=Bloch()
+	In [1]: b = Bloch()
 	
 	In [2]: print(b)
 
@@ -437,12 +449,12 @@ Generating Images for Animation
 
 An example of generating images for generating an animation outside of Python is given below::
 
-	b=Bloch()
+	b = Bloch()
 	b.vector_color = ['r']
-	b.view=[-40,30]
-	for i in xrange(len(sx)):
+	b.view = [-40,30]
+	for i in range(len(sx)):
 	    b.clear()
-	    b.add_vectors([sin(theta),0,cos(theta)])
+	    b.add_vectors([np.sin(theta),0,np.cos(theta)])
 	    b.add_points([sx[:i+1],sy[:i+1],sz[:i+1]])
 	    b.save(dirc='temp') #saving images to temp directory in current working directory
 
@@ -466,11 +478,11 @@ The code to directly generate an mp4 movie of the Qubit decay is as follows::
 	
 	fig = figure()
 	ax = Axes3D(fig,azim=-40,elev=30)
-	sphere=Bloch(axes=ax)
+	sphere = Bloch(axes=ax)
 	
 	def animate(i):
 	    sphere.clear()
-	    sphere.add_vectors([sin(theta),0,cos(theta)])
+	    sphere.add_vectors([np.sin(theta),0,np.cos(theta)])
 	    sphere.add_points([sx[:i+1],sy[:i+1],sz[:i+1]])
 	    sphere.make_sphere()
 	    return ax

@@ -60,27 +60,19 @@ To understand how to access the data in a Result object we will use an example a
 
 The first line tells us that this data object was generated from the Monte Carlo solver ``mcsolve`` (discussed in :ref:`monte`).  The next line (not the ``---`` line of course) indicates that this object contains expectation value data.  Finally, the last line gives the number of expectation value and collapse operators used in the simulation, along with the number of Monte Carlo trajectories run.  Note that the number of trajectories ``ntraj`` is only displayed when using the Monte Carlo solver.
 
-Now we have all the information needed to analyze the simulation results. To access the data for the two expectation values one can do:
+Now we have all the information needed to analyze the simulation results. To access the data for the two expectation values one can do::
 
->>> expt0 = result.expect[0]
->>> expt1 = result.expect[1]
+    >>> expt0 = result.expect[0]
+    >>> expt1 = result.expect[1]
 
-Recall that Python uses C-style indexing that begins with zero (i.e., [0] => 1st collapse operator data). Together with the array of times at which these expectation values are calculated:
+Recall that Python uses C-style indexing that begins with zero (i.e., [0] => 1st collapse operator data). Together with the array of times at which these expectation values are calculated::
 
->>> times = result.times
+    >>> times = result.times
 
-we can plot the resulting expectation values:
+we can plot the resulting expectation values::
 
->>> plot(times, expt0, times, expt1)
->>> show()
-
-.. image-odedata1:
-
-.. figure:: guide-dynamics-odedata1.png
-   :align: center
-   :width: 4in
-   
-   Data for expectation values extracted from the ``result`` Result object.
+    >>> plot(times, expt0, times, expt1)
+    >>> show()
 
 
 State vectors, or density matrices, as well as ``col_times`` and ``col_which``, are accessed in a similar manner, although typically one does not need an index (i.e [0]) since there is only one list for each of these components.  The one exception to this rule is if you choose to output state vectors from the Monte Carlo solver, in which case there are ``ntraj`` number of state vector arrays.
@@ -110,14 +102,5 @@ where ``stored_result`` is the new name of the Result object.  We can then extra
 	times = stored_result.times
 	plot(times, expt0, times, expt1)
 	show()
-
-
-.. image-odedata2:
-
-.. figure:: guide-dynamics-odedata2.png
-   :align: center
-   :width: 4in
-   
-   Data for expectation values from the ``stored_result`` object loaded from the ``result`` object stored with :func:`qutip.fileio.qsave`
 
 Also see :ref:`saving` for more information on saving quantum objects, as well as arrays for use in other programs.

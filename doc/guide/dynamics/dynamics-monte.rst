@@ -91,6 +91,8 @@ To illustrate the use of the Monte Carlo evolution of quantum systems in QuTiP, 
     
     In [1]: data = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
 	
+    In [1]: figure()
+    
     In [1]: plot(times, data.expect[0], times, data.expect[1])
 	
     In [1]: title('Monte Carlo time evolution')
@@ -176,19 +178,20 @@ A full account of this feature is given in :ref:`options`.  Using the previous e
 	
     In [1]: sm = tensor(destroy(2), qeye(10))
 	
-    In [1]: H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
-
-	In [1]: data1 = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
+    In [1]: H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + \
+       ...: 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
+    
+    In [1]: data1 = mcsolve(H, psi0, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm])
 	
     In [1]: psi1 = tensor(fock(2, 0), coherent(10, 2 - 1j))
 	
-    In [1]: # Run a second time, reusing RHS
+    In [1]: opts = Options(rhs_reuse=True) # Run a second time, reusing RHS
 	
-    In [1]: options = Options(rhs_reuse=True)
-	
-    In [1]: data2 = mcsolve(H, psi1, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm], options=options)
-	
-	In [1]: plot(times, data1.expect[0], times, data1.expect[1], lw=2)
+    In [1]: data2 = mcsolve(H, psi1, times, [np.sqrt(0.1) * a], [a.dag() * a, sm.dag() * sm], options=opts)
+    
+    In [1]: figure()
+    
+    In [1]: plot(times, data1.expect[0], times, data1.expect[1], lw=2)
 	
     In [1]: plot(times, data2.expect[0], '--', times, data2.expect[1], '--', lw=2)
 	

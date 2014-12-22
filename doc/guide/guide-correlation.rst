@@ -7,6 +7,16 @@
 Two-time correlation functions
 ******************************
 
+.. ipython::
+   :suppress:
+
+   In [1]: from qutip import *
+   
+   In [1]: import numpy as np
+   
+   In [1]: from pylab import *
+   
+
 With the QuTiP time-evolution functions (for example :func:`qutip.mesolve` and :func:`qutip.mcsolve`), a state vector or density matrix can be evolved from an initial state at :math:`t_0` to an arbitrary time :math:`t`, :math:`\rho(t)=V(t, t_0)\left\{\rho(t_0)\right\}`, where :math:`V(t, t_0)` is the propagator defined by the equation of motion. The resulting density matrix can then be used to evaluate the expectation values of arbitrary combinations of *same-time* operators.
 
 To calculate *two-time* correlation functions on the form :math:`\left<A(t+\tau)B(t)\right>`, we can use the quantum regression theorem (see, e.g., [Gar03]_) to write
@@ -29,7 +39,7 @@ which is independent of :math:`t`, so that we only have one time coordinate :mat
 
 QuTiP provides a family of functions that assists in the process of calculating two-time correlation functions. The available functions and their usage is show in the table below. Each of these functions can use one of the following evolution solvers: Master-equation, Exponential series and the Monte-Carlo. The choice of solver is defined by the optional argument ``solver``. 
 
-.. tabularcolumns:: | p{4cm} | L |
+.. cssclass:: table-striped
 
 +----------------------------------------------+--------------------------------------------------+
 | QuTiP function                               | Correlation function                             |
@@ -54,11 +64,34 @@ Steadystate correlation function
 
 The following code demonstrates how to calculate the :math:`\left<x(t)x(0)\right>` correlation for a leaky cavity with three different relaxation rates.
 
-.. plot:: guide/scripts/correlation_ex1.py
-   :width: 4.0in
-   :include-source:	
+.. ipython::
 
-.. _correlation-nosteady:
+   In [1]: times = np.linspace(0,10.0,200)
+   
+   In [1]: a = destroy(10)
+   
+   In [1]: x = a.dag() + a
+   
+   In [1]: H = a.dag() * a
+   
+   In [1]: corr1 = correlation_ss(H, times, [np.sqrt(0.5) * a], x, x)
+   
+   In [1]: corr2 = correlation_ss(H, times, [np.sqrt(1.0) * a], x, x)
+   
+   In [1]: corr3 = correlation_ss(H, times, [np.sqrt(2.0) * a], x, x)
+   
+   In [1]: figure()
+   
+   In [1]: plot(times, np.real(corr1), times, np.real(corr2), times, np.real(corr3))
+   
+   In [1]: legend(['0.5','1.0','2.0'])
+   
+   In [1]: xlabel(r'Time $t$')
+   
+   In [1]: ylabel(r'Correlation $\left<x(t)x(0)\right>$')
+   
+   @savefig guide-correlation1.png width=5.0in align=center
+   In [1]: show()
 
 
 Emission spectrum

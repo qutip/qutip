@@ -119,7 +119,7 @@ Given that we have a single time-dependent Hamiltonian term, and constant collap
 .. ipython::
     
     In [1]: def H1_coeff(t, args):
-       ...:     return 9 * exp(-(t / 5.) ** 2)
+       ...:     return 9 * np.exp(-(t / 5.) ** 2)
 
 In this case, the return value dependents only on time.  However, when specifying Python functions for coefficients, **the function must have (t,args) as the input variables, in that order**.  Having specified our coefficient function, we can now specify the Hamiltonian in list format and call the solver (in this case :func:`qutip.mesolve`)
 
@@ -142,7 +142,7 @@ The output from the master equation solver is identical to that shown in the exa
     In [1]: kappa = 0.5
     
     In [1]: def col_coeff(t, args):  # coefficient function
-       ...:     return sqrt(kappa * exp(-t))
+       ...:     return np.sqrt(kappa * np.exp(-t))
     
     In [1]: N = 10  # number of basis states
     
@@ -166,7 +166,7 @@ In the previous example we hardcoded all of the variables, driving amplitude :ma
 .. ipython::
 
     In [1]: def H1_coeff(t, args):
-       ...:     return args['A'] * exp(-(t/args['sigma'])**2)
+       ...:     return args['A'] * np.exp(-(t/args['sigma'])**2)
 
 or equivalently,
 
@@ -175,7 +175,7 @@ or equivalently,
     In [1]: def H1_coeff(t, args):
        ...:     A = args['A']
        ...:     sig = args['sigma']
-       ...:     return A * exp(-(t / sig) ** 2)
+       ...:     return A * np.exp(-(t / sig) ** 2)
 
 
 where args is a Python dictionary of ``key: value`` pairs ``args = {'A': a, 'sigma': b}`` where ``a`` and ``b`` are the two parameters for the amplitude and width, respectively.  Of course, we can always hardcode the values in the dictionary as well ``args = {'A': 9, 'sigma': 5}``, but there is much more flexibility by using variables in ``args``.  To let the solvers know that we have a set of args to pass we append the ``args`` to the end of the solver input:

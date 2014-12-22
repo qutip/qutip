@@ -16,6 +16,8 @@ QuTiP includes a collection of random state generators for simulations, theorem 
 
 .. tabularcolumns:: | p{2cm} | p{3cm} |
 
+.. cssclass:: table-striped
+
 +-------------------------------+---------------------------------+
 | Function                      | Description                     |
 +===============================+=================================+
@@ -49,7 +51,7 @@ In this previous example, we see that the generated Hermitian operator contains 
    In [1]: rand_dm(5, 0.5)
 
 
-has rougly half nonzero elements, or equivalently a density of 0.5.
+has roughly half nonzero elements, or equivalently a density of 0.5.
 
 .. warning::  
 

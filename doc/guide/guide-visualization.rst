@@ -320,7 +320,7 @@ used below to visualize the corresponding steadystate density matrix:
 
     In [1]: rho_ss = steadystate(H, [np.sqrt(0.1) * a, np.sqrt(0.4) * b.dag()])
 
-    In [1]: fig, ax = hinton(rho_ss) #, xlabels=xlabels, ylabels=xlabels)
+    In [1]: fig, ax = hinton(rho_ss) # xlabels=xlabels, ylabels=xlabels)
 
 	@savefig visualization-rho-ss.png width=5.0in align=center
     In [1]: plt.show()

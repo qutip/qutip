@@ -16,6 +16,8 @@ In this section we show how to modify a few of the internal parameters used by Q
 
 .. tabularcolumns:: | p{3cm} | p{5cm} | p{5cm} |
 
+.. cssclass:: table-striped
+
 +-------------------------------+-------------------------------------------+-----------------------------+
 | Setting                       | Description                               | Options                     |
 +===============================+===========================================+=============================+

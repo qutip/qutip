@@ -71,9 +71,7 @@ The resulting list of expectation values can easily be visualized using matplotl
 
     In [1]: result = mesolve(H, psi0, times, [], [sigmaz(), sigmay()])
 
-    In [1]: import matplotlib.pyplot as plt
-
-    In [1]: fig, ax = plt.subplots()
+    In [1]: fig, ax = subplots()
 
     In [1]: ax.plot(result.times, result.expect[0]);
 
@@ -86,7 +84,7 @@ The resulting list of expectation values can easily be visualized using matplotl
     In [1]: ax.legend(("Sigma-Z", "Sigma-Y"));
 
 	@savefig guide-dynamics-qubit.png width=5.0in align=center
-    In [1]: plt.show()
+    In [1]: show()
 
 If an empty list of operators is passed as fifth parameter, the :func:`qutip.mesolve` function returns a :class:`qutip.solver.Result` instance that contains a list of state vectors for the times specified in ``times``
 
@@ -181,9 +179,7 @@ the previously empty list in the fourth parameter to the :func:`qutip.mesolve` f
 
     In [1]: result = mesolve(H, psi0, times, [np.sqrt(0.05) * sigmax()], [sigmaz(), sigmay()])
 
-    In [1]: import matplotlib.pyplot as plt
-
-    In [1]: fig, ax = plt.subplots()
+    In [1]: fig, ax = subplots()
 
     In [1]: ax.plot(times, result.expect[0]);
 
@@ -215,12 +211,11 @@ Now a slightly more complex example: Consider a two-level atom coupled to a leak
     In [1]: sm = tensor(destroy(2), qeye(10))
     
     In [1]: H = 2 * np.pi * a.dag() * a + 2 * np.pi * sm.dag() * sm + \
-    
-    In [1]:    2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
+       ...: 2 * np.pi * 0.25 * (sm * a.dag() + sm.dag() * a)
     
     In [1]: result = mesolve(H, psi0, times, [np.sqrt(0.1)*a], [a.dag()*a, sm.dag()*sm])
     
-    In [1]: from pylab import *
+    In [1]: figure()
     
     In [1]: plot(times, result.expect[0])
     

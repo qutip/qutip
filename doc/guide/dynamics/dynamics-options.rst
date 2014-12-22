@@ -7,31 +7,28 @@
 Setting Options for the Dynamics Solvers
 *********************************************
 
+.. ipython::
+   :suppress:
+
+   In [1]: from qutip import *
+   
+   In [1]: import numpy as np
+
 Occasionally it is necessary to change the built in parameters of the dynamics solvers used by for example the :func:`qutip.mesolve` and :func:`qutip.mcsolve` functions.  The options for all dynamics solvers may be changed by using the Options class :class:`qutip.solver.Options`.
 
->>> options = Options()
+.. ipython::
 
-the properties and default values of this class can be view via the `print` function::
+   In [1]: options = Options()
 
-    >>> print(options)
-	Options properties:
-	----------------------
-	atol:          1e-08
-	rtol:          1e-06
-	method:        adams
-	order:         12
-	nsteps:        1000
-	first_step:    0
-	min_step:      0
-	max_step:      0
-	tidy:          True
-	num_cpus:      8
-	rhs_filename:  None
-	rhs_reuse:     False
-	gui:           True
-	mc_avg:    	   True
+the properties and default values of this class can be view via the `print` function:
+
+.. ipython::
+
+   In [1]: print(options)
 
 These properties are detailed in the following table.  Assuming ``options = Options()``:
+
+.. cssclass:: table-striped
 
 +---------------------+-----------------+----------------------------------------------------------------+
 | Property            | Default setting | Description                                                    |
@@ -69,45 +66,36 @@ These properties are detailed in the following table.  Assuming ``options = Opti
 
 As an example, let us consider changing the number of processors used, turn the GUI off, and strengthen the absolute tolerance.  There are two equivalent ways to do this using the Options class.  First way,
 
-    >>> options = Options()
-    >>> options.num_cpus = 3
-    >>> options.gui = False
-    >>> options.atol = 1e-10
+.. ipython::
+
+   In[1]: options = Options()
+   
+   In[1]: options.num_cpus = 3
+   
+   In[1]: options.gui = False
+   
+   In[1]: options.atol = 1e-10
 
 or one can use an inline method,
 
-	>>> options = Options(num_cpus=3, gui=False, atol=1e-10)
+.. ipython::
 
-Note that the order in which you input the options does not matter.  Using either method, the resulting `options` variable is now::
+   In[1]: options = Options(num_cpus=4, gui=False, atol=1e-10)
 
-	>>> print options
-	Options properties:
-	----------------------
-	atol:          1e-10
-	rtol:          1e-06
-	method:        adams
-	order:         12
-	nsteps:        1000
-	first_step:    0
-	min_step:      0
-	max_step:      0
-	tidy:          True
-	num_cpus:      3
-	rhs_filename:  None
-	rhs_reuse:     False
-	gui:           False
-	mc_avg:    True
+Note that the order in which you input the options does not matter.  Using either method, the resulting `options` variable is now:
+
+.. ipython::
+
+   In [1]: print(options)
 
 To use these new settings we can use the keyword argument ``options`` in either the func:`qutip.mesolve` and :func:`qutip.mcsolve` function.  We can modify the last example as::
 
     >>> mesolve(H0, psi0, tlist, c_op_list, [sigmaz()], options=options)
-    >>> mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sigmaz()], H_args,
-    >>>         options=options)
+    >>> mesolve(hamiltonian_t, psi0, tlist, c_op_list, [sigmaz()], H_args, options=options)
 
 or::
-    
+
     >>> mcsolve(H0, psi0, tlist, ntraj,c_op_list, [sigmaz()], options=options)
-    >>> mcsolve(hamiltonian_t, psi0, tlist, ntraj, c_op_list, [sigmaz()], H_args,
-    >>>         options=options)
+    >>> mcsolve(hamiltonian_t, psi0, tlist, ntraj, c_op_list, [sigmaz()], H_args, options=options)
 
 
