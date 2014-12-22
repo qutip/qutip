@@ -279,8 +279,8 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         if config.tflag in [1, 10, 11]:
             if any(args):
                 config.c_args = []
-                arg_items = args.items()
-                for k in range(len(args)):
+                arg_items = list(args.items())
+                for k in range(len(arg_items)):
                     config.c_args.append(arg_items[k][1])
         # function based
         elif config.tflag in [2, 3, 20, 22]:
