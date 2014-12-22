@@ -44,11 +44,11 @@ from qutip.superoperator import mat2vec, sprepost
 from qutip import operator_to_vector, identity, tensor
 
 
-def countstat_current(L, c_ops, rhoss=None, J_ops=None):
+def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
     """
-    Calculate the current corresponding to list of given current collapse
-    operators `c_ops` and a system Liouvillian `L`. Optionally the steadystate
-    density matrix `rhoss` and a list of current superoperators `J_ops` can be
+    Calculate the current corresponding a system Liouvillian `L` and a list of
+    current collapse operators `c_ops` or current superoperators `J_ops` (either
+    must be specified). Optionally the steadystate density matrix `rhoss` and a list of current superoperators `J_ops` can be
     specified. If either of these are omitted they are computed internally.
 
     Parameters
@@ -57,7 +57,7 @@ def countstat_current(L, c_ops, rhoss=None, J_ops=None):
     L : :class:`qutip.Qobj`
         Qobj representing the system Liouvillian.
 
-    c_ops : array / list
+    c_ops : array / list (optional)
         List of current collapse operators.
 
     rhoss : :class:`qutip.Qobj` (optional)
@@ -74,11 +74,16 @@ def countstat_current(L, c_ops, rhoss=None, J_ops=None):
         `c_ops` (or, equivalently, each current superopeator `J_ops`).
     """
 
-    if rhoss is None:
-        rhoss = steadystate(L, c_ops)
 
     if J_ops is None:
+        if c_ops is None:
+            raise ValueError("c_ops must be given if J_ops is not")
         J_ops = [sprepost(c, c.dag()) for c in c_ops]
+
+    if rhoss is None:
+        if c_ops is None:
+            raise ValueError("c_ops must be given if rhoss is not")
+        rhoss = steadystate(L, c_ops)
 
     rhoss_vec = mat2vec(rhoss.full()).ravel()
 
@@ -175,8 +180,7 @@ def countstat_current_noise(L, c_ops, rhoss=None, J_ops=None, R=False):
             X_rho_vec = sp.linalg.splu(A, permc_spec='COLAMD').solve(Qj)
             for i, Ji in enumerate(J_ops):
                 if i == j:
-                    I[i] = expect_rho_vec(Ji.data, rhoss_vec, 1)
-                    S[i, i] = I[i]
+                    S[i, i] = I[i] = expect_rho_vec(Ji.data, rhoss_vec, 1)
 
                 S[i, j] -= expect_rho_vec(Ji.data * Q, X_rho_vec, 1)
 
