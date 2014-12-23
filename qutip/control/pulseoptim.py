@@ -856,6 +856,9 @@ def create_pulse_optimizer(
     p_gen = pulsegen.create_pulse_gen(pulse_type=init_pulse_type, dyn=dyn)
     p_gen.scaling = pulse_scaling
     p_gen.offset = pulse_offset
+    p_gen.lbound = amp_lbound
+    p_gen.ubound = amp_ubound
+    
     # If the pulse is a periodic type, then set the pulse to be one complete
     # wave
     if isinstance(p_gen, pulsegen.PulseGenPeriodic):
