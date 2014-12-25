@@ -91,12 +91,12 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     If either `H` or the Qobj elements in `c_ops` are superoperators, they
     will be treated as direct contributions to the total system Liouvillian.
     This allows to solve master equations that are not on standard Lindblad
-    for by passing a custom Liouvillian in place of either `H` or `c_ops`
+    form by passing a custom Liouvillian in place of either the `H` or `c_ops`
     elements.
 
     **Time-dependent operators**
 
-    For problems with time-dependent problems `H` and `c_ops` can be callback
+    For time-dependent problems, `H` and `c_ops` can be callback
     functions that takes two arguments, time and `args`, and returns the
     Hamiltonian or Liouvillian for the system at that point in time
     (*callback format*).
@@ -106,12 +106,9 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     operator (:class:`qutip.qobj`) at the first element and where the
     second element is either a string (*list string format*), a callback
     function (*list callback format*) that evaluates to the time-dependent
-    coefficient for the corresponding operator, or a numpy array (*list
+    coefficient for the corresponding operator, or a NumPy array (*list
     array format*) which specifies the value of the coefficient to the
     corresponding operator for each value of t in tlist.
-
-    Yet another alternative is to specify the time dependence using NumPy
-    arrays with the same length as the `tlist` array (*list array format*).
 
     *Examples*
 
@@ -131,10 +128,18 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     parameters that is used when evaluating operators. It is passed to the
     callback functions as second argument.
 
+    **Additional options**
+
+    Additional options to mesolve can be set via the `options` argument, which
+    should be an instance of class:`qutip.solver.Options`. Many ODE integration
+    options can be set this way, and the `store_states` and `store_final_state`
+    options can be used to store states even though expectation values are
+    requested via the `e_ops` argument.
+
     .. note::
 
         If an element in the list-specification of the Hamiltonian or
-        the list of collapse operators are in super-operator for it will be
+        the list of collapse operators are in superoperator form it will be
         added to the total Liouvillian of the problem with out further
         transformation. This allows for using mesolve for solving master
         equations that are not on standard Lindblad form.
