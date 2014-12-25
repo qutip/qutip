@@ -192,7 +192,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
                 labels = _cb_labels(rho.dims[0])
                 xlabels = xlabels if xlabels is not None else list(labels[0])
                 ylabels = ylabels if ylabels is not None else list(labels[1])
-        
+
         elif rho.isoperket:
             W = vector_to_operator(rho).full()
         elif rho.isoperbra:
@@ -263,7 +263,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
 
     # x axis
     ax.xaxis.set_major_locator(plt.IndexLocator(1, 0.5))
-    
+
     if xlabels:
         ax.set_xticklabels(xlabels)
         if label_top:
