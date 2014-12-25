@@ -206,8 +206,8 @@ class TSlotCompUpdateAll(TimeslotComputer):
                 timeit.default_timer() - time_start
 
         if (dyn.config.test_out_prop or
-            dyn.config.test_out_prop_grad or
-            dyn.config.test_out_evo):
+                dyn.config.test_out_prop_grad or
+                dyn.config.test_out_evo):
             f_ext = "_{}_{}_{}_call{}{}".format(dyn.id_text,
                                                 dyn.prop_computer.id_text,
                                                 dyn.fid_computer.id_text,

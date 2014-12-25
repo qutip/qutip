@@ -505,10 +505,10 @@ class Dynamics:
             if self.config.test_out_amps:
                 fname = "amps_{}_{}_{}_call{}{}".format(
                     self.id_text,
-                            self.prop_computer.id_text,
-                            self.fid_computer.id_text,
-                            self.stats.num_ctrl_amp_updates,
-                            self.config.test_out_f_ext)
+                    self.prop_computer.id_text,
+                    self.fid_computer.id_text,
+                    self.stats.num_ctrl_amp_updates,
+                    self.config.test_out_f_ext)
 
                 fpath = os.path.join(self.config.test_out_dir, fname)
                 self.save_amps(fpath, verbose=True)

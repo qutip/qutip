@@ -246,10 +246,10 @@ class Optimizer:
             dyn = self.dynamics
             f_ext = "_{}_{}_{}_{}{}".format(
                 self.id_text,
-                        dyn.id_text,
-                        dyn.prop_computer.id_text,
-                        dyn.fid_computer.id_text,
-                        cfg.test_out_f_ext)
+                dyn.id_text,
+                dyn.prop_computer.id_text,
+                dyn.fid_computer.id_text,
+                cfg.test_out_f_ext)
             # Prepare the files that will remain open throughout the run
             if cfg.test_out_iter:
                 fname = "iteration_log" + f_ext
@@ -370,11 +370,11 @@ class Optimizer:
             dyn = self.dynamics
             fname = "grad_{}_{}_{}_{}_call{}{}".format(
                 self.id_text,
-                        dyn.id_text,
-                        dyn.prop_computer.id_text,
-                        dyn.fid_computer.id_text,
-                        self.stats.num_grad_func_calls,
-                        self.config.test_out_f_ext)
+                dyn.id_text,
+                dyn.prop_computer.id_text,
+                dyn.fid_computer.id_text,
+                self.stats.num_grad_func_calls,
+                self.config.test_out_f_ext)
 
             fpath = os.path.join(self.config.test_out_dir, fname)
             np.savetxt(fpath, grad, fmt='%11.4g')
@@ -398,7 +398,7 @@ class Optimizer:
             fid_comp = self.dynamics.fid_computer
             self._iter_tofh.write("{:<10n}{:14.6g}{:14.6g}{:14.6g}\n".format(
                 self.num_iter, wall_time,
-                    fid_comp.fid_err, fid_comp.grad_norm))
+                fid_comp.fid_err, fid_comp.grad_norm))
 
         tc = self.termination_conditions
 

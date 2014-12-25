@@ -217,7 +217,7 @@ class PulseGen:
         max_amp = max(pulse)
         min_amp = min(pulse)
         if (max_amp + self.offset <= self.ubound and
-            min_amp + self.offset >= self.lbound):
+                min_amp + self.offset >= self.lbound):
             return pulse + self.offset
 
         # Some shifting / scaling is required.

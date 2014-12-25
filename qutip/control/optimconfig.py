@@ -207,13 +207,13 @@ class OptimConfig:
         That is debug files written to the test_out directory
         """
         if (self.test_out_iter or
-            self.test_out_fid_err or
-            self.test_out_grad_norm or
-            self.test_out_grad or
-            self.test_out_amps or
-            self.test_out_prop or
-            self.test_out_prop_grad or
-            self.test_out_evo):
+                self.test_out_fid_err or
+                self.test_out_grad_norm or
+                self.test_out_grad or
+                self.test_out_amps or
+                self.test_out_prop or
+                self.test_out_prop_grad or
+                self.test_out_evo):
             return True
         else:
             return False
