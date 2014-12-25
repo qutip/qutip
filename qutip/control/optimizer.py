@@ -87,7 +87,7 @@ import numpy as np
 import timeit
 import scipy.optimize as spopt
 import copy
-#QuTiP
+# QuTiP
 from qutip import Qobj
 import qutip.logging as logging
 logger = logging.get_logger()
@@ -161,7 +161,7 @@ class Optimizer:
         self._iter_tofh = 0
         self._fid_err_tofh = 0
         self._grad_norm_tofh = 0
-        
+
     def set_log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
@@ -199,10 +199,10 @@ class Optimizer:
         """
         Check optimiser attribute status and passed parameters before
         running the optimisation.
-        """           
-        
+        """
+
         self._check_prepare_test_out_files()
-        
+
         if term_conds is not None:
             self.termination_conditions = term_conds
         term_conds = self.termination_conditions
@@ -227,7 +227,7 @@ class Optimizer:
 
         if self.stats is not None:
             self.stats.clear()
-            
+
     def _check_prepare_test_out_files(self):
         cfg = self.config
         if cfg.any_test_files():
@@ -236,17 +236,17 @@ class Optimizer:
             else:
                 if self.stats is None:
                     logger.warn("Cannot output test files when stats"
-                                    " attribute is not set.")
+                                " attribute is not set.")
                     cfg.test_out_iter = False
                     cfg.test_out_fid_err = False
                     cfg.test_out_grad_norm = False
                     cfg.test_out_grad = False
-        
+
         if cfg.any_test_files():
             dyn = self.dynamics
             f_ext = "_{}_{}_{}_{}{}".format(
-                        self.id_text,
-                        dyn.id_text, 
+                self.id_text,
+                        dyn.id_text,
                         dyn.prop_computer.id_text,
                         dyn.fid_computer.id_text,
                         cfg.test_out_f_ext)
@@ -256,45 +256,45 @@ class Optimizer:
                 fpath = os.path.join(cfg.test_out_dir, fname)
                 self._iter_tofh = open(fpath, 'w')
                 self._iter_tofh.write("iter           wall_time       "
-                                        "fid_err     grad_norm\n")
+                                      "fid_err     grad_norm\n")
                 logger.info("Iteration log will be saved to:\n{}".format(
-                                                                    fpath))
+                    fpath))
             else:
                 self._iter_tofh = 0
-                
+
             if cfg.test_out_fid_err:
                 fname = "fid_err" + f_ext
                 fpath = os.path.join(cfg.test_out_dir, fname)
                 self._fid_err_tofh = open(fpath, 'w')
                 self._fid_err_tofh.write("call             fid_err\n")
                 logger.info("Fidelity error log will be saved to:\n{}".format(
-                                                                    fpath))
+                    fpath))
             else:
                 self._fid_err_tofh = 0
-                
+
             if cfg.test_out_grad_norm:
                 fname = "grad_norm" + f_ext
                 fpath = os.path.join(cfg.test_out_dir, fname)
                 self._grad_norm_tofh = open(fpath, 'w')
                 self._grad_norm_tofh.write("call           grad_norm\n")
                 logger.info("Gradient norm log will be saved to:\n{}".format(
-                                                                    fpath))
+                    fpath))
             else:
                 self._grad_norm_tofh = 0
-                
+
     def _check_close_test_out_files(self):
         if self._iter_tofh != 0:
             self._iter_tofh.close()
             self._iter_tofh = 0
-            
+
         if self._fid_err_tofh != 0:
             self._fid_err_tofh.close()
             self._fid_err_tofh = 0
-            
+
         if self._grad_norm_tofh != 0:
             self._grad_norm_tofh.close()
             self._grad_norm_tofh = 0
-            
+
     def fid_err_func_wrapper(self, *args):
         """
         Get the fidelity error achieved using the ctrl amplitudes passed
@@ -309,12 +309,12 @@ class Optimizer:
         The error is checked against the target, and the optimisation is
         terminated if the target has been achieved.
         """
-        # *** update stats ***       
+        # *** update stats ***
         if self.stats is not None:
             self.stats.num_fidelity_func_calls += 1
             if self.log_level <= logging.DEBUG:
                 logger.debug("fidelity error call {}".format(
-                        self.stats.num_fidelity_func_calls))
+                    self.stats.num_fidelity_func_calls))
 
         amps = args[0].copy().reshape(self.dynamics.ctrl_amps.shape)
         self.dynamics.update_ctrl_amps(amps)
@@ -324,8 +324,8 @@ class Optimizer:
 
         if self._fid_err_tofh != 0:
             self._fid_err_tofh.write("{:<10n}{:14.6g}\n".format(
-                        self.stats.num_fidelity_func_calls, err))
-                
+                self.stats.num_fidelity_func_calls, err))
+
         if err <= tc.fid_err_targ:
             raise errors.GoalAchievedTerminate(err)
 
@@ -360,25 +360,25 @@ class Optimizer:
         # gradient_norm_func is a pointer to the function set in the config
         # that returns the normalised gradients
         grad = fid_comp.get_fid_err_gradient()
-        
+
         if self._grad_norm_tofh != 0:
             self._grad_norm_tofh.write("{:<10n}{:14.6g}\n".format(
-                        self.stats.num_grad_func_calls, fid_comp.grad_norm))
-                        
+                self.stats.num_grad_func_calls, fid_comp.grad_norm))
+
         if self.config.test_out_grad:
             # save gradients to file
             dyn = self.dynamics
             fname = "grad_{}_{}_{}_{}_call{}{}".format(
-                        self.id_text,
-                        dyn.id_text, 
+                self.id_text,
+                        dyn.id_text,
                         dyn.prop_computer.id_text,
-                        dyn.fid_computer.id_text, 
+                        dyn.fid_computer.id_text,
                         self.stats.num_grad_func_calls,
                         self.config.test_out_f_ext)
-                        
+
             fpath = os.path.join(self.config.test_out_dir, fname)
             np.savetxt(fpath, grad, fmt='%11.4g')
-        
+
         tc = self.termination_conditions
         if fid_comp.grad_norm < tc.min_gradient_norm:
             raise errors.GradMinReachedTerminate(fid_comp.grad_norm)
@@ -391,13 +391,13 @@ class Optimizer:
         """
         if self.log_level <= logging.DEBUG:
             logger.debug("Iteration callback {}".format(self.num_iter))
-        
+
         wall_time = timeit.default_timer() - self.wall_time_optimize_start
         if self._iter_tofh != 0:
             # write out: iter wall_time fid_err grad_norm
             fid_comp = self.dynamics.fid_computer
             self._iter_tofh.write("{:<10n}{:14.6g}{:14.6g}{:14.6g}\n".format(
-                    self.num_iter, wall_time, 
+                self.num_iter, wall_time,
                     fid_comp.fid_err, fid_comp.grad_norm))
 
         tc = self.termination_conditions
@@ -450,7 +450,7 @@ class OptimizerBFGS(Optimizer):
     def reset(self):
         Optimizer.reset(self)
         self.id_text = 'BFGS'
-        
+
     def run_optimization(self, term_conds=None):
         """
         Optimise the control pulse amplitudes to minimise the fidelity error
@@ -519,11 +519,11 @@ class OptimizerLBFGSB(Optimizer):
     """
     Implements the run_optimization method using the L-BFGS-B algorithm
     """
-    
+
     def reset(self):
         Optimizer.reset(self)
         self.id_text = 'LBFGSB'
-        
+
     def _build_bounds_list(self):
         cfg = self.config
         dyn = self.dynamics
@@ -582,7 +582,7 @@ class OptimizerLBFGSB(Optimizer):
             self.stats.wall_time_optim_end = 0.0
             self.stats.num_iter = 1
 
-        bounds = self._build_bounds_list()        
+        bounds = self._build_bounds_list()
         result = self._create_result()
         if self.log_level < logging.DEBUG:
             alg_msg_lvl = 1
