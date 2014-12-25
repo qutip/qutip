@@ -13,18 +13,36 @@ Version 3.1.0 (January 1, 2015):
 New Features
 -------------
 
-- Much faster Python based monte carlo solver (mcsolve).
+- MAJOR FEATURE: New module for quantum control (qutip.control).
+- NAMESPACE CHANGE: QuTiP no longer exports symbols from NumPy and matplotlib, so those modules must now be explicitly imported when required.
+- New module for counting statistics.
 - Stochastic solvers now run trajectories in parallel.
-- Time-dependent Cython code now calls complex cmath functions.
 - New superoperator and tensor manipulation functions
   (super_tensor, composite, tensor_contract).
+- New logging module for debugging (qutip.logging).
+- New user-available API for parallelization (parallel_map).
+- New enhanced (optional) text-based progressbar (qutip.ui.EnhancedTextProgressBar)
+- Faster Python based monte carlo solver (mcsolve).
+- Support for progress bars in propagator function.
+- Time-dependent Cython code now calls complex cmath functions.
+- Random numbers seeds can now be reused for successive calls to mcsolve.
+- The Bloch-Redfield master equation solver now supports optional Lindblad type collapse operators.
+- Improved handling of ODE integration errors in mesolve.
+- Improved correlation function module (for example, improved support for time-dependent problems).
+- Improved parallelization of mcsolve (can now be interrupted easily, support for IPython.parallel, etc.)
+- Many performance improvements, and much internal code restructuring.
 
 Bug Fixes
 ---------
 
 - Cython build files for time-dependent string format now removed automatically.
 - Fixed incorrect solution time from inverse-power method steady state solver.
-
+- mcsolve now supports `Options(store_states=True)`
+- Fixed bug in `hadamard` gate function.
+- Fixed compatibility issues with NumPy 1.9.0.
+- Progressbar in mcsolve can now be suppressed.
+- Fixed bug in `gate_expand_3toN`.
+- Fixed bug for time-dependent problem (list string format) with multiple terms in coefficient to an operator.
 
 Version 3.0.1 (Aug 5, 2014):
 ++++++++++++++++++++++++++++
