@@ -13,7 +13,7 @@ Developers
 Lead Developers
 ===============
 
-`Robert Johansson <http://dml.riken.jp/~rob/>`_ (RIKEN)
+`Robert Johansson <http://jrjohansson.github.io/research.html/>`_ (RIKEN)
 
 `Paul Nation <http://nqdl.korea.ac.kr>`_ (Korea University)
 
@@ -28,6 +28,8 @@ Contributors
 	Anyone is welcome to contribute to QuTiP.  If you are interested in helping, please let us know!
 
 **alexbrc** (github user) - Code contributor
+
+**Alexander Pitchford** (Aberystwyth University) - Code contributor
 
 **Amit Jamadagni** - Bug fix
 
