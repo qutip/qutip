@@ -25,6 +25,14 @@ The official releases of QuTiP can be downloaded at:
 
 [http://qutip.org/download.html](http://qutip.org/download.html)
 
+
+Installation
+------------
+
+For instructions on how to install QuTiP see:
+
+[http://qutip.org/docs/3.1.0/installation.html](http://qutip.org/docs/3.1.0/installation.html)
+
 Documentation 
 -------------
 
