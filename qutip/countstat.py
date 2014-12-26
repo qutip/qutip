@@ -1,4 +1,3 @@
-
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
@@ -31,11 +30,13 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
+"""
+This module contains functions for calculating current and current noise using
+the counting statistics formalism.
+"""
 __all__ = ['countstat_current', 'countstat_current_noise']
 
 import numpy as np
-#import scipy
 import scipy.sparse as sp
 
 from qutip.expect import expect_rho_vec
@@ -47,9 +48,10 @@ from qutip import operator_to_vector, identity, tensor
 def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
     """
     Calculate the current corresponding a system Liouvillian `L` and a list of
-    current collapse operators `c_ops` or current superoperators `J_ops` (either
-    must be specified). Optionally the steadystate density matrix `rhoss` and a list of current superoperators `J_ops` can be
-    specified. If either of these are omitted they are computed internally.
+    current collapse operators `c_ops` or current superoperators `J_ops`
+    (either must be specified). Optionally the steadystate density matrix
+    `rhoss` and a list of current superoperators `J_ops` can be specified. If
+    either of these are omitted they are computed internally.
 
     Parameters
     ----------
@@ -73,7 +75,6 @@ def countstat_current(L, c_ops=None, rhoss=None, J_ops=None):
         The currents `I` corresponding to each current collapse operator
         `c_ops` (or, equivalently, each current superopeator `J_ops`).
     """
-
 
     if J_ops is None:
         if c_ops is None:

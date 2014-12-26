@@ -30,7 +30,10 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
+"""
+This function provides functions for parallel execution of loops and function
+mappings, using the builtin Python module multiprocessing.
+"""
 __all__ = ['parfor', 'parallel_map', 'serial_map']
 
 from scipy import array
@@ -64,6 +67,11 @@ def parfor(func, *args, **kwargs):
 
     Parallel execution of a for-loop over function `func` for multiple input
     arguments and keyword arguments.
+
+    .. note::
+
+        From QuTiP 3.1.0, we recommend to use :func:`qutip.parallel_map`
+        instead of this function.
 
     Parameters
     ----------
@@ -131,7 +139,12 @@ def parfor(func, *args, **kwargs):
 def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
     """
     Serial mapping function with the same call signature as parallel_map, for
-    easy switching between serial and parallel execution.
+    easy switching between serial and parallel execution. This
+    is functionally equivalent to:
+
+        result = [task(value, *task_args, **task_kwargs) for value in values]
+
+    This function work as a drop-in replacement of :func:`qutip.parallel_map`.
 
     Parameters
     ----------
@@ -156,7 +169,7 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
     --------
     result : list
         The result list contains the value of
-        ``task(value, task_args, task_kwargs)`` for each
+        ``task(value, *task_args, **task_kwargs)`` for each
         value in ``values``.
     """
     try:
@@ -179,7 +192,10 @@ def serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
 
 def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
     """
-    Parallel execution of a mapping of `values` to the function `task`.
+    Parallel execution of a mapping of `values` to the function `task`. This
+    is functionally equivalent to:
+
+        result = [task(value, *task_args, **task_kwargs) for value in values]
 
     Parameters
     ----------
@@ -204,7 +220,7 @@ def parallel_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
     --------
     result : list
         The result list contains the value of
-        ``task(value, task_args, task_kwargs)`` for each
+        ``task(value, *task_args, **task_kwargs)`` for each
         value in ``values``.
 
     """

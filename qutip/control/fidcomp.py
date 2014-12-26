@@ -122,7 +122,7 @@ class FideliyComputer:
     fid_err_grad: array[num_tslot, num_ctrls] of float
         Last computed values for the fidelity error gradients wrt the
         control in the timeslot
-        
+
     grad_norm : float
         Last computed value for the norm of the fidelity error gradients
         (sqrt of the sum of the squares)
@@ -405,8 +405,8 @@ class FidCompUnitary(FideliyComputer):
 
             if self.log_level <= logging.DEBUG:
                 logger.debug("Gradient (sum sq norm): "
-                            "{} ".format(self.grad_norm))
-                
+                             "{} ".format(self.grad_norm))
+
         return self.fid_err_grad
 
     def compute_fid_grad(self):
@@ -430,7 +430,7 @@ class FidCompUnitary(FideliyComputer):
         for j in range(n_ctrls):
             for k in range(n_ts):
                 owd_evo = dyn.evo_t2targ[k+1]
-                fwd_evo = dyn.evo_init2t[k]               
+                fwd_evo = dyn.evo_init2t[k]
                 g = np.trace(owd_evo.dot(dyn.prop_grad[k, j]).dot(fwd_evo))
                 grad[k, j] = g
         if dyn.stats is not None:
@@ -500,11 +500,11 @@ class FidCompTraceDiff(FideliyComputer):
             # Note that the value should have not imagnary part, so using
             # np.real, just avoids the complex casting warning
             self.fid_err = self.scale_factor*np.real(
-                        np.trace(evo_f_diff.conj().T.dot(evo_f_diff)))
-                        
+                np.trace(evo_f_diff.conj().T.dot(evo_f_diff)))
+
             if np.isnan(self.fid_err):
                 self.fid_err = np.Inf
-                
+
             if dyn.stats is not None:
                     dyn.stats.num_fidelity_computes += 1
 
@@ -536,8 +536,8 @@ class FidCompTraceDiff(FideliyComputer):
 
             if self.log_level <= logging.DEBUG:
                 logger.debug("Gradient norm: "
-                            "{} ".format(self.grad_norm))
-                
+                             "{} ".format(self.grad_norm))
+
         return self.fid_err_grad
 
     def compute_fid_err_grad(self):
@@ -574,10 +574,10 @@ class FidCompTraceDiff(FideliyComputer):
                 # Note that the value should have not imagnary part, so using
                 # np.real, just avoids the complex casting warning
                 g = -2*self.scale_factor*np.real(
-                        np.trace(evo_f_diff.conj().T.dot(evo_grad)))
+                    np.trace(evo_f_diff.conj().T.dot(evo_grad)))
                 if np.isnan(g):
                     g = np.Inf
-                    
+
                 grad[k, j] = g
         if dyn.stats is not None:
             dyn.stats.wall_time_gradient_compute += \
