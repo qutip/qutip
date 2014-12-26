@@ -31,18 +31,19 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-"""
-Created on Fri Mar 07 17:31:04 2014
-@author: Alexander Pitchford
-@email1: agp1@aber.ac.uk
-@email2: alex.pitchford@gmail.com
-@organization: Aberystwyth University
-@supervisor: Daniel Burgarth
 
+# @author: Alexander Pitchford
+# @email1: agp1@aber.ac.uk
+# @email2: alex.pitchford@gmail.com
+# @organization: Aberystwyth University
+# @supervisor: Daniel Burgarth
+
+"""
 Classes containing termination conditions for the control pulse optimisation
 i.e. attributes that will be checked during the optimisation, that
 will determine if the algorithm has completed its task / exceeded limits
 """
+
 
 class TerminationConditions:
     """
@@ -50,12 +51,12 @@ class TerminationConditions:
     Used to determine when to stop the optimisation algorithm
     Note different subclasses should be used to match the type of
     optimisation being used
-    
+
     Attributes
     ----------
     fid_err_targ : float
         Target fidelity error
-        
+
     fid_goal : float
         goal fidelity, e.g. 1 - self.fid_err_targ
         It its typical to set this for unitary systems
@@ -65,17 +66,17 @@ class TerminationConditions:
 
     min_gradient_norm : float
         Minimum normalised gradient after which optimisation will terminate
-        
+
     max_iterations : integer
-        Maximum iterations of the optimisation algorithm 
-        
+        Maximum iterations of the optimisation algorithm
+
     max_fid_func_calls : integer
-        Maximum number of calls to the fidelity function during 
-        the optimisation algorithm 
+        Maximum number of calls to the fidelity function during
+        the optimisation algorithm
     """
     def __init__(self):
         self.reset()
-        
+
     def reset(self):
         self.fid_err_targ = None
         self.fid_goal = None
@@ -83,4 +84,3 @@ class TerminationConditions:
         self.min_gradient_norm = 1e-5
         self.max_iterations = 1e10
         self.max_fid_func_calls = 1e10
-        

@@ -48,6 +48,7 @@ import scipy.sparse as sp
 
 from qutip.qobj import Qobj
 
+
 #
 # Spin operators
 #

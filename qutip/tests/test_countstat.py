@@ -30,30 +30,67 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
 import numpy as np
-from numpy.testing import assert_, assert_equal, run_module_suite
-from qutip.states import basis
-from qutip.three_level_atom import *
+from numpy.testing import assert_, assert_allclose, run_module_suite
+
+from qutip import (projection, sprepost, liouvillian, countstat_current,
+                   countstat_current_noise, steadystate)
 
 
-three_states = three_level_basis()
-three_check = np.array([basis(3), basis(3, 1), basis(3, 2)], dtype=object)
-three_ops = three_level_ops()
+def test_dqd_current():
+    "Counting statistics: current and current noise in a DQD model"
 
+    G = 0
+    L = 1
+    R = 2
 
-def testThreeStates():
-    "Three-level atom: States"
-    assert_equal(np.all(three_states == three_check), True)
+    sz = projection(3, L, L) - projection(3, R, R)
+    sx = projection(3, L, R) + projection(3, R, L)
+    sR = projection(3, G, R)
+    sL = projection(3, G, L)
 
+    w0 = 1
+    tc = 0.6 * w0
+    GammaR = 0.0075 * w0
+    GammaL = 0.0075 * w0
+    nth = 0.00001
+    eps_vec = np.linspace(-1.5*w0, 1.5*w0, 20)
 
-def testThreeOps():
-    "Three-level atom: Operators"
-    assert_equal((three_ops[0]*three_states[0]).full(), three_check[0].full())
-    assert_equal((three_ops[1]*three_states[1]).full(), three_check[1].full())
-    assert_equal((three_ops[2]*three_states[2]).full(), three_check[2].full())
-    assert_equal((three_ops[3]*three_states[1]).full(), three_check[0].full())
-    assert_equal((three_ops[4]*three_states[1]).full(), three_check[2].full())
+    J_ops = [GammaR * sprepost(sR, sR.dag())]
+
+    c_ops = [np.sqrt(GammaR/(2) * (1 + nth)) * sR,
+             np.sqrt(GammaR/(2) * (nth)) * sR.dag(),
+             np.sqrt(GammaL/(2) * (nth)) * sL,
+             np.sqrt(GammaL/(2) * (1 + nth)) * sL.dag(),
+             ]
+
+    I = np.zeros(len(eps_vec))
+    S = np.zeros(len(eps_vec))
+
+    for n, eps in enumerate(eps_vec):
+        H = (eps/2 * sz + tc * sx)
+        L = liouvillian(H, c_ops)
+        rhoss = steadystate(L)
+        I[n], S[n] = countstat_current_noise(L, [], rhoss=rhoss, J_ops=J_ops)
+
+        I2 = countstat_current(L, rhoss=rhoss, J_ops=J_ops)
+        assert_(abs(I[n] - I2) < 1e-8)
+
+        I2 = countstat_current(L, c_ops, J_ops=J_ops)
+        assert_(abs(I[n] - I2) < 1e-8)
+
+    Iref = tc**2 * GammaR / (tc**2 * (2 + GammaR/GammaL) +
+                             GammaR**2/4 + eps_vec**2)
+    Sref = 1 * Iref * (
+        1 - 8 * GammaL * tc**2 *
+        (4 * eps_vec**2 * (GammaR - GammaL) +
+         GammaR * (3 * GammaL * GammaR + GammaR**2 + 8*tc**2)) /
+        (4 * tc**2 * (2 * GammaL + GammaR) + GammaL * GammaR**2 +
+         4 * eps_vec**2 * GammaL)**2
+    )
+
+    assert_allclose(I, Iref, 1e-4)
+    assert_allclose(S, Sref, 1e-4)
 
 if __name__ == "__main__":
     run_module_suite()

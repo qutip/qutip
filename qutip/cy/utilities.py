@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
-#    Copyright (c) 2014 and later, Alexander J G Pitchford
+#    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
 #    Redistribution and use in source and binary forms, with or without
@@ -31,34 +30,28 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-
-# @author: Alexander Pitchford
-# @email1: agp1@aber.ac.uk
-# @email2: alex.pitchford@gmail.com
-# @organization: Aberystwyth University
-# @supervisor: Daniel Burgarth
-
-"""
-Utility functions for symplectic matrices
-"""
-
-import numpy as np
+import os
+import sysconfig
+from distutils.util import get_platform
+from distutils.sysconfig import get_python_version
+from qutip.solver import config
 
 
-def calc_omega(n):
-    """
-    Calculate the 2n x 2n omega matrix
-    Used in calcualating the propagators in systems described by symplectic
-    matrices
-    returns omega
-    """
-
-    omg = np.zeros((2*n, 2*n))
-    for j in range(2*n):
-        for k in range(2*n):
-            if k == j+1:
-                omg[j, k] = (1 + (-1)**j)/2
-            if k == j-1:
-                omg[j, k] = -(1 - (-1)**j)/2
-
-    return omg
+def _cython_build_cleanup(tdname, build_dir=None):
+    plat_and_py = get_platform()+'-'+get_python_version()+'/'
+    sys_so_var = sysconfig.get_config_var('SO')
+    if build_dir is None:
+        build_dir = os.path.join(os.path.expanduser('~'), '.pyxbld')
+    lib_dir = '/lib.' + plat_and_py
+    temp_dir = '/temp.' + plat_and_py
+    pyx_file = tdname + ".pyx"
+    lib_file = build_dir + lib_dir + tdname + sys_so_var
+    temp_c_file = build_dir + temp_dir + 'pyrex/' + tdname + ".c"
+    temp_o_file = build_dir + temp_dir + build_dir + temp_dir \
+        + 'pyrex/' + tdname + ".o"
+    for file in [pyx_file, lib_file, temp_c_file, temp_o_file]:
+        try:
+            os.remove(file)
+        except:
+            pass
+    return

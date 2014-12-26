@@ -31,16 +31,14 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+
+# @author: Alexander Pitchford
+# @email1: agp1@aber.ac.uk
+# @email2: alex.pitchford@gmail.com
+# @organization: Aberystwyth University
+# @supervisor: Daniel Burgarth
+
 """
-Created on Tue May 06 15:03:42 2014
-
-@author: Alexander Pitchford
-@email1: agp1@aber.ac.uk
-@email2: alex.pitchford@gmail.com
-@organization: Aberystwyth University
-@supervisor: Daniel Burgarth
-
-
 Loads parameters for config, termconds, dynamics and Optimiser objects from a
 parameter (ini) file with appropriate sections and options, these being
 Sections: optimconfig, termconds, dynamics, optimizer
@@ -51,8 +49,9 @@ defined for that object
 
 from ConfigParser import SafeConfigParser
 
-def load_parameters(file_name, config=None, term_conds=None, 
-                        dynamics=None, optim=None):
+
+def load_parameters(file_name, config=None, term_conds=None,
+                    dynamics=None, optim=None):
     """
     Import parameters for the optimisation objects
     Will throw a ValueError if file_name does not exist
@@ -61,31 +60,32 @@ def load_parameters(file_name, config=None, term_conds=None,
     readFiles = parser.read(file_name)
     if len(readFiles) == 0:
         raise ValueError("Parameter file '{}' not found".format(file_name))
-    
+
     if config is not None:
         s = 'optimconfig'
         attr_names = parser.options(s)
         for a in attr_names:
             set_param(parser, s, a, config, a)
-            
+
     if term_conds is not None:
         s = 'termconds'
         attr_names = parser.options(s)
         for a in attr_names:
             set_param(parser, s, a, term_conds, a)
-            
+
     if dynamics is not None:
         s = 'dynamics'
         attr_names = parser.options(s)
         for a in attr_names:
             set_param(parser, s, a, dynamics, a)
-            
+
     if optim is not None:
         s = 'optimizer'
         attr_names = parser.options(s)
         for a in attr_names:
             set_param(parser, s, a, optim, a)
-            
+
+
 def set_param(parser, section, option, obj, attrib_name):
     """
     Set the object attribute value based on the option value from the
@@ -93,15 +93,15 @@ def set_param(parser, section, option, obj, attrib_name):
     If the attribute exists already, then its datatype
     is used to call the appropriate parser.get method
     Otherwise the parameter is assumed to be a string
-    
+
     """
     val = parser.get(section, attrib_name)
-    
+
     dtype = None
     if hasattr(obj, attrib_name):
         a = getattr(obj, attrib_name)
         dtype = type(a)
-                
+
     if dtype == float:
         try:
             f = parser.getfloat(section, attrib_name)
@@ -109,33 +109,34 @@ def set_param(parser, section, option, obj, attrib_name):
             try:
                 f = eval(val)
             except:
-                raise ValueError("Value '{}' cannot be cast or evaluated as a "
-                            "float in parameter file [{}].{}".format(val, 
-                            section, option))
+                raise ValueError(
+                    "Value '{}' cannot be cast or evaluated as a "
+                    "float in parameter file [{}].{}".format(
+                        val, section, option))
         setattr(obj, attrib_name, f)
     elif dtype == complex:
         try:
             c = complex(val)
         except:
-            raise ValueError("Value '{}' cannot be cast as complex" 
-                        " in parameter file [{}].{}".format(val, 
-                        section, option))
-        setattr(obj, attrib_name, c)          
+            raise ValueError("Value '{}' cannot be cast as complex"
+                             " in parameter file [{}].{}".format(
+                                 val, section, option))
+        setattr(obj, attrib_name, c)
     elif dtype == int:
         try:
             i = parser.getint(section, attrib_name)
         except:
             raise ValueError("Value '{}' cannot be cast as an int"
-                        " in parameter file [{}].{}".format(val, 
-                        section, option))
+                             " in parameter file [{}].{}".format(
+                                 val, section, option))
         setattr(obj, attrib_name, i)
     elif dtype == bool:
         try:
             b = parser.getboolean(section, attrib_name)
         except:
             raise ValueError("Value '{}' cannot be cast as a bool"
-                        " in parameter file [{}].{}".format(val, 
-                        section, option))
+                             " in parameter file [{}].{}".format(
+                                 val, section, option))
         setattr(obj, attrib_name, b)
     else:
         setattr(obj, attrib_name, val)

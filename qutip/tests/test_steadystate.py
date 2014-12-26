@@ -36,6 +36,7 @@ from numpy.testing import assert_, assert_equal, run_module_suite
 
 from qutip import (sigmaz, destroy, steadystate, expect, coherent_dm)
 
+
 def test_qubit_direct():
     "Steady state: Thermal qubit - direct solver"
     # thermal steadystate of a qubit: compare numerics with analytical formula
@@ -174,7 +175,7 @@ def test_qubit_bicgstab():
     p_ss_analytic = np.exp(-1.0 / wth_vec) / (1 + np.exp(-1.0 / wth_vec))
     delta = sum(abs(p_ss_analytic - p_ss))
     assert_equal(delta < 1e-5, True)
-    
+
 
 def test_qubit_lgmres():
     "Steady state: Thermal qubit - iterative-lgmres solver"
