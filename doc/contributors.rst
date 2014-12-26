@@ -13,7 +13,7 @@ Developers
 Lead Developers
 ===============
 
-`Robert Johansson <http://jrjohansson.github.io/research.html/>`_ (RIKEN)
+`Robert Johansson <http://jrjohansson.github.io/research.html>`_ (RIKEN)
 
 `Paul Nation <http://nqdl.korea.ac.kr>`_ (Korea University)
 
