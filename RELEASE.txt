@@ -1,4 +1,0 @@
-# QuTiP RELEASE NOTES
-## P.D. Nation and J.R. Johansson
-
-See http://github.com/qutip/qutip-doc/blob/master/changelog.rst
