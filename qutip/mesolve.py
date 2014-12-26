@@ -131,10 +131,10 @@ def mesolve(H, rho0, tlist, c_ops, e_ops, args={}, options=None,
     **Additional options**
 
     Additional options to mesolve can be set via the `options` argument, which
-    should be an instance of class:`qutip.solver.Options`. Many ODE integration
-    options can be set this way, and the `store_states` and `store_final_state`
-    options can be used to store states even though expectation values are
-    requested via the `e_ops` argument.
+    should be an instance of :class:`qutip.solver.Options`. Many ODE
+    integration options can be set this way, and the `store_states` and
+    `store_final_state` options can be used to store states even though
+    expectation values are requested via the `e_ops` argument.
 
     .. note::
 
