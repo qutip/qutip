@@ -158,9 +158,10 @@ Optional, but recommended, dependencies can be installed using:
 
 .. code-block:: bash
 
-    sudo apt-get install texlive-latex-extra # recommended
+    sudo apt-get install texlive-latex-extra # recommended for plotting
     sudo apt-get install mayavi2             # optional, for Bloch3d only
     sudo apt-get install libblas-dev         # optional, for Fortran Monte Carlo solver
+    sudo apt-get install liblapack-dev       # optional, for Fortran Monte Carlo solver
     sudo apt-get install gfortran            # optional, for Fortran Monte Carlo solver
 
 .. _install-mac:
