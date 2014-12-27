@@ -35,13 +35,10 @@
 #    Significant parts of this code were contributed by Denis Vasilyev.
 #
 ###############################################################################
-
 """
-This module contains experimental functions for solving stochastic schrodinger
-and master equations. The API should not be considered stable, and is subject
-to change when we work more on optimizing this module for performance and
-features.
-
+This module contains functions for solving stochastic schrodinger and master
+equations. The API should not be considered stable, and is subject to change
+when we work more on optimizing this module for performance and features.
 """
 
 __all__ = ['ssesolve', 'ssepdpsolve', 'smesolve', 'smepdpsolve']
@@ -65,6 +62,7 @@ from qutip.superoperator import (spre, spost, mat2vec, vec2mat,
 from qutip.cy.spmatfuncs import cy_expect_psi_csr, spmv, cy_expect_rho_vec
 from qutip.cy.stochastic import (cy_d1_rho_photocurrent,
                                  cy_d2_rho_photocurrent)
+from qutip.parallel import serial_map
 from qutip.ui.progressbar import TextProgressBar
 from qutip.solver import Options
 from qutip.settings import debug
@@ -255,35 +253,14 @@ class StochasticSolverOptions:
         if self.ntraj > 1 and map_func:
             self.map_func = map_func
         else:
-            self.map_func = _serial_map
+            self.map_func = serial_map
 
         self.map_kwargs = map_kwargs if map_kwargs is not None else {}
 
 
-def _serial_map(task, values, task_args=tuple(), task_kwargs={}, **kwargs):
-    """
-    Call task function task for each value in values. Collect the results
-    in a list and return it.
-    """
-    try:
-        progress_bar = kwargs['progress_bar']
-    except:
-        progress_bar = TextProgressBar()
-
-    progress_bar.start(len(values))
-    results = []
-    for n, value in enumerate(values):
-        progress_bar.update(n)
-        result = task(n, *task_args, **task_kwargs)
-        results.append(result)
-    progress_bar.finished()
-
-    return results
-
-
 def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
     """
-    Solve stochastic Schrödinger equation. Dispatch to specific solvers
+    Solve the stochastic Schrödinger equation. Dispatch to specific solvers
     depending on the value of the `solver` keyword argument.
 
     Parameters
@@ -1231,16 +1208,16 @@ def _smepdpsolve_single_trajectory(data, L, dt, times, N_store, N_substeps,
 
         for j in range(N_substeps):
 
-            if expect_rho_vec(d_op, sigma_t) < r_jump:
+            if sigma_t.norm() < r_jump:
                 # jump occurs
                 p = np.array([expect(c.dag() * c, rho_t) for c in c_ops])
                 p = np.cumsum(p / np.sum(p))
                 n = np.where(p >= r_op)[0][0]
 
                 # apply jump
-                rho_t = c_ops[n] * psi_t * c_ops[n].dag()
-                rho_t /= rho_expect(c.dag() * c, rho_t)
-                rho_t = np.copy(rho_t)
+                rho_t = c_ops[n] * rho_t * c_ops[n].dag()
+                rho_t /= expect(c_ops[n].dag() * c_ops[n], rho_t)
+                sigma_t = np.copy(rho_t)
 
                 # store info about jump
                 jump_times.append(times[t_idx] + dt * j)
@@ -1521,8 +1498,13 @@ def _generate_noise_Milstein(sc_len, N_store, N_substeps, d2_len, dt):
         noise = np.vstack([dW_temp, 0.5 * (dW_temp * dW_temp - dt *
                           np.ones((sc_len, N_store, N_substeps, 1)))])
     else:
-        noise = np.vstack([dW_temp, 0.5 * (dW_temp * dW_temp - dt * np.ones((sc_len, N_store, N_substeps, 1)))] +
-                          [[dW_temp[n] * dW_temp[m] for (n, m) in np.ndindex(sc_len, sc_len) if n > m]])
+        noise = np.vstack(
+            [dW_temp,
+             0.5 * (dW_temp * dW_temp -
+                    dt * np.ones((sc_len, N_store, N_substeps, 1)))] +
+            [[dW_temp[n] * dW_temp[m]
+              for (n, m) in np.ndindex(sc_len, sc_len) if n > m]])
+
     return noise
 
 
@@ -1802,15 +1784,17 @@ def _rhs_rho_milstein_homodyne(L, rho_t, t, A_ops, dt, dW, d1, d2, args):
     drho_t += d1_vec * dt
     drho_t += np.sum([(d2_vec[n] - e1[n] * rho_t) * dW[n, 0]
                       for n in range(A_len)], axis=0)
-    drho_t += 0.5 * np.sum([(d2_vec2[n, n] - 2.0 * e1[n] * d2_vec[n] +
-                            (-e2[n, n] + 2.0 * e1[n] * e1[n]) * rho_t) * (dW[n, 0] * dW[n, 0] - dt)
-                            for n in range(A_len)], axis=0)
+    drho_t += 0.5 * np.sum(
+        [(d2_vec2[n, n] - 2.0 * e1[n] * d2_vec[n] +
+         (-e2[n, n] + 2.0 * e1[n] * e1[n]) * rho_t) * (dW[n, 0]*dW[n, 0] - dt)
+         for n in range(A_len)], axis=0)
 
     # This calculation is suboptimal. We need only values for m>n in case of
     # commuting jump operators.
-    drho_t += 0.5 * np.sum([(d2_vec2[n, m] - e1[m] * d2_vec[n] - e1[n] * d2_vec[m] +
-                             (-e2[n, m] + 2.0 * e1[n] * e1[m]) * rho_t) * (dW[n, 0] * dW[m, 0])
-                            for (n, m) in np.ndindex(A_len, A_len) if n != m], axis=0)
+    drho_t += 0.5 * np.sum(
+        [(d2_vec2[n, m] - e1[m] * d2_vec[n] - e1[n] * d2_vec[m] +
+         (-e2[n, m] + 2.0 * e1[n] * e1[m]) * rho_t) * (dW[n, 0] * dW[m, 0])
+         for (n, m) in np.ndindex(A_len, A_len) if n != m], axis=0)
 
     return rho_t + drho_t
 
@@ -1869,7 +1853,8 @@ def _rhs_rho_milstein_homodyne_fast(L, rho_t, t, A, dt, ddW, d1, d2, args):
     sc2_len = 2 * sc_len
 
     d_vec = spmv(A[0][0], rho_t).reshape(-1, len(rho_t))
-    e = np.real(d_vec[:-1].reshape(-1, A[0][1], A[0][1]).trace(axis1=1, axis2=2))
+    e = np.real(d_vec[:-1].reshape(
+        -1, A[0][1], A[0][1]).trace(axis1=1, axis2=2))
     d_vec[sc2_len:-1] -= np.array(
         [e[m] * d_vec[n] + e[n] * d_vec[m]
          for (n, m) in np.ndindex(sc_len, sc_len) if n > m])

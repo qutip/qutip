@@ -71,7 +71,7 @@ class TestMatVec:
         rho2 = vector_to_operator(rho2_vec)
 
         assert_((rho1 - rho2).norm() < 1e-8)
-        
+
     def testOperatorSpostAppl(self):
         """
         Superoperator: apply operator and superoperator from right (spost)
@@ -85,7 +85,7 @@ class TestMatVec:
         rho2 = vector_to_operator(rho2_vec)
 
         assert_((rho1 - rho2).norm() < 1e-8)
-        
+
     def testOperatorUnitaryTransform(self):
         """
         Superoperator: Unitary transformation with operators and superoperators

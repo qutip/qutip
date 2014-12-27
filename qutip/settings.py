@@ -70,7 +70,7 @@ colorblind_safe = False
 import logging
 _logger = logging.getLogger(__name__)
 _logger.addHandler(logging.NullHandler())
-del logging # Don't leak names!
+del logging  # Don't leak names!
 
 
 def load_rc_file(rc_file):
@@ -97,7 +97,8 @@ def load_rc_file(rc_file):
 
     # Try to find the specification for the config file, then
     # use it to load the actual config.
-    config = _cobj.ConfigObj(rc_file,
+    config = _cobj.ConfigObj(
+        rc_file,
         configspec=pkg_resources.resource_filename('qutip', 'configspec.ini'),
         # doesn't throw an error if qutiprc is missing.
         file_error=False
@@ -111,7 +112,7 @@ def load_rc_file(rc_file):
     # worked, and returns a dictionary of which keys fails otherwise.
     # This motivates a very un-Pythonic way of checking for results,
     # but it's the configobj idiom.
-    if result != True:
+    if result is not True:
         # OK, find which keys are bad.
         bad_keys = {key for key, val in result.iteritems() if not val}
         _logger.warn('Invalid configuration options in {}: {}'.format(

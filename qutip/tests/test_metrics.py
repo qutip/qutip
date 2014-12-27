@@ -51,80 +51,88 @@ from qutip.metrics import *
 A test class for the metrics and pseudo-metrics included with QuTiP.
 """
 
+
 def test_fid_trdist_limits():
     """
     Metrics: Fidelity / trace distance limiting cases
     """
-    rho = rand_dm(25,0.25)
-    assert_(abs(fidelity(rho,rho)-1) < 1e-8)
-    assert_(tracedist(rho,rho) < 1e-8)
-    rho1 = fock_dm(5,1)
-    rho2 = fock_dm(5,2)
-    assert_(fidelity(rho1,rho2) < 1e-8)
-    assert_(abs(tracedist(rho1,rho2)-1) < 1e-8)
+    rho = rand_dm(25, 0.25)
+    assert_(abs(fidelity(rho, rho)-1) < 1e-6)
+    assert_(tracedist(rho, rho) < 1e-6)
+    rho1 = fock_dm(5, 1)
+    rho2 = fock_dm(5, 2)
+    assert_(fidelity(rho1, rho2) < 1e-6)
+    assert_(abs(tracedist(rho1, rho2)-1) < 1e-6)
+
 
 def test_fidelity1():
     """
     Metrics: Fidelity, mixed state inequality
     """
     for k in range(10):
-        rho1 = rand_dm(25,0.25)
-        rho2 = rand_dm(25,0.25)
-        F = fidelity(rho1,rho2)
+        rho1 = rand_dm(25, 0.25)
+        rho2 = rand_dm(25, 0.25)
+        F = fidelity(rho1, rho2)
         assert_(1-F <= sqrt(1-F**2))
+
 
 def test_fidelity2():
     """
     Metrics: Fidelity, invariance under unitary trans.
     """
     for k in range(10):
-        rho1 = rand_dm(25,0.25)
-        rho2 = rand_dm(25,0.25)
-        U = rand_unitary(25,0.25)
-        F = fidelity(rho1,rho2)
-        FU = fidelity(U*rho1*U.dag(),U*rho2*U.dag())
+        rho1 = rand_dm(25, 0.25)
+        rho2 = rand_dm(25, 0.25)
+        U = rand_unitary(25, 0.25)
+        F = fidelity(rho1, rho2)
+        FU = fidelity(U*rho1*U.dag(), U*rho2*U.dag())
         assert_(abs((F-FU)/F) < 1e-5)
+
 
 def test_tracedist1():
     """
     Metrics: Trace dist., invariance under unitary trans.
     """
     for k in range(10):
-        rho1 = rand_dm(25,0.25)
-        rho2 = rand_dm(25,0.25)
-        U = rand_unitary(25,0.25)
-        D = tracedist(rho1,rho2)
-        DU = tracedist(U*rho1*U.dag(),U*rho2*U.dag())
+        rho1 = rand_dm(25, 0.25)
+        rho2 = rand_dm(25, 0.25)
+        U = rand_unitary(25, 0.25)
+        D = tracedist(rho1, rho2)
+        DU = tracedist(U*rho1*U.dag(), U*rho2*U.dag())
         assert_(abs((D-DU)/D) < 1e-5)
+
 
 def test_tracedist2():
     """
     Metrics: Trace dist. & Fidelity mixed/mixed inequality
     """
     for k in range(10):
-        rho1 = rand_dm(25,0.25)
-        rho2 = rand_dm(25,0.25)
-        F = fidelity(rho1,rho2)
-        D = tracedist(rho1,rho2)
+        rho1 = rand_dm(25, 0.25)
+        rho2 = rand_dm(25, 0.25)
+        F = fidelity(rho1, rho2)
+        D = tracedist(rho1, rho2)
         assert_(1-F <= D)
+
 
 def test_tracedist3():
     """
     Metrics: Trace dist. & Fidelity mixed/pure inequality
     """
     for k in range(10):
-        ket = rand_ket(25,0.25)
+        ket = rand_ket(25, 0.25)
         rho1 = ket*ket.dag()
-        rho2 = rand_dm(25,0.25)
-        F = fidelity(rho1,rho2)
-        D = tracedist(rho1,rho2)
+        rho2 = rand_dm(25, 0.25)
+        F = fidelity(rho1, rho2)
+        D = tracedist(rho1, rho2)
         assert_(1-F**2 <= D)
+
 
 def rand_super():
     h_5 = rand_herm(5)
     return propagator(h_5, scipy.rand(), [
         create(5), destroy(5), jmat(2, 'z')
     ])
+
 
 def test_average_gate_fidelity():
     """
@@ -135,15 +143,16 @@ def test_average_gate_fidelity():
         assert_(abs(average_gate_fidelity(identity(dims)) - 1) <= 1e-12)
     assert_(0 <= average_gate_fidelity(rand_super()) <= 1)
 
+
 def test_hilbert_dist():
     """
     Metrics: Hilbert distance.
     """
-    diag1=np.array([0.5,0.5,0,0])
-    diag2=np.array([0,0,0.5,0.5])
-    r1=qdiags(diag1,0)
-    r2=qdiags(diag2,0)
-    assert_(abs(hilbert_dist(r1,r2)-1) <= 1e-8)
+    diag1 = np.array([0.5, 0.5, 0, 0])
+    diag2 = np.array([0, 0, 0.5, 0.5])
+    r1 = qdiags(diag1, 0)
+    r2 = qdiags(diag2, 0)
+    assert_(abs(hilbert_dist(r1, r2)-1) <= 1e-6)
 
 if __name__ == "__main__":
     run_module_suite()

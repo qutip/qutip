@@ -51,7 +51,7 @@ from qutip.superoperator import liouvillian
 def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=None,
               args={}, options=Options()):
     """
-    Solve the dynamics for the system using the Bloch-Redfield master equation.
+    Solve the dynamics for a system using the Bloch-Redfield master equation.
 
     .. note::
 
@@ -60,10 +60,10 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=None,
     Parameters
     ----------
 
-    H : :class:`qutip.qobj`
+    H : :class:`qutip.Qobj`
         System Hamiltonian.
 
-    rho0 / psi0: :class:`qutip.qobj`
+    rho0 / psi0: :class:`qutip.Qobj`
         Initial density matrix or state vector (ket).
 
     tlist : *list* / *array*
@@ -81,17 +81,17 @@ def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=None,
     args : *dictionary*
         Placeholder for future implementation, kept for API consistency.
 
-    options : :class:`qutip.Qdeoptions`
-        Options for the ODE solver.
+    options : :class:`qutip.solver.Options`
+        Options for the solver.
 
     Returns
     -------
 
-    output: :class:`qutip.solver`
+    result: :class:`qutip.solver.Result`
 
-        An instance of the class :class:`qutip.solver`, which contains either
-        a list of expectation values, for operators given in e_ops, or a list
-        of states for the times specified by `tlist`.
+        An instance of the class :class:`qutip.solver.Result`, which contains
+        either an array of expectation values, for operators given in e_ops,
+        or a list of states for the times specified by `tlist`.
     """
 
     if not spectra_cb:
@@ -260,7 +260,7 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=None, use_secular=True):
     Returns
     -------
 
-    R, kets: :class:`qutip.qobj`, list of :class:`qutip.qobj`
+    R, kets: :class:`qutip.Qobj`, list of :class:`qutip.Qobj`
 
         R is the Bloch-Redfield tensor and kets is a list eigenstates of the
         Hamiltonian.

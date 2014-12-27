@@ -113,7 +113,8 @@ class eseries():
                 sh = np.array([Qobj(q[x]).shape for x in range(0, num)])
                 if np.any(sh != sh[0]):
                     raise TypeError('All amplitudes must have same dimension.')
-                self.ampl = np.array([Qobj(q[x]) for x in range(0, num)], dtype=object)
+                self.ampl = np.array([Qobj(q[x]) for x in range(0, num)],
+                                     dtype=object)
                 self.dims = self.ampl[0].dims
                 self.shape = self.ampl[0].shape
             else:

@@ -47,7 +47,8 @@ PACKAGES = ['qutip', 'qutip/ui', 'qutip/cy', 'qutip/qip', 'qutip/qip/models',
 PACKAGE_DATA = {
     'qutip': ['configspec.ini'],
     'qutip/tests': ['bucky.npy', 'bucky_perm.npy'],
-    'qutip/cy': ['complex_math.pxi']
+    'qutip/cy': ['complex_math.pxi', '*.c', '*.pyx'],
+    'qutip/control': ['*.c', '*.pyx']
 }
 INCLUDE_DIRS = [np.get_include()]
 EXT_MODULES = []

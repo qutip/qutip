@@ -31,77 +31,77 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
-"""
-Created on Fri Mar 07 18:49:51 2014
-@author: Alexander Pitchford
-@author: Alexander Pitchford
-@email1: agp1@aber.ac.uk
-@email2: alex.pitchford@gmail.com
-@organization: Aberystwyth University
-@supervisor: Daniel Burgarth
 
+# @author: Alexander Pitchford
+# @email1: agp1@aber.ac.uk
+# @email2: alex.pitchford@gmail.com
+# @organization: Aberystwyth University
+# @supervisor: Daniel Burgarth
+
+"""
 Class containing the results of the pulse optimisation
 """
 
 import numpy as np
 
+
 class OptimResult:
     """
     Attributes give the result of the pulse optimisation attempt
-    
+
     Attributes
     ----------
     termination_reason : string
         Description of the reason for terminating the optimisation
-    
+
     fidelity : float
         final (normalised) fidelity that was achieved
-        
+
     fid_err : float
         final fidelity error that was achieved
-        
+
     goal_achieved : boolean
         True is the fidely error achieved was below the target
-    
+
     grad_norm_final : float
         Final value of the sum of the squares of the (normalised) fidelity
         error gradients
-        
+
     grad_norm_min_reached : float
         True if the optimisation terminated due to the minimum value
         of the gradient being reached
-        
+
     num_iter : integer
         Number of iterations of the optimisation algorithm completed
-        
+
     max_iter_exceeded : boolean
         True if the iteration limit was reached
-        
+
     wall_time : float
         time elapsed during the optimisation
-        
+
     wall_time_limit_exceeded  : boolean
         True if the wall time limit was reached
-        
+
     time : array[num_tslots+1] of float
         Time are the start of each timeslot
         with the final value being the total evolution time
-        
+
     initial_amps : array[num_tslots, n_ctrls]
         The amplitudes at the start of the optimisation
-        
+
     final_amps : array[num_tslots, n_ctrls]
         The amplitudes at the end of the optimisation
-        
+
     evo_full_final : Qobj
         The evolution operator from t=0 to t=T based on the final amps
-        
+
     stats : Stats
         Object contaning the stats for the run (if any collected)
     """
     def __init__(self):
         self.reset()
-        
+
     def reset(self):
         self.fidelity = 0.0
         self.fid_err = np.Inf
@@ -118,5 +118,3 @@ class OptimResult:
         self.final_amps = None
         self.evo_full_final = None
         self.stats = None
-        
-    
