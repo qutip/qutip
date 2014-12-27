@@ -1,1 +1,0 @@
-dict(real=dict(sp='float', dp='double', wp='double'),complex=dict(sp='complex_float', dp='complex_double', wp='complex_double'))

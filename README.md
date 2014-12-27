@@ -12,8 +12,8 @@ modification, and it can be used on all Unix-based platforms and on Windows.
 Being free of any licensing fees, QuTiP is ideal for exploring quantum
 mechanics in research as well as in the classroom.
 
-Build status
-------------
+Build status and test coverage
+------------------------------
 
 [![build-status](https://secure.travis-ci.org/qutip/qutip.svg?branch=master)](http://travis-ci.org/qutip/qutip)
 [![Coverage Status](https://img.shields.io/coveralls/qutip/qutip.svg)](https://coveralls.io/r/qutip/qutip)
@@ -24,6 +24,14 @@ Download
 The official releases of QuTiP can be downloaded at:
 
 [http://qutip.org/download.html](http://qutip.org/download.html)
+
+
+Installation
+------------
+
+For instructions on how to install QuTiP, see:
+
+[http://qutip.org/docs/3.1.0/installation.html](http://qutip.org/docs/3.1.0/installation.html)
 
 Documentation 
 -------------
@@ -47,8 +55,15 @@ All contributions are acknowledged in the
 [contributors](http://github.com/qutip/qutip-doc/blob/master/contributors.rst)
 section in the documentation.
 
+Changelog
+---------
+
+For release notes and a change log, see the
+[changelog](http://github.com/qutip/qutip-doc/blob/master/changelog.rst)
+section in the documentation.
+
 License
-----------
+-------
 [![license](https://img.shields.io/badge/license-New%20BSD-blue.svg)](http://en.wikipedia.org/wiki/BSD_licenses#3-clause_license_.28.22Revised_BSD_License.22.2C_.22New_BSD_License.22.2C_or_.22Modified_BSD_License.22.29)
 
 You are free to use this software, with or without modification, provided that the conditions listed in the LICENSE.txt file are satisfied.
