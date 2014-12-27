@@ -64,6 +64,14 @@ CLASSIFIERS = [_f for _f in CLASSIFIERS.split('\n') if _f]
 PLATFORMS = ["Linux", "Mac OSX", "Unix", "Windows"]
 
 
+def write_f2py_f2cmap():
+    dirname = os.path.dirname(__file__)
+    with open(os.path.join(dirname, '.f2py_f2cmap'), 'w') as f:
+        f.write("dict(real=dict(sp='float', dp='double', wp='double'), " +
+                "complex=dict(sp='complex_float', dp='complex_double', " +
+                "wp='complex_double'))")
+
+
 def git_short_hash():
     try:
         return "-" + os.popen('git log -1 --format="%h"').read().strip()
@@ -106,6 +114,7 @@ write_version_py()
 if "--with-f90mc" in sys.argv:
     with_f90mc = True
     sys.argv.remove("--with-f90mc")
+    write_f2py_f2cmap()
 else:
     with_f90mc = False
 
