@@ -32,7 +32,7 @@
 ###############################################################################
 import os
 import numpy as np
-_cython_path = os.path.dirname(os.path.abspath(__file__))
+_cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
 _include_string = "'"+_cython_path+"/complex_math.pxi'"
 
 __all__ = ['Codegen']
