@@ -3,14 +3,15 @@ Repository for QuTiP documentation
 
 This repository contains the source files for the QuTiP documentation.
 
-For pre-built documentation, see http://code.google.com/p/qutip/wiki/Documentation
+For pre-built documentation, see http://www.qutip.org/documentation.html
 
 Build requirements
 ------------------
 
 * Sphinx: http://sphinx-doc.org/
 * LaTeX and pdflatex.
-* The QuTiP source code (https://github.com/qutip/qutip)
+* numpydoc
+* ipython
 
 Build
 -----
