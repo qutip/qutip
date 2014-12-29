@@ -1,3 +1,9 @@
+qutip (3.1.0) stable; urgency=low
+
+  * New packaging for the 3.1.0 upstream release.
+
+ -- Robert Johansson <jrjohansson@gmail.com>  Sat, 27 Dec 2014 14:30:00 +0900
+
 qutip (3.0.1) stable; urgency=low
 
   * New packaging for the 3.0.1 upstream release.
