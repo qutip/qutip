@@ -202,13 +202,13 @@ Adding multiple points to the Bloch sphere works slightly differently than addin
 
 .. ipython::
 	
-	In [1]: xp = [np.cos(th) for th in np.linspace(0,2*pi,20)]
+	In [1]: xp = [np.cos(th) for th in np.linspace(0, 2*pi, 20)]
 	
-	In [2]: yp=[np.sin(th) for th in np.linspace(0,2*pi,20)]
+	In [2]: yp = [np.sin(th) for th in np.linspace(0, 2*pi, 20)]
 	
 	In [3]: zp = np.zeros(20)
 	
-	In [4]: pnts = [xp,yp,zp]
+	In [4]: pnts = [xp, yp, zp]
 	
 	In [5]: b.add_points(pnts)
 	
@@ -221,11 +221,11 @@ Notice that, in contrast to states or vectors, each point remains the same color
 	
 	In [1]: xz = np.zeros(20)
 	
-	In [2]: yz = [np.sin(th) for th in np.linspace(0,pi,20)]
+	In [2]: yz = [np.sin(th) for th in np.linspace(0, pi, 20)]
 	
-	In [3]: zz = [np.cos(th) for th in np.linspace(0,pi,20)]
+	In [3]: zz = [np.cos(th) for th in np.linspace(0, pi, 20)]
 	
-	In [4]: b.add_points([xz,yz,zz])
+	In [4]: b.add_points([xz, yz, zz])
 	
 	@savefig bloch-40pnts.png width=3.5in align=center
 	In [5]: b.show()
@@ -241,13 +241,13 @@ What if we want to vary the color of our points.  We can tell the :class:`qutip.
 
 .. ipython::
 	
-	In [1]: xp = [np.cos(th) for th in np.linspace(0,2*pi,20)]
+	In [1]: xp = [np.cos(th) for th in np.linspace(0, 2*pi, 20)]
 	
-	In [2]: yp = [sin(th) for th in np.linspace(0,2*pi,20)]
+	In [2]: yp = [sin(th) for th in np.linspace(0, 2*pi, 20)]
 	
 	In [3]: zp = np.zeros(20)
 	
-	In [4]: pnts = [xp,yp,zp]
+	In [4]: pnts = [xp, yp, zp]
 	
 	In [5]: b.add_points(pnts,'m') # <-- add a 'm' string to signify 'multi' colored points
 	
@@ -261,11 +261,11 @@ Now, the data points cycle through a variety of predefined colors.  Now lets add
 	
 	In [1]: xz = np.zeros(20)
 	
-	In [2]: yz = [np.sin(th) for th in np.linspace(0,pi,20)]
+	In [2]: yz = [np.sin(th) for th in np.linspace(0, pi ,20)]
 	
-	In [3]: zz = [np.cos(th) for th in np.linspace(0,pi,20)]
+	In [3]: zz = [np.cos(th) for th in np.linspace(0, pi, 20)]
 	
-	In [4]: b.add_points([xz,yz,zz]) # no 'm'
+	In [4]: b.add_points([xz, yz, zz]) # no 'm'
 	
 	@savefig bloch-mpnts+pts.png width=3.5in align=center
 	In [5]: b.show()
