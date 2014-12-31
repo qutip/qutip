@@ -12,7 +12,7 @@ Basic Operations on Quantum Objects
 First things first
 ==================
 
-.. note:: Do not run QuTiP from the installation directory.
+.. warning:: Do not run QuTiP from the installation directory.
 
 To load the qutip modules, we must first call the import statement:
 
@@ -142,16 +142,15 @@ As an example, we give the output for a few of these functions:
 
 .. ipython::
 
-	In [1]: basis(5,3)
+   In [1]: basis(5,3)
 	
-	In [2]: coherent(5,0.5-0.5j)
-
-	In [3]: destroy(4)
-
-	In [4]: sigmaz()
+   In [2]: coherent(5,0.5-0.5j)
 	
-	In [5]: jmat(5/2.0,'+')
-
+   In [3]: destroy(4)
+	
+   In [4]: sigmaz()
+	
+   In [5]: jmat(5/2.0,'+')
 
 .. _basics-qobj-props:
 
@@ -162,11 +161,11 @@ We have seen that a quantum object has several internal attributes, such as data
 
 .. ipython::
 
-	In [1]: q = destroy(4)
+   In [1]: q = destroy(4)
 	
-	In [2]: q.dims
-
-	In [3]: q.shape 
+   In [2]: q.dims
+   
+   In [3]: q.shape 
 
 In general, the attributes (properties) of a ``Qobj`` object (or any Python class) can be retrieved using the `Q.attribute` notation.  In addition to the attributes shown with the ``print`` function, the ``Qobj`` class also has the following:
 
@@ -234,8 +233,9 @@ The rules for mathematical operations on ``Qobj`` instances are similar to stand
 
 Of course, like matrices, multiplying two objects of incompatible shape throws an error:
 
->>> q * x
-TypeError: Incompatible Qobj shapes
+.. ipython::
+    
+    In [1]: q * x
 
 
 In addition, the logic operators is equal `==` and is not equal `!=` are also supported.
@@ -308,15 +308,15 @@ Like attributes, the quantum object class has defined functions (methods) that o
 .. ipython::
 
 	In [1]: basis(5, 3)
-	
+    
 	In [2]: basis(5, 3).dag()
-	
+    
 	In [3]: coherent_dm(5, 1)
-	
+    
 	In [4]: coherent_dm(5, 1).diag()
-	
+    
 	In [5]: coherent_dm(5, 1).full()
-	
+    
 	In [6]: coherent_dm(5, 1).norm()
 	
 	In [7]: coherent_dm(5, 1).sqrtm()

@@ -32,7 +32,7 @@ Here we begin by creating a Fock :func:`qutip.states.basis` vacuum state vector 
  
     In [1]: vac = basis(5, 0)
     
-    In [2]: print(vac)
+    In [2]: vac
 
 
 and then create a lowering operator :math:`\left(\hat{a}\right)` corresponding to 5 number states using the :func:`qutip.operators.destroy` function:
@@ -41,7 +41,7 @@ and then create a lowering operator :math:`\left(\hat{a}\right)` corresponding t
 
     In [1]: a = destroy(5)
     
-    In [2]: print(a)
+    In [2]: a
 
 
 Now lets apply the destruction operator to our vacuum state ``vac``,
@@ -310,15 +310,15 @@ Now we see the difference!  The :func:`qutip.operators.sigmap` operator acting o
     In [5]: sigmaz() * spin2
 
 
-The answer is now apparent.  Since the QuTiP :func:`qutip.operators.sigmaz` function uses the standard z-basis representation of the sigma-z spin operator, the ``spin`` state corresponds to the :math:`\left|\mathrm{up}\right>` state of a two-level spin system while ``spin2`` gives the :math:`\left|\mathrm{down}\right>` state.  Therefore, in our previous example ``sigmap() * spin``, we raised the qubit state out of the truncated two-level Hilbert space resulting in the zero state.  
+The answer is now apparent.  Since the QuTiP :func:`qutip.operators.sigmaz` function uses the standard z-basis representation of the sigma-z spin operator, the ``spin`` state corresponds to the :math:`\left|\uparrow\right>` state of a two-level spin system while ``spin2`` gives the :math:`\left|\downarrow\right>` state.  Therefore, in our previous example ``sigmap() * spin``, we raised the qubit state out of the truncated two-level Hilbert space resulting in the zero state.  
 
-While at first glance this convention might seem somewhat odd, it is in fact quite handy. For one, the spin operators remain in the conventional form. Second, when the spin system is in the :math:`\left|\mathrm{up}\right>` state:
+While at first glance this convention might seem somewhat odd, it is in fact quite handy. For one, the spin operators remain in the conventional form. Second, when the spin system is in the :math:`\left|\uparrow\right>` state:
 
 .. ipython::
     
     In [1]: sigmaz() * spin
 
-the non-zero component is the zeroth-element of the underlying matrix (remember that python uses c-indexing, and matrices start with the zeroth element).  The :math:`\left|\mathrm{down}\right>` state therefore has a non-zero entry in the first index position. This corresponds nicely with the quantum information definitions of qubit states, where the excited :math:`\left|\mathrm{up}\right>` state is label as :math:`\left|0\right>`, and the :math:`\left|\mathrm{down}\right>` state by :math:`\left|1\right>`.
+the non-zero component is the zeroth-element of the underlying matrix (remember that python uses c-indexing, and matrices start with the zeroth element).  The :math:`\left|\downarrow\right>` state therefore has a non-zero entry in the first index position. This corresponds nicely with the quantum information definitions of qubit states, where the excited :math:`\left|\uparrow\right>` state is label as :math:`\left|0\right>`, and the :math:`\left|\downarrow\right>` state by :math:`\left|1\right>`.
 
 If one wants to create spin operators for higher spin systems, then the :func:`qutip.operators.jmat` function comes in handy. 
 
@@ -429,25 +429,14 @@ This isomorphism is implemented in QuTiP by the
     In [2]: rho = ket2dm(psi)
     
     In [3]: rho
-    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isherm = True
-    Qobj data =
-    [[ 1.  0.]
-     [ 0.  0.]]
     
     In [4]: vec_rho = operator_to_vector(rho)
 
     In [5]: vec_rho
-    Quantum object: dims = [[[2], [2]], [1]], shape = [4, 1], type = operator-ket
-    Qobj data =
-    [[ 1.]
-     [ 0.]
-     [ 0.]
-     [ 0.]]
-    
+
     In [6]: rho2 = vector_to_operator(vec_rho)
     
     In [7]: (rho - rho2).norm()
-    0.0
     
 The :attr:`~qutip.Qobj.type` attribute indicates whether a quantum object is
 a vector corresponding to an operator (``operator-ket``), or its Hermitian
@@ -463,18 +452,8 @@ between :math:`\mathcal{L}(\mathcal{H})` and :math:`\mathcal{H} \otimes \mathcal
     In [2]: A = Qobj(np.arange(4).reshape((2, 2)))
     
     In [3]: A
-    Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isherm = False
-    Qobj data =
-    [[ 0.  1.]
-     [ 2.  3.]]
      
     In [4]: operator_to_vector(A)
-    Quantum object: dims = [[[2], [2]], [1]], shape = [4, 1], type = operator-ket
-    Qobj data =
-    [[ 0.]
-     [ 2.]
-     [ 1.]
-     [ 3.]]
 
 Since :math:`\mathcal{H} \otimes \mathcal{H}` is a vector space, linear maps
 on this space can be represented as matrices, often called *supermatrices*.
@@ -496,19 +475,12 @@ Note that this is done automatically by the :obj:`~qutip.superop_reps.to_super` 
     In [1]: S2 = to_super(X)
     
     In [2]: (S - S2).norm()
-    0.0
     
 Quantum objects representing superoperators are denoted by ``type='super'``:
 
 .. ipython::
 
     In [1]: S
-    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = [4, 4], type = super, isherm = True
-    Qobj data =
-    [[ 0.  0.  0.  1.]
-     [ 0.  0.  1.  0.]
-     [ 0.  1.  0.  0.]
-     [ 1.  0.  0.  0.]]
 
 Information about superoperators, such as whether they represent completely
 positive maps, is exposed through the :attr:`~qutip.Qobj.iscp`, :attr:`~qutip.Qobj.istp`
@@ -533,12 +505,6 @@ be exponentiated to find the superoperator for that evolution.
     In [3]: L = liouvillian(H, [c1])
 
     In [4]: L
-    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = [4, 4], type = super, isherm = False, superrep = None
-    Qobj data =
-    [[ 0.0 +0.j  0.0 +0.j  0.0 +0.j  1.0 +0.j]
-     [ 0.0 +0.j -0.5+20.j  0.0 +0.j  0.0 +0.j]
-     [ 0.0 +0.j  0.0 +0.j -0.5-20.j  0.0 +0.j]
-     [ 0.0 +0.j  0.0 +0.j  0.0 +0.j -1.0 +0.j]]
      
     In [5]: S = (12 * L).expm()
 
@@ -552,32 +518,9 @@ attribute keeps track of what reprsentation is a :obj:`~qutip.Qobj` is currently
     In [1]: J = to_choi(S)
 
     In [2]: J
-    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = [4, 4], type = super, isherm = True, superrep = choi
-    Qobj data =
-    [[  1.00000000e+00+0.j           0.00000000e+00+0.j           0.00000000e+00+0.j
-        8.07531120e-04-0.00234352j]
-     [  0.00000000e+00+0.j           0.00000000e+00+0.j           0.00000000e+00+0.j
-        0.00000000e+00+0.j        ]
-     [  0.00000000e+00+0.j           0.00000000e+00+0.j           9.99993856e-01+0.j
-        0.00000000e+00+0.j        ]
-     [  8.07531120e-04+0.00234352j   0.00000000e+00+0.j           0.00000000e+00+0.j
-        6.14421235e-06+0.j        ]]
 
     In [3]: K = to_kraus(J)
     
     In [4]: K
-    [Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isherm = False
-    Qobj data =
-    [[  1.00000000e+00 +5.37489696e-22j   0.00000000e+00 +0.00000000e+00j]
-     [  0.00000000e+00 +0.00000000e+00j   8.07531120e-04 +2.34352424e-03j]], Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isherm = False
-    Qobj data =
-    [[ -1.93076357e-13 +5.63930339e-13j   0.00000000e+00 +0.00000000e+00j]
-     [  0.00000000e+00 +0.00000000e+00j   2.40470137e-10 -4.73970807e-13j]], Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isherm = True
-    Qobj data =
-    [[ 0.  0.]
-     [ 0.  0.]], Quantum object: dims = [[2], [2]], shape = [2, 2], type = oper, isherm = False
-    Qobj data =
-    [[ 0.          0.99999693]
-     [ 0.          0.        ]]]
 
 

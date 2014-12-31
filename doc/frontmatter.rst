@@ -28,7 +28,7 @@ This document contains a user guide and automatically generated API documentatio
 		  Wako-shi Saitama, 351-0198 Japan
 
 :version: 3.1.0
-:status: Released
+:status: Released (January 1, 2015)
 :copyright: This documentation is licensed under the Creative Commons Attribution 3.0 Unported License.
 
 .. _citing-qutip:
@@ -84,7 +84,7 @@ Every quantum system encountered in the real world is an open quantum system. Fo
 
 In general, for all but the most basic of Hamiltonians, an analytical description of the system dynamics is not possible, and one must resort to numerical simulations of the equations of motion. In absence of a quantum computer, these simulations must be carried out using classical computing techniques, where the exponentially increasing dimensionality of the underlying Hilbert space severely limits the size of system that can be efficiently simulated. However, in many fields such as quantum optics, trapped ions, superconducting circuit devices, and most recently nanomechanical systems, it is possible to design systems using a small number of effective oscillator and spin components, excited by a limited number of quanta, that are amenable to classical simulation in a truncated Hilbert space.
 
-The Quantum Toolbox in Python, or QuTiP, is a fully open-source implementation of a framework written in the Python programming language designed for simulating the open quantum dynamics for systems such as those listed above. This framework distinguishes itself from the other available software solutions by providing the following advantages:
+The Quantum Toolbox in Python, or QuTiP, is a fully open-source implementation of a framework written in the Python programming language designed for simulating the open quantum dynamics for systems such as those listed above. This framework distinguishes itself from the other available software solutions in providing the following advantages:
 
 * QuTiP relies entirely on open-source software.  You are free to modify and use it as you wish with no licensing fees or limitations.
 
@@ -104,6 +104,7 @@ The Quantum Toolbox in Python, or QuTiP, is a fully open-source implementation o
 
 
 For detailed information about new features of each release of QuTiP, see the :ref:`changelog`.
+
 
 Contributing to QuTiP
 =====================

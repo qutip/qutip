@@ -53,7 +53,7 @@ programming language.  The following packages are currently required:
 +----------------+--------------+-----------------------------------------------------+
 
 
-As of version 2.2, QuTiP includes an optional Fortran-based Monte Carlo solver that has a performance benefit when compared with the Python-based solver for small system sizes. In order to install this package you must have a Fortran compiler (for example gfortran) and BLAS development libraries.  At present, these packages are only tested on the Linux and OS X platforms.
+As of version 2.2, QuTiP includes an optional Fortran-based Monte Carlo solver that has some performance benefit over the Python-based solver when simulating small systems. In order to install this package you must have a Fortran compiler (for example gfortran) and BLAS development libraries.  At present, these packages are tested only on the Linux and OS X platforms.
 
 
 .. _install-platform-independent:
@@ -67,7 +67,7 @@ Often the easiest way is to install QuTiP is to use the Python package manager `
 
     pip install qutip
 
-Or, optionally, to also incldue the Fortran-based Monte Carlo solver:
+Or, optionally, to also include the Fortran-based Monte Carlo solver:
 
 .. code-block:: bash
 

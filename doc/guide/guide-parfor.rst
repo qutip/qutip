@@ -115,20 +115,3 @@ IPython-based parallel_map
 
 When QuTiP is used with IPython interpreter, there is an alternative parallel for-loop implementation in the QuTiP  module :func:`qutip.ipynbtools`, see :func:`qutip.ipynbtools.parallel_map`. The advantage of this parallel_map implementation is based on IPythons powerful framework for parallelization, so the compute processes are not confined to run on the same host as the main process. 
 
-Parallel picloud Computations
------------------------------
-
-.. note::
-
-    New in QuTiP 3.
-
-New to QuTiP version 3 is the option to run computations in parallel on the cloud computing platform provided by PiCloud. You must have their software installed on your machine, and an active account, for this function to work. Note that, at present, the picloud software is **only available for Python version 2.7**. Using the picloud function is very similar to using parfor, however the picloud function does not accept any keyword arguments:
-
-    
-    >>> from qutip.picloud import *
-    >>> def add(x, y): return x + y    
-    >>> picloud(add, [10, 20, 30], [5, 6, 7])
-    [15, 26, 37]
-
-
- 
