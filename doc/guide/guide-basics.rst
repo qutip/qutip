@@ -234,6 +234,7 @@ The rules for mathematical operations on ``Qobj`` instances are similar to stand
 Of course, like matrices, multiplying two objects of incompatible shape throws an error:
 
 .. ipython::
+    :okexcept:
     
     In [1]: q * x
 
