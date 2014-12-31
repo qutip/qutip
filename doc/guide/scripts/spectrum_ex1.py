@@ -27,10 +27,10 @@ corr = correlation_ss(H, tlist, c_ops, a.dag(), a)
 wlist1, spec1 = spectrum_correlation_fft(tlist, corr)
 
 
-# calculate the power spectrum using spectrum_ss, which internally uses essolve
-# to solve for the dynamics
+# calculate the power spectrum using spectrum, which internally uses essolve
+# to solve for the dynamics (by default)
 wlist2 = np.linspace(0.25, 1.75, 200) * 2 * np.pi
-spec2 = spectrum_ss(H, wlist2, c_ops, a.dag(), a)
+spec2 = spectrum(H, wlist2, c_ops, a.dag(), a)
 
 # plot the spectra
 fig, ax = plt.subplots(1, 1)
