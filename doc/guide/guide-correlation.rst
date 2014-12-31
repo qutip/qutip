@@ -108,8 +108,8 @@ In QuTiP, we can calculate :math:`S(\omega)` using either :func:`qutip.correlati
 The following example demonstrates how these two functions can be used to obtain the emission power spectrum.
 
 .. plot:: guide/scripts/spectrum_ex1.py
-   :width: 4.0in
-   :include-source:	
+   :width: 5.0in
+   :include-source:
 
 .. _correlation-spectrum:
 
@@ -117,13 +117,13 @@ The following example demonstrates how these two functions can be used to obtain
 Non-steadystate correlation function
 ====================================
     
-More generally, we can also calculate correlation functions of the kind :math:`\left<A(t_1+t_2)B(t_1)\right>`, i.e., the correlation function of a system that is not in its steadystate. In QuTiP, we can evoluate such correlation functions using the function :func:`qutip.correlation.correlation`. The default behavior of this function is to return a matrix with the correlations as a function of the two time coordinates (:math:`t_1` and :math:`t_2`).
+More generally, we can also calculate correlation functions of the kind :math:`\left<A(t_1+t_2)B(t_1)\right>`, i.e., the correlation function of a system that is not in its steadystate. In QuTiP, we can evoluate such correlation functions using the function :func:`qutip.correlation.correlation_2op_2t`. The default behavior of this function is to return a matrix with the correlations as a function of the two time coordinates (:math:`t_1` and :math:`t_2`).
 
 .. plot:: guide/scripts/correlation_ex2.py
-   :width: 4.0in
+   :width: 5.0in
    :include-source:
 
-However, in some cases we might be interested in the correlation functions on the form :math:`\left<A(t_1+t_2)B(t_1)\right>`, but only as a function of time coordinate :math:`t_2`. In this case we can also use the :func:`qutip.correlation.correlation` function, if we pass the density matrix at time :math:`t_1` as second argument, and `None` as third argument. The :func:`qutip.correlation.correlation` function then returns a vector with the correlation values corresponding to the times in `taulist` (the fourth argument).
+However, in some cases we might be interested in the correlation functions on the form :math:`\left<A(t_1+t_2)B(t_1)\right>`, but only as a function of time coordinate :math:`t_2`. In this case we can also use the :func:`qutip.correlation.correlation_2op_2t` function, if we pass the density matrix at time :math:`t_1` as second argument, and `None` as third argument. The :func:`qutip.correlation.correlation_2op_2t` function then returns a vector with the correlation values corresponding to the times in `taulist` (the fourth argument).
 
 Example: first-order optical coherence function
 -----------------------------------------------
@@ -131,7 +131,7 @@ Example: first-order optical coherence function
 This example demonstrates how to calculate a correlation function on the form :math:`\left<A(\tau)B(0)\right>` for a non-steady initial state. Consider an oscillator that is interacting with a thermal environment. If the oscillator initially is in a coherent state, it will gradually decay to a thermal (incoherent) state. The amount of coherence can be quantified using the first-order optical coherence function :math:`g^{(1)}(\tau) = \frac{\left<a^\dagger(\tau)a(0)\right>}{\sqrt{\left<a^\dagger(\tau)a(\tau)\right>\left<a^\dagger(0)a(0)\right>}}`. For a coherent state :math:`|g^{(1)}(\tau)| = 1`, and for a completely incoherent (thermal) state :math:`g^{(1)}(\tau) = 0`. The following code calculates and plots :math:`g^{(1)}(\tau)` as a function of :math:`\tau`.
 
 .. plot:: guide/scripts/correlation_ex3.py
-   :width: 4.0in
+   :width: 5.0in
    :include-source:
 
 For convenience, the steps for calculating the first-order coherence function have been collected in the function :func:`qutip.correlation.coherence_function_g1`.
@@ -152,7 +152,7 @@ To calculate this type of correlation function with QuTiP, we can use :func:`qut
 The following code calculates and plots :math:`g^{(2)}(\tau)` as a function of :math:`\tau` for a coherent, thermal and fock state.
 
 .. plot:: guide/scripts/correlation_ex4.py
-   :width: 4.0in
+   :width: 5.0in
    :include-source:
 
 For convenience, the steps for calculating the second-order coherence function have been collected in the function :func:`qutip.correlation.coherence_function_g2`.
