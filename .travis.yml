@@ -8,8 +8,7 @@ before_install:
     - uname -a
     - sudo apt-get update -qq
     - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
-    - pip install --upgrade pip setuptools
-    - pip install coveralls 
+    - pip install --upgrade setuptools
     - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
     - chmod +x miniconda.sh
     - ./miniconda.sh -b
@@ -18,7 +17,8 @@ before_install:
 
 # command to install dependencies
 install:
-    - conda install --yes python=$TRAVIS_PYTHON_VERSION numpy scipy nose cython
+    - conda install --yes python=$TRAVIS_PYTHON_VERSION pip numpy scipy nose cython
+    - pip install coverage coveralls
     - "python setup.py install --with-f90mc"
 
 # command to run tests
