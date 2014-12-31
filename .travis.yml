@@ -10,7 +10,7 @@ before_install:
     - sudo apt-get install -qq libatlas-dev libatlas-base-dev liblapack-dev gfortran
     - pip install --upgrade pip setuptools
     - pip install coveralls 
-    - pip install --find-links http://wheels.astropy.org --find-links http://wheels2.astropy.org --use-wheel nose numpy Cython scipy
+    - pip install --use-wheel --find-links http://wheels.astropy.org/ nose numpy Cython scipy
 
 # command to install dependencies
 install:
