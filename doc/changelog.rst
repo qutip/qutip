@@ -13,8 +13,8 @@ Version 3.1.0 (January 1, 2015):
 New Features
 -------------
 
-- MAJOR FEATURE: New module for quantum control (qutip.control).
-- NAMESPACE CHANGE: QuTiP no longer exports symbols from NumPy and matplotlib, so those modules must now be explicitly imported when required.
+- **MAJOR FEATURE**: New module for quantum control (qutip.control).
+- **NAMESPACE CHANGE**: QuTiP no longer exports symbols from NumPy and matplotlib, so those modules must now be explicitly imported when required.
 - New module for counting statistics.
 - Stochastic solvers now run trajectories in parallel.
 - New superoperator and tensor manipulation functions
@@ -84,7 +84,7 @@ New Features
   distribution functions.
 
 - New format for defining time-dependent Hamiltonians and collapse operators,
-  using a precalculated numpy array that specifies the values of the
+  using a pre-calculated numpy array that specifies the values of the
   Qobj-coefficients for each time step.
 
 - New functions for working with different superoperator representations,
@@ -137,7 +137,7 @@ New Features
 
 - Support for time-dependent Hamiltonian and Liouvillian callback functions that
   depend on the instantaneous state, which for example can be used for solving
-  master eqautions with mean field terms.
+  master equations with mean field terms.
 
 Improvements
 -------------
@@ -165,9 +165,9 @@ Improvements
 - Improved performance, major code cleanup (including namespace changes),
   and numerous bug fixes.
 
-- Benchmark scripts improved and restructued.
+- Benchmark scripts improved and restructured.
 
-- QuTiP is now using continous integration tests (TravisCI).
+- QuTiP is now using continuous integration tests (TravisCI).
 
 Version 2.2.0 (March 01, 2013):
 ++++++++++++++++++++++++++++++++++++++++++++++
