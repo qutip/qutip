@@ -48,10 +48,13 @@ defined for that object
 """
 
 from ConfigParser import SafeConfigParser
+# QuTiP logging
+import qutip.logging as logging
+logger = logging.get_logger()
 
 
 def load_parameters(file_name, config=None, term_conds=None,
-                    dynamics=None, optim=None):
+                    dynamics=None, optim=None, pulsegen=None):
     """
     Import parameters for the optimisation objects
     Will throw a ValueError if file_name does not exist
@@ -63,28 +66,53 @@ def load_parameters(file_name, config=None, term_conds=None,
 
     if config is not None:
         s = 'optimconfig'
-        attr_names = parser.options(s)
-        for a in attr_names:
-            set_param(parser, s, a, config, a)
+        try:
+            attr_names = parser.options(s)
+            for a in attr_names:
+                set_param(parser, s, a, config, a)
+        except Exception as e:
+            logger.warn("Unable to load {} parameters:({}) {}".format(
+                                        s, type(e).__name__, e))
 
     if term_conds is not None:
         s = 'termconds'
-        attr_names = parser.options(s)
-        for a in attr_names:
-            set_param(parser, s, a, term_conds, a)
+        try:
+            attr_names = parser.options(s)
+            for a in attr_names:
+                set_param(parser, s, a, term_conds, a)
+        except Exception as e:
+            logger.warn("Unable to load {} parameters:({}) {}".format(
+                                        s, type(e).__name__, e))
 
     if dynamics is not None:
         s = 'dynamics'
-        attr_names = parser.options(s)
-        for a in attr_names:
-            set_param(parser, s, a, dynamics, a)
-
+        try:
+            attr_names = parser.options(s)
+            for a in attr_names:
+                set_param(parser, s, a, dynamics, a)
+        except Exception as e:
+            logger.warn("Unable to load {} parameters:({}) {}".format(
+                                        s, type(e).__name__, e))
+            
     if optim is not None:
         s = 'optimizer'
-        attr_names = parser.options(s)
-        for a in attr_names:
-            set_param(parser, s, a, optim, a)
-
+        try:
+            attr_names = parser.options(s)
+            for a in attr_names:
+                set_param(parser, s, a, optim, a)
+        except Exception as e:
+            logger.warn("Unable to load {} parameters:({}) {}".format(
+                                        s, type(e).__name__, e))
+            
+    if pulsegen is not None:
+        s = 'pulsegen'
+        try:
+            attr_names = parser.options(s)
+            for a in attr_names:
+                set_param(parser, s, a, optim, a)
+        except Exception as e:
+            logger.warn("Unable to load {} parameters:({}) {}".format(
+                                        s, type(e).__name__, e))
 
 def set_param(parser, section, option, obj, attrib_name):
     """
