@@ -72,7 +72,7 @@ def load_parameters(file_name, config=None, term_conds=None,
                 set_param(parser, s, a, config, a)
         except Exception as e:
             logger.warn("Unable to load {} parameters:({}) {}".format(
-                                        s, type(e).__name__, e))
+                s, type(e).__name__, e))
 
     if term_conds is not None:
         s = 'termconds'
@@ -82,7 +82,7 @@ def load_parameters(file_name, config=None, term_conds=None,
                 set_param(parser, s, a, term_conds, a)
         except Exception as e:
             logger.warn("Unable to load {} parameters:({}) {}".format(
-                                        s, type(e).__name__, e))
+                s, type(e).__name__, e))
 
     if dynamics is not None:
         s = 'dynamics'
@@ -92,8 +92,8 @@ def load_parameters(file_name, config=None, term_conds=None,
                 set_param(parser, s, a, dynamics, a)
         except Exception as e:
             logger.warn("Unable to load {} parameters:({}) {}".format(
-                                        s, type(e).__name__, e))
-            
+                s, type(e).__name__, e))
+
     if optim is not None:
         s = 'optimizer'
         try:
@@ -102,8 +102,8 @@ def load_parameters(file_name, config=None, term_conds=None,
                 set_param(parser, s, a, optim, a)
         except Exception as e:
             logger.warn("Unable to load {} parameters:({}) {}".format(
-                                        s, type(e).__name__, e))
-            
+                s, type(e).__name__, e))
+
     if pulsegen is not None:
         s = 'pulsegen'
         try:
@@ -112,7 +112,8 @@ def load_parameters(file_name, config=None, term_conds=None,
                 set_param(parser, s, a, optim, a)
         except Exception as e:
             logger.warn("Unable to load {} parameters:({}) {}".format(
-                                        s, type(e).__name__, e))
+                s, type(e).__name__, e))
+
 
 def set_param(parser, section, option, obj, attrib_name):
     """

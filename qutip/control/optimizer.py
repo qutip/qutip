@@ -268,11 +268,11 @@ class Optimizer:
                 self._iter_fpath = os.path.join(cfg.test_out_dir, fname)
                 fh = open(self._iter_fpath, 'w')
                 fh.write("iter           wall_time       "
-                                        "fid_err     grad_norm\n")
+                         "fid_err     grad_norm\n")
                 fh.close()
                 logger.info("Iteration log will be saved to:\n{}".format(
-                                                        self._iter_fpath))
-                
+                    self._iter_fpath))
+
             if cfg.test_out_fid_err:
                 fname = "fid_err" + f_ext
                 self._fid_err_fpath = os.path.join(cfg.test_out_dir, fname)
@@ -280,7 +280,7 @@ class Optimizer:
                 fh.write("call             fid_err\n")
                 fh.close()
                 logger.info("Fidelity error log will be saved to:\n{}".format(
-                                                        self._fid_err_fpath))
+                    self._fid_err_fpath))
             else:
                 self._fid_err_tofh = 0
 
@@ -291,8 +291,8 @@ class Optimizer:
                 fh.write("call           grad_norm\n")
                 fh.close()
                 logger.info("Gradient norm log will be saved to:\n{}".format(
-                                                    self._grad_norm_fpath))
-            
+                    self._grad_norm_fpath))
+
             else:
                 self._grad_norm_tofh = 0
 
@@ -326,9 +326,9 @@ class Optimizer:
         if self._fid_err_fpath is not None:
             fh = open(self._fid_err_fpath, 'a')
             fh.write("{:<10n}{:14.6g}\n".format(
-                        self.stats.num_fidelity_func_calls, err))
+                self.stats.num_fidelity_func_calls, err))
             fh.close()
-            
+
         if err <= tc.fid_err_targ:
             raise errors.GoalAchievedTerminate(err)
 
@@ -367,9 +367,9 @@ class Optimizer:
         if self._grad_norm_fpath is not None:
             fh = open(self._grad_norm_fpath, 'a')
             fh.write("{:<10n}{:14.6g}\n".format(
-                        self.stats.num_grad_func_calls, fid_comp.grad_norm))
+                self.stats.num_grad_func_calls, fid_comp.grad_norm))
             fh.close()
-            
+
         if self.config.test_out_grad:
             # save gradients to file
             dyn = self.dynamics
@@ -399,13 +399,13 @@ class Optimizer:
 
         wall_time = timeit.default_timer() - self.wall_time_optimize_start
         if self._iter_fpath is not None:
-            
+
             # write out: iter wall_time fid_err grad_norm
             fid_comp = self.dynamics.fid_computer
             fh = open(self._iter_fpath, 'a')
             fh.write("{:<10n}{:14.6g}{:14.6g}{:14.6g}\n".format(
-                    self.num_iter, wall_time, 
-                    fid_comp.fid_err, fid_comp.grad_norm))
+                self.num_iter, wall_time,
+                fid_comp.fid_err, fid_comp.grad_norm))
             fh.close()
 
         tc = self.termination_conditions

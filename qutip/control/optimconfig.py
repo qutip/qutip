@@ -118,7 +118,7 @@ class OptimConfig:
         1e7 for moderate accuracy; 10.0 for extremely high accuracy
         scipy.optimize.fmin_l_bfgs_b factr argument.
         (used only in L-BFGS-B)
-    
+
     test_out_dir : string
         Directory where test output files will be saved
         By default this is a sub directory called 'test_out'
@@ -228,10 +228,10 @@ class OptimConfig:
         """
         if self.test_out_subdir is None:
             self.test_out_subdir = TEST_OUT_DIR
-        
+
         dir_ok = True
-        self.test_out_dir = os.path.join(os.getcwd(), 
-                                                  self.test_out_subdir)
+        self.test_out_dir = os.path.join(os.getcwd(),
+                                         self.test_out_subdir)
         msg = "Failed to create test output file directory:\n{}\n".format(
             self.test_out_dir)
         if os.path.exists(self.test_out_dir):
@@ -247,15 +247,15 @@ class OptimConfig:
                 try:
                     os.makedirs(self.test_out_dir)
                     logger.info("Test out files directory {} created "
-                            "(recursively)".format(self.test_out_dir))
+                                "(recursively)".format(self.test_out_dir))
                 except Exception as e2:
                     dir_ok = False
                     msg += ("Either turn off test_out_files "
-                                "or check permissions.\n")
+                            "or check permissions.\n")
                     msg += "Underling error (mkdir) :({}) {}".format(
-                                    type(e1).__name__, e1)
+                        type(e1).__name__, e1)
                     msg += "Underling error (makedirs) :({}) {}".format(
-                                    type(e2).__name__, e2)
+                        type(e2).__name__, e2)
 
         if not dir_ok:
             msg += "\ntest_out_files will be suppressed."

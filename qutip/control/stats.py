@@ -188,13 +188,13 @@ class Stats(object):
                 self.num_timeslot_changes / float(self.num_ctrl_amp_updates)
         except:
             self.mean_num_timeslot_changes_per_update = np.NaN
-        
+
         try:
             self.mean_num_ctrl_amp_changes_per_update = \
                 self.num_ctrl_amp_changes / float(self.num_ctrl_amp_updates)
         except:
             self.mean_num_ctrl_amp_changes_per_update = np.NaN
-            
+
     def _format_datetime(self, t, tot=0.0):
         dtStr = str(datetime.timedelta(seconds=t))
         if tot > 0:
