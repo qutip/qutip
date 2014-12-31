@@ -35,13 +35,10 @@
 #    Significant parts of this code were contributed by Denis Vasilyev.
 #
 ###############################################################################
-
 """
-This module contains experimental functions for solving stochastic schrodinger
-and master equations. The API should not be considered stable, and is subject
-to change when we work more on optimizing this module for performance and
-features.
-
+This module contains functions for solving stochastic schrodinger and master
+equations. The API should not be considered stable, and is subject to change
+when we work more on optimizing this module for performance and features.
 """
 
 __all__ = ['ssesolve', 'ssepdpsolve', 'smesolve', 'smepdpsolve']
@@ -263,7 +260,7 @@ class StochasticSolverOptions:
 
 def ssesolve(H, psi0, times, sc_ops, e_ops, **kwargs):
     """
-    Solve stochastic Schrödinger equation. Dispatch to specific solvers
+    Solve the stochastic Schrödinger equation. Dispatch to specific solvers
     depending on the value of the `solver` keyword argument.
 
     Parameters

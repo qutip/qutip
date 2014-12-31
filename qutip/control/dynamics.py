@@ -369,7 +369,7 @@ class Dynamics:
             [np.empty(shp, dtype=complex) for x in range(n_ts)]
         self.dyn_gen_factormatrix = \
             [np.empty(shp, dtype=complex) for x in range(n_ts)]
-        
+
     def _check_test_out_files(self):
         cfg = self.config
         if cfg.any_test_files():
@@ -378,7 +378,7 @@ class Dynamics:
             else:
                 if self.stats is None:
                     logger.warn("Cannot output test files when stats"
-                                    " attribute is not set.")
+                                " attribute is not set.")
                 self.config.test_out_amps = False
                 self.config.test_out_prop = False
                 self.config.test_out_prop_grad = False
@@ -391,7 +391,7 @@ class Dynamics:
         before any dynamics can be calculated
         """
         self._check_test_out_files()
-            
+
         if not isinstance(self.prop_computer, propcomp.PropagatorComputer):
             raise errors.UsageError(
                 "No prop_computer (propagator computer) "
@@ -479,7 +479,7 @@ class Dynamics:
                 data[:, 1:] = amps
             else:
                 data = amps
-            
+
             np.savetxt(file_name, data, delimiter='\t', fmt='%14.6g')
 
             if verbose:
@@ -504,15 +504,15 @@ class Dynamics:
         if not self.tslot_computer.compare_amps(new_amps):
             if self.config.test_out_amps:
                 fname = "amps_{}_{}_{}_call{}{}".format(
-                            self.id_text, 
-                            self.prop_computer.id_text,
-                            self.fid_computer.id_text, 
-                            self.stats.num_ctrl_amp_updates,
-                            self.config.test_out_f_ext)
-                            
+                    self.id_text,
+                    self.prop_computer.id_text,
+                    self.fid_computer.id_text,
+                    self.stats.num_ctrl_amp_updates,
+                    self.config.test_out_f_ext)
+
                 fpath = os.path.join(self.config.test_out_dir, fname)
                 self.save_amps(fpath, verbose=True)
-        
+
     def flag_system_changed(self):
         """
         Flag eveolution, fidelity and gradients as needing recalculation
@@ -625,7 +625,7 @@ class DynamicsGenMat(Dynamics):
     def reset(self):
         Dynamics.reset(self)
         self.id_text = 'GEN_MAT'
-        
+
     def get_dyn_gen(self, k):
         """
         Get the combined dynamics generator for the timeslot

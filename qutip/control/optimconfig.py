@@ -134,31 +134,31 @@ class OptimConfig:
         File extension that will be applied to all test output file names
 
     test_out_iter : Boolean
-        When True a file will be created that records the wall time, 
+        When True a file will be created that records the wall time,
         fidelity error and gradient norm for each iteration of the algorithm
 
     test_out_fid_err : Boolean
         When True a file will be created that records the fidelity error
         each time the Optimizer.fid_err_wrapper method is called
-        
+
     test_out_grad_norm : Boolean
         When True a file will be created that records the gradient norm
         each time the Optimizer.fid_err_grad_wrapper method is called
-        
+
     test_out_grad : Boolean
-        When True a file will be created each time the 
+        When True a file will be created each time the
         Optimizer.fid_err_grad_wrapper method is called containing
         the gradients with respect to each control in each timeslot
 
     test_out_prop : Boolean
         When True a file will be created each time the timeslot evolution
         is recomputed recording propagators for each timeslot
-        
+
     test_out_prop_grad : Boolean
         When True a file will be created each time the timeslot evolution
         is recomputed recording the propagator gradient
         wrt each control in each timeslot
-        
+
     test_out_evo : Boolean
         When True a file will be created each time the timeslot evolution
         is recomputed recording the operators (matrices) for the forward
@@ -185,7 +185,7 @@ class OptimConfig:
         self.accuracy_factor = 1e7
         # ####################
         self.reset_test_out_files()
-        
+
     def reset_test_out_files(self):
         # Test output file flags
         self.test_out_subdir = None
@@ -199,7 +199,7 @@ class OptimConfig:
         self.test_out_prop = False
         self.test_out_prop_grad = False
         self.test_out_evo = False
-        
+
     def set_log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
@@ -207,20 +207,20 @@ class OptimConfig:
         """
         self.log_level = lvl
         logger.setLevel(lvl)
-        
+
     def any_test_files(self):
         """
         Returns True if any test_out_files are to be produced
-        That is debug files written to the test_out directory        
+        That is debug files written to the test_out directory
         """
         if (self.test_out_iter or
-            self.test_out_fid_err or
-            self.test_out_grad_norm or
-            self.test_out_grad or
-            self.test_out_amps or
-            self.test_out_prop or
-            self.test_out_prop_grad or
-            self.test_out_evo):
+                self.test_out_fid_err or
+                self.test_out_grad_norm or
+                self.test_out_grad or
+                self.test_out_amps or
+                self.test_out_prop or
+                self.test_out_prop_grad or
+                self.test_out_evo):
             return True
         else:
             return False
