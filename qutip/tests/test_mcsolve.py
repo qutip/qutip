@@ -468,8 +468,8 @@ def test_mc_seed_reuse():
     data2 = mcsolve(H, psi0, tlist, [C0, C1, C2], [num0, num1, num2],
                     ntraj=ntraj, options=Options(seeds=data1.seeds))
     for k in range(ntraj):
-        assert_equal(np.all(data1.col_times[k]-data2.col_times[k] == 0), True)
-        assert_equal(np.all(data1.col_which[k]-data2.col_which[k] == 0), True)
+        assert_equal(np.allclose(data1.col_times[k],data2.col_times[k]), True)
+        assert_equal(np.allclose(data1.col_which[k],data2.col_which[k]), True)
 
 
 def test_mc_seed_noreuse():
@@ -511,7 +511,7 @@ def test_mc_seed_noreuse():
             diff_flag = 1
             break
         else:
-            if not np.all((data1.col_which[k]-data2.col_which[k]) == 0):
+            if not np.allclose(data1.col_which[k],data2.col_which[k]):
                 diff_flag = 1
                 break
     assert_equal(diff_flag, 1)
