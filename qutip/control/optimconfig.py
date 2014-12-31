@@ -119,10 +119,16 @@ class OptimConfig:
         scipy.optimize.fmin_l_bfgs_b factr argument.
         (used only in L-BFGS-B)
         
+    test_out_subdir : string
+        sub directory (of working folder) where test out files will be saved
+        By default this is called 'test_out'
+        
     test_out_dir : string
         Directory where test output files will be saved
         By default this is a sub directory called 'test_out'
         It will be created in the working directory if it does not exist
+        Note: this should be treated as a read-only attribute
+                use test_out_subdir to specify a folder
         
     test_out_f_ext : string
         File extension that will be applied to all test output file names
@@ -182,6 +188,7 @@ class OptimConfig:
         
     def reset_test_out_files(self):
         # Test output file flags
+        self.test_out_subdir = None
         self.test_out_dir = None
         self.test_out_f_ext = ".txt"
         self.test_out_iter = False
@@ -222,8 +229,12 @@ class OptimConfig:
         """
         Checks test_out folder exists, creates it if not
         """
+        if self.test_out_subdir is None:
+            self.test_out_subdir = TEST_OUT_DIR
+        
         dir_ok = True
-        self.test_out_dir = os.path.join(os.getcwd(), TEST_OUT_DIR)
+        self.test_out_dir = os.path.join(os.getcwd(), 
+                                                  self.test_out_subdir)
         msg = "Failed to create test output file directory:\n{}\n".format(
             self.test_out_dir)
         if os.path.exists(self.test_out_dir):
@@ -232,13 +243,22 @@ class OptimConfig:
                 msg += "A file already exists with same name"
         else:
             try:
-                os.mkdir(TEST_OUT_DIR)
+                os.mkdir(self.test_out_subdir)
                 logger.info("Test out files directory {} created".format(
-                    TEST_OUT_DIR))
-            except Exception as err:
-                dir_ok = False
-                msg += "Either turn off test_out_files or check permissions.\n"
-                msg += "Underling error: {}".format(err)
+                    self.test_out_subdir))
+            except Exception as e1:
+                try:
+                    os.makedirs(self.test_out_dir)
+                    logger.info("Test out files directory {} created "
+                            "(recursively)".format(self.test_out_dir))
+                except Exception as e2:
+                    dir_ok = False
+                    msg += ("Either turn off test_out_files "
+                                "or check permissions.\n")
+                    msg += "Underling error (mkdir) :({}) {}".format(
+                                    type(e1).__name__, e1)
+                    msg += "Underling error (makedirs) :({}) {}".format(
+                                    type(e2).__name__, e2)
 
         if not dir_ok:
             msg += "\ntest_out_files will be suppressed."

@@ -43,7 +43,7 @@ Statistics for the optimisation
 Note that some of the stats here are redundant copies from the optimiser
 used here for calculations
 """
-# import numpy as np
+import numpy as np
 import datetime
 
 class Stats(object):
@@ -176,15 +176,24 @@ class Stats(object):
             self.wall_time_optim = \
                 self.wall_time_optim_end - self.wall_time_optim_start
 
-        self.mean_num_ctrl_amp_updates_per_iter = \
-            self.num_ctrl_amp_updates / float(self.num_iter)
+        try:
+            self.mean_num_ctrl_amp_updates_per_iter = \
+                self.num_ctrl_amp_updates / float(self.num_iter)
+        except:
+            self.mean_num_ctrl_amp_updates_per_iter = np.NaN
 
-        self.mean_num_timeslot_changes_per_update = \
-            self.num_timeslot_changes / float(self.num_ctrl_amp_updates)
-
-        self.mean_num_ctrl_amp_changes_per_update = \
-            self.num_ctrl_amp_changes / float(self.num_ctrl_amp_updates)
-
+        try:
+            self.mean_num_timeslot_changes_per_update = \
+                self.num_timeslot_changes / float(self.num_ctrl_amp_updates)
+        except:
+            self.mean_num_timeslot_changes_per_update = np.NaN
+        
+        try:
+            self.mean_num_ctrl_amp_changes_per_update = \
+                self.num_ctrl_amp_changes / float(self.num_ctrl_amp_updates)
+        except:
+            self.mean_num_ctrl_amp_changes_per_update = np.NaN
+            
     def _format_datetime(self, t, tot=0.0):
         dtStr = str(datetime.timedelta(seconds=t))
         if tot > 0:
