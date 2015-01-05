@@ -36,7 +36,7 @@ from numpy.distutils.core import setup
 
 # all information about QuTiP goes here
 MAJOR = 3
-MINOR = 1
+MINOR = 2
 MICRO = 0
 ISRELEASED = False
 VERSION = '%d.%d.%d' % (MAJOR, MINOR, MICRO)
