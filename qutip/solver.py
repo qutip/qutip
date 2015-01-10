@@ -171,6 +171,10 @@ class Options():
         self.steady_state_average = steady_state_average
 
     def __str__(self):
+        if self.seeds is None:
+            seed_length = 0
+        else:
+            seed_length = len(self.seeds)
         s = ""
         s += "Options:\n"
         s += "-----------\n"
@@ -188,7 +192,7 @@ class Options():
         s += "norm_steps:        " + str(self.norm_steps) + "\n"
         s += "rhs_filename:      " + str(self.rhs_filename) + "\n"
         s += "rhs_reuse:         " + str(self.rhs_reuse) + "\n"
-        s += "seeds:             " + str(len(self.seeds)) + "\n"
+        s += "seeds:             " + str(seed_length) + "\n"
         s += "rhs_with_state:    " + str(self.rhs_with_state) + "\n"
         s += "average_expect:    " + str(self.average_expect) + "\n"
         s += "average_states:    " + str(self.average_states) + "\n"

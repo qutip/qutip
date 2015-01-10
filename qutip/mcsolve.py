@@ -108,29 +108,29 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         def C1_coeff(t,args):
             return exp(-args['a']*t)
 
-        H=[H0,[H1,H1_coeff]]
+        H = [H0, [H1, H1_coeff]]
 
-        c_op_list=[C0,[C1,C1_coeff]]
+        c_ops = [C0, [C1, C1_coeff]]
 
-        args={'a':A,'w':W}
+        args={'a': A, 'w': W}
 
     or in String (Cython) format we could write::
 
-        H=[H0,[H1,'sin(w*t)']]
+        H = [H0, [H1, 'sin(w*t)']]
 
-        c_op_list=[C0,[C1,'exp(-a*t)']]
+        c_ops = [C0, [C1, 'exp(-a*t)']]
 
-        args={'a':A,'w':W}
+        args={'a': A, 'w': W}
 
     Constant terms are preferably placed first in the Hamiltonian and collapse
     operator lists.
 
     Parameters
     ----------
-    H : qobj
+    H : :class:`qutip.Qobj`
         System Hamiltonian.
 
-    psi0 : qobj
+    psi0 : :class:`qutip.Qobj`
         Initial state vector
 
     tlist : array_like
@@ -153,7 +153,7 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
     options : Options
         Instance of ODE solver options.
 
-    progress_bar: TextProgressBar
+    progress_bar: BaseProgressBar
         Optional instance of BaseProgressBar, or a subclass thereof, for
         showing the progress of the simulation. Set to None to disable the
         progress bar.
@@ -166,14 +166,14 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
 
     Returns
     -------
-    results : Result
+    results : :class:`qutip.solver.Result`
         Object storing all results from the simulation.
 
-    Notes
-    -----
-    It is possible to reuse the random number seeds from a previous run
-    of the mcsolver by passing the output Result object seeds via the
-    Options class, i.e. Options(seeds=prev_result.seeds).
+    .. note::
+
+        It is possible to reuse the random number seeds from a previous run
+        of the mcsolver by passing the output Result object seeds via the
+        Options class, i.e. Options(seeds=prev_result.seeds).
     """
 
     if debug:
@@ -279,8 +279,8 @@ def mcsolve(H, psi0, tlist, c_ops, e_ops, ntraj=None,
         if config.tflag in [1, 10, 11]:
             if any(args):
                 config.c_args = []
-                arg_items = args.items()
-                for k in range(len(args)):
+                arg_items = list(args.items())
+                for k in range(len(arg_items)):
                     config.c_args.append(arg_items[k][1])
         # function based
         elif config.tflag in [2, 3, 20, 22]:

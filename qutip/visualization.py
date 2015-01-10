@@ -190,8 +190,8 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
             # Create default labels if none are given.
             if xlabels is None or ylabels is None:
                 labels = _cb_labels(rho.dims[0])
-                xlabels = xlabels if xlabels is not None else labels[0]
-                ylabels = ylabels if ylabels is not None else labels[1]
+                xlabels = xlabels if xlabels is not None else list(labels[0])
+                ylabels = ylabels if ylabels is not None else list(labels[1])
 
         elif rho.isoperket:
             W = vector_to_operator(rho).full()
@@ -212,9 +212,8 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
             B.dims = sqobj.dims
             sqobj = B.dag() * sqobj * B
             W = sqobj.full()
-
             # Create default labels, too.
-            if xlabels is None or ylabels is None:
+            if (xlabels is None) or (ylabels is None):
                 labels = list(map("".join, it.product("IXYZ", repeat=nq)))
                 xlabels = xlabels if xlabels is not None else labels
                 ylabels = ylabels if ylabels is not None else labels
@@ -264,6 +263,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
 
     # x axis
     ax.xaxis.set_major_locator(plt.IndexLocator(1, 0.5))
+
     if xlabels:
         ax.set_xticklabels(xlabels)
         if label_top:
