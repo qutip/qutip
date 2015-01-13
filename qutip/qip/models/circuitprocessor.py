@@ -31,10 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
-import scipy.sparse as sp
-from qutip.qobj import *
-from qutip.qip.gates import *
-from qutip.qip.circuit import QubitCircuit
+from qutip.qip.gates import globalphase
 
 
 class CircuitProcessor(object):
@@ -242,7 +239,7 @@ class CircuitProcessor(object):
             ax.plot(t, u[n], label=u_labels[n])
 
         ax.axis('tight')
-        ax.set_ylim(-1.5 * 2 * pi, 1.5 * 2 * pi)
+        ax.set_ylim(-1.5 * 2 * np.pi, 1.5 * 2 * np.pi)
         ax.legend(loc='center left',
                   bbox_to_anchor=(1, 0.5), ncol=(1 + len(u) // 16))
         fig.tight_layout()
