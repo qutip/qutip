@@ -146,19 +146,19 @@ class Codegen():
         """Creates function header for time-dependent ODE RHS."""
         func_name = "def cy_td_ode_rhs("
         # strings for time and vector variables
-        input_vars = ("\n        double t" + 
+        input_vars = ("\n        double t" +
                       ",\n        np.ndarray[CTYPE_t, ndim=1] vec")
         for k in self.h_terms:
-            input_vars += (",\n        " + 
-                           "np.ndarray[CTYPE_t, ndim=1] data%d, " % k +
-                           "np.ndarray[int, ndim=1] idx%d, " % k +
+            input_vars += (",\n        " +
+                           "np.ndarray[CTYPE_t, ndim=1] data%d," % k +
+                           "np.ndarray[int, ndim=1] idx%d," % k +
                            "np.ndarray[int, ndim=1] ptr%d" % k)
         if any(self.c_tdterms):
             for k in range(len(self.h_terms),
                            len(self.h_terms) + len(self.c_tdterms)):
-                input_vars += (",\n        " + 
-                               "np.ndarray[CTYPE_t, ndim=1] data%d" % k +
-                               "np.ndarray[int, ndim=1] idx%d" % k +
+                input_vars += (",\n        " +
+                               "np.ndarray[CTYPE_t, ndim=1] data%d," % k +
+                               "np.ndarray[int, ndim=1] idx%d," % k +
                                "np.ndarray[int, ndim=1] ptr%d" % k)
         input_vars += self._get_arg_str(self.args)
         func_end = "):"
