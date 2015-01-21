@@ -256,7 +256,7 @@ def _steadystate_LU_liouvillian(L, ss_args):
     perm = None
     perm2 = None
     rev_perm = None
-    n = prod(L.dims[0][0])
+    n = int(np.sqrt(L.shape[0]))
     L = L.data.tocsc() + sp.csc_matrix(
         (ss_args['weight']*np.ones(n), (np.zeros(n), [nn * (n + 1)
          for nn in range(n)])),
@@ -323,7 +323,7 @@ def _steadystate_direct_sparse(L, ss_args):
         logger.debug('Starting direct LU solver.')
 
     dims = L.dims[0]
-    n = prod(L.dims[0][0])
+    n = int(np.sqrt(L.shape[0]))
     b = np.zeros(n ** 2, dtype=complex)
     b[0] = ss_args['weight']
 
@@ -390,7 +390,7 @@ def _steadystate_direct_dense(L, ss_args):
         logger.debug('Starting direct dense solver.')
 
     dims = L.dims[0]
-    n = prod(L.dims[0][0])
+    n = int(np.sqrt(L.shape[0]))
     b = np.zeros(n ** 2)
     b[0] = ss_args['weight']
 
@@ -521,7 +521,7 @@ def _steadystate_iterative(L, ss_args):
         logger.debug('Starting %s solver.' % ss_args['method'])
 
     dims = L.dims[0]
-    n = prod(L.dims[0][0])
+    n = int(np.sqrt(L.shape[0]))
     b = np.zeros(n ** 2)
     b[0] = ss_args['weight']
 
@@ -798,7 +798,7 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         ss_args['weight'] = np.mean(np.abs(L.data.data.max()))
         ss_args['info']['weight'] = ss_args['weight']
 
-    n = prod(L.dims[0][0])
+    n = int(np.sqrt(L.shape[0]))
     L, perm, perm2, rev_perm, ss_args = _steadystate_LU_liouvillian(L, ss_args)
     M, ss_args = _iterative_precondition(L, n, ss_args)
 
