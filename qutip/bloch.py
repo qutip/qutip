@@ -662,8 +662,6 @@ class Bloch():
         else:
             plt.savefig(name)
         self.savenum += 1
-        if self.fig:
-            plt.close(self.fig)
 
 
 def _hide_tick_lines_and_labels(axis):
