@@ -265,7 +265,7 @@ def test_QobjDivision():
     q = Qobj(data)
     randN = 10 * np.random.random()
     q = q / randN
-    assert_(np.all(q.data.todense() - np.matrix(data) / randN == 0))
+    assert_(np.allclose(q.data.todense(), np.matrix(data) / randN))
 
 
 def test_QobjPower():
