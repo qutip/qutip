@@ -32,7 +32,7 @@
 ###############################################################################
 
 from numpy.testing import assert_, run_module_suite
-from qutip import coherent_dm, thermal_dm, fock_dm
+from qutip import coherent_dm, thermal_dm, fock_dm, triplet_states
 
 
 class TestStates:
@@ -72,6 +72,13 @@ class TestStates:
             # make sure rho has trace close to 1.0
             assert_(abs(rho.tr() - 1.0) < 1e-12)
             assert_(rho.data[i, i] == 1.0)
+
+    def testTripletStateNorm(self):
+        """
+        Test the states returned by function triplet_states are normalized.
+        """
+        for triplet in triplet_states():
+            assert_(abs(triplet.norm() - 1.) < 1e-12)
 
 
 if __name__ == "__main__":
