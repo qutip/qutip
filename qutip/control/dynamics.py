@@ -314,6 +314,10 @@ class Dynamics:
         if self.tau is None:
             self.tau = np.ones(self.num_tslots, dtype='f') * \
                 self.evo_time/self.num_tslots
+        else:
+            self.num_tslots = len(self.tau)
+            self.evo_time = sum(self.tau)
+            
         self.time = np.zeros(self.num_tslots+1, dtype=float)
         # set the cumulative time by summing the time intervals
         for t in range(self.num_tslots):
@@ -829,7 +833,7 @@ class DynamicsSymplectic(Dynamics):
         multiplied by omega
         """
         o = self.get_omega()
-        return self.dyn_gen[k].dot(o)
+        return -self.dyn_gen[k].dot(o)
 
     def get_ctrl_dyn_gen(self, j):
         """
@@ -837,4 +841,4 @@ class DynamicsSymplectic(Dynamics):
         multiplied by omega
         """
         o = self.get_omega()
-        return self.ctrl_dyn_gen[j].dot(o)
+        return -self.ctrl_dyn_gen[j].dot(o)
