@@ -147,6 +147,7 @@ class Optimizer:
         self.dynamics = dyn
         self.config = config
         self.reset()
+        dyn.parent = self
 
     def reset(self):
         self.set_log_level(self.config.log_level)
@@ -235,15 +236,12 @@ class Optimizer:
         cfg = self.config
         if cfg.any_test_files():
             if not cfg.check_create_test_out_dir():
-                cfg.reset_test_out_files()
+                cfg.clear_test_out_flags()
             else:
                 if self.stats is None:
                     logger.warn("Cannot output test files when stats"
                                 " attribute is not set.")
-                    cfg.test_out_iter = False
-                    cfg.test_out_fid_err = False
-                    cfg.test_out_grad_norm = False
-                    cfg.test_out_grad = False
+                    cfg.clear_test_out_flags()
 
         if cfg.any_test_files():
             dyn = self.dynamics

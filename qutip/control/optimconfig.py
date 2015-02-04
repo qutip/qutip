@@ -188,6 +188,9 @@ class OptimConfig:
         self.test_out_subdir = None
         self.test_out_dir = None
         self.test_out_f_ext = ".txt"
+        self.clear_test_out_flags()        
+        
+    def clear_test_out_flags(self):
         self.test_out_iter = False
         self.test_out_fid_err = False
         self.test_out_grad_norm = False
@@ -243,11 +246,18 @@ class OptimConfig:
                 os.mkdir(self.test_out_subdir)
                 logger.info("Test out files directory {} created".format(
                     self.test_out_subdir))
+            except FileExistsError:
+                logger.info("Assume test out files directory {} created by "
+                    "some other process".format(self.test_out_subdir))
             except Exception as e1:
                 try:
                     os.makedirs(self.test_out_dir)
                     logger.info("Test out files directory {} created "
                                 "(recursively)".format(self.test_out_dir))
+                except FileExistsError:     
+                    logger.info("Assume test out files directory {} created "
+                        "(recursively)  some other process".format(
+                                self.test_out_dir))
                 except Exception as e2:
                     dir_ok = False
                     msg += ("Either turn off test_out_files "
