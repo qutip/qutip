@@ -731,8 +731,8 @@ def create_pulse_optimizer(
     cfg.phase_option = phase_option
     cfg.amp_lbound = amp_lbound
     cfg.amp_ubound = amp_ubound
-    
-    if log_level == logging.NOTSET: 
+
+    if log_level == logging.NOTSET:
         log_level = logger.getEffectiveLevel()
     else:
         logger.setLevel(log_level)
@@ -837,7 +837,7 @@ def create_pulse_optimizer(
         # Check that parameters have been supplied to generate the
         # timeslot durations
         try:
-            dt = evo_time / num_tslots
+            evo_time / num_tslots
         except:
             raise errors.UsageError(
                 "Either the timeslot durations should be supplied as an "
@@ -850,7 +850,7 @@ def create_pulse_optimizer(
         dyn.tau = tau
 
     # this function is called, so that the num_ctrls attribute will be set
-    n_ctrls = dyn.get_num_ctrls()
+    dyn.get_num_ctrls()
 
     # Create a pulse generator of the type specified
     p_gen = pulsegen.create_pulse_gen(pulse_type=init_pulse_type, dyn=dyn)
@@ -858,7 +858,7 @@ def create_pulse_optimizer(
     p_gen.offset = pulse_offset
     p_gen.lbound = amp_lbound
     p_gen.ubound = amp_ubound
-    
+
     # If the pulse is a periodic type, then set the pulse to be one complete
     # wave
     if isinstance(p_gen, pulsegen.PulseGenPeriodic):

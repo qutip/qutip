@@ -32,7 +32,7 @@
 ###############################################################################
 import os
 import numpy as np
-_cython_path = os.path.dirname(os.path.abspath(__file__))
+_cython_path = os.path.dirname(os.path.abspath(__file__)).replace("\\", "/")
 _include_string = "'"+_cython_path+"/complex_math.pxi'"
 
 __all__ = ['Codegen']
@@ -135,28 +135,31 @@ class Codegen():
         ret = ''
         for name, value in self.args.items():
             if isinstance(value, np.ndarray):
-                ret += ", np.ndarray[np.%s_t, ndim=1] %s" % \
+                ret += ",\n        np.ndarray[np.%s_t, ndim=1] %s" % \
                     (value.dtype.name, name)
             else:
                 kind = type(value).__name__
-                ret += ", np." + kind + "_t " + name
+                ret += ",\n        np." + kind + "_t " + name
         return ret
 
     def ODE_func_header(self):
         """Creates function header for time-dependent ODE RHS."""
         func_name = "def cy_td_ode_rhs("
         # strings for time and vector variables
-        input_vars = "double t, np.ndarray[CTYPE_t, ndim=1] vec"
+        input_vars = ("\n        double t" +
+                      ",\n        np.ndarray[CTYPE_t, ndim=1] vec")
         for k in self.h_terms:
-            input_vars += (", np.ndarray[CTYPE_t, ndim=1] data" + str(k) +
-                           ", np.ndarray[int, ndim=1] idx" + str(k) +
-                           ", np.ndarray[int, ndim=1] ptr" + str(k))
+            input_vars += (",\n        " +
+                           "np.ndarray[CTYPE_t, ndim=1] data%d," % k +
+                           "np.ndarray[int, ndim=1] idx%d," % k +
+                           "np.ndarray[int, ndim=1] ptr%d" % k)
         if any(self.c_tdterms):
             for k in range(len(self.h_terms),
                            len(self.h_terms) + len(self.c_tdterms)):
-                input_vars += (", np.ndarray[CTYPE_t, ndim=1] data" + str(k) +
-                               ", np.ndarray[int, ndim=1] idx" + str(k) +
-                               ", np.ndarray[int, ndim=1] ptr" + str(k))
+                input_vars += (",\n        " +
+                               "np.ndarray[CTYPE_t, ndim=1] data%d," % k +
+                               "np.ndarray[int, ndim=1] idx%d," % k +
+                               "np.ndarray[int, ndim=1] ptr%d" % k)
         input_vars += self._get_arg_str(self.args)
         func_end = "):"
         return [func_name + input_vars + func_end]

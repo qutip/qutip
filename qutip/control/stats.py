@@ -46,6 +46,7 @@ used here for calculations
 import numpy as np
 import datetime
 
+
 class Stats(object):
     """
     Base class for all optimisation statistics
@@ -106,7 +107,7 @@ class Stats(object):
     num_tslot_recompute : integer
         Number of time the timeslot evolution is recomputed
         (It is only computed if any amplitudes changed since the last call)
-        
+
     num_fidelity_computes : integer
         Number of time the fidelity is computed
         (It is only computed if any amplitudes changed since the last call)
@@ -139,7 +140,7 @@ class Stats(object):
     def reset(self):
         self.dyn_gen_name = "dynamics generator"
         self.clear()
-        
+
     def clear(self):
         self.num_iter = 0
         # Duration attributes
@@ -187,13 +188,13 @@ class Stats(object):
                 self.num_timeslot_changes / float(self.num_ctrl_amp_updates)
         except:
             self.mean_num_timeslot_changes_per_update = np.NaN
-        
+
         try:
             self.mean_num_ctrl_amp_changes_per_update = \
                 self.num_ctrl_amp_changes / float(self.num_ctrl_amp_updates)
         except:
             self.mean_num_ctrl_amp_changes_per_update = np.NaN
-            
+
     def _format_datetime(self, t, tot=0.0):
         dtStr = str(datetime.timedelta(seconds=t))
         if tot > 0:
@@ -239,9 +240,9 @@ class Stats(object):
         print("Number of gradient function calls: "
               "{}".format(self.num_grad_func_calls))
         print("Number of times gradients are computed: "
-                "{}".format(self.num_grad_computes))
+              "{}".format(self.num_grad_computes))
         print("Number of times timeslot evolution is recomputed: "
-                "{}".format(self.num_tslot_recompute))
+              "{}".format(self.num_tslot_recompute))
         print("")
 
     def report_amp_updates(self):

@@ -2,6 +2,7 @@
 *.py[cod]
 *.so
 .DS_Store
+.f2py_f2cmap
 
 # Packages
 *.egg
