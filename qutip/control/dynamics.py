@@ -316,7 +316,7 @@ class Dynamics:
                 self.evo_time/self.num_tslots
         else:
             self.num_tslots = len(self.tau)
-            self.evo_time = sum(self.tau)
+            self.evo_time = np.sum(self.tau)
             
         self.time = np.zeros(self.num_tslots+1, dtype=float)
         # set the cumulative time by summing the time intervals
