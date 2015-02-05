@@ -385,7 +385,7 @@ class Dynamics:
                 if self.stats is None:
                     logger.warn("Cannot output test files when stats"
                                 " attribute is not set.")
-                cfg.clear_test_out_flags()
+                    cfg.clear_test_out_flags()
 
     def initialize_controls(self, amps, init_tslots=True):
         """
