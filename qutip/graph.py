@@ -101,6 +101,30 @@ def breadth_first_search(A, start):
     return order[order != -1], levels[levels != -1]
 
 
+def column_permutation(A):
+    """
+    Finds the non-symmetric column permutation of A such that the columns 
+    are given in ascending order according to the number of nonzero entries.
+    This is sometimes useful for decreasing the fill-in of sparse LU 
+    factorization.
+    
+    Parameters
+    ----------
+    A : csc_matrix
+        Input sparse CSC sparse matrix.
+
+    Returns
+    -------
+    perm : array
+        Array of permuted row and column indices.
+    """
+    if not sp.isspmatrix_csc(A):
+        A = sp.csc_matrix(A)
+    deg = graph_degree(A)
+    perm = np.argsort(deg)
+    return perm
+
+
 def reverse_cuthill_mckee(A, sym=False):
     """
     Returns the permutation array that orders a sparse CSR or CSC matrix
