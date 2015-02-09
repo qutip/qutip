@@ -35,11 +35,13 @@ This module contains a collection of graph theory routines used mainly
 to reorder matrices for iterative steady state solvers.
 """
 
-__all__ = ['graph_degree', 'breadth_first_search', 'reverse_cuthill_mckee',
-           'maximum_bipartite_matching', 'weighted_bipartite_matching']
+__all__ = ['graph_degree', 'column_permutation', 'breadth_first_search', 
+            'reverse_cuthill_mckee', 'maximum_bipartite_matching', 
+            'weighted_bipartite_matching']
 
 import numpy as np
 import scipy.sparse as sp
+from qutip.cy.sparse_utils import _nonzero_count
 from qutip.cy.graph_utils import (
     _breadth_first_search, _node_degrees,
     _reverse_cuthill_mckee, _maximum_bipartite_matching,
@@ -120,8 +122,8 @@ def column_permutation(A):
     """
     if not sp.isspmatrix_csc(A):
         A = sp.csc_matrix(A)
-    deg = graph_degree(A)
-    perm = np.argsort(deg)
+    count = _nonzero_count(A.indices, A.indptr, A.shape[0])
+    perm = np.argsort(count)
     return perm
 
 
