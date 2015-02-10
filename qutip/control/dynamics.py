@@ -234,6 +234,8 @@ class Dynamics:
         self.reset()
 
     def reset(self):
+        # Link to optimiser object if self is linked to one
+        self.parent = None
         # Main functional attributes
         self.evo_time = 0
         self.num_tslots = 0
@@ -378,15 +380,12 @@ class Dynamics:
         cfg = self.config
         if cfg.any_test_files():
             if not cfg.check_create_test_out_dir():
-                cfg.reset_test_out_files()
+                cfg.clear_test_out_flags()
             else:
                 if self.stats is None:
                     logger.warn("Cannot output test files when stats"
                                 " attribute is not set.")
-                self.config.test_out_amps = False
-                self.config.test_out_prop = False
-                self.config.test_out_prop_grad = False
-                self.config.test_out_evo = False
+                    cfg.clear_test_out_flags()
 
     def initialize_controls(self, amps, init_tslots=True):
         """

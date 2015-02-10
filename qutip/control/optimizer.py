@@ -147,6 +147,7 @@ class Optimizer:
         self.dynamics = dyn
         self.config = config
         self.reset()
+        dyn.parent = self
 
     def reset(self):
         self.set_log_level(self.config.log_level)
@@ -157,13 +158,10 @@ class Optimizer:
         self.stats = None
         self.wall_time_optim_start = 0.0
 
-        # test out file stream handles
+        # test out file paths
         self._iter_fpath = None
         self._fid_err_fpath = None
         self._grad_norm_fpath = None
-        self._iter_tofh = 0
-        self._fid_err_tofh = 0
-        self._grad_norm_tofh = 0
 
     def set_log_level(self, lvl):
         """
@@ -235,15 +233,12 @@ class Optimizer:
         cfg = self.config
         if cfg.any_test_files():
             if not cfg.check_create_test_out_dir():
-                cfg.reset_test_out_files()
+                cfg.clear_test_out_flags()
             else:
                 if self.stats is None:
                     logger.warn("Cannot output test files when stats"
                                 " attribute is not set.")
-                    cfg.test_out_iter = False
-                    cfg.test_out_fid_err = False
-                    cfg.test_out_grad_norm = False
-                    cfg.test_out_grad = False
+                    cfg.clear_test_out_flags()
 
         if cfg.any_test_files():
             dyn = self.dynamics
@@ -256,15 +251,6 @@ class Optimizer:
             # Prepare the files that will remain open throughout the run
             if cfg.test_out_iter:
                 fname = "iteration_log" + f_ext
-                fpath = os.path.join(cfg.test_out_dir, fname)
-                self._iter_tofh = open(fpath, 'w')
-                self._iter_tofh.write("iter           wall_time       "
-                                      "fid_err     grad_norm\n")
-                logger.info("Iteration log will be saved to:\n{}".format(
-                    fpath))
-            else:
-                self._iter_tofh = 0
-
                 self._iter_fpath = os.path.join(cfg.test_out_dir, fname)
                 fh = open(self._iter_fpath, 'w')
                 fh.write("iter           wall_time       "
@@ -272,6 +258,9 @@ class Optimizer:
                 fh.close()
                 logger.info("Iteration log will be saved to:\n{}".format(
                     self._iter_fpath))
+            else:
+                self._iter_fpath = None
+
 
             if cfg.test_out_fid_err:
                 fname = "fid_err" + f_ext
@@ -282,7 +271,7 @@ class Optimizer:
                 logger.info("Fidelity error log will be saved to:\n{}".format(
                     self._fid_err_fpath))
             else:
-                self._fid_err_tofh = 0
+                self._fid_err_fpath = None
 
             if cfg.test_out_grad_norm:
                 fname = "grad_norm" + f_ext
@@ -294,7 +283,7 @@ class Optimizer:
                     self._grad_norm_fpath))
 
             else:
-                self._grad_norm_tofh = 0
+                self._grad_norm_fpath = None
 
     def fid_err_func_wrapper(self, *args):
         """
