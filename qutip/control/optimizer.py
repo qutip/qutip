@@ -284,6 +284,7 @@ class Optimizer:
 
         if term_conds is not None:
             self.termination_conditions = term_conds
+            logger.info("TERM CONDS")
         term_conds = self.termination_conditions
         
         if not isinstance(term_conds, termcond.TerminationConditions):
