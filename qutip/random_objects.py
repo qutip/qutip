@@ -42,16 +42,21 @@ The sparsity of the ouput Qobj's is controlled by varing the
 __all__ = [
     'rand_herm', 'rand_unitary', 'rand_ket', 'rand_dm',
     'rand_unitary_haar', 'rand_ket_haar', 'rand_dm_ginibre',
-    'rand_super_bcsz'
+    'rand_dm_hs', 'rand_super_bcsz'
 ]
 
 from scipy import arcsin, sqrt, pi
+from scipy.linalg import sqrtm
 import numpy as np
+import numpy.linalg as la
 import scipy.sparse as sp
 from qutip.qobj import Qobj
 from qutip.operators import create, destroy, jmat
 from qutip.states import basis
-from qutip.superoperator import to_super
+import qutip.superop_reps as sr
+
+
+UNITS = np.array([1, 1j])
 
 def randnz(shape, norm=1 / np.sqrt(2)):
     # This function is intended for internal use.
@@ -312,7 +317,7 @@ def rand_dm_ginibre(dim=2, rank=None):
 
     return Qobj(rho)
 
-def rand_ds_hs(dim=2):
+def rand_dm_hs(dim=2):
     """
     Returns a Hilbert-Schmidt random density operator of dimension
     ``dim`` and rank ``rank`` by using the algorithm of
@@ -411,7 +416,7 @@ def rand_super_bcsz(dims=2, enforce_tp=True, rank=None):
         # marking the dimensions as that of a type=super (that is,
         # with left and right compound indices, each representing
         # left and right indices on the underlying Hilbert space).
-        D = Qobj(reduce(np.dot, (Z, XXdag, Z)))
+        D = Qobj(np.dot(Z, np.dot(XXdag, Z)))
     else:
         D = dim * Qobj(XXdag / np.trace(XXdag))
 
@@ -436,7 +441,7 @@ def rand_super_bcsz(dims=2, enforce_tp=True, rank=None):
     # Mark that we've made a Choi matrix.
     D.superrep = 'choi'
 
-    return to_super(D)
+    return sr.to_super(D)
 
 def _check_dims(dims, N1, N2):
     if len(dims) != 2:
