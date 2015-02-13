@@ -1,3 +1,6 @@
+# -*- coding: utf-8 -*-
+# The above line is so that UTF-8 comments won't break Py2.
+
 # This file is part of QuTiP: Quantum Toolbox in Python.
 #
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
@@ -36,13 +39,39 @@ The sparsity of the ouput Qobj's is controlled by varing the
 `density` parameter.
 """
 
-__all__ = ['rand_herm', 'rand_unitary', 'rand_ket', 'rand_dm']
+__all__ = [
+    'rand_herm', 'rand_unitary', 'rand_ket', 'rand_dm',
+    'rand_unitary_haar', 'rand_ket_haar', 'rand_dm_ginibre',
+    'rand_super_bcsz'
+]
 
 from scipy import arcsin, sqrt, pi
 import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import Qobj
 from qutip.operators import create, destroy, jmat
+from qutip.states import basis
+from qutip.superoperator import to_super
+
+def randnz(shape, norm=1 / np.sqrt(2)):
+    # This function is intended for internal use.
+    """
+    Returns an array of standard normal complex random variates.
+    The Ginibre ensemble corresponds to setting ``norm = 1`` [Mis12]_.
+
+    Parameters
+    ----------
+    shape : tuple
+        Shape of the returned array of random variates.
+    norm : float
+        Scale of the returned random variates, or 'ginibre' to draw
+        from the Ginibre ensemble.
+
+    .. [Mis12] doi:10.1016/j.cpc.2011.08.002
+    """
+    if norm == 'ginibre':
+        norm = 1
+    return np.sum(np.random.randn(*(shape + (2,))) * UNITS, axis=-1) * norm
 
 
 def rand_herm(N, density=0.75, dims=None):
@@ -117,6 +146,49 @@ def rand_unitary(N, density=0.75, dims=None):
     else:
         return Qobj(U)
 
+def rand_unitary_haar(dim=2):
+    """
+    Returns a Haar random unitary matrix of dimension
+    ``dim``, using the algorithm of [Mez07]_.
+
+    Parameters
+    ----------
+    dim : int
+        Dimension of the unitary to be returned.
+
+    Returns
+    -------
+    U : Qobj
+        Unitary of dims ``[[dim], [dim]]`` drawn from the Haar
+        measure.
+
+    .. [Mez07] http://arxiv.org/abs/math-ph/0609050v2
+    """
+
+    # Mez01 STEP 1: Generate an N × N matrix Z of complex standard
+    #               normal random variates.
+    Z = randnz((dim, dim))
+
+    # Mez01 STEP 2: Find a QR decomposition Z = Q · R.
+    Q, R = la.qr(Z)
+
+    # Mez01 STEP 3: Create a diagonal matrix Lambda by rescaling
+    #               the diagonal elements of R.
+    Lambda = np.diag(R).copy()
+    Lambda /= np.abs(Lambda)
+
+    # Mez01 STEP 4: Note that R' := Λ¯¹ · R has real and
+    #               strictly positive elements, such that
+    #               Q' = Q · Λ is Haar distributed.
+    # NOTE: Λ is a diagonal matrix, represented as a vector
+    #       of the diagonal entries. Thus, the matrix dot product
+    #       is represented nicely by the NumPy broadcasting of
+    #       the *scalar* multiplication. In particular,
+    #       Q · Λ = Q_ij Λ_jk = Q_ij δ_jk λ_k = Q_ij λ_j.
+    #       As NumPy arrays, Q has shape (dim, dim) and
+    #       Lambda has shape (dim, ), such that the broadcasting
+    #       represents precisely Q_ij λ_j.
+    return Qobj(Q * Lambda)
 
 def rand_ket(N, density=1, dims=None):
     """Creates a random Nx1 sparse ket vector.
@@ -151,6 +223,24 @@ def rand_ket(N, density=1, dims=None):
     else:
         return Qobj(X / X.norm())
 
+
+def rand_ket_haar(dim=2):
+    """
+    Returns a Haar random pure state of dimension ``dim`` by
+    applying a Haar random unitary to a fixed pure state.
+
+
+    Parameters
+    ----------
+    dim : int
+        Dimension of the state vector to be returned.
+
+    Returns
+    -------
+    psi : Qobj
+        A random state vector drawn from the Haar measure.
+    """
+    return rand_unitary_haar(dim) * basis(dim, 0)
 
 def rand_dm(N, density=0.75, pure=False, dims=None):
     """Creates a random NxN density matrix.
@@ -201,6 +291,37 @@ def rand_dm(N, density=0.75, pure=False, dims=None):
     else:
         return Qobj(H / H.tr())
 
+def rand_dm_ginibre(dim=2, rank=None):
+    """
+    Returns a Ginibre random density operator of dimension
+    ``dim`` and rank ``rank`` by using the algorithm of
+    [BCSZ08]_. If ``rank`` is `None`, a full-rank
+    (Hilbert-Schmidt ensemble) random density operator will be
+    returned.
+
+    .. [BCSZ08] arXiv:0804.2361
+    """
+    if rank is None:
+        rank = dim
+    if rank > dim:
+        raise ValueError("Rank cannot exceed dimension.")
+
+    X = randnz((dim, rank), norm='ginibre')
+    rho = np.dot(X, X.T.conj())
+    rho /= np.trace(rho)
+
+    return Qobj(rho)
+
+def rand_ds_hs(dim=2):
+    """
+    Returns a Hilbert-Schmidt random density operator of dimension
+    ``dim`` and rank ``rank`` by using the algorithm of
+    [BCSZ08]_.
+
+    .. [BCSZ08] arXiv:0804.2361
+    """
+    return rand_dm_ginibre(dim, rank=None)
+
 
 def rand_kraus_map(N, dims=None):
     """
@@ -239,6 +360,83 @@ def rand_super(dim=5):
         create(dim), destroy(dim), jmat(float(dim - 1) / 2.0, 'z')
     ])
 
+
+def rand_super_bcsz(dims=2, enforce_tp=True, rank=None):
+    """
+    Returns a random superoperator drawn from the Bruzda
+    et al ensemble for CPTP maps [BCSZ08]_. Note that due to
+    finite numerical precision, for ranks less than full-rank,
+    zero eigenvalues may become slightly negative, such that the
+    returned operator is not actually completely positive.
+    """
+    dim = np.product(dims)
+    if rank is None:
+        rank = dim**2
+    if rank > dim**2:
+        raise ValueError("Rank cannot exceed superoperator dimension.")
+
+    # Turn dims into a QuTiP dims specification.
+    if np.ndim(dims) == 0:
+        dims = [dims]
+    else:
+        dims = list(dims)
+
+    # We use mainly dense matrices here for speed in low
+    # dimensions. In the future, it would likely be better to switch off
+    # between sparse and dense matrices as the dimension grows.
+
+    # We start with a Ginibre uniform matrix X of the appropriate rank,
+    # and use it to construct a positive semidefinite matrix X X⁺.
+    X = randnz((dim**2, rank), norm='ginibre')
+    
+    # Precompute X X⁺, as we'll need it in two different places.
+    XXdag = np.dot(X, X.T.conj())
+    
+    if enforce_tp:
+        # We do the partial trace over the first index by using dense reshape
+        # operations, so that we can avoid bouncing to a sparse representation
+        # and back.
+        Y = np.einsum('ijik->jk', XXdag.reshape((dim, dim, dim, dim)))
+
+        # Now we have the matrix 𝟙 ⊗ Y^{-1/2}, which we can find by doing
+        # the square root and the inverse separately. As a possible improvement,
+        # iterative methods exist to find inverse square root matrices directly,
+        # as this is important in statistics.
+        Z = np.kron(
+            np.eye(dim),
+            sqrtm(la.inv(Y))
+        )
+
+        # Finally, we dot everything together and pack it into a Qobj,
+        # marking the dimensions as that of a type=super (that is,
+        # with left and right compound indices, each representing
+        # left and right indices on the underlying Hilbert space).
+        D = Qobj(reduce(np.dot, (Z, XXdag, Z)))
+    else:
+        D = dim * Qobj(XXdag / np.trace(XXdag))
+
+    D.dims = [
+        # Left dims
+        [[dim], [dim]],
+        # Right dims
+        [[dim], [dim]]
+    ]
+
+    # Since [BCSZ08] gives a row-stacking Choi matrix, but QuTiP
+    # expects a column-stacking Choi matrix, we must permute the indices.
+    D = D.permute([[1], [0]])
+
+    D.dims = [
+        # Left dims
+        [dims, dims],
+        # Right dims
+        [dims, dims]
+    ]
+
+    # Mark that we've made a Choi matrix.
+    D.superrep = 'choi'
+
+    return to_super(D)
 
 def _check_dims(dims, N1, N2):
     if len(dims) != 2:
