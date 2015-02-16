@@ -37,6 +37,7 @@ import numpy as np
 from numpy.testing import assert_equal, assert_, run_module_suite
 
 from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
+                                  rand_ket_haar, rand_dm_hs,
                                   rand_super, rand_unitary_haar, rand_dm_ginibre,
                                   rand_super_bcsz)
 from qutip.operators import qeye
@@ -66,6 +67,29 @@ def test_rand_super_bcsz_cptp():
     S = rand_super_bcsz(5)
     assert_(S.iscptp)
 
+def check_func_dims(func, args, kwargs, dims):
+    # TODO: promote this out of test_random, as it's generically useful
+    #       in writing tests.
+    resdims = func(*args, **kwargs).dims
+    assert_(resdims == dims, "Checking {}; epected dimensions of {}, got {}.".format(func.__name__, dims, resdims))
+
+def test_rand_vector_dims():
+    FUNCS = [rand_ket, rand_ket_haar]
+    for func in FUNCS:
+        yield check_func_dims, func, (7, ), {}, [[7], [1]]
+        yield check_func_dims, func, (6, ), {'dims': [2, 3]}, [[2, 3], [1]]
+
+def test_rand_oper_dims():
+    FUNCS = [rand_unitary, rand_herm, rand_dm, rand_unitary_haar, rand_dm_ginibre, rand_dm_hs]
+    for func in FUNCS:
+        yield check_func_dims, func, (7, ), {}, [[7], [7]]
+        yield check_func_dims, func, (6, ), {'dims': [[2, 3], [2, 3]]}, [[2, 3], [2, 3]]
+
+def test_rand_super_dims():
+    FUNCS = [rand_super, rand_super_bcsz]
+    for func in FUNCS:
+        yield check_func_dims, func, (7, ), {}, [[[7], [7]]] * 2
+        yield check_func_dims, func, (6, ), {'dims': [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]}, [[[2, 3], [2, 3]], [[2, 3], [2, 3]]]
 
 if __name__ == "__main__":
     run_module_suite()
