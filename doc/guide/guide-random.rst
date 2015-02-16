@@ -12,37 +12,41 @@ Generating Random Quantum States & Operators
 
    In [1]: from qutip import *
 
-QuTiP includes a collection of random state generators for simulations, theorem evaluation, and code testing:
+QuTiP includes a collection of random state, unitary and channel generators for simulations, Monte Carlo evaluation, theorem evaluation, and code testing.
+Each of these objects can be sampled from one of several different distributions including the default distributions
+used by QuTiP versions prior to 3.2.0.
+
+For example, a random Hermitian operator can be sampled by calling `rand_herm` function:
+
+.. ipython::
+
+	In [2]: rand_herm(5)
 
 .. tabularcolumns:: | p{2cm} | p{3cm} |
 
 .. cssclass:: table-striped
 
-+-------------------------------+---------------------------------+
-| Function                      | Description                     |
-+===============================+=================================+
-| `rand_ket`                    | Random ket-vector               |
-+-------------------------------+---------------------------------+
-| `rand_dm`                     | Random density matrix           |
-+-------------------------------+---------------------------------+
-| `rand_herm`                   | Random Hermitian matrix         |
-+-------------------------------+---------------------------------+
-| `rand_unitary`                | Random Unitary matrix           |
-+-------------------------------+---------------------------------+
+===========================   ========================================== ========================================
+Random Variable Type          Sampling Functions                         Dimensions
+===========================   ========================================== ========================================
+State vector (``ket``)        `rand_ket`, `rand_ket_haar`                :math:`N \times 1`
+Hermitian operator (``oper``) `rand_herm`                                :math:`N \times 1`
+Density operator (``oper``)   `rand_dm`, `rand_dm_hs`, `rand_dm_ginibre` :math:`N \times N`
+Unitary operator (``oper``)   `rand_unitary`, `rand_unitary_haar`        :math:`N \times N`
+CPTP channel (``super``)      `rand_super`, `rand_super_bcsz`            :math:`(N \times N) \times (N \times N)`
+===========================   ========================================== ========================================
 
+In all cases, these functions can be called with a single parameter :math:`N` that dimension of the relevant Hilbert space. The optional
+``dims`` keyword argument allows for the dimensions of a random state, unitary or channel to be broken down into subsystems.
+
+.. ipython::
+	
+	In [3]: print rand_super_bcsz(7).dims
+
+	In [4]: print rand_super_bcsz(6, dims=[[[2, 3], [2, 3]], [[2, 3], [2, 3]]]).dims
+	
 See the API documentation: :ref:`functions-rand` for details.
 
-In all cases, these functions can be called with a single parameter :math:`N` that indicates a :math:`NxN` matrix (`rand_dm`, `rand_herm`, `rand_unitary`), or a :math:`Nx1` vector (`rand_ket`), should be generated.  For example:
-
-.. ipython::
-
-   In [1]: rand_ket(5)
-
-or
-
-.. ipython::
-
-   In [1]: rand_herm(5)
 
 In this previous example, we see that the generated Hermitian operator contains a fraction of elements that are identically equal to zero.  The number of nonzero elements is called the `density` and can be controlled by calling any of the random state/operator generators with a second argument between 0 and 1.  By default, the density for the operators is `0.75` where as ket vectors are completely dense (`1`).  For example:
 
