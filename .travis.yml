@@ -3,6 +3,10 @@ language: python
 python:
     - 2.7
     - 3.4
+matrix:
+    include:
+        - python: 3.4
+          env: CC=clang CXX=clang++
 
 before_install:
     - uname -a
