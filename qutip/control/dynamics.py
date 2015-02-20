@@ -379,9 +379,7 @@ class Dynamics:
     def _check_test_out_files(self):
         cfg = self.config
         if cfg.any_test_files():
-            if not cfg.check_create_test_out_dir():
-                cfg.clear_test_out_flags()
-            else:
+            if cfg.check_create_test_out_dir():
                 if self.stats is None:
                     logger.warn("Cannot output test files when stats"
                                 " attribute is not set.")
