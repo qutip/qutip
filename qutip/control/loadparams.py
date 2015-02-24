@@ -109,7 +109,7 @@ def load_parameters(file_name, config=None, term_conds=None,
         try:
             attr_names = parser.options(s)
             for a in attr_names:
-                set_param(parser, s, a, optim, a)
+                set_param(parser, s, a, pulsegen, a)
         except Exception as e:
             logger.warn("Unable to load {} parameters:({}) {}".format(
                 s, type(e).__name__, e))
