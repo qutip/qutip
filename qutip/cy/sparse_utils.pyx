@@ -224,20 +224,4 @@ def _sparse_reverse_permute(
 
     return new_data, new_idx, new_ptr
 
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-cpdef _nonzero_count(np.ndarray[ITYPE_t, ndim=1] idx, 
-                    np.ndarray[ITYPE_t, ndim=1] ptr, int num_rows):
-    """
-    Returns the number of nonzero elements in each row or column when
-    given a CSR or CSC matrix, respectively.
-    """
-    cdef unsigned int ii
-    cdef np.ndarray[ITYPE_t] count = np.zeros(num_rows, dtype=ITYPE)
-
-    for ii in range(num_rows):
-        count[ii] = ptr[ii + 1] - ptr[ii]
-
-    return count
                     

@@ -170,7 +170,7 @@ def test_column_permutation():
     A = sp.rand(5, 5, 0.25, format='csc')
     perm = column_permutation(A)
     B = sp_permute(A, [], perm)
-    counts = _nonzero_count(B.indices, B.indptr, B.shape[0])
+    counts = np.diff(B.indptr)
     assert_equal(np.all(np.argsort(counts) == np.arange(5)), True)
 
 if __name__ == "__main__":

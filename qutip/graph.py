@@ -41,7 +41,6 @@ __all__ = ['graph_degree', 'column_permutation', 'breadth_first_search',
 
 import numpy as np
 import scipy.sparse as sp
-from qutip.cy.sparse_utils import _nonzero_count
 from qutip.cy.graph_utils import (
     _breadth_first_search, _node_degrees,
     _reverse_cuthill_mckee, _maximum_bipartite_matching,
@@ -122,7 +121,7 @@ def column_permutation(A):
     """
     if not sp.isspmatrix_csc(A):
         A = sp.csc_matrix(A)
-    count = _nonzero_count(A.indices, A.indptr, A.shape[0])
+    count = np.diff(A.indptr)
     perm = np.argsort(count)
     return perm
 
