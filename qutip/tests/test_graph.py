@@ -44,7 +44,6 @@ from qutip import (rand_dm, graph_degree, breadth_first_search,
                    liouvillian, maximum_bipartite_matching,
                    weighted_bipartite_matching, column_permutation)
 from qutip.sparse import sp_permute, sp_bandwidth
-from qutip.cy.sparse_utils import _nonzero_count
 
 def test_graph_degree():
     "Graph: Graph Degree"
