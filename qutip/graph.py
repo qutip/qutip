@@ -35,8 +35,9 @@ This module contains a collection of graph theory routines used mainly
 to reorder matrices for iterative steady state solvers.
 """
 
-__all__ = ['graph_degree', 'breadth_first_search', 'reverse_cuthill_mckee',
-           'maximum_bipartite_matching', 'weighted_bipartite_matching']
+__all__ = ['graph_degree', 'column_permutation', 'breadth_first_search', 
+            'reverse_cuthill_mckee', 'maximum_bipartite_matching', 
+            'weighted_bipartite_matching']
 
 import numpy as np
 import scipy.sparse as sp
@@ -99,6 +100,30 @@ def breadth_first_search(A, start):
     # since maybe not all nodes are in search, check for unused entires in
     # arrays
     return order[order != -1], levels[levels != -1]
+
+
+def column_permutation(A):
+    """
+    Finds the non-symmetric column permutation of A such that the columns 
+    are given in ascending order according to the number of nonzero entries.
+    This is sometimes useful for decreasing the fill-in of sparse LU 
+    factorization.
+    
+    Parameters
+    ----------
+    A : csc_matrix
+        Input sparse CSC sparse matrix.
+
+    Returns
+    -------
+    perm : array
+        Array of permuted row and column indices.
+    """
+    if not sp.isspmatrix_csc(A):
+        A = sp.csc_matrix(A)
+    count = np.diff(A.indptr)
+    perm = np.argsort(count)
+    return perm
 
 
 def reverse_cuthill_mckee(A, sym=False):
