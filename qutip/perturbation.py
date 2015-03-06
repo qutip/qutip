@@ -43,17 +43,15 @@ from numpy import zeros, linalg
 # If you have questions about this module, feel free to email qasdfgtyuiop@gmail.com
 
 class EnergyLevelPerturbation:
-    """This class is the node of energy level tree
+    """This class is the node of energy level forest. For more detail, see
+    section 2.1 in example-perturbation.ipynb
         
     """
         
-    def __init__(self, E, degeneracy, prev_order = None, eigen_space = None, next_order = None):
-        """Initialize a naked(not in any tree) node
-            
-        """
+    def __init__(self, energy, degeneracy, parent = None, children = None, eigen_space = None):
         
-        # value energy level perturbation
-        self.E = E
+        # value of energy level perturbation
+        self.energy = energy
         
         # degeneracy of this energy level perturbation
         self.degeneracy = degeneracy
@@ -63,81 +61,97 @@ class EnergyLevelPerturbation:
         # value of eigen_space will be None
         self.eigen_space = eigen_space
 
-        # list of pointers to the next order energy level perturbation
-        self.next_order = next_order
-        if next_order is None:
-            self.next_order = []
+        # list of pointers to the children
+        self.children = children
+        if children is None:
+            self.children = []
 
         # pointer to the previous order energy level perturbation
-        self.prev_order = prev_order
+        self.parent = parent
 
 class PerturbedBase:
-    pass
+    """This class stores a state vector and its perturbation in a list, see
+    section 2.2 in example-perturbation.ipynb for more detail.
+    """
+
+    def __init__(self,vectors=None):
+        self.vectors = vectors
+        if vectors is None:
+            self.vectors = []
+
+    # overload of arithmethic operators
+    def __add__(self,other):
+        return PerturbedBase([x + y for x, y in zip(self.vectors, other.vectors)])
+
+    def __sub__(self,other):
+        return PerturbedBase([x - y for x, y in zip(self.vectors, other.vectors)])
+
+    def __mul__(self,num):
+        return PerturbedBase([x * num for x in self.vectors])
+
+    def __rmul__(self,num):
+        return self*num
+
+    def __div__(self,num):
+        return self*(1.0/num)
+
+    def __neg__(self):
+        return self*(-1)
+
+    def __pos__(self):
+        return self*1
+
 
 class PerturbedEigenSpace:
-    """This class is the entry of eigen_spaces
+    """The instance of this class stores the information of the "most splitted
+    subspace" (defined in section 2 of example-perturbation.ipynb). See section 2.3
+    of example-perturbation.ipynb for further information.
         
     """
 
-    def __init__(self, energy_levels=None, vectors=None):
-        """Initialize an empty instance
-            
-        """
-        self.energy_levels = energy_levels
-        self.vectors = vectors
-        if energy_levels is None:
-            energy_levels = []
-        if vectors is None:
-            vectors = []
+    def __init__(self, base_set=None, elp_node=None):
+        self.elp_node = elp_node
+        self.base_set = base_set
+        if base_set is None:
+            self.base_set = []
 
-    @classmethod
-    def new0(cls, energy_level, vectors):
-        """This function is usually used to initialize the parameter
-        passed to the constructor of class Perturbation to create
-        an instance for the eigen spaces of H0.
-        
+    def split(self,eigen_system_info):
+        """See section 1.2.2 in example-perturbation.ipynb, given the
+        result for the eigenvalue problem (1.2.2.4), split this eigenspace
+        into several subspaces, update the corresponding structure in
+        energy level forest and corresponding references.
+
         Parameters
         ----------
-        energy_level ：EnergyLevelPerturbation
-            instance of class EnergyLevelPerturbation for this energy level
-        vectors ：[Qobj]
-            list of orthogonal eigen vectors for this energy level
-        
+        eigen_system_info : array
+            classified eigenvalues and eigenvectors of problem (1.2.2.4)
+            according to degenerate. it is such a data structure:
+            [ [eigen value 1,[eigen vector 1, eigen vector 2, ...]],
+              [eigen value 2,[eigen vector 1, eigen vector 2, ...]],
+              ...  ]
+
         Returns
         -------
-        PerturbedEigenSpace
-            An well-setted instance of class PerturbedEigenSpace.
-        """
+        [PerturbedEigenSpace]
+            list of newly splitted subspace
 
-        instance = cls([energy_level])
-        for i in vectors:
-            instance.vectors += [[i]]
-        energy_level.eigen_space = instance
-        return instance
-
-    @classmethod
-    def copy(cls, old_instance, new_energy_level, new_vectors):
-        """This function is usually used to create an instance
-        for the splitted space when the eigen space is splitted
-        by the newly introduced perturbation.
-                
-        Parameters
-        ----------
-        old_instance : 
-            the instance for the unsplitted space
-        new_energy_level : 
-            instance of class EnergyLevelPerturbation for the
-            new splitted energy level
-        vectors : 
-            list of new eigen vectors after splitted
-                
-        Returns
-        -------
-        PerturbedEigenSpace
-            An well-setted instance of class PerturbedEigenSpace.
         """
-        return cls(old_instance.energy_levels+[new_energy_level],
-                   new_vectors)
+        ret = []
+        self.elp_node.eigen_space = None
+        for i in eigen_system_info: # for each newly splitted subspace
+            # retrieve information about energy level perturbation
+            energy = i[0]
+            degeneracy = len(eigen_vectors)
+            # calculate new base set for newly splitted subspace
+            new_base_set = [ sum([x * y for x,y in zip(j,self.base_set)]) for j in i[1] ]
+            # create a new instance of newly splitted subspace
+            space = PerturbedEigenSpace(new_base_set)
+            ret.append(space)
+            # create new nodes in energy level tree
+            node = EnergyLevelPerturbation(energy, degeneracy, self.elp_node, None, space)
+            self.elp_node.children.append(node)
+            space.elp_node = node
+
 
 class Perturbation:
     """This class is the calculator class that do the calculation
@@ -152,7 +166,7 @@ class Perturbation:
         Parameters
         ----------
         H0 : Qobj
-            the unperturbed Hamiltonian
+            the unperturbed Hamiltonian H0
         zero_order_energy_levels : [EnergyLevelPerturbation]
             list of class EnergyLevelPerturbation instances
             corresponding to each energy level of H0
@@ -205,12 +219,13 @@ class Perturbation:
                     for i in range(1, t):
                         H = (sp.vectors[chi][0].trans()*self.hamiltonians[i]
                              * sp.vectors[xi][t-i]).tr()
-                        E = (sp.energy_levels[i].E*sp.vectors[chi][0].trans()
+                        E = (sp.elp_node[i].E*sp.vectors[chi][0].trans()
                              * sp.vectors[xi][t-i]).tr()
                         W[chi, xi] += H-E
 
             # solve the eigen value problem of W
             eigen_values, eigen_vectors = linalg.eig(W)
+
             # classify eigen values and eigen vectors of W according
             # to degenerate. here we maintain a data structure:
             # [ [eigen value 1,[eigen vector 1, eigen vector 2, ...]],
@@ -218,62 +233,19 @@ class Perturbation:
             #  ...  ]
             eigen_system_info = []
             for i in range(dim):
-                eigen_value = eigen_values[i]
-                eigen_vector = eigen_vectors[:, i]
-                for j in eigen_system_info:
-                    if abs(j[0] - eigen_value) < self.etol:
-                        # still degenerate
-                        j[1] += [eigen_vector]
-                        break
-                else:
-                    # not degenerate
-                    eigen_system_info += [[eigen_value, [eigen_vector]]]
-
-            # delete inappropriate "eigen_space" attribute in nodes of energy
-            # level tree and remove old spaces(will be replaced by new and
-            # splitted space) from self.eigen_spaces
-            if len(eigen_system_info) > 1:
-                # energy level splits
-                for i in sp.energy_levels:
-                    if not ( i.eigen_space is None ):
-                        i.eigen_space = None
-                spaces_to_be_removed += [sp]
-
-            # create new entries in self.eigen_spaces to store the splitted
-            # space and insert new nodes to energy level tree to store energy
-            # of the t^th order perturbation
-            new_nodes = []
-            for i in eigen_system_info:
-                E = i[0]
-                eigen_vectors = i[1]
-                degeneracy = len(eigen_vectors)
-                # create new node in energy level tree
-                node = EnergyLevelPerturbation(E, degeneracy)
-                node.prev_order = sp.energy_levels[t-1]
-                # create new entry in self.eigen_spaces
-                space = sp
-                space.energy_levels += [node]
-                if len(eigen_system_info) > 1:
-                    # calculate new vectors
-                    new_vectors = []
-                    for j in eigen_vectors:
-                        # each vector set of all energy level
-                        new_vector_of_all_energy_level = []
-                        for k in range(t):
-                            # each order of perturbation within the same
-                            # vector set
-                            ket = j[0]*sp.vectors[0][k]
-                            for l in range(1, dim):
-                                # each element of eigen vector of W
-                                ket += j[l] * sp.vectors[l][k]
-                            new_vector_of_all_energy_level += [ket]
-                        new_vectors += [new_vector_of_all_energy_level]
-                    # create new PerturbedEigenSpace entry
-                    space = PerturbedEigenSpace.copy(sp, node, new_vectors)
-                    spaces_to_be_appended += [space]
-                node.eigen_space = space
-                new_nodes += [node]
-            sp.energy_levels[t-1].next_order = new_nodes
+            eigen_value = eigen_values[i]
+            eigen_vector = eigen_vectors[:, i]
+            for j in eigen_system_info:
+                if abs(j[0] - eigen_value) < self.etol:
+                    # still degenerate
+                    j[1] += [eigen_vector]
+                    break
+            else:
+                # not degenerate
+                eigen_system_info += [[eigen_value, [eigen_vector]]]
+            
+            #################code removed
+            
         for i in spaces_to_be_removed:
             self.eigen_spaces.remove(i)
         self.eigen_spaces += spaces_to_be_appended
