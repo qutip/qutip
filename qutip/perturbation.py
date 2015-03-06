@@ -31,31 +31,50 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-__all__ = ['Perturbation','EnergyLevel','EigenSpace']
+__all__ = ['Perturbation','EnergyLevelPerturbation','PerturbedEigenSpace','PerturbedBase']
 
 from qutip import Qobj
 from numpy import zeros, linalg
 
-# TODO: I kept using a lot of 'eigen', 'vectors', which might
-# refer to different things in different situations clarify all
-# the names to make them not confusing
+# For formula used in this module, and the explanation of data structure of this module,
+# see the ipython notebook "example-perturbation.ipynb". Note that the source code and
+# comments in this module should always be kept consistent with that note book. If you
+# make changes to this module, ALWAYS update "example-perturbation.ipynb" - and vice versa.
+# If you have questions about this module, feel free to email qasdfgtyuiop@gmail.com
 
-class EnergyLevel:
+class EnergyLevelPerturbation:
     """This class is the node of energy level tree
         
     """
         
-    def __init__(self, E, degeneracy):
+    def __init__(self, E, degeneracy, prev_order = None, eigen_space = None, next_order = None):
         """Initialize a naked(not in any tree) node
             
         """
         
-        # Energy of this energy level
+        # value energy level perturbation
         self.E = E
-        # degeneracy of this energy level
+        
+        # degeneracy of this energy level perturbation
         self.degeneracy = degeneracy
-    
-class EigenSpace:
+        
+        # the eigen space corresponding to this energy level perturbation
+        # if this energy level is splitted in furter perturbation, then the
+        # value of eigen_space will be None
+        self.eigen_space = eigen_space
+
+        # list of pointers to the next order energy level perturbation
+        self.next_order = next_order
+        if next_order is None:
+            self.next_order = []
+
+        # pointer to the previous order energy level perturbation
+        self.prev_order = prev_order
+
+class PerturbedBase:
+    pass
+
+class PerturbedEigenSpace:
     """This class is the entry of eigen_spaces
         
     """
@@ -64,12 +83,12 @@ class EigenSpace:
         """Initialize an empty instance
             
         """
+        self.energy_levels = energy_levels
+        self.vectors = vectors
         if energy_levels is None:
             energy_levels = []
         if vectors is None:
             vectors = []
-        self.energy_levels = energy_levels
-        self.vectors = vectors
 
     @classmethod
     def new0(cls, energy_level, vectors):
@@ -79,15 +98,15 @@ class EigenSpace:
         
         Parameters
         ----------
-        energy_level ：EnergyLevel
-            instance of class EnergyLevel for this energy level
+        energy_level ：EnergyLevelPerturbation
+            instance of class EnergyLevelPerturbation for this energy level
         vectors ：[Qobj]
             list of orthogonal eigen vectors for this energy level
         
         Returns
         -------
-        EigenSpace
-            An well-setted instance of class EigenSpace.
+        PerturbedEigenSpace
+            An well-setted instance of class PerturbedEigenSpace.
         """
 
         instance = cls([energy_level])
@@ -107,15 +126,15 @@ class EigenSpace:
         old_instance : 
             the instance for the unsplitted space
         new_energy_level : 
-            instance of class EnergyLevel for the
+            instance of class EnergyLevelPerturbation for the
             new splitted energy level
         vectors : 
             list of new eigen vectors after splitted
                 
         Returns
         -------
-        EigenSpace
-            An well-setted instance of class EigenSpace.
+        PerturbedEigenSpace
+            An well-setted instance of class PerturbedEigenSpace.
         """
         return cls(old_instance.energy_levels+[new_energy_level],
                    new_vectors)
@@ -134,11 +153,11 @@ class Perturbation:
         ----------
         H0 : Qobj
             the unperturbed Hamiltonian
-        zero_order_energy_levels : [EnergyLevel]
-            list of class EnergyLevel instances
+        zero_order_energy_levels : [EnergyLevelPerturbation]
+            list of class EnergyLevelPerturbation instances
             corresponding to each energy level of H0
-        zero_order_eigen_spaces : [EigenSpace]
-            list of class EigenSpace instances
+        zero_order_eigen_spaces : [PerturbedEigenSpace]
+            list of class PerturbedEigenSpace instances
             corresponding to the eigen space of each energy level
         etol : float
             tolerance of energy, i.e. if |Em-En|<etol, we regard
@@ -216,8 +235,8 @@ class Perturbation:
             if len(eigen_system_info) > 1:
                 # energy level splits
                 for i in sp.energy_levels:
-                    if hasattr(i, "eigen_space"):
-                        del i.eigen_space
+                    if not ( i.eigen_space is None ):
+                        i.eigen_space = None
                 spaces_to_be_removed += [sp]
 
             # create new entries in self.eigen_spaces to store the splitted
@@ -229,7 +248,7 @@ class Perturbation:
                 eigen_vectors = i[1]
                 degeneracy = len(eigen_vectors)
                 # create new node in energy level tree
-                node = EnergyLevel(E, degeneracy)
+                node = EnergyLevelPerturbation(E, degeneracy)
                 node.prev_order = sp.energy_levels[t-1]
                 # create new entry in self.eigen_spaces
                 space = sp
@@ -249,8 +268,8 @@ class Perturbation:
                                 ket += j[l] * sp.vectors[l][k]
                             new_vector_of_all_energy_level += [ket]
                         new_vectors += [new_vector_of_all_energy_level]
-                    # create new EigenSpace entry
-                    space = EigenSpace.copy(sp, node, new_vectors)
+                    # create new PerturbedEigenSpace entry
+                    space = PerturbedEigenSpace.copy(sp, node, new_vectors)
                     spaces_to_be_appended += [space]
                 node.eigen_space = space
                 new_nodes += [node]
