@@ -234,6 +234,8 @@ class Dynamics:
         self.reset()
 
     def reset(self):
+        # Link to optimiser object if self is linked to one
+        self.parent = None
         # Main functional attributes
         self.evo_time = 0
         self.num_tslots = 0
@@ -314,6 +316,10 @@ class Dynamics:
         if self.tau is None:
             self.tau = np.ones(self.num_tslots, dtype='f') * \
                 self.evo_time/self.num_tslots
+        else:
+            self.num_tslots = len(self.tau)
+            self.evo_time = np.sum(self.tau)
+            
         self.time = np.zeros(self.num_tslots+1, dtype=float)
         # set the cumulative time by summing the time intervals
         for t in range(self.num_tslots):
@@ -373,16 +379,11 @@ class Dynamics:
     def _check_test_out_files(self):
         cfg = self.config
         if cfg.any_test_files():
-            if not cfg.check_create_test_out_dir():
-                cfg.reset_test_out_files()
-            else:
+            if cfg.check_create_test_out_dir():
                 if self.stats is None:
                     logger.warn("Cannot output test files when stats"
                                 " attribute is not set.")
-                self.config.test_out_amps = False
-                self.config.test_out_prop = False
-                self.config.test_out_prop_grad = False
-                self.config.test_out_evo = False
+                    cfg.clear_test_out_flags()
 
     def initialize_controls(self, amps, init_tslots=True):
         """
@@ -829,7 +830,7 @@ class DynamicsSymplectic(Dynamics):
         multiplied by omega
         """
         o = self.get_omega()
-        return self.dyn_gen[k].dot(o)
+        return -self.dyn_gen[k].dot(o)
 
     def get_ctrl_dyn_gen(self, j):
         """
@@ -837,4 +838,4 @@ class DynamicsSymplectic(Dynamics):
         multiplied by omega
         """
         o = self.get_omega()
-        return self.ctrl_dyn_gen[j].dot(o)
+        return -self.ctrl_dyn_gen[j].dot(o)

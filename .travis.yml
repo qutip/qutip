@@ -3,6 +3,10 @@ language: python
 python:
     - 2.7
     - 3.4
+matrix:
+    include:
+        - python: 3.4
+          env: CC=clang CXX=clang++
 
 before_install:
     - uname -a
@@ -25,7 +29,7 @@ script:
     - nosetests --with-coverage --cover-package=qutip qutip
 
 after_success:
-    - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then
+    - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]] && [[ $CC == 'gcc' ]]; then
           coveralls;
       fi
 

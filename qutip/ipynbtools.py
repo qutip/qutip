@@ -43,6 +43,7 @@ from IPython.display import HTML, Javascript, display
 
 import matplotlib.pyplot as plt
 from matplotlib import animation
+from base64 import b64encode
 
 import datetime
 import uuid
@@ -78,18 +79,18 @@ def version_table(verbose=False):
     html = "<table>"
     html += "<tr><th>Software</th><th>Version</th></tr>"
 
-    packages = {"QuTiP": qutip.__version__,
-                "Numpy": numpy.__version__,
-                "SciPy": scipy.__version__,
-                "matplotlib": matplotlib.__version__,
-                "Cython": Cython.__version__,
-                "Python": sys.version,
-                "IPython": IPython.__version__,
-                "OS": "%s [%s]" % (os.name, sys.platform)
-                }
+    packages = [("QuTiP", qutip.__version__),
+                ("Numpy", numpy.__version__),
+                ("SciPy", scipy.__version__),
+                ("matplotlib", matplotlib.__version__),
+                ("Cython", Cython.__version__),
+                ("IPython", IPython.__version__),
+                ("Python", sys.version),
+                ("OS", "%s [%s]" % (os.name, sys.platform))
+                ]
 
-    for name in packages:
-        html += "<tr><td>%s</td><td>%s</td></tr>" % (name, packages[name])
+    for name, version in packages:
+        html += "<tr><td>%s</td><td>%s</td></tr>" % (name, version)
 
     if verbose:
         html += "<tr><th colspan='2'>Additional information</th></tr>"
@@ -354,7 +355,7 @@ def parallel_map(task, values, task_args=None, task_kwargs=None,
 
 
 def plot_animation(plot_setup_func, plot_func, result, name="movie",
-                   verbose=False):
+                   writer="avconv", codec="libx264", verbose=False):
     """
     Create an animated plot of a Result object, as returned by one of
     the qutip evolution solvers.
@@ -370,7 +371,7 @@ def plot_animation(plot_setup_func, plot_func, result, name="movie",
     anim = animation.FuncAnimation(
         fig, update, frames=len(result.times), blit=True)
 
-    anim.save(name + '.mp4', fps=10, writer="avconv", codec="libx264")
+    anim.save(name + '.mp4', fps=10, writer=writer, codec=codec)
 
     plt.close(fig)
 
@@ -378,7 +379,7 @@ def plot_animation(plot_setup_func, plot_func, result, name="movie",
         print("Created %s.m4v" % name)
 
     video = open(name + '.mp4', "rb").read()
-    video_encoded = video.encode("base64")
+    video_encoded = b64encode(video).decode("ascii")
     video_tag = '<video controls src="data:video/x-m4v;base64,{0}">'.format(
         video_encoded)
     return HTML(video_tag)
