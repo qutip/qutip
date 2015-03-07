@@ -81,7 +81,18 @@ class PerturbedBase:
 
     # overload of arithmethic operators
     def __add__(self,other):
-        return PerturbedBase([x + y for x, y in zip(self.vectors, other.vectors)])
+        if isinstance(other,int):
+            # in order to be able to use sum()
+            return self*1
+        else:
+            return PerturbedBase([x + y for x, y in zip(self.vectors, other.vectors)])
+
+    def __radd__(self,other):
+        if isinstance(other,int):
+            # in order to be able to use sum()
+            return self*1
+        else:
+            return PerturbedBase([x + y for x, y in zip(other.vectors, self.vectors)])
 
     def __sub__(self,other):
         return PerturbedBase([x - y for x, y in zip(self.vectors, other.vectors)])
@@ -175,6 +186,33 @@ class Perturbation:
     of perturbation theory. See section 2.4 for detailed information.
         
     """
+    
+    def categorize_eigenstates(self,eigenvalues,eigenstates):
+        """categorize eigenvalues and eigenvectors by the degeneracy
+            here we maintain a data structure:
+            [ [eigen value 1,[eigen vector 1, eigen vector 2, ...]],
+            [eigen value 2,[eigen vector 1, eigen vector 2, ...]],
+            ...  ]
+            
+            Parameters
+            ----------
+            eigenvalues : array
+            the eigenvalues
+            eigenstates : array
+            the array of eigenstates
+            """
+        eigen_system_info = []
+        for i in range(len(eigenvalues)):
+            eigen_value = eigenvalues[i]
+            eigen_vector = eigenstates[i]
+            for j in eigen_system_info:
+                if abs(j[0] - eigen_value) < self.etol:
+                    j[1] += [eigen_vector]
+                    break
+            else:
+                # not degenerate
+                eigen_system_info += [[eigen_value, [eigen_vector]]]
+        return eigen_system_info
 
     def __init__(self, h0, zero_order_eigenstates=None,
                  zero_order_energy_levels=None, etol=1E-8):
@@ -210,10 +248,10 @@ class Perturbation:
         if zero_order_eigenstates is None:
             zero_order_energy_levels, zero_order_eigenstates = h0.eigenstates()
         if zero_order_energy_levels is None:
-            zero_order_energy_levels = [(x.conj()*h0*x).tr()/(x.conj()*x).tr() for x in zero_order_eigenstates]
+            zero_order_energy_levels = [(x.dag()*h0*x).tr()/(x.dag()*x).tr() for x in zero_order_eigenstates]
         
         # categorize eigenvalues and eigenvectors.
-        eigen_system_info = categorize_eigenstates(zero_order_energy_levels,zero_order_eigenstates)
+        eigen_system_info = self.categorize_eigenstates(zero_order_energy_levels,zero_order_eigenstates)
         
         # build from categorized eigen system information
         self.energy_level_trees = []
@@ -232,34 +270,6 @@ class Perturbation:
             node = EnergyLevelPerturbation(energy, degeneracy, None, None, space)
             self.energy_level_trees.append(node)
             space.elp_node = node
-
-    def categorize_eigenstates(eigenvalues,eigenstates):
-        """categorize eigenvalues and eigenvectors by the degeneracy
-        here we maintain a data structure:
-        [ [eigen value 1,[eigen vector 1, eigen vector 2, ...]],
-          [eigen value 2,[eigen vector 1, eigen vector 2, ...]],
-          ...  ]
-          
-        Parameters
-        ----------
-        eigenvalues : array
-            the eigenvalues
-        eigenstates : array
-            the array of eigenstates
-        """
-        eigen_system_info = []
-        for i in range(dim):
-            eigen_value = eigenvalues[i]
-            eigen_vector = eigenvectors[:, i]
-            for j in eigen_system_info:
-                if abs(j[0] - eigen_value) < self.etol:
-                    # still degenerate
-                    j[1] += [eigen_vector]
-                    break
-                else:
-                    # not degenerate
-                    eigen_system_info += [[eigen_value, [eigen_vector]]]
-        return eigen_system_info
 
     def next_order(self, ht=None):
         """Calculate the t=(self.order+1)^th order perturbation with the given ht
@@ -282,23 +292,24 @@ class Perturbation:
         self.eigen_spaces = []
         for sp in old_spaces:
             # calculate W using (1.2.2.3)
-            dim = len(sp.vectors)
+            dim = len(sp.base_set)
             W = zeros((dim, dim))
+            energy_levels_sp = sp.energy_levels()
             for chi in range(dim):
                 for xi in range(dim):
-                    W[chi, xi] = (sp.vectors[chi][0].trans()*ht
-                                  * sp.vectors[xi][0]).tr()
+                    W[chi, xi] = (sp.base_set[chi].vectors[0].dag()*ht
+                                  * sp.base_set[xi].vectors[0]).tr()
                     for i in range(1, t):
-                        H = (sp.vectors[chi][0].trans()*self.hamiltonians[i]
-                             * sp.vectors[xi][t-i]).tr()
-                        E = (sp.elp_node[i].E*sp.vectors[chi][0].trans()
-                             * sp.vectors[xi][t-i]).tr()
+                        H = (sp.base_set[chi].vectors[0].dag()*self.hamiltonians[i]
+                             * sp.base_set[xi].vectors[t-i]).tr()
+                        E = energy_levels_sp[i].energy * (sp.base_set[chi].vectors[0].dag()
+                             * sp.base_set[xi].vectors[t-i]).tr()
                         W[chi, xi] += H-E
 
             # solve the eigen value problem of W
             eigen_values, eigen_vectors = linalg.eig(W)
             # categorize eigenvalues and eigenvectors of W.
-            eigen_system_info = categorize_eigenstates(eigen_values,eigen_vectors)
+            eigen_system_info = self.categorize_eigenstates(eigen_values,[eigen_vectors[:, i] for i in range(dim)])
             # split each subspace
             self.eigen_spaces += sp.split(eigen_system_info)
 
@@ -324,12 +335,12 @@ class Perturbation:
                         # calculate C
                         C = 0
                         for i in range(1, t+1):
-                            H = (vec_set_alpha[0].trans()*self.hamiltonians[i]
+                            H = (vec_set_alpha[0].dag()*self.hamiltonians[i]
                                  * vec_set_xi[t-i]).tr()
-                            E = (energy_levels_n[i].E
-                                 * vec_set_alpha[0].trans()
+                            E = (energy_levels_n[i].energy
+                                 * vec_set_alpha[0].dag()
                                  * vec_set_xi[t-i]).tr()
                             C += H - E
-                        C /= (En.E - Em.E)
+                        C /= (En.energy - Em.energy)
                         phit += C*vec_set_alpha[0]
                 vec_set_xi += [phit]
