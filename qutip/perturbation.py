@@ -134,14 +134,13 @@ class PerturbedEigenSpace:
         -------
         [PerturbedEigenSpace]
             list of newly splitted subspace
-
         """
         ret = []
         self.elp_node.eigen_space = None
         for i in eigen_system_info: # for each newly splitted subspace
             # retrieve information about energy level perturbation
             energy = i[0]
-            degeneracy = len(eigen_vectors)
+            degeneracy = len(i[1])
             # calculate new base set for newly splitted subspace
             new_base_set = [ sum([x * y for x,y in zip(j,self.base_set)]) for j in i[1] ]
             # create a new instance of newly splitted subspace
@@ -151,43 +150,116 @@ class PerturbedEigenSpace:
             node = EnergyLevelPerturbation(energy, degeneracy, self.elp_node, None, space)
             self.elp_node.children.append(node)
             space.elp_node = node
+        return ret
+
+    def energy_levels(self):
+        """Returns the list of energy corrections of different order perturbations
+        corresponding to this subspace, i.e. the corresponding [E^(0),E^(1),...]
+        
+        Returns
+        -------
+        [EnergyLevelPerturbation]
+            the list of energy corrections of different order perturbations
+            corresponding to this subspace, i.e. the corresponding [E^(0),E^(1),...]
+        """
+        node = self.elp_node
+        ret = [node]
+        while not (node.parent is None):
+            node = node.parent
+            ret = [node] + ret
+        return ret
 
 
 class Perturbation:
     """This class is the calculator class that do the calculation
-        of perturbation theory
+    of perturbation theory. See section 2.4 for detailed information.
         
     """
 
-    def __init__(self, H0, zero_order_energy_levels,
-                 zero_order_eigen_spaces, etol=1E-8):
+    def __init__(self, h0, zero_order_eigenstates=None,
+                 zero_order_energy_levels=None, etol=1E-8):
         """Initialize the calculator class with H0 and its eigen values and vectors
 
         Parameters
         ----------
-        H0 : Qobj
+        h0 : Qobj
             the unperturbed Hamiltonian H0
-        zero_order_energy_levels : [EnergyLevelPerturbation]
-            list of class EnergyLevelPerturbation instances
-            corresponding to each energy level of H0
-        zero_order_eigen_spaces : [PerturbedEigenSpace]
-            list of class PerturbedEigenSpace instances
-            corresponding to the eigen space of each energy level
+        zero_order_eigenstates : [Qobj]
+            list of eigenstates of H0. this parameter has a default
+            value None. if this value is None, then the build-in solver
+            of qutip will be automatically called to solve for the eigen
+            states and the parameter zero_order_energy_levels will be ignored.
+        zero_order_energy_levels : [real numbers]
+            list of energy levels of H0 corresponding to each value in
+            zero_order_eigenstates. this parameter has a default value
+            None. if it's None but zero_order_eigenstates is not None,
+            it will be automatically calculated by E = <phi|H0|phi>/<phi|phi>
         etol : float
             tolerance of energy, i.e. if |Em-En|<etol, we regard
             the two energy are degenerate
         """
         # all the n^th order perturbation Hamiltonian
-        self.hamiltonians = [H0]
-        # all the energy levels without perturbation,which is the roots
-        # of energy level trees of the whole energy level forest
-        self.energy_level_trees = zero_order_energy_levels
-        # all the eigen spaces
-        self.eigen_spaces = zero_order_eigen_spaces
+        self.hamiltonians = [h0]
         # the order of perturbation that we have calculated.
         self.order = 0
         # tolerance of energy
         self.etol = etol
+        
+        # if zero_order_eigenstates or zero_order_energy_levels are not
+        # set, calculate them
+        if zero_order_eigenstates is None:
+            zero_order_energy_levels, zero_order_eigenstates = h0.eigenstates()
+        if zero_order_energy_levels is None:
+            zero_order_energy_levels = [(x.conj()*h0*x).tr()/(x.conj()*x).tr() for x in zero_order_eigenstates]
+        
+        # categorize eigenvalues and eigenvectors.
+        eigen_system_info = categorize_eigenstates(zero_order_energy_levels,zero_order_eigenstates)
+        
+        # build from categorized eigen system information
+        self.energy_level_trees = []
+        self.eigen_spaces = []
+        for i in eigen_system_info: # for each newly splitted subspace
+            # retrieve information about energy level perturbation
+            energy = i[0]
+            eigenvectors = i[1]
+            degeneracy = len(i[1])
+            # calculate new base set for newly splitted subspace
+            base_set = [ PerturbedBase([j]) for j in i[1] ]
+            # create a new instance of newly splitted subspace
+            space = PerturbedEigenSpace(base_set)
+            self.eigen_spaces.append(space)
+            # create new nodes in energy level tree
+            node = EnergyLevelPerturbation(energy, degeneracy, None, None, space)
+            self.energy_level_trees.append(node)
+            space.elp_node = node
+
+    def categorize_eigenstates(eigenvalues,eigenstates):
+        """categorize eigenvalues and eigenvectors by the degeneracy
+        here we maintain a data structure:
+        [ [eigen value 1,[eigen vector 1, eigen vector 2, ...]],
+          [eigen value 2,[eigen vector 1, eigen vector 2, ...]],
+          ...  ]
+          
+        Parameters
+        ----------
+        eigenvalues : array
+            the eigenvalues
+        eigenstates : array
+            the array of eigenstates
+        """
+        eigen_system_info = []
+        for i in range(dim):
+            eigen_value = eigenvalues[i]
+            eigen_vector = eigenvectors[:, i]
+            for j in eigen_system_info:
+                if abs(j[0] - eigen_value) < self.etol:
+                    # still degenerate
+                    j[1] += [eigen_vector]
+                    break
+                else:
+                    # not degenerate
+                    eigen_system_info += [[eigen_value, [eigen_vector]]]
+        return eigen_system_info
 
     def next_order(self, ht=None):
         """Calculate the t=(self.order+1)^th order perturbation with the given ht
@@ -195,7 +267,7 @@ class Perturbation:
         Parameters
         ----------
         ht : Qobj
-            Perturbation Hamiltonian of t^th order
+            Perturbation Hamiltonian of t^th order. It has a default value that is a zero operator.
         """
         # set default value of ht to zero operator
         if ht is None:
@@ -206,9 +278,9 @@ class Perturbation:
         t = self.order
 
         # Do the calculation space-by-space to handle space split
-        spaces_to_be_removed = []
-        spaces_to_be_appended = []
-        for sp in self.eigen_spaces:
+        old_spaces = self.eigen_spaces
+        self.eigen_spaces = []
+        for sp in old_spaces:
             # calculate W using (1.2.2.3)
             dim = len(sp.vectors)
             W = zeros((dim, dim))
@@ -225,52 +297,36 @@ class Perturbation:
 
             # solve the eigen value problem of W
             eigen_values, eigen_vectors = linalg.eig(W)
-
-            # classify eigen values and eigen vectors of W according
-            # to degenerate. here we maintain a data structure:
-            # [ [eigen value 1,[eigen vector 1, eigen vector 2, ...]],
-            #   [eigen value 2,[eigen vector 1, eigen vector 2, ...]],
-            #  ...  ]
-            eigen_system_info = []
-            for i in range(dim):
-            eigen_value = eigen_values[i]
-            eigen_vector = eigen_vectors[:, i]
-            for j in eigen_system_info:
-                if abs(j[0] - eigen_value) < self.etol:
-                    # still degenerate
-                    j[1] += [eigen_vector]
-                    break
-            else:
-                # not degenerate
-                eigen_system_info += [[eigen_value, [eigen_vector]]]
-            
-            #################code removed
-            
-        for i in spaces_to_be_removed:
-            self.eigen_spaces.remove(i)
-        self.eigen_spaces += spaces_to_be_appended
+            # categorize eigenvalues and eigenvectors of W.
+            eigen_system_info = categorize_eigenstates(eigen_values,eigen_vectors)
+            # split each subspace
+            self.eigen_spaces += sp.split(eigen_system_info)
 
         # calculate the state correction for t^th order
         for spn in self.eigen_spaces:  # each eigen space, n\xi in (1.2.3.1)
-            En = spn.energy_levels[0]
-            for vec_set_xi in spn.vectors:
+            energy_levels_n = spn.energy_levels()
+            En = energy_levels_n[0]
+            for base_xi in spn.base_set:
+                vec_set_xi = base_xi.vectors
                 # each base within the space, n\xi in (1.2.3.1)
                 # calculate the t^th order correction of Phi_{n\xi}
                 phit = vec_set_xi[0] * 0
                 # any other way to get a zero state?
                 for spm in self.eigen_spaces:
                     # each eigen space, m\alpha in (1.2.3.1)
-                    Em = spm.energy_levels[0]
+                    energy_levels_m = spm.energy_levels()
+                    Em = energy_levels_m[0]
                     if Em == En:
                         continue
-                    for vec_set_alpha in spm.vectors:
+                    for base_alpha in spm.base_set:
+                        vec_set_alpha = base_alpha.vectors
                         # each base within the space, m\alpha in (1.2.3.1)
                         # calculate C
                         C = 0
                         for i in range(1, t+1):
                             H = (vec_set_alpha[0].trans()*self.hamiltonians[i]
                                  * vec_set_xi[t-i]).tr()
-                            E = (spn.energy_levels[i].E
+                            E = (energy_levels_n[i].E
                                  * vec_set_alpha[0].trans()
                                  * vec_set_xi[t-i]).tr()
                             C += H - E
