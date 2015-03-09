@@ -138,11 +138,11 @@ class Codegen():
                 ret += ",\n        np.ndarray[np.%s_t, ndim=1] %s" % \
                     (value.dtype.name, name)
             else:
-                if isinstance(value, int):
+                if isinstance(value, (int, np.int32, np.int64)):
                     kind = 'int'
-                elif isinstance(value, float):
+                elif isinstance(value, (float, np.float32, np.float64)):
                     kind = 'float'
-                elif isinstance(value, complex):
+                elif isinstance(value, (complex, np.complex128)):
                     kind = 'complex'
                 #kind = type(value).__name__
                 ret += ",\n        " + kind + " " + name
