@@ -185,8 +185,8 @@ class OptimConfig:
         # Test output file flags
         self.test_out_dir = None
         self.test_out_f_ext = ".txt"
-        self.clear_test_out_flags()        
-        
+        self.clear_test_out_flags()
+
     def clear_test_out_flags(self):
         self.test_out_iter = False
         self.test_out_fid_err = False
@@ -231,14 +231,14 @@ class OptimConfig:
 
         dir_ok, self.test_out_dir, msg = self.check_create_output_dir(
                     self.test_out_dir, desc='test_out')
-                                         
+
         if not dir_ok:
             self.reset_test_out_files()
             msg += "\ntest_out files will be suppressed."
             logger.error(msg)
-        
+
         return dir_ok
-            
+
     def check_create_output_dir(self, output_dir, desc='output'):
         """
         Checks if the given directory exists, if not it is created
@@ -247,24 +247,24 @@ class OptimConfig:
         dir_ok : boolean
             True if directory exists (previously or created)
             False if failed to create the directory
-        
+
         output_dir : string
             Path to the directory, which may be been made absolute
-        
+
         msg : string
             Error msg if directory creation failed
         """
-        
+
         dir_ok = True
         if '~' in output_dir:
             output_dir = os.path.expanduser(output_dir)
         elif not os.path.abspath(output_dir):
             # Assume relative path from cwd given
             output_dir = os.path.join(os.getcwd(), output_dir)
-    
-        errmsg = "Failed to create {} directory:\n{}\n".format(desc, 
+
+        errmsg = "Failed to create {} directory:\n{}\n".format(desc,
                                                             output_dir)
-         
+
         if os.path.exists(output_dir):
             if os.path.isfile(output_dir):
                 dir_ok = False
@@ -282,7 +282,7 @@ class OptimConfig:
                     dir_ok = False
                     errmsg += "Underling error (makedirs) :({}) {}".format(
                         type(e).__name__, e)
-        
+
         if dir_ok:
             return dir_ok, output_dir, "{} directory is ready".format(desc)
         else:
