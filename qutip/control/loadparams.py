@@ -47,6 +47,7 @@ Note that new attributes will be created, even if they are not usually
 defined for that object
 """
 
+import numpy as np
 from ConfigParser import SafeConfigParser
 # QuTiP logging
 import qutip.logging as logging
