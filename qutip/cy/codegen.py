@@ -139,7 +139,7 @@ class Codegen():
                     (value.dtype.name, name)
             else:
                 kind = type(value).__name__
-                ret += ",\n        np." + kind + "_t " + name
+                ret += ",\n        " + kind + " " + name
         return ret
 
     def ODE_func_header(self):
