@@ -69,7 +69,7 @@ logger = logging.get_logger()
 import qutip.control.errors as errors
 
 
-class FideliyComputer:
+class FidelityComputer:
     """
     Base class for all Fidelity Computers.
     This cannot be used directly. See subclass descriptions and choose
@@ -204,7 +204,7 @@ class FideliyComputer:
         self.fid_err_grad_current = False
 
 
-class FidCompUnitary(FideliyComputer):
+class FidCompUnitary(FidelityComputer):
     """
     Computes fidelity error and gradient assuming unitary dynamics, e.g.
     closed qubit systems
@@ -223,12 +223,12 @@ class FidCompUnitary(FideliyComputer):
     """
 
     def reset(self):
-        FideliyComputer.reset(self)
+        FidelityComputer.reset(self)
         self.id_text = 'UNIT'
         self.uses_evo_t2targ = True
 
     def clear(self):
-        FideliyComputer.clear(self)
+        FidelityComputer.clear(self)
         self.fidelity_prenorm = None
         self.fidelity_prenorm_current = False
 
@@ -265,7 +265,7 @@ class FidCompUnitary(FideliyComputer):
         """
         Flag fidelity and gradients as needing recalculation
         """
-        FideliyComputer.flag_system_changed(self)
+        FidelityComputer.flag_system_changed(self)
         # Flag the fidelity (prenormalisation) value as needing calculation
         self.fidelity_prenorm_current = False
 
@@ -439,7 +439,7 @@ class FidCompUnitary(FideliyComputer):
         return grad
 
 
-class FidCompTraceDiff(FideliyComputer):
+class FidCompTraceDiff(FidelityComputer):
     """
     Computes fidelity error and gradient for general system dynamics
     by calculating the the fidelity error as the trace of the overlap
@@ -460,13 +460,13 @@ class FidCompTraceDiff(FideliyComputer):
     """
 
     def reset(self):
-        FideliyComputer.reset(self)
+        FidelityComputer.reset(self)
         self.id_text = 'TRACEDIFF'
         self.scale_factor = None
         self.uses_evo_t2end = True
         if not self.parent.prop_computer.grad_exact:
             raise errors.UsageError(
-                "This FideliyComputer can only be"
+                "This FidelityComputer can only be"
                 " used with an exact gradient PropagatorComputer.")
 
     def init_comp(self):
@@ -597,7 +597,7 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
         a timeslot control amplitude
     """
     def reset(self):
-        FideliyComputer.reset(self)
+        FidelityComputer.reset(self)
         self.id_text = 'TDAPPROX'
         self.uses_evo_t2end = True
         self.scale_factor = None

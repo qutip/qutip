@@ -85,7 +85,7 @@ class OptimConfig:
         Fidelity error (and fidelity error gradient) computation method
         Options are DEF, UNIT, TRACEDIFF, TD_APPROX
         DEF will use the default for the specific dyn_type
-        (See FideliyComputer classes for details)
+        (See FidelityComputer classes for details)
 
     phase_option : string
         determines how global phase is treated in fidelity

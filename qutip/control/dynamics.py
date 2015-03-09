@@ -403,7 +403,7 @@ class Dynamics:
                 "No tslot_computer (Timeslot computer)"
                 " set. A default should be assigned by the Dynamics class")
 
-        if not isinstance(self.fid_computer, fidcomp.FideliyComputer):
+        if not isinstance(self.fid_computer, fidcomp.FidelityComputer):
             raise errors.UsageError(
                 "No fid_computer (Fidelity computer)"
                 " set. A default should be assigned by the Dynamics subclass")
