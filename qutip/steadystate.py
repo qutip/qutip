@@ -297,9 +297,9 @@ def _steadystate_LU_liouvillian(L, ss_args):
             rcm_pro = sp_profile(L)[0]
             logger.debug('RCM bandwidth: %i' % rcm_band)
             logger.debug('Bandwidth reduction factor: %f' % round(
-                old_band/rcm_band, 1))
+                old_band/rcm_band, 3))
             logger.debug('Profile reduction factor: %f' % round(
-                old_pro/rcm_pro, 1))
+                old_pro/rcm_pro, 3))
     L.sort_indices()
     return L, perm, perm2, rev_perm, ss_args
 
@@ -433,7 +433,7 @@ def _steadystate_eigen(L, ss_args):
             rcm_band = sp_bandwidth(L)[0]
             logger.debug('RCM bandwidth: %i' % rcm_band)
             logger.debug('Bandwidth reduction factor: %f' %
-                         round(old_band/rcm_band, 1))
+                         round(old_band/rcm_band, 3))
 
     _eigen_start = time.time()
     eigval, eigvec = eigs(L, k=1, sigma=1e-15, tol=ss_args['tol'],
@@ -663,7 +663,7 @@ def _steadystate_power(L, ss_args):
             new_band = sp_bandwidth(L)[0]
             logger.debug('RCM bandwidth: %i' % new_band)
             logger.debug('Bandwidth reduction factor: %f' %
-                         round(old_band/new_band, 2))
+                         round(old_band/new_band, 3))
 
     _power_start = time.time()
     # Get LU factors
