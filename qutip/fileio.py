@@ -277,7 +277,7 @@ def qload(name):
 
     """
     fileObject = open(name + '.qu', 'rb')  # open the file for reading
-    out = pickle.load(fileObject)  # return the object from the file
+    out = pickle.load(fileObject, encoding='latin1')  # return the object from the file
     if isinstance(out, Qobj):  # for quantum objects
         print('Loaded Qobj object:')
         str1 = "Quantum object: " + "dims = " + str(out.dims) \
