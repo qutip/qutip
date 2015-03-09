@@ -35,7 +35,7 @@ import os
 from numpy import amax
 from numpy.testing import assert_, run_module_suite
 import scipy
-
+from qutip import *
 from qutip import file_data_store, file_data_read
 
 
@@ -154,6 +154,20 @@ class TestFileIO:
         data2 = file_data_read("test.dat")
         assert_(amax(abs((data - data2))) < 1e-8)
         os.remove("test.dat")
+    
+    def testqsaveqload(self):
+        "qsave/qload"
+        A = sigmax()
+        B = num(5)
+        C = coherent_dm(10,1j)
+        ops = [A, B, C]
+        qsave(ops, 'fileio_check')
+        ops2 = qload('fileio_check')
+        assert_(ops == ops2)
+        try:
+            os.remove('fileio_check.qu')
+        except:
+            pass
 
 
 if __name__ == "__main__":
