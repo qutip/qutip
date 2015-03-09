@@ -327,8 +327,8 @@ class FidCompUnitary(FidelityComputer):
         This PSU version is independent of global phase
         """
         fid_pn = self.get_fidelity_prenorm()
-        grad_normalized = \
-            2*np.real(grad*np.conj(fid_pn)) / self.dimensional_norm
+        grad_normalized = np.real(grad * np.exp(-1j * np.angle(fid_pn)) /
+                                  self.dimensional_norm)
         return grad_normalized
 
     def get_fid_err(self):

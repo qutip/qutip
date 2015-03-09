@@ -227,7 +227,8 @@ class PropCompDiag(PropagatorComputer):
 
         # compute ctrl dyn gen in diagonalised basis
         # i.e. the basis of the full dyn gen for this timeslot
-        dg_diag = eig_vec_adj.dot(dyn.get_ctrl_dyn_gen(j)).dot(eig_vec)
+        dg_diag = \
+            dyn.tau[k]*eig_vec_adj.dot(dyn.get_ctrl_dyn_gen(j)).dot(eig_vec)
 
         # multiply by factor matrix
         factors = dyn.dyn_gen_factormatrix[k]
