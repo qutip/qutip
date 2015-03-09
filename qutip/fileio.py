@@ -35,7 +35,7 @@ __all__ = ['file_data_store', 'file_data_read', 'qsave', 'qload']
 
 import pickle
 import numpy as np
-
+import sys
 from qutip.qobj import Qobj
 from qutip.solver import Result
 
@@ -277,7 +277,10 @@ def qload(name):
 
     """
     fileObject = open(name + '.qu', 'rb')  # open the file for reading
-    out = pickle.load(fileObject, encoding='latin1')  # return the object from the file
+    if sys.version_info >= (3, 0):
+        out = pickle.load(fileObject, encoding='latin1')  # return the object from the file
+    else:
+        out = pickle.load(fileObject)
     if isinstance(out, Qobj):  # for quantum objects
         print('Loaded Qobj object:')
         str1 = "Quantum object: " + "dims = " + str(out.dims) \
