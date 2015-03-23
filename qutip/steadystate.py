@@ -433,7 +433,7 @@ def _steadystate_eigen(L, ss_args):
             rcm_band = sp_bandwidth(L)[0]
             logger.debug('RCM bandwidth: %i' % rcm_band)
             logger.debug('Bandwidth reduction factor: %f' %
-                         round(old_band/rcm_band, 3))
+                         (old_band/rcm_band))
 
     _eigen_start = time.time()
     eigval, eigvec = eigs(L, k=1, sigma=1e-15, tol=ss_args['tol'],
@@ -650,20 +650,41 @@ def _steadystate_power(L, ss_args):
 
     # start with all ones as RHS
     v = np.ones(n, dtype=complex)
-
-    if ss_args['use_rcm']:
+    
+    if settings.debug:
+        old_band = sp_bandwidth(L)[0]
+        old_pro = sp_profile(L)[0]
+        logger.debug('Original bandwidth: %i' % old_band)
+        logger.debug('Original profile: %i' % old_pro)
+    
+    if ss_args['use_wbm']:
         if settings.debug:
-            old_band = sp_bandwidth(L)[0]
-            logger.debug('Original bandwidth: %i' % old_band)
+            logger.debug('Calculating Weighted Bipartite Matching ordering...')
+        _wbm_start = time.time()
+        perm = weighted_bipartite_matching(L)
+        _wbm_end = time.time()
+        L = sp_permute(L, perm, [], 'csc')
+        ss_args['info']['perm'].append('wbm')
+        ss_args['info']['wbm_time'] = _wbm_end-_wbm_start
+        if settings.debug:
+            wbm_band = sp_bandwidth(L)[0]
+            wbm_pro = sp_profile(L)[0]
+            logger.debug('WBM bandwidth: %i' % wbm_band)
+            logger.debug('WBM profile: %i' % wbm_pro)
+    
+    if ss_args['use_rcm']:
+        ss_args['info']['perm'].append('rcm')
         perm = reverse_cuthill_mckee(L)
         rev_perm = np.argsort(perm)
         L = sp_permute(L, perm, perm, 'csc')
         v = v[np.ix_(perm,)]
         if settings.debug:
             new_band = sp_bandwidth(L)[0]
+            new_pro = sp_profile(L)[0]
             logger.debug('RCM bandwidth: %i' % new_band)
-            logger.debug('Bandwidth reduction factor: %f' %
-                         round(old_band/new_band, 3))
+            logger.debug('Bandwidth reduction factor: %f' % (old_band/new_band))
+            logger.debug('RCM profile: %i' % new_pro)
+            logger.debug('Profile reduction factor: %f' % (old_pro/new_pro))
 
     _power_start = time.time()
     # Get LU factors
