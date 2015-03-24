@@ -449,34 +449,6 @@ def test_ho_power_bicgstab():
     assert_equal(delta < 1e-3, True)
 
 
-def test_ho_power_gmres():
-    "Steady state: Thermal HO - power-bicgstab solver"
-    # thermal steadystate of an oscillator: compare numerics with analytical
-    # formula
-    a = destroy(40)
-    H = 0.5 * 2 * np.pi * a.dag() * a
-    gamma1 = 0.05
-
-    wth_vec = np.linspace(0.1, 3, 20)
-    p_ss = np.zeros(np.shape(wth_vec))
-
-    for idx, wth in enumerate(wth_vec):
-
-        n_th = 1.0 / (np.exp(1.0 / wth) - 1)  # bath temperature
-        c_op_list = []
-        rate = gamma1 * (1 + n_th)
-        c_op_list.append(np.sqrt(rate) * a)
-        rate = gamma1 * n_th
-        c_op_list.append(np.sqrt(rate) * a.dag())
-        rho_ss = steadystate(H, c_op_list, method='power-bicgstab',use_precond=1)
-        p_ss[idx] = np.real(expect(a.dag() * a, rho_ss))
-
-    p_ss_analytic = 1.0 / (np.exp(1.0 / wth_vec) - 1)
-    delta = sum(abs(p_ss_analytic - p_ss))
-    assert_equal(delta < 1e-3, True)
-
-
-
 def test_ho_gmres():
     "Steady state: Thermal HO - iterative-gmres solver"
     # thermal steadystate of an oscillator: compare numerics with analytical
