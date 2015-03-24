@@ -719,20 +719,21 @@ def _steadystate_power(L, ss_args):
             logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
 
     it = 0
+    _tol = np.max(ss_args['tol']/10,1e-15) # Should make this user accessible
     while (la.norm(L * v, np.inf) > tol) and (it < maxiter):
         
         if ss_args['method'] == 'power':
             v = lu.solve(v)
         elif ss_args['method'] == 'power-gmres':
-            v, check = gmres(L, v, tol=ss_args['tol']/10, M=ss_args['M'],
+            v, check = gmres(L, v, tol=_tol, M=ss_args['M'],
                                 x0=ss_args['x0'], restart=ss_args['restart'],
                                 maxiter=ss_args['maxiter'], callback=_iter_count)
         elif ss_args['method'] == 'power-lgmres':
-            v, check = lgmres(L, v, tol=ss_args['tol']/10, M=ss_args['M'],
+            v, check = lgmres(L, v, tol=_tol, M=ss_args['M'],
                               x0=ss_args['x0'], maxiter=ss_args['maxiter'],
                               callback=_iter_count)
         elif ss_args['method'] == 'power-bicgstab':
-            v, check = bicgstab(L, v, tol=ss_args['tol']/10, M=ss_args['M'],
+            v, check = bicgstab(L, v, tol=_tol, M=ss_args['M'],
                                 x0=ss_args['x0'],
                                 maxiter=ss_args['maxiter'], callback=_iter_count)
         else:
