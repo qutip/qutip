@@ -3,11 +3,11 @@
 #    Copyright (c) 2011 and later, Paul D. Nation and Robert J. Johansson.
 #    All rights reserved.
 #
-#    Redistribution and use in source and binary forms, with or without 
-#    modification, are permitted provided that the following conditions are 
+#    Redistribution and use in source and binary forms, with or without
+#    modification, are permitted provided that the following conditions are
 #    met:
 #
-#    1. Redistributions of source code must retain the above copyright notice, 
+#    1. Redistributions of source code must retain the above copyright notice,
 #       this list of conditions and the following disclaimer.
 #
 #    2. Redistributions in binary form must reproduce the above copyright
@@ -18,16 +18,16 @@
 #       of its contributors may be used to endorse or promote products derived
 #       from this software without specific prior written permission.
 #
-#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS 
+#    THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
 #    "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A 
-#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT 
-#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, 
-#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT 
-#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, 
-#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY 
-#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT 
-#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+#    LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A
+#    PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+#    HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+#    SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+#    LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+#    DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+#    THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+#    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 import numpy as np
@@ -50,12 +50,12 @@ ctypedef np.int64_t LTYPE_t
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cpdef CTYPE_t cy_overlap(object op1, object op2):
-    
+
     cdef Py_ssize_t row
     cdef CTYPE_t tr = 0.0
-	
+
     op1 = op1.T.tocsr()
-	
+
     cdef int col1, row1_idx_start, row1_idx_end
     cdef np.ndarray[CTYPE_t, ndim=1, mode="c"] data1 = op1.data.conj()
     cdef np.ndarray[ITYPE_t, ndim=1, mode="c"] idx1 = op1.indices
@@ -82,7 +82,7 @@ cpdef CTYPE_t cy_overlap(object op1, object op2):
 
                 if col2 == row:
                     tr += data1[row1_idx] * data2[row2_idx]
- 
+
     return tr / op1.shape[0]
 
 
@@ -93,9 +93,9 @@ cpdef cy_grape_inner(U, np.ndarray[DTYPE_t, ndim=3, mode="c"] u,
                      float dt, float eps, float alpha, float beta,
                      int phase_sensitive,
                      int use_u_limits, float u_min, float u_max):
-	
-    cdef int j, k 
- 
+
+    cdef int j, k
+
     for m in range(M-1):
         P = U_b_list[m] * U
         for j in range(J):
@@ -104,7 +104,7 @@ cpdef cy_grape_inner(U, np.ndarray[DTYPE_t, ndim=3, mode="c"] u,
             if phase_sensitive:
                 du = - cy_overlap(P, Q)
             else:
-                du = - 2 * cy_overlap(P, Q) * cy_overlap(U_f_list[m], P) 
+                du = - 2 * cy_overlap(P, Q) * cy_overlap(U_f_list[m], P)
 
             if alpha > 0.0:
                 # penalty term for high power control signals u

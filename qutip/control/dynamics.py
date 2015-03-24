@@ -319,7 +319,7 @@ class Dynamics:
         else:
             self.num_tslots = len(self.tau)
             self.evo_time = np.sum(self.tau)
-            
+
         self.time = np.zeros(self.num_tslots+1, dtype=float)
         # set the cumulative time by summing the time intervals
         for t in range(self.num_tslots):
@@ -403,7 +403,7 @@ class Dynamics:
                 "No tslot_computer (Timeslot computer)"
                 " set. A default should be assigned by the Dynamics class")
 
-        if not isinstance(self.fid_computer, fidcomp.FideliyComputer):
+        if not isinstance(self.fid_computer, fidcomp.FidelityComputer):
             raise errors.UsageError(
                 "No fid_computer (Fidelity computer)"
                 " set. A default should be assigned by the Dynamics subclass")
