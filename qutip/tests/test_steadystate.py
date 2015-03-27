@@ -34,7 +34,8 @@
 import numpy as np
 from numpy.testing import assert_, assert_equal, run_module_suite
 
-from qutip import (sigmaz, destroy, steadystate, expect, coherent_dm)
+from qutip import (sigmaz, destroy, steadystate, expect, coherent_dm,
+                    build_preconditioner)
 
 
 def test_qubit_direct():
@@ -578,6 +579,54 @@ def test_driven_cavity_power():
     rho_ss = steadystate(H, c_ops, method='power')
     rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
 
+    assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
+    
+
+def test_driven_cavity_power_gmres():
+    "Steady state: Driven cavity - power-gmres solver"
+
+    N = 30
+    Omega = 0.01 * 2 * np.pi
+    Gamma = 0.05
+
+    a = destroy(N)
+    H = Omega * (a.dag() + a)
+    c_ops = [np.sqrt(Gamma) * a]
+    M = build_preconditioner(H, c_ops, method='power')
+    rho_ss = steadystate(H, c_ops, method='power-gmres', M=M, use_precond=1)
+    rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
+    assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
+
+
+def test_driven_cavity_power_lgmres():
+    "Steady state: Driven cavity - power-lgmres solver"
+
+    N = 30
+    Omega = 0.01 * 2 * np.pi
+    Gamma = 0.05
+
+    a = destroy(N)
+    H = Omega * (a.dag() + a)
+    c_ops = [np.sqrt(Gamma) * a]
+    M = build_preconditioner(H, c_ops, method='power')
+    rho_ss = steadystate(H, c_ops, method='power-lgmres', M=M, use_precond=1)
+    rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
+    assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
+
+
+def test_driven_cavity_power_bicgstab():
+    "Steady state: Driven cavity - power-bicgstab solver"
+
+    N = 30
+    Omega = 0.01 * 2 * np.pi
+    Gamma = 0.05
+
+    a = destroy(N)
+    H = Omega * (a.dag() + a)
+    c_ops = [np.sqrt(Gamma) * a]
+    M = build_preconditioner(H, c_ops, method='power')
+    rho_ss = steadystate(H, c_ops, method='power-bicgstab', M=M, use_precond=1)
+    rho_ss_analytic = coherent_dm(N, -1.0j * (Omega)/(Gamma/2))
     assert_((rho_ss - rho_ss_analytic).norm() < 1e-4)
 
 

@@ -630,31 +630,15 @@ def _steadystate_svd_dense(L, ss_args):
         return rhoss / rhoss.tr()
 
 
-def _steadystate_power(L, ss_args):
+def _steadystate_power_liouvillian(L, ss_args):
+    """Creates modified Liouvillian for power based SS methods.
     """
-    Inverse power method for steady state solving.
-    """
-    ss_args['info'].pop('weight', None)
-    if settings.debug:
-        logger.debug('Starting iterative inverse-power method solver.')
-    tol = ss_args['tol']
-    maxiter = ss_args['maxiter']
-
-    use_solver(assumeSortedIndices=True)
-    rhoss = Qobj()
-    sflag = issuper(L)
-    if sflag:
-        rhoss.dims = L.dims[0]
-    else:
-        rhoss.dims = [L.dims[0], 1]
-    n = prod(rhoss.shape)
+    perm = None
+    perm2 = None
+    rev_perm = None
+    n = L.shape[0]
     L = L.data.tocsc() - (1e-15) * sp.eye(n, n, format='csc')
-    L.sort_indices()
     orig_nnz = L.nnz
-
-    # start with all ones as RHS
-    v = np.ones(n, dtype=complex)
-    
     if settings.debug:
         old_band = sp_bandwidth(L)[0]
         old_pro = sp_profile(L)[0]
@@ -677,11 +661,15 @@ def _steadystate_power(L, ss_args):
             logger.debug('WBM profile: %i' % wbm_pro)
     
     if ss_args['use_rcm']:
+        if settings.debug:
+            logger.debug('Calculating Reverse Cuthill-Mckee ordering...')
         ss_args['info']['perm'].append('rcm')
-        perm = reverse_cuthill_mckee(L)
-        rev_perm = np.argsort(perm)
-        L = sp_permute(L, perm, perm, 'csc')
-        v = v[np.ix_(perm,)]
+        _rcm_start = time.time()
+        perm2 = reverse_cuthill_mckee(L)
+        _rcm_end = time.time()
+        ss_args['info']['rcm_time'] = _rcm_end-_rcm_start
+        rev_perm = np.argsort(perm2)
+        L = sp_permute(L, perm2, perm2, 'csc')
         if settings.debug:
             new_band = sp_bandwidth(L)[0]
             new_pro = sp_profile(L)[0]
@@ -689,7 +677,37 @@ def _steadystate_power(L, ss_args):
             logger.debug('Bandwidth reduction factor: %f' % (old_band/new_band))
             logger.debug('RCM profile: %i' % new_pro)
             logger.debug('Profile reduction factor: %f' % (old_pro/new_pro))
+    L.sort_indices()
+    return L, perm, perm2, rev_perm, ss_args
+    
 
+
+def _steadystate_power(L, ss_args):
+    """
+    Inverse power method for steady state solving.
+    """
+    ss_args['info'].pop('weight', None)
+    if settings.debug:
+        logger.debug('Starting iterative inverse-power method solver.')
+    tol = ss_args['tol']
+    maxiter = ss_args['maxiter']
+
+    use_solver(assumeSortedIndices=True)
+    rhoss = Qobj()
+    sflag = issuper(L)
+    if sflag:
+        rhoss.dims = L.dims[0]
+    else:
+        rhoss.dims = [L.dims[0], 1]
+    n = L.shape[0]
+    # Build Liouvillian
+    L, perm, perm2, rev_perm, ss_args = _steadystate_power_liouvillian(L, ss_args)
+    orig_nnz = L.nnz
+    # start with all ones as RHS
+    v = np.ones(n, dtype=complex)
+    if ss_args['use_rcm']:
+        v = v[np.ix_(perm2,)]
+    
     # Do preconditioning
     if ss_args['M'] is None and ss_args['use_precond'] and \
             ss_args['method'] in ['power-gmres', 
@@ -804,6 +822,11 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         to the linear solvers.  This is set to the average abs value of the
         Liouvillian elements if not specified by the user.
 
+    method : str, default = 'iterative'
+        Tells the preconditioner what type of Liouvillian to build for
+        iLU factorization.  For direct iterative methods use 'iterative'.
+        For power iterative methods use 'power'.
+    
     permc_spec : str, optional, default='COLAMD'
         Column ordering used internally by superLU for the
         'direct' LU decomposition method. Options include 'COLAMD' and
@@ -840,6 +863,7 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         Dictionary containing solver-specific information.
     """
     ss_args = _default_steadystate_args()
+    
     for key in kwargs.keys():
         if key in ss_args.keys():
             ss_args[key] = kwargs[key]
@@ -858,7 +882,13 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         ss_args['info']['weight'] = ss_args['weight']
 
     n = int(np.sqrt(L.shape[0]))
-    L, perm, perm2, rev_perm, ss_args = _steadystate_LU_liouvillian(L, ss_args)
+    if ss_args['method'] == 'iterative':
+        L, perm, perm2, rev_perm, ss_args = _steadystate_LU_liouvillian(L, ss_args)
+    elif ss_args['method'] == 'power':
+        L, perm, perm2, rev_perm, ss_args = _steadystate_power_liouvillian(L, ss_args)
+    else:
+        raise Exception("Invalid preconditioning method.")
+    
     M, ss_args = _iterative_precondition(L, n, ss_args)
 
     if ss_args['return_info']:
