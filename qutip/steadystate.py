@@ -863,7 +863,7 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         Dictionary containing solver-specific information.
     """
     ss_args = _default_steadystate_args()
-    
+    ss_args['method'] = 'iterative'
     for key in kwargs.keys():
         if key in ss_args.keys():
             ss_args[key] = kwargs[key]
