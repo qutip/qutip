@@ -41,7 +41,8 @@ including supermatrix, Kraus, Choi and Chi (process) matrix formalisms.
 
 __all__ = ['super_to_choi', 'choi_to_super', 'choi_to_kraus', 'kraus_to_choi',
            'kraus_to_super', 'choi_to_chi', 'chi_to_choi', 'to_choi',
-           'to_chi', 'to_super', 'to_kraus']
+           'to_chi', 'to_super', 'to_kraus', #'to_stinespring'
+           ]
 
 # Python Standard Library
 from itertools import starmap, product
@@ -50,7 +51,8 @@ from itertools import starmap, product
 from numpy.core.multiarray import array, zeros
 from numpy.core.shape_base import hstack
 from numpy.matrixlib.defmatrix import matrix
-from numpy import sqrt
+from numpy import sqrt, dot
+from numpy.linalg import svd
 from scipy.linalg import eig
 
 # Other QuTiP functions and classes
@@ -58,6 +60,7 @@ from qutip.superoperator import vec2mat, spre, spost, operator_to_vector
 from qutip.operators import identity, sigmax, sigmay, sigmaz
 from qutip.tensor import tensor
 from qutip.qobj import Qobj
+from qutip.states import basis
 
 
 # SPECIFIC SUPEROPERATORS -----------------------------------------------------
@@ -227,6 +230,70 @@ def chi_to_choi(q_oper):
     # by that to get back to the Choi form.
     return Qobj((B.dag() * q_oper * B) / q_oper.shape[0], superrep='choi')
 
+def _svd_u_to_kraus(U, S, d, dK):
+    # TODO: document!
+    # We use U * S since S is 1-index, such that this is equivalent to
+    # U . diag(S), but easier to write down.
+    return map(Qobj, array(U * S).reshape((d, d, dK)).transpose((2, 0, 1)))
+
+
+def _generalized_kraus(q_oper, thresh=1e-10):
+    # TODO: document!
+    # TODO: use this to generalize to_kraus to the case where U != V.
+    if q_oper.type != "super" or q_oper.superrep != "choi":
+        raise ValueError("Expected a Choi matrix, got a {} (superrep {}).".format(q_oper.type, q_oper.superrep))
+    
+    # Remember the shape of the underlying space,
+    # as we'll need this to make Kraus operators later.
+    dL, dR = map(int, map(sqrt, q_oper.shape))
+
+    # Find the SVD.
+    U, S, V = svd(q_oper.data.todense())
+
+    # Truncate away the zero singular values, up to a threshold.
+    nonzero_idxs = S > thresh
+    dK = nonzero_idxs.sum()
+    U = array(U)[:, nonzero_idxs]
+    # We also want S to be a single index array, which np.matrix
+    # doesn't allow for. This is stripped by calling array() on it.
+    S = sqrt(array(S)[nonzero_idxs])
+    # Since NumPy returns V and not V+, we need to take the dagger
+    # to get back to quantum info notation for Stinespring pairs.
+    V = array(V.H)[:, nonzero_idxs]
+
+    # Next, we convert each of U and V into Kraus operators.
+    # Finally, we want the Kraus index to be left-most so that we
+    # can map over it when making Qobjs.
+    # FIXME: does not preserve dims!
+    kU = _svd_u_to_kraus(U, S, dL, dK)
+    kV = _svd_u_to_kraus(V, S, dL, dK)
+
+    return kU, kV
+
+
+def choi_to_stinespring(q_oper, thresh=1e-10):
+    # TODO: document!
+    kU, kV = _generalized_kraus(q_oper, thresh=thresh)
+
+    assert(len(kU) == len(kV))
+    dK = len(kU)
+    dL = kU[0].shape[0]
+    dR = kV[0].shape[1]
+
+    # FIXME: does not preserve dims!
+    #        idea here is to append the new index to be right most of the left indices.
+    A = Qobj(zeros((dK * dL, dL)), dims=[[dL, dK], [dL, 1]])
+    B = Qobj(zeros((dK * dR, dR)), dims=[[dR, dK], [dR, 1]])
+
+    for idx_kraus, (KL, KR) in enumerate(zip(kU, kV)):
+        A += tensor(KL, basis(dK, idx_kraus))
+        B += tensor(KR, basis(dK, idx_kraus))
+
+    # There is no input (right) Kraus index, so strip that off.
+    A.dims[1] = A.dims[1][:-1]
+    B.dims[1] = B.dims[1][:-1]
+
+    return A, B
 
 # PUBLIC CONVERSION FUNCTIONS -------------------------------------------------
 # These functions handle superoperator conversions in a way that preserves the
@@ -395,3 +462,5 @@ def to_kraus(q_oper):
             "and superrep = {0.superrep} to Kraus decomposition not "
             "supported.".format(q_oper)
         )
+
+#def to_stinespring()
