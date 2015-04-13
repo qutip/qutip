@@ -36,13 +36,20 @@ This module contains a collection of functions for calculating metrics
 """
 
 __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
-           'hilbert_dist', 'average_gate_fidelity', 'process_fidelity']
+           'hilbert_dist', 'average_gate_fidelity', 'process_fidelity',
+           'dnorm']
 
 import numpy as np
 from qutip.sparse import sp_eigs
 from qutip.states import ket2dm
-from qutip.superop_reps import to_kraus
+from qutip.superop_reps import to_kraus, to_stinespring
 
+import qutip.picos_tools
+
+try:
+    import picos as pic
+except ImportError:
+    pic = None
 
 def fidelity(A, B):
     """
@@ -250,3 +257,54 @@ def bures_angle(A, B):
         raise TypeError('A and B do not have same dimensions.')
 
     return np.arccos(fidelity(A, B))
+
+
+def dnorm(q_oper, picos_args=None):
+    # TODO: document!
+    if pic is None:
+        raise ImportError("dnorm() requires PICOS to be installed.")
+    _picos_args = {'maxit': 500, 'verbose': 0}
+    if picos_args is not None:
+        _picos_args.update(picos_args)
+    picos_args = _picos_args
+
+    # The SDP is expressed as a function of the Stinespring pair,
+    # so start by getting that.
+    A, B = to_stinespring(q_oper)
+
+    # We need the dimensions of each, so write them down.
+    dL, dR = map(np.prod, q_oper.dims[0])
+    # Since the Kraus operator index is tacked on by to_stinespring,
+    # we can pull the Kraus rank out that way.
+    dK     = A.dims[0][-1]
+
+    # Convert A and B B^+ to parameters, along with an appropriate
+    # sized zero matrix.
+    A_param = qutip.picos_tools.to_picos_param('A', A)
+    BB_param = qutip.picos_tools.to_picos_param('B', B * B.dag())
+    zeros = pic.new_param('0', np.zeros((dK, dK)))
+
+    # TODO: figure out ways to reuse problems...
+    # Make the new problem.
+    problem = pic.Problem()
+
+    # Add Hermitian variables.
+    X = problem.add_variable('X', (dL * dK, dR * dK), 'hermitian')
+    rho = problem.add_variable('rho', (dL, dR), 'hermitian')
+
+    # Set the objective in terms of the parameters and the new
+    # variables.
+    problem.set_objective('max', pic.trace(BB_param * X))
+
+    # Start piling on constraints.
+    qutip.picos_tools.add_ptrace_eq_constraint(
+        problem,
+        X - A_param * rho * A_param.H, zeros,
+        1, dL, dK
+    )
+    problem.add_constraint(pic.trace(rho) == 1)
+    problem.add_constraint(rho >> 0)
+    problem.add_constraint(X >> 0)
+
+    res = problem.solve(**picos_args)
+    return np.sqrt(np.real(res['obj']))

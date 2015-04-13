@@ -46,40 +46,39 @@ except ImportError:
     cvx = None
 
 __all__ = [
-    'ptrace_eq_constraint'
+    'add_ptrace_eq_constraint'
 ] if pic is not None else []
 
-def ptrace_eq_constraint(A, B, keep_left, traceout, keep_right):
+def add_ptrace_eq_constraint(problem, A, B, keep_left, traceout, keep_right):
     """
-    Generates a list of constraints such that Tr_{traceout}(A) == B.
+    Generates a list of constraints such that Tr_{traceout}(A) == B
+    and adds it to a PICOS problem instance.
     """
+    # TODO: figure out how to get PICOS to properly format this
+    #       list of constraints.
 
-    return [
-        sum(
-            A[
-                idx_i_left * keep_right * traceout + idx_tr * keep_right + idx_i_right,
-                idx_j_left * keep_right * traceout + idx_tr * keep_right + idx_j_right,
-            ]
-            for idx_tr in range(traceout)
+    return problem.add_list_of_constraints([
+         # We call pic.sum to ensure that the summation index is formatted
+         # when the problem is printed out.
+        pic.sum(
+            [
+                A[
+                    idx_i_left * keep_right * traceout + idx_tr * keep_right + idx_i_right,
+                    idx_j_left * keep_right * traceout + idx_tr * keep_right + idx_j_right,
+                ]
+                for idx_tr in range(traceout)
+            ], 'j', 'range({})'.format(traceout)
         )
         == B[idx_i_left * keep_right + idx_i_right, idx_j_left * keep_right + idx_j_right]
         for idx_i_left  in range(keep_left)
         for idx_i_right in range(keep_right)
         for idx_j_left  in range(keep_left)
         for idx_j_right in range(keep_right)
-    ]
-
-def add_ptrace_psd_constraint(problem, A, B, keep_left, traceout, keep_right, slack_name="W"):
-    """
-    Uses a new slack variable (by default, W) to enforce that Tr_{traceout}(A) - B >= 0 in
-    the positive semidefinite ordering.
-    """
-    W = problem.add_variable(slack_name, (keep_left * keep_right, ) * 2, 'complex')
-    problem.add_list_of_constraints(
-        ptrace_eq_constraint(A, W, keep_left, traceout, keep_right),
-        "i,j", "range({})".format(traceout)
-    )
-    problem.add_constraint(W >> B)
+    ])
 
 def to_picos_param(name, qobj):
+    # We *must* call cvx.matrix here, as there's a bug in
+    # pic.new_param that causes it to sometimes take the
+    # transpose of np.array instances. Calling cvx.matrix
+    # ourselves, we can be sure to avoid that bug.
     return pic.new_param(name, cvx.matrix(qobj.data.todense()))
