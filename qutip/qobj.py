@@ -62,6 +62,13 @@ from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
 
+import sys
+if sys.version_info.major >= 3:
+    from itertools import zip_longest
+elif sys.version_info.major < 3:
+    from itertools import izip_longest
+    zip_longest = izip_longest
+
 
 class Qobj(object):
     """A class for representing quantum objects, such as quantum operators
@@ -396,14 +403,25 @@ class Qobj(object):
                 out.data = self.data * other.data
                 dims = [self.dims[0], other.dims[1]]
                 out.dims = dims
+
                 if (not isinstance(dims[0][0], list) and
                         not isinstance(dims[1][0], list)):
-                    r = range(len(dims[0]))
-                    mask = [dims[0][n] == dims[1][n] == 1 for n in r]
-                    out.dims = [max([1], [dims[0][n]
-                                          for n in r if not mask[n]]),
-                                max([1], [dims[1][n]
-                                          for n in r if not mask[n]])]
+                    # If neither left or right is a superoperator,
+                    # we should implicitly partial trace over
+                    # matching dimensions of 1.
+                    # Using izip_longest allows for the left and right dims
+                    # to have uneven length (non-square Qobjs).
+                    # We use None as padding so that it doesn't match anything,
+                    # and will never cause a partial trace on the other side.
+                    mask = [l == r == 1 for l, r in zip_longest(dims[0], dims[1], fillvalue=None)]
+                    # To ensure that there are still any dimensions left, we
+                    # use max() to add a dimensions list of [1] if all matching dims
+                    # are traced out of that side.
+                    out.dims = [max([1], [dim
+                                          for dim, m in zip(dims[0], mask) if not m]),
+                                max([1], [dim
+                                          for dim, m in zip(dims[1], mask) if not m])]
+                    
                 else:
                     out.dims = dims
 
