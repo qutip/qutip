@@ -1463,6 +1463,9 @@ class Qobj(object):
 
         return self.extract_states(keep_indices, normalize=normalize)
 
+    def dnorm(self, picos_args=None):
+        return mts.dnorm(self, picos_args)
+
     @property
     def iscp(self):
         # FIXME: this needs to be cached in the same ways as isherm.
@@ -2006,3 +2009,4 @@ def isherm(Q):
 from qutip.eseries import eseries
 import qutip.superop_reps as sr
 import qutip.operators as ops
+import qutip.metrics as mts
