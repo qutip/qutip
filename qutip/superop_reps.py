@@ -41,7 +41,7 @@ including supermatrix, Kraus, Choi and Chi (process) matrix formalisms.
 
 __all__ = ['super_to_choi', 'choi_to_super', 'choi_to_kraus', 'kraus_to_choi',
            'kraus_to_super', 'choi_to_chi', 'chi_to_choi', 'to_choi',
-           'to_chi', 'to_super', 'to_kraus', #'to_stinespring'
+           'to_chi', 'to_super', 'to_kraus', 'to_stinespring'
            ]
 
 # Python Standard Library
@@ -231,7 +231,15 @@ def chi_to_choi(q_oper):
     return Qobj((B.dag() * q_oper * B) / q_oper.shape[0], superrep='choi')
 
 def _svd_u_to_kraus(U, S, d, dK):
-    # TODO: document!
+    """
+    Given a partial isometry U and a vector of square-roots of singular values S
+    obtained from an SVD, produces the Kraus operators represented by U.
+
+    Returns
+    -------
+    Ks : list of Qobj
+        Quantum objects represnting each of the Kraus operators.
+    """
     # We use U * S since S is 1-index, such that this is equivalent to
     # U . diag(S), but easier to write down.
     return map(Qobj, array(U * S).reshape((d, d, dK)).transpose((2, 0, 1)))
@@ -240,6 +248,8 @@ def _svd_u_to_kraus(U, S, d, dK):
 def _generalized_kraus(q_oper, thresh=1e-10):
     # TODO: document!
     # TODO: use this to generalize to_kraus to the case where U != V.
+    #       This is critical for non-CP maps, as appear in (for example)
+    #       diamond norm differences between two CP maps.
     if q_oper.type != "super" or q_oper.superrep != "choi":
         raise ValueError("Expected a Choi matrix, got a {} (superrep {}).".format(q_oper.type, q_oper.superrep))
     
@@ -463,4 +473,22 @@ def to_kraus(q_oper):
             "supported.".format(q_oper)
         )
 
-#def to_stinespring()
+def to_stinespring(q_oper):
+    r"""
+    Converts a Qobj representing a quantum map $\Lambda$ to a pair of partial isometries
+    $A$ and $B$ such that $\Lambda(X) = \Tr_2(A X B^\dagger)$ for all inputs $X$, where
+    the partial trace is taken over a a new index on the output dimensions of $A$ and $B$.
+
+    For completely positive inputs, $A$ will always equal $B$ up to precision errors.
+
+    Parameters
+    ----------
+    q_oper : Qobj
+        Superoperator to be converted to a Stinespring pair.
+
+    Returns
+    -------
+    A, B : Qobj
+        Quantum objects representing each of the Stinespring matrices for the input Qobj.
+    """
+    return choi_to_stinespring(to_choi(q_oper))
