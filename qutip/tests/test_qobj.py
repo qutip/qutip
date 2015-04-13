@@ -189,7 +189,24 @@ def test_QobjMulNonsquareDims():
     assert_equal((q1 * q2).dims, [[2, 1], [2]])
     assert_equal((q2 * q1.dag()).dims, [[2], [2, 1]])
 
-    assert_equal((q1 * q2 * q1.dag()).dims, [[2, 1], [2, 1]])
+    # Note that this is [[2], [2]] instead of [[2, 1], [2, 1]],
+    # as matching dimensions of 1 are implicitly partial traced out.
+    # (See #331.)
+    assert_equal((q1 * q2 * q1.dag()).dims, [[2], [2]])
+    
+    # Because of the above, we also need to check for extra indices
+    # that aren't of length 1.
+    q1 = Qobj([[ 1.+0.j,  0.+0.j],
+         [ 0.+0.j,  1.+0.j],
+         [ 0.+0.j,  1.+0.j],
+         [ 1.+0.j,  0.+0.j],
+         [ 0.+0.j,  0.-1.j],
+         [ 0.+1.j,  0.+0.j],
+         [ 1.+0.j,  0.+0.j],
+         [ 0.+0.j, -1.+0.j]
+     ], dims=[[4, 2], [2]])
+
+    assert_equal((q1 * q2 * q1.dag()).dims, [[4, 2], [4, 2]])
 
 def test_QobjAddition():
     "Qobj addition"
