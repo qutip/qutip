@@ -62,8 +62,12 @@ from qutip.permute import _permute
 from qutip.sparse import (sp_eigs, sp_expm, sp_fro_norm, sp_max_norm,
                           sp_one_norm, sp_L2_norm)
 
-
-from itertools import izip_longest
+import sys
+if sys.version_info.major >= 3:
+    from itertools import zip_longest
+elif sys.version_info.major < 3:
+    from itertools import izip_longest
+    zip_longest = izip_longest
 
 
 class Qobj(object):
@@ -409,7 +413,7 @@ class Qobj(object):
                     # to have uneven length (non-square Qobjs).
                     # We use None as padding so that it doesn't match anything,
                     # and will never cause a partial trace on the other side.
-                    mask = [l == r == 1 for l, r in izip_longest(dims[0], dims[1], fillvalue=None)]
+                    mask = [l == r == 1 for l, r in zip_longest(dims[0], dims[1], fillvalue=None)]
                     # To ensure that there are still any dimensions left, we
                     # use max() to add a dimensions list of [1] if all matching dims
                     # are traced out of that side.
