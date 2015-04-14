@@ -41,11 +41,11 @@ from __future__ import division
 
 from numpy import abs
 from numpy.linalg import norm
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_, run_module_suite, assert_equal
 
 from qutip.qobj import Qobj
 from qutip.states import basis
-from qutip.operators import identity, sigmax
+from qutip.operators import identity, sigmax, qeye
 from qutip.qip.gates import swap
 from qutip.random_objects import rand_super, rand_super_bcsz, rand_dm_ginibre
 from qutip.tensor import super_tensor
@@ -199,5 +199,17 @@ class TestSuperopReps(object):
 
         for idx in xrange(4):
             yield case, rand_super_bcsz(2), rand_dm_ginibre(2)
+
+    def test_stinespring_dims(self):
+        """
+        Stinespring: Check that dims of channels are preserved.
+        """
+        # FIXME: not the most general test, since this assumes a map
+        #        from square matrices to square matrices on the same space.
+        chan = super_tensor(to_super(sigmax()), to_super(qeye(3)))
+        A, B = to_stinespring(chan)
+        assert_equal(A.dims, [[2, 3, 1], [2, 3]])
+        assert_equal(B.dims, [[2, 3, 1], [2, 3]])
+
 if __name__ == "__main__":
     run_module_suite()

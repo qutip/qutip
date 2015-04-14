@@ -230,7 +230,7 @@ def chi_to_choi(q_oper):
     # by that to get back to the Choi form.
     return Qobj((B.dag() * q_oper * B) / q_oper.shape[0], superrep='choi')
 
-def _svd_u_to_kraus(U, S, d, dK):
+def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
     """
     Given a partial isometry U and a vector of square-roots of singular values S
     obtained from an SVD, produces the Kraus operators represented by U.
@@ -242,7 +242,10 @@ def _svd_u_to_kraus(U, S, d, dK):
     """
     # We use U * S since S is 1-index, such that this is equivalent to
     # U . diag(S), but easier to write down.
-    return map(Qobj, array(U * S).reshape((d, d, dK), order='F').transpose((2, 0, 1)))
+    Ks = map(Qobj, array(U * S).reshape((d, d, dK), order='F').transpose((2, 0, 1)))
+    for K in Ks:
+        K.dims = [outdims, indims]
+    return Ks
 
 
 def _generalized_kraus(q_oper, thresh=1e-10):
@@ -256,6 +259,10 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     # Remember the shape of the underlying space,
     # as we'll need this to make Kraus operators later.
     dL, dR = map(int, map(sqrt, q_oper.shape))
+    # Also remember the dims breakout.
+    out_dims, in_dims = q_oper.dims
+    out_left, out_right = out_dims
+    in_left, in_right = in_dims
 
     # Find the SVD.
     U, S, V = svd(q_oper.data.todense())
@@ -275,8 +282,8 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     # Finally, we want the Kraus index to be left-most so that we
     # can map over it when making Qobjs.
     # FIXME: does not preserve dims!
-    kU = _svd_u_to_kraus(U, S, dL, dK)
-    kV = _svd_u_to_kraus(V, S, dL, dK)
+    kU = _svd_u_to_kraus(U, S, dL, dK, out_right, out_left)
+    kV = _svd_u_to_kraus(V, S, dL, dK, in_right, in_left)
 
     return kU, kV
 
@@ -289,19 +296,22 @@ def choi_to_stinespring(q_oper, thresh=1e-10):
     dK = len(kU)
     dL = kU[0].shape[0]
     dR = kV[0].shape[1]
+    # Also remember the dims breakout.
+    out_dims, in_dims = q_oper.dims
+    out_left, out_right = out_dims
+    in_left, in_right = in_dims
 
-    # FIXME: does not preserve dims!
-    #        idea here is to append the new index to be right most of the left indices.
-    A = Qobj(zeros((dK * dL, dL)), dims=[[dL, dK], [dL, 1]])
-    B = Qobj(zeros((dK * dR, dR)), dims=[[dR, dK], [dR, 1]])
+    A = Qobj(zeros((dK * dL, dL)), dims=[out_left + [dK], out_right + [1]])
+    B = Qobj(zeros((dK * dR, dR)), dims=[in_left + [dK], in_right + [1]])
 
     for idx_kraus, (KL, KR) in enumerate(zip(kU, kV)):
+        print A.dims, tensor(KL, basis(dK, idx_kraus)).dims
         A += tensor(KL, basis(dK, idx_kraus))
         B += tensor(KR, basis(dK, idx_kraus))
-
+        
     # There is no input (right) Kraus index, so strip that off.
-    A.dims[1] = A.dims[1][:-1]
-    B.dims[1] = B.dims[1][:-1]
+    del A.dims[1][-1]
+    del B.dims[1][-1]
 
     return A, B
 
