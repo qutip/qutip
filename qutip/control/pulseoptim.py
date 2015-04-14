@@ -682,7 +682,6 @@ def create_pulse_optimizer(
 
     Returns
     -------
-
         Instance of an Optimizer, through which the
         Config, Dynamics, PulseGen, and TerminationConditions objects
         can be accessed as attributes.
@@ -877,3 +876,253 @@ def create_pulse_optimizer(
             "\n    pulsegen: " + p_gen.__class__.__name__)
 
     return optim
+
+def opt_pulse_CRAB(
+        drift, ctrls, initial, target,
+        num_tslots=None, evo_time=None, tau=None,
+        amp_lbound=-np.Inf, amp_ubound=np.Inf,
+        fid_err_targ=1e-10, min_grad=1e-10,
+        max_iter=500, max_wall_time=180,
+        optim_alg='nelder-mead', alg_options=None,
+        dyn_type='GEN_MAT', prop_type='DEF',
+        fid_type='DEF', phase_option=None, fid_err_scale_factor=None,
+        log_level=logging.NOTSET, out_file_ext=None, gen_stats=False):
+    """
+    Optimise a control pulse to minimise the fidelity error.
+    The dynamics of the system in any given timeslot are governed
+    by the combined dynamics generator,
+    i.e. the sum of the drift+ctrl_amp[j]*ctrls[j]
+    The control pulse is an [n_ts, len(ctrls)] array of piecewise amplitudes.
+    The CRAB algorithm uses basis function coefficents as the variables to
+    optimise. It does NOT use any gradient function.
+    A multivariable optimisation algorithm attempts to determines the
+    optimal values for the control pulse to minimise the fidelity error
+    The fidelity error is some measure of distance of the system evolution
+    from the given target evolution in the time allowed for the evolution.
+
+    Parameters
+    ----------
+
+    drift : Qobj
+        the underlying dynamics generator of the system
+
+    ctrls : List of Qobj
+        a list of control dynamics generators. These are scaled by
+        the amplitudes to alter the overall dynamics
+
+    initial : Qobj
+        starting point for the evolution.
+        Typically the identity matrix
+
+    target : Qobj
+        target transformation, e.g. gate or state, for the time evolution
+
+    num_tslots : integer or None
+        number of timeslots.
+        None implies that timeslots will be given in the tau array
+
+    evo_time : float or None
+        total time for the evolution
+        None implies that timeslots will be given in the tau array
+
+    tau : array[num_tslots] of floats or None
+        durations for the timeslots.
+        if this is given then num_tslots and evo_time are dervived
+        from it
+        None implies that timeslot durations will be equal and
+        calculated as evo_time/num_tslots
+
+    amp_lbound : float or list of floats
+        lower boundaries for the control amplitudes
+        Can be a scalar value applied to all controls
+        or a list of bounds for each control
+
+    amp_ubound : float or list of floats
+        upper boundaries for the control amplitudes
+        Can be a scalar value applied to all controls
+        or a list of bounds for each control
+
+    fid_err_targ : float
+        Fidelity error target. Pulse optimisation will
+        terminate when the fidelity error falls below this value
+
+    mim_grad : float
+        Minimum gradient. When the sum of the squares of the
+        gradients wrt to the control amplitudes falls below this
+        value, the optimisation terminates, assuming local minima
+
+    max_iter : integer
+        Maximum number of iterations of the optimisation algorithm
+
+    max_wall_time : float
+        Maximum allowed elapsed time for the  optimisation algorithm
+
+    optim_alg : string
+        Multi-variable optimisation algorithm
+        options are BFGS, LBFGSB
+        (see Optimizer classes for details)
+
+    max_metric_corr : integer
+        The maximum number of variable metric corrections used to define
+        the limited memory matrix. That is the number of previous
+        gradient values that are used to approximate the Hessian
+        see the scipy.optimize.fmin_l_bfgs_b documentation for description
+        of m argument
+        (used only in L-BFGS-B)
+
+    accuracy_factor : float
+        Determines the accuracy of the result.
+        Typical values for accuracy_factor are: 1e12 for low accuracy;
+        1e7 for moderate accuracy; 10.0 for extremely high accuracy
+        scipy.optimize.fmin_l_bfgs_b factr argument.
+        (used only in L-BFGS-B)
+
+    dyn_type : string
+        Dynamics type, i.e. the type of matrix used to describe
+        the dynamics. Options are UNIT, GEN_MAT, SYMPL
+        (see Dynamics classes for details)
+
+    prop_type : string
+        Propagator type i.e. the method used to calculate the
+        propagtors and propagtor gradient for each timeslot
+        options are DEF, APPROX, DIAG, FRECHET, AUG_MAT
+        DEF will use the default for the specific dyn_type
+        (see PropagatorComputer classes for details)
+
+    fid_type : string
+        Fidelity error (and fidelity error gradient) computation method
+        Options are DEF, UNIT, TRACEDIFF, TD_APPROX
+        DEF will use the default for the specific dyn_type
+        (See FidelityComputer classes for details)
+
+    phase_option : string
+        determines how global phase is treated in fidelity
+        calculations (fid_type='UNIT' only). Options:
+            PSU - global phase ignored
+            SU - global phase included
+
+    fid_err_scale_factor : float
+        (used in TRACEDIFF FidelityComputer and subclasses only)
+        The fidelity error calculated is of some arbitary scale. This
+        factor can be used to scale the fidelity error such that it may
+        represent some physical measure
+        If None is given then it is caculated as 1/2N, where N
+        is the dimension of the drift.
+
+    amp_update_mode : string
+        determines whether propagators are calculated
+        Options: DEF, ALL, DYNAMIC (needs work)
+        DEF will use the default for the specific dyn_type
+        (See TimeslotComputer classes for details)
+
+    init_pulse_type : string
+        type / shape of pulse(s) used to initialise the
+        the control amplitudes. Options include:
+            RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
+        (see PulseGen classes for details)
+
+    pulse_scaling : float
+        Linear scale factor for generated pulses
+        By default initial pulses are generated with amplitudes in the
+        range (-1.0, 1.0). These will be scaled by this parameter
+
+    pulse_offset : float
+        Line offset for the pulse. That is this value will be added
+        to any initial pulses generated.
+
+    log_level : integer
+        level of messaging output from the logger.
+        Options are attributes of qutip.logging,
+        in decreasing levels of messaging, are:
+        DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
+        Anything WARN or above is effectively 'quiet' execution,
+        assuming everything runs as expected.
+        The default NOTSET implies that the level will be taken from
+        the QuTiP settings file, which by default is WARN
+
+    out_file_ext : string or None
+        files containing the initial and final control pulse
+        amplitudes are saved to the current directory.
+        The default name will be postfixed with this extension
+        Setting this to None will suppress the output of files
+
+    gen_stats : boolean
+        if set to True then statistics for the optimisation
+        run will be generated - accessible through attributes
+        of the stats object
+
+    Returns
+    -------
+        Returns instance of OptimResult, which has attributes giving the
+        reason for termination, final fidelity error, final evolution
+        final amplitudes, statistics etc
+    """
+
+    # The parameters are checked in create_pulse_optimizer
+    # so no need to do so here
+
+    if log_level == logging.NOTSET:
+        log_level = logger.getEffectiveLevel()
+    else:
+        logger.setLevel(log_level)
+
+    optim = create_pulse_optimizer(
+        drift, ctrls, initial, target,
+        num_tslots=num_tslots, evo_time=evo_time, tau=tau,
+        amp_lbound=amp_lbound, amp_ubound=amp_ubound,
+        fid_err_targ=fid_err_targ, min_grad=min_grad,
+        max_iter=max_iter, max_wall_time=max_wall_time,
+        optim_alg=optim_alg, max_metric_corr=max_metric_corr,
+        accuracy_factor=accuracy_factor,
+        dyn_type=dyn_type, prop_type=prop_type,
+        fid_type=fid_type, phase_option=phase_option,
+        fid_err_scale_factor=fid_err_scale_factor,
+        amp_update_mode=amp_update_mode, init_pulse_type=init_pulse_type,
+        pulse_scaling=pulse_scaling, pulse_offset=pulse_offset,
+        log_level=log_level, gen_stats=gen_stats)
+
+    dyn = optim.dynamics
+    p_gen = optim.pulse_generator
+
+    if log_level <= logging.INFO:
+        msg = "System configuration:\n"
+        dg_name = "dynamics generator"
+        if dyn_type == 'UNIT':
+            dg_name = "Hamiltonian"
+        msg += "Drift {}:\n".format(dg_name)
+        msg += str(dyn.drift_dyn_gen)
+        for j in range(dyn.num_ctrls):
+            msg += "\nControl {} {}:\n".format(j+1, dg_name)
+            msg += str(dyn.ctrl_dyn_gen[j])
+        msg += "\nInitial operator:\n"
+        msg += str(dyn.initial)
+        msg += "\nTarget operator:\n"
+        msg += str(dyn.target)
+        logger.info(msg)
+
+    # Generate pulses for each control
+    init_amps = np.zeros([num_tslots, dyn.num_ctrls])
+    for j in range(dyn.num_ctrls):
+        init_amps[:, j] = p_gen.gen_pulse()
+
+    # Initialise the starting amplitudes
+    dyn.initialize_controls(init_amps)
+
+    if out_file_ext is not None:
+        # Save initial amplitudes to a text file
+        pulsefile = "ctrl_amps_initial_" + out_file_ext
+        dyn.save_amps(pulsefile)
+        if log_level <= logging.INFO:
+            logger.info("Initial amplitudes output to file: " + pulsefile)
+
+    # Start the optimisation
+    result = optim.run_optimization()
+
+    if out_file_ext is not None:
+        # Save final amplitudes to a text file
+        pulsefile = "ctrl_amps_final_" + out_file_ext
+        dyn.save_amps(pulsefile)
+        if log_level <= logging.INFO:
+            logger.info("Final amplitudes output to file: " + pulsefile)
+
+    return result
