@@ -58,8 +58,8 @@ def add_ptrace_eq_constraint(problem, A, B, keep_left, traceout, keep_right):
     #       list of constraints.
 
     return problem.add_list_of_constraints([
-         # We call pic.sum to ensure that the summation index is formatted
-         # when the problem is printed out.
+        # We call pic.sum to ensure that the summation index is formatted
+        # when the problem is printed out.
         pic.sum(
             [
                 A[

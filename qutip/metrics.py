@@ -44,6 +44,9 @@ from qutip.sparse import sp_eigs
 from qutip.states import ket2dm
 from qutip.superop_reps import to_kraus, to_stinespring
 
+import qutip.logging as logging
+logger = logging.get_logger()
+
 import qutip.picos_tools
 
 try:
@@ -326,6 +329,11 @@ def dnorm(q_oper, picos_args=None):
     problem.add_constraint(pic.trace(rho) == 1)
     problem.add_constraint(rho >> 0)
     problem.add_constraint(X >> 0)
+
+    if qutip.settings.debug:
+        # Redundant check such that long debug calls aren't made in
+        # an inner loop.
+        logger.debug("Solving PICOS problem...\n\n{}".format(problem))
 
     res = problem.solve(**picos_args)
     return np.sqrt(np.real(res['obj']))
