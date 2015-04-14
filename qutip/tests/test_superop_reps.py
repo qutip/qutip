@@ -40,16 +40,18 @@ Created on Wed May 29 11:23:46 2013
 from __future__ import division
 
 from numpy import abs
+from numpy.linalg import norm
 from numpy.testing import assert_, run_module_suite
 
 from qutip.qobj import Qobj
 from qutip.states import basis
 from qutip.operators import identity, sigmax
 from qutip.qip.gates import swap
-from qutip.random_objects import rand_super
+from qutip.random_objects import rand_super, rand_super_bcsz, rand_dm_ginibre
 from qutip.tensor import super_tensor
 from qutip.superop_reps import (kraus_to_choi, to_super, to_choi, to_kraus,
-                                to_chi)
+                                to_chi, to_stinespring)
+from qutip.superoperator import operator_to_vector, vector_to_operator
 
 tol = 1e-10
 
@@ -165,5 +167,37 @@ class TestSuperopReps(object):
         for dims in range(2, 5):
             assert_(abs(to_choi(identity(dims)).tr() - dims) <= tol)
 
+    def test_stinespring_cp(self, thresh=1e-10):
+        """
+        Stinespring: A and B match for CP maps.
+        """
+        def case(map):
+            A, B = to_stinespring(map)
+            assert_(norm((A - B).data.todense()) < thresh)
+
+        for idx in xrange(4):
+            yield case, rand_super_bcsz(7)
+
+    def test_stinespring_agrees(self, thresh=1e-10):
+        """
+        Stinespring: Partial Tr over pair agrees w/ supermatrix.
+        """
+        def case(map, state):
+            S = to_super(map)
+            A, B = to_stinespring(map)
+
+            q1 = vector_to_operator(
+                S * operator_to_vector(state)
+            )
+            # FIXME: problem if Kraus index is implicitly
+            #        ptraced!
+            q2 = (A * state * B.dag()).ptrace((0,))
+
+            print q1, q2
+
+            assert_((q1 - q2).norm('tr') <= thresh)
+
+        for idx in xrange(4):
+            yield case, rand_super_bcsz(2), rand_dm_ginibre(2)
 if __name__ == "__main__":
     run_module_suite()
