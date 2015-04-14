@@ -245,7 +245,7 @@ def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
     Ks = map(Qobj, array(U * S).reshape((d, d, dK), order='F').transpose((2, 0, 1)))
     for K in Ks:
         K.dims = [outdims, indims]
-    return Ks
+    return list(Ks)
 
 
 def _generalized_kraus(q_oper, thresh=1e-10):
@@ -305,7 +305,6 @@ def choi_to_stinespring(q_oper, thresh=1e-10):
     B = Qobj(zeros((dK * dR, dR)), dims=[in_left + [dK], in_right + [1]])
 
     for idx_kraus, (KL, KR) in enumerate(zip(kU, kV)):
-        print A.dims, tensor(KL, basis(dK, idx_kraus)).dims
         A += tensor(KL, basis(dK, idx_kraus))
         B += tensor(KR, basis(dK, idx_kraus))
         

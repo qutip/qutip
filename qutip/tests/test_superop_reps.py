@@ -175,7 +175,7 @@ class TestSuperopReps(object):
             A, B = to_stinespring(map)
             assert_(norm((A - B).data.todense()) < thresh)
 
-        for idx in xrange(4):
+        for idx in range(4):
             yield case, rand_super_bcsz(7)
 
     def test_stinespring_agrees(self, thresh=1e-10):
@@ -193,11 +193,9 @@ class TestSuperopReps(object):
             #        ptraced!
             q2 = (A * state * B.dag()).ptrace((0,))
 
-            print q1, q2
-
             assert_((q1 - q2).norm('tr') <= thresh)
 
-        for idx in xrange(4):
+        for idx in range(4):
             yield case, rand_super_bcsz(2), rand_dm_ginibre(2)
 
     def test_stinespring_dims(self):
