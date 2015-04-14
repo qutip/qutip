@@ -260,7 +260,28 @@ def bures_angle(A, B):
 
 
 def dnorm(q_oper, picos_args=None):
-    # TODO: document!
+    """
+    Calculates the diamond norm of the quantum map q_oper, using
+    the semidefinite program of [Wat09]_.
+
+    The diamond norm SDP is solved by using PICOS_, such that this
+    function requires that PICOS and cvxopt are both installed.
+
+    Parameters
+    ----------
+    q_oper : Qobj
+        Quantum map to take the diamond norm of.
+    picos_args : dict or None
+        Additional keyword arguments to be passed to PICOS. Useful
+        examples include ``verbose`` and ``maxit``.
+
+    Returns
+    -------
+    dn : float
+        Diamond norm of q_oper.
+
+    .. _PICOS: http://picos.zib.de/
+    """
     if pic is None:
         raise ImportError("dnorm() requires PICOS to be installed.")
     _picos_args = {'maxit': 500, 'verbose': 0}
@@ -308,3 +329,4 @@ def dnorm(q_oper, picos_args=None):
 
     res = problem.solve(**picos_args)
     return np.sqrt(np.real(res['obj']))
+
