@@ -181,7 +181,7 @@ def optimize_pulse(
         Fidelity error (and fidelity error gradient) computation method
         Options are DEF, UNIT, TRACEDIFF, TD_APPROX
         DEF will use the default for the specific dyn_type
-        (See FideliyComputer classes for details)
+        (See FidelityComputer classes for details)
 
     phase_option : string
         determines how global phase is treated in fidelity
@@ -627,7 +627,7 @@ def create_pulse_optimizer(
         Fidelity error (and fidelity error gradient) computation method
         Options are DEF, UNIT, TRACEDIFF, TD_APPROX
         DEF will use the default for the specific dyn_type
-        (See FideliyComputer classes for details)
+        (See FidelityComputer classes for details)
 
     phase_option : string
         determines how global phase is treated in fidelity
@@ -769,7 +769,7 @@ def create_pulse_optimizer(
     else:
         raise errors.UsageError("No option for prop_type: " + prop_type)
 
-    # Create the FideliyComputer instance
+    # Create the FidelityComputer instance
     # The default will be typically be the best option
     # Note: the FidCompTraceDiffApprox is a subclass of FidCompTraceDiff
     # so need to check this type first

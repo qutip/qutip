@@ -43,6 +43,7 @@ Configuration parameters for control pulse optimisation
 """
 
 import os
+import errno
 import numpy as np
 # QuTiP logging
 import qutip.logging
@@ -84,7 +85,7 @@ class OptimConfig:
         Fidelity error (and fidelity error gradient) computation method
         Options are DEF, UNIT, TRACEDIFF, TD_APPROX
         DEF will use the default for the specific dyn_type
-        (See FideliyComputer classes for details)
+        (See FidelityComputer classes for details)
 
     phase_option : string
         determines how global phase is treated in fidelity
@@ -123,9 +124,6 @@ class OptimConfig:
         Directory where test output files will be saved
         By default this is a sub directory called 'test_out'
         It will be created in the working directory if it does not exist
-
-        Note: this should be treated as a read-only attribute
-                use test_out_subdir to specify a folder
 
     test_out_f_ext : string
         File extension that will be applied to all test output file names
@@ -185,11 +183,10 @@ class OptimConfig:
 
     def reset_test_out_files(self):
         # Test output file flags
-        self.test_out_subdir = None
         self.test_out_dir = None
         self.test_out_f_ext = ".txt"
-        self.clear_test_out_flags()        
-        
+        self.clear_test_out_flags()
+
     def clear_test_out_flags(self):
         self.test_out_iter = False
         self.test_out_fid_err = False
@@ -210,7 +207,7 @@ class OptimConfig:
 
     def any_test_files(self):
         """
-        Returns True if any test_out_files are to be produced
+        Returns True if any test_out files are to be produced
         That is debug files written to the test_out directory
         """
         if (self.test_out_iter or
@@ -227,52 +224,69 @@ class OptimConfig:
 
     def check_create_test_out_dir(self):
         """
-        Checks test_out folder exists, creates it if not
+        Checks test_out directory exists, creates it if not
         """
-        if self.test_out_subdir is None:
-            self.test_out_subdir = TEST_OUT_DIR
+        if self.test_out_dir is None or len(self.test_out_dir) == 0:
+            self.test_out_dir = TEST_OUT_DIR
 
-        dir_ok = True
-        self.test_out_dir = os.path.join(os.getcwd(),
-                                         self.test_out_subdir)
-        msg = "Failed to create test output file directory:\n{}\n".format(
-            self.test_out_dir)
-        if os.path.exists(self.test_out_dir):
-            if os.path.isfile(self.test_out_dir):
-                dir_ok = False
-                msg += "A file already exists with same name"
-        else:
-            try:
-                os.mkdir(self.test_out_subdir)
-                logger.info("Test out files directory {} created".format(
-                    self.test_out_subdir))
-            except FileExistsError:
-                logger.info("Assume test out files directory {} created by "
-                    "some other process".format(self.test_out_subdir))
-            except Exception as e1:
-                try:
-                    os.makedirs(self.test_out_dir)
-                    logger.info("Test out files directory {} created "
-                                "(recursively)".format(self.test_out_dir))
-                except FileExistsError:     
-                    logger.info("Assume test out files directory {} created "
-                        "(recursively)  some other process".format(
-                                self.test_out_dir))
-                except Exception as e2:
-                    dir_ok = False
-                    msg += ("Either turn off test_out_files "
-                            "or check permissions.\n")
-                    msg += "Underling error (mkdir) :({}) {}".format(
-                        type(e1).__name__, e1)
-                    msg += "Underling error (makedirs) :({}) {}".format(
-                        type(e2).__name__, e2)
+        dir_ok, self.test_out_dir, msg = self.check_create_output_dir(
+                    self.test_out_dir, desc='test_out')
 
         if not dir_ok:
-            msg += "\ntest_out_files will be suppressed."
+            self.reset_test_out_files()
+            msg += "\ntest_out files will be suppressed."
             logger.error(msg)
-            self.test_out_files = 0
 
         return dir_ok
+
+    def check_create_output_dir(self, output_dir, desc='output'):
+        """
+        Checks if the given directory exists, if not it is created
+        Returns
+        -------
+        dir_ok : boolean
+            True if directory exists (previously or created)
+            False if failed to create the directory
+
+        output_dir : string
+            Path to the directory, which may be been made absolute
+
+        msg : string
+            Error msg if directory creation failed
+        """
+
+        dir_ok = True
+        if '~' in output_dir:
+            output_dir = os.path.expanduser(output_dir)
+        elif not os.path.abspath(output_dir):
+            # Assume relative path from cwd given
+            output_dir = os.path.join(os.getcwd(), output_dir)
+
+        errmsg = "Failed to create {} directory:\n{}\n".format(desc,
+                                                            output_dir)
+
+        if os.path.exists(output_dir):
+            if os.path.isfile(output_dir):
+                dir_ok = False
+                errmsg += "A file already exists with the same name"
+        else:
+            try:
+                os.makedirs(output_dir)
+                logger.info("Test out files directory {} created "
+                            "(recursively)".format(output_dir))
+            except OSError as e:
+                if e.errno == errno.EEXIST:
+                    logger.info("Assume test out files directory {} created "
+                        "(recursively)  some other process".format(output_dir))
+                else:
+                    dir_ok = False
+                    errmsg += "Underling error (makedirs) :({}) {}".format(
+                        type(e).__name__, e)
+
+        if dir_ok:
+            return dir_ok, output_dir, "{} directory is ready".format(desc)
+        else:
+            return dir_ok, output_dir, errmsg
 
 # create global instance
 optimconfig = OptimConfig()
