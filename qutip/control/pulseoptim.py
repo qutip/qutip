@@ -215,7 +215,7 @@ def optimize_pulse(
         range (-1.0, 1.0). These will be scaled by this parameter
 
     pulse_offset : float
-        Line offset for the pulse. That is this value will be added
+        Linear offset for the pulse. That is this value will be added
         to any initial pulses generated.
 
     log_level : integer
@@ -446,7 +446,7 @@ def optimize_pulse_unitary(
         range (-1.0, 1.0). These will be scaled by this parameter
 
     pulse_offset : float
-        Line offset for the pulse. That is this value will be added
+        Linear offset for the pulse. That is this value will be added
         to any initial pulses generated.
 
     log_level : integer
@@ -518,6 +518,7 @@ def create_pulse_optimizer(
         amp_lbound=-np.Inf, amp_ubound=np.Inf,
         fid_err_targ=1e-10, min_grad=1e-10,
         max_iter=500, max_wall_time=180,
+        alg='GRAPE', alg_options=None,
         optim_alg='LBFGSB', max_metric_corr=10, accuracy_factor=1e7,
         dyn_type='GEN_MAT', prop_type='DEF',
         fid_type='DEF', phase_option=None, fid_err_scale_factor=None,
@@ -589,8 +590,17 @@ def create_pulse_optimizer(
         Maximum number of iterations of the optimisation algorithm
 
     max_wall_time : float
-        Maximum allowed elapsed time for the  optimisation algorithm
+        Maximum allowed elapsed time for the optimisation algorithm
+        
+    alg : string
+        Algorithm to use in pulse optimisation.
+        Options are:
+            'GRAPE' (default) - GRadient Ascent Pulse Engineering
+            'CRAB' - Chopped RAndom Basis
 
+    alg_options : Dictionary
+        options that are specific to the algorithm see above     
+        
     optim_alg : string
         Multi-variable optimisation algorithm
         options are BFGS, LBFGSB
@@ -661,7 +671,7 @@ def create_pulse_optimizer(
         range (-1.0, 1.0). These will be scaled by this parameter
 
     pulse_offset : float
-        Line offset for the pulse. That is this value will be added
+        Linear offset for the pulse. That is this value will be added
         to any initial pulses generated.
 
     log_level : integer
@@ -877,13 +887,13 @@ def create_pulse_optimizer(
 
     return optim
 
-def opt_pulse_CRAB(
+def opt_pulse_crab(
         drift, ctrls, initial, target,
         num_tslots=None, evo_time=None, tau=None,
         amp_lbound=-np.Inf, amp_ubound=np.Inf,
         fid_err_targ=1e-10, min_grad=1e-10,
         max_iter=500, max_wall_time=180,
-        optim_alg='nelder-mead', alg_options=None,
+        optim_method='nelder-mead', method_options=None,
         dyn_type='GEN_MAT', prop_type='DEF',
         fid_type='DEF', phase_option=None, fid_err_scale_factor=None,
         log_level=logging.NOTSET, out_file_ext=None, gen_stats=False):
@@ -957,40 +967,19 @@ def opt_pulse_CRAB(
     max_wall_time : float
         Maximum allowed elapsed time for the  optimisation algorithm
 
-    optim_alg : string
-        Multi-variable optimisation algorithm
-        options are BFGS, LBFGSB
-        (see Optimizer classes for details)
-
-    max_metric_corr : integer
-        The maximum number of variable metric corrections used to define
-        the limited memory matrix. That is the number of previous
-        gradient values that are used to approximate the Hessian
-        see the scipy.optimize.fmin_l_bfgs_b documentation for description
-        of m argument
-        (used only in L-BFGS-B)
-
-    accuracy_factor : float
-        Determines the accuracy of the result.
-        Typical values for accuracy_factor are: 1e12 for low accuracy;
-        1e7 for moderate accuracy; 10.0 for extremely high accuracy
-        scipy.optimize.fmin_l_bfgs_b factr argument.
-        (used only in L-BFGS-B)
+    optim_method : string
+        Multi-variable optimisation method
+        The only tested option is 'Nelder-mead'
+        In theory any non-gradient method implemented in 
+        scipy.optimize.mininize could be used.
 
     dyn_type : string
         Dynamics type, i.e. the type of matrix used to describe
         the dynamics. Options are UNIT, GEN_MAT, SYMPL
         (see Dynamics classes for details)
 
-    prop_type : string
-        Propagator type i.e. the method used to calculate the
-        propagtors and propagtor gradient for each timeslot
-        options are DEF, APPROX, DIAG, FRECHET, AUG_MAT
-        DEF will use the default for the specific dyn_type
-        (see PropagatorComputer classes for details)
-
     fid_type : string
-        Fidelity error (and fidelity error gradient) computation method
+        Fidelity error computation method
         Options are DEF, UNIT, TRACEDIFF, TD_APPROX
         DEF will use the default for the specific dyn_type
         (See FidelityComputer classes for details)
@@ -1021,14 +1010,14 @@ def opt_pulse_CRAB(
             RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
         (see PulseGen classes for details)
 
-    pulse_scaling : float
-        Linear scale factor for generated pulses
-        By default initial pulses are generated with amplitudes in the
+    coeff_scaling : float
+        Linear scale factor for the basis coefficients
+        By default initial pulses are generated with coefficients in the
         range (-1.0, 1.0). These will be scaled by this parameter
 
-    pulse_offset : float
-        Line offset for the pulse. That is this value will be added
-        to any initial pulses generated.
+    coeff_offset : float
+        Linear offset for the basis coefficients. 
+        This value will be added to the coeffs when generating initial pulses.
 
     log_level : integer
         level of messaging output from the logger.

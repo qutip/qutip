@@ -569,7 +569,8 @@ class PulseGenLinear(PulseGen):
 
     def init_pulse(self, gradient=None, start_val=None, end_val=None):
         """
-        Calulate the gradient if pulse is defined by start and end point values
+        Calculate the gradient if pulse is defined by start and 
+        end point values
         """
         PulseGen.init_pulse(self)
         if start_val is not None and end_val is not None:

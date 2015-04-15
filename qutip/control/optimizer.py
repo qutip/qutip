@@ -121,6 +121,32 @@ class Optimizer:
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
         Note value should be set using set_log_level
+            
+    alg_options : Dictionary
+        options that are specific to the pulse optim algorithm 
+        that is GRAPE or CRAB
+        
+    disp_conv_msg : bool
+        Set true to display a convergence message 
+        (for scipy.optimize.minimize methods anyway)
+        
+    optim_method : string
+        a scipy.optimize.minimize method that will be used to optimise
+        the pulse for minimum fidelity error
+        
+    method_options : Dictionary
+        Options for the optim_method. 
+        Note that where there is an equivalent attribute of this instance
+        or the termination_conditions (for example maxiter)
+        it will override an value in these options
+        
+    bounds : List of floats
+        Bounds for the parameters.
+        If not set before the run_optimization call then the list
+        is built automatically based on the param_lbound and param_ubound
+        attributes.
+        Setting this attribute directly allows specific bounds to be set
+        for individual parameters.
 
     dynamics : Dynamics (subclass instance)
         describes the dynamics of the (quantum) system to be control optimised
@@ -151,9 +177,14 @@ class Optimizer:
 
     def reset(self):
         self.set_log_level(self.config.log_level)
-        self.id_text = 'OPTIM_BASE'
+        self.id_text = 'OPTIM_GRAPE'
         self.termination_conditions = None
         self.pulse_generator = None
+        self.disp_conv_msg = False
+        self.alg_options = None
+        self.method = 'Nelder-mead'
+        self.method_options = None
+        self.bounds = None
         self.num_iter = 0
         self.stats = None
         self.wall_time_optim_start = 0.0
@@ -171,21 +202,21 @@ class Optimizer:
         self.log_level = lvl
         logger.setLevel(lvl)
 
-    def run_optimization(self, term_conds=None):
-        """
-        Run the pulse optimisation algorithm
-
-        This class does not implement a method for running the optimisation
-        A subclass should be used, e.g. OptimizerLBFGSB
-
-        If the parameter term_conds=None, then the termination_conditions
-        attribute must already be set. It will be overwritten if the
-        parameter is not None
-        """
-        raise errors.UsageError(
-            "No method defined for running optimisation."
-            " Suspect base class was used where sub class should have been")
-
+#    def run_optimization(self, term_conds=None):
+#        """
+#        Run the pulse optimisation algorithm
+#
+#        This class does not implement a method for running the optimisation
+#        A subclass should be used, e.g. OptimizerLBFGSB
+#
+#        If the parameter term_conds=None, then the termination_conditions
+#        attribute must already be set. It will be overwritten if the
+#        parameter is not None
+#        """
+#        raise errors.UsageError(
+#            "No method defined for running optimisation."
+#            " Suspect base class was used where sub class should have been")
+   
     def _create_result(self):
         """
         create the result object
@@ -282,6 +313,153 @@ class Optimizer:
 
             else:
                 self._grad_norm_fpath = None
+                
+    def _update_method_options(self):
+        """
+        Adds / updates any method options based on the attributes
+        of this object and the termination_conditions
+        """
+        tc = self.termination_conditions
+        if self.method_options is None:
+            self.method_options = {}
+        mo = self.method_options
+        if tc.max_iterations > 0:
+            mo[maxiter] = tc.max_iterations
+        if tc.max_fid_func_calls > 0:
+            mo[maxfev] = tc.max_fid_func_calls
+        if tc.min_gradient_norm > 0:
+            mo[gtol] = tc.min_gradient_norm
+        mo[disp] = self.disp_conv_msg
+        
+    def _build_bounds_list(self):
+        cfg = self.config
+        dyn = self.dynamics
+        n_ctrls = dyn.get_num_ctrls()
+        self.bounds = []
+        for t in range(dyn.num_tslots):
+            for c in range(n_ctrls):
+                if isinstance(cfg.amp_lbound, list):
+                    lb = cfg.amp_lbound[c]
+                else:
+                    lb = cfg.amp_lbound
+                if isinstance(cfg.amp_ubound, list):
+                    ub = cfg.amp_ubound[c]
+                else:
+                    ub = cfg.amp_ubound
+                
+                if np.isinf(lb):
+                    lb = None
+                if np.isinf(ub):
+                    ub = None
+                    
+                self.bounds.append((lb, ub))
+        
+    def run_optimization(self, term_conds=None):
+        """
+        This default function optimisation method is a wrapper to the
+        scipy.optimize.minimize function. 
+        
+        It will attempt to minimise the fidelity error with respect to some
+        parameters, which are determined by _get_func_params (see below)
+        
+        The optimisation end when one of the passed termination conditions
+        has been met, e.g. target achieved, wall time, or 
+        function call or iteration count exceeded. Note these 
+        conditions include gradient minimum met (local minima) for
+        methods that use a gradient.
+        
+        The function minimisation method is taken from the optim_method
+        attribute. Note that not all of these methods have been tested.
+        Note that some of these use a gradient and some do not.
+        See the scipy documentation for details. Options specific to the
+        method can be passed setting the method_options attribute.
+
+        If the parameter term_conds=None, then the termination_conditions
+        attribute must already be set. It will be overwritten if the
+        parameter is not None
+
+        The result is returned in an OptimResult object, which includes
+        the final fidelity, time evolution, reason for termination etc
+        """
+        self._pre_run_check(term_conds)
+        term_conds = self.termination_conditions
+        dyn = self.dynamics
+        cfg = self.config
+        x0 = self._get_func_params()
+        self.num_iter = 1
+        st_time = timeit.default_timer()
+        self.wall_time_optimize_start = st_time
+
+        if self.stats is not None:
+            self.stats.wall_time_optim_start = st_time
+            self.stats.wall_time_optim_end = 0.0
+            self.stats.num_iter = 1
+        
+        if self.bounds is None:
+            self._build_bounds_list()
+        self._update_method_options()
+        
+        result = self._create_result()
+
+        if self.log_level <= logging.INFO:
+            logger.info("Optimising pulse using '{}' method".format(
+                                    self.method)
+
+        try:
+            spopt_min_res = spopt.minimize(
+                self.fid_err_func_wrapper, x0,
+                method=self.method,
+                jac=self.fid_err_grad_wrapper,
+                bounds=self.bounds,
+                options=self.method_options,
+                callback=self.iter_step_callback_func)
+
+            amps = amps.reshape([dyn.num_tslots, dyn.num_ctrls])
+            dyn.update_ctrl_amps(amps)
+            warn = res_dict['warnflag']
+            if warn == 0:
+                result.grad_norm_min_reached = True
+                result.termination_reason = "function converged"
+            elif warn == 1:
+                result.max_iter_exceeded = True
+                result.termination_reason = ("Iteration or fidelity "
+                                             "function call limit reached")
+            elif warn == 2:
+                result.termination_reason = res_dict['task']
+
+            result.num_iter = res_dict['nit']
+        except errors.OptimizationTerminate as except_term:
+            self._interpret_term_exception(except_term, result)
+
+        end_time = timeit.default_timer()
+        self._add_common_result_attribs(result, st_time, end_time)
+
+        return result
+        
+    def _get_func_params(self):
+        """
+        Generate the 1d array that holds the parameter values to be optimised
+        By default (as used in GRAPE) these are the control amplitudes 
+        in each timeslot
+        """
+        return self.dynamics.ctrl_amps.reshape([-1])
+                
+    def _get_ctrl_amps(self, func_params):
+        """
+        Get the control amplitudes from the function parameters
+        that is the 1d array that is pass from the optimisation method
+        Note for GRAPE these are the function optimiser parameters
+        (and this is the default)
+        and for CRAB these are the basis coefficients and hence the
+        amplitudes will need to calculate
+        
+        Returns
+        -------
+        float array[dynamics.num_tslots, dynamics.num_ctrls]
+        """
+        amps = func_params.reshape(self.dynamics.ctrl_amps.shape)
+            
+        return amps
 
     def fid_err_func_wrapper(self, *args):
         """
@@ -304,7 +482,7 @@ class Optimizer:
                 logger.debug("fidelity error call {}".format(
                     self.stats.num_fidelity_func_calls))
 
-        amps = args[0].copy().reshape(self.dynamics.ctrl_amps.shape)
+        amps = self._get_ctrl_amps(args[0].copy())
         self.dynamics.update_ctrl_amps(amps)
 
         tc = self.termination_conditions
@@ -344,7 +522,7 @@ class Optimizer:
             if self.log_level <= logging.DEBUG:
                 logger.debug("gradient call {}".format(
                     self.stats.num_grad_func_calls))
-        amps = args[0].copy().reshape(self.dynamics.ctrl_amps.shape)
+        amps = self._get_ctrl_amps(args[0].copy())
         self.dynamics.update_ctrl_amps(amps)
         fid_comp = self.dynamics.fid_computer
         # gradient_norm_func is a pointer to the function set in the config
@@ -467,7 +645,7 @@ class OptimizerBFGS(Optimizer):
         self._pre_run_check(term_conds)
         term_conds = self.termination_conditions
         dyn = self.dynamics
-        x0 = dyn.ctrl_amps.reshape([-1])
+        x0 = self._get_func_params()
         self.num_iter = 1
         st_time = timeit.default_timer()
         self.wall_time_optimize_start = st_time
@@ -517,25 +695,6 @@ class OptimizerLBFGSB(Optimizer):
         Optimizer.reset(self)
         self.id_text = 'LBFGSB'
 
-    def _build_bounds_list(self):
-        cfg = self.config
-        dyn = self.dynamics
-        n_ctrls = dyn.get_num_ctrls()
-        bounds = []
-        for t in range(dyn.num_tslots):
-            for c in range(n_ctrls):
-                if isinstance(cfg.amp_lbound, list):
-                    lb = cfg.amp_lbound[c]
-                else:
-                    lb = cfg.amp_lbound
-                if isinstance(cfg.amp_ubound, list):
-                    ub = cfg.amp_ubound[c]
-                else:
-                    ub = cfg.amp_ubound
-                bounds.append((lb, ub))
-
-        return bounds
-
     def run_optimization(self, term_conds=None):
         """
         Optimise the control pulse amplitudes to minimise the fidelity error
@@ -565,7 +724,7 @@ class OptimizerLBFGSB(Optimizer):
         term_conds = self.termination_conditions
         dyn = self.dynamics
         cfg = self.config
-        x0 = dyn.ctrl_amps.reshape([-1])
+        x0 = self._get_func_params()
         self.num_iter = 1
         st_time = timeit.default_timer()
         self.wall_time_optimize_start = st_time
@@ -621,3 +780,46 @@ class OptimizerLBFGSB(Optimizer):
         self._add_common_result_attribs(result, st_time, end_time)
 
         return result
+        
+class OptimizerCrab(Optimizer):
+    """
+    Implements the run_optimization method using the L-BFGS-B algorithm
+    """
+
+    def reset(self):
+        Optimizer.reset(self)
+        self.id_text = 'LBFGSB'
+        
+    def _build_bounds_list(self):
+        """
+        No bounds necessary here, as the bounds for the CRAB parameters
+        do not have much physical meaning.
+        This needs to override the default method, otherwise the shape
+        will be wrong
+        """
+        return None
+
+    def _get_func_params(self):
+        """
+        Generate the 1d array that holds the parameter values to be optimised
+        By default (as used in GRAPE) these are the control amplitudes 
+        in each timeslot
+        """
+        return self.dynamics.ctrl_amps.reshape([-1])
+                
+    def _get_ctrl_amps(self, func_params):
+        """
+        Get the control amplitudes from the function parameters
+        that is the 1d array that is pass from the optimisation method
+        Note for GRAPE these are the function optimiser parameters
+        (and this is the default)
+        and for CRAB these are the basis coefficients and hence the
+        amplitudes will need to calculate
+        
+        Returns
+        -------
+        float array[dynamics.num_tslots, dynamics.num_ctrls]
+        """
+        amps = func_params.reshape(self.dynamics.ctrl_amps.shape)
+            
+        return amps
