@@ -49,7 +49,6 @@ import numpy as np
 import qutip.control.dynamics as dynamics
 import qutip.control.errors as errors
 
-
 def create_pulse_gen(pulse_type='RND', dyn=None):
     """
     Create and return a pulse generator object matching the given type.
@@ -96,6 +95,8 @@ def create_pulse_gen(pulse_type='RND', dyn=None):
         return PulseGenSaw(dyn)
     elif pulse_type == 'TRIANGLE':
         return PulseGenTriangle(dyn)
+    elif pulse_type == 'CRAB_FOURIER':
+        return PulseGenCrabFourier(dyn)
     else:
         raise ValueError("No option for pulse_type '{}'".format(pulse_type))
 
@@ -791,3 +792,164 @@ class PulseGenTriangle(PulseGenPeriodic):
             t = t + self.tau[k]
 
         return self._apply_bounds_and_offset(pulse)
+
+
+### The following are pulse generators for the CRAB algorithm ###
+# AJGP 2015-05-14: 
+# The intention is to have a more general base class that allows
+# setting of general basis functions
+class PulseGenCrab(PulseGen):
+    """
+    Base class for all CRAB pulse generators
+    Note these are more involved in the optimisation process as they are
+    used to produce piecewise control amplitudes each time new optimisation
+    parameters are tried
+    """
+#    def __init__(self, dyn=None, num_coeffs=10):
+#        self.parent = dyn
+#        if num_ceoffs:
+#            self.num_coeffs = num_coeffs
+#        else:
+#            self.num_coeffs = 10
+#        self.reset()
+        
+    def reset(self):
+        """
+        reset attributes to default values
+        """
+        PulseGen.reset(self)
+        self.num_coeffs = 10
+        self.num_basis_funcs = 2
+        self.num_optim_params = self.num_coeffs*self.num_basis_funcs
+        self.coeffs = None
+        self.time = None
+        
+    def init_pulse(self, num_coeffs=None):
+        """
+        Set the initial freq and coefficient values
+        """
+        PulseGen.init_pulse(self)
+        self.time = np.zeros(self.num_tslots, dtype=float)
+        for k in range(self.num_tslots-1):
+            self.time[k+1] = self.time[k] + self.tau[k]
+        self.init_coeffs(num_coeffs=num_coeffs)
+        self.num_optim_params = self.num_coeffs*self.num_basis_funcs
+        
+    def init_coeffs(self, num_coeffs=None):
+        """
+        Generate the initial ceofficent values.
+        
+        Parameters
+        ----------
+        num_coeffs : integer
+            Number of coefficients used for each basis function
+            If given this overides the default and sets the attribute
+            of the same name.
+        """
+        if num_coeffs:
+            self.num_coeffs = num_coeffs
+        # For now just use the scaling and offset attributes
+        r = np.random.random([self.num_coeffs, self.num_basis_funcs])
+        self.coeffs = (2*r - 1) * self.scaling + self.offset
+        
+    def get_optim_param_vals(self):
+        """
+        Get the parameter values to be optimised
+        Returns
+        -------
+        list (or 1d array) of floats 
+        """
+        return self.coeffs.flatten()
+    
+    def set_optim_param_vals(self, param_vals):
+        """
+        Set the values of the any of the pulse generation parameters
+        based on new values from the optimisation method
+        Typically this will be the basis coefficients
+        """
+        # Type and size checking avoided here as this is in the 
+        # main optmisation call sequence
+        self.set_coeffs(param_vals)
+        
+    def set_coeffs(self, param_vals):
+        self.coeffs = param_vals.reshape(
+                    [self.num_coeffs, self.num_basis_funcs])
+    
+class PulseGenCrabFourier(PulseGenCrab):
+    """
+    Generates a pulse using the Fourier basis functions, i.e. sin and cos
+
+    Attributes
+    ----------
+    num_coeffs : integer
+        Number of coefficients used for each basis function
+        
+    num_basis_funcs : integer
+        Number of basis functions
+        In this case set at 2 and should not be changed
+        
+    coeffs : float array[num_coeffs, num_basis_funcs]
+        The basis coefficient values
+
+    freqs : float array[num_coeffs]
+        Frequencies for the basis functions
+    """
+
+    def reset(self):
+        """
+        reset attributes to default values
+        """
+        PulseGenCrab.reset(self)
+        self.freqs = None
+
+    def init_pulse(self, num_coeffs=None):
+        """
+        Set the initial freq and coefficient values
+        """
+        PulseGenCrab.init_pulse(self)
+            
+        self.init_freqs()
+        
+    def init_freqs(self):
+        """
+        Generate the frequencies
+        These are the Fourier harmonics with a uniformly distributed
+        random offset
+        """
+        self.freqs = np.empty(self.num_coeffs)
+        ff = 2*np.pi / self.pulse_time
+        for i in range(self.num_coeffs):
+            self.freqs[i] = ff*(i + 1)
+            
+        self.freqs += np.random.random(self.num_coeffs) - 0.5
+        
+    def gen_pulse(self, coeffs=None):
+        """
+        Generate a pulse using the Fourier basis with the freqs and
+        coeffs attributes.
+        
+        Parameters
+        ----------
+        coeffs : float array[num_coeffs, num_basis_funcs]
+            The basis coefficient values
+            If given this overides the default and sets the attribute
+            of the same name.
+        """
+        if coeffs:
+            self.coeffs = coeffs
+            
+        if not self._pulse_initialised:
+            self.init_pulse()
+        
+        pulse = np.zeros(self.num_tslots)
+
+        for i in range(self.num_coeffs):
+            phase = self.freqs[i]*self.time
+#            basis1comp = self.coeffs[i, 0]*np.sin(phase)
+#            basis2comp = self.coeffs[i, 1]*np.cos(phase)
+#            pulse += basis1comp + basis2comp
+            pulse += self.coeffs[i, 0]*np.sin(phase) + \
+                        self.coeffs[i, 1]*np.cos(phase) 
+
+        return pulse
+    

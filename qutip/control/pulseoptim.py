@@ -62,7 +62,14 @@ import qutip.control.errors as errors
 import qutip.control.fidcomp as fidcomp
 import qutip.control.propcomp as propcomp
 import qutip.control.pulsegen as pulsegen
+#import qutip.control.pulsegencrab as pulsegencrab
 
+def _upper_safe(s):
+    try:
+        s = s.upper()
+    except:
+        pass
+    return s
 
 def optimize_pulse(
         drift, ctrls, initial, target,
@@ -288,8 +295,9 @@ def optimize_pulse(
         msg += str(dyn.target)
         logger.info(msg)
 
-    # Generate pulses for each control
-    init_amps = np.zeros([num_tslots, dyn.num_ctrls])
+    dyn.init_timeslots()
+    # Generate initial pulses for each control
+    init_amps = np.zeros([dyn.num_tslots, dyn.num_ctrls])
     for j in range(dyn.num_ctrls):
         init_amps[:, j] = p_gen.gen_pulse()
 
@@ -519,11 +527,12 @@ def create_pulse_optimizer(
         fid_err_targ=1e-10, min_grad=1e-10,
         max_iter=500, max_wall_time=180,
         alg='GRAPE', alg_options=None,
-        optim_alg='LBFGSB', max_metric_corr=10, accuracy_factor=1e7,
+        optim_method='DEF', method_options=None,
+        optim_alg=None, max_metric_corr=10, accuracy_factor=1e7,
         dyn_type='GEN_MAT', prop_type='DEF',
         fid_type='DEF', phase_option=None, fid_err_scale_factor=None,
         amp_update_mode='ALL',
-        init_pulse_type='RND', pulse_scaling=1.0, pulse_offset=0.0,
+        init_pulse_type='DEF', pulse_scaling=1.0, pulse_offset=0.0,
         log_level=logging.NOTSET, gen_stats=False):
 
     """
@@ -599,7 +608,24 @@ def create_pulse_optimizer(
             'CRAB' - Chopped RAndom Basis
 
     alg_options : Dictionary
-        options that are specific to the algorithm see above     
+        options that are specific to the algorithm see above
+        
+    optim_method : string
+        a scipy.optimize.minimize method that will be used to optimise
+        the pulse for minimum fidelity error
+        Note that FMIN, FMIN_BFGS & FMIN_L_BFGS_B will all result
+        in calling these specific scipy.optimize methods
+        Note the LBFGSB is equivalent to FMIN_L_BFGS_B for backwards 
+        capatibility reasons.
+        Supplying DEF will given alg dependent result:
+            GRAPE - Default optim_method is FMIN_L_BFGS_B
+            CRAB - Default optim_method is Nelder-Mead
+        
+    method_options : Dictionary
+        Options for the optim_method. 
+        Note that where there is an equivalent attribute of this instance
+        or the termination_conditions (for example maxiter)
+        it will override an value in these options
         
     optim_alg : string
         Multi-variable optimisation algorithm
@@ -661,9 +687,13 @@ def create_pulse_optimizer(
 
     init_pulse_type : string
         type / shape of pulse(s) used to initialise the
-        the control amplitudes. Options include:
+        the control amplitudes. 
+        Options (GRAPE) include:
             RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
+        DEF is RND
         (see PulseGen classes for details)
+        for the CRAB the this determines the pulse generator type for each
+        control. Currently only option is: CRAB_FOURIER
 
     pulse_scaling : float
         Linear scale factor for generated pulses
@@ -727,6 +757,31 @@ def create_pulse_optimizer(
         raise TypeError("target must be a Qobj")
     else:
         target = target.full()
+        
+    # Deprecated parameter management
+    if optim_alg:
+        optim_method = optim_alg
+      
+    # set algorithm defaults
+    alg_up = _upper_safe(alg)
+    if alg is None:
+        raise errors.UsageError(
+            "Optimisation algorithm must be specified through 'alg' parameter")
+    elif alg_up == 'GRAPE':
+        if optim_method is None or optim_method.upper() == 'DEF':
+            optim_method = 'FMIN_L_BFGS_B'
+        if init_pulse_type is None or init_pulse_type.upper() == 'DEF':
+            init_pulse_type = 'RND'
+    elif alg_up == 'CRAB':
+        if optim_method is None or optim_method.upper() == 'DEF':
+            optim_method = 'Nelder-Mead'
+        if init_pulse_type is None or init_pulse_type.upper() == 'DEF':
+            init_pulse_type = 'CRAB_FOURIER'
+        if prop_type is None or prop_type.upper() == 'DEF':
+            prop_type = 'APPROX'
+    else:
+        raise errors.UsageError(
+            "No option for pulse optimisation algorithm alg={}".format(alg))
 
     cfg = optimconfig.OptimConfig()
     cfg.optim_alg = optim_alg
@@ -782,39 +837,51 @@ def create_pulse_optimizer(
     # The default will be typically be the best option
     # Note: the FidCompTraceDiffApprox is a subclass of FidCompTraceDiff
     # so need to check this type first
-    if fid_type == 'DEF' or fid_type is None or fid_type == '':
+    fid_type_up = _upper_safe(fid_type)
+    if fid_type_up == 'DEF' or fid_type_up is None or fid_type_up == '':
         # None given, use the default for the Dynamics
         pass
-    elif fid_type == 'TDAPPROX':
+    elif fid_type_up == 'TDAPPROX':
         if not isinstance(dyn.fid_computer, fidcomp.FidCompTraceDiffApprox):
             dyn.fid_computer = fidcomp.FidCompTraceDiffApprox(dyn)
-    elif fid_type == 'TRACEDIFF':
+    elif fid_type_up == 'TRACEDIFF':
         if not isinstance(dyn.fid_computer, fidcomp.FidCompTraceDiff):
             dyn.fid_computer = fidcomp.FidCompTraceDiff(dyn)
-    elif fid_type == 'UNIT':
+    elif fid_type_up == 'UNIT':
         if not isinstance(dyn.fid_computer, fidcomp.FidCompUnitary):
             dyn.fid_computer = fidcomp.FidCompUnitary(dyn)
     else:
         raise errors.UsageError("No option for fid_type: " + fid_type)
 
     if isinstance(dyn.fid_computer, fidcomp.FidCompUnitary):
+        # If phase option is None take the default of PSU
+        if not phase_option:
+            phase_option = 'PSU'
         dyn.fid_computer.set_phase_option(phase_option)
 
     if isinstance(dyn.fid_computer, fidcomp.FidCompTraceDiff):
         dyn.fid_computer.scale_factor = fid_err_scale_factor
 
     # Create the Optimiser instance
-    # The class of the object will determine which multivar optimisation
-    # algorithm is used
-    if optim_alg == 'BFGS':
+    optim_method_up = _upper_safe(optim_method)
+    if optim_method is None or optim_method_up == '':
+        raise errors.UsageError("Optimisation method must be specified "
+                                "via 'optim_method' parameter")
+    elif optim_method_up == 'FMIN_BFGS':
         optim = optimizer.OptimizerBFGS(cfg, dyn)
-    elif optim_alg == 'LBFGSB':
+    elif optim_method_up == 'LBFGSB' or optim_method_up == 'FMIN_L_BFGS_B':
         optim = optimizer.OptimizerLBFGSB(cfg, dyn)
-    elif optim_alg is None:
-        raise errors.UsageError("Optimisation algorithm must be specified "
-                                "via 'optim_alg' parameter")
     else:
-        raise errors.UsageError("No option for optim_alg: " + optim_alg)
+        # Assume that the optim_method is a valid
+        #scipy.optimize.minimize method
+        # Choose an optimiser based on the algorithm
+        if alg_up == 'CRAB':
+            optim = optimizer.OptimizerCrab(cfg, dyn)
+        else:
+            optim = optimizer.Optimizer(cfg, dyn)
+            
+    optim.method = optim_method
+    optim.method_options = method_options
 
     # Create the TerminationConditions instance
     tc = termcond.TerminationConditions()
@@ -859,20 +926,35 @@ def create_pulse_optimizer(
         dyn.tau = tau
 
     # this function is called, so that the num_ctrls attribute will be set
-    dyn.get_num_ctrls()
+    n_ctrls = dyn.get_num_ctrls()
 
-    # Create a pulse generator of the type specified
-    p_gen = pulsegen.create_pulse_gen(pulse_type=init_pulse_type, dyn=dyn)
-    p_gen.scaling = pulse_scaling
-    p_gen.offset = pulse_offset
-    p_gen.lbound = amp_lbound
-    p_gen.ubound = amp_ubound
+    if alg_up == 'CRAB':
+        # Create a pulse generator for each ctrl
+        num_coeffs = None
+        if isinstance(alg_options, dict):
+            num_coeffs = alg_options.get('num_coeffs')
+        optim.pulse_generator = []
+        for j in range(n_ctrls):
+            p_gen = pulsegen.create_pulse_gen(pulse_type=init_pulse_type, 
+                                              dyn=dyn)
+            if num_coeffs:
+                p_gen.num_coeffs = num_coeffs
+            p_gen.scaling = pulse_scaling
+            p_gen.offset = pulse_offset
+            optim.pulse_generator.append(p_gen)
+    else:
+        # Create a pulse generator of the type specified
+        p_gen = pulsegen.create_pulse_gen(pulse_type=init_pulse_type, dyn=dyn)
+        p_gen.scaling = pulse_scaling
+        p_gen.offset = pulse_offset
+        p_gen.lbound = amp_lbound
+        p_gen.ubound = amp_ubound
 
-    # If the pulse is a periodic type, then set the pulse to be one complete
-    # wave
-    if isinstance(p_gen, pulsegen.PulseGenPeriodic):
-        p_gen.num_waves = 1.0
-    optim.pulse_generator = p_gen
+        # If the pulse is a periodic type, then set the pulse to be one complete
+        # wave
+        if isinstance(p_gen, pulsegen.PulseGenPeriodic):
+            p_gen.num_waves = 1.0
+        optim.pulse_generator = p_gen
 
     if log_level <= logging.DEBUG:
         logger.debug(
@@ -891,11 +973,13 @@ def opt_pulse_crab(
         drift, ctrls, initial, target,
         num_tslots=None, evo_time=None, tau=None,
         amp_lbound=-np.Inf, amp_ubound=np.Inf,
-        fid_err_targ=1e-10, min_grad=1e-10,
+        fid_err_targ=1e-10,
         max_iter=500, max_wall_time=180,
-        optim_method='nelder-mead', method_options=None,
+        num_coeffs=10,
+        optim_method='Nelder-Mead', method_options=None,
         dyn_type='GEN_MAT', prop_type='DEF',
         fid_type='DEF', phase_option=None, fid_err_scale_factor=None,
+        pulse_type='RND', coeff_scaling=1.0, coeff_offset=0.0,
         log_level=logging.NOTSET, out_file_ext=None, gen_stats=False):
     """
     Optimise a control pulse to minimise the fidelity error.
@@ -973,6 +1057,12 @@ def opt_pulse_crab(
         In theory any non-gradient method implemented in 
         scipy.optimize.mininize could be used.
 
+    method_options : Dictionary
+        Options for the optim_method. 
+        Note that where there is an equivalent attribute of this instance
+        or the termination_conditions (for example maxiter)
+        it will override an value in these options
+        
     dyn_type : string
         Dynamics type, i.e. the type of matrix used to describe
         the dynamics. Options are UNIT, GEN_MAT, SYMPL
@@ -997,12 +1087,6 @@ def opt_pulse_crab(
         represent some physical measure
         If None is given then it is caculated as 1/2N, where N
         is the dimension of the drift.
-
-    amp_update_mode : string
-        determines whether propagators are calculated
-        Options: DEF, ALL, DYNAMIC (needs work)
-        DEF will use the default for the specific dyn_type
-        (See TimeslotComputer classes for details)
 
     init_pulse_type : string
         type / shape of pulse(s) used to initialise the
@@ -1059,15 +1143,15 @@ def opt_pulse_crab(
         drift, ctrls, initial, target,
         num_tslots=num_tslots, evo_time=evo_time, tau=tau,
         amp_lbound=amp_lbound, amp_ubound=amp_ubound,
-        fid_err_targ=fid_err_targ, min_grad=min_grad,
+        fid_err_targ=fid_err_targ,
         max_iter=max_iter, max_wall_time=max_wall_time,
-        optim_alg=optim_alg, max_metric_corr=max_metric_corr,
-        accuracy_factor=accuracy_factor,
+        alg='CRAB', alg_options={'num_coeffs':num_coeffs},
+        optim_method=optim_method, method_options=method_options,
         dyn_type=dyn_type, prop_type=prop_type,
         fid_type=fid_type, phase_option=phase_option,
         fid_err_scale_factor=fid_err_scale_factor,
-        amp_update_mode=amp_update_mode, init_pulse_type=init_pulse_type,
-        pulse_scaling=pulse_scaling, pulse_offset=pulse_offset,
+        init_pulse_type=pulse_type,
+        pulse_scaling=coeff_scaling, pulse_offset=coeff_offset,
         log_level=log_level, gen_stats=gen_stats)
 
     dyn = optim.dynamics
@@ -1089,9 +1173,13 @@ def opt_pulse_crab(
         msg += str(dyn.target)
         logger.info(msg)
 
-    # Generate pulses for each control
-    init_amps = np.zeros([num_tslots, dyn.num_ctrls])
+    dyn.init_timeslots()
+    # Initialise the pulse generators and 
+    # Generate initial pulses for each control
+    init_amps = np.zeros([dyn.num_tslots, dyn.num_ctrls])
     for j in range(dyn.num_ctrls):
+        p_gen = optim.pulse_generator[j]
+        p_gen.init_pulse()
         init_amps[:, j] = p_gen.gen_pulse()
 
     # Initialise the starting amplitudes

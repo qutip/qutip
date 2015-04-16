@@ -57,6 +57,9 @@ class OptimResult:
     fidelity : float
         final (normalised) fidelity that was achieved
 
+    initial_fid_err : float
+        fidelity error before optimisation starting
+        
     fid_err : float
         final fidelity error that was achieved
 
@@ -104,6 +107,7 @@ class OptimResult:
 
     def reset(self):
         self.fidelity = 0.0
+        self.initial_fid_err = np.Inf
         self.fid_err = np.Inf
         self.goal_achieved = False
         self.grad_norm_final = 0.0

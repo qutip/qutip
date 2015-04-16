@@ -87,6 +87,7 @@ import numpy as np
 import timeit
 import scipy.optimize as spopt
 import copy
+import collections
 # QuTiP
 from qutip import Qobj
 import qutip.logging as logging
@@ -96,7 +97,7 @@ import qutip.control.optimresult as optimresult
 import qutip.control.termcond as termcond
 import qutip.control.errors as errors
 import qutip.control.dynamics as dynamics
-
+import qutip.control.pulsegen as pulsegen
 
 class Optimizer:
     """
@@ -223,14 +224,17 @@ class Optimizer:
         and set the initial_amps attribute as the current amplitudes
         """
         result = optimresult.OptimResult()
+        result.initial_fid_err = self.dynamics.fid_computer.get_fid_err()
         result.initial_amps = self.dynamics.ctrl_amps.copy()
         result.time = self.dynamics.time
         return result
 
-    def _pre_run_check(self, term_conds):
+    def init_optim(self, term_conds):
         """
         Check optimiser attribute status and passed parameters before
         running the optimisation.
+        This is called by run_optimization, but could called independently
+        to check the configuration.
         """
 
         self._check_prepare_test_out_files()
@@ -238,7 +242,7 @@ class Optimizer:
         if term_conds is not None:
             self.termination_conditions = term_conds
         term_conds = self.termination_conditions
-
+        
         if not isinstance(term_conds, termcond.TerminationConditions):
             raise errors.UsageError("No termination conditions for the "
                                     "optimisation function")
@@ -247,6 +251,8 @@ class Optimizer:
             raise errors.UsageError("No dynamics object attribute set")
         self.dynamics.check_ctrls_initialized()
 
+        self._update_method_options()
+        
         if term_conds.fid_err_targ is None and term_conds.fid_goal is None:
             raise errors.UsageError("Either the goal or the fidelity "
                                     "error tolerance must be set")
@@ -324,12 +330,12 @@ class Optimizer:
             self.method_options = {}
         mo = self.method_options
         if tc.max_iterations > 0:
-            mo[maxiter] = tc.max_iterations
+            mo['maxiter'] = tc.max_iterations
         if tc.max_fid_func_calls > 0:
-            mo[maxfev] = tc.max_fid_func_calls
+            mo['maxfev'] = tc.max_fid_func_calls
         if tc.min_gradient_norm > 0:
-            mo[gtol] = tc.min_gradient_norm
-        mo[disp] = self.disp_conv_msg
+            mo['gtol'] = tc.min_gradient_norm
+        mo['disp'] = self.disp_conv_msg
         
     def _build_bounds_list(self):
         cfg = self.config
@@ -360,7 +366,7 @@ class Optimizer:
         scipy.optimize.minimize function. 
         
         It will attempt to minimise the fidelity error with respect to some
-        parameters, which are determined by _get_func_params (see below)
+        parameters, which are determined by _get_optim_param_vals (see below)
         
         The optimisation end when one of the passed termination conditions
         has been met, e.g. target achieved, wall time, or 
@@ -381,11 +387,11 @@ class Optimizer:
         The result is returned in an OptimResult object, which includes
         the final fidelity, time evolution, reason for termination etc
         """
-        self._pre_run_check(term_conds)
+        self.init_optim(term_conds)
         term_conds = self.termination_conditions
         dyn = self.dynamics
         cfg = self.config
-        x0 = self._get_func_params()
+        self.optim_param_vals = self._get_optim_param_vals()
         self.num_iter = 1
         st_time = timeit.default_timer()
         self.wall_time_optimize_start = st_time
@@ -397,37 +403,34 @@ class Optimizer:
         
         if self.bounds is None:
             self._build_bounds_list()
-        self._update_method_options()
-        
+                
         result = self._create_result()
 
         if self.log_level <= logging.INFO:
             logger.info("Optimising pulse using '{}' method".format(
-                                    self.method)
+                                    self.method))
 
         try:
-            spopt_min_res = spopt.minimize(
-                self.fid_err_func_wrapper, x0,
+            opt_res = spopt.minimize(
+                self.fid_err_func_wrapper, self.optim_param_vals,
                 method=self.method,
                 jac=self.fid_err_grad_wrapper,
                 bounds=self.bounds,
                 options=self.method_options,
                 callback=self.iter_step_callback_func)
 
-            amps = amps.reshape([dyn.num_tslots, dyn.num_ctrls])
+            amps = self._get_ctrl_amps(opt_res.x)
             dyn.update_ctrl_amps(amps)
-            warn = res_dict['warnflag']
-            if warn == 0:
-                result.grad_norm_min_reached = True
-                result.termination_reason = "function converged"
-            elif warn == 1:
-                result.max_iter_exceeded = True
-                result.termination_reason = ("Iteration or fidelity "
-                                             "function call limit reached")
-            elif warn == 2:
-                result.termination_reason = res_dict['task']
-
-            result.num_iter = res_dict['nit']
+            result.termination_reason = opt_res.message
+            # Note the iterations are counted in this object as well
+            # so there are compared here for interest sake only
+            if self.num_iter != opt_res.nit:
+                logger.info("The number of iterations counted {} "
+                            " does not match the number reported {} "
+                            "by {}".format(self.num_iter, opt_res.nit, 
+                                            self.method))
+            result.num_iter = opt_res.nit
+            
         except errors.OptimizationTerminate as except_term:
             self._interpret_term_exception(except_term, result)
 
@@ -436,28 +439,27 @@ class Optimizer:
 
         return result
         
-    def _get_func_params(self):
+    def _get_optim_param_vals(self):
         """
-        Generate the 1d array that holds the parameter values to be optimised
+        Generate the 1d array that holds the current variable values 
+        of the function to be optimised
         By default (as used in GRAPE) these are the control amplitudes 
         in each timeslot
         """
         return self.dynamics.ctrl_amps.reshape([-1])
                 
-    def _get_ctrl_amps(self, func_params):
+    def _get_ctrl_amps(self, optim_param_vals):
         """
-        Get the control amplitudes from the function parameters
-        that is the 1d array that is pass from the optimisation method
+        Get the control amplitudes from the current variable values 
+        of the function to be optimised.
+        that is the 1d array that is passed from the optimisation method
         Note for GRAPE these are the function optimiser parameters
-        (and this is the default)
-        and for CRAB these are the basis coefficients and hence the
-        amplitudes will need to calculate
-        
+        (and this is the default)       
         Returns
         -------
         float array[dynamics.num_tslots, dynamics.num_ctrls]
         """
-        amps = func_params.reshape(self.dynamics.ctrl_amps.shape)
+        amps = optim_param_vals.reshape(self.dynamics.ctrl_amps.shape)
             
         return amps
 
@@ -642,10 +644,10 @@ class OptimizerBFGS(Optimizer):
         The result is returned in an OptimResult object, which includes
         the final fidelity, time evolution, reason for termination etc
         """
-        self._pre_run_check(term_conds)
+        self.init_optim(term_conds)
         term_conds = self.termination_conditions
         dyn = self.dynamics
-        x0 = self._get_func_params()
+        self.optim_param_vals = self._get_optim_param_vals()
         self.num_iter = 1
         st_time = timeit.default_timer()
         self.wall_time_optimize_start = st_time
@@ -660,15 +662,16 @@ class OptimizerBFGS(Optimizer):
 
         result = self._create_result()
         try:
-            amps, cost, grad, invHess, nFCalls, nGCalls, warn = \
-                spopt.fmin_bfgs(self.fid_err_func_wrapper, x0,
+            optim_param_vals, cost, grad, invHess, nFCalls, nGCalls, warn = \
+                spopt.fmin_bfgs(self.fid_err_func_wrapper, 
+                                self.optim_param_vals,
                                 fprime=self.fid_err_grad_wrapper,
                                 callback=self.iter_step_callback_func,
                                 gtol=term_conds.min_gradient_norm,
                                 maxiter=term_conds.max_iterations,
                                 full_output=True, disp=True)
 
-            amps = amps.reshape([dyn.num_tslots, self.config.num_ctrls])
+            amps = self._get_ctrl_amps(optim_param_vals)
             dyn.update_ctrl_amps(amps)
             if warn == 1:
                 result.max_iter_exceeded = True
@@ -720,11 +723,11 @@ class OptimizerLBFGSB(Optimizer):
         The result is returned in an OptimResult object, which includes
         the final fidelity, time evolution, reason for termination etc
         """
-        self._pre_run_check(term_conds)
+        self.init_optim(term_conds)
         term_conds = self.termination_conditions
         dyn = self.dynamics
         cfg = self.config
-        x0 = self._get_func_params()
+        self.optim_param_vals = self._get_optim_param_vals()
         self.num_iter = 1
         st_time = timeit.default_timer()
         self.wall_time_optimize_start = st_time
@@ -747,8 +750,8 @@ class OptimizerLBFGSB(Optimizer):
             logger.info("Optimising pulse using L-BFGS-B")
 
         try:
-            amps, fid, res_dict = spopt.fmin_l_bfgs_b(
-                self.fid_err_func_wrapper, x0,
+            optim_param_vals, fid, res_dict = spopt.fmin_l_bfgs_b(
+                self.fid_err_func_wrapper, self.optim_param_vals,
                 fprime=self.fid_err_grad_wrapper,
                 callback=self.iter_step_callback_func,
                 bounds=bounds,
@@ -759,7 +762,7 @@ class OptimizerLBFGSB(Optimizer):
                 maxfun=term_conds.max_fid_func_calls,
                 maxiter=term_conds.max_iterations)
 
-            amps = amps.reshape([dyn.num_tslots, dyn.num_ctrls])
+            amps = self._get_ctrl_amps(optim_param_vals)
             dyn.update_ctrl_amps(amps)
             warn = res_dict['warnflag']
             if warn == 0:
@@ -788,7 +791,51 @@ class OptimizerCrab(Optimizer):
 
     def reset(self):
         Optimizer.reset(self)
-        self.id_text = 'LBFGSB'
+        self.id_text = 'CRAB'
+        self.num_param_vals = 0
+        
+    def init_optim(self, term_conds):
+        """
+        Check optimiser attribute status and passed parameters before
+        running the optimisation.
+        This is called by run_optimization, but could called independently
+        to check the configuration.
+        """
+        Optimizer.init_optim(self, term_conds)
+        dyn = self.dynamics
+        
+        self.num_param_vals = 0
+        pulse_gen_valid = True
+        # check the pulse generators match the ctrls
+        # (in terms of number)
+        # and count the number of parameters
+        if self.pulse_generator is None:
+            pulse_gen_valid = False
+            err_msg = "pulse_generator attribute is None"
+        elif not isinstance(self.pulse_generator, collections.Iterable):
+            pulse_gen_valid = False
+            err_msg = "pulse_generator is not iterable"
+        
+        elif len(self.pulse_generator) != dyn.get_num_ctrls():
+            pulse_gen_valid = False
+            err_msg = ("the number of pulse generators {} does not equal "
+                        "the number of controls {}".format(
+                        len(self.pulse_generator), dyn.num_ctrls))
+                        
+        if pulse_gen_valid:
+            for p_gen in self.pulse_generator:
+                if not isinstance(p_gen, pulsegen.PulseGenCrab):
+                    pulse_gen_valid = False
+                    err_msg = (
+                        "pulse_generator contained object of type '{}'".format(
+                        p_gen.__class__.__name__))
+                    break
+                self.num_param_vals += p_gen.num_optim_params
+        
+        if not pulse_gen_valid:
+            raise errors.UsageError(
+                "The pulse_generator attribute must be set to a list of "
+                "PulseGenCrab - one for each control. Here " + err_msg)
         
     def _build_bounds_list(self):
         """
@@ -799,27 +846,53 @@ class OptimizerCrab(Optimizer):
         """
         return None
 
-    def _get_func_params(self):
+    def _get_optim_param_vals(self):
         """
-        Generate the 1d array that holds the parameter values to be optimised
-        By default (as used in GRAPE) these are the control amplitudes 
-        in each timeslot
+        Generate the 1d array that holds the current variable values 
+        of the function to be optimised
+        For CRAB these are the basis coefficients
+        Returns
+        -------
+        ndarray (1d) of float
         """
-        return self.dynamics.ctrl_amps.reshape([-1])
+        pvals = []
+        for p_gen in self.pulse_generator:
+            pvals.append(p_gen.get_optim_param_vals())
+            
+        return np.array(pvals)
                 
-    def _get_ctrl_amps(self, func_params):
+    def _get_ctrl_amps(self, optim_param_vals):
         """
-        Get the control amplitudes from the function parameters
-        that is the 1d array that is pass from the optimisation method
-        Note for GRAPE these are the function optimiser parameters
-        (and this is the default)
-        and for CRAB these are the basis coefficients and hence the
-        amplitudes will need to calculate
+        Get the control amplitudes from the current variable values 
+        of the function to be optimised.
+        that is the 1d array that is passed from the optimisation method
+        For CRAB the amplitudes will need to calculated by expanding the 
+        series        
         
         Returns
         -------
         float array[dynamics.num_tslots, dynamics.num_ctrls]
         """
-        amps = func_params.reshape(self.dynamics.ctrl_amps.shape)
-            
+        dyn = self.dynamics
+        
+        if self.log_level <= logging.DEBUG:
+            changed_params = self.optim_param_vals != optim_param_vals
+            logger.debug(
+                "{} out of {} optimisation parameters changed".format(
+                    changed_params.sum(), len(optim_param_vals)))
+        
+        amps = np.empty([dyn.num_tslots, dyn.num_ctrls])
+        j = 0
+        param_idx_st = 0
+        for p_gen in self.pulse_generator:
+            param_idx_end = param_idx_st + p_gen.num_optim_params
+            pg_pvals = optim_param_vals[param_idx_st:param_idx_end]
+            p_gen.set_optim_param_vals(pg_pvals)
+            amps[:, j] = p_gen.gen_pulse()
+            param_idx_st = param_idx_end
+            j += 1
+        
+        #print("param_idx_end={}".format(param_idx_end))
+        self.optim_param_vals = optim_param_vals
         return amps
+        

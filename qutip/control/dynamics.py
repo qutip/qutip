@@ -268,6 +268,7 @@ class Dynamics:
         self.set_log_level(self.config.log_level)
         # Internal flags
         self._dyn_gen_mapped = False
+        self._timeslots_initialized = False
         self._ctrls_initialized = False
 
         # Create the computing objects
@@ -304,7 +305,7 @@ class Dynamics:
         if self.fid_computer is not None:
             self.fid_computer.clear()
 
-    def init_time_slots(self):
+    def init_timeslots(self):
         """
         Generate the timeslot duration array 'tau' based on the evo_time
         and num_tslots attributes, unless the tau attribute is already set
@@ -324,7 +325,9 @@ class Dynamics:
         # set the cumulative time by summing the time intervals
         for t in range(self.num_tslots):
             self.time[t+1] = self.time[t] + self.tau[t]
-
+        
+        self._timeslots_initialized = True
+        
     def _init_lists(self):
         """
         Create the container lists / arrays for the:
@@ -412,8 +415,10 @@ class Dynamics:
         # Note this call is made just to initialise the num_ctrls attrib
         self.get_num_ctrls()
 
+        if not self._timeslots_initialized:
+            init_tslots = True
         if init_tslots:
-            self.init_time_slots()
+            self.init_timeslots()
         self._init_lists()
         self.tslot_computer.init_comp()
         self.fid_computer.init_comp()
