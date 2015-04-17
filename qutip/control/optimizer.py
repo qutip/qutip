@@ -122,6 +122,12 @@ class Optimizer:
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
         Note value should be set using set_log_level
+
+    alg : string
+        Algorithm to use in pulse optimisation.
+        Options are:
+            'GRAPE' (default) - GRadient Ascent Pulse Engineering
+            'CRAB' - Chopped RAndom Basis
             
     alg_options : Dictionary
         options that are specific to the pulse optim algorithm 
@@ -786,7 +792,13 @@ class OptimizerLBFGSB(Optimizer):
         
 class OptimizerCrab(Optimizer):
     """
-    Implements the run_optimization method using the L-BFGS-B algorithm
+    Optimises the pulse using the CRAB algorithm [1].
+    It uses the scipy.optimize.minimize function with the method specified
+    by the optim_method attribute. See Optimizer.run_optimization for details
+    It minimises the fidelity error function with respect to the CRAB
+    basis function coefficients.
+    
+    AJGP ToDo: Add citation here 
     """
 
     def reset(self):
@@ -896,3 +908,86 @@ class OptimizerCrab(Optimizer):
         self.optim_param_vals = optim_param_vals
         return amps
         
+class OptimizerCrabFmin(OptimizerCrab):
+    """
+    Optimises the pulse using the CRAB algorithm [1].
+    It uses the scipy.optimize.fmin function which is effectively a wrapper
+    for the Nelder-mead method.
+    It minimises the fidelity error function with respect to the CRAB
+    basis function coefficients.
+    This is the default Optimizer for CRAB.
+    AJGP ToDo: Add citation here
+    """
+
+    def run_optimization(self, term_conds=None):
+        """
+        This function optimisation method is a wrapper to the
+        scipy.optimize.fmin function. 
+        
+        It will attempt to minimise the fidelity error with respect to some
+        parameters, which are determined by _get_optim_param_vals which
+        in the case of CRAB are the basis function coefficients
+        
+        The optimisation end when one of the passed termination conditions
+        has been met, e.g. target achieved, wall time, or
+        function call or iteration count exceeded. Specifically to the fmin
+        method, the optimisation will stop when change parameter values 
+        is less than xtol or the change in function value is below ftol.
+        
+
+        If the parameter term_conds=None, then the termination_conditions
+        attribute must already be set. It will be overwritten if the
+        parameter is not None
+
+        The result is returned in an OptimResult object, which includes
+        the final fidelity, time evolution, reason for termination etc
+        """
+        self.init_optim(term_conds)
+        term_conds = self.termination_conditions
+        dyn = self.dynamics
+        cfg = self.config
+        self.optim_param_vals = self._get_optim_param_vals()
+        self.num_iter = 1
+        st_time = timeit.default_timer()
+        self.wall_time_optimize_start = st_time
+
+        if self.stats is not None:
+            self.stats.wall_time_optim_start = st_time
+            self.stats.wall_time_optim_end = 0.0
+            self.stats.num_iter = 1
+                       
+        result = self._create_result()
+
+        if self.log_level <= logging.INFO:
+            logger.info("Optimising pulse using '{}' method".format(
+                                    self.method))
+
+        try:
+            final_param_vals, fid_err, num_iter, num_feval, warn_flag, = \
+                spopt.fmin(
+                    self.fid_err_func_wrapper, self.optim_param_vals,
+                    method=self.method,
+                    jac=self.fid_err_grad_wrapper,
+                    bounds=self.bounds,
+                    options=self.method_options,
+                    callback=self.iter_step_callback_func)
+
+            amps = self._get_ctrl_amps(opt_res.x)
+            dyn.update_ctrl_amps(amps)
+            result.termination_reason = opt_res.message
+            # Note the iterations are counted in this object as well
+            # so there are compared here for interest sake only
+            if self.num_iter != opt_res.nit:
+                logger.info("The number of iterations counted {} "
+                            " does not match the number reported {} "
+                            "by {}".format(self.num_iter, opt_res.nit, 
+                                            self.method))
+            result.num_iter = opt_res.nit
+            
+        except errors.OptimizationTerminate as except_term:
+            self._interpret_term_exception(except_term, result)
+
+        end_time = timeit.default_timer()
+        self._add_common_result_attribs(result, st_time, end_time)
+
+        return result

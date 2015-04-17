@@ -277,7 +277,7 @@ def optimize_pulse(
         log_level=log_level, gen_stats=gen_stats)
 
     dyn = optim.dynamics
-    p_gen = optim.pulse_generator
+    pgen = optim.pulse_generator
 
     if log_level <= logging.INFO:
         msg = "System configuration:\n"
@@ -299,7 +299,7 @@ def optimize_pulse(
     # Generate initial pulses for each control
     init_amps = np.zeros([dyn.num_tslots, dyn.num_ctrls])
     for j in range(dyn.num_ctrls):
-        init_amps[:, j] = p_gen.gen_pulse()
+        init_amps[:, j] = pgen.gen_pulse()
 
     # Initialise the starting amplitudes
     dyn.initialize_controls(init_amps)
@@ -533,6 +533,7 @@ def create_pulse_optimizer(
         fid_type='DEF', phase_option=None, fid_err_scale_factor=None,
         amp_update_mode='ALL',
         init_pulse_type='DEF', pulse_scaling=1.0, pulse_offset=0.0,
+        ramping_pulse_type=None, ramping_pulse_options=None,
         log_level=logging.NOTSET, gen_stats=False):
 
     """
@@ -775,10 +776,22 @@ def create_pulse_optimizer(
     elif alg_up == 'CRAB':
         if optim_method is None or optim_method.upper() == 'DEF':
             optim_method = 'Nelder-Mead'
-        if init_pulse_type is None or init_pulse_type.upper() == 'DEF':
-            init_pulse_type = 'CRAB_FOURIER'
         if prop_type is None or prop_type.upper() == 'DEF':
             prop_type = 'APPROX'
+        #Use equivalent parameters for alg_options
+        if init_pulse_type is None or init_pulse_type.upper() == 'DEF':
+            # Ignore as there are no other equivalent params
+            pass
+        else:
+            if not isinstance(alg_options, dict):
+                alg_options = {}
+            if not 'guess_pulse_type' in alg_options:
+                alg_options['guess_pulse_type'] = init_pulse_type
+            if not 'guess_pulse_scaling' in alg_options:
+                alg_options['guess_pulse_scaling'] = pulse_scaling
+            if not 'guess_pulse_offset' in alg_options:
+                alg_options['guess_pulse_offset'] = pulse_offset
+                
     else:
         raise errors.UsageError(
             "No option for pulse optimisation algorithm alg={}".format(alg))
@@ -928,33 +941,59 @@ def create_pulse_optimizer(
     # this function is called, so that the num_ctrls attribute will be set
     n_ctrls = dyn.get_num_ctrls()
 
+    ramping_pgen = None
+    if ramping_pulse_type:
+        ramping_pgen = pulsegen.create_pulse_gen(
+                            pulse_type=ramping_pulse_type, dyn=dyn, 
+                            pulse_options=ramping_pulse_options)
     if alg_up == 'CRAB':
-        # Create a pulse generator for each ctrl
-        num_coeffs = None
-        if isinstance(alg_options, dict):
-            num_coeffs = alg_options.get('num_coeffs')
+        # Create a pulse generator for each ctrl      
+        num_coeffs = alg_options.get('num_coeffs')
+        init_coeff_scaling = alg_options.get('init_coeff_scaling')
+        guess_pulse_type = alg_options.get('guess_pulse_type')
+        if guess_pulse_type:
+            guess_pgen = pulsegen.create_pulse_gen(
+                                pulse_type=guess_pulse_type, dyn=dyn)
+            if 'guess_pulse_scaling' in alg_options:
+                guess_pgen.scaling = alg_options['guess_pulse_scaling']
+            if 'guess_pulse_offset' in alg_options:
+                guess_pgen.offset = alg_options['guess_pulse_offset']
+            guess_pulse_action = alg_options.get('guess_pulse_action')
+            
         optim.pulse_generator = []
         for j in range(n_ctrls):
-            p_gen = pulsegen.create_pulse_gen(pulse_type=init_pulse_type, 
-                                              dyn=dyn)
-            if num_coeffs:
-                p_gen.num_coeffs = num_coeffs
-            p_gen.scaling = pulse_scaling
-            p_gen.offset = pulse_offset
-            optim.pulse_generator.append(p_gen)
+            crab_pgen = pulsegen.PulseGenCrabFourier(
+                                dyn=dyn, num_coeffs=num_coeffs)
+            if init_coeff_scaling is not None:
+                crab_pgen.scaling = init_coeff_scaling
+                
+            if guess_pulse_type:
+                crab_pgen.guess_pulse = guess_pgen.gen_pulse()
+                if guess_pulse_action:
+                    crab_pgen.guess_pulse_action = guess_pulse_action
+                
+            if ramping_pgen:
+                crab_pgen.ramping_pulse = ramping_pgen.gen_pulse()
+
+            optim.pulse_generator.append(crab_pgen)
+        #This is just for the debug message now
+        pgen = optim.pulse_generator[0]
+            
     else:
         # Create a pulse generator of the type specified
-        p_gen = pulsegen.create_pulse_gen(pulse_type=init_pulse_type, dyn=dyn)
-        p_gen.scaling = pulse_scaling
-        p_gen.offset = pulse_offset
-        p_gen.lbound = amp_lbound
-        p_gen.ubound = amp_ubound
+        pgen = pulsegen.create_pulse_gen(pulse_type=init_pulse_type, dyn=dyn)
+        pgen.scaling = pulse_scaling
+        pgen.offset = pulse_offset
+        pgen.lbound = amp_lbound
+        pgen.ubound = amp_ubound
+        if ramping_pgen:
+            crab_pgen.ramping_pulse = ramping_pgen.gen_pulse()
 
         # If the pulse is a periodic type, then set the pulse to be one complete
         # wave
-        if isinstance(p_gen, pulsegen.PulseGenPeriodic):
-            p_gen.num_waves = 1.0
-        optim.pulse_generator = p_gen
+        if isinstance(pgen, pulsegen.PulseGenPeriodic):
+            pgen.num_waves = 1.0
+        optim.pulse_generator = pgen
 
     if log_level <= logging.DEBUG:
         logger.debug(
@@ -965,7 +1004,7 @@ def create_pulse_optimizer(
             "\n    tslotcomp: " + dyn.tslot_computer.__class__.__name__ +
             "\n    fidcomp: " + dyn.fid_computer.__class__.__name__ +
             "\n    propcomp: " + dyn.prop_computer.__class__.__name__ +
-            "\n    pulsegen: " + p_gen.__class__.__name__)
+            "\n    pulsegen: " + pgen.__class__.__name__)
 
     return optim
 
@@ -975,11 +1014,13 @@ def opt_pulse_crab(
         amp_lbound=-np.Inf, amp_ubound=np.Inf,
         fid_err_targ=1e-10,
         max_iter=500, max_wall_time=180,
-        num_coeffs=10,
+        num_coeffs=None, init_coeff_scaling=1.0, 
         optim_method='Nelder-Mead', method_options=None,
         dyn_type='GEN_MAT', prop_type='DEF',
         fid_type='DEF', phase_option=None, fid_err_scale_factor=None,
-        pulse_type='RND', coeff_scaling=1.0, coeff_offset=0.0,
+        guess_pulse_type=None, guess_pulse_scaling=1.0, guess_pulse_offset=0.0,
+        guess_pulse_action='modulate',
+        ramping_pulse_type=None, ramping_pulse_options=None,
         log_level=logging.NOTSET, out_file_ext=None, gen_stats=False):
     """
     Optimise a control pulse to minimise the fidelity error.
@@ -1139,23 +1180,34 @@ def opt_pulse_crab(
     else:
         logger.setLevel(log_level)
 
+    # build the algorithm options       
+    alg_options = {'num_coeffs':num_coeffs, 
+                   'init_coeff_scaling':init_coeff_scaling,
+                   'guess_pulse_type':guess_pulse_type,
+                   'guess_pulse_scaling':guess_pulse_scaling,
+                   'guess_pulse_offset':guess_pulse_offset,
+                   'guess_pulse_action':guess_pulse_action}
+#                   ,
+#                   'pulse_ramping_type':ramping_type,
+#                   'pulse_ramping_options':ramping_options}
+                   
     optim = create_pulse_optimizer(
         drift, ctrls, initial, target,
         num_tslots=num_tslots, evo_time=evo_time, tau=tau,
         amp_lbound=amp_lbound, amp_ubound=amp_ubound,
         fid_err_targ=fid_err_targ,
         max_iter=max_iter, max_wall_time=max_wall_time,
-        alg='CRAB', alg_options={'num_coeffs':num_coeffs},
+        alg='CRAB', alg_options=alg_options,
         optim_method=optim_method, method_options=method_options,
         dyn_type=dyn_type, prop_type=prop_type,
         fid_type=fid_type, phase_option=phase_option,
         fid_err_scale_factor=fid_err_scale_factor,
-        init_pulse_type=pulse_type,
-        pulse_scaling=coeff_scaling, pulse_offset=coeff_offset,
+        ramping_pulse_type=ramping_pulse_type, 
+        ramping_pulse_options=ramping_pulse_options,
         log_level=log_level, gen_stats=gen_stats)
 
     dyn = optim.dynamics
-    p_gen = optim.pulse_generator
+    pgen = optim.pulse_generator
 
     if log_level <= logging.INFO:
         msg = "System configuration:\n"
@@ -1178,9 +1230,9 @@ def opt_pulse_crab(
     # Generate initial pulses for each control
     init_amps = np.zeros([dyn.num_tslots, dyn.num_ctrls])
     for j in range(dyn.num_ctrls):
-        p_gen = optim.pulse_generator[j]
-        p_gen.init_pulse()
-        init_amps[:, j] = p_gen.gen_pulse()
+        pgen = optim.pulse_generator[j]
+        pgen.init_pulse()
+        init_amps[:, j] = pgen.gen_pulse()
 
     # Initialise the starting amplitudes
     dyn.initialize_controls(init_amps)
