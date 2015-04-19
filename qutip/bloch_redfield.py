@@ -48,7 +48,7 @@ from qutip.superoperator import liouvillian
 # -----------------------------------------------------------------------------
 # Solve the Bloch-Redfield master equation
 #
-def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=None,
+def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
               args={}, options=Options()):
     """
     Solve the dynamics for a system using the Bloch-Redfield master equation.
@@ -278,6 +278,9 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
     # default spectrum
     if not spectra_cb:
         spectra_cb = [lambda w: 1.0 for _ in a_ops]
+
+    if c_ops is None:
+        c_ops = []
 
     # use the eigenbasis
     evals, ekets = H.eigenstates()
