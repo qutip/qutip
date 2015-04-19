@@ -99,6 +99,8 @@ def create_pulse_gen(pulse_type='RND', dyn=None, pulse_options=None):
         return PulseGenSaw(dyn, options=pulse_options)
     elif pulse_type == 'TRIANGLE':
         return PulseGenTriangle(dyn, options=pulse_options)
+    elif pulse_type == 'GAUSSIAN':  
+        return PulseGenGaussian(dyn, options=pulse_options)
     elif pulse_type == 'CRAB_FOURIER':
         return PulseGenCrabFourier(dyn, options=pulse_options)
     elif pulse_type == 'GAUSSIAN_EDGE':  
@@ -196,6 +198,8 @@ class PulseGen:
             self.offset = 0.0
             self.log_level = logger.level
 
+        self._uses_time = False
+        self.time = None
         self._pulse_initialised = False
         self.periodic = False
         self.random = False
@@ -205,11 +209,17 @@ class PulseGen:
         
         self.apply_options()
         
-    def apply_options(options=None):
+    def apply_options(self, options=None):
+        """
+        Set object attributes based on the dictionary (if any) passed in the 
+        instantiation, or passed as a parameter
+        This is called during the instantiation automatically.
+        The key value pairs are the attribute name and value
+        """
         if not options:
             options = self.options
         
-        if options is dict:
+        if isinstance(options, dict):
             for key, val in options.iteritems():
                 setattr(self, key, val)
 
@@ -238,6 +248,12 @@ class PulseGen:
         if self.tau is None:
             self.tau = np.ones(self.num_tslots, dtype='f') * \
                 self.pulse_time/self.num_tslots
+                
+        if self._uses_time:
+            self.time = np.zeros(self.num_tslots, dtype=float)
+            for k in range(self.num_tslots-1):
+                self.time[k+1] = self.time[k] + self.tau[k]
+                
         self._pulse_initialised = True
 
         if self.ubound < self.lbound:
@@ -282,6 +298,8 @@ class PulseGen:
             ramping_pulse = self.ramping_pulse
         if ramping_pulse is not None:
             pulse = pulse*ramping_pulse
+            
+        return pulse
         
 class PulseGenZero(PulseGen):
     """
@@ -343,6 +361,7 @@ class PulseGenRndFourier(PulseGen):
         """
         PulseGen.reset(self)
         self.random = True
+        self._uses_time = True
         try:
             self.min_wavelen = self.pulse_time / 10.0
         except:
@@ -370,10 +389,7 @@ class PulseGenRndFourier(PulseGen):
         sum_wave = np.zeros(self.tau.shape)
         wavelen = 2.0*self.pulse_time
 
-        t = np.zeros(self.num_tslots, dtype=float)
-        for k in range(self.num_tslots-1):
-            t[k+1] = t[k] + self.tau[k]
-
+        t = self.time
         wl = []
         while wavelen > min_wavelen:
             wl.append(wavelen)
@@ -425,6 +441,7 @@ class PulseGenRndWaves(PulseGen):
         """
         PulseGen.reset(self)
         self.random = True
+        self._uses_time = True
         self.num_comp_waves = 20
         try:
             self.min_wavelen = self.pulse_time / 10.0
@@ -468,10 +485,7 @@ class PulseGenRndWaves(PulseGen):
 
         sum_wave = np.zeros(self.tau.shape)
 
-        t = np.zeros(self.num_tslots, dtype=float)
-        for k in range(self.num_tslots-1):
-            t[k+1] = t[k] + self.tau[k]
-
+        t = self.time
         wl_range = max_wavelen - min_wavelen
         amp_scale = np.sqrt(8)*self.scaling / float(num_comp_waves)
         for n in range(num_comp_waves):
@@ -841,11 +855,58 @@ class PulseGenTriangle(PulseGenPeriodic):
             t = t + self.tau[k]
 
         return self._apply_bounds_and_offset(pulse)
+        
+class PulseGenGaussian(PulseGen):
+    """
+    Generates pulses with a Gaussian profile
+    """
+    def reset(self):
+        """
+        reset attributes to default values
+        """
+        PulseGen.reset(self)
+        self._uses_time = True
+        self.mean = 0.5*self.pulse_time
+        self.variance = 0.5*self.pulse_time
+        self.apply_options()
+        
+    def gen_pulse(self, mean=None, variance=None):
+        """
+        Generate a pulse with Gaussian shape. The peak is centre around the
+        mean and the variance determines the breadth
+        The scaling and offset attributes are applied as an amplitude
+        and fixed linear offset. Note that the maximum amplitude will be
+        scaling + offset.
+        """
+        if not self._pulse_initialised:
+            self.init_pulse()
+        
+        if mean:
+            Tm = mean
+        else:
+            Tm = self.mean
+        if variance:
+            Tv = variance
+        else:
+            Tv = self.variance
+        t = self.time
+        T = self.pulse_time
 
+        pulse = self.scaling*np.exp(-(t-Tm)**2/(2*Tv)) + self.offset
+        return pulse
 
 class PulseGenGaussianEdge(PulseGen):
     """
-    Generate pulses 
+    Generate pulses with inverted Gaussian ramping in and out
+    It's intended use for a ramping modulation, which is often required in 
+    experimental setups.
+    
+    Attributes
+    ----------
+        decay_time : float
+            Determines the ramping rate. It is approximately the time
+            required to bring the pulse to full amplitude
+            It is set to 1/10 of the pulse time by default
     """
 
     def reset(self):
@@ -853,30 +914,26 @@ class PulseGenGaussianEdge(PulseGen):
         reset attributes to default values
         """
         PulseGen.reset(self)
-        self.decay_coeff = self.pulse_time / 10.0
+        self._uses_time = True
+        self.decay_time = self.pulse_time / 10.0
         self.apply_options()
 
-    def init_pulse(self):
-        """
-        Set the initial freq and coefficient values
-        """
-        PulseGen.init_pulse(self)
-        self.time = np.zeros(self.num_tslots, dtype=float)
-        for k in range(self.num_tslots-1):
-            self.time[k+1] = self.time[k] + self.tau[k]
-
-    def gen_pulse(self):
+    def gen_pulse(self, decay_time=None):
         """
         Generate a pulse that starts and ends at zero and 1.0 in between
         then apply scaling and offset
+        The tailing in and out is an inverted Gaussian shape
         """
         if not self._pulse_initialised:
             self.init_pulse()
             
         t = self.time
-        a = self.decay_coeff
+        if decay_time:
+            Td = decay_time
+        else:
+            Td = self.decay_time
         T = self.pulse_time
-        pulse = 1.0 - np.exp(-t**2/a) - np.exp(-(t-T)**2/a)
+        pulse = 1.0 - np.exp(-t**2/Td) - np.exp(-(t-T)**2/Td)
         pulse = pulse*self.scaling + self.offset
 
         return pulse
@@ -901,6 +958,7 @@ class PulseGenCrab(PulseGen):
     def __init__(self, dyn=None, num_coeffs=None, options=None):
         self.parent = dyn
         self.num_coeffs = num_coeffs
+        self.options = options
         self.reset()
         
     def reset(self):
@@ -934,19 +992,18 @@ class PulseGenCrab(PulseGen):
         self.num_basis_funcs = 2
         self.num_optim_params = self.num_coeffs*self.num_basis_funcs
         self.coeffs = None
+        self._uses_time = True
         self.time = None
         self.guess_pulse_action = 'MODULATE'
         self.guess_pulse = None
         self.guess_pulse_func = None
+        self.apply_options()
         
     def init_pulse(self, num_coeffs=None):
         """
         Set the initial freq and coefficient values
         """
         PulseGen.init_pulse(self)
-        self.time = np.zeros(self.num_tslots, dtype=float)
-        for k in range(self.num_tslots-1):
-            self.time[k+1] = self.time[k] + self.tau[k]
         self.init_coeffs(num_coeffs=num_coeffs)
         self.num_optim_params = self.num_coeffs*self.num_basis_funcs
         if self.guess_pulse is not None:

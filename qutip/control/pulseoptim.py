@@ -533,6 +533,7 @@ def create_pulse_optimizer(
         fid_type='DEF', phase_option=None, fid_err_scale_factor=None,
         amp_update_mode='ALL',
         init_pulse_type='DEF', pulse_scaling=1.0, pulse_offset=0.0,
+        init_pulse_options=None,
         ramping_pulse_type=None, ramping_pulse_options=None,
         log_level=logging.NOTSET, gen_stats=False):
 
@@ -947,19 +948,18 @@ def create_pulse_optimizer(
                             pulse_type=ramping_pulse_type, dyn=dyn, 
                             pulse_options=ramping_pulse_options)
     if alg_up == 'CRAB':
-        # Create a pulse generator for each ctrl      
-        num_coeffs = alg_options.get('num_coeffs')
-        init_coeff_scaling = alg_options.get('init_coeff_scaling')
-        guess_pulse_type = alg_options.get('guess_pulse_type')
+        # Create a pulse generator for each ctrl    
+        if isinstance(alg_options, dict):
+            num_coeffs = alg_options.get('num_coeffs')
+            init_coeff_scaling = alg_options.get('init_coeff_scaling')
+
+        guess_pulse_type = init_pulse_type
         if guess_pulse_type:
             guess_pgen = pulsegen.create_pulse_gen(
-                                pulse_type=guess_pulse_type, dyn=dyn)
-            if 'guess_pulse_scaling' in alg_options:
-                guess_pgen.scaling = alg_options['guess_pulse_scaling']
-            if 'guess_pulse_offset' in alg_options:
-                guess_pgen.offset = alg_options['guess_pulse_offset']
-            guess_pulse_action = alg_options.get('guess_pulse_action')
-            
+                                pulse_type=guess_pulse_type, dyn=dyn, 
+                                pulse_options=init_pulse_options)
+            guess_pulse_action = init_pulse_options.get('pulse_action')
+
         optim.pulse_generator = []
         for j in range(n_ctrls):
             crab_pgen = pulsegen.PulseGenCrabFourier(
@@ -981,7 +981,8 @@ def create_pulse_optimizer(
             
     else:
         # Create a pulse generator of the type specified
-        pgen = pulsegen.create_pulse_gen(pulse_type=init_pulse_type, dyn=dyn)
+        pgen = pulsegen.create_pulse_gen(pulse_type=init_pulse_type, dyn=dyn,
+                                        pulse_options=init_pulse_options)
         pgen.scaling = pulse_scaling
         pgen.offset = pulse_offset
         pgen.lbound = amp_lbound
@@ -1019,7 +1020,7 @@ def opt_pulse_crab(
         dyn_type='GEN_MAT', prop_type='DEF',
         fid_type='DEF', phase_option=None, fid_err_scale_factor=None,
         guess_pulse_type=None, guess_pulse_scaling=1.0, guess_pulse_offset=0.0,
-        guess_pulse_action='modulate',
+        guess_pulse_action='modulate', guess_pulse_options=None,
         ramping_pulse_type=None, ramping_pulse_options=None,
         log_level=logging.NOTSET, out_file_ext=None, gen_stats=False):
     """
@@ -1182,14 +1183,23 @@ def opt_pulse_crab(
 
     # build the algorithm options       
     alg_options = {'num_coeffs':num_coeffs, 
-                   'init_coeff_scaling':init_coeff_scaling,
-                   'guess_pulse_type':guess_pulse_type,
-                   'guess_pulse_scaling':guess_pulse_scaling,
-                   'guess_pulse_offset':guess_pulse_offset,
-                   'guess_pulse_action':guess_pulse_action}
-#                   ,
-#                   'pulse_ramping_type':ramping_type,
-#                   'pulse_ramping_options':ramping_options}
+                   'init_coeff_scaling':init_coeff_scaling}
+    
+    # Build the guess pulse options
+    # Any options passed in the guess_pulse_options take precedence
+    # over the parameter values.
+    if guess_pulse_type: 
+        if not isinstance(guess_pulse_options, dict):
+            guess_pulse_options = {}
+        if (guess_pulse_scaling is not None and 
+            not 'scaling' in guess_pulse_options):
+            guess_pulse_options['scaling'] = guess_pulse_scaling
+        if (guess_pulse_offset is not None and 
+            not 'offset' in guess_pulse_options):
+            guess_pulse_options['offset'] = guess_pulse_offset
+        if (guess_pulse_action is not None and 
+            not 'pulse_action' in guess_pulse_options):
+            guess_pulse_options['pulse_action'] = guess_pulse_action
                    
     optim = create_pulse_optimizer(
         drift, ctrls, initial, target,
@@ -1202,6 +1212,8 @@ def opt_pulse_crab(
         dyn_type=dyn_type, prop_type=prop_type,
         fid_type=fid_type, phase_option=phase_option,
         fid_err_scale_factor=fid_err_scale_factor,
+        init_pulse_type=guess_pulse_type, 
+        init_pulse_options=guess_pulse_options,
         ramping_pulse_type=ramping_pulse_type, 
         ramping_pulse_options=ramping_pulse_options,
         log_level=log_level, gen_stats=gen_stats)
