@@ -210,7 +210,7 @@ def choi_to_chi(q_oper):
     nq = len(q_oper.dims[0][0])
     B = _pauli_basis(nq)
     B.superrep = 'choi'
-    return Qobj(B * q_oper * B.dag(), superrep='chi')
+    return Qobj(B.dag() * q_oper * B, superrep='chi')
 
 
 def chi_to_choi(q_oper):
@@ -225,7 +225,7 @@ def chi_to_choi(q_oper):
 
     # The Chi matrix has tr(chi) == d², so we need to divide out
     # by that to get back to the Choi form.
-    return Qobj((B.dag() * q_oper * B) / q_oper.shape[0], superrep='choi')
+    return Qobj((B * q_oper * B.dag()) / q_oper.shape[0], superrep='choi')
 
 
 # PUBLIC CONVERSION FUNCTIONS -------------------------------------------------
@@ -308,7 +308,7 @@ def to_chi(q_oper):
         else:
             raise TypeError(q_oper.superrep)
     elif q_oper.type == 'oper':
-        return super_to_choi(spre(q_oper) * spost(q_oper.dag()))
+        return to_chi(spre(q_oper) * spost(q_oper.dag()))
     else:
         raise TypeError(
             "Conversion of Qobj with type = {0.type} "
