@@ -79,6 +79,9 @@ class OptimResult:
 
     max_iter_exceeded : boolean
         True if the iteration limit was reached
+        
+    max_fid_func_exceeded : boolean
+        True if the fidelity function call limit was reached
 
     wall_time : float
         time elapsed during the optimisation
@@ -114,6 +117,8 @@ class OptimResult:
         self.grad_norm_min_reached = False
         self.num_iter = 0
         self.max_iter_exceeded = False
+        self.num_fid_func_calls = 0
+        self.max_fid_func_exceeded = False
         self.wall_time = 0.0
         self.wall_time_limit_exceeded = False
         self.termination_reason = "not started yet"
