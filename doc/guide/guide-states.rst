@@ -508,19 +508,149 @@ be exponentiated to find the superoperator for that evolution.
      
     In [5]: S = (12 * L).expm()
 
-Once a superoperator has been obtained, it can be converted between the
-supermatrix, Kraus and Choi formalisms by using the :func:`~qutip.superop_reps.to_super`,
-:func:`~qutip.superop_reps.to_kraus` and :func:`~qutip.superop_reps.to_choi` functions. The :attr:`~Qobj.superrep`
-attribute keeps track of what reprsentation is a :obj:`~qutip.Qobj` is currently using.
+.. _states-super-superreps:
+
+Converting Superoperator Representations
+----------------------------------------
+
+Once a superoperator has been created by any of the above methods,
+it can be converted between the different *representations* of quantum
+maps. In addition to the Liouvillian representation above, ``type="super"``
+Qobj instances support the Choi and :math:`\chi`-matrix representations,
+respectively denoted by the ``superrep="choi"`` and ``superrep="chi"`` attributes.
+QuTiP also supports obtaining the Kraus and Stinespring representations of
+a channel, each of which are returned as lists of ``type="oper"`` Qobj instances.
+
+===================== ============================================
+Representation        Conversion Function                        
+===================== ============================================
+Choi                  :func:`~qutip.superop_reps.to_choi`        
+:math:`\chi`-matrix`  :func:`~qutip.superop_reps.to_chi`         
+Kraus                 :func:`~qutip.superop_reps.to_kraus`       
+Stinespring           :func:`~qutip.superop_reps.to_stinespring` 
+===================== ============================================
+
+Here, we detail each of these representations in turn. For more details,
+please see [Hav03]_, [WBC11]_ or [Wat13]_. 
+
+Choi Representation
+~~~~~~~~~~~~~~~~~~~
+
+For a map :math:`\Lambda \in \mathcal{L}(\mathcal{L}(\mathcal(H)))`, the Choi representation :math:`J(\Lambda)` is given
+by acting :math:`\Lambda` on half of a maximally-entangled pair,
+
+.. math::
+
+    J(\Lambda) := (\mathbb{1}_{\mathrm{L}(\mathcal{H})} \otimes \Lambda)[|\mathbb{1}_\mathcal{H}\rrangle\llangle\mathbb{1}_\mathcal{H}|]
+
+The Choi representation is useful for, amongst other applications, testing properties of a quantum map.
+In particular, :math:`\Lambda` is a completely positive map if and only if :math:`J(\Lambda)` is
+a positive-semidefinite matrix, and is a trace preserving map if and only if the ancilla register is
+the identity, :math:`\operatorname{Tr}_1(J(\Lambda)) = \mathbb{1}`.
+
+In QuTiP, the Choi representation is computed by the :func:`~qutip.superop_reps.to_choi`
+function. For instance, consider a bit-flip channel with probability 10%.
 
 .. ipython::
 
-    In [1]: J = to_choi(S)
+    In [1]: S = 0.9 * to_super(qeye(2)) + 0.1 * to_super(sigmax())
 
-    In [2]: J
+    In [2]: print(S)
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = [4, 4], type = super, isherm = True
+    Qobj data =
+    [[ 0.9  0.   0.   0.1]
+     [ 0.   0.9  0.1  0. ]
+     [ 0.   0.1  0.9  0. ]
+     [ 0.1  0.   0.   0.9]]
 
-    In [3]: K = to_kraus(J)
+    In [3]: print(to_choi(S))
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = [4, 4], type = super, isherm = True, superrep = choi
+    Qobj data =
+    [[ 0.9  0.   0.   0.9]
+     [ 0.   0.1  0.1  0. ]
+     [ 0.   0.1  0.1  0. ]
+     [ 0.9  0.   0.   0.9]]
+
+This illustrates that the Choi matrix is a *block matrix* that describes the action of
+the original map on each possible elementary matrix :math:`E_{ij} := |i\rangle\langle j|`.
+For a qubit,
+
+.. math::
+
+    J(\Lambda) = \left(\begin{matrix}
+        \Lambda[|0\rangle\langle 0|] & \Lambda[|0\rangle\langle 1|] \\
+        \Lambda[|1\rangle\langle 0|] & \Lambda[|1\rangle\langle 1|]
+    \end{matrix} \right).
+
+:math:`\chi`-Matrix Representation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A representation useful to quantum process tomography, the :math:`\chi`-matrix,
+is obtained by expanding the action of a map :math:`\Lambda` in terms of the Pauli
+basis (more generally, the Heisenberg-Weyl basis) as opposed to the column-stacking basis.
+That is, let :math:`\{B_\alpha : \alpha \in \{1, \dots, \dim^2 \mathcal{H}\}\}` be a basis
+for :math:`\mathcal{L}(\mathcal{H})`. Then, we can decompose the Liouville representation :math:`S_\Lambda`
+of :math:`\Lambda` in two copies of this basis to obtain that
+
+.. math::
+
+    S_\Lambda |\rho\rrangle = \sum_{\alpha,\beta} \chi_{\alpha,\beta} \overline{B}_\beta \otimes B_\alpha |\rho\rrangle
+                            = \sum_{\alpha,\beta} |\chi_{\alpha,\beta} B_\alpha \rho B_\beta^\dagger \rrangle.
+
+Thus,
+
+.. math::
     
-    In [4]: K
+    \Lambda[\rho] = \sum_{\alpha,\beta} \chi_{\alpha,\beta} B_\alpha \rho B_\beta^\dagger.
 
+where :math:`\chi = \sum_{\alpha,\beta} \chi_{\alpha,\beta} |\alpha\rangle\langle\beta|` is
+the :math:`\chi`-matrix.
+
+For the Pauli basis, this is implemented in QuTiP by the :func:`~qutip.superop_reps.to_chi`
+function:
+
+.. ipython::
+
+    In [1]: S = 0.9 * to_super(qeye(2)) + 0.1 * to_super(sigmaz())
+
+    In [2]: print(to_chi(S))
+    Quantum object: dims = [[[2], [2]], [[2], [2]]], shape = [4, 4], type = super, isherm = True, superrep = chi
+    Qobj data =
+    [[ 3.6  0.   0.   0. ]
+     [ 0.   0.   0.   0. ]
+     [ 0.   0.   0.   0. ]
+     [ 0.   0.   0.   0.4]]
+
+Kraus Representation
+~~~~~~~~~~~~~~~~~~~~
+
+Taking the singular value decomposition of the Choi matrix for a completely positive map
+yields another useful representation, known as the *Kraus* representation. In particular,
+let
+
+.. math::
+
+    J(\Lambda) = \sum_i s_i |\tilde{A}_i\rrangle \llangle\tilde{B}_i|,
+
+for the singular values :math:`\{s_i\}` and for devectorizations :math:`\{\tilde{A}_i\}`
+and :math:`\{\tilde{B}_i\}` of the left- and right-singular vectors, resepctively.
+Since :math:`J(\Lambda)` is completely-positive by assumption, :math:`A_i = B_i`.
+Then, define :math:`A_i := \sqrt{s_i}` and apply Roth's Lemma to obtain that
+
+.. math::
+
+    J(\Lambda) = \sum_i (A_i \otimes \mathbb{1}) |\mathbb{1}\rrangle \llangle \mathbb{1}| (A_i \otimes \mathbb{1})^\dagger.
+
+The action of :math:`\Lambda` alone can now be given in terms of the *Kraus operators* :math:`A_i`,
+
+.. math::
+
+    \Lambda[\rho] = \sum_i A_i \rho A_i^\dagger.
+
+This representation has the advantage that the Kraus operators :math:`\{A_i\}` all are
+operators on the underlying space, such that the required matrix multiplications no take
+place in Liouville space.
+
+Stinespring Representation
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
