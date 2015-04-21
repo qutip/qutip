@@ -165,19 +165,29 @@ class OptimConfig:
 
     def reset(self):
         self.log_level = logger.getEffectiveLevel()
-        self.optim_alg = 'LBFGSB'
-        self.dyn_type = ''
-        self.fid_type = ''
-        self.phase_option = 'PSU'
-        self.amp_update_mode = 'ALL'  # Alts: 'DYNAMIC'
-        self.pulse_type = 'RND'
+        self.alg = 'GRAPE' # Alts: 'CRAB'
+        # *** AJGP 2015-04-21: This has been replaced optim_method
+        #self.optim_alg = 'LBFGSB'
+        self.optim_method = 'DEF'
+        self.dyn_type = 'DEF'
+        self.fid_type = 'DEF'
+        # *** AJGP 2015-04-21: phase_option has been moved to the FidComputer
+        #self.phase_option = 'PSU'
+        # *** AJGP 2015-04-21: amp_update_mode has been replaced by tslot_type
+        #self.amp_update_mode = 'ALL'  # Alts: 'DYNAMIC'
+        self.fid_type = 'DEF'
+        self.tslot_type = 'DEF'
+        self.init_pulse_type = 'DEF'
         ######################
         # Note the following parameteres are for constrained optimisation
         # methods e.g. L-BFGS-B
-        self.amp_lbound = -np.Inf
-        self.amp_ubound = np.Inf
-        self.max_metric_corr = 10
-        self.accuracy_factor = 1e7
+        # *** AJGP 2015-04-21: 
+        #           These have been moved to the OptimizerLBFGSB class
+#        self.amp_lbound = -np.Inf
+#        self.amp_ubound = np.Inf
+#        self.max_metric_corr = 10
+#        self.accuracy_factor = 1e7
+        # ***
         # ####################
         self.reset_test_out_files()
 

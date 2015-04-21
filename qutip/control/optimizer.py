@@ -416,7 +416,7 @@ class Optimizer:
         scipy.optimize.minimize function. 
         
         It will attempt to minimise the fidelity error with respect to some
-        parameters, which are determined by _get_optim_param_vals (see below)
+        parameters, which are determined by _get_optim_var_vals (see below)
         
         The optimisation end when one of the passed termination conditions
         has been met, e.g. target achieved, wall time, or 
@@ -441,7 +441,7 @@ class Optimizer:
         term_conds = self.termination_conditions
         dyn = self.dynamics
         cfg = self.config
-        self.optim_param_vals = self._get_optim_param_vals()
+        self.optim_var_vals = self._get_optim_var_vals()
         st_time = timeit.default_timer()
         self.wall_time_optimize_start = st_time
 
@@ -463,7 +463,7 @@ class Optimizer:
 
         try:
             opt_res = spopt.minimize(
-                self.fid_err_func_wrapper, self.optim_param_vals,
+                self.fid_err_func_wrapper, self.optim_var_vals,
                 method=self.method,
                 jac=self.fid_err_grad_wrapper,
                 bounds=self.bounds,
@@ -490,7 +490,7 @@ class Optimizer:
 
         return result
         
-    def _get_optim_param_vals(self):
+    def _get_optim_var_vals(self):
         """
         Generate the 1d array that holds the current variable values 
         of the function to be optimised
@@ -499,7 +499,7 @@ class Optimizer:
         """
         return self.dynamics.ctrl_amps.reshape([-1])
                 
-    def _get_ctrl_amps(self, optim_param_vals):
+    def _get_ctrl_amps(self, optim_var_vals):
         """
         Get the control amplitudes from the current variable values 
         of the function to be optimised.
@@ -510,7 +510,7 @@ class Optimizer:
         -------
         float array[dynamics.num_tslots, dynamics.num_ctrls]
         """
-        amps = optim_param_vals.reshape(self.dynamics.ctrl_amps.shape)
+        amps = optim_var_vals.reshape(self.dynamics.ctrl_amps.shape)
             
         return amps
 
@@ -705,7 +705,7 @@ class OptimizerBFGS(Optimizer):
         self.init_optim(term_conds)
         term_conds = self.termination_conditions
         dyn = self.dynamics
-        self.optim_param_vals = self._get_optim_param_vals()
+        self.optim_var_vals = self._get_optim_var_vals()
         st_time = timeit.default_timer()
         self.wall_time_optimize_start = st_time
 
@@ -719,16 +719,16 @@ class OptimizerBFGS(Optimizer):
 
         result = self._create_result()
         try:
-            optim_param_vals, cost, grad, invHess, nFCalls, nGCalls, warn = \
+            optim_var_vals, cost, grad, invHess, nFCalls, nGCalls, warn = \
                 spopt.fmin_bfgs(self.fid_err_func_wrapper, 
-                                self.optim_param_vals,
+                                self.optim_var_vals,
                                 fprime=self.fid_err_grad_wrapper,
                                 callback=self.iter_step_callback_func,
                                 gtol=term_conds.min_gradient_norm,
                                 maxiter=term_conds.max_iterations,
                                 full_output=True, disp=True)
 
-            amps = self._get_ctrl_amps(optim_param_vals)
+            amps = self._get_ctrl_amps(optim_var_vals)
             dyn.update_ctrl_amps(amps)
             if warn == 1:
                 result.max_iter_exceeded = True
@@ -749,10 +749,33 @@ class OptimizerBFGS(Optimizer):
 class OptimizerLBFGSB(Optimizer):
     """
     Implements the run_optimization method using the L-BFGS-B algorithm
+    
+    Attributes
+    ----------
+    max_metric_corr : integer
+        The maximum number of variable metric corrections used to define
+        the limited memory matrix. That is the number of previous
+        gradient values that are used to approximate the Hessian
+        see the scipy.optimize.fmin_l_bfgs_b documentation for description
+        of m argument
+
+    accuracy_factor : float
+        Determines the accuracy of the result.
+        Typical values for accuracy_factor are: 1e12 for low accuracy;
+        1e7 for moderate accuracy; 10.0 for extremely high accuracy
+        scipy.optimize.fmin_l_bfgs_b factr argument.
     """
 
     def reset(self):
         Optimizer.reset(self)
+        self.max_metric_corr = 10
+        if hasattr(self.config, 'max_metric_corr'):
+            if self.config.max_metric_corr:
+                self.max_metric_corr = self.config.max_metric_corr
+        self.accuracy_factor = 1e7
+        if hasattr(self.config, 'accuracy_factor'):
+            if self.config.accuracy_factor:
+                self.accuracy_factor = self.config.accuracy_factor
         self.id_text = 'LBFGSB'
 
     def run_optimization(self, term_conds=None):
@@ -784,7 +807,7 @@ class OptimizerLBFGSB(Optimizer):
         term_conds = self.termination_conditions
         dyn = self.dynamics
         cfg = self.config
-        self.optim_param_vals = self._get_optim_param_vals()
+        self.optim_var_vals = self._get_optim_var_vals()
         st_time = timeit.default_timer()
         self.wall_time_optimize_start = st_time
 
@@ -806,19 +829,19 @@ class OptimizerLBFGSB(Optimizer):
             logger.info("Optimising pulse using L-BFGS-B")
 
         try:
-            optim_param_vals, fid, res_dict = spopt.fmin_l_bfgs_b(
-                self.fid_err_func_wrapper, self.optim_param_vals,
+            optim_var_vals, fid, res_dict = spopt.fmin_l_bfgs_b(
+                self.fid_err_func_wrapper, self.optim_var_vals,
                 fprime=self.fid_err_grad_wrapper,
                 callback=self.iter_step_callback_func,
                 bounds=bounds,
-                m=cfg.max_metric_corr,
-                factr=cfg.accuracy_factor,
+                m=self.max_metric_corr,
+                factr=self.accuracy_factor,
                 pgtol=term_conds.min_gradient_norm,
                 iprint=alg_msg_lvl,
                 maxfun=term_conds.max_fid_func_calls,
                 maxiter=term_conds.max_iterations)
 
-            amps = self._get_ctrl_amps(optim_param_vals)
+            amps = self._get_ctrl_amps(optim_var_vals)
             dyn.update_ctrl_amps(amps)
             warn = res_dict['warnflag']
             if warn == 0:
@@ -854,7 +877,7 @@ class OptimizerCrab(Optimizer):
     def reset(self):
         Optimizer.reset(self)
         self.id_text = 'CRAB'
-        self.num_param_vals = 0
+        self.num_optim_vars = 0
         
     def init_optim(self, term_conds):
         """
@@ -866,7 +889,7 @@ class OptimizerCrab(Optimizer):
         Optimizer.init_optim(self, term_conds)
         dyn = self.dynamics
         
-        self.num_param_vals = 0
+        self.num_optim_vars = 0
         pulse_gen_valid = True
         # check the pulse generators match the ctrls
         # (in terms of number)
@@ -892,7 +915,7 @@ class OptimizerCrab(Optimizer):
                         "pulse_generator contained object of type '{}'".format(
                         p_gen.__class__.__name__))
                     break
-                self.num_param_vals += p_gen.num_optim_params
+                self.num_optim_vars += p_gen.num_optim_vars
         
         if not pulse_gen_valid:
             raise errors.UsageError(
@@ -908,7 +931,7 @@ class OptimizerCrab(Optimizer):
         """
         return None
 
-    def _get_optim_param_vals(self):
+    def _get_optim_var_vals(self):
         """
         Generate the 1d array that holds the current variable values 
         of the function to be optimised
@@ -919,11 +942,11 @@ class OptimizerCrab(Optimizer):
         """
         pvals = []
         for p_gen in self.pulse_generator:
-            pvals.append(p_gen.get_optim_param_vals())
+            pvals.append(p_gen.get_optim_var_vals())
             
         return np.array(pvals)
                 
-    def _get_ctrl_amps(self, optim_param_vals):
+    def _get_ctrl_amps(self, optim_var_vals):
         """
         Get the control amplitudes from the current variable values 
         of the function to be optimised.
@@ -938,24 +961,24 @@ class OptimizerCrab(Optimizer):
         dyn = self.dynamics
         
         if self.log_level <= logging.DEBUG:
-            changed_params = self.optim_param_vals != optim_param_vals
+            changed_params = self.optim_var_vals != optim_var_vals
             logger.debug(
                 "{} out of {} optimisation parameters changed".format(
-                    changed_params.sum(), len(optim_param_vals)))
+                    changed_params.sum(), len(optim_var_vals)))
         
         amps = np.empty([dyn.num_tslots, dyn.num_ctrls])
         j = 0
         param_idx_st = 0
         for p_gen in self.pulse_generator:
-            param_idx_end = param_idx_st + p_gen.num_optim_params
-            pg_pvals = optim_param_vals[param_idx_st:param_idx_end]
-            p_gen.set_optim_param_vals(pg_pvals)
+            param_idx_end = param_idx_st + p_gen.num_optim_vars
+            pg_pvals = optim_var_vals[param_idx_st:param_idx_end]
+            p_gen.set_optim_var_vals(pg_pvals)
             amps[:, j] = p_gen.gen_pulse()
             param_idx_st = param_idx_end
             j += 1
         
         #print("param_idx_end={}".format(param_idx_end))
-        self.optim_param_vals = optim_param_vals
+        self.optim_var_vals = optim_var_vals
         return amps
         
 class OptimizerCrabFmin(OptimizerCrab):
@@ -981,7 +1004,7 @@ class OptimizerCrabFmin(OptimizerCrab):
         scipy.optimize.fmin function. 
         
         It will attempt to minimise the fidelity error with respect to some
-        parameters, which are determined by _get_optim_param_vals which
+        parameters, which are determined by _get_optim_var_vals which
         in the case of CRAB are the basis function coefficients
         
         The optimisation end when one of the passed termination conditions
@@ -1001,7 +1024,7 @@ class OptimizerCrabFmin(OptimizerCrab):
         term_conds = self.termination_conditions
         dyn = self.dynamics
         cfg = self.config
-        self.optim_param_vals = self._get_optim_param_vals()
+        self.optim_var_vals = self._get_optim_var_vals()
         st_time = timeit.default_timer()
         self.wall_time_optimize_start = st_time
 
@@ -1018,7 +1041,7 @@ class OptimizerCrabFmin(OptimizerCrab):
 
         try:
             ret = spopt.fmin(
-                    self.fid_err_func_wrapper, self.optim_param_vals,
+                    self.fid_err_func_wrapper, self.optim_var_vals,
                     xtol=self.xtol, ftol=self.ftol,
                     maxiter=term_conds.max_iterations,
                     maxfun=term_conds.max_fid_func_calls,

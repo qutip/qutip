@@ -131,8 +131,9 @@ class FidelityComputer:
         flag to specify whether the fidelity / fid_err are based on the
         current amplitude values. Set False when amplitudes change
     """
-    def __init__(self, dynamics):
+    def __init__(self, dynamics, params=None):
         self.parent = dynamics
+        self.params = params
         self.reset()
 
     def reset(self):
@@ -147,6 +148,7 @@ class FidelityComputer:
         self.grad_norm_func = None
         self.uses_evo_t2end = False
         self.uses_evo_t2targ = False
+        self.apply_params()
         self.clear()
 
     def clear(self):
@@ -161,6 +163,22 @@ class FidelityComputer:
         self.fid_err_grad_current = False
         self.grad_norm = 0.0
 
+    def apply_params(self, params=None):
+        """
+        Set object attributes based on the dictionary (if any) passed in the 
+        instantiation, or passed as a parameter
+        This is called during the instantiation automatically.
+        The key value pairs are the attribute name and value
+        Note: attributes are created if they do not exist already,
+        and are overwritten if they do.
+        """
+        if not params:
+            params = self.params
+        
+        if isinstance(params, dict):
+            for key, val in params.iteritems():
+                setattr(self, key, val)
+                
     def set_log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
@@ -213,6 +231,11 @@ class FidCompUnitary(FidelityComputer):
 
     Attributes
     ----------
+    phase_option : string
+        determines how global phase is treated in fidelity calculations:
+            PSU - global phase ignored
+            SU - global phase included
+            
     fidelity_prenorm : complex
         Last computed value of the fidelity before it is normalised
         It is stored to use in the gradient normalisation calculation
@@ -226,18 +249,24 @@ class FidCompUnitary(FidelityComputer):
         FidelityComputer.reset(self)
         self.id_text = 'UNIT'
         self.uses_evo_t2targ = True
+        self.phase_option = 'PSU'
+        self.apply_params()
+        self.set_phase_option()
 
     def clear(self):
         FidelityComputer.clear(self)
         self.fidelity_prenorm = None
         self.fidelity_prenorm_current = False
 
-    def set_phase_option(self, phase_option='PSU'):
+    def set_phase_option(self, phase_option=None):
         """
         # Phase options are
         #  SU - global phase important
         #  PSU - global phase is not important
         """
+        if phase_option is None:
+            phase_option = self.phase_option
+            
         if phase_option == 'PSU':
             self.fid_norm_func = self.normalize_PSU
             self.grad_norm_func = self.normalize_gradient_PSU
@@ -457,6 +486,8 @@ class FidCompTraceDiff(FidelityComputer):
         The fidelity error calculated is of some arbitary scale. This
         factor can be used to scale the fidelity error such that it may
         represent some physical measure
+        If None is given then it is caculated as 1/2N, where N
+        is the dimension of the drift, when the Dynamics are initialised.
     """
 
     def reset(self):
@@ -468,7 +499,8 @@ class FidCompTraceDiff(FidelityComputer):
             raise errors.UsageError(
                 "This FidelityComputer can only be"
                 " used with an exact gradient PropagatorComputer.")
-
+        self.apply_params()
+        
     def init_comp(self):
         """
         initialises the computer based on the configuration of the Dynamics
@@ -602,6 +634,7 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
         self.uses_evo_t2end = True
         self.scale_factor = None
         self.epsilon = 0.001
+        self.apply_params()
 
     def compute_fid_err_grad(self):
         """

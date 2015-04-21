@@ -229,8 +229,9 @@ class Dynamics:
         Default name for the output used when save_amps is called
 
     """
-    def __init__(self, optimconfig):
+    def __init__(self, optimconfig, params=None):
         self.config = optimconfig
+        self.params = params
         self.reset()
 
     def reset(self):
@@ -270,12 +271,30 @@ class Dynamics:
         self._dyn_gen_mapped = False
         self._timeslots_initialized = False
         self._ctrls_initialized = False
+        
+        self.apply_params()
 
         # Create the computing objects
         self._create_computers()
 
         self.clear()
-
+        
+    def apply_params(self, params=None):
+        """
+        Set object attributes based on the dictionary (if any) passed in the 
+        instantiation, or passed as a parameter
+        This is called during the instantiation automatically.
+        The key value pairs are the attribute name and value
+        Note: attributes are created if they do not exist already,
+        and are overwritten if they do.
+        """
+        if not params:
+            params = self.params
+        
+        if isinstance(params, dict):
+            for key, val in params.iteritems():
+                setattr(self, key, val)
+                
     def set_log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
@@ -291,7 +310,7 @@ class Dynamics:
         # The time slot computer. By default it is set to UpdateAll
         # can be set to DynUpdate in the configuration
         # (see class file for details)
-        if self.config.amp_update_mode == 'DYNAMIC':
+        if self.config.tslot_type == 'DYNAMIC':
             self.tslot_computer = tslotcomp.TSlotCompDynUpdate(self)
         else:
             self.tslot_computer = tslotcomp.TSlotCompUpdateAll(self)
@@ -679,6 +698,7 @@ class DynamicsUnitary(Dynamics):
         self.drift_ham = None
         self.ctrl_ham = None
         self.H = None
+        self.apply_params()
 
     def _create_computers(self):
         """
@@ -687,7 +707,7 @@ class DynamicsUnitary(Dynamics):
         # The time slot computer. By default it is set to _UpdateAll
         # can be set to _DynUpdate in the configuration
         # (see class file for details)
-        if self.config.amp_update_mode == 'DYNAMIC':
+        if self.config.tslot_type == 'DYNAMIC':
             self.tslot_computer = tslotcomp.TSlotCompDynUpdate(self)
         else:
             self.tslot_computer = tslotcomp.TSlotCompUpdateAll(self)
@@ -806,6 +826,7 @@ class DynamicsSymplectic(Dynamics):
         self.id_text = 'SYMPL'
         self.omega = None
         self.grad_exact = True
+        self.apply_params()
 
     def _create_computers(self):
         """
@@ -814,7 +835,7 @@ class DynamicsSymplectic(Dynamics):
         # The time slot computer. By default it is set to _UpdateAll
         # can be set to _DynUpdate in the configuration
         # (see class file for details)
-        if self.config.amp_update_mode == 'DYNAMIC':
+        if self.config.tslot_type == 'DYNAMIC':
             self.tslot_computer = tslotcomp.TSlotCompDynUpdate(self)
         else:
             self.tslot_computer = tslotcomp.TSlotCompUpdateAll(self)

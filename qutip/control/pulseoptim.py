@@ -48,6 +48,8 @@ The functions minimise this fidelity error wrt the piecewise control
 amplitudes in the timeslots
 """
 import numpy as np
+import warnings
+
 # QuTiP
 from qutip import Qobj
 import qutip.logging as logging
@@ -64,6 +66,15 @@ import qutip.control.propcomp as propcomp
 import qutip.control.pulsegen as pulsegen
 #import qutip.control.pulsegencrab as pulsegencrab
 
+warnings.simplefilter('always', DeprecationWarning) #turn off filter 
+def _param_deprecation(message, stacklevel=3):
+    """
+    Issue deprecation warning
+    Using stacklevel=3 will ensure message refers the function
+    calling with the deprecated parameter,
+    """
+    warnings.warn(message, DeprecationWarning, stacklevel=stacklevel)
+    
 def _upper_safe(s):
     try:
         s = s.upper()
@@ -528,10 +539,13 @@ def create_pulse_optimizer(
         max_iter=500, max_wall_time=180,
         alg='GRAPE', alg_params=None,
         optim_method='DEF', method_params=None,
-        optim_alg=None, max_metric_corr=10, accuracy_factor=1e7,
-        dyn_type='GEN_MAT', prop_type='DEF',
-        fid_type='DEF', phase_option=None, fid_err_scale_factor=None,
-        amp_update_mode='ALL',
+        optim_alg=None, max_metric_corr=None, accuracy_factor=None,
+        dyn_type='GEN_MAT', dyn_params=None,
+        prop_type='DEF', prop_params=None,
+        fid_type='DEF', fid_params=None,
+        phase_option=None, fid_err_scale_factor=None,
+        tslot_type='DEF', tslot_params=None,
+        amp_update_mode=None,
         init_pulse_type='DEF', pulse_scaling=1.0, pulse_offset=0.0,
         init_pulse_params=None,
         ramping_pulse_type=None, ramping_pulse_params=None,
@@ -623,36 +637,32 @@ def create_pulse_optimizer(
             GRAPE - Default optim_method is FMIN_L_BFGS_B
             CRAB - Default optim_method is Nelder-Mead
         
-    method_params : Dictionary
-        Options for the optim_method. 
-        Note that where there is an equivalent attribute of this instance
-        or the termination_conditions (for example maxiter)
-        it will override an value in these options
+    method_params : dict
+        Parameters for the optim_method. 
+        Note that where there is an attribute of the
+        Optimizer object or the termination_conditions matching the key 
+        that attribute. Otherwise, and in some case also, 
+        they are assumed to be method_options
+        for the scipy.optimize.minimize method.        
         
     optim_alg : string
-        Multi-variable optimisation algorithm
-        options are BFGS, LBFGSB
-        (see Optimizer classes for details)
+        Deprecated. Use optim_method.
 
     max_metric_corr : integer
-        The maximum number of variable metric corrections used to define
-        the limited memory matrix. That is the number of previous
-        gradient values that are used to approximate the Hessian
-        see the scipy.optimize.fmin_l_bfgs_b documentation for description
-        of m argument
-        (used only in L-BFGS-B)
+        Deprecated. Use method_params instead
 
     accuracy_factor : float
-        Determines the accuracy of the result.
-        Typical values for accuracy_factor are: 1e12 for low accuracy;
-        1e7 for moderate accuracy; 10.0 for extremely high accuracy
-        scipy.optimize.fmin_l_bfgs_b factr argument.
-        (used only in L-BFGS-B)
+        Deprecated. Use method_params instead
 
     dyn_type : string
         Dynamics type, i.e. the type of matrix used to describe
         the dynamics. Options are UNIT, GEN_MAT, SYMPL
         (see Dynamics classes for details)
+        
+    dyn_params : dict
+        Parameters for the Dynamics object
+        The key value pairs are assumed to be attribute name value pairs
+        They applied after the object is created
 
     prop_type : string
         Propagator type i.e. the method used to calculate the
@@ -661,32 +671,43 @@ def create_pulse_optimizer(
         DEF will use the default for the specific dyn_type
         (see PropagatorComputer classes for details)
 
+    prop_params : dict
+        Parameters for the PropagatorComputer object
+        The key value pairs are assumed to be attribute name value pairs
+        They applied after the object is created
+        
     fid_type : string
         Fidelity error (and fidelity error gradient) computation method
         Options are DEF, UNIT, TRACEDIFF, TD_APPROX
         DEF will use the default for the specific dyn_type
         (See FidelityComputer classes for details)
 
+    fid_params : dict
+        Parameters for the FidelityComputer object
+        The key value pairs are assumed to be attribute name value pairs
+        They applied after the object is created
+        
     phase_option : string
-        determines how global phase is treated in fidelity
-        calculations (fid_type='UNIT' only). Options:
-            PSU - global phase ignored
-            SU - global phase included
+        Deprecated. Pass in fid_params instead.
 
     fid_err_scale_factor : float
-        (used in TRACEDIFF FidelityComputer and subclasses only)
-        The fidelity error calculated is of some arbitary scale. This
-        factor can be used to scale the fidelity error such that it may
-        represent some physical measure
-        If None is given then it is caculated as 1/2N, where N
-        is the dimension of the drift.
+        Deprecated. Use scale_factor key in fid_params instead.
 
-    amp_update_mode : string
-        determines whether propagators are calculated
-        Options: DEF, ALL, DYNAMIC (needs work)
-        DEF will use the default for the specific dyn_type
+    tslot_type : string
+        Method for computing the dynamics generators, propagators and 
+        evolution in the timeslots.
+        Options: DEF, UPDATE_ALL, DYNAMIC
+        UPDATE_ALL is the only one that currently works
         (See TimeslotComputer classes for details)
-
+        
+    tslot_params : dict
+        Parameters for the TimeslotComputer object
+        The key value pairs are assumed to be attribute name value pairs
+        They applied after the object is created
+        
+    amp_update_mode : string
+        Deprecated. Use tslot_type instead.
+        
     init_pulse_type : string
         type / shape of pulse(s) used to initialise the
         the control amplitudes. 
@@ -694,18 +715,34 @@ def create_pulse_optimizer(
             RND, LIN, ZERO, SINE, SQUARE, TRIANGLE, SAW
         DEF is RND
         (see PulseGen classes for details)
-        for the CRAB the this determines the pulse generator type for each
-        control. Currently only option is: CRAB_FOURIER
+        For the CRAB the this the guess_pulse_type. 
+
+    init_pulse_params : dict
+        Parameters for the initial / guess pulse generator object
+        The key value pairs are assumed to be attribute name value pairs
+        They applied after the object is created
 
     pulse_scaling : float
-        Linear scale factor for generated pulses
+        Linear scale factor for generated initial / guess pulses
         By default initial pulses are generated with amplitudes in the
         range (-1.0, 1.0). These will be scaled by this parameter
 
     pulse_offset : float
         Linear offset for the pulse. That is this value will be added
-        to any initial pulses generated.
-
+        to any initial / guess pulses generated.
+        
+    ramping_pulse_type : string
+        Type of pulse used to modulate the control pulse.
+        It's intended use for a ramping modulation, which is often required in 
+        experimental setups.
+        This is only currently implemented in CRAB.
+        GAUSSIAN_EDGE was added for this purpose.
+        
+    ramping_pulse_params : dict
+        Parameters for the ramping pulse generator object
+        The key value pairs are assumed to be attribute name value pairs
+        They applied after the object is created
+    
     log_level : integer
         level of messaging output from the logger.
         Options are attributes of qutip.logging,
@@ -761,8 +798,30 @@ def create_pulse_optimizer(
         target = target.full()
         
     # Deprecated parameter management
-    if optim_alg:
+    if not optim_alg is None:
         optim_method = optim_alg
+        _param_deprecation(
+            "The 'optim_alg' parameter is deprecated. "
+            "Use 'optim_method' instead")
+    if not max_metric_corr is None:
+        if isinstance(optim_params, dict):
+            if not 'max_metric_corr' in optim_params:
+                 optim_params['max_metric_corr'] = max_metric_corr
+        else:
+            optim_params = {'max_metric_corr':max_metric_corr}
+        _param_deprecation(
+            "The 'max_metric_corr' parameter is deprecated. "
+            "Use 'max_metric_corr' in optim_params instead")
+            
+    if not accuracy_factor is None:
+        if isinstance(optim_params, dict):
+            if not 'accuracy_factor' in optim_params:
+                 optim_params['accuracy_factor'] = accuracy_factor
+        else:
+            optim_params = {'accuracy_factor':accuracy_factor}
+        _param_deprecation(
+            "The 'accuracy_factor' parameter is deprecated. "
+            "Use 'accuracy_factor' in optim_params instead")
       
     # set algorithm defaults
     alg_up = _upper_safe(alg)
@@ -778,21 +837,7 @@ def create_pulse_optimizer(
         if optim_method is None or optim_method.upper() == 'DEF':
             optim_method = 'FMIN'
         if prop_type is None or prop_type.upper() == 'DEF':
-            prop_type = 'APPROX'
-        #Use equivalent parameters for alg_params
-#        if init_pulse_type is None or init_pulse_type.upper() == 'DEF':
-#            # Ignore as there are no other equivalent params
-#            pass
-#        else:
-#            if not isinstance(alg_params, dict):
-#                alg_params = {}
-#            if not 'guess_pulse_type' in alg_params:
-#                alg_params['guess_pulse_type'] = init_pulse_type
-#            if not 'guess_pulse_scaling' in alg_params:
-#                alg_params['guess_pulse_scaling'] = pulse_scaling
-#            if not 'guess_pulse_offset' in alg_params:
-#                alg_params['guess_pulse_offset'] = pulse_offset
-                
+            prop_type = 'APPROX'                
     else:
         raise errors.UsageError(
             "No option for pulse optimisation algorithm alg={}".format(alg))

@@ -1002,7 +1002,7 @@ class PulseGenCrab(PulseGen):
                 self.num_coeffs = self.DEF_NUM_COEFFS
                 
         self.num_basis_funcs = 2
-        self.num_optim_params = self.num_coeffs*self.num_basis_funcs
+        self.num_optim_vars = self.num_coeffs*self.num_basis_funcs
         self.coeffs = None
         self._uses_time = True
         self.time = None
@@ -1017,7 +1017,7 @@ class PulseGenCrab(PulseGen):
         """
         PulseGen.init_pulse(self)
         self.init_coeffs(num_coeffs=num_coeffs)
-        self.num_optim_params = self.num_coeffs*self.num_basis_funcs
+        self.num_optim_vars = self.num_coeffs*self.num_basis_funcs
         if self.guess_pulse is not None:
             self.init_guess_pulse()
         self._init_bounds()
@@ -1056,7 +1056,7 @@ class PulseGenCrab(PulseGen):
         num_coeffs = max(4, 2*dim - 2)
         return num_coeffs
         
-    def get_optim_param_vals(self):
+    def get_optim_var_vals(self):
         """
         Get the parameter values to be optimised
         Returns
@@ -1065,7 +1065,7 @@ class PulseGenCrab(PulseGen):
         """
         return self.coeffs.flatten()
     
-    def set_optim_param_vals(self, param_vals):
+    def set_optim_var_vals(self, param_vals):
         """
         Set the values of the any of the pulse generation parameters
         based on new values from the optimisation method
