@@ -112,6 +112,7 @@ class PropagatorComputer:
             params = self.params
         
         if isinstance(params, dict):
+            self.params = params
             for key, val in params.iteritems():
                 setattr(self, key, val)
 

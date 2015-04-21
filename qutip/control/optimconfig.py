@@ -87,39 +87,6 @@ class OptimConfig:
         DEF will use the default for the specific dyn_type
         (See FidelityComputer classes for details)
 
-    phase_option : string
-        determines how global phase is treated in fidelity
-        calculations (fid_type='UNIT' only). Options:
-            PSU - global phase ignored
-            SU - global phase included
-
-    amp_lbound : float or list of floats
-        lower boundaries for the control amplitudes
-        Can be a scalar value applied to all controls
-        or a list of bounds for each control
-        (used in contrained methods only e.g. L-BFGS-B)
-
-    amp_ubound : float or list of floats
-        upper boundaries for the control amplitudes
-        Can be a scalar value applied to all controls
-        or a list of bounds for each control
-        (used in contrained methods only e.g. L-BFGS-B)
-
-    max_metric_corr : integer
-        The maximum number of variable metric corrections used to define
-        the limited memory matrix. That is the number of previous
-        gradient values that are used to approximate the Hessian
-        see the scipy.optimize.fmin_l_bfgs_b documentation for description
-        of m argument
-        (used only in L-BFGS-B)
-
-    accuracy_factor : float
-        Determines the accuracy of the result.
-        Typical values for accuracy_factor are: 1e12 for low accuracy;
-        1e7 for moderate accuracy; 10.0 for extremely high accuracy
-        scipy.optimize.fmin_l_bfgs_b factr argument.
-        (used only in L-BFGS-B)
-
     test_out_dir : string
         Directory where test output files will be saved
         By default this is a sub directory called 'test_out'

@@ -146,14 +146,25 @@ class Optimizer:
         Note that where there is an equivalent attribute of this instance
         or the termination_conditions (for example maxiter)
         it will override an value in these options
+
+    amp_lbound : float or list of floats
+        lower boundaries for the control amplitudes
+        Can be a scalar value applied to all controls
+        or a list of bounds for each control
+
+    amp_ubound : float or list of floats
+        upper boundaries for the control amplitudes
+        Can be a scalar value applied to all controls
+        or a list of bounds for each control
         
     bounds : List of floats
         Bounds for the parameters.
         If not set before the run_optimization call then the list
-        is built automatically based on the param_lbound and param_ubound
+        is built automatically based on the amp_lbound and amp_ubound
         attributes.
         Setting this attribute directly allows specific bounds to be set
         for individual parameters.
+        Note: Only some methods use bounds
 
     dynamics : Dynamics (subclass instance)
         describes the dynamics of the (quantum) system to be control optimised
@@ -194,6 +205,8 @@ class Optimizer:
         self.method = 'Nelder-mead'
         self.method_params = None
         self.method_options = None
+        self.amp_lbound = None
+        self.amp_ubound = None
         self.bounds = None
         self.num_iter = 0
         self.num_fid_func_calls = 0
@@ -204,6 +217,15 @@ class Optimizer:
         self._iter_fpath = None
         self._fid_err_fpath = None
         self._grad_norm_fpath = None
+
+        # AJGP 2015-04-21: 
+        # These (copying from config) are here for backward compatibility
+        if hasattr(self.config, 'amp_lbound'):
+            if self.config.amp_lbound:
+                self.amp_lbound = self.config.amp_lbound
+        if hasattr(self.config, 'amp_ubound'):
+            if self.config.amp_ubound:
+                self.amp_ubound = self.config.amp_ubound
 
     def set_log_level(self, lvl):
         """
@@ -371,6 +393,7 @@ class Optimizer:
             params = self.method_params
         
         if isinstance(params, dict):
+            self.method_params = params
             unused_params = {}
             for key, val in params.iteritems():
                 if hasattr(self, key):
@@ -394,18 +417,18 @@ class Optimizer:
         self.bounds = []
         for t in range(dyn.num_tslots):
             for c in range(n_ctrls):
-                if isinstance(cfg.amp_lbound, list):
-                    lb = cfg.amp_lbound[c]
+                if isinstance(self.amp_lbound, list):
+                    lb = self.amp_lbound[c]
                 else:
-                    lb = cfg.amp_lbound
-                if isinstance(cfg.amp_ubound, list):
-                    ub = cfg.amp_ubound[c]
+                    lb = self.amp_lbound
+                if isinstance(self.amp_ubound, list):
+                    ub = self.amp_ubound[c]
                 else:
-                    ub = cfg.amp_ubound
+                    ub = self.amp_ubound
                 
-                if np.isinf(lb):
+                if not lb is None and np.isinf(lb):
                     lb = None
-                if np.isinf(ub):
+                if not ub is None and np.isinf(ub):
                     ub = None
                     
                 self.bounds.append((lb, ub))
@@ -768,16 +791,19 @@ class OptimizerLBFGSB(Optimizer):
 
     def reset(self):
         Optimizer.reset(self)
+        self.id_text = 'LBFGSB'
         self.max_metric_corr = 10
+        self.accuracy_factor = 1e7
+        
+        # AJGP 2015-04-21: 
+        # These (copying from config) are here for backward compatibility
         if hasattr(self.config, 'max_metric_corr'):
             if self.config.max_metric_corr:
                 self.max_metric_corr = self.config.max_metric_corr
-        self.accuracy_factor = 1e7
         if hasattr(self.config, 'accuracy_factor'):
             if self.config.accuracy_factor:
                 self.accuracy_factor = self.config.accuracy_factor
-        self.id_text = 'LBFGSB'
-
+        
     def run_optimization(self, term_conds=None):
         """
         Optimise the control pulse amplitudes to minimise the fidelity error

@@ -220,6 +220,7 @@ class PulseGen:
             params = self.params
         
         if isinstance(params, dict):
+            self.params = params
             for key, val in params.iteritems():
                 setattr(self, key, val)
 
@@ -961,7 +962,15 @@ class PulseGenCrab(PulseGen):
     
     Attributes
     ----------
-    AJGP ToDo: 
+    num_coeffs : integer
+        Number of coefficients used for each basis function
+        
+    num_basis_funcs : integer
+        Number of basis functions
+        In this case set at 2 and should not be changed
+        
+    coeffs : float array[num_coeffs, num_basis_funcs]
+        The basis coefficient values
     """
     def __init__(self, dyn=None, num_coeffs=None, params=None):
         self.parent = dyn
@@ -1160,23 +1169,7 @@ class PulseGenCrab(PulseGen):
             return pulse
         else:
             return pulse
-            
-
-        
-#    def apply_guess_pulse(self, pulse):
-#        """
-#        Applies the guess pulse to the given pulse
-#        This is either a modulation or addition depending on the function
-#        that is set in 
-#        
-#        Returns
-#        -------
-#        pulse : float array
-#            piecewise control amplitudes
-#        """
-#        if self.guess_pulsegen is None:
-#            raise errors.UsageError("No guess pulse to apply")
-        
+       
 
 class PulseGenCrabFourier(PulseGenCrab):
     """
@@ -1184,16 +1177,6 @@ class PulseGenCrabFourier(PulseGenCrab):
 
     Attributes
     ----------
-    num_coeffs : integer
-        Number of coefficients used for each basis function
-        
-    num_basis_funcs : integer
-        Number of basis functions
-        In this case set at 2 and should not be changed
-        
-    coeffs : float array[num_coeffs, num_basis_funcs]
-        The basis coefficient values
-
     freqs : float array[num_coeffs]
         Frequencies for the basis functions
     """
