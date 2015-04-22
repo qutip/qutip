@@ -46,6 +46,47 @@ The fidelity error is some measure of distance of the system evolution
 from the given target evolution in the time allowed for the evolution.
 The functions minimise this fidelity error wrt the piecewise control
 amplitudes in the timeslots
+
+There are currently two quantum control pulse optmisations algorithms
+implemented in this library. There are accessible through the methods
+in this module. Both the algorithms use the scipy.optimize methods
+to minimise the fidelity error with respect to to variables that define
+the pulse.
+
+GRAPE
+-----
+The default algorithm (as it was implemented here first) is GRAPE
+GRadient Ascent Pulse Engineering [1][2]. It uses a gradient based method such
+as BFGS to minimise the fidelity error. This makes convergence very quick
+when an exact gradient can be calculated, but this limits the factors that can
+taken into account in the fidelity.
+
+CRAB
+----
+The CRAB [3][4] algorithm was developed at the University of Ulm.
+In full it is the Chopped RAndom Basis algorithm.
+The main difference is that it reduces the number of optimisation variables 
+by defining the control pulses by expansions of basis functions, 
+where the variables are the coefficients. Typically a Fourier series is chosen, 
+i.e. the variables are the Fourier coefficients. 
+Therefore it does not need to compute an explicit gradient. 
+By default it uses the Nelder-Mead method for fidelity error minimisation. 
+
+References
+----------
+1.  N Khaneja et. al. 
+    Optimal control of coupled spin dynamics: Design of NMR pulse sequences 
+    by gradient ascent algorithms. J. Magn. Reson. 172, 296–305 (2005).
+2.  Shai Machnes et.al
+    DYNAMO - Dynamic Framework for Quantum Optimal Control
+    arXiv.1011.4874
+3.  Doria, P., Calarco, T. & Montangero, S. 
+    Optimal Control Technique for Many-Body Quantum Dynamics. 
+    Phys. Rev. Lett. 106, 1–4 (2011).
+4.  Caneva, T., Calarco, T. & Montangero, S. 
+    Chopped random-basis quantum optimization. 
+    Phys. Rev. A - At. Mol. Opt. Phys. 84, (2011).
+
 """
 import numpy as np
 import warnings
