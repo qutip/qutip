@@ -1020,7 +1020,7 @@ def opt_pulse_crab(
         drift, ctrls, initial, target,
         num_tslots=num_tslots, evo_time=evo_time, tau=tau,
         amp_lbound=amp_lbound, amp_ubound=amp_ubound,
-        fid_err_targ=fid_err_targ,
+        fid_err_targ=fid_err_targ, min_grad=0.0,
         max_iter=max_iter, max_wall_time=max_wall_time,
         alg='CRAB', alg_params=alg_params,
         optim_method=optim_method, method_params=method_params,
@@ -1277,7 +1277,7 @@ def opt_pulse_crab_unitary(
         H_d, H_c, U_0, U_targ,
         num_tslots=num_tslots, evo_time=evo_time, tau=tau,
         amp_lbound=amp_lbound, amp_ubound=amp_ubound,
-        fid_err_targ=fid_err_targ,
+        fid_err_targ=fid_err_targ, min_grad=0.0,
         max_iter=max_iter, max_wall_time=max_wall_time,
         alg='CRAB', alg_params=alg_params,
         optim_method=optim_method, method_params=method_params,
@@ -1629,7 +1629,9 @@ def create_pulse_optimizer(
         if optim_method is None or optim_method.upper() == 'DEF':
             optim_method = 'FMIN'
         if prop_type is None or prop_type.upper() == 'DEF':
-            prop_type = 'APPROX'                
+            prop_type = 'APPROX'
+        if init_pulse_type is None or init_pulse_type.upper() == 'DEF':
+            init_pulse_type = None
     else:
         raise errors.UsageError(
             "No option for pulse optimisation algorithm alg={}".format(alg))
@@ -1785,7 +1787,10 @@ def create_pulse_optimizer(
         if isinstance(alg_params, dict):
             num_coeffs = alg_params.get('num_coeffs')
             init_coeff_scaling = alg_params.get('init_coeff_scaling')
-
+        else:
+            num_coeffs = None
+            init_coeff_scaling = None
+            
         guess_pulse_type = init_pulse_type
         if guess_pulse_type:
             guess_pgen = pulsegen.create_pulse_gen(

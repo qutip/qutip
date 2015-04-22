@@ -989,32 +989,12 @@ class PulseGenCrab(PulseGen):
         self._BSC_GT_MEAN = 2
         self._BSC_LT_MEAN = 3
         
-        if not self.num_coeffs:
-            if isinstance(self.parent, dynamics.Dynamics):
-                dim = self.parent.get_drift_dim()
-                self.num_coeffs = self.estimate_num_coeffs(dim)
-                if self.log_level <= logging.INFO:
-                    logger.info(
-                        "The number of CRAB coefficients has been estimated "
-                        "as {} based on the dimension ({}) of the "
-                        "system".format(self.num_coeffs, dim))
-                # Issue warning if beyond the recommended level
-                if self.log_level <= logging.WARN:
-                    if self.num_coeffs > self.NUM_COEFFS_WARN_LVL:
-                        logger.warn(
-                            "The estimated number of coefficients {} exceeds "
-                            "the amount ({}) recommended for efficient "
-                            "optimisation. You can set this level explicitly "
-                            "to suppress this message.".format(
-                                self.num_coeffs, self.NUM_COEFFS_WARN_LVL))
-            else:
-                self.num_coeffs = self.DEF_NUM_COEFFS
-                
-        self.num_basis_funcs = 2
-        self.num_optim_vars = self.num_coeffs*self.num_basis_funcs
-        self.coeffs = None
         self._uses_time = True
         self.time = None
+        self.num_basis_funcs = 2
+        self.num_optim_vars = 0
+        self.coeffs = None
+        self._num_coeffs_estimated = False
         self.guess_pulse_action = 'MODULATE'
         self.guess_pulse = None
         self.guess_pulse_func = None
@@ -1026,10 +1006,17 @@ class PulseGenCrab(PulseGen):
         """
         PulseGen.init_pulse(self)
         self.init_coeffs(num_coeffs=num_coeffs)
-        self.num_optim_vars = self.num_coeffs*self.num_basis_funcs
+        
         if self.guess_pulse is not None:
             self.init_guess_pulse()
         self._init_bounds()
+        
+        if self.log_level <= logging.DEBUG and not self._num_coeffs_estimated:
+            logger.debug(
+                    "CRAB pulse initialised with {} coefficients per basis "
+                    "function, which means a total of {} "
+                    "optimisation variables for this pulse".format(
+                            self.num_coeffs, self.num_optim_vars))
         
 #    def generate_guess_pulse(self)
 #        if isinstance(self.guess_pulsegen, PulseGen):
@@ -1049,6 +1036,34 @@ class PulseGenCrab(PulseGen):
         """
         if num_coeffs:
             self.num_coeffs = num_coeffs
+            
+        if not self.num_coeffs:
+            if isinstance(self.parent, dynamics.Dynamics):
+                dim = self.parent.get_drift_dim()
+                self.num_coeffs = self.estimate_num_coeffs(dim)
+                self._num_coeffs_estimated = True
+            else:
+                self.num_coeffs = self.DEF_NUM_COEFFS
+        self.num_optim_vars = self.num_coeffs*self.num_basis_funcs
+        
+        if self._num_coeffs_estimated:
+            if self.log_level <= logging.INFO:
+                logger.info(
+                    "The number of CRAB coefficients per basis function "
+                    "has been estimated as {}, which means a total of {} "
+                    "optimisation variables for this pulse. Based on the "
+                    "dimension ({}) of the system".format(
+                            self.num_coeffs, self.num_optim_vars, dim))
+            # Issue warning if beyond the recommended level
+            if self.log_level <= logging.WARN:
+                if self.num_coeffs > self.NUM_COEFFS_WARN_LVL:
+                    logger.warn(
+                        "The estimated number of coefficients {} exceeds "
+                        "the amount ({}) recommended for efficient "
+                        "optimisation. You can set this level explicitly "
+                        "to suppress this message.".format(
+                            self.num_coeffs, self.NUM_COEFFS_WARN_LVL))
+                            
         # For now just use the scaling and offset attributes
         r = np.random.random([self.num_coeffs, self.num_basis_funcs])
         self.coeffs = (2*r - 1.0) * self.scaling
@@ -1062,7 +1077,7 @@ class PulseGenCrab(PulseGen):
         num_coeffs : int
             estimated number of coefficients
         """
-        num_coeffs = max(4, 2*dim - 2)
+        num_coeffs = max(2, dim - 1)
         return num_coeffs
         
     def get_optim_var_vals(self):
@@ -1072,7 +1087,7 @@ class PulseGenCrab(PulseGen):
         -------
         list (or 1d array) of floats 
         """
-        return self.coeffs.flatten()
+        return self.coeffs.ravel().tolist()
     
     def set_optim_var_vals(self, param_vals):
         """

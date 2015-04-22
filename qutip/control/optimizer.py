@@ -967,8 +967,8 @@ class OptimizerCrab(Optimizer):
         ndarray (1d) of float
         """
         pvals = []
-        for p_gen in self.pulse_generator:
-            pvals.append(p_gen.get_optim_var_vals())
+        for pgen in self.pulse_generator:
+            pvals.extend(pgen.get_optim_var_vals())
             
         return np.array(pvals)
                 
@@ -1051,6 +1051,7 @@ class OptimizerCrabFmin(OptimizerCrab):
         dyn = self.dynamics
         cfg = self.config
         self.optim_var_vals = self._get_optim_var_vals()
+        #print("Initial values:\n{}".format(self.optim_var_vals))
         st_time = timeit.default_timer()
         self.wall_time_optimize_start = st_time
 
