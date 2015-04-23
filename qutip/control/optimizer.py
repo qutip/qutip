@@ -195,14 +195,15 @@ class Optimizer:
 
     def reset(self):
         self.set_log_level(self.config.log_level)
-        self.id_text = 'OPTIM_GRAPE'
+        self.id_text = 'OPTIM'
         self.termination_conditions = None
         self.pulse_generator = None
         self.disp_conv_msg = False
         self.iteration_steps = None
         self.record_iteration_steps=False
+        self.alg = 'GRAPE'
         self.alg_params = None
-        self.method = 'Nelder-mead'
+        self.method = 'l_bfgs_b'
         self.method_params = None
         self.method_options = None
         self.amp_lbound = None
@@ -369,6 +370,11 @@ class Optimizer:
         if self.method_options is None:
             self.method_options = {}
         mo = self.method_options
+        
+        if hasattr(self, 'max_metric_corr') and not 'maxcor' in mo:
+            mo['maxcor'] = self.max_metric_corr
+        if hasattr(tc, 'accuracy_factor') and not 'ftol' in mo:
+            mo['ftol'] = tc.accuracy_factor
         if tc.max_iterations > 0 and not 'maxiter' in mo:
             mo['maxiter'] = tc.max_iterations
         if tc.max_fid_func_calls > 0 and not 'maxfev' in mo:
@@ -479,16 +485,21 @@ class Optimizer:
         self._build_method_options()
         
         result = self._create_result()
+        
+        if self.alg == 'CRAB':
+            jac=None
+        else:
+            jac=self.fid_err_grad_wrapper
 
         if self.log_level <= logging.INFO:
-            logger.info("Optimising pulse using '{}' method".format(
-                                    self.method))
+            logger.info("Optimising pulse(s) using {} with "
+                        "minimise '{}' method".format(self.alg, self.method))
 
         try:
             opt_res = spopt.minimize(
                 self.fid_err_func_wrapper, self.optim_var_vals,
                 method=self.method,
-                jac=self.fid_err_grad_wrapper,
+                jac=jac,
                 bounds=self.bounds,
                 options=self.method_options,
                 callback=self.iter_step_callback_func)
@@ -729,6 +740,8 @@ class OptimizerBFGS(Optimizer):
         term_conds = self.termination_conditions
         dyn = self.dynamics
         self.optim_var_vals = self._get_optim_var_vals()
+        self._build_method_options()
+        
         st_time = timeit.default_timer()
         self.wall_time_optimize_start = st_time
 
@@ -736,16 +749,25 @@ class OptimizerBFGS(Optimizer):
             self.stats.wall_time_optim_start = st_time
             self.stats.wall_time_optim_end = 0.0
             self.stats.num_iter = 1
+            
+        if self.alg == 'CRAB':
+            fprime = None
+            approx_grad = True
+        else:
+            fprime = self.fid_err_grad_wrapper
+            approx_grad = False
 
         if self.log_level <= logging.INFO:
-            logger.info("Optimising pulse using BFGS")
+            logger.info("Optimising pulse(s) using {} with "
+                        "'fmin_bfgs' method".format(self.alg))
 
         result = self._create_result()
         try:
             optim_var_vals, cost, grad, invHess, nFCalls, nGCalls, warn = \
                 spopt.fmin_bfgs(self.fid_err_func_wrapper, 
                                 self.optim_var_vals,
-                                fprime=self.fid_err_grad_wrapper,
+                                fprime=fprime,
+                                approx_grad=approx_grad,
                                 callback=self.iter_step_callback_func,
                                 gtol=term_conds.min_gradient_norm,
                                 maxiter=term_conds.max_iterations,
@@ -782,18 +804,23 @@ class OptimizerLBFGSB(Optimizer):
         see the scipy.optimize.fmin_l_bfgs_b documentation for description
         of m argument
 
-    accuracy_factor : float
-        Determines the accuracy of the result.
-        Typical values for accuracy_factor are: 1e12 for low accuracy;
-        1e7 for moderate accuracy; 10.0 for extremely high accuracy
-        scipy.optimize.fmin_l_bfgs_b factr argument.
     """
 
     def reset(self):
         Optimizer.reset(self)
         self.id_text = 'LBFGSB'
         self.max_metric_corr = 10
-        self.accuracy_factor = 1e7
+        self.msg_level = None
+        
+    def init_optim(self, term_conds):
+        """
+        Check optimiser attribute status and passed parameters before
+        running the optimisation.
+        This is called by run_optimization, but could called independently
+        to check the configuration.
+        """
+        if term_conds is None:
+            term_conds = self.termination_conditions
         
         # AJGP 2015-04-21: 
         # These (copying from config) are here for backward compatibility
@@ -802,7 +829,18 @@ class OptimizerLBFGSB(Optimizer):
                 self.max_metric_corr = self.config.max_metric_corr
         if hasattr(self.config, 'accuracy_factor'):
             if self.config.accuracy_factor:
-                self.accuracy_factor = self.config.accuracy_factor
+                term_conds.accuracy_factor = \
+                            self.config.accuracy_factor
+        
+        Optimizer.init_optim(self, term_conds)
+        
+        if not isinstance(self.msg_level, int):
+            if self.log_level < logging.DEBUG:
+                self.msg_level  = 2
+            elif self.log_level <= logging.DEBUG:
+                self.msg_level  = 1
+            else:
+                self.msg_level  = 0
         
     def run_optimization(self, term_conds=None):
         """
@@ -834,6 +872,8 @@ class OptimizerLBFGSB(Optimizer):
         dyn = self.dynamics
         cfg = self.config
         self.optim_var_vals = self._get_optim_var_vals()
+        self._build_method_options()
+        
         st_time = timeit.default_timer()
         self.wall_time_optimize_start = st_time
 
@@ -844,26 +884,45 @@ class OptimizerLBFGSB(Optimizer):
 
         bounds = self._build_bounds_list()
         result = self._create_result()
-        if self.log_level < logging.DEBUG:
-            alg_msg_lvl = 1
-        elif self.log_level == logging.DEBUG:
-            alg_msg_lvl = 0
+        
+        if self.alg == 'CRAB':
+            fprime = None
+            approx_grad = True
         else:
-            alg_msg_lvl = -1
+            fprime = self.fid_err_grad_wrapper
+            approx_grad = False
+            
+        if 'ftol' in self.method_options:
+            factr = self.method_options['ftol']
+        elif 'accuracy_factor' in self.method_options:
+            factr = self.method_options['accuracy_factor']
+        elif hasattr(term_conds, 'accuracy_factor'):
+            factr = term_conds.accuracy_factor
+        else:
+            factr = 1e7
+            
+        if 'maxcor' in self.method_options:
+            m = self.method_options['maxcor']
+        elif 'max_metric_corr' in self.method_options:
+            m = self.method_options['max_metric_corr']
+        elif hasattr(self, 'max_metric_corr'):
+            m = self.max_metric_corr
+        else:
+            m = 10
 
         if self.log_level <= logging.INFO:
-            logger.info("Optimising pulse using L-BFGS-B")
+            logger.info("Optimising pulse(s) using {} with "
+                        "'fmin_l_bfgs_b' method".format(self.alg))
 
         try:
             optim_var_vals, fid, res_dict = spopt.fmin_l_bfgs_b(
                 self.fid_err_func_wrapper, self.optim_var_vals,
-                fprime=self.fid_err_grad_wrapper,
+                fprime=fprime,
+                approx_grad=approx_grad,
                 callback=self.iter_step_callback_func,
-                bounds=bounds,
-                m=self.max_metric_corr,
-                factr=self.accuracy_factor,
+                bounds=bounds, m=m, factr=factr,
                 pgtol=term_conds.min_gradient_norm,
-                iprint=alg_msg_lvl,
+                disp=self.msg_level,
                 maxfun=term_conds.max_fid_func_calls,
                 maxiter=term_conds.max_iterations)
 
@@ -1051,6 +1110,8 @@ class OptimizerCrabFmin(OptimizerCrab):
         dyn = self.dynamics
         cfg = self.config
         self.optim_var_vals = self._get_optim_var_vals()
+        self._build_method_options()
+        
         #print("Initial values:\n{}".format(self.optim_var_vals))
         st_time = timeit.default_timer()
         self.wall_time_optimize_start = st_time
@@ -1063,8 +1124,8 @@ class OptimizerCrabFmin(OptimizerCrab):
         result = self._create_result()
 
         if self.log_level <= logging.INFO:
-            logger.info("Optimising pulse using '{}' method".format(
-                                    self.method))
+            logger.info("Optimising pulse(s) using {} with "
+                        "'fmin' (Nelder-Mead) method".format(self.alg))
 
         try:
             ret = spopt.fmin(

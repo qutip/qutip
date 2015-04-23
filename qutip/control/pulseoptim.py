@@ -461,9 +461,9 @@ def optimize_pulse(
         for j in range(dyn.num_ctrls):
             msg += "\nControl {} {}:\n".format(j+1, dg_name)
             msg += str(dyn.ctrl_dyn_gen[j])
-        msg += "\nInitial operator:\n"
+        msg += "\nInitial state / operator:\n"
         msg += str(dyn.initial)
-        msg += "\nTarget operator:\n"
+        msg += "\nTarget state / operator:\n"
         msg += str(dyn.target)
         logger.info(msg)
 
@@ -1768,7 +1768,8 @@ def create_pulse_optimizer(
             optim = optimizer.OptimizerCrab(cfg, dyn)
         else:
             optim = optimizer.Optimizer(cfg, dyn)
-            
+    
+    optim.alg = alg
     optim.method = optim_method
     
     # Create the TerminationConditions instance
@@ -1824,19 +1825,23 @@ def create_pulse_optimizer(
                             pulse_type=ramping_pulse_type, dyn=dyn, 
                             pulse_params=ramping_pulse_params)
     if alg_up == 'CRAB':
-        # Create a pulse generator for each ctrl    
+        # Create a pulse generator for each ctrl
+        crab_pulse_params = None
+        num_coeffs = None
+        init_coeff_scaling = None
         if isinstance(alg_params, dict):
             num_coeffs = alg_params.get('num_coeffs')
             init_coeff_scaling = alg_params.get('init_coeff_scaling')
-        else:
-            num_coeffs = None
-            init_coeff_scaling = None
+            if 'crab_pulse_params' in alg_params:
+                crab_pulse_params = alg_params.get('crab_pulse_params')
             
         guess_pulse_type = init_pulse_type
         if guess_pulse_type:
             guess_pgen = pulsegen.create_pulse_gen(
-                                pulse_type=guess_pulse_type, dyn=dyn, 
-                                pulse_params=init_pulse_params)
+                                pulse_type=guess_pulse_type, dyn=dyn)
+            guess_pgen.scaling = pulse_scaling
+            guess_pgen.offset = pulse_offset
+            guess_pgen.apply_params(init_pulse_params)
             guess_pulse_action = init_pulse_params.get('pulse_action')
 
         optim.pulse_generator = []
@@ -1845,7 +1850,9 @@ def create_pulse_optimizer(
                                 dyn=dyn, num_coeffs=num_coeffs)
             if init_coeff_scaling is not None:
                 crab_pgen.scaling = init_coeff_scaling
-            
+            if isinstance(crab_pulse_params, dict):
+                crab_pgen.apply_params(crab_pulse_params)
+                
             lb = None
             if amp_lbound:
                 if isinstance(amp_lbound, list):
