@@ -93,11 +93,10 @@ class TimeslotComputer:
         The default NOTSET implies that the level will be taken from
         the QuTiP settings file, which by default is WARN
         Note value should be set using set_log_level
-
-
     """
-    def __init__(self, dynamics):
+    def __init__(self, dynamics, params=None):
         self.parent = dynamics
+        self.params = params
         self.reset()
 
     def reset(self):
@@ -107,6 +106,23 @@ class TimeslotComputer:
         self._owd_evo_tofh = 0
         self._prop_tofh = 0
         self._prop_grad_tofh = 0
+        
+    def apply_params(self, params=None):
+        """
+        Set object attributes based on the dictionary (if any) passed in the 
+        instantiation, or passed as a parameter
+        This is called during the instantiation automatically.
+        The key value pairs are the attribute name and value
+        Note: attributes are created if they do not exist already,
+        and are overwritten if they do.
+        """
+        if not params:
+            params = self.params
+        
+        if isinstance(params, dict):
+            self.params = params
+            for key, val in params.iteritems():
+                setattr(self, key, val)
 
     def flag_all_calc_now(self):
         pass
@@ -132,6 +148,7 @@ class TSlotCompUpdateAll(TimeslotComputer):
     def reset(self):
         TimeslotComputer.reset(self)
         self.id_text = 'ALL'
+        self.apply_params()
 
     def compare_amps(self, new_amps):
         """
@@ -366,6 +383,7 @@ class TSlotCompDynUpdate(TimeslotComputer):
         self.evo_t2targ_calc_now = None
         TimeslotComputer.reset(self)
         self.id_text = 'DYNAMIC'
+        self.apply_params()
 
     def init_comp(self):
         """
