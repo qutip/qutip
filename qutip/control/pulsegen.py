@@ -1036,7 +1036,8 @@ class PulseGenCrab(PulseGen):
         """
         if num_coeffs:
             self.num_coeffs = num_coeffs
-            
+        
+        self._num_coeffs_estimated = False
         if not self.num_coeffs:
             if isinstance(self.parent, dynamics.Dynamics):
                 dim = self.parent.get_drift_dim()
