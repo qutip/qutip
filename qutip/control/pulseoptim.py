@@ -1837,12 +1837,14 @@ def create_pulse_optimizer(
             
         guess_pulse_type = init_pulse_type
         if guess_pulse_type:
+            guess_pulse_action = None
             guess_pgen = pulsegen.create_pulse_gen(
                                 pulse_type=guess_pulse_type, dyn=dyn)
             guess_pgen.scaling = pulse_scaling
             guess_pgen.offset = pulse_offset
-            guess_pgen.apply_params(init_pulse_params)
-            guess_pulse_action = init_pulse_params.get('pulse_action')
+            if init_pulse_params is not None:
+                guess_pgen.apply_params(init_pulse_params)
+                guess_pulse_action = init_pulse_params.get('pulse_action')
 
         optim.pulse_generator = []
         for j in range(n_ctrls):
