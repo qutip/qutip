@@ -273,8 +273,8 @@ class QubitCircuit(object):
 
     def remove_gate(self, index=None, end=None, name=None, remove="first"):
         """
-        Removes a gate from a specific index or the first, last or all
-        instances of a particular gate.
+        Removes a gate from a specific index or between two indexes or the 
+        first, last or all instances of a particular gate.
 
         Parameters
         ----------
