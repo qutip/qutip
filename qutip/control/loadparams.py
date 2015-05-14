@@ -50,6 +50,8 @@ defined for that object
 import numpy as np
 from ConfigParser import SafeConfigParser
 # QuTiP logging
+from qutip import Qobj
+
 import qutip.logging as logging
 logger = logging.get_logger()
 
@@ -131,8 +133,32 @@ def set_param(parser, section, option, obj, attrib_name):
     if hasattr(obj, attrib_name):
         a = getattr(obj, attrib_name)
         dtype = type(a)
-
-    if dtype == float:
+        
+    if isinstance(a, Qobj):
+        try:
+            q = Qobj(eval(val))
+        except:
+            raise ValueError("Value '{}' cannot be used to generate a Qobj"
+                             " in parameter file [{}].{}".format(
+                                 val, section, option))
+        setattr(obj, attrib_name, q)
+    elif isinstance(a, np.ndarray):
+        try:
+            arr = np.array(eval(val), dtype=a.dtype)
+        except:
+            raise ValueError("Value '{}' cannot be used to generate an ndarray"
+                             " in parameter file [{}].{}".format(
+                                 val, section, option))
+        setattr(obj, attrib_name, arr)
+    elif isinstance(a, list):
+        try:
+            l = list(eval(val))
+        except:
+            raise ValueError("Value '{}' cannot be used to generate a list"
+                             " in parameter file [{}].{}".format(
+                                 val, section, option))
+        setattr(obj, attrib_name, l)
+    elif dtype == float:
         try:
             f = parser.getfloat(section, attrib_name)
         except:
