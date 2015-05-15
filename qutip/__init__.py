@@ -259,6 +259,9 @@ from qutip.countstat import *
 # quantum information
 from qutip.qip import *
 
+# open quantum system solver
+from qutip.ossolve import *
+
 # utilities
 from qutip.parallel import *
 from qutip.utilities import *
