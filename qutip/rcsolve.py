@@ -52,7 +52,6 @@ from numpy import matrix
 from numpy import linalg
 from qutip import spre, spost, sprepost, thermal_dm, mesolve, Odeoptions
 from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye
-from qutip.ipynbtools import HTMLProgressBar
 
 class rcsolve(object):
     """
@@ -167,7 +166,7 @@ class rcsolve(object):
         self.output = mesolve(H, psi0, self.tlist, [L],
                               [a.dag()*a,nL,nR,sm,sm.dag()],
                               options=Odeoptions(nsteps=15000),
-                              progress_bar=HTMLProgressBar())
+                              progress_bar=None)
         end_time = time.time()
         print("Integration required %g seconds" % (end_time - start_time))
         
