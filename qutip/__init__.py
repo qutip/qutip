@@ -255,12 +255,10 @@ from qutip.bloch_redfield import *
 from qutip.steadystate import *
 from qutip.correlation import *
 from qutip.countstat import *
+from qutip.rcsolve import *
 
 # quantum information
 from qutip.qip import *
-
-# open quantum system solver
-from qutip.ossolve import *
 
 # utilities
 from qutip.parallel import *
