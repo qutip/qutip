@@ -142,7 +142,7 @@ def rcsolve(Hsys, Q, wc=0.05, alpha=2.5/np.pi, N = 20,
     #and solve for time steps in tlist
     psi0 = (tensor(thermal_dm(N,nb), psi0L))
     output = mesolve(H, psi0, tlist, [L], return_vals,
-                     options=Options(nsteps=15000, store_states=True)
+                     options=Odeoptions(nsteps=15000, store_states=True))
     end_time = time.time()
     print("Integration required %g seconds" % (end_time - start_time))
     
