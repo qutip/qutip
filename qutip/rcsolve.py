@@ -34,155 +34,117 @@
 #Author: Neill Lambert
 #Contact: nwlambert@gmail.com
 
-"""
-We take a quantum system coupled to a bosonic environment and map to a model
-in which a collective mode of the environment, known as the reaction coordinate 
-(RC), is incorporated within an effective system Hamiltonian. We then treat the 
-residual environment within a full second-order Born-Markov master equation
-formalism. Thus, all important system-bath, and indeed intrabath, correlations 
-are incorporated into the system-RC Hamiltonian in the regimes we study.
-
-Furthur information can be found at link.aps.org/doi/10.1103/PhysRevA.90.032114 
-"""
-
 import time
 import numpy as np
 import scipy.sparse as sp
 from numpy import matrix
 from numpy import linalg
 from qutip import spre, spost, sprepost, thermal_dm, mesolve, Odeoptions
-from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye
+from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye, dims
 
-class rcsolve(object):
+def rcsolve(Hsys, Q, wc=0.05, alpha=2.5/np.pi, N = 20, 
+            Temperature = 1/0.95, tlist=None):
     """
-    Class to solve for an open quantum system using the reaction coordinate (RC)
-    model. 
+    Function to solve for an open quantum system using the
+    reaction coordinate (RC) model. 
+
+    Parameters
+    ----------
+    Hsys: Qobj
+        The system hamiltonian.
+    Q: Qobj
+        The coupling between system and bath.
+    wc: Float
+        Cutoff frequency.
+    alpha: Float
+        Coupling strength.
+    N: Integer
+        Number of cavity fock states.
+    Temperature: Float
+        Temperature. 
+    tlist: List.
+        Time over which system evolves.
+        
+    Returns
+    -------
+    output: List
+        System evolution.
     """
-    
-    def __init__(self, Del=1.0, wc=0.05, wq=0.5, alpha=2.5/np.pi, N = 20, 
-                 Temperature = 1/0.95, tlist=None, output=None):
-        """
-        Parameters
-        ----------
-        Del: Float
-            The number of qubits in the system.
-        wc: Float
-            Cutoff frequency.
-        wq: Float
-            Energy of the 2-level system.
-        alpha: Float
-            Coupling strength.
-        N: Integer
-            Number of cavity fock states.
-        Temperature: Float
-            Temperature. 
-        tlist: List.
-            Time over which system evolves.
-        output: List
-            System evolution.
-        """
-        self.Del = Del
-        self.wc = wc
-        self.wq = wq
-        self.alpha = alpha
-        self.N = N
-        self.Temperature = Temperature
-        self.tlist = np.linspace(0, 40, 600)
-        if tlist is not None:
-            self.tlist = tlist
-        self.output = None
-             
-    
-    def solve(self):
-        """
-        Set up the high temperature master equation and solve it using mesolve.
-        """
-        start_time = time.time()    
-        
-        #Set up the master equation
-        
-        Hdot = 0.5 * self.wq* sigmaz() + 0.5 * self.Del* sigmax()
-        dot_energy, dot_state = Hdot.eigenstates()
-        deltaE = dot_energy[1] - dot_energy[0]
-        gamma = deltaE / (2 * np.pi * self.wc)
-        wa = 2 * np.pi * gamma *self.wc #reaction coordinate frequency
-        g = np.sqrt(np.pi * wa * self.alpha / 2.0) #reaction coordinate coupling
-        nb = (1 / (np.exp(wa/self.Temperature) -1))
-        
-        #Reaction coordinate hamiltonian/operators
-        Nmax = self.N * 2        #hilbert space 
-        a  = tensor(destroy(self.N), qeye(2))
-        sm = tensor(qeye(self.N), destroy(2))
-        unit = tensor(qeye(self.N), qeye(2))
+    if tlist is None:
+        tlist = np.linspace(0, 40, 600)
+    output = None
 
-        nq = sm.dag() * sm  # atom
-        nL = sm.dag() * sm  # atom
-        nR = sm * sm.dag()   # atom
+    start_time = time.time()    
 
-        na = a.dag() * a    # cavity
-        xa = a.dag() + a
-        
-        # decoupled Hamiltonian
-        H0 = wa * a.dag() * a+ self.wq*0.5*(nL-nR) + self.Del*0.5*(sm+sm.dag())
-        #interaction
-        H1 = (g * (a.dag() + a) * (nL-nR))
-        H = H0 + H1
-        
-        L=0
-        PsipreEta=0
-        PsipreX=0
+    #Set up the master equation
+    psi0L = basis(2,1) * basis(2,1).dag()
+    #return_valstemp=[Q]
+    return_vals=[tensor(qeye(N), kk) for kk in [Q]]
 
-        all_energy, all_state = H.eigenstates()
-        Apre = spre((a + a.dag()))
-        Apost = spost(a + a.dag())
-        for j in range(Nmax):
-            for k in range(Nmax):
-                A = xa.matrix_element(all_state[j].dag(), all_state[k])
-                delE = (all_energy[j] - all_energy[k])
-                if np.absolute(A) > 0.0:
-                    if abs(delE) > 0.0:
-                        X = (0.5 * np.pi * gamma*(all_energy[j] - all_energy[k])
-                             * (np.cosh((all_energy[j] - all_energy[k]) /
-                                (2 * self.Temperature))
-                             / (np.sinh((all_energy[j] - all_energy[k]) /
-                                (2 * self.Temperature)))) * A)
-                        eta = (0.5 * np.pi * gamma *
-                               (all_energy[j] - all_energy[k]) * A)
-                        PsipreX = PsipreX + X * all_state[j]*all_state[k].dag()
-                        PsipreEta = PsipreEta + (eta * all_state[j]
-                                                 * all_state[k].dag())
-                    else:
-                        X =0.5 * np.pi * gamma * A * 2 * self.Temperature
-                        PsipreX=PsipreX+X*all_state[j]*all_state[k].dag()
-        
-        L = ((-spre((a+a.dag()) * PsipreX)) + (sprepost(a+a.dag(), PsipreX))
-             +(sprepost(PsipreX, a+a.dag())) + (-spost(PsipreX*(a+a.dag())))
-             +(spre((a+a.dag()) * PsipreEta)) + (sprepost(a+a.dag(), PsipreEta))
-             +(-sprepost(PsipreEta,a+a.dag())) + (-spost(PsipreEta*(a+a.dag()))))           
-        
-        #Setup the operators and the Hamiltonian and the master equation 
-        #and solve for time steps in tlist
-        psi0 = (tensor(thermal_dm(self.N,nb), basis(2,1)*basis(2,1).dag()))
-        self.output = mesolve(H, psi0, self.tlist, [L],
-                              [a.dag()*a,nL,nR,sm,sm.dag()],
-                              options=Odeoptions(nsteps=15000),
-                              progress_bar=None)
-        end_time = time.time()
-        print("Integration required %g seconds" % (end_time - start_time))
-        
+    dot_energy, dot_state = Hsys.eigenstates()
+    deltaE = dot_energy[1] - dot_energy[0]
+    gamma = deltaE / (2 * np.pi * wc)
+    wa = 2 * np.pi * gamma *wc #reaction coordinate frequency
+    g = np.sqrt(np.pi * wa * alpha / 2.0) #reaction coordinate coupling
+    nb = (1 / (np.exp(wa/Temperature) -1))
+
+    #Reaction coordinate hamiltonian/operators
+    Nmax = N * 2        #hilbert space 
+    dimensions = dims(Q)
+    a  = tensor(destroy(N), qeye(dimensions[1]))            
+    unit = tensor(qeye(N), qeye(dimensions[1]))
+    Q_exp = tensor(qeye(N), Q)
+    Hsys_exp = tensor(qeye(N),Hsys)
+
+    na = a.dag() * a    # cavity
+    xa = a.dag() + a
+
+    # decoupled Hamiltonian
+    H0 = wa * a.dag() * a + Hsys_exp
+    #interaction
+    H1 = (g * (a.dag() + a) * Q_exp)
+    H = H0 + H1
+    ###############
+    L=0
+    PsipreEta=0
+    PsipreX=0
+
+    all_energy, all_state = H.eigenstates()
+    Apre = spre((a + a.dag()))
+    Apost = spost(a + a.dag())
+    for j in range(Nmax):
+        for k in range(Nmax):
+            A = xa.matrix_element(all_state[j].dag(), all_state[k])
+            delE = (all_energy[j] - all_energy[k])
+            if np.absolute(A) > 0.0:
+                if abs(delE) > 0.0:
+                    X = (0.5 * np.pi * gamma*(all_energy[j] - all_energy[k])
+                         * (np.cosh((all_energy[j] - all_energy[k]) /
+                            (2 * Temperature))
+                         / (np.sinh((all_energy[j] - all_energy[k]) /
+                            (2 * Temperature)))) * A)
+                    eta = (0.5 * np.pi * gamma *
+                           (all_energy[j] - all_energy[k]) * A)
+                    PsipreX = PsipreX + X * all_state[j]*all_state[k].dag()
+                    PsipreEta = PsipreEta + (eta * all_state[j]
+                                             * all_state[k].dag())
+                else:
+                    X =0.5 * np.pi * gamma * A * 2 * Temperature
+                    PsipreX=PsipreX+X*all_state[j]*all_state[k].dag()
+
+    A = a + a.dag()
+    L = ((-spre(A * PsipreX)) + (sprepost(A, PsipreX))
+         +(sprepost(PsipreX, A)) + (-spost(PsipreX * A))
+         +(spre(A * PsipreEta)) + (sprepost(A, PsipreEta))
+         +(-sprepost(PsipreEta, A)) + (-spost(PsipreEta * A)))           
+
+    #Setup the operators and the Hamiltonian and the master equation 
+    #and solve for time steps in tlist
+    psi0 = (tensor(thermal_dm(N,nb), psi0L))
+    output = mesolve(H, psi0, tlist, [L], return_vals,
+                     options=Odeoptions(nsteps=15000))
+    end_time = time.time()
+    print("Integration required %g seconds" % (end_time - start_time))
     
-    def plot_tls_so(self):
-        """
-        Plot the state occupation in the two level system for the entire time
-        duration.
-        """ 
-        import matplotlib.pyplot as plt   
-        fig, axes = plt.subplots(1, 1, sharex=True, figsize=(8,4))
-        axes.plot(self.tlist, np.real(self.output.expect[3]), 'b', linewidth=2,
-                  label="P12")
-        fig, axes2 = plt.subplots(1, 1, sharex=True, figsize=(8,4))
-        axes2.plot(self.tlist, self.output.expect[2], 'g', linewidth=2,
-                   label="P1")
-        axes.legend(loc=0)
-        axes2.legend(loc=0)
+    return output
                 
