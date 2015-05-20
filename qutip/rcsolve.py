@@ -35,6 +35,7 @@
 #Contact: nwlambert@gmail.com
 
 import time
+import warnings
 import numpy as np
 import scipy.sparse as sp
 from numpy import matrix
@@ -81,7 +82,8 @@ def rcsolve(Hsys, Q, wc, alpha, N, Temperature, tlist, initial_state,
     output: Result
         System evolution.
     """
-    
+    if options is None:
+        options = Options()
     output = None
 
     start_time = time.time()    
@@ -93,6 +95,8 @@ def rcsolve(Hsys, Q, wc, alpha, N, Temperature, tlist, initial_state,
 
     dot_energy, dot_state = Hsys.eigenstates()
     deltaE = dot_energy[1] - dot_energy[0]
+    if (Temperature < deltaE/2):
+        warnings.warn("Given temperature might not provide accurate results")
     gamma = deltaE / (2 * np.pi * wc)
     wa = 2 * np.pi * gamma *wc #reaction coordinate frequency
     g = np.sqrt(np.pi * wa * alpha / 2.0) #reaction coordinate coupling
@@ -105,6 +109,7 @@ def rcsolve(Hsys, Q, wc, alpha, N, Temperature, tlist, initial_state,
     unit = tensor(qeye(N), qeye(dimensions[1]))
     Q_exp = tensor(qeye(N), Q)
     Hsys_exp = tensor(qeye(N),Hsys)
+    return_vals_exp=[tensor(qeye(N), kk) for kk in return_vals]
 
     na = a.dag() * a    # cavity
     xa = a.dag() + a
@@ -151,8 +156,7 @@ def rcsolve(Hsys, Q, wc, alpha, N, Temperature, tlist, initial_state,
     #Setup the operators and the Hamiltonian and the master equation 
     #and solve for time steps in tlist
     psi0 = (tensor(thermal_dm(N,nb), initial_state))
-    output = mesolve(H, psi0, tlist, [L], return_vals,
-                     options)
+    output = mesolve(H, psi0, tlist, [L], return_vals_exp, options)
     end_time = time.time()
     if calc_time is True:
         print("Integration required %g seconds" % (end_time - start_time))
