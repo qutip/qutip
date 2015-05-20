@@ -783,7 +783,7 @@ class OptimizerBFGS(Optimizer):
                 spopt.fmin_bfgs(self.fid_err_func_wrapper, 
                                 self.optim_var_vals,
                                 fprime=fprime,
-                                approx_grad=self.approx_grad,
+#                                approx_grad=self.approx_grad,
                                 callback=self.iter_step_callback_func,
                                 gtol=term_conds.min_gradient_norm,
                                 maxiter=term_conds.max_iterations,
