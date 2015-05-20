@@ -31,7 +31,7 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-#Author: Neill Lambert
+#Author: Neill Lambert, Anubhav Vardhan
 #Contact: nwlambert@gmail.com
 
 import time
@@ -42,8 +42,8 @@ from numpy import linalg
 from qutip import spre, spost, sprepost, thermal_dm, mesolve, Odeoptions
 from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye, dims
 
-def rcsolve(Hsys, Q, wc=0.05, alpha=2.5/np.pi, N = 20, 
-            Temperature = 1/0.95, tlist=None):
+def rcsolve(Hsys, Q, wc, alpha, N, Temperature, tlist, initial_state,
+            return_vals, eigen_sparse=False, calc_time=False, options=None):
     """
     Function to solve for an open quantum system using the
     reaction coordinate (RC) model. 
@@ -64,22 +64,32 @@ def rcsolve(Hsys, Q, wc=0.05, alpha=2.5/np.pi, N = 20,
         Temperature. 
     tlist: List.
         Time over which system evolves.
-        
+    initial_state: Qobj
+        Initial state of the system.
+    return_vals: list of :class:`qutip.Qobj` / callback function single
+        Single operator or list of operators for which to evaluate
+        expectation values.
+    eigen_sparse: Boolean
+        Optional argument to call the sparse eigenstates solver if needed.
+    calc_time: Boolean
+        Optional argument to print hte time required for integration.
+    options : :class:`qutip.Options`
+        With options for the solver.
+     
     Returns
     -------
-    output: List
+    output: Result
         System evolution.
     """
-    if tlist is None:
-        tlist = np.linspace(0, 40, 600)
+    
     output = None
 
     start_time = time.time()    
 
     #Set up the master equation
-    psi0L = basis(2,1) * basis(2,1).dag()
+    #psi0L = basis(2,1) * basis(2,1).dag()
     #return_valstemp=[Q]
-    return_vals=[tensor(qeye(N), kk) for kk in [Q]]
+    #return_vals=[tensor(qeye(N), kk) for kk in [Q]]
 
     dot_energy, dot_state = Hsys.eigenstates()
     deltaE = dot_energy[1] - dot_energy[0]
@@ -109,7 +119,7 @@ def rcsolve(Hsys, Q, wc=0.05, alpha=2.5/np.pi, N = 20,
     PsipreEta=0
     PsipreX=0
 
-    all_energy, all_state = H.eigenstates()
+    all_energy, all_state = H.eigenstates(sparse=eigen_sparse)
     Apre = spre((a + a.dag()))
     Apost = spost(a + a.dag())
     for j in range(Nmax):
@@ -140,11 +150,12 @@ def rcsolve(Hsys, Q, wc=0.05, alpha=2.5/np.pi, N = 20,
 
     #Setup the operators and the Hamiltonian and the master equation 
     #and solve for time steps in tlist
-    psi0 = (tensor(thermal_dm(N,nb), psi0L))
+    psi0 = (tensor(thermal_dm(N,nb), initial_state))
     output = mesolve(H, psi0, tlist, [L], return_vals,
-                     options=Odeoptions(nsteps=15000, store_states=True))
+                     options)
     end_time = time.time()
-    print("Integration required %g seconds" % (end_time - start_time))
+    if calc_time is True:
+        print("Integration required %g seconds" % (end_time - start_time))
     
     return output
-                
+              
