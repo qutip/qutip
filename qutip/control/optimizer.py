@@ -504,8 +504,11 @@ class Optimizer:
             jac=self.fid_err_grad_wrapper
 
         if self.log_level <= logging.INFO:
-            logger.info("Optimising pulse(s) using {} with "
-                        "minimise '{}' method".format(self.alg, self.method))
+            msg = ("Optimising pulse(s) using {} with "
+                        "minimise '{}' method").format(self.alg, self.method)
+            if self.approx_grad:
+                msg += " (approx grad)"
+            logger.info(msg)
 
         try:
             opt_res = spopt.minimize(
@@ -768,9 +771,12 @@ class OptimizerBFGS(Optimizer):
             fprime = self.fid_err_grad_wrapper
 
         if self.log_level <= logging.INFO:
-            logger.info("Optimising pulse(s) using {} with "
-                        "'fmin_bfgs' method".format(self.alg))
-
+            msg = ("Optimising pulse(s) using {} with "
+                        "'fmin_bfgs' method").format(self.alg)
+            if self.approx_grad:
+                msg += " (approx grad)"
+            logger.info(msg)
+            
         result = self._create_result()
         try:
             optim_var_vals, cost, grad, invHess, nFCalls, nGCalls, warn = \
@@ -919,9 +925,11 @@ class OptimizerLBFGSB(Optimizer):
             m = 10
 
         if self.log_level <= logging.INFO:
-            logger.info("Optimising pulse(s) using {} with "
-                        "'fmin_l_bfgs_b' method".format(self.alg))
-
+            msg = ("Optimising pulse(s) using {} with "
+                        "'fmin_l_bfgs_b' method").format(self.alg)
+            if self.approx_grad:
+                msg += " (approx grad)"
+            logger.info(msg)
         try:
             optim_var_vals, fid, res_dict = spopt.fmin_l_bfgs_b(
                 self.fid_err_func_wrapper, self.optim_var_vals,
