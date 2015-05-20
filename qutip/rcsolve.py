@@ -85,13 +85,7 @@ def rcsolve(Hsys, Q, wc, alpha, N, Temperature, tlist, initial_state,
     if options is None:
         options = Options()
     output = None
-
     start_time = time.time()    
-
-    #Set up the master equation
-    #psi0L = basis(2,1) * basis(2,1).dag()
-    #return_valstemp=[Q]
-    #return_vals=[tensor(qeye(N), kk) for kk in [Q]]
 
     dot_energy, dot_state = Hsys.eigenstates()
     deltaE = dot_energy[1] - dot_energy[0]
@@ -119,7 +113,6 @@ def rcsolve(Hsys, Q, wc, alpha, N, Temperature, tlist, initial_state,
     #interaction
     H1 = (g * (a.dag() + a) * Q_exp)
     H = H0 + H1
-    ###############
     L=0
     PsipreEta=0
     PsipreX=0
