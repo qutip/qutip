@@ -37,7 +37,7 @@ Note that if the initial state is the steady state, then :math:`\rho(t)=V(t, 0)\
     
 which is independent of :math:`t`, so that we only have one time coordinate :math:`\tau`.
 
-QuTiP provides a family of functions that assists in the process of calculating two-time correlation functions. The available functions and their usage is show in the table below. Each of these functions can use one of the following evolution solvers: Master-equation, Exponential series and the Monte-Carlo. The choice of solver is defined by the optional argument ``solver``. 
+QuTiP provides a family of functions that assists in the process of calculating two-time correlation functions. The available functions and their usage is shown in the table below. Each of these functions can use one of the following evolution solvers: Master-equation, Exponential series and the Monte-Carlo. The choice of solver is defined by the optional argument ``solver``. 
 
 .. cssclass:: table-striped
 
@@ -55,7 +55,7 @@ QuTiP provides a family of functions that assists in the process of calculating 
 | :func:`qutip.correlation.correlation_4op_2t` | :math:`\left<A(t)B(t+\tau)C(t+\tau)D(t)\right>`. |
 +----------------------------------------------+--------------------------------------------------+
 
-The most common use-case is to calculate correlation functions of the kind :math:`\left<A(\tau)B(0)\right>`, in which case we use the correlation function solvers that start from the steady state, e.g., the :func:`qutip.correlation.correlation_2op_1t` function. These correlation function sovlers return a vector or matrix (in general complex) with the correlations as a function of the delays times. 
+The most common use-case is to calculate correlation functions of the kind :math:`\left<A(\tau)B(0)\right>`, in which case we use the correlation function solvers that start from the steady state, e.g., the :func:`qutip.correlation.correlation_2op_1t` function. These correlation function solvers return a vector or matrix (in general complex) with the correlations as a function of the delays times. 
 
 .. _correlation-steady:
 
