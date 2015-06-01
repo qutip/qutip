@@ -188,19 +188,22 @@ class Perturbation:
     """
     
     def categorize_eigenstates(self,eigenvalues,eigenstates):
-        """categorize eigenvalues and eigenvectors by the degeneracy
-            here we maintain a data structure:
-            [ [eigen value 1,[eigen vector 1, eigen vector 2, ...]],
-            [eigen value 2,[eigen vector 1, eigen vector 2, ...]],
-            ...  ]
+        """This is an inner method used by other methods of this class,
+        it is not designed for user's usage.
+        
+        it categorize eigenvalues and eigenvectors by the degeneracy
+        here we maintain a data structure:
+        [ [eigen value 1,[eigen vector 1, eigen vector 2, ...]],
+          [eigen value 2,[eigen vector 1, eigen vector 2, ...]],
+          ...  ]
             
-            Parameters
-            ----------
-            eigenvalues : array
+        Parameters
+        ----------
+        eigenvalues : array
             the eigenvalues
-            eigenstates : array
+        eigenstates : array
             the array of eigenstates
-            """
+        """
         eigen_system_info = []
         for i in range(len(eigenvalues)):
             eigen_value = eigenvalues[i]
@@ -344,3 +347,48 @@ class Perturbation:
                         C /= (En.energy - Em.energy)
                         phit += C*vec_set_alpha[0]
                 vec_set_xi += [phit]
+
+    def goto_converge(self,lamda,tol=0):
+        """Keep going to higher order perturbation corrections without perturbation in Hamiltonian
+        until converge.
+            
+        Parameters
+        ----------
+        lamda: float
+            The parameter lambda in the formula H = H0 + lambda*H1 + lambda^2*H2 + ...
+        tol: float
+            The tolerance used as criteria of converge. Default value is etol
+        """
+        if tol == 0:
+            tol = self.etol
+
+        converge = False
+        while not converge:
+            self.next_order()
+            converge = True
+            # get the newly calculated energies and states
+            newe = []
+            news = []
+            for space in self.eigen_spaces:
+                newe.append(space.elp_node.energy)
+                for base in space.base_set:
+                    news.append(base.vectors[-1])
+            # check whether all energies converge
+            for x in newe:
+                if abs(x * lamda**self.order) > tol:
+                    converge = False
+                    break
+            if not converge:
+                continue
+            # check whether all states converge
+            for x in news:
+                for i in range(x.dims[0][0]):
+                    if abs(x[i,0] * lamda**self.order)>tol:
+                        converge = False
+                        break
+                if not converge:
+                    break
+        print(self.order)
+
+    def result(lamda):
+        pass
