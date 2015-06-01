@@ -85,40 +85,7 @@ class OptimConfig:
         Fidelity error (and fidelity error gradient) computation method
         Options are DEF, UNIT, TRACEDIFF, TD_APPROX
         DEF will use the default for the specific dyn_type
-        (See FideliyComputer classes for details)
-
-    phase_option : string
-        determines how global phase is treated in fidelity
-        calculations (fid_type='UNIT' only). Options:
-            PSU - global phase ignored
-            SU - global phase included
-
-    amp_lbound : float or list of floats
-        lower boundaries for the control amplitudes
-        Can be a scalar value applied to all controls
-        or a list of bounds for each control
-        (used in contrained methods only e.g. L-BFGS-B)
-
-    amp_ubound : float or list of floats
-        upper boundaries for the control amplitudes
-        Can be a scalar value applied to all controls
-        or a list of bounds for each control
-        (used in contrained methods only e.g. L-BFGS-B)
-
-    max_metric_corr : integer
-        The maximum number of variable metric corrections used to define
-        the limited memory matrix. That is the number of previous
-        gradient values that are used to approximate the Hessian
-        see the scipy.optimize.fmin_l_bfgs_b documentation for description
-        of m argument
-        (used only in L-BFGS-B)
-
-    accuracy_factor : float
-        Determines the accuracy of the result.
-        Typical values for accuracy_factor are: 1e12 for low accuracy;
-        1e7 for moderate accuracy; 10.0 for extremely high accuracy
-        scipy.optimize.fmin_l_bfgs_b factr argument.
-        (used only in L-BFGS-B)
+        (See FidelityComputer classes for details)
 
     test_out_dir : string
         Directory where test output files will be saved
@@ -165,19 +132,29 @@ class OptimConfig:
 
     def reset(self):
         self.log_level = logger.getEffectiveLevel()
-        self.optim_alg = 'LBFGSB'
-        self.dyn_type = ''
-        self.fid_type = ''
-        self.phase_option = 'PSU'
-        self.amp_update_mode = 'ALL'  # Alts: 'DYNAMIC'
-        self.pulse_type = 'RND'
+        self.alg = 'GRAPE' # Alts: 'CRAB'
+        # *** AJGP 2015-04-21: This has been replaced optim_method
+        #self.optim_alg = 'LBFGSB'
+        self.optim_method = 'DEF'
+        self.dyn_type = 'DEF'
+        self.fid_type = 'DEF'
+        # *** AJGP 2015-04-21: phase_option has been moved to the FidComputer
+        #self.phase_option = 'PSU'
+        # *** AJGP 2015-04-21: amp_update_mode has been replaced by tslot_type
+        #self.amp_update_mode = 'ALL'  # Alts: 'DYNAMIC'
+        self.fid_type = 'DEF'
+        self.tslot_type = 'DEF'
+        self.init_pulse_type = 'DEF'
         ######################
         # Note the following parameteres are for constrained optimisation
         # methods e.g. L-BFGS-B
-        self.amp_lbound = -np.Inf
-        self.amp_ubound = np.Inf
-        self.max_metric_corr = 10
-        self.accuracy_factor = 1e7
+        # *** AJGP 2015-04-21: 
+        #           These have been moved to the OptimizerLBFGSB class
+#        self.amp_lbound = -np.Inf
+#        self.amp_ubound = np.Inf
+#        self.max_metric_corr = 10
+#        self.accuracy_factor = 1e7
+        # ***
         # ####################
         self.reset_test_out_files()
 
@@ -185,8 +162,8 @@ class OptimConfig:
         # Test output file flags
         self.test_out_dir = None
         self.test_out_f_ext = ".txt"
-        self.clear_test_out_flags()        
-        
+        self.clear_test_out_flags()
+
     def clear_test_out_flags(self):
         self.test_out_iter = False
         self.test_out_fid_err = False
@@ -231,14 +208,14 @@ class OptimConfig:
 
         dir_ok, self.test_out_dir, msg = self.check_create_output_dir(
                     self.test_out_dir, desc='test_out')
-                                         
+
         if not dir_ok:
             self.reset_test_out_files()
             msg += "\ntest_out files will be suppressed."
             logger.error(msg)
-        
+
         return dir_ok
-            
+
     def check_create_output_dir(self, output_dir, desc='output'):
         """
         Checks if the given directory exists, if not it is created
@@ -247,24 +224,24 @@ class OptimConfig:
         dir_ok : boolean
             True if directory exists (previously or created)
             False if failed to create the directory
-        
+
         output_dir : string
             Path to the directory, which may be been made absolute
-        
+
         msg : string
             Error msg if directory creation failed
         """
-        
+
         dir_ok = True
         if '~' in output_dir:
             output_dir = os.path.expanduser(output_dir)
         elif not os.path.abspath(output_dir):
             # Assume relative path from cwd given
             output_dir = os.path.join(os.getcwd(), output_dir)
-    
-        errmsg = "Failed to create {} directory:\n{}\n".format(desc, 
+
+        errmsg = "Failed to create {} directory:\n{}\n".format(desc,
                                                             output_dir)
-         
+
         if os.path.exists(output_dir):
             if os.path.isfile(output_dir):
                 dir_ok = False
@@ -282,7 +259,7 @@ class OptimConfig:
                     dir_ok = False
                     errmsg += "Underling error (makedirs) :({}) {}".format(
                         type(e).__name__, e)
-        
+
         if dir_ok:
             return dir_ok, output_dir, "{} directory is ready".format(desc)
         else:

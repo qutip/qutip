@@ -1048,7 +1048,7 @@ def spectrum_pi(H, wlist, c_ops, a_op, b_op, use_pinv=False):
 
     """
 
-    warn("spectrum_ss() now legacy, please use spectrum()", FutureWarning)
+    warn("spectrum_pi() now legacy, please use spectrum()", FutureWarning)
 
     return spectrum(H, wlist, c_ops, a_op, b_op,
                     solver="pi", use_pinv=use_pinv)
@@ -1204,7 +1204,9 @@ def _spectrum_es(H, wlist, c_ops, a_op, b_op):
     corr_es = expect(a_op, es)
 
     # covariance
-    cov_es = corr_es - np.real(np.conjugate(a_op_ss) * b_op_ss)
+    cov_es = corr_es - a_op_ss * b_op_ss
+    # tidy up covariance (to combine, e.g., zero-frequency components that cancel)
+    cov_es.tidyup()
 
     # spectrum
     spectrum = esspec(cov_es, wlist)

@@ -48,7 +48,7 @@ from qutip.superoperator import liouvillian
 # -----------------------------------------------------------------------------
 # Solve the Bloch-Redfield master equation
 #
-def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=None,
+def brmesolve(H, psi0, tlist, a_ops, e_ops=[], spectra_cb=[], c_ops=[],
               args={}, options=Options()):
     """
     Solve the dynamics for a system using the Bloch-Redfield master equation.
@@ -224,10 +224,10 @@ def bloch_redfield_solve(R, ekets, rho0, tlist, e_ops=[], options=None):
 
 
 # -----------------------------------------------------------------------------
-# Functions for calculting the Bloch-Redfield tensor for a time-independent
+# Functions for calculating the Bloch-Redfield tensor for a time-independent
 # system.
 #
-def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=None, use_secular=True):
+def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=[], use_secular=True):
     """
     Calculate the Bloch-Redfield tensor for a system given a set of operators
     and corresponding spectral functions that describes the system's coupling
@@ -279,55 +279,60 @@ def bloch_redfield_tensor(H, a_ops, spectra_cb, c_ops=None, use_secular=True):
     if not spectra_cb:
         spectra_cb = [lambda w: 1.0 for _ in a_ops]
 
+    if c_ops is None:
+        c_ops = []
+
     # use the eigenbasis
     evals, ekets = H.eigenstates()
 
     N = len(evals)
     K = len(a_ops)
     A = np.zeros((K, N, N), dtype=complex)  # TODO: use sparse here
-    W = np.zeros((N, N))
+    Jw = np.zeros((K, N, N), dtype=complex)
 
-    # pre-calculate matrix elements
-    for n in range(N):
-        for m in range(N):
-            W[m, n] = np.real(evals[m] - evals[n])
+    # pre-calculate matrix elements and spectral densities
+    # W[m,n] = real(evals[m] - evals[n])
+    W = np.real(evals[:,np.newaxis] - evals[np.newaxis,:])
 
     for k in range(K):
         # A[k,n,m] = a_ops[k].matrix_element(ekets[n], ekets[m])
         A[k, :, :] = a_ops[k].transform(ekets).full()
+        # do explicit loops here in case spectra_cb[k] can not deal with array arguments
+        for n in range(N):
+            for m in range(N):
+                Jw[k, n, m] = spectra_cb[k](W[n, m])
 
     dw_min = abs(W[W.nonzero()]).min()
 
-    # unitary part
+    # pre-calculate mapping between global index I and system indices a,b
+    Iabs = np.empty((N*N,3),dtype=int)
+    for I, Iab in enumerate(Iabs):
+        # important: use [:] to change array values, instead of creating new variable Iab
+        Iab[0]  = I
+        Iab[1:] = vec2mat_index(N, I)
+
+    # unitary part + dissipation from c_ops (if given):
     Heb = H.transform(ekets)
-    if c_ops is not None:
-        R = liouvillian(Heb, c_ops=[c_op.transform(ekets) for c_op in c_ops])
-    else:
-        R = -1.0j * (spre(Heb) - spost(Heb))
+    R = liouvillian(Heb, c_ops=[c_op.transform(ekets) for c_op in c_ops])
     R.data = R.data.tolil()
-    for I in range(N * N):
-        a, b = vec2mat_index(N, I)
-        for J in range(N * N):
-            c, d = vec2mat_index(N, J)
 
-            # unitary part: use spre and spost above, same as this:
-            # R.data[I,J] = -1j * W[a,b] * (a == c) * (b == d)
-
-            if use_secular is False or abs(W[a, b] - W[c, d]) < dw_min / 10.0:
-
-                # dissipative part:
-                for k in range(K):
-                    # for each operator coupling the system to the environment
-
-                    R.data[I, J] += ((A[k, a, c] * A[k, d, b] / 2) *
-                                     (spectra_cb[k](W[c, a]) +
-                                      spectra_cb[k](W[d, b])))
-                    s1 = s2 = 0
-                    for n in range(N):
-                        s1 += A[k, a, n] * A[k, n, c] * spectra_cb[k](W[c, n])
-                        s2 += A[k, d, n] * A[k, n, b] * spectra_cb[k](W[d, n])
-
-                    R.data[I, J] += - (b == d) * s1 / 2 - (a == c) * s2 / 2
+    # dissipative part:
+    for I, a, b in Iabs:
+        # only check use_secular once per I
+        if use_secular:
+            # only loop over those indices J which actually contribute
+            Jcds = Iabs[np.where(abs(W[a, b] - W[Iabs[:,1], Iabs[:,2]]) < dw_min / 10.0)]
+        else:
+            Jcds = Iabs
+        for J, c, d in Jcds:
+            # summed over k, i.e., each operator coupling the system to the environment
+            R.data[I, J] += 0.5 * np.sum(A[:, a, c] * A[:, d, b] * (Jw[:, c, a] + Jw[:, d, b]))
+            if b==d:
+                #                  sum_{k,n} A[k, a, n] * A[k, n, c] * Jw[k, c, n])
+                R.data[I, J] -= 0.5 * np.sum(A[:, a, :] * A[:, :, c] * Jw[:, c, :])
+            if a==c:
+                #                  sum_{k,n} A[k, d, n] * A[k, n, b] * Jw[k, d, n])
+                R.data[I, J] -= 0.5 * np.sum(A[:, d, :] * A[:, :, b] * Jw[:, d, :])
 
     R.data = R.data.tocsr()
     return R, ekets

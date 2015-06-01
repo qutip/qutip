@@ -86,8 +86,9 @@ class PropagatorComputer:
         of computing propagator gradients. It is used to determine
         whether to create the Dynamics prop_grad array
     """
-    def __init__(self, dynamics):
+    def __init__(self, dynamics, params=None):
         self.parent = dynamics
+        self.params = params
         self.reset()
 
     def reset(self):
@@ -97,6 +98,23 @@ class PropagatorComputer:
         self.id_text = 'PROP_COMP_BASE'
         self.set_log_level(self.parent.log_level)
         self.grad_exact = False
+        
+    def apply_params(self, params=None):
+        """
+        Set object attributes based on the dictionary (if any) passed in the 
+        instantiation, or passed as a parameter
+        This is called during the instantiation automatically.
+        The key value pairs are the attribute name and value
+        Note: attributes are created if they do not exist already,
+        and are overwritten if they do.
+        """
+        if not params:
+            params = self.params
+        
+        if isinstance(params, dict):
+            self.params = params
+            for key, val in params.iteritems():
+                setattr(self, key, val)
 
     def set_log_level(self, lvl):
         """
@@ -142,9 +160,6 @@ class PropCompApproxGrad(PropagatorComputer):
     by expm of the dynamics generator, i.e. when gradients will be calculated
     using approximate methods.
     """
-    def __init__(self, dynamics):
-        self.parent = dynamics
-        self.reset()
 
     def reset(self):
         """
@@ -153,6 +168,7 @@ class PropCompApproxGrad(PropagatorComputer):
         PropagatorComputer.reset(self)
         self.id_text = 'APPROX'
         self.grad_exact = False
+        self.apply_params()
 
     def compute_propagator(self, k):
         """
@@ -193,6 +209,7 @@ class PropCompDiag(PropagatorComputer):
         PropagatorComputer.reset(self)
         self.id_text = 'DIAG'
         self.grad_exact = True
+        self.apply_params()
 
     def compute_propagator(self, k):
         """
@@ -227,7 +244,8 @@ class PropCompDiag(PropagatorComputer):
 
         # compute ctrl dyn gen in diagonalised basis
         # i.e. the basis of the full dyn gen for this timeslot
-        dg_diag = eig_vec_adj.dot(dyn.get_ctrl_dyn_gen(j)).dot(eig_vec)
+        dg_diag = \
+            dyn.tau[k]*eig_vec_adj.dot(dyn.get_ctrl_dyn_gen(j)).dot(eig_vec)
 
         # multiply by factor matrix
         factors = dyn.dyn_gen_factormatrix[k]
@@ -262,6 +280,7 @@ class PropCompAugMat(PropagatorComputer):
         PropagatorComputer.reset(self)
         self.id_text = 'AUG_MAT'
         self.grad_exact = True
+        self.apply_params()
 
     def get_aug_mat(self, k, j):
         """
@@ -315,6 +334,7 @@ class PropCompFrechet(PropagatorComputer):
         PropagatorComputer.reset(self)
         self.id_text = 'FRECHET'
         self.grad_exact = True
+        self.apply_params()
 
     def compute_prop_grad(self, k, j, compute_prop=True):
         """

@@ -69,7 +69,7 @@ logger = logging.get_logger()
 import qutip.control.errors as errors
 
 
-class FideliyComputer:
+class FidelityComputer:
     """
     Base class for all Fidelity Computers.
     This cannot be used directly. See subclass descriptions and choose
@@ -131,8 +131,9 @@ class FideliyComputer:
         flag to specify whether the fidelity / fid_err are based on the
         current amplitude values. Set False when amplitudes change
     """
-    def __init__(self, dynamics):
+    def __init__(self, dynamics, params=None):
         self.parent = dynamics
+        self.params = params
         self.reset()
 
     def reset(self):
@@ -147,6 +148,7 @@ class FideliyComputer:
         self.grad_norm_func = None
         self.uses_evo_t2end = False
         self.uses_evo_t2targ = False
+        self.apply_params()
         self.clear()
 
     def clear(self):
@@ -161,6 +163,23 @@ class FideliyComputer:
         self.fid_err_grad_current = False
         self.grad_norm = 0.0
 
+    def apply_params(self, params=None):
+        """
+        Set object attributes based on the dictionary (if any) passed in the 
+        instantiation, or passed as a parameter
+        This is called during the instantiation automatically.
+        The key value pairs are the attribute name and value
+        Note: attributes are created if they do not exist already,
+        and are overwritten if they do.
+        """
+        if not params:
+            params = self.params
+        
+        if isinstance(params, dict):
+            self.params = params
+            for key, val in params.iteritems():
+                setattr(self, key, val)
+                
     def set_log_level(self, lvl):
         """
         Set the log_level attribute and set the level of the logger
@@ -204,7 +223,7 @@ class FideliyComputer:
         self.fid_err_grad_current = False
 
 
-class FidCompUnitary(FideliyComputer):
+class FidCompUnitary(FidelityComputer):
     """
     Computes fidelity error and gradient assuming unitary dynamics, e.g.
     closed qubit systems
@@ -213,6 +232,11 @@ class FidCompUnitary(FideliyComputer):
 
     Attributes
     ----------
+    phase_option : string
+        determines how global phase is treated in fidelity calculations:
+            PSU - global phase ignored
+            SU - global phase included
+            
     fidelity_prenorm : complex
         Last computed value of the fidelity before it is normalised
         It is stored to use in the gradient normalisation calculation
@@ -223,21 +247,27 @@ class FidCompUnitary(FideliyComputer):
     """
 
     def reset(self):
-        FideliyComputer.reset(self)
+        FidelityComputer.reset(self)
         self.id_text = 'UNIT'
         self.uses_evo_t2targ = True
+        self.phase_option = 'PSU'
+        self.apply_params()
+        self.set_phase_option()
 
     def clear(self):
-        FideliyComputer.clear(self)
+        FidelityComputer.clear(self)
         self.fidelity_prenorm = None
         self.fidelity_prenorm_current = False
 
-    def set_phase_option(self, phase_option='PSU'):
+    def set_phase_option(self, phase_option=None):
         """
         # Phase options are
         #  SU - global phase important
         #  PSU - global phase is not important
         """
+        if phase_option is None:
+            phase_option = self.phase_option
+            
         if phase_option == 'PSU':
             self.fid_norm_func = self.normalize_PSU
             self.grad_norm_func = self.normalize_gradient_PSU
@@ -265,7 +295,7 @@ class FidCompUnitary(FideliyComputer):
         """
         Flag fidelity and gradients as needing recalculation
         """
-        FideliyComputer.flag_system_changed(self)
+        FidelityComputer.flag_system_changed(self)
         # Flag the fidelity (prenormalisation) value as needing calculation
         self.fidelity_prenorm_current = False
 
@@ -327,8 +357,8 @@ class FidCompUnitary(FideliyComputer):
         This PSU version is independent of global phase
         """
         fid_pn = self.get_fidelity_prenorm()
-        grad_normalized = \
-            2*np.real(grad*np.conj(fid_pn)) / self.dimensional_norm
+        grad_normalized = np.real(grad * np.exp(-1j * np.angle(fid_pn)) /
+                                  self.dimensional_norm)
         return grad_normalized
 
     def get_fid_err(self):
@@ -439,7 +469,7 @@ class FidCompUnitary(FideliyComputer):
         return grad
 
 
-class FidCompTraceDiff(FideliyComputer):
+class FidCompTraceDiff(FidelityComputer):
     """
     Computes fidelity error and gradient for general system dynamics
     by calculating the the fidelity error as the trace of the overlap
@@ -457,18 +487,21 @@ class FidCompTraceDiff(FideliyComputer):
         The fidelity error calculated is of some arbitary scale. This
         factor can be used to scale the fidelity error such that it may
         represent some physical measure
+        If None is given then it is caculated as 1/2N, where N
+        is the dimension of the drift, when the Dynamics are initialised.
     """
 
     def reset(self):
-        FideliyComputer.reset(self)
+        FidelityComputer.reset(self)
         self.id_text = 'TRACEDIFF'
         self.scale_factor = None
         self.uses_evo_t2end = True
         if not self.parent.prop_computer.grad_exact:
             raise errors.UsageError(
-                "This FideliyComputer can only be"
+                "This FidelityComputer can only be"
                 " used with an exact gradient PropagatorComputer.")
-
+        self.apply_params()
+        
     def init_comp(self):
         """
         initialises the computer based on the configuration of the Dynamics
@@ -597,11 +630,12 @@ class FidCompTraceDiffApprox(FidCompTraceDiff):
         a timeslot control amplitude
     """
     def reset(self):
-        FideliyComputer.reset(self)
+        FidelityComputer.reset(self)
         self.id_text = 'TDAPPROX'
         self.uses_evo_t2end = True
         self.scale_factor = None
         self.epsilon = 0.001
+        self.apply_params()
 
     def compute_fid_err_grad(self):
         """

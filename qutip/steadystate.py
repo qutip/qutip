@@ -70,7 +70,7 @@ def _default_steadystate_args():
                 'use_wbm': False, 'use_umfpack': False, 'weight': None,
                 'use_precond': False, 'all_states': False,
                 'M': None, 'x0': None, 'drop_tol': 1e-4, 'fill_factor': 100,
-                'diag_pivot_thresh': None, 'maxiter': 1000, 'tol': 1e-9,
+                'diag_pivot_thresh': None, 'maxiter': 1000, 'tol': 1e-12,
                 'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2', 'restart': 20,
                 'return_info': False, 'info': {'perm': []}}
 
@@ -94,12 +94,15 @@ def steadystate(A, c_op_list=[], **kwargs):
         A list of collapse operators.
 
     method : str {'direct', 'eigen', 'iterative-gmres',
-                  'iterative-lgmres', 'iterative-bicgstab', 'svd', 'power'}
+                  'iterative-lgmres', 'iterative-bicgstab', 'svd', 'power',
+                  'power-gmres', 'power-lgmres', 'power-bicgstab'}
         Method for solving the underlying linear equation. Direct LU solver
         'direct' (default), sparse eigenvalue problem 'eigen',
         iterative GMRES method 'iterative-gmres', iterative LGMRES method
         'iterative-lgmres', iterative BICGSTAB method 'iterative-bicgstab',
-         SVD 'svd' (dense), or inverse-power method 'power'.
+         SVD 'svd' (dense), or inverse-power method 'power'. The iterative
+         power methods 'power-gmres', 'power-lgmres', 'power-bicgstab' use
+         the same solvers as their direct counterparts.
 
     return_info : bool, optional, default = False
         Return a dictionary of solver-specific infomation about the
@@ -134,7 +137,7 @@ def steadystate(A, c_op_list=[], **kwargs):
     maxiter : int, optional, default=1000
         ITERATIVE ONLY. Maximum number of iterations to perform.
 
-    tol : float, optional, default=1e-9
+    tol : float, optional, default=1e-12
         ITERATIVE ONLY. Tolerance used for terminating solver.
 
     permc_spec : str, optional, default='COLAMD'
@@ -226,7 +229,8 @@ def steadystate(A, c_op_list=[], **kwargs):
     elif ss_args['method'] == 'svd':
         return _steadystate_svd_dense(A, ss_args)
 
-    elif ss_args['method'] == 'power':
+    elif ss_args['method'] in ['power', 'power-gmres',
+                            'power-lgmres', 'power-bicgstab']:
         return _steadystate_power(A, ss_args)
 
     else:
@@ -296,10 +300,10 @@ def _steadystate_LU_liouvillian(L, ss_args):
             rcm_band = sp_bandwidth(L)[0]
             rcm_pro = sp_profile(L)[0]
             logger.debug('RCM bandwidth: %i' % rcm_band)
-            logger.debug('Bandwidth reduction factor: %f' % round(
-                old_band/rcm_band, 1))
-            logger.debug('Profile reduction factor: %f' % round(
-                old_pro/rcm_pro, 1))
+            logger.debug('Bandwidth reduction factor: %f' % 
+                    (old_band/rcm_band))
+            logger.debug('Profile reduction factor: %f' % 
+                    (old_pro/rcm_pro))
     L.sort_indices()
     return L, perm, perm2, rev_perm, ss_args
 
@@ -368,7 +372,7 @@ def _steadystate_direct_sparse(L, ss_args):
         ss_args['info']['solution_time'] = _direct_end-_direct_start
 
     if ss_args['return_info']:
-        ss_args['info']['residual_norm'] = la.norm(b - L*v, np.inf)
+        ss_args['info']['residual_norm'] = la.norm(b - L*v)
 
     if (not ss_args['use_umfpack']) and ss_args['use_rcm']:
         v = v[np.ix_(rev_perm,)]
@@ -401,7 +405,7 @@ def _steadystate_direct_dense(L, ss_args):
     _dense_end = time.time()
     ss_args['info']['solution_time'] = _dense_end-_dense_start
     if ss_args['return_info']:
-        ss_args['info']['residual_norm'] = la.norm(b - L*v, np.inf)
+        ss_args['info']['residual_norm'] = la.norm(b - L*v)
     data = vec2mat(v)
     data = 0.5 * (data + data.conj().T)
 
@@ -433,7 +437,7 @@ def _steadystate_eigen(L, ss_args):
             rcm_band = sp_bandwidth(L)[0]
             logger.debug('RCM bandwidth: %i' % rcm_band)
             logger.debug('Bandwidth reduction factor: %f' %
-                         round(old_band/rcm_band, 1))
+                         (old_band/rcm_band))
 
     _eigen_start = time.time()
     eigval, eigvec = eigs(L, k=1, sigma=1e-15, tol=ss_args['tol'],
@@ -441,7 +445,7 @@ def _steadystate_eigen(L, ss_args):
     _eigen_end = time.time()
     ss_args['info']['solution_time'] = _eigen_end - _eigen_start
     if ss_args['return_info']:
-        ss_args['info']['residual_norm'] = la.norm(L*eigvec, np.inf)
+        ss_args['info']['residual_norm'] = la.norm(L*eigvec)
     if ss_args['use_rcm']:
         eigvec = eigvec[np.ix_(rev_perm,)]
 
@@ -565,7 +569,7 @@ def _steadystate_iterative(L, ss_args):
                                             ss_args['info']['precond_time'])
     ss_args['info']['iterations'] = ss_iters['iter']
     if ss_args['return_info']:
-        ss_args['info']['residual_norm'] = la.norm(b - L*v, np.inf)
+        ss_args['info']['residual_norm'] = la.norm(b - L*v)
 
     if settings.debug:
         logger.debug('Number of Iterations: %i' % ss_iters['iter'])
@@ -626,6 +630,58 @@ def _steadystate_svd_dense(L, ss_args):
         return rhoss / rhoss.tr()
 
 
+def _steadystate_power_liouvillian(L, ss_args):
+    """Creates modified Liouvillian for power based SS methods.
+    """
+    perm = None
+    perm2 = None
+    rev_perm = None
+    n = L.shape[0]
+    L = L.data.tocsc() - (1e-15) * sp.eye(n, n, format='csc')
+    orig_nnz = L.nnz
+    if settings.debug:
+        old_band = sp_bandwidth(L)[0]
+        old_pro = sp_profile(L)[0]
+        logger.debug('Original bandwidth: %i' % old_band)
+        logger.debug('Original profile: %i' % old_pro)
+    
+    if ss_args['use_wbm']:
+        if settings.debug:
+            logger.debug('Calculating Weighted Bipartite Matching ordering...')
+        _wbm_start = time.time()
+        perm = weighted_bipartite_matching(L)
+        _wbm_end = time.time()
+        L = sp_permute(L, perm, [], 'csc')
+        ss_args['info']['perm'].append('wbm')
+        ss_args['info']['wbm_time'] = _wbm_end-_wbm_start
+        if settings.debug:
+            wbm_band = sp_bandwidth(L)[0]
+            wbm_pro = sp_profile(L)[0]
+            logger.debug('WBM bandwidth: %i' % wbm_band)
+            logger.debug('WBM profile: %i' % wbm_pro)
+    
+    if ss_args['use_rcm']:
+        if settings.debug:
+            logger.debug('Calculating Reverse Cuthill-Mckee ordering...')
+        ss_args['info']['perm'].append('rcm')
+        _rcm_start = time.time()
+        perm2 = reverse_cuthill_mckee(L)
+        _rcm_end = time.time()
+        ss_args['info']['rcm_time'] = _rcm_end-_rcm_start
+        rev_perm = np.argsort(perm2)
+        L = sp_permute(L, perm2, perm2, 'csc')
+        if settings.debug:
+            new_band = sp_bandwidth(L)[0]
+            new_pro = sp_profile(L)[0]
+            logger.debug('RCM bandwidth: %i' % new_band)
+            logger.debug('Bandwidth reduction factor: %f' % (old_band/new_band))
+            logger.debug('RCM profile: %i' % new_pro)
+            logger.debug('Profile reduction factor: %f' % (old_pro/new_pro))
+    L.sort_indices()
+    return L, perm, perm2, rev_perm, ss_args
+    
+
+
 def _steadystate_power(L, ss_args):
     """
     Inverse power method for steady state solving.
@@ -643,43 +699,64 @@ def _steadystate_power(L, ss_args):
         rhoss.dims = L.dims[0]
     else:
         rhoss.dims = [L.dims[0], 1]
-    n = prod(rhoss.shape)
-    L = L.data.tocsc() - (1e-15) * sp.eye(n, n, format='csc')
-    L.sort_indices()
+    n = L.shape[0]
+    # Build Liouvillian
+    L, perm, perm2, rev_perm, ss_args = _steadystate_power_liouvillian(L, ss_args)
     orig_nnz = L.nnz
-
     # start with all ones as RHS
     v = np.ones(n, dtype=complex)
-
     if ss_args['use_rcm']:
-        if settings.debug:
-            old_band = sp_bandwidth(L)[0]
-            logger.debug('Original bandwidth: %i' % old_band)
-        perm = reverse_cuthill_mckee(L)
-        rev_perm = np.argsort(perm)
-        L = sp_permute(L, perm, perm, 'csc')
-        v = v[np.ix_(perm,)]
-        if settings.debug:
-            new_band = sp_bandwidth(L)[0]
-            logger.debug('RCM bandwidth: %i' % new_band)
-            logger.debug('Bandwidth reduction factor: %f' %
-                         round(old_band/new_band, 2))
+        v = v[np.ix_(perm2,)]
+    
+    # Do preconditioning
+    if ss_args['M'] is None and ss_args['use_precond'] and \
+            ss_args['method'] in ['power-gmres', 
+                                'power-lgmres', 'power-bicgstab']:
+        ss_args['M'], ss_args = _iterative_precondition(L, int(np.sqrt(n)), ss_args)
+        if ss_args['M'] is None:
+            warnings.warn("Preconditioning failed. Continuing without.",
+                          UserWarning)
+    
+    ss_iters = {'iter': 0}
 
+    def _iter_count(r):
+        ss_iters['iter'] += 1
+        return
+    
     _power_start = time.time()
     # Get LU factors
-    lu = splu(L, permc_spec=ss_args['permc_spec'],
+    if ss_args['method'] == 'power':
+        lu = splu(L, permc_spec=ss_args['permc_spec'],
               diag_pivot_thresh=ss_args['diag_pivot_thresh'],
               options=dict(ILU_MILU=ss_args['ILU_MILU']))
 
-    if settings.debug and _scipy_check:
-        L_nnz = lu.L.nnz
-        U_nnz = lu.U.nnz
-        logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
-        logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
+        if settings.debug and _scipy_check:
+            L_nnz = lu.L.nnz
+            U_nnz = lu.U.nnz
+            logger.debug('L NNZ: %i ; U NNZ: %i' % (L_nnz, U_nnz))
+            logger.debug('Fill factor: %f' % ((L_nnz+U_nnz)/orig_nnz))
 
     it = 0
+    _tol = np.max(ss_args['tol']/10,1e-15) # Should make this user accessible
     while (la.norm(L * v, np.inf) > tol) and (it < maxiter):
-        v = lu.solve(v)
+        
+        if ss_args['method'] == 'power':
+            v = lu.solve(v)
+        elif ss_args['method'] == 'power-gmres':
+            v, check = gmres(L, v, tol=_tol, M=ss_args['M'],
+                                x0=ss_args['x0'], restart=ss_args['restart'],
+                                maxiter=ss_args['maxiter'], callback=_iter_count)
+        elif ss_args['method'] == 'power-lgmres':
+            v, check = lgmres(L, v, tol=_tol, M=ss_args['M'],
+                              x0=ss_args['x0'], maxiter=ss_args['maxiter'],
+                              callback=_iter_count)
+        elif ss_args['method'] == 'power-bicgstab':
+            v, check = bicgstab(L, v, tol=_tol, M=ss_args['M'],
+                                x0=ss_args['x0'],
+                                maxiter=ss_args['maxiter'], callback=_iter_count)
+        else:
+            raise Exception("Invalid iterative solver method.")
+            
         v = v / la.norm(v, np.inf)
         it += 1
     if it >= maxiter:
@@ -690,7 +767,7 @@ def _steadystate_power(L, ss_args):
     ss_args['info']['solution_time'] = _power_end-_power_start
     ss_args['info']['iterations'] = it
     if ss_args['return_info']:
-        ss_args['info']['residual_norm'] = la.norm(L*v, np.inf)
+        ss_args['info']['residual_norm'] = la.norm(L*v)
     if settings.debug:
         logger.debug('Number of iterations: %i' % it)
 
@@ -745,6 +822,11 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         to the linear solvers.  This is set to the average abs value of the
         Liouvillian elements if not specified by the user.
 
+    method : str, default = 'iterative'
+        Tells the preconditioner what type of Liouvillian to build for
+        iLU factorization.  For direct iterative methods use 'iterative'.
+        For power iterative methods use 'power'.
+    
     permc_spec : str, optional, default='COLAMD'
         Column ordering used internally by superLU for the
         'direct' LU decomposition method. Options include 'COLAMD' and
@@ -781,6 +863,7 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         Dictionary containing solver-specific information.
     """
     ss_args = _default_steadystate_args()
+    ss_args['method'] = 'iterative'
     for key in kwargs.keys():
         if key in ss_args.keys():
             ss_args[key] = kwargs[key]
@@ -799,7 +882,13 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         ss_args['info']['weight'] = ss_args['weight']
 
     n = int(np.sqrt(L.shape[0]))
-    L, perm, perm2, rev_perm, ss_args = _steadystate_LU_liouvillian(L, ss_args)
+    if ss_args['method'] == 'iterative':
+        L, perm, perm2, rev_perm, ss_args = _steadystate_LU_liouvillian(L, ss_args)
+    elif ss_args['method'] == 'power':
+        L, perm, perm2, rev_perm, ss_args = _steadystate_power_liouvillian(L, ss_args)
+    else:
+        raise Exception("Invalid preconditioning method.")
+    
     M, ss_args = _iterative_precondition(L, n, ss_args)
 
     if ss_args['return_info']:
