@@ -35,124 +35,104 @@
 #Contact: nwlambert@gmail.com
 
 import time
-import warnings
 import numpy as np
 import scipy.sparse as sp
+import scipy.integrate
+from copy import copy
 from numpy import matrix
 from numpy import linalg
-from qutip import spre, spost, sprepost, thermal_dm, mesolve, Odeoptions
-from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye, dims
+from scipy.misc import factorial
+from qutip.cy.spmatfuncs import cy_ode_rhs
+from qutip import spre, spost, sprepost, thermal_dm, mesolve, Options, dims
+from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye
 
-def rcsolve(Hsys, Q, wc, alpha, N, Temperature, tlist, initial_state,
-            return_vals, eigen_sparse=False, calc_time=False, options=None):
+def _heom_state_dictionaries(dims, excitations):
     """
-    Function to solve for an open quantum system using the
-    reaction coordinate (RC) model. 
-
+    Return the number of states, and lookup-dictionaries for translating
+    a state tuple to a state index, and vice versa, for a system with a given
+    number of components and maximum number of excitations.
     Parameters
     ----------
-    Hsys: Qobj
-        The system hamiltonian.
-    Q: Qobj
-        The coupling between system and bath.
-    wc: Float
-        Cutoff frequency.
-    alpha: Float
-        Coupling strength.
-    N: Integer
-        Number of cavity fock states.
-    Temperature: Float
-        Temperature. 
-    tlist: List.
-        Time over which system evolves.
-    initial_state: Qobj
-        Initial state of the system.
-    return_vals: list of :class:`qutip.Qobj` / callback function single
-        Single operator or list of operators for which to evaluate
-        expectation values.
-    eigen_sparse: Boolean
-        Optional argument to call the sparse eigenstates solver if needed.
-    calc_time: Boolean
-        Optional argument to print hte time required for integration.
-    options : :class:`qutip.Options`
-        With options for the solver.
-     
+    dims: list
+        A list with the number of states in each sub-system.
+    excitations : integer
+        The maximum numbers of dimension
     Returns
     -------
-    output: Result
-        System evolution.
+    nstates, state2idx, idx2state: integer, dict, dict
+        The number of states `nstates`, a dictionary for looking up state
+        indices from a state tuple, and a dictionary for looking up state
+        state tuples from state indices.
     """
-    if options is None:
-        options = Options()
-    output = None
-    start_time = time.time()    
+    nstates = 0
+    state2idx = {}
+    idx2state = {}
 
-    dot_energy, dot_state = Hsys.eigenstates()
-    deltaE = dot_energy[1] - dot_energy[0]
-    if (Temperature < deltaE/2):
-        warnings.warn("Given temperature might not provide accurate results")
-    gamma = deltaE / (2 * np.pi * wc)
-    wa = 2 * np.pi * gamma *wc #reaction coordinate frequency
-    g = np.sqrt(np.pi * wa * alpha / 2.0) #reaction coordinate coupling
-    nb = (1 / (np.exp(wa/Temperature) -1))
+    for state in state_number_enumerate(dims, excitations):
+        state2idx[state] = nstates
+        idx2state[nstates] = state
+        nstates += 1
 
-    #Reaction coordinate hamiltonian/operators
-    Nmax = N * 2        #hilbert space 
-    dimensions = dims(Q)
-    a  = tensor(destroy(N), qeye(dimensions[1]))            
-    unit = tensor(qeye(N), qeye(dimensions[1]))
-    Q_exp = tensor(qeye(N), Q)
-    Hsys_exp = tensor(qeye(N),Hsys)
-    return_vals_exp=[tensor(qeye(N), kk) for kk in return_vals]
+    return nstates, state2idx, idx2state
 
-    na = a.dag() * a    # cavity
-    xa = a.dag() + a
 
-    # decoupled Hamiltonian
-    H0 = wa * a.dag() * a + Hsys_exp
-    #interaction
-    H1 = (g * (a.dag() + a) * Q_exp)
-    H = H0 + H1
-    L=0
-    PsipreEta=0
-    PsipreX=0
+def _heom_number_enumerate(dims, excitations=None, state=None, idx=0):
+    """
+    An iterator that enumerate all the state number arrays (quantum numbers on
+    the form [n1, n2, n3, ...]) for a system with dimensions given by dims.
+    Example:
+        >>> for state in state_number_enumerate([2,2]):
+        >>>     print(state)
+        [ 0.  0.]
+        [ 0.  1.]
+        [ 1.  0.]
+        [ 1.  1.]
+    Parameters
+    ----------
+    dims : list or array
+        The quantum state dimensions array, as it would appear in a Qobj.
+    state : list
+        Current state in the iteration. Used internally.
+    excitations : integer (None)
+        Restrict state space to states with excitation numbers below or
+        equal to this value.
+    idx : integer
+        Current index in the iteration. Used internally.
+    Returns
+    -------
+    state_number : list
+        Successive state number arrays that can be used in loops and other
+        iterations, using standard state enumeration *by definition*.
+    """
 
-    all_energy, all_state = H.eigenstates(sparse=eigen_sparse)
-    Apre = spre((a + a.dag()))
-    Apost = spost(a + a.dag())
-    for j in range(Nmax):
-        for k in range(Nmax):
-            A = xa.matrix_element(all_state[j].dag(), all_state[k])
-            delE = (all_energy[j] - all_energy[k])
-            if np.absolute(A) > 0.0:
-                if abs(delE) > 0.0:
-                    X = (0.5 * np.pi * gamma*(all_energy[j] - all_energy[k])
-                         * (np.cosh((all_energy[j] - all_energy[k]) /
-                            (2 * Temperature))
-                         / (np.sinh((all_energy[j] - all_energy[k]) /
-                            (2 * Temperature)))) * A)
-                    eta = (0.5 * np.pi * gamma *
-                           (all_energy[j] - all_energy[k]) * A)
-                    PsipreX = PsipreX + X * all_state[j]*all_state[k].dag()
-                    PsipreEta = PsipreEta + (eta * all_state[j]
-                                             * all_state[k].dag())
-                else:
-                    X =0.5 * np.pi * gamma * A * 2 * Temperature
-                    PsipreX=PsipreX+X*all_state[j]*all_state[k].dag()
+    if state is None:
+        state = np.zeros(len(dims))
 
-    A = a + a.dag()
-    L = ((-spre(A * PsipreX)) + (sprepost(A, PsipreX))
-         +(sprepost(PsipreX, A)) + (-spost(PsipreX * A))
-         +(spre(A * PsipreEta)) + (sprepost(A, PsipreEta))
-         +(-sprepost(PsipreEta, A)) + (-spost(PsipreEta * A)))           
+    if excitations and sum(state[0:idx]) > excitations:
+        pass
+    elif idx == len(dims):
+        if excitations is None:
+            yield np.array(state)
+        else:
+            yield tuple(state)
+            #yield list(state)
+            
+    else:
+        for n in range(dims[idx]):
+            state[idx] = n
+            for s in state_number_enumerate(dims, excitations, state, idx + 1):
+                yield s
 
-    #Setup the operators and the Hamiltonian and the master equation 
-    #and solve for time steps in tlist
-    psi0 = (tensor(thermal_dm(N,nb), initial_state))
-    output = mesolve(H, psi0, tlist, [L], return_vals_exp, options)
-    end_time = time.time()
-    if calc_time is True:
-        print("Integration required %g seconds" % (end_time - start_time))
-    
-    return output
-              
+
+def cot(x):
+    """
+    Calculate cotangent.
+    Parameters
+    ----------
+    x: Float
+        Angle.
+    """
+    return cos(x)/sin(x)
+
+
+
