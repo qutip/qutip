@@ -149,7 +149,7 @@ def rcsolve(Hsys, Q, wc, alpha, N, Temperature, tlist, initial_state,
     #Setup the operators and the Hamiltonian and the master equation 
     #and solve for time steps in tlist
     psi0 = (tensor(thermal_dm(N,nb), initial_state))
-    output = mesolve(H, psi0, tlist, [L], return_vals_exp, options)
+    output = mesolve(H, psi0, tlist, [L], return_vals_exp, options=options)
     end_time = time.time()
     if calc_time is True:
         print("Integration required %g seconds" % (end_time - start_time))
