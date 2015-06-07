@@ -34,7 +34,7 @@
 __all__ = ['Perturbation','EnergyLevelPerturbation','PerturbedEigenSpace','PerturbedBase']
 
 from qutip import Qobj
-from numpy import zeros, linalg
+from numpy import zeros, linalg, array
 
 # For formula used in this module, and the explanation of data structure of this module,
 # see the ipython notebook "example-perturbation.ipynb". Note that the source code and
@@ -388,7 +388,42 @@ class Perturbation:
                         break
                 if not converge:
                     break
-        print(self.order)
 
-    def result(lamda):
-        pass
+    def result(self,lamda):
+        """A method similiar to Qobj.eigenstates() except that the returned values
+        are the values calculated by perturbation theory.
+            
+        Parameters
+        ----------
+        lamda: float
+            The parameter lambda in the formula H = H0 + lambda*H1 + lambda^2*H2 + ...
+        
+        Returns
+        -------
+        eigvals : array
+            Array of eigenvalues for operator H = H0 + lambda*H1 + lambda^2*H2 + ...
+            calculated by perturbation theory.
+        
+        eigvecs : array
+            Array of eigenkets for operator H = H0 + lambda*H1 + lambda^2*H2 + ...
+            calculated by perturbation theory.
+            Order of eigenkets is determined by order of eigenvalues.
+        """
+
+        eigvalvecs = []
+        for space in self.eigen_spaces:
+            o1234 = range(self.order+1)
+            # calculate the total energy level
+            els = space.energy_levels()
+            els2 = [ x.energy * lamda**y for x,y in zip(els,o1234) ]
+            el = sum(els2)
+            # calculate each base for this energy level
+            def sum_eigenvecs(perturbedbase):
+                pb2 = [ x * lamda**y for x,y in zip(perturbedbase.vectors,o1234) ]
+                return sum(pb2)
+            for base in space.base_set:
+                eigvalvecs.append( ( el, sum_eigenvecs(base) ) )
+        eigvalvecs =  sorted(eigvalvecs, key=lambda x: x[0])
+        eigvals = array([ x for x,y in eigvalvecs ])
+        eigvecs = array([ y for x,y in eigvalvecs ])
+        return eigvals,eigvecs
