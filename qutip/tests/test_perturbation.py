@@ -33,7 +33,7 @@
 
 import numpy as np
 from numpy.testing import assert_, run_module_suite
-from qutip import Perturbation
+from qutip.perturbation import Perturbation
 
 def test_Perturbation():
     ntests = 10
