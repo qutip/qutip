@@ -31,8 +31,9 @@
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
 
-from qutip import *
 import numpy as np
+from numpy.testing import assert_, run_module_suite
+from qutip import Perturbation
 
 def test_Perturbation():
     ntests = 10
@@ -82,7 +83,7 @@ def test_Perturbation():
         eigvaldiff = heigenval_p - heigenval
         absdiff = [ abs(x) for x in eigvaldiff ]
         diffsum = sum(absdiff)
-        assert(diffsum < converge_tol)
+        assert_(diffsum < converge_tol)
         
         # outputs
         if output:
