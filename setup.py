@@ -156,5 +156,6 @@ setup(
     platforms=PLATFORMS,
     requires=REQUIRES,
     package_data=PACKAGE_DATA,
-    configuration=configuration
+    configuration=configuration,
+    zip_safe=False
 )
