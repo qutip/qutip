@@ -264,3 +264,6 @@ from qutip.parallel import *
 from qutip.utilities import *
 from qutip.fileio import *
 from qutip.about import *
+
+# perturbation theory
+from qutip.perturbation import *
