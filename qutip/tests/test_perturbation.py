@@ -34,6 +34,7 @@
 import numpy as np
 from numpy.testing import assert_, run_module_suite
 from qutip.perturbation import Perturbation
+from qutip.qobj import Qobj
 
 def test_Perturbation():
     ntests = 10
