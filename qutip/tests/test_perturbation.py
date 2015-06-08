@@ -37,15 +37,15 @@ from qutip.perturbation import Perturbation
 from qutip.qobj import Qobj
 
 def test_Perturbation():
-    ntests = 10
+    ntests = 3
     tol = 0.000000001
     converge_tol = 100*tol
     minhsz = 2
-    maxhsz = 10
+    maxhsz = 6
     minorder = 1
     maxorder = 5
-    maxlambda = 0.1
-    minlambda = 0.01
+    maxlambda = 0.05
+    minlambda = 0.001
     output = False
 
     for i in range(ntests):
