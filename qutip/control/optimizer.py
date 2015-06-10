@@ -146,7 +146,15 @@ class Optimizer:
         Note that where there is an equivalent attribute of this instance
         or the termination_conditions (for example maxiter)
         it will override an value in these options
-
+        
+    approx_grad : bool
+        If set True then the method will approximate the gradient itself
+        (if it has requirement and facility for this)
+        This will mean that the fid_err_grad_wrapper will not get called
+        Note it should be left False when using the Dynamics 
+        to calculate approximate gradients
+        Note it is set True automatically when the alg is CRAB
+        
     amp_lbound : float or list of floats
         lower boundaries for the control amplitudes
         Can be a scalar value applied to all controls
@@ -206,6 +214,7 @@ class Optimizer:
         self.method = 'l_bfgs_b'
         self.method_params = None
         self.method_options = None
+        self.approx_grad = False
         self.amp_lbound = None
         self.amp_ubound = None
         self.bounds = None
@@ -295,7 +304,10 @@ class Optimizer:
 
         if term_conds.fid_goal is None:
             term_conds.fid_goal = 1 - term_conds.fid_err_targ
-
+            
+        if self.alg == 'CRAB':
+            self.approx_grad = True
+            
         if self.stats is not None:
             self.stats.clear()
         
@@ -486,14 +498,17 @@ class Optimizer:
         
         result = self._create_result()
         
-        if self.alg == 'CRAB':
+        if self.approx_grad:
             jac=None
         else:
             jac=self.fid_err_grad_wrapper
 
         if self.log_level <= logging.INFO:
-            logger.info("Optimising pulse(s) using {} with "
-                        "minimise '{}' method".format(self.alg, self.method))
+            msg = ("Optimising pulse(s) using {} with "
+                        "minimise '{}' method").format(self.alg, self.method)
+            if self.approx_grad:
+                msg += " (approx grad)"
+            logger.info(msg)
 
         try:
             opt_res = spopt.minimize(
@@ -750,24 +765,25 @@ class OptimizerBFGS(Optimizer):
             self.stats.wall_time_optim_end = 0.0
             self.stats.num_iter = 1
             
-        if self.alg == 'CRAB':
+        if self.approx_grad:
             fprime = None
-            approx_grad = True
         else:
             fprime = self.fid_err_grad_wrapper
-            approx_grad = False
 
         if self.log_level <= logging.INFO:
-            logger.info("Optimising pulse(s) using {} with "
-                        "'fmin_bfgs' method".format(self.alg))
-
+            msg = ("Optimising pulse(s) using {} with "
+                        "'fmin_bfgs' method").format(self.alg)
+            if self.approx_grad:
+                msg += " (approx grad)"
+            logger.info(msg)
+            
         result = self._create_result()
         try:
             optim_var_vals, cost, grad, invHess, nFCalls, nGCalls, warn = \
                 spopt.fmin_bfgs(self.fid_err_func_wrapper, 
                                 self.optim_var_vals,
                                 fprime=fprime,
-                                approx_grad=approx_grad,
+#                                approx_grad=self.approx_grad,
                                 callback=self.iter_step_callback_func,
                                 gtol=term_conds.min_gradient_norm,
                                 maxiter=term_conds.max_iterations,
@@ -885,12 +901,10 @@ class OptimizerLBFGSB(Optimizer):
         bounds = self._build_bounds_list()
         result = self._create_result()
         
-        if self.alg == 'CRAB':
+        if self.approx_grad:
             fprime = None
-            approx_grad = True
         else:
             fprime = self.fid_err_grad_wrapper
-            approx_grad = False
             
         if 'ftol' in self.method_options:
             factr = self.method_options['ftol']
@@ -911,14 +925,16 @@ class OptimizerLBFGSB(Optimizer):
             m = 10
 
         if self.log_level <= logging.INFO:
-            logger.info("Optimising pulse(s) using {} with "
-                        "'fmin_l_bfgs_b' method".format(self.alg))
-
+            msg = ("Optimising pulse(s) using {} with "
+                        "'fmin_l_bfgs_b' method").format(self.alg)
+            if self.approx_grad:
+                msg += " (approx grad)"
+            logger.info(msg)
         try:
             optim_var_vals, fid, res_dict = spopt.fmin_l_bfgs_b(
                 self.fid_err_func_wrapper, self.optim_var_vals,
                 fprime=fprime,
-                approx_grad=approx_grad,
+                approx_grad=self.approx_grad,
                 callback=self.iter_step_callback_func,
                 bounds=bounds, m=m, factr=factr,
                 pgtol=term_conds.min_gradient_norm,
