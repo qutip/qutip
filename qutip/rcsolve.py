@@ -85,9 +85,8 @@ def rcsolve(Hsys, Q, wc, alpha, N, Temperature, tlist, initial_state,
     if options is None:
         options = Options()
     output = None
-    start_time = time.time()    
-
-    dot_energy, dot_state = Hsys.eigenstates()
+    
+    dot_energy, dot_state = Hsys.eigenstates(sparse=eigen_sparse)
     deltaE = dot_energy[1] - dot_energy[0]
     if (Temperature < deltaE/2):
         warnings.warn("Given temperature might not provide accurate results")
@@ -150,9 +149,6 @@ def rcsolve(Hsys, Q, wc, alpha, N, Temperature, tlist, initial_state,
     #and solve for time steps in tlist
     psi0 = (tensor(thermal_dm(N,nb), initial_state))
     output = mesolve(H, psi0, tlist, [L], return_vals_exp, options=options)
-    end_time = time.time()
-    if calc_time is True:
-        print("Integration required %g seconds" % (end_time - start_time))
     
     return output
               
