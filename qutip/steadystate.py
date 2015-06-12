@@ -65,6 +65,13 @@ logger.setLevel('DEBUG')
 _scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
 
 
+def _empty_info_dict():
+    def_info = {'perm': [], 'solution_time': None, 'iterations': None,
+                'residual_norm': None, 'rcm_time': None, 'wbm_time': None,
+                'iter_time': None, 'precond_time': None, 'ILU_MILU': None,
+                'fill_factor': None, 'diag_pivot_thresh': None, 
+                'drop_tol': None, 'permc_spec': None, 'weight': None}
+
 def _default_steadystate_args():
     def_args = {'method': 'direct', 'sparse': True, 'use_rcm': False,
                 'use_wbm': False, 'use_umfpack': False, 'weight': None,
@@ -72,7 +79,7 @@ def _default_steadystate_args():
                 'M': None, 'x0': None, 'drop_tol': 1e-4, 'fill_factor': 100,
                 'diag_pivot_thresh': None, 'maxiter': 1000, 'tol': 1e-12,
                 'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2', 'restart': 20,
-                'return_info': False, 'info': {'perm': []}}
+                'return_info': False, 'info': _empty_info_dict()}
 
     return def_args
 
@@ -564,9 +571,11 @@ def _steadystate_iterative(L, ss_args):
     _iter_end = time.time()
 
     ss_args['info']['iter_time'] = _iter_end - _iter_start
-    if 'precond_time' in ss_args['info'].keys():
+    if (ss_args['info']['precond_time'] not None:
         ss_args['info']['solution_time'] = (ss_args['info']['iter_time'] +
                                             ss_args['info']['precond_time'])
+    else:
+        ss_args['info']['solution_time'] = ss_args['info']['iter_time']
     ss_args['info']['iterations'] = ss_iters['iter']
     if ss_args['return_info']:
         ss_args['info']['residual_norm'] = la.norm(b - L*v)
@@ -612,7 +621,7 @@ def _steadystate_svd_dense(L, ss_args):
     nnz = (s >= tol).sum()
     ns = vh[nnz:].conj().T
     _svd_end = time.time()
-    ss_args['info']['total_time'] = _svd_end-_svd_start
+    ss_args['info']['solution_time'] = _svd_end-_svd_start
     if ss_args['all_states']:
         rhoss_list = []
         for n in range(ns.shape[1]):
@@ -987,7 +996,7 @@ def _pseudo_inverse_sparse(L, rhoss, method='splu', use_umfpack=False,
 def pseudo_inverse(L, rhoss=None, sparse=True, method='splu', **kwargs):
     """
     Compute the pseudo inverse for a Liouvillian superoperator, optionally
-    given its steadystate density matrix (which will be computed if not given).
+    given its steady state density matrix (which will be computed if not given).
 
     Returns
     -------
@@ -1004,11 +1013,11 @@ def pseudo_inverse(L, rhoss=None, sparse=True, method='splu', **kwargs):
 
     method : string
         Name of method to use. For sparse=True, allowed values are 'spsolve',
-        'splu' and 'spilu'. For sprase=False, allowed values are 'direct' and
+        'splu' and 'spilu'. For sparse=False, allowed values are 'direct' and
         'numpy'.
 
     kwargs : dictionary
-        Additional keyword arguments for setting paramters for solver methods.
+        Additional keyword arguments for setting parameters for solver methods.
         Currently supported arguments are use_rcm (for sparse=True),
         use_umfpack (for sparse=True and method='spsolve').
 
