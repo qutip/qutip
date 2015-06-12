@@ -56,14 +56,24 @@ from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
 from qutip import (mat2vec, tensor, identity, operator_to_vector)
 import qutip.settings as settings
 from qutip.utilities import _version2int
-import qutip.logging
-
-logger = qutip.logging.get_logger()
-logger.setLevel('DEBUG')
+from qutip.settings import debug
+if debug:
+    import qutip.logging
+    import inspect
+    logger = qutip.logging.get_logger()
 
 # test if scipy is recent enought to get L & U factors from superLU
 _scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
 
+
+def _empty_info_dict():
+    def_info = {'perm': [], 'solution_time': None, 'iterations': None,
+                'residual_norm': None, 'rcm_time': None, 'wbm_time': None,
+                'iter_time': None, 'precond_time': None, 'ILU_MILU': None,
+                'fill_factor': None, 'diag_pivot_thresh': None, 
+                'drop_tol': None, 'permc_spec': None, 'weight': None}
+    
+    return def_info
 
 def _default_steadystate_args():
     def_args = {'method': 'direct', 'sparse': True, 'use_rcm': False,
@@ -72,7 +82,7 @@ def _default_steadystate_args():
                 'M': None, 'x0': None, 'drop_tol': 1e-4, 'fill_factor': 100,
                 'diag_pivot_thresh': None, 'maxiter': 1000, 'tol': 1e-12,
                 'permc_spec': 'COLAMD', 'ILU_MILU': 'smilu_2', 'restart': 20,
-                'return_info': False, 'info': {'perm': []}}
+                'return_info': False, 'info': _empty_info_dict()}
 
     return def_args
 
@@ -210,6 +220,7 @@ def steadystate(A, c_op_list=[], **kwargs):
 
     # Set weight parameter to avg abs val in L if not set explicitly
     if 'weight' not in kwargs.keys():
+        ss_args['info']['weight']
         ss_args['weight'] = np.mean(np.abs(A.data.data.max()))
         ss_args['info']['weight'] = ss_args['weight']
 
@@ -308,7 +319,7 @@ def _steadystate_LU_liouvillian(L, ss_args):
     return L, perm, perm2, rev_perm, ss_args
 
 
-def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
+def steady(L, maxiter=10, tol=1e-12, itertol=1e-15, method='solve',
            use_umfpack=False, use_precond=False):
     """
     Deprecated. See steadystate instead.
@@ -564,9 +575,11 @@ def _steadystate_iterative(L, ss_args):
     _iter_end = time.time()
 
     ss_args['info']['iter_time'] = _iter_end - _iter_start
-    if 'precond_time' in ss_args['info'].keys():
+    if ss_args['info']['precond_time'] is not None:
         ss_args['info']['solution_time'] = (ss_args['info']['iter_time'] +
                                             ss_args['info']['precond_time'])
+    else:
+        ss_args['info']['solution_time'] = ss_args['info']['iter_time']
     ss_args['info']['iterations'] = ss_iters['iter']
     if ss_args['return_info']:
         ss_args['info']['residual_norm'] = la.norm(b - L*v)
@@ -612,7 +625,7 @@ def _steadystate_svd_dense(L, ss_args):
     nnz = (s >= tol).sum()
     ns = vh[nnz:].conj().T
     _svd_end = time.time()
-    ss_args['info']['total_time'] = _svd_end-_svd_start
+    ss_args['info']['solution_time'] = _svd_end-_svd_start
     if ss_args['all_states']:
         rhoss_list = []
         for n in range(ns.shape[1]):
@@ -897,7 +910,7 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         return M
 
 
-def _pseudo_inverse_dense(L, rhoss, method='direct'):
+def _pseudo_inverse_dense(L, rhoss, method='direct', **pseudo_args):
     """
     Internal function for computing the pseudo inverse of an Liouvillian using
     dense matrix methods. See pseudo_inverse for details.
@@ -931,8 +944,7 @@ def _pseudo_inverse_dense(L, rhoss, method='direct'):
                          method)
 
 
-def _pseudo_inverse_sparse(L, rhoss, method='splu', use_umfpack=False,
-                           use_rcm=False):
+def _pseudo_inverse_sparse(L, rhoss, method='splu', **pseudo_args):
     """
     Internal function for computing the pseudo inverse of an Liouvillian using
     sparse matrix methods. See pseudo_inverse for details.
@@ -949,27 +961,28 @@ def _pseudo_inverse_sparse(L, rhoss, method='splu', use_umfpack=False,
     I = sp.eye(N*N, N*N, format='csc')
     Q = I - P
 
-    if use_rcm:
+    if pseudo_args['use_rcm']:
         perm = reverse_cuthill_mckee(L.data)
         A = sp_permute(L.data, perm, perm, 'csc').tocsc()
         Q = sp_permute(Q, perm, perm, 'csc')
-        permc_spec = 'NATURAL'
     else:
         A = L.data.tocsc()
         A.sort_indices()
-        permc_spec = 'COLAMD'
 
     if method == 'spsolve':
         sp.linalg.use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
         LIQ = sp.linalg.spsolve(A, Q)
 
     elif method == 'splu':
-        lu = sp.linalg.splu(A, permc_spec=permc_spec)
+        lu = sp.linalg.splu(A, permc_spec=pseudo_args['permc_spec'],
+                            diag_pivot_thresh=pseudo_args['diag_pivot_thresh'],
+                            options=dict(ILU_MILU=pseudo_args['ILU_MILU']))
         LIQ = lu.solve(Q.toarray())
 
     elif method == 'spilu':
-        lu = sp.linalg.spilu(A, permc_spec=permc_spec,
-                             fill_factor=10, drop_tol=1e-8)
+        lu = sp.linalg.spilu(A, permc_spec=pseudo_args['permc_spec'],
+                             fill_factor=pseudo_args['fill_factor'], 
+                             drop_tol=pseudo_args['drop_tol'])
         LIQ = lu.solve(Q.toarray())
 
     else:
@@ -977,7 +990,7 @@ def _pseudo_inverse_sparse(L, rhoss, method='splu', use_umfpack=False,
 
     R = sp.csc_matrix(Q * LIQ)
 
-    if use_rcm:
+    if pseudo_args['use_rcm']:
         rev_perm = np.argsort(perm)
         R = sp_permute(R, rev_perm, rev_perm, 'csc')
 
@@ -987,7 +1000,7 @@ def _pseudo_inverse_sparse(L, rhoss, method='splu', use_umfpack=False,
 def pseudo_inverse(L, rhoss=None, sparse=True, method='splu', **kwargs):
     """
     Compute the pseudo inverse for a Liouvillian superoperator, optionally
-    given its steadystate density matrix (which will be computed if not given).
+    given its steady state density matrix (which will be computed if not given).
 
     Returns
     -------
@@ -1004,24 +1017,42 @@ def pseudo_inverse(L, rhoss=None, sparse=True, method='splu', **kwargs):
 
     method : string
         Name of method to use. For sparse=True, allowed values are 'spsolve',
-        'splu' and 'spilu'. For sprase=False, allowed values are 'direct' and
+        'splu' and 'spilu'. For sparse=False, allowed values are 'direct' and
         'numpy'.
 
     kwargs : dictionary
-        Additional keyword arguments for setting paramters for solver methods.
-        Currently supported arguments are use_rcm (for sparse=True),
-        use_umfpack (for sparse=True and method='spsolve').
+        Additional keyword arguments for setting parameters for solver methods.
 
     Returns
     -------
     R : Qobj
         Returns a Qobj instance representing the pseudo inverse of L.
+    
+    Note
+    ----
+    In general the inverse of a sparse matrix will be dense.  If you
+    are applying the inverse to a density matrix then it is better to
+    cast the problem as an Ax=b type problem where the explicit calculation
+    of the inverse is not required.
+    
     """
+    pseudo_args = _default_steadystate_args()
+    for key in kwargs.keys():
+        if key in pseudo_args.keys():
+            pseudo_args[key] = kwargs[key]
+        else:
+            raise Exception(
+                "Invalid keyword argument '"+key+"' passed to pseudo_inverse.")
+
+    # Set column perm to NATURAL if using RCM and not specified by user
+    if pseudo_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):
+        pseudo_args['permc_spec'] = 'NATURAL'
+    
     if rhoss is None:
-        rhoss = steadystate(L)
+        rhoss = steadystate(L, **pseudo_args)
 
     if sparse:
-        return _pseudo_inverse_sparse(L, rhoss, method=method, **kwargs)
+        return _pseudo_inverse_sparse(L, rhoss, method=method, **pseudo_args)
     else:
         method = method if method != 'splu' else 'direct'
-        return _pseudo_inverse_dense(L, rhoss, method=method, **kwargs)
+        return _pseudo_inverse_dense(L, rhoss, method=method, **pseudo_args)
