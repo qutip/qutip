@@ -56,10 +56,11 @@ from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
 from qutip import (mat2vec, tensor, identity, operator_to_vector)
 import qutip.settings as settings
 from qutip.utilities import _version2int
-import qutip.logging
-
-logger = qutip.logging.get_logger()
-logger.setLevel('DEBUG')
+from qutip.settings import debug
+if debug:
+    import qutip.logging
+    import inspect
+    logger = qutip.logging.get_logger()
 
 # test if scipy is recent enought to get L & U factors from superLU
 _scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
@@ -71,6 +72,8 @@ def _empty_info_dict():
                 'iter_time': None, 'precond_time': None, 'ILU_MILU': None,
                 'fill_factor': None, 'diag_pivot_thresh': None, 
                 'drop_tol': None, 'permc_spec': None, 'weight': None}
+    
+    return def_info
 
 def _default_steadystate_args():
     def_args = {'method': 'direct', 'sparse': True, 'use_rcm': False,
@@ -217,6 +220,7 @@ def steadystate(A, c_op_list=[], **kwargs):
 
     # Set weight parameter to avg abs val in L if not set explicitly
     if 'weight' not in kwargs.keys():
+        ss_args['info']['weight']
         ss_args['weight'] = np.mean(np.abs(A.data.data.max()))
         ss_args['info']['weight'] = ss_args['weight']
 
