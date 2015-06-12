@@ -319,7 +319,7 @@ def _steadystate_LU_liouvillian(L, ss_args):
     return L, perm, perm2, rev_perm, ss_args
 
 
-def steady(L, maxiter=10, tol=1e-6, itertol=1e-5, method='solve',
+def steady(L, maxiter=10, tol=1e-12, itertol=1e-15, method='solve',
            use_umfpack=False, use_precond=False):
     """
     Deprecated. See steadystate instead.
@@ -910,7 +910,7 @@ def build_preconditioner(A, c_op_list=[], **kwargs):
         return M
 
 
-def _pseudo_inverse_dense(L, rhoss, method='direct'):
+def _pseudo_inverse_dense(L, rhoss, method='direct', **pseudo_args):
     """
     Internal function for computing the pseudo inverse of an Liouvillian using
     dense matrix methods. See pseudo_inverse for details.
@@ -944,8 +944,7 @@ def _pseudo_inverse_dense(L, rhoss, method='direct'):
                          method)
 
 
-def _pseudo_inverse_sparse(L, rhoss, method='splu', use_umfpack=False,
-                           use_rcm=False):
+def _pseudo_inverse_sparse(L, rhoss, method='splu', **pseudo_args):
     """
     Internal function for computing the pseudo inverse of an Liouvillian using
     sparse matrix methods. See pseudo_inverse for details.
@@ -962,27 +961,28 @@ def _pseudo_inverse_sparse(L, rhoss, method='splu', use_umfpack=False,
     I = sp.eye(N*N, N*N, format='csc')
     Q = I - P
 
-    if use_rcm:
+    if pseudo_args['use_rcm']:
         perm = reverse_cuthill_mckee(L.data)
         A = sp_permute(L.data, perm, perm, 'csc').tocsc()
         Q = sp_permute(Q, perm, perm, 'csc')
-        permc_spec = 'NATURAL'
     else:
         A = L.data.tocsc()
         A.sort_indices()
-        permc_spec = 'COLAMD'
 
     if method == 'spsolve':
         sp.linalg.use_solver(assumeSortedIndices=True, useUmfpack=use_umfpack)
         LIQ = sp.linalg.spsolve(A, Q)
 
     elif method == 'splu':
-        lu = sp.linalg.splu(A, permc_spec=permc_spec)
+        lu = sp.linalg.splu(A, permc_spec=pseudo_args['permc_spec'],
+                            diag_pivot_thresh=pseudo_args['diag_pivot_thresh'],
+                            options=dict(ILU_MILU=pseudo_args['ILU_MILU']))
         LIQ = lu.solve(Q.toarray())
 
     elif method == 'spilu':
-        lu = sp.linalg.spilu(A, permc_spec=permc_spec,
-                             fill_factor=10, drop_tol=1e-8)
+        lu = sp.linalg.spilu(A, permc_spec=pseudo_args['permc_spec'],
+                             fill_factor=pseudo_args['fill_factor'], 
+                             drop_tol=pseudo_args['drop_tol'])
         LIQ = lu.solve(Q.toarray())
 
     else:
@@ -990,7 +990,7 @@ def _pseudo_inverse_sparse(L, rhoss, method='splu', use_umfpack=False,
 
     R = sp.csc_matrix(Q * LIQ)
 
-    if use_rcm:
+    if pseudo_args['use_rcm']:
         rev_perm = np.argsort(perm)
         R = sp_permute(R, rev_perm, rev_perm, 'csc')
 
@@ -1022,19 +1022,37 @@ def pseudo_inverse(L, rhoss=None, sparse=True, method='splu', **kwargs):
 
     kwargs : dictionary
         Additional keyword arguments for setting parameters for solver methods.
-        Currently supported arguments are use_rcm (for sparse=True),
-        use_umfpack (for sparse=True and method='spsolve').
 
     Returns
     -------
     R : Qobj
         Returns a Qobj instance representing the pseudo inverse of L.
+    
+    Note
+    ----
+    In general the inverse of a sparse matrix will be dense.  If you
+    are applying the inverse to a density matrix then it is better to
+    cast the problem as an Ax=b type problem where the explicit calculation
+    of the inverse is not required.
+    
     """
+    pseudo_args = _default_steadystate_args()
+    for key in kwargs.keys():
+        if key in pseudo_args.keys():
+            pseudo_args[key] = kwargs[key]
+        else:
+            raise Exception(
+                "Invalid keyword argument '"+key+"' passed to pseudo_inverse.")
+
+    # Set column perm to NATURAL if using RCM and not specified by user
+    if pseudo_args['use_rcm'] and ('permc_spec' not in kwargs.keys()):
+        pseudo_args['permc_spec'] = 'NATURAL'
+    
     if rhoss is None:
-        rhoss = steadystate(L)
+        rhoss = steadystate(L, **pseudo_args)
 
     if sparse:
-        return _pseudo_inverse_sparse(L, rhoss, method=method, **kwargs)
+        return _pseudo_inverse_sparse(L, rhoss, method=method, **pseudo_args)
     else:
         method = method if method != 'splu' else 'direct'
-        return _pseudo_inverse_dense(L, rhoss, method=method, **kwargs)
+        return _pseudo_inverse_dense(L, rhoss, method=method, **pseudo_args)
