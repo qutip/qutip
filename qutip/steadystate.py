@@ -571,7 +571,7 @@ def _steadystate_iterative(L, ss_args):
     _iter_end = time.time()
 
     ss_args['info']['iter_time'] = _iter_end - _iter_start
-    if (ss_args['info']['precond_time'] not None:
+    if ss_args['info']['precond_time'] is not None:
         ss_args['info']['solution_time'] = (ss_args['info']['iter_time'] +
                                             ss_args['info']['precond_time'])
     else:
