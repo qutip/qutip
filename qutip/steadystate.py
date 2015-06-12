@@ -56,11 +56,10 @@ from qutip.graph import reverse_cuthill_mckee, weighted_bipartite_matching
 from qutip import (mat2vec, tensor, identity, operator_to_vector)
 import qutip.settings as settings
 from qutip.utilities import _version2int
-from qutip.settings import debug
-if debug:
-    import qutip.logging
-    import inspect
-    logger = qutip.logging.get_logger()
+import qutip.logging
+
+logger = qutip.logging.get_logger()
+logger.setLevel('DEBUG')
 
 # test if scipy is recent enought to get L & U factors from superLU
 _scipy_check = _version2int(scipy.__version__) >= _version2int('0.14.0')
