@@ -45,6 +45,7 @@ from scipy.misc import factorial
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip import spre, spost, sprepost, thermal_dm, mesolve, Options, dims
 from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye
+from qutip import liouvillian, mat2vec, state_number_enumerate
 
 def _heom_state_dictionaries(dims, excitations):
     """
@@ -115,7 +116,6 @@ def _heom_number_enumerate(dims, excitations=None, state=None, idx=0):
             yield np.array(state)
         else:
             yield tuple(state)
-            #yield list(state)
             
     else:
         for n in range(dims[idx]):
@@ -132,7 +132,177 @@ def cot(x):
     x: Float
         Angle.
     """
-    return cos(x)/sin(x)
+    return np.cos(x)/np.sin(x)
 
 
+def hsolve(H, Q,gam, lam0, Nc, N, Temperature, tlist, initial_state,
+		   options=None):
+    """
+    Function to solve for an open quantum system using the
+    hierarchy model. 
 
+    Parameters
+    ----------
+    H: Qobj
+        The system hamiltonian.
+    Q: Qobj
+        The coupling between system and bath.
+   gamma: Float
+        Bath cutoff frequency.
+    lam0: Float
+        Coupling strength.
+    Nc: Integer
+        Cutoff parameter.
+    N: Integer
+        Number of matsubara terms.
+    Temperature: Float
+        Temperature. 
+    tlist: List.
+        Time over which system evolves.
+    initial_state: Qobj
+        Initial state of the system.
+    options : :class:`qutip.Options`
+        With options for the solver.
+     
+    Returns
+    -------
+    output: Result
+        System evolution.
+    """
+    if options is None:
+        options = Options()
+    
+    #Set up terms of the matsubara and tanimura boundaries
+
+    #Parameters and hamiltonian
+    h=1.
+    hbar=1.
+    c=1.
+    kb=1.
+
+    #Set by system 
+    dimensions = dims(H)
+    Nsup = dimensions[0][0] * dimensions[0][0] 
+    unit = qeye(dimensions[0])
+
+    #Ntot is the total number of ancillary elements in the hierarchy
+    Ntot = int(round(factorial(Nc+N) / (factorial(Nc) * factorial(N))))
+    c0 =(lam0 * gam * (cot(gam * hbar / (2. * kb * Temperature)) - (1j))) / hbar
+    LD1 = -2.* spre(Q) * spost(Q.dag()) + spre(Q.dag() * Q) + spost(Q.dag() * Q)
+    pref = ((2. * lam0 * kb * Temperature / (gam * hbar)) -1j * lam0) / hbar
+    gj = 2 * np.pi * kb * Temperature / hbar
+    L12 = -pref * LD1 + (c0 / gam) * LD1 
+
+    for i1 in range(1,N):
+        ci = (4 * lam0 * gam * kb * Temperature * i1
+        	  * gj/((i1 * gj)**2 - gam**2)) / (hbar**2)
+        L12 = L12 + (ci / gj) * LD1
+
+    #Setup liouvillian
+
+    L = liouvillian(H, [L12])
+    Ltot = L.data
+    unitthing = sp.csr_matrix(np.identity(Ntot))
+    Lbig = sp.kron(unitthing,Ltot.tocsr())
+    rho0big1 = np.zeros((Nsup * Ntot))
+
+
+    #Prepare initial state:
+
+    rhotemp =  mat2vec(np.array(initial_state.full()))
+
+    for idx,element in enumerate(rhotemp):
+        rho0big1[idx] = element[0]
+    rho0big = sp.csr_matrix(rho0big1)
+    
+    nstates, state2idx, idx2state =_heom_state_dictionaries([Nc+1]*(N),Nc)
+    for nlabelt in _heom_number_enumerate([Nc+1]*(N),Nc):
+        nlabel = list(nlabelt)                    
+        ntotalcheck = 0
+        for ncheck in range(N):
+            ntotalcheck = ntotalcheck + nlabel[ncheck]                            
+        current_pos = int(round(state2idx[tuple(nlabel)]))
+        Ltemp = sp.lil_matrix((Ntot, Ntot))
+        Ltemp[current_pos,current_pos] = 1
+        Ltemp.tocsr()
+        Lbig = Lbig + sp.kron(Ltemp,(-nlabel[0] * gam * spre(unit).data))
+        
+        for kcount in range(1,N):
+            Lbig = Lbig + sp.kron(Ltemp,(-nlabel[kcount] * (kcount * gj)
+            	   			 * spre(unit).data))
+        
+        for kcount in range(N):
+            if nlabel[kcount]>=1:
+            #find the position of the neighbour
+                nlabeltemp = copy(nlabel)
+                nlabel[kcount] = nlabel[kcount] -1
+                current_pos2 = int(round(state2idx[tuple(nlabel)]))
+                Ltemp = sp.lil_matrix(np.zeros((Ntot,Ntot)))
+                Ltemp[current_pos, current_pos2] = 1
+                Ltemp.tocsr()
+            # renormalized version:    
+                ci =  (4 * lam0 * gam * kb * Temperature * kcount
+                	   * gj/((kcount * gj)**2 - gam**2)) / (hbar**2)
+                if kcount==0:
+                    Lbig = Lbig + sp.kron(Ltemp,(-1j
+                    				 * (np.sqrt(nlabeltemp[kcount]
+                    				    / abs(c0)))
+                    				 * ((c0) * spre(Q).data
+                    		  	 	 - (np.conj(c0))
+                    				 * spost(Q).data)))
+                if kcount>0:                                                
+                    ci =  (4 * lam0 * gam * kb * Temperature * kcount
+                    	   * gj/((kcount * gj)**2 - gam**2)) / (hbar**2)
+                    Lbig = Lbig + sp.kron(Ltemp,(-1j
+                    				 * (np.sqrt(nlabeltemp[kcount]
+                    				    / abs(ci)))
+                    				 * ((ci) * spre(Q).data
+                    				 - (np.conj(ci))
+                    				 * spost(Q).data)))
+                nlabel = copy(nlabeltemp)
+
+        for kcount in range(N):
+            if ntotalcheck<=(Nc-1):
+                nlabeltemp = copy(nlabel)
+                nlabel[kcount] = nlabel[kcount] + 1
+                current_pos3 = int(round(state2idx[tuple(nlabel)]))
+            if current_pos3<=(Ntot):
+                Ltemp = sp.lil_matrix(np.zeros((Ntot,Ntot)))
+                Ltemp[current_pos, current_pos3] = 1
+                Ltemp.tocsr()
+            #renormalized   
+                if kcount==0:
+                    Lbig = Lbig + sp.kron(Ltemp,-1j
+                    			  * (np.sqrt((nlabeltemp[kcount]+1)
+                    			     * abs(c0)))
+                    			  * (spre(Q)- spost(Q)).data)
+                if kcount>0:
+                    ci = (4 * lam0 * gam * kb * Temperature * kcount
+                    	  * gj/((kcount * gj)**2 - gam**2)) / (hbar**2)
+                    Lbig = Lbig + sp.kron(Ltemp,-1j
+                    			  * (np.sqrt((nlabeltemp[kcount]+1) 
+                    			     * abs(ci)))
+                    			  * (spre(Q)- spost(Q)).data)
+            nlabel = copy(nlabeltemp)
+
+    output=[]
+    for element in rhotemp:
+        output.append([])
+    r = scipy.integrate.ode(cy_ode_rhs)
+    Lbig2=Lbig.tocsr()
+    r.set_f_params(Lbig2.data, Lbig2.indices, Lbig2.indptr)
+    r.set_integrator('zvode', method=options.method, order=options.order,
+    		     atol=options.atol, rtol=options.rtol,
+    		     nsteps=options.nsteps, first_step=options.first_step,
+    		     min_step=options.min_step,max_step=options.max_step)
+    
+    r.set_initial_value(rho0big1, tlist[0])
+    dt = tlist[1] - tlist[0]    
+
+    for t_idx, t in enumerate(tlist):
+        r.integrate(r.t + dt)
+        for idx,element in enumerate(rhotemp):        
+            output[idx].append(r.y[idx])
+
+    return output
+    
