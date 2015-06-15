@@ -44,7 +44,7 @@ from qutip import spre, spost, sprepost, thermal_dm, mesolve, Odeoptions
 from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye, dims
 
 def rcsolve(Hsys, Q, wc, alpha, N, Temperature, tlist, initial_state,
-            return_vals, eigen_sparse=False, calc_time=False, options=None):
+            return_vals, eigen_sparse=False, options=None):
     """
     Function to solve for an open quantum system using the
     reaction coordinate (RC) model. 
@@ -72,8 +72,6 @@ def rcsolve(Hsys, Q, wc, alpha, N, Temperature, tlist, initial_state,
         expectation values.
     eigen_sparse: Boolean
         Optional argument to call the sparse eigenstates solver if needed.
-    calc_time: Boolean
-        Optional argument to print hte time required for integration.
     options : :class:`qutip.Options`
         With options for the solver.
      
