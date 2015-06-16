@@ -175,9 +175,7 @@ def hsolve(H, Q,gam, lam0, Nc, N, Temperature, tlist, initial_state,
     #Set up terms of the matsubara and tanimura boundaries
 
     #Parameters and hamiltonian
-    h=1.
     hbar=1.
-    c=1.
     kb=1.
 
     #Set by system 
@@ -204,12 +202,12 @@ def hsolve(H, Q,gam, lam0, Nc, N, Temperature, tlist, initial_state,
     Ltot = L.data
     unitthing = sp.csr_matrix(np.identity(Ntot))
     Lbig = sp.kron(unitthing,Ltot.tocsr())
-    rho0big1 = np.zeros((Nsup * Ntot))
+    rho0big1 = np.zeros((Nsup * Ntot), dtype=complex)
 
 
     #Prepare initial state:
 
-    rhotemp =  mat2vec(np.array(initial_state.full()))
+    rhotemp =  mat2vec(np.array(initial_state.full(), dtype=complex))
 
     for idx,element in enumerate(rhotemp):
         rho0big1[idx] = element[0]
