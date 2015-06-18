@@ -50,7 +50,7 @@ from scipy.misc import factorial
 from qutip.cy.spmatfuncs import cy_ode_rhs
 from qutip import spre, spost, sprepost, Options, dims, qeye
 from qutip import liouvillian, mat2vec, state_number_enumerate
-from qutip import enr_state_dictionaries, 
+from qutip import enr_state_dictionaries 
 
 def _heom_state_dictionaries(dims, excitations):
     """
@@ -140,8 +140,7 @@ def cot(x):
     return np.cos(x)/np.sin(x)
 
 
-def hsolve(H, Q, gam, lam0, Nc, N, w_th, tlist, initial_state,
-		   options=None):
+def hsolve(H, psi0, tlist, Q, gam, lam0, Nc, N, w_th, options=None):
     """
     Function to solve for an open quantum system using the
     hierarchy model. 
@@ -150,9 +149,13 @@ def hsolve(H, Q, gam, lam0, Nc, N, w_th, tlist, initial_state,
     ----------
     H: Qobj
         The system hamiltonian.
+    psi0: Qobj
+        Initial state of the system.
+    tlist: List.
+        Time over which system evolves.
     Q: Qobj
         The coupling between system and bath.
-    gamma: Float
+    gam: Float
         Bath cutoff frequency.
     lam0: Float
         Coupling strength.
@@ -162,10 +165,6 @@ def hsolve(H, Q, gam, lam0, Nc, N, w_th, tlist, initial_state,
         Number of matsubara terms.
     w_th: Float
         Temperature. 
-    tlist: List.
-        Time over which system evolves.
-    initial_state: Qobj
-        Initial state of the system.
     options : :class:`qutip.Options`
         With options for the solver.
      
@@ -212,7 +211,7 @@ def hsolve(H, Q, gam, lam0, Nc, N, w_th, tlist, initial_state,
 
     # Prepare initial state:
 
-    rhotemp =  mat2vec(np.array(initial_state.full(), dtype=complex))
+    rhotemp =  mat2vec(np.array(psi0.full(), dtype=complex))
 
     for idx,element in enumerate(rhotemp):
         rho0big1[idx] = element[0]
@@ -235,7 +234,7 @@ def hsolve(H, Q, gam, lam0, Nc, N, w_th, tlist, initial_state,
             	   			 * spre(unit).data))
         
         for kcount in range(N):
-            if nlabel[kcount]>=1:
+            if nlabel[kcount] >= 1:
             # find the position of the neighbour
                 nlabeltemp = copy(nlabel)
                 nlabel[kcount] = nlabel[kcount] -1
@@ -246,14 +245,14 @@ def hsolve(H, Q, gam, lam0, Nc, N, w_th, tlist, initial_state,
             # renormalized version:    
                 ci =  (4 * lam0 * gam * kb * w_th * kcount
                 	   * gj/((kcount * gj)**2 - gam**2)) / (hbar**2)
-                if kcount==0:
+                if kcount == 0:
                     Lbig = Lbig + sp.kron(Ltemp,(-1j
                     				 * (np.sqrt(nlabeltemp[kcount]
                     				    / abs(c0)))
                     				 * ((c0) * spre(Q).data
                     		  	 	 - (np.conj(c0))
                     				 * spost(Q).data)))
-                if kcount>0:                                                
+                if kcount > 0:                                                
                     ci =  (4 * lam0 * gam * kb * w_th * kcount
                     	   * gj/((kcount * gj)**2 - gam**2)) / (hbar**2)
                     Lbig = Lbig + sp.kron(Ltemp,(-1j
@@ -265,21 +264,21 @@ def hsolve(H, Q, gam, lam0, Nc, N, w_th, tlist, initial_state,
                 nlabel = copy(nlabeltemp)
 
         for kcount in range(N):
-            if ntotalcheck<=(Nc-1):
+            if ntotalcheck <= (Nc-1):
                 nlabeltemp = copy(nlabel)
                 nlabel[kcount] = nlabel[kcount] + 1
                 current_pos3 = int(round(state2idx[tuple(nlabel)]))
-            if current_pos3<=(Ntot):
+            if current_pos3 <= (Ntot):
                 Ltemp = sp.lil_matrix(np.zeros((Ntot,Ntot)))
                 Ltemp[current_pos, current_pos3] = 1
                 Ltemp.tocsr()
             # renormalized   
-                if kcount==0:
+                if kcount == 0:
                     Lbig = Lbig + sp.kron(Ltemp,-1j
                     			  * (np.sqrt((nlabeltemp[kcount]+1)
                     			     * abs(c0)))
                     			  * (spre(Q)- spost(Q)).data)
-                if kcount>0:
+                if kcount > 0:
                     ci = (4 * lam0 * gam * kb * w_th * kcount
                     	  * gj/((kcount * gj)**2 - gam**2)) / (hbar**2)
                     Lbig = Lbig + sp.kron(Ltemp,-1j
@@ -288,11 +287,11 @@ def hsolve(H, Q, gam, lam0, Nc, N, w_th, tlist, initial_state,
                     			  * (spre(Q)- spost(Q)).data)
             nlabel = copy(nlabeltemp)
 
-    output=[]
+    output = []
     for element in rhotemp:
         output.append([])
     r = scipy.integrate.ode(cy_ode_rhs)
-    Lbig2=Lbig.tocsr()
+    Lbig2 = Lbig.tocsr()
     r.set_f_params(Lbig2.data, Lbig2.indices, Lbig2.indptr)
     r.set_integrator('zvode', method=options.method, order=options.order,
     		     atol=options.atol, rtol=options.rtol,
