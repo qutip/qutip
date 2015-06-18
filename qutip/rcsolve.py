@@ -48,8 +48,8 @@ from numpy import linalg
 from qutip import spre, spost, sprepost, thermal_dm, mesolve, Odeoptions
 from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye, dims
 
-def rcsolve(Hsys, Q, wc, alpha, N, w_th, tlist, initial_state,
-            e_ops, sparse=False, options=None):
+def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
+            options=None):
     """
     Function to solve for an open quantum system using the
     reaction coordinate (RC) model. 
@@ -58,6 +58,13 @@ def rcsolve(Hsys, Q, wc, alpha, N, w_th, tlist, initial_state,
     ----------
     Hsys: Qobj
         The system hamiltonian.
+    psi0: Qobj
+        Initial state of the system.
+    tlist: List.
+        Time over which system evolves.
+    e_ops: list of :class:`qutip.Qobj` / callback function single
+        Single operator or list of operators for which to evaluate
+        expectation values.
     Q: Qobj
         The coupling between system and bath.
     wc: Float
@@ -68,13 +75,6 @@ def rcsolve(Hsys, Q, wc, alpha, N, w_th, tlist, initial_state,
         Number of cavity fock states.
     w_th: Float
         Temperature. 
-    tlist: List.
-        Time over which system evolves.
-    initial_state: Qobj
-        Initial state of the system.
-    e_ops: list of :class:`qutip.Qobj` / callback function single
-        Single operator or list of operators for which to evaluate
-        expectation values.
     sparse: Boolean
         Optional argument to call the sparse eigenstates solver if needed.
     options : :class:`qutip.Options`
@@ -104,7 +104,7 @@ def rcsolve(Hsys, Q, wc, alpha, N, w_th, tlist, initial_state,
     unit = tensor(qeye(N), qeye(dimensions[1]))
     Q_exp = tensor(qeye(N), Q)
     Hsys_exp = tensor(qeye(N),Hsys)
-    e_ops_exp=[tensor(qeye(N), kk) for kk in e_ops]
+    e_ops_exp = [tensor(qeye(N), kk) for kk in e_ops]
 
     na = a.dag() * a    # cavity
     xa = a.dag() + a
@@ -134,12 +134,12 @@ def rcsolve(Hsys, Q, wc, alpha, N, w_th, tlist, initial_state,
                             (2 * w_th)))) * A)
                     eta = (0.5 * np.pi * gamma *
                            (all_energy[j] - all_energy[k]) * A)
-                    PsipreX = PsipreX + X * all_state[j]*all_state[k].dag()
+                    PsipreX = PsipreX + X * all_state[j] * all_state[k].dag()
                     PsipreEta = PsipreEta + (eta * all_state[j]
                                              * all_state[k].dag())
                 else:
-                    X =0.5 * np.pi * gamma * A * 2 * w_th
-                    PsipreX=PsipreX+X*all_state[j]*all_state[k].dag()
+                    X = 0.5 * np.pi * gamma * A * 2 * w_th
+                    PsipreX = PsipreX + X * all_state[j] * all_state[k].dag()
 
     A = a + a.dag()
     L = ((-spre(A * PsipreX)) + (sprepost(A, PsipreX))
@@ -149,8 +149,8 @@ def rcsolve(Hsys, Q, wc, alpha, N, w_th, tlist, initial_state,
 
     # Setup the operators and the Hamiltonian and the master equation 
     # and solve for time steps in tlist
-    psi0 = (tensor(thermal_dm(N,nb), initial_state))
-    output = mesolve(H, psi0, tlist, [L], e_ops_exp, options=options)
+    rho0 = (tensor(thermal_dm(N,nb), psi0))
+    output = mesolve(H, rho0, tlist, [L], e_ops_exp, options=options)
     
     return output
               
