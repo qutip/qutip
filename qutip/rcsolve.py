@@ -35,8 +35,8 @@ This module provides exact solvers for a system-bath setup using the
 reaction coordinate method.
 """
 
-#Author: Neill Lambert, Anubhav Vardhan
-#Contact: nwlambert@gmail.com
+# Author: Neill Lambert, Anubhav Vardhan
+# Contact: nwlambert@gmail.com
 
 __all__ = ['rcsolve']
 
@@ -48,11 +48,12 @@ from numpy import linalg
 from qutip import spre, spost, sprepost, thermal_dm, mesolve, Odeoptions
 from qutip import tensor, identity, destroy, sigmax, sigmaz, basis, qeye, dims
 
+
 def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
             options=None):
     """
     Function to solve for an open quantum system using the
-    reaction coordinate (RC) model. 
+    reaction coordinate (RC) model.
 
     Parameters
     ----------
@@ -74,12 +75,12 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
     N: Integer
         Number of cavity fock states.
     w_th: Float
-        Temperature. 
+        Temperature.
     sparse: Boolean
         Optional argument to call the sparse eigenstates solver if needed.
     options : :class:`qutip.Options`
         With options for the solver.
-     
+
     Returns
     -------
     output: Result
@@ -87,23 +88,23 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
     """
     if options is None:
         options = Options()
-    
+
     dot_energy, dot_state = Hsys.eigenstates(sparse=sparse)
     deltaE = dot_energy[1] - dot_energy[0]
     if (w_th < deltaE/2):
         warnings.warn("Given w_th might not provide accurate results")
     gamma = deltaE / (2 * np.pi * wc)
-    wa = 2 * np.pi * gamma * wc #reaction coordinate frequency
-    g = np.sqrt(np.pi * wa * alpha / 2.0) #reaction coordinate coupling
-    nb = (1 / (np.exp(wa/w_th) -1))
+    wa = 2 * np.pi * gamma * wc  # reaction coordinate frequency
+    g = np.sqrt(np.pi * wa * alpha / 2.0)  # reaction coordinate coupling
+    nb = (1 / (np.exp(wa/w_th) - 1))
 
     # Reaction coordinate hamiltonian/operators
     Nmax = N * 2
     dimensions = dims(Q)
-    a = tensor(destroy(N), qeye(dimensions[1]))            
+    a = tensor(destroy(N), qeye(dimensions[1]))
     unit = tensor(qeye(N), qeye(dimensions[1]))
     Q_exp = tensor(qeye(N), Q)
-    Hsys_exp = tensor(qeye(N),Hsys)
+    Hsys_exp = tensor(qeye(N), Hsys)
     e_ops_exp = [tensor(qeye(N), kk) for kk in e_ops]
 
     na = a.dag() * a    # cavity
@@ -111,7 +112,7 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
 
     # decoupled Hamiltonian
     H0 = wa * a.dag() * a + Hsys_exp
-    #interaction
+    # interaction
     H1 = (g * (a.dag() + a) * Q_exp)
     H = H0 + H1
     L = 0
@@ -143,14 +144,13 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
 
     A = a + a.dag()
     L = ((-spre(A * PsipreX)) + (sprepost(A, PsipreX))
-         +(sprepost(PsipreX, A)) + (-spost(PsipreX * A))
-         +(spre(A * PsipreEta)) + (sprepost(A, PsipreEta))
-         +(-sprepost(PsipreEta, A)) + (-spost(PsipreEta * A)))           
+         + (sprepost(PsipreX, A)) + (-spost(PsipreX * A))
+         + (spre(A * PsipreEta)) + (sprepost(A, PsipreEta))
+         + (-sprepost(PsipreEta, A)) + (-spost(PsipreEta * A)))
 
-    # Setup the operators and the Hamiltonian and the master equation 
+    # Setup the operators and the Hamiltonian and the master equation
     # and solve for time steps in tlist
-    rho0 = (tensor(thermal_dm(N,nb), psi0))
+    rho0 = (tensor(thermal_dm(N, nb), psi0))
     output = mesolve(H, rho0, tlist, [L], e_ops_exp, options=options)
-    
+
     return output
-              
