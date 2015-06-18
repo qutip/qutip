@@ -129,7 +129,7 @@ def hsolve(H, psi0, tlist, Q, gam, lam0, Nc, N, w_th, options=None):
     L = liouvillian(H, [L12])
     Ltot = L.data
     unit = sp.eye(Ntot,format='csr')
-    Lbig = sp.kron(unit, Ltot.tocsr())
+    Lbig = sp.kron(unit, Ltot)
     rho0big1 = np.zeros((Nsup * Ntot), dtype=complex)
 
     # Prepare initial state:
@@ -138,8 +138,7 @@ def hsolve(H, psi0, tlist, Q, gam, lam0, Nc, N, w_th, options=None):
 
     for idx, element in enumerate(rhotemp):
         rho0big1[idx] = element[0]
-    rho0big = sp.csr_matrix(rho0big1)
-
+    
     nstates, state2idx, idx2state = enr_state_dictionaries([Nc+1]*(N), Nc)
     for nlabelt in state_number_enumerate([Nc+1]*(N), Nc):
         nlabel = list(nlabelt)
@@ -162,7 +161,7 @@ def hsolve(H, psi0, tlist, Q, gam, lam0, Nc, N, w_th, options=None):
                 nlabeltemp = copy(nlabel)
                 nlabel[kcount] = nlabel[kcount] - 1
                 current_pos2 = int(round(state2idx[tuple(nlabel)]))
-                Ltemp = sp.lil_matrix(np.zeros((Ntot, Ntot)))
+                Ltemp = sp.lil_matrix((Ntot, Ntot))
                 Ltemp[current_pos, current_pos2] = 1
                 Ltemp.tocsr()
                 # renormalized version:
@@ -192,7 +191,7 @@ def hsolve(H, psi0, tlist, Q, gam, lam0, Nc, N, w_th, options=None):
                 nlabel[kcount] = nlabel[kcount] + 1
                 current_pos3 = int(round(state2idx[tuple(nlabel)]))
             if current_pos3 <= (Ntot):
-                Ltemp = sp.lil_matrix(np.zeros((Ntot, Ntot)))
+                Ltemp = sp.lil_matrix((Ntot, Ntot))
                 Ltemp[current_pos, current_pos3] = 1
                 Ltemp.tocsr()
             # renormalized
