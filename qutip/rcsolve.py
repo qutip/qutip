@@ -99,15 +99,16 @@ def rcsolve(Hsys, psi0, tlist, e_ops, Q, wc, alpha, N, w_th, sparse=False,
     nb = (1 / (np.exp(wa/w_th) - 1))
 
     # Reaction coordinate hamiltonian/operators
-    Nmax = N * 2
+
     dimensions = dims(Q)
     a = tensor(destroy(N), qeye(dimensions[1]))
     unit = tensor(qeye(N), qeye(dimensions[1]))
+    Nmax = N * dimensions[1][0]
     Q_exp = tensor(qeye(N), Q)
     Hsys_exp = tensor(qeye(N), Hsys)
     e_ops_exp = [tensor(qeye(N), kk) for kk in e_ops]
 
-    na = a.dag() * a    # cavity
+    na = a.dag() * a
     xa = a.dag() + a
 
     # decoupled Hamiltonian
