@@ -205,7 +205,7 @@ def hsolve(H, psi0, tlist, Q, gam, lam0, Nc, N, w_th, options=None):
 
     L = liouvillian(H, [L12])
     Ltot = L.data
-    unit = sp.csr_matrix(np.identity(Ntot))
+    unit = sp.eye(Ntot,format='csr')
     Lbig = sp.kron(unit, Ltot.tocsr())
     rho0big1 = np.zeros((Nsup * Ntot), dtype=complex)
 
