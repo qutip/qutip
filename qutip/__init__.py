@@ -255,6 +255,8 @@ from qutip.bloch_redfield import *
 from qutip.steadystate import *
 from qutip.correlation import *
 from qutip.countstat import *
+from qutip.rcsolve import *
+from qutip.hsolve import *
 
 # quantum information
 from qutip.qip import *
