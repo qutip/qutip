@@ -30,6 +30,12 @@
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+"""
+This module provides the circuit implementation for Quantum Fourier Transform.
+"""
+
+__all__ = ['qft', 'qft_steps', 'qft_gate_sequence']
+
 import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import *
