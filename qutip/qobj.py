@@ -1476,7 +1476,7 @@ class Qobj(object):
                     if self.superrep in ('choi', 'chi')
                     else sr.to_choi(self)
                 ).eigenenergies()
-                return all(eigs >= 0)
+                return all(eigs >= -settings.atol)
             except:
                 return False
         else:
