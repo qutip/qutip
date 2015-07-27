@@ -1771,6 +1771,8 @@ def create_pulse_optimizer(
     
     optim.alg = alg
     optim.method = optim_method
+    optim.amp_lbound = amp_lbound
+    optim.amp_ubound = amp_ubound
     
     # Create the TerminationConditions instance
     tc = termcond.TerminationConditions()

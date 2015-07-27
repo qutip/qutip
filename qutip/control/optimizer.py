@@ -936,7 +936,7 @@ class OptimizerLBFGSB(Optimizer):
                 fprime=fprime,
                 approx_grad=self.approx_grad,
                 callback=self.iter_step_callback_func,
-                bounds=bounds, m=m, factr=factr,
+                bounds=self.bounds, m=m, factr=factr,
                 pgtol=term_conds.min_gradient_norm,
                 disp=self.msg_level,
                 maxfun=term_conds.max_fid_func_calls,
