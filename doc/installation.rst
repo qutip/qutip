@@ -271,9 +271,12 @@ Finally, one can also use the `Anaconda CE <https://store.continuum.io/cshop/ana
 Installation on Windows
 =======================
 
-QuTiP is primarily developed for Unix-based platforms such as Linux an Mac OS X, but it can also be used on Windows. We have limited experience and ability to help troubleshoot problems on Windows, but the following installation steps have been reported to work:
+QuTiP is primarily developed for Unix-based platforms such as Linux an Mac OS X, but it can also be used on Windows. We have limited experience and ability to help troubleshoot problems on Windows, but the following installation steps have been reported to work for Python(x,y).
 
-1. Install the `Python(X,Y) <http://code.google.com/p/pythonxy/>`_ distribution (tested with version 2.7.3.1). Other Python distributions, such as `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ or `Anaconda CE <http://continuum.io/downloads.html>`_ have also been reported to work.
+Python(x,y) on Windows
+----------------------
+
+1. Install the `Python(X,Y) <http://code.google.com/p/pythonxy/>`_ distribution (tested with version 2.7.3.1). Other Python distributions, such as `Enthought Python Distribution <http://www.enthought.com/products/epd.php>`_ or `Anaconda CE <http://continuum.io/downloads.html>`_ have also been reported to work (see below).
 
 2. When installing Python(x,y), explicitly select to include the Cython package in the installation. This package is not selected by default.
 
@@ -287,7 +290,7 @@ QuTiP is primarily developed for Unix-based platforms such as Linux an Mac OS X,
 
 The directory where the distutils.cfg file should be placed might be different if you have installed the Python environment in a different location than in the example above.
 
-4. Obtain the QuTiP source code and installed it following the instructions given above.
+4. Obtain the QuTiP source code and install it following the instructions given above.
 
 .. note::
 
@@ -299,6 +302,28 @@ The directory where the distutils.cfg file should be placed might be different i
     is installed (not uncommon under Windows, since many packages are
     distributed and installed with their own version of all dependencies).
 
+Anaconda 2.2.0 on Windows
+-------------------------
+
+`Anaconda CE <http://continuum.io/downloads.html>`_ comes with its own installation of MinGW (64-bit)
+as an optional package. The following recipe has been reported to work with Anaconda 2.2.0 (64-bit, Python 2.7)
+on Windows 8.1.
+
+1. Install Anaconda 2.2.0 for all users.
+
+2. Run the following command from ``cmd.exe`` or PowerShell::
+
+    > conda install mingw libpython
+
+3. Add the following content to the file `C:/Anaconda/Lib/distutils/distutils.cfg` (or create the file if it does not already exists)::
+
+    [build]
+    compiler = mingw32
+
+    [build_ext]
+    compiler = mingw32
+
+4. Obtain the QuTiP source code and install it following the instructions given above.
 
 .. _install-optional:
 
