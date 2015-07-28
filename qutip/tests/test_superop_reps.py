@@ -39,18 +39,13 @@ Created on Wed May 29 11:23:46 2013
 ###############################################################################
 from __future__ import division
 
-<<<<<<< Updated upstream
-from numpy import abs
-from numpy.testing import assert_, run_module_suite
-=======
 from numpy import abs, pi
 from numpy.linalg import norm
-from numpy.testing import assert_, run_module_suite, assert_equal, assert_almost_equal
->>>>>>> Stashed changes
+from numpy.testing import assert_, assert_almost_equal, run_module_suite
 
 from qutip.qobj import Qobj
 from qutip.states import basis
-from qutip.operators import identity, sigmax
+from qutip.operators import identity, sigmax, qeye
 from qutip.qip.gates import swap
 from qutip.random_objects import rand_super
 from qutip.tensor import super_tensor
@@ -176,7 +171,7 @@ class TestSuperopReps(object):
         """
         Superoperator: Chi-matrix for known cases is correct.
         """
-        def case(S, chi_expecte, silent=True):
+        def case(S, chi_expected, silent=True):
             chi_actual = to_chi(S)
             chiq = Qobj(chi_expected, dims=[[[2], [2]], [[2], [2]]], superrep='chi')
             if not silent:
