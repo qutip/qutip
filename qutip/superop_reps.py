@@ -242,10 +242,10 @@ def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
     """
     # We use U * S since S is 1-index, such that this is equivalent to
     # U . diag(S), but easier to write down.
-    Ks = map(Qobj, array(U * S).reshape((d, d, dK), order='F').transpose((2, 0, 1)))
+    Ks = list(map(Qobj, array(U * S).reshape((d, d, dK), order='F').transpose((2, 0, 1))))
     for K in Ks:
         K.dims = [outdims, indims]
-    return list(Ks)
+    return Ks
 
 
 def _generalized_kraus(q_oper, thresh=1e-10):
