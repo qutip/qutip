@@ -63,7 +63,8 @@ from qutip.wigner import wigner
 from qutip.tensor import tensor
 from qutip.matplotlib_utilities import complex_phase_cmap
 from qutip.superoperator import vector_to_operator
-from qutip.superop_reps import to_super, _super_to_superpauli, _isqubitdims
+from qutip.superop_reps import to_super, _super_to_superpauli, _isqubitdims, _pauli_basis
+from qutip.tensor import flatten
 
 from qutip import settings
 
@@ -185,7 +186,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
             # so that all the elements are real.
             sqobj = _super_to_superpauli(rho)
             nq = int(log2(sqobj.shape[0]) / 2)
-            W = sqobj.full()
+            W = sqobj.full().T
             # Create default labels, too.
             if (xlabels is None) or (ylabels is None):
                 labels = list(map("".join, it.product("IXYZ", repeat=nq)))
