@@ -39,9 +39,9 @@ Created on Wed May 29 11:23:46 2013
 ###############################################################################
 from __future__ import division
 
-from numpy import abs
+from numpy import abs, pi
 from numpy.linalg import norm
-from numpy.testing import assert_, run_module_suite, assert_equal
+from numpy.testing import assert_, assert_almost_equal, run_module_suite, assert_equal
 
 from qutip.qobj import Qobj
 from qutip.states import basis
@@ -208,6 +208,43 @@ class TestSuperopReps(object):
         A, B = to_stinespring(chan)
         assert_equal(A.dims, [[2, 3, 1], [2, 3]])
         assert_equal(B.dims, [[2, 3, 1], [2, 3]])
+
+    def test_chi_known(self):
+        """
+        Superoperator: Chi-matrix for known cases is correct.
+        """
+        def case(S, chi_expected, silent=True):
+            chi_actual = to_chi(S)
+            chiq = Qobj(chi_expected, dims=[[[2], [2]], [[2], [2]]], superrep='chi')
+            if not silent:
+                print(chi_actual)
+                print(chi_expected)
+            assert_almost_equal((chi_actual - chiq).norm('tr'), 0)
+
+        yield case, sigmax(), [
+            [0, 0, 0, 0],
+            [0, 4, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+        ]
+        yield case, to_super(sigmax()), [
+            [0, 0, 0, 0],
+            [0, 4, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+        ]
+        yield case, qeye(2), [
+            [4, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+        ]
+        yield case, (-1j * sigmax() * pi / 4).expm(), [
+            [2, 2j, 0, 0],
+            [-2j, 2, 0, 0],
+            [0, 0, 0, 0],
+            [0, 0, 0, 0]
+        ]
 
 if __name__ == "__main__":
     run_module_suite()

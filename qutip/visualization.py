@@ -211,7 +211,7 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
             # about indices than we need here.
             B.dims = sqobj.dims
             sqobj = B.dag() * sqobj * B
-            W = sqobj.full()
+            W = sqobj.full().T
             # Create default labels, too.
             if (xlabels is None) or (ylabels is None):
                 labels = list(map("".join, it.product("IXYZ", repeat=nq)))
