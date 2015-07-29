@@ -114,7 +114,7 @@ try:
                (Cython.__version__, _cython_requirement)))
 
     import pyximport
-    os.environ['CFLAGS'] = '-O3 -w -ffast-math -march=native -mfpmath=sse'
+    os.environ['CFLAGS'] = '-O3 -w -ffast-math -march=native'
     pyximport.install(setup_args={'include_dirs': [numpy.get_include()]})
 
 except Exception as e:
@@ -255,6 +255,8 @@ from qutip.bloch_redfield import *
 from qutip.steadystate import *
 from qutip.correlation import *
 from qutip.countstat import *
+from qutip.rcsolve import *
+from qutip.hsolve import *
 
 # quantum information
 from qutip.qip import *

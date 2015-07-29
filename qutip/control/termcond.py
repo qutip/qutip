@@ -73,6 +73,15 @@ class TerminationConditions:
     max_fid_func_calls : integer
         Maximum number of calls to the fidelity function during
         the optimisation algorithm
+        
+    accuracy_factor : float
+        Determines the accuracy of the result.
+        Typical values for accuracy_factor are: 1e12 for low accuracy;
+        1e7 for moderate accuracy; 10.0 for extremely high accuracy
+        scipy.optimize.fmin_l_bfgs_b factr argument.
+        Only set for specific methods (fmin_l_bfgs_b) that uses this
+        Otherwise the same thing is passed as method_option ftol
+        Hence it is not defined here, but may be set by the user
     """
     def __init__(self):
         self.reset()
