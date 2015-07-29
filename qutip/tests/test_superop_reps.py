@@ -41,16 +41,17 @@ from __future__ import division
 
 from numpy import abs, pi
 from numpy.linalg import norm
-from numpy.testing import assert_, assert_almost_equal, run_module_suite
+from numpy.testing import assert_, assert_almost_equal, run_module_suite, assert_equal
 
 from qutip.qobj import Qobj
 from qutip.states import basis
 from qutip.operators import identity, sigmax, qeye
 from qutip.qip.gates import swap
-from qutip.random_objects import rand_super
+from qutip.random_objects import rand_super, rand_super_bcsz, rand_dm_ginibre
 from qutip.tensor import super_tensor
 from qutip.superop_reps import (kraus_to_choi, to_super, to_choi, to_kraus,
-                                to_chi)
+                                to_chi, to_stinespring)
+from qutip.superoperator import operator_to_vector, vector_to_operator
 
 tol = 1e-10
 
@@ -166,6 +167,47 @@ class TestSuperopReps(object):
         for dims in range(2, 5):
             assert_(abs(to_choi(identity(dims)).tr() - dims) <= tol)
 
+    def test_stinespring_cp(self, thresh=1e-10):
+        """
+        Stinespring: A and B match for CP maps.
+        """
+        def case(map):
+            A, B = to_stinespring(map)
+            assert_(norm((A - B).data.todense()) < thresh)
+
+        for idx in range(4):
+            yield case, rand_super_bcsz(7)
+
+    def test_stinespring_agrees(self, thresh=1e-10):
+        """
+        Stinespring: Partial Tr over pair agrees w/ supermatrix.
+        """
+        def case(map, state):
+            S = to_super(map)
+            A, B = to_stinespring(map)
+
+            q1 = vector_to_operator(
+                S * operator_to_vector(state)
+            )
+            # FIXME: problem if Kraus index is implicitly
+            #        ptraced!
+            q2 = (A * state * B.dag()).ptrace((0,))
+
+            assert_((q1 - q2).norm('tr') <= thresh)
+
+        for idx in range(4):
+            yield case, rand_super_bcsz(2), rand_dm_ginibre(2)
+
+    def test_stinespring_dims(self):
+        """
+        Stinespring: Check that dims of channels are preserved.
+        """
+        # FIXME: not the most general test, since this assumes a map
+        #        from square matrices to square matrices on the same space.
+        chan = super_tensor(to_super(sigmax()), to_super(qeye(3)))
+        A, B = to_stinespring(chan)
+        assert_equal(A.dims, [[2, 3, 1], [2, 3]])
+        assert_equal(B.dims, [[2, 3, 1], [2, 3]])
 
     def test_chi_known(self):
         """
@@ -203,6 +245,6 @@ class TestSuperopReps(object):
             [0, 0, 0, 0],
             [0, 0, 0, 0]
         ]
-        
+
 if __name__ == "__main__":
     run_module_suite()
