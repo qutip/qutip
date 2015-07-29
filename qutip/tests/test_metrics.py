@@ -38,7 +38,7 @@ the qutip.metrics module.
 ###############################################################################
 import numpy as np
 from numpy import abs, sqrt
-from numpy.testing import assert_, run_module_suite
+from numpy.testing import assert_, assert_almost_equal, run_module_suite
 import scipy
 
 from qutip.operators import (
@@ -165,12 +165,15 @@ def test_unitarity_known():
     Metrics: Unitarity for known cases.
     """
     def case(q_oper, known_unitarity):
-        assert_(unitarity(q_oper) - known_unitarity <= 1e-6)
+        assert_almost_equal(unitarity(q_oper), known_unitarity)
 
     yield case, to_super(sigmax()), 1.0
     yield case, sum(map(
         to_super, [qeye(2), sigmax(), sigmay(), sigmaz()]
     )) / 4, 0.0
+    yield case, sum(map(
+        to_super, [qeye(2), sigmax()]
+    )) / 2, 1 / 3.0
 
 def test_unitarity_bounded(nq=3, n_cases=10):
     """

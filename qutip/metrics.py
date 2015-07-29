@@ -267,4 +267,6 @@ def unitarity(oper):
     u : float
         Unitarity of ``oper``.
     """
-    return np.linalg.norm(_super_to_superpauli(oper).full()[1:, 1:], 2)
+    Eu = _super_to_superpauli(oper).full()[1:, 1:]
+    #return np.real(np.trace(np.dot(Eu, Eu.conj().T))) / len(Eu)
+    return np.linalg.norm(Eu, 'fro')**2 / len(Eu)
