@@ -456,8 +456,9 @@ def optimize_pulse(
         dg_name = "dynamics generator"
         if dyn_type == 'UNIT':
             dg_name = "Hamiltonian"
-        msg += "Drift {}:\n".format(dg_name)
-        msg += str(dyn.drift_dyn_gen)
+        for j in range(dyn.num_drifts):
+            msg += "Drift {} {}:\n".format(j+1, dg_name)
+            msg += str(dyn.drift_dyn_gen[j])
         for j in range(dyn.num_ctrls):
             msg += "\nControl {} {}:\n".format(j+1, dg_name)
             msg += str(dyn.ctrl_dyn_gen[j])
@@ -718,7 +719,6 @@ def optimize_pulse_unitary(
 
     # check parameters here, as names are different than in
     # create_pulse_optimizer, so TypeErrors would be confusing
-    print("working")
     if not isinstance(H_d, (list, tuple)):
         raise TypeError("H_d should be a list of Qobj")
 
@@ -1827,6 +1827,7 @@ def create_pulse_optimizer(
 
     # this function is called, so that the num_ctrls attribute will be set
     n_ctrls = dyn.get_num_ctrls()
+    n_drifts = dyn.get_num_drifts()
 
     ramping_pgen = None
     if ramping_pulse_type:

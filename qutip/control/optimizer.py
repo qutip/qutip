@@ -268,6 +268,7 @@ class Optimizer:
         result = optimresult.OptimResult()
         result.initial_fid_err = self.dynamics.fid_computer.get_fid_err()
         result.initial_amps = self.dynamics.ctrl_amps.copy()
+        result.drift_amps = self.dynamics.drift_amps.copy()
         result.time = self.dynamics.time
         result.optimizer = self
         return result

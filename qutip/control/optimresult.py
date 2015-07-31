@@ -126,6 +126,7 @@ class OptimResult:
         self.wall_time_limit_exceeded = False
         self.termination_reason = "not started yet"
         self.time = None
+        self.drift_amps = None
         self.initial_amps = None
         self.final_amps = None
         self.evo_full_final = None
