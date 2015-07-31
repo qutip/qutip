@@ -645,13 +645,17 @@ class PulseGenLinear(PulseGen):
         end point values
         """
         PulseGen.init_pulse(self)
-        if start_val is not None and end_val is not None:
+        if gradient is not None:
+            self.gradient = gradient       
+        
+        if start_val is not None or end_val is not None:
             self.start_val = start_val
             self.end_val = end_val
 
-        if self.start_val is not None and self.end_val is not None:
-            self.gradient = float(self.end_val - self.start_val) / \
-                (self.pulse_time - self.tau[-1])
+        if self.gradient is None and \
+            self.start_val is not None and self.end_val is not None:
+                self.gradient = float(self.end_val - self.start_val) / \
+                    (self.pulse_time - self.tau[-1])
 
     def gen_pulse(self, gradient=None, start_val=None, end_val=None):
         """
@@ -706,8 +710,8 @@ class PulseGenPeriodic(PulseGen):
         """
         PulseGen.reset(self)
         self.periodic = True
-        self.num_waves = None
-        self.freq = 1.0
+        self.num_waves = 1.0
+        self.freq = None
         self.wavelen = None
         self.start_phase = 0.0
         self.apply_params()
@@ -740,6 +744,23 @@ class PulseGenPeriodic(PulseGen):
         else:
             self.wavelen = 1.0/self.freq
             self.num_waves = self.wavelen*self.pulse_time
+
+
+class PulseGenExponential(PulseGen):
+    def reset(self):
+         PulseGen.reset(self)
+         #self.scaling = 0.1
+
+    def init_pulse(self):
+        PulseGen.init_pulse(self)
+
+    def gen_pulse(self):
+        pulse = np.empty(self.num_tslots)
+        t = 0.0
+        for k in range(self.num_tslots):
+            pulse[k] = np.exp((-t)*self.scaling)
+            t = t + self.tau[k]
+        return self._apply_bounds_and_offset(pulse)
 
 
 class PulseGenSine(PulseGenPeriodic):
@@ -777,7 +798,7 @@ class PulseGenSquare(PulseGenPeriodic):
     Generates square wave pulses
     """
     def gen_pulse(self, num_waves=None, wavelen=None,
-                  freq=None, start_phase=None):
+                  freq=None, start_phase=None, offset=None):
         """
         Generate a square wave pulse
         If no parameters are pavided then the class object attributes are used.
@@ -785,6 +806,9 @@ class PulseGenSquare(PulseGenPeriodic):
         """
         if start_phase is not None:
             self.start_phase = start_phase
+            
+        if offset is not None:
+            self.offset = offset
 
         if num_waves is not None or wavelen is not None or freq is not None:
             self.init_pulse(num_waves, wavelen, freq, start_phase)
@@ -798,7 +822,7 @@ class PulseGenSquare(PulseGenPeriodic):
             phase = 2*np.pi*self.freq*t + self.start_phase
             x = phase/(2*np.pi)
             y = 4*np.floor(x) - 2*np.floor(2*x) + 1
-            pulse[k] = self.scaling*y
+            pulse[k] = (self.scaling*y)+self.offset
             t = t + self.tau[k]
         return self._apply_bounds_and_offset(pulse)
 
