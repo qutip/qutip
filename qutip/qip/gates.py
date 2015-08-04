@@ -36,14 +36,19 @@ __all__ = ['rx', 'ry', 'rz', 'sqrtnot', 'snot', 'phasegate', 'cphase', 'cnot',
            'csign', 'berkeley', 'swapalpha', 'swap', 'iswap', 'sqrtswap',
            'sqrtiswap', 'fredkin', 'toffoli', 'rotation', 'controlled_gate',
            'globalphase', 'hadamard_transform', 'gate_sequence_product',
-           'gate_expand_1toN', 'gate_expand_2toN', 'gate_expand_3toN']
+           'gate_expand_1toN', 'gate_expand_2toN', 'gate_expand_3toN',
+           'qubit_clifford_group']
 
 import numpy as np
 import scipy.sparse as sp
 from qutip.qobj import Qobj
-from qutip.operators import identity
+from qutip.operators import identity, qeye, sigmax
 from qutip.tensor import tensor
 from qutip.states import fock_dm
+
+from itertools import product
+from functools import partial
+from operator import mul
 
 
 #
@@ -712,6 +717,49 @@ def gate_sequence_product(U_list, left_to_right=True):
 
     return U_overall
 
+def _powers(op, N):
+    acc = qeye(op.dims[0])
+    yield acc
+
+    for _ in xrange(N - 1):
+        acc *= op
+        yield acc
+
+def qubit_clifford_group(N=None, target=0):
+    """
+    Generates the Clifford group on a single qubit,
+    using the presentation of the group given by Ross and Selinger
+    (http://www.mathstat.dal.ca/~selinger/newsynth/).
+
+    Parameters
+    -----------
+
+    N : int or None
+        Number of qubits on which each operator is to be defined
+        (default: 1).
+    target : int
+        Index of the target qubit on which the single-qubit
+        Clifford operators are to act.
+
+    Yields
+    ------
+
+    op : Qobj
+        Clifford operators, represented as Qobj instances.
+    """
+
+    w = np.exp(1j * 2 * np.pi / 8)
+    H = snot()
+
+    S = phasegate(np.pi / 2)
+    E = H * (S ** 3) * w ** 3
+    X = sigmax()
+
+    for op in map(partial(reduce, mul), product(_powers(E, 3), _powers(X, 2), _powers(S, 4))):
+        if N is not None:
+            yield gate_expand_1toN(op, N, target)
+        else:
+            yield op
 
 #
 # Gate Expand
