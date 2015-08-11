@@ -36,12 +36,13 @@ This module contains a collection of functions for calculating metrics
 """
 
 __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
-           'hilbert_dist', 'average_gate_fidelity', 'process_fidelity']
+           'hilbert_dist', 'average_gate_fidelity', 'process_fidelity',
+           'unitarity']
 
 import numpy as np
 from qutip.sparse import sp_eigs
 from qutip.states import ket2dm
-from qutip.superop_reps import to_kraus
+from qutip.superop_reps import to_kraus, _super_to_superpauli
 
 
 def fidelity(A, B):
@@ -250,3 +251,22 @@ def bures_angle(A, B):
         raise TypeError('A and B do not have same dimensions.')
 
     return np.arccos(fidelity(A, B))
+
+def unitarity(oper):
+    """
+    Returns the unitarity of a quantum map, defined as the Frobenius norm
+    of the unital block of that map's superoperator representation.
+
+    Parameters
+    ----------
+    oper : Qobj
+        Quantum map under consideration.
+
+    Returns
+    -------
+    u : float
+        Unitarity of ``oper``.
+    """
+    Eu = _super_to_superpauli(oper).full()[1:, 1:]
+    #return np.real(np.trace(np.dot(Eu, Eu.conj().T))) / len(Eu)
+    return np.linalg.norm(Eu, 'fro')**2 / len(Eu)
