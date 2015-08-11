@@ -315,7 +315,9 @@ class Qobj(object):
             if isinstance(dat, (int, float)):
                 out._isherm = self._isherm
             else:
-                out._isherm = out.isherm
+                # We use _isherm here to prevent recalculating on self and
+                # other, relying on that bool(None) == False.
+                out._isherm = True if self._isherm and other._isherm else out.isherm
 
             out.superrep = self.superrep
 
@@ -425,7 +427,7 @@ class Qobj(object):
                 else:
                     out.dims = dims
 
-                out._isherm = out.isherm
+                out._isherm = None
 
                 if self.superrep and other.superrep:
                     if self.superrep != other.superrep:
