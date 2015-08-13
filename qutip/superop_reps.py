@@ -51,14 +51,14 @@ from itertools import starmap, product
 from numpy.core.multiarray import array, zeros
 from numpy.core.shape_base import hstack
 from numpy.matrixlib.defmatrix import matrix
+from numpy import sqrt, floor, log2
 from numpy import sqrt, dot
-from numpy.linalg import svd
-from scipy.linalg import eig
+from scipy.linalg import eig, svd
 
 # Other QuTiP functions and classes
 from qutip.superoperator import vec2mat, spre, spost, operator_to_vector
 from qutip.operators import identity, sigmax, sigmay, sigmaz
-from qutip.tensor import tensor
+from qutip.tensor import tensor, flatten
 from qutip.qobj import Qobj
 from qutip.states import basis
 
@@ -140,6 +140,48 @@ def _super_tofrom_choi(q_oper):
     return Qobj(dims=q_oper.dims,
                 inpt=data.reshape([sqrt_shape] * 4).
                 transpose(3, 1, 2, 0).reshape(q_oper.data.shape))
+
+def _isqubitdims(dims):
+    """Checks whether all entries in a dims list are integer powers of 2.
+
+    Parameters
+    ----------
+    dims : nested list of ints
+        Dimensions to be checked.
+
+    Returns
+    -------
+    isqubitdims : bool
+        True if and only if every member of the flattened dims
+        list is an integer power of 2.
+    """
+    return all([
+        2**floor(log2(dim)) == dim
+        for dim in flatten(dims)
+    ])
+
+
+def _super_to_superpauli(q_oper):
+    """
+    Converts a superoperator in the column-stacking basis to
+    the Pauli basis (assuming qubit dimensions).
+
+    This is an internal function, as QuTiP does not currently have
+    a way to mark that superoperators are represented in the Pauli
+    basis as opposed to the column-stacking basis; a Pauli-basis
+    ``type='super'`` would thus break other conversion functions.
+    """
+    # Ensure we start with a column-stacking-basis superoperator.
+    sqobj = to_super(q_oper)
+    if not _isqubitdims(sqobj.dims):
+        raise ValueError("Pauli basis is only defined for qubits.")
+    nq = int(log2(sqobj.shape[0]) / 2)
+    B = _pauli_basis(nq) / sqrt(2**nq)
+    # To do this, we have to hack a bit and force the dims to match,
+    # since the _pauli_basis function makes different assumptions
+    # about indices than we need here.
+    B.dims = sqobj.dims
+    return (B.dag() * sqobj * B)
 
 
 def super_to_choi(q_oper):
@@ -276,7 +318,7 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     S = sqrt(array(S)[nonzero_idxs])
     # Since NumPy returns V and not V+, we need to take the dagger
     # to get back to quantum info notation for Stinespring pairs.
-    V = array(V.H)[:, nonzero_idxs]
+    V = array(V.conj().T)[:, nonzero_idxs]
 
     # Next, we convert each of U and V into Kraus operators.
     # Finally, we want the Kraus index to be left-most so that we

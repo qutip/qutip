@@ -47,7 +47,7 @@ __all__ = ['hinton', 'sphereplot', 'energy_level_diagram',
 import warnings
 import itertools as it
 import numpy as np
-from numpy import pi, array, sin, cos, angle
+from numpy import pi, array, sin, cos, angle, log2, sqrt
 
 try:
     import matplotlib.pyplot as plt
@@ -63,7 +63,7 @@ from qutip.wigner import wigner
 from qutip.tensor import tensor
 from qutip.matplotlib_utilities import complex_phase_cmap
 from qutip.superoperator import vector_to_operator
-from qutip.superop_reps import _pauli_basis, to_super
+from qutip.superop_reps import to_super, _super_to_superpauli, _isqubitdims, _pauli_basis
 from qutip.tensor import flatten
 
 from qutip import settings
@@ -82,25 +82,6 @@ def _blob(x, y, w, w_max, area, cmap=None):
     plt.fill(xcorners, ycorners,
              color=cmap(int((w + w_max) * 256 / (2 * w_max))))
 
-
-def _isqubitdims(dims):
-    """Checks whether all entries in a dims list are integer powers of 2.
-
-    Parameters
-    ----------
-    dims : nested list of ints
-        Dimensions to be checked.
-
-    Returns
-    -------
-    isqubitdims : bool
-        True if and only if every member of the flattened dims
-        list is an integer power of 2.
-    """
-    return all([
-        2**np.floor(np.log2(dim)) == dim
-        for dim in flatten(dims)
-    ])
 
 
 def _cb_labels(left_dims):
@@ -203,14 +184,8 @@ def hinton(rho, xlabels=None, ylabels=None, title=None, ax=None, cmap=None,
                                  "currently only supported for qubits.")
             # Convert to a superoperator in the Pauli basis,
             # so that all the elements are real.
-            sqobj = to_super(rho)
-            nq = int(np.log2(sqobj.shape[0]) / 2)
-            B = _pauli_basis(nq) / np.sqrt(2**nq)
-            # To do this, we have to hack a bit and force the dims to match,
-            # since the _pauli_basis function makes different assumptions
-            # about indices than we need here.
-            B.dims = sqobj.dims
-            sqobj = B.dag() * sqobj * B
+            sqobj = _super_to_superpauli(rho)
+            nq = int(log2(sqobj.shape[0]) / 2)
             W = sqobj.full().T
             # Create default labels, too.
             if (xlabels is None) or (ylabels is None):
