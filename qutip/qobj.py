@@ -185,14 +185,14 @@ class Qobj(object):
 
         if fast == 'mc':
             # fast Qobj construction for use in mcsolve with ket output
-            self.data = sp.csr_matrix(inpt, dtype=complex)
+            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
             self.dims = dims
             self._isherm = False
             return
 
         if fast == 'mc-dm':
             # fast Qobj construction for use in mcsolve with dm output
-            self.data = sp.csr_matrix(inpt, dtype=complex)
+            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
             self.dims = dims
             self._isherm = True
             return
@@ -201,7 +201,7 @@ class Qobj(object):
             # if input is already Qobj then return identical copy
 
             # make sure matrix is sparse (safety check)
-            self.data = sp.csr_matrix(inpt.data, dtype=complex)
+            self.data = sp.csr_matrix(inpt.data, dtype=complex, copy=True)
 
             if not np.any(dims):
                 # Dimensions of quantum object used for keeping track of tensor
@@ -248,7 +248,7 @@ class Qobj(object):
             if inpt.ndim == 1:
                 inpt = inpt[:, np.newaxis]
 
-            self.data = sp.csr_matrix(inpt, dtype=complex)
+            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
 
             if not np.any(dims):
                 self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
@@ -269,7 +269,7 @@ class Qobj(object):
             warnings.warn("Initializing Qobj from unsupported type: %s" %
                           builtins.type(inpt))
             inpt = np.array([[0]])
-            self.data = sp.csr_matrix(inpt, dtype=complex)
+            self.data = sp.csr_matrix(inpt, dtype=complex, copy=True)
             self.dims = [[int(inpt.shape[0])], [int(inpt.shape[1])]]
 
         if type == 'super':
@@ -315,7 +315,9 @@ class Qobj(object):
             if isinstance(dat, (int, float)):
                 out._isherm = self._isherm
             else:
-                out._isherm = out.isherm
+                # We use _isherm here to prevent recalculating on self and
+                # other, relying on that bool(None) == False.
+                out._isherm = True if self._isherm and other._isherm else out.isherm
 
             out.superrep = self.superrep
 
@@ -425,7 +427,7 @@ class Qobj(object):
                 else:
                     out.dims = dims
 
-                out._isherm = out.isherm
+                out._isherm = None
 
                 if self.superrep and other.superrep:
                     if self.superrep != other.superrep:
@@ -1479,7 +1481,7 @@ class Qobj(object):
                     if self.superrep in ('choi', 'chi')
                     else sr.to_choi(self)
                 ).eigenenergies()
-                return all(eigs >= 0)
+                return all(eigs >= -settings.atol)
             except:
                 return False
         else:

@@ -116,10 +116,10 @@ class EnhancedTextProgressBar(BaseProgressBar):
     """
 
     def __init__(self, iterations=0, chunk_size=10):
-        super(TextProgressBar, self).start(iterations, chunk_size)
+        super(EnhancedTextProgressBar, self).start(iterations, chunk_size)
 
     def start(self, iterations, chunk_size=10):
-        super(TextProgressBar, self).start(iterations, chunk_size)
+        super(EnhancedTextProgressBar, self).start(iterations, chunk_size)
         self.fill_char = '*'
         self.width = 25
 

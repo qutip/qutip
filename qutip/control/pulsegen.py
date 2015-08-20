@@ -46,11 +46,14 @@ See the class and gen_pulse function descriptions for details
 """
 
 import numpy as np
+
+import qutip.logging as logging
+logger = logging.get_logger()
+
 import qutip.control.dynamics as dynamics
 import qutip.control.errors as errors
 
-
-def create_pulse_gen(pulse_type='RND', dyn=None):
+def create_pulse_gen(pulse_type='RND', dyn=None, pulse_params=None):
     """
     Create and return a pulse generator object matching the given type.
     The pulse generators each produce a different type of pulse,
@@ -75,27 +78,33 @@ def create_pulse_gen(pulse_type='RND', dyn=None):
     """
 
     if pulse_type == 'RND':
-        return PulseGenRandom(dyn)
+        return PulseGenRandom(dyn, params=pulse_params)
     if pulse_type == 'RNDFOURIER':
-        return PulseGenRndFourier(dyn)
+        return PulseGenRndFourier(dyn, params=pulse_params)
     if pulse_type == 'RNDWAVES':
-        return PulseGenRndWaves(dyn)
+        return PulseGenRndWaves(dyn, params=pulse_params)
     if pulse_type == 'RNDWALK1':
-        return PulseGenRndWalk1(dyn)
+        return PulseGenRndWalk1(dyn, params=pulse_params)
     if pulse_type == 'RNDWALK2':
-        return PulseGenRndWalk2(dyn)
+        return PulseGenRndWalk2(dyn, params=pulse_params)
     elif pulse_type == 'LIN':
-        return PulseGenLinear(dyn)
+        return PulseGenLinear(dyn, params=pulse_params)
     elif pulse_type == 'ZERO':
-        return PulseGenZero(dyn)
+        return PulseGenZero(dyn, params=pulse_params)
     elif pulse_type == 'SINE':
-        return PulseGenSine(dyn)
+        return PulseGenSine(dyn, params=pulse_params)
     elif pulse_type == 'SQUARE':
-        return PulseGenSquare(dyn)
+        return PulseGenSquare(dyn, params=pulse_params)
     elif pulse_type == 'SAW':
-        return PulseGenSaw(dyn)
+        return PulseGenSaw(dyn, params=pulse_params)
     elif pulse_type == 'TRIANGLE':
-        return PulseGenTriangle(dyn)
+        return PulseGenTriangle(dyn, params=pulse_params)
+    elif pulse_type == 'GAUSSIAN':  
+        return PulseGenGaussian(dyn, params=pulse_params)
+    elif pulse_type == 'CRAB_FOURIER':
+        return PulseGenCrabFourier(dyn, params=pulse_params)
+    elif pulse_type == 'GAUSSIAN_EDGE':  
+        return PulseGenGaussianEdge(dyn, params=pulse_params)
     else:
         raise ValueError("No option for pulse_type '{}'".format(pulse_type))
 
@@ -154,9 +163,19 @@ class PulseGen:
     random : boolean
         True if the pulse generator produces random pulses
 
+    log_level : integer
+        level of messaging output from the logger.
+        Options are attributes of qutip.logging,
+        in decreasing levels of messaging, are:
+        DEBUG_INTENSE, DEBUG_VERBOSE, DEBUG, INFO, WARN, ERROR, CRITICAL
+        Anything WARN or above is effectively 'quiet' execution,
+        assuming everything runs as expected.
+        The default NOTSET implies that the level will be taken from
+        the QuTiP settings file, which by default is WARN
     """
-    def __init__(self, dyn=None):
+    def __init__(self, dyn=None, params=None):
         self.parent = dyn
+        self.params = params
         self.reset()
 
     def reset(self):
@@ -170,19 +189,49 @@ class PulseGen:
             self.scaling = dyn.initial_ctrl_scaling
             self.offset = dyn.initial_ctrl_offset
             self.tau = dyn.tau
+            self.set_log_level(dyn.log_level)
         else:
             self.num_tslots = 100
             self.pulse_time = 1.0
             self.scaling = 1.0
             self.tau = None
             self.offset = 0.0
+            self.log_level = logger.level
 
+        self._uses_time = False
+        self.time = None
         self._pulse_initialised = False
         self.periodic = False
         self.random = False
-        self.lbound = -np.Inf
-        self.ubound = np.Inf
+        self.lbound = None
+        self.ubound = None
+        self.ramping_pulse = None
+        
+        self.apply_params()
+        
+    def apply_params(self, params=None):
+        """
+        Set object attributes based on the dictionary (if any) passed in the 
+        instantiation, or passed as a parameter
+        This is called during the instantiation automatically.
+        The key value pairs are the attribute name and value
+        """
+        if not params:
+            params = self.params
+        
+        if isinstance(params, dict):
+            self.params = params
+            for key, val in params.iteritems():
+                setattr(self, key, val)
 
+    def set_log_level(self, lvl):
+        """
+        Set the log_level attribute and set the level of the logger
+        that is call logger.setLevel(lvl)
+        """
+        self.log_level = lvl
+        logger.setLevel(lvl)
+        
     def gen_pulse(self):
         """
         returns the pulse as an array of vales for each timeslot
@@ -200,10 +249,24 @@ class PulseGen:
         if self.tau is None:
             self.tau = np.ones(self.num_tslots, dtype='f') * \
                 self.pulse_time/self.num_tslots
+                
+        if self._uses_time:
+            self.time = np.zeros(self.num_tslots, dtype=float)
+            for k in range(self.num_tslots-1):
+                self.time[k+1] = self.time[k] + self.tau[k]
+                
         self._pulse_initialised = True
 
-        if self.ubound < self.lbound:
-            raise ValueError("ubound cannot be less the lbound")
+        if not self.lbound is None:
+            if np.isinf(self.lbound):
+                self.lbound = None
+        if not self.ubound is None:
+            if np.isinf(self.ubound):
+                self.ubound = None
+        
+        if not self.ubound is None and not self.lbound is None:
+            if self.ubound < self.lbound:
+                raise ValueError("ubound cannot be less the lbound")
 
     def _apply_bounds_and_offset(self, pulse):
         """
@@ -211,26 +274,26 @@ class PulseGen:
         (after applying the offset)
         Assumes that pulses passed are centered around zero (on average)
         """
-        if np.isinf(self.lbound) and np.isinf(self.ubound):
+        if self.lbound is None and self.ubound is None:
             return pulse + self.offset
 
         max_amp = max(pulse)
         min_amp = min(pulse)
-        if (max_amp + self.offset <= self.ubound and
-                min_amp + self.offset >= self.lbound):
+        if ((self.ubound is None or max_amp + self.offset <= self.ubound) and
+            (self.lbound is None or min_amp + self.offset >= self.lbound)):
             return pulse + self.offset
 
         # Some shifting / scaling is required.
-        bound_range = self.ubound - self.lbound
-        if np.isinf(bound_range):
+        if self.ubound is None or self.lbound is None:
             # One of the bounds is inf, so just shift the pulse
-            if np.isinf(self.lbound):
+            if self.lbound is None:
                 # max_amp + offset must exceed the ubound
                 return pulse + self.ubound - max_amp
             else:
                 # min_amp + offset must exceed the lbound
                 return pulse + self.lbound - min_amp
         else:
+            bound_range = self.ubound - self.lbound
             amp_range = max_amp - min_amp
             if max_amp - min_amp > bound_range:
                 # pulse range is too high, it must be scaled
@@ -239,7 +302,14 @@ class PulseGen:
             # otherwise the pulse should fit anyway
             return pulse + self.lbound - min(pulse)
 
-
+    def _apply_ramping_pulse(self, pulse, ramping_pulse=None):
+        if ramping_pulse is None:
+            ramping_pulse = self.ramping_pulse
+        if ramping_pulse is not None:
+            pulse = pulse*ramping_pulse
+            
+        return pulse
+        
 class PulseGenZero(PulseGen):
     """
     Generates a flat pulse
@@ -261,6 +331,7 @@ class PulseGenRandom(PulseGen):
     def reset(self):
         PulseGen.reset(self)
         self.random = True
+        self.apply_params()
 
     def gen_pulse(self):
         """
@@ -299,10 +370,12 @@ class PulseGenRndFourier(PulseGen):
         """
         PulseGen.reset(self)
         self.random = True
+        self._uses_time = True
         try:
             self.min_wavelen = self.pulse_time / 10.0
         except:
             self.min_wavelen = 0.1
+        self.apply_params()
 
     def gen_pulse(self, min_wavelen=None):
         """
@@ -325,10 +398,7 @@ class PulseGenRndFourier(PulseGen):
         sum_wave = np.zeros(self.tau.shape)
         wavelen = 2.0*self.pulse_time
 
-        t = np.zeros(self.num_tslots, dtype=float)
-        for k in range(self.num_tslots-1):
-            t[k+1] = t[k] + self.tau[k]
-
+        t = self.time
         wl = []
         while wavelen > min_wavelen:
             wl.append(wavelen)
@@ -380,6 +450,7 @@ class PulseGenRndWaves(PulseGen):
         """
         PulseGen.reset(self)
         self.random = True
+        self._uses_time = True
         self.num_comp_waves = 20
         try:
             self.min_wavelen = self.pulse_time / 10.0
@@ -389,6 +460,7 @@ class PulseGenRndWaves(PulseGen):
             self.max_wavelen = 2*self.pulse_time
         except:
             self.max_wavelen = 10.0
+        self.apply_params()
 
     def gen_pulse(self, num_comp_waves=None,
                   min_wavelen=None, max_wavelen=None):
@@ -422,10 +494,7 @@ class PulseGenRndWaves(PulseGen):
 
         sum_wave = np.zeros(self.tau.shape)
 
-        t = np.zeros(self.num_tslots, dtype=float)
-        for k in range(self.num_tslots-1):
-            t[k+1] = t[k] + self.tau[k]
-
+        t = self.time
         wl_range = max_wavelen - min_wavelen
         amp_scale = np.sqrt(8)*self.scaling / float(num_comp_waves)
         for n in range(num_comp_waves):
@@ -461,6 +530,7 @@ class PulseGenRndWalk1(PulseGen):
         PulseGen.reset(self)
         self.random = True
         self.max_d_amp = 0.1
+        self.apply_params()
 
     def gen_pulse(self, max_d_amp=None):
         """
@@ -508,6 +578,7 @@ class PulseGenRndWalk2(PulseGen):
         PulseGen.reset(self)
         self.random = True
         self.max_d2_amp = 0.01
+        self.apply_params()
 
     def gen_pulse(self, init_grad_range=None, max_d2_amp=None):
         """
@@ -566,10 +637,12 @@ class PulseGenLinear(PulseGen):
         self.gradient = None
         self.start_val = -1.0
         self.end_val = 1.0
+        self.apply_params()
 
     def init_pulse(self, gradient=None, start_val=None, end_val=None):
         """
-        Calulate the gradient if pulse is defined by start and end point values
+        Calculate the gradient if pulse is defined by start and 
+        end point values
         """
         PulseGen.init_pulse(self)
         if start_val is not None and end_val is not None:
@@ -637,6 +710,7 @@ class PulseGenPeriodic(PulseGen):
         self.freq = 1.0
         self.wavelen = None
         self.start_phase = 0.0
+        self.apply_params()
 
     def init_pulse(self, num_waves=None, wavelen=None,
                    freq=None, start_phase=None):
@@ -790,3 +864,399 @@ class PulseGenTriangle(PulseGenPeriodic):
             t = t + self.tau[k]
 
         return self._apply_bounds_and_offset(pulse)
+        
+class PulseGenGaussian(PulseGen):
+    """
+    Generates pulses with a Gaussian profile
+    """
+    def reset(self):
+        """
+        reset attributes to default values
+        """
+        PulseGen.reset(self)
+        self._uses_time = True
+        self.mean = 0.5*self.pulse_time
+        self.variance = 0.5*self.pulse_time
+        self.apply_params()
+        
+    def gen_pulse(self, mean=None, variance=None):
+        """
+        Generate a pulse with Gaussian shape. The peak is centre around the
+        mean and the variance determines the breadth
+        The scaling and offset attributes are applied as an amplitude
+        and fixed linear offset. Note that the maximum amplitude will be
+        scaling + offset.
+        """
+        if not self._pulse_initialised:
+            self.init_pulse()
+        
+        if mean:
+            Tm = mean
+        else:
+            Tm = self.mean
+        if variance:
+            Tv = variance
+        else:
+            Tv = self.variance
+        t = self.time
+        T = self.pulse_time
+
+        pulse = self.scaling*np.exp(-(t-Tm)**2/(2*Tv))
+        return self._apply_bounds_and_offset(pulse)
+
+class PulseGenGaussianEdge(PulseGen):
+    """
+    Generate pulses with inverted Gaussian ramping in and out
+    It's intended use for a ramping modulation, which is often required in 
+    experimental setups.
+    
+    Attributes
+    ----------
+        decay_time : float
+            Determines the ramping rate. It is approximately the time
+            required to bring the pulse to full amplitude
+            It is set to 1/10 of the pulse time by default
+    """
+
+    def reset(self):
+        """
+        reset attributes to default values
+        """
+        PulseGen.reset(self)
+        self._uses_time = True
+        self.decay_time = self.pulse_time / 10.0
+        self.apply_params()
+
+    def gen_pulse(self, decay_time=None):
+        """
+        Generate a pulse that starts and ends at zero and 1.0 in between
+        then apply scaling and offset
+        The tailing in and out is an inverted Gaussian shape
+        """
+        if not self._pulse_initialised:
+            self.init_pulse()
+            
+        t = self.time
+        if decay_time:
+            Td = decay_time
+        else:
+            Td = self.decay_time
+        T = self.pulse_time
+        pulse = 1.0 - np.exp(-t**2/Td) - np.exp(-(t-T)**2/Td)
+        pulse = pulse*self.scaling
+
+        return self._apply_bounds_and_offset(pulse)
+
+
+### The following are pulse generators for the CRAB algorithm ###
+# AJGP 2015-05-14: 
+# The intention is to have a more general base class that allows
+# setting of general basis functions
+
+class PulseGenCrab(PulseGen):
+    """
+    Base class for all CRAB pulse generators
+    Note these are more involved in the optimisation process as they are
+    used to produce piecewise control amplitudes each time new optimisation
+    parameters are tried
+    
+    Attributes
+    ----------
+    num_coeffs : integer
+        Number of coefficients used for each basis function
+        
+    num_basis_funcs : integer
+        Number of basis functions
+        In this case set at 2 and should not be changed
+        
+    coeffs : float array[num_coeffs, num_basis_funcs]
+        The basis coefficient values
+    """
+    def __init__(self, dyn=None, num_coeffs=None, params=None):
+        self.parent = dyn
+        self.num_coeffs = num_coeffs
+        self.params = params
+        self.reset()
+        
+    def reset(self):
+        """
+        reset attributes to default values
+        """
+        PulseGen.reset(self)
+        self.NUM_COEFFS_WARN_LVL = 20
+        self.DEF_NUM_COEFFS = 4
+        self._BSC_ALL = 1
+        self._BSC_GT_MEAN = 2
+        self._BSC_LT_MEAN = 3
+        
+        self._uses_time = True
+        self.time = None
+        self.num_basis_funcs = 2
+        self.num_optim_vars = 0
+        self.coeffs = None
+        self._num_coeffs_estimated = False
+        self.guess_pulse_action = 'MODULATE'
+        self.guess_pulse = None
+        self.guess_pulse_func = None
+        self.apply_params()
+        
+    def init_pulse(self, num_coeffs=None):
+        """
+        Set the initial freq and coefficient values
+        """
+        PulseGen.init_pulse(self)
+        self.init_coeffs(num_coeffs=num_coeffs)
+        
+        if self.guess_pulse is not None:
+            self.init_guess_pulse()
+        self._init_bounds()
+        
+        if self.log_level <= logging.DEBUG and not self._num_coeffs_estimated:
+            logger.debug(
+                    "CRAB pulse initialised with {} coefficients per basis "
+                    "function, which means a total of {} "
+                    "optimisation variables for this pulse".format(
+                            self.num_coeffs, self.num_optim_vars))
+        
+#    def generate_guess_pulse(self)
+#        if isinstance(self.guess_pulsegen, PulseGen):
+#            self.guess_pulse = self.guess_pulsegen.gen_pulse()
+#        return self.guess_pulse
+        
+    def init_coeffs(self, num_coeffs=None):
+        """
+        Generate the initial ceofficent values.
+        
+        Parameters
+        ----------
+        num_coeffs : integer
+            Number of coefficients used for each basis function
+            If given this overides the default and sets the attribute
+            of the same name.
+        """
+        if num_coeffs:
+            self.num_coeffs = num_coeffs
+        
+        self._num_coeffs_estimated = False
+        if not self.num_coeffs:
+            if isinstance(self.parent, dynamics.Dynamics):
+                dim = self.parent.get_drift_dim()
+                self.num_coeffs = self.estimate_num_coeffs(dim)
+                self._num_coeffs_estimated = True
+            else:
+                self.num_coeffs = self.DEF_NUM_COEFFS
+        self.num_optim_vars = self.num_coeffs*self.num_basis_funcs
+        
+        if self._num_coeffs_estimated:
+            if self.log_level <= logging.INFO:
+                logger.info(
+                    "The number of CRAB coefficients per basis function "
+                    "has been estimated as {}, which means a total of {} "
+                    "optimisation variables for this pulse. Based on the "
+                    "dimension ({}) of the system".format(
+                            self.num_coeffs, self.num_optim_vars, dim))
+            # Issue warning if beyond the recommended level
+            if self.log_level <= logging.WARN:
+                if self.num_coeffs > self.NUM_COEFFS_WARN_LVL:
+                    logger.warn(
+                        "The estimated number of coefficients {} exceeds "
+                        "the amount ({}) recommended for efficient "
+                        "optimisation. You can set this level explicitly "
+                        "to suppress this message.".format(
+                            self.num_coeffs, self.NUM_COEFFS_WARN_LVL))
+                            
+        # For now just use the scaling and offset attributes
+        r = np.random.random([self.num_coeffs, self.num_basis_funcs])
+        self.coeffs = (2*r - 1.0) * self.scaling
+        
+    def estimate_num_coeffs(self, dim):
+        """
+        Estimate the number coefficients based on the dimensionality of the
+        system.
+        Returns
+        -------
+        num_coeffs : int
+            estimated number of coefficients
+        """
+        num_coeffs = max(2, dim - 1)
+        return num_coeffs
+        
+    def get_optim_var_vals(self):
+        """
+        Get the parameter values to be optimised
+        Returns
+        -------
+        list (or 1d array) of floats 
+        """
+        return self.coeffs.ravel().tolist()
+    
+    def set_optim_var_vals(self, param_vals):
+        """
+        Set the values of the any of the pulse generation parameters
+        based on new values from the optimisation method
+        Typically this will be the basis coefficients
+        """
+        # Type and size checking avoided here as this is in the 
+        # main optmisation call sequence
+        self.set_coeffs(param_vals)
+        
+    def set_coeffs(self, param_vals):
+        self.coeffs = param_vals.reshape(
+                    [self.num_coeffs, self.num_basis_funcs])
+    
+    def init_guess_pulse(self):
+        
+        self.guess_pulse_func = None
+        if not self.guess_pulse_action:
+            logger.WARN("No guess pulse action given, hence ignored.")
+        elif self.guess_pulse_action.upper() == 'MODULATE':
+            self.guess_pulse_func = self.guess_pulse_modulate
+        elif self.guess_pulse_action.upper() == 'ADD':
+            self.guess_pulse_func = self.guess_pulse_add
+        else:
+            logger.WARN("No option for guess pulse action '{}' "
+                        ", hence ignored.".format(self.guess_pulse_action))
+    
+    def guess_pulse_add(self, pulse):
+        pulse = pulse + self.guess_pulse
+        return pulse
+        
+    def guess_pulse_modulate(self, pulse):
+        pulse = (1.0 + pulse)*self.guess_pulse
+        return pulse
+        
+    def _init_bounds(self):
+        add_guess_pulse_scale = False
+        if self.lbound is None and self.ubound is None:
+            # no bounds to apply
+            self._bound_scale_cond = None
+        elif self.lbound is None:
+            # only upper bound
+            if self.ubound > 0:
+                self._bound_mean = 0.0
+                self._bound_scale = self.ubound
+            else:
+                add_guess_pulse_scale = True
+                self._bound_scale = self.scaling*self.num_coeffs + \
+                            self.get_guess_pulse_scale()
+                self._bound_mean = -abs(self._bound_scale) + self.ubound
+            self._bound_scale_cond = self._BSC_GT_MEAN
+
+        elif self.ubound is None:
+            # only lower bound
+            if self.lbound < 0:
+                self._bound_mean = 0.0
+                self._bound_scale = abs(self.lbound)
+            else:
+                self._bound_scale = self.scaling*self.num_coeffs + \
+                            self.get_guess_pulse_scale()
+                self._bound_mean = abs(self._bound_scale) + self.lbound
+            self._bound_scale_cond = self._BSC_LT_MEAN
+
+        else:
+            # lower and upper bounds
+            self._bound_mean = 0.5*(self.ubound + self.lbound)
+            self._bound_scale = 0.5*(self.ubound - self.lbound)
+            self._bound_scale_cond = self._BSC_ALL
+            
+    def  get_guess_pulse_scale(self):
+        scale = 0.0
+        if self.guess_pulse is not None:
+            scale = max(np.amax(self.guess_pulse) - np.amin(self.guess_pulse),
+                        np.amax(self.guess_pulse))
+        return scale
+        
+    def _apply_bounds(self, pulse):
+        """
+        Scaling the amplitudes using the tanh function if there are bounds
+        """
+        if self._bound_scale_cond == self._BSC_ALL:
+            pulse = np.tanh(pulse)*self._bound_scale + self._bound_mean
+            return pulse
+        elif self._bound_scale_cond == self._BSC_GT_MEAN:
+            scale_where = pulse > self._bound_mean
+            pulse[scale_where] = (np.tanh(pulse[scale_where])*self._bound_scale
+                                        + self._bound_mean)
+            return pulse
+        elif self._bound_scale_cond == self._BSC_LT_MEAN:
+            scale_where = pulse < self._bound_mean
+            pulse[scale_where] = (np.tanh(pulse[scale_where])*self._bound_scale
+                                        + self._bound_mean)
+            return pulse
+        else:
+            return pulse
+       
+
+class PulseGenCrabFourier(PulseGenCrab):
+    """
+    Generates a pulse using the Fourier basis functions, i.e. sin and cos
+
+    Attributes
+    ----------
+    freqs : float array[num_coeffs]
+        Frequencies for the basis functions
+    """
+
+    def reset(self):
+        """
+        reset attributes to default values
+        """
+        PulseGenCrab.reset(self)
+        self.freqs = None
+
+    def init_pulse(self, num_coeffs=None):
+        """
+        Set the initial freq and coefficient values
+        """
+        PulseGenCrab.init_pulse(self)
+            
+        self.init_freqs()
+        
+    def init_freqs(self):
+        """
+        Generate the frequencies
+        These are the Fourier harmonics with a uniformly distributed
+        random offset
+        """
+        self.freqs = np.empty(self.num_coeffs)
+        ff = 2*np.pi / self.pulse_time
+        for i in range(self.num_coeffs):
+            self.freqs[i] = ff*(i + 1)
+            
+        self.freqs += np.random.random(self.num_coeffs) - 0.5
+        
+    def gen_pulse(self, coeffs=None):
+        """
+        Generate a pulse using the Fourier basis with the freqs and
+        coeffs attributes.
+        
+        Parameters
+        ----------
+        coeffs : float array[num_coeffs, num_basis_funcs]
+            The basis coefficient values
+            If given this overides the default and sets the attribute
+            of the same name.
+        """
+        if coeffs:
+            self.coeffs = coeffs
+            
+        if not self._pulse_initialised:
+            self.init_pulse()
+        
+        pulse = np.zeros(self.num_tslots)
+
+        for i in range(self.num_coeffs):
+            phase = self.freqs[i]*self.time
+#            basis1comp = self.coeffs[i, 0]*np.sin(phase)
+#            basis2comp = self.coeffs[i, 1]*np.cos(phase)
+#            pulse += basis1comp + basis2comp
+            pulse += self.coeffs[i, 0]*np.sin(phase) + \
+                        self.coeffs[i, 1]*np.cos(phase) 
+
+        if self.guess_pulse_func:
+            pulse = self.guess_pulse_func(pulse)
+        if self.ramping_pulse is not None:
+            pulse = self._apply_ramping_pulse(pulse)
+            
+        return self._apply_bounds(pulse)
+    

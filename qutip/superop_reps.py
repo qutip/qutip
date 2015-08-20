@@ -51,14 +51,14 @@ from itertools import starmap, product
 from numpy.core.multiarray import array, zeros
 from numpy.core.shape_base import hstack
 from numpy.matrixlib.defmatrix import matrix
+from numpy import sqrt, floor, log2
 from numpy import sqrt, dot
-from numpy.linalg import svd
-from scipy.linalg import eig
+from scipy.linalg import eig, svd
 
 # Other QuTiP functions and classes
 from qutip.superoperator import vec2mat, spre, spost, operator_to_vector
 from qutip.operators import identity, sigmax, sigmay, sigmaz
-from qutip.tensor import tensor
+from qutip.tensor import tensor, flatten
 from qutip.qobj import Qobj
 from qutip.states import basis
 
@@ -141,6 +141,48 @@ def _super_tofrom_choi(q_oper):
                 inpt=data.reshape([sqrt_shape] * 4).
                 transpose(3, 1, 2, 0).reshape(q_oper.data.shape))
 
+def _isqubitdims(dims):
+    """Checks whether all entries in a dims list are integer powers of 2.
+
+    Parameters
+    ----------
+    dims : nested list of ints
+        Dimensions to be checked.
+
+    Returns
+    -------
+    isqubitdims : bool
+        True if and only if every member of the flattened dims
+        list is an integer power of 2.
+    """
+    return all([
+        2**floor(log2(dim)) == dim
+        for dim in flatten(dims)
+    ])
+
+
+def _super_to_superpauli(q_oper):
+    """
+    Converts a superoperator in the column-stacking basis to
+    the Pauli basis (assuming qubit dimensions).
+
+    This is an internal function, as QuTiP does not currently have
+    a way to mark that superoperators are represented in the Pauli
+    basis as opposed to the column-stacking basis; a Pauli-basis
+    ``type='super'`` would thus break other conversion functions.
+    """
+    # Ensure we start with a column-stacking-basis superoperator.
+    sqobj = to_super(q_oper)
+    if not _isqubitdims(sqobj.dims):
+        raise ValueError("Pauli basis is only defined for qubits.")
+    nq = int(log2(sqobj.shape[0]) / 2)
+    B = _pauli_basis(nq) / sqrt(2**nq)
+    # To do this, we have to hack a bit and force the dims to match,
+    # since the _pauli_basis function makes different assumptions
+    # about indices than we need here.
+    B.dims = sqobj.dims
+    return (B.dag() * sqobj * B)
+
 
 def super_to_choi(q_oper):
     # TODO: deprecate and make private in favor of to_choi,
@@ -213,7 +255,7 @@ def choi_to_chi(q_oper):
     nq = len(q_oper.dims[0][0])
     B = _pauli_basis(nq)
     B.superrep = 'choi'
-    return Qobj(B * q_oper * B.dag(), superrep='chi')
+    return Qobj(B.dag() * q_oper * B, superrep='chi')
 
 
 def chi_to_choi(q_oper):
@@ -228,9 +270,9 @@ def chi_to_choi(q_oper):
 
     # The Chi matrix has tr(chi) == d², so we need to divide out
     # by that to get back to the Choi form.
-    return Qobj((B.dag() * q_oper * B) / q_oper.shape[0], superrep='choi')
+    return Qobj((B * q_oper * B.dag()) / q_oper.shape[0], superrep='choi')
 
-def _svd_u_to_kraus(U, S, d, dK):
+def _svd_u_to_kraus(U, S, d, dK, indims, outdims):
     """
     Given a partial isometry U and a vector of square-roots of singular values S
     obtained from an SVD, produces the Kraus operators represented by U.
@@ -242,7 +284,10 @@ def _svd_u_to_kraus(U, S, d, dK):
     """
     # We use U * S since S is 1-index, such that this is equivalent to
     # U . diag(S), but easier to write down.
-    return map(Qobj, array(U * S).reshape((d, d, dK), order='F').transpose((2, 0, 1)))
+    Ks = list(map(Qobj, array(U * S).reshape((d, d, dK), order='F').transpose((2, 0, 1))))
+    for K in Ks:
+        K.dims = [outdims, indims]
+    return Ks
 
 
 def _generalized_kraus(q_oper, thresh=1e-10):
@@ -256,6 +301,10 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     # Remember the shape of the underlying space,
     # as we'll need this to make Kraus operators later.
     dL, dR = map(int, map(sqrt, q_oper.shape))
+    # Also remember the dims breakout.
+    out_dims, in_dims = q_oper.dims
+    out_left, out_right = out_dims
+    in_left, in_right = in_dims
 
     # Find the SVD.
     U, S, V = svd(q_oper.data.todense())
@@ -269,14 +318,14 @@ def _generalized_kraus(q_oper, thresh=1e-10):
     S = sqrt(array(S)[nonzero_idxs])
     # Since NumPy returns V and not V+, we need to take the dagger
     # to get back to quantum info notation for Stinespring pairs.
-    V = array(V.H)[:, nonzero_idxs]
+    V = array(V.conj().T)[:, nonzero_idxs]
 
     # Next, we convert each of U and V into Kraus operators.
     # Finally, we want the Kraus index to be left-most so that we
     # can map over it when making Qobjs.
     # FIXME: does not preserve dims!
-    kU = _svd_u_to_kraus(U, S, dL, dK)
-    kV = _svd_u_to_kraus(V, S, dL, dK)
+    kU = _svd_u_to_kraus(U, S, dL, dK, out_right, out_left)
+    kV = _svd_u_to_kraus(V, S, dL, dK, in_right, in_left)
 
     return kU, kV
 
@@ -289,19 +338,21 @@ def choi_to_stinespring(q_oper, thresh=1e-10):
     dK = len(kU)
     dL = kU[0].shape[0]
     dR = kV[0].shape[1]
+    # Also remember the dims breakout.
+    out_dims, in_dims = q_oper.dims
+    out_left, out_right = out_dims
+    in_left, in_right = in_dims
 
-    # FIXME: does not preserve dims!
-    #        idea here is to append the new index to be right most of the left indices.
-    A = Qobj(zeros((dK * dL, dL)), dims=[[dL, dK], [dL, 1]])
-    B = Qobj(zeros((dK * dR, dR)), dims=[[dR, dK], [dR, 1]])
+    A = Qobj(zeros((dK * dL, dL)), dims=[out_left + [dK], out_right + [1]])
+    B = Qobj(zeros((dK * dR, dR)), dims=[in_left + [dK], in_right + [1]])
 
     for idx_kraus, (KL, KR) in enumerate(zip(kU, kV)):
         A += tensor(KL, basis(dK, idx_kraus))
         B += tensor(KR, basis(dK, idx_kraus))
-
+        
     # There is no input (right) Kraus index, so strip that off.
-    A.dims[1] = A.dims[1][:-1]
-    B.dims[1] = B.dims[1][:-1]
+    del A.dims[1][-1]
+    del B.dims[1][-1]
 
     return A, B
 
@@ -385,7 +436,7 @@ def to_chi(q_oper):
         else:
             raise TypeError(q_oper.superrep)
     elif q_oper.type == 'oper':
-        return super_to_choi(spre(q_oper) * spost(q_oper.dag()))
+        return to_chi(spre(q_oper) * spost(q_oper.dag()))
     else:
         raise TypeError(
             "Conversion of Qobj with type = {0.type} "

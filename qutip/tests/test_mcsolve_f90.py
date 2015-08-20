@@ -93,7 +93,7 @@ def test_MCNoCollStates():
     c_op_list = []
     tlist = np.linspace(0, 10, 100)
     mcdata = mcsolve_f90(H, psi0, tlist, c_op_list, [])
-    states = mcdata.states
+    states = mcdata.states[0]
     expt = expect(a.dag() * a, states)
     actual_answer = 9.0 * np.ones(len(tlist))
     diff = np.mean(abs(actual_answer - expt) / actual_answer)

@@ -41,14 +41,17 @@ from numpy import abs, sqrt, ones, diag
 from numpy.testing import assert_, run_module_suite, assert_approx_equal
 import scipy
 
-from qutip.operators import create, destroy, jmat, identity, qdiags
+from qutip.operators import (
+    create, destroy, jmat, identity, qdiags, sigmax, sigmay, sigmaz, qeye
+)
 from qutip.states import fock_dm
 from qutip.propagator import propagator
-from qutip.random_objects import rand_herm, rand_dm, rand_unitary, rand_ket, rand_super_bcsz
-from qutip.metrics import *
-from qutip.superop_reps import to_choi
-from qutip.operators import qeye, sigmax
+from qutip.random_objects import (
+    rand_herm, rand_dm, rand_unitary, rand_ket, rand_super_bcsz
+)
 from qutip.qobj import Qobj
+from qutip.superop_reps import to_super, to_choi
+from qutip.metrics import *
 
 """
 A test class for the metrics and pseudo-metrics included with QuTiP.
@@ -157,6 +160,7 @@ def test_hilbert_dist():
     r2 = qdiags(diag2, 0)
     assert_(abs(hilbert_dist(r1, r2)-1) <= 1e-6)
 
+
 def test_dnorm_qubit_bounds():
     """
     dnorm: bounded [0, 2] for random qubit channels.
@@ -184,6 +188,32 @@ def test_dnorm_qubit_known_cases():
     # such as perfectly distinguishable channels.
     yield case, id_chan, X_chan, 2, dict(maxit=10)
     yield case, id_chan, depol, 1.5
+
+def test_unitarity_known():
+    """
+    Metrics: Unitarity for known cases.
+    """
+    def case(q_oper, known_unitarity):
+        assert_almost_equal(unitarity(q_oper), known_unitarity)
+
+    yield case, to_super(sigmax()), 1.0
+    yield case, sum(map(
+        to_super, [qeye(2), sigmax(), sigmay(), sigmaz()]
+    )) / 4, 0.0
+    yield case, sum(map(
+        to_super, [qeye(2), sigmax()]
+    )) / 2, 1 / 3.0
+
+def test_unitarity_bounded(nq=3, n_cases=10):
+    """
+    Metrics: Unitarity in [0, 1].
+    """
+    def case(q_oper):
+        assert_(0.0 <= unitarity(q_oper) <= 1.0)
+
+    for _ in range(n_cases):
+        yield case, rand_super_bcsz(2**nq)
+
 
 if __name__ == "__main__":
     run_module_suite()

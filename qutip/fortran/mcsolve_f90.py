@@ -449,9 +449,9 @@ class _MC_class():
         else:
             # all trajectories as kets
             if (ntraj == 1):
-                states = np.array([Qobj()] * nstep, dtype=object)
+                states = np.array([[Qobj()] * nstep], dtype=object)
                 for i in range(nstep):
-                    states[i] = Qobj(np.matrix(
+                    states[0][i] = Qobj(np.matrix(
                         qtf90.qutraj_run.sol[0, 0, i, :]).transpose(),
                         dims=self.psi0_dims, shape=self.psi0_shape)
             else:
@@ -550,16 +550,16 @@ def _gather(sols):
                 # collect entropy values, all trajectories
                 sol.entropy = np.vstack((sol.entropy,
                                          np.array(sols[j].entropy)))
-    if (config.options.average_states or config.options.average_expect):
+    if (config.options.average_states):
         if (config.e_num == 0):
             sol.states = sol.states / len(sols)
-        else:
+    if config.options.average_expect:
             sol.expect = list(sol.expect / len(sols))
             inds = np.where(config.e_ops_isherm)[0]
             for jj in inds:
                 sol.expect[jj] = np.real(sol.expect[jj])
-        if (hasattr(sols[0], 'entropy')):
-            sol.entropy = sol.entropy / len(sols)
+            if (hasattr(sols[0], 'entropy')):
+                sol.entropy = sol.entropy / len(sols)
 
     # convert sol.expect array to list and fix dtypes of arrays
     if (not config.options.average_expect) and config.e_num != 0:

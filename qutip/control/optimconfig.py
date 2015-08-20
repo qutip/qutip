@@ -87,39 +87,6 @@ class OptimConfig:
         DEF will use the default for the specific dyn_type
         (See FidelityComputer classes for details)
 
-    phase_option : string
-        determines how global phase is treated in fidelity
-        calculations (fid_type='UNIT' only). Options:
-            PSU - global phase ignored
-            SU - global phase included
-
-    amp_lbound : float or list of floats
-        lower boundaries for the control amplitudes
-        Can be a scalar value applied to all controls
-        or a list of bounds for each control
-        (used in contrained methods only e.g. L-BFGS-B)
-
-    amp_ubound : float or list of floats
-        upper boundaries for the control amplitudes
-        Can be a scalar value applied to all controls
-        or a list of bounds for each control
-        (used in contrained methods only e.g. L-BFGS-B)
-
-    max_metric_corr : integer
-        The maximum number of variable metric corrections used to define
-        the limited memory matrix. That is the number of previous
-        gradient values that are used to approximate the Hessian
-        see the scipy.optimize.fmin_l_bfgs_b documentation for description
-        of m argument
-        (used only in L-BFGS-B)
-
-    accuracy_factor : float
-        Determines the accuracy of the result.
-        Typical values for accuracy_factor are: 1e12 for low accuracy;
-        1e7 for moderate accuracy; 10.0 for extremely high accuracy
-        scipy.optimize.fmin_l_bfgs_b factr argument.
-        (used only in L-BFGS-B)
-
     test_out_dir : string
         Directory where test output files will be saved
         By default this is a sub directory called 'test_out'
@@ -165,19 +132,29 @@ class OptimConfig:
 
     def reset(self):
         self.log_level = logger.getEffectiveLevel()
-        self.optim_alg = 'LBFGSB'
-        self.dyn_type = ''
-        self.fid_type = ''
-        self.phase_option = 'PSU'
-        self.amp_update_mode = 'ALL'  # Alts: 'DYNAMIC'
-        self.pulse_type = 'RND'
+        self.alg = 'GRAPE' # Alts: 'CRAB'
+        # *** AJGP 2015-04-21: This has been replaced optim_method
+        #self.optim_alg = 'LBFGSB'
+        self.optim_method = 'DEF'
+        self.dyn_type = 'DEF'
+        self.fid_type = 'DEF'
+        # *** AJGP 2015-04-21: phase_option has been moved to the FidComputer
+        #self.phase_option = 'PSU'
+        # *** AJGP 2015-04-21: amp_update_mode has been replaced by tslot_type
+        #self.amp_update_mode = 'ALL'  # Alts: 'DYNAMIC'
+        self.fid_type = 'DEF'
+        self.tslot_type = 'DEF'
+        self.init_pulse_type = 'DEF'
         ######################
         # Note the following parameteres are for constrained optimisation
         # methods e.g. L-BFGS-B
-        self.amp_lbound = -np.Inf
-        self.amp_ubound = np.Inf
-        self.max_metric_corr = 10
-        self.accuracy_factor = 1e7
+        # *** AJGP 2015-04-21: 
+        #           These have been moved to the OptimizerLBFGSB class
+#        self.amp_lbound = -np.Inf
+#        self.amp_ubound = np.Inf
+#        self.max_metric_corr = 10
+#        self.accuracy_factor = 1e7
+        # ***
         # ####################
         self.reset_test_out_files()
 

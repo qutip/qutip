@@ -57,6 +57,9 @@ class OptimResult:
     fidelity : float
         final (normalised) fidelity that was achieved
 
+    initial_fid_err : float
+        fidelity error before optimisation starting
+        
     fid_err : float
         final fidelity error that was achieved
 
@@ -76,6 +79,9 @@ class OptimResult:
 
     max_iter_exceeded : boolean
         True if the iteration limit was reached
+        
+    max_fid_func_exceeded : boolean
+        True if the fidelity function call limit was reached
 
     wall_time : float
         time elapsed during the optimisation
@@ -104,12 +110,15 @@ class OptimResult:
 
     def reset(self):
         self.fidelity = 0.0
+        self.initial_fid_err = np.Inf
         self.fid_err = np.Inf
         self.goal_achieved = False
         self.grad_norm_final = 0.0
         self.grad_norm_min_reached = False
         self.num_iter = 0
         self.max_iter_exceeded = False
+        self.num_fid_func_calls = 0
+        self.max_fid_func_exceeded = False
         self.wall_time = 0.0
         self.wall_time_limit_exceeded = False
         self.termination_reason = "not started yet"

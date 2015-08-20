@@ -271,10 +271,10 @@ class QubitCircuit(object):
                                gate.targets[1] + start],
                               gate.controls + start, None, None)
 
-    def remove_gate(self, index=None, name=None, remove="first"):
+    def remove_gate(self, index=None, end=None, name=None, remove="first"):
         """
-        Removes a gate with from a specific index or the first, last or all
-        instances of a particular gate.
+        Removes a gate from a specific index or between two indexes or the 
+        first, last or all instances of a particular gate.
 
         Parameters
         ----------
@@ -286,7 +286,13 @@ class QubitCircuit(object):
             If first or all gate are to be removed.
         """
         if index is not None and index <= self.N:
-            self.gates.pop(index)
+            if end is not None and end <= self.N:
+                for i in range(end - index):
+                    self.gates.pop(index + i)
+            elif end is not None and end > self.N:
+                raise ValueError("End target exceeds number of gates.")
+            else:            
+                self.gates.pop(index)
 
         elif name is not None and remove == "first":
             for gate in self.gates:
@@ -316,7 +322,7 @@ class QubitCircuit(object):
         ----------
         qc: QubitCircuit
             Returns QubitCircuit of resolved gates for the qubit circuit in the
-            desired basis.
+            reverse order.
         """
         temp = QubitCircuit(self.N, self.reverse_states)
 
@@ -770,8 +776,8 @@ class QubitCircuit(object):
         Returns
         ----------
         qc: QubitCircuit
-            Returns QubitCircuit of resolved gates for the qubit circuit in the
-            desired basis.
+            Returns QubitCircuit of the gates for the qubit circuit with the
+            resolved non-adjacent gates.
 
         """
         temp = QubitCircuit(self.N, self.reverse_states)

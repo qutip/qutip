@@ -37,12 +37,12 @@ This module contains a collection of functions for calculating metrics
 
 __all__ = ['fidelity', 'tracedist', 'bures_dist', 'bures_angle',
            'hilbert_dist', 'average_gate_fidelity', 'process_fidelity',
-           'dnorm']
+           'unitarity', 'dnorm']
 
 import numpy as np
 from qutip.sparse import sp_eigs
 from qutip.states import ket2dm
-from qutip.superop_reps import to_kraus, to_stinespring
+from qutip.superop_reps import to_kraus, to_stinespring, _super_to_superpauli
 
 import qutip.logging as logging
 logger = logging.get_logger()
@@ -338,3 +338,22 @@ def dnorm(q_oper, picos_args=None):
     res = problem.solve(**picos_args)
     return np.sqrt(np.real(res['obj']))
 
+
+def unitarity(oper):
+    """
+    Returns the unitarity of a quantum map, defined as the Frobenius norm
+    of the unital block of that map's superoperator representation.
+
+    Parameters
+    ----------
+    oper : Qobj
+        Quantum map under consideration.
+
+    Returns
+    -------
+    u : float
+        Unitarity of ``oper``.
+    """
+    Eu = _super_to_superpauli(oper).full()[1:, 1:]
+    #return np.real(np.trace(np.dot(Eu, Eu.conj().T))) / len(Eu)
+    return np.linalg.norm(Eu, 'fro')**2 / len(Eu)
