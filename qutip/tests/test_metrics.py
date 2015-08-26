@@ -47,7 +47,8 @@ from qutip.operators import (
 from qutip.states import fock_dm
 from qutip.propagator import propagator
 from qutip.random_objects import (
-    rand_herm, rand_dm, rand_unitary, rand_ket, rand_super_bcsz
+    rand_herm, rand_dm, rand_unitary, rand_ket, rand_super_bcsz,
+    rand_ket_haar, rand_dm_ginibre
 )
 from qutip.qobj import Qobj
 from qutip.superop_reps import to_super
@@ -94,6 +95,45 @@ def test_fidelity2():
         FU = fidelity(U*rho1*U.dag(), U*rho2*U.dag())
         assert_(abs((F-FU)/F) < 1e-5)
 
+def test_fidelity_max():
+    """
+    Metrics: Fidelity of a pure state w/ itself should be 1.
+    """
+    for _ in range(10):
+        psi = rand_ket_haar(13)
+        assert_almost_equal(fidelity(psi, psi), 1)
+
+def test_fidelity_bounded_purepure(tol=1e-7):
+    """
+    Metrics: Fidelity of pure states within [0, 1].
+    """
+    for _ in range(10):
+        psi = rand_ket_haar(17)
+        phi = rand_ket_haar(17)
+        F = fidelity(psi, phi)
+        assert_(-tol <= F <= 1 + tol)
+
+
+def test_fidelity_bounded_puremixed(tol=1e-7):
+    """
+    Metrics: Fidelity of pure states against mixed states within [0, 1].
+    """
+    for _ in range(10):
+        psi = rand_ket_haar(11)
+        sigma = rand_dm_ginibre(11)
+        F = fidelity(psi, sigma)
+        assert_(-tol <= F <= 1 + tol)
+
+
+def test_fidelity_bounded_mixedmixed(tol=1e-7):
+    """
+    Metrics: Fidelity of mixed states within [0, 1].
+    """
+    for _ in range(10):
+        rho = rand_dm_ginibre(11)
+        sigma = rand_dm_ginibre(11)
+        F = fidelity(rho, sigma)
+        assert_(-tol <= F <= 1 + tol)
 
 def test_tracedist1():
     """
