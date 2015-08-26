@@ -36,6 +36,8 @@ the qutip.metrics module.
 #    (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #    OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ###############################################################################
+from __future__ import division
+
 import numpy as np
 from numpy import abs, sqrt
 from numpy.testing import assert_, assert_almost_equal, run_module_suite
@@ -44,7 +46,7 @@ import scipy
 from qutip.operators import (
     create, destroy, jmat, identity, qdiags, sigmax, sigmay, sigmaz, qeye
 )
-from qutip.states import fock_dm
+from qutip.states import fock_dm, basis
 from qutip.propagator import propagator
 from qutip.random_objects import (
     rand_herm, rand_dm, rand_unitary, rand_ket, rand_super_bcsz,
@@ -95,6 +97,7 @@ def test_fidelity2():
         FU = fidelity(U*rho1*U.dag(), U*rho2*U.dag())
         assert_(abs((F-FU)/F) < 1e-5)
 
+
 def test_fidelity_max():
     """
     Metrics: Fidelity of a pure state w/ itself should be 1.
@@ -102,6 +105,7 @@ def test_fidelity_max():
     for _ in range(10):
         psi = rand_ket_haar(13)
         assert_almost_equal(fidelity(psi, psi), 1)
+
 
 def test_fidelity_bounded_purepure(tol=1e-7):
     """
@@ -134,6 +138,44 @@ def test_fidelity_bounded_mixedmixed(tol=1e-7):
         sigma = rand_dm_ginibre(11)
         F = fidelity(rho, sigma)
         assert_(-tol <= F <= 1 + tol)
+
+
+def test_fidelity_known_cases():
+    """
+    Metrics: Checks fidelity against known cases.
+    """
+    ket0 = basis(2, 0)
+    ket1 = basis(2, 1)
+    ketp = (ket0 + ket1).unit()
+    # A state that almost overlaps with |+> should serve as
+    # a nice test case, especially since we can analytically
+    # calculate its overlap with |+>.
+    ketpy = (ket0 + np.exp(1j * np.pi / 4) * ket1).unit()
+
+    mms = qeye(2).unit()
+
+    assert_almost_equal(fidelity(ket0, ketp), 1 / np.sqrt(2))
+    assert_almost_equal(fidelity(ket0, ket1), 0)
+    assert_almost_equal(fidelity(ket0, mms),  1 / np.sqrt(2))
+    assert_almost_equal(fidelity(ketp, ketpy),
+        np.sqrt(
+            (1 / 8) + (1 / 2 + 1 / (2 * np.sqrt(2))) ** 2
+        )
+    )
+
+
+def test_fidelity_overlap():
+    """
+    Metrics: Checks fidelity against pure-state overlap. (#631)
+    """
+    for _ in range(10):
+        psi = rand_ket_haar(7)
+        phi = rand_ket_haar(7)
+
+        assert_almost_equal(
+            fidelity(psi, phi),
+            np.abs((psi.dag() * phi)[0, 0])
+        )
 
 def test_tracedist1():
     """
