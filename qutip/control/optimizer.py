@@ -481,7 +481,7 @@ class Optimizer:
         parameter is not None
 
         The result is returned in an OptimResult object, which includes
-        the final fidelity, time evolution, reason forphase_option termination etc
+        the final fidelity, time evolution, reason for termination etc
         """
         self.init_optim(term_conds)
         term_conds = self.termination_conditions
