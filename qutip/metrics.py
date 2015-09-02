@@ -108,7 +108,7 @@ def process_fidelity(U1, U2, normalize=True):
         return (U1 * U2).tr()
 
 
-def average_gate_fidelity(oper):
+def average_gate_fidelity(oper, target=None):
     """
     Given a Qobj representing the supermatrix form of a map, returns the
     average gate fidelity (pseudo-metric) of that map.
@@ -117,20 +117,28 @@ def average_gate_fidelity(oper):
     ----------
     A : Qobj
         Quantum object representing a superoperator.
+    target : Qobj
+        Quantum object representing the target unitary; the inverse
+        is applied before evaluating the fidelity.
 
     Returns
     -------
     fid : float
-        Fidelity pseudo-metric between A and the identity superoperator.
+        Fidelity pseudo-metric between A and the identity superoperator,
+        or between A and the target superunitary.
     """
     kraus_form = to_kraus(oper)
     d = kraus_form[0].shape[0]
 
     if kraus_form[0].shape[1] != d:
-        return TypeError("Average gate fielity only implemented for square "
+        return TypeError("Average gate fidelity only implemented for square "
                          "superoperators.")
 
-    return (d + np.sum([np.abs(A_k.tr())**2
+    if target is None:
+        return (d + np.sum([np.abs(A_k.tr())**2
+                        for A_k in kraus_form])) / (d**2 + d)
+    else:
+        return (d + np.sum([np.abs((A_k * target.dag()).tr())**2
                         for A_k in kraus_form])) / (d**2 + d)
 
 
