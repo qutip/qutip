@@ -383,9 +383,13 @@ class Optimizer:
             self.method_options = {}
         mo = self.method_options
         
-        if hasattr(self, 'max_metric_corr') and not 'maxcor' in mo:
+        if 'max_metric_corr' in mo and not 'maxcor' in mo:
+            mo['maxcor'] = mo['max_metric_corr']
+        elif hasattr(self, 'max_metric_corr') and not 'maxcor' in mo:
             mo['maxcor'] = self.max_metric_corr
-        if hasattr(tc, 'accuracy_factor') and not 'ftol' in mo:
+        if 'accuracy_factor' in mo  and not 'ftol' in mo:
+            mo['ftol'] = mo['accuracy_factor']
+        elif hasattr(tc, 'accuracy_factor') and not 'ftol' in mo:
             mo['ftol'] = tc.accuracy_factor
         if tc.max_iterations > 0 and not 'maxiter' in mo:
             mo['maxiter'] = tc.max_iterations
@@ -413,7 +417,8 @@ class Optimizer:
         if isinstance(params, dict):
             self.method_params = params
             unused_params = {}
-            for key, val in params.iteritems():
+            for key in params:
+                val = params[key]
                 if hasattr(self, key):
                     setattr(self, key, val)
                 if hasattr(self.termination_conditions, key):
@@ -476,7 +481,7 @@ class Optimizer:
         parameter is not None
 
         The result is returned in an OptimResult object, which includes
-        the final fidelity, time evolution, reason for termination etc
+        the final fidelity, time evolution, reason forphase_option termination etc
         """
         self.init_optim(term_conds)
         term_conds = self.termination_conditions
@@ -906,19 +911,20 @@ class OptimizerLBFGSB(Optimizer):
         else:
             fprime = self.fid_err_grad_wrapper
             
-        if 'ftol' in self.method_options:
-            factr = self.method_options['ftol']
-        elif 'accuracy_factor' in self.method_options:
+
+        if 'accuracy_factor' in self.method_options:
             factr = self.method_options['accuracy_factor']
+        elif 'ftol' in self.method_options:
+            factr = self.method_options['ftol']
         elif hasattr(term_conds, 'accuracy_factor'):
             factr = term_conds.accuracy_factor
         else:
             factr = 1e7
             
-        if 'maxcor' in self.method_options:
-            m = self.method_options['maxcor']
-        elif 'max_metric_corr' in self.method_options:
+        if 'max_metric_corr' in self.method_options:
             m = self.method_options['max_metric_corr']
+        elif 'maxcor' in self.method_options:
+            m = self.method_options['maxcor']
         elif hasattr(self, 'max_metric_corr'):
             m = self.max_metric_corr
         else:
