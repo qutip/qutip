@@ -42,16 +42,49 @@
 """
 Tests for main control.pulseoptim methods
 """
-
 from __future__ import division
 
 from numpy.testing import (
     assert_, assert_almost_equal, run_module_suite, assert_equal)
 
+from qutip import Qobj, identity, sigmax, sigmaz
+from qutip.qip import hadamard_transform
+
+import qutip.control.pulseoptim as cpo
+
 class TestPulseOptim:
     """
     A test class for the QuTiP functions for generating quantum gates
     """
+    
+    def test_unitary(self):
+        """
+        Optimise pulse for Hadamard and QFT gate with linear initial pulses
+        assert that goal is achieved and fidelity error is below threshold
+        """
+        H_d = sigmaz()
+        H_c = [sigmax()]
+        U_0 = identity(2)
+        U_targ = hadamard_transform(1)
+
+        n_ts = 10
+        evo_time = 6
+        
+        # Run the optimisation
+        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ, 
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-10, 
+                        init_pulse_type='LIN', 
+                        gen_stats=True)
+                        
+        assert_(result.goal_achieved)
+        assert_almost_equal(result.fid_err, 0.0, decimal=10)
+    
+#    def test_lindbladian(self):
+#        
+#    
+#    def test_symplectic(self):
+    
     
 if __name__ == "__main__":
     run_module_suite()
