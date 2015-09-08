@@ -79,18 +79,18 @@ def version_table(verbose=False):
     html = "<table>"
     html += "<tr><th>Software</th><th>Version</th></tr>"
 
-    packages = {"QuTiP": qutip.__version__,
-                "Numpy": numpy.__version__,
-                "SciPy": scipy.__version__,
-                "matplotlib": matplotlib.__version__,
-                "Cython": Cython.__version__,
-                "Python": sys.version,
-                "IPython": IPython.__version__,
-                "OS": "%s [%s]" % (os.name, sys.platform)
-                }
+    packages = [("QuTiP", qutip.__version__),
+                ("Numpy", numpy.__version__),
+                ("SciPy", scipy.__version__),
+                ("matplotlib", matplotlib.__version__),
+                ("Cython", Cython.__version__),
+                ("IPython", IPython.__version__),
+                ("Python", sys.version),
+                ("OS", "%s [%s]" % (os.name, sys.platform))
+                ]
 
-    for name in packages:
-        html += "<tr><td>%s</td><td>%s</td></tr>" % (name, packages[name])
+    for name, version in packages:
+        html += "<tr><td>%s</td><td>%s</td></tr>" % (name, version)
 
     if verbose:
         html += "<tr><th colspan='2'>Additional information</th></tr>"

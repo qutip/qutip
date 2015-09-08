@@ -40,13 +40,20 @@ from qutip.qobj import Qobj
 from qutip.random_objects import (rand_ket, rand_dm, rand_herm, rand_unitary,
                                   rand_super)
 from qutip.states import basis, fock_dm, ket2dm
-from qutip.operators import create, destroy, num, sigmax
+from qutip.operators import create, destroy, num, sigmax, sigmay
 from qutip.superoperator import spre, spost, operator_to_vector
 from qutip.superop_reps import to_super
 from qutip.tensor import tensor, super_tensor, composite
 
 from operator import add, mul, truediv, sub
 
+def assert_hermicity(oper, hermicity, msg=""):
+    # Check the cached isherm, if any exists.
+    assert_(oper.isherm == hermicity, msg)
+    # Force a reset of the cached value for isherm.
+    oper._isherm = None
+    # Force a recalculation of isherm.
+    assert_(oper.isherm == hermicity, msg)
 
 def test_QobjData():
     "Qobj data"
@@ -131,21 +138,27 @@ def test_QobjHerm():
 
     # test addition of two nonhermitian operators adding up to a hermitian one
     q_x = q_a + q_ad
-    assert_(q_x.isherm)  # isherm use the _isherm cache from q_a + q_ad
-    q_x._isherm = None   # reset _isherm cache
-    assert_(q_x.isherm)  # recalculate _isherm
+    assert_hermicity(q_x, True)
 
     # test addition of one hermitan and one nonhermitian operator
     q = q_x + q_a
-    assert_(not q.isherm)
-    q._isherm = None
-    assert_(not q.isherm)
+    assert_hermicity(q, False)
 
     # test addition of two hermitan operators
     q = q_x + q_x
-    assert_(q.isherm)
-    q._isherm = None
-    assert_(q.isherm)
+    assert_hermicity(q, True)
+
+    # Test multiplication of two Hermitian operators.
+    # This results in a skew-Hermitian operator, so
+    # we're checking here that __mul__ doesn't set wrong
+    # metadata.
+    q = sigmax() * sigmay()
+    assert_hermicity(q, False, "Expected iZ = X * Y to be skew-Hermitian.")
+    # Similarly, we need to check that -Z = X * iY is correctly
+    # identified as Hermitian.
+    q = sigmax() * (1j * sigmay())
+    assert_hermicity(q, True, "Expected -Z = X * iY to be Hermitian.")
+
 
 
 def test_QobjDimsShape():
@@ -174,6 +187,39 @@ def test_QobjDimsShape():
     assert_equal(q1.dims, [[2, 2], [2, 2]])
     assert_equal(q1.shape, [4, 4])
 
+def test_QobjMulNonsquareDims():
+    """
+    Qobj: multiplication w/ non-square qobj.dims
+
+    Checks for regression of #331.
+    """
+    data = np.array([[0, 1], [1, 0]])
+
+    q1 = Qobj(data)
+    q1.dims[0].append(1)
+    q2 = Qobj(data)
+
+    assert_equal((q1 * q2).dims, [[2, 1], [2]])
+    assert_equal((q2 * q1.dag()).dims, [[2], [2, 1]])
+
+    # Note that this is [[2], [2]] instead of [[2, 1], [2, 1]],
+    # as matching dimensions of 1 are implicitly partial traced out.
+    # (See #331.)
+    assert_equal((q1 * q2 * q1.dag()).dims, [[2], [2]])
+    
+    # Because of the above, we also need to check for extra indices
+    # that aren't of length 1.
+    q1 = Qobj([[ 1.+0.j,  0.+0.j],
+         [ 0.+0.j,  1.+0.j],
+         [ 0.+0.j,  1.+0.j],
+         [ 1.+0.j,  0.+0.j],
+         [ 0.+0.j,  0.-1.j],
+         [ 0.+1.j,  0.+0.j],
+         [ 1.+0.j,  0.+0.j],
+         [ 0.+0.j, -1.+0.j]
+     ], dims=[[4, 2], [2]])
+
+    assert_equal((q1 * q2 * q1.dag()).dims, [[4, 2], [4, 2]])
 
 def test_QobjAddition():
     "Qobj addition"

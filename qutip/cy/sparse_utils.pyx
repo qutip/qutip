@@ -223,3 +223,5 @@ def _sparse_reverse_permute(
                 new_idx[jj] = rperm[new_idx[jj]]
 
     return new_data, new_idx, new_ptr
+
+                    

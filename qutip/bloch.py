@@ -654,13 +654,13 @@ class Bloch():
                 os.makedirs(os.getcwd() + "/" + str(dirc))
         if name is None:
             if dirc:
-                plt.savefig(os.getcwd() + "/" + str(dirc) + '/bloch_' +
+                self.fig.savefig(os.getcwd() + "/" + str(dirc) + '/bloch_' +
                             str(self.savenum) + '.' + format)
             else:
-                plt.savefig(os.getcwd() + '/bloch_' + str(self.savenum) +
+                self.fig.savefig(os.getcwd() + '/bloch_' + str(self.savenum) +
                             '.' + format)
         else:
-            plt.savefig(name)
+            self.fig.savefig(name)
         self.savenum += 1
         if self.fig:
             plt.close(self.fig)

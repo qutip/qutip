@@ -8,8 +8,7 @@ import os
 
 exts = ['cy_grape']
 
-_compiler_flags = ['-w', '-ffast-math', '-O3', '-march=native', 
-                   '-mfpmath=sse', '-flto']
+_compiler_flags = ['-w', '-ffast-math', '-O3', '-march=native']
 
 def configuration(parent_package='', top_path=None):
     # compiles files during installation

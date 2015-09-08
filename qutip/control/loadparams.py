@@ -47,8 +47,11 @@ Note that new attributes will be created, even if they are not usually
 defined for that object
 """
 
+import numpy as np
 from ConfigParser import SafeConfigParser
 # QuTiP logging
+from qutip import Qobj
+
 import qutip.logging as logging
 logger = logging.get_logger()
 
@@ -109,7 +112,7 @@ def load_parameters(file_name, config=None, term_conds=None,
         try:
             attr_names = parser.options(s)
             for a in attr_names:
-                set_param(parser, s, a, optim, a)
+                set_param(parser, s, a, pulsegen, a)
         except Exception as e:
             logger.warn("Unable to load {} parameters:({}) {}".format(
                 s, type(e).__name__, e))
@@ -130,8 +133,32 @@ def set_param(parser, section, option, obj, attrib_name):
     if hasattr(obj, attrib_name):
         a = getattr(obj, attrib_name)
         dtype = type(a)
-
-    if dtype == float:
+        
+    if isinstance(a, Qobj):
+        try:
+            q = Qobj(eval(val))
+        except:
+            raise ValueError("Value '{}' cannot be used to generate a Qobj"
+                             " in parameter file [{}].{}".format(
+                                 val, section, option))
+        setattr(obj, attrib_name, q)
+    elif isinstance(a, np.ndarray):
+        try:
+            arr = np.array(eval(val), dtype=a.dtype)
+        except:
+            raise ValueError("Value '{}' cannot be used to generate an ndarray"
+                             " in parameter file [{}].{}".format(
+                                 val, section, option))
+        setattr(obj, attrib_name, arr)
+    elif isinstance(a, list):
+        try:
+            l = list(eval(val))
+        except:
+            raise ValueError("Value '{}' cannot be used to generate a list"
+                             " in parameter file [{}].{}".format(
+                                 val, section, option))
+        setattr(obj, attrib_name, l)
+    elif dtype == float:
         try:
             f = parser.getfloat(section, attrib_name)
         except:
