@@ -44,11 +44,14 @@ Tests for main control.pulseoptim methods
 """
 from __future__ import division
 
+import numpy as np
 from numpy.testing import (
     assert_, assert_almost_equal, run_module_suite, assert_equal)
+from scipy.optimize import check_grad
 
-from qutip import Qobj, identity, sigmax, sigmaz
+from qutip import Qobj, identity, sigmax, sigmay, sigmaz, tensor
 from qutip.qip import hadamard_transform
+from qutip.qip.algorithms import qft
 
 import qutip.control.pulseoptim as cpo
 
@@ -62,6 +65,7 @@ class TestPulseOptim:
         Optimise pulse for Hadamard and QFT gate with linear initial pulses
         assert that goal is achieved and fidelity error is below threshold
         """
+        # Hadamard
         H_d = sigmaz()
         H_c = [sigmax()]
         U_0 = identity(2)
@@ -71,17 +75,142 @@ class TestPulseOptim:
         evo_time = 6
         
         # Run the optimisation
-        result = cpo.optimize_pulse_unitary(H_d, H_c, U_0, U_targ, 
+        result = cpo.optimize_pulse_unitary(H_d, list(H_c), U_0, U_targ, 
                         n_ts, evo_time, 
                         fid_err_targ=1e-10, 
                         init_pulse_type='LIN', 
                         gen_stats=True)
                         
-        assert_(result.goal_achieved)
-        assert_almost_equal(result.fid_err, 0.0, decimal=10)
+        assert_(result.goal_achieved, msg="Hadamard goal not achieved")
+        assert_almost_equal(result.fid_err, 0.0, decimal=10, 
+                            err_msg="Hadamard infidelity too high")
+                            
+        # Check same result is achieved using the create objects method
+        optim = cpo.create_pulse_optimizer(H_d, list(H_c), U_0, U_targ, 
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-10, 
+                        dyn_type='UNIT', 
+                        init_pulse_type='LIN', 
+                        gen_stats=True)
+        dyn = optim.dynamics
+
+        init_amps = optim.pulse_generator.gen_pulse().reshape([-1, 1])
+        dyn.initialize_controls(init_amps)
+
+        # Check the exact gradient
+        func = optim.fid_err_func_wrapper
+        grad = optim.fid_err_grad_wrapper
+        x0 = dyn.ctrl_amps.flatten()
+        grad_diff = check_grad(func, grad, x0)
+        assert_almost_equal(grad_diff, 0.0, decimal=7,
+                            err_msg="Unitary gradient outside tolerance")
+
+        result2 = optim.run_optimization()
+        assert_almost_equal(result.fid_err, result2.fid_err, decimal=10, 
+                            err_msg="Direct and indirect methods produce "
+                                    "different results for Hadamard")
+                                    
+        # QFT
+        Sx = sigmax()
+        Sy = sigmay()
+        Sz = sigmaz()
+        Si = 0.5*identity(2)
+        
+        H_d = 0.5*(tensor(Sx, Sx) + tensor(Sy, Sy) + tensor(Sz, Sz))
+        H_c = [tensor(Sx, Si), tensor(Sy, Si), tensor(Si, Sx), tensor(Si, Sy)]
+        #n_ctrls = len(H_c)
+        U_0 = identity(4)
+        # Target for the gate evolution - Quantum Fourier Transform gate
+        U_targ = qft.qft(2)
+        result = cpo.optimize_pulse_unitary(H_d, list(H_c), U_0, U_targ, 
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-9, 
+                        init_pulse_type='LIN', 
+                        gen_stats=True)
+                        
+        assert_(result.goal_achieved, msg="QFT goal not achieved")
+        assert_almost_equal(result.fid_err, 0.0, decimal=7, 
+                            err_msg="QFT infidelity too high")
+                            
+        # check bounds
+        result2 = cpo.optimize_pulse_unitary(H_d, list(H_c), U_0, U_targ, 
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-9, 
+                        amp_lbound=-1.0, amp_ubound=1.0,
+                        init_pulse_type='LIN', 
+                        gen_stats=True)
+        assert_((result2.final_amps >= -1.0).all() and 
+                    (result2.final_amps <= 1.0).all(), 
+                    msg="Amplitude bounds exceeded for QFT")
     
-#    def test_lindbladian(self):
-#        
+    def test_lindbladian(self):
+        """
+        Optimise pulse for amplitude damping channel with Lindbladian dyn
+        assert that fidelity error is below threshold
+        """
+
+        Sx = sigmax()
+        Sz = sigmaz()
+        Si = identity(2)
+        
+        Sd = Qobj(np.array([[0, 1], [0, 0]]))
+        Sm = Qobj(np.array([[0, 0], [1, 0]]))
+        Sd_m = Qobj(np.array([[1, 0], [0, 0]]))
+        
+        gamma = 0.1
+        L0_Ad = gamma*(2*tensor(Sm, Sd.trans()) - 
+                    (tensor(Sd_m, Si) + tensor(Si, Sd_m.trans())))
+        LC_x = -1j*(tensor(Sx, Si) - tensor(Si, Sx))
+        LC_z = -1j*(tensor(Sz, Si) - tensor(Si, Sz))
+        
+        drift = L0_Ad
+        ctrls = [LC_z, LC_x]
+        n_ctrls = len(ctrls)
+        initial = identity(4)
+        had_gate = hadamard_transform(1)
+        target_DP = tensor(had_gate, had_gate)
+
+        n_ts = 10
+        evo_time = 5
+        
+        result = cpo.optimize_pulse(drift, list(ctrls), initial, target_DP, 
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-3, 
+                        max_iter=200,
+                        init_pulse_type='LIN', 
+                        gen_stats=True)
+       
+        assert_(result.fid_err < 0.1, 
+                msg="Fidelity higher than expected")
+                
+        # Check same result is achieved using the create objects method
+        optim = cpo.create_pulse_optimizer(drift, list(ctrls), 
+                        initial, target_DP,
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-10, 
+                        init_pulse_type='LIN', 
+                        gen_stats=True)
+        dyn = optim.dynamics
+
+        p_gen = optim.pulse_generator
+        init_amps = np.zeros([n_ts, n_ctrls])
+        for j in range(n_ctrls):
+            init_amps[:, j] = p_gen.gen_pulse()
+        dyn.initialize_controls(init_amps)
+
+        # Check the exact gradient
+        func = optim.fid_err_func_wrapper
+        grad = optim.fid_err_grad_wrapper
+        x0 = dyn.ctrl_amps.flatten()
+        grad_diff = check_grad(func, grad, x0)
+        assert_almost_equal(grad_diff, 0.0, decimal=7,
+                            err_msg="Frechet gradient outside tolerance")
+
+        result2 = optim.run_optimization()
+        assert_almost_equal(result.fid_err, result2.fid_err, decimal=3, 
+                            err_msg="Direct and indirect methods produce "
+                                    "different results for ADC")
+
 #    
 #    def test_symplectic(self):
     
