@@ -59,7 +59,6 @@ See Machnes et.al., arXiv.1011.4874
 import os
 import numpy as np
 import scipy.linalg as la
-from six import string_types
 # QuTiP logging
 import qutip.logging as logging
 logger = logging.get_logger()
@@ -70,6 +69,20 @@ import qutip.control.fidcomp as fidcomp
 import qutip.control.propcomp as propcomp
 import qutip.control.symplectic as sympl
 
+def _is_string(var):
+    try:
+        if isinstance(var, basestring):
+            return True
+    except NameError:
+        try:
+            if isinstance(var, str):
+                return True
+        except:
+            return False
+    except:
+        return False
+        
+    return False
 
 class Dynamics:
     """
@@ -454,7 +467,7 @@ class Dynamics:
 
     def get_amp_times(self):
         return self.time[:self.num_tslots]
-
+        
     def save_amps(self, file_name=None, times=None, amps=None, verbose=False):
         """
         Save a file with the current control amplitudes in each timeslot
@@ -489,14 +502,14 @@ class Dynamics:
         if times is None:
             times = self.get_amp_times()
         else:
-            if isinstance(times, string_types):
+            if _is_string(times):
                 if times.lower() == 'exclude':
                     inctimes = False
                 else:
                     logger.warn("Unknown option for times '{}' "
                                 "when saving amplitudes".format(times))
                     times = self.get_amp_times()
-
+            
         try:
             if inctimes:
                 shp = amps.shape
