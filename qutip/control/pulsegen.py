@@ -215,14 +215,14 @@ class PulseGen:
         instantiation, or passed as a parameter
         This is called during the instantiation automatically.
         The key value pairs are the attribute name and value
-        """
+        """               
         if not params:
             params = self.params
         
         if isinstance(params, dict):
             self.params = params
-            for key, val in params.iteritems():
-                setattr(self, key, val)
+            for key in params:
+                setattr(self, key, params[key])
 
     def set_log_level(self, lvl):
         """

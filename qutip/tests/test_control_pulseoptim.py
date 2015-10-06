@@ -54,6 +54,7 @@ from qutip.qip import hadamard_transform
 from qutip.qip.algorithms import qft
 
 import qutip.control.pulseoptim as cpo
+import qutip.control.symplectic as sympl
 
 class TestPulseOptim:
     """
@@ -80,11 +81,19 @@ class TestPulseOptim:
                         fid_err_targ=1e-10, 
                         init_pulse_type='LIN', 
                         gen_stats=True)
-                        
         assert_(result.goal_achieved, msg="Hadamard goal not achieved")
         assert_almost_equal(result.fid_err, 0.0, decimal=10, 
                             err_msg="Hadamard infidelity too high")
                             
+        #Try without stats
+        result = cpo.optimize_pulse_unitary(H_d, list(H_c), U_0, U_targ, 
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-10, 
+                        init_pulse_type='LIN', 
+                        gen_stats=False)
+        assert_(result.goal_achieved, msg="Hadamard goal not achieved "
+                                            "(no stats)") 
+        
         # Check same result is achieved using the create objects method
         optim = cpo.create_pulse_optimizer(H_d, list(H_c), U_0, U_targ, 
                         n_ts, evo_time, 
@@ -187,7 +196,7 @@ class TestPulseOptim:
         optim = cpo.create_pulse_optimizer(drift, list(ctrls), 
                         initial, target_DP,
                         n_ts, evo_time, 
-                        fid_err_targ=1e-10, 
+                        fid_err_targ=1e-3, 
                         init_pulse_type='LIN', 
                         gen_stats=True)
         dyn = optim.dynamics
@@ -211,10 +220,91 @@ class TestPulseOptim:
                             err_msg="Direct and indirect methods produce "
                                     "different results for ADC")
 
-#    
-#    def test_symplectic(self):
     
+    def test_symplectic(self):
+        """
+        Optimise pulse for coupled oscillators with Symplectic dynamics
+        assert that fidelity error is below threshold
+        """
+        g1 = 1.0
+        g2 = 0.2
+        A0 = Qobj(np.array([[1, 0, g1, 0], 
+                           [0, 1, 0, g2], 
+                           [g1, 0, 1, 0], 
+                           [0, g2, 0, 1]]))
+        A_rot = Qobj(np.array([
+                            [1, 0, 0, 0],
+                            [0, 1, 0, 0],
+                            [0, 0, 0, 0],
+                            [0, 0, 0, 0]
+                            ]))
+        
+        A_sqz = Qobj(0.4*np.array([
+                            [1, 0, 0, 0],
+                            [0, -1, 0, 0],
+                            [0, 0, 0, 0],
+                            [0, 0, 0, 0]
+                            ]))
+                            
+        A_c = [A_rot, A_sqz]
+        n_ctrls = len(A_c)
+        initial = identity(4)
+        A_targ = Qobj(np.array([
+                        [0, 0, 1, 0], 
+                        [0, 0, 0, 1], 
+                        [1, 0, 0, 0], 
+                        [0, 1, 0, 0]
+                        ]))
+        Omg = Qobj(sympl.calc_omega(2))
+        S_targ = (-A_targ*Omg*np.pi/2.0).expm()
     
+        n_ts = 20
+        evo_time = 10
+        
+        result = cpo.optimize_pulse(A0, list(A_c), initial, S_targ, 
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-3, 
+                        max_iter=200,
+                        dyn_type='SYMPL',
+                        init_pulse_type='ZERO', 
+                        gen_stats=True)
+        assert_(result.goal_achieved, msg="Symplectic goal not achieved")
+        assert_almost_equal(result.fid_err, 0.0, decimal=2, 
+                            err_msg="Symplectic infidelity too high")
+                
+        # Check same result is achieved using the create objects method
+        optim = cpo.create_pulse_optimizer(A0, list(A_c), 
+                        initial, S_targ,
+                        n_ts, evo_time, 
+                        fid_err_targ=1e-3, 
+                        dyn_type='SYMPL',
+                        init_pulse_type='ZERO', 
+                        gen_stats=True)
+        dyn = optim.dynamics
+
+        p_gen = optim.pulse_generator
+        init_amps = np.zeros([n_ts, n_ctrls])
+        for j in range(n_ctrls):
+            init_amps[:, j] = p_gen.gen_pulse()
+        dyn.initialize_controls(init_amps)
+
+        # Check the exact gradient
+        func = optim.fid_err_func_wrapper
+        grad = optim.fid_err_grad_wrapper
+        x0 = dyn.ctrl_amps.flatten()
+        grad_diff = check_grad(func, grad, x0)
+        assert_almost_equal(grad_diff, 0.0, decimal=5,
+                            err_msg="Frechet gradient outside tolerance "
+                                    "(SYMPL)")
+
+        result2 = optim.run_optimization()
+        assert_almost_equal(result.fid_err, result2.fid_err, decimal=6, 
+                            err_msg="Direct and indirect methods produce "
+                                    "different results for Symplectic")
+                                    
+#def test_crab(self):
+    
+
 if __name__ == "__main__":
     run_module_suite()
     
