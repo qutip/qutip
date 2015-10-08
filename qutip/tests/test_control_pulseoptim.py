@@ -302,8 +302,47 @@ class TestPulseOptim:
                             err_msg="Direct and indirect methods produce "
                                     "different results for Symplectic")
                                     
-#def test_crab(self):
-    
+    def test_crab(self):
+        """
+        Optimise pulse for Hadamard gate using CRAB algorithm
+        Apply guess and ramping pulse
+        assert that goal is achieved and fidelity error is below threshold
+        assert that starting amplitude is zero
+        """
+        # Hadamard
+        H_d = sigmaz()
+        H_c = [sigmax()]
+        U_0 = identity(2)
+        U_targ = hadamard_transform(1)
+
+        n_ts = 12
+        evo_time = 10
+        
+        # Run the optimisation
+        result = cpo.opt_pulse_crab_unitary(H_d, H_c, U_0, U_targ, 
+                n_ts, evo_time, 
+                fid_err_targ=1e-5, 
+                alg_params={'crab_pulse_params':{'randomize_coeffs':False, 
+                                                 'randomize_freqs':False}},
+                init_coeff_scaling=0.5,
+                guess_pulse_type='GAUSSIAN', 
+                guess_pulse_params={'variance':0.1*evo_time},
+                guess_pulse_scaling=1.0, guess_pulse_offset=1.0,
+                amp_lbound=None, amp_ubound=None,
+                ramping_pulse_type='GAUSSIAN_EDGE', 
+                ramping_pulse_params={'decay_time':evo_time/100.0},
+                gen_stats=True)
+        assert_(result.goal_achieved, msg="Hadamard goal not achieved")
+        assert_almost_equal(result.fid_err, 0.0, decimal=3, 
+                            err_msg="Hadamard infidelity too high")
+        assert_almost_equal(result.final_amps[0, 0], 0.0, decimal=3, 
+                            err_msg="lead in amplitude not zero")
+                            
+    def test_load_params(self):
+        """
+        Optimise pulse for Hadamard gate by loading config from file
+        compare with result produced by pulseoptim method
+        """
 
 if __name__ == "__main__":
     run_module_suite()

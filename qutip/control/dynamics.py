@@ -251,8 +251,8 @@ class Dynamics:
         # Link to optimiser object if self is linked to one
         self.parent = None
         # Main functional attributes
-        self.evo_time = 0
-        self.num_tslots = 0
+        self.evo_time = 1
+        self.num_tslots = 10
         self.tau = None
         self.time = None
         self.initial = None
