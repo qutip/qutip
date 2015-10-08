@@ -269,6 +269,7 @@ class Optimizer:
         result.initial_fid_err = self.dynamics.fid_computer.get_fid_err()
         result.initial_amps = self.dynamics.ctrl_amps.copy()
         result.time = self.dynamics.time
+        result.optimizer = self
         return result
 
     def init_optim(self, term_conds):
